@@ -1,0 +1,15 @@
+{
+  "name": "@coffeeeeffoc/config-typescript",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "base.json",
+    "node.json",
+    "react.json"
+  ],
+  "exports": {
+    "./base.json": "./base.json",
+    "./node.json": "./node.json",
+    "./react.json": "./react.json"
+  }
+}

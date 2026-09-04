@@ -11,15 +11,15 @@ v0.2 已加入章节幕布、事件切换、属性跳字、摸鱼角色动作、
 ## 本地启动
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 浏览器访问终端显示的地址（默认 `http://localhost:5173`）。生产检查：
 
 ```bash
-npm test
-npm run build
+pnpm test
+pnpm build
 ```
 
 ## 广告模式
@@ -54,10 +54,12 @@ VITE_BILI_AD_UNIT_ID=你的广告位ID
 ## 项目结构
 
 ```text
-src/
-  components/        通用游戏外壳与激励广告弹窗
-  games/arena/       电子斗蛐蛐
-  games/cultivation/ 三分钟修仙
-  games/office/      打工人摸鱼记
-  services/          广告适配与本地存档
+apps/
+  legacy-web/        迁移期间保留的三游戏基线应用
+packages/
+  config-eslint/     共享 ESLint 规则
+  config-typescript/ 共享 TypeScript 配置
 ```
+
+根命令由 Turborepo 分发到各 workspace。迁移期间仍可使用
+`pnpm --filter @coffeeeeffoc/legacy-web dev` 单独启动基线应用。

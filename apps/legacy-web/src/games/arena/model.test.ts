@@ -1,0 +1,14 @@
+import { describe, it, expect } from 'vitest';
+import { enemyFor, hatch, mutate, power, traitPool } from './model';
+describe('arena', () => {
+  it('hatches deterministic creature', () => expect(hatch(0.1).species).toBe('赛博鸡'));
+  it('applies mutation', () => expect(mutate(hatch(0.1), traitPool[0]).traits).toHaveLength(1));
+  it('increases power for useful trait', () => {
+    const c = hatch(0.1);
+    expect(power(mutate(c, traitPool[2]))).toBeGreaterThan(power(c));
+  });
+  it('scales league rivals', () => {
+    const c = hatch(0.2);
+    expect(power(enemyFor(c, 4))).toBeGreaterThan(power(enemyFor(c, 0)));
+  });
+});

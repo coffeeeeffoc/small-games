@@ -1,24 +1,26 @@
 {
-  "name": "bili-pocket-arcade",
+  "name": "@coffeeeeffoc/small-games",
+  "version": "0.2.0",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "test:watch": "vitest"
+  "packageManager": "pnpm@8.14.1",
+  "volta": {
+    "node": "24.12.0",
+    "pnpm": "8.14.1"
   },
-  "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "vitest": "latest"
+    "prettier": "3.6.2",
+    "turbo": "2.5.6"
   }
 }
