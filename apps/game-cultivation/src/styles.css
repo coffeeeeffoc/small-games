@@ -1,0 +1,110 @@
+:root {
+  font-family: Inter, 'Noto Sans SC', system-ui, sans-serif;
+  color: #18352c;
+  background: #eff5ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.cultivation {
+  width: min(760px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+header p,
+header small {
+  color: #557167;
+}
+header h1 {
+  margin: 6px 0;
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: clamp(2.2rem, 8vw, 4rem);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.stats span {
+  padding: 12px;
+  border: 1px solid #c4d6cc;
+  border-radius: 12px;
+  background: #fff;
+  text-align: center;
+}
+.event,
+.ending {
+  padding: clamp(24px, 6vw, 52px);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 18px 60px #315b4930;
+}
+.event.boss {
+  border: 2px solid #a55549;
+}
+.event h2,
+.ending h2 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.choices {
+  display: grid;
+  gap: 12px;
+  margin: 28px 0;
+}
+.choices button,
+.ending button {
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: #315b49;
+}
+.event aside,
+footer {
+  color: #60766e;
+}
+.ending {
+  text-align: center;
+}
+.ending strong {
+  display: block;
+  margin: 20px;
+  font-size: 2rem;
+}
+.ending button {
+  margin: 6px;
+}
+footer {
+  padding: 18px;
+  text-align: center;
+}
+.paused {
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 520px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

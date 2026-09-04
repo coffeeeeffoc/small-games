@@ -1,0 +1,32 @@
+{
+  "name": "@coffeeeeffoc/vite-smoke-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "pnpm build && vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "vite": "8.2.2"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@types/node": "24.10.4",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "shared"
+  }
+}

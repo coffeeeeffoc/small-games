@@ -10,13 +10,14 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 20",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
   },
   "dependencies": {
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@coffeeeeffoc/vite-smoke-test": "workspace:*",
     "@coffeeeeffoc/config-eslint": "workspace:*",
     "@coffeeeeffoc/config-typescript": "workspace:*",
     "@types/react": "19.2.14",
