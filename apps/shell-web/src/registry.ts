@@ -1,5 +1,6 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import type { GameDefinition } from '@coffeeeeffoc/game-contract';
+import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
 import {
   cultivationGameDefinition,
   defaultCultivationEnvelope,
@@ -30,5 +31,12 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
     description: '老板转身就摸鱼，熬过五天才算胜利。',
     definition: officeGameDefinition,
     content: defaultOfficeEnvelope,
+  },
+  {
+    id: 'arena',
+    title: '电子斗蛐蛐',
+    description: '养一只怪物，连续打穿五个离谱段位。',
+    definition: arenaGameDefinition,
+    content: defaultArenaEnvelope,
   },
 ];

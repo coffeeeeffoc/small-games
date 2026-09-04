@@ -88,6 +88,18 @@ describe('Web Shell integration', () => {
     await clickButton(container, '返回目录');
   });
 
+  it('enters, exits, and re-enters the arena Game through the catalog', async () => {
+    const arena = builtInGameRegistry.find((game) => game.id === 'arena');
+    expect(arena).toBeDefined();
+    const container = await renderShell(hostFor, arena ? [arena] : []);
+    await clickButton(container, '进入游戏');
+    expect(container.textContent).toContain('电子斗蛐蛐');
+    await clickButton(container, '返回目录');
+    await clickButton(container, '进入游戏');
+    expect(container.textContent).toContain('电子斗蛐蛐');
+    await clickButton(container, '返回目录');
+  });
+
   it('shows a capability incompatibility instead of leaving a partial mount', async () => {
     const container = await renderShell((game) => hostFor(game, ['content']));
     await clickButton(container, '进入游戏');
