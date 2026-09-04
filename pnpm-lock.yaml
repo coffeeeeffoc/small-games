@@ -113,6 +113,64 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
+  apps/shell-web:
+    dependencies:
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/game-cultivation':
+        specifier: workspace:*
+        version: link:../game-cultivation
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../../packages/game-host
+      '@coffeeeeffoc/game-loader':
+        specifier: workspace:*
+        version: link:../../packages/game-loader
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      '@coffeeeeffoc/vite-smoke-test':
+        specifier: workspace:*
+        version: link:../../packages/vite-smoke-test
+      '@types/react':
+        specifier: 19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: 6.1.1
+        version: 6.1.1(vite@8.2.2)
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      jsdom:
+        specifier: 26.1.0
+        version: 26.1.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
+
   packages/config-eslint:
     dependencies:
       '@eslint/js':
@@ -223,6 +281,28 @@ importers:
       '@coffeeeeffoc/game-contract-test':
         specifier: workspace:*
         version: link:../game-contract-test
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
+
+  packages/game-loader:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../game-contract
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
       eslint:
         specifier: 9.35.0
         version: 9.35.0

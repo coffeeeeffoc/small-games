@@ -1,0 +1,5 @@
+{
+  "extends": "@coffeeeeffoc/config-typescript/react.json",
+  "compilerOptions": { "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo" },
+  "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"]
+}

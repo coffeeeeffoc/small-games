@@ -13,6 +13,8 @@ import {
 import { cultivationContentSchema } from './content/schema.js';
 import { CultivationGame } from './view/CultivationGame.js';
 
+export { defaultCultivationEnvelope } from './content/data.js';
+
 const requiredCapabilities = ['content', 'storage'] as const;
 
 /** Deployable metadata for the reference cultivation Game Artifact. */

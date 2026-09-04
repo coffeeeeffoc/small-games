@@ -1,0 +1,81 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #f6f3eb;
+  background: #11131a;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.shell-catalog {
+  width: min(1000px, 92vw);
+  margin: 0 auto;
+  padding: 72px 0;
+}
+.shell-catalog header {
+  max-width: 620px;
+  margin-bottom: 42px;
+}
+.shell-catalog small,
+.catalog-grid span {
+  color: #79e7bb;
+  letter-spacing: 0.14em;
+}
+.shell-catalog h1 {
+  margin: 8px 0;
+  font-size: clamp(3rem, 9vw, 6rem);
+}
+.shell-catalog p {
+  color: #aeb4c4;
+  line-height: 1.7;
+}
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.catalog-grid article {
+  padding: 28px;
+  border: 1px solid #34394a;
+  border-radius: 24px;
+  background: #1b1e28;
+}
+.catalog-grid h2 {
+  font-size: 2rem;
+}
+.catalog-grid button,
+.game-page nav button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 20px;
+  background: #79e7bb;
+  color: #102019;
+  font-weight: 700;
+}
+.game-page nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 20px;
+  background: #161924;
+}
+.game-slot {
+  min-height: calc(100vh - 68px);
+}
+[role='alert'] {
+  margin: 48px auto;
+  width: min(640px, 90vw);
+  padding: 20px;
+  border: 1px solid #ff7b7b;
+  border-radius: 16px;
+  color: #ffd1d1;
+}
