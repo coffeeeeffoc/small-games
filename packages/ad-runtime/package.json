@@ -1,0 +1,31 @@
+{
+  "name": "@coffeeeeffoc/ad-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:contract": "vitest run tests/ad-runtime.contract.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/ad-config": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "runtime"
+  }
+}

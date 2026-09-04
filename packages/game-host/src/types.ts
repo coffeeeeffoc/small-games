@@ -1,6 +1,7 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import type {
   GameSessionContext,
+  AdvertisingPort,
   NavigationPort,
   RewardOpportunity,
   RewardOutcome,
@@ -13,6 +14,7 @@ export type GameHostOptions = {
   content?: DynamicContentEnvelope;
   online?: boolean;
   offer?: (opportunity: RewardOpportunity) => Promise<RewardOutcome>;
+  advertising?: (session: GameSessionContext) => AdvertisingPort;
   telemetry?: TelemetryPort;
   navigation?: NavigationPort;
 };

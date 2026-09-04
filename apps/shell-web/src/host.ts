@@ -1,5 +1,6 @@
 import type { GameHost, HostCapability } from '@coffeeeeffoc/game-contract';
 import { createBrowserGameHost } from '@coffeeeeffoc/game-host';
+import { createAdRuntime } from '@coffeeeeffoc/ad-runtime';
 
 import type { BuiltInGame } from './registry.js';
 
@@ -15,5 +16,6 @@ export function createWebGameHost(game: BuiltInGame): GameHost {
       adAuthority: 'none',
     },
     content: game.content,
+    advertising: (session) => createAdRuntime({ authority: session.adAuthority }),
   });
 }

@@ -115,6 +115,9 @@ importers:
 
   apps/shell-web:
     dependencies:
+      '@coffeeeeffoc/ad-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ad-runtime
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema
@@ -167,6 +170,56 @@ importers:
       vite:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
+
+  packages/ad-config:
+    dependencies:
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
+
+  packages/ad-runtime:
+    dependencies:
+      '@coffeeeeffoc/ad-config':
+        specifier: workspace:*
+        version: link:../ad-config
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../game-contract
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../game-host
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
       vitest:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)

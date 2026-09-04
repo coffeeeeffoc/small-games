@@ -10,6 +10,7 @@ export function createDefaultPorts(
   session: GameSessionContext,
 ): Omit<GameHost, 'session'> {
   const online = options.online ?? true;
+  const advertising = options.advertising?.(session);
   return {
     content: {
       async load() {
@@ -18,7 +19,7 @@ export function createDefaultPorts(
       },
     },
     storage,
-    ads: {
+    ads: advertising ?? {
       async offer(opportunity) {
         if (!online || session.adAuthority === 'none') return { status: 'unavailable' };
         return options.offer?.(opportunity) ?? { status: 'unavailable' };

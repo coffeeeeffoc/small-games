@@ -16,6 +16,7 @@
     "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
