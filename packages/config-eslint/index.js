@@ -39,3 +39,10 @@ export const reactConfig = tseslint.config(...baseConfig, {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   },
 });
+
+export const nodeConfig = {
+  files: ['**/*.{js,mjs,cjs}'],
+  languageOptions: {
+    globals: globals.node,
+  },
+};

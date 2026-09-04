@@ -1,3 +1,3 @@
-import { reactConfig } from '@coffeeeeffoc/config-eslint';
+import { nodeConfig, reactConfig } from '@coffeeeeffoc/config-eslint';
 
-export default reactConfig;
+export default [...reactConfig, nodeConfig];

@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
-    "lint": "eslint . --max-warnings 20"
+    "lint": "eslint . --max-warnings 20",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "react": "19.2.8",
