@@ -4,6 +4,7 @@ import {
   cultivationGameDefinition,
   defaultCultivationEnvelope,
 } from '@coffeeeeffoc/game-cultivation';
+import { defaultOfficeEnvelope, officeGameDefinition } from '@coffeeeeffoc/game-office';
 
 /** Catalog metadata paired with a trusted build-time Game import. */
 export type BuiltInGame = Readonly<{
@@ -22,5 +23,12 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
     description: '三章十八劫，一炷香走完一世。',
     definition: cultivationGameDefinition,
     content: defaultCultivationEnvelope,
+  },
+  {
+    id: 'office',
+    title: '打工人摸鱼记',
+    description: '老板转身就摸鱼，熬过五天才算胜利。',
+    definition: officeGameDefinition,
+    content: defaultOfficeEnvelope,
   },
 ];

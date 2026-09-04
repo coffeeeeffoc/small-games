@@ -21,6 +21,7 @@
   "dependencies": {
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/react-game-adapter": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "4.1.5"

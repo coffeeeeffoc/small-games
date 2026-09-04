@@ -1,0 +1,36 @@
+{
+  "name": "@coffeeeeffoc/react-game-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.35.0",
+    "jsdom": "26.1.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "shared"
+  }
+}

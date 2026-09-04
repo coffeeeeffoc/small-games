@@ -1,0 +1,4 @@
+{
+  "extends": "@coffeeeeffoc/config-typescript/react.json",
+  "include": ["src", "tests", "vitest.config.ts"]
+}

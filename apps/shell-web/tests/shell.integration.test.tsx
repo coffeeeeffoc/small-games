@@ -74,6 +74,20 @@ describe('Web Shell integration', () => {
     await clickButton(container, '返回目录');
   });
 
+  it('enters, exits, and re-enters the office Game through the catalog', async () => {
+    const office = builtInGameRegistry.find((game) => game.id === 'office');
+    expect(office).toBeDefined();
+    const container = await renderShell(hostFor, office ? [office] : []);
+
+    await clickButton(container, '进入游戏');
+    expect(container.textContent).toContain('打工人摸鱼记');
+    await clickButton(container, '返回目录');
+    expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
+    await clickButton(container, '进入游戏');
+    expect(container.textContent).toContain('打工人摸鱼记');
+    await clickButton(container, '返回目录');
+  });
+
   it('shows a capability incompatibility instead of leaving a partial mount', async () => {
     const container = await renderShell((game) => hostFor(game, ['content']));
     await clickButton(container, '进入游戏');

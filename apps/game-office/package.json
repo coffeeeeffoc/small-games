@@ -1,34 +1,36 @@
 {
-  "name": "@coffeeeeffoc/shell-web",
+  "name": "@coffeeeeffoc/game-office",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/definition.ts",
+    "./adapter": "./src/adapter/index.ts",
+    "./content": "./src/content/index.ts",
+    "./domain": "./src/domain/index.ts"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "test:integration": "vitest run tests/shell.integration.test.tsx",
+    "test:contract": "vitest run tests/game.contract.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
   },
   "dependencies": {
-    "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
-    "@coffeeeeffoc/game-cultivation": "workspace:*",
-    "@coffeeeeffoc/game-office": "workspace:*",
-    "@coffeeeeffoc/game-host": "workspace:*",
-    "@coffeeeeffoc/game-loader": "workspace:*",
+    "@coffeeeeffoc/react-game-adapter": "workspace:*",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "4.1.5"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
     "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/game-contract-test": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*",
     "@coffeeeeffoc/vite-smoke-test": "workspace:*",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -40,6 +42,6 @@
     "vitest": "5.0.0"
   },
   "coffeeeeffoc": {
-    "role": "shell"
+    "role": "game"
   }
 }
