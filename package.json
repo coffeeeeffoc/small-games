@@ -11,10 +11,14 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev:platform": "node scripts/platform.mjs dev",
+    "infra:up": "node scripts/platform.mjs up",
+    "infra:stop": "node scripts/platform.mjs stop",
+    "test:platform": "node scripts/platform.mjs test",
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "build:affected": "turbo run build --affected",
-    "test": "turbo run test",
+    "test": "node --test scripts/platform-process.test.mjs && turbo run test",
     "test:affected": "turbo run test --affected",
     "test:boundaries": "node --test scripts/check-workspace-dependencies.test.mjs",
     "test:contract": "turbo run test:contract",
@@ -32,6 +36,9 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@coffeeeeffoc/service-kit": "workspace:*",
+    "@coffeeeeffoc/management-api": "workspace:*",
+    "@coffeeeeffoc/runtime-api": "workspace:*",
     "prettier": "3.6.2",
     "turbo": "2.5.6"
   }
