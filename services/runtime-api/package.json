@@ -19,6 +19,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@fastify/rate-limit": "11.2.0",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/service-kit": "workspace:*",

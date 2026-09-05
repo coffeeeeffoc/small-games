@@ -17,6 +17,7 @@ if (mode === 'stop') {
     '002-management-auth.sql',
     '003-content-drafts.sql',
     '004-release-channels.sql',
+    '005-runtime-sessions.sql',
   ])
     await run(
       'docker',
@@ -61,6 +62,7 @@ if (mode === 'stop') {
       await run(process.execPath, ['scripts/auth.integration.mjs']);
       await run(process.execPath, ['scripts/artifact.integration.mjs']);
       await run(process.execPath, ['scripts/releases.integration.mjs']);
+      await run(process.execPath, ['scripts/catalog.integration.mjs']);
     } else {
       const controller = new AbortController();
       const stop = () => controller.abort();

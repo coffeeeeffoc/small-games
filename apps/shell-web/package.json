@@ -17,6 +17,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",

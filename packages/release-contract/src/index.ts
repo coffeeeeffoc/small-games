@@ -10,3 +10,10 @@ export {
   type ReleaseChannelState,
 } from './model.js';
 export { createPublishedVersion, validatePublishedVersion } from './version.js';
+export {
+  catalogSchema,
+  sessionRequestSchema,
+  publishedSessionSchema,
+  type SessionRequest,
+  type PublishedSession,
+} from './catalog.js';

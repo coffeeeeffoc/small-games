@@ -38,6 +38,8 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "vite": "8.2.2",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",

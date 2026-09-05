@@ -1,4 +1,5 @@
 export { createManagementService } from './app.js';
+export { createPublishedArtifactReader, registerArtifactDelivery } from './artifact-delivery.js';
 export { createPublicationStore, ReleaseConflict } from './releases/store.js';
 export { registerPublications } from './releases/routes.js';
 export { createArtifactRepository } from './artifact-repository.js';

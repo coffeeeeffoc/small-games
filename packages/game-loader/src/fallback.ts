@@ -40,29 +40,29 @@ export class VersionCircuitBreaker {
   ) {}
 
   /** Returns whether a version is still inside its failure cooldown. */
-  isOpen(manifest: GameManifest): boolean {
-    const state = this.failures.get(this.key(manifest));
+  isOpen(manifest: GameManifest, publishedVersionId?: string): boolean {
+    const state = this.failures.get(this.key(manifest, publishedVersionId));
     if (!state || state.openedAt === null) return false;
     if (this.now() - state.openedAt < this.cooldownMs) return true;
-    this.failures.delete(this.key(manifest));
+    this.failures.delete(this.key(manifest, publishedVersionId));
     return false;
   }
 
   /** Records one failed launch and opens the circuit at the configured threshold. */
-  recordFailure(manifest: GameManifest): void {
-    const key = this.key(manifest);
+  recordFailure(manifest: GameManifest, publishedVersionId?: string): void {
+    const key = this.key(manifest, publishedVersionId);
     const current = this.failures.get(key) ?? { count: 0, openedAt: null };
     const count = current.count + 1;
     this.failures.set(key, { count, openedAt: count >= this.threshold ? this.now() : null });
   }
 
   /** Clears prior failures after a successful verified launch. */
-  recordSuccess(manifest: GameManifest): void {
-    this.failures.delete(this.key(manifest));
+  recordSuccess(manifest: GameManifest, publishedVersionId?: string): void {
+    this.failures.delete(this.key(manifest, publishedVersionId));
   }
 
-  private key(manifest: GameManifest): string {
-    return `${manifest.gameId}@${manifest.version}`;
+  private key(manifest: GameManifest, publishedVersionId?: string): string {
+    return `${manifest.gameId}@${publishedVersionId ?? `${manifest.version}#${manifest.integrity}`}`;
   }
 }
 
@@ -81,7 +81,7 @@ export class FallbackGameLoader {
   async launch(
     plan: FallbackLaunchPlan,
     target: HTMLElement,
-    createHost: (manifest: GameManifest) => GameHost,
+    createHost: (manifest: GameManifest, artifact?: RemoteGameArtifact) => GameHost,
   ): Promise<LaunchResult> {
     const generation = ++this.generation;
     await this.disposeActive();
@@ -95,25 +95,37 @@ export class FallbackGameLoader {
     if (
       plan.lastKnownGood &&
       plan.lastKnownGood.manifest.gameId === plan.builtIn.manifest.gameId &&
-      plan.lastKnownGood.manifest.version !== plan.target.manifest.version
+      (plan.lastKnownGood.entryUrl !== plan.target.entryUrl ||
+        plan.lastKnownGood.manifest.integrity !== plan.target.manifest.integrity)
     )
       candidates.push({ source: 'last-known-good', artifact: plan.lastKnownGood });
 
     for (const candidate of candidates) {
-      if (this.breaker.isOpen(candidate.artifact.manifest)) continue;
+      if (this.breaker.isOpen(candidate.artifact.manifest, candidate.artifact.publishedVersionId))
+        continue;
       const loader = this.createRemote();
       this.active = loader;
       try {
-        await loader.launch(candidate.artifact, target, createHost(candidate.artifact.manifest));
+        await loader.launch(
+          candidate.artifact,
+          target,
+          createHost(candidate.artifact.manifest, candidate.artifact),
+        );
         if (generation !== this.generation)
           throw new HostError({ code: 'CANCELLED', message: 'Game launch was cancelled' });
-        this.breaker.recordSuccess(candidate.artifact.manifest);
+        this.breaker.recordSuccess(
+          candidate.artifact.manifest,
+          candidate.artifact.publishedVersionId,
+        );
         plan.rememberLastKnownGood?.(candidate.artifact);
         return { source: candidate.source, version: candidate.artifact.manifest.version };
       } catch {
         if (generation !== this.generation)
           throw new HostError({ code: 'CANCELLED', message: 'Game launch was cancelled' });
-        this.breaker.recordFailure(candidate.artifact.manifest);
+        this.breaker.recordFailure(
+          candidate.artifact.manifest,
+          candidate.artifact.publishedVersionId,
+        );
         await loader.dispose();
         if (generation !== this.generation)
           throw new HostError({ code: 'CANCELLED', message: 'Game launch was cancelled' });

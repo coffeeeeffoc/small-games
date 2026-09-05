@@ -8,6 +8,7 @@ import {
 } from '@coffeeeeffoc/game-loader';
 
 import type { BuiltInGame } from './registry.js';
+import { dynamicContentEnvelopeSchema } from '@coffeeeeffoc/content-schema';
 
 function readLastKnownGood(gameId: string): RemoteGameArtifact | null {
   try {
@@ -15,9 +16,27 @@ function readLastKnownGood(gameId: string): RemoteGameArtifact | null {
     if (!value || typeof value !== 'object' || !('entryUrl' in value) || !('manifest' in value))
       return null;
     const manifest = gameManifestSchema.safeParse(value.manifest);
-    return typeof value.entryUrl === 'string' && manifest.success
-      ? { entryUrl: value.entryUrl, manifest: manifest.data }
-      : null;
+    if (typeof value.entryUrl !== 'string' || !manifest.success) return null;
+    if ('publishedVersionId' in value) {
+      const content = dynamicContentEnvelopeSchema.safeParse(
+        'content' in value ? value.content : undefined,
+      );
+      if (
+        typeof value.publishedVersionId !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(value.publishedVersionId) ||
+        !content.success ||
+        content.data.gameId !== gameId ||
+        content.data.schemaVersion > manifest.data.contentSchemaVersion
+      )
+        return null;
+      return {
+        entryUrl: value.entryUrl,
+        manifest: manifest.data,
+        publishedVersionId: value.publishedVersionId,
+        content: content.data,
+      };
+    }
+    return { entryUrl: value.entryUrl, manifest: manifest.data };
   } catch {
     return null;
   }
@@ -38,7 +57,11 @@ export function GameViewport({
   onExit,
 }: {
   game: BuiltInGame;
-  createHost: (game: BuiltInGame, manifest?: GameManifest) => GameHost;
+  createHost: (
+    game: BuiltInGame,
+    manifest?: GameManifest,
+    artifact?: RemoteGameArtifact,
+  ) => GameHost;
   createFallbackLoader?: () => FallbackGameLoader;
   onExit: () => void;
 }) {
@@ -48,6 +71,7 @@ export function GameViewport({
   );
   const [error, setError] = useState<string | null>(null);
   const [exiting, setExiting] = useState(false);
+  const [source, setSource] = useState('');
 
   useEffect(() => {
     const target = targetRef.current;
@@ -62,12 +86,23 @@ export function GameViewport({
             rememberLastKnownGood: (artifact) => rememberLastKnownGood(game.id, artifact),
           },
           target,
-          (manifest) => createHost(game, manifest),
+          (manifest, artifact) => createHost(game, manifest, artifact),
         )
       : (loader as InProcessGameLoader).launch(game.definition, target, createHost(game));
-    void launch.catch((reason: unknown) => {
-      if (active) setError(reason instanceof Error ? reason.message : 'Game 启动失败');
-    });
+    void launch
+      .then((result) => {
+        if (active && result)
+          setSource(
+            result.source === 'target'
+              ? '已发布版本'
+              : result.source === 'last-known-good'
+                ? '已回退到上次可用版本'
+                : '已回退到内置版本',
+          );
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Game 启动失败');
+      });
 
     const handleVisibility = () => {
       void (document.hidden ? loader.pause() : loader.resume()).catch((reason: unknown) => {
@@ -100,6 +135,7 @@ export function GameViewport({
           {exiting ? '正在返回…' : '← 返回目录'}
         </button>
         <strong>{game.title}</strong>
+        {source && <span role="status">{source}</span>}
       </nav>
       {error ? (
         <section role="alert">Game 错误：{error}</section>

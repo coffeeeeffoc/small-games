@@ -59,6 +59,10 @@ export type GameManifest = Readonly<z.infer<typeof gameManifestSchema>>;
 export const gameSessionContextSchema = z.object({
   gameId: z.string().min(1),
   gameVersion: z.string().min(1),
+  publishedVersionId: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   releaseChannel: releaseChannelSchema,
   adAuthority: adAuthoritySchema,
   sessionId: z.string().min(1),

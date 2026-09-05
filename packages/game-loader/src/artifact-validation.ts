@@ -1,4 +1,13 @@
 import { HostError, type GameManifest } from '@coffeeeeffoc/game-contract';
+import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
+
+/** Immutable remote candidate, including the content belonging to its published snapshot. */
+export type RemoteGameArtifact = Readonly<{
+  entryUrl: string;
+  manifest: GameManifest;
+  publishedVersionId?: string;
+  content?: DynamicContentEnvelope;
+}>;
 
 const fixedDirectives = new Map<string, string>([
   ['default-src', "'none'"],

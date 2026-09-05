@@ -42,6 +42,7 @@ async function renderShell(
         registry={registry}
         createHost={createHost}
         createFallbackLoader={createFallbackLoader}
+        runtimeClient={false}
       />,
     ),
   );
@@ -144,7 +145,11 @@ describe('Web Shell integration', () => {
     expect(container.textContent).toContain('REMOTE GAME · BUILT-IN FALLBACK');
     await clickButton(container, '进入游戏');
     expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
-    expect(createHost).toHaveBeenCalledWith(remote, remote.remote.target.manifest);
+    expect(createHost).toHaveBeenCalledWith(
+      remote,
+      remote.remote.target.manifest,
+      remote.remote.target,
+    );
     expect(localStorage.getItem('game-lkg:cultivation')).toContain('2.0.0');
     await clickButton(container, '返回目录');
   });

@@ -26,6 +26,9 @@ importers:
       '@coffeeeeffoc/service-kit':
         specifier: workspace:*
         version: link:packages/service-kit
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
@@ -35,6 +38,9 @@ importers:
       turbo:
         specifier: 2.5.6
         version: 2.5.6
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.3.1)(tsx@4.23.13)
 
   apps/game-arena:
     dependencies:
@@ -331,6 +337,9 @@ importers:
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../game-office
+      '@coffeeeeffoc/release-contract':
+        specifier: workspace:*
+        version: link:../../packages/release-contract
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -642,6 +651,9 @@ importers:
 
   packages/game-loader:
     dependencies:
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../game-contract
@@ -873,6 +885,9 @@ importers:
       '@coffeeeeffoc/service-kit':
         specifier: workspace:*
         version: link:../../packages/service-kit
+      '@fastify/rate-limit':
+        specifier: 11.2.0
+        version: 11.2.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)

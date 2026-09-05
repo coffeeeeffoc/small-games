@@ -10,6 +10,7 @@ import { createArtifactRepository } from './artifact-repository.js';
 import { createPublicationStore } from './releases/store.js';
 import { registerPublications } from './releases/routes.js';
 import { startPublicationWorker } from './releases/worker.js';
+import { createPublishedArtifactReader, registerArtifactDelivery } from './artifact-delivery.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -65,6 +66,17 @@ export function createManagementService(
         ['verify'],
       );
       artifacts = createArtifactRepository(objects, publicKey);
+      if (env.SHELL_ORIGIN) {
+        const shellOrigin = z
+          .url()
+          .refine((value) => new URL(value).origin === value && /^https?:/.test(value))
+          .parse(env.SHELL_ORIGIN);
+        registerArtifactDelivery(
+          instance,
+          createPublishedArtifactReader(database.db, artifacts),
+          shellOrigin,
+        );
+      }
       startPublicationWorker(instance, publications, url, token);
     }
     await registerPublications(

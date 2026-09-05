@@ -19,6 +19,7 @@ const publication = publicKey
   : {};
 // Only the local runner supplies development credentials; service binaries fail closed.
 export const managementEnvironment = {
+  SHELL_ORIGIN: process.env.SHELL_ORIGIN ?? 'http://localhost:5173',
   ...publication,
   ...(publicKey ? { RUNTIME_PROJECTION_URL: 'http://127.0.0.1:53002' } : {}),
   STUDIO_ORIGIN: 'http://127.0.0.1:5174',
@@ -31,6 +32,8 @@ export const managementEnvironment = {
   S3_SECRET_ACCESS_KEY: 'local-management-only',
 };
 export const runtimeEnvironment = {
+  SHELL_ORIGIN: process.env.SHELL_ORIGIN ?? 'http://localhost:5173',
+  ARTIFACT_DELIVERY_URL: 'http://127.0.0.1:53001',
   ...publication,
   RUNTIME_DATABASE_URL: 'postgres://runtime_app:local-runtime-only@127.0.0.1:15432/small_games',
 };

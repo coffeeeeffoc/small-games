@@ -4,21 +4,20 @@ import {
   hostMessageSchema,
   hostResponseSchema,
   type GameHost,
-  type GameManifest,
   type HostMessage,
   type JsonValue,
 } from '@coffeeeeffoc/game-contract';
 
-import { manifestsMatch, requireStrictCsp } from './artifact-validation.js';
+import {
+  manifestsMatch,
+  requireStrictCsp,
+  type RemoteGameArtifact,
+} from './artifact-validation.js';
 import { dispatchHostRequest, serializeHostError } from './host-dispatch.js';
 import { BrowserIframePlatform, type IframePlatform } from './iframe-platform.js';
 import { IframeLifecycle } from './iframe-lifecycle.js';
 
-/** Immutable remote artifact selected from a trusted Game Catalog. */
-export type RemoteGameArtifact = Readonly<{
-  entryUrl: string;
-  manifest: GameManifest;
-}>;
+export type { RemoteGameArtifact } from './artifact-validation.js';
 
 /** Runtime options for one isolated iframe Game loader. */
 export type IframeGameLoaderOptions = Readonly<{
