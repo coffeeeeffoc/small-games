@@ -17,9 +17,9 @@ export function assertContentCompatible(
 }
 
 /** Exercises mount, pause, resume, dispose, and a second mount using public interfaces only. */
-export async function exerciseGameLifecycle(
-  definition: GameDefinition,
-  target: HTMLElement,
+export async function exerciseGameLifecycle<Target>(
+  definition: GameDefinition<Target>,
+  target: Target,
   host: GameHost,
 ): Promise<void> {
   const first = await definition.mount(target, host);

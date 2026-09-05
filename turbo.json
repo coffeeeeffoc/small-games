@@ -9,6 +9,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "dist-iframe/**"],
       "env": [
+        "BILIBILI_AD_UNIT_ID",
         "VITE_SHELL_ORIGIN",
         "VITE_CULTIVATION_ARTIFACT_URL",
         "VITE_CULTIVATION_ARTIFACT_VERSION",

@@ -11,7 +11,7 @@ export interface GameInstance {
 }
 
 /** Public, React-free entry point implemented by every Game. */
-export interface GameDefinition {
+export interface GameDefinition<Target = HTMLElement> {
   readonly manifest: GameManifest;
-  mount(target: HTMLElement, host: GameHost): Promise<GameInstance>;
+  mount(target: Target, host: GameHost): Promise<GameInstance>;
 }

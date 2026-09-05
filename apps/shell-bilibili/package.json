@@ -1,0 +1,39 @@
+{
+  "name": "@coffeeeeffoc/shell-bilibili",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build --config vite.native.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/shell.test.ts",
+    "test:contract": "vitest run tests/host.test.ts",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/ad-runtime": "workspace:*",
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/game-cultivation": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/game-contract-test": "workspace:*",
+    "@types/node": "24.3.1",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}

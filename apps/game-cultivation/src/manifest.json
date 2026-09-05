@@ -1,0 +1,10 @@
+{
+  "gameId": "cultivation",
+  "version": "1.0.0",
+  "gameContractVersion": 1,
+  "contentSchemaVersion": 1,
+  "capabilities": ["content", "storage", "advertising"],
+  "loadModes": ["in-process", "iframe", "bilibili-subpackage"],
+  "entry": "index.html",
+  "integrity": "builtin:cultivation@1.0.0"
+}
