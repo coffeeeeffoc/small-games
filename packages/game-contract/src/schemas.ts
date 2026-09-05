@@ -95,6 +95,12 @@ const messageIdentitySchema = z.object({
   sessionId: z.string().min(1),
 });
 
+/** Runtime schema for the first identity and manifest claim sent by an iframe Game. */
+export const iframeHandshakeSchema = messageIdentitySchema.extend({
+  kind: z.literal('handshake'),
+  manifest: gameManifestSchema,
+});
+
 /** Runtime schema for an iframe Game request with JSON-safe parameters. */
 export const hostRequestSchema = messageIdentitySchema.extend({
   kind: z.literal('request'),
@@ -123,5 +129,10 @@ export const hostEventSchema = messageIdentitySchema.extend({
 });
 
 /** Runtime schema for every Game Contract v1 iframe message. */
-export const hostMessageSchema = z.union([hostRequestSchema, hostResponseSchema, hostEventSchema]);
+export const hostMessageSchema = z.union([
+  iframeHandshakeSchema,
+  hostRequestSchema,
+  hostResponseSchema,
+  hostEventSchema,
+]);
 export type HostMessage = z.infer<typeof hostMessageSchema>;

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.iframe.config.ts",
     "test": "vitest run",
     "test:contract": "vitest run tests/game.contract.test.tsx",
     "typecheck": "tsc -b --pretty false",
@@ -21,6 +21,7 @@
   "dependencies": {
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/game-loader": "workspace:*",
     "@coffeeeeffoc/react-game-adapter": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",

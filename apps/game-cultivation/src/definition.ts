@@ -17,7 +17,7 @@ export const cultivationManifest = gameManifestSchema.parse({
   gameContractVersion: 1,
   contentSchemaVersion: 1,
   capabilities: ['content', 'storage', 'advertising'],
-  loadModes: ['in-process'],
+  loadModes: ['in-process', 'iframe'],
   entry: 'index.html',
   integrity: 'builtin:cultivation@1.0.0',
 });

@@ -1,30 +1,71 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { GameHost } from '@coffeeeeffoc/game-contract';
-import { InProcessGameLoader } from '@coffeeeeffoc/game-loader';
+import { gameManifestSchema, type GameHost, type GameManifest } from '@coffeeeeffoc/game-contract';
+import {
+  FallbackGameLoader,
+  InProcessGameLoader,
+  type RemoteGameArtifact,
+} from '@coffeeeeffoc/game-loader';
 
 import type { BuiltInGame } from './registry.js';
+
+function readLastKnownGood(gameId: string): RemoteGameArtifact | null {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(`game-lkg:${gameId}`) ?? 'null');
+    if (!value || typeof value !== 'object' || !('entryUrl' in value) || !('manifest' in value))
+      return null;
+    const manifest = gameManifestSchema.safeParse(value.manifest);
+    return typeof value.entryUrl === 'string' && manifest.success
+      ? { entryUrl: value.entryUrl, manifest: manifest.data }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberLastKnownGood(gameId: string, artifact: RemoteGameArtifact): void {
+  try {
+    localStorage.setItem(`game-lkg:${gameId}`, JSON.stringify(artifact));
+  } catch {
+    // Storage availability must not block a verified Game launch.
+  }
+}
 
 export function GameViewport({
   game,
   createHost,
+  createFallbackLoader = () => new FallbackGameLoader(),
   onExit,
 }: {
   game: BuiltInGame;
-  createHost: (game: BuiltInGame) => GameHost;
+  createHost: (game: BuiltInGame, manifest?: GameManifest) => GameHost;
+  createFallbackLoader?: () => FallbackGameLoader;
   onExit: () => void;
 }) {
   const targetRef = useRef<HTMLDivElement>(null);
-  const loaderRef = useRef(new InProcessGameLoader());
+  const [loader] = useState(() =>
+    game.remote ? createFallbackLoader() : new InProcessGameLoader(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
-    const loader = loaderRef.current;
     const target = targetRef.current;
     if (!target) return;
     let active = true;
-    void loader.launch(game.definition, target, createHost(game)).catch((reason: unknown) => {
+    const launch = game.remote
+      ? (loader as FallbackGameLoader).launch(
+          {
+            target: game.remote.target,
+            lastKnownGood: readLastKnownGood(game.id),
+            builtIn: game.definition,
+            rememberLastKnownGood: (artifact) => rememberLastKnownGood(game.id, artifact),
+          },
+          target,
+          (manifest) => createHost(game, manifest),
+        )
+      : (loader as InProcessGameLoader).launch(game.definition, target, createHost(game));
+    void launch.catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : 'Game 启动失败');
     });
 
@@ -39,12 +80,12 @@ export function GameViewport({
       document.removeEventListener('visibilitychange', handleVisibility);
       void loader.dispose().catch(() => undefined);
     };
-  }, [createHost, game]);
+  }, [createHost, game, loader]);
 
   async function exit() {
     setExiting(true);
     try {
-      await loaderRef.current.dispose();
+      await loader.dispose();
       onExit();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Game 释放失败');

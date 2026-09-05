@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { GameDefinition, GameHost } from '@coffeeeeffoc/game-contract';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
+import { BrowserIframePlatform, FallbackGameLoader } from '@coffeeeeffoc/game-loader';
 import { ShellApp, builtInGameRegistry, type BuiltInGame } from '@coffeeeeffoc/shell-web';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -13,6 +14,7 @@ const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
 afterEach(async () => {
   await act(async () => mountedRoots.splice(0).forEach((root) => root.unmount()));
   vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 function hostFor(game: BuiltInGame, capabilities = game.definition.manifest.capabilities) {
@@ -29,11 +31,20 @@ function hostFor(game: BuiltInGame, capabilities = game.definition.manifest.capa
 async function renderShell(
   createHost: (game: BuiltInGame) => GameHost = hostFor,
   registry: readonly BuiltInGame[] = builtInGameRegistry,
+  createFallbackLoader?: () => FallbackGameLoader,
 ) {
   const container = document.createElement('div');
   const root = createRoot(container);
   mountedRoots.push(root);
-  await act(async () => root.render(<ShellApp registry={registry} createHost={createHost} />));
+  await act(async () =>
+    root.render(
+      <ShellApp
+        registry={registry}
+        createHost={createHost}
+        createFallbackLoader={createFallbackLoader}
+      />,
+    ),
+  );
   return container;
 }
 
@@ -49,6 +60,27 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell integration', () => {
+  it('creates a script-only sandbox without same-origin or ambient permissions', () => {
+    const target = document.createElement('div');
+    document.body.append(target);
+    const frame = new BrowserIframePlatform().createFrame(
+      target,
+      new TextEncoder().encode('window.verified = true').buffer,
+      "default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors https://shell.example",
+    );
+    const iframe = target.querySelector('iframe');
+    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(iframe?.getAttribute('sandbox')).not.toContain('allow-same-origin');
+    expect(iframe?.referrerPolicy).toBe('no-referrer');
+    expect(iframe?.getAttribute('allow')).toBe('');
+    expect(iframe?.getAttribute('src')).toBeNull();
+    expect(iframe?.srcdoc).toContain(
+      `data:text/javascript;base64,${btoa('window.verified = true')}`,
+    );
+    frame.remove();
+    target.remove();
+  });
+
   it('opens, pauses, resumes, exits, and re-enters the build-time Game', async () => {
     const removeListener = vi.spyOn(document, 'removeEventListener');
     const container = await renderShell();
@@ -71,6 +103,49 @@ describe('Web Shell integration', () => {
 
     await clickButton(container, '进入游戏');
     expect(container.textContent).toContain('三分钟修仙');
+    await clickButton(container, '返回目录');
+  });
+
+  it('launches a remote cultivation Catalog target through the fallback loader', async () => {
+    const cultivation = builtInGameRegistry[0];
+    const remote = {
+      ...cultivation,
+      remote: {
+        target: {
+          entryUrl: 'https://games.example/cultivation/2.0.0/index.html',
+          manifest: {
+            ...cultivation.definition.manifest,
+            version: '2.0.0',
+            loadModes: ['iframe'] as const,
+            integrity: 'sha256-fixture',
+          },
+        },
+      },
+    };
+    const remoteLoader = {
+      launch: vi.fn(async (_artifact, target: HTMLElement) => {
+        target.textContent = '远程三分钟修仙 2.0.0';
+      }),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const createHost = vi.fn((game: BuiltInGame, manifest = game.definition.manifest) =>
+      createInMemoryGameHost({
+        session: { gameId: game.id, gameVersion: manifest.version, capabilities: [] },
+        content: game.content,
+      }),
+    );
+    const container = await renderShell(
+      createHost,
+      [remote],
+      () => new FallbackGameLoader(() => remoteLoader),
+    );
+    expect(container.textContent).toContain('REMOTE GAME · BUILT-IN FALLBACK');
+    await clickButton(container, '进入游戏');
+    expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
+    expect(createHost).toHaveBeenCalledWith(remote, remote.remote.target.manifest);
+    expect(localStorage.getItem('game-lkg:cultivation')).toContain('2.0.0');
     await clickButton(container, '返回目录');
   });
 

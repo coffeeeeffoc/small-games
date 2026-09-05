@@ -1,5 +1,6 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import type { GameDefinition } from '@coffeeeeffoc/game-contract';
+import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
 import {
   cultivationGameDefinition,
@@ -14,7 +15,30 @@ export type BuiltInGame = Readonly<{
   description: string;
   definition: GameDefinition;
   content: DynamicContentEnvelope;
+  remote?: Readonly<{ target: RemoteGameArtifact }>;
 }>;
+
+const cultivationArtifactUrl = import.meta.env.VITE_CULTIVATION_ARTIFACT_URL as string | undefined;
+const cultivationArtifactIntegrity = import.meta.env.VITE_CULTIVATION_ARTIFACT_INTEGRITY as
+  | string
+  | undefined;
+const cultivationArtifactVersion = import.meta.env.VITE_CULTIVATION_ARTIFACT_VERSION as
+  | string
+  | undefined;
+
+const remoteCultivation =
+  cultivationArtifactUrl && cultivationArtifactIntegrity && cultivationArtifactVersion
+    ? {
+        target: {
+          entryUrl: cultivationArtifactUrl,
+          manifest: {
+            ...cultivationGameDefinition.manifest,
+            version: cultivationArtifactVersion,
+            integrity: cultivationArtifactIntegrity,
+          },
+        },
+      }
+    : undefined;
 
 /** Trusted Games compiled into this Web Shell through public package exports only. */
 export const builtInGameRegistry: readonly BuiltInGame[] = [
@@ -24,6 +48,7 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
     description: '三章十八劫，一炷香走完一世。',
     definition: cultivationGameDefinition,
     content: defaultCultivationEnvelope,
+    remote: remoteCultivation,
   },
   {
     id: 'office',

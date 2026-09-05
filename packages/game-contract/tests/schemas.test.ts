@@ -24,6 +24,24 @@ describe('Game Contract runtime schemas', () => {
   });
 
   it('rejects malformed iframe messages and errors', () => {
+    expect(
+      hostMessageSchema.safeParse({
+        kind: 'handshake',
+        protocolVersion: 1,
+        gameId: 'cultivation',
+        sessionId: 'session',
+        manifest: {
+          gameId: 'cultivation',
+          version: '1.0.0',
+          gameContractVersion: 1,
+          contentSchemaVersion: 1,
+          capabilities: [],
+          loadModes: ['iframe'],
+          entry: 'index.html',
+          integrity: 'sha256-example',
+        },
+      }).success,
+    ).toBe(true);
     expect(hostMessageSchema.safeParse({ kind: 'request', id: 'only-an-id' }).success).toBe(false);
     expect(
       hostMessageSchema.safeParse({

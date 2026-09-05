@@ -13,17 +13,18 @@
     "test:integration": "vitest run tests/shell.integration.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
+    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs",
+    "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-arena": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
-    "@coffeeeeffoc/game-arena": "workspace:*",
-    "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*",
     "@coffeeeeffoc/game-loader": "workspace:*",
+    "@coffeeeeffoc/game-office": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -31,6 +32,7 @@
     "@coffeeeeffoc/config-eslint": "workspace:*",
     "@coffeeeeffoc/config-typescript": "workspace:*",
     "@coffeeeeffoc/vite-smoke-test": "workspace:*",
+    "@playwright/test": "1.55.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.1.1",
