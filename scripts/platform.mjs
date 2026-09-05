@@ -55,6 +55,7 @@ if (mode === 'stop') {
     if (mode === 'test') {
       await run(process.execPath, ['scripts/platform.integration.mjs']);
       await run(process.execPath, ['scripts/auth.integration.mjs']);
+      await run(process.execPath, ['scripts/artifact.integration.mjs']);
     } else {
       const controller = new AbortController();
       const stop = () => controller.abort();

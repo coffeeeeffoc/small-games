@@ -1,5 +1,5 @@
 {
-  "name": "@coffeeeeffoc/game-contract",
+  "name": "@coffeeeeffoc/game-artifact",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,22 +11,23 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
     "zod": "4.1.5"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
     "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@types/node": "24.3.1",
     "eslint": "9.35.0",
     "typescript": "7.0.2",
     "vitest": "5.0.0"
   },
   "coffeeeeffoc": {
-    "role": "contract"
+    "role": "shared"
   }
 }

@@ -3,17 +3,25 @@ import test from 'node:test';
 import { runProcessGroup, runCommand, childEnvironment } from './platform-process.mjs';
 
 test('bootstrap secrets never reach prerequisite children and source environment stays unchanged', async () => {
-  const source = { STUDIO_ADMIN_PASSWORD: 'test-only-secret', PATH: 'retained' };
+  const source = {
+    STUDIO_ADMIN_PASSWORD: 'test-only-secret',
+    ARTIFACT_SIGNING_PRIVATE_KEY: 'test-signer-secret',
+    PATH: 'retained',
+  };
   assert.deepEqual(childEnvironment(source), { PATH: 'retained' });
   assert.equal(source.STUDIO_ADMIN_PASSWORD, 'test-only-secret');
   const previous = process.env.STUDIO_ADMIN_PASSWORD;
+  const previousSigner = process.env.ARTIFACT_SIGNING_PRIVATE_KEY;
+  process.env.ARTIFACT_SIGNING_PRIVATE_KEY = 'test-signer-secret';
   process.env.STUDIO_ADMIN_PASSWORD = 'test-only-secret';
   try {
     await runCommand(process.execPath, [
       '-e',
-      'process.exit(process.env.STUDIO_ADMIN_PASSWORD ? 1 : 0)',
+      'process.exit(process.env.STUDIO_ADMIN_PASSWORD || process.env.ARTIFACT_SIGNING_PRIVATE_KEY ? 1 : 0)',
     ]);
   } finally {
+    if (previousSigner === undefined) delete process.env.ARTIFACT_SIGNING_PRIVATE_KEY;
+    else process.env.ARTIFACT_SIGNING_PRIVATE_KEY = previousSigner;
     if (previous === undefined) delete process.env.STUDIO_ADMIN_PASSWORD;
     else process.env.STUDIO_ADMIN_PASSWORD = previous;
   }

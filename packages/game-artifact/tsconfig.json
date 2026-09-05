@@ -1,0 +1,9 @@
+{
+  "extends": "@coffeeeeffoc/config-typescript/node.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "paths": { "@coffeeeeffoc/game-artifact": ["./src/index.ts"] }
+  },
+  "include": ["src", "tests"]
+}

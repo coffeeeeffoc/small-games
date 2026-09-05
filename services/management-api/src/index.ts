@@ -1,4 +1,5 @@
 export { createManagementService } from './app.js';
+export { createArtifactRepository } from './artifact-repository.js';
 export { createDraftStore } from './drafts/store.js';
 export { registerDrafts } from './drafts/routes.js';
 export { type ContentDraft, type DraftStore } from './drafts/model.js';

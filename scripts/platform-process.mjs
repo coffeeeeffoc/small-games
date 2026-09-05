@@ -5,6 +5,7 @@ import { once } from 'node:events';
 export function childEnvironment(env = process.env) {
   const copy = { ...env };
   delete copy.STUDIO_ADMIN_PASSWORD;
+  delete copy.ARTIFACT_SIGNING_PRIVATE_KEY;
   return copy;
 }
 

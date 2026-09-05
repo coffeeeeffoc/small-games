@@ -11,6 +11,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "artifact:build": "node scripts/build-artifact.mjs",
     "dev:platform": "node scripts/platform.mjs dev",
     "init:operator": "node scripts/initialize-operator.mjs",
     "infra:up": "node scripts/platform.mjs up",
@@ -37,6 +38,8 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@coffeeeeffoc/game-artifact": "workspace:*",
+    "@coffeeeeffoc/game-cultivation": "workspace:*",
     "drizzle-orm": "0.45.2",
     "@coffeeeeffoc/service-kit": "workspace:*",
     "@coffeeeeffoc/management-api": "workspace:*",

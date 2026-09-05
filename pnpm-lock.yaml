@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@coffeeeeffoc/game-artifact':
+        specifier: workspace:*
+        version: link:packages/game-artifact
+      '@coffeeeeffoc/game-cultivation':
+        specifier: workspace:*
+        version: link:apps/game-cultivation
       '@coffeeeeffoc/management-api':
         specifier: workspace:*
         version: link:services/management-api
@@ -525,6 +531,34 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
+  packages/game-artifact:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../game-contract
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
+      '@types/node':
+        specifier: 24.3.1
+        version: 24.3.1
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@24.3.1)(vite@8.2.2)
+
   packages/game-contract:
     dependencies:
       '@coffeeeeffoc/content-schema':
@@ -735,6 +769,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1127.0
         version: 3.1127.0
+      '@coffeeeeffoc/game-artifact':
+        specifier: workspace:*
+        version: link:../../packages/game-artifact
       '@coffeeeeffoc/game-cultivation':
         specifier: workspace:*
         version: link:../../apps/game-cultivation
