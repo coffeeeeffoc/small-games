@@ -6,14 +6,17 @@
   "exports": {
     ".": "./src/definition.ts",
     "./adapter": "./src/adapter/index.ts",
-    "./content": "./src/content/index.ts",
+    "./content": {
+      "types": "./dist-content/index.d.ts",
+      "default": "./dist-content/index.js"
+    },
     "./domain": "./src/domain/index.ts",
     "./canvas": "./src/canvas/definition.ts",
     "./manifest": "./src/manifest.json"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build && vite build --config vite.iframe.config.ts",
+    "build": "tsc -p tsconfig.content.json && tsc -b && vite build && vite build --config vite.iframe.config.ts",
     "test": "vitest run",
     "test:contract": "vitest run tests/game.contract.test.tsx tests/canvas.contract.test.ts",
     "typecheck": "tsc -b --pretty false",

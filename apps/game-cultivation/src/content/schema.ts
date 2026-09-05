@@ -8,6 +8,7 @@ const statsDeltaSchema = z.object({
 
 /** Runtime schema for the fixed three-chapter, eighteen-event cultivation campaign. */
 export const cultivationContentSchema = z.object({
+  title: z.string().min(1).max(80),
   chapters: z
     .array(
       z.object({ name: z.string().min(1), subtitle: z.string().min(1), color: z.string().min(1) }),

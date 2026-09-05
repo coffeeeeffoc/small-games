@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { type StudioContext } from './router.js';
+import { DraftEditor } from './draft-editor.js';
 
 /** Login surface with accessible feedback and no client-side credential persistence. */
 export function LoginPage() {
@@ -116,6 +117,7 @@ export function WorkspacePage() {
             {logout.error.message}
           </p>
         )}
+        {operator?.roles.includes('creator') && <DraftEditor />}
       </section>
     </main>
   );

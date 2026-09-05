@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { createObjectStore } from './object-store.js';
 import { createAuthStore } from './auth/store.js';
 import { registerAuthentication } from './auth/routes.js';
+import { createDraftStore } from './drafts/store.js';
+import { registerDrafts } from './drafts/routes.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -23,8 +25,10 @@ export function createManagementService(
   });
   const database = openDatabase(databaseUrl, 'management');
   const app = createService('management', { database, objects }, logger);
-  app.register(async (instance) =>
-    registerAuthentication(instance, createAuthStore(database.db), origin),
-  );
+  app.register(async (instance) => {
+    const auth = createAuthStore(database.db);
+    await registerAuthentication(instance, auth, origin);
+    await registerDrafts(instance, auth, createDraftStore(database.db), origin);
+  });
   return app;
 }

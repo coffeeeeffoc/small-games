@@ -10,7 +10,7 @@ const DEPENDENCY_FIELDS = [
   'peerDependencies',
   'optionalDependencies',
 ];
-const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', '.turbo']);
+const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'dist-content', 'coverage', '.turbo']);
 
 async function pathExists(target) {
   try {

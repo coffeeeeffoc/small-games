@@ -3,9 +3,8 @@ import {
   assertHostCapabilities,
   type GameDefinition,
 } from '@coffeeeeffoc/game-contract';
-import { validateContentEnvelope } from '@coffeeeeffoc/content-schema';
+import { normalizeCultivationContent } from '../content/migration.js';
 import { cultivationManifest } from '../manifest.js';
-import { cultivationContentSchema } from '../content/schema.js';
 import { loadCultivationSave, writeCultivationSave } from '../adapter/save.js';
 import { chooseCultivation, createCultivationState, reincarnate } from '../domain/state.js';
 import { realm, score } from '../domain/model.js';
@@ -29,17 +28,9 @@ export const cultivationCanvasDefinition: GameDefinition<CultivationCanvasTarget
     )
       throw new HostError({ code: 'INVALID_INPUT', message: 'Game Session identity mismatch' });
     const envelope = await host.content.load();
-    if (
-      envelope.gameId !== cultivationManifest.gameId ||
-      envelope.schemaVersion !== cultivationManifest.contentSchemaVersion
-    )
-      throw new HostError({
-        code: 'CONTENT_INCOMPATIBLE',
-        message: 'Incompatible cultivation content',
-      });
-    const validated = validateContentEnvelope(cultivationContentSchema, envelope);
+    const validated = normalizeCultivationContent(envelope);
     if (!validated.success)
-      throw new HostError({ code: 'INVALID_INPUT', message: 'Invalid cultivation content' });
+      throw new HostError({ code: 'CONTENT_INCOMPATIBLE', message: 'Invalid cultivation content' });
     const content = validated.data.payload;
     let stored = await loadCultivationSave(host);
     let state = createCultivationState();
@@ -98,7 +89,7 @@ export const cultivationCanvasDefinition: GameDefinition<CultivationCanvasTarget
               }),
           }));
       surface.draw({
-        title: '三分钟修仙',
+        title: content.title,
         lines: paused
           ? ['修行已暂停']
           : [

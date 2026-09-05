@@ -1,6 +1,6 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 
-import type { Choice } from '../domain/model.js';
+type Choice = CultivationContent['events'][number]['choices'][number];
 import type { CultivationContent } from './schema.js';
 
 const choice = (text: string, result: string, delta: Choice['delta']): Choice => ({
@@ -11,6 +11,7 @@ const choice = (text: string, result: string, delta: Choice['delta']): Choice =>
 
 /** Built-in cultivation campaign used by standalone and offline sessions. */
 export const defaultCultivationContent: CultivationContent = {
+  title: '三分钟修仙',
   chapters: [
     { name: '山门初雪', subtitle: '凡骨问仙', color: '#bfe3cf' },
     { name: '秘境惊雷', subtitle: '金丹试炼', color: '#e9c46a' },
@@ -210,7 +211,7 @@ export const defaultCultivationContent: CultivationContent = {
 /** Versioned envelope for the built-in cultivation campaign. */
 export const defaultCultivationEnvelope: DynamicContentEnvelope<CultivationContent> = {
   gameId: 'cultivation',
-  schemaVersion: 1,
+  schemaVersion: 2,
   revision: 1,
   payload: defaultCultivationContent,
 };

@@ -368,6 +368,18 @@ importers:
 
   apps/studio-web:
     dependencies:
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/game-cultivation':
+        specifier: workspace:*
+        version: link:../game-cultivation
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../../packages/game-host
       '@tanstack/react-query':
         specifier: 5.102.8
         version: 5.102.8(react@19.2.8)
@@ -723,6 +735,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1127.0
         version: 3.1127.0
+      '@coffeeeeffoc/game-cultivation':
+        specifier: workspace:*
+        version: link:../../apps/game-cultivation
       '@coffeeeeffoc/service-kit':
         specifier: workspace:*
         version: link:../../packages/service-kit

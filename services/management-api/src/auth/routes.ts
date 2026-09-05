@@ -1,16 +1,15 @@
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { type FastifyInstance, type FastifyReply } from 'fastify';
 import { operatorSchema, type AuthStore } from './model.js';
 import { usernameSchema, verifyPassword } from './passwords.js';
 
-const accessCookie = 'studio_access';
+import { accessCookie, digest, authenticatedOperator } from './access.js';
 const refreshCookie = 'studio_refresh';
 const accessLifetime = 15 * 60 * 1000;
 const refreshLifetime = 8 * 60 * 60 * 1000;
-const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const credentials = z
   .object({ username: usernameSchema, password: z.string().min(1).max(128) })
   .strict();
@@ -87,10 +86,7 @@ export async function registerAuthentication(
         },
       );
       auth.get('/session', async (request, reply) => {
-        const operator = await store.authenticate(
-          digest(request.cookies[accessCookie] ?? ''),
-          now(),
-        );
+        const operator = await authenticatedOperator(store, request, now());
         return operator ?? reply.code(401).send({ error: 'UNAUTHENTICATED' });
       });
       auth.post(

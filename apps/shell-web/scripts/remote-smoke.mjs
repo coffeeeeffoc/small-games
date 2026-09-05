@@ -10,6 +10,12 @@ import { createServer } from 'vite';
 
 const shellRoot = fileURLToPath(new URL('..', import.meta.url));
 const gameRoot = fileURLToPath(new URL('../../game-cultivation', import.meta.url));
+const cultivationManifest = JSON.parse(
+  await readFile(
+    fileURLToPath(import.meta.resolve('@coffeeeeffoc/game-cultivation/manifest')),
+    'utf8',
+  ),
+);
 let artifactBytes;
 let policy;
 let artifactRequests = 0;
@@ -30,7 +36,9 @@ const server = await createServer({
   server: { port: 0, host: '127.0.0.1' },
   define: {
     'import.meta.env.VITE_CULTIVATION_ARTIFACT_URL': JSON.stringify(artifactUrl),
-    'import.meta.env.VITE_CULTIVATION_ARTIFACT_VERSION': JSON.stringify('1.0.0'),
+    'import.meta.env.VITE_CULTIVATION_ARTIFACT_VERSION': JSON.stringify(
+      cultivationManifest.version,
+    ),
     'import.meta.env.VITE_CULTIVATION_ARTIFACT_INTEGRITY': 'globalThis.__artifactIntegrity',
   },
 });

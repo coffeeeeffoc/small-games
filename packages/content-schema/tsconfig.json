@@ -1,4 +1,5 @@
 {
   "extends": "@coffeeeeffoc/config-typescript/node.json",
+  "compilerOptions": { "paths": { "@coffeeeeffoc/content-schema": ["./src/index.ts"] } },
   "include": ["src", "tests"]
 }

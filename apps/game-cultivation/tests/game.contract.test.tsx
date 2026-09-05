@@ -9,6 +9,17 @@ import { cultivationGameDefinition } from '@coffeeeeffoc/game-cultivation';
 import { defaultCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
 
 describe('cultivation Game Contract', () => {
+  it('mounts published v1 content through the Game-owned migration', async () => {
+    const { title, ...payload } = defaultCultivationEnvelope.payload;
+    const host = createInMemoryGameHost({
+      session: { gameId: 'cultivation' },
+      content: { ...defaultCultivationEnvelope, schemaVersion: 1, payload },
+    });
+    const target = document.createElement('div');
+    const instance = await cultivationGameDefinition.mount(target, host);
+    expect(target.querySelector('h1')?.textContent).toBe(title);
+    await instance.dispose();
+  });
   it('mounts, pauses, resumes, disposes, and mounts again', async () => {
     const host = createInMemoryGameHost({
       session: { gameId: 'cultivation', capabilities: ['content', 'storage', 'advertising'] },
@@ -36,7 +47,10 @@ describe('cultivation Game Contract', () => {
   it('rejects Dynamic Content newer than its supported schema', async () => {
     const host = createInMemoryGameHost({
       session: { gameId: 'cultivation', capabilities: ['content', 'storage'] },
-      content: { ...defaultCultivationEnvelope, schemaVersion: 2 },
+      content: {
+        ...defaultCultivationEnvelope,
+        schemaVersion: cultivationGameDefinition.manifest.contentSchemaVersion + 1,
+      },
     });
 
     await expect(

@@ -22,6 +22,7 @@ const app = createManagementService(managementEnvironment, false);
 const username = `integration-${randomUUID()}`;
 const password = randomUUID();
 let accountId;
+const draftName = `draft-integration-${randomUUID()}`;
 try {
   const initialized = await initializeOperator(store, username, password);
   if (!initialized) {
@@ -76,6 +77,47 @@ try {
   assert.equal(identity.passwordHash, undefined);
   const original = cookies(login);
   assert.equal((await session(original)).status, 200);
+  const draftRequest = (path, method = 'GET', body) =>
+    fetch(address + '/api/drafts' + path, {
+      method,
+      headers: {
+        cookie: original,
+        origin: managementEnvironment.STUDIO_ORIGIN,
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  const created = await draftRequest('/', 'POST', { name: draftName });
+  assert.equal(created.status, 201);
+  const draft = await created.json();
+  assert.equal((await draftRequest(`/${draft.id}`)).status, 200);
+  assert((await (await draftRequest('/')).json()).some((value) => value.id === draft.id));
+  const invalid = structuredClone(draft);
+  invalid.envelope.payload.events[0].title = '';
+  const invalidSave = await draftRequest(`/${draft.id}`, 'PUT', invalid);
+  assert.equal(invalidSave.status, 422);
+  assert.deepEqual((await invalidSave.json()).issues[0].path, ['payload', 'events', 0, 'title']);
+  const legacy = structuredClone(draft);
+  legacy.envelope.schemaVersion = 1;
+  delete legacy.envelope.payload.title;
+  const saves = await Promise.all([
+    draftRequest(`/${draft.id}`, 'PUT', legacy),
+    draftRequest(`/${draft.id}`, 'PUT', draft),
+  ]);
+  assert.deepEqual(saves.map((value) => value.status).sort(), [200, 409]);
+  const winner = await saves.find((value) => value.status === 200).json();
+  assert.equal(winner.revision, 1);
+  assert.equal(winner.envelope.revision, 1);
+  assert.equal(winner.envelope.schemaVersion, 2);
+  assert.deepEqual(await (await draftRequest(`/${draft.id}`)).json(), winner);
+  // Explicitly verify migration after the concurrent winner, irrespective of race order.
+  legacy.revision = winner.revision;
+  const migration = await draftRequest(`/${draft.id}`, 'PUT', legacy);
+  assert.equal(migration.status, 200);
+  assert.equal((await migration.json()).envelope.payload.title, '三分钟修仙');
+  console.log(
+    'Live authenticated draft CRUD, field validation, v1 migration and atomic two-writer SQL conflict passed.',
+  );
   // Expiration is driven by persisted state, without weakening the production clock.
   await owner.db.execute(
     sql`update management.auth_sessions set access_expires_at=0 where account_id=${accountId}`,
@@ -96,6 +138,7 @@ try {
   );
 } finally {
   try {
+    await owner.db.execute(sql`delete from management.content_drafts where name=${draftName}`);
     if (accountId)
       await owner.db.execute(
         sql`delete from management.accounts where id=${accountId} and username=${username}`,

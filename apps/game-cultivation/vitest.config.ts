@@ -1,4 +1,15 @@
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({ plugins: [react()], test: { environment: 'jsdom' } });
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@coffeeeeffoc/game-cultivation/content': fileURLToPath(
+        new URL('./src/content/index.ts', import.meta.url),
+      ),
+    },
+  },
+  test: { environment: 'jsdom' },
+});

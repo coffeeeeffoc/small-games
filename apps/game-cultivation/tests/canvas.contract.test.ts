@@ -39,12 +39,23 @@ function surface() {
 
 function host() {
   return createInMemoryGameHost({
-    session: { gameId: 'cultivation' },
+    session: { gameId: 'cultivation', gameVersion: definition.manifest.version },
     content: defaultCultivationEnvelope,
   });
 }
 
 describe('Cultivation Canvas Game Contract', () => {
+  it('mounts published v1 content through the Game-owned migration', async () => {
+    const fake = surface();
+    const base = host();
+    const { title, ...payload } = defaultCultivationEnvelope.payload;
+    const instance = await definition.mount(fake.target, {
+      ...base,
+      content: { load: async () => ({ ...defaultCultivationEnvelope, schemaVersion: 1, payload }) },
+    });
+    expect(fake.lines).toContain(title);
+    await instance.dispose();
+  });
   it('uses the same lifecycle vectors and can remount without DOM or SDK globals', async () => {
     const fake = surface();
     await exerciseGameLifecycle(definition, fake.target, host());
@@ -62,7 +73,12 @@ describe('Cultivation Canvas Game Contract', () => {
     await expect(
       definition.mount(surface().target, {
         ...base,
-        content: { load: async () => ({ ...defaultCultivationEnvelope, schemaVersion: 2 }) },
+        content: {
+          load: async () => ({
+            ...defaultCultivationEnvelope,
+            schemaVersion: definition.manifest.contentSchemaVersion + 1,
+          }),
+        },
       }),
     ).rejects.toMatchObject({ code: 'CONTENT_INCOMPATIBLE' });
   });

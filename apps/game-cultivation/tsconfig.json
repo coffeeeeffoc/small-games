@@ -1,4 +1,7 @@
 {
   "extends": "@coffeeeeffoc/config-typescript/react.json",
+  "compilerOptions": {
+    "paths": { "@coffeeeeffoc/game-cultivation/content": ["./src/content/index.ts"] }
+  },
   "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"]
 }

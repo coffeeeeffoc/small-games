@@ -7,7 +7,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "dist-iframe/**"],
+      "outputs": ["dist/**", "dist-iframe/**", "dist-content/**"],
       "env": [
         "BILIBILI_AD_UNIT_ID",
         "VITE_SHELL_ORIGIN",

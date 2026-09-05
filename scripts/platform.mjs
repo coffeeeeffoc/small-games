@@ -13,23 +13,24 @@ if (mode === 'stop') {
   await run('docker', [...compose, 'stop']);
 } else {
   await run('docker', [...compose, 'up', '-d', '--wait', '--wait-timeout', '120']);
-  await run(
-    'docker',
-    [
-      ...compose,
-      'exec',
-      '-T',
-      'postgres',
-      'psql',
-      '-U',
-      'platform_owner',
-      '-d',
-      'small_games',
-      '-v',
-      'ON_ERROR_STOP=1',
-    ],
-    await readFile(new URL('../infra/migrations/002-management-auth.sql', import.meta.url)),
-  );
+  for (const migration of ['002-management-auth.sql', '003-content-drafts.sql'])
+    await run(
+      'docker',
+      [
+        ...compose,
+        'exec',
+        '-T',
+        'postgres',
+        'psql',
+        '-U',
+        'platform_owner',
+        '-d',
+        'small_games',
+        '-v',
+        'ON_ERROR_STOP=1',
+      ],
+      await readFile(new URL(`../infra/migrations/${migration}`, import.meta.url)),
+    );
   if (mode !== 'up') {
     await run(process.execPath, [
       'node_modules/turbo/bin/turbo',

@@ -58,7 +58,7 @@ export function CultivationGame({ host, content, active }: CultivationGameProps)
     <main className="cultivation">
       <header>
         <p>第 {event.chapter} 章</p>
-        <h1>三分钟修仙</h1>
+        <h1>{content.title}</h1>
         <small>
           {chapter.name} · {chapter.subtitle}
         </small>
