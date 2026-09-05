@@ -26,7 +26,7 @@ Ctrl+C 停止本次服务进程，数据库和对象存储留在后台。`pnpm i
 
 `infra/migrations/001-local-ownership.sql` 仅在本项目 PostgreSQL 持久卷第一次初始化时执行。`platform_owner` 仅用于本地引导和迁移；服务使用 `management_app` / `runtime_app`，无 superuser、角色切换、schema 创建或跨 schema 权限。每个服务连接池最多 5 个连接；SQL 超时 5 秒，空闲事务超时 30 秒。后续迁移必须显式授予自己服务所需表权限；不使用跨 schema 默认 grants。
 
-当前只有 schema 版本标记，业务草稿由 #13 增加。真实隔离测试临时创建 Management 草稿表并授予 Management 读取，证明 Runtime 读取被 PostgreSQL 拒绝，随后删除测试表。账号初始化由 #12 提供。
+初始 schema 版本标记由首次启动创建；后续 Management 账号迁移由根命令事务化执行，业务草稿由 #13 增加。真实隔离测试临时创建 Management 草稿表并授予 Management 读取，证明 Runtime 读取被 PostgreSQL 拒绝，随后删除测试表。账号初始化见 [Studio 本地认证](studio-authentication.md)。
 
 本地 Compose 的固定密码是公开开发占位值，不能部署到公网。所有端口只发布到回环地址。开发环境配置位于 `scripts/platform-config.mjs`；Management 独有 S3 配置，Runtime 不需要对象存储凭据。MinIO 本地使用专属实例的管理员凭据；部署时需改用仅限 Artifact 桶的 IAM 身份、独立密钥、TLS 和安全维护的镜像。
 
@@ -39,7 +39,7 @@ pnpm exec turbo run build --filter=@coffeeeeffoc/runtime-api...
 pnpm --filter @coffeeeeffoc/runtime-api start
 ```
 
-Management 必填 `MANAGEMENT_DATABASE_URL`、`S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`，可选 `S3_REGION`（默认 `us-east-1`）；Runtime 必填 `RUNTIME_DATABASE_URL`。两者可设置 `PORT`。不要把引导 owner 账号传给服务。
+Management 必填 `MANAGEMENT_DATABASE_URL`、`STUDIO_ORIGIN`、`S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`，可选 `S3_REGION`（默认 `us-east-1`）；Runtime 必填 `RUNTIME_DATABASE_URL`。两者可设置 `PORT`。不要把引导 owner 账号传给服务。
 
 ## 验证与故障排查
 

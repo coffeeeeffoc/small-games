@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev:platform": "node scripts/platform.mjs dev",
+    "init:operator": "node scripts/initialize-operator.mjs",
     "infra:up": "node scripts/platform.mjs up",
     "infra:stop": "node scripts/platform.mjs stop",
     "test:platform": "node scripts/platform.mjs test",
@@ -19,7 +20,7 @@
     "build": "turbo run build",
     "build:affected": "turbo run build --affected",
     "test": "node --test scripts/platform-process.test.mjs && turbo run test",
-    "test:affected": "turbo run test --affected",
+    "test:affected": "node --test scripts/platform-process.test.mjs && turbo run test --affected",
     "test:boundaries": "node --test scripts/check-workspace-dependencies.test.mjs",
     "test:contract": "turbo run test:contract",
     "test:contract:affected": "turbo run test:contract --affected",
@@ -36,6 +37,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "drizzle-orm": "0.45.2",
     "@coffeeeeffoc/service-kit": "workspace:*",
     "@coffeeeeffoc/management-api": "workspace:*",
     "@coffeeeeffoc/runtime-api": "workspace:*",

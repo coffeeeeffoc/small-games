@@ -1,16 +1,11 @@
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { managementEnvironment, runtimeEnvironment } from './platform-config.mjs';
-import { runProcessGroup } from './platform-process.mjs';
+import { runProcessGroup, runCommand } from './platform-process.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const compose = ['compose', '-f', 'infra/docker/compose.yaml'];
-async function run(command, args) {
-  const child = spawn(command, args, { cwd: root, stdio: 'inherit' });
-  const [code] = await once(child, 'exit');
-  if (code !== 0) throw new Error(`${command} failed (${code})`);
-}
+const run = (command, args, input) => runCommand(command, args, { cwd: root, input });
 const mode = process.argv[2] ?? 'dev';
 if (!['dev', 'up', 'stop', 'test'].includes(mode)) throw new Error('Use dev, up, stop or test');
 if (mode === 'stop') {
@@ -18,6 +13,23 @@ if (mode === 'stop') {
   await run('docker', [...compose, 'stop']);
 } else {
   await run('docker', [...compose, 'up', '-d', '--wait', '--wait-timeout', '120']);
+  await run(
+    'docker',
+    [
+      ...compose,
+      'exec',
+      '-T',
+      'postgres',
+      'psql',
+      '-U',
+      'platform_owner',
+      '-d',
+      'small_games',
+      '-v',
+      'ON_ERROR_STOP=1',
+    ],
+    await readFile(new URL('../infra/migrations/002-management-auth.sql', import.meta.url)),
+  );
   if (mode !== 'up') {
     await run(process.execPath, [
       'node_modules/turbo/bin/turbo',
@@ -41,6 +53,7 @@ if (mode === 'stop') {
     }
     if (mode === 'test') {
       await run(process.execPath, ['scripts/platform.integration.mjs']);
+      await run(process.execPath, ['scripts/auth.integration.mjs']);
     } else {
       const controller = new AbortController();
       const stop = () => controller.abort();

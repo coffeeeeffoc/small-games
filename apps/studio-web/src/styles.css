@@ -1,0 +1,172 @@
+:root {
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  color: #e6eaf2;
+  background: #111827;
+  font-synthesis: none;
+  --muted: #a6b0c2;
+  --line: #344057;
+  --accent: #b8ddff;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+a {
+  color: var(--accent);
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.login-layout,
+.workspace {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 3rem;
+}
+.studio-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.12em;
+}
+.brand-mark {
+  border: 1px solid var(--line);
+  padding: 0.65rem;
+  font-family: monospace;
+  color: var(--accent);
+}
+.local-tag {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.875rem;
+  letter-spacing: 0;
+}
+.login-panel {
+  width: 100%;
+  max-width: 27rem;
+  margin: auto;
+  padding: 3rem 0;
+}
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+h1 {
+  font-size: 2.3rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  margin: 0 0 2.5rem;
+}
+form {
+  display: flex;
+  flex-direction: column;
+}
+label {
+  font-size: 1rem;
+  margin: 0 0 0.65rem;
+}
+input {
+  background: #192338;
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+form button {
+  background: var(--accent);
+  color: #11263e;
+  border: 0;
+  border-radius: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+.login-note {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-top: 1.5rem;
+}
+.form-error {
+  color: #ffb6b6;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.studio-footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 1.2rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.logout {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: #e6eaf2;
+  padding: 0.65rem 1rem;
+  border-radius: 0.25rem;
+}
+.workspace-content {
+  padding: 5rem 0;
+  max-width: 50rem;
+}
+.workspace-content h1 {
+  margin-bottom: 2rem;
+}
+.roles {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  gap: 0.75rem;
+}
+.roles li {
+  border: 1px solid var(--line);
+  padding: 0.6rem 1rem;
+  border-radius: 0.25rem;
+  color: var(--accent);
+}
+@media (max-width: 600px) {
+  .login-layout,
+  .workspace {
+    padding: 1.25rem;
+  }
+  .studio-brand {
+    gap: 0.6rem;
+    letter-spacing: 0.05em;
+  }
+  .local-tag {
+    display: none;
+  }
+  .studio-footer {
+    font-size: 0.75rem;
+  }
+  .login-panel {
+    padding: 3rem 0;
+  }
+}

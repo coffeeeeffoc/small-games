@@ -1,6 +1,8 @@
 import { createService, openDatabase } from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 import { createObjectStore } from './object-store.js';
+import { createAuthStore } from './auth/store.js';
+import { registerAuthentication } from './auth/routes.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -8,6 +10,10 @@ export function createManagementService(
   logger = true,
 ): ReturnType<typeof createService> {
   const databaseUrl = z.url().parse(env.MANAGEMENT_DATABASE_URL);
+  const origin = z
+    .url()
+    .refine((value) => new URL(value).origin === value && /^https?:/.test(value))
+    .parse(env.STUDIO_ORIGIN);
   const objects = createObjectStore({
     endpoint: z.url().parse(env.S3_ENDPOINT),
     region: env.S3_REGION ?? 'us-east-1',
@@ -16,5 +22,9 @@ export function createManagementService(
     secretAccessKey: z.string().min(1).parse(env.S3_SECRET_ACCESS_KEY),
   });
   const database = openDatabase(databaseUrl, 'management');
-  return createService('management', { database, objects }, logger);
+  const app = createService('management', { database, objects }, logger);
+  app.register(async (instance) =>
+    registerAuthentication(instance, createAuthStore(database.db), origin),
+  );
+  return app;
 }

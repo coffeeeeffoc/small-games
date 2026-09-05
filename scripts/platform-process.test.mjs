@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { runProcessGroup } from './platform-process.mjs';
+import { runProcessGroup, runCommand, childEnvironment } from './platform-process.mjs';
+
+test('bootstrap secrets never reach prerequisite children and source environment stays unchanged', async () => {
+  const source = { STUDIO_ADMIN_PASSWORD: 'test-only-secret', PATH: 'retained' };
+  assert.deepEqual(childEnvironment(source), { PATH: 'retained' });
+  assert.equal(source.STUDIO_ADMIN_PASSWORD, 'test-only-secret');
+  const previous = process.env.STUDIO_ADMIN_PASSWORD;
+  process.env.STUDIO_ADMIN_PASSWORD = 'test-only-secret';
+  try {
+    await runCommand(process.execPath, [
+      '-e',
+      'process.exit(process.env.STUDIO_ADMIN_PASSWORD ? 1 : 0)',
+    ]);
+  } finally {
+    if (previous === undefined) delete process.env.STUDIO_ADMIN_PASSWORD;
+    else process.env.STUDIO_ADMIN_PASSWORD = previous;
+  }
+});
 
 const stubborn = {
   command: process.execPath,

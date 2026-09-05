@@ -7,6 +7,7 @@ it('rejects missing configuration rather than falling back to an owner credentia
 it('starts independently and exposes live/degraded readiness on dependency failure', async () => {
   const app = createManagementService(
     {
+      STUDIO_ORIGIN: 'http://127.0.0.1:5174',
       MANAGEMENT_DATABASE_URL: 'postgres://test:test@127.0.0.1:1/unavailable',
       S3_ENDPOINT: 'http://127.0.0.1:1',
       S3_BUCKET: 'test',
