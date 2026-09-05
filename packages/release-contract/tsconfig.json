@@ -1,0 +1,9 @@
+{
+  "extends": "@coffeeeeffoc/config-typescript/node.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "paths": { "@coffeeeeffoc/release-contract": ["./src/index.ts"] }
+  },
+  "include": ["src", "tests"]
+}

@@ -1,5 +1,5 @@
 {
-  "name": "@coffeeeeffoc/runtime-api",
+  "name": "@coffeeeeffoc/release-contract",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,20 +10,15 @@
     }
   },
   "scripts": {
-    "dev": "tsx src/main.ts",
-    "start": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "pnpm build && vitest run",
-    "smoke": "node scripts/smoke.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
     "@coffeeeeffoc/game-artifact": "workspace:*",
-    "@coffeeeeffoc/release-contract": "workspace:*",
-    "@coffeeeeffoc/service-kit": "workspace:*",
-    "drizzle-orm": "0.45.2",
-    "fastify": "5.12.3",
+    "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/content-schema": "workspace:*",
     "zod": "4.1.5"
   },
   "devDependencies": {
@@ -32,10 +27,9 @@
     "@types/node": "24.3.1",
     "eslint": "9.35.0",
     "typescript": "7.0.2",
-    "vitest": "5.0.0",
-    "tsx": "4.23.13"
+    "vitest": "5.0.0"
   },
   "coffeeeeffoc": {
-    "role": "service"
+    "role": "shared"
   }
 }

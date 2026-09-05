@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-const draftSchema = z.object({
+/** Shared Studio boundary for saved draft responses. */
+export const draftSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   revision: z.number().int().nonnegative(),

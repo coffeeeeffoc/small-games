@@ -1,4 +1,6 @@
 export { createManagementService } from './app.js';
+export { createPublicationStore, ReleaseConflict } from './releases/store.js';
+export { registerPublications } from './releases/routes.js';
 export { createArtifactRepository } from './artifact-repository.js';
 export { createDraftStore } from './drafts/store.js';
 export { registerDrafts } from './drafts/routes.js';

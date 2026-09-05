@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { type StudioContext } from './router.js';
 import { DraftEditor } from './draft-editor.js';
+import { ReleasePanel } from './release-panel.js';
 
 /** Login surface with accessible feedback and no client-side credential persistence. */
 export function LoginPage() {
@@ -118,6 +119,7 @@ export function WorkspacePage() {
           </p>
         )}
         {operator?.roles.includes('creator') && <DraftEditor />}
+        {operator?.roles.includes('publisher') && <ReleasePanel />}
       </section>
     </main>
   );

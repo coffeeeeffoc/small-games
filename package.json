@@ -38,6 +38,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "drizzle-orm": "0.45.2",

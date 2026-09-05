@@ -120,6 +120,12 @@ try {
   const repository = createArtifactRepository(objects, publicKey);
   await repository.commit(descriptor, resources);
   await repository.read(descriptor.id);
+  if (!suppliedPrivateKey)
+    await writeFile(
+      new URL('../.scratch/artifact-signing/public-key.txt', import.meta.url),
+      encodedKeys.publicKey,
+      { mode: 0o600 },
+    );
   console.log(
     JSON.stringify({
       artifactId: descriptor.id,

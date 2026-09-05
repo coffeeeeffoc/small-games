@@ -11,11 +11,12 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=1",
     "test:integration": "vitest run tests/auth.test.tsx",
     "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",

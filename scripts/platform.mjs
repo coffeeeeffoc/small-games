@@ -13,7 +13,11 @@ if (mode === 'stop') {
   await run('docker', [...compose, 'stop']);
 } else {
   await run('docker', [...compose, 'up', '-d', '--wait', '--wait-timeout', '120']);
-  for (const migration of ['002-management-auth.sql', '003-content-drafts.sql'])
+  for (const migration of [
+    '002-management-auth.sql',
+    '003-content-drafts.sql',
+    '004-release-channels.sql',
+  ])
     await run(
       'docker',
       [
@@ -56,6 +60,7 @@ if (mode === 'stop') {
       await run(process.execPath, ['scripts/platform.integration.mjs']);
       await run(process.execPath, ['scripts/auth.integration.mjs']);
       await run(process.execPath, ['scripts/artifact.integration.mjs']);
+      await run(process.execPath, ['scripts/releases.integration.mjs']);
     } else {
       const controller = new AbortController();
       const stop = () => controller.abort();

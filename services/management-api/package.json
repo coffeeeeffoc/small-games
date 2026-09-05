@@ -15,11 +15,12 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "pnpm build && vitest run",
+    "test": "pnpm build && vitest run --maxWorkers=1",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/game-artifact": "workspace:*",
+    "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@fastify/cookie": "11.1.2",
     "@fastify/rate-limit": "11.2.0",

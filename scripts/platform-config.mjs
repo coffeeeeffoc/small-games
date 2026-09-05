@@ -1,5 +1,26 @@
+import { readFile } from 'node:fs/promises';
+
+// Only the public file is loaded here; the signer private key never enters service processes.
+const publicKey =
+  process.env.ARTIFACT_TRUSTED_PUBLIC_KEY ??
+  (await readFile(
+    new URL('../.scratch/artifact-signing/public-key.txt', import.meta.url),
+    'utf8',
+  ).catch((error) => {
+    if (error.code !== 'ENOENT') throw error;
+    return '';
+  }));
+const publication = publicKey
+  ? {
+      ARTIFACT_TRUSTED_PUBLIC_KEY: publicKey.trim(),
+      RELEASE_PROJECTION_TOKEN:
+        process.env.RELEASE_PROJECTION_TOKEN ?? 'local-projection-only-not-for-production',
+    }
+  : {};
 // Only the local runner supplies development credentials; service binaries fail closed.
 export const managementEnvironment = {
+  ...publication,
+  ...(publicKey ? { RUNTIME_PROJECTION_URL: 'http://127.0.0.1:53002' } : {}),
   STUDIO_ORIGIN: 'http://127.0.0.1:5174',
   MANAGEMENT_DATABASE_URL:
     'postgres://management_app:local-management-only@127.0.0.1:15432/small_games',
@@ -10,5 +31,6 @@ export const managementEnvironment = {
   S3_SECRET_ACCESS_KEY: 'local-management-only',
 };
 export const runtimeEnvironment = {
+  ...publication,
   RUNTIME_DATABASE_URL: 'postgres://runtime_app:local-runtime-only@127.0.0.1:15432/small_games',
 };
