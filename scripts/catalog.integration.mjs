@@ -19,6 +19,10 @@ import {
   createReleaseStore,
   registerReleaseProjection,
   canaryBucket,
+  createSaveStore,
+  registerSaves,
+  SaveConflict,
+  CatalogUnauthorized,
 } from '@coffeeeeffoc/runtime-api';
 import { managementEnvironment, runtimeEnvironment } from './platform-config.mjs';
 import { runCommand } from './platform-process.mjs';
@@ -83,6 +87,7 @@ try {
     '003-content-drafts.sql',
     '004-release-channels.sql',
     '005-runtime-sessions.sql',
+    '006-cloud-saves.sql',
   ])
     await runCommand(
       'docker',
@@ -109,12 +114,14 @@ try {
   const token = randomUUID();
   registerReleaseProjection(runtime, createReleaseStore(runtimeDb.db), { token, publicKey });
   const catalogStore = createCatalogStore(runtimeDb.db);
+  const saveStore = createSaveStore(runtimeDb.db);
   const options = {
     shellOrigin: 'http://localhost:5173',
     deliveryUrl: 'http://127.0.0.1:1',
     canaryPercent: 10,
   };
   await registerCatalog(runtime, catalogStore, options);
+  await registerSaves(runtime, saveStore, options.shellOrigin);
   const runtimeUrl = await runtime.listen({ host: '127.0.0.1', port: 0 });
   management = createManagementService(
     {
@@ -179,6 +186,7 @@ try {
   assert.equal(catalog[0].versionId, stable.id);
   assert.equal(catalog[0].content, undefined);
   const playerId = randomUUID();
+  const playerCredential = randomUUID().replaceAll('-', '').repeat(2);
   const sessionInput = {
     gameId: 'cultivation',
     playerId,
@@ -186,9 +194,38 @@ try {
     locale: 'zh-CN',
     capabilities: [...stable.artifact.manifest.game.capabilities],
   };
-  const fixed = await catalogStore.session(sessionInput);
+  const runtimeSession = (input, canaryPercent = 10) =>
+    catalogStore.session(input, canaryPercent, playerCredential);
+  const fixed = await runtimeSession(sessionInput);
   assert.equal(fixed.session.publishedVersionId, stable.id);
   assert.equal(fixed.session.adAuthority, 'none');
+  const secondClient = await runtimeSession(sessionInput);
+  await assert.rejects(catalogStore.session(sessionInput, 10, '0'.repeat(64)), CatalogUnauthorized);
+  const firstSave = await saveStore.write(
+    fixed.session.sessionId,
+    'bili-pocket-arcade:v1',
+    { cultivationChapter: 1 },
+    null,
+  );
+  assert.deepEqual(
+    await saveStore.read(secondClient.session.sessionId, 'bili-pocket-arcade:v1'),
+    firstSave,
+  );
+  await saveStore.write(
+    fixed.session.sessionId,
+    'bili-pocket-arcade:v1',
+    { cultivationChapter: 2 },
+    firstSave.version,
+  );
+  await assert.rejects(
+    saveStore.write(
+      secondClient.session.sessionId,
+      'bili-pocket-arcade:v1',
+      { cultivationChapter: 3 },
+      firstSave.version,
+    ),
+    SaveConflict,
+  );
   const updated = structuredClone(draft);
   updated.envelope.payload.title = '已发布的第二个修仙版本';
   const save = await fetch(options.deliveryUrl + `/api/drafts/${draft.id}`, {
@@ -207,8 +244,11 @@ try {
   )
     cohortPlayer = randomUUID();
   const cohort = { ...sessionInput, playerId: cohortPlayer, channel: 'canary' };
-  assert.equal((await catalogStore.session(cohort)).version.id, canary.id);
-  assert.equal((await catalogStore.session(cohort, 0)).version.id, canary.id);
+  const cohortCredential = randomUUID().replaceAll('-', '').repeat(2);
+  const cohortSession = (canaryPercent = 10) =>
+    catalogStore.session(cohort, canaryPercent, cohortCredential);
+  assert.equal((await cohortSession()).version.id, canary.id);
+  assert.equal((await cohortSession(0)).version.id, canary.id);
   await request('/api/releases/rollback', {
     eventId: randomUUID(),
     channel: 'canary',
@@ -218,16 +258,16 @@ try {
   });
   await new Promise((resolve) => setTimeout(resolve, 1500));
   assert.equal(
-    (await catalogStore.session(cohort)).version.id,
+    (await cohortSession()).version.id,
     stable.id,
     'Rollback starts a new rollout for new sessions',
   );
   assert.equal(
-    (await catalogStore.session({ ...sessionInput, versionId: canary.id })).version.id,
+    (await runtimeSession({ ...sessionInput, versionId: canary.id })).version.id,
     canary.id,
   );
-  await assert.rejects(catalogStore.session({ ...sessionInput, versionId: '0'.repeat(64) }));
-  await assert.rejects(catalogStore.session({ ...sessionInput, capabilities: [] }));
+  await assert.rejects(runtimeSession({ ...sessionInput, versionId: '0'.repeat(64) }));
+  await assert.rejects(runtimeSession({ ...sessionInput, capabilities: [] }));
   assert.deepEqual(
     (
       await runtimeDb.db.execute(
@@ -292,7 +332,7 @@ try {
   await page.getByRole('button', { name: '进入游戏', exact: true }).first().click();
   await page.locator('.game-slot > .cultivation').waitFor();
   console.log(
-    'Isolated live publication → Runtime Catalog → real browser iframe launch/pin, sticky canary, corruption fallback and Runtime-offline local Catalog passed.',
+    'Isolated live publication → Runtime Catalog/cloud save → real browser iframe launch/pin, sticky canary, corruption fallback and Runtime-offline local Catalog passed.',
   );
 } finally {
   await browser?.close();

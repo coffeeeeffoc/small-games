@@ -18,6 +18,7 @@ if (mode === 'stop') {
     '003-content-drafts.sql',
     '004-release-channels.sql',
     '005-runtime-sessions.sql',
+    '006-cloud-saves.sql',
   ])
     await run(
       'docker',

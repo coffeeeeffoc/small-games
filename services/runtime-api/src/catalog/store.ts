@@ -9,6 +9,7 @@ import {
 
 /** A missing published target or unsupported capability never silently selects another remote Game. */
 export class CatalogUnavailable extends Error {}
+export class CatalogUnauthorized extends Error {}
 
 /** Stable cohort number; assignments persist within one stable/canary snapshot pair. */
 export function canaryBucket(playerId: string, gameId: string): number {
@@ -30,8 +31,10 @@ export function createCatalogStore(db: ReturnType<typeof openDatabase>['db']) {
         ),
       );
     },
-    async session(request: SessionRequest, canaryPercent = 10) {
+    async session(request: SessionRequest, canaryPercent = 10, credential?: string) {
       return db.transaction(async (tx) => {
+        if (!credential) throw new CatalogUnauthorized('Missing player credential');
+        const credentialHash = createHash('sha256').update(credential).digest('hex');
         const channels = await tx.execute(
           sql`select channel, version_id from runtime.release_channels where game_id = ${request.gameId}`,
         );
@@ -65,6 +68,13 @@ export function createCatalogStore(db: ReturnType<typeof openDatabase>['db']) {
           manifest.capabilities.some((value) => !request.capabilities.includes(value))
         )
           throw new CatalogUnavailable('Incompatible Game');
+        await tx.execute(
+          sql`insert into runtime.players (player_id, credential_hash, created_at) values (${request.playerId}, ${credentialHash}, ${Date.now()}) on conflict do nothing`,
+        );
+        const players = await tx.execute(
+          sql`select player_id from runtime.players where player_id = ${request.playerId} and credential_hash = ${credentialHash}`,
+        );
+        if (!players[0]) throw new CatalogUnauthorized('Invalid player credential');
         const session = {
           gameId: version.gameId,
           gameVersion: manifest.version,

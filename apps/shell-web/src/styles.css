@@ -16,6 +16,10 @@ button {
   font: inherit;
   cursor: pointer;
 }
+input,
+select {
+  font: inherit;
+}
 .shell-catalog {
   width: min(1000px, 92vw);
   margin: 0 auto;
@@ -37,6 +41,32 @@ button {
 .shell-catalog p {
   color: #aeb4c4;
   line-height: 1.7;
+}
+.shell-catalog fieldset,
+.shell-catalog details {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #34394a;
+  border-radius: 12px;
+  background: #161924;
+}
+.shell-catalog label,
+.shell-catalog form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.shell-catalog input,
+.shell-catalog select {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid #4b5268;
+  border-radius: 8px;
+  color: inherit;
+  background: #11131a;
+}
+.shell-catalog details button {
+  justify-self: start;
 }
 .catalog-grid {
   display: grid;

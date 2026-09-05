@@ -1,7 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
+import { z } from 'zod';
 import { sessionRequestSchema, publishedSessionSchema } from '@coffeeeeffoc/release-contract';
-import { CatalogUnavailable, type createCatalogStore } from './store.js';
+import { CatalogUnauthorized, CatalogUnavailable, type createCatalogStore } from './store.js';
+
+const playerCredentialSchema = z.string().regex(/^Bearer [a-f0-9]{64}$/);
 
 /** Public published-only API; browser origin and session fields are validated at the boundary. */
 export async function registerCatalog(
@@ -20,21 +23,19 @@ export async function registerCatalog(
         if (request.method === 'POST' && request.headers.origin !== options.shellOrigin)
           return reply.code(403).send({ error: 'ORIGIN_REJECTED' });
       });
-      routes.setErrorHandler((error, _request, reply) =>
-        reply
-          .code(
-            error instanceof Error && 'statusCode' in error && error.statusCode === 429
-              ? 429
-              : error instanceof CatalogUnavailable
-                ? 409
-                : 503,
-          )
-          .send({ error: 'CATALOG_UNAVAILABLE' }),
-      );
+      routes.setErrorHandler((error, _request, reply) => {
+        if (error instanceof Error && 'statusCode' in error && error.statusCode === 429)
+          return reply.code(429).send({ error: 'RATE_LIMITED' });
+        if (error instanceof CatalogUnauthorized)
+          return reply.code(401).send({ error: 'PLAYER_UNAUTHORIZED' });
+        return reply
+          .code(error instanceof CatalogUnavailable ? 409 : 503)
+          .send({ error: 'CATALOG_UNAVAILABLE' });
+      });
       routes.options('/sessions', async (_request, reply) =>
         reply
           .header('access-control-allow-methods', 'POST')
-          .header('access-control-allow-headers', 'content-type')
+          .header('access-control-allow-headers', 'authorization, content-type')
           .code(204)
           .send(),
       );
@@ -45,7 +46,13 @@ export async function registerCatalog(
         async (request, reply) => {
           const input = sessionRequestSchema.safeParse(request.body);
           if (!input.success) return reply.code(422).send({ error: 'INVALID_SESSION_REQUEST' });
-          const result = await store.session(input.data, options.canaryPercent);
+          const credential = playerCredentialSchema.safeParse(request.headers.authorization);
+          if (!credential.success) return reply.code(401).send({ error: 'PLAYER_UNAUTHORIZED' });
+          const result = await store.session(
+            input.data,
+            options.canaryPercent,
+            credential.data.slice('Bearer '.length),
+          );
           return reply.code(201).send(
             publishedSessionSchema.parse({
               ...result,

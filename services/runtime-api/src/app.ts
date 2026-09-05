@@ -5,6 +5,8 @@ import { createReleaseStore } from './releases/store.js';
 import { registerReleaseProjection } from './releases/routes.js';
 import { registerCatalog } from './catalog/routes.js';
 import { createCatalogStore } from './catalog/store.js';
+import { createSaveStore } from './saves/store.js';
+import { registerSaves } from './saves/routes.js';
 
 /** Creates the runtime HTTP application with only its own database identity. */
 export function createRuntimeService(
@@ -60,6 +62,7 @@ export function createRuntimeService(
         deliveryUrl,
         canaryPercent,
       });
+      await registerSaves(instance, createSaveStore(database.db), shellOrigin);
     }
   });
   return app;

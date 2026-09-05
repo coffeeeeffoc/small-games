@@ -34,13 +34,24 @@ it('uses stable canary cohorts and guards the published-only HTTP boundary', asy
       app.inject({
         method: 'POST',
         url: '/api/runtime/sessions',
-        headers: source ? { origin: source } : {},
+        headers: source ? { origin: source, authorization: `Bearer ${'a'.repeat(64)}` } : {},
         payload,
       });
     expect((await post(input)).statusCode).toBe(403);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/runtime/sessions',
+          headers: { origin },
+          payload: input,
+        })
+      ).statusCode,
+    ).toBe(401);
     expect((await post({ ...input, adAuthority: 'host' }, origin)).statusCode).toBe(422);
     expect(session).not.toHaveBeenCalled();
     expect((await post(input, origin)).statusCode).toBe(409);
+    expect(session).toHaveBeenCalledWith(input, 10, 'a'.repeat(64));
   } finally {
     await app.close();
   }

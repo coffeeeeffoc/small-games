@@ -1,5 +1,5 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
-import type { GameDefinition, GameSessionContext } from '@coffeeeeffoc/game-contract';
+import type { GameDefinition, GameSessionContext, StoragePort } from '@coffeeeeffoc/game-contract';
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
 import {
@@ -17,6 +17,8 @@ export type BuiltInGame = Readonly<{
   content: DynamicContentEnvelope;
   remote?: Readonly<{ target: RemoteGameArtifact }>;
   runtimeSession?: GameSessionContext;
+  runtimeStorage?: StoragePort;
+  playerId?: string;
 }>;
 
 const cultivationArtifactUrl = import.meta.env.VITE_CULTIVATION_ARTIFACT_URL as string | undefined;

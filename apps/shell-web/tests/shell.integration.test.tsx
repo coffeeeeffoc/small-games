@@ -5,7 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameDefinition, GameHost } from '@coffeeeeffoc/game-contract';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { BrowserIframePlatform, FallbackGameLoader } from '@coffeeeeffoc/game-loader';
-import { ShellApp, builtInGameRegistry, type BuiltInGame } from '@coffeeeeffoc/shell-web';
+import {
+  ShellApp,
+  builtInGameRegistry,
+  createRuntimeClient,
+  playerLoginCode,
+  type BuiltInGame,
+  type ShellAppProps,
+} from '@coffeeeeffoc/shell-web';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -32,6 +39,7 @@ async function renderShell(
   createHost: (game: BuiltInGame) => GameHost = hostFor,
   registry: readonly BuiltInGame[] = builtInGameRegistry,
   createFallbackLoader?: () => FallbackGameLoader,
+  overrides: Pick<ShellAppProps, 'runtimeClient'> = { runtimeClient: false },
 ) {
   const container = document.createElement('div');
   const root = createRoot(container);
@@ -42,7 +50,7 @@ async function renderShell(
         registry={registry}
         createHost={createHost}
         createFallbackLoader={createFallbackLoader}
-        runtimeClient={false}
+        {...overrides}
       />,
     ),
   );
@@ -61,6 +69,31 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell integration', () => {
+  it('lets a player use the same cloud-save login on another device', async () => {
+    const game = builtInGameRegistry[0];
+    const session = vi.fn().mockRejectedValue(new Error('fixture fallback'));
+    const runtimeClient = {
+      catalog: vi.fn().mockResolvedValue([{ gameId: game.id }]),
+      session,
+      storage: vi.fn(),
+    } as unknown as ReturnType<typeof createRuntimeClient>;
+    const credential = { playerId: crypto.randomUUID(), playerToken: 'b'.repeat(64) };
+    const container = await renderShell(hostFor, [game], undefined, { runtimeClient });
+    const input = container.querySelector<HTMLInputElement>('[name="player-login-code"]')!;
+    input.value = playerLoginCode(credential);
+
+    await act(async () => {
+      input.form?.requestSubmit();
+      await Promise.resolve();
+    });
+    await clickButton(container, '进入游戏');
+
+    expect(session).toHaveBeenCalledWith(
+      expect.objectContaining({ playerId: credential.playerId }),
+      credential.playerToken,
+    );
+  });
+
   it('creates a script-only sandbox without same-origin or ambient permissions', () => {
     const target = document.createElement('div');
     document.body.append(target);
@@ -146,7 +179,7 @@ describe('Web Shell integration', () => {
     await clickButton(container, '进入游戏');
     expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
     expect(createHost).toHaveBeenCalledWith(
-      remote,
+      expect.objectContaining({ id: remote.id, remote: remote.remote }),
       remote.remote.target.manifest,
       remote.remote.target,
     );

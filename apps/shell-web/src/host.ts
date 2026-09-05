@@ -13,6 +13,9 @@ export function createWebGameHost(
 ): GameHost {
   return createBrowserGameHost({
     storage: window.localStorage,
+    storagePrefix: `small-games:${encodeURIComponent(game.playerId ?? 'local')}:`,
+    legacyStoragePrefix: game.playerId ? 'small-games:' : undefined,
+    remoteStorage: game.runtimeStorage,
     session: {
       gameId: manifest.gameId,
       gameVersion: manifest.version,

@@ -6,7 +6,16 @@ import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-lo
 import { GameViewport } from './GameViewport.js';
 import { createWebGameHost } from './host.js';
 import { builtInGameRegistry, type BuiltInGame } from './registry.js';
-import { createRuntimeClient, localPlayerId, withPublishedSession } from './runtime-client.js';
+import {
+  createRuntimeClient,
+  localPlayerCredential,
+  parsePlayerLoginCode,
+  playerLoginCode,
+  savePlayerCredential,
+  type PlayerCredential,
+  unavailableRuntimeStorage,
+  withPublishedSession,
+} from './runtime-client.js';
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 
 const defaultRuntime = createRuntimeClient(
@@ -23,6 +32,7 @@ export type ShellAppProps = {
   ) => GameHost;
   createFallbackLoader?: () => FallbackGameLoader;
   runtimeClient?: ReturnType<typeof createRuntimeClient> | false;
+  playerCredential?: PlayerCredential;
 };
 
 /** Catalog and viewport owned by the Web Shell. */
@@ -31,13 +41,14 @@ export function ShellApp({
   createHost = createWebGameHost,
   createFallbackLoader,
   runtimeClient = defaultRuntime,
+  playerCredential,
 }: ShellAppProps) {
   const [breaker] = useState(() => new VersionCircuitBreaker());
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof defaultRuntime.catalog>>>([]);
   const [channel, setChannel] = useState<ReleaseChannel>('stable');
   const [versionId, setVersionId] = useState('');
-  const [playerId] = useState(localPlayerId);
+  const [credential, setCredential] = useState(() => playerCredential ?? localPlayerCredential());
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('本地默认 Catalog 可随时启动。');
   useEffect(() => {
@@ -64,19 +75,40 @@ export function ShellApp({
     setLoading(true);
     try {
       if (runtimeClient && (versionId || catalog.some((entry) => entry.gameId === game.id))) {
-        const published = await runtimeClient.session({
-          gameId: game.id,
-          playerId,
-          channel,
-          locale: 'zh-CN',
-          capabilities: ['content', 'storage', 'advertising', 'telemetry', 'navigation'],
-          ...(versionId ? { versionId } : {}),
+        const published = await runtimeClient.session(
+          {
+            gameId: game.id,
+            playerId: credential.playerId,
+            channel,
+            locale: 'zh-CN',
+            capabilities: ['content', 'storage', 'advertising', 'telemetry', 'navigation'],
+            ...(versionId ? { versionId } : {}),
+          },
+          credential.playerToken,
+        );
+        setSelected(
+          withPublishedSession(
+            game,
+            published,
+            runtimeClient.storage(published.session.sessionId),
+            credential.playerId,
+          ),
+        );
+      } else
+        setSelected({
+          ...game,
+          playerId: credential.playerId,
+          runtimeStorage: runtimeClient ? unavailableRuntimeStorage : undefined,
         });
-        setSelected(withPublishedSession(game, published));
-      } else setSelected(game);
     } catch {
       setNotice('目标版本不可用或不兼容，已使用本地内置版本。');
-      setSelected({ ...game, remote: undefined, runtimeSession: undefined });
+      setSelected({
+        ...game,
+        playerId: credential.playerId,
+        remote: undefined,
+        runtimeSession: undefined,
+        runtimeStorage: runtimeClient ? unavailableRuntimeStorage : undefined,
+      });
     } finally {
       setLoading(false);
     }
@@ -125,6 +157,39 @@ export function ShellApp({
               />
             </label>
           </fieldset>
+        )}
+        {runtimeClient && (
+          <details>
+            <summary>云存档账号</summary>
+            <p>在另一台设备粘贴登录码即可恢复存档。登录码等同密码，请勿公开。</p>
+            <label>
+              当前登录码
+              <input
+                readOnly
+                value={playerLoginCode(credential)}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const next = parsePlayerLoginCode(
+                  String(new FormData(event.currentTarget).get('player-login-code') ?? ''),
+                );
+                if (!next) return setNotice('云存档登录码无效。');
+                savePlayerCredential(next);
+                setCredential(next);
+                setNotice('云存档账号已切换。');
+                event.currentTarget.reset();
+              }}
+            >
+              <label>
+                在此设备登录
+                <input name="player-login-code" type="password" autoComplete="off" required />
+              </label>
+              <button type="submit">登录云存档</button>
+            </form>
+          </details>
         )}
       </header>
       <section className="catalog-grid" aria-label="Game Catalog">
