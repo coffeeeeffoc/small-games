@@ -187,6 +187,7 @@ export function withPublishedSession(
     ...game,
     runtimeSession: checked.session,
     runtimeStorage,
+    managedAdPlan: checked.version.advertising,
     playerId,
     remote: {
       target: {

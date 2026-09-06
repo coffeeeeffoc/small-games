@@ -51,6 +51,7 @@ export function createPublicationStore(db: ReturnType<typeof openDatabase>['db']
       actorId: string;
       version: PublishedVersion;
       draft?: { id: string; revision: number };
+      adDraft?: { id: string; revision: number };
       confirmation: true;
       request: unknown;
     }) {
@@ -83,6 +84,13 @@ export function createPublicationStore(db: ReturnType<typeof openDatabase>['db']
           if (drafts[0]?.revision !== input.draft.revision)
             throw new ReleaseConflict('Draft revision changed');
         }
+        if (input.adDraft) {
+          const adDrafts = await tx.execute(
+            sql`select revision from management.ad_drafts where id = ${input.adDraft.id} for share`,
+          );
+          if (adDrafts[0]?.revision !== input.adDraft.revision)
+            throw new ReleaseConflict('Managed Ad draft revision changed');
+        }
         const event = projectionSchema.parse({
           formatVersion: 1,
           eventId: input.eventId,
@@ -98,7 +106,7 @@ export function createPublicationStore(db: ReturnType<typeof openDatabase>['db']
           sql`insert into management.release_outbox (event_id, game_id, channel, revision, request_hash, payload, created_at) values (${event.eventId}, ${input.version.gameId}, ${event.channel}, ${event.revision}, ${hash}, ${JSON.stringify(event)}::jsonb, ${now})`,
         );
         await tx.execute(
-          sql`insert into management.audit_log (id, actor_id, action, details, created_at) values (${randomUUID()}, ${input.actorId}, ${input.draft ? 'release.publish' : 'release.rollback'}, ${JSON.stringify({ eventId: event.eventId, channel: event.channel, previousVersionId: channels[0]?.version_id, targetVersionId: input.version.id, draft: input.draft, confirmation: true })}::jsonb, ${now})`,
+          sql`insert into management.audit_log (id, actor_id, action, details, created_at) values (${randomUUID()}, ${input.actorId}, ${input.draft ? 'release.publish' : 'release.rollback'}, ${JSON.stringify({ eventId: event.eventId, channel: event.channel, previousVersionId: channels[0]?.version_id, targetVersionId: input.version.id, draft: input.draft, adDraft: input.adDraft, confirmation: true })}::jsonb, ${now})`,
         );
         return event;
       });

@@ -80,7 +80,8 @@ export function createCatalogStore(db: ReturnType<typeof openDatabase>['db']) {
           gameVersion: manifest.version,
           publishedVersionId: version.id,
           releaseChannel: request.channel,
-          adAuthority: 'none' as const,
+          // Advertising authority stays server-owned: only an enabled published plan opts in.
+          adAuthority: (version.advertising?.enabled ? 'managed' : 'none') as 'managed' | 'none',
           sessionId: randomUUID(),
           locale: request.locale,
           capabilities: [...manifest.capabilities],

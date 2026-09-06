@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { dynamicContentEnvelopeSchema } from '@coffeeeeffoc/content-schema';
 import { jsonValueSchema, releaseChannelSchema } from '@coffeeeeffoc/game-contract';
 import { signedArtifactSchema } from '@coffeeeeffoc/game-artifact';
+import { managedAdConfigSchema } from '@coffeeeeffoc/ad-config';
 
 /** IDs identify immutable published snapshots, separately from executable build versions. */
 export const versionIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -12,6 +13,8 @@ export const publishedVersionSchema = z
     gameId: z.string().min(1),
     artifact: signedArtifactSchema,
     content: dynamicContentEnvelopeSchema.extend({ payload: jsonValueSchema }).strict(),
+    /** Published Managed Ad rules; absent or disabled sessions keep server-owned none authority. */
+    advertising: managedAdConfigSchema.optional(),
   })
   .strict()
   .superRefine((version, ctx) => {
@@ -21,6 +24,8 @@ export const publishedVersionSchema = z
       version.content.schemaVersion > version.artifact.manifest.game.contentSchemaVersion
     )
       ctx.addIssue({ code: 'custom', message: 'Published content and Artifact are incompatible' });
+    if (version.advertising && version.advertising.gameId !== version.gameId)
+      ctx.addIssue({ code: 'custom', message: 'Published advertising targets another Game' });
   });
 /** Immutable Artifact/content snapshot selected by Channel or explicit ID. */
 export type PublishedVersion = z.infer<typeof publishedVersionSchema>;

@@ -3,6 +3,7 @@ import { createBrowserGameHost } from '@coffeeeeffoc/game-host';
 import { createAdRuntime } from '@coffeeeeffoc/ad-runtime';
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 
+import { createManagedAdProvider } from './managed-ad.js';
 import type { BuiltInGame } from './registry.js';
 
 /** Creates the immutable browser Game Session and capability adapters for one catalog launch. */
@@ -30,6 +31,11 @@ export function createWebGameHost(
         : {}),
     },
     content: artifact?.content ?? game.content,
-    advertising: (session) => createAdRuntime({ authority: session.adAuthority }),
+    advertising: (session) =>
+      createAdRuntime({
+        authority: session.adAuthority,
+        managedPlan: game.managedAdPlan,
+        managed: game.managedAdPlan ? createManagedAdProvider(game.managedAdPlan) : undefined,
+      }),
   });
 }

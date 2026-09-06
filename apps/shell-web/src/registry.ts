@@ -1,6 +1,7 @@
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import type { GameDefinition, GameSessionContext, StoragePort } from '@coffeeeeffoc/game-contract';
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
+import type { ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
 import {
   cultivationGameDefinition,
@@ -18,6 +19,7 @@ export type BuiltInGame = Readonly<{
   remote?: Readonly<{ target: RemoteGameArtifact }>;
   runtimeSession?: GameSessionContext;
   runtimeStorage?: StoragePort;
+  managedAdPlan?: ManagedAdConfig;
   playerId?: string;
 }>;
 

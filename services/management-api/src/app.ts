@@ -5,6 +5,8 @@ import { createAuthStore } from './auth/store.js';
 import { registerAuthentication } from './auth/routes.js';
 import { createDraftStore } from './drafts/store.js';
 import { registerDrafts } from './drafts/routes.js';
+import { createAdDraftStore } from './ad-drafts/store.js';
+import { registerAdDrafts } from './ad-drafts/routes.js';
 import { webcrypto } from 'node:crypto';
 import { createArtifactRepository } from './artifact-repository.js';
 import { createPublicationStore } from './releases/store.js';
@@ -35,6 +37,8 @@ export function createManagementService(
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);
     await registerDrafts(instance, auth, createDraftStore(database.db), origin);
+    const adDrafts = createAdDraftStore(database.db);
+    await registerAdDrafts(instance, auth, adDrafts, origin);
     const publications = createPublicationStore(database.db);
     let artifacts;
     if (
@@ -86,6 +90,7 @@ export function createManagementService(
       publications,
       origin,
       artifacts,
+      adDrafts,
     );
   });
   return app;
