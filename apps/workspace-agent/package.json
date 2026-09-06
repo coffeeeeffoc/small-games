@@ -14,7 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@coffeeeeffoc/repository-bridge": "workspace:*"
+    "@coffeeeeffoc/repository-bridge": "workspace:*",
+    "prettier": "3.6.2"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

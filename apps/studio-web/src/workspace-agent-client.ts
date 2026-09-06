@@ -7,6 +7,7 @@ import {
   repositoryWriteResultSchema,
   type RepositoryDiff,
   type RepositoryDiffRequest,
+  type RepositoryBridgeErrorCode,
   type RepositoryFile,
   type RepositoryTree,
   type RepositoryWriteRequest,
@@ -23,7 +24,7 @@ export type WorkspaceAgentClient = {
 };
 
 export class WorkspaceAgentError extends Error {
-  constructor(readonly code: string) {
+  constructor(readonly code: RepositoryBridgeErrorCode) {
     super(code);
   }
 }
