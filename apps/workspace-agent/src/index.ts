@@ -2,7 +2,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { createServer, type ServerResponse } from 'node:http';
 import { readdir, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { check as prettierCheck } from 'prettier';
+import { check as prettierCheck, resolveConfig as resolvePrettierConfig } from 'prettier';
 import {
   checkSourceFormat,
   countDiffLines,
@@ -180,7 +180,8 @@ export async function startWorkspaceAgent(
           const format = checkSourceFormat(source, parsed.path);
           if (format.ok)
             try {
-              if (!(await prettierCheck(source, { filepath: current.target })))
+              const prettier = await resolvePrettierConfig(current.target, { editorconfig: true });
+              if (!(await prettierCheck(source, { ...prettier, filepath: current.target })))
                 format.issues.push({ rule: 'prettier', message: 'Source must pass Prettier.' });
             } catch {
               format.issues.push({
