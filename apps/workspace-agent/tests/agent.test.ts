@@ -255,4 +255,24 @@ describe('Workspace Agent trust boundary', () => {
     ]);
     expect(responses.map(({ status }) => status).sort()).toEqual([200, 409]);
   });
+
+  it('checks formatting with the repository Prettier configuration', async () => {
+    const { root } = await fixture();
+    await writeFile(path.join(root, '.prettierrc.json'), '{ "singleQuote": true }\n');
+    const request = await pairedAgent(root);
+    const current = (await (
+      await request('/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts')
+    ).json()) as { version: string };
+    const response = await request('/repository/file', {
+      method: 'POST',
+      body: JSON.stringify({
+        gameId: 'game-cultivation',
+        path: 'src/evil&name.ts',
+        source: "export const quote = 'ok';\n",
+        baseVersion: current.version,
+        confirmation: true,
+      }),
+    });
+    expect(response.status).toBe(200);
+  });
 });
