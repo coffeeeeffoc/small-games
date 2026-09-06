@@ -59,8 +59,16 @@ it('shows game-organized files safely and retains read-only source when disconne
     ),
     read: vi
       .fn()
-      .mockResolvedValueOnce({ source: 'export const safe = true;' })
+      .mockResolvedValueOnce({
+        gameId: 'game-cultivation',
+        path: 'src/evil&name.ts',
+        source: 'export const safe = true;\n',
+        version: 'a'.repeat(64),
+        editable: true,
+      })
       .mockRejectedValueOnce(new Error('offline')),
+    diff: vi.fn(),
+    write: vi.fn(),
   };
   await act(async () => root.render(<RepositoryBrowser api={api} />));
   const input = target.querySelector<HTMLInputElement>('input')!;
@@ -82,9 +90,99 @@ it('shows game-organized files safely and retains read-only source when disconne
   )!;
   await act(async () => file.click());
   await settle();
-  expect(target.querySelector('pre')?.textContent).toBe('export const safe = true;');
+  expect(target.textContent).toContain('src/evil&name.ts');
   await act(async () => file.click());
   await settle();
   expect(target.textContent).toContain('只读：Workspace Agent 已断开');
-  expect(target.querySelector('pre')?.textContent).toBe('export const safe = true;');
+  expect(target.textContent).toContain('src/evil&name.ts');
+});
+
+it('reviews a diff and saves only after explicit confirmation', async () => {
+  const version = 'a'.repeat(64);
+  const nextVersion = 'b'.repeat(64);
+  const api: WorkspaceAgentClient = {
+    pair: vi.fn(async () => undefined),
+    tree: vi.fn(
+      async (): Promise<RepositoryTree> => ({
+        games: [
+          { id: 'game-cultivation', files: [{ name: 'a.ts', path: 'src/a.ts', type: 'file' }] },
+        ],
+      }),
+    ),
+    read: vi.fn(async () => ({
+      gameId: 'game-cultivation',
+      path: 'src/a.ts',
+      source: 'export const a = 1;\n',
+      version,
+      editable: true,
+    })),
+    diff: vi.fn(async (request) => ({
+      ...request,
+      repositoryPath: 'apps/game-cultivation/src/a.ts',
+      before: 'export const a = 1;\n',
+      version,
+      stale: false,
+      hunks: [
+        {
+          oldStart: 1,
+          oldLines: 1,
+          newStart: 1,
+          newLines: 1,
+          lines: [
+            { type: 'removed', text: 'export const a = 1;' },
+            { type: 'added', text: 'export const a = 2;' },
+          ],
+        },
+      ],
+      files: [{ path: 'apps/game-cultivation/src/a.ts', added: 1, removed: 1 }],
+    })),
+    write: vi.fn(async (request) => ({
+      ...request,
+      repositoryPath: 'apps/game-cultivation/src/a.ts',
+      source: request.source,
+      version: nextVersion,
+      format: { ok: true, issues: [] },
+    })),
+  };
+  await act(async () => root.render(<RepositoryBrowser api={api} />));
+  const input = target.querySelector<HTMLInputElement>('input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      input,
+      '123456',
+    );
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => target.querySelector<HTMLButtonElement>('button')!.click());
+  await settle();
+  await act(async () =>
+    Array.from(target.querySelectorAll('button'))
+      .find((button) => button.textContent === 'a.ts')!
+      .click(),
+  );
+  await settle();
+  const textarea = target.querySelector<HTMLTextAreaElement>('textarea')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      textarea,
+      'export const a = 2;\n',
+    );
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () =>
+    Array.from(target.querySelectorAll('button'))
+      .find((button) => button.textContent === '审查 diff')!
+      .click(),
+  );
+  await settle();
+  expect(target.textContent).toContain('apps/game-cultivation/src/a.ts');
+  expect(api.write).not.toHaveBeenCalled();
+  await act(async () =>
+    Array.from(target.querySelectorAll('button'))
+      .find((button) => button.textContent === '确认保存')!
+      .click(),
+  );
+  await settle();
+  expect(api.write).toHaveBeenCalledWith(expect.objectContaining({ confirmation: true }));
+  expect(target.textContent).toContain('已保存并重新读取');
 });

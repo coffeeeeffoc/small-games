@@ -18,6 +18,7 @@ export { createAuthClient, type AuthClient, type Operator } from './auth-client.
 export { RepositoryBrowser } from './repository-browser.js';
 export {
   createWorkspaceAgentClient,
+  WorkspaceAgentError,
   type WorkspaceAgentClient,
   type RepositoryEntry,
   type RepositoryTree,

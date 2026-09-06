@@ -382,12 +382,18 @@ importers:
       '@coffeeeeffoc/release-contract':
         specifier: workspace:*
         version: link:../../packages/release-contract
+      '@coffeeeeffoc/repository-bridge':
+        specifier: workspace:*
+        version: link:../../packages/repository-bridge
       '@tanstack/react-query':
         specifier: 5.102.8
         version: 5.102.8(react@19.2.8)
       '@tanstack/react-router':
         specifier: 1.170.32
         version: 1.170.32(react-dom@19.2.8)(react@19.2.8)
+      monaco-editor:
+        specifier: 0.56.0
+        version: 0.56.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -433,6 +439,10 @@ importers:
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
   apps/workspace-agent:
+    dependencies:
+      '@coffeeeeffoc/repository-bridge':
+        specifier: workspace:*
+        version: link:../../packages/repository-bridge
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -782,6 +792,28 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(vite@8.2.2)
+
+  packages/repository-bridge:
+    dependencies:
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
   packages/service-kit:
     dependencies:
@@ -2563,6 +2595,12 @@ packages:
       csstype: 3.2.3
     dev: true
 
+  /@types/trusted-types@2.0.7:
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@typescript-eslint/eslint-plugin@8.42.0(@typescript-eslint/parser@8.42.0)(eslint@9.35.0)(typescript@5.9.3):
     resolution: {integrity: sha512-Aq2dPqsQkxHOLfb2OPv43RnIvfj05nw8v/6n3B2NABIPpHnjQnaLo9QGMTvml+tv4korl/Cjfrb/BYhoL8UUTQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -3150,6 +3188,12 @@ packages:
   /detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  /dompurify@3.4.8:
+    resolution: {integrity: sha512-yb1cEmaOum7wFvOCSQxyfgVlv5D47Rc30iZWoMpbDIWTnJ6grDDQyu2KFJzB2k7u0pMuJcQ1zphH//fFnw2tjQ==}
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
+    dev: false
 
   /drizzle-orm@0.45.2(postgres@3.4.9):
     resolution: {integrity: sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==}
@@ -3979,6 +4023,12 @@ packages:
       '@jridgewell/sourcemap-codec': 1.6.0
     dev: true
 
+  /marked@14.0.0:
+    resolution: {integrity: sha512-uIj4+faQ+MgHgwUW1l2PsPglZLOLOT1uErt06dAPtx2kjteLAkbsd/0FiYg/MGS+i7ZKLb7w2WClxHkzOOuryQ==}
+    engines: {node: '>= 18'}
+    hasBin: true
+    dev: false
+
   /merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -4002,6 +4052,13 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     dependencies:
       brace-expansion: 2.1.4
+    dev: false
+
+  /monaco-editor@0.56.0:
+    resolution: {integrity: sha512-sXboRm3BeBeLm938eaiyLMe0OxzfXIlZvbv4ir/jVgQy1zDhWjgmny0WoN45fuDKhCCQsYMbBJrv/A6jd8aCUg==}
+    dependencies:
+      dompurify: 3.4.8
+      marked: 14.0.0
     dev: false
 
   /ms@2.1.3:

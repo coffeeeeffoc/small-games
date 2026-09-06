@@ -148,10 +148,7 @@ export function createDiffHunks(
   let group = 0;
   while (group < changes.length) {
     let end = group;
-    while (
-      end + 1 < changes.length &&
-      changes[end + 1] - changes[end] <= contextLines * 2 + 1
-    )
+    while (end + 1 < changes.length && changes[end + 1] - changes[end] <= contextLines * 2 + 1)
       end++;
     const from = Math.max(0, changes[group] - contextLines);
     const to = Math.min(script.length - 1, changes[end] + contextLines);
@@ -179,7 +176,9 @@ export function renderUnifiedDiff(repositoryPath: string, hunks: DiffHunk[]): st
     rendered.push(`@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`);
     for (const line of hunk.lines)
       rendered.push(
-        line.type === 'context' ? ` ${line.text}` : `${line.type === 'added' ? '+' : '-'}${line.text}`,
+        line.type === 'context'
+          ? ` ${line.text}`
+          : `${line.type === 'added' ? '+' : '-'}${line.text}`,
       );
   }
   return rendered.join('\n');

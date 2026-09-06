@@ -62,7 +62,10 @@ export function checkSourceFormat(source: string, filePath: string): SourceForma
     countMatches(source, /\r(?!\n)/g),
   ].filter((count) => count > 0);
   if (styles.length > 1)
-    report('mixed-line-endings', `Source mixes line endings; keep ${ending === '\r\n' ? 'CRLF' : 'LF'}.`);
+    report(
+      'mixed-line-endings',
+      `Source mixes line endings; keep ${ending === '\r\n' ? 'CRLF' : 'LF'}.`,
+    );
 
   const split = source.split(/\r\n|\n|\r/);
   const endsWithNewline = split[split.length - 1] === '';
