@@ -17,8 +17,14 @@ export function ReleasePanel({
     retry: false,
   });
   const drafts = useQuery({ queryKey: ['publishable-drafts'], queryFn: api.drafts, retry: false });
+  const adDrafts = useQuery({
+    queryKey: ['publishable-ad-drafts'],
+    queryFn: api.adDrafts,
+    retry: false,
+  });
   const [channel, setChannel] = useState<ReleaseRequest['channel']>('development');
   const [draftId, setDraftId] = useState('');
+  const [adDraftId, setAdDraftId] = useState('');
   const [artifactId, setArtifactId] = useState('');
   const [versionId, setVersionId] = useState('');
   const [confirmation, setConfirmation] = useState<ReleaseRequest>();
@@ -28,6 +34,7 @@ export function ReleasePanel({
     (entry) => entry.channel === channel && !entry.delivered,
   );
   const draft = drafts.data?.find((entry) => entry.id === draftId);
+  const adDraft = adDrafts.data?.find((entry) => entry.id === adDraftId);
   const submission = useMutation({
     mutationFn: api.submit,
     onSuccess: async () => {
@@ -40,7 +47,15 @@ export function ReleasePanel({
     },
   });
   const confirm = (
-    target: { versionId: string } | { draftId: string; draftRevision: number; artifactId: string },
+    target:
+      | { versionId: string }
+      | {
+          draftId: string;
+          draftRevision: number;
+          artifactId: string;
+          adDraftId?: string;
+          adDraftRevision?: number;
+        },
   ) => {
     submission.reset();
     setMessage('');
@@ -56,13 +71,16 @@ export function ReleasePanel({
     <section className="release-panel" aria-labelledby="release-heading">
       <h2 id="release-heading">发布与回滚</h2>
       <p>仅发布已保存且通过校验的内容；回滚只切换指针，不修改 Artifact。</p>
-      {(status.error || drafts.error || submission.error) && (
-        <p role="alert">{(submission.error ?? status.error ?? drafts.error)?.message}</p>
+      {(status.error || drafts.error || adDrafts.error || submission.error) && (
+        <p role="alert">
+          {(submission.error ?? status.error ?? drafts.error ?? adDrafts.error)?.message}
+        </p>
       )}
       <button
         onClick={() => {
           void status.refetch();
           void drafts.refetch();
+          void adDrafts.refetch();
         }}
         disabled={submission.isPending}
       >
@@ -100,6 +118,17 @@ export function ReleasePanel({
           </select>
         </label>
         <label>
+          Managed Ad 草稿（可选）
+          <select value={adDraftId} onChange={(event) => setAdDraftId(event.target.value)}>
+            <option value="">不变更运营广告</option>
+            {adDrafts.data?.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name} · r{entry.revision}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           已验证 Artifact ID
           <input
             value={artifactId}
@@ -110,7 +139,13 @@ export function ReleasePanel({
         <button
           disabled={!!pending || !draft || !/^[a-f0-9]{64}$/.test(artifactId)}
           onClick={() => {
-            if (draft) confirm({ draftId: draft.id, draftRevision: draft.revision, artifactId });
+            if (draft)
+              confirm({
+                draftId: draft.id,
+                draftRevision: draft.revision,
+                artifactId,
+                ...(adDraft ? { adDraftId: adDraft.id, adDraftRevision: adDraft.revision } : {}),
+              });
           }}
         >
           检查发布影响
@@ -155,6 +190,13 @@ export function ReleasePanel({
               草稿 {confirmation.draftId} · r{confirmation.draftRevision}
               <br />
               Artifact：<code>{confirmation.artifactId}</code>
+              {confirmation.adDraftId ? (
+                <>
+                  <br />
+                  Managed Ad 草稿：<code>{confirmation.adDraftId}</code> · r
+                  {confirmation.adDraftRevision}
+                </>
+              ) : null}
             </p>
           )}
           <button disabled={submission.isPending} onClick={() => submission.mutate(confirmation)}>

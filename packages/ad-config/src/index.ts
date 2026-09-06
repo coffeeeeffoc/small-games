@@ -6,3 +6,20 @@ export {
   type AdDecision,
   type AdPolicy,
 } from './policy.js';
+export {
+  managedAdConfigSchema,
+  managedCreativeSchema,
+  managedPlacementSchema,
+  managedRewardRuleSchema,
+  normalizeManagedAdConfig,
+  defaultManagedAdConfig,
+  resolveManagedPlacement,
+  managedConfigLayers,
+  type ManagedAdConfig,
+  type ManagedCreative,
+  type ManagedPlacement,
+  type ManagedRewardRule,
+  type ManagedPlacementResolution,
+  type ManagedAdValidationResult,
+  type ManagedAdValidationIssue,
+} from './managed.js';

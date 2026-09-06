@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { normalizeManagedAdConfig, type ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import {
   createAdRuntime,
   createCallbackAdProvider,
@@ -11,6 +12,29 @@ import type { RewardOutcome } from '@coffeeeeffoc/game-contract';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 
 const reward = { id: 'cultivation.reincarnate', reward: { luck: 2 } };
+
+function managedPlan(overrides: {
+  policy?: ManagedAdConfig['policy'];
+  reward?: { enabled: boolean; maxPerSession?: number };
+}): ManagedAdConfig {
+  const result = normalizeManagedAdConfig({
+    formatVersion: 1,
+    gameId: 'cultivation',
+    enabled: true,
+    policy: overrides.policy ?? { maxPerSession: 3 },
+    creatives: [{ id: 'spring', title: '春日礼包', ctaLabel: '查看', durationMs: 5000 }],
+    placements: [
+      {
+        opportunityId: reward.id,
+        creativeId: 'spring',
+        policy: {},
+        reward: overrides.reward ?? { enabled: true, maxPerSession: 1 },
+      },
+    ],
+  });
+  if (!result.success) throw new Error('fixture must validate');
+  return result.data;
+}
 
 describe('ad runtime contract', () => {
   it.each([
@@ -165,5 +189,84 @@ describe('ad runtime contract', () => {
     const runtime = createAdRuntime({ authority: 'host', host: provider });
 
     await expect(runtime.offer(reward)).resolves.toEqual({ status: 'dismissed' });
+  });
+});
+
+describe('managed ad plan', () => {
+  it('serves only placed opportunities and enforces the operator reward cap', async () => {
+    const provider = createTestAdProvider([{ status: 'completed' }, { status: 'completed' }]);
+    const runtime = createAdRuntime({
+      authority: 'managed',
+      managed: provider,
+      managedPlan: managedPlan({ reward: { enabled: true, maxPerSession: 1 } }),
+    });
+
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'completed' });
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'unavailable' });
+    await expect(runtime.offer({ id: 'unplaced', reward: {} })).resolves.toEqual({
+      status: 'unavailable',
+    });
+    expect(provider.requests).toEqual([{ opportunityId: reward.id }]);
+  });
+
+  it('withholds rewards for disabled rules without consuming impressions', async () => {
+    const provider = createTestAdProvider([{ status: 'completed' }]);
+    const runtime = createAdRuntime({
+      authority: 'managed',
+      managed: provider,
+      managedPlan: managedPlan({ reward: { enabled: false } }),
+    });
+
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'unavailable' });
+    expect(provider.requests).toHaveLength(0);
+  });
+
+  it('counts only complete views toward the reward cap', async () => {
+    const provider = createTestAdProvider([
+      { status: 'dismissed' },
+      new Error('SDK crashed'),
+      { status: 'completed' },
+      { status: 'completed' },
+    ]);
+    const runtime = createAdRuntime({
+      authority: 'managed',
+      managed: provider,
+      managedPlan: managedPlan({ reward: { enabled: true, maxPerSession: 1 } }),
+    });
+
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'dismissed' });
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'failed' });
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'completed' });
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'unavailable' });
+    expect(provider.requests).toHaveLength(3);
+  });
+
+  it('applies operator frequency policy through the precedence stack', async () => {
+    const provider = createTestAdProvider([{ status: 'completed' }, { status: 'completed' }]);
+    const runtime = createAdRuntime({
+      authority: 'managed',
+      managed: provider,
+      managedPlan: managedPlan({
+        policy: { maxPerSession: 1 },
+        reward: { enabled: true, maxPerSession: 3 },
+      }),
+    });
+
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'completed' });
+    await expect(runtime.offer(reward)).resolves.toEqual({ status: 'unavailable' });
+    expect(provider.requests).toHaveLength(1);
+  });
+
+  it('keeps host and none sessions independent of operator configuration', async () => {
+    const host = createTestAdProvider([{ status: 'completed' }]);
+    const managed = createTestAdProvider([{ status: 'completed' }]);
+    const plan = managedPlan({});
+    const hostRuntime = createAdRuntime({ authority: 'host', host, managed, managedPlan: plan });
+    const noneRuntime = createAdRuntime({ authority: 'none', host, managed, managedPlan: plan });
+
+    await expect(hostRuntime.offer(reward)).resolves.toEqual({ status: 'completed' });
+    await expect(noneRuntime.offer(reward)).resolves.toEqual({ status: 'unavailable' });
+    expect(host.requests).toHaveLength(1);
+    expect(managed.requests).toHaveLength(0);
   });
 });

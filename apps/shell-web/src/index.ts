@@ -11,3 +11,4 @@ export {
 } from './runtime-client.js';
 export type { PlayerCredential } from './runtime-client.js';
 export { createWebGameHost } from './host.js';
+export { createManagedAdProvider, type ManagedAdProviderOptions } from './managed-ad.js';

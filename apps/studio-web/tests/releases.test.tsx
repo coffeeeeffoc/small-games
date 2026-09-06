@@ -44,28 +44,31 @@ it('requires impact confirmation, cancels without writes, and retains event iden
       },
     },
   ];
+  const adDraftId = crypto.randomUUID();
   const transport = vi.fn<typeof fetch>(
     async (url) =>
       new Response(
         JSON.stringify(
-          String(url).endsWith('/drafts')
-            ? [{ id: crypto.randomUUID(), name: '修仙草稿', revision: 3, envelope: {} }]
-            : {
-                channels: [],
-                versions,
-                events: pending
-                  ? [
-                      {
-                        eventId: crypto.randomUUID(),
-                        channel: 'stable',
-                        revision: 1,
-                        attempts: 1,
-                        lastError: 'offline',
-                        delivered: false,
-                      },
-                    ]
-                  : [],
-              },
+          String(url).endsWith('/ad-drafts')
+            ? [{ id: adDraftId, name: '运营广告', revision: 2, envelope: {} }]
+            : String(url).endsWith('/drafts')
+              ? [{ id: crypto.randomUUID(), name: '修仙草稿', revision: 3, envelope: {} }]
+              : {
+                  channels: [],
+                  versions,
+                  events: pending
+                    ? [
+                        {
+                          eventId: crypto.randomUUID(),
+                          channel: 'stable',
+                          revision: 1,
+                          attempts: 1,
+                          lastError: 'offline',
+                          delivered: false,
+                        },
+                      ]
+                    : [],
+                },
         ),
       ),
   );
@@ -105,6 +108,7 @@ it('requires impact confirmation, cancels without writes, and retains event iden
     await settle();
     await select(0, 'stable');
     await select(1, target.querySelectorAll('select')[1].options[1].value);
+    await select(2, adDraftId);
     await act(async () => {
       const input = target.querySelector('input')!;
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
@@ -116,6 +120,7 @@ it('requires impact confirmation, cancels without writes, and retains event iden
     await click('检查发布影响');
     expect(target.textContent).toContain('影响使用 stable 渠道的新会话');
     expect(target.textContent).toContain('r3');
+    expect(target.textContent).toContain(`Managed Ad 草稿：${adDraftId} · r2`);
     await click('取消');
     expect(submit).not.toHaveBeenCalled();
     await click('检查发布影响');
@@ -124,17 +129,20 @@ it('requires impact confirmation, cancels without writes, and retains event iden
     await click('确认变更');
     expect(submit.mock.calls[0][0]).toEqual(submit.mock.calls[1][0]);
     expect(submit.mock.calls[0][0].channel).toBe('stable');
+    expect(submit.mock.calls[0][0]).toMatchObject({ adDraftId, adDraftRevision: 2 });
     await click('取消');
-    await select(2, versionId);
+    await select(3, versionId);
     await click('检查回滚影响');
     expect(target.textContent).toContain('确认回滚至 stable');
     expect(target.textContent).toContain('目标固定版本');
     await click('确认变更');
+    // A rollback only moves the Channel pointer; it never re-publishes advertising.
     expect(submit.mock.calls[2][0]).toMatchObject({
       versionId,
       channel: 'stable',
       confirmation: true,
     });
+    expect(submit.mock.calls[2][0]).not.toHaveProperty('adDraftId');
     await click('取消');
     pending = true;
     await click('刷新发布状态');

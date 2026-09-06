@@ -5,6 +5,7 @@ import {
   versionIdSchema,
 } from '@coffeeeeffoc/release-contract';
 import { draftSchema } from './draft-client.js';
+import { adDraftSchema } from './ad-draft-client.js';
 
 const statusSchema = z.object({
   channels: z.array(
@@ -38,7 +39,16 @@ export type ReleaseRequest = {
   channel: z.infer<typeof projectionSchema.shape.channel>;
   expectedRevision: number;
   confirmation: true;
-} & ({ draftId: string; draftRevision: number; artifactId: string } | { versionId: string });
+} & (
+  | {
+      draftId: string;
+      draftRevision: number;
+      artifactId: string;
+      adDraftId?: string;
+      adDraftRevision?: number;
+    }
+  | { versionId: string }
+);
 
 /** Cookie-authenticated Studio adapter; never exposes the internal projection token. */
 export function createReleaseClient(transport: typeof fetch = fetch) {
@@ -61,6 +71,7 @@ export function createReleaseClient(transport: typeof fetch = fetch) {
   return {
     status: async () => statusSchema.parse(await request('/')),
     drafts: async () => z.array(draftSchema).parse(await request('/drafts')),
+    adDrafts: async () => z.array(adDraftSchema).parse(await request('/ad-drafts')),
     submit: async (input: ReleaseRequest) =>
       projectionSchema.parse(await request('versionId' in input ? '/rollback' : '/publish', input)),
   };

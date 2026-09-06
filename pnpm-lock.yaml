@@ -313,6 +313,9 @@ importers:
 
   apps/shell-web:
     dependencies:
+      '@coffeeeeffoc/ad-config':
+        specifier: workspace:*
+        version: link:../../packages/ad-config
       '@coffeeeeffoc/ad-runtime':
         specifier: workspace:*
         version: link:../../packages/ad-runtime
@@ -386,6 +389,9 @@ importers:
 
   apps/studio-web:
     dependencies:
+      '@coffeeeeffoc/ad-config':
+        specifier: workspace:*
+        version: link:../../packages/ad-config
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema
@@ -725,6 +731,9 @@ importers:
 
   packages/release-contract:
     dependencies:
+      '@coffeeeeffoc/ad-config':
+        specifier: workspace:*
+        version: link:../ad-config
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../content-schema
@@ -821,6 +830,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1127.0
         version: 3.1127.0
+      '@coffeeeeffoc/ad-config':
+        specifier: workspace:*
+        version: link:../../packages/ad-config
       '@coffeeeeffoc/game-artifact':
         specifier: workspace:*
         version: link:../../packages/game-artifact
