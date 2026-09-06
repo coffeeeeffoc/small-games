@@ -3,6 +3,7 @@ import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { generationJobSchema, type GenerationJobStore } from './model.js';
 
 const columns = sql`id, operator_id as "operatorId", game_id as "gameId", schema_version as "schemaVersion", input, input_hash as "inputHash", attempt, status, model, output_hash as "outputHash", validation_result as "validationResult", disposition, draft_id as "draftId", error`;
+const claimedColumns = sql`jobs.id, jobs.operator_id as "operatorId", jobs.game_id as "gameId", jobs.schema_version as "schemaVersion", jobs.input, jobs.input_hash as "inputHash", jobs.attempt, jobs.status, jobs.model, jobs.output_hash as "outputHash", jobs.validation_result as "validationResult", jobs.disposition, jobs.draft_id as "draftId", jobs.error`;
 
 /** PostgreSQL is both queue and audit log; claiming uses row locks for multi-worker safety. */
 export function createGenerationJobStore(
@@ -32,7 +33,7 @@ export function createGenerationJobStore(
       const rows = await db.execute(sql`with candidate as (
         select id from management.generation_jobs where status = 'queued' order by created_at for update skip locked limit 1
       ) update management.generation_jobs jobs set status = 'running', updated_at = now()
-      from candidate where jobs.id = candidate.id returning ${columns}`);
+      from candidate where jobs.id = candidate.id returning ${claimedColumns}`);
       return rows[0] ? generationJobSchema.parse(rows[0]) : undefined;
     },
     async succeed(id, audit, draft) {

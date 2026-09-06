@@ -26,6 +26,7 @@ import {
 } from '@coffeeeeffoc/runtime-api';
 import { managementEnvironment, runtimeEnvironment } from './platform-config.mjs';
 import { runCommand } from './platform-process.mjs';
+import { measureCapacity } from './capacity.mjs';
 
 // An existing gated Artifact may be supplied to avoid repeating the full build in a test batch.
 const artifactId =
@@ -65,7 +66,7 @@ const admin = openDatabase(
   'postgres://platform_owner:local-owner-only@127.0.0.1:15432/small_games',
   'runtime',
 );
-let owner, runtimeDb, managementDb, runtime, management, shell, browser;
+let owner, runtimeDb, managementDb, runtime, management, shell, studio, browser;
 let created = false;
 try {
   await admin.db.execute(sql`create database ${sql.identifier(databaseName)}`);
@@ -89,6 +90,8 @@ try {
     '005-runtime-sessions.sql',
     '006-cloud-saves.sql',
     '007-managed-ad-drafts.sql',
+    '008-generation-jobs.sql',
+    '009-content-protection.sql',
   ])
     await runCommand(
       'docker',
@@ -213,6 +216,10 @@ try {
       envelope: {
         ...adDraft.envelope,
         enabled: true,
+        creatives: adDraft.envelope.creatives.map((creative) => ({
+          ...creative,
+          durationMs: 1000,
+        })),
         placements: [
           {
             opportunityId: 'cultivation.reincarnate',
@@ -282,6 +289,20 @@ try {
     ),
     SaveConflict,
   );
+  await measureCapacity('Runtime catalog read', 200, () =>
+    fetch(runtimeUrl + '/api/runtime/catalog'),
+  );
+  await measureCapacity('Runtime save write', 500, (index) =>
+    fetch(runtimeUrl + `/api/runtime/saves/capacity-${index}`, {
+      method: 'PUT',
+      headers: {
+        origin: options.shellOrigin,
+        'content-type': 'application/json',
+        'x-game-session-id': fixed.session.sessionId,
+      },
+      body: JSON.stringify({ value: { index }, expectedVersion: null }),
+    }),
+  );
   const updated = structuredClone(draft);
   updated.envelope.payload.title = '已发布的第二个修仙版本';
   const save = await fetch(options.deliveryUrl + `/api/drafts/${draft.id}`, {
@@ -338,6 +359,17 @@ try {
     define: { 'import.meta.env.VITE_RUNTIME_URL': JSON.stringify(runtimeUrl) },
   });
   await shell.listen();
+  studio = await createServer({
+    root: fileURLToPath(new URL('../apps/studio-web/', import.meta.url)),
+    server: {
+      port: 5174,
+      strictPort: true,
+      host: '127.0.0.1',
+      proxy: { '/api': options.deliveryUrl },
+    },
+  });
+  await studio.listen();
+  const browserSaveBefore = await saveStore.read(fixed.session.sessionId, 'bili-pocket-arcade:v1');
   browser = await chromium.launch({
     headless: true,
     ...(process.platform === 'win32'
@@ -350,13 +382,42 @@ try {
   });
   const page = await browser.newPage();
   page.setDefaultTimeout(15_000);
+  await page.goto('http://127.0.0.1:5174/login');
+  await page.getByLabel('账号').fill(username);
+  await page.getByLabel('密码').fill(password);
+  await page.getByRole('button', { name: '进入工作区' }).click();
+  await page.getByLabel('读取草稿').selectOption(draft.id);
+  await page.getByRole('button', { name: '预览当前编辑' }).click();
+  await page.getByRole('region', { name: '隔离游戏预览' }).waitFor();
   await page.goto(options.shellOrigin);
+  await page.evaluate(
+    (credential) => localStorage.setItem('runtime-player-credential', JSON.stringify(credential)),
+    { playerId, playerToken: playerCredential },
+  );
+  await page.reload();
   await page.getByText('已连接已发布 Catalog。', { exact: true }).waitFor();
   await page.getByRole('button', { name: '进入游戏', exact: true }).first().click();
   await page
     .frameLocator('iframe')
     .getByRole('heading', { name: '三分钟修仙', exact: true })
     .waitFor();
+  await page.getByRole('button', { name: '返回目录', exact: false }).click();
+  await page.getByLabel('固定版本（可选）').fill(advertised.id);
+  await page.getByRole('button', { name: '进入游戏', exact: true }).first().click();
+  const game = page.frameLocator('iframe');
+  const rewardedReincarnation = game.getByRole('button', { name: '带着福缘转世' });
+  for (let event = 0; event < 20 && !(await rewardedReincarnation.count()); event++)
+    await game.locator('.choices button').first().click();
+  const browserSaveAfter = await saveStore.read(fixed.session.sessionId, 'bili-pocket-arcade:v1');
+  assert.notEqual(
+    browserSaveAfter?.version,
+    browserSaveBefore?.version,
+    'The browser game must persist a new cloud-save version through Runtime',
+  );
+  await rewardedReincarnation.click();
+  await page.getByRole('dialog', { name: '欢迎回来' }).waitFor();
+  await page.getByRole('dialog', { name: '欢迎回来' }).waitFor({ state: 'detached' });
+  await game.getByLabel('角色属性').getByText('运 7', { exact: true }).waitFor();
   await page.getByRole('button', { name: '返回目录', exact: false }).click();
   await page.getByLabel('固定版本（可选）').fill(canary.id);
   await page.getByRole('button', { name: '进入游戏', exact: true }).first().click();
@@ -392,6 +453,7 @@ try {
   );
 } finally {
   await browser?.close();
+  await studio?.close();
   await shell?.close();
   await Promise.all([management?.close(), runtime?.close()]);
   await Promise.all([managementDb?.close(), runtimeDb?.close(), owner?.close()]);

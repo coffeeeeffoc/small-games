@@ -16,6 +16,7 @@ export async function registerCatalog(
     async (routes) => {
       await routes.register(rateLimit, { global: false });
       routes.addHook('onRequest', async (request, reply) => {
+        request.log.info({ adapter: 'runtime-catalog' }, 'Catalog adapter request');
         reply.header('cache-control', 'no-store');
         if (request.headers.origin && request.headers.origin !== options.shellOrigin)
           return reply.code(403).send({ error: 'ORIGIN_REJECTED' });

@@ -89,11 +89,19 @@ export async function registerPublications(
           advertising = normalized.data;
           adDraft = { id: saved.id, revision: saved.revision };
         }
+        request.log.info(
+          { adapter: 'object-store', artifactId: input.artifactId },
+          'Artifact read',
+        );
         const artifact = await artifacts.read(input.artifactId);
         const version = await createPublishedVersion(
           artifact.descriptor,
           content.data,
           advertising,
+        );
+        request.log.info(
+          { adapter: 'release-outbox', channel: input.channel },
+          'Publication queued',
         );
         return reply.code(202).send(
           await store.enqueue({
