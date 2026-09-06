@@ -11,6 +11,8 @@ export const EDITABLE_SOURCE_EXTENSIONS: readonly string[] = [
   '.tsx',
 ];
 
+// The rejected characters are the policy; spelling them as a regex is the clearest audit surface.
+// eslint-disable-next-line no-control-regex
 const NON_TEXT_CODE_POINTS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]|[\uD800-\uDFFF]/;
 
 function extensionOf(fileName: string) {
