@@ -4,11 +4,16 @@ import { lstat, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/pro
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { checkPackageManifest } from './source-extension-policy.js';
+import {
+  gates,
+  previousGenerationAttempt,
+  saveGeneration,
+  sourceContext,
+  type Gate,
+  type SourceGenerator,
+} from './source-generator.js';
 
 const exec = promisify(execFile);
-const gates = ['format:check', 'lint', 'typecheck', 'test', 'build'] as const;
-
-type Gate = (typeof gates)[number];
 type Task = {
   id: string;
   gameId: string;
@@ -21,6 +26,7 @@ type Task = {
   runningStep?: Gate;
   validatedDiff?: string;
   commit?: string;
+  originalInput?: string;
 };
 
 type GateResult = { exitCode: number; log: string };
@@ -147,12 +153,7 @@ export class SourceExtensionManager {
 
   async retry(taskId: string) {
     const task = await this.load(taskId);
-    if (
-      task.status !== 'failed' &&
-      task.status !== 'validated' &&
-      !(task.status === 'active' && task.runningStep)
-    )
-      throw new Error('TASK_NOT_FAILED');
+    if (task.status !== 'failed') throw new Error('TASK_NOT_FAILED');
     task.attempt += 1;
     task.status = 'active';
     delete task.failedStep;
@@ -162,10 +163,41 @@ export class SourceExtensionManager {
     return task;
   }
 
+  async generate(taskId: string, input: string, generator: SourceGenerator) {
+    const task = await this.load(taskId);
+    if (task.status !== 'active' && task.status !== 'failed') throw new Error('TASK_NOT_EDITABLE');
+    if (!input.trim() || input.length > 4_000) throw new Error('INVALID_REQUEST');
+    task.originalInput ??= input;
+    await this.save(task);
+    const previousAttempt = await previousGenerationAttempt(
+      this.recordsRoot,
+      task.id,
+      task.attempt,
+    );
+    const output = await generator.generate({
+      gameId: task.gameId,
+      mode: task.mode,
+      attempt: task.attempt,
+      input,
+      originalInput: task.originalInput,
+      files: task.mode === 'create' ? [] : await sourceContext(task.worktreePath, task.gameId),
+      ...(previousAttempt ? { previousAttempt } : {}),
+    });
+    for (const file of output.files) await this.write(task.id, file.path, file.source);
+    const result = { explanation: output.explanation, model: generator.model, files: output.files };
+    await saveGeneration(path.join(this.attemptPath(task), 'explanation.json'), result);
+    return result;
+  }
+
   async validate(taskId: string) {
     const task = await this.load(taskId);
     if (task.status !== 'active') throw new Error('TASK_NOT_ACTIVE');
     await this.checkChangedPaths(task);
+    await writeFile(
+      path.join(this.attemptPath(task), 'diff.patch'),
+      await this.diff(task.id),
+      'utf8',
+    );
     for (const gate of gates) {
       task.runningStep = gate;
       await this.save(task);
@@ -197,6 +229,7 @@ export class SourceExtensionManager {
 
   async diff(taskId: string) {
     const task = await this.load(taskId);
+    await git(task.worktreePath, ['add', '-N', '--', gamePath(task.gameId)]);
     return (await git(task.worktreePath, ['diff', '--no-ext-diff', '--binary', 'HEAD'])).stdout;
   }
 

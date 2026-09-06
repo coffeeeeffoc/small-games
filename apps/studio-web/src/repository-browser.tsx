@@ -14,6 +14,7 @@ import {
   type WorkspaceAgentClient,
   WorkspaceAgentError,
 } from './workspace-agent-client.js';
+import { SourceGenerationPanel } from './source-generation-panel.js';
 
 const client = createWorkspaceAgentClient();
 
@@ -178,6 +179,7 @@ export function RepositoryBrowser({ api = client }: { api?: WorkspaceAgentClient
           />
         </section>
       ))}
+      {tree && <SourceGenerationPanel api={api} />}
       {file && (
         <section className="source-workspace">
           <h3>{file.path}</h3>

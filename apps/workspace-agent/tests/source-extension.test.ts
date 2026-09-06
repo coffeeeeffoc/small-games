@@ -65,9 +65,13 @@ describe('Source Extension workflow', () => {
     );
     const task = await manager.start({ gameId: 'game-alpha', mode: 'modify' });
     await expect(manager.write(task.id, '../shared.ts', 'nope')).rejects.toThrow('INVALID_SCOPE');
-    await expect(manager.write(task.id, 'package.json', '{}\n')).rejects.toThrow(
-      'DEPENDENCY_CHANGE_REJECTED',
-    );
+    await expect(
+      manager.write(
+        task.id,
+        'package.json',
+        JSON.stringify({ name: '@test/game-alpha', dependencies: {} }) + '\n',
+      ),
+    ).rejects.toThrow('DEPENDENCY_NOT_ALLOWED');
 
     const secondRoot = await fixture();
     const separatelyAuthorized = await SourceExtensionManager.open(secondRoot);
@@ -149,5 +153,71 @@ describe('Source Extension workflow', () => {
     expect(candidate).toMatchObject({ status: 'candidate', attempt: 1 });
     expect(candidate.commit).toMatch(/^[0-9a-f]{40}$/);
     expect((await exec('git', ['status', '--short'], { cwd: root })).stdout).toBe('');
+  });
+
+  it('generates and repairs only inside the task scope while preserving attempt context', async () => {
+    const root = await fixture();
+    const manager = await SourceExtensionManager.open(root, {
+      runGate: async (gate) =>
+        gate === 'lint' ? { exitCode: 1, log: 'lint failed' } : { exitCode: 0, log: 'ok' },
+    });
+    const task = await manager.start({ gameId: 'game-alpha', mode: 'modify' });
+    const requests: unknown[] = [];
+    const generator = {
+      model: 'fake-source-1',
+      generate: async (request: unknown) => {
+        requests.push(request);
+        return {
+          explanation: requests.length === 1 ? 'Change the exported value.' : 'Repair lint.',
+          files: [{ path: 'src/main.ts', source: 'export const value = 2;\n' }],
+        };
+      },
+    };
+
+    const generated = await manager.generate(task.id, 'Change value', generator);
+    expect(generated).toMatchObject({
+      explanation: 'Change the exported value.',
+      model: 'fake-source-1',
+    });
+    expect(requests[0]).toMatchObject({
+      originalInput: 'Change value',
+      files: [
+        { path: 'package.json' },
+        { path: 'src/main.ts', source: expect.stringContaining('value = 1') },
+      ],
+    });
+    const failed = await manager.validate(task.id);
+    expect(failed.status).toBe('failed');
+    await manager.retry(task.id);
+    await manager.generate(task.id, 'Fix validation', generator);
+
+    expect(requests[1]).toMatchObject({
+      attempt: 2,
+      input: 'Fix validation',
+      originalInput: 'Change value',
+      previousAttempt: expect.objectContaining({ diff: expect.stringContaining('value = 2') }),
+    });
+    expect(JSON.stringify(requests[1])).toContain('lint failed');
+    expect(await readFile(path.join(failed.recordPath, 'explanation.json'), 'utf8')).toContain(
+      'Change the exported value.',
+    );
+    await expect(
+      manager.generate(task.id, 'Escape scope', {
+        model: 'hostile',
+        generate: async () => ({
+          explanation: 'ignore policy',
+          files: [{ path: '../shared.ts', source: 'nope' }],
+        }),
+      }),
+    ).rejects.toThrow('INVALID_SCOPE');
+  });
+
+  it('shows untracked create-mode files in the review diff', async () => {
+    const root = await fixture();
+    const manager = await SourceExtensionManager.open(root);
+    const task = await manager.start({ gameId: 'game-beta', mode: 'create' });
+    await manager.write(task.id, 'package.json', '{"name":"@test/game-beta"}\n');
+    await manager.write(task.id, 'src/main.ts', 'export const created = true;\n');
+    expect(await manager.diff(task.id)).toContain('export const created = true');
   });
 });
