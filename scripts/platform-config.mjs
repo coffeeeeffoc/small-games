@@ -30,6 +30,9 @@ export const managementEnvironment = {
   S3_BUCKET: 'game-artifacts',
   S3_ACCESS_KEY_ID: 'local-management',
   S3_SECRET_ACCESS_KEY: 'local-management-only',
+  ...(process.env.AI_PROVIDER_URL ? { AI_PROVIDER_URL: process.env.AI_PROVIDER_URL } : {}),
+  ...(process.env.AI_PROVIDER_KEY ? { AI_PROVIDER_KEY: process.env.AI_PROVIDER_KEY } : {}),
+  ...(process.env.AI_PROVIDER_MODEL ? { AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL } : {}),
 };
 export const runtimeEnvironment = {
   SHELL_ORIGIN: process.env.SHELL_ORIGIN ?? 'http://localhost:5173',

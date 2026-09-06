@@ -20,6 +20,7 @@ if (mode === 'stop') {
     '005-runtime-sessions.sql',
     '006-cloud-saves.sql',
     '007-managed-ad-drafts.sql',
+    '008-generation-jobs.sql',
   ])
     await run(
       'docker',

@@ -13,6 +13,14 @@ import { createPublicationStore } from './releases/store.js';
 import { registerPublications } from './releases/routes.js';
 import { startPublicationWorker } from './releases/worker.js';
 import { createPublishedArtifactReader, registerArtifactDelivery } from './artifact-delivery.js';
+import { createGenerationJobStore } from './generation/store.js';
+import { registerGenerationJobs } from './generation/routes.js';
+import { createHttpAiProvider } from './generation/provider.js';
+import { startGenerationWorker } from './generation/worker.js';
+import type { AiProvider } from './generation/model.js';
+import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
+import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
+import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -37,6 +45,35 @@ export function createManagementService(
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);
     await registerDrafts(instance, auth, createDraftStore(database.db), origin);
+    const generationJobs = createGenerationJobStore(database.db);
+    const generationTarget = {
+      manifest: gameManifestSchema.parse(cultivationManifestJson),
+      validate: normalizeCultivationContent,
+    };
+    await registerGenerationJobs(instance, auth, generationJobs, origin, generationTarget);
+    let provider: AiProvider = {
+      model: env.AI_PROVIDER_MODEL ?? 'unconfigured',
+      generate: async () => {
+        throw new Error('AI provider is not configured');
+      },
+    };
+    if (env.AI_PROVIDER_URL || env.AI_PROVIDER_KEY || env.AI_PROVIDER_MODEL) {
+      provider = createHttpAiProvider({
+        endpoint: z
+          .url()
+          .refine(
+            (value) =>
+              /^https:/.test(value) ||
+              (/^http:/.test(value) &&
+                ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(value).hostname)),
+          )
+          .parse(env.AI_PROVIDER_URL),
+        apiKey: z.string().min(1).parse(env.AI_PROVIDER_KEY),
+        model: z.string().min(1).parse(env.AI_PROVIDER_MODEL),
+      });
+    }
+    const stopGenerationWorker = startGenerationWorker(generationJobs, provider, generationTarget);
+    instance.addHook('onClose', () => stopGenerationWorker());
     const adDrafts = createAdDraftStore(database.db);
     await registerAdDrafts(instance, auth, adDrafts, origin);
     const publications = createPublicationStore(database.db);
