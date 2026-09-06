@@ -24,6 +24,8 @@ export interface BilibiliSdk {
   getSystemInfoSync(): { windowWidth: number; windowHeight: number };
   onTouchEnd(listener: (event: TouchEvent) => void): void;
   offTouchEnd(listener: (event: TouchEvent) => void): void;
+  onTouchStart?(listener: (event: TouchEvent) => void): void;
+  offTouchStart?(listener: (event: TouchEvent) => void): void;
   onHide(listener: () => void): void;
   offHide(listener: () => void): void;
   onShow(listener: () => void): void;

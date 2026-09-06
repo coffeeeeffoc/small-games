@@ -1,0 +1,10 @@
+{
+  "gameId": "arena",
+  "version": "1.0.0",
+  "gameContractVersion": 1,
+  "contentSchemaVersion": 1,
+  "capabilities": ["content", "storage", "advertising"],
+  "loadModes": ["in-process"],
+  "entry": "index.html",
+  "integrity": "builtin:arena@1.0.0"
+}

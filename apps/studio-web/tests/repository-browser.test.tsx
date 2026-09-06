@@ -40,21 +40,23 @@ it('pairs in memory and sends the short-lived bearer token', async () => {
 it('shows game-organized files safely and retains read-only source when disconnected', async () => {
   const api: WorkspaceAgentClient = {
     pair: vi.fn(async () => undefined),
-    tree: vi.fn(async (): Promise<RepositoryTree> => ({
-      games: [
-        {
-          id: 'game-cultivation',
-          files: [
-            {
-              name: 'src',
-              path: 'src',
-              type: 'directory',
-              children: [{ name: 'evil&name.ts', path: 'src/evil&name.ts', type: 'file' }],
-            },
-          ],
-        },
-      ],
-    })),
+    tree: vi.fn(
+      async (): Promise<RepositoryTree> => ({
+        games: [
+          {
+            id: 'game-cultivation',
+            files: [
+              {
+                name: 'src',
+                path: 'src',
+                type: 'directory',
+                children: [{ name: 'evil&name.ts', path: 'src/evil&name.ts', type: 'file' }],
+              },
+            ],
+          },
+        ],
+      }),
+    ),
     read: vi
       .fn()
       .mockResolvedValueOnce({ source: 'export const safe = true;' })

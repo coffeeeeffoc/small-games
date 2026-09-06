@@ -5,13 +5,13 @@ import {
   type GameInstance,
 } from '@coffeeeeffoc/game-contract';
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
-import type { CultivationCanvasTarget } from '@coffeeeeffoc/game-cultivation/canvas';
+import type { CanvasGameTarget } from '@coffeeeeffoc/canvas-game-adapter';
 import { createBilibiliGameHost } from './host.js';
 import type { BilibiliSdk } from './sdk.js';
 
 /** Trusted local module provided only after its declared package loads. */
 export type ReviewedModule = {
-  definition: GameDefinition<CultivationCanvasTarget>;
+  definition: GameDefinition<CanvasGameTarget>;
   content: DynamicContentEnvelope;
 };
 
@@ -22,7 +22,7 @@ export async function loadReviewedGame(
   getReviewedModule: () => ReviewedModule,
   timeoutMs = 5_000,
 ): Promise<ReviewedModule> {
-  if (name !== 'cultivation')
+  if (!['cultivation', 'office', 'arena'].includes(name))
     throw new HostError({
       code: 'INVALID_INPUT',
       message: 'Only predeclared Game packages are allowed',
@@ -57,7 +57,7 @@ export async function loadReviewedGame(
   if (
     manifest.gameId !== name ||
     !manifest.loadModes.includes('bilibili-subpackage') ||
-    manifest.entry !== 'cultivation/game.js'
+    manifest.entry !== `${name}/game.js`
   )
     throw new HostError({ code: 'INVALID_INPUT', message: 'Unreviewed Game Manifest' });
   return module;
@@ -67,7 +67,7 @@ export async function loadReviewedGame(
 export async function startBilibiliShell(
   sdk: BilibiliSdk | undefined,
   getReviewedModule: () => ReviewedModule,
-  options: { adUnitId?: string; sessionId: string },
+  options: { adUnitId?: string; sessionId: string; gameId?: 'cultivation' | 'office' | 'arena' },
 ): Promise<GameInstance> {
   if (!sdk) throw new HostError({ code: 'UNAVAILABLE', message: 'Bilibili SDK is unavailable' });
   let instance: GameInstance | null = null;
@@ -129,7 +129,7 @@ export async function startBilibiliShell(
   try {
     sdk.onHide(onHide);
     sdk.onShow(onShow);
-    const module = await loadReviewedGame(sdk, 'cultivation', getReviewedModule);
+    const module = await loadReviewedGame(sdk, options.gameId ?? 'cultivation', getReviewedModule);
     const canvas = sdk.createCanvas();
     const dimensions = sdk.getSystemInfoSync();
     canvas.width = dimensions.windowWidth;
@@ -148,6 +148,24 @@ export async function startBilibiliShell(
           sdk.onTouchEnd(touch);
           return () => sdk.offTouchEnd(touch);
         },
+        onPress:
+          sdk.onTouchStart && sdk.offTouchStart
+            ? (start, end) => {
+                const touchStart = (event: {
+                  changedTouches: Array<{ clientX: number; clientY: number }>;
+                }) => {
+                  const first = event.changedTouches[0];
+                  if (first) start(first.clientX, first.clientY);
+                };
+                const touchEnd = () => end();
+                sdk.onTouchStart?.(touchStart);
+                sdk.onTouchEnd(touchEnd);
+                return () => {
+                  sdk.offTouchStart?.(touchStart);
+                  sdk.offTouchEnd(touchEnd);
+                };
+              }
+            : undefined,
       },
       host,
     );

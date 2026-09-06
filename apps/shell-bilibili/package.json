@@ -18,9 +18,12 @@
   },
   "dependencies": {
     "@coffeeeeffoc/ad-runtime": "workspace:*",
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
+    "@coffeeeeffoc/game-office": "workspace:*",
+    "@coffeeeeffoc/game-arena": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*"
   },
   "devDependencies": {

@@ -4,7 +4,8 @@ import type { BilibiliSdk, TouchEvent } from '@coffeeeeffoc/shell-bilibili';
 export function fakeSdk() {
   const lines: Array<{ text: string; y: number }> = [];
   const rectangles: Array<{ y: number; height: number }> = [];
-  let tap: ((event: TouchEvent) => void) | null = null;
+  const taps = new Set<(event: TouchEvent) => void>();
+  let press: ((event: TouchEvent) => void) | null = null;
   const context = {
     save() {},
     restore() {},
@@ -35,10 +36,16 @@ export function fakeSdk() {
     createCanvas: () => ({ width: 390, height: 844, getContext: () => context }),
     getSystemInfoSync: () => ({ windowWidth: 390, windowHeight: 844 }),
     onTouchEnd: (listener) => {
-      tap = listener;
+      taps.add(listener);
     },
-    offTouchEnd: () => {
-      tap = null;
+    offTouchEnd: (listener) => {
+      taps.delete(listener);
+    },
+    onTouchStart: (listener) => {
+      press = listener;
+    },
+    offTouchStart: () => {
+      press = null;
     },
     onHide: vi.fn(),
     offHide: vi.fn(),
@@ -62,8 +69,17 @@ export function fakeSdk() {
     choose(index = 0) {
       const button = rectangles[index];
       if (!button) throw new Error('Missing button');
-      tap?.({ changedTouches: [{ clientX: 30, clientY: button.y + button.height / 2 }] });
+      for (const tap of taps)
+        tap({ changedTouches: [{ clientX: 30, clientY: button.y + button.height / 2 }] });
     },
-    hasTap: () => tap !== null,
+    press(index = 0) {
+      const button = rectangles[index];
+      if (!button) throw new Error('Missing button');
+      press?.({ changedTouches: [{ clientX: 30, clientY: button.y + button.height / 2 }] });
+    },
+    release() {
+      for (const tap of taps) tap({ changedTouches: [] });
+    },
+    hasTap: () => taps.size > 0,
   };
 }

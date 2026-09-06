@@ -8,13 +8,7 @@ import {
 
 const client = createWorkspaceAgentClient();
 
-function Entries({
-  entries,
-  onRead,
-}: {
-  entries: RepositoryEntry[];
-  onRead(path: string): void;
-}) {
+function Entries({ entries, onRead }: { entries: RepositoryEntry[]; onRead(path: string): void }) {
   return (
     <ul>
       {entries.map((entry) => (

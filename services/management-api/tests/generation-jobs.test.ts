@@ -48,7 +48,12 @@ beforeEach(async () => {
     },
     succeed: async (id, audit, draft) => {
       drafts.set(draft.id, draft);
-      const completed = { ...jobs.get(id)!, ...audit, status: 'succeeded' as const, draftId: draft.id };
+      const completed = {
+        ...jobs.get(id)!,
+        ...audit,
+        status: 'succeeded' as const,
+        draftId: draft.id,
+      };
       jobs.set(id, completed);
       return completed;
     },
@@ -79,7 +84,10 @@ beforeEach(async () => {
     headers: { origin },
     payload: { username: 'creator', password: 'generation-password' },
   });
-  headers = { origin, cookie: login.cookies.map((value) => `${value.name}=${value.value}`).join('; ') };
+  headers = {
+    origin,
+    cookie: login.cookies.map((value) => `${value.name}=${value.value}`).join('; '),
+  };
 });
 afterEach(async () => app.close());
 
@@ -96,7 +104,11 @@ it('queues, lists, and retries persisted attempts without exposing provider cred
   expect(first.inputHash).toBe(createHash('sha256').update(first.input).digest('hex'));
   expect(JSON.stringify(first)).not.toContain('API_KEY');
   await store.fail(first.id, { model: 'test-model', error: 'temporary', disposition: 'failed' });
-  const retry = await app.inject({ method: 'POST', url: `/api/generation-jobs/${first.id}/retry`, headers });
+  const retry = await app.inject({
+    method: 'POST',
+    url: `/api/generation-jobs/${first.id}/retry`,
+    headers,
+  });
   expect(retry.statusCode).toBe(202);
   expect(retry.json()).toMatchObject({ status: 'queued', attempt: 2, inputHash: first.inputHash });
   expect((await app.inject({ url: '/api/generation-jobs', headers })).json()).toHaveLength(2);
@@ -104,7 +116,10 @@ it('queues, lists, and retries persisted attempts without exposing provider cred
 
 it('validates provider output before atomically creating a previewable draft', async () => {
   const valid = structuredClone(defaultCultivationEnvelope);
-  const provider: AiProvider = { model: 'fake-1', generate: vi.fn(async () => ({ output: valid })) };
+  const provider: AiProvider = {
+    model: 'fake-1',
+    generate: vi.fn(async () => ({ output: valid })),
+  };
   const job: GenerationJob = {
     id: randomUUID(),
     operatorId: randomUUID(),
@@ -131,16 +146,27 @@ it('validates provider output before atomically creating a previewable draft', a
 });
 
 it('records invalid output and creates no draft', async () => {
-  const provider: AiProvider = { model: 'fake-2', generate: async () => ({ output: { bad: true } }) };
+  const provider: AiProvider = {
+    model: 'fake-2',
+    generate: async () => ({ output: { bad: true } }),
+  };
   const job: GenerationJob = {
-    id: randomUUID(), operatorId: randomUUID(), gameId: 'cultivation', schemaVersion: 2, input: '坏内容',
-    inputHash: createHash('sha256').update('坏内容').digest('hex'), attempt: 1,
-    status: 'queued', disposition: 'pending',
+    id: randomUUID(),
+    operatorId: randomUUID(),
+    gameId: 'cultivation',
+    schemaVersion: 2,
+    input: '坏内容',
+    inputHash: createHash('sha256').update('坏内容').digest('hex'),
+    attempt: 1,
+    status: 'queued',
+    disposition: 'pending',
   };
   await store.enqueue(job);
   await runNextGenerationJob(store, provider, target);
   expect(jobs.get(job.id)).toMatchObject({
-    status: 'failed', model: 'fake-2', disposition: 'validation_failed',
+    status: 'failed',
+    model: 'fake-2',
+    disposition: 'validation_failed',
     validationResult: { success: false },
   });
   expect(drafts.size).toBe(0);

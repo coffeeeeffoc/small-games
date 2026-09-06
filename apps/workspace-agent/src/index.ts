@@ -85,7 +85,11 @@ async function safeFile(workspaceRoot: string, gameId: string, relativePath: str
   const canonical = await realpath(target);
   if (!isWithin(gameRoot, canonical)) throw new Error('INVALID_PATH');
   const details = await stat(canonical);
-  if (!details.isFile() || !SOURCE_EXTENSIONS.has(path.extname(canonical)) || details.size > 1_000_000)
+  if (
+    !details.isFile() ||
+    !SOURCE_EXTENSIONS.has(path.extname(canonical)) ||
+    details.size > 1_000_000
+  )
     throw new Error('INVALID_PATH');
   return canonical;
 }
@@ -172,7 +176,12 @@ export async function startWorkspaceAgent(
         const gameId = url.searchParams.get('gameId') ?? '';
         const relativePath = url.searchParams.get('path') ?? '';
         const target = await safeFile(workspaceRoot, gameId, relativePath);
-        json(response, 200, { gameId, path: relativePath, source: await readFile(target, 'utf8') }, origin);
+        json(
+          response,
+          200,
+          { gameId, path: relativePath, source: await readFile(target, 'utf8') },
+          origin,
+        );
         return;
       }
       json(response, 404, { error: 'NOT_FOUND' }, origin);
@@ -190,6 +199,9 @@ export async function startWorkspaceAgent(
   return {
     url: `http://${host}:${address.port}`,
     pairingCode,
-    close: () => new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
+    close: () =>
+      new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
   };
 }

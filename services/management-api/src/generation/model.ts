@@ -13,7 +13,10 @@ export const generationJobSchema = z.object({
   attempt: z.number().int().positive(),
   status: z.enum(['queued', 'running', 'succeeded', 'failed']),
   model: z.string().optional(),
-  outputHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  outputHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   validationResult: z.unknown().optional(),
   disposition: z.enum(['pending', 'draft_created', 'validation_failed', 'failed']),
   draftId: z.uuid().optional(),
