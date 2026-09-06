@@ -6,7 +6,7 @@ import {
   normalizeCultivationContent,
 } from '@coffeeeeffoc/game-cultivation/content';
 import type { AuthStore } from '../auth/model.js';
-import { requireRole } from '../auth/access.js';
+import { authenticatedOperator, requireRole } from '../auth/access.js';
 import { draftSchema, type DraftStore } from './model.js';
 
 /** All draft operations require the creator role; writes also require the configured origin. */
@@ -29,6 +29,7 @@ export async function registerDrafts(
         return reply.code(503).send({ error: 'DRAFT_UNAVAILABLE' });
       });
       routes.get('/', () => store.list());
+      routes.get('/trash', () => store.listTrash());
       routes.get('/:id', async (request, reply) => {
         const input = z.object({ id: z.uuid() }).safeParse(request.params);
         if (!input.success) return reply.code(400).send({ error: 'INVALID_INPUT' });
@@ -67,6 +68,20 @@ export async function registerDrafts(
           envelope: { ...result.data, revision: input.data.revision + 1 },
         });
         return saved ?? reply.code(409).send({ error: 'CONFLICT' });
+      });
+      routes.delete('/:id', async (request, reply) => {
+        const input = z.object({ id: z.uuid() }).safeParse(request.params);
+        if (!input.success) return reply.code(400).send({ error: 'INVALID_INPUT' });
+        const actor = await authenticatedOperator(auth, request);
+        const trashed = actor && (await store.trash(input.data.id, actor.id, Date.now()));
+        return trashed ?? reply.code(404).send({ error: 'NOT_FOUND' });
+      });
+      routes.post('/:id/restore', async (request, reply) => {
+        const input = z.object({ id: z.uuid() }).safeParse(request.params);
+        if (!input.success) return reply.code(400).send({ error: 'INVALID_INPUT' });
+        const actor = await authenticatedOperator(auth, request);
+        const restored = actor && (await store.restore(input.data.id, actor.id));
+        return restored ?? reply.code(404).send({ error: 'NOT_FOUND' });
       });
     },
     { prefix: '/api/drafts' },

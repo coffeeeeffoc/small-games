@@ -162,7 +162,7 @@ export async function startWorkspaceAgent(
         return;
       }
       const sourceTask = url.pathname.match(
-        /^\/source-extensions\/([^/]+)\/(generate|retry|validate|diff|candidate)$/,
+        /^\/source-extensions\/([^/]+)\/(generate|retry|validate|diff|candidate|cleanup)$/,
       );
       if (request.method === 'POST' && sourceTask) {
         const [, id, action] = sourceTask;
@@ -182,7 +182,10 @@ export async function startWorkspaceAgent(
         } else if (action === 'retry') json(response, 200, await manager.retry(id), origin);
         else if (action === 'validate') json(response, 200, await manager.validate(id), origin);
         else if (action === 'diff') json(response, 200, { diff: await manager.diff(id) }, origin);
-        else {
+        else if (action === 'cleanup') {
+          const input = (await body(request)) as { confirmation?: unknown };
+          json(response, 200, await manager.cleanup(id, input.confirmation === true), origin);
+        } else {
           const input = (await body(request)) as { confirmation?: unknown };
           json(response, 200, await manager.commit(id, input.confirmation === true), origin);
         }

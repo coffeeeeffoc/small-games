@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -219,5 +219,39 @@ describe('Source Extension workflow', () => {
     await manager.write(task.id, 'package.json', '{"name":"@test/game-beta"}\n');
     await manager.write(task.id, 'src/main.ts', 'export const created = true;\n');
     expect(await manager.diff(task.id)).toContain('export const created = true');
+  });
+
+  it('previews cleanup impact, requires confirmation, and preserves records', async () => {
+    const root = await fixture();
+    const manager = await SourceExtensionManager.open(root);
+    const task = await manager.start({ gameId: 'game-alpha', mode: 'modify' });
+    await manager.write(task.id, 'src/main.ts', 'export const value = 9;\n');
+    expect(await manager.cleanup(task.id, false)).toMatchObject({
+      taskId: task.id,
+      removesWorktree: true,
+      preservesRecords: true,
+      changedPaths: ['apps/game-alpha/src/main.ts'],
+    });
+    expect(await stat(task.worktreePath)).toBeDefined();
+    expect(await manager.cleanup(task.id, true)).toMatchObject({ removed: true });
+    await expect(stat(task.worktreePath)).rejects.toThrow();
+    const recordsRoot = path.join(
+      (
+        await exec('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+          cwd: root,
+        })
+      ).stdout.trim(),
+      'source-extensions',
+    );
+    expect(await readFile(path.join(recordsRoot, `${task.id}.json`), 'utf8')).toContain(task.id);
+    const audit = (
+      await Promise.all(
+        (await readdir(path.join(recordsRoot, 'audit'))).map((name) =>
+          readFile(path.join(recordsRoot, 'audit', name), 'utf8'),
+        ),
+      )
+    ).join('\n');
+    expect(audit).toContain('source-extension.cleanup-rejected');
+    expect(audit).toContain('source-extension.cleanup');
   });
 });

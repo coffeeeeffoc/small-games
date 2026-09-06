@@ -21,6 +21,7 @@ export {
   type Operator,
 } from './auth/model.js';
 export { createObjectStore, type ObjectStoreOptions } from './object-store.js';
+export { createProtectionStore, registerProtection } from './protection.js';
 export { registerGenerationJobs } from './generation/routes.js';
 export { createGenerationJobStore } from './generation/store.js';
 export { createHttpAiProvider } from './generation/provider.js';

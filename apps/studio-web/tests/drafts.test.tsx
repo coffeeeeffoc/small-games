@@ -65,6 +65,7 @@ it('creates and edits drafts, displays field errors, previews unsaved text, and 
   };
   const api: DraftClient = {
     list: async () => [saved],
+    listTrash: async () => [],
     read: vi.fn(async () => saved),
     create: vi.fn(async () => saved),
     validate: vi.fn(async () => {
@@ -75,6 +76,8 @@ it('creates and edits drafts, displays field errors, previews unsaved text, and 
     save: vi.fn(async () => {
       throw new DraftError('保存冲突：你的编辑仍保留。');
     }),
+    trash: vi.fn(async () => saved),
+    restore: vi.fn(async () => saved),
   };
   await act(async () => {
     root.render(

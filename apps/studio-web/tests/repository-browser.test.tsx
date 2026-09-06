@@ -75,6 +75,7 @@ it('shows game-organized files safely and retains read-only source when disconne
     validateSource: vi.fn(),
     sourceDiff: vi.fn(),
     commitSource: vi.fn(),
+    cleanupSource: vi.fn(),
   };
   await act(async () => root.render(<RepositoryBrowser api={api} />));
   const input = target.querySelector<HTMLInputElement>('input')!;
@@ -155,6 +156,7 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
     validateSource: vi.fn(),
     sourceDiff: vi.fn(),
     commitSource: vi.fn(),
+    cleanupSource: vi.fn(),
   };
   await act(async () => root.render(<RepositoryBrowser api={api} />));
   const input = target.querySelector<HTMLInputElement>('input')!;

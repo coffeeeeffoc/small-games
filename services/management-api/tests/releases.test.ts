@@ -27,9 +27,12 @@ it('requires publisher, Origin, saved revision and explicit confirmation before 
   };
   const drafts: DraftStore = {
     list: async () => [draft],
+    listTrash: async () => [],
     get: async () => draft,
     create: async (value) => value,
     save: async (value) => value,
+    trash: async () => undefined,
+    restore: async () => undefined,
   };
   const { descriptor, resources } = await signedArtifact();
   const version = await createPublishedVersion(descriptor, draft.envelope);
@@ -176,9 +179,12 @@ it('projects a saved Managed Ad draft into the immutable snapshot and rejects a 
   };
   const drafts: DraftStore = {
     list: async () => [draft],
+    listTrash: async () => [],
     get: async () => draft,
     create: async (value) => value,
     save: async (value) => value,
+    trash: async () => undefined,
+    restore: async () => undefined,
   };
   const adDraft = { id: randomUUID(), name: '运营广告', revision: 2, envelope: plan() };
   const adDrafts: AdDraftStore = {

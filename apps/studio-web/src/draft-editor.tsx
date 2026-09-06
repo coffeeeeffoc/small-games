@@ -10,6 +10,11 @@ const client = createDraftClient();
 export function DraftEditor({ api = client }: { api?: DraftClient }) {
   const queryClient = useQueryClient();
   const drafts = useQuery({ queryKey: ['drafts'], queryFn: () => api.list(), retry: false });
+  const trash = useQuery({
+    queryKey: ['draft-trash'],
+    queryFn: () => api.listTrash(),
+    retry: false,
+  });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [name, setName] = useState('修仙内容草稿');
   const [text, setText] = useState('');
@@ -104,6 +109,53 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
             重新读取
           </button>
         )}
+        {draft && (
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                if (!window.confirm('移入回收站？草稿会保留 30 天。')) return;
+                await api.trash(draft.id);
+                setDraft(null);
+                setText('');
+                setStatus('草稿已移入回收站，可在 30 天内恢复。');
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ['drafts'] }),
+                  queryClient.invalidateQueries({ queryKey: ['draft-trash'] }),
+                ]);
+              })
+            }
+          >
+            移入回收站
+          </button>
+        )}
+        <label>
+          回收站（保留 30 天）
+          <select
+            aria-label="回收站"
+            disabled={busy}
+            value=""
+            onChange={(event) => {
+              const id = event.target.value;
+              if (id)
+                void run(async () => {
+                  select(await api.restore(id));
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['drafts'] }),
+                    queryClient.invalidateQueries({ queryKey: ['draft-trash'] }),
+                  ]);
+                  setStatus('草稿已恢复。');
+                });
+            }}
+          >
+            <option value="">选择并恢复</option>
+            {trash.data?.map((value) => (
+              <option key={value.id} value={value.id}>
+                {value.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {drafts.error && (
         <p role="alert">

@@ -14,12 +14,15 @@ let app: ReturnType<typeof createService>;
 let headers: { origin: string; cookie: string };
 let store: DraftStore;
 let auth: ReturnType<typeof memoryAuthStore>;
+let audit: string[];
 beforeEach(async () => {
   auth = memoryAuthStore();
   await initializeOperator(auth, 'creator', 'draft-test-password');
   const data = new Map<string, ContentDraft>();
+  audit = [];
   store = {
-    list: async () => [...data.values()],
+    list: async () => [...data.values()].filter((draft) => !draft.trashedAt),
+    listTrash: async () => [...data.values()].filter((draft) => draft.trashedAt),
     get: async (id) => data.get(id),
     create: async (draft) => {
       data.set(draft.id, draft);
@@ -31,6 +34,22 @@ beforeEach(async () => {
       const saved = { ...draft, revision: draft.revision + 1 };
       data.set(draft.id, saved);
       return saved;
+    },
+    trash: async (id, _actorId, now) => {
+      const draft = data.get(id);
+      if (!draft || draft.trashedAt) return undefined;
+      const trashed = { ...draft, trashedAt: now, purgeAfter: now + 30 * 86_400_000 };
+      data.set(id, trashed);
+      audit.push('draft.trash');
+      return trashed;
+    },
+    restore: async (id) => {
+      const draft = data.get(id);
+      if (!draft?.trashedAt || draft.purgeAfter! <= Date.now()) return undefined;
+      const restored = { ...draft, trashedAt: null, purgeAfter: null };
+      data.set(id, restored);
+      audit.push('draft.restore');
+      return restored;
     },
   };
   app = createService('management', {}, false);
@@ -46,6 +65,24 @@ beforeEach(async () => {
     origin,
     cookie: login.cookies.map((value) => `${value.name}=${value.value}`).join('; '),
   };
+});
+it('moves an unpublished draft to 30-day trash and restores it with audit events', async () => {
+  const created = await create();
+  expect(created.statusCode).toBe(201);
+  const draft = created.json();
+  expect(await store.get(draft.id)).toBeDefined();
+  const removed = await app.inject({ method: 'DELETE', url: `/api/drafts/${draft.id}`, headers });
+  expect(removed.statusCode, removed.body).toBe(200);
+  expect(removed.json().purgeAfter - removed.json().trashedAt).toBe(30 * 86_400_000);
+  expect((await app.inject({ url: '/api/drafts/', headers })).json()).toEqual([]);
+  const restored = await app.inject({
+    method: 'POST',
+    url: `/api/drafts/${draft.id}/restore`,
+    headers,
+  });
+  expect(restored.statusCode).toBe(200);
+  expect(restored.json()).toMatchObject({ id: draft.id, trashedAt: null, purgeAfter: null });
+  expect(audit).toEqual(['draft.trash', 'draft.restore']);
 });
 afterEach(async () => {
   await app.close();

@@ -4,6 +4,8 @@ import {
   CreateBucketCommand,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 
 /** Server-only S3 adapter configuration; never include credentials in responses. */
@@ -98,6 +100,27 @@ export function createObjectStore(options: ObjectStoreOptions) {
       }
     },
     get,
+    async keys(prefix: string) {
+      const keys: string[] = [];
+      let ContinuationToken: string | undefined;
+      do {
+        const page = await client.send(
+          new ListObjectsV2Command({ Bucket, Prefix: prefix, ContinuationToken }),
+        );
+        keys.push(...(page.Contents ?? []).flatMap((item) => (item.Key ? [item.Key] : [])));
+        ContinuationToken = page.NextContinuationToken;
+      } while (ContinuationToken);
+      return keys;
+    },
+    async deleteKeys(keys: string[]) {
+      if (keys.length)
+        await client.send(
+          new DeleteObjectsCommand({
+            Bucket,
+            Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+          }),
+        );
+    },
     close() {
       client.destroy();
     },

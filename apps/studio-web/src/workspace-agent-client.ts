@@ -31,6 +31,19 @@ export type WorkspaceAgentClient = {
   validateSource(id: string): Promise<SourceExtensionTask>;
   sourceDiff(id: string): Promise<string>;
   commitSource(id: string): Promise<SourceExtensionTask>;
+  cleanupSource(id: string, confirmation: boolean): Promise<SourceCleanupImpact>;
+};
+
+export type SourceCleanupImpact = {
+  taskId: string;
+  gameId: string;
+  status: SourceExtensionTask['status'];
+  attemptCount: number;
+  worktreePath: string;
+  removesWorktree: boolean;
+  preservesRecords: true;
+  changedPaths: string[];
+  removed?: true;
 };
 
 export type SourceExtensionTask = {
@@ -60,6 +73,17 @@ const sourceGenerationSchema = z.object({
   explanation: z.string(),
   model: z.string(),
   files: z.array(z.object({ path: z.string(), source: z.string() })),
+});
+const sourceCleanupSchema = z.object({
+  taskId: z.uuid(),
+  gameId: z.string(),
+  status: sourceTaskSchema.shape.status,
+  attemptCount: z.number().int().positive(),
+  worktreePath: z.string(),
+  removesWorktree: z.boolean(),
+  preservesRecords: z.literal(true),
+  changedPaths: z.array(z.string()),
+  removed: z.literal(true).optional(),
 });
 
 export class WorkspaceAgentError extends Error {
@@ -165,6 +189,15 @@ export function createWorkspaceAgentClient(
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ confirmation: true }),
+        }),
+      );
+    },
+    async cleanupSource(id, confirmation) {
+      return sourceCleanupSchema.parse(
+        await request(`/source-extensions/${encodeURIComponent(id)}/cleanup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ confirmation }),
         }),
       );
     },

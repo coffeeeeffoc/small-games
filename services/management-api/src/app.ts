@@ -21,6 +21,7 @@ import type { AiProvider } from './generation/model.js';
 import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
 import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
 import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
+import { createProtectionStore, registerProtection } from './protection.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -129,6 +130,7 @@ export function createManagementService(
       artifacts,
       adDrafts,
     );
+    await registerProtection(instance, auth, createProtectionStore(database.db, objects), origin);
   });
   return app;
 }
