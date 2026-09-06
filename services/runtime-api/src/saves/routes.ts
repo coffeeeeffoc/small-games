@@ -14,6 +14,7 @@ export async function registerSaves(
     async (routes) => {
       await routes.register(rateLimit, { global: false });
       routes.addHook('onRequest', async (request, reply) => {
+        request.log.info({ adapter: 'cloud-save' }, 'Cloud save adapter request');
         reply.header('cache-control', 'no-store');
         reply.header('access-control-allow-origin', shellOrigin).header('vary', 'Origin');
         if (request.method !== 'OPTIONS' && request.headers.origin !== shellOrigin)
