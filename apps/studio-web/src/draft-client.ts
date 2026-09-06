@@ -59,6 +59,9 @@ export function createDraftClient(transport: typeof fetch = fetch) {
     async list() {
       return z.array(draftSchema).parse(await request('/'));
     },
+    async listTrash() {
+      return z.array(draftSchema).parse(await request('/trash'));
+    },
     async read(id: string) {
       return draftSchema.parse(await request(`/${encodeURIComponent(id)}`));
     },
@@ -70,6 +73,12 @@ export function createDraftClient(transport: typeof fetch = fetch) {
     },
     async validate(envelope: unknown) {
       await request('/validate', 'POST', envelope);
+    },
+    async trash(id: string) {
+      return draftSchema.parse(await request(`/${encodeURIComponent(id)}`, 'DELETE'));
+    },
+    async restore(id: string) {
+      return draftSchema.parse(await request(`/${encodeURIComponent(id)}/restore`, 'POST'));
     },
   };
 }

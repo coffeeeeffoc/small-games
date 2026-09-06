@@ -24,6 +24,7 @@ export {
   type RepositoryTree,
 } from './workspace-agent-client.js';
 export { GenerationPanel } from './generation-panel.js';
+export { ProtectionPanel } from './protection-panel.js';
 export {
   createGenerationClient,
   type GenerationClient,
