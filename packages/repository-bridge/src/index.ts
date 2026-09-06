@@ -1,0 +1,48 @@
+export {
+  countDiffLines,
+  createDiffHunks,
+  diffLines,
+  renderUnifiedDiff,
+  type DiffHunk,
+  type DiffLine,
+  type DiffLineType,
+} from './diff.js';
+export {
+  checkSourceFormat,
+  detectLineEnding,
+  normalizeLineEndings,
+  SOURCE_FORMAT_RULES,
+  type LineEnding,
+  type SourceFormatIssue,
+  type SourceFormatReport,
+  type SourceFormatRule,
+} from './format.js';
+export {
+  affectedFileSchema,
+  diffHunkSchema,
+  diffLineSchema,
+  REPOSITORY_BRIDGE_ERRORS,
+  repositoryBridgeErrorSchema,
+  repositoryDiffRequestSchema,
+  repositoryDiffSchema,
+  repositoryEntrySchema,
+  repositoryFileSchema,
+  repositoryTreeSchema,
+  repositoryWriteRequestSchema,
+  repositoryWriteResultSchema,
+  sourceFormatIssueSchema,
+  sourceFormatReportSchema,
+  type AffectedFile,
+  type RepositoryBridgeErrorBody,
+  type RepositoryBridgeErrorCode,
+  type RepositoryDiff,
+  type RepositoryDiffRequest,
+  type RepositoryEntry,
+  type RepositoryFile,
+  type RepositoryGame,
+  type RepositoryTree,
+  type RepositoryWriteRequest,
+  type RepositoryWriteResult,
+} from './model.js';
+export { EDITABLE_SOURCE_EXTENSIONS, isEditableSourcePath, isTextContent } from './policy.js';
+export { CONTENT_VERSION_PATTERN, contentVersion } from './version.js';

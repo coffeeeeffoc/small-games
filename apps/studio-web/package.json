@@ -22,10 +22,12 @@
     "@coffeeeeffoc/game-host": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/repository-bridge": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "@tanstack/react-router": "1.170.32",
     "@tanstack/react-query": "5.102.8",
+    "monaco-editor": "0.56.0",
     "zod": "4.1.5"
   },
   "devDependencies": {
