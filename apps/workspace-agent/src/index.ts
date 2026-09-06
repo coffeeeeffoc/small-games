@@ -14,6 +14,8 @@ import {
 } from '@coffeeeeffoc/repository-bridge';
 import { gameFiles, prepareSource, repositoryPath, sourceFile } from './repository.js';
 
+export { SourceExtensionManager } from './source-extension.js';
+
 export type RunningWorkspaceAgent = {
   url: string;
   pairingCode: string;
