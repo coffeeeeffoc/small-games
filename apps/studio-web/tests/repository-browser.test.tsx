@@ -69,6 +69,12 @@ it('shows game-organized files safely and retains read-only source when disconne
       .mockRejectedValueOnce(new Error('offline')),
     diff: vi.fn(),
     write: vi.fn(),
+    startSourceExtension: vi.fn(),
+    generateSource: vi.fn(),
+    retrySource: vi.fn(),
+    validateSource: vi.fn(),
+    sourceDiff: vi.fn(),
+    commitSource: vi.fn(),
   };
   await act(async () => root.render(<RepositoryBrowser api={api} />));
   const input = target.querySelector<HTMLInputElement>('input')!;
@@ -143,6 +149,12 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
       version: nextVersion,
       format: { ok: true, issues: [] },
     })),
+    startSourceExtension: vi.fn(),
+    generateSource: vi.fn(),
+    retrySource: vi.fn(),
+    validateSource: vi.fn(),
+    sourceDiff: vi.fn(),
+    commitSource: vi.fn(),
   };
   await act(async () => root.render(<RepositoryBrowser api={api} />));
   const input = target.querySelector<HTMLInputElement>('input')!;

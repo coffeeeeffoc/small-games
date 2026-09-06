@@ -275,4 +275,25 @@ describe('Workspace Agent trust boundary', () => {
     });
     expect(response.status).toBe(200);
   });
+
+  it('rejects dependencies not authorized in trusted Agent configuration', async () => {
+    const { root } = await fixture();
+    running = await startWorkspaceAgent({
+      workspaceRoot: root,
+      allowedOrigins: [origin],
+      pairingCode: '123456',
+      allowedSourceDependencies: ['zod'],
+    });
+    const token = String(((await (await pair(running.url)).json()) as { token: string }).token);
+    const response = await fetch(`${running.url}/source-extensions`, {
+      method: 'POST',
+      headers: {
+        Origin: origin,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ gameId: 'game-new', mode: 'create', allowedDependencies: ['lodash'] }),
+    });
+    expect(response.status).toBe(400);
+  });
 });
