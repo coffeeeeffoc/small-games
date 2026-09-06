@@ -857,9 +857,15 @@ importers:
       '@coffeeeeffoc/ad-config':
         specifier: workspace:*
         version: link:../../packages/ad-config
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../packages/content-schema
       '@coffeeeeffoc/game-artifact':
         specifier: workspace:*
         version: link:../../packages/game-artifact
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
       '@coffeeeeffoc/game-cultivation':
         specifier: workspace:*
         version: link:../../apps/game-cultivation

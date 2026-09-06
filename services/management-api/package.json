@@ -23,6 +23,8 @@
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
     "@fastify/cookie": "11.1.2",
     "@fastify/rate-limit": "11.2.0",
     "@node-rs/argon2": "2.2.0",

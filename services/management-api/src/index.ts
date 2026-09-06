@@ -21,3 +21,13 @@ export {
   type Operator,
 } from './auth/model.js';
 export { createObjectStore, type ObjectStoreOptions } from './object-store.js';
+export { registerGenerationJobs } from './generation/routes.js';
+export { createGenerationJobStore } from './generation/store.js';
+export { createHttpAiProvider } from './generation/provider.js';
+export { runNextGenerationJob, startGenerationWorker } from './generation/worker.js';
+export type {
+  AiProvider,
+  GenerationJob,
+  GenerationJobStore,
+  GenerationTarget,
+} from './generation/model.js';
