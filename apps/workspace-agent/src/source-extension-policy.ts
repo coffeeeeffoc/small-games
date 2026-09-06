@@ -38,7 +38,6 @@ export function checkPackageManifest(
   previousSource: string | undefined,
   nextSource: string,
 ) {
-  if (allowedDependencies.length === 0) throw new Error('DEPENDENCY_CHANGE_REJECTED');
   const previous = previousSource === undefined ? undefined : parse(previousSource);
   if (mode === 'modify' && !previous) throw new Error('DEPENDENCY_CHANGE_REJECTED');
   const next = parse(nextSource);

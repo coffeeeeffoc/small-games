@@ -13,6 +13,8 @@ import {
   type RepositoryBridgeErrorCode,
 } from '@coffeeeeffoc/repository-bridge';
 import { gameFiles, prepareSource, repositoryPath, sourceFile } from './repository.js';
+import { SourceExtensionManager } from './source-extension.js';
+import type { SourceGenerator } from './source-generator.js';
 
 export { SourceExtensionManager } from './source-extension.js';
 
@@ -31,6 +33,8 @@ export type WorkspaceAgentOptions = {
   pairingExpiresAt?: number;
   tokenTtlMs?: number;
   now?: () => number;
+  sourceGenerator?: SourceGenerator;
+  allowedSourceDependencies?: string[];
 };
 
 function json(response: ServerResponse, status: number, body: unknown, origin?: string) {
@@ -83,6 +87,8 @@ export async function startWorkspaceAgent(
   const sessions = new Map<string, number>();
   let writes = Promise.resolve();
   let paired = false;
+  let sourceExtensions: Promise<SourceExtensionManager> | undefined;
+  const extensions = () => (sourceExtensions ??= SourceExtensionManager.open(workspaceRoot));
 
   const server = createServer(async (request, response) => {
     const origin = request.headers.origin;
@@ -141,6 +147,45 @@ export async function startWorkspaceAgent(
           },
           origin,
         );
+        return;
+      }
+      if (request.method === 'POST' && url.pathname === '/source-extensions') {
+        const parsed = (await body(request)) as {
+          gameId: string;
+          mode: 'create' | 'modify';
+          allowedDependencies?: string[];
+        };
+        const allowed = new Set(options.allowedSourceDependencies ?? []);
+        if (parsed.allowedDependencies?.some((dependency) => !allowed.has(dependency)))
+          throw new Error('DEPENDENCY_NOT_ALLOWED');
+        json(response, 201, await (await extensions()).start(parsed), origin);
+        return;
+      }
+      const sourceTask = url.pathname.match(
+        /^\/source-extensions\/([^/]+)\/(generate|retry|validate|diff|candidate)$/,
+      );
+      if (request.method === 'POST' && sourceTask) {
+        const [, id, action] = sourceTask;
+        const manager = await extensions();
+        if (action === 'generate') {
+          if (!options.sourceGenerator) {
+            json(response, 503, { error: 'AI_NOT_CONFIGURED' }, origin);
+            return;
+          }
+          const input = (await body(request)) as { input?: unknown };
+          json(
+            response,
+            200,
+            await manager.generate(id, String(input.input ?? ''), options.sourceGenerator),
+            origin,
+          );
+        } else if (action === 'retry') json(response, 200, await manager.retry(id), origin);
+        else if (action === 'validate') json(response, 200, await manager.validate(id), origin);
+        else if (action === 'diff') json(response, 200, { diff: await manager.diff(id) }, origin);
+        else {
+          const input = (await body(request)) as { confirmation?: unknown };
+          json(response, 200, await manager.commit(id, input.confirmation === true), origin);
+        }
         return;
       }
       if (request.method === 'POST' && url.pathname === '/repository/diff') {
