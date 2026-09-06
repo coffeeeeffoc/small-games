@@ -1,25 +1,18 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { createServer, type ServerResponse } from 'node:http';
-import { lstat, readdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { readdir, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { check as prettierCheck } from 'prettier';
 import {
   checkSourceFormat,
-  contentVersion,
   countDiffLines,
   createDiffHunks,
-  detectLineEnding,
-  EDITABLE_SOURCE_EXTENSIONS,
-  isEditableSourcePath,
-  isTextContent,
-  normalizeLineEndings,
   repositoryDiffRequestSchema,
   repositoryWriteRequestSchema,
-  type RepositoryBridgeErrorBody,
-  type RepositoryEntry,
+  REPOSITORY_BRIDGE_ERRORS,
+  type RepositoryBridgeErrorCode,
 } from '@coffeeeeffoc/repository-bridge';
-
-const SOURCE_EXTENSIONS = new Set(EDITABLE_SOURCE_EXTENSIONS);
-const IGNORED_NAMES = new Set(['node_modules', 'dist', 'coverage', '.git', '.turbo']);
+import { gameFiles, prepareSource, repositoryPath, sourceFile } from './repository.js';
 
 export type RunningWorkspaceAgent = {
   url: string;
@@ -53,11 +46,6 @@ function json(response: ServerResponse, status: number, body: unknown, origin?: 
   response.end(JSON.stringify(body));
 }
 
-function isWithin(parent: string, target: string) {
-  const relative = path.relative(parent, target);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
 async function body(request: AsyncIterable<Uint8Array>) {
   let text = '';
   for await (const chunk of request) {
@@ -67,82 +55,18 @@ async function body(request: AsyncIterable<Uint8Array>) {
   return JSON.parse(text) as unknown;
 }
 
-async function safeGameRoot(workspaceRoot: string, gameId: string) {
-  if (!/^game-[a-z0-9-]+$/.test(gameId)) throw new Error('INVALID_PATH');
-  const gamesRoot = path.join(workspaceRoot, 'apps');
-  const target = path.resolve(gamesRoot, gameId);
-  const canonical = await realpath(target);
-  if (!isWithin(await realpath(gamesRoot), canonical)) throw new Error('INVALID_PATH');
-  return canonical;
-}
-
-async function safeFile(workspaceRoot: string, gameId: string, relativePath: string) {
-  if (!isEditableSourcePath(relativePath)) throw new Error('INVALID_PATH');
-  const gameRoot = await safeGameRoot(workspaceRoot, gameId);
-  const target = path.resolve(gameRoot, relativePath);
-  if (!isWithin(gameRoot, target)) throw new Error('INVALID_PATH');
-  let checked = gameRoot;
-  for (const segment of relativePath.split('/')) {
-    checked = path.join(checked, segment);
-    if ((await lstat(checked)).isSymbolicLink()) throw new Error('INVALID_PATH');
-  }
-  const canonical = await realpath(target);
-  if (!isWithin(gameRoot, canonical)) throw new Error('INVALID_PATH');
-  const details = await stat(canonical);
-  if (
-    !details.isFile() ||
-    !SOURCE_EXTENSIONS.has(path.extname(canonical)) ||
-    details.size > 1_000_000
-  )
-    throw new Error('INVALID_PATH');
-  return canonical;
-}
-
-async function sourceFile(workspaceRoot: string, gameId: string, relativePath: string) {
-  const target = await safeFile(workspaceRoot, gameId, relativePath);
-  let source: string;
-  try {
-    source = new TextDecoder('utf-8', { fatal: true }).decode(await readFile(target));
-  } catch {
-    throw new Error('BINARY_CONTENT');
-  }
-  if (!isTextContent(source)) throw new Error('BINARY_CONTENT');
-  return { target, source, version: await contentVersion(source) };
-}
-
-function repositoryPath(gameId: string, relativePath: string) {
-  return `apps/${gameId}/${relativePath}`;
-}
-
-function errorStatus(code: string) {
+function errorStatus(code: RepositoryBridgeErrorCode) {
   if (code === 'VERSION_CONFLICT') return 409;
   if (code === 'SESSION_EXPIRED' || code === 'PAIRING_REJECTED') return 401;
   if (code === 'ORIGIN_REJECTED') return 403;
   return 400;
 }
 
-async function tree(root: string, current = root): Promise<RepositoryEntry[]> {
-  const entries: RepositoryEntry[] = [];
-  for (const entry of (await readdir(current, { withFileTypes: true })).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  )) {
-    if (IGNORED_NAMES.has(entry.name)) continue;
-    const target = path.join(current, entry.name);
-    const canonical = await realpath(target);
-    if (!isWithin(root, canonical)) throw new Error('INVALID_PATH');
-    const relative = path.relative(root, target).replaceAll('\\', '/');
-    if (entry.isDirectory()) {
-      const children = await tree(root, canonical);
-      if (children.length)
-        entries.push({ name: entry.name, path: relative, type: 'directory', children });
-    } else if (entry.isFile() && SOURCE_EXTENSIONS.has(path.extname(entry.name))) {
-      entries.push({ name: entry.name, path: relative, type: 'file' });
-    }
-  }
-  return entries;
+function isBridgeError(code: string): code is RepositoryBridgeErrorCode {
+  return REPOSITORY_BRIDGE_ERRORS.some((candidate) => candidate === code);
 }
 
-/** Starts the local-only, read-only Repository Bridge. */
+/** Starts the local-only Repository Bridge with controlled source reads and writes. */
 export async function startWorkspaceAgent(
   options: WorkspaceAgentOptions,
 ): Promise<RunningWorkspaceAgent> {
@@ -155,6 +79,7 @@ export async function startWorkspaceAgent(
   const pairingExpiresAt = options.pairingExpiresAt ?? now() + 5 * 60_000;
   const tokenTtlMs = options.tokenTtlMs ?? 15 * 60_000;
   const sessions = new Map<string, number>();
+  let writes = Promise.resolve();
   let paired = false;
 
   const server = createServer(async (request, response) => {
@@ -193,8 +118,7 @@ export async function startWorkspaceAgent(
         const games = [];
         for (const entry of await readdir(appsRoot, { withFileTypes: true })) {
           if (!entry.isDirectory() || !entry.name.startsWith('game-')) continue;
-          const root = await safeGameRoot(workspaceRoot, entry.name);
-          games.push({ id: entry.name, files: await tree(root) });
+          games.push({ id: entry.name, files: await gameFiles(workspaceRoot, entry.name) });
         }
         json(response, 200, { games }, origin);
         return;
@@ -219,11 +143,7 @@ export async function startWorkspaceAgent(
       }
       if (request.method === 'POST' && url.pathname === '/repository/diff') {
         const parsed = repositoryDiffRequestSchema.parse(await body(request));
-        if (new TextEncoder().encode(parsed.source).byteLength > 1_000_000)
-          throw new Error('REQUEST_TOO_LARGE');
-        const current = await sourceFile(workspaceRoot, parsed.gameId, parsed.path);
-        const source = normalizeLineEndings(parsed.source, detectLineEnding(current.source));
-        if (!isTextContent(source)) throw new Error('BINARY_CONTENT');
+        const { current, source } = await prepareSource(workspaceRoot, parsed);
         const hunks = createDiffHunks(current.source, source);
         json(
           response,
@@ -254,46 +174,69 @@ export async function startWorkspaceAgent(
         if (!(input as { confirmation?: unknown })?.confirmation)
           throw new Error('CONFIRMATION_REQUIRED');
         const parsed = repositoryWriteRequestSchema.parse(input);
-        if (new TextEncoder().encode(parsed.source).byteLength > 1_000_000)
-          throw new Error('REQUEST_TOO_LARGE');
-        const current = await sourceFile(workspaceRoot, parsed.gameId, parsed.path);
-        if (current.version !== parsed.baseVersion) {
+        const save = writes.then(async () => {
+          const { current, source } = await prepareSource(workspaceRoot, parsed);
+          if (current.version !== parsed.baseVersion) return { kind: 'conflict', current } as const;
+          const format = checkSourceFormat(source, parsed.path);
+          if (format.ok)
+            try {
+              if (!(await prettierCheck(source, { filepath: current.target })))
+                format.issues.push({ rule: 'prettier', message: 'Source must pass Prettier.' });
+            } catch {
+              format.issues.push({
+                rule: 'prettier',
+                message: 'Source must parse and pass Prettier.',
+              });
+            }
+          format.ok = format.issues.length === 0;
+          if (!format.ok) return { kind: 'format', format } as const;
+          const latest = await sourceFile(workspaceRoot, parsed.gameId, parsed.path);
+          if (latest.version !== current.version)
+            return { kind: 'conflict', current: latest } as const;
+          await writeFile(current.target, source, 'utf8');
+          return {
+            kind: 'saved',
+            saved: await sourceFile(workspaceRoot, parsed.gameId, parsed.path),
+          } as const;
+        });
+        writes = save.then(
+          () => undefined,
+          () => undefined,
+        );
+        const result = await save;
+        if (result.kind === 'conflict')
           json(
             response,
             409,
-            { error: 'VERSION_CONFLICT', version: current.version, source: current.source },
+            {
+              error: 'VERSION_CONFLICT',
+              version: result.current.version,
+              source: result.current.source,
+            },
             origin,
           );
-          return;
-        }
-        const source = normalizeLineEndings(parsed.source, detectLineEnding(current.source));
-        if (!isTextContent(source)) throw new Error('BINARY_CONTENT');
-        const format = checkSourceFormat(source, parsed.path);
-        if (!format.ok) {
-          json(response, 400, { error: 'FORMAT_INVALID', issues: format.issues }, origin);
-          return;
-        }
-        await writeFile(current.target, source, 'utf8');
-        const saved = await sourceFile(workspaceRoot, parsed.gameId, parsed.path);
-        json(
-          response,
-          200,
-          {
-            gameId: parsed.gameId,
-            path: parsed.path,
-            repositoryPath: repositoryPath(parsed.gameId, parsed.path),
-            source: saved.source,
-            version: saved.version,
-            format: checkSourceFormat(saved.source, parsed.path),
-          },
-          origin,
-        );
+        else if (result.kind === 'format')
+          json(response, 400, { error: 'FORMAT_INVALID', issues: result.format.issues }, origin);
+        else
+          json(
+            response,
+            200,
+            {
+              gameId: parsed.gameId,
+              path: parsed.path,
+              repositoryPath: repositoryPath(parsed.gameId, parsed.path),
+              source: result.saved.source,
+              version: result.saved.version,
+              format: { ok: true, issues: [] },
+            },
+            origin,
+          );
         return;
       }
       json(response, 404, { error: 'NOT_FOUND' }, origin);
     } catch (caught) {
-      const code = caught instanceof Error && caught.message.match(/^[A-Z_]+$/)?.[0];
-      const error = (code ?? 'INVALID_REQUEST') as RepositoryBridgeErrorBody['error'];
+      const code = caught instanceof Error ? caught.message : '';
+      const error: RepositoryBridgeErrorCode = isBridgeError(code) ? code : 'INVALID_REQUEST';
       json(response, errorStatus(error), { error }, origin);
     }
   });
