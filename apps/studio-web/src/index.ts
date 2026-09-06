@@ -22,3 +22,9 @@ export {
   type RepositoryEntry,
   type RepositoryTree,
 } from './workspace-agent-client.js';
+export { GenerationPanel } from './generation-panel.js';
+export {
+  createGenerationClient,
+  type GenerationClient,
+  type GenerationJob,
+} from './generation-client.js';
