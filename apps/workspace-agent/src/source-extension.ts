@@ -4,6 +4,7 @@ import { lstat, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/pro
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { checkPackageManifest } from './source-extension-policy.js';
+import { cleanupSourceExtension as cleanup } from './source-extension-cleanup.js';
 import {
   gates,
   previousGenerationAttempt,
@@ -253,8 +254,8 @@ export class SourceExtensionManager {
     return { ...task, recordPath: this.attemptPath(task) };
   }
 
-  private hash(value: string) {
-    return createHash('sha256').update(value).digest('hex');
+  async cleanup(taskId: string, confirmation: boolean) {
+    return cleanup(this.workspaceRoot, this.recordsRoot, await this.load(taskId), confirmation);
   }
 
   private async snapshot(task: Task) {

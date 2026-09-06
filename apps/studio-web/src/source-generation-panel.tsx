@@ -10,6 +10,9 @@ export function SourceGenerationPanel({ api }: { api: WorkspaceAgentClient }) {
   const [explanation, setExplanation] = useState('');
   const [diff, setDiff] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cleanup, setCleanup] = useState<Awaited<
+    ReturnType<WorkspaceAgentClient['cleanupSource']>
+  > | null>(null);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -105,6 +108,36 @@ export function SourceGenerationPanel({ api }: { api: WorkspaceAgentClient }) {
           {explanation && <p>{explanation}</p>}
           {diff && <pre>{diff}</pre>}
           {task.commit && <p>候选提交：{task.commit}</p>}
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => setCleanup(await api.cleanupSource(task.id, false)))
+            }
+          >
+            查看清理影响
+          </button>
+          {cleanup && !cleanup.removed && (
+            <dialog open aria-label="清理确认">
+              <p>{cleanup.worktreePath}</p>
+              <p>{cleanup.attemptCount} 个 attempt 记录会保留。</p>
+              <p>{cleanup.changedPaths.length} 个未提交路径会被丢弃。</p>
+              <ul>
+                {cleanup.changedPaths.map((path) => (
+                  <li key={path}>{path}</li>
+                ))}
+              </ul>
+              <button onClick={() => setCleanup(null)}>取消</button>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => setCleanup(await api.cleanupSource(task.id, true)))
+                }
+              >
+                确认清理 worktree
+              </button>
+            </dialog>
+          )}
+          {cleanup?.removed && <p role="status">worktree 已清理，任务记录已保留。</p>}
         </>
       )}
     </section>
