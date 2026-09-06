@@ -3,6 +3,8 @@ import {
   loadReviewedGame,
   startBilibiliShell,
   reviewedCultivation as reviewed,
+  reviewedOffice,
+  reviewedArena,
 } from '@coffeeeeffoc/shell-bilibili';
 import { fakeSdk } from './fixture.js';
 
@@ -108,6 +110,60 @@ describe('reviewed Bilibili Shell', () => {
     expect(fake.hasTap()).toBe(false);
     expect(fake.sdk.offHide).toHaveBeenCalledOnce();
     expect(fake.sdk.offShow).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['office', reviewedOffice, '打工人摸鱼记'],
+    ['arena', reviewedArena, '电子斗蛐蛐'],
+  ] as const)('loads and starts the predeclared %s Game', async (gameId, module, title) => {
+    const fake = fakeSdk();
+    const instance = await startBilibiliShell(fake.sdk, () => module, {
+      gameId,
+      sessionId: `native-${gameId}`,
+    });
+    expect(fake.sdk.loadSubpackage).toHaveBeenCalledWith(expect.objectContaining({ name: gameId }));
+    expect(fake.lines.map((line) => line.text)).toContain(title);
+    await instance.dispose();
+  });
+
+  it('preserves Office hold-to-slack behavior', async () => {
+    const fake = fakeSdk();
+    const instance = await startBilibiliShell(fake.sdk, () => reviewedOffice, {
+      gameId: 'office',
+      sessionId: 'office-parity',
+    });
+    fake.choose();
+    await vi.waitFor(() => expect(fake.rectangles.length).toBeGreaterThan(0));
+    fake.press();
+    expect(fake.lines.map((line) => line.text)).toContain('松手！切回表格');
+    fake.release();
+    expect(fake.lines.map((line) => line.text)).toContain('按住摸鱼');
+    await instance.dispose();
+  });
+
+  it('shows all eight Arena battle steps before settlement', async () => {
+    vi.useFakeTimers();
+    try {
+      const fake = fakeSdk();
+      const instance = await startBilibiliShell(fake.sdk, () => reviewedArena, {
+        gameId: 'arena',
+        sessionId: 'arena-parity',
+      });
+      for (let choice = 0; choice < 4; choice += 1) {
+        fake.choose();
+        await vi.advanceTimersByTimeAsync(0);
+      }
+      expect(fake.lines.some((line) => line.text.includes('battle'))).toBe(true);
+      for (let step = 1; step <= 8; step += 1) {
+        await vi.advanceTimersByTimeAsync(260);
+        expect(fake.lines.some((line) => line.text.includes(`battle`))).toBe(true);
+      }
+      await vi.advanceTimersByTimeAsync(260);
+      expect(fake.lines.some((line) => line.text.includes('result'))).toBe(true);
+      await instance.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('never resolves Game code until the predeclared SDK package succeeds', async () => {

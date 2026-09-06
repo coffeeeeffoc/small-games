@@ -7,7 +7,12 @@ import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 
 const client = createGenerationClient();
 const draftClient = createDraftClient();
-const statusNames = { queued: '排队中', running: '生成中', succeeded: '已生成草稿', failed: '失败' };
+const statusNames = {
+  queued: '排队中',
+  running: '生成中',
+  succeeded: '已生成草稿',
+  failed: '失败',
+};
 
 export function GenerationPanel({
   api = client,
@@ -57,7 +62,9 @@ export function GenerationPanel({
           生成要求
           <input value={input} onChange={(event) => setInput(event.target.value)} required />
         </label>
-        <button type="submit" disabled={create.isPending}>提交生成任务</button>
+        <button type="submit" disabled={create.isPending}>
+          提交生成任务
+        </button>
       </form>
       {jobs.error && <p role="alert">无法读取生成任务。</p>}
       <ul>
@@ -67,7 +74,9 @@ export function GenerationPanel({
             {job.model && ` · ${job.model}`}
             {job.error && <p role="alert">{job.error}</p>}
             {job.status === 'failed' && <button onClick={() => retry.mutate(job.id)}>重试</button>}
-            {job.draftId && <button onClick={() => loadPreview.mutate(job.draftId!)}>预览草稿</button>}
+            {job.draftId && (
+              <button onClick={() => loadPreview.mutate(job.draftId!)}>预览草稿</button>
+            )}
           </li>
         ))}
       </ul>
