@@ -88,6 +88,7 @@ try {
     '004-release-channels.sql',
     '005-runtime-sessions.sql',
     '006-cloud-saves.sql',
+    '007-managed-ad-drafts.sql',
   ])
     await runCommand(
       'docker',
@@ -163,7 +164,7 @@ try {
   };
   const draft = await request('/api/drafts/', { name: 'Catalog end-to-end fixture' });
   assert.deepEqual(await catalogStore.catalog(), [], 'Draft creation must not leak into Runtime');
-  async function publish(channel, expectedRevision) {
+  async function publish(channel, expectedRevision, advertising) {
     const event = await request('/api/releases/publish', {
       eventId: randomUUID(),
       channel,
@@ -172,6 +173,7 @@ try {
       draftId: draft.id,
       draftRevision: draft.revision,
       artifactId,
+      ...(advertising ?? {}),
     });
     for (let attempt = 0; attempt < 40; attempt++) {
       const state = await request('/api/releases/');
@@ -199,6 +201,60 @@ try {
   const fixed = await runtimeSession(sessionInput);
   assert.equal(fixed.session.publishedVersionId, stable.id);
   assert.equal(fixed.session.adAuthority, 'none');
+  // Managed Ad configuration reaches players only through a published, immutable snapshot.
+  const projected = await catalogStore.catalog();
+  const adDraft = await request('/api/ad-drafts/', { name: 'Managed Ad fixture' });
+  assert.equal(adDraft.envelope.enabled, false, 'A new advertising draft starts disabled');
+  const adSave = await fetch(options.deliveryUrl + `/api/ad-drafts/${adDraft.id}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      ...adDraft,
+      envelope: {
+        ...adDraft.envelope,
+        enabled: true,
+        placements: [
+          {
+            opportunityId: 'cultivation.reincarnate',
+            creativeId: adDraft.envelope.creatives[0].id,
+            policy: { cooldownMs: 1000 },
+            reward: { enabled: true, maxPerSession: 1 },
+          },
+        ],
+      },
+    }),
+  });
+  assert.equal(adSave.status, 200);
+  Object.assign(adDraft, await adSave.json());
+  assert.deepEqual(
+    await catalogStore.catalog(),
+    projected,
+    'A saved advertising draft must not reach players',
+  );
+  const advertised = await publish('development', 0, {
+    adDraftId: adDraft.id,
+    adDraftRevision: adDraft.revision,
+  });
+  assert.deepEqual(advertised.advertising, adDraft.envelope);
+  const managed = await runtimeSession({ ...sessionInput, versionId: advertised.id });
+  assert.equal(managed.session.adAuthority, 'managed');
+  assert.deepEqual(managed.version.advertising, adDraft.envelope);
+  const staleAdvertising = await fetch(options.deliveryUrl + '/api/releases/publish', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      eventId: randomUUID(),
+      channel: 'development',
+      expectedRevision: 1,
+      confirmation: true,
+      draftId: draft.id,
+      draftRevision: draft.revision,
+      artifactId,
+      adDraftId: adDraft.id,
+      adDraftRevision: 0,
+    }),
+  });
+  assert.equal(staleAdvertising.status, 409, 'A changed advertising draft must be re-read');
   const secondClient = await runtimeSession(sessionInput);
   await assert.rejects(catalogStore.session(sessionInput, 10, '0'.repeat(64)), CatalogUnauthorized);
   const firstSave = await saveStore.write(
@@ -332,7 +388,7 @@ try {
   await page.getByRole('button', { name: '进入游戏', exact: true }).first().click();
   await page.locator('.game-slot > .cultivation').waitFor();
   console.log(
-    'Isolated live publication → Runtime Catalog/cloud save → real browser iframe launch/pin, sticky canary, corruption fallback and Runtime-offline local Catalog passed.',
+    'Isolated live publication → Runtime Catalog/cloud save → published Managed Ad authority, real browser iframe launch/pin, sticky canary, corruption fallback and Runtime-offline local Catalog passed.',
   );
 } finally {
   await browser?.close();

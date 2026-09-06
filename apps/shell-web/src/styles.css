@@ -109,3 +109,34 @@ select {
   border-radius: 16px;
   color: #ffd1d1;
 }
+.managed-ad {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  justify-items: center;
+  padding: 24px;
+  background: rgb(8 10 16 / 82%);
+  color: #f4f6fb;
+  text-align: center;
+}
+.managed-ad h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.managed-ad p {
+  margin: 0;
+}
+.managed-ad-countdown {
+  color: #9fb0d0;
+  font-variant-numeric: tabular-nums;
+}
+.managed-ad button {
+  padding: 8px 18px;
+  border: 1px solid #3a4361;
+  border-radius: 999px;
+  background: transparent;
+  color: #f4f6fb;
+}

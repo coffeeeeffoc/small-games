@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
 import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
+import { normalizeManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import {
   createPublishedVersion,
   projectionSchema,
@@ -9,6 +10,7 @@ import {
 import type { AuthStore } from '../auth/model.js';
 import { authenticatedOperator, requireRole } from '../auth/access.js';
 import type { DraftStore } from '../drafts/model.js';
+import type { AdDraftStore } from '../ad-drafts/model.js';
 import type { createArtifactRepository } from '../artifact-repository.js';
 import { ReleaseConflict, type createPublicationStore } from './store.js';
 
@@ -23,8 +25,13 @@ const publish = transition
     draftId: z.uuid(),
     draftRevision: z.number().int().nonnegative(),
     artifactId: versionIdSchema,
+    adDraftId: z.uuid().optional(),
+    adDraftRevision: z.number().int().nonnegative().optional(),
   })
-  .strict();
+  .strict()
+  .refine((input) => (input.adDraftId === undefined) === (input.adDraftRevision === undefined), {
+    message: 'adDraftId and adDraftRevision must be supplied together',
+  });
 const rollback = transition.extend({ versionId: versionIdSchema }).strict();
 
 /** Publisher-only transitions require explicit impact confirmation and exact browser Origin. */
@@ -35,6 +42,7 @@ export async function registerPublications(
   store: ReturnType<typeof createPublicationStore>,
   origin: string,
   artifacts?: Pick<ReturnType<typeof createArtifactRepository>, 'read'>,
+  adDrafts?: AdDraftStore,
 ) {
   await app.register(
     async (routes) => {
@@ -52,6 +60,7 @@ export async function registerPublications(
       routes.get('/', () => store.status('cultivation'));
       // Publishing does not imply creator rights; this is the saved, publishable draft inventory.
       routes.get('/drafts', () => drafts.list());
+      routes.get('/ad-drafts', () => adDrafts?.list() ?? []);
       routes.post('/publish', async (request, reply) => {
         if (!artifacts) return reply.code(503).send({ error: 'PUBLICATION_NOT_CONFIGURED' });
         const parsed = publish.safeParse(request.body);
@@ -67,8 +76,25 @@ export async function registerPublications(
         if (draft.revision !== input.draftRevision) throw new ReleaseConflict('Draft changed');
         const content = normalizeCultivationContent(draft.envelope);
         if (!content.success) return reply.code(422).send(content);
+        let advertising;
+        let adDraft;
+        if (input.adDraftId) {
+          if (!adDrafts) return reply.code(503).send({ error: 'PUBLICATION_NOT_CONFIGURED' });
+          const saved = await adDrafts.get(input.adDraftId);
+          if (!saved) return reply.code(404).send({ error: 'AD_DRAFT_NOT_FOUND' });
+          if (saved.revision !== input.adDraftRevision)
+            throw new ReleaseConflict('Managed Ad draft changed');
+          const normalized = normalizeManagedAdConfig(saved.envelope);
+          if (!normalized.success) return reply.code(422).send(normalized);
+          advertising = normalized.data;
+          adDraft = { id: saved.id, revision: saved.revision };
+        }
         const artifact = await artifacts.read(input.artifactId);
-        const version = await createPublishedVersion(artifact.descriptor, content.data);
+        const version = await createPublishedVersion(
+          artifact.descriptor,
+          content.data,
+          advertising,
+        );
         return reply.code(202).send(
           await store.enqueue({
             eventId: input.eventId,
@@ -79,6 +105,7 @@ export async function registerPublications(
             request: input,
             version,
             draft: { id: draft.id, revision: draft.revision },
+            ...(adDraft ? { adDraft } : {}),
           }),
         );
       });

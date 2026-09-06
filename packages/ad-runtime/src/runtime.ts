@@ -1,4 +1,10 @@
-import { evaluateAdOffer, type AdConfigLayers } from '@coffeeeeffoc/ad-config';
+import {
+  evaluateAdOffer,
+  managedConfigLayers,
+  resolveManagedPlacement,
+  type AdConfigLayers,
+  type ManagedAdConfig,
+} from '@coffeeeeffoc/ad-config';
 import type {
   AdAuthority,
   AdvertisingPort,
@@ -19,6 +25,8 @@ export interface AdProvider {
 export type AdRuntimeOptions = Readonly<{
   authority: AdAuthority;
   config?: AdConfigLayers;
+  /** Published operator rules; consulted only under the managed authority. */
+  managedPlan?: ManagedAdConfig;
   host?: AdProvider;
   managed?: AdProvider;
   telemetry?: TelemetryPort;
@@ -43,15 +51,24 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
   const config = options.config ?? {};
   const now = options.now ?? Date.now;
   const history = new Map<string, number[]>();
+  const rewards = new Map<string, number>();
   const queues = new Map<string, Promise<void>>();
   const provider =
     authority === 'host' ? options.host : authority === 'managed' ? options.managed : null;
+  // Host and none sessions never consult operator configuration.
+  const plan = authority === 'managed' ? options.managedPlan : undefined;
 
   async function runOffer(opportunity: RewardOpportunity): Promise<RewardOutcome> {
     if (authority === 'none' || !provider) return { status: 'unavailable' };
+    const placement = plan ? resolveManagedPlacement(plan, opportunity.id) : null;
+    if (plan && !placement) return { status: 'unavailable' };
+    if (placement && !placement.reward.enabled) return { status: 'unavailable' };
+    if (placement && (rewards.get(opportunity.id) ?? 0) >= placement.reward.maxPerSession)
+      return { status: 'unavailable' };
+    const layers = plan && placement ? managedConfigLayers(plan, opportunity.id, config) : config;
     const shownAt = history.get(opportunity.id) ?? [];
     const offeredAt = now();
-    const decision = evaluateAdOffer(config, opportunity.id, shownAt, offeredAt);
+    const decision = evaluateAdOffer(layers, opportunity.id, shownAt, offeredAt);
     if (!decision.allowed) return { status: 'unavailable' };
 
     try {
@@ -61,6 +78,8 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
         shownAt.push(offeredAt);
         history.set(opportunity.id, shownAt);
       }
+      if (outcome.status === 'completed' && placement)
+        rewards.set(opportunity.id, (rewards.get(opportunity.id) ?? 0) + 1);
       await trackSafely(options.telemetry, 'ad.offer.completed', {
         opportunityId: opportunity.id,
         authority,

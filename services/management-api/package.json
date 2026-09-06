@@ -19,6 +19,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",

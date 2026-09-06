@@ -16,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
