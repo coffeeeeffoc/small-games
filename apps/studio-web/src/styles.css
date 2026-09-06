@@ -156,6 +156,23 @@ form button {
   margin-top: 2.5rem;
   padding-top: 2rem;
 }
+.repository-browser {
+  border-top: 1px solid var(--line);
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+}
+.repository-browser button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.25rem;
+}
+.repository-browser pre {
+  overflow: auto;
+  padding: 1rem;
+  background: #0d1523;
+  border: 1px solid var(--line);
+}
 .draft-workspace header > p:last-child {
   color: var(--muted);
   line-height: 1.7;
