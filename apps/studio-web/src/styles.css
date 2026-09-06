@@ -173,6 +173,40 @@ form button {
   background: #0d1523;
   border: 1px solid var(--line);
 }
+.source-editor,
+.editor-fallback {
+  width: 100%;
+  height: 32rem;
+  margin-bottom: 1rem;
+}
+.editor-fallback {
+  resize: vertical;
+  color: #e6eaf2;
+  background: #0d1523;
+  border: 1px solid var(--line);
+  padding: 1rem;
+  font:
+    0.875rem/1.6 Consolas,
+    monospace;
+}
+.editor-fallback--hidden {
+  display: none;
+}
+.source-workspace > button,
+.repository-browser dialog button {
+  border: 1px solid var(--line);
+  background: #203149;
+  padding: 0.7rem 1rem;
+  margin-right: 0.5rem;
+}
+.repository-browser dialog {
+  width: min(60rem, calc(100vw - 2rem));
+  max-height: 90vh;
+  overflow: auto;
+  color: #e6eaf2;
+  background: #111827;
+  border: 1px solid var(--line);
+}
 .draft-workspace header > p:last-child {
   color: var(--muted);
   line-height: 1.7;

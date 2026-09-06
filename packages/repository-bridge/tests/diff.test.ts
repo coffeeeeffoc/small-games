@@ -27,8 +27,8 @@ describe('Repository Bridge diff review', () => {
     expect(diffLines(before, after)).toEqual([
       { type: 'context', text: 'export const a = 1;' },
       { type: 'removed', text: 'export const b = 2;' },
-      { type: 'added', text: 'export const b = 22;' },
       { type: 'removed', text: 'export const c = 3;' },
+      { type: 'added', text: 'export const b = 22;' },
       { type: 'added', text: 'export const d = 4;' },
     ]);
     expect(countDiffLines(diffLines(before, after))).toEqual({ added: 2, removed: 2 });
@@ -67,9 +67,7 @@ describe('Repository Bridge diff review', () => {
     const after = ['export const a = 1;', 'export const b = 22;', 'export const c = 3;', ''].join(
       '\n',
     );
-    expect(
-      renderUnifiedDiff('apps/game-arena/src/a.ts', createDiffHunks(before, after)),
-    ).toBe(
+    expect(renderUnifiedDiff('apps/game-arena/src/a.ts', createDiffHunks(before, after))).toBe(
       [
         '--- a/apps/game-arena/src/a.ts',
         '+++ b/apps/game-arena/src/a.ts',
