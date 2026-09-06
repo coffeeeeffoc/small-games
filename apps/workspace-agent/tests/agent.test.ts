@@ -73,7 +73,7 @@ describe('Workspace Agent trust boundary', () => {
       tokenTtlMs: 100,
       now: () => now,
     });
-    const token = String((await (await pair(running.url)).json() as { token: string }).token);
+    const token = String(((await (await pair(running.url)).json()) as { token: string }).token);
     const get = (file: string) =>
       fetch(`${running!.url}/repository/file?gameId=game-cultivation&path=${file}`, {
         headers: { Origin: origin, Authorization: `Bearer ${token}` },
@@ -91,13 +91,15 @@ describe('Workspace Agent trust boundary', () => {
       allowedOrigins: [origin],
       pairingCode: '123456',
     });
-    const token = String((await (await pair(running.url)).json() as { token: string }).token);
+    const token = String(((await (await pair(running.url)).json()) as { token: string }).token);
     const response = await fetch(`${running.url}/repository/tree`, {
       headers: { Origin: origin, Authorization: `Bearer ${token}` },
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      games: [{ id: 'game-cultivation', files: [{ name: 'src', children: [{ name: 'evil&name.ts' }] }] }],
+      games: [
+        { id: 'game-cultivation', files: [{ name: 'src', children: [{ name: 'evil&name.ts' }] }] },
+      ],
     });
   });
 });

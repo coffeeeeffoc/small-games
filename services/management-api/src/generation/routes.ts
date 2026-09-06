@@ -55,7 +55,9 @@ export async function registerGenerationJobs(
           status: 'queued',
           disposition: 'pending',
         });
-        return retried ? reply.code(202).send(retried) : reply.code(409).send({ error: 'NOT_FAILED' });
+        return retried
+          ? reply.code(202).send(retried)
+          : reply.code(409).send({ error: 'NOT_FAILED' });
       });
     },
     { prefix: '/api/generation-jobs' },

@@ -10,16 +10,22 @@ export function createGenerationJobStore(
 ): GenerationJobStore {
   return {
     async list() {
-      return (await db.execute(sql`select ${columns} from management.generation_jobs order by created_at desc`)).map(
-        (row) => generationJobSchema.parse(row),
-      );
+      return (
+        await db.execute(
+          sql`select ${columns} from management.generation_jobs order by created_at desc`,
+        )
+      ).map((row) => generationJobSchema.parse(row));
     },
     async get(id) {
-      const rows = await db.execute(sql`select ${columns} from management.generation_jobs where id = ${id}`);
+      const rows = await db.execute(
+        sql`select ${columns} from management.generation_jobs where id = ${id}`,
+      );
       return rows[0] ? generationJobSchema.parse(rows[0]) : undefined;
     },
     async enqueue(job) {
-      await db.execute(sql`insert into management.generation_jobs (id, operator_id, game_id, schema_version, input, input_hash, attempt, status, disposition) values (${job.id}, ${job.operatorId}, ${job.gameId}, ${job.schemaVersion}, ${job.input}, ${job.inputHash}, ${job.attempt}, ${job.status}, ${job.disposition})`);
+      await db.execute(
+        sql`insert into management.generation_jobs (id, operator_id, game_id, schema_version, input, input_hash, attempt, status, disposition) values (${job.id}, ${job.operatorId}, ${job.gameId}, ${job.schemaVersion}, ${job.input}, ${job.inputHash}, ${job.attempt}, ${job.status}, ${job.disposition})`,
+      );
       return job;
     },
     async claim() {
@@ -37,11 +43,14 @@ export function createGenerationJobStore(
       return generationJobSchema.parse(rows[0]);
     },
     async fail(id, audit) {
-      const rows = await db.execute(sql`update management.generation_jobs set status = 'failed', model = ${audit.model ?? null}, output_hash = ${audit.outputHash ?? null}, validation_result = ${audit.validationResult === undefined ? null : JSON.stringify(audit.validationResult)}::jsonb, disposition = ${audit.disposition}, error = ${audit.error ?? null}, updated_at = now() where id = ${id} returning ${columns}`);
+      const rows = await db.execute(
+        sql`update management.generation_jobs set status = 'failed', model = ${audit.model ?? null}, output_hash = ${audit.outputHash ?? null}, validation_result = ${audit.validationResult === undefined ? null : JSON.stringify(audit.validationResult)}::jsonb, disposition = ${audit.disposition}, error = ${audit.error ?? null}, updated_at = now() where id = ${id} returning ${columns}`,
+      );
       return generationJobSchema.parse(rows[0]);
     },
     async retry(id, replacement) {
-      const rows = await db.execute(sql`insert into management.generation_jobs (id, operator_id, game_id, schema_version, input, input_hash, attempt, status, disposition)
+      const rows =
+        await db.execute(sql`insert into management.generation_jobs (id, operator_id, game_id, schema_version, input, input_hash, attempt, status, disposition)
         select ${replacement.id}, ${replacement.operatorId}, game_id, schema_version, input, input_hash, ${replacement.attempt}, 'queued', 'pending'
         from management.generation_jobs where id = ${id} and status = 'failed' returning ${columns}`);
       return rows[0] ? generationJobSchema.parse(rows[0]) : undefined;
