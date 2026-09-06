@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/release-contract": "workspace:*",
+    "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",

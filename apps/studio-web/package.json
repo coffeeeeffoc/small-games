@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/release-contract": "workspace:*",
+    "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
