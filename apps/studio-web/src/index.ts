@@ -15,3 +15,10 @@ export {
 } from './ad-draft-client.js';
 export { createStudioRouter } from './router.js';
 export { createAuthClient, type AuthClient, type Operator } from './auth-client.js';
+export { RepositoryBrowser } from './repository-browser.js';
+export {
+  createWorkspaceAgentClient,
+  type WorkspaceAgentClient,
+  type RepositoryEntry,
+  type RepositoryTree,
+} from './workspace-agent-client.js';

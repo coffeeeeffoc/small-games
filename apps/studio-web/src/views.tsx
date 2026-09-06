@@ -5,6 +5,7 @@ import { type StudioContext } from './router.js';
 import { DraftEditor } from './draft-editor.js';
 import { AdEditor } from './ad-editor.js';
 import { ReleasePanel } from './release-panel.js';
+import { RepositoryBrowser } from './repository-browser.js';
 
 /** Login surface with accessible feedback and no client-side credential persistence. */
 export function LoginPage() {
@@ -121,6 +122,7 @@ export function WorkspacePage() {
         )}
         {operator?.roles.includes('creator') && <DraftEditor />}
         {operator?.roles.includes('creator') && <AdEditor />}
+        {operator?.roles.includes('creator') && <RepositoryBrowser />}
         {operator?.roles.includes('publisher') && <ReleasePanel />}
       </section>
     </main>
