@@ -208,6 +208,16 @@ describe('Workspace Agent trust boundary', () => {
         },
         'FORMAT_INVALID',
       ],
+      [
+        {
+          gameId: 'game-cultivation',
+          path: 'src/evil&name.ts',
+          source: 'export const safe=true;\n',
+          baseVersion: version,
+          confirmation: true,
+        },
+        'FORMAT_INVALID',
+      ],
     ] as const) {
       const response = await request('/repository/file', {
         method: 'POST',
@@ -220,5 +230,29 @@ describe('Workspace Agent trust boundary', () => {
       '/repository/file?gameId=game-cultivation&path=src%2Flinked%2Ftarget.ts',
     );
     expect(linked.status).toBe(400);
+  });
+
+  it('serializes simultaneous saves against the same base version', async () => {
+    const { root } = await fixture();
+    const request = await pairedAgent(root);
+    const current = (await (
+      await request('/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts')
+    ).json()) as { version: string };
+    const save = (source: string) =>
+      request('/repository/file', {
+        method: 'POST',
+        body: JSON.stringify({
+          gameId: 'game-cultivation',
+          path: 'src/evil&name.ts',
+          source,
+          baseVersion: current.version,
+          confirmation: true,
+        }),
+      });
+    const responses = await Promise.all([
+      save('export const winner = 1;\n'),
+      save('export const winner = 2;\n'),
+    ]);
+    expect(responses.map(({ status }) => status).sort()).toEqual([200, 409]);
   });
 });

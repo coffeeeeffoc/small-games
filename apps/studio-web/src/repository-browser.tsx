@@ -4,6 +4,9 @@ import {
   type RepositoryDiff,
   type RepositoryFile,
 } from '@coffeeeeffoc/repository-bridge';
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
+import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
+import TypeScriptWorker from 'monaco-editor/language/typescript/ts.worker?worker';
 import {
   createWorkspaceAgentClient,
   type RepositoryEntry,
@@ -13,6 +16,16 @@ import {
 } from './workspace-agent-client.js';
 
 const client = createWorkspaceAgentClient();
+
+Object.assign(globalThis, {
+  MonacoEnvironment: {
+    getWorker(_: string, label: string) {
+      if (label === 'json') return new JsonWorker();
+      if (label === 'typescript' || label === 'javascript') return new TypeScriptWorker();
+      return new EditorWorker();
+    },
+  },
+});
 
 function language(path: string) {
   const extension = path.split('.').at(-1)?.toLowerCase();

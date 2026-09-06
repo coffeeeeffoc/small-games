@@ -10,6 +10,7 @@ export const SOURCE_FORMAT_RULES = [
   'final-newline',
   'json-syntax',
   'mixed-line-endings',
+  'prettier',
   'tab-indentation',
   'trailing-whitespace',
 ] as const;

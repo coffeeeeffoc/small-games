@@ -443,6 +443,9 @@ importers:
       '@coffeeeeffoc/repository-bridge':
         specifier: workspace:*
         version: link:../../packages/repository-bridge
+      prettier:
+        specifier: 3.6.2
+        version: 3.6.2
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -4209,7 +4212,6 @@ packages:
     resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
     engines: {node: '>=14'}
     hasBin: true
-    dev: true
 
   /process-warning@4.0.1:
     resolution: {integrity: sha512-3c2LzQ3rY9d0hc1emcsHhfT9Jwz0cChib/QN89oME2R451w5fy3f0afAhERFZAwrbDU43wk12d0ORBpDVME50Q==}
