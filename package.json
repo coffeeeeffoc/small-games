@@ -17,6 +17,7 @@
     "infra:up": "node scripts/platform.mjs up",
     "infra:stop": "node scripts/platform.mjs stop",
     "test:platform": "node scripts/platform.mjs test",
+    "test:e2e": "pnpm test && pnpm test:platform",
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "build:affected": "turbo run build --affected",

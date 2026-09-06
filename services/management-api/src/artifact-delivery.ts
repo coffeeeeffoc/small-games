@@ -33,6 +33,7 @@ export function registerArtifactDelivery(
     const id = versionIdSchema.safeParse(request.params.id);
     if (!id.success) return reply.code(404).send({ error: 'NOT_FOUND' });
     try {
+      request.log.info({ adapter: 'object-store', artifactId: id.data }, 'Published artifact read');
       const bytes = await read(id.data);
       if (!bytes) return reply.code(404).send({ error: 'NOT_PUBLISHED' });
       return reply

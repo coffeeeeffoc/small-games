@@ -1,4 +1,4 @@
-import { createService, openDatabase } from '@coffeeeeffoc/service-kit';
+import { createService, openDatabase, type RequestSpanExporter } from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 import { webcrypto } from 'node:crypto';
 import { createReleaseStore } from './releases/store.js';
@@ -12,10 +12,11 @@ import { registerSaves } from './saves/routes.js';
 export function createRuntimeService(
   env: Record<string, string | undefined> = process.env,
   logger = true,
+  telemetry?: RequestSpanExporter,
 ): ReturnType<typeof createService> {
   const databaseUrl = z.url().parse(env.RUNTIME_DATABASE_URL);
   const database = openDatabase(databaseUrl, 'runtime');
-  const app = createService('runtime', { database }, logger);
+  const app = createService('runtime', { database }, logger, telemetry);
   app.register(async (instance) => {
     const configured = env.RELEASE_PROJECTION_TOKEN || env.ARTIFACT_TRUSTED_PUBLIC_KEY;
     const configuration = configured

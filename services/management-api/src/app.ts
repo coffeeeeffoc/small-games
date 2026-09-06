@@ -1,4 +1,4 @@
-import { createService, openDatabase } from '@coffeeeeffoc/service-kit';
+import { createService, openDatabase, type RequestSpanExporter } from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 import { createObjectStore } from './object-store.js';
 import { createAuthStore } from './auth/store.js';
@@ -27,6 +27,7 @@ import { createProtectionStore, registerProtection } from './protection.js';
 export function createManagementService(
   env: Record<string, string | undefined> = process.env,
   logger = true,
+  telemetry?: RequestSpanExporter,
 ): ReturnType<typeof createService> {
   const databaseUrl = z.url().parse(env.MANAGEMENT_DATABASE_URL);
   const origin = z
@@ -41,7 +42,7 @@ export function createManagementService(
     secretAccessKey: z.string().min(1).parse(env.S3_SECRET_ACCESS_KEY),
   });
   const database = openDatabase(databaseUrl, 'management');
-  const app = createService('management', { database, objects }, logger);
+  const app = createService('management', { database, objects }, logger, telemetry);
   app.register(async (instance) => {
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);

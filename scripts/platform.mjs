@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { managementEnvironment, runtimeEnvironment } from './platform-config.mjs';
+import { managementEnvironment } from './platform-config.mjs';
+import { developmentEntries } from './platform-apps.mjs';
 import { runProcessGroup, runCommand } from './platform-process.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -21,6 +22,7 @@ if (mode === 'stop') {
     '006-cloud-saves.sql',
     '007-managed-ad-drafts.sql',
     '008-generation-jobs.sql',
+    '009-content-protection.sql',
   ])
     await run(
       'docker',
@@ -71,16 +73,11 @@ if (mode === 'stop') {
       const stop = () => controller.abort();
       process.once('SIGINT', stop);
       process.once('SIGTERM', stop);
-      const entries = [
-        ['management', managementEnvironment, '53001'],
-        ['runtime', runtimeEnvironment, '53002'],
-      ].map(([name, env, port]) => ({
-        command: process.execPath,
-        args: [`services/${name}-api/dist/main.js`],
-        env: { ...process.env, ...env, PORT: port },
-      }));
       try {
-        await runProcessGroup(entries, { cwd: root, signal: controller.signal });
+        await runProcessGroup(developmentEntries(process.execPath, root), {
+          cwd: root,
+          signal: controller.signal,
+        });
       } finally {
         process.removeListener('SIGINT', stop);
         process.removeListener('SIGTERM', stop);

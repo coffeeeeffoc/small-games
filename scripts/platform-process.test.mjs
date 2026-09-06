@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runProcessGroup, runCommand, childEnvironment } from './platform-process.mjs';
+import { developmentEntries } from './platform-apps.mjs';
+
+test('the platform command owns every local application process', () => {
+  assert.deepEqual(
+    developmentEntries(process.execPath, 'F:\\workspace').map(({ name }) => name),
+    ['management', 'runtime', 'shell-web', 'shell-bilibili', 'studio-web', 'workspace-agent'],
+  );
+});
 
 test('bootstrap secrets never reach prerequisite children and source environment stays unchanged', async () => {
   const source = {

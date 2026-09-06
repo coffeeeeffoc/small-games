@@ -28,6 +28,10 @@ export async function registerGenerationJobs(
         if (!input.success) return reply.code(422).send({ error: 'INVALID_INPUT' });
         const operator = await authenticatedOperator(auth, request);
         if (!operator) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+        request.log.info(
+          { adapter: 'ai-provider', gameId: target.manifest.gameId },
+          'Generation queued',
+        );
         return reply.code(202).send(
           await store.enqueue({
             id: randomUUID(),

@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm dev:platform
 ```
 
-该命令启动并等待 PostgreSQL / MinIO 健康，构建双服务与依赖，幂等初始化对象桶，再运行两个独立 Node 进程。任一服务退出会停止同组服务。修改代码后 Ctrl+C 并重新运行；本工单的开发入口不包含热重载。原 `pnpm dev` 仍用于各前端入口，完整平台组合由 #26 完成。
+该命令启动并等待 PostgreSQL / MinIO 健康，构建双服务与依赖，幂等初始化对象桶，再运行双服务、两个 Shell、Creator Studio 与 Workspace Agent。任一子进程退出会停止同组进程。前端由 Vite 提供热更新；服务修改后需 Ctrl+C 并重新运行。
 
 Ctrl+C 停止本次服务进程，数据库和对象存储留在后台。`pnpm infra:stop` 停止本项目的两个容器，保留持久卷；`pnpm infra:up` 再次启动。不会停止其他 Compose 项目，也不会删除任何卷。
 
@@ -19,8 +19,11 @@ Ctrl+C 停止本次服务进程，数据库和对象存储留在后台。`pnpm i
 | Game Runtime Service | `http://127.0.0.1:53002/health`                     |
 | PostgreSQL           | `127.0.0.1:15432`，数据库 `small_games`             |
 | MinIO S3 / Console   | `http://127.0.0.1:59000` / `http://127.0.0.1:59001` |
+| Web / B站 Shell      | `http://127.0.0.1:5173` / `http://127.0.0.1:5175`   |
+| Creator Studio       | `http://127.0.0.1:5174`                             |
+| Workspace Agent      | `http://127.0.0.1:4319`                             |
 
-`/health/live` 只表示进程存活；`/health` 检查自己 schema 的版本标记和（Management）对象桶，失败返回 HTTP 503，不返回原始错误或凭据。请求日志采用 Fastify 的 Pino JSON 日志及 request ID。
+`/health/live` 只表示进程存活；`/health` 检查自己 schema 的版本标记和（Management）对象桶，失败返回 HTTP 503，不返回原始错误或凭据。请求日志采用 Fastify 的 Pino JSON 日志及 request ID；Game 请求同时记录 `gameSessionId`。`service-kit` 的可选 `RequestSpanExporter` 是 OpenTelemetry adapter 接缝，导出失败不影响业务请求。
 
 ## 数据所有权和初始化
 
@@ -55,3 +58,5 @@ Management 必填 `MANAGEMENT_DATABASE_URL`、`STUDIO_ORIGIN`、`S3_ENDPOINT`、
 - 查看日志：`docker compose -f infra/docker/compose.yaml logs postgres minio`，服务日志直接显示在启动终端。
 
 底层采用 [Fastify](https://fastify.dev/docs/latest/Reference/Server/)、[Drizzle PostgreSQL adapter](https://orm.drizzle.team/docs/get-started-postgresql) 和 [MinIO 官方镜像](https://hub.docker.com/r/minio/minio/tags)。此配置用于本地开发，不是生产部署模板。
+
+完整启动、发布、回滚、备份恢复和故障处置见[本地平台运行手册](../operations/runbook.md)。

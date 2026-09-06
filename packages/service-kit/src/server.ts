@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { z } from 'zod';
 
 /** Readiness-only dependency seam; shutdown releases its connection resources. */
@@ -7,13 +7,61 @@ export interface DependencyProbe {
   close(): Promise<void> | void;
 }
 
+/** Vendor-neutral request span accepted by an OpenTelemetry adapter. */
+export interface RequestSpanExporter {
+  exportSpan(
+    span: Readonly<{
+      requestId: string;
+      gameSessionId?: string;
+      method: string;
+      route: string;
+      statusCode: number;
+      durationMs: number;
+    }>,
+  ): Promise<void> | void;
+}
+
+const gameSessionId = (headers: Record<string, string | string[] | undefined>) => {
+  const value = headers['x-game-session-id'];
+  return typeof value === 'string' ? value : undefined;
+};
+
 /** Shared HTTP plumbing for the two services, with no business data or routes. */
 export function createService(
   name: 'management' | 'runtime',
   dependencies: Record<string, DependencyProbe>,
-  logger = true,
+  logger: FastifyServerOptions['logger'] = true,
+  exporter?: RequestSpanExporter,
 ) {
   const app = Fastify({ logger, requestTimeout: 10_000, bodyLimit: 1_048_576 });
+  const telemetry: RequestSpanExporter =
+    exporter ??
+    ({
+      exportSpan: (span) => app.log.info({ otelSpan: span }, 'OpenTelemetry request span'),
+    } satisfies RequestSpanExporter);
+  app.addHook('onRequest', (request, _reply, done) => {
+    const sessionId = gameSessionId(request.headers);
+    if (sessionId) {
+      request.log = request.log.child({ gameSessionId: sessionId });
+      request.log.info('Game Session request');
+    }
+    done();
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    const sessionId = gameSessionId(request.headers);
+    try {
+      await telemetry.exportSpan({
+        requestId: request.id,
+        ...(sessionId ? { gameSessionId: sessionId } : {}),
+        method: request.method,
+        route: request.routeOptions.url ?? request.url,
+        statusCode: reply.statusCode,
+        durationMs: reply.elapsedTime,
+      });
+    } catch {
+      request.log.warn('Telemetry export failed');
+    }
+  });
   app.get('/health/live', async () => ({ service: name, status: 'ok' }));
   app.get('/health', async (_request, reply) => {
     const results = await Promise.all(
