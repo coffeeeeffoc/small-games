@@ -57,6 +57,7 @@ if (sdk) {
       run() {
         surface.dispose();
         void startBilibiliShell(sdk, game.load, {
+          canvas,
           gameId: game.id,
           adUnitId: BILIBILI_AD_UNIT_ID,
           sessionId: `bilibili-${Date.now()}-${Math.random().toString(36).slice(2)}`,

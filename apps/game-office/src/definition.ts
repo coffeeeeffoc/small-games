@@ -4,6 +4,7 @@ import { createReactGameDefinition } from '@coffeeeeffoc/react-game-adapter';
 
 import { officeContentSchema } from './content/schema.js';
 import { OfficeGame } from './view/OfficeGame.js';
+import { OfficeSample } from './sample/OfficeSample.js';
 import { officeManifest } from './manifest.js';
 export { officeManifest } from './manifest.js';
 
@@ -17,5 +18,8 @@ export const officeGameDefinition = createReactGameDefinition({
   manifest: officeManifest,
   requiredCapabilities,
   contentSchema: officeContentSchema,
-  render: (host, content, active) => createElement(OfficeGame, { host, content, active }),
+  render: (host, content, active) =>
+    content.experience === 'desk-sample'
+      ? createElement(OfficeSample, { host, active })
+      : createElement(OfficeGame, { host, content, active }),
 });

@@ -4,8 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { HostError, type AdvertisingPort, type RewardOutcome } from '@coffeeeeffoc/game-contract';
 import { exerciseGameLifecycle } from '@coffeeeeffoc/game-contract-test';
 import { createInMemoryGameHost, createTestGameHost } from '@coffeeeeffoc/game-host';
-import { defaultOfficeEnvelope } from '@coffeeeeffoc/game-office/content';
+import { defaultOfficeEnvelope as sampleEnvelope } from '@coffeeeeffoc/game-office/content';
 import { officeGameDefinition } from '@coffeeeeffoc/game-office';
+
+// Keep exercising the published five-day experience with legacy content.
+const defaultOfficeEnvelope = {
+  ...sampleEnvelope,
+  payload: { ...sampleEnvelope.payload, experience: 'classic' as const },
+};
 
 async function mountCaughtGame(offer: AdvertisingPort['offer']) {
   vi.useFakeTimers();
