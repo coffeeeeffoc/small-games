@@ -10,13 +10,13 @@ export function developmentEntries(node, root) {
       name: 'management',
       command: node,
       args: ['services/management-api/dist/main.js'],
-      env: { ...process.env, ...managementEnvironment, PORT: '53001' },
+      env: { ...process.env, ...managementEnvironment, PORT: '43001' },
     },
     {
       name: 'runtime',
       command: node,
       args: ['services/runtime-api/dist/main.js'],
-      env: { ...process.env, ...runtimeEnvironment, PORT: '53002' },
+      env: { ...process.env, ...runtimeEnvironment, PORT: '43002' },
     },
     { name: 'shell-web', command: node, args: [vite, 'apps/shell-web', '--port', '5173'] },
     {

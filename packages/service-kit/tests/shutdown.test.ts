@@ -22,7 +22,9 @@ it('bounds cleanup after a failed listen and preserves its sanitized error', asy
     ).rejects.toMatchObject({
       code: 1,
       killed: false,
-      stderr: expect.stringContaining('Service failed to listen'),
+      stderr: expect.stringContaining(
+        `Service failed to listen on 127.0.0.1:${address.port} (EADDRINUSE)`,
+      ),
     });
   } finally {
     await new Promise<void>((resolve) => socket.close(() => resolve()));
