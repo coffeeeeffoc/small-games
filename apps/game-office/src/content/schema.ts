@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 /** Runtime schema for the fixed five-day office campaign. */
 export const officeContentSchema = z.object({
+  experience: z.enum(['classic', 'desk-sample']).optional(),
   days: z
     .array(
       z.object({

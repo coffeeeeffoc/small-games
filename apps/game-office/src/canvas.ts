@@ -8,6 +8,7 @@ import { createCanvasSurface, type CanvasGameTarget } from '@coffeeeeffoc/canvas
 import { officeManifest } from './manifest.js';
 export { officeManifest } from './manifest.js';
 import { officeContentSchema } from './content/schema.js';
+import { mountOfficeSample } from './sample/runtime.js';
 import { loadOfficeSave, writeOfficeSave } from './adapter/save.js';
 import {
   advanceOfficeTick,
@@ -30,6 +31,7 @@ export const officeCanvasDefinition: GameDefinition<CanvasGameTarget> = {
     if (!envelope.success)
       throw new HostError({ code: 'CONTENT_INCOMPATIBLE', message: 'Invalid office content' });
     const content = envelope.data.payload;
+    if (content.experience === 'desk-sample') return mountOfficeSample(target, host);
     let stored = await loadOfficeSave(host);
     let state = createOfficeState(content);
     let paused = false;

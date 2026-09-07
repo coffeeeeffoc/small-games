@@ -128,10 +128,17 @@ describe('reviewed Bilibili Shell', () => {
 
   it('preserves Office hold-to-slack behavior', async () => {
     const fake = fakeSdk();
-    const instance = await startBilibiliShell(fake.sdk, () => reviewedOffice, {
-      gameId: 'office',
-      sessionId: 'office-parity',
-    });
+    const instance = await startBilibiliShell(
+      fake.sdk,
+      () => ({
+        ...reviewedOffice,
+        content: {
+          ...reviewedOffice.content,
+          payload: { ...reviewedOffice.content.payload, experience: 'classic' },
+        },
+      }),
+      { gameId: 'office', sessionId: 'office-parity' },
+    );
     fake.choose();
     await vi.waitFor(() => expect(fake.rectangles.length).toBeGreaterThan(0));
     fake.press();
