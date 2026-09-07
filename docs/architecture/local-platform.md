@@ -15,8 +15,8 @@ Ctrl+C 停止本次服务进程，数据库和对象存储留在后台。`pnpm i
 
 | 组件                 | 本机地址                                            |
 | -------------------- | --------------------------------------------------- |
-| Management Service   | `http://127.0.0.1:53001/health`                     |
-| Game Runtime Service | `http://127.0.0.1:53002/health`                     |
+| Management Service   | `http://127.0.0.1:43001/health`                     |
+| Game Runtime Service | `http://127.0.0.1:43002/health`                     |
 | PostgreSQL           | `127.0.0.1:15432`，数据库 `small_games`             |
 | MinIO S3 / Console   | `http://127.0.0.1:59000` / `http://127.0.0.1:59001` |
 | Web / B站 Shell      | `http://127.0.0.1:5173` / `http://127.0.0.1:5175`   |
@@ -52,7 +52,7 @@ Management 必填 `MANAGEMENT_DATABASE_URL`、`STUDIO_ORIGIN`、`S3_ENDPOINT`、
 
 - Docker pipe 不存在：先启动 Docker Desktop 并等待 `docker info` 能显示 Server。
 - 拉取失败：检查 Docker 的代理及镜像仓库连通性，不替换为来源不明镜像。
-- 端口占用：检查 15432、59000、59001、53001、53002 的占用者，不结束其他项目进程。Windows 还需用 `netsh interface ipv4 show excludedportrange protocol=tcp` 检查系统保留区间（不自动修改系统规则）。
+- 端口占用：检查 15432、59000、59001、43001、43002 的占用者，不结束其他项目进程。Windows 还需用 `netsh interface ipv4 show excludedportrange protocol=tcp` 检查系统保留区间（不自动修改系统规则）。
 - 数据库健康但服务 503：检查 schema 初始化和应用角色；旧卷不会重新运行引导 SQL。保留卷，先备份再根据已记录版本执行迁移，禁止以删卷作为自动修复。
 - MinIO 503：检查桶是否已初始化、S3 endpoint 和凭据。重新执行根启动命令会幂等创建桶。
 - 查看日志：`docker compose -f infra/docker/compose.yaml logs postgres minio`，服务日志直接显示在启动终端。

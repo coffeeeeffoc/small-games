@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm dev:platform
 ```
 
-该根命令启动 PostgreSQL、MinIO、Management API（53001）、Runtime API（53002）、Web Shell（5173）、B 站 Shell（5175）、Creator Studio（5174）和仅监听回环地址的 Workspace Agent（4319）。Ctrl+C 停止应用进程但保留容器与数据；`pnpm infra:stop` 停止容器但不删除卷。
+该根命令启动 PostgreSQL、MinIO、Management API（43001）、Runtime API（43002）、Web Shell（5173）、B 站 Shell（5175）、Creator Studio（5174）和仅监听回环地址的 Workspace Agent（4319）。Ctrl+C 停止应用进程但保留容器与数据；`pnpm infra:stop` 停止容器但不删除卷。
 
 完整验收执行 `pnpm test:e2e`。它先运行所有公开接口、Contract 与 UI 测试，再以真实 PostgreSQL、MinIO、服务和浏览器验证登录、草稿编辑/预览、Artifact 构建、发布/回滚、Catalog 装载、Managed Ad、奖励完成规则和云存档。真实 Catalog 流程最后通过 Runtime HTTP 与 PostgreSQL 对 Catalog 读取及存档写入各发出 100 个请求，并检查 100 RPS、读取 p95 < 200ms、写入 p95 < 500ms；目标部署环境仍应另行压测。
 
@@ -41,7 +41,7 @@ docker compose -f infra/docker/compose.yaml cp minio:/data C:\backup\small-games
 ## 故障与恢复检查
 
 - `docker info` 无 Server：启动 Docker Desktop；不得用删除卷作为修复。
-- 15432、59000、59001、5173、5174、5175、4319、53001 或 53002 被占用：定位占用者，不结束其他项目进程。
+- 15432、59000、59001、5173、5174、5175、4319、43001 或 43002 被占用：定位占用者，不结束其他项目进程。
 - `/health` 返回 503：查看 `docker compose -f infra/docker/compose.yaml logs postgres minio` 和服务 Pino JSON 日志；request ID 与 `gameSessionId` 用于串联请求。
 - Runtime 不可用：Shell 使用本地配置与本地存档；恢复后同步测试会重试且不覆盖并发云存档。
 - Artifact/Catalog 失败：校验签名、哈希、CSP 与 Release Channel；远程加载按目标、last-known-good、内置版本回退。

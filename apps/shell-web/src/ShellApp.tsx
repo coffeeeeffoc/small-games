@@ -19,7 +19,7 @@ import {
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 
 const defaultRuntime = createRuntimeClient(
-  import.meta.env.VITE_RUNTIME_URL ?? 'http://127.0.0.1:53002',
+  import.meta.env.VITE_RUNTIME_URL ?? 'http://127.0.0.1:43002',
 );
 
 /** Public injection seams for catalog and Game Host integration tests. */
