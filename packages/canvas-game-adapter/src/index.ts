@@ -1,3 +1,19 @@
+/** Pointer coordinates use the same logical screen space as onTap. */
+export type CanvasPointerEvent = Readonly<{
+  phase: 'down' | 'move' | 'up' | 'cancel';
+  x: number;
+  y: number;
+  pointerId: number;
+}>;
+
+/** A reusable local sound; stopping resets playback to the beginning. */
+export type CanvasSound = Readonly<{
+  play(): void;
+  stop(): void;
+  setVolume?(volume: number): void;
+  dispose(): void;
+}>;
+
 export type CanvasGameTarget = Readonly<{
   canvas: {
     width: number;
@@ -6,6 +22,9 @@ export type CanvasGameTarget = Readonly<{
   };
   onTap(listener: (x: number, y: number) => void): () => void;
   onPress?(start: (x: number, y: number) => void, end: () => void): () => void;
+  onPointer?(listener: (event: CanvasPointerEvent) => void): () => void;
+  loadImage?(src: string): Promise<CanvasImageSource>;
+  createSound?(src: string, options?: { loop?: boolean; volume?: number }): CanvasSound;
 }>;
 export type CanvasScreen = Readonly<{
   title: string;

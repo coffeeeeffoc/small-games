@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { readFile, readdir } from 'node:fs/promises';
 import cultivationManifest from '@coffeeeeffoc/game-cultivation/manifest';
 import officeManifest from '@coffeeeeffoc/game-office/manifest';
 import arenaManifest from '@coffeeeeffoc/game-arena/manifest';
@@ -25,7 +26,17 @@ export default defineConfig({
   plugins: [
     {
       name: 'reviewed-package-manifests',
-      generateBundle() {
+      async generateBundle() {
+        const assets = new URL('../game-office/public/office-scene/', import.meta.url);
+        for (const file of await readdir(assets, { recursive: true })) {
+          if (!/\.(png|jpe?g|webp|mp3|aac|wav)$/i.test(file)) continue;
+          const relative = file.replaceAll('\\', '/');
+          this.emitFile({
+            type: 'asset',
+            fileName: `office/office-scene/${relative}`,
+            source: await readFile(new URL(relative, assets)),
+          });
+        }
         this.emitFile({
           type: 'asset',
           fileName: 'game.json',

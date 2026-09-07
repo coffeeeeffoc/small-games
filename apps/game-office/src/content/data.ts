@@ -4,6 +4,7 @@ import type { OfficeContent } from './schema.js';
 
 /** Built-in five-day campaign used by standalone and offline sessions. */
 export const defaultOfficeContent: OfficeContent = {
+  experience: 'desk-sample',
   days: [
     {
       name: '周一：假装振作',

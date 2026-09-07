@@ -5,3 +5,5 @@ coverage
 .turbo
 pnpm-lock.yaml
 *.tsbuildinfo
+apps/game-office/art/projection.json
+apps/game-office/art/render-progress.json
