@@ -133,12 +133,19 @@ export async function listenService(app: FastifyInstance, defaultPort: number) {
   });
   try {
     await app.listen({ host: '127.0.0.1', port });
-  } catch {
+  } catch (error) {
     try {
       await closeService(app);
     } catch {
       app.log.error('Startup cleanup failed');
     }
-    throw new Error('Service failed to listen; check its configured port');
+    const code = (error as NodeJS.ErrnoException | null)?.code;
+    const reason =
+      code === 'EACCES'
+        ? 'EACCES: permission denied; check OS reserved ports'
+        : code === 'EADDRINUSE'
+          ? 'EADDRINUSE'
+          : 'check its configured port';
+    throw new Error(`Service failed to listen on 127.0.0.1:${port} (${reason})`);
   }
 }
