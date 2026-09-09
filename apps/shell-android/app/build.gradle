@@ -1,0 +1,39 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.coffeeeeffoc.smallgames'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.coffeeeeffoc.smallgames'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+    buildFeatures { buildConfig true }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/assets')
+}
+
+// Both Android Studio and the CLI package the same freshly built Web Shell.
+tasks.register('bundleWeb', Exec) {
+    workingDir rootProject.projectDir.parentFile.parentFile
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'pnpm', 'build:pages'
+    } else {
+        commandLine 'pnpm', 'build:pages'
+    }
+    environment 'GOMAXPROCS', '1'
+}
+tasks.register('syncWeb', Sync) {
+    dependsOn 'bundleWeb'
+    from rootProject.file('../shell-web/dist')
+    into layout.buildDirectory.dir('generated/assets/web')
+}
+tasks.named('preBuild') { dependsOn 'syncWeb' }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.10.0'
+}

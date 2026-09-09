@@ -12,6 +12,8 @@
   },
   "scripts": {
     "games:init": "git submodule update --init --recursive",
+    "android:apk": "pnpm --filter @coffeeeeffoc/shell-android apk",
+    "android:test": "pnpm --filter @coffeeeeffoc/shell-android test:device",
     "games:build": "turbo run build --filter=./games/* --concurrency=1",
     "games:test": "pnpm --filter \"./games/*\" --workspace-concurrency=1 test",
     "artifact:build": "node scripts/build-artifact.mjs",
