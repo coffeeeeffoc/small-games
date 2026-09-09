@@ -55,6 +55,16 @@ git push origin main
 
 Turbo 2.5 不允许同时使用 `--affected` 和排除过滤器，因此 `lint:affected` 委托完整平台 lint，仍复用 Turbo 缓存；其他 affected 命令保持按变更选择。
 
-三个子仓库的 `.github/workflows/pages.yml` 在每次 push、PR 和手动触发时安装锁定依赖、测试并构建；只有 main 部署对应 GitHub Pages。仓库 Settings → Pages → Source 使用 GitHub Actions。父仓库 CI 递归检出 submodule 并验证统一构建，父仓库推送不会发布未修改的子仓库。
+三个子仓库的 `.github/workflows/pages.yml` 在每次 push、PR 和手动触发时安装锁定依赖、测试并构建；只有 main 部署对应 GitHub Pages。仓库 Settings → Pages → Source 使用 GitHub Actions。
+
+small-games 的 `.github/workflows/pages.yml` 递归检出父仓库记录的 Game 版本，执行游戏测试、`pnpm build:pages`、Shell 测试和真实浏览器子路径检查。推送 main 或在 main 手动触发后，发布 `apps/shell-web/dist/` 到[统一大厅](https://coffeeeeffoc.github.io/small-games/)；PR 只验证、不部署。父仓库推送更新统一站点，不会触发三个独立站点发布；更新游戏时仍需先推送子仓库，再提交父仓库的 submodule 指针。
+
+Pages 构建使用相对资源路径，并关闭 Runtime 连接、发布版本选择和云存档账号入口，保留本地游戏与存档。普通 `pnpm build` / dev 继续支持 Runtime。可直接访问以下静态入口：
+
+- [月森守卫](https://coffeeeeffoc.github.io/small-games/games/tower-defense-game/index.html)
+- [象五子棋](https://coffeeeeffoc.github.io/small-games/games/xiangqi-five/index.html)
+- [工位偷闲 · 第一人称](https://coffeeeeffoc.github.io/small-games/games/office-slacking/index.html)
+
+本地回归：`pnpm exec playwright install chromium` 后运行 `pnpm test:pages`。该检查把产物挂在 `/small-games/` 下，验证三款 Game 的嵌入、独立入口、返回目录和资源响应，防止只在根路径可用。
 
 Web 大厅支持返回目录、重新进入和独立打开。三款 Game 的入口与资源随 Shell 一起部署，不从公网加载游戏代码；它们暂不使用平台 Game Host 的云存档、广告或 Runtime 发布版本。象五子棋好友房间需要额外 Node 服务，Pages 只运行静态同屏模式。当前集成面向 Web Shell，B 站原生 Canvas Shell 仍需单独技术适配。

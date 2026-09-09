@@ -52,7 +52,9 @@ export function ShellApp({
   const [versionId, setVersionId] = useState('');
   const [credential, setCredential] = useState(() => playerCredential ?? localPlayerCredential());
   const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState('本地默认 Catalog 可随时启动。');
+  const [notice, setNotice] = useState(
+    runtimeClient ? '本地默认 Catalog 可随时启动。' : '即点即玩，游戏进度保存在当前浏览器。',
+  );
   useEffect(() => {
     let active = true;
     if (runtimeClient)
