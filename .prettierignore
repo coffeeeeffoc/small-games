@@ -4,6 +4,8 @@ dist-iframe
 coverage
 .turbo
 pnpm-lock.yaml
+games/
+apps/shell-web/public/games/
 *.tsbuildinfo
 apps/game-office/art/projection.json
 apps/game-office/art/render-progress.json

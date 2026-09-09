@@ -11,6 +11,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "games:init": "git submodule update --init --recursive",
+    "games:build": "turbo run build --filter=./games/* --concurrency=1",
+    "games:test": "pnpm --filter \"./games/*\" --workspace-concurrency=1 test",
     "artifact:build": "node scripts/build-artifact.mjs",
     "dev:platform": "node scripts/platform.mjs dev",
     "init:operator": "node scripts/initialize-operator.mjs",
@@ -30,8 +33,8 @@
     "test:integration:affected": "turbo run test:integration --affected",
     "typecheck": "turbo run typecheck",
     "typecheck:affected": "turbo run typecheck --affected",
-    "lint": "turbo run lint",
-    "lint:affected": "turbo run lint --affected",
+    "lint": "turbo run lint --filter=!./games/*",
+    "lint:affected": "turbo run lint --affected --filter=!./games/*",
     "check:dependencies": "node scripts/check-workspace-dependencies.mjs",
     "smoke": "turbo run smoke",
     "smoke:affected": "turbo run smoke --affected",

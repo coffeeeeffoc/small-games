@@ -7,16 +7,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/prepare-standalone-games.mjs && vite --host 0.0.0.0",
+    "build": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build",
     "test": "vitest run",
-    "test:integration": "vitest run tests/shell.integration.test.tsx",
+    "test:integration": "vitest run tests/shell.integration.test.tsx tests/standalone.integration.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs",
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/tower-defense-game": "workspace:*",
+    "@coffeeeeffoc/xiangqi-five": "workspace:*",
+    "@coffeeeeffoc/office-slacking": "workspace:*",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/ad-runtime": "workspace:*",

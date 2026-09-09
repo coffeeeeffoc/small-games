@@ -4,6 +4,7 @@ import type { GameHost, GameManifest, ReleaseChannel } from '@coffeeeeffoc/game-
 import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-loader';
 
 import { GameViewport } from './GameViewport.js';
+import standaloneGames from './standalone-games.json';
 import { createWebGameHost } from './host.js';
 import { builtInGameRegistry, type BuiltInGame } from './registry.js';
 import {
@@ -45,6 +46,7 @@ export function ShellApp({
 }: ShellAppProps) {
   const [breaker] = useState(() => new VersionCircuitBreaker());
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
+  const [standalone, setStandalone] = useState<(typeof standaloneGames)[number] | null>(null);
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof defaultRuntime.catalog>>>([]);
   const [channel, setChannel] = useState<ReleaseChannel>('stable');
   const [versionId, setVersionId] = useState('');
@@ -114,7 +116,27 @@ export function ShellApp({
     }
   }
 
-  return selected ? (
+  return standalone ? (
+    <main className="game-page standalone-page">
+      <nav aria-label="游戏导航">
+        <button onClick={() => setStandalone(null)}>返回目录</button>
+        <strong>{standalone.title}</strong>
+        <a
+          href={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          独立打开
+        </a>
+      </nav>
+      <iframe
+        title={standalone.title}
+        src={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
+        allow="autoplay; fullscreen"
+        allowFullScreen
+      />
+    </main>
+  ) : selected ? (
     <GameViewport
       game={selected}
       createHost={createHost}
@@ -204,6 +226,14 @@ export function ShellApp({
             >
               进入游戏
             </button>
+          </article>
+        ))}
+        {standaloneGames.map((game) => (
+          <article key={game.id}>
+            <span>独立游戏</span>
+            <h2>{game.title}</h2>
+            <p>{game.description}</p>
+            <button onClick={() => setStandalone(game)}>进入游戏</button>
           </article>
         ))}
       </section>
