@@ -1,0 +1,12 @@
+[submodule "games/tower-defense-game"]
+	path = games/tower-defense-game
+	url = https://github.com/coffeeeeffoc/tower-defense-game.git
+	branch = main
+[submodule "games/xiangqi-five"]
+	path = games/xiangqi-five
+	url = https://github.com/coffeeeeffoc/xiangqi-five.git
+	branch = main
+[submodule "games/office-slacking"]
+	path = games/office-slacking
+	url = https://github.com/coffeeeeffoc/office-slacking.git
+	branch = main

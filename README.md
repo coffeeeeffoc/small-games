@@ -1,4 +1,4 @@
-# 摸鱼游戏社：B站小游戏三合一 MVP
+# 摸鱼游戏社：小游戏创作与运行平台
 
 一套可直接在浏览器预览的 React + TypeScript 小游戏原型，包含：
 
@@ -11,8 +11,9 @@ v0.2 已加入章节幕布、事件切换、属性跳字、摸鱼角色动作、
 ## 本地启动
 
 ```bash
+pnpm games:init
 pnpm install
-pnpm dev
+pnpm --filter @coffeeeeffoc/shell-web dev
 ```
 
 浏览器访问终端显示的地址（默认 `http://localhost:5173`）。生产检查：
@@ -55,11 +56,16 @@ VITE_BILI_AD_UNIT_ID=你的广告位ID
 
 ```text
 apps/
-  legacy-web/        迁移期间保留的三游戏基线应用
+  shell-web/         Web 游戏大厅
+  shell-bilibili/    B 站原生 Shell
+  game-*/           平台 Game
+games/              独立 pnpm Game（Git submodule）
+  tower-defense-game/
+  xiangqi-five/
+  office-slacking/
 packages/
   config-eslint/     共享 ESLint 规则
   config-typescript/ 共享 TypeScript 配置
 ```
 
-根命令由 Turborepo 分发到各 workspace。迁移期间仍可使用
-`pnpm --filter @coffeeeeffoc/legacy-web dev` 单独启动基线应用。
+根命令由 Turborepo 分发到各 workspace。首次运行前执行 `pnpm games:init` 初始化三个独立 Game，或使用 `git clone --recurse-submodules` 克隆。Web 大厅已集成月森守卫、象五子棋和第一人称工位偷闲；它们也各自使用 pnpm 独立构建并自动部署 GitHub Pages。详见[独立 Game 开发、版本更新与发布](docs/standalone-games.md)。

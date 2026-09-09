@@ -1,0 +1,20 @@
+[
+  {
+    "id": "tower-defense-game",
+    "title": "月森守卫",
+    "description": "招募、合成守卫，守住月森的八波挑战。",
+    "output": "dist-pages"
+  },
+  {
+    "id": "xiangqi-five",
+    "title": "象五子棋",
+    "description": "象棋走法与五子连线，同屏轮流对弈。",
+    "output": "dist"
+  },
+  {
+    "id": "office-slacking",
+    "title": "工位偷闲 · 第一人称",
+    "description": "坐进三维办公室，在经理巡查间隙偷闲。",
+    "output": "dist"
+  }
+]

@@ -130,10 +130,9 @@ test('rejects game dependencies on shells and services', async (t) => {
       },
     },
     {
-      path: 'apps/game-demo',
+      path: 'games/independent-game',
       manifest: {
-        name: '@coffeeeeffoc/game-demo',
-        coffeeeeffoc: { role: 'game' },
+        name: '@coffeeeeffoc/independent-game',
         dependencies: {
           '@coffeeeeffoc/runtime-service': 'workspace:*',
           '@coffeeeeffoc/web-shell': 'workspace:*',

@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const WORKSPACE_DIRECTORIES = ['apps', 'packages', 'services', 'tools'];
+const WORKSPACE_DIRECTORIES = ['apps', 'packages', 'services', 'tools', 'games'];
 const SOURCE_EXTENSIONS = new Set(['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts']);
 const DEPENDENCY_FIELDS = [
   'dependencies',
@@ -10,7 +10,19 @@ const DEPENDENCY_FIELDS = [
   'peerDependencies',
   'optionalDependencies',
 ];
-const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'dist-content', 'coverage', '.turbo']);
+const IGNORED_DIRECTORIES = new Set([
+  'node_modules',
+  'dist',
+  'dist-pages',
+  'dist-content',
+  'coverage',
+  '.turbo',
+  '.git',
+  '.next',
+  '.vinext',
+  '.wrangler',
+  'vendor',
+]);
 
 async function pathExists(target) {
   try {
