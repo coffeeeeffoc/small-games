@@ -6,6 +6,9 @@ coverage
 pnpm-lock.yaml
 games/
 apps/shell-web/public/games/
+apps/shell-android/.gradle/
+apps/shell-android/app/build/
+apps/shell-android/gradlew*
 *.tsbuildinfo
 apps/game-office/art/projection.json
 apps/game-office/art/render-progress.json

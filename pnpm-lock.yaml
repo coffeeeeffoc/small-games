@@ -234,6 +234,12 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
+  apps/shell-android:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+
   apps/shell-bilibili:
     dependencies:
       '@coffeeeeffoc/ad-runtime':
