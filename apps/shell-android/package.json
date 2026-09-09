@@ -1,0 +1,16 @@
+{
+  "name": "@coffeeeeffoc/shell-android",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "apk": "node scripts/build-apk.mjs",
+    "test:device": "node scripts/device-smoke.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}

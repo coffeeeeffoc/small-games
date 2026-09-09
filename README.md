@@ -25,6 +25,8 @@ pnpm test
 pnpm build
 ```
 
+Android 安装包：配置 JDK 17 和 Android SDK 34 后运行 `pnpm android:apk`，将 Web 大厅和六个游戏嵌入 APK，支持离线游玩。工程、Android Studio 操作和设备验证见 [Android Shell](apps/shell-android/README.md)。
+
 ## 广告模式
 
 大厅右上角齿轮可切换三种模式：
@@ -59,6 +61,7 @@ VITE_BILI_AD_UNIT_ID=你的广告位ID
 ```text
 apps/
   shell-web/         Web 游戏大厅
+  shell-android/     内嵌 Web 大厅的 Android 应用与 APK 构建
   shell-bilibili/    B 站原生 Shell
   game-*/           平台 Game
 games/              独立 pnpm Game（Git submodule）
