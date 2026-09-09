@@ -101,6 +101,31 @@ select {
 .game-slot {
   min-height: calc(100vh - 68px);
 }
+.standalone-page {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.standalone-page nav {
+  flex: none;
+  gap: 10px;
+  padding: 6px 10px;
+}
+.standalone-page nav strong {
+  flex: 1;
+  font-size: 14px;
+}
+.standalone-page nav a {
+  color: #79e7bb;
+  font-size: 13px;
+}
+.standalone-page iframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: #11131a;
+}
 [role='alert'] {
   margin: 48px auto;
   width: min(640px, 90vw);
