@@ -8,6 +8,6 @@ const target = document.querySelector<HTMLElement>('#root');
 if (!target) throw new Error('Web Shell root is missing');
 createRoot(target).render(
   <StrictMode>
-    <ShellApp />
+    <ShellApp runtimeClient={import.meta.env.MODE === 'pages' ? false : undefined} />
   </StrictMode>,
 );

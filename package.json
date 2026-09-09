@@ -23,6 +23,8 @@
     "test:e2e": "pnpm test && pnpm test:platform",
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
+    "build:pages": "turbo run build:pages --filter=@coffeeeeffoc/shell-web --concurrency=1",
+    "test:pages": "pnpm --filter @coffeeeeffoc/shell-web test:pages",
     "build:affected": "turbo run build --affected",
     "test": "node --test scripts/platform-process.test.mjs && turbo run test",
     "test:affected": "node --test scripts/platform-process.test.mjs && turbo run test --affected",

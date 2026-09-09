@@ -18,6 +18,8 @@ pnpm --filter @coffeeeeffoc/shell-web dev
 
 浏览器访问终端显示的地址（默认 `http://localhost:5173`）。生产检查：
 
+在线大厅：[摸鱼游戏社](https://coffeeeeffoc.github.io/small-games/)。每次推送 `main` 自动测试、构建并部署大厅和三款独立 Game；本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）。
+
 ```bash
 pnpm test
 pnpm build

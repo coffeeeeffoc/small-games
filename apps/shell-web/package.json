@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "node scripts/prepare-standalone-games.mjs && vite --host 0.0.0.0",
     "build": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build",
+    "build:pages": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build --mode pages",
+    "test:pages": "node scripts/pages-smoke.mjs",
     "test": "vitest run",
     "test:integration": "vitest run tests/shell.integration.test.tsx tests/standalone.integration.test.tsx",
     "typecheck": "tsc -b --pretty false",
