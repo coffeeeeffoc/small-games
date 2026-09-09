@@ -34,7 +34,7 @@
     "typecheck": "turbo run typecheck",
     "typecheck:affected": "turbo run typecheck --affected",
     "lint": "turbo run lint --filter=!./games/*",
-    "lint:affected": "turbo run lint --affected --filter=!./games/*",
+    "lint:affected": "pnpm lint",
     "check:dependencies": "node scripts/check-workspace-dependencies.mjs",
     "smoke": "turbo run smoke",
     "smoke:affected": "turbo run smoke --affected",

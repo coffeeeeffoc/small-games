@@ -49,7 +49,7 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Lint affected packages
+      - name: Lint platform packages
         run: pnpm lint:affected
 
       - name: Typecheck affected packages
