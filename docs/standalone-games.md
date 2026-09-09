@@ -53,6 +53,8 @@ git push origin main
 
 父仓库的格式化和 ESLint 命令只检查平台代码，独立 Game 沿用自身工具；测试、构建和依赖边界检查包含 `games/*`。塔防的现有 `pnpm lint` 仍有历史 UI/React Compiler 报错，本次迁移不将它作为 Pages 发布门槛，原 lint 命令保留用于后续治理。
 
+Turbo 2.5 不允许同时使用 `--affected` 和排除过滤器，因此 `lint:affected` 委托完整平台 lint，仍复用 Turbo 缓存；其他 affected 命令保持按变更选择。
+
 三个子仓库的 `.github/workflows/pages.yml` 在每次 push、PR 和手动触发时安装锁定依赖、测试并构建；只有 main 部署对应 GitHub Pages。仓库 Settings → Pages → Source 使用 GitHub Actions。父仓库 CI 递归检出 submodule 并验证统一构建，父仓库推送不会发布未修改的子仓库。
 
 Web 大厅支持返回目录、重新进入和独立打开。三款 Game 的入口与资源随 Shell 一起部署，不从公网加载游戏代码；它们暂不使用平台 Game Host 的云存档、广告或 Runtime 发布版本。象五子棋好友房间需要额外 Node 服务，Pages 只运行静态同屏模式。当前集成面向 Web Shell，B 站原生 Canvas Shell 仍需单独技术适配。
