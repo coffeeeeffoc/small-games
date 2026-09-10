@@ -25,3 +25,4 @@ pnpm-debug.log*
 .serena
 apps/shell-web/public/games/
 __pycache__/
+.tmp/arena/

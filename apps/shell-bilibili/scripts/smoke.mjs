@@ -35,9 +35,29 @@ async function launch(gameIndex, [gameId, title]) {
   let clock = Date.now();
   let timerId = 0;
   let canvases = 0;
+  let drawingDepth = 0;
   const drawing = {
-    save() {},
-    restore() {},
+    beginPath() {},
+    ellipse() {},
+    fill() {},
+    stroke() {},
+    moveTo() {},
+    lineTo() {},
+    quadraticCurveTo() {},
+    rotate() {},
+    clip() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
+    save() {
+      drawingDepth += 1;
+    },
+    restore() {
+      drawingDepth -= 1;
+    },
     scale() {},
     translate() {},
     transform() {},
@@ -51,7 +71,7 @@ async function launch(gameIndex, [gameId, title]) {
       drawnImages.length = 0;
     },
     fillRect(_x, y, _width, height) {
-      if (y === 0) {
+      if (y === 0 && drawingDepth <= 1) {
         rendered.length = 0;
         rectangles.length = 0;
         drawnImages.length = 0;
@@ -222,6 +242,32 @@ async function launch(gameIndex, [gameId, title]) {
   assert.equal(packageLoaded, gameId);
   assert.ok(rendered.includes(title), `${gameId} Artifact must launch without a DOM`);
   assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
+  if (gameId === 'arena') {
+    tap(60, 670);
+    tap(60, 670);
+    tap(60, 670);
+    tap(60, 670);
+    assert.ok(rendered.includes('按住拨草'));
+    const touch = { changedTouches: [{ identifier: 2, clientX: 60, clientY: 670 }] };
+    for (const press of presses) press(touch);
+    advance(900);
+    for (const release of touches) release(touch);
+    assert.ok(
+      rendered.some((text) => text.includes('咬准了')),
+      'Native hold/release must damage the opponent',
+    );
+    assert.ok(
+      audio.some((sound) => sound.playing),
+      'Arena must play packaged audio',
+    );
+    for (const hide of hidden) hide();
+    const paused = JSON.stringify(rendered);
+    advance(2000);
+    assert.equal(JSON.stringify(rendered), paused);
+    assert.ok(audio.every((sound) => !sound.playing));
+    for (const show of shown) show();
+    assert.ok(rendered.includes('按住拨草'));
+  }
   if (gameId === 'office') {
     assert.ok(
       rendered.includes(ready),
@@ -273,10 +319,16 @@ async function launch(gameIndex, [gameId, title]) {
   assert.deepEqual(logs, []);
 }
 
+if (process.argv[2])
+  assert.ok(
+    games.some(([id]) => id === process.argv[2]),
+    'Unknown game filter',
+  );
 for (const [index, game] of games.entries()) {
+  if (process.argv[2] && process.argv[2] !== game[0]) continue;
   assert.ok(readdirSync(path.join(root, game[0])).includes('manifest.json'));
   await launch(index, game);
 }
 console.log(
-  'All reviewed Artifacts launched without DOM or remote code; native Office loaded local media, animated input and paused safely.',
+  `Reviewed ${process.argv[2] ?? 'all'} Artifacts passed native launch, input and lifecycle checks.`,
 );

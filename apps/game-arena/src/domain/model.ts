@@ -11,17 +11,24 @@ export type Creature = {
   traits: Trait[];
 };
 
-/** Hatches the same deterministic base creature as the legacy arena. */
+export const cricketBuilds = [
+  { attack: 13, hp: 66, speed: 1.1, style: '稳健耐斗' },
+  { attack: 10, hp: 54, speed: 1.45, style: '快须灵巧' },
+  { attack: 18, hp: 48, speed: 0.85, style: '重牙猛攻' },
+];
+
+/** Each selectable cricket trades bite strength, endurance and charge speed. */
 export function hatch(content: ArenaContent, seed = Math.random(), now = Date.now()): Creature {
-  const species =
-    content.species[Math.floor(seed * content.species.length) % content.species.length];
+  const index = Math.floor(seed * content.species.length) % content.species.length;
+  const species = content.species[index];
+  const build = cricketBuilds[index % cricketBuilds.length];
   return {
     id: `${now}-${seed}`,
     species: species[0],
     emoji: species[1],
-    attack: 10 + Math.floor(seed * 8),
-    hp: 48 + Math.floor(seed * 20),
-    speed: 1 + Math.round(seed * 4) / 10,
+    attack: build.attack,
+    hp: build.hp,
+    speed: build.speed,
     traits: [],
   };
 }
@@ -34,12 +41,6 @@ export function mutate(creature: Creature, trait: Trait): Creature {
     speed: Math.max(0.3, +(creature.speed + trait.speed).toFixed(2)),
     traits: [...creature.traits, trait],
   };
-}
-/** Calculates the legacy aggregate combat power. */
-export function power(creature: Creature): number {
-  return Math.round(
-    creature.attack * creature.speed * 2 + creature.hp + creature.traits.length * 5,
-  );
 }
 /** Creates a progressively mutated rival for one of five tiers. */
 export function enemyFor(content: ArenaContent, creature: Creature, tier = 0): Creature {
@@ -61,8 +62,4 @@ export function enemyFor(content: ArenaContent, creature: Creature, tier = 0): C
 /** Returns the three deterministic mutation choices shown for a round. */
 export function mutationOptions(content: ArenaContent, seed: number): Trait[] {
   return [0, 1, 2].map((index) => content.traits[(seed + index * 2) % content.traits.length]);
-}
-/** Resolves the automatic battle using the legacy 0.94 power threshold. */
-export function winsBattle(creature: Creature, enemy: Creature): boolean {
-  return power(creature) / power(enemy) >= 0.94;
 }

@@ -12,9 +12,29 @@ export function fakeSdk() {
   const presses = new Set<(event: TouchEvent) => void>();
   const moves = new Set<(event: TouchEvent) => void>();
   const cancels = new Set<(event: TouchEvent) => void>();
+  let depth = 0;
   const context = {
-    save() {},
-    restore() {},
+    save() {
+      depth += 1;
+    },
+    restore() {
+      depth -= 1;
+    },
+    beginPath() {},
+    ellipse() {},
+    fill() {},
+    stroke() {},
+    moveTo() {},
+    lineTo() {},
+    quadraticCurveTo() {},
+    rotate() {},
+    clip() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     scale() {},
     translate() {},
     transform() {},
@@ -27,7 +47,7 @@ export function fakeSdk() {
       drawnImages.length = 0;
     },
     fillRect(_x: number, y: number, _width: number, height: number) {
-      if (y === 0) {
+      if (y === 0 && depth <= 1) {
         lines.length = 0;
         rectangles.length = 0;
         drawnImages.length = 0;
