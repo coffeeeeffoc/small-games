@@ -55,7 +55,7 @@ try {
   });
   artifactBytes = await readFile(`${gameRoot}/dist-iframe/remote-entry.js`);
   const integrity = `sha256-${createHash('sha256').update(artifactBytes).digest('base64')}`;
-  policy = `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; frame-ancestors ${shellOrigin}`;
+  policy = `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors ${shellOrigin}`;
   browser = await chromium.launch({
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
@@ -73,7 +73,7 @@ try {
   await page.getByRole('button', { name: '进入游戏' }).first().click();
   const frame = page.frameLocator('iframe');
   await frame
-    .getByRole('heading', { name: '三分钟修仙', exact: true })
+    .getByRole('heading', { name: '秋声斗蟋', exact: true })
     .waitFor()
     .catch(async (error) => {
       console.error(await page.locator('body').innerText());
@@ -104,15 +104,15 @@ try {
     Object.defineProperty(globalThis.document, 'hidden', { configurable: true, value: true });
     globalThis.document.dispatchEvent(new globalThis.Event('visibilitychange'));
   });
-  await frame.getByText('修行已暂停', { exact: true }).waitFor();
+  await frame.getByText('对局已暂停', { exact: true }).waitFor();
   await page.evaluate(() => {
     Object.defineProperty(globalThis.document, 'hidden', { configurable: true, value: false });
     globalThis.document.dispatchEvent(new globalThis.Event('visibilitychange'));
   });
-  await frame.getByRole('heading', { name: '三分钟修仙', exact: true }).waitFor();
-  const firstEvent = await frame.locator('h2').innerText();
-  await frame.locator('.choices button').first().click();
-  await frame.locator('h2').filter({ hasNotText: firstEvent }).waitFor();
+  await frame.getByRole('heading', { name: '秋声斗蟋', exact: true }).waitFor();
+  await frame.getByRole('button', { name: '揭盖 · 开斗 →' }).click();
+  await frame.locator('.cricket-game').press('Space', { delay: 720 });
+  assert.ok(Number(await frame.locator('[aria-label="对手斗志"]').getAttribute('value')) < 80);
   await page.getByRole('button', { name: '返回目录', exact: false }).click();
   await page.getByRole('button', { name: '进入游戏' }).first().waitFor();
   assert.equal(await page.locator('iframe').count(), 0);
