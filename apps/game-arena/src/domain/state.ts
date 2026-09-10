@@ -1,6 +1,7 @@
 import type { JsonValue } from '@coffeeeeffoc/game-contract';
 import type { ArenaContent, Trait } from '../content/schema.js';
-import { enemyFor, hatch, mutate, winsBattle, type Creature } from './model.js';
+import { enemyFor, hatch, mutate, type Creature } from './model.js';
+import { createDuel, tickDuel, inputDuel, type Duel, type DuelInput } from './duel.js';
 
 /** Shared save fields read and updated by the arena game. */
 export type ArenaSave = Record<string, JsonValue> & {
@@ -19,7 +20,7 @@ export type ArenaState = {
   mutationsLeft: number;
   pickRound: number;
   win: boolean | null;
-  battleStep: number;
+  duel: Duel | null;
 };
 /** Creates a fresh run waiting for the player to hatch a creature. */
 export function createArenaState(): ArenaState {
@@ -30,7 +31,7 @@ export function createArenaState(): ArenaState {
     mutationsLeft: 2,
     pickRound: 0,
     win: null,
-    battleStep: 0,
+    duel: null,
   };
 }
 /** Hatches a deterministic creature and opens its first mutation round. */
@@ -48,28 +49,26 @@ export function chooseMutation(state: ArenaState, trait: Trait): ArenaState {
     phase: state.mutationsLeft <= 1 ? 'ready' : 'mutate',
   };
 }
-/** Starts the eight-step automatic battle and records its deterministic outcome. */
+/** Opens a live bout; its outcome remains undecided until combat ends. */
 export function startBattle(state: ArenaState, content: ArenaContent): ArenaState {
   if (!state.creature || state.phase !== 'ready') throw new Error('Battle is not ready');
   return {
     ...state,
     phase: 'battle',
-    battleStep: 0,
-    win: winsBattle(state.creature, enemyFor(content, state.creature, state.tier)),
+    duel: createDuel(state.creature, enemyFor(content, state.creature, state.tier), state.tier),
+    win: null,
   };
 }
 /** Settles a completed battle and applies win rewards to shared save data. */
 export function settleBattle(
   state: ArenaState,
   save: ArenaSave,
-  content: ArenaContent,
 ): { state: ArenaState; save: ArenaSave } {
-  if (!state.creature || state.phase !== 'battle' || state.battleStep < 8)
+  if (!state.creature || state.phase !== 'battle' || !state.duel || state.duel.winner === null)
     throw new Error('Battle is not complete');
-  const win =
-    state.win ?? winsBattle(state.creature, enemyFor(content, state.creature, state.tier));
+  const win = state.duel.winner;
   return {
-    state: { ...state, phase: 'result', battleStep: 8, win },
+    state: { ...state, phase: 'result', win },
     save: win
       ? {
           ...save,
@@ -91,7 +90,7 @@ export function advanceLeague(state: ArenaState): ArenaState {
         mutationsLeft: 1,
         phase: 'mutate',
         win: null,
-        battleStep: 0,
+        duel: null,
       };
 }
 /** Applies the mutation earned from a completed Reward Opportunity. */
@@ -102,7 +101,17 @@ export function rewardedMutation(state: ArenaState, trait: Trait): ArenaState {
         creature: mutate(state.creature, trait),
         phase: 'ready',
         win: null,
-        battleStep: 0,
+        duel: null,
       }
     : state;
+}
+
+export function controlArena(state: ArenaState, input: DuelInput): ArenaState {
+  return state.phase === 'battle' && state.duel
+    ? { ...state, duel: inputDuel(state.duel, input) }
+    : state;
+}
+
+export function tickArena(state: ArenaState): ArenaState {
+  return state.phase === 'battle' && state.duel ? { ...state, duel: tickDuel(state.duel) } : state;
 }

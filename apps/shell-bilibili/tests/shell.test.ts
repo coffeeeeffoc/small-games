@@ -148,7 +148,7 @@ describe('reviewed Bilibili Shell', () => {
     await instance.dispose();
   });
 
-  it('shows all eight Arena battle steps before settlement', async () => {
+  it('plays a real Arena hold/release attack and cancels it across pause', async () => {
     vi.useFakeTimers();
     try {
       const fake = fakeSdk();
@@ -156,18 +156,32 @@ describe('reviewed Bilibili Shell', () => {
         gameId: 'arena',
         sessionId: 'arena-parity',
       });
-      for (let choice = 0; choice < 4; choice += 1) {
-        fake.choose();
-        await vi.advanceTimersByTimeAsync(0);
+      const finger = [{ identifier: 1, clientX: 60, clientY: 670 }];
+      for (let i = 0; i < 4; i++) {
+        fake.touch('down', finger);
+        fake.touch('up', finger);
       }
-      expect(fake.lines.some((line) => line.text.includes('battle'))).toBe(true);
-      for (let step = 1; step <= 8; step += 1) {
-        await vi.advanceTimersByTimeAsync(260);
-        expect(fake.lines.some((line) => line.text.includes(`battle`))).toBe(true);
-      }
-      await vi.advanceTimersByTimeAsync(260);
-      expect(fake.lines.some((line) => line.text.includes('result'))).toBe(true);
+      expect(fake.lines.some((line) => line.text === '按住拨草')).toBe(true);
+      fake.touch('down', finger);
+      await vi.advanceTimersByTimeAsync(650);
+      fake.touch('up', finger);
+      expect(fake.lines.some((line) => line.text.includes('咬准了'))).toBe(true);
+      await vi.advanceTimersByTimeAsync(700);
+      fake.touch('down', finger);
+      instance.pause();
+      const paused = JSON.stringify(fake.lines);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(JSON.stringify(fake.lines)).toBe(paused);
+      instance.resume();
+      fake.touch('down', finger);
+      await vi.advanceTimersByTimeAsync(600);
+      fake.touch('up', finger);
+      expect(fake.lines.some((line) => line.text === '对手 0')).toBe(true);
       await instance.dispose();
+      expect(fake.hasInput()).toBe(false);
+      expect(fake.audio.every((sound) => vi.mocked(sound.destroy).mock.calls.length === 1)).toBe(
+        true,
+      );
     } finally {
       vi.useRealTimers();
     }

@@ -10,6 +10,9 @@ import {
   rewardedMutation,
   settleBattle,
   startBattle,
+  controlArena,
+  tickArena,
+  type DuelInput,
   type ArenaSave,
 } from '../domain/index.js';
 
@@ -52,9 +55,9 @@ export function useArenaGame(
     },
     [host],
   );
-  function hatch() {
+  function hatch(seed = random()) {
     epoch.current += 1;
-    setState(hatchArena(content, random()));
+    setState(hatchArena(content, seed));
   }
   function pick(trait: Trait) {
     setState((current) => chooseMutation(current, trait));
@@ -66,6 +69,12 @@ export function useArenaGame(
     epoch.current += 1;
     setState(state.win ? advanceLeague(state) : createArenaState());
   }
+  const control = useCallback(
+    (input: DuelInput) => {
+      if (active || input === 'cancel') setState((current) => controlArena(current, input));
+    },
+    [active],
+  );
   async function reward() {
     if (rewardPending) return;
     const requestEpoch = epoch.current;
@@ -86,25 +95,23 @@ export function useArenaGame(
       );
   }
   useEffect(() => {
-    if (!active || state.phase !== 'battle' || state.battleStep >= 8) return;
-    const timer = window.setTimeout(() => {
-      setState((current) =>
-        current.phase === 'battle'
-          ? { ...current, battleStep: Math.min(8, current.battleStep + 1) }
-          : current,
-      );
-    }, 260);
-    return () => window.clearTimeout(timer);
-  }, [active, state.battleStep, state.phase]);
+    if (!active) return;
+    if (state.phase !== 'battle') return;
+    const timer = window.setInterval(() => setState(tickArena), 50);
+    return () => {
+      window.clearInterval(timer);
+      setState((current) => controlArena(current, 'cancel'));
+    };
+  }, [active, control, state.phase]);
   useEffect(() => {
-    if (!active || state.phase !== 'battle' || state.battleStep < 8) return;
+    if (!active || state.phase !== 'battle' || state.duel?.winner == null) return;
     const timer = window.setTimeout(() => {
       const previous = saveRef.current;
-      const result = settleBattle(state, previous, content);
+      const result = settleBattle(state, previous);
       setState(result.state);
       if (result.save !== previous) void persist(previous, result.save);
     });
     return () => window.clearTimeout(timer);
   }, [active, content, persist, state]);
-  return { state, save, ready, rewardPending, hatch, pick, battle, next, reward };
+  return { state, save, ready, rewardPending, hatch, pick, battle, next, reward, control };
 }

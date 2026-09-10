@@ -27,6 +27,14 @@ export default defineConfig({
     {
       name: 'reviewed-package-manifests',
       async generateBundle() {
+        const arenaAudio = new URL('../game-arena/public/arena-audio/', import.meta.url);
+        for (const file of await readdir(arenaAudio)) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `arena/arena-audio/${file}`,
+            source: await readFile(new URL(file, arenaAudio)),
+          });
+        }
         const assets = new URL('../game-office/public/office-scene/', import.meta.url);
         for (const file of await readdir(assets, { recursive: true })) {
           if (!/\.(png|jpe?g|webp|mp3|aac|wav)$/i.test(file)) continue;
