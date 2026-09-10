@@ -100,6 +100,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm ios:simulator
+      - run: python3 apps/shell-ios/scripts/test-install-manifest.py
       - name: Launch simulator build
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for key, devices in json.load(sys.stdin)["devices"].items() if "iOS" in key for d in devices if "iPhone" in d["name"]))')
@@ -144,6 +145,8 @@ jobs:
         run: |
           if [ -n "$IOS_TEAM_ID" ]; then
             pnpm ios:archive --signed
+            cp apps/shell-ios/dist/SmallGames.ipa apps/shell-ios/dist/moyu-arcade.ipa
+            python3 apps/shell-ios/scripts/install-manifest.py apps/shell-ios/dist/moyu-arcade.ipa "$IOS_EXPORT_OPTIONS" "https://github.com/$GITHUB_REPOSITORY/releases/download/mobile-$GITHUB_RUN_NUMBER-$GITHUB_RUN_ATTEMPT/moyu-arcade.ipa" apps/shell-ios/dist/ios-manifest.plist
           else
             pnpm ios:archive
           fi
@@ -154,6 +157,7 @@ jobs:
           path: |
             apps/shell-ios/dist/*.zip
             apps/shell-ios/dist/*.ipa
+            apps/shell-ios/dist/ios-manifest.plist
             apps/shell-ios/dist/*.png
           if-no-files-found: error
       - name: Remove signing material
@@ -164,8 +168,8 @@ jobs:
           rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/profile.mobileprovision" "$RUNNER_TEMP/profile.plist" "$RUNNER_TEMP/ExportOptions.plist"
 
   release:
-    needs: android
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [android, ios]
+    if: always() && needs.android.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -174,6 +178,11 @@ jobs:
         with:
           name: android-apk
           path: apk
+      - uses: actions/download-artifact@v4
+        if: needs.ios.result == 'success'
+        with:
+          name: ios-builds
+          path: ios
       - name: Publish signed APK for the in-app updater
         env:
           GH_TOKEN: ${{ github.token }}
@@ -189,4 +198,7 @@ jobs:
             exit 0
           fi
           TAG="mobile-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
-          gh release create "$TAG" apk/moyu-arcade.apk --target "$GITHUB_SHA" --title "Android build $((1000 + GITHUB_RUN_NUMBER))" --notes "Automated Android build from $GITHUB_SHA. Install updates with the same signing key to retain saves." --latest
+          FILES=(apk/moyu-arcade.apk)
+          if [ -f ios/moyu-arcade.ipa ]; then FILES+=(ios/moyu-arcade.ipa); fi
+          if [ -f ios/ios-manifest.plist ]; then FILES+=(ios/ios-manifest.plist); fi
+          gh release create "$TAG" "${FILES[@]}" --target "$GITHUB_SHA" --title "测试版 $GITHUB_RUN_NUMBER" --notes "Android: download moyu-arcade.apk and install; updates require the same signing key. iOS: signed IPA is included only when Apple signing is configured; registered devices can use the in-app latest-version install button. Web test: https://coffeeeeffoc.github.io/small-games/ — Source: $GITHUB_SHA" --latest

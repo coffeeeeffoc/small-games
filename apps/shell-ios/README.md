@@ -2,7 +2,7 @@
 
 使用系统 WKWebView 嵌入与 Android 相同的六个静态游戏，支持 iPhone / iPad、持久化 Web 存档、返回目录和重新加载。原生 `app://localhost/` 路由处理模块、图片与音频请求；不依赖运行中的开发服务。
 
-此版本提供 iOS 离线壳和构建路径。Android 的 APK 自更新及 GitHub 资源切换设置不移植到 iOS；iOS 安装与更新使用签名 IPA / TestFlight / App Store。
+“最新版”入口显示当前版本，查询 GitHub 最新测试版并打开发布页；发布包带有 Ad Hoc 安装清单时，可以直接唤起系统安装。未配置 Apple 签名时提示暂无可安装包，并提供网页版测试链接。安装设备必须包含在签名 profile 中。Android 的 GitHub 资源缓存切换设置不移植到 iOS。
 
 需要 macOS、完整 Xcode 和其命令行工具、Node 22+、pnpm；Windows 上使用 GitHub Actions 的 `Build mobile apps` 流程。
 

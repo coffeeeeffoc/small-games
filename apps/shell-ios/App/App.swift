@@ -41,6 +41,7 @@ final class LocalAssets: NSObject, WKURLSchemeHandler {
 final class GameController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     private var web: WKWebView!
     private let home = URL(string: "app://localhost/index.html")!
+    private let releases = URL(string: "https://github.com/coffeeeeffoc/small-games/releases/latest")!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -68,7 +69,10 @@ final class GameController: UIViewController, WKNavigationDelegate, WKUIDelegate
         let reload = UIButton(type: .system)
         reload.setTitle("重新加载", for: .normal)
         reload.addTarget(self, action: #selector(reloadPage), for: .touchUpInside)
-        let bar = UIStackView(arrangedSubviews: [back, reload])
+        let latest = UIButton(type: .system)
+        latest.setTitle("最新版", for: .normal)
+        latest.addTarget(self, action: #selector(checkLatest(_:)), for: .touchUpInside)
+        let bar = UIStackView(arrangedSubviews: [back, reload, latest])
         bar.distribution = .fillEqually
         let stack = UIStackView(arrangedSubviews: [bar, web])
         stack.axis = .vertical
@@ -95,6 +99,50 @@ final class GameController: UIViewController, WKNavigationDelegate, WKUIDelegate
         alert.addAction(UIAlertAction(title: "取消", style: .cancel))
         alert.addAction(UIAlertAction(title: "重新加载", style: .default) { _ in self.web.reload() })
         present(alert, animated: true)
+    }
+
+    @objc private func checkLatest(_ button: UIButton) {
+        button.isEnabled = false
+        button.setTitle("检查中…", for: .normal)
+        let endpoint = URL(string: "https://api.github.com/repos/coffeeeeffoc/small-games/releases/latest")!
+        var request = URLRequest(url: endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        request.setValue("SmallGames-iOS", forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            let release = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let assets = release?["assets"] as? [[String: Any]] ?? []
+            let address = assets.first { ($0["name"] as? String) == "ios-manifest.plist" }?["browser_download_url"] as? String
+            let manifest = address.flatMap(URL.init(string:)).flatMap { url -> URL? in
+                guard url.scheme == "https", url.host == "github.com", url.user == nil,
+                      url.path.hasPrefix("/coffeeeeffoc/small-games/releases/download/") else { return nil }
+                return url
+            }
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                button.isEnabled = true
+                button.setTitle("最新版", for: .normal)
+                let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+                let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+                let success = error == nil && (response as? HTTPURLResponse)?.statusCode == 200
+                let name = success ? (release?["name"] as? String ?? "最新测试版") : "暂时无法获取最新版本"
+                let detail = manifest == nil ? "尚无可直接安装的 iOS 测试包。可查看发布页或先测试网页版。" : "安装仅适用于已登记在测试签名中的设备。"
+                let alert = UIAlertController(title: name, message: "当前版本 \(version) (\(build))\n\(detail)", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "查看发布页", style: .default) { _ in UIApplication.shared.open(self.releases) })
+                if success, let manifest = manifest {
+                    var install = URLComponents()
+                    install.scheme = "itms-services"
+                    install.host = ""
+                    install.queryItems = [URLQueryItem(name: "action", value: "download-manifest"), URLQueryItem(name: "url", value: manifest.absoluteString)]
+                    if let url = install.url {
+                        alert.addAction(UIAlertAction(title: "安装最新测试版", style: .default) { _ in UIApplication.shared.open(url) })
+                    }
+                }
+                alert.addAction(UIAlertAction(title: "打开网页版", style: .default) { _ in
+                    UIApplication.shared.open(URL(string: "https://coffeeeeffoc.github.io/small-games/")!)
+                })
+                alert.addAction(UIAlertAction(title: "关闭", style: .cancel))
+                self.present(alert, animated: true)
+            }
+        }.resume()
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
