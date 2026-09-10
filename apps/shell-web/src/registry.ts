@@ -49,8 +49,8 @@ const remoteCultivation =
 export const builtInGameRegistry: readonly BuiltInGame[] = [
   {
     id: 'cultivation',
-    title: '三分钟修仙',
-    description: '三章十八劫，一炷香走完一世。',
+    title: '秋声斗蟋',
+    description: '撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。',
     definition: cultivationGameDefinition,
     content: defaultCultivationEnvelope,
     remote: remoteCultivation,

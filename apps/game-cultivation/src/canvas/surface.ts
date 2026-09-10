@@ -1,3 +1,5 @@
+import type { CricketMatch } from '../domain/cricket.js';
+import { drawCricketScene } from '../view/scene.js';
 /** Minimal native Canvas and input surface; no browser DOM or platform SDK enters Game logic. */
 export type CultivationCanvasTarget = Readonly<{
   canvas: {
@@ -11,6 +13,7 @@ export type CultivationCanvasTarget = Readonly<{
 /** Render-only screen description with Game-owned player actions. */
 export type CanvasScreen = Readonly<{
   title: string;
+  arena: CricketMatch;
   lines: readonly string[];
   actions: readonly { label: string; run(): void }[];
 }>;
@@ -31,7 +34,7 @@ export function createCultivationSurface(target: CultivationCanvasTarget) {
     buttons = [];
     context!.save();
     context!.scale(target.canvas.width / 390, target.canvas.height / 844);
-    context!.fillStyle = '#10221e';
+    context!.fillStyle = '#191d17';
     context!.fillRect(0, 0, 390, 844);
     context!.fillStyle = '#d9f2d4';
     context!.font = 'bold 27px serif';
@@ -39,10 +42,14 @@ export function createCultivationSurface(target: CultivationCanvasTarget) {
     context!.fillStyle = '#bfa66b';
     context!.fillRect(20, 67, 350, 1);
     context!.font = '14px serif';
-    context!.fillText('修行录 · 一念一生', 20, 812);
+    context!.fillText('金区出击 · 看准抬头，收梗闪避', 20, 820);
+    context!.save();
+    context!.translate(0, 75);
+    drawCricketScene(context!, screen.arena, Date.now() / 1000, undefined, 390, 400);
+    context!.restore();
     context!.fillStyle = '#d9f2d4';
     context!.font = '17px sans-serif';
-    let y = 90;
+    let y = 505;
     const text = (value: string) => {
       let line = '';
       for (const character of value) {

@@ -14,6 +14,23 @@ function surface() {
     save() {},
     restore() {},
     scale() {},
+    translate() {},
+    rotate() {},
+    beginPath() {},
+    ellipse() {},
+    fill() {},
+    stroke() {},
+    moveTo() {},
+    lineTo() {},
+    bezierCurveTo() {},
+    quadraticCurveTo() {},
+    clip() {},
+    createLinearGradient() {
+      return { addColorStop() {} };
+    },
+    createRadialGradient() {
+      return { addColorStop() {} };
+    },
     fillRect() {},
     clearRect() {
       lines.length = 0;
@@ -48,12 +65,13 @@ describe('Cultivation Canvas Game Contract', () => {
   it('mounts published v1 content through the Game-owned migration', async () => {
     const fake = surface();
     const base = host();
-    const { title, ...payload } = defaultCultivationEnvelope.payload;
+    const payload = { ...defaultCultivationEnvelope.payload };
+    delete (payload as Partial<typeof payload>).title;
     const instance = await definition.mount(fake.target, {
       ...base,
       content: { load: async () => ({ ...defaultCultivationEnvelope, schemaVersion: 1, payload }) },
     });
-    expect(fake.lines).toContain(title);
+    expect(fake.lines).toContain('秋声斗蟋');
     await instance.dispose();
   });
   it('uses the same lifecycle vectors and can remount without DOM or SDK globals', async () => {

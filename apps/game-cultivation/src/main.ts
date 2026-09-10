@@ -2,7 +2,6 @@ import { createBrowserGameHost } from '@coffeeeeffoc/game-host';
 
 import { defaultCultivationEnvelope } from './content/data.js';
 import { cultivationGameDefinition } from './definition.js';
-import './styles.css';
 
 const target = document.querySelector<HTMLElement>('#root');
 if (!target) throw new Error('Missing #root mount target');
