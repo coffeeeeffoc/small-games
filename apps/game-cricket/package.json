@@ -1,0 +1,52 @@
+{
+  "name": "@coffeeeeffoc/game-cricket",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/definition.ts",
+    "./content": {
+      "types": "./dist-content/index.d.ts",
+      "default": "./dist-content/index.js"
+    },
+    "./domain": "./src/domain/cricket.ts",
+    "./canvas": "./src/canvas/definition.ts",
+    "./manifest": "./src/manifest.json"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -p tsconfig.content.json && tsc -b && vite build && vite build --config vite.iframe.config.ts",
+    "test": "vitest run",
+    "test:contract": "vitest run tests/game.contract.test.tsx tests/canvas.contract.test.ts",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint . --max-warnings 0",
+    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/game-loader": "workspace:*",
+    "@coffeeeeffoc/react-game-adapter": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/game-contract-test": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*",
+    "@coffeeeeffoc/vite-smoke-test": "workspace:*",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "eslint": "9.35.0",
+    "jsdom": "26.1.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

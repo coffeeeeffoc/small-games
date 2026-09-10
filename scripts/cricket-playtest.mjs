@@ -5,7 +5,7 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 
 // Run from the repository root: node scripts/cricket-playtest.mjs
-const root = fileURLToPath(new URL('../apps/game-cultivation', import.meta.url));
+const root = fileURLToPath(new URL('../apps/game-cricket', import.meta.url));
 const server = await createServer({
   root,
   server: { host: '127.0.0.1', port: 0 },

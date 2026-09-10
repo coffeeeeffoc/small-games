@@ -18,7 +18,9 @@ describe('cultivation domain', () => {
         .body,
     ).toBe(0);
     expect(score({ body: 1, spirit: 1, luck: 1 })).toBe(7);
-    expect(realm({ body: 20, spirit: 20, luck: 20 })).toBe('飞升');
+    expect(realm(createCultivationState().stats)).toBe('炼气');
+    expect(realm({ body: 20, spirit: 20, luck: 20 })).toBe('元婴');
+    expect(realm({ body: 30, spirit: 30, luck: 30 })).toBe('飞升');
   });
 
   it('completes all eighteen events and preserves settlement save fields', () => {

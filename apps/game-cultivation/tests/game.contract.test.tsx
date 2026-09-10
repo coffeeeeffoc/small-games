@@ -17,7 +17,7 @@ describe('cultivation Game Contract', () => {
     });
     const target = document.createElement('div');
     const instance = await cultivationGameDefinition.mount(target, host);
-    expect(target.querySelector('h1')?.textContent).toBe('秋声斗蟋');
+    expect(target.querySelector('h1')?.textContent).toBe('三分钟修仙');
     await instance.dispose();
   });
   it('mounts, pauses, resumes, disposes, and mounts again', async () => {
