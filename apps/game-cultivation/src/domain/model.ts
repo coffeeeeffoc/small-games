@@ -14,6 +14,7 @@ export type CultivationEvent = {
 
 /** Ordered realm labels selected from the run score. */
 export const realms = ['炼气', '筑基', '金丹', '元婴', '化神', '飞升'] as const;
+export const realmThresholds = [0, 50, 85, 120, 160, 200] as const;
 
 /** Calculates a non-negative weighted run score. */
 export function score(stats: Stats): number {
@@ -22,7 +23,7 @@ export function score(stats: Stats): number {
 
 /** Maps the weighted score to its capped realm label. */
 export function realm(stats: Stats): (typeof realms)[number] {
-  return realms[Math.min(5, Math.floor(score(stats) / 24))];
+  return realms[realmThresholds.filter((threshold) => score(stats) >= threshold).length - 1];
 }
 
 /** Applies one choice without mutating the supplied stats and clamps values at zero. */

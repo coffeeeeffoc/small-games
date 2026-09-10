@@ -9,6 +9,7 @@ const config = JSON.parse(readFileSync(path.join(root, 'game.json'), 'utf8'));
 const games = [
   ['cultivation', '三分钟修仙'],
   ['office', '打工人摸鱼记'],
+  ['cricket', '秋声斗蟋'],
   ['arena', '电子斗蛐蛐'],
 ];
 assert.deepEqual(
@@ -44,6 +45,7 @@ async function launch(gameIndex, [gameId, title]) {
     moveTo() {},
     lineTo() {},
     quadraticCurveTo() {},
+    bezierCurveTo() {},
     rotate() {},
     clip() {},
     createLinearGradient() {

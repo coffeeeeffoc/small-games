@@ -1,0 +1,10 @@
+{
+  "extends": "@coffeeeeffoc/config-typescript/node.json",
+  "compilerOptions": {
+    "declaration": true,
+    "noEmit": false,
+    "rootDir": "src/content",
+    "outDir": "dist-content"
+  },
+  "include": ["src/content"]
+}

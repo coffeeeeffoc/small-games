@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { exerciseGameLifecycle } from '@coffeeeeffoc/game-contract-test';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import {
-  cultivationCanvasDefinition as definition,
-  defaultCultivationEnvelope,
-  type CultivationCanvasTarget,
-} from '@coffeeeeffoc/game-cultivation/canvas';
+  cricketCanvasDefinition as definition,
+  defaultCricketEnvelope,
+  type CricketCanvasTarget,
+} from '@coffeeeeffoc/game-cricket/canvas';
 
 function surface() {
   const lines: string[] = [];
@@ -42,7 +42,7 @@ function surface() {
       return { width: text.length * 17 };
     },
   } as unknown as CanvasRenderingContext2D;
-  const target: CultivationCanvasTarget = {
+  const target: CricketCanvasTarget = {
     canvas: { width: 390, height: 844, getContext: () => context },
     onTap() {
       listening = true;
@@ -56,24 +56,12 @@ function surface() {
 
 function host() {
   return createInMemoryGameHost({
-    session: { gameId: 'cultivation', gameVersion: definition.manifest.version },
-    content: defaultCultivationEnvelope,
+    session: { gameId: 'cricket', gameVersion: definition.manifest.version },
+    content: defaultCricketEnvelope,
   });
 }
 
-describe('Cultivation Canvas Game Contract', () => {
-  it('mounts published v1 content through the Game-owned migration', async () => {
-    const fake = surface();
-    const base = host();
-    const payload = { ...defaultCultivationEnvelope.payload };
-    delete (payload as Partial<typeof payload>).title;
-    const instance = await definition.mount(fake.target, {
-      ...base,
-      content: { load: async () => ({ ...defaultCultivationEnvelope, schemaVersion: 1, payload }) },
-    });
-    expect(fake.lines).toContain('三分钟修仙');
-    await instance.dispose();
-  });
+describe('Cricket Canvas Game Contract', () => {
   it('uses the same lifecycle vectors and can remount without DOM or SDK globals', async () => {
     const fake = surface();
     await exerciseGameLifecycle(definition, fake.target, host());
@@ -93,7 +81,7 @@ describe('Cultivation Canvas Game Contract', () => {
         ...base,
         content: {
           load: async () => ({
-            ...defaultCultivationEnvelope,
+            ...defaultCricketEnvelope,
             schemaVersion: definition.manifest.contentSchemaVersion + 1,
           }),
         },

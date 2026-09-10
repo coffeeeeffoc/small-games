@@ -33,7 +33,8 @@
     "@coffeeeeffoc/game-loader": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "@coffeeeeffoc/game-cricket": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

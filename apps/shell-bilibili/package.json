@@ -24,7 +24,8 @@
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",
-    "@coffeeeeffoc/game-host": "workspace:*"
+    "@coffeeeeffoc/game-host": "workspace:*",
+    "@coffeeeeffoc/game-cricket": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
