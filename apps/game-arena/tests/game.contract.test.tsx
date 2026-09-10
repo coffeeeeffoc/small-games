@@ -1,5 +1,5 @@
 import { act } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HostError,
@@ -11,6 +11,16 @@ import { exerciseGameLifecycle } from '@coffeeeeffoc/game-contract-test';
 import { createInMemoryGameHost, createTestGameHost } from '@coffeeeeffoc/game-host';
 import { arenaGameDefinition } from '@coffeeeeffoc/game-arena';
 import { defaultArenaContent, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena/content';
+
+beforeEach(() => {
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 function weakArenaEnvelope() {
   return {
@@ -45,15 +55,15 @@ async function mountLosingGame(offer: AdvertisingPort['offer']) {
   await act(async () => {
     lifecycle = await arenaGameDefinition.mount(target, testHost.host);
   });
-  await act(async () => target.querySelector<HTMLButtonElement>('.hatchery button')?.click());
+  await act(async () => target.querySelector<HTMLButtonElement>('.arena-picks button')?.click());
   for (let index = 0; index < 2; index += 1)
-    await act(async () => target.querySelector<HTMLButtonElement>('.trait-grid button')?.click());
-  await act(async () => target.querySelector<HTMLButtonElement>('.ready button')?.click());
-  expect(target.textContent).toContain('自动战斗 0 / 8');
-  expect(target.textContent).not.toContain('被对面两拳送走');
-  for (let step = 0; step < 8; step += 1) await act(async () => vi.advanceTimersByTimeAsync(260));
+    await act(async () => target.querySelector<HTMLButtonElement>('.arena-traits button')?.click());
+  await act(async () => target.querySelector<HTMLButtonElement>('.arena-ready button')?.click());
+  expect(target.querySelector('.arena')?.getAttribute('data-phase')).toBe('battle');
+  expect(target.textContent).not.toContain('这一盆，先收虫。');
+  await act(async () => vi.advanceTimersByTimeAsync(3_000));
   await act(async () => vi.runOnlyPendingTimersAsync());
-  expect(target.textContent).toContain('被对面两拳送走');
+  expect(target.textContent).toContain('这一盆，先收虫。');
   return { ...testHost, target, lifecycle };
 }
 
@@ -129,9 +139,9 @@ describe('arena Game Contract', () => {
       lifecycle = await arenaGameDefinition.mount(target, host);
     });
     expect(target.textContent).toContain('正在读取联赛档案');
-    expect(target.querySelector('.hatchery button')).toBeNull();
+    expect(target.querySelector('.arena-picks button')).toBeNull();
     await act(async () => resolveRead(null));
-    expect(target.querySelector('.hatchery button')).not.toBeNull();
+    expect(target.querySelector('.arena-picks button')).not.toBeNull();
     await act(async () => lifecycle.dispose());
   });
 
@@ -143,44 +153,41 @@ describe('arena Game Contract', () => {
     await exerciseGameLifecycle(arenaGameDefinition, document.createElement('div'), host);
   });
 
-  it('pauses and cancels the automatic battle timeline with the lifecycle', async () => {
+  it('pauses combat, cancels held input, resumes and disposes without ticking', async () => {
     vi.useFakeTimers();
-    vi.spyOn(Math, 'random').mockReturnValue(0);
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const host = createInMemoryGameHost({
       session: { gameId: 'arena', capabilities: ['content', 'storage'] },
-      content: weakArenaEnvelope(),
+      content: defaultArenaEnvelope,
     });
     const target = document.createElement('div');
     let lifecycle!: Awaited<ReturnType<typeof arenaGameDefinition.mount>>;
     await act(async () => {
       lifecycle = await arenaGameDefinition.mount(target, host);
     });
-    await act(async () => target.querySelector<HTMLButtonElement>('.hatchery button')?.click());
-    for (let index = 0; index < 2; index += 1)
-      await act(async () => target.querySelector<HTMLButtonElement>('.trait-grid button')?.click());
-    await act(async () => target.querySelector<HTMLButtonElement>('.ready button')?.click());
-    await act(async () => vi.advanceTimersByTimeAsync(260));
-    expect(target.textContent).toContain('自动战斗 1 / 8');
+    await act(async () => target.querySelector<HTMLButtonElement>('.arena-picks button')!.click());
+    for (let i = 0; i < 2; i++)
+      await act(async () =>
+        target.querySelector<HTMLButtonElement>('.arena-traits button')!.click(),
+      );
+    await act(async () => target.querySelector<HTMLButtonElement>('.arena-ready button')!.click());
+    const tease = target.querySelector<HTMLButtonElement>('.arena-tease')!;
+    await act(async () =>
+      tease.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true })),
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(tease.getAttribute('aria-pressed')).toBe('true');
     await act(async () => lifecycle.pause());
+    const before = target.querySelector('.arena-clock')!.textContent;
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(target.querySelector('.arena-clock')!.textContent).toBe(before);
     await act(async () => lifecycle.resume());
-    expect(target.textContent).toContain('自动战斗 1 / 8');
-    await act(async () => vi.advanceTimersByTimeAsync(260));
-    expect(target.textContent).toContain('自动战斗 2 / 8');
-    for (let step = 2; step < 8; step += 1) await act(async () => vi.advanceTimersByTimeAsync(260));
-    expect(target.textContent).toContain('自动战斗 8 / 8');
-    await act(async () => lifecycle.pause());
-    await act(async () => vi.runOnlyPendingTimersAsync());
-    await act(async () => lifecycle.resume());
-    expect(target.textContent).toContain('自动战斗 8 / 8');
-    expect(target.textContent).not.toContain('被对面两拳送走');
-    await act(async () => vi.runOnlyPendingTimersAsync());
-    expect(target.textContent).toContain('被对面两拳送走');
+    expect(tease.getAttribute('aria-pressed')).toBe('false');
+    expect(target.querySelector<HTMLMeterElement>('[aria-label="对手斗志"]')!.value).toBe(46);
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    expect(target.querySelector('.arena-clock')!.textContent).not.toBe(before);
     await act(async () => lifecycle.dispose());
     await act(async () => vi.runAllTimersAsync());
     expect(target.childElementCount).toBe(0);
-    restoreTestRuntime();
   });
 
   it('uses a Reward Opportunity for a completed post-match mutation', async () => {
@@ -188,10 +195,10 @@ describe('arena Game Contract', () => {
       status: 'completed',
     }));
     await act(async () => {
-      target.querySelectorAll<HTMLButtonElement>('.result button')[1].click();
+      target.querySelectorAll<HTMLButtonElement>('.arena-result button')[1].click();
       await Promise.resolve();
     });
-    expect(target.textContent).toContain('自动挑战');
+    expect(target.textContent).toContain('开盆，迎战！');
     expect(observations.filter((item) => item.port === 'advertising')).toEqual([
       {
         port: 'advertising',
@@ -206,12 +213,12 @@ describe('arena Game Contract', () => {
   it('keeps the loss when advertising is unavailable', async () => {
     const { target, lifecycle } = await mountLosingGame(async () => ({ status: 'unavailable' }));
     await act(async () => {
-      target.querySelectorAll<HTMLButtonElement>('.result button')[1].click();
+      target.querySelectorAll<HTMLButtonElement>('.arena-result button')[1].click();
       await Promise.resolve();
     });
-    expect(target.textContent).toContain('被对面两拳送走');
+    expect(target.textContent).toContain('这一盆，先收虫。');
     expect(
-      [...target.querySelectorAll<HTMLButtonElement>('.result button')].some(
+      [...target.querySelectorAll<HTMLButtonElement>('.arena-result button')].some(
         (button) => button.disabled,
       ),
     ).toBe(false);
@@ -224,9 +231,11 @@ describe('arena Game Contract', () => {
     const { target, lifecycle } = await mountLosingGame(
       () => new Promise((resolve) => (complete = resolve)),
     );
-    await act(async () => target.querySelectorAll<HTMLButtonElement>('.result button')[1].click());
+    await act(async () =>
+      target.querySelectorAll<HTMLButtonElement>('.arena-result button')[1].click(),
+    );
     expect(
-      [...target.querySelectorAll<HTMLButtonElement>('.result button')].every(
+      [...target.querySelectorAll<HTMLButtonElement>('.arena-result button')].every(
         (button) => button.disabled,
       ),
     ).toBe(true);
