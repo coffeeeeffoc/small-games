@@ -17,7 +17,7 @@ Android 更新开关默认关闭。原生设置可检查/下载资源，下载�
 | Android | Actions 的 `android-apk` 中提供 debug APK               | 同一 artifact 提供 release APK；main 构建另发布 GitHub Release |
 | iOS     | `ios-builds` 中提供模拟器 ZIP、启动截图、未签名归档 ZIP | 另外提供已签名 IPA                                             |
 
-APK Release 固定资源名 `moyu-arcade.apk`，独立 tag 为 `mobile-<run_number>-<run_attempt>`，应用内通过 GitHub `releases/latest` 找包。仅当前 main 提交的已签名 APK 会设为 latest。请不要把其他无 APK 的 Release 设为 latest。iOS IPA 只存入 Actions artifact，不自动上传 App Store 或 TestFlight。
+测试版 Release 固定 Android 资源名 `moyu-arcade.apk`，独立 tag 为 `mobile-<run_number>-<run_attempt>`，应用内通过 GitHub `releases/latest` 找包。仅当前 main 提交的已签名 APK 会设为 latest。请不要把其他无 APK 的 Release 设为 latest。配置 Apple 签名后，Release 也附带 `moyu-arcade.ipa`；Ad Hoc（`ad-hoc` / `release-testing`）或 Enterprise 导出还附带 `ios-manifest.plist`，iOS 的“最新版”按钮可唤起系统安装。App Store 导出不会生成直接安装入口，不自动上传 App Store 或 TestFlight。
 
 ## Android 签名
 
@@ -36,6 +36,8 @@ APK Release 固定资源名 `moyu-arcade.apk`，独立 tag 为 `mobile-<run_numb
 
 没有上述 Secrets 时仍自动产出可安装的 debug 测试 APK，但不公开为自动更新包，因为临时 runner 的 debug 密钥不能保证跨构建一致。该流程面向 GitHub APK 分发；发布到应用商店前需按渠道要求审查 target SDK 与安装权限。
 
+当前开发阶段已配置独立、固定的 Android 测试签名 Secrets，后续自动发布的测试 APK 可相互覆盖升级。该密钥与以前的本机默认 debug 签名不同；旧 debug 安装不能直接覆盖。测试密钥备份在开发机 `C:\Users\15211\.android\small-games-ci-test\`，不要提交或发给测试者。测试者只需拿 Release 中的 APK。
+
 ## iOS 签名
 
 使用 Apple Developer 账户为 `com.coffeeeeffoc.smallgames` 创建 App ID 和相应 distribution profile，并导出包含私钥的 Apple Distribution `.p12`。添加以下 Secrets：
@@ -49,6 +51,8 @@ APK Release 固定资源名 `moyu-arcade.apk`，独立 tag 为 `mobile-<run_numb
 
 推荐从 Xcode Organizer 按目标渠道手动导出一次，复用对应 ExportOptions。使用手动签名，`teamID`、`provisioningProfiles` 中的 bundle ID / profile 名必须匹配本次证书和 profile；Ad Hoc profile 需要包含测试设备 UDID；App Store 分发 IPA 不能作为通用安装包直接安装。
 
+朋友小范围测试推荐 Ad Hoc：收集测试设备 UDID，加入 Apple Developer 的设备与 profile，导出 method 为 `release-testing` 的包。首次从 Release 下载 IPA 可通过 Apple Configurator 安装；安装后可在应用“最新版”中更新。也可用 TestFlight 邀请链接分发，但需要另行上传构建并按 Apple 流程开启测试。没有 Apple 签名时，模拟器包和未签名归档不能直接安装到 iPhone，朋友可以先打开 Pages 网页测试。
+
 CI 临时创建钥匙串、读取 profile 的 TeamIdentifier / Name，并在结束时清除签名文件。证书未配置时不尝试 IPA 导出。部分配置缺失时签名步骤明确失败，不伪装成可安装产物。
 
 本地签名构建先在 macOS 钥匙串导入证书、安装 profile，再设置 `IOS_TEAM_ID`、`IOS_PROFILE_NAME`、`IOS_EXPORT_OPTIONS`（绝对路径），执行 `pnpm ios:archive --signed`。可用 `IOS_BUILD_NUMBER` / `APP_VERSION` 设置版本。Bundle ID 修改需同步 Xcode 工程、profile、ExportOptions 与 CI 模拟器启动命令。
@@ -57,6 +61,7 @@ CI 临时创建钥匙串、读取 profile 的 TeamIdentifier / Name，并在结�
 
 ```sh
 python scripts/test-mobile-assets.py
+python apps/shell-ios/scripts/test-install-manifest.py
 pnpm --filter @coffeeeeffoc/shell-android test:updates
 pnpm android:apk
 pnpm android:test
