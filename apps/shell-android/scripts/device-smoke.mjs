@@ -10,11 +10,7 @@ const expect = baseExpect.configure({ timeout: 30000 });
 const app = 'com.coffeeeeffoc.smallgames';
 const adb = (...args) => execFileSync('adb', args, { encoding: 'utf8' }).trim();
 const start = () => adb('shell', 'am', 'start', '-W', '-n', `${app}/.MainActivity`);
-adb(
-  'install',
-  '-r',
-  fileURLToPath(new URL('../dist/moyu-arcade-0.1.0-debug.apk', import.meta.url)),
-);
+adb('install', '-r', fileURLToPath(new URL('../dist/moyu-arcade-debug.apk', import.meta.url)));
 adb('shell', 'am', 'force-stop', app);
 start();
 const devices = await _android.devices();
@@ -76,6 +72,7 @@ try {
       await expect(page.locator('.game-slot')).not.toBeEmpty();
       await expect(page.getByRole('alert')).toHaveCount(0);
     }
+    await expect(page.locator('.game-page > nav button')).toBeEnabled();
     await device.shell('input keyevent 4');
     await expect(page.locator('.catalog-grid article')).toHaveCount(6);
     console.log(`Android launch / interaction / native back: ${title}`);
@@ -85,6 +82,8 @@ try {
   await device.shell(`am start -W -n ${app}/.MainActivity`);
   await expect(page.locator('.catalog-grid article')).toHaveCount(6);
   assert.deepEqual(errors, []);
+  // Chromium batches localStorage disk writes; let the commit finish before simulating an abrupt kill.
+  await page.waitForTimeout(6000);
   await device.shell(`am force-stop ${app}`);
   await device.shell(`am start -W -n ${app}/.MainActivity`);
   page = await connect();
