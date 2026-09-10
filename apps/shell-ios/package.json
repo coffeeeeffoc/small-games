@@ -1,0 +1,13 @@
+{
+  "name": "@coffeeeeffoc/shell-ios",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "simulator": "node scripts/build-ios.mjs",
+    "archive": "node scripts/build-ios.mjs --archive"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}

@@ -10,9 +10,20 @@ android {
         applicationId 'com.coffeeeeffoc.smallgames'
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '0.1.0'
+        versionCode Integer.parseInt(System.getenv('ANDROID_VERSION_CODE') ?: '2')
+        versionName System.getenv('APP_VERSION') ?: '0.2.0'
     }
+    signingConfigs {
+        release {
+            if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+                storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes { release { signingConfig signingConfigs.release } }
     buildFeatures { buildConfig true }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/assets')
 }
@@ -30,6 +41,7 @@ tasks.register('bundleWeb', Exec) {
 tasks.register('syncWeb', Sync) {
     dependsOn 'bundleWeb'
     from rootProject.file('../shell-web/dist')
+    exclude 'mobile/**'
     into layout.buildDirectory.dir('generated/assets/web')
 }
 tasks.named('preBuild') { dependsOn 'syncWeb' }

@@ -24,3 +24,4 @@ pnpm-debug.log*
 .codegraph
 .serena
 apps/shell-web/public/games/
+__pycache__/
