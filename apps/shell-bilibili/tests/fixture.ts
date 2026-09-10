@@ -27,6 +27,7 @@ export function fakeSdk() {
     moveTo() {},
     lineTo() {},
     quadraticCurveTo() {},
+    bezierCurveTo() {},
     rotate() {},
     clip() {},
     createLinearGradient() {

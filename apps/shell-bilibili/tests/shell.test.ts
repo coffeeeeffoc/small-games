@@ -5,6 +5,7 @@ import {
   reviewedCultivation as reviewed,
   reviewedOffice,
   reviewedArena,
+  reviewedCricket,
 } from '@coffeeeeffoc/shell-bilibili';
 import { fakeSdk } from './fixture.js';
 
@@ -115,6 +116,7 @@ describe('reviewed Bilibili Shell', () => {
   it.each([
     ['office', reviewedOffice, '打工人摸鱼记'],
     ['arena', reviewedArena, '电子斗蛐蛐'],
+    ['cricket', reviewedCricket, '秋声斗蟋'],
   ] as const)('loads and starts the predeclared %s Game', async (gameId, module, title) => {
     const fake = fakeSdk();
     const instance = await startBilibiliShell(fake.sdk, () => module, {

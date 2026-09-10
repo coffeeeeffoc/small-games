@@ -47,6 +47,7 @@ if (sdk) {
       load: () => require('./cultivation/game.js'),
     },
     { id: 'office' as const, title: '打工人摸鱼记', load: () => require('./office/game.js') },
+    { id: 'cricket' as const, title: '秋声斗蟋', load: () => require('./cricket/game.js') },
     { id: 'arena' as const, title: '电子斗蛐蛐', load: () => require('./arena/game.js') },
   ];
   surface.draw({

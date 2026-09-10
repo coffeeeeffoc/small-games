@@ -9,6 +9,8 @@ import {
 } from '@coffeeeeffoc/game-cultivation';
 import { defaultOfficeEnvelope, officeGameDefinition } from '@coffeeeeffoc/game-office';
 
+import { cricketGameDefinition, defaultCricketEnvelope } from '@coffeeeeffoc/game-cricket';
+
 /** Catalog metadata paired with a trusted build-time Game import. */
 export type BuiltInGame = Readonly<{
   id: string;
@@ -49,11 +51,18 @@ const remoteCultivation =
 export const builtInGameRegistry: readonly BuiltInGame[] = [
   {
     id: 'cultivation',
-    title: '秋声斗蟋',
-    description: '撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。',
+    title: '三分钟修仙',
+    description: '十八次机缘，一世问道。历练渡劫，携福缘再入轮回。',
     definition: cultivationGameDefinition,
     content: defaultCultivationEnvelope,
     remote: remoteCultivation,
+  },
+  {
+    id: 'cricket',
+    title: '秋声斗蟋',
+    description: '撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。',
+    definition: cricketGameDefinition,
+    content: defaultCricketEnvelope,
   },
   {
     id: 'office',

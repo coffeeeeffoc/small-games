@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { readFile, readdir } from 'node:fs/promises';
 import cultivationManifest from '@coffeeeeffoc/game-cultivation/manifest';
+import cricketManifest from '@coffeeeeffoc/game-cricket/manifest';
 import officeManifest from '@coffeeeeffoc/game-office/manifest';
 import arenaManifest from '@coffeeeeffoc/game-arena/manifest';
 
@@ -14,12 +15,18 @@ export default defineConfig({
         'cultivation/game': 'src/entry.ts',
         'office/game': 'src/office.ts',
         'arena/game': 'src/arena.ts',
+        'cricket/game': 'src/cricket.ts',
       },
       formats: ['cjs'],
       fileName: (_format, name) => `${name}.js`,
     },
     rollupOptions: {
-      external: ['./cultivation/game.js', './office/game.js', './arena/game.js'],
+      external: [
+        './cultivation/game.js',
+        './office/game.js',
+        './arena/game.js',
+        './cricket/game.js',
+      ],
       output: { chunkFileNames: 'shared/[name].js' },
     },
   },
@@ -54,6 +61,7 @@ export default defineConfig({
               subpackages: [
                 { name: 'cultivation', root: 'cultivation/' },
                 { name: 'office', root: 'office/' },
+                { name: 'cricket', root: 'cricket/' },
                 { name: 'arena', root: 'arena/' },
               ],
             },
@@ -77,6 +85,7 @@ export default defineConfig({
         for (const [name, manifest] of [
           ['office', officeManifest],
           ['arena', arenaManifest],
+          ['cricket', cricketManifest],
         ] as const)
           this.emitFile({
             type: 'asset',

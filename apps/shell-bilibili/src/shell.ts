@@ -23,7 +23,7 @@ export async function loadReviewedGame(
   getReviewedModule: () => ReviewedModule,
   timeoutMs = 5_000,
 ): Promise<ReviewedModule> {
-  if (!['cultivation', 'office', 'arena'].includes(name))
+  if (!['cultivation', 'office', 'arena', 'cricket'].includes(name))
     throw new HostError({
       code: 'INVALID_INPUT',
       message: 'Only predeclared Game packages are allowed',
@@ -71,7 +71,7 @@ export async function startBilibiliShell(
   options: {
     adUnitId?: string;
     sessionId: string;
-    gameId?: 'cultivation' | 'office' | 'arena';
+    gameId?: 'cultivation' | 'office' | 'arena' | 'cricket';
     canvas?: CanvasGameTarget['canvas'];
   },
 ): Promise<GameInstance> {
