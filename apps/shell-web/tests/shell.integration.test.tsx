@@ -122,21 +122,21 @@ describe('Web Shell integration', () => {
     expect(container.textContent).toContain(builtInGameRegistry[0].title);
 
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('三分钟修仙');
+    expect(container.textContent).toContain('秋声斗蟋');
 
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    expect(container.textContent).toContain('修行已暂停');
+    expect(container.textContent).toContain('对局已暂停');
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    expect(container.textContent).not.toContain('修行已暂停');
+    expect(container.textContent).not.toContain('对局已暂停');
 
     await clickButton(container, '返回目录');
     expect(container.querySelector('.game-slot')).toBeNull();
     expect(removeListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
 
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('三分钟修仙');
+    expect(container.textContent).toContain('秋声斗蟋');
     await clickButton(container, '返回目录');
   });
 
@@ -158,7 +158,7 @@ describe('Web Shell integration', () => {
     };
     const remoteLoader = {
       launch: vi.fn(async (_artifact, target: HTMLElement) => {
-        target.textContent = '远程三分钟修仙 2.0.0';
+        target.textContent = '远程秋声斗蟋 2.0.0';
       }),
       pause: vi.fn(),
       resume: vi.fn(),
@@ -177,7 +177,7 @@ describe('Web Shell integration', () => {
     );
     expect(container.textContent).toContain('REMOTE GAME · BUILT-IN FALLBACK');
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
+    expect(container.textContent).toContain('远程秋声斗蟋 2.0.0');
     expect(createHost).toHaveBeenCalledWith(
       expect.objectContaining({ id: remote.id, remote: remote.remote }),
       remote.remote.target.manifest,
