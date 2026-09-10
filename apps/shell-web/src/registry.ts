@@ -65,7 +65,7 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
   {
     id: 'arena',
     title: '电子斗蛐蛐',
-    description: '养一只怪物，连续打穿五个离谱段位。',
+    description: '秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。',
     definition: arenaGameDefinition,
     content: defaultArenaEnvelope,
   },
