@@ -34,6 +34,8 @@ jobs:
       - run: pnpm --filter @coffeeeeffoc/shell-web test
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:pages
+      - run: python3 scripts/test-mobile-assets.py
+      - run: python3 scripts/mobile-assets.py
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/shell-web/dist

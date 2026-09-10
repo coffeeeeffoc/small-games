@@ -16,6 +16,9 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+import android.widget.Button;
+import android.view.Gravity;
+import java.io.File;
 import androidx.webkit.WebViewAssetLoader;
 
 public final class MainActivity extends Activity {
@@ -24,6 +27,8 @@ public final class MainActivity extends Activity {
     private FrameLayout root;
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
+    private AppUpdates updates;
+    private volatile WebViewAssetLoader assets;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -31,6 +36,14 @@ public final class MainActivity extends Activity {
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
+        updates = new AppUpdates(this);
+        selectAssets();
+        Button settingsButton = new Button(this);
+        settingsButton.setText("设置");
+        settingsButton.setContentDescription("应用设置");
+        FrameLayout.LayoutParams settingsPosition = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.END);
+        root.addView(settingsButton, settingsPosition);
+        settingsButton.setOnClickListener(view -> updates.show());
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -41,8 +54,6 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setMediaPlaybackRequiresUserGesture(true);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
-        WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assets.shouldInterceptRequest(request.getUrl());
@@ -77,6 +88,22 @@ public final class MainActivity extends Activity {
         if (state == null || web.restoreState(state) == null) web.loadUrl(HOME);
     }
 
+    private void selectAssets() {
+        File directory = updates.source();
+        assets = new WebViewAssetLoader.Builder().addPathHandler("/assets/web/", directory == null
+                ? path -> new WebViewAssetLoader.AssetsPathHandler(this).handle("web/" + path)
+                : new WebViewAssetLoader.InternalStoragePathHandler(this, directory)).build();
+    }
+
+    void reloadHome() {
+        closeFullscreen();
+        web.stopLoading();
+        selectAssets();
+        web.clearCache(true);
+        web.clearHistory();
+        web.loadUrl(HOME);
+    }
+
     private void closeFullscreen() {
         if (fullscreen == null) return;
         root.removeView(fullscreen);
@@ -101,7 +128,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle state) { web.saveState(state); super.onSaveInstanceState(state); }
     @Override protected void onPause() { web.onPause(); web.pauseTimers(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); web.onResume(); web.resumeTimers(); }
+    @Override protected void onResume() { super.onResume(); web.onResume(); web.resumeTimers(); updates.resumeInstall(); }
     @Override protected void onDestroy() {
         closeFullscreen();
         root.removeView(web);
