@@ -19,6 +19,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "tidebreak": "workspace:*",
     "@coffeeeeffoc/tower-defense-game": "workspace:*",
     "@coffeeeeffoc/xiangqi-five": "workspace:*",
     "@coffeeeeffoc/office-slacking": "workspace:*",

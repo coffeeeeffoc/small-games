@@ -1,5 +1,11 @@
 [
   {
+    "id": "fishing",
+    "title": "潮汐猎手",
+    "description": "三分钟深海捕鱼，四种武器迎战鱼潮与巨鲨。",
+    "output": "dist"
+  },
+  {
     "id": "tower-defense-game",
     "title": "月森守卫",
     "description": "招募、合成守卫，守住月森的八波挑战。",

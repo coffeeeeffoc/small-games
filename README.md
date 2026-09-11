@@ -18,7 +18,7 @@ pnpm --filter @coffeeeeffoc/shell-web dev
 
 浏览器访问终端显示的地址（默认 `http://localhost:5173`）。生产检查：
 
-在线大厅：[摸鱼游戏社](https://coffeeeeffoc.github.io/small-games/)。每次推送 `main` 自动测试、构建并部署大厅和三款独立 Game；本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）。
+在线大厅：[摸鱼游戏社](https://coffeeeeffoc.github.io/small-games/)。每次推送 `main` 自动测试、构建并部署大厅和四款独立 Game；本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）。
 
 ```bash
 pnpm test
@@ -73,4 +73,4 @@ packages/
   config-typescript/ 共享 TypeScript 配置
 ```
 
-根命令由 Turborepo 分发到各 workspace。首次运行前执行 `pnpm games:init` 初始化三个独立 Game，或使用 `git clone --recurse-submodules` 克隆。Web 大厅已集成月森守卫、象五子棋和第一人称工位偷闲；它们也各自使用 pnpm 独立构建并自动部署 GitHub Pages。详见[独立 Game 开发、版本更新与发布](docs/standalone-games.md)。
+根命令由 Turborepo 分发到各 workspace。首次运行前执行 `pnpm games:init` 初始化四个独立 Game，或使用 `git clone --recurse-submodules` 克隆。Web 大厅已集成月森守卫、象五子棋、第一人称工位偷闲和潮汐猎手；它们也各自使用 npm/pnpm 独立构建并自动部署 GitHub Pages。详见[独立 Game 开发、版本更新与发布](docs/standalone-games.md)。

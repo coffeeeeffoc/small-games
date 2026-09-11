@@ -10,3 +10,7 @@
 	path = games/office-slacking
 	url = https://github.com/coffeeeeffoc/office-slacking.git
 	branch = main
+[submodule "games/fishing"]
+	path = games/fishing
+	url = https://github.com/coffeeeeffoc/fishing.git
+	branch = main
