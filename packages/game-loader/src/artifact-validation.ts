@@ -21,6 +21,7 @@ const optionalDirectives = new Map<string, string>([
   ['style-src', "'unsafe-inline'"],
   ['img-src', 'data:'],
   ['font-src', 'data:'],
+  ['media-src', 'data:'],
 ]);
 
 /** Rejects Artifact responses that could access ambient network or arbitrary resources. */

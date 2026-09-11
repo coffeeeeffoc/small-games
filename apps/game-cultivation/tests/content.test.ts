@@ -1,15 +1,14 @@
-import { describe, expect, it } from 'vitest';
-
-import {
-  cultivationContentSchema,
-  defaultCultivationContent,
-} from '@coffeeeeffoc/game-cultivation/content';
-
-describe('cultivation content', () => {
-  it('owns a valid three-chapter, eighteen-event schema', () => {
-    const content = cultivationContentSchema.parse(defaultCultivationContent);
-    expect(content.chapters).toHaveLength(3);
-    expect(content.events).toHaveLength(18);
-    expect(content.events.filter((event) => event.boss)).toHaveLength(3);
-  });
+import { expect, it } from 'vitest';
+import { cultivationContentSchema, defaultCultivationContent } from '../src/content/index.js';
+it('validates bounded realtime settings and rejects non-finite or unsafe values', () => {
+  expect(cultivationContentSchema.parse(defaultCultivationContent).balance.preparationSeconds).toBe(
+    120,
+  );
+  for (const value of [0, -1, Infinity, NaN, 99999])
+    expect(
+      cultivationContentSchema.safeParse({
+        ...defaultCultivationContent,
+        balance: { ...defaultCultivationContent.balance, moveSpeed: value },
+      }).success,
+    ).toBe(false);
 });

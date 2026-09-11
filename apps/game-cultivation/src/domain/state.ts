@@ -1,6 +1,6 @@
 import type { JsonValue } from '@coffeeeeffoc/game-contract';
 
-import type { CultivationContent } from '../content/schema.js';
+import type { LegacyCultivationContent as CultivationContent } from '../content/legacy.js';
 import { applyChoice, score, type Stats } from './model.js';
 
 /** Cultivation-owned fields embedded in the legacy shared JSON save record. */

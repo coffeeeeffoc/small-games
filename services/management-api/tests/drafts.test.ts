@@ -1,3 +1,4 @@
+import { legacyCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { createService } from '@coffeeeeffoc/service-kit';
 import {
@@ -122,7 +123,7 @@ it('creates, lists, reads, validates, saves, and rejects a stale writer without 
 });
 it('rejects invalid fields without saving and migrates v1 on save', async () => {
   const draft = (await create()).json();
-  draft.envelope.payload.events[0].title = '';
+  draft.envelope.payload.balance.moveSpeed = 0;
   const invalid = await app.inject({
     method: 'PUT',
     url: `/api/drafts/${draft.id}`,
@@ -130,9 +131,9 @@ it('rejects invalid fields without saving and migrates v1 on save', async () => 
     payload: draft,
   });
   expect(invalid.statusCode).toBe(422);
-  expect(invalid.json().issues[0].path).toEqual(['payload', 'events', 0, 'title']);
+  expect(invalid.json().issues[0].path).toEqual(['payload', 'balance', 'moveSpeed']);
   expect((await store.get(draft.id))?.revision).toBe(0);
-  draft.envelope.payload.events[0].title = '旧稿';
+  draft.envelope = structuredClone(legacyCultivationEnvelope);
   draft.envelope.schemaVersion = 1;
   delete draft.envelope.payload.title;
   const migrated = await app.inject({
@@ -142,7 +143,7 @@ it('rejects invalid fields without saving and migrates v1 on save', async () => 
     payload: draft,
   });
   expect(migrated.statusCode).toBe(200);
-  expect(migrated.json().envelope.schemaVersion).toBe(2);
+  expect(migrated.json().envelope.schemaVersion).toBe(3);
   expect(migrated.json().envelope.payload.title).toBe('三分钟修仙');
 });
 it('requires creator and trusted origin and does not expose database errors', async () => {

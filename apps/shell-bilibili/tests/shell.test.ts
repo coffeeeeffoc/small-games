@@ -85,30 +85,42 @@ describe('reviewed Bilibili Shell', () => {
     expect(sdk.offShow).toHaveBeenCalledOnce();
   });
 
-  it('runs the actual Canvas Game through complete gameplay, pause/resume and disposal', async () => {
+  it('runs the actual realtime Game with native holds, pause, failure settlement and disposal', async () => {
+    vi.useFakeTimers();
     const fake = fakeSdk();
     const instance = await startBilibiliShell(fake.sdk, () => reviewed, {
       sessionId: 'native-play',
     });
-    expect(fake.lines.map((line) => line.text)).toContain('三分钟修仙');
-    instance.pause();
-    expect(fake.lines.map((line) => line.text)).toContain('修行已暂停');
-    expect(fake.rectangles).toHaveLength(0);
-    instance.resume();
-    for (let index = 0; index < reviewed.content.payload.events.length; index++) {
-      fake.choose();
-      await vi.waitFor(() =>
-        expect(fake.lines.some((line) => line.text === '正在处理…')).toBe(false),
-      );
+    const point = (x: number, y: number) => [
+      { identifier: 1, clientX: (x * 390) / 480, clientY: (y * 844) / 800 },
+    ];
+    try {
+      fake.touch('down', point(240, 545));
+      fake.touch('up', point(240, 545));
+      fake.touch('down', point(240, 680));
+      await vi.advanceTimersByTimeAsync(1000);
+      fake.touch('up', point(240, 680));
+      expect(fake.lines.some((line) => line.text.includes('灵气入体'))).toBe(true);
+      expect(fake.audio.some((sound) => vi.mocked(sound.play).mock.calls.length > 0)).toBe(true);
+      instance.pause();
+      expect(fake.lines.some((line) => line.text === '修行已暂停')).toBe(true);
+      const paused = JSON.stringify(fake.lines);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(JSON.stringify(fake.lines)).toBe(paused);
+      instance.resume();
+      await vi.advanceTimersByTimeAsync(181000);
+      expect(fake.lines.some((line) => line.text === '此 行 未 尽')).toBe(true);
+      const saved = JSON.parse([...fake.records.values()][0]);
+      expect(saved.value.runs).toBe(1);
+      expect(saved.value.wins).toBe(0);
+      fake.touch('down', point(240, 568));
+      fake.touch('up', point(240, 568));
+      expect(fake.lines.some((line) => line.text === '山腰洞府')).toBe(true);
+    } finally {
+      await instance.dispose();
+      vi.useRealTimers();
     }
-    expect(fake.lines.some((line) => line.text.includes('三章已毕'))).toBe(true);
-    const saved = JSON.parse([...fake.records.values()][0]);
-    expect(saved.value.cultivationChapter).toBe(3);
-    expect(saved.value.bestCultivation).toBeGreaterThan(0);
-    // All touch targets stay within the native viewport throughout the shipped campaign.
-    expect(fake.rectangles.every((button) => button.y + button.height < 844)).toBe(true);
-    await instance.dispose();
-    expect(fake.hasTap()).toBe(false);
+    expect(fake.hasInput()).toBe(false);
     expect(fake.sdk.offHide).toHaveBeenCalledOnce();
     expect(fake.sdk.offShow).toHaveBeenCalledOnce();
   });

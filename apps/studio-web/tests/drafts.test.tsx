@@ -1,3 +1,4 @@
+import { canvasContext } from './canvas.fixture.js';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +19,10 @@ let target: HTMLDivElement;
 let root: Root;
 let queryClient: QueryClient;
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   target = document.createElement('div');
   document.body.append(target);
   root = createRoot(target);
@@ -123,10 +128,10 @@ it('runs the actual Game with disposable storage and no real player writes or ad
   await settle();
   expect(target.querySelector('.cultivation')).not.toBeNull();
   await act(async () => {
-    target.querySelector<HTMLButtonElement>('.choices button')!.click();
+    target.querySelector<HTMLButtonElement>('[aria-label="点香 · 开始修行"]')!.click();
   });
   await settle();
-  expect(target.querySelector('.event h2')?.textContent).toBe(original.payload.events[1].title);
+  expect(target.querySelector('.cultivation')?.getAttribute('data-phase')).toBe('explore');
   expect(localStorage.getItem('bili-pocket-arcade:v1')).toBe('player-save-sentinel');
   expect(original).toEqual(defaultCultivationEnvelope);
 });
