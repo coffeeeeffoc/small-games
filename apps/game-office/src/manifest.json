@@ -1,10 +1,10 @@
 {
   "gameId": "office",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "gameContractVersion": 1,
-  "contentSchemaVersion": 1,
+  "contentSchemaVersion": 2,
   "capabilities": ["content", "storage", "advertising"],
   "loadModes": ["in-process"],
   "entry": "index.html",
-  "integrity": "builtin:office@1.0.0"
+  "integrity": "builtin:office@2.0.0"
 }

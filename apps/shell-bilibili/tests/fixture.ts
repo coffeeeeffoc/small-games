@@ -6,6 +6,7 @@ export function fakeSdk() {
   const lines: Array<{ text: string; y: number }> = [];
   const rectangles: Array<{ y: number; height: number }> = [];
   const drawnImages: Array<{ src: string; coordinates: number[] }> = [];
+  const paths: Array<[number, number]> = [];
   const images: BilibiliImage[] = [];
   const audio: Array<ReturnType<NonNullable<BilibiliSdk['createInnerAudioContext']>>> = [];
   const taps = new Set<(event: TouchEvent) => void>();
@@ -24,8 +25,12 @@ export function fakeSdk() {
     ellipse() {},
     fill() {},
     stroke() {},
-    moveTo() {},
-    lineTo() {},
+    moveTo(x: number, y: number) {
+      paths.push([x, y]);
+    },
+    lineTo(x: number, y: number) {
+      paths.push([x, y]);
+    },
     quadraticCurveTo() {},
     bezierCurveTo() {},
     rotate() {},
@@ -43,6 +48,7 @@ export function fakeSdk() {
       drawnImages.push({ src: image.src, coordinates });
     },
     clearRect() {
+      paths.length = 0;
       lines.length = 0;
       rectangles.length = 0;
       drawnImages.length = 0;
@@ -146,6 +152,7 @@ export function fakeSdk() {
     rectangles,
     images,
     drawnImages,
+    paths,
     audio,
     choose(index = 0) {
       const button = rectangles[index];

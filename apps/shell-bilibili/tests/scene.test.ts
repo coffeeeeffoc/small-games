@@ -101,7 +101,7 @@ describe('native Office scene capabilities', () => {
     expect(fake.hasInput()).toBe(false);
   });
 
-  it('plays the native Office scene and pauses its actions and audio before resuming', async () => {
+  it('moves and looks around the native Office scene, then clears input and audio on pause', async () => {
     vi.useFakeTimers();
     const fake = fakeSdk();
     const instance = await startBilibiliShell(fake.sdk, () => reviewedOffice, {
@@ -116,40 +116,43 @@ describe('native Office scene capabilities', () => {
     };
     try {
       await vi.advanceTimersByTimeAsync(0);
-      expect(text()).toContain('坐下来，开始这 90 秒');
-      expect(fake.images.length).toBeGreaterThan(2);
-      expect(fake.drawnImages.length).toBeGreaterThan(2);
-      tap(195, 777);
-      tap(195, 774);
-      expect(text()).toContain('数据已确认');
-      tap(100, 713);
-      await vi.advanceTimersByTimeAsync(6000);
-      tap(280, 713);
-      await vi.advanceTimersByTimeAsync(640);
-      expect(text()).toContain('屏幕：休闲窗口 · 仍然可见');
-      expect(text()).toContain('手机：在手中 · 需要单独收好');
+      expect(text().join(' ')).toContain('周一');
+      expect(fake.paths.length).toBeGreaterThan(100);
+      tap(195, 844 * 0.65 + 28);
+      expect(text()).toContain('暂停');
+
+      const beforeLook = structuredClone(fake.paths);
+      fake.touch('down', [{ identifier: 2, clientX: 285, clientY: 410 }]);
+      fake.touch('move', [{ identifier: 2, clientX: 345, clientY: 430 }]);
+      fake.touch('up', [{ identifier: 2, clientX: 345, clientY: 430 }]);
+      await vi.advanceTimersByTimeAsync(34);
+      expect(fake.paths).not.toEqual(beforeLook);
+
+      const beforeMove = structuredClone(fake.paths);
+      fake.touch('down', [{ identifier: 3, clientX: 80, clientY: 720 }]);
+      fake.touch('move', [{ identifier: 3, clientX: 80, clientY: 655 }]);
+      await vi.advanceTimersByTimeAsync(350);
+      expect(fake.paths).not.toEqual(beforeMove);
       expect(fake.audio.some((sound) => vi.mocked(sound.play).mock.calls.length > 0)).toBe(true);
       vi.mocked(fake.sdk.onHide).mock.calls[0][0]();
-      expect(text()).toContain('先歇一会儿。');
       const before = [...text()];
-      const frames = structuredClone(fake.drawnImages);
+      const frame = structuredClone(fake.paths);
+      fake.touch('move', [{ identifier: 3, clientX: 100, clientY: 600 }]);
       await vi.advanceTimersByTimeAsync(1000);
       expect(text()).toEqual(before);
-      expect(fake.drawnImages).toEqual(frames);
+      expect(fake.paths).toEqual(frame);
       expect(fake.audio.every((sound) => vi.mocked(sound.stop).mock.calls.length > 0)).toBe(true);
       vi.mocked(fake.sdk.onShow).mock.calls[0][0]();
-      expect(text()).toContain('准备好了，继续');
-      tap(195, 777);
-      tap(100, 713);
-      await vi.advanceTimersByTimeAsync(900);
-      expect(text()).toContain('手机：已收好');
-      expect(text()).toContain('屏幕：工作表格 · 合计 42');
+      expect(text()).toContain('暂停');
     } finally {
       await instance.dispose();
       expect(fake.hasInput()).toBe(false);
       expect(fake.audio.every((sound) => vi.mocked(sound.destroy).mock.calls.length === 1)).toBe(
         true,
       );
+      const frame = structuredClone(fake.paths);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(fake.paths).toEqual(frame);
       vi.useRealTimers();
     }
   });

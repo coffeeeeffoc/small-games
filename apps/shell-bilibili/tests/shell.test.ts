@@ -114,7 +114,7 @@ describe('reviewed Bilibili Shell', () => {
   });
 
   it.each([
-    ['office', reviewedOffice, '打工人摸鱼记'],
+    ['office', reviewedOffice, '周一 09:08 · 迟到潜入'],
     ['arena', reviewedArena, '电子斗蛐蛐'],
     ['cricket', reviewedCricket, '秋声斗蟋'],
   ] as const)('loads and starts the predeclared %s Game', async (gameId, module, title) => {
@@ -128,26 +128,23 @@ describe('reviewed Bilibili Shell', () => {
     await instance.dispose();
   });
 
-  it('preserves Office hold-to-slack behavior', async () => {
+  it.each([
+    [{ ...reviewedOffice.content, schemaVersion: 1 }, 'CONTENT_INCOMPATIBLE'],
+    [{ ...reviewedOffice.content, schemaVersion: 3 }, 'CONTENT_INCOMPATIBLE'],
+    [{ ...reviewedOffice.content, gameId: 'arena' }, 'INVALID_INPUT'],
+    [
+      { ...reviewedOffice.content, payload: { experience: 'first-person-week', seed: -1 } },
+      'INVALID_INPUT',
+    ],
+  ] as const)('rejects incompatible Office content before mounting', async (content, code) => {
     const fake = fakeSdk();
-    const instance = await startBilibiliShell(
-      fake.sdk,
-      () => ({
-        ...reviewedOffice,
-        content: {
-          ...reviewedOffice.content,
-          payload: { ...reviewedOffice.content.payload, experience: 'classic' },
-        },
+    await expect(
+      startBilibiliShell(fake.sdk, () => ({ ...reviewedOffice, content }), {
+        gameId: 'office',
+        sessionId: 'office-content',
       }),
-      { gameId: 'office', sessionId: 'office-parity' },
-    );
-    fake.choose();
-    await vi.waitFor(() => expect(fake.rectangles.length).toBeGreaterThan(0));
-    fake.press();
-    expect(fake.lines.map((line) => line.text)).toContain('松手！切回表格');
-    fake.release();
-    expect(fake.lines.map((line) => line.text)).toContain('按住摸鱼');
-    await instance.dispose();
+    ).rejects.toMatchObject({ code });
+    expect(fake.hasInput()).toBe(false);
   });
 
   it('plays a real Arena hold/release attack and cancels it across pause', async () => {

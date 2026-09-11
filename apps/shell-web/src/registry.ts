@@ -67,7 +67,7 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
   {
     id: 'office',
     title: '打工人摸鱼记',
-    description: '老板转身就摸鱼，熬过五天才算胜利。',
+    description: '第一人称潜入工位，周一迟到首关已开放，一周摸鱼场景逐步登场。',
     definition: officeGameDefinition,
     content: defaultOfficeEnvelope,
   },

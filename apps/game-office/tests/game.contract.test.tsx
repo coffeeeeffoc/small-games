@@ -1,84 +1,208 @@
 import { act } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HostError, type GameHost, type GameInstance } from '@coffeeeeffoc/game-contract';
+import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
+import { defaultOfficeEnvelope, officeGameDefinition } from '@coffeeeeffoc/game-office';
+import * as scene from '../src/first-person/runtime.js';
 
-import { HostError, type AdvertisingPort, type RewardOutcome } from '@coffeeeeffoc/game-contract';
-import { exerciseGameLifecycle } from '@coffeeeeffoc/game-contract-test';
-import { createInMemoryGameHost, createTestGameHost } from '@coffeeeeffoc/game-host';
-import { defaultOfficeEnvelope as sampleEnvelope } from '@coffeeeeffoc/game-office/content';
-import { officeGameDefinition } from '@coffeeeeffoc/game-office';
-
-// Keep exercising the published five-day experience with legacy content.
-const defaultOfficeEnvelope = {
-  ...sampleEnvelope,
-  payload: { ...sampleEnvelope.payload, experience: 'classic' as const },
-};
-
-async function mountCaughtGame(offer: AdvertisingPort['offer']) {
-  vi.useFakeTimers();
-  vi.spyOn(Math, 'random').mockReturnValue(0);
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  const testHost = createTestGameHost({
-    session: {
-      gameId: 'office',
-      capabilities: ['content', 'storage', 'advertising'],
-      adAuthority: 'host',
-    },
+const instances: GameInstance[] = [];
+function gameHost() {
+  return createInMemoryGameHost({
+    session: { gameId: 'office', gameVersion: '2.0.0', capabilities: ['content', 'storage'] },
     content: defaultOfficeEnvelope,
-    offer,
   });
+}
+function button(target: HTMLElement, text: string) {
+  const value = [...target.querySelectorAll('button')].find((item) =>
+    item.textContent?.includes(text),
+  );
+  if (!value) throw new Error(`Missing button: ${text}`);
+  return value;
+}
+const click = (target: HTMLElement, text: string) =>
+  act(async () => {
+    button(target, text).click();
+  });
+const advance = (milliseconds: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(milliseconds);
+  });
+async function mount(host = gameHost()) {
   const target = document.createElement('div');
-  let lifecycle!: Awaited<ReturnType<typeof officeGameDefinition.mount>>;
+  document.body.append(target);
+  let instance!: GameInstance;
   await act(async () => {
-    lifecycle = await officeGameDefinition.mount(target, testHost.host);
+    instance = await officeGameDefinition.mount(target, host);
   });
-  await act(async () => target.querySelector<HTMLButtonElement>('.day-curtain button')?.click());
-  await act(async () => {
-    target
-      .querySelector<HTMLButtonElement>('.slack-button')
-      ?.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    await vi.advanceTimersByTimeAsync(13_000);
-  });
-  expect(target.textContent).toContain('你在工作时间笑出了声');
-  return { ...testHost, target, lifecycle };
+  instances.push(instance);
+  return { target, instance };
 }
 
-function restoreTestRuntime() {
+beforeEach(() => {
+  vi.useFakeTimers();
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const context = {
+    clearRect() {},
+    fillRect() {},
+    fillText() {},
+    beginPath() {},
+    moveTo() {},
+    lineTo() {},
+    fill() {},
+    stroke() {},
+    createRadialGradient: () => ({ addColorStop() {} }),
+  } as unknown as CanvasRenderingContext2D;
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
+  vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue(
+    new DOMRect(0, 0, 800, 450),
+  );
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+});
+afterEach(async () => {
+  await act(async () => {
+    for (const instance of instances.splice(0)) await instance.dispose();
+  });
+  document.body.replaceChildren();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
-}
+});
 
-describe('office Game Contract', () => {
-  it('mounts, pauses, resumes, disposes, and mounts again', async () => {
-    const host = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: ['content', 'storage', 'advertising'] },
-      content: defaultOfficeEnvelope,
+describe('first-person Office Game Contract', () => {
+  it('runs the actual scene, respects host suspension, disposes, and can enter again', async () => {
+    const { target, instance } = await mount();
+    expect(target.querySelector('[aria-label="打工人摸鱼记 · 第一人称办公室"]')).not.toBeNull();
+    expect(target.querySelector('canvas')?.width).toBe(800);
+    await click(target, '悄悄进入办公室');
+    expect(target.textContent).toContain('别让老板发现你迟到了');
+    await act(async () => {
+      instance.pause();
     });
-    await exerciseGameLifecycle(officeGameDefinition, document.createElement('div'), host);
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      button(target, '继续潜入').click();
+    });
+    expect(button(target, '继续潜入').disabled).toBe(true);
+    const paused = target.textContent;
+    await advance(1200);
+    expect(target.textContent).toBe(paused);
+    await act(async () => {
+      instance.resume();
+    });
+    expect(target.querySelector('.office-result')).toBeNull();
+    await click(target, '暂停');
+    await advance(300);
+    await click(target, '继续潜入');
+    await act(async () => {
+      await instance.dispose();
+    });
+    expect(target.childElementCount).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+    const again = await mount();
+    expect(again.target.textContent).toContain('悄悄进入办公室');
   });
 
-  it('rejects missing capability and newer content', async () => {
-    const missing = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: [] },
-      content: defaultOfficeEnvelope,
+  it('clears keyboard keys held across host suspension before accepting another direction', async () => {
+    const mounted = vi.spyOn(scene, 'mountOfficeScene');
+    const { target, instance } = await mount();
+    const result = mounted.mock.results[0];
+    if (result.type !== 'return') throw new Error('Office runtime did not mount');
+    const runtime = result.value;
+    await click(target, '悄悄进入办公室');
+    const canvas = target.querySelector('canvas')!;
+    await act(async () => {
+      canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true }));
     });
-    await expect(
-      officeGameDefinition.mount(document.createElement('div'), missing),
-    ).rejects.toMatchObject({ code: 'CAPABILITY_MISSING' });
-    const newer = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: ['content', 'storage'] },
-      content: { ...defaultOfficeEnvelope, schemaVersion: 2 },
+    await advance(100);
+    await act(async () => {
+      instance.pause();
     });
-    await expect(
-      officeGameDefinition.mount(document.createElement('div'), newer),
-    ).rejects.toMatchObject({ code: 'CONTENT_INCOMPATIBLE' });
+    const position = { ...runtime.getView().state.player };
+    await act(async () => {
+      instance.resume();
+    });
+    await act(async () => {
+      canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowRight', bubbles: true }));
+    });
+    await advance(150);
+    expect(runtime.getView().state.player.x).toBe(position.x);
+    expect(runtime.getView().state.player.z).toBe(position.z);
+    expect(runtime.getView().state.player.yaw).toBeGreaterThan(position.yaw);
   });
 
-  it('mounts when save storage is unavailable', async () => {
-    const base = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: ['content', 'storage'] },
-      content: defaultOfficeEnvelope,
+  it('keeps the scene paused while browsing the week and waits for an explicit resume', async () => {
+    const mounted = vi.spyOn(scene, 'mountOfficeScene');
+    const { target } = await mount();
+    const result = mounted.mock.results[0];
+    if (result.type !== 'return') throw new Error('Office runtime did not mount');
+    const runtime = result.value;
+    await click(target, '悄悄进入办公室');
+    await act(async () => {
+      target.querySelector<HTMLButtonElement>('[aria-label="打开一周场景表"]')!.click();
     });
+    const paused = structuredClone(runtime.getView().state);
+    await act(async () => {
+      for (const code of ['Escape', 'KeyW'])
+        target
+          .querySelector('canvas')!
+          .dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    });
+    await advance(250);
+    expect(runtime.getView().state).toEqual(paused);
+    expect(runtime.getView().state.status).toBe('paused');
+    await act(async () => {
+      target.querySelector<HTMLButtonElement>('[aria-label="关闭场景表"]')!.click();
+    });
+    expect(runtime.getView().state.status).toBe('paused');
+    await click(target, '继续潜入');
+    expect(runtime.getView().state.status).toBe('playing');
+  });
+
+  it('rejects missing capabilities, foreign identities, future schemas, and retired content', async () => {
+    const base = gameHost();
+    const cases: Array<[GameHost, string]> = [
+      [{ ...base, session: { ...base.session, capabilities: [] } }, 'CAPABILITY_MISSING'],
+      [{ ...base, session: { ...base.session, gameId: 'arena' } }, 'INVALID_INPUT'],
+      [
+        { ...base, content: { load: async () => ({ ...defaultOfficeEnvelope, gameId: 'arena' }) } },
+        'INVALID_INPUT',
+      ],
+      [
+        {
+          ...base,
+          content: { load: async () => ({ ...defaultOfficeEnvelope, schemaVersion: 3 }) },
+        },
+        'CONTENT_INCOMPATIBLE',
+      ],
+      [
+        {
+          ...base,
+          content: {
+            load: async () => ({
+              ...defaultOfficeEnvelope,
+              schemaVersion: 1,
+              payload: { experience: 'classic', days: [] },
+            }),
+          },
+        },
+        'INVALID_INPUT',
+      ],
+    ];
+    for (const [host, code] of cases) {
+      const target = document.createElement('div');
+      await expect(officeGameDefinition.mount(target, host)).rejects.toMatchObject({ code });
+      expect(target.childElementCount).toBe(0);
+    }
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps the first scene playable when storage is unavailable', async () => {
+    const base = gameHost();
     const host = {
       ...base,
       storage: {
@@ -90,112 +214,49 @@ describe('office Game Contract', () => {
         },
       },
     };
-    const lifecycle = await officeGameDefinition.mount(document.createElement('div'), host);
-    await Promise.resolve();
-    await lifecycle.dispose();
+    const { target } = await mount(host);
+    await click(target, '悄悄进入办公室');
+    await advance(200);
+    expect(target.textContent).toContain('别让老板发现你迟到了');
+    expect(target.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('mounts gracefully without the optional advertising capability', async () => {
-    const host = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: ['content', 'storage'] },
-      content: defaultOfficeEnvelope,
-    });
-    await exerciseGameLifecycle(officeGameDefinition, document.createElement('div'), host);
+  it('reports unavailable Canvas instead of silently mounting an empty game', async () => {
+    vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(null);
+    const { target } = await mount();
+    expect(target.querySelector('[role="alert"]')?.textContent).toContain('Canvas');
   });
 
-  it('drops active input while paused', async () => {
-    vi.useFakeTimers();
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    const host = createInMemoryGameHost({
-      session: { gameId: 'office', capabilities: ['content', 'storage'] },
-      content: defaultOfficeEnvelope,
-    });
-    const target = document.createElement('div');
-    let lifecycle!: Awaited<ReturnType<typeof officeGameDefinition.mount>>;
-    await act(async () => {
-      lifecycle = await officeGameDefinition.mount(target, host);
-    });
-    await act(async () => target.querySelector<HTMLButtonElement>('.day-curtain button')?.click());
-    await act(async () => {
-      target
-        .querySelector<HTMLButtonElement>('.slack-button')
-        ?.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-      lifecycle.pause();
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
-      lifecycle.resume();
-    });
-    expect(target.querySelector<HTMLButtonElement>('.slack-button')?.textContent).toContain(
-      '按住摸鱼',
-    );
-    await act(async () => lifecycle.dispose());
-    restoreTestRuntime();
-  });
-
-  it('requests a Reward Opportunity and rescues only after completion', async () => {
-    const { target, lifecycle, observations } = await mountCaughtGame(async () => ({
-      status: 'completed',
-    }));
-    await act(async () => {
-      const buttons = target.querySelectorAll<HTMLButtonElement>('.result button');
-      buttons[1].click();
-      await Promise.resolve();
-    });
-    expect(target.textContent).not.toContain('你在工作时间笑出了声');
-    expect(observations.filter((item) => item.port === 'advertising')).toEqual([
-      {
-        port: 'advertising',
-        operation: 'offer',
-        value: { id: 'office.destroy-history', reward: { suspicion: 15 } },
+  it('keeps touch controls after denied gyro permission and ignores a late grant after disposal', async () => {
+    vi.stubGlobal('isSecureContext', true);
+    const requestPermission = vi.fn(async () => 'denied');
+    vi.stubGlobal(
+      'DeviceOrientationEvent',
+      class extends Event {
+        static requestPermission = requestPermission;
       },
-    ]);
-    await act(async () => lifecycle.dispose());
-    restoreTestRuntime();
-  });
-
-  it('keeps the caught run when advertising is unavailable', async () => {
-    const { target, lifecycle } = await mountCaughtGame(async () => ({ status: 'unavailable' }));
-    await act(async () => {
-      target.querySelectorAll<HTMLButtonElement>('.result button')[1].click();
-      await Promise.resolve();
-    });
-    expect(target.textContent).toContain('你在工作时间笑出了声');
-    await act(async () => lifecycle.dispose());
-    restoreTestRuntime();
-  });
-
-  it('recovers from a rejecting advertising port without rewarding', async () => {
-    const { target, lifecycle } = await mountCaughtGame(async () => {
-      throw new Error('adapter rejected');
-    });
-    await act(async () => {
-      target.querySelectorAll<HTMLButtonElement>('.result button')[1].click();
-      await Promise.resolve();
-    });
-    expect(target.textContent).toContain('你在工作时间笑出了声');
-    expect(
-      [...target.querySelectorAll<HTMLButtonElement>('.result button')].some(
-        (button) => button.disabled,
-      ),
-    ).toBe(false);
-    await act(async () => lifecycle.dispose());
-    restoreTestRuntime();
-  });
-
-  it('ignores a delayed reward after disposal and locks conflicting actions while pending', async () => {
-    let complete!: (outcome: RewardOutcome) => void;
-    const { target, lifecycle } = await mountCaughtGame(
-      () => new Promise((resolve) => (complete = resolve)),
     );
-    await act(async () => target.querySelectorAll<HTMLButtonElement>('.result button')[1].click());
-    expect(
-      [...target.querySelectorAll<HTMLButtonElement>('.result button')].every(
-        (button) => button.disabled,
-      ),
-    ).toBe(true);
-    await act(async () => lifecycle.dispose());
-    complete({ status: 'completed' });
-    await Promise.resolve();
-    expect(target.childElementCount).toBe(0);
-    restoreTestRuntime();
+    const subscriptions = vi.spyOn(window, 'addEventListener');
+    const { target, instance } = await mount();
+    await click(target, '体感视角');
+    expect(target.textContent).toContain('未获得体感权限，可拖动转头');
+    expect(button(target, '体感视角').getAttribute('aria-pressed')).toBe('false');
+    let grant!: (value: string) => void;
+    requestPermission.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          grant = resolve;
+        }),
+    );
+    await click(target, '体感视角');
+    await act(async () => {
+      await instance.dispose();
+    });
+    await act(async () => {
+      grant('granted');
+      await Promise.resolve();
+    });
+    expect(subscriptions.mock.calls.some(([type]) => type === 'deviceorientation')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
