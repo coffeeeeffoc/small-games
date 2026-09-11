@@ -38,11 +38,12 @@ try {
   await page.goto(url);
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.catalog-grid article')).toHaveCount(6);
+  await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
   for (const game of games) {
     await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
     const frame = page.frameLocator('iframe');
     const marker = {
+      fishing: '.overlay.start .primary',
       'tower-defense-game': '[aria-label="塔防战场"]',
       'xiangqi-five': '#draw-button',
       'office-slacking': '#start',
@@ -55,6 +56,12 @@ try {
       await frame.locator('#draw-button').click();
       await frame.locator('.cell').first().click();
       await expect(frame.locator('.cell.last-play')).toHaveCount(1);
+    } else if (game.id === 'fishing') {
+      await frame.getByRole('button', { name: '开始航行' }).click();
+      await expect(frame.getByTestId('timer')).toBeVisible();
+      await expect(frame.getByTestId('timer')).not.toHaveText('3:00');
+      await frame.getByRole('button', { name: '暂停', exact: true }).click();
+      await expect(frame.getByRole('button', { name: '继续航行' })).toBeVisible();
     } else {
       await frame.locator('#start').click();
       await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
@@ -85,7 +92,7 @@ try {
   );
   assert.deepEqual(failures, []);
   console.log(
-    'Pages: six catalog entries, three embedded/direct games, return navigation, mobile width and Runtime isolation passed.',
+    `Pages: ${4 + games.length} catalog entries, ${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
   );
 } finally {
   await browser?.close();
