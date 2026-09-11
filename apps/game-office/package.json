@@ -5,9 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/definition.ts",
-    "./adapter": "./src/adapter/index.ts",
     "./content": "./src/content/index.ts",
-    "./domain": "./src/domain/index.ts",
     "./canvas": "./src/canvas.ts",
     "./manifest": "./src/manifest.json"
   },
@@ -15,6 +13,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "test": "vitest run",
+    "test:play": "node scripts/play-first-person.mjs",
     "test:contract": "vitest run tests/game.contract.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",

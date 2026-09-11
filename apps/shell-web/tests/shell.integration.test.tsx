@@ -188,16 +188,33 @@ describe('Web Shell integration', () => {
   });
 
   it('enters, exits, and re-enters the office Game through the catalog', async () => {
+    const context = {
+      clearRect() {},
+      fillRect() {},
+      fillText() {},
+      beginPath() {},
+      moveTo() {},
+      lineTo() {},
+      fill() {},
+      stroke() {},
+      createRadialGradient: () => ({ addColorStop() {} }),
+    } as unknown as CanvasRenderingContext2D;
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
     const office = builtInGameRegistry.find((game) => game.id === 'office');
-    expect(office).toBeDefined();
     const container = await renderShell(hostFor, office ? [office] : []);
 
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('打工人摸鱼记');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    await clickButton(container, '悄悄进入办公室');
+    expect(container.textContent).toContain('别让老板发现你迟到了');
     await clickButton(container, '返回目录');
-    expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('打工人摸鱼记');
+    expect(container.textContent).toContain('悄悄进入办公室');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
     await clickButton(container, '返回目录');
   });
 

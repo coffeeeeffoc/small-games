@@ -1,21 +1,9 @@
 import { z } from 'zod';
 
-/** Runtime schema for the fixed five-day office campaign. */
+/** Dynamic Content for the first-person office week. */
 export const officeContentSchema = z.object({
-  experience: z.enum(['classic', 'desk-sample']).optional(),
-  days: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        task: z.string().min(1),
-        inspectionChance: z.number().min(0).max(1),
-        color: z.string().min(1),
-        target: z.number().int().positive(),
-        duration: z.number().int().positive(),
-      }),
-    )
-    .length(5),
+  experience: z.literal('first-person-week'),
+  seed: z.number().int().min(0).max(0xffffffff).default(20260912),
 });
 
-/** Validated Dynamic Content owned by the office Game. */
 export type OfficeContent = z.infer<typeof officeContentSchema>;

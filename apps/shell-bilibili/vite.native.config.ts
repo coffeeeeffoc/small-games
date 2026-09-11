@@ -42,13 +42,13 @@ export default defineConfig({
             source: await readFile(new URL(file, arenaAudio)),
           });
         }
-        const assets = new URL('../game-office/public/office-scene/', import.meta.url);
+        const assets = new URL('../game-office/public/office-scene/audio/', import.meta.url);
         for (const file of await readdir(assets, { recursive: true })) {
-          if (!/\.(png|jpe?g|webp|mp3|aac|wav)$/i.test(file)) continue;
+          if (!/\.(mp3|aac|wav)$/i.test(file)) continue;
           const relative = file.replaceAll('\\', '/');
           this.emitFile({
             type: 'asset',
-            fileName: `office/office-scene/${relative}`,
+            fileName: `office/office-scene/audio/${relative}`,
             source: await readFile(new URL(relative, assets)),
           });
         }
