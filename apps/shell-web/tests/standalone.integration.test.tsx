@@ -11,6 +11,7 @@ it('opens each standalone Game and removes its frame on exit', async () => {
   try {
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
     for (const [id, title] of [
+      ['fishing', '潮汐猎手'],
       ['tower-defense-game', '月森守卫'],
       ['xiangqi-five', '象五子棋'],
       ['office-slacking', '工位偷闲 · 第一人称'],
