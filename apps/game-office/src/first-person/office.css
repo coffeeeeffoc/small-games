@@ -1,0 +1,1003 @@
+.office-fp {
+  --ink: #edf0dc;
+  --dim: #acbca9;
+  --gold: #dfb67c;
+  position: relative;
+  isolation: isolate;
+  container-type: size;
+  width: 100%;
+  height: 100dvh;
+  min-height: 360px;
+  overflow: hidden;
+  background: #b9c7bb;
+  color: var(--ink);
+  font-family: 'Bahnschrift', 'Microsoft YaHei', sans-serif;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+.office-fp * {
+  box-sizing: border-box;
+}
+.office-fp button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.office-fp button:focus-visible,
+.office-viewport:focus-visible {
+  outline: 2px solid #f8d7a0;
+  outline-offset: 3px;
+}
+.office-fp button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.office-viewport {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+.office-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    #00000003 0px,
+    #00000003 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  z-index: 1;
+}
+.office-topbar {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px max(28px, env(safe-area-inset-right)) 18px max(28px, env(safe-area-inset-left));
+  gap: 16px;
+  z-index: 5;
+  background: linear-gradient(#19392be8, #19392b00);
+  pointer-events: none;
+}
+.office-topbar button,
+.office-topbar nav {
+  pointer-events: auto;
+}
+.office-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: none;
+  border: 0;
+  text-align: left;
+  padding: 0;
+  letter-spacing: 2px;
+  font-weight: 700 !important;
+}
+.office-mark {
+  border: 1px solid #d8dcc6;
+  padding: 5px 7px;
+  font-family: 'KaiTi', serif;
+  font-size: 24px;
+}
+.office-wordmark small {
+  display: block;
+  letter-spacing: 2.5px;
+  font-size: 8px;
+  font-weight: 400;
+  margin-top: 5px;
+}
+.office-session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: 2px;
+  font-size: 11px;
+}
+.office-session i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e5b87a;
+}
+.office-session span {
+  font-size: 22px;
+  letter-spacing: 0;
+}
+.office-session small {
+  font-size: 10px;
+  color: #d8dfca;
+}
+.office-topbar nav {
+  display: flex;
+  gap: 8px;
+}
+.office-topbar nav button {
+  border: 1px solid #d5ddc233;
+  background: #1b372c88;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.office-panel {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 57%;
+  padding: clamp(115px, 17vh, 170px) 5.5vw 45px;
+  background: linear-gradient(90deg, #19382bf7 0%, #19382bee 69%, #19382b00 100%);
+}
+.office-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #becbb6;
+}
+.office-chapter {
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: var(--gold);
+  margin: 28px 0 17px;
+}
+.office-panel h1 {
+  font-size: clamp(32px, 4.3vw, 66px);
+  font-family: 'STSong', 'SimSun', serif;
+  line-height: 1.23;
+  letter-spacing: 1px;
+  font-weight: 400;
+  margin: 0 0 24px;
+}
+.office-panel h1 em {
+  font-style: normal;
+  color: var(--gold);
+}
+.office-lede {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #c4d0bb;
+  margin: 0 0 25px;
+}
+.office-brief {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #e4e4ce;
+  margin-bottom: 25px;
+}
+.office-brief i {
+  font-style: normal;
+  opacity: 0.4;
+}
+.office-primary {
+  border: 1px solid #ebc78e;
+  background: #ddb47b !important;
+  color: #243f30 !important;
+  padding: 16px 23px;
+  min-width: 250px;
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  font-weight: 600 !important;
+  font-size: 14px;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.office-primary:hover {
+  background: #efd09e !important;
+  transform: translateY(-1px);
+}
+.office-text-button {
+  display: block;
+  border: 0;
+  background: none;
+  padding: 14px 0;
+  font-size: 11px !important;
+  color: #d1d9c1 !important;
+  line-height: 1.7;
+}
+.office-instructions {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #94ac98;
+  margin-top: 18px;
+}
+.office-bottom-note {
+  position: absolute;
+  z-index: 3;
+  bottom: 20px;
+  left: 28px;
+  right: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+.office-objective {
+  position: absolute;
+  top: 105px;
+  left: max(28px, env(safe-area-inset-left));
+  z-index: 2;
+  background: #1e3c31c9;
+  padding: 17px 20px;
+  border-left: 2px solid var(--gold);
+  pointer-events: none;
+}
+.office-objective small {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+.office-objective h2 {
+  font-size: 18px;
+  margin: 8px 0;
+}
+.office-objective p {
+  font-size: 11px;
+  color: #baceb4;
+  margin: 0;
+}
+.office-objective-meta {
+  display: flex;
+  gap: 20px;
+  margin-top: 17px;
+  font-size: 10px;
+  color: #e5e1c7;
+}
+.office-risk {
+  position: absolute;
+  top: 105px;
+  right: 28px;
+  width: 220px;
+  padding: 14px 18px;
+  background: #203c31d4;
+  z-index: 2;
+  pointer-events: none;
+}
+.office-risk > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+.office-risk strong {
+  font-size: 24px;
+  font-weight: 400;
+}
+.office-risk strong small {
+  font-size: 11px;
+}
+.office-risk progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  accent-color: var(--gold);
+  border: 0;
+  margin-top: 10px;
+}
+.office-risk p {
+  display: flex;
+  justify-content: space-between;
+  color: #b5c5ad;
+  font-size: 10px;
+  margin: 10px 0 0;
+}
+.office-risk.is-visible {
+  background: #663c2fe8;
+}
+.office-world-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 126px;
+  transform: translateX(-50%);
+  background: #19382cbf;
+  padding: 9px 15px;
+  color: #f2e6c9;
+  font-size: 12px;
+  z-index: 2;
+  max-width: 48%;
+  text-align: center;
+  pointer-events: none;
+}
+.office-joystick {
+  position: absolute;
+  left: max(32px, env(safe-area-inset-left));
+  bottom: max(38px, env(safe-area-inset-bottom));
+  width: 104px;
+  height: 104px;
+  border: 1px solid #e2e7d244;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #e3e8d4b0;
+  pointer-events: none;
+  background: #1c3b3030;
+  z-index: 2;
+  font-size: 12px;
+}
+.office-joystick > div {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+.office-joystick i {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #e5e6ce22;
+  border: 1px solid #e5e6ce55;
+}
+.office-joystick small {
+  position: absolute;
+  top: 113px;
+  font-size: 9px;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+.office-look-hint {
+  position: absolute;
+  bottom: 23px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #e4e6cecc;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+.office-interactions {
+  position: absolute;
+  bottom: max(34px, env(safe-area-inset-bottom));
+  right: max(28px, env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 3;
+}
+.office-interactions button {
+  border: 1px solid #d9ddc759;
+  background: #1e3d30cc;
+  min-height: 50px;
+  min-width: 83px;
+  padding: 14px;
+  font-size: 12px;
+}
+.office-interactions .office-interact {
+  background: #d9b57cdf;
+  color: #233d2c;
+  min-width: 155px;
+  border-color: #f0d09e;
+}
+.office-interactions .is-on {
+  background: #667d62;
+}
+.office-fp kbd {
+  font: inherit;
+  font-size: 9px;
+  margin-left: 12px;
+  opacity: 0.65;
+  border: 1px solid currentColor;
+  padding: 2px 4px;
+}
+.office-target-label {
+  position: absolute;
+  top: 53%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  padding: 12px;
+  background: #183c30df;
+  border-top: 1px solid var(--gold);
+  z-index: 2;
+  pointer-events: none;
+  text-align: center;
+}
+.office-target-label small {
+  display: block;
+  font-size: 10px;
+  color: #c4cfb9;
+  margin-top: 7px;
+}
+.office-result {
+  width: 65%;
+  padding-top: 24vh;
+}
+.office-result > small {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 3px;
+  display: block;
+  margin-bottom: 22px;
+}
+.office-result h1 {
+  font-size: clamp(28px, 3.8vw, 55px);
+}
+.office-result > p {
+  color: #c2d0b8;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.office-score {
+  display: flex;
+  gap: 35px;
+  align-items: center;
+  margin: 20px 0 28px;
+}
+.office-score strong {
+  font-size: 60px;
+  font-weight: 300;
+  color: var(--gold);
+}
+.office-score small {
+  font-size: 10px;
+  letter-spacing: 2px;
+  display: block;
+  color: #c8d4bd;
+}
+.office-score > span {
+  font-size: 11px;
+  line-height: 2;
+  color: #c8d4bd;
+}
+.office-save-status {
+  font-size: 10px !important;
+}
+.office-save-status button {
+  margin-left: 12px;
+  background: none;
+  border: 1px solid #bec9ac;
+  padding: 4px;
+}
+.office-sensor-note {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  border: 1px solid #cbb086 !important;
+  background: #1d3b30 !important;
+  padding: 12px 16px;
+  font-size: 11px !important;
+  max-width: 85%;
+  width: max-content;
+}
+.office-error {
+  position: absolute;
+  inset: 40%;
+  z-index: 15;
+  background: #553c2d;
+  padding: 20px;
+  min-width: 250px;
+}
+.office-week {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #eef0e4;
+  color: #284438;
+  overflow: auto;
+  touch-action: pan-y;
+  padding: 35px 5vw 20px;
+}
+.office-week button {
+  touch-action: pan-y;
+}
+.office-week-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #bbc6b4;
+}
+.office-week-heading small {
+  letter-spacing: 3px;
+  font-size: 9px;
+  color: #718272;
+}
+.office-week-heading h1 {
+  font-family: 'STSong', 'SimSun', serif;
+  font-size: 32px;
+  font-weight: 400;
+  margin: 12px 0;
+}
+.office-week-heading p {
+  font-size: 11px;
+  color: #718272;
+  margin: 0;
+}
+.office-close {
+  background: none;
+  border: 1px solid #bcc7b5;
+  align-self: flex-start;
+  width: 38px;
+  height: 38px;
+  font-size: 25px !important;
+}
+.office-week-body {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 6vw;
+  padding: 28px 0;
+}
+.office-days {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #bcc6b5;
+  margin-bottom: 15px;
+}
+.office-days button {
+  background: none;
+  border: 0;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.office-days button[aria-pressed='true'] {
+  border-bottom: 3px solid #3e5c43;
+  font-weight: 700;
+}
+.office-agenda-list {
+  display: grid;
+  gap: 6px;
+}
+.office-agenda-list > button {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: #e3e8d930;
+  padding: 13px 15px;
+}
+.office-agenda-list > button.selected {
+  background: #dbe3d1;
+  border-color: #c0cdb5;
+}
+.office-agenda-list time {
+  font-size: 20px;
+  min-width: 53px;
+}
+.office-agenda-list time small {
+  display: block;
+  font-size: 9px;
+  color: #83907b;
+  margin-top: 4px;
+}
+.office-agenda-list strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.office-agenda-list span {
+  display: block;
+  font-size: 10px;
+  color: #71816c;
+  margin-top: 7px;
+}
+.office-agenda-list > button > small {
+  margin-left: auto;
+  font-size: 9px;
+  white-space: nowrap;
+  color: #84947c;
+}
+.office-agenda-list .is-playable {
+  color: #4c724b !important;
+  border: 1px solid #819b71;
+  padding: 3px 5px;
+}
+.office-day-end {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 10px;
+  color: #7a8770;
+}
+.office-day-end button {
+  background: none;
+  border: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  color: #3a6244;
+}
+.office-scene-detail {
+  position: relative;
+  padding: 8px 0;
+}
+.office-detail-number {
+  display: block;
+  color: #9caa8e;
+  font-size: 11px;
+  letter-spacing: 4px;
+  margin-bottom: 30px;
+}
+.office-scene-detail > small {
+  font-size: 10px;
+  color: #829276;
+  letter-spacing: 2px;
+}
+.office-scene-detail h2 {
+  font-size: 29px;
+  line-height: 1.35;
+  font-family: 'STSong', 'SimSun', serif;
+  font-weight: 400;
+  margin: 13px 0 20px;
+}
+.office-detail-rule {
+  width: 40px;
+  height: 2px;
+  background: #b39262;
+  margin-bottom: 25px;
+}
+.office-scene-detail h3 {
+  font-size: 11px;
+  color: #82906f;
+  font-weight: 500;
+}
+.office-scene-detail p {
+  font-size: 13px;
+  line-height: 1.85;
+  max-width: 360px;
+}
+.office-scene-detail .office-primary {
+  margin-top: 25px;
+}
+.office-week .office-text-button {
+  color: #65815e !important;
+}
+.office-planned {
+  padding: 14px;
+  background: #e4e8db;
+  font-size: 11px !important;
+  color: #809171;
+}
+.office-week footer {
+  border-top: 1px solid #bdc9b2;
+  padding-top: 17px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  color: #849379;
+}
+.office-week footer button {
+  background: none;
+  border: 1px solid #b5c5a9;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #4c6942;
+}
+@media (max-height: 650px) and (min-width: 650px) {
+  .office-topbar {
+    padding-top: 14px;
+  }
+  .office-panel {
+    padding-top: 87px;
+  }
+  .office-eyebrow {
+    font-size: 10px;
+  }
+  .office-chapter {
+    margin: 16px 0 9px;
+  }
+  .office-panel h1 {
+    font-size: 37px;
+    margin-bottom: 12px;
+  }
+  .office-lede {
+    font-size: 12px;
+    margin-bottom: 15px;
+  }
+  .office-brief {
+    margin-bottom: 14px;
+  }
+  .office-primary {
+    padding: 12px 17px;
+  }
+  .office-instructions {
+    margin-top: 3px;
+    font-size: 9px;
+  }
+  .office-bottom-note {
+    bottom: 10px;
+  }
+  .office-objective,
+  .office-risk {
+    top: 83px;
+  }
+  .office-objective {
+    padding: 11px 15px;
+  }
+  .office-objective h2 {
+    font-size: 15px;
+  }
+  .office-objective-meta {
+    margin-top: 10px;
+  }
+  .office-world-caption {
+    bottom: 105px;
+  }
+  .office-look-hint span {
+    display: none;
+  }
+  .office-week {
+    padding-top: 20px;
+  }
+  .office-week-body {
+    padding: 18px 0;
+  }
+  .office-result {
+    padding-top: 105px;
+  }
+  .office-score {
+    margin: 14px 0;
+  }
+  .office-score strong {
+    font-size: 42px;
+  }
+  .office-scene-detail h2 {
+    font-size: 24px;
+  }
+  .office-week-heading h1 {
+    font-size: 26px;
+  }
+}
+@media (max-width: 649px) {
+  .office-topbar {
+    padding: 15px 16px;
+    gap: 8px;
+  }
+  .office-wordmark {
+    gap: 7px;
+    font-size: 12px !important;
+  }
+  .office-mark {
+    font-size: 18px;
+    padding: 4px 5px;
+  }
+  .office-wordmark small {
+    font-size: 6px;
+  }
+  .office-session {
+    position: absolute;
+    top: 74px;
+    right: 16px;
+    gap: 8px;
+  }
+  .office-session span {
+    font-size: 18px;
+  }
+  .office-session small {
+    display: none;
+  }
+  .office-topbar nav {
+    gap: 4px;
+  }
+  .office-topbar nav button {
+    font-size: 9px;
+    padding: 8px 6px;
+  }
+  .office-panel {
+    width: 100%;
+    padding: 24vh 25px 30px;
+    background: linear-gradient(90deg, #19382bf2, #19382bb8 75%, #19382b50);
+  }
+  .office-panel h1 {
+    font-size: 42px;
+  }
+  .office-chapter {
+    margin: 24px 0 16px;
+  }
+  .office-primary {
+    min-width: 260px;
+    max-width: 100%;
+  }
+  .office-bottom-note {
+    left: 20px;
+    right: 20px;
+    font-size: 8px;
+  }
+  .office-objective {
+    top: 73px;
+    left: 15px;
+    padding: 12px;
+    max-width: 66%;
+  }
+  .office-objective h2 {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 5px 0;
+  }
+  .office-objective p {
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .office-objective-meta {
+    display: none;
+  }
+  .office-risk {
+    top: 190px;
+    right: 15px;
+    width: 170px;
+    padding: 10px 13px;
+  }
+  .office-risk > div {
+    font-size: 10px;
+  }
+  .office-risk strong {
+    font-size: 19px;
+  }
+  .office-world-caption {
+    font-size: 11px;
+    max-width: 90%;
+    width: max-content;
+    bottom: 170px;
+  }
+  .office-interactions {
+    right: 15px;
+    bottom: 38px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .office-interactions button {
+    padding: 12px;
+    min-width: 88px;
+    min-height: 44px;
+  }
+  .office-interactions .office-interact {
+    min-width: 152px;
+    max-width: 175px;
+  }
+  .office-fp kbd {
+    display: none;
+  }
+  .office-joystick {
+    left: 27px;
+    bottom: 50px;
+    width: 90px;
+    height: 90px;
+  }
+  .office-joystick small {
+    top: 98px;
+  }
+  .office-look-hint {
+    bottom: 15px;
+    font-size: 9px;
+  }
+  .office-look-hint span {
+    display: none;
+  }
+  .office-week {
+    padding: 24px 19px;
+  }
+  .office-week-heading h1 {
+    font-size: 25px;
+  }
+  .office-week-heading p {
+    line-height: 1.8;
+  }
+  .office-week-body {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 17px 0;
+  }
+  .office-agenda-list > button {
+    gap: 12px;
+    padding: 12px 8px;
+  }
+  .office-agenda-list strong {
+    font-size: 12px;
+  }
+  .office-scene-detail {
+    border-top: 1px solid #c0cdb4;
+    padding-top: 23px;
+  }
+  .office-detail-number {
+    margin-bottom: 14px;
+  }
+  .office-week footer {
+    flex-wrap: wrap;
+    line-height: 1.6;
+  }
+  .office-sensor-note {
+    top: 62px;
+  }
+  .office-result {
+    padding-top: 24vh;
+  }
+  .office-result h1 {
+    font-size: 32px;
+  }
+  .office-score strong {
+    font-size: 54px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .office-primary {
+    transition: none;
+  }
+}
+@container (max-height: 500px) and (min-width: 650px) {
+  .office-panel {
+    padding-top: 72px;
+    padding-bottom: 12px;
+  }
+  .office-eyebrow,
+  .office-brief,
+  .office-intro .office-instructions,
+  .office-bottom-note {
+    display: none;
+  }
+  .office-chapter {
+    font-size: 9px;
+    margin: 8px 0 7px;
+  }
+  .office-panel h1 {
+    font-size: 31px;
+    line-height: 1.14;
+    margin-bottom: 12px;
+  }
+  .office-lede {
+    font-size: 11px;
+    line-height: 1.65;
+    margin-bottom: 14px;
+  }
+  .office-primary {
+    padding: 11px 16px;
+    min-width: 230px;
+  }
+  .office-text-button {
+    padding: 8px 0;
+  }
+  .office-objective {
+    top: 72px;
+    padding: 9px 12px;
+  }
+  .office-objective h2 {
+    font-size: 13px;
+    margin: 5px 0;
+  }
+  .office-objective-meta {
+    display: none;
+  }
+  .office-risk {
+    top: 72px;
+    width: 185px;
+    padding: 10px 13px;
+  }
+  .office-risk strong {
+    font-size: 19px;
+  }
+  .office-result > small {
+    margin-bottom: 10px;
+  }
+  .office-result h1 {
+    font-size: 27px;
+    margin-bottom: 8px;
+  }
+  .office-result > p {
+    margin: 8px 0;
+    font-size: 11px;
+  }
+  .office-score {
+    margin: 12px 0;
+  }
+  .office-score strong {
+    font-size: 35px;
+  }
+  .office-score > span {
+    font-size: 9px;
+    line-height: 1.5;
+  }
+}

@@ -30,6 +30,7 @@ async function launch(gameIndex, [gameId, title]) {
   const hidden = new Set();
   const shown = new Set();
   const drawnImages = [];
+  const paths = [];
   const images = [];
   const audio = [];
   const intervals = new Map();
@@ -42,8 +43,12 @@ async function launch(gameIndex, [gameId, title]) {
     ellipse() {},
     fill() {},
     stroke() {},
-    moveTo() {},
-    lineTo() {},
+    moveTo(x, y) {
+      paths.push([x, y]);
+    },
+    lineTo(x, y) {
+      paths.push([x, y]);
+    },
     quadraticCurveTo() {},
     bezierCurveTo() {},
     rotate() {},
@@ -68,6 +73,7 @@ async function launch(gameIndex, [gameId, title]) {
       drawnImages.push({ src: image.src, coordinates });
     },
     clearRect() {
+      paths.length = 0;
       rendered.length = 0;
       rectangles.length = 0;
       drawnImages.length = 0;
@@ -238,11 +244,11 @@ async function launch(gameIndex, [gameId, title]) {
   const button = rectangles[gameIndex];
   assert.ok(button, `Catalog must render ${gameId}`);
   tap(30, button.y + button.height / 2);
-  const ready = gameId === 'office' ? '坐下来，开始这 90 秒' : title;
+  const ready = gameId === 'office' ? '周一 09:08 · 迟到潜入' : title;
   for (let index = 0; index < 50 && !rendered.includes(ready); index++)
     await new Promise(setImmediate);
   assert.equal(packageLoaded, gameId);
-  assert.ok(rendered.includes(title), `${gameId} Artifact must launch without a DOM`);
+  assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
   assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
   if (gameId === 'arena') {
     tap(60, 670);
@@ -271,35 +277,35 @@ async function launch(gameIndex, [gameId, title]) {
     assert.ok(rendered.includes('按住拨草'));
   }
   if (gameId === 'office') {
-    assert.ok(
-      rendered.includes(ready),
-      'Office must load its packaged scene before accepting input',
-    );
-    assert.ok(
-      images.length > 2 && drawnImages.length > 2,
-      'Office must draw local actors and scenery',
-    );
-    tap(195, 777);
-    tap(195, 774);
-    assert.ok(rendered.includes('数据已确认'));
-    tap(100, 713);
-    advance(6000);
-    tap(280, 713);
-    const pickupFrame = JSON.stringify(drawnImages);
-    advance(640);
-    assert.notEqual(JSON.stringify(drawnImages), pickupFrame, 'Phone animation must advance');
-    assert.ok(rendered.includes('屏幕：休闲窗口 · 仍然可见'));
-    assert.ok(rendered.includes('手机：在手中 · 需要单独收好'));
+    assert.ok(paths.length > 100, 'Office must draw its 3D room without a DOM');
+    assert.ok(paths.every((point) => point.every(Number.isFinite)));
+    tap(195, 844 * 0.65 + 28);
+    assert.ok(rendered.includes('暂停'), 'The player must be able to start the scene');
+    const beforeLook = JSON.stringify(paths);
+    for (const press of presses)
+      press({ changedTouches: [{ identifier: 2, clientX: 285, clientY: 410 }] });
+    for (const move of moves)
+      move({ changedTouches: [{ identifier: 2, clientX: 345, clientY: 430 }] });
+    for (const release of touches)
+      release({ changedTouches: [{ identifier: 2, clientX: 345, clientY: 430 }] });
+    advance(50);
+    assert.notEqual(JSON.stringify(paths), beforeLook, 'Dragging must rotate the camera');
+    const beforeMove = JSON.stringify(paths);
+    for (const press of presses)
+      press({ changedTouches: [{ identifier: 3, clientX: 80, clientY: 720 }] });
+    for (const move of moves)
+      move({ changedTouches: [{ identifier: 3, clientX: 80, clientY: 655 }] });
+    advance(350);
+    assert.notEqual(JSON.stringify(paths), beforeMove, 'The stick must move through the room');
     assert.ok(
       audio.some((sound) => sound.playing),
       'The scene must play packaged audio after input',
     );
     for (const hide of hidden) hide();
-    assert.ok(rendered.includes('先歇一会儿。'));
-    const paused = JSON.stringify([rendered, drawnImages]);
+    const paused = JSON.stringify([rendered, paths]);
     advance(1000);
     assert.equal(
-      JSON.stringify([rendered, drawnImages]),
+      JSON.stringify([rendered, paths]),
       paused,
       'Background time must not advance Office',
     );
@@ -308,15 +314,7 @@ async function launch(gameIndex, [gameId, title]) {
       'Background transition must stop audio',
     );
     for (const show of shown) show();
-    assert.ok(
-      rendered.includes('准备好了，继续'),
-      'Returning must wait for explicit player resume',
-    );
-    tap(195, 777);
-    tap(100, 713);
-    advance(900);
-    assert.ok(rendered.includes('手机：已收好'));
-    assert.ok(rendered.includes('屏幕：工作表格 · 合计 42'));
+    assert.ok(rendered.includes('暂停'), 'Office must remain playable after resuming');
   }
   assert.deepEqual(logs, []);
 }
