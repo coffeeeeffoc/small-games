@@ -43,7 +43,7 @@ export function registerArtifactDelivery(
         .header('x-content-type-options', 'nosniff')
         .header(
           'content-security-policy',
-          `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; frame-ancestors ${shellOrigin}`,
+          `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; media-src data:; frame-ancestors ${shellOrigin}`,
         )
         .type('text/javascript; charset=utf-8')
         .send(Buffer.from(bytes));

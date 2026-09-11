@@ -1,3 +1,4 @@
+import { legacyCultivationEnvelope } from '../src/content/index.js';
 import { describe, expect, it } from 'vitest';
 import { exerciseGameLifecycle } from '@coffeeeeffoc/game-contract-test';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
@@ -17,6 +18,10 @@ function surface() {
     translate() {},
     rotate() {},
     beginPath() {},
+    closePath() {},
+    arc() {},
+    rect() {},
+    strokeRect() {},
     ellipse() {},
     fill() {},
     stroke() {},
@@ -65,7 +70,7 @@ describe('Cultivation Canvas Game Contract', () => {
   it('mounts published v1 content through the Game-owned migration', async () => {
     const fake = surface();
     const base = host();
-    const payload = { ...defaultCultivationEnvelope.payload };
+    const payload = { ...legacyCultivationEnvelope.payload };
     delete (payload as Partial<typeof payload>).title;
     const instance = await definition.mount(fake.target, {
       ...base,

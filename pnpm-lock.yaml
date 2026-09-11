@@ -172,6 +172,9 @@ importers:
 
   apps/game-cultivation:
     dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../packages/canvas-game-adapter
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema

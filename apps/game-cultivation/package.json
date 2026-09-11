@@ -24,6 +24,7 @@
     "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/game-loader": "workspace:*",
