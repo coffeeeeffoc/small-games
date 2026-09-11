@@ -40,6 +40,10 @@ async function launch(gameIndex, [gameId, title]) {
   let drawingDepth = 0;
   const drawing = {
     beginPath() {},
+    closePath() {},
+    arc() {},
+    rect() {},
+    strokeRect() {},
     ellipse() {},
     fill() {},
     stroke() {},
@@ -250,6 +254,30 @@ async function launch(gameIndex, [gameId, title]) {
   assert.equal(packageLoaded, gameId);
   assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
   assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
+  if (gameId === 'cultivation') {
+    tap((240 * 390) / 480, (545 * 844) / 800);
+    const hold = {
+      changedTouches: [{ identifier: 2, clientX: (240 * 390) / 480, clientY: (680 * 844) / 800 }],
+    };
+    for (const press of presses) press(hold);
+    advance(1100);
+    for (const release of touches) release(hold);
+    assert.ok(
+      rendered.some((text) => text.includes('灵气入体')),
+      'Native breath must bank only on release',
+    );
+    assert.ok(
+      audio.some((sound) => sound.playing),
+      'Cultivation must play its packaged sounds',
+    );
+    for (const hide of hidden) hide();
+    const paused = JSON.stringify(rendered);
+    advance(2000);
+    assert.equal(JSON.stringify(rendered), paused);
+    assert.ok(audio.every((sound) => !sound.playing));
+    for (const show of shown) show();
+    assert.ok(rendered.includes('山腰洞府'));
+  }
   if (gameId === 'arena') {
     tap(60, 670);
     tap(60, 670);

@@ -56,7 +56,7 @@ export function fakePlatform(overrides: Partial<IframePlatform> = {}, acknowledg
   const platform: IframePlatform = {
     fetchArtifact: vi.fn(async () => ({
       body: new ArrayBuffer(1),
-      csp: "default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors https://shell.example",
+      csp: "default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; media-src data:; frame-ancestors https://shell.example",
     })),
     sha256: vi.fn(async () => 'sha256-good'),
     createFrame: vi.fn(() => ({

@@ -34,6 +34,14 @@ export default defineConfig({
     {
       name: 'reviewed-package-manifests',
       async generateBundle() {
+        const trialAudio = new URL('../game-cultivation/src/assets/audio/', import.meta.url);
+        for (const file of await readdir(trialAudio)) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `cultivation/trial-audio/${file}`,
+            source: await readFile(new URL(file, trialAudio)),
+          });
+        }
         const arenaAudio = new URL('../game-arena/public/arena-audio/', import.meta.url);
         for (const file of await readdir(arenaAudio)) {
           this.emitFile({

@@ -132,6 +132,12 @@ describe('IframeGameLoader', () => {
     { name: 'integrity', sha256: 'sha256-bad', csp: undefined, message: 'integrity' },
     { name: 'CSP', sha256: undefined, csp: "default-src 'self'", message: 'CSP' },
     {
+      name: 'network audio CSP',
+      sha256: undefined,
+      csp: "default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; media-src https:; frame-ancestors https://shell.example",
+      message: 'CSP',
+    },
+    {
       name: 'duplicate CSP directives',
       sha256: undefined,
       csp: "default-src 'none'; script-src https://evil.example; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors https://shell.example",

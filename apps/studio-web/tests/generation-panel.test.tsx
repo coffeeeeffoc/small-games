@@ -1,4 +1,5 @@
 import { act } from 'react';
+import { canvasContext } from './canvas.fixture.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ let target: HTMLDivElement;
 let root: Root;
 let queryClient: QueryClient;
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
   target = document.createElement('div');
   document.body.append(target);
   root = createRoot(target);

@@ -5,13 +5,15 @@ import {
   type ContentMigration,
 } from '@coffeeeeffoc/content-schema';
 import { cultivationContentSchema, type CultivationContent } from './schema.js';
+import { defaultTrialBalance } from './schema.js';
+import { legacyCultivationSchema, type LegacyCultivationContent } from './legacy.js';
 
 /** v1 had a fixed display title; v2 makes it editable without changing game rules. */
-export const cultivationTitleMigration: ContentMigration<unknown, CultivationContent> = {
+export const cultivationTitleMigration: ContentMigration<unknown, LegacyCultivationContent> = {
   fromVersion: 1,
   toVersion: 2,
   migrate(payload) {
-    const legacy = cultivationContentSchema.omit({ title: true }).parse(payload);
+    const legacy = legacyCultivationSchema.omit({ title: true }).parse(payload);
     return { ...legacy, title: '三分钟修仙' };
   },
 };
@@ -32,14 +34,16 @@ export function normalizeCultivationContent(
   const envelope = wrapper.data;
   if (envelope.gameId !== 'cultivation')
     return { success: false, issues: [{ path: ['gameId'], message: '必须是 cultivation 内容' }] };
-  if (envelope.schemaVersion !== 1 && envelope.schemaVersion !== 2)
+  if (![1, 2, 3].includes(envelope.schemaVersion))
     return {
       success: false,
       issues: [{ path: ['schemaVersion'], message: '不支持的修仙 schema 版本' }],
     };
-  if (envelope.schemaVersion === 1) {
+  if (envelope.schemaVersion < 3) {
     const legacy = validateContentEnvelope(
-      cultivationContentSchema.omit({ title: true }),
+      envelope.schemaVersion === 1
+        ? legacyCultivationSchema.omit({ title: true })
+        : legacyCultivationSchema,
       envelope,
     );
     if (!legacy.success) return legacy;
@@ -47,8 +51,14 @@ export function normalizeCultivationContent(
       success: true,
       data: {
         ...envelope,
-        schemaVersion: 2,
-        payload: cultivationTitleMigration.migrate(legacy.data.payload),
+        schemaVersion: 3,
+        payload: {
+          title:
+            envelope.schemaVersion === 1
+              ? '三分钟修仙'
+              : legacyCultivationSchema.parse(legacy.data.payload).title,
+          balance: { ...defaultTrialBalance },
+        },
       },
     };
   }

@@ -22,6 +22,10 @@ export function fakeSdk() {
       depth -= 1;
     },
     beginPath() {},
+    closePath() {},
+    arc() {},
+    rect() {},
+    strokeRect() {},
     ellipse() {},
     fill() {},
     stroke() {},

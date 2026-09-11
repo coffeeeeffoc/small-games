@@ -52,7 +52,7 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
   {
     id: 'cultivation',
     title: '三分钟修仙',
-    description: '十八次机缘，一世问道。历练渡劫，携福缘再入轮回。',
+    description: '亲手吐纳，御剑寻缘。两分钟修炼探索，一分钟登台渡劫。',
     definition: cultivationGameDefinition,
     content: defaultCultivationEnvelope,
     remote: remoteCultivation,

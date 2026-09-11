@@ -9,7 +9,7 @@ import {
   score,
   type CultivationSave,
 } from '@coffeeeeffoc/game-cultivation/domain';
-import { defaultCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
+import { legacyCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
 
 describe('cultivation domain', () => {
   it('preserves bounded stats and realm scoring', () => {
@@ -33,7 +33,7 @@ describe('cultivation domain', () => {
     };
 
     for (let index = 0; index < 18; index += 1) {
-      ({ state, save } = chooseCultivation(state, 0, defaultCultivationContent, save));
+      ({ state, save } = chooseCultivation(state, 0, legacyCultivationContent, save));
     }
 
     expect(state.ended).toBe(true);

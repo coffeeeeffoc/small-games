@@ -134,7 +134,7 @@ async function signedArtifact() {
       gameId: 'cultivation',
       version: '1.1.0',
       gameContractVersion: 1,
-      contentSchemaVersion: 2,
+      contentSchemaVersion: defaultCultivationEnvelope.schemaVersion,
       capabilities: ['content'],
       loadModes: ['iframe'],
       entry: 'index.html',

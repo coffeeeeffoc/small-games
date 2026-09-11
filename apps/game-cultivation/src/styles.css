@@ -1,392 +1,204 @@
 .cultivation {
-  --ink: #263f36;
-  --muted: #626c5c;
-  --gold: #9a773c;
+  --trial-ink: #163932;
+  --trial-paper: #e9e8cf;
+  --trial-gold: #bd9f59;
   box-sizing: border-box;
-  min-height: 100vh;
-  padding: 26px max(24px, calc((100vw - 1160px) / 2));
-  color: var(--ink);
-  background: #edeade;
-  font-family: 'Palatino Linotype', 'Songti SC', 'STSong', 'SimSun', serif;
-}
-.cultivation *,
-.cultivation *::before,
-.cultivation *::after {
-  box-sizing: border-box;
-}
-.cultivation button {
-  font: inherit;
-  cursor: pointer;
-}
-.cultivation button:focus-visible,
-.cultivation summary:focus-visible {
-  outline: 3px solid #a17734;
-  outline-offset: 4px;
-}
-.cultivation button:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-.xian-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding-bottom: 22px;
-}
-.xian-brand {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-.xian-seal {
-  display: grid;
-  place-items: center;
-  border: 1px solid #a34734;
-  outline: 1px solid #a34734;
-  outline-offset: -5px;
-  width: 48px;
-  height: 56px;
-  color: #a34734;
-  font-size: 28px;
-  transform: rotate(-3deg);
-}
-.xian-brand small {
-  color: var(--gold);
-  letter-spacing: 0.28em;
-  font-size: 11px;
-}
-.xian-brand h1 {
-  font-size: 25px;
-  letter-spacing: 0.1em;
-  margin: 3px 0 0;
-}
-.xian-record {
-  font-size: 12px;
-  text-align: right;
-  line-height: 1.9;
-  color: var(--muted);
-}
-.xian-record b {
-  color: var(--ink);
-  font-size: 17px;
-}
-.cultivation .xian-chapters {
-  display: flex;
-  border-block: 1px solid #c6c8b7;
-  margin-bottom: 24px;
-  padding: 0;
-  gap: 0;
-  background: transparent;
-}
-.xian-chapters span {
-  flex: 1;
-  padding: 13px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-}
-.xian-chapters i {
-  font-size: 10px;
-  font-style: normal;
-  margin-right: 12px;
-}
-.xian-chapters [aria-current] {
-  color: var(--ink);
-  background: #dbe0d3;
-  box-shadow: inset 0 -2px #436659;
-}
-.xian-layout {
-  display: grid;
-  grid-template-columns: 1.08fr 1fr;
-  gap: 44px;
-}
-.xian-landscape {
-  position: relative;
-  min-height: 580px;
-  overflow: hidden;
+  justify-content: center;
+  gap: clamp(24px, 5vw, 80px);
+  min-height: min(840px, 94svh);
+  width: 100%;
+  padding: 24px;
+  color: var(--trial-ink);
   background:
-    radial-gradient(circle at 72% 19%, #f9f3d7 0 8%, transparent 8.3%),
-    linear-gradient(#e1e5d7, #b9cfc0);
+    radial-gradient(ellipse at 15% 25%, #bccbb76b, transparent 55%),
+    linear-gradient(125deg, #e0e3cb, #f1edda 65%, #d5ddc7);
+  font-family: 'STKaiti', 'KaiTi', 'Noto Serif CJK SC', serif;
+  outline: none;
+  isolation: isolate;
 }
-.xian-landscape svg {
-  position: absolute;
-  inset: 0;
+.cultivation * {
+  box-sizing: border-box;
+}
+.trial-stage {
+  position: relative;
+  flex: none;
+  width: min(480px, calc((100svh - 105px) * 0.6));
+  max-width: 100%;
+  aspect-ratio: 3/5;
+  touch-action: none;
+  user-select: none;
+  border: 1px solid #a6b493;
+  box-shadow:
+    0 24px 70px #173a3433,
+    0 0 0 6px #bac5a83b;
+  overflow: hidden;
+  background: #102c2d;
+}
+.trial-stage canvas {
+  display: block;
   width: 100%;
   height: 100%;
 }
-.xian-landscape.chapter-2 {
-  filter: sepia(0.14);
-}
-.xian-landscape.chapter-3 {
-  background:
-    radial-gradient(circle at 72% 19%, #fff2c0 0 9%, transparent 9.4%),
-    linear-gradient(#b6c5be, #eadfc4);
-}
-.xian-poem {
+.trial-hit-target {
   position: absolute;
-  z-index: 1;
-  top: 36px;
-  left: 28px;
-  writing-mode: vertical-rl;
-  line-height: 2.3;
-  letter-spacing: 0.35em;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: transparent;
+  touch-action: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+.trial-hit-target:hover {
+  background: #f0efd712;
+}
+.trial-hit-target:active {
+  background: #fff2bd20;
+}
+.trial-hit-target:focus-visible {
+  outline: 3px solid #fff0aa;
+  outline-offset: -3px;
+  background: #ffffff13;
+}
+.trial-hit-target:disabled {
+  cursor: default;
+}
+.trial-notebook {
+  width: 290px;
+  max-width: 32%;
+  align-self: center;
+  padding: 25px 0;
+}
+.trial-eyebrow {
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #4d7060;
+}
+.trial-notebook h1 {
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  margin: 18px 0 30px;
+}
+.trial-poem {
+  font-size: 29px !important;
+  line-height: 1.9 !important;
+  letter-spacing: 4px;
+}
+.trial-poem em {
+  font-style: normal;
+  color: #8a713f;
+}
+.trial-notebook p {
   font-size: 16px;
+  line-height: 1.9;
+  color: #4e6b5b;
 }
-.xian-realm {
+.trial-rule {
+  height: 1px;
+  background: linear-gradient(90deg, #9d9763, transparent);
+  margin: 28px 0;
+}
+.trial-notebook dl {
+  font-size: 13px;
+  margin: 22px 0;
+  line-height: 1.8;
+}
+.trial-notebook dl div {
+  display: flex;
+  gap: 14px;
+  padding: 4px 0;
+}
+.trial-notebook dt {
+  color: #947543;
+  white-space: nowrap;
+}
+.trial-notebook dd {
+  margin: 0;
+  color: #537262;
+}
+.trial-journal {
+  border-left: 2px solid #abaf7c;
+  padding-left: 17px;
+  margin: 28px 0;
+}
+.trial-journal h2 {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 3px;
+}
+.trial-journal p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 7px 0;
+}
+.trial-record {
+  font-size: 12px !important;
+  letter-spacing: 1px;
+}
+.trial-sr {
   position: absolute;
-  top: 27px;
-  right: 25px;
-  display: grid;
-  gap: 8px;
-  text-align: right;
-  min-width: 135px;
-}
-.xian-realm small {
-  font-size: 11px;
-}
-.xian-realm strong {
-  font-size: 55px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-}
-.xian-realm span {
-  font-size: 12px;
-}
-.xian-realm progress {
-  width: 100%;
-  height: 4px;
-  accent-color: #426959;
-}
-.xian-stats {
-  display: flex;
-  border-bottom: 1px solid #c6c8b7;
-  padding: 6px 0 20px;
-}
-.xian-stats div {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  justify-content: center;
-  border-right: 1px solid #c6c8b7;
-}
-.xian-stats div:last-child {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   border: 0;
 }
-.xian-stats span {
-  color: var(--muted);
-  font-size: 13px;
-}
-.xian-stats b {
-  font-size: 26px;
-  font-weight: 400;
-}
-.xian-play {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.xian-event {
-  padding-top: 36px;
-  flex: 1;
-  animation: xian-arrive 0.35s ease-out;
-}
-.xian-eyebrow {
-  color: var(--gold);
-  letter-spacing: 0.14em;
-  font-size: 12px;
-}
-.xian-event h2 {
-  font-size: clamp(25px, 3vw, 34px);
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  margin: 16px 0;
-}
-.xian-event p {
-  color: #526252;
-  line-height: 1.95;
-  font-size: 15px;
-}
-.xian-story {
-  min-height: 66px;
-}
-.cultivation .choices {
-  display: grid;
-  gap: 12px;
-  margin: 22px 0;
-}
-.cultivation .choices button {
-  width: 100%;
-  text-align: left;
-  padding: 17px 20px;
-  color: var(--ink);
-  background: #f6f3e9;
-  border: 1px solid #b6bfa9;
-  border-left: 3px solid #648473;
-  transition:
-    background 0.2s,
-    transform 0.2s;
-}
-.cultivation .choices button:hover:enabled {
-  background: #dfe7d7;
-  transform: translateX(3px);
-}
-.cultivation .choices strong {
-  font-weight: 400;
-  font-size: 17px;
-}
-.cultivation .choices span {
-  display: block;
-  color: #66735b;
-  font-size: 12px;
-  margin-top: 8px;
-}
-.cultivation .choices i {
-  float: right;
-  font-size: 18px;
-  font-style: normal;
-}
-.xian-previous {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.8;
-  padding: 14px 0;
-  border-top: 1px dashed #c6c8b7;
-}
-.xian-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--muted);
-  padding: 18px 0 4px;
-}
-.xian-help {
-  margin-top: 22px;
-  border-top: 1px solid #c6c8b7;
-  padding-top: 14px;
-  font-size: 12px;
-  color: var(--muted);
+.trial-error {
+  position: absolute;
+  inset: 35% 15%;
+  padding: 20px;
+  background: #193c34;
+  color: #f5dfb8;
   line-height: 1.8;
 }
-.xian-help summary {
-  cursor: pointer;
+.cultivation:fullscreen {
+  height: 100svh;
 }
-.xian-ending-score {
-  font-size: 50px;
-  color: var(--gold);
+.cultivation button {
+  font-family: inherit;
 }
-.xian-ending-score span {
-  font-size: 14px;
-  padding-left: 16px;
-}
-.xian-event.boss h2 {
-  color: #9b4936;
-}
-@keyframes xian-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(7px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .cultivation {
-    padding: 16px;
+    padding: 8px 0;
+    min-height: 100svh;
+    background: #102c2d;
+    gap: 0;
   }
-  .xian-header {
-    padding-bottom: 14px;
+  .trial-notebook {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
-  .xian-brand h1 {
-    font-size: 21px;
+  .trial-stage {
+    width: min(100%, calc((100svh - 80px) * 0.6));
+    box-shadow: none;
+    border: 0;
   }
-  .xian-seal {
-    width: 36px;
-    height: 45px;
-    font-size: 23px;
+  .trial-hit-target {
+    min-height: 36px;
   }
-  .xian-record {
-    font-size: 10px;
-  }
-  .xian-chapters {
-    margin-bottom: 12px;
-  }
-  .xian-chapters span {
-    padding: 11px 0;
-    font-size: 11px;
-  }
-  .xian-chapters i {
-    margin-right: 5px;
-  }
-  .xian-layout {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .xian-landscape {
-    min-height: 184px;
-  }
-  .xian-landscape svg {
-    height: 340px;
-    top: -105px;
-  }
-  .xian-poem {
-    top: 18px;
-    left: 18px;
-    font-size: 12px;
-  }
-  .xian-realm {
-    top: 18px;
-    right: 18px;
-    min-width: 110px;
-    gap: 5px;
-  }
-  .xian-realm strong {
-    font-size: 39px;
-  }
-  .xian-stats {
-    padding: 0 0 12px;
-  }
-  .xian-stats b {
-    font-size: 23px;
-  }
-  .xian-stats div {
-    gap: 10px;
-  }
-  .xian-event {
-    padding-top: 20px;
-  }
-  .xian-event h2 {
-    margin: 10px 0;
-    font-size: 25px;
-  }
-  .xian-event p {
-    font-size: 14px;
-    line-height: 1.7;
-    margin: 10px 0;
-  }
-  .xian-story {
-    min-height: 42px;
-  }
-  .cultivation .choices {
-    gap: 9px;
-    margin: 14px 0;
-  }
-  .cultivation .choices button {
-    padding: 13px 16px;
-  }
-  .xian-previous {
-    padding: 9px 0;
-  }
-  .xian-footer {
-    padding-top: 10px;
+  .cultivation .trial-sr {
+    max-width: 1px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .cultivation * {
-    animation: none;
-    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .game-slot .cultivation {
+    min-height: calc(100svh - 100px);
   }
 }

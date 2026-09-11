@@ -19,6 +19,7 @@ it('delivers only published verified bytes with strict exposed CSP and fails clo
     const response = await app.inject({ url, headers: { origin } });
     expect(response.rawPayload).toEqual(Buffer.from([1, 2]));
     expect(response.headers['content-security-policy']).toContain("connect-src 'none'");
+    expect(response.headers['content-security-policy']).toContain('media-src data:');
     expect(response.headers['access-control-expose-headers']).toBe('content-security-policy');
     read.mockResolvedValueOnce(undefined);
     expect((await app.inject(url)).statusCode).toBe(404);

@@ -33,6 +33,7 @@ await new Promise((resolve) => artifactServer.listen(0, '127.0.0.1', resolve));
 const artifactUrl = `http://127.0.0.1:${artifactServer.address().port}/remote-entry.js`;
 const server = await createServer({
   root: shellRoot,
+  optimizeDeps: { entries: ['index.html'] },
   server: { port: 0, host: '127.0.0.1' },
   define: {
     'import.meta.env.VITE_CULTIVATION_ARTIFACT_URL': JSON.stringify(artifactUrl),
@@ -55,7 +56,7 @@ try {
   });
   artifactBytes = await readFile(`${gameRoot}/dist-iframe/remote-entry.js`);
   const integrity = `sha256-${createHash('sha256').update(artifactBytes).digest('base64')}`;
-  policy = `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors ${shellOrigin}`;
+  policy = `default-src 'none'; script-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; style-src 'unsafe-inline'; img-src data:; media-src data:; frame-ancestors ${shellOrigin}`;
   browser = await chromium.launch({
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
@@ -68,6 +69,13 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript((value) => {
     globalThis.__artifactIntegrity = value;
+    globalThis.__trialAudio = [];
+    const NativeAudio = globalThis.Audio;
+    globalThis.Audio = function (src) {
+      const sound = new NativeAudio(src);
+      globalThis.__trialAudio.push(sound);
+      return sound;
+    };
   }, integrity);
   await page.goto(shellOrigin);
   await page.getByRole('button', { name: '进入游戏' }).first().click();
@@ -110,8 +118,26 @@ try {
     globalThis.document.dispatchEvent(new globalThis.Event('visibilitychange'));
   });
   await frame.getByRole('heading', { name: '三分钟修仙', exact: true }).waitFor();
-  await frame.getByRole('button', { name: /照着练/ }).click();
-  await frame.getByText('气走岔了，却意外打通一处经脉。', { exact: true }).waitFor();
+  await frame.getByRole('button', { name: '点香 · 开始修行' }).click();
+  await frame.getByRole('button', { name: '御剑', exact: true }).click();
+  await frame.getByRole('button', { name: '按住 · 吐纳' }).waitFor();
+  await frame.locator('.cultivation').press('Space');
+  await page
+    .frames()[1]
+    .waitForFunction(
+      () =>
+        globalThis.__trialAudio.length === 17 &&
+        globalThis.__trialAudio.every((sound) => sound.readyState >= 2),
+    );
+  assert.ok(
+    await page
+      .frames()[1]
+      .evaluate(() =>
+        globalThis.__trialAudio.some(
+          (sound) => sound.loop && !sound.paused && sound.src.startsWith('data:audio/'),
+        ),
+      ),
+  );
   await page.getByRole('button', { name: '返回目录', exact: false }).click();
   await page.getByRole('button', { name: '进入游戏' }).first().waitFor();
   assert.equal(await page.locator('iframe').count(), 0);

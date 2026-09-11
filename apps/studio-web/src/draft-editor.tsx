@@ -56,7 +56,10 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
       <header>
         <p className="eyebrow">DYNAMIC CONTENT</p>
         <h2>修仙内容草稿</h2>
-        <p>编辑与预览不会更改玩家版本。当前 schema v2；v1 保存时自动迁移标题。</p>
+        <p>
+          编辑与预览不会更改玩家版本。当前 schema v3
+          配置实时试炼；旧版事件内容经校验后迁移为试炼设置。
+        </p>
       </header>
       <div className="draft-toolbar">
         <label>

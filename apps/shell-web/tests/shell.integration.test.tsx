@@ -1,6 +1,7 @@
+import { canvasContext } from './canvas.fixture.js';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GameDefinition, GameHost } from '@coffeeeeffoc/game-contract';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
@@ -15,6 +16,13 @@ import {
 } from '@coffeeeeffoc/shell-web';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+});
 
 const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
 
@@ -129,6 +137,7 @@ describe('Web Shell integration', () => {
     expect(container.textContent).toContain('修行已暂停');
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
+    await clickButton(container, '继续修行');
     expect(container.textContent).not.toContain('修行已暂停');
 
     await clickButton(container, '返回目录');

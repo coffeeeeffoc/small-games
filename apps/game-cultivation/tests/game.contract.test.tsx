@@ -1,3 +1,4 @@
+import { legacyCultivationEnvelope } from '../src/content/index.js';
 import { describe, expect, it } from 'vitest';
 
 import { HostError } from '@coffeeeeffoc/game-contract';
@@ -9,10 +10,10 @@ import { defaultCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/conte
 
 describe('cultivation Game Contract', () => {
   it('mounts published v1 content through the Game-owned migration', async () => {
-    const payload = { ...defaultCultivationEnvelope.payload };
+    const payload = { ...legacyCultivationEnvelope.payload };
     delete (payload as Partial<typeof payload>).title;
     const host = createInMemoryGameHost({
-      session: { gameId: 'cultivation' },
+      session: { gameVersion: cultivationGameDefinition.manifest.version, gameId: 'cultivation' },
       content: { ...defaultCultivationEnvelope, schemaVersion: 1, payload },
     });
     const target = document.createElement('div');
@@ -22,7 +23,11 @@ describe('cultivation Game Contract', () => {
   });
   it('mounts, pauses, resumes, disposes, and mounts again', async () => {
     const host = createInMemoryGameHost({
-      session: { gameId: 'cultivation', capabilities: ['content', 'storage', 'advertising'] },
+      session: {
+        gameVersion: cultivationGameDefinition.manifest.version,
+        gameId: 'cultivation',
+        capabilities: ['content', 'storage', 'advertising'],
+      },
       content: defaultCultivationEnvelope,
     });
     const target = document.createElement('div');
@@ -33,7 +38,11 @@ describe('cultivation Game Contract', () => {
 
   it('rejects a Host missing a required capability', async () => {
     const host = createInMemoryGameHost({
-      session: { gameId: 'cultivation', capabilities: [] },
+      session: {
+        gameVersion: cultivationGameDefinition.manifest.version,
+        gameId: 'cultivation',
+        capabilities: [],
+      },
       content: defaultCultivationEnvelope,
     });
 
@@ -46,7 +55,11 @@ describe('cultivation Game Contract', () => {
 
   it('rejects Dynamic Content newer than its supported schema', async () => {
     const host = createInMemoryGameHost({
-      session: { gameId: 'cultivation', capabilities: ['content', 'storage'] },
+      session: {
+        gameVersion: cultivationGameDefinition.manifest.version,
+        gameId: 'cultivation',
+        capabilities: ['content', 'storage'],
+      },
       content: {
         ...defaultCultivationEnvelope,
         schemaVersion: cultivationGameDefinition.manifest.contentSchemaVersion + 1,
@@ -60,7 +73,11 @@ describe('cultivation Game Contract', () => {
 
   it('mounts when local save storage is unavailable', async () => {
     const base = createInMemoryGameHost({
-      session: { gameId: 'cultivation', capabilities: ['content', 'storage'] },
+      session: {
+        gameVersion: cultivationGameDefinition.manifest.version,
+        gameId: 'cultivation',
+        capabilities: ['content', 'storage'],
+      },
       content: defaultCultivationEnvelope,
     });
     const host = {
@@ -82,7 +99,11 @@ describe('cultivation Game Contract', () => {
 
   it('mounts gracefully without optional advertising authority', async () => {
     const host = createInMemoryGameHost({
-      session: { gameId: 'cultivation', capabilities: ['content', 'storage'] },
+      session: {
+        gameVersion: cultivationGameDefinition.manifest.version,
+        gameId: 'cultivation',
+        capabilities: ['content', 'storage'],
+      },
       content: defaultCultivationEnvelope,
       offer: async () => ({ status: 'unavailable' }),
     });
