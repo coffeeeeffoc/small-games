@@ -26,5 +26,82 @@
     "title": "工位偷闲 · 第一人称",
     "description": "坐进三维办公室，在经理巡查间隙偷闲。",
     "output": "dist"
+  },
+  {
+    "id": "cops-robbers",
+    "source": "games/local/cops-robbers",
+    "title": "围捕小队",
+    "description": "轮流调动警察，封住出口，在小偷逃离前完成围捕。",
+    "output": "dist"
+  },
+  {
+    "id": "cops-robbers-realtime",
+    "source": "games/local/cops-robbers-realtime",
+    "title": "别跑！街区围捕",
+    "description": "实时指挥警察，截断路线，把街区里的小偷一网打尽。",
+    "output": "dist"
+  },
+  {
+    "id": "h5-security",
+    "source": "games/local/h5-security",
+    "title": "来电之间",
+    "description": "在一部模拟手机中处理日常事务，核验来电和支付请求。",
+    "output": "dist"
+  },
+  {
+    "id": "letters-words",
+    "source": "games/local/letters-words",
+    "title": "词了个词 · 单词消消乐",
+    "description": "看中文释义，点选字母拼出英文单词，清空共享棋盘。",
+    "output": "dist"
+  },
+  {
+    "id": "letters-words2",
+    "source": "games/local/letters-words2",
+    "title": "词屿 · 字母叠叠乐",
+    "description": "从层叠字母牌中拼出单词，一层层揭开新的线索。",
+    "output": "dist"
+  },
+  {
+    "id": "multi-battle",
+    "source": "games/local/multi-battle",
+    "title": "万象旅团",
+    "description": "购买、合成和部署角色，搭配六大流派挑战七支旅团。",
+    "output": "dist"
+  },
+  {
+    "id": "puzzle",
+    "source": "games/local/puzzle",
+    "title": "雨停之前",
+    "description": "调查望潮档案馆的悬案，核对证据并推理嫌疑人。",
+    "output": "dist"
+  },
+  {
+    "id": "travel",
+    "source": "games/local/travel",
+    "title": "去野 · 大理漫游记",
+    "description": "走进大理微缩风景，探索旅程，收藏印章与明信片。",
+    "output": "dist"
+  },
+  {
+    "id": "vibeJam-myself-delivery",
+    "source": "games/local/vibeJam-myself-delivery",
+    "title": "橘风速递",
+    "description": "驾驶小摩托穿越海滨小岛，采购货物并完成配送。",
+    "output": "dist"
+  },
+  {
+    "id": "vibeJam-myself-history-guess",
+    "source": "games/local/vibeJam-myself-history-guess",
+    "title": "此时 · 此地",
+    "description": "观察历史全景，猜测地点与年份，揭晓时空中的故事。",
+    "output": "dist"
+  },
+  {
+    "id": "vibeJam-myself-nullrange",
+    "source": "games/local/vibeJam-myself-nullrange",
+    "title": "零域 · NULL RANGE",
+    "description": "低空飞行、迎击敌机，在三波空战中回收残骸。",
+    "output": "dist"
   }
 ]

@@ -35,7 +35,18 @@
     "@coffeeeeffoc/game-office": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "@coffeeeeffoc/game-cricket": "workspace:*"
+    "@coffeeeeffoc/game-cricket": "workspace:*",
+    "cops-robbers": "workspace:*",
+    "cops-robbers-realtime": "workspace:*",
+    "between-calls": "workspace:*",
+    "letters-words": "workspace:*",
+    "ciyu-word-tiles": "workspace:*",
+    "multi-battle": "workspace:*",
+    "before-the-rain-stops": "workspace:*",
+    "quye-travel": "workspace:*",
+    "tangerine-express": "workspace:*",
+    "here-and-then": "workspace:*",
+    "null-range-mobile-cn": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

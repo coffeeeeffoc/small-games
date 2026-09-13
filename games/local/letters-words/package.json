@@ -1,0 +1,18 @@
+{
+  "name": "letters-words",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test game.test.mjs",
+    "build": "node build.mjs",
+    "dev": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}

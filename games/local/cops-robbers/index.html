@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f0e5">
+  <meta name="description" content="小偷会从出口逃走！点路口立即调动警察，在60关街区围捕中抢先拦截。">
+  <title>围捕小队 · 街区追逃计划</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./src/style.css">
+  <script type="module" src="./src/main.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="围捕小队首页"><span class="brand-badge" aria-hidden="true">巡</span><span>围捕小队<small>NEIGHBORHOOD PATROL</small></span></a>
+    <div class="top-actions">
+      <span class="top-caption">小小街区，大大计谋。</span>
+      <button class="icon-button" id="sound" data-testid="sound" aria-label="开启音效" aria-pressed="false"></button>
+      <button class="icon-button" id="settings" aria-label="游戏设置"></button>
+      <button class="icon-button" id="help" aria-label="玩法说明"></button>
+    </div>
+  </header>
+  <main class="layout">
+    <aside class="briefing">
+      <div class="eyebrow"><span></span> 今日任务 · PATROL TIME</div>
+      <h1>退路，<br>一条也别留<span class="title-dot">。</span></h1>
+      <p class="intro">小偷正奔向逃生口。<br>别只跟着追，抢在前面拦住他。</p>
+      <section class="mission-card" aria-label="当前任务">
+        <div class="paper-pin" aria-hidden="true"></div>
+        <div class="mission-top"><span>行动档案</span><span id="case-number">CASE 001</span></div>
+        <h2 id="mission-name">堵住出口</h2>
+        <p id="mission-tip">封住最后一条退路。</p>
+        <div class="team-counts"><span><i class="cop-dot"></i><strong id="cop-count">1</strong> 警察</span><span><i class="robber-dot"></i><strong id="robber-count">1</strong> 小偷</span></div>
+        <div class="mission-stamp" aria-hidden="true">一起包抄！</div>
+      </section>
+      <button class="chapter-progress" id="level-select"><span class="chapter-progress-title"><span>街区地图</span><strong id="completed-count">0 / 60</strong></span><span class="progress-track"><span id="progress-fill"></span></span><span class="chapter-progress-bottom"><span>五个街区，六十场小挑战</span><span aria-hidden="true">↗</span></span></button>
+      <p class="gentle-note"><span aria-hidden="true">✦</span> 点路口直接走。你动一人，小偷全员行动。</p>
+    </aside>
+    <section class="game" aria-label="围捕小队游戏">
+      <div class="game-heading"><div><span id="chapter-name" class="chapter-label">01 / 新手小巷</span><h2><span id="level-number">01</span><span id="level-name">堵住出口</span></h2></div><button id="mobile-level-select" data-testid="level-select" class="map-button" aria-label="选择关卡">关卡地图 <span aria-hidden="true">↗</span></button></div>
+      <div class="board-hud"><span class="phase-pill" id="phase-label"><i></i>轮到你了</span><div><span id="turn-label">第 0 步</span><span class="hud-divider"></span><strong id="remaining-label">待捕 1</strong></div></div>
+      <div class="board-frame">
+        <svg id="board" data-testid="board" viewBox="0 0 600 600" role="group" aria-label="街区地图，选中警察后，点击相邻路口立即移动；橙色出口可让小偷逃脱"></svg>
+        <div class="board-footer"><span id="board-caption">小巷巡逻 · 保持冷静，慢慢包抄</span><span class="compass" aria-hidden="true">N ↑</span></div>
+      </div>
+      <div class="threat-strip" id="threat-label" role="status" aria-live="polite">守住逃生口，别让任何小偷逃走。</div>
+      <div class="instruction" id="instruction" role="status" aria-live="polite">已选中 1 号警察，点亮起的路口就走。</div>
+      <div class="squad-row"><span class="squad-label">你的小队</span><div id="squad" role="group" aria-label="选择警察"></div><span id="selection-label">点击选人</span></div>
+      <div class="action-bar">
+        <button class="secondary-action" id="undo" data-testid="undo"><span id="undo-icon"></span><span>撤销</span></button>
+        <div class="direct-move-note"><strong>点路口，就出发</strong><span>你走一步 · 小偷走一步</span></div>
+        <button class="secondary-action" id="hint" data-testid="hint"><span id="hint-icon"></span><span>提示</span></button>
+      </div>
+      <div class="game-footnote"><button id="restart" data-testid="restart">重新开始</button><span id="reference-turns">封住全部出口就能抓获</span><span class="save-indicator" id="save-indicator">进度自动保存</span></div>
+    </section>
+  </main>
+  <footer class="page-footer"><span>围捕小队 <span class="footer-dot">●</span> 每一个路口，都有新主意。</span><span>60 个小计划 / 5 个大街区</span></footer>
+  <dialog id="level-dialog" aria-labelledby="level-dialog-title"><div class="dialog-heading"><div><span class="eyebrow">CITY MAP</span><h2 id="level-dialog-title">今天，去哪里巡逻？</h2></div><button class="dialog-close icon-button" aria-label="关闭关卡地图">×</button></div><div id="chapter-tabs" role="tablist" aria-label="选择街区"></div><p id="chapter-description" class="dialog-description"></p><div id="level-grid"></div><p class="dialog-note">所有关卡都可以尝试。完成后会为你留下星星。</p></dialog>
+  <dialog id="win-dialog" data-testid="victory" aria-labelledby="win-title"><button class="dialog-close icon-button win-close" aria-label="回到地图">×</button><div class="win-art" id="win-art" aria-hidden="true"></div><span class="eyebrow">NICE TEAMWORK!</span><h2 id="win-title">漂亮！一网打尽。</h2><div class="win-stars" id="win-stars" aria-label="获得三颗星"></div><p id="win-details"></p><div class="win-actions"><button class="execute" id="next-level" data-testid="next-level">下一个街区任务 <span aria-hidden="true">→</span></button><button class="text-button" id="replay">再来一次，试试更妙的走法</button></div></dialog>
+  <dialog id="loss-dialog" data-testid="defeat" aria-labelledby="loss-title"><button class="dialog-close icon-button win-close" aria-label="查看失守局面">×</button><div class="win-art" id="loss-art" aria-hidden="true"></div><span class="eyebrow">ESCAPED!</span><h2 id="loss-title">糟糕，让他溜了！</h2><p id="loss-details"></p><div class="win-actions"><button class="execute" id="undo-loss" data-testid="undo-loss">撤销这一步，换个走法</button><button class="secondary-action" id="retry" data-testid="retry">重新挑战</button></div></dialog>
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><span class="eyebrow">HOW TO PLAY</span><h2 id="help-title">先堵出口，再追小偷。</h2></div><button class="dialog-close icon-button" aria-label="关闭玩法说明">×</button></div><ol class="help-steps"><li><strong>点到哪里，就走到哪里</strong><p>选中警察后，点相邻空路口立即走一步。其他警察留守，随后全部小偷行动。选人不消耗步数。</p></li><li><strong>别让他逃出去</strong><p>橙色箭头通向真正的逃生口。小偷会绕开警察找出口，任何一人逃走，本关就失败。占住出口或必经路口能拦住他。</p></li><li><strong>收紧包围</strong><p>封住小偷所在路口的所有退路就能抓获。全部抓获、无人逃脱才算胜利。橙色虚线只提示小偷下一步的方向。</p></li></ol><div class="help-note">警察不能走到小偷或队友的位置。点自己脚下的编号可留守一拍。失败可直接撤销，重新考虑拦截次序。</div><p class="dialog-note">键盘：Tab 选择，Enter 点选或移动，空格留守一拍，Ctrl / ⌘ + Z 撤销。也可以把警察拖到相邻空路口。</p><button class="execute dialog-close">明白，开始拦截！</button></dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title"><div class="dialog-heading"><h2 id="settings-title">按你的节奏玩</h2><button class="dialog-close icon-button" aria-label="关闭设置">×</button></div><label class="setting-row"><span><strong>播放音效</strong><small>脚步、抓捕、逃脱和胜利的小声音</small></span><input id="sound-setting" type="checkbox"></label><label class="setting-row"><span><strong>减少动态效果</strong><small>缩短移动与庆祝动画</small></span><input id="motion-setting" type="checkbox"></label><p class="dialog-note">思考时不会计时；每走一步，小偷就会向出口推进。</p></dialog>
+  <noscript>围捕小队需要启用 JavaScript 才能开始游戏。</noscript>
+</body>
+</html>

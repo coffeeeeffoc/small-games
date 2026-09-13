@@ -1,0 +1,21 @@
+{
+  "name": "here-and-then",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4175 --strictPort",
+    "build": "vite build --base=./",
+    "preview": "vite preview --host 0.0.0.0 --port 4175 --strictPort",
+    "test": "node --test tests/game.test.mjs",
+    "test:browser": "node scripts/playtest.mjs"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "three": "0.164.1"
+  },
+  "devDependencies": {
+    "vite": "6.3.6",
+    "@playwright/test": "1.55.1"
+  }
+}

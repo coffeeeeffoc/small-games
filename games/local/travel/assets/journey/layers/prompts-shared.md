@@ -1,0 +1,11 @@
+# Shared parallax layers
+
+Built-in imagegen edit calls; full prompts below. Source originals are preserved. The distant background is ready. Foreground generation returned a painted RGB checkerboard, not transparency; local matting is pending the user's explicit tool-choice reply.
+
+## journey-distant
+
+Use case: precise-object-edit. Input image 1 oldtown and image2 cafe are style and scenery references. Create ONE shared distant background plate for a continuous parallax Dali travel landscape. Landscape 1536x1024 composition. Preserve the exquisitely detailed painterly blue-green Cangshan mountain style and warm creamy afternoon light from these references. Show ONLY soft ivory blue sky in top 35%, several continuous distant layered Cangshan mountain ridges in middle 35%, tranquil jade Erhai lake in bottom 30% with subtle reflections. Remove all foreground architecture, people, cafes, pagodas, large trees, boats, shore buildings, flowers, borders and text. No specific landmark. One unbroken calm consistent panorama with no divisions or collage, horizon level across image. Mountains moderately fine and softly distant, lake smooth. This single image will remain visible unchanged behind six transparent foreground scenes while camera moves. No text, no logos, no watermark.
+
+## journey-foreground
+
+Use case: background-extraction / precise-object-edit. Input image is reference for the specific lush white tiny daisies, sage foliage, warm rocks of the lakeside scene. Generate one RGBA genuinely transparent PNG foreground parallax layer 1536x1024. Retain and isolate only a natural irregular cluster of detailed leaves, tiny white and pale yellow flowers and warm stone rocks emerging from the lower left and lower right corners. These clusters occupy only bottom 30% of canvas and extreme sides. The central 65% width and top 65% height must be truly transparent empty. Match original intricate painterly illustrated miniature style, warm afternoon sunlight. No background, sky, mountains, water, terraces, roofs, people, text or checkerboard pattern. Edges organic and finely transparent between leaves, not rectangular. Intended to overlay existing travel landscape at nearer depth, so it must have true alpha background.
