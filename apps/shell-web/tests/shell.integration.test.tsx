@@ -197,22 +197,7 @@ describe('Web Shell integration', () => {
   });
 
   it('enters, exits, and re-enters the office Game through the catalog', async () => {
-    const context = {
-      clearRect() {},
-      fillRect() {},
-      fillText() {},
-      beginPath() {},
-      moveTo() {},
-      lineTo() {},
-      fill() {},
-      stroke() {},
-      createRadialGradient: () => ({ addColorStop() {} }),
-    } as unknown as CanvasRenderingContext2D;
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
     const office = builtInGameRegistry.find((game) => game.id === 'office');
     const container = await renderShell(hostFor, office ? [office] : []);
 

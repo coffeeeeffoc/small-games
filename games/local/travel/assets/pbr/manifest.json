@@ -1,0 +1,348 @@
+{
+  "version": 1,
+  "downloaded": "2026-09-12",
+  "provider": "Poly Haven",
+  "credit": "Powered by Poly Haven",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "apiPolicy": "https://polyhaven.com/our-api",
+  "userAgent": "QuyeTravelAssetBuild/1.0",
+  "totalBytes": 14463831,
+  "assets": {
+    "ground": {
+      "id": "cobblestone_floor_02",
+      "name": "Cobblestone Floor 02",
+      "source": "https://polyhaven.com/a/cobblestone_floor_02",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        2000,
+        2000
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/ground-color.jpg",
+          "file": "ground-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_02/cobblestone_floor_02_diff_2k.jpg",
+          "resolution": "2k",
+          "bytes": 915386,
+          "md5": "7d291e254066b9dc45778dd103714019",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 2048,
+          "height": 2048
+        },
+        "normal": {
+          "path": "assets/pbr/ground-normal.jpg",
+          "file": "ground-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cobblestone_floor_02/cobblestone_floor_02_nor_gl_1k.jpg",
+          "resolution": "1k",
+          "bytes": 208641,
+          "md5": "f77017e6de48e5e9d98a7bc08284126d",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 1024,
+          "height": 1024
+        },
+        "rough": {
+          "path": "assets/pbr/ground-rough.jpg",
+          "file": "ground-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cobblestone_floor_02/cobblestone_floor_02_rough_1k.jpg",
+          "resolution": "1k",
+          "bytes": 163268,
+          "md5": "4acdc1ec3e095c2c45831fa640ba7e2e",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "wall": {
+      "id": "white_plaster_02",
+      "name": "White Plaster 02",
+      "source": "https://polyhaven.com/a/white_plaster_02",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        1000,
+        1000
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/wall-color.jpg",
+          "file": "wall-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_diff_1k.jpg",
+          "resolution": "1k",
+          "bytes": 527219,
+          "md5": "7b10c2686bcfd76d1f309a20fd06b57e",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 1024,
+          "height": 1024
+        },
+        "normal": {
+          "path": "assets/pbr/wall-normal.jpg",
+          "file": "wall-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_nor_gl_1k.jpg",
+          "resolution": "1k",
+          "bytes": 652310,
+          "md5": "55fc03203ebf1dc703a380fde93ff502",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 1024,
+          "height": 1024
+        },
+        "rough": {
+          "path": "assets/pbr/wall-rough.jpg",
+          "file": "wall-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_rough_1k.jpg",
+          "resolution": "1k",
+          "bytes": 295900,
+          "md5": "8b28f263360b8c4ddbdc4f7c650c4eeb",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "wood": {
+      "id": "rough_wood",
+      "name": "Rough Wood",
+      "source": "https://polyhaven.com/a/rough_wood",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        500,
+        500
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/wood-color.jpg",
+          "file": "wood-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_diff_1k.jpg",
+          "resolution": "1k",
+          "bytes": 567074,
+          "md5": "92d4b3dd46bab95248f5a7680b7882e7",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 1024,
+          "height": 1024
+        },
+        "normal": {
+          "path": "assets/pbr/wood-normal.jpg",
+          "file": "wood-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_nor_gl_1k.jpg",
+          "resolution": "1k",
+          "bytes": 790334,
+          "md5": "1c9829c9023f74c74eaeba28e56e5144",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 1024,
+          "height": 1024
+        },
+        "rough": {
+          "path": "assets/pbr/wood-rough.jpg",
+          "file": "wood-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_rough_1k.jpg",
+          "resolution": "1k",
+          "bytes": 195056,
+          "md5": "ef62954e4ea0e9cd78757ce79e6eeb58",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "roof": {
+      "id": "grey_roof_tiles",
+      "name": "Grey Roof Tiles",
+      "source": "https://polyhaven.com/a/grey_roof_tiles",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        3000,
+        3000
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/roof-color.jpg",
+          "file": "roof-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_roof_tiles/grey_roof_tiles_diff_2k.jpg",
+          "resolution": "2k",
+          "bytes": 2039152,
+          "md5": "304912638959851b052610a992e05274",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 2048,
+          "height": 2048
+        },
+        "normal": {
+          "path": "assets/pbr/roof-normal.jpg",
+          "file": "roof-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_roof_tiles/grey_roof_tiles_nor_gl_2k.jpg",
+          "resolution": "2k",
+          "bytes": 1504796,
+          "md5": "6d1ef876fc9750d81c8c8f6008ca0317",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 2048,
+          "height": 2048
+        },
+        "rough": {
+          "path": "assets/pbr/roof-rough.jpg",
+          "file": "roof-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_roof_tiles/grey_roof_tiles_rough_2k.jpg",
+          "resolution": "2k",
+          "bytes": 1009346,
+          "md5": "b726b64fb47ae1be160e5d5d2073aed0",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 2048,
+          "height": 2048
+        }
+      }
+    },
+    "grass": {
+      "id": "aerial_grass_rock",
+      "name": "Aerial Grass Rock",
+      "source": "https://polyhaven.com/a/aerial_grass_rock",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        15000,
+        15000
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/grass-color.jpg",
+          "file": "grass-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_diff_1k.jpg",
+          "resolution": "1k",
+          "bytes": 666655,
+          "md5": "e920ce36afd0abff000b8366d3d768d3",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 1024,
+          "height": 1024
+        },
+        "normal": {
+          "path": "assets/pbr/grass-normal.jpg",
+          "file": "grass-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_nor_gl_1k.jpg",
+          "resolution": "1k",
+          "bytes": 904956,
+          "md5": "c8aa4c4f09b113cc7edef89ddeaccad9",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 1024,
+          "height": 1024
+        },
+        "rough": {
+          "path": "assets/pbr/grass-rough.jpg",
+          "file": "grass-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_rough_1k.jpg",
+          "resolution": "1k",
+          "bytes": 362214,
+          "md5": "f78c5cdc565f990299ae7c5a81f68cf7",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "bark": {
+      "id": "bark_brown_01",
+      "name": "Bark Brown 01",
+      "source": "https://polyhaven.com/a/bark_brown_01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "physicalMillimeters": [
+        999.9990463256836,
+        999.998927116394
+      ],
+      "files": {
+        "color": {
+          "path": "assets/pbr/bark-color.jpg",
+          "file": "bark-color.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_diff_1k.jpg",
+          "resolution": "1k",
+          "bytes": 729893,
+          "md5": "b6d5dcde10b7cd1b36d70cd33a34724a",
+          "colorSpace": "sRGB",
+          "map": "Diffuse",
+          "width": 1024,
+          "height": 1024
+        },
+        "normal": {
+          "path": "assets/pbr/bark-normal.jpg",
+          "file": "bark-normal.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_nor_gl_1k.jpg",
+          "resolution": "1k",
+          "bytes": 1226534,
+          "md5": "8ae9907be7ce562c11aab619615d30d4",
+          "colorSpace": "linear",
+          "map": "nor_gl",
+          "width": 1024,
+          "height": 1024
+        },
+        "rough": {
+          "path": "assets/pbr/bark-rough.jpg",
+          "file": "bark-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_rough_1k.jpg",
+          "resolution": "1k",
+          "bytes": 201307,
+          "md5": "b7a1aa42ecf0b30aba7f587769d13910",
+          "colorSpace": "linear",
+          "map": "Rough",
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "sky": {
+      "id": "kloppenheim_03_puresky",
+      "name": "Kloppenheim 03 (Pure Sky)",
+      "source": "https://polyhaven.com/a/kloppenheim_03_puresky",
+      "authors": {
+        "Greg Zaal": "Original",
+        "Jarod Guest": "Sky Edits"
+      },
+      "files": {
+        "hdr": {
+          "path": "assets/pbr/sky.hdr",
+          "file": "sky.hdr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_03_puresky_1k.hdr",
+          "resolution": "1k",
+          "bytes": 1428760,
+          "md5": "4398fb83b085aed97cef788cda6f9e2d",
+          "colorSpace": "linear HDR",
+          "map": "hdri",
+          "height": 512,
+          "width": 1024
+        },
+        "preview": {
+          "path": "assets/pbr/sky-preview.webp",
+          "file": "sky-preview.webp",
+          "url": "https://cdn.polyhaven.com/asset_img/primary/kloppenheim_03_puresky.png?height=760&quality=95&v=34cf4f95",
+          "bytes": 75030,
+          "md5": "e55f27c4f8ee3ee66c129dda9248f0be",
+          "width": 1520,
+          "height": 760,
+          "colorSpace": "sRGB",
+          "map": "official tonemapped preview",
+          "usage": "Inspection and optional LDR fallback; HDR is the lighting source"
+        }
+      }
+    }
+  }
+}

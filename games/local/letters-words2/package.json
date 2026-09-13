@@ -1,0 +1,12 @@
+{
+  "name": "ciyu-word-tiles",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node tests/engine.test.mjs",
+    "check": "node --check app.js && node --check engine.js && node --check server.mjs && node server.mjs --check",
+    "build": "node build.mjs"
+  }
+}

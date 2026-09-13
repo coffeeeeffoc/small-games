@@ -1,0 +1,340 @@
+/* The map stays visible; the traveling market opens over its edges. */
+.map-game {
+  --hud-height: 60px;
+  --economy-height: 66px;
+  --tray-width: 740px;
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 320px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #172e28;
+}
+.map-game .world-host { position: absolute; inset: 0; z-index: 0; }
+.map-game .map-hud {
+  position: absolute;
+  z-index: 12;
+  inset: 0 0 auto;
+  min-height: var(--hud-height);
+  padding: max(7px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 7px max(18px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  background: linear-gradient(#0c211deb, #0c211da6 75%, transparent);
+}
+.map-game .map-brand { color: var(--gold-light); font: 22px var(--serif); letter-spacing: 4px; white-space: nowrap; }
+.map-game .round-status { display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 6px 18px; font-size: 11px; color: #e1e3cf; line-height: 1.5; }
+.map-game .round-status b { color: var(--gold-light); }
+.map-game .round-status small { font-size: inherit; color: #bac6b3; }
+.map-game .round-status svg { width: 13px; height: 13px; }
+.map-game .map-hud nav { margin-left: auto; display: flex; flex-shrink: 0; gap: 3px; align-items: center; }
+.map-game .map-hud .icon-button { min-height: 44px; min-width: 44px; padding: 8px; }
+.map-game .map-hud .icon-button span { font-size: 10px; }
+.map-game .floating-market,
+.map-game .floating-hand,
+.map-game .map-economy {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid #dac68a3d;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #132e27ed, #0b211ded);
+  box-shadow: 0 8px 30px #07120f63, inset 0 1px #f6e4b312;
+  backdrop-filter: blur(12px);
+}
+.map-game .floating-market { top: calc(var(--hud-height) + 6px); width: min(570px, calc(100% - 32px)); padding: 0 12px 9px; }
+.map-game .market,
+.map-game .hand-section { margin: 0; min-width: 0; }
+.map-game .section-heading { min-height: 44px; height: auto; margin: 0; gap: 8px; }
+.map-game .section-heading h2 { font-size: 15px; letter-spacing: 1px; }
+.map-game .section-heading h2 span { font-size: 9px; margin-left: 6px; }
+.map-game .market .section-heading h2 span { display: none; }
+.map-game .section-heading > small { font-size: 9px; }
+.map-game .market-controls { gap: 4px; }
+.map-game .market-controls .small-button,
+.map-game .market-controls .text-button { min-height: 44px; font-size: 10px; gap: 4px; padding: 7px; border-color: transparent; }
+.map-game .market-controls .small-button.active { color: #c6ecf4; border-color: #a6deeb61; }
+.map-game .market-controls svg { width: 13px; height: 13px; }
+.map-game .market-controls .coin-inline { margin-left: 2px; }
+.map-game .shop-row,
+.map-game .hand-row {
+  display: flex;
+  gap: 8px;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #ceb46d55 transparent;
+  padding: 3px 1px 6px;
+}
+.map-game .shop-row { margin: 0; }
+.map-game .shop-row > .market-card,
+.map-game .shop-row > .shop-vacancy { flex: 1 1 0; width: auto; min-width: 0; }
+.map-game .shop-row.frozen:after { inset: 0; border-radius: 4px; }
+.map-game .market-card { flex: 0 0 98px; width: 98px; min-width: 0; padding: 2px; border-radius: 5px; box-shadow: 0 3px 8px #0005; }
+.map-game .market-card:hover { transform: translateY(-2px); }
+.map-game .card-art { height: 69px; }
+.map-game .card-art img { object-position: 50% 24%; }
+.map-game .card-bottom { padding: 5px 4px 6px; min-height: 41px; }
+.map-game .card-bottom > b { font-size: 12px; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; }
+.map-game .mini-stats { gap: 8px; font-size: 10px; margin-top: 4px; }
+.map-game .mini-stats svg { width: 9px; height: 9px; }
+.map-game .card-brief { font-size: 8px; margin-top: 5px; }
+.map-game .tier-badge { min-width: 19px; width: 19px; height: 19px; top: 3px; left: 3px; font-size: 8px; }
+.map-game .card-family { top: 4px; right: 4px; font-size: 7px; letter-spacing: 1px; }
+.map-game .card-level { bottom: 4px; left: 4px; font-size: 10px; }
+.map-game .card-kind { bottom: 4px; left: 4px; font-size: 8px; }
+.map-game .price { right: 4px; bottom: 5px; padding: 2px 4px; gap: 2px; font-size: 10px; }
+.map-game .price svg { width: 9px; height: 9px; }
+.map-game .shop-row .price { top: 5px; bottom: auto; }
+.map-game .shop-row .card-family { top: auto; bottom: 4px; writing-mode: horizontal-tb; }
+.map-game .shop-vacancy { flex: 0 0 98px; min-width: 0; min-height: 114px; gap: 7px; }
+.map-game .shop-vacancy span { font-size: 13px; }
+.map-game .shop-vacancy small { font-size: 9px; }
+.map-game .floating-hand { bottom: calc(var(--economy-height) + env(safe-area-inset-bottom) + 17px); width: min(var(--tray-width), calc(100% - 32px)); padding: 0 12px 5px; }
+.map-game .hand-section .section-heading { min-height: 44px; }
+.map-game .tray-nav { display: flex; gap: 2px; margin-left: auto; }
+.map-game .tray-nav .icon-button { width: 44px; min-width: 44px; min-height: 44px; padding: 10px; }
+.map-game .tray-nav .icon-button:hover { background: #d7bb7d1c; }
+.map-game [data-direction="-1"] svg { transform: rotate(180deg); }
+.map-game .hand-row { padding-top: 2px; padding-bottom: 5px; }
+.map-game .hand-row .market-card { width: 86px; flex-basis: 86px; }
+.map-game .hand-row .card-art { height: 53px; }
+.map-game .hand-row .card-bottom { min-height: 38px; }
+.map-game .hand-row .card-bottom > b { font-size: 11px; }
+.map-game .hand-empty { min-height: 90px; font-size: 12px; gap: 7px; background: #0d241d33; }
+.map-game .hand-empty span { font-size: 9px; }
+.map-game .map-economy { bottom: max(8px, env(safe-area-inset-bottom)); width: min(830px, calc(100% - 32px)); min-height: var(--economy-height); display: flex; align-items: center; gap: 12px; padding: 7px 12px; }
+.map-game .economy-bar { position: static; inset: auto; flex: 1; min-width: 0; min-height: 44px; padding: 0; gap: 16px; border: 0; background: none; backdrop-filter: none; box-shadow: none; }
+.map-game .gold-display { grid-template-columns: 24px 35px; gap: 0 5px; padding-right: 14px; }
+.map-game .gold-display > svg { width: 23px; height: 23px; }
+.map-game .gold-display b { font-size: 26px; }
+.map-game .gold-display span { font-size: 8px; margin-top: 3px; }
+.map-game .upgrade-button { min-height: 44px; gap: 8px; }
+.map-game .commander-level { width: 33px; height: 36px; font-size: 17px; }
+.map-game .upgrade-button > span:nth-child(2) { font-size: 11px; }
+.map-game .upgrade-button small { font-size: 8px; margin-top: 4px; }
+.map-game .upgrade-button > svg { display: none; }
+.map-game .economy-spacer { flex: 1; }
+.map-game .battle-button { min-height: 44px; min-width: 138px; font-size: 12px; gap: 17px; padding: 9px 15px; }
+.map-game [data-drop-zone="sell"] { min-height: 44px; min-width: 62px; padding: 7px 10px; border: 1px dashed #d1a88666; border-radius: 5px; color: #e5bd9a; font-size: 10px; line-height: 1.5; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
+.map-game [data-drop-zone="sell"] svg { width: 15px; height: 15px; }
+.map-game .map-inspection { position: absolute; z-index: 20; left: 18px; top: calc(var(--hud-height) + 12px); width: 266px; max-height: calc(100dvh - var(--hud-height) - var(--economy-height) - 35px); }
+.map-game .map-inspection:empty,
+.map-game .empty-inspector { display: none; }
+.map-game .map-inspection .inspector { position: relative; inset: auto; width: 100%; max-height: inherit; min-height: 0; overflow: auto; padding: 0; box-shadow: 0 12px 40px #0008; background: #142e26f5; border-color: #d3be785c; border-radius: 8px; }
+.map-game .detail-art { height: 95px; position: relative; }
+.map-game .detail-art img { mask-image: linear-gradient(#000 35%, transparent); }
+.map-game .detail-close { position: absolute; z-index: 3; top: 3px; right: 3px; width: 44px; height: 44px; background: #10271fbb; }
+.map-game .detail-copy { padding: 2px 14px 14px; }
+.map-game .detail-copy h2 { font-size: 22px; }
+.map-game .detail-stats { margin: 10px 0; padding: 8px 0; }
+.map-game .ability { font-size: 11px; }
+.map-game .ability-limit { font-size: 9px; }
+.map-game .detail-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.map-game .detail-actions > button { flex: 1 1 44%; min-height: 44px; width: auto; font-size: 11px; padding: 8px; }
+.map-game .detail-actions > .primary { flex-basis: 100%; }
+.map-game .sell-confirm { width: 100%; }
+.map-game .equipment-list .text-button { min-width: 44px; min-height: 44px; }
+.map-game .map-inspection.has-intent { top: calc(var(--hud-height) + 6px); left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); max-height: 218px; }
+.map-game:has(.map-inspection.has-intent) .floating-market { visibility: hidden; }
+.map-game .map-inspection .intent-inspector { padding: 9px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; }
+.map-game .intent-inspector > .intent-icon,
+.map-game .intent-inspector > .ability { display: none; }
+.map-game .intent-inspector > .eyebrow { display: block; grid-column: 1; grid-row: 1; margin: 0; font-size: 8px; letter-spacing: 1px; }
+.map-game .intent-inspector > h2 { grid-column: 1; grid-row: 2; margin: 0; font-size: 17px; }
+.map-game .intent-inspector > .intent-guidance { grid-column: 1; grid-row: 3; font-size: 10px; line-height: 1.6; }
+.map-game .intent-inspector > .detail-actions { grid-column: 2; grid-row: 1/4; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; max-width: 230px; min-width: 0; margin: 0; }
+.map-game .intent-inspector .detail-actions > button { flex: 1; min-height: 44px; font-size: 10px; padding: 6px 8px; white-space: nowrap; }
+.map-game .intent-inspector > .chosen-targets,
+.map-game .intent-inspector > .level-preview,
+.map-game .intent-inspector > .choice-row,
+.map-game .intent-inspector > p:not(.intent-guidance):not(.eyebrow) { grid-column: 1/-1; margin: 3px 0; }
+.map-game .intent-inspector .chosen-targets { display: flex; flex-direction: row; gap: 6px; }
+.map-game .intent-inspector .chosen-targets > span { flex: 1; padding: 6px; font-size: 10px; }
+.map-game .intent-inspector .level-preview { display: grid; grid-template-columns: auto auto auto auto; align-items: center; padding: 7px 9px; gap: 5px 8px; }
+.map-game .level-preview b { font-size: 16px; }
+.map-game .level-preview span { font-size: 9px; }
+.map-game .level-preview small { grid-column: 1/-1; font-size: 8px; }
+.map-game .intent-inspector .choice-row button { min-height: 44px; padding: 7px; font-size: 10px; }
+.map-game .map-playback { position: absolute; z-index: 12; left: 50%; bottom: max(17px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(500px, calc(100% - 32px)); display: flex; align-items: center; gap: 8px; padding: 6px 9px; margin: 0; border: 1px solid #d3bf7d38; border-radius: 8px; background: #10281fd9; backdrop-filter: blur(10px); box-shadow: 0 5px 22px #0005; }
+.map-game .map-playback .small-button { min-height: 44px; padding: 7px 10px; font-size: 11px; }
+.map-game .map-playback .micro { color: #b8c3a8; font: 10px Georgia, serif; min-width: 32px; }
+.map-game .map-playback .battle-progress { flex: 1; min-width: 20px; }
+.map-game .map-playback progress { flex: 1; height: 4px; width: 50px; accent-color: var(--gold); }
+.map-game > .current-event { position: absolute; z-index: 11; bottom: calc(83px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); min-height: 0; margin: 0; color: #f5eccf; font-size: 12px; line-height: 1.6; text-align: center; text-shadow: 0 2px 5px #000, 0 1px 12px #000; pointer-events: none; }
+.map-game .map-result-overlay { position: absolute; z-index: 15; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow: auto; padding: 20px; background: #102a23f0; border: 1px solid #d5ba7980; border-radius: 10px; box-shadow: 0 20px 70px #0008; backdrop-filter: blur(12px); }
+.map-game .map-result-overlay .result-panel { background: none; border: 0; padding: 0; margin: 0 0 18px; gap: 16px; }
+.map-game .map-result-overlay .result-panel small { color: #a5b09a; }
+.map-game .map-result-overlay > button { width: 100%; min-height: 44px; }
+.map-game .result-actions { display: flex; gap: 9px; }
+.map-game .result-actions > button { flex: 1; min-height: 44px; }
+.map-game.is-battle .floating-market,
+.map-game.is-battle .floating-hand,
+.map-game.is-battle .map-economy,
+.map-game.is-battle .map-inspection { display: none; }
+.map-game [data-draggable],
+.map-game [data-drag-zone] { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab; }
+.map-game.dragging,
+.map-game .dragging { cursor: grabbing; }
+.map-game .dragging { opacity: .45; }
+.map-game .drop-ready { outline: 2px solid #b7f2b2; outline-offset: 2px; filter: brightness(1.2); box-shadow: 0 0 24px #a6f19b70; }
+.map-game .drop-denied { outline: 2px solid #ea987a; outline-offset: 2px; }
+.map-game .drag-ghost { position: fixed; z-index: 100; width: 90px; pointer-events: none; opacity: .9; transform: translate(-50%, -70%) rotate(-5deg); filter: drop-shadow(0 12px 12px #0008); }
+.map-game .drag-ghost * { pointer-events: none; }
+.map-game .drag-ghost .market-card { width: 90px; }
+
+@media (max-width: 740px) {
+  .map-game { --hud-height: 57px; --economy-height: 62px; }
+  .map-game .map-hud { gap: 10px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .map-game .map-brand { font-size: 17px; letter-spacing: 2px; }
+  .map-game .round-status { gap: 1px 7px; font-size: 9px; max-width: 160px; }
+  .map-game .round-status > b,
+  .map-game .round-status > span { white-space: nowrap; }
+  .map-game .round-status small { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .map-game .map-hud nav { gap: 0; }
+  .map-game .map-hud .icon-button span { display: none; }
+  .map-game .map-hud .icon-button { padding: 8px; }
+  .map-game .floating-market { width: calc(100% - 20px); padding: 0 8px 6px; top: calc(var(--hud-height) + 4px); }
+  .map-game .section-heading h2 { font-size: 14px; }
+  .map-game .market-controls { gap: 0; }
+  .map-game .market-controls .small-button,
+  .map-game .market-controls .text-button { padding: 6px; font-size: 9px; }
+  .map-game .shop-row { gap: 6px; }
+  .map-game .shop-vacancy { min-height: 92px; }
+  .map-game .shop-row .card-art { height: 49px; }
+  .map-game .card-bottom { min-height: 39px; padding: 5px 3px; }
+  .map-game .card-bottom > b { font-size: 10px; }
+  .map-game .mini-stats { font-size: 9px; gap: 5px; }
+  .map-game .mini-stats svg { width: 8px; height: 8px; }
+  .map-game .card-brief { font-size: 7px; }
+  .map-game .card-family { font-size: 6px; }
+  .map-game .price { font-size: 9px; right: 3px; bottom: 5px; padding: 1px 3px; }
+  .map-game .price svg { width: 8px; height: 8px; }
+  .map-game .floating-hand { width: calc(100% - 20px); padding: 0 8px 4px; bottom: calc(var(--economy-height) + env(safe-area-inset-bottom) + 15px); }
+  .map-game .hand-section .section-heading > small { display: none; }
+  .map-game .hand-row .market-card { width: 77px; flex-basis: 77px; }
+  .map-game .hand-row .card-art { height: 45px; }
+  .map-game .hand-row .card-bottom { min-height: 37px; }
+  .map-game .hand-row .card-bottom > b { font-size: 10px; }
+  .map-game .hand-empty { min-height: 82px; font-size: 11px; }
+  .map-game .hand-empty span { font-size: 8px; }
+  .map-game .map-economy { width: calc(100% - 20px); padding: 7px 8px; gap: 6px; }
+  .map-game .economy-bar { gap: 8px; }
+  .map-game .gold-display { grid-template-columns: 18px 25px; gap: 0 3px; padding-right: 7px; }
+  .map-game .gold-display > svg { width: 18px; height: 18px; }
+  .map-game .gold-display b { font-size: 22px; }
+  .map-game .gold-display span { font-size: 7px; }
+  .map-game .upgrade-button { gap: 5px; }
+  .map-game .commander-level { width: 26px; height: 31px; font-size: 14px; }
+  .map-game .upgrade-button > span:nth-child(2) { font-size: 9px; }
+  .map-game .upgrade-button small { font-size: 7px; max-width: 93px; }
+  .map-game .battle-button { min-width: 85px; padding: 8px; gap: 5px; font-size: 11px; }
+  .map-game .battle-button svg { width: 14px; height: 14px; }
+  .map-game [data-drop-zone="sell"] { min-width: 44px; font-size: 9px; padding: 4px; }
+  .map-game .map-inspection { top: auto; left: 50%; bottom: calc(var(--economy-height) + 17px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(350px, calc(100% - 20px)); max-height: min(470px, calc(100dvh - 150px)); }
+  .map-game .map-inspection.has-intent { top: calc(var(--hud-height) + 4px); bottom: auto; width: calc(100% - 20px); max-height: 215px; }
+  .map-game .map-inspection .intent-inspector { padding: 8px 10px; gap: 4px 8px; }
+  .map-game .intent-inspector > h2 { font-size: 15px; }
+  .map-game .intent-inspector > .intent-guidance { font-size: 9px; }
+  .map-game .intent-inspector > .detail-actions { max-width: 105px; flex-direction: column; }
+  .map-game .intent-inspector .detail-actions > button { flex: auto; width: 100%; font-size: 9px; white-space: normal; }
+  .map-game .intent-inspector .chosen-targets > span { font-size: 9px; padding: 4px; }
+  .map-game .intent-inspector .level-preview { grid-template-columns: auto auto; padding: 5px 7px; }
+  .map-game .map-playback { width: calc(100% - 24px); gap: 6px; padding: 5px 7px; }
+  .map-game .map-playback .small-button { font-size: 10px; padding: 7px; }
+  .map-game > .current-event { font-size: 10px; bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .map-game .map-result-overlay { padding: 17px; }
+  .map-game .map-result-overlay .result-panel h2 { font-size: 22px; }
+}
+
+@media (max-width: 380px) and (orientation: portrait) {
+  .map-game .map-brand { font-size: 15px; letter-spacing: 1px; }
+  .map-game .map-brand > svg { display: none; }
+  .map-game .map-hud { gap: 6px; }
+  .map-game .round-status { font-size: 8px; gap: 1px 5px; }
+  .map-game .map-hud nav { gap: 0; }
+  .map-game .map-economy { gap: 5px; }
+  .map-game .economy-bar { gap: 6px; }
+  .map-game .gold-display { grid-template-columns: 16px 23px; padding-right: 5px; }
+  .map-game .gold-display > svg { width: 16px; }
+  .map-game .upgrade-button { gap: 3px; }
+  .map-game .upgrade-button > span:nth-child(2) { font-size: 8px; }
+  .map-game .upgrade-button small { font-size: 6px; max-width: 69px; }
+  .map-game .battle-button { min-width: 72px; font-size: 10px; padding: 7px 5px; }
+  .map-game .battle-button svg { display: none; }
+}
+
+@media (max-height: 580px) and (orientation: landscape) {
+  .map-game { --hud-height: 44px; --economy-height: 53px; --tray-width: 355px; }
+  .map-game .map-hud { min-height: 44px; padding: 0 max(9px, env(safe-area-inset-right)) 0 max(13px, env(safe-area-inset-left)); gap: 15px; }
+  .map-game .map-brand { font-size: 17px; letter-spacing: 2px; }
+  .map-game .round-status { font-size: 9px; max-width: none; }
+  .map-game .map-hud .icon-button span { display: none; }
+  .map-game .floating-market,
+  .map-game .floating-hand { left: auto; right: max(9px, env(safe-area-inset-right)); transform: none; width: min(var(--tray-width), 43%); padding: 0 7px 3px; border-radius: 7px; }
+  .map-game .floating-market { top: 47px; }
+  .map-game .floating-hand { bottom: calc(var(--economy-height) + env(safe-area-inset-bottom) + 11px); }
+  .map-game .section-heading { min-height: 44px; }
+  .map-game .section-heading h2 { font-size: 12px; }
+  .map-game .market-controls .small-button,
+  .map-game .market-controls .text-button { font-size: 9px; padding: 4px; min-height: 44px; }
+  .map-game .market-controls { gap: 0; }
+  .map-game .market-controls svg { width: 11px; height: 11px; }
+  .map-game .shop-row { gap: 5px; padding: 1px 0 3px; }
+  .map-game .shop-row .card-art { height: 37px; }
+  .map-game .shop-row .card-bottom { min-height: 34px; padding: 4px 2px; }
+  .map-game .shop-row .card-bottom > b { font-size: 9px; }
+  .map-game .mini-stats { font-size: 8px; gap: 4px; margin-top: 4px; }
+  .map-game .mini-stats svg { width: 7px; height: 7px; }
+  .map-game .shop-vacancy { min-height: 75px; }
+  .map-game .shop-vacancy span { font-size: 11px; }
+  .map-game .shop-vacancy small { font-size: 7px; }
+  .map-game .tier-badge { min-width: 15px; width: 15px; height: 16px; font-size: 7px; top: 2px; left: 2px; }
+  .map-game .card-family { font-size: 6px; right: 3px; top: 3px; }
+  .map-game .card-level,
+  .map-game .card-kind { font-size: 8px; bottom: 3px; left: 3px; }
+  .map-game .card-brief { font-size: 6px; margin-top: 4px; }
+  .map-game .price { font-size: 8px; right: 3px; bottom: 4px; padding: 1px 2px; }
+  .map-game .price svg { width: 7px; height: 7px; }
+  .map-game .hand-section .section-heading { min-height: 44px; }
+  .map-game .hand-section .section-heading > small { display: none; }
+  .map-game .hand-row { gap: 5px; padding: 1px 0 3px; }
+  .map-game .hand-row .market-card { width: 64px; flex-basis: 64px; }
+  .map-game .hand-row .card-art { height: 25px; }
+  .map-game .hand-row .card-bottom { min-height: 33px; padding: 4px 2px; }
+  .map-game .hand-row .card-bottom > b { font-size: 9px; }
+  .map-game .hand-empty { min-height: 66px; font-size: 10px; gap: 5px; }
+  .map-game .hand-empty span { font-size: 7px; }
+  .map-game .map-economy { bottom: max(5px, env(safe-area-inset-bottom)); width: calc(100% - 20px); min-height: 51px; padding: 3px 10px; gap: 10px; border-radius: 7px; }
+  .map-game .economy-bar { gap: 15px; }
+  .map-game .gold-display { grid-template-columns: 20px 32px; padding-right: 13px; }
+  .map-game .gold-display > svg { width: 20px; height: 20px; }
+  .map-game .gold-display b { font-size: 23px; }
+  .map-game .upgrade-button > span:nth-child(2) { font-size: 10px; }
+  .map-game .upgrade-button small { font-size: 8px; margin-top: 3px; max-width: none; }
+  .map-game .commander-level { width: 28px; height: 32px; font-size: 15px; }
+  .map-game .battle-button { min-height: 44px; min-width: 145px; font-size: 11px; padding: 7px 13px; gap: 15px; }
+  .map-game [data-drop-zone="sell"] { min-width: 65px; flex-direction: row; gap: 6px; font-size: 9px; }
+  .map-game .map-inspection { left: auto; right: max(9px, env(safe-area-inset-right)); top: 48px; bottom: auto; transform: none; width: min(var(--tray-width), 43%); max-height: calc(100dvh - 112px); }
+  .map-game .map-inspection .detail-art { height: 53px; }
+  .map-game .map-inspection .detail-copy { padding: 0 11px 11px; }
+  .map-game .detail-copy h2 { font-size: 18px; }
+  .map-game .detail-copy .eyebrow { font-size: 7px; }
+  .map-game .detail-stats { padding: 6px 0; margin: 7px 0; }
+  .map-game .ability { font-size: 10px; }
+  .map-game .map-inspection.has-intent { left: auto; right: max(9px, env(safe-area-inset-right)); top: 47px; bottom: auto; transform: none; width: min(var(--tray-width), 43%); max-height: calc(100dvh - var(--economy-height) - 156px); }
+  .map-game .map-inspection .intent-inspector { padding: 7px 9px; gap: 3px 7px; }
+  .map-game .intent-inspector > h2 { font-size: 14px; }
+  .map-game .intent-inspector > .intent-guidance { font-size: 9px; }
+  .map-game .intent-inspector > .detail-actions { flex-direction: column; max-width: 103px; }
+  .map-game .intent-inspector .detail-actions > button { width: 100%; flex: auto; padding: 5px 7px; font-size: 9px; white-space: normal; }
+  .map-game .intent-inspector .level-preview { grid-template-columns: auto auto; }
+  .map-game .map-playback { bottom: max(9px, env(safe-area-inset-bottom)); width: min(450px, calc(100% - 30px)); padding: 3px 8px; }
+  .map-game .map-playback .small-button { min-height: 44px; font-size: 10px; }
+  .map-game > .current-event { bottom: calc(67px + env(safe-area-inset-bottom)); font-size: 10px; }
+  .map-game .map-result-overlay { max-height: calc(100% - 65px); width: 450px; padding: 17px; }
+}

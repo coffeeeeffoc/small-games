@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080f14" />
+  <meta name="description" content="零域：手机中文低空飞行游戏。双手操纵，在数字荒原中追踪、战斗、回收。" />
+  <title>零域 · NULL RANGE — 中文飞行游戏</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23080f14'/%3E%3Cpath d='M20 5L35 33 20 26 5 33Z' fill='none' stroke='%23ffb34c' stroke-width='3'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true"><defs>
+    <symbol id="i-mark" viewBox="0 0 32 32"><path d="M16 3 29 27 16 21 3 27Z M16 3V21"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8"/><path d="M16 2v8m0 12v8M2 16h8m12 0h8"/><circle cx="16" cy="16" r="2"/></symbol>
+    <symbol id="i-boost" viewBox="0 0 32 32"><path d="m7 19 9-9 9 9M7 27l9-9 9 9M7 11l9-9 9 9"/></symbol>
+    <symbol id="i-missile" viewBox="0 0 32 32"><path d="M12 21 9 13 25 5 21 21 13 24 12 21ZM9 13 3 14l5 6M21 21l-1 8-6-5M9 24l-5 4"/><circle cx="20" cy="11" r="2"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="6"/><path d="M16 16 24 7M16 1v4M1 16h4m22 0h4M16 27v4"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+    <symbol id="i-view" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3ZM16 8q5 4 0 8m3-11q8 7 0 14"/></symbol>
+  </defs></svg>
+  <canvas id="world" aria-label="三维低空飞行战场"></canvas>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <div id="damage-flash" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="零域主菜单"><svg><use href="#i-mark"/></svg><b>零域</b><span>NULL RANGE</span></a>
+    <div class="sector"><i></i> 第 07 空域 <span>/</span> 荒原回响</div>
+    <div class="top-actions">
+      <button id="sound" class="icon-button" aria-label="关闭声音" title="声音"><svg><use href="#i-sound"/></svg></button>
+      <button id="fullscreen" class="icon-button" aria-label="进入全屏" title="全屏"><svg><use href="#i-expand"/></svg></button>
+      <button id="pause" class="icon-button" aria-label="暂停游戏" title="暂停" hidden><svg><use href="#i-pause"/></svg></button>
+    </div>
+  </header>
+
+  <main id="menu" class="menu">
+    <section class="hero">
+      <div class="eyebrow"><span class="line"></span> 低空飞行 / 战术生存</div>
+      <h1>飞入<span>无人之境。</span></h1>
+      <p>掠过荒原，追踪回响。<br>在最后一道信号消失前，带着赏金返航。</p>
+      <div class="hero-coordinates">SECTOR_07 <span>31° 14′ N / 121° 28′ E</span></div>
+    </section>
+    <section class="deploy-panel" aria-label="出击准备">
+      <div class="panel-top"><span>飞行简报</span><span>OP. 001 ↗</span></div>
+      <div class="ship-label"><svg><use href="#i-mark"/></svg><div><small>轻型截击机</small><h2>游隼 <span>NR—01</span></h2></div><b>就绪</b></div>
+      <div class="loadout"><span>脉冲激光 <b>∞</b></span><span>追踪导弹 <b>× 6</b></span></div>
+      <div class="brief"><strong>清理 3 波敌机，夺回空域</strong><p>击落目标获得赏金 · 扫描回收残骸</p></div>
+      <fieldset class="difficulty"><legend>飞行辅助</legend><button type="button" data-difficulty="easy" aria-pressed="false">新手护航</button><button type="button" data-difficulty="normal" class="selected" aria-pressed="true">标准行动</button></fieldset>
+      <button id="deploy" class="primary" disabled><span>正在校准引擎</span><span>↗</span></button>
+      <div class="deploy-foot"><span><i></i> 单人离线任务</span><button id="help-open" class="text-button">操作指南 <span>?</span></button></div>
+    </section>
+    <div class="menu-bottom"><span>你的航线，由你决定。</span><span>本机最佳 <b id="best">000000</b></span><span class="rotate-hint">↔ 横屏体验更佳</span></div>
+  </main>
+
+  <section id="hud" aria-label="飞行仪表" hidden>
+    <div class="mission"><div><span class="live-dot"></span> 空域清剿 <b id="wave">01 / 03</b></div><p id="objective">击落敌机，回收残骸</p><div id="progress" class="progress" aria-label="击落进度"></div></div>
+    <div class="compass" aria-hidden="true"><span>330</span><span>北</span><b id="heading">000</b><span>030</span><span>060</span><i></i></div>
+    <div class="score"><small>行动赏金</small><b id="score">000000</b><span>击落 <em id="kills">00</em> / 12</span></div>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div class="aim" aria-hidden="true"><i></i><span></span><b></b></div>
+    <div id="target" class="target" hidden><span id="target-label">锁定</span><i></i><b id="target-distance"></b></div>
+    <div id="direction" class="target-direction" hidden><span>◇</span><small>目标</small></div>
+    <div class="flight-data left-data"><small>空速</small><b id="speed">094</b><span>米 / 秒</span></div>
+    <div class="flight-data right-data"><small>离地</small><b id="altitude">100</b><span>米</span></div>
+    <div class="radar-wrap"><canvas id="radar" width="208" height="208" aria-label="附近敌机雷达"></canvas><span id="radar-label">被动雷达</span></div>
+    <div class="vitals"><div><span>护盾 <b id="shield-text">100</b></span><meter id="shield" min="0" max="100" value="100" aria-label="护盾"></meter></div><div><span>机体 <b id="hull-text">100</b></span><meter id="hull" min="0" max="100" value="100" aria-label="机体生命"></meter></div></div>
+    <div class="heat"><span id="heat-label">脉冲激光 / 就绪</span><div><i id="heat-bar"></i></div></div>
+    <button id="view" class="camera-button" aria-label="切换座舱视角"><svg><use href="#i-view"/></svg><span>追尾视角</span></button>
+    <div id="controls" class="controls">
+      <div class="move-control"><div id="joystick" role="group" aria-label="方向摇杆，上下升降，左右转向"><div class="joystick-cross"></div><span class="up-mark">⌃</span><span class="down-mark">⌄</span><div id="stick"><svg><use href="#i-mark"/></svg></div></div><span class="control-caption">转向 / 升降</span></div>
+      <div class="combat-controls">
+        <button id="scan" class="skill-button scan-button" aria-label="扫描回收"><svg><use href="#i-scan"/></svg><span>扫描</span><small id="scan-status">就绪</small></button>
+        <button id="boost" class="skill-button boost-button" aria-label="按住加速"><svg><use href="#i-boost"/></svg><span>加速</span><small id="boost-status">100%</small></button>
+        <button id="missile" class="skill-button missile-button" aria-label="发射追踪导弹"><svg><use href="#i-missile"/></svg><span>导弹</span><small id="missile-status">× 6</small></button>
+        <button id="fire" class="fire-button" aria-label="按住连续射击"><svg><use href="#i-fire"/></svg><b>开火</b><span>按住连射</span></button>
+      </div>
+    </div>
+    <div id="flight-tip">左杆控制方向与高度 · 右侧按住开火</div>
+  </section>
+
+  <dialog id="pause-dialog" class="dialog"><div class="eyebrow">信号已保持 / PAUSED</div><h2>稍作悬停。</h2><p>航程暂停，等你归队。</p><button id="resume" class="primary">继续飞行 <span>↗</span></button><button id="pause-help" class="secondary">查看操作指南</button><button id="back-menu" class="text-button">结束本局，返回机库</button></dialog>
+  <dialog id="help-dialog" class="dialog help-dialog"><div class="eyebrow">飞行员手册 / FIELD GUIDE</div><h2>双手，掌控空域。</h2><div class="guide-list"><p><b>01 左侧摇杆</b><span>左右转向，上推爬升，下拉俯冲。飞船自动巡航，松手回平。</span></p><p><b>02 右侧开火</b><span>按住连续射击。让敌机靠近准星，激光会轻微辅助瞄准；过热后停火冷却。</span></p><p><b>03 战术按钮</b><span>导弹追踪前方目标；按住加速躲避红色弹道；扫描揭示敌机并吸引附近残骸。</span></p><p><b>04 完成行动</b><span>击落三波共 12 架敌机通关。护盾会恢复；避开山体，保护机体。</span></p></div><p class="keyboard-note">电脑：WASD / 方向键操纵 · 空格射击 · Shift 加速<br>Q 扫描 · E 导弹 · V 视角 · Esc 暂停</p><button id="help-close" class="primary">明白，准备起飞 <span>↗</span></button></dialog>
+  <dialog id="result-dialog" class="dialog result-dialog"><div id="result-eyebrow" class="eyebrow">任务结束 / DEBRIEF</div><h2 id="result-title">空域已肃清。</h2><p id="result-copy"></p><div class="result-stats"><div><small>行动赏金</small><b id="result-score">0</b></div><div><small>击落目标</small><b id="result-kills">0</b></div><div><small>飞行时间</small><b id="result-time">00:00</b></div></div><button id="restart" class="primary">再次出击 <span>↗</span></button><button id="result-menu" class="secondary">返回机库</button></dialog>
+  <div id="error" role="alert" hidden>三维引擎未能启动，请刷新或换用支持 WebGL 2 的浏览器。</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

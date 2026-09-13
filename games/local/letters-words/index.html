@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#eaf0e4" />
+    <meta
+      name="description"
+      content="看中文，拼单词。把散落的字母一块块拼回来，一款轻松的单词消除小游戏。"
+    />
+    <title>词了个词 · 单词消消乐</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.mjs"></script>
+  </head>
+  <body>
+    <svg
+      class="icon-defs"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="i-leaf" viewBox="0 0 24 24">
+          <path d="M20 4C9 2 2 8 6 15c6 6 14 0 14-11Z" />
+          <path d="m4 21 11-12" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path d="M20 7v5h-5M4 17v-5h5" />
+          <path d="M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1" />
+        </symbol>
+        <symbol id="i-sound" viewBox="0 0 24 24">
+          <path
+            d="m11 5-5 4H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"
+          />
+        </symbol>
+        <symbol id="i-mute" viewBox="0 0 24 24">
+          <path d="m11 5-5 4H3v6h3l5 4V5ZM16 9l6 6m0-6-6 6" />
+        </symbol>
+        <symbol id="i-help" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1.5 1-1.5 1-1.5 3m0 3h.01" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-5-5 5 5-5 5" />
+        </symbol>
+        <symbol id="i-undo" viewBox="0 0 24 24">
+          <path d="m8 4-5 5 5 5M3 9h11a6 6 0 0 1 0 12" />
+        </symbol>
+        <symbol id="i-clear" viewBox="0 0 24 24">
+          <path d="m10 4-8 8 9 8h10V4H10Zm4 5 5 6m0-6-5 6" />
+        </symbol>
+        <symbol id="i-bulb" viewBox="0 0 24 24">
+          <path
+            d="M9 18h6m-6 3h6m-7-7a6 6 0 1 1 8 0c-1 1-1 2-1 4H9c0-2 0-3-1-4Z"
+          />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24">
+          <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14v6Z" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="词了个词 首页"
+          ><span class="brand-mark">词<span>3</span></span
+          ><span class="brand-name">词了个词<small>WORD GARDEN</small></span></a
+        >
+        <nav class="header-actions" aria-label="游戏设置">
+          <span class="header-note"><span></span> 给大脑放个小假</span>
+          <button
+            id="sound-button"
+            class="icon-button"
+            aria-label="关闭音效"
+            aria-pressed="true"
+          >
+            <svg class="icon"><use href="#i-sound" /></svg>
+          </button>
+          <button id="help-button" class="icon-button" aria-label="玩法说明">
+            <svg class="icon"><use href="#i-help" /></svg>
+          </button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <p class="eyebrow">
+              <svg class="icon"><use href="#i-leaf" /></svg>
+              一点中文提示，一场字母奇遇
+            </p>
+            <h1 id="page-title">把单词，<span>一块块拼回来。</span></h1>
+            <p class="intro-description">
+              看中文 · 点字母 · 拼对消除。让每一块字母，都找到它的位置。
+            </p>
+          </div>
+          <button id="new-game" class="button button-green">
+            <svg class="icon"><use href="#i-refresh" /></svg> 新的一局
+          </button>
+        </section>
+
+        <div class="game-layout">
+          <section class="play-card" aria-label="单词拼写区">
+            <div class="play-heading">
+              <span><span class="tiny-square"></span> 字母消消乐</span
+              ><span class="round-label">轻松模式 <span>·</span> 不限时</span>
+            </div>
+            <div id="challenge" class="challenge">
+              <div class="clue-label">
+                <span id="challenge-number">WORD 01 / 06</span
+                ><span class="clue-line"></span><span>请拼出这个词</span>
+              </div>
+              <h2 id="meaning"></h2>
+              <p id="letter-count" class="letter-count"></p>
+              <div id="answer" class="answer-slots" aria-label="当前拼写"></div>
+            </div>
+
+            <div
+              id="feedback"
+              class="feedback"
+              role="status"
+              aria-live="polite"
+            >
+              <span>↓</span> 点击下方字母，开始拼写吧
+            </div>
+            <div class="board-wrap">
+              <div class="board-caption">
+                <span>你的字母棋盘</span><span>右上角数字 = 可选数量</span>
+              </div>
+              <div
+                id="board"
+                class="board"
+                role="group"
+                aria-label="字母棋盘"
+              ></div>
+              <div class="board-bottom">
+                <span class="small-dot"></span><span id="board-summary"></span
+                ><span class="board-decoration" aria-hidden="true">✳</span>
+              </div>
+            </div>
+            <div class="game-controls" aria-label="拼写辅助">
+              <button id="undo-button" class="tool-button" disabled>
+                <svg class="icon"><use href="#i-undo" /></svg
+                ><span>撤回一步</span><kbd>⌫</kbd>
+              </button>
+              <button id="clear-button" class="tool-button" disabled>
+                <svg class="icon"><use href="#i-clear" /></svg
+                ><span>清空拼写</span><kbd>Esc</kbd>
+              </button>
+              <button id="hint-button" class="tool-button hint-button">
+                <svg class="icon"><use href="#i-bulb" /></svg
+                ><span>给点提示</span>
+              </button>
+            </div>
+            <p class="play-footnote">
+              拼对才会消除，选错也没关系。<span
+                >电脑还可以直接用键盘输入。</span
+              >
+            </p>
+          </section>
+
+          <aside class="sidebar">
+            <section class="word-card" aria-labelledby="word-list-title">
+              <div class="word-card-heading">
+                <h2 id="word-list-title">本局词单</h2>
+                <span class="small-label">TO LEARN</span>
+              </div>
+              <div class="progress-description">
+                <span>一点点，攒满成就感</span
+                ><strong id="progress-count">0 <span>/ 6</span></strong>
+              </div>
+              <progress
+                id="progress"
+                value="0"
+                max="6"
+                aria-label="单词完成进度"
+              ></progress>
+              <ol id="word-list" class="word-list"></ol>
+              <div class="word-list-tip">
+                <span class="small-dot"></span> 点击词义，可以换一个先拼
+              </div>
+              <button id="edit-words" class="button edit-button">
+                <svg class="icon"><use href="#i-edit" /></svg> 自定义词单
+                <svg class="icon arrow-icon"><use href="#i-arrow" /></svg>
+              </button>
+            </section>
+            <section class="garden-note">
+              <div class="mini-garden" aria-hidden="true">
+                <span class="garden-spark spark-one">✧</span
+                ><span class="mini-tile tile-w">w<sup>2</sup></span
+                ><span class="mini-tile tile-o">o<sup>3</sup></span
+                ><span class="garden-spark spark-two">✦</span
+                ><span class="sprout"><i></i><i></i></span>
+              </div>
+              <h3>每一块，都刚刚好</h3>
+              <p>重复字母叠在一起，<br />拼完所有单词，棋盘就清空啦。</p>
+              <span class="note-pill"
+                >慢慢来，也是一种进步 <span>↗</span></span
+              >
+            </section>
+          </aside>
+        </div>
+        <footer class="site-footer">
+          <span>小小棋盘，大大词汇量。</span
+          ><span
+            >MADE FOR YOUR LITTLE BREAK
+            <svg class="icon"><use href="#i-leaf" /></svg
+          ></span>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="words-dialog" class="modal">
+      <div class="modal-heading">
+        <span class="eyebrow">YOUR OWN WORD GARDEN</span
+        ><button class="icon-button close-dialog" aria-label="关闭词单编辑">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <h2>今天，想记住哪些词？</h2>
+      <p class="modal-description">
+        一行一个英文单词和中文含义，用空格、逗号或 Tab 分隔。支持 1–12
+        个词，也支持连字符、撇号和句点。
+      </p>
+      <form id="words-form">
+        <label for="words-input">我的词单</label
+        ><textarea
+          id="words-input"
+          rows="8"
+          maxlength="800"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="apple 苹果&#10;ice cream 冰淇淋&#10;t-shirt T恤"
+        ></textarea>
+        <p class="input-note">短语中的空格会自动留好，你只需要选字母和符号。</p>
+        <p id="words-error" class="form-error" role="alert"></p>
+        <div class="modal-actions">
+          <button id="random-words" class="button button-light" type="button">
+            <svg class="icon"><use href="#i-refresh" /></svg> 随机来一组</button
+          ><button class="button button-green" type="submit">
+            用这组词开玩 <svg class="icon"><use href="#i-arrow" /></svg>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="help-dialog" class="modal help-modal">
+      <div class="modal-heading">
+        <span class="eyebrow">HOW TO PLAY</span
+        ><button class="icon-button close-dialog" aria-label="关闭玩法说明">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <h2>三个小步骤，拼出好记性。</h2>
+      <ol class="help-steps">
+        <li>
+          <span>01</span>
+          <div>
+            <h3>看一眼中文</h3>
+            <p>
+              根据中间的中文提示，想一想对应的英文。词单里的词可以自由切换。
+            </p>
+          </div>
+        </li>
+        <li>
+          <span>02</span>
+          <div>
+            <h3>点字母，拼起来</h3>
+            <p>
+              按顺序点击棋子。右上角显示还能选几次，撇号、连字符和句点也要拼上。
+            </p>
+          </div>
+        </li>
+        <li>
+          <span>03</span>
+          <div>
+            <h3>拼对一个，消除一组</h3>
+            <p>
+              填满后自动检查。拼错可以撤回，或点已填字母撤回到那一格；拼对才会真正消耗棋子，清空棋盘就通关。
+            </p>
+          </div>
+        </li>
+      </ol>
+      <button class="button button-green close-dialog full-width">
+        明白了，开始拼词
+      </button>
+    </dialog>
+
+    <dialog id="win-dialog" class="modal win-modal">
+      <div class="modal-heading">
+        <span class="eyebrow">A LITTLE WIN FOR TODAY</span
+        ><button class="icon-button close-dialog" aria-label="查看完成的棋盘">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <div class="win-badge" aria-hidden="true">
+        <svg class="icon"><use href="#i-leaf" /></svg><span>✦</span>
+      </div>
+      <h2>好词，都被你收下啦！</h2>
+      <p class="modal-description">
+        棋盘清空，单词入脑。今天也有一点小小的进步。
+      </p>
+      <div id="win-stats" class="win-stats"></div>
+      <div id="win-words" class="win-words"></div>
+      <button id="play-again" class="button button-green full-width">
+        <svg class="icon"><use href="#i-refresh" /></svg> 再种一片单词花园
+      </button>
+    </dialog>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+  </body>
+</html>

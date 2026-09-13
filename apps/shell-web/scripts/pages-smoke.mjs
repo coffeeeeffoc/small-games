@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { preview } from 'vite';
+import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
 
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
 const server = await preview({
@@ -11,6 +12,9 @@ const server = await preview({
   preview: { host: '127.0.0.1', port: 0 },
 });
 let browser;
+const results = [];
+const output = new URL('../../../.scratch/game-integration/', import.meta.url);
+await mkdir(output, { recursive: true });
 try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
   const url = process.env.PAGES_URL ?? `${origin}/small-games/`;
@@ -77,42 +81,40 @@ try {
   for (const game of games) {
     await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
     const frame = page.frameLocator('iframe');
-    const marker = {
-      fishing: '.overlay.start .primary',
-      'tower-defense-game': '[aria-label="塔防战场"]',
-      'xiangqi-five': '#draw-button',
-      'office-slacking': '#start',
-    }[game.id];
-    await expect(frame.locator(marker)).toBeVisible();
-    if (game.id === 'tower-defense-game') {
-      await frame.getByRole('button', { name: '切换速度，当前1倍' }).click();
-      await expect(frame.getByRole('button', { name: '切换速度，当前2倍' })).toBeVisible();
-    } else if (game.id === 'xiangqi-five') {
-      await frame.locator('#draw-button').click();
-      await frame.locator('.cell').first().click();
-      await expect(frame.locator('.cell.last-play')).toHaveCount(1);
-    } else if (game.id === 'fishing') {
-      await frame.getByRole('button', { name: '开始航行' }).click();
-      await expect(frame.getByTestId('timer')).toBeVisible();
-      await expect(frame.getByTestId('timer')).not.toHaveText('3:00');
-      await frame.getByRole('button', { name: '暂停', exact: true }).click();
-      await expect(frame.getByRole('button', { name: '继续航行' })).toBeVisible();
-    } else {
-      await frame.locator('#start').click();
-      await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
-      await expect(frame.locator('#asset-error')).toBeHidden();
-    }
+    const marker = markers[game.id];
+    assert(marker, `Missing ready marker for ${game.id}`);
+    await expect(frame.locator(marker).first()).toBeVisible();
+    await exerciseStandalone(frame, game.id);
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
     assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
     assert.equal(
       await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
       standaloneUrl,
     );
-    const direct = await browser.newPage();
+    const landscape = ['fishing', 'vibeJam-myself-delivery', 'vibeJam-myself-nullrange'].includes(
+      game.id,
+    );
+    const viewport = landscape ? { width: 844, height: 390 } : { width: 390, height: 844 };
+    const direct = await browser.newPage({ viewport, isMobile: true, hasTouch: true });
+    direct.on('pageerror', (error) => failures.push(`${game.id}: ${error.message}`));
+    direct.on('response', (response) => {
+      if (response.url().startsWith(url) && response.status() >= 400)
+        failures.push(`${response.status()} ${response.url()}`);
+    });
     try {
       const response = await direct.goto(standaloneUrl);
       assert.equal(response.status(), 200);
-      await expect(direct.locator(marker)).toBeVisible();
+      await expect(direct.locator(marker).first()).toBeVisible();
+      await exerciseStandalone(direct, game.id, true);
+      assert(
+        await direct.evaluate(
+          () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth + 1,
+        ),
+        `${game.id}: mobile overflow`,
+      );
+      await direct.screenshot({ path: fileURLToPath(new URL(`${game.id}-phone.png`, output)) });
+      results.push({ id: game.id, embedded: 'passed', directMobile: 'passed', viewport });
+      console.log(`Passed: ${game.id} (embedded and ${viewport.width}x${viewport.height} touch)`);
     } finally {
       await direct.close();
     }
@@ -126,6 +128,10 @@ try {
     ),
   );
   assert.deepEqual(failures, []);
+  await writeFile(
+    new URL('report.json', output),
+    JSON.stringify({ builtIn: 4, standalone: results, failures }, null, 2),
+  );
   console.log(
     `Pages: ${4 + games.length} catalog entries, ${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
   );

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#f5efe1" />
+    <meta name="description" content="骑上小摩托，把快乐送到。横屏触控 3D 海岛配送游戏。" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>橘风速递 · Tangerine Express</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="world" aria-label="橘风岛三维配送场景"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+      <div id="loading"><span class="orange-mark">✳</span><b>橘风岛，马上到。</b><span>正在把小镇装进口袋…</span></div>
+      <header class="brand"><span class="orange-mark">✳</span><div>橘风速递<small>TANGERINE EXPRESS</small></div></header>
+      <div class="top-tools">
+        <span class="weather">☀ <b>橘风岛</b><span>微风 · 26°</span></span>
+        <button class="icon-button" id="sound" aria-label="关闭声音" title="声音">♫</button>
+        <button class="icon-button" id="fullscreen" aria-label="进入全屏" title="全屏">⛶</button>
+        <button class="icon-button" id="pause" aria-label="暂停游戏" title="暂停" hidden>Ⅱ</button>
+      </div>
+      <section id="home" hidden>
+        <div class="home-copy">
+          <div class="eyebrow"><span></span> 一座小岛，一份刚刚好的工作</div>
+          <h1>把快乐，<br><em>送到。</em><span class="title-star">✳</span></h1>
+          <p>海风、橘子，还有一辆小摩托。<br>和水豚一起，穿过小镇的每个好天气。</p>
+          <button class="primary" id="start">接单出发 <span>↗</span></button>
+          <button class="text-button" id="help">第一次来？看看配送手册 <span>↗</span></button>
+          <div class="home-stats"><span><b id="saved-deliveries">00</b> 已送达</span><i></i><span><b id="saved-coins">0</b> 橘子币</span><span class="local-label">你的岛上日常 · 自动保存</span></div>
+        </div>
+        <div class="postcard"><span>FROM THE ISLAND, WITH LOVE</span><b>慢慢骑，也很好。</b><small>EST. 2026 / 橘风岛邮便</small></div>
+        <footer><span>自由骑行 · 集市取货 · 把温暖送到家</span><span>为双手与小屏幕而设计 <b>↔</b></span></footer>
+      </section>
+      <section id="hud" hidden>
+        <div class="order-card">
+          <div class="order-top"><span class="order-stamp">岛上订单</span><span id="order-number">NO. 001</span><strong id="timer">03:00</strong></div>
+          <h2 id="objective">到橘子集市取货</h2>
+          <p id="objective-detail">放慢车速，靠近橘色光圈</p>
+          <div class="delivery-steps"><span data-step="pickup">01 取货</span><i></i><span data-step="collect">02 装满</span><i></i><span data-step="deliver">03 送达</span></div>
+          <div class="cargo-row"><span id="cargo-label">空箱出发，满载而归</span><div class="integrity-track"><i id="integrity"></i></div></div>
+        </div>
+        <button id="minimap-button" aria-label="打开小岛地图"><canvas id="minimap" width="192" height="192"></canvas><span><b>橘风岛</b> <span>地图 ↗</span></span></button>
+        <div id="destination-pin"><span>↓</span><b id="pin-name">橘子集市</b><small id="pin-distance">20 m</small></div>
+        <div id="navigation"><span id="nav-arrow">↑</span><div><b id="nav-distance">20 m</b><small id="nav-name">橘子集市</small></div></div>
+        <div class="wallet"><span>✳</span> <b id="coins">0</b><small>橘子币</small></div>
+        <div id="toast" role="status" aria-live="polite"></div>
+        <div id="controls">
+          <div class="steering"><div id="stick" role="group" aria-label="驾驶摇杆：上下前进倒车，左右转向"><span class="stick-n">↑</span><span class="stick-w">‹</span><span class="stick-e">›</span><span class="stick-s">↓</span><div id="knob"><span>✳</span></div></div><small id="steer-label">滑动驾驶 <span>W A S D</span></small></div>
+          <div class="speed-panel"><div><b id="speed">00</b><span>km/h</span></div><div class="energy-track"><i id="energy"></i></div><small id="ride-mode">小摩托 · 慢慢来也很快</small></div>
+          <div class="action-buttons"><button id="brake" class="round secondary-control" aria-label="刹车"><b>≋</b><small>刹车</small></button><button id="jump" class="round secondary-control" aria-label="跳跃"><b>↟</b><small>跳跃</small></button><button id="boost" class="round boost-control" aria-label="按住加速"><b>»</b><small>加速</small></button></div>
+          <button id="interact" class="primary contextual" hidden>下车取货 <span>E</span></button>
+        </div>
+      </section>
+      <div id="overlay" hidden><section id="panel" class="paper-panel" role="dialog" aria-modal="true" aria-labelledby="panel-title"></section></div>
+      <div id="rotate-hint"><span>↻</span><b>横过来，装下整座小岛。</b><small>请旋转手机，双手驾驶更自在</small></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

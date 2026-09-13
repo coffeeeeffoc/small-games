@@ -1,0 +1,15 @@
+{
+  "name": "quye-travel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node state.test.mjs && node journey.test.mjs",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}

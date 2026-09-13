@@ -1,0 +1,14 @@
+{
+  "name": "null-range-mobile-cn",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 43170 --strictPort",
+    "build": "vite build --base=./",
+    "preview": "vite preview --host 0.0.0.0 --port 43171 --strictPort",
+    "test": "node tests/sim.test.js && node tests/input.test.js"
+  },
+  "dependencies": { "three": "0.170.0" },
+  "devDependencies": { "vite": "6.4.1" }
+}
