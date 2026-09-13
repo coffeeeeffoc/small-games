@@ -8,9 +8,9 @@ const catalog = JSON.parse(
 );
 for (const game of catalog) {
   try {
-    await access(new URL(`games/${game.id}/package.json`, workspace));
+    await access(new URL(`${game.source}/package.json`, workspace));
   } catch {
-    throw new Error('Game submodules are missing. Run git submodule update --init --recursive.');
+    throw new Error(`Game source missing: ${game.source}. For submodules, run pnpm games:init.`);
   }
 }
 // Turbo reuses the Game builds when the parent build has already completed them.
@@ -22,7 +22,7 @@ const result = spawnSync(
     'turbo',
     'run',
     'build',
-    '--filter=./games/*',
+    ...catalog.map((game) => `--filter=./${game.source}`),
     '--concurrency=1',
   ],
   { cwd: fileURLToPath(workspace), stdio: 'inherit' },
@@ -34,7 +34,7 @@ const destination = new URL('../public/games/', import.meta.url);
 // This is only the Shell's generated directory, never a submodule checkout.
 await rm(destination, { recursive: true, force: true });
 for (const game of catalog) {
-  const source = new URL(`games/${game.id}/${game.output}/`, workspace);
+  const source = new URL(`${game.source}/${game.output}/`, workspace);
   await access(new URL('index.html', source));
   await cp(source, new URL(`${game.id}/`, destination), { recursive: true });
 }

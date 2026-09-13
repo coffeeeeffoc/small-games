@@ -3,4 +3,5 @@ packages:
   - packages/*
   - services/*
   - tools/*
-  - games/*
+  - games/local/*
+  - games/submodules/*

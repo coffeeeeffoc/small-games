@@ -4,7 +4,7 @@ dist-iframe
 coverage
 .turbo
 pnpm-lock.yaml
-games/
+games/submodules/
 apps/shell-web/public/games/
 apps/shell-android/.gradle/
 apps/shell-android/app/build/
@@ -12,5 +12,5 @@ apps/shell-android/gradlew*
 apps/shell-ios/web/
 apps/shell-ios/build/
 *.tsbuildinfo
-apps/game-office/art/projection.json
-apps/game-office/art/render-progress.json
+games/local/game-office/art/projection.json
+games/local/game-office/art/render-progress.json

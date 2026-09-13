@@ -10,7 +10,7 @@ const exec = promisify(execFile);
 
 async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'source-extension-'));
-  const gameRoot = path.join(root, 'apps', 'game-alpha');
+  const gameRoot = path.join(root, 'games', 'local', 'game-alpha');
   await mkdir(path.join(gameRoot, 'src'), { recursive: true });
   await writeFile(path.join(gameRoot, 'src', 'main.ts'), 'export const value = 1;\n');
   await writeFile(
@@ -58,7 +58,7 @@ describe('Source Extension workflow', () => {
 
   it('restricts changes to the target Game and dependency allowlist', async () => {
     const root = await fixture();
-    await mkdir(path.join(root, 'apps', 'game-empty'));
+    await mkdir(path.join(root, 'games', 'local', 'game-empty'));
     const manager = await SourceExtensionManager.open(root);
     await expect(manager.start({ gameId: 'game-empty', mode: 'create' })).rejects.toThrow(
       'INVALID_SCOPE',
@@ -135,9 +135,13 @@ describe('Source Extension workflow', () => {
       },
     });
     const task = await manager.start({ gameId: 'game-alpha', mode: 'modify' });
-    await exec('git', ['mv', 'apps/game-alpha/src/main.ts', 'apps/game-alpha/src/renamed.ts'], {
-      cwd: task.worktreePath,
-    });
+    await exec(
+      'git',
+      ['mv', 'games/local/game-alpha/src/main.ts', 'games/local/game-alpha/src/renamed.ts'],
+      {
+        cwd: task.worktreePath,
+      },
+    );
     await manager.write(task.id, 'src/renamed.ts', 'export const value = 3;\n');
     const validated = await manager.validate(task.id);
 
@@ -145,7 +149,7 @@ describe('Source Extension workflow', () => {
     expect(validated).toMatchObject({ status: 'validated', attempt: 1 });
     expect(await manager.diff(task.id)).toContain('value = 3');
     await expect(manager.commit(task.id, false)).rejects.toThrow('CONFIRMATION_REQUIRED');
-    const lateFile = path.join(task.worktreePath, 'apps', 'game-alpha', 'src', 'late.ts');
+    const lateFile = path.join(task.worktreePath, 'games', 'local', 'game-alpha', 'src', 'late.ts');
     await writeFile(lateFile, 'this never passed the gates');
     await expect(manager.commit(task.id, true)).rejects.toThrow('CHANGES_AFTER_VALIDATION');
     await rm(lateFile);
@@ -230,7 +234,7 @@ describe('Source Extension workflow', () => {
       taskId: task.id,
       removesWorktree: true,
       preservesRecords: true,
-      changedPaths: ['apps/game-alpha/src/main.ts'],
+      changedPaths: ['games/local/game-alpha/src/main.ts'],
     });
     expect(await stat(task.worktreePath)).toBeDefined();
     expect(await manager.cleanup(task.id, true)).toMatchObject({ removed: true });

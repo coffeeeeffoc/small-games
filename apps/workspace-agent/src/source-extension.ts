@@ -60,7 +60,7 @@ async function defaultGate(gate: Gate, cwd: string): Promise<GateResult> {
 
 function gamePath(gameId: string) {
   if (!/^game-[a-z0-9-]+$/.test(gameId)) throw new Error('INVALID_SCOPE');
-  return `apps/${gameId}`;
+  return `games/local/${gameId}`;
 }
 
 export class SourceExtensionManager {

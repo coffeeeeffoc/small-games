@@ -12,8 +12,8 @@ Web 与 B 站原生 Canvas 共用模拟、渲染、输入及本地音频。旧�
 - 规则、输入、存档和兼容检查：`pnpm --filter @coffeeeeffoc/game-cultivation test`
 - 浏览器完整实玩：先运行 `pnpm --filter @coffeeeeffoc/game-cultivation build`，再运行 `node scripts/cultivation-playtest.mjs`。默认使用已安装的 Chrome；同时验证开发版和正式包，截图与报告输出至 `.scratch/cultivation/`。
 - 原生包检查：`pnpm --filter @coffeeeeffoc/shell-bilibili build`，然后 `pnpm --filter @coffeeeeffoc/shell-bilibili smoke`。
-- 重新生成原创本地音效：`python apps/game-cultivation/scripts/generate-audio.py`。
+- 重新生成原创本地音效：`python games/local/game-cultivation/scripts/generate-audio.py`。
 
 规则入口为 `src/domain/trial.ts`，可调数值为 `src/content/schema.ts`，共享控制器为 `src/canvas/surface.ts`。实现与验收见 `docs/plans/2026-09-12-cultivation-implementation.md`。
 
-“秋声斗蟋”仍独立位于 `apps/game-cricket`，ID `cricket`；`apps/game-arena` 仍为“电子斗蛐蛐”。
+“秋声斗蟋”仍独立位于 `games/local/game-cricket`，ID `cricket`；`games/local/game-arena` 仍为“电子斗蛐蛐”。
