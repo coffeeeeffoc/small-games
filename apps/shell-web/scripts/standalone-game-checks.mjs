@@ -13,6 +13,7 @@ export const markers = {
   'multi-battle': '[data-action="new"]',
   puzzle: '.cover',
   travel: '#travel-button',
+  travel2: '[data-testid="begin-journey"]',
   'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
@@ -86,6 +87,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#journey-collect')).toContainText('已收藏');
     await click(frame.locator('#journey-close'));
     await expect(frame.locator('#journey-dialog')).toBeHidden();
+  } else if (id === 'travel2') {
+    await click(frame.getByTestId('begin-journey'));
+    await click(frame.getByTestId('collect-stamp'));
+    await expect(frame.locator('dialog')).toBeVisible();
+    await click(frame.getByRole('button', { name: '盖上这一枚', exact: true }));
+    await expect(frame.getByTestId('stamp-count')).toHaveText('1 / 4');
+    await click(frame.getByRole('button', { name: '收好回忆', exact: true }));
+    await expect(frame.locator('dialog')).toBeHidden();
   } else if (id === 'vibeJam-myself-delivery') {
     // Slow rendering must not slow the order clock (also exercises the frame-to-tick wiring).
     await frame.locator('body').evaluate(() => {
