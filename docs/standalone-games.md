@@ -2,9 +2,9 @@
 
 ## 潮汐猎手（fishing）
 
-第四款独立游戏位于 `games/fishing` 子模块，工作区包名 `tidebreak`，静态产物 `dist/`。使用 `pnpm --filter tidebreak dev` 开发（端口 43210）。独立仓库使用 `npm ci` 和 `package-lock.json`，父工作区使用根 `pnpm-lock.yaml`。
+第四款独立游戏位于 `games/submodules/fishing` 子模块，工作区包名 `tidebreak`，静态产物 `dist/`。使用 `pnpm --filter tidebreak dev` 开发（端口 43210）。独立仓库使用 `npm ci` 和 `package-lock.json`，父工作区使用根 `pnpm-lock.yaml`。
 
-推送 fishing 的 `main` 发布[独立站点](https://coffeeeeffoc.github.io/fishing/)。随后在父仓库更新、提交 `games/fishing` 指针并推送 `main`，发布[大厅入口](https://coffeeeeffoc.github.io/small-games/games/fishing/index.html)。Android 的 `bundleWeb` 和 `syncWeb` 自动将同一产物打入 APK，支持离线进入游戏。父仓库不会自动跟随未提交的子模块远端更新。
+推送 fishing 的 `main` 发布[独立站点](https://coffeeeeffoc.github.io/fishing/)。随后在父仓库更新、提交 `games/submodules/fishing` 指针并推送 `main`，发布[大厅入口](https://coffeeeeffoc.github.io/small-games/games/fishing/index.html)。Android 的 `bundleWeb` 和 `syncWeb` 自动将同一产物打入 APK，支持离线进入游戏。父仓库不会自动跟随未提交的子模块远端更新。
 
 | Game                | pnpm 包                            | 静态产物      | 独立站点                                                    |
 | ------------------- | ---------------------------------- | ------------- | ----------------------------------------------------------- |
@@ -40,13 +40,13 @@ pnpm --filter @coffeeeeffoc/office-slacking dev
 submodule 初始化通常处于 detached HEAD。修改前在对应仓库切到 main 或创建分支：
 
 ```sh
-git -C games/xiangqi-five switch main
-git -C games/xiangqi-five pull --ff-only
+git -C games/submodules/xiangqi-five switch main
+git -C games/submodules/xiangqi-five pull --ff-only
 # 修改并完成验证
-git -C games/xiangqi-five add <修改的文件>
-git -C games/xiangqi-five commit -m "Describe the Game change"
-git -C games/xiangqi-five push origin main
-git add games/xiangqi-five
+git -C games/submodules/xiangqi-five add <修改的文件>
+git -C games/submodules/xiangqi-five commit -m "Describe the Game change"
+git -C games/submodules/xiangqi-five push origin main
+git add games/submodules/xiangqi-five
 git commit -m "Update xiangqi-five"
 git push origin main
 ```
@@ -57,7 +57,7 @@ git push origin main
 
 ## 自动发布与边界
 
-父仓库的格式化和 ESLint 命令只检查平台代码，独立 Game 沿用自身工具；测试、构建和依赖边界检查包含 `games/*`。塔防的现有 `pnpm lint` 仍有历史 UI/React Compiler 报错，本次迁移不将它作为 Pages 发布门槛，原 lint 命令保留用于后续治理。
+父仓库的格式化和 ESLint 命令只检查平台代码，独立 Game 沿用自身工具；测试、构建和依赖边界检查包含 `games/local/*` 和 `games/submodules/*`。塔防的现有 `pnpm lint` 仍有历史 UI/React Compiler 报错，本次迁移不将它作为 Pages 发布门槛，原 lint 命令保留用于后续治理。
 
 Turbo 2.5 不允许同时使用 `--affected` 和排除过滤器，因此 `lint:affected` 委托完整平台 lint，仍复用 Turbo 缓存；其他 affected 命令保持按变更选择。
 

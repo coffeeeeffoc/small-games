@@ -125,7 +125,7 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
     })),
     diff: vi.fn(async (request) => ({
       ...request,
-      repositoryPath: 'apps/game-cultivation/src/a.ts',
+      repositoryPath: 'games/local/game-cultivation/src/a.ts',
       before: 'export const a = 1;\n',
       version,
       stale: false,
@@ -141,11 +141,11 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
           ],
         },
       ],
-      files: [{ path: 'apps/game-cultivation/src/a.ts', added: 1, removed: 1 }],
+      files: [{ path: 'games/local/game-cultivation/src/a.ts', added: 1, removed: 1 }],
     })),
     write: vi.fn(async (request) => ({
       ...request,
-      repositoryPath: 'apps/game-cultivation/src/a.ts',
+      repositoryPath: 'games/local/game-cultivation/src/a.ts',
       source: request.source,
       version: nextVersion,
       format: { ok: true, issues: [] },
@@ -189,7 +189,7 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
       .click(),
   );
   await settle();
-  expect(target.textContent).toContain('apps/game-cultivation/src/a.ts');
+  expect(target.textContent).toContain('games/local/game-cultivation/src/a.ts');
   expect(api.write).not.toHaveBeenCalled();
   await act(async () =>
     Array.from(target.querySelectorAll('button'))

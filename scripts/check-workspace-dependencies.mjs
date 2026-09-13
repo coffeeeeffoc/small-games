@@ -2,7 +2,14 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const WORKSPACE_DIRECTORIES = ['apps', 'packages', 'services', 'tools', 'games'];
+const WORKSPACE_DIRECTORIES = [
+  'apps',
+  'packages',
+  'services',
+  'tools',
+  'games/local',
+  'games/submodules',
+];
 const SOURCE_EXTENSIONS = new Set(['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts']);
 const DEPENDENCY_FIELDS = [
   'dependencies',
@@ -95,7 +102,7 @@ function inferRole(workspacePackage) {
   const name = workspacePackage.manifest.name;
   if (normalizedRoot.includes('/services/') || name.endsWith('-service')) return 'service';
   if (name.includes('shell')) return 'shell';
-  if (/\/(?:game-[^/]+|games\/[^/]+)$/.test(normalizedRoot) || name.includes('/game-'))
+  if (/\/games\/(?:local|submodules)\/[^/]+$/.test(normalizedRoot) || name.includes('/game-'))
     return 'game';
   return 'shared';
 }

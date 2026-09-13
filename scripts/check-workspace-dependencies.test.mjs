@@ -38,7 +38,7 @@ test('allows workspace dependencies through declared public exports', async (t) 
       files: { 'src/index.ts': 'export const version = 1;\n' },
     },
     {
-      path: 'apps/game-demo',
+      path: 'games/local/game-demo',
       manifest: {
         name: '@coffeeeeffoc/game-demo',
         coffeeeeffoc: { role: 'game' },
@@ -68,7 +68,7 @@ test('rejects private subpath and cross-package relative imports', async (t) => 
       files: { 'src/internal/secret.ts': 'export const secret = true;\n' },
     },
     {
-      path: 'apps/game-demo',
+      path: 'games/local/game-demo',
       manifest: {
         name: '@coffeeeeffoc/game-demo',
         coffeeeeffoc: { role: 'game' },
@@ -130,7 +130,7 @@ test('rejects game dependencies on shells and services', async (t) => {
       },
     },
     {
-      path: 'games/independent-game',
+      path: 'games/submodules/independent-game',
       manifest: {
         name: '@coffeeeeffoc/independent-game',
         dependencies: {

@@ -94,11 +94,11 @@ async function readResource(location) {
     throw new Error('Invalid Artifact resource');
   return new Uint8Array(await readFile(location));
 }
-await collect(new URL('../apps/game-cultivation/dist/', import.meta.url));
+await collect(new URL('../games/local/game-cultivation/dist/', import.meta.url));
 resources.set(
   'remote-entry.js',
   await readResource(
-    new URL('../apps/game-cultivation/dist-iframe/remote-entry.js', import.meta.url),
+    new URL('../games/local/game-cultivation/dist-iframe/remote-entry.js', import.meta.url),
   ),
 );
 const manifest = JSON.parse(
