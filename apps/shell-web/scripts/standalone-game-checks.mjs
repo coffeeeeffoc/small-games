@@ -87,6 +87,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#journey-close'));
     await expect(frame.locator('#journey-dialog')).toBeHidden();
   } else if (id === 'vibeJam-myself-delivery') {
+    // Slow rendering must not slow the order clock (also exercises the frame-to-tick wiring).
+    await frame.locator('body').evaluate(() => {
+      const requestFrame = globalThis.requestAnimationFrame.bind(globalThis);
+      globalThis.requestAnimationFrame = (callback) =>
+        requestFrame(() =>
+          globalThis.setTimeout(() => callback(globalThis.performance.now()), 400),
+        );
+    });
     await click(frame.locator('#start'));
     await click(frame.locator('[data-action="accept"]'));
     await expect(frame.locator('#timer')).toBeVisible();
