@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f3eb" />
+    <meta name="description" content="词屿，一款把中文词义拼成英文的字母叠叠乐。揭开字母，慢慢拼出一座单词小岛。" />
+    <title>词屿 · 字母叠叠乐</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="词屿首页"><span class="brand-mark" aria-hidden="true">w<span>·</span></span><span>词屿<small>WORD ISLAND</small></span></a>
+        <span class="header-note">在字母之间，发现一点乐趣。</span>
+        <nav aria-label="游戏设置">
+          <button class="icon-button" id="sound-button" aria-label="开启音效" title="开启音效" aria-pressed="false"></button>
+          <button class="text-button" id="help-button"><span class="help-mark">?</span><span>怎么玩</span></button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="intro">
+          <div><div class="eyebrow"><span></span> A LITTLE WORD ADVENTURE</div><h1>叠的是字母，<em>拼的是灵感。</em></h1></div>
+          <p>拾起散落的字母，让每个词义找到答案。<br />一层一层，清空你的单词小岛。</p>
+        </section>
+
+        <div class="game-layout">
+          <section class="game-surface" aria-label="字母棋盘与拼写区">
+            <div class="board-heading"><div class="island-label"><span class="leaf-mark" aria-hidden="true">✳</span><div><h2 id="theme-name">林间漫游</h2><span id="board-summary">正在准备字母…</span></div></div><button class="text-button compact" id="new-button"><span aria-hidden="true">↻</span> 换一组</button></div>
+            <div class="board-scene">
+              <span class="scene-label" aria-hidden="true">YOUR LITTLE WORD ISLAND</span>
+              <div class="board" id="board" role="group" aria-label="字母卡片，深色卡片被遮挡，亮色卡片可选择"></div>
+              <div class="board-legend"><span><i></i>可以拾取</span><span><i class="covered"></i>被压住，等等再取</span></div>
+            </div>
+            <section class="spelling-area" aria-label="当前拼写">
+              <div class="spelling-label"><span>把答案拼在这里</span><span id="letter-count">0 / 0</span></div>
+              <div class="answer-line"><div id="answer-slots" class="answer-slots" role="group" aria-label="已选择的字母"></div><button id="submit-button" class="submit-button" aria-label="检查拼写" title="检查拼写">↵</button></div>
+              <p id="feedback" class="feedback" role="status" aria-live="polite">先看中文词义，再按顺序点击亮色字母。</p>
+            </section>
+            <div class="board-tools"><button id="undo-button"><span aria-hidden="true">↶</span>撤回</button><button id="clear-button"><span aria-hidden="true">⌫</span>清空</button><button id="shuffle-button"><span aria-hidden="true">⇄</span>重新排列</button><button id="hint-button"><span aria-hidden="true">☼</span>提示</button></div>
+          </section>
+
+          <aside class="sidebar">
+            <section class="clue-card" aria-label="当前中文词义">
+              <div class="clue-top"><span>这一词，怎么拼？</span><span id="word-position">01 / 06</span></div>
+              <div class="clue-body"><span class="clue-spark" aria-hidden="true">✳</span><h2 id="current-meaning">森林</h2><p id="clue-detail">6 个字母 · 从亮色卡片开始</p></div>
+              <div class="clue-bottom"><span class="tiny-dot"></span><span id="clue-state">这一词的字母都已露出</span></div>
+            </section>
+            <section class="word-list-card" aria-label="本局词单">
+              <div class="list-heading"><h2>本局词单</h2><span><b id="completed-count">0</b><span id="total-count"> / 6</span></span></div>
+              <div class="progress-track" role="progressbar" aria-label="单词完成进度" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"><div id="progress-fill"></div></div>
+              <p class="list-note">点击词义切换，露出的单词可以先拼。</p>
+              <div id="word-list" class="word-list"></div>
+              <button id="import-button" class="import-button"><span aria-hidden="true">＋</span> 换成我的词单 <span aria-hidden="true">↗</span></button>
+            </section>
+            <div class="gentle-note"><span aria-hidden="true">✦</span><p>一点点遮挡，也要耐心等待。<br />上面的字母消失，下面的才会醒来。</p></div>
+          </aside>
+        </div>
+
+        <section class="how-strip" aria-label="玩法速览"><div><span>01</span><p><strong>看中文</strong>找到想拼的单词</p></div><div><span>02</span><p><strong>拾字母</strong>只能选择完全露出的卡片</p></div><div><span>03</span><p><strong>消一层</strong>拼对整词，字母一起消失</p></div></section>
+      </main>
+      <footer><span>不计时 · 不限次数 · 慢慢来</span><span>LESS SCROLLING, MORE SPELLING. <i>✳</i></span></footer>
+    </div>
+
+    <dialog id="help-dialog"><button class="dialog-close" data-close aria-label="关闭玩法说明">×</button><div class="eyebrow">HOW TO PLAY</div><h2>小岛拾词指南</h2><ol class="help-list"><li><b>看词义，选目标</b><p>每局随机一组单词。点击右侧中文词义，选择你想拼的词。</p></li><li><b>只拾起完全露出的字母</b><p>只要卡片被上层卡片压住一点，就不能选择。重复字母需要分别选择；撇号、连字符等符号也要拼入。</p></li><li><b>拼对整词，才会消除</b><p>按顺序点击字母，填满后自动检查。选中的卡片仍留在棋盘上，只有完整拼对，才会一起消失并解锁下层。</p></li><li><b>慢慢来，总能继续</b><p>点已选卡片或答案格可以撤销；也能清空、切换词义。卡住时免费重新排列，保留已完成的进度。提示会指引下一个字母。</p></li></ol><p class="keyboard-note">键盘也可以：Tab 移动，空格选择，Backspace 撤回，Enter 检查。</p><button class="primary-button" data-close>知道了，去拾词</button></dialog>
+
+    <dialog id="import-dialog"><button class="dialog-close" data-close aria-label="关闭词单编辑器">×</button><div class="eyebrow">MAKE IT YOURS</div><h2>带上你的单词，出发。</h2><p class="dialog-description">每行一个英文单词和中文含义，用空格或逗号分隔。支持撇号、连字符等符号。</p><form id="import-form"><label for="word-input">我的词单 <span>2–8 个单词 · 每词最多 16 个字符 · 共 80 个字符以内</span></label><textarea id="word-input" rows="8" spellcheck="false" placeholder="apple 苹果&#10;forest 森林&#10;can't 不能&#10;ice-cream 冰淇淋"></textarea><p id="import-error" class="form-error" role="alert"></p><button class="primary-button" type="submit">用这组词开启新一局 <span>↗</span></button></form></dialog>
+
+    <dialog id="win-dialog" class="win-dialog"><button class="dialog-close" data-close aria-label="查看完成的棋盘">×</button><div class="win-art" aria-hidden="true"><span>w</span><i>✦</i><b>✳</b></div><div class="eyebrow">ISLAND CLEARED!</div><h2>这一岛，拾得漂亮。</h2><p id="win-summary">所有单词都找到了答案。</p><div id="win-words" class="win-words"></div><button class="primary-button" id="play-again-button">再去下一座词岛 <span>→</span></button><button class="text-button win-review" data-close>留在这里，回顾词单</button></dialog>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "cops-robbers-realtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:levels": "node scripts/verify-levels.mjs",
+    "build": "node scripts/build.mjs",
+    "test:browser": "node scripts/playtest.mjs",
+    "test:lifecycle": "node scripts/lifecycle-playtest.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

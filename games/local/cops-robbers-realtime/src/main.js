@@ -1,0 +1,737 @@
+import { LEVELS, CHAPTERS } from "./levels.js";
+import {
+  createGame,
+  startGame,
+  pauseGame,
+  resumeGame,
+  stepGame,
+  commandCop,
+  holdCop,
+  routePreview,
+  roadTarget,
+  roadDistance,
+  BODY_GAP,
+} from "./engine.js";
+import { createRenderer } from "./renderer.js";
+import { createAudio } from "./audio.js";
+
+const $ = (id) => document.getElementById(id);
+const STORAGE = "neighborhood-patrol-v1";
+const formatTime = (seconds) =>
+  `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const ordinal = ["一", "二", "三", "四", "五", "六", "七", "八"];
+const copColors = ["#558ead", "#738f86", "#ad925e", "#8f80a7", "#b17f78"];
+function readProgress() {
+  try {
+    const value = JSON.parse(localStorage.getItem(STORAGE));
+    const records = { best: {}, escapeBest: {} };
+    for (const field of Object.keys(records))
+      for (const [id, seconds] of Object.entries(value?.[field] || {})) {
+        if (
+          /^\d+$/.test(id) &&
+          Number(id) >= 1 &&
+          Number(id) <= 48 &&
+          Number.isFinite(seconds) &&
+          seconds > 0 &&
+          seconds < 86400
+        )
+          records[field][Number(id)] = seconds;
+      }
+    return { ...records, sound: value?.sound !== false };
+  } catch {
+    return { best: {}, escapeBest: {}, sound: true };
+  }
+}
+let progress = readProgress();
+function unlockedLevel() {
+  let id = 1;
+  while (id < 48 && progress.best[id]) id++;
+  return id;
+}
+let game = createGame(LEVELS[unlockedLevel() - 1]);
+let selected = 0,
+  pointer = null,
+  preview = null,
+  gesture = null,
+  keyboardNode = null;
+let chapterTab = game.level.chapter,
+  toastTimer = 0,
+  winTimer = 0,
+  lastHud = 0,
+  lastTurnSound = -10;
+let lastFrame = performance.now(),
+  accumulator = 0,
+  frameCount = 0,
+  measureStart = lastFrame,
+  fps = 0;
+let dialogResume = false,
+  destroyed = false,
+  animationId;
+const canvas = $("game-canvas");
+const renderer = createRenderer(canvas);
+const audio = createAudio(progress.sound);
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE, JSON.stringify(progress));
+  } catch {
+    toast("浏览器未允许保存进度，本次游戏仍可继续。", 4500);
+  }
+}
+function toast(message, duration = 2400) {
+  clearTimeout(toastTimer);
+  $("board-toast").textContent = message;
+  $("board-toast").classList.add("visible");
+  toastTimer = setTimeout(
+    () => $("board-toast").classList.remove("visible"),
+    duration,
+  );
+}
+function clearGesture() {
+  if (gesture && canvas.hasPointerCapture(gesture.id))
+    canvas.releasePointerCapture(gesture.id);
+  gesture = null;
+  preview = null;
+  pointer = null;
+}
+function updateSound() {
+  $("sound-button").setAttribute("aria-pressed", String(progress.sound));
+  $("sound-button").setAttribute(
+    "aria-label",
+    progress.sound ? "关闭声音" : "打开声音",
+  );
+}
+function selectCop(index, sound = true) {
+  if (!game.cops[index]) return;
+  clearGesture();
+  selected = index;
+  keyboardNode = null;
+  preview = null;
+  if (sound) {
+    audio.unlock();
+    audio.play("select");
+  }
+  updateHud();
+}
+function buildRoster() {
+  $("cop-roster").replaceChildren(
+    ...game.cops.map((cop, i) => {
+      const button = document.createElement("button");
+      button.className = "cop-card";
+      button.style.setProperty("--cop-color", copColors[i]);
+      button.setAttribute("aria-label", `选择 ${i + 1} 号警察`);
+      button.setAttribute("aria-pressed", String(i === selected));
+      button.innerHTML = `<span class="cop-face" aria-hidden="true"></span><span class="cop-info"><b>${i + 1} 号警察</b><small>待命中</small></span>`;
+      button.addEventListener("click", () => selectCop(i));
+      return button;
+    }),
+  );
+}
+function updateHud() {
+  const caught = game.robbers.filter((r) => r.caught).length;
+  $("caught-count").textContent = caught;
+  $("timer").textContent = formatTime(game.time);
+  $("pause-button").disabled = game.phase !== "playing";
+  $("hold-button").disabled = game.phase !== "playing";
+  $("phase-badge").className = `live-badge ${game.phase}`;
+  $("phase-badge").lastElementChild.textContent = {
+    ready: "准备出警",
+    playing: "实时行动中",
+    paused: "行动暂停",
+    won: "全员抓获",
+    lost: "出口失守",
+  }[game.phase];
+  $("ready-prompt").hidden = !["ready", "won", "lost"].includes(game.phase);
+  if (game.phase === "won") {
+    $("ready-title").textContent = "退路封死，全员抓获。";
+    $("ready-hint").textContent =
+      `本关用时 ${formatTime(game.time)}。新的行动，等你指挥。`;
+    $("start-button").firstChild.textContent =
+      game.level.id === 48 ? "街区地图" : "下一关";
+  } else if (game.phase === "lost") {
+    $("ready-title").textContent = "有小偷逃出了街区。";
+    $("ready-hint").textContent = "先派人截住橙色出口，再让另一名警察包抄。";
+    $("start-button").firstChild.textContent = "重新挑战";
+  }
+  const exits = exitStates();
+  const danger = game.robbers.find((r) => !r.escaped && r.escapeProgress > 0);
+  $("exit-status").textContent = danger
+    ? `正在翻越 · 快拦住！`
+    : `出口 ${exits.filter((exit) => !exit.blocked).length}/${exits.length} 开放`;
+  $("exit-status").classList.toggle(
+    "danger",
+    !!danger || game.phase === "lost",
+  );
+  $("exit-status").classList.toggle(
+    "secured",
+    exits.length > 0 && exits.every((exit) => exit.blocked),
+  );
+  document.body.dataset.phase = game.phase;
+  document.body.dataset.level = game.level.id;
+  Array.from($("cop-roster").children).forEach((button, index) => {
+    button.setAttribute("aria-pressed", String(index === selected));
+    button.querySelector("small").textContent =
+      game.phase === "ready"
+        ? "待命中"
+        : game.cops[index].moving
+          ? "前往目标"
+          : game.cops[index].blocked
+            ? "正在收网"
+            : "路口留守";
+  });
+}
+function exitStates() {
+  return (game.exits || []).map((exit) => ({
+    node: exit.node,
+    x: exit.x,
+    y: exit.y,
+    blocked: game.cops.some(
+      (cop) => roadDistance(game, cop, exit) <= BODY_GAP + 1e-4,
+    ),
+  }));
+}
+function updateCampaign() {
+  const count = Object.keys(progress.best).length;
+  $("campaign-count").textContent = `${count} / 48`;
+  $("campaign-fill").style.width = `${(count / 48) * 100}%`;
+}
+function loadLevel(id) {
+  if (!Number.isInteger(id) || id < 1 || id > unlockedLevel()) return false;
+  clearTimeout(winTimer);
+  clearTimeout(toastTimer);
+  clearGesture();
+  $("board-toast").classList.remove("visible");
+  $("board-toast").textContent = "";
+  document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
+  document.body.classList.remove("modal-open");
+  dialogResume = false;
+  game = createGame(LEVELS[id - 1]);
+  selected = 0;
+  keyboardNode = null;
+  accumulator = 0;
+  lastTurnSound = -10;
+  const chapter = CHAPTERS[game.level.chapter];
+  $("chapter-name").textContent =
+    `第${ordinal[game.level.chapter]}街区 · ${chapter.name}`;
+  $("level-number").textContent = String(id).padStart(2, "0");
+  $("mission-title").replaceChildren(
+    document.createTextNode(game.level.name),
+    Object.assign(document.createElement("span"), {
+      className: "title-dot",
+      textContent: ".",
+    }),
+  );
+  $("mission-subtitle").textContent = chapter.subtitle;
+  $("robber-count").textContent = game.robbers.length;
+  $("guide-title").textContent =
+    id < 3
+      ? "先抢出口，再夹击"
+      : id < 13
+        ? "一个卡位，一个包抄"
+        : id < 25
+          ? "守住路口，逐个收网"
+          : "多口设防，及时补位";
+  $("guide-hint").textContent = game.level.hint;
+  $("ready-hint").textContent = game.level.briefing || game.level.hint;
+  $("ready-title").textContent =
+    id === 1
+      ? "盯住橙色出口，别让他翻过去。"
+      : `${game.cops.length} 警察 · ${game.robbers.length} 小偷 · ${(game.level.exits || []).length} 个出口`;
+  $("start-button").firstChild.textContent = "开始行动";
+  canvas.setAttribute(
+    "aria-label",
+    `第 ${id} 关 ${game.level.name}，${game.cops.length} 名警察、${game.robbers.length} 名小偷。${game.level.hint}`,
+  );
+  buildRoster();
+  updateHud();
+  updateCampaign();
+  return true;
+}
+function begin() {
+  audio.unlock();
+  if (game.phase === "lost") {
+    loadLevel(game.level.id);
+    return;
+  }
+  if (game.phase === "won") {
+    if (game.level.id === 48) openLevels();
+    else loadLevel(game.level.id + 1);
+    return;
+  }
+  if (!startGame(game)) return;
+  audio.play("start");
+  accumulator = 0;
+  lastFrame = performance.now();
+  updateHud();
+  toast(game.level.hint, 5000);
+  canvas.focus({ preventScroll: true });
+}
+function issue(point) {
+  if (game.phase !== "playing") {
+    if (game.phase === "ready") toast("点击“开始行动”，小队就能出发。");
+    return false;
+  }
+  audio.unlock();
+  const accepted = commandCop(game, selected, point);
+  if (accepted) {
+    audio.play("order");
+    if (game.time < 5 || game.level.id < 3)
+      toast(`${selected + 1} 号收到，正在前往目标。`, 1800);
+  } else {
+    audio.play("invalid");
+    toast("这里是建筑，请点路口或道路。");
+  }
+  preview = null;
+  updateHud();
+  return accepted;
+}
+function hold() {
+  if (holdCop(game, selected)) {
+    audio.unlock();
+    audio.play("hold");
+    clearGesture();
+    toast(`${selected + 1} 号，守住这里。`);
+    updateHud();
+  }
+}
+function openDialog(id) {
+  if ($(id).open) return;
+  clearTimeout(winTimer);
+  clearGesture();
+  dialogResume = game.phase === "playing";
+  if (dialogResume) pauseGame(game);
+  $(id).showModal();
+  document.body.classList.add("modal-open");
+  updateHud();
+}
+function closeDialog(dialog, resume = true) {
+  dialog.close();
+  if (!document.querySelector("dialog[open]")) {
+    document.body.classList.remove("modal-open");
+    if (resume && dialogResume && game.phase === "paused" && !document.hidden) {
+      resumeGame(game);
+      lastFrame = performance.now();
+      accumulator = 0;
+    }
+    dialogResume = false;
+  }
+  updateHud();
+}
+function pause(reason = "警察和小偷都在等你回来。") {
+  if (game.phase !== "playing") return;
+  $("pause-reason").textContent = reason;
+  openDialog("pause-dialog");
+}
+function renderLevelGrid() {
+  const unlocked = unlockedLevel();
+  $("chapter-tabs").replaceChildren(
+    ...CHAPTERS.map((chapter) => {
+      const button = document.createElement("button");
+      button.className = "chapter-tab";
+      button.textContent = `${ordinal[chapter.id]} · ${chapter.name}`;
+      button.setAttribute("aria-pressed", String(chapter.id === chapterTab));
+      button.addEventListener("click", () => {
+        chapterTab = chapter.id;
+        renderLevelGrid();
+      });
+      return button;
+    }),
+  );
+  $("level-grid").replaceChildren(
+    ...LEVELS.filter((level) => level.chapter === chapterTab).map((level) => {
+      const button = document.createElement("button");
+      button.className = `level-tile${game.level.id === level.id ? " current" : ""}`;
+      button.disabled = level.id > unlocked;
+      button.setAttribute(
+        "aria-label",
+        `第 ${level.id} 关 ${level.name}${level.id > unlocked ? "，尚未解锁" : ""}`,
+      );
+      const best = progress.escapeBest[level.id];
+      button.innerHTML = `<strong>${String(level.id).padStart(2, "0")}</strong><i class="tile-mark">${best ? "✓" : level.id > unlocked ? "⌑" : "↗"}</i><span>${level.name}</span><small>${best ? `最佳 ${formatTime(best)}` : `${level.cops.length} 警 · ${level.robbers.length} 偷 · ${(level.exits || []).length} 出口`}</small>`;
+      button.addEventListener("click", () => {
+        loadLevel(level.id);
+        audio.play("select");
+      });
+      return button;
+    }),
+  );
+}
+function openLevels() {
+  chapterTab = game.level.chapter;
+  renderLevelGrid();
+  openDialog("levels-dialog");
+}
+function won() {
+  clearGesture();
+  const id = game.level.id;
+  const previousBest = progress.escapeBest[id];
+  progress.escapeBest[id] = Math.min(previousBest || Infinity, game.time);
+  progress.best[id] ??= game.time;
+  saveProgress();
+  updateCampaign();
+  updateHud();
+  audio.play("win");
+  $("win-time").textContent = formatTime(game.time);
+  $("win-best").textContent = formatTime(progress.escapeBest[id]);
+  $("win-title").textContent =
+    id === 48 ? "全城围捕，圆满收官。" : "一个也没跑掉。";
+  $("win-description").textContent =
+    id === 48
+      ? "48 场行动全部完成！回到街区地图，挑战更漂亮的用时。"
+      : previousBest && game.time < previousBest
+        ? "刷新个人最佳！这次的收网又快了一点。"
+        : `全部 ${game.robbers.length} 名小偷已被抓获。下一场行动，等你指挥。`;
+  $("next-button").firstChild.textContent =
+    id === 48 ? "回到街区地图" : `出发 · 第 ${id + 1} 关`;
+  toast("漂亮！退路封死，全员抓获。", 1700);
+  winTimer = setTimeout(
+    () => {
+      if (game.phase === "won") openDialog("win-dialog");
+    },
+    reducedMotion.matches ? 250 : 1150,
+  );
+}
+function lost(event) {
+  clearGesture();
+  audio.play("lose");
+  const exitIndex = (game.level.exits || []).indexOf(event.exitNode);
+  const label =
+    exitIndex < 0 ? "出口" : `出口 ${String.fromCharCode(65 + exitIndex)}`;
+  $("lose-title").textContent = `${label} 失守了。`;
+  $("lose-description").textContent =
+    `${event.robberId + 1} 号小偷翻越逃脱。这关要全部抓住才算赢，试试先派人抢占出口。`;
+  $("lose-caught").textContent =
+    `${game.robbers.filter((r) => r.caught).length} / ${game.robbers.length}`;
+  $("lose-time").textContent = formatTime(game.time);
+  toast(`小偷从${label}逃走了！`, 2000);
+  updateHud();
+  winTimer = setTimeout(
+    () => {
+      if (game.phase === "lost") openDialog("lose-dialog");
+    },
+    reducedMotion.matches ? 200 : 900,
+  );
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0))
+    return;
+  event.preventDefault();
+  audio.unlock();
+  canvas.focus({ preventScroll: true });
+  let hit = -1,
+    nearest = Infinity;
+  game.cops.forEach((cop, i) => {
+    const screen = renderer.toScreen({ x: cop.x, y: cop.y - 18 });
+    const foot = renderer.toScreen(cop);
+    const distance = Math.min(
+      Math.hypot(event.clientX - screen.x, event.clientY - screen.y),
+      Math.hypot(event.clientX - foot.x, event.clientY - foot.y),
+    );
+    if (distance < 26 && distance < nearest) {
+      hit = i;
+      nearest = distance;
+    }
+  });
+  if (hit >= 0) selectCop(hit);
+  gesture = {
+    id: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    cop: hit,
+    dragged: false,
+  };
+  canvas.setPointerCapture(event.pointerId);
+});
+canvas.addEventListener("pointermove", (event) => {
+  if (!event.isPrimary) return;
+  const point = renderer.toWorld(event.clientX, event.clientY);
+  if (gesture && gesture.id === event.pointerId) {
+    gesture.dragged ||=
+      Math.hypot(
+        event.clientX - gesture.startX,
+        event.clientY - gesture.startY,
+      ) > 8;
+    if (gesture.dragged && gesture.cop >= 0) {
+      preview = routePreview(game, selected, point);
+      pointer = roadTarget(game, point);
+    }
+  } else if (event.pointerType === "mouse" && game.phase === "playing") {
+    pointer = roadTarget(game, point);
+    preview = routePreview(game, selected, point);
+  }
+});
+canvas.addEventListener("pointerup", (event) => {
+  if (!gesture || gesture.id !== event.pointerId) return;
+  const { cop, dragged } = gesture;
+  const point = renderer.toWorld(event.clientX, event.clientY);
+  clearGesture();
+  if ((cop < 0 && !dragged) || (cop >= 0 && dragged)) issue(point);
+});
+canvas.addEventListener("pointercancel", clearGesture);
+canvas.addEventListener("lostpointercapture", () => {
+  gesture = null;
+  preview = null;
+});
+canvas.addEventListener("pointerleave", () => {
+  if (!gesture) {
+    pointer = null;
+    preview = null;
+  }
+});
+canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+function keyboardTarget(key) {
+  canvas.focus({ preventScroll: true });
+  const graph = game.graph;
+  if (keyboardNode === null) {
+    keyboardNode = graph.nodes.reduce(
+      (best, node, i) =>
+        Math.hypot(
+          node.x - game.cops[selected].x,
+          node.y - game.cops[selected].y,
+        ) <
+        Math.hypot(
+          graph.nodes[best].x - game.cops[selected].x,
+          graph.nodes[best].y - game.cops[selected].y,
+        )
+          ? i
+          : best,
+      0,
+    );
+  }
+  const origin = graph.nodes[keyboardNode];
+  const direction = {
+    ArrowRight: [1, 0],
+    ArrowLeft: [-1, 0],
+    ArrowDown: [0, 1],
+    ArrowUp: [0, -1],
+  }[key];
+  const candidates = graph.adjacent[keyboardNode].map(({ node }) => ({
+    node,
+    dx: graph.nodes[node].x - origin.x,
+    dy: graph.nodes[node].y - origin.y,
+  }));
+  const next = candidates
+    .filter((c) => c.dx * direction[0] + c.dy * direction[1] > 0)
+    .sort(
+      (a, b) =>
+        (b.dx * direction[0] + b.dy * direction[1]) / Math.hypot(b.dx, b.dy) -
+        (a.dx * direction[0] + a.dy * direction[1]) / Math.hypot(a.dx, a.dy),
+    )[0];
+  if (next) keyboardNode = next.node;
+  pointer = graph.nodes[keyboardNode];
+  preview = routePreview(game, selected, pointer);
+  toast(
+    `目标路口：${graph.nodes[keyboardNode].label || keyboardNode + 1}，按回车下令。`,
+    2000,
+  );
+}
+document.addEventListener("keydown", (event) => {
+  if (
+    document.querySelector("dialog[open]") ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey
+  )
+    return;
+  if (/^[1-5]$/.test(event.key)) {
+    event.preventDefault();
+    selectCop(Number(event.key) - 1);
+  } else if (event.key === "Escape" || event.key.toLowerCase() === "p") {
+    event.preventDefault();
+    pause();
+  } else if (event.key.toLowerCase() === "h") {
+    event.preventDefault();
+    hold();
+  } else if (game.phase === "playing" && event.key.startsWith("Arrow")) {
+    event.preventDefault();
+    keyboardTarget(event.key);
+  } else if (
+    game.phase === "playing" &&
+    event.key === "Enter" &&
+    pointer &&
+    document.activeElement === canvas
+  ) {
+    event.preventDefault();
+    issue(pointer);
+  }
+});
+
+$("start-button").addEventListener("click", begin);
+$("hold-button").addEventListener("click", hold);
+$("pause-button").addEventListener("click", () => pause());
+$("resume-button").addEventListener("click", () =>
+  closeDialog($("pause-dialog")),
+);
+$("restart-button").addEventListener("click", () => loadLevel(game.level.id));
+$("pause-restart").addEventListener("click", () => loadLevel(game.level.id));
+$("win-retry").addEventListener("click", () => loadLevel(game.level.id));
+$("lose-retry").addEventListener("click", () => loadLevel(game.level.id));
+$("lose-review").addEventListener("click", () =>
+  closeDialog($("lose-dialog"), false),
+);
+$("next-button").addEventListener("click", () => {
+  if (game.level.id === 48) {
+    closeDialog($("win-dialog"), false);
+    openLevels();
+  } else loadLevel(game.level.id + 1);
+});
+$("win-levels").addEventListener("click", () => {
+  closeDialog($("win-dialog"), false);
+  openLevels();
+});
+$("levels-button").addEventListener("click", openLevels);
+$("help-button").addEventListener("click", () => openDialog("help-dialog"));
+$("sound-button").addEventListener("click", () => {
+  progress.sound = !progress.sound;
+  audio.setEnabled(progress.sound);
+  audio.play("select");
+  saveProgress();
+  updateSound();
+});
+$("fullscreen-button").addEventListener("click", async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen)
+      await document.documentElement.requestFullscreen();
+    else toast("这个浏览器暂不支持全屏，横屏也能完整操作。");
+  } catch {
+    toast("全屏暂不可用，游戏可以继续。");
+  }
+});
+document.addEventListener("fullscreenchange", () => {
+  $("fullscreen-button").setAttribute(
+    "aria-label",
+    document.fullscreenElement ? "退出全屏" : "进入全屏",
+  );
+  renderer.resize();
+  clearGesture();
+});
+document
+  .querySelectorAll("[data-close]")
+  .forEach((button) =>
+    button.addEventListener("click", () =>
+      closeDialog(button.closest("dialog")),
+    ),
+  );
+document.querySelectorAll("dialog").forEach((dialog) =>
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDialog(dialog);
+  }),
+);
+document.addEventListener("visibilitychange", () => {
+  clearGesture();
+  if (document.hidden) pause("你刚刚离开了页面。准备好后，再继续行动。");
+});
+window.addEventListener("blur", () => {
+  if (!document.querySelector("dialog[open]"))
+    pause("窗口暂时失去焦点，行动已为你暂停。");
+  clearGesture();
+});
+window.addEventListener("resize", () => {
+  renderer.resize();
+  clearGesture();
+});
+
+function frame(now) {
+  if (destroyed) return;
+  const elapsed = Math.max(0, Math.min((now - lastFrame) / 1000, 0.05));
+  lastFrame = now;
+  if (game.phase === "playing") {
+    accumulator += elapsed;
+    while (accumulator >= 1 / 60 && game.phase === "playing") {
+      stepGame(game, 1 / 60);
+      accumulator -= 1 / 60;
+    }
+  } else accumulator = 0;
+  for (const event of game.events.splice(0)) {
+    if (event.type === "capture") {
+      audio.play("capture");
+      toast(`抓到 ${event.robberId + 1} 号小偷！继续盯住其他路口。`);
+    } else if (event.type === "win") won();
+    else if (event.type === "lose") lost(event);
+    else if (event.type === "turn" && game.time - lastTurnSound > 0.8) {
+      audio.play("turn");
+      lastTurnSound = game.time;
+    }
+  }
+  renderer.draw(game, {
+    selected,
+    preview,
+    pointer,
+    reducedMotion: reducedMotion.matches,
+    now,
+  });
+  if (now - lastHud > 120) {
+    updateHud();
+    lastHud = now;
+  }
+  frameCount++;
+  if (now - measureStart > 1000) {
+    fps = (frameCount * 1000) / (now - measureStart);
+    frameCount = 0;
+    measureStart = now;
+  }
+  animationId = requestAnimationFrame(frame);
+}
+
+// Read-only inspection supports browser playtests without injecting state or fake wins.
+export function getSnapshot() {
+  const actor = (a) => ({
+    id: a.id,
+    x: a.x,
+    y: a.y,
+    moving: a.moving,
+    caught: !!a.caught,
+    escaped: !!a.escaped,
+    escapeProgress: a.escapeProgress || 0,
+    exitTarget: a.exitTarget ?? null,
+    blocked: !!a.blocked,
+    capture: a.capture || 0,
+    destination: a.destination && { x: a.destination.x, y: a.destination.y },
+  });
+  return {
+    level: game.level.id,
+    phase: game.phase,
+    time: game.time,
+    selected,
+    fps,
+    cops: game.cops.map(actor),
+    robbers: game.robbers.map(actor),
+    exits: exitStates(),
+    unlocked: unlockedLevel(),
+    audio: progress.sound,
+    nodes: game.level.nodes.map((p) => ({ ...p })),
+  };
+}
+export function worldToScreen(point) {
+  return renderer.toScreen(point);
+}
+
+loadLevel(game.level.id);
+updateSound();
+animationId = requestAnimationFrame(frame);
+window.addEventListener("pagehide", (event) => {
+  clearGesture();
+  pauseGame(game);
+  if (!event.persisted) {
+    destroyed = true;
+    cancelAnimationFrame(animationId);
+    renderer.destroy();
+  }
+});
+window.addEventListener("pageshow", (event) => {
+  if (
+    event.persisted &&
+    game.phase === "paused" &&
+    !document.querySelector("dialog[open]")
+  ) {
+    dialogResume = true;
+    $("pause-dialog").showModal();
+    document.body.classList.add("modal-open");
+    updateHud();
+  }
+});
