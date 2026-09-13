@@ -20,7 +20,7 @@ export type SourceGenerator = {
 };
 
 export async function sourceContext(worktree: string, gameId: string) {
-  const root = `apps/${gameId}/`;
+  const root = `games/local/${gameId}/`;
   const gameRoot = await realpath(path.join(worktree, root));
   const names = (
     await exec('git', ['ls-files', '-z', '--', root], { cwd: worktree, encoding: 'utf8' })

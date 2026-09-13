@@ -122,7 +122,7 @@ export async function startWorkspaceAgent(
         return;
       }
       if (request.method === 'GET' && url.pathname === '/repository/tree') {
-        const appsRoot = path.join(workspaceRoot, 'apps');
+        const appsRoot = path.join(workspaceRoot, 'games', 'local');
         const games = [];
         for (const entry of await readdir(appsRoot, { withFileTypes: true })) {
           if (!entry.isDirectory() || !entry.name.startsWith('game-')) continue;

@@ -14,7 +14,7 @@ afterEach(async () => {
 
 async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'workspace-agent-'));
-  const game = path.join(root, 'apps', 'game-cultivation');
+  const game = path.join(root, 'games', 'local', 'game-cultivation');
   await mkdir(path.join(game, 'src'), { recursive: true });
   await writeFile(path.join(game, 'src', 'evil&name.ts'), 'export const safe = true;');
   return { root, game };
@@ -148,7 +148,7 @@ describe('Workspace Agent trust boundary', () => {
     expect(review.status).toBe(200);
     expect(await review.json()).toMatchObject({
       stale: false,
-      files: [{ path: 'apps/game-cultivation/src/evil&name.ts', added: 1, removed: 1 }],
+      files: [{ path: 'games/local/game-cultivation/src/evil&name.ts', added: 1, removed: 1 }],
     });
 
     const saved = await request('/repository/file', {

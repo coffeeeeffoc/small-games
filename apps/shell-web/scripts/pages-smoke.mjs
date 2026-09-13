@@ -39,6 +39,41 @@ try {
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
   await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
+  for (const title of ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
+    await page.locator('article').filter({ hasText: title }).getByRole('button').click();
+    if (title === '三分钟修仙') {
+      await page.getByRole('button', { name: '点香 · 开始修行' }).click();
+      await expect(page.getByRole('button', { name: '御剑', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: '暂停', exact: true }).click();
+      await page.getByRole('button', { name: '继续修行' }).click();
+    } else if (title === '秋声斗蟋') {
+      await page.getByRole('button', { name: '揭盖 · 开斗 →' }).click();
+      await page.getByRole('button', { name: '暂停对局' }).click();
+      await page.getByRole('button', { name: '继续斗蟋' }).click();
+    } else if (title === '打工人摸鱼记') {
+      await page.getByRole('button', { name: '悄悄进入办公室' }).click();
+      await page.getByRole('button', { name: '蹲下', exact: false }).click();
+      await expect(page.getByRole('button', { name: '站起来', exact: false })).toBeVisible();
+      await page.getByRole('button', { name: '暂停', exact: true }).click();
+      await page.getByRole('button', { name: '继续潜入' }).click();
+    } else {
+      await page.locator('.arena-picks button').first().click();
+      await expect(page.locator('.arena')).toHaveAttribute('data-phase', 'mutate');
+      while (await page.locator('.arena-traits button').count())
+        await page.locator('.arena-traits button').first().click();
+      await page.getByRole('button', { name: '开盆，迎战！', exact: false }).click();
+      await expect(page.locator('.arena')).toHaveAttribute('data-phase', 'battle');
+      await page.getByRole('button', { name: '闪身避锋', exact: false }).click();
+      await expect(page.getByRole('progressbar', { name: '体力' })).not.toHaveAttribute(
+        'value',
+        '100',
+      );
+      await page.getByRole('button', { name: '暂停游戏' }).click();
+      await page.getByRole('button', { name: '准备好了，继续' }).click();
+    }
+    await page.getByRole('button', { name: '← 返回目录', exact: true }).click();
+    await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
+  }
   for (const game of games) {
     await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
     const frame = page.frameLocator('iframe');

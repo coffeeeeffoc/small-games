@@ -20,7 +20,7 @@ function isWithin(parent: string, target: string) {
 
 async function safeGameRoot(workspaceRoot: string, gameId: string) {
   if (!/^game-[a-z0-9-]+$/.test(gameId)) throw new Error('INVALID_PATH');
-  const gamesRoot = path.join(workspaceRoot, 'apps');
+  const gamesRoot = path.join(workspaceRoot, 'games', 'local');
   const target = path.resolve(gamesRoot, gameId);
   const canonical = await realpath(target);
   if (!isWithin(await realpath(gamesRoot), canonical)) throw new Error('INVALID_PATH');
@@ -57,7 +57,7 @@ export async function sourceFile(workspaceRoot: string, gameId: string, relative
 }
 
 export function repositoryPath(gameId: string, relativePath: string) {
-  return `apps/${gameId}/${relativePath}`;
+  return `games/local/${gameId}/${relativePath}`;
 }
 
 export async function prepareSource(

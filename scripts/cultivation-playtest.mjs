@@ -6,7 +6,7 @@ import { createServer, preview } from 'vite';
 
 // Real browser input only. The development snapshot is read-only; no state is injected.
 const server = await createServer({
-  root: fileURLToPath(new URL('../apps/game-cultivation', import.meta.url)),
+  root: fileURLToPath(new URL('../games/local/game-cultivation', import.meta.url)),
   server: { host: '127.0.0.1', port: 0 },
   logLevel: 'error',
 });
@@ -254,7 +254,7 @@ try {
     'Idle failure, replay, fresh run on reload and persistent independent trial records',
   );
   production = await preview({
-    root: fileURLToPath(new URL('../apps/game-cultivation', import.meta.url)),
+    root: fileURLToPath(new URL('../games/local/game-cultivation', import.meta.url)),
     preview: { host: '127.0.0.1', port: 0 },
     logLevel: 'error',
   });
