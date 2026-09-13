@@ -84,6 +84,13 @@
     "output": "dist"
   },
   {
+    "id": "travel2",
+    "source": "games/local/travel2",
+    "title": "外滩·一江入梦",
+    "description": "沿黄浦江展开一卷外滩，滑动看暮色，探索地标并收集旅行印章。",
+    "output": "dist"
+  },
+  {
     "id": "vibeJam-myself-delivery",
     "source": "games/local/vibeJam-myself-delivery",
     "title": "橘风速递",
