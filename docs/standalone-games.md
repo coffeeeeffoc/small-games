@@ -6,7 +6,7 @@
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
 - `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
 
-目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；其余十五个 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
+目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；其余十六个 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
 
 ## 父仓库直接管理的 Game
 
@@ -24,6 +24,7 @@
 | multi-battle                 | 万象旅团              | multi-battle                   | iframe    |
 | puzzle                       | 雨停之前              | before-the-rain-stops          | iframe    |
 | travel                       | 去野 · 大理漫游记     | quye-travel                    | iframe    |
+| travel2                      | 外滩·一江入梦         | @coffeeeeffoc/travel2          | iframe    |
 | vibeJam-myself-delivery      | 橘风速递              | tangerine-express              | iframe    |
 | vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
@@ -62,7 +63,7 @@ pnpm install --frozen-lockfile
 pnpm --filter multi-battle dev
 pnpm --filter @coffeeeeffoc/game-cultivation dev
 
-# 全部 19 款游戏，复用 Turbo 的依赖构建和缓存
+# 全部 20 款游戏，复用 Turbo 的依赖构建和缓存
 pnpm games:build
 pnpm games:test
 
@@ -105,7 +106,7 @@ git commit -m "Update xiangqi-five"
 
 ## 平台边界
 
-十五款 iframe H5 保留自身存档和生命周期，不自动接入 Game Host 云存档、广告或 Runtime 发布版本。原四款 Game Host 游戏的 Studio 源码浏览、编辑和 Source Extension 路径已同步迁移；导入 H5 的开发入口为其各自的 workspace 包命令。
+十六款 iframe H5 保留自身存档和生命周期，不自动接入 Game Host 云存档、广告或 Runtime 发布版本。原四款 Game Host 游戏的 Studio 源码浏览、编辑和 Source Extension 路径已同步迁移；导入 H5 的开发入口为其各自的 workspace 包命令。
 
 Pages 构建关闭 Runtime 连接，保留本地存档；普通开发模式继续支持 Runtime。原独立站点与大厅可能属于不同 origin，浏览器存档不会自动跨站迁移。
 
