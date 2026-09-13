@@ -163,6 +163,14 @@ function collide(s, colliders, radius) {
 
 export function tick(s, input = {}, dt = 0, colliders = []) {
   if (!Number.isFinite(dt) || dt <= 0 || !active(s)) return s;
+  // Order time follows foreground elapsed time; only physics uses a bounded delta.
+  s.elapsed = Math.min(180, s.elapsed + dt);
+  s.timeLeft = 180 - s.elapsed;
+  if (!s.warned && s.timeLeft <= 30) {
+    s.warned = true;
+    notify(s, '还剩 30 秒，把最后一程送稳！');
+  }
+  if (s.timeLeft <= 0) { finish(s, false, '超时了，休息一下再出发吧'); return s; }
   dt = Math.min(dt, 0.1);
   input = input || {};
   const throttle = axis(input.throttle), steering = axis(input.steer);
@@ -174,15 +182,8 @@ export function tick(s, input = {}, dt = 0, colliders = []) {
   const steps = Math.ceil(dt / 0.016), step = dt / steps;
   for (let i = 0; i < steps && active(s); i++) {
     const riding = s.mode === 'ride';
-    s.elapsed += step;
-    s.timeLeft = Math.max(0, 180 - s.elapsed);
     s.messageTime = Math.max(0, s.messageTime - step);
     s.crashCooldown = Math.max(0, s.crashCooldown - step);
-    if (!s.warned && s.timeLeft <= 30) {
-      s.warned = true;
-      notify(s, '还剩 30 秒，把最后一程送稳！');
-    }
-    if (s.timeLeft <= 0) { finish(s, false, '超时了，休息一下再出发吧'); break; }
     if (!input.boost && s.energy >= 12) s.boostLocked = false;
     s.boosting = Boolean(riding && input.boost && !input.brake && throttle > 0 && s.energy > 0 && !s.boostLocked);
     s.energy = clamp(s.energy + (s.boosting ? -25 : 13) * step, 0, 100);

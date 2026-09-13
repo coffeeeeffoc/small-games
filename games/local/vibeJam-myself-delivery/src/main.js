@@ -254,7 +254,7 @@ function frame(now) {
   const rawDelta = (now - lastTime) / 1000, dt = Math.min(rawDelta, .05);
   lastTime = now;
   const running = mode === 'play' && !modal && !document.hidden && !lostContext;
-  if (running) tick(s, input.read(), dt, world.colliders); else input.reset();
+  if (running) tick(s, input.read(), rawDelta, world.colliders); else input.reset();
   for (const e of s.events.splice(0)) {
     audio.play(e.type);
     if (['pickup', 'delivery', 'crash'].includes(e.type)) world.burst(e.x, e.z, e.type === 'crash' ? '#d89772' : '#f5c455');
@@ -296,7 +296,7 @@ function frame(now) {
   const inView = projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < .82 && Math.abs(projected.y) < .78;
   $('destination-pin').hidden = !inView || s.phase === 'result';
   if (inView) { $('destination-pin').style.left = `${(projected.x * .5 + .5) * innerWidth}px`; $('destination-pin').style.top = `${(-projected.y * .5 + .5) * innerHeight}px`; }
-  uiClock += dt;
+  uiClock += rawDelta;
   if (uiClock > .1 && mode === 'play') { updateHUD(); uiClock = 0; }
   // ponytail: one DPR reduction for sustained slow frames; add device quality tiers only after profiling real phones.
   if (!adaptiveDone && running) {
