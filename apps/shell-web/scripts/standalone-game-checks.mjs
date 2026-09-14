@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { chapters as travelChapters } from '../../../games/local/travel2/src/journey.ts';
 
 export const markers = {
   fishing: '.overlay.start .primary',
@@ -92,7 +93,7 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByTestId('collect-stamp'));
     await expect(frame.locator('dialog')).toBeVisible();
     await click(frame.getByRole('button', { name: '盖上这一枚', exact: true }));
-    await expect(frame.getByTestId('stamp-count')).toHaveText('1 / 4');
+    await expect(frame.getByTestId('stamp-count')).toHaveText(`1 / ${travelChapters.length}`);
     await click(frame.getByRole('button', { name: '收好回忆', exact: true }));
     await expect(frame.locator('dialog')).toBeHidden();
   } else if (id === 'vibeJam-myself-delivery') {
