@@ -1,0 +1,30 @@
+{
+  "id": "new-york",
+  "title": "铜色火炬，迎来海上的人",
+  "place": "美国 · 纽约",
+  "location": "纽约",
+  "region": "world",
+  "year": 1886,
+  "tolerance": 10,
+  "era": "十九世纪末",
+  "lat": 40.689,
+  "lng": -74.045,
+  "clue": "港湾中轮船冒着蒸汽，岛上的高大塑像刚刚迎来人群。它的铜皮还不是今天熟悉的绿色。",
+  "hint": "自由女神像在这一年举行落成典礼。颜色和远处尚未高耸的城市，是重要年代提示。",
+  "story": "自由女神像于 1886 年 10 月 28 日正式揭幕。它的表面以铜板制作，后来逐渐形成今天熟悉的绿色铜锈。本幕以落成年份为事件锚点，想象海港观礼气氛；船只位置、人群与远景均为艺术组合。",
+  "details": [
+    "铜褐色外皮：新像与今天的颜色不同",
+    "蒸汽船与帆船并行：19 世纪港口",
+    "落成事件锚点：1886 年"
+  ],
+  "source": [
+    "美国国家公园管理局 · 自由女神像",
+    "https://www.nps.gov/stli/planyourvisit/frequently-asked-questions-statue-of-liberty.htm"
+  ],
+  "image": "assets/new-york.webp",
+  "view": {
+    "yaw": 90,
+    "pitch": 20,
+    "fov": 90
+  }
+}

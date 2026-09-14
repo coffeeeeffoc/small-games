@@ -265,6 +265,24 @@ input {
   margin-top: 30px;
   max-width: 336px;
 }
+.scene-picker {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  max-width: 336px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.scene-picker select {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #ded9cd;
+  border-radius: 4px;
+  background: var(--paper-light);
+  color: var(--ink);
+}
 fieldset {
   border: 0;
   padding: 0;
