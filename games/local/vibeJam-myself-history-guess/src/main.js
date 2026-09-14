@@ -2,6 +2,7 @@ import "./style.css";
 import { rounds, cities } from "./rounds.js";
 import {
   chooseRounds,
+  ROUND_COUNT,
   scoreGuess,
   formatYear,
   formatDistance,
@@ -77,6 +78,7 @@ let state = {
   screen: "home",
   region: "all",
   timed: false,
+  practice: "",
   deck: [],
   index: 0,
   results: [],
@@ -174,7 +176,7 @@ function modal(title, content) {
 function help() {
   modal(
     "如何读懂一瞬历史",
-    `<ol class="guide"><li><strong>环顾四周</strong><p>单指拖动全景，双指捏合缩放。桌面也可使用鼠标、滚轮与方向键。</p></li><li><strong>留下坐标</strong><p>打开地图，点选位置或搜索中文城市。地图展示现代地理位置，古地名可用“长安”“汴京”搜索。</p></li><li><strong>拨回时间</strong><p>拖动年份滑杆、选择时代，或直接输入年份。公元前通过左侧切换；没有公元 0 年。</p></li><li><strong>揭晓一段往事</strong><p>每幕地点与年代各 2500 分，每局 5 幕，满分 25000。地点误差 30 公里内满分，年代宽容随场景线索调整；提示不扣分。</p></li></ol><p class="fine-print">8 幕场景均为 AI 历史想象复原，可能包含时代或建筑细节偏差，不能作为史料。具体年份是游戏设定；揭晓页附可查阅资料。限时模式每幕 90 秒，切到后台继续计时；自由漫游不限时。</p>`,
+    `<ol class="guide"><li><strong>环顾四周</strong><p>单指拖动全景，双指捏合缩放。桌面也可使用鼠标、滚轮与方向键。</p></li><li><strong>留下坐标</strong><p>打开地图，点选位置或搜索中文城市。地图展示现代地理位置，古地名可用“长安”“汴京”搜索。</p></li><li><strong>拨回时间</strong><p>拖动年份滑杆、选择时代，或直接输入年份。公元前通过左侧切换；没有公元 0 年。</p></li><li><strong>揭晓一段往事</strong><p>每幕地点与年代各 2500 分，每局 ${ROUND_COUNT} 幕，满分 ${ROUND_COUNT * 5000}。指定场景练习为单幕，不计入五幕最佳分。地点误差 30 公里内满分，年代宽容随场景线索调整；提示不扣分。</p></li></ol><p class="fine-print">${rounds.length} 幕场景均为 AI 历史想象复原，可能包含时代或建筑细节偏差，不能作为史料。具体年份是游戏设定；揭晓页附可查阅资料。限时模式每幕 90 秒，切到后台继续计时；自由漫游不限时。</p>`,
   );
 }
 function journal() {
@@ -194,6 +196,7 @@ function storyMarkup(round) {
   return `<p class="eyebrow">${round.place} · ${formatYear(round.year)}</p><p class="story-text">${round.story}</p><ul class="detail-list">${round.details.map((d) => `<li>${d}</li>`).join("")}</ul><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><p class="fine-print">AI 历史想象复原 · 场景设定不等于精确史实</p>`;
 }
 function home() {
+  const cover = rounds.find((round) => round.id === "kaifeng") || rounds[0];
   cleanup();
   state.screen = "home";
   state.phase = "idle";
@@ -201,14 +204,21 @@ function home() {
   app.innerHTML = `<div class="home-shell"><header class="site-header"><a class="brand" href="./" aria-label="此时此地首页">${brand}</a><nav aria-label="主导航"><button id="journal">${icon("book")}<span>我的足迹</span><b>${saved.visited.length.toString().padStart(2, "0")}</b></button><button id="help">玩法指南</button>${soundButton()}</nav></header>
     <main><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="red-line"></span>一场穿越时空的旅行</div><h1>此地，似曾相识。<br>此时，<em>是哪一年？</em></h1><p class="hero-description">走进历史的一瞬，环顾四周。<br>从一座城、一件衣裳、一缕烟火里，<br>找到你在时间中的坐标。</p>
       <div class="travel-options"><fieldset><legend>选择旅途</legend><div class="segmented"><label><input type="radio" name="region" value="all" ${state.region === "all" ? "checked" : ""}><span>${icon("compass")}世界漫游</span></label><label><input type="radio" name="region" value="china" ${state.region === "china" ? "checked" : ""}><span>${icon("pin")}中国足迹</span></label></div></fieldset><label class="timed-option"><input type="checkbox" id="timed" ${state.timed ? "checked" : ""}><span class="toggle"></span>限时挑战 <small>90 秒 / 幕</small></label></div>
-      <button class="primary start-button" id="start">开启时空之旅 ${icon("arrow")}</button><p class="start-note">每局 5 幕 <span>·</span> 无需登录 <span>·</span> 默认不限时</p>
-    </div><figure class="hero-postcard"><div class="postcard-image"><img src="${rounds[0].image}" alt="汴河两岸的历史想象复原：木桥、舟船与热闹街市" fetchpriority="high"><span class="image-corner">历史的另一种打开方式</span><div class="panorama-badge">${icon("eye")}<span>360°<small>沉浸式观察</small></span></div></div><figcaption><span><i>第 001 号时空切片</i><strong>人间烟火，穿越千年。</strong></span><span class="postcard-stamp">山河<br>故人</span></figcaption><span class="postcard-edge" aria-hidden="true"></span></figure></section>
+      <label class="scene-picker" for="scene-select">指定场景练习<select id="scene-select"><option value="">随机旅途 · 每局 ${ROUND_COUNT} 幕</option>${["china", "world"].map((region) => `<optgroup label="${region === "china" ? "中国历史" : "世界历史"}">${rounds.filter((r) => r.region === region).map((r) => `<option value="${r.id}">${escape(r.title)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      <button class="primary start-button" id="start">开启时空之旅 ${icon("arrow")}</button><p class="start-note" id="start-note">每局 ${ROUND_COUNT} 幕 <span>·</span> 无需登录 <span>·</span> 默认不限时</p>
+    </div><figure class="hero-postcard"><div class="postcard-image"><img src="${cover.image}" alt="${escape(cover.place)}的历史想象复原" fetchpriority="high"><span class="image-corner">历史的另一种打开方式</span><div class="panorama-badge">${icon("eye")}<span>360°<small>沉浸式观察</small></span></div></div><figcaption><span><i>第 001 号时空切片</i><strong>人间烟火，穿越千年。</strong></span><span class="postcard-stamp">山河<br>故人</span></figcaption><span class="postcard-edge" aria-hidden="true"></span></figure></section>
     <section class="how-strip" aria-label="三步开始探索"><div><span class="step-number">壹</span><p><strong>观其景</strong><small>转动视角，发现细节</small></p>${icon("eye")}</div><div><span class="step-number">贰</span><p><strong>辨其地</strong><small>展开地图，落下坐标</small></p>${icon("pin")}</div><div><span class="step-number">叁</span><p><strong>知其时</strong><small>拨动年份，揭开往事</small></p>${icon("clock")}</div></section>
-    </main><footer class="site-footer"><span>八幕历史想象 · 五次时空相逢</span><span>AI 场景复原 <span class="footer-dot">·</span> 中文地理底图 <span class="footer-dot">·</span> 为好奇心而作</span></footer></div>`;
+    </main><footer class="site-footer"><span>${rounds.length} 幕历史想象 · 中国 ${rounds.filter((r) => r.region === "china").length} 幕 · 世界 ${rounds.filter((r) => r.region === "world").length} 幕</span><span>AI 场景复原 <span class="footer-dot">·</span> 中文地理底图 <span class="footer-dot">·</span> 为好奇心而作</span></footer></div>`;
   on("#start", "click", () => {
     state.region = $('input[name="region"]:checked').value;
     state.timed = $("#timed").checked;
+    state.practice = $("#scene-select").value;
     start();
+  });
+  on("#scene-select", "change", (event) => {
+    const practice = Boolean(event.target.value);
+    $("#start").innerHTML = `${practice ? "走进这一幕" : "开启时空之旅"} ${icon("arrow")}`;
+    $("#start-note").textContent = practice ? "单幕练习 · 不计入五幕最佳分 · 可收集足迹" : `每局 ${ROUND_COUNT} 幕 · 无需登录 · 默认不限时`;
   });
   on("#help", "click", help);
   on("#journal", "click", journal);
@@ -220,13 +230,13 @@ async function start() {
   state = {
     ...state,
     screen: "game",
-    deck: chooseRounds(rounds, state.region),
+    deck: state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region),
     index: 0,
     results: [],
     phase: "loading",
   };
   document.body.className = "game-page";
-  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="brand compact" id="leave" aria-label="返回首页">${brand}</button><div class="round-progress"><span id="round-label">第 1 幕 / 5</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}<button class="icon-button" id="fullscreen" aria-label="进入全屏" title="进入全屏">${icon("full")}</button></div></header>
+  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="brand compact" id="leave" aria-label="返回首页">${brand}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}<button class="icon-button" id="fullscreen" aria-label="进入全屏" title="进入全屏">${icon("full")}</button></div></header>
       <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><button id="hint" class="glass-button">一点提示</button></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
       <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
       <div class="guess-dock"><div class="mobile-tabs" role="group" aria-label="切换观察和地图"><button id="scene-tab" class="active" aria-pressed="true">${icon("eye")}观察场景</button><button id="map-tab" aria-pressed="false">${icon("pin")}地图选点 <i id="pin-dot"></i></button></div><div class="timeline"><div class="timeline-heading"><label for="year-range">第二步 · 这是哪一年？</label><div class="year-editor"><select id="era-select" aria-label="公元前或公元"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" type="number" inputmode="numeric" min="1" max="2026" value="1000" aria-label="猜测年份"><span>年</span></div><span class="year-status" id="year-status">请选择年代</span></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" value="1000" step="1" aria-label="拖动选择年份"><div class="era-stops"><button data-year="-2000">古文明</button><button data-year="-221">秦汉</button><button data-year="750">隋唐</button><button data-year="1100">宋元</button><button data-year="1600">明清</button><button data-year="1900">近现代</button></div></div><div class="submit-area"><button class="primary" id="submit" disabled>请先选择地点与年代 ${icon("arrow")}</button><span id="submit-note">两枚坐标，拼出一个历史瞬间</span></div></div>
@@ -367,7 +377,7 @@ async function loadRound() {
   $("#load-cover").hidden = false;
   $("#load-cover").innerHTML =
     `<span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p>`;
-  $("#round-label").textContent = `第 ${state.index + 1} 幕 / 5`;
+  $("#round-label").textContent = `第 ${state.index + 1} 幕 / ${state.deck.length}`;
   $("#progress-dots").innerHTML = state.deck
     .map(
       (_, i) =>
@@ -389,10 +399,10 @@ async function loadRound() {
   $("#era-select").disabled = false;
   $("#year-number").removeAttribute("aria-invalid");
   setYear(1000, false);
-  guessMap.reset(state.region);
+  guessMap.reset(state.practice ? (round.region === "china" ? "china" : "all") : state.region);
   setView("scene");
   try {
-    await viewer.load(round.image);
+    await viewer.load(round);
     if (token !== generation) return;
     state.phase = "guessing";
     $("#load-cover").hidden = true;
@@ -529,10 +539,10 @@ function reveal(timedOut) {
   viewer.setActive(false);
   const overlay = $("#result-overlay");
   overlay.innerHTML = `<section class="result-card" aria-labelledby="result-title"><div class="result-top"><span class="eyebrow">${timedOut ? "时间到 · 此刻揭晓" : "时空坐标，已揭晓"}</span><button class="text-button" id="compare-map">${icon("pin")}对照地图</button></div><div class="result-heading"><div><p class="result-place">${round.place}</p><h2 id="result-title">${round.title}</h2><p class="answer-year">${formatYear(round.year)} <span>· ${round.era}</span></p></div><div class="score-stamp"><strong>${score.total.toLocaleString("zh-CN")}</strong><small>本幕得分 / 5000</small></div></div>
-    <div class="score-breakdown"><div>${icon("pin")}<span>地点误差<strong>${score.distance === null ? "尚未落点" : formatDistance(score.distance)}</strong></span><b>+${score.locationScore}</b></div><div>${icon("clock")}<span>年代误差<strong>${score.years === null ? "尚未选择" : `${score.years.toLocaleString("zh-CN")} 年`}</strong></span><b>+${score.timeScore}</b></div></div><p class="guess-recap">你的猜测：${state.guess ? escape(state.guess.name) : "未选择地点"} · ${state.yearTouched ? formatYear(state.year) : "未选择年代"} <span>年代满分宽容 ±${round.tolerance} 年</span></p><p class="story-text">${round.story}</p><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><div class="result-bottom"><span>此刻已收录进「我的足迹」<small>AI 历史想象复原 · 查看资料了解真实历史</small></span><button id="next" class="primary">${state.index === 4 ? "查看旅行手记" : "前往下一幕"} ${icon("arrow")}</button></div></section>`;
+    <div class="score-breakdown"><div>${icon("pin")}<span>地点误差<strong>${score.distance === null ? "尚未落点" : formatDistance(score.distance)}</strong></span><b>+${score.locationScore}</b></div><div>${icon("clock")}<span>年代误差<strong>${score.years === null ? "尚未选择" : `${score.years.toLocaleString("zh-CN")} 年`}</strong></span><b>+${score.timeScore}</b></div></div><p class="guess-recap">你的猜测：${state.guess ? escape(state.guess.name) : "未选择地点"} · ${state.yearTouched ? formatYear(state.year) : "未选择年代"} <span>年代满分宽容 ±${round.tolerance} 年</span></p><p class="story-text">${round.story}</p><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><div class="result-bottom"><span>此刻已收录进「我的足迹」<small>AI 历史想象复原 · 查看资料了解真实历史</small></span><button id="next" class="primary">${state.index === state.deck.length - 1 ? "查看旅行手记" : "前往下一幕"} ${icon("arrow")}</button></div></section>`;
   overlay.hidden = false;
   $("#next").onclick = () => {
-    if (state.index === 4) finish();
+    if (state.index === state.deck.length - 1) finish();
     else {
       state.index++;
       loadRound();
@@ -557,19 +567,20 @@ function reveal(timedOut) {
 }
 function finish() {
   const total = state.results.reduce((sum, result) => sum + result.total, 0);
-  saved.best = Math.max(saved.best, total);
+  if (!state.practice && state.results.length === ROUND_COUNT) saved.best = Math.max(saved.best, total);
   save();
   cleanup();
   state.screen = "finish";
   state.phase = "finished";
   document.body.className = "home-page";
+  const ratio = total / (state.deck.length * 5000);
   const title =
-    total >= 20000
+    ratio >= 0.8
       ? "山河与岁月，都认得你。"
-      : total >= 12000
+      : ratio >= 0.48
         ? "你离历史，又近了一步。"
         : "每次相遇，都是新的发现。";
-  app.innerHTML = `<div class="summary-shell"><header class="site-header"><button id="home" class="brand">${brand}</button><span class="eyebrow">本次时空之旅 · 已完成</span></header><main><section class="summary-heading"><span class="eyebrow">旅行手记 / 第 ${saved.visited.length.toString().padStart(2, "0")} 枚足迹</span><h1>${title}</h1><div class="final-score">${total.toLocaleString("zh-CN")}<small>/ 25,000 分</small></div><p>走过五幕光景，把陌生的年代变成记忆。</p></section><div class="summary-rounds">${state.results
+  app.innerHTML = `<div class="summary-shell"><header class="site-header"><button id="home" class="brand">${brand}</button><span class="eyebrow">本次时空之旅 · 已完成</span></header><main><section class="summary-heading"><span class="eyebrow">旅行手记 / 第 ${saved.visited.length.toString().padStart(2, "0")} 枚足迹</span><h1>${title}</h1><div class="final-score">${total.toLocaleString("zh-CN")}<small>/ ${(state.deck.length * 5000).toLocaleString("zh-CN")} 分</small></div><p>走过 ${state.deck.length} 幕光景，把陌生的年代变成记忆。</p></section><div class="summary-rounds">${state.results
     .map((result, i) => {
       const round = rounds.find((r) => r.id === result.id);
       return `<article class="summary-row"><span class="row-number">0${i + 1}</span><img src="${round.image}" alt="${round.place}历史想象复原"><div><strong>${round.place}</strong><p>${formatYear(round.year)} · ${round.era}</p></div><div class="summary-errors"><span>${result.distance === null ? "未落点" : formatDistance(result.distance)}</span><span>${result.years === null ? "未选年代" : `相差 ${result.years} 年`}</span></div><b>${result.total.toLocaleString("zh-CN")}<small> / 5000</small></b></article>`;

@@ -1,7 +1,9 @@
+import { readScenes } from "./check-catalog.mjs";
 import { chromium, devices } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 
+const scenes = readScenes();
 const url = process.env.PLAYTEST_URL || "http://127.0.0.1:4175/";
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 await mkdir("artifacts", { recursive: true });
@@ -55,6 +57,7 @@ try {
   await watch(desktop);
   const page = await desktop.newPage();
   await page.goto(url);
+  assert.match(await page.title(), /此时/);
   await noOverflow(page);
   await page.screenshot({
     animations: "disabled",
@@ -84,7 +87,8 @@ try {
   );
   await page.locator("#reset-view").click();
   await page.waitForFunction(
-    () => Number(document.querySelector("#panorama").dataset.yaw) === 180,
+    (y) => Number(document.querySelector("#panorama").dataset.yaw) === y,
+    yaw,
   );
   await page.locator("#hint").click();
   assert.equal(await page.locator("#hint-text").isVisible(), true);
@@ -311,13 +315,12 @@ try {
   const chinaVisited = await phone.evaluate(
     () => JSON.parse(localStorage.getItem("here-and-then.v1")).visited,
   );
-  assert.deepEqual(chinaVisited.sort(), [
-    "beijing",
-    "changan",
-    "dunhuang",
-    "kaifeng",
-    "shanghai",
-  ]);
+  assert.equal(chinaVisited.length, 5);
+  assert.ok(
+    chinaVisited.every((id) =>
+      scenes.some((s) => s.id === id && s.region === "china"),
+    ),
+  );
   results.push(
     "Phone: full 5 China rounds; real single-finger pan, two-finger panorama zoom, touch cancellation, map tap and pinch, BCE input, 360px portrait and landscape controls.",
   );
@@ -380,6 +383,120 @@ try {
     "Recovery: missing panorama presents a retry, recovers the current round, and leaving/restarting creates one viewer.",
   );
   await recovery.close();
+  const catalogContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await watch(catalogContext);
+  const catalogPage = await catalogContext.newPage();
+  await catalogPage.goto(url);
+  const options = await catalogPage
+    .locator("#scene-select option")
+    .evaluateAll((nodes) => nodes.map((n) => n.value).filter(Boolean));
+  assert.deepEqual(
+    options.sort(),
+    scenes.map((s) => s.id).sort(),
+    "all files automatically appear in the practice picker",
+  );
+  await catalogPage.getByRole("button", { name: "玩法指南" }).click();
+  assert.ok(
+    (await catalogPage.locator("dialog").innerText()).includes(
+      `${scenes.length} 幕场景`,
+    ),
+  );
+  await catalogPage.keyboard.press("Escape");
+  const imageUrls = new Set();
+  for (const scene of scenes) {
+    await catalogPage.locator("#scene-select").selectOption(scene.id);
+    await catalogPage.locator("#start").click();
+    await ready(catalogPage);
+    assert.equal(
+      await catalogPage.locator("#round-label").innerText(),
+      "第 1 幕 / 1",
+    );
+    assert.equal(await catalogPage.locator("#clue").innerText(), scene.clue);
+    const asset = await catalogPage
+      .locator("#panorama")
+      .getAttribute("data-image");
+    assert.ok(asset.endsWith(scene.image));
+    const dimensions = await catalogPage.evaluate(async (src) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      return [img.naturalWidth, img.naturalHeight];
+    }, asset);
+    assert.ok(
+      dimensions[0] >= 1600 &&
+        Math.abs(dimensions[0] / dimensions[1] - 2) < 0.05,
+      `panorama dimensions: ${scene.id}`,
+    );
+    imageUrls.add(asset);
+    await catalogPage.locator("#zoom-in").click();
+    await catalogPage.locator("#reset-view").click();
+    await catalogPage.waitForFunction(
+      (view) => {
+        const p = document.querySelector("#panorama");
+        return (
+          Number(p.dataset.yaw) === view.yaw &&
+          Number(p.dataset.fov) === view.fov
+        );
+      },
+      { yaw: 180, fov: 75, ...scene.view },
+    );
+    if (["yinxu", "quanzhou", "angkor", "new-york"].includes(scene.id))
+      await catalogPage.screenshot({ path: `artifacts/scene-${scene.id}.png` });
+    await pick(catalogPage, scene.location);
+    await catalogPage
+      .locator("#era-select")
+      .selectOption(scene.year < 0 ? "bce" : "ce");
+    await catalogPage
+      .locator("#year-number")
+      .fill(String(Math.abs(scene.year)));
+    await catalogPage.locator("#submit").click();
+    await catalogPage.locator("#next").waitFor();
+    assert.equal(
+      await catalogPage.locator("#result-title").innerText(),
+      scene.title,
+    );
+    assert.equal(
+      await catalogPage.locator(".score-stamp strong").innerText(),
+      "5,000",
+    );
+    assert.equal(
+      await catalogPage.locator(".source-link").getAttribute("href"),
+      scene.source[1],
+    );
+    await noOverflow(catalogPage);
+    await catalogPage.locator("#next").click();
+    assert.equal(await catalogPage.locator(".summary-row").count(), 1);
+    assert.ok(
+      (await catalogPage.locator(".final-score").innerText()).includes(
+        "/ 5,000",
+      ),
+    );
+    await catalogPage.locator("#home").click();
+  }
+  assert.equal(imageUrls.size, scenes.length);
+  const practiceSave = await catalogPage.evaluate(() =>
+    JSON.parse(localStorage.getItem("here-and-then.v1")),
+  );
+  assert.equal(practiceSave.visited.length, scenes.length);
+  assert.equal(
+    practiceSave.best,
+    0,
+    "practice does not replace the five-round record",
+  );
+  await catalogPage.reload();
+  await catalogPage.locator("#journal").click();
+  assert.equal(
+    await catalogPage.locator("button.journal-card").count(),
+    scenes.length,
+  );
+  results.push(
+    `Catalog: all ${scenes.length} panoramas decoded and played through real selection, perfect scoring, source, one-round summary and persisted journal on mobile; practice leaves five-round record unchanged.`,
+  );
+  await catalogContext.close();
   assert.deepEqual(errors, []);
   assert.ok(
     requests.every(

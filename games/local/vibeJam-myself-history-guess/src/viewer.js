@@ -35,6 +35,7 @@ export function createViewer(container) {
     active = true,
     requestId = 0,
     disposed = false;
+  let initialView = { yaw: 180, pitch: 0, fov: 75 };
   const pointers = new Map();
   const events = new AbortController();
   const listen = (target, name, fn, options = {}) =>
@@ -84,9 +85,9 @@ export function createViewer(container) {
   }
   function reset() {
     cancel();
-    yaw = 180;
-    pitch = 0;
-    camera.fov = 75;
+    yaw = initialView.yaw;
+    pitch = initialView.pitch;
+    camera.fov = initialView.fov;
     camera.updateProjectionMatrix();
     invalidate();
   }
@@ -176,8 +177,9 @@ export function createViewer(container) {
       event.preventDefault();
       container.dispatchEvent(new CustomEvent("viewererror"));
     });
-  async function load(url) {
+  async function load({ image: url, view }) {
     const id = ++requestId;
+    initialView = view;
     reset();
     // Keep only the active GPU texture; do not retain the whole question bank in phone memory.
     const texture = await new Promise((resolve, reject) => {
@@ -209,6 +211,7 @@ export function createViewer(container) {
     material.map = texture;
     material.needsUpdate = true;
     if (!renderer) container.style.backgroundImage = `url("${url}")`;
+    container.dataset.image = url;
     resize();
     return true;
   }
