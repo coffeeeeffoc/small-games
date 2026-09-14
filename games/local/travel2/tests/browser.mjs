@@ -4,6 +4,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { preview } from 'vite';
+import { chapters, chapterProgress } from '../src/journey.ts';
+const total = chapters.length;
 
 const output = new URL('../../../../.scratch/travel2-browser/', import.meta.url);
 await mkdir(output, { recursive: true });
@@ -57,6 +59,20 @@ async function layout(page) {
     );
     assert(d.content <= d.width + 1, `Dialog content overflows horizontally: ${JSON.stringify(d)}`);
   }
+  const controls = await page.evaluate(() => {
+    const rail = document.querySelector('.chapter-rail').getBoundingClientRect();
+    const landmark = document.querySelector('.landmark')?.getBoundingClientRect();
+    return {
+      rail: { top: rail.top, bottom: rail.bottom },
+      landmark: landmark && { bottom: landmark.bottom },
+    };
+  });
+  assert(controls.rail.top >= 0 && controls.rail.bottom <= (await page.viewportSize()).height);
+  if (controls.landmark)
+    assert(
+      controls.landmark.bottom < controls.rail.top,
+      'Exploration stays above chapter navigation',
+    );
 }
 
 async function enterChapter(page, index, mobile) {
@@ -64,6 +80,18 @@ async function enterChapter(page, index, mobile) {
   await button[mobile ? 'tap' : 'click']();
   await expect(page.locator('main')).toHaveAttribute('data-chapter', String(index));
   await expect(page.getByTestId('collect-stamp')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (progress) =>
+          Math.abs(scrollY - progress * (document.documentElement.scrollHeight - innerHeight)),
+        chapterProgress(index),
+      ),
+    )
+    .toBeLessThan(1);
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
 }
 
 async function collect(page, count, mobile) {
@@ -72,7 +100,7 @@ async function collect(page, count, mobile) {
   await expect(page.locator('dialog')).toBeVisible();
   await layout(page);
   await click(page.getByRole('button', { name: /^盖上这一枚/ }));
-  await expect(page.getByTestId('stamp-count')).toHaveText(`${count} / 4`);
+  await expect(page.getByTestId('stamp-count')).toHaveText(`${count} / ${total}`);
   await click(page.getByRole('button', { name: /^收好回忆/ }));
   await expect(page.locator('dialog')).toHaveCount(0);
 }
@@ -239,37 +267,60 @@ try {
       await collect(page, 1, scenario.mobile);
       await click(page.getByTestId('collect-stamp'));
       await expect(page.getByRole('button', { name: /^盖上这一枚/ })).toHaveCount(0);
-      await expect(page.getByTestId('stamp-count')).toHaveText('1 / 4');
+      await expect(page.getByTestId('stamp-count')).toHaveText(`1 / ${total}`);
       await click(page.getByRole('button', { name: /^收好回忆/ }));
 
       await click(page.getByRole('button', { name: '打开旅行手账', exact: true }));
       await layout(page);
-      await click(page.getByRole('button', { name: /绿顶拾光，未收集，前往探索/ }));
+      await click(page.getByRole('button', { name: /晨钟回响，未收集，前往探索/ }));
       await expect(page.locator('dialog')).toHaveCount(0);
       await expect(page.locator('main')).toHaveAttribute('data-chapter', '1');
       await collect(page, 2, scenario.mobile);
-      for (const index of [2, 3]) {
+      for (let index = 2; index < total; index++) {
         await enterChapter(page, index, scenario.mobile);
         await collect(page, index + 1, scenario.mobile);
+        await expect(page.locator('main')).toHaveAttribute('data-art', chapters[index].art);
+        await expect(page.locator('main')).toHaveAttribute('data-shot', chapters[index].shot);
+        await layout(page);
+        if (['desktop', 'phone'].includes(scenario.name))
+          await page.screenshot({
+            path: fileURLToPath(new URL(`${scenario.name}-scene-${index + 1}.png`, output)),
+          });
       }
       await layout(page);
       await page.screenshot({ path: fileURLToPath(new URL(`${scenario.name}-night.png`, output)) });
+      if (scenario.name === 'desktop') {
+        await enterChapter(page, 5, false);
+        await page.mouse.move(680, 380);
+        await page.mouse.wheel(0, -990);
+        await expect(page.locator('main')).toHaveAttribute('data-chapter', '4');
+        await expect(page.locator('main')).toHaveAttribute('data-shot', '远景');
+        await page.mouse.wheel(0, 990);
+        await expect(page.locator('main')).toHaveAttribute('data-chapter', '5');
+        await expect(page.locator('main')).toHaveAttribute('data-shot', '近景');
+        await page.getByRole('button', { name: /^前往第12幕：/ }).focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('main')).toHaveAttribute('data-chapter', '11');
+      }
       await page.reload();
-      await expect(page.getByTestId('stamp-count')).toHaveText('4 / 4');
+      await expect(page.getByTestId('stamp-count')).toHaveText(`${total} / ${total}`);
       await expect
         .poll(() =>
           page.evaluate(
             () =>
               Number(document.querySelector('main').dataset.chapter) ===
               Math.min(
-                3,
-                Math.floor((scrollY / (document.documentElement.scrollHeight - innerHeight)) * 4),
+                document.querySelectorAll('.chapter-rail button').length - 1,
+                Math.floor(
+                  (scrollY / (document.documentElement.scrollHeight - innerHeight)) *
+                    document.querySelectorAll('.chapter-rail button').length,
+                ),
               ),
           ),
         )
         .toBe(true);
       await click(page.getByRole('button', { name: '打开旅行手账', exact: true }));
-      await expect(page.locator('.journal-stamp.stamped')).toHaveCount(4);
+      await expect(page.locator('.journal-stamp.stamped')).toHaveCount(total);
       await layout(page);
       await page.screenshot({
         path: fileURLToPath(new URL(`${scenario.name}-journal.png`, output)),
@@ -286,16 +337,18 @@ try {
       assert.equal(png.readUInt32BE(16), 1200);
       assert.equal(png.readUInt32BE(20), 1500);
       await click(page.getByRole('button', { name: '关闭弹窗', exact: true }));
-      await enterChapter(page, 3, scenario.mobile);
+      await enterChapter(page, total - 1, scenario.mobile);
       await click(page.getByRole('button', { name: '走到旅程尽头', exact: true }));
-      await expect(page.locator('.ending')).toContainText('四枚印章，一份完整的外滩回忆。');
+      await expect(page.locator('.ending')).toContainText(
+        ` ${total} 枚印章，一份完整的外滩回忆。`.trim(),
+      );
       await click(page.getByRole('button', { name: /^再沿江走一遍/ }));
       await expect(page.getByTestId('begin-journey')).toBeVisible();
       await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(2);
       results.push({
         ...scenario,
         renderer: scenario.fallback ? 'fallback' : 'pixi',
-        stamps: 4,
+        stamps: total,
         postcard: '1200x1500 PNG',
         passed: true,
       });
@@ -320,11 +373,14 @@ try {
   assert(results.length > 0, 'No browser scenario matched TRAVEL2_SCENARIO');
   assert.deepEqual(failures, []);
   await writeFile(
-    new URL('report.json', output),
+    new URL(
+      process.env.TRAVEL2_SCENARIO ? `report-${process.env.TRAVEL2_SCENARIO}.json` : 'report.json',
+      output,
+    ),
     JSON.stringify({ url, results, failures }, null, 2),
   );
   console.log(
-    'Travel2: scroll, touch, four stamps, duplicate prevention, persistence, journal navigation, export and fallbacks passed.',
+    'Travel2: scroll, touch, all chapter stamps, duplicate prevention, persistence, journal navigation, export and fallbacks passed.',
   );
 } finally {
   await browser?.close();

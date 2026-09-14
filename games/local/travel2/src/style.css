@@ -49,9 +49,6 @@ a {
   color: inherit;
   text-decoration: none;
 }
-.journey {
-  height: 560svh;
-}
 .stage {
   position: fixed;
   inset: 0;
@@ -62,12 +59,18 @@ a {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: #d9dbc6 url('/art/bund-panorama.webp') center / cover;
+  background: #d9dbc6;
 }
-.is-night .scene {
-  background-image: url('/art/bund-night.webp');
+.scene img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  will-change: transform, opacity;
 }
 .scene canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -222,13 +225,20 @@ a {
 }
 .chapter-rail {
   position: absolute;
-  right: 3.3vw;
-  top: 48%;
+  left: 7%;
+  right: 7%;
+  bottom: 114px;
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 12px;
+  background: #f3edddd9;
+  border: 1px solid #fff1d966;
+  overscroll-behavior-x: contain;
 }
 .chapter-rail button {
+  flex: 1 0 auto;
   min-width: 44px;
   min-height: 44px;
   display: flex;
@@ -254,7 +264,6 @@ a {
 }
 .rail-label {
   font-family: 'Noto Serif SC', serif;
-  writing-mode: vertical-rl;
   font-size: 10px;
   letter-spacing: 3px;
 }
@@ -263,6 +272,8 @@ a {
 }
 .landmark {
   position: absolute;
+  left: 12%;
+  top: 56%;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -270,22 +281,6 @@ a {
   padding: 8px;
   max-width: calc(100% - 100px);
   animation: appear 0.7s both;
-}
-.landmark-0 {
-  left: 24%;
-  top: 42%;
-}
-.landmark-1 {
-  left: 32%;
-  top: 46%;
-}
-.landmark-2 {
-  left: 59%;
-  top: 68%;
-}
-.landmark-3 {
-  left: 65%;
-  top: 49%;
 }
 .landmark-dot {
   flex-shrink: 0;
@@ -449,6 +444,9 @@ a {
 }
 .is-night .story-copy {
   text-shadow: 0 2px 16px #142835;
+}
+.is-night .chapter-rail {
+  background: #173b43d9;
 }
 .travel-dialog {
   margin: auto;
@@ -757,22 +755,18 @@ a {
     display: none;
   }
   .chapter-rail {
-    right: 4%;
-    top: 42%;
+    left: 6%;
+    right: 6%;
+    bottom: max(108px, calc(90px + env(safe-area-inset-bottom)));
     gap: 2px;
   }
   .chapter-rail button {
-    color: #fff0d1;
-    text-shadow: 0 1px 6px #182e20;
     gap: 8px;
   }
   .rail-label {
     display: none;
   }
-  .landmark-0,
-  .landmark-1,
-  .landmark-2,
-  .landmark-3 {
+  .landmark {
     left: 8%;
     top: 59%;
   }
@@ -916,14 +910,13 @@ a {
     padding: 10px 25px;
   }
   .chapter-rail {
-    right: 3%;
-    top: 27%;
+    left: 4%;
+    right: 4%;
+    bottom: 74px;
+    padding: 0 8px;
     gap: 6px;
   }
-  .landmark-0,
-  .landmark-1,
-  .landmark-2,
-  .landmark-3 {
+  .landmark {
     left: 10%;
     top: 43%;
   }
