@@ -1,5 +1,21 @@
 # 外滩叙事美术资源
 
+## 2026-09-15 新增近岸与船上视角
+
+使用内置 image_gen 生成两张独立视角插画，保留原有日夜图。原图保存于 `art-source/bund-arcade.png`、`art-source/bund-deck.png`；运行时文件为 `public/art/bund-arcade.webp`（372,564 字节）和 `public/art/bund-deck.webp`（386,288 字节），均为 1536 × 1024。使用已安装 sharp 0.34.5 以质量 88、effort 6 转为 WebP，不改变尺寸或构图。长廊用于第 4–6 幕，甲板用于第 8–10 幕，每张图以独立焦点呈现远近交替；不是精确实地取景。
+
+### 长廊生成提示词
+
+```text
+Production landscape 1536x1024 full-bleed illustration for a Shanghai Bund scrolling story. Match exquisite painted gouache, tactile paper diorama, warm limestone, desaturated jade and cream, tiny vermilion accents. NEW VIEW at pedestrian eye level: sheltered historic Bund limestone colonnade, massive richly carved archway and window frame on left foreground, repeating columns receding diagonally toward center, dappled plane-tree shadows across stone floor. At right the colonnade opens out onto the sunny Huangpu River and distant tiny Pudong skyline. Foreground architectural ornament near lower left, detailed brass door handle and sunlit stone. Quiet inviting late morning. Upper right area is light uncluttered haze for overlay copy. Scene should work both wide and center portrait cropped. Painterly layered depth with sophisticated fine details, no photorealism or plastic 3D, no text or letters, signage, UI, border, watermark. Same travel storybook palette as a warm illustrated Bund panorama.
+```
+
+### 甲板生成提示词
+
+```text
+Production landscape 1536x1024 full-bleed illustration for a Shanghai Bund scrolling story. Exquisite painted gouache and watercolor, tactile paper diorama, desaturated jade, cream and warm amber, fine architectural detail. NEW VIEW standing on a Huangpu ferry deck at golden afternoon: large curved painted teal railing sweeping across lower foreground, worn wooden bench at lower left and coiled rope, small brass bell at left edge; broad shimmering jade river in middle; distant historic Bund limestone facades and recognizable Customs House square clock tower across horizon slightly left of center, warm haze and late sun upper right. Camera close to ferry railing, looking OUT across water with layered foreground/midground/distant city, no people blocking view. Composition readable at landscape and center portrait crop, main skyline around middle height, generous light cream sky upper third for title overlay. Elegant tranquil premium Chinese travel storybook art, highly detailed. No text, signs, letters, logos, watermarks, borders, UI, no photorealism or plastic 3D.
+```
+
 本项目图片使用 Codex 内置 image_gen 工具生成；未使用 CLI 或外部图库。参考了用户提供截图的精细手绘、纸质微缩景观与分层空间感，场景改为上海外滩。属于艺术化旅游插画，建筑相对位置经过构图处理，不是地理测绘图。
 
 ## 文件

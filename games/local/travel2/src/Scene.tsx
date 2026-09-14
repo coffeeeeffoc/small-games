@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Application, Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { sceneFrame } from './scene-math';
+import { sceneArt, sceneFrame } from './scene-math';
 
 function makeFerry() {
   const ferry = new Container();
@@ -54,12 +54,17 @@ function makeFerry() {
 
 export function Scene({ progress, reducedMotion }: { progress: number; reducedMotion: boolean }) {
   const target = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: innerWidth, height: innerHeight });
   const current = useRef({ progress, reducedMotion });
   current.current = { progress, reducedMotion };
 
   useEffect(() => {
     const host = target.current;
     if (!host) return;
+    const measure = new ResizeObserver(() =>
+      setSize({ width: host.clientWidth, height: host.clientHeight }),
+    );
+    measure.observe(host);
     const app = new Application();
     let disposed = false;
     let initialized = false;
@@ -118,7 +123,7 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
         app.ticker.maxFPS = 40;
 
         const day = new Sprite(panorama);
-        let night: Sprite | undefined;
+        const pictures: Partial<Record<keyof typeof sceneArt, Sprite>> = { river: day };
         const landscape = new Container();
         landscape.addChild(day);
         app.stage.addChild(landscape);
@@ -168,24 +173,23 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
             p,
             state.reducedMotion,
           );
-          day.scale.set(frame.scale);
-          day.position.set(frame.x, frame.y);
-          if (night) {
-            const nightFrame = sceneFrame(
+          for (const [art, picture] of Object.entries(pictures)) {
+            const pictureFrame = sceneFrame(
               width,
               height,
-              night.texture.width,
-              night.texture.height,
+              picture.texture.width,
+              picture.texture.height,
               p,
               state.reducedMotion,
             );
-            night.scale.set(nightFrame.scale);
-            night.position.set(nightFrame.x, nightFrame.y);
-            night.alpha = frame.night;
+            picture.scale.set(pictureFrame.scale);
+            picture.position.set(pictureFrame.x, pictureFrame.y);
+            picture.alpha = frame.weights[art as keyof typeof sceneArt];
           }
           shade.width = width;
           shade.height = height;
-          shade.alpha = frame.night * (night ? 0.05 : 0.53);
+          shade.alpha = frame.night * 0.05;
+          const riverWeight = frame.weights.river + frame.weights.night;
           const time = state.reducedMotion ? 0 : elapsed;
           fog.forEach((cloud, i) => {
             cloud.position.set(
@@ -194,21 +198,22 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
             );
             cloud.width = width * 0.85;
             cloud.height = height * 0.18;
-            cloud.alpha = (1 - frame.night * 0.65) * (i === 0 ? 0.65 : 0.4);
+            cloud.alpha = riverWeight * (1 - frame.night * 0.65) * (i === 0 ? 0.65 : 0.4);
           });
           // River details use artwork coordinates so the camera cannot slide them onto the promenade.
           const imageWidth = panorama.width * frame.scale;
           const imageHeight = panorama.height * frame.scale;
           ripples.scale.set(imageWidth, imageHeight);
           ripples.position.set(frame.x + Math.sin(time / 3500) * frame.scale * 2, frame.y);
-          ripples.alpha = (0.5 + Math.sin(time / 1800) * 0.15) * (1 - frame.night * 0.4);
+          ripples.alpha =
+            riverWeight * (0.5 + Math.sin(time / 1800) * 0.15) * (1 - frame.night * 0.4);
           ferry.scale.set(frame.scale * 0.65);
           ferry.position.set(
             frame.x + imageWidth * (0.58 + p * 0.14 + Math.sin(time / 13000) * 0.014),
             frame.y + imageHeight * 0.715 + Math.sin(time / 1400) * frame.scale * 1.3,
           );
           ferry.rotation = Math.sin(time / 1800) * 0.006;
-          ferry.alpha = 0.88;
+          ferry.alpha = 0.88 * riverWeight;
           ferryBody.tint = 0xffffff - Math.round(frame.night * 0x45) * 0x010101;
           ferryLights.alpha = frame.night * 0.9;
           birds.forEach((bird, i) => {
@@ -220,7 +225,7 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
               0.6 + i * 0.12,
               (0.6 + i * 0.12) * (0.7 + Math.sin(time / 500 + i) * 0.2),
             );
-            bird.alpha = 1 - frame.night * 0.8;
+            bird.alpha = riverWeight * (1 - frame.night * 0.8);
           });
         };
         app.ticker.add((ticker) => {
@@ -241,17 +246,20 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
         host.dataset.ready = 'true';
         visibility();
 
-        // A missing optional night image must not delay the usable daytime scene.
-        void Assets.load<Texture>(`${import.meta.env.BASE_URL}art/bund-night.webp`)
-          .then((texture) => {
-            if (disposed || destroyed) return;
-            night = new Sprite(texture);
-            landscape.addChild(night);
-            redraw?.();
-          })
-          .catch(() => {
-            /* The translucent dusk layer remains available. */
-          });
+        // Load the remaining views without delaying the opening. CSS images stay beneath Pixi.
+        for (const art of ['arcade', 'deck', 'night'] as const) {
+          void Assets.load<Texture>(`${import.meta.env.BASE_URL}art/${sceneArt[art]}`)
+            .then((texture) => {
+              if (disposed || destroyed) return;
+              const picture = new Sprite(texture);
+              pictures[art] = picture;
+              landscape.addChild(picture);
+              redraw?.();
+            })
+            .catch(() => {
+              /* The matching CSS view remains available. */
+            });
+        }
       } catch {
         if (disposed) return;
         destroy();
@@ -262,9 +270,28 @@ export function Scene({ progress, reducedMotion }: { progress: number; reducedMo
     void mount();
     return () => {
       disposed = true;
+      measure.disconnect();
       destroy();
     };
   }, []);
 
-  return <div ref={target} className="scene" aria-hidden="true" data-ready="false" />;
+  const frame = sceneFrame(size.width, size.height, 1536, 1024, progress, reducedMotion);
+  return (
+    <div ref={target} className="scene" aria-hidden="true" data-ready="false">
+      {Object.entries(sceneArt).map(([art, file]) => (
+        <img
+          key={art}
+          src={`${import.meta.env.BASE_URL}art/${file}`}
+          alt=""
+          draggable={false}
+          style={{
+            opacity: frame.weights[art as keyof typeof sceneArt],
+            width: 1536 * frame.scale,
+            height: 1024 * frame.scale,
+            transform: `translate(${frame.x}px, ${frame.y}px)`,
+          }}
+        />
+      ))}
+    </div>
+  );
 }
