@@ -34,7 +34,10 @@ export default defineConfig({
     {
       name: 'reviewed-package-manifests',
       async generateBundle() {
-        const trialAudio = new URL('../game-cultivation/src/assets/audio/', import.meta.url);
+        const trialAudio = new URL(
+          '../../games/local/game-cultivation/src/assets/audio/',
+          import.meta.url,
+        );
         for (const file of await readdir(trialAudio)) {
           this.emitFile({
             type: 'asset',
@@ -42,7 +45,10 @@ export default defineConfig({
             source: await readFile(new URL(file, trialAudio)),
           });
         }
-        const arenaAudio = new URL('../game-arena/public/arena-audio/', import.meta.url);
+        const arenaAudio = new URL(
+          '../../games/local/game-arena/public/arena-audio/',
+          import.meta.url,
+        );
         for (const file of await readdir(arenaAudio)) {
           this.emitFile({
             type: 'asset',
@@ -50,7 +56,10 @@ export default defineConfig({
             source: await readFile(new URL(file, arenaAudio)),
           });
         }
-        const assets = new URL('../game-office/public/office-scene/audio/', import.meta.url);
+        const assets = new URL(
+          '../../games/local/game-office/public/office-scene/audio/',
+          import.meta.url,
+        );
         for (const file of await readdir(assets, { recursive: true })) {
           if (!/\.(mp3|aac|wav)$/i.test(file)) continue;
           const relative = file.replaceAll('\\', '/');

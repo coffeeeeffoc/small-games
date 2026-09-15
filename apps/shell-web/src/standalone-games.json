@@ -105,6 +105,13 @@
     "output": "dist"
   },
   {
+    "id": "travel-bund-25d",
+    "source": "games/local/travel-bund-2.5D",
+    "title": "外滩 · 空中漫游",
+    "description": "滑动穿行外滩与浦东天际线，自由掌控飞行进度，在空中俯瞰黄浦江两岸。",
+    "output": "dist"
+  },
+  {
     "id": "travel2",
     "source": "games/local/travel2",
     "title": "外滩·一江入梦",

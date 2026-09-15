@@ -32,6 +32,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
+      js-yaml:
+        specifier: 4.3.2
+        version: 4.3.2
       prettier:
         specifier: 3.6.2
         version: 3.6.2
@@ -149,6 +152,9 @@ importers:
       '@coffeeeeffoc/travel-bund':
         specifier: workspace:*
         version: link:../../games/local/travel-bund
+      '@coffeeeeffoc/travel-bund-25d':
+        specifier: workspace:*
+        version: link:../../games/local/travel-bund-2.5D
       '@coffeeeeffoc/travel2':
         specifier: workspace:*
         version: link:../../games/local/travel2

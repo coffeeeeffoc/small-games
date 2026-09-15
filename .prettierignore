@@ -4,6 +4,7 @@ dist-iframe
 coverage
 .turbo
 pnpm-lock.yaml
+assets/
 games/submodules/
 # Imported standalone games retain their existing formatting.
 games/local/*

@@ -17,6 +17,7 @@ export const markers = {
   travel: '#travel-button',
   travel2: '[data-testid="begin-journey"]',
   'travel-bund': '#enter-world',
+  'travel-bund-25d': 'main[data-ready="true"]',
   'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
@@ -114,6 +115,18 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       await frame.locator('canvas').press('Escape');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
+  } else if (id === 'travel-bund-25d') {
+    await expect(frame.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
+    const scene = frame.locator('.scene');
+    const initial = Number(await scene.getAttribute('data-progress'));
+    await click(frame.getByRole('button', { name: '开始飞行', exact: true }));
+    await expect(frame.locator('main')).toHaveAttribute('data-playing', 'true');
+    await expect
+      .poll(async () => Number(await scene.getAttribute('data-progress')))
+      .toBeGreaterThan(initial);
+    await click(frame.getByRole('button', { name: '暂停飞行', exact: true }));
+    await expect(frame.locator('main')).toHaveAttribute('data-playing', 'false');
+    await expect(frame.getByRole('button', { name: '开始飞行', exact: true })).toBeVisible();
   } else if (id === 'travel2') {
     const total = await frame.getByRole('button', { name: /^前往第\d+幕：/ }).count();
     await expect(frame.getByTestId('stamp-count')).toHaveText(`0 / ${total}`);

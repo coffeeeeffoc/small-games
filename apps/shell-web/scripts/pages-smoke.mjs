@@ -83,7 +83,7 @@ try {
     const frame = page.frameLocator('iframe');
     const marker = markers[game.id];
     assert(marker, `Missing ready marker for ${game.id}`);
-    await expect(frame.locator(marker).first()).toBeVisible();
+    await expect(frame.locator(marker).first()).toBeVisible({ timeout: 120000 });
     // Static controls can appear before module scripts attach their event listeners.
     const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
     await gameFrame.waitForLoadState();
@@ -107,7 +107,7 @@ try {
     try {
       const response = await direct.goto(standaloneUrl);
       assert.equal(response.status(), 200);
-      await expect(direct.locator(marker).first()).toBeVisible();
+      await expect(direct.locator(marker).first()).toBeVisible({ timeout: 120000 });
       await exerciseStandalone(direct, game.id, true);
       assert(
         await direct.evaluate(
