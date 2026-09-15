@@ -1,0 +1,20 @@
+{
+  "name": "@small-games/merge-front",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4197 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4197 --strictPort",
+    "test": "node --test tests/engine.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "vite": "8.2.2"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

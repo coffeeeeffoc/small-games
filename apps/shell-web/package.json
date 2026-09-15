@@ -19,6 +19,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@small-games/merge-front": "workspace:*",
     "@small-games/night-merge": "workspace:*",
     "tidebreak": "workspace:*",
     "@coffeeeeffoc/tower-defense-game": "workspace:*",
