@@ -120,7 +120,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       // Send real touch input without waiting for stable WebGL frames during play.
       await pause.page().touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     } else {
-      await frame.locator('canvas').press('Escape');
+      const canvas = frame.locator('canvas');
+      await expect(canvas).toBeFocused();
+      // start() already focuses the canvas; send native input without refocusing WebGL.
+      await canvas.page().keyboard.press('Escape');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
   } else if (id === 'travel-bund-25d') {
