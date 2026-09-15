@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
   'tower-defense-game': '[aria-label="塔防战场"]',
   'xiangqi-five': '#draw-button',
@@ -22,7 +23,13 @@ export const markers = {
 
 export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
-  if (id === 'tower-defense-game') {
+  if (id === 'night-merge') {
+    await click(frame.getByRole('button', { name: '开始守夜', exact: true }));
+    await expect(frame.locator('.board [data-slot]')).toHaveCount(12);
+    await expect(frame.locator('.board [data-slot].occupied')).toHaveCount(2);
+    await click(frame.getByRole('button', { name: /^召唤守卫/ }));
+    await expect(frame.locator('.board [data-slot].occupied')).toHaveCount(3);
+  } else if (id === 'tower-defense-game') {
     await click(frame.getByRole('button', { name: '切换速度，当前1倍' }));
     await expect(frame.getByRole('button', { name: '切换速度，当前2倍' })).toBeVisible();
   } else if (id === 'xiangqi-five') {

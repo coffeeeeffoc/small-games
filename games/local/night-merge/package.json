@@ -1,0 +1,23 @@
+{
+  "name": "@small-games/night-merge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4196 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4196 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/game.test.ts",
+    "test:browser": "node tests/browser.mjs",
+    "test:combat": "node tests/combat.browser.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}
