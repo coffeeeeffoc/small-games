@@ -1,5 +1,12 @@
 [
   {
+    "id": "night-merge",
+    "source": "games/local/night-merge",
+    "title": "合成守夜人",
+    "description": "拖动合成守卫，调兵守住城门，用随机祝福迎战十波长夜。",
+    "output": "dist"
+  },
+  {
     "id": "fishing",
     "source": "games/submodules/fishing",
     "title": "潮汐猎手",
