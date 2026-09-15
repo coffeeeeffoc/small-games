@@ -33,6 +33,7 @@ type Props = {
   data: WorldData;
   night: boolean;
   active: boolean;
+  ready: boolean;
   teleport: Teleport;
   onReady: () => void;
   onTelemetry: (t: Telemetry) => void;
@@ -655,7 +656,7 @@ function Controller({
     );
     stats.current.time += dt;
     stats.current.frames++;
-    if (stats.current.time > 0.3) {
+    if (input.active && stats.current.time > 0.3) {
       if (input.active)
         spatialAudio(
           [p.x, p.y, p.z],
@@ -692,7 +693,7 @@ export function Scene(props: Props) {
             </Suspense>
           ),
       )}
-      <Physics timeStep={1 / 60} gravity={[0, -9.81, 0]} paused={false} interpolate>
+      <Physics timeStep={1 / 60} gravity={[0, -9.81, 0]} paused={props.ready && !props.active} interpolate>
         <Suspense fallback={null}>
           <Traffic placements={props.data.props['city-car'] || []} night={props.night} />
         </Suspense>
