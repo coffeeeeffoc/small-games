@@ -84,6 +84,13 @@
     "output": "dist"
   },
   {
+    "id": "travel-bund",
+    "source": "games/local/travel-bund",
+    "title": "江风入境 · 外滩漫游",
+    "description": "第一视角自由漫游外滩两岸，看日夜江景、走过街巷，留下自己的旅行手记。",
+    "output": "dist"
+  },
+  {
     "id": "travel2",
     "source": "games/local/travel2",
     "title": "外滩·一江入梦",

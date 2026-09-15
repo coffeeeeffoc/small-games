@@ -45,6 +45,7 @@
     "before-the-rain-stops": "workspace:*",
     "quye-travel": "workspace:*",
     "@coffeeeeffoc/travel2": "workspace:*",
+    "@coffeeeeffoc/travel-bund": "workspace:*",
     "tangerine-express": "workspace:*",
     "here-and-then": "workspace:*",
     "null-range-mobile-cn": "workspace:*"

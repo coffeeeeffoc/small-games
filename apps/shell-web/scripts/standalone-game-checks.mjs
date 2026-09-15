@@ -14,6 +14,7 @@ export const markers = {
   puzzle: '.cover',
   travel: '#travel-button',
   travel2: '[data-testid="begin-journey"]',
+  'travel-bund': '#enter-world',
   'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
@@ -87,6 +88,16 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#journey-collect')).toContainText('已收藏');
     await click(frame.locator('#journey-close'));
     await expect(frame.locator('#journey-dialog')).toBeHidden();
+  } else if (id === 'travel-bund') {
+    await expect(frame.locator('#enter-world')).toBeEnabled({ timeout: 120000 });
+    await click(frame.locator('#enter-world'));
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
+    // Escape also releases desktop pointer lock; touch uses the visible pause button.
+    if (mobile) await click(frame.getByRole('button', { name: '暂停漫游' }));
+    else {
+      await frame.locator('canvas').press('Escape');
+    }
+    await expect(frame.getByRole('dialog')).toBeVisible();
   } else if (id === 'travel2') {
     const total = await frame.getByRole('button', { name: /^前往第\d+幕：/ }).count();
     await expect(frame.getByTestId('stamp-count')).toHaveText(`0 / ${total}`);
