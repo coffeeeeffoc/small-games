@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { flightFrame, travelDistance, settleProgress, needsDetail } from '../src/flight.ts';
+import {
+  flightFrame,
+  wheelStep,
+  chapterAt,
+  chapters,
+  settleProgress,
+  needsDetail,
+} from '../src/flight.ts';
 test('original detail survives export, flight is smooth and distance fades are reversible', () => {
   const manifest = JSON.parse(
     readFileSync(new URL('../public/lod/manifest.json', import.meta.url), 'utf8'),
@@ -52,7 +59,15 @@ test('original detail survives export, flight is smooth and distance fades are r
       Math.abs(speeds[i] / speeds[i - 1] - 1) < 0.035,
       'Altitude-based speed changes gradually',
     );
-  assert(travelDistance(0.001) < 0.00001, 'Gentle takeoff');
+  const firstWheel = flightFrame(wheelStep(120, 0, 900));
+  assert(
+    firstWheel.eye.distanceTo(flightFrame(0).eye) > 100,
+    'First wheel notch visibly approaches the city',
+  );
+  assert.equal(wheelStep(3, 1, 900), wheelStep(48, 0, 900));
+  assert.equal(wheelStep(10000, 0, 900), 0.06);
+  assert.equal(chapterAt(1), chapters.length - 1);
+  assert(settleProgress(0, 1, 1 / 60) <= 0.25 / 60 + 1e-10, 'Fast seeking has a speed ceiling');
   assert(needsDetail(900, false));
   assert(!needsDetail(2000, true));
   assert(!needsDetail(1400, false));

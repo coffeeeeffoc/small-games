@@ -3,7 +3,14 @@ import * as THREE from 'three';
 import { clamp, DURATION, flightFrame, settleProgress } from './flight';
 import { loadCity } from './lod';
 
-export type Flight = { progress: number; target: number; playing: boolean; speed: number };
+export type Flight = {
+  progress: number;
+  target: number;
+  playing: boolean;
+  speed: number;
+  yaw: number;
+  dragging: boolean;
+};
 export function Scene({
   flight,
   onProgress,
@@ -29,7 +36,8 @@ export function Scene({
       last = 0,
       sun: THREE.DirectionalLight;
     let previousProgress = 0,
-      direction = 1;
+      direction = 1,
+      yaw = 0;
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const visible = () => {
       last = 0;
@@ -114,7 +122,12 @@ export function Scene({
         }
         flight.current.progress = media.matches
           ? flight.current.target
-          : settleProgress(flight.current.progress, flight.current.target, delta);
+          : settleProgress(
+              flight.current.progress,
+              flight.current.target,
+              delta,
+              flight.current.dragging ? 24 : flight.current.playing ? 7 : 12,
+            );
         if (flight.current.progress === 1) flight.current.playing = false;
         const frame = flightFrame(flight.current.progress);
         if (flight.current.progress !== previousProgress)
@@ -123,6 +136,11 @@ export function Scene({
         camera.position.copy(frame.eye);
         camera.up.set(0, 1, 0);
         camera.lookAt(frame.look);
+        yaw = media.matches
+          ? flight.current.yaw
+          : THREE.MathUtils.damp(yaw, flight.current.yaw, 16, delta);
+        if (Math.abs(yaw - flight.current.yaw) < 0.0001) yaw = flight.current.yaw;
+        camera.rotateY(yaw);
         if (!media.matches) camera.rotateZ(frame.bank);
         const fov = frame.fov + (camera.aspect < 1 ? 15 : 0);
         if (Math.abs(camera.fov - fov) > 0.01) {
@@ -138,6 +156,7 @@ export function Scene({
         renderer!.render(scene, camera);
         mount.dataset.progress = flight.current.progress.toFixed(5);
         mount.dataset.camera = JSON.stringify(camera.position.toArray());
+        mount.dataset.yaw = yaw.toFixed(4);
         mount.dataset.calls = String(renderer!.info.render.calls);
         mount.dataset.detailLoaded = String(lod.loaded);
         mount.dataset.detailVisible = String(lod.detailed);

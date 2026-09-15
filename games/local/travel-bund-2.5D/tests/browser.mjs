@@ -17,7 +17,7 @@ try {
       viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 },
       isMobile: mobile,
       hasTouch: mobile,
-      reducedMotion: 'reduce',
+      reducedMotion: 'no-preference',
     });
     const page = await context.newPage();
     let expectedFailure = false;
@@ -46,6 +46,26 @@ try {
       path: fileURLToPath(new URL(mobile ? 'mobile-overview.png' : 'overview.png', output)),
     });
     const original = await scene.getAttribute('data-camera');
+    await page.waitForTimeout(350);
+    assert.equal(
+      await scene.getAttribute('data-progress'),
+      '0.00000',
+      'The visitor controls when travel begins',
+    );
+    await page.mouse.move(250, 350);
+    await page.mouse.wheel(0, 120);
+    await expect
+      .poll(async () => Number(await scene.getAttribute('data-progress')))
+      .toBeGreaterThan(0.01);
+    const from = JSON.parse(original),
+      first = JSON.parse(await scene.getAttribute('data-camera'));
+    assert(
+      Math.hypot(...first.map((n, i) => n - from[i])) > 100,
+      'A single wheel notch has visible travel',
+    );
+    await page.mouse.wheel(0, -120);
+    await expect.poll(() => scene.getAttribute('data-camera')).toBe(original);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.getByRole('button', { name: '开始飞行', exact: true }).click();
     await expect.poll(() => scene.getAttribute('data-camera')).not.toBe(original);
     await page.getByRole('button', { name: '暂停飞行', exact: true }).click();
@@ -65,8 +85,12 @@ try {
             timeout: 30000,
           })
           .toBeGreaterThan(0);
-      await expect.poll(() => scene.getAttribute('data-detail-pending'), { timeout: 30000 }).toBe('0');
-      await expect.poll(() => scene.getAttribute('data-detail-fading'), { timeout: 10000 }).toBe('0');
+      await expect
+        .poll(() => scene.getAttribute('data-detail-pending'), { timeout: 30000 })
+        .toBe('0');
+      await expect
+        .poll(() => scene.getAttribute('data-detail-fading'), { timeout: 10000 })
+        .toBe('0');
       await page.screenshot({
         path: fileURLToPath(new URL(`${mobile ? 'mobile-' : ''}flight-${fraction}.png`, output)),
       });
@@ -107,12 +131,48 @@ try {
       settledPause,
       'Pause stops even a damped camera',
     );
+    // Horizontal input changes the view without moving along the route.
+    const travelBeforeLook = await scene.getAttribute('data-progress');
+    if (mobile) {
+      const cdp = await context.newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: 130, y: 410 }],
+      });
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: 300, y: 410 }],
+      });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    } else {
+      await page.mouse.move(400, 410);
+      await page.mouse.down();
+      await page.mouse.move(800, 410, { steps: 10 });
+      await page.mouse.up();
+    }
+    await expect
+      .poll(async () => Number(await scene.getAttribute('data-yaw')))
+      .toBeGreaterThan(0.2);
+    assert.equal(await scene.getAttribute('data-progress'), travelBeforeLook);
+    await page.getByRole('button', { name: '视角归正', exact: true }).click();
+    await expect.poll(() => scene.getAttribute('data-yaw')).toBe('0.0000');
+    await page.getByRole('button', { name: '前往浦东天际线', exact: true }).click();
+    await expect.poll(() => scene.getAttribute('data-progress')).toBe('0.70000');
+    await expect(page.getByRole('button', { name: '前往浦东天际线', exact: true })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    await page.screenshot({
+      path: fileURLToPath(new URL(`${mobile ? 'mobile-' : ''}interactive-pudong.png`, output)),
+    });
     if (!mobile) {
       await page.getByRole('button', { name: '回到起点' }).click();
       await expect.poll(() => scene.getAttribute('data-progress')).toBe('0.00000');
       await expect.poll(() => scene.getAttribute('data-detail-fading')).toBe('0');
       expectedFailure = true;
-      await page.route('**/lod/-1_0.glb', (route) => route.fulfill({ status: 503, body: 'Unavailable' }));
+      await page.route('**/lod/-1_0.glb', (route) =>
+        route.fulfill({ status: 503, body: 'Unavailable' }),
+      );
       await page.getByRole('combobox', { name: '飞行速度' }).selectOption('2');
       await page.getByRole('button', { name: '开始飞行', exact: true }).click();
       const retry = page.getByRole('button', { name: '部分街区细节加载失败 · 点击重试' });
@@ -122,9 +182,13 @@ try {
       await retry.click();
       await expect(retry).toBeHidden();
       expectedFailure = false;
-      await expect.poll(() => scene.getAttribute('data-progress'), { timeout: 40000 }).toBe('1.00000');
+      await expect
+        .poll(() => scene.getAttribute('data-progress'), { timeout: 40000 })
+        .toBe('1.00000');
       await expect(page.locator('main')).toHaveAttribute('data-playing', 'false');
-      console.log('Automatic full route completed; a failed detail request retained the overview and recovered.');
+      console.log(
+        'Automatic full route completed; a failed detail request retained the overview and recovered.',
+      );
     }
     console.log(
       `${mobile ? 'Touch' : 'Desktop'}: full scene fidelity, far silhouettes, lazy near detail, reversible fades, flight and input passed.`,
