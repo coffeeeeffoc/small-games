@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'merge-front': '#start-defense',
   'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
   'tower-defense-game': '[aria-label="塔防战场"]',
@@ -23,7 +24,15 @@ export const markers = {
 
 export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
-  if (id === 'night-merge') {
+  if (id === 'merge-front') {
+    await click(frame.locator('#start-defense'));
+    await expect(frame.locator('#board [data-zone="board"][data-index]')).toHaveCount(12);
+    await expect(frame.locator('#launch')).toBeVisible();
+    const reserve = frame.locator('[data-zone="reserve"].occupied');
+    const recruited = await reserve.count();
+    await click(frame.locator('[data-offer="nezha:哪"]'));
+    await expect(reserve).toHaveCount(recruited + 1);
+  } else if (id === 'night-merge') {
     await click(frame.getByRole('button', { name: '开始守夜', exact: true }));
     await expect(frame.locator('.board [data-slot]')).toHaveCount(12);
     await expect(frame.locator('.board [data-slot].occupied')).toHaveCount(2);

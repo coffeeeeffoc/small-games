@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#173f39" />
+    <meta
+      name="description"
+      content="征集名字，唤醒神将。拖拽合成，机关联动，守住灵晶或开启流水线攻城。"
+    />
+    <title>神机合阵 · 云上工坊</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  </head>
+  <body>
+    <main id="game">
+      <header class="masthead">
+        <a class="brand" href="./" aria-label="神机合阵首页"
+          ><span class="brand-seal">合</span
+          ><span><strong>神机合阵</strong><small>云 上 工 坊 · 卷 一</small></span></a
+        >
+        <div class="header-note">一字唤神将，一阵守云关。</div>
+        <nav aria-label="游戏设置">
+          <button id="guide-button" class="icon-button" title="玩法图鉴" aria-label="玩法图鉴">
+            ?</button
+          ><button id="sound-button" class="icon-button" aria-label="开启声音" aria-pressed="false">
+            ♪</button
+          ><button id="pause-button" class="icon-button" aria-label="暂停游戏">Ⅱ</button>
+        </nav>
+      </header>
+
+      <div class="command-bar">
+        <div class="mode-label">
+          <span class="live-dot"></span><strong id="mode-label">云关守御</strong
+          ><span id="phase-label">准备布阵</span>
+        </div>
+        <div class="resources">
+          <span class="coin-symbol">铸</span><strong id="coins">180</strong
+          ><span class="resource-caption">灵石</span><i></i><span>击退 <b id="kills">0</b></span
+          ><button id="mode-button" class="text-button">切换战局 ↗</button>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <section class="play-column" aria-label="战场与部署">
+          <section class="battle-panel">
+            <div class="battle-heading">
+              <div>
+                <span class="eyebrow" id="battle-eyebrow">DEFEND THE CLOUD GATE</span>
+                <h1 id="battle-title">云关 · 守住这束光</h1>
+              </div>
+              <div class="wave-badge">
+                <small id="wave-caption">来袭波次</small><strong id="wave">01 <em>/ 08</em></strong>
+              </div>
+            </div>
+            <div class="battle-stage">
+              <canvas
+                id="battle"
+                width="1000"
+                height="400"
+                role="img"
+                aria-label="神将与机关的自动战斗战场"
+              ></canvas>
+              <div class="core-tag ally">
+                <span>我方灵晶</span><b id="core-hp">100%</b>
+                <div><i id="core-fill"></i></div>
+              </div>
+              <div class="core-tag enemy">
+                <span id="enemy-label">裂隙来敌</span><b id="enemy-hp">待命</b>
+                <div><i id="enemy-fill"></i></div>
+              </div>
+              <div id="stage-banner" class="stage-banner">把「吒」拖到「哪」上，唤醒第一位神将</div>
+            </div>
+            <div class="battle-footer">
+              <div id="wave-track" class="wave-track" aria-label="波次进度"></div>
+              <span id="battle-clock">00:00</span
+              ><button id="speed-button" class="speed-button" aria-label="切换速度，当前1倍">
+                1×
+              </button>
+            </div>
+          </section>
+
+          <section class="deployment-panel">
+            <div class="section-heading">
+              <div>
+                <span class="section-number">01</span>
+                <h2 id="board-title">布阵台</h2>
+                <span id="board-subtitle">前排迎敌，后排输出</span>
+              </div>
+              <button id="launch" class="primary small">鸣鼓迎敌 <span>↗</span></button>
+            </div>
+            <div class="deployment-body">
+              <div class="board-wrap">
+                <div class="lane-labels"><span>上路</span><span>中路</span><span>下路</span></div>
+                <div id="board" class="board" aria-label="十二格部署台"></div>
+                <div class="board-direction">
+                  <span>← 灵晶</span><span id="board-direction">迎敌方向 →</span>
+                </div>
+              </div>
+              <div class="selection-panel">
+                <span class="eyebrow">当前选择</span>
+                <h3 id="selected-name">先唤醒哪吒</h3>
+                <p id="selected-description">
+                  将候补席的「吒」拖到布阵台的「哪」上。名字齐了，神将才会醒来。
+                </p>
+                <div id="selected-link" class="link-note">哪吒 ＋ 离火铳 → 三昧真火</div>
+                <button id="recycle" class="text-button" disabled>回收选中单位 ↗</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="reserve-panel">
+            <div class="section-heading compact">
+              <div>
+                <span class="section-number">02</span>
+                <h2>候补席</h2>
+                <span>拖入战阵 · 重叠合成</span>
+              </div>
+              <span id="reserve-count">0 / 6</span>
+            </div>
+            <div id="reserve" class="reserve" aria-label="六格候补席"></div>
+          </section>
+        </section>
+
+        <aside class="workshop" aria-label="征兵工坊">
+          <div class="workshop-heading">
+            <span class="eyebrow">THE CELESTIAL WORKSHOP</span>
+            <h2>铸字成将<span>募</span></h2>
+            <p>名字凑齐的那一刻，传说醒来。</p>
+          </div>
+          <div class="shop-tabs" role="tablist" aria-label="征兵类别">
+            <button role="tab" data-tab="hero" aria-selected="true">神将残字</button
+            ><button role="tab" data-tab="weapon" aria-selected="false">机关武器</button>
+          </div>
+          <div id="shop"></div>
+          <div class="workshop-tip">
+            <span>✦</span>
+            <p id="shop-tip">同一武将的残字叠在一起即可唤醒。两个同星完整武将，可合成更高星。</p>
+          </div>
+          <div class="tactics">
+            <div class="section-heading compact">
+              <div><h2>战场支援</h2></div>
+              <small>关键时刻，再出一手</small>
+            </div>
+            <button id="surge">
+              <span class="tactic-icon">雷</span
+              ><span
+                ><strong>神机超频</strong
+                ><small id="surge-info">攻速与生产 +55% · 冷却 36 秒</small></span
+              ><b>↗</b></button
+            ><button id="repair">
+              <span class="tactic-icon repair">护</span
+              ><span
+                ><strong>修复灵晶</strong><small id="repair-info">消耗灵石，修复核心</small></span
+              ><b>＋</b>
+            </button>
+          </div>
+          <div class="workshop-foot"><span>云上工坊出品</span><span>第一卷 · 神机初醒</span></div>
+        </aside>
+      </div>
+      <footer class="page-footer">
+        <span>残字沉睡 → 合字觉醒 → 同将升星 → 神机共鸣</span
+        ><button id="help-footer" class="text-button">查看合阵图鉴 ↗</button>
+      </footer>
+      <div id="toast" role="status" aria-live="polite"></div>
+      <div id="drag-ghost" aria-hidden="true"></div>
+    </main>
+
+    <dialog id="welcome" aria-labelledby="welcome-title">
+      <div class="welcome-art">
+        <canvas
+          id="welcome-art"
+          width="640"
+          height="280"
+          aria-label="三位神话武将的原创动态模型"
+        ></canvas
+        ><span class="welcome-stamp">天工开物<br />神将归位</span>
+      </div>
+      <div class="welcome-copy">
+        <span class="eyebrow">一场神话与机关的奇遇</span>
+        <h2 id="welcome-title">字合，神醒。<br /><em>你的战阵，由你成就。</em></h2>
+        <p>收集姓名残字，唤醒沉睡神将。<br />让机关与传说合为一体，在云端打出一场漂亮仗。</p>
+        <div class="difficulty">
+          <span>战局强度</span
+          ><button data-difficulty="normal" class="active">标准 · 初探云关</button
+          ><button data-difficulty="hard">险境 · 强敌压境</button>
+        </div>
+        <div class="mode-cards">
+          <button id="start-defense">
+            <span class="mode-symbol">守</span
+            ><span><strong>防守模式</strong><small>部署神将 · 坚守八波</small></span
+            ><b>↗</b></button
+          ><button id="start-attack">
+            <span class="mode-symbol">攻</span
+            ><span><strong>进攻模式</strong><small>流水线造兵 · 击破敌晶</small></span
+            ><b>↗</b>
+          </button>
+        </div>
+        <div class="welcome-bottom">
+          <span>支持拖拽，也可点选单位后点目标格</span><span id="record">新的传说，等你书写</span>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="guide" aria-labelledby="guide-title">
+      <div class="dialog-heading">
+        <span class="eyebrow">FIELD MANUAL / 合阵图鉴</span
+        ><button class="icon-button" id="close-guide" aria-label="关闭图鉴">×</button>
+      </div>
+      <h2 id="guide-title">合字唤神，机巧成阵。</h2>
+      <div class="guide-steps">
+        <p><b>一 · 征集</b>点击工坊购买指定残字或武器，送入候补席。</p>
+        <p><b>二 · 觉醒</b>同一名字的不同残字重叠，凑齐便唤醒神将。残缺名字只会沉睡。</p>
+        <p><b>三 · 升星</b>两个同名同星的完整神将重叠，升级至最高三星。不同单位可换位。</p>
+        <p>
+          <b>四 · 共鸣</b
+          >对应武器直接放到完整神将身上可装备，或在布阵台上下左右相邻放置。相邻武器每次只联动一位神将。
+        </p>
+      </div>
+      <div id="guide-roster"></div>
+      <div class="guide-modes">
+        <p>
+          <b>守 · 云关守御</b>12 格对应三条战线，右侧先接敌。波间获得灵石，阵亡神将休整 11
+          秒后归队，战斗中仍可调整阵容；八波结束且核心存活即获胜。
+        </p>
+        <p>
+          <b>攻 · 神机远征</b>12
+          格变成生产配方。完整神将与武器循环出兵，沉睡残字停产。把对应武器提前装备或放到相邻格，生产变慢但出厂就是强力合体。配方调整会重新计时。击破敌晶取胜，己方灵晶归零则失败。
+        </p>
+      </div>
+      <p class="guide-footnote">
+        点击选中 → 点击目标，也能完成移动和合成。Esc 暂停 / 关闭窗口；页面离开前台会自动暂停。
+      </p>
+    </dialog>
+    <dialog id="pause-dialog" aria-labelledby="pause-title">
+      <span class="eyebrow">休整片刻</span>
+      <h2 id="pause-title">云关等你归来</h2>
+      <p>战斗与生产进度已暂停。</p>
+      <button id="resume" class="primary">继续战局 ↗</button
+      ><button id="restart" class="secondary">重新部署</button
+      ><button id="return-home" class="text-button">返回模式选择</button>
+    </dialog>
+    <dialog id="result" aria-labelledby="result-title">
+      <span id="result-seal" class="result-seal">胜</span
+      ><span class="eyebrow" id="result-eyebrow">CLOUD GATE SECURED</span>
+      <h2 id="result-title">云关无恙</h2>
+      <p id="result-description"></p>
+      <div id="result-stats" class="result-stats"></div>
+      <button id="retry" class="primary">再布一阵 ↗</button
+      ><button id="result-home" class="secondary">选择另一种战局</button>
+    </dialog>
+    <script type="module" src="./src/main.mjs"></script>
+  </body>
+</html>

@@ -1,5 +1,12 @@
 [
   {
+    "id": "merge-front",
+    "source": "games/local/merge-front",
+    "title": "神机合阵",
+    "description": "拼字唤醒神将，合成神机武装，布阵守城或开动生产线攻破敌方水晶。",
+    "output": "dist"
+  },
+  {
     "id": "night-merge",
     "source": "games/local/night-merge",
     "title": "合成守夜人",
