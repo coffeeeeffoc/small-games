@@ -110,8 +110,16 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#enter-world'));
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
     // Escape also releases desktop pointer lock; touch uses the visible pause button.
-    if (mobile) await click(frame.getByRole('button', { name: '暂停漫游' }));
-    else {
+    if (mobile) {
+      const pause = frame.getByRole('button', { name: '暂停漫游' });
+      await expect(pause).toBeVisible();
+      const bounds = await pause.evaluate((button) => {
+        const { x, y, width, height } = button.getBoundingClientRect();
+        return { x, y, width, height };
+      });
+      // Send real touch input without waiting for stable WebGL frames during play.
+      await pause.page().touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    } else {
       await frame.locator('canvas').press('Escape');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();

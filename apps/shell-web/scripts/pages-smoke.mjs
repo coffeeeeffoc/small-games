@@ -96,11 +96,15 @@ try {
       await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
       standaloneUrl,
     );
+    // Release the desktop WebGL context before starting the mobile instance.
+    await page.getByRole('button', { name: '返回目录', exact: true }).click();
+    await expect(page.locator('iframe')).toHaveCount(0);
     const landscape = ['fishing', 'vibeJam-myself-delivery', 'vibeJam-myself-nullrange'].includes(
       game.id,
     );
     const viewport = landscape ? { width: 844, height: 390 } : { width: 390, height: 844 };
-    const direct = await browser.newPage({ viewport, isMobile: true, hasTouch: true });
+    const mobileContext = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+    const direct = await mobileContext.newPage();
     direct.on('pageerror', (error) => failures.push(`${game.id}: ${error.message}`));
     direct.on('response', (response) => {
       if (response.url().startsWith(url) && response.status() >= 400)
@@ -121,10 +125,9 @@ try {
       results.push({ id: game.id, embedded: 'passed', directMobile: 'passed', viewport });
       console.log(`Passed: ${game.id} (embedded and ${viewport.width}x${viewport.height} touch)`);
     } finally {
-      await direct.close();
+      await mobileContext.close();
+      assert.equal(browser.contexts().length, 1, `${game.id}: mobile context was not released`);
     }
-    await page.getByRole('button', { name: '返回目录', exact: true }).click();
-    await expect(page.locator('iframe')).toHaveCount(0);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   assert(

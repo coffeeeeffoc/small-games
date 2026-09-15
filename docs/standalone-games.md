@@ -118,7 +118,7 @@ pnpm check:games merge-front night-merge travel-bund travel-bund-2.5D --verify
 pnpm check:games --json
 ```
 
-参数接受目录名、目录路径、访问 id 或包名。`travel-bund-2.5D` 的访问 id 为 `travel-bund-25d`。不传游戏参数时，`--verify` 构建与测试全部游戏。运行浏览器检查前安装 Chromium：`pnpm exec playwright install chromium`。
+参数接受目录名、目录路径、访问 id 或包名。`travel-bund-2.5D` 的访问 id 为 `travel-bund-25d`。不传游戏参数时，`--verify` 构建与测试全部游戏。运行浏览器检查前安装 Chromium：`pnpm exec playwright install chromium`。Pages 回归使用完整 Chromium 的 headless 模式；可用 `PLAYWRIGHT_EXECUTABLE_PATH` 指定浏览器，或用 `PLAYWRIGHT_BROWSERS_PATH` 指定 Playwright 缓存目录。
 
 CI 执行配置检查及脚本回归测试；Pages 构建前检查配置，构建后检查制品；Android 和 iOS 工作流安装依赖后先检查配置。`--verify` 的移动端检查覆盖 Web 资源包；APK 编译、iOS 模拟器启动及设备归档由 mobile 工作流验证，也可分别运行 `pnpm android:apk`、`pnpm ios:simulator`（需对应 SDK）。四款独立 H5 随 Web/原生 WebView 大厅打包，B 站 Canvas SDK 继续验证其现有 Game Host 游戏。
 
