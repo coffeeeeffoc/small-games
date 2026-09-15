@@ -154,7 +154,8 @@ export async function loadCity(
       let detailed = 0,
         fading = 0;
       for (const tile of tiles) {
-        tile.detailed = !!tile.high && needsDetail(tile.bounds.distanceToPoint(camera.position), tile.detailed);
+        tile.detailed =
+          !!tile.high && needsDetail(tile.bounds.distanceToPoint(camera.position), tile.detailed);
         const wanted = Number(tile.detailed);
         tile.mix = THREE.MathUtils.damp(tile.mix, wanted, 4, delta);
         if (Math.abs(tile.mix - wanted) < 0.005) tile.mix = wanted;
