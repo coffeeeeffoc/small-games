@@ -14,3 +14,7 @@
 	path = games/submodules/fishing
 	url = https://github.com/coffeeeeffoc/fishing.git
 	branch = main
+[submodule "assets"]
+	path = assets
+	url = https://github.com/coffeeeeffoc/small-games-assets.git
+	branch = main
