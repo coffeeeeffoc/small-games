@@ -15,7 +15,7 @@
     "test:integration": "vitest run tests/shell.integration.test.tsx tests/standalone.integration.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {

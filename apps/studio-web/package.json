@@ -13,7 +13,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run --maxWorkers=1",
     "test:integration": "vitest run tests/auth.test.tsx",
-    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/release-contract": "workspace:*",

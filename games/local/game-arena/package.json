@@ -18,7 +18,7 @@
     "test:contract": "vitest run tests/game.contract.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/content-schema": "workspace:*",

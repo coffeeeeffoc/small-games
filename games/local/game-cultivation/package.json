@@ -21,7 +21,7 @@
     "test:contract": "vitest run tests/game.contract.test.tsx tests/canvas.contract.test.ts",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "pnpm --filter @coffeeeeffoc/vite-smoke-test build && node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",

@@ -4,6 +4,8 @@
 
 CI 依次执行 format check、ESLint、TypeScript strict、循环依赖检查、单元测试、contract tests、集成测试和独立构建 smoke test。任一步失败都不能形成 Game Artifact。
 
+Vite smoke 使用根命令 `pnpm smoke`，或 `pnpm exec turbo run smoke --filter=@coffeeeeffoc/game-arena` 检查单个包。Turbo 会先构建当前包及其 workspace 依赖；直接执行 `pnpm --filter <package> smoke` 只检查已有产物，需要先完成这些构建。各 smoke 脚本不重复构建共享依赖，避免并发重写同一份 `dist`。
+
 单文件 300 行是软限制：超过时 ESLint 警告；只有附带局部 disable 和具体原因才能保留。生成代码必须经过 Prettier，禁止提交当前原型中大量表达式挤在一行的写法。
 
 ## 文件职责
