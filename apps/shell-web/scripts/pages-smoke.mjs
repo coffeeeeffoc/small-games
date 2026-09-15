@@ -84,6 +84,9 @@ try {
     const marker = markers[game.id];
     assert(marker, `Missing ready marker for ${game.id}`);
     await expect(frame.locator(marker).first()).toBeVisible();
+    // Static controls can appear before module scripts attach their event listeners.
+    const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
+    await gameFrame.waitForLoadState();
     await exerciseStandalone(frame, game.id);
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
     assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
