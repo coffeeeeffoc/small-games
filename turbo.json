@@ -49,6 +49,11 @@
     "smoke": {
       "dependsOn": ["build"],
       "outputs": []
+    },
+    "@coffeeeeffoc/travel-bund#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/assets/bund/runtime/**"],
+      "outputs": ["dist/**"]
     }
   }
 }
