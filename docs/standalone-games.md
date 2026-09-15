@@ -6,7 +6,7 @@
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
 - `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
 
-目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；其余十六个 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
+目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
 
 ## 父仓库直接管理的 Game
 
@@ -25,6 +25,10 @@
 | puzzle                       | 雨停之前              | before-the-rain-stops          | iframe    |
 | travel                       | 去野 · 大理漫游记     | quye-travel                    | iframe    |
 | travel2                      | 外滩·一江入梦         | @coffeeeeffoc/travel2          | iframe    |
+| merge-front                  | 神机合阵              | @small-games/merge-front       | iframe    |
+| night-merge                  | 合成守夜人            | @small-games/night-merge       | iframe    |
+| travel-bund                  | 江风入境 · 外滩漫游   | @coffeeeeffoc/travel-bund      | iframe    |
+| travel-bund-2.5D             | 外滩 · 空中漫游       | @coffeeeeffoc/travel-bund-25d  | iframe    |
 | vibeJam-myself-delivery      | 橘风速递              | tangerine-express              | iframe    |
 | vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
@@ -63,9 +67,13 @@ pnpm install --frozen-lockfile
 pnpm --filter multi-battle dev
 pnpm --filter @coffeeeeffoc/game-cultivation dev
 
-# 全部 20 款游戏，复用 Turbo 的依赖构建和缓存
+# 全部游戏，复用 Turbo 的依赖构建和缓存
 pnpm games:build
 pnpm games:test
+
+# 从源码目录发现漏接入的新游戏（不依赖清单枚举）
+pnpm check:games
+pnpm test:game-config
 
 # 大厅开发与正式静态制品
 pnpm --filter @coffeeeeffoc/shell-web dev
@@ -88,6 +96,32 @@ Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变�
 
 父仓库的格式化保留四个 Game Host 包的检查，导入的独立 H5 沿用各自格式。lint 排除 Git 子模块，普通游戏中存在 lint 命令的包仍参与检查。测试和依赖边界检查覆盖两类游戏目录。
 
+## 游戏接入检查
+
+`scripts/check-game-config.mjs` 从 `games/local/*` 和 `games/submodules/*` 的实际目录发现游戏，核对注册清单或 Game Host 注册、workspace、锁文件、大厅依赖、构建与测试脚本、浏览器操作用例，以及 CI、Pages、Android/iOS 和 B 站 SDK 的构建链路。新建目录但漏配任一必要入口时返回非零退出码；不会自动修改配置。
+
+```sh
+# 快速检查全部目录；适合提交前与 CI
+pnpm check:games
+
+# 检查四款游戏；仍报告其他目录的接入遗漏
+pnpm check:games merge-front night-merge travel-bund travel-bund-2.5D
+
+# 检查现有制品的资源路径和源 dist / 大厅副本逐文件一致性
+pnpm check:games --artifacts
+
+# 实际执行选中游戏测试构建、B 站 SDK 强制构建与 smoke、
+# 全量 Pages 构建与浏览器操作回归、移动端 Web ZIP 打包
+pnpm check:games merge-front night-merge travel-bund travel-bund-2.5D --verify
+
+# 机器可读结果（不与 --verify 同用）
+pnpm check:games --json
+```
+
+参数接受目录名、目录路径、访问 id 或包名。`travel-bund-2.5D` 的访问 id 为 `travel-bund-25d`。不传游戏参数时，`--verify` 构建与测试全部游戏。运行浏览器检查前安装 Chromium：`pnpm exec playwright install chromium`。
+
+CI 执行配置检查及脚本回归测试；Pages 构建前检查配置，构建后检查制品；Android 和 iOS 工作流安装依赖后先检查配置。`--verify` 的移动端检查覆盖 Web 资源包；APK 编译、iOS 模拟器启动及设备归档由 mobile 工作流验证，也可分别运行 `pnpm android:apk`、`pnpm ios:simulator`（需对应 SDK）。四款独立 H5 随 Web/原生 WebView 大厅打包，B 站 Canvas SDK 继续验证其现有 Game Host 游戏。
+
 ## 提交与锁文件
 
 普通游戏直接随父仓库提交。子模块修改先在子仓库提交、推送，再在父仓库更新指针：
@@ -106,7 +140,7 @@ git commit -m "Update xiangqi-five"
 
 ## 平台边界
 
-十六款 iframe H5 保留自身存档和生命周期，不自动接入 Game Host 云存档、广告或 Runtime 发布版本。原四款 Game Host 游戏的 Studio 源码浏览、编辑和 Source Extension 路径已同步迁移；导入 H5 的开发入口为其各自的 workspace 包命令。
+iframe H5 保留自身存档和生命周期，不自动接入 Game Host 云存档、广告或 Runtime 发布版本。原四款 Game Host 游戏的 Studio 源码浏览、编辑和 Source Extension 路径已同步迁移；导入 H5 的开发入口为其各自的 workspace 包命令。
 
 Pages 构建关闭 Runtime 连接，保留本地存档；普通开发模式继续支持 Runtime。原独立站点与大厅可能属于不同 origin，浏览器存档不会自动跨站迁移。
 

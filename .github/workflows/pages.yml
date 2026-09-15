@@ -29,8 +29,10 @@ jobs:
           node-version: 24.12.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:games
       - run: pnpm games:test
       - run: pnpm build:pages
+      - run: pnpm check:games --artifacts
       - run: pnpm --filter @coffeeeeffoc/shell-web test
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:pages

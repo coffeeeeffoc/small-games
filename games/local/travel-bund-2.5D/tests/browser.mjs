@@ -9,7 +9,14 @@ const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   preview: { host: '127.0.0.1', port: 0 },
 });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = process.env.PLAYWRIGHT_EXECUTABLE_PATH
+  ? await chromium.launch({
+      executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+      headless: true,
+    })
+  : await chromium
+      .launch({ channel: 'chrome', headless: true })
+      .catch(() => chromium.launch({ headless: true }));
 const errors = [];
 try {
   for (const mobile of [false, true]) {
