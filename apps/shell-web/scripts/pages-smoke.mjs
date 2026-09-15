@@ -19,6 +19,8 @@ try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
   const url = process.env.PAGES_URL ?? `${origin}/small-games/`;
   browser = await chromium.launch({
+    // Full Chromium keeps the desktop WebGL path; headless_shell stalls on the 3D city.
+    channel: 'chromium',
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
