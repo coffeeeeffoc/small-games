@@ -382,6 +382,7 @@ function App() {
                   data={data}
                   night={night}
                   active={active}
+                  ready={ready}
                   teleport={teleport}
                   onReady={readyScene}
                   onTelemetry={setStats}
