@@ -46,6 +46,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check all game registrations
+        run: pnpm check:games
+
+      - name: Test game registration checker
+        run: pnpm test:game-config
+
       - name: Check formatting
         run: pnpm format:check
 

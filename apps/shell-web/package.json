@@ -48,6 +48,7 @@
     "quye-travel": "workspace:*",
     "@coffeeeeffoc/travel2": "workspace:*",
     "@coffeeeeffoc/travel-bund": "workspace:*",
+    "@coffeeeeffoc/travel-bund-25d": "workspace:*",
     "tangerine-express": "workspace:*",
     "here-and-then": "workspace:*",
     "null-range-mobile-cn": "workspace:*"
