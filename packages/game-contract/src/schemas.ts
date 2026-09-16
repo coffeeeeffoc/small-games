@@ -47,7 +47,7 @@ export const gameManifestSchema = z.object({
   contentSchemaVersion: z.number().int().positive(),
   capabilities: z.array(hostCapabilitySchema).readonly(),
   loadModes: z
-    .array(z.enum(['in-process', 'iframe', 'bilibili-subpackage']))
+    .array(z.enum(['in-process', 'iframe', 'bilibili-subpackage', 'native-package']))
     .min(1)
     .readonly(),
   entry: z.string().min(1),

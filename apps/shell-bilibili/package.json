@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:integration": "vitest run tests/shell.test.ts",
     "test:contract": "vitest run tests/host.test.ts",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node ../../scripts/native-game-smoke.mjs --catalog"
   },
   "dependencies": {
     "@coffeeeeffoc/ad-runtime": "workspace:*",
@@ -25,7 +25,8 @@
     "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*",
-    "@coffeeeeffoc/game-cricket": "workspace:*"
+    "@coffeeeeffoc/game-cricket": "workspace:*",
+    "@coffeeeeffoc/native-game-shell": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

@@ -13,6 +13,9 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "games:init": "git submodule update --init --recursive",
+    "minigame:build": "pnpm --filter @coffeeeeffoc/shell-minigame build:game",
+    "minigame:preview": "pnpm --filter @coffeeeeffoc/shell-minigame build:all",
+    "minigame:smoke": "pnpm --filter @coffeeeeffoc/shell-minigame smoke",
     "android:apk": "pnpm --filter @coffeeeeffoc/shell-android apk",
     "android:test": "pnpm --filter @coffeeeeffoc/shell-android test:device",
     "android:release": "pnpm --filter @coffeeeeffoc/shell-android apk --release",

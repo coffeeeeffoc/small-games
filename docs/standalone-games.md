@@ -5,6 +5,7 @@
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
 - `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
+- `platforms/*`：各渠道 SDK 适配入口与工程配置；由 Shell 选择并组装。
 
 目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
 

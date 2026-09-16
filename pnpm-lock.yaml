@@ -80,6 +80,9 @@ importers:
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -107,6 +110,58 @@ importers:
         version: 5.0.0(@types/node@24.3.1)(vite@8.2.2)
 
   apps/shell-ios: {}
+
+  apps/shell-minigame:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../packages/canvas-game-adapter
+      '@coffeeeeffoc/game-arena':
+        specifier: workspace:*
+        version: link:../../games/local/game-arena
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/game-cricket':
+        specifier: workspace:*
+        version: link:../../games/local/game-cricket
+      '@coffeeeeffoc/game-cultivation':
+        specifier: workspace:*
+        version: link:../../games/local/game-cultivation
+      '@coffeeeeffoc/game-office':
+        specifier: workspace:*
+        version: link:../../games/local/game-office
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+      '@coffeeeeffoc/platform-bilibili':
+        specifier: workspace:*
+        version: link:../../platforms/bilibili
+      '@coffeeeeffoc/platform-wechat':
+        specifier: workspace:*
+        version: link:../../platforms/wechat
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      '@types/node':
+        specifier: 24.3.1
+        version: 24.3.1
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.3.1)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@24.3.1)(vite@8.2.2)
 
   apps/shell-web:
     dependencies:
@@ -432,6 +487,9 @@ importers:
 
   games/local/game-cricket:
     dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../../packages/content-schema
@@ -1257,6 +1315,40 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@7.1.5)
 
+  packages/native-game-shell:
+    dependencies:
+      '@coffeeeeffoc/ad-runtime':
+        specifier: workspace:*
+        version: link:../ad-runtime
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../game-contract
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../game-host
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@7.1.5)
+
   packages/react-game-adapter:
     dependencies:
       '@coffeeeeffoc/content-schema':
@@ -1420,6 +1512,50 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(vite@8.2.2)
+
+  platforms/bilibili:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../packages/canvas-game-adapter
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  platforms/wechat:
+    dependencies:
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   services/management-api:
     dependencies:

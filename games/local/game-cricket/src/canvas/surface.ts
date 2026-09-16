@@ -1,14 +1,8 @@
+import type { CanvasGameTarget } from '@coffeeeeffoc/canvas-game-adapter';
 import type { CricketMatch } from '../domain/cricket.js';
 import { drawCricketScene } from '../view/scene.js';
 /** Minimal native Canvas and input surface; no browser DOM or platform SDK enters Game logic. */
-export type CricketCanvasTarget = Readonly<{
-  canvas: {
-    width: number;
-    height: number;
-    getContext(kind: '2d'): CanvasRenderingContext2D | null;
-  };
-  onTap(listener: (x: number, y: number) => void): () => void;
-}>;
+export type CricketCanvasTarget = CanvasGameTarget;
 
 /** Render-only screen description with Game-owned player actions. */
 export type CanvasScreen = Readonly<{

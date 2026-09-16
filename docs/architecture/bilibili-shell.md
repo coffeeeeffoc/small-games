@@ -1,5 +1,7 @@
 # Bilibili Shell
 
+单款微信/B站发行改用 `apps/shell-minigame`，见 [独立小游戏平台工程](native-platforms.md)。本工程保留已有大厅与分包交付；输入、媒体、存档、广告和生命周期实现已复用 `packages/native-game-shell`。
+
 `apps/shell-bilibili` targets the native Bilibili **小游戏** runtime, not a browser page embedded in Bilibili. Its reviewed code uses CommonJS, `bl.loadSubpackage`, a native Canvas and Host SDK ports. No Web iframe loader, remote JavaScript import or browser DOM is included in the production entry.
 
 ## Commands and release boundary
