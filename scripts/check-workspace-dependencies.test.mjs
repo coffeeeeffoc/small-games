@@ -113,6 +113,36 @@ test('requires an explicit root export', async (t) => {
   assert.equal(violations.filter((violation) => violation.code === 'private-export').length, 1);
 });
 
+test('discovers platform packages and keeps games independent of platform adapters', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'platforms/wechat',
+      manifest: {
+        name: '@coffeeeeffoc/platform-wechat',
+        exports: { '.': './src/index.ts', './build': './build.mjs' },
+      },
+      files: { 'src/index.ts': "import '../../../packages/private/src/index.ts';\n" },
+    },
+    {
+      path: 'games/local/game-demo',
+      manifest: {
+        name: '@coffeeeeffoc/game-demo',
+        dependencies: { '@coffeeeeffoc/platform-wechat': 'workspace:*' },
+      },
+      files: { 'src/index.ts': "import '@coffeeeeffoc/platform-wechat';\n" },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.ok(violations.some((violation) => violation.code === 'game-layer'));
+  assert.ok(
+    violations.some(
+      (violation) =>
+        violation.code === 'cross-package-relative' && violation.message.includes('platforms'),
+    ),
+  );
+});
+
 test('rejects game dependencies on shells and services', async (t) => {
   const root = await createWorkspace([
     {

@@ -34,6 +34,16 @@ export default defineConfig({
     {
       name: 'reviewed-package-manifests',
       async generateBundle() {
+        const cricketAudio = new URL(
+          '../../games/local/game-cricket/public/cricket-audio/',
+          import.meta.url,
+        );
+        for (const file of await readdir(cricketAudio))
+          this.emitFile({
+            type: 'asset',
+            fileName: `cricket/cricket-audio/${file}`,
+            source: await readFile(new URL(file, cricketAudio)),
+          });
         const trialAudio = new URL(
           '../../games/local/game-cultivation/src/assets/audio/',
           import.meta.url,

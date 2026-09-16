@@ -9,6 +9,7 @@ coverage/
 .env
 .env.*
 !.env.example
+apps/shell-minigame/release-config.local.json
 
 .DS_Store
 Thumbs.db

@@ -50,6 +50,16 @@
       "dependsOn": ["build"],
       "outputs": []
     },
+    "@coffeeeeffoc/shell-minigame#smoke": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
+    },
+    "@coffeeeeffoc/shell-bilibili#smoke": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
+    },
     "@coffeeeeffoc/travel-bund#build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/assets/bund/runtime/**"],
