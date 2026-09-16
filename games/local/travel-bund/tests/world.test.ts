@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { Raycaster, Vector3 } from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { inTriangle, movement, onWater, readVisits, clearInput, input } from '../src/world.ts';
 
 test('movement is frame-rate independent, diagonal-normalized and camera-relative', () => {
@@ -74,7 +76,7 @@ test('asset roots meet the ground and streaming tiles have spatial bounds', () =
     ),
   );
   assert(Math.abs(min) < 0.002, 'Tires must meet the model origin');
-  for (const p of data.props['city-car']) assert(Math.abs(p.position[1] + min - 0.45) < 0.005);
+  for (const p of data.props['city-car']) assert(Math.abs(p.position[1] + min - 0.02) < 0.005);
   assert(
     data.colliders.filter((c) => c.half[1] > 5 && Math.abs(c.position[1] - c.half[1] - 1) < 0.01)
       .length < 10,
@@ -83,4 +85,23 @@ test('asset roots meet the ground and streaming tiles have spatial bounds', () =
   assert(data.tiles.length > 100);
   assert(data.tiles.every((t) => t.radius > 0 && t.center.every(Number.isFinite)));
   assert(data.surfaces.length > 1000);
+});
+
+test('visible terrain has a 15 cm sidewalk curb above the asphalt', async () => {
+  const scenes = [];
+  for (const name of ['terrain', 'sidewalk_-2_-1']) {
+    const bytes = readFileSync(new URL(`../../../../assets/bund/runtime/world/${name}.glb`, import.meta.url));
+    const { scene } = await new GLTFLoader().parseAsync(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '',
+    );
+    scene.updateMatrixWorld(true);
+    scenes.push(scene);
+  }
+  const height = (x, z) => {
+    const [hit] = new Raycaster(new Vector3(x, 3, z), new Vector3(0, -1, 0)).intersectObjects(scenes, true);
+    assert(hit, `No visible terrain at ${x}, ${z}`);
+    return hit.point.y;
+  };
+  assert(Math.abs(height(-400, 37) - .02) < .005);
+  assert(Math.abs(height(-410, 37) - .17) < .005);
 });

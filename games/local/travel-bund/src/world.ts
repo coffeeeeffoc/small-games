@@ -4,6 +4,7 @@ export type WorldData = {
   tiles: { name: string; center: V3; radius: number }[];
   surfaces: { position: V3; half: V3; yaw: number }[];
   parkHulls: V3[][];
+  sidewalkHulls: V3[][];
   colliders: { position: V3; half: V3; yaw: number }[];
   benches: { position: V3; yaw: number }[];
   landmarks: { id: string; name: string; position: V3 }[];
