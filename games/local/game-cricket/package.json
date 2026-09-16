@@ -29,7 +29,8 @@
     "@coffeeeeffoc/react-game-adapter": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "zod": "4.1.5"
+    "zod": "4.1.5",
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

@@ -1,0 +1,29 @@
+{
+  "name": "@coffeeeeffoc/platform-bilibili",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./build": "./build.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/native-game-shell": "workspace:*",
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}

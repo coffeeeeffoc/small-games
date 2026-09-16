@@ -1,0 +1,18 @@
+{
+  "cricket": {
+    "wechat": { "appId": "", "adUnitId": "" },
+    "bilibili": { "appId": "", "adUnitId": "" }
+  },
+  "cultivation": {
+    "wechat": { "appId": "", "adUnitId": "" },
+    "bilibili": { "appId": "", "adUnitId": "" }
+  },
+  "arena": {
+    "wechat": { "appId": "", "adUnitId": "" },
+    "bilibili": { "appId": "", "adUnitId": "" }
+  },
+  "office": {
+    "wechat": { "appId": "", "adUnitId": "" },
+    "bilibili": { "appId": "", "adUnitId": "" }
+  }
+}

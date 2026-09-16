@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 const WORKSPACE_DIRECTORIES = [
   'apps',
   'packages',
+  'platforms',
   'services',
   'tools',
   'games/local',
@@ -100,6 +101,7 @@ function inferRole(workspacePackage) {
   if (configuredRole) return configuredRole;
   const normalizedRoot = workspacePackage.root.replaceAll('\\', '/');
   const name = workspacePackage.manifest.name;
+  if (normalizedRoot.includes('/platforms/')) return 'shell';
   if (normalizedRoot.includes('/services/') || name.endsWith('-service')) return 'service';
   if (name.includes('shell')) return 'shell';
   if (/\/games\/(?:local|submodules)\/[^/]+$/.test(normalizedRoot) || name.includes('/game-'))

@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - platforms/*
   - services/*
   - tools/*
   - games/local/*
