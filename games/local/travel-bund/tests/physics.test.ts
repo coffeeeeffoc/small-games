@@ -20,6 +20,39 @@ function step(world, r, move = [0, 0, 0], jump = false) {
   return next;
 }
 
+test('the Bund asphalt is below the adjacent building-side sidewalk', () => {
+  const world = new rapier.World({ x: 0, y: -9.81, z: 0 });
+  try {
+    createGround({ world, rapier }, data);
+    world.step();
+    const height = (x, z) => {
+      const hit = world.castRay(new rapier.Ray({ x, y: 3, z }, { x: 0, y: -1, z: 0 }), 4, true);
+      assert(hit, `Missing ground at ${x}, ${z}`);
+      return 3 - hit.timeOfImpact;
+    };
+    const asphalt = height(-400, 37), sidewalk = height(-410, 37);
+    assert(Math.abs(sidewalk - asphalt - 0.15) < 0.01,
+      `Sidewalk must be 15 cm above asphalt: sidewalk=${sidewalk}, asphalt=${asphalt}`);
+    const r = createWalker({ world, rapier });
+    for (const speed of [1.9, 4, 12]) {
+      const start = { x: -410, y: sidewalk + .88, z: 37 };
+      r.body.setTranslation(start, true);
+      r.body.setNextKinematicTranslation(start);
+      r.velocity = 0;
+      world.step();
+      for (let i = 0; i < 20; i++) step(world, r);
+      for (let i = 0; i < Math.ceil(8 / speed * 60); i++) step(world, r, [speed / 60, 0, 0]);
+      assert(r.body.translation().x > -403, `Cannot descend to asphalt at ${speed} m/s`);
+      assert(Math.abs(r.body.translation().y - asphalt - .855) < .04);
+      for (let i = 0; i < Math.ceil(8 / speed * 60); i++) step(world, r, [-speed / 60, 0, 0]);
+      assert(Math.abs(r.body.translation().x + 410) < .3, `Cannot return to sidewalk at ${speed} m/s`);
+      assert(Math.abs(r.body.translation().y - sidewalk - .855) < .04);
+    }
+  } finally {
+    world.free();
+  }
+});
+
 test('actual Pudong ground supports an idle player without sinking', () => {
   const world = new rapier.World({ x: 0, y: -9.81, z: 0 });
   try {
@@ -46,6 +79,7 @@ test('curbs work at walking / running speeds in both directions, and jumping lan
             ...data,
             colliders: [],
             parkHulls: [],
+            sidewalkHulls: [],
             surfaces: [{ position: [5, 0.225, 0], half: [5, 0.225, 12], yaw: 0 }],
             bounds: [-100, -100, 100, 100],
           },
@@ -65,10 +99,10 @@ test('curbs work at walking / running speeds in both directions, and jumping lan
         let peak = floor;
         for (let i = 0; i < 100; i++) peak = Math.max(peak, step(world, r, [0, 0, 0], i === 0).y);
         assert(peak > floor + 1, 'Space must lift the capsule');
-        assert(Math.abs(r.body.translation().y - floor) < 0.04, 'Jump must land on the road');
+        assert(Math.abs(r.body.translation().y - floor) < 0.04, 'Jump must land on the raised surface');
         for (let i = 0; i < Math.ceil((6 / speed) * 60); i++) step(world, r, [-speed / 60, 0, 0]);
         assert(r.body.translation().x < -2);
-        assert(Math.abs(r.body.translation().y - 0.855) < 0.03, 'Must descend to the sidewalk');
+        assert(Math.abs(r.body.translation().y - 0.855) < 0.03, 'Must descend to the lower ground');
       } finally {
         world.free();
       }
@@ -78,7 +112,7 @@ test('curbs work at walking / running speeds in both directions, and jumping lan
 test('car body blocks fast walkers from the side; a high wall and a low ceiling cannot be stepped through', () => {
   const world = new rapier.World({ x: 0, y: -9.81, z: 0 });
   try {
-    createGround({ world, rapier }, { ...data, colliders: [], surfaces: [], parkHulls: [] });
+    createGround({ world, rapier }, { ...data, colliders: [], surfaces: [], parkHulls: [], sidewalkHulls: [] });
     const car = createCar({ world, rapier }, { position: [0, 0, 0], yaw: 0, scale: [1, 1, 1] });
     const r = createWalker({ world, rapier });
     r.body.setTranslation({ x: 0, y: 0.88, z: 4 }, true);
@@ -110,6 +144,7 @@ test('jumping toward water is blocked while an elevated bridge remains traversab
       colliders: [],
       surfaces: [],
       parkHulls: [],
+      sidewalkHulls: [],
       bounds: [-100, -100, 100, 100],
       water: [
         [

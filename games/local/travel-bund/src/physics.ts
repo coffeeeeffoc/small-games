@@ -12,8 +12,13 @@ export function createGround({ world, rapier }: Physics, data: WorldData) {
       fixed,
     );
   }
-  for (const points of data.parkHulls) {
-    const hull = rapier.ColliderDesc.convexHull(new Float32Array(points.flat()));
+  for (const points of [...data.parkHulls, ...data.sidewalkHulls]) {
+    // Keep thin curbs near their local origin, preserving precision at city-scale coordinates.
+    const center = points[0];
+    const hull = rapier.ColliderDesc.convexHull(
+      new Float32Array(points.flatMap((p) => p.map((v, axis) => v - center[axis]))),
+    );
+    hull?.setTranslation(...center);
     if (hull) world.createCollider(hull, fixed);
   }
   // An analytic plane avoids convex sweep precision loss on a kilometer-wide cuboid.

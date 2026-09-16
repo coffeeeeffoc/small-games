@@ -135,7 +135,9 @@ function StaticCity({ data, night }: { data: WorldData; night: boolean }) {
       .filter((tile) => {
         if (resident.current.has(tile.name)) return false;
         const sphere = new THREE.Sphere(new THREE.Vector3(...tile.center), tile.radius);
-        return sphere.distanceToPoint(camera.position) < 180 || frustum.intersectsSphere(sphere);
+        // Ground detail needs nearby tiles; distant buildings still form the skyline.
+        return sphere.distanceToPoint(camera.position) < 180 ||
+          (!tile.name.startsWith('sidewalk_') && frustum.intersectsSphere(sphere));
       })
       .sort(
         (a, b) =>

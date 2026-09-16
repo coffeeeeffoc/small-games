@@ -35,13 +35,15 @@ try {
   currentPage = page;
   const tiles = new Set();
   page.on('request', (request) => {
-    if (/world\/city_.*\.glb/.test(request.url())) tiles.add(request.url());
+    if (/world\/(?:city|sidewalk)_.*\.glb/.test(request.url())) tiles.add(request.url());
   });
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
+  const worldResponse = page.waitForResponse((response) => response.url().endsWith('/world/world.json'));
   await page.goto(`${url}?debug=1`);
+  const totalTiles = (await (await worldResponse).json()).tiles.length;
   await expect(page).toHaveTitle('江风入境 · 外滩漫游');
   await expect(page.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
   assert(tiles.size < 40, 'Entry must not wait for the entire city');
@@ -162,8 +164,8 @@ try {
   );
   await page.keyboard.up('KeyD');
   await page.keyboard.up('KeyR');
-  assert(tiles.size < 198, 'Unseen city tiles should remain unloaded');
-  results.push({ visitedTileRequests: tiles.size });
+  assert(tiles.size < totalTiles, 'Unseen city and sidewalk tiles should remain unloaded');
+  results.push({ visitedTileRequests: tiles.size, totalTiles });
   await page.reload();
   await expect(page.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
   assert.equal(
@@ -194,7 +196,7 @@ try {
     const response = await route.fetch(),
       data = await response.json();
     // Leave enough approach distance for the faster car to meet the player on the asphalt.
-    data.props['city-car'] = [{ position: [-408, 0.45, 37], yaw: 0, scale: [1, 1, 1] }];
+    data.props['city-car'] = [{ position: [-408, 0.02, 37], yaw: 0, scale: [1, 1, 1] }];
     await route.fulfill({ response, json: data });
   });
   await traffic.goto(url);
