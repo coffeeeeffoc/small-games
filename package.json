@@ -11,6 +11,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "games:init": "git submodule update --init --recursive",
     "android:apk": "pnpm --filter @coffeeeeffoc/shell-android apk",
     "android:test": "pnpm --filter @coffeeeeffoc/shell-android test:device",
