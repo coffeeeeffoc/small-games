@@ -1,5 +1,12 @@
 [
   {
+    "id": "carding-car",
+    "source": "games/local/carding-car",
+    "title": "浪湾卡丁车",
+    "description": "在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。",
+    "output": "dist"
+  },
+  {
     "id": "merge-front",
     "source": "games/local/merge-front",
     "title": "神机合阵",

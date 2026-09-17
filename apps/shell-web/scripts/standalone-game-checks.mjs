@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'carding-car': 'body[data-kart-ready="true"]',
   'merge-front': '#start-defense',
   'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
@@ -25,7 +26,19 @@ export const markers = {
 
 export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
-  if (id === 'merge-front') {
+  if (id === 'carding-car') {
+    const canvas = frame.locator('#GameCanvas');
+    const bounds = await canvas.boundingBox();
+    await (mobile
+      ? canvas.tap({ position: { x: bounds.width / 2, y: bounds.height * 0.64 } })
+      : canvas.click({ position: { x: bounds.width / 2, y: bounds.height * 0.64 } }));
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase))
+      .toBe('racing');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().player.speed))
+      .toBeGreaterThan(2);
+  } else if (id === 'merge-front') {
     await click(frame.locator('#start-defense'));
     await expect(frame.locator('#board [data-zone="board"][data-index]')).toHaveCount(12);
     await expect(frame.locator('#launch')).toBeVisible();
