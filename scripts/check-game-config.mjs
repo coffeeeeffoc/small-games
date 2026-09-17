@@ -373,7 +373,11 @@ async function checkArtifacts(root, game, fail) {
         ? [
             ...text.matchAll(/url\(\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^\s)]+))\s*\)/g),
           ].map((match) => match[1] ?? match[2] ?? match[3])
-        : [...text.matchAll(/<(?:script|link|img|audio|video|source)\b[^>]*>/gi)].flatMap((tag) =>
+        : [
+            ...text
+              .replace(/<!--[\s\S]*?-->/g, '')
+              .matchAll(/<(?:script|link|img|audio|video|source)\b[^>]*>/gi),
+          ].flatMap((tag) =>
             [...tag[0].matchAll(/\b(?:src|href|poster)\s*=\s*['"]([^'"]+)['"]/g)].map(
               (match) => match[1],
             ),
