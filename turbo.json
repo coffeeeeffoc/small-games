@@ -40,6 +40,7 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
+      "env": ["KART_PREBUILT_DIR"],
       "outputs": []
     },
     "lint": {
@@ -64,6 +65,11 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/assets/bund/runtime/**"],
       "outputs": ["dist/**"]
+    },
+    "@coffeeeeffoc/carding-car#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "KART_PREBUILT_DIR"]
     }
   }
 }

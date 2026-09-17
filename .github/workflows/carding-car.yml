@@ -1,0 +1,36 @@
+name: Build Cocos kart artifact
+on:
+  workflow_call:
+jobs:
+  creator:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 8.14.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.12.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:games
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/cocos/3.8.8
+          key: cocos-creator-3.8.8-win-121518
+      - run: pnpm --filter @coffeeeeffoc/carding-car run setup
+      - run: pnpm --filter @coffeeeeffoc/carding-car typecheck
+      - run: pnpm --filter @coffeeeeffoc/carding-car test
+      - run: pnpm --filter @coffeeeeffoc/carding-car build
+      - name: Include engine types for Linux and macOS checks
+        run: Copy-Item -LiteralPath "$env:USERPROFILE/.cache/cocos/3.8.8/resources/resources/3d/engine/bin/.declarations/cc.d.ts" -Destination games/local/carding-car/cc.d.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carding-car-${{ github.sha }}
+          path: |
+            games/local/carding-car/dist
+            games/local/carding-car/cc.d.ts

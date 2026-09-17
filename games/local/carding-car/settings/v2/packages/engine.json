@@ -1,0 +1,6 @@
+{
+  "__version__": "1.0.12",
+  "modules": {
+    "includeModules": ["base", "gfx-webgl", "gfx-webgl2", "3d", "2d", "ui", "graphics", "audio", "primitive", "profiler"]
+  }
+}
