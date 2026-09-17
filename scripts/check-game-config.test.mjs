@@ -305,3 +305,15 @@ test('treats a CSS data URL as one asset instead of parsing its embedded SVG url
   }
   assert.deepEqual((await auditGameConfig(f.root, { artifacts: true })).errors, []);
 });
+
+test('does not require assets from commented HTML tags', async (t) => {
+  const f = await fixture(t);
+  for (const output of artifactRoots) {
+    const html = await f.read(`${output}/index.html`);
+    await f.write(
+      `${output}/index.html`,
+      html + '\n<!--\n<link href=".png"><img src="unused.png">\n-->',
+    );
+  }
+  assert.deepEqual((await auditGameConfig(f.root, { artifacts: true })).errors, []);
+});
