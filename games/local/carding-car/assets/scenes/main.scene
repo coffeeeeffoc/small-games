@@ -1,0 +1,6 @@
+[
+  {"__type__":"cc.SceneAsset","_name":"main","scene":{"__id__":1}},
+  {"__type__":"cc.Scene","_name":"main","_children":[{"__id__":2}],"_active":true,"_components":[],"_prefab":null,"_id":"47889f0b-3be6-4dbd-a05d-b4381a0277e9"},
+  {"__type__":"cc.Node","_name":"KartGame","_parent":{"__id__":1},"_children":[],"_active":true,"_components":[{"__id__":3}],"_prefab":null,"_lpos":{"__type__":"cc.Vec3","x":0,"y":0,"z":0},"_lrot":{"__type__":"cc.Quat","x":0,"y":0,"z":0,"w":1},"_lscale":{"__type__":"cc.Vec3","x":1,"y":1,"z":1},"_layer":1073741824},
+  {"__type__":"8e17fp6n1xJr71kxBN3BcTR","node":{"__id__":2},"_enabled":true}
+]

@@ -11,10 +11,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  kart:
+    uses: ./.github/workflows/carding-car.yml
   quality:
+    needs: kart
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
     steps:
@@ -45,6 +49,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: carding-car-${{ github.sha }}
+          path: games/local/carding-car/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

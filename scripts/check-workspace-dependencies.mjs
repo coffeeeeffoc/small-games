@@ -25,11 +25,17 @@ const IGNORED_DIRECTORIES = new Set([
   'dist-content',
   'coverage',
   '.turbo',
+  '.prebuilt',
   '.git',
   '.next',
   '.vinext',
   '.wrangler',
   'vendor',
+  'build',
+  'library',
+  'temp',
+  'reports',
+  'biligame-builder',
 ]);
 
 async function pathExists(target) {

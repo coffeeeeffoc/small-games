@@ -99,9 +99,12 @@ try {
     // Release the desktop WebGL context before starting the mobile instance.
     await page.getByRole('button', { name: '返回目录', exact: true }).click();
     await expect(page.locator('iframe')).toHaveCount(0);
-    const landscape = ['fishing', 'vibeJam-myself-delivery', 'vibeJam-myself-nullrange'].includes(
-      game.id,
-    );
+    const landscape = [
+      'carding-car',
+      'fishing',
+      'vibeJam-myself-delivery',
+      'vibeJam-myself-nullrange',
+    ].includes(game.id);
     const viewport = landscape ? { width: 844, height: 390 } : { width: 390, height: 844 };
     const mobileContext = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
     const direct = await mobileContext.newPage();

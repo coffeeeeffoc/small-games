@@ -1,0 +1,10 @@
+library/
+temp/
+local/
+build/
+dist/
+profiles/
+extensions/biligame-builder/
+reports/
+release-config.local.json
+.prebuilt/

@@ -14,9 +14,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  kart:
+    uses: ./.github/workflows/carding-car.yml
   build:
+    needs: kart
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
     steps:
       - uses: actions/checkout@v5
         with:
@@ -29,6 +34,10 @@ jobs:
           node-version: 24.12.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: carding-car-${{ github.sha }}
+          path: games/local/carding-car/.prebuilt
       - run: pnpm check:games
       - run: pnpm games:test
       - run: pnpm build:pages
