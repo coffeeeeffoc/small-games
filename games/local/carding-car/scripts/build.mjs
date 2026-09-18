@@ -1,9 +1,8 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile, cp, readFile, readdir, rm, stat } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { editor } from './toolchain.mjs';
+import { editor, runCreator } from './toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { clearOutput } from './clear-output.mjs';
 import { prepareArt } from './prepare-art.mjs';
@@ -80,29 +79,9 @@ if (target === 'bilibili') {
     throw new Error('Bilibili output escaped project');
   await clearOutput(biliOutput);
 }
-const proc = spawn(editor, ['--project', root, '--build', `configPath=${configPath}`], {
-  windowsHide: true,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let output = '';
-proc.stdout.on('data', (d) => {
-  output += d;
-});
-proc.stderr.on('data', (d) => {
-  output += d;
-});
-proc.on('error', (e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
-const code = await new Promise((resolve) => proc.on('close', resolve));
-await writeFile(path.join(report, `build-${target}.log`), output);
-console.log(
-  output
-    .split('\n')
-    .filter((line) => /error|Missing class|failed|Finished in/i.test(line))
-    .slice(-15)
-    .join('\n'),
+const { code, output } = await runCreator(
+  ['--project', root, '--build', `configPath=${configPath}`],
+  path.join(report, `build-${target}.log`),
 );
 if (code !== 36 && code !== 0)
   throw new Error(`Creator failed (${code}); see reports/build-${target}.log`);
