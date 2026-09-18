@@ -1,4 +1,4 @@
-import { BODY_GAP, CAPTURE_RADIUS, roadDistance } from "./engine.js";
+import { BODY_GAP, CAPTURE_RADIUS, roadDistance, isExitBlocked } from "./engine.js";
 
 const W = 1000,
   H = 600;
@@ -494,9 +494,7 @@ function exitLabels(level, top) {
 }
 
 function exitMarker(ctx, game, exit, index, label, t) {
-  const blocked = game.cops.some(
-    (cop) => roadDistance(game, cop, exit) <= BODY_GAP + 1e-4,
-  );
+  const blocked = isExitBlocked(game, exit);
   const nearby = game.robbers.filter(
     (robber) =>
       !robber.caught &&
@@ -967,6 +965,7 @@ export function createRenderer(canvas) {
       selected = 0,
       preview = null,
       pointer = null,
+      hover = null,
       reducedMotion = false,
       now = performance.now(),
     } = {},
@@ -1016,27 +1015,17 @@ export function createRenderer(canvas) {
       ctx.setLineDash([]);
       const dest = preview.at(-1);
       ellipse(ctx, dest.x, dest.y, 15, 15, "#fff8dfaa", "#327ab9", 2);
-      line(
-        ctx,
-        [
-          [dest.x - 5, dest.y],
-          [dest.x + 5, dest.y],
-        ],
-        "#327ab9",
-        2,
-      );
-      line(
-        ctx,
-        [
-          [dest.x, dest.y - 5],
-          [dest.x, dest.y + 5],
-        ],
-        "#327ab9",
-        2,
-      );
+      ellipse(ctx, dest.x, dest.y, 4, 4, "#327ab9");
       ctx.restore();
     } else if (pointer && game.phase === "playing")
       ellipse(ctx, pointer.x, pointer.y, 8, 8, "#fff9e544", "#487a6a66", 1.5);
+    if (hover) {
+      const { actor, cop } = hover;
+      const color = cop ? "#327ab9" : "#c86435";
+      ellipse(ctx, actor.x, actor.y, 30, 19, cop ? "#327ab922" : "#c8643522", color, 3);
+      bubble(ctx, actor.x, actor.y < 150 ? actor.y + 65 : actor.y - 70,
+        cop ? `${actor.id + 1} 号 · 点击选中 / 拖动` : "小偷 · 点击这里围堵", color, 0.8);
+    }
     for (const robber of game.robbers) {
       if (robber.caught && !captures.has(robber.id))
         captures.set(robber.id, seconds);

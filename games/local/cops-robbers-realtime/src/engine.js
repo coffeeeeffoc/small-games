@@ -210,6 +210,19 @@ export function roadDistance(game, p, q) {
   return result;
 }
 
+export function isExitBlocked(game, exit) {
+  const entrance = game.graph.adjacent[exit.node];
+  return game.cops.some((cop) => {
+    const distance = roadDistance(game, cop, exit);
+    if (distance <= EXIT_GUARD_GAP) return true;
+    if (entrance.length !== 1 || distanceToNode(game, cop, entrance[0].node) > EXIT_GUARD_GAP)
+      return false;
+    // A guard at the alley mouth cannot stop a robber who already slipped past.
+    return !game.robbers.some((robber) => !robber.caught && !robber.escaped &&
+      robber.edge === entrance[0].edge && roadDistance(game, robber, exit) < distance);
+  });
+}
+
 // Temporary route vertices preserve exact road positions when a command changes mid-edge.
 function navigation(game, source, target, avoidCops, samples = false) {
   const { graph } = game;
@@ -544,6 +557,10 @@ function captureGeometry(game) {
 }
 
 function isSurrounded(game, robber, geometry) {
+  // One officer can block a lane, but an arrest needs a nearby partner.
+  // Two capture ranges can meet up to 2 * CAPTURE_RADIUS along the road.
+  if (game.cops.filter((cop) => roadDistance(game, cop, robber) <= CAPTURE_RADIUS * 2).length < 2)
+    return false;
   const { free, blockedNodes, safe } = geometry;
   const queue = [];
   const visited = new Set();

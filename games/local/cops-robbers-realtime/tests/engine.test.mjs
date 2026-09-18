@@ -13,6 +13,7 @@ import {
   routePreview,
   roadTarget,
   roadDistance,
+  isExitBlocked,
 } from "../src/engine.js";
 
 const level = (nodes, edges, cops, robbers, extra = {}) => ({
@@ -113,7 +114,7 @@ test("L-shaped routes follow roads; nearby points across a wall have a long road
   assert.equal(game.robbers[0].capture, 0);
 });
 
-test("one cop can push a robber into a dead end without crossing through it", () => {
+test("one cop blocks a dead end without arresting alone or crossing the robber", () => {
   const game = begin(line());
   commandCop(game, 0, { x: 900, y: 300 });
   for (let i = 0; i < 900 && game.phase === "playing"; i++) {
@@ -121,15 +122,19 @@ test("one cop can push a robber into a dead end without crossing through it", ()
     if (!game.robbers[0].caught)
       assert.ok(game.robbers[0].x - game.cops[0].x >= BODY_GAP - 1e-4);
   }
-  assert.equal(game.phase, "won");
-  assert.ok(game.time > 5);
-  assert.equal(
-    game.events.filter((event) => event.type === "capture").length,
-    1,
-  );
-  assert.equal(game.events.filter((event) => event.type === "win").length, 1);
-  run(game, 5);
-  assert.equal(game.events.filter((event) => event.type === "win").length, 1);
+  assert.equal(game.phase, "playing");
+  assert.equal(game.robbers[0].capture, 0);
+  assert.equal(game.events.filter((event) => event.type === "capture").length, 0);
+
+  const team = begin(line({ cops: [0, 1] }));
+  commandCop(team, 0, { x: 900, y: 300 });
+  run(team, 12);
+  assert.equal(team.robbers[0].capture, 0, "a distant partner cannot help arrest");
+  commandCop(team, 1, { x: 900, y: 300 });
+  run(team, 6);
+  assert.equal(team.phase, "won");
+  run(team, 5);
+  assert.equal(team.events.filter((event) => event.type === "win").length, 1);
 });
 
 test("two cops close a straight road, even when their orders would cross the robber", () => {
@@ -235,13 +240,14 @@ test("a cop just before a junction blocks it consistently for movement and captu
         [1, 3],
         [3, 4],
       ],
-      [2],
+      [2, 0],
       [3],
       { robberSpeed: 0.01 },
     ),
   );
   commandCop(game, 0, { x: 510, y: 100 });
-  run(game, 1.2);
+  commandCop(game, 1, { x: 480, y: 100 });
+  run(game, 5);
   assert.equal(game.cops[0].x, 510);
   assert.equal(game.phase, "won");
 });
@@ -296,7 +302,7 @@ test("multiple robbers finish independently and only the final capture wins", ()
         [1, 2],
         [2, 3],
       ],
-      [1],
+      [1, 1],
       [0, 3],
     ),
   );
@@ -305,6 +311,7 @@ test("multiple robbers finish independently and only the final capture wins", ()
   assert.equal(game.robbers[1].caught, false);
   assert.equal(game.phase, "playing");
   commandCop(game, 0, { x: 900, y: 300 });
+  commandCop(game, 1, { x: 900, y: 300 });
   run(game, 10);
   assert.equal(game.phase, "won");
   assert.equal(
@@ -546,7 +553,7 @@ test("a capture and another robber's escape in the same slice still lose", () =>
         [0, 1],
         [1, 2],
       ],
-      [1],
+      [1, 1],
       [0, 2],
       { exits: [2], exitHoldSeconds: 0.8 },
     ),
@@ -597,4 +604,19 @@ test("bad level boundaries are rejected", () => {
       ),
     ),
   );
+});
+
+test("exit feedback includes an alley guard but never a robber already behind that guard", () => {
+  const definition = level([[0, 0], [100, 0], [200, 0], [100, 200]],
+    [[0, 1], [1, 2], [1, 3]], [1], [3], { exits: [2] });
+  const game = begin(definition);
+  assert.equal(isExitBlocked(game, game.exits[0]), true);
+  commandCop(game, 0, { x: 0, y: 0 });
+  run(game, 0.5);
+  assert.equal(isExitBlocked(game, game.exits[0]), false);
+  const slipped = begin({ ...definition, robbers: [2] });
+  assert.equal(isExitBlocked(slipped, slipped.exits[0]), false);
+  commandCop(slipped, 0, { x: 200, y: 0 });
+  run(slipped, 0.8);
+  assert.equal(isExitBlocked(slipped, slipped.exits[0]), true);
 });
