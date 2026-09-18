@@ -82,7 +82,7 @@ export class KartView {
   update(k: KartState, time: number) {
     this.root.setPosition(k.x, k.y + Math.sin(time * 18) * Math.min(0.025, k.speed * 0.001), k.z);
     this.root.setRotationFromEuler(0, (k.heading * 180) / Math.PI, 0);
-    this.body.setRotationFromEuler(k.airborne ? -6 : 0, 0, k.drifting ? k.driftSide * -5 : 0);
+    this.body.setRotationFromEuler(k.airborne ? -6 : 0, 0, k.drifting ? k.driftSide * 5 : 0);
     this.sparks.active = k.charge > 0.2;
     for (const renderer of this.sparks.getComponentsInChildren(MeshRenderer))
       renderer.setMaterial(material(k.tier === 2 ? P.yellow : P.mint), 0);
