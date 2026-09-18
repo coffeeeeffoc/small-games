@@ -1,15 +1,5 @@
-import {
-  Color,
-  instantiate,
-  isValid,
-  Material,
-  MeshRenderer,
-  Node,
-  Prefab,
-  resources,
-  Texture2D,
-} from 'cc';
-import { material, MeshBatch, palette as P } from './SceneArt';
+import { isValid, MeshRenderer, Node, Prefab } from 'cc';
+import { groundShadow, loadArt, material, MeshBatch, palette as P, placeModel } from './SceneArt';
 import type { KartState } from './KartPhysics';
 
 export class KartView {
@@ -19,10 +9,12 @@ export class KartView {
   sparkRenderers: MeshRenderer[];
   sparkTier = -1;
   flame: Node;
+  shadow: Node;
   modelLoaded = false;
   constructor(parent: Node, color: string) {
     this.root = new Node('Kart');
     parent.addChild(this.root);
+    this.shadow = groundShadow(this.root, 2.05, 2.8);
     const b = new MeshBatch();
     b.box(color, 0, 0.56, 0, 1.35, 0.42, 2.35);
     b.ball(color, 0, 0.6, 0.9, 1.45, 0.55, 1.1);
@@ -42,33 +34,19 @@ export class KartView {
         wheels.ball(P.white, x * 1.22, 0.42, z, 0.08, 0.4, 0.4);
       }
     const tires = wheels.build(this.root, 'Tires');
-    resources.load('models/kart/kart', Prefab, (error, prefab) => {
-      if (error) {
-        console.warn('[carding-car] using procedural kart fallback');
-        return;
-      }
-      if (!isValid(this.root)) return;
-      const model = instantiate(prefab);
-      this.root.addChild(model);
-      model.setScale(1.4, 1.4, 1.4);
-      model.setPosition(0, 0.843, 0);
-      for (const renderer of model.getComponentsInChildren(MeshRenderer)) {
-        const original = renderer.sharedMaterials[0],
-          texture = original?.getProperty('emissiveMap') || original?.getProperty('mainTexture');
-        const unlit = new Material();
-        unlit.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
-        unlit.setProperty('mainColor', Color.WHITE);
-        if (texture instanceof Texture2D) unlit.setProperty('mainTexture', texture);
-        renderer.setMaterial(unlit, 0);
-      }
-      this.body.active = false;
-      tires.active = false;
-      this.body = model;
-      this.modelLoaded = true;
-      const number = new MeshBatch();
-      number.ball(color, 0, 2.35, -0.1, 0.3, 0.3, 0.3);
-      number.build(this.root, 'DriverColor');
-    });
+    loadArt('kart/kart', Prefab)
+      .then((prefab) => {
+        if (!isValid(this.root)) return;
+        const model = placeModel(prefab, this.root, 'SeasideKart');
+        this.body.active = false;
+        tires.active = false;
+        this.body = model;
+        this.modelLoaded = true;
+        const number = new MeshBatch();
+        number.ball(color, 0, 2.05, -0.1, 0.23, 0.23, 0.23);
+        number.build(this.root, 'DriverColor');
+      })
+      .catch((error) => console.error('[carding-car] kart art failed', error));
     const spark = new MeshBatch();
     for (const x of [-0.95, 0.95])
       for (let i = 0; i < 3; i++)
@@ -85,6 +63,7 @@ export class KartView {
   update(k: KartState, time: number) {
     this.root.setPosition(k.x, k.y + Math.sin(time * 18) * Math.min(0.025, k.speed * 0.001), k.z);
     this.root.setRotationFromEuler(0, (k.heading * 180) / Math.PI, 0);
+    this.shadow.active = !k.airborne;
     this.body.setRotationFromEuler(k.airborne ? -6 : 0, 0, k.drifting ? k.driftSide * 5 : 0);
     this.sparks.active = k.charge > 0.2;
     if (this.sparkTier !== k.tier) {

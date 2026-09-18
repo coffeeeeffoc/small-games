@@ -1,15 +1,17 @@
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile, cp, readFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, cp, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { editor } from './toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { clearOutput } from './clear-output.mjs';
+import { prepareArt } from './prepare-art.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili'].includes(target))
   throw new Error('Unknown build target');
+await prepareArt();
 if (target === 'web-mobile' && process.env.KART_PREBUILT_DIR) {
   const source = await verifyPrebuilt(process.env.KART_PREBUILT_DIR),
     dist = path.resolve(root, 'dist');
@@ -112,6 +114,24 @@ const entry =
     : `${platform}/${platform === 'web-mobile' ? 'index.html' : 'game.js'}`;
 if (!existsSync(path.join(root, 'build', entry)))
   throw new Error(`Creator did not produce ${entry}; inspect the build log.`);
+if (platform === 'wechatgame') {
+  const directory = path.dirname(path.join(root, 'build', entry));
+  const game = JSON.parse(await readFile(path.join(directory, 'game.json'), 'utf8'));
+  if (!game.subpackages?.some((bundle) => bundle.name === 'resources'))
+    throw new Error('Mini-game art must be exported as the resources subpackage.');
+  let totalBytes = 0,
+    mainBytes = 0;
+  for (const file of await readdir(directory, { recursive: true, withFileTypes: true })) {
+    if (!file.isFile()) continue;
+    const full = path.join(file.parentPath, file.name);
+    const bytes = (await stat(full)).size;
+    totalBytes += bytes;
+    if (!path.relative(directory, full).startsWith('subpackages' + path.sep)) mainBytes += bytes;
+  }
+  if (mainBytes > 4 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024)
+    throw new Error(`Mini-game package budget exceeded: main=${mainBytes}, total=${totalBytes}`);
+  console.log(`Package budget: main=${mainBytes}, total=${totalBytes} bytes`);
+}
 if (target === 'web-mobile') {
   const index = path.join(outputDir, 'index.html');
   const html = (await readFile(index, 'utf8'))
