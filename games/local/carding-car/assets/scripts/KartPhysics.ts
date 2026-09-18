@@ -51,8 +51,9 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
   }
   const turning =
     C.steering + (C.highSpeedSteering - C.steering) * clamp(k.speed / C.maxSpeed, 0, 1);
-  k.heading += steer * turning * Math.min(1, k.speed / 5) * (k.drifting ? C.driftSteering : 1) * dt;
-  const desired = k.heading - (k.drifting ? k.driftSide * C.driftAngle : 0);
+  // Positive input means screen-right; with forward (sin heading, cos heading), yaw decreases.
+  k.heading -= steer * turning * Math.min(1, k.speed / 5) * (k.drifting ? C.driftSteering : 1) * dt;
+  const desired = k.heading + (k.drifting ? k.driftSide * C.driftAngle : 0);
   k.velocityHeading +=
     angleDelta(desired, k.velocityHeading) *
     (1 - Math.exp(-(k.drifting ? C.driftGrip : C.grip) * dt));

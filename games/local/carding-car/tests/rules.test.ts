@@ -8,6 +8,25 @@ import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { clamp } from '../assets/scripts/KartConfig.ts';
 
+test('steering moves toward the requested screen side from the chase camera', () => {
+  for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    for (const steer of [-1, 1]) {
+      for (const drift of [false, true]) {
+        const kart = createKart(0, 0, heading);
+        kart.speed = 20;
+        for (let frame = 0; frame < 60; frame++)
+          driveKart(kart, { steer, throttle: 1, brake: false, drift }, 1 / 60);
+        // Camera looks along forward (+Z at heading 0); screen-right is forward cross up.
+        const screenRightTravel = -Math.cos(heading) * kart.x + Math.sin(heading) * kart.z;
+        assert.ok(
+          screenRightTravel * steer > 1,
+          `heading ${heading}, steer ${steer}, drift ${drift}`,
+        );
+      }
+    }
+  }
+});
+
 test('holding drift on a straight cannot earn a boost', () => {
   const kart = createKart(0, 0, 0);
   for (let i = 0; i < 360; i++)

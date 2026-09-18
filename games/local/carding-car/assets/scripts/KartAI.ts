@@ -13,12 +13,12 @@ export function aiInput(
   const target = racingTarget(track, road.s, 7 + k.speed * 0.48, shortcut);
   const further = racingTarget(track, road.s, 17 + k.speed * 0.7, shortcut);
   const error = angleDelta(
-    Math.atan2(target.x - k.x, target.z - k.z) +
+    Math.atan2(target.x - k.x, target.z - k.z) -
       (k.drifting ? k.driftSide * KartConfig.driftAngle : 0),
     k.heading,
   );
   const curve = Math.abs(angleDelta(further.heading, road.heading));
-  const steer = clamp(error * 2.7, -1, 1);
+  const steer = clamp(-error * 2.7, -1, 1);
   const targetSpeed = curve > 1.2 ? 16 : curve > 0.65 ? 22 : 30;
   const brake = k.speed > targetSpeed + 1.5;
   return {
