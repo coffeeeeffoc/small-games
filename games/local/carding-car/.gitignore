@@ -11,3 +11,7 @@ release-config.local.json
 assets/resources/seaside/*.glb
 assets/resources/seaside/*.jpg
 assets/resources/seaside/*.json
+assets/resources/expansion/**/*.glb
+assets/resources/expansion/**/*.jpg
+assets/resources/expansion/**/*.json
+assets/resources/expansion/manifest.json
