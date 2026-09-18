@@ -129,14 +129,16 @@ export class RaceManager {
       const oldBoost = k.boost,
         oldCollision = k.collision;
       const controls = i === 0 ? input : aiInput(k, this.track, d.shortcut, d.progress.s);
-      const oldRoad = projectOnTrack(this.track, k.x, k.z, d.progress.s);
+      // Physical road contact must not be constrained by checkpoint progress at a fork.
+      const oldRoad = projectOnTrack(this.track, k.x, k.z);
       driveKart(k, controls, dt);
       const hit = resolveKartBarriers(k, this.track.barriers);
-      const road = projectOnTrack(this.track, k.x, k.z, d.progress.s);
+      const road = projectOnTrack(this.track, k.x, k.z);
       k.offRoad = Math.max(0, road.distance - road.width / 2 + 0.4);
       if (k.offRoad > 0) k.speed *= Math.exp(-1.2 * dt);
       const wall = road.width / 2 + 1.2;
       if (
+        i !== 0 &&
         hit?.branch === 'shortcut' &&
         road.s > this.track.shortcutStart + 18 &&
         road.s < this.track.shortcutEnd - 18
@@ -202,9 +204,10 @@ export class RaceManager {
         k.speed > 4 && !controls.brake && Math.abs(d.progress.distance - previousProgress) < 0.001;
       d.stuck =
         road.distance > wall + 5 ||
-        (!controls.brake && k.speed < 3) ||
-        stalledProgress ||
-        Math.abs(angleDelta(k.heading, road.heading)) > 2.2
+        (i !== 0 &&
+          ((!controls.brake && k.speed < 3) ||
+            stalledProgress ||
+            Math.abs(angleDelta(k.heading, road.heading)) > 2.2))
           ? d.stuck + dt
           : 0;
       if (d.stuck > C.recoverySeconds) this.recover(i);

@@ -79,10 +79,9 @@ export function resolveKartBarriers(k: KartState, barriers: Barrier[]) {
       if (inward < 0) {
         const tx = vx - nx * inward,
           tz = vz - nz * inward;
-        k.velocityHeading =
-          Math.hypot(tx, tz) > 0.001
-            ? Math.atan2(tx, tz)
-            : b.heading + (Math.cos(k.velocityHeading - b.heading) < 0 ? Math.PI : 0);
+        const tangent = Math.hypot(tx, tz);
+        k.speed *= tangent;
+        if (tangent > 0.001) k.velocityHeading = Math.atan2(tx, tz);
       }
       hit = b;
       moved = true;
@@ -123,18 +122,40 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
   }
   const turning =
     C.steering + (C.highSpeedSteering - C.steering) * clamp(k.speed / C.maxSpeed, 0, 1);
-  // Positive input means screen-right; with forward (sin heading, cos heading), yaw decreases.
-  k.heading -= steer * turning * Math.min(1, k.speed / 5) * (k.drifting ? C.driftSteering : 1) * dt;
-  // Build the slide from the actual yaw; applying the full offset on entry kicks the kart
-  // toward the opposite side before it has started turning.
-  const driftAngle = Math.min(
-    C.driftAngle,
-    Math.max(0, k.driftSide * angleDelta(k.velocityHeading, k.heading)),
-  );
-  const desired = k.heading + (k.drifting ? k.driftSide * driftAngle : 0);
-  k.velocityHeading +=
-    angleDelta(desired, k.velocityHeading) *
-    (1 - Math.exp(-(k.drifting ? C.driftGrip : C.grip) * dt));
+  // Tire forces act in the body frame; yaw cannot rotate momentum for free.
+  const forwardSpeed = k.speed * Math.cos(k.velocityHeading - k.heading);
+  const reversing =
+    input.brake &&
+    input.reverse &&
+    forwardSpeed <= 0.1 &&
+    Math.abs(k.speed * Math.sin(k.velocityHeading - k.heading)) < 0.5;
+  if (!k.airborne)
+    k.heading -=
+      steer * turning * clamp(forwardSpeed / 5, -1, 1) * (k.drifting ? C.driftSteering : 1) * dt;
+  const slip = angleDelta(k.velocityHeading, k.heading);
+  let forward = k.speed * Math.cos(slip),
+    lateral = k.speed * Math.sin(slip);
+  const boosted = k.boost > 0 && !input.brake;
+  if (!k.airborne) {
+    // Retain only the existing small drift slip; never create lateral velocity on entry.
+    const driftLimit = k.drifting ? Math.max(0, forward) * Math.tan(C.driftAngle) : 0;
+    const retained = clamp(lateral * k.driftSide, 0, driftLimit) * k.driftSide;
+    lateral = retained + (lateral - retained) * Math.exp(-(k.drifting ? C.driftGrip : C.grip) * dt);
+    forward +=
+      (reversing
+        ? -C.reverseAcceleration
+        : throttle * C.acceleration + (boosted ? C.boostAcceleration : 0)) * dt;
+  }
+  const speed = Math.hypot(forward, lateral);
+  const resistance =
+    C.drag * speed * speed +
+    (k.airborne
+      ? 0
+      : C.rollingResistance +
+        (input.brake && !reversing ? C.brake : 0) +
+        (k.drifting ? Math.abs(steer) * C.lateralFriction : 0));
+  k.speed = Math.max(0, speed - resistance * dt);
+  if (k.speed > 0) k.velocityHeading = k.heading + Math.atan2(lateral, forward);
   if (
     k.drifting &&
     Math.abs(steer) > 0.15 &&
@@ -143,18 +164,7 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     k.charge = Math.min(C.chargeThresholds[1], k.charge + dt);
     k.tier = k.charge >= C.chargeThresholds[1] ? 2 : k.charge >= C.chargeThresholds[0] ? 1 : 0;
   }
-  const boosted = k.boost > 0;
-  const cap = C.maxSpeed * (boosted ? C.boostSpeed : 1);
-  k.speed = Math.max(
-    0,
-    k.speed +
-      (throttle * C.acceleration +
-        (boosted ? C.boostAcceleration : 0) -
-        C.drag * k.speed * k.speed -
-        (input.brake ? C.brake : 0) -
-        (k.drifting ? Math.abs(steer) * C.lateralFriction : 0)) *
-        dt,
-  );
+  const cap = reversing ? C.reverseMaxSpeed : C.maxSpeed * (boosted ? C.boostSpeed : 1);
   if (k.speed > cap) k.speed += (cap - k.speed) * Math.min(1, 4 * dt);
   k.x += Math.sin(k.velocityHeading) * k.speed * dt;
   k.z += Math.cos(k.velocityHeading) * k.speed * dt;
