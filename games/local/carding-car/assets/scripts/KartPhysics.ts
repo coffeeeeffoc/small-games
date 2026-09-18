@@ -104,7 +104,7 @@ export function collideKart(k: KartState) {
 export function driveKart(k: KartState, input: KartInput, dt: number) {
   dt = clamp(dt, 0, 1 / 30);
   const steer = clamp(input.steer, -1, 1);
-  const throttle = clamp(input.throttle, 0, 1);
+  const throttle = input.brake ? 0 : clamp(input.throttle, 0, 1);
   const wasDrifting = k.drifting;
   k.boost = Math.max(0, k.boost - dt);
   k.collision = Math.max(0, k.collision - dt);
@@ -113,6 +113,7 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     !input.brake &&
     k.speed >= C.driftMinSpeed &&
     (wasDrifting || Math.abs(steer) > 0.2) &&
+    k.collision <= 0 &&
     !k.airborne;
   if (k.drifting && !wasDrifting) k.driftSide = Math.sign(steer);
   if (wasDrifting && !k.drifting) {
@@ -124,7 +125,13 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     C.steering + (C.highSpeedSteering - C.steering) * clamp(k.speed / C.maxSpeed, 0, 1);
   // Positive input means screen-right; with forward (sin heading, cos heading), yaw decreases.
   k.heading -= steer * turning * Math.min(1, k.speed / 5) * (k.drifting ? C.driftSteering : 1) * dt;
-  const desired = k.heading + (k.drifting ? k.driftSide * C.driftAngle : 0);
+  // Build the slide from the actual yaw; applying the full offset on entry kicks the kart
+  // toward the opposite side before it has started turning.
+  const driftAngle = Math.min(
+    C.driftAngle,
+    Math.max(0, k.driftSide * angleDelta(k.velocityHeading, k.heading)),
+  );
+  const desired = k.heading + (k.drifting ? k.driftSide * driftAngle : 0);
   k.velocityHeading +=
     angleDelta(desired, k.velocityHeading) *
     (1 - Math.exp(-(k.drifting ? C.driftGrip : C.grip) * dt));

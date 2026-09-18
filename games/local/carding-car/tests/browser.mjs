@@ -4,19 +4,22 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createTrack } from '../assets/scripts/TrackGenerator.ts';
 import { barrierOverlap } from '../assets/scripts/KartPhysics.ts';
+import { sourceHash } from '../scripts/artifact.mjs';
 const track = createTrack();
 const executablePath =
   process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
   (existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')
     ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
     : undefined);
+const url = process.env.KART_URL || 'http://127.0.0.1:4198';
+const build = await fetch(new URL('build-info.json', url)).then((response) => response.json());
+assert.equal(build.sourceHash, await sourceHash(), 'browser must exercise the current game build');
 const browser = await chromium.launch({ headless: true, executablePath });
 const reports = new URL('../reports/', import.meta.url);
 await mkdir(reports, { recursive: true });
 const errors = [],
   engineWarnings = [],
   evidence = {};
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
 const snapshot = (p) => p.evaluate(() => globalThis.__kart.snapshot());
 async function open(options) {
   const page = await browser.newPage(options);
@@ -30,6 +33,7 @@ async function open(options) {
     else errors.push(m.text());
   });
   await page.goto(url);
+  assert.equal(await page.title(), '浪湾卡丁车', 'verify the server identity before driving');
   await page.waitForFunction(
     () =>
       globalThis.__kart?.snapshot().audioClips === 7 && globalThis.__kart.snapshot().modelsLoaded,
@@ -53,13 +57,55 @@ try {
   await desktop.screenshot({
     path: new URL('keyboard-boost.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
-  await desktop.keyboard.press('p');
+  await desktop.keyboard.down('p');
   const paused = await snapshot(desktop);
+  await desktop.keyboard.down('p');
   await desktop.waitForTimeout(300);
   assert.equal((await snapshot(desktop)).time, paused.time);
   assert.equal(paused.phase, 'paused');
+  assert.equal(
+    (await snapshot(desktop)).phase,
+    'paused',
+    'holding pause must not toggle repeatedly',
+  );
+  await desktop.keyboard.up('p');
+  await desktop.keyboard.down('ArrowRight');
+  await desktop.keyboard.down('Space');
+  await desktop.keyboard.press('Enter');
+  const resumed = await snapshot(desktop);
+  assert.equal(resumed.input.steer, 0, 'driving keys pressed while paused must not stick');
+  assert.equal(resumed.input.drift, false);
+  await desktop.keyboard.up('ArrowRight');
+  await desktop.keyboard.up('Space');
+  await desktop.keyboard.press('p');
   await desktop.keyboard.press('r');
   assert.equal((await snapshot(desktop)).phase, 'countdown');
+  assert.equal((await snapshot(desktop)).time, 0);
+  assert.equal((await snapshot(desktop)).currentLapTime, 0);
+  await desktop.keyboard.press('p');
+  const countdown = await snapshot(desktop);
+  await desktop.waitForTimeout(250);
+  assert.equal((await snapshot(desktop)).phase, 'paused');
+  assert.equal((await snapshot(desktop)).time, countdown.time);
+  await desktop.keyboard.press('Enter');
+  await desktop.waitForFunction(() => __kart.snapshot().time > 2);
+  await desktop.keyboard.down('ArrowRight');
+  await desktop.keyboard.down('Space');
+  await desktop.waitForFunction(() => __kart.snapshot().player.tier === 1);
+  const boostBeforePause = (await snapshot(desktop)).boosts;
+  await desktop.keyboard.press('p');
+  assert.equal((await snapshot(desktop)).player.charge, 0);
+  await desktop.keyboard.up('ArrowRight');
+  await desktop.keyboard.up('Space');
+  await desktop.keyboard.press('Enter');
+  await desktop.waitForTimeout(100);
+  assert.equal(
+    (await snapshot(desktop)).boosts,
+    boostBeforePause,
+    'pausing does not redeem drift charge',
+  );
+  evidence.pauseAndRestart =
+    'paused inputs cleared; countdown and race clocks frozen; restart resets clocks';
   await desktop.close();
 
   const wide = await open({
@@ -77,7 +123,7 @@ try {
     await wide.touchscreen.tap(p.x, p.y);
   };
   const wideCdp = await wide.context().newCDPSession(wide);
-  await tap(480, 347);
+  await tap(480, 395);
   await wide.waitForFunction(() => __kart.snapshot().time > 2);
   await wideCdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
@@ -90,7 +136,7 @@ try {
   assert.equal((await snapshot(wide)).muted, true);
   await tap(893, 50);
   await wide.waitForFunction(() => __kart.snapshot().phase === 'paused');
-  await tap(480, 347);
+  await tap(480, 395);
   const speedBeforeBrake = (await snapshot(wide)).player.speed;
   await wideCdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
@@ -104,11 +150,22 @@ try {
   // Synthetic window lifecycle event: headless tabs do not reliably lose OS focus.
   await wide.evaluate(() => window.dispatchEvent(new Event('blur')));
   await wide.waitForFunction(() => __kart.snapshot().phase === 'paused');
-  await wide.setViewportSize({ width: 390, height: 844 });
-  await wide.waitForTimeout(200);
+  for (const width of [360, 390]) {
+    await wide.setViewportSize({ width, height: 844 });
+    await wide.waitForTimeout(200);
+    assert.ok(await wide.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    const rect = await wide.locator('#GameCanvas').boundingBox();
+    assert.ok(
+      rect && rect.x >= -1 && rect.x + rect.width <= width + 1,
+      'rotated canvas stays in viewport',
+    );
+    await wide.screenshot({
+      path: new URL(`portrait-${width}.png`, reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
+    });
+  }
   await wide.setViewportSize({ width: 844, height: 390 });
   await wide.waitForTimeout(200);
-  await tap(480, 347);
+  await tap(480, 395);
   await wide.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await wide.screenshot({
     path: new URL('wide.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
@@ -134,7 +191,7 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
     previous = points;
   }
-  await mobile.touchscreen.tap(480, 347);
+  await mobile.touchscreen.tap(480, 395);
   await mobile.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await touches([
     { x: 185, y: 440, id: 1 },
@@ -147,12 +204,19 @@ try {
   previous = [];
   await mobile.waitForTimeout(60);
   assert.equal((await snapshot(mobile)).input.drift, false);
+  assert.equal((await snapshot(mobile)).input.steer, 0);
+  assert.equal(
+    (await snapshot(mobile)).boosts,
+    two.boosts,
+    'cancelled touch does not redeem drift charge',
+  );
   // Replay a driving line through actual touch events. No game state is mutated by the test.
   const fps = [],
     deadline = Date.now() + 270000;
   let lap = 0,
     airborne = false,
     lastLog = 0;
+  const chargeTiers = new Set();
   const forks = new Set();
   while (Date.now() < deadline) {
     const s = await snapshot(mobile);
@@ -174,6 +238,8 @@ try {
       }
     }
     airborne ||= s.player.airborne;
+    chargeTiers.add(s.player.tier);
+    assert.ok(s.currentLapTime >= 0 && s.currentLapTime <= s.time + 0.001);
     fps.push(s.fps);
     if (s.time > lastLog + 15) {
       lastLog = s.time;
@@ -206,6 +272,16 @@ try {
     'all rivals remain competitive',
   );
   assert.ok(airborne, 'the road rise produces a real jump');
+  assert.ok(chargeTiers.has(1) && chargeTiers.has(2), 'both drift reward tiers are reachable');
+  assert.equal(finish.progress.lapTimes.length, 3);
+  assert.equal(finish.bestLapTime, Math.min(...finish.progress.lapTimes));
+  assert.ok(
+    Math.abs(finish.progress.lapTimes.reduce((sum, lapTime) => sum + lapTime, 0) - finish.time) <
+      0.001,
+  );
+  assert.equal(finish.records.length, 1, 'a complete race adds one local leaderboard result');
+  assert.equal(finish.records[0].time, finish.time);
+  assert.equal(finish.records[0].place, finish.order.indexOf(0) + 1);
   fps.sort((a, b) => a - b);
   evidence.mobile = {
     ...finish,
@@ -213,12 +289,35 @@ try {
     medianFps: fps[Math.floor(fps.length * 0.5)],
     p10Fps: fps[Math.floor(fps.length * 0.1)],
   };
+  await mobile.waitForFunction(() => /冠军|冲线/.test(__kart.snapshot().hud.title));
   await mobile.screenshot({
     path: new URL('finish.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
-  await mobile.touchscreen.tap(480, 347);
+  await mobile.touchscreen.tap(480, 395);
   await mobile.waitForFunction(() => __kart.snapshot().phase === 'countdown');
   assert.equal((await snapshot(mobile)).progress.laps, 0);
+  assert.equal(
+    (await snapshot(mobile)).records.length,
+    1,
+    'restarting does not duplicate a result',
+  );
+  await mobile.reload();
+  await mobile.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+  const reloaded = await snapshot(mobile);
+  assert.equal(reloaded.phase, 'ready');
+  assert.deepEqual(reloaded.records, finish.records, 'the leaderboard survives a page reload');
+  evidence.leaderboard = { saved: finish.records, reloaded: reloaded.records };
+  await mobile.screenshot({
+    path: new URL('leaderboard.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
+  });
+  await mobile.evaluate(() => localStorage.setItem('coastline-records-v1', '{broken'));
+  await mobile.reload();
+  await mobile.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+  assert.deepEqual(
+    (await snapshot(mobile)).records,
+    [],
+    'damaged records cannot prevent the next race',
+  );
   await mobile.close();
   assert.deepEqual(errors, []);
   await writeFile(

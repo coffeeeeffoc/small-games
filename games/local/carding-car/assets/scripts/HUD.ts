@@ -12,11 +12,12 @@ import {
 } from 'cc';
 import { KartConfig as C, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
+import { formatTime as time, type RaceRecord } from './RankingSystem';
 const color = (v: string) => new Color().fromHEX(v);
-const time = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, '0')}`;
 export class HUD {
   root: Node;
   top: Label;
+  timer: Label;
   speed: Label;
   message: Label;
   count: Label;
@@ -24,12 +25,18 @@ export class HUD {
   title: Label;
   detail: Label;
   button: Label;
+  standings: Label;
+  leaderboard: Label;
+  footer: Label;
+  restartButton: Node;
   meter: Graphics;
   map: Graphics;
+  mapRoute: Graphics;
+  mappedTrack?: RaceManager['track'];
   controls: Graphics;
   sound: Label;
   lastPhase = '';
-  best = 0;
+  records: RaceRecord[] = [];
   constructor(parent: Node) {
     view.setDesignResolutionSize(960, 540, ResolutionPolicy.SHOW_ALL);
     this.root = new Node('HUD');
@@ -52,8 +59,8 @@ export class HUD {
     canvas.cameraComponent = camera;
     this.box(this.root, -354, 216, 216, 64, '#173c55ee');
     this.top = this.label(this.root, '1 / 4   ·   第 1 / 3 圈', -354, 216, 22, '#fff6dc', 214, 60);
-    this.box(this.root, 0, 230, 260, 28, '#173c55dd');
-    this.label(this.root, '浪 湾   /   COASTLINE CUP', 0, 230, 16, '#fff6dc', 260, 28);
+    this.box(this.root, 0, 220, 458, 64, '#173c55ee');
+    this.timer = this.label(this.root, '', 0, 220, 20, '#fff6dc', 450, 62);
     this.box(this.root, 307, 220, 96, 48, '#173c55dd');
     this.sound = this.label(this.root, '声音 开', 307, 220, 18, '#fff6dc', 96, 48);
     this.box(this.root, 413, 220, 72, 48, '#173c55');
@@ -72,34 +79,43 @@ export class HUD {
     this.label(this.root, '漂移', 365, -165, 27, '#193c54', 140, 90);
     this.box(this.root, 340, -229, 230, 26, '#173c55dd');
     this.label(this.root, '按住过弯 · 松手加速', 340, -229, 14, '#fff6dc', 230, 28);
+    this.mapRoute = this.graphics(this.root, 'MiniMapRoute');
     this.map = this.graphics(this.root, 'MiniMap');
     this.panel = new Node('Menu');
     this.root.addChild(this.panel);
     this.panel.layer = Layers.Enum.UI_2D;
-    this.box(this.panel, 0, 15, 590, 308, '#163b55f5');
-    this.label(this.panel, 'COASTLINE CUP   /   01', 0, 139, 14, '#69dfc0', 530, 25);
-    this.title = this.label(this.panel, '浪湾卡丁车', 0, 79, 52, '#fff6dc', 550, 80);
+    this.box(this.panel, 0, -6, 710, 390, '#163b55f5');
+    this.label(this.panel, '海湾三圈挑战', 0, 168, 16, '#69dfc0', 530, 25);
+    this.title = this.label(this.panel, '浪湾卡丁车', 0, 127, 40, '#fff6dc', 650, 55);
     this.detail = this.label(
       this.panel,
       '3 圈海湾竞速 · 3 位对手\n转弯时按住漂移，松手冲出去',
       0,
-      4,
-      20,
+      76,
+      19,
       '#d1e9e4',
-      550,
-      78,
+      650,
+      52,
     );
-    this.box(this.panel, 0, -77, 286, 57, '#ffd15a');
-    this.button = this.label(this.panel, '开 跑  →', 0, -77, 24, '#173b53', 280, 57);
-    this.label(
+    this.standings = this.label(this.panel, '', -174, -23, 18, '#d1e9e4', 325, 146);
+    this.leaderboard = this.label(this.panel, '', 174, -23, 18, '#69dfc0', 325, 146);
+    this.box(this.panel, 0, -125, 286, 52, '#ffd15a');
+    this.button = this.label(this.panel, '开 跑  →', 0, -125, 24, '#173b53', 280, 52);
+    this.restartButton = new Node('RestartButton');
+    this.restartButton.layer = Layers.Enum.UI_2D;
+    this.panel.addChild(this.restartButton);
+    this.box(this.restartButton, 263, -125, 170, 52, '#295870');
+    this.label(this.restartButton, '重新开跑', 263, -125, 20, '#fff6dc', 170, 52);
+    this.restartButton.active = false;
+    this.footer = this.label(
       this.panel,
-      '手机：左手转向，右手漂移 / 刹车   ·   键盘：方向键 / WASD + 空格',
+      '左手转向 · 右手漂移 / 刹车   |   方向键 / WASD + 空格',
       0,
-      -127,
-      13,
+      -176,
+      14,
       '#a9cdd0',
-      560,
-      26,
+      660,
+      32,
     );
   }
   graphics(parent: Node, name: string) {
@@ -145,26 +161,50 @@ export class HUD {
     const k = r.drivers[0].kart,
       p = r.drivers[0].progress,
       place = r.order.indexOf(0) + 1;
-    this.top.string = `${place} / 4   ·   第 ${Math.min(3, p.laps + 1)} / 3 圈`;
+    this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(C.laps, p.laps + 1)} / ${C.laps} 圈`;
+    this.timer.string = `总计 ${time(r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
     this.panel.active = ['ready', 'paused', 'finished'].includes(r.phase);
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
+      this.restartButton.active = r.phase === 'paused';
+      this.leaderboard.string = `本机最快 5 场\n${
+        this.records.length
+          ? this.records
+              .map(
+                (record, i) =>
+                  `${i + 1}   ${time(record.time)}   ${record.place ? `第 ${record.place} 名` : '旧纪录'}`,
+              )
+              .join('\n')
+          : '完成比赛后记录成绩'
+      }`;
       if (r.phase === 'ready') {
         this.title.string = '浪湾卡丁车';
         this.detail.string = '3 圈海湾竞速 · 3 位对手\n转弯时按住漂移，松手冲出去';
         this.button.string = '开 跑  →';
+        this.standings.string =
+          '驾驶小贴士\n提前转向切入弯心\n转弯时按住漂移蓄力\n松手获得出弯加速';
+        this.footer.string = '左手转向 · 右手漂移 / 刹车   |   方向键 / WASD + 空格';
       }
       if (r.phase === 'paused') {
         this.title.string = '休息一下';
-        this.detail.string = '比赛已暂停\n两手就位，再来一个漂亮的漂移';
+        this.detail.string = '计时已停止\n两手就位，再来一个漂亮的漂移';
         this.button.string = '继续比赛  →';
+        this.standings.string = `当前第 ${place} 名\n总计 ${time(r.time)}\n本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
+        this.footer.string = 'Enter / P 继续   ·   R 重新开跑   ·   本机成绩仅保存在当前设备';
       }
       if (r.phase === 'finished') {
         this.title.string = place === 1 ? '冠军，漂亮！' : `第 ${place} 名，冲线！`;
-        this.detail.string = `用时 ${time(r.time)}    ·    ${r.boosts} 次漂移加速\n最快圈 ${time(Math.min(...p.lapTimes))}${this.best ? '    ·    最佳 ' + time(this.best) : ''}`;
+        this.detail.string = `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次漂移加速   ·   ${r.collisions} 次碰撞`;
         this.button.string = '再跑一场  →';
+        this.standings.string = `本场名次\n${r.order
+          .map((driver, i) => {
+            const progress = r.drivers[driver].progress;
+            return `${i + 1}  ${driver === 0 ? '你' : `对手 ${driver}`}  ${progress.finishedAt ? time(progress.finishedAt) : '未完赛'}`;
+          })
+          .join('\n')}`;
+        this.footer.string = 'Enter / R 再跑一场   ·   本机成绩仅保存在当前设备';
       }
     }
     this.count.string =
@@ -191,7 +231,9 @@ export class HUD {
                       ? '保持过弯，火花正在蓄力'
                       : p.s > r.track.shortcutStart - 65 && p.s < r.track.shortcutStart
                         ? '前方近道：保持直行 · 窄路失误会返回入口'
-                        : `${time(r.time)}   ·   ${p.laps === 2 ? '最后一圈！' : '寻找出弯加速的时机'}`
+                        : p.laps === C.laps - 1
+                          ? '最后一圈，冲刺！'
+                          : '寻找出弯加速的时机'
         : '';
     this.meter.clear();
     this.meter.fillColor = color('#193c55');
@@ -215,27 +257,32 @@ export class HUD {
     this.controls.fillColor = color('#ffffff77');
     this.controls.circle(-326 + input.steer * 49, -171, 15);
     this.controls.fill();
-    const g = this.map;
-    g.clear();
     const scale = 0.28,
       cx = 379,
       cy = 91;
-    g.lineWidth = 5;
-    g.strokeColor = color('#173c5577');
-    r.track.main.forEach((p, i) => {
-      i
-        ? g.lineTo(cx + p.x * scale, cy + p.z * scale)
-        : g.moveTo(cx + p.x * scale, cy + p.z * scale);
-    });
-    g.stroke();
-    g.lineWidth = 2;
-    g.strokeColor = color('#fff6dc');
-    r.track.shortcut.forEach((p, i) => {
-      i
-        ? g.lineTo(cx + p.x * scale, cy + p.z * scale)
-        : g.moveTo(cx + p.x * scale, cy + p.z * scale);
-    });
-    g.stroke();
+    const route = this.mapRoute;
+    if (this.mappedTrack !== r.track) {
+      this.mappedTrack = r.track;
+      route.clear();
+      route.lineWidth = 5;
+      route.strokeColor = color('#173c5577');
+      r.track.main.forEach((p, i) => {
+        i
+          ? route.lineTo(cx + p.x * scale, cy + p.z * scale)
+          : route.moveTo(cx + p.x * scale, cy + p.z * scale);
+      });
+      route.stroke();
+      route.lineWidth = 2;
+      route.strokeColor = color('#fff6dc');
+      r.track.shortcut.forEach((p, i) => {
+        i
+          ? route.lineTo(cx + p.x * scale, cy + p.z * scale)
+          : route.moveTo(cx + p.x * scale, cy + p.z * scale);
+      });
+      route.stroke();
+    }
+    const g = this.map;
+    g.clear();
     for (let i = 3; i >= 0; i--) {
       const k = r.drivers[i].kart;
       g.fillColor = color(i ? '#193c55' : '#ffd15a');

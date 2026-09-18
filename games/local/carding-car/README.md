@@ -17,6 +17,8 @@ pnpm --filter @coffeeeeffoc/carding-car dev
 
 手机：横屏，自动加速；左侧滑动转向，右侧按住漂移或刹车。过弯时蓄力，松开漂移释放加速。键盘：Enter 开始/继续，A/D 或左右键转向，空格/左 Shift 漂移，S/下键刹车，P/Esc 暂停，M 声音，暂停或完赛后 R 重赛。
 
+比赛中常驻显示总用时、本圈用时和最快圈；结算显示四车名次，并保留本机最快五次完赛成绩。旧版本最佳总用时会自动迁入本机榜单。暂停可直接重新开跑；暂停、切后台和触控取消会清空操作及未释放的漂移蓄力。
+
 ## 原生工程
 
 复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID` 环境变量。无需 AppSecret。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。
@@ -41,10 +43,14 @@ pnpm --filter @coffeeeeffoc/carding-car test
 pnpm --filter @coffeeeeffoc/carding-car typecheck
 # 先启动上面的静态服务器
 pnpm --filter @coffeeeeffoc/carding-car test:browser
+node games/local/carding-car/tests/steering.mjs
+node games/local/carding-car/tests/walls.mjs
 pnpm check:games
 ```
 
 浏览器检查通过真实键盘和多指触摸跑三圈，检查取消触摸、漂移奖励、暂停、完赛与重赛，记录截图、控制台和 FPS 到忽略目录 `reports`。`KART_URL` 可指定已构建页面；`PLAYWRIGHT_EXECUTABLE_PATH` 可指定系统 Chrome。只读 `__kart.snapshot()` 用于诊断，不提供改圈数、传送或自动完赛入口。
+
+浏览器检查会核对构建源码哈希，修改源码后需先重新构建；同时检查本机榜单重载、损坏存储恢复和 360px/390px 竖屏切换。驾驶线路由诊断快照提供方向建议，通过真实输入执行，不代表人类首次试玩成绩。
 
 赛道是 Catmull-Rom 曲线生成的带状网格；护栏位置和尺寸由 `TrackBarriers` 同时供显示与碰撞使用，岔口按另一条道路的实际范围留出口。车身与护栏使用简单定向矩形的分离轴检测，车车接触使用圆形截面，均不使用复杂视觉网格作为碰撞体。四辆车共享驾驶参数。AI 根据前方曲率刹车，没有额外速度或隐藏追赶。
 

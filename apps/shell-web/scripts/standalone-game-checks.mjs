@@ -29,9 +29,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
     const bounds = await canvas.boundingBox();
-    await (mobile
-      ? canvas.tap({ position: { x: bounds.width / 2, y: bounds.height * 0.64 } })
-      : canvas.click({ position: { x: bounds.width / 2, y: bounds.height * 0.64 } }));
+    const scale = Math.min(bounds.width / 960, bounds.height / 540);
+    const position = { x: bounds.width / 2, y: bounds.height / 2 + 125 * scale };
+    await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase))
       .toBe('racing');
