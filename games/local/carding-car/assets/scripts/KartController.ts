@@ -14,28 +14,44 @@ export class KartController {
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
     input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
-    input.on(Input.EventType.TOUCH_CANCEL, this.touchEnd, this);
+    input.on(Input.EventType.TOUCH_CANCEL, this.clear, this);
   }
   clear() {
     this.keys.clear();
     this.touches.clear();
+    const kart = this.race().drivers[0].kart;
+    kart.drifting = false;
+    kart.charge = kart.tier = kart.driftSide = 0;
   }
   keyDown(e: EventKeyboard) {
     if (this.keys.has(e.keyCode)) return;
     this.keys.add(e.keyCode);
     const r = this.race();
-    if (e.keyCode === KeyCode.ENTER) {
+    if (
+      e.keyCode === KeyCode.ENTER &&
+      (r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished')
+    ) {
+      this.clear();
       if (r.phase === 'ready') r.start();
       else if (r.phase === 'paused') r.resume();
       else if (r.phase === 'finished') this.restart();
+      this.keys.add(e.keyCode);
+      return;
     }
     if (e.keyCode === KeyCode.KEY_P || e.keyCode === KeyCode.ESCAPE) {
       r.phase === 'paused' ? r.resume() : r.pause();
       this.clear();
+      this.keys.add(e.keyCode);
+      return;
     }
-    if (e.keyCode === KeyCode.KEY_R && (r.phase === 'finished' || r.phase === 'paused'))
+    if (e.keyCode === KeyCode.KEY_R && (r.phase === 'finished' || r.phase === 'paused')) {
       this.restart();
+      this.keys.add(e.keyCode);
+      return;
+    }
     if (e.keyCode === KeyCode.KEY_M) this.sound();
+    if (r.phase !== 'racing' && r.phase !== 'countdown' && e.keyCode !== KeyCode.KEY_M)
+      this.keys.delete(e.keyCode);
   }
   keyUp(e: EventKeyboard) {
     this.keys.delete(e.keyCode);
@@ -60,7 +76,13 @@ export class KartController {
       return;
     }
     if (r.phase === 'ready' || r.phase === 'finished' || r.phase === 'paused') {
-      if (p.x > 0.28 && p.x < 0.72 && p.y > 0.22 && p.y < 0.45) {
+      if (r.phase === 'paused' && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
+        this.clear();
+        this.restart();
+        return;
+      }
+      if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {
+        this.clear();
         if (r.phase === 'ready') r.start();
         else if (r.phase === 'paused') r.resume();
         else this.restart();
@@ -83,6 +105,9 @@ export class KartController {
     if (id !== null) this.touches.delete(id);
   }
   read(): KartInput {
+    const phase = this.race().phase;
+    if (phase !== 'racing' && phase !== 'countdown')
+      return { steer: 0, drift: false, brake: false, throttle: 0 };
     const key = (...keys: number[]) => keys.some((k) => this.keys.has(k));
     let steer =
       Number(key(KeyCode.ARROW_RIGHT, KeyCode.KEY_D)) -
@@ -102,7 +127,7 @@ export class KartController {
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
     input.off(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.off(Input.EventType.TOUCH_END, this.touchEnd, this);
-    input.off(Input.EventType.TOUCH_CANCEL, this.touchEnd, this);
+    input.off(Input.EventType.TOUCH_CANCEL, this.clear, this);
     this.clear();
   }
 }

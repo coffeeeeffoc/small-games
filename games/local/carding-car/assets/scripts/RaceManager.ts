@@ -50,9 +50,25 @@ export class RaceManager {
   get order() {
     return ranking(this.drivers);
   }
+  get currentLapTime() {
+    const p = this.drivers[0].progress;
+    return p.finishedAt
+      ? p.lapTimes[p.lapTimes.length - 1] || 0
+      : Math.max(0, this.time - p.lapStarted);
+  }
+  get bestLapTime() {
+    const times = this.drivers[0].progress.lapTimes;
+    return times.length ? Math.min(...times) : 0;
+  }
   recover(i: number) {
     const d = this.drivers[i],
       k = d.kart;
+    if (d.progress.finishedAt) return;
+    const retreat =
+      wrapDistance(d.progress.s - d.safe.s + this.track.length / 2, this.track.length) -
+      this.track.length / 2;
+    d.progress.distance -= Math.max(0, retreat);
+    d.progress.s = d.safe.s;
     Object.assign(k, createKart(d.safe.x, d.safe.z, d.safe.heading));
     k.y = d.safe.y;
     k.speed = 8;
@@ -61,6 +77,7 @@ export class RaceManager {
     if (i === 0) this.resets++;
   }
   step(input: KartInput, dt: number) {
+    if (!Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, 1 / 30);
     if (this.phase === 'countdown') {
       this.countdown -= dt;
@@ -155,6 +172,7 @@ export class RaceManager {
           ? 4
           : 0;
       // The centreline advances faster than a kart cutting the inside of a tight bend.
+      const previousS = d.progress.s;
       const crossed = advanceCheckpoint(
         d.progress,
         this.track,
@@ -162,10 +180,18 @@ export class RaceManager {
         (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction,
         legal,
       );
-      const finished = updateLap(d.progress, crossed, this.time);
+      // Resolve the crossing within the frame so a close finish is not decided by driver index.
+      const crossingTime = crossed
+        ? this.time -
+          dt +
+          (dt * wrapDistance(-previousS, this.track.length)) /
+            wrapDistance(road.s - previousS, this.track.length)
+        : this.time;
+      const finished = updateLap(d.progress, crossed, crossingTime);
       if (crossed) d.shortcut = i === 3;
       if (
         legal &&
+        d.shortcutFailure <= 0 &&
         Math.abs(angleDelta(k.heading, road.heading)) < 1.2 &&
         Math.abs(d.progress.s - road.s) < 1
       ) {
@@ -188,5 +214,6 @@ export class RaceManager {
         if (finished) this.phase = 'finished';
       }
     }
+    if (this.phase === 'finished') this.time = this.drivers[0].progress.finishedAt;
   }
 }

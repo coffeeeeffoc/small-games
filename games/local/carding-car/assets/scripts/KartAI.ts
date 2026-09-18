@@ -23,7 +23,7 @@ export function aiInput(
   const brake = k.speed > targetSpeed + 1.5;
   return {
     steer,
-    throttle: 1,
+    throttle: brake ? 0 : 1,
     brake,
     drift: !brake && (k.drifting || Math.abs(error) > 0.2) && curve > 0.28 && k.tier < 2,
   };

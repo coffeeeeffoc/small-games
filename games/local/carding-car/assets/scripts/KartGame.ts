@@ -8,6 +8,7 @@ import { KartController } from './KartController';
 import { aiInput } from './KartAI';
 import { palette } from './SceneArt';
 import { AudioFeedback } from './AudioFeedback';
+import { addRecord, readRecords, type RaceRecord } from './RankingSystem';
 const { ccclass } = _decorator;
 
 @ccclass('KartGame')
@@ -24,7 +25,7 @@ export class KartGame extends Component {
   frameTime = 0;
   fps = 60;
   muted = false;
-  best = 0;
+  records: RaceRecord[] = [];
   start() {
     profiler.hideStats();
     this.node.layer = Layers.Enum.DEFAULT;
@@ -37,9 +38,12 @@ export class KartGame extends Component {
     this.hud = new HUD(this.node);
     this.audio = new AudioFeedback(this.node);
     try {
-      this.best = Number(sys.localStorage.getItem('coastline-best')) || 0;
+      this.records = readRecords(
+        sys.localStorage.getItem('coastline-records-v1'),
+        sys.localStorage.getItem('coastline-best'),
+      );
     } catch {}
-    this.hud.best = this.best;
+    this.hud.records = this.records;
     this.controller = new KartController(
       () => this.race,
       () => this.restart(),
@@ -63,6 +67,16 @@ export class KartGame extends Component {
           modelsLoaded: this.views.every((v) => v.modelLoaded),
           audioClips: this.audio.clips.size,
           muted: this.muted,
+          currentLapTime: this.race.currentLapTime,
+          bestLapTime: this.race.bestLapTime,
+          records: this.records.map((record) => ({ ...record })),
+          hud: {
+            title: this.hud.title.string,
+            detail: this.hud.detail.string,
+            timer: this.hud.timer.string,
+            standings: this.hud.standings.string,
+            leaderboard: this.hud.leaderboard.string,
+          },
           player: { ...this.race.drivers[0].kart },
           progress: { ...this.race.drivers[0].progress },
           input: this.controller.read(),
@@ -89,11 +103,13 @@ export class KartGame extends Component {
   hide = () => {
     this.controller?.clear();
     this.race.pause();
+    this.accumulator = 0;
   };
   restart() {
     this.controller.clear();
     this.race = new RaceManager();
     this.race.start();
+    this.accumulator = 0;
     this.camera.initialized = false;
   }
   update(dt: number) {
@@ -112,15 +128,15 @@ export class KartGame extends Component {
       this.race.step(input, 1 / 60);
       this.accumulator -= 1 / 60;
     }
-    if (
-      before !== 'finished' &&
-      this.race.phase === 'finished' &&
-      (!this.best || this.race.time < this.best)
-    ) {
-      this.best = this.race.time;
-      this.hud.best = this.best;
+    if (before !== 'finished' && this.race.phase === 'finished') {
+      this.records = addRecord(this.records, {
+        time: this.race.time,
+        bestLap: this.race.bestLapTime,
+        place: this.race.order.indexOf(0) + 1,
+      });
+      this.hud.records = this.records;
       try {
-        sys.localStorage.setItem('coastline-best', String(this.best));
+        sys.localStorage.setItem('coastline-records-v1', JSON.stringify(this.records));
       } catch {}
     }
     this.views.forEach((v, i) => v.update(this.race.drivers[i].kart, this.race.time));

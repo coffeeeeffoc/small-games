@@ -6,9 +6,11 @@ function ribbon(points: TrackPoint[], left: number, right: number, lift: number)
   const positions: number[] = [],
     normals: number[] = [],
     indices: number[] = [];
+  const closed =
+    points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z;
   for (let i = 0; i < points.length; i++) {
-    const a = points[Math.max(0, i - 1)],
-      b = points[Math.min(points.length - 1, i + 1)],
+    const a = points[i === 0 && closed ? points.length - 2 : Math.max(0, i - 1)],
+      b = points[i === points.length - 1 && closed ? 1 : Math.min(points.length - 1, i + 1)],
       p = points[i];
     const heading = Math.atan2(b.x - a.x, b.z - a.z);
     for (const width of [left, right]) {
@@ -37,6 +39,24 @@ export function buildTrack(parent: Node, track: TrackData) {
     for (const side of [-1, 1]) {
       b.add(P.white, ribbon(points, (side * width) / 2 - 0.14, (side * width) / 2 + 0.14, 0.025));
     }
+  }
+  const arrow = {
+    positions: [
+      -1.6, 0, -0.5, 0, 0, 1.4, 1.6, 0, -0.5, 0.5, 0, -0.5, 0.5, 0, -2.4, -0.5, 0, -2.4, -0.5, 0,
+      -0.5,
+    ],
+    normals: Array.from({ length: 7 }, () => [0, 1, 0]).flat(),
+    indices: [0, 1, 2, 6, 3, 4, 6, 4, 5],
+  };
+  // Sparse road markings remain readable ahead of the chase camera without extra draw calls.
+  for (let s = 45; s < track.length; s += 95) {
+    const p = pointAt(track, s);
+    b.add(P.white, arrow, p.x, p.y + 0.04, p.z, 1, 1, 1, p.heading);
+  }
+  const ratio = (track.shortcutEnd - track.shortcutStart) / track.shortcutLength;
+  for (let metres = 8; metres < track.shortcutLength - 5; metres += 35) {
+    const p = pointAt(track, track.shortcutStart + metres * ratio, true);
+    b.add(P.yellow, arrow, p.x, p.y + 0.045, p.z, 0.75, 1, 1, p.heading);
   }
   track.barriers.forEach((wall, i) =>
     b.box(
