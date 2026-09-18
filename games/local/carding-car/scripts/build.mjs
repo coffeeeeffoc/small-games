@@ -119,7 +119,7 @@ if (target === 'web-mobile') {
     .replace('<head>', '<head>\n<link rel="icon" href="data:,">')
     .replace(
       'id="GameCanvas"',
-      'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，方向键转向，空格漂移，下方向键刹车，P 暂停，M 声音"',
+      'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );
   await writeFile(index, html);
   await writeFile(

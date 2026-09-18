@@ -17,13 +17,22 @@ const browser = await chromium.launch({
 });
 try {
   for (const touch of [false, true]) {
-    const page = await browser.newPage({ viewport: { width: 960, height: 540 }, hasTouch: touch });
+    const page = await browser.newPage({
+      viewport: { width: 960, height: 540 },
+      hasTouch: touch,
+      userAgent: touch
+        ? 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'
+        : undefined,
+    });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(url);
     await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
     if (touch) await page.touchscreen.tap(480, 395);
-    else await page.keyboard.press('Enter');
+    else {
+      await page.keyboard.press('Enter');
+      await page.keyboard.down('ArrowUp');
+    }
     await page.waitForFunction(() => __kart.snapshot().time > 2);
     const snapshot = () => page.evaluate(() => __kart.snapshot());
     const before = await snapshot();

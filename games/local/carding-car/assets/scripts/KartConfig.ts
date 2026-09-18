@@ -17,6 +17,8 @@ export const KartConfig = {
   boostDurations: [0.65, 1.1],
   boostSpeed: 1.34,
   boostAcceleration: 28,
+  nitroDuration: 1.5,
+  nitroCooldown: 6,
   drag: 0.017,
   rollingResistance: 1.2,
   collisionResponse: 0.65,
@@ -37,6 +39,7 @@ export type KartInput = {
   brake: boolean;
   drift: boolean;
   reverse?: boolean;
+  nitro?: boolean;
 };
 export const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 export const angleDelta = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
