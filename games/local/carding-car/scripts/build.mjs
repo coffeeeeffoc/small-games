@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { editor } from './toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
+import { clearOutput } from './clear-output.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili'].includes(target))
@@ -70,12 +71,12 @@ await writeFile(configPath, JSON.stringify(config, null, 2));
 const outputDir = path.resolve(root, 'build', outputName);
 if (path.dirname(outputDir) !== path.resolve(root, 'build'))
   throw new Error('Build output escaped project');
-await rm(outputDir, { recursive: true, force: true });
+await clearOutput(outputDir);
 if (target === 'bilibili') {
   const biliOutput = path.resolve(root, 'build/biligame');
   if (path.dirname(biliOutput) !== path.resolve(root, 'build'))
     throw new Error('Bilibili output escaped project');
-  await rm(biliOutput, { recursive: true, force: true });
+  await clearOutput(biliOutput);
 }
 const proc = spawn(editor, ['--project', root, '--build', `configPath=${configPath}`], {
   windowsHide: true,
