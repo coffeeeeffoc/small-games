@@ -1,4 +1,5 @@
 import { KartConfig as C, angleDelta, clamp, type KartInput } from './KartConfig.ts';
+import type { Barrier } from './TrackBarriers.ts';
 
 export function createKart(x: number, z: number, heading: number) {
   return {
@@ -21,6 +22,76 @@ export function createKart(x: number, z: number, heading: number) {
   };
 }
 export type KartState = ReturnType<typeof createKart>;
+
+/** Separating-axis test for the kart cuboid footprint and an actual visible guardrail box. */
+export function barrierOverlap(k: KartState, b: Barrier) {
+  const dx = k.x - b.x,
+    dz = k.z - b.z,
+    reach = b.halfLength + b.halfWidth + C.collisionHalfLength + C.collisionHalfWidth;
+  if (dx * dx + dz * dz > reach * reach || k.y > b.y + 0.75 || k.y + 2.2 < b.y) return;
+  const kr = [Math.cos(k.heading), -Math.sin(k.heading)],
+    kf = [Math.sin(k.heading), Math.cos(k.heading)];
+  const br = [Math.cos(b.heading), -Math.sin(b.heading)],
+    bf = [Math.sin(b.heading), Math.cos(b.heading)];
+  let depth = Infinity,
+    nx = 0,
+    nz = 0;
+  for (const [x, z] of [kr, kf, br, bf]) {
+    const kartRadius =
+      C.collisionHalfWidth * Math.abs(x * kr[0] + z * kr[1]) +
+      C.collisionHalfLength * Math.abs(x * kf[0] + z * kf[1]);
+    const wallRadius =
+      b.halfWidth * Math.abs(x * br[0] + z * br[1]) +
+      b.halfLength * Math.abs(x * bf[0] + z * bf[1]);
+    const distance = dx * x + dz * z,
+      overlap = kartRadius + wallRadius - Math.abs(distance);
+    if (overlap <= 0) return;
+    if (overlap < depth) {
+      depth = overlap;
+      nx = x * (distance < 0 ? -1 : 1);
+      nz = z * (distance < 0 ? -1 : 1);
+    }
+  }
+  return { depth, nx, nz };
+}
+
+export function resolveKartBarriers(k: KartState, barriers: Barrier[]) {
+  let hit: Barrier | undefined;
+  // Adjacent boxes meet at corners; repeat separation so resolving one cannot embed us in the next.
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (const b of barriers) {
+      const contact = barrierOverlap(k, b);
+      if (!contact) continue;
+      // Use the road-facing plane, not a neighbouring box's end cap: end-cap normals
+      // can alternately push a long kart into both boxes at an inside corner.
+      const nx = b.inwardX,
+        nz = b.inwardZ;
+      const radius =
+        C.collisionHalfWidth * Math.abs(nx * Math.cos(k.heading) - nz * Math.sin(k.heading)) +
+        C.collisionHalfLength * Math.abs(nx * Math.sin(k.heading) + nz * Math.cos(k.heading));
+      const depth = b.halfWidth + radius - ((k.x - b.x) * nx + (k.z - b.z) * nz);
+      k.x += nx * (depth + 0.002);
+      k.z += nz * (depth + 0.002);
+      const vx = Math.sin(k.velocityHeading),
+        vz = Math.cos(k.velocityHeading),
+        inward = Math.min(0, vx * nx + vz * nz);
+      if (inward < 0) {
+        const tx = vx - nx * inward,
+          tz = vz - nz * inward;
+        k.velocityHeading =
+          Math.hypot(tx, tz) > 0.001
+            ? Math.atan2(tx, tz)
+            : b.heading + (Math.cos(k.velocityHeading - b.heading) < 0 ? Math.PI : 0);
+      }
+      hit = b;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  if (hit) collideKart(k);
+  return hit;
+}
 
 export function collideKart(k: KartState) {
   if (k.collision <= 0) k.speed *= C.collisionResponse;

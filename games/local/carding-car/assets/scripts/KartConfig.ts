@@ -17,6 +17,8 @@ export const KartConfig = {
   boostAcceleration: 28,
   drag: 0.017,
   collisionResponse: 0.65,
+  collisionHalfWidth: 1.12,
+  collisionHalfLength: 1.65,
   recoverySeconds: 1,
   cameraLag: 6,
   cameraFov: 62,
