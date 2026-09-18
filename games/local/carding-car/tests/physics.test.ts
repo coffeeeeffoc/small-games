@@ -5,6 +5,67 @@ import { createKart, driveKart, collideKart } from '../assets/scripts/KartPhysic
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { createTrack, pointAt } from '../assets/scripts/TrackGenerator.ts';
 
+test('sideways momentum loses speed to tire friction instead of rotating at full speed', () => {
+  const kart = createKart(0, 0, Math.PI / 2);
+  kart.speed = 20;
+  kart.velocityHeading = 0;
+  driveKart(kart, { steer: 0, throttle: 0, brake: false, drift: false }, 1 / 60);
+  assert.ok(kart.speed < 19, 'sideways tire scrub must remove kinetic energy');
+  assert.ok(
+    kart.z > 0 && Math.abs(kart.x) < 1e-8,
+    'friction must not turn side slip into forward drive',
+  );
+  for (let frame = 0; frame < 600; frame++)
+    driveKart(kart, { steer: 0, throttle: 0, brake: false, drift: false }, 1 / 60);
+  assert.equal(kart.speed, 0, 'rolling resistance must bring the kart fully to rest');
+});
+
+test('forward throttle slows backward momentum without rotating it sideways', () => {
+  const kart = createKart(0, 0, Math.PI);
+  kart.speed = 20;
+  kart.velocityHeading = 0;
+  driveKart(kart, { steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+  assert.ok(kart.speed < 20, 'engine force must oppose backward travel');
+  assert.ok(kart.z > 0 && Math.abs(kart.x) < 1e-8);
+  for (let frame = 0; frame < 180; frame++)
+    driveKart(kart, { steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+  assert.ok(Math.cos(kart.velocityHeading) < -0.99, 'after stopping, accelerate toward the nose');
+});
+
+test('coasting stops gradually at different frame rates without gaining energy', () => {
+  for (const dt of [1 / 30, 1 / 60, 1 / 120]) {
+    const kart = createKart(0, 0, 0);
+    kart.speed = 20;
+    for (let time = 0; time < 20; time += dt) {
+      const before = kart.speed;
+      driveKart(kart, { steer: 0, throttle: 0, brake: false, drift: false }, dt);
+      assert.ok(kart.speed <= before);
+      if (time < 1) assert.ok(kart.speed > 10, 'coasting must preserve inertia');
+    }
+    assert.equal(kart.speed, 0);
+  }
+});
+
+test('holding the player brake stops then reverses, and releasing drives forward again', () => {
+  const kart = createKart(0, 0, 0);
+  kart.speed = 20;
+  const input = { steer: 0, throttle: 0, brake: true, reverse: true, drift: false };
+  let stopped = false;
+  for (let frame = 0; frame < 240; frame++) {
+    driveKart(kart, input, 1 / 60);
+    stopped ||= kart.speed < 0.2;
+    if (Math.cos(kart.velocityHeading) < 0) assert.ok(stopped, 'brake before reversing');
+  }
+  assert.ok(kart.speed > 5 && kart.speed < C.reverseMaxSpeed + 2);
+  assert.ok(Math.cos(kart.velocityHeading) < -0.99);
+  const heading = kart.heading;
+  driveKart(kart, { ...input, steer: 1 }, 1 / 60);
+  assert.ok(kart.heading > heading, 'steering yaw reverses when travelling backwards');
+  for (let frame = 0; frame < 180; frame++)
+    driveKart(kart, { steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+  assert.ok(Math.cos(kart.velocityHeading - kart.heading) > 0.99);
+});
+
 test('steering is controllable at low speed and drift entry never kicks toward the wrong side', () => {
   for (const steer of [-1, 1]) {
     const low = createKart(0, 0, 0),

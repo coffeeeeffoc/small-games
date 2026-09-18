@@ -75,7 +75,7 @@ export class HUD {
     this.controls = this.graphics(this.root, 'TouchControls');
     this.label(this.root, '‹          ›', -326, -169, 42, '#fff7dd', 240, 72);
     this.label(this.root, '转向', -326, -225, 14, '#fff6dc', 220, 30);
-    this.label(this.root, '刹车', 194, -171, 18, '#fff7dd', 90, 80);
+    this.label(this.root, '刹车/倒车', 194, -171, 18, '#fff7dd', 90, 80);
     this.label(this.root, '漂移', 365, -165, 27, '#193c54', 140, 90);
     this.box(this.root, 340, -229, 230, 26, '#173c55dd');
     this.label(this.root, '按住过弯 · 松手加速', 340, -229, 14, '#fff6dc', 230, 28);
@@ -109,7 +109,7 @@ export class HUD {
     this.restartButton.active = false;
     this.footer = this.label(
       this.panel,
-      '左手转向 · 右手漂移 / 刹车   |   方向键 / WASD + 空格',
+      '方向键转向 · 空格漂移 · 按住刹车，停稳后倒车',
       0,
       -176,
       14,
@@ -185,7 +185,7 @@ export class HUD {
         this.button.string = '开 跑  →';
         this.standings.string =
           '驾驶小贴士\n提前转向切入弯心\n转弯时按住漂移蓄力\n松手获得出弯加速';
-        this.footer.string = '左手转向 · 右手漂移 / 刹车   |   方向键 / WASD + 空格';
+        this.footer.string = '方向键转向 · 空格漂移 · 按住刹车，停稳后倒车';
       }
       if (r.phase === 'paused') {
         this.title.string = '休息一下';
@@ -230,7 +230,7 @@ export class HUD {
                     : k.drifting
                       ? '保持过弯，火花正在蓄力'
                       : p.s > r.track.shortcutStart - 65 && p.s < r.track.shortcutStart
-                        ? '前方近道：保持直行 · 窄路失误会返回入口'
+                        ? '前方近道：保持直行 · 窄路注意减速'
                         : p.laps === C.laps - 1
                           ? '最后一圈，冲刺！'
                           : '寻找出弯加速的时机'

@@ -3,6 +3,8 @@ export const KartConfig = {
   acceleration: 16,
   maxSpeed: 30,
   brake: 34,
+  reverseAcceleration: 8,
+  reverseMaxSpeed: 8,
   steering: 1.75,
   highSpeedSteering: 0.82,
   grip: 9,
@@ -16,6 +18,7 @@ export const KartConfig = {
   boostSpeed: 1.34,
   boostAcceleration: 28,
   drag: 0.017,
+  rollingResistance: 1.2,
   collisionResponse: 0.65,
   collisionHalfWidth: 1.12,
   collisionHalfLength: 1.65,
@@ -28,6 +31,12 @@ export const KartConfig = {
   laps: 3,
 } as const;
 
-export type KartInput = { steer: number; throttle: number; brake: boolean; drift: boolean };
+export type KartInput = {
+  steer: number;
+  throttle: number;
+  brake: boolean;
+  drift: boolean;
+  reverse?: boolean;
+};
 export const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 export const angleDelta = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));

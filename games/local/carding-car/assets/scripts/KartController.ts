@@ -119,7 +119,7 @@ export class KartController {
       if (t.role === 'drift') drift = true;
       if (t.role === 'brake') brake = true;
     }
-    return { steer, drift, brake, throttle: brake ? 0 : 1 };
+    return { steer, drift, brake, reverse: brake, throttle: brake ? 0 : 1 };
   }
   destroy() {
     input.off(Input.EventType.KEY_DOWN, this.keyDown, this);

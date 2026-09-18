@@ -10,6 +10,62 @@ import { racingTarget } from '../assets/scripts/RacingLine.ts';
 import { advanceCheckpoint, createProgress } from '../assets/scripts/CheckpointSystem.ts';
 import { updateLap } from '../assets/scripts/LapSystem.ts';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
+import { createKart } from '../assets/scripts/KartPhysics.ts';
+import { angleDelta, clamp } from '../assets/scripts/KartConfig.ts';
+
+test('the player can return through either fork branch without automatic recovery', () => {
+  for (const shortcut of [false, true]) {
+    const race = new RaceManager(),
+      d = race.drivers[0];
+    const start = race.track.shortcutStart + 60;
+    const p = pointAt(race.track, start, shortcut);
+    race.phase = 'racing';
+    race.drivers.slice(1).forEach((rival) => {
+      rival.progress.finishedAt = 1;
+    });
+    Object.assign(d.kart, createKart(p.x, p.z, p.heading + Math.PI));
+    d.kart.speed = 10;
+    d.progress.s = d.progress.distance = start;
+    for (let frame = 0; frame < 900 && d.progress.s > race.track.shortcutStart - 20; frame++) {
+      const road = projectOnTrack(race.track, d.kart.x, d.kart.z);
+      const ratio =
+        shortcut && road.s > race.track.shortcutStart
+          ? (race.track.shortcutEnd - race.track.shortcutStart) / race.track.shortcutLength
+          : 1;
+      const target = pointAt(race.track, road.s - 8 * ratio, shortcut);
+      const error = angleDelta(
+        Math.atan2(target.x - d.kart.x, target.z - d.kart.z),
+        d.kart.heading,
+      );
+      race.step(
+        { steer: clamp(-error * 2.7, -1, 1), throttle: 0.25, brake: false, drift: false },
+        1 / 60,
+      );
+      assert.equal(race.resets, 0);
+    }
+    assert.ok(
+      d.progress.s <= race.track.shortcutStart - 20,
+      `${shortcut ? 'shortcut' : 'left main'} return must remain drivable`,
+    );
+    assert.equal(d.progress.laps, 0);
+  }
+});
+
+test('turning onto the left fork remains on asphalt even when branch progress differs', () => {
+  const race = new RaceManager(),
+    d = race.drivers[0];
+  race.phase = 'racing';
+  race.drivers.slice(1).forEach((rival) => {
+    rival.progress.finishedAt = 1;
+  });
+  const p = pointAt(race.track, race.track.shortcutStart + 20);
+  Object.assign(d.kart, createKart(p.x, p.z, p.heading));
+  d.progress.s = d.progress.distance = race.track.shortcutStart + 40;
+  for (let frame = 0; frame < 120; frame++)
+    race.step({ steer: 0, throttle: 0, brake: false, drift: false }, 1 / 60);
+  assert.equal(d.kart.offRoad, 0, 'physical asphalt contact cannot depend on race progress');
+  assert.equal(race.resets, 0);
+});
 
 test('shortcut lookahead measures travelled metres through the fork, merge and lap boundary', () => {
   const track = createTrack();

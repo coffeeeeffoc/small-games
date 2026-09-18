@@ -78,6 +78,11 @@ export class KartGame extends Component {
             leaderboard: this.hud.leaderboard.string,
           },
           player: { ...this.race.drivers[0].kart },
+          camera: {
+            heading: this.camera.heading,
+            x: this.camera.node.position.x,
+            z: this.camera.node.position.z,
+          },
           progress: { ...this.race.drivers[0].progress },
           input: this.controller.read(),
           suggestedInput: aiInput(

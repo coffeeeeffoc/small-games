@@ -109,3 +109,29 @@ test('glancing contact keeps forward motion while sliding clear of either rail',
     assert.ok(kart.speed > 20);
   }
 });
+
+test('a head-on wall impact cannot turn impact speed into motion along the rail', () => {
+  const wall: Barrier = {
+    x: 8.4,
+    z: 0,
+    y: 0,
+    heading: 0,
+    inwardX: -1,
+    inwardZ: 0,
+    halfWidth: 0.275,
+    halfLength: 80,
+    branch: 'main',
+  };
+  const kart = createKart(7.1, 0, Math.PI / 2);
+  kart.speed = 30;
+  assert.ok(resolveKartBarriers(kart, [wall]));
+  assert.ok(kart.speed < 1e-8, 'wall must remove the normal velocity');
+  for (let frame = 0; frame < 120; frame++) {
+    driveKart(kart, { steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+    resolveKartBarriers(kart, [wall]);
+  }
+  assert.ok(
+    Math.abs(kart.z) < 1e-8,
+    'holding throttle into a wall cannot launch the kart along it',
+  );
+});
