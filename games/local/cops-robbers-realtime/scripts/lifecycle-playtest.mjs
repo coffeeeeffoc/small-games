@@ -55,6 +55,9 @@ try {
   await page.reload();
   await page.waitForSelector('body[data-phase="ready"]');
   assert.equal((await snapshot()).level, 1);
+  await page.locator("#levels-button").tap();
+  assert.equal(await page.locator(".level-map").count(), 6);
+  await page.locator("#levels-dialog [data-close]").tap();
   checks.push("Corrupt storage recovers to a playable first level");
   await page.locator("#sound-button").tap();
   await page.reload();
@@ -131,7 +134,7 @@ try {
   );
 
   // This legacy-save fixture unlocks map 48; it does not claim browser wins on maps 1-47.
-  // The new escape rules have no recorded victories until the touch-driven final-map win below.
+  // The new street maps have no recorded victories until the touch-driven final-map win below.
   await page.evaluate(() =>
     localStorage.setItem(
       "neighborhood-patrol-v1",
@@ -140,7 +143,7 @@ try {
         best: Object.fromEntries(
           Array.from({ length: 47 }, (_, i) => [i + 1, 100]),
         ),
-        escapeBest: {},
+        streetBest: {},
       }),
     ),
   );
@@ -152,12 +155,12 @@ try {
   assert.deepEqual(
     await page.evaluate(
       () =>
-        JSON.parse(localStorage.getItem("neighborhood-patrol-v1")).escapeBest,
+        JSON.parse(localStorage.getItem("neighborhood-patrol-v1")).streetBest,
     ),
     {},
   );
   checks.push(
-    "Legacy campaign progress unlocks map 48 without inventing escape-rule best times",
+    "Legacy campaign progress unlocks map 48 without inventing new street-map best times",
   );
   await context.setOffline(true);
   for (const button of await page.locator(".cop-card").all()) {
@@ -228,7 +231,7 @@ try {
   assert.equal(
     end.phase,
     "won",
-    "five cops can catch all six robbers with touch orders",
+    "four guards and one pursuer can catch all six robbers with touch orders",
   );
   assert.equal(end.robbers.filter((r) => r.caught).length, 6);
   assert.equal(
@@ -248,13 +251,13 @@ try {
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("neighborhood-patrol-v1")),
   );
-  assert.deepEqual(Object.keys(saved.escapeBest), ["48"]);
+  assert.deepEqual(Object.keys(saved.streetBest), ["48"]);
   assert.ok(
-    saved.escapeBest[48] > 0 &&
-      Math.abs(saved.escapeBest[48] - end.time) < 0.01,
+    saved.streetBest[48] > 0 &&
+      Math.abs(saved.streetBest[48] - end.time) < 0.01,
   );
   checks.push(
-    "Only the real map-48 victory is saved under the new escape rules",
+    "Only the real map-48 victory is saved under the new street maps",
   );
   const median = samples.sort((a, b) => a - b)[Math.floor(samples.length / 2)];
   assert.ok(median > 30, "late-game median frame rate exceeds 30 FPS");

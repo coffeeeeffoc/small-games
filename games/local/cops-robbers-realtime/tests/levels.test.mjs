@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { CHAPTERS, LEVELS } from "../src/levels.js";
 import { createGame } from "../src/engine.js";
+import { roadShape } from "../scripts/road-shape.mjs";
 
 assert.equal(CHAPTERS.length, 8);
 assert.equal(LEVELS.length, 48);
@@ -14,9 +15,17 @@ for (const [i, level] of LEVELS.entries()) {
     level.hint.length > 10 && level.briefing && level.par > 0,
     fail("missing briefing"),
   );
-  assert.ok(cops.length >= 1 && cops.length <= 5, fail("police count"));
+  assert.ok(cops.length >= 3 && cops.length <= 5, fail("police count"));
   assert.ok(robbers.length >= 1 && robbers.length <= 6, fail("robber count"));
-  assert.ok(exits.length >= 1 && exits.length <= 3, fail("escape exit count"));
+  assert.equal(
+    exits.length,
+    cops.length - 1,
+    fail("each guard needs a separate exit"),
+  );
+  assert.ok(
+    edges.length - nodes.length + 1 >= 2,
+    fail("at least two independent loops"),
+  );
   assert.equal(new Set(exits).size, exits.length, fail("duplicate exit"));
   assert.ok(
     exits.every((n) => Number.isInteger(n) && nodes[n]),
@@ -120,15 +129,20 @@ for (const [i, level] of LEVELS.entries()) {
     fail("police start guarding an exit"),
   );
   assert.ok(
-    exits.every((exit) => adjacency[exit].length === 1 || id <= 2),
+    exits.every((exit) => adjacency[exit].length === 1),
     fail("escape exits need an actual terminal alley"),
   );
-  const fingerprint = JSON.stringify([nodes, edges, cops, robbers, exits]);
-  assert.ok(!fingerprints.has(fingerprint), fail("reused level"));
+  const fingerprint = roadShape(level);
+  assert.ok(
+    !fingerprints.has(fingerprint),
+    fail("reused junction graph, including mirrored or subdivided copies"),
+  );
   fingerprints.add(fingerprint);
   // A permanent guard on each listed junction must cut every cycle. This is
   // only a structural check; scripts/verify-levels.mjs also drives the engine.
-  const blocked = new Set(level.solution.map((command) => command.node));
+  const finalGuards = level.solution.map((command) => command.node);
+  for (const order of level.redeploy ?? []) finalGuards[order.cop] = order.node;
+  const blocked = new Set(finalGuards);
   assert.ok(blocked.size < cops.length, fail("no free pursuit officer"));
   const visited = new Set();
   function visit(n, parent) {
@@ -143,11 +157,35 @@ for (const [i, level] of LEVELS.entries()) {
 assert.deepEqual(
   LEVELS.slice(0, 3).map((l) => [l.cops.length, l.robbers.length]),
   [
-    [2, 1],
-    [2, 1],
-    [2, 1],
+    [3, 1],
+    [3, 2],
+    [3, 2],
   ],
 );
 console.log(
-  "48 handcrafted levels: roads, distinct escape alleys, unguarded exits, spawns and guard strategies passed.",
+  "48 distinct junction graphs: no mirrored or stretched templates; roads, escapes and final blockade checked.",
+);
+assert.equal(
+  roadShape(LEVELS[0]),
+  roadShape({
+    ...LEVELS[0],
+    nodes: LEVELS[0].nodes.map((n) => ({ ...n, x: 1000 - n.x })),
+  }),
+);
+const first = LEVELS[0],
+  [a, b] = first.edges[0],
+  midpoint = first.nodes.length;
+assert.equal(
+  roadShape(first),
+  roadShape({
+    ...first,
+    nodes: [
+      ...first.nodes,
+      {
+        x: (first.nodes[a].x + first.nodes[b].x) / 2,
+        y: (first.nodes[a].y + first.nodes[b].y) / 2,
+      },
+    ],
+    edges: [[a, midpoint], [midpoint, b], ...first.edges.slice(1)],
+  }),
 );
