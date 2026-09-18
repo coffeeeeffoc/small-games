@@ -16,21 +16,76 @@ jobs:
         with:
           node-version: 24.12.0
           cache: pnpm
+      - name: Hash kart sources and runtime art
+        id: source
+        run: |
+          $hash = node --input-type=module -e "import { sourceHash } from './games/local/carding-car/scripts/artifact.mjs'; console.log(await sourceHash());"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "hash=$hash" >> $env:GITHUB_OUTPUT
+          "engine-cache=$([System.IO.Path]::GetTempPath())CocosCreator/3.8.8/builder/engine" >> $env:GITHUB_OUTPUT
+      - name: Restore matching kart artifact
+        id: artifact
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            games/local/carding-car/dist
+            games/local/carding-car/cc.d.ts
+          key: kart-web-v1-${{ runner.os }}-${{ steps.source.outputs.hash }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:games
       - uses: actions/cache@v5
+        if: steps.artifact.outputs.cache-hit != 'true'
         with:
           path: ~/.cache/cocos/3.8.8
           key: cocos-creator-3.8.8-win-121518
+      - name: Restore Creator import and engine caches
+        if: steps.artifact.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: |
+            games/local/carding-car/library
+            games/local/carding-car/temp/asset-db
+            games/local/carding-car/temp/programming
+            ${{ steps.source.outputs.engine-cache }}
+          key: kart-import-3.8.8-v1-${{ runner.os }}-${{ steps.source.outputs.hash }}
+          restore-keys: |
+            kart-import-3.8.8-v1-${{ runner.os }}-
       - run: pnpm --filter @coffeeeeffoc/carding-car run setup
+        if: steps.artifact.outputs.cache-hit != 'true'
       - run: pnpm --filter @coffeeeeffoc/carding-car typecheck
+        env:
+          KART_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/carding-car', github.workspace) || '' }}
       - run: pnpm --filter @coffeeeeffoc/carding-car test
       - run: pnpm --filter @coffeeeeffoc/carding-car build
+        if: steps.artifact.outputs.cache-hit != 'true'
+        timeout-minutes: 18
       - name: Include engine types for Linux and macOS checks
+        if: steps.artifact.outputs.cache-hit != 'true'
         run: Copy-Item -LiteralPath "$env:USERPROFILE/.cache/cocos/3.8.8/resources/resources/3d/engine/bin/.declarations/cc.d.ts" -Destination games/local/carding-car/cc.d.ts
+      - name: Verify artifact matches current sources
+        run: node --input-type=module -e "import { verifyPrebuilt } from './games/local/carding-car/scripts/artifact.mjs'; await verifyPrebuilt('games/local/carding-car');"
+      - name: Save verified kart artifact
+        if: steps.artifact.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            games/local/carding-car/dist
+            games/local/carding-car/cc.d.ts
+          key: ${{ steps.artifact.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: carding-car-${{ github.sha }}
           path: |
             games/local/carding-car/dist
             games/local/carding-car/cc.d.ts
+          if-no-files-found: error
+      - name: Upload Creator build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carding-car-logs-${{ github.run_attempt }}
+          path: |
+            games/local/carding-car/reports/build-*.log
+            games/local/carding-car/temp/logs
+            games/local/carding-car/temp/builder/log
+          if-no-files-found: ignore
