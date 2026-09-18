@@ -5,7 +5,7 @@ import { setSound, unlockSound, playSound } from './sound.js';
 
 const $ = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
-const storageKey = 'cops-robbers-v2';
+const storageKey = 'cops-robbers-v3';
 const query = new URLSearchParams(location.search);
 const copy = value => structuredClone(value);
 const icons = {
@@ -27,7 +27,7 @@ function validState(candidate, map) {
 }
 let saved = {};
 try { const raw = JSON.parse(localStorage.getItem(storageKey) || '{}'); if (raw && typeof raw === 'object' && !Array.isArray(raw)) saved = raw; } catch { /* A damaged save starts a fresh patrol. */ }
-if (!saved.settings) { try { saved.settings = JSON.parse(localStorage.getItem('cops-robbers-v1') || '{}')?.settings; } catch { /* Keep the old save intact. */ } }
+if (!saved.settings) { try { saved.settings = JSON.parse(localStorage.getItem('cops-robbers-v2') || localStorage.getItem('cops-robbers-v1') || '{}')?.settings; } catch { /* Keep the old save intact. */ } }
 const completed = {};
 for (const map of levels) {
   const record = saved.completed?.[map.id];
@@ -42,7 +42,7 @@ const outcome = current => current.robbers.includes(-2) ? 'lost' : current.robbe
 
 function persist() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify({ version: 2, completed, current: { levelId: level.id, state, history: history.slice(-100) }, settings: { sound: soundOn, reduced } }));
+    localStorage.setItem(storageKey, JSON.stringify({ version: 3, completed, current: { levelId: level.id, state, history: history.slice(-100) }, settings: { sound: soundOn, reduced } }));
     $('save-indicator').textContent = '进度自动保存';
   } catch { $('save-indicator').textContent = '当前浏览器无法保存'; }
 }
@@ -95,7 +95,7 @@ function drawBase() {
     const x = horizontal ? (p.x + end.x) / 2 : p.x, y = horizontal ? p.y - 21 : (p.y + end.y) / 2;
     return `<g id="escape-${node}" class="escape-gate" data-testid="exit-${node}" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${p.x} ${p.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${p.x} ${p.y}L${end.x} ${end.y}" marker-end="url(#escape-arrow)"/><circle cx="${p.x}" cy="${p.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
   }).join('');
-  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="18"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="25"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 33})"><circle r="46" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
+  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="18"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="25"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle r="46" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
   $('board').innerHTML = `<title>${level.name}：${level.cops.length}名警察，${level.robbers.length}名小偷，${level.exits.length}个逃生出口</title><defs><marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
   $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号警察" aria-pressed="false" data-cop="${i}">${i + 1}</button>`).join('');
 }
@@ -123,7 +123,7 @@ function updateActors(view = state, moving = '', catches = []) {
       if (kind === 'cop') actor.setAttribute('aria-pressed', String(selected === i));
       actor.setAttribute('class', `actor ${kind} ${mood === 'run' ? 'running' : mood}`);
       actor.style.transform = `translate(${point.x + offset}px, ${point.y + 12}px)`;
-      actor.innerHTML = `<rect x="-46" y="-82" width="92" height="94" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="23" ry="8" fill="#3f584c" opacity=".12"/><ellipse class="selection-ring" cx="0" cy="-1" rx="29" ry="12"/><g transform="scale(.86)"><g class="figure">${character(kind, mood, i)}</g></g>${kind === 'cop' ? `<circle cx="22" cy="-51" r="11" fill="#fdf9eb" stroke="#bfd2c0" stroke-width="1.5"/><text x="22" y="-46" text-anchor="middle" font-size="14" fill="#177c91" font-weight="bold">${i + 1}</text>` : ''}${mood === 'caught' ? '<text class="capture-label" y="-82">抓到啦！</text>' : ''}`;
+      actor.innerHTML = `<rect x="-30" y="-70" width="60" height="82" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="23" ry="8" fill="#3f584c" opacity=".12"/><ellipse class="selection-ring" cx="0" cy="-1" rx="29" ry="12"/><g transform="scale(.86)"><g class="figure">${character(kind, mood, i)}</g></g>${kind === 'cop' ? `<circle cx="22" cy="-51" r="11" fill="#fdf9eb" stroke="#bfd2c0" stroke-width="1.5"/><text x="22" y="-46" text-anchor="middle" font-size="14" fill="#177c91" font-weight="bold">${i + 1}</text>` : ''}${mood === 'caught' ? '<text class="capture-label" y="-82">抓到啦！</text>' : ''}`;
       if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="20" cy="-66" r="12" fill="#c76649"/><text class="group-count" x="20" y="-61">×${same.length}</text>`;
     });
   }
@@ -182,8 +182,8 @@ function loadLevel(id, restore = null) {
   $('mission-name').textContent = level.name; $('mission-tip').textContent = level.tip;
   $('case-number').textContent = `CASE ${String(level.id).padStart(3, '0')}`;
   $('cop-count').textContent = level.cops.length; $('robber-count').textContent = level.robbers.length;
-  $('reference-turns').textContent = `参考 ${level.par} 步 · 先拦出口，再包抄`;
-  $('board-caption').textContent = `${chapters[level.chapter].name} · ${['先封出口，再向前走', '留下一个人，守住关键路口', '从两边出发，慢慢收紧包围', '守住窄桥，让队友去包抄', '小队配合，全城出动'][level.chapter]}`;
+  $('reference-turns').textContent = `参考 ${level.par} 步 · ${level.cops.length} 人缺一不可`;
+  $('board-caption').textContent = `${chapters[level.chapter].name} · 守口、换防、两侧包抄`;
   drawBase(); notify(level.id <= 3 && state.turn === 0 ? level.tip : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。');
   updatePlanning(); syncSettings(); persist();
   if (phase === 'won') { updateActors(); showWin(false); }
@@ -204,7 +204,8 @@ function planTarget(node) {
 function inspectRobber(index) {
   if (phase !== 'planning' || state.robbers[index] < 0) return;
   inspected = index; hovered = -1;
-  notify(`${index + 1} 号小偷会寻找出口逃跑。橙色箭头只显示下一步方向。`); updatePlanning();
+  const exits = level.adj[state.robbers[index]], blocked = exits.filter(node => state.cops.includes(node)).length;
+  notify(`${index + 1} 号小偷：已封 ${blocked}/${exits.length} 条退路。包抄时别让守出口的队友离岗。`); updatePlanning();
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, reduced ? 15 : ms));
 async function execute(plan) {

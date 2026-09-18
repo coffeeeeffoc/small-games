@@ -92,7 +92,7 @@ try {
   const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 } }), page = await desktop.newPage();
   observe(page);
   await load(page, 1, false); await win(page, 1);
-  assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v2')), '胜利后应保存新版本地记录');
+  assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v3')), '胜利后应保存新版本地记录');
   await page.getByTestId('next-level').click();
   await page.waitForFunction(() => document.body.dataset.level === '2' && document.body.dataset.phase === 'planning');
   report.checks.push('首关正常动画、点击立即行动、小偷自动响应、胜利和下一关');

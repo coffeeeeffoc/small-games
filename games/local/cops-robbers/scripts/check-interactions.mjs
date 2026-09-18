@@ -161,7 +161,7 @@ try {
     await page.getByTestId('defeat').waitFor({ state: 'visible' });
     assert.equal(await page.getByTestId('victory').isVisible(), false, 'Escaped robbers are not captured robbers');
     await page.screenshot({ path: resolve(output, 'escape-defeat.png'), fullPage: true });
-    const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v2')));
+    const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')));
     assert.equal(save.completed?.[losing.id], undefined, 'Defeat must not save a completion');
     await page.getByTestId('undo-loss').click();
     assert.deepEqual(await snapshot(page, losing.id), expectedView(before));
@@ -187,7 +187,8 @@ try {
       assert.deepEqual(await snapshot(page, 1), before);
     }
     assert.equal(await page.locator('.hint-circle').count(), 1);
-    await page.getByTestId(`node-${solutions[1][0][0]}`).click();
+    const cop = movedCop(initialState(levels[0]), solutions[1][0]);
+    await page.getByTestId(`node-${solutions[1][0][cop]}`).click();
     await finished(page, 1);
     assert.deepEqual(await snapshot(page, 1), expectedView(step(levels[0], initialState(levels[0]), solutions[1][0]).state));
   });
@@ -197,20 +198,22 @@ try {
       await new Promise(resolve => setTimeout(resolve, 900));
       await route.continue().catch(() => {}); // Selecting an officer may cancel the request while it is held.
     });
-    const map = levels[5], before = initialState(map), targets = [1, 4];
-    assert.deepEqual(before.cops, [1, 6], 'Race scenario requires the two officers on the sixth map');
+    const map = levels[5], before = initialState(map), suggested = movedCop(before, solutions[6][0]);
+    const targets = legalPlans(map, before).find(plan => plan.some((node, i) => i !== suggested && node !== before.cops[i]) && !step(map, before, plan).escaped.length);
+    assert.ok(targets, 'Race scenario needs a legal move by a different officer');
+    const cop = movedCop(before, targets);
     await load(page, 6); await page.getByTestId('hint').click();
-    await page.getByTestId('cop-1').click(); await page.waitForTimeout(1300);
-    assert.equal(await page.getByTestId('cop-1').getAttribute('aria-pressed'), 'true');
+    await page.getByTestId(`cop-${cop}`).click(); await page.waitForTimeout(1300);
+    assert.equal(await page.getByTestId(`cop-${cop}`).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.locator('.hint-circle').count(), 0);
     assert.deepEqual(await snapshot(page, 6), expectedView(before), 'Manual selection must not consume a move');
 
     await load(page, 6); await page.getByTestId('hint').click();
-    const destination = map.nodes[4];
-    await drag(page, 1, await point(page, destination.x, destination.y), false, 1300);
+    const destination = map.nodes[targets[cop]];
+    await drag(page, cop, await point(page, destination.x, destination.y), false, 1300);
     await finished(page, 1);
-    assert.deepEqual(await snapshot(page, 6), expectedView(step(map, before, targets).state), 'The held drag must move officer 2, never officer 1');
-    return { intendedCops: targets, previousIncorrectCops: [4, 6], delayedWorkerMs: 900, heldDragMs: 1300 };
+    assert.deepEqual(await snapshot(page, 6), expectedView(step(map, before, targets).state), 'The held drag must move the manually selected officer');
+    return { intendedCops: targets, suggestedOfficer: suggested, selectedOfficer: cop, delayedWorkerMs: 900, heldDragMs: 1300 };
   });
 
   await check('rapid double click consumes exactly one move during animation', async page => {
@@ -256,9 +259,11 @@ try {
     assert.equal(await page.locator('body').getAttribute('data-level'), '1');
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
     assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*60$/);
+    assert.equal(await page.getByTestId('sound').getAttribute('aria-pressed'), 'false', 'old sound preferences survive the map revision');
+    assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v2')), 'the old save remains intact');
     await page.getByTestId('level-select').click();
     assert.equal(await page.getByTestId('level-button-1').getAttribute('data-completed'), 'false');
-  }, { init: () => localStorage.setItem('cops-robbers-v1', JSON.stringify({ version: 1,
+  }, { init: () => localStorage.setItem('cops-robbers-v2', JSON.stringify({ version: 2,
     completed: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [i + 1, { turns: 1, stars: 3 }])),
     current: { levelId: 1, state: { cops: [1], robbers: [-1], turn: 1 }, history: [] }, settings: { sound: false } })) });
 
@@ -266,7 +271,7 @@ try {
     await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning');
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
     await replay(page, 1, solutions[1]);
-  }, { init: () => localStorage.setItem('cops-robbers-v2', '{broken-save') });
+  }, { init: () => localStorage.setItem('cops-robbers-v3', '{broken-save') });
   await check('storage denial keeps capture, defeat and replay available', async page => {
     await load(page, 1); assert.match(await page.locator('#save-indicator').textContent(), /无法保存/);
     await replay(page, 1, solutions[1]); assert.equal(await page.getByTestId('victory').isVisible(), true);
@@ -326,8 +331,8 @@ try {
     await page.locator('#settings').click(); await page.locator('#motion-setting').check();
     assert.equal(await page.locator('body').evaluate(body => body.classList.contains('reduced')), true);
     await page.locator('#motion-setting').uncheck();
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v2')).settings.reduced), false);
-  }, { reducedMotion: 'reduce', init: () => localStorage.setItem('cops-robbers-v2', JSON.stringify({ version: 2, settings: { reduced: false } })) });
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).settings.reduced), false);
+  }, { reducedMotion: 'reduce', init: () => localStorage.setItem('cops-robbers-v3', JSON.stringify({ version: 3, settings: { reduced: false } })) });
 
   report.passed = report.checks.every(check => check.passed);
   if (!report.passed) process.exitCode = 1;
