@@ -61,6 +61,8 @@ pnpm check:games
 
 Rodin 资产和处理方式见 `art-source/README.md`。实测与剩余验收边界见 `playtest.md`。
 
+扩展素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)：7 个场景、10 种车型、10 种车手、12 种道具。效果图、GLB、贴图及制作脚本不再重复保存在游戏目录；该批静态源素材尚未接入玩法。
+
 当前场景使用独立子模块 `assets/carding-car/runtime` 的橙白赛车、棕榈树、阔叶树、礁石、灯塔和沥青贴图。先执行 `git submodule update --init --recursive assets`；三端构建自动同步运行文件到忽略目录 `assets/resources/seaside`，只提交稳定的 Creator `.meta`，无需重复提交模型或安装 Python。源文件哈希包含素材子模块中的运行文件，因此更换素材后必须重新构建。
 
 微信与 B站通过 Creator 的 `seaside-art` 配置将 `resources` 导出为本地小游戏分包；启动时由引擎预加载。构建会检查分包存在、主包不超过 4 MiB、总包不超过 20 MiB。Web 仍使用本地资源目录，不需要素材 CDN。
