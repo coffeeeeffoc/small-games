@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
+import { createTrack } from '../assets/scripts/TrackGenerator.ts';
+import { barrierOverlap } from '../assets/scripts/KartPhysics.ts';
+const track = createTrack();
 const executablePath =
   process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
   (existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')
@@ -150,10 +153,26 @@ try {
   let lap = 0,
     airborne = false,
     lastLog = 0;
+  const forks = new Set();
   while (Date.now() < deadline) {
     const s = await snapshot(mobile);
     if (s.phase === 'finished') break;
     assert.equal(s.phase, 'racing');
+    assert.ok(
+      track.barriers.every((wall) => (barrierOverlap(s.player, wall)?.depth ?? 0) < 0.01),
+      'car body must stay outside visible rails',
+    );
+    for (const [name, distance] of [
+      ['entry', track.shortcutStart],
+      ['exit', track.shortcutEnd],
+    ]) {
+      if (!forks.has(name) && s.progress.laps === 0 && Math.abs(s.progress.s - distance) < 10) {
+        forks.add(name);
+        await mobile.screenshot({
+          path: new URL(`fork-${name}.png`, reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
+        });
+      }
+    }
     airborne ||= s.player.airborne;
     fps.push(s.fps);
     if (s.time > lastLog + 15) {

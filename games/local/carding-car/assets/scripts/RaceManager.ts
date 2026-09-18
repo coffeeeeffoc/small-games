@@ -1,5 +1,5 @@
 import { KartConfig as C, angleDelta, type KartInput } from './KartConfig.ts';
-import { createKart, driveKart, collideKart } from './KartPhysics.ts';
+import { createKart, driveKart, resolveKartBarriers } from './KartPhysics.ts';
 import { createTrack, pointAt, projectOnTrack, wrapDistance } from './TrackGenerator.ts';
 import { createProgress, advanceCheckpoint } from './CheckpointSystem.ts';
 import { updateLap } from './LapSystem.ts';
@@ -114,26 +114,18 @@ export class RaceManager {
       const controls = i === 0 ? input : aiInput(k, this.track, d.shortcut, d.progress.s);
       const oldRoad = projectOnTrack(this.track, k.x, k.z, d.progress.s);
       driveKart(k, controls, dt);
+      const hit = resolveKartBarriers(k, this.track.barriers);
       const road = projectOnTrack(this.track, k.x, k.z, d.progress.s);
       k.offRoad = Math.max(0, road.distance - road.width / 2 + 0.4);
       if (k.offRoad > 0) k.speed *= Math.exp(-1.2 * dt);
       const wall = road.width / 2 + 1.2;
-      if (road.distance > wall && road.distance < wall + 6) {
-        const side = Math.sign(road.lateral);
-        k.x = road.x + Math.cos(road.heading) * side * (wall - 0.1);
-        k.z = road.z - Math.sin(road.heading) * side * (wall - 0.1);
-        collideKart(k);
-        if (
-          road.branch === 'shortcut' &&
-          road.s > this.track.shortcutStart + 18 &&
-          road.s < this.track.shortcutEnd - 18
-        ) {
-          d.shortcutFailure = C.recoverySeconds;
-          k.speed = 0;
-        }
-        const forward = Math.abs(angleDelta(road.heading, k.velocityHeading)) < Math.PI / 2;
-        k.velocityHeading = road.heading + (forward ? 0 : Math.PI);
-        k.heading += angleDelta(k.velocityHeading, k.heading) * 0.15;
+      if (
+        hit?.branch === 'shortcut' &&
+        road.s > this.track.shortcutStart + 18 &&
+        road.s < this.track.shortcutEnd - 18
+      ) {
+        d.shortcutFailure = C.recoverySeconds;
+        k.speed = 0;
       }
       if (!k.airborne && oldRoad.y - road.y > 0.018 && k.speed > 22 && oldRoad.y > 1.6) {
         k.airborne = true;

@@ -1,4 +1,5 @@
 import { clamp } from './KartConfig.ts';
+import { createBarriers } from './TrackBarriers.ts';
 export type TrackPoint = { x: number; z: number; y: number; s: number };
 const controls = [
   [0, -145],
@@ -60,13 +61,16 @@ export function createTrack() {
     if (i) shortcutLength += Math.hypot(x - shortcut[i - 1].x, z - shortcut[i - 1].z);
     shortcut.push({ x, z, y: 0, s: start.s + (end.s - start.s) * t });
   }
+  const width = 14,
+    shortcutWidth = 5.4;
   return {
     main,
     shortcut,
+    barriers: createBarriers(main, shortcut, width, shortcutWidth),
     checkpoints: [2, 4, 6, 8, 14, 16, 18, 20].map((i) => main[i * 20].s),
     length: main[main.length - 1].s,
-    width: 14,
-    shortcutWidth: 5.4,
+    width,
+    shortcutWidth,
     shortcutStart: start.s,
     shortcutEnd: end.s,
     shortcutLength,

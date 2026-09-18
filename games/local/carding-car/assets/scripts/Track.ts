@@ -37,29 +37,19 @@ export function buildTrack(parent: Node, track: TrackData) {
     for (const side of [-1, 1]) {
       b.add(P.white, ribbon(points, (side * width) / 2 - 0.14, (side * width) / 2 + 0.14, 0.025));
     }
-    for (let i = 0; i < points.length - 1; i += 2) {
-      const a = points[i],
-        end = points[Math.min(i + 2, points.length - 1)];
-      if (Math.abs(a.s - track.shortcutStart) < 14 || Math.abs(a.s - track.shortcutEnd) < 14)
-        continue;
-      const yaw = Math.atan2(end.x - a.x, end.z - a.z),
-        len = Math.hypot(end.x - a.x, end.z - a.z);
-      for (const side of [-1, 1]) {
-        const offset = side * (width / 2 + 1.4);
-        // Barrier visuals follow the analytic road boundary; no mesh collider is constructed.
-        b.box(
-          i % 4 ? P.white : P.red,
-          (a.x + end.x) / 2 + Math.cos(yaw) * offset,
-          (a.y + end.y) / 2 + 0.38,
-          (a.z + end.z) / 2 - Math.sin(yaw) * offset,
-          0.55,
-          0.75,
-          len * 0.93,
-          yaw,
-        );
-      }
-    }
   }
+  track.barriers.forEach((wall, i) =>
+    b.box(
+      i % 4 < 2 ? P.white : P.red,
+      wall.x,
+      wall.y + 0.375,
+      wall.z,
+      wall.halfWidth * 2,
+      0.75,
+      wall.halfLength * 2,
+      wall.heading,
+    ),
+  );
   // Checkered finish line and a toy gantry, clearly visible from the starting grid.
   const start = pointAt(track, 0),
     h = start.heading;
