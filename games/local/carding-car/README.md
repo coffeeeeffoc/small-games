@@ -15,7 +15,9 @@ pnpm --filter @coffeeeeffoc/carding-car dev
 
 打开 <http://localhost:4198>。手机连接同一局域网，使用电脑的局域网 IP 和端口 4198。`setup` 在 Windows 下载并校验官方 Creator；已有安装可设置 `COCOS_CREATOR` 指向可执行文件。首次构建会编译引擎，需要数分钟。
 
-手机：横屏，自动加速；左侧滑动转向，右侧按住漂移或刹车。按住刹车先减速，停稳后继续按住即可倒车，松开后恢复向车头方向加速。过弯时蓄力，松开漂移释放加速。键盘：Enter 开始/继续，A/D 或左右键转向，空格/左 Shift 漂移，S/下键刹车及倒车，P/Esc 暂停，M 声音，暂停或完赛后 R 重赛。允许掉头逆行，停车、逆行和近道碰墙不会自动复位；镜头平滑跟随车头。
+手机：横屏，自动加速；左侧滑动转向，右侧按住漂移或刹车，点击右侧氮气按钮加速。按住刹车先减速，停稳后继续按住即可倒车，松开后恢复向车头方向加速。过弯时蓄力，松开漂移释放加速。电脑端按住前进键加速，松开后滑行减速。键盘：Enter 开始/继续，W/上键前进，A/D 或左右键转向，空格漂移，左/右 Shift 氮气加速，S/下键刹车及倒车，P/Esc 暂停，M 声音，暂停或完赛后 R 重赛。允许掉头逆行，停车、逆行和近道碰墙不会自动复位；镜头平滑跟随车头。
+
+氮气每次加速 1.5 秒，冷却 6 秒；按一次触发，长按不会连续消耗。按钮显示剩余冷却时间，冲刺带尾焰、镜头拉伸及音效。首次按键或触摸后启动声音，可用 M 或右上角声音按钮静音。
 
 比赛中常驻显示总用时、本圈用时和最快圈；结算显示四车名次，并保留本机最快五次完赛成绩。旧版本最佳总用时会自动迁入本机榜单。暂停可直接重新开跑；暂停、切后台和触控取消会清空操作及未释放的漂移蓄力。
 
@@ -46,6 +48,7 @@ pnpm --filter @coffeeeeffoc/carding-car test:browser
 node games/local/carding-car/tests/steering.mjs
 node games/local/carding-car/tests/walls.mjs
 node games/local/carding-car/tests/reverse.mjs
+node games/local/carding-car/tests/audio-nitro.mjs
 pnpm check:games
 ```
 

@@ -15,13 +15,19 @@ try {
         viewport: { width: 960, height: 540 },
         hasTouch: touch,
         isMobile: touch,
+        userAgent: touch
+          ? 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'
+          : undefined,
       });
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(process.env.KART_URL || 'http://127.0.0.1:4198');
       await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
       const cdp = touch ? await page.context().newCDPSession(page) : null;
       if (touch) await page.touchscreen.tap(480, 395);
-      else await page.keyboard.press('Enter');
+      else {
+        await page.keyboard.press('Enter');
+        await page.keyboard.down('ArrowUp');
+      }
       await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
       // Let the starting pack pull away through real braking, so kart-to-kart separation
       // cannot be mistaken for an opposite steering force during the first 0.2 seconds.

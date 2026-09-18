@@ -12,6 +12,8 @@ export function createKart(x: number, z: number, heading: number) {
     verticalSpeed: 0,
     charge: 0,
     boost: 0,
+    nitroCooldown: 0,
+    nitroHeld: false,
     drifting: false,
     driftSide: 0,
     tier: 0,
@@ -107,6 +109,12 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
   const wasDrifting = k.drifting;
   k.boost = Math.max(0, k.boost - dt);
   k.collision = Math.max(0, k.collision - dt);
+  k.nitroCooldown = Math.max(0, k.nitroCooldown - dt);
+  if (input.nitro && !k.nitroHeld && k.nitroCooldown === 0 && !input.brake && k.collision === 0) {
+    k.boost = Math.max(k.boost, C.nitroDuration);
+    k.nitroCooldown = C.nitroCooldown;
+  }
+  k.nitroHeld = !!input.nitro;
   k.drifting =
     input.drift &&
     !input.brake &&
@@ -116,7 +124,8 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     !k.airborne;
   if (k.drifting && !wasDrifting) k.driftSide = Math.sign(steer);
   if (wasDrifting && !k.drifting) {
-    if (!input.drift && !input.brake && k.tier > 0) k.boost = C.boostDurations[k.tier - 1];
+    if (!input.drift && !input.brake && k.tier > 0)
+      k.boost = Math.max(k.boost, C.boostDurations[k.tier - 1]);
     k.charge = 0;
     k.tier = 0;
   }

@@ -49,7 +49,9 @@ export class KartGame extends Component {
       () => this.restart(),
       () => {
         this.muted = !this.muted;
+        this.audio.activate(this.muted);
       },
+      () => this.audio.activate(this.muted),
     );
     game.on(Game.EVENT_HIDE, this.hide, this);
     // Read-only diagnostics for real-input checks: no teleport or forced finish hooks.
@@ -66,6 +68,7 @@ export class KartGame extends Component {
           order: this.race.order,
           modelsLoaded: this.views.every((v) => v.modelLoaded),
           audioClips: this.audio.clips.size,
+          audioPlaying: this.audio.source.playing,
           muted: this.muted,
           currentLapTime: this.race.currentLapTime,
           bestLapTime: this.race.bestLapTime,
@@ -76,6 +79,7 @@ export class KartGame extends Component {
             timer: this.hud.timer.string,
             standings: this.hud.standings.string,
             leaderboard: this.hud.leaderboard.string,
+            nitro: this.hud.nitro.string,
           },
           player: { ...this.race.drivers[0].kart },
           camera: {
@@ -107,6 +111,7 @@ export class KartGame extends Component {
   }
   hide = () => {
     this.controller?.clear();
+    if (this.audio) this.audio.activated = false;
     this.race.pause();
     this.accumulator = 0;
   };

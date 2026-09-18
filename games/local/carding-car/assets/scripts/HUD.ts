@@ -9,6 +9,7 @@ import {
   UITransform,
   view,
   ResolutionPolicy,
+  sys,
 } from 'cc';
 import { KartConfig as C, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
@@ -28,6 +29,7 @@ export class HUD {
   standings: Label;
   leaderboard: Label;
   footer: Label;
+  nitro: Label;
   restartButton: Node;
   meter: Graphics;
   map: Graphics;
@@ -67,7 +69,16 @@ export class HUD {
     this.label(this.root, 'Ⅱ', 413, 220, 24, '#fff6dc', 72, 48);
     this.box(this.root, 0, -209, 180, 70, '#173c55ee');
     this.speed = this.label(this.root, '0  km/h', 0, -200, 30, '#fff6dc', 180, 48);
-    this.label(this.root, '自动加速', 0, -230, 12, '#b8dcda', 180, 20);
+    this.label(
+      this.root,
+      sys.isMobile ? '自动加速' : 'W / ↑ 前进',
+      0,
+      -230,
+      12,
+      '#b8dcda',
+      180,
+      20,
+    );
     this.box(this.root, 0, 170, 560, 34, '#173c55dd');
     this.message = this.label(this.root, '', 0, 170, 21, '#fff6dc', 550, 45);
     this.count = this.label(this.root, '', 0, 35, 92, '#fff7dd', 700, 150);
@@ -77,6 +88,7 @@ export class HUD {
     this.label(this.root, '转向', -326, -225, 14, '#fff6dc', 220, 30);
     this.label(this.root, '刹车/倒车', 194, -171, 18, '#fff7dd', 90, 80);
     this.label(this.root, '漂移', 365, -165, 27, '#193c54', 140, 90);
+    this.nitro = this.label(this.root, '', 365, -10, 20, '#193c54', 150, 70);
     this.box(this.root, 340, -229, 230, 26, '#173c55dd');
     this.label(this.root, '按住过弯 · 松手加速', 340, -229, 14, '#fff6dc', 230, 28);
     this.mapRoute = this.graphics(this.root, 'MiniMapRoute');
@@ -107,16 +119,7 @@ export class HUD {
     this.box(this.restartButton, 263, -125, 170, 52, '#295870');
     this.label(this.restartButton, '重新开跑', 263, -125, 20, '#fff6dc', 170, 52);
     this.restartButton.active = false;
-    this.footer = this.label(
-      this.panel,
-      '方向键转向 · 空格漂移 · 按住刹车，停稳后倒车',
-      0,
-      -176,
-      14,
-      '#a9cdd0',
-      660,
-      32,
-    );
+    this.footer = this.label(this.panel, '', 0, -176, 14, '#a9cdd0', 660, 32);
   }
   graphics(parent: Node, name: string) {
     const n = new Node(name);
@@ -165,6 +168,12 @@ export class HUD {
     this.timer.string = `总计 ${time(r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
+    this.nitro.string =
+      k.nitroCooldown > 0
+        ? `氮气 ${k.nitroCooldown.toFixed(1)}s`
+        : sys.isMobile
+          ? '氮气加速'
+          : '氮气 Shift';
     this.panel.active = ['ready', 'paused', 'finished'].includes(r.phase);
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
@@ -185,7 +194,9 @@ export class HUD {
         this.button.string = '开 跑  →';
         this.standings.string =
           '驾驶小贴士\n提前转向切入弯心\n转弯时按住漂移蓄力\n松手获得出弯加速';
-        this.footer.string = '方向键转向 · 空格漂移 · 按住刹车，停稳后倒车';
+        this.footer.string = sys.isMobile
+          ? '自动加速 · 左手转向 · 右手漂移 / 氮气 · 按住刹车可倒车'
+          : 'W/↑ 前进 · S/↓ 倒车 · A D/← → 转向 · 空格漂移 · Shift 氮气';
       }
       if (r.phase === 'paused') {
         this.title.string = '休息一下';
@@ -196,7 +207,7 @@ export class HUD {
       }
       if (r.phase === 'finished') {
         this.title.string = place === 1 ? '冠军，漂亮！' : `第 ${place} 名，冲线！`;
-        this.detail.string = `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次漂移加速   ·   ${r.collisions} 次碰撞`;
+        this.detail.string = `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次加速   ·   ${r.collisions} 次碰撞`;
         this.button.string = '再跑一场  →';
         this.standings.string = `本场名次\n${r.order
           .map((driver, i) => {
@@ -222,7 +233,9 @@ export class HUD {
             : k.collision > 0
               ? '稳住方向，重新提速'
               : k.boost > 0
-                ? '松手加速！'
+                ? k.nitroCooldown > C.nitroCooldown - C.nitroDuration
+                  ? '氮气冲刺！'
+                  : '松手加速！'
                 : k.tier === 2
                   ? '双阶蓄力 · 松手冲刺'
                   : k.tier === 1
@@ -245,6 +258,9 @@ export class HUD {
       this.meter.fill();
     }
     this.controls.clear();
+    this.controls.fillColor = color(k.nitroCooldown > 0 ? '#71999c' : '#68e2c0');
+    this.controls.roundRect(290, -45, 150, 70, 22);
+    this.controls.fill();
     for (const [x, radius, hex] of [
       [-326, 69, '#173c55b8'],
       [194, 42, input.brake ? '#ed7666' : '#173c55b8'],

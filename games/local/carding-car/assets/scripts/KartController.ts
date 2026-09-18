@@ -1,4 +1,4 @@
-import { EventKeyboard, EventTouch, input, Input, KeyCode, view } from 'cc';
+import { EventKeyboard, EventTouch, input, Input, KeyCode, sys, view } from 'cc';
 import { clamp, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
 export class KartController {
@@ -8,6 +8,7 @@ export class KartController {
     private race: () => RaceManager,
     private restart: () => void,
     private sound: () => void,
+    private activateAudio: () => void,
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -21,10 +22,12 @@ export class KartController {
     this.touches.clear();
     const kart = this.race().drivers[0].kart;
     kart.drifting = false;
+    kart.nitroHeld = false;
     kart.charge = kart.tier = kart.driftSide = 0;
   }
   keyDown(e: EventKeyboard) {
     if (this.keys.has(e.keyCode)) return;
+    this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
     if (
@@ -62,6 +65,7 @@ export class KartController {
     return { x: p.x / s.width, y: p.y / s.height };
   }
   touchStart(e: EventTouch) {
+    this.activateAudio();
     const p = this.location(e),
       r = this.race(),
       id = e.getID();
@@ -89,8 +93,19 @@ export class KartController {
       }
       return;
     }
-    if (p.y < 0.42) {
-      const role = p.x < 0.36 ? 'steer' : p.x > 0.78 ? 'drift' : p.x > 0.62 ? 'brake' : '';
+    if (p.y < 0.58) {
+      const role =
+        p.x > 0.78 && p.y > 0.37
+          ? 'nitro'
+          : p.y >= 0.42
+            ? ''
+            : p.x < 0.36
+              ? 'steer'
+              : p.x > 0.78
+                ? 'drift'
+                : p.x > 0.62
+                  ? 'brake'
+                  : '';
       if (role) this.touches.set(id, { role, steer: clamp((p.x - 0.16) / 0.095, -1, 1) });
     }
   }
@@ -107,19 +122,22 @@ export class KartController {
   read(): KartInput {
     const phase = this.race().phase;
     if (phase !== 'racing' && phase !== 'countdown')
-      return { steer: 0, drift: false, brake: false, throttle: 0 };
+      return { steer: 0, drift: false, brake: false, throttle: 0, nitro: false };
     const key = (...keys: number[]) => keys.some((k) => this.keys.has(k));
     let steer =
       Number(key(KeyCode.ARROW_RIGHT, KeyCode.KEY_D)) -
       Number(key(KeyCode.ARROW_LEFT, KeyCode.KEY_A));
-    let drift = key(KeyCode.SPACE, KeyCode.SHIFT_LEFT),
+    let drift = key(KeyCode.SPACE),
+      nitro = key(KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT),
       brake = key(KeyCode.ARROW_DOWN, KeyCode.KEY_S);
     for (const t of this.touches.values()) {
       if (t.role === 'steer') steer = t.steer;
       if (t.role === 'drift') drift = true;
       if (t.role === 'brake') brake = true;
+      if (t.role === 'nitro') nitro = true;
     }
-    return { steer, drift, brake, reverse: brake, throttle: brake ? 0 : 1 };
+    const forward = sys.isMobile || key(KeyCode.ARROW_UP, KeyCode.KEY_W);
+    return { steer, drift, brake, reverse: brake, nitro, throttle: !brake && forward ? 1 : 0 };
   }
   destroy() {
     input.off(Input.EventType.KEY_DOWN, this.keyDown, this);
