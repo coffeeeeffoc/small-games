@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { LEVELS } from "../src/levels.js";
+import { createGame, roadTarget, roadDistance } from "../src/engine.js";
 
 const base = process.env.GAME_URL || "http://127.0.0.1:43690";
 const channel = process.env.BROWSER_CHANNEL || "chrome";
@@ -54,6 +55,56 @@ async function guards(level, p = page, touch = false) {
   for (const { cop, node } of level.solution)
     await order(cop, level.nodes[node], p, touch);
 }
+async function pursue(level, p = page, touch = false) {
+  const model = createGame(level);
+  const deadline = Date.now() + 90000;
+  let targetId = -1,
+    shifted = 0;
+  while (Date.now() < deadline) {
+    const state = await snapshot(p);
+    if (state.phase !== "playing") break;
+    const origin = roadTarget(model, state.cops[level.hunter]);
+    const shift = level.redeploy?.[shifted];
+    if (
+      shift &&
+      state.time >= shift.at &&
+      state.robbers.filter((r) => r.caught).length >= shift.after
+    ) {
+      await order(shift.cop, level.nodes[shift.node], p, touch);
+      shifted++;
+    }
+    const target =
+      state.robbers.find((r) => !r.caught && r.id === targetId) ||
+      state.robbers
+        .filter((r) => !r.caught)
+        .sort(
+          (a, b) =>
+            roadDistance(model, origin, roadTarget(model, a)) -
+            roadDistance(model, origin, roadTarget(model, b)),
+        )[0];
+    if (target) {
+      targetId = target.id;
+      await order(level.hunter, target, p, touch);
+    }
+    await p.waitForTimeout(700);
+  }
+  const final = await snapshot(p);
+  if (final.phase !== "won") {
+    console.error("Pursuit failed", final);
+    await p.screenshot({ path: "artifacts/pursuit-failure.png" });
+  }
+  assert.equal(final.phase, "won");
+  return shifted;
+}
+async function hoverAt(actor, cursor) {
+  const pos = await screen(actor);
+  await page.mouse.move(pos.x, pos.y - 8);
+  await page.waitForFunction(
+    (cursor) =>
+      getComputedStyle(document.querySelector("canvas")).cursor === cursor,
+    cursor,
+  );
+}
 try {
   await page.goto(base);
   assert.match(await page.title(), /别跑.*实时/);
@@ -67,7 +118,17 @@ try {
   });
   const roster = await page.locator("#cop-roster").boundingBox();
   assert.ok(roster.y + roster.height < 900);
+  const ready = await snapshot();
+  await hoverAt(ready.cops[0], "grab");
+  await page.screenshot({ path: "artifacts/hover-cop.png" });
+  await hoverAt(ready.robbers[0], "alias");
+  await page.screenshot({ path: "artifacts/hover-robber.png" });
+  await hoverAt({ x: 600, y: 500 }, "default");
+  checks.push(
+    "Arrow on scenery; grab cursor and blue officer halo; target cursor and orange robber halo",
+  );
   await page.locator("#start-button").click();
+  await hoverAt({ x: 360, y: 190 }, "pointer");
   const initial = await snapshot();
   await page.waitForTimeout(500);
   const moving = await snapshot();
@@ -102,12 +163,12 @@ try {
   const escaped = await snapshot();
   assert.ok(escaped.robbers.some((r) => r.escaped));
   assert.equal(escaped.unlocked, 1, "loss cannot unlock the next map");
-  assert.match(await page.locator("#lose-title").textContent(), /出口 A/);
+  assert.match(await page.locator("#lose-title").textContent(), /出口 [A-D]/);
   assert.equal(
     await page.evaluate(
       () =>
         JSON.parse(localStorage.getItem("neighborhood-patrol-v1") || "{}")
-          .escapeBest?.[1],
+          .streetBest?.[1],
     ),
     undefined,
   );
@@ -128,7 +189,7 @@ try {
   const hunter = first.cops.findIndex(
     (_, i) => !first.solution.some((g) => g.cop === i),
   );
-  const destination = first.nodes[first.exits[0]];
+  const destination = first.nodes[first.robbers[0]];
   await order(hunter, destination);
   await page.waitForTimeout(800);
   const outbound = await snapshot();
@@ -157,7 +218,7 @@ try {
   checks.push(
     "Continuous road reversal and hold still work under escape pressure",
   );
-  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("Enter");
   assert.ok((await snapshot()).cops[hunter].destination);
   await page.locator("#hold-button").click();
@@ -167,6 +228,10 @@ try {
     dragEnd = await screen(destination);
   await page.mouse.move(dragStart.x, dragStart.y - 8);
   await page.mouse.down();
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector("canvas")).cursor === "grabbing",
+  );
   await page.mouse.move(dragEnd.x, dragEnd.y, { steps: 8 });
   await page.keyboard.press("1");
   await page.mouse.up();
@@ -180,22 +245,19 @@ try {
   await page.mouse.down();
   await page.mouse.move(pursuitEnd.x, pursuitEnd.y, { steps: 8 });
   await page.mouse.up();
-  await waitState((state) => state.exits.some((e) => e.blocked));
-  await page.waitForFunction(() =>
-    document.getElementById("exit-status").textContent.includes("0/1"),
-  );
+  await waitState((state) => state.exits.every((exit) => exit.blocked));
   await page.screenshot({
     path: "artifacts/desktop-interception.png",
     fullPage: true,
   });
-  await waitPhase("won");
+  await pursue(first);
   await page.waitForSelector("#win-dialog[open]");
   assert.equal((await snapshot()).unlocked, 2);
   assert.ok(
     await page.evaluate(
       () =>
         JSON.parse(localStorage.getItem("neighborhood-patrol-v1"))
-          .escapeBest[1] > 0,
+          .streetBest[1] > 0,
     ),
   );
   checks.push(
@@ -214,12 +276,12 @@ try {
   );
   const secondState = await snapshot(),
     from = await screen(secondState.cops[secondHunter]),
-    to = await screen(second.nodes[second.exits[0]]);
+    to = await screen(secondState.robbers[0]);
   await page.mouse.move(from.x, from.y - 8);
   await page.mouse.down();
   await page.mouse.move(to.x, to.y, { steps: 10 });
   await page.mouse.up();
-  await waitPhase("won");
+  await pursue(second);
   await page.waitForSelector("#win-dialog[open]");
   await page.keyboard.press("Escape");
   await page.locator("#start-button").click();
@@ -257,8 +319,7 @@ try {
   });
   await touch.locator("#start-button").tap();
   await guards(first, touch, true);
-  await order(hunter, destination, touch, true);
-  await waitPhase("won", touch);
+  await pursue(first, touch, true);
   await touch.waitForSelector("#win-dialog[open]");
   checks.push(
     "844×390 real touch commands intercept an exit and capture the robber",
@@ -277,6 +338,42 @@ try {
     false,
   );
   checks.push("Portrait layout fits and shows the new escape objective");
+  await touch.setViewportSize({ width: 320, height: 740 });
+  await touch.waitForTimeout(200);
+  assert.equal(
+    await touch.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+  );
+  checks.push("320px narrow portrait has no horizontal overflow");
+  // Unlock this map for a focused gameplay regression; only real touch orders
+  // below can move officers, redeploy the blockade, or finish the level.
+  await touch.setViewportSize({ width: 844, height: 390 });
+  await touch.evaluate(() =>
+    localStorage.setItem(
+      "neighborhood-patrol-v1",
+      JSON.stringify({
+        best: Object.fromEntries(
+          Array.from({ length: 17 }, (_, i) => [i + 1, 100]),
+        ),
+      }),
+    ),
+  );
+  await touch.reload();
+  await touch.waitForSelector('body[data-level="18"]');
+  const relay = LEVELS[17];
+  await touch.locator("#start-button").tap();
+  await guards(relay, touch, true);
+  assert.equal(await pursue(relay, touch, true), relay.redeploy.length);
+  await touch.waitForSelector("#win-dialog[open]");
+  await touch.screenshot({
+    path: "artifacts/relay-level-win.png",
+    fullPage: true,
+  });
+  checks.push(
+    "Map 18 wins with an actual mid-pursuit touch redeployment; keeping all guards still is separately rejected by the engine replay",
+  );
   await touchContext.close();
   assert.deepEqual(errors, []);
   const report = {

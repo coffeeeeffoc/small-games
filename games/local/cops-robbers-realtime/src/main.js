@@ -10,7 +10,8 @@ import {
   routePreview,
   roadTarget,
   roadDistance,
-  BODY_GAP,
+  isExitBlocked,
+  CAPTURE_RADIUS,
 } from "./engine.js";
 import { createRenderer } from "./renderer.js";
 import { createAudio } from "./audio.js";
@@ -24,7 +25,12 @@ const copColors = ["#558ead", "#738f86", "#ad925e", "#8f80a7", "#b17f78"];
 function readProgress() {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE));
-    const records = { best: {}, escapeBest: {} };
+    const records = {
+      best: {},
+      escapeBest: {},
+      teamworkBest: {},
+      streetBest: {},
+    };
     for (const field of Object.keys(records))
       for (const [id, seconds] of Object.entries(value?.[field] || {})) {
         if (
@@ -39,7 +45,13 @@ function readProgress() {
       }
     return { ...records, sound: value?.sound !== false };
   } catch {
-    return { best: {}, escapeBest: {}, sound: true };
+    return {
+      best: {},
+      escapeBest: {},
+      teamworkBest: {},
+      streetBest: {},
+      sound: true,
+    };
   }
 }
 let progress = readProgress();
@@ -51,6 +63,8 @@ function unlockedLevel() {
 let game = createGame(LEVELS[unlockedLevel() - 1]);
 let selected = 0,
   pointer = null,
+  mousePosition = null,
+  hover = null,
   preview = null,
   gesture = null,
   keyboardNode = null;
@@ -94,6 +108,9 @@ function clearGesture() {
   gesture = null;
   preview = null;
   pointer = null;
+  mousePosition = null;
+  hover = null;
+  canvas.dataset.cursor = "default";
 }
 function updateSound() {
   $("sound-button").setAttribute("aria-pressed", String(progress.sound));
@@ -177,7 +194,13 @@ function updateHud() {
         : game.cops[index].moving
           ? "前往目标"
           : game.cops[index].blocked
-            ? "正在收网"
+            ? game.robbers.some(
+                (r) =>
+                  r.capture > 0 &&
+                  roadDistance(game, game.cops[index], r) <= CAPTURE_RADIUS * 2,
+              )
+              ? "合力收网"
+              : "拦截 · 等待支援"
             : "路口留守";
   });
 }
@@ -186,9 +209,7 @@ function exitStates() {
     node: exit.node,
     x: exit.x,
     y: exit.y,
-    blocked: game.cops.some(
-      (cop) => roadDistance(game, cop, exit) <= BODY_GAP + 1e-4,
-    ),
+    blocked: isExitBlocked(game, exit),
   }));
 }
 function updateCampaign() {
@@ -222,10 +243,12 @@ function loadLevel(id) {
       textContent: ".",
     }),
   );
-  $("mission-subtitle").textContent = chapter.subtitle;
+  $("mission-subtitle").textContent =
+    `${chapter.subtitle} · 挑战用时 ${game.level.par} 秒`;
   $("robber-count").textContent = game.robbers.length;
-  $("guide-title").textContent =
-    id < 3
+  $("guide-title").textContent = game.level.redeploy?.length
+    ? "封口之后，还要换防"
+    : id < 3
       ? "先抢出口，再夹击"
       : id < 13
         ? "一个卡位，一个包抄"
@@ -347,8 +370,20 @@ function renderLevelGrid() {
         "aria-label",
         `第 ${level.id} 关 ${level.name}${level.id > unlocked ? "，尚未解锁" : ""}`,
       );
-      const best = progress.escapeBest[level.id];
-      button.innerHTML = `<strong>${String(level.id).padStart(2, "0")}</strong><i class="tile-mark">${best ? "✓" : level.id > unlocked ? "⌑" : "↗"}</i><span>${level.name}</span><small>${best ? `最佳 ${formatTime(best)}` : `${level.cops.length} 警 · ${level.robbers.length} 偷 · ${(level.exits || []).length} 出口`}</small>`;
+      const best = progress.streetBest[level.id];
+      const roads = level.edges
+        .map(
+          ([a, b]) =>
+            `M${level.nodes[a].x},${level.nodes[a].y}L${level.nodes[b].x},${level.nodes[b].y}`,
+        )
+        .join("");
+      const exits = level.exits
+        .map(
+          (node) =>
+            `<circle cx="${level.nodes[node].x}" cy="${level.nodes[node].y}" r="22" fill="#cc703c"/>`,
+        )
+        .join("");
+      button.innerHTML = `<strong>${String(level.id).padStart(2, "0")}</strong><i class="tile-mark">${best ? (best <= level.par ? "★" : "✓") : level.id > unlocked ? "⌑" : "↗"}</i><svg class="level-map" viewBox="0 0 1000 600" aria-hidden="true"><path d="${roads}" fill="none" stroke="#638770" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>${exits}</svg><span>${level.name}</span><small>${best ? `最佳 ${formatTime(best)} · 挑战 ${level.par} 秒` : `${level.cops.length} 警 · ${level.robbers.length} 偷 · ${level.edges.length - level.nodes.length + 1} 环路`}</small>`;
       button.addEventListener("click", () => {
         loadLevel(level.id);
         audio.play("select");
@@ -365,15 +400,15 @@ function openLevels() {
 function won() {
   clearGesture();
   const id = game.level.id;
-  const previousBest = progress.escapeBest[id];
-  progress.escapeBest[id] = Math.min(previousBest || Infinity, game.time);
+  const previousBest = progress.streetBest[id];
+  progress.streetBest[id] = Math.min(previousBest || Infinity, game.time);
   progress.best[id] ??= game.time;
   saveProgress();
   updateCampaign();
   updateHud();
   audio.play("win");
   $("win-time").textContent = formatTime(game.time);
-  $("win-best").textContent = formatTime(progress.escapeBest[id]);
+  $("win-best").textContent = formatTime(progress.streetBest[id]);
   $("win-title").textContent =
     id === 48 ? "全城围捕，圆满收官。" : "一个也没跑掉。";
   $("win-description").textContent =
@@ -381,7 +416,9 @@ function won() {
       ? "48 场行动全部完成！回到街区地图，挑战更漂亮的用时。"
       : previousBest && game.time < previousBest
         ? "刷新个人最佳！这次的收网又快了一点。"
-        : `全部 ${game.robbers.length} 名小偷已被抓获。下一场行动，等你指挥。`;
+        : game.time <= game.level.par
+          ? `全员抓获，并达成 ${game.level.par} 秒街区挑战！`
+          : `全员抓获！再试着把用时压进 ${game.level.par} 秒，拿下本关挑战星。`;
   $("next-button").firstChild.textContent =
     id === 48 ? "回到街区地图" : `出发 · 第 ${id + 1} 关`;
   toast("漂亮！退路封死，全员抓获。", 1700);
@@ -414,39 +451,72 @@ function lost(event) {
   );
 }
 
+function hitActor(clientX, clientY) {
+  let hit = null,
+    nearest = 26;
+  const actors = [
+    ...game.cops.map((actor) => ({ actor, cop: true })),
+    ...game.robbers
+      .filter((actor) => !actor.caught && !actor.escaped)
+      .map((actor) => ({ actor, cop: false })),
+  ];
+  for (const { actor, cop } of actors) {
+    const screen = renderer.toScreen({ x: actor.x, y: actor.y - 18 });
+    const foot = renderer.toScreen(actor);
+    const distance = Math.min(
+      Math.hypot(clientX - screen.x, clientY - screen.y),
+      Math.hypot(clientX - foot.x, clientY - foot.y),
+    );
+    if (distance < nearest) {
+      hit = { actor, cop };
+      nearest = distance;
+    }
+  }
+  return hit;
+}
+function updateHover() {
+  hover = null;
+  let cursor = "default";
+  if (mousePosition && ["ready", "playing"].includes(game.phase)) {
+    hover = hitActor(mousePosition.x, mousePosition.y);
+    if (gesture?.cop >= 0 && game.phase === "playing") cursor = "drag";
+    else if (hover) cursor = hover.cop ? "cop" : "robber";
+    else if (
+      game.phase === "playing" &&
+      roadTarget(game, renderer.toWorld(mousePosition.x, mousePosition.y))
+    )
+      cursor = "road";
+  }
+  if (canvas.dataset.cursor !== cursor) canvas.dataset.cursor = cursor;
+}
 canvas.addEventListener("pointerdown", (event) => {
   if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0))
     return;
   event.preventDefault();
   audio.unlock();
   canvas.focus({ preventScroll: true });
-  let hit = -1,
-    nearest = Infinity;
-  game.cops.forEach((cop, i) => {
-    const screen = renderer.toScreen({ x: cop.x, y: cop.y - 18 });
-    const foot = renderer.toScreen(cop);
-    const distance = Math.min(
-      Math.hypot(event.clientX - screen.x, event.clientY - screen.y),
-      Math.hypot(event.clientX - foot.x, event.clientY - foot.y),
-    );
-    if (distance < 26 && distance < nearest) {
-      hit = i;
-      nearest = distance;
-    }
-  });
-  if (hit >= 0) selectCop(hit);
+  const hit = hitActor(event.clientX, event.clientY);
+  if (hit?.cop) selectCop(hit.actor.id);
+  if (event.pointerType === "mouse")
+    mousePosition = { x: event.clientX, y: event.clientY };
   gesture = {
     id: event.pointerId,
     startX: event.clientX,
     startY: event.clientY,
-    cop: hit,
+    cop: hit?.cop ? hit.actor.id : -1,
     dragged: false,
   };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener("pointermove", (event) => {
   if (!event.isPrimary) return;
-  const point = renderer.toWorld(event.clientX, event.clientY);
+  if (event.pointerType === "mouse")
+    mousePosition = { x: event.clientX, y: event.clientY };
+  const hit = hitActor(event.clientX, event.clientY);
+  const point =
+    hit && !hit.cop
+      ? hit.actor
+      : renderer.toWorld(event.clientX, event.clientY);
   if (gesture && gesture.id === event.pointerId) {
     gesture.dragged ||=
       Math.hypot(
@@ -458,23 +528,33 @@ canvas.addEventListener("pointermove", (event) => {
       pointer = roadTarget(game, point);
     }
   } else if (event.pointerType === "mouse" && game.phase === "playing") {
-    pointer = roadTarget(game, point);
-    preview = routePreview(game, selected, point);
+    pointer = hit?.cop ? null : roadTarget(game, point);
+    preview = hit?.cop ? null : routePreview(game, selected, point);
   }
 });
 canvas.addEventListener("pointerup", (event) => {
   if (!gesture || gesture.id !== event.pointerId) return;
   const { cop, dragged } = gesture;
-  const point = renderer.toWorld(event.clientX, event.clientY);
+  const hit = hitActor(event.clientX, event.clientY);
+  const point =
+    hit && !hit.cop
+      ? hit.actor
+      : renderer.toWorld(event.clientX, event.clientY);
   clearGesture();
   if ((cop < 0 && !dragged) || (cop >= 0 && dragged)) issue(point);
+  if (event.pointerType === "mouse")
+    mousePosition = { x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener("pointercancel", clearGesture);
 canvas.addEventListener("lostpointercapture", () => {
   gesture = null;
   preview = null;
+  updateHover();
 });
 canvas.addEventListener("pointerleave", () => {
+  mousePosition = null;
+  hover = null;
+  canvas.dataset.cursor = "default";
   if (!gesture) {
     pointer = null;
     preview = null;
@@ -658,10 +738,12 @@ function frame(now) {
       lastTurnSound = game.time;
     }
   }
+  updateHover();
   renderer.draw(game, {
     selected,
     preview,
     pointer,
+    hover,
     reducedMotion: reducedMotion.matches,
     now,
   });
