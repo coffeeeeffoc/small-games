@@ -21,7 +21,7 @@ try {
       });
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(process.env.KART_URL || 'http://127.0.0.1:4198');
-      await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+      await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
       const cdp = touch ? await page.context().newCDPSession(page) : null;
       if (touch) await page.touchscreen.tap(480, 395);
       else {
