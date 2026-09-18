@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test game.test.mjs",
+    "test": "node --test game.test.mjs library.test.mjs",
+    "export:dict": "python scripts/export-vocabulary.py",
+    "test:browser": "node browser-check.mjs",
     "build": "node build.mjs",
     "dev": "node server.mjs"
   },
