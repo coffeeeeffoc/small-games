@@ -8,3 +8,6 @@ extensions/biligame-builder/
 reports/
 release-config.local.json
 .prebuilt/
+assets/resources/seaside/*.glb
+assets/resources/seaside/*.jpg
+assets/resources/seaside/*.json

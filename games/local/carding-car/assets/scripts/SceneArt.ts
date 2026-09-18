@@ -1,4 +1,18 @@
-import { Color, Material, MeshRenderer, Node, primitives, utils } from 'cc';
+import {
+  Asset,
+  Color,
+  gfx,
+  instantiate,
+  Material,
+  Mesh,
+  MeshRenderer,
+  Node,
+  Prefab,
+  primitives,
+  resources,
+  Texture2D,
+  utils,
+} from 'cc';
 
 export const palette = {
   road: '#374d63',
@@ -12,6 +26,64 @@ export const palette = {
   mint: '#53ddb9',
   blue: '#549cea',
 };
+export function loadArt<T extends Asset>(name: string, type: new () => T) {
+  return new Promise<T>((resolve, reject) =>
+    resources.load('seaside/' + name, type, (error, asset) =>
+      error ? reject(error) : resolve(asset),
+    ),
+  );
+}
+
+const modelMaterials = new Map<Material, Material>();
+/** Shaded GLBs share one unlit material per source, including two-sided foliage. */
+export function placeModel(prefab: Prefab, parent: Node, name: string) {
+  const model = instantiate(prefab);
+  model.name = name;
+  parent.addChild(model);
+  for (const renderer of model.getComponentsInChildren(MeshRenderer)) {
+    renderer.sharedMaterials.forEach((original, index) => {
+      if (!original) return;
+      let shared = modelMaterials.get(original);
+      if (!shared) {
+        const texture =
+          original.getProperty('mainTexture') ||
+          original.getProperty('albedoMap') ||
+          original.getProperty('emissiveMap');
+        if (!(texture instanceof Texture2D)) throw new Error(`Missing shaded texture: ${name}`);
+        shared = new Material();
+        shared.initialize({
+          effectName: 'builtin-unlit',
+          defines: { USE_TEXTURE: true },
+          states: { rasterizerState: { cullMode: gfx.CullMode.NONE } },
+        });
+        shared.setProperty('mainColor', Color.WHITE);
+        shared.setProperty('mainTexture', texture);
+        modelMaterials.set(original, shared);
+      }
+      renderer.setMaterial(shared, index);
+    });
+  }
+  return model;
+}
+
+let shadowMaterial: Material;
+let shadowMesh: Mesh;
+export function groundShadow(parent: Node, width: number, length: number) {
+  shadowMaterial ??= new Material();
+  if (!shadowMaterial.effectAsset) {
+    shadowMaterial.initialize({ effectName: 'builtin-unlit', technique: 1 });
+    shadowMaterial.setProperty('mainColor', new Color(16, 43, 48, 52));
+  }
+  const node = new Node('GroundShadow');
+  parent.addChild(node);
+  const renderer = node.addComponent(MeshRenderer);
+  shadowMesh ??= utils.createMesh(primitives.cylinder(0.5, 0.5, 0.005, { radialSegments: 24 }));
+  renderer.mesh = shadowMesh;
+  renderer.setMaterial(shadowMaterial, 0);
+  node.setScale(width, 1, length);
+  node.setPosition(0, 0.018, 0);
+  return node;
+}
 const materials = new Map<string, Material>();
 export function material(hex: string) {
   let m = materials.get(hex);

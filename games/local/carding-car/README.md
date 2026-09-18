@@ -7,6 +7,7 @@ Cocos Creator 3.8.8 + TypeScript 的横屏 3D 卡丁车。微信、B站分别发
 在仓库根目录运行：
 
 ```powershell
+git submodule update --init --recursive assets
 pnpm install --frozen-lockfile
 pnpm --filter @coffeeeeffoc/carding-car run setup
 pnpm --filter @coffeeeeffoc/carding-car build
@@ -59,3 +60,9 @@ pnpm check:games
 赛道是 Catmull-Rom 曲线生成的带状网格；护栏位置和尺寸由 `TrackBarriers` 同时供显示与碰撞使用，岔口按另一条道路的实际范围留出口。车身与护栏使用简单定向矩形的分离轴检测，车车接触使用圆形截面，均不使用复杂视觉网格作为碰撞体。四辆车共享驾驶参数。AI 根据前方曲率刹车，没有额外速度或隐藏追赶。
 
 Rodin 资产和处理方式见 `art-source/README.md`。实测与剩余验收边界见 `playtest.md`。
+
+当前场景使用独立子模块 `assets/carding-car/runtime` 的橙白赛车、棕榈树、阔叶树、礁石、灯塔和沥青贴图。先执行 `git submodule update --init --recursive assets`；三端构建自动同步运行文件到忽略目录 `assets/resources/seaside`，只提交稳定的 Creator `.meta`，无需重复提交模型或安装 Python。源文件哈希包含素材子模块中的运行文件，因此更换素材后必须重新构建。
+
+微信与 B站通过 Creator 的 `seaside-art` 配置将 `resources` 导出为本地小游戏分包；启动时由引擎预加载。构建会检查分包存在、主包不超过 4 MiB、总包不超过 20 MiB。Web 仍使用本地资源目录，不需要素材 CDN。
+
+赛车使用 1024px、重复植物/礁石使用 512px 预着色贴图，共享网格与材质；赛车原始单网格尚不支持车轮独立旋转。弯道保留样条道路，路肩和护栏从素材库几何按 `TrackBarriers` 的实际范围缩放合批，碰撞仍使用原有简单形状。重制运行素材用 `python assets/carding-car/build-mobile.py`（Pillow 仅在重制时需要）。
