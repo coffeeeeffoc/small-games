@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createBarriers, roadDistance } from '../assets/scripts/TrackBarriers.ts';
+import { createBarriers, roadDistance, type Barrier } from '../assets/scripts/TrackBarriers.ts';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { pointAt, createTrack, projectOnTrack } from '../assets/scripts/TrackGenerator.ts';
 import {
@@ -80,5 +80,32 @@ test('boost-speed impacts cannot leave the kart embedded in straight or curved r
       );
       assert.ok(penetration < 0.01, `rail ${i}, frame ${frame}: penetrated ${penetration}m`);
     }
+  }
+});
+
+test('glancing contact keeps forward motion while sliding clear of either rail', () => {
+  for (const side of [-1, 1]) {
+    const wall: Barrier = {
+      x: side * 8.4,
+      z: 0,
+      y: 0,
+      heading: 0,
+      inwardX: -side,
+      inwardZ: 0,
+      halfWidth: 0.275,
+      halfLength: 80,
+      branch: 'main',
+    };
+    const kart = createKart(side * 7.1, -30, 0);
+    kart.speed = 30;
+    kart.velocityHeading = side * 0.3;
+    assert.ok(resolveKartBarriers(kart, [wall]));
+    for (let frame = 0; frame < 120; frame++) {
+      driveKart(kart, { steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+      resolveKartBarriers(kart, [wall]);
+      assert.ok((barrierOverlap(kart, wall)?.depth ?? 0) < 0.01);
+    }
+    assert.ok(kart.z > 0, 'a glancing hit must preserve useful forward travel');
+    assert.ok(kart.speed > 20);
   }
 });

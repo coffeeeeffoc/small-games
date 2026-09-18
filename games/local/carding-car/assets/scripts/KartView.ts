@@ -16,6 +16,8 @@ export class KartView {
   root: Node;
   body: Node;
   sparks: Node;
+  sparkRenderers: MeshRenderer[];
+  sparkTier = -1;
   flame: Node;
   modelLoaded = false;
   constructor(parent: Node, color: string) {
@@ -72,6 +74,7 @@ export class KartView {
       for (let i = 0; i < 3; i++)
         spark.box(P.yellow, x + i * 0.06, 0.35, -0.95 - i * 0.3, 0.12, 0.15, 0.32);
     this.sparks = spark.build(this.root, 'DriftSparks');
+    this.sparkRenderers = this.sparks.getComponentsInChildren(MeshRenderer);
     this.sparks.active = false;
     const flame = new MeshBatch();
     flame.ball(P.mint, 0, 0.5, -1.65, 0.65, 0.5, 1.3);
@@ -84,8 +87,11 @@ export class KartView {
     this.root.setRotationFromEuler(0, (k.heading * 180) / Math.PI, 0);
     this.body.setRotationFromEuler(k.airborne ? -6 : 0, 0, k.drifting ? k.driftSide * 5 : 0);
     this.sparks.active = k.charge > 0.2;
-    for (const renderer of this.sparks.getComponentsInChildren(MeshRenderer))
-      renderer.setMaterial(material(k.tier === 2 ? P.yellow : P.mint), 0);
+    if (this.sparkTier !== k.tier) {
+      this.sparkTier = k.tier;
+      for (const renderer of this.sparkRenderers)
+        renderer.setMaterial(material(k.tier === 2 ? P.yellow : P.mint), 0);
+    }
     this.sparks.setScale(k.tier === 2 ? 1.4 : 1, 1, 0.8 + Math.sin(time * 45) * 0.2);
     this.flame.active = k.boost > 0;
     this.flame.setScale(1, 1, 1 + Math.sin(time * 50) * 0.2);

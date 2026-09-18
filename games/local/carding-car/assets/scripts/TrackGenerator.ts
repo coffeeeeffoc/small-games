@@ -59,8 +59,9 @@ export function createTrack() {
     const x = start.x + (end.x - start.x) * t,
       z = start.z + (end.z - start.z) * t + Math.sin(t * Math.PI) * 3;
     if (i) shortcutLength += Math.hypot(x - shortcut[i - 1].x, z - shortcut[i - 1].z);
-    shortcut.push({ x, z, y: 0, s: start.s + (end.s - start.s) * t });
+    shortcut.push({ x, z, y: 0, s: shortcutLength });
   }
+  for (const p of shortcut) p.s = start.s + (end.s - start.s) * (p.s / shortcutLength);
   const width = 14,
     shortcutWidth = 5.4;
   return {
@@ -119,9 +120,6 @@ export function projectOnTrack(track: TrackData, x: number, z: number, previousS
         dx = b.x - a.x,
         dz = b.z - a.z;
       const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
-      const px = a.x + dx * t,
-        pz = a.z + dz * t,
-        dist = Math.hypot(x - px, z - pz);
       const s = a.s + (b.s - a.s) * t;
       if (
         previousS !== undefined &&
@@ -129,6 +127,9 @@ export function projectOnTrack(track: TrackData, x: number, z: number, previousS
           12
       )
         continue;
+      const px = a.x + dx * t,
+        pz = a.z + dz * t,
+        dist = Math.hypot(x - px, z - pz);
       if (dist < best.distance)
         best = {
           distance: dist,
