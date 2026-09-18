@@ -22,7 +22,12 @@ const errors = [],
   evidence = {};
 const snapshot = (p) => p.evaluate(() => globalThis.__kart.snapshot());
 async function open(options) {
-  const page = await browser.newPage(options);
+  const page = await browser.newPage({
+    ...options,
+    userAgent: options?.hasTouch
+      ? 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'
+      : undefined,
+  });
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
@@ -46,6 +51,50 @@ try {
     path: new URL('menu.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
   await desktop.keyboard.press('Enter');
+  await desktop.waitForFunction(() => __kart.snapshot().time > 1);
+  assert.equal((await snapshot(desktop)).input.throttle, 0, 'desktop waits for forward input');
+  assert.ok((await snapshot(desktop)).player.speed < 0.1, 'desktop does not auto-accelerate');
+  for (const [key, field, value] of [
+    ['w', 'throttle', 1],
+    ['ArrowUp', 'throttle', 1],
+    ['a', 'steer', -1],
+    ['ArrowLeft', 'steer', -1],
+    ['d', 'steer', 1],
+    ['ArrowRight', 'steer', 1],
+    ['s', 'brake', true],
+    ['ArrowDown', 'brake', true],
+    ['Space', 'drift', true],
+    ['ShiftLeft', 'nitro', true],
+    ['ShiftRight', 'nitro', true],
+  ]) {
+    await desktop.keyboard.down(key);
+    assert.equal((await snapshot(desktop)).input[field], value, `${key} presses ${field}`);
+    await desktop.keyboard.up(key);
+    assert.equal(
+      (await snapshot(desktop)).input[field],
+      typeof value === 'boolean' ? false : 0,
+      `${key} releases ${field}`,
+    );
+  }
+  await desktop.keyboard.down('w');
+  await desktop.keyboard.down('ArrowUp');
+  await desktop.keyboard.up('w');
+  assert.equal((await snapshot(desktop)).input.throttle, 1, 'held alias stays active');
+  await desktop.keyboard.down('s');
+  const braking = (await snapshot(desktop)).input;
+  assert.equal(braking.throttle, 0, 'braking takes priority over forward');
+  assert.equal(braking.reverse, true);
+  await desktop.keyboard.up('s');
+  await desktop.keyboard.up('ArrowUp');
+  await desktop.keyboard.down('a');
+  await desktop.keyboard.down('d');
+  assert.equal((await snapshot(desktop)).input.steer, 0, 'opposite steering cancels');
+  await desktop.keyboard.up('a');
+  assert.equal((await snapshot(desktop)).input.steer, 1);
+  await desktop.keyboard.up('d');
+  await desktop.keyboard.press('p');
+  await desktop.keyboard.press('r');
+  await desktop.keyboard.down('ArrowUp');
   await desktop.waitForFunction(() => __kart.snapshot().time > 5.2);
   await desktop.keyboard.down('ArrowLeft');
   await desktop.keyboard.down('Space');
@@ -58,6 +107,7 @@ try {
     path: new URL('keyboard-boost.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
   await desktop.keyboard.down('p');
+  await desktop.keyboard.up('ArrowUp');
   const paused = await snapshot(desktop);
   await desktop.keyboard.down('p');
   await desktop.waitForTimeout(300);
@@ -88,6 +138,7 @@ try {
   assert.equal((await snapshot(desktop)).phase, 'paused');
   assert.equal((await snapshot(desktop)).time, countdown.time);
   await desktop.keyboard.press('Enter');
+  await desktop.keyboard.down('ArrowUp');
   await desktop.waitForFunction(() => __kart.snapshot().time > 2);
   await desktop.keyboard.down('ArrowRight');
   await desktop.keyboard.down('Space');

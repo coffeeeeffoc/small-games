@@ -5,6 +5,34 @@ import { createKart, driveKart, collideKart } from '../assets/scripts/KartPhysic
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { createTrack, pointAt } from '../assets/scripts/TrackGenerator.ts';
 
+test('nitro accelerates, expires, respects cooldown and requires a fresh press', () => {
+  const kart = createKart(0, 0, 0),
+    normal = createKart(0, 0, 0);
+  const input = { steer: 0, throttle: 1, brake: false, drift: false, nitro: true };
+  driveKart(kart, input, 1 / 60);
+  driveKart(normal, { ...input, nitro: false }, 1 / 60);
+  assert.ok(kart.speed > normal.speed);
+  assert.equal(kart.boost, C.nitroDuration);
+  assert.equal(kart.nitroCooldown, C.nitroCooldown);
+  for (let frame = 0; frame < 100; frame++) driveKart(kart, input, 1 / 60);
+  assert.equal(kart.boost, 0);
+  driveKart(kart, { ...input, nitro: false }, 1 / 60);
+  driveKart(kart, input, 1 / 60);
+  assert.equal(kart.boost, 0, 'cooldown prevents a second burst');
+  for (let frame = 0; frame < 400; frame++) driveKart(kart, input, 1 / 60);
+  assert.equal(kart.nitroCooldown, 0);
+  assert.equal(kart.boost, 0, 'holding the button does not auto-repeat');
+  driveKart(kart, { ...input, nitro: false }, 1 / 60);
+  driveKart(kart, { ...input, brake: true }, 1 / 60);
+  assert.equal(kart.boost, 0, 'braking blocks activation');
+  driveKart(kart, { ...input, nitro: false }, 1 / 60);
+  driveKart(kart, input, 1 / 60);
+  assert.equal(kart.boost, C.nitroDuration);
+  collideKart(kart);
+  assert.equal(kart.boost, 0, 'a collision cancels the burst');
+  assert.ok(kart.nitroCooldown > 0, 'a collision does not refund cooldown');
+});
+
 test('sideways momentum loses speed to tire friction instead of rotating at full speed', () => {
   const kart = createKart(0, 0, Math.PI / 2);
   kart.speed = 20;

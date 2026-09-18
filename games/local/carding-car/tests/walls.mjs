@@ -18,6 +18,7 @@ try {
     await page.goto(process.env.KART_URL || 'http://127.0.0.1:4198');
     await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
     await page.keyboard.press('Enter');
+    await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => __kart.snapshot().time > 1.8);
     await page.keyboard.down('Arrow' + side);
     await page.waitForFunction(() => __kart.snapshot().collisions > 0, {}, { timeout: 10000 });
