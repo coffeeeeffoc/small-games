@@ -1,0 +1,143 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2",
+  "files": [],
+  "subMetas": {
+    "98766": {
+      "importer": "gltf-material",
+      "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@98766",
+      "displayName": "",
+      "id": "98766",
+      "name": "model.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "3399f": {
+      "importer": "gltf-mesh",
+      "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@3399f",
+      "displayName": "",
+      "id": "3399f",
+      "name": "model.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 4768
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "63f10": {
+      "importer": "gltf-embeded-image",
+      "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@63f10",
+      "displayName": "",
+      "id": "63f10",
+      "name": "shaded.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": false,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".jpg",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e39f7": {
+      "importer": "texture",
+      "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@e39f7",
+      "displayName": "",
+      "id": "e39f7",
+      "name": "UnnamedTexture.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "linear",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@63f10"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b14d8": {
+      "importer": "gltf-scene",
+      "uuid": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@b14d8",
+      "displayName": "",
+      "id": "b14d8",
+      "name": "supercar.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "name": "shaded",
+        "uri": "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@63f10"
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@3399f"
+      ],
+      "skeletons": [],
+      "textures": [
+        "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@e39f7"
+      ],
+      "materials": [
+        "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@98766"
+      ],
+      "scenes": [
+        "3ff6ac78-0c8b-4435-86a8-62e659ba71e2@b14d8"
+      ]
+    }
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235",
+  "files": [],
+  "subMetas": {
+    "d4b18": {
+      "importer": "gltf-mesh",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@d4b18",
+      "displayName": "",
+      "id": "d4b18",
+      "name": "Part0.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ccb89": {
+      "importer": "gltf-mesh",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@ccb89",
+      "displayName": "",
+      "id": "ccb89",
+      "name": "Part1.mesh",
+      "userData": {
+        "gltfIndex": 1,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "55a8e": {
+      "importer": "gltf-mesh",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@55a8e",
+      "displayName": "",
+      "id": "55a8e",
+      "name": "Part2.mesh",
+      "userData": {
+        "gltfIndex": 2,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ddf23": {
+      "importer": "gltf-material",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@ddf23",
+      "displayName": "",
+      "id": "ddf23",
+      "name": "Part0.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e03c0": {
+      "importer": "gltf-material",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@e03c0",
+      "displayName": "",
+      "id": "e03c0",
+      "name": "Part1.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "295c9": {
+      "importer": "gltf-material",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@295c9",
+      "displayName": "",
+      "id": "295c9",
+      "name": "Part2.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f6e7f": {
+      "importer": "gltf-scene",
+      "uuid": "7c477356-74a1-47f2-b76f-a85ce5445235@f6e7f",
+      "displayName": "",
+      "id": "f6e7f",
+      "name": "snow-peak.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "7c477356-74a1-47f2-b76f-a85ce5445235@d4b18",
+        "7c477356-74a1-47f2-b76f-a85ce5445235@ccb89",
+        "7c477356-74a1-47f2-b76f-a85ce5445235@55a8e"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "7c477356-74a1-47f2-b76f-a85ce5445235@ddf23",
+        "7c477356-74a1-47f2-b76f-a85ce5445235@e03c0",
+        "7c477356-74a1-47f2-b76f-a85ce5445235@295c9"
+      ],
+      "scenes": [
+        "7c477356-74a1-47f2-b76f-a85ce5445235@f6e7f"
+      ]
+    }
+  }
+}

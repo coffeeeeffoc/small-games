@@ -11,6 +11,7 @@ import {
   primitives,
   resources,
   Texture2D,
+  Vec4,
   utils,
 } from 'cc';
 
@@ -27,9 +28,12 @@ export const palette = {
   blue: '#549cea',
 };
 export function loadArt<T extends Asset>(name: string, type: new () => T) {
+  if (name.startsWith('expansion/') && Object.is(type, Prefab)) name += '/' + name.split('/').pop();
   return new Promise<T>((resolve, reject) =>
-    resources.load('seaside/' + name, type, (error, asset) =>
-      error ? reject(error) : resolve(asset),
+    resources.load(
+      name.startsWith('expansion/') ? name : 'seaside/' + name,
+      type,
+      (error, asset) => (error ? reject(error) : resolve(asset)),
     ),
   );
 }
@@ -49,15 +53,16 @@ export function placeModel(prefab: Prefab, parent: Node, name: string) {
           original.getProperty('mainTexture') ||
           original.getProperty('albedoMap') ||
           original.getProperty('emissiveMap');
-        if (!(texture instanceof Texture2D)) throw new Error(`Missing shaded texture: ${name}`);
+        const baseColor =
+          original.getProperty('mainColor') || original.getProperty('albedo') || Color.WHITE;
         shared = new Material();
         shared.initialize({
           effectName: 'builtin-unlit',
-          defines: { USE_TEXTURE: true },
+          defines: { USE_TEXTURE: texture instanceof Texture2D },
           states: { rasterizerState: { cullMode: gfx.CullMode.NONE } },
         });
-        shared.setProperty('mainColor', Color.WHITE);
-        shared.setProperty('mainTexture', texture);
+        shared.setProperty('mainColor', baseColor instanceof Color || baseColor instanceof Vec4 ? baseColor : Color.WHITE);
+        if (texture instanceof Texture2D) shared.setProperty('mainTexture', texture);
         modelMaterials.set(original, shared);
       }
       renderer.setMaterial(shared, index);
@@ -149,7 +154,9 @@ export class MeshBatch {
       const node = new Node(hex);
       root.addChild(node);
       const renderer = node.addComponent(MeshRenderer);
-      renderer.mesh = utils.createMesh(geometry);
+      const mesh = utils.createMesh(geometry);
+      renderer.mesh = mesh;
+      node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
       renderer.setMaterial(material(hex), 0);
     }
     return root;
