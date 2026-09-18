@@ -1,6 +1,7 @@
 import {
   randomWords,
   parseWords,
+  formatWords,
   letters,
   createGame,
   available,
@@ -8,9 +9,14 @@ import {
   undo,
   clearDraft,
   checkAnswer,
-  selectTarget,
   hint,
+  removeDraft,
+  isBlocked,
+  reshuffle,
+  canSpell,
 } from "./game.mjs";
+import { practiceBatches } from './library.mjs';
+import { setupLibrary } from './library-ui.mjs';
 
 const $ = (id) => document.getElementById(id);
 const icon = (name) =>
@@ -23,6 +29,7 @@ let celebration;
 let highlighted;
 let soundEnabled = true;
 let audio;
+let practice;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -73,7 +80,29 @@ function feedback(text, type = "") {
 
 function buildBoard() {
   $("board").replaceChildren();
+  $("board").classList.toggle('overlap-board', game.overlap);
+  $("board").style.aspectRatio = game.overlap ? `350 / ${game.boardHeight}` : '';
   tiles = new Map();
+  if (game.overlap) {
+    for (const tile of game.tiles) {
+      const button = element('button', 'letter-tile overlap-tile', tile.char);
+      button.type = 'button';
+      button.dataset.char = tile.char;
+      button.dataset.tileId = tile.id;
+      button.style.left = `${tile.x / 350 * 100}%`;
+      button.style.top = `${tile.y / game.boardHeight * 100}%`;
+      button.style.width = `${tile.size / 350 * 100}%`;
+      button.style.height = `${tile.size / game.boardHeight * 100}%`;
+      button.style.zIndex = tile.z;
+      button.addEventListener('click', () => {
+        const selected = game.selected.indexOf(tile.id);
+        if (selected >= 0 && !locked) { removeDraft(game, selected); clearFeedback(); render(); }
+        else choose(tile.char, tile.id);
+      });
+      tiles.set(tile.id, button); $('board').append(button);
+    }
+    return;
+  }
   const characters = [...game.remaining.keys()];
   for (let index = characters.length - 1; index > 0; index--) {
     const swap = Math.floor(Math.random() * (index + 1));
@@ -99,6 +128,23 @@ function buildBoard() {
 function updateBoard() {
   let total = 0;
   let kinds = 0;
+  if (game.overlap) {
+    for (const [id, button] of tiles) {
+      const tile = game.tiles[id];
+      const blocked = isBlocked(tile, game.tiles);
+      const selected = game.selected.includes(id);
+      button.disabled = locked || blocked || tile.removed;
+      button.hidden = tile.removed;
+      button.classList.toggle('blocked', blocked);
+      button.classList.toggle('selected', selected);
+      button.classList.toggle('hinted', !blocked && !selected && tile.char === highlighted);
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-label', `${tile.char}，${blocked ? '被遮挡，暂不可选' : selected ? '已选，点击放回' : '可以选择'}`);
+    }
+    const remaining = game.tiles.filter(tile => !tile.removed);
+    $('board-summary').textContent = `还剩 ${remaining.length} 块 · ${remaining.filter(tile => !isBlocked(tile, game.tiles)).length} 块已露出 · 已选 ${game.draft.length} 块`;
+    return;
+  }
   for (const [char, button] of tiles) {
     const stock = game.remaining.get(char);
     const count = available(game, char);
@@ -126,7 +172,7 @@ function updateBoard() {
 }
 
 function renderAnswer() {
-  const word = game.entries[game.target].word;
+  const word = game.ordered ? game.entries[game.target].word : game.draft.join('');
   $("answer").replaceChildren();
   $("answer").classList.toggle("long-word", letters(word).length > 10);
   let index = 0;
@@ -149,15 +195,15 @@ function renderAnswer() {
     slot.setAttribute(
       "aria-label",
       filled
-        ? `第 ${position + 1} 格 ${game.draft[position]}，点击撤回到此格`
+        ? `第 ${position + 1} 格 ${game.draft[position]}，点击放回此字母`
         : `第 ${position + 1} 格，待填写`,
     );
     slot.addEventListener("click", () => {
       if (locked) return;
-      game.draft.length = position;
+      removeDraft(game, position);
       clearFeedback();
       render();
-      feedback("已撤回到这一格，换个字母试试。");
+      feedback("已放回这个字母，其他选择保持不变。");
     });
     $("answer").append(slot);
   }
@@ -165,19 +211,27 @@ function renderAnswer() {
     "aria-label",
     `当前拼写：${game.draft.join("") || "尚未填写"}`,
   );
+  if (!game.ordered && !game.draft.length) $('answer').append(element('span', 'draft-placeholder', '先选字母，再点中文词义确认'));
 }
 
 function renderWordList() {
-  $("progress").max = game.entries.length;
-  $("progress").value = game.completed.size;
+  const home = $(game.ordered ? 'word-list-home' : 'free-clues');
+  if ($('word-list').parentElement !== home) home.append($('word-list'));
+  $('free-clues').hidden = game.ordered;
+  const completedCount = practice.done + game.completed.size;
+  $('batch-number').textContent = `第 ${practice.index + 1}/${practice.batches.length} 批`;
+  $('practice-progress').textContent = `${practice.title} · 总进度 ${completedCount}/${practice.entries.length} · 第 ${practice.index + 1}/${practice.batches.length} 批 · 本批 ${game.entries.length} 个词${practice.index + 1 < practice.batches.length ? '，拼完自动继续下一批' : '，这是最后一批'}`;
+  $("progress").max = practice.entries.length;
+  $("progress").value = completedCount;
   $("progress-count").replaceChildren(
-    document.createTextNode(`${game.completed.size} `),
-    element("span", "", `/ ${game.entries.length}`),
+    document.createTextNode(`${completedCount} `),
+    element("span", "", `/ ${practice.entries.length}`),
   );
   $("word-list").replaceChildren();
   game.entries.forEach((entry, index) => {
     const completed = game.completed.has(index);
-    const current = index === game.target && !completed;
+    if (completed && !game.ordered) return;
+    const current = game.ordered && index === game.target && !completed;
     const li = element("li");
     const button = element(
       "button",
@@ -185,10 +239,10 @@ function renderWordList() {
     );
     button.type = "button";
     button.dataset.index = index;
-    button.disabled = completed || locked;
+    button.disabled = completed || locked || (game.ordered && !current);
     button.setAttribute(
       "aria-label",
-      `${entry.meaning}，${completed ? `已完成 ${entry.word}` : current ? "正在拼写" : "点击开始拼写"}`,
+      `${entry.meaning}，${completed ? `已完成 ${entry.word}` : game.ordered ? current ? '正在拼写' : '等待按序练习' : '点击确认匹配'}`,
     );
     if (current) button.setAttribute("aria-current", "step");
     const number = element(
@@ -204,12 +258,7 @@ function renderWordList() {
     if (current) status.innerHTML = icon("arrow");
     button.append(number, copy, status);
     button.addEventListener("click", () => {
-      if (locked || index === game.target) return;
-      if (selectTarget(game, index)) {
-        clearFeedback();
-        render();
-        feedback("换一个词，换一点新思路。");
-      }
+      if (!locked && !game.ordered) submit(index);
     });
     li.append(button);
     $("word-list").append(li);
@@ -221,16 +270,23 @@ function updateControls() {
   $("clear-button").disabled = locked || !game.draft.length;
   $("hint-button").disabled =
     locked || game.completed.size === game.entries.length;
+  $('hint-button').hidden = !game.ordered;
+  $('shuffle-button').hidden = !game.overlap;
+  $('shuffle-button').disabled = locked || game.completed.size === game.entries.length;
 }
 
 function render() {
   const entry = game.entries[game.target];
   $("challenge-number").textContent =
-    `WORD ${String(game.target + 1).padStart(2, "0")} / ${String(game.entries.length).padStart(2, "0")}`;
-  $("meaning").textContent = entry.meaning;
+    `本批第 ${game.target + 1} / ${game.entries.length} 词`;
+  $("meaning").textContent = game.ordered ? entry.meaning : '自由拼词';
   const count = letters(entry.word).length;
   $("letter-count").textContent =
-    `${count} 个字母${/[.'-]/.test(entry.word) ? "与符号" : ""}${entry.word.includes(" ") ? " · 空格已为你留好" : ""}`;
+    game.ordered ? `${count} 个字母${/[^a-z ]/.test(entry.word) ? "与符号" : ""}${entry.word.includes(" ") ? " · 空格已为你留好" : ""}` : `已选 ${game.draft.length} 个字母与符号 · 不提示目标长度`;
+  $('clue-instruction').textContent = game.ordered ? '请拼出这个词' : '选字母，再点词义';
+  $('word-list-tip').textContent = game.ordered ? '按当前词义拼写，填满后自动检查' : '点击中文词义确认；匹配成功才消除';
+  $('mode-label').textContent = `${game.overlap ? '重叠' : '平铺'} · ${game.ordered ? '按序拼写' : '自由匹配'}`;
+  $('board-rule').textContent = game.overlap ? '被压住不可选 · 卡住可重新排列' : '右上角数字 = 可选数量';
   renderAnswer();
   updateBoard();
   renderWordList();
@@ -242,17 +298,22 @@ function clearFeedback() {
   $("challenge").classList.remove("is-correct", "is-incorrect");
 }
 
-function choose(char) {
-  if (locked || !pick(game, char)) return;
+function choose(char, tileId) {
+  if (locked || !pick(game, char, tileId)) return;
   clearFeedback();
   render();
-  if (game.draft.length < letters(game.entries[game.target].word).length) {
+  if (!game.ordered || game.draft.length < letters(game.entries[game.target].word).length) {
     playSound();
-    feedback("字母就位，继续拼出你的答案。");
+    feedback(game.ordered ? '字母就位，继续拼出你的答案。' : '选好后，点击词单中的中文含义确认。');
     return;
   }
-  const solved = game.entries[game.target];
-  const result = checkAnswer(game);
+  submit(game.target);
+}
+
+function submit(index) {
+  const solved = game.entries[index];
+  const result = checkAnswer(game, index);
+  if (result === 'incomplete') { feedback('先选择字母，再点对应的中文含义。'); return; }
   if (result === "incorrect") {
     $("challenge").classList.add("is-incorrect");
     feedback("还差一点点！字母没有消耗，撤回或清空再试试。", "error");
@@ -272,14 +333,38 @@ function choose(char) {
   transition = setTimeout(() => {
     locked = false;
     clearFeedback();
+    if (result === 'finished') {
+      practice.moves += game.moves;
+      practice.hints += game.hints;
+      if (practice.index + 1 < practice.batches.length) {
+        practice.done += game.entries.length;
+        practice.index++;
+        startBatch();
+        feedback('这批拼完了！继续下一批，直到练完本次选出的单词。', 'success');
+        return;
+      }
+    }
+    if (game.overlap) buildBoard();
     render();
     if (result === "finished") finishGame();
     else feedback(`「${solved.word}」已收好，接着拼下一个吧。`, "success");
   }, 650);
 }
 
-function startGame(entries = randomWords()) {
-  const next = createGame(entries);
+function startPractice(entries = randomWords(), title = '随手练一组', count = null) {
+  const batches = practiceBatches(entries, Math.random, count);
+  for (const batch of batches) createGame(batch);
+  const wasPlaying = !!game;
+  practice = { sourceEntries: entries, entries: batches.flat(), count, title, batches, index: 0, done: 0, moves: 0, hints: 0 };
+  startBatch();
+  if (wasPlaying && matchMedia('(max-width: 760px)').matches)
+    document.querySelector('.play-card').scrollIntoView({ block: 'start' });
+}
+
+function startBatch() {
+  const next = createGame(practice.batches[practice.index], {
+    overlap: $('overlap-mode').checked, ordered: $('ordered-mode').checked,
+  });
   clearTimeout(transition);
   clearTimeout(celebration);
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
@@ -299,22 +384,22 @@ function finishGame() {
   $("meaning").textContent = "全部拼对啦";
   $("letter-count").textContent = "一块不剩，刚刚好。";
   $("answer").replaceChildren();
-  feedback(`你已经收集了 ${game.entries.length} 个好词！`, "success");
+  feedback(`你已经练完所选的 ${practice.entries.length} 个单词！`, "success");
   const cleared = element("div", "empty-board");
   cleared.innerHTML = `${icon("leaf")}<strong>这片花园，收获满满</strong><span>全部字母已消除 · 再来一局吧</span>`;
   $("board").replaceChildren(cleared);
   $("win-stats").replaceChildren();
   [
-    [game.entries.length, "单词已记住"],
-    [game.moves, "次选字"],
-    [game.hints, "次提示"],
+    [practice.entries.length, "单词已练习"],
+    [practice.moves, "次选字"],
+    [practice.hints, "次提示"],
   ].forEach(([value, label]) => {
     const stat = element("div");
     stat.append(element("strong", "", value), element("span", "", label));
     $("win-stats").append(stat);
   });
   $("win-words").replaceChildren(
-    ...game.entries.map(({ word, meaning }) =>
+    ...practice.entries.map(({ word, meaning }) =>
       element("span", "", `${word} · ${meaning}`),
     ),
   );
@@ -355,14 +440,24 @@ $("hint-button").addEventListener("click", () => {
   const before = game.draft.join("");
   clearFeedback();
   highlighted = hint(game);
+  if (game.overlap && !canSpell(game, game.target)) {
+    reshuffle(game); buildBoard(); highlighted = hint(game);
+  }
   render();
   if (highlighted)
     feedback(
       `${before && !game.draft.length ? "先帮你清空错序字母。" : ""}下一块是「${highlighted}」，点亮的那一块就是。`,
     );
 });
-$("new-game").addEventListener("click", () => startGame());
-$("play-again").addEventListener("click", () => startGame());
+const restart = () => startPractice(practice.sourceEntries, practice.title, practice.count);
+$("new-game").addEventListener("click", restart);
+$("play-again").addEventListener("click", restart);
+for (const id of ['ordered-mode', 'overlap-mode']) $(id).addEventListener('change', restart);
+$('shuffle-button').addEventListener('click', () => {
+  if (locked) return;
+  reshuffle(game); clearFeedback(); buildBoard(); render();
+  feedback('已放回选择并重新排列，完成进度保留。');
+});
 $("sound-button").addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   $("sound-button").setAttribute("aria-pressed", String(soundEnabled));
@@ -375,23 +470,19 @@ $("sound-button").addEventListener("click", () => {
 });
 $("help-button").addEventListener("click", () => $("help-dialog").showModal());
 $("edit-words").addEventListener("click", () => {
-  $("words-input").value = game.entries
-    .map(({ word, meaning }) => `${word}\t${meaning}`)
-    .join("\n");
+  $("words-input").value = formatWords(practice.entries.length <= 12 ? practice.entries : game.entries);
   $("words-error").textContent = "";
   $("words-dialog").showModal();
 });
 $("random-words").addEventListener("click", () => {
-  $("words-input").value = randomWords()
-    .map(({ word, meaning }) => `${word}\t${meaning}`)
-    .join("\n");
+  $("words-input").value = formatWords(randomWords());
   $("words-error").textContent = "";
 });
 $("words-form").addEventListener("submit", (event) => {
   event.preventDefault();
   try {
     const entries = parseWords($("words-input").value);
-    startGame(entries);
+    startPractice(entries, '自定义词单');
   } catch (error) {
     $("words-error").textContent = error.message;
   }
@@ -408,7 +499,7 @@ document.addEventListener("keydown", (event) => {
     event.altKey ||
     event.isComposing ||
     document.querySelector("dialog[open]") ||
-    event.target.closest('input, textarea, [contenteditable="true"]')
+    event.target.closest('input, select, textarea, [contenteditable="true"]')
   )
     return;
   if (event.key === "Backspace") {
@@ -417,7 +508,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape") {
     event.preventDefault();
     removeAll();
-  } else if (/^[a-z.'‘’-]$/i.test(event.key)) {
+  } else if (/^[a-z0-9.'‘’!?()/=…⋯-]$/i.test(event.key)) {
     event.preventDefault();
     choose(event.key.toLowerCase().replace(/[‘’]/g, "'"));
   }
@@ -427,4 +518,5 @@ document.addEventListener("visibilitychange", () => {
     void audio.suspend().catch(() => {});
 });
 
-startGame();
+setupLibrary(startPractice);
+startPractice();

@@ -108,21 +108,29 @@
           </button>
         </section>
 
+        <section class="practice-bar" aria-label="词库与练习模式">
+          <button id="open-library" class="button button-green">词库管理 / 选择练习</button>
+          <label><input id="overlap-mode" type="checkbox" /> 字母重叠</label>
+          <label><input id="ordered-mode" type="checkbox" checked /> 按预期单词顺序拼写</label>
+          <p id="practice-progress" role="status"></p>
+          <p class="mode-note">切换模式会重新开始当前练习范围。</p>
+        </section>
         <div class="game-layout">
           <section class="play-card" aria-label="单词拼写区">
             <div class="play-heading">
               <span><span class="tiny-square"></span> 字母消消乐</span
-              ><span class="round-label">轻松模式 <span>·</span> 不限时</span>
+              ><span id="mode-label" class="round-label">按序拼写 · 不限时</span>
             </div>
             <div id="challenge" class="challenge">
               <div class="clue-label">
                 <span id="challenge-number">WORD 01 / 06</span
-                ><span class="clue-line"></span><span>请拼出这个词</span>
+                ><span class="clue-line"></span><span id="clue-instruction">请拼出这个词</span>
               </div>
               <h2 id="meaning"></h2>
               <p id="letter-count" class="letter-count"></p>
               <div id="answer" class="answer-slots" aria-label="当前拼写"></div>
             </div>
+            <div id="free-clues" class="free-clues" aria-label="点击中文词义确认"></div>
 
             <div
               id="feedback"
@@ -134,7 +142,7 @@
             </div>
             <div class="board-wrap">
               <div class="board-caption">
-                <span>你的字母棋盘</span><span>右上角数字 = 可选数量</span>
+                <span>你的字母棋盘</span><span id="board-rule">右上角数字 = 可选数量</span>
               </div>
               <div
                 id="board"
@@ -160,6 +168,7 @@
                 <svg class="icon"><use href="#i-bulb" /></svg
                 ><span>给点提示</span>
               </button>
+              <button id="shuffle-button" class="tool-button" hidden>重新排列</button>
             </div>
             <p class="play-footnote">
               拼对才会消除，选错也没关系。<span
@@ -171,22 +180,22 @@
           <aside class="sidebar">
             <section class="word-card" aria-labelledby="word-list-title">
               <div class="word-card-heading">
-                <h2 id="word-list-title">本局词单</h2>
-                <span class="small-label">TO LEARN</span>
+                <h2 id="word-list-title">本批词单</h2>
+                <span id="batch-number" class="small-label"></span>
               </div>
               <div class="progress-description">
-                <span>一点点，攒满成就感</span
+                <span>本次练习总进度</span
                 ><strong id="progress-count">0 <span>/ 6</span></strong>
               </div>
               <progress
                 id="progress"
                 value="0"
                 max="6"
-                aria-label="单词完成进度"
+                aria-label="本次练习总进度"
               ></progress>
-              <ol id="word-list" class="word-list"></ol>
-              <div class="word-list-tip">
-                <span class="small-dot"></span> 点击词义，可以换一个先拼
+              <div id="word-list-home"><ol id="word-list" class="word-list"></ol></div>
+              <div id="word-list-tip" class="word-list-tip">
+                按当前词义拼写，填满后自动检查
               </div>
               <button id="edit-words" class="button edit-button">
                 <svg class="icon"><use href="#i-edit" /></svg> 自定义词单
@@ -202,7 +211,7 @@
                 ><span class="sprout"><i></i><i></i></span>
               </div>
               <h3>每一块，都刚刚好</h3>
-              <p>重复字母叠在一起，<br />拼完所有单词，棋盘就清空啦。</p>
+              <p>按需加载教材，按自己的节奏练习。<br />拼完一批，自动接上下一批。</p>
               <span class="note-pill"
                 >慢慢来，也是一种进步 <span>↗</span></span
               >
@@ -218,6 +227,53 @@
         </footer>
       </main>
     </div>
+
+    <dialog id="library-dialog" class="modal library-modal" aria-labelledby="library-title">
+      <div class="modal-heading"><span class="eyebrow">MY WORD LIBRARY</span><button class="icon-button close-dialog" aria-label="关闭词库管理">×</button></div>
+      <h2 id="library-title">我的教材词库</h2>
+      <p id="library-note" class="input-note">词库按书独立下载，练习只使用已加载的内容。</p>
+      <section class="library-section" aria-labelledby="download-title">
+        <h3 id="download-title">1. 加载词库</h3>
+        <div class="library-filters">
+          <label>出版社<select id="download-publisher" aria-label="下载出版社"></select></label>
+          <fieldset id="download-grades" class="grade-options">
+            <legend>年级（可多选）</legend>
+            <label><input id="download-all-grades" type="checkbox" /> 全部年级</label>
+            <div id="download-grade-options"></div>
+          </fieldset>
+        </div>
+        <p id="download-summary" class="input-note"></p>
+        <details><summary>查看本次包含的书</summary><ul id="download-books"></ul></details>
+        <div class="library-actions">
+          <button id="download-button" class="button button-green" disabled>下载所选词库</button>
+          <button id="cancel-download" class="button" hidden>取消下载</button>
+          <button id="refresh-library" class="text-button">刷新目录</button>
+        </div>
+      </section>
+      <p id="library-status" role="status" aria-live="polite"></p>
+      <section class="library-section" aria-labelledby="practice-title">
+        <h3 id="practice-title">2. 选择已加载的词库练习</h3>
+        <p id="practice-publisher-label" class="input-note"></p>
+        <div class="library-actions"><button id="select-loaded" class="text-button">全选当前列表</button><button id="clear-loaded-selection" class="text-button">清空选择</button></div>
+        <div id="loaded-books"></div>
+        <div class="practice-start">
+          <fieldset class="practice-amount">
+            <legend>这次练多少？</legend>
+            <div class="amount-options">
+              <label><input id="practice-random" type="radio" name="practice-amount" value="sample" checked /> 随机 N 个</label>
+              <label><input id="practice-all" type="radio" name="practice-amount" value="all" /> 随机全部</label>
+            </div>
+            <label id="practice-count-row" class="practice-count-row">单词数量
+              <input id="practice-count" type="number" inputmode="numeric" min="1" step="1" value="10" aria-describedby="practice-summary practice-size-error" />
+              <span>个</span>
+            </label>
+          </fieldset>
+          <p id="practice-summary" class="input-note" aria-live="polite">先下载，再选择整册或单元。</p>
+          <p id="practice-size-error" class="form-error" role="alert" hidden></p>
+          <button id="start-practice" class="button button-green full-width" disabled>开始所选练习</button>
+        </div>
+      </section>
+    </dialog>
 
     <dialog id="words-dialog" class="modal">
       <div class="modal-heading">
@@ -236,7 +292,7 @@
         ><textarea
           id="words-input"
           rows="8"
-          maxlength="800"
+          maxlength="8000"
           spellcheck="false"
           autocomplete="off"
           placeholder="apple 苹果&#10;ice cream 冰淇淋&#10;t-shirt T恤"
@@ -267,7 +323,7 @@
           <div>
             <h3>看一眼中文</h3>
             <p>
-              根据中间的中文提示，想一想对应的英文。词单里的词可以自由切换。
+              在词库管理中按出版社和年级下载，再勾选已加载的整册或单元。全部词汇随机分批练习。
             </p>
           </div>
         </li>
@@ -276,7 +332,7 @@
           <div>
             <h3>点字母，拼起来</h3>
             <p>
-              按顺序点击棋子。右上角显示还能选几次，撇号、连字符和句点也要拼上。
+              开启按序模式时，根据当前中文和长度拼写；关闭后先选字母，再点击对应中文词义确认。英文内的字母仍需按正确拼写排列，空格不用选。
             </p>
           </div>
         </li>
@@ -285,7 +341,7 @@
           <div>
             <h3>拼对一个，消除一组</h3>
             <p>
-              填满后自动检查。拼错可以撤回，或点已填字母撤回到那一格；拼对才会真正消耗棋子，清空棋盘就通关。
+              拼对才消除，错配保留字母；点击任意已选字母可放回。重叠模式中只要被上层压住就不能选，选中也不会提前解锁下层；卡住可免费重新排列。
             </p>
           </div>
         </li>

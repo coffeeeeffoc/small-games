@@ -1,0 +1,2 @@
+# Keep exported byte counts and SHA-256 revisions stable across Windows checkouts.
+assets/english-dict/** text eol=lf

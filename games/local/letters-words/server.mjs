@@ -1,13 +1,21 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 
 const files = new Map([
   ['/index.html', 'text/html; charset=utf-8'],
   ['/style.css', 'text/css; charset=utf-8'],
   ['/app.mjs', 'text/javascript; charset=utf-8'],
   ['/game.mjs', 'text/javascript; charset=utf-8'],
+  ['/library.mjs', 'text/javascript; charset=utf-8'],
+  ['/library-ui.mjs', 'text/javascript; charset=utf-8'],
+  ['/assets/english-dict/catalog.json', 'application/json; charset=utf-8'],
+  ['/assets/english-dict/publishers.json', 'application/json; charset=utf-8'],
+  ['/assets/english-dict/LICENSE-ECDICT.txt', 'text/plain; charset=utf-8'],
   ['/favicon.svg', 'image/svg+xml'],
 ]);
+for (const name of await readdir(new URL('./assets/english-dict/books/', import.meta.url))) {
+  if (/^[A-Za-z0-9_-]+\.json$/.test(name)) files.set(`/assets/english-dict/books/${name}`, 'application/json; charset=utf-8');
+}
 const port = Number(process.env.PORT ?? 4186);
 if (!Number.isInteger(port) || port < 0 || port > 65535) {
   throw new Error('PORT 必须是 0 到 65535 的整数。');
