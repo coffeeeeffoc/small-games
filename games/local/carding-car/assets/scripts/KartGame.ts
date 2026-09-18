@@ -25,11 +25,16 @@ export class KartGame extends Component {
   frameTime = 0;
   fps = 60;
   muted = false;
+  sceneryLoaded = false;
   records: RaceRecord[] = [];
   start() {
     profiler.hideStats();
     this.node.layer = Layers.Enum.DEFAULT;
-    buildTrack(this.node, this.race.track);
+    buildTrack(this.node, this.race.track)
+      .then(() => {
+        this.sceneryLoaded = true;
+      })
+      .catch((error) => console.error('[carding-car] scenery art failed', error));
     this.views = [palette.red, palette.blue, palette.yellow, palette.mint].map(
       (c) => new KartView(this.node, c),
     );
@@ -67,6 +72,7 @@ export class KartGame extends Component {
           resets: this.race.resets,
           order: this.race.order,
           modelsLoaded: this.views.every((v) => v.modelLoaded),
+          sceneryLoaded: this.sceneryLoaded,
           audioClips: this.audio.clips.size,
           audioPlaying: this.audio.source.playing,
           muted: this.muted,

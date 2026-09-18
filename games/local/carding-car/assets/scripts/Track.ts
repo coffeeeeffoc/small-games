@@ -1,10 +1,22 @@
-import { Node, primitives } from 'cc';
-import { MeshBatch, palette as P } from './SceneArt';
+import {
+  Color,
+  isValid,
+  JsonAsset,
+  Material,
+  MeshRenderer,
+  Node,
+  Prefab,
+  primitives,
+  Texture2D,
+  utils,
+} from 'cc';
+import { groundShadow, loadArt, MeshBatch, palette as P, placeModel } from './SceneArt';
 import { pointAt, projectOnTrack, type TrackData, type TrackPoint } from './TrackGenerator';
 
 function ribbon(points: TrackPoint[], left: number, right: number, lift: number) {
   const positions: number[] = [],
     normals: number[] = [],
+    uvs: number[] = [],
     indices: number[] = [];
   const closed =
     points[0].x === points[points.length - 1].x && points[0].z === points[points.length - 1].z;
@@ -15,6 +27,7 @@ function ribbon(points: TrackPoint[], left: number, right: number, lift: number)
     const heading = Math.atan2(b.x - a.x, b.z - a.z);
     for (const width of [left, right]) {
       positions.push(p.x + Math.cos(heading) * width, p.y + lift, p.z - Math.sin(heading) * width);
+      uvs.push((p.x + Math.cos(heading) * width) / 2, (p.z - Math.sin(heading) * width) / 2);
       normals.push(0, 1, 0);
     }
     if (i) {
@@ -22,11 +35,18 @@ function ribbon(points: TrackPoint[], left: number, right: number, lift: number)
       indices.push(n - 2, n, n - 1, n - 1, n, n + 1);
     }
   }
-  return { positions, normals, indices };
+  return { positions, normals, uvs, indices };
 }
 
-export function buildTrack(parent: Node, track: TrackData) {
+export async function buildTrack(parent: Node, track: TrackData) {
+  const root = new Node('Track');
+  parent.addChild(root);
   const b = new MeshBatch();
+  const lighthouseX = 240,
+    lighthouseZ = -200;
+  const roadMaterial = new Material();
+  roadMaterial.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
+  roadMaterial.setProperty('mainColor', new Color().fromHEX(P.road));
   b.box(P.sea, 0, -2.2, 0, 2400, 1, 2400);
   b.add(P.sand, primitives.cylinder(213, 218, 1.5, { radialSegments: 64 }), 0, -1.4, 0);
   b.add(P.grass, primitives.cylinder(201, 208, 0.6, { radialSegments: 64 }), 0, -0.9, 0);
@@ -35,7 +55,11 @@ export function buildTrack(parent: Node, track: TrackData) {
     [track.shortcut, track.shortcutWidth],
   ] as const) {
     b.add(P.sand, ribbon(points, -width / 2 - 1.6, width / 2 + 1.6, -0.04));
-    b.add(P.road, ribbon(points, -width / 2, width / 2, 0));
+    const road = new Node('Asphalt');
+    root.addChild(road);
+    const renderer = road.addComponent(MeshRenderer);
+    renderer.mesh = utils.createMesh(ribbon(points, -width / 2, width / 2, 0));
+    renderer.setMaterial(roadMaterial, 0);
     for (const side of [-1, 1]) {
       b.add(P.white, ribbon(points, (side * width) / 2 - 0.14, (side * width) / 2 + 0.14, 0.025));
     }
@@ -58,8 +82,9 @@ export function buildTrack(parent: Node, track: TrackData) {
     const p = pointAt(track, track.shortcutStart + metres * ratio, true);
     b.add(P.yellow, arrow, p.x, p.y + 0.045, p.z, 0.75, 1, 1, p.heading);
   }
+  const safety = new MeshBatch();
   track.barriers.forEach((wall, i) =>
-    b.box(
+    safety.box(
       i % 4 < 2 ? P.white : P.red,
       wall.x,
       wall.y + 0.375,
@@ -70,6 +95,7 @@ export function buildTrack(parent: Node, track: TrackData) {
       wall.heading,
     ),
   );
+  const fallbackRails = safety.build(root, 'FallbackRails');
   // Checkered finish line and a toy gantry, clearly visible from the starting grid.
   const start = pointAt(track, 0),
     h = start.heading;
@@ -107,18 +133,6 @@ export function buildTrack(parent: Node, track: TrackData) {
       0.75,
       h,
     );
-  // Deterministic, batched props keep the mobile draw-call budget predictable.
-  for (let i = 0; i < 82; i++) {
-    const angle = i * 2.399963,
-      r = 45 + ((i * 37) % 144),
-      x = Math.cos(angle) * r,
-      z = Math.sin(angle) * r;
-    if (projectOnTrack(track, x, z).distance < 17) continue;
-    const height = 3 + (i % 4);
-    b.box('#a17f5d', x, height / 2 - 0.6, z, 0.8, height, 0.8);
-    b.ball(i % 3 ? '#56b893' : '#aad98a', x, height, z, 5.5, 5.5, 5.5);
-    if (i % 3 === 0) b.ball('#b1c2c3', x + 4, 0.3, z + 3, 3, 2, 2.5);
-  }
   for (let i = 0; i < 14; i++) {
     const p = pointAt(track, (i * track.length) / 14 + 60),
       side = i % 2 ? 1 : -1;
@@ -143,5 +157,110 @@ export function buildTrack(parent: Node, track: TrackData) {
   }
   for (let i = 0; i < 5; i++)
     b.ball('#6abda8', -280 + i * 130, -0.7, 290 + (i % 2) * 80, 80, 40 + i * 8, 65);
-  return b.build(parent, 'Track');
+  // A separate offshore landmark is visible from the starting straight.
+  b.add(
+    '#b9e5d9',
+    primitives.cylinder(26, 28, 0.15, { radialSegments: 48 }),
+    lighthouseX,
+    -1.62,
+    lighthouseZ,
+  );
+  b.add(
+    P.sand,
+    primitives.cylinder(18, 24, 2, { radialSegments: 48 }),
+    lighthouseX,
+    -1.3,
+    lighthouseZ,
+  );
+  b.build(root, 'Coast');
+
+  const [palm, tree, rocks, lighthouse, asphalt, profiles] = await Promise.all([
+    loadArt('palm/palm', Prefab),
+    loadArt('broadleaf/broadleaf', Prefab),
+    loadArt('coastal-rocks/coastal-rocks', Prefab),
+    loadArt('lighthouse/lighthouse', Prefab),
+    loadArt('asphalt/texture', Texture2D),
+    loadArt('road-profiles', JsonAsset),
+  ]);
+  if (!isValid(root)) return;
+  asphalt.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
+  asphalt.setFilters(Texture2D.Filter.LINEAR, Texture2D.Filter.LINEAR);
+  roadMaterial.setProperty('mainTexture', asphalt);
+  roadMaterial.setProperty('mainColor', Color.WHITE);
+  const kit = profiles.json as Record<
+    'barrier' | 'kerb',
+    (primitives.IGeometry & { material: number })[]
+  >;
+  const edges = new MeshBatch();
+  for (const wall of track.barriers) {
+    for (const part of kit.barrier)
+      edges.add(
+        part.material === 1 ? P.red : P.white,
+        part,
+        wall.x,
+        wall.y,
+        wall.z,
+        (wall.halfWidth * 2) / 0.6,
+        1,
+        (wall.halfLength * 2) / 4,
+        wall.heading,
+      );
+    for (const part of kit.kerb)
+      edges.add(
+        part.material === 1 ? P.red : P.white,
+        part,
+        wall.x + wall.inwardX * 1.05,
+        wall.y,
+        wall.z + wall.inwardZ * 1.05,
+        1,
+        1,
+        (wall.halfLength * 2) / 4,
+        wall.heading,
+      );
+  }
+  edges.build(root, 'SeasideRails');
+  fallbackRails.destroy();
+
+  // Shared meshes/textures; keep scenery sparse instead of drawing a forest on phones.
+  for (let i = 0; i < 28; i++) {
+    const p = pointAt(track, (i * track.length) / 28 + 15),
+      side = i % 2 ? 1 : -1;
+    const offset = side * (19 + (i % 3) * 3);
+    const x = p.x + Math.cos(p.heading) * offset,
+      z = p.z - Math.sin(p.heading) * offset;
+    if (projectOnTrack(track, x, z).distance < 13) continue;
+    const model = placeModel(i % 3 ? tree : palm, root, i % 3 ? 'SeasideTree' : 'SeasidePalm');
+    model.setPosition(x, -0.58, z);
+    const scale = 0.82 + (i % 4) * 0.1;
+    model.setScale(scale, scale, scale);
+    model.setRotationFromEuler(0, i * 137.5, 0);
+    const shadow = groundShadow(root, 5 * scale, 3 * scale);
+    shadow.setPosition(x, -0.585, z);
+  }
+  for (let i = 0; i < 18; i++) {
+    const p = pointAt(track, (i * track.length) / 18 + 40),
+      side = i % 2 ? -1 : 1;
+    const x = p.x + Math.cos(p.heading) * side * 17,
+      z = p.z - Math.sin(p.heading) * side * 17;
+    if (projectOnTrack(track, x, z).distance < 12) continue;
+    const model = placeModel(rocks, root, 'SeasideRocks');
+    model.setPosition(x, -0.6, z);
+    model.setRotationFromEuler(0, i * 73, 0);
+    const scale = 0.8 + (i % 3) * 0.25;
+    model.setScale(scale, scale, scale);
+  }
+  for (const x of [18, 62]) {
+    const model = placeModel(palm, root, 'CoastalPalm');
+    model.setPosition(x, -0.58, -169);
+    model.setRotationFromEuler(0, x * 7, 0);
+  }
+  const tower = placeModel(lighthouse, root, 'SeasideLighthouse');
+  tower.setPosition(lighthouseX, -0.3, lighthouseZ);
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * Math.PI) / 3;
+    const model = placeModel(rocks, root, 'LighthouseShore');
+    model.setPosition(lighthouseX + Math.cos(angle) * 17, -1.5, lighthouseZ + Math.sin(angle) * 17);
+    model.setScale(2.5, 2, 2.5);
+    model.setRotationFromEuler(0, i * 60, 0);
+  }
 }

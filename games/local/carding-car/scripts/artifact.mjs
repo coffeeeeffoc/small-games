@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { artSource, artFiles } from './prepare-art.mjs';
 export const root = fileURLToPath(new URL('../', import.meta.url));
 export async function sourceHash() {
   const hash = createHash('sha256');
@@ -18,12 +19,18 @@ export async function sourceHash() {
     const entries = await readdir(path.join(root, relative), { withFileTypes: true });
     for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const child = relative + '/' + entry.name;
+      if (relative === 'assets/resources/seaside' && artFiles.includes(entry.name)) continue;
       if (entry.isDirectory()) await add(child);
       else await file(child);
     }
   }
   for (const folder of ['assets', 'scripts', 'settings']) await add(folder);
   await file('package.json');
+  for (const name of artFiles) {
+    hash.update('seaside/' + name);
+    const bytes = await readFile(new URL(name, artSource));
+    hash.update(name.endsWith('.json') ? bytes.toString('utf8').replaceAll('\r\n', '\n') : bytes);
+  }
   return hash.digest('hex');
 }
 export async function verifyPrebuilt(directory) {
