@@ -9,6 +9,8 @@ export class KartController {
     private restart: () => void,
     private sound: () => void,
     private activateAudio: () => void,
+    private choose: (field: 'world' | 'vehicle' | 'driver', delta: number) => void = () => {},
+    private garage: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -30,12 +32,33 @@ export class KartController {
     this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
+    if (r.phase === 'ready') {
+      const field =
+        e.keyCode === KeyCode.DIGIT_1
+          ? 'world'
+          : e.keyCode === KeyCode.DIGIT_2
+            ? 'vehicle'
+            : e.keyCode === KeyCode.DIGIT_3
+              ? 'driver'
+              : null;
+      if (field) {
+        this.choose(field, this.keys.has(KeyCode.SHIFT_LEFT) ? -1 : 1);
+        this.keys.add(e.keyCode);
+        return;
+      }
+    }
+    if (e.keyCode === KeyCode.KEY_G && (r.phase === 'paused' || r.phase === 'finished')) {
+      this.clear();
+      this.garage();
+      return;
+    }
     if (
       e.keyCode === KeyCode.ENTER &&
       (r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished')
     ) {
       this.clear();
-      if (r.phase === 'ready') r.start();
+      if (r.phase === 'ready' && r.loadError) this.garage();
+      else if (r.phase === 'ready') r.start();
       else if (r.phase === 'paused') r.resume();
       else if (r.phase === 'finished') this.restart();
       this.keys.add(e.keyCode);
@@ -80,6 +103,26 @@ export class KartController {
       return;
     }
     if (r.phase === 'ready' || r.phase === 'finished' || r.phase === 'paused') {
+      if (r.phase === 'ready' && p.x > 0.17 && p.x < 0.83) {
+        const row =
+          p.y > 0.517 && p.y < 0.594
+            ? 'world'
+            : p.y > 0.424 && p.y < 0.502
+              ? 'vehicle'
+              : p.y > 0.331 && p.y < 0.409
+                ? 'driver'
+                : null;
+        if (row) {
+          this.clear();
+          this.choose(row, p.x < 0.5 ? -1 : 1);
+          return;
+        }
+      }
+      if (r.phase !== 'ready' && p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
+        this.clear();
+        this.garage();
+        return;
+      }
       if (r.phase === 'paused' && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
         this.restart();
@@ -87,7 +130,8 @@ export class KartController {
       }
       if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
-        if (r.phase === 'ready') r.start();
+        if (r.phase === 'ready' && r.loadError) this.garage();
+        else if (r.phase === 'ready') r.start();
         else if (r.phase === 'paused') r.resume();
         else this.restart();
       }

@@ -1,6 +1,9 @@
-import { _decorator, Component, game, Game, Layers, profiler, sys } from 'cc';
+import { _decorator, Color, Component, game, Game, Layers, Node, profiler, sys } from 'cc';
 import { RaceManager } from './RaceManager';
-import { buildTrack } from './Track';
+import { buildWorld } from './WorldTrack';
+import { worlds } from './WorldCatalog';
+import { cycleSelection, defaultSelection, readSelection, type Selection } from './Selection';
+import { ItemsView } from './ItemsView';
 import { KartView } from './KartView';
 import { ChaseCamera } from './ChaseCamera';
 import { HUD } from './HUD';
@@ -27,28 +30,81 @@ export class KartGame extends Component {
   muted = false;
   sceneryLoaded = false;
   records: RaceRecord[] = [];
+  selection: Selection = { ...defaultSelection };
+  worldRoot?: Node;
+  itemsView?: ItemsView;
+  loadVersion = 0;
+  seed = Date.now() >>> 0;
+  get recordKey() {
+    return this.selection.world === 'seaside'
+      ? 'coastline-records-v1'
+      : `kart-records-v1-${this.selection.world}`;
+  }
+  readWorldRecords() {
+    try {
+      this.records = readRecords(
+        sys.localStorage.getItem(this.recordKey),
+        this.selection.world === 'seaside' ? sys.localStorage.getItem('coastline-best') : null,
+      );
+    } catch {
+      this.records = [];
+    }
+    this.hud.records = this.records;
+  }
+  choose = (field: keyof Selection, delta: number) => {
+    if (this.race.phase !== 'ready') return;
+    this.selection = cycleSelection(this.selection, field, delta);
+    try {
+      sys.localStorage.setItem('kart-selection-v1', JSON.stringify(this.selection));
+    } catch {}
+    this.loadSelection();
+  };
+  loadSelection() {
+    const version = ++this.loadVersion;
+    this.controller?.clear();
+    this.worldRoot?.destroy();
+    this.worldRoot = new Node('SelectedWorld');
+    this.node.addChild(this.worldRoot);
+    const world = worlds.find((w) => w.id === this.selection.world)!;
+    this.race = new RaceManager(world.track, ++this.seed);
+    this.race.loaded = false;
+    this.sceneryLoaded = false;
+    this.accumulator = 0;
+    this.camera.initialized = false;
+    this.camera.camera.clearColor = new Color().fromHEX(world.colors.sky);
+    this.hud.selection = { ...this.selection };
+    this.hud.lastPhase = '';
+    this.readWorldRecords();
+    this.views = [palette.red, palette.blue, palette.yellow, palette.mint].map(
+      (c) => new KartView(this.worldRoot!, c, this.selection),
+    );
+    this.itemsView = new ItemsView(this.worldRoot, this.race.items);
+    Promise.all([
+      buildWorld(this.worldRoot, this.race.track, world),
+      ...this.views.map((v) => v.ready),
+      this.itemsView.ready,
+    ])
+      .then(() => {
+        if (version !== this.loadVersion) return;
+        this.race.loaded = true;
+        this.sceneryLoaded = true;
+      })
+      .catch((error: Error) => {
+        if (version !== this.loadVersion) return;
+        this.race.loadError = String(error.message || error).slice(0, 100);
+        console.error('[carding-car] selected assets failed', error);
+      });
+  }
   start() {
     profiler.hideStats();
     this.node.layer = Layers.Enum.DEFAULT;
-    buildTrack(this.node, this.race.track)
-      .then(() => {
-        this.sceneryLoaded = true;
-      })
-      .catch((error) => console.error('[carding-car] scenery art failed', error));
-    this.views = [palette.red, palette.blue, palette.yellow, palette.mint].map(
-      (c) => new KartView(this.node, c),
-    );
     this.camera = new ChaseCamera(this.node);
     this.camera.camera.visibility = Layers.Enum.DEFAULT;
     this.hud = new HUD(this.node);
     this.audio = new AudioFeedback(this.node);
     try {
-      this.records = readRecords(
-        sys.localStorage.getItem('coastline-records-v1'),
-        sys.localStorage.getItem('coastline-best'),
-      );
+      this.selection = readSelection(sys.localStorage.getItem('kart-selection-v1'));
     } catch {}
-    this.hud.records = this.records;
     this.controller = new KartController(
       () => this.race,
       () => this.restart(),
@@ -57,7 +113,10 @@ export class KartGame extends Component {
         this.audio.activate(this.muted);
       },
       () => this.audio.activate(this.muted),
+      this.choose,
+      () => this.loadSelection(),
     );
+    this.loadSelection();
     game.on(Game.EVENT_HIDE, this.hide, this);
     // Read-only diagnostics for real-input checks: no teleport or forced finish hooks.
     if (sys.isBrowser) {
@@ -65,6 +124,23 @@ export class KartGame extends Component {
       browser.__kart = {
         snapshot: () => ({
           phase: this.race.phase,
+          selection: { ...this.selection },
+          loading: !this.race.loaded,
+          loadError: this.race.loadError,
+          itemsCollected: this.race.itemsCollected,
+          seed: this.seed,
+          world: {
+            id: this.selection.world,
+            width: this.race.track.width,
+            length: this.race.track.length,
+          },
+          items: this.race.items.map((item) => ({
+            ...item,
+            active: item.availableAt <= this.race.time,
+          })),
+          renderedVehicles: this.views.map((v) => v.body.children[0]?.name),
+          renderedDrivers: this.views.map((v) => v.driver?.name),
+          renderedItems: this.itemsView?.nodes.map((n) => n.name),
           time: this.race.time,
           fps: this.fps,
           boosts: this.race.boosts,
@@ -123,7 +199,8 @@ export class KartGame extends Component {
   };
   restart() {
     this.controller.clear();
-    this.race = new RaceManager();
+    const world = worlds.find((w) => w.id === this.selection.world)!;
+    this.race = new RaceManager(world.track, ++this.seed);
     this.race.start();
     this.accumulator = 0;
     this.camera.initialized = false;
@@ -152,10 +229,11 @@ export class KartGame extends Component {
       });
       this.hud.records = this.records;
       try {
-        sys.localStorage.setItem('coastline-records-v1', JSON.stringify(this.records));
+        sys.localStorage.setItem(this.recordKey, JSON.stringify(this.records));
       } catch {}
     }
     this.views.forEach((v, i) => v.update(this.race.drivers[i].kart, this.race.time));
+    this.itemsView?.update(this.race.items, this.race.time);
     this.camera.update(this.race.drivers[0].kart, Math.min(dt, 0.1));
     this.audio.update(this.race, this.muted);
     this.uiTime += dt;
@@ -165,6 +243,7 @@ export class KartGame extends Component {
     }
   }
   onDestroy() {
+    this.loadVersion++;
     game.off(Game.EVENT_HIDE, this.hide, this);
     this.controller?.destroy();
     if (sys.isBrowser) window.removeEventListener('blur', this.hide);

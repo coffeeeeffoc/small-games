@@ -22,6 +22,10 @@ pnpm --filter @coffeeeeffoc/carding-car dev
 
 比赛中常驻显示总用时、本圈用时和最快圈；结算显示四车名次，并保留本机最快五次完赛成绩。旧版本最佳总用时会自动迁入本机榜单。暂停可直接重新开跑；暂停、切后台和触控取消会清空操作及未释放的漂移蓄力。
 
+开跑前可选择原海湾及城市、沙漠、冰川、跨海高速、七彩丹霞、高原与高山、青藏草原七套新场景，以及十款车、十位车手。点击选择行左右侧切换；键盘 1 / 2 / 3 分别切换场景 / 车型 / 车手，Shift 加对应数字反向切换。暂停或完赛后点击“返回车库”或按 G 返回选择。选择保存在本机，各场景分别记录成绩；素材加载完成后才能开跑。
+
+每场比赛沿道路随机放置 24 个道具，覆盖加速板、氮气、路障、西瓜皮、油渍、冰冻球、护盾、磁铁、弹簧板、修理箱、金币和随机补给箱。接触后自动生效，带文字、声音和车辆反馈；护盾挡一次障碍，磁铁扩大补给吸取范围，西瓜皮使车身旋转，弹簧板让车跃起。道具有重现间隔，重赛重新排列。
+
 ## 原生工程
 
 复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID` 环境变量。无需 AppSecret。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。
@@ -50,6 +54,7 @@ node games/local/carding-car/tests/steering.mjs
 node games/local/carding-car/tests/walls.mjs
 node games/local/carding-car/tests/reverse.mjs
 node games/local/carding-car/tests/audio-nitro.mjs
+node games/local/carding-car/tests/worlds.mjs
 pnpm check:games
 ```
 
@@ -61,9 +66,11 @@ pnpm check:games
 
 Rodin 资产和处理方式见 `art-source/README.md`。实测与剩余验收边界见 `playtest.md`。
 
-扩展素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)：7 个场景、10 种车型、10 种车手、12 种道具。效果图、GLB、贴图及制作脚本不再重复保存在游戏目录；该批静态源素材尚未接入玩法。
+扩展源素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)。其 [`runtime-expansion`](../../../assets/carding-car/runtime-expansion/README.md) 衍生版已接入：7 个环境地标、10 辆车、10 位坐姿车手、12 个道具，以及 8 类独立周边模型。场景定义在 `assets/scripts/scenes/`，提供不同路线、环境配色、地标与路边布景，物理赛道仍由统一曲线和护栏模块生成。原始地块只作远景，不当作可驾驶路面。
 
-当前场景使用独立子模块 `assets/carding-car/runtime` 的橙白赛车、棕榈树、阔叶树、礁石、灯塔和沥青贴图。先执行 `git submodule update --init --recursive assets`；三端构建自动同步运行文件到忽略目录 `assets/resources/seaside`，只提交稳定的 Creator `.meta`，无需重复提交模型或安装 Python。源文件哈希包含素材子模块中的运行文件，因此更换素材后必须重新构建。
+构建自动把扩展运行文件复制到 Git 忽略的 `assets/resources/expansion/`；只提交 Creator `.meta`，运行文件仍由子仓库管理。重新导出使用 `python assets/carding-car/build-expansion.py`，仅检查使用 `--check`。车手采用原头盔贴图与独立坐姿部件，封闭车型的运行版做驾驶舱开口；当前车轮未独立拆分、车手没有骨骼动画。
+
+原海湾场景继续使用独立子模块 `assets/carding-car/runtime` 的棕榈树、阔叶树、礁石、灯塔和沥青贴图，赛车改为所选扩展车型。先执行 `git submodule update --init --recursive assets`；三端构建自动同步运行文件到忽略目录 `assets/resources/seaside`，只提交稳定的 Creator `.meta`，无需重复提交模型或安装 Python。源文件哈希包含素材子模块中的运行文件，因此更换素材后必须重新构建。
 
 微信与 B站通过 Creator 的 `seaside-art` 配置将 `resources` 导出为本地小游戏分包；启动时由引擎预加载。构建会检查分包存在、主包不超过 4 MiB、总包不超过 20 MiB。Web 仍使用本地资源目录，不需要素材 CDN。
 

@@ -13,7 +13,7 @@ import {
 import { groundShadow, loadArt, MeshBatch, palette as P, placeModel } from './SceneArt';
 import { pointAt, projectOnTrack, type TrackData, type TrackPoint } from './TrackGenerator';
 
-function ribbon(points: TrackPoint[], left: number, right: number, lift: number) {
+export function ribbon(points: TrackPoint[], left: number, right: number, lift: number) {
   const positions: number[] = [],
     normals: number[] = [],
     uvs: number[] = [],
@@ -45,6 +45,7 @@ export async function buildTrack(parent: Node, track: TrackData) {
   const lighthouseX = 240,
     lighthouseZ = -200;
   const roadMaterial = new Material();
+  root.once(Node.EventType.NODE_DESTROYED, () => roadMaterial.destroy());
   roadMaterial.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
   roadMaterial.setProperty('mainColor', new Color().fromHEX(P.road));
   b.box(P.sea, 0, -2.2, 0, 2400, 1, 2400);
@@ -58,7 +59,9 @@ export async function buildTrack(parent: Node, track: TrackData) {
     const road = new Node('Asphalt');
     root.addChild(road);
     const renderer = road.addComponent(MeshRenderer);
-    renderer.mesh = utils.createMesh(ribbon(points, -width / 2, width / 2, 0));
+    const mesh = utils.createMesh(ribbon(points, -width / 2, width / 2, 0));
+    renderer.mesh = mesh;
+    road.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
     renderer.setMaterial(roadMaterial, 0);
     for (const side of [-1, 1]) {
       b.add(P.white, ribbon(points, (side * width) / 2 - 0.14, (side * width) / 2 + 0.14, 0.025));

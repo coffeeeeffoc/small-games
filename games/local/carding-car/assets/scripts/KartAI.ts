@@ -19,6 +19,12 @@ export function aiInput(
   );
   const curve = Math.abs(angleDelta(further.heading, road.heading));
   const steer = clamp(-error * 2.7, -1, 1);
+  const forwardSpeed = k.speed * Math.cos(k.velocityHeading - k.heading);
+  // Keep backing away until the nose faces the route, even after wall contact ends.
+  if (!k.airborne && k.spin <= 0 &&
+    ((k.collision > 0 && forwardSpeed < 1.5) ||
+      (forwardSpeed < -0.1 && Math.abs(error) > 0.45)))
+    return { steer: -steer, throttle: 0, brake: true, reverse: true, drift: false };
   const targetSpeed = curve > 1.2 ? 16 : curve > 0.65 ? 22 : 30;
   const brake = k.speed > targetSpeed + 1.5;
   return {

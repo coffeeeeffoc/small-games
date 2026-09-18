@@ -1,3 +1,5 @@
+import type { TrackOptions } from './WorldDefinition.ts';
+import { createItems, collectItems, type RoadItem } from './RoadItems.ts';
 import { KartConfig as C, angleDelta, type KartInput } from './KartConfig.ts';
 import { createKart, driveKart, resolveKartBarriers } from './KartPhysics.ts';
 import { createTrack, pointAt, projectOnTrack, wrapDistance } from './TrackGenerator.ts';
@@ -7,7 +9,16 @@ import { ranking } from './RankingSystem.ts';
 import { aiInput } from './KartAI.ts';
 
 export class RaceManager {
-  track = createTrack();
+  track: ReturnType<typeof createTrack>;
+  items: RoadItem[] = [];
+  itemsCollected = 0;
+  loaded = true;
+  loadError = '';
+  constructor(options: TrackOptions = {}, seed?: number) {
+    this.track = createTrack(options);
+    this.drivers = this.makeDrivers();
+    if (seed !== undefined) this.items = createItems(this.track, seed);
+  }
   phase: 'ready' | 'countdown' | 'racing' | 'paused' | 'finished' = 'ready';
   resumePhase: 'countdown' | 'racing' = 'racing';
   countdown = 3;
@@ -15,28 +26,32 @@ export class RaceManager {
   boosts = 0;
   collisions = 0;
   resets = 0;
-  drivers = [0, 1, 2, 3].map((i) => {
-    const s = -6 - Math.floor(i / 2) * 4;
-    const p = pointAt(this.track, s),
-      side = i % 2 ? -2 : 2;
-    const kart = createKart(
-      p.x + Math.cos(p.heading) * side,
-      p.z - Math.sin(p.heading) * side,
-      p.heading,
-    );
-    const progress = createProgress(wrapDistance(s, this.track.length));
-    progress.distance = s;
-    return {
-      kart,
-      progress,
-      safe: { ...p, s: progress.s },
-      shortcut: i === 3,
-      stuck: 0,
-      shortcutFailure: 0,
-    };
-  });
+  drivers: ReturnType<RaceManager['makeDrivers']>;
+  makeDrivers() {
+    return [0, 1, 2, 3].map((i) => {
+      const s = -6 - Math.floor(i / 2) * 4;
+      const p = pointAt(this.track, s),
+        side = i % 2 ? -2 : 2;
+      const kart = createKart(
+        p.x + Math.cos(p.heading) * side,
+        p.z - Math.sin(p.heading) * side,
+        p.heading,
+      );
+      kart.y = p.y;
+      const progress = createProgress(wrapDistance(s, this.track.length));
+      progress.distance = s;
+      return {
+        kart,
+        progress,
+        safe: { ...p, s: progress.s },
+        shortcut: i === 3 && this.track.shortcut.length > 1,
+        stuck: 0,
+        shortcutFailure: 0,
+      };
+    });
+  }
   start() {
-    if (this.phase === 'ready') this.phase = 'countdown';
+    if (this.phase === 'ready' && this.loaded && !this.loadError) this.phase = 'countdown';
   }
   pause() {
     if (this.phase === 'racing' || this.phase === 'countdown') {
@@ -131,8 +146,11 @@ export class RaceManager {
       const controls = i === 0 ? input : aiInput(k, this.track, d.shortcut, d.progress.s);
       // Physical road contact must not be constrained by checkpoint progress at a fork.
       const oldRoad = projectOnTrack(this.track, k.x, k.z);
+      const previousPosition = { x: k.x, z: k.z };
       driveKart(k, controls, dt);
       const hit = resolveKartBarriers(k, this.track.barriers);
+      const collected = collectItems(this.items, k, previousPosition, this.time);
+      if (i === 0) this.itemsCollected += collected;
       const road = projectOnTrack(this.track, k.x, k.z);
       k.offRoad = Math.max(0, road.distance - road.width / 2 + 0.4);
       if (k.offRoad > 0) k.speed *= Math.exp(-1.2 * dt);
@@ -159,12 +177,14 @@ export class RaceManager {
           k.verticalSpeed = 0;
         }
       } else k.y = road.y;
+      // A slide across a tight bend must not jump to a distant section's checkpoint.
+      const progressRoad = projectOnTrack(this.track, k.x, k.z, d.progress.s);
       const ratio =
         road.branch === 'shortcut' ||
         (d.progress.s >= this.track.shortcutStart && d.progress.s <= this.track.shortcutEnd)
           ? (this.track.shortcutEnd - this.track.shortcutStart) / this.track.shortcutLength
           : 1;
-      const legal = road.distance < road.width / 2 + 1.3;
+      const legal = progressRoad.distance < progressRoad.width / 2 + 1.3;
       // Both ribbons overlap at a fork; their projected distances can differ by a few metres.
       const junction =
         Math.min(
@@ -178,7 +198,7 @@ export class RaceManager {
       const crossed = advanceCheckpoint(
         d.progress,
         this.track,
-        road.s,
+        progressRoad.s,
         (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction,
         legal,
       );
@@ -187,10 +207,10 @@ export class RaceManager {
         ? this.time -
           dt +
           (dt * wrapDistance(-previousS, this.track.length)) /
-            wrapDistance(road.s - previousS, this.track.length)
+            wrapDistance(progressRoad.s - previousS, this.track.length)
         : this.time;
       const finished = updateLap(d.progress, crossed, crossingTime);
-      if (crossed) d.shortcut = i === 3;
+      if (crossed) d.shortcut = i === 3 && this.track.shortcut.length > 1;
       if (
         legal &&
         d.shortcutFailure <= 0 &&

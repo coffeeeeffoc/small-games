@@ -14,6 +14,8 @@ import {
 import { KartConfig as C, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
 import { formatTime as time, type RaceRecord } from './RankingSystem';
+import { defaultSelection, vehicles, drivers, type Selection } from './Selection';
+import { worlds } from './WorldCatalog';
 const color = (v: string) => new Color().fromHEX(v);
 export class HUD {
   root: Node;
@@ -31,6 +33,11 @@ export class HUD {
   footer: Label;
   nitro: Label;
   restartButton: Node;
+  garageButton: Node;
+  picker: Node;
+  choices: Label[] = [];
+  selection: Selection = { ...defaultSelection };
+  tagline: Label;
   meter: Graphics;
   map: Graphics;
   mapRoute: Graphics;
@@ -97,7 +104,7 @@ export class HUD {
     this.root.addChild(this.panel);
     this.panel.layer = Layers.Enum.UI_2D;
     this.box(this.panel, 0, -6, 710, 390, '#163b55f5');
-    this.label(this.panel, '海湾三圈挑战', 0, 168, 16, '#69dfc0', 530, 25);
+    this.tagline = this.label(this.panel, '海湾三圈挑战', 0, 168, 16, '#69dfc0', 530, 25);
     this.title = this.label(this.panel, '浪湾卡丁车', 0, 127, 40, '#fff6dc', 650, 55);
     this.detail = this.label(
       this.panel,
@@ -119,6 +126,20 @@ export class HUD {
     this.box(this.restartButton, 263, -125, 170, 52, '#295870');
     this.label(this.restartButton, '重新开跑', 263, -125, 20, '#fff6dc', 170, 52);
     this.restartButton.active = false;
+    this.garageButton = new Node('GarageButton');
+    this.garageButton.layer = Layers.Enum.UI_2D;
+    this.panel.addChild(this.garageButton);
+    this.box(this.garageButton, -263, -125, 170, 52, '#295870');
+    this.label(this.garageButton, '更换配置', -263, -125, 20, '#fff6dc', 170, 52);
+    this.picker = new Node('Selection');
+    this.picker.layer = Layers.Enum.UI_2D;
+    this.panel.addChild(this.picker);
+    for (const y of [30, -20, -70]) {
+      this.box(this.picker, 0, y, 590, 42, '#295870');
+      this.label(this.picker, '‹', -270, y, 30, '#ffd15a', 50, 42);
+      this.label(this.picker, '›', 270, y, 30, '#ffd15a', 50, 42);
+      this.choices.push(this.label(this.picker, '', 0, y, 21, '#fff6dc', 480, 42));
+    }
     this.footer = this.label(this.panel, '', 0, -176, 14, '#a9cdd0', 660, 32);
   }
   graphics(parent: Node, name: string) {
@@ -175,6 +196,9 @@ export class HUD {
           ? '氮气加速'
           : '氮气 Shift';
     this.panel.active = ['ready', 'paused', 'finished'].includes(r.phase);
+    this.picker.active = r.phase === 'ready';
+    this.garageButton.active = r.phase === 'paused' || r.phase === 'finished';
+    this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
       this.restartButton.active = r.phase === 'paused';
@@ -218,6 +242,23 @@ export class HUD {
         this.footer.string = 'Enter / R 再跑一场   ·   本机成绩仅保存在当前设备';
       }
     }
+    const world = worlds.find((w) => w.id === this.selection.world)!;
+    this.tagline.string = world.tagline;
+    if (r.phase === 'ready') {
+      this.title.string = '咔叮唓 · 出发准备';
+      this.detail.string = r.loadError
+        ? `素材加载失败：${r.loadError}\n切换配置可重试`
+        : r.loaded
+          ? `${world.name} · 3 圈竞速 · 3 位对手 · 随机道具`
+          : '正在装配场景、赛车与车手…';
+      this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? '开 跑  →' : '装配中…';
+      this.choices[0].string = `场景  ${world.name}  ${worlds.indexOf(world) + 1}/${worlds.length}`;
+      this.choices[1].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
+      this.choices[2].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
+      this.footer.string = sys.isMobile
+        ? '点击左右箭头选择 · 自动保存 · 开跑后自动加速'
+        : '1 场景 · 2 赛车 · 3 车手（Shift 反向）· Enter 开跑';
+    }
     this.count.string =
       r.phase === 'countdown'
         ? String(Math.ceil(r.countdown))
@@ -248,6 +289,8 @@ export class HUD {
                           ? '最后一圈，冲刺！'
                           : '寻找出弯加速的时机'
         : '';
+    if (r.phase === 'racing' && k.itemMessageTime > 0)
+      this.message.string = `${k.itemMessage}${k.coins ? ` · 金币 ${k.coins}` : ''}`;
     this.meter.clear();
     this.meter.fillColor = color('#193c55');
     this.meter.roundRect(-78, -171, 156, 9, 4);

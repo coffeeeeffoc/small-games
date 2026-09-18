@@ -44,7 +44,8 @@ if (
   process.argv.includes('--bilibili') &&
   !existsSync(path.join(root, 'extensions/biligame-builder/package.json'))
 ) {
-  await mkdir(path.join(root, 'extensions'), { recursive: true });
+  const extension = path.join(root, 'extensions/biligame-builder');
+  await mkdir(extension, { recursive: true });
   const zip = path.join(editorRoot, 'biligame-builder-1.0.3.zip');
   await archive(
     'https://dl.hdslb.com/mall/smallapp/biligame-builder-1.0.3.zip',
@@ -56,10 +57,11 @@ if (
     '-xf',
     zip,
     '-C',
-    path.join(root, 'extensions'),
+    extension,
     '--exclude=__MACOSX',
     '--exclude=*.DS_Store',
     '--exclude=*/node_modules/.bin/*',
+    '--exclude=node_modules/.bin/*',
   ]);
 }
 await mkdir(path.join(root, 'reports'), { recursive: true });

@@ -1,0 +1,165 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4",
+  "files": [],
+  "subMetas": {
+    "d4b18": {
+      "importer": "gltf-mesh",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@d4b18",
+      "displayName": "",
+      "id": "d4b18",
+      "name": "Part0.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ccb89": {
+      "importer": "gltf-mesh",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@ccb89",
+      "displayName": "",
+      "id": "ccb89",
+      "name": "Part1.mesh",
+      "userData": {
+        "gltfIndex": 1,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "55a8e": {
+      "importer": "gltf-mesh",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@55a8e",
+      "displayName": "",
+      "id": "55a8e",
+      "name": "Part2.mesh",
+      "userData": {
+        "gltfIndex": 2,
+        "triangleCount": 24
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ddf23": {
+      "importer": "gltf-material",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@ddf23",
+      "displayName": "",
+      "id": "ddf23",
+      "name": "Part0.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e03c0": {
+      "importer": "gltf-material",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@e03c0",
+      "displayName": "",
+      "id": "e03c0",
+      "name": "Part1.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "295c9": {
+      "importer": "gltf-material",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@295c9",
+      "displayName": "",
+      "id": "295c9",
+      "name": "Part2.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a4530": {
+      "importer": "gltf-scene",
+      "uuid": "9970f814-c19e-43e3-a439-aee7033e32e4@a4530",
+      "displayName": "",
+      "id": "a4530",
+      "name": "grass-hill.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "9970f814-c19e-43e3-a439-aee7033e32e4@d4b18",
+        "9970f814-c19e-43e3-a439-aee7033e32e4@ccb89",
+        "9970f814-c19e-43e3-a439-aee7033e32e4@55a8e"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "9970f814-c19e-43e3-a439-aee7033e32e4@ddf23",
+        "9970f814-c19e-43e3-a439-aee7033e32e4@e03c0",
+        "9970f814-c19e-43e3-a439-aee7033e32e4@295c9"
+      ],
+      "scenes": [
+        "9970f814-c19e-43e3-a439-aee7033e32e4@a4530"
+      ]
+    }
+  }
+}

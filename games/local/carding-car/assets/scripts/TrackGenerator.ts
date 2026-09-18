@@ -1,7 +1,8 @@
+import type { TrackOptions } from './WorldDefinition.ts';
 import { clamp } from './KartConfig.ts';
 import { createBarriers } from './TrackBarriers.ts';
 export type TrackPoint = { x: number; z: number; y: number; s: number };
-const controls = [
+const defaultControls: [number, number, number?][] = [
   [0, -145],
   [110, -145],
   [160, -105],
@@ -31,7 +32,8 @@ const catmull = (a: number, b: number, c: number, d: number, t: number) =>
     (2 * a - 5 * b + 4 * c - d) * t * t +
     (-a + 3 * b - 3 * c + d) * t * t * t);
 
-export function createTrack() {
+export function createTrack(options: TrackOptions = {}) {
+  const controls = options.controls ?? defaultControls;
   const main: TrackPoint[] = [];
   const n = controls.length;
   for (let i = 0; i <= n * 20; i++) {
@@ -42,7 +44,11 @@ export function createTrack() {
     const z = catmull(p[0][1], p[1][1], p[2][1], p[3][1], t);
     const previous = main[main.length - 1];
     const ramp = i / 20;
-    const y = ramp > 15.9 && ramp < 16.8 ? 3.3 * Math.sin(((ramp - 15.9) / 0.9) * Math.PI) ** 2 : 0;
+    const y = options.controls
+      ? catmull(p[0][2] ?? 0, p[1][2] ?? 0, p[2][2] ?? 0, p[3][2] ?? 0, t)
+      : options.ramp !== false && ramp > 15.9 && ramp < 16.8
+        ? 3.3 * Math.sin(((ramp - 15.9) / 0.9) * Math.PI) ** 2
+        : 0;
     main.push({
       x,
       z,
@@ -50,31 +56,37 @@ export function createTrack() {
       s: previous ? previous.s + Math.hypot(x - previous.x, z - previous.z) : 0,
     });
   }
-  const start = main[8 * 20],
-    end = main[14 * 20];
+  const shortcutControls = options.shortcut === false ? [0, 0] : (options.shortcut ?? [8, 14]);
+  const start = main[Math.min(n - 1, shortcutControls[0]) * 20],
+    end = main[Math.min(n - 1, shortcutControls[1]) * 20];
   const shortcut: TrackPoint[] = [];
   let shortcutLength = 0;
-  for (let i = 0; i <= 40; i++) {
+  for (let i = 0; options.shortcut !== false && i <= 40; i++) {
     const t = i / 40;
     const x = start.x + (end.x - start.x) * t,
       z = start.z + (end.z - start.z) * t + Math.sin(t * Math.PI) * 3;
     if (i) shortcutLength += Math.hypot(x - shortcut[i - 1].x, z - shortcut[i - 1].z);
-    shortcut.push({ x, z, y: 0, s: shortcutLength });
+    shortcut.push({ x, z, y: start.y + (end.y - start.y) * t, s: shortcutLength });
   }
   for (const p of shortcut) p.s = start.s + (end.s - start.s) * (p.s / shortcutLength);
-  const width = 14,
-    shortcutWidth = 5.4;
+  const width = options.width ?? 14,
+    shortcutWidth = options.shortcutWidth ?? 5.4;
   return {
     main,
     shortcut,
     barriers: createBarriers(main, shortcut, width, shortcutWidth),
-    checkpoints: [2, 4, 6, 8, 14, 16, 18, 20].map((i) => main[i * 20].s),
+    checkpoints: options.controls
+      ? Array.from(
+          { length: 8 },
+          (_, i) => main[Math.floor(((i + 1) * (main.length - 1)) / 9)].s,
+        ).filter((s) => s < start.s || s > end.s || options.shortcut === false)
+      : [2, 4, 6, 8, 14, 16, 18, 20].map((i) => main[i * 20].s),
     length: main[main.length - 1].s,
     width,
     shortcutWidth,
     shortcutStart: start.s,
     shortcutEnd: end.s,
-    shortcutLength,
+    shortcutLength: Math.max(1, shortcutLength),
   };
 }
 export type TrackData = ReturnType<typeof createTrack>;
@@ -83,7 +95,9 @@ export const wrapDistance = (s: number, length: number) => ((s % length) + lengt
 export function pointAt(track: TrackData, distance: number, shortcut = false) {
   const s = wrapDistance(distance, track.length);
   const points =
-    shortcut && s >= track.shortcutStart && s <= track.shortcutEnd ? track.shortcut : track.main;
+    shortcut && track.shortcut.length > 1 && s >= track.shortcutStart && s <= track.shortcutEnd
+      ? track.shortcut
+      : track.main;
   let i = 1;
   while (i < points.length - 1 && points[i].s < s) i++;
   const a = points[i - 1],

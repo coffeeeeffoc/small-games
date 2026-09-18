@@ -21,6 +21,16 @@ export function createKart(x: number, z: number, heading: number) {
     recovery: 0,
     offRoad: 0,
     airborne: false,
+    slow: 0,
+    spin: 0,
+    spinAngle: 0,
+    slip: 0,
+    shield: 0,
+    magnet: 0,
+    coins: 0,
+    itemCooldown: 0,
+    itemMessage: '',
+    itemMessageTime: 0,
   };
 }
 export type KartState = ReturnType<typeof createKart>;
@@ -31,8 +41,9 @@ export function barrierOverlap(k: KartState, b: Barrier) {
     dz = k.z - b.z,
     reach = b.halfLength + b.halfWidth + C.collisionHalfLength + C.collisionHalfWidth;
   if (dx * dx + dz * dz > reach * reach || k.y > b.y + 0.75 || k.y + 2.2 < b.y) return;
-  const kr = [Math.cos(k.heading), -Math.sin(k.heading)],
-    kf = [Math.sin(k.heading), Math.cos(k.heading)];
+  const bodyHeading = k.heading + k.spinAngle;
+  const kr = [Math.cos(bodyHeading), -Math.sin(bodyHeading)],
+    kf = [Math.sin(bodyHeading), Math.cos(bodyHeading)];
   const br = [Math.cos(b.heading), -Math.sin(b.heading)],
     bf = [Math.sin(b.heading), Math.cos(b.heading)];
   let depth = Infinity,
@@ -69,9 +80,10 @@ export function resolveKartBarriers(k: KartState, barriers: Barrier[]) {
       // can alternately push a long kart into both boxes at an inside corner.
       const nx = b.inwardX,
         nz = b.inwardZ;
+      const bodyHeading = k.heading + k.spinAngle;
       const radius =
-        C.collisionHalfWidth * Math.abs(nx * Math.cos(k.heading) - nz * Math.sin(k.heading)) +
-        C.collisionHalfLength * Math.abs(nx * Math.sin(k.heading) + nz * Math.cos(k.heading));
+        C.collisionHalfWidth * Math.abs(nx * Math.cos(bodyHeading) - nz * Math.sin(bodyHeading)) +
+        C.collisionHalfLength * Math.abs(nx * Math.sin(bodyHeading) + nz * Math.cos(bodyHeading));
       const depth = b.halfWidth + radius - ((k.x - b.x) * nx + (k.z - b.z) * nz);
       k.x += nx * (depth + 0.002);
       k.z += nz * (depth + 0.002);
@@ -104,8 +116,21 @@ export function collideKart(k: KartState) {
 /** Advances only driving forces; track constraints are applied by RaceManager. */
 export function driveKart(k: KartState, input: KartInput, dt: number) {
   dt = clamp(dt, 0, 1 / 30);
-  const steer = clamp(input.steer, -1, 1);
-  const throttle = input.brake ? 0 : clamp(input.throttle, 0, 1);
+  for (const key of [
+    'slow',
+    'spin',
+    'slip',
+    'shield',
+    'magnet',
+    'itemCooldown',
+    'itemMessageTime',
+  ] as const)
+    k[key] = Math.max(0, k[key] - dt);
+  if (k.spin > 0) k.spinAngle += dt * Math.PI * 5;
+  else k.spinAngle = 0;
+  const steer = k.spin > 0 ? 0 : clamp(input.steer, -1, 1);
+  const throttle =
+    input.brake || k.spin > 0 ? 0 : clamp(input.throttle, 0, 1) * (k.slow > 0 ? 0.3 : 1);
   const wasDrifting = k.drifting;
   k.boost = Math.max(0, k.boost - dt);
   k.collision = Math.max(0, k.collision - dt);
@@ -149,7 +174,9 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     // Retain only the existing small drift slip; never create lateral velocity on entry.
     const driftLimit = k.drifting ? Math.max(0, forward) * Math.tan(C.driftAngle) : 0;
     const retained = clamp(lateral * k.driftSide, 0, driftLimit) * k.driftSide;
-    lateral = retained + (lateral - retained) * Math.exp(-(k.drifting ? C.driftGrip : C.grip) * dt);
+    lateral =
+      retained +
+      (lateral - retained) * Math.exp(-(k.slip > 0 ? 0.7 : k.drifting ? C.driftGrip : C.grip) * dt);
     forward +=
       (reversing
         ? -C.reverseAcceleration
@@ -173,7 +200,9 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     k.charge = Math.min(C.chargeThresholds[1], k.charge + dt);
     k.tier = k.charge >= C.chargeThresholds[1] ? 2 : k.charge >= C.chargeThresholds[0] ? 1 : 0;
   }
-  const cap = reversing ? C.reverseMaxSpeed : C.maxSpeed * (boosted ? C.boostSpeed : 1);
+  const cap = reversing
+    ? C.reverseMaxSpeed
+    : C.maxSpeed * (k.slow > 0 ? 0.4 : boosted ? C.boostSpeed : 1);
   if (k.speed > cap) k.speed += (cap - k.speed) * Math.min(1, 4 * dt);
   k.x += Math.sin(k.velocityHeading) * k.speed * dt;
   k.z += Math.cos(k.velocityHeading) * k.speed * dt;

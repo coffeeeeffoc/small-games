@@ -1,5 +1,6 @@
-import { isValid, MeshRenderer, Node, Prefab } from 'cc';
+import { isValid, JsonAsset, MeshRenderer, Node, Prefab } from 'cc';
 import { groundShadow, loadArt, material, MeshBatch, palette as P, placeModel } from './SceneArt';
+import type { Selection } from './Selection';
 import type { KartState } from './KartPhysics';
 
 export class KartView {
@@ -11,42 +12,50 @@ export class KartView {
   flame: Node;
   shadow: Node;
   modelLoaded = false;
-  constructor(parent: Node, color: string) {
+  ready: Promise<void>;
+  driver?: Node;
+  protection: Node;
+  constructor(parent: Node, color: string, selection: Selection) {
     this.root = new Node('Kart');
     parent.addChild(this.root);
     this.shadow = groundShadow(this.root, 2.05, 2.8);
-    const b = new MeshBatch();
-    b.box(color, 0, 0.56, 0, 1.35, 0.42, 2.35);
-    b.ball(color, 0, 0.6, 0.9, 1.45, 0.55, 1.1);
-    b.box(P.white, 0, 0.82, 0.65, 0.27, 0.08, 1.3);
-    b.box(P.navy, 0, 0.85, -0.45, 0.85, 0.6, 0.65);
-    b.box(P.navy, 0, 0.35, 1.35, 1.8, 0.2, 0.25);
-    b.box(P.navy, 0, 0.35, -1.25, 1.7, 0.2, 0.25);
-    b.ball(P.yellow, 0, 1.26, -0.25, 0.75, 0.85, 0.65);
-    b.ball(color, 0, 1.8, -0.25, 1, 0.92, 0.9);
-    b.ball(P.navy, 0, 1.85, 0.12, 0.82, 0.28, 0.15);
-    b.ball(P.white, -0.24, 2, -0.06, 0.18, 0.18, 0.1);
-    this.body = b.build(this.root, 'Body');
-    const wheels = new MeshBatch();
-    for (const x of [-0.85, 0.85])
-      for (const z of [-0.8, 0.78]) {
-        wheels.ball(P.navy, x, 0.42, z, 0.5, 0.82, 0.82);
-        wheels.ball(P.white, x * 1.22, 0.42, z, 0.08, 0.4, 0.4);
-      }
-    const tires = wheels.build(this.root, 'Tires');
-    loadArt('kart/kart', Prefab)
-      .then((prefab) => {
-        if (!isValid(this.root)) return;
-        const model = placeModel(prefab, this.root, 'SeasideKart');
-        this.body.active = false;
-        tires.active = false;
-        this.body = model;
-        this.modelLoaded = true;
-        const number = new MeshBatch();
-        number.ball(color, 0, 2.05, -0.1, 0.23, 0.23, 0.23);
-        number.build(this.root, 'DriverColor');
-      })
-      .catch((error) => console.error('[carding-car] kart art failed', error));
+    this.body = new Node('LoadingKart');
+    this.root.addChild(this.body);
+    this.ready = Promise.all([
+      loadArt(`expansion/vehicles/${selection.vehicle}`, Prefab),
+      loadArt(`expansion/drivers/${selection.driver}`, Prefab),
+      loadArt('expansion/manifest', JsonAsset),
+    ]).then(([vehicle, driver, manifest]) => {
+      if (!isValid(this.root)) return;
+      this.body.destroy();
+      this.body = new Node('SelectedKart');
+      this.root.addChild(this.body);
+      placeModel(vehicle, this.body, selection.vehicle);
+      this.driver = placeModel(driver, this.body, selection.driver);
+      const config = (
+        manifest.json as {
+          models: {
+            category: string;
+            id: string;
+            driverMount?: { x: number; y: number; z: number; scale: number };
+          }[];
+        }
+      ).models.find((m) => m.category === 'vehicles' && m.id === selection.vehicle);
+      const mount = config?.driverMount ?? { x: 0, y: 0.3, z: -0.25, scale: 1 };
+      this.driver.setPosition(mount.x, mount.y, mount.z);
+      this.driver.setScale(mount.scale, mount.scale, mount.scale);
+      this.modelLoaded = true;
+      const number = new MeshBatch();
+      number.ball(color, 0, 2.05, -0.1, 0.23, 0.23, 0.23);
+      number.build(this.root, 'DriverColor');
+    });
+    const protection = new MeshBatch();
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      protection.ball(P.mint, Math.sin(a) * 1.6, 0.6, Math.cos(a) * 1.8, 0.14);
+    }
+    this.protection = protection.build(this.root, 'Shield');
+    this.protection.active = false;
     const spark = new MeshBatch();
     for (const x of [-0.95, 0.95])
       for (let i = 0; i < 3; i++)
@@ -64,7 +73,18 @@ export class KartView {
     this.root.setPosition(k.x, k.y + Math.sin(time * 18) * Math.min(0.025, k.speed * 0.001), k.z);
     this.root.setRotationFromEuler(0, (k.heading * 180) / Math.PI, 0);
     this.shadow.active = !k.airborne;
-    this.body.setRotationFromEuler(k.airborne ? -6 : 0, 0, k.drifting ? k.driftSide * 5 : 0);
+    this.body.setRotationFromEuler(
+      k.airborne ? -6 : 0,
+      (k.spinAngle * 180) / Math.PI,
+      k.drifting ? k.driftSide * 5 : k.slip > 0 ? Math.sin(time * 12) * 8 : 0,
+    );
+    this.driver?.setRotationFromEuler(
+      0,
+      0,
+      k.drifting ? -k.driftSide * 9 : Math.sin(time * 10) * Math.min(2, k.speed * 0.08),
+    );
+    this.protection.active = k.shield > 0 || k.magnet > 0;
+    this.protection.setRotationFromEuler(0, time * 100, 0);
     this.sparks.active = k.charge > 0.2;
     if (this.sparkTier !== k.tier) {
       this.sparkTier = k.tier;
