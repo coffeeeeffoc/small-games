@@ -69,8 +69,12 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
-    await click(frame.getByTestId('cop-0'));
-    await click(frame.getByTestId('node-1'));
+    await click(frame.getByTestId('hint'));
+    const destination = frame.locator('.node-target.chosen');
+    await expect(destination).toHaveCount(1);
+    await click(
+      frame.getByTestId((await destination.getAttribute('id')).replace('target-', 'node-')),
+    );
     await expect(frame.locator('body')).toHaveAttribute('data-turn', '1');
     await click(frame.getByTestId('undo'));
     await expect(frame.locator('body')).toHaveAttribute('data-turn', '0');

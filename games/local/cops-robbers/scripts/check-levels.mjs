@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { prepareLevel, initialState, legalTargets, legalPlans, validatePlan, step, solve, stateKey } from '../src/engine.js';
 import { levels, chapters } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
+import { reducedSquadCanWin } from './teamwork.mjs';
 
 const exitRegression = prepareLevel({ nodes:[{},{},{},{}], edges:[[0,1],[1,2],[2,3]], cops:[0], robbers:[2], exits:[3] });
 const escaped = step(exitRegression,initialState(exitRegression),[0]);
@@ -67,6 +68,8 @@ assert.deepEqual(step(swapping,initialState(swapping),[0,2]).state.cops,[0,2]);
 const ring = prepareLevel({ nodes:[{},{},{},{}],edges:[[0,1],[1,2],[2,3],[3,0]],cops:[0,3],robbers:[1] });
 assert.deepEqual(step(ring,initialState(ring),[0,2]).caught,[0],'both exits of a ring must be blocked');
 assert.deepEqual(step(ring,initialState(ring),[0,3]).caught,[]);
+assert.equal(reducedSquadCanWin(ring, 0), false, 'one officer cannot surround a loop');
+assert.equal(reducedSquadCanWin(line(5, [0, 4], [2]), 0), true, 'the exhaustive audit must detect a winning reduced squad');
 
 const grouped = line(4,[0],[2,3]);
 const together = step(grouped,initialState(grouped),[1]).state;
@@ -95,7 +98,7 @@ const random = () => ((seed = (Math.imul(seed,1664525) + 1013904223) >>> 0) / 42
 for (const [index,level] of levels.entries()) {
   assert.equal(level.id,index+1);
   assert.equal(level.chapter,Math.floor(index/12));
-  assert.ok(level.cops.length >= 1 && level.cops.length <= 5);
+  assert.equal(level.cops.length, level.chapter === 4 ? 4 : 3);
   assert.ok(level.robbers.length >= 1 && level.robbers.length <= 5);
   assert.ok(level.exits.length>=1 && level.exits.length<=3,'each level has real escape gates');
   assert.equal(new Set(level.exits).size,level.exits.length);
@@ -108,9 +111,16 @@ for (const [index,level] of levels.entries()) {
   assert.equal(new Set([...level.cops,...level.robbers]).size,level.cops.length+level.robbers.length,'initial actors have separate positions');
   assert.ok(level.nodes.length >= 3 && level.nodes.length <= 24);
   assert.ok(level.dist[0].every(Number.isFinite),`level ${level.id} is connected`);
-  assert.ok(level.adj.every(exits => exits.length > 0));
+  assert.ok(level.adj.every(exits => exits.length >= 2), 'no dead ends for cheap solo captures');
+  assert.ok(level.edges.length - level.nodes.length + 1 >= 3, 'multiple independent loops provide real detours');
   assert.equal(new Set(level.edges.map(edge => [...edge].sort((a,b) => a-b).join(','))).size,level.edges.length);
   for (const [a,b] of level.edges) assert.ok(a !== b && level.nodes[a] && level.nodes[b]);
+  const side = (a, b, p) => (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+  for (const [i, [a, b]] of level.edges.entries()) for (const [c, d] of level.edges.slice(i + 1)) {
+    if ([a, b].includes(c) || [a, b].includes(d)) continue;
+    const [p, q, r, s] = [a, b, c, d].map(node => level.nodes[node]);
+    assert.ok(!(side(p, q, r) * side(p, q, s) < 0 && side(r, s, p) * side(r, s, q) < 0), `level ${level.id}: roads cannot cross without a junction`);
+  }
   for (const [i,a] of level.nodes.entries()) {
     assert.ok(a.x >= 60 && a.x <= 540 && a.y >= 70 && a.y <= 530);
     for (const b of level.nodes.slice(i+1)) assert.ok(Math.hypot(a.x-b.x,a.y-b.y) >= 85,`level ${level.id} has separated tap targets`);
@@ -139,7 +149,10 @@ for (const [index,level] of levels.entries()) {
     state = result.state; moves++;
   }
   assert.ok(state.robbers.every(node => node === -1),`all robbers caught in level ${level.id}`);
-  if (index>=12) assert.ok(movedCops.size>=2,'later levels require moving multiple officers');
+  assert.equal(movedCops.size, level.cops.length, 'every officer participates in the reference route');
+  for (let omitted = 0; omitted < level.cops.length; omitted++) {
+    assert.equal(reducedSquadCanWin(level, omitted), false, `level ${level.id}: removing officer ${omitted + 1} must prevent victory, over every reachable state`);
+  }
 
   let idle=initialState(level);
   for (let i=0;i<level.nodes.length && !idle.robbers.includes(-2);i++) idle=step(level,idle,idle.cops).state;
@@ -165,7 +178,7 @@ for (const [index,level] of levels.entries()) {
   }
   const firstChoices=legalPlans(level,initialState(level));
   const immediateLosses=firstChoices.filter(plan=>step(level,initialState(level),plan).escaped.length>0).length;
-  audit.push({id:level.id,chapter:level.chapter,par:level.par,cops:level.cops.length,robbers:level.robbers.length,exits:level.exits.length,captureRounds,movedCops:movedCops.size,idleEscapeStep:idle.turn,firstChoices:firstChoices.length,immediateLosses,randomWins,randomEscapes,trials:40});
+  audit.push({id:level.id,chapter:level.chapter,par:level.par,cops:level.cops.length,robbers:level.robbers.length,exits:level.exits.length,independentLoops:level.edges.length-level.nodes.length+1,essentialOfficers:level.cops.length,captureRounds,movedCops:movedCops.size,idleEscapeStep:idle.turn,firstChoices:firstChoices.length,immediateLosses,randomWins,randomEscapes,trials:40});
 }
 assert.ok(roadSketches.size >= 55,'the catalog contains distinct actual road layouts');
 assert.ok(levels.slice(24).filter(level => level.edges.length >= level.nodes.length).length >= 25,'later districts contain real cycles');
@@ -177,4 +190,4 @@ const randomWins=audit.reduce((sum,item)=>sum+item.randomWins,0);
 assert.ok(audit.slice(12).reduce((sum,item)=>sum+item.randomWins,0)<48*40*0.25,'later levels cannot be won reliably by random movement');
 mkdirSync(new URL('../outputs/',import.meta.url),{recursive:true});
 writeFileSync(new URL('../outputs/level-audit.json',import.meta.url),JSON.stringify({rules:'single officer move, all robbers move, any escape loses',levels:60,verifiedMoves:moves,distinctLayouts:roadSketches.size,chapterAverages:averages,separateCaptures:`${splitCaptures.length}/${multiple.length}`,randomWins,randomTrials:2400,audit},null,2));
-console.log(`Rules OK. 60/60 solutions (${moves} single-officer moves), 60/60 real escape failures, 60/60 current-position hints. ${roadSketches.size} road layouts; chapter averages ${averages.map(value=>value.toFixed(1)).join(' / ')}. Separate captures ${splitCaptures.length}/${multiple.length}; random wins ${randomWins}/2400.`);
+console.log(`Rules OK. 60/60 solutions (${moves} single-officer moves), 60/60 essential squads (exhaustive removal checks), 60/60 real escape failures, 60/60 current-position hints. ${roadSketches.size} road layouts; chapter averages ${averages.map(value=>value.toFixed(1)).join(' / ')}. Separate captures ${splitCaptures.length}/${multiple.length}; random wins ${randomWins}/2400.`);
