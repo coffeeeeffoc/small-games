@@ -27,7 +27,7 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(url);
-    await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+    await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
     if (touch) await page.touchscreen.tap(480, 395);
     else {
       await page.keyboard.press('Enter');
