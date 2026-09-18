@@ -16,17 +16,20 @@ export class ChaseCamera {
     this.camera.fov = C.cameraFov;
   }
   update(k: KartState, dt: number) {
+    const blend = this.initialized ? 1 - Math.exp(-C.cameraLag * dt) : 1;
     if (!this.initialized) {
       this.heading = k.heading;
       this.initialized = true;
     }
-    this.heading += angleDelta(k.velocityHeading, this.heading) * (1 - Math.exp(-C.cameraLag * dt));
+    // Follow the nose continuously, including while reversing; velocity can flip at zero speed.
+    this.heading += angleDelta(k.heading, this.heading) * blend;
     const distance = 7.8 + k.speed * 0.045;
     const shake = k.collision > 0 ? Math.sin(k.collision * 120) * C.cameraShake : 0;
+    const position = this.node.position;
     this.node.setPosition(
-      k.x - Math.sin(this.heading) * distance + shake,
-      k.y + 4.4,
-      k.z - Math.cos(this.heading) * distance,
+      position.x + (k.x - Math.sin(this.heading) * distance + shake - position.x) * blend,
+      position.y + (k.y + 4.4 - position.y) * blend,
+      position.z + (k.z - Math.cos(this.heading) * distance - position.z) * blend,
     );
     this.node.lookAt(
       new Vec3(k.x + Math.sin(this.heading) * 6, k.y + 1.1, k.z + Math.cos(this.heading) * 6),

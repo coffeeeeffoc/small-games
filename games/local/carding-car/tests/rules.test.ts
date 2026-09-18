@@ -8,6 +8,41 @@ import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { clamp } from '../assets/scripts/KartConfig.ts';
 
+test('driving back along the road is allowed without teleporting or awarding laps', () => {
+  const race = new RaceManager(),
+    d = race.drivers[0];
+  const s = 80,
+    p = pointAt(race.track, s);
+  race.phase = 'racing';
+  race.drivers.slice(1).forEach((rival) => {
+    rival.progress.finishedAt = 1;
+  });
+  Object.assign(d.kart, createKart(p.x, p.z, p.heading + Math.PI));
+  d.kart.speed = 10;
+  d.progress.s = d.progress.distance = s;
+  d.safe = { ...p, s };
+  for (let frame = 0; frame < 120; frame++) {
+    const before = { ...d.kart };
+    race.step({ steer: 0, throttle: 1, brake: false, drift: false }, 1 / 60);
+    assert.equal(race.resets, 0, 'opposite heading is not a stuck vehicle');
+    assert.ok(Math.hypot(d.kart.x - before.x, d.kart.z - before.z) < 0.6);
+  }
+  assert.ok(d.progress.distance < s - 20);
+  assert.equal(d.progress.laps, 0);
+});
+
+test('stopping on the road does not automatically reset the player', () => {
+  const race = new RaceManager();
+  race.phase = 'racing';
+  race.drivers.slice(1).forEach((rival) => {
+    rival.progress.finishedAt = 1;
+  });
+  for (let frame = 0; frame < 180; frame++)
+    race.step({ steer: 0, throttle: 0, brake: false, drift: false }, 1 / 60);
+  assert.equal(race.resets, 0);
+  assert.equal(race.drivers[0].kart.speed, 0);
+});
+
 test('steering moves toward the requested screen side from the chase camera', () => {
   for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
     for (const steer of [-1, 1]) {
@@ -82,7 +117,7 @@ test('four drivers can race full laps through both branches without stuck progre
   assert.equal(race.drivers[0].progress.distance, before, 'recovery cannot gain distance');
 });
 
-test('failing the narrow shortcut returns to its entrance without gaining checkpoints', () => {
+test('shortcut wall contact slows the player without teleporting to the entrance', () => {
   const race = new RaceManager();
   race.start();
   const d = race.drivers[0];
@@ -92,18 +127,15 @@ test('failing the narrow shortcut returns to its entrance without gaining checkp
   assert.ok(
     d.progress.s > race.track.shortcutStart + 30 && d.progress.s < race.track.shortcutEnd - 20,
   );
-  const before = d.progress.distance,
-    gate = d.progress.nextGate;
-  let reset = false;
+  const gate = d.progress.nextGate;
   for (let f = 0; f < 180; f++) {
+    const before = { ...d.kart };
     race.step({ steer: 1, throttle: 1, brake: false, drift: false }, 1 / 60);
-    if (race.resets) {
-      reset = true;
-      break;
-    }
+    assert.ok(Math.hypot(d.kart.x - before.x, d.kart.z - before.z) < 1);
   }
-  assert.ok(reset, 'shortcut wall contact should recover at the entrance');
-  assert.ok(d.progress.distance < before);
+  assert.ok(race.collisions > 0);
+  assert.equal(race.resets, 0);
+  assert.equal(d.shortcutFailure, 0);
   assert.equal(d.progress.nextGate, gate);
   assert.equal(d.progress.laps, 0);
 });
@@ -127,9 +159,9 @@ test('three legal laps finish, while skipping gates, reversing and teleporting c
   assert.equal(cheat.laps, 0);
 });
 
-test('the shortcut saves time only when completed cleanly', () => {
+test('the shortcut is drivable and saves time over the main route', () => {
   const times: number[] = [];
-  for (const mode of ['main', 'shortcut', 'failed']) {
+  for (const mode of ['main', 'shortcut']) {
     const race = new RaceManager(),
       d = race.drivers[0];
     const s = race.track.shortcutStart - 30,
@@ -143,18 +175,14 @@ test('the shortcut saves time only when completed cleanly', () => {
       rival.progress.finishedAt = 1;
     });
     for (let f = 0; f < 60 * 45 && d.progress.distance < race.track.shortcutEnd + 30; f++) {
-      const input =
-        mode === 'failed' && race.resets === 0 && d.progress.s > race.track.shortcutStart + 60
-          ? { steer: 1, throttle: 1, brake: false, drift: false }
-          : aiInput(d.kart, race.track, mode !== 'main' && race.resets === 0, d.progress.s);
+      const input = aiInput(d.kart, race.track, mode === 'shortcut', d.progress.s);
       race.step(input, 1 / 60);
     }
     assert.ok(d.progress.distance >= race.track.shortcutEnd + 30);
-    if (mode === 'failed') assert.equal(race.resets, 1);
+    assert.equal(race.resets, 0);
     times.push(race.time);
   }
   assert.ok(times[1] < times[0] - 3, 'clean shortcut should offer a meaningful gain');
-  assert.ok(times[2] > times[0] + 1, 'a failed attempt must cost more than the main route');
 });
 
 test('the closed course has a genuinely shorter legal branch and continuous ground', () => {
