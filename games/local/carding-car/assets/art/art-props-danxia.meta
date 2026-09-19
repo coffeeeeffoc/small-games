@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "dc94fe86-69aa-49e0-a134-8abc4c2c5624",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-props-danxia",
+    "priority": 8
+  }
+}

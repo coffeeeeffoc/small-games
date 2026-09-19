@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "93bf1c14-5d8f-414b-82b6-da57183087ad",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-vehicle-formula",
+    "priority": 8
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "9a6a1db4-432d-46cd-8849-45a6ee00e555",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-texture-city",
+    "priority": 8
+  }
+}

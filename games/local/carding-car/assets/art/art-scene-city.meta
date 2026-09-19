@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "26f66bef-c71e-4544-8423-7f52ad864e9b",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-scene-city",
+    "priority": 8
+  }
+}

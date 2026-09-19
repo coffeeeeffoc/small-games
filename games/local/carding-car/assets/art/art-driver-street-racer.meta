@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "f81a0efe-3fda-4db1-81e7-0de179a1447f",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-driver-street-racer",
+    "priority": 8
+  }
+}

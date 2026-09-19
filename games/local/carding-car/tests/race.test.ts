@@ -3,14 +3,51 @@ import test from 'node:test';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { createProgress } from '../assets/scripts/CheckpointSystem.ts';
 import { createKart } from '../assets/scripts/KartPhysics.ts';
-import { pointAt } from '../assets/scripts/TrackGenerator.ts';
+import { pointAt, wrapDistance } from '../assets/scripts/TrackGenerator.ts';
 import { addRecord, formatTime, ranking, readRecords } from '../assets/scripts/RankingSystem.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('recovery ranks the actual safe position after reversing, including across the start line', () => {
+  for (const [safeS, currentS] of [
+    [50, 40],
+    [40, 50],
+    [4, -4],
+    [-4, 4],
+  ]) {
+    const race = new RaceManager();
+    const driver = race.drivers[0];
+    const safe = pointAt(race.track, safeS);
+    const current = pointAt(race.track, currentS);
+    Object.assign(driver.kart, createKart(current.x, current.z, current.heading));
+    Object.assign(driver.progress, {
+      s: wrapDistance(currentS, race.track.length),
+      distance: currentS,
+    });
+    driver.safe = { ...safe, s: wrapDistance(safeS, race.track.length) };
+    race.drivers[1].progress.distance = safeS - 1;
+    race.drivers[2].progress.distance = safeS + 1;
+    race.drivers[3].progress.distance = safeS - 2;
+    race.recover(0);
+    assert.ok(
+      Math.abs(driver.progress.distance - safeS) < 1e-8,
+      `recovered from ${currentS} to ${safeS}, ranked at ${driver.progress.distance}`,
+    );
+    assert.deepEqual(race.order, [2, 0, 1, 3]);
+  }
+});
+
 test('the race clock excludes countdown, pauses, invalid steps and the finished screen', () => {
   const race = new RaceManager();
   race.start();
+  race.loaded = false;
+  race.step(idle, 1 / 60);
+  assert.equal(
+    race.countdown,
+    3,
+    'rerolling cars must finish loading before the countdown advances',
+  );
+  race.loaded = true;
   race.step(idle, 1 / 60);
   assert.equal(race.time, 0);
   race.pause();

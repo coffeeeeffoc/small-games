@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "d0afdf84-6ffb-4a5a-ab8b-f87f8624d7fa",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-vehicle-classic-kart",
+    "priority": 8
+  }
+}

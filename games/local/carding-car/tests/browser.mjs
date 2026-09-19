@@ -41,7 +41,7 @@ async function open(options) {
   assert.equal(await page.title(), '浪湾卡丁车', 'verify the server identity before driving');
   await page.waitForFunction(
     () =>
-      globalThis.__kart?.snapshot().audioClips === 7 &&
+      globalThis.__kart &&
       globalThis.__kart.snapshot().modelsLoaded &&
       globalThis.__kart.snapshot().sceneryLoaded,
   );

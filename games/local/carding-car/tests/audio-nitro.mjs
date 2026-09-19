@@ -52,7 +52,9 @@ try {
         );
     });
     await page.goto(url);
-    await page.waitForFunction(() => globalThis.__kart?.snapshot().audioClips === 7 && !__kart.snapshot().loading);
+    await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
+    await page.keyboard.press('Shift');
+    await page.waitForFunction(() => __kart.snapshot().audioClips === 7);
     if (touch) await page.touchscreen.tap(480, 395);
     else await page.keyboard.press('Enter');
     await page.waitForFunction(() => audioLevel() > 0.01);

@@ -133,11 +133,11 @@ test('reverse finish crossings and repeated finish-line rocking never award a la
   assert.equal(progress.nextGate, 0);
 });
 
-test('recovery synchronizes the verified road position without gaining distance, gates or laps', () => {
+test('recovery synchronizes distance with the verified safe position without awarding gates or laps', () => {
   for (const [s, safeS, expectedLoss] of [
     [80, 75, 5],
     [2, -3, 5],
-    [75, 80, 0],
+    [75, 80, -5],
   ]) {
     const race = new RaceManager();
     const d = race.drivers[0];
@@ -154,6 +154,11 @@ test('recovery synchronizes the verified road position without gaining distance,
     assert.equal(d.progress.laps, before.laps);
     assert.equal(d.kart.x, d.safe.x);
     assert.equal(d.kart.z, d.safe.z);
+    race.recover(0);
+    assert.ok(
+      Math.abs(d.progress.distance - (before.distance - expectedLoss)) < 1e-8,
+      'repeated recovery cannot award extra distance',
+    );
     advanceCheckpoint(d.progress, race.track, d.safe.s + 0.2, 1, true);
     assert.ok(Math.abs(d.progress.distance - (before.distance - expectedLoss + 0.2)) < 1e-8);
   }

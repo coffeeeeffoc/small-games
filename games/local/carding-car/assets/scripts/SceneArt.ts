@@ -1,5 +1,7 @@
 import {
   Asset,
+  assetManager,
+  AssetManager,
   Color,
   gfx,
   instantiate,
@@ -9,11 +11,11 @@ import {
   Node,
   Prefab,
   primitives,
-  resources,
   Texture2D,
   Vec4,
   utils,
 } from 'cc';
+import { artLocation } from './ArtLocation';
 
 export const palette = {
   road: '#374d63',
@@ -27,15 +29,38 @@ export const palette = {
   mint: '#53ddb9',
   blue: '#549cea',
 };
-export function loadArt<T extends Asset>(name: string, type: new () => T) {
+const bundles = new Map<string, Promise<AssetManager.Bundle>>();
+const assets = new Map<string, Promise<Asset>>();
+export const requestedArt = new Set<string>();
+export function loadArt<T extends Asset>(name: string, type: new () => T): Promise<T> {
   if (name.startsWith('expansion/') && Object.is(type, Prefab)) name += '/' + name.split('/').pop();
-  return new Promise<T>((resolve, reject) =>
-    resources.load(
-      /^(expansion|glacier-sample)\//.test(name) ? name : 'seaside/' + name,
-      type,
-      (error, asset) => (error ? reject(error) : resolve(asset)),
-    ),
-  );
+  const location = artLocation(name),
+    key = `${location.bundle}/${location.path}:${type.name}`;
+  requestedArt.add(`${location.bundle}/${location.path}`);
+  let pending = assets.get(key);
+  if (!pending) {
+    let bundle = bundles.get(location.bundle);
+    if (!bundle) {
+      bundle = new Promise<AssetManager.Bundle>((resolve, reject) =>
+        assetManager.loadBundle(location.bundle, (error, loaded) =>
+          error ? reject(error) : resolve(loaded),
+        ),
+      );
+      bundles.set(location.bundle, bundle);
+      void bundle.catch(() => bundles.delete(location.bundle));
+    }
+    pending = bundle.then(
+      (loaded) =>
+        new Promise<T>((resolve, reject) =>
+          loaded.load(location.path, type, (error, asset) =>
+            error ? reject(error) : resolve(asset),
+          ),
+        ),
+    );
+    assets.set(key, pending);
+    void pending.catch(() => assets.delete(key));
+  }
+  return pending as Promise<T>;
 }
 
 const modelMaterials = new Map<Material, Material>();
@@ -61,7 +86,10 @@ export function placeModel(prefab: Prefab, parent: Node, name: string) {
           defines: { USE_TEXTURE: texture instanceof Texture2D },
           states: { rasterizerState: { cullMode: gfx.CullMode.NONE } },
         });
-        shared.setProperty('mainColor', baseColor instanceof Color || baseColor instanceof Vec4 ? baseColor : Color.WHITE);
+        shared.setProperty(
+          'mainColor',
+          baseColor instanceof Color || baseColor instanceof Vec4 ? baseColor : Color.WHITE,
+        );
         if (texture instanceof Texture2D) shared.setProperty('mainTexture', texture);
         modelMaterials.set(original, shared);
       }

@@ -1569,6 +1569,31 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  services/kart-server:
+    dependencies:
+      '@coffeeeeffoc/carding-car':
+        specifier: workspace:*
+        version: link:../../games/local/carding-car
+      fastify:
+        specifier: 5.12.3
+        version: 5.12.3
+      ws:
+        specifier: 8.21.3
+        version: 8.21.3
+      zod:
+        specifier: 4.1.5
+        version: 4.1.5
+    devDependencies:
+      '@types/node':
+        specifier: 24.3.1
+        version: 24.3.1
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   services/management-api:
     dependencies:
       '@aws-sdk/client-s3':
@@ -5727,6 +5752,12 @@ packages:
 
   /@types/webxr@0.5.24:
     resolution: {integrity: sha512-h8fgEd/DpoS9CBrjEQXR+dIDraopAEfu4wYVNY2tEPwk60stPWhvZMf4Foo5FakuQ7HFZoa8WceaWFervK2Ovg==}
+
+  /@types/ws@8.18.1:
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+    dependencies:
+      '@types/node': 24.10.4
+    dev: true
 
   /@typescript-eslint/eslint-plugin@8.42.0(@typescript-eslint/parser@8.42.0)(eslint@9.35.0)(typescript@5.9.3):
     resolution: {integrity: sha512-Aq2dPqsQkxHOLfb2OPv43RnIvfj05nw8v/6n3B2NABIPpHnjQnaLo9QGMTvml+tv4korl/Cjfrb/BYhoL8UUTQ==}
@@ -11792,7 +11823,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
 
   /wsl-utils@1.0.0:
     resolution: {integrity: sha512-Hl0ZOAs672vg+06kfujwRhoS6/jehvULrlFkuF2dRu6pHgA8U06h3xqNIqNNU1LTXPcedxByAR4GS6pwQK0mgA==}

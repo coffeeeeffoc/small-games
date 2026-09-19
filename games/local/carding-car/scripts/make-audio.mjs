@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-const out = new URL('../assets/resources/audio/', import.meta.url);
+const out = new URL('../assets/art/art-audio/', import.meta.url);
 await mkdir(out, { recursive: true });
 // Original synthesized effects, PCM mono. All platforms use the same Cocos AudioSource.
 for (const [name, seconds, frequency] of [

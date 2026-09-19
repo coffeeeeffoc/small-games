@@ -1,3 +1,4 @@
+import { artLocation } from '../assets/scripts/ArtLocation.ts';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -38,8 +39,10 @@ test('all expansion choices have self-contained runtime art and copied build inp
   assert.ok(bytes < 12 * 1024 * 1024, `expansion runtime budget: ${bytes}`);
   await prepareArt();
   for (const file of files) {
+    const ext = file.slice(file.lastIndexOf('.'));
+    const location = artLocation('expansion/' + file.slice(0, -ext.length));
     assert.deepEqual(
-      await readFile(new URL('../assets/resources/expansion/' + file, import.meta.url)),
+      await readFile(new URL(`../assets/art/${location.bundle}/${location.path}${ext}`, import.meta.url)),
       await readFile(new URL(file, expansionSource)),
       `build input differs from source: ${file}`,
     );

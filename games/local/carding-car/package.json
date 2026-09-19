@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./race": "./assets/scripts/RaceManager.ts",
+    "./routes": "./assets/scripts/RouteCatalog.ts",
+    "./selection": "./assets/scripts/Selection.ts",
+    "./themes": "./assets/scripts/ThemeCatalog.ts",
+    "./protocol": "./assets/scripts/MultiplayerProtocol.ts"
+  },
   "uuid": "952245fa-d33f-423b-86e3-277b2c359ce4",
   "creator": {
     "version": "3.8.8"

@@ -12,6 +12,8 @@ export class KartController {
     private activateAudio: () => void,
     private choose: (field: keyof Selection, delta: number) => void = () => {},
     private garage: () => void = () => {},
+    private blocked: () => boolean = () => false,
+    private start: () => void = () => this.race().start(),
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -29,6 +31,7 @@ export class KartController {
     kart.charge = kart.tier = kart.driftSide = 0;
   }
   keyDown(e: EventKeyboard) {
+    if (this.blocked()) return;
     if (this.keys.has(e.keyCode)) return;
     this.activateAudio();
     this.keys.add(e.keyCode);
@@ -65,7 +68,7 @@ export class KartController {
     ) {
       this.clear();
       if (r.phase === 'ready' && r.loadError) this.garage();
-      else if (r.phase === 'ready') r.start();
+      else if (r.phase === 'ready' && r.loaded) this.start();
       else if (r.phase === 'paused') r.resume();
       else if (r.phase === 'finished') this.restart();
       this.keys.add(e.keyCode);
@@ -83,8 +86,11 @@ export class KartController {
       return;
     }
     if (e.keyCode === KeyCode.KEY_M) this.sound();
-    if (r.phase !== 'racing' && r.phase !== 'countdown' &&
-      ![KeyCode.KEY_M, KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT].includes(e.keyCode))
+    if (
+      r.phase !== 'racing' &&
+      r.phase !== 'countdown' &&
+      ![KeyCode.KEY_M, KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT].includes(e.keyCode)
+    )
       this.keys.delete(e.keyCode);
   }
   keyUp(e: EventKeyboard) {
@@ -96,6 +102,7 @@ export class KartController {
     return { x: p.x / s.width, y: p.y / s.height };
   }
   touchStart(e: EventTouch) {
+    if (this.blocked()) return;
     this.activateAudio();
     const p = this.location(e),
       r = this.race(),
@@ -132,7 +139,7 @@ export class KartController {
       if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
         if (r.phase === 'ready' && r.loadError) this.garage();
-        else if (r.phase === 'ready') r.start();
+        else if (r.phase === 'ready' && r.loaded) this.start();
         else if (r.phase === 'paused') r.resume();
         else this.restart();
       }
@@ -165,6 +172,8 @@ export class KartController {
     if (id !== null) this.touches.delete(id);
   }
   read(): KartInput {
+    if (this.blocked())
+      return { steer: 0, throttle: 0, brake: true, drift: false, reverse: false, nitro: false };
     const phase = this.race().phase;
     if (phase !== 'racing' && phase !== 'countdown')
       return { steer: 0, drift: false, brake: false, throttle: 0, nitro: false };
