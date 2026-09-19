@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["COCOS_CREATOR", "KART_PREBUILT_DIR"],
   "tasks": {
     "dev": {
       "cache": false,
