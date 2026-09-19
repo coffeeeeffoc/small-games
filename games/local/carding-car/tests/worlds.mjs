@@ -111,7 +111,7 @@ try {
       : mobile.touchscreen.tap((viewport.width - 960 * scale) / 2 + x * scale, (viewport.height - 540 * scale) / 2 + y * scale);
     const before = (await snapshot(mobile)).selection;
     await tap(710, 226); await loaded(mobile);
-    assert.notEqual((await snapshot(mobile)).selection.theme, before.world);
+    assert.notEqual((await snapshot(mobile)).selection.theme, before.theme);
     await tap(710, 306); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.vehicle, before.vehicle);
     await tap(710, 346); await loaded(mobile);

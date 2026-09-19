@@ -33,7 +33,12 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
   }
   const b = new MeshBatch(),
     c = theme.colors;
-  b.box(c.ground, 0, -1, 0, 1800, 1.8, 1800);
+  const groundY =
+    theme.groundDepth === undefined
+      ? -0.1
+      : Math.min(...track.main.map((p) => p.y), ...track.shortcut.map((p) => p.y)) -
+        theme.groundDepth;
+  b.box(c.ground, 0, groundY - 0.9, 0, 1800, 1.8, 1800);
   for (const mesh of scenery.meshes ?? []) b.add(mesh.color, mesh.geometry);
   for (const [points, width] of [
     [track.main, track.width],
