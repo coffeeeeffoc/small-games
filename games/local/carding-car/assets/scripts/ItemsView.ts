@@ -17,9 +17,11 @@ export class ItemsView {
       ),
     );
     if (!isValid(parent)) return;
-    this.nodes = items.map((item) =>
-      placeModel(models.get(item.kind)!, parent, `Item-${item.kind}`),
-    );
+    this.nodes = items.map((item) => {
+      const node = placeModel(models.get(item.kind)!, parent, `Item-${item.kind}`);
+      node.setScale(1.3, 1.3, 1.3);
+      return node;
+    });
     this.update(items, 0);
   }
   update(items: RoadItem[], time: number) {

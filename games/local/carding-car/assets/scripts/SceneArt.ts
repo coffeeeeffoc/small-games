@@ -31,7 +31,7 @@ export function loadArt<T extends Asset>(name: string, type: new () => T) {
   if (name.startsWith('expansion/') && Object.is(type, Prefab)) name += '/' + name.split('/').pop();
   return new Promise<T>((resolve, reject) =>
     resources.load(
-      name.startsWith('expansion/') ? name : 'seaside/' + name,
+      /^(expansion|glacier-sample)\//.test(name) ? name : 'seaside/' + name,
       type,
       (error, asset) => (error ? reject(error) : resolve(asset)),
     ),
@@ -86,7 +86,8 @@ export function groundShadow(parent: Node, width: number, length: number) {
   renderer.mesh = shadowMesh;
   renderer.setMaterial(shadowMaterial, 0);
   node.setScale(width, 1, length);
-  node.setPosition(0, 0.018, 0);
+  // Above the ice road overlay (2.5 cm) as well as the base asphalt.
+  node.setPosition(0, 0.045, 0);
   return node;
 }
 const materials = new Map<string, Material>();
@@ -103,9 +104,10 @@ export function material(hex: string) {
 
 /** One draw call per colour for static scenery, with soft lighting baked into vertices. */
 export class MeshBatch {
+  constructor(private readonly lit = false) {}
   groups = new Map<
     string,
-    { positions: number[]; normals: number[]; colors: number[]; indices: number[] }
+    { positions: number[]; normals: number[]; colors: number[]; uvs: number[]; indices: number[] }
   >();
   add(
     color: string,
@@ -120,7 +122,7 @@ export class MeshBatch {
   ) {
     let g = this.groups.get(color);
     if (!g) {
-      g = { positions: [], normals: [], colors: [], indices: [] };
+      g = { positions: [], normals: [], colors: [], uvs: [], indices: [] };
       this.groups.set(color, g);
     }
     const offset = g.positions.length / 3,
@@ -130,13 +132,15 @@ export class MeshBatch {
       const px = geo.positions[i] * sx,
         pz = geo.positions[i + 2] * sz;
       g.positions.push(x + px * c + pz * s, y + geo.positions[i + 1] * sy, z + pz * c - px * s);
-      const nx = geo.normals?.[i] ?? 0,
-        ny = geo.normals?.[i + 1] ?? 1,
-        nz = geo.normals?.[i + 2] ?? 0;
+      const nx = (geo.normals?.[i] ?? 0) / (this.lit ? sx : 1),
+        ny = (geo.normals?.[i + 1] ?? 1) / (this.lit ? sy : 1),
+        nz = (geo.normals?.[i + 2] ?? 0) / (this.lit ? sz : 1);
       const rx = nx * c + nz * s,
         rz = nz * c - nx * s;
-      g.normals.push(rx, ny, rz);
-      const light = 0.72 + 0.28 * Math.max(0, rx * -0.35 + ny * 0.8 + rz * 0.4);
+      const length = this.lit ? Math.hypot(rx, ny, rz) || 1 : 1;
+      g.normals.push(rx / length, ny / length, rz / length);
+      g.uvs.push(geo.uvs?.[(i / 3) * 2] ?? 0, geo.uvs?.[(i / 3) * 2 + 1] ?? 0);
+      const light = this.lit ? 1 : 0.72 + 0.28 * Math.max(0, rx * -0.35 + ny * 0.8 + rz * 0.4);
       g.colors.push(light, light, light, 1);
     }
     g.indices.push(...(geo.indices ?? []).map((i) => i + offset));
@@ -147,7 +151,7 @@ export class MeshBatch {
   ball(color: string, x: number, y: number, z: number, sx: number, sy = sx, sz = sx) {
     this.add(color, primitives.sphere(0.5, { segments: 12 }), x, y, z, sx, sy, sz);
   }
-  build(parent: Node, name: string) {
+  build(parent: Node, name: string, getMaterial: (color: string) => Material = material) {
     const root = new Node(name);
     parent.addChild(root);
     for (const [hex, geometry] of this.groups) {
@@ -157,7 +161,11 @@ export class MeshBatch {
       const mesh = utils.createMesh(geometry);
       renderer.mesh = mesh;
       node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
-      renderer.setMaterial(material(hex), 0);
+      renderer.setMaterial(getMaterial(hex), 0);
+      if (this.lit) {
+        renderer.shadowCastingMode = 1;
+        renderer.receiveShadow = 1;
+      }
     }
     return root;
   }

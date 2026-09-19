@@ -3,6 +3,7 @@ import { buildTrack, ribbon } from './Track';
 import { loadArt, MeshBatch, placeModel } from './SceneArt';
 import { pointAt, projectOnTrack, type TrackData } from './TrackGenerator';
 import type { WorldDefinition } from './WorldDefinition';
+import { buildGlacier } from './GlacierSample';
 
 export async function buildWorld(parent: Node, track: TrackData, world: WorldDefinition) {
   if (world.id === 'seaside') return buildTrack(parent, track);
@@ -13,13 +14,14 @@ export async function buildWorld(parent: Node, track: TrackData, world: WorldDef
     [track.main, track.width],
     [track.shortcut, track.shortcutWidth],
   ] as const) {
-    if (points.length < 2) continue;
+    if (points.length < 2 || world.id === 'glacier') continue;
     b.add(c.shoulder, ribbon(points, -width / 2 - 1.6, width / 2 + 1.6, -0.04));
     b.add(c.road, ribbon(points, -width / 2, width / 2, 0));
     for (const side of [-1, 1])
       b.add(c.rail, ribbon(points, (side * width) / 2 - 0.12, (side * width) / 2 + 0.12, 0.025));
   }
-  for (const [i, wall] of track.barriers.entries())
+  for (const [i, wall] of track.barriers.entries()) {
+    if (world.id === 'glacier') continue;
     b.box(
       i % 4 < 2 ? c.rail : c.accent,
       wall.x,
@@ -30,6 +32,7 @@ export async function buildWorld(parent: Node, track: TrackData, world: WorldDef
       wall.halfLength * 2,
       wall.heading,
     );
+  }
   // All scenery is separate from the shared drivable road and its exact physical rails.
   for (const shape of world.scenery.shapes ?? []) {
     if (shape.kind === 'ball')
@@ -67,29 +70,32 @@ export async function buildWorld(parent: Node, track: TrackData, world: WorldDef
   }
   b.build(parent, world.name);
   // A narrow textured shoulder keeps each authored terrain texture visible without hiding asphalt.
-  const texture = await loadArt(`expansion/textures/${world.id}/texture`, Texture2D);
-  if (!isValid(parent)) return;
-  texture.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
-  const mat = new Material();
-  parent.once(Node.EventType.NODE_DESTROYED, () => mat.destroy());
-  mat.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
-  mat.setProperty('mainColor', Color.WHITE);
-  mat.setProperty('mainTexture', texture);
-  for (const side of [-1, 1]) {
-    const node = new Node('TerrainTexture');
-    parent.addChild(node);
-    const renderer = node.addComponent(MeshRenderer);
-    const mesh = utils.createMesh(
-      ribbon(
-        track.main,
-        (side * track.width) / 2 + Math.min(side * 0.25, side * 1.5),
-        (side * track.width) / 2 + Math.max(side * 0.25, side * 1.5),
-        -0.025,
-      ),
-    );
-    renderer.mesh = mesh;
-    node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
-    renderer.setMaterial(mat, 0);
+  if (world.id === 'glacier') await buildGlacier(parent, track);
+  else {
+    const texture = await loadArt(`expansion/textures/${world.id}/texture`, Texture2D);
+    if (!isValid(parent)) return;
+    texture.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
+    const mat = new Material();
+    parent.once(Node.EventType.NODE_DESTROYED, () => mat.destroy());
+    mat.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
+    mat.setProperty('mainColor', Color.WHITE);
+    mat.setProperty('mainTexture', texture);
+    for (const side of [-1, 1]) {
+      const node = new Node('TerrainTexture');
+      parent.addChild(node);
+      const renderer = node.addComponent(MeshRenderer);
+      const mesh = utils.createMesh(
+        ribbon(
+          track.main,
+          (side * track.width) / 2 + Math.min(side * 0.25, side * 1.5),
+          (side * track.width) / 2 + Math.max(side * 0.25, side * 1.5),
+          -0.025,
+        ),
+      );
+      renderer.mesh = mesh;
+      node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
+      renderer.setMaterial(mat, 0);
+    }
   }
   const placements = [...(world.scenery.models ?? [])];
   for (const row of world.scenery.roadside ?? [])
