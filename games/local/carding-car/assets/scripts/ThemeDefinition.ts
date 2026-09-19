@@ -5,6 +5,8 @@ export type ThemeDefinition = {
   tagline: string;
   roadTexture?: string;
   shoulderTexture?: false | string;
+  /** Water themes keep their ground below even the lowest point of the chosen route. */
+  groundDepth?: number;
   colors: {
     ground: string;
     road: string;

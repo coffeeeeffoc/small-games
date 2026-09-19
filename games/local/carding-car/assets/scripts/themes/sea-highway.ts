@@ -1,77 +1,127 @@
 import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
-import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
+import type { TrackData } from '../TrackGenerator.ts';
+import { besideRoad, clearOfRoad } from '../ThemeScenery.ts';
+import { seaBridge } from '../SeaHighwayGeometry.ts';
 
 function createScenery(track: TrackData): ThemeScenery {
-
-const route = track;
-const shapes: NonNullable<ThemeScenery['shapes']> = [];
-const models: NonNullable<ThemeScenery['models']> = [
-  { asset: 'expansion/scenes/sea-highway', x: 0, y: -0.08, z: 225, scale: 3, yaw: Math.PI / 2 },
-];
-
-// 沿实际曲线铺连续桥底，所有桥体均低于权威道路表面；同色形体由 MeshBatch 合批。
-const spans = Math.ceil(route.length / 10);
-const spanLength = route.length / spans;
-for (let i = 0; i < spans; i++) {
-  const p = pointAt(route, (i + 0.5) * spanLength);
-  shapes.push({
-    kind: 'box', color: '#a2bac2', x: p.x, y: 1.2, z: p.z,
-    sx: 18, sy: 1.5, sz: spanLength + 3, yaw: p.heading,
-  });
-  if (i % 4 === 0) {
-    shapes.push({
-      kind: 'box', color: '#6d8d9a', x: p.x, y: 0.12, z: p.z,
-      sx: 4.5, sy: 1, sz: 3, yaw: p.heading,
-    });
-    for (const side of [-1, 1]) {
-      shapes.push({
-        kind: 'box', color: '#e3f4f4',
-        x: p.x + Math.cos(p.heading) * side * 8.65,
-        y: 4.2, z: p.z - Math.sin(p.heading) * side * 8.65,
-        sx: 0.16, sy: 4.4, sz: 0.16,
-      });
-    }
-  }
-}
-
-// 桥塔净宽 18m，14m 道路连同护栏总宽 17.35m，塔脚不侵入可驾驶区域。
-for (const x of [-64, 64]) {
-  for (const z of [-90, 90]) {
-    models.push(
-      { asset: 'expansion/props/bridge-tower', x, y: -0.1, z, scale: 1, yaw: Math.PI / 2 },
-      { asset: 'expansion/props/bridge-deck', x, y: 0.45, z, scale: 1, yaw: Math.PI / 2 },
+  const { decks, piers, towers, cables, water } = seaBridge(track);
+  const shapes: NonNullable<ThemeScenery['shapes']> = [];
+  const models: NonNullable<ThemeScenery['models']> = [];
+  const meshes = [
+    { color: '#b8ced2', geometry: decks },
+    { color: '#9aafb3', geometry: piers },
+    { color: '#fffaf0', geometry: towers },
+    { color: '#edfaff', geometry: cables },
+  ];
+  let islands = 0;
+  for (let i = 0; i < 10; i++) {
+    const side = i % 2 ? -1 : 1;
+    const p = besideRoad(track, 55 + (i * track.length) / 10, side * (track.width / 2 + 58));
+    if (!clearOfRoad(track, p.x, p.z, 28)) continue;
+    const radius = 17 + (i % 3) * 3;
+    shapes.push(
+      {
+        kind: 'ball',
+        color: '#35bfcd',
+        x: p.x,
+        y: water + 0.03,
+        z: p.z,
+        sx: radius * 2.6,
+        sy: 0.035,
+        sz: radius * 2.3,
+      },
+      {
+        kind: 'ball',
+        color: '#edd7a2',
+        x: p.x,
+        y: water + 0.3,
+        z: p.z,
+        sx: radius * 2,
+        sy: 3.6,
+        sz: radius * 1.6,
+      },
+      {
+        kind: 'ball',
+        color: '#75aa56',
+        x: p.x,
+        y: water + 2,
+        z: p.z,
+        sx: radius * 1.6,
+        sy: 5.6,
+        sz: radius * 1.25,
+      },
     );
+    for (let j = 0; j < 3; j++) {
+      const angle = (j * Math.PI * 2) / 3 + i;
+      const x = p.x + Math.cos(angle) * radius * 0.67,
+        z = p.z + Math.sin(angle) * radius * 0.53;
+      models.push(
+        {
+          asset: 'coastal-rocks/coastal-rocks',
+          x,
+          y: water + 0.2,
+          z,
+          scale: 2.6 + (j % 2),
+          yaw: angle,
+        },
+        {
+          asset: j % 2 ? 'palm/palm' : 'broadleaf/broadleaf',
+          x: p.x + Math.cos(angle) * radius * 0.38,
+          y: water + 4.2,
+          z: p.z + Math.sin(angle) * radius * 0.3,
+          scale: 0.8 + (j % 2) * 0.25,
+          yaw: angle,
+        },
+      );
+    }
+    if (islands++ % 4 === 0)
+      models.push({ asset: 'lighthouse/lighthouse', x: p.x, y: water + 4.2, z: p.z, scale: 0.9 });
   }
-}
-
-// 潮汐色块低于道路；岛屿放在道路外侧，留出清晰的海上环线轮廓。
-for (const [x, z, sx, sz] of [[0, 0, 360, 115], [-345, -80, 120, 110], [300, 180, 190, 95]]) {
-  shapes.push({ kind: 'ball', color: '#389fae', x, y: -0.1, z, sx, sy: 0.04, sz });
-}
-for (const [x, z, size] of [[-330, -155, 55], [325, 120, 70], [70, -185, 48]]) {
-  shapes.push(
-    { kind: 'ball', color: '#e4cf93', x, y: -1.1, z, sx: size, sy: 5, sz: size * 0.7 },
-    { kind: 'ball', color: '#65a784', x, y: 0.5, z, sx: size * 0.7, sy: 7, sz: size * 0.45 },
-  );
-}
-
-
-return { shapes, models };
+  // Small whitecaps stay on the sea; the bridge shoulders remain concrete.
+  for (let i = 0; i < 96; i++) {
+    const p = besideRoad(track, (i * track.length) / 96, (i % 2 ? 1 : -1) * (28 + (i % 5) * 17));
+    shapes.push({
+      kind: 'box',
+      color: i % 3 ? '#39afc8' : '#9ae1e3',
+      x: p.x,
+      y: water + 0.06,
+      z: p.z,
+      sx: 2 + (i % 4),
+      sy: 0.035,
+      sz: 0.14,
+      yaw: -0.35,
+    });
+  }
+  for (let i = 0; i < 10; i++) {
+    const angle = (i * Math.PI * 2) / 10;
+    for (let j = 0; j < 3; j++)
+      shapes.push({
+        kind: 'ball',
+        color: '#eef9fb',
+        x: Math.cos(angle) * 560 + j * 22,
+        y: 88 + (i % 3) * 11 + (j % 2) * 8,
+        z: Math.sin(angle) * 560,
+        sx: 70,
+        sy: 22 + (j % 2) * 12,
+        sz: 38,
+      });
+  }
+  return { meshes, shapes, models };
 }
 
 export const theme: ThemeDefinition = {
-  ...{
-  "id": "sea-highway",
-  "name": "跨海高速",
-  "tagline": "双桥塔长直道 · 海岛缓回弯",
-  "colors": {
-    "ground": "#258899",
-    "road": "#40576a",
-    "shoulder": "#a9bec2",
-    "rail": "#e3f4f4",
-    "accent": "#f7bd62",
-    "sky": "#bce7f0"
-  }
-},
+  id: 'sea-highway',
+  name: '跨海高速',
+  tagline: '白塔斜拉桥 · 碧海灯塔群岛',
+  shoulderTexture: false,
+  groundDepth: 6,
+  colors: {
+    ground: '#168eb6',
+    road: '#40576a',
+    shoulder: '#c9d7d7',
+    rail: '#fff9ed',
+    accent: '#ee7667',
+    sky: '#75c7ee',
+  },
   scenery: createScenery,
 };
