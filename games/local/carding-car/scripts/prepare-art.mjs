@@ -5,6 +5,7 @@ export const expansionSource = new URL('../../../../assets/carding-car/runtime-e
 export const glacierSource = new URL('../../../../assets/carding-car/glacier-sample/', import.meta.url);
 export const glacierFiles = ['road.jpg'];
 export const artFiles = [
+  'manifest.json',
   'kart.glb',
   'palm.glb',
   'broadleaf.glb',

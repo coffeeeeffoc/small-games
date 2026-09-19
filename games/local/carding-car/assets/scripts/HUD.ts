@@ -14,8 +14,9 @@ import {
 import { KartConfig as C, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
 import { formatTime as time, type RaceRecord } from './RankingSystem';
-import { defaultSelection, vehicles, drivers, type Selection } from './Selection';
-import { worlds } from './WorldCatalog';
+import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
+import { themes } from './ThemeCatalog';
+import { routes } from './RouteCatalog';
 const color = (v: string) => new Color().fromHEX(v);
 export class HUD {
   root: Node;
@@ -134,11 +135,11 @@ export class HUD {
     this.picker = new Node('Selection');
     this.picker.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.picker);
-    for (const y of [30, -20, -70]) {
-      this.box(this.picker, 0, y, 590, 42, '#295870');
-      this.label(this.picker, '‹', -270, y, 30, '#ffd15a', 50, 42);
-      this.label(this.picker, '›', 270, y, 30, '#ffd15a', 50, 42);
-      this.choices.push(this.label(this.picker, '', 0, y, 21, '#fff6dc', 480, 42));
+    for (const { y } of selectionRows) {
+      this.box(this.picker, 0, y, 590, 38, '#295870');
+      this.label(this.picker, '‹', -270, y, 30, '#ffd15a', 50, 38);
+      this.label(this.picker, '›', 270, y, 30, '#ffd15a', 50, 38);
+      this.choices.push(this.label(this.picker, '', 0, y, 20, '#fff6dc', 480, 38));
     }
     this.footer = this.label(this.panel, '', 0, -176, 14, '#a9cdd0', 660, 32);
   }
@@ -202,7 +203,7 @@ export class HUD {
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
       this.restartButton.active = r.phase === 'paused';
-      this.leaderboard.string = `本机最快 5 场\n${
+      this.leaderboard.string = `本路线最快 5 场\n${
         this.records.length
           ? this.records
               .map(
@@ -242,22 +243,24 @@ export class HUD {
         this.footer.string = 'Enter / R 再跑一场   ·   本机成绩仅保存在当前设备';
       }
     }
-    const world = worlds.find((w) => w.id === this.selection.world)!;
-    this.tagline.string = world.tagline;
+    const theme = themes.find((t) => t.id === this.selection.theme)!;
+    const selectedRoute = routes.find((r) => r.id === this.selection.route)!;
+    this.tagline.string = theme.tagline;
     if (r.phase === 'ready') {
       this.title.string = '咔叮唓 · 出发准备';
       this.detail.string = r.loadError
         ? `素材加载失败：${r.loadError}\n切换配置可重试`
         : r.loaded
-          ? `${world.name} · 3 圈竞速 · 3 位对手 · 随机道具`
-          : '正在装配场景、赛车与车手…';
+          ? `${Math.round(r.track.length)} 米 · 3 圈竞速 · 3 位对手 · 随机道具`
+          : '正在装配主题、路线图与赛车…';
       this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? '开 跑  →' : '装配中…';
-      this.choices[0].string = `场景  ${world.name}  ${worlds.indexOf(world) + 1}/${worlds.length}`;
-      this.choices[1].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
-      this.choices[2].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
+      this.choices[0].string = `主题  ${theme.name}  ${themes.indexOf(theme) + 1}/${themes.length}`;
+      this.choices[1].string = `路线图  ${selectedRoute.name}  ${routes.indexOf(selectedRoute) + 1}/${routes.length}`;
+      this.choices[2].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
+      this.choices[3].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
       this.footer.string = sys.isMobile
         ? '点击左右箭头选择 · 自动保存 · 开跑后自动加速'
-        : '1 场景 · 2 赛车 · 3 车手（Shift 反向）· Enter 开跑';
+        : '1 主题 · 2 路线图 · 3 赛车 · 4 车手 · Shift 反向 · Enter 开跑';
     }
     this.count.string =
       r.phase === 'countdown'

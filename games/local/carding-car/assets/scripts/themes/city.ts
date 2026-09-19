@@ -1,20 +1,12 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
-import { createTrack, pointAt, projectOnTrack } from '../TrackGenerator.ts';
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
+
+function createScenery(track: TrackData): ThemeScenery {
 
 // Broad boulevards circle the business district, then sweep through the park quarter.
-const track: WorldDefinition['track'] = {
-  width: 18,
-  shortcut: false,
-  controls: [
-    [0, -165], [60, -165], [120, -165], [175, -135], [200, -80],
-    [200, 0], [160, 70], [155, 135], [105, 180], [20, 185],
-    [-65, 160], [-130, 170], [-190, 125], [-215, 60], [-215, -25],
-    [-190, -100], [-160, -150], [-120, -165], [-60, -165],
-  ],
-};
-const road = createTrack(track);
-const shapes: NonNullable<WorldDefinition['scenery']['shapes']> = [];
-const models: NonNullable<WorldDefinition['scenery']['models']> = [
+const road = track;
+const shapes: NonNullable<ThemeScenery['shapes']> = [];
+const models: NonNullable<ThemeScenery['models']> = [
   // Authored 36 m city diorama forms the central skyline, outside the racing ribbon.
   { asset: 'expansion/scenes/city', x: 15, y: 0, z: 25, scale: 2.8, yaw: -0.4 },
   { asset: 'expansion/scenes/city', x: 285, y: 0, z: -45, scale: 2, yaw: Math.PI / 2 },
@@ -78,11 +70,23 @@ for (let y = 6; y < 38; y += 6) {
   box('#d7efe8', 88.6, y, -40, 0.2, 1.3, 14);
 }
 
-export const world: WorldDefinition = {
-  id: 'city',
-  name: '城市',
-  tagline: '穿越商业街与中央广场的宽街竞速',
-  track,
-  colors: { ground: '#b5bba5', road: '#435365', shoulder: '#c9c8b9', rail: '#fff2d1', accent: '#ea8765', sky: '#b6dce9' },
-  scenery: { shapes, models },
+
+return { shapes, models };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "city",
+  "name": "城市",
+  "tagline": "穿越商业街与中央广场的宽街竞速",
+  "colors": {
+    "ground": "#b5bba5",
+    "road": "#435365",
+    "shoulder": "#c9c8b9",
+    "rail": "#fff2d1",
+    "accent": "#ea8765",
+    "sky": "#b6dce9"
+  }
+},
+  scenery: createScenery,
 };

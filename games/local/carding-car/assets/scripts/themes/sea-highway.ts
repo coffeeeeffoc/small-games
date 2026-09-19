@@ -1,19 +1,11 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
-import { createTrack, pointAt } from '../TrackGenerator.ts';
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
 
-const track: WorldDefinition['track'] = {
-  width: 14,
-  shortcut: false,
-  controls: [
-    [0, -90, 2], [80, -90, 2], [160, -90, 2], [216, -64, 2],
-    [240, 0, 2], [216, 64, 2], [160, 90, 2], [80, 90, 2],
-    [0, 90, 2], [-80, 90, 2], [-160, 90, 2], [-216, 64, 2],
-    [-240, 0, 2], [-216, -64, 2], [-160, -90, 2], [-80, -90, 2],
-  ],
-};
-const route = createTrack(track);
-const shapes: NonNullable<WorldDefinition['scenery']['shapes']> = [];
-const models: NonNullable<WorldDefinition['scenery']['models']> = [
+function createScenery(track: TrackData): ThemeScenery {
+
+const route = track;
+const shapes: NonNullable<ThemeScenery['shapes']> = [];
+const models: NonNullable<ThemeScenery['models']> = [
   { asset: 'expansion/scenes/sea-highway', x: 0, y: -0.08, z: 225, scale: 3, yaw: Math.PI / 2 },
 ];
 
@@ -63,14 +55,23 @@ for (const [x, z, size] of [[-330, -155, 55], [325, 120, 70], [70, -185, 48]]) {
   );
 }
 
-export const world: WorldDefinition = {
-  id: 'sea-highway',
-  name: '跨海高速',
-  tagline: '双桥塔长直道 · 海岛缓回弯',
-  track,
-  colors: {
-    ground: '#258899', road: '#40576a', shoulder: '#a9bec2',
-    rail: '#e3f4f4', accent: '#f7bd62', sky: '#bce7f0',
-  },
-  scenery: { shapes, models },
+
+return { shapes, models };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "sea-highway",
+  "name": "跨海高速",
+  "tagline": "双桥塔长直道 · 海岛缓回弯",
+  "colors": {
+    "ground": "#258899",
+    "road": "#40576a",
+    "shoulder": "#a9bec2",
+    "rail": "#e3f4f4",
+    "accent": "#f7bd62",
+    "sky": "#bce7f0"
+  }
+},
+  scenery: createScenery,
 };

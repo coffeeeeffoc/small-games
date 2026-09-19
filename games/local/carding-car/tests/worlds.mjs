@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { worlds } from '../assets/scripts/WorldCatalog.ts';
+import { themes } from '../assets/scripts/ThemeCatalog.ts';
+import { routes } from '../assets/scripts/RouteCatalog.ts';
 import { vehicles, drivers } from '../assets/scripts/Selection.ts';
 import { sourceHash } from '../scripts/artifact.mjs';
 
@@ -26,8 +27,9 @@ async function open(options) {
 }
 try {
   const page = await open({ viewport: { width: 960, height: 540 } });
-  for (const world of worlds) {
-    while ((await snapshot(page)).selection.world !== world.id) await page.keyboard.press('Digit1');
+  for (const world of themes) {
+    while ((await snapshot(page)).selection.theme !== world.id) await page.keyboard.press('Digit1');
+    while ((await snapshot(page)).selection.route !== world.id) await page.keyboard.press('Digit2');
     await loaded(page);
     const menu = await snapshot(page);
     assert.equal(menu.items.length, 24);
@@ -54,7 +56,7 @@ try {
     const race = await snapshot(page);
     assert.ok(race.player.speed > 0 && race.progress.distance > menu.progress.distance, world.id);
     await page.screenshot({ path: fileURLToPath(new URL(`${world.id}.png`, reports)) });
-    evidence.worlds.push({ id: world.id, length: race.world.length, speed: race.player.speed, items: race.items.length, fps: race.fps });
+    evidence.worlds.push({ id: world.id, length: race.route.length, speed: race.player.speed, items: race.items.length, fps: race.fps });
     await page.keyboard.press('KeyP');
     const paused = await snapshot(page);
     await page.waitForTimeout(180);
@@ -72,10 +74,10 @@ try {
     await page.keyboard.press('KeyG');
     await loaded(page);
   }
-  assert.equal(new Set(evidence.worlds.map(w => w.length)).size, worlds.length, 'worlds must have distinct routes');
+  assert.equal(new Set(evidence.worlds.map(w => w.length)).size, themes.length, 'worlds must have distinct routes');
   for (let i = 0; i < vehicles.length; i++) {
-    while ((await snapshot(page)).selection.vehicle !== vehicles[i][0]) await page.keyboard.press('Digit2');
-    while ((await snapshot(page)).selection.driver !== drivers[i][0]) await page.keyboard.press('Digit3');
+    while ((await snapshot(page)).selection.vehicle !== vehicles[i][0]) await page.keyboard.press('Digit3');
+    while ((await snapshot(page)).selection.driver !== drivers[i][0]) await page.keyboard.press('Digit4');
     await loaded(page);
     const state = await snapshot(page);
     assert.equal(state.loadError || '', '');
@@ -108,11 +110,11 @@ try {
       ? mobile.touchscreen.tap((viewport.width + 540 * scale) / 2 - y * scale, (viewport.height - 960 * scale) / 2 + x * scale)
       : mobile.touchscreen.tap((viewport.width - 960 * scale) / 2 + x * scale, (viewport.height - 540 * scale) / 2 + y * scale);
     const before = (await snapshot(mobile)).selection;
-    await tap(710, 240); await loaded(mobile);
-    assert.notEqual((await snapshot(mobile)).selection.world, before.world);
-    await tap(710, 290); await loaded(mobile);
+    await tap(710, 226); await loaded(mobile);
+    assert.notEqual((await snapshot(mobile)).selection.theme, before.world);
+    await tap(710, 306); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.vehicle, before.vehicle);
-    await tap(710, 340); await loaded(mobile);
+    await tap(710, 346); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.driver, before.driver);
     await mobile.screenshot({ path: fileURLToPath(new URL(`mobile-${viewport.width}-menu.png`, reports)) });
     await tap(480, 395);

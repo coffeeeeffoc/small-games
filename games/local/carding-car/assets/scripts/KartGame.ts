@@ -1,7 +1,8 @@
 import { _decorator, Camera, Color, Component, game, Game, Layers, Node, profiler, sys } from 'cc';
 import { RaceManager } from './RaceManager';
-import { buildWorld } from './WorldTrack';
-import { worlds } from './WorldCatalog';
+import { buildTheme } from './ThemeView';
+import { themes } from './ThemeCatalog';
+import { routes, routeRecordKey } from './RouteCatalog';
 import { cycleSelection, defaultSelection, readSelection, type Selection } from './Selection';
 import { ItemsView } from './ItemsView';
 import { KartView } from './KartView';
@@ -32,20 +33,18 @@ export class KartGame extends Component {
   sceneryLoaded = false;
   records: RaceRecord[] = [];
   selection: Selection = { ...defaultSelection };
-  worldRoot?: Node;
+  themeRoot?: Node;
   itemsView?: ItemsView;
   loadVersion = 0;
   seed = Date.now() >>> 0;
   get recordKey() {
-    return this.selection.world === 'seaside'
-      ? 'coastline-records-v1'
-      : `kart-records-v1-${this.selection.world}`;
+    return routeRecordKey(this.selection.route);
   }
-  readWorldRecords() {
+  readRouteRecords() {
     try {
       this.records = readRecords(
         sys.localStorage.getItem(this.recordKey),
-        this.selection.world === 'seaside' ? sys.localStorage.getItem('coastline-best') : null,
+        this.selection.route === 'seaside' ? sys.localStorage.getItem('coastline-best') : null,
       );
     } catch {
       this.records = [];
@@ -63,32 +62,33 @@ export class KartGame extends Component {
   loadSelection() {
     const version = ++this.loadVersion;
     this.controller?.clear();
-    if (this.worldRoot) {
-      this.worldRoot.active = false;
-      this.worldRoot.destroy();
+    if (this.themeRoot) {
+      this.themeRoot.active = false;
+      this.themeRoot.destroy();
     }
-    this.worldRoot = new Node('SelectedWorld');
-    this.node.addChild(this.worldRoot);
-    const world = worlds.find((w) => w.id === this.selection.world)!;
-    setGlacierLighting(this.worldRoot, world.id === 'glacier');
-    this.race = new RaceManager(world.track, ++this.seed);
+    this.themeRoot = new Node('SelectedTheme');
+    this.node.addChild(this.themeRoot);
+    const theme = themes.find((t) => t.id === this.selection.theme)!;
+    const route = routes.find((r) => r.id === this.selection.route)!;
+    setGlacierLighting(this.themeRoot, theme.id === 'glacier');
+    this.race = new RaceManager(route.track, ++this.seed);
     this.race.loaded = false;
     this.sceneryLoaded = false;
     this.accumulator = 0;
     this.camera.initialized = false;
-    this.camera.camera.clearColor = new Color().fromHEX(world.colors.sky);
-    this.camera.camera.clearFlags = world.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
-    this.camera.height = world.id === 'glacier' ? 3.2 : 4.4;
-    this.camera.lookHeight = world.id === 'glacier' ? 2 : 1.1;
+    this.camera.camera.clearColor = new Color().fromHEX(theme.colors.sky);
+    this.camera.camera.clearFlags = theme.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
+    this.camera.height = 3.6;
+    this.camera.lookHeight = 1.5;
     this.hud.selection = { ...this.selection };
     this.hud.lastPhase = '';
-    this.readWorldRecords();
+    this.readRouteRecords();
     this.views = [palette.red, palette.blue, palette.yellow, palette.mint].map(
-      (c) => new KartView(this.worldRoot!, c, this.selection),
+      (c) => new KartView(this.themeRoot!, c, this.selection),
     );
-    this.itemsView = new ItemsView(this.worldRoot, this.race.items);
+    this.itemsView = new ItemsView(this.themeRoot, this.race.items);
     Promise.all([
-      buildWorld(this.worldRoot, this.race.track, world),
+      buildTheme(this.themeRoot, this.race.track, theme),
       ...this.views.map((v) => v.ready),
       this.itemsView.ready,
     ])
@@ -137,8 +137,9 @@ export class KartGame extends Component {
           loadError: this.race.loadError,
           itemsCollected: this.race.itemsCollected,
           seed: this.seed,
-          world: {
-            id: this.selection.world,
+          theme: this.selection.theme,
+          route: {
+            id: this.selection.route,
             width: this.race.track.width,
             length: this.race.track.length,
           },
@@ -165,6 +166,7 @@ export class KartGame extends Component {
           records: this.records.map((record) => ({ ...record })),
           hud: {
             title: this.hud.title.string,
+            choices: this.hud.choices.map((choice) => choice.string),
             detail: this.hud.detail.string,
             timer: this.hud.timer.string,
             standings: this.hud.standings.string,
@@ -207,8 +209,9 @@ export class KartGame extends Component {
   };
   restart() {
     this.controller.clear();
-    const world = worlds.find((w) => w.id === this.selection.world)!;
-    this.race = new RaceManager(world.track, ++this.seed);
+    const theme = themes.find((t) => t.id === this.selection.theme)!;
+    const route = routes.find((r) => r.id === this.selection.route)!;
+    this.race = new RaceManager(route.track, ++this.seed);
     this.race.start();
     this.accumulator = 0;
     this.camera.initialized = false;
