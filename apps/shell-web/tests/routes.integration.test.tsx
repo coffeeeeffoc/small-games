@@ -14,7 +14,7 @@ import {
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(canvasContext);
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
@@ -53,6 +53,16 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell routes', () => {
+  it('renders a cricket animation frame after opening its shared URL', async () => {
+    const frames = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    window.history.replaceState(null, '', '/#/games/cricket');
+    const container = await renderShell();
+    expect(container.querySelector('canvas')).not.toBeNull();
+    expect(frames).toHaveBeenCalled();
+    await act(async () => frames.mock.calls.at(-1)![0](16));
+  });
+
   it.each(builtInGameRegistry)('opens $id directly from its shared URL', async (game) => {
     window.history.replaceState(null, '', `/small-games/#/games/${game.id}`);
     const container = await renderShell();

@@ -18,7 +18,7 @@ import {
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(canvasContext);
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});

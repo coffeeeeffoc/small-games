@@ -1,7 +1,8 @@
 /** Drawing is checked in a real browser; this fixture isolates lifecycle and input rules. */
-export function canvasContext() {
+export function canvasContext(this: HTMLCanvasElement) {
   const noop = () => {};
   return {
+    canvas: this,
     save: noop,
     restore: noop,
     scale: noop,
