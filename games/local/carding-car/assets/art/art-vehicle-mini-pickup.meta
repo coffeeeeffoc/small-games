@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "e45f9fb2-c7ce-4aa0-8d96-0f3ee77fd9e5",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "seaside-art",
+    "bundleName": "art-vehicle-mini-pickup",
+    "priority": 8
+  }
+}

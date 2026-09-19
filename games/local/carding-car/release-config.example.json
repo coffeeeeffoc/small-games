@@ -1,4 +1,5 @@
 {
   "wechatAppId": "touristappid",
-  "bilibiliAppId": ""
+  "bilibiliAppId": "",
+  "multiplayerServerUrl": ""
 }

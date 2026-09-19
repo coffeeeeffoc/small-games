@@ -1,3 +1,4 @@
+import { artSource } from '../scripts/prepare-art.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -7,7 +8,7 @@ import { createTrack, projectOnTrack } from '../assets/scripts/TrackGenerator.ts
 import { clearOfRoad, roadClearance, sceneryFits } from '../assets/scripts/ThemeScenery.ts';
 
 const assets = JSON.parse(
-  readFileSync(new URL('../assets/resources/seaside/manifest.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('manifest.json', artSource), 'utf8'),
 ).models;
 
 test('seaside chevrons match left/right bends in the chase camera and omit straight directions', () => {

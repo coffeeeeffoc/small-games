@@ -1,4 +1,5 @@
-import { AudioClip, AudioSource, Node, resources } from 'cc';
+import { AudioClip, AudioSource, Node, isValid } from 'cc';
+import { loadArt } from './SceneArt';
 import type { RaceManager } from './RaceManager';
 export class AudioFeedback {
   source: AudioSource;
@@ -20,23 +21,31 @@ export class AudioFeedback {
     this.effects = effects.addComponent(AudioSource);
     this.effects.playOnAwake = false;
     this.effects.volume = 0.8;
+  }
+  private loading = false;
+  load() {
+    if (this.loading) return;
+    this.loading = true;
     for (const name of ['engine', 'tick', 'charge', 'charge2', 'boost', 'hit', 'finish'])
-      resources.load('audio/' + name, AudioClip, (error, clip) => {
-        if (error) {
+      void loadArt('audio/' + name, AudioClip)
+        .then((clip) => {
+          if (!isValid(this.source)) return;
+          this.clips.set(name, clip);
+          if (name === 'engine') this.source.clip = clip;
+        })
+        .catch(() => {
+          this.loading = false;
           console.warn('[carding-car] audio unavailable', name);
-          return;
-        }
-        this.clips.set(name, clip);
-        if (name === 'engine') this.source.clip = clip;
-      });
+        });
   }
   activate(muted: boolean) {
+    if (muted) return;
+    this.load();
     const clip = this.clips.get('tick');
-    if (muted || this.activated || !clip) return;
-    // Start audio from the player's gesture, including keyboard-only desktop play.
-    this.effects.playOneShot(clip, 1);
+    if (!this.activated && clip) this.effects.playOneShot(clip, 1);
     this.activated = true;
   }
+
   update(r: RaceManager, muted: boolean) {
     const k = r.drivers[0].kart,
       play = (name: string) => {
@@ -55,7 +64,11 @@ export class AudioFeedback {
     if (k.boost > this.lastBoost) play('boost');
     if (k.tier > this.lastTier) play(k.tier === 2 ? 'charge2' : 'charge');
     if (k.collision > this.lastHit && this.lastHit <= 0) play('hit');
-    if (k.itemMessageTime > this.lastItem && k.boost <= this.lastBoost && k.collision <= this.lastHit)
+    if (
+      k.itemMessageTime > this.lastItem &&
+      k.boost <= this.lastBoost &&
+      k.collision <= this.lastHit
+    )
       play(k.spin > 0 || k.slip > 0 || k.slow > 0 ? 'hit' : 'charge');
     if (r.phase === 'finished' && this.lastPhase !== 'finished') play('finish');
     this.lastPhase = r.phase;
