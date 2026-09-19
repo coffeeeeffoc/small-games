@@ -1,5 +1,8 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
-const shapes: NonNullable<WorldDefinition['scenery']['shapes']> = [];
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
+
+function createScenery(track: TrackData): ThemeScenery {
+const shapes: NonNullable<ThemeScenery['shapes']> = [];
 const box = (color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number) =>
   shapes.push({ kind: 'box', color, x, y, z, sx, sy, sz });
 const ball = (color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number) =>
@@ -37,24 +40,8 @@ for (const [x, z] of [[-65, -115], [-47, -110], [103, -107], [126, -94], [140, -
   box('#6a8e48', x, 0.45, z, 2.2, 0.9, 0.4);
 }
 
-export const world: WorldDefinition = {
-  id: 'tibetan-grassland',
-  name: '青藏高原草原',
-  tagline: '绕过毡房与牦牛牧场，沿溪流追逐草原长风',
-  track: {
-    width: 16,
-    shortcut: false,
-    ramp: false,
-    // 平路贴地，小山只作路外起伏；起终点前后各 70 米共线。
-    controls: [[0, -150], [70, -150], [130, -150], [180, -100], [185, -20],
-      [145, 70], [65, 120], [-30, 130], [-120, 90], [-175, 15],
-      [-170, -70], [-130, -150], [-70, -150]],
-  },
-  colors: {
-    ground: '#9bae65', road: '#686e64', shoulder: '#d4c899', rail: '#eee6cc',
-    accent: '#ad5749', sky: '#addbe9',
-  },
-  scenery: {
+
+return {
     shapes,
     models: [
       { asset: 'expansion/scenes/tibetan-grassland', x: 115, y: 0, z: -225, scale: 1.8, yaw: -0.25 },
@@ -65,5 +52,22 @@ export const world: WorldDefinition = {
       { asset: 'expansion/props/grass-hill', x: 224, y: 0, z: -64, scale: 2.5, yaw: 0.4 },
       { asset: 'expansion/props/grass-hill', x: -87, y: 0, z: 158, scale: 2.8, yaw: -0.7 },
     ],
-  },
+  };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "tibetan-grassland",
+  "name": "青藏高原草原",
+  "tagline": "绕过毡房与牦牛牧场，沿溪流追逐草原长风",
+  "colors": {
+    "ground": "#9bae65",
+    "road": "#686e64",
+    "shoulder": "#d4c899",
+    "rail": "#eee6cc",
+    "accent": "#ad5749",
+    "sky": "#addbe9"
+  }
+},
+  scenery: createScenery,
 };

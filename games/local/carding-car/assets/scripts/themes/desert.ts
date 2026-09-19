@@ -1,23 +1,9 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
-export const world: WorldDefinition = {
-  id: 'desert',
-  name: '沙漠',
-  tagline: '穿过沙丘与岩柱，在绿洲弯道争夺领先',
-  track: {
-    width: 16,
-    shortcut: false,
-    controls: [
-      [0, -145], [65, -145], [135, -145], [180, -95],
-      [165, -25], [130, 40], [160, 115], [100, 165],
-      [20, 155], [-60, 185], [-145, 150], [-185, 70],
-      [-160, -20], [-175, -95], [-110, -145], [-65, -145],
-    ],
-  },
-  colors: {
-    ground: '#e5bd76', road: '#695c50', shoulder: '#f7d793',
-    rail: '#fff2c8', accent: '#d8793c', sky: '#a4dceb',
-  },
-  scenery: {
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
+
+function createScenery(track: TrackData): ThemeScenery {
+
+return {
     shapes: [
       // Low sand mounds sit inside the loop, clear of the drivable road.
       { kind: 'ball', color: '#edcb8a', x: 5, y: 0, z: -35, sx: 115, sy: 28, sz: 85 },
@@ -51,5 +37,22 @@ export const world: WorldDefinition = {
       { asset: 'palm/palm', x: 64, y: -0.58, z: 40, scale: 1.4, yaw: 0.8 },
     ],
     roadside: [{ asset: 'expansion/props/desert-rock', count: 16, offset: 25, scale: 0.8 }],
-  },
+  };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "desert",
+  "name": "沙漠",
+  "tagline": "穿过沙丘与岩柱，在绿洲弯道争夺领先",
+  "colors": {
+    "ground": "#e5bd76",
+    "road": "#695c50",
+    "shoulder": "#f7d793",
+    "rail": "#fff2c8",
+    "accent": "#d8793c",
+    "sky": "#a4dceb"
+  }
+},
+  scenery: createScenery,
 };

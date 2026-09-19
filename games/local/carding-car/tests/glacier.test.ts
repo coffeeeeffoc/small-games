@@ -7,7 +7,7 @@ import {
   glacierRock,
 } from '../assets/scripts/GlacierGeometry.ts';
 import { createTrack, pointAt, projectOnTrack } from '../assets/scripts/TrackGenerator.ts';
-import { world } from '../assets/scripts/scenes/glacier.ts';
+import { routes } from '../assets/scripts/RouteCatalog.ts';
 
 test('glacier meshes have unit normals and all three arches clear the curved road', () => {
   for (const geometry of [
@@ -32,7 +32,7 @@ test('glacier meshes have unit normals and all three arches clear the curved roa
       assert.ok(arch.positions[i + 1] > 11, 'ice roof must clear both rails and airborne karts');
   // Front face normals must point out of the portal; inverted normals make sunlit ice dark.
   assert.ok(arch.normals[2] < -0.99);
-  const track = createTrack(world.track);
+  const track = createTrack(routes.find(r => r.id === 'glacier')!.track);
   for (const distance of glacierArchDistances(track.length)) {
     const p = pointAt(track, distance),
       c = Math.cos(p.heading),

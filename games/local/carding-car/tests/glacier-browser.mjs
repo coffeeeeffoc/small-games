@@ -27,16 +27,16 @@ const loaded = (page) =>
     { timeout: 60000 },
   );
 async function nextWorld(page) {
-  const before = (await snapshot(page)).selection.world;
+  const before = (await snapshot(page)).selection.theme;
   await page.keyboard.press('Digit1');
-  await page.waitForFunction((before) => __kart.snapshot().selection.world !== before, before);
+  await page.waitForFunction((before) => __kart.snapshot().selection.theme !== before, before);
   await loaded(page);
 }
 async function sceneInfo(page) {
   return page.evaluate(async () => {
     const cc = await System.import('cc'),
       scene = cc.director.getScene();
-    const world = scene.getChildByName('KartGame').getChildByName('SelectedWorld');
+    const world = scene.getChildByName('KartGame').getChildByName('SelectedTheme');
     const glacier = world.getChildByName('GlacierScenery');
     const items = world.children.filter((n) => n.name.startsWith('Item-'));
     return {
@@ -84,9 +84,11 @@ try {
     await page.goto(url);
     assert.equal(await page.title(), '浪湾卡丁车');
     await loaded(page);
-    while ((await snapshot(page)).selection.world !== 'glacier') {
+    while ((await snapshot(page)).selection.theme !== 'glacier') {
       await nextWorld(page);
     }
+    while ((await snapshot(page)).selection.route !== 'glacier') await page.keyboard.press('Digit2');
+    await loaded(page);
     const info = await sceneInfo(page);
     assert.ok(
       info.glacier && info.sun && info.lit && info.sky && info.reflection && info.shadows,
@@ -118,7 +120,7 @@ try {
       drifting = false,
       previous = [],
       lastLog = 0;
-    const length = (await snapshot(page)).world.length;
+    const length = (await snapshot(page)).route.length;
     const fps = [],
       shots = [
         20,
@@ -224,7 +226,7 @@ try {
     await loaded(page);
     await page.reload();
     await loaded(page);
-    assert.equal((await snapshot(page)).selection.world, 'glacier');
+    assert.equal((await snapshot(page)).selection.theme, 'glacier');
     // Repeated selection must dispose the glacier and restore other worlds' render state.
     for (let i = 0; i < 3; i++) {
       await nextWorld(page);
@@ -238,7 +240,7 @@ try {
           !other.fog &&
           other.itemsEnlarged,
       );
-      while ((await snapshot(page)).selection.world !== 'glacier') await nextWorld(page);
+      while ((await snapshot(page)).selection.theme !== 'glacier') await nextWorld(page);
       assert.ok((await sceneInfo(page)).glacier);
     }
     if (mobile) {

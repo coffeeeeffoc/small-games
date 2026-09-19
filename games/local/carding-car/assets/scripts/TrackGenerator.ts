@@ -1,4 +1,4 @@
-import type { TrackOptions } from './WorldDefinition.ts';
+import type { TrackOptions } from './RouteCatalog.ts';
 import { clamp } from './KartConfig.ts';
 import { createBarriers } from './TrackBarriers.ts';
 export type TrackPoint = { x: number; z: number; y: number; s: number };

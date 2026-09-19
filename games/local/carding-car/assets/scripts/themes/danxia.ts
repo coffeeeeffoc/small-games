@@ -1,6 +1,9 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
 
-const shapes: NonNullable<WorldDefinition['scenery']['shapes']> = [];
+function createScenery(track: TrackData): ThemeScenery {
+
+const shapes: NonNullable<ThemeScenery['shapes']> = [];
 // 相交的扁椭球形成连续的侵蚀山脊；暖色岩层沿坡面逐级露出。
 for (const [x, z, width, height, depth] of [
   [100, -69, 58, 34, 45],
@@ -45,21 +48,8 @@ for (const [x, z, yaw] of [[68, -99, 0], [-126, 64, 0.5], [70, 128, -0.5]]) {
   shapes.push({ kind: 'box', color: '#b36744', x, y: 4.9, z, sx: 4.5, sy: 0.45, sz: 3.5 });
 }
 
-export const world: WorldDefinition = {
-  id: 'danxia', name: '七彩丹霞', tagline: '穿过彩色岩谷，掠过观景栈道',
-  track: {
-    width: 16, shortcut: false,
-    // 起终点两侧均为连续直线，蛇形弯在峡谷外侧缓缓展开；路面贴地。
-    controls: [
-      [0, -130], [80, -130], [150, -130], [197, -74], [177, -4],
-      [129, 43], [146, 110], [96, 169], [24, 179], [-46, 142],
-      [-99, 109], [-158, 106], [-204, 49], [-189, -27],
-      [-151, -98], [-140, -130], [-80, -130],
-    ],
-  },
-  colors: { ground: '#be875e', road: '#69544b', shoulder: '#dca475', rail: '#fff0c2',
-    accent: '#c9543d', sky: '#f3c89d' },
-  scenery: {
+
+return {
     shapes,
     models: [
       { asset: 'expansion/scenes/danxia', x: 255, y: 0, z: -186, scale: 2.3, yaw: -0.45 },
@@ -68,5 +58,22 @@ export const world: WorldDefinition = {
       { asset: 'expansion/props/danxia-rock', x: -104, y: 0, z: 4, scale: 2, yaw: 1.2 },
     ],
     roadside: [{ asset: 'expansion/props/danxia-rock', count: 36, offset: 29, scale: 0.85 }],
-  },
+  };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "danxia",
+  "name": "七彩丹霞",
+  "tagline": "穿过彩色岩谷，掠过观景栈道",
+  "colors": {
+    "ground": "#be875e",
+    "road": "#69544b",
+    "shoulder": "#dca475",
+    "rail": "#fff0c2",
+    "accent": "#c9543d",
+    "sky": "#f3c89d"
+  }
+},
+  scenery: createScenery,
 };

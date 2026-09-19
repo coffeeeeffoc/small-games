@@ -1,15 +1,8 @@
-export type TrackOptions = {
-  controls?: [number, number, number?][];
-  width?: number;
-  shortcutWidth?: number;
-  shortcut?: false | [number, number];
-  ramp?: false;
-};
-export type WorldDefinition = {
+import type { TrackData } from './TrackGenerator.ts';
+export type ThemeDefinition = {
   id: string;
   name: string;
   tagline: string;
-  track: TrackOptions;
   colors: {
     ground: string;
     road: string;
@@ -18,7 +11,9 @@ export type WorldDefinition = {
     accent: string;
     sky: string;
   };
-  scenery: {
+  scenery: (track: TrackData) => ThemeScenery;
+};
+export type ThemeScenery = {
     shapes?: {
       kind: 'box' | 'ball';
       color: string;
@@ -32,5 +27,4 @@ export type WorldDefinition = {
     }[];
     models?: { asset: string; x: number; y: number; z: number; scale: number; yaw?: number }[];
     roadside?: { asset: string; count: number; offset: number; scale: number }[];
-  };
 };

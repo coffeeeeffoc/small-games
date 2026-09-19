@@ -1,22 +1,12 @@
-import type { WorldDefinition } from '../WorldDefinition.ts';
-import { createTrack, pointAt, projectOnTrack } from '../TrackGenerator.ts';
+import type { ThemeDefinition, ThemeScenery } from '../ThemeDefinition.ts';
+import { pointAt, projectOnTrack, type TrackData } from '../TrackGenerator.ts';
+
+function createScenery(track: TrackData): ThemeScenery {
 
 // 南侧驿站直道上山，东侧宽缓回头弯转入山口，西侧沿岩壁下坡。
-const track: WorldDefinition['track'] = {
-  width: 16,
-  shortcut: false,
-  controls: [
-    [0, -180, 4], [70, -180, 4], [140, -180, 4],
-    [205, -135, 7], [235, -60, 12], [215, 20, 17],
-    [155, 75, 21], [80, 88, 23], [10, 120, 23],
-    [-55, 190, 21], [-135, 205, 18], [-200, 160, 14],
-    [-230, 90, 10], [-220, 15, 7], [-180, -65, 5],
-    [-180, -140, 4], [-140, -180, 4], [-70, -180, 4],
-  ],
-};
-const road = createTrack(track);
-const shapes: NonNullable<WorldDefinition['scenery']['shapes']> = [];
-const models: NonNullable<WorldDefinition['scenery']['models']> = [
+const road = track;
+const shapes: NonNullable<ThemeScenery['shapes']> = [];
+const models: NonNullable<ThemeScenery['models']> = [
   // 整体地块只作为山谷远景，实际赛道由独立道路与护栏生成。
   { asset: 'expansion/scenes/highland', x: -5, y: 0, z: -20, scale: 3, yaw: 0.3 },
   { asset: 'expansion/props/snow-peak', x: 70, y: 0, z: -15, scale: 3.8, yaw: -0.6 },
@@ -61,11 +51,23 @@ for (const x of [-42, 6, 55]) {
     shapes.push({ kind: 'box', color: '#648e9a', x: x + side * 4.5, y: 7.5, z: -208.8, sx: 2.4, sy: 2, sz: 0.4 });
 }
 
-export const world: WorldDefinition = {
-  id: 'highland',
-  name: '高原与高山',
-  tagline: '从高山驿站爬升山口，沿雪峰岩壁回旋',
-  track,
-  colors: { ground: '#a6ad80', road: '#54565b', shoulder: '#d7c499', rail: '#eee5d1', accent: '#e7a443', sky: '#b9daea' },
-  scenery: { shapes, models },
+
+return { shapes, models };
+}
+
+export const theme: ThemeDefinition = {
+  ...{
+  "id": "highland",
+  "name": "高原与高山",
+  "tagline": "从高山驿站爬升山口，沿雪峰岩壁回旋",
+  "colors": {
+    "ground": "#a6ad80",
+    "road": "#54565b",
+    "shoulder": "#d7c499",
+    "rail": "#eee5d1",
+    "accent": "#e7a443",
+    "sky": "#b9daea"
+  }
+},
+  scenery: createScenery,
 };
