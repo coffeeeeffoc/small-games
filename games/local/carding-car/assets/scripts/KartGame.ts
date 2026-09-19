@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, game, Game, Layers, Node, profiler, sys } from 'cc';
+import { _decorator, Camera, Color, Component, game, Game, Layers, Node, profiler, sys } from 'cc';
 import { RaceManager } from './RaceManager';
 import { buildWorld } from './WorldTrack';
 import { worlds } from './WorldCatalog';
@@ -12,6 +12,7 @@ import { aiInput } from './KartAI';
 import { palette } from './SceneArt';
 import { AudioFeedback } from './AudioFeedback';
 import { addRecord, readRecords, type RaceRecord } from './RankingSystem';
+import { setGlacierLighting } from './GlacierSample';
 const { ccclass } = _decorator;
 
 @ccclass('KartGame')
@@ -62,16 +63,23 @@ export class KartGame extends Component {
   loadSelection() {
     const version = ++this.loadVersion;
     this.controller?.clear();
-    this.worldRoot?.destroy();
+    if (this.worldRoot) {
+      this.worldRoot.active = false;
+      this.worldRoot.destroy();
+    }
     this.worldRoot = new Node('SelectedWorld');
     this.node.addChild(this.worldRoot);
     const world = worlds.find((w) => w.id === this.selection.world)!;
+    setGlacierLighting(this.worldRoot, world.id === 'glacier');
     this.race = new RaceManager(world.track, ++this.seed);
     this.race.loaded = false;
     this.sceneryLoaded = false;
     this.accumulator = 0;
     this.camera.initialized = false;
     this.camera.camera.clearColor = new Color().fromHEX(world.colors.sky);
+    this.camera.camera.clearFlags = world.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
+    this.camera.height = world.id === 'glacier' ? 3.2 : 4.4;
+    this.camera.lookHeight = world.id === 'glacier' ? 2 : 1.1;
     this.hud.selection = { ...this.selection };
     this.hud.lastPhase = '';
     this.readWorldRecords();

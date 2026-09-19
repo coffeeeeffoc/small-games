@@ -55,6 +55,7 @@ node games/local/carding-car/tests/walls.mjs
 node games/local/carding-car/tests/reverse.mjs
 node games/local/carding-car/tests/audio-nitro.mjs
 node games/local/carding-car/tests/worlds.mjs
+node games/local/carding-car/tests/glacier-browser.mjs
 pnpm check:games
 ```
 
@@ -65,6 +66,8 @@ pnpm check:games
 赛道是 Catmull-Rom 曲线生成的带状网格；护栏位置和尺寸由 `TrackBarriers` 同时供显示与碰撞使用，岔口按另一条道路的实际范围留出口。车身与护栏使用简单定向矩形的分离轴检测，车车接触使用圆形截面，均不使用复杂视觉网格作为碰撞体。四辆车共享驾驶参数。AI 根据前方曲率刹车，没有额外速度或隐藏追赶。
 
 Rodin 资产和处理方式见 `art-source/README.md`。实测与剩余验收边界见 `playtest.md`。
+
+冰川整圈约 1.23 公里使用连续冰壁/厚雪、橙白护栏、科考站、环绕雪山与独立冰雪路面，72 米、全程 40% 和 74% 处设三座蓝冰拱桥。冰壁约每 88 米合批，交由引擎剔除视野外几何；闭合道路和护栏沿用物理赛道数据。复用原有冰纹，道路纹理来自素材子仓库 `glacier-sample/road.jpg`（原图保留为 PNG）。有法线的网格使用 Cocos 标准材质、环境反射、太阳阴影和距离雾，切换场景释放临时资源并恢复天空/阴影设置，不使用真实冰体折射。所有场景的 12 类道路道具统一放大 30%，提升手机视角辨识度。
 
 扩展源素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)。其 [`runtime-expansion`](../../../assets/carding-car/runtime-expansion/README.md) 衍生版已接入：7 个环境地标、10 辆车、10 位坐姿车手、12 个道具，以及 8 类独立周边模型。场景定义在 `assets/scripts/scenes/`，提供不同路线、环境配色、地标与路边布景，物理赛道仍由统一曲线和护栏模块生成。原始地块只作远景，不当作可驾驶路面。
 
