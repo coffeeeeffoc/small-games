@@ -237,7 +237,7 @@ export class HUD {
         this.standings.string = `本场名次\n${r.order
           .map((driver, i) => {
             const progress = r.drivers[driver].progress;
-            return `${i + 1}  ${driver === 0 ? '你' : `对手 ${driver}`}  ${progress.finishedAt ? time(progress.finishedAt) : '未完赛'}`;
+            return `${i + 1}  ${driver === 0 ? '你' : r.names[driver] || `对手 ${driver}`}  ${progress.finishedAt ? time(progress.finishedAt) : '未完赛'}`;
           })
           .join('\n')}`;
         this.footer.string = 'Enter / R 再跑一场   ·   本机成绩仅保存在当前设备';
@@ -345,7 +345,7 @@ export class HUD {
     }
     const g = this.map;
     g.clear();
-    for (let i = 3; i >= 0; i--) {
+    for (let i = r.drivers.length - 1; i >= 0; i--) {
       const k = r.drivers[i].kart;
       g.fillColor = color(i ? '#193c55' : '#ffd15a');
       g.circle(cx + k.x * scale, cy + k.z * scale, i ? 3 : 5);

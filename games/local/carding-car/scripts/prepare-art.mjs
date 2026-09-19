@@ -1,8 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { artLocation } from '../assets/scripts/ArtLocation.ts';
 
 export const artSource = new URL('../../../../assets/carding-car/runtime/', import.meta.url);
-export const expansionSource = new URL('../../../../assets/carding-car/runtime-expansion/', import.meta.url);
-export const glacierSource = new URL('../../../../assets/carding-car/glacier-sample/', import.meta.url);
+export const expansionSource = new URL(
+  '../../../../assets/carding-car/runtime-expansion/',
+  import.meta.url,
+);
+export const glacierSource = new URL(
+  '../../../../assets/carding-car/glacier-sample/',
+  import.meta.url,
+);
 export const glacierFiles = ['road.jpg'];
 export const artFiles = [
   'manifest.json',
@@ -18,7 +25,12 @@ export const artFiles = [
 export async function expansionFiles() {
   const manifest = JSON.parse(await readFile(new URL('manifest.json', expansionSource), 'utf8'));
   const files = [...manifest.models, ...manifest.textures].map((entry) => entry.file);
-  if (files.some((file) => !/^(scenes|vehicles|drivers|items|props|textures)\/[a-z0-9-]+\.(glb|jpg)$/.test(file)))
+  if (
+    files.some(
+      (file) =>
+        !/^(scenes|vehicles|drivers|items|props|textures)\/[a-z0-9-]+\.(glb|jpg)$/.test(file),
+    )
+  )
     throw new Error('Invalid expansion asset path in runtime manifest.');
   return ['manifest.json', ...files.sort()];
 }
@@ -30,7 +42,6 @@ export async function prepareArt() {
     ['expansion', expansionSource, await expansionFiles()],
     ['glacier-sample', glacierSource, glacierFiles],
   ]) {
-    const destination = new URL(`../assets/resources/${folder}/`, import.meta.url);
     for (const name of files) {
       const bytes = await readFile(new URL(name, source)).catch((error) => {
         throw new Error(
@@ -38,7 +49,12 @@ export async function prepareArt() {
           { cause: error },
         );
       });
-      const target = new URL(name, destination);
+      const ext = name.slice(name.lastIndexOf('.'));
+      const location = artLocation(`${folder}/${name.slice(0, -ext.length)}`);
+      const target = new URL(
+        `../assets/art/${location.bundle}/${location.path}${ext}`,
+        import.meta.url,
+      );
       await mkdir(new URL('./', target), { recursive: true });
       const current = await readFile(target).catch((error) => {
         if (error.code !== 'ENOENT') throw error;

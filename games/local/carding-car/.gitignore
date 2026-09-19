@@ -16,3 +16,6 @@ assets/resources/expansion/**/*.jpg
 assets/resources/expansion/**/*.json
 assets/resources/expansion/manifest.json
 assets/resources/glacier-sample/*.jpg
+assets/art/**/*.glb
+assets/art/**/*.jpg
+assets/art/**/*.json

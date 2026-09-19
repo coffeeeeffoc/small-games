@@ -95,7 +95,7 @@ _Avoid_: 游戏后端、统一后端
 ## 卡丁车竞速
 
 **Kart Race（卡丁车比赛）**:
-玩家与 AI 车手在同一赛道上完成规定圈数、比较完赛次序的一场竞速。一场 Game Session 可以包含多场 Kart Race。
+玩家与好友或 AI 车手在同一赛道上完成规定圈数、比较完赛次序的一场竞速。一场 Game Session 可以包含多场 Kart Race。好友联机由 Kart Server 统一模拟并确定名次。
 _Avoid_: 游戏会话
 
 **Lap（圈）**:

@@ -6,6 +6,7 @@ import { editor, runCreator } from './toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { clearOutput } from './clear-output.mjs';
 import { prepareArt } from './prepare-art.mjs';
+import { instrumentWechatStartup } from './wechat-startup.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili'].includes(target))
@@ -37,6 +38,7 @@ const config = {
   name: 'carding-car',
   platform,
   debug: false,
+  md5Cache: true,
   buildPath: 'project://build',
   outputName,
   includeModules: [
@@ -93,8 +95,63 @@ const entry =
     : `${platform}/${platform === 'web-mobile' ? 'index.html' : 'game.js'}`;
 if (!existsSync(path.join(root, 'build', entry)))
   throw new Error(`Creator did not produce ${entry}; inspect the build log.`);
+if (target === 'wechatgame') {
+  const gameJs = path.join(root, 'build', entry);
+  const settingsFiles = (await readdir(path.join(outputDir, 'src'))).filter((name) =>
+    /^settings\.[^.]+\.json$/.test(name),
+  );
+  if (settingsFiles.length !== 1) throw new Error('Expected one versioned WeChat settings file');
+  const settings = JSON.parse(
+    await readFile(path.join(outputDir, 'src', settingsFiles[0]), 'utf8'),
+  );
+  const version = settings.assets.bundleVers.resources;
+  if (!version) throw new Error('WeChat resources must have a build version');
+  const config = JSON.parse(
+    await readFile(path.join(outputDir, `subpackages/resources/config.${version}.json`), 'utf8'),
+  );
+  const packs = Object.keys(config.packs).sort();
+  const versions = new Map();
+  const entries = config.versions.import;
+  for (let i = 0; i < entries.length; i += 2)
+    versions.set(config.uuids[entries[i]] ?? entries[i], entries[i + 1]);
+  for (const pack of packs) {
+    const suffix = versions.get(pack);
+    if (
+      !suffix ||
+      !existsSync(
+        path.join(
+          outputDir,
+          'subpackages/resources/import',
+          pack.slice(0, 2),
+          `${pack}.${suffix}.json`,
+        ),
+      )
+    )
+      throw new Error(`Missing resource pack: ${pack}`);
+  }
+  await writeFile(
+    gameJs,
+    instrumentWechatStartup(await readFile(gameJs, 'utf8'), packs, new Date().toISOString()),
+  );
+}
 if (platform === 'wechatgame') {
   const directory = path.dirname(path.join(root, 'build', entry));
+  const serverUrl = process.env.KART_SERVER_URL || release.multiplayerServerUrl || '';
+  if (serverUrl && !/^wss:\/\/[^\s/#?]+\/kart$/.test(serverUrl))
+    throw new Error('KART_SERVER_URL must be a wss://host/kart URL');
+  const bridge = await readFile(
+    new URL('../../../../platforms/kart-sharing.js', import.meta.url),
+    'utf8',
+  );
+  await writeFile(
+    path.join(directory, 'kart-platform.js'),
+    `globalThis.__kartServerUrl = ${JSON.stringify(serverUrl)};\n` + bridge,
+  );
+  const entryFile = path.join(directory, 'game.js');
+  await writeFile(
+    entryFile,
+    `require('./kart-platform.js');\n` + (await readFile(entryFile, 'utf8')),
+  );
   const game = JSON.parse(await readFile(path.join(directory, 'game.json'), 'utf8'));
   if (!game.subpackages?.some((bundle) => bundle.name === 'resources'))
     throw new Error('Mini-game art must be exported as the resources subpackage.');

@@ -14,9 +14,13 @@ export class RaceManager {
   itemsCollected = 0;
   loaded = true;
   loadError = '';
-  constructor(options: TrackOptions = {}, seed?: number) {
+  networked = false;
+  names: string[] = [];
+  networkOrder?: number[];
+  constructor(options: TrackOptions = {}, seed?: number, count = 4) {
+    if (!Number.isInteger(count) || count < 1 || count > 8) throw new Error('Invalid driver count');
     this.track = createTrack(options);
-    this.drivers = this.makeDrivers();
+    this.drivers = this.makeDrivers(count);
     if (seed !== undefined) this.items = createItems(this.track, seed);
   }
   phase: 'ready' | 'countdown' | 'racing' | 'paused' | 'finished' = 'ready';
@@ -27,8 +31,8 @@ export class RaceManager {
   collisions = 0;
   resets = 0;
   drivers: ReturnType<RaceManager['makeDrivers']>;
-  makeDrivers() {
-    return [0, 1, 2, 3].map((i) => {
+  makeDrivers(count = 4) {
+    return Array.from({ length: count }, (_, i) => {
       const s = -6 - Math.floor(i / 2) * 4;
       const p = pointAt(this.track, s),
         side = i % 2 ? -2 : 2;
@@ -51,9 +55,11 @@ export class RaceManager {
     });
   }
   start() {
+    if (this.networked) return;
     if (this.phase === 'ready' && this.loaded && !this.loadError) this.phase = 'countdown';
   }
   pause() {
+    if (this.networked) return;
     if (this.phase === 'racing' || this.phase === 'countdown') {
       this.resumePhase = this.phase;
       this.phase = 'paused';
@@ -63,7 +69,7 @@ export class RaceManager {
     if (this.phase === 'paused') this.phase = this.resumePhase;
   }
   get order() {
-    return ranking(this.drivers);
+    return this.networkOrder ?? ranking(this.drivers);
   }
   get currentLapTime() {
     const p = this.drivers[0].progress;
@@ -82,7 +88,8 @@ export class RaceManager {
     const retreat =
       wrapDistance(d.progress.s - d.safe.s + this.track.length / 2, this.track.length) -
       this.track.length / 2;
-    d.progress.distance -= Math.max(0, retreat);
+    // Keep ranking aligned with the safe position even when recovering after reversing.
+    d.progress.distance -= retreat;
     d.progress.s = d.safe.s;
     Object.assign(k, createKart(d.safe.x, d.safe.z, d.safe.heading));
     k.y = d.safe.y;
@@ -91,8 +98,9 @@ export class RaceManager {
     d.stuck = 0;
     if (i === 0) this.resets++;
   }
-  step(input: KartInput, dt: number) {
-    if (!Number.isFinite(dt) || dt <= 0) return;
+  step(input: KartInput, dt: number, humanInputs?: readonly KartInput[]) {
+    if (this.networked) return;
+    if (!this.loaded || this.loadError || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, 1 / 30);
     if (this.phase === 'countdown') {
       this.countdown -= dt;
@@ -101,9 +109,9 @@ export class RaceManager {
     }
     if (this.phase !== 'racing') return;
     this.time += dt;
-    const contactTravel = [0, 0, 0, 0];
+    const contactTravel = this.drivers.map(() => 0);
     // Resolve every circle contact before any checkpoint sees the new positions.
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < this.drivers.length; i++)
       for (let j = 0; j < i; j++) {
         if (this.drivers[i].progress.finishedAt || this.drivers[j].progress.finishedAt) continue;
         const a = this.drivers[i].kart,
@@ -123,7 +131,8 @@ export class RaceManager {
           contactTravel[j] += push;
         }
       }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < this.drivers.length; i++) {
+      const human = humanInputs ? i < humanInputs.length : i === 0;
       const d = this.drivers[i],
         k = d.kart;
       if (d.progress.finishedAt) continue;
@@ -143,7 +152,9 @@ export class RaceManager {
       }
       const oldBoost = k.boost,
         oldCollision = k.collision;
-      const controls = i === 0 ? input : aiInput(k, this.track, d.shortcut, d.progress.s);
+      const controls = human
+        ? (humanInputs?.[i] ?? input)
+        : aiInput(k, this.track, d.shortcut, d.progress.s);
       // Physical road contact must not be constrained by checkpoint progress at a fork.
       const oldRoad = projectOnTrack(this.track, k.x, k.z);
       const previousPosition = { x: k.x, z: k.z };
@@ -156,7 +167,7 @@ export class RaceManager {
       if (k.offRoad > 0) k.speed *= Math.exp(-1.2 * dt);
       const wall = road.width / 2 + 1.2;
       if (
-        i !== 0 &&
+        !human &&
         hit?.branch === 'shortcut' &&
         road.s > this.track.shortcutStart + 18 &&
         road.s < this.track.shortcutEnd - 18
@@ -224,7 +235,7 @@ export class RaceManager {
         k.speed > 4 && !controls.brake && Math.abs(d.progress.distance - previousProgress) < 0.001;
       d.stuck =
         road.distance > wall + 5 ||
-        (i !== 0 &&
+        (!human &&
           ((!controls.brake && k.speed < 3) ||
             stalledProgress ||
             Math.abs(angleDelta(k.heading, road.heading)) > 2.2))
@@ -234,9 +245,14 @@ export class RaceManager {
       if (i === 0) {
         if (k.boost > oldBoost) this.boosts++;
         if (k.collision > oldCollision && oldCollision <= 0) this.collisions++;
-        if (finished) this.phase = 'finished';
+        if (finished && !humanInputs) this.phase = 'finished';
       }
     }
-    if (this.phase === 'finished') this.time = this.drivers[0].progress.finishedAt;
+    if (humanInputs && this.drivers.every((d) => d.progress.finishedAt > 0))
+      this.phase = 'finished';
+    if (this.phase === 'finished')
+      this.time = humanInputs
+        ? Math.max(...this.drivers.map((d) => d.progress.finishedAt))
+        : this.drivers[0].progress.finishedAt;
   }
 }
