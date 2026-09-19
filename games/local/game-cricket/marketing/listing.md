@@ -32,4 +32,3 @@ Style/medium: refined Chinese-inspired painted game key art, rich matte brush te
 Composition/framing: centered balanced square, close-up cricket, uncluttered, strong foreground/background contrast, all essential features within central 80 percent so circular and rounded-square cropping still works, readable at 64px.
 Constraints: one single finished icon, no mockup, no panels, no lettering, no calligraphy, no typography, no logo, no watermark, no border, no humans, no blood, no coins, no gambling imagery. Cricket must not resemble a grasshopper, mantis or beetle.
 ```
-
