@@ -55,6 +55,7 @@ node games/local/carding-car/tests/walls.mjs
 node games/local/carding-car/tests/reverse.mjs
 node games/local/carding-car/tests/audio-nitro.mjs
 node games/local/carding-car/tests/worlds.mjs
+node games/local/carding-car/tests/themes-routes.mjs
 node games/local/carding-car/tests/glacier-browser.mjs
 pnpm check:games
 ```
@@ -69,7 +70,22 @@ Rodin 资产和处理方式见 `art-source/README.md`。实测与剩余验收边
 
 冰川整圈约 1.23 公里使用连续冰壁/厚雪、橙白护栏、科考站、环绕雪山与独立冰雪路面，72 米、全程 40% 和 74% 处设三座蓝冰拱桥。冰壁约每 88 米合批，交由引擎剔除视野外几何；闭合道路和护栏沿用物理赛道数据。复用原有冰纹，道路纹理来自素材子仓库 `glacier-sample/road.jpg`（原图保留为 PNG）。有法线的网格使用 Cocos 标准材质、环境反射、太阳阴影和距离雾，切换主题释放临时资源并恢复天空/阴影设置，不使用真实冰体折射。所有主题的 12 类道路道具统一放大 30%，提升手机视角辨识度。
 
-扩展源素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)。其 [`runtime-expansion`](../../../assets/carding-car/runtime-expansion/README.md) 衍生版已接入：7 个环境地标、10 辆车、10 位坐姿车手、12 个道具，以及 8 类独立周边模型。主题定义在 `assets/scripts/themes/`，路线定义在 `assets/scripts/RouteCatalog.ts`；主题布景函数接收当前 TrackData，提供环境配色、地标与路边布景，物理赛道仍由统一曲线和护栏模块生成。原始地块只作远景，不当作可驾驶路面。
+扩展源素材统一放在独立子仓库 [`assets/carding-car/expansion`](../../../assets/carding-car/expansion/README.md)。其 [`runtime-expansion`](../../../assets/carding-car/runtime-expansion/README.md) 提供 10 辆车、10 位坐姿车手、12 个道具与 11 类独立周边模型；原有 7 个整块环境模型保留作素材参考，当前主题不再把它们摆成另一条假道路。新增的高原雪岭、灰岩、红瓦山屋合计 177,592 字节，随素材构建脚本可重建。
+
+主题定义在 `assets/scripts/themes/` 与 `ThemeCatalog.ts`，路线定义在 `RouteCatalog.ts`。布景函数接收当前 `TrackData`，按路宽、高程和主路/近道范围布置；护栏渲染与碰撞继续读取同一份数据。海岸的专用渲染在 `Track.ts`，冰川在 `GlacierSample.ts`。各主题的参考图、改造前差距、实际素材与检查记录见 [主题审计](docs/theme-audits/)。
+
+| 主题 | 已接入的主要布景 |
+| --- | --- |
+| 浪湾海岸 | 随路线生成的浅水、沙滩与岸坡，悬崖、灯塔、码头、帆船、彩旗棚亭 |
+| 城市 | 奶油商铺和彩篷、圆/方蓝玻璃楼群、树池、街灯、绿化高架 |
+| 沙漠 | 分层风蚀帽岩、远景台地、白墙橙棚驿站、棕榈绿洲和瀑布 |
+| 冰川 | 连续冰壁雪岸、三座自适应冰拱、科考站与雪山 |
+| 跨海高速 | 贴合坡度的桥面和支撑、白色斜拉塔与缆索、灯塔礁岛 |
+| 七彩丹霞 | 宽厚双峰分层山体、观景亭台与灌木 |
+| 高原与高山 | 灰岩路基和石砌挡墙、雪岭、灰岩山口、红瓦山屋 |
+| 青藏高原草原 | 草丘、分段溪流、帐篷营地、牦牛、经幡和野花 |
+
+这些是参考效果图制作的移动端低模布景，保留所选路线的原有地形与玩法；帆船、溪水、瀑布等为静态装饰。
 
 构建自动把扩展运行文件复制到 Git 忽略的 `assets/resources/expansion/`；只提交 Creator `.meta`，运行文件仍由子仓库管理。重新导出使用 `python assets/carding-car/build-expansion.py`，仅检查使用 `--check`。车手采用原头盔贴图与独立坐姿部件，封闭车型的运行版做驾驶舱开口；当前车轮未独立拆分、车手没有骨骼动画。
 

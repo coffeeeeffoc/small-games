@@ -11,7 +11,8 @@ import {
   utils,
 } from 'cc';
 import { groundShadow, loadArt, MeshBatch, palette as P, placeModel } from './SceneArt';
-import { pointAt, projectOnTrack, type TrackData, type TrackPoint } from './TrackGenerator';
+import { pointAt, type TrackData, type TrackPoint } from './TrackGenerator';
+import { createSeasideScenery } from './SeasideGeometry';
 
 export function ribbon(points: TrackPoint[], left: number, right: number, lift: number) {
   const positions: number[] = [],
@@ -42,15 +43,20 @@ export async function buildTrack(parent: Node, track: TrackData) {
   const root = new Node('Track');
   parent.addChild(root);
   const b = new MeshBatch();
-  const lighthouseX = 240,
-    lighthouseZ = -200;
+  const scenery = createSeasideScenery(track);
   const roadMaterial = new Material();
   root.once(Node.EventType.NODE_DESTROYED, () => roadMaterial.destroy());
   roadMaterial.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
   roadMaterial.setProperty('mainColor', new Color().fromHEX(P.road));
-  b.box(P.sea, 0, -2.2, 0, 2400, 1, 2400);
-  b.add(P.sand, primitives.cylinder(213, 218, 1.5, { radialSegments: 64 }), 0, -1.4, 0);
-  b.add(P.grass, primitives.cylinder(201, 208, 0.6, { radialSegments: 64 }), 0, -0.9, 0);
+  b.box('#268fa8', scenery.centerX, scenery.seaY - 0.5, scenery.centerZ, 2400, 1, 2400);
+  for (const { color, geometry } of [...scenery.terrainMeshes, ...scenery.meshes])
+    b.add(color, geometry);
+  for (const shape of scenery.shapes) {
+    if (shape.kind === 'ball')
+      b.ball(shape.color, shape.x, shape.y, shape.z, shape.sx, shape.sy, shape.sz);
+    else
+      b.box(shape.color, shape.x, shape.y, shape.z, shape.sx, shape.sy, shape.sz, shape.yaw ?? 0);
+  }
   for (const [points, width] of [
     [track.main, track.width],
     [track.shortcut, track.shortcutWidth],
@@ -103,79 +109,44 @@ export async function buildTrack(parent: Node, track: TrackData) {
   // Checkered finish line and a toy gantry, clearly visible from the starting grid.
   const start = pointAt(track, 0),
     h = start.heading;
-  for (let x = -6; x < 7; x++)
-    for (let z = 0; z < 2; z++)
+  const squares = Math.floor(track.width),
+    squareWidth = track.width / squares;
+  for (let column = 0; column < squares; column++)
+    for (let z = 0; z < 2; z++) {
+      const x = -track.width / 2 + (column + 0.5) * squareWidth;
       b.box(
-        (x + z) % 2 ? P.white : P.navy,
+        (column + z) % 2 ? P.white : P.navy,
         start.x + Math.cos(h) * x + Math.sin(h) * z,
-        0.045,
+        start.y + 0.045,
         start.z - Math.sin(h) * x + Math.cos(h) * z,
-        1,
+        squareWidth,
         0.05,
         1,
         h,
       );
+    }
   for (const side of [-1, 1])
     b.box(
       P.yellow,
-      start.x + Math.cos(h) * side * 9,
-      3.5,
-      start.z - Math.sin(h) * side * 9,
+      start.x + Math.cos(h) * side * (track.width / 2 + 2),
+      start.y + 3.5,
+      start.z - Math.sin(h) * side * (track.width / 2 + 2),
       0.7,
       7,
       0.7,
     );
-  b.box(P.navy, start.x, 7, start.z, 20, 1.3, 0.65, h);
+  b.box(P.navy, start.x, start.y + 7, start.z, track.width + 4.7, 1.3, 0.65, h);
   for (let i = -4; i <= 4; i++)
     b.box(
       i % 2 ? P.white : P.mint,
-      start.x + Math.cos(h) * i * 1.6,
-      7.1,
-      start.z - Math.sin(h) * i * 1.6,
-      1.25,
+      start.x + (Math.cos(h) * i * track.width) / 10,
+      start.y + 7.1,
+      start.z - (Math.sin(h) * i * track.width) / 10,
+      track.width / 12,
       0.65,
       0.75,
       h,
     );
-  for (let i = 0; i < 14; i++) {
-    const p = pointAt(track, (i * track.length) / 14 + 60),
-      side = i % 2 ? 1 : -1;
-    const x = p.x + Math.cos(p.heading) * side * 12,
-      z = p.z - Math.sin(p.heading) * side * 12;
-    b.box(P.navy, x, 3, z, 0.22, 6, 0.22);
-    b.ball(P.yellow, x, 6, z, 1.1, 0.55, 1.1);
-    b.box(i % 2 ? P.mint : P.yellow, x, 3.8, z, 3.2, 1.4, 0.25, p.heading);
-    b.box(P.white, x, 3.8, z, 1.4, 0.25, 0.31, p.heading + 0.5);
-  }
-  // Grandstand at the long straight.
-  for (let row = 0; row < 4; row++) {
-    b.box(P.white, 42, 0.8 + row * 0.65, -165 - row * 2, 35, 0.5, 1.7);
-    for (let seat = 0; seat < 12; seat++)
-      b.ball(
-        [P.red, P.yellow, P.blue][seat % 3],
-        26 + seat * 2.8,
-        1.5 + row * 0.65,
-        -165 - row * 2,
-        0.65,
-      );
-  }
-  for (let i = 0; i < 5; i++)
-    b.ball('#6abda8', -280 + i * 130, -0.7, 290 + (i % 2) * 80, 80, 40 + i * 8, 65);
-  // A separate offshore landmark is visible from the starting straight.
-  b.add(
-    '#b9e5d9',
-    primitives.cylinder(26, 28, 0.15, { radialSegments: 48 }),
-    lighthouseX,
-    -1.62,
-    lighthouseZ,
-  );
-  b.add(
-    P.sand,
-    primitives.cylinder(18, 24, 2, { radialSegments: 48 }),
-    lighthouseX,
-    -1.3,
-    lighthouseZ,
-  );
   b.build(root, 'Coast');
 
   const [palm, tree, rocks, lighthouse, asphalt, profiles] = await Promise.all([
@@ -225,46 +196,20 @@ export async function buildTrack(parent: Node, track: TrackData) {
   edges.build(root, 'SeasideRails');
   fallbackRails.destroy();
 
-  // Shared meshes/textures; keep scenery sparse instead of drawing a forest on phones.
-  for (let i = 0; i < 28; i++) {
-    const p = pointAt(track, (i * track.length) / 28 + 15),
-      side = i % 2 ? 1 : -1;
-    const offset = side * (19 + (i % 3) * 3);
-    const x = p.x + Math.cos(p.heading) * offset,
-      z = p.z - Math.sin(p.heading) * offset;
-    if (projectOnTrack(track, x, z).distance < 13) continue;
-    const model = placeModel(i % 3 ? tree : palm, root, i % 3 ? 'SeasideTree' : 'SeasidePalm');
-    model.setPosition(x, -0.58, z);
-    const scale = 0.82 + (i % 4) * 0.1;
-    model.setScale(scale, scale, scale);
-    model.setRotationFromEuler(0, i * 137.5, 0);
-    const shadow = groundShadow(root, 5 * scale, 3 * scale);
-    shadow.setPosition(x, -0.585, z);
-  }
-  for (let i = 0; i < 18; i++) {
-    const p = pointAt(track, (i * track.length) / 18 + 40),
-      side = i % 2 ? -1 : 1;
-    const x = p.x + Math.cos(p.heading) * side * 17,
-      z = p.z - Math.sin(p.heading) * side * 17;
-    if (projectOnTrack(track, x, z).distance < 12) continue;
-    const model = placeModel(rocks, root, 'SeasideRocks');
-    model.setPosition(x, -0.6, z);
-    model.setRotationFromEuler(0, i * 73, 0);
-    const scale = 0.8 + (i % 3) * 0.25;
-    model.setScale(scale, scale, scale);
-  }
-  for (const x of [18, 62]) {
-    const model = placeModel(palm, root, 'CoastalPalm');
-    model.setPosition(x, -0.58, -169);
-    model.setRotationFromEuler(0, x * 7, 0);
-  }
-  const tower = placeModel(lighthouse, root, 'SeasideLighthouse');
-  tower.setPosition(lighthouseX, -0.3, lighthouseZ);
-  for (let i = 0; i < 6; i++) {
-    const angle = (i * Math.PI) / 3;
-    const model = placeModel(rocks, root, 'LighthouseShore');
-    model.setPosition(lighthouseX + Math.cos(angle) * 17, -1.5, lighthouseZ + Math.sin(angle) * 17);
-    model.setScale(2.5, 2, 2.5);
-    model.setRotationFromEuler(0, i * 60, 0);
+  const prefabs = new Map([
+    ['palm/palm', palm],
+    ['broadleaf/broadleaf', tree],
+    ['coastal-rocks/coastal-rocks', rocks],
+    ['lighthouse/lighthouse', lighthouse],
+  ]);
+  for (const placement of scenery.models) {
+    const model = placeModel(prefabs.get(placement.asset)!, root, 'Seaside:' + placement.asset);
+    model.setPosition(placement.x, placement.y, placement.z);
+    model.setScale(placement.scale, placement.scale, placement.scale);
+    model.setRotationFromEuler(0, ((placement.yaw ?? 0) * 180) / Math.PI, 0);
+    if (placement.asset === 'palm/palm' || placement.asset === 'broadleaf/broadleaf') {
+      const shadow = groundShadow(root, 5 * placement.scale, 3 * placement.scale);
+      shadow.setPosition(placement.x, placement.y + 0.015, placement.z);
+    }
   }
 }

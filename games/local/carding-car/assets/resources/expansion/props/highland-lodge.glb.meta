@@ -1,0 +1,142 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346",
+  "files": [],
+  "subMetas": {
+    "40586": {
+      "importer": "gltf-embeded-image",
+      "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346@40586",
+      "displayName": "",
+      "id": "40586",
+      "name": "UnnamedImage.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": false,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".jpg",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "92125": {
+      "importer": "gltf-mesh",
+      "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346@92125",
+      "displayName": "",
+      "id": "92125",
+      "name": "Palette.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1536
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e39f7": {
+      "importer": "texture",
+      "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346@e39f7",
+      "displayName": "",
+      "id": "e39f7",
+      "name": "UnnamedTexture.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "105775a7-32c4-4bee-9b9f-6a6d316de346@40586"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "91c84": {
+      "importer": "gltf-material",
+      "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346@91c84",
+      "displayName": "",
+      "id": "91c84",
+      "name": "Palette.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "7f470": {
+      "importer": "gltf-scene",
+      "uuid": "105775a7-32c4-4bee-9b9f-6a6d316de346@7f470",
+      "displayName": "",
+      "id": "7f470",
+      "name": "highland-lodge.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "uri": "105775a7-32c4-4bee-9b9f-6a6d316de346@40586"
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "105775a7-32c4-4bee-9b9f-6a6d316de346@92125"
+      ],
+      "skeletons": [],
+      "textures": [
+        "105775a7-32c4-4bee-9b9f-6a6d316de346@e39f7"
+      ],
+      "materials": [
+        "105775a7-32c4-4bee-9b9f-6a6d316de346@91c84"
+      ],
+      "scenes": [
+        "105775a7-32c4-4bee-9b9f-6a6d316de346@7f470"
+      ]
+    }
+  }
+}

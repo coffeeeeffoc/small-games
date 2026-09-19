@@ -102,7 +102,9 @@ try {
     'desert',
     'releasing Shift restores forward cycling',
   );
-  for (const theme of themes.filter(t => !process.env.KART_THEME || t.id === process.env.KART_THEME)) {
+  for (const theme of themes.filter(
+    (t) => !process.env.KART_THEME || t.id === process.env.KART_THEME,
+  )) {
     await select(page, 'theme', theme.id);
     for (const route of process.env.KART_MATRIX_SMOKE
       ? routes.filter((r) => r.id === theme.id)
