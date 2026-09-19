@@ -1,4 +1,14 @@
-import { Color, isValid, JsonAsset, Material, MeshRenderer, Node, Prefab, Texture2D, utils } from 'cc';
+import {
+  Color,
+  isValid,
+  JsonAsset,
+  Material,
+  MeshRenderer,
+  Node,
+  Prefab,
+  Texture2D,
+  utils,
+} from 'cc';
 import { buildTrack, ribbon } from './Track';
 import { loadArt, MeshBatch, placeModel } from './SceneArt';
 import { pointAt, projectOnTrack, type TrackData } from './TrackGenerator';
@@ -9,10 +19,14 @@ import { sceneryFits } from './ThemeScenery';
 export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDefinition) {
   if (theme.id === 'seaside') return buildTrack(parent, track);
   const scenery = theme.scenery(track);
-  const [expansion, seaside] = await Promise.all([loadArt('expansion/manifest', JsonAsset), loadArt('manifest', JsonAsset)]);
+  const [expansion, seaside] = await Promise.all([
+    loadArt('expansion/manifest', JsonAsset),
+    loadArt('manifest', JsonAsset),
+  ]);
   if (!isValid(parent)) return;
   const bounds = new Map<string, number[][]>();
-  for (const entry of expansion.json!.models) bounds.set('expansion/' + entry.file.replace(/\.glb$/, ''), entry.bounds);
+  for (const entry of expansion.json!.models)
+    bounds.set('expansion/' + entry.file.replace(/\.glb$/, ''), entry.bounds);
   for (const entry of seaside.json!.models) {
     const name = entry.file.replace(/\.glb$/, '');
     bounds.set(`${name}/${name}`, entry.bounds);
@@ -20,13 +34,13 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
   const b = new MeshBatch(),
     c = theme.colors;
   b.box(c.ground, 0, -1, 0, 1800, 1.8, 1800);
+  for (const mesh of scenery.meshes ?? []) b.add(mesh.color, mesh.geometry);
   for (const [points, width] of [
     [track.main, track.width],
     [track.shortcut, track.shortcutWidth],
   ] as const) {
     if (points.length < 2 || theme.id === 'glacier') continue;
     b.add(c.shoulder, ribbon(points, -width / 2 - 1.6, width / 2 + 1.6, -0.04));
-    b.add(c.road, ribbon(points, -width / 2, width / 2, 0));
     for (const side of [-1, 1])
       b.add(c.rail, ribbon(points, (side * width) / 2 - 0.12, (side * width) / 2 + 0.12, 0.025));
   }
@@ -45,7 +59,17 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
   }
   // All scenery is separate from the shared drivable road and its exact physical rails.
   for (const shape of scenery.shapes ?? []) {
-    if (!sceneryFits(track, shape.x, shape.y, shape.z, Math.hypot(shape.sx, shape.sz) / 2, shape.sy / 2)) continue;
+    if (
+      !sceneryFits(
+        track,
+        shape.x,
+        shape.y,
+        shape.z,
+        Math.hypot(shape.sx, shape.sz) / 2,
+        shape.sy / 2,
+      )
+    )
+      continue;
     if (shape.kind === 'ball')
       b.ball(shape.color, shape.x, shape.y, shape.z, shape.sx, shape.sy, shape.sz);
     else
@@ -83,7 +107,7 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
   // A narrow textured shoulder keeps each authored terrain texture visible without hiding asphalt.
   if (theme.id === 'glacier') await buildGlacier(parent, track);
   else {
-    const texture = await loadArt(`expansion/textures/${theme.id}/texture`, Texture2D);
+    const texture = await loadArt(theme.roadTexture ?? 'asphalt/texture', Texture2D);
     if (!isValid(parent)) return;
     texture.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
     const mat = new Material();
@@ -91,21 +115,53 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
     mat.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
     mat.setProperty('mainColor', Color.WHITE);
     mat.setProperty('mainTexture', texture);
-    for (const side of [-1, 1]) {
-      const node = new Node('TerrainTexture');
+    for (const [points, width] of [
+      [track.main, track.width],
+      [track.shortcut, track.shortcutWidth],
+    ] as const) {
+      if (points.length < 2) continue;
+      const node = new Node('RoadTexture');
       parent.addChild(node);
       const renderer = node.addComponent(MeshRenderer);
-      const mesh = utils.createMesh(
-        ribbon(
-          track.main,
-          (side * track.width) / 2 + Math.min(side * 0.25, side * 1.5),
-          (side * track.width) / 2 + Math.max(side * 0.25, side * 1.5),
-          -0.025,
-        ),
-      );
+      const mesh = utils.createMesh(ribbon(points, -width / 2, width / 2, 0.015));
       renderer.mesh = mesh;
       node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
       renderer.setMaterial(mat, 0);
+    }
+    if (theme.shoulderTexture !== false) {
+      const terrain = await loadArt(
+        theme.shoulderTexture ?? `expansion/textures/${theme.id}/texture`,
+        Texture2D,
+      );
+      if (!isValid(parent)) return;
+      terrain.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
+      const shoulderMat = new Material();
+      parent.once(Node.EventType.NODE_DESTROYED, () => shoulderMat.destroy());
+      shoulderMat.initialize({ effectName: 'builtin-unlit', defines: { USE_TEXTURE: true } });
+      shoulderMat.setProperty('mainColor', Color.WHITE);
+      shoulderMat.setProperty('mainTexture', terrain);
+      for (const [points, width] of [
+        [track.main, track.width],
+        [track.shortcut, track.shortcutWidth],
+      ] as const) {
+        if (points.length < 2) continue;
+        for (const side of [-1, 1]) {
+          const node = new Node('TerrainTexture');
+          parent.addChild(node);
+          const renderer = node.addComponent(MeshRenderer);
+          const mesh = utils.createMesh(
+            ribbon(
+              points,
+              (side * width) / 2 + Math.min(side * 0.25, side * 1.5),
+              (side * width) / 2 + Math.max(side * 0.25, side * 1.5),
+              -0.025,
+            ),
+          );
+          renderer.mesh = mesh;
+          renderer.setMaterial(shoulderMat, 0);
+          node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
+        }
+      }
     }
   }
   const placements = [...(scenery.models ?? [])];
@@ -122,8 +178,19 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
     const box = bounds.get(p.asset);
     if (!box) throw new Error(`Missing scenery bounds: ${p.asset}`);
     const [lo, hi] = box;
-    const radius = Math.hypot(Math.max(Math.abs(lo[0]), Math.abs(hi[0])), Math.max(Math.abs(lo[2]), Math.abs(hi[2]))) * p.scale;
-    return sceneryFits(track, p.x, p.y + (lo[1] + hi[1]) * p.scale / 2, p.z, radius, (hi[1] - lo[1]) * p.scale / 2);
+    const radius =
+      Math.hypot(
+        Math.max(Math.abs(lo[0]), Math.abs(hi[0])),
+        Math.max(Math.abs(lo[2]), Math.abs(hi[2])),
+      ) * p.scale;
+    return sceneryFits(
+      track,
+      p.x,
+      p.y + ((lo[1] + hi[1]) * p.scale) / 2,
+      p.z,
+      radius,
+      ((hi[1] - lo[1]) * p.scale) / 2,
+    );
   });
   const paths = Array.from(new Set(safePlacements.map((p) => p.asset)));
   const prefabs = new Map(

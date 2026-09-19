@@ -1,3 +1,6 @@
+import { pointAt, type TrackData } from './TrackGenerator.ts';
+import { sceneryFits } from './ThemeScenery.ts';
+
 /** Glacier geometry stays outside the shared driving/collision envelope. Metres, Y up. */
 export const glacierArchDistances = (length: number) => [72, length * 0.4, length * 0.74];
 type Point = [number, number, number];
@@ -56,8 +59,8 @@ export function glacierRock(seed: number, radius = 1, height = 1) {
   return g;
 }
 
-/** A barrel-vault ice bridge: 26m opening, 17m crown clearance, 12m depth. */
-export function glacierArch(snow = false) {
+/** A barrel vault with a route-sized opening and 12m depth. */
+export function glacierArch(snow = false, opening = 13) {
   const g = mesh(),
     steps = 32,
     depth = 6;
@@ -65,10 +68,10 @@ export function glacierArch(snow = false) {
     const angle = (i * Math.PI) / steps;
     const ripple = Math.sin(i * 2.1 + z) * 0.28;
     const radius = outer
-      ? 19 + ripple + (snow ? 1.25 : 0)
+      ? opening + 6 + ripple + (snow ? 1.25 : 0)
       : snow
-        ? 19 + ripple
-        : 13 + Math.sin(i * 1.7) * 0.2;
+        ? opening + 6 + ripple
+        : opening + Math.sin(i * 1.7) * 0.2;
     return [Math.cos(angle) * radius, 4 + Math.sin(angle) * radius, z];
   };
   for (let i = 0; i < steps; i++) {
@@ -99,6 +102,41 @@ export function glacierArch(snow = false) {
   return g;
 }
 
+/** Conservative bounds contain whole triangles, not just vertices at an arch's feet. */
+export function glacierArchFits(track: TrackData, distance: number, opening: number) {
+  const p = pointAt(track, distance), c = Math.cos(p.heading), s = Math.sin(p.heading);
+  for (const snow of [false, true]) {
+    const g = glacierArch(snow, opening);
+    for (let i = 0; i < g.indices.length; i += 3) {
+      const vertices = g.indices.slice(i, i + 3).map((index) => {
+        const [x, y, z] = g.positions.slice(index * 3, index * 3 + 3);
+        return [p.x + x * c + z * s, p.y + y, p.z + z * c - x * s];
+      });
+      const x = vertices.reduce((sum, v) => sum + v[0], 0) / 3,
+        z = vertices.reduce((sum, v) => sum + v[2], 0) / 3,
+        lo = Math.min(...vertices.map(v => v[1])), hi = Math.max(...vertices.map(v => v[1])),
+        radius = Math.max(...vertices.map(v => Math.hypot(v[0] - x, v[2] - z)));
+      if (!sceneryFits(track, x, (lo + hi) / 2, z, radius, (hi - lo) / 2)) return false;
+    }
+  }
+  return true;
+}
+
+export function glacierArches(track: TrackData) {
+  return glacierArchDistances(track.length).flatMap(preferred => {
+    // Tight bends or another branch can pass through the feet: move the complete portal.
+    for (let step = 0; step < 12; step++) {
+      const distance = preferred + (step % 2 ? -1 : 1) * Math.ceil(step / 2) * 18;
+      for (const extra of [5, 8, 11]) {
+        const opening = track.width / 2 + extra;
+        if (glacierArchFits(track, distance, opening))
+          return [{ ...pointAt(track, distance), distance, opening }];
+      }
+    }
+    return [];
+  });
+}
+
 /** Jagged ridges with a snow line, shared by near and distant mountain groups. */
 export function glacierMountain(seed: number, snow: boolean) {
   const g = mesh(),
@@ -111,8 +149,16 @@ export function glacierMountain(seed: number, snow: boolean) {
       ? [Math.cos(angle) * r * 0.52, snowline, Math.sin(angle) * r * 0.52]
       : [Math.cos(angle) * r, 0, Math.sin(angle) * r];
   };
+  const ridge = (i: number): Point => [
+    Math.cos(i * Math.PI * 2 / sides) * 0.18,
+    0.83 + 0.17 * Math.sin((i % sides) * 2.1 + seed) ** 2,
+    Math.sin(i * Math.PI * 2 / sides) * 0.18,
+  ];
   for (let i = 0; i < sides; i++) {
-    if (snow) triangle(g, point(i, true), [0.13, 1, -0.08], point(i + 1, true));
+    if (snow) {
+      quad(g, point(i, true), ridge(i), ridge(i + 1), point(i + 1, true));
+      triangle(g, ridge(i), [0.04, 1.06, -0.03], ridge(i + 1));
+    }
     else quad(g, point(i, false), point(i, true), point(i + 1, true), point(i + 1, false));
   }
   return g;

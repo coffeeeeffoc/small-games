@@ -41,9 +41,15 @@ export class KartController {
             ? 'route'
             : e.keyCode === KeyCode.DIGIT_3
               ? 'vehicle'
-              : e.keyCode === KeyCode.DIGIT_4 ? 'driver' : null;
+              : e.keyCode === KeyCode.DIGIT_4
+                ? 'driver'
+                : null;
       if (field) {
-        this.choose(field, (this.keys.has(KeyCode.SHIFT_LEFT) || this.keys.has(KeyCode.SHIFT_RIGHT)) ? -1 : 1);
+        const shifts = [KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT].filter((key) =>
+          this.keys.has(key),
+        );
+        this.choose(field, shifts.length ? -1 : 1);
+        for (const key of shifts) this.keys.add(key);
         this.keys.add(e.keyCode);
         return;
       }
@@ -77,7 +83,8 @@ export class KartController {
       return;
     }
     if (e.keyCode === KeyCode.KEY_M) this.sound();
-    if (r.phase !== 'racing' && r.phase !== 'countdown' && e.keyCode !== KeyCode.KEY_M)
+    if (r.phase !== 'racing' && r.phase !== 'countdown' &&
+      ![KeyCode.KEY_M, KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT].includes(e.keyCode))
       this.keys.delete(e.keyCode);
   }
   keyUp(e: EventKeyboard) {
