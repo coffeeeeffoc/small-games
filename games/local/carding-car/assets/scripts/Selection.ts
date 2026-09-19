@@ -35,8 +35,12 @@ export function readSelection(raw: string | null): Selection {
   try {
     const value = JSON.parse(raw || '{}');
     return {
-      theme: themes.some((t) => t.id === (value?.theme ?? value?.world)) ? (value.theme ?? value.world) : defaultSelection.theme,
-      route: routes.some((r) => r.id === (value?.route ?? value?.world)) ? (value.route ?? value.world) : defaultSelection.route,
+      theme: themes.some((t) => t.id === (value?.theme ?? value?.world))
+        ? (value.theme ?? value.world)
+        : defaultSelection.theme,
+      route: routes.some((r) => r.id === (value?.route ?? value?.world))
+        ? (value.route ?? value.world)
+        : defaultSelection.route,
       vehicle: vehicles.some((v) => v[0] === value?.vehicle)
         ? value.vehicle
         : defaultSelection.vehicle,
@@ -48,9 +52,11 @@ export function readSelection(raw: string | null): Selection {
 }
 export function cycleSelection(selection: Selection, field: keyof Selection, delta: number) {
   const choices =
-    field === 'theme' ? themes.map((t) => t.id)
-    : field === 'route' ? routes.map((r) => r.id)
-    : (field === 'vehicle' ? vehicles : drivers).map((v) => v[0]);
+    field === 'theme'
+      ? themes.map((t) => t.id)
+      : field === 'route'
+        ? routes.map((r) => r.id)
+        : (field === 'vehicle' ? vehicles : drivers).map((v) => v[0]);
   return {
     ...selection,
     [field]: choices[(choices.indexOf(selection[field]) + delta + choices.length) % choices.length],
@@ -59,6 +65,8 @@ export function cycleSelection(selection: Selection, field: keyof Selection, del
 
 // Shared by menu layout and touch hit testing (960 x 540 design coordinates).
 export const selectionRows = [
-  { field: 'theme', y: 44 }, { field: 'route', y: 4 },
-  { field: 'vehicle', y: -36 }, { field: 'driver', y: -76 },
+  { field: 'theme', y: 44 },
+  { field: 'route', y: 4 },
+  { field: 'vehicle', y: -36 },
+  { field: 'driver', y: -76 },
 ] as const;
