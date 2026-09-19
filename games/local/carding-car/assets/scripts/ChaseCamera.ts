@@ -6,6 +6,8 @@ export class ChaseCamera {
   camera: Camera;
   heading = 0;
   initialized = false;
+  height = 4.4;
+  lookHeight = 1.1;
   constructor(parent: Node) {
     this.node = new Node('ChaseCamera');
     parent.addChild(this.node);
@@ -28,11 +30,11 @@ export class ChaseCamera {
     const position = this.node.position;
     this.node.setPosition(
       position.x + (k.x - Math.sin(this.heading) * distance + shake - position.x) * blend,
-      position.y + (k.y + 4.4 - position.y) * blend,
+      position.y + (k.y + this.height - position.y) * blend,
       position.z + (k.z - Math.cos(this.heading) * distance - position.z) * blend,
     );
     this.node.lookAt(
-      new Vec3(k.x + Math.sin(this.heading) * 6, k.y + 1.1, k.z + Math.cos(this.heading) * 6),
+      new Vec3(k.x + Math.sin(this.heading) * 6, k.y + this.lookHeight, k.z + Math.cos(this.heading) * 6),
     );
     this.camera.fov +=
       ((k.boost > 0 ? C.cameraBoostFov : C.cameraFov) - this.camera.fov) * (1 - Math.exp(-5 * dt));
