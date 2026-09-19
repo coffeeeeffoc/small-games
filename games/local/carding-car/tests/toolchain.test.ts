@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { mock } from 'node:test';
+import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,6 +36,38 @@ test('Creator preserves logs on success, failure and timeout', async () => {
       /ENOENT/,
     );
   } finally {
+    assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
+    assert.ok(path.basename(directory).startsWith('kart-creator-'));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('Creator exit does not wait for workers to close inherited stdio', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'kart-creator-'));
+  const spawn = childProcess.spawn;
+  const delayedClose = mock.method(childProcess, 'spawn', (...args) => {
+    const proc = spawn(...args);
+    const emit = proc.emit;
+    proc.emit = function (event, ...values) {
+      if (event !== 'close') return emit.call(this, event, ...values);
+      // Model a worker retaining output handles after the editor has exited.
+      globalThis.setTimeout(() => emit.call(this, event, ...values), 1500);
+      return true;
+    };
+    return proc;
+  });
+  syncBuiltinESMExports();
+  try {
+    const result = await runCreator(
+      ['-e', "console.log('build complete'); process.exitCode = 36"],
+      path.join(directory, 'build.log'),
+      { executable: process.execPath, timeoutMs: 1000 },
+    );
+    assert.equal(result.code, 36);
+    assert.match(result.output, /build complete/);
+  } finally {
+    delayedClose.mock.restore();
+    syncBuiltinESMExports();
     assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
     assert.ok(path.basename(directory).startsWith('kart-creator-'));
     await rm(directory, { recursive: true, force: true });

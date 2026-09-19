@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, openSync, closeSync, readFileSync, appendFileSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,38 +14,49 @@ export async function runCreator(
   logPath,
   { executable = editor, timeoutMs = 15 * 60 * 1000 } = {},
 ) {
-  writeFileSync(logPath, '');
-  const proc = spawn(executable, args, {
-    windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let output = '',
-    timedOut = false;
-  const capture = (chunk) => {
-    output += chunk;
-    appendFileSync(logPath, chunk);
-    process.stdout.write(chunk);
+  // Workers may retain stdio after Creator exits. A file preserves logs without
+  // keeping this process waiting for those inherited pipes to close.
+  const log = openSync(logPath, 'w');
+  let proc;
+  try {
+    proc = spawn(executable, args, {
+      windowsHide: true,
+      stdio: ['ignore', log, log],
+    });
+  } finally {
+    closeSync(log);
+  }
+  let printed = 0;
+  const printLog = () => {
+    const output = readFileSync(logPath, 'utf8');
+    process.stdout.write(output.slice(printed));
+    printed = output.length;
+    return output;
   };
-  proc.stdout.on('data', capture);
-  proc.stderr.on('data', capture);
-  const timer = setTimeout(() => {
-    timedOut = true;
-    capture(`\nCreator exceeded ${timeoutMs / 1000}s; terminating PID ${proc.pid}.\n`);
-    if (process.platform === 'win32') {
-      spawnSync('taskkill', ['/pid', String(proc.pid), '/t', '/f'], {
-        windowsHide: true,
-        stdio: 'ignore',
-      });
-    } else proc.kill('SIGKILL');
-  }, timeoutMs);
+  const progress = setInterval(printLog, 1000);
+  let timer;
   try {
     const code = await new Promise((resolve, reject) => {
       proc.once('error', reject);
-      proc.once('close', resolve);
+      proc.once('exit', resolve);
+      timer = setTimeout(() => {
+        appendFileSync(logPath, `\nCreator exceeded ${timeoutMs / 1000}s; terminating PID ${proc.pid}.\n`);
+        if (process.platform === 'win32') {
+          spawnSync('taskkill', ['/pid', String(proc.pid), '/t', '/f'], {
+            windowsHide: true,
+            stdio: 'ignore',
+            timeout: 10000,
+          });
+        }
+        proc.kill('SIGKILL');
+        proc.unref();
+        reject(new Error(`Creator timed out; see ${logPath}`));
+      }, timeoutMs);
     });
-    if (timedOut) throw new Error(`Creator timed out; see ${logPath}`);
-    return { code, output };
+    return { code, output: printLog() };
   } finally {
     clearTimeout(timer);
+    clearInterval(progress);
+    printLog();
   }
 }
