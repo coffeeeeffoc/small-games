@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium, expect } from '@playwright/test';
+import { chromium, devices, expect } from '@playwright/test';
 import { preview } from 'vite';
 import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
 
@@ -106,7 +106,7 @@ try {
       'vibeJam-myself-nullrange',
     ].includes(game.id);
     const viewport = landscape ? { width: 844, height: 390 } : { width: 390, height: 844 };
-    const mobileContext = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+    const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();
     direct.on('pageerror', (error) => failures.push(`${game.id}: ${error.message}`));
     direct.on('response', (response) => {

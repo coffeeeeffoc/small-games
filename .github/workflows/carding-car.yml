@@ -72,7 +72,7 @@ jobs:
             games/local/carding-car/dist
             games/local/carding-car/cc.d.ts
           key: ${{ steps.artifact.outputs.cache-primary-key }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: carding-car-${{ github.sha }}
           path: |
@@ -81,7 +81,7 @@ jobs:
           if-no-files-found: error
       - name: Upload Creator build diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: carding-car-logs-${{ github.run_attempt }}
           path: |
