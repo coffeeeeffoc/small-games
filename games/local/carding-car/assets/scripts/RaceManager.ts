@@ -1,4 +1,4 @@
-import type { TrackOptions } from './WorldDefinition.ts';
+import type { TrackOptions } from './RouteCatalog.ts';
 import { createItems, collectItems, type RoadItem } from './RoadItems.ts';
 import { KartConfig as C, angleDelta, type KartInput } from './KartConfig.ts';
 import { createKart, driveKart, resolveKartBarriers } from './KartPhysics.ts';

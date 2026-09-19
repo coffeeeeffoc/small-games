@@ -12,7 +12,7 @@ import {
   vehicles,
   drivers,
 } from '../assets/scripts/Selection.ts';
-import { worlds } from '../assets/scripts/WorldCatalog.ts';
+import { themes } from '../assets/scripts/ThemeCatalog.ts';
 
 const throttle = { steer: 0, throttle: 1, brake: false, drift: false };
 test('hazard recovery and continuous checkpoints survive delayed steering around seaside bends', () => {
@@ -45,13 +45,13 @@ test('spinning body remains inside the visible guardrail throughout a slip', () 
 test('selection validates persisted values and cycles every advertised world/car/driver', () => {
   for (const value of [null, 'null', '{broken', '[]', '{"world":"no","vehicle":0}'])
     assert.deepEqual(readSelection(value), defaultSelection);
-  assert.equal(worlds.length, 8);
+  assert.equal(themes.length, 8);
   assert.equal(vehicles.length, 10);
   assert.equal(drivers.length, 10);
-  for (const field of ['world', 'vehicle', 'driver'] as const) {
+  for (const field of ['theme', 'route', 'vehicle', 'driver'] as const) {
     let selection = { ...defaultSelection };
     const seen = new Set<string>();
-    const count = field === 'world' ? 8 : 10;
+    const count = field === 'theme' || field === 'route' ? 8 : 10;
     for (let i = 0; i < count; i++) {
       seen.add(selection[field]);
       selection = cycleSelection(selection, field, 1);

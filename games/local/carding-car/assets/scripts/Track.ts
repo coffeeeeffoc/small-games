@@ -55,6 +55,7 @@ export async function buildTrack(parent: Node, track: TrackData) {
     [track.main, track.width],
     [track.shortcut, track.shortcutWidth],
   ] as const) {
+    if (points.length < 2) continue;
     b.add(P.sand, ribbon(points, -width / 2 - 1.6, width / 2 + 1.6, -0.04));
     const road = new Node('Asphalt');
     root.addChild(road);

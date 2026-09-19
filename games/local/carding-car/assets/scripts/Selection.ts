@@ -1,4 +1,5 @@
-import { worlds } from './WorldCatalog.ts';
+import { themes } from './ThemeCatalog.ts';
+import { routes } from './RouteCatalog.ts';
 export const vehicles = [
   ['classic-kart', '经典卡丁'],
   ['dune-buggy', '沙丘越野'],
@@ -23,9 +24,10 @@ export const drivers = [
   ['speedster', '极速少年'],
   ['street-racer', '街头车手'],
 ];
-export type Selection = { world: string; vehicle: string; driver: string };
+export type Selection = { theme: string; route: string; vehicle: string; driver: string };
 export const defaultSelection: Selection = {
-  world: 'seaside',
+  theme: 'seaside',
+  route: 'seaside',
   vehicle: 'classic-kart',
   driver: 'rookie',
 };
@@ -33,7 +35,8 @@ export function readSelection(raw: string | null): Selection {
   try {
     const value = JSON.parse(raw || '{}');
     return {
-      world: worlds.some((w) => w.id === value?.world) ? value.world : defaultSelection.world,
+      theme: themes.some((t) => t.id === (value?.theme ?? value?.world)) ? (value.theme ?? value.world) : defaultSelection.theme,
+      route: routes.some((r) => r.id === (value?.route ?? value?.world)) ? (value.route ?? value.world) : defaultSelection.route,
       vehicle: vehicles.some((v) => v[0] === value?.vehicle)
         ? value.vehicle
         : defaultSelection.vehicle,
@@ -45,11 +48,17 @@ export function readSelection(raw: string | null): Selection {
 }
 export function cycleSelection(selection: Selection, field: keyof Selection, delta: number) {
   const choices =
-    field === 'world'
-      ? worlds.map((w) => w.id)
-      : (field === 'vehicle' ? vehicles : drivers).map((v) => v[0]);
+    field === 'theme' ? themes.map((t) => t.id)
+    : field === 'route' ? routes.map((r) => r.id)
+    : (field === 'vehicle' ? vehicles : drivers).map((v) => v[0]);
   return {
     ...selection,
     [field]: choices[(choices.indexOf(selection[field]) + delta + choices.length) % choices.length],
   };
 }
+
+// Shared by menu layout and touch hit testing (960 x 540 design coordinates).
+export const selectionRows = [
+  { field: 'theme', y: 44 }, { field: 'route', y: 4 },
+  { field: 'vehicle', y: -36 }, { field: 'driver', y: -76 },
+] as const;

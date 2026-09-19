@@ -1,5 +1,6 @@
 import { EventKeyboard, EventTouch, input, Input, KeyCode, sys, view } from 'cc';
 import { clamp, type KartInput } from './KartConfig';
+import { selectionRows, type Selection } from './Selection';
 import type { RaceManager } from './RaceManager';
 export class KartController {
   keys = new Set<number>();
@@ -9,7 +10,7 @@ export class KartController {
     private restart: () => void,
     private sound: () => void,
     private activateAudio: () => void,
-    private choose: (field: 'world' | 'vehicle' | 'driver', delta: number) => void = () => {},
+    private choose: (field: keyof Selection, delta: number) => void = () => {},
     private garage: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
@@ -35,14 +36,14 @@ export class KartController {
     if (r.phase === 'ready') {
       const field =
         e.keyCode === KeyCode.DIGIT_1
-          ? 'world'
+          ? 'theme'
           : e.keyCode === KeyCode.DIGIT_2
-            ? 'vehicle'
+            ? 'route'
             : e.keyCode === KeyCode.DIGIT_3
-              ? 'driver'
-              : null;
+              ? 'vehicle'
+              : e.keyCode === KeyCode.DIGIT_4 ? 'driver' : null;
       if (field) {
-        this.choose(field, this.keys.has(KeyCode.SHIFT_LEFT) ? -1 : 1);
+        this.choose(field, (this.keys.has(KeyCode.SHIFT_LEFT) || this.keys.has(KeyCode.SHIFT_RIGHT)) ? -1 : 1);
         this.keys.add(e.keyCode);
         return;
       }
@@ -104,14 +105,7 @@ export class KartController {
     }
     if (r.phase === 'ready' || r.phase === 'finished' || r.phase === 'paused') {
       if (r.phase === 'ready' && p.x > 0.17 && p.x < 0.83) {
-        const row =
-          p.y > 0.517 && p.y < 0.594
-            ? 'world'
-            : p.y > 0.424 && p.y < 0.502
-              ? 'vehicle'
-              : p.y > 0.331 && p.y < 0.409
-                ? 'driver'
-                : null;
+        const row = selectionRows.find(({ y }) => Math.abs(p.y * 540 - 270 - y) <= 19)?.field;
         if (row) {
           this.clear();
           this.choose(row, p.x < 0.5 ? -1 : 1);

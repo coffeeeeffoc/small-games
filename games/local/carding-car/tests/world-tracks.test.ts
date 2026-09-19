@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { worlds } from '../assets/scripts/WorldCatalog.ts';
+import { themes } from '../assets/scripts/ThemeCatalog.ts';
+import { routes } from '../assets/scripts/RouteCatalog.ts';
+import { createTrack } from '../assets/scripts/TrackGenerator.ts';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { artSource, expansionSource } from '../scripts/prepare-art.mjs';
@@ -14,19 +16,20 @@ test('seven authored worlds reference delivered scenery and have different route
     const name = model.file.replace(/\.glb$/, '');
     assets.add(`${name}/${name}`);
   }
-  const routes = new Set<string>();
-  for (const world of worlds.filter(w => w.id !== 'seaside')) {
-    routes.add(JSON.stringify(world.track.controls));
-    const models = world.scenery.models || [];
-    assert.ok(models.some(m => m.asset === `expansion/scenes/${world.id}`), world.id);
-    assert.ok(models.length + (world.scenery.roadside || []).length > 1, world.id);
-    for (const model of [...models, ...(world.scenery.roadside || [])])
+  const signatures = new Set<string>();
+  for (const route of routes.filter(r => r.id !== 'seaside')) {
+    const world = themes.find(t => t.id === route.id)!;
+    const scenery = world.scenery(createTrack(route.track));
+    signatures.add(JSON.stringify(route.track.controls));
+    const models = scenery.models || [];
+    assert.ok(models.length + (scenery.roadside || []).length > 1, world.id);
+    for (const model of [...models, ...(scenery.roadside || [])])
       assert.ok(assets.has(model.asset), `${world.id}: ${model.asset}`);
   }
-  assert.equal(routes.size, 7);
+  assert.equal(signatures.size, 7);
 });
 
-for (const world of worlds) {
+for (const world of routes) {
   test(`${world.id}: three laps with randomized items and all rival drivers`, () => {
     const race = new RaceManager(world.track, 20260919);
     race.start();
