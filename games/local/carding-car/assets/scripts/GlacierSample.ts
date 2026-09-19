@@ -12,8 +12,9 @@ import {
 } from 'cc';
 import { loadArt, MeshBatch } from './SceneArt';
 import { ribbon } from './Track';
-import { pointAt, type TrackData } from './TrackGenerator';
-import { glacierArch, glacierArchDistances, glacierMountain, glacierRock } from './GlacierGeometry';
+import type { TrackData } from './TrackGenerator';
+import { glacierArch, glacierArches, glacierMountain, glacierRock } from './GlacierGeometry';
+import { besideRoad, clearOfRoad, sceneryFits } from './ThemeScenery';
 
 const ICE = '#76cdef',
   SNOW = '#eef6ff',
@@ -80,15 +81,27 @@ function glacierSky() {
   return { cube, images };
 }
 
-/** Called synchronously on selection so an old asynchronous world cannot change the lighting. */
+let restoreLighting: (() => void) | undefined;
+
+/** Called synchronously on selection so an old asynchronous theme cannot change the lighting. */
 export function setGlacierLighting(parent: Node, enabled: boolean) {
-  const globals = parent.scene!.globals;
-  globals.skybox.enabled = false;
-  globals.skybox.envLightingType = 0;
-  globals.skybox.envmap = null;
-  globals.fog.enabled = false;
-  globals.shadows.enabled = false;
+  restoreLighting?.();
+  restoreLighting = undefined;
   if (!enabled) return;
+  const globals = parent.scene!.globals;
+  const previous = {
+    skybox: { enabled: globals.skybox.enabled, envLightingType: globals.skybox.envLightingType, envmap: globals.skybox.envmap },
+    ambient: { skyLightingColor: globals.ambient.skyLightingColor.clone(), groundLightingColor: globals.ambient.groundLightingColor.clone(), skyIllum: globals.ambient.skyIllum },
+    fog: { enabled: globals.fog.enabled, type: globals.fog.type, fogColor: globals.fog.fogColor.clone(), fogStart: globals.fog.fogStart, fogEnd: globals.fog.fogEnd },
+    shadows: { enabled: globals.shadows.enabled, type: globals.shadows.type, shadowMapSize: globals.shadows.shadowMapSize },
+  };
+  const restore = () => {
+    Object.assign(globals.skybox, previous.skybox);
+    Object.assign(globals.ambient, previous.ambient);
+    Object.assign(globals.fog, previous.fog);
+    Object.assign(globals.shadows, previous.shadows);
+  };
+  restoreLighting = restore;
   const { cube, images } = glacierSky();
   globals.skybox.envmap = cube;
   globals.skybox.envLightingType = 1;
@@ -117,6 +130,10 @@ export function setGlacierLighting(parent: Node, enabled: boolean) {
   light.shadowBias = 0.0001;
   light.shadowNormalBias = 0.12;
   parent.once(Node.EventType.NODE_DESTROYED, () => {
+    if (restoreLighting === restore) {
+      restore();
+      restoreLighting = undefined;
+    }
     cube.destroy();
     images.forEach((image) => image.destroy());
   });
@@ -167,25 +184,19 @@ export async function buildGlacier(parent: Node, track: TrackData) {
         node.getComponent(MeshRenderer)!.shadowCastingMode = 0;
   };
   let b = new MeshBatch(true);
-  const at = (s: number, offset: number) => {
-    const p = pointAt(track, s);
-    return { ...p, x: p.x + Math.cos(p.heading) * offset, z: p.z - Math.sin(p.heading) * offset };
-  };
   // Use the shared closed road samples: normals and vertices match at the lap seam.
-  const points = track.main;
-  const surface = ribbon(points, -track.width / 2, track.width / 2, 0.025);
-  const repeats = Math.round(track.length / 15);
-  surface.uvs = points.flatMap((p) => [
-    0,
-    (p.s / track.length) * repeats,
-    1.7,
-    (p.s / track.length) * repeats,
-  ]);
-  b.add(ROAD, surface);
-  // Snow gathers on the road margins; the drivable surface stays level with physics.
-  for (const side of [-1, 1]) {
-    b.add(SNOW, ribbon(points, side * 8 - 0.22, side * 8 + 0.22, 0.035));
-    b.add(SNOW, ribbon(points, side * 10 - 1.2, side * 10 + 1.2, -0.06));
+  for (const [points, width, length] of [
+    [track.main, track.width, track.length],
+    [track.shortcut, track.shortcutWidth, track.shortcutLength],
+  ] as const) {
+    if (points.length < 2) continue;
+    const surface = ribbon(points, -width / 2, width / 2, 0.025);
+    const repeats = Math.max(1, Math.round(length / 15)), first = points[0].s,
+      span = points[points.length - 1].s - first;
+    surface.uvs = points.flatMap(p => [0, (p.s - first) / span * repeats, width / 9.4, (p.s - first) / span * repeats]);
+    b.add(ROAD, surface);
+    // Broad margins sit below both surfaces, including their open fork junctions.
+    b.add(SNOW, ribbon(points, -width / 2 - 3.2, width / 2 + 3.2, -0.06));
   }
   for (const [index, wall] of track.barriers.entries()) {
     // The same exact footprint as collision, including bends and the lap seam.
@@ -205,45 +216,64 @@ export async function buildGlacier(parent: Node, track: TrackData) {
     }
   }
   build(b, 'RoadAndRails');
-  // Asymmetric continuous walls: varied silhouettes, overlapping bases and thick snow cornices.
-  const rows = Math.ceil(track.length / 11);
-  for (let i = 0; i < rows; i++) {
-    const s = -16 + (i * track.length) / rows;
-    if (i % 8 === 0) b = new MeshBatch(true);
-    for (const side of [-1, 1]) {
-      const height =
-        side < 0 && s > 20 && s < 61 ? 3.5 : 14 + Math.sin(i * 1.7 + side) * 4 + (side < 0 ? 2 : 0);
-      const offset = side * (20 + Math.sin(i * 1.2 + side) * 2),
-        p = at(s, offset);
-      b.add(ICE, glacierRock(i + side * 17, 7.6, height), p.x, -0.6, p.z, 1, 1, 1, i * 0.73);
-      b.ball(SNOW, p.x, height - 0.5, p.z, 15, 4.4, 14);
-      for (let n = 0; n < 3; n++) {
-        const bank = at(s + n * 3.3, side * (12.6 + n * 0.8));
-        b.ball(SNOW, bank.x, -0.25, bank.z, 5 + n, 1.3 + n * 0.6, 6);
+  const station = Array.from({ length: 16 }, (_, i) => ({
+    ...besideRoad(track, 48 + Math.floor(i / 2) * 28, (i % 2 ? -1 : 1) * (track.width / 2 + 17)),
+    side: i % 2 ? -1 : 1,
+  })).find(p => clearOfRoad(track, p.x, p.z, 11));
+  const nearStation = (x: number, z: number, radius: number) =>
+    station && Math.hypot(x - station.x, z - station.z) < radius + 13;
+  // Use both branch widths and elevations, leaving their junctions and nearby bends unobstructed.
+  for (const [shortcut, width, length] of [
+    [false, track.width, track.length], [true, track.shortcutWidth, track.shortcutLength],
+  ] as const) {
+    if (shortcut && track.shortcut.length < 2) continue;
+    const rows = Math.ceil(length / 11);
+    for (let i = 0; i < rows; i++) {
+      const s = shortcut ? track.shortcutStart + (track.shortcutEnd - track.shortcutStart) * i / rows
+        : -16 + i * track.length / rows;
+      if (i % 8 === 0) b = new MeshBatch(true);
+      for (const side of [-1, 1]) {
+        const height = 14 + Math.sin(i * 1.7 + side) * 4 + (side < 0 ? 2 : 0),
+          radius = 6.5 + (Math.sin(i * 1.2) + 1) * 0.8,
+          p = besideRoad(track, s, side * (width / 2 + 12 + Math.sin(i * 1.2 + side) * 2), shortcut);
+        if (clearOfRoad(track, p.x, p.z, radius * 1.06) && !nearStation(p.x, p.z, radius)) {
+          const base = Math.min(-0.6, p.y - 0.6);
+          b.add(ICE, glacierRock(i + side * 17, radius, height + p.y - base), p.x, base, p.z, 1, 1, 1, i * 0.73);
+          b.ball(SNOW, p.x, p.y + height, p.z, radius * 2, 4.4, radius * 1.8);
+        }
+        for (let n = 0; n < 3; n++) {
+          const bank = besideRoad(track, s + n * 3.3, side * (width / 2 + 4.8 + n * 0.8), shortcut);
+          if (clearOfRoad(track, bank.x, bank.z, Math.max(6, 5 + n) / 2) && !nearStation(bank.x, bank.z, 2))
+            b.ball(SNOW, bank.x, bank.y - 0.25, bank.z, 5 + n, 1.3 + n * 0.6, 6);
+        }
+        if (i % 3 === 1) {
+          const rock = besideRoad(track, s, side * (width / 2 + 7.5), shortcut);
+          if (clearOfRoad(track, rock.x, rock.z, 2.4) && !nearStation(rock.x, rock.z, 2.4)) {
+            b.add(ROCK, glacierRock(i * 2, 2.2, 3.3), rock.x, rock.y - 0.3, rock.z);
+            b.ball(SNOW, rock.x, rock.y + 3, rock.z, 4.8, 1.2, 4.5);
+          }
+        }
       }
-      if (i % 3 === 1) {
-        const p = at(s, side * 15.5);
-        b.add(ROCK, glacierRock(i * 2, 2.2, 3.3), p.x, -0.3, p.z);
-        b.ball(SNOW, p.x, 3, p.z, 4.8, 1.2, 4.5);
-      }
+      // Small spatial batches let native frustum/shadow culling skip distant walls.
+      if (i % 8 === 7 || i === rows - 1) build(b, `IceWalls-${shortcut ? 'Shortcut-' : ''}${Math.floor(i / 8)}`);
     }
-    // Small spatial batches let native frustum/shadow culling skip distant walls.
-    if (i % 8 === 7 || i === rows - 1) build(b, `IceWalls-${Math.floor(i / 8)}`);
   }
-  for (const glacierArchDistance of glacierArchDistances(track.length)) {
+  for (const arch of glacierArches(track)) {
     b = new MeshBatch(true);
-    const arch = pointAt(track, glacierArchDistance);
-    b.add(ICE, glacierArch(), arch.x, arch.y, arch.z, 1, 1, 1, arch.heading);
-    b.add(SNOW, glacierArch(true), arch.x, arch.y, arch.z, 1, 1, 1, arch.heading);
+    b.add(ICE, glacierArch(false, arch.opening), arch.x, arch.y, arch.z, 1, 1, 1, arch.heading);
+    b.add(SNOW, glacierArch(true, arch.opening), arch.x, arch.y, arch.z, 1, 1, 1, arch.heading);
     for (const side of [-1, 1]) {
-      const p = at(glacierArchDistance, side * 16.5);
-      b.add(ICE, glacierRock(6 + side, 4.8, 11), p.x, -0.5, p.z, 1, 1, 1.9, arch.heading);
+      const p = besideRoad(track, arch.distance, side * (arch.opening + 3.5));
+      if (clearOfRoad(track, p.x, p.z, 5.1))
+        b.add(ICE, glacierRock(6 + side, 4.8, 11), p.x, p.y - 0.5, p.z, 1, 1, 1, arch.heading);
     }
     for (let i = 0; i < 19; i++) {
-      const x = -11 + i * 1.22,
-        y = 4 + Math.sqrt(13 * 13 - x * x),
+      const x = (-0.84 + i * 1.68 / 18) * arch.opening,
+        y = arch.y + 4 + Math.sqrt(arch.opening * arch.opening - x * x),
         length = 0.6 + (Math.sin(i * 7) + 1) * 0.9;
-      const p = at(glacierArchDistance - 5.9, x);
+      const p = { x: arch.x + Math.cos(arch.heading) * x - Math.sin(arch.heading) * 5.9,
+        z: arch.z - Math.sin(arch.heading) * x - Math.cos(arch.heading) * 5.9 };
+      if (!sceneryFits(track, p.x, y - length / 2, p.z, 0.42, length / 2)) continue;
       b.add(
         ICE,
         primitives.cylinder(0.22 + (i % 3) * 0.1, 0, length, { radialSegments: 6 }),
@@ -252,30 +282,52 @@ export async function buildGlacier(parent: Node, track: TrackData) {
         p.z,
       );
     }
-    build(b, `IceArch-${Math.round(glacierArchDistance)}`);
+    build(b, `IceArch-${Math.round(arch.distance)}`);
   }
-  // Snow peaks beyond the portal form a layered skyline instead of a flat blue backdrop.
+  // The skyline surrounds the chosen route's bounds, including off-centre and elevated routes.
+  const xs = track.main.map(p => p.x), zs = track.main.map(p => p.z),
+    cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2,
+    horizon = Math.max(...track.main.map(p => Math.hypot(p.x - cx, p.z - cz))) + track.width / 2 + 125,
+    elevation = Math.max(...track.main.map(p => p.y));
   for (let i = 0; i < 40; i++) {
     if (i % 5 === 0) b = new MeshBatch(true);
     const angle = (i * Math.PI * 2) / 40,
-      radius = 390 + (i % 3) * 35;
-    const p = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius },
-      height = 62 + Math.sin(i * 4.3) * 27;
-    const width = 31 + (i % 3) * 8;
-    b.add(ROCK, glacierMountain(i, false), p.x, -5, p.z, width, height, width * 0.8, i * 0.7);
-    b.add(SNOW, glacierMountain(i, true), p.x, -5, p.z, width, height, width * 0.8, i * 0.7);
+      radius = horizon + (i % 3) * 35;
+    const p = { x: cx + Math.cos(angle) * radius, z: cz + Math.sin(angle) * radius },
+      height = 62 + elevation + Math.sin(i * 4.3) * 27,
+      width = 44 + (i % 3) * 10;
+    if (clearOfRoad(track, p.x, p.z, width * 1.2)) {
+      b.add(ROCK, glacierMountain(i, false), p.x, -5, p.z, width, height, width * 0.8, i * 0.7);
+      b.add(SNOW, glacierMountain(i, true), p.x, -5, p.z, width, height, width * 0.8, i * 0.7);
+    }
     if (i % 5 === 4) build(b, `Mountains-${Math.floor(i / 5)}`);
   }
-  // Compact orange research shelter on the left bank, composed of shared primitives.
+  if (!station) return;
+  // A cream/orange polar station with a raised deck, stairs, railings and communications mast.
   b = new MeshBatch(true);
-  const station = at(48, -27),
-    h = station.heading;
-  b.box(ROCK, station.x, 3, station.z, 10, 5, 8, h);
-  b.box(ORANGE, station.x, 6.1, station.z, 8, 3.3, 6, h);
-  b.ball(SNOW, station.x, 8, station.z, 10, 1.3, 8);
-  const window = at(48, -22.96);
-  b.box('#244768', window.x, 6.3, window.z, 0.08, 1.55, 4.8, h);
-  b.box(ROCK, station.x, 11, station.z, 0.15, 6, 0.15);
-  b.ball('#f5c663', station.x, 14, station.z, 0.4);
+  const h = station.heading, front = -station.side;
+  const box = (color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number) =>
+    b.box(color, station.x + Math.cos(h) * x + Math.sin(h) * z, station.y + y,
+      station.z - Math.sin(h) * x + Math.cos(h) * z, sx, sy, sz, h);
+  for (const x of [-5, 5]) for (const z of [-4, 4]) box(ROCK, x, 0.9, z, 0.5, 2.8, 0.5);
+  box(ROCK, 0, 2, 0, 12, 0.4, 10);
+  box('#fff1d1', 0, 4.2, 0, 8, 4, 6);
+  box(ORANGE, 0, 6.2, 0, 9, 0.65, 7);
+  box(ORANGE, 0, 2.45, 0, 8.2, 0.55, 6.2);
+  box('#244768', front * 4.06, 4.35, -1.6, 0.12, 1.6, 1.5);
+  box('#244768', front * 4.06, 4.35, 1.6, 0.12, 1.6, 1.5);
+  box(ORANGE, front * 4.09, 3.85, 0, 0.16, 2.7, 1.1);
+  box('#fff1d1', front * 4.19, 3.8, 0.3, 0.12, 0.12, 0.12);
+  for (const z of [-4.7, 4.7]) {
+    box(ORANGE, 0, 3.35, z, 12, 0.13, 0.13);
+    for (const x of [-5.8, -3, 0, 3, 5.8]) box(ROCK, x, 2.8, z, 0.12, 1.4, 0.12);
+  }
+  for (let i = 0; i < 6; i++) box(ROCK, front * (6 + i * 0.48), 1.85 - i * 0.32, 0, 0.65, 0.24, 2);
+  box(ROCK, 1.8, 9, -1.6, 0.15, 6.1, 0.15);
+  box(ORANGE, 1.8, 10.2, -1.6, 0.35, 1.1, 0.35);
+  box('#fff1d1', 1.8, 10.8, -1.6, 1.8, 0.15, 0.15);
+  b.ball(SNOW, station.x, station.y + 6.65, station.z, 9.2, 1.1, 7.2);
+  b.add('#fff1d1', primitives.sphere(0.8, { segments: 12 }),
+    station.x - Math.sin(h) * 2, station.y + 7.5, station.z - Math.cos(h) * 2, 0.2, 1, 1, h);
   build(b, 'ResearchStation');
 }

@@ -10,9 +10,15 @@ export function besideRoad(track: TrackData, distance: number, offset: number, s
 /** Check every branch, including a nearby main road whose width differs from the shortcut. */
 export function roadClearance(track: TrackData, x: number, z: number) {
   let clearance = Infinity;
-  for (const [points, width] of [[track.main, track.width], [track.shortcut, track.shortcutWidth]] as const) {
+  for (const [points, width] of [
+    [track.main, track.width],
+    [track.shortcut, track.shortcutWidth],
+  ] as const) {
     for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1], b = points[i], dx = b.x - a.x, dz = b.z - a.z;
+      const a = points[i - 1],
+        b = points[i],
+        dx = b.x - a.x,
+        dz = b.z - a.z;
       const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
       clearance = Math.min(clearance, Math.hypot(x - a.x - dx * t, z - a.z - dz * t) - width / 2);
     }
@@ -26,14 +32,28 @@ export function clearOfRoad(track: TrackData, x: number, z: number, radius: numb
 }
 
 /** Ground/bridge supports are allowed below the road, roofs above the driving envelope. */
-export function sceneryFits(track: TrackData, x: number, y: number, z: number, radius: number, halfHeight: number) {
-  for (const [points, width] of [[track.main, track.width], [track.shortcut, track.shortcutWidth]] as const) {
+export function sceneryFits(
+  track: TrackData,
+  x: number,
+  y: number,
+  z: number,
+  radius: number,
+  halfHeight: number,
+) {
+  for (const [points, width] of [
+    [track.main, track.width],
+    [track.shortcut, track.shortcutWidth],
+  ] as const) {
     for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1], b = points[i], dx = b.x - a.x, dz = b.z - a.z;
+      const a = points[i - 1],
+        b = points[i],
+        dx = b.x - a.x,
+        dz = b.z - a.z;
       const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
       if (Math.hypot(x - a.x - dx * t, z - a.z - dz * t) > width / 2 + radius + 1) continue;
       // Include the full segment elevation span so the same footprint is safe on slopes.
-      if (y + halfHeight < Math.min(a.y, b.y) - 0.05 || y - halfHeight > Math.max(a.y, b.y) + 6) continue;
+      if (y + halfHeight < Math.min(a.y, b.y) - 0.05 || y - halfHeight > Math.max(a.y, b.y) + 6)
+        continue;
       return false;
     }
   }

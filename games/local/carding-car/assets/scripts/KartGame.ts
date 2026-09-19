@@ -77,7 +77,8 @@ export class KartGame extends Component {
     this.accumulator = 0;
     this.camera.initialized = false;
     this.camera.camera.clearColor = new Color().fromHEX(theme.colors.sky);
-    this.camera.camera.clearFlags = theme.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
+    this.camera.camera.clearFlags =
+      theme.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
     this.camera.height = 3.6;
     this.camera.lookHeight = 1.5;
     this.hud.selection = { ...this.selection };
@@ -209,7 +210,6 @@ export class KartGame extends Component {
   };
   restart() {
     this.controller.clear();
-    const theme = themes.find((t) => t.id === this.selection.theme)!;
     const route = routes.find((r) => r.id === this.selection.route)!;
     this.race = new RaceManager(route.track, ++this.seed);
     this.race.start();
