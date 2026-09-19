@@ -45,9 +45,29 @@ try {
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
   await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
+  async function verifySharedRoute(id, title) {
+    const sharedUrl = `${url}#/games/${id}`;
+    await expect(page).toHaveURL(sharedUrl);
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
+    await page.goForward();
+    await expect(page.locator('nav strong')).toHaveText(title);
+    await page.reload();
+    await expect(page.locator('nav strong')).toHaveText(title);
+    const shared = await browser.newPage();
+    shared.on('pageerror', (error) => failures.push(error.message));
+    try {
+      assert.equal((await shared.goto(sharedUrl)).status(), 200);
+      await expect(shared.locator('nav strong')).toHaveText(title);
+      await expect(shared.locator('.game-slot, .standalone-page iframe')).toHaveCount(1);
+    } finally {
+      await shared.close();
+    }
+  }
   for (const title of ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
     await page.locator('article').filter({ hasText: title }).getByRole('button').click();
     if (title === '三分钟修仙') {
+      await verifySharedRoute('cultivation', title);
       await page.getByRole('button', { name: '点香 · 开始修行' }).click();
       await expect(page.getByRole('button', { name: '御剑', exact: true })).toBeVisible();
       await page.getByRole('button', { name: '暂停', exact: true }).click();
@@ -78,10 +98,13 @@ try {
       await page.getByRole('button', { name: '准备好了，继续' }).click();
     }
     await page.getByRole('button', { name: '← 返回目录', exact: true }).click();
+    await expect(page).toHaveURL(url);
     await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
   }
   for (const game of games) {
     await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
+    await expect(page).toHaveURL(`${url}#/games/${game.id}`);
+    if (game === games[0]) await verifySharedRoute(game.id, game.title);
     const frame = page.frameLocator('iframe');
     const marker = markers[game.id];
     assert(marker, `Missing ready marker for ${game.id}`);
@@ -98,6 +121,7 @@ try {
     );
     // Release the desktop WebGL context before starting the mobile instance.
     await page.getByRole('button', { name: '返回目录', exact: true }).click();
+    await expect(page).toHaveURL(url);
     await expect(page.locator('iframe')).toHaveCount(0);
     const landscape = [
       'carding-car',
@@ -132,6 +156,8 @@ try {
       assert.equal(browser.contexts().length, 1, `${game.id}: mobile context was not released`);
     }
   }
+  await page.goto(`${url}#/games/not-a-game`);
+  await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   assert(
     await page.evaluate(

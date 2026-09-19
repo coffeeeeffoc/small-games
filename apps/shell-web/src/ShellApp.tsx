@@ -45,9 +45,14 @@ export function ShellApp({
   playerCredential,
 }: ShellAppProps) {
   const [breaker] = useState(() => new VersionCircuitBreaker());
+  const [hash, setHash] = useState(() => window.location.hash);
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
-  const [standalone, setStandalone] = useState<(typeof standaloneGames)[number] | null>(null);
+  const game = registry.find((entry) => hash === `#/games/${encodeURIComponent(entry.id)}`);
+  const standalone = standaloneGames.find(
+    (entry) => hash === `#/games/${encodeURIComponent(entry.id)}`,
+  );
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof defaultRuntime.catalog>>>([]);
+  const [catalogReady, setCatalogReady] = useState(!runtimeClient);
   const [channel, setChannel] = useState<ReleaseChannel>('stable');
   const [versionId, setVersionId] = useState('');
   const [credential, setCredential] = useState(() => playerCredential ?? localPlayerCredential());
@@ -56,7 +61,29 @@ export function ShellApp({
     runtimeClient ? '本地默认 Catalog 可随时启动。' : '即点即玩，游戏进度保存在当前浏览器。',
   );
   useEffect(() => {
+    const syncRoute = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', syncRoute);
+    window.addEventListener('popstate', syncRoute);
+    return () => {
+      window.removeEventListener('hashchange', syncRoute);
+      window.removeEventListener('popstate', syncRoute);
+    };
+  }, []);
+
+  function navigate(gameId?: string) {
+    const next = gameId ? `#/games/${encodeURIComponent(gameId)}` : '';
+    if (window.location.hash !== next)
+      window.history.pushState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}${next}`,
+      );
+    setHash(next);
+  }
+
+  useEffect(() => {
     let active = true;
+    setCatalogReady(!runtimeClient);
     if (runtimeClient)
       void runtimeClient
         .catalog()
@@ -70,58 +97,75 @@ export function ShellApp({
         })
         .catch(() => {
           if (active) setNotice('Runtime 不可用，使用本地默认 Catalog。');
+        })
+        .finally(() => {
+          if (active) setCatalogReady(true);
         });
     return () => {
       active = false;
     };
   }, [runtimeClient]);
-  async function launch(game: BuiltInGame) {
+  useEffect(() => {
+    let active = true;
+    setSelected(null);
+    if (!game || !catalogReady) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    try {
-      if (runtimeClient && (versionId || catalog.some((entry) => entry.gameId === game.id))) {
-        const published = await runtimeClient.session(
-          {
-            gameId: game.id,
+    async function launch(game: BuiltInGame) {
+      try {
+        if (runtimeClient && (versionId || catalog.some((entry) => entry.gameId === game.id))) {
+          const published = await runtimeClient.session(
+            {
+              gameId: game.id,
+              playerId: credential.playerId,
+              channel,
+              locale: 'zh-CN',
+              capabilities: ['content', 'storage', 'advertising', 'telemetry', 'navigation'],
+              ...(versionId ? { versionId } : {}),
+            },
+            credential.playerToken,
+          );
+          if (!active) return;
+          setSelected(
+            withPublishedSession(
+              game,
+              published,
+              runtimeClient.storage(published.session.sessionId),
+              credential.playerId,
+            ),
+          );
+        } else
+          setSelected({
+            ...game,
             playerId: credential.playerId,
-            channel,
-            locale: 'zh-CN',
-            capabilities: ['content', 'storage', 'advertising', 'telemetry', 'navigation'],
-            ...(versionId ? { versionId } : {}),
-          },
-          credential.playerToken,
-        );
-        setSelected(
-          withPublishedSession(
-            game,
-            published,
-            runtimeClient.storage(published.session.sessionId),
-            credential.playerId,
-          ),
-        );
-      } else
+            runtimeStorage: runtimeClient ? unavailableRuntimeStorage : undefined,
+          });
+      } catch {
+        if (!active) return;
+        setNotice('目标版本不可用或不兼容，已使用本地内置版本。');
         setSelected({
           ...game,
           playerId: credential.playerId,
+          remote: undefined,
+          runtimeSession: undefined,
           runtimeStorage: runtimeClient ? unavailableRuntimeStorage : undefined,
         });
-    } catch {
-      setNotice('目标版本不可用或不兼容，已使用本地内置版本。');
-      setSelected({
-        ...game,
-        playerId: credential.playerId,
-        remote: undefined,
-        runtimeSession: undefined,
-        runtimeStorage: runtimeClient ? unavailableRuntimeStorage : undefined,
-      });
-    } finally {
-      setLoading(false);
+      } finally {
+        if (active) setLoading(false);
+      }
     }
-  }
+    void launch(game);
+    return () => {
+      active = false;
+    };
+  }, [game, catalogReady, catalog, runtimeClient, versionId, channel, credential]);
 
   return standalone ? (
     <main className="game-page standalone-page">
       <nav aria-label="游戏导航">
-        <button onClick={() => setStandalone(null)}>返回目录</button>
+        <button onClick={() => navigate()}>返回目录</button>
         <strong>{standalone.title}</strong>
         <a
           href={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
@@ -138,14 +182,15 @@ export function ShellApp({
         allowFullScreen
       />
     </main>
-  ) : selected ? (
+  ) : selected && selected.id === game?.id ? (
     <GameViewport
+      key={selected.id}
       game={selected}
       createHost={createHost}
       createFallbackLoader={
         createFallbackLoader ?? (() => new FallbackGameLoader(undefined, breaker))
       }
-      onExit={() => setSelected(null)}
+      onExit={() => navigate()}
     />
   ) : (
     <main className="shell-catalog">
@@ -153,7 +198,7 @@ export function ShellApp({
         <small>COFFEEEEFFOC ARCADE</small>
         <h1>摸鱼游戏社</h1>
         <p>选择一个小世界，随时可以安全返回。</p>
-        <p role="status">{notice}</p>
+        <p role="status">{loading ? '正在进入游戏…' : notice}</p>
         {runtimeClient && (
           <fieldset disabled={loading}>
             <legend>已发布版本选择</legend>
@@ -224,7 +269,7 @@ export function ShellApp({
             <p>{game.description}</p>
             <button
               disabled={loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId))}
-              onClick={() => void launch(game)}
+              onClick={() => navigate(game.id)}
             >
               进入游戏
             </button>
@@ -235,7 +280,7 @@ export function ShellApp({
             <span>独立游戏</span>
             <h2>{game.title}</h2>
             <p>{game.description}</p>
-            <button onClick={() => setStandalone(game)}>进入游戏</button>
+            <button onClick={() => navigate(game.id)}>进入游戏</button>
           </article>
         ))}
       </section>

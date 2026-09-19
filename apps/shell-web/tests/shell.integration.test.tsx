@@ -28,6 +28,7 @@ const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
 
 afterEach(async () => {
   await act(async () => mountedRoots.splice(0).forEach((root) => root.unmount()));
+  window.history.replaceState(null, '', '/');
   vi.restoreAllMocks();
   localStorage.clear();
 });
@@ -131,6 +132,7 @@ describe('Web Shell integration', () => {
 
     await clickButton(container, '进入游戏');
     expect(container.textContent).toContain('三分钟修仙');
+    expect(window.location.hash).toBe('#/games/cultivation');
 
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
