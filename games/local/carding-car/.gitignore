@@ -15,3 +15,4 @@ assets/resources/expansion/**/*.glb
 assets/resources/expansion/**/*.jpg
 assets/resources/expansion/**/*.json
 assets/resources/expansion/manifest.json
+assets/resources/glacier-sample/*.jpg

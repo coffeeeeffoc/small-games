@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 export const artSource = new URL('../../../../assets/carding-car/runtime/', import.meta.url);
 export const expansionSource = new URL('../../../../assets/carding-car/runtime-expansion/', import.meta.url);
+export const glacierSource = new URL('../../../../assets/carding-car/glacier-sample/', import.meta.url);
+export const glacierFiles = ['road.jpg'];
 export const artFiles = [
   'kart.glb',
   'palm.glb',
@@ -25,6 +27,7 @@ export async function prepareArt() {
   for (const [folder, source, files] of [
     ['seaside', artSource, artFiles],
     ['expansion', expansionSource, await expansionFiles()],
+    ['glacier-sample', glacierSource, glacierFiles],
   ]) {
     const destination = new URL(`../assets/resources/${folder}/`, import.meta.url);
     for (const name of files) {

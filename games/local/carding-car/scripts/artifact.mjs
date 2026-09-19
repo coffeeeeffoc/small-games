@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { artSource, artFiles, expansionSource, expansionFiles } from './prepare-art.mjs';
+import { artSource, artFiles, expansionSource, expansionFiles, glacierSource, glacierFiles } from './prepare-art.mjs';
 export const root = fileURLToPath(new URL('../', import.meta.url));
 export async function sourceHash() {
   const hash = createHash('sha256');
@@ -10,7 +10,7 @@ export async function sourceHash() {
     const bytes = await readFile(path.join(root, relative));
     hash.update(relative);
     hash.update(
-      /\.(ts|mjs|json|meta|scene|py)$/.test(relative)
+      /\.(ts|mjs|json|meta|scene|mtl|py)$/.test(relative)
         ? bytes.toString('utf8').replaceAll('\r\n', '\n')
         : bytes,
     );
@@ -20,6 +20,7 @@ export async function sourceHash() {
     for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const child = relative + '/' + entry.name;
       if (relative === 'assets/resources/seaside' && artFiles.includes(entry.name)) continue;
+      if (relative === 'assets/resources/glacier-sample' && glacierFiles.includes(entry.name)) continue;
       if (relative.startsWith('assets/resources/expansion') && /\.(glb|jpg|json)$/.test(entry.name)) continue;
       if (entry.isDirectory()) await add(child);
       else await file(child);
@@ -36,6 +37,10 @@ export async function sourceHash() {
     hash.update('expansion/' + name);
     const bytes = await readFile(new URL(name, expansionSource));
     hash.update(name.endsWith('.json') ? bytes.toString('utf8').replaceAll('\r\n', '\n') : bytes);
+  }
+  for (const name of glacierFiles) {
+    hash.update('glacier-sample/' + name);
+    hash.update(await readFile(new URL(name, glacierSource)));
   }
   return hash.digest('hex');
 }
