@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -149,6 +150,34 @@ test('finds an omitted game and an incomplete directory instead of only followin
     result.games.find((game) => game.name === '@fixture/unlisted')?.kind,
     'unregistered',
   );
+});
+
+test('the real pre-push hook fails when an existing game is omitted from Shell', async (t) => {
+  const f = await fixture(t);
+  for (const relative of [
+    '.githooks/pre-push',
+    'scripts/check-game-config.mjs',
+    'scripts/platform-process.mjs',
+  ])
+    await f.write(relative, await readFile(path.join(repo, relative), 'utf8'));
+  await chmod(path.join(f.root, '.githooks/pre-push'), 0o755);
+  await symlink(
+    path.join(repo, 'node_modules'),
+    path.join(f.root, 'node_modules'),
+    process.platform === 'win32' ? 'junction' : 'dir',
+  );
+  const git = (...args) =>
+    spawnSync('git', args, { cwd: f.root, encoding: 'utf8', timeout: 20000 });
+  const init = git('init', '--quiet');
+  assert.equal(init.status, 0, init.stderr);
+  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  const registered = hook();
+  assert.equal(registered.status, 0, registered.stdout + registered.stderr);
+
+  await f.write('apps/shell-web/src/standalone-games.json', []);
+  const omitted = hook();
+  assert.equal(omitted.status, 1, omitted.stdout + omitted.stderr);
+  assert.match(omitted.stderr, /\[unregistered-game\].*games\/local\/mini-front/);
 });
 
 test('rejects duplicate ids, sources, package names and escaping catalog paths', async (t) => {
