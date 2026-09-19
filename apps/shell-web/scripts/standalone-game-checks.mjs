@@ -28,16 +28,26 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
   if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().loading), { timeout: 120000 })
+      .toBe(false);
     const bounds = await canvas.boundingBox();
     const scale = Math.min(bounds.width / 960, bounds.height / 540);
     const position = { x: bounds.width / 2, y: bounds.height / 2 + 125 * scale };
     await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase))
+      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase), { timeout: 30000 })
       .toBe('racing');
-    await expect
-      .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().player.speed))
-      .toBeGreaterThan(2);
+    if (!mobile) await canvas.page().keyboard.down('ArrowUp');
+    try {
+      await expect
+        .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().player.speed), {
+          timeout: 30000,
+        })
+        .toBeGreaterThan(2);
+    } finally {
+      if (!mobile) await canvas.page().keyboard.up('ArrowUp');
+    }
   } else if (id === 'merge-front') {
     await click(frame.locator('#start-defense'));
     await expect(frame.locator('#board [data-zone="board"][data-index]')).toHaveCount(12);
