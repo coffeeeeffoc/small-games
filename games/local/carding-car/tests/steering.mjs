@@ -101,7 +101,7 @@ try {
         ),
       });
       if (touch) {
-        await page.touchscreen.tap(893, 50);
+        await page.touchscreen.tap(70, 240);
         await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
         await page.touchscreen.tap(743, 395);
         await page.waitForFunction(() => __kart.snapshot().phase === 'countdown');

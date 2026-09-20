@@ -185,9 +185,9 @@ try {
   await wide.waitForTimeout(80);
   assert.ok((await snapshot(wide)).input.steer > 0 && (await snapshot(wide)).input.drift);
   await wideCdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await tap(787, 50);
+  await tap(70, 180);
   assert.equal((await snapshot(wide)).muted, true);
-  await tap(893, 50);
+  await tap(70, 240);
   await wide.waitForFunction(() => __kart.snapshot().phase === 'paused');
   await tap(480, 395);
   const speedBeforeBrake = (await snapshot(wide)).player.speed;
