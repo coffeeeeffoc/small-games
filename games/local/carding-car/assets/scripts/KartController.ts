@@ -108,11 +108,11 @@ export class KartController {
       r = this.race(),
       id = e.getID();
     if (id === null) return;
-    if (p.y > 0.82 && p.x > 0.77 && p.x < 0.88) {
+    if (Math.abs(p.x * 960 - 70) <= 48 && Math.abs(p.y * 540 - 360) <= 24) {
       this.sound();
       return;
     }
-    if (p.y > 0.82 && p.x > 0.88) {
+    if (Math.abs(p.x * 960 - 70) <= 36 && Math.abs(p.y * 540 - 300) <= 24) {
       r.phase === 'paused' ? r.resume() : r.pause();
       this.clear();
       return;
