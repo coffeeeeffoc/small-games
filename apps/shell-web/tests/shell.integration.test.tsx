@@ -66,9 +66,11 @@ async function renderShell(
   return container;
 }
 
-async function clickButton(container: HTMLElement, label: string) {
-  const button = [...container.querySelectorAll('button')].find((item) =>
-    item.textContent?.includes(label),
+async function clickButton(container: HTMLElement, label: string, title = '三分钟修仙') {
+  const button = [...container.querySelectorAll('button')].find(
+    (item) =>
+      item.textContent?.includes(label) &&
+      (label !== '进入游戏' || item.closest('article')?.querySelector('h2')?.textContent === title),
   );
   expect(button).toBeDefined();
   await act(async () => {
@@ -203,12 +205,12 @@ describe('Web Shell integration', () => {
     const office = builtInGameRegistry.find((game) => game.id === 'office');
     const container = await renderShell(hostFor, office ? [office] : []);
 
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', office!.title);
     expect(container.querySelector('[role="alert"]')).toBeNull();
     await clickButton(container, '悄悄进入办公室');
     expect(container.textContent).toContain('别让老板发现你迟到了');
     await clickButton(container, '返回目录');
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', office!.title);
     expect(container.textContent).toContain('悄悄进入办公室');
     expect(container.querySelector('[role="alert"]')).toBeNull();
     await clickButton(container, '返回目录');
@@ -218,10 +220,10 @@ describe('Web Shell integration', () => {
     const arena = builtInGameRegistry.find((game) => game.id === 'arena');
     expect(arena).toBeDefined();
     const container = await renderShell(hostFor, arena ? [arena] : []);
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', arena!.title);
     expect(container.textContent).toContain('电子斗蛐蛐');
     await clickButton(container, '返回目录');
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', arena!.title);
     expect(container.textContent).toContain('电子斗蛐蛐');
     await clickButton(container, '返回目录');
   });
@@ -264,7 +266,7 @@ describe('Web Shell integration', () => {
       content: { gameId: 'deferred', schemaVersion: 1, revision: 0, payload: {} },
     };
     const container = await renderShell(() => ({}) as GameHost, [game]);
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', game.title);
     await clickButton(container, '返回目录');
 
     expect(dispose).toHaveBeenCalledOnce();
@@ -276,7 +278,7 @@ describe('Web Shell integration', () => {
       await Promise.resolve();
     });
     expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', game.title);
     expect(definition.mount).toHaveBeenCalledTimes(2);
   });
 
@@ -310,7 +312,7 @@ describe('Web Shell integration', () => {
       content: { gameId: 'throwing', schemaVersion: 1, revision: 0, payload: {} },
     };
     const container = await renderShell(() => ({}) as GameHost, [game]);
-    await clickButton(container, '进入游戏');
+    await clickButton(container, '进入游戏', game.title);
 
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     await act(async () => {

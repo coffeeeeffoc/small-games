@@ -23,6 +23,15 @@ const defaultRuntime = createRuntimeClient(
   import.meta.env.VITE_RUNTIME_URL ?? 'http://127.0.0.1:43002',
 );
 
+const featuredGameOrder: Record<string, number> = {
+  'carding-car': 0,
+  'cops-robbers': 1,
+  'cops-robbers-realtime': 2,
+  'letters-words2': 3,
+  'vibeJam-myself-history-guess': 4,
+  'xiangqi-five': 5,
+};
+
 /** Public injection seams for catalog and Game Host integration tests. */
 export type ShellAppProps = {
   registry?: readonly BuiltInGame[];
@@ -262,27 +271,30 @@ export function ShellApp({
         )}
       </header>
       <section className="catalog-grid" aria-label="Game Catalog">
-        {registry.map((game) => (
-          <article key={game.id}>
-            <span>{game.remote ? 'REMOTE GAME · BUILT-IN FALLBACK' : 'BUILD-TIME GAME'}</span>
-            <h2>{game.title}</h2>
-            <p>{game.description}</p>
-            <button
-              disabled={loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId))}
-              onClick={() => navigate(game.id)}
-            >
-              进入游戏
-            </button>
-          </article>
-        ))}
-        {standaloneGames.map((game) => (
-          <article key={game.id}>
-            <span>独立游戏</span>
-            <h2>{game.title}</h2>
-            <p>{game.description}</p>
-            <button onClick={() => navigate(game.id)}>进入游戏</button>
-          </article>
-        ))}
+        {[...registry, ...standaloneGames]
+          .sort((a, b) => (featuredGameOrder[a.id] ?? 6) - (featuredGameOrder[b.id] ?? 6))
+          .map((game) => (
+            <article key={game.id}>
+              <span>
+                {'definition' in game
+                  ? game.remote
+                    ? 'REMOTE GAME · BUILT-IN FALLBACK'
+                    : 'BUILD-TIME GAME'
+                  : '独立游戏'}
+              </span>
+              <h2>{game.title}</h2>
+              <p>{game.description}</p>
+              <button
+                disabled={
+                  'definition' in game &&
+                  (loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId)))
+                }
+                onClick={() => navigate(game.id)}
+              >
+                进入游戏
+              </button>
+            </article>
+          ))}
       </section>
     </main>
   );

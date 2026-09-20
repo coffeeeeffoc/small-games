@@ -110,7 +110,11 @@ describe('Web Shell routes', () => {
       storage: vi.fn(),
     } as unknown as ReturnType<typeof createRuntimeClient>;
     const container = await renderShell({ registry: [game], runtimeClient });
-    await clickButton(container, '进入游戏');
+    const card = [...container.querySelectorAll('article')].find(
+      (entry) => entry.querySelector('h2')?.textContent === game.title,
+    );
+    expect(card).toBeDefined();
+    await clickButton(card!, '进入游戏');
     await act(async () => {
       window.history.replaceState(null, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
