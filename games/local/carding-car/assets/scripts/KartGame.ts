@@ -32,7 +32,7 @@ import { aiInput } from './KartAI';
 import { palette, requestedArt } from './SceneArt';
 import { AudioFeedback } from './AudioFeedback';
 import { addRecord, readRecords, type RaceRecord } from './RankingSystem';
-import { setGlacierLighting } from './GlacierSample';
+import { setThemeLighting } from './GlacierSample';
 import { MultiplayerClient } from './MultiplayerClient';
 import { MultiplayerPanel } from './MultiplayerPanel';
 import { multiplayerVersion, type RoomState } from './MultiplayerProtocol';
@@ -104,7 +104,7 @@ export class KartGame extends Component {
     this.node.addChild(this.themeRoot);
     const theme = themes.find((t) => t.id === this.selection.theme)!;
     const route = routes.find((r) => r.id === this.selection.route)!;
-    setGlacierLighting(this.themeRoot, theme.id === 'glacier');
+    setThemeLighting(this.themeRoot, theme.id === 'glacier');
     if (room) this.seed = room.seed;
     else this.seed++;
     this.race = new RaceManager(route.track, this.seed, room?.roster.length ?? 4);
@@ -117,8 +117,7 @@ export class KartGame extends Component {
     this.accumulator = 0;
     this.camera.initialized = false;
     this.camera.camera.clearColor = new Color().fromHEX(theme.colors.sky);
-    this.camera.camera.clearFlags =
-      theme.id === 'glacier' ? Camera.ClearFlag.SKYBOX : Camera.ClearFlag.SOLID_COLOR;
+    this.camera.camera.clearFlags = Camera.ClearFlag.SKYBOX;
     this.camera.height = 3.6;
     this.camera.lookHeight = 1.5;
     this.hud.selection = { ...this.selection };

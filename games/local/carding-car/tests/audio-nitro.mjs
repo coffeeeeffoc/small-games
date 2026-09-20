@@ -91,12 +91,12 @@ try {
     else await page.keyboard.up(mode);
     assert.equal((await page.evaluate(() => __kart.snapshot())).input.nitro, false);
     await page.waitForFunction(() => __kart.snapshot().player.boost === 0);
-    if (touch) await page.touchscreen.tap(787, 50);
+    if (touch) await page.touchscreen.tap(70, 180);
     else await page.keyboard.press('m');
     await page.waitForFunction(() => __kart.snapshot().muted && !__kart.snapshot().audioPlaying);
     await page.waitForTimeout(150);
     assert.ok(await page.evaluate(() => audioLevel() < 0.001), 'mute silences audio output');
-    if (touch) await page.touchscreen.tap(787, 50);
+    if (touch) await page.touchscreen.tap(70, 180);
     else await page.keyboard.press('m');
     await page.waitForFunction(() => !__kart.snapshot().muted && audioLevel() > 0.01);
     assert.deepEqual(errors, []);

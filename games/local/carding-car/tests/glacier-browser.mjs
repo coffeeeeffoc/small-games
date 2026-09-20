@@ -234,7 +234,7 @@ try {
       assert.ok(
         !other.sun &&
           !other.glacier &&
-          !other.sky &&
+          other.sky &&
           !other.shadows &&
           !other.reflection &&
           !other.fog &&

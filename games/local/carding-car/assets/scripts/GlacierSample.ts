@@ -22,8 +22,8 @@ const ICE = '#76cdef',
   ROAD = '#8fb0cf',
   ORANGE = '#f78638';
 
-/** A tiny generated cubemap supplies both the sky and the ice's reflected environment. */
-function glacierSky() {
+/** Shared daylight sky; glacier ice also uses it as its reflected environment. */
+function daylightSky() {
   const size = 128;
   const face = (index: number) => {
     const pixels = new Uint8Array(size * size * 4);
@@ -43,19 +43,23 @@ function glacierSky() {
           h = d[1] / l,
           longitude = Math.atan2(d[2], d[0]);
         const t = Math.max(0, h) ** 0.48;
-        const cloud =
-          Math.max(
-            0,
-            Math.sin(longitude * 8 + h * 16) + Math.sin(longitude * 15 - h * 23) * 0.4 - 0.2,
-          ) *
-          Math.exp(-(((h - 0.22) / 0.16) ** 2)) *
-          0.62;
-        const color = h < 0 ? [179, 203, 222] : [166 - t * 130, 213 - t * 85, 255 - t * 15];
-        const sun = Math.max(0, (d[0] * 0.35 + d[1] * 0.78 + d[2] * 0.52) / l) ** 180;
+        let cloud = 0;
+        for (let i = 0; i < 9; i++) {
+          const angle = (i * Math.PI * 2) / 9,
+            height = 0.22 + (i % 3) * 0.12;
+          for (let puff = -1; puff <= 1; puff++) {
+            const delta = longitude - angle - puff * 0.065,
+              dx = Math.atan2(Math.sin(delta), Math.cos(delta)) / 0.075,
+              dy = (h - height - (puff === 0 ? 0.025 : 0)) / 0.045;
+            cloud = Math.max(cloud, Math.exp(-(dx * dx + dy * dy) * 1.4));
+          }
+        }
+        cloud = Math.min(1, cloud * 1.65);
+        const color = [191 - t * 46, 225 - t * 20, 246 + t * 5];
         for (let c = 0; c < 3; c++)
           pixels[(y * size + x) * 4 + c] = Math.min(
             255,
-            color[c] + (255 - color[c]) * Math.min(1, cloud + sun),
+            color[c] + (255 - color[c]) * cloud,
           );
         pixels[(y * size + x) * 4 + 3] = 255;
       }
@@ -84,10 +88,9 @@ function glacierSky() {
 let restoreLighting: (() => void) | undefined;
 
 /** Called synchronously on selection so an old asynchronous theme cannot change the lighting. */
-export function setGlacierLighting(parent: Node, enabled: boolean) {
+export function setThemeLighting(parent: Node, glacier: boolean) {
   restoreLighting?.();
   restoreLighting = undefined;
-  if (!enabled) return;
   const globals = parent.scene!.globals;
   const previous = {
     skybox: { enabled: globals.skybox.enabled, envLightingType: globals.skybox.envLightingType, envmap: globals.skybox.envmap },
@@ -102,13 +105,22 @@ export function setGlacierLighting(parent: Node, enabled: boolean) {
     Object.assign(globals.shadows, previous.shadows);
   };
   restoreLighting = restore;
-  const { cube, images } = glacierSky();
+  const { cube, images } = daylightSky();
   globals.skybox.envmap = cube;
-  globals.skybox.envLightingType = 1;
+  globals.skybox.envLightingType = glacier ? 1 : 0;
   globals.skybox.enabled = true;
+  globals.ambient.skyIllum = 40000;
+  parent.once(Node.EventType.NODE_DESTROYED, () => {
+    if (restoreLighting === restore) {
+      restore();
+      restoreLighting = undefined;
+    }
+    cube.destroy();
+    images.forEach((image) => image.destroy());
+  });
+  if (!glacier) return;
   globals.ambient.skyLightingColor = new Color(184, 214, 255);
   globals.ambient.groundLightingColor = new Color(109, 149, 190);
-  globals.ambient.skyIllum = 18000;
   globals.fog.type = 0;
   globals.fog.fogColor = new Color(194, 222, 245);
   globals.fog.fogStart = 100;
@@ -129,14 +141,6 @@ export function setGlacierLighting(parent: Node, enabled: boolean) {
   light.shadowPcf = 1;
   light.shadowBias = 0.0001;
   light.shadowNormalBias = 0.12;
-  parent.once(Node.EventType.NODE_DESTROYED, () => {
-    if (restoreLighting === restore) {
-      restore();
-      restoreLighting = undefined;
-    }
-    cube.destroy();
-    images.forEach((image) => image.destroy());
-  });
 }
 
 export async function buildGlacier(parent: Node, track: TrackData) {
