@@ -311,7 +311,8 @@ h1 {
 canvas {
   display: block;
   width: 100%;
-  height: 100%;
+  /* Keep the live diagnosis below the streets, including bottom exit labels. */
+  height: calc(100% - 44px);
   touch-action: none;
   user-select: none;
   cursor: default;
@@ -1738,6 +1739,34 @@ body.modal-open {
   font-weight: 700;
   color: #9f603e;
   white-space: nowrap;
+}
+.ready-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.capture-coach {
+  position: absolute; bottom: 10px; left: 12px; right: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 8px 12px; border: 1px solid #79927b; border-radius: 9px;
+  background: #fffcedf2; color: #29493f; font-size: 12px; font-weight: 700;
+  pointer-events: none;
+}
+.capture-coach[hidden], .ready-actions button[hidden] { display: none; }
+.capture-coach button {
+  pointer-events: auto; background: #29493f; color: #fffced;
+  border: 0; border-radius: 6px; min-height: 36px; padding: 5px 9px;
+  font: inherit; white-space: nowrap; cursor: pointer;
+}
+body[data-phase="playing"] .board-toast { bottom: 63px; }
+body[data-phase="playing"] .rotate-note,
+body[data-phase="lost"] .rotate-note { display: none; }
+@media (max-width: 600px) {
+  .ready-actions { width: 100%; }
+  .ready-actions .button { flex: 1; padding: 9px; }
+  .capture-coach { font-size: 11px; padding: 7px; left: 7px; right: 7px; }
+}
+@media (max-height: 580px) and (orientation: landscape) {
+  .ready-actions { gap: 6px; }
+  .ready-actions .button { padding: 8px 10px; }
+  .capture-coach { font-size: 10px; padding: 5px 9px; bottom: 7px; }
+  body[data-phase="playing"] .board-toast { bottom: 54px; }
 }
 .exit-status.secured {
   border-color: #8da77c;

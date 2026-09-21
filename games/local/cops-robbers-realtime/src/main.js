@@ -1,4 +1,4 @@
-import { LEVELS, CHAPTERS } from "./levels.js";
+import { LEVELS, CHAPTERS, PRACTICE } from "./levels.js";
 import {
   createGame,
   startGame,
@@ -11,6 +11,7 @@ import {
   roadTarget,
   roadDistance,
   isExitBlocked,
+  captureStatus,
   CAPTURE_RADIUS,
 } from "./engine.js";
 import { createRenderer } from "./renderer.js";
@@ -43,7 +44,7 @@ function readProgress() {
         )
           records[field][Number(id)] = seconds;
       }
-    return { ...records, sound: value?.sound !== false };
+    return { ...records, sound: value?.sound !== false, practiceDone: value?.practiceDone === true };
   } catch {
     return {
       best: {},
@@ -61,6 +62,7 @@ function unlockedLevel() {
   return id;
 }
 let game = createGame(LEVELS[unlockedLevel() - 1]);
+let returnLevel = game.level.id, practiceOrders = new Set(), captureHint = null;
 let selected = 0,
   pointer = null,
   mousePosition = null,
@@ -159,13 +161,13 @@ function updateHud() {
     won: "全员抓获",
     lost: "出口失守",
   }[game.phase];
-  $("ready-prompt").hidden = !["ready", "won", "lost"].includes(game.phase);
+  $("ready-prompt").hidden = !["ready", "won"].includes(game.phase);
   if (game.phase === "won") {
-    $("ready-title").textContent = "退路封死，全员抓获。";
+    $("ready-title").textContent = game.level.id === 0 ? "学会了！两人夹击才是收网。" : "退路封死，全员抓获。";
     $("ready-hint").textContent =
-      `本关用时 ${formatTime(game.time)}。新的行动，等你指挥。`;
+      game.level.id === 0 ? "正式街区有岔路：先封出口，再从不同方向靠近。" : `本关用时 ${formatTime(game.time)}。新的行动，等你指挥。`;
     $("start-button").firstChild.textContent =
-      game.level.id === 48 ? "街区地图" : "下一关";
+      game.level.id === 0 ? `挑战第 ${returnLevel} 关` : game.level.id === 48 ? "街区地图" : "下一关";
   } else if (game.phase === "lost") {
     $("ready-title").textContent = "有小偷逃出了街区。";
     $("ready-hint").textContent = "先派人截住橙色出口，再让另一名警察包抄。";
@@ -180,6 +182,7 @@ function updateHud() {
     "danger",
     !!danger || game.phase === "lost",
   );
+  updateCaptureHint();
   $("exit-status").classList.toggle(
     "secured",
     exits.length > 0 && exits.every((exit) => exit.blocked),
@@ -204,6 +207,31 @@ function updateHud() {
             : "路口留守";
   });
 }
+function updateCaptureHint() {
+  const practice = game.level.id === 0;
+  $("practice-exit").hidden = !practice;
+  $("capture-coach").hidden = !["playing", "paused"].includes(game.phase);
+  const robber = game.robbers.filter((r) => !r.caught && !r.escaped).sort((a, b) =>
+    b.escapeProgress - a.escapeProgress || b.capture - a.capture ||
+    roadDistance(game, game.cops[selected], a) - roadDistance(game, game.cops[selected], b))[0];
+  captureHint = robber ? { robber, ...captureStatus(game, robber) } : null;
+  let message = "先封出口，再从不同方向靠近。";
+  if (practice && !practiceOrders.has(0)) {
+    message = "练习 1/3 · 点 1 号警察，再点道路中央的蓝圈。";
+  } else if (practice && !practiceOrders.has(1)) {
+    message = "练习 2/3 · 换选 2 号，再点橙色小偷，从另一侧追击。";
+  } else if (captureHint) {
+    const { nearby, enclosed } = captureHint;
+    message = robber.escapeProgress > 0
+      ? `${robber.id + 1} 号翻越中！快堵住出口，打断逃脱。`
+      : enclosed
+        ? `${robber.id + 1} 号 · 双警就位，收网 ${Math.round(robber.capture * 100)}% · 保持 0.8 秒`
+        : nearby < 2
+          ? `${practice ? "练习 3/3 · " : `${robber.id + 1} 号 · `}近身 ${nearby}/2 人 · 派同伴从另一侧靠近`
+          : `${robber.id + 1} 号 · 橙色路段仍可退避，继续压缩包围`;
+  }
+  $("capture-message").textContent = message;
+}
 function exitStates() {
   return (game.exits || []).map((exit) => ({
     node: exit.node,
@@ -218,7 +246,8 @@ function updateCampaign() {
   $("campaign-fill").style.width = `${(count / 48) * 100}%`;
 }
 function loadLevel(id) {
-  if (!Number.isInteger(id) || id < 1 || id > unlockedLevel()) return false;
+  if (!Number.isInteger(id) || id < 0 || id > unlockedLevel()) return false;
+  if (id === 0 && game.level.id > 0) returnLevel = game.level.id;
   clearTimeout(winTimer);
   clearTimeout(toastTimer);
   clearGesture();
@@ -227,7 +256,9 @@ function loadLevel(id) {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
   document.body.classList.remove("modal-open");
   dialogResume = false;
-  game = createGame(LEVELS[id - 1]);
+  game = createGame(id === 0 ? PRACTICE : LEVELS[id - 1]);
+  practiceOrders.clear();
+  captureHint = null;
   selected = 0;
   keyboardNode = null;
   accumulator = 0;
@@ -236,6 +267,9 @@ function loadLevel(id) {
   $("chapter-name").textContent =
     `第${ordinal[game.level.chapter]}街区 · ${chapter.name}`;
   $("level-number").textContent = String(id).padStart(2, "0");
+  $("case-number").hidden = id === 0;
+  $("practice-button").hidden = id === 0;
+  $("practice-button").textContent = progress.practiceDone ? "重温夹击" : "先练夹击";
   $("mission-title").replaceChildren(
     document.createTextNode(game.level.name),
     Object.assign(document.createElement("span"), {
@@ -244,7 +278,7 @@ function loadLevel(id) {
     }),
   );
   $("mission-subtitle").textContent =
-    `${chapter.subtitle} · 挑战用时 ${game.level.par} 秒`;
+    id === 0 ? "沿用正式规则 · 不计入关卡成绩" : `${chapter.subtitle} · 挑战 ${game.level.par} 秒${progress.streetBest[id] ? ` · 最佳 ${formatTime(progress.streetBest[id])}` : ""}`;
   $("robber-count").textContent = game.robbers.length;
   $("guide-title").textContent = game.level.redeploy?.length
     ? "封口之后，还要换防"
@@ -258,13 +292,13 @@ function loadLevel(id) {
   $("guide-hint").textContent = game.level.hint;
   $("ready-hint").textContent = game.level.briefing || game.level.hint;
   $("ready-title").textContent =
-    id === 1
+    id === 0 ? "两侧出口已守住，练一次合作夹击。" : id === 1
       ? "盯住橙色出口，别让他翻过去。"
       : `${game.cops.length} 警察 · ${game.robbers.length} 小偷 · ${(game.level.exits || []).length} 个出口`;
-  $("start-button").firstChild.textContent = "开始行动";
+  $("start-button").firstChild.textContent = id === 0 ? "开始练习" : "开始行动";
   canvas.setAttribute(
     "aria-label",
-    `第 ${id} 关 ${game.level.name}，${game.cops.length} 名警察、${game.robbers.length} 名小偷。${game.level.hint}`,
+    `${id === 0 ? "练习" : `第 ${id} 关`} ${game.level.name}，${game.cops.length} 名警察、${game.robbers.length} 名小偷。${game.level.hint}`,
   );
   buildRoster();
   updateHud();
@@ -278,7 +312,8 @@ function begin() {
     return;
   }
   if (game.phase === "won") {
-    if (game.level.id === 48) openLevels();
+    if (game.level.id === 0) loadLevel(returnLevel);
+    else if (game.level.id === 48) openLevels();
     else loadLevel(game.level.id + 1);
     return;
   }
@@ -287,7 +322,6 @@ function begin() {
   accumulator = 0;
   lastFrame = performance.now();
   updateHud();
-  toast(game.level.hint, 5000);
   canvas.focus({ preventScroll: true });
 }
 function issue(point) {
@@ -298,6 +332,7 @@ function issue(point) {
   audio.unlock();
   const accepted = commandCop(game, selected, point);
   if (accepted) {
+    if (game.level.id === 0 && (Math.abs(point.x - 500) < 45 || game.robbers.includes(point))) practiceOrders.add(selected);
     audio.play("order");
     if (game.time < 5 || game.level.id < 3)
       toast(`${selected + 1} 号收到，正在前往目标。`, 1800);
@@ -400,6 +435,13 @@ function openLevels() {
 function won() {
   clearGesture();
   const id = game.level.id;
+  if (id === 0) {
+    progress.practiceDone = true;
+    saveProgress();
+    audio.play("win");
+    updateHud();
+    return;
+  }
   const previousBest = progress.streetBest[id];
   progress.streetBest[id] = Math.min(previousBest || Infinity, game.time);
   progress.best[id] ??= game.time;
@@ -437,7 +479,7 @@ function lost(event) {
     exitIndex < 0 ? "出口" : `出口 ${String.fromCharCode(65 + exitIndex)}`;
   $("lose-title").textContent = `${label} 失守了。`;
   $("lose-description").textContent =
-    `${event.robberId + 1} 号小偷翻越逃脱。这关要全部抓住才算赢，试试先派人抢占出口。`;
+    `${event.robberId + 1} 号小偷在 ${label} 连续翻越 ${game.exitHoldSeconds} 秒，附近无人拦截。重开后先守这个出口前的岔路，再让同伴推进；回看时红色出口就是失守位置。`;
   $("lose-caught").textContent =
     `${game.robbers.filter((r) => r.caught).length} / ${game.robbers.length}`;
   $("lose-time").textContent = formatTime(game.time);
@@ -640,6 +682,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 $("start-button").addEventListener("click", begin);
+function practice() { loadLevel(0); begin(); }
+$("practice-button").addEventListener("click", practice);
+$("help-practice").addEventListener("click", practice);
+$("pause-practice").addEventListener("click", practice);
+$("practice-exit").addEventListener("click", () => loadLevel(returnLevel));
 $("hold-button").addEventListener("click", hold);
 $("pause-button").addEventListener("click", () => pause());
 $("resume-button").addEventListener("click", () =>
@@ -744,6 +791,8 @@ function frame(now) {
     preview,
     pointer,
     hover,
+    captureHint,
+    practiceTarget: game.level.id === 0 && game.phase === "playing" && !practiceOrders.has(0),
     reducedMotion: reducedMotion.matches,
     now,
   });

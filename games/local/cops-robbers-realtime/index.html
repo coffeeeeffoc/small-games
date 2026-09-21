@@ -110,7 +110,7 @@
             <div class="eyebrow">
               <span id="chapter-name">第一街区 · 街角见习</span
               ><span class="eyebrow-line"></span
-              ><span>行动档案 <b id="level-number">01</b> / 48</span>
+              ><span id="case-number">行动档案 <b id="level-number">01</b> / 48</span>
             </div>
             <h1 id="mission-title">巷尾见习<span class="title-dot">.</span></h1>
             <p id="mission-subtitle">每条退路，都需要一位好搭档。</p>
@@ -173,9 +173,12 @@
                     >先封出口，再靠近收网；逃掉一个就算失败。</span
                   >
                 </div>
-                <button class="button primary" id="start-button">
+                <div class="ready-actions"><button class="button primary" id="start-button">
                   开始行动<svg><use href="#i-arrow" /></svg>
-                </button>
+                </button><button class="button quiet" id="practice-button">先练夹击</button></div>
+              </div>
+              <div class="capture-coach" id="capture-coach" hidden>
+                <span id="capture-message"></span><button id="practice-exit" hidden>返回挑战</button>
               </div>
               <div
                 class="board-toast"
@@ -196,7 +199,7 @@
                 role="group"
                 aria-label="选择警察"
               ></div>
-              <button class="button hold-button" id="hold-button" disabled>
+              <button class="button hold-button" id="hold-button" aria-label="原地守住" disabled>
                 <svg><use href="#i-shield" /></svg><span>原地守住</span>
               </button>
             </div>
@@ -278,7 +281,7 @@
         继续行动<svg><use href="#i-play" /></svg></button
       ><button class="button quiet wide" id="pause-restart">
         重新挑战本关
-      </button>
+      </button><button class="button quiet wide" id="pause-practice">结束本局，练习夹击</button>
     </dialog>
     <dialog id="win-dialog" class="small-dialog win-dialog">
       <div class="win-stamp">CASE<br />CLOSED<span>✓</span></div>
@@ -334,7 +337,7 @@
       </div>
       <button class="button primary wide" data-close>
         收到，出发！<svg><use href="#i-arrow" /></svg>
-      </button>
+      </button><button class="button quiet wide" id="help-practice">结束本局，练习夹击</button>
     </dialog>
     <script type="module" src="./src/main.js"></script>
   </body>

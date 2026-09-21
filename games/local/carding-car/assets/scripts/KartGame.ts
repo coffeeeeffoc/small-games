@@ -84,6 +84,7 @@ export class KartGame extends Component {
       this.records = [];
     }
     this.hud.records = this.records;
+    this.hud.previousBest = this.records[0]?.time;
   }
   choose = (field: keyof Selection, delta: number) => {
     if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
@@ -174,6 +175,8 @@ export class KartGame extends Component {
     this.audio = new AudioFeedback(this.node);
     try {
       this.selection = readSelection(sys.localStorage.getItem('kart-selection-v1'));
+      if (sys.localStorage.getItem('kart-driving-coach-v1') === 'done')
+        this.hud.coach.enabled = false;
     } catch {}
     const invitation = readInvitation(
       sys.isBrowser
@@ -197,6 +200,11 @@ export class KartGame extends Component {
       () =>
         !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
       () => this.loadSelection(true),
+      () => {
+        const coach = this.hud.coach;
+        coach.enabled = !coach.enabled;
+        if (coach.enabled) coach.step = 0;
+      },
     );
     this.loadSelection();
     this.setupMultiplayer();
@@ -217,6 +225,8 @@ export class KartGame extends Component {
                 invite: this.roomPanel?.pendingInvite,
                 entryVisible: this.roomPanel?.root.getChildByName('JoinRoom')?.active,
                 lobbyVisible: this.roomPanel?.root.getChildByName('RoomLobby')?.active,
+                entryLabel: this.roomPanel?.openButton.string,
+                panelStatus: this.roomPanel?.status.string,
               }
             : null,
           phase: this.race.phase,
@@ -262,6 +272,11 @@ export class KartGame extends Component {
             standings: this.hud.standings.string,
             leaderboard: this.hud.leaderboard.string,
             nitro: this.hud.nitro.string,
+            coaching: this.hud.coaching.string,
+            coachingEnabled: this.hud.coach.enabled,
+            coachingStep: this.hud.coach.step,
+            target: this.hud.tagline.string,
+            footer: this.hud.footer.string,
           },
           player: { ...this.race.drivers[0].kart },
           camera: {
@@ -475,6 +490,18 @@ export class KartGame extends Component {
     } else {
       while (this.accumulator >= 1 / 60) {
         this.race.step(input, 1 / 60);
+        const wasComplete = this.hud.coach.step === 5;
+        this.hud.coach.observe(
+          this.race.drivers[0].kart,
+          input,
+          1 / 60,
+          this.race.phase === 'racing',
+        );
+        if (!wasComplete && this.hud.coach.step === 5) {
+          try {
+            sys.localStorage.setItem('kart-driving-coach-v1', 'done');
+          } catch {}
+        }
         this.accumulator -= 1 / 60;
       }
     }

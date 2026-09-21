@@ -143,9 +143,49 @@ try {
     catch (error) { launchError = error; }
   }
   if (!browser) throw launchError;
+  await check('narrow layout fits the usable width with or without a classic scrollbar', async page => {
+    for (const width of [320, 305]) {
+      await page.setViewportSize({ width, height: 740 });
+      await load(page, 1);
+      const size = await page.evaluate(() => ({
+        available: document.documentElement.clientWidth,
+        content: document.documentElement.scrollWidth,
+      }));
+      assert.ok(size.content <= size.available, `${size.content}px content overflows ${size.available}px usable width`);
+    }
+  });
   const moving = recordedCase((before, after) => after.robbers.some((n, i) => n >= 0 && before.robbers[i] !== n));
   const partial = recordedCase((_, after) => after.robbers.includes(-1) && after.robbers.some(n => n >= 0));
   const losing = lossCase();
+
+  await check('first patrol teaches real moves, exits explain danger and records survive replay', async page => {
+    await load(page, 1);
+    assert.match(await page.locator('#instruction').textContent(), /教学 1\/7.*选 1 号.*2 号路口/);
+    assert.equal(await page.locator('.lesson-ring').count(), 1);
+    assert.match(await page.locator('#threat-label').textContent(), /若原地留守/);
+    await page.getByTestId('node-1').hover();
+    assert.match(await page.locator('#threat-label').textContent(), /走到 2 号后/);
+    await move(page, 1, initialState(levels[0]), solutions[1][0]);
+    assert.match(await page.locator('#instruction').textContent(), /教学 2\/7.*选 3 号.*5 号路口/);
+    await move(page, 1, step(levels[0], initialState(levels[0]), solutions[1][0]).state, levels[0].cops);
+    assert.match(await page.locator('#loss-details').textContent(), /逃到 2 号出口.*1 号离开出口前/);
+    await page.getByTestId('undo-loss').click();
+    await page.getByTestId('undo').click();
+    assert.match(await page.locator('#instruction').textContent(), /教学 1\/7/);
+    await replay(page, 1, solutions[1]);
+    assert.match(await page.locator('#win-details').textContent(), /个人最佳 7 步.*已达成三星/);
+    await page.locator('#replay').click();
+    assert.equal(await page.locator('.lesson-ring').count(), 0, 'Completed lesson does not reveal every replay');
+    assert.match(await page.locator('#reference-turns').textContent(), /三星 ≤ 7 步.*最佳 7 步/);
+    await page.reload(); await finished(page, 0);
+    assert.equal(await page.locator('.lesson-ring').count(), 0);
+    await page.locator('#settings').click(); await page.locator('#teaching-setting').check();
+    await page.getByRole('button', { name: '关闭设置', exact: true }).click();
+    assert.equal(await page.locator('.lesson-ring').count(), 1);
+    await page.getByTestId('level-select').click();
+    assert.match(await page.getByTestId('level-button-1').getAttribute('aria-label'), /最佳7步/);
+    assert.match(await page.locator('#chapter-description').textContent(), /三星 1\/12/);
+  });
   report.scenarios = { robberResponse: moving, partialCapture: partial, escape: losing };
 
   await check('one destination click moves a cop and all robbers without confirmation', async page => {
@@ -159,6 +199,7 @@ try {
     const before = await replay(page, losing.id, losing.path.slice(0, -1));
     await move(page, losing.id, before, losing.path.at(-1));
     await page.getByTestId('defeat').waitFor({ state: 'visible' });
+    assert.match(await page.locator('#loss-details').textContent(), /第 \d+ 步：.*号小偷从 \d+ 号路口逃到 \d+ 号出口/);
     assert.equal(await page.getByTestId('victory').isVisible(), false, 'Escaped robbers are not captured robbers');
     await page.screenshot({ path: resolve(output, 'escape-defeat.png'), fullPage: true });
     const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')));

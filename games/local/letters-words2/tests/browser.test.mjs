@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright');
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : '@playwright/test');
 
 const baseURL = process.env.GAME_URL || 'http://127.0.0.1:4175';
 const entries = [
@@ -16,7 +16,7 @@ const browser = await chromium.launch({
   headless: true,
 });
 try {
-  for (const viewport of [{ width: 1280, height: 960 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1280, height: 960 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
     const context = await browser.newContext({ viewport, isMobile: viewport.width < 600, hasTouch: viewport.width < 600, reducedMotion: viewport.width < 600 ? 'no-preference' : 'reduce' });
     const page = await context.newPage();
     const errors = [];
@@ -181,6 +181,11 @@ try {
       await page.waitForFunction(count => document.querySelectorAll('.word-row.done').length === count, solved);
       assert.equal(await tileCount(), beforeWord - word.length);
       assert.equal(await page.locator('#completed-count').textContent(), String(solved));
+      if (solved === 1) {
+        await page.reload({ waitUntil: 'networkidle' });
+        assert.equal(await page.locator('.word-row.done').count(), 1, 'reload restores completed words');
+        assert.match(await page.locator('#feedback').textContent(), /恢复/);
+      }
       if (solved < entries.length) {
         // Exercise a midgame shuffle and verify that already consumed words stay consumed.
         const beforeShuffle = await tileCount();
@@ -206,6 +211,23 @@ try {
     await page.locator('[data-word-id="word-0"]').click();
     assert.equal(await page.locator('.answer-slot').count(), 16);
     await assertLayout();
+    await importWords('I 我\nMs 女士');
+    while (await page.locator('.word-row.done').count() < 2) {
+      const completed = await page.locator('.word-row.done').count();
+      const row = page.locator('.word-row:not(.done)').filter({ hasText: '可拼' }).first();
+      if (await row.count()) await row.click();
+      const length = await page.locator('.answer-slot').count();
+      for (let i = 0; i < length; i++) {
+        await page.locator('#hint-button').click();
+        await page.locator('.tile.is-hinted').click();
+      }
+      await page.waitForFunction(count => document.querySelectorAll('.word-row.done').length === count, completed + 1);
+    }
+    await page.reload({ waitUntil: 'networkidle' });
+    assert.deepEqual(await page.locator('.word-row.done small').allTextContents(), ['I', 'Ms']);
+    assert.deepEqual(await page.locator('#win-words span').allTextContents(), ['I · 我', 'Ms · 女士']);
+    await page.locator('#review-button').click();
+    assert.match(await page.locator('#theme-name').textContent(), /复习/);
     assert.deepEqual(errors, [], `no runtime or local network errors at ${viewport.width}px`);
     console.log(`Browser ${viewport.width}×${viewport.height}: blocked click, wrong spelling, undo/clear/switch, hint, punctuation/repetition, full clear/replay, import validation and layout passed.`);
     await context.close();
