@@ -279,6 +279,57 @@ try {
     assert.deepEqual(await snapshot(page, id), expectedView(step(map, before, targets).state));
   });
 
+  await check('touch drag previews the real destination and cancellation restores the current patrol', async page => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const session = await page.context().newCDPSession(page);
+    await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    await load(page, 1);
+    const map = levels[0], before = initialState(map), targets = solutions[1][0], cop = movedCop(before, targets);
+    const touch = (type, position) => session.send('Input.dispatchTouchEvent', { type, touchPoints: position ? [{ ...position, id: 1 }] : [] });
+    const startDrag = async node => {
+      const box = await page.getByTestId(`cop-${cop}`).boundingBox();
+      const origin = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      await touch('touchStart', origin);
+      await touch('touchMove', await point(page, map.nodes[node].x, map.nodes[node].y));
+      return origin;
+    };
+    await startDrag(targets[cop]);
+    assert.match(await page.locator('#threat-label').textContent(), /走到 2 号后/);
+    assert.deepEqual(await snapshot(page, 1), expectedView(before), 'Preview cannot consume a turn');
+    await touch('touchEnd'); await finished(page, 1);
+    const guarded = step(map, before, targets).state;
+    assert.deepEqual(await snapshot(page, 1), expectedView(guarded));
+    const origin = await startDrag(before.cops[cop]);
+    assert.match(await page.locator('#threat-label').textContent(), /走到 .*2 号出口会失守/);
+    assert.equal(await page.locator('#threat-label.urgent').count(), 1);
+    await touch('touchMove', origin);
+    await page.waitForFunction(() => document.getElementById('threat-label').textContent.startsWith('若原地留守'));
+    assert.match(await page.locator('#threat-label').textContent(), /若原地留守/, 'Returning to the drag origin must clear the old destination preview');
+    await touch('touchMove', await point(page, map.nodes[before.cops[cop]].x, map.nodes[before.cops[cop]].y));
+    await page.waitForFunction(() => document.getElementById('threat-label').textContent.includes('2 号出口会失守'));
+    await page.screenshot({ path: resolve(output, 'escape-touch-preview.png'), fullPage: true });
+    await touch('touchCancel');
+    assert.deepEqual(await snapshot(page, 1), expectedView(guarded), 'Cancellation cannot move either side');
+    assert.match(await page.locator('#threat-label').textContent(), /若原地留守/);
+    assert.equal(await page.locator('.drag-line, .node-target.chosen').count(), 0);
+    await session.detach();
+  });
+
+  await check('mobile patrol briefing explains multiple robbers and four-officer cooperation', async page => {
+    await page.setViewportSize({ width: 320, height: 740 });
+    for (const id of [17, 49, 57]) {
+      await load(page, id);
+      const map = levels[id - 1], instruction = await page.locator('#instruction').textContent();
+      assert.ok(instruction.includes(`${map.robbers.length} 名小偷都会行动`));
+      if (map.cops.length === 4) assert.match(instruction, /4 人协作/);
+      const hint = await page.getByTestId('hint').boundingBox();
+      assert.ok(hint.y + hint.height <= 740, 'Mission briefing must leave actions within the first screen');
+      await move(page, id, initialState(map), solutions[id][0]);
+      await page.reload(); await finished(page, 1);
+      assert.match(await page.locator('#instruction').textContent(), /已选中 1 号警察/);
+    }
+  });
+
   await check('restart and change level invalidate unfinished animations', async page => {
     for (const action of ['restart', 'change-level']) {
       await load(page, 1, false);

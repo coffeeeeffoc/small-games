@@ -1,4 +1,4 @@
-import { BlockInputEvents, EditBox, Label, Layers, Node, sys, UITransform } from 'cc';
+import { BlockInputEvents, EditBox, Graphics, Label, Layers, Node, sys, UITransform } from 'cc';
 import { HUD } from './HUD';
 import { MultiplayerClient } from './MultiplayerClient';
 import { multiplayerVersion } from './MultiplayerProtocol';
@@ -26,6 +26,9 @@ export class MultiplayerPanel {
   private start: Label;
   private bots: Label;
   private controls: Node;
+  private card: Graphics;
+  private heading: Label;
+  private close: Node;
   openButton: Label;
   constructor(
     hud: HUD,
@@ -40,8 +43,10 @@ export class MultiplayerPanel {
     hud.root.addChild(this.root);
     this.root.addComponent(UITransform).setContentSize(960, 540);
     this.root.addComponent(BlockInputEvents);
-    hud.box(this.root, 0, 0, 960, 540, '#102d45ee');
-    hud.label(this.root, '好友一起开跑', 0, 208, 32, '#fff6dc', 680, 44);
+    hud.box(this.root, 0, 0, 1920, 1080, '#081c3080');
+    this.card = hud.box(this.root, 0, 0, 620, 390, '#173b53');
+    this.card.node.getComponent(UITransform)!.setContentSize(620, 390);
+    this.heading = hud.label(this.root, '好友一起开跑', -35, 150, 26, '#fff6dc', 420, 40);
     const button = (
       parent: Node,
       text: string,
@@ -92,21 +97,21 @@ export class MultiplayerPanel {
       node.active = true;
       return box;
     };
-    button(this.root, '关闭', 390, 210, 90, () => {
+    this.close = button(this.root, '关闭', 256, 150, 70, () => {
       this.cancelInvite();
       clearInput();
-    });
-    this.status = hud.label(this.root, '', 0, -222, 18, '#ffd15a', 850, 44);
+    }).node.parent!;
+    this.status = hud.label(this.root, '', 0, -162, 17, '#ffd15a', 560, 44);
     this.entry = new Node('JoinRoom');
     this.entry.layer = Layers.Enum.UI_2D;
     this.root.addChild(this.entry);
-    hud.label(this.entry, '先在车库选好赛车和车手，再邀请好友', 0, 142, 20, '#d1e9e4', 700, 36);
-    this.name = edit(this.entry, '你的昵称', 0, 80, 400, 16);
+    hud.label(this.entry, '选好赛车和车手，邀请好友一起跑', 0, 103, 17, '#d1e9e4', 550, 30);
+    this.name = edit(this.entry, '你的昵称', 0, 52, 420, 16);
     this.name.string = '车手';
     try {
       this.name.string = sys.localStorage.getItem('kart-player-name') || '车手';
     } catch {}
-    this.code = edit(this.entry, '输入 8 位房间码', 0, 12, 400, 8);
+    this.code = edit(this.entry, '输入 8 位房间码', 0, -10, 420, 8);
     const join = (create: boolean) => {
       clearInput();
       const selected = selection(),
@@ -126,23 +131,23 @@ export class MultiplayerPanel {
           : { type: 'join', ...appearance, code: this.code.string.trim().toUpperCase() },
       );
     };
-    button(this.entry, '创建房间', -130, -65, 220, () => join(true));
-    button(this.entry, '加入好友', 130, -65, 220, () => join(false));
+    button(this.entry, '创建房间', -115, -78, 210, () => join(true));
+    button(this.entry, '加入好友', 115, -78, 210, () => join(false));
     hud.label(
       this.entry,
       '房间最多 8 辆车 · 机器人数量由房主选择',
       0,
-      -136,
-      18,
+      -124,
+      16,
       '#a9cdd0',
-      760,
-      32,
+      560,
+      28,
     );
     this.invitation = new Node('InvitationConfirmation');
     this.invitation.layer = Layers.Enum.UI_2D;
     this.root.addChild(this.invitation);
-    this.invitationText = hud.label(this.invitation, '', 0, 60, 24, '#fff6dc', 800, 150);
-    this.invitationText.lineHeight = 40;
+    this.invitationText = hud.label(this.invitation, '', 0, 40, 22, '#fff6dc', 540, 140);
+    this.invitationText.lineHeight = 34;
     button(this.invitation, '暂不加入', -130, -65, 220, () => this.cancelInvite());
     button(this.invitation, '确认加入', 130, -65, 220, () => {
       if (!this.pendingInvite || client.connecting) return;
@@ -222,12 +227,13 @@ export class MultiplayerPanel {
           .catch(() => {});
       }
     });
-    // The entry button sits above the modal in the UI tree, outside the steering controls.
+    // Keep the full-screen input shield above the entry button while the dialog is open.
     this.openButton = button(hud.root, '好友联机', -354, 153, 195, () => {
       this.root.active = !this.root.active;
       clearInput();
       this.refresh();
     });
+    this.root.setSiblingIndex(hud.root.children.length - 1);
     this.root.active = false;
     client.changed = () => this.refresh();
     this.refresh();
@@ -261,6 +267,17 @@ export class MultiplayerPanel {
     this.invitation.active = !!client.endpoint && !!this.pendingInvite;
     this.entry.active = !!client.endpoint && !room && !this.pendingInvite;
     this.lobby.active = !!room && !this.pendingInvite;
+    const width = this.lobby.active ? 880 : 620;
+    const height = this.lobby.active ? 470 : 390;
+    const transform = this.card.node.getComponent(UITransform)!;
+    if (transform.width !== width) {
+      transform.setContentSize(width, height);
+      this.card.clear();
+      this.card.roundRect(-width / 2, -height / 2, width, height, 18);
+      this.card.fill();
+    }
+    this.heading.node.setPosition(-35, height / 2 - 45);
+    this.close.setPosition(width / 2 - 54, height / 2 - 45);
     if (this.pendingInvite) {
       const invite = this.pendingInvite;
       this.invitationText.string = `${room ? '退出当前房间，加入好友？' : '好友邀请你一起赛车，是否加入？'}\n房间 ${invite.code}\n${themes.find((t) => t.id === invite.selection.theme)?.name} · ${routes.find((r) => r.id === invite.selection.route)?.name}`;
@@ -269,7 +286,7 @@ export class MultiplayerPanel {
     this.status.string = client.endpoint
       ? client.status
       : '好友赛暂未开放\n关闭此页即可进行单机竞速';
-    this.status.node.setPosition(0, client.endpoint ? -222 : 0);
+    this.status.node.setPosition(0, client.endpoint ? -height / 2 + 33 : 0);
     this.openButton.string = room
       ? client.connected
         ? `房间 ${room.code}`
