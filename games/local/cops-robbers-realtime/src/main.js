@@ -174,9 +174,10 @@ function updateHud() {
     $("start-button").firstChild.textContent = "重新挑战";
   }
   const exits = exitStates();
-  const danger = game.robbers.find((r) => !r.escaped && r.escapeProgress > 0);
+  const danger = game.robbers.filter((r) => !r.escaped && r.escapeProgress > 0)
+    .sort((a, b) => b.escapeProgress - a.escapeProgress)[0];
   $("exit-status").textContent = danger
-    ? `正在翻越 · 快拦住！`
+    ? `${exitLabel(danger.exitTarget)} 翻越 · 剩 ${(Math.ceil((1 - danger.escapeProgress) * game.exitHoldSeconds * 10) / 10).toFixed(1)} 秒`
     : `出口 ${exits.filter((exit) => !exit.blocked).length}/${exits.length} 开放`;
   $("exit-status").classList.toggle(
     "danger",
@@ -223,7 +224,7 @@ function updateCaptureHint() {
   } else if (captureHint) {
     const { nearby, enclosed } = captureHint;
     message = robber.escapeProgress > 0
-      ? `${robber.id + 1} 号翻越中！快堵住出口，打断逃脱。`
+      ? `${robber.id + 1} 号在${exitLabel(robber.exitTarget)}翻越！靠近该出口，打断逃脱。`
       : enclosed
         ? `${robber.id + 1} 号 · 双警就位，收网 ${Math.round(robber.capture * 100)}% · 保持 0.8 秒`
         : nearby < 2
@@ -239,6 +240,10 @@ function exitStates() {
     y: exit.y,
     blocked: isExitBlocked(game, exit),
   }));
+}
+function exitLabel(node) {
+  const index = game.exits.findIndex((exit) => exit.node === node);
+  return index < 0 ? "出口" : `出口 ${String.fromCharCode(65 + index)}`;
 }
 function updateCampaign() {
   const count = Object.keys(progress.best).length;
@@ -474,9 +479,7 @@ function won() {
 function lost(event) {
   clearGesture();
   audio.play("lose");
-  const exitIndex = (game.level.exits || []).indexOf(event.exitNode);
-  const label =
-    exitIndex < 0 ? "出口" : `出口 ${String.fromCharCode(65 + exitIndex)}`;
+  const label = exitLabel(event.exitNode);
   $("lose-title").textContent = `${label} 失守了。`;
   $("lose-description").textContent =
     `${event.robberId + 1} 号小偷在 ${label} 连续翻越 ${game.exitHoldSeconds} 秒，附近无人拦截。重开后先守这个出口前的岔路，再让同伴推进；回看时红色出口就是失守位置。`;

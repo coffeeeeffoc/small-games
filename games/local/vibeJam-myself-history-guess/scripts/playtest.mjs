@@ -136,6 +136,8 @@ try {
   await page.locator("#next").click();
   await page.locator(".summary-row").first().waitFor();
   assert.equal(await page.locator(".summary-row").count(), 5);
+  assert.match(await page.locator(".summary-best").innerText(), /^本机五幕最佳/);
+  assert.match(await page.locator("#again").innerText(), /再赴一场相遇/);
   await page.screenshot({
     animations: "disabled",
     path: "artifacts/summary-desktop.png",
@@ -154,6 +156,7 @@ try {
   await page.reload();
   await page.locator("#journal").click();
   assert.equal(await page.locator("button.journal-card").count(), 5);
+  assert.match(await page.locator("dialog .muted").innerText(), /本机五幕最佳/);
   await page.keyboard.press("Escape");
   results.push(
     "Desktop: 5 rounds, camera drag, hint, invalid year, refresh/continue before and after reveal without duplicate score, clue review, answer map, summary, unseen next deck and persisted journal.",
@@ -498,12 +501,22 @@ try {
     await noOverflow(catalogPage);
     await catalogPage.locator("#next").click();
     assert.equal(await catalogPage.locator(".summary-row").count(), 1);
+    assert.match(await catalogPage.locator(".summary-best").innerText(), /单幕练习不计入五幕纪录 · 本机五幕最佳 0 分/);
+    assert.match(await catalogPage.locator("#again").innerText(), /再练这一幕/);
+    await noOverflow(catalogPage);
     assert.ok(
       (await catalogPage.locator(".final-score").innerText()).includes(
         "/ 5,000",
       ),
     );
-    await catalogPage.locator("#home").click();
+    if (scene === scenes[0]) {
+      await catalogPage.locator("#again").click();
+      await ready(catalogPage);
+      assert.equal(await catalogPage.locator("#round-label").innerText(), "第 1 幕 / 1");
+      assert.equal(await catalogPage.locator("#clue").innerText(), scene.clue);
+      assert.equal(await catalogPage.locator("#submit").isDisabled(), true);
+      await catalogPage.reload();
+    } else await catalogPage.locator("#home").click();
   }
   assert.equal(imageUrls.size, scenes.length);
   const practiceSave = await catalogPage.evaluate(() =>

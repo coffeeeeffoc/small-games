@@ -216,7 +216,8 @@ function loadLevel(id, restore = null) {
   $('case-number').textContent = `CASE ${String(level.id).padStart(3, '0')}`;
   $('cop-count').textContent = level.cops.length; $('robber-count').textContent = level.robbers.length;
   $('board-caption').textContent = `${chapters[level.chapter].name} · 守口、换防、两侧包抄`;
-  drawBase(); notify(turnInstruction(level.id <= 3 && state.turn === 0 ? level.tip : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。'));
+  const briefing = `${level.cops.length} 人协作：你动 1 人，${level.robbers.length} 名小偷都会行动。先守出口，再换防包抄；点小偷查看退路。`;
+  drawBase(); notify(turnInstruction(state.turn === 0 ? briefing : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。'));
   updatePlanning(); syncSettings(); persist();
   if (phase === 'won') { updateActors(); showWin(false); }
   if (phase === 'lost') showLoss(false);
@@ -382,6 +383,11 @@ function svgPoint(event) {
   const point = new DOMPoint(event.clientX, event.clientY), matrix = $('board').getScreenCTM();
   return matrix ? point.matrixTransform(matrix.inverse()) : { x: 0, y: 0 };
 }
+function closestNode(point) {
+  let closest = -1, distance = 58;
+  level.nodes.forEach((p, i) => { const d = Math.hypot(point.x - p.x, point.y - p.y); if (d < distance) { distance = d; closest = i; } });
+  return closest;
+}
 $('board').addEventListener('pointerdown', event => {
   const cop = event.target.closest('[data-cop]'); if (!cop || phase !== 'planning' || event.button !== 0 || drag) return;
   drag = { index: +cop.dataset.cop, id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
@@ -389,9 +395,11 @@ $('board').addEventListener('pointerdown', event => {
 });
 $('board').addEventListener('pointermove', event => {
   if (!drag || drag.id !== event.pointerId) return;
-  if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 8) {
+  if (drag.moved || Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 8) {
     if (!drag.moved) { drag.moved = true; pickCop(drag.index); }
     const point = svgPoint(event), from = level.nodes[state.cops[drag.index]];
+    const target = closestNode(point);
+    if (hovered !== target) { hovered = target; updatePlanning(); }
     $('drag-layer').innerHTML = `<path class="drag-line" d="M${from.x} ${from.y}L${point.x} ${point.y}"/>`;
   }
 });
@@ -401,12 +409,18 @@ $('board').addEventListener('pointerup', event => {
   if ($('board').hasPointerCapture(event.pointerId)) $('board').releasePointerCapture(event.pointerId);
   if (gesture.moved) {
     suppressClickUntil = performance.now() + 400;
-    const point = svgPoint(event); let closest = -1, distance = 58;
-    level.nodes.forEach((p, i) => { const d = Math.hypot(point.x - p.x, point.y - p.y); if (d < distance) { distance = d; closest = i; } });
+    const closest = closestNode(svgPoint(event));
+    hovered = -1;
     if (closest >= 0) planTarget(closest); else notify('已取消拖动，没有走出这一步。');
+    if (phase === 'planning') updatePlanning();
   } else { suppressClickUntil = performance.now() + 300; pickCop(gesture.index); }
 });
-function cancelDrag() { if (drag && $('board').hasPointerCapture(drag.id)) $('board').releasePointerCapture(drag.id); drag = null; $('drag-layer')?.replaceChildren(); }
+function cancelDrag() {
+  const gesture = drag; drag = null;
+  if (gesture && $('board').hasPointerCapture(gesture.id)) $('board').releasePointerCapture(gesture.id);
+  $('drag-layer')?.replaceChildren();
+  if (gesture?.moved && phase === 'planning') { hovered = -1; updatePlanning(); }
+}
 $('board').addEventListener('pointercancel', cancelDrag); $('board').addEventListener('lostpointercapture', cancelDrag);
 $('squad').addEventListener('click', event => { const button = event.target.closest('[data-cop]'); if (button) pickCop(+button.dataset.cop); });
 $('undo').addEventListener('click', undo); $('hint').addEventListener('click', showHint);

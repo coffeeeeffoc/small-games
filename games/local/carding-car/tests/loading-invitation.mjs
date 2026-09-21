@@ -93,15 +93,15 @@ try {
       bounds.y + (bounds.height * y) / 540,
     );
   };
-  await click(480, 190);
+  await click(480, 218);
   await page.locator('input:visible').fill('房主测试');
-  await click(480, 258);
+  await click(480, 280);
   await page.locator('input:visible').fill('ABCD1234');
   await click(200, 330);
   await page.screenshot({ path: fileURLToPath(new URL('inputs-1593.png', report)) });
   await page.setViewportSize({ width: 960, height: 540 });
   await page.waitForTimeout(350); // Cocos debounces canvas resize.
-  await page.mouse.click(350, 335);
+  await page.mouse.click(365, 348);
   await page.waitForFunction(() => __kart.snapshot().multiplayer.room);
   await roomLoaded(page);
   // Capture a real copied invitation after all four host choices change.
