@@ -36,6 +36,7 @@ export class MultiplayerClient {
       return;
     }
     if (this.connecting || this.connected) return;
+    clearTimeout(this.retry);
     this.stopped = false;
     this.connecting = true;
     this.status = this.session ? '正在重新连接…' : '正在连接…';
@@ -50,9 +51,15 @@ export class MultiplayerClient {
       return;
     }
     this.socket = socket;
-    this.deadline = setTimeout(() => socket.close(), 8000);
+    this.deadline = setTimeout(() => {
+      disconnected(0, '连接超时，请稍后重试');
+      socket.close();
+    }, 8000);
     socket.onopen = () => {
-      if (socket !== this.socket) return;
+      if (socket !== this.socket) {
+        socket.close();
+        return;
+      }
       this.connected = true;
       this.connecting = false;
       socket.send(JSON.stringify(command));
@@ -157,22 +164,18 @@ export class MultiplayerClient {
         this.changed();
       }
     };
-    socket.onerror = () => {
-      if (socket === this.socket) {
-        this.status = '连接中断，请检查网络';
-        this.changed();
-      }
-    };
-    socket.onclose = (event) => {
+    // Mini-game adapters can emit onerror without onclose when the platform rejects a URL.
+    const disconnected = (code: number, status = '连接失败，请稍后重试') => {
       if (socket !== this.socket) return;
+      this.socket = undefined;
       clearTimeout(this.deadline);
       this.connected = this.connecting = false;
-      if (event.code === 4001 || event.code === 4000) {
+      if (code === 4001 || code === 4000) {
         this.session = undefined;
         this.stopped = true;
         this.onSession();
         this.status =
-          event.code === 4001 ? '已在其他窗口连接，请退出此房间' : '房间已过期，请重新加入';
+          code === 4001 ? '已在其他窗口连接，请退出此房间' : '房间已过期，请重新加入';
       }
       if (!this.stopped && this.session) {
         this.retryUntil ||= Date.now() + 30000;
@@ -187,8 +190,18 @@ export class MultiplayerClient {
           this.session = undefined;
           this.onSession();
         }
-      } else if (!this.stopped) this.status = '连接失败，请稍后重试';
+      } else if (!this.stopped) this.status = status;
       this.changed();
+    };
+    socket.onclose = (event) => disconnected(event.code);
+    socket.onerror = (event) => {
+      const message = event instanceof Error ? event.message : '';
+      disconnected(
+        0,
+        /domain|合法域名/i.test(message)
+          ? '联机域名未获平台允许，请配置 socket 合法域名'
+          : '连接中断，请检查网络后重试',
+      );
     };
   }
   send(message: ClientMessage) {
