@@ -1,4 +1,5 @@
-import { BOARD, createGame, parseWordList, isBlocked, getAvailableTiles, findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle } from './engine.js';
+import { BOARD, letters, validateEntries, createGame, restoreProgress, parseWordList, isBlocked, getAvailableTiles, findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle } from './engine.js';
+import { practiceBatches, setupLibrary } from './library.js';
 
 const $ = id => document.getElementById(id);
 const collections = [
@@ -16,6 +17,19 @@ let audioContext;
 let soundEnabled = false;
 let hintId = null;
 let roundStarted = 0;
+let practice = null;
+let review = [];
+let roundName = '';
+
+function saveProgress() {
+  savePreference('ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review }));
+}
+function markReview() {
+  const word = getActiveWord();
+  if (word && !review.some(entry => entry.word === word.word)) review.push(validateEntries([word])[0]);
+  if (practice) practice.review = review;
+  saveProgress();
+}
 
 function readPreference(key) {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -79,9 +93,9 @@ function renderBoard() {
     button.dataset.char = tile.char;
     button.dataset.tone = String(tile.id.slice(5) % 4);
     button.style.left = `${tile.x / BOARD.width * 100}%`;
-    button.style.top = `${tile.y / BOARD.height * 100}%`;
+    button.style.top = `${tile.y / game.boardHeight * 100}%`;
     button.style.width = `${tile.size / BOARD.width * 100}%`;
-    button.style.height = `${tile.size / BOARD.height * 100}%`;
+    button.style.height = `${tile.size / game.boardHeight * 100}%`;
     button.style.zIndex = tile.z;
     button.textContent = tile.char;
     button.setAttribute('aria-label', `${tile.char}，${blocked ? '被遮挡，暂不可取' : selectionIndex >= 0 ? `已选第 ${selectionIndex + 1} 个，点击撤销` : '可以拾取'}`);
@@ -97,6 +111,7 @@ function renderBoard() {
     fragment.append(button);
   }
   $('board').replaceChildren(fragment);
+  $('board').style.aspectRatio = `${BOARD.width}/${game.boardHeight}`;
   $('board').classList.toggle('is-complete', game.completed === game.words.length);
   if (focusedTile) $('board').querySelector(`[data-tile-id="${focusedTile}"]`)?.focus({ preventScroll: true });
   const remaining = game.tiles.filter(tile => !tile.removed).length;
@@ -107,7 +122,8 @@ function renderAnswer() {
   const word = getActiveWord();
   const chars = [...selectedText()];
   const fragment = document.createDocumentFragment();
-  for (let i = 0; i < (word?.word.length || 0); i++) {
+  const answer = word ? letters(word.word) : [];
+  for (let i = 0; i < answer.length; i++) {
     const filled = i < chars.length;
     const slot = document.createElement(filled ? 'button' : 'span');
     slot.className = `answer-slot ${filled ? 'filled' : 'empty'}${i === chars.length ? ' next' : ''}`;
@@ -119,8 +135,8 @@ function renderAnswer() {
     fragment.append(slot);
   }
   $('answer-slots').replaceChildren(fragment);
-  $('answer-slots').classList.toggle('long', (word?.word.length || 0) > 8);
-  $('letter-count').textContent = `${chars.length} / ${word?.word.length || 0}`;
+  $('answer-slots').classList.toggle('long', answer.length > 8);
+  $('letter-count').textContent = `${chars.length} / ${answer.length}`;
   $('submit-button').disabled = busy || !word || !chars.length;
   $('undo-button').disabled = busy || !chars.length;
   $('clear-button').disabled = busy || !chars.length;
@@ -132,7 +148,7 @@ function renderWords() {
   const active = getActiveWord();
   $('current-meaning').textContent = active?.meaning || '全部拾齐';
   const hasSymbols = active && /[^a-z]/.test(active.word);
-  $('clue-detail').textContent = active ? `${active.word.length} 个${hasSymbols ? '字符 · 含符号，也要拼入' : '字母 · 从亮色卡片开始'}` : '这座小岛，已被你点亮';
+  $('clue-detail').textContent = active ? `${letters(active.word).length} 个${hasSymbols ? '字符 · 符号要拼，空格自动补齐' : '字母 · 从亮色卡片开始'}` : '这座小岛，已被你点亮';
   $('word-position').textContent = `${String(game.words.indexOf(active) + 1).padStart(2, '0')} / ${String(game.words.length).padStart(2, '0')}`;
   const playable = active && findSpelling(game, active.id);
   document.querySelector('.clue-card').classList.toggle('waiting', !!active && !playable);
@@ -159,7 +175,7 @@ function renderWords() {
     text.textContent = word.meaning;
     if (word.done) {
       const english = document.createElement('small');
-      english.textContent = word.word;
+      english.textContent = word.displayWord || word.word;
       text.append(english);
     }
     const status = document.createElement('span');
@@ -169,6 +185,7 @@ function renderWords() {
     fragment.append(button);
   });
   $('word-list').replaceChildren(fragment);
+  $('study-progress').textContent = practice ? `教材进度 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词 · 第 ${practice.index + 1} / ${practice.batches.length} 岛` : '练习随时保存 · 提示过和拼错的词可在结算复习';
 }
 
 function render() { renderBoard(); renderWords(); renderAnswer(); }
@@ -179,13 +196,17 @@ function startGame(entries, name) {
   hintId = null;
   game = createGame(entries);
   roundStarted = performance.now();
+  roundName = name;
   $('theme-name').textContent = name;
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
   render();
+  saveProgress();
   feedback('先看中文词义，再按顺序点击亮色字母。');
 }
 
 function randomGame() {
+  practice = null;
+  review = [];
   const choices = collections.map((_, index) => index).filter(index => index !== lastCollection);
   lastCollection = choices[Math.floor(Math.random() * choices.length)];
   const collection = collections[lastCollection];
@@ -195,9 +216,13 @@ function randomGame() {
 function showWin() {
   const minutes = Math.max(1, Math.ceil((performance.now() - roundStarted) / 60000));
   $('win-summary').textContent = `${game.words.length} 个单词，${game.tiles.length} 片字母。${minutes} 分钟的小小收获。`;
+  if (practice) $('win-summary').textContent += ` 教材已完成 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词。`;
+  $('play-again-button').textContent = practice && practice.index + 1 < practice.batches.length ? '继续本单元 · 下一座词岛 →' : practice ? '本次教材练习完成 · 再练一遍' : '再去下一座词岛 →';
+  $('review-button').hidden = !review.length;
+  $('review-button').textContent = `再练 ${review.length} 个提示 / 易错词`;
   $('win-words').replaceChildren(...game.words.map(word => {
     const span = document.createElement('span');
-    span.textContent = `${word.word} · ${word.meaning}`;
+    span.textContent = `${word.displayWord || word.word} · ${word.meaning}`;
     return span;
   }));
   // A modal opened by the player takes precedence over the delayed celebration.
@@ -213,6 +238,7 @@ function checkSpelling() {
     return;
   }
   if (result.status === 'incorrect') {
+    markReview();
     feedback('还不是这个单词。可以点击答案格修改，或撤回再试。', 'error');
     $('answer-slots').classList.remove('is-shaking');
     void $('answer-slots').offsetWidth;
@@ -221,9 +247,10 @@ function checkSpelling() {
     return;
   }
   busy = true;
+  saveProgress();
   hintId = null;
   playSound(result.won ? 'win' : 'correct');
-  feedback(`${result.word.word}，${result.word.meaning}。拼对了！`, 'success');
+  feedback(`${result.word.displayWord || result.word.word}，${result.word.meaning}。拼对了！`, 'success');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   for (const id of picked) {
     const tile = $('board').querySelector(`[data-tile-id="${id}"]`);
@@ -236,8 +263,8 @@ function checkSpelling() {
     if (result.won) {
       feedback('所有单词都拼对了，棋盘已清空。', 'success');
       showWin();
-    } else if (!hasPlayableWord()) feedback('这一层暂时拼不出完整单词，点击「重新排列」继续。', 'error');
-    else feedback(`${result.word.word} ✓ 已消除。下一词：${getActiveWord().meaning}`, 'success');
+    } else if (result.rescued) feedback('拼对了！同字母自由取用让余牌互相遮挡，已自动免费整理；已完成的词保留。', 'success');
+    else feedback(`${result.word.displayWord || result.word.word} ✓ 已消除。下一词：${getActiveWord().meaning}`, 'success');
   }, reducedMotion ? 0 : 280);
 }
 
@@ -259,7 +286,7 @@ function pickTile(id) {
   renderAnswer();
   playSound();
   feedback(result.status === 'deselected' ? '已撤销这个字母，继续按顺序拼写。' : '选中的卡片留在原位，拼对整词才会一起消除。');
-  if (game.selected.length === getActiveWord().word.length) checkSpelling();
+  if (game.selected.length === letters(getActiveWord().word).length) checkSpelling();
 }
 
 $('board').addEventListener('click', event => {
@@ -304,23 +331,34 @@ $('shuffle-button').addEventListener('click', () => {
 $('hint-button').addEventListener('click', () => {
   if (busy || !getActiveWord()) return;
   const word = getActiveWord();
+  markReview();
   if (!findSpelling(game, word.id)) {
     feedback(hasPlayableWord() ? '这个词的字母还没全部露出，先试试词单里标记「可拼」的词。' : '暂时没有完整可拼的词，点击「重新排列」就能继续。');
     return;
   }
-  if (!word.word.startsWith(selectedText())) {
+  if (!letters(word.word).join('').startsWith(selectedText())) {
     clearSelection(game);
     feedback('刚才的顺序不太对，已帮你清空。沿着金色边框从头拼吧。');
   } else feedback('金色边框是下一个字母，点击它继续拼。');
-  const next = word.word[game.selected.length];
+  const next = letters(word.word)[game.selected.length];
   hintId = getAvailableTiles(game).sort((a, b) => b.z - a.z).find(tile => tile.char === next && !game.selected.includes(tile.id))?.id || null;
   renderBoard(); renderAnswer();
 });
 $('new-button').addEventListener('click', randomGame);
-$('play-again-button').addEventListener('click', randomGame);
+$('play-again-button').addEventListener('click', () => {
+  if (!practice) return randomGame();
+  if (practice.index + 1 < practice.batches.length) { practice.learned += game.words.length; practice.index++; }
+  else { practice.index = 0; practice.learned = 0; review = []; practice.review = review; }
+  startGame(practice.batches[practice.index], practice.name);
+});
+$('review-button').addEventListener('click', () => {
+  practice = { batches: practiceBatches(review), index: 0, learned: 0, name: '提示 / 易错词复习', review: [] };
+  review = [];
+  startGame(practice.batches[0], practice.name);
+});
 $('help-button').addEventListener('click', () => $('help-dialog').showModal());
 $('import-button').addEventListener('click', () => {
-  $('word-input').value = readPreference('ciyu-word-list') || game.words.map(word => `${word.word} ${word.meaning}`).join('\n');
+  $('word-input').value = readPreference('ciyu-word-list') || game.words.map(word => `${word.displayWord || word.word} ${word.meaning}`).join('\n');
   $('import-error').textContent = '';
   $('import-dialog').showModal();
 });
@@ -329,6 +367,7 @@ $('import-form').addEventListener('submit', event => {
   try {
     const entries = parseWordList($('word-input').value);
     savePreference('ciyu-word-list', $('word-input').value);
+    practice = null; review = [];
     startGame(entries, '我的单词小岛');
     feedback('你的专属词单已就绪，字母和符号都放进小岛了。');
   } catch (error) {
@@ -354,4 +393,29 @@ document.addEventListener('visibilitychange', () => {
 
 soundEnabled = readPreference('ciyu-sound') === 'true';
 renderSound();
-randomGame();
+setupLibrary(selected => {
+  practice = selected;
+  review = [];
+  startGame(practice.batches[0], practice.name);
+});
+try {
+  const saved = JSON.parse(readPreference('ciyu-progress'));
+  if (!saved) throw new Error('No save');
+  game = restoreProgress(saved.entries, saved.completed);
+  if (saved.practice) {
+    const p = saved.practice;
+    if (!Array.isArray(p.batches) || p.batches.length > 10000 || !Number.isInteger(p.index) || p.index < 0 || p.index >= p.batches.length
+        || !Number.isInteger(p.learned) || p.learned < 0) throw new Error('Invalid practice');
+    p.batches.forEach(entries => createGame(entries));
+    if (JSON.stringify(p.batches[p.index]) !== JSON.stringify(saved.entries)) throw new Error('Mismatched practice');
+  }
+  practice = saved.practice || null;
+  review = Array.isArray(saved.review) ? saved.review : [];
+  if (review.length) practiceBatches(review);
+  roundName = typeof saved.name === 'string' ? saved.name.slice(0, 300) : '继续练习';
+  $('theme-name').textContent = roundName;
+  roundStarted = performance.now();
+  render();
+  feedback('已恢复上次完成进度，剩余字母重新摆好了。');
+  if (game.completed === game.words.length) showWin();
+} catch { randomGame(); }

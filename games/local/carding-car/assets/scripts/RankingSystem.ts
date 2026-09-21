@@ -59,3 +59,11 @@ export function formatTime(seconds: number) {
   if (!Number.isSafeInteger(hundredths)) return '—';
   return `${Math.floor(hundredths / 6000)}:${(Math.floor(hundredths / 100) % 60).toString().padStart(2, '0')}.${(hundredths % 100).toString().padStart(2, '0')}`;
 }
+
+export function recordFeedback(seconds: number, previousBest?: number) {
+  if (!previousBest) return '首个路线纪录！再跑一场，挑战更快的自己';
+  const delta = Math.round((seconds - previousBest) * 100) / 100;
+  if (delta < 0) return `刷新本机纪录！快了 ${(-delta).toFixed(2)} 秒`;
+  if (delta === 0) return '追平本机纪录！下一场试试更早出弯加速';
+  return `距离本机纪录差 ${delta.toFixed(2)} 秒 · 少碰护栏，出弯再冲刺`;
+}

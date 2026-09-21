@@ -13,7 +13,8 @@ import {
 } from 'cc';
 import { KartConfig as C, type KartInput } from './KartConfig';
 import type { RaceManager } from './RaceManager';
-import { formatTime as time, type RaceRecord } from './RankingSystem';
+import { formatTime as time, recordFeedback, type RaceRecord } from './RankingSystem';
+import { DrivingCoach } from './DrivingCoach';
 import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
@@ -48,6 +49,10 @@ export class HUD {
   sound: Label;
   lastPhase = '';
   records: RaceRecord[] = [];
+  previousBest?: number;
+  coach = new DrivingCoach();
+  coaching: Label;
+  help: Label;
   constructor(parent: Node) {
     view.setDesignResolutionSize(960, 540, ResolutionPolicy.SHOW_ALL);
     this.root = new Node('HUD');
@@ -76,6 +81,8 @@ export class HUD {
     this.sound = this.label(this.root, '声音 开', -410, 90, 18, '#fff6dc', 96, 48);
     this.box(this.root, -410, 30, 72, 48, '#173c55');
     this.label(this.root, 'Ⅱ', -410, 30, 24, '#fff6dc', 72, 48);
+    this.box(this.root, -410, -30, 96, 48, '#173c55');
+    this.help = this.label(this.root, '收起教学', -410, -30, 18, '#fff6dc', 96, 48);
     this.box(this.root, 0, -209, 180, 70, '#173c55ee');
     this.speed = this.label(this.root, '0  km/h', 0, -200, 30, '#fff6dc', 180, 48);
     this.label(
@@ -90,6 +97,11 @@ export class HUD {
     );
     this.box(this.root, 0, 170, 560, 34, '#173c55dd');
     this.message = this.label(this.root, '', 0, 170, 21, '#fff6dc', 550, 45);
+    const coachPanel = new Node('DrivingCoach');
+    coachPanel.layer = Layers.Enum.UI_2D;
+    this.root.addChild(coachPanel);
+    this.box(coachPanel, 65, 129, 620, 36, '#173c55ee');
+    this.coaching = this.label(coachPanel, '', 65, 129, 17, '#69dfc0', 610, 36);
     this.count = this.label(this.root, '', 0, 35, 92, '#fff7dd', 700, 150);
     this.meter = this.graphics(this.root, 'DriftMeter');
     this.controls = this.graphics(this.root, 'TouchControls');
@@ -191,6 +203,10 @@ export class HUD {
     this.timer.string = `总计 ${time(r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
+    this.help.string = this.coach.enabled ? '收起教学' : '驾驶教学';
+    this.coaching.node.parent!.active =
+      !r.networked && this.coach.enabled && (r.phase === 'racing' || r.phase === 'countdown');
+    this.coaching.string = this.coach.hint(keyboardHints);
     this.nitro.string =
       k.nitroCooldown > 0
         ? `氮气 ${k.nitroCooldown.toFixed(1)}s`
@@ -243,20 +259,27 @@ export class HUD {
             return `${i + 1}  ${driver === 0 ? '你' : r.names[driver] || `对手 ${driver}`}  ${progress.finishedAt ? time(progress.finishedAt) : '未完赛'}`;
           })
           .join('\n')}`;
-        this.footer.string = keyboardHints
-          ? 'Enter / R 再跑一场   ·   本机成绩仅保存在当前设备'
-          : '本机成绩仅保存在当前设备';
+        this.footer.string = recordFeedback(r.time, this.previousBest);
       }
     }
     const theme = themes.find((t) => t.id === this.selection.theme)!;
     const selectedRoute = routes.find((r) => r.id === this.selection.route)!;
-    this.tagline.string = theme.tagline;
+    this.tagline.string =
+      r.phase === 'finished'
+        ? place === 1
+          ? '金牌 · 路线冠军'
+          : place <= 3
+            ? '银牌 · 登上领奖台'
+            : '铜牌 · 完成三圈'
+        : this.previousBest
+          ? `本路线目标：突破 ${time(this.previousBest)} · 本机纪录`
+          : '本路线目标：完成 3 圈，赢取首枚完赛奖牌';
     if (r.phase === 'ready') {
-      this.title.string = '咔叮唓 · 出发准备';
+      this.title.string = '浪湾卡丁车 · 出发准备';
       this.detail.string = r.loadError
         ? `素材加载失败：${r.loadError}\n切换配置可重试`
         : r.loaded
-          ? `${Math.round(r.track.length)} 米 · 3 圈竞速 · 3 位对手 · 随机道具`
+          ? `${Math.round(r.track.length)} 米 · 3 圈竞速 · ${this.coach.enabled ? '开跑后逐步教你漂移' : '3 位对手 · 随机道具'}`
           : '正在装配主题、路线图与赛车…';
       this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? '开 跑  →' : '装配中…';
       this.choices[0].string = `主题  ${theme.name}  ${themes.indexOf(theme) + 1}/${themes.length}`;
@@ -264,8 +287,8 @@ export class HUD {
       this.choices[2].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
       this.choices[3].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
       this.footer.string = !keyboardHints
-        ? '点击左右箭头选择 · 自动保存 · 开跑后自动加速'
-        : '1 主题 · 2 路线图 · 3 赛车 · 4 车手 · Shift 反向 · Enter 开跑';
+        ? '默认配置即可开跑 · 左手转向 · 右手漂移 · 开跑后自动加速'
+        : 'Enter 开跑 · W/↑ 前进 · A D 转向 · 空格漂移 · H 教学';
     }
     this.count.string =
       r.phase === 'countdown'

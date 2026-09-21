@@ -556,11 +556,12 @@ function captureGeometry(game) {
   };
 }
 
-function isSurrounded(game, robber, geometry) {
+// The HUD and simulation share this diagnosis, so a hint never invents another capture rule.
+export function captureStatus(game, robber, geometry = captureGeometry(game)) {
   // One officer can block a lane, but an arrest needs a nearby partner.
   // Two capture ranges can meet up to 2 * CAPTURE_RADIUS along the road.
-  if (game.cops.filter((cop) => roadDistance(game, cop, robber) <= CAPTURE_RADIUS * 2).length < 2)
-    return false;
+  const nearby = game.cops.filter((cop) => roadDistance(game, cop, robber) <= CAPTURE_RADIUS * 2).length;
+  if (nearby < 2) return { nearby, enclosed: false, gap: null };
   const { free, blockedNodes, safe } = geometry;
   const queue = [];
   const visited = new Set();
@@ -569,8 +570,11 @@ function isSurrounded(game, robber, geometry) {
     const [lo, hi] = free[edgeId].find(
       ([a, b]) => position >= a - EPS && position <= b + EPS,
     ) ?? [position, position];
-    if (safe[edgeId].some(([a, b]) => Math.min(b, hi) - Math.max(a, lo) > EPS))
-      return true;
+    const gap = safe[edgeId].find(([a, b]) => Math.min(b, hi) - Math.max(a, lo) > EPS);
+    if (gap) return {
+      from: edgePoint(game.graph, edgeId, Math.max(gap[0], lo) / edge.length),
+      to: edgePoint(game.graph, edgeId, Math.min(gap[1], hi) / edge.length),
+    };
     if (lo < EPS && !blockedNodes.has(edge.a) && !visited.has(edge.a)) {
       visited.add(edge.a);
       queue.push(edge.a);
@@ -583,18 +587,20 @@ function isSurrounded(game, robber, geometry) {
       visited.add(edge.b);
       queue.push(edge.b);
     }
-    return false;
+    return null;
   };
   const edge = game.graph.edges[robber.edge];
-  if (inspect(robber.edge, robber.t * edge.length)) return false;
+  let gap = inspect(robber.edge, robber.t * edge.length);
+  if (gap) return { nearby, enclosed: false, gap };
   for (let i = 0; i < queue.length; i++) {
     const node = queue[i];
     for (const link of game.graph.adjacent[node]) {
       const edge = game.graph.edges[link.edge];
-      if (inspect(link.edge, edge.a === node ? 0 : edge.length)) return false;
+      gap = inspect(link.edge, edge.a === node ? 0 : edge.length);
+      if (gap) return { nearby, enclosed: false, gap };
     }
   }
-  return true;
+  return { nearby, enclosed: true, gap: null };
 }
 
 export function stepGame(game, dt) {
@@ -622,7 +628,7 @@ export function stepGame(game, dt) {
       moveActor(game, cop, game.policeSpeed * slice, active);
     const geometry = captureGeometry(game);
     for (const robber of active) {
-      const enclosed = isSurrounded(game, robber, geometry);
+      const { enclosed } = captureStatus(game, robber, geometry);
       robber.capture = enclosed
         ? Math.min(1, robber.capture + slice / CAPTURE_SECONDS)
         : 0;

@@ -399,6 +399,31 @@ legend {
 .start-note span {
   margin: 0 10px;
 }
+.resume-journey {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+}
+.resume-journey small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.resume-journey + .start-button {
+  margin-top: 14px;
+}
+.reasoning {
+  padding: 14px 18px;
+  margin: 18px 0;
+  background: #e5ecdf;
+  border-left: 3px solid var(--green);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.reasoning h3 { margin: 0 0 6px; font-size: 14px; }
+.reasoning p { margin: 0; }
+.reasoning .detail-list { margin: 8px 0; }
+.reasoning small { color: var(--muted); }
 .hero-postcard {
   position: relative;
   background: var(--paper-light);

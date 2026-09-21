@@ -106,6 +106,25 @@ async function hoverAt(actor, cursor) {
   );
 }
 try {
+  const practiceContext = await browser.newContext({
+    viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true,
+  });
+  const practicePage = await practiceContext.newPage();
+  await practicePage.goto(base);
+  await waitPhase("ready", practicePage);
+  await practicePage.locator("#practice-button").tap();
+  await order(0, { x: 500, y: 300 }, practicePage, true);
+  await waitState(state => Math.abs(state.cops[0].x - 500) < 1 && !state.cops[0].moving, practicePage);
+  await practicePage.waitForTimeout(1000); // Read step two only after the first officer has arrived.
+  const instruction = await practicePage.locator("#capture-message").textContent();
+  const target = instruction.includes("小偷") ? (await snapshot(practicePage)).robbers[0] : { x: 500, y: 300 };
+  await order(1, target, practicePage, true);
+  assert.equal((await snapshot(practicePage)).selected, 1, "Second practice target must issue an order, not reselect officer one");
+  assert.ok((await snapshot(practicePage)).cops[1].destination, "The second officer receives a real pursuit order");
+  await waitPhase("won", practicePage);
+  assert.equal((await snapshot(practicePage)).unlocked, 1, "Practice does not unlock campaign levels");
+  await practiceContext.close();
+  checks.push("844×390 touch practice still wins when the player waits for officer one to reach the first target");
   await page.goto(base);
   assert.match(await page.title(), /别跑.*实时/);
   await waitPhase("ready");
@@ -180,7 +199,12 @@ try {
     "Visible climbing warning, pause-safe escape timer, actual loss without progression",
   );
   await page.locator("#lose-review").click();
-  await page.locator("#start-button").click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.locator("#ready-prompt").isVisible(), false, "Failure review leaves the escaped exit unobstructed");
+  const exitPoint = await screen(escaped.exits.find(exit => exit.node === escaped.robbers.find(robber => robber.escaped).exitTarget));
+  assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, exitPoint), "game-canvas");
+  await page.locator("#restart-button").click();
+  await page.setViewportSize({ width: 1440, height: 900 });
   await waitPhase("ready");
   checks.push("Failure review retains the board and offers a working retry");
   const first = LEVELS[0];

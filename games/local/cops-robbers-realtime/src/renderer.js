@@ -966,6 +966,8 @@ export function createRenderer(canvas) {
       preview = null,
       pointer = null,
       hover = null,
+      captureHint = null,
+      practiceTarget = false,
       reducedMotion = false,
       now = performance.now(),
     } = {},
@@ -1002,6 +1004,20 @@ export function createRenderer(canvas) {
         orders.set(cop.id, { key, at: key ? seconds : -99 });
       guardRange(ctx, game, cop, cop.id === selected);
       route(ctx, cop, cop.id === selected);
+    }
+    if (captureHint && game.phase !== "ready" && game.phase !== "won") {
+      const { robber, gap } = captureHint;
+      ellipse(ctx, robber.x, robber.y, 31, 23, null, "#bd6c37", 2);
+      if (gap) {
+        ctx.save();
+        ctx.setLineDash([9, 7]);
+        line(ctx, [[gap.from.x, gap.from.y], [gap.to.x, gap.to.y]], "#dd6c31", 10);
+        ctx.restore();
+      }
+    }
+    if (practiceTarget) {
+      ellipse(ctx, 500, 300, 36, 36, "#d5ecff88", BLUE, 3);
+      bubble(ctx, 500, 235, "点这里推进", BLUE, 1);
     }
     if (preview?.length) {
       ctx.save();
