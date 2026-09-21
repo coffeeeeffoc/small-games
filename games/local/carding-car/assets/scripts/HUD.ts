@@ -213,7 +213,9 @@ export class HUD {
         : !keyboardHints
           ? '氮气加速'
           : '氮气 Shift';
-    this.panel.active = ['ready', 'paused', 'finished'].includes(r.phase);
+    this.panel.active =
+      ['ready', 'paused', 'finished'].includes(r.phase) &&
+      !this.root.getChildByName('MultiplayerRoom')?.active;
     this.picker.active = r.phase === 'ready';
     this.garageButton.active = r.phase === 'paused' || r.phase === 'finished';
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';

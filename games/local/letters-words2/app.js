@@ -142,6 +142,7 @@ function renderAnswer() {
   $('clear-button').disabled = busy || !chars.length;
   $('hint-button').disabled = busy || !word;
   $('shuffle-button').disabled = busy || !word;
+  $('result-button').hidden = game.completed !== game.words.length;
 }
 
 function renderWords() {
@@ -357,6 +358,7 @@ $('review-button').addEventListener('click', () => {
   startGame(practice.batches[0], practice.name);
 });
 $('help-button').addEventListener('click', () => $('help-dialog').showModal());
+$('result-button').addEventListener('click', showWin);
 $('import-button').addEventListener('click', () => {
   $('word-input').value = readPreference('ciyu-word-list') || game.words.map(word => `${word.displayWord || word.word} ${word.meaning}`).join('\n');
   $('import-error').textContent = '';

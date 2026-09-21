@@ -67,9 +67,24 @@ try {
   await host.goto(url.href);
   await loaded(host);
   await host.mouse.click(126, 117);
-  await host.mouse.click(480, 190);
+  for (const [width, height] of [[844, 390], [1280, 585]]) {
+    await host.setViewportSize({ width, height });
+    await host.waitForTimeout(350); // Cocos debounces canvas resize.
+    const scale = Math.min(width / 960, height / 540);
+    const click = (x, y) => host.mouse.click(width / 2 + x * scale, height / 2 - y * scale);
+    await host.screenshot({ path: fileURLToPath(new URL(`entry-${width}.png`, reports)) });
+    await click(-354, 153);
+    assert.equal((await snap(host)).multiplayer.panelOpen, true, 'modal shields the entry behind it');
+    await click(256, 150);
+    assert.equal((await snap(host)).multiplayer.panelOpen, false, 'compact close button works');
+    await click(-354, 153);
+    assert.equal((await snap(host)).multiplayer.panelOpen, true, 'entry reopens after closing');
+  }
+  await host.setViewportSize({ width: 960, height: 540 });
+  await host.waitForTimeout(350);
+  await host.mouse.click(480, 218);
   await host.locator('input:visible, textarea:visible').fill('房主');
-  await host.mouse.click(350, 335);
+  await host.mouse.click(365, 348);
   await host.waitForFunction(() => __kart.snapshot().multiplayer.room?.members.length === 1);
   const room = (await snap(host)).multiplayer.room;
   const friend = await open(true, 'formula');

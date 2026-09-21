@@ -23,6 +23,7 @@ pnpm-debug.log*
 
 .scratch
 .codegraph
+.codex-remote-attachments/
 .serena
 apps/shell-web/public/games/
 __pycache__/

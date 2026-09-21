@@ -170,7 +170,14 @@ try {
   });
   await page.locator("#pause-button").click();
   const paused = await snapshot();
+  const climbing = paused.robbers.find((robber) => robber.escapeProgress > 0);
+  const exitLabel = `出口 ${String.fromCharCode(65 + paused.exits.findIndex((exit) => exit.node === climbing.exitTarget))}`;
+  const warning = await page.locator("#exit-status").textContent();
+  assert.ok(warning.startsWith(`${exitLabel} 翻越 · 剩 `), "Climbing warning identifies the actual exit and remaining time");
+  assert.match(warning, /剩 \d+\.\d 秒$/);
+  assert.ok((await page.locator("#capture-message").textContent()).includes(`${exitLabel}翻越`));
   await page.waitForTimeout(400);
+  assert.equal(await page.locator("#exit-status").textContent(), warning, "Emergency countdown pauses with the simulation");
   assert.equal(
     (await snapshot()).robbers[0].escapeProgress,
     paused.robbers[0].escapeProgress,

@@ -38,11 +38,40 @@ try {
     timeout: 6000,
   });
   await page.screenshot({ path: fileURLToPath(new URL('coach-drift.png', reports)) });
+  await page.keyboard.press('p');
   await page.keyboard.up('Space');
   await page.keyboard.up('ArrowLeft');
+  await page.keyboard.up('w');
+  await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
+  await page.waitForFunction(
+    () => __kart.snapshot().hud.coachingStep === 2 && /蓄出蓝色火花/.test(__kart.snapshot().hud.coaching),
+  );
+  evidence.interrupted = await page.evaluate(() => __kart.snapshot().hud);
+  assert.match(evidence.interrupted.coaching, /蓄出蓝色火花/);
+  await page.keyboard.press('p');
+  await page.keyboard.down('w');
+  await page.mouse.move(154, 440);
+  await page.mouse.down();
+  // Follow the read-only racing line through real controls to reach the next bend.
+  const retryDeadline = Date.now() + 30000;
+  while (Date.now() < retryDeadline) {
+    const state = await page.evaluate(() => __kart.snapshot());
+    if (state.hud.coachingStep === 3) break;
+    const input = state.suggestedInput;
+    await page.mouse.move(960 * (0.16 + input.steer * 0.095), 440);
+    await page.keyboard[input.drift ? 'down' : 'up']('Space');
+    await page.keyboard[input.brake ? 'down' : 'up']('s');
+    await page.waitForTimeout(45);
+  }
+  assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingStep), 3);
+  await page.mouse.up();
+  await page.keyboard.up('Space');
+  await page.keyboard.up('s');
   await page.waitForFunction(() => __kart.snapshot().hud.coachingStep === 4);
   await page.keyboard.down('ShiftLeft');
-  await page.waitForFunction(() => __kart.snapshot().hud.coachingStep === 5);
+  await page.waitForFunction(
+    () => __kart.snapshot().hud.coachingStep === 5 && /驾驶入门完成/.test(__kart.snapshot().hud.coaching),
+  );
   await page.keyboard.up('ShiftLeft');
   evidence.completed = await page.evaluate(() => __kart.snapshot().hud);
   assert.equal(await page.evaluate(() => localStorage.getItem('kart-driving-coach-v1')), 'done');
@@ -83,7 +112,7 @@ try {
   await publicPage.screenshot({ path: fileURLToPath(new URL('coach-offline.png', reports)) });
   await writeFile(new URL('driving-coach.json', reports), JSON.stringify(evidence, null, 2));
   console.log(
-    'Driving coach: 5 real-input steps, completion persistence, replay, portrait hint, unavailable multiplayer passed',
+    'Driving coach: 5 real-input steps, interrupted charge retry, completion persistence, replay, portrait hint, unavailable multiplayer passed',
   );
 } finally {
   await browser.close();

@@ -10,22 +10,23 @@ export class DrivingCoach {
   private previousNitro = 0;
 
   observe(kart: KartState, input: KartInput, dt: number, racing: boolean) {
-    if (this.enabled && racing) {
+    if (this.enabled && this.step === 3 && kart.tier === 0) {
+      this.step =
+        racing &&
+        this.previousTier > 0 &&
+        !input.drift &&
+        !input.brake &&
+        kart.collision <= 0 &&
+        kart.boost > 0
+          ? 4
+          : 2;
+    } else if (this.enabled && racing) {
       if (this.step === 0 && input.throttle > 0 && kart.speed >= 9) this.step = 1;
       else if (this.step === 1) {
         this.steeringTime =
           kart.speed >= 5 && Math.abs(input.steer) > 0.25 ? this.steeringTime + dt : 0;
         if (this.steeringTime >= 0.35) this.step = 2;
       } else if (this.step === 2 && kart.tier > 0) this.step = 3;
-      else if (
-        this.step === 3 &&
-        this.previousTier > 0 &&
-        !input.drift &&
-        !input.brake &&
-        kart.collision <= 0 &&
-        kart.boost > 0
-      )
-        this.step = 4;
       else if (this.step === 4 && input.nitro && kart.nitroCooldown > this.previousNitro)
         this.step = 5;
     }

@@ -43,6 +43,10 @@ try {
         assert.match(await page.locator('#feedback').textContent(), /恢复/);
       }
     }
+    await page.locator('#win-dialog [data-close]').last().tap();
+    assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), false);
+    await page.locator('#result-button').tap();
+    assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), true, 'textbook continuation and review remain reachable after dismissing results');
     learned += batch.length;
     await page.locator('#win-dialog').waitFor({ state: 'visible' });
     assert.deepEqual(await page.locator('#win-words span').allTextContents(), batch.map(entry => `${entry.displayWord || entry.word} · ${entry.meaning}`));

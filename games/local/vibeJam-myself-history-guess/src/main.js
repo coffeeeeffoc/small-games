@@ -195,7 +195,7 @@ function help() {
 function journal() {
   modal(
     "走过的地方，都有回响",
-    `<p class="muted">已收集 ${saved.visited.length} / ${rounds.length} 幕 · 最佳 ${saved.best.toLocaleString("zh-CN")} 分</p><div class="journal-grid">${rounds.map((r) => (saved.visited.includes(r.id) ? `<button class="journal-card" data-story="${r.id}"><img src="${r.image}" alt="${r.place}的历史想象复原" loading="lazy"><strong>${r.place}</strong><small>${formatYear(r.year)} · ${r.era}</small></button>` : `<div class="journal-card locked">${icon("book")}<strong>尚未抵达</strong><small>完成探索后收录</small></div>`)).join("")}</div>`,
+    `<p class="muted">已收集 ${saved.visited.length} / ${rounds.length} 幕 · 本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分</p><div class="journal-grid">${rounds.map((r) => (saved.visited.includes(r.id) ? `<button class="journal-card" data-story="${r.id}"><img src="${r.image}" alt="${r.place}的历史想象复原" loading="lazy"><strong>${r.place}</strong><small>${formatYear(r.year)} · ${r.era}</small></button>` : `<div class="journal-card locked">${icon("book")}<strong>尚未抵达</strong><small>完成探索后收录</small></div>`)).join("")}</div>`,
   );
   document.querySelectorAll("[data-story]").forEach(
     (button) =>
@@ -627,7 +627,7 @@ function finish() {
     })
     .join(
       "",
-    )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">再赴一场相遇 ${icon("arrow")}</button></div><p class="summary-best">本机最佳 ${saved.best.toLocaleString("zh-CN")} 分 · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
+    )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">${state.practice ? "再练这一幕" : "再赴一场相遇"} ${icon("arrow")}</button></div><p class="summary-best">${state.practice ? "单幕练习不计入五幕纪录 · " : ""}本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分 · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
   on("#home", "click", home);
   on("#again", "click", () => start());
   on("#journal", "click", journal);
