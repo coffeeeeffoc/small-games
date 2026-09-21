@@ -1,0 +1,2 @@
+assets/english-dict/**/*.json text eol=lf
+assets/english-dict/*.json text eol=lf

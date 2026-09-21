@@ -61,7 +61,7 @@ export function scoreGuess(round, point, year) {
     total: locationScore + timeScore,
   };
 }
-export function chooseRounds(catalog, region, random = Math.random) {
+export function chooseRounds(catalog, region, random = Math.random, visited = []) {
   const deck = catalog.filter(
     (round) => region !== "china" || round.region === "china",
   );
@@ -69,7 +69,37 @@ export function chooseRounds(catalog, region, random = Math.random) {
     const j = Math.floor(random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-  return deck.slice(0, ROUND_COUNT);
+  // Unseen scenes first; after completing the atlas, revisit the least recent.
+  return deck.sort((a, b) => visited.indexOf(a.id) - visited.indexOf(b.id)).slice(0, ROUND_COUNT);
 }
 export const remainingSeconds = (deadline, now) =>
   Math.max(0, Math.ceil((deadline - now) / 1000));
+
+// Rebuild scores from answers, and discard incompatible/corrupt local journeys.
+export function restoreJourney(value, catalog) {
+  if (!value || value.version !== 1 || !["guessing", "revealed"].includes(value.phase) ||
+      !["all", "china"].includes(value.region) || typeof value.timed !== "boolean" ||
+      !Array.isArray(value.deck) || ![1, ROUND_COUNT].includes(value.deck.length) ||
+      new Set(value.deck).size !== value.deck.length ||
+      !Number.isInteger(value.index) || value.index < 0 || value.index >= value.deck.length ||
+      !Array.isArray(value.results) || value.results.length !== value.index + (value.phase === "revealed" ? 1 : 0)) return null;
+  const deck = value.deck.map((id) => catalog.find((round) => round.id === id));
+  const validYear = (year) => Number.isInteger(year) && year !== 0 && year >= MIN_YEAR && year <= MAX_YEAR;
+  const validGuess = (guess) => guess === null || (validPoint(guess) && typeof guess.name === "string" && guess.name.length <= 100);
+  if (deck.some((round) => !round) ||
+      (value.practice ? value.deck.length !== 1 || value.practice !== value.deck[0] : value.deck.length !== ROUND_COUNT) ||
+      (!value.practice && value.region === "china" && deck.some((round) => round.region !== "china")) ||
+      !validYear(value.year) || typeof value.yearTouched !== "boolean" || !validGuess(value.guess) ||
+      (value.timed && (!Number.isSafeInteger(value.deadline) || value.deadline <= 0)) ||
+      value.results.some((result, i) => !result || result.id !== deck[i].id || !validGuess(result.guess) || (result.year !== null && !validYear(result.year)))) return null;
+  return {
+    region: value.region, timed: value.timed, practice: value.practice || "",
+    index: value.index, phase: value.phase, guess: value.guess,
+    year: value.year, yearTouched: value.yearTouched, deadline: value.deadline,
+    deck,
+    results: value.results.map((result, i) => ({
+      id: result.id, guess: result.guess, year: result.year, timedOut: result.timedOut === true,
+      ...scoreGuess(deck[i], result.guess, result.year),
+    })),
+  };
+}

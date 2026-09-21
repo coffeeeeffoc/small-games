@@ -14,6 +14,7 @@ export class KartController {
     private garage: () => void = () => {},
     private blocked: () => boolean = () => false,
     private start: () => void = () => this.race().start(),
+    private help: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -86,6 +87,7 @@ export class KartController {
       return;
     }
     if (e.keyCode === KeyCode.KEY_M) this.sound();
+    if (e.keyCode === KeyCode.KEY_H) this.help();
     if (
       r.phase !== 'racing' &&
       r.phase !== 'countdown' &&
@@ -108,6 +110,10 @@ export class KartController {
       r = this.race(),
       id = e.getID();
     if (id === null) return;
+    if (Math.abs(p.x * 960 - 70) <= 48 && Math.abs(p.y * 540 - 240) <= 24) {
+      this.help();
+      return;
+    }
     if (Math.abs(p.x * 960 - 70) <= 48 && Math.abs(p.y * 540 - 360) <= 24) {
       this.sound();
       return;

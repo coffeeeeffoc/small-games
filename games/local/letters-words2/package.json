@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "test": "node tests/engine.test.mjs",
-    "check": "node --check app.js && node --check engine.js && node --check server.mjs && node server.mjs --check",
+    "test": "node tests/engine.test.mjs && node tests/library.test.mjs",
+    "test:browser": "node tests/browser.test.mjs",
+    "test:library:browser": "node tests/library.browser.test.mjs",
+    "vocabulary:sync": "python scripts/sync-vocabulary.py",
+    "check": "node --check app.js && node --check engine.js && node --check library.js && node --check server.mjs && node server.mjs --check",
     "build": "node build.mjs"
   }
 }

@@ -14,7 +14,9 @@ import {
   roadTarget,
   roadDistance,
   isExitBlocked,
+  captureStatus,
 } from "../src/engine.js";
+import { PRACTICE } from "../src/levels.js";
 
 const level = (nodes, edges, cops, robbers, extra = {}) => ({
   id: 1,
@@ -56,6 +58,36 @@ test("a robber moves in real time before the player issues a command", () => {
   assert.ok(game.robbers[0].x < 880);
   assert.equal(game.cops[0].x, 100);
   assert.equal(game.phase, "playing");
+});
+
+test("capture diagnosis exposes an actual safe road gap and practice requires two real orders", () => {
+  const open = begin(level([[400, 300], [500, 300], [600, 300], [500, 600]],
+    [[0, 1], [1, 2], [1, 3]], [0, 2], [1]));
+  const status = captureStatus(open, open.robbers[0]);
+  assert.equal(status.nearby, 2);
+  assert.equal(status.enclosed, false);
+  assert.ok(status.gap);
+  assert.ok(roadDistance(open, status.gap.to, open.cops[0]) > CAPTURE_RADIUS);
+  stepGame(open, 1 / 60);
+  assert.equal(open.robbers[0].capture, 0);
+
+  const practice = begin(PRACTICE);
+  assert.equal(captureStatus(practice, practice.robbers[0]).nearby, 0);
+  commandCop(practice, 0, { x: 500, y: 300 });
+  run(practice, 12);
+  assert.equal(practice.phase, "playing", "first order alone cannot complete the drill");
+  commandCop(practice, 1, { x: 500, y: 300 });
+  let sawLock = false;
+  for (let i = 0; i < 720 && practice.phase === "playing"; i++) {
+    stepGame(practice, 1 / 60);
+    if (practice.robbers[0].capture > 0) {
+      sawLock = true;
+      assert.equal(captureStatus(practice, practice.robbers[0]).enclosed, true);
+    }
+  }
+  assert.ok(sawLock);
+  assert.equal(practice.phase, "won");
+  assert.ok(practice.robbers.every((robber) => !robber.escaped));
 });
 
 test("commands and previews use exact road positions, including a continuous mid-edge reversal", () => {

@@ -44,6 +44,15 @@ export const CHAPTERS = [
   { id: 7, name: "全城围捕", subtitle: "整个街区，听你指挥", color: "#d093a5" },
 ];
 
+// A separate drill uses the real movement, body blocking, exits and capture rules.
+// It does not unlock campaign levels or write challenge records.
+export const PRACTICE = {
+  id: 0, name: "双警夹击练习", chapter: 0, par: 0,
+  nodes: [{ x: 220, y: 300 }, { x: 500, y: 300 }, { x: 780, y: 300 }],
+  edges: [[0, 1], [1, 2]], cops: [0, 2], robbers: [1], exits: [0, 2],
+  hint: "两人已守住两侧出口。分别向中央推进，小偷不能穿过警察。",
+};
+
 // Each path is authored on a 7 × 5 street grid. Shared labels are junctions;
 // a bend and each escape alley are explicit, so routing and art share the same roads.
 function street(

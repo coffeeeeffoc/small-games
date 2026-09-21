@@ -174,6 +174,22 @@ if (target === 'web-mobile') {
     .replace('<title>Cocos Creator | carding-car</title>', '<title>浪湾卡丁车</title>')
     .replace('<head>', '<head>\n<link rel="icon" href="data:,">')
     .replace(
+      '</head>',
+      `<style>
+      #kart-rotate { display: none; }
+      @media (orientation: portrait) {
+        #kart-rotate { display: block; position: fixed; z-index: 20; top: max(18px, env(safe-area-inset-top));
+          left: 8%; right: 8%; padding: 18px 12px; border-radius: 16px; color: #fff6dc;
+          background: #173c55; text-align: center; font: 600 18px/1.6 sans-serif; pointer-events: none; }
+        #kart-rotate small { display: block; color: #69dfc0; font-size: 14px; }
+      }
+      </style></head>`,
+    )
+    .replace(
+      '<body>',
+      '<body><aside id="kart-rotate" role="status">横过手机，驾驶更顺手<small>左手转向 · 右手漂移 · 松手加速</small></aside>',
+    )
+    .replace(
       'id="GameCanvas"',
       'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );

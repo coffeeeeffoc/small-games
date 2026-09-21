@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  BOARD, parseWordList, createGame, isBlocked, getAvailableTiles,
+  BOARD, letters, parseWordList, createGame, restoreProgress, isBlocked, getAvailableTiles,
   findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle,
 } from '../engine.js';
 
@@ -19,7 +19,7 @@ assert.deepEqual(parseWordList('x=y 等式\napple = 苹果\npear= 梨'), [
   { word: 'x=y', meaning: '等式' }, { word: 'apple', meaning: '苹果' }, { word: 'pear', meaning: '梨' },
 ]);
 for (const bad of ['', 'apple 苹果', 'apple', 'apple 苹果\nAPPLE 苹果', '<svg> 标签\npear 梨',
-  'apple English\npear 梨', 'abcdefghijklmnopq 太长\npear 梨',
+  'apple English\npear 梨', `${'a'.repeat(81)} 太长\npear 梨`,
   Array.from({ length: 9 }, (_, i) => `word${i} 中文`).join('\n'),
   Array.from({ length: 6 }, (_, i) => `${'a'.repeat(15)}${i} 中文`).join('\n')]) {
   assert.throws(() => parseWordList(bad), Error);
@@ -76,7 +76,7 @@ assert.equal(submitWord(blockers).status, 'incorrect', 'submission rechecks all 
 
 function assertBounds(game) {
   for (const item of game.tiles.filter(item => !item.removed)) {
-    assert.ok(item.x >= 0 && item.y >= 0 && item.x + item.size <= BOARD.width && item.y + item.size <= BOARD.height);
+    assert.ok(item.x >= 0 && item.y >= 0 && item.x + item.size <= BOARD.width && item.y + item.size <= game.boardHeight);
   }
 }
 
@@ -95,6 +95,7 @@ for (let seed = 1; seed <= 160; seed++) {
     const result = submitWord(game);
     assert.equal(result.status, 'correct');
     assert.equal(result.won, game.completed === game.words.length);
+    assert.ok(result.won || findSpelling(game, game.activeWordId), 'correct spellings always leave a playable word without manual rescue');
   }
   assert.ok(game.tiles.every(tile => tile.removed));
 }
@@ -144,4 +145,26 @@ const maximum = createGame(parseWordList(Array.from({ length: 5 }, (_, i) => `${
 assert.equal(maximum.tiles.length, 80);
 assertBounds(maximum);
 assert.ok(findSpelling(maximum, maximum.activeWordId));
+const phrases = parseWordList("look at 看\nlet’s go 出发\nthis is a long textbook phrase 一条教材短语");
+assert.equal(phrases[0].word, 'look at');
+assert.equal(phrases[1].word, "let's go");
+const phraseGame = createGame(phrases, seeded(9));
+assert.equal(phraseGame.tiles.some(tile => tile.char === ' '), false, 'spaces are separators, punctuation remains playable');
+assertBounds(phraseGame);
+while (phraseGame.completed < phrases.length) {
+  const word = phraseGame.words.find(word => word.id === phraseGame.activeWordId);
+  const spelling = findSpelling(phraseGame, word.id);
+  assert.equal(spelling.length, letters(word.word).length);
+  spelling.forEach(id => selectTile(phraseGame, id));
+  assert.equal(submitWord(phraseGame).status, 'correct');
+}
+const restored = restoreProgress(phrases, ['look at'], seeded(9));
+assert.equal(restored.completed, 1);
+assert.equal(restored.tiles.filter(tile => !tile.removed).length, letters(phrases[1].word + phrases[2].word).length);
+assert.ok(findSpelling(restored, restored.activeWordId));
+assert.throws(() => restoreProgress(phrases, ['unknown']));
+assert.throws(() => restoreProgress(phrases, ['look at', 'look at']));
+const single = createGame([{ word: 'letter', meaning: '信' }]);
+findSpelling(single, single.activeWordId).forEach(id => selectTile(single, id));
+assert.equal(submitWord(single).won, true, 'a one-word final batch can finish');
 console.log(`Engine checks passed: parser, strict overlap, selection, 320 full rounds, 80-tile bounds (${reshuffles} recovery reshuffles).`);

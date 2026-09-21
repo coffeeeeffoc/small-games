@@ -12,6 +12,7 @@ import {
   MAX_YEAR,
   LIMIT_SECONDS,
   remainingSeconds,
+  restoreJourney,
 } from "./game.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -53,6 +54,7 @@ try {
         ? value.visited.filter((id) => rounds.some((r) => r.id === id))
         : [],
       sound: value.sound !== false,
+      journey: value.journey,
     };
 } catch {
   /* A new travel journal is usable even when browser storage is unavailable. */
@@ -88,6 +90,17 @@ let state = {
   yearTouched: false,
   view: "scene",
 };
+function saveJourney() {
+  if (state.screen !== "game" || !["guessing", "revealed"].includes(state.phase)) return;
+  saved.journey = {
+    version: 1, region: state.region, timed: state.timed, practice: state.practice,
+    deck: state.deck.map((round) => round.id), index: state.index,
+    results: state.results.map(({ id, guess, year, timedOut }) => ({ id, guess, year, timedOut })),
+    phase: state.phase, guess: state.guess, year: state.year,
+    yearTouched: state.yearTouched, deadline: state.deadline,
+  };
+  save();
+}
 function on(selector, event, fn) {
   $(selector)?.addEventListener(event, fn, { signal: screenEvents.signal });
 }
@@ -195,7 +208,12 @@ function journal() {
 function storyMarkup(round) {
   return `<p class="eyebrow">${round.place} · ${formatYear(round.year)}</p><p class="story-text">${round.story}</p><ul class="detail-list">${round.details.map((d) => `<li>${d}</li>`).join("")}</ul><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><p class="fine-print">AI 历史想象复原 · 场景设定不等于精确史实</p>`;
 }
+function cluesMarkup(round) {
+  return `<div class="reasoning"><h3>回看线索，串起推理</h3><p>${escape(round.hint)}</p><ul class="detail-list">${round.details.map((detail) => `<li>${escape(detail)}</li>`).join("")}</ul><small>图像只提供猜测方向；${formatYear(round.year)}是游戏设定，按 ±${round.tolerance} 年宽容计分。</small></div>`;
+}
 function home() {
+  saveJourney();
+  const journey = restoreJourney(saved.journey, rounds);
   const cover = rounds.find((round) => round.id === "kaifeng") || rounds[0];
   cleanup();
   state.screen = "home";
@@ -205,7 +223,8 @@ function home() {
     <main><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="red-line"></span>一场穿越时空的旅行</div><h1>此地，似曾相识。<br>此时，<em>是哪一年？</em></h1><p class="hero-description">走进历史的一瞬，环顾四周。<br>从一座城、一件衣裳、一缕烟火里，<br>找到你在时间中的坐标。</p>
       <div class="travel-options"><fieldset><legend>选择旅途</legend><div class="segmented"><label><input type="radio" name="region" value="all" ${state.region === "all" ? "checked" : ""}><span>${icon("compass")}世界漫游</span></label><label><input type="radio" name="region" value="china" ${state.region === "china" ? "checked" : ""}><span>${icon("pin")}中国足迹</span></label></div></fieldset><label class="timed-option"><input type="checkbox" id="timed" ${state.timed ? "checked" : ""}><span class="toggle"></span>限时挑战 <small>90 秒 / 幕</small></label></div>
       <label class="scene-picker" for="scene-select">指定场景练习<select id="scene-select"><option value="">随机旅途 · 每局 ${ROUND_COUNT} 幕</option>${["china", "world"].map((region) => `<optgroup label="${region === "china" ? "中国历史" : "世界历史"}">${rounds.filter((r) => r.region === region).map((r) => `<option value="${r.id}">${escape(r.title)}</option>`).join("")}</optgroup>`).join("")}</select></label>
-      <button class="primary start-button" id="start">开启时空之旅 ${icon("arrow")}</button><p class="start-note" id="start-note">每局 ${ROUND_COUNT} 幕 <span>·</span> 无需登录 <span>·</span> 默认不限时</p>
+      ${journey ? `<div class="resume-journey"><button class="primary" id="resume">继续上次旅途 · 第 ${journey.index + 1} / ${journey.deck.length} 幕 ${icon("arrow")}</button><small>地点、年代与进度已保留${journey.timed ? " · 限时仍按原截止时间计时" : " · 不限时"}</small></div>` : ""}
+      <button class="${journey ? "secondary" : "primary"} start-button" id="start">${journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}</button><p class="start-note" id="start-note">${journey ? "另开会替换未完成旅途" : `每局 ${ROUND_COUNT} 幕 · 默认不限时`} <span>·</span> 优先探索未见场景</p>
     </div><figure class="hero-postcard"><div class="postcard-image"><img src="${cover.image}" alt="${escape(cover.place)}的历史想象复原" fetchpriority="high"><span class="image-corner">历史的另一种打开方式</span><div class="panorama-badge">${icon("eye")}<span>360°<small>沉浸式观察</small></span></div></div><figcaption><span><i>第 001 号时空切片</i><strong>人间烟火，穿越千年。</strong></span><span class="postcard-stamp">山河<br>故人</span></figcaption><span class="postcard-edge" aria-hidden="true"></span></figure></section>
     <section class="how-strip" aria-label="三步开始探索"><div><span class="step-number">壹</span><p><strong>观其景</strong><small>转动视角，发现细节</small></p>${icon("eye")}</div><div><span class="step-number">贰</span><p><strong>辨其地</strong><small>展开地图，落下坐标</small></p>${icon("pin")}</div><div><span class="step-number">叁</span><p><strong>知其时</strong><small>拨动年份，揭开往事</small></p>${icon("clock")}</div></section>
     </main><footer class="site-footer"><span>${rounds.length} 幕历史想象 · 中国 ${rounds.filter((r) => r.region === "china").length} 幕 · 世界 ${rounds.filter((r) => r.region === "world").length} 幕</span><span>AI 场景复原 <span class="footer-dot">·</span> 中文地理底图 <span class="footer-dot">·</span> 为好奇心而作</span></footer></div>`;
@@ -215,22 +234,23 @@ function home() {
     state.practice = $("#scene-select").value;
     start();
   });
+  on("#resume", "click", () => start(journey));
   on("#scene-select", "change", (event) => {
     const practice = Boolean(event.target.value);
-    $("#start").innerHTML = `${practice ? "走进这一幕" : "开启时空之旅"} ${icon("arrow")}`;
-    $("#start-note").textContent = practice ? "单幕练习 · 不计入五幕最佳分 · 可收集足迹" : `每局 ${ROUND_COUNT} 幕 · 无需登录 · 默认不限时`;
+    $("#start").innerHTML = `${practice ? "走进这一幕" : journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}`;
+    $("#start-note").textContent = `${practice ? "单幕练习 · 不计入五幕最佳分" : `每局 ${ROUND_COUNT} 幕 · 优先探索未见场景`}${journey ? " · 会替换未完成旅途" : ""}`;
   });
   on("#help", "click", help);
   on("#journal", "click", journal);
   bindSound();
 }
-async function start() {
+async function start(journey = null) {
   cleanup();
   chime();
-  state = {
+  state = journey ? { ...state, ...journey, screen: "game", phase: "loading" } : {
     ...state,
     screen: "game",
-    deck: state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region),
+    deck: state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region, Math.random, saved.visited),
     index: 0,
     results: [],
     phase: "loading",
@@ -245,7 +265,7 @@ async function start() {
   on("#leave", "click", () => {
     const dialog = modal(
       "暂别这段旅途？",
-      '<p>已收集的足迹会保留，本局未完成的分数不会计入最佳记录。</p><div class="dialog-actions"><button class="secondary" id="stay">继续探索</button><button class="primary" id="exit">返回首页</button></div>',
+      '<p>地点、年代和本局进度会自动保留，首页可继续。限时旅途仍按原截止时间计时。</p><div class="dialog-actions"><button class="secondary" id="stay">继续探索</button><button class="primary" id="exit">保存并返回首页</button></div>',
     );
     dialog.querySelector("#stay").onclick = () => dialog.close();
     dialog.querySelector("#exit").onclick = () => {
@@ -301,6 +321,7 @@ async function start() {
       state.yearTouched = false;
       $("#year-status").textContent = `请输入 1～${max}`;
       updateSubmit();
+      saveJourney();
       return;
     }
     setYear(field.valueAsNumber * ($("#era-select").value === "bce" ? -1 : 1));
@@ -323,12 +344,13 @@ async function start() {
   on("#submit", "click", () => reveal(false));
   on("#panorama", "viewererror", () => {
     clearInterval(clock);
+    const journey = restoreJourney(saved.journey, rounds);
     state.phase = "error";
     showLoadError("画面连接已中断，请重新载入这一幕", async () => {
       const { createViewer } = await import("./viewer.js");
       viewer?.destroy();
       viewer = createViewer($("#panorama"));
-      await loadRound();
+      await loadRound(journey?.index === state.index ? journey : null);
     });
   });
   const token = generation;
@@ -346,15 +368,16 @@ async function start() {
         `${icon("pin")}<span><strong>${escape(point.name)}</strong><small>${formatPoint(point)}</small></span><b>已标记</b>`;
       $("#pin-dot").classList.add("set");
       updateSubmit();
+      saveJourney();
     });
     if (token !== generation) {
       map.destroy();
       return;
     }
     guessMap = map;
-    await loadRound();
+    await loadRound(journey);
   } catch (error) {
-    if (token === generation) showLoadError(error.message, () => start());
+    if (token === generation) showLoadError(error.message, () => start(journey));
   }
 }
 function showLoadError(message, retry) {
@@ -364,7 +387,7 @@ function showLoadError(message, retry) {
   $("#retry").onclick = retry;
   $("#load-home").onclick = home;
 }
-async function loadRound() {
+async function loadRound(journey = null) {
   const round = state.deck[state.index],
     token = ++generation;
   clearInterval(clock);
@@ -398,7 +421,7 @@ async function loadRound() {
   $("#year-number").disabled = false;
   $("#era-select").disabled = false;
   $("#year-number").removeAttribute("aria-invalid");
-  setYear(1000, false);
+  setYear(journey ? journey.year : 1000, journey ? journey.yearTouched : false);
   guessMap.reset(state.practice ? (round.region === "china" ? "china" : "all") : state.region);
   setView("scene");
   try {
@@ -407,7 +430,16 @@ async function loadRound() {
     state.phase = "guessing";
     $("#load-cover").hidden = true;
     updateSubmit();
-    state.deadline = Date.now() + LIMIT_SECONDS * 1000;
+    state.deadline = journey ? journey.deadline : Date.now() + LIMIT_SECONDS * 1000;
+    if (journey?.guess) guessMap.goTo(journey.guess);
+    $("#total-score").innerHTML = `${state.results.reduce((n, r) => n + r.total, 0).toLocaleString("zh-CN")} <small>分</small>`;
+    if (journey?.phase === "revealed") {
+      state.phase = "revealed";
+      renderResult();
+      saveJourney();
+      return;
+    }
+    saveJourney();
     $("#timer").textContent = state.timed ? `${LIMIT_SECONDS} 秒` : "自由漫游";
     if (state.timed) {
       clock = setInterval(tick, 250);
@@ -417,7 +449,7 @@ async function loadRound() {
   } catch (error) {
     if (token === generation) {
       state.phase = "error";
-      showLoadError(error.message, loadRound);
+      showLoadError(error.message, () => loadRound(journey));
     }
   }
 }
@@ -494,6 +526,7 @@ function setYear(year, touched = true) {
   $("#year-number").removeAttribute("aria-invalid");
   $("#year-status").textContent = touched ? "年代已选" : "请选择年代";
   updateSubmit();
+  saveJourney();
 }
 function updateSubmit() {
   const ready = state.phase === "guessing" && state.guess && state.yearTouched;
@@ -521,10 +554,18 @@ function reveal(timedOut) {
     id: round.id,
     guess: state.guess,
     year: state.yearTouched ? state.year : null,
+    timedOut,
     ...score,
   });
-  if (!saved.visited.includes(round.id)) saved.visited.push(round.id);
-  save();
+  saved.visited = saved.visited.filter((id) => id !== round.id);
+  saved.visited.push(round.id);
+  saveJourney();
+  chime(true);
+  navigator.vibrate?.(30);
+  renderResult();
+}
+function renderResult() {
+  const round = state.deck[state.index], score = state.results[state.index], timedOut = score.timedOut;
   $("#total-score").innerHTML =
     `${state.results.reduce((n, r) => n + r.total, 0).toLocaleString("zh-CN")} <small>分</small>`;
   $("#submit").disabled = true;
@@ -534,12 +575,10 @@ function reveal(timedOut) {
   $("#center-pin").disabled = true;
   $("#city-search").disabled = true;
   guessMap.reveal(state.guess, round);
-  chime(true);
-  navigator.vibrate?.(30);
   viewer.setActive(false);
   const overlay = $("#result-overlay");
   overlay.innerHTML = `<section class="result-card" aria-labelledby="result-title"><div class="result-top"><span class="eyebrow">${timedOut ? "时间到 · 此刻揭晓" : "时空坐标，已揭晓"}</span><button class="text-button" id="compare-map">${icon("pin")}对照地图</button></div><div class="result-heading"><div><p class="result-place">${round.place}</p><h2 id="result-title">${round.title}</h2><p class="answer-year">${formatYear(round.year)} <span>· ${round.era}</span></p></div><div class="score-stamp"><strong>${score.total.toLocaleString("zh-CN")}</strong><small>本幕得分 / 5000</small></div></div>
-    <div class="score-breakdown"><div>${icon("pin")}<span>地点误差<strong>${score.distance === null ? "尚未落点" : formatDistance(score.distance)}</strong></span><b>+${score.locationScore}</b></div><div>${icon("clock")}<span>年代误差<strong>${score.years === null ? "尚未选择" : `${score.years.toLocaleString("zh-CN")} 年`}</strong></span><b>+${score.timeScore}</b></div></div><p class="guess-recap">你的猜测：${state.guess ? escape(state.guess.name) : "未选择地点"} · ${state.yearTouched ? formatYear(state.year) : "未选择年代"} <span>年代满分宽容 ±${round.tolerance} 年</span></p><p class="story-text">${round.story}</p><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><div class="result-bottom"><span>此刻已收录进「我的足迹」<small>AI 历史想象复原 · 查看资料了解真实历史</small></span><button id="next" class="primary">${state.index === state.deck.length - 1 ? "查看旅行手记" : "前往下一幕"} ${icon("arrow")}</button></div></section>`;
+    <div class="score-breakdown"><div>${icon("pin")}<span>地点误差<strong>${score.distance === null ? "尚未落点" : formatDistance(score.distance)}</strong></span><b>+${score.locationScore}</b></div><div>${icon("clock")}<span>年代误差<strong>${score.years === null ? "尚未选择" : `${score.years.toLocaleString("zh-CN")} 年`}</strong></span><b>+${score.timeScore}</b></div></div><p class="guess-recap">你的猜测：${state.guess ? escape(state.guess.name) : "未选择地点"} · ${state.yearTouched ? formatYear(state.year) : "未选择年代"} <span>年代满分宽容 ±${round.tolerance} 年</span></p>${cluesMarkup(round)}<p class="story-text">${round.story}</p><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><div class="result-bottom"><span>此刻已收录进「我的足迹」<small>AI 历史想象复原 · 查看资料了解真实历史</small></span><button id="next" class="primary">${state.index === state.deck.length - 1 ? "查看旅行手记" : "前往下一幕"} ${icon("arrow")}</button></div></section>`;
   overlay.hidden = false;
   $("#next").onclick = () => {
     if (state.index === state.deck.length - 1) finish();
@@ -568,6 +607,7 @@ function reveal(timedOut) {
 function finish() {
   const total = state.results.reduce((sum, result) => sum + result.total, 0);
   if (!state.practice && state.results.length === ROUND_COUNT) saved.best = Math.max(saved.best, total);
+  saved.journey = null;
   save();
   cleanup();
   state.screen = "finish";
@@ -589,7 +629,7 @@ function finish() {
       "",
     )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">再赴一场相遇 ${icon("arrow")}</button></div><p class="summary-best">本机最佳 ${saved.best.toLocaleString("zh-CN")} 分 · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
   on("#home", "click", home);
-  on("#again", "click", start);
+  on("#again", "click", () => start());
   on("#journal", "click", journal);
   window.scrollTo(0, 0);
 }

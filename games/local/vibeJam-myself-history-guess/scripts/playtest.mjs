@@ -97,6 +97,14 @@ try {
   await page.locator("#year-number").fill("0");
   assert.equal(await page.locator("#submit").isDisabled(), true);
   await page.locator("#year-number").fill("1420");
+  const firstClue = await page.locator("#clue").innerText();
+  await page.reload();
+  await page.locator("#resume").click();
+  await ready(page);
+  assert.equal(await page.locator("#clue").innerText(), firstClue);
+  assert.equal(await page.locator("#year-number").inputValue(), "1420");
+  assert.ok((await page.locator("#location-status").innerText()).includes("北京"));
+  assert.equal(await page.locator("#submit").isDisabled(), false);
   await page.screenshot({
     animations: "disabled",
     path: "artifacts/game-desktop.png",
@@ -104,6 +112,12 @@ try {
   await page.locator("#submit").dblclick();
   await page.locator("#result-overlay").waitFor({ state: "visible" });
   assert.equal(await page.locator(".result-card").count(), 1);
+  const firstScore = await page.locator("#total-score").innerText();
+  await page.reload();
+  await page.locator("#resume").click();
+  await page.locator("#next").waitFor();
+  assert.equal(await page.locator("#total-score").innerText(), firstScore);
+  assert.equal(await page.locator(".reasoning .detail-list li").count(), 3);
   await page.locator("#compare-map").click();
   assert.equal(await page.locator(".answer-pin").count(), 1);
   await page.locator("#submit").click();
@@ -132,12 +146,17 @@ try {
   );
   assert.equal(saved.visited.length, 5);
   assert.ok(saved.best >= 0 && saved.best <= 25000);
+  assert.equal(saved.journey, null);
+  await page.locator("#again").click();
+  await ready(page);
+  const newJourney = await page.evaluate(() => JSON.parse(localStorage.getItem("here-and-then.v1")).journey);
+  assert.ok(newJourney.deck.every((id) => !saved.visited.includes(id)), "new trip prefers unseen scenes");
   await page.reload();
   await page.locator("#journal").click();
   assert.equal(await page.locator("button.journal-card").count(), 5);
   await page.keyboard.press("Escape");
   results.push(
-    "Desktop: 5 rounds, actual camera drag, hint, invalid year, scoring, answer map, summary, persisted journal.",
+    "Desktop: 5 rounds, camera drag, hint, invalid year, refresh/continue before and after reveal without duplicate score, clue review, answer map, summary, unseen next deck and persisted journal.",
   );
   await desktop.close();
 
@@ -257,6 +276,12 @@ try {
   await phone.locator("#era-select").selectOption("bce");
   await phone.locator("#year-number").fill("221");
   assert.equal(await phone.locator("#year-range").inputValue(), "-221");
+  await phone.reload();
+  await phone.locator("#resume").tap();
+  await ready(phone);
+  assert.equal(await phone.locator("#era-select").inputValue(), "bce");
+  assert.equal(await phone.locator("#year-number").inputValue(), "221");
+  await phone.locator("#map-tab").tap();
   await noOverflow(phone);
   await phone.screenshot({
     animations: "disabled",
@@ -339,7 +364,10 @@ try {
   assert.equal(await timerPage.locator("#timed").isChecked(), true);
   await timerPage.locator("#start").click();
   await ready(timerPage);
-  await timerPage.clock.fastForward(91000);
+  await timerPage.clock.fastForward(30000);
+  await timerPage.reload();
+  await timerPage.clock.fastForward(62000);
+  await timerPage.locator("#resume").click();
   await timerPage.locator("#next").waitFor();
   assert.ok(
     (await timerPage.locator(".result-top").innerText()).includes("时间到"),
@@ -350,7 +378,7 @@ try {
   assert.ok((await timerPage.locator("#timer").innerText()).includes("90"));
   await noOverflow(timerPage);
   results.push(
-    "Timed mode: deadline auto-reveals unanswered round as 0; next round receives a fresh timer.",
+    "Timed mode: refreshing and waiting on home does not reset the deadline; resume auto-reveals expired unanswered round as 0, then next round gets a fresh timer.",
   );
   await timed.close();
 

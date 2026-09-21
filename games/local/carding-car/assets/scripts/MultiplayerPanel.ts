@@ -258,20 +258,25 @@ export class MultiplayerPanel {
       this.pendingInvite = undefined;
       this.clearInviteUrl();
     }
-    this.invitation.active = !!this.pendingInvite;
-    this.entry.active = !room && !this.pendingInvite;
+    this.invitation.active = !!client.endpoint && !!this.pendingInvite;
+    this.entry.active = !!client.endpoint && !room && !this.pendingInvite;
     this.lobby.active = !!room && !this.pendingInvite;
     if (this.pendingInvite) {
       const invite = this.pendingInvite;
       this.invitationText.string = `${room ? '退出当前房间，加入好友？' : '好友邀请你一起赛车，是否加入？'}\n房间 ${invite.code}\n${themes.find((t) => t.id === invite.selection.theme)?.name} · ${routes.find((r) => r.id === invite.selection.route)?.name}`;
     }
     platformSharing()?.setQuery(room ? invitationQuery(room.code, room) : '');
-    this.status.string = client.status;
+    this.status.string = client.endpoint
+      ? client.status
+      : '好友赛暂未开放\n关闭此页即可进行单机竞速';
+    this.status.node.setPosition(0, client.endpoint ? -222 : 0);
     this.openButton.string = room
       ? client.connected
         ? `房间 ${room.code}`
         : '联机已断开'
-      : '好友联机';
+      : client.endpoint
+        ? '好友联机'
+        : '好友赛待开放';
     if (!room) return;
     const owner = room.hostId === client.selfId;
     const names = [

@@ -1,5 +1,6 @@
 import { levels, chapters } from './levels.js';
 import { initialState, legalTargets, validatePlan, step, stateKey } from './engine.js';
+import { solutions } from './solutions.js';
 import { character, scenery } from './art.js';
 import { setSound, unlockSound, playSound } from './sound.js';
 
@@ -34,15 +35,36 @@ for (const map of levels) {
   if (record && Number.isInteger(record.turns) && record.turns > 0 && record.turns < 100000 && Number.isInteger(record.stars) && record.stars >= 1 && record.stars <= 3) completed[map.id] = record;
 }
 let soundOn = typeof saved.settings?.sound === 'boolean' ? saved.settings.sound : true;
+let teaching = typeof saved.settings?.teaching === 'boolean' ? saved.settings.teaching : !completed[1];
 let reduced = query.get('motion') === 'reduce' || (typeof saved.settings?.reduced === 'boolean' ? saved.settings.reduced : matchMedia('(prefers-reduced-motion: reduce)').matches);
 let level, state, history = [], selected = 0, inspected = -1, hovered = -1, phase = 'planning';
 let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTab = 0, drag = null, suppressClickUntil = 0;
 let hintBusy = false;
 const outcome = current => current.robbers.includes(-2) ? 'lost' : current.robbers.every(n => n === -1) ? 'won' : 'planning';
+// Reuse the verified route so a map change cannot leave an impossible lesson.
+let lessonState = initialState(levels[0]);
+const lesson = solutions[1].map((plan, index) => {
+  const before = lessonState, cop = Math.max(0, plan.findIndex((node, i) => node !== before.cops[i]));
+  lessonState = step(levels[0], before, plan).state;
+  return { key: stateKey(before), cop, node: plan[cop], text: [
+    '先守右侧出口，小偷就不能从这里逃走。',
+    '另一侧也要有人守，别让小偷绕路。',
+    '先让队友接防，再调动守口的人。',
+    '队友守住后路，现在向内收紧包围。',
+    '留守也是一步，让小偷进入包围圈。',
+    '先封一侧，另一位队友准备合围。',
+    '封住最后一条相邻退路，就能抓获。',
+  ][index] || '守住退路，继续协作。' };
+});
+function lessonStep() { return teaching && level.id === 1 && phase === 'planning' ? lesson.find(item => item.key === stateKey(state)) : null; }
+function turnInstruction(fallback) {
+  const item = lessonStep();
+  return item ? `教学 ${lesson.indexOf(item) + 1}/${lesson.length}：选 ${item.cop + 1} 号，点 ${item.node + 1} 号路口${item.node === state.cops[item.cop] ? '留守' : ''}。${item.text}` : fallback;
+}
 
 function persist() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify({ version: 3, completed, current: { levelId: level.id, state, history: history.slice(-100) }, settings: { sound: soundOn, reduced } }));
+    localStorage.setItem(storageKey, JSON.stringify({ version: 3, completed, current: { levelId: level.id, state, history: history.slice(-100) }, settings: { sound: soundOn, reduced, teaching } }));
     $('save-indicator').textContent = '进度自动保存';
   } catch { $('save-indicator').textContent = '当前浏览器无法保存'; }
 }
@@ -51,6 +73,7 @@ function syncSettings() {
   $('sound').innerHTML = icon(soundOn ? 'sound' : 'muted');
   $('sound').setAttribute('aria-pressed', String(soundOn)); $('sound').setAttribute('aria-label', soundOn ? '关闭音效' : '开启音效');
   $('sound-setting').checked = soundOn; $('motion-setting').checked = reduced;
+  $('teaching-setting').checked = teaching;
 }
 function notify(message, tone = '') { $('instruction').textContent = message; $('instruction').className = `instruction ${tone}`; }
 function stopHint() {
@@ -75,6 +98,8 @@ function updateChrome() {
   });
   const done = Object.keys(completed).length;
   $('completed-count').textContent = `${done} / 60`; $('progress-fill').style.width = `${done / levels.length * 100}%`;
+  const best = completed[level.id]?.turns;
+  $('reference-turns').textContent = `三星 ≤ ${level.par} 步${best ? ` · 最佳 ${best} 步` : ` · ${level.cops.length} 人协作`}`;
 }
 function exitEndpoint(node, outside = false) {
   const p = level.nodes[node];
@@ -163,8 +188,16 @@ function updatePlanning() {
       }
     });
     const danger = preview.escaped.length;
-    $('threat-label').textContent = danger ? `${danger} 名小偷下一步能逃走，先拦截！` : `${level.exits.length} 个逃生出口 · 任意小偷逃走即失败`;
+    const previewing = reachable.includes(hovered) && hovered !== state.cops[selected];
+    const context = previewing ? `走到 ${hovered + 1} 号后` : '若原地留守';
+    const escapeNodes = [...new Set(preview.escaped.map(i => preview.robberMoves[i] + 1))].join('、');
+    $('threat-label').textContent = danger ? `${context}：${escapeNodes} 号出口会失守！` : `${context}：橙线是小偷下一步 · 先守出口`;
     $('threat-label').classList.toggle('urgent', danger > 0);
+  }
+  const item = lessonStep();
+  if (item && inspected < 0) {
+    const p = level.nodes[item.node];
+    markup += `<circle class="lesson-ring" cx="${p.x}" cy="${p.y}" r="33"/><text class="lesson-tip" x="${p.x}" y="${p.y + 59}">${item.cop + 1} 号到这里</text>`;
   }
   $('preview-layer').innerHTML = markup; updateActors(); updateExits(); updateChrome();
 }
@@ -182,9 +215,8 @@ function loadLevel(id, restore = null) {
   $('mission-name').textContent = level.name; $('mission-tip').textContent = level.tip;
   $('case-number').textContent = `CASE ${String(level.id).padStart(3, '0')}`;
   $('cop-count').textContent = level.cops.length; $('robber-count').textContent = level.robbers.length;
-  $('reference-turns').textContent = `参考 ${level.par} 步 · ${level.cops.length} 人缺一不可`;
   $('board-caption').textContent = `${chapters[level.chapter].name} · 守口、换防、两侧包抄`;
-  drawBase(); notify(level.id <= 3 && state.turn === 0 ? level.tip : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。');
+  drawBase(); notify(turnInstruction(level.id <= 3 && state.turn === 0 ? level.tip : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。'));
   updatePlanning(); syncSettings(); persist();
   if (phase === 'won') { updateActors(); showWin(false); }
   if (phase === 'lost') showLoss(false);
@@ -193,7 +225,7 @@ function pickCop(index) {
   if (phase !== 'planning') return;
   clearHint();
   selected = index; inspected = -1; hovered = -1;
-  playSound('select'); notify(`${index + 1} 号就位！点相邻路口立即走，小偷也会走一步。`); updatePlanning();
+  playSound('select'); notify(turnInstruction(`${index + 1} 号就位！点相邻路口立即走，小偷也会走一步。`)); updatePlanning();
 }
 function planTarget(node) {
   if (phase !== 'planning') return;
@@ -249,12 +281,13 @@ function finishTurn(token) {
     updateActors(); updateChrome(); updateExits(); persist(); showLoss(true);
   } else {
     const repeats = history.filter(s => stateKey(s) === stateKey(state)).length;
-    notify(repeats >= 2 ? '别只跟着追，试着提前拦住出口。' : caught ? `抓获 ${caught} 名！还有小偷在逃，继续拦截。` : `轮到你了。${selected + 1} 号仍被选中，可连续点击前进。`, caught ? 'success' : '');
+    notify(turnInstruction(repeats >= 2 ? '别只跟着追，试着提前拦住出口。' : caught ? `抓获 ${caught} 名！还有小偷在逃，继续拦截。` : `轮到你了。${selected + 1} 号仍被选中，可连续点击前进。`), caught ? 'success' : '');
     updatePlanning(); persist();
   }
 }
 function recordWin() {
   if (outcome(state) !== 'won') return;
+  if (level.id === 1) { teaching = false; $('teaching-setting').checked = false; }
   const stars = state.turn <= level.par ? 3 : state.turn <= level.par + 3 ? 2 : 1;
   const previous = completed[level.id];
   if (!previous || state.turn < previous.turns) completed[level.id] = { turns: state.turn, stars };
@@ -266,7 +299,8 @@ function showWin(sound = true) {
   $('win-title').textContent = level.id === 60 ? '全城平安！辛苦啦。' : '漂亮！一网打尽。';
   $('win-stars').innerHTML = '★'.repeat(stars) + `<span class="empty">${'★'.repeat(3 - stars)}</span>`;
   $('win-stars').setAttribute('aria-label', `获得${stars}颗星`);
-  $('win-details').textContent = `${level.robbers.length} 名小偷全部归案，用了 ${state.turn} 步。${stars === 3 ? '拦截得漂亮，没人能逃走！' : '守住了所有出口，这次配合不错！'}`;
+  $('win-details').textContent = `${level.robbers.length} 名小偷全部归案，用了 ${state.turn} 步。个人最佳 ${completed[level.id].turns} 步。${stars === 3 ? '已达成三星！下一关继续练配合。' : `再省 ${state.turn - level.par} 步就能获得三星，试着减少追赶和重复换防。`}`;
+  $('replay').textContent = stars === 3 ? '重玩本关，挑战更少步数' : `重玩本关，挑战 ${level.par} 步三星`;
   $('next-level').innerHTML = `${level.id === 60 ? '看看街区巡逻记录' : '下一个任务'} <span aria-hidden="true">→</span>`;
   $('win-art').innerHTML = `<svg viewBox="0 0 260 180"><ellipse cx="130" cy="158" rx="95" ry="12" fill="#dfe6d2"/><g transform="translate(78 156) scale(1.4)">${character('cop', 'cheer', 0)}</g><g transform="translate(176 161) scale(1.15)">${character('robber', 'caught', 0)}</g><g fill="#e3ad46"><path d="m124 29 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z"/><circle cx="31" cy="61" r="3"/><circle cx="220" cy="83" r="4"/></g><path d="m213 37 5 9m-10-5 13-2M42 106l-7 5" stroke="#dc8b69" stroke-width="3" stroke-linecap="round"/></svg>`;
   if (!$('win-dialog').open) $('win-dialog').showModal();
@@ -274,7 +308,15 @@ function showWin(sound = true) {
 }
 function showLoss(sound = true) {
   const escaped = state.robbers.filter(n => n === -2).length;
-  $('loss-details').textContent = `${escaped} 名小偷从出口逃走了。试试提前占住出口或它必经的路口。`;
+  const before = history.at(-1);
+  let explanation = `${escaped} 名小偷从出口逃走了。试试提前占住出口或它必经的路口。`;
+  if (before && !validatePlan(level, before, state.cops)) {
+    const result = step(level, before, state.cops);
+    const escapes = result.escaped.map(i => `${i + 1} 号小偷从 ${before.robbers[i] + 1} 号路口逃到 ${result.robberMoves[i] + 1} 号出口`);
+    const leaving = before.cops.findIndex((node, i) => node !== state.cops[i] && result.escaped.some(robber => result.robberMoves[robber] === node));
+    if (escapes.length) explanation = `第 ${state.turn} 步：${escapes.join('；')}。${leaving >= 0 ? `${leaving + 1} 号离开出口前，需要队友接防。` : '这一步没有封住它通往出口的路。'}撤销后先拦截，或点提示找一个安全落点。`;
+  }
+  $('loss-details').textContent = explanation;
   $('loss-art').innerHTML = `<svg viewBox="0 0 260 170"><ellipse cx="122" cy="151" rx="102" ry="11" fill="#ead9c8"/><g transform="translate(74 150) scale(1.35)">${character('cop', 'nervous', 0)}</g><g transform="translate(185 144) scale(1.15)">${character('robber', 'cheer', 0)}</g><path d="M220 46h23m-7-6 7 6-7 6" fill="none" stroke="#c65c37" stroke-width="4" stroke-linecap="round"/></svg>`;
   $('undo-loss').disabled = !history.length;
   $('threat-label').textContent = '出口失守 · 可以撤销这一步再试'; $('threat-label').classList.add('urgent');
@@ -287,13 +329,14 @@ function undo() {
   if (!history.length) return;
   $('win-dialog').close(); $('loss-dialog').close(); clearHint(); runToken++;
   state = history.pop(); inspected = -1; hovered = -1; phase = 'planning';
-  notify('回到上一步。换一位警察，试试提前拦截。'); updatePlanning(); persist(); playSound('undo');
+  notify(turnInstruction('回到上一步。换一位警察，试试提前拦截。')); updatePlanning(); persist(); playSound('undo');
 }
 function renderLevelDialog() {
   $('chapter-tabs').innerHTML = chapters.map((chapter, i) => `<button role="tab" aria-selected="${i === chapterTab}" aria-controls="level-grid" id="chapter-tab-${i}" data-chapter="${i}">${chapter.name}</button>`).join('');
-  $('chapter-description').textContent = chapters[chapterTab].subtitle;
+  const chapterLevels = levels.filter(map => map.chapter === chapterTab), threeStars = chapterLevels.filter(map => completed[map.id]?.stars === 3).length;
+  $('chapter-description').textContent = `${chapters[chapterTab].subtitle} · 三星 ${threeStars}/${chapterLevels.length}`;
   $('level-grid').setAttribute('role', 'tabpanel'); $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
-  $('level-grid').innerHTML = levels.filter(map => map.chapter === chapterTab).map(map => `<button class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!completed[map.id]}" aria-label="第${map.id}关 ${map.name}${completed[map.id] ? `，已完成，${completed[map.id].stars}颗星` : ''}"><span class="level-id">${String(map.id).padStart(2, '0')}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(completed[map.id]?.stars || 0)}${'☆'.repeat(3 - (completed[map.id]?.stars || 0))}</span></button>`).join('');
+  $('level-grid').innerHTML = chapterLevels.map(map => `<button class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!completed[map.id]}" aria-label="第${map.id}关 ${map.name}${completed[map.id] ? `，已完成，${completed[map.id].stars}颗星，最佳${completed[map.id].turns}步` : ''}，三星${map.par}步以内"><span class="level-id">${String(map.id).padStart(2, '0')}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(completed[map.id]?.stars || 0)}${'☆'.repeat(3 - (completed[map.id]?.stars || 0))}</span><span class="level-record">${completed[map.id] ? `最佳 ${completed[map.id].turns} 步` : `三星 ≤ ${map.par} 步`}</span></button>`).join('');
 }
 function openLevels() { chapterTab = level.chapter; renderLevelDialog(); $('level-dialog').showModal(); }
 function showHint() {
@@ -379,6 +422,7 @@ $('help').addEventListener('click', () => $('help-dialog').showModal()); $('sett
 $('sound').addEventListener('click', () => { soundOn = !soundOn; syncSettings(); unlockSound(); playSound('select'); persist(); });
 $('sound-setting').addEventListener('change', event => { soundOn = event.target.checked; syncSettings(); unlockSound(); playSound('select'); persist(); });
 $('motion-setting').addEventListener('change', event => { reduced = event.target.checked; syncSettings(); persist(); });
+$('teaching-setting').addEventListener('change', event => { teaching = event.target.checked; notify(turnInstruction(teaching ? '教学已开启，选择第 1 关体验守口与换防。' : '教学已关闭。点小偷可查看退路，提示可以帮你找安全落点。')); updatePlanning(); persist(); });
 document.querySelectorAll('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(dialog => {
   dialog.addEventListener('click', event => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });

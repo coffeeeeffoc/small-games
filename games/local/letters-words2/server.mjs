@@ -7,6 +7,7 @@ const assets = new Map([
   ['styles.css', 'text/css; charset=utf-8'],
   ['app.js', 'text/javascript; charset=utf-8'],
   ['engine.js', 'text/javascript; charset=utf-8'],
+  ['library.js', 'text/javascript; charset=utf-8'],
   ['favicon.svg', 'image/svg+xml'],
 ]);
 
@@ -14,7 +15,7 @@ function assetFor(requestPath) {
   const path = decodeURIComponent(requestPath.split('?')[0]);
   const asset = path === '/' ? 'index.html' : path.slice(1);
   // Exact filenames keep traversal, absolute paths and private files outside the public surface.
-  return path.startsWith('/') && assets.has(asset) ? asset : null;
+  return path.startsWith('/') && (assets.has(asset) || /^assets\/english-dict\/(catalog\.json|books\/[A-Za-z0-9_-]+\.json)$/.test(asset)) ? asset : null;
 }
 
 if (process.argv.includes('--check')) {
@@ -45,7 +46,7 @@ if (process.argv.includes('--check')) {
     try {
       const content = await readFile(new URL(asset, import.meta.url));
       response.writeHead(200, {
-        'Content-Type': assets.get(asset),
+        'Content-Type': assets.get(asset) || 'application/json; charset=utf-8',
         'Content-Length': content.length,
         'Cache-Control': 'no-cache',
         'X-Content-Type-Options': 'nosniff',
