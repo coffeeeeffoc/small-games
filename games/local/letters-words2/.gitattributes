@@ -1,2 +1,3 @@
-assets/english-dict/**/*.json text eol=lf
-assets/english-dict/*.json text eol=lf
+# Preserve exact downloaded bytes for SHA-256 verification.
+assets/english-dict/**/*.json -text
+assets/english-dict/*.json -text
