@@ -17,8 +17,8 @@ try {
 }
 process.env.KART_ALLOWED_ORIGINS = [
   url.origin,
-  'http://127.0.0.1:43003',
-  'http://localhost:43003',
+  `http://127.0.0.1:${process.env.KART_SERVER_PORT ?? 43003}`,
+  `http://localhost:${process.env.KART_SERVER_PORT ?? 43003}`,
   process.env.KART_ALLOWED_ORIGINS,
 ]
   .filter(Boolean)
@@ -26,5 +26,5 @@ process.env.KART_ALLOWED_ORIGINS = [
 await import('./main.ts');
 console.log(`好友联机地址：${url.origin}/play/`);
 console.log(
-  `将隧道转发到 127.0.0.1:${process.env.PORT || 43003}。保持电脑、此服务和隧道客户端运行。`,
+  `将隧道转发到 127.0.0.1:${process.env.KART_SERVER_PORT ?? 43003}。保持电脑、此服务和隧道客户端运行。`,
 );
