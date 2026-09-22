@@ -138,6 +138,10 @@ export function createViewer(container) {
     pointers.delete(event.pointerId);
   });
   listen(window, "blur", cancel);
+  listen(document, "game-displaychange", () => {
+    cancel();
+    resize();
+  });
   listen(document, "visibilitychange", () => {
     cancel();
     if (document.hidden) {

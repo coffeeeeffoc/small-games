@@ -10,7 +10,8 @@
     "test:levels": "node scripts/verify-levels.mjs",
     "build": "node scripts/build.mjs",
     "test:browser": "node scripts/playtest.mjs",
-    "test:lifecycle": "node scripts/lifecycle-playtest.mjs"
+    "test:lifecycle": "node scripts/lifecycle-playtest.mjs",
+    "test:guided": "node scripts/guided-playtest.mjs"
   },
   "engines": {
     "node": ">=20"

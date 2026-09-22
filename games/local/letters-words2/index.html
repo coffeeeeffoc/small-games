@@ -8,6 +8,7 @@
     <title>词屿 · 字母叠叠乐</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./fullscreen.js"></script>
     <script type="module" src="./app.js"></script>
   </head>
   <body>
@@ -16,6 +17,7 @@
         <a class="brand" href="./" aria-label="词屿首页"><span class="brand-mark" aria-hidden="true">w<span>·</span></span><span>词屿<small>WORD ISLAND</small></span></a>
         <span class="header-note">在字母之间，发现一点乐趣。</span>
         <nav aria-label="游戏设置">
+          <button type="button" class="text-button" data-game-fullscreen>全屏</button>
           <button class="icon-button" id="sound-button" aria-label="开启音效" title="开启音效" aria-pressed="false"></button>
           <button class="text-button" id="help-button"><span class="help-mark">?</span><span>怎么玩</span></button>
         </nav>

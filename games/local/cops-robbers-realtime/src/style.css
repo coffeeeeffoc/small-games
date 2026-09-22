@@ -63,6 +63,10 @@ span > svg {
   padding: 0 44px;
 }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--paper);
   height: 101px;
   display: flex;
   align-items: center;
@@ -122,6 +126,15 @@ span > svg {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+.toolbar .fullscreen-button {
+  min-width: 60px;
+  min-height: 44px;
+  padding: 7px 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 380px) {
+  .brand-mark, .level-nav svg { display: none; }
 }
 .button {
   border: 1px solid var(--line);

@@ -375,7 +375,7 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(
     new URL('browser.json', reports),
-    JSON.stringify({ errors, engineWarnings, evidence }, null, 2),
+    JSON.stringify({ build, errors, engineWarnings, evidence }, null, 2),
   );
   console.log(
     JSON.stringify(

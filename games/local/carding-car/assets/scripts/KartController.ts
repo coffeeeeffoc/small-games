@@ -147,7 +147,7 @@ export class KartController {
         if (r.phase === 'ready' && r.loadError) this.garage();
         else if (r.phase === 'ready' && r.loaded) this.start();
         else if (r.phase === 'paused') r.resume();
-        else this.restart();
+        else if (r.phase === 'finished') this.restart();
       }
       return;
     }
