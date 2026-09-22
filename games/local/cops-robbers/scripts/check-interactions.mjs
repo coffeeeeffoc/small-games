@@ -152,11 +152,46 @@ try {
         content: document.documentElement.scrollWidth,
       }));
       assert.ok(size.content <= size.available, `${size.content}px content overflows ${size.available}px usable width`);
+      const fullscreen = await page.locator('.topbar [data-game-fullscreen]').boundingBox();
+      assert.ok(fullscreen.width >= 44 && fullscreen.height >= 44 && fullscreen.x + fullscreen.width <= size.available,
+        'The fullscreen entry must remain a visible touch target at the narrowest width');
     }
+  });
+
+  await check('native fullscreen preserves patrol and stays accessible in result dialogs', async page => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, 1);
+    const current = await move(page, 1, initialState(levels[0]), solutions[1][0]);
+    await page.locator('.topbar [data-game-fullscreen]').click();
+    await page.waitForFunction(() => document.fullscreenElement === document.documentElement);
+    assert.deepEqual(await snapshot(page, 1), expectedView(current));
+    await move(page, 1, current, current.cops); // The unguarded other exit is a genuine loss.
+    assert.equal(await page.getByTestId('defeat').isVisible(), true);
+    await page.locator('#loss-dialog [data-game-fullscreen]').click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.getByTestId('undo-loss').click();
+    assert.deepEqual(await snapshot(page, 1), expectedView(current));
+    await page.getByRole('button', { name: '选择3号警察', exact: true }).click();
+    await page.getByTestId('node-4').click(); await finished(page, 2);
+    await page.reload(); await finished(page, 2);
+    assert.equal(await page.locator('.topbar [data-game-fullscreen]').getAttribute('aria-pressed'), 'false');
   });
   const moving = recordedCase((before, after) => after.robbers.some((n, i) => n >= 0 && before.robbers[i] !== n));
   const partial = recordedCase((_, after) => after.robbers.includes(-1) && after.robbers.some(n => n >= 0));
   const losing = lossCase();
+
+  await check('rotating after victory keeps next-level and replay reachable', async page => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, 1); await replay(page, 1, solutions[1]);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.getByTestId('next-level').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: resolve(output, 'escape-landscape-victory.png') });
+    await page.getByTestId('next-level').click({ timeout: 3000 });
+    assert.equal(await page.locator('body').getAttribute('data-level'), '2');
+    await load(page, 1); await replay(page, 1, solutions[1]);
+    await page.locator('#replay').click({ timeout: 3000 });
+    assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
+  });
 
   await check('first patrol teaches real moves, exits explain danger and records survive replay', async page => {
     await load(page, 1);
@@ -305,7 +340,9 @@ try {
     await touch('touchMove', origin);
     await page.waitForFunction(() => document.getElementById('threat-label').textContent.startsWith('若原地留守'));
     assert.match(await page.locator('#threat-label').textContent(), /若原地留守/, 'Returning to the drag origin must clear the old destination preview');
-    await touch('touchMove', await point(page, map.nodes[before.cops[cop]].x, map.nodes[before.cops[cop]].y));
+    await touch('touchEnd');
+    assert.deepEqual(await snapshot(page, 1), expectedView(guarded), 'Returning a dragged officer to its starting point cancels, rather than spending a wait turn');
+    await startDrag(before.cops[cop]);
     await page.waitForFunction(() => document.getElementById('threat-label').textContent.includes('2 号出口会失守'));
     await page.screenshot({ path: resolve(output, 'escape-touch-preview.png'), fullPage: true });
     await touch('touchCancel');
@@ -365,7 +402,9 @@ try {
     await replay(page, 1, solutions[1]);
   }, { init: () => localStorage.setItem('cops-robbers-v3', '{broken-save') });
   await check('storage denial keeps capture, defeat and replay available', async page => {
+    await page.setViewportSize({ width: 320, height: 740 });
     await load(page, 1); assert.match(await page.locator('#save-indicator').textContent(), /无法保存/);
+    assert.equal(await page.locator('#save-indicator').isVisible(), true, 'Narrow screens must disclose that progress will be lost');
     await replay(page, 1, solutions[1]); assert.equal(await page.getByTestId('victory').isVisible(), true);
     await load(page, losing.id); await replay(page, losing.id, losing.path);
     assert.equal(await page.getByTestId('defeat').isVisible(), true);

@@ -16,7 +16,7 @@ const browser = await chromium.launch({
   headless: true,
 });
 try {
-  for (const viewport of [{ width: 1280, height: 960 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
+  for (const viewport of [{ width: 1280, height: 960 }, { width: 390, height: 844 }, { width: 320, height: 740 }, { width: 305, height: 740 }]) {
     const context = await browser.newContext({ viewport, isMobile: viewport.width < 600, hasTouch: viewport.width < 600, reducedMotion: viewport.width < 600 ? 'no-preference' : 'reduce' });
     const page = await context.newPage();
     const errors = [];
@@ -52,6 +52,7 @@ try {
         const board = document.querySelector('#board').getBoundingClientRect();
         return {
           viewport: innerWidth, page: document.documentElement.scrollWidth,
+          smallestTile: Math.min(...[...document.querySelectorAll('.tile')].map(tile => tile.getBoundingClientRect().width)),
           outsideTiles: [...document.querySelectorAll('.tile')].filter(tile => {
             const rect = tile.getBoundingClientRect();
             return rect.left < board.left - 1 || rect.top < board.top - 1 || rect.right > board.right + 1 || rect.bottom > board.bottom + 1;
@@ -65,12 +66,55 @@ try {
       assert.equal(sizes.outsideTiles, 0, 'all cards stay in the board');
       assert.deepEqual(sizes.overflow, [], 'answer, meaning, words and open dialog fit');
       assert.equal(sizes.clippedMeaning, false, 'meaning text is not clipped');
+      assert.ok(sizes.smallestTile >= 44, `letter targets remain at least 44px: ${JSON.stringify(sizes)}`);
     };
 
     await page.goto(baseURL, { waitUntil: 'networkidle' });
     assert.match(await page.title(), /词屿/);
     assert.equal(await page.locator('.word-row').count(), 6);
     assert.ok(await tileCount() > 0);
+    await assertLayout();
+    if (viewport.width === 305) {
+      const exposed = await page.locator('.tile[aria-disabled="false"]').all();
+      for (const tile of exposed) {
+        await tile.evaluate(element => element.scrollIntoView({ block: 'center' }));
+        assert.equal(await tile.evaluate(element => {
+          const r = element.getBoundingClientRect();
+          const x = r.left + r.width / 2, y = r.top + r.height / 2;
+          return [[x - 21.5, y], [x + 21.5, y], [x, y - 21.5], [x, y + 21.5]]
+            .every(([px, py]) => document.elementFromPoint(px, py)?.closest('.tile') === element);
+        }), true, 'unblocked letters have an actual unobstructed 44px target');
+      }
+      const tile = exposed[0];
+      await tile.scrollIntoViewIfNeeded();
+      const box = await tile.boundingBox();
+      const beforeCancel = await tileSnapshot();
+      const cdp = await context.newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+      assert.deepEqual(await tileSnapshot(), beforeCancel, 'cancelled touch does not select a letter');
+      await cdp.detach();
+    }
+
+    // Fullscreen and resize preserve the live board, including an unfinished answer.
+    const selectable = (await tileSnapshot()).find(tile => !tile.blocked);
+    await clickTile(selectable.id);
+    const partialBoard = await tileSnapshot();
+    const fullscreen = page.locator('.site-header [data-game-fullscreen]');
+    await fullscreen.click();
+    await page.waitForFunction(() => !!document.fullscreenElement);
+    assert.equal(await fullscreen.textContent(), '退出全屏');
+    assert.deepEqual(await tileSnapshot(), partialBoard);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await assertLayout();
+    assert.deepEqual(await tileSnapshot(), partialBoard, 'rotation never rearranges or clears the board');
+    await page.locator('#help-button').click();
+    await page.locator('#help-dialog [data-game-fullscreen]').click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.locator('#help-dialog [data-close]').last().click();
+    assert.deepEqual(await tileSnapshot(), partialBoard);
+    await page.setViewportSize(viewport);
+    await page.locator('#clear-button').click();
     await assertLayout();
     await page.locator('#help-button').click();
     assert.equal(await page.locator('#help-dialog').evaluate(dialog => dialog.open), true);
@@ -198,6 +242,17 @@ try {
     assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), true);
     assert.equal(await page.locator('#win-words span').count(), entries.length);
     await assertLayout();
+    const completedProgress = await page.evaluate(() => JSON.stringify(localStorage));
+    for (const size of [viewport, { width: 844, height: 390 }]) {
+      await page.setViewportSize(size);
+      const close = page.locator('#win-dialog .dialog-close');
+      await (viewport.width < 600 ? close.tap() : close.click());
+      assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), false, 'result decoration must not intercept the close button');
+      await page.locator('#result-button').click();
+      assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), true);
+      assert.equal(await page.evaluate(() => JSON.stringify(localStorage)), completedProgress, 'closing and reopening results retains completed words');
+    }
+    await page.setViewportSize(viewport);
     await page.locator('#win-dialog [data-close]').last().click();
     assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), false);
     await page.locator('#result-button').click();
@@ -242,6 +297,23 @@ try {
     console.log(`Browser ${viewport.width}×${viewport.height}: blocked click, wrong spelling, undo/clear/switch, hint, punctuation/repetition, full clear/replay, import validation and layout passed.`);
     await context.close();
   }
+  for (const failure of ['unsupported', 'rejected']) {
+    const context = await browser.newContext({ viewport: { width: 305, height: 740 }, isMobile: true, hasTouch: true });
+    await context.addInitScript(mode => {
+      Object.defineProperty(Element.prototype, 'requestFullscreen', { configurable: true, value: mode === 'unsupported' ? undefined : () => Promise.reject(new Error('Denied')) });
+      Object.defineProperty(Element.prototype, 'webkitRequestFullscreen', { configurable: true, value: undefined });
+    }, failure);
+    const page = await context.newPage();
+    await page.goto(baseURL);
+    await page.locator('.site-header [data-game-fullscreen]').tap();
+    await page.waitForFunction(() => !document.querySelector('#game-display-notice').hidden);
+    assert.match(await page.locator('#game-display-notice').textContent(), failure === 'unsupported' ? /不支持.*仍可/ : /未允许.*仍可/);
+    assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
+    await page.locator('.tile[aria-disabled="false"]').first().tap();
+    assert.equal(await page.locator('.answer-slot.filled').count(), 1, `${failure}: ordinary play remains available`);
+    await context.close();
+  }
+  console.log('Fullscreen entry/exit/rotation preserve selection; unavailable/denied branches remain playable (simulated capability failures).');
 } finally {
   await browser.close();
 }

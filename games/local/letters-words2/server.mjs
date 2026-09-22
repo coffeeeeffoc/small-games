@@ -8,6 +8,7 @@ const assets = new Map([
   ['app.js', 'text/javascript; charset=utf-8'],
   ['engine.js', 'text/javascript; charset=utf-8'],
   ['library.js', 'text/javascript; charset=utf-8'],
+  ['fullscreen.js', 'text/javascript; charset=utf-8'],
   ['favicon.svg', 'image/svg+xml'],
 ]);
 
@@ -21,6 +22,7 @@ function assetFor(requestPath) {
 if (process.argv.includes('--check')) {
   assert.equal(assetFor('/'), 'index.html');
   assert.equal(assetFor('/app.js?v=1'), 'app.js');
+  assert.equal(assetFor('/fullscreen.js'), 'fullscreen.js');
   for (const path of ['/../app.js', '/%2e%2e/app.js', '/C:/app.js', '/C:\\app.js', '//app.js', '/package.json', '/server.mjs', 'app.js']) {
     assert.equal(assetFor(path), null, path);
   }

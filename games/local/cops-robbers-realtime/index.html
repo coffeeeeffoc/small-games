@@ -95,11 +95,12 @@
             <svg><use href="#i-sound" /></svg>
           </button>
           <button
-            class="icon-button"
+            class="button quiet fullscreen-button"
             id="fullscreen-button"
-            aria-label="进入全屏"
+            data-game-fullscreen
+            aria-label="全屏"
           >
-            <svg><use href="#i-expand" /></svg>
+            全屏
           </button>
         </nav>
       </header>
@@ -281,7 +282,7 @@
         继续行动<svg><use href="#i-play" /></svg></button
       ><button class="button quiet wide" id="pause-restart">
         重新挑战本关
-      </button><button class="button quiet wide" id="pause-practice">结束本局，练习夹击</button>
+      </button><button class="button quiet wide" id="pause-practice">暂停本局，练习夹击</button>
     </dialog>
     <dialog id="win-dialog" class="small-dialog win-dialog">
       <div class="win-stamp">CASE<br />CLOSED<span>✓</span></div>
@@ -337,8 +338,9 @@
       </div>
       <button class="button primary wide" data-close>
         收到，出发！<svg><use href="#i-arrow" /></svg>
-      </button><button class="button quiet wide" id="help-practice">结束本局，练习夹击</button>
+      </button><button class="button quiet wide" id="help-practice">暂停本局，练习夹击</button>
     </dialog>
     <script type="module" src="./src/main.js"></script>
+    <script defer src="./src/fullscreen.js"></script>
   </body>
 </html>

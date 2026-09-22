@@ -2137,9 +2137,6 @@ legend {
     min-height: 30px;
     padding: 6px;
   }
-  .game-status #fullscreen {
-    display: none;
-  }
   .game-body {
     padding: 6px 6px 0;
   }
@@ -2832,4 +2829,36 @@ legend {
   .era-stops button {
     min-height: 24px;
   }
+}
+
+/* Keep display and help controls reachable even at the 305px supported width. */
+.display-button {
+  min-height: 44px;
+  min-width: 68px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink);
+}
+.scene-actions { display: flex; gap: 6px; }
+.scene-actions .glass-button { min-height: 44px; }
+@media (max-width: 650px) {
+  .site-header, .summary-shell .site-header {
+    height: auto;
+    min-height: 80px;
+    padding: 14px 0;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .site-header nav { width: 100%; justify-content: space-between; }
+  .site-header nav .icon-button { width: 44px; min-height: 44px; }
+  .site-header nav #help { font-size: 12px; }
+  .brand.compact > span:last-child { display: none; }
+  .game-status {
+    grid-template-columns: auto 44px 68px;
+    max-width: none;
+    column-gap: 5px;
+  }
+  .game-status #sound { width: 44px; height: 44px; min-height: 44px; }
+  .game-status [data-game-fullscreen] { grid-column: 3; grid-row: 1 / 3; }
 }

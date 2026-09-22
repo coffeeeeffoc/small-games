@@ -62,7 +62,7 @@ function unlockedLevel() {
   return id;
 }
 let game = createGame(LEVELS[unlockedLevel() - 1]);
-let returnLevel = game.level.id, practiceOrders = new Set(), captureHint = null;
+let returnLevel = game.level.id, practiceReturn = null, practiceOrders = new Set(), captureHint = null;
 let selected = 0,
   pointer = null,
   mousePosition = null,
@@ -167,7 +167,7 @@ function updateHud() {
     $("ready-hint").textContent =
       game.level.id === 0 ? "正式街区有岔路：先封出口，再从不同方向靠近。" : `本关用时 ${formatTime(game.time)}。新的行动，等你指挥。`;
     $("start-button").firstChild.textContent =
-      game.level.id === 0 ? `挑战第 ${returnLevel} 关` : game.level.id === 48 ? "街区地图" : "下一关";
+      game.level.id === 0 ? `${practiceReturn ? "返回" : "挑战"}第 ${returnLevel} 关` : game.level.id === 48 ? "街区地图" : "下一关";
   } else if (game.phase === "lost") {
     $("ready-title").textContent = "有小偷逃出了街区。";
     $("ready-hint").textContent = "先派人截住橙色出口，再让另一名警察包抄。";
@@ -221,6 +221,9 @@ function updateCaptureHint() {
     message = "练习 1/3 · 点 1 号警察，再点道路中央的蓝圈。";
   } else if (practice && !practiceOrders.has(1)) {
     message = "练习 2/3 · 换选 2 号，再点橙色小偷，从另一侧追击。";
+  } else if (practice && captureHint && !captureHint.enclosed && game.cops.every((cop) => !cop.moving)) {
+    const farther = game.cops.reduce((a, b) => roadDistance(game, a, robber) > roadDistance(game, b, robber) ? a : b);
+    message = `练习 3/3 · 到点会停：选 ${farther.id + 1} 号，再点小偷继续夹击。`;
   } else if (captureHint) {
     const { nearby, enclosed } = captureHint;
     message = robber.escapeProgress > 0
@@ -250,7 +253,7 @@ function updateCampaign() {
   $("campaign-count").textContent = `${count} / 48`;
   $("campaign-fill").style.width = `${(count / 48) * 100}%`;
 }
-function loadLevel(id) {
+function loadLevel(id, saved = null) {
   if (!Number.isInteger(id) || id < 0 || id > unlockedLevel()) return false;
   if (id === 0 && game.level.id > 0) returnLevel = game.level.id;
   clearTimeout(winTimer);
@@ -261,10 +264,11 @@ function loadLevel(id) {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
   document.body.classList.remove("modal-open");
   dialogResume = false;
-  game = createGame(id === 0 ? PRACTICE : LEVELS[id - 1]);
+  game = saved?.game || createGame(id === 0 ? PRACTICE : LEVELS[id - 1]);
+  if (id !== 0) practiceReturn = null;
   practiceOrders.clear();
   captureHint = null;
-  selected = 0;
+  selected = saved?.selected ?? 0;
   keyboardNode = null;
   accumulator = 0;
   lastTurnSound = -10;
@@ -317,7 +321,7 @@ function begin() {
     return;
   }
   if (game.phase === "won") {
-    if (game.level.id === 0) loadLevel(returnLevel);
+    if (game.level.id === 0) leavePractice();
     else if (game.level.id === 48) openLevels();
     else loadLevel(game.level.id + 1);
     return;
@@ -685,11 +689,26 @@ document.addEventListener("keydown", (event) => {
 });
 
 $("start-button").addEventListener("click", begin);
-function practice() { loadLevel(0); begin(); }
+function practice() {
+  if (game.level.id > 0 && ["playing", "paused"].includes(game.phase)) {
+    pauseGame(game);
+    practiceReturn = { game, selected };
+  }
+  loadLevel(0);
+  begin();
+}
+function leavePractice() {
+  loadLevel(returnLevel, practiceReturn);
+  if (game.phase === "paused") {
+    $("pause-reason").textContent = "练习结束，原来的布置和用时已保留。准备好后继续。";
+    openDialog("pause-dialog");
+    dialogResume = true;
+  }
+}
 $("practice-button").addEventListener("click", practice);
 $("help-practice").addEventListener("click", practice);
 $("pause-practice").addEventListener("click", practice);
-$("practice-exit").addEventListener("click", () => loadLevel(returnLevel));
+$("practice-exit").addEventListener("click", leavePractice);
 $("hold-button").addEventListener("click", hold);
 $("pause-button").addEventListener("click", () => pause());
 $("resume-button").addEventListener("click", () =>
@@ -721,24 +740,12 @@ $("sound-button").addEventListener("click", () => {
   saveProgress();
   updateSound();
 });
-$("fullscreen-button").addEventListener("click", async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (document.documentElement.requestFullscreen)
-      await document.documentElement.requestFullscreen();
-    else toast("这个浏览器暂不支持全屏，横屏也能完整操作。");
-  } catch {
-    toast("全屏暂不可用，游戏可以继续。");
-  }
-});
-document.addEventListener("fullscreenchange", () => {
-  $("fullscreen-button").setAttribute(
-    "aria-label",
-    document.fullscreenElement ? "退出全屏" : "进入全屏",
-  );
+function displayChanged() {
   renderer.resize();
   clearGesture();
-});
+}
+document.addEventListener("fullscreenchange", displayChanged);
+document.addEventListener("game-displaychange", displayChanged);
 document
   .querySelectorAll("[data-close]")
   .forEach((button) =>

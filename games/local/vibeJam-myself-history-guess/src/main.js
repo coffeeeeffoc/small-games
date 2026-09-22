@@ -153,6 +153,9 @@ function cleanup() {
 function soundButton() {
   return `<button class="icon-button" id="sound" aria-label="${saved.sound ? "关闭" : "开启"}音效" aria-pressed="${saved.sound}" title="${saved.sound ? "关闭" : "开启"}音效">${icon(saved.sound ? "sound" : "mute")}</button>`;
 }
+function fullscreenButton() {
+  return '<button class="display-button" data-game-fullscreen>全屏</button>';
+}
 function bindSound() {
   on("#sound", "click", () => {
     saved.sound = !saved.sound;
@@ -219,7 +222,7 @@ function home() {
   state.screen = "home";
   state.phase = "idle";
   document.body.className = "home-page";
-  app.innerHTML = `<div class="home-shell"><header class="site-header"><a class="brand" href="./" aria-label="此时此地首页">${brand}</a><nav aria-label="主导航"><button id="journal">${icon("book")}<span>我的足迹</span><b>${saved.visited.length.toString().padStart(2, "0")}</b></button><button id="help">玩法指南</button>${soundButton()}</nav></header>
+  app.innerHTML = `<div class="home-shell"><header class="site-header"><a class="brand" href="./" aria-label="此时此地首页">${brand}</a><nav aria-label="主导航"><button id="journal">${icon("book")}<span>我的足迹</span><b>${saved.visited.length.toString().padStart(2, "0")}</b></button><button id="help">玩法指南</button>${soundButton()}${fullscreenButton()}</nav></header>
     <main><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="red-line"></span>一场穿越时空的旅行</div><h1>此地，似曾相识。<br>此时，<em>是哪一年？</em></h1><p class="hero-description">走进历史的一瞬，环顾四周。<br>从一座城、一件衣裳、一缕烟火里，<br>找到你在时间中的坐标。</p>
       <div class="travel-options"><fieldset><legend>选择旅途</legend><div class="segmented"><label><input type="radio" name="region" value="all" ${state.region === "all" ? "checked" : ""}><span>${icon("compass")}世界漫游</span></label><label><input type="radio" name="region" value="china" ${state.region === "china" ? "checked" : ""}><span>${icon("pin")}中国足迹</span></label></div></fieldset><label class="timed-option"><input type="checkbox" id="timed" ${state.timed ? "checked" : ""}><span class="toggle"></span>限时挑战 <small>90 秒 / 幕</small></label></div>
       <label class="scene-picker" for="scene-select">指定场景练习<select id="scene-select"><option value="">随机旅途 · 每局 ${ROUND_COUNT} 幕</option>${["china", "world"].map((region) => `<optgroup label="${region === "china" ? "中国历史" : "世界历史"}">${rounds.filter((r) => r.region === region).map((r) => `<option value="${r.id}">${escape(r.title)}</option>`).join("")}</optgroup>`).join("")}</select></label>
@@ -256,8 +259,8 @@ async function start(journey = null) {
     phase: "loading",
   };
   document.body.className = "game-page";
-  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="brand compact" id="leave" aria-label="返回首页">${brand}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}<button class="icon-button" id="fullscreen" aria-label="进入全屏" title="进入全屏">${icon("full")}</button></div></header>
-      <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><button id="hint" class="glass-button">一点提示</button></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
+  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="brand compact" id="leave" aria-label="返回首页">${brand}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}${fullscreenButton()}</div></header>
+      <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><div class="scene-actions"><button id="game-help" class="glass-button">玩法</button><button id="hint" class="glass-button">一点提示</button></div></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
       <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
       <div class="guess-dock"><div class="mobile-tabs" role="group" aria-label="切换观察和地图"><button id="scene-tab" class="active" aria-pressed="true">${icon("eye")}观察场景</button><button id="map-tab" aria-pressed="false">${icon("pin")}地图选点 <i id="pin-dot"></i></button></div><div class="timeline"><div class="timeline-heading"><label for="year-range">第二步 · 这是哪一年？</label><div class="year-editor"><select id="era-select" aria-label="公元前或公元"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" type="number" inputmode="numeric" min="1" max="2026" value="1000" aria-label="猜测年份"><span>年</span></div><span class="year-status" id="year-status">请选择年代</span></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" value="1000" step="1" aria-label="拖动选择年份"><div class="era-stops"><button data-year="-2000">古文明</button><button data-year="-221">秦汉</button><button data-year="750">隋唐</button><button data-year="1100">宋元</button><button data-year="1600">明清</button><button data-year="1900">近现代</button></div></div><div class="submit-area"><button class="primary" id="submit" disabled>请先选择地点与年代 ${icon("arrow")}</button><span id="submit-note">两枚坐标，拼出一个历史瞬间</span></div></div>
       <div class="load-cover" id="load-cover" role="status"><span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div><div class="result-overlay" id="result-overlay" hidden></div></main>`;
@@ -273,17 +276,7 @@ async function start(journey = null) {
       home();
     };
   });
-  on("#fullscreen", "click", async () => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      } else toast("当前浏览器不支持全屏，可横屏获得更大视野");
-    } catch {
-      toast("当前浏览器未允许全屏，可继续正常游玩");
-    }
-  });
+  on("#game-help", "click", help);
   on("#hint", "click", () => {
     $("#hint-text").hidden = !$("#hint-text").hidden;
     $("#hint-text").textContent = state.deck[state.index].hint;
@@ -620,7 +613,7 @@ function finish() {
       : ratio >= 0.48
         ? "你离历史，又近了一步。"
         : "每次相遇，都是新的发现。";
-  app.innerHTML = `<div class="summary-shell"><header class="site-header"><button id="home" class="brand">${brand}</button><span class="eyebrow">本次时空之旅 · 已完成</span></header><main><section class="summary-heading"><span class="eyebrow">旅行手记 / 第 ${saved.visited.length.toString().padStart(2, "0")} 枚足迹</span><h1>${title}</h1><div class="final-score">${total.toLocaleString("zh-CN")}<small>/ ${(state.deck.length * 5000).toLocaleString("zh-CN")} 分</small></div><p>走过 ${state.deck.length} 幕光景，把陌生的年代变成记忆。</p></section><div class="summary-rounds">${state.results
+  app.innerHTML = `<div class="summary-shell"><header class="site-header"><button id="home" class="brand">${brand}</button><span class="eyebrow">本次时空之旅 · 已完成</span>${fullscreenButton()}</header><main><section class="summary-heading"><span class="eyebrow">旅行手记 / 第 ${saved.visited.length.toString().padStart(2, "0")} 枚足迹</span><h1>${title}</h1><div class="final-score">${total.toLocaleString("zh-CN")}<small>/ ${(state.deck.length * 5000).toLocaleString("zh-CN")} 分</small></div><p>走过 ${state.deck.length} 幕光景，把陌生的年代变成记忆。</p></section><div class="summary-rounds">${state.results
     .map((result, i) => {
       const round = rounds.find((r) => r.id === result.id);
       return `<article class="summary-row"><span class="row-number">0${i + 1}</span><img src="${round.image}" alt="${round.place}历史想象复原"><div><strong>${round.place}</strong><p>${formatYear(round.year)} · ${round.era}</p></div><div class="summary-errors"><span>${result.distance === null ? "未落点" : formatDistance(result.distance)}</span><span>${result.years === null ? "未选年代" : `相差 ${result.years} 年`}</span></div><b>${result.total.toLocaleString("zh-CN")}<small> / 5000</small></b></article>`;

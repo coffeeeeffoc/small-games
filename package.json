@@ -25,6 +25,7 @@
     "games:test": "turbo run test --filter=./games/*/* --concurrency=1",
     "check:games": "node scripts/check-game-config.mjs",
     "test:game-config": "node --test scripts/check-game-config.test.mjs",
+    "test:h5-fullscreen": "node scripts/sync-h5-fullscreen.mjs --check && node scripts/test-h5-fullscreen.mjs",
     "artifact:build": "node scripts/build-artifact.mjs",
     "dev:platform": "node scripts/platform.mjs dev",
     "init:operator": "node scripts/initialize-operator.mjs",

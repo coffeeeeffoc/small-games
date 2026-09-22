@@ -9,12 +9,14 @@
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./src/style.css">
   <script type="module" src="./src/main.js"></script>
+  <script defer src="./src/fullscreen.js"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="./" aria-label="围捕小队首页"><span class="brand-badge" aria-hidden="true">巡</span><span>围捕小队<small>NEIGHBORHOOD PATROL</small></span></a>
     <div class="top-actions">
       <span class="top-caption">小小街区，大大计谋。</span>
+      <button type="button" class="fullscreen-button" data-game-fullscreen>全屏</button>
       <button class="icon-button" id="sound" data-testid="sound" aria-label="开启音效" aria-pressed="false"></button>
       <button class="icon-button" id="settings" aria-label="游戏设置"></button>
       <button class="icon-button" id="help" aria-label="玩法说明"></button>
