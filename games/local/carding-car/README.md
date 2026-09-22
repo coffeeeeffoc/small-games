@@ -20,6 +20,8 @@ pnpm --filter @coffeeeeffoc/carding-car dev
 
 首次驾驶会依次指导起步、转向、漂移蓄力、松手加速和氮气；必须真实完成操作才会推进。完成后在本机记忆，H 或左侧“驾驶教学”可随时重新学习/收起。车库显示所选路线的个人纪录目标，完赛显示奖牌与相比开赛前纪录的秒数差。H5 竖屏时提示横过手机。未配置联机服务的发布版本明确显示“好友赛待开放”，保留可直接开跑的单机竞速。
 
+H5 右上“全屏”覆盖游戏画面、HUD 与菜单，比赛中可退出；浏览器不支持或拒绝时会说明原因并保持普通页面可玩。微信/B站使用平台显示能力。装配期间重复点击开跑不会提前开赛，资源就绪后需明确点击开始。
+
 氮气每次加速 1.5 秒，冷却 6 秒；按一次触发，长按不会连续消耗。按钮显示剩余冷却时间，冲刺带尾焰、镜头拉伸及音效。首次按键或触摸后启动声音，可用 M 或右上角声音按钮静音。
 
 比赛中常驻显示总用时、本圈用时和最快圈；结算显示四车名次，并保留本机最快五次完赛成绩。旧版本最佳总用时会自动迁入本机榜单。暂停可直接重新开跑；暂停、切后台和触控取消会清空操作及未释放的漂移蓄力。
@@ -59,6 +61,8 @@ node games/local/carding-car/tests/audio-nitro.mjs
 node games/local/carding-car/tests/worlds.mjs
 node games/local/carding-car/tests/themes-routes.mjs
 node games/local/carding-car/tests/driving-coach.mjs
+node games/local/carding-car/tests/loading-start.mjs
+node games/local/carding-car/tests/display-modes.mjs
 node games/local/carding-car/tests/glacier-browser.mjs
 pnpm check:games
 ```

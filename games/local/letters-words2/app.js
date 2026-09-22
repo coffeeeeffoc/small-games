@@ -186,7 +186,7 @@ function renderWords() {
     fragment.append(button);
   });
   $('word-list').replaceChildren(fragment);
-  $('study-progress').textContent = practice ? `教材进度 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词 · 第 ${practice.index + 1} / ${practice.batches.length} 岛` : '练习随时保存 · 提示过和拼错的词可在结算复习';
+  $('study-progress').textContent = practice ? `教材进度 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词 · 第 ${practice.index + 1} / ${practice.batches.length} 岛` : '已完成的词会自动保存 · 提示过和拼错的词可在结算复习';
 }
 
 function render() { renderBoard(); renderWords(); renderAnswer(); }

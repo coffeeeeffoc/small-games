@@ -66,7 +66,11 @@ function persist() {
   try {
     localStorage.setItem(storageKey, JSON.stringify({ version: 3, completed, current: { levelId: level.id, state, history: history.slice(-100) }, settings: { sound: soundOn, reduced, teaching } }));
     $('save-indicator').textContent = '进度自动保存';
-  } catch { $('save-indicator').textContent = '当前浏览器无法保存'; }
+    $('save-indicator').classList.remove('save-error');
+  } catch {
+    $('save-indicator').textContent = '当前浏览器无法保存，退出后进度会丢失';
+    $('save-indicator').classList.add('save-error');
+  }
 }
 function syncSettings() {
   document.body.classList.toggle('reduced', reduced); setSound(soundOn);
@@ -411,7 +415,7 @@ $('board').addEventListener('pointerup', event => {
     suppressClickUntil = performance.now() + 400;
     const closest = closestNode(svgPoint(event));
     hovered = -1;
-    if (closest >= 0) planTarget(closest); else notify('已取消拖动，没有走出这一步。');
+    if (closest >= 0 && closest !== state.cops[gesture.index]) planTarget(closest); else notify('已取消拖动，没有走出这一步。');
     if (phase === 'planning') updatePlanning();
   } else { suppressClickUntil = performance.now() + 300; pickCop(gesture.index); }
 });
@@ -448,6 +452,8 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Space' && !event.target.closest('button, input, a, [role="button"]')) { event.preventDefault(); if (phase === 'planning') execute([...state.cops]); }
 });
 window.addEventListener('blur', cancelDrag);
+window.addEventListener('resize', cancelDrag);
+document.addEventListener('game-displaychange', cancelDrag);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelDrag(); if (pending) { const token = runToken; finishTurn(token); runToken++; } }
 });

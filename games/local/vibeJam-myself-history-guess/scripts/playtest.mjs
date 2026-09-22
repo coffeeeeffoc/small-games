@@ -64,10 +64,14 @@ try {
     path: "artifacts/home-desktop.png",
     fullPage: true,
   });
+  await page.locator(".display-button").click();
+  await page.waitForFunction(() => !!document.fullscreenElement);
   await page.getByRole("button", { name: "玩法指南" }).click();
   assert.ok(
     (await page.locator("dialog").innerText()).includes("没有公元 0 年"),
   );
+  await page.locator("dialog [data-game-fullscreen]").click();
+  await page.waitForFunction(() => !document.fullscreenElement);
   await page.keyboard.press("Escape");
   await page.locator("#start").click();
   await ready(page);
@@ -98,6 +102,16 @@ try {
   assert.equal(await page.locator("#submit").isDisabled(), true);
   await page.locator("#year-number").fill("1420");
   const firstClue = await page.locator("#clue").innerText();
+  const beforeDisplay = await page.evaluate(() => localStorage.getItem("here-and-then.v1"));
+  await page.locator(".display-button").click();
+  await page.waitForFunction(() => !!document.fullscreenElement);
+  await page.locator("#game-help").click();
+  assert.match(await page.locator("dialog").innerText(), /切到后台继续计时/);
+  await page.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+  await page.locator(".display-button").click();
+  await page.waitForFunction(() => !document.fullscreenElement);
+  assert.equal(await page.evaluate(() => localStorage.getItem("here-and-then.v1")), beforeDisplay);
+  assert.equal(await page.locator("#year-number").inputValue(), "1420");
   await page.reload();
   await page.locator("#resume").click();
   await ready(page);
@@ -322,7 +336,14 @@ try {
   });
   await phone.locator("#submit").tap();
   await phone.locator("#next").waitFor();
-  await phone.setViewportSize({ width: 360, height: 740 });
+  await phone.setViewportSize({ width: 305, height: 740 });
+  const fullscreenBounds = await phone.locator(".display-button").boundingBox();
+  assert.ok(fullscreenBounds.width >= 44 && fullscreenBounds.height >= 44);
+  assert.ok(fullscreenBounds.x >= 0 && fullscreenBounds.x + fullscreenBounds.width <= 305);
+  await phone.locator(".display-button").tap();
+  await phone.waitForFunction(() => !!document.fullscreenElement);
+  await phone.locator(".display-button").tap();
+  await phone.waitForFunction(() => !document.fullscreenElement);
   for (let i = 2; i < 5; i++) {
     await phone.locator("#next").tap();
     await ready(phone);
@@ -350,7 +371,7 @@ try {
     ),
   );
   results.push(
-    "Phone: full 5 China rounds; real single-finger pan, two-finger panorama zoom, touch cancellation, map tap and pinch, BCE input, 360px portrait and landscape controls.",
+    "Phone: full 5 China rounds; real single-finger pan, two-finger panorama zoom, touch cancellation, map tap and pinch, BCE input, 305px portrait and landscape controls.",
   );
   await mobile.close();
 
@@ -367,9 +388,16 @@ try {
   assert.equal(await timerPage.locator("#timed").isChecked(), true);
   await timerPage.locator("#start").click();
   await ready(timerPage);
+  await timerPage.locator(".display-button").click();
+  await timerPage.waitForFunction(() => !!document.fullscreenElement);
+  await timerPage.locator("#game-help").click();
   await timerPage.clock.fastForward(30000);
+  await timerPage.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+  assert.match(await timerPage.locator("#timer").innerText(), /60 秒/);
   await timerPage.reload();
   await timerPage.clock.fastForward(62000);
+  await timerPage.locator(".display-button").click();
+  await timerPage.waitForFunction(() => !!document.fullscreenElement);
   await timerPage.locator("#resume").click();
   await timerPage.locator("#next").waitFor();
   assert.ok(
@@ -380,6 +408,8 @@ try {
   await ready(timerPage);
   assert.ok((await timerPage.locator("#timer").innerText()).includes("90"));
   await noOverflow(timerPage);
+  await timerPage.locator(".display-button").click();
+  await timerPage.waitForFunction(() => !document.fullscreenElement);
   results.push(
     "Timed mode: refreshing and waiting on home does not reset the deadline; resume auto-reveals expired unanswered round as 0, then next round gets a fresh timer.",
   );
@@ -414,6 +444,37 @@ try {
     "Recovery: missing panorama presents a retry, recovers the current round, and leaving/restarting creates one viewer.",
   );
   await recovery.close();
+  for (const unavailable of ["unsupported", "rejected"]) {
+    const fallbackContext = await browser.newContext({ viewport: { width: 305, height: 740 }, hasTouch: true });
+    await watch(fallbackContext);
+    await fallbackContext.addInitScript((mode) => {
+      Element.prototype.requestFullscreen = mode === "unsupported" ? undefined : () => Promise.reject(new Error("test denial"));
+      Element.prototype.webkitRequestFullscreen = undefined;
+    }, unavailable);
+    const fallback = await fallbackContext.newPage();
+    await fallback.goto(url);
+    await noOverflow(fallback);
+    await fallback.locator(".display-button").click();
+    await fallback.locator("#game-display-notice").waitFor({ state: "visible" });
+    assert.match(await fallback.locator("#game-display-notice").innerText(), unavailable === "unsupported" ? /不支持网页全屏/ : /未允许全屏/);
+    await fallback.locator("#scene-select").selectOption("yinxu");
+    await fallback.locator("#start").click();
+    await ready(fallback);
+    await fallback.locator("#game-help").click();
+    await fallback.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+    await pick(fallback, "安阳");
+    await fallback.locator("#era-select").selectOption("bce");
+    await fallback.locator("#year-number").fill("1200");
+    await noOverflow(fallback);
+    await fallback.locator("#submit").click();
+    await fallback.locator("#next").click();
+    assert.match(await fallback.locator(".final-score").innerText(), /5,000/);
+    await noOverflow(fallback);
+    const summaryControl = await fallback.locator(".display-button").boundingBox();
+    assert.ok(summaryControl.width >= 44 && summaryControl.height >= 44);
+    await fallbackContext.close();
+  }
+  results.push("Fullscreen: real desktop Chrome API at home/in-game/dialog and 305px touch emulation; input/save retained, timed help keeps clock running, timeout/next inside fullscreen; unsupported/rejected API simulations remain playable through single-round summary. Physical Android/iOS unverified.");
   const catalogContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,

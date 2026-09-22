@@ -145,6 +145,10 @@ const maximum = createGame(parseWordList(Array.from({ length: 5 }, (_, i) => `${
 assert.equal(maximum.tiles.length, 80);
 assertBounds(maximum);
 assert.ok(findSpelling(maximum, maximum.activeWordId));
+const longest = createGame([{ word: 'a'.repeat(80), meaning: '最长导入边界' }], seeded(12));
+assertBounds(longest);
+findSpelling(longest, longest.activeWordId).forEach(id => selectTile(longest, id));
+assert.equal(submitWord(longest).won, true, 'four-column layout supports a single 80-character entry');
 const phrases = parseWordList("look at 看\nlet’s go 出发\nthis is a long textbook phrase 一条教材短语");
 assert.equal(phrases[0].word, 'look at');
 assert.equal(phrases[1].word, "let's go");

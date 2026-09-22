@@ -1,4 +1,4 @@
-export const BOARD = Object.freeze({ width: 560, height: 376, tileSize: 64 });
+export const BOARD = Object.freeze({ width: 360, height: 376, tileSize: 64 });
 
 const WORD_PATTERN = /^[a-z0-9 !'’‘+._&@#$%()/:?=…⋯-]+$/i;
 
@@ -57,11 +57,11 @@ function shuffled(items, rng) {
 function arrangeTiles(game, rng) {
   const pool = game.tiles.filter(tile => !tile.removed);
   const slotCount = Math.max(18, ...game.words.filter(word => !word.done).map(word => letters(word.word).length));
-  game.boardHeight = Math.max(BOARD.height, 100 + Math.ceil(slotCount / 6) * 76);
+  game.boardHeight = Math.max(BOARD.height, 100 + Math.ceil(slotCount / 4) * 76);
   let z = 0;
   for (const word of shuffled(game.words.filter(word => !word.done), rng)) {
     const slots = shuffled(Array.from({ length: slotCount }, (_, index) => index), rng);
-    const offsetX = (rng() - 0.5) * 48;
+    const offsetX = (rng() - 0.5) * 28;
     const offsetY = (rng() - 0.5) * 42;
     letters(word.word).forEach((char, index) => {
       const tileIndex = pool.findIndex(tile => tile.char === char);
@@ -69,8 +69,8 @@ function arrangeTiles(game, rng) {
       const [tile] = pool.splice(tileIndex, 1);
       const slot = slots[index];
       Object.assign(tile, {
-        x: 44 + (slot % 6) * 76 + offsetX + (rng() - 0.5) * 8,
-        y: 48 + Math.floor(slot / 6) * 76 + offsetY + (rng() - 0.5) * 8,
+        x: 28 + (slot % 4) * 76 + offsetX + (rng() - 0.5) * 8,
+        y: 48 + Math.floor(slot / 4) * 76 + offsetY + (rng() - 0.5) * 8,
         z: z++,
       });
     });
