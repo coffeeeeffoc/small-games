@@ -4,6 +4,8 @@ import { once } from 'node:events';
 import { WebSocket } from 'ws';
 import { createKartServer } from '../src/server.ts';
 import type { ServerMessage, ClientMessage } from '@coffeeeeffoc/carding-car/protocol';
+import { aiInput } from '../../../games/local/carding-car/assets/scripts/KartAI.ts';
+import { rankedBoard, rankedSeed, type KartResult } from '../src/competition.ts';
 
 const appearance = { name: '小车手', vehicle: 'classic-kart', driver: 'rookie', version: 2 };
 const create: ClientMessage = {
@@ -221,6 +223,126 @@ test('capacity, origins and message limits are enforced', async () => {
   } finally {
     a.socket.terminate();
     b.socket.terminate();
+    await server.app.close();
+  }
+});
+
+test('ranked sockets require distinct verified players and settle legal simulated laps exactly once', async () => {
+  let clock = 100000;
+  const results: KartResult[] = [];
+  const server = createKartServer({
+    autoTick: false,
+    now: () => clock,
+    competition: {
+      async verify(token) {
+        if (!['valid-player-one', 'valid-player-two'].includes(token))
+          throw new Error('Invalid session');
+        return { playerId: token };
+      },
+      async settle(result) {
+        results.push(result);
+      },
+      saved: (id) => results.some((result) => result.matchId === id),
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const url = `ws://127.0.0.1:${(server.app.server.address() as { port: number }).port}/kart`;
+  const a = await peer(url),
+    b = await peer(url),
+    duplicate = await peer(url);
+  try {
+    a.send({ ...create, ranked: true });
+    assert.match((await a.wait('error')).message, /有效玩家身份/);
+    a.send({ ...create, ranked: true, competitionToken: 'fabricated-token-value' });
+    assert.match((await a.wait('error')).message, /身份验证失败/);
+    a.send({
+      ...create,
+      route: 'city',
+      bots: 7,
+      ranked: true,
+      competitionToken: 'valid-player-one',
+    });
+    const joined = await a.wait('joined');
+    assert.equal(joined.room.route, 'seaside');
+    assert.equal(joined.room.bots, 0);
+    duplicate.send({
+      type: 'join',
+      ...appearance,
+      code: joined.room.code,
+      competitionToken: 'valid-player-one',
+    });
+    assert.match((await duplicate.wait('error')).message, /已加入/);
+    b.send({
+      type: 'join',
+      ...appearance,
+      code: joined.room.code,
+      competitionToken: 'valid-player-two',
+    });
+    await b.wait('joined');
+    a.send({ type: 'bots', count: 1 });
+    assert.match((await a.wait('error')).message, /不加入机器人/);
+    for (const client of [a, b]) {
+      client.send({ type: 'prepared', revision: 1 });
+      client.send({ type: 'ready', ready: true });
+    }
+    await a.wait(
+      'room',
+      (message) =>
+        message.room.members.length === 2 && message.room.members.every((member) => member.ready),
+    );
+    // A fresh rate window avoids counting setup assertions as player input abuse.
+    clock += 1001;
+    a.send({ type: 'start' });
+    const loading = (await a.wait('room', (message) => message.room.phase === 'loading')).room;
+    assert.equal(loading.seed, rankedSeed);
+    a.send({ type: 'loaded', raceId: 1 });
+    b.send({ type: 'loaded', raceId: 1 });
+    await a.wait('room', (message) => message.room.phase === 'racing');
+    a.send({ type: 'start' });
+    assert.match((await a.wait('error')).message, /比赛进行中/);
+    a.send({
+      type: 'input',
+      raceId: 1,
+      seq: 1,
+      input: { steer: 0, throttle: 1, brake: false, drift: false },
+      score: 999999,
+    });
+    assert.match((await a.wait('error')).message, /格式/);
+    const room = server.rooms.get(joined.room.code)!;
+    let seq = 1;
+    // Real protocol input drives all checkpoints; no teleport, finishedAt assignment or forced end.
+    for (let frame = 0; frame < 60 * 300 && room.state.phase === 'racing'; frame++) {
+      if (frame % 3 === 0) {
+        seq++;
+        for (const [index, client] of [a, b].entries()) {
+          const driver = room.race!.drivers[index];
+          client.send({
+            type: 'input',
+            raceId: 1,
+            seq,
+            input: aiInput(driver.kart, room.race!.track, false, driver.progress.s),
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
+      clock += 1000 / 60;
+      server.step();
+    }
+    assert.equal(room.state.phase, 'finished');
+    await room.settlement;
+    assert.equal(results.length, 1);
+    assert.equal(results[0].board, rankedBoard);
+    assert.equal(results[0].entries.length, 2);
+    assert.ok(results[0].entries.every((entry) => entry.elapsedMs > 60000));
+    assert.ok(room.race!.drivers.every((driver) => driver.progress.laps === 3));
+    const aEnd = await a.wait('state', (message) => message.state.phase === 'finished');
+    const bEnd = await b.wait('state', (message) => message.state.phase === 'finished');
+    assert.deepEqual(aEnd, bEnd);
+    for (let i = 0; i < 60; i++) server.step();
+    assert.equal(results.length, 1);
+    assert.equal(room.state.settlement, 'saved');
+  } finally {
+    [a, b, duplicate].forEach((client) => client.socket.terminate());
     await server.app.close();
   }
 });

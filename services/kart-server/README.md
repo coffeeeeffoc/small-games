@@ -66,9 +66,36 @@ pnpm --filter @coffeeeeffoc/kart-server share https://你的隧道域名
 
 ## 范围与验证
 
-房间保存在单进程内存，重启即结束；不需要 PostgreSQL。断线后有 30 秒凭证重连窗口，超时操作自动刹车；加载等待最多 60 秒；单场最多 10 分钟，首位冲线后最多等待其余车手 60 秒。房主离线时移交给在线好友。房主在赛后点击“再开一场”返回准备大厅。联机成绩不写入本机单人纪录。
+房间保存在单进程内存，重启即结束；排位身份与合法成绩由共享 competition API / PostgreSQL 持久化。断线后有 30 秒凭证重连窗口，超时操作自动刹车；加载等待最多 60 秒；单场最多 10 分钟，首位冲线后最多等待其余车手 60 秒。房主离线时移交给在线好友。房主在赛后点击“再开一场”返回准备大厅。联机成绩不写入本机单人纪录。
 
-邀请房间采用访客身份，不包含账号系统、公开匹配或跨进程扩容。谁获得房间码谁可在开始前加入；重连凭证仅单独发送给本人。
+练习房间可采用局内访客身份；排位房间使用共享服务签发的持久玩家会话。H5 游客仅在当前浏览器存储保留时连续使用，清除数据或换设备不会因昵称相同而合并身份。不包含公开匹配或跨进程房间扩容。谁获得房间码谁可在开始前加入；重连凭证仅单独发送给本人。
+
+## 2026-09-23 共享排位接口
+
+`排位好友赛` 固定为 `carding-car-seaside-v1`：近道连弯（seaside）三圈、classic-kart / rookie、固定道具种子 20260923、两位不同持久身份的真实玩家、无机器人。所有选择由服务端覆盖和锁定。成绩采用合法检查点完成的 `finishedAt` 毫秒值，越短越好；全站 API 存为 `score=-elapsedMs, secondary=0`，按每位玩家最佳成绩排序，相同毫秒成绩并列。未完赛、单机和自定义好友练习不入全站榜。自动驾驶辅助的浏览器联调仅连接隔离测试数据库，不作为真实用户纪录。
+
+服务端启动前通过当前进程的安全环境配置设置：
+
+```powershell
+$env:COMPETITION_API_URL = 'http://127.0.0.1:43002/api/competition/v1'
+# COMPETITION_INTERNAL_KEY 由安全本地环境注入，至少32字符，与共享API一致；不要提交或粘贴密钥。
+pnpm --filter @coffeeeeffoc/kart-server start
+```
+
+可选 `KART_OUTBOX_DIR` 指定私有持久目录，默认 `services/kart-server/.data/results`（已 Git 忽略）。内部调用仅使用 `POST /internal/verify {token}` 和 `POST /internal/kart-results {matchId,board,entries,startedAt,finishedAt}`；后者只能由本进程根据权威赛车状态生成，客户端没有提交任意成绩的接口。内部头 `x-competition-internal-key` 不应进入前端或公网代理。
+
+每场终局先写临时文件并 fsync，再原子改名到结果 outbox；收到公共服务成功响应才移除，失败每 5 秒重试同一 UUID，重启后继续补交。公共 API 必须以 matchId 幂等结算。必须备份数据库与未发送 outbox，不能只备份前100名。磁盘写失败会明确显示“成绩保存失败”，不声称已持久化。进程异常退出前尚未完成的房间中断，不能恢复实时赛车状态。
+
+H5、微信与 B站客户端通过公共 `globalThis.__competition.session()/request()` 获取和查询真实身份、榜单；平台登录密钥仅在共享后端。公网隧道应暴露聚合网关的静态游戏、公开 competition API 与 `/kart`，禁止代理 `/internal/*`、数据库或 outbox 目录。原来的仅 kart `/play/` 隧道命令仍可玩好友练习，完整排位需要该公共客户端/API配置。
+
+完整真实浏览器排位联调（共享 PostgreSQL 与公共客户端就绪后）：
+
+```powershell
+$env:KART_URL = 'http://127.0.0.1:43003/play/' # 也可设为实际网关/临时公网的卡丁车完整目录URL
+node games/local/carding-car/tests/ranked.mjs
+```
+
+该脚本核对源码 hash，创建两个独立浏览器身份，经真实触摸驱动三圈，中途刷新重连，等待服务器持久化确认，比较两客户端最终 Top 100 并实际打开 Cocos 排名面板。运行约 3–5 分钟；`reports/ranked/validation.json` 与截图保存原始证据。测试未运行或失败时不得以服务单元测试代替其结论。
 
 ```powershell
 pnpm --filter @coffeeeeffoc/kart-server typecheck

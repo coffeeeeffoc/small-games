@@ -11,7 +11,8 @@
     "build": "node scripts/build.mjs",
     "test:browser": "node scripts/playtest.mjs",
     "test:lifecycle": "node scripts/lifecycle-playtest.mjs",
-    "test:guided": "node scripts/guided-playtest.mjs"
+    "test:guided": "node scripts/guided-playtest.mjs",
+    "test:competition": "node scripts/competition-playtest.mjs"
   },
   "engines": {
     "node": ">=20"

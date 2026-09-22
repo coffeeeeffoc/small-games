@@ -133,6 +133,20 @@ try {
     'both clients see the same host car, allowing one snapshot interval',
   );
   assert.equal(a.multiplayer.room.seed, b.multiplayer.room.seed);
+  assert.equal(a.hud.menuVisible, false, 'racing hides the preparation and results panel');
+  assert.equal(a.hud.coachingVisible, false, 'PK does not show solo teaching by default');
+  assert.equal(a.hud.help, '竞赛规则');
+  assert.equal(a.hud.pause, '房间', 'online cannot pretend that a local pause stops the race');
+  await host.keyboard.press('h');
+  await host.waitForFunction(() => __kart.snapshot().hud.coachingVisible);
+  assert.match((await snap(host)).hud.coaching, /不暂停比赛/);
+  await host.keyboard.press('h');
+  await host.waitForFunction(() => !__kart.snapshot().hud.coachingVisible);
+  await host.keyboard.press('p');
+  await host.waitForFunction(() => __kart.snapshot().multiplayer.panelOpen);
+  assert.equal((await snap(host)).hud.menuVisible, false);
+  await host.mouse.click(866, 80);
+  await host.waitForFunction(() => !__kart.snapshot().multiplayer.panelOpen);
   assert.deepEqual(
     a.items.map((i) => i.kind),
     b.items.map((i) => i.kind),

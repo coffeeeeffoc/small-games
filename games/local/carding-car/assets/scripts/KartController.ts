@@ -76,7 +76,7 @@ export class KartController {
       return;
     }
     if (e.keyCode === KeyCode.KEY_P || e.keyCode === KeyCode.ESCAPE) {
-      r.phase === 'paused' ? r.resume() : r.pause();
+      r.networked ? this.garage() : r.phase === 'paused' ? r.resume() : r.pause();
       this.clear();
       this.keys.add(e.keyCode);
       return;
@@ -119,7 +119,7 @@ export class KartController {
       return;
     }
     if (Math.abs(p.x * 960 - 70) <= 36 && Math.abs(p.y * 540 - 300) <= 24) {
-      r.phase === 'paused' ? r.resume() : r.pause();
+      r.networked ? this.garage() : r.phase === 'paused' ? r.resume() : r.pause();
       this.clear();
       return;
     }

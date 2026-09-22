@@ -75,6 +75,11 @@ try {
   await page.keyboard.press("Escape");
   await page.locator("#start").click();
   await ready(page);
+  const firstImage = await page.locator('#panorama').getAttribute('data-image');
+  await page.getByRole('button', { name: '暂停与退出' }).click();
+  assert.ok((await page.locator('dialog').innerText()).includes('画面已暂停'));
+  await page.locator('#stay').click();
+  assert.equal(await page.locator('#panorama').getAttribute('data-image'), firstImage);
   assert.equal(await page.locator("#submit").isDisabled(), true);
   const box = await page.locator("#panorama").boundingBox();
   const yaw = Number(await page.locator("#panorama").getAttribute("data-yaw"));
@@ -337,8 +342,14 @@ try {
   await phone.locator("#submit").tap();
   await phone.locator("#next").waitFor();
   await phone.setViewportSize({ width: 305, height: 740 });
+  await phone.screenshot({ path: 'artifacts/fullscreen-305-layout.png' });
+  // Wait for orientation layout, then enforce the full touch target without viewport zoom.
+  await phone.waitForFunction(() => {
+    const box = document.querySelector('.display-button').getBoundingClientRect();
+    return innerWidth === 305 && box.width >= 44 && box.height >= 44 && box.left >= 0 && box.right <= 305;
+  });
   const fullscreenBounds = await phone.locator(".display-button").boundingBox();
-  assert.ok(fullscreenBounds.width >= 44 && fullscreenBounds.height >= 44);
+  assert.ok(fullscreenBounds.width >= 44 && fullscreenBounds.height >= 44, JSON.stringify(fullscreenBounds));
   assert.ok(fullscreenBounds.x >= 0 && fullscreenBounds.x + fullscreenBounds.width <= 305);
   await phone.locator(".display-button").tap();
   await phone.waitForFunction(() => !!document.fullscreenElement);

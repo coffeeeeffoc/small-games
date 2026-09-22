@@ -42,7 +42,9 @@ try {
       return viewport.width < 600 ? tile.tap() : tile.click();
     };
     const activeWord = async () => entries[Number((await page.locator('.word-row.active').getAttribute('data-word-id')).slice(5))].word;
+    const openWords = async () => { if (await page.locator('#switch-word').isVisible()) await page.locator('#switch-word').click(); };
     const importWords = async text => {
+      await openWords();
       await page.locator('#import-button').click();
       await page.locator('#word-input').fill(text);
       await page.locator('#import-form button[type="submit"]').click();
@@ -74,6 +76,14 @@ try {
     assert.equal(await page.locator('.word-row').count(), 6);
     assert.ok(await tileCount() > 0);
     await assertLayout();
+    await page.locator('#focus-button').click();
+    assert.equal(await page.locator('.intro').isVisible(), false);
+    assert.equal(await page.locator('.study-bar').isVisible(), false);
+    assert.equal(await page.locator('#word-list').isVisible(), false);
+    if (viewport.width < 600) {
+      const operations = await page.locator('.board-tools').boundingBox();
+      assert.ok(operations.y + operations.height <= viewport.height, `core operations fit without page scroll: ${JSON.stringify(operations)}`);
+    }
     if (viewport.width === 305) {
       const exposed = await page.locator('.tile[aria-disabled="false"]').all();
       for (const tile of exposed) {
@@ -100,6 +110,10 @@ try {
     const selectable = (await tileSnapshot()).find(tile => !tile.blocked);
     await clickTile(selectable.id);
     const partialBoard = await tileSnapshot();
+    await page.locator('#pause-button').click();
+    assert.equal(await page.locator('.study-bar').isVisible(), true);
+    await page.locator('#focus-button').click();
+    assert.deepEqual(await tileSnapshot(), partialBoard, 'pause and resume preserve partial answer and tile positions');
     const fullscreen = page.locator('.site-header [data-game-fullscreen]');
     await fullscreen.click();
     await page.waitForFunction(() => !!document.fullscreenElement);
@@ -182,6 +196,7 @@ try {
     await page.locator('#clear-button').click();
     assert.equal(await filledCount(), 0);
     await clickTile(available[0].id);
+    await openWords();
     await page.locator('.word-row:not(.active):not(.done)').first().click();
     assert.equal(await filledCount(), 0, 'meaning switch rolls partial selection back');
     assert.equal(await tileCount(), initialCount);
@@ -209,6 +224,7 @@ try {
         assert.equal(await page.locator('.word-row.done').count(), solved);
         continue;
       }
+      await openWords();
       await page.locator(`[data-word-id="${row.id}"]`).click();
       const word = entries[Number(row.id.slice(5))].word;
       const beforeWord = await tileCount();
@@ -269,18 +285,34 @@ try {
     assert.equal(await page.locator('#result-button').isVisible(), false, 'result entry only appears after completing a round');
     assert.ok(await tileCount() > 0);
     const theme = await page.locator('#theme-name').textContent();
+    await page.locator('#pause-button').click();
     await page.locator('#new-button').click();
     assert.notEqual(await page.locator('#theme-name').textContent(), theme);
 
     await importWords('abcdefghijklmnop 十六个字符的测试单词\ntea 茶');
+    await openWords();
     await page.locator('[data-word-id="word-0"]').click();
     assert.equal(await page.locator('.answer-slot').count(), 16);
     await assertLayout();
+    const longMeaning = '这里是一段较长的中文释义，用来确认练习时字母盘和当前拼写始终在主要操作区域，完整内容可以在二级入口阅读。';
+    await importWords(`tea ${longMeaning}\napple 苹果`);
+    await openWords();
+    await page.locator('[data-word-id="word-0"]').click();
+    assert.equal(await page.locator('#meaning-details').isVisible(), true);
+    if (viewport.width < 600) {
+      const operations = await page.locator('.board-tools').boundingBox();
+      assert.ok(operations.y + operations.height <= viewport.height, 'long definition does not push spelling controls below the phone viewport');
+    }
+    const beforeMeaning = await tileSnapshot();
+    await page.locator('#meaning-details').click();
+    assert.equal(await page.locator('#full-meaning').textContent(), longMeaning);
+    await page.locator('#meaning-dialog [data-close]').last().click();
+    assert.deepEqual(await tileSnapshot(), beforeMeaning, 'reading full definition preserves the board');
     await importWords('I 我\nMs 女士');
     while (await page.locator('.word-row.done').count() < 2) {
       const completed = await page.locator('.word-row.done').count();
       const row = page.locator('.word-row:not(.done)').filter({ hasText: '可拼' }).first();
-      if (await row.count()) await row.click();
+      if (await row.count()) { await openWords(); await row.click(); }
       const length = await page.locator('.answer-slot').count();
       for (let i = 0; i < length; i++) {
         await page.locator('#hint-button').click();

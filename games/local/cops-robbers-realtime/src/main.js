@@ -331,6 +331,7 @@ function begin() {
   accumulator = 0;
   lastFrame = performance.now();
   updateHud();
+  window.scrollTo({ top: 0, left: 0 });
   canvas.focus({ preventScroll: true });
 }
 function issue(point) {
@@ -771,6 +772,20 @@ window.addEventListener("blur", () => {
 window.addEventListener("resize", () => {
   renderer.resize();
   clearGesture();
+});
+let competitionPaused = false;
+window.addEventListener("competition-visibility", ({ detail }) => {
+  if (detail?.open) {
+    clearGesture();
+    competitionPaused = pauseGame(game) || competitionPaused;
+    updateHud();
+  } else if (competitionPaused) {
+    competitionPaused = false;
+    if (game.phase !== "paused") return;
+    $("pause-reason").textContent = "好友赛已关闭，单人行动仍保留在离开时的局面。";
+    openDialog("pause-dialog");
+    dialogResume = true;
+  }
 });
 
 function frame(now) {

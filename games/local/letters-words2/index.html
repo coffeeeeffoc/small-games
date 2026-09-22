@@ -17,6 +17,8 @@
         <a class="brand" href="./" aria-label="词屿首页"><span class="brand-mark" aria-hidden="true">w<span>·</span></span><span>词屿<small>WORD ISLAND</small></span></a>
         <span class="header-note">在字母之间，发现一点乐趣。</span>
         <nav aria-label="游戏设置">
+          <button type="button" class="text-button" id="pause-button" hidden>暂停 / 返回</button>
+          <span id="focus-progress" hidden aria-label="本次练习进度"></span>
           <button type="button" class="text-button" data-game-fullscreen>全屏</button>
           <button class="icon-button" id="sound-button" aria-label="开启音效" title="开启音效" aria-pressed="false"></button>
           <button class="text-button" id="help-button"><span class="help-mark">?</span><span>怎么玩</span></button>
@@ -30,6 +32,7 @@
         </section>
 
         <section class="study-bar" aria-label="教材学习"><div><strong>把课本里的单词，变成一座词岛</strong><p id="study-progress">选择教材、年级和单元开始练习</p></div><button id="open-library" class="primary-button">选择教材单元</button></section>
+        <button id="focus-button" class="primary-button start-button">开始拾词 →</button>
 
         <div class="game-layout">
           <section class="game-surface" aria-label="字母棋盘与拼写区">
@@ -50,17 +53,18 @@
 
           <aside class="sidebar">
             <section class="clue-card" aria-label="当前中文词义">
-              <div class="clue-top"><span>这一词，怎么拼？</span><span id="word-position">01 / 06</span></div>
+              <div class="clue-top"><span>这一词，怎么拼？</span><span id="word-position">01 / 06</span><button id="switch-word" class="text-button" hidden>换词义</button></div>
               <div class="clue-body"><span class="clue-spark" aria-hidden="true">✳</span><h2 id="current-meaning">森林</h2><p id="clue-detail">6 个字母 · 从亮色卡片开始</p></div>
+              <button id="meaning-details" class="text-button" hidden>完整释义</button>
               <div class="clue-bottom"><span class="tiny-dot"></span><span id="clue-state">这一词的字母都已露出</span></div>
             </section>
-            <section class="word-list-card" aria-label="本局词单">
+            <div id="word-list-home"><section class="word-list-card" aria-label="本局词单">
               <div class="list-heading"><h2>本局词单</h2><span><b id="completed-count">0</b><span id="total-count"> / 6</span></span></div>
               <div class="progress-track" role="progressbar" aria-label="单词完成进度" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"><div id="progress-fill"></div></div>
               <p class="list-note">点击词义切换，露出的单词可以先拼。</p>
               <div id="word-list" class="word-list"></div>
               <button id="import-button" class="import-button"><span aria-hidden="true">＋</span> 换成我的词单 <span aria-hidden="true">↗</span></button>
-            </section>
+            </section></div>
             <div class="gentle-note"><span aria-hidden="true">✦</span><p>一点点遮挡，也要耐心等待。<br />上面的字母消失，下面的才会醒来。</p></div>
           </aside>
         </div>
@@ -69,6 +73,9 @@
       </main>
       <footer><span>不计时 · 不限次数 · 慢慢来</span><span>LESS SCROLLING, MORE SPELLING. <i>✳</i></span></footer>
     </div>
+
+    <dialog id="word-list-dialog" aria-label="选择要拼的词义"><button class="dialog-close" data-close aria-label="返回拼写">×</button><h2>选择要拼的词义</h2><div id="word-list-panel"></div></dialog>
+    <dialog id="meaning-dialog" aria-labelledby="meaning-title"><button class="dialog-close" data-close aria-label="返回拼写">×</button><h2 id="meaning-title">完整释义</h2><p id="full-meaning" class="full-meaning"></p><button class="primary-button" data-close>返回拼写</button></dialog>
 
     <dialog id="help-dialog"><button class="dialog-close" data-close aria-label="关闭玩法说明">×</button><div class="eyebrow">HOW TO PLAY</div><h2>小岛拾词指南</h2><ol class="help-list"><li><b>看词义，选目标</b><p>每局随机一组单词。点击右侧中文词义，选择你想拼的词。</p></li><li><b>只拾起完全露出的字母</b><p>只要卡片被上层卡片压住一点，就不能选择。重复字母需要分别选择；撇号、连字符等符号也要拼入。</p></li><li><b>拼对整词，才会消除</b><p>按顺序点击字母，填满后自动检查。选中的卡片仍留在棋盘上，只有完整拼对，才会一起消失并解锁下层。</p></li><li><b>慢慢来，总能继续</b><p>点已选卡片或答案格可以撤销；也能清空、切换词义。拼对后若余牌互相遮挡，会自动免费整理；也能随时免费重排，保留已完成的进度。提示会指引下一个字母。</p></li></ol><p class="keyboard-note">键盘也可以：Tab 移动，空格选择，Backspace 撤回，Enter 检查。</p><button class="primary-button" data-close>知道了，去拾词</button></dialog>
 

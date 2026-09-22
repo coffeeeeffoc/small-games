@@ -1805,6 +1805,41 @@ body[data-phase="lost"] .rotate-note { display: none; }
   color: #bf6c48;
   background: #f7e5d5;
 }
+
+/* The running layout is independent of browser fullscreen capability. */
+body:is([data-phase="playing"], [data-phase="paused"]) .app-shell {
+  height: 100dvh; max-width: 1500px; padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
+  display: flex; flex-direction: column;
+}
+body:is([data-phase="playing"], [data-phase="paused"]) :is(.brand, .top-note, .mission-heading .eyebrow, .mission-heading p, .field-guide, .page-footer, .squad-heading, .board-footnote > span) { display: none; }
+body:is([data-phase="playing"], [data-phase="paused"]) .topbar { height: 50px; flex: 0 0 50px; justify-content: flex-end; }
+body:is([data-phase="playing"], [data-phase="paused"]) .toolbar { width: 100%; justify-content: flex-end; }
+body:is([data-phase="playing"], [data-phase="paused"]) .level-nav { margin-right: auto; }
+body:is([data-phase="playing"], [data-phase="paused"]) :is(.icon-button, .map-button) { min-width: 44px; min-height: 44px; }
+body:is([data-phase="playing"], [data-phase="paused"]) main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body:is([data-phase="playing"], [data-phase="paused"]) .mission-heading { padding: 5px 2px; min-height: 35px; gap: 8px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .mission-heading h1 { margin: 0; font-size: 16px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .mission-stats { gap: 10px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .stat + .stat { padding-left: 10px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .stat strong { font-size: 16px; margin: 0; }
+body:is([data-phase="playing"], [data-phase="paused"]) .stat-label { display: none; }
+body:is([data-phase="playing"], [data-phase="paused"]) .game-layout { flex: 1; min-height: 0; display: block; }
+body:is([data-phase="playing"], [data-phase="paused"]) .play-column { height: 100%; display: flex; flex-direction: column; }
+body:is([data-phase="playing"], [data-phase="paused"]) .board-wrap { flex: 1; min-height: 0; height: auto; max-height: none; aspect-ratio: auto; }
+body:is([data-phase="playing"], [data-phase="paused"]) .command-bar { margin-top: 8px; flex: 0 0 auto; display: flex; align-items: center; padding: 0; gap: 6px; height: 58px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .cop-roster { flex: 1; min-width: 0; display: flex; gap: 4px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .cop-card { flex: 1; min-width: 0; min-height: 44px; padding: 4px; }
+body:is([data-phase="playing"], [data-phase="paused"]) .cop-card .cop-info small { display: none; }
+body:is([data-phase="playing"], [data-phase="paused"]) .hold-button { flex: 0 0 48px; width: 48px; min-height: 44px; padding: 5px; margin: 0; }
+body:is([data-phase="playing"], [data-phase="paused"]) .hold-button span { display: none; }
+body:is([data-phase="playing"], [data-phase="paused"]) .board-footnote { margin: 0; padding: 0; min-height: 30px; justify-content: flex-end; }
+@media (max-height: 580px) and (orientation: landscape) {
+  body:is([data-phase="playing"], [data-phase="paused"]) .mission-heading { min-height: 24px; padding: 2px; }
+  body:is([data-phase="playing"], [data-phase="paused"]) .command-bar { height: auto; margin: 0; }
+  body:is([data-phase="playing"], [data-phase="paused"]) .cop-roster { flex: 0 1 auto; max-height: calc(100% - 50px); }
+  body:is([data-phase="playing"], [data-phase="paused"]) .hold-button { flex: 0 0 44px; }
+  body:is([data-phase="playing"], [data-phase="paused"]) .board-footnote { position: absolute; top: 9px; left: 150px; z-index: 6; min-height: 36px; }
+}
 .lose-dialog > .eyebrow {
   color: #b77853;
 }
