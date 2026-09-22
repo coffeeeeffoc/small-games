@@ -84,6 +84,13 @@ function stopHint() {
   hintWorker?.terminate(); hintWorker = null; clearTimeout(hintTimer); hintTimer = null; hintBusy = false;
 }
 function clearHint() { stopHint(); $('hint-layer')?.replaceChildren(); }
+function focusPatrol(active) {
+  cancelDrag();
+  document.body.classList.toggle('focus-play', active);
+  $('focus-toggle').textContent = active ? '返回大厅' : '继续围捕';
+  window.scrollTo(0, 0);
+  document.dispatchEvent(new Event('game-displaychange'));
+}
 function updateChrome() {
   const alive = state.robbers.filter(n => n >= 0).length, escaped = state.robbers.filter(n => n === -2).length;
   Object.assign(document.body.dataset, { level: String(level.id), turn: String(state.turn), phase, remaining: String(alive), escaped: String(escaped) });
@@ -222,7 +229,7 @@ function loadLevel(id, restore = null) {
   $('board-caption').textContent = `${chapters[level.chapter].name} · 守口、换防、两侧包抄`;
   const briefing = `${level.cops.length} 人协作：你动 1 人，${level.robbers.length} 名小偷都会行动。先守出口，再换防包抄；点小偷查看退路。`;
   drawBase(); notify(turnInstruction(state.turn === 0 ? briefing : '已选中 1 号警察，点相邻路口立即走；小偷随后行动。'));
-  updatePlanning(); syncSettings(); persist();
+  updatePlanning(); syncSettings(); persist(); focusPatrol(true);
   if (phase === 'won') { updateActors(); showWin(false); }
   if (phase === 'lost') showLoss(false);
 }
@@ -427,6 +434,8 @@ function cancelDrag() {
 }
 $('board').addEventListener('pointercancel', cancelDrag); $('board').addEventListener('lostpointercapture', cancelDrag);
 $('squad').addEventListener('click', event => { const button = event.target.closest('[data-cop]'); if (button) pickCop(+button.dataset.cop); });
+$('focus-toggle').addEventListener('click', () => focusPatrol(!document.body.classList.contains('focus-play')));
+$('resume-patrol').addEventListener('click', () => focusPatrol(true));
 $('undo').addEventListener('click', undo); $('hint').addEventListener('click', showHint);
 $('retry').addEventListener('click', () => loadLevel(level.id)); $('undo-loss').addEventListener('click', undo);
 $('restart').addEventListener('click', () => { playSound('undo'); loadLevel(level.id); });

@@ -23,6 +23,7 @@ if (mode === 'stop') {
     '007-managed-ad-drafts.sql',
     '008-generation-jobs.sql',
     '009-content-protection.sql',
+    '010-competition.sql',
   ])
     await run(
       'docker',

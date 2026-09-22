@@ -53,6 +53,8 @@ export class HUD {
   coach = new DrivingCoach();
   coaching: Label;
   help: Label;
+  pause: Label;
+  rulesVisible = false;
   constructor(parent: Node) {
     view.setDesignResolutionSize(960, 540, ResolutionPolicy.SHOW_ALL);
     this.root = new Node('HUD');
@@ -80,7 +82,7 @@ export class HUD {
     this.box(this.root, -410, 90, 96, 48, '#173c55dd');
     this.sound = this.label(this.root, '声音 开', -410, 90, 18, '#fff6dc', 96, 48);
     this.box(this.root, -410, 30, 72, 48, '#173c55');
-    this.label(this.root, 'Ⅱ', -410, 30, 24, '#fff6dc', 72, 48);
+    this.pause = this.label(this.root, 'Ⅱ', -410, 30, 24, '#fff6dc', 72, 48);
     this.box(this.root, -410, -30, 96, 48, '#173c55');
     this.help = this.label(this.root, '收起教学', -410, -30, 18, '#fff6dc', 96, 48);
     this.box(this.root, 0, -209, 180, 70, '#173c55ee');
@@ -200,13 +202,18 @@ export class HUD {
       p = r.drivers[0].progress,
       place = r.order.indexOf(0) + 1;
     this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(C.laps, p.laps + 1)} / ${C.laps} 圈`;
-    this.timer.string = `总计 ${time(r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
+    this.timer.string = `总计 ${time(p.finishedAt || r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
-    this.help.string = this.coach.enabled ? '收起教学' : '驾驶教学';
+    this.pause.string = r.networked ? '房间' : 'Ⅱ';
+    this.help.string = r.networked
+      ? this.rulesVisible ? '收起规则' : '竞赛规则'
+      : this.coach.enabled ? '收起教学' : '驾驶教学';
     this.coaching.node.parent!.active =
-      !r.networked && this.coach.enabled && (r.phase === 'racing' || r.phase === 'countdown');
-    this.coaching.string = this.coach.hint(keyboardHints);
+      (r.networked ? this.rulesVisible : this.coach.enabled) && (r.phase === 'racing' || r.phase === 'countdown');
+    this.coaching.string = r.networked
+      ? '合法完成 3 圈比用时 · 首车冲线后 60 秒截止 · 房间中不暂停比赛'
+      : this.coach.hint(keyboardHints);
     this.nitro.string =
       k.nitroCooldown > 0
         ? `氮气 ${k.nitroCooldown.toFixed(1)}s`
@@ -253,7 +260,9 @@ export class HUD {
       }
       if (r.phase === 'finished') {
         this.title.string = place === 1 ? '冠军，漂亮！' : `第 ${place} 名，冲线！`;
-        this.detail.string = `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次加速   ·   ${r.collisions} 次碰撞`;
+        this.detail.string = r.networked
+          ? `${p.finishedAt ? `完赛 ${time(p.finishedAt)}` : '未完成 3 圈，不产生有效成绩'}   ·   最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}\n服务端校验圈数、检查点与完赛时间`
+          : `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次加速   ·   ${r.collisions} 次碰撞`;
         this.button.string = '再跑一场  →';
         this.standings.string = `本场名次\n${r.order
           .map((driver, i) => {
@@ -268,7 +277,9 @@ export class HUD {
     const selectedRoute = routes.find((r) => r.id === this.selection.route)!;
     this.tagline.string =
       r.phase === 'finished'
-        ? place === 1
+        ? !p.finishedAt
+          ? '未完赛 · 调整路线，再次挑战'
+          : place === 1
           ? '金牌 · 路线冠军'
           : place <= 3
             ? '银牌 · 登上领奖台'

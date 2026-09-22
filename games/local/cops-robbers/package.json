@@ -10,7 +10,10 @@
     "preview": "node scripts/serve.mjs --dist",
     "test": "node scripts/check-levels.mjs",
     "test:browser": "node scripts/playtest.mjs",
-    "test:interactions": "node scripts/check-interactions.mjs"
+    "test:interactions": "node scripts/check-interactions.mjs",
+    "test:focus": "node scripts/check-focus.mjs",
+    "test:ranking": "node scripts/check-ranking.mjs",
+    "test:competition-renderer": "node scripts/check-competition-renderer.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

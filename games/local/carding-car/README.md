@@ -32,7 +32,7 @@ H5 右上“全屏”覆盖游戏画面、HUD 与菜单，比赛中可退出；�
 
 ## 原生工程
 
-复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID` 环境变量。无需 AppSecret。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。
+复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID` 环境变量。客户端构建不包含 AppSecret；平台排位登录所需密钥仅配置在共享后端。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。
 
 ```powershell
 pnpm --filter @coffeeeeffoc/carding-car build:wechat

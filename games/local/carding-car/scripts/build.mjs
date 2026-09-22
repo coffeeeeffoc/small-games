@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili'].includes(target))
   throw new Error('Unknown build target');
-await prepareArt();
+if (!process.argv.includes('--check-output')) await prepareArt();
 if (target === 'web-mobile' && process.env.KART_PREBUILT_DIR) {
   const source = await verifyPrebuilt(process.env.KART_PREBUILT_DIR),
     dist = path.resolve(root, 'dist');
@@ -21,7 +21,7 @@ if (target === 'web-mobile' && process.env.KART_PREBUILT_DIR) {
   console.log('Restored verified Creator artifact');
   process.exit(0);
 }
-if (!existsSync(editor))
+if (!process.argv.includes('--check-output') && !existsSync(editor))
   throw new Error('Set COCOS_CREATOR to the Cocos Creator 3.8.8 executable.');
 const platform = target === 'bilibili' ? 'wechatgame' : target;
 const outputName = target === 'bilibili' ? 'wechat-bilibili-source' : platform;
@@ -32,6 +32,62 @@ if (
   throw new Error('Run node scripts/setup.mjs --bilibili first.');
 const localPath = path.join(root, 'release-config.local.json');
 const release = existsSync(localPath) ? JSON.parse(await readFile(localPath, 'utf8')) : {};
+const bilibiliAppId = process.env.BILIBILI_APP_ID || release.bilibiliAppId || '';
+if (
+  target === 'bilibili' &&
+  (typeof bilibiliAppId !== 'string' ||
+    (bilibiliAppId &&
+      (!/^[A-Za-z0-9_-]+$/.test(bilibiliAppId) ||
+        /^(wx|touristappid$|preview-only$)/i.test(bilibiliAppId))))
+)
+  throw new Error(
+    'BILIBILI_APP_ID / bilibiliAppId must be a Bilibili AppID, or omitted for preview-only builds',
+  );
+async function checkBilibiliOutput(directory, appId) {
+  const game = JSON.parse(await readFile(path.join(directory, 'game.json'), 'utf8'));
+  const project = JSON.parse(await readFile(path.join(directory, 'project.config.json'), 'utf8'));
+  const expected = appId || 'preview-only';
+  if (game.appId !== expected || project.appid !== expected || /^wx/i.test(expected))
+    throw new Error('Bilibili output AppIDs do not match BILIBILI_APP_ID / bilibiliAppId');
+  if (!appId && !project.projectname.includes('preview'))
+    throw new Error('Unconfigured Bilibili output must be labelled as preview-only');
+  const bridge = await readFile(path.join(directory, 'kart-platform.js'), 'utf8');
+  const config = JSON.parse(
+    bridge.match(/Object\.assign\((\{[^\n]+?\}), globalThis\.__COMPETITION_CONFIG__/)[1],
+  );
+  if (config.platform !== 'bilibili' || config.appId !== appId)
+    throw new Error('Bilibili competition identity configuration does not match this target');
+  const entry = await readFile(path.join(directory, 'game.js'), 'utf8');
+  const adapters = [...entry.matchAll(/require\(['"]\.\/(blapp-adapter[^'"]+)['"]\)/g)];
+  if (!adapters.length || !entry.includes("require('./kart-platform.js')"))
+    throw new Error('Bilibili official adapters or kart bridge are missing');
+  const adapterSource = (
+    await Promise.all(adapters.map((match) => readFile(path.join(directory, match[1]), 'utf8')))
+  ).join('\n');
+  if (!/\bwx\s*=\s*bl\b/.test(adapterSource) || !/typeof bl !== 'undefined' \? bl/.test(bridge))
+    throw new Error('Bilibili official bl-to-wx adapter or native sharing binding is missing');
+  console.log(
+    `Bilibili output checked: ${appId ? 'AppID configured, platform authorization unverified' : 'preview-only, AppID missing'}; official adapters preserved`,
+  );
+}
+if (target === 'bilibili' && process.argv.includes('--check-output')) {
+  await checkBilibiliOutput(path.join(root, 'build/biligame'), bilibiliAppId);
+  process.exit(0);
+}
+const competitionClient = await readFile(
+  new URL('../../../../platforms/competition/client.js', import.meta.url),
+  'utf8',
+);
+const competitionConfig = {
+  platform: target === 'bilibili' ? 'bilibili' : target === 'wechatgame' ? 'wechat' : 'h5',
+  appId:
+    target === 'bilibili' ? bilibiliAppId : process.env.WECHAT_APP_ID || release.wechatAppId || '',
+  apiUrl: process.env.COMPETITION_PUBLIC_API_URL || release.competitionApiUrl || '',
+};
+const competitionBridge =
+  `globalThis.__COMPETITION_CONFIG__ = Object.assign(${JSON.stringify(competitionConfig)}, globalThis.__COMPETITION_CONFIG__ || {});\n` +
+  competitionClient +
+  '\nglobalThis.__installCompetition(globalThis.__COMPETITION_CONFIG__);\n';
 const report = path.join(root, 'reports');
 await mkdir(report, { recursive: true });
 const config = {
@@ -58,13 +114,17 @@ const config = {
   packages: {
     'web-mobile': { embedWebDebugger: false, orientation: 'landscape' },
     wechatgame: {
-      appid: process.env.WECHAT_APP_ID || release.wechatAppId || 'touristappid',
+      // The official Bilibili builder copies this project config before adapting the engine.
+      appid:
+        target === 'bilibili'
+          ? bilibiliAppId || 'preview-only'
+          : process.env.WECHAT_APP_ID || release.wechatAppId || 'touristappid',
       orientation: 'landscape',
       separateEngine: false,
     },
     'biligame-builder': {
       isBiliGame: target === 'bilibili',
-      biliGameAppId: process.env.BILIBILI_APP_ID || release.bilibiliAppId || 'preview-only',
+      biliGameAppId: bilibiliAppId || 'preview-only',
       biliGameVersion: '0.1.0',
     },
   },
@@ -145,7 +205,7 @@ if (platform === 'wechatgame') {
   );
   await writeFile(
     path.join(directory, 'kart-platform.js'),
-    `globalThis.__kartServerUrl = ${JSON.stringify(serverUrl)};\n` + bridge,
+    `globalThis.__kartServerUrl = ${JSON.stringify(serverUrl)};\n` + competitionBridge + bridge,
   );
   const entryFile = path.join(directory, 'game.js');
   await writeFile(
@@ -153,6 +213,17 @@ if (platform === 'wechatgame') {
     `require('./kart-platform.js');\n` + (await readFile(entryFile, 'utf8')),
   );
   const game = JSON.parse(await readFile(path.join(directory, 'game.json'), 'utf8'));
+  if (target === 'bilibili') {
+    const projectPath = path.join(directory, 'project.config.json');
+    const project = JSON.parse(await readFile(projectPath, 'utf8'));
+    project.appid = game.appId = bilibiliAppId || 'preview-only';
+    project.projectname = bilibiliAppId
+      ? 'carding-car-bilibili'
+      : 'carding-car-bilibili-preview-only';
+    await writeFile(projectPath, JSON.stringify(project, null, 2));
+    await writeFile(path.join(directory, 'game.json'), JSON.stringify(game, null, 2));
+    await checkBilibiliOutput(directory, bilibiliAppId);
+  }
   if (!game.subpackages?.some((bundle) => bundle.name === 'resources'))
     throw new Error('Mini-game art must be exported as the resources subpackage.');
   let totalBytes = 0,
@@ -187,7 +258,7 @@ if (target === 'web-mobile') {
           background: #173c55; text-align: center; font: 600 18px/1.6 sans-serif; pointer-events: none; }
         #kart-rotate small { display: block; color: #69dfc0; font-size: 14px; }
       }
-      </style><script defer src="./fullscreen.js"></script></head>`,
+      </style><script src="./competition-session.js"></script><script defer src="./fullscreen.js"></script></head>`,
     )
     .replace(
       '<body>',
@@ -198,6 +269,7 @@ if (target === 'web-mobile') {
       'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );
   await writeFile(index, html);
+  await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);
   await cp(new URL('./fullscreen.js', import.meta.url), path.join(outputDir, 'fullscreen.js'));
   await writeFile(
     path.join(outputDir, 'build-info.json'),

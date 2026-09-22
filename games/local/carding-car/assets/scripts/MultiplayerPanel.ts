@@ -6,6 +6,8 @@ import { cycleSelection, drivers, vehicles, type Selection } from './Selection';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
 import { invitationQuery, platformSharing, type Invitation } from './Invitation';
+import { competition, type CompetitionBoard } from './CompetitionClient';
+import { formatTime } from './RankingSystem';
 
 export class MultiplayerPanel {
   root: Node;
@@ -30,6 +32,16 @@ export class MultiplayerPanel {
   private heading: Label;
   private close: Node;
   openButton: Label;
+  private ranking: Node;
+  private rankingText: Label;
+  private rankingSummary: Label;
+  private board?: CompetitionBoard;
+  private boardPage = 0;
+  private authAttempt = 0;
+  private authenticating = false;
+  get rankingView() {
+    return { visible: this.ranking.active, summary: this.rankingSummary.string, rows: this.rankingText.string };
+  }
   constructor(
     hud: HUD,
     client: MultiplayerClient,
@@ -112,7 +124,10 @@ export class MultiplayerPanel {
       this.name.string = sys.localStorage.getItem('kart-player-name') || '车手';
     } catch {}
     this.code = edit(this.entry, '输入 8 位房间码', 0, -10, 420, 8);
-    const join = (create: boolean) => {
+    const join = async (create: boolean, ranked = false) => {
+      if (this.authenticating || client.connecting || client.connected) return;
+      const attempt = ++this.authAttempt;
+      this.authenticating = true;
       clearInput();
       const selected = selection(),
         name = this.name.string.trim() || '车手';
@@ -125,24 +140,34 @@ export class MultiplayerPanel {
         driver: selected.driver,
         version: multiplayerVersion,
       };
+      let competitionToken: string | undefined;
+      try {
+        const bridge = competition();
+        if (bridge) {
+          client.status = '正在验证玩家身份…';
+          client.changed();
+          competitionToken = (await bridge.session()).token;
+        } else if (ranked) throw new Error('全站服务尚未配置，请配置后再参加排位');
+      } catch (error) {
+        if (attempt === this.authAttempt) {
+          this.authenticating = false;
+          client.status = error instanceof Error ? error.message : '玩家身份验证失败，请重试';
+          client.changed();
+        }
+        return;
+      }
+      if (attempt !== this.authAttempt) return;
+      this.authenticating = false;
       client.connect(
         create
-          ? { type: 'create', ...appearance, theme: selected.theme, route: selected.route, bots: 3 }
-          : { type: 'join', ...appearance, code: this.code.string.trim().toUpperCase() },
+          ? { type: 'create', ...appearance, theme: selected.theme, route: selected.route, bots: ranked ? 0 : 3, ranked, competitionToken }
+          : { type: 'join', ...appearance, code: this.code.string.trim().toUpperCase(), competitionToken },
       );
     };
-    button(this.entry, '创建房间', -115, -78, 210, () => join(true));
-    button(this.entry, '加入好友', 115, -78, 210, () => join(false));
-    hud.label(
-      this.entry,
-      '房间最多 8 辆车 · 机器人数量由房主选择',
-      0,
-      -124,
-      16,
-      '#a9cdd0',
-      560,
-      28,
-    );
+    button(this.entry, '好友练习', -183, -78, 170, () => { void join(true); });
+    button(this.entry, '排位好友赛', 0, -78, 170, () => { void join(true, true); });
+    button(this.entry, '加入好友', 183, -78, 170, () => { void join(false); });
+    button(this.entry, '全站 Top 100 / 我的最佳', 0, -130, 360, () => { void this.showRanking(); });
     this.invitation = new Node('InvitationConfirmation');
     this.invitation.layer = Layers.Enum.UI_2D;
     this.root.addChild(this.invitation);
@@ -153,7 +178,7 @@ export class MultiplayerPanel {
       if (!this.pendingInvite || client.connecting) return;
       if (client.room) client.leave();
       this.code.string = this.pendingInvite.code;
-      join(false);
+      void join(false);
     });
     this.lobby = new Node('RoomLobby');
     this.lobby.layer = Layers.Enum.UI_2D;
@@ -177,6 +202,7 @@ export class MultiplayerPanel {
     this.controls = new Node('RoomControls');
     this.controls.layer = Layers.Enum.UI_2D;
     this.lobby.addChild(this.controls);
+    button(this.lobby, '全站排名', -325, -104, 170, () => { void this.showRanking(); });
     this.bots = hud.label(this.controls, '', 0, -99, 20, '#fff6dc', 380, 38);
     button(this.controls, '−', -165, -99, 48, () =>
       client.send({ type: 'bots', count: Math.max(0, (client.room?.bots ?? 0) - 1) }),
@@ -227,6 +253,17 @@ export class MultiplayerPanel {
           .catch(() => {});
       }
     });
+    this.ranking = new Node('GlobalRankings');
+    this.ranking.layer = Layers.Enum.UI_2D;
+    this.root.addChild(this.ranking);
+    this.rankingSummary = hud.label(this.ranking, '', 0, 124, 17, '#69dfc0', 820, 70);
+    this.rankingText = hud.label(this.ranking, '', 0, -25, 18, '#fff6dc', 800, 230);
+    this.rankingText.lineHeight = 23;
+    button(this.ranking, '上一页', -265, -170, 145, () => { this.boardPage = Math.max(0, this.boardPage - 1); this.renderRanking(); });
+    button(this.ranking, '返回房间', -85, -170, 175, () => { this.ranking.active = false; this.refresh(); });
+    button(this.ranking, '刷新', 105, -170, 145, () => { void this.showRanking(); });
+    button(this.ranking, '下一页', 275, -170, 145, () => { this.boardPage = Math.min(Math.max(0, Math.ceil((this.board?.top.length || 0) / 10) - 1), this.boardPage + 1); this.renderRanking(); });
+    this.ranking.active = false;
     // Keep the full-screen input shield above the entry button while the dialog is open.
     this.openButton = button(hud.root, '好友联机', -354, 153, 195, () => {
       this.root.active = !this.root.active;
@@ -245,6 +282,9 @@ export class MultiplayerPanel {
     this.refresh();
   }
   cancelInvite() {
+    this.authAttempt++;
+    this.authenticating = false;
+    this.ranking.active = false;
     if (this.pendingInvite && !this.client.room) this.client.leave();
     this.pendingInvite = undefined;
     this.clearInviteUrl();
@@ -264,11 +304,12 @@ export class MultiplayerPanel {
       this.pendingInvite = undefined;
       this.clearInviteUrl();
     }
-    this.invitation.active = !!client.endpoint && !!this.pendingInvite;
-    this.entry.active = !!client.endpoint && !room && !this.pendingInvite;
-    this.lobby.active = !!room && !this.pendingInvite;
-    const width = this.lobby.active ? 880 : 620;
-    const height = this.lobby.active ? 470 : 390;
+    this.invitation.active = !this.ranking.active && !!client.endpoint && !!this.pendingInvite;
+    this.entry.active = !this.ranking.active && !!client.endpoint && !room && !this.pendingInvite;
+    this.lobby.active = !this.ranking.active && !!room && !this.pendingInvite;
+    const width = this.lobby.active || this.ranking.active ? 880 : 620;
+    const height = this.lobby.active || this.ranking.active ? 470 : 390;
+    this.heading.string = this.ranking.active ? '海湾标准赛 · 全站 Top 100' : room?.ranked ? '海湾标准赛 · 好友排位' : '好友一起开跑';
     const transform = this.card.node.getComponent(UITransform)!;
     if (transform.width !== width) {
       transform.setContentSize(width, height);
@@ -305,15 +346,17 @@ export class MultiplayerPanel {
     this.choices.forEach(
       (label, i) => (label.string = `${['主题', '路线', '赛车', '车手'][i]}  ${names[i]}`),
     );
-    this.arrows.forEach((node) => (node.active = owner && room.phase === 'lobby'));
-    this.info.string = `房间 ${room.code}  ·  ${room.members.length} 位好友 + ${room.bots} 个机器人`;
+    this.arrows.forEach((node) => (node.active = owner && room.phase === 'lobby' && !room.ranked));
+    this.info.string = room.ranked
+      ? `房间 ${room.code} · 2 人标准车 / 固定道具 / 3 圈排位`
+      : `房间 ${room.code}  ·  ${room.members.length} 位好友 + ${room.bots} 个机器人 · 练习`;
     this.members.string = room.members
       .map(
         (m) =>
           `${m.id === room.hostId ? '房主' : '车手'}  ${m.name}${m.id === client.selfId ? '（你）' : ''}  ·  ${!m.connected ? '断线，等待重连' : room.phase !== 'lobby' ? { loading: '装配比赛中', racing: '比赛中', finished: '已结束' }[room.phase] : m.loadedRevision !== room.revision ? '素材加载中' : m.ready ? '已准备' : '未准备'}`,
       )
       .join('\n');
-    this.controls.active = owner && room.phase === 'lobby';
+    this.controls.active = owner && room.phase === 'lobby' && !room.ranked;
     this.bots.string = `${room.bots} 个机器人`;
     this.ready.node.parent!.active = room.phase === 'lobby';
     this.ready.string = room.members.find((m) => m.id === client.selfId)?.ready
@@ -321,5 +364,35 @@ export class MultiplayerPanel {
       : '准备';
     this.start.node.parent!.active = owner && (room.phase === 'lobby' || room.phase === 'finished');
     this.start.string = room.phase === 'finished' ? '再开一场' : '开始比赛';
+  }
+  async showRanking() {
+    this.ranking.active = true;
+    this.rankingSummary.string = '正在查询全站成绩…';
+    this.rankingText.string = '';
+    this.refresh();
+    try {
+      const bridge = competition();
+      if (!bridge) throw new Error('全站排行榜服务尚未配置');
+      const board = await bridge.request('/boards/carding-car') as CompetitionBoard;
+      if (!Array.isArray(board.top) || !Number.isInteger(board.eligiblePlayers)) throw new Error('排行榜返回无效数据');
+      this.board = board;
+      this.boardPage = 0;
+      this.renderRanking();
+    } catch (error) {
+      this.board = undefined;
+      this.rankingSummary.string = '全站服务暂不可用，请稍后刷新';
+      this.rankingText.string = error instanceof Error ? error.message.slice(0, 100) : '排行榜查询失败';
+    }
+  }
+  private renderRanking() {
+    const board = this.board;
+    if (!board) return;
+    const me = board.me;
+    const target = board.previous;
+    const gap = me && target ? Math.max(0, (target.score - me.score) / 1000).toFixed(3) : null;
+    this.rankingSummary.string = `${board.eligiblePlayers} 位合格玩家 · 每人最佳一条 · 用时越短越好\n${me ? `我的最佳 ${formatTime(-me.score / 1000)} · 全站第 ${me.rank} 名${gap ? ` · 距目标 ${gap} 秒` : ''}` : '尚无有效成绩 · 完成双人海湾标准排位赛即可上榜'}`;
+    this.rankingText.string = board.top.length
+      ? board.top.slice(this.boardPage * 10, (this.boardPage + 1) * 10).map((entry) => `${entry.rank}　${entry.playerId === me?.playerId ? '你' : entry.name || `车手 ${entry.playerId.slice(0, 6)}`}　${formatTime(-entry.score / 1000)}`).join('\n')
+      : '目前没有合格成绩\n邀请一位好友，完成首场标准排位赛';
   }
 }

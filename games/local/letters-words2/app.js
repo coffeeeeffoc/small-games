@@ -20,6 +20,19 @@ let roundStarted = 0;
 let practice = null;
 let review = [];
 let roundName = '';
+let focused = false;
+
+function setFocus(enabled) {
+  focused = enabled;
+  document.body.classList.toggle('is-playing', enabled);
+  $('pause-button').hidden = !enabled;
+  $('focus-progress').hidden = !enabled;
+  $('switch-word').hidden = !enabled;
+  $('meaning-details').hidden = !enabled || (getActiveWord()?.meaning.length || 0) <= 26;
+  (enabled ? $('word-list-panel') : $('word-list-home')).append(document.querySelector('.word-list-card'));
+  if (enabled) $('focus-button').textContent = '继续拾词 →';
+  window.scrollTo(0, 0);
+}
 
 function saveProgress() {
   savePreference('ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review }));
@@ -112,6 +125,7 @@ function renderBoard() {
   }
   $('board').replaceChildren(fragment);
   $('board').style.aspectRatio = `${BOARD.width}/${game.boardHeight}`;
+  $('board').style.setProperty('--board-ratio', BOARD.width / game.boardHeight);
   $('board').classList.toggle('is-complete', game.completed === game.words.length);
   if (focusedTile) $('board').querySelector(`[data-tile-id="${focusedTile}"]`)?.focus({ preventScroll: true });
   const remaining = game.tiles.filter(tile => !tile.removed).length;
@@ -148,6 +162,8 @@ function renderAnswer() {
 function renderWords() {
   const active = getActiveWord();
   $('current-meaning').textContent = active?.meaning || '全部拾齐';
+  $('full-meaning').textContent = active?.meaning || '全部拾齐';
+  $('meaning-details').hidden = !focused || (active?.meaning.length || 0) <= 26;
   const hasSymbols = active && /[^a-z]/.test(active.word);
   $('clue-detail').textContent = active ? `${letters(active.word).length} 个${hasSymbols ? '字符 · 符号要拼，空格自动补齐' : '字母 · 从亮色卡片开始'}` : '这座小岛，已被你点亮';
   $('word-position').textContent = `${String(game.words.indexOf(active) + 1).padStart(2, '0')} / ${String(game.words.length).padStart(2, '0')}`;
@@ -187,11 +203,12 @@ function renderWords() {
   });
   $('word-list').replaceChildren(fragment);
   $('study-progress').textContent = practice ? `教材进度 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词 · 第 ${practice.index + 1} / ${practice.batches.length} 岛` : '已完成的词会自动保存 · 提示过和拼错的词可在结算复习';
+  $('focus-progress').textContent = `${(practice?.learned || 0) + game.completed} / ${practice ? practice.batches.flat().length : game.words.length} 词`;
 }
 
 function render() { renderBoard(); renderWords(); renderAnswer(); }
 
-function startGame(entries, name) {
+function startGame(entries, name, focus = true) {
   clearTimeout(pending);
   busy = false;
   hintId = null;
@@ -201,17 +218,18 @@ function startGame(entries, name) {
   $('theme-name').textContent = name;
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
   render();
+  setFocus(focus);
   saveProgress();
   feedback('先看中文词义，再按顺序点击亮色字母。');
 }
 
-function randomGame() {
+function randomGame(focus = true) {
   practice = null;
   review = [];
   const choices = collections.map((_, index) => index).filter(index => index !== lastCollection);
   lastCollection = choices[Math.floor(Math.random() * choices.length)];
   const collection = collections[lastCollection];
-  startGame(parseWordList(collection.text), collection.name);
+  startGame(parseWordList(collection.text), collection.name, focus);
 }
 
 function showWin() {
@@ -300,7 +318,9 @@ $('answer-slots').addEventListener('click', event => {
 });
 $('word-list').addEventListener('click', event => {
   const row = event.target.closest('[data-word-id]');
-  if (busy || !row || row.disabled || row.dataset.wordId === game.activeWordId) return;
+  if (busy || !row || row.disabled) return;
+  $('word-list-dialog').close();
+  if (row.dataset.wordId === game.activeWordId) return;
   chooseWord(game, row.dataset.wordId);
   hintId = null;
   render();
@@ -358,8 +378,13 @@ $('review-button').addEventListener('click', () => {
   startGame(practice.batches[0], practice.name);
 });
 $('help-button').addEventListener('click', () => $('help-dialog').showModal());
+$('focus-button').addEventListener('click', () => setFocus(true));
+$('pause-button').addEventListener('click', () => setFocus(false));
+$('switch-word').addEventListener('click', () => $('word-list-dialog').showModal());
+$('meaning-details').addEventListener('click', () => $('meaning-dialog').showModal());
 $('result-button').addEventListener('click', showWin);
 $('import-button').addEventListener('click', () => {
+  $('word-list-dialog').close();
   $('word-input').value = readPreference('ciyu-word-list') || game.words.map(word => `${word.displayWord || word.word} ${word.meaning}`).join('\n');
   $('import-error').textContent = '';
   $('import-dialog').showModal();
@@ -420,4 +445,4 @@ try {
   render();
   feedback('已恢复上次完成进度，剩余字母重新摆好了。');
   if (game.completed === game.words.length) showWin();
-} catch { randomGame(); }
+} catch { randomGame(false); }

@@ -323,7 +323,7 @@ function buildMap(level) {
   return bg;
 }
 
-function route(ctx, actor, selected) {
+export function route(ctx, actor, selected) {
   if (!actor.destination) return;
   const points = [{ x: actor.x, y: actor.y }, ...(actor.routePoints || [])];
   if (points.length < 2) points.push(actor.destination);
@@ -632,7 +632,7 @@ function exitMarker(ctx, game, exit, index, label, t) {
   ctx.restore();
 }
 
-function actorBody(
+export function actorBody(
   ctx,
   actor,
   cop,

@@ -1,3 +1,57 @@
+# 别跑！街区围捕 — 2026-09-23 共享后端接入交接
+
+本节为当前实现 agent `realtime` 的交接；根仓库协调者负责身份、HTTP 房间、PostgreSQL、分享、平台打包及独立评审。旧报告不代表本轮在线或原生验收通过。评分门槛保持加权 ≥9.5、各维 ≥9.0；没有新增玩家研究或真机证据，本次不抬高旧评分。
+
+## 现状矩阵与改动边界
+
+| 项目 | 当前代码 | 本次验证 | 未完成/验证责任 |
+| --- | --- | --- | --- |
+| 目录/入口/渲染 | `games/local/cops-robbers-realtime`，`index.html`，`dist/index.html`；真实 Canvas 2D 主画面，DOM 工具与弹窗 | 读取 `engine.js`、`main.js`、`renderer.js`、`levels.js`，CodeGraph 当前未索引本目录 | 不是纯 DOM 或 iframe 引擎 |
+| 桌面 Web / 手机 H5 单人 | 原 48 关、实时命令、双警练习、个人存档保持 | 22 项 Node 检查、窄屏/练习/全屏专项 | 实体 Android / iOS 未验证 |
+| 专注界面 | 开始/练习后按 playing/paused 状态切换；移走品牌、长说明、侧栏，保留任务/时间/进度/地图/警察/留守/地图返回/声音/全屏/规则/暂停 | 320×740、390×844、844×390 无横向溢出、不依赖页面滚动，核心按钮高度 ≥44px；暂停继续仍同局 | Shell/iframe 由协调者验收 |
+| 全屏 | 保留既有公共 `src/fullscreen.js`，本次不复制新控制器；专注布局不依赖 API 成功 | 当前 Chrome 真正进入 HTML 全屏、触摸下令、暂停、弹窗退出全屏后同局继续 | App 内浏览器/真机及 iframe 由协调者验收 |
+| 好友 PK / 主榜规则 | 新服务端 `services/runtime-api/rules/realtime.mjs` 复用原物理，公开同图独立双人挑战；`src/competition-renderer.js` 接共享 room.state | 真规则+Canvas 触摸完成围捕、重连 JSON 恢复与不同查询频率最终一致；没有模拟两玩家变量冒充联网 | 真实 HTTP 两身份、PG 持久化和榜单由协调者集成 |
+| 微信 / B站 | 新纯 Canvas renderer 不调用 DOM 或 SDK，供协调者独立原生入口；绘制复用已有角色/路线画法 | 浏览器真实 Canvas 触摸；没有执行 SDK mock | 两个独立平台目标与真实开发工具运行由协调者记录，本文件不宣称原生通过 |
+| 后端依赖 | 现有 runtime-api 与 PostgreSQL、稳定 competition v1；此游戏无需新进程/数据库 | 规则引擎无需网络/DOM，静态模块可由 Node 直接载入 | 平台账号/密钥/合法域名和生产资源统一清单 |
+
+## 排位协议与规则
+
+- `id=cops-robbers-realtime`、`version=street1-physics120-v1`，固定第 1 关“岔路初见”、初始警察/小偷/出口、行为随机种子和速度。房间 seed 不改变榜单难度，同一榜所有玩家条件相同。
+- 准备后 120 秒限时；每位玩家独立指挥同一街区，不互相操纵警察。复用原来的道路寻路、身体阻挡、翻越出口、至少双警就位、所有可退避路段封闭后维持 0.8 秒收网。逃脱一个即失败。
+- 只接受 `{type:'move',cop,x,y}` 或 `{type:'hold',cop}`。校验警察下标、有限坐标、地图范围、可达道路、严格字段；拒绝客户端 score、elapsed、捕获数量等字段。玩家身份/成员资格/请求序号与房间生命周期由共享层校验。
+- `advance(state, elapsedMs)` 按服务端时间在原引擎推进整数 120Hz tick；共享层在房间 GET/POST 锁内对两玩家推进。`realtime=true`、`pollMs=250`。查询频率不影响物理结果；无查询期间不需要逐房间定时器，下次访问按真实已过时间补算，最多本局 120 秒。断线继续执行已有命令，不能暂停或回拨时间。
+- `view` 返回当前地图、角色位置、我方路线、出口状态、真实收网诊断、捕获数和用时；不下发测试解法、随机种子或小偷未来路线。客户端只保存选中警察和命令反馈。
+- 结果 `score = 全部抓获 ? 1000 + 捕获数 : 捕获数`，高分优先，再比较 `secondary=服务端终局毫秒`，低用时优先。同图只有一名小偷，合法完成记录为 1001 分，核心可比值是用时。完全相同成绩依共享层并列规则。失败/超时/未完成/离线练习不入全站榜；无虚构名次或本机榜替代。
+- 当前自动化工具可复现合法命令；服务器能拒绝越权/造分、非法移动和跳时，不能识别人类与辅助程序。固定图解法可能被学习或自动执行，不承诺绝对防作弊。规则、地图或物理变更需升级 version 隔离历史记录。
+
+## 当前实际验证与续接
+
+从本游戏目录执行（Windows / PowerShell）：
+
+```powershell
+node --test tests/*.test.mjs
+node scripts/verify-levels.mjs
+node scripts/build.mjs
+$env:PORT='43123'; node scripts/serve.mjs
+# 另一终端，服务使用当前 src；检查 dist 时加 --dist
+$env:GAME_URL='http://127.0.0.1:43123'
+node scripts/guided-playtest.mjs
+node scripts/competition-playtest.mjs
+node scripts/playtest.mjs
+```
+
+- Node 22/22 通过。新增的单一规则检查涵盖非法输入、真实放任逃脱、原策略合法获胜、不同查询频率、每次命令后 JSON 序列化恢复、同一物理终局用时、结束后拒绝操作和隐藏未来路线；没有直接注入胜负。
+- `guided-playtest.mjs` 4 项通过，报告 `2026-09-22T16:49:48.609Z`（本地 9 月 23 日）。保留同局练习返回、慢操作/误留守后恢复、305/320/390px、真实 Fullscreen API 与弹窗退出后继续。
+- `competition-playtest.mjs` 5 项通过，最终报告 `2026-09-22T16:59:53.536Z`：真实 Canvas pointer 输入选警察、点道路，服务端规则以 19,333ms 完成；320×740、390×844、844×390 专注布局按钮可见且高 ≥44px，暂停恢复；收到共享 `competition-visibility` open 事件时暂停原单人而不弹窗遮住 PK，close 后出现原暂停页且须明确继续。该脚本是浏览器输入与真实规则的直接集成检查，**不代表 HTTP/PG 双客户端、隧道或平台 SDK 验收**。
+- 截图/JSON 在被 Git 忽略的 `artifacts/competition-canvas-390.png`、`competition-canvas-report.json`、`online-before-390.png`、`online-after-390.png`、`guided-report.json`。全部是桌面 Chrome 手机尺寸模拟，非真机。
+- 运行现有全量浏览器回归时遇到一次练习等待胜利超时，再次通过练习后在忙碌主机上命中固定 500ms 等待不够（采样约 14 FPS）。没有改游戏时间规则；该断言改为等待模拟实际前进 0.3 秒（仍有 25 秒超时且检查小偷实际位移），避免把调度耗时当游戏静止。最终全量 `playtest.mjs` **16/16 通过**，`errors=[]`，报告 `2026-09-22T16:57:58.610Z`；含真实失败重试、首两关鼠标/触摸获胜、存档重载、键盘/拖动取消、18 关换防。
+- `verify-levels.mjs` 完成 48/48 合法通关、48/48 无人指挥失守、198/198 单警尾追失败及缺失任意警员不能取胜检查；`build` 与 `git diff --check` 通过。此轮没有重跑旧生命周期全套，已在专项里覆盖与本次变动直接相关的暂停恢复、窗口容器切换和全屏。
+- 最后构建 SHA-256：`dist/src/main.js` = `0615FC4F1878FB04173960F0312B787D76032B501EBB2376AB8342B5950B1913`；`dist/src/competition-renderer.js` = `143BFCC35FA9A803142D5CD2401E0969332400C4F3ED9E131A31097F76D11E6A`；`dist/src/style.css` = `D2EFB191C81C787A3BD0349CA596F9164C548623715581658A287F4F5F234F60`。
+
+下一步由新的独立评审 agent 先操作新构建与共享在线入口，再阅读本总结。必须补齐真实两客户端同一结算、PG 重启成绩仍在、101 玩家榜外名次、隧道 HTTP/WSS（本游戏自身用 HTTP）及微信/B站开发工具矩阵；当前实现不能宣称整轮硬门槛或 9.5 已达标。
+
+---
+
 # 别跑！街区围捕 — 2026-09-22 冻结 9.5 量表实现交接
 
 本节为当前证据；下文旧报告仅为历史。新独立评审尚未执行，以下是实现者按 [冻结量表 v1](../../../docs/plans/2026-09-22-six-games-95.md) 重新实玩及回归后记录的内部暂评分，不是玩家评价，也不是上线许可。

@@ -149,7 +149,7 @@ try {
   await page.locator("#start-button").click();
   await hoverAt({ x: 360, y: 190 }, "pointer");
   const initial = await snapshot();
-  await page.waitForTimeout(500);
+  await waitState(state => state.time > initial.time + 0.3);
   const moving = await snapshot();
   assert.ok(moving.time > 0.3);
   assert.ok(

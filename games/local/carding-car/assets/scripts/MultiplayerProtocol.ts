@@ -27,6 +27,8 @@ export type RoomState = {
   raceId: number;
   seed: number;
   roster: Racer[];
+  ranked?: boolean;
+  settlement?: 'practice' | 'pending' | 'saved' | 'failed';
 };
 export type RaceSnapshot = {
   raceId: number;
@@ -46,8 +48,10 @@ export type ClientMessage =
       theme: string;
       route: string;
       bots: number;
+      ranked?: boolean;
+      competitionToken?: string;
     } & Appearance)
-  | ({ type: 'join'; version: number; name: string; code: string } & Appearance)
+  | ({ type: 'join'; version: number; name: string; code: string; competitionToken?: string } & Appearance)
   | { type: 'resume'; version: number; code: string; token: string }
   | { type: 'bots'; count: number }
   | ({ type: 'selection' } & Selection)

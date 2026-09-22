@@ -38,6 +38,7 @@ export async function sourceHash() {
   }
   for (const folder of ['assets', 'scripts', 'settings']) await add(folder);
   await file('package.json');
+  hash.update((await readFile(new URL('../../../../platforms/competition/client.js', import.meta.url), 'utf8')).replaceAll('\r\n', '\n'));
   hash.update(
     (
       await readFile(new URL('../../../../platforms/kart-sharing.js', import.meta.url), 'utf8')

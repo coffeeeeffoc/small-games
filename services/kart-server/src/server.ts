@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
+import { rankedBoard, rankedSeed, type Competition } from './competition.ts';
 import { RaceManager } from '@coffeeeeffoc/carding-car/race';
 import { routes } from '@coffeeeeffoc/carding-car/routes';
 import { vehicles, drivers } from '@coffeeeeffoc/carding-car/selection';
@@ -54,9 +55,20 @@ const messageSchema = z.discriminatedUnion('type', [
       theme: choice(themes.map((t) => t.id)),
       route: choice(routes.map((r) => r.id)),
       bots: z.number().int().min(0).max(7),
+      ranked: z.boolean().optional(),
+      competitionToken: z.string().min(16).max(1024).optional(),
     })
     .strict(),
-  z.object({ type: z.literal('join'), version, name, code, ...appearance }).strict(),
+  z
+    .object({
+      type: z.literal('join'),
+      version,
+      name,
+      code,
+      ...appearance,
+      competitionToken: z.string().min(16).max(1024).optional(),
+    })
+    .strict(),
   z
     .object({ type: z.literal('resume'), version, code, token: z.string().regex(/^[a-f0-9]{64}$/) })
     .strict(),
@@ -86,6 +98,7 @@ const messageSchema = z.discriminatedUnion('type', [
 ]);
 const stopped = { steer: 0, throttle: 0, brake: true, drift: false, reverse: false, nitro: false };
 type Member = {
+  playerId?: string;
   public: RoomMember;
   token: string;
   socket?: WebSocket;
@@ -104,6 +117,9 @@ type Room = {
   loadingAt: number;
   firstFinishAt: number;
   tick: number;
+  matchId: string;
+  startedAt: number;
+  settlement?: Promise<void>;
 };
 export type ServerOptions = {
   origins?: string[];
@@ -111,6 +127,7 @@ export type ServerOptions = {
   now?: () => number;
   autoTick?: boolean;
   logger?: boolean;
+  competition?: Competition;
 };
 
 export function createKartServer(options: ServerOptions = {}) {
@@ -122,7 +139,15 @@ export function createKartServer(options: ServerOptions = {}) {
   const bindings = new Map<WebSocket, { room: Room; member: Member }>();
   const peers = new Map<
     WebSocket,
-    { ip: string; window: number; count: number; controlCount: number; pong: boolean }
+    {
+      ip: string;
+      window: number;
+      count: number;
+      controlCount: number;
+      pong: boolean;
+      pending: number;
+      queue: Promise<void>;
+    }
   >();
   const maxRooms = options.maxRooms ?? 16;
   app.get('/health', () => ({ ok: true, protocol: multiplayerVersion, rooms: rooms.size }));
@@ -253,12 +278,20 @@ export function createKartServer(options: ServerOptions = {}) {
     broadcast(room);
     state(room);
   }
-  function receive(socket: WebSocket, message: ClientMessage) {
+  async function receive(socket: WebSocket, message: ClientMessage) {
     let binding = bindings.get(socket);
     if (message.type === 'create' || message.type === 'join') {
       if (binding) throw new Error('请先退出当前房间');
+      const identity = message.competitionToken
+        ? await options.competition?.verify(message.competitionToken).catch(() => {
+            throw new Error('排位身份验证失败，请检查服务后重试');
+          })
+        : undefined;
+      if (message.competitionToken && !identity) throw new Error('排位服务尚未配置');
+      if (socket.readyState !== WebSocket.OPEN) return;
       let room: Room;
       if (message.type === 'create') {
+        if (message.ranked && !identity) throw new Error('排位赛需要有效玩家身份');
         if (rooms.size >= maxRooms) throw new Error('房间已满，请稍后再试');
         let roomCode: string;
         do {
@@ -269,12 +302,14 @@ export function createKartServer(options: ServerOptions = {}) {
             code: roomCode,
             hostId: '',
             phase: 'lobby',
-            theme: message.theme,
-            route: message.route,
-            vehicle: message.vehicle,
-            driver: message.driver,
+            theme: message.ranked ? 'seaside' : message.theme,
+            route: message.ranked ? 'seaside' : message.route,
+            vehicle: message.ranked ? 'classic-kart' : message.vehicle,
+            driver: message.ranked ? 'rookie' : message.driver,
             revision: 1,
-            bots: message.bots,
+            bots: message.ranked ? 0 : message.bots,
+            ranked: !!message.ranked,
+            settlement: 'practice',
             members: [],
             raceId: 0,
             seed: 0,
@@ -285,17 +320,24 @@ export function createKartServer(options: ServerOptions = {}) {
           loadingAt: 0,
           firstFinishAt: 0,
           tick: 0,
+          matchId: '',
+          startedAt: 0,
         };
         rooms.set(roomCode, room);
       } else {
         const found = rooms.get(message.code);
         if (!found) throw new Error('房间不存在或已结束');
         room = found;
+        if (room.state.ranked && !identity) throw new Error('排位赛需要有效玩家身份');
+        if (identity && room.members.some((member) => member.playerId === identity.playerId))
+          throw new Error('你已加入该房间，请使用原会话重连');
         if (room.state.phase !== 'lobby') throw new Error('比赛已开始，请等下一场');
+        if (room.state.ranked && room.members.length >= 2) throw new Error('排位房间已满');
         if (room.members.length + room.state.bots >= maxRacers)
           throw new Error('房间已满，请房主减少机器人');
       }
       const member: Member = {
+        playerId: identity?.playerId,
         public: {
           id: randomUUID(),
           name: message.name,
@@ -363,6 +405,7 @@ export function createKartServer(options: ServerOptions = {}) {
         room.members.every((m) => m.public.connected && m.loaded)
       ) {
         room.state.phase = 'racing';
+        room.startedAt = now();
         room.race!.start();
         broadcast(room);
         state(room);
@@ -374,6 +417,7 @@ export function createKartServer(options: ServerOptions = {}) {
       room.state.phase = 'lobby';
       room.state.roster = [];
       room.race = undefined;
+      room.state.settlement = 'practice';
       room.members = room.members.filter((m) => m.public.connected);
       room.members.forEach((m) => {
         m.public.ready = m.loaded = false;
@@ -384,6 +428,7 @@ export function createKartServer(options: ServerOptions = {}) {
     }
     if (room.state.phase !== 'lobby') throw new Error('比赛进行中，不能修改房间');
     if (message.type === 'selection') {
+      if (room.state.ranked) throw new Error('排位赛采用固定赛道、赛车与道具规则');
       if (!owner) throw new Error('只有房主可以修改主题、路线、赛车和车手');
       for (const field of ['theme', 'route', 'vehicle', 'driver'] as const)
         room.state[field] = message[field];
@@ -400,6 +445,7 @@ export function createKartServer(options: ServerOptions = {}) {
       member.public.loadedRevision = message.revision;
     }
     if (message.type === 'bots') {
+      if (room.state.ranked) throw new Error('排位赛不加入机器人');
       if (!owner) throw new Error('只有房主可以修改机器人数量');
       if (room.members.length + message.count > maxRacers) throw new Error('最多 8 辆赛车');
       room.state.bots = message.count;
@@ -414,6 +460,11 @@ export function createKartServer(options: ServerOptions = {}) {
     }
     if (message.type === 'start') {
       if (!owner) throw new Error('只有房主可以开始比赛');
+      if (
+        room.state.ranked &&
+        (room.members.length !== 2 || !room.members.every((m) => m.playerId))
+      )
+        throw new Error('排位赛需要两位不同身份的真实玩家');
       if (room.members.length + room.state.bots < 2) throw new Error('请邀请好友或加入机器人');
       if (
         !room.members.every(
@@ -423,7 +474,8 @@ export function createKartServer(options: ServerOptions = {}) {
       )
         throw new Error('等待所有好友连接并准备');
       room.state.raceId++;
-      room.state.seed = randomInt(0x100000000);
+      room.matchId = randomUUID();
+      room.state.seed = room.state.ranked ? rankedSeed : randomInt(0x100000000);
       room.state.roster = [
         ...room.members.map((m) => ({
           id: m.public.id,
@@ -459,6 +511,10 @@ export function createKartServer(options: ServerOptions = {}) {
   }
   function step() {
     for (const [roomCode, room] of rooms) {
+      if (room.state.settlement === 'pending' && options.competition?.saved(room.matchId)) {
+        room.state.settlement = 'saved';
+        broadcast(room);
+      }
       if (
         (!room.members.some((m) => m.public.connected) && now() - room.touched > 30000) ||
         (room.state.phase === 'lobby' && now() - room.touched > 30 * 60000) ||
@@ -511,6 +567,40 @@ export function createKartServer(options: ServerOptions = {}) {
       if (race.phase === 'finished') {
         room.state.phase = 'finished';
         room.touched = now();
+        if (room.state.ranked && options.competition) {
+          room.state.settlement = 'pending';
+          room.settlement = options.competition
+            .settle({
+              matchId: room.matchId,
+              board: rankedBoard,
+              entries: room.members.flatMap((member, index) => {
+                const progress = race.drivers[index].progress;
+                return member.playerId && progress.laps === 3 && progress.finishedAt > 0
+                  ? [
+                      {
+                        playerId: member.playerId,
+                        elapsedMs: Math.round(progress.finishedAt * 1000),
+                      },
+                    ]
+                  : [];
+              }),
+              startedAt: room.startedAt,
+              finishedAt: now(),
+            })
+            .catch((error) => {
+              room.state.settlement = 'failed';
+              app.log.error(
+                { err: error, matchId: room.matchId },
+                'Could not save ranked race outbox',
+              );
+              for (const member of room.members)
+                send(member.socket, {
+                  type: 'error',
+                  message: '成绩保存失败，请保留房间并联系维护者',
+                });
+              broadcast(room);
+            });
+        }
         broadcast(room);
         state(room);
       } else if (room.tick % 3 === 0) state(room);
@@ -541,6 +631,8 @@ export function createKartServer(options: ServerOptions = {}) {
       count: 0,
       controlCount: 0,
       pong: true,
+      pending: 0,
+      queue: Promise.resolve(),
     });
     const deadline = setTimeout(() => {
       if (!bindings.has(socket)) socket.close(4000, 'Join timeout');
@@ -568,7 +660,18 @@ export function createKartServer(options: ServerOptions = {}) {
           socket.close(1008, 'Command limit');
           return;
         }
-        receive(socket, parsed.data);
+        if (++peer.pending > 16) {
+          socket.close(1008, 'Command queue limit');
+          return;
+        }
+        peer.queue = peer.queue
+          .then(() => receive(socket, parsed.data))
+          .catch((error) => {
+            send(socket, { type: 'error', message: (error as Error).message });
+          })
+          .finally(() => {
+            peer.pending--;
+          });
       } catch (error) {
         send(socket, {
           type: 'error',
@@ -612,6 +715,7 @@ export function createKartServer(options: ServerOptions = {}) {
     clearInterval(timer);
     clearInterval(heartbeat);
     for (const socket of peers.keys()) socket.terminate();
+    await Promise.all([...rooms.values()].map((room) => room.settlement));
     await new Promise<void>((resolve) => wss.close(() => resolve()));
     rooms.clear();
   });

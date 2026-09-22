@@ -38,6 +38,7 @@ import { MultiplayerPanel } from './MultiplayerPanel';
 import { multiplayerVersion, type RoomState } from './MultiplayerProtocol';
 import { readInvitation, platformSharing } from './Invitation';
 import { angleDelta } from './KartConfig';
+import { competition, rankedResultText, type CompetitionBoard, type BoardEntry } from './CompetitionClient';
 const { ccclass } = _decorator;
 
 @ccclass('KartGame')
@@ -64,6 +65,12 @@ export class KartGame extends Component {
   botVehicles: string[] = [];
   multiplayer?: MultiplayerClient;
   roomPanel?: MultiplayerPanel;
+  rankingKey = '';
+  rankingBefore: BoardEntry | null | undefined;
+  rankingAfter?: CompetitionBoard;
+  rankingBusy = false;
+  rankingNextRead = 0;
+  rankingMessage = '正在等待全站结算…';
   lobbyLoadKey = '';
   preparedKey = '';
   networkRaceId = 0;
@@ -201,6 +208,10 @@ export class KartGame extends Component {
         !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
       () => this.loadSelection(true),
       () => {
+        if (this.race.networked) {
+          this.hud.rulesVisible = !this.hud.rulesVisible;
+          return;
+        }
         const coach = this.hud.coach;
         coach.enabled = !coach.enabled;
         if (coach.enabled) coach.step = 0;
@@ -227,6 +238,7 @@ export class KartGame extends Component {
                 lobbyVisible: this.roomPanel?.root.getChildByName('RoomLobby')?.active,
                 entryLabel: this.roomPanel?.openButton.string,
                 panelStatus: this.roomPanel?.status.string,
+                ranking: this.roomPanel?.rankingView,
               }
             : null,
           phase: this.race.phase,
@@ -264,6 +276,11 @@ export class KartGame extends Component {
           bestLapTime: this.race.bestLapTime,
           records: this.records.map((record) => ({ ...record })),
           hud: {
+            menuVisible: this.hud.panel.active,
+            rulesVisible: this.hud.rulesVisible,
+            coachingVisible: this.hud.coaching.node.parent!.active,
+            help: this.hud.help.string,
+            pause: this.hud.pause.string,
             top: this.hud.top.string,
             title: this.hud.title.string,
             choices: this.hud.choices.map((choice) => choice.string),
@@ -343,6 +360,7 @@ export class KartGame extends Component {
         !error && typeof asset.json?.serverUrl === 'string' ? asset.json.serverUrl : '';
       const endpoint =
         query?.get('kartServer') ||
+        (globalThis as typeof globalThis & { __kartServerUrl?: string }).__kartServerUrl ||
         configured ||
         platformSharing()?.serverUrl ||
         (sys.isBrowser && location.pathname.startsWith('/play/')
@@ -443,6 +461,33 @@ export class KartGame extends Component {
       } catch {}
     });
   }
+  syncRankedResult(room: RoomState) {
+    if (!room.ranked) return;
+    const key = `${room.code}:${room.raceId + (room.phase === 'lobby' ? 1 : 0)}`;
+    if (key !== this.rankingKey) {
+      this.rankingKey = key; this.rankingBefore = undefined; this.rankingAfter = undefined; this.rankingNextRead = 0;
+      this.rankingMessage = '正在等待全站结算…';
+      try { const saved = JSON.parse(sys.localStorage.getItem('kart-ranked-before') || 'null'); if (saved?.key === key) this.rankingBefore = saved.me; } catch {}
+    }
+    const before = room.phase === 'lobby';
+    if ((!before && (room.phase !== 'finished' || room.settlement !== 'saved')) ||
+      (before ? this.rankingBefore !== undefined : !!this.rankingAfter) || this.rankingBusy || Date.now() < this.rankingNextRead) return;
+    const client = competition();
+    if (!client) { this.rankingMessage = '全站服务尚未配置\n个人最佳与排名尚未确认'; return; }
+    this.rankingBusy = true; this.rankingNextRead = Date.now() + 5000;
+    void client.request('/boards/carding-car').then(value => {
+      if (!this.isValid || this.rankingKey !== key) return;
+      const board = value as CompetitionBoard;
+      if (!Array.isArray(board.top) || !Number.isInteger(board.eligiblePlayers)) throw new Error('Invalid board');
+      if (before) {
+        // A delayed lobby response must not be labelled as an observed pre-race record.
+        if (this.multiplayer?.room?.phase !== 'lobby') return;
+        this.rankingBefore = board.me;
+        try { sys.localStorage.setItem('kart-ranked-before', JSON.stringify({key,me:board.me})); } catch {}
+      } else this.rankingAfter = board;
+    }).catch(() => { if (this.rankingKey === key) this.rankingMessage = '全站服务暂不可用\n个人最佳与排名尚未确认\n正在重新查询…'; })
+      .finally(() => { this.rankingBusy = false; });
+  }
   update(dt: number) {
     if (!this.controller) return;
     this.frames++;
@@ -539,18 +584,24 @@ export class KartGame extends Component {
     if (this.uiTime > 0.08) {
       this.hud.update(this.race, input, this.muted);
       if (online) {
-        this.hud.panel.active = this.race.phase === 'finished';
+        this.syncRankedResult(online);
+        this.hud.panel.active = this.race.phase === 'finished' && !this.roomPanel?.root.active;
         this.hud.standings.fontSize = this.race.drivers.length > 4 ? 15 : 18;
         this.hud.standings.lineHeight = this.race.drivers.length > 4 ? 18 : 24;
         if (this.race.phase === 'finished') {
+          this.hud.leaderboard.string = online.ranked
+            ? this.rankingAfter ? rankedResultText(this.rankingAfter, this.rankingBefore) : this.rankingMessage
+            : '好友练习赛\n不计全站或本机纪录';
           this.hud.button.string = '查看房间 →';
-          this.hud.footer.string = '由房主再开一场 · 联机成绩不计入本机纪录';
+          this.hud.footer.string = online.ranked
+            ? { practice: '排位赛 · 等待结算', pending: '成绩已进入持久队列 · 等待全站排行榜确认', saved: '成绩已保存至全站榜 · 房间内查看排名并再次挑战', failed: '成绩保存失败 · 请保留房间并联系维护者' }[online.settlement || 'pending']
+            : '好友练习赛 · 不进入全站榜或本机纪录 · 房主可再开一场';
           this.hud.title.string = this.race.drivers[0].progress.finishedAt
             ? `第 ${this.race.order.indexOf(0) + 1} 名，冲线！`
             : '比赛结束 · 未完赛';
         }
         if (online.phase === 'loading') this.hud.message.string = '等待所有好友装配赛车…';
-        else if (!this.multiplayer!.connected) this.hud.message.string = '连接中断，正在重连…';
+        else if (!this.multiplayer!.connected) this.hud.message.string = this.multiplayer!.status || '连接中断，正在重连…';
         else if (this.race.drivers[0].progress.finishedAt && this.race.phase !== 'finished')
           this.hud.message.string = '已完赛，等待其他车手冲线…';
       }

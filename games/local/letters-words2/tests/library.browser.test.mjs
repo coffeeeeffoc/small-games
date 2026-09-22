@@ -30,7 +30,10 @@ try {
     assert.deepEqual(await page.locator('.word-text').allTextContents(), batch.map(entry => entry.meaning));
     for (let completed = 0; completed < batch.length; completed++) {
       const playable = page.locator('.word-row:not(.done)').filter({ hasText: '可拼' }).first();
-      if (await playable.count()) await playable.tap();
+      if (await playable.count()) {
+        if (await page.locator('#switch-word').isVisible()) await page.locator('#switch-word').tap();
+        await playable.tap();
+      }
       const length = await page.locator('.answer-slot').count();
       for (let letter = 0; letter < length; letter++) {
         await page.locator('#hint-button').tap();
@@ -59,6 +62,7 @@ try {
   assert.match(await page.locator('#theme-name').textContent(), /易错词复习/);
   // An already-open game can use a cached book even when the network goes away.
   await context.setOffline(true);
+  await page.locator('#pause-button').tap();
   await page.locator('#open-library').tap();
   await page.locator('#textbook-publisher').selectOption('fltrp');
   await page.locator('#textbook-grade').selectOption('3');

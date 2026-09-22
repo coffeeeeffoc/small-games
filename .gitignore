@@ -28,3 +28,4 @@ pnpm-debug.log*
 apps/shell-web/public/games/
 __pycache__/
 .tmp/arena/
+outputs/
