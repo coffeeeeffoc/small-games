@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { access, cp, readFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { buildCompetition } from '../../../scripts/competition-build.mjs';
 
 const workspace = new URL('../../../', import.meta.url);
 const catalog = JSON.parse(
@@ -29,6 +30,7 @@ const result = spawnSync(
 );
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
+await buildCompetition();
 
 const destination = new URL('../public/games/', import.meta.url);
 // This is only the Shell's generated directory, never a submodule checkout.

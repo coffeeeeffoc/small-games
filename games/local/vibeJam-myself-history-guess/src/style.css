@@ -602,7 +602,7 @@ legend {
 .game-shell {
   height: 100dvh;
   display: grid;
-  grid-template-rows: 78px minmax(0, 1fr) auto;
+  grid-template-rows: 65px minmax(0, 1fr) auto;
   padding-top: env(safe-area-inset-top);
   background: var(--paper);
   position: relative;
@@ -616,6 +616,7 @@ legend {
   border-bottom: 1px solid var(--line);
   gap: 16px;
 }
+.game-exit { flex-shrink: 0; width: 44px; min-height: 44px; }
 .brand.compact {
   font-size: 23px;
   padding: 0;
@@ -1231,7 +1232,7 @@ legend {
 .load-cover {
   position: absolute;
   z-index: 1000;
-  inset: 78px 0 0;
+  inset: 65px 0 0;
   background: var(--paper);
   display: flex;
   flex-direction: column;
@@ -1259,7 +1260,7 @@ legend {
 }
 .result-overlay {
   position: absolute;
-  inset: 78px 0 0;
+  inset: 65px 0 0;
   z-index: 900;
   background: #182f2a73;
   backdrop-filter: blur(7px);
@@ -2537,6 +2538,8 @@ legend {
   .game-header {
     padding: 0 8px;
   }
+  .round-progress { min-width: 0; }
+  #progress-dots { display: none; }
   .brand.compact {
     font-size: 16px;
   }

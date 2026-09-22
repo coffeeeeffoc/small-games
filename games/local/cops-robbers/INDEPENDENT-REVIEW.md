@@ -1,4 +1,37 @@
-# 围捕小队：冻结量表 v1 独立评审 R1（2026-09-22 当前结论）
+# 2026-09-23 独立联调验收：本地与公网真实双客户端通过
+
+评审者 `/root/review_cops_letters` 未参与实现。先打开当前游戏、点击进入 PK 并完成实际浏览器对局，之后读取 `RELEASE-REVIEW.md`。入口 `http://127.0.0.1:43010/games/cops-robbers/`，真实 PostgreSQL 测试库由协调者运行；测试账号仅进入 `competition_test`。这份记录不把旧报告、接口脚本或 SDK mock 当本轮 UI 通关。
+
+| 本人实际执行项 | 结果与证据 |
+| --- | --- |
+| 390×844 单人专注 | 开局即显示棋盘、步数和操作，宣传内容退出主要区域；棋盘 x=13、y=143、364×364，在屏幕内。 |
+| 双独立玩家完整比赛 | 两个 Chrome context 分别取得服务器签发的不同身份；创建→真实复制邀请链接→第二会话打开链接并读取房间码→加入→双方准备→各 13 步 Canvas 点击围捕→等待对方→两端得到一致结算→双方进入同一新房再来一局。另覆盖手输房间码。没有直接发送动作 API、注入胜负或修改状态。 |
+| 排位与结算 | 当前固定地图 17，两端成绩均为 13 步；真实返回个人最佳、人数、名次和相邻目标，结算页面可见。没有由此推断已完成 101 人边界/持久化恢复测试；那部分由协调者另列证据。 |
+| 浏览器全屏 | 独立单人页面和 PK dialog 的按钮均实际进入/退出浏览器 Fullscreen API，PK 状态不变；不是 CSS 充满。真实 iframe `Permissions-Policy: fullscreen=()` 拒绝时显示中文反馈，`fullscreenElement` 保持为空。 |
+| 环境边界 | Windows 安装版 Chrome、390×844 浏览器视口；本地与临时 HTTPS 隧道分别实测，不是手机真机或微信/B站开发者工具证据。CUA 子线程无法 attach 页面，因此使用可重复的浏览器验收脚本。 |
+
+复跑：仓库根执行 `node scripts/review-competition-cops-letters.mjs cops-robbers`；`--focus` 检查专注与全屏；可用 `$env:REVIEW_BASE` 指向同构测试网关。证据为 `outputs/independent-cops-letters/cops-robbers-{playing,waiting,results}-a.png`、对应 JSON，以及 `report-*.json`。路线由已有求解器计算用于验收，所有游戏动作仍由真实 Canvas 点击触发；不把已知路线回放当陌生玩家自主乐趣。
+
+## 本轮独立发现
+
+| 编号 / 级别 | 复现、影响及通过条件 | 当前状态 |
+| --- | --- | --- |
+| C1 / P1 | A 在围捕创建房间，B 在词屿填同一码并加入。B 显示“这个房间属于另一款游戏”，A 却显示 2/2，合法好友无法再加入，B 也无法在当前 UI 准备或退出这个房间。房间 `1708569D6698`；截图 `cops-robbers-crossgame-crossgame-a.png`、`letters-words2-crossgame-crossgame-b.png`。通过条件：服务端按期望游戏在占座前拒绝，原房仍 1/2。 | 已关闭：新产物中 B 被拒绝，A 下一次真实轮询仍 1/2。`--failures` 通过。 |
+| C2 / P2 | 等待房间期间浏览器断网，点击“退出 PK”；弹窗仍打开，状态为英文 `Failed to fetch`，退出依赖网络恢复。截图 `cops-robbers-offline-exit-crossgame-a.png`。通过条件：本地可退出并可继续单人，准确说明服务端退出未确认，恢复后处理原房间。 | 已关闭：断网点击后 dialog 立即关闭，外部显示“已退出 · 房间待确认”，单人画面可用；恢复网络后从入口取回同一房间并正常退出通过。`cops-robbers-offline-exit-fixed.png`。 |
+
+评分继续使用冻结权重 30/20/20/15/15、目标总分 ≥9.5 且每维 ≥9。局部 H5 PK 通过不抬高历史专家分 8.84，也不代替六端完整性、真机或真实新玩家证据；本轮整体仍未通过 9.5 和平台硬门槛。
+
+## 公网专项复验（2026-09-23）
+
+通过临时 HTTPS 隧道，由两个独立 Chrome context 真实完成：返回大厅找 PK→创建→复制邀请→第二会话打开链接并加入→准备→并行各 13 步 Canvas 点击→一致结算与全站排名→点击结算面板实际可见的“再次挑战”→进入同一新房。比赛 `1A990CCE5D6F`，服务端用时分别 **9.569 / 9.052 秒**，个人名次 **20 / 19**；新房 `CCFAD440C741`。浏览器真实全屏进入/退出保持局面。没有点击被结算覆盖层遮住的旧按钮，没有直接提交动作或分数；本次成功运行的页面及请求错误记录为空。
+
+首次公网运行的 5 秒创建等待上限未取得房间，随后调整测试等待为 15 秒并保留说明后重跑通过；不能把这次等待超限认定为游戏后端缺陷。PowerShell profile 曾延迟命令返回，后续运行使用无 profile 模式，不通过重启服务掩盖问题。
+
+本地证据保持不动，公网证据单独保存于被 Git 忽略的 `outputs/independent-cops-letters-public/`：`report-cops-robbers---parallel-players.json`、两端 `cops-robbers-results-*.png/json`。临时域名仅记录在该本地证据中，不写入提交的配置或本文。复跑设置 `REVIEW_BASE` 为当前隧道 HTTPS 入口、`REVIEW_EVIDENCE_NAME=independent-cops-letters-public`，执行 `node scripts/review-competition-cops-letters.mjs cops-robbers --parallel-players`。
+
+---
+
+# 围捕小队：冻结量表 v1 独立评审 R1（2026-09-22 历史结论）
 
 评审者 `review_kart_cops_r1` 未参与产品实现。先按可见界面自由操作并保存 `first-impressions.md`，之后才读取本轮实现报告；下方旧评分没有作为本轮基准。**本轮独立评分原值 8.84/10，未通过 9.5 门槛。未发现新的确定产品缺陷，但缺目标新玩家、跨日复玩和实体手机证据。** 这是限定环境的专家判断，不能估计上线玩家均分。
 

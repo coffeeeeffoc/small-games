@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { readFile } from 'node:fs/promises';
 import { createKartServer } from './server.ts';
+import { createCompetition } from './competition.ts';
+import { fileURLToPath } from 'node:url';
 
 const port = z.coerce
   .number()
@@ -48,7 +50,21 @@ for (const origin of origins) {
   if (!/^https?:$/.test(new URL(origin).protocol) || new URL(origin).origin !== origin)
     throw new Error('KART_ALLOWED_ORIGINS must contain HTTP(S) origins');
 }
-const { app } = createKartServer({ origins, maxRooms, logger: true });
+if (!!process.env.COMPETITION_API_URL !== !!process.env.COMPETITION_INTERNAL_KEY)
+  throw new Error('Configure COMPETITION_API_URL and COMPETITION_INTERNAL_KEY together');
+const competition = process.env.COMPETITION_API_URL
+  ? await createCompetition({
+      url: process.env.COMPETITION_API_URL,
+      key: process.env.COMPETITION_INTERNAL_KEY!,
+      directory:
+        process.env.KART_OUTBOX_DIR || fileURLToPath(new URL('../.data/results', import.meta.url)),
+      log: (message) => console.log(message),
+    })
+  : undefined;
+const { app } = createKartServer({ origins, maxRooms, logger: true, competition });
+app.addHook('onClose', async () => {
+  await competition?.close();
+});
 try {
   await app.listen({ host: process.env.HOST ?? '127.0.0.1', port });
 } catch (error) {

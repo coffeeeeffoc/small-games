@@ -32,6 +32,7 @@ const icons = {
   full: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
   home: '<path d="m3 10 9-7 9 7v11h-6v-8H9v8H3Z"/>',
+  pause: '<path d="M8 5v14M16 5v14" stroke-width="3"/>',
 };
 const icon = (name) =>
   `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icons[name] || icons.compass}</svg>`;
@@ -259,17 +260,21 @@ async function start(journey = null) {
     phase: "loading",
   };
   document.body.className = "game-page";
-  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="brand compact" id="leave" aria-label="返回首页">${brand}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}${fullscreenButton()}</div></header>
+  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="game-exit icon-button" id="leave" aria-label="暂停与退出" title="暂停与退出">${icon("pause")}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}${fullscreenButton()}</div></header>
       <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><div class="scene-actions"><button id="game-help" class="glass-button">玩法</button><button id="hint" class="glass-button">一点提示</button></div></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
       <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
       <div class="guess-dock"><div class="mobile-tabs" role="group" aria-label="切换观察和地图"><button id="scene-tab" class="active" aria-pressed="true">${icon("eye")}观察场景</button><button id="map-tab" aria-pressed="false">${icon("pin")}地图选点 <i id="pin-dot"></i></button></div><div class="timeline"><div class="timeline-heading"><label for="year-range">第二步 · 这是哪一年？</label><div class="year-editor"><select id="era-select" aria-label="公元前或公元"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" type="number" inputmode="numeric" min="1" max="2026" value="1000" aria-label="猜测年份"><span>年</span></div><span class="year-status" id="year-status">请选择年代</span></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" value="1000" step="1" aria-label="拖动选择年份"><div class="era-stops"><button data-year="-2000">古文明</button><button data-year="-221">秦汉</button><button data-year="750">隋唐</button><button data-year="1100">宋元</button><button data-year="1600">明清</button><button data-year="1900">近现代</button></div></div><div class="submit-area"><button class="primary" id="submit" disabled>请先选择地点与年代 ${icon("arrow")}</button><span id="submit-note">两枚坐标，拼出一个历史瞬间</span></div></div>
       <div class="load-cover" id="load-cover" role="status"><span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div><div class="result-overlay" id="result-overlay" hidden></div></main>`;
   bindSound();
   on("#leave", "click", () => {
+    viewer?.setActive(false);
     const dialog = modal(
-      "暂别这段旅途？",
-      '<p>地点、年代和本局进度会自动保留，首页可继续。限时旅途仍按原截止时间计时。</p><div class="dialog-actions"><button class="secondary" id="stay">继续探索</button><button class="primary" id="exit">保存并返回首页</button></div>',
+      "画面已暂停",
+      `<p>地点、年代和本局进度会自动保留，首页可继续。${state.timed ? "限时旅途仍按原截止时间计时。" : "自由漫游不限时，准备好再继续。"}</p><div class="dialog-actions"><button class="secondary" id="stay">继续探索</button><button class="primary" id="exit">保存并返回首页</button></div>`,
     );
+    dialog.addEventListener("close", () => {
+      if (state.screen === "game" && state.phase === "guessing") setView(state.view);
+    }, { once: true });
     dialog.querySelector("#stay").onclick = () => dialog.close();
     dialog.querySelector("#exit").onclick = () => {
       dialog.close();
