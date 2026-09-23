@@ -24,6 +24,7 @@ if (mode === 'stop') {
     '008-generation-jobs.sql',
     '009-content-protection.sql',
     '010-competition.sql',
+    '011-competition-profiles.sql',
   ])
     await run(
       'docker',

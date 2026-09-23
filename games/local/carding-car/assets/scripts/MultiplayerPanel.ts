@@ -39,6 +39,7 @@ export class MultiplayerPanel {
   private boardPage = 0;
   private authAttempt = 0;
   private authenticating = false;
+  private profileLoad?: Promise<void>;
   get rankingView() {
     return { visible: this.ranking.active, summary: this.rankingSummary.string, rows: this.rankingText.string };
   }
@@ -118,11 +119,15 @@ export class MultiplayerPanel {
     this.entry.layer = Layers.Enum.UI_2D;
     this.root.addChild(this.entry);
     hud.label(this.entry, '选好赛车和车手，邀请好友一起跑', 0, 103, 17, '#d1e9e4', 550, 30);
-    this.name = edit(this.entry, '你的昵称', 0, 52, 420, 16);
+    this.name = edit(this.entry, '你的昵称', -65, 52, 290, 16);
     this.name.string = '车手';
     try {
       this.name.string = sys.localStorage.getItem('kart-player-name') || '车手';
     } catch {}
+    button(this.entry, '保存昵称', 170, 52, 140, () => {
+      void this.saveName().then(() => { client.status='昵称已保存，成绩和身份不变'; client.changed(); })
+        .catch((error: Error) => { client.status=error.message; client.changed(); });
+    });
     this.code = edit(this.entry, '输入 8 位房间码', 0, -10, 420, 8);
     const join = async (create: boolean, ranked = false) => {
       if (this.authenticating || client.connecting || client.connected) return;
@@ -147,6 +152,7 @@ export class MultiplayerPanel {
           client.status = '正在验证玩家身份…';
           client.changed();
           competitionToken = (await bridge.session()).token;
+          appearance.name = await this.saveName();
         } else if (ranked) throw new Error('全站服务尚未配置，请配置后再参加排位');
       } catch (error) {
         if (attempt === this.authAttempt) {
@@ -269,6 +275,7 @@ export class MultiplayerPanel {
       this.root.active = !this.root.active;
       clearInput();
       this.refresh();
+      if(this.root.active&&!client.room)this.loadName();
     });
     this.root.setSiblingIndex(hud.root.children.length - 1);
     this.root.active = false;
@@ -280,6 +287,24 @@ export class MultiplayerPanel {
     this.pendingInvite = invite;
     this.root.active = true;
     this.refresh();
+    this.loadName();
+  }
+  private loadName() {
+    const bridge=competition(),unchanged=this.name.string;
+    if(!bridge)return;
+    this.profileLoad=bridge.request('/me').then((value)=>{
+      const profile=value as {name:string};
+      if(this.name.string===unchanged&&profile.name!=='新玩家')this.name.string=profile.name;
+    }).catch(()=>{ /* Opening the panel remains possible when the profile service is unavailable. */ });
+  }
+  private async saveName() {
+    await this.profileLoad;
+    const bridge=competition();if(!bridge)throw new Error('全站服务尚未配置，昵称暂不能保存');
+    const current=await bridge.request('/me') as {name:string};
+    const profile=current.name===this.name.string.trim()?current:await bridge.request('/me',{body:JSON.stringify({name:this.name.string})}) as {name:string};
+    this.name.string=profile.name;
+    try{sys.localStorage.setItem('kart-player-name',profile.name);}catch{}
+    return profile.name;
   }
   cancelInvite() {
     this.authAttempt++;
@@ -392,7 +417,7 @@ export class MultiplayerPanel {
     const gap = me && target ? Math.max(0, (target.score - me.score) / 1000).toFixed(3) : null;
     this.rankingSummary.string = `${board.eligiblePlayers} 位合格玩家 · 每人最佳一条 · 用时越短越好\n${me ? `我的最佳 ${formatTime(-me.score / 1000)} · 全站第 ${me.rank} 名${gap ? ` · 距目标 ${gap} 秒` : ''}` : '尚无有效成绩 · 完成双人海湾标准排位赛即可上榜'}`;
     this.rankingText.string = board.top.length
-      ? board.top.slice(this.boardPage * 10, (this.boardPage + 1) * 10).map((entry) => `${entry.rank}　${entry.playerId === me?.playerId ? '你' : entry.name || `车手 ${entry.playerId.slice(0, 6)}`}　${formatTime(-entry.score / 1000)}`).join('\n')
+      ? board.top.slice(this.boardPage * 10, (this.boardPage + 1) * 10).map((entry) => `${entry.rank}　${entry.name||'新玩家'}${board.top.some(other=>other.playerId!==entry.playerId&&other.name===entry.name)?' #'+entry.playerId.slice(0,6).toUpperCase():''}${entry.playerId===me?.playerId?'（你）':''}　${formatTime(-entry.score / 1000)}`).join('\n')
       : '目前没有合格成绩\n邀请一位好友，完成首场标准排位赛';
   }
 }

@@ -1,0 +1,43 @@
+# 好友 PK 界面与玩家昵称
+
+核验日期：2026-09-23。负责人 root；独立验收 `review_pk_profiles`。本次继续使用既有身份、房间、排行榜和各游戏渲染器，不新增服务或依赖。用户已明确授权验证后将根仓库与相关子模块提交、推送到 main。
+
+## 已实现
+
+- 五款共用 H5 PK 大厅改为浅色卡片：创建/加入分区，昵称入口，主操作与辅助操作区分；游玩时隐藏大厅和排行榜面板。规则、榜单、昵称、结算使用按内容高度显示的卡片，保留可见的全屏与退出工具，窄屏内部滚动。规则不再形成整屏空白框。
+- 七处公共全屏脚本同步统一胶囊按钮、图标、触控高度和焦点样式。浏览器 Fullscreen API、iframe 授权、失败反馈逻辑保留。
+- 退出 PK 成功后清除该游戏的房间恢复记录，重开回大厅，可修改昵称或加入其他房间；失败时保留房间与明确提示，重连可恢复。
+- 围捕小队手机布局暴露相邻路口数字与警察触控框重叠，改为选取离点击最近的控件中心，避免点击路口误选警察；共享渲染器同时用于 H5 与原生。
+- 新增 `GET/POST /api/competition/v1/me` 昵称读写。系统自动生成的玩家 UUID 保持身份主键，游客依靠当前浏览器本地会话；清除数据或换设备不能仅靠昵称/短编号找回。
+- 昵称允许重名，无全局唯一约束；服务端 NFKC/空白归一，2–16 个字符，仅字母、数字、空格和 `· _ -`。拒绝非法字符、额外 playerId 和未登录请求；限流不变更身份权限。昵称进入 PostgreSQL，更新房间和排行榜展示，不改变成绩和排名。
+- 公开列表主要显示昵称；同列表重名时补短编号，H5/Canvas 会延长冲突前缀。完整 UUID 仅自己的资料折叠区可查看。没有新增 IP 或地区展示/采集。
+- 卡丁车沿用现有 Cocos 面板，增加保存昵称按钮，加入房间时同步后端昵称，排行榜以昵称显示。另五款原生 Canvas 接入真实平台键盘改名，保留现有 SDK 登录和网络流程。
+
+## 数据库升级
+
+新增 `infra/migrations/011-competition-profiles.sql`，只增加可空 `display_name` 字段，旧账号显示“新玩家”。`competition:up`、`competition:test-db`、`infra:up` 已包含该迁移；已有外部库按 001 → 010 → 011 顺序执行。健康检查会检查该字段，避免漏迁移后误报就绪。
+
+本机实际在隔离 WSL PostgreSQL 12.22 的 `competition_test` 执行 011，正式仍按部署清单选择受支持 PostgreSQL。运行命令与角色隔离见 [本地联调手册](../deployment/six-games-local-integration.md)。不在文档记录正式密钥。
+
+## 验证记录
+
+| 环境/命令 | 结果与边界 |
+| --- | --- |
+| `pnpm build:pages` | 38/38 任务通过；随后 PK 退出及围捕触控修复重新构建对应 competition.js 并更新本地网关制品 |
+| `node scripts/competition-build.mjs --native`；卡丁 `build:wechat`、`build:bilibili` | 10 个 Canvas 目标及 2 个 Cocos 目标构建通过；围捕触控修复后再次构建其两个原生目标。不是开发工具/真机通过证据 |
+| runtime build/lint、卡丁 typecheck、`pnpm check:games` | 通过；25 个目录登记无问题 |
+| `pnpm test:h5-fullscreen` | 七份同步通过；独立页/iframe 真实进退与进度保留通过；不支持/拒绝/无事件分支另行模拟，不冒充真机结果 |
+| `node scripts/competition.integration.mjs` | 真实 PG/HTTP：非法昵称、未认证、冒用 ID 拒绝；同名允许；改名不改 ID/PB/rank；旧房间显示更新；服务重启昵称保留；102 人榜外排名、并列、版本隔离、非法操作与幂等结算回归通过。短编号前缀碰撞断言通过 |
+| IAB 实际操作 | 390×844 大厅、320×568 规则卡、844×390 横屏无横向溢出，顶部按钮 44px 高；昵称保存和刷新保留、全站榜、自身无成绩、真实全屏进退。CDP 读取真实 document.fullscreenElement=HTML；DOM镜像读取该属性不作为证据 |
+| 独立 Chrome / `review_pk_profiles` | 先操作再审代码：合法/非法昵称、排行榜、真实双身份加入准备、退出；与 IAB 房间互见“海湾散步员 / 验收 玩家”，对手退出同步中断。退出重置修复后两轮独立复验大厅入口恢复 |
+| `node scripts/review-competition-cops-letters.mjs` | 围捕双端 13 步、词屿双端 18/18 词，均经 Canvas 实际输入，最终服务端结算一致并进入同一再战房间；真实全屏进退保进度 |
+| 同脚本 `--failures` | 错游戏拒绝、离线退出反馈、恢复同房、确认退出后重开大厅且改名/新房码可用 |
+| `node scripts/review-competition-realtime-history.mjs`，另带 `REVIEW_EDGES=1`、`REVIEW_LAYOUT_ASSERT=1` | 320×568/844×390 游戏与规则布局、全屏、断网恢复和退出再战检查通过；玩法/榜单入口改版后测试改用 data-rules 和结算“查看全站榜”入口 |
+| `node scripts/review-competition-kart-chess.mjs` | 签名身份、未配置原生登录拒绝、网关内部路由隔离、棋类越权/轮次/重复操作、双浏览器邀请、真全屏与 Permissions-Policy 拒绝反馈通过 |
+| 当前临时公网 `REVIEW_BASE` + 围捕脚本 | 最新制品两独立客户端均完成 13 步合法挑战、结算一致并进入同一再战房间；临时域名仅环境变量注入，不提交 |
+
+原始证据位于忽略目录 `.scratch/competition/profile-*.log`、`outputs/profiles-cops-letters/`、`outputs/profiles-exit/`、`outputs/profiles-public/`。早期回归失败也保留：围捕触控区域重叠已修；规则改名/榜单移入结算导致的旧测试定位已更新，未通过删断言掩盖问题。
+
+## 未验证项
+
+原生键盘改名、12 个目标完整开发工具登录→PK→结算流程及真机仍受 AppID、权限、密钥和设备限制；没有用构建替代这些验收。本次不重评原六款加权分，不宣称达到 9.5 门槛；整体剩余范围延续 [六款实施记录](2026-09-23-six-games-online.md)。阿里云资料集中在 [准备清单](../deployment/aliyun-preparation-checklist.md)。

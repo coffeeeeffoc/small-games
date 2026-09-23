@@ -14,6 +14,7 @@ else if(mode==='up'||mode==='test-db') {
     await psql('CREATE SCHEMA IF NOT EXISTS runtime AUTHORIZATION platform_owner; GRANT CONNECT ON DATABASE competition_test TO runtime_app; GRANT USAGE ON SCHEMA runtime TO runtime_app; CREATE TABLE IF NOT EXISTS runtime.schema_version(version integer PRIMARY KEY); INSERT INTO runtime.schema_version VALUES(1) ON CONFLICT DO NOTHING; GRANT SELECT ON runtime.schema_version TO runtime_app;','competition_test');
   }
   await psql(await readFile(new URL('../infra/migrations/010-competition.sql',import.meta.url)),mode==='test-db'?'competition_test':'small_games');
+  await psql(await readFile(new URL('../infra/migrations/011-competition-profiles.sql',import.meta.url)),mode==='test-db'?'competition_test':'small_games');
 }else if(mode==='dev') {
   await mkdir(new URL('../.scratch/competition/',import.meta.url),{recursive:true});
   const keyFile=new URL('../.scratch/competition/internal-key',import.meta.url);

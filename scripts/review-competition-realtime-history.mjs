@@ -93,7 +93,7 @@ async function finish(players) {
   assert.deepEqual(players[0].room.results, players[1].room.results);
   for (const p of players) {
     await snap(p, 'result');
-    await p.page.getByRole('button', { name: '全站榜', exact: true }).click();
+    await p.page.getByRole('button', { name: '查看全站榜', exact: true }).click();
     await expect.poll(() => p.board).toBeTruthy();
     await snap(p, 'leaderboard');
     record(`${p.game}/${p.who}: common server result and leaderboard`, { results: p.room.results, board: p.board, actions: p.actions.length });
@@ -203,11 +203,11 @@ async function edges(players) {
     await snap(a, `playing-${viewport.width}x${viewport.height}`);
     record(`${a.game}: viewport`, { viewport, canvas });
     await layoutCheck(a, `playing-${viewport.width}x${viewport.height}`);
-    await a.page.getByRole('button', { name: '规则', exact: true }).click();
+    await a.page.locator('[data-rules]').click();
     await a.page.waitForTimeout(100);
     await snap(a, `rules-${viewport.width}x${viewport.height}`);
     await layoutCheck(a, `rules-${viewport.width}x${viewport.height}`);
-    await a.page.getByRole('button', { name: '规则', exact: true }).click();
+    await a.page.locator('[data-rules]').click();
   }
   await a.page.setViewportSize({ width: 390, height: 844 });
   const code = a.room.code;

@@ -63,7 +63,8 @@ async function clickCanvas(player, x, y, action = null) {
   await player.page.mouse.click(rect.x + x, rect.y + y);
   await player.page.evaluate(() => new Promise(requestAnimationFrame));
   if (action) {
-    await expect.poll(() => player.room.seq > seq || player.room.state.finished || player.room.status === 'finished', { timeout: 15000 }).toBeTruthy();
+    try { await expect.poll(() => player.room.seq > seq || player.room.state.finished || player.room.status === 'finished', { timeout: 15000 }).toBeTruthy(); }
+    catch(error) { await snap(player,'action-failed'); console.error({action,x,y,rect,seq,completed:player.actions.length}); throw error; }
     player.actions.push(action);
   }
 }
@@ -136,6 +137,12 @@ async function failures() {
   await a.page.locator('[data-close]').click();
   await expect(a.page.locator('dialog[open]')).toHaveCount(0);
   record('cops-robbers: reconnect resumes original room and confirmed exit is available',a.room.code);
+  await expect(a.page.locator('[data-competition-launch]')).toBeEnabled();
+  await a.page.locator('[data-competition-launch]').click();
+  await expect(a.page.locator('[data-create]')).toBeVisible();
+  await expect(a.page.locator('[data-profile]')).toBeVisible();
+  await expect(a.page.locator('[data-code]')).toBeVisible();
+  record('confirmed exit returns to lobby with name editing and another room code',true);
   await a.context.close();await b.context.close();
 }
 async function layouts() {
