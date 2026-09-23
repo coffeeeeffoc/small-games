@@ -53,7 +53,12 @@ export async function registerCompetition(app: FastifyInstance, store: ReturnTyp
       if (data.errcode || typeof subject!=='string' || !subject) throw new CompetitionError('PLATFORM_LOGIN_FAILED',401);
       return store.session(input.platform,input.appId,subject);
     });
-    routes.get('/me',async request=>({playerId:await player(request.headers.authorization)}));
+    routes.get('/me',async request=>store.profile(await player(request.headers.authorization)));
+    routes.post('/me',{bodyLimit:1024,config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async request=>{
+      const {name}=z.object({name:z.string().max(100).transform(value=>value.normalize('NFKC').trim().replace(/\s+/g,' '))
+        .refine(value=>Array.from(value).length>=2&&Array.from(value).length<=16&&/^[\p{L}\p{N} ·_-]+$/u.test(value),'INVALID_NAME')}).strict().parse(request.body);
+      return store.profile(await player(request.headers.authorization),name);
+    });
     routes.get('/boards/:game',async request=>{
       const game=z.string().max(80).parse((request.params as {game:string}).game);
       return store.board(game,await player(request.headers.authorization));

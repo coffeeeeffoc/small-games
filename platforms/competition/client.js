@@ -14,6 +14,7 @@ globalThis.__installCompetition = (options) => {
     INVITATION_NOT_FOUND:'找不到这个邀请，请核对房间码。', NOT_A_MEMBER:'你不是此房间的参赛者。',
     MATCH_CLOSED:'本局已结束。', ILLEGAL_ACTION:'此操作不符合当前规则，请刷新局面。', SEQUENCE_CONFLICT:'操作顺序已变化，请重试。',
     WRONG_GAME:'这个房间属于另一款游戏，尚未加入。',
+    INVALID_INPUT:'请检查输入；昵称为 2–16 个中英文字、数字、空格或 · _ -。',
     RATE_LIMITED:'操作过于频繁，请稍后重试。', SERVICE_UNAVAILABLE:'全站服务暂不可用，当前结果尚未确认。',
   };
   async function send(path, init = {}) {

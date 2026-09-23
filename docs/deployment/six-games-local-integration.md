@@ -16,7 +16,7 @@ $env:RUNTIME_DATABASE_URL = 'postgres://runtime_app:local-runtime-only@127.0.0.1
 pnpm competition:dev
 ```
 
-`competition:up` 只启动数据库并执行幂等010迁移，首次数据库由既有001初始化角色。`competition:test-db` 创建隔离测试库并迁移。既有 `pnpm infra:up` 迁移列表也已包含010。游戏运行不必启动管理服务、Studio 或 Workspace Agent。
+`competition:up` 只启动数据库并执行幂等010与011迁移，首次数据库由既有001初始化角色。`competition:test-db` 创建隔离测试库并迁移。既有 `pnpm infra:up` 迁移列表也已包含010与011。游戏运行不必启动管理服务、Studio 或 Workspace Agent。
 
 开发网关 `http://127.0.0.1:43010/`，独立游戏 `/games/<gameId>/`；HTTP API `/api/competition/v1/`，WebSocket `/kart`。网关只绑定 loopback；runtime 43002、kart 43003、数据库 15432 不经隧道公开。网关注入当前 origin 对应的 API/WSS，Shell iframe 和独立页用同一个业务入口。离线静态 Pages 没有后端时会明确报不可用，不回退为假全站榜。
 
@@ -28,7 +28,7 @@ Invoke-RestMethod http://127.0.0.1:43002/health
 docker compose -f infra/docker/compose.yaml ps
 ```
 
-本机 Docker 启动恢复后资源占用较高，本轮实际联调使用现有 WSL Ubuntu 中 PostgreSQL 12.22，端口5432，迁移到独立测试库；这是临时开发替代，**不作为正式版本建议**。WSL 启动/迁移命令是 `wsl -d Ubuntu -u root -- service postgresql start` 和 `wsl -d Ubuntu -u postgres -- psql -v ON_ERROR_STOP=1 -d <数据库名> -f /mnt/f/playground/playground-ai/small-games/infra/migrations/010-competition.sql`。新机器仍优先上述 Compose 17 路径，外部数据库先由管理员执行001与010、配置独立角色；不要复制本机测试密码到生产。
+本机 Docker 启动恢复后资源占用较高，本轮实际联调使用现有 WSL Ubuntu 中 PostgreSQL 12.22，端口5432，迁移到独立测试库；这是临时开发替代，**不作为正式版本建议**。WSL 启动/迁移命令是 `wsl -d Ubuntu -u root -- service postgresql start` 和 `wsl -d Ubuntu -u postgres -- psql -v ON_ERROR_STOP=1 -d <数据库名> -f /mnt/f/playground/playground-ai/small-games/infra/migrations/010-competition.sql`。已有010的库还需将上述命令文件名改为 `011-competition-profiles.sql` 再执行一次，添加可重复昵称字段。新机器仍优先上述 Compose 17 路径，外部数据库先由管理员执行001、010与011、配置独立角色；不要复制本机测试密码到生产。
 
 停止当前WSL测试数据库使用 `wsl -d Ubuntu -u root -- service postgresql stop`；`competition:stop` 只管理Compose，不会停止WSL服务。先结束比赛、停止业务进程和隧道，再停止数据库。
 

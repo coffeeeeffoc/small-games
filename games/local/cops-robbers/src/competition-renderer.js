@@ -69,7 +69,10 @@ export function createRenderer() {
       const level = levels.find(item => item.id === state?.levelId);
       if (!level || !state?.board || state.board.robbers.includes(-2) || state.board.robbers.every(node => node === -1)
         || state.board.turn >= 200 || state.elapsedMs >= 300000) return null;
-      const item = [...hits].reverse().find(target => contains(target, x, y));
+      // Tight phone layouts can overlap a route label and a cop's touch area.
+      // Choose the closest visible control instead of always letting the cop win.
+      const item = hits.filter(target => contains(target, x, y)).sort((a, b) =>
+        Math.hypot(x-a.x-a.w/2,y-a.y-a.h/2)-Math.hypot(x-b.x-b.w/2,y-b.y-b.h/2))[0];
       if (!item) return null;
       if ('local' in item.action) { selected = item.action.local; note = ''; return null; }
       const target = item.action.target;
