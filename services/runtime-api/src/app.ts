@@ -21,7 +21,7 @@ export function createRuntimeService(
   const databaseUrl = z.url().parse(env.RUNTIME_DATABASE_URL);
   const database = openDatabase(databaseUrl, 'runtime');
   const dependencies = { database, ...(env.COMPETITION_ENABLED === 'true' ? {
-    competition: { async check() { await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`); }, close() {} },
+    competition: { async check() { await database.db.execute(sql`select display_name from runtime.competition_players limit 0`); await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`); }, close() {} },
   } : {}) };
   const app = createService('runtime', dependencies, logger, telemetry);
   app.register(async (instance) => {

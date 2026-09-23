@@ -15,6 +15,12 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
     return String(rows[0].player_id);
   }
+  async function profile(playerId: string, name?: string) {
+    if (name !== undefined) await db.execute(sql`update runtime.competition_players set display_name=${name} where id=${playerId}`);
+    const rows=await db.execute(sql`select id as "playerId",coalesce(display_name,'新玩家') as name from runtime.competition_players where id=${playerId}`);
+    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED',401);
+    return rows[0];
+  }
   async function session(platform = 'guest', appId = '', subject?: string) {
     const token = randomBytes(32).toString('hex');
     const expiresAt = now() + 180 * 86400_000;
@@ -34,10 +40,10 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
   }
   async function ranking(board: string, playerId: string, executor: Database | Tx = db) {
     const rows = await executor.execute(sql`with ranked as (
-      select player_id as "playerId", score, secondary,
+      select player_id as "playerId", coalesce(p.display_name,'新玩家') as name, score, secondary,
       rank() over(order by score desc,secondary asc)::int as rank,
       row_number() over(order by score desc,secondary asc,player_id)::int as position,
-      count(*) over()::int as total from runtime.competition_best where board=${board}
+      count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id where board=${board}
     ) select * from ranked where position<=100 or "playerId"=${playerId}
       or position=(select max(position) from ranked where rank<(select rank from ranked where "playerId"=${playerId})) order by position`);
     const top = rows.filter(row => Number(row.position) <= 100);
@@ -66,13 +72,15 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     await executor.execute(sql`insert into runtime.competition_rooms values(${room.code},${json(room)}::jsonb,${room.deadline})`);
     return room;
   }
-  function view(room: Room, playerId: string) {
+  async function view(room: Room, playerId: string, executor: Database | Tx = db) {
     const rule = ruleFor(room.game);
     const seat = room.players.findIndex(p => p.id === playerId);
     if (seat < 0) throw new CompetitionError('NOT_A_MEMBER', 403);
     const member = room.players[seat]!;
+    const names=await executor.execute(sql`select id,coalesce(display_name,'新玩家') as name from runtime.competition_players where id in (${sql.join(room.players.map(p=>sql`${p.id}::uuid`),sql`,`)})`);
+    const nameOf=(id:string)=>String(names.find(p=>p.id===id)?.name??'新玩家');
     return { code: room.code, game: room.game, version: room.version, status: room.status,
-      you: seat, players: room.players.map(({id,ready,result}) => ({id,ready,result})),
+      you: seat, players: room.players.map(({id,ready,result}) => ({id,name:nameOf(id),ready,result})),
       seq: member.seq, startedAt: room.startedAt, deadline: room.deadline, serverNow: now(), pollMs: rule.pollMs ?? 1200,
       state: member.state === null ? null : rule.view(rule.duel ? room.players[0]!.state : member.state, seat),
       opponent: room.players[1-seat]?.result ?? null, results: room.results ?? null, rematch: room.rematch };
@@ -174,10 +182,10 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
         if (!room.rematch) room.rematch = (await create(playerId, room.game, tx)).code;
       }
       await tx.execute(sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${code}`);
-      return view(room, playerId);
+      return view(room, playerId,tx);
     });
   }
-  return { identity, session, ranking, ruleFor, roomAction,
+  return { identity, session, profile, ranking, ruleFor, roomAction,
     async create(playerId: string, game: string) { return view(await create(playerId,game),playerId); },
     async board(game: string, playerId: string) {
       const rule = game === 'carding-car' ? { id: game, title: '浪湾卡丁车', version: 'seaside-v1', description: '海湾三圈，双人、固定车辆及种子；合法完赛用时越短越好。' } : ruleFor(game);
