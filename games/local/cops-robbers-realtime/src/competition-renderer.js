@@ -14,7 +14,9 @@ export function createRenderer() {
         ctx.font = `${size}px sans-serif`; ctx.fillStyle = color; ctx.fillText(value, x, y);
       };
       if (!state?.map) { text('正在等待街区…', 14, 24); return hits; }
-      selected = Math.min(selected, state.cops.length - 1);
+      const runner = state.role === "runner", own = runner ? state.robbers : state.cops;
+      selected = Math.min(selected, own.length - 1);
+      if (own[selected]?.caught || own[selected]?.escaped) selected = Math.max(0, own.findIndex(a => !a.caught && !a.escaped));
       text(`${state.name} · 抓获 ${state.caught}/${state.total}`, 12, 20, 15);
       ctx.textAlign = 'right'; text(`${(state.elapsedMs / 1000).toFixed(1)} / 120 秒`, width - 12, 20, 13);
       const nodes = state.map.nodes;
@@ -35,9 +37,9 @@ export function createRenderer() {
       }
       nodes.forEach((point, index) => {
         const x = transform.x + point.x * scale, y = transform.y + point.y * scale;
-        hit(`道路 ${index + 1}`, x - 18, y - 18, 36, 36, { type: 'move', cop: selected, x: point.x, y: point.y });
+        hit(`道路 ${index + 1}`, x - 18, y - 18, 36, 36, { type: 'move', actor: selected, x: point.x, y: point.y });
       });
-      for (const cop of state.cops) route(ctx, cop, cop.id === selected);
+      for (const actor of own) route(ctx, actor, actor.id === selected);
       ctx.textAlign = 'center';
       for (const exit of state.exits) {
         ctx.fillStyle = exit.blocked ? '#3a836c' : '#bb5b31';
@@ -49,53 +51,56 @@ export function createRenderer() {
           ctx.beginPath(); ctx.moveTo(robber.gap.from.x, robber.gap.from.y); ctx.lineTo(robber.gap.to.x, robber.gap.to.y);
           ctx.strokeStyle = '#ed9c36'; ctx.lineWidth = 8; ctx.stroke();
         }
-        actorBody(ctx, robber, false, false, state.elapsedMs / 1000, false, 0, false, 0);
+        actorBody(ctx, robber, false, runner && robber.id === selected, state.elapsedMs / 1000, false, 0, false, 0);
+        if(runner && !robber.caught && !robber.escaped) hit(`选择 ${robber.id + 1} 号突围队员`, transform.x + robber.x * scale - 22, transform.y + (robber.y - 20) * scale - 22, 44,44,{local:robber.id});
         if (robber.capture > 0 && !robber.caught) {
           ctx.beginPath(); ctx.arc(robber.x, robber.y, 31, -Math.PI / 2, -Math.PI / 2 + robber.capture * Math.PI * 2);
           ctx.strokeStyle = '#c46327'; ctx.lineWidth = 5; ctx.stroke();
         }
       }
       for (const cop of state.cops) {
-        actorBody(ctx, cop, true, cop.id === selected, state.elapsedMs / 1000, false, 0, state.phase === 'won', 0);
+        actorBody(ctx, cop, true, !runner && cop.id === selected, state.elapsedMs / 1000, false, 0, state.phase === 'won', 0);
         const x = transform.x + cop.x * scale, y = transform.y + (cop.y - 20) * scale;
-        hit(`选择 ${cop.id + 1} 号警察`, x - 22, y - 22, 44, 44, { local: cop.id });
+        if(!runner) hit(`选择 ${cop.id + 1} 号追逐队员`, x - 22, y - 22, 44, 44, { local: cop.id });
       }
       ctx.restore(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const liveRobber = state.robbers.find(r => !r.caught && !r.escaped);
-      const message = state.finished ? state.phase === 'won' ? '全部归案 · 已由服务端确认' : state.phase === 'lost' ? '出口失守 · 本局不计入排位' : '超时 · 本局不计入排位'
-        : note || (liveRobber?.escapeProgress > 0 ? '小偷正在翻越出口！马上拦截'
-          : liveRobber?.enclosed ? `双警收网 ${Math.round(liveRobber.capture * 100)}% · 保持位置`
-            : `已选 ${selected + 1} 号 · 点道路封口，再合力靠近`);
+      const opening = state.openingRemainingMs > 0 ? `${state.firstRole === 'pursuer' ? '追逐队' : '突围队'}先动 · ${(state.openingRemainingMs/1000).toFixed(1)}秒` : '';
+      const message = state.finished ? `${state.phase === 'won' ? '追逐队' : '突围队'}获胜 · 服务端确认`
+        : opening || note || (runner ? `你是突围队 · 已选 ${selected + 1} 号 · 点道路换向突围` : liveRobber?.escapeProgress > 0 ? '对方正在越过出口！马上拦截'
+          : liveRobber?.enclosed ? `双人合围 ${Math.round(liveRobber.capture * 100)}% · 保持位置`
+            : `你是追逐队 · 已选 ${selected + 1} 号 · 点道路下令`);
       text(message, width / 2, mapBottom + 17, 12);
-      const gap = 6, buttonWidth = Math.min(84, (width - 24 - gap * state.cops.length) / (state.cops.length + 1));
-      const totalWidth = buttonWidth * (state.cops.length + 1) + gap * state.cops.length;
+      const gap = 6, buttonWidth = Math.min(84, (width - 24 - gap * own.length) / (own.length + 1));
+      const totalWidth = buttonWidth * (own.length + 1) + gap * own.length;
       const buttonsLeft = (width - totalWidth) / 2, buttonY = mapBottom + 34;
-      for (let index = 0; index <= state.cops.length; index++) {
-        const hold = index === state.cops.length, x = buttonsLeft + index * (buttonWidth + gap);
+      for (let index = 0; index <= own.length; index++) {
+        const hold = index === own.length, x = buttonsLeft + index * (buttonWidth + gap);
         ctx.fillStyle = state.finished ? '#bdc9b1' : hold ? '#29493f' : index === selected ? '#337fbc' : '#dbe5d4';
         ctx.fillRect(x, buttonY, buttonWidth, 44);
         text(hold ? '留守' : `${index + 1} 号`, x + buttonWidth / 2, buttonY + 22, 14,
           !state.finished && (hold || index === selected) ? '#fff9e9' : '#29493f');
-        if (!state.finished) hit(hold ? '原地留守' : `选择 ${index + 1} 号警察`, x, buttonY, buttonWidth, 44,
-          hold ? { type: 'hold', cop: selected } : { local: index });
+        if (!state.finished) hit(hold ? '原地留守' : `选择 ${index + 1} 号${runner ? "突围队员" : "追逐队员"}`, x, buttonY, buttonWidth, 44,
+          hold ? { type: 'hold', actor: selected } : { local: index });
       }
       text('比赛无法暂停 · 断线时已有命令继续', width / 2, buttonY + 59, 11, '#62705b');
       return hits;
     },
     tap(x, y, state) {
       if (!transform || !state?.map || state.finished) return null;
+      if(state.openingRemainingMs > 0 && state.firstRole !== state.role) { note = '开局待命，2 秒后同时行动'; return null; }
       const item = [...hits].reverse().find(hit => inside(hit, x, y));
       if (item) {
         note = '';
         if ('local' in item.action) { selected = item.action.local; return null; }
-        return { ...item.action, cop: selected };
+        return { ...item.action, actor: selected };
       }
       if (y < transform.top || y > transform.bottom) return null;
       const point = { x: (x - transform.x) / transform.scale, y: (y - transform.y) / transform.scale };
       const closest = roadTarget({ graph: { nodes: state.map.nodes, edges: state.map.edges.map(([a, b]) => ({ a, b })) } }, point);
       if (!closest) { note = '这里是建筑，请点道路'; return null; }
       note = '';
-      return { type: 'move', cop: selected, x: closest.x, y: closest.y };
+      return { type: 'move', actor: selected, x: closest.x, y: closest.y };
     },
   };
 }

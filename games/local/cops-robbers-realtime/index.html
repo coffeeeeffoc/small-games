@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#f5f3e9" />
     <meta
       name="description"
-      content="点选警察，实时卡位！48 个街区关卡，一场有点机灵的围捕行动。"
+      content="点选追逐队员，实时卡位！100 个街区关卡，一场有点机灵的围捕行动。"
     />
     <title>别跑！街区围捕 · 实时指挥小游戏</title>
     <link
@@ -84,7 +84,7 @@
         </div>
         <nav class="toolbar" aria-label="游戏工具">
           <button class="button quiet level-nav" id="levels-button">
-            <svg><use href="#i-grid" /></svg><span>街区地图</span><b>48</b>
+            <svg><use href="#i-grid" /></svg><span>街区地图</span><b>100</b>
           </button>
           <button
             class="icon-button"
@@ -106,12 +106,19 @@
       </header>
 
       <main>
+        <section id="game-setup" class="game-setup" aria-label="开局设置">
+          <label>玩法 <select id="mode-select"><option value="challenge">街区挑战 · 100 关</option><option value="classic">自由追逐 · 100 关</option><option value="escape">出口竞速 · 100 关</option></select></label>
+          <label>我的角色 <select id="role-select"><option value="cop">◆ 追逐队</option><option value="robber">● 突围队</option></select></label>
+          <label>开局顺序 <select id="initiative-select"><option value="random">系统分配</option><option value="first">我方先动</option><option value="second">对方先动</option></select></label>
+          <button class="button quiet" id="appearance-button">角色装扮 / 本地头像</button>
+          <p id="mode-description"></p><small>可直接选择任意关卡；对手由电脑指挥。先行动方有 2 秒起步时间，之后双方同时行动。</small>
+        </section>
         <section class="mission-heading" aria-labelledby="mission-title">
           <div>
             <div class="eyebrow">
               <span id="chapter-name">第一街区 · 街角见习</span
               ><span class="eyebrow-line"></span
-              ><span id="case-number">行动档案 <b id="level-number">01</b> / 48</span>
+              ><span id="case-number">行动档案 <b id="level-number">01</b> / 100</span>
             </div>
             <h1 id="mission-title">巷尾见习<span class="title-dot">.</span></h1>
             <p id="mission-subtitle">每条退路，都需要一位好搭档。</p>
@@ -122,7 +129,7 @@
               ><strong
                 ><span id="caught-count">0</span
                 ><span class="stat-divider">/</span
-                ><span id="robber-count">1</span><small>名小偷</small></strong
+                ><span id="robber-count">1</span><small>名突围队员</small></strong
               >
             </div>
             <div class="stat time-stat">
@@ -140,13 +147,13 @@
                 id="game-canvas"
                 tabindex="0"
                 role="img"
-                aria-label="街区道路地图。点击警察，再点击道路下令。也可用下方警察按钮选择，并用方向键移动目标、回车下令。"
+                aria-label="街区道路地图。点击追逐队员，再点击道路下令。也可用下方追逐队员按钮选择，并用方向键移动目标、回车下令。"
                 >浏览器需要支持 Canvas
                 才能显示街区。请使用较新版本的浏览器。</canvas
               >
               <div class="board-top">
                 <span class="live-badge" id="phase-badge"
-                  ><i></i><span>准备出警</span></span
+                  ><i></i><span>准备出发</span></span
                 ><span class="exit-status" id="exit-status" role="status"
                   >留意橙色逃脱口</span
                 >
@@ -178,6 +185,7 @@
                   开始行动<svg><use href="#i-arrow" /></svg>
                 </button><button class="button quiet" id="practice-button">先练夹击</button></div>
               </div>
+              <div id="review-controls" class="review-controls" hidden><b>复盘中 · 本局已结束</b><span>地图保留最后局面，当前没有继续计时。</span><div><button id="review-return" class="button quiet">返回准备</button><button id="review-retry" class="button primary">重新挑战</button></div></div>
               <div class="capture-coach" id="capture-coach" hidden>
                 <span id="capture-message"></span><button id="practice-exit" hidden>返回挑战</button>
               </div>
@@ -198,7 +206,7 @@
                 id="cop-roster"
                 class="cop-roster"
                 role="group"
-                aria-label="选择警察"
+                aria-label="选择追逐队员"
               ></div>
               <button class="button hold-button" id="hold-button" aria-label="原地守住" disabled>
                 <svg><use href="#i-shield" /></svg><span>原地守住</span>
@@ -207,7 +215,7 @@
             <div class="board-footnote">
               <span
                 ><i class="blue-dot"></i
-                >点警察，再点道路。也可以直接拖动。</span
+                >点我方队员，再点道路。也可以直接拖动。</span
               ><button id="help-button">
                 操作指南 <svg><use href="#i-help" /></svg>
               </button>
@@ -225,10 +233,10 @@
               <span class="mini-label">本关要领</span>
               <h2 id="guide-title">先抢出口<br />再夹击</h2>
               <p id="guide-hint">
-                全员分头封路，机动警察再推进。两人靠近夹击，小偷才会举手。
+                全员分头封路，机动追逐队员再推进。两人靠近夹击，突围队员才会举手。
               </p>
               <div class="guide-steps">
-                <div><b>01</b><span>选中一名警察</span><i>↖</i></div>
+                <div><b>01</b><span>选中一名追逐队员</span><i>↖</i></div>
                 <div><b>02</b><span>指定路上的位置</span><i>⚑</i></div>
                 <div><b>03</b><span>堵住退路，收网！</span><i>✓</i></div>
               </div>
@@ -239,16 +247,16 @@
             </div>
             <div class="campaign-progress">
               <div>
-                <span>街区巡逻进度</span><b id="campaign-count">0 / 48</b>
+                <span>街区巡逻进度</span><b id="campaign-count">0 / 100</b>
               </div>
               <div class="campaign-track"><i id="campaign-fill"></i></div>
-              <p>每抓完一组，新的街区就会开放。</p>
+              <p>每种模式 100 关；高阶街区有更多岔路与环路。</p>
             </div>
           </aside>
         </div>
         <footer class="page-footer">
           <span>保持冷静。盯住路口。别让他溜走。</span
-          ><span>48 个街区挑战 <i>✦</i> 每一步，都在实时发生</span>
+          ><span>100 个街区挑战 <i>✦</i> 每一步，都在实时发生</span>
         </footer>
       </main>
     </div>
@@ -258,7 +266,7 @@
         <div>
           <span class="eyebrow">CITY CASEBOOK</span>
           <h2>下一站，哪个街区？</h2>
-          <p>48 场行动。一步步成为围捕高手。</p>
+          <p>100 场行动。一步步成为围捕高手。</p>
         </div>
         <button class="icon-button" data-close aria-label="关闭街区地图">
           <svg><use href="#i-close" /></svg>
@@ -271,13 +279,13 @@
         aria-label="选择街区"
       ></div>
       <div id="level-grid" class="level-grid"></div>
-      <p class="dialog-note">通关后解锁下一关 · 最佳用时保存在当前浏览器</p>
+      <p class="dialog-note">全部关卡开放，可自由选关 · 最佳用时保存在当前浏览器</p>
     </dialog>
     <dialog id="pause-dialog" class="small-dialog">
       <span class="dialog-emblem">Ⅱ</span
       ><span class="eyebrow">TAKE A BREATHER</span>
       <h2>街区，先歇一会儿。</h2>
-      <p id="pause-reason">警察和小偷都在等你回来。</p>
+      <p id="pause-reason">追逐队员和突围队员都在等你回来。</p>
       <button class="button primary wide" id="resume-button">
         继续行动<svg><use href="#i-play" /></svg></button
       ><button class="button quiet wide" id="pause-restart">
@@ -286,7 +294,7 @@
     </dialog>
     <dialog id="win-dialog" class="small-dialog win-dialog">
       <div class="win-stamp">CASE<br />CLOSED<span>✓</span></div>
-      <span class="eyebrow">漂亮的收网！</span>
+      <span class="eyebrow">本局胜利</span>
       <h2 id="win-title">一个也没跑掉。</h2>
       <p id="win-description">街区恢复了平静，你的小队干得漂亮。</p>
       <div class="win-stats">
@@ -303,9 +311,9 @@
     </dialog>
     <dialog id="lose-dialog" class="small-dialog lose-dialog">
       <div class="escape-stamp" aria-hidden="true">↗</div>
-      <span class="eyebrow">有人溜走了</span>
+      <span class="eyebrow">本局挑战结束</span>
       <h2 id="lose-title">出口失守了。</h2>
-      <p id="lose-description">先派警察截住逃脱口，再包抄小偷。</p>
+      <p id="lose-description">先派追逐队员截住逃脱口，再包抄突围队员。</p>
       <div class="win-stats">
         <div><span>已抓获</span><b id="lose-caught">0 / 1</b></div>
         <div><span>行动用时</span><b id="lose-time">00:00</b></div>
@@ -325,15 +333,15 @@
       ><span class="eyebrow">HOW TO CATCH A ROBBER</span>
       <h2>指挥就三步。</h2>
       <ol>
-        <li><b>选人。</b>点击警察或下方编号头像。</li>
-        <li><b>下令。</b>点击道路，或从警察拖向目标；途中可以随时改道。</li>
-        <li><b>收网。</b>分头封住每条逃生岔路，再由同伴推进夹击。全部抓获才能过关。</li>
+        <li><b>选人。</b>点击我方队员或下方编号头像。</li>
+        <li><b>下令。</b>点击道路，或从我方队员拖向目标；途中可以随时改道。</li>
+        <li><b>达成目标。</b>追逐队分头封路、双人合围；突围队利用空档冲向出口，或周旋到时间结束。</li>
       </ol>
       <p>
-        每关有 2～6 条绕行环路和分散出口，漏守一路，小偷就会换路逃走。至少两名警察靠近，封住全部退路并持续 0.8 秒才能抓获；单人堵死巷也只能拦住。选人和下令时小偷仍在移动，逃掉一个即失败。
+        后续关卡有更多路口、环路和分散出口，漏守一路，突围队员就会换路逃走。至少两名追逐队员靠近，封住全部退路并持续 0.8 秒才能抓获；单人堵死巷也只能拦住。选人和下令时突围队员仍在移动，逃掉一个即失败。
       </p>
       <div class="keyboard-help">
-        键盘：<kbd>1</kbd>–<kbd>5</kbd> 选警察 · 方向键选相邻路口 ·
+        键盘：<kbd>1</kbd>–<kbd>9</kbd> 选我方队员 · 方向键选相邻路口 ·
         <kbd>Enter</kbd> 下令 · <kbd>H</kbd> 守住 · <kbd>Esc</kbd> 暂停
       </div>
       <button class="button primary wide" data-close>

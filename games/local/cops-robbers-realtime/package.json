@@ -12,7 +12,9 @@
     "test:browser": "node scripts/playtest.mjs",
     "test:lifecycle": "node scripts/lifecycle-playtest.mjs",
     "test:guided": "node scripts/guided-playtest.mjs",
-    "test:competition": "node scripts/competition-playtest.mjs"
+    "test:competition": "node scripts/competition-playtest.mjs",
+    "test:review": "node scripts/review-repro.mjs",
+    "test:mobile-roster": "node scripts/mobile-roster-playtest.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,4 +1,4 @@
-import { LEVELS, CHAPTERS, PRACTICE } from "./levels.js";
+import { LEVELS, CHAPTERS, PRACTICE, MODES, getLevels } from "./levels.js";
 import {
   createGame,
   startGame,
@@ -6,6 +6,8 @@ import {
   resumeGame,
   stepGame,
   commandCop,
+  commandRobber,
+  holdRobber,
   holdCop,
   routePreview,
   roadTarget,
@@ -16,6 +18,7 @@ import {
 } from "./engine.js";
 import { createRenderer } from "./renderer.js";
 import { createAudio } from "./audio.js";
+import { openAppearanceSettings, roleAvatarSvg } from "./role-appearance.js";
 
 const $ = (id) => document.getElementById(id);
 const STORAGE = "neighborhood-patrol-v1";
@@ -37,28 +40,38 @@ function readProgress() {
         if (
           /^\d+$/.test(id) &&
           Number(id) >= 1 &&
-          Number(id) <= 48 &&
+          Number(id) <= 100 &&
           Number.isFinite(seconds) &&
           seconds > 0 &&
           seconds < 86400
         )
           records[field][Number(id)] = seconds;
       }
-    return { ...records, sound: value?.sound !== false, practiceDone: value?.practiceDone === true };
+    const modeBest = {};
+    for (const [key, seconds] of Object.entries(value?.modeBest || {}))
+      if (/^(challenge|classic|escape)-(cop|robber)-(100|[1-9]\d?)$/.test(key) && Number.isFinite(seconds) && seconds > 0 && seconds < 86400) modeBest[key] = seconds;
+    return { ...records, modeBest, settings: { mode: ["challenge","classic","escape"].includes(value?.settings?.mode) ? value.settings.mode : "challenge", role: value?.settings?.role === "robber" ? "robber" : "cop", initiative: ["first","second","random"].includes(value?.settings?.initiative) ? value.settings.initiative : "random" }, sound: value?.sound !== false, practiceDone: value?.practiceDone === true };
   } catch {
     return {
       best: {},
       escapeBest: {},
       teamworkBest: {},
       streetBest: {},
+      modeBest: {},
       sound: true,
     };
   }
 }
 let progress = readProgress();
+const recordKey = id => `${mode}-${playerRole}-${id}`;
+const bestTime = id => progress.modeBest[recordKey(id)] || (mode === "challenge" && playerRole === "cop" ? progress.streetBest[id] : null);
+let mode = progress.settings?.mode || "challenge", playerRole = progress.settings?.role || "cop", initiative = progress.settings?.initiative || "random";
+const controlled = () => game.playerRole === "robber" ? game.robbers : game.cops;
+const roleLabel = () => game.playerRole === "robber" ? "突围队" : "追逐队";
+const playerWon = () => game.playerRole === "robber" ? game.phase === "lost" : game.phase === "won";
 function unlockedLevel() {
   let id = 1;
-  while (id < 48 && progress.best[id]) id++;
+  while (id < 100 && progress.best[id]) id++;
   return id;
 }
 let game = createGame(LEVELS[unlockedLevel() - 1]);
@@ -89,6 +102,7 @@ const audio = createAudio(progress.sound);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 function saveProgress() {
+  progress.settings = {mode, role:playerRole, initiative};
   try {
     localStorage.setItem(STORAGE, JSON.stringify(progress));
   } catch {
@@ -122,7 +136,7 @@ function updateSound() {
   );
 }
 function selectCop(index, sound = true) {
-  if (!game.cops[index]) return;
+  if (!controlled()[index] || controlled()[index].caught || controlled()[index].escaped) return;
   clearGesture();
   selected = index;
   keyboardNode = null;
@@ -134,49 +148,58 @@ function selectCop(index, sound = true) {
   updateHud();
 }
 function buildRoster() {
+  $("cop-roster").setAttribute("aria-label", `选择${roleLabel()}队员`);
   $("cop-roster").replaceChildren(
-    ...game.cops.map((cop, i) => {
+    ...controlled().map((cop, i) => {
       const button = document.createElement("button");
       button.className = "cop-card";
-      button.style.setProperty("--cop-color", copColors[i]);
-      button.setAttribute("aria-label", `选择 ${i + 1} 号警察`);
+      button.dataset.member = String(i + 1);
+      button.style.setProperty("--cop-color", copColors[i % copColors.length]);
+      button.setAttribute("aria-label", `选择 ${i + 1} 号${roleLabel()}`);
       button.setAttribute("aria-pressed", String(i === selected));
-      button.innerHTML = `<span class="cop-face" aria-hidden="true"></span><span class="cop-info"><b>${i + 1} 号警察</b><small>待命中</small></span>`;
+      button.innerHTML = `<svg viewBox="0 0 52 52" aria-hidden="true">${roleAvatarSvg(game.playerRole, 3, 3, 44)}</svg><span class="cop-info"><b>${i + 1} 号<span class="roster-role">${roleLabel()}</span></b><small>待命中</small></span>`;
       button.addEventListener("click", () => selectCop(i));
       return button;
     }),
   );
 }
 function updateHud() {
+  if (game.playerRole === "robber" && (controlled()[selected]?.caught || controlled()[selected]?.escaped)) {
+    const next = controlled().findIndex(actor => !actor.caught && !actor.escaped);
+    if (next >= 0) selected = next;
+  }
   const caught = game.robbers.filter((r) => r.caught).length;
   $("caught-count").textContent = caught;
-  $("timer").textContent = formatTime(game.time);
+  $("timer").textContent = formatTime(game.level.timeLimit ? Math.max(0, game.level.timeLimit - game.time) : game.time);
   $("pause-button").disabled = game.phase !== "playing";
   $("hold-button").disabled = game.phase !== "playing";
   $("phase-badge").className = `live-badge ${game.phase}`;
-  $("phase-badge").lastElementChild.textContent = {
-    ready: "准备出警",
+  $("phase-badge").lastElementChild.textContent = game.phase === "playing" && game.time < game.openingSeconds ? `${game.firstRole === "cop" ? "追逐队" : "突围队"}先动 · ${Math.ceil(game.openingSeconds-game.time)} 秒` : {
+    ready: "准备行动",
     playing: "实时行动中",
     paused: "行动暂停",
     won: "全员抓获",
-    lost: "出口失守",
+    lost: game.playerRole === "robber" ? "突围队获胜" : "挑战结束",
+    review: "复盘中 · 本局已结束",
   }[game.phase];
-  $("ready-prompt").hidden = !["ready", "won"].includes(game.phase);
-  if (game.phase === "won") {
-    $("ready-title").textContent = game.level.id === 0 ? "学会了！两人夹击才是收网。" : "退路封死，全员抓获。";
+  $("ready-prompt").hidden = !["ready", "won", "lost"].includes(game.phase);
+  $("review-controls").hidden = game.phase !== "review";
+  $("game-setup").hidden = game.phase !== "ready";
+  if (["won", "lost"].includes(game.phase) && playerWon()) {
+    $("ready-title").textContent = game.level.id === 0 ? "学会了！两人夹击才是收网。" : `${roleLabel()}获胜！`;
     $("ready-hint").textContent =
       game.level.id === 0 ? "正式街区有岔路：先封出口，再从不同方向靠近。" : `本关用时 ${formatTime(game.time)}。新的行动，等你指挥。`;
     $("start-button").firstChild.textContent =
-      game.level.id === 0 ? `${practiceReturn ? "返回" : "挑战"}第 ${returnLevel} 关` : game.level.id === 48 ? "街区地图" : "下一关";
-  } else if (game.phase === "lost") {
-    $("ready-title").textContent = "有小偷逃出了街区。";
-    $("ready-hint").textContent = "先派人截住橙色出口，再让另一名警察包抄。";
+      game.level.id === 0 ? `${practiceReturn ? "返回" : "挑战"}第 ${returnLevel} 关` : game.level.id === 100 ? "街区地图" : "下一关";
+  } else if (["won", "lost"].includes(game.phase)) {
+    $("ready-title").textContent = "本局挑战结束，可以复盘或重来。";
+    $("ready-hint").textContent = game.playerRole === "robber" ? "更早换向，避开双人夹击；在复盘中观察最后的退路。" : game.exits.length ? "先守住出口，再让同伴从另一侧包抄。" : "借助环路分头包抄，避免跟在同一路线上。";
     $("start-button").firstChild.textContent = "重新挑战";
   }
   const exits = exitStates();
   const danger = game.robbers.filter((r) => !r.escaped && r.escapeProgress > 0)
     .sort((a, b) => b.escapeProgress - a.escapeProgress)[0];
-  $("exit-status").textContent = danger
+  $("exit-status").textContent = !exits.length ? "无出口 · 限时周旋" : danger
     ? `${exitLabel(danger.exitTarget)} 翻越 · 剩 ${(Math.ceil((1 - danger.escapeProgress) * game.exitHoldSeconds * 10) / 10).toFixed(1)} 秒`
     : `出口 ${exits.filter((exit) => !exit.blocked).length}/${exits.length} 开放`;
   $("exit-status").classList.toggle(
@@ -189,19 +212,21 @@ function updateHud() {
     exits.length > 0 && exits.every((exit) => exit.blocked),
   );
   document.body.dataset.phase = game.phase;
+  document.body.classList.toggle("is-playing", game.phase !== "ready");
   document.body.dataset.level = game.level.id;
   Array.from($("cop-roster").children).forEach((button, index) => {
     button.setAttribute("aria-pressed", String(index === selected));
+    button.disabled = !!controlled()[index].caught || !!controlled()[index].escaped;
     button.querySelector("small").textContent =
-      game.phase === "ready"
+      controlled()[index].caught ? "已被合围" : controlled()[index].escaped ? "已突围" : game.phase === "ready"
         ? "待命中"
-        : game.cops[index].moving
+        : controlled()[index].moving
           ? "前往目标"
-          : game.cops[index].blocked
+          : controlled()[index].blocked
             ? game.robbers.some(
                 (r) =>
                   r.capture > 0 &&
-                  roadDistance(game, game.cops[index], r) <= CAPTURE_RADIUS * 2,
+                  roadDistance(game, controlled()[index], r) <= CAPTURE_RADIUS * 2,
               )
               ? "合力收网"
               : "拦截 · 等待支援"
@@ -214,27 +239,27 @@ function updateCaptureHint() {
   $("capture-coach").hidden = !["playing", "paused"].includes(game.phase);
   const robber = game.robbers.filter((r) => !r.caught && !r.escaped).sort((a, b) =>
     b.escapeProgress - a.escapeProgress || b.capture - a.capture ||
-    roadDistance(game, game.cops[selected], a) - roadDistance(game, game.cops[selected], b))[0];
+    roadDistance(game, controlled()[selected], a) - roadDistance(game, controlled()[selected], b))[0];
   captureHint = robber ? { robber, ...captureStatus(game, robber) } : null;
-  let message = "先封出口，再从不同方向靠近。";
+  let message = "队员抵达目标后会停下；换选同伴从另一侧靠近，完成双人合围。";
   if (practice && !practiceOrders.has(0)) {
-    message = "练习 1/3 · 点 1 号警察，再点道路中央的蓝圈。";
+    message = "练习 1/3 · 点 1 号追逐队员，再点道路中央的蓝圈。";
   } else if (practice && !practiceOrders.has(1)) {
-    message = "练习 2/3 · 换选 2 号，再点橙色小偷，从另一侧追击。";
+    message = "练习 2/3 · 换选 2 号，再点橙色突围队员，从另一侧追击。";
   } else if (practice && captureHint && !captureHint.enclosed && game.cops.every((cop) => !cop.moving)) {
     const farther = game.cops.reduce((a, b) => roadDistance(game, a, robber) > roadDistance(game, b, robber) ? a : b);
-    message = `练习 3/3 · 到点会停：选 ${farther.id + 1} 号，再点小偷继续夹击。`;
+    message = `练习 3/3 · 到点会停：选 ${farther.id + 1} 号，再点突围队员继续夹击。`;
   } else if (captureHint) {
     const { nearby, enclosed } = captureHint;
     message = robber.escapeProgress > 0
       ? `${robber.id + 1} 号在${exitLabel(robber.exitTarget)}翻越！靠近该出口，打断逃脱。`
       : enclosed
-        ? `${robber.id + 1} 号 · 双警就位，收网 ${Math.round(robber.capture * 100)}% · 保持 0.8 秒`
+        ? `${robber.id + 1} 号 · 双人就位，收网 ${Math.round(robber.capture * 100)}% · 保持 0.8 秒`
         : nearby < 2
           ? `${practice ? "练习 3/3 · " : `${robber.id + 1} 号 · `}近身 ${nearby}/2 人 · 派同伴从另一侧靠近`
           : `${robber.id + 1} 号 · 橙色路段仍可退避，继续压缩包围`;
   }
-  $("capture-message").textContent = message;
+  $("capture-message").textContent = game.playerRole === "robber" ? (game.exits.length ? "你指挥突围队：点队员，再点道路；任一人越过出口即获胜。" : `你指挥突围队：利用环路避开两侧夹击，坚持 ${game.level.timeLimit} 秒。`) : message;
 }
 function exitStates() {
   return (game.exits || []).map((exit) => ({
@@ -249,12 +274,12 @@ function exitLabel(node) {
   return index < 0 ? "出口" : `出口 ${String.fromCharCode(65 + index)}`;
 }
 function updateCampaign() {
-  const count = Object.keys(progress.best).length;
-  $("campaign-count").textContent = `${count} / 48`;
-  $("campaign-fill").style.width = `${(count / 48) * 100}%`;
+  const count = getLevels(mode).filter(level => bestTime(level.id)).length;
+  $("campaign-count").textContent = `${count} / 100`;
+  $("campaign-fill").style.width = `${(count / 100) * 100}%`;
 }
 function loadLevel(id, saved = null) {
-  if (!Number.isInteger(id) || id < 0 || id > unlockedLevel()) return false;
+  if (!Number.isInteger(id) || id < 0 || id > 100) return false;
   if (id === 0 && game.level.id > 0) returnLevel = game.level.id;
   clearTimeout(winTimer);
   clearTimeout(toastTimer);
@@ -264,7 +289,7 @@ function loadLevel(id, saved = null) {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
   document.body.classList.remove("modal-open");
   dialogResume = false;
-  game = saved?.game || createGame(id === 0 ? PRACTICE : LEVELS[id - 1]);
+  game = saved?.game || createGame(id === 0 ? PRACTICE : getLevels(mode)[id - 1], {playerRole:id === 0 ? "cop" : playerRole, firstRole:id === 0 || mode === "challenge" ? null : initiative === "random" ? (Math.random() < .5 ? "cop" : "robber") : initiative === "first" ? playerRole : playerRole === "cop" ? "robber" : "cop"});
   if (id !== 0) practiceReturn = null;
   practiceOrders.clear();
   captureHint = null;
@@ -287,7 +312,14 @@ function loadLevel(id, saved = null) {
     }),
   );
   $("mission-subtitle").textContent =
-    id === 0 ? "沿用正式规则 · 不计入关卡成绩" : `${chapter.subtitle} · 挑战 ${game.level.par} 秒${progress.streetBest[id] ? ` · 最佳 ${formatTime(progress.streetBest[id])}` : ""}`;
+    id === 0 ? "沿用正式规则 · 不计入关卡成绩" : `${chapter.subtitle} · 挑战 ${game.level.par} 秒${bestTime(id) ? ` · 最佳 ${formatTime(bestTime(id))}` : ""}`;
+  $("mode-select").value = mode;
+  $("role-select").value = playerRole;
+  $("initiative-select").value = initiative;
+  $("initiative-select").disabled = mode === "challenge";
+  $("initiative-select").title = mode === "challenge" ? "解题挑战固定同时起步" : "先动方提前 2 秒行动";
+  $("mode-description").textContent = MODES.find(item => item.id === mode).description;
+  $("timer").previousElementSibling.textContent = game.level.timeLimit ? "剩余时间" : "行动用时";
   $("robber-count").textContent = game.robbers.length;
   $("guide-title").textContent = game.level.redeploy?.length
     ? "封口之后，还要换防"
@@ -303,11 +335,20 @@ function loadLevel(id, saved = null) {
   $("ready-title").textContent =
     id === 0 ? "两侧出口已守住，练一次合作夹击。" : id === 1
       ? "盯住橙色出口，别让他翻过去。"
-      : `${game.cops.length} 警察 · ${game.robbers.length} 小偷 · ${(game.level.exits || []).length} 个出口`;
+      : `${game.cops.length} 追逐队员 · ${game.robbers.length} 突围队员 · ${(game.level.exits || []).length} 个出口`;
+  if(id !== 0) {
+    const runner = game.playerRole === "robber";
+    const goal = runner ? game.exits.length ? "任意一人越过出口，或坚持到计时结束，即可获胜。" : `利用环路周旋，坚持 ${game.level.timeLimit} 秒即可获胜。`
+      : game.exits.length ? "先守出口，再由同伴从另一侧靠近，合围全部对手。" : `限时 ${game.level.timeLimit} 秒，通过岔路包抄，合围全部对手。`;
+    $("ready-title").textContent = `${roleLabel()}就位 · ${controlled().length} 名队员由你指挥`;
+    $("ready-hint").textContent = goal;
+    $("guide-title").textContent = runner ? "看准空档，及时换路" : game.exits.length ? "先封出口，再分头合围" : "分头包抄，压缩退路";
+    $("guide-hint").textContent = runner ? goal : game.level.hint;
+  }
   $("start-button").firstChild.textContent = id === 0 ? "开始练习" : "开始行动";
   canvas.setAttribute(
     "aria-label",
-    `${id === 0 ? "练习" : `第 ${id} 关`} ${game.level.name}，${game.cops.length} 名警察、${game.robbers.length} 名小偷。${game.level.hint}`,
+    `${id === 0 ? "练习" : `第 ${id} 关`} ${game.level.name}，${game.cops.length} 名追逐队员、${game.robbers.length} 名突围队员。${game.level.hint}`,
   );
   buildRoster();
   updateHud();
@@ -316,13 +357,13 @@ function loadLevel(id, saved = null) {
 }
 function begin() {
   audio.unlock();
-  if (game.phase === "lost") {
+  if (["won", "lost"].includes(game.phase) && !playerWon()) {
     loadLevel(game.level.id);
     return;
   }
-  if (game.phase === "won") {
+  if (["won", "lost"].includes(game.phase) && playerWon()) {
     if (game.level.id === 0) leavePractice();
-    else if (game.level.id === 48) openLevels();
+    else if (game.level.id === 100) openLevels();
     else loadLevel(game.level.id + 1);
     return;
   }
@@ -340,7 +381,7 @@ function issue(point) {
     return false;
   }
   audio.unlock();
-  const accepted = commandCop(game, selected, point);
+  const accepted = (game.playerRole === "robber" ? commandRobber : commandCop)(game, selected, point);
   if (accepted) {
     if (game.level.id === 0 && (Math.abs(point.x - 500) < 45 || game.robbers.includes(point))) practiceOrders.add(selected);
     audio.play("order");
@@ -348,14 +389,14 @@ function issue(point) {
       toast(`${selected + 1} 号收到，正在前往目标。`, 1800);
   } else {
     audio.play("invalid");
-    toast("这里是建筑，请点路口或道路。");
+    toast(game.time < game.openingSeconds && game.firstRole !== game.playerRole ? "开局待命 2 秒，随后双方同时行动。" : "这里不能通行，请选择未被封住的道路。");
   }
   preview = null;
   updateHud();
   return accepted;
 }
 function hold() {
-  if (holdCop(game, selected)) {
+  if ((game.playerRole === "robber" ? holdRobber : holdCop)(game, selected)) {
     audio.unlock();
     audio.play("hold");
     clearGesture();
@@ -386,7 +427,7 @@ function closeDialog(dialog, resume = true) {
   }
   updateHud();
 }
-function pause(reason = "警察和小偷都在等你回来。") {
+function pause(reason = "追逐队员和突围队员都在等你回来。") {
   if (game.phase !== "playing") return;
   $("pause-reason").textContent = reason;
   openDialog("pause-dialog");
@@ -407,15 +448,15 @@ function renderLevelGrid() {
     }),
   );
   $("level-grid").replaceChildren(
-    ...LEVELS.filter((level) => level.chapter === chapterTab).map((level) => {
+    ...getLevels(mode).filter((level) => level.chapter === chapterTab).map((level) => {
       const button = document.createElement("button");
       button.className = `level-tile${game.level.id === level.id ? " current" : ""}`;
-      button.disabled = level.id > unlocked;
+      button.disabled = false;
       button.setAttribute(
         "aria-label",
-        `第 ${level.id} 关 ${level.name}${level.id > unlocked ? "，尚未解锁" : ""}`,
+        `第 ${level.id} 关 ${level.name}`,
       );
-      const best = progress.streetBest[level.id];
+      const best = bestTime(level.id);
       const roads = level.edges
         .map(
           ([a, b]) =>
@@ -428,7 +469,7 @@ function renderLevelGrid() {
             `<circle cx="${level.nodes[node].x}" cy="${level.nodes[node].y}" r="22" fill="#cc703c"/>`,
         )
         .join("");
-      button.innerHTML = `<strong>${String(level.id).padStart(2, "0")}</strong><i class="tile-mark">${best ? (best <= level.par ? "★" : "✓") : level.id > unlocked ? "⌑" : "↗"}</i><svg class="level-map" viewBox="0 0 1000 600" aria-hidden="true"><path d="${roads}" fill="none" stroke="#638770" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>${exits}</svg><span>${level.name}</span><small>${best ? `最佳 ${formatTime(best)} · 挑战 ${level.par} 秒` : `${level.cops.length} 警 · ${level.robbers.length} 偷 · ${level.edges.length - level.nodes.length + 1} 环路`}</small>`;
+      button.innerHTML = `<strong>${String(level.id).padStart(2, "0")}</strong><i class="tile-mark">${best ? (best <= level.par ? "★" : "✓") : "↗"}</i><svg class="level-map" viewBox="0 0 ${level.worldWidth || 1000} ${level.worldHeight || 600}" aria-hidden="true"><path d="${roads}" fill="none" stroke="#638770" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>${exits}</svg><span>${level.name}</span><small>${best ? `最佳 ${formatTime(best)} · 挑战 ${level.par} 秒` : `${level.cops.length} 追 · ${level.robbers.length} 逃 · ${level.edges.length - level.nodes.length + 1} 环路`}</small>`;
       button.addEventListener("click", () => {
         loadLevel(level.id);
         audio.play("select");
@@ -452,31 +493,39 @@ function won() {
     updateHud();
     return;
   }
-  const previousBest = progress.streetBest[id];
-  progress.streetBest[id] = Math.min(previousBest || Infinity, game.time);
-  progress.best[id] ??= game.time;
+  const recordEligible = mode === "challenge" && game.playerRole === "cop";
+  const previousBest = bestTime(id);
+  progress.modeBest[recordKey(id)] = Math.min(previousBest || Infinity, game.time);
+  if (recordEligible) {
+    progress.streetBest[id] = Math.min(previousBest || Infinity, game.time);
+    progress.best[id] ??= game.time;
+  }
   saveProgress();
   updateCampaign();
   updateHud();
   audio.play("win");
   $("win-time").textContent = formatTime(game.time);
-  $("win-best").textContent = formatTime(progress.streetBest[id]);
+  $("win-best").textContent = formatTime(progress.modeBest[recordKey(id)]);
   $("win-title").textContent =
-    id === 48 ? "全城围捕，圆满收官。" : "一个也没跑掉。";
+    id === 100 ? "全城围捕，圆满收官。" : "一个也没跑掉。";
   $("win-description").textContent =
-    id === 48
-      ? "48 场行动全部完成！回到街区地图，挑战更漂亮的用时。"
+    id === 100
+      ? "本模式最后一关完成！回到街区地图，挑战更漂亮的用时。"
       : previousBest && game.time < previousBest
         ? "刷新个人最佳！这次的收网又快了一点。"
         : game.time <= game.level.par
           ? `全员抓获，并达成 ${game.level.par} 秒街区挑战！`
           : `全员抓获！再试着把用时压进 ${game.level.par} 秒，拿下本关挑战星。`;
   $("next-button").firstChild.textContent =
-    id === 48 ? "回到街区地图" : `出发 · 第 ${id + 1} 关`;
-  toast("漂亮！退路封死，全员抓获。", 1700);
+    id === 100 ? "回到街区地图" : `出发 · 第 ${id + 1} 关`;
+  if (game.playerRole === "robber") {
+    $("win-title").textContent = "突围队获胜！";
+    $("win-description").textContent = game.robbers.some(r => r.escaped) ? "成功越过出口！换个角色，试试如何守住它。" : "坚持到倒计时结束，成功避开合围。";
+  }
+  toast(`${roleLabel()}获胜！`, 1700);
   winTimer = setTimeout(
     () => {
-      if (game.phase === "won") openDialog("win-dialog");
+      if (playerWon()) openDialog("win-dialog");
     },
     reducedMotion.matches ? 250 : 1150,
   );
@@ -485,25 +534,26 @@ function lost(event) {
   clearGesture();
   audio.play("lose");
   const label = exitLabel(event.exitNode);
-  $("lose-title").textContent = `${label} 失守了。`;
-  $("lose-description").textContent =
-    `${event.robberId + 1} 号小偷在 ${label} 连续翻越 ${game.exitHoldSeconds} 秒，附近无人拦截。重开后先守这个出口前的岔路，再让同伴推进；回看时红色出口就是失守位置。`;
+  $("lose-title").textContent = game.playerRole === "robber" ? "突围队被合围了。" : event.reason === "timeout" ? "时间到，突围队获胜。" : `${label}失守了。`;
+  $("lose-description").textContent = game.playerRole === "robber" ? "两侧退路被追逐队封住。复盘时看看能否更早换路。" : event.reason === "timeout" ? "倒计时结束仍有队员未被合围。尝试分头守住岔路，避免同向追赶。" : `${event.robberId + 1} 号突围队从 ${label} 越过出口。复盘保留最后局面；可随时返回准备或重新挑战。`;
   $("lose-caught").textContent =
     `${game.robbers.filter((r) => r.caught).length} / ${game.robbers.length}`;
   $("lose-time").textContent = formatTime(game.time);
-  toast(`小偷从${label}逃走了！`, 2000);
+  toast(game.playerRole === "robber" ? "退路被合围，本局结束。" : event.reason === "timeout" ? "时间到，突围队获胜。" : `突围队员从${label}冲线！`, 2000);
   updateHud();
   winTimer = setTimeout(
     () => {
-      if (game.phase === "lost") openDialog("lose-dialog");
+      if (["won", "lost"].includes(game.phase) && !playerWon()) openDialog("lose-dialog");
     },
     reducedMotion.matches ? 200 : 900,
   );
 }
 
 function hitActor(clientX, clientY) {
+  // Large districts render smaller figures: a fixed CSS hit disk would swallow adjacent roads.
+  const origin = renderer.toScreen({x:0,y:0}), edge = renderer.toScreen({x:26,y:0});
   let hit = null,
-    nearest = 26;
+    nearest = Math.max(4, Math.min(26, Math.abs(edge.x-origin.x)));
   const actors = [
     ...game.cops.map((actor) => ({ actor, cop: true })),
     ...game.robbers
@@ -511,14 +561,15 @@ function hitActor(clientX, clientY) {
       .map((actor) => ({ actor, cop: false })),
   ];
   for (const { actor, cop } of actors) {
-    const screen = renderer.toScreen({ x: actor.x, y: actor.y - 18 });
+    const screen = renderer.toScreen({ x: actor.x, y: actor.y - 28 });
     const foot = renderer.toScreen(actor);
     const distance = Math.min(
       Math.hypot(clientX - screen.x, clientY - screen.y),
       Math.hypot(clientX - foot.x, clientY - foot.y),
     );
     if (distance < nearest) {
-      hit = { actor, cop };
+      // Input hit.cop means selectable (our team); physical actor types stay in the engine.
+      hit = { actor, cop: cop === (game.playerRole !== "robber") };
       nearest = distance;
     }
   }
@@ -619,12 +670,12 @@ function keyboardTarget(key) {
     keyboardNode = graph.nodes.reduce(
       (best, node, i) =>
         Math.hypot(
-          node.x - game.cops[selected].x,
-          node.y - game.cops[selected].y,
+          node.x - controlled()[selected].x,
+          node.y - controlled()[selected].y,
         ) <
         Math.hypot(
-          graph.nodes[best].x - game.cops[selected].x,
-          graph.nodes[best].y - game.cops[selected].y,
+          graph.nodes[best].x - controlled()[selected].x,
+          graph.nodes[best].y - controlled()[selected].y,
         )
           ? i
           : best,
@@ -666,7 +717,7 @@ document.addEventListener("keydown", (event) => {
     event.altKey
   )
     return;
-  if (/^[1-5]$/.test(event.key)) {
+  if (/^[1-9]$/.test(event.key)) {
     event.preventDefault();
     selectCop(Number(event.key) - 1);
   } else if (event.key === "Escape" || event.key.toLowerCase() === "p") {
@@ -719,11 +770,18 @@ $("restart-button").addEventListener("click", () => loadLevel(game.level.id));
 $("pause-restart").addEventListener("click", () => loadLevel(game.level.id));
 $("win-retry").addEventListener("click", () => loadLevel(game.level.id));
 $("lose-retry").addEventListener("click", () => loadLevel(game.level.id));
-$("lose-review").addEventListener("click", () =>
-  closeDialog($("lose-dialog"), false),
-);
+$("lose-review").addEventListener("click", () => {
+  game.phase = "review";
+  closeDialog($("lose-dialog"), false);
+});
+$("review-return").addEventListener("click", () => loadLevel(game.level.id));
+$("review-retry").addEventListener("click", () => {loadLevel(game.level.id); begin();});
+$("mode-select").addEventListener("change", event => {mode = event.target.value; saveProgress(); loadLevel(1);});
+$("role-select").addEventListener("change", event => {playerRole = event.target.value; saveProgress(); loadLevel(game.level.id || 1);});
+$("initiative-select").addEventListener("change", event => {initiative = event.target.value; saveProgress(); loadLevel(game.level.id || 1);});
+$("appearance-button").addEventListener("click", () => openAppearanceSettings(buildRoster));
 $("next-button").addEventListener("click", () => {
-  if (game.level.id === 48) {
+  if (game.level.id === 100) {
     closeDialog($("win-dialog"), false);
     openLevels();
   } else loadLevel(game.level.id + 1);
@@ -802,9 +860,8 @@ function frame(now) {
   for (const event of game.events.splice(0)) {
     if (event.type === "capture") {
       audio.play("capture");
-      toast(`抓到 ${event.robberId + 1} 号小偷！继续盯住其他路口。`);
-    } else if (event.type === "win") won();
-    else if (event.type === "lose") lost(event);
+      toast(`抓到 ${event.robberId + 1} 号突围队员！继续盯住其他路口。`);
+    } else if (event.type === "win" || event.type === "lose") { if (playerWon()) won(); else lost(event); }
     else if (event.type === "turn" && game.time - lastTurnSound > 0.8) {
       audio.play("turn");
       lastTurnSound = game.time;
@@ -851,10 +908,14 @@ export function getSnapshot() {
   });
   return {
     level: game.level.id,
+    mode,
+    role: game.playerRole,
     phase: game.phase,
     time: game.time,
     selected,
     fps,
+    firstRole: game.firstRole,
+    openingSeconds: game.openingSeconds,
     cops: game.cops.map(actor),
     robbers: game.robbers.map(actor),
     exits: exitStates(),

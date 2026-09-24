@@ -171,9 +171,9 @@ try {
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.getByTestId('undo-loss').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(current));
-    await page.getByRole('button', { name: '选择3号警察', exact: true }).click();
+    await page.getByRole('button', { name: '选择3号追逐队员', exact: true }).click();
     await page.getByTestId('node-4').click(); await finished(page, 2);
-    await page.reload(); await finished(page, 2);
+    await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 2);
     assert.equal(await page.locator('.topbar [data-game-fullscreen]').getAttribute('aria-pressed'), 'false');
   });
   const moving = recordedCase((before, after) => after.robbers.some((n, i) => n >= 0 && before.robbers[i] !== n));
@@ -212,7 +212,7 @@ try {
     await page.locator('#replay').click();
     assert.equal(await page.locator('.lesson-ring').count(), 0, 'Completed lesson does not reveal every replay');
     assert.match(await page.locator('#reference-turns').textContent(), /三星 ≤ 7 步.*最佳 7 步/);
-    await page.reload(); await finished(page, 0);
+    await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 0);
     assert.equal(await page.locator('.lesson-ring').count(), 0);
     await page.locator('#settings').click(); await page.locator('#teaching-setting').check();
     await page.getByRole('button', { name: '关闭设置', exact: true }).click();
@@ -234,7 +234,7 @@ try {
     const before = await replay(page, losing.id, losing.path.slice(0, -1));
     await move(page, losing.id, before, losing.path.at(-1));
     await page.getByTestId('defeat').waitFor({ state: 'visible' });
-    assert.match(await page.locator('#loss-details').textContent(), /第 \d+ 步：.*号小偷从 \d+ 号路口逃到 \d+ 号出口/);
+    assert.match(await page.locator('#loss-details').textContent(), /第 \d+ 步：.*号突围队员从 \d+ 号路口逃到 \d+ 号出口/);
     assert.equal(await page.getByTestId('victory').isVisible(), false, 'Escaped robbers are not captured robbers');
     await page.screenshot({ path: resolve(output, 'escape-defeat.png'), fullPage: true });
     const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')));
@@ -357,13 +357,13 @@ try {
     for (const id of [17, 49, 57]) {
       await load(page, id);
       const map = levels[id - 1], instruction = await page.locator('#instruction').textContent();
-      assert.ok(instruction.includes(`${map.robbers.length} 名小偷都会行动`));
+      assert.ok(instruction.includes(`${map.robbers.length} 名突围队员都会行动`));
       if (map.cops.length === 4) assert.match(instruction, /4 人协作/);
       const hint = await page.getByTestId('hint').boundingBox();
       assert.ok(hint.y + hint.height <= 740, 'Mission briefing must leave actions within the first screen');
       await move(page, id, initialState(map), solutions[id][0]);
-      await page.reload(); await finished(page, 1);
-      assert.match(await page.locator('#instruction').textContent(), /已选中 1 号警察/);
+      await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 1);
+      assert.match(await page.locator('#instruction').textContent(), /已选中 1 号追逐队员/);
     }
   });
 
@@ -384,10 +384,10 @@ try {
   });
 
   await check('old victories and old patrols do not restore as new-version progress', async page => {
-    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning');
+    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
     assert.equal(await page.locator('body').getAttribute('data-level'), '1');
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
-    assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*60$/);
+    assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*100$/);
     assert.equal(await page.getByTestId('sound').getAttribute('aria-pressed'), 'false', 'old sound preferences survive the map revision');
     assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v2')), 'the old save remains intact');
     await page.getByTestId('level-select').click();
@@ -397,7 +397,7 @@ try {
     current: { levelId: 1, state: { cops: [1], robbers: [-1], turn: 1 }, history: [] }, settings: { sound: false } })) });
 
   await check('malformed new save recovers and unavailable storage still permits play', async page => {
-    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning');
+    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
     await replay(page, 1, solutions[1]);
   }, { init: () => localStorage.setItem('cops-robbers-v3', '{broken-save') });

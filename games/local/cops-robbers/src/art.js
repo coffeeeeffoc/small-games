@@ -1,52 +1,18 @@
-const ink = '#233b42';
+import { getRoleAppearance, roleAvatarSvg } from './role-appearance.js';
 
-/** Small paper-toy people; their feet sit at the SVG origin. */
+/** Team silhouettes remain distinct even with matching uploaded portraits. */
 export function character(kind, mood = 'idle', index = 0) {
-  const cop = kind === 'cop';
-  const skin = ['#f4c69f', '#dca579', '#f0bc91'][index % 3];
-  const raised = mood === 'caught' || mood === 'cheer';
-  const worried = mood === 'nervous';
-  const running = mood === 'run';
-  const salute = cop && mood === 'selected';
-  const coat = cop ? '#177c91' : '#ed7757';
-  const sleeve = cop ? '#136779' : '#d76047';
-  const leftHand = raised ? '-28,-63' : running ? '-29,-39' : '-24,-20';
-  const rightHand = raised ? '28,-63' : salute ? '23,-62' : running ? '28,-18' : '25,-22';
-  const eyes = raised
-    ? '<path d="M-12-56q4-5 8 0m8 0q4-5 8 0" fill="none"/>'
-    : salute
-      ? '<path d="M-12-56l7 1"/><ellipse cx="9" cy="-56" rx="2.2" ry="3" fill="currentColor" stroke="none"/>'
-      : '<ellipse cx="-8" cy="-56" rx="2.2" ry="3" fill="currentColor" stroke="none"/><ellipse cx="9" cy="-56" rx="2.2" ry="3" fill="currentColor" stroke="none"/>';
-  const mouth = worried
-    ? '<ellipse cx="1" cy="-44" rx="3" ry="3.5" fill="#723f36" stroke="none"/>'
-    : mood === 'caught'
-      ? '<path d="M-4-44q5-4 10 0" fill="none"/>'
-      : mood === 'cheer'
-        ? '<path d="M-6-47h14q-2 10-7 10t-7-10" fill="#723f36"/><path d="M-3-46h8" stroke="#fff6e4" stroke-width="3"/>'
-        : '<path d="M-4-46q5 5 11-1" fill="none"/>';
-  return `<g class="paper-person ${cop ? 'cop' : 'robber'} mood-${mood}" color="${ink}" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    ${!cop && mood !== 'caught' ? `<g class="bag" transform="translate(-1 0)"><path d="M22-38q18 2 13 21-2 8-12 4l-7-5z" fill="#d0ad70"/><path d="M22-37l-1-8 8 4 5-4-1 10m-11 3 10 1" fill="#e4c38a"/><path d="M29-28q-7-2-6 2t6 4-6 3m3-12v16" fill="none" stroke="#936d40" stroke-width="1.6"/></g>` : ''}
-    <g class="leg-left"><path d="M-9-15l${running ? '-6 10' : '-1 11'}" stroke="${cop ? '#214956' : '#395457'}" stroke-width="10"/><path d="M${running ? '-16' : '-11'}-4h-6q-3 0-3 3h18v-3" fill="${ink}" stroke="none"/></g>
-    <g class="leg-right"><path d="M9-15l${running ? '7 8' : '1 11'}" stroke="${cop ? '#214956' : '#395457'}" stroke-width="10"/><path d="M${running ? '13' : '8'}-4h7q6 0 6 3H5v-3" fill="${ink}" stroke="none"/></g>
-    <g class="arm-left"><path d="M-14-33Q-24 ${raised ? '-42' : '-27'} ${leftHand.replace(',', ' ')}" fill="none" stroke="${ink}" stroke-width="12"/><path d="M-14-33Q-24 ${raised ? '-42' : '-27'} ${leftHand.replace(',', ' ')}" fill="none" stroke="${coat}" stroke-width="8"/><circle cx="${leftHand.split(',')[0]}" cy="${leftHand.split(',')[1]}" r="5.4" fill="${skin}"/>${raised ? '<path d="M-29-67v-3m4 4 1-3" stroke-width="2"/>' : ''}</g>
-    <g class="arm-right"><path d="M14-33Q${salute ? '31-38' : raised ? '26-42' : '23-26'} ${rightHand.replace(',', ' ')}" fill="none" stroke="${ink}" stroke-width="12"/><path d="M14-33Q${salute ? '31-38' : raised ? '26-42' : '23-26'} ${rightHand.replace(',', ' ')}" fill="none" stroke="${coat}" stroke-width="8"/><circle cx="${rightHand.split(',')[0]}" cy="${rightHand.split(',')[1]}" r="5.4" fill="${skin}"/>${raised ? '<path d="M29-67v-3m-4 4-1-3" stroke-width="2"/>' : ''}</g>
-    <g class="body"><path d="M-13-39q13-6 26 0l4 24q-17 6-34 0z" fill="${coat}"/>
-      ${cop ? '<path d="M-9-39 0-31 9-39M0-30v17" fill="none" stroke="#0d5d70"/><path d="M-17-19h34v5h-34" fill="#214956" stroke="none"/><rect x="-3" y="-19" width="6" height="5" rx="1" fill="#e5bf65" stroke="none"/><path d="M7-32l3-2 3 2v4l-3 2-3-2z" fill="#f5cf75" stroke="none"/><path d="M-10-29h5m-5 3h5" stroke="#a6d2d4" stroke-width="1.6"/>' : `<path d="M-15-30h30m-31 8h32" stroke="#ffe1b8" stroke-width="4"/><path d="M-7-38q7 10 14 0" fill="${sleeve}"/><path d="M-2-35v6m5-6v5" stroke="#fff0d5" stroke-width="1.6"/>`}
-    </g>
-    <g class="head">
-      <circle cx="-21" cy="-54" r="4.5" fill="${skin}"/><circle cx="21" cy="-54" r="4.5" fill="${skin}"/>
-      <path d="M-21-62q0-14 21-14t21 14v12q-1 14-21 14t-21-14z" fill="${skin}"/>
-      <path d="M-18-50q0 10 10 11" fill="none" stroke="#e4aa84" stroke-width="3"/>
-      ${cop ? '<path d="M-23-67l3-10q20-10 40 0l3 10z" fill="#177c91"/><path d="M-23-68h46v5q-23 6-46 0z" fill="#214956"/><path d="M-19-76q19-6 37 0" fill="none" stroke="#4da0ae" stroke-width="2"/><path d="M-4-77h8v7l-4 3-4-3z" fill="#f1ce78" stroke="#233b42" stroke-width="1.4"/><path d="M-2-74h4m-2-2v4" stroke="#fff0bd" stroke-width="1.3"/>' : '<path d="M-22-67q-2-13 18-14 17-3 23 7l5 7q-22-5-46 0" fill="#354b4c"/><path d="M-15-74q11-5 25-2" fill="none" stroke="#627370"/><path d="M-22-62q21-7 44 0l-1 11q-9 3-20-2-12 5-22 2z" fill="#304747" stroke="none"/><ellipse cx="-8" cy="-56" rx="6.5" ry="5.5" fill="#fff5e0" stroke="none"/><ellipse cx="9" cy="-56" rx="6.5" ry="5.5" fill="#fff5e0" stroke="none"/>'}
-      <g stroke-width="2">${eyes}${mouth}</g>
-      ${worried || running ? `<path d="M-13-63l8 ${worried ? '-2' : '3'}m10 ${worried ? '0' : '-3'} 9 ${worried ? '2' : '-3'}" fill="none" stroke-width="2"/>` : ''}
-      <ellipse cx="-13" cy="-47" rx="4" ry="2" fill="#e99983" opacity=".6" stroke="none"/><ellipse cx="15" cy="-47" rx="4" ry="2" fill="#e99983" opacity=".6" stroke="none"/>
-      <path d="M1-53l2 4H0" fill="none" stroke="#c98e69" stroke-width="1.6"/>
-      ${worried ? '<path class="sweat" d="M29-67q-10 14-2 15t2-15" fill="#86cbd5" stroke="#4d9dab" stroke-width="1.3"/>' : ''}
-    </g>
-    ${salute ? `<path d="M20-64l6-2" stroke="${skin}" stroke-width="5"/>` : ''}
-    ${!cop && mood === 'caught' ? '<g class="bag dropped-bag" transform="translate(12 -3) rotate(20) scale(.78)"><path d="M4-15q10-5 15 1l2 8Q13 1 2-5z" fill="#d0ad70"/><path d="m10-17-2-5 6 1 4-3-1 7" fill="#e4c38a"/></g>' : ''}
-    ${mood === 'guard' ? '<path d="M-9-24q10 8 21-1" fill="none" stroke="#f4c69f" stroke-width="6"/>' : ''}
+  const pursuit = kind === 'cop', appearance = getRoleAppearance(kind), running = mood === 'run';
+  const raised = ['caught', 'cheer'].includes(mood);
+  return `<g class="paper-person ${kind} mood-${mood}" stroke="#213e43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    ${pursuit ? '<path d="M-22-48h44v32L0-3-22-16Z" fill="#e7f5ff" stroke="#1258c2" stroke-width="4"/>' : '<path d="m-14-42-24 12 16 5-13 14 24-5" fill="#ffb939" stroke="#8f4209"/><circle cy="-30" r="22" fill="#fff0cd" stroke="#be560d" stroke-width="4"/>'}
+    <path d="M-9-16l${running ? '-8 12' : '-2 13'}m20-13 ${running ? '8 9' : '2 13'}" fill="none" stroke="${appearance.color}" stroke-width="10"/>
+    <path d="M-16-40l-12 ${raised ? '-19' : '18'}m44-18 12 ${raised ? '-19' : '18'}" fill="none" stroke="${appearance.color}" stroke-width="9"/>
+    <path d="M-14-46h28l4 27-18 8-18-8Z" fill="${appearance.color}"/>
+    <text x="0" y="-24" text-anchor="middle" font-size="17" font-weight="900" fill="#fff" stroke="none">${pursuit ? '追' : '突'}</text>
+    ${roleAvatarSvg(kind, -25, -91, 50)}
+    <rect x="-26" y="-108" width="52" height="20" rx="${pursuit ? 3 : 10}" fill="${appearance.color}" stroke="#fff9eb" stroke-width="2"/>
+    <text y="-94" text-anchor="middle" fill="#fff" stroke="none" font-size="12" font-weight="900">${pursuit ? '追' : '突'} ${index + 1}</text>
   </g>`;
 }
 

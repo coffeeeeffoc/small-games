@@ -44,7 +44,7 @@ try {
   await page.locator("#hold-button").tap(); // A premature hold must explain how to recover, not leave an inert drill.
   await page.waitForTimeout(200);
   assert.equal((await snapshot()).phase, "playing");
-  assert.match(await page.locator("#capture-message").textContent(), /到点会停.*选 [12] 号.*小偷/);
+  assert.match(await page.locator("#capture-message").textContent(), /到点会停.*选 [12] 号.*突围队/);
   for (let retry = 0; retry < 4 && (await snapshot()).phase === "playing"; retry++) {
     const hint = await page.locator("#capture-message").textContent();
     const officer = hint.match(/选 ([12]) 号/);

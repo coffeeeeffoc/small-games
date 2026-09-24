@@ -1,3 +1,4 @@
+import { drawRoleAvatar, getRoleAppearance } from "./role-appearance.js";
 import { BODY_GAP, CAPTURE_RADIUS, roadDistance, isExitBlocked } from "./engine.js";
 
 const W = 1000,
@@ -199,6 +200,7 @@ function flowers(ctx, x, y, variant) {
 }
 
 function buildMap(level) {
+  const W = level.worldWidth || 1000, H = level.worldHeight || 600;
   const bg = document.createElement("canvas");
   bg.width = W * 2;
   bg.height = H * 2;
@@ -439,7 +441,7 @@ function exitAngle(level, node) {
     const other = level.nodes[links[0].find((id) => id !== node)];
     return Math.atan2(point.y - other.y, point.x - other.x);
   }
-  const sides = [point.x, W - point.x, point.y, H - point.y];
+  const sides = [point.x, (level.worldWidth || W) - point.x, point.y, (level.worldHeight || H) - point.y];
   return [Math.PI, 0, -Math.PI / 2, Math.PI / 2][
     sides.indexOf(Math.min(...sides))
   ];
@@ -460,8 +462,8 @@ function exitLabels(level, top) {
       [112, -75],
       [-112, -75],
     ].map(([dx, dy]) => ({
-      x: Math.max(82, Math.min(W - 82, point.x + dx)),
-      y: Math.max(top + 23, Math.min(H - 48, point.y + dy)),
+      x: Math.max(82, Math.min((level.worldWidth || W) - 82, point.x + dx)),
+      y: Math.max(top + 23, Math.min((level.worldHeight || H) - 48, point.y + dy)),
     }));
     const score = (candidate) => {
       const roadClearance = Math.min(
@@ -605,7 +607,7 @@ function exitMarker(ctx, game, exit, index, label, t) {
       : blocked
         ? "已封锁"
         : danger
-          ? "小偷逼近！"
+          ? "突围队逼近！"
           : "出口开放";
   round(
     ctx,
@@ -632,277 +634,22 @@ function exitMarker(ctx, game, exit, index, label, t) {
   ctx.restore();
 }
 
-export function actorBody(
-  ctx,
-  actor,
-  cop,
-  selected,
-  t,
-  salute,
-  caughtAge,
-  celebrating,
-  escapedAge,
-) {
-  const climbing = actor.escapeProgress > 0 && !actor.caught && !actor.escaped;
-  const moving = actor.moving && !actor.caught;
-  const stride =
-    moving || climbing ? Math.sin(t * (cop ? 17 : 20) + actor.id * 2) : 0;
-  const fear =
-    actor.capture > 0 || actor.emotion === "alert" || actor.emotion === "panic";
-  const bob = climbing
-    ? Math.sin(t * 15) * 3
-    : moving
-      ? Math.abs(stride) * 2.7
-      : Math.sin(t * 2.5 + actor.id) * 0.6;
-  const face = Math.cos(actor.angle || 0) < -0.15 ? -1 : 1;
-  ctx.save();
-  ctx.translate(actor.x, actor.y);
-  if (actor.caught)
-    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, caughtAge - 0.65) / 0.7);
-  else if (actor.escaped) ctx.globalAlpha = Math.max(0, 1 - escapedAge / 0.9);
-  ellipse(ctx, 0, 6, 17, 7, "#4359472b");
-  if (selected) {
-    ellipse(
-      ctx,
-      0,
-      2,
-      30 + Math.sin(t * 4) * 1.4,
-      18,
-      "#4093e01c",
-      "#fff9e9",
-      5,
-    );
-    ellipse(ctx, 0, 2, 30 + Math.sin(t * 4) * 1.4, 18, null, "#347ebc", 2.5);
-    line(
-      ctx,
-      [
-        [-30, 3],
-        [-26, 3],
-      ],
-      "#fff9e9",
-      3,
-    );
-    line(
-      ctx,
-      [
-        [26, 3],
-        [30, 3],
-      ],
-      "#fff9e9",
-      3,
-    );
-  }
-  if (moving) {
-    for (let i = 0; i < 2; i++) {
-      const drift = (t * 3 + i * 0.5) % 1;
-      ellipse(
-        ctx,
-        -Math.cos(actor.angle || 0) * (11 + drift * 19),
-        5 - Math.sin(actor.angle || 0) * drift * 17,
-        2 + drift * 3,
-        1 + drift * 2,
-        `rgba(255,250,232,${0.48 * (1 - drift)})`,
-      );
-    }
-  }
-  ctx.translate(0, -bob);
-  const color = cop ? BLUE : "#df7953";
-  const light = cop ? "#6cadd8" : "#f2a06e";
-  const dark = cop ? "#284e62" : "#684f3e";
-  // The silhouette and mask distinguish the teams without relying on colour.
-  if (!cop && !actor.caught) {
-    ellipse(ctx, -face * 13, -8, 10, 12, "#bc9668", "#725f45", 1.8);
-    line(
-      ctx,
-      [
-        [-face * 18, -14],
-        [-face * 8, -17],
-      ],
-      "#886d4e",
-      2,
-    );
-    ctx.font = `bold 11px ${FONT}`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#816343";
-    ctx.fillText(String(actor.id + 1), -face * 14, -4);
-  }
-  line(
-    ctx,
-    [
-      [-7, -1],
-      [-8 - stride * 4, 8],
-    ],
-    dark,
-    7,
-  );
-  line(
-    ctx,
-    [
-      [7, -1],
-      [8 + stride * 4, 8],
-    ],
-    dark,
-    7,
-  );
-  round(ctx, -13 - stride * 4, 5, 11, 6, 3, INK);
-  round(ctx, 3 + stride * 4, 5, 11, 6, 3, INK);
-  round(ctx, -12, -21, 24, 27, 9, color, INK, 1.8);
-  round(ctx, -9, -17, 18, 8, 3, light);
-  line(
-    ctx,
-    [
-      [0, -17],
-      [0, 3],
-    ],
-    cop ? "#246ca5" : "#c26649",
-    1.3,
-  );
-  if (cop) {
-    line(
-      ctx,
-      [
-        [-10, 0],
-        [10, 0],
-      ],
-      "#365767",
-      3,
-    );
-    round(ctx, -3, -2, 6, 4, 1, "#edc978");
-    star(ctx, -5, -11, 4.3, "#ffe4a1");
-  } else {
-    line(
-      ctx,
-      [
-        [-9, -3],
-        [9, -3],
-      ],
-      "#f4c6a0",
-      2,
-    );
-    line(
-      ctx,
-      [
-        [-7, 1],
-        [7, 1],
-      ],
-      "#f4c6a0",
-      2,
-    );
-  }
-  const up = actor.caught || celebrating;
-  const armLeft = up
-    ? [-20, -31]
-    : climbing
-      ? [-19, -34 + stride * 3]
-      : moving
-        ? [-17 - stride * 4, -5 - stride * 5]
-        : [-23, -13];
-  const armRight =
-    up || salute
-      ? [19, -30]
-      : climbing
-        ? [19, -34 - stride * 3]
-        : moving
-          ? [17 + stride * 4, -5 + stride * 5]
-          : [23, -13];
-  line(ctx, [[-10, -15], armLeft], color, 7);
-  line(ctx, [[10, -15], armRight], color, 7);
-  ellipse(ctx, armLeft[0], armLeft[1], 3.6, 3.6, "#f8d4a4", INK, 1);
-  ellipse(ctx, armRight[0], armRight[1], 3.6, 3.6, "#f8d4a4", INK, 1);
-  ellipse(ctx, -15, -25, 4, 5, "#efc392", INK, 1.2);
-  ellipse(ctx, 15, -25, 4, 5, "#efc392", INK, 1.2);
-  round(ctx, -15, -43, 30, 29, 12, "#f8d6aa", INK, 1.8);
-  ellipse(ctx, -9, -23, 3.5, 2, "#efa88977");
-  ellipse(ctx, 9, -23, 3.5, 2, "#efa88977");
-  if (cop) {
-    round(ctx, -18, -48, 36, 13, [7, 7, 3, 3], BLUE, INK, 1.8);
-    round(ctx, -19, -38, 38, 5, 2, "#274f70", INK, 1.3);
-    round(ctx, -14, -44, 28, 3, 1, "#73b3dd");
-    star(ctx, 0, -42, 4, "#ffe2a0");
-  } else {
-    round(ctx, -16, -44, 32, 9, [8, 8, 2, 2], "#b55742", INK, 1.5);
-    line(
-      ctx,
-      [
-        [-11, -40],
-        [10, -40],
-      ],
-      "#e18b63",
-      2,
-    );
-    round(ctx, -16, -33, 32, 11, 5, "#374943");
-  }
-  const eyeShift = face * (moving ? 2 : 1);
-  if (!cop) {
-    ellipse(ctx, -6, -28, 4.3, 3.7, "#fff6df");
-    ellipse(ctx, 7, -28, 4.3, 3.7, "#fff6df");
-  }
-  const blink = Math.sin(t * 1.1 + actor.id * 4) > 0.995 && !fear;
-  if (blink || actor.caught) {
-    line(
-      ctx,
-      [
-        [-8 + eyeShift, -28],
-        [-4 + eyeShift, -27],
-      ],
-      INK,
-      2,
-    );
-    line(
-      ctx,
-      [
-        [4 + eyeShift, -27],
-        [8 + eyeShift, -28],
-      ],
-      INK,
-      2,
-    );
-  } else {
-    ellipse(ctx, -6 + eyeShift, -28, 1.8, fear ? 3 : 2.4, INK);
-    ellipse(ctx, 6 + eyeShift, -28, 1.8, fear ? 3 : 2.4, INK);
-  }
-  if (fear && !actor.caught) ellipse(ctx, 1, -20, 2, 2.5, "#80503c");
-  else {
-    ctx.beginPath();
-    ctx.arc(0, -23, 5, 0.2, Math.PI - 0.2);
-    ctx.strokeStyle = "#97614a";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-  if (cop) {
-    ellipse(ctx, 18, -44, 9.5, 9.5, selected ? "#fff6d5" : "#fff9e9", INK, 1.5);
-    ctx.font = `bold 11px ${FONT}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#285571";
-    ctx.fillText(String(actor.id + 1), 18, -43.5);
-  } else if (fear && !actor.caught) {
-    const drop = Math.sin(t * 8) * 2;
-    ctx.beginPath();
-    ctx.moveTo(20, -39 + drop);
-    ctx.quadraticCurveTo(29, -26 + drop, 20, -27 + drop);
-    ctx.quadraticCurveTo(15, -28 + drop, 20, -39 + drop);
-    ctx.fillStyle = "#66b3ce";
-    ctx.fill();
-  }
-  if (actor.caught) {
-    const p = Math.min(1, caughtAge * 2);
-    for (let i = 0; i < 5; i++) {
-      const a = i * 1.3;
-      star(
-        ctx,
-        Math.cos(a) * (23 + p * 22),
-        -20 + Math.sin(a) * (25 + p * 20),
-        2 + 2 * (1 - p),
-        i % 2 ? "#efb952" : "#fff8db",
-      );
-    }
-    bubble(ctx, 0, -65 - p * 7, "抓到啦!", "#60816a", 0.9);
-  } else if (actor.escaped) bubble(ctx, 0, -66, "溜啦!", "#c84f38", 0.9);
-  else if (actor.escapeProgress > 0)
-    bubble(ctx, 0, -66, "快翻!", "#c84f38", 0.9);
-  else if (salute) bubble(ctx, 0, -66, "收到!", "#3275a3", 0.9);
-  else if (fear) bubble(ctx, 0, -64, "!", "#bd7151", 0.8);
+export function actorBody(ctx, actor, cop, selected, t, salute, caughtAge, celebrating, escapedAge) {
+  const role = cop ? "cop" : "robber", {color} = getRoleAppearance(role);
+  const stride = actor.moving ? Math.sin(t * 16 + actor.id * 2) * 5 : 0;
+  ctx.save(); ctx.translate(actor.x, actor.y);
+  if(actor.caught) ctx.globalAlpha = Math.max(0,1-Math.max(0,caughtAge-.65)/.7);
+  else if(actor.escaped) ctx.globalAlpha = Math.max(0,1-escapedAge/.9);
+  ellipse(ctx,0,6,19,7,"#43594735");
+  if(selected) ellipse(ctx,0,0,30,21,"#fff9e955",color,4);
+  line(ctx,[[-9,-5],[-10-stride,7]],color,7); line(ctx,[[9,-5],[10+stride,7]],color,7);
+  drawRoleAvatar(ctx,role,-23,-52-Math.abs(stride)*.4,46);
+  ellipse(ctx,22,-49,10,10,"#fff9e9",color,2);
+  ctx.font=`bold 12px ${FONT}`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle=color;ctx.fillText(String(actor.id+1),22,-49);
+  if(actor.caught) bubble(ctx,0,-75,"合围！",color,.9);
+  else if(actor.escaped) bubble(ctx,0,-75,"突围！",color,.9);
+  else if(actor.escapeProgress>0) bubble(ctx,0,-75,"冲线！",color,.9);
+  else if(salute) bubble(ctx,0,-75,"收到！",color,.8);
   ctx.restore();
 }
 
@@ -933,6 +680,7 @@ export function createRenderer(canvas) {
       canvas.width = pixelsW;
       canvas.height = pixelsH;
     }
+    const W = cachedLevel?.worldWidth || 1000, H = cachedLevel?.worldHeight || 600;
     scale = Math.min(width / W, height / H);
     ox = (width - W * scale) / 2;
     oy = (height - H * scale) / 2;
@@ -975,6 +723,7 @@ export function createRenderer(canvas) {
     if (!game?.level) return;
     if (cachedLevel !== game.level || game.time < lastTime) {
       cachedLevel = game.level;
+      resize();
       background = buildMap(game.level);
       labels = exitLabels(game.level, labelTop);
       orders.clear();
@@ -990,7 +739,7 @@ export function createRenderer(canvas) {
     ctx.scale(scale, scale);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.drawImage(background, 0, 0, W, H);
+    ctx.drawImage(background, 0, 0, game.level.worldWidth || W, game.level.worldHeight || H);
     const seconds = now / 1000,
       t = reducedMotion ? 0 : game.time || 0;
     (game.exits || []).forEach((exit, index) =>
@@ -1003,8 +752,9 @@ export function createRenderer(canvas) {
       if (orders.get(cop.id)?.key !== key)
         orders.set(cop.id, { key, at: key ? seconds : -99 });
       guardRange(ctx, game, cop, cop.id === selected);
-      route(ctx, cop, cop.id === selected);
+      route(ctx, cop, game.playerRole !== "robber" && cop.id === selected);
     }
+    if (game.playerRole === "robber") for (const robber of game.robbers) route(ctx, robber, robber.id === selected);
     if (captureHint && game.phase !== "ready" && game.phase !== "won") {
       const { robber, gap } = captureHint;
       ellipse(ctx, robber.x, robber.y, 31, 23, null, "#bd6c37", 2);
@@ -1037,10 +787,10 @@ export function createRenderer(canvas) {
       ellipse(ctx, pointer.x, pointer.y, 8, 8, "#fff9e544", "#487a6a66", 1.5);
     if (hover) {
       const { actor, cop } = hover;
-      const color = cop ? "#327ab9" : "#c86435";
+      const color = getRoleAppearance(cop ? game.playerRole : game.playerRole === "robber" ? "cop" : "robber").color;
       ellipse(ctx, actor.x, actor.y, 30, 19, cop ? "#327ab922" : "#c8643522", color, 3);
       bubble(ctx, actor.x, actor.y < 150 ? actor.y + 65 : actor.y - 70,
-        cop ? `${actor.id + 1} 号 · 点击选中 / 拖动` : "小偷 · 点击这里围堵", color, 0.8);
+        cop ? `${actor.id + 1} 号 · 点击选中 / 拖动` : "对方队员 · 点击道路包抄", color, 0.8);
     }
     for (const robber of game.robbers) {
       if (robber.caught && !captures.has(robber.id))
@@ -1117,7 +867,7 @@ export function createRenderer(canvas) {
         ctx,
         displayed,
         cop,
-        cop && actor.id === selected,
+        cop === (game.playerRole !== "robber") && actor.id === selected,
         t + (actor.escaped && !reducedMotion ? escapedAge : 0),
         salute,
         caughtAge,

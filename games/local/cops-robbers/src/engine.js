@@ -24,13 +24,13 @@ export function legalTargets(level, state, copIndex) {
 }
 
 export function validatePlan(level, state, plan) {
-  if (state.robbers.includes(-2)) return '小偷已经逃脱，请撤销或重试';
-  if (!Array.isArray(plan) || plan.length !== state.cops.length) return '请选择一位警察移动';
-  if (plan.filter((node, index) => node !== state.cops[index]).length > 1) return '每步只能移动一位警察';
+  if (state.robbers.includes(-2)) return '突围队员已经逃脱，请撤销或重试';
+  if (!Array.isArray(plan) || plan.length !== state.cops.length) return '请选择一位追逐队员移动';
+  if (plan.filter((node, index) => node !== state.cops[index]).length > 1) return '每步只能移动一位追逐队员';
   for (let i = 0; i < plan.length; i++) {
-    if (!Number.isInteger(plan[i]) || !legalTargets(level, state, i).includes(plan[i])) return '警察只能走到相邻路口，不能走进小偷所在位置';
+    if (!Number.isInteger(plan[i]) || !legalTargets(level, state, i).includes(plan[i])) return '追逐队员只能走到相邻路口，不能走进突围队员所在位置';
   }
-  if (new Set(plan).size !== plan.length) return '两位警察不能停在同一路口';
+  if (new Set(plan).size !== plan.length) return '两位追逐队员不能停在同一路口';
   return null;
 }
 

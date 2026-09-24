@@ -3,7 +3,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:43441';
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'msedge' });
 const checks = [];
 try {
   await mkdir('outputs', { recursive: true });
@@ -32,7 +32,7 @@ try {
     await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
     await page.getByRole('button', { name: '返回大厅', exact: true }).click();
     assert.ok(await page.locator('.brand').isVisible());
-    await page.getByRole('button', { name: '继续围捕', exact: true }).click();
+    await page.locator('#resume-patrol').click();
     assert.equal(await page.locator('body').getAttribute('data-turn'), '1', 'Focus changes preserve the patrol');
     await page.getByRole('button', { name: '玩法说明', exact: true }).click();
     await page.getByRole('button', { name: '明白，开始拦截！', exact: true }).click();

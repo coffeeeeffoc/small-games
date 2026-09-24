@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { levels } from '../src/levels.js';
+import { levels, chapters } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
 import { initialState, step } from '../src/engine.js';
 
@@ -38,16 +38,16 @@ async function snapshot(page, id) {
 }
 async function move(page, id, state, targets, touch = false) {
   const changed = targets.flatMap((node, i) => node !== state.cops[i] ? [i] : []);
-  assert.ok(changed.length <= 1, `关卡 ${id} 的每一步最多只能移动一名警察`);
+  assert.ok(changed.length <= 1, `关卡 ${id} 的每一步最多只能移动一名追逐队员`);
   const cop = changed[0] ?? 0, expected = step(levels[id - 1], state, targets).state;
-  await page.getByTestId(`cop-${cop}`)[touch ? 'tap' : 'click']();
-  assert.equal((await snapshot(page, id)).turn, state.turn, '选中警察不能消耗回合');
+  await page.locator(`#squad [data-cop="${cop}"]`)[touch ? 'tap' : 'click']();
+  assert.equal((await snapshot(page, id)).turn, state.turn, '选中追逐队员不能消耗回合');
   await page.getByTestId(`node-${targets[cop]}`)[touch ? 'tap' : 'click']();
   await page.waitForFunction(turn => ['planning', 'won', 'lost'].includes(document.body.dataset.phase)
     && Number(document.body.dataset.turn) === turn, expected.turn, { timeout: 12000 });
   const actual = await snapshot(page, id);
-  assert.deepEqual(actual.cops, expected.cops, `第 ${id} 关警察位置`);
-  assert.deepEqual(actual.robbers, expected.robbers.map(n => n >= 0 ? n : null), `第 ${id} 关小偷必须自动响应`);
+  assert.deepEqual(actual.cops, expected.cops, `第 ${id} 关追逐队员位置`);
+  assert.deepEqual(actual.robbers, expected.robbers.map(n => n >= 0 ? n : null), `第 ${id} 关突围队员必须自动响应`);
   assert.equal(actual.remaining, expected.robbers.filter(n => n >= 0).length);
   assert.equal(actual.escaped, expected.robbers.filter(n => n === -2).length);
   return expected;
@@ -95,23 +95,23 @@ try {
   assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v3')), '胜利后应保存新版本地记录');
   await page.getByTestId('next-level').click();
   await page.waitForFunction(() => document.body.dataset.level === '2' && document.body.dataset.phase === 'planning');
-  report.checks.push('首关正常动画、点击立即行动、小偷自动响应、胜利和下一关');
+  report.checks.push('首关正常动画、点击立即行动、突围队员自动响应、胜利和下一关');
 
   await page.reload({ waitUntil: 'networkidle' });
-  await page.getByTestId('level-select').click();
+  await page.locator('#level-select').click();
   const tabs = page.locator('#chapter-tabs button'), reachable = new Set();
-  assert.equal(await tabs.count(), 5);
-  for (let chapter = 0; chapter < 5; chapter++) {
+  assert.equal(await tabs.count(), chapters.length);
+  for (let chapter = 0; chapter < chapters.length; chapter++) {
     await tabs.nth(chapter).click();
     for (const button of await page.locator('#level-dialog [data-testid^="level-button-"]:visible').all()) {
       assert.equal(await button.isEnabled(), true); reachable.add(await button.getAttribute('data-testid'));
     }
   }
-  assert.equal(reachable.size, 60);
+  assert.equal(reachable.size, levels.length);
   await tabs.nth(0).click();
   assert.equal(await page.getByTestId('level-button-1').getAttribute('data-completed'), 'true');
   await page.getByTestId('level-button-2').click();
-  report.checks.push('全部 60 关可选，刷新后新版胜利记录保留');
+  report.checks.push('全部 100 关可选，刷新后新版胜利记录保留');
 
   const initial = await snapshot(page, 2);
   await move(page, 2, initialState(levels[1]), solutions[2][0]);
@@ -142,7 +142,7 @@ try {
   for (const size of [{ width: 390, height: 844 }, { width: 320, height: 740 }]) {
     await phone.setViewportSize(size); await load(phone, 1); await verifyLayout(phone, size.width); await win(phone, 1, true);
     await phone.getByTestId('next-level').tap(); await verifyLayout(phone, size.width);
-    await load(phone, 60); await verifyLayout(phone, size.width); await win(phone, 60, true);
+    await load(phone, levels.length); await verifyLayout(phone, size.width); await win(phone, levels.length, true);
     report.checks.push(`${size.width}×${size.height} 首屏按钮、无行动确认、无横向溢出、首关及密集末关触屏点击通关`);
   }
   await phone.setViewportSize({ width: 390, height: 844 }); await load(phone, 28); await verifyLayout(phone, 390);
@@ -152,9 +152,9 @@ try {
     assert.ok(levels[id - 1].exits.length > 0, `第 ${id} 关必须有真正的逃生出口`);
     await load(page, id); const state = await win(page, id);
     report.levels.push({ id, turns: state.turn, exits: levels[id - 1].exits.length, passed: true });
-    console.log(`关卡 ${id}/60：${state.turn} 步，浏览器点击通关`);
+    console.log(`关卡 ${id}/${levels.length}：${state.turn} 步，浏览器点击通关`);
   }
-  report.checks.push(`真实点击按记录解法通关 ${ids.length} 关，所有警察和小偷位置逐步匹配规则引擎`);
+  report.checks.push(`真实点击按记录解法通关 ${ids.length} 关，所有追逐队员和突围队员位置逐步匹配规则引擎`);
   assert.deepEqual(report.errors, [], '浏览器不应有脚本、控制台或资源错误');
   report.passed = true;
   console.log('新版浏览器检查全部通过。');

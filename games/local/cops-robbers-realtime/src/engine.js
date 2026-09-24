@@ -85,10 +85,10 @@ function actorAt(graph, node, id) {
   };
 }
 
-export function createGame(level) {
+export function createGame(level, { playerRole = "cop", ai = true, firstRole = null } = {}) {
   const graph = buildGraph(level);
   if (!level.cops?.length || !level.robbers?.length)
-    throw new Error("关卡需要警察和小偷");
+    throw new Error("关卡需要追逐队员和突围队员");
   if (
     level.exits !== undefined &&
     (!Array.isArray(level.exits) ||
@@ -119,6 +119,11 @@ export function createGame(level) {
     Number.isFinite(n) && n > 0 && n <= 500 ? n : fallback;
   const game = {
     level,
+    playerRole,
+    firstRole,
+    openingSeconds: firstRole ? 2 : 0,
+    ai,
+    aiRethink: 0,
     graph,
     cops,
     robbers,
@@ -139,7 +144,7 @@ export function createGame(level) {
       robbers.some((robber) => roadDistance(game, cop, robber) < BODY_GAP),
     )
   ) {
-    throw new Error("警察和小偷出生点过近");
+    throw new Error("追逐队员和突围队员出生点过近");
   }
   return game;
 }
@@ -327,16 +332,19 @@ function pathTo(game, network, target) {
   return path.reverse();
 }
 
-export function routePreview(game, index, point) {
-  const cop = game.cops[index];
+export function routePreview(game, index, point, role = game.playerRole) {
+  const cop = (role === "robber" ? game.robbers : game.cops)[index];
   const target = roadTarget(game, point);
   if (!cop || !target || game.phase !== "playing") return null;
-  const network = navigation(game, cop, target, false);
+  const network = navigation(game, cop, target, role === "robber");
   const path = pathTo(game, network, network.to);
   return path ? [{ x: cop.x, y: cop.y }, ...path] : null;
 }
 
+const canCommand = (game, role) => game.phase === "playing" && (!game.firstRole || game.time + EPS >= game.openingSeconds || game.firstRole === role);
+
 export function commandCop(game, index, point) {
+  if (!canCommand(game, "cop")) return false;
   const cop = game.cops[index];
   const target = roadTarget(game, point);
   if (!cop || !target || game.phase !== "playing") return false;
@@ -351,6 +359,7 @@ export function commandCop(game, index, point) {
 }
 
 export function holdCop(game, index) {
+  if (!canCommand(game, "cop")) return false;
   const cop = game.cops[index];
   if (!cop || game.phase !== "playing") return false;
   cop.routePoints = [];
@@ -358,6 +367,81 @@ export function holdCop(game, index) {
   cop.moving = false;
   cop.blocked = false;
   return true;
+}
+
+export function commandRobber(game, index, point) {
+  if (!canCommand(game, "robber")) return false;
+  const actor = game.robbers[index], target = roadTarget(game, point);
+  if (!actor || actor.caught || actor.escaped || !target || game.phase !== "playing") return false;
+  const network = navigation(game, actor, target, true);
+  const path = pathTo(game, network, network.to);
+  if (!path) return false;
+  actor.routePoints = path; actor.destination = {...target}; actor.moving = path.length > 0; actor.blocked = false;
+  return true;
+}
+export function holdRobber(game, index) {
+  if (!canCommand(game, "robber")) return false;
+  const actor = game.robbers[index];
+  if (!actor || actor.caught || actor.escaped || game.phase !== "playing") return false;
+  actor.routePoints = []; actor.destination = null; actor.moving = false; actor.blocked = false;
+  return true;
+}
+function pursue(game) {
+  if (!canCommand(game, "cop")) return;
+  const active = game.robbers.filter(actor => !actor.caught && !actor.escaped);
+  if (!active.length) return;
+  // Enclose one target first. Routes treat live opponents as obstacles, just as movement does.
+  const routing = { ...game, cops: active };
+  function planFor(robber) {
+    const targets = [], distance = BODY_GAP + 6;
+    const visit = (edgeId, t, direction, remaining) => {
+      const edge = game.graph.edges[edgeId], available = (direction > 0 ? 1 - t : t) * edge.length;
+      if (available >= remaining) { targets.push(edgePoint(game.graph, edgeId, t + direction * remaining / edge.length)); return; }
+      const node = direction > 0 ? edge.b : edge.a;
+      for (const next of game.graph.adjacent[node]) if (next.edge !== edgeId) {
+        const segment = game.graph.edges[next.edge], forward = segment.a === node;
+        visit(next.edge, forward ? 0 : 1, forward ? 1 : -1, remaining - available);
+      }
+    };
+    visit(robber.edge, robber.t, -1, distance);
+    visit(robber.edge, robber.t, 1, distance);
+    if (!targets.length || targets.length > game.cops.length) return null;
+    // The capture rule needs a nearby partner even in a dead end.
+    if (targets.length === 1) targets.push(targets[0]);
+    const routes = targets.map(target => game.cops.map(cop => {
+      const network = navigation(routing, cop, target, true);
+      return { path: pathTo(game, network, network.to), distance: network.distances[network.to] };
+    }));
+    let best = null, bestCost = Infinity;
+    const assign = (target, used, chosen, cost) => {
+      if (cost >= bestCost) return;
+      if (target === targets.length) { best = [...chosen]; bestCost = cost; return; }
+      for (let cop = 0; cop < game.cops.length; cop++) if (!used.includes(cop) && routes[target][cop].path) {
+        assign(target + 1, [...used, cop], [...chosen, cop], cost + routes[target][cop].distance);
+      }
+    };
+    assign(0, [], [], 0);
+    return best ? { robber, targets, routes, assigned: best, cost: bestCost } : null;
+  }
+  let plan = active.find(actor => actor.id === game.aiTarget);
+  plan = plan && planFor(plan);
+  if (!plan) plan = active.map(planFor).filter(Boolean).sort((a, b) => a.cost - b.cost)[0];
+  if (!plan) {
+    // Keep pressure on moving formations until a complete approach opens.
+    for (const cop of game.cops) commandCop(game, cop.id, [...active].sort((a, b) => roadDistance(game, cop, a) - roadDistance(game, cop, b))[0]);
+    return;
+  }
+  game.aiTarget = plan.robber.id;
+  for (const cop of game.cops) {
+    let target = plan.assigned.indexOf(cop.id);
+    if (target < 0) target = plan.routes.map((routes, index) => ({ index, route: routes[cop.id] })).filter(item => item.route.path).sort((a, b) => a.route.distance - b.route.distance)[0]?.index;
+    if (target === undefined) continue;
+    const path = plan.routes[target][cop.id].path;
+    cop.routePoints = path;
+    cop.destination = { ...plan.targets[target] };
+    cop.moving = path.length > 0;
+    cop.blocked = false;
+  }
 }
 
 function nearestCop(game, point) {
@@ -614,18 +698,22 @@ export function stepGame(game, dt) {
     const active = game.robbers.filter(
       (robber) => !robber.caught && !robber.escaped,
     );
+    if (game.ai && game.playerRole === "robber") {
+      game.aiRethink -= slice;
+      if (game.aiRethink <= 0) { pursue(game); game.aiRethink = Math.max(.16, .7 - game.level.id * .005); }
+    }
     for (const robber of active) {
       robber.rethink -= slice;
-      if (robber.capture === 0 && robber.rethink <= 0) {
+      if (game.ai && game.playerRole !== "robber" && robber.capture === 0 && robber.rethink <= 0) {
         chooseEscape(game, robber);
         robber.rethink = 0.32;
       }
-      if (robber.capture === 0)
+      if (robber.capture === 0 && canCommand(game, "robber"))
         moveActor(game, robber, game.robberSpeed * slice, game.cops);
       else robber.moving = false;
     }
     for (const cop of game.cops)
-      moveActor(game, cop, game.policeSpeed * slice, active);
+      if (canCommand(game, "cop")) moveActor(game, cop, game.policeSpeed * slice, active);
     const geometry = captureGeometry(game);
     for (const robber of active) {
       const { enclosed } = captureStatus(game, robber, geometry);
@@ -693,6 +781,11 @@ export function stepGame(game, dt) {
         );
         break;
       }
+    }
+    if (game.phase === "playing" && game.level.timeLimit && game.time >= game.level.timeLimit && !game.robbers.every(r => r.caught)) {
+      game.phase = "lost";
+      for (const actor of [...game.cops, ...game.robbers]) actor.moving = false;
+      game.events.push({type:"lose", reason:"timeout", time:game.time});
     }
     if (
       game.phase === "playing" &&

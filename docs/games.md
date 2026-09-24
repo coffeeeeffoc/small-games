@@ -7,8 +7,8 @@
 | 中文名                | 文件夹名                       | 目录路径                                                                                 | 简介                                                                 |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。           |
-| 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 轮流调动警察，封住出口，在小偷逃离前完成围捕。                       |
-| 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 实时指挥警察，截断路线，把街区里的小偷一网打尽。                     |
+| 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。       |
+| 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。     |
 | 电子斗蛐蛐            | `game-arena`                   | [games/local/game-arena](../games/local/game-arena/)                                     | 秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。                   |
 | 秋声斗蟋              | `game-cricket`                 | [games/local/game-cricket](../games/local/game-cricket/)                                 | 撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。                               |
 | 三分钟修仙            | `game-cultivation`             | [games/local/game-cultivation](../games/local/game-cultivation/)                         | 亲手吐纳，御剑寻缘。两分钟修炼探索，一分钟登台渡劫。                 |
