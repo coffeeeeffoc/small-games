@@ -8,8 +8,10 @@ const base = process.env.GAME_URL || "http://127.0.0.1:43690";
 const channel = process.env.BROWSER_CHANNEL || "chrome";
 assert.ok(
   LEVELS.every((level) => level.exits.length > 0),
-  "all 48 escape maps must be ready before running this regression",
+  "all 100 challenge maps must be ready before running this regression",
 );
+assert.equal(LEVELS.length, 100);
+const legacyFinal = LEVELS.find(level => level.id === 48);
 const browser = await chromium.launch({
   channel: channel === "bundled" ? undefined : channel,
   headless: true,
@@ -56,7 +58,7 @@ try {
   await page.waitForSelector('body[data-phase="ready"]');
   assert.equal((await snapshot()).level, 1);
   await page.locator("#levels-button").tap();
-  assert.equal(await page.locator(".level-map").count(), 6);
+  assert.equal(await page.locator(".level-map").count(), LEVELS.filter(level => level.chapter === 0).length);
   await page.locator("#levels-dialog [data-close]").tap();
   checks.push("Corrupt storage recovers to a playable first level");
   await page.locator("#sound-button").tap();
@@ -134,7 +136,7 @@ try {
   );
 
   // This legacy-save fixture unlocks map 48; it does not claim browser wins on maps 1-47.
-  // The new street maps have no recorded victories until the touch-driven final-map win below.
+  // The street maps have no recorded victories until the touch-driven map-48 win below.
   await page.evaluate(() =>
     localStorage.setItem(
       "neighborhood-patrol-v1",
@@ -151,7 +153,7 @@ try {
   await page.waitForSelector('body[data-level="48"]');
   assert.equal((await snapshot()).cops.length, 5);
   assert.equal((await snapshot()).robbers.length, 6);
-  assert.equal((await snapshot()).exits.length, LEVELS.at(-1).exits.length);
+  assert.equal((await snapshot()).exits.length, legacyFinal.exits.length);
   assert.deepEqual(
     await page.evaluate(
       () =>
@@ -163,6 +165,11 @@ try {
     "Legacy campaign progress unlocks map 48 without inventing new street-map best times",
   );
   await context.setOffline(true);
+  await page.screenshot({
+    path: "artifacts/final-level-mobile.png",
+    fullPage: true,
+  });
+  await page.locator("#start-button").tap();
   for (const button of await page.locator(".cop-card").all()) {
     const box = await button.boundingBox();
     assert.ok(
@@ -175,12 +182,7 @@ try {
       "all five officer targets fit landscape",
     );
   }
-  await page.screenshot({
-    path: "artifacts/final-level-mobile.png",
-    fullPage: true,
-  });
-  await page.locator("#start-button").tap();
-  const level = LEVELS.at(-1),
+  const level = legacyFinal,
     model = createGame(level);
   for (const { cop, node } of level.solution) {
     await page.locator(".cop-card").nth(cop).tap();
@@ -239,15 +241,15 @@ try {
     false,
   );
   await page.waitForSelector("#win-dialog[open]");
-  assert.match(await page.locator("#win-title").textContent(), /全城围捕/);
+  assert.match(await page.locator("#win-title").textContent(), /一个也没跑掉/);
   await page.screenshot({
     path: "artifacts/final-level-win.png",
     fullPage: true,
   });
   checks.push(
-    "Final 5-police / 6-robber map wins through actual mobile touch orders",
+    "Authored map 48 with five pursuers and six runners wins through actual mobile touch orders",
   );
-  checks.push("The fully loaded final map remains playable offline");
+  checks.push("The fully loaded map 48 remains playable offline");
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("neighborhood-patrol-v1")),
   );
