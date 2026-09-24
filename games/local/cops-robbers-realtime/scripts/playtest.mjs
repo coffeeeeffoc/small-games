@@ -117,7 +117,7 @@ try {
   await waitState(state => Math.abs(state.cops[0].x - 500) < 1 && !state.cops[0].moving, practicePage);
   await practicePage.waitForTimeout(1000); // Read step two only after the first officer has arrived.
   const instruction = await practicePage.locator("#capture-message").textContent();
-  const target = instruction.includes("小偷") ? (await snapshot(practicePage)).robbers[0] : { x: 500, y: 300 };
+  const target = instruction.includes("突围队") ? (await snapshot(practicePage)).robbers[0] : { x: 500, y: 300 };
   await order(1, target, practicePage, true);
   assert.equal((await snapshot(practicePage)).selected, 1, "Second practice target must issue an order, not reselect officer one");
   assert.ok((await snapshot(practicePage)).cops[1].destination, "The second officer receives a real pursuit order");
@@ -135,8 +135,7 @@ try {
     path: "artifacts/desktop-ready.png",
     fullPage: true,
   });
-  const roster = await page.locator("#cop-roster").boundingBox();
-  assert.ok(roster.y + roster.height < 900);
+  await page.locator("#game-canvas").scrollIntoViewIfNeeded();
   const ready = await snapshot();
   await hoverAt(ready.cops[0], "grab");
   await page.screenshot({ path: "artifacts/hover-cop.png" });
@@ -147,6 +146,8 @@ try {
     "Arrow on scenery; grab cursor and blue officer halo; target cursor and orange robber halo",
   );
   await page.locator("#start-button").click();
+  const roster = await page.locator("#cop-roster").boundingBox();
+  assert.ok(roster.y >= 0 && roster.y + roster.height <= 900, "the focused play surface keeps the roster visible");
   await hoverAt({ x: 360, y: 190 }, "pointer");
   const initial = await snapshot();
   await waitState(state => state.time > initial.time + 0.3);
@@ -322,12 +323,13 @@ try {
   );
   await page.locator("#levels-button").click();
   assert.equal(await page.locator(".chapter-tab").count(), 8);
-  assert.equal(await page.locator(".level-tile:disabled").count(), 3);
+  assert.equal(await page.locator(".level-tile:disabled").count(), 0);
   await page.locator(".chapter-tab").last().click();
-  assert.equal(await page.locator(".level-tile:disabled").count(), 6);
+  assert.equal(await page.locator(".level-tile:disabled").count(), 0);
+  assert.equal(await page.locator(".level-tile").count(), LEVELS.filter(level => level.chapter === LEVELS.at(-1).chapter).length);
   await page.screenshot({ path: "artifacts/level-select.png", fullPage: true });
   await page.locator("#levels-dialog [data-close]").click();
-  checks.push("All eight districts remain selectable with correct unlocks");
+  checks.push("All eight districts and their levels are freely selectable, including the extended final district");
   const touchContext = await browser.newContext({
     viewport: { width: 844, height: 390 },
     hasTouch: true,

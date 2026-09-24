@@ -1,20 +1,24 @@
 import assert from 'node:assert/strict';
 import rules from '../../../../services/runtime-api/rules/cops.mjs';
-import { solutions } from '../src/solutions.js';
-
-let state = rules.initial(123);
-assert.deepEqual(state, rules.initial(456), 'Main ranking always uses the same map');
-assert.throws(() => rules.action(state, { type: 'score', score: 100000 }, 1));
-assert.throws(() => rules.action(state, { type: 'move', cop: 0, target: 999 }, 1));
-assert.throws(() => rules.action(state, { type: 'move', cop: -1, target: 1 }, 1));
-const view = rules.view(state);
-view.board.turn = 100;
-assert.equal(state.board.turn, 0, 'Views must not mutate authoritative state');
-for (const plan of solutions[state.levelId]) {
-  const cop = Math.max(0, plan.findIndex((node, i) => node !== state.board.cops[i]));
-  state = rules.action(state, { type: 'move', cop, target: plan[cop], score: 9999, elapsedMs: 0 }, (state.board.turn + 1) * 1000);
+import { getDuelLevel } from '../src/duel-levels.js';
+import { chooseDuelAction } from '../src/duel.js';
+for (const mode of ['escape','survival']) for (const firstRole of ['pursuer','runner']) {
+ let state=rules.initial(0,mode,firstRole);
+ assert.equal(state.board.side,firstRole);
+ assert.throws(()=>rules.action(state,{type:'score',score:100000},1,0));
+ assert.throws(()=>rules.action(state,{type:'move',side:firstRole,actor:99,target:1},1,firstRole==='pursuer'?0:1));
+ assert.throws(()=>rules.action(state,{type:'move',side:firstRole,actor:0,target:999},1,firstRole==='pursuer'?0:1));
+ const view=rules.view(state,1);view.board.turn=999;assert.equal(state.board.turn,0);assert.equal(view.role,'runner');
+ const level=getDuelLevel(mode,state.levelId);
+ while(!state.board.winner){
+  const action=chooseDuelAction(level,state.board),seat=action.side==='pursuer'?0:1;
+  assert.throws(()=>rules.action(state,action,(state.board.turn+1)*1000,1-seat),'cannot act for opposite role');
+  state=rules.action(state,action,(state.board.turn+1)*1000,seat);
+ }
+ const winner=state.board.winner==='pursuer'?0:1;
+ assert.deepEqual(rules.result(state,winner),{finished:true,eligible:true,score:3,secondary:0});
+ assert.equal(rules.result(state,1-winner).score,0);
+ assert.throws(()=>rules.action(state,{type:'move',side:state.board.side,actor:0,target:state.board.cops[0]},(state.board.turn+1)*1000,0));
+ assert.equal(rules.advance(rules.initial(0,mode,firstRole),300000).board.winner,'runner');
 }
-assert.deepEqual(rules.result(state), { finished: true, eligible: true, score: -13, secondary: 13000 });
-assert.throws(() => rules.action(state, { type: 'move', cop: 0, target: state.board.cops[0] }, 14000));
-assert.equal(rules.result({ ...state, elapsedMs: 300000 }).eligible, false, 'Timeout cannot rank');
-console.log('PASS authoritative map, illegal operations, server clock, verified solution and terminal guard');
+console.log('PASS both modes/initiatives, authoritative roles, invalid/forged moves, immutable views, settlement and timeout');

@@ -2,8 +2,6 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import rule from '../../../../services/runtime-api/rules/realtime.mjs';
-import { LEVELS } from '../src/levels.js';
-import { roadDistance } from '../src/engine.js';
 
 // This is a Canvas/real-engine input test. PostgreSQL, HTTP rooms and platform SDKs are tested by the shared integration suite.
 const base = process.env.GAME_URL || 'http://127.0.0.1:43690';
@@ -25,18 +23,18 @@ try {
       window.hits = renderer.draw(document.querySelector('canvas').getContext('2d'), 390, 720, window.state);
     });
   });
-  const level = LEVELS[0], state = rule.initial(123);
-  const draw = () => page.evaluate(state => {
+  const state = rule.initial(0, 'classic', 'pursuer'), level = state.game.level;
+  const draw = (seat = 0) => page.evaluate(state => {
     window.state = state;
     window.hits = renderer.draw(document.querySelector('canvas').getContext('2d'), 390, 720, state);
-  }, rule.view(state));
+  }, rule.view(state, seat));
   async function tapLabel(label) {
     const hit = await page.evaluate(label => [...hits].reverse().find(hit => hit.label === label), label);
     assert.ok(hit, label);
     await page.touchscreen.tap(hit.x + hit.w / 2, hit.y + hit.h / 2);
   }
-  async function order(cop, point, elapsed) {
-    await draw(); await tapLabel(`选择 ${cop + 1} 号警察`);
+  async function order(actor, point, elapsed, seat = 0) {
+    await draw(seat); await tapLabel(`选择 ${actor + 1} 号${seat === 0 ? '追逐' : '突围'}队员`);
     const exact = level.nodes.findIndex(node => node.x === point.x && node.y === point.y);
     if (exact >= 0) await tapLabel(`道路 ${exact + 1}`);
     else {
@@ -48,27 +46,29 @@ try {
     }
     const input = await page.evaluate(() => actions.shift());
     assert.ok(input, 'touch produces an actual server command');
-    assert.equal(input.cop, cop);
+    assert.equal(input.actor, actor);
     assert.equal(input.type, 'move');
-    rule.action(state, input, elapsed);
+    rule.action(state, input, elapsed, seat);
   }
-  let dispatched = 0;
-  for (let elapsed = 0; elapsed <= rule.durationMs && !rule.result(state).finished; elapsed += 50) {
+  await draw(1);
+  await tapLabel('原地留守');
+  assert.equal(await page.evaluate(() => actions.length), 0, 'the second side cannot order during the opening lead');
+  for (let actor = 0; actor < state.game.cops.length; actor++) await order(actor, state.game.robbers[0], 0);
+  rule.advance(state, 2000);
+  await draw(1);
+  await tapLabel('原地留守');
+  const runnerInput = await page.evaluate(() => actions.shift());
+  assert.deepEqual(runnerInput, { type: 'hold', actor: 0 });
+  rule.action(state, runnerInput, 2000, 1);
+  for (let elapsed = 2050; elapsed <= rule.durationMs && !rule.result(state).finished; elapsed += 50) {
     rule.advance(state, elapsed);
-    if (rule.result(state).finished) break;
-    const guard = level.solution[dispatched];
-    if (guard && elapsed >= 1200 + dispatched * 350) {
-      await order(guard.cop, level.nodes[guard.node], elapsed); dispatched++;
-    } else if (elapsed >= 3500 && (elapsed - 3500) % 1000 === 0) {
-      const robber = state.game.robbers.filter(r => !r.caught).sort((a, b) =>
-        roadDistance(state.game, state.game.cops[level.hunter], a) - roadDistance(state.game, state.game.cops[level.hunter], b))[0];
-      if (robber) await order(level.hunter, robber, elapsed);
-    }
   }
-  assert.equal(state.game.phase, 'won', 'real touch commands must physically close exits and complete capture');
+  assert.equal(state.game.phase, 'won', 'real touch commands must physically surround the stationary opposing runner');
+  assert.deepEqual(rule.result(state, 0), { finished: true, eligible: true, score: 3, secondary: 0 });
+  assert.deepEqual(rule.result(state, 1), { finished: true, eligible: true, score: 0, secondary: 0 });
   await draw();
   assert.equal(await page.evaluate(() => renderer.tap(10, 100, state)), null, 'finished board ignores input');
-  checks.push('390px pure Canvas surface wins fixed street through real touch selection and road commands; no state/score injection');
+  checks.push('390px pure Canvas accepts both teams through current actor/seat commands, gates the two-second opening, and physically settles 3/0; no position/score injection');
   await page.screenshot({ path: 'artifacts/competition-canvas-390.png' });
   await page.goto(base);
   for (const [width, height] of [[320, 740], [390, 844], [844, 390]]) {

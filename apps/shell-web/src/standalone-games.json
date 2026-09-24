@@ -52,14 +52,14 @@
     "id": "cops-robbers",
     "source": "games/local/cops-robbers",
     "title": "围捕小队",
-    "description": "轮流调动警察，封住出口，在小偷逃离前完成围捕。",
+    "description": "追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。",
     "output": "dist"
   },
   {
     "id": "cops-robbers-realtime",
     "source": "games/local/cops-robbers-realtime",
     "title": "别跑！街区围捕",
-    "description": "实时指挥警察，截断路线，把街区里的小偷一网打尽。",
+    "description": "追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。",
     "output": "dist"
   },
   {
