@@ -11,19 +11,19 @@ import {
   glacierFiles,
 } from './prepare-art.mjs';
 export const root = fileURLToPath(new URL('../', import.meta.url));
-export async function sourceHash() {
+export async function sourceHash(rootDirectory = root) {
   const hash = createHash('sha256');
   async function file(relative) {
-    const bytes = await readFile(path.join(root, relative));
+    const bytes = await readFile(path.join(rootDirectory, relative));
     hash.update(relative);
     hash.update(
-      /\.(ts|mjs|json|meta|scene|mtl|py)$/.test(relative)
+      /\.(ts|js|mjs|json|meta|scene|mtl|py)$/.test(relative)
         ? bytes.toString('utf8').replaceAll('\r\n', '\n')
         : bytes,
     );
   }
   async function add(relative) {
-    const entries = await readdir(path.join(root, relative), { withFileTypes: true });
+    const entries = await readdir(path.join(rootDirectory, relative), { withFileTypes: true });
     for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const child = relative + '/' + entry.name;
       if (relative.startsWith('assets/art/') && /\.(glb|jpg|json)$/.test(entry.name)) continue;

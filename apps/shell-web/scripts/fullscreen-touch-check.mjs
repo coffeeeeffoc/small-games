@@ -8,19 +8,30 @@ import { exerciseStandalone } from './standalone-game-checks.mjs';
 
 const output = new URL('../../../.scratch/six-games-95/fullscreen-touch/', import.meta.url);
 await mkdir(output, { recursive: true });
-const server = process.env.SHELL_TEST_URL ? undefined : await preview({
-  root: fileURLToPath(new URL('../', import.meta.url)),
-  base: '/small-games/',
-  preview: { host: '127.0.0.1', port: 0 },
-});
-const url = process.env.SHELL_TEST_URL ?? `http://127.0.0.1:${server.httpServer.address().port}/small-games/#/games/letters-words2`;
+const server = process.env.SHELL_TEST_URL
+  ? undefined
+  : await preview({
+      root: fileURLToPath(new URL('../', import.meta.url)),
+      base: '/small-games/',
+      preview: { host: '127.0.0.1', port: 0 },
+    });
+const url =
+  process.env.SHELL_TEST_URL ??
+  `http://127.0.0.1:${server.httpServer.address().port}/small-games/#/games/letters-words2`;
 let browser;
-const report = { url, environment: 'Windows WebKit desktop touch emulation, not a physical phone', results: [] };
+const report = {
+  url,
+  environment: 'Windows WebKit desktop touch emulation, not a physical phone',
+  results: [],
+};
 try {
   browser = await webkit.launch({ headless: false });
   report.browser = browser.version();
   for (let attempt = 0; attempt < 3; attempt++) {
-    const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({
+      hasTouch: true,
+      viewport: { width: 390, height: 844 },
+    });
     // Fix only the random board layout; actions and game state use the real UI.
     await context.addInitScript(() => {
       if (!globalThis.location.pathname.includes('/games/letters-words2/')) return;
@@ -33,7 +44,7 @@ try {
     const page = await context.newPage();
     const result = { attempt, errors: [] };
     report.results.push(result);
-    page.on('pageerror', error => result.errors.push(error.message));
+    page.on('pageerror', (error) => result.errors.push(error.message));
     try {
       assert.equal((await page.goto(url)).status(), 200);
       await expect(page.locator('iframe')).toBeVisible();
@@ -42,21 +53,34 @@ try {
       const body = await frame.locator('body').elementHandle();
       const toggle = page.locator('nav [data-game-fullscreen]');
       await toggle.tap();
-      await expect.poll(() => page.evaluate(() => globalThis.document.fullscreenElement?.tagName)).toBe('MAIN');
+      await expect
+        .poll(() => page.evaluate(() => globalThis.document.fullscreenElement?.tagName))
+        .toBe('MAIN');
       await exerciseStandalone(frame, 'letters-words2', true);
-      const storage = await frame.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage))));
+      const storage = await frame.evaluate(() =>
+        JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage))),
+      );
       await toggle.tap();
       await expect(toggle).toHaveText('全屏');
-      await expect.poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement)).toBe(false);
-      assert.equal(await body.evaluate(element => element.isConnected), true);
-      assert.equal(await frame.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage)))), storage);
+      await expect
+        .poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement))
+        .toBe(false);
+      assert.equal(await body.evaluate((element) => element.isConnected), true);
+      assert.equal(
+        await frame.evaluate(() =>
+          JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage))),
+        ),
+        storage,
+      );
       await frame.locator('#board button:enabled:not([aria-disabled="true"])').first().tap();
       await expect(frame.locator('#answer-slots .filled')).toHaveCount(1);
       await toggle.tap();
       await expect(toggle).toHaveText('退出全屏');
       await page.getByRole('button', { name: '返回目录', exact: true }).tap();
       await expect(page.locator('iframe')).toHaveCount(0);
-      await expect.poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement)).toBe(false);
+      await expect
+        .poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement))
+        .toBe(false);
       assert.deepEqual(result.errors, []);
       result.status = 'passed';
       console.log(`PASS fullscreen touch ${attempt + 1}: undo, exit, continue and return`);

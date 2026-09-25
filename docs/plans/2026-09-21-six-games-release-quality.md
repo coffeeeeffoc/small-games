@@ -6,14 +6,14 @@
 
 2026-09-21。六个实现子任务均已完成；由未实现对应游戏的代理独立试玩、评分，并将发现的问题回交修复后再次验证。六款达到本轮 8 分门槛。以下为浏览器首发体验的专家评分，不是线上用户平均分，也不保证爆款。
 
-| 游戏 | 初评 | 独立复评 | 本轮主要改进 |
-| --- | ---: | ---: | --- |
-| [浪湾卡丁车](../../games/local/carding-car/INDEPENDENT-REVIEW.md) | 7.0 | 8.1 | 实操驾驶教学、纪录目标与完赛奖励、横屏提示、未开放联机入口说明 |
-| [围捕小队](../../games/local/cops-robbers/INDEPENDENT-REVIEW.md) | 7.5 | 8.3 | 七步首关教学、真实失败复盘、三星与最佳步数、窄屏修正 |
-| [别跑！街区围捕](../../games/local/cops-robbers-realtime/INDEPENDENT-REVIEW.md) | 7.0 | 8.2 | 双警练习、收网与失守解释；修复慢速操作卡教学及复盘遮挡 |
-| [词屿·字母叠叠乐](../../games/local/letters-words2/INDEPENDENT-REVIEW.md) | 6.5 | 8.2 | 教材单元与连续批次、自动解除无解余牌、续练、易错词复习、教材大小写 |
-| [此时·此地](../../games/local/vibeJam-myself-history-guess/INDEPENDENT-REVIEW.md) | 7.5 | 8.3 | 旅途续玩、未探索场景优先、揭晓线索解释、限时恢复不重置 |
-| [象五子棋](../../games/submodules/xiangqi-five/INDEPENDENT-REVIEW.md) | 6.0 | 8.2 | 默认单人、两档电脑、合法落点及五连提醒、可靠续局 |
+| 游戏                                                                              | 初评 | 独立复评 | 本轮主要改进                                                       |
+| --------------------------------------------------------------------------------- | ---: | -------: | ------------------------------------------------------------------ |
+| [浪湾卡丁车](../../games/local/carding-car/INDEPENDENT-REVIEW.md)                 |  7.0 |      8.1 | 实操驾驶教学、纪录目标与完赛奖励、横屏提示、未开放联机入口说明     |
+| [围捕小队](../../games/local/cops-robbers/INDEPENDENT-REVIEW.md)                  |  7.5 |      8.3 | 七步首关教学、真实失败复盘、三星与最佳步数、窄屏修正               |
+| [别跑！街区围捕](../../games/local/cops-robbers-realtime/INDEPENDENT-REVIEW.md)   |  7.0 |      8.2 | 双警练习、收网与失守解释；修复慢速操作卡教学及复盘遮挡             |
+| [词屿·字母叠叠乐](../../games/local/letters-words2/INDEPENDENT-REVIEW.md)         |  6.5 |      8.2 | 教材单元与连续批次、自动解除无解余牌、续练、易错词复习、教材大小写 |
+| [此时·此地](../../games/local/vibeJam-myself-history-guess/INDEPENDENT-REVIEW.md) |  7.5 |      8.3 | 旅途续玩、未探索场景优先、揭晓线索解释、限时恢复不重置             |
+| [象五子棋](../../games/submodules/xiangqi-five/INDEPENDENT-REVIEW.md)             |  6.0 |      8.2 | 默认单人、两档电脑、合法落点及五连提醒、可靠续局                   |
 
 词库完成外研教材 **26 册、5,588 条、313 个学习分组**：陈琳 2011 课标 14 册，孙有中 2022 课标 12 册。新版保持原书 Unit / Welcome / Starter，旧版依原书 Module / Unit；没有将旧版小学 Module 猜分到课内 Unit 1/2。新版六下和九下未在本批官方资源中提供，明确未收录。原有 22 份历史词表另保留整册模式。来源、页码、PDF 哈希及重建方法见 [教材数据说明](../../assets/english-dict/完整素材/reviewed-units/README.md)。
 
@@ -33,13 +33,13 @@
 
 ## Fixed review rubric
 
-| Dimension | Weight | Evidence |
-| --- | ---: | --- |
-| Core gameplay and player agency | 30% | Real input changes outcomes; understandable win/loss; fair rules |
-| First-session clarity | 20% | A new player learns the objective and core action inside the game |
-| Mobile usability and feedback | 20% | Narrow/landscape layout, readable controls, cancellation, meaningful feedback |
-| Replay and learning value | 15% | Useful goals/progression/challenges or focused learning; reliable persistence |
-| Completeness and stability | 15% | No broken exposed primary flows; valid builds; lifecycle/error handling |
+| Dimension                       | Weight | Evidence                                                                      |
+| ------------------------------- | -----: | ----------------------------------------------------------------------------- |
+| Core gameplay and player agency |    30% | Real input changes outcomes; understandable win/loss; fair rules              |
+| First-session clarity           |    20% | A new player learns the objective and core action inside the game             |
+| Mobile usability and feedback   |    20% | Narrow/landscape layout, readable controls, cancellation, meaningful feedback |
+| Replay and learning value       |    15% | Useful goals/progression/challenges or focused learning; reliable persistence |
+| Completeness and stability      |    15% | No broken exposed primary flows; valid builds; lifecycle/error handling       |
 
 Pass: weighted score >= 8, no dimension below 6, and no unresolved severe gameplay blocker. Fresh reviewers must cite evidence and can score below target. Real-device, public networking and live deployment limitations remain explicit; local/browser success is not proof of native publication or real retention.
 

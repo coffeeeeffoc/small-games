@@ -21,20 +21,20 @@
 
 ## 验证记录
 
-| 环境/命令 | 结果与边界 |
-| --- | --- |
-| `pnpm build:pages` | 38/38 任务通过；随后 PK 退出及围捕触控修复重新构建对应 competition.js 并更新本地网关制品 |
-| `node scripts/competition-build.mjs --native`；卡丁 `build:wechat`、`build:bilibili` | 10 个 Canvas 目标及 2 个 Cocos 目标构建通过；围捕触控修复后再次构建其两个原生目标。不是开发工具/真机通过证据 |
-| runtime build/lint、卡丁 typecheck、`pnpm check:games` | 通过；25 个目录登记无问题 |
-| `pnpm test:h5-fullscreen` | 七份同步通过；独立页/iframe 真实进退与进度保留通过；不支持/拒绝/无事件分支另行模拟，不冒充真机结果 |
-| `node scripts/competition.integration.mjs` | 真实 PG/HTTP：非法昵称、未认证、冒用 ID 拒绝；同名允许；改名不改 ID/PB/rank；旧房间显示更新；服务重启昵称保留；102 人榜外排名、并列、版本隔离、非法操作与幂等结算回归通过。短编号前缀碰撞断言通过 |
-| IAB 实际操作 | 390×844 大厅、320×568 规则卡、844×390 横屏无横向溢出，顶部按钮 44px 高；昵称保存和刷新保留、全站榜、自身无成绩、真实全屏进退。CDP 读取真实 document.fullscreenElement=HTML；DOM镜像读取该属性不作为证据 |
-| 独立 Chrome / `review_pk_profiles` | 先操作再审代码：合法/非法昵称、排行榜、真实双身份加入准备、退出；与 IAB 房间互见“海湾散步员 / 验收 玩家”，对手退出同步中断。退出重置修复后两轮独立复验大厅入口恢复 |
-| `node scripts/review-competition-cops-letters.mjs` | 围捕双端 13 步、词屿双端 18/18 词，均经 Canvas 实际输入，最终服务端结算一致并进入同一再战房间；真实全屏进退保进度 |
-| 同脚本 `--failures` | 错游戏拒绝、离线退出反馈、恢复同房、确认退出后重开大厅且改名/新房码可用 |
-| `node scripts/review-competition-realtime-history.mjs`，另带 `REVIEW_EDGES=1`、`REVIEW_LAYOUT_ASSERT=1` | 320×568/844×390 游戏与规则布局、全屏、断网恢复和退出再战检查通过；玩法/榜单入口改版后测试改用 data-rules 和结算“查看全站榜”入口 |
-| `node scripts/review-competition-kart-chess.mjs` | 签名身份、未配置原生登录拒绝、网关内部路由隔离、棋类越权/轮次/重复操作、双浏览器邀请、真全屏与 Permissions-Policy 拒绝反馈通过 |
-| 当前临时公网 `REVIEW_BASE` + 围捕脚本 | 最新制品两独立客户端均完成 13 步合法挑战、结算一致并进入同一再战房间；临时域名仅环境变量注入，不提交 |
+| 环境/命令                                                                                               | 结果与边界                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm build:pages`                                                                                      | 38/38 任务通过；随后 PK 退出及围捕触控修复重新构建对应 competition.js 并更新本地网关制品                                                                                                                |
+| `node scripts/competition-build.mjs --native`；卡丁 `build:wechat`、`build:bilibili`                    | 10 个 Canvas 目标及 2 个 Cocos 目标构建通过；围捕触控修复后再次构建其两个原生目标。不是开发工具/真机通过证据                                                                                            |
+| runtime build/lint、卡丁 typecheck、`pnpm check:games`                                                  | 通过；25 个目录登记无问题                                                                                                                                                                               |
+| `pnpm test:h5-fullscreen`                                                                               | 七份同步通过；独立页/iframe 真实进退与进度保留通过；不支持/拒绝/无事件分支另行模拟，不冒充真机结果                                                                                                      |
+| `node scripts/competition.integration.mjs`                                                              | 真实 PG/HTTP：非法昵称、未认证、冒用 ID 拒绝；同名允许；改名不改 ID/PB/rank；旧房间显示更新；服务重启昵称保留；102 人榜外排名、并列、版本隔离、非法操作与幂等结算回归通过。短编号前缀碰撞断言通过       |
+| IAB 实际操作                                                                                            | 390×844 大厅、320×568 规则卡、844×390 横屏无横向溢出，顶部按钮 44px 高；昵称保存和刷新保留、全站榜、自身无成绩、真实全屏进退。CDP 读取真实 document.fullscreenElement=HTML；DOM镜像读取该属性不作为证据 |
+| 独立 Chrome / `review_pk_profiles`                                                                      | 先操作再审代码：合法/非法昵称、排行榜、真实双身份加入准备、退出；与 IAB 房间互见“海湾散步员 / 验收 玩家”，对手退出同步中断。退出重置修复后两轮独立复验大厅入口恢复                                      |
+| `node scripts/review-competition-cops-letters.mjs`                                                      | 围捕双端 13 步、词屿双端 18/18 词，均经 Canvas 实际输入，最终服务端结算一致并进入同一再战房间；真实全屏进退保进度                                                                                       |
+| 同脚本 `--failures`                                                                                     | 错游戏拒绝、离线退出反馈、恢复同房、确认退出后重开大厅且改名/新房码可用                                                                                                                                 |
+| `node scripts/review-competition-realtime-history.mjs`，另带 `REVIEW_EDGES=1`、`REVIEW_LAYOUT_ASSERT=1` | 320×568/844×390 游戏与规则布局、全屏、断网恢复和退出再战检查通过；玩法/榜单入口改版后测试改用 data-rules 和结算“查看全站榜”入口                                                                         |
+| `node scripts/review-competition-kart-chess.mjs`                                                        | 签名身份、未配置原生登录拒绝、网关内部路由隔离、棋类越权/轮次/重复操作、双浏览器邀请、真全屏与 Permissions-Policy 拒绝反馈通过                                                                          |
+| 当前临时公网 `REVIEW_BASE` + 围捕脚本                                                                   | 最新制品两独立客户端均完成 13 步合法挑战、结算一致并进入同一再战房间；临时域名仅环境变量注入，不提交                                                                                                    |
 
 原始证据位于忽略目录 `.scratch/competition/profile-*.log`、`outputs/profiles-cops-letters/`、`outputs/profiles-exit/`、`outputs/profiles-public/`。早期回归失败也保留：围捕触控区域重叠已修；规则改名/榜单移入结算导致的旧测试定位已更新，未通过删断言掩盖问题。
 

@@ -6,6 +6,13 @@ export default [
   nodeConfig,
   {
     files: ['public/fullscreen.js'],
-    languageOptions: { globals: { window: 'readonly', document: 'readonly', Element: 'readonly', MutationObserver: 'readonly' } },
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        Element: 'readonly',
+        MutationObserver: 'readonly',
+      },
+    },
   },
 ];

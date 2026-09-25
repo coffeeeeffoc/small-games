@@ -1,7 +1,22 @@
 {
-  "cops-robbers": {"wechat":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"},"bilibili":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"}},
-  "cops-robbers-realtime": {"wechat":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"},"bilibili":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"}},
-  "letters-words2": {"wechat":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"},"bilibili":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"}},
-  "vibeJam-myself-history-guess": {"wechat":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"},"bilibili":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"}},
-  "xiangqi-five": {"wechat":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"},"bilibili":{"appId":"","apiUrl":"http://127.0.0.1:43010/api/competition/v1"}}
+  "cops-robbers": {
+    "wechat": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" },
+    "bilibili": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" }
+  },
+  "cops-robbers-realtime": {
+    "wechat": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" },
+    "bilibili": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" }
+  },
+  "letters-words2": {
+    "wechat": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" },
+    "bilibili": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" }
+  },
+  "vibeJam-myself-history-guess": {
+    "wechat": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" },
+    "bilibili": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" }
+  },
+  "xiangqi-five": {
+    "wechat": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" },
+    "bilibili": { "appId": "", "apiUrl": "http://127.0.0.1:43010/api/competition/v1" }
+  }
 }
