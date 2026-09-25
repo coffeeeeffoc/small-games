@@ -18,6 +18,28 @@ const DEPENDENCY_FIELDS = [
   'peerDependencies',
   'optionalDependencies',
 ];
+// Standalone games retain their own packaging. These exact edges reuse their pure
+// rules on the authoritative server, or exercise those rules from repository tests.
+// Runtime game code must still never import service implementations.
+const REPOSITORY_IMPORTS = new Set([
+  'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',
+  'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
+  'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
+  'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel-levels.js',
+  'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel.js',
+  'services/runtime-api/rules/history.mjs -> games/local/vibeJam-myself-history-guess/src/game.js',
+  'services/runtime-api/rules/letters.mjs -> games/local/letters-words2/engine.js',
+  'services/runtime-api/rules/realtime.mjs -> games/local/cops-robbers-realtime/src/engine.js',
+  'services/runtime-api/rules/realtime.mjs -> games/local/cops-robbers-realtime/src/levels.js',
+  'games/local/cops-robbers-realtime/scripts/competition-playtest.mjs -> services/runtime-api/rules/realtime.mjs',
+  'games/local/cops-robbers-realtime/tests/competition.test.mjs -> services/runtime-api/rules/realtime.mjs',
+  'games/local/cops-robbers/scripts/check-competition-renderer.mjs -> services/runtime-api/rules/cops.mjs',
+  'games/local/cops-robbers/scripts/check-ranking.mjs -> services/runtime-api/rules/cops.mjs',
+  'games/local/letters-words2/tests/competition.test.mjs -> services/runtime-api/rules/letters.mjs',
+  'games/local/vibeJam-myself-history-guess/scripts/competition-playtest.mjs -> services/runtime-api/rules/history.mjs',
+  'games/local/vibeJam-myself-history-guess/tests/competition.test.mjs -> services/runtime-api/rules/history.mjs',
+  'games/submodules/xiangqi-five/competition.test.mjs -> services/runtime-api/rules/chess.mjs',
+]);
 const IGNORED_DIRECTORIES = new Set([
   'node_modules',
   'dist',
@@ -183,6 +205,10 @@ export async function validateWorkspace(root = process.cwd()) {
       for (const specifier of importSpecifiers(source)) {
         if (specifier.startsWith('.')) {
           const resolved = path.resolve(path.dirname(file), specifier);
+          const edge = [file, resolved]
+            .map((entry) => path.relative(root, entry).replaceAll('\\', '/'))
+            .join(' -> ');
+          if (REPOSITORY_IMPORTS.has(edge)) continue;
           const relative = path.relative(workspacePackage.root, resolved);
           if (relative.startsWith('..') || path.isAbsolute(relative)) {
             violations.push({
