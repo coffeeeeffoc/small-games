@@ -20,16 +20,29 @@ export function createRuntimeService(
 ): ReturnType<typeof createService> {
   const databaseUrl = z.url().parse(env.RUNTIME_DATABASE_URL);
   const database = openDatabase(databaseUrl, 'runtime');
-  const dependencies = { database, ...(env.COMPETITION_ENABLED === 'true' ? {
-    competition: { async check() { await database.db.execute(sql`select display_name from runtime.competition_players limit 0`); await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`); }, close() {} },
-  } : {}) };
+  const dependencies = {
+    database,
+    ...(env.COMPETITION_ENABLED === 'true'
+      ? {
+          competition: {
+            async check() {
+              await database.db.execute(
+                sql`select display_name from runtime.competition_players limit 0`,
+              );
+              await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`);
+            },
+            close() {},
+          },
+        }
+      : {}),
+  };
   const app = createService('runtime', dependencies, logger, telemetry);
   app.register(async (instance) => {
     if (env.COMPETITION_ENABLED === 'true') {
       const rules = new Map<string, Rule>();
       for (const name of ['cops', 'letters', 'realtime', 'history', 'chess']) {
         const url = new URL(`../rules/${name}.mjs`, import.meta.url).href;
-        const module = await import(url) as { default: Rule };
+        const module = (await import(url)) as { default: Rule };
         rules.set(module.default.id, module.default);
       }
       await registerCompetition(instance, createCompetitionStore(database.db, rules), env);

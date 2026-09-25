@@ -10,6 +10,9 @@ games/submodules/
 games/local/*
 !games/local/game-*
 apps/shell-web/public/games/
+# Shared verbatim with standalone games; verified by test:h5-fullscreen.
+platforms/h5/fullscreen.js
+apps/shell-web/public/fullscreen.js
 apps/shell-android/.gradle/
 apps/shell-android/app/build/
 apps/shell-android/gradlew*

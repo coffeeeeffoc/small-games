@@ -176,7 +176,9 @@ export function ShellApp({
       <nav aria-label="游戏导航">
         <button onClick={() => navigate()}>返回目录</button>
         <strong>{standalone.title}</strong>
-        <button type="button" data-game-fullscreen>全屏</button>
+        <button type="button" data-game-fullscreen>
+          全屏
+        </button>
         <a
           href={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
           target="_blank"

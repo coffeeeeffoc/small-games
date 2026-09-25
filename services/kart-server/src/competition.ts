@@ -66,11 +66,13 @@ export async function createCompetition(options: {
           options.log?.(`kart result retained for retry: ${filename}: ${(error as Error).message}`);
         }
       }
-    })().catch((error) => {
-      options.log?.(`kart outbox scan failed: ${(error as Error).message}`);
-    }).finally(() => {
-      flushing = undefined;
-    }));
+    })()
+      .catch((error) => {
+        options.log?.(`kart outbox scan failed: ${(error as Error).message}`);
+      })
+      .finally(() => {
+        flushing = undefined;
+      }));
   const timer = setInterval(() => {
     void flush();
   }, 5000);

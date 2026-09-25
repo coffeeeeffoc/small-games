@@ -131,7 +131,8 @@ select {
   z-index: 1;
   flex: none;
   gap: 10px;
-  padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+  padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 6px
+    max(10px, env(safe-area-inset-left));
   flex-wrap: wrap;
 }
 .standalone-page nav strong {
@@ -152,9 +153,17 @@ select {
   background: #11131a;
 }
 @media (max-width: 420px) {
-  .standalone-page nav { gap: 6px; }
-  .standalone-page nav button { padding: 8px 10px; min-height: 44px; }
-  .standalone-page nav strong { flex-basis: 70px; font-size: 12px; }
+  .standalone-page nav {
+    gap: 6px;
+  }
+  .standalone-page nav button {
+    padding: 8px 10px;
+    min-height: 44px;
+  }
+  .standalone-page nav strong {
+    flex-basis: 70px;
+    font-size: 12px;
+  }
 }
 [role='alert'] {
   margin: 48px auto;

@@ -8,7 +8,7 @@ export const markers = {
   'tower-defense-game': '[aria-label="塔防战场"]',
   'xiangqi-five': '#draw-button',
   'office-slacking': '#start',
-  'cops-robbers': '[data-testid="board"]',
+  'cops-robbers': '#start-mode',
   'cops-robbers-realtime': '#start-button',
   'h5-security': '[data-action="start"]',
   'letters-words': '#board button',
@@ -79,6 +79,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
+    await frame.locator('#solo-mode').selectOption('challenge');
+    await click(frame.locator('#start-mode'));
+    await expect(frame.getByTestId('board')).toBeVisible();
     await click(frame.getByTestId('hint'));
     const destination = frame.locator('.node-target.chosen');
     await expect(destination).toHaveCount(1);

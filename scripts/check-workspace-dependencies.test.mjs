@@ -90,6 +90,34 @@ test('rejects private subpath and cross-package relative imports', async (t) => 
   );
 });
 
+test('allows only exact shared competition rule edges, never game runtime service imports', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'services/runtime-api',
+      manifest: { name: '@coffeeeeffoc/runtime-api' },
+      files: {
+        'rules/cops.mjs': "import '../../../games/local/cops-robbers/src/duel.js';\n",
+        'rules/other.mjs': "import '../../../games/local/cops-robbers/src/duel.js';\n",
+      },
+    },
+    {
+      path: 'games/local/cops-robbers',
+      manifest: { name: 'cops-robbers' },
+      files: {
+        'src/duel.js': 'export const duel = true;\n',
+        'scripts/check-ranking.mjs': "import '../../../../services/runtime-api/rules/cops.mjs';\n",
+        'src/main.js': "import '../../../../services/runtime-api/rules/cops.mjs';\n",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 2);
+  assert.ok(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert.ok(violations.some((entry) => entry.message.includes('other.mjs')));
+  assert.ok(violations.some((entry) => entry.message.includes('main.js')));
+});
+
 test('requires an explicit root export', async (t) => {
   const root = await createWorkspace([
     {

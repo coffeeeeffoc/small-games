@@ -15,10 +15,16 @@ const copies = [
 for (const path of copies) {
   const file = new URL(path, root);
   if (process.argv.includes('--check')) {
-    assert.equal((await readFile(file, 'utf8')).replaceAll('\r\n', '\n'), source.replaceAll('\r\n', '\n'), `${path} differs; run node scripts/sync-h5-fullscreen.mjs`);
+    assert.equal(
+      (await readFile(file, 'utf8')).replaceAll('\r\n', '\n'),
+      source.replaceAll('\r\n', '\n'),
+      `${path} differs; run node scripts/sync-h5-fullscreen.mjs`,
+    );
   } else {
     await mkdir(new URL('./', file), { recursive: true });
     await writeFile(file, source);
   }
 }
-console.log(`H5 fullscreen: ${copies.length} copies ${process.argv.includes('--check') ? 'verified' : 'updated'}.`);
+console.log(
+  `H5 fullscreen: ${copies.length} copies ${process.argv.includes('--check') ? 'verified' : 'updated'}.`,
+);
