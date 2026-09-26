@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import vm from 'node:vm';
 
 export async function verifyNativeArtifact({
@@ -40,6 +41,7 @@ export async function verifyNativeArtifact({
       cultivation: 'trial-audio',
       arena: 'arena-audio',
       office: 'office-scene',
+      'building-power': 'building-power-audio',
     };
     assert.deepEqual(
       readdirSync(root).filter((name) => !name.endsWith('.json') && name !== 'game.js'),
@@ -88,6 +90,7 @@ export async function verifyNativeArtifact({
       ellipse() {},
       fill() {},
       stroke() {},
+      setLineDash() {},
       moveTo(x, y) {
         paths.push([x, y]);
       },
@@ -125,6 +128,7 @@ export async function verifyNativeArtifact({
       },
       fillRect(_x, y, _width, height) {
         if (y === 0 && drawingDepth <= 1) {
+          if (gameId === 'building-power') paths.length = 0;
           labels.clear();
           rendered.length = 0;
           rectangles.length = 0;
@@ -136,7 +140,11 @@ export async function verifyNativeArtifact({
         labels.set(text, y);
       },
       measureText(text) {
-        return { width: text.length * 17 };
+        const width =
+          gameId === 'building-power'
+            ? Number.parseFloat(this.font?.match(/[\d.]+px/)?.[0] ?? '17')
+            : 17;
+        return { width: text.length * width };
       },
     };
     const sdk = {
@@ -252,7 +260,10 @@ export async function verifyNativeArtifact({
       },
     });
     const context = vm.createContext({
-      [platform === 'wechat' ? 'wx' : 'bl']: sdk,
+      ...(gameId === 'building-power'
+        ? { Math: Object.assign(Object.create(Math), { random: () => 0 }) }
+        : {}),
+      [{ wechat: 'wx', bilibili: 'bl', douyin: 'tt' }[platform]]: sdk,
       setTimeout,
       clearTimeout,
       Date: class extends Date {
@@ -268,7 +279,7 @@ export async function verifyNativeArtifact({
       clearInterval(id) {
         intervals.delete(id);
       },
-      console,
+      console: { ...console, info: (...values) => logs.push(...values) },
     });
     const tap = (x, y) => {
       const event = { changedTouches: [{ identifier: 1, clientX: x, clientY: y }] };
@@ -314,20 +325,118 @@ export async function verifyNativeArtifact({
       return module.exports;
     }
     const entry = requireLocal(path.join(root, 'game.js'));
-    if (standalone && platform === 'wechat') await entry.ready;
+    if (standalone && platform !== 'bilibili') await entry.ready;
     const button = rectangles[standalone ? 0 : gameIndex];
     if (!standalone || platform === 'bilibili') {
       assert.ok(button, `Launch screen must render ${gameId}`);
       tap(30, button.y + button.height / 2);
     }
     if (standalone) await entry.ready;
-    const ready = gameId === 'office' ? '周一 09:08 · 迟到潜入' : title;
+    const ready =
+      gameId === 'building-power'
+        ? '忙碌的电工'
+        : gameId === 'office'
+          ? '周一 09:08 · 迟到潜入'
+          : title;
     for (let index = 0; index < 50 && !rendered.includes(ready); index++)
       await new Promise(setImmediate);
     if (!standalone) assert.equal(packageLoaded, gameId);
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
+    if (gameId === 'building-power') {
+      assert.ok(standalone);
+      const click = (label, x = 195) => {
+        assert.ok(labels.has(label), 'Missing control: ' + label);
+        tap(x, labels.get(label));
+      };
+      const room = (id, mode = false) => {
+        const slot = (Number(id.split('-r')[1]) - 1) % 14;
+        return slot < 12
+          ? [mode ? 344 : 109 + (slot % 3) * 79, 355 + Math.floor(slot / 3) * 84]
+          : [slot === 12 ? 101 : 288, 696];
+      };
+      const touch = (listeners, position, identifier = 1) => {
+        for (const fn of [...listeners])
+          fn({ changedTouches: [{ identifier, clientX: position[0], clientY: position[1] }] });
+      };
+      const expectLoad = (watts) =>
+        assert.ok(
+          rendered.some((t) => t.startsWith((watts / 1000).toFixed(2) + ' / ')),
+          'Expected ' + watts + 'W',
+        );
+      click('开始第1班  →');
+      expectLoad(80);
+      tap(...room('l1-r1'));
+      expectLoad(780);
+      advance(2100);
+      touch(presses, room('l1-r1'));
+      touch(moves, room('l1-r4'));
+      expectLoad(780);
+      touch(touches, room('l1-r4'), 2);
+      expectLoad(780);
+      touch(cancels, room('l1-r4'));
+      expectLoad(780);
+      touch(presses, room('l1-r1'));
+      touch(moves, room('l1-r4'));
+      touch(touches, room('l1-r4'));
+      expectLoad(1380);
+      tap(...room('l1-r2', true));
+      tap(...room('l1-r2'));
+      expectLoad(1435);
+      assert.ok(audio.some((sound) => sound.playing));
+      for (const hide of hidden) hide();
+      const paused = JSON.stringify(rendered);
+      advance(120000);
+      assert.equal(JSON.stringify(rendered), paused);
+      for (const show of shown) show();
+      assert.equal(JSON.stringify(rendered), paused);
+      click('继续值班');
+      expectLoad(1435);
+      click('暂停', 39);
+      click('同天气重试', 104);
+      advance(44100);
+      assert.ok(rendered.includes('这班还差一点'));
+      click('同天气重试', 104);
+      const witness = JSON.parse(
+        readFileSync(
+          new URL('../test-results/building-power/shift-witness.json', import.meta.url),
+          'utf8',
+        ),
+      );
+      advance(34);
+      let elapsed = 0;
+      for (const { tick, action } of witness.actions) {
+        advance(tick * 50 - elapsed);
+        elapsed = tick * 50;
+        if (action.type === 'connect' || action.type === 'disconnect')
+          tap(...room(action.requestId));
+        else if (action.type === 'cooling') tap(...room(action.requestId, true));
+        else if (action.type === 'defer') {
+          click('错峰 ×2', 99);
+          tap(...room(action.requestId));
+        } else if (action.type === 'battery') click('应急 1.5kW · 8秒', 288);
+      }
+      advance(90100 - elapsed);
+      assert.ok(rendered.includes('灯火有你，值班完成'), rendered.join(' | '));
+      await new Promise(setImmediate);
+      const saved = () =>
+        JSON.parse(records.get(platform + ':building-power:building-power:progress')).value;
+      assert.equal(saved().unlocked, 1);
+      assert.equal(saved().best[0], witness.summary.score);
+      const coins = saved().coins;
+      advance(5000);
+      assert.equal(saved().coins, coins);
+      await (await entry.ready).dispose();
+      assert.equal(
+        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
+        0,
+      );
+      assert.equal(intervals.size, 0);
+      assert.ok(audio.every((sound) => !sound.playing));
+      assert.ok(logs.some((value) => value.name === 'building_power_result'));
+      return;
+    }
     if (gameId === 'cultivation') {
       tap((240 * 390) / 480, (545 * 844) / 800);
       const hold = {
@@ -474,7 +583,9 @@ export async function verifyNativeArtifact({
     assert.deepEqual(logs, []);
   }
 
-  const selected = standalone ? games.filter(([id]) => id === game) : games;
+  const selected = standalone
+    ? [...games, ['building-power', '忙碌的电工']].filter(([id]) => id === game)
+    : games;
   assert.ok(selected.length, 'Unknown game');
   for (const item of selected) {
     if (!standalone) assert.ok(readdirSync(path.join(root, item[0])).includes('manifest.json'));
@@ -487,13 +598,31 @@ export async function verifyNativeArtifact({
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.includes('--catalog')) {
+  const { values } = parseArgs({
+    options: {
+      catalog: { type: 'boolean' },
+      standalone: { type: 'boolean' },
+      game: { type: 'string' },
+    },
+  });
+  assert.ok(
+    !values.catalog || !values.game,
+    '--game selects standalone Artifacts, not the catalog',
+  );
+  if (values.catalog) {
     await verifyNativeArtifact({
       root: fileURLToPath(new URL('../apps/shell-bilibili/dist/', import.meta.url)),
     });
   } else {
-    for (const game of ['cricket', 'cultivation', 'arena', 'office']) {
-      for (const platform of ['wechat', 'bilibili']) {
+    const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
+    assert.ok(
+      !values.game || [...originalGames, 'building-power'].includes(values.game),
+      'Unknown game',
+    );
+    for (const game of values.game ? [values.game] : [...originalGames, 'building-power']) {
+      for (const platform of game === 'building-power'
+        ? ['wechat', 'bilibili', 'douyin']
+        : ['wechat', 'bilibili']) {
         await verifyNativeArtifact({
           root: fileURLToPath(
             new URL(`../apps/shell-minigame/dist/${platform}/${game}/`, import.meta.url),

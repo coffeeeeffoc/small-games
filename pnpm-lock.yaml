@@ -119,6 +119,9 @@ importers:
       '@coffeeeeffoc/game-arena':
         specifier: workspace:*
         version: link:../../games/local/game-arena
+      '@coffeeeeffoc/game-building-power':
+        specifier: workspace:*
+        version: link:../../games/local/game-building-power
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -137,6 +140,9 @@ importers:
       '@coffeeeeffoc/platform-bilibili':
         specifier: workspace:*
         version: link:../../platforms/bilibili
+      '@coffeeeeffoc/platform-douyin':
+        specifier: workspace:*
+        version: link:../../platforms/douyin
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
@@ -180,6 +186,9 @@ importers:
       '@coffeeeeffoc/game-arena':
         specifier: workspace:*
         version: link:../../games/local/game-arena
+      '@coffeeeeffoc/game-building-power':
+        specifier: workspace:*
+        version: link:../../games/local/game-building-power
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -481,6 +490,46 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.2.2)
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      jsdom:
+        specifier: 26.1.0
+        version: 26.1.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
+
+  games/local/game-building-power:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../../../packages/game-host
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../../packages/config-typescript
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
       eslint:
         specifier: 9.35.0
         version: 9.35.0
@@ -1549,6 +1598,34 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+
+  platforms/douyin:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../packages/canvas-game-adapter
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(jsdom@26.1.0)(vite@7.1.5)
 
   platforms/wechat:
     dependencies:

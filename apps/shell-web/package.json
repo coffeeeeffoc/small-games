@@ -32,6 +32,7 @@
     "@coffeeeeffoc/ad-runtime": "workspace:*",
     "@coffeeeeffoc/content-schema": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",
+    "@coffeeeeffoc/game-building-power": "workspace:*",
     "@coffeeeeffoc/game-contract": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-host": "workspace:*",

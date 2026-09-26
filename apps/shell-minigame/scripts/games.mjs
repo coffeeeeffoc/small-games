@@ -1,7 +1,14 @@
 // Reviewed build-time choices only; platform/runtime input never selects executable code.
 import { wechatPlatform } from '@coffeeeeffoc/platform-wechat/build';
 import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
+import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 export const games = {
+  'building-power': {
+    title: '忙碌的电工',
+    definition: 'buildingPowerCanvasDefinition',
+    content: 'defaultBuildingPowerEnvelope',
+    assets: [{ source: 'public/building-power-audio', target: 'building-power-audio' }],
+  },
   cricket: {
     title: '秋声斗蟋',
     definition: 'cricketCanvasDefinition',
@@ -30,4 +37,5 @@ export const games = {
 export const platforms = {
   wechat: wechatPlatform,
   bilibili: bilibiliPlatform,
+  douyin: douyinPlatform,
 };
