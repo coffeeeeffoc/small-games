@@ -29,6 +29,9 @@
 | 橘风速递              | `vibeJam-myself-delivery`      | [games/local/vibeJam-myself-delivery](../games/local/vibeJam-myself-delivery/)           | 驾驶小摩托穿越海滨小岛，采购货物并完成配送。                             |
 | 此时 · 此地           | `vibeJam-myself-history-guess` | [games/local/vibeJam-myself-history-guess](../games/local/vibeJam-myself-history-guess/) | 观察历史全景，猜测地点与年份，揭晓时空中的故事。                         |
 | 零域 · NULL RANGE     | `vibeJam-myself-nullrange`     | [games/local/vibeJam-myself-nullrange](../games/local/vibeJam-myself-nullrange/)         | 低空飞行、迎击敌机，在三波空战中回收残骸。                               |
+| 一笔造关              | `one-stroke-course`            | [games/local/one-stroke-course](../games/local/one-stroke-course/)                       | 一笔画出赛道，亲手控制小球跳跃、收星、穿过机关，挑战十二关和自由实验。   |
+| 抱紧了！杂技探险队    | `hold-tight-acrobats`          | [games/local/hold-tight-acrobats](../games/local/hold-tight-acrobats/)                   | 带领三位杂技队员蓄力跳跃、抓环摆荡、牵手换支点，一起抵达五关终点。       |
+| 乌龙城                | `wulong-city`                  | [games/local/wulong-city](../games/local/wulong-city/)                                   | 探索总差一点才正常的城市，点按、拖动物件，解开二十个喜剧机关谜题。       |
 
 ## 子模块游戏（4 款）
 

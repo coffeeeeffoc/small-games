@@ -1,0 +1,17 @@
+{
+  "name": "@coffeeeeffoc/wulong-city",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "coffeeeeffoc": { "role": "game" },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "node build.mjs",
+    "preview": "node server.mjs --dist",
+    "test": "node --test tests/game.test.mjs",
+    "test:browser": "node tests/playtest.mjs",
+    "test:lifecycle": "node tests/lifecycle.mjs"
+  },
+  "devDependencies": { "@playwright/test": "1.55.1" }
+}
