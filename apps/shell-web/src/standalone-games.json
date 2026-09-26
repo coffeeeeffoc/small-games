@@ -145,5 +145,12 @@
     "title": "零域 · NULL RANGE",
     "description": "低空飞行、迎击敌机，在三波空战中回收残骸。",
     "output": "dist"
+  },
+  {
+    "id": "fold-the-world",
+    "source": "games/local/fold-the-world",
+    "title": "折叠世界",
+    "description": "折起纸面连接远处的平台，收集钥匙、避开尖刺，在十六关中找到通往出口的路。",
+    "output": "dist"
   }
 ]

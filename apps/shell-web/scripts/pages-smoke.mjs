@@ -6,6 +6,8 @@ import { preview } from 'vite';
 import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
 
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
+// The registry now also includes building-power; its own suite covers that game.
+const builtInCount = 5;
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: '/small-games/',
@@ -44,7 +46,7 @@ try {
   await page.goto(url);
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
+  await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   async function verifySharedRoute(id, title) {
     const sharedUrl = `${url}#/games/${id}`;
     await expect(page).toHaveURL(sharedUrl);
@@ -99,7 +101,7 @@ try {
     }
     await page.getByRole('button', { name: '← 返回目录', exact: true }).click();
     await expect(page).toHaveURL(url);
-    await expect(page.locator('.catalog-grid article')).toHaveCount(4 + games.length);
+    await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   }
   for (const game of games) {
     await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
@@ -124,6 +126,7 @@ try {
     await expect(page).toHaveURL(url);
     await expect(page.locator('iframe')).toHaveCount(0);
     const landscape = [
+      'fold-the-world',
       'carding-car',
       'fishing',
       'vibeJam-myself-delivery',
@@ -167,10 +170,10 @@ try {
   assert.deepEqual(failures, []);
   await writeFile(
     new URL('report.json', output),
-    JSON.stringify({ builtIn: 4, standalone: results, failures }, null, 2),
+    JSON.stringify({ builtIn: builtInCount, standalone: results, failures }, null, 2),
   );
   console.log(
-    `Pages: ${4 + games.length} catalog entries, ${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
+    `Pages: ${builtInCount + games.length} catalog entries, ${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
   );
 } finally {
   await browser?.close();

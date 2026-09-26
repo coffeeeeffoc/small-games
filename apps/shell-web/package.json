@@ -20,6 +20,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/fold-the-world": "workspace:*",
     "@coffeeeeffoc/carding-car": "workspace:*",
     "@small-games/merge-front": "workspace:*",
     "@small-games/night-merge": "workspace:*",

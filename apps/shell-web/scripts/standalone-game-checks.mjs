@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
   'merge-front': '#start-defense',
   'night-merge': '#start-night',
@@ -26,7 +27,24 @@ export const markers = {
 
 export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
-  if (id === 'carding-car') {
+  if (id === 'fold-the-world') {
+    await click(frame.locator('[data-action="start"]'));
+    await expect(frame.locator('#fold')).toBeEnabled();
+    await click(frame.locator('#show-hint'));
+    await expect(frame.locator('#hint-text')).toContainText('缺口太宽');
+    await click(frame.locator('[data-action="hint-more"]'));
+    await click(frame.locator('[data-action="back"]'));
+    await click(frame.locator('#fold'));
+    await expect(frame.locator('#fold')).toHaveAttribute('aria-label', '展开');
+    await click(frame.locator('#fold'));
+    await expect(frame.locator('#fold')).toHaveAttribute('aria-label', '折叠');
+    await click(frame.locator('#fold'));
+    await expect(frame.locator('#fold')).toHaveAttribute('aria-label', '展开');
+    // Keyboard controls work after button focus, in both direct and iframe documents.
+    await frame.locator('canvas').press('ArrowRight', { delay: 2200 });
+    await expect(frame.locator('[data-action="next"]')).toBeVisible();
+    await expect(frame.getByRole('heading', { name: '道路接通了！' })).toBeVisible();
+  } else if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().loading), { timeout: 120000 })

@@ -1,0 +1,23 @@
+export const creaseName=(id:string):string=>`折痕${({A:'一',B:'二',C:'三'} as Record<string,string>)[id]??id}`;
+export const TEXT = {
+  title:'折叠世界', subtitle:'一场纸上的小冒险', start:'开始折纸', resume:'继续游戏',
+  firstHint:'在右侧空白处向左滑，接通道路。',
+  grounded:'先落地站稳，再折叠或展开。', fixed:'请站到带点纹的固定平台上再展开。', side:'请站到固定的一侧，并离折痕远一点。',
+  blocked:'新的平台或尖刺会碰到你，请换个安全站位。', nested:'先展开，才能换一种折法。',
+  fold:'折叠', unfold:'展开', flat:'未折叠', folded:'已折叠', pause:'暂停', restart:'重来', sound:'音效开启',
+  left:'左侧向右折', right:'右侧向左折', select:'选择折痕', levels:'选择关卡', back:'返回',
+  paused:'休息一下', cleared:'道路接通了！', next:'下一关', finish:'每一页，都走通了！',
+  keyNeeded:'找齐所有钥匙，才能打开出口。', controls:'A / D 或方向键移动 · 空格跳跃 · F 折叠或展开 · 1–3 选折痕 · H 提示 · R 重来 · Esc 暂停',
+  preview:'松开确认，滑回起点取消。', previewShort:'再滑一点，松开即可确认。', unfoldGesture:'在空白处向任一侧边缘滑动，即可展开。',
+  folds:'折叠', key:'钥匙', best:'最少折叠', time:'用时', rotate:'横过来玩，空间更宽敞。', fullscreen:'全屏', quiet:'音效关闭',
+  fixedLegend:'固定平台', movedLegend:'折入平台', dangerLegend:'尖刺', failed:'再试一次！', savedError:'进度只能保留到本次页面关闭。', storageKey:'fold-the-world-v1',
+  moveLeft:'向左走', moveRight:'向右走', jump:'跳跃', page:'关卡', of:'共', locked:'未解锁', play:'开始',
+  intro:'远处的路，折一下就近了。', introSmall:'观察、折叠，走出自己的路。', edition:'纸上有路', press:'A / D 移动 · 空格跳跃', crease:'折痕',
+  dragLeft:'左侧向右滑动折叠', dragRight:'右侧向左滑动折叠', cancel:'取消', emptyKey:'无需钥匙', found:'已找到', missing:'未找到', unfoldCount:'展开',
+  allDone:'每道折痕，都通向新的地方。', replay:'再玩一次', resetHint:'随时可以重新尝试。', unfoldHint:'站在带点纹的固定平台上，再展开纸面。', fullscreenError:'当前浏览器暂不支持全屏。',
+  hintTitle:'给你一点线索', hint:'提示', help:'操作说明', moreHint:'再提示一点', lastHint:'已显示详细步骤', hintLevel:'提示', hintStage:'当前步骤', closeHint:'回到游戏',
+  hintPaused:'查看提示时，游戏已暂停。', hintRecovery:'尝试其他路线，或重来', movementHelp:'左右移动', foldHelp:'折叠／展开（同一个键）', creaseHelp:'切换折痕', hintHelp:'查看提示', pauseHelp:'暂停／关闭面板',
+  touchHelp:'左手移动，右手跳跃。空白纸面向内滑就折叠；已经折叠时，向任一侧边缘滑动就展开。也可以点同一个“折叠／展开”按钮。多道折痕时，先选想用的折痕。',
+  safetyHelp:'操作前先在带点纹的固定平台上站稳。带斜线的平台会随纸面移动。出口需要找齐本关所有钥匙。',
+  basics:'学会折纸', advanced:'更远的旅程', pages:'关', foldLeft:'向左折', foldRight:'向右折', unfoldLeft:'向左展开', unfoldRight:'向右展开',
+} as const;
