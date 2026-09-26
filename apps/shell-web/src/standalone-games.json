@@ -152,5 +152,26 @@
     "title": "折叠世界",
     "description": "折起纸面连接远处的平台，收集钥匙、避开尖刺，在十六关中找到通往出口的路。",
     "output": "dist"
+  },
+  {
+    "id": "one-stroke-course",
+    "title": "一笔造关",
+    "description": "一笔画出赛道，亲手控制小球跳跃、收星、穿过机关，挑战十二关和自由实验。",
+    "source": "games/local/one-stroke-course",
+    "output": "dist"
+  },
+  {
+    "id": "hold-tight-acrobats",
+    "title": "抱紧了！杂技探险队",
+    "description": "带领三位杂技队员蓄力跳跃、抓环摆荡、牵手换支点，一起抵达五关终点。",
+    "source": "games/local/hold-tight-acrobats",
+    "output": "dist"
+  },
+  {
+    "id": "wulong-city",
+    "title": "乌龙城",
+    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十个喜剧机关谜题。",
+    "source": "games/local/wulong-city",
+    "output": "dist"
   }
 ]

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#eee8d9"><title>乌龙城 · 总差一点才正常</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main id="game">
+  <header><button id="menu" aria-label="选关与维修记录"><span class="brand-mark">岔</span><b>乌龙城</b><span class="edition">维修员的一天</span></button><div class="utilities"><button id="sound" aria-label="关闭音效">♪</button><button id="fullscreen" aria-label="进入全屏">⛶</button><button id="pause" aria-label="暂停">Ⅱ</button></div></header>
+  <section class="mission"><div class="eyebrow"><span id="chapter"></span><span id="counter"></span></div><h1 id="title"></h1><p><span class="task-label">今日工单</span><span id="goal"></span></p></section>
+  <div id="stage"><canvas id="canvas" width="960" height="1040" aria-label="乌龙城互动场景，方向键移动，空格跳跃，Tab 切换场景物件" tabindex="0"></canvas><div id="hotspots"></div><div class="scene-caption"><span class="live-dot"></span> 乌龙现场 <span id="scene-note">观察 · 试试看</span></div></div>
+  <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+  <nav class="controls" aria-label="角色操作"><div class="move-controls"><button id="left" aria-label="向左移动">◀</button><button id="right" aria-label="向右移动">▶</button></div><div class="tools"><button id="retry"><span>↻</span>重试</button><button id="hint"><span>?</span>提示</button></div><button id="jump" aria-label="跳跃">↑<small>跳跃</small></button></nav>
+  <footer><span>这座城市，总差一点才正常。</span><span class="keyboard-tip">A D / ← → 移动 · 空格跳跃</span></footer>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-body"></div></dialog>
+<script src="levels-data.js"></script><script src="game.js"></script><script src="levels.js"></script><script>W.boot();</script>
+</body></html>

@@ -562,15 +562,16 @@ export function draw(c: CanvasRenderingContext2D, ui: ViewState): Hit[] {
     const ended = room.status === 'done' || room.status === 'expired' || room.status === 'idle';
     const urgent = !ended && room.remaining < (room.serviceSeconds ?? 0) + 4;
     const selected = ui.drag?.target === 'room:' + room.id;
-    const fill = (ui.selection === 'defer' && room.canDefer) || selected
-      ? '#edc27a'
-      : room.status === 'done'
-        ? '#d6e1c5'
-        : room.source
-          ? TEAL
-          : urgent
-            ? '#fae0c7'
-            : CREAM;
+    const fill =
+      (ui.selection === 'defer' && room.canDefer) || selected
+        ? '#edc27a'
+        : room.status === 'done'
+          ? '#d6e1c5'
+          : room.source
+            ? TEAL
+            : urgent
+              ? '#fae0c7'
+              : CREAM;
     box(c, x, y + 2, w, height, '#c9baa0', 6);
     box(c, x, y, w, height, fill, 6);
     const color = room.source ? CREAM : urgent ? RED : INK;

@@ -1,6 +1,9 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'one-stroke-course': 'body[data-phase="drawing"]',
+  'hold-tight-acrobats': '#start',
+  'wulong-city': '[data-zone="shy-door"]',
   'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
   'merge-front': '#start-defense',
@@ -27,7 +30,83 @@ export const markers = {
 
 export async function exerciseStandalone(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
-  if (id === 'fold-the-world') {
+  // Keep input native in both the embedded desktop and direct touch checks.
+  const holdControl = async (selector, key, check) => {
+    const page = frame.locator('canvas').page();
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        const bounds = await frame.locator(selector).boundingBox();
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }],
+        });
+      } else {
+        await page.keyboard.down(key);
+      }
+      await check();
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.keyboard.up(key);
+      }
+    }
+  };
+  if (id === 'one-stroke-course') {
+    await expect(frame.locator('#start')).toBeDisabled();
+    await click(frame.locator('#example'));
+    await expect(frame.locator('#start')).toBeEnabled();
+    await click(frame.locator('#start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'running');
+    await holdControl('[data-control="right"]', 'ArrowRight', () =>
+      expect(frame.locator('#result-title')).toHaveText('这条路，你跑通了！', { timeout: 20000 }),
+    );
+    await click(frame.locator('#retry'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'running');
+    await click(frame.locator('#pause-button'));
+    await expect(frame.locator('#pause-panel')).toBeVisible();
+    await click(frame.locator('#pause-redraw'));
+    await expect(frame.locator('#start')).toBeDisabled();
+  } else if (id === 'hold-tight-acrobats') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__acroSnapshot);
+    await click(frame.locator('#start'));
+    await click(frame.locator('[data-who="2"]'));
+    await expect(frame.locator('[data-who="2"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => (await snapshot()).actors[2].action).toBe('jump');
+    const before = (await snapshot()).actors[2].y;
+    await holdControl('#power', 'Space', () =>
+      expect.poll(async () => (await snapshot()).charge?.power).toBeGreaterThan(0.25),
+    );
+    await expect.poll(async () => (await snapshot()).actions.length).toBe(1);
+    await expect.poll(async () => (await snapshot()).actors[2].y).toBeLessThan(before - 5);
+    await click(frame.locator('#retry'));
+    await expect.poll(async () => (await snapshot()).actions.length).toBe(0);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#resume')).toBeVisible();
+    await click(frame.locator('#resume'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+  } else if (id === 'wulong-city') {
+    await click(frame.locator('[data-zone="shy-door"]'));
+    await expect(frame.locator('#feedback')).toContainText('别盯着我');
+    await holdControl('#right', 'ArrowRight', () =>
+      expect(frame.locator('#feedback')).toContainText('小碎步', { timeout: 15000 }),
+    );
+    await holdControl('#left', 'ArrowLeft', () =>
+      expect(frame.locator('#feedback')).toContainText('把自己打开了', { timeout: 15000 }),
+    );
+    await holdControl('#right', 'ArrowRight', () =>
+      expect(frame.locator('#next')).toBeVisible({ timeout: 15000 }),
+    );
+    await click(frame.locator('#next'));
+    await expect(frame.locator('#counter')).toHaveText('02 / 20');
+    await click(frame.locator('#hint'));
+    await expect(frame.locator('.hint-step')).toHaveText('提示 1 / 3');
+    await click(frame.locator('[data-more]'));
+    await expect(frame.locator('.hint-step')).toHaveText('提示 2 / 3');
+    await click(frame.locator('[data-close-hint]'));
+  } else if (id === 'fold-the-world') {
     await click(frame.locator('[data-action="start"]'));
     await expect(frame.locator('#fold')).toBeEnabled();
     await click(frame.locator('#show-hint'));
