@@ -127,12 +127,20 @@ try {
     await expect(page.locator('iframe')).toHaveCount(0);
     const landscape = [
       'fold-the-world',
+      'one-stroke-course',
+      'hold-tight-acrobats',
       'carding-car',
       'fishing',
       'vibeJam-myself-delivery',
       'vibeJam-myself-nullrange',
     ].includes(game.id);
-    const viewport = landscape ? { width: 844, height: 390 } : { width: 390, height: 844 };
+    // This tall narrow viewport catches a held touch leaking onto the result dialog.
+    const viewport =
+      game.id === 'wulong-city'
+        ? { width: 360, height: 900 }
+        : landscape
+          ? { width: 844, height: 390 }
+          : { width: 390, height: 844 };
     const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();
     direct.on('pageerror', (error) => failures.push(`${game.id}: ${error.message}`));

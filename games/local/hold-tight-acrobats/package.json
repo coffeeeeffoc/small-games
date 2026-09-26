@@ -1,0 +1,7 @@
+{
+  "name": "@coffeeeeffoc/hold-tight-acrobats", "version": "1.0.0", "private": true, "type": "module",
+  "coffeeeeffoc": { "role": "game" },
+  "scripts": {"dev":"vite --host 0.0.0.0 --port 4318", "typecheck":"tsc --noEmit", "test":"tsx --test tests/core.test.ts tests/routes.test.ts", "test:browser":"tsx tests/browser.ts", "test:touch":"tsx tests/touch.ts", "build":"pnpm typecheck && vite build", "preview":"vite preview --host 0.0.0.0 --port 4319"},
+  "dependencies": {"phaser":"3.90.0"},
+  "devDependencies": {"@playwright/test":"1.58.2", "@types/node":"24.10.1", "tsx":"4.21.0", "typescript":"5.9.3", "vite":"6.4.1"}
+}
