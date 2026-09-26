@@ -53,6 +53,19 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell routes', () => {
+  it('registers building-power and mounts its Canvas from the shared URL', async () => {
+    const game = builtInGameRegistry.find((entry) => entry.id === 'building-power');
+    expect(game?.definition.manifest.gameId).toBe('building-power');
+    expect(game?.content.gameId).toBe('building-power');
+    window.history.replaceState(null, '', '/small-games/#/games/building-power');
+    const container = await renderShell();
+    expect(container.querySelector('nav strong')?.textContent).toBe('忙碌的电工');
+    expect(container.querySelector('[role="alert"]')?.textContent ?? '').toBe('');
+    expect(container.querySelector('canvas')).not.toBeNull();
+    await clickButton(container, '返回目录');
+    expect(container.querySelector('canvas')).toBeNull();
+  });
+
   it('renders a cricket animation frame after opening its shared URL', async () => {
     const frames = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
     vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});

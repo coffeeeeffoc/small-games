@@ -1,0 +1,31 @@
+{
+  "name": "@coffeeeeffoc/platform-douyin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./build": "./build.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/native-game-shell": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}
