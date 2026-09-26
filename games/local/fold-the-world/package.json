@@ -1,0 +1,8 @@
+{
+  "name": "@coffeeeeffoc/fold-the-world", "version": "0.1.0", "private": true, "type": "module",
+  "packageManager": "pnpm@8.14.1",
+  "scripts": {"dev":"vite --host 0.0.0.0", "typecheck":"tsc --noEmit", "test":"tsx --test tests/core.test.ts tests/routes.test.ts", "test:browser":"tsx tests/browser.ts", "build":"tsc --noEmit && vite build", "preview":"vite preview --host 0.0.0.0"},
+  "dependencies": {"phaser":"3.90.0"},
+  "devDependencies": {"@types/node":"22.15.30", "@playwright/test":"1.51.1", "tsx":"4.19.4", "typescript":"5.8.3", "vite":"6.3.5"},
+  "coffeeeeffoc": {"role":"game"}
+}
