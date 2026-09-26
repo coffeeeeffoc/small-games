@@ -1,0 +1,38 @@
+{
+  "name": "@coffeeeeffoc/game-building-power",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/definition.ts",
+    "./canvas": "./src/index.ts",
+    "./manifest": "./src/manifest.json"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint . --max-warnings 0",
+    "smoke": "node scripts/browser-check.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*",
+    "@coffeeeeffoc/game-host": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@playwright/test": "1.55.1",
+    "eslint": "9.35.0",
+    "jsdom": "26.1.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

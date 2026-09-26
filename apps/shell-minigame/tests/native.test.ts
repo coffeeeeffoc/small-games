@@ -8,118 +8,52 @@ import {
 import {
   createNativeAdProvider,
   createNativeGameHost,
-  type NativeSdk,
   type TouchEvent,
 } from '@coffeeeeffoc/native-game-shell';
 import { startWechatGame } from '@coffeeeeffoc/platform-wechat';
-import { startBilibiliGame, type StandaloneBilibiliSdk } from '@coffeeeeffoc/platform-bilibili';
+import { startBilibiliGame } from '@coffeeeeffoc/platform-bilibili';
+import { fakeSdk } from './native.fixture.js';
+import { startDouyinGame } from '@coffeeeeffoc/platform-douyin';
+import {
+  buildingPowerCanvasDefinition,
+  defaultBuildingPowerEnvelope,
+} from '@coffeeeeffoc/game-building-power/canvas';
 
-function fakeSdk() {
-  const labels = new Map<string, number>();
-  const touches = new Set<(event: TouchEvent) => void>();
-  const shows = new Set<Parameters<NativeSdk['onShow']>[0]>();
-  const hides = new Set<() => void>();
-  const records = new Map<string, string>();
-  const audio: Array<{
-    play: ReturnType<typeof vi.fn>;
-    stop: ReturnType<typeof vi.fn>;
-    destroy: ReturnType<typeof vi.fn>;
-  }> = [];
-  const context = new Proxy(
-    {
-      fillRect(_x: number, y: number) {
-        if (y === 0) labels.clear();
-      },
-      fillText(text: string, _x: number, y: number) {
-        labels.set(text, y);
-      },
-      measureText(text: string) {
-        return { width: text.length * 17 };
-      },
-      createLinearGradient() {
-        return { addColorStop() {} };
-      },
-      createRadialGradient() {
-        return { addColorStop() {} };
-      },
-    },
-    {
-      get(target, key) {
-        return Reflect.get(target, key) ?? (() => {});
-      },
-    },
-  ) as unknown as CanvasRenderingContext2D;
-  const sdk: StandaloneBilibiliSdk = {
-    createCanvas: () => ({ width: 390, height: 844, getContext: () => context }),
-    createInnerAudioContext() {
-      const sound = {
-        src: '',
-        loop: false,
-        volume: 1,
-        play: vi.fn(),
-        stop: vi.fn(),
-        destroy: vi.fn(),
-        onError() {},
-        offError() {},
-      };
-      audio.push(sound);
-      return sound;
-    },
-    getSystemInfoSync: () => ({ windowWidth: 390, windowHeight: 844 }),
-    onTouchEnd: (listener) => {
-      touches.add(listener);
-    },
-    offTouchEnd: (listener) => {
-      touches.delete(listener);
-    },
-    onShow: (listener) => {
-      shows.add(listener);
-    },
-    offShow: (listener) => {
-      shows.delete(listener);
-    },
-    onHide: (listener) => {
-      hides.add(listener);
-    },
-    offHide: (listener) => {
-      hides.delete(listener);
-    },
-    getStorageSync: (key) => records.get(key),
-    setStorageSync: (key, value) => {
-      records.set(key, value);
-    },
-    removeStorageSync: (key) => {
-      records.delete(key);
-    },
-    getLogManager: () => ({ info() {} }),
-    exitMiniProgram: (options) => options.success(),
-    launchSuccess: vi.fn(),
-    checkScene: (options) => options.success({ isExist: true }),
-    navigateToScene: vi.fn((options) => options.success()),
-    addShortcut: vi.fn((options) => options.success()),
-    showToast: vi.fn(),
-  };
-  return {
-    sdk,
-    labels,
-    records,
-    audio,
-    shows,
-    hides,
-    choose(text: string) {
-      const label = [...labels].reverse().find(([value]) => value.includes(text));
-      expect(label, `Missing action ${text}`).toBeDefined();
-      for (const tap of [...touches])
-        tap({ changedTouches: [{ clientX: 30, clientY: label![1] - 10 }] });
-    },
-    has(text: string) {
-      return [...labels.keys()].some((label) => label.includes(text));
-    },
-  };
-}
 afterEach(() => vi.useRealTimers());
 
 describe('standalone native Games', () => {
+  it.each(['wechat', 'bilibili', 'douyin'] as const)(
+    'mounts the building-power public Canvas export and pauses on %s',
+    async (platform) => {
+      vi.useFakeTimers();
+      const fake = fakeSdk();
+      const game = {
+        definition: buildingPowerCanvasDefinition,
+        content: defaultBuildingPowerEnvelope,
+      };
+      const pending =
+        platform === 'bilibili'
+          ? startBilibiliGame(fake.sdk, game, '忙碌的电工')
+          : platform === 'douyin'
+            ? startDouyinGame({ ...fake.sdk, createRewardedVideoAd: undefined }, game)
+            : startWechatGame(fake.sdk, game);
+      if (platform === 'bilibili') fake.choose('开始游戏');
+      const instance = await pending;
+      fake.choose('开始第');
+      expect(fake.has('暂停')).toBe(true);
+      expect(fake.audio.some((clip) => clip.play.mock.calls.length)).toBe(true);
+      for (const hide of fake.hides) hide();
+      const paused = [...fake.labels];
+      await vi.advanceTimersByTimeAsync(5000);
+      expect([...fake.labels]).toEqual(paused);
+      for (const show of fake.shows) show();
+      expect(fake.has('时间已冻结')).toBe(true);
+      await instance.dispose();
+      expect(fake.shows.size + fake.hides.size).toBe(0);
+      expect(fake.audio.every((clip) => clip.destroy.mock.calls.length === 1)).toBe(true);
+    },
+  );
+
   it.each([
     [['--platform', 'wechat', '--game', 'cricket'], 'Release needs'],
     [

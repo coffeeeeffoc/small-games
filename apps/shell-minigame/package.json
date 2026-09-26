@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/platform-wechat": "workspace:*",
+    "@coffeeeeffoc/platform-douyin": "workspace:*",
     "@coffeeeeffoc/platform-bilibili": "workspace:*",
     "@coffeeeeffoc/native-game-shell": "workspace:*",
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
@@ -24,6 +25,7 @@
     "@coffeeeeffoc/game-cricket": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",
+    "@coffeeeeffoc/game-building-power": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*"
   },
   "devDependencies": {

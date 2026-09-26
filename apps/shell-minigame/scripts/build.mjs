@@ -26,7 +26,9 @@ if (
   !values.all &&
   (!Object.hasOwn(platforms, values.platform) || !Object.hasOwn(games, values.game))
 )
-  throw new Error('Choose --platform wechat|bilibili --game cricket|cultivation|arena|office');
+  throw new Error(
+    `Choose --platform ${Object.keys(platforms).join('|')} --game ${Object.keys(games).join('|')}`,
+  );
 const targets = values.all
   ? Object.keys(games).flatMap((game) =>
       Object.keys(platforms).map((platform) => ({ game, platform })),

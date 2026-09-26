@@ -1,8 +1,8 @@
 # 游戏一览
 
-截至 2026-09-18，仓库共包含 **25 款游戏**：`games/local` 下 21 款，`games/submodules` 下 4 款。中文名和简介与游戏大厅当前登记信息保持一致；点击目录路径可跳转到对应源码目录。
+本目录列出已登记游戏，新增或未完成目录以 `pnpm check:games` 的磁盘发现结果为准。中文名和简介与游戏大厅登记信息保持一致；点击目录路径可跳转到对应源码目录。
 
-## 本地游戏（21 款）
+## 本地游戏
 
 | 中文名                | 文件夹名                       | 目录路径                                                                                 | 简介                                                                 |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -10,6 +10,7 @@
 | 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。       |
 | 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。     |
 | 电子斗蛐蛐            | `game-arena`                   | [games/local/game-arena](../games/local/game-arena/)                                     | 秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。                   |
+| 忙碌的电工       | `game-building-power`         | [games/local/game-building-power](../games/local/game-building-power/)                   | 拖线供电、错峰启动，根据天气与真实功耗守住小区灯火。20关单人调度挑战。       |
 | 秋声斗蟋              | `game-cricket`                 | [games/local/game-cricket](../games/local/game-cricket/)                                 | 撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。                               |
 | 三分钟修仙            | `game-cultivation`             | [games/local/game-cultivation](../games/local/game-cultivation/)                         | 亲手吐纳，御剑寻缘。两分钟修炼探索，一分钟登台渡劫。                 |
 | 打工人摸鱼记          | `game-office`                  | [games/local/game-office](../games/local/game-office/)                                   | 第一人称潜入工位，周一迟到首关已开放，一周摸鱼场景逐步登场。         |

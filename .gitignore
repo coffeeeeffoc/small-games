@@ -29,3 +29,4 @@ apps/shell-web/public/games/
 __pycache__/
 .tmp/arena/
 outputs/
+/test-results/building-power/

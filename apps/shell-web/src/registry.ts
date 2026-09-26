@@ -4,6 +4,10 @@ import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 import type { ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
 import {
+  buildingPowerGameDefinition,
+  defaultBuildingPowerEnvelope,
+} from '@coffeeeeffoc/game-building-power';
+import {
   cultivationGameDefinition,
   defaultCultivationEnvelope,
 } from '@coffeeeeffoc/game-cultivation';
@@ -77,5 +81,12 @@ export const builtInGameRegistry: readonly BuiltInGame[] = [
     description: '秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。',
     definition: arenaGameDefinition,
     content: defaultArenaEnvelope,
+  },
+  {
+    id: 'building-power',
+    title: '忙碌的电工',
+    description: '居民急着做饭、洗澡、降温；看天气、错峰接电，守住邻里灯火。',
+    definition: buildingPowerGameDefinition,
+    content: defaultBuildingPowerEnvelope,
   },
 ];

@@ -6,6 +6,7 @@ export function canvasContext(this: HTMLCanvasElement) {
     save: noop,
     restore: noop,
     scale: noop,
+    setLineDash: noop,
     translate: noop,
     rotate: noop,
     beginPath: noop,
