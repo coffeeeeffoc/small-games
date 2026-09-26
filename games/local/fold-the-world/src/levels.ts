@@ -1,0 +1,25 @@
+import { defineLevel, type Entity, type Crease } from './geometry';
+const p = (id: string, x: number, y: number, w: number, h = 20): Entity => ({id,x,y,w,h,kind:'platform'});
+const exit = (x: number, y: number): Entity => ({id:'exit',x,y,w:26,h:38,kind:'exit'});
+const right = (x = 600, id = 'A'): Crease => ({id,x,directions:['right-to-left']});
+const left = (x = 600, id = 'A'): Crease => ({id,x,directions:['left-to-right']});
+const key = (x: number, y: number, id = 'key'): Entity => ({id,x,y,w:16,h:22,kind:'key'});
+const spike = (x: number, y: number, w = 24): Entity => ({id:'spikes',x,y,w,h:18,kind:'spike'});
+export const levels = [
+  defineLevel({title:'第一次折叠',hint:'在右侧空白处向左滑，接通道路。',spawn:{x:140,y:402},creases:[right()],entities:[p('home',80,430,200),p('bridge',720,430,200),exit(740,392)]}),
+  defineLevel({title:'另一侧',hint:'换到左侧，向右滑动试试。',spawn:{x:1040,y:402},creases:[left()],entities:[p('home',920,430,200),p('bridge',280,430,200),exit(440,392)]}),
+  defineLevel({title:'选对折痕',hint:'两道折痕，哪一道能补上缺口？',spawn:{x:140,y:402},creases:[right(600,'A'),right(700,'B')],entities:[p('home',80,430,140),p('island',480,430,90),p('bridge',920,430,260),exit(520,392)]}),
+  defineLevel({title:'再高一点',hint:'折出台阶，再轻轻一跳。',spawn:{x:140,y:432},creases:[right()],entities:[p('home',80,460,180),p('step',720,410,220),exit(740,372)]}),
+  defineLevel({title:'小心尖刺',hint:'尖刺也会跟着纸面移动。',spawn:{x:140,y:402},creases:[right()],entities:[p('home',80,430,180),p('bridge',720,430,220),spike(842,412),exit(740,392)]}),
+  defineLevel({title:'把钥匙带回来',hint:'把远处的钥匙带回起点。',spawn:{x:160,y:402},creases:[right()],entities:[p('home',80,430,180),p('bridge',720,430,220),key(800,398),exit(100,392)]}),
+  defineLevel({title:'回到稳固地面',hint:'先找固定落脚点，再展开纸面。',spawn:{x:140,y:442},creases:[right()],entities:[p('home',80,470,140),p('island',440,470,130),p('shelf',490,408,80),p('bridge',760,470,220),p('cover',630,320,80,150),exit(530,370)]}),
+  defineLevel({title:'找到的不会丢',hint:'纸面展开后，钥匙依然在你手里。',spawn:{x:170,y:442},creases:[right()],entities:[p('home',80,470,180),p('bridge',720,470,220),p('cover',1080,380,40,90),key(744,438),exit(92,432)]}),
+  defineLevel({title:'换个折法',hint:'一道折痕让你过河，另一道让你登高。',spawn:{x:140,y:442},creases:[right(600,'A'),right(700,'B')],entities:[p('home',80,470,140),p('island',440,470,130),p('shelf',440,410,50),p('finish',450,300,120),p('bridge',760,470,220),p('high-step',980,360,140),exit(490,262)]}),
+  defineLevel({title:'折纸小测验',hint:'先跨过去，展开，再从另一边折。',spawn:{x:140,y:442},creases:[right(600,'A'),left(500,'B')],entities:[p('home',80,470,140),p('high-step',80,350,120),p('landing',440,470,340),p('bridge',760,470,220),p('right-step',940,410,60,60),p('finish',730,300,70),spike(885,452,16),key(820,438),exit(750,262)]}),
+  defineLevel({title:'两趟差事',hint:'两把钥匙，还要移开最后的遮挡。',spawn:{x:140,y:452},creases:[right(600,'A'),right(700,'B')],entities:[p('home',80,480,140),p('island',440,480,160),p('shelf',400,420,90),p('finish',360,300,120),p('bridge',760,480,220),p('upper',1020,360,140),p('cover',900,210,80,90),key(830,448,'lower-key'),key(1080,328,'upper-key'),exit(440,262)]}),
+  defineLevel({title:'借来的阳台',hint:'阳台不仅用来经过，也用来停下来展开。',spawn:{x:140,y:442},creases:[right(600,'A'),left(500,'B')],entities:[p('home',80,470,140),p('high-step',80,350,120),p('landing',440,470,340),p('bridge',760,470,220),p('right-step',940,410,60,60),p('balcony',700,300,100),p('cover',240,210,60,90),spike(885,452,16),key(820,438,'road-key'),key(120,318,'balcony-key'),exit(710,262)]}),
+  defineLevel({title:'纸上接力',hint:'每个固定落脚点，都是换折法的机会。',spawn:{x:140,y:492},creases:[right(600,'A'),right(700,'B'),right(800,'C')],entities:[p('home',80,520,140),p('island',440,520,160),p('shelf',520,460,60),p('upper-landing',550,350,100),p('finish',550,230,100),p('bridge',760,520,220),p('middle',870,410,210),p('cloud',1070,290,100),key(1110,258),exit(600,192)]}),
+  defineLevel({title:'返程钥匙',hint:'找齐钥匙后，最初的道路又派上了用场。',spawn:{x:140,y:492},creases:[right(600,'A'),right(700,'B')],entities:[p('home',80,520,140),p('island',440,520,160),p('shelf',520,460,60),p('bridge',760,520,220),p('middle',900,410,180),key(830,488,'road-key'),key(1014,378,'return-key'),exit(850,482)]}),
+  defineLevel({title:'漫长的归途',hint:'带着三把钥匙回家，再展开门前的纸。',spawn:{x:170,y:492},creases:[right(600,'A'),right(700,'B'),right(800,'C')],entities:[p('home',80,520,140),p('island',440,520,160),p('shelf',520,460,60),p('upper-landing',530,350,120),p('bridge',760,520,220),p('middle',870,410,210),p('cloud',1070,290,100),p('door-cover',1080,430,40,90),key(830,488,'road-key'),key(1014,378,'middle-key'),key(1110,258,'cloud-key'),exit(100,482)]}),
+  defineLevel({title:'最后一封回信',hint:'三把钥匙，两种方向，一条回家的路。',spawn:{x:140,y:442},creases:[right(600,'A'),left(500,'B'),right(750,'C')],entities:[p('home',80,470,140),p('high-step',80,350,120),p('landing',440,470,340),p('bridge',760,470,220),p('right-step',940,410,60,60),p('balcony',700,300,100),p('upper-landing',530,300,130),p('cloud',900,240,100),spike(875,452,16),key(820,438,'road-key'),key(120,318,'balcony-key'),key(940,208,'cloud-key'),exit(100,432)]}),
+];
