@@ -1,0 +1,41 @@
+{
+  "started": "2026-09-27T07:46:07.189Z",
+  "desktop": [
+    {
+      "visibleReplacementAndCancel": "passed",
+      "bankPreserved": true
+    },
+    {
+      "failureAt": 7.266666666666667,
+      "retryPreservedBank": true
+    },
+    {
+      "level": 1,
+      "status": "won",
+      "round": 2,
+      "tick": 826,
+      "remainingLife": 4
+    },
+    {
+      "level": 2,
+      "status": "won",
+      "round": 3,
+      "tick": 826,
+      "remainingLife": 4
+    },
+    {
+      "level": 3,
+      "status": "won",
+      "round": 4,
+      "tick": 869,
+      "remainingLife": 4
+    },
+    {
+      "url": "http://127.0.0.1:4400/afterimage-arena/",
+      "audioAndMute": "passed",
+      "pauseFreezesTicks": "passed"
+    }
+  ],
+  "mobile": [],
+  "errors": []
+}

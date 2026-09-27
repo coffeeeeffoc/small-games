@@ -1,0 +1,18 @@
+{
+  "runtimeFiles": [
+    "index.html",
+    "style.css",
+    "game.mjs",
+    "art.mjs",
+    "logic.mjs",
+    "server.mjs",
+    "package.json",
+    "check.mjs"
+  ],
+  "checks": [
+    "http://127.0.0.1:4403/: clean copied project wins first case without parent or sibling files",
+    "http://127.0.0.1:4403/off-camera/: clean copied project wins first case without parent or sibling files",
+    "copied rule checks exit 0; missing files 404; Windows path traversal 403"
+  ],
+  "passed": true
+}

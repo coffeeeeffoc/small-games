@@ -1,0 +1,95 @@
+{
+  "started": "2026-09-27T07:46:07.189Z",
+  "desktop": [
+    {
+      "visibleReplacementAndCancel": "passed",
+      "bankPreserved": true
+    },
+    {
+      "failureAt": 7.266666666666667,
+      "retryPreservedBank": true
+    },
+    {
+      "level": 1,
+      "status": "won",
+      "round": 2,
+      "tick": 826,
+      "remainingLife": 4
+    },
+    {
+      "level": 2,
+      "status": "won",
+      "round": 3,
+      "tick": 826,
+      "remainingLife": 4
+    },
+    {
+      "level": 3,
+      "status": "won",
+      "round": 4,
+      "tick": 869,
+      "remainingLife": 4
+    },
+    {
+      "url": "http://127.0.0.1:4400/afterimage-arena/",
+      "audioAndMute": "passed",
+      "pauseFreezesTicks": "passed"
+    }
+  ],
+  "mobile": [
+    {
+      "level": 1,
+      "status": "won",
+      "round": 2,
+      "tick": 837,
+      "remainingLife": 4
+    },
+    {
+      "viewport": {
+        "width": 360,
+        "height": 740
+      },
+      "layout": {
+        "scrollWidth": 360,
+        "width": 360,
+        "fire": {
+          "x": 250.5,
+          "y": 610,
+          "width": 88,
+          "height": 88,
+          "top": 610,
+          "right": 338.5,
+          "bottom": 698,
+          "left": 250.5
+        }
+      }
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "layout": {
+        "scrollWidth": 844,
+        "width": 844,
+        "fire": {
+          "x": 654,
+          "y": 276,
+          "width": 104,
+          "height": 104,
+          "top": 276,
+          "right": 758,
+          "bottom": 380,
+          "left": 654
+        }
+      }
+    },
+    {
+      "input": "CDP two simultaneous real touch contacts",
+      "url": "http://127.0.0.1:4406/",
+      "physicalDevice": false
+    }
+  ],
+  "errors": [],
+  "completed": "2026-09-27T07:49:37.001Z"
+}

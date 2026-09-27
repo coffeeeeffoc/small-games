@@ -1,0 +1,74 @@
+// Optional browser acceptance runner; Playwright is supplied explicitly, never a game dependency.
+const {chromium}=require(process.argv[2]);
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const path=require('node:path');
+const out=__dirname;
+const base=process.argv[3]||'http://127.0.0.1:4402/';
+(async()=>{
+  const browser=await chromium.launch({headless:true,channel:'chrome'});
+  const checks=[],errors=[];
+  let active;
+  const monitor=page=>{page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});};
+  const ready=page=>page.waitForFunction(()=>document.querySelector('#board')?.dataset.busy==='false');
+  const data=page=>page.locator('#board').evaluate(e=>({...e.dataset}));
+  const expect=async(page,values)=>{const d=await data(page);for(const [k,v]of Object.entries(values))assert.equal(d[k],String(v),`${k}: ${JSON.stringify(d)}`);};
+  const weather=async(page,type,touch=false)=>{await page.locator(`[data-weather="${type}"]`)[touch?'tap':'click']();await ready(page);};
+  const wind=async(page,dir,touch=false)=>{await page.locator(`[data-dir="${dir}"]`)[touch?'tap':'click']();await ready(page);};
+  const level=async(page,i)=>{await page.locator(`button[data-level="${i}"]`).click();await ready(page);};
+  const boatPoint=async(page)=>{const box=await page.locator('#board').boundingBox(),d=await data(page);return {x:box.x+(Number(d.x)+.5)*box.width/7,y:box.y+(Number(d.y)+.5)*box.height/7};};
+  const drag=async(page,dir)=>{const p=await boatPoint(page),[dx,dy]=({right:[1,0],left:[-1,0],up:[0,-1],down:[0,1]})[dir];await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x+dx*55,p.y+dy*55,{steps:8});await page.mouse.up();};
+  try{
+    const desktop=await browser.newContext({viewport:{width:1360,height:980},deviceScaleFactor:1});
+    const page=await desktop.newPage();active=page;monitor(page);await page.goto(base);await ready(page);
+    await expect(page,{level:1,h:0,remaining:3});
+    await page.locator('[data-weather="rain"]').click();
+    await page.waitForTimeout(120);const floatA=await page.locator('#boat-lift').getAttribute('transform');
+    await page.waitForTimeout(160);const floatB=await page.locator('#boat-lift').getAttribute('transform');
+    assert.notEqual(floatA,floatB,'浮起必须有连续中间帧');await ready(page);await expect(page,{h:1,remaining:2});
+    await drag(page,'right');await page.waitForTimeout(200);
+    const intermediate=await page.locator('#ship').getAttribute('transform');assert(!['translate(120 280)','translate(360 280)'].includes(intermediate),'行船必须有中间位置');
+    await page.screenshot({path:path.join(out,'playtest-motion.png')});await ready(page);
+    await expect(page,{status:'won',remaining:1,x:4,y:3});assert.equal(await page.locator('[data-gate]').count(),0);
+    checks.push({name:'single-click rain → continuous float → real drag → gate break → dock',floatA,floatB,intermediate});
+    await page.locator('#undo').click();await expect(page,{remaining:2,x:1,h:1,status:'playing'});assert.equal(await page.locator('[data-gate]').count(),1);
+    await page.locator('#restart').click();await expect(page,{remaining:3,h:0});
+    await page.locator('[data-weather="rain"]').click();await page.locator('#restart').click();await page.waitForTimeout(950);await expect(page,{remaining:3,h:0,x:1,busy:false});
+    checks.push({name:'undo restores broken gate and charges; restart cancels stale animation'});
+    await level(page,1);await weather(page,'rain');await drag(page,'right');await ready(page);await expect(page,{x:4,y:5,remaining:1});
+    await page.mouse.move(10,10);await page.screenshot({path:path.join(out,'playtest-desktop.png'),fullPage:true});
+    await drag(page,'up');await ready(page);await expect(page,{status:'won',remaining:0});
+    await page.locator('#restart').click();await weather(page,'snow');await drag(page,'right');await ready(page);await expect(page,{x:5,y:5,remaining:1});
+    await wind(page,'left');await expect(page,{status:'lost',remaining:0});assert(await page.locator('#result').isVisible());
+    await page.screenshot({path:path.join(out,'playtest-failure.png'),fullPage:true});
+    await page.locator('#result-action').click();await expect(page,{status:'playing',remaining:3,snow:false});
+    await weather(page,'rain');await wind(page,'up');await wind(page,'right');await expect(page,{status:'won'});
+    checks.push({name:'same map: rain stops at (4,5), snow overshoots to (5,5); failure → retry → alternate route; third action wins'});
+    await level(page,2);await wind(page,'right');await expect(page,{remaining:3,x:1,h:2});await weather(page,'sun');await wind(page,'right');await expect(page,{status:'won',remaining:1});
+    await page.locator('#restart').click();await wind(page,'up');await wind(page,'right');await wind(page,'down');await expect(page,{status:'won',remaining:0});
+    await level(page,3);await weather(page,'rain');await wind(page,'right');await wind(page,'right');await expect(page,{status:'lost'});
+    await page.locator('#result-action').click();await weather(page,'snow');await wind(page,'right');await wind(page,'up');await expect(page,{status:'won',remaining:0});
+    await level(page,4);await wind(page,'up');await wind(page,'right');await expect(page,{status:'won',remaining:1});
+    await page.locator('#restart').click();await weather(page,'rain');await wind(page,'right');await wind(page,'up');await expect(page,{status:'won',remaining:0});
+    checks.push({name:'all five levels won through real UI; bridge shortcut and detour; snow-only distance puzzle; thaw route'});
+    assert.equal(await page.locator('body').getAttribute('data-audio'),'running');
+    await page.locator('#mute').click();assert.equal(await page.locator('#mute').getAttribute('aria-pressed'),'true');await page.reload();await ready(page);assert.equal(await page.locator('#mute').getAttribute('aria-pressed'),'true');
+    checks.push({name:'Web Audio running after gesture; mute persists after reload'});
+    const root=await desktop.newPage();active=root;monitor(root);await root.goto('http://127.0.0.1:4402/');await ready(root);await weather(root,'rain');await wind(root,'right');await expect(root,{status:'won'});await root.close();
+    checks.push({name:'standalone root at :4402 and aggregate /weather-command/ at :4400 both playable'});
+    const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+    const phone=await mobile.newPage();active=phone;monitor(phone);await phone.goto(base);await ready(phone);await level(phone,1);
+    const cdp=await mobile.newCDPSession(phone);
+    async function touchDrag(dir,{cancel=false,hold=false}={}){const p=await boatPoint(phone),[dx,dy]=({right:[1,0],left:[-1,0],up:[0,-1],down:[0,1]})[dir];await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:p.x,y:p.y,id:0}]});for(let i=1;i<=5;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:p.x+dx*9*i,y:p.y+dy*9*i,id:0}]});if(hold)return;await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});await ready(phone);}
+    await weather(phone,'rain',true);await touchDrag('right',{cancel:true});await expect(phone,{remaining:2,x:1});
+    await touchDrag('right');await expect(phone,{remaining:1,x:4,y:5});await touchDrag('up');await expect(phone,{remaining:0,status:'won'});
+    await phone.locator('#restart').tap();await weather(phone,'snow',true);await touchDrag('right');await expect(phone,{x:5});await wind(phone,'left',true);await expect(phone,{status:'lost'});await phone.locator('#result-action').tap();await expect(phone,{remaining:3,status:'playing'});
+    await weather(phone,'snow',true);await touchDrag('up',{hold:true});await phone.screenshot({path:path.join(out,'playtest-mobile.png'),fullPage:true});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await ready(phone);await touchDrag('right');await expect(phone,{status:'won',remaining:0});
+    const layouts=[];
+    for(const size of [{width:390,height:844},{width:360,height:800}]){await phone.setViewportSize(size);await phone.locator('#restart').tap();await phone.evaluate(()=>scrollTo(0,0));const layout=await phone.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,weatherBottom:document.querySelector('.weather-buttons').getBoundingClientRect().bottom,undoBottom:document.querySelector('#undo').getBoundingClientRect().bottom,targets:[...document.querySelectorAll('[data-weather],[data-dir],#undo,#restart,#mute')].map(e=>({w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))}));assert(layout.scrollWidth<=layout.width,'手机不能横向溢出');assert(layout.undoBottom<=layout.height,'主要操作必须在首屏');assert(layout.targets.every(r=>r.w>=44&&r.h>=44),'触控目标至少44px');layouts.push(layout);}
+    checks.push({name:'mobile emulation: native touch drag/cancel, one-tap weather, failure/retry/win',layouts});
+    assert.deepEqual(errors,[],'浏览器错误');
+    const report={passed:true,date:new Date().toISOString(),browser:await browser.version(),base,checks,errors,boundaries:['Headless Chromium desktop and mobile emulation; no physical phone','Audio context and mute verified programmatically; no human listening test','No external participant playtest or retention evidence']};
+    await fs.writeFile(path.join(out,'playtest-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+  }catch(e){if(active&&!active.isClosed())await active.screenshot({path:path.join(out,'playtest-error.png'),fullPage:true}).catch(()=>{});console.error(e);process.exitCode=1;}finally{await browser.close();}
+})();

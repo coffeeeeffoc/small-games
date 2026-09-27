@@ -1,0 +1,42 @@
+{
+  "browser": "本机 Chrome，Playwright 指针输入，受控浏览器时钟；没有改写游戏状态",
+  "desktop": [
+    {
+      "flow": "拖拽绑一只→浮力不足→失败",
+      "result": "浮力不够了：多绑一只气球，或晚一点排气。"
+    },
+    {
+      "level": "沙发",
+      "phase": "won",
+      "tick": 3402,
+      "result": "沙发已签收 · 28.4 秒 · 轻擦 0 次"
+    },
+    {
+      "level": "冰箱",
+      "phase": "won",
+      "tick": 4546,
+      "result": "冰箱已签收 · 37.9 秒 · 轻擦 2 次"
+    },
+    {
+      "level": "钢琴",
+      "phase": "won",
+      "result": "钢琴已签收 · 50.1 秒 · 轻擦 1 次"
+    },
+    {
+      "flow": "长短绳切换、Web Audio 初始化、静音按钮通过"
+    }
+  ],
+  "mobile": [
+    {
+      "viewport": "390×844，触摸仿真，非实机",
+      "phase": "won",
+      "result": "沙发已签收 · 28.4 秒 · 轻擦 0 次",
+      "touchCancel": "释放气阀成功"
+    },
+    {
+      "viewport": "360×640",
+      "controls": "两个气阀均在视口内；无横向溢出"
+    }
+  ],
+  "errors": []
+}

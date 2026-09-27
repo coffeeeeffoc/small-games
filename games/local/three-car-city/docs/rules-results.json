@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "levels": [
+    {
+      "level": 1,
+      "finished": 26,
+      "events": 4,
+      "loss": 0
+    },
+    {
+      "level": 2,
+      "finished": 32,
+      "events": 5,
+      "loss": 0
+    },
+    {
+      "level": 3,
+      "finished": 36,
+      "events": 6,
+      "loss": 0
+    }
+  ],
+  "cooperation": {
+    "helpedFire": 17.4,
+    "unsupportedFire": "missed at 22s"
+  },
+  "routeChoice": {
+    "shortcutLoss": 0,
+    "detourLoss": 2
+  },
+  "checks": [
+    "deadline equality",
+    "one tick late",
+    "reroute physical continuity",
+    "busy/rejected commands",
+    "max slowdown",
+    "repair after expiry",
+    "deterministic replay",
+    "idle failure",
+    "district standby and reassignment",
+    "route choice while departing"
+  ]
+}

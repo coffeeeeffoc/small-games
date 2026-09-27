@@ -1,0 +1,148 @@
+{
+  "passed": true,
+  "date": "2026-09-27T09:00:24.933Z",
+  "browser": "154.0.8037.57",
+  "base": "http://127.0.0.1:4400/weather-command/",
+  "checks": [
+    {
+      "name": "single-click rain → continuous float → real drag → gate break → dock",
+      "floatA": "translate(0 -0.6571076923076924)",
+      "floatB": "translate(0 -1.559671794871795)",
+      "intermediate": "translate(210.15424631946325 280)"
+    },
+    {
+      "name": "undo restores broken gate and charges; restart cancels stale animation"
+    },
+    {
+      "name": "same map: rain stops at (4,5), snow overshoots to (5,5); failure → retry → alternate route; third action wins"
+    },
+    {
+      "name": "all five levels won through real UI; bridge shortcut and detour; snow-only distance puzzle; thaw route"
+    },
+    {
+      "name": "Web Audio running after gesture; mute persists after reload"
+    },
+    {
+      "name": "standalone root at :4402 and aggregate /weather-command/ at :4400 both playable"
+    },
+    {
+      "name": "mobile emulation: native touch drag/cancel, one-tap weather, failure/retry/win",
+      "layouts": [
+        {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390,
+          "scrollHeight": 874,
+          "weatherBottom": 687,
+          "undoBottom": 798,
+          "targets": [
+            {
+              "w": 84.75,
+              "h": 83
+            },
+            {
+              "w": 84.75,
+              "h": 83
+            },
+            {
+              "w": 84.75,
+              "h": 83
+            },
+            {
+              "w": 84.75,
+              "h": 83
+            },
+            {
+              "w": 75.75,
+              "h": 44
+            },
+            {
+              "w": 75.75,
+              "h": 44
+            },
+            {
+              "w": 75.75,
+              "h": 44
+            },
+            {
+              "w": 75.75,
+              "h": 44
+            },
+            {
+              "w": 116,
+              "h": 44
+            },
+            {
+              "w": 116,
+              "h": 44
+            },
+            {
+              "w": 116,
+              "h": 44
+            }
+          ]
+        },
+        {
+          "width": 360,
+          "height": 800,
+          "scrollWidth": 360,
+          "scrollHeight": 800,
+          "weatherBottom": 627,
+          "undoBottom": 732,
+          "targets": [
+            {
+              "w": 77.25,
+              "h": 78
+            },
+            {
+              "w": 77.25,
+              "h": 78
+            },
+            {
+              "w": 77.25,
+              "h": 78
+            },
+            {
+              "w": 77.25,
+              "h": 78
+            },
+            {
+              "w": 68.25,
+              "h": 44
+            },
+            {
+              "w": 68.25,
+              "h": 44
+            },
+            {
+              "w": 68.25,
+              "h": 44
+            },
+            {
+              "w": 68.25,
+              "h": 44
+            },
+            {
+              "w": 106,
+              "h": 44
+            },
+            {
+              "w": 106,
+              "h": 44
+            },
+            {
+              "w": 106,
+              "h": 44
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "boundaries": [
+    "Headless Chromium desktop and mobile emulation; no physical phone",
+    "Audio context and mute verified programmatically; no human listening test",
+    "No external participant playtest or retention evidence"
+  ]
+}

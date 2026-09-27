@@ -1,0 +1,53 @@
+{
+  "checkedAt": "2026-09-27T11:25:59.622Z",
+  "browser": "154.0.8037.57",
+  "desktop": "1360×980",
+  "mobile": "390×844 and 360×800 touch emulation, not physical devices",
+  "checks": [
+    "desktop: wait → collision failure → full undo; failure → retry",
+    "desktop: mouse drag transfers once; animation undo cancels stale updates",
+    "Web Audio starts after gesture; mute gain zero and preference survives reload",
+    "desktop: all three authored solutions won through buttons; undo after victory",
+    "390×844 touch emulation: failure/retry and all three levels won using taps",
+    "native touch events: drag preview, touchCancel keeps exact state; release transfers once",
+    "independent 4408 / entry: level 1 won; relative module/CSS loading works"
+  ],
+  "victories": [
+    {
+      "level": 1,
+      "moves": 6
+    },
+    {
+      "level": 2,
+      "moves": 10
+    },
+    {
+      "level": 3,
+      "moves": 6
+    }
+  ],
+  "layouts": [
+    {
+      "width": 390,
+      "overflow": 0,
+      "controlsBottom": 775.03125
+    },
+    {
+      "width": 360,
+      "overflow": 0,
+      "controlsBottom": 757.03125
+    }
+  ],
+  "errors": [],
+  "audio": {
+    "state": "running",
+    "muted": false,
+    "toneCount": 10,
+    "gain": 0.07500000298023224
+  },
+  "boundaries": [
+    "No physical phone or mobile Safari test",
+    "No external human playtest or retention claims",
+    "Audio nodes verified, speaker audibility not independently assessed"
+  ]
+}

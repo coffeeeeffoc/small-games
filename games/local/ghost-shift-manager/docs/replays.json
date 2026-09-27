@@ -1,0 +1,128 @@
+[
+  {
+    "level": 0,
+    "wonAt": 28.7,
+    "actions": [
+      {
+        "t": 0,
+        "kind": 2,
+        "target": 1,
+        "delay": 0
+      },
+      {
+        "t": 1,
+        "kind": 0,
+        "target": 2,
+        "delay": 0
+      },
+      {
+        "t": 3,
+        "kind": 1,
+        "target": 2,
+        "delay": 0
+      },
+      {
+        "t": 15,
+        "kind": 0,
+        "target": 0,
+        "delay": 0
+      },
+      {
+        "t": 20,
+        "kind": 2,
+        "target": 1,
+        "delay": 0
+      },
+      {
+        "t": 21,
+        "kind": 1,
+        "target": 2,
+        "delay": 0
+      }
+    ]
+  },
+  {
+    "level": 1,
+    "wonAt": 36.25,
+    "actions": [
+      {
+        "t": 0,
+        "kind": 0,
+        "target": 1,
+        "delay": 0
+      },
+      {
+        "t": 1,
+        "kind": 1,
+        "target": 2,
+        "delay": 0
+      },
+      {
+        "t": 7,
+        "kind": 2,
+        "target": 0,
+        "delay": 4
+      },
+      {
+        "t": 8,
+        "kind": "bell",
+        "target": 0,
+        "delay": 0
+      },
+      {
+        "t": 14,
+        "kind": 0,
+        "target": 1,
+        "delay": 8
+      },
+      {
+        "t": 19,
+        "kind": 1,
+        "target": 2,
+        "delay": 0
+      },
+      {
+        "t": 31,
+        "kind": 2,
+        "target": 2,
+        "delay": 0
+      }
+    ]
+  },
+  {
+    "level": 2,
+    "wonAt": 43,
+    "actions": [
+      {
+        "t": 0,
+        "kind": "bell",
+        "target": 0,
+        "delay": 0
+      },
+      {
+        "t": 2,
+        "kind": 2,
+        "target": 2,
+        "delay": 8
+      },
+      {
+        "t": 11,
+        "kind": 0,
+        "target": 1,
+        "delay": 8
+      },
+      {
+        "t": 19,
+        "kind": 1,
+        "target": 2,
+        "delay": 0
+      },
+      {
+        "t": 30,
+        "kind": 2,
+        "target": 1,
+        "delay": 0
+      }
+    ]
+  }
+]

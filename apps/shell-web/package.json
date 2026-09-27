@@ -58,7 +58,15 @@
     "null-range-mobile-cn": "workspace:*",
     "@coffeeeeffoc/one-stroke-course": "workspace:*",
     "@coffeeeeffoc/hold-tight-acrobats": "workspace:*",
-    "@coffeeeeffoc/wulong-city": "workspace:*"
+    "@coffeeeeffoc/wulong-city": "workspace:*",
+    "@coffeeeeffoc/balloon-movers": "workspace:*",
+    "@coffeeeeffoc/weather-command": "workspace:*",
+    "@coffeeeeffoc/off-camera": "workspace:*",
+    "@coffeeeeffoc/three-car-city": "workspace:*",
+    "@coffeeeeffoc/precision-demolition": "workspace:*",
+    "@coffeeeeffoc/afterimage-arena": "workspace:*",
+    "@coffeeeeffoc/ghost-shift-manager": "workspace:*",
+    "@coffeeeeffoc/rule-thief": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
