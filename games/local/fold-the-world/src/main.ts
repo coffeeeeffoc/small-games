@@ -50,7 +50,7 @@ function renderCreases():void{
   }));
 }
 function begin(i:number):void{
-  if(i<0||i>=levels.length||i>=progress.unlocked)return;
+  if(!Number.isInteger(i)||i<0||i>=levels.length)return;
   index=i;game=new Puzzle(levels[i]);guide=new HintGuide(plans[i]);selected=options()[0];menu=null;drag=null;hintTier=0;
   clearInput();lastMode='PLAYING';lastMessage='';el('message').textContent='';
   el('page').textContent=`${String(i+1).padStart(2,'0')} / ${levels.length}`;
@@ -83,7 +83,7 @@ function chapterMenu():string{
     const start=part*25,completed=Object.keys(progress.best).filter(k=>Number(k)>start&&Number(k)<=start+25).length;
     return `<details data-chapter="${part}" ${part===current?'open':''}><summary><strong>${name}</strong><span>${start+1}–${start+25} · 已完成 ${completed}/25</span></summary><div class="level-grid">${levels.slice(start,start+25).map((l,j)=>{
       const i=start+j;
-      return `<button data-level="${i}" ${i>=progress.unlocked?'disabled':''} ${i===index&&returnMenu!=='start'?'aria-current="true"':''}><span>${String(i+1).padStart(2,'0')}</span><strong>${l.title}</strong><small>${i>=progress.unlocked?T.locked:progress.best[String(i+1)]!==undefined?`${T.best}: ${progress.best[String(i+1)]}`:T.play+' ↗'}</small></button>`;
+      return `<button data-level="${i}" ${i===index&&returnMenu!=='start'?'aria-current="true"':''}><span>${String(i+1).padStart(2,'0')}</span><strong>${l.title}</strong><small>${progress.best[String(i+1)]!==undefined?`${T.best}: ${progress.best[String(i+1)]}`:T.play+' ↗'}</small></button>`;
     }).join('')}</div></details>`;
   }).join('');
 }
