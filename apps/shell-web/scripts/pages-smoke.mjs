@@ -114,6 +114,23 @@ try {
     // Static controls can appear before module scripts attach their event listeners.
     const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
     await gameFrame.waitForLoadState();
+    if (game.id === 'hold-tight-acrobats') {
+      // Reproduce slow CI frames: charging may safely cancel, but walking must remain usable.
+      await gameFrame.evaluate(() => {
+        const raf = globalThis.requestAnimationFrame.bind(globalThis);
+        let frames = 0;
+        globalThis.requestAnimationFrame = (callback) =>
+          raf(() => {
+            if (++frames % 4 === 0) {
+              const until = performance.now() + 140;
+              while (performance.now() < until) {
+                /* Simulated render stall. */
+              }
+            }
+            callback(performance.now());
+          });
+      });
+    }
     await exerciseStandalone(frame, game.id);
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
     assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
