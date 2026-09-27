@@ -1,0 +1,333 @@
+[
+  {
+    "name": "卸重成功",
+    "level": 0,
+    "result": "won",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 143,
+        "y": 309
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 143,
+        "y": 309
+      },
+      {
+        "tick": 274,
+        "type": "down",
+        "x": 258,
+        "y": 309
+      },
+      {
+        "tick": 308,
+        "type": "up",
+        "x": 258,
+        "y": 309
+      },
+      {
+        "tick": 548,
+        "type": "down",
+        "x": 260,
+        "y": 498
+      },
+      {
+        "tick": 582,
+        "type": "up",
+        "x": 260,
+        "y": 498
+      },
+      {
+        "tick": 822,
+        "type": "down",
+        "x": 150,
+        "y": 396
+      },
+      {
+        "tick": 856,
+        "type": "up",
+        "x": 150,
+        "y": 396
+      }
+    ]
+  },
+  {
+    "name": "先拆支柱失败",
+    "level": 0,
+    "result": "lost",
+    "cause": "overload",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 260,
+        "y": 498
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 260,
+        "y": 498
+      }
+    ]
+  },
+  {
+    "name": "花瓶成功",
+    "level": 1,
+    "result": "won",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 204,
+        "y": 249
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 204,
+        "y": 249
+      },
+      {
+        "tick": 274,
+        "type": "down",
+        "x": 292,
+        "y": 249
+      },
+      {
+        "tick": 308,
+        "type": "up",
+        "x": 292,
+        "y": 249
+      },
+      {
+        "tick": 548,
+        "type": "down",
+        "x": 258,
+        "y": 394
+      },
+      {
+        "tick": 582,
+        "type": "up",
+        "x": 258,
+        "y": 394
+      },
+      {
+        "tick": 822,
+        "type": "down",
+        "x": 208,
+        "y": 498
+      },
+      {
+        "tick": 856,
+        "type": "up",
+        "x": 208,
+        "y": 498
+      }
+    ]
+  },
+  {
+    "name": "落板撞碎花瓶",
+    "level": 1,
+    "result": "lost",
+    "cause": "impact",
+    "other": "vase",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 292,
+        "y": 249
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 292,
+        "y": 249
+      },
+      {
+        "tick": 34,
+        "type": "down",
+        "x": 204,
+        "y": 249
+      },
+      {
+        "tick": 68,
+        "type": "up",
+        "x": 204,
+        "y": 249
+      }
+    ]
+  },
+  {
+    "name": "邻墙综合成功",
+    "level": 2,
+    "result": "won",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 140,
+        "y": 178
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 140,
+        "y": 178
+      },
+      {
+        "tick": 274,
+        "type": "down",
+        "x": 244,
+        "y": 178
+      },
+      {
+        "tick": 308,
+        "type": "up",
+        "x": 244,
+        "y": 178
+      },
+      {
+        "tick": 548,
+        "type": "down",
+        "x": 316,
+        "y": 178
+      },
+      {
+        "tick": 582,
+        "type": "up",
+        "x": 316,
+        "y": 178
+      },
+      {
+        "tick": 822,
+        "type": "down",
+        "x": 143,
+        "y": 309
+      },
+      {
+        "tick": 856,
+        "type": "up",
+        "x": 143,
+        "y": 309
+      },
+      {
+        "tick": 1096,
+        "type": "down",
+        "x": 250,
+        "y": 309
+      },
+      {
+        "tick": 1130,
+        "type": "up",
+        "x": 250,
+        "y": 309
+      },
+      {
+        "tick": 1370,
+        "type": "down",
+        "x": 318,
+        "y": 309
+      },
+      {
+        "tick": 1404,
+        "type": "up",
+        "x": 318,
+        "y": 309
+      },
+      {
+        "tick": 1644,
+        "type": "down",
+        "x": 150,
+        "y": 396
+      },
+      {
+        "tick": 1678,
+        "type": "up",
+        "x": 150,
+        "y": 396
+      },
+      {
+        "tick": 1918,
+        "type": "down",
+        "x": 254,
+        "y": 396
+      },
+      {
+        "tick": 1952,
+        "type": "up",
+        "x": 254,
+        "y": 396
+      },
+      {
+        "tick": 2192,
+        "type": "down",
+        "x": 260,
+        "y": 498
+      },
+      {
+        "tick": 2226,
+        "type": "up",
+        "x": 260,
+        "y": 498
+      }
+    ]
+  },
+  {
+    "name": "落板撞坏邻墙",
+    "level": 2,
+    "result": "lost",
+    "cause": "impact",
+    "other": "neighbor",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 316,
+        "y": 178
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 316,
+        "y": 178
+      },
+      {
+        "tick": 34,
+        "type": "down",
+        "x": 244,
+        "y": 178
+      },
+      {
+        "tick": 68,
+        "type": "up",
+        "x": 244,
+        "y": 178
+      }
+    ]
+  },
+  {
+    "name": "综合关先拆支柱失败",
+    "level": 2,
+    "result": "lost",
+    "cause": "overload",
+    "events": [
+      {
+        "tick": 0,
+        "type": "down",
+        "x": 260,
+        "y": 498
+      },
+      {
+        "tick": 34,
+        "type": "up",
+        "x": 260,
+        "y": 498
+      }
+    ]
+  }
+]

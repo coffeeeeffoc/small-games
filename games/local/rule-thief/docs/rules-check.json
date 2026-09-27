@@ -1,0 +1,203 @@
+{
+  "checkedAt": "2026-09-27T13:46:48.673Z",
+  "maps": [
+    [
+      "######",
+      "#....#",
+      "#....#",
+      "######",
+      "#...E#",
+      "######"
+    ],
+    [
+      "######",
+      "#..#E#",
+      "#.##.#",
+      "#..#.#",
+      "#..#.#",
+      "######"
+    ],
+    [
+      "######",
+      "#....#",
+      "#..#E#",
+      "#.##.#",
+      "#....#",
+      "######"
+    ]
+  ],
+  "replay": [
+    {
+      "level": 1,
+      "moves": 6,
+      "hadStack": true,
+      "reclaimed": true,
+      "final": {
+        "level": 0,
+        "entities": [
+          {
+            "id": "p",
+            "name": "小贼",
+            "kind": "player",
+            "x": 4,
+            "y": 4,
+            "dir": 2
+          },
+          {
+            "id": "a",
+            "name": "载体一",
+            "kind": "stone",
+            "x": 2,
+            "y": 1,
+            "dir": 1
+          },
+          {
+            "id": "b",
+            "name": "载体二",
+            "kind": "stone",
+            "x": 1,
+            "y": 1,
+            "dir": 2
+          },
+          {
+            "id": "s",
+            "name": "哨兵",
+            "kind": "sentry",
+            "x": 3,
+            "y": 2,
+            "dir": 3
+          }
+        ],
+        "owners": {
+          "phase": "p",
+          "stride": "b",
+          "drift": "b"
+        },
+        "turn": 6,
+        "status": "won"
+      }
+    },
+    {
+      "level": 2,
+      "moves": 10,
+      "hadStack": true,
+      "reclaimed": true,
+      "final": {
+        "level": 1,
+        "entities": [
+          {
+            "id": "p",
+            "name": "小贼",
+            "kind": "player",
+            "x": 4,
+            "y": 1,
+            "dir": 1
+          },
+          {
+            "id": "a",
+            "name": "载体一",
+            "kind": "stone",
+            "x": 2,
+            "y": 1,
+            "dir": 1
+          },
+          {
+            "id": "b",
+            "name": "载体二",
+            "kind": "stone",
+            "x": 2,
+            "y": 3,
+            "dir": 0
+          },
+          {
+            "id": "c",
+            "name": "载体三",
+            "kind": "stone",
+            "x": 4,
+            "y": 4,
+            "dir": 0
+          }
+        ],
+        "owners": {
+          "phase": "p",
+          "stride": "c",
+          "drift": "a"
+        },
+        "turn": 10,
+        "status": "won"
+      }
+    },
+    {
+      "level": 3,
+      "moves": 6,
+      "hadStack": true,
+      "reclaimed": false,
+      "final": {
+        "level": 2,
+        "entities": [
+          {
+            "id": "p",
+            "name": "小贼",
+            "kind": "player",
+            "x": 4,
+            "y": 2,
+            "dir": 2
+          },
+          {
+            "id": "a",
+            "name": "载体一",
+            "kind": "stone",
+            "x": 2,
+            "y": 3,
+            "dir": 1
+          },
+          {
+            "id": "b",
+            "name": "载体二",
+            "kind": "stone",
+            "x": 1,
+            "y": 1,
+            "dir": 0
+          },
+          {
+            "id": "s",
+            "name": "哨兵",
+            "kind": "sentry",
+            "x": 3,
+            "y": 4,
+            "dir": 3
+          }
+        ],
+        "owners": {
+          "phase": "a",
+          "stride": "p",
+          "drift": "p"
+        },
+        "turn": 6,
+        "status": "won"
+      }
+    }
+  ],
+  "proofs": {
+    "noStack": {
+      "status": "unsolvable",
+      "visited": 490
+    },
+    "noReclaim": {
+      "status": "unsolvable",
+      "visited": 970
+    },
+    "noSteal": {
+      "status": "unsolvable",
+      "visited": 1
+    }
+  },
+  "capacity": {
+    "status": "unknown",
+    "reason": "state-limit",
+    "visited": 1
+  },
+  "transitionStatesChecked": 500,
+  "alternativeSolution": "won",
+  "limits": "30,000 states / 5 seconds; capped search returns unknown"
+}

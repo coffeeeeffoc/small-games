@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2ead9"><title>小城救援队 · 分派救援，疏通道路</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<main id="app">
+<header><div><p class="eyebrow">分派救援 · 疏通道路 · 及时赶到</p><h1>小城救援队<span>● ● ●</span></h1></div><div class="tools"><button id="sound" aria-label="静音" aria-pressed="false">声音开</button><button id="motion" aria-label="减少动画" aria-pressed="false">动效开</button></div></header>
+<nav aria-label="选择关卡"><button data-level="0">01 初次出车</button><button data-level="1">02 清障合作</button><button data-level="2">03 双危机</button></nav>
+<section class="hud" aria-label="城市状态"><div><span id="chapter">01 / 初次救援</span><strong id="subtitle"></strong></div><div class="metrics"><span id="time">00:00</span><span id="loss">失误 0/3</span><span id="progress">0/4</span></div></section>
+<section id="map-wrap" aria-label="城市地图">
+<div class="map-tag"><span class="live-dot"></span><span id="phase">派出第一辆车，即刻开始</span></div>
+<svg id="map" viewBox="0 0 600 540" aria-label="六路口城市，可直接拖车到事件" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="map-legend"><span>◌ 倒计时</span><span>● 服务进度</span><span>斜纹路＝减速</span></div>
+</section>
+<section class="console" aria-label="调度操作"><div id="fleet" aria-label="选一辆车，再点求助地点；也可直接拖车"></div><div class="instruction"><span id="hint" role="status" aria-live="polite"></span><small id="eta">先点车或先点地点都行；也可以直接拖过去。</small></div><div id="routes" aria-label="路线选择"></div><div class="actions"><button id="cancel" hidden>取消选择</button><button id="restart">重试</button><button id="go" class="primary">开始 <span>→</span></button></div></section>
+<footer>你疏通的路，是同伴赶上的救援。<span>选车不停工 · 随时分派救援</span></footer>
+</main>
+<dialog id="result" aria-labelledby="result-title"><p class="eyebrow">本次出勤记录</p><h2 id="result-title"></h2><p id="result-body"></p><p id="result-detail"></p><div class="result-actions"><button id="retry-result">再试一次</button><button id="next" class="primary">下一关 →</button></div></dialog>
+<script type="module" src="./game.js"></script>
+</body></html>

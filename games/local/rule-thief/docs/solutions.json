@@ -1,0 +1,103 @@
+[
+  [
+    {
+      "type": "transfer",
+      "rule": "stride",
+      "target": "b"
+    },
+    {
+      "type": "transfer",
+      "rule": "phase",
+      "target": "p"
+    },
+    {
+      "type": "move",
+      "dir": 2
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "move",
+      "dir": 2
+    }
+  ],
+  [
+    {
+      "type": "move",
+      "dir": 3
+    },
+    {
+      "type": "transfer",
+      "rule": "drift",
+      "target": "p"
+    },
+    {
+      "type": "transfer",
+      "rule": "drift",
+      "target": "a"
+    },
+    {
+      "type": "move",
+      "dir": 0
+    },
+    {
+      "type": "transfer",
+      "rule": "phase",
+      "target": "p"
+    },
+    {
+      "type": "move",
+      "dir": 2
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "move",
+      "dir": 0
+    },
+    {
+      "type": "move",
+      "dir": 1
+    }
+  ],
+  [
+    {
+      "type": "transfer",
+      "rule": "stride",
+      "target": "b"
+    },
+    {
+      "type": "move",
+      "dir": 3
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "transfer",
+      "rule": "stride",
+      "target": "p"
+    },
+    {
+      "type": "move",
+      "dir": 1
+    },
+    {
+      "type": "move",
+      "dir": 2
+    }
+  ]
+]
