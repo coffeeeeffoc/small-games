@@ -56,3 +56,33 @@ export function connections(world: readonly WorldEntity[]): { x: number; y: numb
     return [];
   }));
 }
+// Original support stays readable through folded paper; buried or low-ceiling spans do not.
+export function fixedTops(world: readonly WorldEntity[]): {x:number;y:number;w:number}[] {
+  const platforms=world.filter(e=>e.kind==='platform');
+  return platforms.filter(e=>!e.moved).flatMap(fixed=>{
+    let spans=[[fixed.x,fixed.x+fixed.w]];
+    for(const other of platforms) {
+      if(other.y>=fixed.y||other.y+other.h<=fixed.y-28)continue;
+      spans=spans.flatMap(([left,right])=>other.x>=right||other.x+other.w<=left?[[left,right]]:[[left,Math.min(right,other.x)],[Math.max(left,other.x+other.w),right]].filter(([a,b])=>b>a));
+    }
+    return spans.map(([x,end])=>({x,y:fixed.y,w:end-x}));
+  });
+}
+export function coveredByPlatform(target:Rect,world:readonly WorldEntity[]):boolean {
+  let exposed:Rect[]=[target];
+  for(const solid of world.filter(e=>e.kind==='platform')){
+    exposed=exposed.flatMap(rect=>{
+      if(!overlaps(rect,solid))return [rect];
+      const left=Math.max(rect.x,solid.x),right=Math.min(rect.x+rect.w,solid.x+solid.w);
+      const top=Math.max(rect.y,solid.y),bottom=Math.min(rect.y+rect.h,solid.y+solid.h);
+      return [
+        {x:rect.x,y:rect.y,w:rect.w,h:top-rect.y},
+        {x:rect.x,y:bottom,w:rect.w,h:rect.y+rect.h-bottom},
+        {x:rect.x,y:top,w:left-rect.x,h:bottom-top},
+        {x:right,y:top,w:rect.x+rect.w-right,h:bottom-top},
+      ].filter(r=>r.w>0.001&&r.h>0.001);
+    });
+    if(!exposed.length)return true;
+  }
+  return false;
+}

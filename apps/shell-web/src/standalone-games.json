@@ -150,7 +150,7 @@
     "id": "fold-the-world",
     "source": "games/local/fold-the-world",
     "title": "折叠世界",
-    "description": "折起纸面连接远处的平台，收集钥匙、避开尖刺，在十六关中找到通往出口的路。",
+    "description": "在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。",
     "output": "dist"
   },
   {

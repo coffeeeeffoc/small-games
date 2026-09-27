@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { buildWorld, connections, movingSide, WIDTH, HEIGHT, type Fold, type Entity } from './geometry';
+import { buildWorld, connections, fixedTops, coveredByPlatform, overlaps, movingSide, WIDTH, HEIGHT, type Fold, type Entity } from './geometry';
 import type { Puzzle } from './game';
 import { creaseName, TEXT as T } from './strings';
 const C = {paper:0xf4eddc, back:0xe8dbc1, line:0xd8cdb8, ink:0x364b45, fold:0x6c897a, danger:0xb85940, accent:0xc97950};
@@ -70,8 +70,28 @@ export class Paper {
       for(const e of buildWorld(game.level,game.target,game.collected)) this.entity(this.ghost,e,e.moved);
     }
     const t=this.top;
-    // Hazards always sit above the overlapping paper, never concealed by its background.
-    if(!transition) for(const e of game.world.filter(e=>e.kind==='spike')) this.entity(t,e,e.moved);
+    if(!transition) {
+      for(const edge of fixedTops(game.world)){
+        t.lineStyle(3,0xe2ce8d).lineBetween(edge.x,edge.y+1,edge.x+edge.w,edge.y+1);
+        t.fillStyle(C.ink);for(let x=edge.x+5;x<edge.x+edge.w-2;x+=12)t.fillCircle(x,edge.y+1,1.5);
+      }
+      // Goals and hazards never disappear beneath a folded sheet.
+      for(const e of game.world.filter(e=>e.kind!=='platform')){
+        this.entity(t,e,e.moved);
+        if(e.kind!=='spike'&&coveredByPlatform(e,game.world)){
+          t.fillStyle(C.ink,.45).fillRect(e.x-2,e.y-2,e.w+4,e.h+4);
+          t.lineStyle(3,C.danger).strokeRect(e.x-3,e.y-3,e.w+6,e.h+6);
+          for(let x=e.x+4;x<e.x+e.w;x+=8)t.lineBetween(x,e.y,x,e.y+e.h);
+        }
+      }
+      if(game.message===T.blocked&&game.blockedTarget!==undefined){
+        const target=buildWorld(game.level,game.blockedTarget,game.collected);
+        for(const e of target.filter(e=>(e.kind==='platform'||e.kind==='spike')&&overlaps(e,game.body))){
+          t.fillStyle(C.danger,.25).fillRect(e.x,e.y,e.w,e.h);
+          t.lineStyle(3,C.danger).strokeRect(e.x,e.y,e.w,e.h);
+        }
+      }
+    }
     for(const mark of connections(game.world)) {
       t.lineStyle(2,0xc99753,0.9).lineBetween(mark.x-6,mark.y-5,mark.x,mark.y-1).lineBetween(mark.x,mark.y-1,mark.x+6,mark.y-5);
     }

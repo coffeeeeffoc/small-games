@@ -9,12 +9,14 @@ export class Puzzle {
   mode: Mode = 'PLAYING'; fold: Fold | null = null; world: WorldEntity[];
   collected = new Set<string>(); folds = 0; unfolds = 0; elapsed = 0; message = '';
   target: Fold | null = null; preview = 0; animation = 0; deadTime = 0; deaths = 0; revision = 0;
+  blockedTarget: Fold | null | undefined;
   returning = false; private startProgress = 0;
   private pausedMode: Mode = 'PLAYING';
   get visualTransition(): boolean { return this.mode === 'PAUSED' && this.pausedMode === 'FOLD_ANIMATING'; }
   constructor(level: Level) { this.level = level; this.body = makeBody(level.spawn); this.world = buildWorld(level, null); }
   restart(): void {
     this.body = makeBody(this.level.spawn); this.mode = 'PLAYING'; this.fold = null; this.target = null;
+    this.blockedTarget = undefined;
     this.collected.clear(); this.folds = 0; this.unfolds = 0; this.elapsed = 0; this.preview = 0; this.message = '';
     this.world = buildWorld(this.level, null); this.revision++;
   }
@@ -39,6 +41,7 @@ export class Puzzle {
   beginPreview(target: Fold | null): boolean {
     if (this.mode !== 'PLAYING') return false;
     this.message = this.safety(target);
+    this.blockedTarget = this.message === TEXT.blocked ? target : undefined;
     if (this.message) return false;
     this.target = target; this.preview = 0; this.mode = 'FOLD_PREVIEW'; this.revision++; return true;
   }
@@ -69,7 +72,7 @@ export class Puzzle {
         if (!this.returning) {
           const reason = this.safety(this.target);
           if (!reason) { this.fold = this.target; this.world = buildWorld(this.level, this.fold, this.collected); if (this.fold) this.folds++; else this.unfolds++; this.body.buffer = 0; }
-          else this.message = reason;
+          else { this.message = reason; this.blockedTarget = reason === TEXT.blocked ? this.target : undefined; }
         }
         this.mode = 'PLAYING'; this.preview = 0; this.target = null; this.revision++;
       }
