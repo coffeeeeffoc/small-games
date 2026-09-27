@@ -84,7 +84,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         .toBeGreaterThan(before + 20),
     );
     const moved = (await snapshot()).actors[2].x;
-    await click(frame.locator('#retry'));
+    // A slow observation round-trip can carry the actor off the platform before release.
+    // Retry through the visible result/pause dialog when it owns input.
+    await click(frame.locator('#dialog[open] #restart-full, body:not(:has(dialog[open])) #retry'));
     await expect.poll(async () => (await snapshot()).actors[2].x).toBeLessThan(moved - 10);
     await expect.poll(async () => (await snapshot()).actions.length).toBe(0);
     await click(frame.locator('#pause'));
