@@ -105,6 +105,21 @@ test('50 resets leave no bodies, constraints, slots, charge or cooldown behind',
 test('frame gaps discard accumulated time and cancel charge; pause consumes no game time', () => {
   const s=make(solo());step(s,1000);s.begin('key');const time=s.time;s.advance(12000);assert.equal(s.time,time);assert.equal(s.charge,null);s.pause(true);s.advance(30);assert.equal(s.time,time);
 });
+test('sustained slow frames still land and walk without catching up unbounded time', () => {
+  for (const delta of [140, 500]) {
+    const s = make(solo());
+    for (let n = 0; n < 10; n++) s.advance(delta);
+    assert.equal(s.qualification(0).action, 'jump');
+    assert.ok(s.begin('key'));
+    const before = s.actors[0].body.position.x, time = s.time;
+    s.movement(1, 'D');
+    for (let n = 0; n < 5; n++) s.advance(delta);
+    assert.ok(s.actors[0].body.position.x > before + 20);
+    assert.ok(s.time > time && s.time <= time + 5 * C.maxFrame + 0.001);
+    assert.equal(s.charge, null);
+    assert.equal(s.releaseCharge('key'), false);
+  }
+});
 test('checkpoint reset rebuilds legal safe standing positions', () => {
   const s=make(levels[3]);s.checkpoint=true;s.reset();step(s,700);assert.ok(s.actors.every(c=>c.groundedMs>=C.supportMs));assert.equal(s.grips.connections.size,0);assert.equal(s.checkpoint,true);
 });

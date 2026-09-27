@@ -105,7 +105,9 @@ export class Simulation {
   }
   advance(delta: number) {
     if (this.paused || this.status !== 'playing') { this.accumulator = 0; return; }
-    if (!Number.isFinite(delta) || delta < 0 || delta > C.maxFrame) { this.accumulator = 0; this.cancel('画面中断，蓄力取消'); return; }
+    if (!Number.isFinite(delta) || delta < 0 || delta > 1000) { this.accumulator = 0; this.cancel('画面中断，蓄力取消'); return; }
+    // Slow rendering must not freeze physics; cap catch-up and discard interrupted charges.
+    if (delta > C.maxFrame) { this.accumulator = 0; this.cancel('画面中断，蓄力取消'); delta = C.maxFrame; }
     this.accumulator += delta;
     while (this.accumulator + 1e-7 >= C.step && this.status === 'playing') { this.tick(); this.accumulator -= C.step; }
   }

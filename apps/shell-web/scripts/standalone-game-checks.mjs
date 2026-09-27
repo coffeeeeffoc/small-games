@@ -74,7 +74,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#start'));
     await click(frame.locator('[data-who="2"]'));
     await expect(frame.locator('[data-who="2"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect.poll(async () => (await snapshot()).actors[2].action).toBe('jump');
+    await expect
+      .poll(async () => (await snapshot()).actors[2].action, { timeout: 20000 })
+      .toBe('jump');
     // Long frames deliberately cancel charging; sustained walking still works on slow runners.
     // The game's own input/physics suites cover charge, jump and cancellation.
     const before = (await snapshot()).actors[2].x;
