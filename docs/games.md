@@ -6,7 +6,7 @@
 
 | 中文名                | 文件夹名                       | 目录路径                                                                                 | 简介                                                                     |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 折起纸面连接远处的平台，收集钥匙、避开尖刺，在十六关中找到通往出口的路。 |
+| 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。 |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。               |
 | 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。           |
 | 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。         |

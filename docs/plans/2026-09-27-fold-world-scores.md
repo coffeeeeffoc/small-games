@@ -107,4 +107,3 @@
 | 98 | 8.6 | 8.3 | 8.5 | 8.4 | 8.3 | 8.42 | [campaign-design](2026-09-27-fold-world-campaign-design.md#L113) |
 | 99 | 8.7 | 8.5 | 8.1 | 8.1 | 8.5 | 8.38 | [campaign-design](2026-09-27-fold-world-campaign-design.md#L114) |
 | 100 | 8.8 | 8.8 | 8.5 | 8.3 | 8.7 | 8.62 | [campaign-design](2026-09-27-fold-world-campaign-design.md#L115) |
-
