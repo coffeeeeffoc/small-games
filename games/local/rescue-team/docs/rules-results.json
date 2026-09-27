@@ -1,0 +1,116 @@
+{
+  "passed": true,
+  "levels": [
+    {
+      "level": 1,
+      "finished": 27,
+      "events": [
+        {
+          "id": "pet-1",
+          "finished": 9
+        },
+        {
+          "id": "fire-1",
+          "finished": 13
+        },
+        {
+          "id": "pet-2",
+          "finished": 22
+        },
+        {
+          "id": "fire-2",
+          "finished": 27
+        }
+      ],
+      "loss": 0
+    },
+    {
+      "level": 2,
+      "finished": 34,
+      "events": [
+        {
+          "id": "traffic-1",
+          "finished": 7
+        },
+        {
+          "id": "fire-1",
+          "finished": 19
+        },
+        {
+          "id": "pet-1",
+          "finished": 9
+        },
+        {
+          "id": "pet-2",
+          "finished": 28
+        },
+        {
+          "id": "fire-2",
+          "finished": 34
+        }
+      ],
+      "loss": 0
+    },
+    {
+      "level": 3,
+      "finished": 38,
+      "events": [
+        {
+          "id": "traffic-1",
+          "finished": 7
+        },
+        {
+          "id": "fire-1",
+          "finished": 19
+        },
+        {
+          "id": "pet-1",
+          "finished": 9
+        },
+        {
+          "id": "power-1",
+          "finished": 32
+        },
+        {
+          "id": "fire-2",
+          "finished": 38
+        },
+        {
+          "id": "pet-2",
+          "finished": 28
+        }
+      ],
+      "loss": 0
+    }
+  ],
+  "cooperation": {
+    "helpedFire": 19,
+    "unsupportedFire": "missed at 23s"
+  },
+  "routeChoice": {
+    "shortcutFinish": 19,
+    "detourMiss": 22,
+    "detourWithoutDeadline": 23,
+    "unsupportedShortcutWithoutDeadline": 25,
+    "shortcutLoss": 0,
+    "detourLoss": 2
+  },
+  "checks": [
+    "deadline equality",
+    "one tick late",
+    "no road service",
+    "entry/exit continuity and locks",
+    "parked after completion",
+    "same-node site transfer",
+    "expiry during entry",
+    "deterministic fallback",
+    "reroute physical continuity",
+    "busy/rejected commands",
+    "max slowdown",
+    "repair after expiry",
+    "deterministic replay",
+    "idle failure",
+    "district standby and reassignment",
+    "route choice while departing"
+  ]
+}

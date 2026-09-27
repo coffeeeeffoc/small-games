@@ -1,0 +1,80 @@
+{
+  "testedAt": "2026-09-27T17:02:42.780Z",
+  "browser": "Installed Chrome; real wall-clock, mouse and browser touch; no simulation injection",
+  "checks": [
+    {
+      "freeParking": "no fixed-junction circles; exact road and off-road parking; repark; resume rescue from custom point; mobile tap and touch drag"
+    },
+    {
+      "dispatchPicker": "card-first two-tap dispatch, no stale auto-dispatch, idle-only live candidates, assigned/empty states, exact position links after resize, touch/keyboard, cancellation and expiry cleanup"
+    },
+    {
+      "assignedGroup": "default pending-only list; animated fold on assignment; expand/collapse; assigned vehicle live links; automatic completed-event removal and inspector cleanup; reduced-motion setting"
+    },
+    {
+      "events": "future cards and map pins hidden; waiting counts up; fire truck enters courtyard before service"
+    },
+    {
+      "level": 1,
+      "result": "处理 4/4 件事 · 延误 0/3 · 用时 27.1 秒"
+    },
+    {
+      "level": 2,
+      "result": "处理 5/5 件事 · 延误 0/3 · 用时 34.1 秒"
+    },
+    {
+      "regression": "A kept working while B was selected; cancel and invalid drag kept the clock running and preserved assignments"
+    },
+    {
+      "viewport": {
+        "w": 360,
+        "h": 640,
+        "sw": 360,
+        "sh": 640
+      }
+    },
+    {
+      "viewport": {
+        "w": 390,
+        "h": 844,
+        "sw": 390,
+        "sh": 844
+      }
+    },
+    {
+      "viewport": {
+        "w": 844,
+        "h": 390,
+        "sw": 844,
+        "sh": 390
+      }
+    },
+    {
+      "level": 3,
+      "result": "处理 6/6 件事 · 延误 0/3 · 用时 38.3 秒"
+    },
+    {
+      "inputs": "target-first touch; vehicle-first scene tap; arbitrary-coordinate parking; keyboard point selection; explicit pause preserved"
+    },
+    {
+      "touchDrag": "fleet to actual incident site, visible tether/ghost and target highlight; pointercancel did not stop ongoing rescue"
+    },
+    {
+      "idleFailureAndRetry": true
+    },
+    {
+      "standalone": "http://127.0.0.1:4404/"
+    },
+    {
+      "standalone": "http://127.0.0.1:4404/rescue-team/"
+    },
+    {
+      "routeButton": "stable across ETA updates; touch changes route while driving"
+    },
+    {
+      "background": "real Chrome tab blur and return; remains paused"
+    }
+  ],
+  "consoleErrors": [],
+  "passed": true
+}

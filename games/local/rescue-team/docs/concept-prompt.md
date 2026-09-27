@@ -1,4 +1,6 @@
-# 最终玩法效果图提示词
+# 早期原型效果图提示词
+
+> 历史参考。现行场景效果图与完整提示词见 [rescue-town-concept-prompt.md](./rescue-town-concept-prompt.md)，不再使用本文的预告/倒计时界面。
 
 工具：内置 image_gen。用途：ui-mockup，风格参考，不是可玩截图。
 

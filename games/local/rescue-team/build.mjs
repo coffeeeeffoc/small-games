@@ -7,4 +7,4 @@ await mkdir(dist, { recursive: true });
 for (const file of ["index.html","style.css","game.js","simulation.mjs"]) {
   await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 }
-console.log('Built three-car-city: dist/');
+console.log('Built rescue-team: dist/');

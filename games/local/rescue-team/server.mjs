@@ -11,8 +11,8 @@ const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'tex
 http.createServer(async (req, res) => {
   try {
     let pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-    if (pathname === '/three-car-city') { res.writeHead(302, { Location:'/three-car-city/' }).end(); return; }
-    pathname = pathname.replace(/^\/three-car-city\//, '/');
+    if (pathname === '/rescue-team') { res.writeHead(302, { Location:'/rescue-team/' }).end(); return; }
+    pathname = pathname.replace(/^\/rescue-team\//, '/');
     const file = path.resolve(root, '.' + pathname);
     const rel = path.relative(root, file);
     if (rel.startsWith('..') || path.isAbsolute(rel)) { res.writeHead(403).end(); return; }

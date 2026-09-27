@@ -4,7 +4,7 @@ export const markers = {
   'balloon-movers': '#launch',
   'weather-command': '#board[data-level="1"]',
   'off-camera': '#bank [data-card]',
-  'three-car-city': '#fleet-1',
+  'rescue-team': '#fleet-1',
   'precision-demolition': '#primary',
   'afterimage-arena': '#continue',
   'ghost-shift-manager': '#start',
@@ -96,9 +96,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#confirm')).toHaveText('下一件小案 →');
     await click(frame.locator('#confirm'));
     await expect(frame.locator('#case-number')).toHaveText('02');
-  } else if (id === 'three-car-city') {
-    await click(frame.locator('#fleet-1'));
+  } else if (id === 'rescue-team') {
     await click(frame.locator('#event-fire-1'));
+    await click(frame.locator('[data-dispatch-car="1"]'));
     await expect(frame.locator('#event-fire-1 .assigned')).toContainText('1号');
     await expect(frame.locator('#app')).toHaveAttribute('data-paused', 'false');
     await expect

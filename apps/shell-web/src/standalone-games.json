@@ -196,10 +196,10 @@
     "output": "dist"
   },
   {
-    "id": "three-car-city",
-    "source": "games/local/three-car-city",
+    "id": "rescue-team",
+    "source": "games/local/rescue-team",
     "title": "小城救援队",
-    "description": "调度三辆救援车，选择路线、疏通道路，在求助倒计时结束前赶到现场。",
+    "description": "调度三辆救援车，接报后开始计时，选择路线、疏通道路，及时赶到现场完成救援。",
     "output": "dist"
   },
   {
