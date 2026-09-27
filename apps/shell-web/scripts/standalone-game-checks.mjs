@@ -1,6 +1,14 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'balloon-movers': '#launch',
+  'weather-command': '#board[data-level="1"]',
+  'off-camera': '#bank [data-card]',
+  'three-car-city': '#fleet-1',
+  'precision-demolition': '#primary',
+  'afterimage-arena': '#continue',
+  'ghost-shift-manager': '#start',
+  'rule-thief': '#actors .actor',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -54,7 +62,103 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'one-stroke-course') {
+  if (id === 'balloon-movers') {
+    await expect(frame.locator('#launch')).toBeDisabled();
+    await click(frame.locator('#suggest'));
+    await expect(frame.locator('#left-count')).toHaveText('2');
+    await click(frame.locator('#launch'));
+    await expect(frame.locator('#flight')).toHaveAttribute('data-phase', 'flying');
+    await holdControl('#left-valve', 'KeyA', () =>
+      expect
+        .poll(() => frame.locator('#left-gas').evaluate((el) => parseFloat(el.style.width)))
+        .toBeLessThan(99),
+    );
+    await expect(frame.locator('#left-valve')).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#flight')).toHaveText('已暂停');
+    await click(frame.locator('#retry'));
+    await expect(frame.locator('#flight')).toHaveAttribute('data-phase', 'ready');
+  } else if (id === 'weather-command') {
+    await click(frame.locator('[data-weather="rain"]'));
+    await expect(frame.locator('#remaining')).toHaveText('2');
+    await expect(frame.locator('#board')).toHaveAttribute('data-h', '1');
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#remaining')).toHaveText('3');
+    await expect(frame.locator('#board')).toHaveAttribute('data-h', '0');
+    await click(frame.locator('[data-weather="rain"]'));
+    await click(frame.locator('[data-dir="right"]'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+  } else if (id === 'off-camera') {
+    await click(frame.locator('#bank [data-card="move"]'));
+    await click(frame.locator('#bank [data-card="sit"]'));
+    await expect(frame.locator('#confirm')).toBeEnabled({ timeout: 20000 });
+    await click(frame.locator('#confirm'));
+    await expect(frame.locator('#confirm')).toHaveText('下一件小案 →');
+    await click(frame.locator('#confirm'));
+    await expect(frame.locator('#case-number')).toHaveText('02');
+  } else if (id === 'three-car-city') {
+    await click(frame.locator('#fleet-1'));
+    await click(frame.locator('#event-fire-1'));
+    await expect(frame.locator('#event-fire-1 .assigned')).toContainText('1号');
+    await expect(frame.locator('#app')).toHaveAttribute('data-paused', 'false');
+    await expect
+      .poll(async () => Number(await frame.locator('#app').getAttribute('data-time')))
+      .toBeGreaterThan(0);
+    await click(frame.locator('#go'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-paused', 'true');
+    await click(frame.locator('#restart'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-time', '0.0');
+  } else if (id === 'precision-demolition') {
+    await click(frame.locator('#primary'));
+    const joint = frame.locator('[data-id="upperL-R"]');
+    await joint.scrollIntoViewIfNeeded();
+    if (!mobile) await joint.focus();
+    await holdControl('[data-id="upperL-R"]', 'Space', () =>
+      expect(joint).toHaveAttribute('data-hp', '0', { timeout: 15000 }),
+    );
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#primary')).toHaveText('继续施工');
+    await click(frame.locator('#primary'));
+    await expect(frame.locator('#overlay')).toBeHidden();
+  } else if (id === 'afterimage-arena') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__arena.snapshot());
+    await click(frame.locator('#continue'));
+    await expect.poll(async () => (await snapshot()).mode).toBe('playing');
+    await holdControl('#fire', 'Space', () =>
+      expect
+        .poll(async () => (await snapshot()).actors.find((actor) => actor.id === 3).shots)
+        .toBeGreaterThan(0),
+    );
+    await click(frame.locator('#pause'));
+    await expect.poll(async () => (await snapshot()).mode).toBe('paused');
+    await click(frame.locator('#continue'));
+    await expect.poll(async () => (await snapshot()).mode).toBe('playing');
+  } else if (id === 'ghost-shift-manager') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.ghostShiftSnapshot());
+    await click(frame.locator('#start'));
+    await click(frame.locator('[data-ghost="0"]'));
+    await click(frame.locator('[data-delay="8"]'));
+    await click(frame.locator('[data-room="1"]'));
+    await expect.poll(async () => (await snapshot()).ghosts[0].job?.target).toBe(1);
+    await click(frame.locator('[data-cancel="0"]'));
+    await expect.poll(async () => (await snapshot()).ghosts[0].job).toBeNull();
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#continue')).toBeVisible();
+    await click(frame.locator('#continue'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+  } else if (id === 'rule-thief') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__ruleThief.inspect());
+    await click(frame.locator('[data-rule="stride"]'));
+    await click(frame.locator('[data-entity="b"]'));
+    await expect.poll(async () => (await snapshot()).state.owners.stride).toBe('b');
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+    await click(frame.locator('#wait'));
+    await expect.poll(async () => (await snapshot()).state.status).toBe('lost');
+    await click(frame.locator('#retry'));
+    await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
+    await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+  } else if (id === 'one-stroke-course') {
     await expect(frame.locator('#start')).toBeDisabled();
     await click(frame.locator('#example'));
     await expect(frame.locator('#start')).toBeEnabled();

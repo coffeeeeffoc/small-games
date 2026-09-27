@@ -1,0 +1,32 @@
+{
+  "clock": "真实 requestAnimationFrame / 墙钟，未安装虚拟时钟；真实鼠标指针",
+  "result": "沙发已签收 · 28.9 秒 · 轻擦 0 次",
+  "requests": [
+    {
+      "path": "/",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/balloon-movers/",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/physics.mjs",
+      "status": 200,
+      "mime": "text/javascript"
+    },
+    {
+      "path": "/balloon-movers/physics.mjs",
+      "status": 200,
+      "mime": "text/javascript"
+    },
+    {
+      "path": "/balloon-movers/vendor/matter.js",
+      "status": 200,
+      "mime": "text/javascript"
+    }
+  ],
+  "errors": []
+}

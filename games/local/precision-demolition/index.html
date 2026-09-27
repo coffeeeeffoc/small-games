@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4eedf"><title>一分钟拆对墙 · 修缮小队</title>
+  <link rel="stylesheet" href="./style.css"><script type="module" src="./main.mjs"></script>
+</head>
+<body>
+<main id="app">
+  <header><div><p class="eyebrow">修缮小队 / PRECISION DEMOLITION</p><h1>一分钟拆<span>对</span>墙</h1></div><div class="timer"><span>剩余时间</span><strong id="clock">01:00</strong></div></header>
+  <nav class="levels" aria-label="选择关卡"><button data-level="0" aria-pressed="true"><small>01</small> 卸重</button><button data-level="1" aria-pressed="false"><small>02</small> 花瓶</button><button data-level="2" aria-pressed="false"><small>03</small> 邻墙</button></nav>
+  <section class="mission"><div><span id="chapter">01 / 结构课</span><strong id="title">先卸重，再动柱</strong></div><span class="count" id="count">已拆 0/4</span></section>
+  <div class="site-wrap"><div id="site">
+    <canvas id="scene" width="800" height="1100" aria-label="拆墙施工区，按住橙色接缝凿击，拖动换位置。也可用 Tab 选择接缝，按住空格或回车。"></canvas>
+    <div id="joint-buttons" aria-label="可拆接缝"></div>
+    <div id="overlay" class="overlay"><div class="card"><p id="card-eyebrow">小心下锤，大胆拆墙</p><h2 id="card-title">先卸重，再动柱</h2><p id="card-body"></p><div class="micro-guide" id="guide"><span>① 按住凿击</span><span>② 拖动换缝</span><span>③ 松手停锤</span></div><button id="primary" class="primary">开始施工</button><button id="again" class="secondary" hidden>再试一次</button></div></div>
+  </div></div>
+  <p id="hint" class="hint" role="status" aria-live="polite">先凿上方两块，等它们落下，再拆右支柱。</p>
+  <footer><button id="pause" aria-label="暂停施工">Ⅱ 暂停</button><button id="restart">↻ 重来</button><button id="sound" aria-pressed="false">♪ 声音开</button></footer>
+  <p class="legend"><span class="orange-dot"></span> 橙色接缝可拆 <span class="blue-dot"></span> 蓝色承重要保护 <span class="signature">一砖一瓦，重新安放。</span></p>
+</main>
+</body></html>

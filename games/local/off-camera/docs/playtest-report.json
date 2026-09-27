@@ -1,0 +1,17 @@
+{
+  "started": "2026-09-27T09:11:56.072Z",
+  "browser": "Microsoft Edge (headless Chromium)",
+  "base": "http://127.0.0.1:4400/off-camera/",
+  "checks": [
+    "desktop: chair wrong → visible contradiction → drag swap → win; animation changes rendered SVG",
+    "desktop: cream full-face failure → retry → clean centre + cream on paper win",
+    "desktop: lunch wrong food → retry → broccoli + covered empty left plate win; full 3/3 completion",
+    "mute toggles and persists after reload",
+    "keyboard-only card entry reaches a win",
+    "390x844 mobile emulation: real touch taps, failure/retry and all three wins; no horizontal overflow",
+    "360x640: touch path wins; no horizontal overflow"
+  ],
+  "errors": [],
+  "passed": true,
+  "finished": "2026-09-27T09:12:32.582Z"
+}

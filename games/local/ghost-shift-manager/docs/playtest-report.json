@@ -1,0 +1,49 @@
+{
+  "browser": "installed Chrome, headless",
+  "mobile": "390x844 touch emulation, not a physical phone",
+  "checks": [
+    "Selfie hit and deliberately missed use actual buttons and different reactions",
+    "Cancel a pipe ghost before it spills into pastry room",
+    "Over-scare checkout, visible retry, same situation rescued with calming bell",
+    "Pause preserves queued timer; explicit continue resumes it",
+    "Web Audio initialized by user gesture; mute suspends AudioContext",
+    "Background/focus-loss pause requires explicit resume",
+    "Real mouse drag schedules ghost; release outside hotel cancels",
+    "Both independent root and prefixed entry load and accept real input",
+    "390x844 touch: start, ghost, fuse, room, cancel; no horizontal overflow",
+    "CDP touch drag casts once; real touchCancel casts nothing and next tap works"
+  ],
+  "wins": [
+    {
+      "night": 1,
+      "time": 28.7,
+      "actions": 6
+    },
+    {
+      "night": 2,
+      "time": 36.25,
+      "actions": 7
+    },
+    {
+      "night": 3,
+      "time": 43,
+      "actions": 5
+    }
+  ],
+  "errors": [],
+  "networkFailures": [],
+  "failureAt": 8.95,
+  "background": {
+    "paused": false,
+    "visibility": "visible",
+    "fallback": "headless focus event dispatched; physical background not claimed",
+    "visibilityBranch": "hidden/visible property fixture + visibilitychange event verified explicit resume; OS tab background remains unverified"
+  },
+  "mobileLayout": {
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "scrollHeight": 844,
+    "minTouch": 44
+  }
+}

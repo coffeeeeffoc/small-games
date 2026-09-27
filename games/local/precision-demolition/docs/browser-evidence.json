@@ -1,0 +1,2517 @@
+{
+  "desktop": [
+    {
+      "tick": 109,
+      "level": 1,
+      "phase": "lost",
+      "seconds": 1.82,
+      "failure": "承重柱承重 8，超过上限 5",
+      "stable": 0.37,
+      "detached": 4,
+      "targets": 4,
+      "impacts": 4,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 9,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 132,
+          "y": 358,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 186.6,
+          "y": 464,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 96,
+          "y": 294,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 244,
+          "y": 294,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 6,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 20,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 34,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 34,
+          "type": "cut",
+          "id": "prop-R"
+        },
+        {
+          "tick": 34,
+          "type": "fall",
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "vx": -150
+        },
+        {
+          "tick": 34,
+          "type": "overload",
+          "id": "blue",
+          "load": 8,
+          "capacity": 5
+        },
+        {
+          "tick": 52,
+          "type": "impact",
+          "body": "prop",
+          "other": "ground",
+          "impulse": 215,
+          "x": 213.5,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 61,
+          "type": "fall",
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "vx": 0
+        },
+        {
+          "tick": 61,
+          "type": "failure",
+          "reason": "承重柱承重 8，超过上限 5",
+          "cause": "overload",
+          "node": "blue",
+          "load": 8,
+          "capacity": 5
+        },
+        {
+          "tick": 62,
+          "type": "fall",
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "vx": 0
+        },
+        {
+          "tick": 62,
+          "type": "fall",
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "vx": 0
+        },
+        {
+          "tick": 62,
+          "type": "fall",
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "vx": 0
+        },
+        {
+          "tick": 81,
+          "type": "impact",
+          "body": "beam",
+          "other": "blue",
+          "impulse": 839,
+          "x": 200,
+          "y": 414,
+          "axis": "y"
+        },
+        {
+          "tick": 88,
+          "type": "impact",
+          "body": "upperL",
+          "other": "beam",
+          "impulse": 578,
+          "x": 128,
+          "y": 358,
+          "axis": "y"
+        },
+        {
+          "tick": 88,
+          "type": "impact",
+          "body": "upperR",
+          "other": "beam",
+          "impulse": 578,
+          "x": 276,
+          "y": 358,
+          "axis": "y"
+        },
+        {
+          "tick": 109,
+          "type": "lost"
+        }
+      ],
+      "input": [
+        {
+          "tick": 6,
+          "type": "down",
+          "x": 260,
+          "y": 498
+        },
+        {
+          "tick": 40,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 942,
+      "level": 1,
+      "phase": "won",
+      "seconds": 15.7,
+      "failure": null,
+      "stable": 0.75,
+      "detached": 4,
+      "targets": 4,
+      "impacts": 4,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 9,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": true,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 213.15,
+          "y": 402,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 186.6,
+          "y": 464,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 16.63,
+          "y": 458,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 319.04,
+          "y": 458,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 0,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 14,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 28,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 28,
+          "type": "cut",
+          "id": "upperL-R"
+        },
+        {
+          "tick": 28,
+          "type": "fall",
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "vx": -165
+        },
+        {
+          "tick": 76,
+          "type": "impact",
+          "body": "upperL",
+          "other": "ground",
+          "impulse": 1111,
+          "x": 47.95999999999998,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 275,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 289,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 303,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 303,
+          "type": "cut",
+          "id": "upperR-L"
+        },
+        {
+          "tick": 303,
+          "type": "fall",
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "vx": 165
+        },
+        {
+          "tick": 351,
+          "type": "impact",
+          "body": "upperR",
+          "other": "ground",
+          "impulse": 1111,
+          "x": 351.70999999999947,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 551,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 565,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 579,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 579,
+          "type": "cut",
+          "id": "prop-R"
+        },
+        {
+          "tick": 579,
+          "type": "fall",
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "vx": -150
+        },
+        {
+          "tick": 597,
+          "type": "impact",
+          "body": "prop",
+          "other": "ground",
+          "impulse": 215,
+          "x": 213.5,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 826,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 2
+        },
+        {
+          "tick": 840,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 1
+        },
+        {
+          "tick": 854,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 0
+        },
+        {
+          "tick": 854,
+          "type": "cut",
+          "id": "beam-L"
+        },
+        {
+          "tick": 854,
+          "type": "fall",
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "vx": 150
+        },
+        {
+          "tick": 882,
+          "type": "impact",
+          "body": "beam",
+          "other": "upperR",
+          "impulse": 1292,
+          "x": 271.25,
+          "y": 458,
+          "axis": "y"
+        },
+        {
+          "tick": 942,
+          "type": "won"
+        }
+      ],
+      "input": [
+        {
+          "tick": 0,
+          "type": "down",
+          "x": 143,
+          "y": 309
+        },
+        {
+          "tick": 34,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 275,
+          "type": "down",
+          "x": 258,
+          "y": 309
+        },
+        {
+          "tick": 310,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 551,
+          "type": "down",
+          "x": 260,
+          "y": 498
+        },
+        {
+          "tick": 585,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 826,
+          "type": "down",
+          "x": 150,
+          "y": 396
+        },
+        {
+          "tick": 860,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 162,
+      "level": 2,
+      "phase": "lost",
+      "seconds": 2.7,
+      "failure": "花瓶上方墙板撞坏了青瓷花瓶",
+      "stable": 0,
+      "detached": 1,
+      "targets": 3,
+      "impacts": 2,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 5,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "shelf",
+          "x": 144,
+          "y": 326,
+          "attached": true,
+          "load": 2,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "stand",
+          "x": 186,
+          "y": 432,
+          "attached": true,
+          "load": 3,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "top",
+          "x": 264.32,
+          "y": 462,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 0,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 2
+        },
+        {
+          "tick": 14,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 1
+        },
+        {
+          "tick": 28,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 0
+        },
+        {
+          "tick": 28,
+          "type": "cut",
+          "id": "top-R"
+        },
+        {
+          "tick": 36,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 2
+        },
+        {
+          "tick": 50,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 1
+        },
+        {
+          "tick": 64,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 0
+        },
+        {
+          "tick": 64,
+          "type": "cut",
+          "id": "top-L"
+        },
+        {
+          "tick": 64,
+          "type": "fall",
+          "id": "top",
+          "x": 192,
+          "y": 166,
+          "vx": 165
+        },
+        {
+          "tick": 114,
+          "type": "impact",
+          "body": "top",
+          "other": "vase",
+          "impulse": 1145,
+          "x": 326.48999999999944,
+          "y": 469,
+          "axis": "y"
+        },
+        {
+          "tick": 114,
+          "type": "failure",
+          "reason": "花瓶上方墙板撞坏了青瓷花瓶",
+          "cause": "impact",
+          "body": "top",
+          "other": "vase",
+          "impulse": 1144.6666666666672
+        },
+        {
+          "tick": 137,
+          "type": "impact",
+          "body": "top",
+          "other": "ground",
+          "impulse": 533,
+          "x": 321.8887000000003,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 162,
+          "type": "lost"
+        }
+      ],
+      "input": [
+        {
+          "tick": 0,
+          "type": "down",
+          "x": 292,
+          "y": 249
+        },
+        {
+          "tick": 34,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 36,
+          "type": "down",
+          "x": 204,
+          "y": 249
+        },
+        {
+          "tick": 70,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 923,
+      "level": 2,
+      "phase": "won",
+      "seconds": 15.38,
+      "failure": null,
+      "stable": 0.75,
+      "detached": 3,
+      "targets": 3,
+      "impacts": 6,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 5,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "shelf",
+          "x": 13.49,
+          "y": 410,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "stand",
+          "x": 134.23,
+          "y": 468,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "top",
+          "x": 19.95,
+          "y": 462,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 1,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 2
+        },
+        {
+          "tick": 15,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 1
+        },
+        {
+          "tick": 29,
+          "type": "strike",
+          "id": "top-L",
+          "node": "top",
+          "x": 204,
+          "y": 249,
+          "hp": 0
+        },
+        {
+          "tick": 29,
+          "type": "cut",
+          "id": "top-L"
+        },
+        {
+          "tick": 276,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 2
+        },
+        {
+          "tick": 290,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 1
+        },
+        {
+          "tick": 304,
+          "type": "strike",
+          "id": "top-R",
+          "node": "top",
+          "x": 292,
+          "y": 249,
+          "hp": 0
+        },
+        {
+          "tick": 304,
+          "type": "cut",
+          "id": "top-R"
+        },
+        {
+          "tick": 304,
+          "type": "fall",
+          "id": "top",
+          "x": 192,
+          "y": 166,
+          "vx": -165
+        },
+        {
+          "tick": 336,
+          "type": "impact",
+          "body": "top",
+          "other": "shelf",
+          "impulse": 737,
+          "x": 159.625,
+          "y": 326,
+          "axis": "y"
+        },
+        {
+          "tick": 409,
+          "type": "impact",
+          "body": "top",
+          "other": "ground",
+          "impulse": 1031,
+          "x": 76.37503797074996,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 552,
+          "type": "strike",
+          "id": "shelf-R",
+          "node": "shelf",
+          "x": 258,
+          "y": 394,
+          "hp": 2
+        },
+        {
+          "tick": 566,
+          "type": "strike",
+          "id": "shelf-R",
+          "node": "shelf",
+          "x": 258,
+          "y": 394,
+          "hp": 1
+        },
+        {
+          "tick": 580,
+          "type": "strike",
+          "id": "shelf-R",
+          "node": "shelf",
+          "x": 258,
+          "y": 394,
+          "hp": 0
+        },
+        {
+          "tick": 580,
+          "type": "cut",
+          "id": "shelf-R"
+        },
+        {
+          "tick": 580,
+          "type": "fall",
+          "id": "shelf",
+          "x": 144,
+          "y": 326,
+          "vx": -150
+        },
+        {
+          "tick": 603,
+          "type": "impact",
+          "body": "shelf",
+          "other": "stand",
+          "impulse": 544,
+          "x": 144,
+          "y": 432,
+          "axis": "y"
+        },
+        {
+          "tick": 628,
+          "type": "impact",
+          "body": "shelf",
+          "other": "top",
+          "impulse": 408,
+          "x": 83.09150141164962,
+          "y": 462,
+          "axis": "y"
+        },
+        {
+          "tick": 827,
+          "type": "strike",
+          "id": "stand-R",
+          "node": "stand",
+          "x": 208,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 841,
+          "type": "strike",
+          "id": "stand-R",
+          "node": "stand",
+          "x": 208,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 855,
+          "type": "strike",
+          "id": "stand-R",
+          "node": "stand",
+          "x": 208,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 855,
+          "type": "cut",
+          "id": "stand-R"
+        },
+        {
+          "tick": 855,
+          "type": "fall",
+          "id": "stand",
+          "x": 186,
+          "y": 432,
+          "vx": -150
+        },
+        {
+          "tick": 874,
+          "type": "impact",
+          "body": "stand",
+          "other": "ground",
+          "impulse": 221,
+          "x": 159.25,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 876,
+          "type": "impact",
+          "body": "stand",
+          "other": "top",
+          "impulse": 94,
+          "x": 155.94985253914547,
+          "y": 522,
+          "axis": "x"
+        },
+        {
+          "tick": 923,
+          "type": "won"
+        }
+      ],
+      "input": [
+        {
+          "tick": 1,
+          "type": "down",
+          "x": 204,
+          "y": 249
+        },
+        {
+          "tick": 35,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 276,
+          "type": "down",
+          "x": 292,
+          "y": 249
+        },
+        {
+          "tick": 311,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 552,
+          "type": "down",
+          "x": 258,
+          "y": 394
+        },
+        {
+          "tick": 586,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 827,
+          "type": "down",
+          "x": 208,
+          "y": 498
+        },
+        {
+          "tick": 861,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 137,
+      "level": 3,
+      "phase": "lost",
+      "seconds": 2.28,
+      "failure": "右顶板撞坏了邻居的墙",
+      "stable": 0,
+      "detached": 1,
+      "targets": 6,
+      "impacts": 1,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 4.5,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": true,
+          "load": 3.5,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "attached": true,
+          "load": 7,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "attached": true,
+          "load": 4.5,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "attached": true,
+          "load": 3,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "attached": true,
+          "load": 2,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "capL",
+          "x": 92,
+          "y": 104,
+          "attached": true,
+          "load": 1,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "capR",
+          "x": 319.87,
+          "y": 381.87,
+          "attached": false,
+          "load": 0,
+          "vx": -11.748,
+          "vy": 544.0000000000005
+        }
+      ],
+      "events": [
+        {
+          "tick": 1,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 2
+        },
+        {
+          "tick": 15,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 1
+        },
+        {
+          "tick": 29,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 0
+        },
+        {
+          "tick": 29,
+          "type": "cut",
+          "id": "capR-R"
+        },
+        {
+          "tick": 37,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 2
+        },
+        {
+          "tick": 51,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 1
+        },
+        {
+          "tick": 65,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 0
+        },
+        {
+          "tick": 65,
+          "type": "cut",
+          "id": "capR-L"
+        },
+        {
+          "tick": 65,
+          "type": "fall",
+          "id": "capR",
+          "x": 244,
+          "y": 104,
+          "vx": 165
+        },
+        {
+          "tick": 89,
+          "type": "impact",
+          "body": "capR",
+          "other": "neighbor",
+          "impulse": 283,
+          "x": 342.75,
+          "y": 214,
+          "axis": "y"
+        },
+        {
+          "tick": 89,
+          "type": "failure",
+          "reason": "右顶板撞坏了邻居的墙",
+          "cause": "impact",
+          "body": "capR",
+          "other": "neighbor",
+          "impulse": 283.33333333333326
+        },
+        {
+          "tick": 137,
+          "type": "lost"
+        }
+      ],
+      "input": [
+        {
+          "tick": 1,
+          "type": "down",
+          "x": 316,
+          "y": 178
+        },
+        {
+          "tick": 35,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 37,
+          "type": "down",
+          "x": 244,
+          "y": 178
+        },
+        {
+          "tick": 71,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 2364,
+      "level": 3,
+      "phase": "won",
+      "seconds": 39.4,
+      "failure": null,
+      "stable": 0.75,
+      "detached": 6,
+      "targets": 6,
+      "impacts": 12,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 6,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": true,
+          "load": 3,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 116.13,
+          "y": 358,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 186.6,
+          "y": 464,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 15.31,
+          "y": 406,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 281.88,
+          "y": 458,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "capL",
+          "x": 19.93,
+          "y": 470,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "capR",
+          "x": 184,
+          "y": 306,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 1,
+          "type": "strike",
+          "id": "capL-R",
+          "node": "capL",
+          "x": 140,
+          "y": 178,
+          "hp": 2
+        },
+        {
+          "tick": 15,
+          "type": "strike",
+          "id": "capL-R",
+          "node": "capL",
+          "x": 140,
+          "y": 178,
+          "hp": 1
+        },
+        {
+          "tick": 29,
+          "type": "strike",
+          "id": "capL-R",
+          "node": "capL",
+          "x": 140,
+          "y": 178,
+          "hp": 0
+        },
+        {
+          "tick": 29,
+          "type": "cut",
+          "id": "capL-R"
+        },
+        {
+          "tick": 29,
+          "type": "fall",
+          "id": "capL",
+          "x": 92,
+          "y": 104,
+          "vx": -165
+        },
+        {
+          "tick": 91,
+          "type": "impact",
+          "body": "capL",
+          "other": "ground",
+          "impulse": 708,
+          "x": 49.25999999999996,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 276,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 2
+        },
+        {
+          "tick": 290,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 1
+        },
+        {
+          "tick": 304,
+          "type": "strike",
+          "id": "capR-L",
+          "node": "capR",
+          "x": 244,
+          "y": 178,
+          "hp": 0
+        },
+        {
+          "tick": 304,
+          "type": "cut",
+          "id": "capR-L"
+        },
+        {
+          "tick": 551,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 2
+        },
+        {
+          "tick": 565,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 1
+        },
+        {
+          "tick": 579,
+          "type": "strike",
+          "id": "capR-R",
+          "node": "capR",
+          "x": 316,
+          "y": 178,
+          "hp": 0
+        },
+        {
+          "tick": 579,
+          "type": "cut",
+          "id": "capR-R"
+        },
+        {
+          "tick": 579,
+          "type": "fall",
+          "id": "capR",
+          "x": 244,
+          "y": 104,
+          "vx": -165
+        },
+        {
+          "tick": 609,
+          "type": "impact",
+          "body": "capR",
+          "other": "upperL",
+          "impulse": 165,
+          "x": 190,
+          "y": 245.29722222222222,
+          "axis": "x"
+        },
+        {
+          "tick": 621,
+          "type": "impact",
+          "body": "capR",
+          "other": "beam",
+          "impulse": 482,
+          "x": 192.5300000000003,
+          "y": 326,
+          "axis": "y"
+        },
+        {
+          "tick": 826,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 840,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 854,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 854,
+          "type": "cut",
+          "id": "upperL-R"
+        },
+        {
+          "tick": 854,
+          "type": "fall",
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "vx": -165
+        },
+        {
+          "tick": 896,
+          "type": "impact",
+          "body": "upperL",
+          "other": "capL",
+          "impulse": 975,
+          "x": 46.639999999999986,
+          "y": 470,
+          "axis": "y"
+        },
+        {
+          "tick": 1101,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 250,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 1115,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 250,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 1129,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 250,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 1129,
+          "type": "cut",
+          "id": "upperR-L"
+        },
+        {
+          "tick": 1377,
+          "type": "strike",
+          "id": "upperR-R",
+          "node": "upperR",
+          "x": 318,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 1391,
+          "type": "strike",
+          "id": "upperR-R",
+          "node": "upperR",
+          "x": 318,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 1405,
+          "type": "strike",
+          "id": "upperR-R",
+          "node": "upperR",
+          "x": 318,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 1405,
+          "type": "cut",
+          "id": "upperR-R"
+        },
+        {
+          "tick": 1405,
+          "type": "fall",
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "vx": -165
+        },
+        {
+          "tick": 1405,
+          "type": "impact",
+          "body": "upperR",
+          "other": "capR",
+          "impulse": 330,
+          "x": 276,
+          "y": 296,
+          "axis": "x"
+        },
+        {
+          "tick": 1422,
+          "type": "impact",
+          "body": "upperR",
+          "other": "beam",
+          "impulse": 408,
+          "x": 279.8500000000005,
+          "y": 326,
+          "axis": "y"
+        },
+        {
+          "tick": 1569,
+          "type": "impact",
+          "body": "upperR",
+          "other": "prop",
+          "impulse": 748,
+          "x": 304.5560293791432,
+          "y": 430,
+          "axis": "y"
+        },
+        {
+          "tick": 1643,
+          "type": "impact",
+          "body": "upperR",
+          "other": "ground",
+          "impulse": 703,
+          "x": 313.61655024284505,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 1652,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 2
+        },
+        {
+          "tick": 1666,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 1
+        },
+        {
+          "tick": 1680,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 0
+        },
+        {
+          "tick": 1680,
+          "type": "cut",
+          "id": "beam-L"
+        },
+        {
+          "tick": 1928,
+          "type": "strike",
+          "id": "beam-R",
+          "node": "beam",
+          "x": 254,
+          "y": 396,
+          "hp": 2
+        },
+        {
+          "tick": 1942,
+          "type": "strike",
+          "id": "beam-R",
+          "node": "beam",
+          "x": 254,
+          "y": 396,
+          "hp": 1
+        },
+        {
+          "tick": 1956,
+          "type": "strike",
+          "id": "beam-R",
+          "node": "beam",
+          "x": 254,
+          "y": 396,
+          "hp": 0
+        },
+        {
+          "tick": 1956,
+          "type": "cut",
+          "id": "beam-R"
+        },
+        {
+          "tick": 1956,
+          "type": "fall",
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "vx": -150
+        },
+        {
+          "tick": 1974,
+          "type": "impact",
+          "body": "beam",
+          "other": "blue",
+          "impulse": 419,
+          "x": 153.75,
+          "y": 414,
+          "axis": "y"
+        },
+        {
+          "tick": 1974,
+          "type": "impact",
+          "body": "capR",
+          "other": "beam",
+          "impulse": 210,
+          "x": 214,
+          "y": 358,
+          "axis": "y"
+        },
+        {
+          "tick": 1977,
+          "type": "impact",
+          "body": "beam",
+          "other": "upperL",
+          "impulse": 296,
+          "x": 147.31017854082688,
+          "y": 414,
+          "axis": "x"
+        },
+        {
+          "tick": 2203,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 2217,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 2231,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 2231,
+          "type": "cut",
+          "id": "prop-R"
+        },
+        {
+          "tick": 2231,
+          "type": "fall",
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "vx": -150
+        },
+        {
+          "tick": 2249,
+          "type": "impact",
+          "body": "prop",
+          "other": "ground",
+          "impulse": 215,
+          "x": 213.5,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 2364,
+          "type": "won"
+        }
+      ],
+      "input": [
+        {
+          "tick": 1,
+          "type": "down",
+          "x": 140,
+          "y": 178
+        },
+        {
+          "tick": 35,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 276,
+          "type": "down",
+          "x": 244,
+          "y": 178
+        },
+        {
+          "tick": 310,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 551,
+          "type": "down",
+          "x": 316,
+          "y": 178
+        },
+        {
+          "tick": 585,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 826,
+          "type": "down",
+          "x": 143,
+          "y": 309
+        },
+        {
+          "tick": 860,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 1101,
+          "type": "down",
+          "x": 250,
+          "y": 309
+        },
+        {
+          "tick": 1135,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 1377,
+          "type": "down",
+          "x": 318,
+          "y": 309
+        },
+        {
+          "tick": 1411,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 1652,
+          "type": "down",
+          "x": 150,
+          "y": 396
+        },
+        {
+          "tick": 1686,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 1928,
+          "type": "down",
+          "x": 254,
+          "y": 396
+        },
+        {
+          "tick": 1962,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 2203,
+          "type": "down",
+          "x": 260,
+          "y": 498
+        },
+        {
+          "tick": 2237,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    }
+  ],
+  "mobile": [
+    {
+      "tick": 104,
+      "level": 1,
+      "phase": "lost",
+      "seconds": 1.73,
+      "failure": "承重柱承重 8，超过上限 5",
+      "stable": 0.37,
+      "detached": 4,
+      "targets": 4,
+      "impacts": 4,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 9,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 132,
+          "y": 358,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 186.6,
+          "y": 464,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 96,
+          "y": 294,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 244,
+          "y": 294,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 1,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 15,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 29,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 29,
+          "type": "cut",
+          "id": "prop-R"
+        },
+        {
+          "tick": 29,
+          "type": "fall",
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "vx": -150
+        },
+        {
+          "tick": 29,
+          "type": "overload",
+          "id": "blue",
+          "load": 8,
+          "capacity": 5
+        },
+        {
+          "tick": 47,
+          "type": "impact",
+          "body": "prop",
+          "other": "ground",
+          "impulse": 215,
+          "x": 213.5,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 56,
+          "type": "fall",
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "vx": 0
+        },
+        {
+          "tick": 56,
+          "type": "failure",
+          "reason": "承重柱承重 8，超过上限 5",
+          "cause": "overload",
+          "node": "blue",
+          "load": 8,
+          "capacity": 5
+        },
+        {
+          "tick": 57,
+          "type": "fall",
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "vx": 0
+        },
+        {
+          "tick": 57,
+          "type": "fall",
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "vx": 0
+        },
+        {
+          "tick": 57,
+          "type": "fall",
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "vx": 0
+        },
+        {
+          "tick": 76,
+          "type": "impact",
+          "body": "beam",
+          "other": "blue",
+          "impulse": 839,
+          "x": 200,
+          "y": 414,
+          "axis": "y"
+        },
+        {
+          "tick": 83,
+          "type": "impact",
+          "body": "upperL",
+          "other": "beam",
+          "impulse": 578,
+          "x": 128,
+          "y": 358,
+          "axis": "y"
+        },
+        {
+          "tick": 83,
+          "type": "impact",
+          "body": "upperR",
+          "other": "beam",
+          "impulse": 578,
+          "x": 276,
+          "y": 358,
+          "axis": "y"
+        },
+        {
+          "tick": 104,
+          "type": "lost"
+        }
+      ],
+      "input": [
+        {
+          "tick": 1,
+          "type": "down",
+          "x": 259.99313186813185,
+          "y": 497.99107142857144
+        },
+        {
+          "tick": 35,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "tick": 945,
+      "level": 1,
+      "phase": "won",
+      "seconds": 15.75,
+      "failure": null,
+      "stable": 0.75,
+      "detached": 4,
+      "targets": 4,
+      "impacts": 4,
+      "nodes": [
+        {
+          "id": "ground",
+          "x": 0,
+          "y": 522,
+          "attached": true,
+          "load": 9,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "blue",
+          "x": 134,
+          "y": 414,
+          "attached": true,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "beam",
+          "x": 213.15,
+          "y": 402,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "prop",
+          "x": 186.6,
+          "y": 464,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperL",
+          "x": 16.63,
+          "y": 458,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        },
+        {
+          "id": "upperR",
+          "x": 319.04,
+          "y": 458,
+          "attached": false,
+          "load": 0,
+          "vx": 0,
+          "vy": 0
+        }
+      ],
+      "events": [
+        {
+          "tick": 0,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 14,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 28,
+          "type": "strike",
+          "id": "upperL-R",
+          "node": "upperL",
+          "x": 143,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 28,
+          "type": "cut",
+          "id": "upperL-R"
+        },
+        {
+          "tick": 28,
+          "type": "fall",
+          "id": "upperL",
+          "x": 96,
+          "y": 232,
+          "vx": -165
+        },
+        {
+          "tick": 76,
+          "type": "impact",
+          "body": "upperL",
+          "other": "ground",
+          "impulse": 1111,
+          "x": 47.95999999999998,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 276,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 2
+        },
+        {
+          "tick": 290,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 1
+        },
+        {
+          "tick": 304,
+          "type": "strike",
+          "id": "upperR-L",
+          "node": "upperR",
+          "x": 258,
+          "y": 309,
+          "hp": 0
+        },
+        {
+          "tick": 304,
+          "type": "cut",
+          "id": "upperR-L"
+        },
+        {
+          "tick": 304,
+          "type": "fall",
+          "id": "upperR",
+          "x": 244,
+          "y": 232,
+          "vx": 165
+        },
+        {
+          "tick": 352,
+          "type": "impact",
+          "body": "upperR",
+          "other": "ground",
+          "impulse": 1111,
+          "x": 351.70999999999947,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 553,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 2
+        },
+        {
+          "tick": 567,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 1
+        },
+        {
+          "tick": 581,
+          "type": "strike",
+          "id": "prop-R",
+          "node": "prop",
+          "x": 260,
+          "y": 498,
+          "hp": 0
+        },
+        {
+          "tick": 581,
+          "type": "cut",
+          "id": "prop-R"
+        },
+        {
+          "tick": 581,
+          "type": "fall",
+          "id": "prop",
+          "x": 244,
+          "y": 430,
+          "vx": -150
+        },
+        {
+          "tick": 599,
+          "type": "impact",
+          "body": "prop",
+          "other": "ground",
+          "impulse": 215,
+          "x": 213.5,
+          "y": 522,
+          "axis": "y"
+        },
+        {
+          "tick": 829,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 2
+        },
+        {
+          "tick": 843,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 1
+        },
+        {
+          "tick": 857,
+          "type": "strike",
+          "id": "beam-L",
+          "node": "beam",
+          "x": 150,
+          "y": 396,
+          "hp": 0
+        },
+        {
+          "tick": 857,
+          "type": "cut",
+          "id": "beam-L"
+        },
+        {
+          "tick": 857,
+          "type": "fall",
+          "id": "beam",
+          "x": 132,
+          "y": 326,
+          "vx": 150
+        },
+        {
+          "tick": 885,
+          "type": "impact",
+          "body": "beam",
+          "other": "upperR",
+          "impulse": 1292,
+          "x": 271.25,
+          "y": 458,
+          "axis": "y"
+        },
+        {
+          "tick": 945,
+          "type": "won"
+        }
+      ],
+      "input": [
+        {
+          "tick": 0,
+          "type": "down",
+          "x": 142.9945054945055,
+          "y": 308.99725274725273
+        },
+        {
+          "tick": 34,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 276,
+          "type": "down",
+          "x": 257.9842032967033,
+          "y": 308.99725274725273
+        },
+        {
+          "tick": 312,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 553,
+          "type": "down",
+          "x": 259.99313186813185,
+          "y": 497.99107142857144
+        },
+        {
+          "tick": 588,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "tick": 829,
+          "type": "down",
+          "x": 150,
+          "y": 395.9993131868132
+        },
+        {
+          "tick": 864,
+          "type": "up",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "checks": [
+    "Mouse hold/drag plus DOM pointercancel stops strikes",
+    "Pause freezes clock; resume does not resume hammer",
+    "Web Audio running and mute toggle verified",
+    "Loaded http://127.0.0.1:4405/",
+    "Loaded http://127.0.0.1:4405/precision-demolition/",
+    "390x844 and 360x800 fit viewport; 390x844 CDP touch gameplay",
+    "390x844 touch drag and native browser touchCancel stop the hammer; external requests blocked, none requested"
+  ],
+  "startedAt": "2026-09-27T10:33:02.846Z",
+  "browser": "154.0.4258.37",
+  "audio": "running",
+  "performance": {
+    "frameMedian": 16.69999999999709,
+    "frameP95": 16.80000000000291,
+    "updateP95": 0.20000000298023224,
+    "frameSamples": 1200
+  },
+  "mobileViewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "scrollHeight": 844
+  },
+  "finishedAt": "2026-09-27T10:34:44.242Z",
+  "mobileInputCheck": {
+    "method": "CDP touchStart/touchMove/touchCancel",
+    "input": [
+      {
+        "tick": 10,
+        "type": "down",
+        "x": 142.9945054945055,
+        "y": 308.99725274725273
+      },
+      {
+        "tick": 17,
+        "type": "move",
+        "x": 257.9842032967033,
+        "y": 308.99725274725273
+      },
+      {
+        "tick": 36,
+        "type": "cancel",
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "strikes": [
+      {
+        "tick": 10,
+        "type": "strike",
+        "id": "upperL-R",
+        "node": "upperL",
+        "x": 143,
+        "y": 309,
+        "hp": 2
+      },
+      {
+        "tick": 24,
+        "type": "strike",
+        "id": "upperR-L",
+        "node": "upperR",
+        "x": 258,
+        "y": 309,
+        "hp": 2
+      }
+    ],
+    "noStrikesAfterCancel": true,
+    "externalRequests": []
+  }
+}

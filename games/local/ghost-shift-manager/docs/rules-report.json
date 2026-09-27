@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-27",
+  "wins": [
+    {
+      "night": 1,
+      "time": 28.7,
+      "actions": 6,
+      "target": 22
+    },
+    {
+      "night": 2,
+      "time": 36.25,
+      "actions": 7,
+      "target": 25
+    },
+    {
+      "night": 3,
+      "time": 43,
+      "actions": 5,
+      "target": 28
+    }
+  ],
+  "contrasts": {
+    "selfie": {
+      "hitFear": 4.839999999999963,
+      "missFear": 2.839999999999999,
+      "hitHappy": 7.99999999999998,
+      "missHappy": 0
+    },
+    "pipe": {
+      "failureAt": 8.95,
+      "savedFear": 4.7999999999999545
+    }
+  },
+  "baselines": [
+    {
+      "night": 1,
+      "weakLookahead": "lost",
+      "randomWins": 3,
+      "trials": 100,
+      "randomIncludesEmergencyBell": true
+    },
+    {
+      "night": 2,
+      "weakLookahead": "lost",
+      "randomWins": 3,
+      "trials": 100,
+      "randomIncludesEmergencyBell": true
+    },
+    {
+      "night": 3,
+      "weakLookahead": "lost",
+      "randomWins": 0,
+      "trials": 100,
+      "randomIncludesEmergencyBell": true
+    }
+  ],
+  "checks": [
+    "deterministic three-night wins",
+    "selfie now vs deliberately missed",
+    "pipe causes real checkout",
+    "same pipe rescued by bell",
+    "cancel avoids spill without cooldown",
+    "81 forecasts equal real effects with pending jobs",
+    "room adjacency differs",
+    "invalid inputs rejected"
+  ]
+}

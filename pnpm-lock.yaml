@@ -177,6 +177,12 @@ importers:
       '@coffeeeeffoc/ad-runtime':
         specifier: workspace:*
         version: link:../../packages/ad-runtime
+      '@coffeeeeffoc/afterimage-arena':
+        specifier: workspace:*
+        version: link:../../games/local/afterimage-arena
+      '@coffeeeeffoc/balloon-movers':
+        specifier: workspace:*
+        version: link:../../games/local/balloon-movers
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
@@ -210,18 +216,33 @@ importers:
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
+      '@coffeeeeffoc/ghost-shift-manager':
+        specifier: workspace:*
+        version: link:../../games/local/ghost-shift-manager
       '@coffeeeeffoc/hold-tight-acrobats':
         specifier: workspace:*
         version: link:../../games/local/hold-tight-acrobats
+      '@coffeeeeffoc/off-camera':
+        specifier: workspace:*
+        version: link:../../games/local/off-camera
       '@coffeeeeffoc/office-slacking':
         specifier: workspace:*
         version: link:../../games/submodules/office-slacking
       '@coffeeeeffoc/one-stroke-course':
         specifier: workspace:*
         version: link:../../games/local/one-stroke-course
+      '@coffeeeeffoc/precision-demolition':
+        specifier: workspace:*
+        version: link:../../games/local/precision-demolition
       '@coffeeeeffoc/release-contract':
         specifier: workspace:*
         version: link:../../packages/release-contract
+      '@coffeeeeffoc/rule-thief':
+        specifier: workspace:*
+        version: link:../../games/local/rule-thief
+      '@coffeeeeffoc/three-car-city':
+        specifier: workspace:*
+        version: link:../../games/local/three-car-city
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -234,6 +255,9 @@ importers:
       '@coffeeeeffoc/travel2':
         specifier: workspace:*
         version: link:../../games/local/travel2
+      '@coffeeeeffoc/weather-command':
+        specifier: workspace:*
+        version: link:../../games/local/weather-command
       '@coffeeeeffoc/wulong-city':
         specifier: workspace:*
         version: link:../../games/local/wulong-city
@@ -432,6 +456,10 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(vite@7.1.5)
+
+  games/local/afterimage-arena: {}
+
+  games/local/balloon-movers: {}
 
   games/local/carding-car:
     devDependencies:
@@ -778,6 +806,8 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(jsdom@26.1.0)(vite@8.2.2)
 
+  games/local/ghost-shift-manager: {}
+
   games/local/h5-security:
     devDependencies:
       playwright:
@@ -841,6 +871,8 @@ importers:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)
 
+  games/local/off-camera: {}
+
   games/local/one-stroke-course:
     dependencies:
       phaser:
@@ -862,6 +894,8 @@ importers:
       vite:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(tsx@4.21.0)
+
+  games/local/precision-demolition: {}
 
   games/local/puzzle:
     dependencies:
@@ -890,6 +924,10 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.0
+
+  games/local/rule-thief: {}
+
+  games/local/three-car-city: {}
 
   games/local/travel:
     devDependencies:
@@ -1052,6 +1090,8 @@ importers:
       vite:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(tsx@4.21.0)
+
+  games/local/weather-command: {}
 
   games/local/wulong-city:
     devDependencies:

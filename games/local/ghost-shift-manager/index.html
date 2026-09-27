@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#183a35"><title>鬼班经理 · Ghost Shift Manager</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./style.css"></head>
+<body>
+<main id="app">
+  <header><div class="brand"><span class="brand-mark">☽</span><div><h1>鬼班经理</h1><small>MOONLIT INN · 夜班营业中</small></div></div><nav aria-label="游戏控制"><button id="mute" aria-pressed="false" aria-label="静音">♫</button><button id="pause" aria-label="暂停">Ⅱ</button><button id="restart" aria-label="重试本夜">↻</button></nav></header>
+  <div class="night-strip"><span id="night-name">第一夜 · 怪可爱的</span><span id="clock">☽ 22:00</span><span id="night-left">120秒</span></div>
+  <div id="hotel" class="hotel" aria-label="三层闹鬼酒店"></div>
+  <div class="dispatch"><span id="selection-text">选一位鬼员工，再点客房</span><div class="fuses" aria-label="出场引信"><button data-delay="0" class="selected" aria-pressed="true">立即</button><button data-delay="4" aria-pressed="false">4秒</button><button data-delay="8" aria-pressed="false">8秒</button></div></div>
+  <div id="staff" class="staff" aria-label="鬼员工休息室"></div>
+  <p id="tip" class="tip" role="status" aria-live="polite">让他们吓一跳，也舍不得退房。</p>
+  <footer>拖鬼进房间，或点鬼再点房间 <span>✦ 三客满意即打烊</span></footer>
+</main>
+<div id="overlay" class="overlay"><section class="paper" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><span class="eyebrow">GHOST SHIFT MANAGER</span><div class="paper-ghost" aria-hidden="true">♧</div><h2 id="dialog-title">今晚，吓得刚刚好。</h2><p id="dialog-text">看准客人的动作，安排鬼员工出场。<br>笑着受惊是好评，吓到收拾行李就救场。</p><div id="night-picker" class="night-picker"></div><p id="night-hint" class="night-hint"></p><button id="start" class="primary">开始第一夜</button><button id="continue" class="primary" hidden>继续夜班</button><button id="choose-night" class="text-button" hidden>挑选另一夜</button><small id="dialog-foot">每夜最多120秒 · 满意且刚好受惊可提前通关</small></section></div>
+<div id="drag-ghost" aria-hidden="true"></div>
+<script type="module" src="./game.js"></script>
+</body></html>
