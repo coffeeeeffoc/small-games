@@ -1,7 +1,110 @@
 {
-  "date": "2026-09-26T15:32:42.165Z",
-  "url": "http://127.0.0.1:4314/small-games/games/fold-the-world/index.html",
+  "date": "2026-09-27T09:40:51.313Z",
+  "url": "http://localhost:4326/",
   "browser": "154.0.8037.57",
+  "sourceHash": "7603133980ead867bd695d73b5fc96ad90eda9c6965f720fe28c9c6035f9edac",
+  "fingerprints": [
+    "136efc3d3cb73612a80b0771c9efb77a7c1e8623946514329204ff4a5a224b44",
+    "1f90c2a15a86b5960e55bfbacf17dc1d5b0a4c8945ebcbee85d407b1738a6890",
+    "24b3f967043e75e0be20bbe56778708adf57a3d6ad02496b14a0caeb671315a9",
+    "bdcc1633364ff8a6a1986298a3c457d9ea6f984cf7599827a0e1957552424fbd",
+    "9a7cc8ba92a4706f0fd3fe2b331b9e5f60553d293e7d2a2864269d03ef67851f",
+    "3817b4740868816c4ea14830384c70021d0957133f73e4adde004d9544a836c1",
+    "273bd918123a648ecdd8bf2191775b5148f096b9f9eb687d637da34adb0814e8",
+    "6678609ef9375d21310c6f4f08139b57adaa2286b2e0e5d9947ad69e5cac534b",
+    "768be7d08424d4ebf2e3e70a44106e2d5ccbdc1716a9eaaad8567335123400ba",
+    "a82872b4808c976d779425b4684b4941672769c666d34550e39e2becc4d80470",
+    "f19b88a7a8fa02619ad4b3ece8c7d032e53364b92fbccf1579da946af6343324",
+    "2188382eed80de33393d26b12746b2f6bbd52155bcb943bc3f7497cd33f2b5cc",
+    "4677b34bdfb5b3bbfc95ddcf6a169fe6c46c2c3e0f3dcd56be7afd763dad9590",
+    "08d397b9d2cb6ea490e5bd55d873cbbacec282ac0394f6f8849b59957fc8bb11",
+    "636c506486468c947509862e9d7f2c76177edac20c82a4aa73119ec5afb51e20",
+    "e7b8934bf07e69319fbff154a95923a7ae7b23b341359f05a2e89269c5173080",
+    "16d69c9eec1e27831a8073c196e1db16d92c36e9463fe77512606e41714e513f",
+    "207aada4c1ae1d50f832679f997cde1884ff2ff4d4e9477ce0f6f0057b6a87a4",
+    "9eeefd53754fd33ed53bf4df5b491c5083fbd7021c0f1cca77957ab38bdf5d8a",
+    "288851563bfa8a0d5d4809e5d480bf80e979a4ea316eb6e3b52067b85bd231c9",
+    "bcd2479b636213968a0e49b785c11865ec1f966cbb35fa01344f15027802facd",
+    "c6534c6349ac485929fd293132f5ba7f7ba2f33b74f42476c78ee3a7f005cefa",
+    "adc7e24317452b515218d6a42f45831b306fb32f28b60ba4f56591dbefc5bcb5",
+    "d2db0fff8c2791026c48ea3342abcbcd7807a4c02349ee7cc70cd4c9aa386838",
+    "bfdb2c26b4789d9e2ae89c94c603bd78863858fef11a9ab35c2c5772dfafc79b",
+    "fcdaa085e98b6bc412e264b209114bf15b73706acd09dfc63f83732cb4da14de",
+    "caacf9be1629693ef8c7475e5bc15bacb39a61c776c6e6a37101e5b87b539f2d",
+    "332239a505b5e8dff996abe5fe289e7dd6fe22e8591c297ebc48f13ef3039e47",
+    "1df3cc6a5cbdc8969c676b8bb0b9c775dad2014536e57f15973419207a806948",
+    "c172cd48f587efeca78495f2de696e129e70261e024292be98a2d89c871a3570",
+    "5c91d7f27f31dfc017396eee9dab92a7dc12d61d650d5b5c952ed5cc7c27777c",
+    "9eafc99467319aaa36cbbf7149373d5a113360e9e9c03132f0e2eb7ed9c7bf1a",
+    "62dc2569cf547cfdcccc7c68266b7ddc542dce35557a7ca05a42a3b353f0f147",
+    "39b70c66b3428b2efc32f11a20eeb22da8fc5613e1b50b8bc531dd4c0ea9465b",
+    "6da8ef0feed93da91ea2d11895a2f45d2e0b48f1fb6644faae41c6687e235f38",
+    "0aa0e05198b14343fcd9165702cbc8adfef6c965b145148acb5879786ce94a12",
+    "238d3772841021002c046f1d5f5237c8b6b77c49e4785bda04c59ca7967052da",
+    "bb392857e353540361f3b5941e370bd70a79375c97d9a4f4869c77a80a982a25",
+    "93cd2127e49092eea2c2144cf9f9d6e8b69f8dc50275fe407f73870955334bed",
+    "982b99e8f6e64cc4365dcb497c8063af60e5ae23a4540df8ff2dcd70cec6f0cc",
+    "f3eb82d843a9057d0161ef149809aa934547cec641c3f591b49809f48b540cb5",
+    "95f3c99e36ff6e131343156814f6b232f5d87ed6948fa2d8a343f2c25693c9b5",
+    "a6788f1304267432ab052e18f8608c5701d808ef382c8c4efaa6487f596911bf",
+    "0bf5aee922631b4cd4b0d8b094703ce23fd6234312dc47cb67fa6bdfaf36b1a5",
+    "bea633c6eea831dbf328b0dced5c93ae8bb65e3976e307fff09f653152f8b3f6",
+    "5e493007110fa393f4dc5b98eff0d6ad9cfe54b269ccca695f2bf818752e11ff",
+    "8be42905900703497a74ac70bb7f8f6a3628bbb56c0d5299ea6a58f8161cdc85",
+    "c93299dc9102f792e89375d674a0047765165fde78113cdb4b621e737a3d9850",
+    "c65130fa575034a3b68a7296c27a0a41acb93e628214c90429918bb0dd60429b",
+    "51b0c93b96f3d3e7f7d5d193cf3dca25120831e0c29653c8b818b8f55144bd53",
+    "6745d589e081fdb265936f3cdd32d884e70208503db9c38645a9b00d968733f4",
+    "f96c5dbf5d69f864b600e03d424250fbf258347e0f52edca121bf2cec0f561fd",
+    "ed5e2eab4ff734a97b8449bb04eab5b552edff0e229c2f93dab531d238cb1f7e",
+    "0b18a3b8d6add2e46faaf04761d56a2837e4c32aff5426ff827465e41da9f755",
+    "ab5b340209f5e2f93c23877ac264485a6800804b6067639e566bb6a4a5e87f4a",
+    "2d42b65595edc7284231bbe643f719ca85f68cafc6c8566032e75a1de8db8b66",
+    "b493017e4f7f555f4ab2deef42fda73807282c3c6e54ff39adc24f5c5a73dab2",
+    "0c1a4036df642e9f4055f55ad099c4bf01f9a0026bb07a6250a9dcb531187b8f",
+    "ce87674925529ccc20e5bdf460697905a2b4cc3ae0a1596ba979dbc502ee4d23",
+    "b8f041180b429b8f56c114480fca022e8d4da2e639941b6c8a8ce0ef01fae191",
+    "5328b15589d9874a1c3f75bd97c9601337e07ee10ea3c4607ffec585a4091dc3",
+    "23ed88f001f6169821b23b5e3fb65e061c4b7a311dc1f1aa8e97c2ec4ebf2869",
+    "aebaecac8e628bb65084d537de3635f8c1eac33f1790cc98311473e439173b3e",
+    "785671f2a7cc4fd4c9c2bdf5d7372022897cbeb6dbccc16d90bd0c1e4d472d6c",
+    "13a2e9edf56e99e64384201b7365260b50e4e08b37a22ecc26e92e37b893d050",
+    "cff877b9240034179668e5b11ad55f6d9664743afe38384367804eac6113e4f9",
+    "cd49a08a4c92977c3ee533c98a93ad77daf6e5893ae2e60dbb9d8fc0fb0168f8",
+    "9be9ac2504f683901c5444b96c68b86f655a551f11d6645e4c3a7f2ec2235287",
+    "957890394d1b4b6fd7b92cd7532a38752957f9b38c491d5d0a8c269a3803de07",
+    "dbc5f0d32434614b503fbda83254e0dc5ee03dc9111433dfedfad278d755d455",
+    "90f6cb2b4b8ea3bd294a9e45b8b12f6d2ea84849ba69f95a5796fd5502918a02",
+    "b6e35c9e21143e4e7af55bf2a300e49ddc12a039e7063c3a75858dbfa1bf7b6c",
+    "84f5a0d1297e04ec179d336c1531171e7a1c31e9a855751a013447499d9ba457",
+    "2cf55dcc659f63ce949f7a6ea0962b8f9b45b5754dfe098fe8d175886f36ea96",
+    "225bf498db67bc5e880aca9f09b4332aaa0318f460b61bf131a3f19bb77cca7e",
+    "07ed3ece772d59fd513f4b7800f10fd341f89c373d75f5b7ff2198605c1fb7fa",
+    "adc24c04bae9bb732fc26a77c1d62d4b87c555e8fc0c3ec222304c9d69c218f3",
+    "8f6bfc0fab2e0961b62aa9b5316fa7fc147f32d0dec08f394352a4a3e3fdbd29",
+    "e10497cfdbac2bcf63af1a691882970940140091e7ac429f34feb613544b42bc",
+    "ceb90002ef507fbb0901597d07a1ed583b57311b1aa14d914bb821d21aab0e5c",
+    "fd5e6bf5dada448a2c26e574b705b7078eeca9d0ee989fad6ca05d652a83c6fc",
+    "aee2a87c7eec3023a02accac9234e59f47c3380d1cd93ed45285f76afdcbd85f",
+    "a009b8e959a34c7d48c78388236a4cb9d9c36aba7300ed0e948bceca641d9816",
+    "1167ba55e7edb460076a51008e9b25ba5105d6fe29752c44d563d78207c62f07",
+    "7de28bbc7ec71bc8bb1bdd9921f920c07bd437597b7777f1294d5b4084640a74",
+    "5a393536c0ea68c0291c85474cebde87a932e861b028b37749fe33d9465bd204",
+    "74d880aea9a50154704110dfb4a6332fbcafb7aa09668aeb2e9a7438171aaed8",
+    "dda387ebc0bc06d5e9212a6b7df894c55a11b40c87d0c254f9cce13e62049198",
+    "307d543e4f8d7eda980b48d52b279f0616f6b20a8bdfbc4ada2cada79a28a71f",
+    "c81169c6c126f25742d08ff4f71f646293b77d35befd7ccc3b9b57fb327e049a",
+    "ca932391ddd3758a0a65235edb7f2631141b2a9db3829a88b8b36bf931e044df",
+    "7b3ad1515315de4c194d2fd18250acb4d8b9d4a3413e15bdeff288b68b390bfa",
+    "335883a30460c0aef93138efda9e6cf236e62a4cc173c1903e9692ffdf2fc352",
+    "9bc34dfc5a95edad410e0e985bb2bd33539594f95e6ed7d4ce0cd2b9642ca635",
+    "30bd8070ca667d437556c968e5ef3712a50653d81719bf44d61a4022151c115b",
+    "5d0e10a451fbf752a3d204ff521985773cc0f54df60c73c49e83544fa0539d12",
+    "49f0de58415b7e52c871a4098f2af8e877eb2c26d29f1cfdfa92cf0c773bf286",
+    "4cef0a164c3ba5d18bea53cd4a36004aff9ec263720a91b5370bcdda2b425c2d",
+    "e9f58fa19846bab9008ade4034a3f1054ff1df236314d46ee7b6209c9f0a9719",
+    "6b6d4bc26ee2926a65b7a1e865df99019a44f5ba071dbfb7943d5278b3a8e71f"
+  ],
   "results": [
     {
       "level": 1,
@@ -10,7 +113,7 @@
       "unfolds": 0,
       "keys": [],
       "deaths": 0,
-      "gameSeconds": 2.1083333333333285
+      "gameSeconds": 2.233333333333328
     },
     {
       "level": 2,
@@ -19,16 +122,18 @@
       "unfolds": 0,
       "keys": [],
       "deaths": 0,
-      "gameSeconds": 1.8416666666666626
+      "gameSeconds": 2.1666666666666616
     },
     {
       "level": 3,
       "mode": "COMPLETED",
       "folds": 1,
       "unfolds": 0,
-      "keys": [],
+      "keys": [
+        "key"
+      ],
       "deaths": 0,
-      "gameSeconds": 2.291666666666661
+      "gameSeconds": 3.3666666666666574
     },
     {
       "level": 4,
@@ -37,19 +142,10 @@
       "unfolds": 0,
       "keys": [],
       "deaths": 0,
-      "gameSeconds": 2.208333333333328
+      "gameSeconds": 2.308333333333328
     },
     {
       "level": 5,
-      "mode": "COMPLETED",
-      "folds": 1,
-      "unfolds": 0,
-      "keys": [],
-      "deaths": 0,
-      "gameSeconds": 2.1333333333333284
-    },
-    {
-      "level": 6,
       "mode": "COMPLETED",
       "folds": 1,
       "unfolds": 0,
@@ -57,16 +153,27 @@
         "key"
       ],
       "deaths": 0,
-      "gameSeconds": 3.3916666666666573
+      "gameSeconds": 4.250000000000001
+    },
+    {
+      "level": 6,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [],
+      "deaths": 0,
+      "gameSeconds": 2.66666666666666
     },
     {
       "level": 7,
       "mode": "COMPLETED",
       "folds": 1,
       "unfolds": 1,
-      "keys": [],
+      "keys": [
+        "key"
+      ],
       "deaths": 0,
-      "gameSeconds": 2.6499999999999932
+      "gameSeconds": 4.016666666666656
     },
     {
       "level": 8,
@@ -77,16 +184,19 @@
         "key"
       ],
       "deaths": 0,
-      "gameSeconds": 3.9499999999999886
+      "gameSeconds": 2.9833333333333254
     },
     {
       "level": 9,
       "mode": "COMPLETED",
-      "folds": 2,
-      "unfolds": 1,
-      "keys": [],
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "right-key",
+        "left-key"
+      ],
       "deaths": 0,
-      "gameSeconds": 4.8250000000000295
+      "gameSeconds": 5.125000000000044
     },
     {
       "level": 10,
@@ -97,42 +207,39 @@
         "key"
       ],
       "deaths": 0,
-      "gameSeconds": 7.866666666666847
+      "gameSeconds": 8.308333333333502
     },
     {
       "level": 11,
       "mode": "COMPLETED",
       "folds": 2,
-      "unfolds": 2,
-      "keys": [
-        "lower-key",
-        "upper-key"
-      ],
+      "unfolds": 1,
+      "keys": [],
       "deaths": 0,
-      "gameSeconds": 5.425000000000059
+      "gameSeconds": 5.066666666666708
     },
     {
       "level": 12,
       "mode": "COMPLETED",
-      "folds": 2,
-      "unfolds": 2,
+      "folds": 1,
+      "unfolds": 0,
       "keys": [
-        "road-key",
-        "balcony-key"
+        "upper-key",
+        "lower-key"
       ],
       "deaths": 0,
-      "gameSeconds": 8.283333333333504
+      "gameSeconds": 4.6916666666666895
     },
     {
       "level": 13,
       "mode": "COMPLETED",
-      "folds": 3,
+      "folds": 2,
       "unfolds": 2,
       "keys": [
         "key"
       ],
       "deaths": 0,
-      "gameSeconds": 6.05000000000009
+      "gameSeconds": 5.091666666666709
     },
     {
       "level": 14,
@@ -141,36 +248,997 @@
       "unfolds": 2,
       "keys": [
         "road-key",
-        "return-key"
+        "upper-key"
       ],
       "deaths": 0,
-      "gameSeconds": 7.108333333333476
+      "gameSeconds": 7.675000000000171
     },
     {
       "level": 15,
       "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "first-key",
+        "second-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.683333333333323
+    },
+    {
+      "level": 16,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.5333333333334975
+    },
+    {
+      "level": 17,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [],
+      "deaths": 0,
+      "gameSeconds": 5.833333333333413
+    },
+    {
+      "level": 18,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "road-key",
+        "upper-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.708333333333506
+    },
+    {
+      "level": 19,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "road-key",
+        "upper-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 11.383333333333328
+    },
+    {
+      "level": 20,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "road-key",
+        "upper-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.808333333333474
+    },
+    {
+      "level": 21,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [],
+      "deaths": 0,
+      "gameSeconds": 5.7833333333334105
+    },
+    {
+      "level": 22,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "lower-key",
+        "cloud-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 10.158333333333397
+    },
+    {
+      "level": 23,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "road-key",
+        "upper-key",
+        "cloud-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 10.700000000000033
+    },
+    {
+      "level": 24,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "cloud-key",
+        "middle-key",
+        "road-key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 10.75000000000003
+    },
+    {
+      "level": 25,
+      "mode": "COMPLETED",
       "folds": 4,
-      "unfolds": 4,
+      "unfolds": 3,
       "keys": [
         "road-key",
         "middle-key",
         "cloud-key"
       ],
       "deaths": 0,
-      "gameSeconds": 10.491666666666712
+      "gameSeconds": 10.825000000000026
     },
     {
-      "level": 16,
+      "level": 26,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.975000000000087
+    },
+    {
+      "level": 27,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.000000000000187
+    },
+    {
+      "level": 28,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.041666666666657
+    },
+    {
+      "level": 29,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.341666666666672
+    },
+    {
+      "level": 30,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.316666666666721
+    },
+    {
+      "level": 31,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "low",
+        "high"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.366666666666723
+    },
+    {
+      "level": 32,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "far",
+        "near"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.275000000000102
+    },
+    {
+      "level": 33,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "left",
+        "right"
+      ],
+      "deaths": 0,
+      "gameSeconds": 15.199999999999777
+    },
+    {
+      "level": 34,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "low",
+        "high"
+      ],
+      "deaths": 0,
+      "gameSeconds": 10.175000000000063
+    },
+    {
+      "level": 35,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "middle",
+        "top",
+        "low"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.29166666666678
+    },
+    {
+      "level": 36,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.899999999999989
+    },
+    {
+      "level": 37,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.358333333333489
+    },
+    {
+      "level": 38,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.041666666666794
+    },
+    {
+      "level": 39,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 1.9666666666666621
+    },
+    {
+      "level": 40,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 3,
+      "keys": [
+        "low",
+        "high",
+        "cloud"
+      ],
+      "deaths": 0,
+      "gameSeconds": 11.016666666666682
+    },
+    {
+      "level": 41,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.1583333333333248
+    },
+    {
+      "level": 42,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.041666666666806
+    },
+    {
+      "level": 43,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "middle",
+        "low"
+      ],
+      "deaths": 0,
+      "gameSeconds": 11.366666666666662
+    },
+    {
+      "level": 44,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.191666666666814
+    },
+    {
+      "level": 45,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.425000000000162
+    },
+    {
+      "level": 46,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "left",
+        "high"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.791666666666844
+    },
+    {
+      "level": 47,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "middle",
+        "high"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.71666666666684
+    },
+    {
+      "level": 48,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "upper",
+        "lower"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.633333333333353
+    },
+    {
+      "level": 49,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "low",
+        "middle",
+        "cloud"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.616666666666761
+    },
+    {
+      "level": 50,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "cloud",
+        "left",
+        "low"
+      ],
+      "deaths": 0,
+      "gameSeconds": 13.858333333333187
+    },
+    {
+      "level": 51,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "K1",
+        "K2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.283333333333485
+    },
+    {
+      "level": 52,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "K上",
+        "K井"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.408333333333342
+    },
+    {
+      "level": 53,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "K1",
+        "K2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.775000000000176
+    },
+    {
+      "level": 54,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "K近",
+        "K远"
+      ],
+      "deaths": 0,
+      "gameSeconds": 2.6249999999999933
+    },
+    {
+      "level": 55,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "K低",
+        "K中",
+        "K高"
+      ],
+      "deaths": 0,
+      "gameSeconds": 12.416666666666602
+    },
+    {
+      "level": 56,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "KR",
+        "KL"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.225000000000049
+    },
+    {
+      "level": 57,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.041666666666794
+    },
+    {
+      "level": 58,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.308333333333437
+    },
+    {
+      "level": 59,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [],
+      "deaths": 0,
+      "gameSeconds": 6.025000000000089
+    },
+    {
+      "level": 60,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.083333333333425
+    },
+    {
+      "level": 61,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "K2",
+        "K1"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.733333333333358
+    },
+    {
+      "level": 62,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.766666666666793
+    },
+    {
+      "level": 63,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "KR",
+        "KL"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.975000000000186
+    },
+    {
+      "level": 64,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 1.8666666666666625
+    },
+    {
+      "level": 65,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "KR",
+        "KL"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.366666666666673
+    },
+    {
+      "level": 66,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.550000000000016
+    },
+    {
+      "level": 67,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.283333333333485
+    },
+    {
+      "level": 68,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.741666666666742
+    },
+    {
+      "level": 69,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.166666666666763
+    },
+    {
+      "level": 70,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.658333333333454
+    },
+    {
+      "level": 71,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.141666666666712
+    },
+    {
+      "level": 72,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.141666666666788
+    },
+    {
+      "level": 73,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.141666666666662
+    },
+    {
+      "level": 74,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "K高",
+        "K井"
+      ],
+      "deaths": 0,
+      "gameSeconds": 9.541666666666766
+    },
+    {
+      "level": 75,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.191666666666842
+    },
+    {
+      "level": 76,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.5666666666666567
+    },
+    {
+      "level": 77,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.8916666666666995
+    },
+    {
+      "level": 78,
       "mode": "COMPLETED",
       "folds": 4,
       "unfolds": 3,
       "keys": [
-        "road-key",
-        "balcony-key",
-        "cloud-key"
+        "k1",
+        "k2"
       ],
       "deaths": 0,
-      "gameSeconds": 15.766666666666412
+      "gameSeconds": 9.375000000000108
+    },
+    {
+      "level": 79,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.375000000000156
+    },
+    {
+      "level": 80,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 1.908333333333329
+    },
+    {
+      "level": 81,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.991666666666754
+    },
+    {
+      "level": 82,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.066666666666658
+    },
+    {
+      "level": 83,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.358333333333489
+    },
+    {
+      "level": 84,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.116666666666711
+    },
+    {
+      "level": 85,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.6999999999999895
+    },
+    {
+      "level": 86,
+      "mode": "COMPLETED",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 14.558333333333147
+    },
+    {
+      "level": 87,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.8250000000000295
+    },
+    {
+      "level": 88,
+      "mode": "COMPLETED",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 13.274999999999887
+    },
+    {
+      "level": 89,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.975000000000087
+    },
+    {
+      "level": 90,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.158333333333379
+    },
+    {
+      "level": 91,
+      "mode": "COMPLETED",
+      "folds": 5,
+      "unfolds": 4,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 13.724999999999861
+    },
+    {
+      "level": 92,
+      "mode": "COMPLETED",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.975000000000131
+    },
+    {
+      "level": 93,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 5.050000000000041
+    },
+    {
+      "level": 94,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 4.074999999999992
+    },
+    {
+      "level": 95,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.225000000000174
+    },
+    {
+      "level": 96,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 6.725000000000124
+    },
+    {
+      "level": 97,
+      "mode": "COMPLETED",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 3.7249999999999894
+    },
+    {
+      "level": 98,
+      "mode": "COMPLETED",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": [
+        "key"
+      ],
+      "deaths": 0,
+      "gameSeconds": 8.033333333333518
+    },
+    {
+      "level": 99,
+      "mode": "COMPLETED",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": [
+        "k1",
+        "k2"
+      ],
+      "deaths": 0,
+      "gameSeconds": 12.374999999999938
+    },
+    {
+      "level": 100,
+      "mode": "COMPLETED",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": [
+        "k2",
+        "k1"
+      ],
+      "deaths": 0,
+      "gameSeconds": 7.200000000000148
     },
     {
       "check": "50 browser fold/unfold cycles",
@@ -183,10 +1251,1115 @@
       "passed": true
     },
     {
-      "check": "level 15 completed with touch controls, three keys, four folds and contextual hints",
+      "check": "level 100 completed with touch controls and contextual hints",
+      "passed": true
+    },
+    {
+      "check": "level 24 complete through touch controls",
+      "passed": true
+    },
+    {
+      "check": "level 25 complete through touch controls",
+      "passed": true
+    },
+    {
+      "check": "level 45 complete through touch controls",
+      "passed": true
+    },
+    {
+      "check": "legacy fixture migrates once, preserves v1, transfers only unchanged best scores and opens level 26",
       "passed": true
     }
   ],
   "errors": [],
-  "warnings": []
+  "warnings": [],
+  "assets": [
+    "index-CB2Ys1No.js",
+    "index-_JHl5d0q.css"
+  ],
+  "routeBatches": [
+    [
+      1,
+      23
+    ],
+    [
+      24,
+      33
+    ],
+    [
+      34,
+      39
+    ],
+    [
+      40,
+      40
+    ],
+    [
+      41,
+      44
+    ],
+    [
+      45,
+      48
+    ],
+    [
+      49,
+      64
+    ],
+    [
+      65,
+      66
+    ],
+    [
+      67,
+      69
+    ],
+    [
+      70,
+      80
+    ],
+    [
+      81,
+      88
+    ],
+    [
+      89,
+      94
+    ],
+    [
+      95,
+      100
+    ]
+  ],
+  "formalRoutes": [
+    {
+      "level": 1,
+      "title": "一折相逢",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.04
+    },
+    {
+      "level": 2,
+      "title": "台阶从远方来",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.52
+    },
+    {
+      "level": 3,
+      "title": "门在身后",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 3.67
+    },
+    {
+      "level": 4,
+      "title": "近桥不是通路",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.54
+    },
+    {
+      "level": 5,
+      "title": "把位置让给台阶",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.51
+    },
+    {
+      "level": 6,
+      "title": "过桥以后拆桥",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 3.14
+    },
+    {
+      "level": 7,
+      "title": "钥匙留下，桥撤走",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.6
+    },
+    {
+      "level": 8,
+      "title": "借一半，留一半",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 3.59
+    },
+    {
+      "level": 9,
+      "title": "两条支路，一扇门",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.57
+    },
+    {
+      "level": 10,
+      "title": "展开才拿得到",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.93
+    },
+    {
+      "level": 11,
+      "title": "桥和梯子各有用处",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.61
+    },
+    {
+      "level": 12,
+      "title": "一折接通两层",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.03
+    },
+    {
+      "level": 13,
+      "title": "给自己留个落脚点",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.43
+    },
+    {
+      "level": 14,
+      "title": "门也会搬家",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.97
+    },
+    {
+      "level": 15,
+      "title": "先到换乘台",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.68
+    },
+    {
+      "level": 16,
+      "title": "站到另一边去",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.33
+    },
+    {
+      "level": 17,
+      "title": "两边都稳的地方",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.94
+    },
+    {
+      "level": 18,
+      "title": "借来的阳台",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.88
+    },
+    {
+      "level": 19,
+      "title": "在高处换个身份",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 13.22
+    },
+    {
+      "level": 20,
+      "title": "同一条线，两次答案",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.83
+    },
+    {
+      "level": 21,
+      "title": "三次接力",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.43
+    },
+    {
+      "level": 22,
+      "title": "下落前先数钥匙",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 10.82
+    },
+    {
+      "level": 23,
+      "title": "左右交班",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 12.16
+    },
+    {
+      "level": 24,
+      "title": "倒着读这张纸",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 11.64
+    },
+    {
+      "level": 25,
+      "title": "把三把钥匙带回家",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 12.91
+    },
+    {
+      "level": 26,
+      "title": "桥头不是岸",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.87
+    },
+    {
+      "level": 27,
+      "title": "从桥下面回来",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.23
+    },
+    {
+      "level": 28,
+      "title": "登上障碍的顶面",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.7
+    },
+    {
+      "level": 29,
+      "title": "半张长凳",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.85
+    },
+    {
+      "level": 30,
+      "title": "门旁留个位置",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.92
+    },
+    {
+      "level": 31,
+      "title": "先从屋檐下经过",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.39
+    },
+    {
+      "level": 32,
+      "title": "先远后近",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.49
+    },
+    {
+      "level": 33,
+      "title": "两件事都可以先做",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 16.44
+    },
+    {
+      "level": 34,
+      "title": "合拢之前先看一眼",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 10.08
+    },
+    {
+      "level": 35,
+      "title": "下楼前点清行李",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.59
+    },
+    {
+      "level": 36,
+      "title": "不一定要换方向",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.18
+    },
+    {
+      "level": 37,
+      "title": "换岸后再动手",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.36
+    },
+    {
+      "level": 38,
+      "title": "此岸不是彼岸",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 10.34
+    },
+    {
+      "level": 39,
+      "title": "钥匙和门要在同一间",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.12
+    },
+    {
+      "level": 40,
+      "title": "三面接力台",
+      "folds": 3,
+      "unfolds": 3,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 13.19
+    },
+    {
+      "level": 41,
+      "title": "先看落在哪里",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 3.53
+    },
+    {
+      "level": 42,
+      "title": "高处不是终点",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.93
+    },
+    {
+      "level": 43,
+      "title": "留一条上来的路",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 13.12
+    },
+    {
+      "level": 44,
+      "title": "这张桥还没有用完",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.47
+    },
+    {
+      "level": 45,
+      "title": "展开的路也要走完",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.23
+    },
+    {
+      "level": 46,
+      "title": "接通一边，撤掉另一边",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.58
+    },
+    {
+      "level": 47,
+      "title": "楼梯不能同时留下",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.18
+    },
+    {
+      "level": 48,
+      "title": "路消失后才能下去",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.16
+    },
+    {
+      "level": 49,
+      "title": "先走过墙将出现的地方",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 10.83
+    },
+    {
+      "level": 50,
+      "title": "最后一折留给入口",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 14.9
+    },
+    {
+      "level": 51,
+      "title": "留一块地给自己",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.92
+    },
+    {
+      "level": 52,
+      "title": "桥面下面还有一层",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.25
+    },
+    {
+      "level": 53,
+      "title": "门缝后的空地",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.03
+    },
+    {
+      "level": 54,
+      "title": "把最后一次留在哪边",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 3.47
+    },
+    {
+      "level": 55,
+      "title": "先把高处的事做完",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 3,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 13.02
+    },
+    {
+      "level": 56,
+      "title": "先站到墙的那一侧",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.52
+    },
+    {
+      "level": 57,
+      "title": "展开头顶，再到另一面",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.53
+    },
+    {
+      "level": 58,
+      "title": "从侧面进去，从上面出来",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.24
+    },
+    {
+      "level": 59,
+      "title": "离门近的站台在桥下面",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 0,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.81
+    },
+    {
+      "level": 60,
+      "title": "路在纸打开之后",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.68
+    },
+    {
+      "level": 61,
+      "title": "两件事一条路",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.31
+    },
+    {
+      "level": 62,
+      "title": "上来以后，门在哪一边",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.89
+    },
+    {
+      "level": 63,
+      "title": "一面能翻过去，一面不能",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.05
+    },
+    {
+      "level": 64,
+      "title": "拿到以后，哪边还能向上",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.13
+    },
+    {
+      "level": 65,
+      "title": "把最后一件留在哪边",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.94
+    },
+    {
+      "level": 66,
+      "title": "门脚下也是一条路",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.11
+    },
+    {
+      "level": 67,
+      "title": "从墙底绕回入口",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.43
+    },
+    {
+      "level": 68,
+      "title": "拿得到，还要走得进去",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.28
+    },
+    {
+      "level": 69,
+      "title": "少折一次，还是少走一段",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.67
+    },
+    {
+      "level": 70,
+      "title": "把终点留在原地",
+      "folds": 2,
+      "unfolds": 2,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.54
+    },
+    {
+      "level": 71,
+      "title": "先选落脚，再选路",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.03
+    },
+    {
+      "level": 72,
+      "title": "下去之前，看好回来的方向",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.39
+    },
+    {
+      "level": 73,
+      "title": "像对称，路并不对称",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.35
+    },
+    {
+      "level": 74,
+      "title": "上面先办好，下面才连得起来",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 10.32
+    },
+    {
+      "level": 75,
+      "title": "先走高处，再从低处穿过",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.84
+    },
+    {
+      "level": 76,
+      "title": "先选最后站在哪边",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.8
+    },
+    {
+      "level": 77,
+      "title": "同一面墙，挡住两趟路",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.44
+    },
+    {
+      "level": 78,
+      "title": "两座候车台",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 11.68
+    },
+    {
+      "level": 79,
+      "title": "桥也是井盖",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.29
+    },
+    {
+      "level": 80,
+      "title": "两处停靠，两种收尾",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 2.96
+    },
+    {
+      "level": 81,
+      "title": "取完这一支，留在另一岸",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.28
+    },
+    {
+      "level": 82,
+      "title": "从低腔的哪边出去",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.97
+    },
+    {
+      "level": 83,
+      "title": "把终点带到另一岸",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.13
+    },
+    {
+      "level": 84,
+      "title": "门在低处，先留在高处",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.23
+    },
+    {
+      "level": 85,
+      "title": "两个出口，一次上岸",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.47
+    },
+    {
+      "level": 86,
+      "title": "换岸之后再向左",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 17.13
+    },
+    {
+      "level": 87,
+      "title": "屋顶上没有门",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.38
+    },
+    {
+      "level": 88,
+      "title": "从另一侧送到门口",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 14.82
+    },
+    {
+      "level": 89,
+      "title": "同一目标，两面道路",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.73
+    },
+    {
+      "level": 90,
+      "title": "先在屋上，后到屋下",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 6.13
+    },
+    {
+      "level": 91,
+      "title": "别把自己关在右边",
+      "folds": 5,
+      "unfolds": 4,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 16.72
+    },
+    {
+      "level": 92,
+      "title": "隔着尖刺选道路",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 11.25
+    },
+    {
+      "level": 93,
+      "title": "从门厅出发",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 5.94
+    },
+    {
+      "level": 94,
+      "title": "拿得到，也要回得去",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.01
+    },
+    {
+      "level": 95,
+      "title": "把最后一站留给门",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 9.49
+    },
+    {
+      "level": 96,
+      "title": "绕回上面才是近路",
+      "folds": 1,
+      "unfolds": 0,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 7.02
+    },
+    {
+      "level": 97,
+      "title": "先选岸，或走高桥",
+      "folds": 1,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 4.25
+    },
+    {
+      "level": 98,
+      "title": "出口的背面入口",
+      "folds": 2,
+      "unfolds": 1,
+      "keys": 1,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.87
+    },
+    {
+      "level": 99,
+      "title": "最后一桥走下面",
+      "folds": 4,
+      "unfolds": 3,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 14.27
+    },
+    {
+      "level": 100,
+      "title": "最后一次把世界折向哪边",
+      "folds": 3,
+      "unfolds": 2,
+      "keys": 2,
+      "deaths": 0,
+      "mode": "COMPLETED",
+      "inputSeconds": 8.88
+    }
+  ],
+  "shell": {
+    "date": "2026-09-27T09:40:00.855Z",
+    "url": "http://127.0.0.1:4327/",
+    "browser": "154.0.8037.57",
+    "results": [
+      "desktop catalog with 100-level description, iframe hints, fold/unfold, first-level completion",
+      "mobile standalone production copy, touch dialogs/buttons, keyboard first-level completion, no horizontal overflow"
+    ],
+    "errors": []
+  },
+  "checks": {
+    "unitTests": 151,
+    "alternateRoutes": 19,
+    "shellIntegration": 48,
+    "gameConfiguration": {
+      "games": 30,
+      "issues": 0
+    },
+    "typecheck": true,
+    "productionBuild": true,
+    "creaseSelection": "mouse and touch"
+  },
+  "execution": "Browser routes use real input and sequentially earned saves. Interrupted runs resume only when the core source hash and every previously tested level/plan/route fingerprint match. No unlock injection is used for campaign or advanced touch play; migration has a separate synthetic legacy fixture.",
+  "boundaries": [
+    "No human first-play difficulty or enjoyment study",
+    "No physical Android/iPhone, Safari or native mini-game SDK acceptance",
+    "Reference and alternate routes are not shortest-path or uniqueness proofs",
+    "Shell production smoke uses the rebuilt game and existing artifacts for other games; no claim of a full monorepo build"
+  ]
 }

@@ -21,7 +21,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML=`
   </main><p class="rotate">↻ ${T.rotate}</p><div id="message" role="status" aria-live="polite"></div><div id="overlay"></div>`;
 const el=<E extends HTMLElement=HTMLElement>(id:string):E=>document.getElementById(id) as E;
 const button=(id:string):HTMLButtonElement=>el<HTMLButtonElement>(id);
-let progress=freshProgress();try{progress=readProgress(localStorage);}catch{/* Storage itself may be unavailable. */}
+let progress=freshProgress();
 let scene:FoldScene;
 let index=0,game=new Puzzle(levels[0]),guide=new HintGuide(plans[0]);
 let selected:Fold={crease:'A',direction:'right-to-left'};
@@ -46,7 +46,7 @@ function renderCreases():void{
     b.title=`${creaseName(option.crease)} · ${option.direction==='right-to-left'?T.right:T.left} (${i+1} / C)`;
     b.setAttribute('aria-label',`${creaseName(option.crease)}：${option.direction==='right-to-left'?T.right:T.left}`);
     b.setAttribute('aria-pressed',String(selected.crease===option.crease&&selected.direction===option.direction));
-    b.dataset.crease=option.crease;b.onclick=()=>choose(option);return b;
+    b.dataset.crease=option.crease;b.dataset.direction=option.direction;b.onclick=()=>choose(option);return b;
   }));
 }
 function begin(i:number):void{
@@ -76,12 +76,23 @@ function pause():void{
 }
 function revealHint():void{if(menu==='hint'){hintTier=Math.min(2,hintTier+1);renderOverlay();}else if(playable()||game.mode==='PAUSED')openMenu('hint');}
 const timeLabel=():string=>`${Math.floor(game.elapsed/60)}:${String(Math.floor(game.elapsed)%60).padStart(2,'0')}`;
+const visibleControls=():HTMLElement[]=>[...el('overlay').querySelectorAll<HTMLElement>('button:not([disabled]):not([hidden]), summary')].filter(e=>e.getClientRects().length>0);
+function chapterMenu():string{
+  const current=Math.floor((returnMenu==='start'?progress.unlocked-1:index)/25);
+  return T.chapters.map((name,part)=>{
+    const start=part*25,completed=Object.keys(progress.best).filter(k=>Number(k)>start&&Number(k)<=start+25).length;
+    return `<details data-chapter="${part}" ${part===current?'open':''}><summary><strong>${name}</strong><span>${start+1}–${start+25} · 已完成 ${completed}/25</span></summary><div class="level-grid">${levels.slice(start,start+25).map((l,j)=>{
+      const i=start+j;
+      return `<button data-level="${i}" ${i>=progress.unlocked?'disabled':''} ${i===index&&returnMenu!=='start'?'aria-current="true"':''}><span>${String(i+1).padStart(2,'0')}</span><strong>${l.title}</strong><small>${i>=progress.unlocked?T.locked:progress.best[String(i+1)]!==undefined?`${T.best}: ${progress.best[String(i+1)]}`:T.play+' ↗'}</small></button>`;
+    }).join('')}</div></details>`;
+  }).join('');
+}
 function renderOverlay():void{
   const key=`${menu}/${game.mode}/${index}/${progress.unlocked}/${hintTier}/${guide.stage}`;
   if(key===overlayKey)return;overlayKey=key;
   const overlay=el('overlay');let html='';
   if(menu==='start')html=`<div class="intro-card"><div class="eyebrow">${T.subtitle}</div><div class="title-art" aria-hidden="true"><span></span><span></span><i>· ·</i></div><h1>折叠<br><em>世界</em></h1><p>${T.intro}</p><button class="primary large" data-action="start">${T.start} ↗</button><p class="fine">${levels.length} ${T.pages} · ${T.introSmall}</p><button data-action="levels">${T.levels}</button><button data-action="help">${T.help}</button></div>`;
-  else if(menu==='levels')html=`<div class="modal chapters"><div class="eyebrow">${T.title}</div><h2>${T.levels}</h2>${[0,10].map((start,part)=>`<h3>${part?T.advanced:T.basics}</h3><div class="level-grid">${levels.slice(start,part?levels.length:10).map((l,j)=>{const i=start+j;return `<button data-level="${i}" ${i>=progress.unlocked?'disabled':''}><span>${String(i+1).padStart(2,'0')}</span><strong>${l.title}</strong><small>${i>=progress.unlocked?T.locked:progress.best[String(i+1)]!==undefined?`${T.best}: ${progress.best[String(i+1)]}`:T.play+' ↗'}</small></button>`;}).join('')}</div>`).join('')}<button data-action="back">← ${T.back}</button></div>`;
+  else if(menu==='levels')html=`<div class="modal chapters"><div class="eyebrow">${T.title}</div><h2>${T.levels}</h2>${chapterMenu()}<button data-action="back">← ${T.back}</button></div>`;
   else if(menu==='hint'){
     const hint=guide.get(game,hintTier);
     html=`<div class="modal hint-card"><div class="eyebrow">${T.hintStage} ${hint.stage+1} / ${hint.stages} · ${T.hintLevel} ${hintTier+1} / 3</div><h2>${T.hintTitle}</h2><p id="hint-text">${hint.text}</p><p class="fine">${T.hintPaused}</p><div class="dialog-actions"><button data-action="hint-more" ${hintTier===2||hint.recovery?'disabled':''}>${hintTier===2?T.lastHint:T.moreHint}</button><button class="primary" data-action="back">${T.closeHint}</button></div>${hint.recovery?`<button data-action="replay">↻ ${T.restart}</button>`:''}</div>`;
@@ -91,7 +102,7 @@ function renderOverlay():void{
   overlay.className=html?`visible${menu==='hint'?' hint-overlay':''}`:'';overlay.innerHTML=html;
   overlay.dataset.side=menu==='hint'&&(guide.get(game,hintTier).marker?.x??0)>600?'left':'right';
   el('stage').setAttribute('aria-hidden',String(!!html&&menu!=='hint'));
-  if(html){scene?.input.keyboard?.removeCapture([32,37,39]);overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',menu==='hint'?T.hintTitle:menu==='help'?T.help:menu==='start'?T.title:menu==='levels'?T.levels:T.paused);requestAnimationFrame(()=>overlay.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus({preventScroll:true}));}
+  if(html){scene?.input.keyboard?.removeCapture([32,37,39]);overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',menu==='hint'?T.hintTitle:menu==='help'?T.help:menu==='start'?T.title:menu==='levels'?T.levels:T.paused);requestAnimationFrame(()=>(overlay.querySelector<HTMLElement>('details[open] > summary')??visibleControls()[0])?.focus({preventScroll:true}));}
   else{overlay.removeAttribute('role');overlay.removeAttribute('aria-modal');scene?.input.keyboard?.addCapture([32,37,39]);}
   el('message').classList.toggle('behind-dialog',!!html);document.querySelector<HTMLElement>('.workspace')!.inert=!!html;
 }
@@ -125,7 +136,7 @@ document.addEventListener('keydown',e=>{
   // Synchronous Escape wins over a same-frame pointer release; Phaser queues keys.
   if(e.code==='Escape'&&!e.repeat){e.preventDefault();pause();return;}
   if(!el('overlay').classList.contains('visible')||e.key!=='Tab')return;
-  const buttons=[...el('overlay').querySelectorAll<HTMLButtonElement>('button:not([disabled]):not([hidden])')],first=buttons[0],last=buttons.at(-1);
+  const buttons=visibleControls(),first=buttons[0],last=buttons.at(-1);
   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
 });
 class FoldScene extends Phaser.Scene{
@@ -190,7 +201,7 @@ class FoldScene extends Phaser.Scene{
     if(game.mode!==lastMode){lastMode=game.mode;renderOverlay();}
     if(game.message&&game.message!==lastMessage){toast(game.message);lastMessage=game.message;}if(performance.now()>messageUntil)el('message').textContent='';
     el('status').textContent=`${game.fold?`${creaseName(game.fold.crease)} ${game.fold.direction==='right-to-left'?'←':'→'}`:T.flat} · ${T.folds} ${game.folds} 次`;
-    const count=game.level.entities.filter(e=>e.kind==='key').length;el('key').textContent=count?`⚿ ${game.collected.size} / ${count}`:'';
+    const count=game.level.entities.filter(e=>e.kind==='key').length;el('key').textContent=count?`钥匙 ${game.collected.size} / ${count}`:'';
     el('key').setAttribute('aria-label',`${T.key}: ${game.collected.size} / ${count}`);
     el('hint').textContent=game.mode==='FOLD_PREVIEW'?(game.preview>=.5?T.preview:T.previewShort):game.fold?T.unfoldGesture:index===0?T.firstHint:'';
     const actionLabel=game.fold?T.unfold:T.fold;
@@ -200,6 +211,7 @@ class FoldScene extends Phaser.Scene{
     this.paper.draw(game,selected,time,menu==='hint'?guide.get(game,hintTier).marker:null);
   }
 }
+try{progress=readProgress(localStorage,migrated=>{if(!saveProgress(localStorage,migrated))toast(T.savedError);});}catch{toast(T.savedError);}
 // CSS touch-action handles scrolling; Phaser 3.90 would preventDefault on non-cancelable touchcancel.
 new Phaser.Game({type:Phaser.AUTO,parent:'stage',width:WIDTH,height:380,backgroundColor:'#f4eddc',antialias:true,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[FoldScene],input:{keyboard:true,touch:{capture:false},mouse:true},audio:{disableWebAudio:false},banner:false});
 // Observations only; no teleport, unlock, or simulation-control hooks.

@@ -1,19 +1,34 @@
 import { chromium, type Page, type CDPSession } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { routes, runAction, type Action } from './routes';
 import { Puzzle } from '../src/game';
 import type { Body } from '../src/physics';
 import type { Fold } from '../src/geometry';
 import { levels } from '../src/levels';
 import { TEXT as T } from '../src/strings';
+import { plans } from '../src/hints';
 interface Snapshot {index:number;mode:string;body:Body;fold:Fold|null;folds:number;unfolds:number;keys:string[];deaths:number;elapsed:number;preview:number;objects:number;hint:{stage:number;text:string;marker:{x:number;y:number}|null}|null;hintTier:number;progress:{unlocked:number;best:Record<string,number>}}
 const url=process.env.GAME_URL??'http://localhost:4312/';
 await mkdir('test-results',{recursive:true});
+const hash=(value:string):string=>createHash('sha256').update(value).digest('hex');
+const sourceHash=hash((await Promise.all(['game.ts','physics.ts','geometry.ts','main.ts','paper.ts','progress.ts','hints.ts','strings.ts','style.css'].map(f=>readFile('src/'+f,'utf8')))).join('\n'));
+const fingerprints=levels.map((level,i)=>hash(JSON.stringify([level,plans[i],routes[i]])));
+const checkpointPath='test-results/browser-checkpoint.json';
+const checkpoint=process.env.BROWSER_RESUME==='1'?JSON.parse(await readFile(checkpointPath,'utf8')):null;
+const from=checkpoint?(process.env.BROWSER_REPLAY_FROM?Number(process.env.BROWSER_REPLAY_FROM)-1:checkpoint.nextLevel):0;
+assert.ok(Number.isInteger(from)&&from>=0&&from<=(checkpoint?.nextLevel??0),'Replay must start within the legitimately earned checkpoint');
+if(checkpoint){
+  assert.equal(checkpoint.sourceHash,sourceHash,'Core/UI changed; rerun the full browser suite');
+  assert.deepEqual(checkpoint.fingerprints.slice(0,from),fingerprints.slice(0,from),'An earlier level changed; replay from that level or rerun the full browser suite');
+  assert.equal(checkpoint.url,url);
+}
 const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL??'chrome',headless:true});
-const context=await browser.newContext({viewport:{width:1280,height:800}});
+if(checkpoint)assert.equal(checkpoint.browser,browser.version());
+const context=await browser.newContext({viewport:{width:1280,height:800},storageState:checkpoint?.storageState});
 const page=await context.newPage();
-const errors:string[]=[],warnings:string[]=[],results:unknown[]=[];
+const errors:string[]=[],warnings:string[]=checkpoint?.warnings??[],results:unknown[]=(checkpoint?.results??[]).filter((r:{level?:number})=>!r.level||r.level<=from);
 const captureErrors=(p:Page):void=>{p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());if(m.type()==='warning')warnings.push(m.text());});};
 captureErrors(page);
 const snapshot=(p:Page=page):Promise<Snapshot>=>p.evaluate('window.__foldSnapshot');
@@ -21,9 +36,9 @@ const waitMode=(mode:string,p:Page=page):Promise<unknown>=>p.waitForFunction(m=>
 async function drive(action:Action,p:Page=page,touch?:CDPSession):Promise<void> {
   if(action.kind==='fold'||action.kind==='unfold') {
     await p.waitForFunction(() => Math.abs((window as unknown as {__foldSnapshot:Snapshot}).__foldSnapshot.body.vx)<8);
-    if(action.kind==='fold') {if(touch){await p.locator(`[data-crease="${action.crease}"]`).tap();await p.locator('#fold').tap();}else{await p.locator(`[data-crease="${action.crease}"]`).click();await p.keyboard.press('KeyF');}}
+    if(action.kind==='fold') {if(touch){await p.locator(`[data-crease="${action.crease}"][data-direction="${action.direction}"]`).tap();await p.locator('#fold').tap();}else{await p.locator(`[data-crease="${action.crease}"][data-direction="${action.direction}"]`).click();await p.keyboard.press('KeyF');}}
     else if(touch)await p.locator('#fold').tap();else await p.keyboard.press('KeyF');
-    await waitMode('FOLD_ANIMATING',p);await waitMode('PLAYING',p);return;
+    await waitMode('FOLD_ANIMATING',p);await p.waitForFunction(()=>['PLAYING','COMPLETED'].includes((window as unknown as {__foldSnapshot:Snapshot}).__foldSnapshot.mode));return;
   }
   const before=await snapshot(p);let airborne=false;let held='';
   const points=new Map<number,{id:number;x:number;y:number}>();
@@ -62,6 +77,13 @@ async function swipePaper(p:Page,x:number,dx:number,dy=0):Promise<void> {
 }
 try {
   await page.goto(url);await page.getByRole('button',{name:T.start}).click();await waitMode('PLAYING');await page.waitForTimeout(200);
+  if((await snapshot()).index!==from&&from<levels.length){
+    await page.locator('#pause').click();await page.locator('#chapters').click();
+    const chapter=page.locator(`[data-chapter="${Math.floor(from/25)}"]`);
+    if(await chapter.getAttribute('open')===null)await chapter.locator('summary').click();
+    await page.locator(`[data-level="${from}"]`).click();await waitMode('PLAYING');await page.waitForTimeout(200);
+  }
+  if(from===0){
   assert.equal(await page.locator('header').count(),0);
   await page.keyboard.press('KeyH');await page.locator('#hint-text').waitFor();await waitMode('PAUSED');
   const thinking=await snapshot();assert.equal(thinking.hint?.stage,0);assert.equal(thinking.hint?.marker,null);
@@ -95,29 +117,35 @@ try {
   await page.screenshot({path:'test-results/desktop-folded.png'});
   await drive({kind:'walk',x:350});await page.keyboard.press('KeyF');assert.equal((await snapshot()).folds,1);assert.ok((await snapshot()).fold);await page.getByText(T.fixed,{exact:true}).waitFor();
   console.log('PASS mouse preview / cancellation / commit / unsafe unfold');
-  for(let i=0;i<routes.length;i++) {
-    if(i>0){await page.locator('[data-action="next"]').click();await waitMode('PLAYING');await page.waitForTimeout(100);}
-    if(i===1){await swipePaper(page,300,85);await waitMode('PLAYING');assert.equal((await snapshot()).fold?.direction,'left-to-right');await swipePaper(page,900,-85);await waitMode('PLAYING');assert.equal((await snapshot()).fold,null);await page.keyboard.press('KeyR');await page.waitForTimeout(100);}
-    if(i===7){
+  }else assert.equal((await snapshot()).index,Math.min(from,99),'Resume only from legitimately earned progress');
+  for(let i=from;i<routes.length;i++) {
+    if(i>from){await page.locator('[data-action="next"]').click();await waitMode('PLAYING');await page.waitForTimeout(100);}
+    if(i===4){
+      await page.keyboard.press('KeyF');await page.getByText(T.blocked,{exact:true}).waitFor();
+      assert.equal((await snapshot()).folds,0);await page.screenshot({path:'test-results/blocked-projection.png'});
+    }
+    if(i===19){for(const direction of ['left-to-right','right-to-left']){const choice=page.locator('[data-crease="A"][data-direction="'+direction+'"]');await choice.click();assert.equal(await choice.getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#creases [aria-pressed="true"]').count(),1);}}
+    if(i===6){
       await drive(routes[i][0]);await drive({kind:'unfold'});await page.keyboard.press('KeyH');
-      await page.getByText('你换了折法，或漏拿了钥匙。重新开始本关，就能跟随标记路线。',{exact:true}).waitFor();
+      await page.getByText('你正在探索另一条路线，已经找到的钥匙会保留。可以继续尝试；需要从头跟随这条参考路线时，再选择重来。',{exact:true}).waitFor();
       assert.equal(await page.locator('[data-action="hint-more"]').isDisabled(),true);
       await page.locator('[data-action="replay"]').click();await waitMode('PLAYING');await page.waitForTimeout(100);
     }
-    if(i===12){for(const [key,crease] of [['Digit3','C'],['Digit2','B'],['Digit1','A']]){await page.keyboard.press(key);assert.equal(await page.locator(`[data-crease="${crease}"]`).getAttribute('aria-pressed'),'true');}}
+    if(i===24){for(const [key,crease] of [['Digit3','C'],['Digit2','B'],['Digit1','A']]){await page.keyboard.press(key);assert.equal(await page.locator(`[data-crease="${crease}"]`).getAttribute('aria-pressed'),'true');}}
     const reference=new Puzzle(levels[i]);if(i===0)runAction(reference,routes[0][0]);
     for(const action of routes[i].slice(i===0?1:0)) {
-      if(i===9&&action.kind==='fold'&&action.crease==='B'){
+      if(i===15&&action.kind==='fold'&&action.crease==='B'){
         // The left-side gesture chooses the opposite allowed crease without a selection click.
         await swipePaper(page,300,85);await waitMode('PLAYING');assert.equal((await snapshot()).fold?.crease,'B');
       }else await drive(action);
       runAction(reference,action);const actual=await snapshot();
+      if([7,9,38,80].includes(i)&&action.kind==='fold')await page.screenshot({path:`test-results/visibility-${i+1}-${actual.folds}.png`});
       // A reference route can touch the exit mid-jump before the browser lands.
       if(actual.mode==='PLAYING'&&reference.mode==='PLAYING')assert.ok(Math.abs(actual.body.y-reference.body.y)<1,`Wrong landing in level ${i+1}, ${JSON.stringify(action)}: actual y=${actual.body.y}, expected ${reference.body.y}`);
-      if(i>=10&&action.kind==='fold'){
+      if(i>=10&&action.kind==='fold'&&actual.mode==='PLAYING'){
         await page.keyboard.press('KeyH');await page.locator('#hint-text').waitFor();const h=await snapshot();assert.equal(h.mode,'PAUSED');assert.equal(h.hint?.stage,h.folds+h.unfolds);
         await page.locator('[data-action="hint-more"]').click();
-        if(i===14&&action.crease==='C')await page.screenshot({path:'test-results/advanced-hint.png'});
+        if(i===24&&action.crease==='C')await page.screenshot({path:'test-results/advanced-hint.png'});
         await page.keyboard.press('Escape');await waitMode('PLAYING');
       }
     }
@@ -125,11 +153,28 @@ try {
     assert.equal(s.keys.length,levels[i].entities.filter(e=>e.kind==='key').length);
     results.push({level:i+1,mode:s.mode,folds:s.folds,unfolds:s.unfolds,keys:s.keys,deaths:s.deaths,gameSeconds:s.elapsed});
     await page.screenshot({path:`test-results/level-${String(i+1).padStart(2,'0')}.png`});
+    assert.deepEqual(errors,[]);
+    await writeFile(checkpointPath,JSON.stringify({sourceHash,fingerprints,url,browser:browser.version(),nextLevel:i+1,storageState:await context.storageState(),results,warnings}));
     console.log(`PASS browser level ${i+1}; folds=${s.folds}; unfolds=${s.unfolds}`);
   }
   assert.equal((await snapshot()).progress.unlocked,levels.length);
   await page.reload();await page.getByRole('button',{name:T.start}).click();await waitMode('PLAYING');assert.equal((await snapshot()).progress.unlocked,levels.length);
-  await page.keyboard.press('Escape');await waitMode('PAUSED');await page.locator('#chapters').click();await page.locator('[data-level="0"]').click();await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');await waitMode('PAUSED');await page.locator('#chapters').click();
+  assert.equal(await page.locator('.chapters details').count(),4);assert.equal(await page.locator('[data-level]').count(),100);
+  assert.equal(await page.locator('.chapters details[open]').getAttribute('data-chapter'),'3');
+  const currentSummary=page.locator('[data-chapter="3"] > summary');
+  await currentSummary.focus();await page.keyboard.press('Enter');
+  assert.equal(await page.locator('[data-chapter="3"]').getAttribute('open'),null);
+  await page.keyboard.press('Space');assert.notEqual(await page.locator('[data-chapter="3"]').getAttribute('open'),null);
+  await page.locator('[data-chapter="0"] > summary').focus();await page.keyboard.press('Shift+Tab');
+  assert.ok(await page.locator('[data-action="back"]').evaluate(e=>e===document.activeElement));
+  await page.keyboard.press('Tab');assert.ok(await page.locator('[data-chapter="0"] > summary').evaluate(e=>e===document.activeElement));
+  for(let i=0;i<12;i++){
+    await page.keyboard.press('Tab');
+    assert.ok(await page.evaluate(()=>!!document.activeElement?.getClientRects().length),'Keyboard focus must stay on visible chapter controls');
+  }
+  await page.screenshot({path:'test-results/chapters-100.png'});
+  await page.locator('[data-chapter="0"] > summary').click();await page.locator('[data-level="0"]').click();await page.waitForTimeout(200);
   await page.keyboard.down('ArrowRight');await page.waitForTimeout(70);
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitMode('PAUSED');await page.keyboard.up('ArrowRight');
   const frozen=(await snapshot()).body;await page.waitForTimeout(250);assert.deepEqual((await snapshot()).body,frozen);
@@ -188,19 +233,43 @@ try {
   // Reuse legitimately earned saves; no injected unlocks or game-state setters.
   const advanced=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,storageState:await context.storageState()});
   const advancedPage=await advanced.newPage();captureErrors(advancedPage);await advancedPage.goto(url);await advancedPage.getByRole('button',{name:T.start}).tap();await waitMode('PLAYING',advancedPage);
-  await advancedPage.locator('#pause').tap();await waitMode('PAUSED',advancedPage);await advancedPage.locator('#chapters').tap();await advancedPage.locator('[data-level="14"]').tap();await waitMode('PLAYING',advancedPage);await advancedPage.waitForTimeout(150);
+  await advancedPage.locator('#pause').tap();await waitMode('PAUSED',advancedPage);await advancedPage.locator('#chapters').tap();await advancedPage.locator('[data-level="99"]').tap();await waitMode('PLAYING',advancedPage);await advancedPage.waitForTimeout(150);
   const advancedTouch=await advanced.newCDPSession(advancedPage);
   await advancedPage.setViewportSize({width:667,height:375});await advancedPage.waitForTimeout(150);
   const controlBounds=await advancedPage.locator('.controls button').evaluateAll(buttons=>buttons.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
   for(const [i,a] of controlBounds.entries()){assert.ok(a.w>=44&&a.h>=44&&a.x>=0&&a.x+a.w<=667);for(const b of controlBounds.slice(i+1))assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'Touch controls overlap');}
   await advancedPage.screenshot({path:'test-results/mobile-three-creases.png'});
   await advancedPage.setViewportSize({width:844,height:390});await advancedPage.waitForTimeout(150);
-  for(const action of routes[14]){await drive(action,advancedPage,advancedTouch);if(action.kind==='fold'){await advancedPage.locator('#show-hint').tap();await advancedPage.locator('#hint-text').waitFor();await advancedPage.locator('[data-action="hint-more"]').tap();await advancedPage.screenshot({path:'test-results/mobile-advanced.png'});await advancedPage.locator('[data-action="back"]').tap();await waitMode('PLAYING',advancedPage);}}
-  assert.equal((await snapshot(advancedPage)).mode,'COMPLETED');assert.equal((await snapshot(advancedPage)).keys.length,3);
-  results.push({check:'level 15 completed with touch controls, three keys, four folds and contextual hints',passed:true});
-  await advancedPage.screenshot({path:'test-results/mobile-level-15-complete.png'});await advanced.close();
+  for(const action of routes[99]){await drive(action,advancedPage,advancedTouch);if(action.kind==='fold'&&(await snapshot(advancedPage)).mode==='PLAYING'){await advancedPage.locator('#show-hint').tap();await advancedPage.locator('#hint-text').waitFor();await advancedPage.locator('[data-action="hint-more"]').tap();await advancedPage.screenshot({path:'test-results/mobile-advanced.png'});await advancedPage.locator('[data-action="back"]').tap();await waitMode('PLAYING',advancedPage);}}
+  assert.equal((await snapshot(advancedPage)).mode,'COMPLETED');assert.equal((await snapshot(advancedPage)).keys.length,levels[99].entities.filter(e=>e.kind==='key').length);
+  results.push({check:'level 100 completed with touch controls and contextual hints',passed:true});
+  await advancedPage.screenshot({path:'test-results/mobile-level-100-complete.png'});
+  for(const index of [23,24,44]){
+    await advancedPage.locator('[data-action="replay"]').tap();await waitMode('PLAYING',advancedPage);
+    await advancedPage.locator('#pause').tap();await waitMode('PAUSED',advancedPage);await advancedPage.locator('#chapters').tap();
+    const chapter=advancedPage.locator(`[data-chapter="${Math.floor(index/25)}"]`);
+    if(await chapter.getAttribute('open')===null)await chapter.locator('summary').tap();
+    await advancedPage.locator(`[data-level="${index}"]`).tap();await waitMode('PLAYING',advancedPage);await advancedPage.waitForTimeout(150);
+    for(const action of routes[index])await drive(action,advancedPage,advancedTouch);
+    const completed=await snapshot(advancedPage);
+    assert.equal(completed.mode,'COMPLETED');assert.equal(completed.deaths,0);
+    results.push({check:`level ${index+1} complete through touch controls`,passed:true});
+    await advancedPage.screenshot({path:`test-results/mobile-level-${index+1}-complete.png`});
+  }
+  await advanced.close();
+  const legacyContext=await browser.newContext(),legacyPage=await legacyContext.newPage();captureErrors(legacyPage);
+  const legacySave=JSON.stringify({unlocked:16,best:{3:2,16:4},muted:true});
+  await legacyPage.addInitScript(value=>localStorage.setItem('fold-the-world-v1',value),legacySave);
+  await legacyPage.goto(url);await legacyPage.getByRole('button',{name:T.start}).click();await waitMode('PLAYING',legacyPage);
+  assert.equal((await snapshot(legacyPage)).index,25);
+  assert.deepEqual((await snapshot(legacyPage)).progress.best,{'4':2});
+  assert.equal(await legacyPage.evaluate(()=>localStorage.getItem('fold-the-world-v1')),legacySave);
+  const migratedSave=await legacyPage.evaluate(key=>localStorage.getItem(key),T.storageKey);
+  await legacyPage.reload();assert.equal(await legacyPage.evaluate(key=>localStorage.getItem(key),T.storageKey),migratedSave);
+  results.push({check:'legacy fixture migrates once, preserves v1, transfers only unchanged best scores and opens level 26',passed:true});
+  await legacyContext.close();
   assert.deepEqual(errors,[]);
-  await writeFile('test-results/browser-report.json',JSON.stringify({date:new Date().toISOString(),url,browser:browser.version(),results,errors,warnings},null,2));
+  await writeFile('test-results/browser-report.json',JSON.stringify({date:new Date().toISOString(),url,browser:browser.version(),sourceHash,fingerprints,results,errors,warnings},null,2));
   console.log('PASS persistence, lifecycle, fullscreen, four viewports, multitouch, touch completion; zero console errors');
 } catch(error) {
   await page.screenshot({path:'test-results/failure.png'});

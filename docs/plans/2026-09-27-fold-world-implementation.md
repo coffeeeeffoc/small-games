@@ -6,6 +6,8 @@
 
 **Tech Stack:** 现有 TypeScript、Phaser、Vite、node:test、tsx、Playwright；不新增依赖。
 
+**实施验收：** 100关与四章入口完成；151项正式测试、100关生产浏览器路线、1/24/25/45/100全触摸通关、章节键盘、全屏、存档迁移及Shell集成均通过。物理参数未改，局部公平性校准与独立复核单独记录。当前执行证据见[游戏测试记录](../../games/local/fold-the-world/docs/TESTING.md)及其中的带源码指纹报告；真人首玩难度和手机真机仍未验证。
+
 ---
 
 ## 开始条件
