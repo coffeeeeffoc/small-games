@@ -13,8 +13,17 @@
 <section class="hud" aria-label="城市状态"><div><span id="chapter">01 / 初次救援</span><strong id="subtitle"></strong></div><div class="metrics"><span id="time">00:00</span><span id="loss">失误 0/3</span><span id="progress">0/4</span></div></section>
 <section id="map-wrap" aria-label="城市地图">
 <div class="map-tag"><span class="live-dot"></span><span id="phase">派出第一辆车，即刻开始</span></div>
-<svg id="map" viewBox="0 0 600 540" aria-label="六路口城市，可直接拖车到事件" xmlns="http://www.w3.org/2000/svg"></svg>
-<div class="map-legend"><span>◌ 倒计时</span><span>● 服务进度</span><span>斜纹路＝减速</span></div>
+<svg id="map" viewBox="0 0 600 540" tabindex="0" role="group" aria-label="救援地图：选车后点任意位置停靠，或点事件现场救援。也可用方向键选择停靠位置，Enter确认。" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="map-legend"><span>虚线为出车路线</span><span>车辆驶入现场后开始处理</span></div>
+</section>
+<section id="dispatch-board" aria-label="救援事项">
+<div id="incidents" aria-label="待派车事项"></div>
+<details id="assigned-jobs" hidden><summary><span>已分配 <b id="assigned-count">0</b></span><small class="expand-label">展开查看</small><small class="collapse-label">点击收起</small></summary><div id="assigned-events" aria-label="已分配的救援任务"></div></details>
+</section>
+<svg id="dispatch-links" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" hidden></svg>
+<section id="dispatch-picker" aria-labelledby="dispatch-title" hidden>
+<div class="dispatch-heading"><div><strong id="dispatch-title"></strong><small id="dispatch-note" role="status"></small></div><button id="close-dispatch" aria-label="取消派车">×</button></div>
+<div id="dispatch-cars"></div>
 </section>
 <section class="console" aria-label="调度操作"><div id="fleet" aria-label="选一辆车，再点求助地点；也可直接拖车"></div><div class="instruction"><span id="hint" role="status" aria-live="polite"></span><small id="eta">先点车或先点地点都行；也可以直接拖过去。</small></div><div id="routes" aria-label="路线选择"></div><div class="actions"><button id="cancel" hidden>取消选择</button><button id="restart">重试</button><button id="go" class="primary">开始 <span>→</span></button></div></section>
 <footer>你疏通的路，是同伴赶上的救援。<span>选车不停工 · 随时分派救援</span></footer>

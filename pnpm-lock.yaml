@@ -240,9 +240,9 @@ importers:
       '@coffeeeeffoc/rule-thief':
         specifier: workspace:*
         version: link:../../games/local/rule-thief
-      '@coffeeeeffoc/three-car-city':
+      '@coffeeeeffoc/rescue-team':
         specifier: workspace:*
-        version: link:../../games/local/three-car-city
+        version: link:../../games/local/rescue-team
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -927,7 +927,7 @@ importers:
 
   games/local/rule-thief: {}
 
-  games/local/three-car-city: {}
+  games/local/rescue-team: {}
 
   games/local/travel:
     devDependencies:

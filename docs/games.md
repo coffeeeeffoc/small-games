@@ -35,7 +35,7 @@
 | 气球搬家公司          | `balloon-movers`               | [games/local/balloon-movers](../games/local/balloon-movers/)                             | 绑好气球，控制左右排气，让沙发、冰箱和钢琴穿过窄窗，稳稳落到收货垫上。      |
 | 天气指挥部            | `weather-command`              | [games/local/weather-command](../games/local/weather-command/)                           | 用雨、风、太阳和雪改变航道，在三次天气指令内把补给船送进码头。              |
 | 镜头外发生了什么      | `off-camera`                   | [games/local/off-camera](../games/local/off-camera/)                                     | 观察深夜小店的前后画面，排列事件卡重演盲区里的动作，还原三个喜剧谜案。      |
-| 小城救援队            | `three-car-city`               | [games/local/three-car-city](../games/local/three-car-city/)                             | 调度三辆救援车，选择路线、疏通道路，在求助倒计时结束前赶到现场。            |
+| 小城救援队            | `rescue-team`               | [games/local/rescue-team](../games/local/rescue-team/)                             | 调度三辆救援车，接报后开始计时，选择路线、疏通道路，及时赶到现场完成救援。            |
 | 一分钟拆对墙          | `precision-demolition`         | [games/local/precision-demolition](../games/local/precision-demolition/)                 | 按住接缝凿击，安排卸重顺序和倒塌方向，拆掉目标墙板并保护承重柱与花瓶。      |
 | Afterimage Arena      | `afterimage-arena`             | [games/local/afterimage-arena](../games/local/afterimage-arena/)                         | 留下二十秒的真实动作，与过去的自己协作破盾、躲避红环，击穿机械核心。        |
 | Ghost Shift Manager   | `ghost-shift-manager`          | [games/local/ghost-shift-manager](../games/local/ghost-shift-manager/)                   | 安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。        |
