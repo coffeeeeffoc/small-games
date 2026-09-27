@@ -118,14 +118,11 @@ try {
       // Reproduce slow CI frames: charging may safely cancel, but walking must remain usable.
       await gameFrame.evaluate(() => {
         const raf = globalThis.requestAnimationFrame.bind(globalThis);
-        let frames = 0;
         globalThis.requestAnimationFrame = (callback) =>
           raf(() => {
-            if (++frames % 4 === 0) {
-              const until = performance.now() + 140;
-              while (performance.now() < until) {
-                /* Simulated render stall. */
-              }
+            const until = performance.now() + 140;
+            while (performance.now() < until) {
+              /* Sustained slow rendering must not freeze physics. */
             }
             callback(performance.now());
           });
