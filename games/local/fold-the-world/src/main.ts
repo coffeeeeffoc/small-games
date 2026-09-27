@@ -149,8 +149,12 @@ class FoldScene extends Phaser.Scene{
     this.input.keyboard?.on('keyup',(event:KeyboardEvent)=>{if(handledKeys.has(event))return;handledKeys.add(event);keys.delete(event.code);});
     this.input.on('pointerdown',(p:Phaser.Input.Pointer)=>{
       const y=p.y+this.cameras.main.scrollY;
-      if(!playable()||drag||touches.size||keys.size||jumpQueued||p.x<0||p.x>WIDTH||p.y<0||p.y>380||!blankPaper(p.x,y,game.world,game.body))return;
-      drag={id:p.id,x:p.x,y,scale:this.game.canvas.getBoundingClientRect().width/WIDTH,sign:0,active:false};
+      if(!playable()||drag||touches.size||keys.size||jumpQueued||p.x<0||p.x>WIDTH||p.y<0||p.y>380)return;
+      const scale=this.game.canvas.getBoundingClientRect().width/WIDTH;
+      const crease=game.level.creases.find(c=>Math.abs(p.x-c.x)<=Math.max(24,22/scale)&&y<=550);
+      if(crease)choose({crease:crease.id,direction:crease.directions.includes(selected.direction)?selected.direction:crease.directions[0]});
+      if(!blankPaper(p.x,y,game.world,game.body))return;
+      drag={id:p.id,x:p.x,y,scale,sign:0,active:false};
     });
     const movePaper=(p:Phaser.Input.Pointer):void=>{
       if(!drag||drag.id!==p.id)return;
