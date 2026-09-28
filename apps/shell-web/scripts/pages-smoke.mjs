@@ -144,6 +144,7 @@ try {
       'one-stroke-course',
       'hold-tight-acrobats',
       'carding-car',
+      'night-overwatch',
       'fishing',
       'vibeJam-myself-delivery',
       'vibeJam-myself-nullrange',
