@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "url": "http://localhost:4318",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "1c455d40259f85aa8d1e8286e814c2c3a0b439c079cc8ce285c3f73a780f2121"
+      },
+      "drawCalls": 39,
+      "triangles": 37031,
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "url": "http://localhost:4319",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-desktop",
+        "sourceHash": "1c455d40259f85aa8d1e8286e814c2c3a0b439c079cc8ce285c3f73a780f2121"
+      },
+      "drawCalls": 39,
+      "triangles": 36935,
+      "modelImport": "loaded",
+      "audio": "ready"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,65 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "74d109e9e1e2da6ffec1ab8d22402daa4a696faed7bbf259a6403703b130f354"
+  },
+  "round": "round5",
+  "viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "loadMs": 2315,
+      "fps": 59.50314870863756,
+      "drawCalls": 38,
+      "triangles": 37369,
+      "transfer": 3378564
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "loadMs": 2279,
+      "slideStopped": true,
+      "fps": 60.00495908752793,
+      "drawCalls": 34,
+      "triangles": 36859,
+      "transfer": 3378564
+    },
+    {
+      "width": 667,
+      "height": 375,
+      "loadMs": 2294,
+      "slideStopped": true,
+      "fps": 59.50609937536187,
+      "drawCalls": 34,
+      "triangles": 36859,
+      "transfer": 3378564
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "loadMs": 2264,
+      "slideStopped": true,
+      "fps": 59.99900828120953,
+      "drawCalls": 35,
+      "triangles": 36865,
+      "transfer": 3378564
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "resourcesFailed": [],
+  "naturalFailure": {
+    "time": 48.44999999999853,
+    "damageByThreat": {
+      "turret": 112,
+      "light": 128,
+      "heavy": 20
+    },
+    "retry": true
+  }
+}

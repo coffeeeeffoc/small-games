@@ -1,0 +1,92 @@
+[
+  {
+    "at": "2026-09-28T06:42:58.106Z",
+    "name": "01-568-default",
+    "note": "Requested hash, first live default view, no zoom/sensor changes.",
+    "bytes": 53264
+  },
+  {
+    "at": "2026-09-28T06:44:36.824Z",
+    "name": "02-568-aim-turret",
+    "note": "Actual relative touch drag aligns crosshair with first fixed turret diamond; snapshot projection only for coordinates.",
+    "bytes": 52246
+  },
+  {
+    "at": "2026-09-28T06:44:37.715Z",
+    "name": "03-568-turret-hit",
+    "note": "Dual-finger blast firing at fixed turret, capture after first impact.",
+    "bytes": 52713
+  },
+  {
+    "at": "2026-09-28T06:44:39.906Z",
+    "name": "04-568-turret-destroyed",
+    "note": "Release trigger and allow real projectile travel to complete.",
+    "bytes": 50517
+  },
+  {
+    "at": "2026-09-28T06:44:42.023Z",
+    "name": "05-568-heavy-impact",
+    "note": "One actual heavy-gun press/release, then1.05s projectile travel.",
+    "bytes": 48760
+  },
+  {
+    "at": "2026-09-28T06:44:42.370Z",
+    "name": "06-568-help-basic",
+    "note": "568 help basic, check visible aiming/firing instructions.",
+    "bytes": 29432
+  },
+  {
+    "at": "2026-09-28T06:44:42.604Z",
+    "name": "07-568-help-advanced",
+    "note": "568 touch advanced instructions, inspect wheel wording.",
+    "bytes": 30822
+  },
+  {
+    "at": "2026-09-28T06:44:42.823Z",
+    "name": "08-320-portrait-help",
+    "note": "Portrait help, inspect footer and content clipping.",
+    "bytes": 53315
+  },
+  {
+    "at": "2026-09-28T06:46:31.723Z",
+    "name": "09-844-default",
+    "note": "Same loaded build at844, after first turret kill; default zoom retained.",
+    "bytes": 63808
+  },
+  {
+    "at": "2026-09-28T06:46:33.207Z",
+    "name": "10-844-touch-feedback",
+    "note": "Dual-finger rapid fire followed by release and touchCancel; no sticky firing.",
+    "bytes": 62044
+  },
+  {
+    "at": "2026-09-28T06:46:34.075Z",
+    "name": "11-844-help-bottom",
+    "note": "Touch advanced help after real swipes to bottom.",
+    "bytes": 52271
+  },
+  {
+    "at": "2026-09-28T06:46:34.276Z",
+    "name": "12-390-help",
+    "note": "390 portrait help footer and text.",
+    "bytes": 58655
+  },
+  {
+    "at": "2026-09-28T06:47:04.725Z",
+    "name": "13-natural-progress",
+    "note": "30 seconds real unattended combat after input/help checks.",
+    "bytes": 59575
+  },
+  {
+    "at": "2026-09-28T06:49:21.233Z",
+    "name": "14-natural-result",
+    "note": "Final observed state after real enemy combat; no further long wait.",
+    "bytes": 32226
+  },
+  {
+    "at": "2026-09-28T06:49:21.718Z",
+    "name": "15-real-touch-retry",
+    "note": "Tap retry from natural failure; no reload/state changes.",
+    "bytes": 74995
+  }
+]

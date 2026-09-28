@@ -1,0 +1,56 @@
+{
+  "verifiedAt": "2026-09-28T07:19:40.923Z",
+  "browserClosed": true,
+  "files": [
+    {
+      "file": "01-final-banner-default.png",
+      "exists": true,
+      "bytes": 49726
+    },
+    {
+      "file": "02-kill-confirmation.png",
+      "exists": true,
+      "bytes": 44662
+    },
+    {
+      "file": "03-kill-held-after-misses.png",
+      "exists": true,
+      "bytes": 42378
+    },
+    {
+      "file": "04-feedback-after-hold.png",
+      "exists": true,
+      "bytes": 47219
+    },
+    {
+      "file": "05-moving-label-banner.png",
+      "exists": true,
+      "bytes": 45526
+    },
+    {
+      "file": "videos/targeted-review.webm",
+      "exists": true,
+      "bytes": 1647394
+    },
+    {
+      "file": "checks.json",
+      "exists": true,
+      "bytes": 10009
+    },
+    {
+      "file": "journal.json",
+      "exists": true,
+      "bytes": 992
+    },
+    {
+      "file": "build-info.json",
+      "exists": true,
+      "bytes": 313
+    },
+    {
+      "file": "review.md",
+      "exists": true,
+      "bytes": 2512
+    }
+  ]
+}

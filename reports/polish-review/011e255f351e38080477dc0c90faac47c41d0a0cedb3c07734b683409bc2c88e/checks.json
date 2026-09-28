@@ -1,0 +1,152 @@
+{
+  "checks": {
+    "turretBefore": {
+      "time": 0,
+      "progress": 0,
+      "kind": "turret",
+      "x": -56,
+      "z": 29,
+      "direction": [
+        "西岭弯道发现炮台",
+        "Emplacement above the switchbacks"
+      ],
+      "id": 5,
+      "hp": 90,
+      "maxHp": 90,
+      "friendly": false,
+      "heading": 1.5707963267948966,
+      "born": 0,
+      "attack": 2.850000000000004,
+      "hit": 0,
+      "deadAt": -1,
+      "origin": {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -56,
+        "z": 29,
+        "direction": [
+          "西岭弯道发现炮台",
+          "Emplacement above the switchbacks"
+        ]
+      }
+    },
+    "turretAfter": {
+      "unit": {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -56,
+        "z": 29,
+        "direction": [
+          "西岭弯道发现炮台",
+          "Emplacement above the switchbacks"
+        ],
+        "id": 5,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 0.06666666666667587,
+        "hit": 0,
+        "deadAt": 3.9333333333333242,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -56,
+          "z": 29,
+          "direction": [
+            "西岭弯道发现炮台",
+            "Emplacement above the switchbacks"
+          ]
+        }
+      },
+      "kills": 1,
+      "hits": 3,
+      "fired": 3,
+      "blastAmmo": 37
+    },
+    "heavy": {
+      "ammoBefore": 6,
+      "ammoAfter": 5,
+      "firedBefore": 3,
+      "firedAfter": 4,
+      "shots": []
+    },
+    "rotationBack": [
+      "manual"
+    ],
+    "touch844": {
+      "aimBefore": {
+        "x": -40.00000135183069,
+        "z": 2.999998999695322
+      },
+      "aimAfter": {
+        "x": -35.57032250354721,
+        "z": 7.907555411746756
+      },
+      "firedBefore": 4,
+      "firedRelease": 7,
+      "fired300msLater": 7,
+      "cancelBefore": 9,
+      "cancel300msLater": 9
+    },
+    "rotation844": {
+      "timeBefore": 8.65000000000001,
+      "timeAfter": 8.65000000000001,
+      "pauses": [
+        "manual"
+      ]
+    },
+    "performance": {
+      "seconds": 5,
+      "frames": 300,
+      "p95": 16.79999999998836,
+      "max": 16.800000000017462,
+      "over50": 0
+    },
+    "naturalEnd": {
+      "phase": "failure",
+      "time": 60.53333333333118,
+      "kills": 1,
+      "friendlyDamage": 0,
+      "rescue": 0
+    },
+    "retry": {
+      "phase": "playing",
+      "time": 0.4666666666666666,
+      "fired": 0,
+      "kills": 0,
+      "rescue": 260,
+      "guns": [
+        {
+          "heat": 0,
+          "ammo": "infinite",
+          "cooldown": 0,
+          "overheated": false
+        },
+        {
+          "heat": 0,
+          "ammo": 40,
+          "cooldown": 0,
+          "overheated": false
+        },
+        {
+          "heat": 0,
+          "ammo": 6,
+          "cooldown": 0,
+          "overheated": false
+        }
+      ]
+    }
+  },
+  "errors": [
+    {
+      "type": "error",
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+    }
+  ],
+  "requestsAfterPinnedLoad": []
+}

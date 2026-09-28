@@ -20,6 +20,7 @@ export function drawEffects(
   world: World,
   width: number,
   height: number,
+  reduced = false,
 ): void {
   const fill = g.fillColor.clone(),
     stroke = g.strokeColor.clone(),
@@ -93,7 +94,7 @@ export function drawEffects(
   let wrecks = 0;
   for (
     let i = s.units.length - 1, end = Math.max(0, s.units.length - 64);
-    i >= end && wrecks < 8;
+    i >= end && wrecks < 8 && !reduced;
     i--
   ) {
     const u = s.units[i],
@@ -148,7 +149,7 @@ export function drawEffects(
     ring(e, radius * (0.2 + wave * 1.35), 0.9 - t * 0.65, (1 - wave) * 0.65);
     if (weapon > 0) {
       ring(e, radius * (0.12 + wave), 0.5, (1 - wave) * 0.28);
-      const lobes = weapon === 2 ? 5 : 3;
+      const lobes = reduced ? 0 : weapon === 2 ? 5 : 3;
       // Cool outer dust behind fewer, smaller fire lobes. All motion is a function of event id and age.
       for (let j = lobes - 1; j >= 0; j--) {
         const a = seed * TAU + j * 2.39996323;
@@ -160,7 +161,7 @@ export function drawEffects(
         const r = radius * (0.16 + t * 0.42 + (j % 2) * 0.05) * scale;
         blob(p, r, r * 1.12, fade * 0.55, fade * 0.3, true);
       }
-      for (let j = 0; j < (weapon === 2 ? 3 : 2); j++) {
+      for (let j = 0; j < (reduced ? 0 : weapon === 2 ? 3 : 2); j++) {
         const a = seed * TAU + (j * TAU) / 3,
           burn = clamp(1 - t / 0.58);
         const p = project(
@@ -177,7 +178,7 @@ export function drawEffects(
     const flash = clamp(1 - age / (weapon === 2 ? 0.18 : 0.1));
     const core = Math.max(1.5, radius * 0.22 * scale);
     blob(project(e, 0.25), core, core, 1, flash * 0.9);
-    const count = weapon === 0 ? 3 : weapon === 1 ? 5 : 7;
+    const count = reduced ? 1 : weapon === 0 ? 3 : weapon === 1 ? 5 : 7;
     if (age < (weapon === 0 ? 0.28 : 0.85)) {
       for (let j = 0; j < count; j++) {
         const a = seed * TAU + j * 2.39996323;
@@ -253,7 +254,7 @@ export function drawEffects(
     }
   }
   // Aircraft origin is often outside the sensor view. Edge glint gives immediate feedback without moving aim/camera.
-  if (muzzle > 0) {
+  if (muzzle > 0 && !reduced) {
     g.fillColor = color(1, muzzle * 0.35);
     g.rect(-width / 2, height / 2 - 3, width, 3);
     g.rect(-width / 2, -height / 2, width, 3);

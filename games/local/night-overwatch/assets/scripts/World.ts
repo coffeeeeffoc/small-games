@@ -162,7 +162,9 @@ export class World {
   camera: Camera;
   cameraNode: Node;
   center: Point = { x: 0, z: 0 };
-  zoom = 1.3;
+  zoom = 1;
+  follow = false;
+  focusSpan?: { x: number; z: number };
   temporary = false;
   thermal = true;
   views = new Map<number, { node: Node; material: Material }>();
@@ -593,25 +595,35 @@ export class World {
       maxZ = Math.max(...targets.map((p) => p.z)),
       midZ = (minZ + maxZ) / 2;
     // Frame mission targets between HUD bands. The offset is part of the real camera transform.
-    const top = Math.min(89, frame.height * 0.25),
-      bottom = Math.min(188, frame.height * 0.5),
+    const top = frame.height < 300 ? 72 : frame.height < 500 ? 88 : 118,
+      bottom = frame.height < 300 ? 100 : frame.height < 500 ? 114 : 148,
       safeHeight = Math.max(40, frame.height - top - bottom),
       shift = (bottom - top) / 2;
-    const scale = Math.max(
-      0.05,
-      Math.min(
-        frame.width / (2 * (MAP.halfWidth + 8)),
-        (frame.height / 2 - shift - 8) / ((MAP.halfDepth + midZ) * cos + 24 * sin),
-        (frame.height / 2 + shift - 8) / ((MAP.halfDepth - midZ) * cos + 4),
-        safeHeight / ((maxZ - minZ) * cos + 4 * sin),
-      ),
-    );
+    // Compact screens use a ground scale, not a squeezed overview of the entire route.
+    const scale =
+      frame.height < 500
+        ? this.focusSpan
+          ? Math.min(
+              6.5,
+              (frame.width - 64) / (this.focusSpan.x + 12),
+              Math.max(56, frame.height - 188) / (this.focusSpan.z * cos + 6),
+            ) / 2.15
+          : 2.1
+        : Math.max(
+            0.05,
+            Math.min(
+              frame.width / (2 * (MAP.halfWidth + 8)),
+              (frame.height / 2 - shift - 8) / ((MAP.halfDepth + midZ) * cos + 24 * sin),
+              (frame.height / 2 + shift - 8) / ((MAP.halfDepth - midZ) * cos + 4),
+              safeHeight / ((maxZ - minZ) * cos + 4 * sin),
+            ),
+          );
     this.camera.orthoHeight = frame.height / (2 * scale * zoom);
     const limitX = zoom <= 1 ? 0 : Math.max(0, MAP.halfWidth - this.camera.orthoHeight * aspect),
       limitZ = zoom <= 1 ? 0 : Math.max(0, MAP.halfDepth - safeHeight / (2 * scale * zoom * cos));
     this.center.x = clamp(this.center.x, -limitX, limitX);
     this.center.z = clamp(this.center.z, -limitZ, limitZ);
-    const targetZ = this.center.z + midZ + shift / (scale * zoom * cos);
+    const targetZ = this.center.z + (this.focusSpan ? 0 : midZ) + shift / (scale * zoom * cos);
     this.cameraNode.setPosition(this.center.x, 280, targetZ + 280 * tilt);
     this.cameraNode.lookAt(new Vec3(this.center.x, 0, targetZ));
     this.camera.camera?.update(true);
@@ -633,6 +645,7 @@ export class World {
   locate(u: Point) {
     if (!Number.isFinite(u.x) || !Number.isFinite(u.z)) return;
     this.center = { x: u.x, z: u.z };
+    this.follow = view.getFrameSize().height < 500;
     this.updateCamera();
   }
   private clearViews() {
@@ -645,8 +658,10 @@ export class World {
   }
   reset() {
     this.clearViews();
-    this.center = { x: 0, z: 0 };
-    this.zoom = 1.3;
+    this.focusSpan = undefined;
+    this.follow = view.getFrameSize().height < 500;
+    this.center = this.follow ? { x: ROUTE[0].x + 12, z: ROUTE[0].z - 6 } : { x: 0, z: 0 };
+    this.zoom = this.follow ? 2.15 : 1;
     this.temporary = false;
     this.updateCamera();
   }
@@ -662,6 +677,30 @@ export class World {
     if (isValid(this.cameraNode, true)) this.cameraNode.destroy();
   }
   update(s: Simulation) {
+    if (this.follow && s.phase === 'playing' && !s.paused) {
+      const cursor = this.project(s.aim);
+      const nearby = s.units.filter(
+        (u) =>
+          (u.hp > 0 || s.time - u.deadAt < 2) &&
+          Math.hypot(u.x - s.rescue.x, u.z - s.rescue.z) < 46,
+      );
+      const points = [...nearby, { x: s.rescue.x + 12, z: s.rescue.z }];
+      const minX = Math.min(...points.map((p) => p.x)),
+        maxX = Math.max(...points.map((p) => p.x));
+      const minZ = Math.min(...points.map((p) => p.z)),
+        maxZ = Math.max(...points.map((p) => p.z));
+      const smoothing = this.focusSpan ? 0.08 : 1;
+      this.center.x += ((minX + maxX) / 2 - this.center.x) * smoothing;
+      this.center.z += ((minZ + maxZ) / 2 - this.center.z) * smoothing;
+      const span = this.focusSpan || { x: maxX - minX, z: maxZ - minZ };
+      span.x += (maxX - minX - span.x) * smoothing;
+      span.z += (maxZ - minZ - span.z) * smoothing;
+      this.focusSpan = span;
+      this.updateCamera();
+      // Following moves the view under a screen-stable reticle. Airborne shots stay in world space.
+      // This camera adjustment is not a player aim event and never advances the coach.
+      s.aim = this.aimAt(cursor.x, cursor.y);
+    }
     for (const u of s.units) {
       let v = this.views.get(u.id);
       if (!v) {

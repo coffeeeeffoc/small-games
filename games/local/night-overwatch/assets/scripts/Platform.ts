@@ -1,8 +1,9 @@
 import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
 export class Platform {
-  touchInput = sys.isMobile;
+  touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
+  reducedEffects = false;
   activated = false;
   voices = new Map<string, AudioSource>();
   engine: AudioSource;
@@ -10,6 +11,17 @@ export class Platform {
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
   constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
+    try {
+      this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
+      const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
+      this.reducedEffects =
+        preference === 'true' ||
+        (preference === null &&
+          sys.isBrowser &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch {
+      /* Preferences never block the mission. */
+    }
     const engineNode = new Node('AircraftEngine');
     parent.addChild(engineNode);
     this.engine = engineNode.addComponent(AudioSource);
@@ -84,6 +96,14 @@ export class Platform {
   activate() {
     this.activated = true;
   }
+  savePreferences() {
+    try {
+      sys.localStorage.setItem('night-overwatch-muted', String(this.muted));
+      sys.localStorage.setItem('night-overwatch-reduced-effects', String(this.reducedEffects));
+    } catch {
+      /* Optional local preferences. */
+    }
+  }
   play(id: string) {
     const source = this.voices.get(id);
     if (source?.clip && this.activated && !this.muted) {
@@ -117,14 +137,14 @@ export class Platform {
   }
   readCoach() {
     try {
-      return sys.localStorage.getItem('night-overwatch-coach-v1') !== 'done';
+      return sys.localStorage.getItem('night-overwatch-coach-v2') !== 'done';
     } catch {
       return true;
     }
   }
   saveCoach() {
     try {
-      sys.localStorage.setItem('night-overwatch-coach-v1', 'done');
+      sys.localStorage.setItem('night-overwatch-coach-v2', 'done');
     } catch {
       /* Optional preference; storage denial never blocks play. */
     }

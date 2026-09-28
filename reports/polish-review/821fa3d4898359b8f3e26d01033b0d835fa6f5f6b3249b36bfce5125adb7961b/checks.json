@@ -1,0 +1,73 @@
+{
+  "checks": {
+    "mobile568": {
+      "firedBefore": 0,
+      "firedRelease": 6,
+      "fired350msLater": 6,
+      "aimBefore": {
+        "x": -75.00000000000004,
+        "z": 16.00000000000216
+      },
+      "aimAfter": {
+        "x": -64.9412733664938,
+        "z": 21.86519511234161
+      },
+      "blastAmmoBefore": 40,
+      "blastAmmoAfter": 39,
+      "rotationTimeBefore": 3.3333333333333264,
+      "rotationTimeAfter": 3.3333333333333264,
+      "pausesAfter": [
+        "manual"
+      ]
+    },
+    "mobile844": {
+      "firedBefore": 7,
+      "firedRelease": 13,
+      "fired300msLater": 13,
+      "aimBefore": {
+        "x": -64.94127336649382,
+        "z": 40.829305311738096
+      },
+      "aimAfter": {
+        "x": -58.75063745693912,
+        "z": 44.66464345661902
+      },
+      "blastAmmoBefore": 39,
+      "blastAmmoAfter": 38,
+      "cancelNow": 15,
+      "cancelLater": 15,
+      "timeBeforeRotation": 6.199999999999983,
+      "timeAfterRotation": 6.199999999999983,
+      "pausesAfter": [
+        "manual"
+      ]
+    },
+    "performance": {
+      "sampleSeconds": 5,
+      "frames": 300,
+      "p95Ms": 16.79999999998836,
+      "maxMs": 16.800000000017462,
+      "over50ms": 0
+    },
+    "naturalFailure": {
+      "phase": "failure",
+      "time": 48.44999999999853,
+      "kills": 0,
+      "fired": 15,
+      "friendlyDamage": 0
+    },
+    "retry": {
+      "phase": "playing",
+      "time": 0.55,
+      "kills": 0,
+      "fired": 0
+    }
+  },
+  "errors": [
+    {
+      "kind": "error",
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+    }
+  ],
+  "requestsAfterLoad": []
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
 const browser = await chromium.launch({
   headless: true,
@@ -13,15 +13,23 @@ const errors = [],
   warnings = [],
   report = {};
 const base = process.env.NIGHT_URL || 'http://localhost:4318';
+const evidence = new URL(
+  process.env.NIGHT_ROUND ? `../reports/polish/${process.env.NIGHT_ROUND}/` : '../reports/',
+  import.meta.url,
+);
+await mkdir(evidence, { recursive: true });
 const build = await fetch(new URL('build-info.json', base)).then((r) => r.json());
 assert.equal(build.sourceHash, await sourceHash(), 'Test the current source build');
 report.build = build;
 const snapshot = (p) => p.evaluate(() => globalThis.__night.snapshot());
 const screenshot = (p, name) =>
-  p.screenshot({ path: fileURLToPath(new URL('../reports/' + name + '.png', import.meta.url)) });
+  p.screenshot({ path: fileURLToPath(new URL(name + '.png', evidence)) });
 async function open(width, height, touch = false) {
   const page = await browser.newPage({
     viewport: { width, height },
+    recordVideo: process.env.NIGHT_RECORD
+      ? { dir: fileURLToPath(evidence), size: { width, height } }
+      : undefined,
     hasTouch: touch,
     isMobile: touch,
     deviceScaleFactor: touch ? 2 : 1,
@@ -47,7 +55,12 @@ async function open(width, height, touch = false) {
   return page;
 }
 async function button(p, id, touch = false) {
-  const b = (await snapshot(p)).buttons.find((b) => b.id === id);
+  let s = await snapshot(p);
+  if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'tools')) {
+    await button(p, 'tools', touch);
+    s = await snapshot(p);
+  }
+  const b = s.buttons.find((b) => b.id === id);
   assert(b, 'visible button ' + id);
   if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
   else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
@@ -241,6 +254,8 @@ try {
     await screenshot(p, 'desktop-success');
     console.log('Desktop full mission passed');
     await p.close();
+    if (p.video())
+      await p.video().saveAs(fileURLToPath(new URL('desktop-complete.webm', evidence)));
   }
   for (const [w, h] of [
     [667, 375],
@@ -327,14 +342,19 @@ try {
       console.log('Touch-only full mission passed');
     }
     await m.close();
+    if (m.video())
+      await m
+        .video()
+        .saveAs(
+          fileURLToPath(
+            new URL(`touch-${w}-${w === 844 ? 'complete' : 'interaction'}.webm`, evidence),
+          ),
+        );
   }
   assert.deepEqual(errors, []);
   report.errors = errors;
   report.warnings = warnings;
-  await writeFile(
-    new URL('../reports/browser-results.json', import.meta.url),
-    JSON.stringify(report, null, 2),
-  );
+  await writeFile(new URL('browser-results.json', evidence), JSON.stringify(report, null, 2));
   console.log('Browser checks passed');
 } finally {
   await browser.close();

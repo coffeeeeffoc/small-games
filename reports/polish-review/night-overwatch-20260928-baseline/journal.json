@@ -1,0 +1,177 @@
+[
+  {
+    "at": "2026-09-28T05:45:20.714Z",
+    "name": "01-desktop-briefing",
+    "note": "Fresh desktop load, 1366x768; no input yet."
+  },
+  {
+    "at": "2026-09-28T05:45:30.138Z",
+    "name": "02-desktop-help",
+    "note": "Clicked 操作帮助 on first briefing."
+  },
+  {
+    "at": "2026-09-28T05:45:50.643Z",
+    "name": "03-desktop-first-battle-paused",
+    "note": "Started mission with mouse; paused after 2.4 seconds to inspect the first battle screen."
+  },
+  {
+    "at": "2026-09-28T05:46:01.159Z",
+    "name": "04-desktop-after-help-pause",
+    "note": "Resume after opening help from briefing; phase remains briefing."
+  },
+  {
+    "at": "2026-09-28T05:46:14.080Z",
+    "name": "05-desktop-initial-live",
+    "note": "Start clicked after interface settled; first live frame at ~1.8 s."
+  },
+  {
+    "at": "2026-09-28T05:46:32.174Z",
+    "name": "06-desktop-firing",
+    "note": "Real mouse held on first light vehicle ~1.8 s."
+  },
+  {
+    "at": "2026-09-28T05:46:56.400Z",
+    "name": "07-desktop-blast-impact",
+    "note": "Weapon 2 fired at visible turret; capture at 0.75 s."
+  },
+  {
+    "at": "2026-09-28T05:46:57.196Z",
+    "name": "08-desktop-after-turret",
+    "note": "After turret hit, compare target remains and cleared counter."
+  },
+  {
+    "at": "2026-09-28T05:47:25.525Z",
+    "name": "09-desktop-zoom",
+    "note": "Hit turret again and pressed X for zoom per tutorial."
+  },
+  {
+    "at": "2026-09-28T05:47:50.633Z",
+    "name": "10-desktop-daylight",
+    "note": "Single 140 ms shot at turret followed by V sensor switch."
+  },
+  {
+    "at": "2026-09-28T05:47:50.941Z",
+    "name": "11-desktop-convoy-hold",
+    "note": "T pressed for convoy waiting, tutorial now near completion."
+  },
+  {
+    "at": "2026-09-28T05:48:26.476Z",
+    "name": "12-mobile844-briefing",
+    "note": "Fresh mobile landscape context, 844x390 CSS pixels / DPR2."
+  },
+  {
+    "at": "2026-09-28T05:48:47.272Z",
+    "name": "13-mobile844-briefing-ready",
+    "note": "First ready mobile screen."
+  },
+  {
+    "at": "2026-09-28T05:49:24.633Z",
+    "name": "14-mobile844-first-live",
+    "note": "Started by touchscreen tap; first battle view."
+  },
+  {
+    "at": "2026-09-28T05:49:56.166Z",
+    "name": "15-mobile844-pause",
+    "note": "Pause opened with top bar touchscreen tap."
+  },
+  {
+    "at": "2026-09-28T05:50:32.708Z",
+    "name": "16-mobile844-two-finger-fire",
+    "note": "Aim finger moved (-73,-21), second finger held FIRE for 1.1 s; both pointers browser-dispatched."
+  },
+  {
+    "at": "2026-09-28T05:51:18.452Z",
+    "name": "17-mobile667-pause",
+    "note": "Resize paused session to 667x375."
+  },
+  {
+    "at": "2026-09-28T05:51:18.691Z",
+    "name": "18-mobile667-battle",
+    "note": "Resume at 667x375; record cramped battlefield and overlapping labels."
+  },
+  {
+    "at": "2026-09-28T05:51:47.231Z",
+    "name": "19-mobile667-help-basic",
+    "note": "Open touch help from paused mission on 667x375."
+  },
+  {
+    "at": "2026-09-28T05:52:23.312Z",
+    "name": "20-mobile667-help-advanced-top",
+    "note": "Advanced help at top, small landscape."
+  },
+  {
+    "at": "2026-09-28T05:52:24.714Z",
+    "name": "21-mobile667-help-advanced-bottom",
+    "note": "Seven genuine touch swipes through advanced help."
+  },
+  {
+    "at": "2026-09-28T05:52:25.011Z",
+    "name": "22-mobile375-portrait-help",
+    "note": "Rotate while paused and help is open."
+  },
+  {
+    "at": "2026-09-28T05:53:06.344Z",
+    "name": "23-mobile375-portrait-guard",
+    "note": "Close help in portrait; manual pause/orientation remain."
+  },
+  {
+    "at": "2026-09-28T05:53:06.799Z",
+    "name": "24-mobile667-fullscreen",
+    "note": "Native Fullscreen button clicked from pause modal."
+  },
+  {
+    "at": "2026-09-28T05:53:56.656Z",
+    "name": "25-desktop-second-wave",
+    "note": "Continued escort for 12 seconds after clearing first two; no skipped time or state changes."
+  },
+  {
+    "at": "2026-09-28T05:54:53.942Z",
+    "name": "26-desktop-route-after-wait",
+    "note": "Escort reached next route section after genuine elapsed time."
+  },
+  {
+    "at": "2026-09-28T05:56:07.018Z",
+    "name": "27-desktop-third-kill",
+    "note": "Manual mouse aim at visible second light vehicle, then route continuation."
+  },
+  {
+    "at": "2026-09-28T05:57:24.468Z",
+    "name": "28-desktop-bridge-approach",
+    "note": "Switched to blast weapon, fired at light vehicle then continued to bridge."
+  },
+  {
+    "at": "2026-09-28T05:59:09.787Z",
+    "name": "29-desktop-assist-midmission",
+    "note": "Read-only snapshot-assisted real keyboard/mouse inputs, copied targeting idea from tests/browser.mjs; no state edits. Used only to verify progression, not human aim difficulty."
+  },
+  {
+    "at": "2026-09-28T05:59:09.884Z",
+    "name": "30-mobile-unattended-risk",
+    "note": "Mobile mission resumed and allowed to continue without shots during desktop progression."
+  },
+  {
+    "at": "2026-09-28T06:00:34.050Z",
+    "name": "31-desktop-late-mission",
+    "note": "Snapshot-assisted real input continued through later waves."
+  },
+  {
+    "at": "2026-09-28T06:00:34.168Z",
+    "name": "32-mobile-natural-failure",
+    "note": "Mobile untouched enemies naturally destroyed convoy; no health/state writes."
+  },
+  {
+    "at": "2026-09-28T06:01:25.222Z",
+    "name": "33-mobile-retry-restored",
+    "note": "Tapped 再次出动 after natural failure; fresh visible countdown/progress/convoy and active controls."
+  },
+  {
+    "at": "2026-09-28T06:01:55.310Z",
+    "name": "34-desktop-success",
+    "note": "Completed baseline convoy mission via keyboard/mouse only; no skipping, no health writes."
+  },
+  {
+    "at": "2026-09-28T06:03:14.088Z",
+    "name": "35-desktop-success-retry",
+    "note": "Retry after success; mission visibly starts again at full convoy health and reset counters."
+  }
+]

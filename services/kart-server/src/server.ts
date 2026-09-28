@@ -5,6 +5,8 @@ import { promisify } from 'node:util';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isIP } from 'node:net';
+import type { IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { rankedBoard, rankedSeed, type Competition } from './competition.ts';
@@ -128,9 +130,17 @@ export type ServerOptions = {
   autoTick?: boolean;
   logger?: boolean;
   competition?: Competition;
+  /** Only for an unpublished container port behind Nginx, which overwrites X-Real-IP. */
+  trustProxy?: boolean;
 };
 
 export function createKartServer(options: ServerOptions = {}) {
+  const clientIp = (request: IncomingMessage) => {
+    const forwarded = request.headers['x-real-ip'];
+    return options.trustProxy && typeof forwarded === 'string' && isIP(forwarded)
+      ? forwarded
+      : (request.socket.remoteAddress ?? '');
+  };
   const app = Fastify({ logger: options.logger ?? false, requestTimeout: 10000, bodyLimit: 4096 });
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
   const now = options.now ?? Date.now;
@@ -612,7 +622,7 @@ export function createKartServer(options: ServerOptions = {}) {
       origin && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
     const allowed =
       !origin || (options.origins?.length ? options.origins.includes(origin) : localOrigin);
-    const ip = request.socket.remoteAddress ?? '';
+    const ip = clientIp(request);
     if (
       request.url !== '/kart' ||
       !allowed ||
@@ -626,7 +636,7 @@ export function createKartServer(options: ServerOptions = {}) {
   });
   wss.on('connection', (socket, request) => {
     peers.set(socket, {
-      ip: request.socket.remoteAddress ?? '',
+      ip: clientIp(request),
       window: now(),
       count: 0,
       controlCount: 0,

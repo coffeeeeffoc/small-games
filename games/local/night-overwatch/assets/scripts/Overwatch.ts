@@ -36,6 +36,7 @@ export class Overwatch extends Component {
   frameSeconds = 0;
   measuredFps = 0;
   resizeKey = '';
+  lastAimInput = 0;
   start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
@@ -45,6 +46,8 @@ export class Overwatch extends Component {
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
     this.hud.tutorial = this.platform.readCoach();
+    this.hud.muted = this.platform.muted;
+    this.hud.reducedEffects = this.platform.reducedEffects;
     input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
@@ -103,6 +106,12 @@ export class Overwatch extends Component {
   }
   action(id: string) {
     this.platform.activate();
+    if (id === 'tools') {
+      this.clear();
+      this.hud.toolsOpen = !this.hud.toolsOpen;
+      return;
+    }
+    if (!['zoomIn', 'zoomOut', 'sound'].includes(id)) this.hud.toolsOpen = false;
     if (id === 'close' || id === 'resume') {
       if (this.sim.pauses.has('help')) this.pause('help', false);
       else if (this.sim.pauses.has('mission')) this.pause('mission', false);
@@ -144,8 +153,16 @@ export class Overwatch extends Component {
     if (id === 'sound') {
       this.platform.muted = !this.platform.muted;
       this.hud.muted = this.platform.muted;
+      this.platform.savePreferences();
       this.hud.modalKey = 'rebuild';
       if (this.platform.muted) this.platform.stop();
+      return;
+    }
+    if (id === 'effects') {
+      this.platform.reducedEffects = !this.platform.reducedEffects;
+      this.hud.reducedEffects = this.platform.reducedEffects;
+      this.platform.savePreferences();
+      this.hud.modalKey = 'rebuild';
       return;
     }
     if (id === 'fullscreen') {
@@ -166,6 +183,7 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'start') {
+      this.world.reset();
       this.sim.start();
       return;
     }
@@ -200,9 +218,16 @@ export class Overwatch extends Component {
     if (this.platform.touchInput) return;
     this.hud.touch = false;
     const p = this.mousePosition(e);
+    if (this.mouseButton === 'fire' && this.hud.hit(p.x, p.y)?.id !== 'fire') {
+      this.sim.setFire('mouse', false);
+      this.mouseButton = '';
+    }
+    if (this.hud.blocksBattlefield(p.x, p.y) && this.mouseButton !== 'fire')
+      this.sim.setFire('mouse', false);
     if (!this.hud.modal && !this.hud.blocksBattlefield(p.x, p.y)) {
       const q = e.getLocation();
       this.sim.setAim(this.world.aimAt(q.x, q.y));
+      this.lastAimInput = Date.now();
     }
   }
   mouseDown(e: EventMouse) {
@@ -260,6 +285,7 @@ export class Overwatch extends Component {
         y = this.hud.h - p.y,
         b = this.hud.hit(x, y),
         id = t.getID();
+      if (this.touches.has(id)) continue;
       if (b && (!this.hud.modal || b.label.node.parent === this.hud.modal)) {
         this.touches.set(id, { role: b.id === 'fire' ? 'fire' : 'button', x, y, button: b.id });
         if (b.id === 'fire') this.sim.setFire('touch:' + id, true);
@@ -281,6 +307,10 @@ export class Overwatch extends Component {
         x = p.x,
         y = this.hud.h - p.y;
       if (role.role === 'scroll') this.hud.scrollBy(role.y - y);
+      if (role.role === 'fire' && this.hud.hit(x, y)?.id !== 'fire') {
+        this.sim.setFire('touch:' + t.getID(), false);
+        role.role = 'cancelled';
+      }
       if (role.role === 'aim' && !this.sim.paused) {
         const q = t.getLocation(),
           old = this.world.aimAt(
@@ -320,8 +350,8 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
-    if (e.keyCode === 13 && this.sim.phase === 'briefing') {
-      this.action('start');
+    if (e.keyCode === 13 && this.sim.phase !== 'playing') {
+      this.action(this.sim.phase === 'briefing' ? 'start' : 'retry');
       return;
     }
     const a = ACTIONS.find((a) => (a.keys as readonly number[]).includes(e.keyCode));
@@ -356,7 +386,9 @@ export class Overwatch extends Component {
       !this.sim.paused &&
       !this.hud.modal &&
       this.sim.phase === 'playing' &&
-      this.world.zoom > 1.05
+      this.world.zoom > 1.05 &&
+      (Array.from(this.touches.values()).some((t) => t.role === 'aim') ||
+        (!this.platform.touchInput && Date.now() - this.lastAimInput < 500))
     ) {
       const p = this.world.project(this.sim.aim),
         x = p.x / view.getScaleX(),
@@ -376,14 +408,18 @@ export class Overwatch extends Component {
         );
         moved = true;
       }
-      if (moved) this.world.updateCamera();
+      if (moved) {
+        this.world.follow = false;
+        this.world.updateCamera();
+      }
     }
     for (const e of this.sim.events)
       if (e.id > this.lastEvent) {
         if (e.type === 'shot') this.platform.play(WEAPONS[e.weapon].id);
-        else if (e.type === 'impact')
-          this.platform.play(e.weapon === 0 ? 'hit' : 'impact' + e.weapon);
-        else if (e.type === 'attack' || e.type === 'wave') this.platform.play('alert');
+        else if (e.type === 'impact') {
+          if (e.weapon > 0) this.platform.play('impact' + e.weapon);
+          if (e.outcome === 'hit' || e.outcome === 'destroyed') this.platform.play('hit');
+        } else if (e.type === 'attack' || e.type === 'wave') this.platform.play('alert');
         this.lastEvent = e.id;
       }
     this.world.update(this.sim);
@@ -419,6 +455,10 @@ export class Overwatch extends Component {
       fired: this.sim.fired,
       hits: this.sim.hits,
       friendlyDamage: this.sim.friendlyDamage,
+      rescueDamage: this.sim.rescueDamage,
+      damageByThreat: this.sim.damageByThreat,
+      failureCause: this.sim.failureCause,
+      impacts: this.sim.events.filter((e) => e.type === 'impact').slice(-5),
       rating: this.sim.rating,
       failure: this.sim.failure,
       reason: this.sim.reason(),
@@ -430,6 +470,10 @@ export class Overwatch extends Component {
         warningColor: this.hud.labels.get('friendWarning')?.color.toHEX(),
         fire: this.hud.buttons.find((b) => b.id === 'fire')?.label.string,
         fullscreen: this.platform.isFullscreen,
+        tutorial: this.hud.labels.get('tutorial')?.string,
+        feedback: this.hud.labels.get('target')?.string,
+        muted: this.platform.muted,
+        reducedEffects: this.platform.reducedEffects,
       },
       held: Array.from(this.sim.held),
       completed: Array.from(this.sim.completed),
@@ -445,6 +489,8 @@ export class Overwatch extends Component {
         )
         .map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
       zoom: this.world.zoom,
+      follow: this.world.follow,
+      safe: this.hud.safe,
       temporary: this.world.temporary,
       thermal: this.world.thermal,
       modelImport: this.world.modelImport,

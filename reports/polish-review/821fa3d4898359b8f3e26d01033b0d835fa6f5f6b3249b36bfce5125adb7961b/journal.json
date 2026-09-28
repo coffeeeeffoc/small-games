@@ -1,0 +1,72 @@
+[
+  {
+    "at": "2026-09-28T06:24:27.299Z",
+    "name": "01-568-default",
+    "note": "Pinned single-page build, 568x320 default battlefield."
+  },
+  {
+    "at": "2026-09-28T06:26:13.749Z",
+    "name": "02-568-double-touch",
+    "note": "Actual two-finger drag (+40,+20) and 650ms fire hold."
+  },
+  {
+    "at": "2026-09-28T06:26:15.167Z",
+    "name": "03-568-switched-blast",
+    "note": "Tap blast gun then fire by touch; visible selection/ammo/cooldown."
+  },
+  {
+    "at": "2026-09-28T06:26:15.368Z",
+    "name": "04-568-pause",
+    "note": "Pause popup after actual two-finger firing and weapon change."
+  },
+  {
+    "at": "2026-09-28T06:26:15.573Z",
+    "name": "05-568-help",
+    "note": "Help opened from manual pause, 568x320."
+  },
+  {
+    "at": "2026-09-28T06:26:15.864Z",
+    "name": "06-320-portrait-help",
+    "note": "Portrait help while manual pause remains."
+  },
+  {
+    "at": "2026-09-28T06:26:16.036Z",
+    "name": "07-320-orientation",
+    "note": "Close help in portrait, inspect orientation prompt and buttons."
+  },
+  {
+    "at": "2026-09-28T06:28:14.653Z",
+    "name": "08-844-default",
+    "note": "Same pinned session resized to844x390; no reload/zoom."
+  },
+  {
+    "at": "2026-09-28T06:28:15.501Z",
+    "name": "09-844-two-finger",
+    "note": "Real two-finger aiming+rapid fire at844."
+  },
+  {
+    "at": "2026-09-28T06:28:16.874Z",
+    "name": "10-844-switch",
+    "note": "Switch to blast and fire once; no health/state writes."
+  },
+  {
+    "at": "2026-09-28T06:28:17.756Z",
+    "name": "11-844-help",
+    "note": "Advanced help opened from manual pause."
+  },
+  {
+    "at": "2026-09-28T06:28:18.103Z",
+    "name": "12-390-portrait-help",
+    "note": "Rotate844 landscape help to390 portrait."
+  },
+  {
+    "at": "2026-09-28T06:29:10.570Z",
+    "name": "13-natural-outcome",
+    "note": "Allowed enemies to act for52 real seconds with no firing, no game-state edits."
+  },
+  {
+    "at": "2026-09-28T06:29:11.140Z",
+    "name": "14-touch-retry",
+    "note": "Real touchscreen retry from natural failure."
+  }
+]

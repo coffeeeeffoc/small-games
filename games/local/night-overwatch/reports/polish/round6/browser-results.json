@@ -1,0 +1,1118 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "6f7b439a65ab8d164354c784a090e8203a2d6107241c3590474babb2b0e3bebb"
+  },
+  "initialTransfer": {
+    "bytes": 3379743,
+    "requests": 35
+  },
+  "friendlyFailure": {
+    "phase": "failure",
+    "friendlyDamage": 246
+  },
+  "desktopWin": {
+    "phase": "success",
+    "time": 128.06666666666072,
+    "remaining": 56.93333333333928,
+    "pauses": [],
+    "convoy": "arrived",
+    "progress": 1,
+    "aim": {
+      "x": 102.84499363756558,
+      "z": -26.08088642659274
+    },
+    "selected": 1,
+    "guns": [
+      {
+        "heat": 0,
+        "ammo": "infinite",
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 31,
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 2,
+        "cooldown": 0,
+        "overheated": false
+      }
+    ],
+    "shots": [],
+    "units": [
+      {
+        "x": 94,
+        "z": -5.9999999999999964,
+        "heading": 0.5280744484263596,
+        "id": 1,
+        "kind": "rescue",
+        "hp": 224,
+        "maxHp": 260,
+        "friendly": true,
+        "born": 0,
+        "attack": 4,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -92,
+          "z": 34,
+          "heading": 1.5707963267948966
+        }
+      },
+      {
+        "x": 94,
+        "z": -5.9999999999999964,
+        "heading": 0.5280744484263596,
+        "id": 2,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "born": 0,
+        "attack": 4,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -87,
+          "z": 34,
+          "heading": 1.5707963267948966
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -72.90050816648098,
+        "z": 17.81514226620337,
+        "direction": [
+          "西岭：轻型巡逻车接近",
+          "WEST RIDGE: light patrol approaching"
+        ],
+        "id": 3,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.7518372448260864,
+        "born": 0,
+        "attack": 3.1333333333333364,
+        "hit": 0,
+        "deadAt": 0.8666666666666677,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -75,
+          "z": 16,
+          "direction": [
+            "西岭：轻型巡逻车接近",
+            "WEST RIDGE: light patrol approaching"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -56,
+        "z": 29,
+        "direction": [
+          "西岭弯道发现炮台",
+          "Emplacement above the switchbacks"
+        ],
+        "id": 5,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 0.8166666666666768,
+        "hit": 0,
+        "deadAt": 3.183333333333327,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -56,
+          "z": 29,
+          "direction": [
+            "西岭弯道发现炮台",
+            "Emplacement above the switchbacks"
+          ]
+        }
+      },
+      {
+        "time": 24,
+        "progress": 0.18,
+        "kind": "light",
+        "x": -45.36402651601933,
+        "z": 4.889913892629488,
+        "direction": [
+          "山口轻车正在穿插",
+          "Light patrol at the mountain pass"
+        ],
+        "id": 36,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.706593005068678,
+        "born": 23.049999999999972,
+        "attack": 3.3333333333333357,
+        "hit": 0,
+        "deadAt": 23.7166666666666,
+        "origin": {
+          "time": 24,
+          "progress": 0.18,
+          "kind": "light",
+          "x": -47,
+          "z": 3,
+          "direction": [
+            "山口轻车正在穿插",
+            "Light patrol at the mountain pass"
+          ]
+        }
+      },
+      {
+        "time": 42,
+        "progress": 0.33,
+        "kind": "heavy",
+        "x": -22.524285302553388,
+        "z": -24.12773711654977,
+        "direction": [
+          "桥西：重甲驶入，请切换重炮",
+          "WEST BANK: armor entering"
+        ],
+        "id": 57,
+        "hp": 0,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": -0.7896234037549357,
+        "born": 42.016666666665564,
+        "attack": 2.2166666666666672,
+        "hit": 0,
+        "deadAt": 46.216666666665326,
+        "origin": {
+          "time": 42,
+          "progress": 0.33,
+          "kind": "heavy",
+          "x": -20,
+          "z": -26,
+          "direction": [
+            "桥西：重甲驶入，请切换重炮",
+            "WEST BANK: armor entering"
+          ]
+        }
+      },
+      {
+        "time": 60,
+        "progress": 0.47,
+        "kind": "turret",
+        "x": 13,
+        "z": -16,
+        "direction": [
+          "桥东高地发现炮台",
+          "EAST BANK: emplacement on high ground"
+        ],
+        "id": 67,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 60.01666666666454,
+        "attack": 1.7666666666666746,
+        "hit": 0,
+        "deadAt": 62.24999999999775,
+        "origin": {
+          "time": 60,
+          "progress": 0.47,
+          "kind": "turret",
+          "x": 13,
+          "z": -16,
+          "direction": [
+            "桥东高地发现炮台",
+            "EAST BANK: emplacement on high ground"
+          ]
+        }
+      },
+      {
+        "time": 73,
+        "progress": 0.57,
+        "kind": "light",
+        "x": 27.596543929284916,
+        "z": 5.895301452829643,
+        "direction": [
+          "村落出口：快速目标",
+          "Fast contact at the village exit"
+        ],
+        "id": 79,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.7029474268287155,
+        "born": 73.01666666666381,
+        "attack": 3.3500000000000023,
+        "hit": 0,
+        "deadAt": 73.66666666666377,
+        "origin": {
+          "time": 73,
+          "progress": 0.57,
+          "kind": "light",
+          "x": 26,
+          "z": 4,
+          "direction": [
+            "村落出口：快速目标",
+            "Fast contact at the village exit"
+          ]
+        }
+      },
+      {
+        "time": 91,
+        "progress": 0.71,
+        "kind": "heavy",
+        "x": 55.4132920448398,
+        "z": -13.713811051545461,
+        "direction": [
+          "东岭：重甲封锁撤离道路",
+          "EAST RIDGE: armor blocking extraction"
+        ],
+        "id": 97,
+        "hp": 0,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": -2.4149346245545784,
+        "born": 90.94999999999612,
+        "attack": 2.233333333333334,
+        "hit": 0,
+        "deadAt": 95.13333333332922,
+        "origin": {
+          "time": 91,
+          "progress": 0.71,
+          "kind": "heavy",
+          "x": 58,
+          "z": -12,
+          "direction": [
+            "东岭：重甲封锁撤离道路",
+            "EAST RIDGE: armor blocking extraction"
+          ]
+        }
+      },
+      {
+        "time": 109,
+        "progress": 0.85,
+        "kind": "light",
+        "x": 87.71448903727716,
+        "z": -36.121254574305226,
+        "direction": [
+          "撤离区北侧轻车接近",
+          "Light patrol north of extraction"
+        ],
+        "id": 107,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.713936162185779,
+        "born": 108.86666666666177,
+        "attack": 3.3000000000000025,
+        "hit": 0,
+        "deadAt": 109.56666666666173,
+        "origin": {
+          "time": 109,
+          "progress": 0.85,
+          "kind": "light",
+          "x": 86,
+          "z": -38,
+          "direction": [
+            "撤离区北侧轻车接近",
+            "Light patrol north of extraction"
+          ]
+        }
+      },
+      {
+        "time": 116,
+        "progress": 0.9,
+        "kind": "turret",
+        "x": 103,
+        "z": -26,
+        "direction": [
+          "最后一道封锁：清除撤离区炮台",
+          "Final emplacement near extraction"
+        ],
+        "id": 125,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 115.26666666666141,
+        "attack": 1.8166666666666744,
+        "hit": 0,
+        "deadAt": 117.44999999999462,
+        "origin": {
+          "time": 116,
+          "progress": 0.9,
+          "kind": "turret",
+          "x": 103,
+          "z": -26,
+          "direction": [
+            "最后一道封锁：清除撤离区炮台",
+            "Final emplacement near extraction"
+          ]
+        }
+      }
+    ],
+    "kills": 9,
+    "fired": 35,
+    "hits": 29,
+    "friendlyDamage": 0,
+    "rescueDamage": {
+      "friendly": 0,
+      "enemy": 36
+    },
+    "damageByThreat": {
+      "heavy": 36
+    },
+    "failureCause": "",
+    "impacts": [
+      {
+        "id": 117,
+        "type": "impact",
+        "weapon": 0,
+        "x": 87.40822071340855,
+        "z": -36.13407202216058,
+        "born": 109.34999999999508,
+        "origin": {
+          "x": -112.23043419875152,
+          "z": -63.31819363698331,
+          "y": 180,
+          "heading": 140.71472785856554
+        },
+        "due": 109.54999999999508,
+        "time": 109.56666666666173,
+        "outcome": "destroyed",
+        "damage": 8
+      },
+      {
+        "id": 120,
+        "type": "impact",
+        "weapon": 0,
+        "x": 87.80917585429576,
+        "z": -36.367867036011006,
+        "born": 109.4833333333284,
+        "origin": {
+          "x": -111.8007605810889,
+          "z": -63.678704259854804,
+          "y": 180,
+          "heading": 140.44734755417116
+        },
+        "due": 109.6833333333284,
+        "time": 109.69999999999506,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 127,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.84499363756558,
+        "z": -26.08088642659274,
+        "born": 115.28333333332807,
+        "origin": {
+          "x": -90.88970583411565,
+          "z": -77.91596245276541,
+          "y": 180,
+          "heading": 128.81630431301613
+        },
+        "due": 115.83333333332807,
+        "time": 115.84999999999471,
+        "outcome": "hit",
+        "damage": 35
+      },
+      {
+        "id": 130,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.84499363756558,
+        "z": -26.08088642659274,
+        "born": 116.08333333332803,
+        "origin": {
+          "x": -87.69110465470389,
+          "z": -79.64030362625853,
+          "y": 180,
+          "heading": 127.21202248664991
+        },
+        "due": 116.63333333332803,
+        "time": 116.64999999999466,
+        "outcome": "hit",
+        "damage": 35
+      },
+      {
+        "id": 133,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.84499363756558,
+        "z": -26.08088642659274,
+        "born": 116.88333333332798,
+        "origin": {
+          "x": -84.42375814078089,
+          "z": -81.30221088088457,
+          "y": 180,
+          "heading": 125.60774066028372
+        },
+        "due": 117.43333333332798,
+        "time": 117.44999999999462,
+        "outcome": "destroyed",
+        "damage": 20
+      }
+    ],
+    "rating": "S",
+    "failure": "",
+    "reason": "finished",
+    "friendlyRisk": false,
+    "ui": {
+      "notice": "",
+      "warning": "",
+      "warningColor": "ff525b",
+      "fire": "按住左键开火\n松开即停",
+      "fullscreen": false,
+      "tutorial": "",
+      "feedback": "",
+      "muted": false,
+      "reducedEffects": false
+    },
+    "held": [],
+    "completed": [
+      "hold",
+      "sensor",
+      "zoom",
+      "aim",
+      "fire",
+      "hit",
+      "weapon",
+      "continue",
+      "arrived"
+    ],
+    "modal": "success",
+    "scroll": 0,
+    "scrollMax": 0,
+    "lastHelpLine": "战术菜单或暂停面板可进入全屏，退出后进度保留。不支持时仍可窗口游玩。",
+    "buttons": [
+      {
+        "id": "retry",
+        "x": 578,
+        "y": 596,
+        "w": 210,
+        "h": 44
+      },
+      {
+        "id": "fullscreen",
+        "x": 1011,
+        "y": 596,
+        "w": 96,
+        "h": 44
+      }
+    ],
+    "zoom": 1,
+    "follow": false,
+    "safe": {
+      "left": 0,
+      "right": 0,
+      "bottom": 0,
+      "top": 0
+    },
+    "temporary": false,
+    "thermal": true,
+    "modelImport": "loaded",
+    "audio": "ready",
+    "enginePlaying": false,
+    "assets": [
+      "terrain.ground",
+      "terrain.water",
+      "terrain.roads",
+      "terrain.markings",
+      "terrain.ridges",
+      "terrain.fields",
+      "terrain.structures",
+      "terrain.roofs",
+      "terrain.forest",
+      "terrain.details",
+      "zone.shelter",
+      "zone.exit",
+      "prop.beaconFallback",
+      "vehicle.rescue",
+      "vehicle.escort",
+      "prop.beacon",
+      "vehicle.light",
+      "vehicle.turret",
+      "vehicle.heavy"
+    ],
+    "renderNodes": 11,
+    "markerLabels": 10,
+    "frameRate": 59.95144428444007,
+    "drawCalls": 38,
+    "triangles": 40045,
+    "visibleEffects": 0,
+    "peakDraws": 45,
+    "peakEffects": 11
+  },
+  "mobile667": {
+    "multitouch": true,
+    "cancel": true,
+    "orientation": true
+  },
+  "mobile844": {
+    "multitouch": true,
+    "cancel": true,
+    "orientation": true
+  },
+  "mobileWin": {
+    "phase": "success",
+    "time": 128.03333333332736,
+    "remaining": 56.96666666667264,
+    "pauses": [],
+    "convoy": "arrived",
+    "progress": 1,
+    "aim": {
+      "x": 102.99999906098725,
+      "z": -10.174942370760988
+    },
+    "selected": 1,
+    "guns": [
+      {
+        "heat": 0,
+        "ammo": "infinite",
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 31,
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 2,
+        "cooldown": 0,
+        "overheated": false
+      }
+    ],
+    "shots": [],
+    "units": [
+      {
+        "x": 94,
+        "z": -5.9999999999999964,
+        "heading": 0.5280744484263596,
+        "id": 1,
+        "kind": "rescue",
+        "hp": 224,
+        "maxHp": 260,
+        "friendly": true,
+        "born": 0,
+        "attack": 4,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -92,
+          "z": 34,
+          "heading": 1.5707963267948966
+        }
+      },
+      {
+        "x": 94,
+        "z": -5.9999999999999964,
+        "heading": 0.5280744484263596,
+        "id": 2,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "born": 0,
+        "attack": 4,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -87,
+          "z": 34,
+          "heading": 1.5707963267948966
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -72.53007673920469,
+        "z": 17.73894124504687,
+        "direction": [
+          "西岭：轻型巡逻车接近",
+          "WEST RIDGE: light patrol approaching"
+        ],
+        "id": 3,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.792166173258418,
+        "born": 0,
+        "attack": 2.9666666666666703,
+        "hit": 0,
+        "deadAt": 1.0333333333333345,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -75,
+          "z": 16,
+          "direction": [
+            "西岭：轻型巡逻车接近",
+            "WEST RIDGE: light patrol approaching"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -56,
+        "z": 29,
+        "direction": [
+          "西岭弯道发现炮台",
+          "Emplacement above the switchbacks"
+        ],
+        "id": 5,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 0.03333333333334254,
+        "hit": 0,
+        "deadAt": 3.9666666666666575,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -56,
+          "z": 29,
+          "direction": [
+            "西岭弯道发现炮台",
+            "Emplacement above the switchbacks"
+          ]
+        }
+      },
+      {
+        "time": 24,
+        "progress": 0.18,
+        "kind": "light",
+        "x": -44.67633372814353,
+        "z": 4.7709014679326085,
+        "direction": [
+          "山口轻车正在穿插",
+          "Light patrol at the mountain pass"
+        ],
+        "id": 36,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.775700493426901,
+        "born": 23.049999999999972,
+        "attack": 3.0333333333333368,
+        "hit": 0,
+        "deadAt": 24.016666666666584,
+        "origin": {
+          "time": 24,
+          "progress": 0.18,
+          "kind": "light",
+          "x": -47,
+          "z": 3,
+          "direction": [
+            "山口轻车正在穿插",
+            "Light patrol at the mountain pass"
+          ]
+        }
+      },
+      {
+        "time": 42,
+        "progress": 0.33,
+        "kind": "heavy",
+        "x": -22.616970316468183,
+        "z": -24.024948833923165,
+        "direction": [
+          "桥西：重甲驶入，请切换重炮",
+          "WEST BANK: armor entering"
+        ],
+        "id": 57,
+        "hp": 0,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": -0.7657928600421545,
+        "born": 42.016666666665564,
+        "attack": 2.0333333333333345,
+        "hit": 0,
+        "deadAt": 46.39999999999865,
+        "origin": {
+          "time": 42,
+          "progress": 0.33,
+          "kind": "heavy",
+          "x": -20,
+          "z": -26,
+          "direction": [
+            "桥西：重甲驶入，请切换重炮",
+            "WEST BANK: armor entering"
+          ]
+        }
+      },
+      {
+        "time": 60,
+        "progress": 0.47,
+        "kind": "turret",
+        "x": 13,
+        "z": -16,
+        "direction": [
+          "桥东高地发现炮台",
+          "EAST BANK: emplacement on high ground"
+        ],
+        "id": 67,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 60.01666666666454,
+        "attack": 1.6166666666666751,
+        "hit": 0,
+        "deadAt": 62.39999999999774,
+        "origin": {
+          "time": 60,
+          "progress": 0.47,
+          "kind": "turret",
+          "x": 13,
+          "z": -16,
+          "direction": [
+            "桥东高地发现炮台",
+            "EAST BANK: emplacement on high ground"
+          ]
+        }
+      },
+      {
+        "time": 73,
+        "progress": 0.57,
+        "kind": "light",
+        "x": 28.64886684482238,
+        "z": 5.696278488380996,
+        "direction": [
+          "村落出口：快速目标",
+          "Fast contact at the village exit"
+        ],
+        "id": 79,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.813459428607314,
+        "born": 72.99999999999714,
+        "attack": 2.8833333333333373,
+        "hit": 0,
+        "deadAt": 74.11666666666375,
+        "origin": {
+          "time": 73,
+          "progress": 0.57,
+          "kind": "light",
+          "x": 26,
+          "z": 4,
+          "direction": [
+            "村落出口：快速目标",
+            "Fast contact at the village exit"
+          ]
+        }
+      },
+      {
+        "time": 91,
+        "progress": 0.71,
+        "kind": "heavy",
+        "x": 55.26711651238889,
+        "z": -13.88484327624487,
+        "direction": [
+          "东岭：重甲封锁撤离道路",
+          "EAST RIDGE: armor blocking extraction"
+        ],
+        "id": 100,
+        "hp": 0,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": -2.4517347123955724,
+        "born": 90.91666666666279,
+        "attack": 1.933333333333335,
+        "hit": 0,
+        "deadAt": 95.39999999999587,
+        "origin": {
+          "time": 91,
+          "progress": 0.71,
+          "kind": "heavy",
+          "x": 58,
+          "z": -12,
+          "direction": [
+            "东岭：重甲封锁撤离道路",
+            "EAST RIDGE: armor blocking extraction"
+          ]
+        }
+      },
+      {
+        "time": 109,
+        "progress": 0.85,
+        "kind": "light",
+        "x": 88.89159504701107,
+        "z": -36.368378569196835,
+        "direction": [
+          "撤离区北侧轻车接近",
+          "Light patrol north of extraction"
+        ],
+        "id": 110,
+        "hp": 0,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 1.8447864372751994,
+        "born": 108.83333333332844,
+        "attack": 2.766666666666671,
+        "hit": 0,
+        "deadAt": 110.0666666666617,
+        "origin": {
+          "time": 109,
+          "progress": 0.85,
+          "kind": "light",
+          "x": 86,
+          "z": -38,
+          "direction": [
+            "撤离区北侧轻车接近",
+            "Light patrol north of extraction"
+          ]
+        }
+      },
+      {
+        "time": 116,
+        "progress": 0.9,
+        "kind": "turret",
+        "x": 103,
+        "z": -26,
+        "direction": [
+          "最后一道封锁：清除撤离区炮台",
+          "Final emplacement near extraction"
+        ],
+        "id": 131,
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 115.23333333332808,
+        "attack": 1.6000000000000085,
+        "hit": 0,
+        "deadAt": 117.63333333332794,
+        "origin": {
+          "time": 116,
+          "progress": 0.9,
+          "kind": "turret",
+          "x": 103,
+          "z": -26,
+          "direction": [
+            "最后一道封锁：清除撤离区炮台",
+            "Final emplacement near extraction"
+          ]
+        }
+      }
+    ],
+    "kills": 9,
+    "fired": 37,
+    "hits": 29,
+    "friendlyDamage": 0,
+    "rescueDamage": {
+      "friendly": 0,
+      "enemy": 36
+    },
+    "damageByThreat": {
+      "heavy": 36
+    },
+    "failureCause": "",
+    "impacts": [
+      {
+        "id": 125,
+        "type": "impact",
+        "weapon": 0,
+        "x": 89.22108717697319,
+        "z": -36.436685437467304,
+        "born": 110.09999999999503,
+        "origin": {
+          "x": -109.7819975514357,
+          "z": -65.32790432705852,
+          "y": 180,
+          "heading": 139.2107136463472
+        },
+        "due": 110.29999999999504,
+        "time": 110.31666666666169,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 127,
+        "type": "impact",
+        "weapon": 0,
+        "x": 89.2210871769731,
+        "z": -36.367409818011225,
+        "born": 110.23333333332836,
+        "origin": {
+          "x": -109.3387516015026,
+          "z": -65.68051306906348,
+          "y": 180,
+          "heading": 138.94333334195284
+        },
+        "due": 110.43333333332836,
+        "time": 110.44999999999501,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 133,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.99999906098746,
+        "z": -26.528230964814725,
+        "born": 115.4166666666614,
+        "origin": {
+          "x": -90.36148671572587,
+          "z": -78.20763156780339,
+          "y": 180,
+          "heading": 128.54892400862175
+        },
+        "due": 115.9666666666614,
+        "time": 115.98333333332803,
+        "outcome": "hit",
+        "damage": 35
+      },
+      {
+        "id": 136,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.99999906098725,
+        "z": -26.006253041586405,
+        "born": 116.24999999999469,
+        "origin": {
+          "x": -87.0159922777009,
+          "z": -79.99172694418769,
+          "y": 180,
+          "heading": 126.87779710615695
+        },
+        "due": 116.79999999999468,
+        "time": 116.81666666666132,
+        "outcome": "hit",
+        "damage": 35
+      },
+      {
+        "id": 139,
+        "type": "impact",
+        "weapon": 1,
+        "x": 102.99999906098725,
+        "z": -26.000105340324126,
+        "born": 117.0666666666613,
+        "origin": {
+          "x": -83.66557600179458,
+          "z": -81.67413395956031,
+          "y": 180,
+          "heading": 125.24009274174145
+        },
+        "due": 117.6166666666613,
+        "time": 117.63333333332794,
+        "outcome": "destroyed",
+        "damage": 20
+      }
+    ],
+    "rating": "S",
+    "failure": "",
+    "reason": "finished",
+    "friendlyRisk": false,
+    "ui": {
+      "notice": "",
+      "warning": "",
+      "warningColor": "ff525b",
+      "fire": "按住开火\n松开即停",
+      "fullscreen": false,
+      "tutorial": "",
+      "feedback": "",
+      "muted": false,
+      "reducedEffects": false
+    },
+    "held": [],
+    "completed": [
+      "hold",
+      "aim",
+      "fire",
+      "hit",
+      "weapon",
+      "continue",
+      "arrived"
+    ],
+    "modal": "success",
+    "scroll": 0,
+    "scrollMax": 0,
+    "lastHelpLine": "",
+    "buttons": [
+      {
+        "id": "retry",
+        "x": 317,
+        "y": 318,
+        "w": 210,
+        "h": 44
+      },
+      {
+        "id": "fullscreen",
+        "x": 716,
+        "y": 318,
+        "w": 96,
+        "h": 44
+      }
+    ],
+    "zoom": 2.15,
+    "follow": true,
+    "safe": {
+      "left": 0,
+      "right": 0,
+      "bottom": 0,
+      "top": 0
+    },
+    "temporary": false,
+    "thermal": true,
+    "modelImport": "loaded",
+    "audio": "ready",
+    "enginePlaying": false,
+    "assets": [
+      "terrain.ground",
+      "terrain.water",
+      "terrain.roads",
+      "terrain.markings",
+      "terrain.ridges",
+      "terrain.fields",
+      "terrain.structures",
+      "terrain.roofs",
+      "terrain.forest",
+      "terrain.details",
+      "zone.shelter",
+      "zone.exit",
+      "prop.beaconFallback",
+      "vehicle.rescue",
+      "vehicle.escort",
+      "prop.beacon",
+      "vehicle.light",
+      "vehicle.turret",
+      "vehicle.heavy"
+    ],
+    "renderNodes": 11,
+    "markerLabels": 10,
+    "frameRate": 60.001983536823204,
+    "drawCalls": 38,
+    "triangles": 40045,
+    "visibleEffects": 0
+  },
+  "errors": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ]
+}
