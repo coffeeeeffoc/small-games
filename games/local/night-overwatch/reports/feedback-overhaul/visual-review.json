@@ -1,0 +1,19 @@
+{
+  "status": "reviewed",
+  "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
+  "method": "Main agent inspected actual browser screenshots; no generated image used as runtime evidence.",
+  "findings": [
+    "Two separate vertical pause bars with localized caption",
+    "Default map types hidden; actual body-hover target shown at a stable anchor",
+    "Rounded irregular crowns and visible trunks replace cone-like trees",
+    "Slender projectile/tracer and visible warm impact with dust on a heavy miss at zoom",
+    "18-round HUD and 17 after one heavy shot"
+  ],
+  "evidence": [
+    "reports/feedback-overhaul/1366-forest-detail.png",
+    "reports/feedback-overhaul/844-forest-detail.png",
+    "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-heavy-miss-daylight-close.png",
+    "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-light-label-hover.png"
+  ],
+  "limit": "Stylized procedural low-poly trees; no photorealism or physical-device performance claim."
+}

@@ -1,0 +1,11 @@
+{
+  "status": "cancelled-by-user",
+  "mode": "desktop-forgiving",
+  "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
+  "completedDesktopStandardReport": "desktop-success.json",
+  "reason": "Reduce scope to completed desktop standard plus one touch forgiving replay",
+  "partialEvidence": [
+    "1366-forgiving-delay-60s.png"
+  ],
+  "forgivingPassed": false
+}

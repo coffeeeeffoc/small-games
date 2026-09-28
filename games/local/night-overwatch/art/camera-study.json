@@ -1,0 +1,62 @@
+[
+  {
+    "name": "existing",
+    "cameraLocal": [
+      0.0,
+      0.800000011920929,
+      -1.399999976158142
+    ],
+    "fovVertical": 70,
+    "muzzleScreen": [
+      0.0872,
+      0.7181
+    ],
+    "occupiedPercent": 1.107,
+    "centralOccupiedPercent": 0.0
+  },
+  {
+    "name": "lower-a",
+    "cameraLocal": [
+      0.4,
+      -0.8,
+      -0.55
+    ],
+    "fovVertical": 70,
+    "muzzleScreen": [
+      0.1629,
+      0.225
+    ],
+    "occupiedPercent": 5.1,
+    "centralOccupiedPercent": 0.0
+  },
+  {
+    "name": "lower-b",
+    "cameraLocal": [
+      0.8,
+      -0.95,
+      -0.3
+    ],
+    "fovVertical": 70,
+    "muzzleScreen": [
+      0.2448,
+      0.1607
+    ],
+    "occupiedPercent": 8.322,
+    "centralOccupiedPercent": 0.0
+  },
+  {
+    "name": "lower-c",
+    "cameraLocal": [
+      1.2,
+      -1.2,
+      -0.3
+    ],
+    "fovVertical": 70,
+    "muzzleScreen": [
+      0.268,
+      0.0792
+    ],
+    "occupiedPercent": 6.011,
+    "centralOccupiedPercent": 0.0
+  }
+]

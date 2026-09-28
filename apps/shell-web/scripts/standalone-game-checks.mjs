@@ -245,8 +245,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       .toBe('loaded');
     const press = async (id) => {
       const buttons = await canvas.evaluate(() => globalThis.__night.snapshot().buttons);
-      if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'tools'))
-        await press('tools');
+      if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'flightControls'))
+        await press('flightControls');
       await expect
         .poll(() =>
           canvas.evaluate(
