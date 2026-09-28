@@ -14,6 +14,7 @@ export const markers = {
   'wulong-city': '[data-zone="shy-door"]',
   'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
+  'night-overwatch': '#GameCanvas',
   'merge-front': '#start-defense',
   'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
@@ -235,6 +236,40 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await frame.locator('canvas').press('ArrowRight', { delay: 2200 });
     await expect(frame.locator('[data-action="next"]')).toBeVisible();
     await expect(frame.getByRole('heading', { name: '道路接通了！' })).toBeVisible();
+  } else if (id === 'night-overwatch') {
+    const canvas = frame.locator('#GameCanvas');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night?.snapshot().modelImport), {
+        timeout: 60000,
+      })
+      .toBe('loaded');
+    const press = async (id) => {
+      await expect
+        .poll(() =>
+          canvas.evaluate(
+            (_, id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
+            id,
+          ),
+        )
+        .toBe(true);
+      const b = await canvas.evaluate(
+        (_, id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
+        id,
+      );
+      const position = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+      await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    };
+    await press('start');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().time))
+      .toBeGreaterThan(0);
+    await press('help');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')))
+      .toBe(true);
+    await press('close');
+    await press('weapon2');
+    await expect.poll(() => canvas.evaluate(() => globalThis.__night.snapshot().selected)).toBe(2);
   } else if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
     await expect

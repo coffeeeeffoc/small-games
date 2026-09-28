@@ -22,6 +22,7 @@
   "dependencies": {
     "@coffeeeeffoc/fold-the-world": "workspace:*",
     "@coffeeeeffoc/carding-car": "workspace:*",
+    "@coffeeeeffoc/night-overwatch": "workspace:*",
     "@small-games/merge-front": "workspace:*",
     "@small-games/night-merge": "workspace:*",
     "tidebreak": "workspace:*",
