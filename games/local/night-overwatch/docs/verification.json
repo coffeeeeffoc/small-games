@@ -1,0 +1,178 @@
+{
+  "date": "2026-09-28",
+  "stage": "first-mission-refinement",
+  "sourceHash": "c9c04e58e5422bdf6e8592d88b24c0c16f22070af545b4d4a258b0bcb1d1ceba",
+  "creator": "3.8.8",
+  "coreTests": 14,
+  "typecheck": "passed",
+  "fullMissions": {
+    "desktopWin": {
+      "phase": "success",
+      "time": 128.03333333332736,
+      "kills": 9,
+      "friendlyDamage": 0,
+      "rating": "S"
+    },
+    "mobileWin": {
+      "phase": "success",
+      "time": 128.0833333333274,
+      "kills": 9,
+      "friendlyDamage": 0,
+      "rating": "S"
+    }
+  },
+  "failure": {
+    "phase": "failure",
+    "friendlyDamage": 246
+  },
+  "touch": {
+    "mobile667": {
+      "multitouch": true,
+      "cancel": true,
+      "orientation": true
+    },
+    "mobile844": {
+      "multitouch": true,
+      "cancel": true,
+      "orientation": true
+    }
+  },
+  "presentation": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "单击左键开火\n每次一发",
+      "renderNodes": 4,
+      "triangles": 37978,
+      "drawCalls": 50,
+      "friendlyWarning": true,
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 4,
+      "triangles": 37394,
+      "drawCalls": 49,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 4,
+      "triangles": 37442,
+      "drawCalls": 49,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 4,
+      "triangles": 37380,
+      "drawCalls": 49,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    }
+  ],
+  "lifecycle": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "c9c04e58e5422bdf6e8592d88b24c0c16f22070af545b4d4a258b0bcb1d1ceba"
+    },
+    "syntheticBrowserBlurFocus": true,
+    "requiresFreshFire": true,
+    "realFullscreenEntryExit": true,
+    "retries": 10,
+    "renderNodesAfterRetry": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4
+    ],
+    "errors": []
+  },
+  "finalSmoke": [
+    {
+      "url": "http://localhost:4318",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "c9c04e58e5422bdf6e8592d88b24c0c16f22070af545b4d4a258b0bcb1d1ceba"
+      },
+      "drawCalls": 50,
+      "triangles": 37620,
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "url": "http://localhost:4319",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-desktop",
+        "sourceHash": "c9c04e58e5422bdf6e8592d88b24c0c16f22070af545b4d4a258b0bcb1d1ceba"
+      },
+      "drawCalls": 50,
+      "triangles": 37620,
+      "modelImport": "loaded",
+      "audio": "ready"
+    }
+  ],
+  "initialTransfer": {
+    "bytes": 3371049,
+    "requests": 35
+  },
+  "desktopPeakDrawCalls": 58,
+  "desktopPeakRecentFxEvents": 11,
+  "errors": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "notVerified": [
+    "Physical Android/iPhone GPU and input",
+    "Safari",
+    "WeChat/Douyin host",
+    "Real device background/call interruption",
+    "Remote deployment"
+  ]
+}

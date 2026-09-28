@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { GameHost, GameManifest, ReleaseChannel } from '@coffeeeeffoc/game-contract';
 import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-loader';
 
+import { GameCatalog } from './GameCatalog.js';
 import { GameViewport } from './GameViewport.js';
 import standaloneGames from './standalone-games.json';
 import { createWebGameHost } from './host.js';
@@ -22,15 +23,6 @@ import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 const defaultRuntime = createRuntimeClient(
   import.meta.env.VITE_RUNTIME_URL ?? 'http://127.0.0.1:43002',
 );
-
-const featuredGameOrder: Record<string, number> = {
-  'carding-car': 0,
-  'cops-robbers': 1,
-  'cops-robbers-realtime': 2,
-  'letters-words2': 3,
-  'vibeJam-myself-history-guess': 4,
-  'xiangqi-five': 5,
-};
 
 /** Public injection seams for catalog and Game Host integration tests. */
 export type ShellAppProps = {
@@ -53,6 +45,8 @@ export function ShellApp({
   runtimeClient = defaultRuntime,
   playerCredential,
 }: ShellAppProps) {
+  const [query, setQuery] = useState('');
+  const [view, setView] = useState<'list' | 'cards'>('list');
   const [breaker] = useState(() => new VersionCircuitBreaker());
   const [hash, setHash] = useState(() => window.location.hash);
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
@@ -273,32 +267,15 @@ export function ShellApp({
           </details>
         )}
       </header>
-      <section className="catalog-grid" aria-label="Game Catalog">
-        {[...registry, ...standaloneGames]
-          .sort((a, b) => (featuredGameOrder[a.id] ?? 6) - (featuredGameOrder[b.id] ?? 6))
-          .map((game) => (
-            <article key={game.id}>
-              <span>
-                {'definition' in game
-                  ? game.remote
-                    ? 'REMOTE GAME · BUILT-IN FALLBACK'
-                    : 'BUILD-TIME GAME'
-                  : '独立游戏'}
-              </span>
-              <h2>{game.title}</h2>
-              <p>{game.description}</p>
-              <button
-                disabled={
-                  'definition' in game &&
-                  (loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId)))
-                }
-                onClick={() => navigate(game.id)}
-              >
-                进入游戏
-              </button>
-            </article>
-          ))}
-      </section>
+      <GameCatalog
+        registry={registry}
+        query={query}
+        view={view}
+        onQuery={setQuery}
+        onView={setView}
+        onLaunch={navigate}
+        disabled={loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId))}
+      />
     </main>
   );
 }

@@ -224,6 +224,13 @@
     "output": "dist"
   },
   {
+    "id": "night-overwatch",
+    "source": "games/local/night-overwatch",
+    "title": "夜航守望",
+    "description": "从高空观察山谷公路，切换三档火力清理前路，在待命点指挥车队，护送救援车完成撤离。",
+    "output": "dist"
+  },
+  {
     "id": "rule-thief",
     "source": "games/local/rule-thief",
     "title": "Rule Thief",

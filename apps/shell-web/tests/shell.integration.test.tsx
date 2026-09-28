@@ -188,6 +188,7 @@ describe('Web Shell integration', () => {
       [remote],
       () => new FallbackGameLoader(() => remoteLoader),
     );
+    await clickButton(container, '详情卡片');
     expect(container.textContent).toContain('REMOTE GAME · BUILT-IN FALLBACK');
     await clickButton(container, '进入游戏');
     expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
