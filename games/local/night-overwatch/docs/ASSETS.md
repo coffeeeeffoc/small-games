@@ -12,7 +12,7 @@
 | zone.shelter / exit | World.ts + HUD.ts | 保护区边界、标志、撤离营地和帐篷；伤害保护独立于外观 |
 | prop.beacon / beaconFallback | generate-assets.mjs / World.ts | 原创 glTF 灯塔：12 面共享网格、3 实例；保留程序化后备 |
 | fx.impact / tracer | Effects.ts | 最多 16 弹道、24 爆炸、8 条敌方攻击、8 个残骸烟；复用 Graphics，无持续新增节点 |
-| fx.warning | HUD.ts | 方框友军、菱形敌人、红色友方文字、独立误伤条；按真实风险显示 |
+| fx.warning / fire-control UI | HUD.ts | 原创火控席布局；青绿方框友方、琥珀菱形敌方，红色仅表示危险；命中、击毁、低伤与落空来自真实弹着事件 |
 | audio.rapid / blast / heavy / hit / alert | generate-assets.mjs | 原创确定性噪声与正弦波，22.05kHz 单声道 16bit PCM |
 | audio.impact1 / impact2 / engine | generate-assets.mjs | 独立弹着爆炸声与两秒无缝引擎循环；Cocos AudioSource 管理、可整体停止 |
 

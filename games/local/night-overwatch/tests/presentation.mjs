@@ -39,6 +39,12 @@ try {
         path: fileURLToPath(new URL(`../reports/refined-${width}-${name}.png`, import.meta.url)),
       });
     async function click(id) {
+      const visible = await snap();
+      if (
+        !visible.buttons.some((b) => b.id === id) &&
+        visible.buttons.some((b) => b.id === 'tools')
+      )
+        await click('tools');
       await p.waitForFunction(
         (id) => globalThis.__night?.snapshot().buttons.some((b) => b.id === id),
         id,
@@ -63,9 +69,9 @@ try {
     assert(!s.ui.fire.includes('LMB'));
     assert(s.ui.fire.includes(touch ? '按住开火' : '按住左键开火'));
     const beforePanel = s.fired;
-    if (touch) await p.touchscreen.tap(40, 170);
-    else await p.mouse.click(40, 170);
-    assert.equal((await snap()).fired, beforePanel, 'Tactical map does not fire through');
+    await click('tools');
+    await click('tools');
+    assert.equal((await snap()).fired, beforePanel, 'Tactical drawer does not fire through');
     await shot('thermal');
     await click('sensor');
     await shot('daylight');

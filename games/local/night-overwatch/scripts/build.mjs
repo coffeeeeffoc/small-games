@@ -52,6 +52,7 @@ html = html
   .replace(/<title>.*?<\/title>/, '<title>夜航守望 · Night Overwatch</title>')
   .replace('<head>', '<head><link rel="icon" href="data:,">');
 html = html.replace('</head>', '<style>canvas{touch-action:none;outline:none}</style></head>');
+html = html.replace('minimal-ui=true', 'viewport-fit=cover');
 if (target === 'web-desktop')
   html = html
     .replace(/<h1 class="header">[\s\S]*?<\/h1>/, '')

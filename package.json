@@ -42,6 +42,8 @@
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "build:pages": "turbo run build:pages --filter=@coffeeeeffoc/shell-web --concurrency=1",
+    "deploy:tencent": "node scripts/deploy-tencent.mjs",
+    "test:deploy": "node --test scripts/deploy-tencent.test.mjs",
     "test:pages": "pnpm --filter @coffeeeeffoc/shell-web test:pages",
     "build:affected": "turbo run build --affected",
     "test": "node --test scripts/platform-process.test.mjs && turbo run test",

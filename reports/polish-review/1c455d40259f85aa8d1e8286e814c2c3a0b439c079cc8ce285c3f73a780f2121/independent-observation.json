@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-28T07:05:47.234Z",
+  "beforeCrossReference": true,
+  "scores": {
+    "visual": 8.8,
+    "touch": 9,
+    "feedback": 8.5
+  },
+  "findings": [
+    "Default targets more legible than prior build.",
+    "568 moving light label overlaps top projectile-delay hint in 568-moving-target.png.",
+    "844 light destroyed but follow-up missed-shot text remains; kill count2, movingTargetHp0."
+  ],
+  "scope": "Real touch input, read-only snapshot-assisted aim; 9.57s and6.42s battle; no physical-device claim."
+}

@@ -1,0 +1,163 @@
+{
+  "recoveredAt": "2026-09-28T06:39:57.562Z",
+  "buildHash": "821fa3d4898359b8f3e26d01033b0d835fa6f5f6b3249b36bfce5125adb7961b",
+  "reason": "Capture closure retained the prior output-directory and journal bindings after the build changed. Original screenshots were persisted in the prior hash directory. Copied byte-for-byte; no new browser screenshots or gameplay.",
+  "sourceJournal": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/journal.json",
+  "journalEntryCount": 14,
+  "excludedEarlierCaptures": [
+    {
+      "at": "2026-09-28T06:21:46.669Z",
+      "name": "01-568-briefing"
+    },
+    {
+      "at": "2026-09-28T06:23:04.826Z",
+      "name": "02-568-first-live"
+    },
+    {
+      "at": "2026-09-28T06:23:09.212Z",
+      "name": "03-844-first-live"
+    }
+  ],
+  "files": [
+    {
+      "file": "01-568-default.png",
+      "originalCaptureAt": "2026-09-28T06:24:27.299Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/01-568-default.png",
+      "bytes": 55895,
+      "width": 568,
+      "height": 320,
+      "sourceSha256": "82e43b6cf887e8cbedc057224b0bb4ab5188378d28e94017f631a2b14968c445",
+      "destinationSha256": "82e43b6cf887e8cbedc057224b0bb4ab5188378d28e94017f631a2b14968c445"
+    },
+    {
+      "file": "02-568-double-touch.png",
+      "originalCaptureAt": "2026-09-28T06:26:13.749Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/02-568-double-touch.png",
+      "bytes": 58767,
+      "width": 568,
+      "height": 320,
+      "sourceSha256": "80fca62ebb4933aafaf5b7c292b6814e1c1e926c8bee7cd1ecc2726745677fd6",
+      "destinationSha256": "80fca62ebb4933aafaf5b7c292b6814e1c1e926c8bee7cd1ecc2726745677fd6"
+    },
+    {
+      "file": "03-568-switched-blast.png",
+      "originalCaptureAt": "2026-09-28T06:26:15.167Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/03-568-switched-blast.png",
+      "bytes": 58388,
+      "width": 568,
+      "height": 320,
+      "sourceSha256": "8e3606478f3972a2e05d1fecfc1cdce889bf483cec8c3cd5f3f4e3da6c54ca07",
+      "destinationSha256": "8e3606478f3972a2e05d1fecfc1cdce889bf483cec8c3cd5f3f4e3da6c54ca07"
+    },
+    {
+      "file": "04-568-pause.png",
+      "originalCaptureAt": "2026-09-28T06:26:15.368Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/04-568-pause.png",
+      "bytes": 22926,
+      "width": 568,
+      "height": 320,
+      "sourceSha256": "aacdce8f304e0214c83635afa67efefe09994bd4b2e492852bcdcedea8da3dcc",
+      "destinationSha256": "aacdce8f304e0214c83635afa67efefe09994bd4b2e492852bcdcedea8da3dcc"
+    },
+    {
+      "file": "05-568-help.png",
+      "originalCaptureAt": "2026-09-28T06:26:15.573Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/05-568-help.png",
+      "bytes": 23547,
+      "width": 568,
+      "height": 320,
+      "sourceSha256": "df51698aea036bb87045a97bd8c7a505226761e72b358fa00cd6f789144b51e0",
+      "destinationSha256": "df51698aea036bb87045a97bd8c7a505226761e72b358fa00cd6f789144b51e0"
+    },
+    {
+      "file": "06-320-portrait-help.png",
+      "originalCaptureAt": "2026-09-28T06:26:15.864Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/06-320-portrait-help.png",
+      "bytes": 45588,
+      "width": 320,
+      "height": 568,
+      "sourceSha256": "75ba949cfdb5b9782fa11082eda5db1fb0d3e393b8c4df1afaccf91b1030b976",
+      "destinationSha256": "75ba949cfdb5b9782fa11082eda5db1fb0d3e393b8c4df1afaccf91b1030b976"
+    },
+    {
+      "file": "07-320-orientation.png",
+      "originalCaptureAt": "2026-09-28T06:26:16.036Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/07-320-orientation.png",
+      "bytes": 23986,
+      "width": 320,
+      "height": 568,
+      "sourceSha256": "f69e654d32b52e5ad32f55fa8f65eba8a16d614412ca141ad969ee986a8a4bb4",
+      "destinationSha256": "f69e654d32b52e5ad32f55fa8f65eba8a16d614412ca141ad969ee986a8a4bb4"
+    },
+    {
+      "file": "08-844-default.png",
+      "originalCaptureAt": "2026-09-28T06:28:14.653Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/08-844-default.png",
+      "bytes": 73934,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "de5de57261e1469dc149ecb72202c83d83131058af7736cc6ffb3b4737e08607",
+      "destinationSha256": "de5de57261e1469dc149ecb72202c83d83131058af7736cc6ffb3b4737e08607"
+    },
+    {
+      "file": "09-844-two-finger.png",
+      "originalCaptureAt": "2026-09-28T06:28:15.501Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/09-844-two-finger.png",
+      "bytes": 74036,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "96d85f3cc45a1d95b98e7d84366eff33126424e48395c4ad1aa71c752804f920",
+      "destinationSha256": "96d85f3cc45a1d95b98e7d84366eff33126424e48395c4ad1aa71c752804f920"
+    },
+    {
+      "file": "10-844-switch.png",
+      "originalCaptureAt": "2026-09-28T06:28:16.874Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/10-844-switch.png",
+      "bytes": 74456,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "6295504fc27d122fd756056fa86921066821bb75b35f57d068f83c8aca600482",
+      "destinationSha256": "6295504fc27d122fd756056fa86921066821bb75b35f57d068f83c8aca600482"
+    },
+    {
+      "file": "11-844-help.png",
+      "originalCaptureAt": "2026-09-28T06:28:17.756Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/11-844-help.png",
+      "bytes": 30485,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "e271dad9a167df4370153f34c38593df868b45fe950b29c99ed45d7421bc7e66",
+      "destinationSha256": "e271dad9a167df4370153f34c38593df868b45fe950b29c99ed45d7421bc7e66"
+    },
+    {
+      "file": "12-390-portrait-help.png",
+      "originalCaptureAt": "2026-09-28T06:28:18.103Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/12-390-portrait-help.png",
+      "bytes": 50147,
+      "width": 390,
+      "height": 844,
+      "sourceSha256": "0025ad30d740a53942ac900d0e8f8a3dd747121722565b3ebdce9f8c0d3f328b",
+      "destinationSha256": "0025ad30d740a53942ac900d0e8f8a3dd747121722565b3ebdce9f8c0d3f328b"
+    },
+    {
+      "file": "13-natural-outcome.png",
+      "originalCaptureAt": "2026-09-28T06:29:10.570Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/13-natural-outcome.png",
+      "bytes": 30947,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "7059e9647683573ac8e73effa637f325abfe67ab5d60f71396db348b77301963",
+      "destinationSha256": "7059e9647683573ac8e73effa637f325abfe67ab5d60f71396db348b77301963"
+    },
+    {
+      "file": "14-touch-retry.png",
+      "originalCaptureAt": "2026-09-28T06:29:11.140Z",
+      "source": "F:/playground/playground-ai/small-games/reports/polish-review/c02c64c2a98664aea3bbbd7761d0adaea3682397d176e1aabea5e2fc26c7c9f5/14-touch-retry.png",
+      "bytes": 69374,
+      "width": 844,
+      "height": 390,
+      "sourceSha256": "eccd155cc05af1b1ba570655554dbaca852135b2deb7450a1b7fb65b87cde3d7",
+      "destinationSha256": "eccd155cc05af1b1ba570655554dbaca852135b2deb7450a1b7fb65b87cde3d7"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "011e255f351e38080477dc0c90faac47c41d0a0cedb3c07734b683409bc2c88e"
+  },
+  "errors": [],
+  "resourceFailures": [],
+  "checks": [
+    "Actual Shell: entry, weapons, help, nested pause/orientation, host fullscreen entry/exit",
+    "Fullscreen rejection: windowed play works; synthetic 44/44/21 insets respected; mute/reduced effects persist after reload"
+  ]
+}

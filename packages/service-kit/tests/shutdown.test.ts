@@ -109,3 +109,18 @@ it.each(['throw new Error("close failed")', 'await new Promise(() => {})'])(
   },
   28_000,
 );
+
+it('allows an explicit container listener without changing the local default', async () => {
+  const socket = createServer();
+  await new Promise<void>((resolve) => socket.listen(0, '127.0.0.1', resolve));
+  const port = (socket.address() as { port: number }).port;
+  await new Promise<void>((resolve) => socket.close(() => resolve()));
+  const code = `import assert from 'node:assert/strict';
+    import {createService, listenService} from '@coffeeeeffoc/service-kit';
+    process.env.HOST = '0.0.0.0';
+    const app = createService('runtime', {}, false);
+    await listenService(app, ${port});
+    assert.equal(app.server.address().address, '0.0.0.0');
+    await app.close();`;
+  await expect(runService(code, port)).resolves.toMatchObject({ code: 0, killed: false });
+}, 22_000);

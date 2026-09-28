@@ -61,7 +61,13 @@ const competition = process.env.COMPETITION_API_URL
       log: (message) => console.log(message),
     })
   : undefined;
-const { app } = createKartServer({ origins, maxRooms, logger: true, competition });
+const { app } = createKartServer({
+  origins,
+  maxRooms,
+  logger: true,
+  competition,
+  trustProxy: process.env.TRUST_PROXY === '1',
+});
 app.addHook('onClose', async () => {
   await competition?.close();
 });

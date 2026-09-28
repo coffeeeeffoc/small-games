@@ -1,0 +1,106 @@
+{
+  "verifiedAt": "2026-09-28T06:54:14.387Z",
+  "browserClosed": true,
+  "files": [
+    {
+      "file": "01-568-default.png",
+      "exists": true,
+      "bytes": 53264
+    },
+    {
+      "file": "02-568-aim-turret.png",
+      "exists": true,
+      "bytes": 52246
+    },
+    {
+      "file": "03-568-turret-hit.png",
+      "exists": true,
+      "bytes": 52713
+    },
+    {
+      "file": "04-568-turret-destroyed.png",
+      "exists": true,
+      "bytes": 50517
+    },
+    {
+      "file": "05-568-heavy-impact.png",
+      "exists": true,
+      "bytes": 48760
+    },
+    {
+      "file": "06-568-help-basic.png",
+      "exists": true,
+      "bytes": 29432
+    },
+    {
+      "file": "07-568-help-advanced.png",
+      "exists": true,
+      "bytes": 30822
+    },
+    {
+      "file": "08-320-portrait-help.png",
+      "exists": true,
+      "bytes": 53315
+    },
+    {
+      "file": "09-844-default.png",
+      "exists": true,
+      "bytes": 63808
+    },
+    {
+      "file": "10-844-touch-feedback.png",
+      "exists": true,
+      "bytes": 62044
+    },
+    {
+      "file": "11-844-help-bottom.png",
+      "exists": true,
+      "bytes": 52271
+    },
+    {
+      "file": "12-390-help.png",
+      "exists": true,
+      "bytes": 58655
+    },
+    {
+      "file": "13-natural-progress.png",
+      "exists": true,
+      "bytes": 59575
+    },
+    {
+      "file": "14-natural-result.png",
+      "exists": true,
+      "bytes": 32226
+    },
+    {
+      "file": "15-real-touch-retry.png",
+      "exists": true,
+      "bytes": 74995
+    },
+    {
+      "file": "videos/review-full.webm",
+      "exists": true,
+      "bytes": 6163535
+    },
+    {
+      "file": "checks.json",
+      "exists": true,
+      "bytes": 3288
+    },
+    {
+      "file": "review.md",
+      "exists": true,
+      "bytes": 5186
+    },
+    {
+      "file": "journal.json",
+      "exists": true,
+      "bytes": 2689
+    },
+    {
+      "file": "build-info.json",
+      "exists": true,
+      "bytes": 354
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@coffeeeeffoc/company-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
+    "build": "vite build --base=./",
+    "preview": "vite preview --host 127.0.0.1 --port 4180 --strictPort",
+    "test": "pnpm build && node tests/smoke.mjs",
+    "smoke": "node tests/smoke.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "vite": "8.2.2"
+  }
+}

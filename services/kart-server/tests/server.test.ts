@@ -15,6 +15,27 @@ const create: ClientMessage = {
   route: 'seaside',
   bots: 1,
 };
+test('Nginx clients have separate connection quotas only when proxy trust is explicit', async () => {
+  for (const trustProxy of [false, true]) {
+    const server = createKartServer({ autoTick: false, trustProxy });
+    await server.app.listen({ host: '127.0.0.1', port: 0 });
+    const { port } = server.app.server.address() as { port: number };
+    const sockets: WebSocket[] = [];
+    try {
+      for (let i = 0; i < 17; i++) {
+        const socket = new WebSocket(`ws://127.0.0.1:${port}/kart`, {
+          headers: { 'x-real-ip': `192.0.2.${i + 1}` },
+        });
+        sockets.push(socket);
+        if (!trustProxy && i === 16) await assert.rejects(once(socket, 'open'));
+        else await once(socket, 'open');
+      }
+    } finally {
+      for (const socket of sockets) socket.terminate();
+      await server.app.close();
+    }
+  }
+});
 async function peer(url: string) {
   const socket = new WebSocket(url);
   const messages: ServerMessage[] = [];

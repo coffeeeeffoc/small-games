@@ -1,0 +1,91 @@
+{
+  "at": "2026-09-28T07:09:34.863Z",
+  "browserClosed": true,
+  "elapsedSeconds": 504.444,
+  "battleSeconds": [
+    9.566666666666721,
+    6.416666666666649
+  ],
+  "files": [
+    {
+      "file": "568-default.png",
+      "exists": true,
+      "bytes": 49738
+    },
+    {
+      "file": "844-default.png",
+      "exists": true,
+      "bytes": 62293
+    },
+    {
+      "file": "568-turret-destroyed.png",
+      "exists": true,
+      "bytes": 43783
+    },
+    {
+      "file": "568-moving-target.png",
+      "exists": true,
+      "bytes": 45920
+    },
+    {
+      "file": "844-turret-destroyed.png",
+      "exists": true,
+      "bytes": 59932
+    },
+    {
+      "file": "844-moving-target.png",
+      "exists": true,
+      "bytes": 57821
+    },
+    {
+      "file": "videos/568-short.webm",
+      "exists": true,
+      "bytes": 939141
+    },
+    {
+      "file": "videos/844-short.webm",
+      "exists": true,
+      "bytes": 663056
+    },
+    {
+      "file": "videos/568-raw.webm",
+      "exists": true,
+      "bytes": 1730372
+    },
+    {
+      "file": "videos/844-raw.webm",
+      "exists": true,
+      "bytes": 1645924
+    },
+    {
+      "file": "checks.json",
+      "exists": true,
+      "bytes": 1003
+    },
+    {
+      "file": "journal.json",
+      "exists": true,
+      "bytes": 1150
+    },
+    {
+      "file": "build-info.json",
+      "exists": true,
+      "bytes": 313
+    },
+    {
+      "file": "independent-observation.json",
+      "exists": true,
+      "bytes": 520
+    },
+    {
+      "file": "cross-reference.json",
+      "exists": true,
+      "bytes": 1216
+    },
+    {
+      "file": "review.md",
+      "exists": true,
+      "bytes": 3931
+    }
+  ]
+}

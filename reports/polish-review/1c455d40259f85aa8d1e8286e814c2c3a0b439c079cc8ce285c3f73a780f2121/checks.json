@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "viewport": {
+        "w": 568,
+        "h": 320
+      },
+      "battleSeconds": 9.566666666666721,
+      "turretHp": 0,
+      "turretKills": 1,
+      "blastAmmo": 37,
+      "movingTargetHp": 16,
+      "kills": 1,
+      "hits": 5,
+      "firedAtRelease": 25,
+      "fired300msLater": 25,
+      "selectedAfterSwitch": 2,
+      "heavyAmmo": 6,
+      "pauses": [
+        "manual"
+      ],
+      "pauseTime": 9.566666666666721,
+      "time150msLater": 9.566666666666721
+    },
+    {
+      "viewport": {
+        "w": 844,
+        "h": 390
+      },
+      "battleSeconds": 6.416666666666649,
+      "turretHp": 0,
+      "turretKills": 1,
+      "blastAmmo": 37,
+      "movingTargetHp": 0,
+      "kills": 2,
+      "hits": 7,
+      "firedAtRelease": 9,
+      "fired300msLater": 9,
+      "selectedAfterSwitch": 2,
+      "heavyAmmo": 6,
+      "pauses": [
+        "manual"
+      ],
+      "pauseTime": 6.416666666666649,
+      "time150msLater": 6.416666666666649
+    }
+  ],
+  "errors": []
+}

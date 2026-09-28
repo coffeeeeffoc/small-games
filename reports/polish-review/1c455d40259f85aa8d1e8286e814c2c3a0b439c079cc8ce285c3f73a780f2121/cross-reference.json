@@ -1,0 +1,44 @@
+{
+  "path": "F:/playground/playground-ai/small-games/games/local/night-overwatch/reports/polish/round6/browser-results.json",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "1c455d40259f85aa8d1e8286e814c2c3a0b439c079cc8ce285c3f73a780f2121"
+  },
+  "desktopWin": {
+    "phase": "success",
+    "time": 128.06666666666072,
+    "kills": 9,
+    "friendlyDamage": 0,
+    "rescue": 224,
+    "peakDraws": 45,
+    "peakEffects": 11
+  },
+  "mobileWin": {
+    "phase": "success",
+    "time": 128.06666666666072,
+    "kills": 9,
+    "friendlyDamage": 0,
+    "rescue": 224
+  },
+  "friendlyFailure": {
+    "phase": "failure",
+    "friendlyDamage": 246
+  },
+  "mobile667": {
+    "multitouch": true,
+    "cancel": true,
+    "orientation": true
+  },
+  "mobile844": {
+    "multitouch": true,
+    "cancel": true,
+    "orientation": true
+  },
+  "errors": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "exactHashMatch": true
+}

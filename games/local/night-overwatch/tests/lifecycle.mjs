@@ -65,7 +65,10 @@ try {
     await page.mouse.down();
     await page.mouse.up();
     await page.waitForFunction(() => __night.snapshot().phase === 'failure');
-    await press('retry');
+    if (i % 2 === 0) {
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(80);
+    } else await press('retry');
     const s = await snap();
     assert(s.time < 0.5);
     assert.equal(s.fired, 0);

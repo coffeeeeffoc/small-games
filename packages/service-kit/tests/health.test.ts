@@ -3,6 +3,25 @@ import { createService } from '@coffeeeeffoc/service-kit';
 import { Writable } from 'node:stream';
 
 describe('service health', () => {
+  it('only trusts forwarded IPs from an explicitly allowed proxy peer', async () => {
+    for (const trust of [false, 'uniquelocal'] as const) {
+      const app = createService('runtime', {}, false, undefined, trust);
+      app.get('/ip', (request) => ({ ip: request.ip }));
+      const response = await app.inject({
+        url: '/ip',
+        remoteAddress: '172.20.0.2',
+        headers: { 'x-forwarded-for': '203.0.113.99, 192.0.2.8' },
+      });
+      expect(response.json().ip).toBe(trust ? '192.0.2.8' : '172.20.0.2');
+      const untrusted = await app.inject({
+        url: '/ip',
+        remoteAddress: '198.51.100.2',
+        headers: { 'x-forwarded-for': '203.0.113.99' },
+      });
+      expect(untrusted.json().ip).toBe('198.51.100.2');
+      await app.close();
+    }
+  });
   it('exports request spans through the OpenTelemetry seam', async () => {
     const exportSpan = vi.fn();
     const app = createService('runtime', {}, false, { exportSpan });
