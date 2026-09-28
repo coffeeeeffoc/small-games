@@ -1,0 +1,9 @@
+library/
+temp/
+local/
+profiles/
+build/
+reports/*.log
+reports/build-*.json
+reports/engine.d.ts
+reports/browser-results.json

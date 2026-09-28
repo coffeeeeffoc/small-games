@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "0.1",
+  "kind": "planning-template-not-verified-assets",
+  "project": "night-overwatch-working-title",
+  "notes": [
+    "所有数值是建议预算。",
+    "所有示例资产尚未取得，不能视为完成授权。",
+    "游戏不能直接依赖不存在的示例路径；开发时提供占位资源并校验资源是否存在。"
+  ],
+  "assets": [
+    {
+      "assetId": "vehicle_rescue_01",
+      "category": "vehicle",
+      "displayName": "关键救援车",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "procedural.boxVehicle",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": [
+          2000,
+          4000
+        ],
+        "textureMaxSide": 512,
+        "maxMaterials": 1
+      },
+      "metadata": {
+        "heatSignature": 0.65,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle_enemy_light_01",
+      "category": "vehicle",
+      "displayName": "快速轻型无人车",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "procedural.smallRover",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": [
+          500,
+          2000
+        ],
+        "textureMaxSide": 512,
+        "maxMaterials": 1
+      },
+      "metadata": {
+        "heatSignature": 0.75,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle_enemy_heavy_01",
+      "category": "vehicle",
+      "displayName": "重甲无人车",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "procedural.heavyRover",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": [
+          2000,
+          4000
+        ],
+        "textureMaxSide": 512,
+        "maxMaterials": 1
+      },
+      "metadata": {
+        "heatSignature": 0.8,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "building_warehouse_01",
+      "category": "environment",
+      "displayName": "仓库模块",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "procedural.warehouse",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": [
+          300,
+          2000
+        ],
+        "textureMaxSide": 512,
+        "maxMaterials": 1
+      },
+      "metadata": {
+        "heatSignature": 0.15,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx_heavy_impact_01",
+      "category": "vfx",
+      "displayName": "重炮爆炸",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "procedural.impactRing",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": null,
+        "textureMaxSide": 256,
+        "maxMaterials": null
+      },
+      "metadata": {
+        "heatSignature": null,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio_weapon_light_loop",
+      "category": "audio",
+      "displayName": "速射炮循环音",
+      "status": "not-acquired",
+      "sourceFile": null,
+      "runtimeAsset": null,
+      "fallbackAssetId": "documented.safePlaceholder",
+      "license": {
+        "source": null,
+        "authorOrService": null,
+        "acquiredAt": null,
+        "licenseType": null,
+        "commercialUseVerified": false,
+        "attributionRequired": null,
+        "evidenceFile": null
+      },
+      "proposedBudget": {
+        "triangleRange": null,
+        "textureMaxSide": null,
+        "maxMaterials": null
+      },
+      "metadata": {
+        "heatSignature": null,
+        "units": "project-world-unit",
+        "forward": "+Z",
+        "up": "+Y"
+      },
+      "validation": {
+        "engineImport": "not-tested",
+        "web": "not-tested",
+        "mobileDevice": "not-tested",
+        "miniGameHost": "not-tested"
+      }
+    }
+  ]
+}

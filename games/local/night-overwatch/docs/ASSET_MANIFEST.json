@@ -1,0 +1,815 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "assetId": "terrain.ground",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.roads",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.markings",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.ridges",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.structures",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.details",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.rescue",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.escort",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.light",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.heavy",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.turret",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "zone.shelter",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "zone.exit",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "prop.beaconFallback",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "prop.beacon",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/models/beacon.gltf",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.impact",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/Effects.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.tracer",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/Effects.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.warning",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/HUD.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.rapid",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/rapid.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.blast",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/blast.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.heavy",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/heavy.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.hit",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/hit.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.alert",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/alert.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.water",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.fields",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.roofs",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.forest",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.impact1",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/impact1.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.impact2",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/impact2.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.engine",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/engine.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    }
+  ]
+}

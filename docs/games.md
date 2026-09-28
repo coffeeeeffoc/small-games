@@ -8,6 +8,7 @@
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。 |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。                  |
+| 夜航守望              | `night-overwatch`             | [games/local/night-overwatch](../games/local/night-overwatch/)                           | 切换三档空中火力打通公路，在待命点指挥车队，护送关键救援车完成撤离。        |
 | 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。              |
 | 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。            |
 | 电子斗蛐蛐            | `game-arena`                   | [games/local/game-arena](../games/local/game-arena/)                                     | 秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。                          |

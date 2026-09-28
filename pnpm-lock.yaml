@@ -222,6 +222,9 @@ importers:
       '@coffeeeeffoc/hold-tight-acrobats':
         specifier: workspace:*
         version: link:../../games/local/hold-tight-acrobats
+      '@coffeeeeffoc/night-overwatch':
+        specifier: workspace:*
+        version: link:../../games/local/night-overwatch
       '@coffeeeeffoc/off-camera':
         specifier: workspace:*
         version: link:../../games/local/off-camera
@@ -237,12 +240,12 @@ importers:
       '@coffeeeeffoc/release-contract':
         specifier: workspace:*
         version: link:../../packages/release-contract
-      '@coffeeeeffoc/rule-thief':
-        specifier: workspace:*
-        version: link:../../games/local/rule-thief
       '@coffeeeeffoc/rescue-team':
         specifier: workspace:*
         version: link:../../games/local/rescue-team
+      '@coffeeeeffoc/rule-thief':
+        specifier: workspace:*
+        version: link:../../games/local/rule-thief
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -871,6 +874,8 @@ importers:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)
 
+  games/local/night-overwatch: {}
+
   games/local/off-camera: {}
 
   games/local/one-stroke-course:
@@ -925,9 +930,9 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0
 
-  games/local/rule-thief: {}
-
   games/local/rescue-team: {}
+
+  games/local/rule-thief: {}
 
   games/local/travel:
     devDependencies:

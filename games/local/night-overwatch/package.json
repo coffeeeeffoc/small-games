@@ -1,0 +1,22 @@
+{
+  "name": "@coffeeeeffoc/night-overwatch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "uuid": "623e3b61-ef4b-46df-b82a-2573cf1c61df",
+  "creator": {
+    "version": "3.8.8"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs web-mobile",
+    "build:desktop": "node scripts/build.mjs web-desktop",
+    "dev": "node scripts/serve.mjs",
+    "dev:desktop": "node scripts/serve.mjs --desktop",
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}
