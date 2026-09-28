@@ -262,7 +262,12 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       const position = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
       await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
       // Cocos commits input and then rebuilds the visible HUD on its next frame.
-      await canvas.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await canvas.evaluate(
+        () =>
+          new Promise((resolve) =>
+            globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+          ),
+      );
     };
     await press('start');
     await expect

@@ -21,3 +21,5 @@ apps/shell-ios/build/
 *.tsbuildinfo
 games/local/game-office/art/projection.json
 games/local/game-office/art/render-progress.json
+# Archived browser evidence retains its original bytes and recorded hashes.
+/reports/polish-review/

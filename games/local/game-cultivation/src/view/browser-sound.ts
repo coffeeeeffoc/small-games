@@ -9,7 +9,7 @@ export const browserSound: NonNullable<CanvasGameTarget['createSound']> = (src, 
   const audio = new Audio(urls[`../assets/audio/${src.split('/').pop()}`]);
   audio.loop = options?.loop ?? false;
   audio.volume = options?.volume ?? 0.65;
-  audio.preload = 'auto';
+  audio.preload = 'none';
   let disposed = false;
   return {
     play() {

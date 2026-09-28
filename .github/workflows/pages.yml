@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 20
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
     steps:
       - uses: actions/checkout@v5
         with:
@@ -38,6 +39,10 @@ jobs:
         with:
           name: carding-car-${{ github.sha }}
           path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
       - run: pnpm check:games
       - run: pnpm games:test
       - run: pnpm build:pages

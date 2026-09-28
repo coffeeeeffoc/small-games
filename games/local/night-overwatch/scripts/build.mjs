@@ -3,11 +3,22 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
-import { sourceHash } from './artifact.mjs';
+import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'web-desktop'].includes(target))
   throw Error('Supported targets: web-mobile, web-desktop');
+if (target === 'web-mobile' && process.env.NIGHT_OVERWATCH_PREBUILT_DIR) {
+  const source = await verifyPrebuilt(process.env.NIGHT_OVERWATCH_PREBUILT_DIR);
+  const dist = path.resolve(root, 'dist');
+  if (path.dirname(dist) !== path.resolve(root)) throw Error('Build output escaped project');
+  if (source !== dist) {
+    await rm(dist, { recursive: true, force: true });
+    await cp(source, dist, { recursive: true });
+  }
+  console.log('Restored verified Night Overwatch Creator artifact');
+  process.exit(0);
+}
 if (!existsSync(editor))
   throw Error('Install Creator 3.8.8 or set COCOS_CREATOR; no automatic installation.');
 await mkdir(root + 'reports', { recursive: true });
