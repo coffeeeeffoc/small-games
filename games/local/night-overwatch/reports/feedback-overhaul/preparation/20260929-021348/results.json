@@ -1,0 +1,52 @@
+{
+  "status": "prepared-awaiting-owner-confirmed-build",
+  "browserRun": false,
+  "forbiddenOldHashPrefix": "88d68995",
+  "checks": [
+    "six test files parse",
+    "flight prediction including partial 3D splash self-check passed",
+    "feedback checker positive and negative self-check passed",
+    "missing stable URL/hash rejected before browser or network",
+    "git diff --check passed for owned tests"
+  ],
+  "plannedRuns": [
+    "node tests/feedback-browser.mjs",
+    "node tests/flight-browser.mjs --mission"
+  ],
+  "requiredEnvironment": [
+    "NIGHT_URL",
+    "NIGHT_EXPECTED_SOURCE_HASH"
+  ],
+  "fxTelemetry": "snapshot.effects; actual drawn impact primitives and projectile dimensions/speed",
+  "manualReviewPending": [
+    "geometric pause bars",
+    "natural tree shape",
+    "weapon and explosion visual proportions"
+  ],
+  "files": [
+    {
+      "path": "tests/flight-browser.mjs",
+      "sha256": "3c020b9f6ddd4de9047ecf17a6349ee398805133a0b382c3e7a5d23fd635fb3e"
+    },
+    {
+      "path": "tests/browser.mjs",
+      "sha256": "2330fd3ed15c2094a1eb2f86721860bcbe8806bd81d14f40e41e6b30c8afe639"
+    },
+    {
+      "path": "tests/presentation.mjs",
+      "sha256": "e74026089ada50ddc81e41912fc5a2927bece1ee7c77a7532b590c7eba3fd08b"
+    },
+    {
+      "path": "tests/polish.mjs",
+      "sha256": "d11766e464c197d17e53668d0c20f83f78b0f358c683ef154ccbe49d08ca0661"
+    },
+    {
+      "path": "tests/lifecycle.mjs",
+      "sha256": "617e1ff415f2df0edc30fb131b434fadbe2270ff2dccbf1e71907c0f3c28549a"
+    },
+    {
+      "path": "tests/feedback-browser.mjs",
+      "sha256": "466dc7d9533b02b7066f9a9a136d2c8e58ecd0d4dd927432017f0e538273e6cf"
+    }
+  ]
+}

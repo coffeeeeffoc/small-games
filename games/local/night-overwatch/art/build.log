@@ -1,0 +1,241 @@
+C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\scripts\model-aircraft.py:200: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  mat.use_nodes = True
+INFO Draco is available, use library at D:\setup\Blender\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_draco_bridge.dll
+INFO MeshOptimizer is available, use library at D:\setup\Blender\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_meshopt_bridge.dll
+01:13:47 | INFO: Starting glTF 2.0 export
+01:13:47 | INFO: Extracting primitive: Cone.020
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.022
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.012
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.013
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.014
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.003
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.016
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.012
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.011
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.001
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.002
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Torus
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Torus.001
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Torus.002
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.017
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.014
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.015
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.016
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.002
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.001
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.007
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.013
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Muzzle crown and open bore
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.003
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.004
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.005
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.006
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.007
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.008
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.009
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.010
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.006
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.005
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.023
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.015
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.004
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.011
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.018
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.019
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.021
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.008
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.009
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.010
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Finished glTF 2.0 export in 0.0532224178314209 s
+C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\scripts\model-aircraft.py:200: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  mat.use_nodes = True
+
+01:13:47 | INFO: Starting glTF 2.0 export
+01:13:47 | INFO: Extracting primitive: Cube.019
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.020
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.034
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.035
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Pitched roof
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.018
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.017
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.023
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.026
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.029
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.032
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.022
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.025
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.028
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.031
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.024
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.027
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.030
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.033
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cube.021
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Finished glTF 2.0 export in 0.021476268768310547 s
+
+01:13:47 | INFO: Starting glTF 2.0 export
+01:13:47 | INFO: Extracting primitive: Cone.025
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.026
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.027
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.028
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Extracting primitive: Cone.024
+01:13:47 | INFO: Primitives created: 1
+01:13:47 | INFO: Finished glTF 2.0 export in 0.007572650909423828 s
+00:03.125  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\cabin-studio.png'
+00:05.328  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\cabin-camera.png'
+00:06.578  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\house.png'
+00:07.844  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\pine.png'
+00:07.859  blend            | Read blend: "C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\aircraft-assets.blend"
+
+Info: Saved as "aircraft-assets.blend"
+01:13:54 | INFO: Data are loaded, start creating Blender stuff
+01:13:54 | INFO: Blender create Mesh node Cone.020
+01:13:54 | INFO: Blender create Mesh node Cone.022
+01:13:54 | INFO: Blender create Mesh node Cone.012
+01:13:54 | INFO: Blender create Mesh node Cone.013
+01:13:54 | INFO: Blender create Mesh node Cone.014
+01:13:54 | INFO: Blender create Mesh node Cube.003
+01:13:54 | INFO: Blender create Mesh node Cone.016
+01:13:54 | INFO: Blender create Mesh node Cube.012
+01:13:54 | INFO: Blender create Mesh node Cube.011
+01:13:54 | INFO: Blender create Mesh node Cone
+01:13:54 | INFO: Blender create Mesh node Cone.001
+01:13:54 | INFO: Blender create Mesh node Cone.002
+01:13:54 | INFO: Blender create Mesh node Torus
+01:13:54 | INFO: Blender create Mesh node Torus.001
+01:13:54 | INFO: Blender create Mesh node Torus.002
+01:13:54 | INFO: Blender create Mesh node Cone.017
+01:13:54 | INFO: Blender create Mesh node Cube.014
+01:13:54 | INFO: Blender create Mesh node Cube.015
+01:13:54 | INFO: Blender create Mesh node Cube.016
+01:13:54 | INFO: Blender create Mesh node Cube.002
+01:13:54 | INFO: Blender create Mesh node Cube.001
+01:13:54 | INFO: Blender create Mesh node Cube.007
+01:13:54 | INFO: Blender create Mesh node Cube.013
+01:13:54 | INFO: Blender create Mesh node Muzzle crown and open bore
+01:13:54 | INFO: Blender create Mesh node Cone.003
+01:13:54 | INFO: Blender create Mesh node Cone.004
+01:13:54 | INFO: Blender create Mesh node Cone.005
+01:13:54 | INFO: Blender create Mesh node Cone.006
+01:13:54 | INFO: Blender create Mesh node Cone.007
+01:13:54 | INFO: Blender create Mesh node Cone.008
+01:13:54 | INFO: Blender create Mesh node Cone.009
+01:13:54 | INFO: Blender create Mesh node Cone.010
+01:13:54 | INFO: Blender create Mesh node Cube.006
+01:13:54 | INFO: Blender create Mesh node Cube
+01:13:54 | INFO: Blender create Mesh node Cube.005
+01:13:54 | INFO: Blender create Mesh node Cone.023
+01:13:54 | INFO: Blender create Mesh node Cone.015
+01:13:54 | INFO: Blender create Mesh node Cube.004
+01:13:54 | INFO: Blender create Mesh node Cone.011
+01:13:54 | INFO: Blender create Mesh node Cone.018
+01:13:54 | INFO: Blender create Mesh node Cone.019
+01:13:54 | INFO: Blender create Mesh node Cone.021
+01:13:54 | INFO: Blender create Mesh node Cube.008
+01:13:54 | INFO: Blender create Mesh node Cube.009
+01:13:54 | INFO: Blender create Mesh node Cube.010
+01:13:54 | INFO: glTF import finished in 0.03s
+01:13:54 | INFO: Data are loaded, start creating Blender stuff
+01:13:54 | INFO: Blender create Mesh node Cube.019
+01:13:54 | INFO: Blender create Mesh node Cube.020
+01:13:54 | INFO: Blender create Mesh node Cube.034
+01:13:54 | INFO: Blender create Mesh node Cube.035
+01:13:54 | INFO: Blender create Mesh node Pitched roof
+01:13:54 | INFO: Blender create Mesh node Cube.018
+01:13:54 | INFO: Blender create Mesh node Cube.017
+01:13:54 | INFO: Blender create Mesh node Cube.023
+01:13:54 | INFO: Blender create Mesh node Cube.026
+01:13:54 | INFO: Blender create Mesh node Cube.029
+01:13:54 | INFO: Blender create Mesh node Cube.032
+01:13:54 | INFO: Blender create Mesh node Cube.022
+01:13:54 | INFO: Blender create Mesh node Cube.025
+01:13:54 | INFO: Blender create Mesh node Cube.028
+01:13:54 | INFO: Blender create Mesh node Cube.031
+01:13:54 | INFO: Blender create Mesh node Cube.024
+01:13:54 | INFO: Blender create Mesh node Cube.027
+01:13:54 | INFO: Blender create Mesh node Cube.030
+01:13:54 | INFO: Blender create Mesh node Cube.033
+01:13:54 | INFO: Blender create Mesh node Cube.021
+01:13:54 | INFO: glTF import finished in 0.01s
+01:13:54 | INFO: Data are loaded, start creating Blender stuff
+01:13:54 | INFO: Blender create Mesh node Cone.025
+01:13:54 | INFO: Blender create Mesh node Cone.026
+01:13:54 | INFO: Blender create Mesh node Cone.027
+01:13:54 | INFO: Blender create Mesh node Cone.028
+01:13:54 | INFO: Blender create Mesh node Cone.024
+01:13:54 | INFO: glTF import finished in 0.00s
+ASSET_VALIDATION {"source": "original Blender", "blender": "5.2.1 LTS", "meshes": {"cabin": {"triangles": 2132, "vertices": 4224, "bounds": {"min": [-1.8813170194625854, -2.2300000190734863, -1.5], "max": [0.19499999284744263, 1.559999942779541, 2.125]}, "jsonBytes": 356149, "glbBytes": 202576, "sha256": "9f7c9b5540559d5887e633d05082b71a9ccdc30ef29ec6fd893e115ac32debfc"}, "house": {"triangles": 332, "vertices": 690, "bounds": {"min": [-0.6499999761581421, 0.0, -0.5199999809265137], "max": [0.6499999761581421, 1.1475000381469727, 0.5199999809265137]}, "jsonBytes": 46598, "glbBytes": 46568, "sha256": "6525160232732722dccbc9577decee84834c2473567d155056e262eb4ce4b0a8"}, "pine": {"triangles": 88, "vertices": 192, "bounds": {"min": [-0.38407498598098755, 0.0, -0.3664799928665161], "max": [0.38407498598098755, 1.5049999952316284, 0.38999998569488525]}, "jsonBytes": 14989, "glbBytes": 12716, "sha256": "b033b4dee704e57d523db9313b848ca49bf2a1f1692e8d7aef79195b866d5857"}}, "passed": true}
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 02:38:20)
+
+Blender quit

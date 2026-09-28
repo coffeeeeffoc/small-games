@@ -2,23 +2,34 @@
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "6f7b439a65ab8d164354c784a090e8203a2d6107241c3590474babb2b0e3bebb"
+    "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
   },
+  "realBrowserTabBackgroundAndForeground": false,
+  "realBackgroundStatus": "unsupported: tab switching emitted no lifecycle signal in headless and offscreen-headed Chrome",
   "syntheticBrowserBlurFocus": true,
+  "headedBrowser": false,
+  "backgroundObservation": {
+    "hidden": false,
+    "focused": true
+  },
+  "foregroundObservation": {
+    "hidden": false,
+    "focused": true
+  },
   "requiresFreshFire": true,
   "realFullscreenEntryExit": true,
   "retries": 10,
   "renderNodesAfterRetry": [
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32
   ],
   "errors": []
 }

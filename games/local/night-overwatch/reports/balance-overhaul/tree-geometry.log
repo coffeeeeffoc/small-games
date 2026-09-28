@@ -1,0 +1,35 @@
+ACES vertex estimates, NOT screenshot acceptance: [{"id":"terrain.forest","shadowRGB":[9,17,15],"midRGB":[11,19,17],"highlightRGB":[14,26,22],"maxDayGroundRatio":1.784,"maxHeatRGB":7.9},{"id":"terrain.distantForest","shadowRGB":[11,11,9],"midRGB":[12,21,18],"highlightRGB":[16,30,25],"maxDayGroundRatio":0.998,"maxHeatRGB":10.3},{"id":"terrain.details (tree portion)","shadowRGB":[14,11,8],"midRGB":[16,12,9],"highlightRGB":[22,17,13],"maxDayGroundRatio":1.268,"maxHeatRGB":9.9}]
+{
+  "nearTrees": 620,
+  "distantTrees": 1399,
+  "evergreenNear": 270,
+  "addedDrawCalls": 0,
+  "addedTextures": 0,
+  "stats": [
+    {
+      "id": "terrain.forest",
+      "vertices": 63000,
+      "triangles": 99164,
+      "bufferBytes": 3114984,
+      "maxHeat": 0.059
+    },
+    {
+      "id": "terrain.distantForest",
+      "vertices": 61556,
+      "triangles": 95132,
+      "bufferBytes": 3033032,
+      "maxHeat": 0.073
+    },
+    {
+      "id": "terrain.details (tree portion)",
+      "vertices": 50338,
+      "triangles": 45920,
+      "bufferBytes": 2289040,
+      "maxHeat": 0.071
+    }
+  ],
+  "totalTreeTriangles": 240216,
+  "totalTreeBufferBytes": 8437056
+}
+(node:24956) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

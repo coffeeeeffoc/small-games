@@ -12,16 +12,19 @@ import {
   ResolutionPolicy,
   sys,
 } from 'cc';
-import { ACTIONS, action, actionLabel, bindingLabel, TUTORIAL, tutorialText } from './core/Actions';
-import { drawEffects } from './Effects';
+import { ACTIONS, actionLabel, bindingLabel, TUTORIAL, tutorialText } from './core/Actions';
+import { drawEffects, type EffectsFrame } from './Effects';
 import {
   WEAPONS,
+  MAP,
+  FLIGHT,
+  terrainHeight,
   MISSION,
   ROUTE,
   HOLD_POINTS,
+  FRIENDLY_POSTS,
   routePoint,
   PROTECTED,
-  SECTORS,
   text,
   type Language,
   type Point,
@@ -39,6 +42,8 @@ const C = {
   red: '#ff525b',
 };
 const col = (hex: string) => new Color().fromHEX(hex);
+const flightActions = ['rotateLeft', 'rotateRight', 'orbitLeft', 'orbitRight', 'altitudeUp', 'altitudeDown', 'radiusIn', 'radiusOut'];
+const panelActions = [...flightActions, 'sensor', 'locate', 'zoomOut', 'zoomIn', 'mission', 'help', 'sound'];
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label };
 export class HUD {
   root: Node;
@@ -49,6 +54,9 @@ export class HUD {
   h = 540;
   lang: Language = 'zh';
   touch = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
+  // UI coordinates from real mouse input; the controller clears this on leave/touch/blur.
+  mousePointer?: { x: number; y: number };
+  effects: EffectsFrame = { impacts: [], projectiles: [] };
   buttons: ButtonRect[] = [];
   labels = new Map<string, Label>();
   modal?: Node;
@@ -74,6 +82,29 @@ export class HUD {
   }
   get footer() {
     return this.compact ? 74 : 90;
+  }
+  get desktop() {
+    return !this.compact && this.w - this.safe.left - this.safe.right >= 900;
+  }
+  get panelLayout() {
+    const available = this.w - this.safe.left - this.safe.right - 24;
+    const short = this.h - this.safe.top - this.safe.bottom < 340;
+    const columns = short ? 8 : 4;
+    const w = Math.min(available, short ? 720 : 388);
+    const h = Math.ceil((this.desktop ? panelActions.length - flightActions.length : panelActions.length) / columns) * 48 + 4;
+    return { x: 12 + this.safe.left + (this.desktop ? 148 : 0), y: Math.min(112 + this.safe.top, this.h - this.footer - this.safe.bottom - h - 6), w, h, columns };
+  }
+  get minimapLayout() {
+    const w = this.compact ? 112 : 156;
+    return { x: this.w - 12 - this.safe.right - w, y: this.safe.top + 64, w, h: this.compact ? 84 : 108 };
+  }
+  minimapPoint(x: number, y: number): Point | undefined {
+    if (this.modal || this.toolsOpen || ![x, y].every(Number.isFinite)) return;
+    const map = this.minimapLayout, left = map.x + 8, top = map.y + 25,
+      width = map.w - 16, height = map.h - 33;
+    if (x < left || x > left + width || y < top || y > top + height) return;
+    return { x: (x - left) / width * MAP.halfWidth * 2 - MAP.halfWidth,
+      z: (y - top) / height * MAP.halfDepth * 2 - MAP.halfDepth };
   }
   constructor(parent: Node) {
     this.root = new Node('OverwatchHUD');
@@ -106,6 +137,7 @@ export class HUD {
     return n;
   }
   resize() {
+    this.mousePointer = undefined;
     const size = view.getFrameSize();
     this.w = size.width;
     this.h = size.height;
@@ -157,6 +189,15 @@ export class HUD {
     return l;
   }
   button(id: string, str: string, x: number, y: number, w: number, h = 44, parent = this.root) {
+    // Keep exactly one fullscreen button, including when input is scoped to a modal.
+    const existing = id === 'fullscreen' ? this.buttons.find((b) => b.id === id) : undefined;
+    if (existing) {
+      Object.assign(existing, { x, y, w, h });
+      existing.label.node.parent = parent;
+      existing.label.node.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
+      existing.label.node.getComponent(UITransform)!.setContentSize(w - 8, h - 2);
+      return existing.label;
+    }
     const l = this.label(parent, str, x + w / 2, y + h / 2, this.compact ? 13 : 14, w - 8, h - 2);
     this.buttons.push({ id, x, y, w, h, label: l });
     return l;
@@ -171,95 +212,80 @@ export class HUD {
     if (l && l.string !== str) l.string = str;
   }
   buildControls() {
-    const w = this.w,
-      h = this.h,
-      left = 12 + this.safe.left,
-      right = w - 12 - this.safe.right,
-      top = this.safe.top;
-    this.live('title', left + 49, top + 24, this.compact ? 15 : 18, 98, 34, C.mint).isBold = true;
-    this.live('health', left + 183, top + 19, 14, 152, 25);
-    this.live('progress', left + 183, top + 41, 11, 152, 20, C.dim);
-    this.live('status', right - 155, top + 26, 12, 60, 40, C.dim);
-    this.button('tools', this.t('战术 ▾', 'TOOLS'), right - 122, top + 6, 62);
-    this.button('pause', this.t('暂停 Ⅱ', 'PAUSE'), right - 56, top + 6, 56);
-    this.live('sector', w / 2, top + 26, 13, 230, 30, C.dim);
+    const w = this.w, h = this.h, left = 12 + this.safe.left,
+      right = w - 12 - this.safe.right, top = this.safe.top;
+    const statsX = left + (this.desktop ? 183 : 80);
+    this.live('title', left + 49, top + 24, 18, 98, 34, C.mint).isBold = true;
+    this.live('health', statsX, top + 18, 13, 160, 25);
+    this.live('progress', statsX, top + 40, 11, 160, 20, C.dim);
+    this.live('status', right - 185, top + 26, 11, 60, 40, C.dim);
+    this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - 150, top + 6, 88);
+    const pause = this.button('pause', this.t('暂停', 'PAUSE'), right - 56, top + 6, 56);
+    pause.fontSize = 12;
+    pause.lineHeight = 16;
+    pause.node.setPosition(right - 28 - w / 2, h / 2 - top - 39);
+    pause.node.getComponent(UITransform)!.setContentSize(48, 18);
+    const telemetryLeft = statsX + 84, telemetryWidth = Math.max(40, right - 218 - telemetryLeft);
+    this.live('telemetry', telemetryLeft + telemetryWidth / 2, top + 28, this.desktop ? 14 : 11, telemetryWidth, 48, C.dim);
     const by = h - this.footer - this.safe.bottom;
-    const cardW = this.compact ? 78 : 112;
+    const cardW = this.compact ? 78 : this.desktop ? 160 : 112;
+    const fireW = this.compact ? 110 : 160;
+    const cardsLeft = this.desktop ? right - fireW - 18 - 3 * (cardW + 6) : left;
     for (let i = 0; i < 3; i++)
-      this.button('weapon' + i, '', left + i * (cardW + 6), by + 10, cardW, this.footer - 20);
-    const fireW = this.compact ? 110 : 150;
+      this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + 10, cardW, this.footer - 20);
     this.button('fire', '', right - fireW, by + 8, fireW, this.footer - 16);
-    const stateX = left + 3 * (cardW + 6) + 8,
-      stateW = right - fireW - stateX - 12;
-    this.live(
-      'weaponState',
-      stateX + stateW / 2,
-      by + this.footer / 2,
-      this.compact ? 12 : 14,
-      Math.max(60, stateW),
-      this.footer - 14,
-      C.dim,
-    );
-    this.live(
-      'notice',
-      this.compact ? (w + 158) / 2 : w / 2,
-      top + 79,
-      this.compact ? 12 : 15,
-      Math.min(w - 184, 600),
-      40,
-      C.amber,
-    );
-    this.live(
-      'friendWarning',
-      w / 2,
-      top + 105,
-      this.compact ? 14 : 17,
-      Math.min(w - 32, 560),
-      28,
-      C.red,
-    ).isBold = true;
-    this.live('tutorial', w / 2, by - 17, this.compact ? 12 : 14, w - 40, 28, C.mint);
+    const stateX = this.desktop ? cardsLeft - 144 : left + 3 * (cardW + 6) + 8;
+    const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
+    this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
+    this.live('notice', w / 2, top + (this.compact ? 128 : 80), this.compact ? 12 : 15, Math.min(w - 260, 560), 36, C.amber);
+    this.live('friendWarning', w / 2, top + (this.compact ? 158 : 116), this.compact ? 13 : 16, Math.min(w - 260, 560), 28, C.red).isBold = true;
+    this.live('tutorial', w / 2, by - 17, this.compact ? 11 : 13, w - 40, 28, C.mint);
     this.live('target', w / 2, by - 45, 12, 156, 24, C.amber);
     this.live('flight', w / 2, h / 2, 12, 130, 24, C.white);
-    this.live('hold', left + 70, top + 119, 12, 140, 24, C.dim);
-    this.button('convoy', '', left, top + 64, 140, 44);
-    const tx = this.compact ? left : right - 242,
-      ty = top + 62,
-      columns = this.compact ? 4 : 2,
-      toolWidth = this.compact ? (right - left - 18) / 4 : 116;
-    for (const [i, id] of [
-      'sensor',
-      'locate',
-      'zoomOut',
-      'zoomIn',
-      'mission',
-      'help',
-      'fullscreen',
-      'sound',
-    ].entries())
-      this.button(
-        id,
-        id === 'zoomIn'
-          ? '+'
-          : id === 'zoomOut'
-            ? '−'
-            : id === 'sound'
-              ? this.t('声音', 'SOUND')
-              : actionLabel(id, this.lang, true),
-        tx + (i % columns) * (toolWidth + 6),
-        ty + Math.floor(i / columns) * 48,
-        toolWidth,
-        44,
-      );
+    this.live('hold', left + (this.desktop ? 208 : 172), top + 121, 11, 140, 22, C.dim);
+    this.button('flightControls', this.t('飞行 ▾', 'FLIGHT ▾'), left, top + 64, this.desktop ? 128 : 96);
+    this.button('convoy', '', left + (this.desktop ? 144 : 102), top + 64, this.desktop ? 128 : 140, 44);
+    const panel = this.panelLayout, toolWidth = (panel.w - 8 - (panel.columns - 1) * 4) / panel.columns;
+    for (const [i, id] of panelActions.entries()) {
+      const fixed = this.desktop && flightActions.includes(id);
+      const index = this.desktop ? i - flightActions.length : i;
+      const label = this.button(id,
+        id === 'zoomIn' ? this.t('放大 +', 'ZOOM +') : id === 'zoomOut' ? this.t('缩小 −', 'ZOOM −') : id === 'sound' ? this.t('声音', 'SOUND') : actionLabel(id, this.lang, true),
+        fixed ? left + (i === 2 || i === 3 ? 0 : (i % 2) * 62) : panel.x + 4 + (index % panel.columns) * (toolWidth + 4),
+        fixed ? top + [366, 366, 116, 162, 230, 230, 298, 298][i] : panel.y + 4 + Math.floor(index / panel.columns) * 48,
+        fixed ? i === 2 || i === 3 ? 128 : 44 : toolWidth, 44);
+      if (fixed) {
+        label.string = [ '←', '→', this.t('逆时针', 'CCW'), this.t('顺时针', 'CW'), '+', '−', '−', '+' ][i];
+        label.fontSize = i === 2 || i === 3 ? 12 : 22;
+        if (i === 2 || i === 3) {
+          label.node.setPosition(left + 85 - w / 2, h / 2 - top - (i === 2 ? 138 : 184));
+          label.node.getComponent(UITransform)!.setContentSize(84, 42);
+        }
+      }
+    }
+    const map = this.minimapLayout;
+    this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
+    this.live('orbit', left + 64, top + 430, 10, 128, 20, C.dim);
+    if (this.desktop) {
+      this.live('flightAltitude', left + 64, top + 216, 11, 128, 20, C.dim);
+      this.live('flightRadius', left + 64, top + 284, 11, 128, 20, C.dim);
+      this.live('flightView', left + 64, top + 352, 11, 128, 20, C.dim).string = this.t('查看方位', 'VIEW BEARING');
+      this.live('orbitIconLeft', left + 21, top + 138, 24, 38, 42, C.mint).string = '↶';
+      this.live('orbitIconRight', left + 21, top + 184, 24, 38, 42, C.mint).string = '↷';
+    }
   }
-  rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string) {
+  rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
     if (w <= 0 || h <= 0) return;
+    const path = () => radius > 0
+      ? g.roundRect(x - this.w / 2, this.h / 2 - y - h, w, h, Math.min(radius, w / 2, h / 2))
+      : g.rect(x - this.w / 2, this.h / 2 - y - h, w, h);
     g.fillColor = col(fill);
-    g.rect(x - this.w / 2, this.h / 2 - y - h, w, h);
+    path();
     g.fill();
     if (stroke) {
       g.lineWidth = 1;
       g.strokeColor = col(stroke);
+      path();
       g.stroke();
     }
   }
@@ -276,15 +302,12 @@ export class HUD {
       );
   }
   blocksBattlefield(x: number, y: number) {
-    return (
-      !!this.hit(x, y) ||
-      y < 58 + this.safe.top ||
+    const panel = this.panelLayout, map = this.minimapLayout;
+    return !!this.hit(x, y) || y < 58 + this.safe.top ||
       y > this.h - this.footer - this.safe.bottom ||
-      (this.toolsOpen &&
-        (this.compact
-          ? y < 164 + this.safe.top
-          : x > this.w - 266 - this.safe.right && y < 256 + this.safe.top))
-    );
+      (this.desktop && x < 152 + this.safe.left && y >= 110 + this.safe.top && y <= 414 + this.safe.top) ||
+      (this.toolsOpen && x >= panel.x && x <= panel.x + panel.w && y >= panel.y && y <= panel.y + panel.h) ||
+      (!this.toolsOpen && x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
   scrollBy(amount: number) {
     this.scroll = Math.max(0, Math.min(this.scrollMax, this.scroll + amount));
@@ -322,6 +345,7 @@ export class HUD {
   }
   renderModal(key: string, s: Simulation) {
     if (key === this.modalKey) return;
+    this.button('fullscreen', '', this.w - 162 - this.safe.right, this.safe.top + 6, 88);
     this.buttons = this.buttons.filter((b) => {
       if (b.label.node.parent !== this.root) {
         b.label.node.destroy();
@@ -340,13 +364,14 @@ export class HUD {
     const n = this.node('Panel', this.root);
     this.modal = n;
     const g = n.addComponent(Graphics);
-    this.rect(g, 0, 0, this.w, this.h, '#061116d9');
-    const pw = Math.min(880, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(540, this.h - this.safe.top - this.safe.bottom - 28);
+    const paused = key === 'pause';
+    this.rect(g, 0, 0, this.w, this.h, paused ? '#05090c9c' : '#061116d9');
+    const pw = Math.min(paused ? this.compact ? 620 : 480 : 880, this.w - this.safe.left - this.safe.right - 32),
+      ph = Math.min(paused ? 380 : 540, this.h - this.safe.top - this.safe.bottom - 28);
     const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
       py = this.safe.top + (this.h - this.safe.top - this.safe.bottom - ph) / 2;
-    this.rect(g, px, py, pw, ph, '#101e24fb', C.line);
-    this.rect(g, px, py, 4, ph, key === 'failure' ? C.red : C.mint);
+    this.rect(g, px, py, pw, ph, paused ? '#11191fe8' : '#101e24fb', paused ? '#91e6cb88' : C.line, paused ? 10 : 0);
+    if (!paused) this.rect(g, px, py, 4, ph, key === 'failure' ? C.red : C.mint);
     const small = this.compact || this.w < 600,
       low = ph < 280,
       help = key.startsWith('help');
@@ -368,14 +393,27 @@ export class HUD {
       n,
       heading,
       px + pw / 2,
-      py + (small ? 29 : 48),
-      small ? 23 : 36,
+      py + (paused && !small ? 88 : small ? 29 : 48),
+      paused && !small ? 26 : small ? 23 : 36,
       pw - (help ? 112 : 56),
       small ? 46 : 60,
       C.white,
     );
     headingLabel.isBold = true;
-    if (!['briefing', 'success', 'failure', 'orientation'].includes(key))
+    if (paused) {
+      const x = small ? px + 40 : px + pw / 2, y = py + (small ? 29 : 40), r = small ? 15 : 21,
+        barH = small ? 16 : 20;
+      g.fillColor = col('#91e6cb24');
+      g.circle(x - this.w / 2, this.h / 2 - y, r);
+      g.fill();
+      g.strokeColor = col(C.mint);
+      g.lineWidth = 3;
+      g.circle(x - this.w / 2, this.h / 2 - y, r);
+      g.stroke();
+      this.rect(g, x - 7, y - barH / 2, 5, barH, C.mint);
+      this.rect(g, x + 2, y - barH / 2, 5, barH, C.mint);
+    }
+    if (!['briefing', 'success', 'failure', 'orientation', 'pause'].includes(key))
       this.button('close', '×', px + pw - 56, py + 8, 44, 44, n);
     const bottom = py + ph - 58;
     if (help) {
@@ -492,7 +530,7 @@ export class HUD {
         cw = split ? pw * 0.42 : pw - 36;
       this.label(
         n,
-        this.t('保护救援车，打通撤离走廊。', 'Protect the rescue. Clear the road.'),
+        this.t('护送并清除全部威胁', 'ESCORT & CLEAR EVERY THREAT'),
         cx,
         contentTop + 14,
         small ? 16 : 21,
@@ -501,7 +539,7 @@ export class HUD {
         C.white,
       ).isBold = true;
       for (const [i, message] of [
-        this.t('□  救援车与护卫：保护', '□  Rescue & escort: protect'),
+        this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
         this.t('◇  轻车、炮台与重甲：清除', '◇  Rovers, turrets & armor: engage'),
       ].entries())
         this.label(
@@ -545,6 +583,7 @@ export class HUD {
       this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), px + pw - 112, bottom, 96, 44, n);
     } else if (key === 'success' || key === 'failure') {
       const success = key === 'success';
+      const lostOutpost = s.failedGroup !== undefined && s.failedGroup > 0;
       const mainThreat = Object.entries(s.damageByThreat).sort((a, b) => b[1] - a[1])[0];
       const threatAdvice =
         mainThreat &&
@@ -567,8 +606,8 @@ export class HUD {
         success
           ? this.t(`护送评价  ${s.rating}`, `RATING  ${s.rating}`)
           : this.t(
-              s.failure === 'vehicle' ? '救援车被毁' : '撤离窗口关闭',
-              s.failure === 'vehicle' ? 'Rescue vehicle lost' : 'Evacuation window closed',
+              s.failure === 'vehicle' ? lostOutpost ? `第 ${s.failedGroup} 据点全灭` : '救援车被毁' : '撤离窗口关闭',
+              s.failure === 'vehicle' ? lostOutpost ? `OUTPOST ${s.failedGroup} LOST` : 'Rescue vehicle lost' : 'Evacuation window closed',
             ),
         px + pw / 2,
         py + (low ? 73 : small ? 75 : 120),
@@ -578,16 +617,20 @@ export class HUD {
         success ? C.mint : C.red,
       ).isBold = true;
       const statY = py + (low ? 110 : small ? 123 : 212),
-        statW = (pw - 48) / 3;
+        statW = (pw - 48) / 3,
+        cleared = s.kills + s.friendlyKills;
       for (const [i, [value, caption]] of [
         [`${Math.round((s.rescue.hp / s.rescue.maxHp) * 100)}%`, this.t('救援车生命', 'RESCUE')],
-        [`${s.kills} / ${MISSION.events.length}`, this.t('清除威胁', 'THREATS')],
+        [`${cleared} / ${cleared + s.threatsRemaining}`, this.t('清除威胁', 'THREATS')],
         [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
       ].entries()) {
         const x = px + 24 + statW * (i + 0.5);
         this.label(n, value, x, statY, small ? 21 : 32, statW - 8, low ? 36 : 44, C.white);
         this.label(n, caption, x, statY + 29, 12, statW - 8, 22, C.dim);
       }
+      if (ph >= 310) this.label(n,
+        this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
+        px + pw / 2, statY + 51, 11, statW - 8, 20, C.dim);
       const advice = success
         ? s.rating === 'S'
           ? this.t(
@@ -595,15 +638,20 @@ export class HUD {
               `Time ${Math.floor(s.time)}s · ${s.fired} rounds. Challenge: same escort, fewer shots.`,
             )
           : this.t(
-              '下次目标：救援车 ≥70%，全程零友伤，获得 S。',
-              'Next: ≥70% rescue health and zero friendly damage for S.',
+              '下次目标：救援车 ≥70%，零友伤、零友军损失，获得 S。',
+              'Next: ≥70% rescue health, zero friendly damage and no friendly losses for S.',
             )
         : s.failure === 'timeout'
           ? this.t(
-              '待命期间倒计时继续。清路后尽快点击「车队继续」。',
-              'HOLD does not stop the clock. Clear the road and GO.',
+              s.threatsRemaining > 0 ? `仍有 ${s.threatsRemaining} 个威胁未清除。巡视小地图，保护各组友军并清除全部敌人。` : '待命期间倒计时继续。清路后尽快点击「车队继续」。',
+              s.threatsRemaining > 0 ? `${s.threatsRemaining} threats remain. Scan the minimap, protect every group and clear all enemies.` : 'HOLD does not stop the clock. Clear the road and GO.',
             )
-          : s.failureCause === 'friendly'
+          : lostOutpost
+            ? this.t(
+                s.failureCause === 'friendly' ? `第 ${s.failedGroup} 据点因己方火力全灭。开火前检查友军与爆炸范围。` : `第 ${s.failedGroup} 据点遭敌袭全灭。每组友军至少保住一辆，救援车存活也不能遗漏据点。`,
+                s.failureCause === 'friendly' ? `Friendly fire eliminated outpost ${s.failedGroup}. Check allies and blast radius before firing.` : `Enemy fire eliminated outpost ${s.failedGroup}. Keep a survivor in every group; rescue survival alone is not enough.`,
+              )
+            : s.failureCause === 'friendly'
             ? this.t(
                 '致命伤来自己方火力。下次开炮前检查范围圈。',
                 'Lost to friendly fire. Check the blast circle before shooting.',
@@ -660,84 +708,78 @@ export class HUD {
         n,
       );
     } else {
-      this.label(
-        n,
-        this.t('松开扳机，稍作休整。', 'Take a breath. Trigger released.'),
-        px + pw / 2,
-        py + (low ? 76 : small ? 92 : ph * 0.39),
-        small ? 17 : 24,
-        pw - 48,
-        44,
-        C.white,
-      );
-      this.label(
-        n,
-        this.t(
-          '世界与倒计时已冻结 · 继续后重新按下开火',
-          'World and clock frozen · Press FIRE again after resuming',
-        ),
-        px + pw / 2,
-        py + (low ? 104 : small ? 131 : ph * 0.55),
-        small ? 12 : 15,
-        pw - 40,
-        low ? 24 : 32,
-        C.dim,
-      );
-      const gap = 8,
-        bw = Math.min(130, (pw - 56) / 4),
-        total = bw * 4 + gap * 3,
-        bx = px + (pw - total) / 2;
-      this.button('help', this.t('操作帮助', 'HELP'), bx, py + ph - 114, bw, 44, n);
-      this.button(
-        'sound',
-        this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON'),
-        bx + bw + gap,
-        py + ph - 114,
-        bw,
-        44,
-        n,
-      );
-      this.button(
-        'effects',
-        this.reducedEffects ? this.t('特效：简', 'FX: LOW') : this.t('特效：全', 'FX: FULL'),
-        bx + 2 * (bw + gap),
-        py + ph - 114,
-        bw,
-        44,
-        n,
-      );
-      this.button(
-        'fullscreen',
-        this.t('全屏', 'FULL SCREEN'),
-        bx + 3 * (bw + gap),
-        py + ph - 114,
-        bw,
-        44,
-        n,
-      );
-      this.button(
-        'resume',
-        this.t('继续护送  →', 'RESUME ESCORT  →'),
-        px + pw / 2 - 110,
-        bottom,
-        220,
-        44,
-        n,
-      );
+      const tight = ph < 310, summaryY = py + (tight ? 77 : 142);
+      this.label(n, this.t(
+        `护送并清除全部威胁 · 剩余 ${s.threatsRemaining}\n救援车 ${Math.ceil(s.rescue.hp / s.rescue.maxHp * 100)}%  ·  撤离 ${Math.floor(s.ratio * 100)}%  ·  剩余 ${Math.ceil(s.remaining)}s`,
+        `ESCORT & CLEAR ALL THREATS · ${s.threatsRemaining} LEFT\nRESCUE ${Math.ceil(s.rescue.hp / s.rescue.maxHp * 100)}% · ROUTE ${Math.floor(s.ratio * 100)}% · ${Math.ceil(s.remaining)}s LEFT`,
+      ), px + pw / 2, summaryY, tight ? 12 : 14, pw - 48, 48, C.dim);
+      this.rect(g, px + 24, summaryY + 30, pw - 48, 1, '#91e6cb33');
+      if (!tight) this.label(n,
+        this.t('世界与倒计时已冻结 · 继续后重新按下开火', 'World and clock frozen · Press FIRE again on return'),
+        px + pw / 2, py + 204, 11, pw - 48, 30, C.dim);
+      const gap = 8, bw = (pw - 72) / 4, bx = px + 24;
+      this.button('sound', this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON'), bx, bottom, bw, 44, n);
+      this.button('effects', this.reducedEffects ? this.t('效果：简', 'FX: LOW') : this.t('效果：全', 'FX: FULL'), bx + bw + gap, bottom, bw, 44, n);
+      this.button('help', this.t('帮助', 'HELP'), bx + 2 * (bw + gap), bottom, bw, 44, n);
+      this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), bx + 3 * (bw + gap), bottom, bw, 44, n);
+      this.button('resume', this.t('继续任务  →', 'RESUME MISSION  →'),
+        px + 24, bottom - (tight ? 52 : 72), pw - 48, tight ? 44 : 52, n);
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === n)) {
       const primary = ['start', 'retry', 'resume'].includes(b.id);
-      this.rect(g, b.x, b.y, b.w, b.h, primary ? '#91e6cb' : '#1b3038', primary ? C.mint : C.line);
+      this.rect(g, b.x, b.y, b.w, b.h, primary ? C.mint : paused ? '#17232930' : '#1b3038', primary ? C.mint : paused ? undefined : C.line, paused ? 5 : 0);
+      if (paused && !primary && b.id !== 'sound') this.rect(g, b.x - 4, b.y + 8, 1, b.h - 16, '#91e6cb44');
       b.label.color = col(primary ? '#10252a' : C.white);
       b.label.isBold = primary;
+      if (paused && primary) b.label.fontSize = this.compact ? 16 : 18;
+      if (paused && !primary) {
+        const x = b.x + b.w / 2, y = b.y + 12, cx = x - this.w / 2, cy = this.h / 2 - y;
+        b.label.node.setPosition(cx, this.h / 2 - b.y - 33);
+        b.label.node.getComponent(UITransform)!.setContentSize(b.w - 4, 20);
+        b.label.fontSize = 12;
+        g.strokeColor = col(C.mint);
+        g.fillColor = col(C.mint);
+        g.lineWidth = 3;
+        if (b.id === 'help') {
+          g.circle(cx, cy, 9);
+          g.stroke();
+          g.moveTo(cx - 3, cy + 3);
+          g.bezierCurveTo(cx - 3, cy + 6, cx + 4, cy + 6, cx + 4, cy + 3);
+          g.bezierCurveTo(cx + 4, cy + 1, cx, cy + 1, cx, cy - 2);
+          g.stroke();
+          g.circle(cx, cy - 5, 1.5);
+          g.fill();
+        } else if (b.id === 'fullscreen') {
+          for (const dx of [-1, 1]) for (const dy of [-1, 1]) {
+            g.moveTo(cx + dx * 3, cy + dy * 9);
+            g.lineTo(cx + dx * 9, cy + dy * 9);
+            g.lineTo(cx + dx * 9, cy + dy * 3);
+          }
+          g.stroke();
+        } else if (b.id === 'effects') {
+          for (const offset of [-6, 0, 6]) {
+            g.moveTo(cx - 9, cy + offset);
+            g.lineTo(cx + 9, cy + offset);
+          }
+          g.stroke();
+          for (const [dx, dy] of [[-4, -6], [3, 0], [-1, 6]])
+            this.rect(g, x + dx - 2, y - dy - 3, 4, 6, C.mint);
+        } else {
+          g.moveTo(cx - 10, cy - 4); g.lineTo(cx - 6, cy - 4);
+          g.lineTo(cx, cy - 8); g.lineTo(cx, cy + 8);
+          g.lineTo(cx - 6, cy + 4); g.lineTo(cx - 10, cy + 4); g.close();
+          g.fill();
+          g.moveTo(cx + 4, cy - 4); g.lineTo(cx + 7, cy); g.lineTo(cx + 4, cy + 4);
+          g.moveTo(cx + 8, cy - 7); g.lineTo(cx + 11, cy); g.lineTo(cx + 8, cy + 7);
+          g.stroke();
+        }
+      }
     }
   }
   update(s: Simulation, world: World) {
-    const w = this.w,
-      h = this.h,
-      g = this.g,
-      top = this.safe.top,
-      by = h - this.footer - this.safe.bottom;
+    this.effects = { impacts: [], projectiles: [] };
+    const w = this.w, h = this.h, g = this.g, top = this.safe.top,
+      left = 12 + this.safe.left, by = h - this.footer - this.safe.bottom;
     let key = s.phase === 'playing' ? '' : s.phase;
     if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
     else if (s.pauses.has('orientation')) key = 'orientation';
@@ -746,231 +788,194 @@ export class HUD {
     this.renderModal(key, s);
     g.clear();
     this.marks.clear();
-    for (const l of Array.from(this.labels.values())) l.node.active = !key;
-    for (const l of Array.from(this.unitLabels.values())) l.node.active = false;
-    const secondary = [
-      'sensor',
-      'locate',
-      'zoomOut',
-      'zoomIn',
-      'mission',
-      'help',
-      'fullscreen',
-      'sound',
-    ];
+    for (const l of this.labels.values()) l.node.active = !key;
+    for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
       if (b.label.node.parent === this.root)
-        b.label.node.active = !key && (!secondary.includes(b.id) || this.toolsOpen);
-      if (b.id === 'fullscreen')
-        b.label.string = this.fullscreen
-          ? this.t('退出全屏', 'EXIT FULL')
-          : this.t('全屏', 'FULL SCREEN');
+        b.label.node.active = !key && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
+      if (b.id === 'fullscreen') {
+        b.label.node.active = true;
+        b.label.string = this.fullscreen ? this.t('退出全屏', 'EXIT FULL') : this.t('全屏', 'FULL SCREEN');
+      }
     }
     if (key) return;
-    this.rect(g, 0, 0, w, 58 + top, '#0c191ff5');
-    this.rect(g, 0, by, w, this.footer + this.safe.bottom, '#0c191ff5');
-    this.rect(
-      g,
-      12 + this.safe.left,
-      56 + top,
-      (w - 24 - this.safe.left - this.safe.right) * s.ratio,
-      2,
-      C.mint,
-    );
-    const gun = s.guns[s.selected],
-      weapon = WEAPONS[s.selected],
-      reason = s.reason(),
+    this.labels.get('title')!.node.active = this.desktop;
+    this.labels.get('mapLegend')!.node.active = !this.toolsOpen;
+    this.labels.get('orbit')!.node.active = this.desktop && by > top + 450;
+    this.rect(g, 0, 0, w, 58 + top, '#0c171dbb');
+    if (!this.desktop) this.rect(g, 0, by, w, this.footer + this.safe.bottom, '#0c171ddd');
+    this.rect(g, left, 56 + top, (w - 24 - this.safe.left - this.safe.right) * s.ratio, 1, '#91e6cb88');
+    if (this.desktop) {
+      this.rect(g, 0, top + 110, 152 + this.safe.left, 304, '#0c171d88');
+      for (const y of [110, 206, 274, 342, 414])
+        this.rect(g, left, top + y, 128, 1, '#91e6cb44');
+    }
+    const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
-    this.set('title', this.t('夜航 / 07', 'NIGHT / 07'));
-    this.set(
-      'health',
-      this.t(
-        `□ 救援车  ${Math.ceil((s.rescue.hp / s.rescue.maxHp) * 100)}%`,
-        `□ RESCUE  ${Math.ceil((s.rescue.hp / s.rescue.maxHp) * 100)}%`,
-      ),
-    );
+    const plane = s.aircraft;
+    const metres = (value: number) => Math.round(value * FLIGHT.metersPerUnit);
+    const range = Math.hypot(plane.x - s.aim.x, plane.z - s.aim.z, plane.y - terrainHeight(s.aim.x, s.aim.z));
+    const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
+    this.set('title', this.t('夜航守望', 'OVERWATCH'));
+    this.set('health', this.t(`□ 救援车  ${Math.ceil(s.rescue.hp / s.rescue.maxHp * 100)}%`, `□ RESCUE  ${Math.ceil(s.rescue.hp / s.rescue.maxHp * 100)}%`));
     this.labels.get('health')!.color = col(s.rescue.hp / s.rescue.maxHp < 0.3 ? C.red : C.mint);
-    this.set(
-      'progress',
-      this.t(
-        `撤离 ${Math.floor(s.ratio * 100)}%  ·  清除 ${s.kills}/${MISSION.events.length}`,
-        `ROUTE ${Math.floor(s.ratio * 100)}% · ${s.kills}/${MISSION.events.length}`,
-      ),
-    );
-    this.set(
-      'status',
-      `${world.thermal ? 'IR' : 'DAY'}   ${Math.floor(s.remaining / 60)}:${String(Math.ceil(s.remaining) % 60).padStart(2, '0')}`,
-    );
-    this.set(
-      'sector',
-      w > 1000 ? text(SECTORS.find((a) => s.ratio <= a.end)!.name, this.lang) : '',
-    );
-    this.set(
-      'hold',
-      s.convoy === 'holdRequested'
-        ? this.t('前往下一待命点', 'TO NEXT HOLD POINT')
-        : s.convoy === 'holding'
-          ? this.t('待命中 · 时间继续', 'HOLDING · CLOCK RUNS')
-          : '',
-    );
-    this.set(
-      'weaponState',
-      this.t(
-        `${weapon.flight.toFixed(2)}s 弹着\n${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
-        `${weapon.flight.toFixed(2)}s FLIGHT\n${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`,
-      ),
-    );
+    this.set('progress', this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
+    const clock = Math.ceil(s.remaining);
+    this.set('status', `${world.thermal ? 'IR' : 'DAY'}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
+    this.set('telemetry', this.desktop
+      ? this.t(`高度 ${metres(plane.altitude)}m   │   斜距 ${metres(range)}m   │   弹着 ${flightText}`, `ALT ${metres(plane.altitude)}m  │  SLANT ${metres(range)}m  │  IMPACT ${flightText}`)
+      : this.t(`斜距 ${metres(range)}m\n高度 ${metres(plane.altitude)}m`, `SLANT ${metres(range)}m\nALT ${metres(plane.altitude)}m`));
+    this.set('orbit', this.t(`${plane.direction < 0 ? '逆时针' : '顺时针'} · 轨道 ${metres(plane.radius)}m`, `${plane.direction < 0 ? 'CCW' : 'CW'} · ORBIT ${metres(plane.radius)}m`));
+    this.set('flightAltitude', this.t(`高度 ${metres(plane.altitude)}m`, `ALT ${metres(plane.altitude)}m`));
+    this.set('flightRadius', this.t(`轨道 ${metres(plane.radius)}m`, `ORBIT ${metres(plane.radius)}m`));
+    this.set('hold', s.convoy === 'holdRequested' ? this.t('前往下一待命点', 'TO NEXT HOLD POINT') : s.convoy === 'holding' ? this.t('待命中 · 时间继续', 'HOLDING · CLOCK RUNS') : '');
+    this.set('weaponState', this.t(
+      `${flightText} 弹着\n${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
+      `${flightText} IMPACT\n${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
     const reasons: Record<string, string[]> = {
-      protected: ['保护区 · 禁止开火', 'PROTECTED ZONE · FIRE BLOCKED'],
+      protected: ['保护区 · 禁止开火', 'PROTECTED · FIRE BLOCKED'],
       overheated: ['武器过热 · 等待降温或切枪', 'OVERHEATED · COOL OR SWITCH'],
       empty: ['弹药耗尽 · 切换武器', 'EMPTY · SWITCH WEAPON'],
       outside: ['准星超出任务区域', 'OUTSIDE MISSION AREA'],
     };
-    let notice = reasons[reason]
-      ? text(reasons[reason], this.lang)
-      : s.rescue.hp / s.rescue.maxHp < 0.3
-        ? this.t('救援车危急 · 优先清除附近威胁', 'RESCUE CRITICAL · CLEAR NEARBY THREATS')
-        : s.time - s.waveAt < 4
-          ? text(MISSION.events[s.lastWave]?.direction || ['', ''], this.lang)
-          : s.convoy === 'holding'
-            ? this.t('前路安全后，点击「车队继续」', 'CLEAR THE ROAD, THEN GO')
-            : s.warning === 'armor'
-              ? this.t('重甲抗速射 · 切换 3 重型炮', 'ARMOR · SWITCH TO 3 HEAVY')
-              : s.warning === 'lead'
-                ? this.t('炮弹有延迟 · 瞄准移动方向前方', 'LEAD THE TARGET · ALLOW FLIGHT TIME')
-                : '';
+    let notice = reasons[reason] ? text(reasons[reason], this.lang)
+      : s.rescue.hp / s.rescue.maxHp < 0.3 ? this.t('救援车危急 · 清除附近威胁', 'RESCUE CRITICAL · CLEAR THREATS')
+      : s.time - s.waveAt < 4 ? text(MISSION.events[s.lastWave]?.direction || ['', ''], this.lang)
+      : s.convoy === 'holding' ? this.t('清路后，点击「车队继续」', 'CLEAR THE ROAD, THEN GO')
+      : s.warning === 'armor' ? this.t('重甲抗速射 · 切换重炮', 'ARMOR · SWITCH TO HEAVY')
+      : s.warning === 'lead' ? this.t('预留弹着提前量', 'LEAD THE TARGET') : '';
     if (Date.now() < this.toastUntil) notice = this.toast;
     this.set('notice', notice);
-    this.set(
-      'friendWarning',
-      danger
-        ? s.time - s.friendHitAt < 2
-          ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
-          : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS')
-        : '',
-    );
-    if (notice)
-      this.rect(
-        g,
-        (this.compact ? (w + 158) / 2 : w / 2) - Math.min(w - 184, 600) / 2,
-        top + 59,
-        Math.min(w - 184, 600),
-        40,
-        '#14252aec',
-      );
-    if (danger)
-      this.rect(
-        g,
-        w / 2 - Math.min(w - 32, 560) / 2,
-        top + 91,
-        Math.min(w - 32, 560),
-        28,
-        '#381c26ed',
-      );
+    this.set('friendWarning', danger ? s.time - s.friendHitAt < 2
+      ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
+      : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
     const step = TUTORIAL.find((e) => !s.completed.has(e));
-    this.set(
-      'tutorial',
-      this.tutorial && step
-        ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
-        : '',
-    );
-    if (this.tutorial && step)
-      this.rect(
-        g,
-        12 + this.safe.left,
-        by - 32,
-        w - 24 - this.safe.left - this.safe.right,
-        30,
-        '#10232bdd',
-      );
+    this.set('tutorial', this.tutorial && step
+      ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
+      : this.t('护送并清除全部威胁 · □ 友军 / ◇ 敌军 · 小地图北向固定', 'ESCORT & CLEAR ALL THREATS · □ FRIEND / ◇ FOE · MAP NORTH UP'));
+    const panel = this.panelLayout;
     if (this.toolsOpen) {
-      this.rect(
-        g,
-        this.compact ? 8 + this.safe.left : w - 266 - this.safe.right,
-        top + 58,
-        this.compact ? w - 16 - this.safe.left - this.safe.right : 258,
-        this.compact ? 102 : 198,
-        C.ink,
-        C.line,
-      );
-      for (const id of ['notice', 'friendWarning', 'hold', 'target', 'flight'])
+      this.rect(g, panel.x, panel.y, panel.w, panel.h, C.ink, '#91e6cb55');
+      for (const id of ['notice', 'friendWarning', 'hold', 'target', 'flight', 'tutorial'])
         this.labels.get(id)!.node.active = false;
     }
-    for (const b of this.buttons.filter(
-      (b) => b.label.node.parent === this.root && b.label.node.active,
-    )) {
-      const selected = b.id === 'weapon' + s.selected;
+    for (const id of ['notice', 'friendWarning', 'tutorial']) {
+      const label = this.labels.get(id)!;
+      if (!label.node.active || !label.string) continue;
+      const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
+      this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
+    }
+    const toggle = this.buttons.find((b) => b.id === 'flightControls')!;
+    const inlineToggle = this.toolsOpen && panel.columns === 8;
+    toggle.w = inlineToggle ? (panel.w - 36) / 8 : this.desktop ? 128 : 96;
+    toggle.x = inlineToggle ? panel.x + 4 + 7 * (toggle.w + 4) : left;
+    toggle.y = inlineToggle ? panel.y + 52 : top + 64;
+    toggle.label.node.setPosition(toggle.x + toggle.w / 2 - w / 2, h / 2 - toggle.y - 22);
+    toggle.label.node.getComponent(UITransform)!.setContentSize(toggle.w - 8, 42);
+    toggle.label.string = this.toolsOpen ? this.t('收起 ▴', 'CLOSE ▴')
+      : this.desktop ? this.t('飞行控制 ▾', 'FLIGHT ▾') : this.t('飞行 ▾', 'FLIGHT ▾');
+    this.buttons.find((b) => b.id === 'convoy')!.label.node.active = !(this.toolsOpen && !this.desktop && panel.y < top + 110);
+    for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
+      const selected = b.id === 'weapon' + s.selected || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
-        const i = Number(b.id.slice(-1)),
-          a = s.guns[i];
+        const i = Number(b.id.slice(-1)), a = s.guns[i];
         b.label.string = `${this.touch ? '' : i + 1 + ' '}${text(WEAPONS[i].name, this.lang)}\n${this.t(['轻车', '炮台', '重甲'][i], ['LIGHT', 'TURRET', 'ARMOR'][i])} · ${a.ammo === Infinity ? '∞' : a.ammo}`;
       }
-      if (b.id === 'convoy')
-        b.label.string =
-          (this.touch ? '' : 'T · ') +
-          (s.convoy === 'moving'
-            ? this.t('车队等待', 'HOLD CONVOY')
-            : s.convoy === 'holdRequested'
-              ? this.t('取消等待', 'CANCEL HOLD')
-              : this.t('车队继续 →', 'CONVOY GO →'));
-      if (b.id === 'fire')
-        b.label.string =
-          actionLabel('fire', this.lang, this.touch, weapon.automatic) +
-          '\n' +
-          (reason === 'protected'
-            ? this.t('禁止开火', 'BLOCKED')
-            : reason === 'overheated'
-              ? this.t('过热', 'OVERHEATED')
-              : reason === 'empty'
-                ? this.t('无弹药', 'EMPTY')
-                : gun.cooldown > 0 && s.selected > 0
-                  ? this.t(
-                      '装填 ' + gun.cooldown.toFixed(1) + 's',
-                      'RELOAD ' + gun.cooldown.toFixed(1) + 's',
-                    )
-                  : weapon.automatic
-                    ? this.t('松开即停', 'RELEASE TO STOP')
-                    : this.t('每次一发', 'ONE SHOT / PRESS'));
-      if (b.id === 'sensor')
-        b.label.string = world.thermal
-          ? this.t('热成像 → 日光', 'THERMAL → DAY')
-          : this.t('日光 → 热成像', 'DAY → THERMAL');
-      if (b.id === 'sound')
-        b.label.string = this.muted
-          ? this.t('声音：关', 'SOUND OFF')
-          : this.t('声音：开', 'SOUND ON');
-      this.rect(
-        g,
-        b.x,
-        b.y,
-        b.w,
-        b.h,
-        b.id === 'fire' ? (danger ? '#482832' : '#234a42') : selected ? '#233e40' : '#12252c',
-        b.id === 'fire' && danger ? C.red : selected ? C.mint : C.line,
-      );
-      b.label.color = col(selected ? C.mint : C.white);
-      b.label.isBold = selected || b.id === 'fire';
+      if (b.id === 'convoy') b.label.string = (this.touch ? '' : 'T · ') + (s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续 →', 'CONVOY GO →'));
+      if (b.id === 'fire') b.label.string = actionLabel('fire', this.lang, this.touch, weapon.automatic) + '\n' +
+        (reason === 'protected' ? this.t('禁止开火', 'BLOCKED') : reason === 'overheated' ? this.t('过热', 'OVERHEATED') : reason === 'empty' ? this.t('无弹药', 'EMPTY')
+        : gun.cooldown > 0 && s.selected > 0 ? this.t('装填 ' + gun.cooldown.toFixed(1) + 's', 'RELOAD ' + gun.cooldown.toFixed(1) + 's')
+        : weapon.automatic ? this.t('松开即停', 'RELEASE TO STOP') : this.t('每次一发', 'ONE SHOT / PRESS'));
+      if (b.id === 'sensor') b.label.string = world.thermal ? this.t('热成像 → 日光', 'THERMAL → DAY') : this.t('日光 → 热成像', 'DAY → THERMAL');
+      if (b.id === 'sound') b.label.string = this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON');
+      const fire = b.id === 'fire', flight = this.desktop && flightActions.includes(b.id);
+      if (flight) {
+        const orbit = b.id === 'orbitLeft' || b.id === 'orbitRight';
+        const x = b.x + (orbit ? 21 : b.w / 2) - w / 2, y = h / 2 - b.y - b.h / 2;
+        g.fillColor = col(selected ? '#3b706455' : '#0c171d55');
+        g.circle(x, y, 18); g.fill();
+        g.strokeColor = col(selected ? C.mint : '#91e6cb88');
+        g.lineWidth = 1;
+        g.circle(x, y, 18); g.stroke();
+      } else this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', 5);
+      b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
+      b.label.isBold = selected || fire;
+      if (b.id === 'pause') {
+        this.rect(g, b.x + b.w / 2 - 6, b.y + 6, 4, 14, C.white);
+        this.rect(g, b.x + b.w / 2 + 2, b.y + 6, 4, 14, C.white);
+      }
       if (b.id.startsWith('weapon')) {
         const a = s.guns[Number(b.id.slice(-1))];
-        if (selected) this.rect(g, b.x, b.y, 3, b.h, C.mint);
-        this.rect(
-          g,
-          b.x + 5,
-          b.y + b.h - 5,
-          ((b.w - 10) * a.heat) / 100,
-          2,
-          a.overheated ? C.red : C.amber,
-        );
+        this.rect(g, b.x + 5, b.y + b.h - 5, (b.w - 10) * a.heat / 100, 2, a.overheated ? C.red : C.amber);
       }
     }
-    if (!this.toolsOpen) this.drawWorld(s, world);
+    if (!this.toolsOpen) {
+      this.drawWorld(s, world);
+      this.drawMinimap(s);
+    }
+  }
+  drawMinimap(s: Simulation) {
+    const g = this.marks, map = this.minimapLayout;
+    this.rect(g, map.x, map.y, map.w, map.h, '#0c171de8', '#91e6cb55');
+    this.set('mapLegend', this.t(`北 ↑ · 威胁 ${s.threatsRemaining}`, `N ↑ · THREATS ${s.threatsRemaining}`));
+    const point = (p: Point) => ({
+      x: map.x + 8 + (p.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16) - this.w / 2,
+      y: this.h / 2 - map.y - 25 - (p.z + MAP.halfDepth) / (2 * MAP.halfDepth) * (map.h - 33),
+    });
+    g.strokeColor = col(C.line);
+    g.lineWidth = 1;
+    ROUTE.forEach((p, i) => {
+      const q = point(p);
+      if (i) g.lineTo(q.x, q.y);
+      else g.moveTo(q.x, q.y);
+    });
+    g.stroke();
+    for (const u of s.units) {
+      if (u.hp <= 0) continue;
+      const q = point(u);
+      g.strokeColor = col(u.friendly ? C.mint : C.amber);
+      g.fillColor = col(u.friendly ? C.mint : C.amber);
+      if (u.friendly) {
+        g.rect(q.x - 3, q.y - 3, 6, 6);
+        g.stroke();
+      } else {
+        g.moveTo(q.x, q.y + 2.5);
+        g.lineTo(q.x + 2.5, q.y);
+        g.lineTo(q.x, q.y - 2.5);
+        g.lineTo(q.x - 2.5, q.y);
+        g.close();
+        g.fill();
+      }
+    }
+    const aim = point(s.aim);
+    if (Math.abs(s.aim.x) <= MAP.halfWidth && Math.abs(s.aim.z) <= MAP.halfDepth) {
+      g.strokeColor = col(C.white);
+      g.circle(aim.x, aim.y, 4);
+      g.stroke();
+    }
   }
   drawWorld(s: Simulation, world: World) {
     const g = this.marks;
-    drawEffects(g, s, world, this.w, this.h, this.reducedEffects);
+    this.effects = drawEffects(g, s, world, this.w, this.h, this.reducedEffects);
     const project = (p: Point, y = 0) => {
       const q = world.project(p, y);
-      return { x: q.x / view.getScaleX() - this.w / 2, y: q.y / view.getScaleY() - this.h / 2 };
+      return {
+        x: q.x / view.getScaleX() - this.w / 2,
+        y: q.y / view.getScaleY() - this.h / 2,
+        visible: [q.x, q.y, q.z].every(Number.isFinite) && q.z >= 0 && q.z <= 1,
+      };
+    };
+    const onScreen = (p: ReturnType<typeof project>, pad = 0) => p.visible &&
+      Math.abs(p.x) <= this.w / 2 - pad && Math.abs(p.y) <= this.h / 2 - pad;
+    const groundRing = (p: Point, radius: number) => {
+      const points = Array.from({ length: 24 }, (_, i) => project({
+        x: p.x + Math.cos(i * Math.PI / 12) * radius,
+        z: p.z + Math.sin(i * Math.PI / 12) * radius,
+      }));
+      if (!points.every((p) => onScreen(p, -64))) return;
+      points.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+      g.close();
+      g.stroke();
     };
     for (const [id, l] of Array.from(this.unitLabels.entries()))
       if (!s.units.some((u) => u.id === id)) {
@@ -978,23 +983,20 @@ export class HUD {
         this.unitLabels.delete(id);
       }
     for (const p of PROTECTED) {
-      const q = project(p),
-        ex = project({ x: p.x + p.radius, z: p.z }),
-        ez = project({ x: p.x, z: p.z + p.radius });
       g.strokeColor = col('#729e9180');
       g.lineWidth = 1;
-      g.ellipse(q.x, q.y, Math.abs(ex.x - q.x), Math.abs(ez.y - q.y));
-      g.stroke();
+      groundRing(p, p.radius);
     }
     for (const d of HOLD_POINTS) {
       const q = project(routePoint(d));
+      if (!onScreen(q, 6)) continue;
       g.strokeColor = col(C.amber);
       g.lineWidth = 1;
       g.circle(q.x, q.y, 6);
       g.stroke();
     }
     const placed: { x: number; y: number }[] = [],
-      bottom = -this.h / 2 + this.footer + 44,
+      bottom = -this.h / 2 + this.footer + this.safe.bottom + 44,
       top = this.h / 2 - 64 - this.safe.top;
     const banners = ['notice', 'friendWarning', 'hold']
       .map((id) => this.labels.get(id)!)
@@ -1007,11 +1009,31 @@ export class HUD {
           Math.abs(x - p.x) < size.width / 2 + halfWidth && Math.abs(y - p.y) < size.height / 2 + 12
         );
       });
+    const pointer = !this.touch && this.mousePointer &&
+      !this.blocksBattlefield(this.mousePointer.x, this.mousePointer.y) ? this.mousePointer : undefined;
+    let hovered: { unit: Simulation['units'][number]; point: ReturnType<typeof project>; distance: number } | undefined;
     for (const u of s.units) {
       if (u.hp <= 0) continue;
       const q = project(u, 2.3),
         r = u.kind === 'heavy' ? 11 : 8;
-      if (q.x < -this.w / 2 + 8 || q.x > this.w / 2 - 8 || q.y > top || q.y < bottom - 30) continue;
+      // Behind-camera projections mirror direction; those contacts remain on the north-up minimap.
+      if (!q.visible) continue;
+      if (q.x < -this.w / 2 + 16 + this.safe.left || q.x > this.w / 2 - 16 - this.safe.right || q.y > top || q.y < bottom - 30) {
+        const cx = (this.safe.left - this.safe.right) / 2, cy = (top + bottom) / 2;
+        const dx = q.x - cx, dy = q.y - cy;
+        const scale = Math.min((this.w - this.safe.left - this.safe.right - 40) / 2 / Math.max(1, Math.abs(dx)), (top - bottom) / 2 / Math.max(1, Math.abs(dy)));
+        const x = cx + dx * scale, y = cy + dy * scale, angle = Math.atan2(dy, dx);
+        if (!this.blocksBattlefield(x + this.w / 2, this.h / 2 - y) && !overBanner(x, y, 8)) {
+          g.strokeColor = col(u.friendly ? C.mint : C.amber);
+          g.lineWidth = 2;
+          g.moveTo(x - Math.cos(angle - 0.6) * 8, y - Math.sin(angle - 0.6) * 8);
+          g.lineTo(x, y);
+          g.lineTo(x - Math.cos(angle + 0.6) * 8, y - Math.sin(angle + 0.6) * 8);
+          g.stroke();
+        }
+        continue;
+      }
+      if (this.blocksBattlefield(q.x + this.w / 2, this.h / 2 - q.y)) continue;
       g.lineWidth = 1.5;
       g.strokeColor = col(u.friendly ? C.mint : C.amber);
       if (u.friendly) g.rect(q.x - r, q.y - r, r * 2, r * 2);
@@ -1026,14 +1048,23 @@ export class HUD {
       g.fillColor = col(u.friendly ? C.mint : C.amber);
       g.rect(q.x - 12, q.y + 14, (24 * u.hp) / u.maxHp, 2);
       g.fill();
-      if (u.kind === 'escort') continue;
+      if (u.kind === 'escort' || !pointer) continue;
+      // Cover the body-to-marker segment without widening the hover radius at high zoom.
+      const body = project(u);
+      const dx = body.visible ? body.x - q.x : 0, dy = body.visible ? body.y - q.y : 0;
+      const px = pointer.x - this.w / 2 - q.x, py = this.h / 2 - pointer.y - q.y;
+      const t = Math.max(0, Math.min(1, (px * dx + py * dy) / (dx * dx + dy * dy || 1)));
+      const distance = Math.hypot(px - t * dx, py - t * dy);
+      if (distance <= r + 4 && (!hovered || distance < hovered.distance)) hovered = { unit: u, point: q, distance };
+    }
+    if (hovered) {
+      const { unit: u, point: q } = hovered;
       let l = this.unitLabels.get(u.id);
       if (!l) {
         l = this.label(this.root, '', 0, 0, 12, 90, 22);
         l.isBold = true;
         this.unitLabels.set(u.id, l);
       }
-      l.node.active = true;
       l.color = col(u.friendly ? C.mint : C.amber);
       l.string = u.friendly
         ? this.t('□ 救援车', '□ RESCUE')
@@ -1041,53 +1072,26 @@ export class HUD {
             u.kind === 'heavy' ? '重甲' : u.kind === 'turret' ? '炮台' : '轻车',
             u.kind.toUpperCase(),
           );
-      let tag = { x: q.x, y: q.y + 29 },
-        fits = false;
-      const aim = project(s.aim);
-      for (const [dx, dy] of [
-        [0, 29],
-        [0, -25],
-        [62, 10],
-        [-62, 10],
-        [0, 52],
-      ]) {
-        tag = {
-          x: Math.max(-this.w / 2 + 48, Math.min(this.w / 2 - 48, q.x + dx)),
-          y: Math.max(bottom, Math.min(top - 12, q.y + dy)),
-        };
-        fits =
-          !overBanner(tag.x, tag.y, 45) &&
-          !placed.some((p) => Math.abs(p.x - tag.x) < 86 && Math.abs(p.y - tag.y) < 24) &&
-          !(Math.abs(tag.x - aim.x) < 52 && Math.abs(tag.y - aim.y) < 30) &&
-          !s.units.some((other) => {
-            const p = project(other, 2.3);
-            return other.hp > 0 && Math.abs(tag.x - p.x) < 44 && Math.abs(tag.y - p.y) < 22;
-          });
-        if (fits) break;
-      }
-      if (!fits && !u.friendly) {
-        l.node.active = false;
-        continue;
-      }
-      placed.push(tag);
+      // A unit-relative anchor never changes when the cursor enters or leaves the target.
+      const tag = { x: q.x, y: q.y + 29 };
       l.node.setPosition(tag.x, tag.y);
-      this.rect(g, tag.x + this.w / 2 - 34, this.h / 2 - tag.y - 11, 68, 22, '#0c191fc9');
-      if (Math.abs(tag.x - q.x) > 15 || Math.abs(tag.y - q.y) > 36) {
-        g.strokeColor = col(C.line);
-        g.lineWidth = 1;
-        g.moveTo(q.x, q.y);
-        g.lineTo(tag.x, tag.y);
-        g.stroke();
+      l.node.active = tag.y <= top - 12 && tag.y >= bottom &&
+        tag.x >= -this.w / 2 + this.safe.left + 48 && tag.x <= this.w / 2 - this.safe.right - 48 &&
+        !this.blocksBattlefield(tag.x + this.w / 2, this.h / 2 - tag.y);
+      if (l.node.active) {
+        placed.push(tag);
+        this.rect(g, tag.x + this.w / 2 - 34, this.h / 2 - tag.y - 11, 68, 22, '#0c191fc9');
       }
     }
-    const q = project(s.aim),
-      radius = WEAPONS[s.selected].radius,
-      edge = project({ x: s.aim.x + radius, z: s.aim.z }),
-      rz = project({ x: s.aim.x, z: s.aim.z + radius });
+    const q = project(s.aim);
+    if (!onScreen(q, 18)) {
+      this.labels.get('target')!.node.active = false;
+      this.labels.get('flight')!.node.active = false;
+      return;
+    }
     g.strokeColor = col(s.reason() === 'protected' || s.friendlyRisk ? C.red : C.mint);
     g.lineWidth = 1.5;
-    g.ellipse(q.x, q.y, Math.abs(edge.x - q.x), Math.abs(rz.y - q.y));
-    g.stroke();
+    groundRing(s.aim, WEAPONS[s.selected].radius);
     for (const sign of [-1, 1]) {
       g.moveTo(q.x + sign * 7, q.y);
       g.lineTo(q.x + sign * 18, q.y);
@@ -1150,7 +1154,7 @@ export class HUD {
         if (
           s.units.some((u) => {
             const q = project(u, 2.3);
-            return u.hp > 0 && Math.abs(x - q.x) < 96 && Math.abs(y - q.y) < 30;
+            return u.hp > 0 && q.visible && Math.abs(x - q.x) < 96 && Math.abs(y - q.y) < 30;
           })
         )
           continue;
@@ -1164,12 +1168,11 @@ export class HUD {
     if (impact || target?.friendly) {
       const p = project(target?.friendly ? s.aim : impact!);
       const label = this.labels.get('target')!;
-      label.node.active = placeFeedback(label, { x: p.x, z: p.y });
-      // Dense fights keep the hit marker; move text to the weapon readout rather than cover targets.
-      if (!label.node.active) this.set('weaponState', label.string);
+      label.node.active = onScreen(p) && placeFeedback(label, { x: p.x, z: p.y });
     }
     if (impact && outcome !== 'miss' && s.time - impact.time < 0.22) {
       const p = project(impact);
+      if (!onScreen(p, 12)) return;
       g.strokeColor = col(outcome === 'friendly' ? C.red : C.white);
       g.lineWidth = 2;
       for (const x of [-1, 1])
@@ -1189,7 +1192,7 @@ export class HUD {
       : '';
     if (next) {
       const p = project(next);
-      flight.node.active = placeFeedback(flight, { x: p.x, z: p.y });
+      flight.node.active = onScreen(p) && placeFeedback(flight, { x: p.x, z: p.y });
     }
   }
 }

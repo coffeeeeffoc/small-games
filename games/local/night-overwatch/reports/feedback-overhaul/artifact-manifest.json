@@ -1,0 +1,81 @@
+{
+  "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
+  "createdAt": "2026-09-28T18:37:04.125Z",
+  "files": [
+    {
+      "path": "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/mission-results.json",
+      "bytes": 111971,
+      "sha256": "9d141bdcfd384787aeb3a2862df86e07904bc25caf5db85e2bf1ec1e8589b110"
+    },
+    {
+      "path": "reports/feedback-overhaul/feedback/2026-09-28T18-14-30.487Z-55260/results.json",
+      "bytes": 519320,
+      "sha256": "95b9cdb5b5fc523d4a88c96ca5258d8edadbd5183950cf142cdf703cbe38f625"
+    },
+    {
+      "path": "reports/feedback-overhaul/polish/2026-09-28T18-16-14.246Z-46632/results.json",
+      "bytes": 1718,
+      "sha256": "d57e8df3f03993ad4b635ccf1793519b59af97ee9478879bb168f2e803ef4ae4"
+    },
+    {
+      "path": "reports/polish/feedback-ammo18/h5/results.json",
+      "bytes": 442,
+      "sha256": "4597368b8c3706fc206c977653218036bfaed2aa8fc22837eb49de20e8bc1336"
+    },
+    {
+      "path": "reports/final-smoke.json",
+      "bytes": 847,
+      "sha256": "2e3be71ceb67aff8f3877a63c6f6e1a12726098ce4624d1dbe287aebebac37a3"
+    },
+    {
+      "path": "reports/feedback-overhaul/visual-review.json",
+      "bytes": 1039,
+      "sha256": "aeec49ac5fbb3b43aa556ca07f0809917a776bf49767f661c283296791ffda94"
+    },
+    {
+      "path": "reports/feedback-overhaul/previous-verification.json",
+      "bytes": 10608,
+      "sha256": "fea7cbfc89c13c1b12680377f3fffa509972c0b996f57e065ce561b957aafde8"
+    },
+    {
+      "path": "docs/verification.json",
+      "bytes": 9433,
+      "sha256": "ac11cd539f4daf2a476657ec7a2b214473802592734cf92b938fcfad5c01c311"
+    },
+    {
+      "path": "docs/STATUS.md",
+      "bytes": 3793,
+      "sha256": "4432b3ce0c1dba2adcdc8cecd606c77e8a287f6691966b92015d640815d0071d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6026,
+      "sha256": "07ac0a8b3267621cf4a30c1d33c734e1c5a2537a5bd1ae8b5d5eee24083c8044"
+    },
+    {
+      "path": "docs/ASSETS.md",
+      "bytes": 3591,
+      "sha256": "aae40f4141446f91d80b3ebf9978cb60601f4eb7d69c4fc2b060182db8c34cc4"
+    },
+    {
+      "path": "reports/feedback-overhaul/1366-forest-detail.png",
+      "bytes": 385606,
+      "sha256": "ac4984f7580ed9bb2d354189e550bf7ff9d2d7df4b3a5f4fac0ba2371bd08db2"
+    },
+    {
+      "path": "reports/feedback-overhaul/844-forest-detail.png",
+      "bytes": 162771,
+      "sha256": "52614eb99ae99c2bb729102cfdefb62e4bf42c903660d587e3de59061d14f23b"
+    },
+    {
+      "path": "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-heavy-miss-daylight-close.png",
+      "bytes": 518697,
+      "sha256": "14cdd531a5df9449a3c37215661649476cfd66a76fb7ac285c07491c422c0a86"
+    },
+    {
+      "path": "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-light-label-hover.png",
+      "bytes": 438288,
+      "sha256": "0b7df7a2fa9a65b42f84c9321819cca52898dea8248b67fda81c64de0034b085"
+    }
+  ]
+}

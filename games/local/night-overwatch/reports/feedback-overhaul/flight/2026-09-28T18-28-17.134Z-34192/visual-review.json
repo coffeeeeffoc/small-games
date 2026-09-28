@@ -1,0 +1,20 @@
+{
+  "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
+  "status": "reviewed",
+  "reviewedBy": "independent QA",
+  "ammoDisplay": {
+    "desktop": "18 at start, 17 after one shot, 18 after actual retry",
+    "touch": "18 at start, 17 after one shot, 18 after actual retry"
+  },
+  "closeMissScreenshot": "1366-heavy-miss-daylight-close.png",
+  "closeMiss": {
+    "observation": "Daylight, real optical zoom, visible fire core, dust and ground shock ring after an actual heavy-shell miss",
+    "age": 0.2653304117392139,
+    "radiusCssPixels": 23.76901704540324,
+    "primitives": 17,
+    "thermal": false
+  },
+  "priorFeedbackHash": "a3b35be22f30244c61097fd037325a4e96da800a5f573e1dfef6d39aec9c23cd",
+  "priorFeedbackRerun": false,
+  "pendingAssignedRuns": []
+}

@@ -1,0 +1,17 @@
+{
+  "status": "reviewed",
+  "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
+  "method": "Actual four-viewport Chrome screenshots inspected by the main agent",
+  "findings": [
+    "Dark green crowns retain leaf-cluster gaps and branch silhouettes instead of bright blobs",
+    "Pause panel has thick geometric bars and clear sound/effects/help/fullscreen icons",
+    "12 friendly vehicles and 80/30 ammunition are visible in the game"
+  ],
+  "evidence": [
+    "reports/balance-overhaul/1366-forest-detail.png",
+    "reports/balance-overhaul/844-forest-detail.png",
+    "reports/balance-overhaul/1366-pause.png",
+    "reports/balance-overhaul/568-pause.png"
+  ],
+  "rejectedIteration": "reports/balance-overhaul/1366-forest-too-dark.png"
+}

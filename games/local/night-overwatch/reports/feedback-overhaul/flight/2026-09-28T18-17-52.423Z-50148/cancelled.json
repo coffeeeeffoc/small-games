@@ -1,0 +1,15 @@
+{
+  "status": "cancelled-by-user-for-ammo-rebuild",
+  "sourceHash": "a3b35be22f30244c61097fd037325a4e96da800a5f573e1dfef6d39aec9c23cd",
+  "reason": "Owner changing heavy ammo from 6 to 18; wait for new stable hash",
+  "nodePid": 50148,
+  "processStopped": true,
+  "childProcessesRemaining": 0,
+  "completedEvidence": [
+    "desktop default interactions logged passed",
+    "1366-mission-success.png"
+  ],
+  "incomplete": "touch default only reached flight controls; touch mission not completed",
+  "currentBuildAcceptance": false,
+  "productionModifiedByQA": false
+}

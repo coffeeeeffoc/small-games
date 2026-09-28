@@ -23,7 +23,7 @@ function disjoint(buttons, width, height) {
 }
 async function press(f,id,touch=true) {
   let s=await snap(f);
-  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='tools')) {await press(f,'tools',touch);s=await snap(f);}
+  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,'flightControls',touch);s=await snap(f);}
   const b=s.buttons.find(b=>b.id===id); assert(b,id);
   const position={x:b.x+b.w/2,y:b.y+b.h/2};
   if(touch) await f.locator('canvas').tap({position}); else await f.locator('canvas').click({position});

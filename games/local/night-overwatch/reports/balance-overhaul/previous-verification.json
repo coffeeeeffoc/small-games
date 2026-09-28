@@ -1,0 +1,278 @@
+{
+  "date": "2026-09-29",
+  "stage": "feedback-overhaul-ammo18",
+  "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
+  "creator": "3.8.8",
+  "coreTests": 28,
+  "typecheck": "passed",
+  "liveBuilds": [
+    {
+      "url": "http://localhost:4318",
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008"
+    },
+    {
+      "url": "http://localhost:4319",
+      "creator": "3.8.8",
+      "target": "web-desktop",
+      "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008"
+    },
+    {
+      "url": "http://127.0.0.1:5174/games/night-overwatch",
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008"
+    }
+  ],
+  "changes": [
+    "Geometric pause icon",
+    "Miss explosions and hull-aware radial damage falloff",
+    "Irregular trees with trunks and branches",
+    "Mouse-only hover labels with body hit testing",
+    "Calibre-scaled projectile bodies and short tracers",
+    "Heavy ammunition 6 to 18; reload remains 3 seconds"
+  ],
+  "currentBuild": {
+    "evidence": [
+      "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/mission-results.json",
+      "reports/polish/feedback-ammo18/h5/results.json",
+      "reports/final-smoke.json"
+    ],
+    "missions": [
+      {
+        "width": 1366,
+        "height": 768,
+        "phase": "success",
+        "time": 128.01666666666068,
+        "kills": 24,
+        "friendlyDamage": 0,
+        "allyHp": [
+          252,
+          114,
+          98,
+          116,
+          160,
+          136,
+          10,
+          90
+        ],
+        "heavyRemaining": 12,
+        "mapNavigations": 0,
+        "heavyAmmo": {
+          "configured": 18,
+          "initial": 18,
+          "reloadSeconds": 3,
+          "afterOneShot": 17,
+          "reloadBlockedFreshPress": true,
+          "afterRetry": 18
+        },
+        "checks": [
+          "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+          "natural aircraft motion changes the actual camera and ground projection",
+          "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+          "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+          "terrain elevation picking and pointer projection",
+          "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+          "enemy types hidden by default, shown on hover, hidden on leave; fixed ground-relative anchor",
+          "complete mission: all threats cleared, every friendly survives, zero friendly fire; retry restores 18 heavy rounds"
+        ]
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "phase": "success",
+        "time": 128.01666666666068,
+        "kills": 24,
+        "friendlyDamage": 0,
+        "allyHp": [
+          186,
+          92,
+          116,
+          130,
+          160,
+          120,
+          18,
+          104
+        ],
+        "heavyRemaining": 12,
+        "mapNavigations": 30,
+        "heavyAmmo": {
+          "configured": 18,
+          "initial": 18,
+          "reloadSeconds": 3,
+          "afterOneShot": 17,
+          "reloadBlockedFreshPress": true,
+          "afterRetry": 18
+        },
+        "checks": [
+          "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+          "natural aircraft motion changes the actual camera and ground projection",
+          "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+          "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+          "terrain elevation picking and pointer projection",
+          "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+          "touch reticle aim, friendly warning and touch hints; no synthetic hover labels",
+          "real simultaneous drag/fire, slide-out, no re-arm and touch cancellation",
+          "complete mission: all threats cleared, every friendly survives, zero friendly fire; retry restores 18 heavy rounds"
+        ]
+      }
+    ],
+    "visual": {
+      "status": "reviewed",
+      "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
+      "method": "Main agent inspected actual browser screenshots; no generated image used as runtime evidence.",
+      "findings": [
+        "Two separate vertical pause bars with localized caption",
+        "Default map types hidden; actual body-hover target shown at a stable anchor",
+        "Rounded irregular crowns and visible trunks replace cone-like trees",
+        "Slender projectile/tracer and visible warm impact with dust on a heavy miss at zoom",
+        "18-round HUD and 17 after one heavy shot"
+      ],
+      "evidence": [
+        "reports/feedback-overhaul/1366-forest-detail.png",
+        "reports/feedback-overhaul/844-forest-detail.png",
+        "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-heavy-miss-daylight-close.png",
+        "reports/feedback-overhaul/flight/2026-09-28T18-28-17.134Z-34192/1366-light-label-hover.png"
+      ],
+      "limit": "Stylized procedural low-poly trees; no photorealism or physical-device performance claim."
+    }
+  },
+  "earlierInThisRound": {
+    "sourceHash": "a3b35be22f30244c61097fd037325a4e96da800a5f573e1dfef6d39aec9c23cd",
+    "deltaToCurrent": "Only heavy weapon initial ammunition increased from 6 to 18 in production sources.",
+    "evidence": [
+      "reports/feedback-overhaul/feedback/2026-09-28T18-14-30.487Z-55260/results.json",
+      "reports/feedback-overhaul/polish/2026-09-28T18-16-14.246Z-46632/results.json"
+    ],
+    "feedback": {
+      "status": "automated-passed",
+      "viewports": [
+        {
+          "width": 1366,
+          "height": 768,
+          "misses": 3
+        },
+        {
+          "width": 844,
+          "height": 390,
+          "misses": 3
+        },
+        {
+          "width": 568,
+          "height": 320,
+          "misses": 3
+        }
+      ]
+    },
+    "performance": [
+      {
+        "width": 1366,
+        "height": 768,
+        "loadMs": 2633,
+        "fps": 59.39309243379618,
+        "drawCalls": 84,
+        "triangles": 394420,
+        "transfer": 3756863
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "loadMs": 2401,
+        "slideStopped": true,
+        "fps": 59.999008281209534,
+        "drawCalls": 68,
+        "triangles": 392758,
+        "transfer": 3756863
+      },
+      {
+        "width": 667,
+        "height": 375,
+        "loadMs": 2461,
+        "slideStopped": true,
+        "fps": 60.00198353682319,
+        "drawCalls": 65,
+        "triangles": 392704,
+        "transfer": 3756863
+      },
+      {
+        "width": 568,
+        "height": 320,
+        "loadMs": 2403,
+        "slideStopped": true,
+        "fps": 59.910134797803316,
+        "drawCalls": 64,
+        "triangles": 392672,
+        "transfer": 3756863
+      }
+    ],
+    "warnings": [
+      "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+      "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+      "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+    ]
+  },
+  "priorFlightRound": {
+    "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b",
+    "evidence": "reports/feedback-overhaul/previous-verification.json",
+    "omission": {
+      "phase": "failure",
+      "time": 185.00000000003936,
+      "kills": 23,
+      "threatsRemaining": 1,
+      "friendlyDamage": 0,
+      "friendliesAlive": 8,
+      "rescueHealth": 84,
+      "rating": "—",
+      "mapNavigations": 0,
+      "failure": "timeout",
+      "progress": 1,
+      "omitted": 51
+    },
+    "lifecycle": {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+      },
+      "realBrowserTabBackgroundAndForeground": false,
+      "realBackgroundStatus": "unsupported: tab switching emitted no lifecycle signal in headless and offscreen-headed Chrome",
+      "syntheticBrowserBlurFocus": true,
+      "headedBrowser": false,
+      "backgroundObservation": {
+        "hidden": false,
+        "focused": true
+      },
+      "foregroundObservation": {
+        "hidden": false,
+        "focused": true
+      },
+      "requiresFreshFire": true,
+      "realFullscreenEntryExit": true,
+      "retries": 10,
+      "renderNodesAfterRetry": [
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32,
+        32
+      ],
+      "errors": []
+    },
+    "note": "Historical evidence; omission and ten-retry lifecycle not rerun against current source."
+  },
+  "notVerified": [
+    "Physical Android/iPhone input and GPU",
+    "Safari",
+    "Real safe areas and system gestures",
+    "Real tab background or incoming calls",
+    "Subjective audio quality",
+    "New-player learning and retention",
+    "Public deployment"
+  ]
+}

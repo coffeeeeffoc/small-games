@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { sourceHash } from '../scripts/artifact.mjs';
+import { MISSION } from '../assets/scripts/core/Data.ts';
+import { aimAt, evidenceDirectory, acceptanceBuild } from './flight-browser.mjs';
 
-const round = process.env.NIGHT_ROUND || 'baseline';
+const round = process.env.NIGHT_ROUND || 'feedback-overhaul';
 const base = process.env.NIGHT_URL || 'http://localhost:4318';
-const dir = fileURLToPath(new URL(`../reports/polish/${round}/`, import.meta.url));
+const dir = evidenceDirectory('polish');
 await mkdir(dir, { recursive: true });
-const build = await fetch(base + '/build-info.json').then((r) => r.json());
-assert.equal(build.sourceHash, await sourceHash());
+const build = await acceptanceBuild(base);
 const browser = await chromium.launch({
   headless: true,
   executablePath:
     process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
 });
-const report = { build, round, viewports: [], errors: [], warnings: [], resourcesFailed: [] };
+const report = { build, base, round, viewports: [], errors: [], warnings: [], resourcesFailed: [] };
 try {
   for (const [width, height] of [
     [1366, 768],
@@ -46,8 +46,8 @@ try {
     const capture = (name) => p.screenshot({ path: `${dir}/${width}-${name}.png` });
     const press = async (id) => {
       let s = await snap();
-      if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'tools')) {
-        const b = s.buttons.find((b) => b.id === 'tools');
+      if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'flightControls')) {
+        const b = s.buttons.find((b) => b.id === 'flightControls');
         if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
         else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
         await p.waitForTimeout(80);
@@ -96,8 +96,8 @@ try {
       const slid = (await snap()).fired;
       await p.waitForTimeout(1000);
       const slideStopped = (await snap()).fired === slid;
-      if (round !== 'baseline') assert(slideStopped, 'sliding outside trigger stops fire');
-      if (round !== 'baseline') {
+      assert(slideStopped, 'sliding outside trigger stops fire');
+      {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [ap, fp] });
         await p.waitForTimeout(850);
         assert.equal((await snap()).fired, slid, 'sliding back must not re-arm the trigger');
@@ -109,11 +109,25 @@ try {
       assert.equal((await snap()).fired, stopped, 'cancel stops fire');
     } else {
       const enemy = s.units.find((u) => u.kind === 'turret');
-      const q = await p.evaluate((v) => __night.screenPoint(v), enemy);
-      await p.mouse.move(q.x, q.y);
-      await p.mouse.down();
-      await p.waitForTimeout(3100);
-      await p.mouse.up();
+      const deadline = Date.now() + 25000;
+      await aimAt(p, enemy);
+      await p.keyboard.down('Space');
+      try {
+        while (
+          (await snap()).units.find((u) => u.id === enemy.id)?.hp > 0 &&
+          Date.now() < deadline
+        ) {
+          await aimAt(p, enemy);
+          await p.waitForTimeout(100);
+        }
+      } finally {
+        await p.keyboard.up('Space');
+      }
+      assert.equal(
+        (await snap()).units.find((u) => u.id === enemy.id)?.hp,
+        0,
+        'Actual long-range shell impacts destroy the emplacement',
+      );
       await capture('firing');
       assert((await snap()).kills > 0);
       assert(
@@ -163,15 +177,32 @@ try {
       ),
     });
     if (width === 568 && round !== 'baseline') {
-      await p.waitForFunction(() => __night.snapshot().phase === 'failure', null, {
-        timeout: 90000,
+      await p.waitForFunction(() => __night.snapshot().phase !== 'playing', null, {
+        timeout: Math.max(30000, (MISSION.duration - s.time + 30) * 3000),
       });
       const failure = await snap();
-      assert.equal(failure.failureCause, 'enemy');
-      assert.equal(failure.rescueDamage.friendly, 0);
       assert.equal(
-        Object.values(failure.damageByThreat).reduce((sum, damage) => sum + damage, 0),
-        failure.rescueDamage.enemy,
+        failure.phase,
+        'failure',
+        'Unattended mission does not count as a successful player replay',
+      );
+      if (failure.failure === 'timeout') {
+        assert(
+          failure.time >= MISSION.duration,
+          'Natural timeout reaches the configured mission duration',
+        );
+        assert(failure.threatsRemaining > 0, 'Timeout still has unresolved threats');
+      } else {
+        assert.equal(failure.failure, 'vehicle');
+        assert.equal(failure.failureCause, 'enemy');
+      }
+      assert.equal(failure.rescueDamage.friendly, 0);
+      assert(
+        Math.abs(
+          Object.values(failure.damageByThreat).reduce((sum, damage) => sum + damage, 0) -
+            failure.rescueDamage.enemy,
+        ) < 1e-8,
+        'Fractional resisted damage reconciles with every threat contribution',
       );
       await capture('natural-failure');
       await press('retry');
@@ -182,6 +213,9 @@ try {
       assert.deepEqual(retry.damageByThreat, {});
       report.naturalFailure = {
         time: failure.time,
+        failure: failure.failure,
+        failureCause: failure.failureCause,
+        missionSeconds: MISSION.duration,
         damageByThreat: failure.damageByThreat,
         retry: true,
       };
@@ -192,6 +226,7 @@ try {
   }
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.resourcesFailed, []);
+  assert.equal(build.sourceHash, await sourceHash(), 'Production source changed during acceptance');
 } finally {
   await writeFile(`${dir}/results.json`, JSON.stringify(report, null, 2));
   await browser.close();

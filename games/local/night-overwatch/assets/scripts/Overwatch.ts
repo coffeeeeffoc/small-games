@@ -68,6 +68,7 @@ export class Overwatch extends Component {
           const q = this.world.project(p);
           return { x: q.x / view.getScaleX(), y: this.hud.h - q.y / view.getScaleY() };
         },
+        flightTime: (p: Point, weapon: number) => this.sim.flightTime(weapon, p),
       };
   }
   pause = (reason: PauseReason, on: boolean) => {
@@ -77,6 +78,7 @@ export class Overwatch extends Component {
     if (on) this.platform?.stop();
   };
   clear = () => {
+    if (this.hud) this.hud.mousePointer = undefined;
     this.sim.clearInput();
     this.touches.clear();
     this.keys.clear();
@@ -106,12 +108,14 @@ export class Overwatch extends Component {
   }
   action(id: string) {
     this.platform.activate();
-    if (id === 'tools') {
+    if (id === 'tools' || id === 'flightControls') {
       this.clear();
       this.hud.toolsOpen = !this.hud.toolsOpen;
       return;
     }
-    if (!['zoomIn', 'zoomOut', 'sound'].includes(id)) this.hud.toolsOpen = false;
+    const flightActions = ['rotateLeft', 'rotateRight', 'orbitLeft', 'orbitRight',
+      'altitudeUp', 'altitudeDown', 'radiusIn', 'radiusOut'];
+    if (!['zoomIn', 'zoomOut', 'sound', ...flightActions].includes(id)) this.hud.toolsOpen = false;
     if (id === 'close' || id === 'resume') {
       if (this.sim.pauses.has('help')) this.pause('help', false);
       else if (this.sim.pauses.has('mission')) this.pause('mission', false);
@@ -188,6 +192,18 @@ export class Overwatch extends Component {
       return;
     }
     if (this.sim.paused || this.sim.phase !== 'playing') return;
+    if (flightActions.includes(id)) {
+      this.sim.clearInput();
+      if (id === 'rotateLeft' || id === 'rotateRight')
+        this.world.rotate(id === 'rotateLeft' ? -12 : 12);
+      if (id === 'orbitLeft' || id === 'orbitRight')
+        this.sim.setOrbitDirection(id === 'orbitLeft' ? -1 : 1);
+      if (id === 'altitudeUp' || id === 'altitudeDown')
+        this.sim.adjustAltitude(id === 'altitudeUp' ? 20 : -20);
+      if (id === 'radiusIn' || id === 'radiusOut')
+        this.sim.adjustRadius(id === 'radiusOut' ? 20 : -20);
+      return;
+    }
     if (id.startsWith('weapon')) this.sim.choose(Number(id.slice(-1)));
     if (id === 'previous') this.sim.choose((this.sim.selected + 2) % 3);
     if (id === 'next') this.sim.choose((this.sim.selected + 1) % 3);
@@ -214,10 +230,19 @@ export class Overwatch extends Component {
     const p = e.getUILocation();
     return { x: p.x, y: this.hud.h - p.y };
   }
+  locateMap(p: Point) {
+    if (this.sim.paused || this.sim.phase !== 'playing') return;
+    this.clear();
+    this.world.center = { ...p };
+    this.world.follow = false;
+    this.world.updateCamera();
+    this.sim.setAim(p);
+  }
   mouseMove(e: EventMouse) {
     if (this.platform.touchInput) return;
     this.hud.touch = false;
     const p = this.mousePosition(e);
+    this.hud.mousePointer = p;
     if (this.mouseButton === 'fire' && this.hud.hit(p.x, p.y)?.id !== 'fire') {
       this.sim.setFire('mouse', false);
       this.mouseButton = '';
@@ -226,7 +251,9 @@ export class Overwatch extends Component {
       this.sim.setFire('mouse', false);
     if (!this.hud.modal && !this.hud.blocksBattlefield(p.x, p.y)) {
       const q = e.getLocation();
-      this.sim.setAim(this.world.aimAt(q.x, q.y));
+      const aim = this.world.aimAt(q.x, q.y);
+      if (aim) this.sim.setAim(aim);
+      else this.sim.setFire('mouse', false);
       this.lastAimInput = Date.now();
     }
   }
@@ -236,10 +263,16 @@ export class Overwatch extends Component {
     this.platform.activate();
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
+    this.hud.mousePointer = p;
     if (b) {
       if (this.hud.modal && b.label.node.parent !== this.hud.modal) return;
       this.mouseButton = b.id;
       if (b.id === 'fire' && e.getButton() === 0) this.sim.setFire('mouse', true);
+      return;
+    }
+    const mapPoint = this.hud.minimapPoint(p.x, p.y);
+    if (mapPoint && e.getButton() === 0) {
+      this.locateMap(mapPoint);
       return;
     }
     if (this.hud.modal || this.hud.blocksBattlefield(p.x, p.y)) return;
@@ -251,7 +284,9 @@ export class Overwatch extends Component {
     }
     if (e.getButton() === 0) {
       const q = e.getLocation();
-      this.sim.setAim(this.world.aimAt(q.x, q.y));
+      const aim = this.world.aimAt(q.x, q.y);
+      if (!aim) return;
+      this.sim.setAim(aim);
       this.sim.setFire('mouse', true);
     }
   }
@@ -277,6 +312,7 @@ export class Overwatch extends Component {
   }
   touchStart(e: EventTouch) {
     if (e.simulate || !this.platform.touchInput) return;
+    this.hud.mousePointer = undefined;
     this.hud.touch = true;
     this.platform.activate();
     for (const t of e.getTouches()) {
@@ -286,6 +322,12 @@ export class Overwatch extends Component {
         b = this.hud.hit(x, y),
         id = t.getID();
       if (this.touches.has(id)) continue;
+      const mapPoint = this.hud.minimapPoint(x, y);
+      if (!b && mapPoint) {
+        this.locateMap(mapPoint);
+        this.touches.set(id, { role: 'map', x, y });
+        continue;
+      }
       if (b && (!this.hud.modal || b.label.node.parent === this.hud.modal)) {
         this.touches.set(id, { role: b.id === 'fire' ? 'fire' : 'button', x, y, button: b.id });
         if (b.id === 'fire') this.sim.setFire('touch:' + id, true);
@@ -318,7 +360,7 @@ export class Overwatch extends Component {
             q.y + (y - role.y) * view.getScaleY(),
           ),
           now = this.world.aimAt(q.x, q.y);
-        this.sim.setAim({
+        if (old && now) this.sim.setAim({
           x: Math.max(-MAP.halfWidth, Math.min(MAP.halfWidth, this.sim.aim.x + now.x - old.x)),
           z: Math.max(-MAP.halfDepth, Math.min(MAP.halfDepth, this.sim.aim.z + now.z - old.z)),
         });
@@ -381,7 +423,7 @@ export class Overwatch extends Component {
         this.accumulator -= 1 / 60;
       }
     } else this.accumulator = 0;
-    // At zoom, approaching an edge pans only the camera. North remains fixed.
+    // Pan in screen space: the ground axes rotate with the aircraft and sensor.
     if (
       !this.sim.paused &&
       !this.hud.modal &&
@@ -393,22 +435,18 @@ export class Overwatch extends Component {
       const p = this.world.project(this.sim.aim),
         x = p.x / view.getScaleX(),
         y = this.hud.h - p.y / view.getScaleY();
-      let moved = false;
-      if (x < 55 || x > this.hud.w - 68) {
-        this.world.center.x = Math.max(
-          -MAP.halfWidth + 15,
-          Math.min(MAP.halfWidth - 15, this.world.center.x + (x < 55 ? -1 : 1) * dt * 30),
+      const dx = x < 55 ? -1 : x > this.hud.w - 68 ? 1 : 0;
+      const dy = y < 78 ? 1 : y > this.hud.h - 105 ? -1 : 0;
+      if (dx || dy) {
+        const a = this.world.aimAt(this.hud.w * view.getScaleX() / 2, this.hud.h * view.getScaleY() / 2);
+        const b = this.world.aimAt(
+          (this.hud.w / 2 + dx * dt * 70) * view.getScaleX(),
+          (this.hud.h / 2 + dy * dt * 70) * view.getScaleY(),
         );
-        moved = true;
-      }
-      if (y < 78 || y > this.hud.h - 105) {
-        this.world.center.z = Math.max(
-          -MAP.halfDepth + 12,
-          Math.min(MAP.halfDepth - 12, this.world.center.z + (y < 78 ? -1 : 1) * dt * 30),
-        );
-        moved = true;
-      }
-      if (moved) {
+        if (a && b && Number.isFinite(a.x) && Number.isFinite(a.z) && Number.isFinite(b.x) && Number.isFinite(b.z)) {
+          this.world.center.x = Math.max(-MAP.halfWidth, Math.min(MAP.halfWidth, this.world.center.x + b.x - a.x));
+          this.world.center.z = Math.max(-MAP.halfDepth, Math.min(MAP.halfDepth, this.world.center.z + b.z - a.z));
+        }
         this.world.follow = false;
         this.world.updateCamera();
       }
@@ -419,7 +457,8 @@ export class Overwatch extends Component {
         else if (e.type === 'impact') {
           if (e.weapon > 0) this.platform.play('impact' + e.weapon);
           if (e.outcome === 'hit' || e.outcome === 'destroyed') this.platform.play('hit');
-        } else if (e.type === 'attack' || e.type === 'wave') this.platform.play('alert');
+        } else if (e.type === 'attack') this.platform.play(e.friendly ? 'rapid' : 'alert');
+        else if (e.type === 'wave') this.platform.play('alert');
         this.lastEvent = e.id;
       }
     this.world.update(this.sim);
@@ -447,11 +486,36 @@ export class Overwatch extends Component {
       convoy: this.sim.convoy,
       progress: this.sim.ratio,
       aim: this.sim.aim,
+      aircraft: { ...this.sim.aircraft },
+      aircraftModel: {
+        status: this.world.aircraftModel.status,
+        error: this.world.aircraftModel.error,
+        triangles: this.world.aircraftModel.triangleCount,
+        muzzle: this.world.aircraftModel.worldMuzzle,
+      },
+      flightTime: this.sim.flightTime(),
+      threatsRemaining: this.sim.threatsRemaining,
+      camera: {
+        position: { x: this.world.cameraNode.position.x, y: this.world.cameraNode.position.y, z: this.world.cameraNode.position.z },
+        rotation: { x: this.world.cameraNode.eulerAngles.x, y: this.world.cameraNode.eulerAngles.y, z: this.world.cameraNode.eulerAngles.z },
+        center: { ...this.world.center },
+        fov: this.world.camera.fov,
+        projection: this.world.camera.projection,
+      },
+      shotPositions: this.sim.shots.map((shot) => ({ id: shot.id, ...this.sim.shotPosition(shot) })),
+      unitLabels: Array.from(this.hud.unitLabels, ([id, label]) => ({
+        id, text: label.string, active: label.node.activeInHierarchy,
+        x: label.node.position.x, y: label.node.position.y,
+      })),
+      effects: this.hud.effects,
+      mousePointer: this.hud.mousePointer,
       selected: this.sim.selected,
       guns: this.sim.guns.map((g) => ({ ...g, ammo: g.ammo === Infinity ? 'infinite' : g.ammo })),
       shots: this.sim.shots,
       units: this.sim.units.map((u) => ({ ...u })),
       kills: this.sim.kills,
+      friendlyKills: this.sim.friendlyKills,
+      groundAttacks: this.sim.events.filter((e) => e.type === 'attack').slice(-12),
       fired: this.sim.fired,
       hits: this.sim.hits,
       friendlyDamage: this.sim.friendlyDamage,
@@ -461,10 +525,12 @@ export class Overwatch extends Component {
       impacts: this.sim.events.filter((e) => e.type === 'impact').slice(-5),
       rating: this.sim.rating,
       failure: this.sim.failure,
+      failedGroup: this.sim.failedGroup,
       reason: this.sim.reason(),
       friendlyRisk: this.sim.friendlyRisk,
       aimedUnit: this.sim.aimedUnit?.id,
       ui: {
+        minimap: this.hud.minimapLayout,
         notice: this.hud.labels.get('notice')?.string,
         warning: this.hud.labels.get('friendWarning')?.string,
         warningColor: this.hud.labels.get('friendWarning')?.color.toHEX(),

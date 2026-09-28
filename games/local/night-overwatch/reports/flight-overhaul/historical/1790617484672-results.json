@@ -1,0 +1,46 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+  },
+  "input": "Real Playwright mouse/keyboard and CDP touch; read-only telemetry",
+  "fullMissionRequested": false,
+  "omissionRequested": false,
+  "viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "checks": [
+        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+        "natural aircraft motion changes the actual camera and ground projection",
+        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+        "terrain elevation picking and pointer projection",
+        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+        "light-vehicle text keeps its ground-relative offset on hover/leave"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "checks": [
+        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+        "natural aircraft motion changes the actual camera and ground projection",
+        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+        "terrain elevation picking and pointer projection",
+        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+        "real simultaneous drag/fire, slide-out, no re-arm and touch cancellation"
+      ]
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "resourcesFailed": [],
+  "status": "passed",
+  "visualReview": "Pause aesthetics and terrain art require review of the captured screenshots"
+}

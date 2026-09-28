@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
+import {
+  missionReplay,
+  friendlyFailure,
+  waitForImpact,
+  evidenceDirectory,
+  acceptanceBuild,
+} from './flight-browser.mjs';
+const base = process.env.NIGHT_URL || 'http://localhost:4318';
+const build = await acceptanceBuild(base);
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -12,15 +21,10 @@ const browser = await chromium.launch({
 const errors = [],
   warnings = [],
   report = {};
-const base = process.env.NIGHT_URL || 'http://localhost:4318';
-const evidence = new URL(
-  process.env.NIGHT_ROUND ? `../reports/polish/${process.env.NIGHT_ROUND}/` : '../reports/',
-  import.meta.url,
-);
+const evidence = pathToFileURL(evidenceDirectory('browser') + '/');
 await mkdir(evidence, { recursive: true });
-const build = await fetch(new URL('build-info.json', base)).then((r) => r.json());
-assert.equal(build.sourceHash, await sourceHash(), 'Test the current source build');
 report.build = build;
+report.base = base;
 const snapshot = (p) => p.evaluate(() => globalThis.__night.snapshot());
 const screenshot = (p, name) =>
   p.screenshot({ path: fileURLToPath(new URL(name + '.png', evidence)) });
@@ -56,8 +60,8 @@ async function open(width, height, touch = false) {
 }
 async function button(p, id, touch = false) {
   let s = await snapshot(p);
-  if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'tools')) {
-    await button(p, 'tools', touch);
+  if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'flightControls')) {
+    await button(p, 'flightControls', touch);
     s = await snapshot(p);
   }
   const b = s.buttons.find((b) => b.id === id);
@@ -71,119 +75,9 @@ async function aim(p, point) {
   await p.mouse.move(q.x, q.y);
   return q;
 }
-async function desktopWin(p) {
-  let down = false,
-    chosen = -1;
-  const started = Date.now();
-  let peakDraws = 0,
-    peakEffects = 0;
-  while (Date.now() - started < 195000) {
-    const s = await snapshot(p);
-    peakDraws = Math.max(peakDraws, s.drawCalls);
-    peakEffects = Math.max(peakEffects, s.visibleEffects);
-    if (s.phase !== 'playing') {
-      assert.equal(s.phase, 'success', JSON.stringify(s));
-      return { ...s, peakDraws, peakEffects };
-    }
-    const e = s.units.find((u) => !u.friendly && u.hp > 0);
-    if (e) {
-      const gun = e.kind === 'heavy' ? 2 : e.kind === 'turret' ? 1 : 0;
-      if (chosen !== gun) {
-        if (down) await p.mouse.up();
-        down = false;
-        await p.keyboard.press(String(gun + 1));
-        chosen = gun;
-      }
-      const flight = [0.2, 0.55, 1.05][gun],
-        future = s.time - e.born + flight;
-      await aim(
-        p,
-        e.kind === 'light'
-          ? {
-              x: e.origin.x + Math.sin(future * 0.5) * 5,
-              z: e.origin.z + Math.cos(future * 0.5) * 2,
-            }
-          : e,
-      );
-      if (gun === 2) {
-        if (s.guns[gun].cooldown < 0.05) {
-          await p.mouse.down();
-          await p.mouse.up();
-        }
-      } else if (!down) {
-        await p.mouse.down();
-        down = true;
-      }
-    } else if (down) {
-      await p.mouse.up();
-      down = false;
-    }
-    if (s.convoy === 'holding') await p.keyboard.press('t');
-    await p.waitForTimeout(100);
-  }
-  throw Error('Desktop mission timed out');
-}
-async function mobileWin(p) {
-  const cdp = await p.context().newCDPSession(p);
-  const started = Date.now();
-  let chosen = -1;
-  while (Date.now() - started < 195000) {
-    let s = await snapshot(p);
-    if (s.phase !== 'playing') {
-      assert.equal(s.phase, 'success', JSON.stringify(s));
-      return s;
-    }
-    const e = s.units.find((u) => !u.friendly && u.hp > 0);
-    if (e) {
-      const gun = e.kind === 'heavy' ? 2 : e.kind === 'turret' ? 1 : 0;
-      if (chosen !== gun) {
-        await button(p, 'weapon' + gun, true);
-        chosen = gun;
-        s = await snapshot(p);
-      }
-      const future = s.time - e.born + [0.2, 0.55, 1.05][gun];
-      const target =
-        e.kind === 'light'
-          ? {
-              x: e.origin.x + Math.sin(future * 0.5) * 5,
-              z: e.origin.z + Math.cos(future * 0.5) * 2,
-            }
-          : e;
-      const points = await p.evaluate(
-        ({ target, current }) => ({
-          to: __night.screenPoint(target),
-          from: __night.screenPoint(current),
-        }),
-        { target, current: s.aim },
-      );
-      const dx = Math.max(-100, Math.min(100, points.to.x - points.from.x)),
-        dy = Math.max(-70, Math.min(70, points.to.y - points.from.y));
-      const ap = { id: 1, x: 422, y: 170 },
-        fire = s.buttons.find((b) => b.id === 'fire'),
-        fp = { id: 2, x: fire.x + fire.w / 2, y: fire.y + fire.h / 2 };
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [ap] });
-      await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchMove',
-        touchPoints: [{ ...ap, x: ap.x + dx, y: ap.y + dy }],
-      });
-      if (
-        Math.abs(points.to.x - points.from.x) <= 102 &&
-        Math.abs(points.to.y - points.from.y) <= 72 &&
-        s.guns[gun].cooldown < 0.05
-      ) {
-        await cdp.send('Input.dispatchTouchEvent', {
-          type: 'touchStart',
-          touchPoints: [{ ...ap, x: ap.x + dx, y: ap.y + dy }, fp],
-        });
-        await p.waitForTimeout(gun === 2 ? 70 : 210);
-      }
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    }
-    if (s.convoy === 'holding') await button(p, 'convoy', true);
-    await p.waitForTimeout(80);
-  }
-  throw Error('Touch mission timed out');
-}
+const desktopWin = (p) => missionReplay(p);
+const mobileWin = (p) => missionReplay(p, { touch: true });
+
 try {
   if (!process.env.NIGHT_TOUCH_ONLY) {
     const p = await open(1366, 768);
@@ -218,22 +112,16 @@ try {
     await p.waitForTimeout(60);
     assert.equal((await snapshot(p)).pauses.length, 0);
     await p.keyboard.press('3');
+    const heavyAmmo = (await snapshot(p)).guns[2].ammo;
     await aim(p, { x: -38, z: -22 });
     await p.mouse.down();
     await p.waitForTimeout(3400);
-    assert.equal((await snapshot(p)).guns[2].ammo, 5);
+    assert.equal((await snapshot(p)).guns[2].ammo, heavyAmmo - 1);
     await p.mouse.up();
-    // Reset via real failure/retry to preserve the six rounds for the win run.
-    await aim(p, (await snapshot(p)).units[0]);
-    await p.mouse.click(
-      (await p.evaluate((p) => __night.screenPoint(p), (await snapshot(p)).units[0])).x,
-      (await p.evaluate((p) => __night.screenPoint(p), (await snapshot(p)).units[0])).y,
-    );
-    await p.waitForTimeout(3200);
-    const friendly = (await snapshot(p)).units[0];
-    const q = await aim(p, friendly);
-    await p.mouse.click(q.x, q.y);
-    await p.waitForFunction(() => __night.snapshot().phase === 'failure');
+    // Lead the moving rescue vehicle using the real range-dependent flight time.
+    const airborne = (await snapshot(p)).shots;
+    if (airborne.length) await waitForImpact(p, airborne.at(-1));
+    await friendlyFailure(p);
     report.friendlyFailure = {
       phase: (await snapshot(p)).phase,
       friendlyDamage: (await snapshot(p)).friendlyDamage,
@@ -352,6 +240,7 @@ try {
         );
   }
   assert.deepEqual(errors, []);
+  assert.equal(build.sourceHash, await sourceHash(), 'Production source changed during acceptance');
   report.errors = errors;
   report.warnings = warnings;
   await writeFile(new URL('browser-results.json', evidence), JSON.stringify(report, null, 2));
