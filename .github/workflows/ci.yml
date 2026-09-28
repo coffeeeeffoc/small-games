@@ -81,6 +81,9 @@ jobs:
       - name: Test dependency checker
         run: pnpm test:boundaries
 
+      - name: Install browser for smoke tests
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Test affected packages
         run: pnpm test:affected
 
