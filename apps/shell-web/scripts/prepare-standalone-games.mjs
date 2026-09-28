@@ -30,6 +30,8 @@ const result = spawnSync(
 );
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
+// Both Shell build tasks disable caching: this step also patches dependency dist files,
+// which Turbo may restore independently. Always apply it before copying the Pages site.
 await buildCompetition();
 
 const destination = new URL('../public/games/', import.meta.url);
