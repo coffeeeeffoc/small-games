@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import yaml from 'js-yaml';
 import { auditGameConfig } from './check-game-config.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
@@ -17,6 +18,29 @@ const artifactRoots = [
   'apps/shell-web/public/games/mini-front',
   'apps/shell-web/dist/games/mini-front',
 ];
+
+test('all Cocos consumers download both source-verified artifacts and pass them through Turbo', async () => {
+  const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
+  const producer = await read('.github/workflows/carding-car.yml');
+  assert.deepEqual(producer.jobs.creator.strategy.matrix.game, ['carding-car', 'night-overwatch']);
+  const turbo = await read('turbo.json');
+  for (const variable of ['KART_PREBUILT_DIR', 'NIGHT_OVERWATCH_PREBUILT_DIR'])
+    assert(turbo.globalPassThroughEnv.includes(variable));
+  for (const workflow of ['ci', 'pages', 'mobile']) {
+    const config = await read(`.github/workflows/${workflow}.yml`);
+    for (const job of Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR)) {
+      assert.equal(
+        job.env.NIGHT_OVERWATCH_PREBUILT_DIR,
+        '${{ github.workspace }}/games/local/night-overwatch/.prebuilt',
+      );
+      const download = job.steps.find(
+        (step) => step.with?.name === 'night-overwatch-${{ github.sha }}',
+      );
+      assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
+      assert.equal(download.with.path, 'games/local/night-overwatch/.prebuilt');
+    }
+  }
+});
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'small-games-config-'));
@@ -127,6 +151,21 @@ function requireCodes(result, codes) {
   for (const code of codes)
     assert.ok(actual.has(code), `Missing ${code}: ${JSON.stringify(result.errors)}`);
 }
+
+test('discovers lazy builtins and rejects an import without a registered definition', async (t) => {
+  const f = await fixture(t);
+  const registry = `export const builtInGameRegistry = [{ id: 'builtin', load: async () => {
+    const { builtinGameDefinition } = await import('${builtinName}');
+    return { definition: builtinGameDefinition };
+  } }];`;
+  await f.write('apps/shell-web/src/registry.ts', registry);
+  assert.deepEqual((await auditGameConfig(f.root)).errors, []);
+  await f.write(
+    'apps/shell-web/src/registry.ts',
+    registry.replace('definition: builtinGameDefinition', 'unused: builtinGameDefinition'),
+  );
+  requireCodes(await auditGameConfig(f.root), ['unregistered-game']);
+});
 
 test('discovers standalone and imported builtin games, including their built artifacts', async (t) => {
   const f = await fixture(t);

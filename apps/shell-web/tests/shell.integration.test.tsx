@@ -8,12 +8,15 @@ import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { BrowserIframePlatform, FallbackGameLoader } from '@coffeeeeffoc/game-loader';
 import {
   ShellApp,
-  builtInGameRegistry,
+  builtInGameRegistry as lazyRegistry,
+  loadBuiltInGame,
   createRuntimeClient,
   playerLoginCode,
   type BuiltInGame,
   type ShellAppProps,
 } from '@coffeeeeffoc/shell-web';
+
+const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

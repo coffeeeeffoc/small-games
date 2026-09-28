@@ -7,7 +7,12 @@ import { GameCatalog } from './GameCatalog.js';
 import { GameViewport } from './GameViewport.js';
 import standaloneGames from './standalone-games.json';
 import { createWebGameHost } from './host.js';
-import { builtInGameRegistry, type BuiltInGame } from './registry.js';
+import {
+  builtInGameRegistry,
+  loadBuiltInGame,
+  type BuiltInGame,
+  type LazyBuiltInGame,
+} from './registry.js';
 import {
   createRuntimeClient,
   localPlayerCredential,
@@ -26,7 +31,7 @@ const defaultRuntime = createRuntimeClient(
 
 /** Public injection seams for catalog and Game Host integration tests. */
 export type ShellAppProps = {
-  registry?: readonly BuiltInGame[];
+  registry?: readonly (BuiltInGame | LazyBuiltInGame)[];
   createHost?: (
     game: BuiltInGame,
     manifest?: GameManifest,
@@ -60,6 +65,7 @@ export function ShellApp({
   const [versionId, setVersionId] = useState('');
   const [credential, setCredential] = useState(() => playerCredential ?? localPlayerCredential());
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [notice, setNotice] = useState(
     runtimeClient ? '本地默认 Catalog 可随时启动。' : '即点即玩，游戏进度保存在当前浏览器。',
   );
@@ -111,12 +117,24 @@ export function ShellApp({
   useEffect(() => {
     let active = true;
     setSelected(null);
+    setLoadError(false);
     if (!game || !catalogReady) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    async function launch(game: BuiltInGame) {
+    async function launch(entry: BuiltInGame | LazyBuiltInGame) {
+      let game: BuiltInGame;
+      try {
+        game = await loadBuiltInGame(entry);
+      } catch {
+        if (active) {
+          setLoading(false);
+          setLoadError(true);
+        }
+        return;
+      }
+      if (!active) return;
       try {
         if (runtimeClient && (versionId || catalog.some((entry) => entry.gameId === game.id))) {
           const published = await runtimeClient.session(
@@ -205,6 +223,12 @@ export function ShellApp({
         <h1>摸鱼游戏社</h1>
         <p>选择一个小世界，随时可以安全返回。</p>
         <p role="status">{loading ? '正在进入游戏…' : notice}</p>
+        {loadError && game && (
+          <p role="alert">
+            游戏资源加载失败，请检查网络后重试。
+            <button onClick={() => window.location.reload()}>重新加载</button>
+          </p>
+        )}
         {runtimeClient && (
           <fieldset disabled={loading}>
             <legend>已发布版本选择</legend>

@@ -1,5 +1,5 @@
 import standaloneGames from './standalone-games.json';
-import type { BuiltInGame } from './registry.js';
+import type { BuiltInGame, LazyBuiltInGame } from './registry.js';
 
 const featuredGameOrder: Record<string, number> = {
   'carding-car': 0,
@@ -26,7 +26,7 @@ export function GameCatalog({
   onLaunch,
   disabled,
 }: {
-  registry: readonly BuiltInGame[];
+  registry: readonly (BuiltInGame | LazyBuiltInGame)[];
   query: string;
   view: 'list' | 'cards';
   onQuery: (query: string) => void;
@@ -82,8 +82,8 @@ export function GameCatalog({
           <article key={game.id}>
             {view === 'cards' && (
               <span>
-                {'definition' in game
-                  ? game.remote
+                {!('source' in game)
+                  ? 'remote' in game && game.remote
                     ? 'REMOTE GAME · BUILT-IN FALLBACK'
                     : 'BUILD-TIME GAME'
                   : '独立游戏'}
@@ -92,7 +92,7 @@ export function GameCatalog({
             <h2>{game.title}</h2>
             <code>{sourceOf(game)}</code>
             <p>{game.description}</p>
-            <button disabled={'definition' in game && disabled} onClick={() => onLaunch(game.id)}>
+            <button disabled={!('source' in game) && disabled} onClick={() => onLaunch(game.id)}>
               进入游戏
             </button>
           </article>

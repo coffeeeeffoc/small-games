@@ -33,6 +33,7 @@ try {
     assert.equal(response.status(), 200);
     assert.match(await page.title(), /上海能工智人科技有限公司/);
     assert.equal(await page.locator('h1').count(), 1);
+    assert.equal(await page.locator('.intelligence-glyph').textContent(), '智');
     assert.equal(await page.locator('.service').count(), 3);
     assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
     await expect(page.locator('.motion-toggle')).toBeVisible();
@@ -68,6 +69,26 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(`http://127.0.0.1:${address.port}/company/`);
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'on');
+  const button = page.getByRole('link', { name: '探索我们所做的' });
+  for (const hover of [true, false, true, false]) {
+    if (hover) await button.hover();
+    else await page.mouse.move(10, 10);
+    const frames = await button.evaluate(async (element) => {
+      const samples = [];
+      for (let i = 0; i < 16; i++) {
+        await new Promise(requestAnimationFrame);
+        const style = getComputedStyle(element);
+        samples.push([style.backgroundImage, style.backgroundColor]);
+      }
+      return samples;
+    });
+    assert(
+      frames.every(
+        ([image, color]) => image.includes('linear-gradient') && color === 'rgb(50, 90, 235)',
+      ),
+      'CTA must retain its opaque blue gradient throughout hover transitions',
+    );
+  }
   const sculpture = page.locator('.sculpture');
   const initialTransform = await sculpture.evaluate(
     (element) => getComputedStyle(element).transform,
@@ -94,6 +115,10 @@ try {
   await expect
     .poll(() => card.evaluate((element) => getComputedStyle(element, '::before').opacity))
     .toBe('1');
+  assert.equal(
+    await card.evaluate((element) => getComputedStyle(element, '::after').content),
+    'none',
+  );
   await page.screenshot({ path: `${screenshots}/motion-card.png` });
   await page.getByRole('button', { name: '暂停动效', exact: true }).click();
   assert.equal(await page.locator('html').getAttribute('data-motion'), 'off');

@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 30
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -43,6 +44,10 @@ jobs:
         with:
           name: carding-car-${{ github.sha }}
           path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -98,6 +103,7 @@ jobs:
     timeout-minutes: 40
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -118,6 +124,10 @@ jobs:
         with:
           name: carding-car-${{ github.sha }}
           path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py
