@@ -2,7 +2,7 @@
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "6f7b439a65ab8d164354c784a090e8203a2d6107241c3590474babb2b0e3bebb"
+    "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
   },
   "results": [
     {
@@ -12,10 +12,10 @@
       },
       "fullScreenBriefingAndBattle": true,
       "fullScreenHelpKeepsPause": true,
-      "fireHint": "单击左键开火\n装填 1.1s",
-      "renderNodes": 4,
-      "triangles": 37077,
-      "drawCalls": 40,
+      "fireHint": "单击左键开火\n每次一发",
+      "renderNodes": 32,
+      "triangles": 251535,
+      "drawCalls": 108,
       "friendlyWarning": true,
       "modelImport": "loaded",
       "audio": "ready"
@@ -28,9 +28,9 @@
       "fullScreenBriefingAndBattle": true,
       "fullScreenHelpKeepsPause": true,
       "fireHint": "点按开火\n每次一发",
-      "renderNodes": 4,
-      "triangles": 36987,
-      "drawCalls": 34,
+      "renderNodes": 32,
+      "triangles": 249945,
+      "drawCalls": 81,
       "friendlyWarning": "desktop covered",
       "modelImport": "loaded",
       "audio": "ready"
@@ -43,9 +43,9 @@
       "fullScreenBriefingAndBattle": true,
       "fullScreenHelpKeepsPause": true,
       "fireHint": "点按开火\n每次一发",
-      "renderNodes": 4,
-      "triangles": 36987,
-      "drawCalls": 34,
+      "renderNodes": 32,
+      "triangles": 249991,
+      "drawCalls": 85,
       "friendlyWarning": "desktop covered",
       "modelImport": "loaded",
       "audio": "ready"
@@ -58,9 +58,9 @@
       "fullScreenBriefingAndBattle": true,
       "fullScreenHelpKeepsPause": true,
       "fireHint": "点按开火\n每次一发",
-      "renderNodes": 4,
-      "triangles": 36987,
-      "drawCalls": 34,
+      "renderNodes": 32,
+      "triangles": 249935,
+      "drawCalls": 80,
       "friendlyWarning": "desktop covered",
       "modelImport": "loaded",
       "audio": "ready"

@@ -1,7 +1,9 @@
 import {
   WEAPONS,
   MAP,
-  aircraft,
+  FRIENDLY_POSTS,
+  terrainHeight,
+  patrolPoint,
   UNITS,
   MISSION,
   HOLD_POINTS,
@@ -10,12 +12,15 @@ import {
   routePoint,
   distance,
   validateData,
+  impactDamage,
   type Point,
+  type Point3,
   type Kind,
 } from './Data.ts';
+import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
 export type PauseReason = 'help' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
-export type Unit = Point & {
+export type Unit = Point3 & {
   id: number;
   kind: Kind;
   hp: number;
@@ -27,6 +32,8 @@ export type Unit = Point & {
   hit: number;
   deadAt: number;
   origin: Point;
+  group?: number;
+  routeOffset?: number;
 };
 export type Shot = Point & {
   id: number;
@@ -34,6 +41,8 @@ export type Shot = Point & {
   born: number;
   due: number;
   origin: Point & { y: number };
+  velocity: Point3;
+  targetY: number;
 };
 export type BattleEvent = Point & {
   id: number;
@@ -43,6 +52,11 @@ export type BattleEvent = Point & {
   unit?: number;
   outcome?: 'hit' | 'miss' | 'armor' | 'friendly' | 'destroyed';
   damage?: number;
+  y?: number;
+  shot?: number;
+  intercepted?: boolean;
+  target?: Point3;
+  friendly?: boolean;
 };
 export type FireReason =
   | 'ready'
@@ -70,12 +84,15 @@ export class Simulation {
   completed = new Set<string>();
   held = new Set<string>();
   kills = 0;
+  friendlyKills = 0;
   fired = 0;
   hits = 0;
   friendlyDamage = 0;
   rescueDamage = { friendly: 0, enemy: 0 };
   damageByThreat: Partial<Record<Kind, number>> = {};
   failureCause: '' | 'friendly' | 'enemy' = '';
+  // 0: critical rescue vehicle; 1–3: the corresponding outpost lost its last survivor.
+  failedGroup: number | undefined;
   friendHitAt = -100;
   failure: '' | 'vehicle' | 'timeout' = '';
   lastWave = -1;
@@ -83,11 +100,19 @@ export class Simulation {
   warning: '' | 'armor' | 'lead' = '';
   misses = 0;
   training = false;
+  private flight = new Flight();
+  readonly aircraft = this.flight.aircraft;
   private serial = 0;
   constructor() {
     validateData();
-    this.addUnit('rescue', routePoint(0), true);
-    this.addUnit('escort', routePoint(5), true);
+    Object.assign(this.addUnit('rescue', routePoint(0), true), { group: 0, routeOffset: 0 });
+    Object.assign(this.addUnit('escort', routePoint(5), true), { group: 0, routeOffset: 5 });
+    Object.assign(this.addUnit('escort', routePoint(10), true), { group: 0, routeOffset: 10 });
+    FRIENDLY_POSTS.forEach((p, i) => {
+      Object.assign(this.addUnit('escort', p, true), { group: i + 1 });
+      Object.assign(this.addUnit('escort', { x: p.x + 3, z: p.z + 2 }, true), { group: i + 1 });
+      Object.assign(this.addUnit('escort', { x: p.x - 3, z: p.z + 3 }, true), { group: i + 1 });
+    });
   }
   get paused() {
     return this.pauses.size > 0;
@@ -101,9 +126,33 @@ export class Simulation {
   get ratio() {
     return this.progress / ROUTE_LENGTH;
   }
+  get threatsRemaining() {
+    return MISSION.events.length - this.spawned.size + this.units.filter((u) => !u.friendly && u.hp > 0).length;
+  }
+  get friendlyLosses() {
+    return this.units.filter((u) => u.friendly && u.hp <= 0).length;
+  }
+  setOrbitDirection(direction: -1 | 1) {
+    if (!this.paused && this.phase === 'playing') this.flight.setDirection(direction);
+  }
+  adjustAltitude(delta: number) {
+    if (!this.paused && this.phase === 'playing') this.flight.adjustAltitude(delta);
+  }
+  adjustRadius(delta: number) {
+    if (!this.paused && this.phase === 'playing') this.flight.adjustRadius(delta);
+  }
+  flightTime(weapon = this.selected, p: Point | null = this.aim) {
+    if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
+        Math.abs(p.x) > MAP.halfWidth || Math.abs(p.z) > MAP.halfDepth) return Infinity;
+    return ballisticLaunch(muzzlePosition(this.aircraft), p, WEAPONS[weapon].speed)?.duration ?? Infinity;
+  }
+  shotPosition(shot: Shot, time = this.time) {
+    return shotPosition(shot, time);
+  }
   addUnit(kind: Kind, p: Point, friendly = false) {
     const u: Unit = {
       ...p,
+      y: terrainHeight(p.x, p.z),
       id: ++this.serial,
       kind,
       hp: UNITS[kind].hp,
@@ -172,7 +221,8 @@ export class Simulation {
     if (this.paused) return 'paused';
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
-    if (Math.abs(this.aim.x) > MAP.halfWidth || Math.abs(this.aim.z) > MAP.halfDepth)
+    if (![this.aim.x, this.aim.z].every(Number.isFinite) ||
+        Math.abs(this.aim.x) > MAP.halfWidth || Math.abs(this.aim.z) > MAP.halfDepth)
       return 'outside';
     // The entire blast disk must stay outside a protected area, including its boundary.
     if (PROTECTED.some((p) => distance(p, this.aim) <= p.radius + w.radius)) return 'protected';
@@ -198,28 +248,35 @@ export class Simulation {
     if (this.reason() !== 'ready') return false;
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
+    const origin = Object.freeze(muzzlePosition(this.aircraft));
+    const launch = ballisticLaunch(origin, this.aim, w.speed);
+    if (!launch) return false;
     g.ammo--;
     g.heat = Math.min(100, g.heat + w.heat);
     g.overheated = g.heat >= 100;
     g.cooldown = w.interval;
-    const shot = {
+    const shot: Shot = Object.freeze({
       id: ++this.serial,
       weapon: this.selected,
       x: this.aim.x,
       z: this.aim.z,
       born: this.time,
-      origin: aircraft(this.time),
-      due: this.time + w.flight,
-    };
+      origin,
+      velocity: Object.freeze(launch.velocity),
+      targetY: launch.targetY,
+      due: this.time + launch.duration,
+    });
     this.shots.push(shot);
     this.emit('shot', shot, shot.weapon);
     this.fired++;
     this.completed.add('fire');
     return true;
   }
-  emit(type: BattleEvent['type'], p: Point, weapon = 0, unit?: number) {
-    this.events.push({ id: ++this.serial, type, ...p, weapon, time: this.time, unit });
+  emit(type: BattleEvent['type'], p: Point & { y?: number }, weapon = 0, unit?: number) {
+    const event: BattleEvent = { id: ++this.serial, type, x: p.x, y: p.y ?? terrainHeight(p.x, p.z), z: p.z, weapon, time: this.time, unit };
+    this.events.push(event);
     if (this.events.length > 64) this.events.shift();
+    return event;
   }
   private spawn() {
     MISSION.events.forEach((e, i) => {
@@ -232,28 +289,32 @@ export class Simulation {
       }
     });
   }
-  private impact(s: Shot) {
-    const w = WEAPONS[s.weapon];
+  private impact(s: Shot, point: Point3, time: number, previous: Point3[], dt: number) {
     let hit = false,
       friendly = false,
       armor = false,
       destroyed = false,
       total = 0;
-    for (const u of this.units) {
-      if (u.hp <= 0 || distance(u, s) > w.radius + UNITS[u.kind].radius) continue;
+    const fraction = Math.max(0, Math.min(1, (time - (this.time - dt)) / dt));
+    for (let i = 0; i < this.units.length; i++) {
+      const u = this.units[i], before = previous[i] ?? u;
+      const x = before.x + (u.x - before.x) * fraction;
+      const z = before.z + (u.z - before.z) * fraction;
+      const y = terrainHeight(x, z);
+      if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
-      const damage = w.damage * (u.kind === 'heavy' ? w.armor : 1),
-        actual = Math.min(u.hp, damage);
+      const damage = impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
+      if (damage <= 0) continue;
+      const actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
       total += actual;
       u.hit = 0.18;
       if (u.friendly) {
         friendly = true;
         this.friendlyDamage += actual;
-        this.friendHitAt = this.time;
+        this.friendHitAt = time;
         if (u.kind === 'rescue') {
           this.rescueDamage.friendly += actual;
-          if (u.hp === 0) this.failureCause = 'friendly';
         }
       } else {
         hit = true;
@@ -265,20 +326,23 @@ export class Simulation {
         } else this.warning = '';
       }
       if (u.hp === 0) {
-        u.deadAt = this.time;
-        if (!u.friendly) {
+        u.deadAt = time;
+        if (u.friendly) this.recordFriendlyLoss(u, 'friendly');
+        else {
           this.kills++;
           destroyed = true;
         }
-        this.emit('kill', u, s.weapon, u.id);
+        this.emit('kill', { x, y, z }, s.weapon, u.id).time = time;
       }
     }
     if (hit) {
       this.misses = 0;
       if (this.warning === 'lead') this.warning = '';
     } else if (++this.misses >= 7) this.warning = 'lead';
-    this.emit('impact', s, s.weapon);
-    const event = this.events[this.events.length - 1];
+    const event = this.emit('impact', point, s.weapon);
+    event.time = time;
+    event.shot = s.id;
+    event.intercepted = time < s.due - 1e-5;
     event.outcome = friendly
       ? 'friendly'
       : destroyed
@@ -294,6 +358,8 @@ export class Simulation {
     if (this.phase !== 'playing' || this.paused) return;
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
     this.time += dt;
+    this.flight.step(dt);
+    const previous = this.units.map(({ x, y, z }) => ({ x, y, z }));
     for (const g of this.guns) {
       g.cooldown = Math.max(0, g.cooldown - dt);
       g.heat = Math.max(0, g.heat - 18 * dt);
@@ -313,53 +379,69 @@ export class Simulation {
     for (const u of this.units) {
       u.hit = Math.max(0, u.hit - dt);
       if (u.hp <= 0) continue;
+      u.attack -= dt;
       if (u.friendly) {
-        Object.assign(
-          u,
-          routePoint(Math.min(ROUTE_LENGTH, this.progress + (u.kind === 'escort' ? 5 : 0))),
-        );
+        if (u.routeOffset !== undefined)
+          Object.assign(u, routePoint(Math.min(ROUTE_LENGTH, this.progress + u.routeOffset)));
         continue;
       }
       const spec = UNITS[u.kind];
       if (u.kind === 'light') {
-        const next = {
-          x: u.origin.x + Math.sin((this.time - u.born) * 0.5) * 5,
-          z: u.origin.z + Math.cos((this.time - u.born) * 0.5) * 2,
-        };
-        u.heading = Math.atan2(next.x - u.x, next.z - u.z);
-        Object.assign(u, next);
+        Object.assign(u, patrolPoint(u.origin, this.time - u.born));
       }
-      if (u.kind === 'heavy' && distance(u, this.rescue) > 12) {
-        const angle = Math.atan2(this.rescue.x - u.x, this.rescue.z - u.z);
-        u.x += Math.sin(angle) * spec.speed * dt;
-        u.z += Math.cos(angle) * spec.speed * dt;
+      const target = this.nearestOpponent(u);
+      if (u.kind === 'heavy' && target && distance(u, target) > 12) {
+        const angle = Math.atan2(target.x - u.x, target.z - u.z);
+        const move = Math.min(spec.speed * dt, distance(u, target) - 12);
+        u.x += Math.sin(angle) * move;
+        u.z += Math.cos(angle) * move;
         u.heading = angle;
       }
-      u.attack -= dt;
+      u.y = terrainHeight(u.x, u.z);
+    }
+    const contacts = this.shots.flatMap((shot) => {
+      const contact = terrainContact(shot, this.time - dt, this.time);
+      return contact ? [{ shot, ...contact }] : [];
+    }).sort((a, b) => a.time - b.time);
+    for (const contact of contacts) this.impact(contact.shot, contact.point, contact.time, previous, dt);
+    this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
+    for (const u of this.units) {
+      if (u.hp <= 0) continue;
+      const spec = UNITS[u.kind], target = this.nearestOpponent(u);
       if (
+        target &&
+        spec.damage > 0 &&
         this.time - u.born >= MISSION.warmup &&
         u.attack <= 0 &&
-        distance(u, this.rescue) < spec.range
+        distance(u, target) < spec.range
       ) {
-        const damage = Math.min(this.rescue.hp, spec.damage);
-        this.rescueDamage.enemy += damage;
-        this.damageByThreat[u.kind] = (this.damageByThreat[u.kind] || 0) + damage;
-        this.rescue.hp = Math.max(0, this.rescue.hp - spec.damage);
-        if (this.rescue.hp === 0) this.failureCause = 'enemy';
-        this.rescue.hit = 0.3;
-        u.attack = 2.4;
-        this.emit('attack', u, 0, this.rescue.id);
+        const damage = Math.min(target.hp, spec.damage * (target.friendly ? MISSION.friendlyArmor : target.kind === 'heavy' ? 0.25 : 1));
+        target.hp = Math.max(0, target.hp - damage);
+        if (target === this.rescue) {
+          this.rescueDamage.enemy += damage;
+          this.damageByThreat[u.kind] = (this.damageByThreat[u.kind] || 0) + damage;
+        }
+        target.hit = 0.3;
+        const event = this.emit('attack', u, 0, target.id);
+        event.target = { x: target.x, y: target.y, z: target.z };
+        event.damage = damage;
+        event.friendly = u.friendly;
+        if (target.hp === 0) {
+          target.deadAt = this.time;
+          if (target.friendly) this.recordFriendlyLoss(target, 'enemy');
+          else this.friendlyKills++;
+          this.emit('kill', target, 0, target.id).friendly = u.friendly;
+        }
+        u.attack = u.friendly ? MISSION.friendlyAttackInterval : MISSION.attackInterval;
       }
     }
     this.spawn();
-    const due = this.shots.filter((s) => s.due <= this.time);
-    this.shots = this.shots.filter((s) => s.due > this.time);
-    for (const s of due) this.impact(s);
-    if (this.rescue.hp <= 0) {
+    if (this.progress >= ROUTE_LENGTH) this.convoy = 'arrived';
+    if (this.rescue.hp <= 0 || this.failedGroup !== undefined) {
+      this.failedGroup ??= 0;
       this.phase = 'failure';
       this.failure = 'vehicle';
-    } else if (this.progress >= ROUTE_LENGTH) {
-      this.convoy = 'arrived';
+    } else if (this.convoy === 'arrived' && this.threatsRemaining === 0) {
       this.phase = 'success';
       this.completed.add('arrived');
     } else if (this.time >= MISSION.duration) {
@@ -372,12 +454,29 @@ export class Simulation {
     }
     if (this.held.size && WEAPONS[this.selected].automatic) this.fire();
   }
+  private recordFriendlyLoss(unit: Unit, cause: 'friendly' | 'enemy') {
+    if (this.failedGroup !== undefined) return;
+    if (unit === this.rescue || (unit.group !== undefined &&
+        !this.units.some((other) => other.friendly && other.group === unit.group && other.hp > 0))) {
+      this.failedGroup = unit.group ?? 0;
+      this.failureCause = cause;
+    }
+  }
+  private nearestOpponent(from: Unit) {
+    let nearest: Unit | undefined, range = Infinity;
+    for (const u of this.units) {
+      if (u.friendly === from.friendly || u.hp <= 0) continue;
+      const d = distance(from, u);
+      if (d < range) { nearest = u; range = d; }
+    }
+    return nearest;
+  }
   get rating() {
     if (this.phase !== 'success') return '—';
     const health = this.rescue.hp / this.rescue.maxHp;
-    return this.friendlyDamage === 0 && health >= 0.7
+    return this.friendlyDamage === 0 && health >= 0.7 && this.friendlyLosses === 0
       ? 'S'
-      : health >= 0.4 && this.friendlyDamage < 60
+      : health >= 0.4 && this.friendlyDamage < 60 && this.friendlyLosses <= 2
         ? 'A'
         : 'B';
   }

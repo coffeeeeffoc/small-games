@@ -1,0 +1,1162 @@
+{
+  "errors": [],
+  "state": {
+    "phase": "playing",
+    "time": 2.8166666666666615,
+    "remaining": 182.18333333333334,
+    "pauses": [],
+    "convoy": "moving",
+    "progress": 0.022005208333333328,
+    "aim": {
+      "x": -64.99999161216354,
+      "z": 58.999990971465934
+    },
+    "aircraft": {
+      "x": -19.677262361184496,
+      "y": 100,
+      "z": 178.9212266500795,
+      "heading": 263.74255815410027,
+      "yaw": -1.680009289757919,
+      "pitch": 0,
+      "radius": 180,
+      "altitude": 100,
+      "direction": 1
+    },
+    "aircraftModel": {
+      "status": "ready",
+      "error": "",
+      "triangles": 2132,
+      "muzzle": {
+        "x": -20.673920212837483,
+        "y": 98.9,
+        "z": 177.0011555246421
+      }
+    },
+    "flightTime": 2.61145163462543,
+    "threatsRemaining": 24,
+    "camera": {
+      "position": {
+        "x": -19.174137551514796,
+        "y": 99.2,
+        "z": 179.37879131861806
+      },
+      "rotation": {
+        "x": -36.900903198878126,
+        "y": 20.840850111775637,
+        "z": 1.5902773407317584e-15
+      },
+      "center": {
+        "x": -64.99999364217122,
+        "z": 58.99998563878677
+      },
+      "fov": 30.708945586039782,
+      "projection": 1
+    },
+    "shotPositions": [],
+    "unitLabels": [],
+    "effects": {
+      "impacts": [],
+      "projectiles": []
+    },
+    "selected": 0,
+    "guns": [
+      {
+        "heat": 0,
+        "ammo": "infinite",
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 40,
+        "cooldown": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 18,
+        "cooldown": 0,
+        "overheated": false
+      }
+    ],
+    "shots": [],
+    "units": [
+      {
+        "x": -86.34337104094172,
+        "z": 34,
+        "y": 2.6147449085698846,
+        "heading": 1.5707963267948966,
+        "id": 1,
+        "kind": "rescue",
+        "hp": 260,
+        "maxHp": 260,
+        "friendly": true,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -92,
+          "z": 34,
+          "y": 2.7699799582210805,
+          "heading": 1.5707963267948966
+        },
+        "group": 0,
+        "routeOffset": 0
+      },
+      {
+        "x": -81.34337104094172,
+        "z": 34,
+        "y": 2.3914152510000837,
+        "heading": 1.5707963267948966,
+        "id": 2,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -87,
+          "z": 34,
+          "y": 2.638511234264418,
+          "heading": 1.5707963267948966
+        },
+        "group": 0,
+        "routeOffset": 5
+      },
+      {
+        "x": -61,
+        "z": -32,
+        "y": 4.104249555378006,
+        "id": 3,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -61,
+          "z": -32
+        },
+        "group": 1
+      },
+      {
+        "x": -58,
+        "z": -30,
+        "y": 4.82979361319311,
+        "id": 4,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -58,
+          "z": -30
+        },
+        "group": 1
+      },
+      {
+        "x": 12,
+        "z": 26,
+        "y": 7.0902416519657905,
+        "id": 5,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 12,
+          "z": 26
+        },
+        "group": 2
+      },
+      {
+        "x": 15,
+        "z": 28,
+        "y": 7.437182201387875,
+        "id": 6,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 15,
+          "z": 28
+        },
+        "group": 2
+      },
+      {
+        "x": 78,
+        "z": -24,
+        "y": 3.0029384951428386,
+        "id": 7,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 78,
+          "z": -24
+        },
+        "group": 3
+      },
+      {
+        "x": 81,
+        "z": -22,
+        "y": 2.555482921532767,
+        "id": 8,
+        "kind": "escort",
+        "hp": 160,
+        "maxHp": 160,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 81,
+          "z": -22
+        },
+        "group": 3
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -72.58153976115149,
+        "z": 14.899315654199945,
+        "direction": [
+          "第1区：发现敌方目标，保护分散友军",
+          "SECTOR 1: contacts near friendly positions"
+        ],
+        "y": 0.5706124867646412,
+        "id": 9,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -78,
+          "z": 16,
+          "direction": [
+            "第1区：发现敌方目标，保护分散友军",
+            "SECTOR 1: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -74.58153976115149,
+        "z": 48.899315654199945,
+        "direction": [
+          "第1区：发现敌方目标，保护分散友军",
+          "SECTOR 1: contacts near friendly positions"
+        ],
+        "y": 3.928396628685087,
+        "id": 11,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -80,
+          "z": 50,
+          "direction": [
+            "第1区：发现敌方目标，保护分散友军",
+            "SECTOR 1: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -62,
+        "z": 34,
+        "direction": [
+          "第1区：发现敌方目标，保护分散友军",
+          "SECTOR 1: contacts near friendly positions"
+        ],
+        "y": 1.1511337304614422,
+        "id": 13,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -62,
+          "z": 34,
+          "direction": [
+            "第1区：发现敌方目标，保护分散友军",
+            "SECTOR 1: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -95.58153976115149,
+        "z": -0.10068434580005436,
+        "direction": [
+          "第1区：发现敌方目标，保护分散友军",
+          "SECTOR 1: contacts near friendly positions"
+        ],
+        "y": 1.0380763340955854,
+        "id": 15,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -101,
+          "z": 1,
+          "direction": [
+            "第1区：发现敌方目标，保护分散友军",
+            "SECTOR 1: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -72.58153976115149,
+        "z": -41.100684345800055,
+        "direction": [
+          "第2区：发现敌方目标，保护分散友军",
+          "SECTOR 2: contacts near friendly positions"
+        ],
+        "y": 1.8092771735742053,
+        "id": 17,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -78,
+          "z": -40,
+          "direction": [
+            "第2区：发现敌方目标，保护分散友军",
+            "SECTOR 2: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -51,
+        "z": -43,
+        "direction": [
+          "第2区：发现敌方目标，保护分散友军",
+          "SECTOR 2: contacts near friendly positions"
+        ],
+        "y": 4.5346548189846185,
+        "id": 19,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -51,
+          "z": -43,
+          "direction": [
+            "第2区：发现敌方目标，保护分散友军",
+            "SECTOR 2: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -38.58153976115149,
+        "z": -22.100684345800055,
+        "direction": [
+          "第2区：发现敌方目标，保护分散友军",
+          "SECTOR 2: contacts near friendly positions"
+        ],
+        "y": 5.713885019102019,
+        "id": 21,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -44,
+          "z": -21,
+          "direction": [
+            "第2区：发现敌方目标，保护分散友军",
+            "SECTOR 2: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "heavy",
+        "x": -70.94156087848057,
+        "z": -14.828213028078958,
+        "direction": [
+          "第2区：发现敌方目标，保护分散友军",
+          "SECTOR 2: contacts near friendly positions"
+        ],
+        "y": 1.333389087773859,
+        "id": 23,
+        "hp": 180,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": 2.616796881939687,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "heavy",
+          "x": -72,
+          "z": -13,
+          "direction": [
+            "第2区：发现敌方目标，保护分散友军",
+            "SECTOR 2: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -16.581539761151486,
+        "z": -35.100684345800055,
+        "direction": [
+          "第3区：发现敌方目标，保护分散友军",
+          "SECTOR 3: contacts near friendly positions"
+        ],
+        "y": 2.050441228755302,
+        "id": 25,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -22,
+          "z": -34,
+          "direction": [
+            "第3区：发现敌方目标，保护分散友军",
+            "SECTOR 3: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": -21,
+        "z": 10,
+        "direction": [
+          "第3区：发现敌方目标，保护分散友军",
+          "SECTOR 3: contacts near friendly positions"
+        ],
+        "y": 1.1103011782200185,
+        "id": 27,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": -21,
+          "z": 10,
+          "direction": [
+            "第3区：发现敌方目标，保护分散友军",
+            "SECTOR 3: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 0.418460238848513,
+        "z": -17.100684345800055,
+        "direction": [
+          "第3区：发现敌方目标，保护分散友军",
+          "SECTOR 3: contacts near friendly positions"
+        ],
+        "y": 0.7993461670784319,
+        "id": 29,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -5,
+          "z": -16,
+          "direction": [
+            "第3区：发现敌方目标，保护分散友军",
+            "SECTOR 3: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": -46.58153976115149,
+        "z": 1.8993156541999456,
+        "direction": [
+          "第3区：发现敌方目标，保护分散友军",
+          "SECTOR 3: contacts near friendly positions"
+        ],
+        "y": 0.5714191207101988,
+        "id": 31,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": -52,
+          "z": 3,
+          "direction": [
+            "第3区：发现敌方目标，保护分散友军",
+            "SECTOR 3: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 29.418460238848514,
+        "z": 42.899315654199945,
+        "direction": [
+          "第4区：发现敌方目标，保护分散友军",
+          "SECTOR 4: contacts near friendly positions"
+        ],
+        "y": 4.629313678500868,
+        "id": 33,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 24,
+          "z": 44,
+          "direction": [
+            "第4区：发现敌方目标，保护分散友军",
+            "SECTOR 4: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": 35,
+        "z": 11,
+        "direction": [
+          "第4区：发现敌方目标，保护分散友军",
+          "SECTOR 4: contacts near friendly positions"
+        ],
+        "y": 7.011801617474693,
+        "id": 35,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": 35,
+          "z": 11,
+          "direction": [
+            "第4区：发现敌方目标，保护分散友军",
+            "SECTOR 4: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 5.418460238848513,
+        "z": 46.899315654199945,
+        "direction": [
+          "第4区：发现敌方目标，保护分散友军",
+          "SECTOR 4: contacts near friendly positions"
+        ],
+        "y": 2.650382725679857,
+        "id": 37,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 0,
+          "z": 48,
+          "direction": [
+            "第4区：发现敌方目标，保护分散友军",
+            "SECTOR 4: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "heavy",
+        "x": 36.11195462758838,
+        "z": -24.952001031191255,
+        "direction": [
+          "第4区：发现敌方目标，保护分散友军",
+          "SECTOR 4: contacts near friendly positions"
+        ],
+        "y": 1.2469739586902402,
+        "id": 39,
+        "hp": 180,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": 1.5480729659532537,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "heavy",
+          "x": 34,
+          "z": -25,
+          "direction": [
+            "第4区：发现敌方目标，保护分散友军",
+            "SECTOR 4: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 70.41846023884851,
+        "z": -42.100684345800055,
+        "direction": [
+          "第5区：发现敌方目标，保护分散友军",
+          "SECTOR 5: contacts near friendly positions"
+        ],
+        "y": 6.264522072966924,
+        "id": 41,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 65,
+          "z": -41,
+          "direction": [
+            "第5区：发现敌方目标，保护分散友军",
+            "SECTOR 5: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": 95,
+        "z": -28,
+        "direction": [
+          "第5区：发现敌方目标，保护分散友军",
+          "SECTOR 5: contacts near friendly positions"
+        ],
+        "y": 2.8021561207735877,
+        "id": 43,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": 95,
+          "z": -28,
+          "direction": [
+            "第5区：发现敌方目标，保护分散友军",
+            "SECTOR 5: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 62.41846023884851,
+        "z": -18.100684345800055,
+        "direction": [
+          "第5区：发现敌方目标，保护分散友军",
+          "SECTOR 5: contacts near friendly positions"
+        ],
+        "y": 1.8482332262642382,
+        "id": 45,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 57,
+          "z": -17,
+          "direction": [
+            "第5区：发现敌方目标，保护分散友军",
+            "SECTOR 5: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "heavy",
+        "x": 81.63804176833712,
+        "z": -44.91874016794383,
+        "direction": [
+          "第5区：发现敌方目标，保护分散友军",
+          "SECTOR 5: contacts near friendly positions"
+        ],
+        "y": 7.10268411166293,
+        "id": 47,
+        "hp": 180,
+        "maxHp": 180,
+        "friendly": false,
+        "heading": -0.1721908145228957,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "heavy",
+          "x": 82,
+          "z": -47,
+          "direction": [
+            "第5区：发现敌方目标，保护分散友军",
+            "SECTOR 5: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 81.41846023884851,
+        "z": 30.899315654199945,
+        "direction": [
+          "第6区：发现敌方目标，保护分散友军",
+          "SECTOR 6: contacts near friendly positions"
+        ],
+        "y": 1.1152189603185714,
+        "id": 49,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 76,
+          "z": 32,
+          "direction": [
+            "第6区：发现敌方目标，保护分散友军",
+            "SECTOR 6: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": 101,
+        "z": 15,
+        "direction": [
+          "第6区：发现敌方目标，保护分散友军",
+          "SECTOR 6: contacts near friendly positions"
+        ],
+        "y": 0.40961848236226656,
+        "id": 51,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": 101,
+          "z": 15,
+          "direction": [
+            "第6区：发现敌方目标，保护分散友军",
+            "SECTOR 6: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "light",
+        "x": 96.41846023884851,
+        "z": 47.899315654199945,
+        "direction": [
+          "第6区：发现敌方目标，保护分散友军",
+          "SECTOR 6: contacts near friendly positions"
+        ],
+        "y": 0.3749545383564284,
+        "id": 53,
+        "hp": 32,
+        "maxHp": 32,
+        "friendly": false,
+        "heading": 2.0534532881769336,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "light",
+          "x": 91,
+          "z": 49,
+          "direction": [
+            "第6区：发现敌方目标，保护分散友军",
+            "SECTOR 6: contacts near friendly positions"
+          ]
+        }
+      },
+      {
+        "time": 0,
+        "progress": 0,
+        "kind": "turret",
+        "x": 51,
+        "z": 48,
+        "direction": [
+          "第6区：发现敌方目标，保护分散友军",
+          "SECTOR 6: contacts near friendly positions"
+        ],
+        "y": 2.2075385094518762,
+        "id": 55,
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.183333333333343,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "time": 0,
+          "progress": 0,
+          "kind": "turret",
+          "x": 51,
+          "z": 48,
+          "direction": [
+            "第6区：发现敌方目标，保护分散友军",
+            "SECTOR 6: contacts near friendly positions"
+          ]
+        }
+      }
+    ],
+    "kills": 0,
+    "fired": 0,
+    "hits": 0,
+    "friendlyDamage": 0,
+    "rescueDamage": {
+      "friendly": 0,
+      "enemy": 0
+    },
+    "damageByThreat": {},
+    "failureCause": "",
+    "impacts": [],
+    "rating": "—",
+    "failure": "",
+    "reason": "ready",
+    "friendlyRisk": false,
+    "ui": {
+      "minimap": {
+        "x": 720,
+        "y": 64,
+        "w": 112,
+        "h": 84
+      },
+      "notice": "第6区：发现敌方目标，保护分散友军",
+      "warning": "",
+      "warningColor": "ff525b",
+      "fire": "按住开火\n松开即停",
+      "fullscreen": false,
+      "tutorial": "2/4  右手按住开火；左手可以继续瞄准。",
+      "feedback": "",
+      "muted": false,
+      "reducedEffects": false
+    },
+    "held": [],
+    "completed": [
+      "zoom",
+      "aim"
+    ],
+    "modal": "",
+    "scroll": 0,
+    "scrollMax": 0,
+    "lastHelpLine": "",
+    "buttons": [
+      {
+        "id": "fullscreen",
+        "x": 682,
+        "y": 6,
+        "w": 88,
+        "h": 44
+      },
+      {
+        "id": "pause",
+        "x": 776,
+        "y": 6,
+        "w": 56,
+        "h": 44
+      },
+      {
+        "id": "weapon0",
+        "x": 12,
+        "y": 326,
+        "w": 78,
+        "h": 54
+      },
+      {
+        "id": "weapon1",
+        "x": 96,
+        "y": 326,
+        "w": 78,
+        "h": 54
+      },
+      {
+        "id": "weapon2",
+        "x": 180,
+        "y": 326,
+        "w": 78,
+        "h": 54
+      },
+      {
+        "id": "fire",
+        "x": 722,
+        "y": 324,
+        "w": 110,
+        "h": 58
+      },
+      {
+        "id": "flightControls",
+        "x": 12,
+        "y": 64,
+        "w": 96,
+        "h": 44
+      },
+      {
+        "id": "convoy",
+        "x": 114,
+        "y": 64,
+        "w": 140,
+        "h": 44
+      }
+    ],
+    "zoom": 2.5500000000000003,
+    "follow": false,
+    "safe": {
+      "left": 0,
+      "right": 0,
+      "bottom": 0,
+      "top": 0
+    },
+    "temporary": false,
+    "thermal": false,
+    "modelImport": "loaded",
+    "audio": "ready",
+    "enginePlaying": true,
+    "assets": [
+      "terrain.sky",
+      "terrain.ground",
+      "terrain.water",
+      "terrain.roads",
+      "terrain.markings",
+      "terrain.ridges",
+      "terrain.fields",
+      "terrain.structures",
+      "terrain.roofs",
+      "terrain.forest",
+      "terrain.distantForest",
+      "terrain.details",
+      "zone.shelter",
+      "zone.exit",
+      "prop.beaconFallback",
+      "vehicle.rescue",
+      "vehicle.escort",
+      "aircraft.cabin",
+      "prop.beacon",
+      "vehicle.light",
+      "vehicle.turret",
+      "vehicle.heavy"
+    ],
+    "renderNodes": 32,
+    "markerLabels": 0,
+    "frameRate": 49.58841614540206,
+    "drawCalls": 65,
+    "triangles": 392496,
+    "visibleEffects": 0
+  }
+}

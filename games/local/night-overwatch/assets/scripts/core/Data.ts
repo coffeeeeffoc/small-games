@@ -1,13 +1,50 @@
 export type Point = { x: number; z: number };
+export type Point3 = Point & { y: number };
 export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort';
 export type Language = 'zh' | 'en';
 export const MAP = { halfWidth: 115, halfDepth: 72 };
+// One world unit is 10 metres; all speeds are world units/second, gravity units/second².
+export const FLIGHT = {
+  metersPerUnit: 10,
+  gravity: 0.981,
+  speed: 7,
+  radius: 180,
+  minRadius: 45,
+  maxRadius: 230,
+  altitude: 100,
+  minAltitude: 12,
+  maxAltitude: 230,
+  response: 0.45,
+  climbRate: 2,
+  radiusRate: 3.5,
+  yawRate: 0.65,
+  muzzle: { x: -1.8, y: -1.1, z: 1.2 },
+} as const;
+export const TERRAIN = {
+  roadLift: 0.12,
+  // Smooth, low hills shared by rendering, roads, units and projectile collisions.
+  hills: [
+    { x: -42, z: -31, height: 7, width: 22, depth: 18 },
+    { x: 30, z: 23, height: 8, width: 34, depth: 22 },
+    { x: 80, z: -45, height: 6, width: 25, depth: 20 },
+    { x: -92, z: 52, height: 5, width: 32, depth: 19 },
+  ],
+} as const;
+export function terrainHeight(x: number, z: number): number {
+  let height = 0.3 + 0.45 * (1 + Math.sin(x * 0.04 + z * 0.025));
+  for (const h of TERRAIN.hills)
+    height += h.height * Math.exp(-(((x - h.x) / h.width) ** 2 + ((z - h.z) / h.depth) ** 2));
+  return height;
+}
 export const WEAPONS = [
   {
     id: 'rapid',
     name: ['速射炮', 'Rapid'],
     interval: 0.12,
-    flight: 0.2,
+    speed: 60,
+    calibre: 0.0025, // 25 mm at ten metres per world unit; tracer is a visibility cue.
+    length: 0.012,
+    tracerTime: 0.035,
     damage: 8,
     radius: 0.5,
     ammo: Infinity,
@@ -19,10 +56,13 @@ export const WEAPONS = [
     id: 'blast',
     name: ['爆破炮', 'Burst'],
     interval: 0.8,
-    flight: 0.55,
+    speed: 42,
+    calibre: 0.004,
+    length: 0.021,
+    tracerTime: 0.055,
     damage: 35,
-    radius: 2.4,
-    ammo: 40,
+    radius: 3.4,
+    ammo: 80,
     heat: 15,
     armor: 0.65,
     automatic: true,
@@ -31,10 +71,13 @@ export const WEAPONS = [
     id: 'heavy',
     name: ['重型炮', 'Heavy'],
     interval: 3,
-    flight: 1.05,
+    speed: 32,
+    calibre: 0.0105,
+    length: 0.05,
+    tracerTime: 0.075,
     damage: 140,
-    radius: 5,
-    ammo: 6,
+    radius: 6.5,
+    ammo: 30,
     heat: 0,
     armor: 1,
     automatic: false,
@@ -69,7 +112,7 @@ export const UNITS = {
     assetId: 'vehicle.turret',
   },
   rescue: {
-    hp: 260,
+    hp: 520,
     radius: 1.5,
     speed: 0.85,
     damage: 0,
@@ -78,15 +121,22 @@ export const UNITS = {
     assetId: 'vehicle.rescue',
   },
   escort: {
-    hp: 160,
+    hp: 360,
     radius: 1.3,
     speed: 0.85,
-    damage: 0,
-    range: 0,
+    damage: 1.6,
+    range: 17,
     heat: 0.7,
     assetId: 'vehicle.escort',
   },
 } as const;
+// Distance to the hull, rather than its centre, keeps direct hits at full damage.
+export function impactDamage(weapon: number, kind: Kind, centreDistance: number): number {
+  const w = WEAPONS[weapon];
+  if (!w || !Number.isFinite(centreDistance) || centreDistance < 0) return 0;
+  const falloff = Math.max(0, 1 - Math.max(0, centreDistance - UNITS[kind].radius) / w.radius);
+  return w.damage * falloff * (kind === 'heavy' ? w.armor : 1);
+}
 export const ROUTE: Point[] = [
   { x: -92, z: 34 },
   { x: -75, z: 34 },
@@ -114,111 +164,67 @@ export const SECTORS = [
   { end: 0.64, name: ['河谷桥与村落', 'RIVER CROSSING'] },
   { end: 1, name: ['东岭撤离走廊', 'EASTERN EXTRACTION'] },
 ];
-// Aircraft follows a level orbit; the stabilized sensor remains north-up.
+// Legacy display-only helper. Live flight and every shot use Simulation.aircraft instead.
 export function aircraft(time: number) {
-  const angle = time * 0.035;
+  const angle = Math.PI / 2 + time * FLIGHT.speed / FLIGHT.radius;
   return {
-    x: Math.cos(angle) * 145,
-    z: Math.sin(angle) * 100,
-    y: 180,
-    heading: ((((-angle * 180) / Math.PI) % 360) + 360) % 360,
+    x: Math.cos(angle) * FLIGHT.radius,
+    z: Math.sin(angle) * FLIGHT.radius,
+    y: FLIGHT.altitude,
+    heading: (((-angle * 180 / Math.PI) % 360) + 360) % 360,
   };
 }
+export const FRIENDLY_POSTS: Point[] = [
+  { x: -61, z: -32 },
+  { x: 12, z: 26 },
+  { x: 78, z: -24 },
+];
+const CONTACTS: [Kind, number, number][] = [
+  ['light', -78, 16], ['light', -80, 50], ['turret', -62, 34], ['light', -101, 1],
+  ['light', -78, -40], ['turret', -51, -43], ['light', -44, -21], ['heavy', -72, -13],
+  ['light', -22, -34], ['turret', -21, 10], ['light', -5, -16], ['light', -52, 3],
+  ['light', 24, 44], ['turret', 35, 11], ['light', 0, 48], ['heavy', 34, -25],
+  ['light', 65, -41], ['turret', 95, -28], ['light', 57, -17], ['heavy', 82, -47],
+  ['light', 76, 32], ['turret', 101, 15], ['light', 91, 49], ['turret', 51, 48],
+];
 export const MISSION = {
   id: 'corridor-01',
-  duration: 185,
-  speed: ROUTE_LENGTH / 128,
-  warmup: 4,
-  events: [
-    {
-      time: 0,
-      progress: 0,
-      kind: 'light',
-      x: -75,
-      z: 16,
-      direction: ['西岭：轻型巡逻车接近', 'WEST RIDGE: light patrol approaching'],
-    },
-    {
-      time: 0,
-      progress: 0,
-      kind: 'turret',
-      x: -56,
-      z: 29,
-      direction: ['西岭弯道发现炮台', 'Emplacement above the switchbacks'],
-    },
-    {
-      time: 42,
-      progress: 0.33,
-      kind: 'heavy',
-      x: -20,
-      z: -26,
-      direction: ['桥西：重甲驶入，请切换重炮', 'WEST BANK: armor entering'],
-    },
-    {
-      time: 24,
-      progress: 0.18,
-      kind: 'light',
-      x: -47,
-      z: 3,
-      direction: ['山口轻车正在穿插', 'Light patrol at the mountain pass'],
-    },
-    {
-      time: 60,
-      progress: 0.47,
-      kind: 'turret',
-      x: 13,
-      z: -16,
-      direction: ['桥东高地发现炮台', 'EAST BANK: emplacement on high ground'],
-    },
-    {
-      time: 91,
-      progress: 0.71,
-      kind: 'heavy',
-      x: 58,
-      z: -12,
-      direction: ['东岭：重甲封锁撤离道路', 'EAST RIDGE: armor blocking extraction'],
-    },
-    {
-      time: 109,
-      progress: 0.85,
-      kind: 'light',
-      x: 86,
-      z: -38,
-      direction: ['撤离区北侧轻车接近', 'Light patrol north of extraction'],
-    },
-    {
-      time: 73,
-      progress: 0.57,
-      kind: 'light',
-      x: 26,
-      z: 4,
-      direction: ['村落出口：快速目标', 'Fast contact at the village exit'],
-    },
-    {
-      time: 116,
-      progress: 0.9,
-      kind: 'turret',
-      x: 103,
-      z: -26,
-      direction: ['最后一道封锁：清除撤离区炮台', 'Final emplacement near extraction'],
-    },
-  ] as { time: number; progress: number; kind: Kind; x: number; z: number; direction: string[] }[],
+  duration: 360,
+  speed: ROUTE_LENGTH / 240,
+  warmup: 8,
+  attackInterval: 4.8,
+  friendlyAttackInterval: 6,
+  friendlyArmor: 0.2, // Ground fire is resisted; aircraft friendly fire still deals full blast damage.
+  events: CONTACTS.map(([kind, x, z], i) => ({
+    time: 0, progress: 0, kind, x, z,
+    direction: [`第${Math.floor(i / 4) + 1}区：发现敌方目标，保护分散友军`,
+      `SECTOR ${Math.floor(i / 4) + 1}: contacts near friendly positions`],
+  })),
 };
-export function routePoint(d: number): Point & { heading: number } {
+export function routePoint(d: number): Point3 & { heading: number } {
   d = Math.max(0, Math.min(ROUTE_LENGTH, d));
   for (let i = 1; i < ROUTE.length; i++) {
     const a = ROUTE[i - 1],
       b = ROUTE[i],
       len = distance(a, b);
-    if (d <= len || i === ROUTE.length - 1)
+    if (d <= len || i === ROUTE.length - 1) {
+      const x = a.x + ((b.x - a.x) * d) / len, z = a.z + ((b.z - a.z) * d) / len;
       return {
-        x: a.x + ((b.x - a.x) * d) / len,
-        z: a.z + ((b.z - a.z) * d) / len,
+        x, z, y: terrainHeight(x, z) + TERRAIN.roadLift,
         heading: Math.atan2(b.x - a.x, b.z - a.z),
       };
+    }
     d -= len;
   }
-  return { ...ROUTE[0], heading: 0 };
+  return { ...ROUTE[0], y: terrainHeight(ROUTE[0].x, ROUTE[0].z) + TERRAIN.roadLift, heading: 0 };
+}
+export function patrolPoint(origin: Point, elapsed: number): Point & { heading: number } {
+  const angle = elapsed * UNITS.light.speed / 7;
+  return {
+    x: origin.x + Math.sin(angle) * 7,
+    z: origin.z + (Math.cos(angle) - 1) * 3,
+    heading: Math.atan2(7 * Math.cos(angle), -3 * Math.sin(angle)),
+  };
 }
 export const text = (pair: readonly string[], language: Language) =>
   pair[language === 'zh' ? 0 : 1];
@@ -240,6 +246,6 @@ export function validateData() {
     ROUTE.some((p) => Math.abs(p.x) > MAP.halfWidth || Math.abs(p.z) > MAP.halfDepth)
   )
     throw Error('Mission point outside map');
-  if (WEAPONS.some((w) => w.interval <= 0 || w.flight < 0 || w.radius <= 0))
+  if (WEAPONS.some((w) => w.interval <= 0 || w.speed <= 0 || w.radius <= 0))
     throw Error('Invalid weapon configuration');
 }

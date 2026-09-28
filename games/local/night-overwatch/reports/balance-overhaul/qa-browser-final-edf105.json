@@ -1,0 +1,91 @@
+{
+  "status": "passed",
+  "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
+  "base": "http://localhost:4318",
+  "runs": [
+    {
+      "mode": "desktop-standard",
+      "report": "reports/balance-overhaul/flight/2026-09-28T19-32-12.682Z-42812/desktop-success.json",
+      "viewport": [
+        1366,
+        768
+      ],
+      "defaultInteractionPassed": true,
+      "phase": "success",
+      "time": 240.00000000008313,
+      "rating": "S",
+      "playerKills": 24,
+      "friendlyKills": 0,
+      "threatsRemaining": 0,
+      "friendliesAlive": 12,
+      "friendlyFireDamage": 0,
+      "rescueHp": 520,
+      "rescueMaxHp": 520,
+      "ammoRemaining": {
+        "burst": 58,
+        "heavy": 24
+      },
+      "heavyAmmoCheck": {
+        "configured": 30,
+        "initial": 30,
+        "reloadSeconds": 3,
+        "afterOneShot": 29,
+        "reloadBlockedFreshPress": true,
+        "afterRetry": 30
+      },
+      "delayedStartTime": null,
+      "firedBeforeIntervention": null,
+      "deliberateMisses": 0,
+      "fired": 91
+    },
+    {
+      "mode": "touch-forgiving",
+      "report": "reports/balance-overhaul/flight/2026-09-28T19-40-02.401Z-42036/results.json",
+      "viewport": [
+        844,
+        390
+      ],
+      "defaultInteractionPassed": true,
+      "phase": "success",
+      "time": 240.00000000008313,
+      "rating": "S",
+      "playerKills": 22,
+      "friendlyKills": 2,
+      "threatsRemaining": 0,
+      "friendliesAlive": 12,
+      "friendlyFireDamage": 0,
+      "rescueHp": 494.7999999999999,
+      "rescueMaxHp": 520,
+      "ammoRemaining": {
+        "burst": 56,
+        "heavy": 22
+      },
+      "heavyAmmoCheck": {
+        "configured": 30,
+        "initial": 30,
+        "reloadSeconds": 3,
+        "afterOneShot": 29,
+        "reloadBlockedFreshPress": true,
+        "afterRetry": 30
+      },
+      "delayedStartTime": 60.01666666666454,
+      "firedBeforeIntervention": 0,
+      "deliberateMisses": 23,
+      "fired": 93
+    }
+  ],
+  "errors": [],
+  "resourceFailures": [],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "boundaries": [
+    "Playwright desktop and touch-emulated Chromium on the final mobile build; no physical-device claim",
+    "No simulation mutation; all gameplay changes use mouse, keyboard, touchscreen or CDP touch input",
+    "One completed desktop standard mission and one completed touch forgiving mission; queued desktop forgiving explicitly cancelled",
+    "No extra mobile standard mission, six-minute idle browser run, or repeated full FX/polish suite",
+    "Other build hashes remain separate historical evidence; desktop artifact/H5/smoke and final commit/push are handled by the main owner"
+  ],
+  "cancelledQueueReport": "reports/balance-overhaul/flight/2026-09-28T19-32-12.682Z-42812/cancelled.json"
+}

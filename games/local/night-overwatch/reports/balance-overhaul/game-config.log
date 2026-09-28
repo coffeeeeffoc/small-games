@@ -1,0 +1,48 @@
+
+> @coffeeeeffoc/small-games@0.2.0 check:games C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games
+> node scripts/check-game-config.mjs
+
+┌─────────┬────────────────────────────────────────────┬──────────────────────────────────────┬──────────────┬──────────┐
+│ (index) │ 游戏目录                                   │ 包名                                 │ 装载         │ 配置     │
+├─────────┼────────────────────────────────────────────┼──────────────────────────────────────┼──────────────┼──────────┤
+│ 0       │ 'games/local/afterimage-arena'             │ '@coffeeeeffoc/afterimage-arena'     │ 'standalone' │ '已登记' │
+│ 1       │ 'games/local/balloon-movers'               │ '@coffeeeeffoc/balloon-movers'       │ 'standalone' │ '已登记' │
+│ 2       │ 'games/local/carding-car'                  │ '@coffeeeeffoc/carding-car'          │ 'standalone' │ '已登记' │
+│ 3       │ 'games/local/cops-robbers'                 │ 'cops-robbers'                       │ 'standalone' │ '已登记' │
+│ 4       │ 'games/local/cops-robbers-realtime'        │ 'cops-robbers-realtime'              │ 'standalone' │ '已登记' │
+│ 5       │ 'games/local/fold-the-world'               │ '@coffeeeeffoc/fold-the-world'       │ 'standalone' │ '已登记' │
+│ 6       │ 'games/local/game-arena'                   │ '@coffeeeeffoc/game-arena'           │ 'builtin'    │ '已登记' │
+│ 7       │ 'games/local/game-building-power'          │ '@coffeeeeffoc/game-building-power'  │ 'builtin'    │ '已登记' │
+│ 8       │ 'games/local/game-cricket'                 │ '@coffeeeeffoc/game-cricket'         │ 'builtin'    │ '已登记' │
+│ 9       │ 'games/local/game-cultivation'             │ '@coffeeeeffoc/game-cultivation'     │ 'builtin'    │ '已登记' │
+│ 10      │ 'games/local/game-office'                  │ '@coffeeeeffoc/game-office'          │ 'builtin'    │ '已登记' │
+│ 11      │ 'games/local/ghost-shift-manager'          │ '@coffeeeeffoc/ghost-shift-manager'  │ 'standalone' │ '已登记' │
+│ 12      │ 'games/local/h5-security'                  │ 'between-calls'                      │ 'standalone' │ '已登记' │
+│ 13      │ 'games/local/hold-tight-acrobats'          │ '@coffeeeeffoc/hold-tight-acrobats'  │ 'standalone' │ '已登记' │
+│ 14      │ 'games/local/letters-words'                │ 'letters-words'                      │ 'standalone' │ '已登记' │
+│ 15      │ 'games/local/letters-words2'               │ 'ciyu-word-tiles'                    │ 'standalone' │ '已登记' │
+│ 16      │ 'games/local/merge-front'                  │ '@small-games/merge-front'           │ 'standalone' │ '已登记' │
+│ 17      │ 'games/local/multi-battle'                 │ 'multi-battle'                       │ 'standalone' │ '已登记' │
+│ 18      │ 'games/local/night-merge'                  │ '@small-games/night-merge'           │ 'standalone' │ '已登记' │
+│ 19      │ 'games/local/night-overwatch'              │ '@coffeeeeffoc/night-overwatch'      │ 'standalone' │ '已登记' │
+│ 20      │ 'games/local/off-camera'                   │ '@coffeeeeffoc/off-camera'           │ 'standalone' │ '已登记' │
+│ 21      │ 'games/local/one-stroke-course'            │ '@coffeeeeffoc/one-stroke-course'    │ 'standalone' │ '已登记' │
+│ 22      │ 'games/local/precision-demolition'         │ '@coffeeeeffoc/precision-demolition' │ 'standalone' │ '已登记' │
+│ 23      │ 'games/local/puzzle'                       │ 'before-the-rain-stops'              │ 'standalone' │ '已登记' │
+│ 24      │ 'games/local/rescue-team'                  │ '@coffeeeeffoc/rescue-team'          │ 'standalone' │ '已登记' │
+│ 25      │ 'games/local/rule-thief'                   │ '@coffeeeeffoc/rule-thief'           │ 'standalone' │ '已登记' │
+│ 26      │ 'games/local/travel'                       │ 'quye-travel'                        │ 'standalone' │ '已登记' │
+│ 27      │ 'games/local/travel-bund'                  │ '@coffeeeeffoc/travel-bund'          │ 'standalone' │ '已登记' │
+│ 28      │ 'games/local/travel-bund-2.5D'             │ '@coffeeeeffoc/travel-bund-25d'      │ 'standalone' │ '已登记' │
+│ 29      │ 'games/local/travel2'                      │ '@coffeeeeffoc/travel2'              │ 'standalone' │ '已登记' │
+│ 30      │ 'games/local/vibeJam-myself-delivery'      │ 'tangerine-express'                  │ 'standalone' │ '已登记' │
+│ 31      │ 'games/local/vibeJam-myself-history-guess' │ 'here-and-then'                      │ 'standalone' │ '已登记' │
+│ 32      │ 'games/local/vibeJam-myself-nullrange'     │ 'null-range-mobile-cn'               │ 'standalone' │ '已登记' │
+│ 33      │ 'games/local/weather-command'              │ '@coffeeeeffoc/weather-command'      │ 'standalone' │ '已登记' │
+│ 34      │ 'games/local/wulong-city'                  │ '@coffeeeeffoc/wulong-city'          │ 'standalone' │ '已登记' │
+│ 35      │ 'games/submodules/fishing'                 │ 'tidebreak'                          │ 'standalone' │ '已登记' │
+│ 36      │ 'games/submodules/office-slacking'         │ '@coffeeeeffoc/office-slacking'      │ 'standalone' │ '已登记' │
+│ 37      │ 'games/submodules/tower-defense-game'      │ '@coffeeeeffoc/tower-defense-game'   │ 'standalone' │ '已登记' │
+│ 38      │ 'games/submodules/xiangqi-five'            │ '@coffeeeeffoc/xiangqi-five'         │ 'standalone' │ '已登记' │
+└─────────┴────────────────────────────────────────────┴──────────────────────────────────────┴──────────────┴──────────┘
+发现 39 个游戏；0 个问题。此步骤只检查配置，不代替实际构建与浏览器验证。

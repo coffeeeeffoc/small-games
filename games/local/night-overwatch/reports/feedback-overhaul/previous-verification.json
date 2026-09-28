@@ -1,0 +1,382 @@
+{
+  "date": "2026-09-29",
+  "stage": "flight-overhaul",
+  "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b",
+  "creator": "3.8.8",
+  "coreTests": 27,
+  "typecheck": "passed",
+  "liveBuilds": [
+    {
+      "url": "http://localhost:4318",
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+    },
+    {
+      "url": "http://localhost:4319",
+      "creator": "3.8.8",
+      "target": "web-desktop",
+      "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+    },
+    {
+      "url": "http://127.0.0.1:5174/games/night-overwatch",
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+    }
+  ],
+  "fullMissions": {
+    "desktop": {
+      "phase": "success",
+      "time": 128.01666666666068,
+      "kills": 24,
+      "threatsRemaining": 0,
+      "friendlyDamage": 0,
+      "friendliesAlive": 8,
+      "rescueHealth": 252,
+      "rating": "S",
+      "mapNavigations": 0,
+      "failure": "",
+      "progress": 1
+    },
+    "touch": {
+      "phase": "success",
+      "time": 128.01666666666068,
+      "kills": 24,
+      "threatsRemaining": 0,
+      "friendlyDamage": 0,
+      "friendliesAlive": 8,
+      "rescueHealth": 178,
+      "rating": "A",
+      "mapNavigations": 30,
+      "failure": "",
+      "progress": 1
+    }
+  },
+  "omission": {
+    "phase": "failure",
+    "time": 185.00000000003936,
+    "kills": 23,
+    "threatsRemaining": 1,
+    "friendlyDamage": 0,
+    "friendliesAlive": 8,
+    "rescueHealth": 84,
+    "rating": "—",
+    "mapNavigations": 0,
+    "failure": "timeout",
+    "progress": 1,
+    "omitted": 51
+  },
+  "interaction": [
+    {
+      "width": 1366,
+      "height": 768,
+      "checks": [
+        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+        "natural aircraft motion changes the actual camera and ground projection",
+        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+        "terrain elevation picking and pointer projection",
+        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+        "light-vehicle text keeps its ground-relative offset on hover/leave"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "checks": [
+        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
+        "natural aircraft motion changes the actual camera and ground projection",
+        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
+        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
+        "terrain elevation picking and pointer projection",
+        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
+        "real simultaneous drag/fire, slide-out, no re-arm and touch cancellation"
+      ]
+    }
+  ],
+  "viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "loadMs": 2393,
+      "fps": 59.476605868534186,
+      "drawCalls": 108,
+      "triangles": 252031,
+      "transfer": 3752338
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "loadMs": 2431,
+      "slideStopped": true,
+      "fps": 58.024201547140535,
+      "drawCalls": 87,
+      "triangles": 250139,
+      "transfer": 3752338
+    },
+    {
+      "width": 667,
+      "height": 375,
+      "loadMs": 2406,
+      "slideStopped": true,
+      "fps": 60,
+      "drawCalls": 81,
+      "triangles": 250073,
+      "transfer": 3752338
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "loadMs": 2415,
+      "slideStopped": true,
+      "fps": 59.996033319756464,
+      "drawCalls": 79,
+      "triangles": 250035,
+      "transfer": 3752338
+    }
+  ],
+  "presentation": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "单击左键开火\n每次一发",
+      "renderNodes": 32,
+      "triangles": 251535,
+      "drawCalls": 108,
+      "friendlyWarning": true,
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 32,
+      "triangles": 249945,
+      "drawCalls": 81,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 32,
+      "triangles": 249991,
+      "drawCalls": 85,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 32,
+      "triangles": 249935,
+      "drawCalls": 80,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    }
+  ],
+  "lifecycle": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+    },
+    "realBrowserTabBackgroundAndForeground": false,
+    "realBackgroundStatus": "unsupported: tab switching emitted no lifecycle signal in headless and offscreen-headed Chrome",
+    "syntheticBrowserBlurFocus": true,
+    "headedBrowser": false,
+    "backgroundObservation": {
+      "hidden": false,
+      "focused": true
+    },
+    "foregroundObservation": {
+      "hidden": false,
+      "focused": true
+    },
+    "requiresFreshFire": true,
+    "realFullscreenEntryExit": true,
+    "retries": 10,
+    "renderNodesAfterRetry": [
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32
+    ],
+    "errors": []
+  },
+  "shellAndFallback": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+    },
+    "errors": [],
+    "resourceFailures": [],
+    "checks": [
+      "Actual Shell: entry, weapons, help, nested pause/orientation, host fullscreen entry/exit",
+      "Fullscreen rejection: windowed play works; synthetic 44/44/21 insets respected; mute/reduced effects persist after reload"
+    ]
+  },
+  "finalSmoke": {
+    "results": [
+      {
+        "url": "http://localhost:4318",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "build": {
+          "creator": "3.8.8",
+          "target": "web-mobile",
+          "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+        },
+        "drawCalls": 108,
+        "triangles": 251307,
+        "modelImport": "loaded",
+        "audio": "ready"
+      },
+      {
+        "url": "http://localhost:4319",
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "build": {
+          "creator": "3.8.8",
+          "target": "web-desktop",
+          "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b"
+        },
+        "drawCalls": 108,
+        "triangles": 251307,
+        "modelImport": "loaded",
+        "audio": "ready"
+      }
+    ],
+    "errors": []
+  },
+  "aircraftModel": {
+    "source": "original Blender",
+    "blender": "5.2.1 LTS",
+    "meshes": {
+      "cabin": {
+        "triangles": 2132,
+        "vertices": 4224,
+        "bounds": {
+          "min": [
+            -1.8813170194625854,
+            -2.2300000190734863,
+            -1.5
+          ],
+          "max": [
+            0.19499999284744263,
+            1.559999942779541,
+            2.125
+          ]
+        },
+        "jsonBytes": 356149,
+        "glbBytes": 202576,
+        "sha256": "9f7c9b5540559d5887e633d05082b71a9ccdc30ef29ec6fd893e115ac32debfc"
+      },
+      "house": {
+        "triangles": 332,
+        "vertices": 690,
+        "bounds": {
+          "min": [
+            -0.6499999761581421,
+            0,
+            -0.5199999809265137
+          ],
+          "max": [
+            0.6499999761581421,
+            1.1475000381469727,
+            0.5199999809265137
+          ]
+        },
+        "jsonBytes": 46598,
+        "glbBytes": 46568,
+        "sha256": "6525160232732722dccbc9577decee84834c2473567d155056e262eb4ce4b0a8"
+      },
+      "pine": {
+        "triangles": 88,
+        "vertices": 192,
+        "bounds": {
+          "min": [
+            -0.38407498598098755,
+            0,
+            -0.3664799928665161
+          ],
+          "max": [
+            0.38407498598098755,
+            1.5049999952316284,
+            0.38999998569488525
+          ]
+        },
+        "jsonBytes": 14989,
+        "glbBytes": 12716,
+        "sha256": "b033b4dee704e57d523db9313b848ca49bf2a1f1692e8d7aef79195b866d5857"
+      }
+    },
+    "passed": true,
+    "browserLoaded": [
+      1366,
+      844
+    ],
+    "evidence": [
+      "reports/flight-overhaul/1366-preview.json",
+      "reports/flight-overhaul/844-preview.json"
+    ]
+  },
+  "evidence": [
+    "reports/flight-overhaul/interaction-results.json",
+    "reports/flight-overhaul/mission-desktop-results.json",
+    "reports/flight-overhaul/mission-touch-results.json",
+    "reports/flight-overhaul/omission-desktop-results.json"
+  ],
+  "warnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "registrationCheck": {
+    "gameCount": 39,
+    "issues": 0,
+    "checkout": "F:/playground/playground-ai/small-games"
+  },
+  "visualReview": "Approved concept layout compared with actual desktop/mobile battle and pause screenshots. Dense small-screen labels still warrant human playtesting.",
+  "notVerified": [
+    "Physical Android/iPhone input and GPU",
+    "Safari",
+    "Real safe areas and system gestures",
+    "Real tab background or incoming calls",
+    "Subjective audio quality",
+    "New-player learning and retention",
+    "Public deployment"
+  ]
+}

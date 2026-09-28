@@ -1,0 +1,115 @@
+{
+  "sourceHash": "88d689954c6554f34286aed4e90f341dcc15ac1ce645ba28cc694e6fc3ecab8b",
+  "artifacts": [
+    {
+      "path": "reports/flight-overhaul/interaction-results.json",
+      "bytes": 2190,
+      "sha256": "0b324ea0752d031e6fcca725e56685dd1f7956a96cd5c8fadd4b4b813bb5aa66"
+    },
+    {
+      "path": "reports/flight-overhaul/mission-desktop-results.json",
+      "bytes": 39992,
+      "sha256": "b7eedc2841462996f57fdc942604164ef3dea5313e14e24f65286cd8da00ce20"
+    },
+    {
+      "path": "reports/flight-overhaul/mission-touch-results.json",
+      "bytes": 40365,
+      "sha256": "64232b7ebee5a4951ad3e30d6819bf8f90dc4c64a7aa7c7ff25d1ade2f0859fe"
+    },
+    {
+      "path": "reports/flight-overhaul/omission-desktop-results.json",
+      "bytes": 39985,
+      "sha256": "febd1e73b67866575406667963b58cbf3fc0deae54127b6b2053f8a92c0b5b4a"
+    },
+    {
+      "path": "docs/verification.json",
+      "bytes": 10608,
+      "sha256": "fea7cbfc89c13c1b12680377f3fffa509972c0b996f57e065ce561b957aafde8"
+    },
+    {
+      "path": "reports/presentation.json",
+      "bytes": 1747,
+      "sha256": "9ae40205afc300912f5c953c8a13093ef3091b73a329ecaed7e794ea51ffe94f"
+    },
+    {
+      "path": "reports/lifecycle.json",
+      "bytes": 754,
+      "sha256": "8d5edb252ef98aea231899c879a681226639cd11cb72350ef38c22d0a628eca3"
+    },
+    {
+      "path": "reports/final-smoke.json",
+      "bytes": 849,
+      "sha256": "9e801926be16bdcf5fabc26b8887cb869851fb42a8896656cbf1d45f8af8b8b4"
+    },
+    {
+      "path": "reports/polish/flight-overhaul/results.json",
+      "bytes": 1668,
+      "sha256": "21fc54537b16649b31d21a3c544c0505b4dbd0f3e38a504d7db6f06a4d8000f1"
+    },
+    {
+      "path": "reports/polish/flight-overhaul/h5/results.json",
+      "bytes": 442,
+      "sha256": "39571574709ecf101c31147436debb726f3cb0a96fc3487472f7b8eb6c23f2a5"
+    },
+    {
+      "path": "art/validation.json",
+      "bytes": 1504,
+      "sha256": "30e075f6bbf51a3adca85bea00030a4568190bc409d5c4d7d9d0a7ad1f08c850"
+    },
+    {
+      "path": "docs/design/flight-concepts.png",
+      "bytes": 2021033,
+      "sha256": "2de0fd744d2a70d361dbd98548dc8e284163780685dfe86b0d57d343665eefea"
+    },
+    {
+      "path": "reports/flight-overhaul/1366-battle.png",
+      "bytes": 409341,
+      "sha256": "b2003619e4c108ea2c1e7783358222c766b1e646da80b409a7db16dfd25ffb80"
+    },
+    {
+      "path": "reports/flight-overhaul/1366-pause.png",
+      "bytes": 210460,
+      "sha256": "147675e773a3d0c24e5e886bd0232828c05ebb4dd413fd17e79d44f831c3aa74"
+    },
+    {
+      "path": "reports/flight-overhaul/1366-flight-controls.png",
+      "bytes": 378407,
+      "sha256": "a5545670d51601d09dfd67a56bed5d1b921c78985919d2bd3ce46f1bb8a9dd91"
+    },
+    {
+      "path": "reports/flight-overhaul/1366-minimap-navigation.png",
+      "bytes": 431094,
+      "sha256": "92df2b7f9813cee405e4816562f51a8d30c106dcd1d2b0ee10701c5ff839e141"
+    },
+    {
+      "path": "reports/flight-overhaul/1366-mission-success.png",
+      "bytes": 86978,
+      "sha256": "eccc6feb51f83a0d6fd17b8297bb4c5cd46ea54f4fcc64bc32cfa97748424def"
+    },
+    {
+      "path": "reports/flight-overhaul/844-battle.png",
+      "bytes": 182863,
+      "sha256": "9f5633ef1a2d6e075e22c2bf9dbef3a3710309b5fbef9f2ca05a0d1048a2fa9a"
+    },
+    {
+      "path": "reports/flight-overhaul/844-pause.png",
+      "bytes": 79641,
+      "sha256": "a238e3f250ae455551de14761937934ba55fabe564b0c3ba7067af5655b31478"
+    },
+    {
+      "path": "reports/flight-overhaul/844-flight-controls.png",
+      "bytes": 155082,
+      "sha256": "cab42f38702e5388a61ff883bc54ae00ff2c73fd81f7c85b5e468176bd27b85a"
+    },
+    {
+      "path": "reports/flight-overhaul/844-minimap-navigation.png",
+      "bytes": 190494,
+      "sha256": "26ce28d2e41e2d9d66caddb0f33f27b39cc42e9a607f45c5e06036ec84ebc723"
+    },
+    {
+      "path": "reports/flight-overhaul/844-mission-success.png",
+      "bytes": 32033,
+      "sha256": "42faa498736e26f980ee044521eb8ee50eb54cdc98626af9123330c8d3951dc1"
+    }
+  ]
+}

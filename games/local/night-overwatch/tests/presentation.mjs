@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
+import { waitForImpact, evidenceDirectory, acceptanceBuild } from './flight-browser.mjs';
+
+const base = process.env.NIGHT_URL || 'http://localhost:4318';
+const build = await acceptanceBuild(base);
+const dir = evidenceDirectory('presentation');
+await mkdir(dir, { recursive: true });
 
 const browser = await chromium.launch({
   headless: true,
@@ -10,9 +15,6 @@ const browser = await chromium.launch({
     process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
 });
-const base = process.env.NIGHT_URL || 'http://localhost:4318';
-const build = await fetch(base + '/build-info.json').then((r) => r.json());
-assert.equal(build.sourceHash, await sourceHash());
 const errors = [],
   results = [];
 try {
@@ -36,15 +38,15 @@ try {
     const snap = () => p.evaluate(() => __night.snapshot());
     const shot = (name) =>
       p.screenshot({
-        path: fileURLToPath(new URL(`../reports/refined-${width}-${name}.png`, import.meta.url)),
+        path: `${dir}/refined-${width}-${name}.png`,
       });
     async function click(id) {
       const visible = await snap();
       if (
         !visible.buttons.some((b) => b.id === id) &&
-        visible.buttons.some((b) => b.id === 'tools')
+        visible.buttons.some((b) => b.id === 'flightControls')
       )
-        await click('tools');
+        await click('flightControls');
       await p.waitForFunction(
         (id) => globalThis.__night?.snapshot().buttons.some((b) => b.id === id),
         id,
@@ -66,11 +68,15 @@ try {
     await p.waitForFunction(() => !document.fullscreenElement);
     await click('start');
     let s = await snap();
+    assert(
+      s.buttons.some((b) => b.id === 'fullscreen'),
+      'Live fullscreen never requires opening tools',
+    );
     assert(!s.ui.fire.includes('LMB'));
     assert(s.ui.fire.includes(touch ? '按住开火' : '按住左键开火'));
     const beforePanel = s.fired;
-    await click('tools');
-    await click('tools');
+    await click('flightControls');
+    await click('flightControls');
     assert.equal((await snap()).fired, beforePanel, 'Tactical drawer does not fire through');
     await shot('thermal');
     await click('sensor');
@@ -90,13 +96,21 @@ try {
       await p.mouse.up();
       await p.waitForTimeout(80);
       s = await snap();
-      assert(s.shots.length > 0 && s.shots[0].origin.y > 100);
+      assert(s.shots.length > 0, 'Real input launches a heavy shell');
+      assert(
+        Math.abs(s.shots[0].origin.y - s.aircraft.y) < 4,
+        'Launch altitude follows the aircraft mount',
+      );
+      assert(
+        s.shots[0].origin.y - s.shots[0].targetY > 50,
+        'Long-range descent from aircraft to terrain',
+      );
       assert(s.ui.warning.includes('友方'), 'warning stays during reload');
       const before = s.shots[0];
       await p.mouse.move(width / 2, height / 2);
       const after = (await snap()).shots.find((a) => a.id === before.id);
       assert(after && after.x === before.x && after.z === before.z && after.due === before.due);
-      await p.waitForTimeout(1100);
+      await waitForImpact(p, before);
       await shot('heavy-impact');
     }
     const beforeFullscreen = await snap();
@@ -137,9 +151,10 @@ try {
     await p.close();
   }
   assert.deepEqual(errors, []);
+  assert.equal(build.sourceHash, await sourceHash(), 'Production source changed during acceptance');
   await writeFile(
-    new URL('../reports/presentation.json', import.meta.url),
-    JSON.stringify({ build, results, errors }, null, 2),
+    `${dir}/presentation.json`,
+    JSON.stringify({ build, base, results, errors }, null, 2),
   );
   console.log(
     'Presentation, red friendly warning, launch snapshot and actual fullscreen passed at all 4 viewports',

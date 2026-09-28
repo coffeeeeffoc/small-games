@@ -1,0 +1,9 @@
+00:00.484  blend            | Read blend: "C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\aircraft-assets.blend"
+00:02.516  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\camera-existing.png'
+00:04.547  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\camera-lower-a.png'
+00:06.578  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\camera-lower-b.png'
+00:08.609  render           | Saved: 'C:\Users\15211\.codex\worktrees\night-overwatch-flight\small-games\games\local\night-overwatch\art\previews\camera-lower-c.png'
+CAMERA_STUDY [{"name": "existing", "cameraLocal": [0.0, 0.800000011920929, -1.399999976158142], "fovVertical": 70, "muzzleScreen": [0.0872, 0.7181], "occupiedPercent": 1.107, "centralOccupiedPercent": 0.0}, {"name": "lower-a", "cameraLocal": [0.4, -0.8, -0.55], "fovVertical": 70, "muzzleScreen": [0.1629, 0.225], "occupiedPercent": 5.1, "centralOccupiedPercent": 0.0}, {"name": "lower-b", "cameraLocal": [0.8, -0.95, -0.3], "fovVertical": 70, "muzzleScreen": [0.2448, 0.1607], "occupiedPercent": 8.322, "centralOccupiedPercent": 0.0}, {"name": "lower-c", "cameraLocal": [1.2, -1.2, -0.3], "fovVertical": 70, "muzzleScreen": [0.268, 0.0792], "occupiedPercent": 6.011, "centralOccupiedPercent": 0.0}]
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 02:38:20)
+
+Blender quit

@@ -62,8 +62,8 @@ export const ACTIONS = [
     binding: '3',
     touch: ['点按重型炮，再点开火', 'Tap Heavy, then FIRE'],
     description: [
-      `重甲：6 发弹药，${WEAPONS[2].flight} 秒弹着，3 秒装填；范围较大。`,
-      `Armor: 6 rounds, ${WEAPONS[2].flight}s flight, 3s reload, wide blast.`,
+      `重甲：${WEAPONS[2].ammo} 发弹药，${WEAPONS[2].interval} 秒装填；弹着时间随斜距与高度变化。`,
+      `Armor: ${WEAPONS[2].ammo} rounds, ${WEAPONS[2].interval}s reload. Flight varies with range and altitude.`,
     ],
     event: 'weapon',
   },
@@ -89,6 +89,166 @@ export const ACTIONS = [
     touch: ['直接点击武器', 'Tap a weapon'],
     description: ['滚轮只切枪。', 'Mouse wheel only switches weapons.'],
     event: 'weapon',
+  },
+  {
+    "id": "rotateLeft",
+    "group": "advanced",
+    "name": [
+      "视角左转",
+      "View left"
+    ],
+    "keys": [
+      37
+    ],
+    "binding": "←",
+    "touch": [
+      "点击视角左转（小屏先展开飞行面板）",
+      "Tap View left (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "向左旋转查看方位，不改变飞机盘旋方向。",
+      "Rotate the view left without changing orbit direction."
+    ]
+  },
+  {
+    "id": "rotateRight",
+    "group": "advanced",
+    "name": [
+      "视角右转",
+      "View right"
+    ],
+    "keys": [
+      39
+    ],
+    "binding": "→",
+    "touch": [
+      "点击视角右转（小屏先展开飞行面板）",
+      "Tap View right (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "向右旋转查看方位，小地图保持北向固定。",
+      "Rotate the view right. The minimap stays north-up."
+    ]
+  },
+  {
+    "id": "orbitLeft",
+    "group": "advanced",
+    "name": [
+      "逆时针",
+      "Counterclockwise"
+    ],
+    "keys": [
+      219
+    ],
+    "binding": "[",
+    "touch": [
+      "点击逆时针（小屏先展开飞行面板）",
+      "Tap Counterclockwise (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "飞机逆时针盘旋；发射位置持续随飞机移动。",
+      "Orbit counterclockwise; the firing position moves with the aircraft."
+    ]
+  },
+  {
+    "id": "orbitRight",
+    "group": "advanced",
+    "name": [
+      "顺时针",
+      "Clockwise"
+    ],
+    "keys": [
+      221
+    ],
+    "binding": "]",
+    "touch": [
+      "点击顺时针（小屏先展开飞行面板）",
+      "Tap Clockwise (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "飞机顺时针盘旋；已发射炮弹保持原有弹道。",
+      "Orbit clockwise; airborne rounds keep their trajectories."
+    ]
+  },
+  {
+    "id": "altitudeUp",
+    "group": "advanced",
+    "name": [
+      "升高 +",
+      "Climb +"
+    ],
+    "keys": [
+      33
+    ],
+    "binding": "PageUp",
+    "touch": [
+      "点击升高 +（小屏先展开飞行面板）",
+      "Tap Climb + (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "升高飞机，视野、斜距与弹着时间随之变化。",
+      "Climb, changing the view, slant range and flight time."
+    ]
+  },
+  {
+    "id": "altitudeDown",
+    "group": "advanced",
+    "name": [
+      "降低 −",
+      "Descend −"
+    ],
+    "keys": [
+      34
+    ],
+    "binding": "PageDown",
+    "touch": [
+      "点击降低 −（小屏先展开飞行面板）",
+      "Tap Descend − (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "降低飞机，重新检查目标与友军的位置。",
+      "Descend and check target and friendly positions again."
+    ]
+  },
+  {
+    "id": "radiusIn",
+    "group": "advanced",
+    "name": [
+      "靠近 −",
+      "Closer −"
+    ],
+    "keys": [
+      188
+    ],
+    "binding": ",",
+    "touch": [
+      "点击靠近 −（小屏先展开飞行面板）",
+      "Tap Closer − (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "缩小盘旋半径，改变实际距离；与镜头放大不同。",
+      "Reduce orbit radius and physical range, independently of optical zoom."
+    ]
+  },
+  {
+    "id": "radiusOut",
+    "group": "advanced",
+    "name": [
+      "远离 +",
+      "Farther +"
+    ],
+    "keys": [
+      190
+    ],
+    "binding": ".",
+    "touch": [
+      "点击远离 +（小屏先展开飞行面板）",
+      "Tap Farther + (open FLIGHT on small screens)"
+    ],
+    "description": [
+      "扩大盘旋半径，结合实时弹着时间预留提前量。",
+      "Increase orbit radius; use live flight time to judge your lead."
+    ]
   },
   {
     id: 'zoomOut',
@@ -173,8 +333,8 @@ export const ACTIONS = [
     binding: 'M',
     touch: ['点击任务', 'Tap MISSION'],
     description: [
-      `护送救援车到撤离区；被毁或 ${MISSION.duration} 秒超时则失败。`,
-      `Escort rescue to the exit. Destruction or ${MISSION.duration}s timeout fails.`,
+      `护送并清除全部威胁：12 辆友军分守车队与 3 处据点，装甲可抵御 80% 敌方地面火力，护卫会弱火力反击。每处至少一辆存活；救援车被毁、任一据点全灭或 ${MISSION.duration} 秒超时则失败。`,
+      `Escort and clear every threat. 12 allies guard the convoy and 3 outposts; armor resists 80% of ground fire and escorts return light fire. Keep a survivor at each post. Losing rescue or a post, or ${MISSION.duration}s timeout, fails.`,
     ],
   },
   {
@@ -209,8 +369,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['点击全屏 / 退出全屏', 'Tap full screen / exit'],
     description: [
-      '战术菜单或暂停面板可进入全屏，退出后进度保留。不支持时仍可窗口游玩。',
-      'Use Full screen in TOOLS or Pause. Progress is preserved on exit. Windowed play stays available.',
+      '右上角全屏可直接点击，退出后保留进度；暂停面板底部也可使用。不支持时仍可窗口游玩。',
+      'Use the top-right Full screen button or the pause card. Progress is preserved on exit; windowed play stays available.',
     ],
   },
   {
@@ -245,8 +405,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['瞄准运动方向前方', 'Lead the target'],
     description: [
-      '开火时固定落点，命中时计算目标位置。重炮友伤半径最大。',
-      'Impact position is fixed at launch; damage uses position at impact. Heavy has the largest risk.',
+      '从飞机实际位置发射，斜距与高度影响弹道和时间。瞄准目标未来位置；重炮友伤半径最大。',
+      'Rounds launch from the aircraft. Range and altitude affect trajectory and time. Lead moving targets; Heavy has the largest friendly-fire radius.',
     ],
   },
   {
@@ -257,8 +417,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['保护救援车', 'Protect rescue'],
     description: [
-      'S：成功、救援车生命至少 70%、无友伤。A：至少 40%、友伤小于 60。其余成功为 B。',
-      'S: success, ≥70% health, no friendly fire. A: ≥40%, friendly damage <60. Other successes: B.',
+      'S：成功、救援车生命至少 70%、无友伤且无友军损失。A：至少 40%、友伤小于 60、友军损失不超过 2 辆。其余成功为 B。',
+      'S: success, ≥70% health, no friendly damage or losses. A: ≥40%, friendly damage <60 and ≤2 friendly losses. Other successes: B.',
     ],
   },
 ] as const;

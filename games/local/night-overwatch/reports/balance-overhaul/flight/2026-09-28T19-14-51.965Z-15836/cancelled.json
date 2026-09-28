@@ -1,0 +1,21 @@
+{
+  "status": "cancelled-by-user-for-tree-material-rebuild",
+  "sourceHash": "d629bbd21d02bcd3e0b3949519c5dc916a2a1ac74d14588e3142629597df45c2",
+  "reason": "Owner correcting overly dark tree materials before continuing long replays",
+  "nodePid": 15836,
+  "remainingOwnerProcesses": 0,
+  "evidence": [
+    "1366-battle.png",
+    "1366-flight-controls.png",
+    "1366-fullscreen.png",
+    "1366-heavy-miss-daylight-close.png",
+    "1366-light-label-hidden.png",
+    "1366-light-label-hover.png",
+    "1366-long-range-shell.png",
+    "1366-minimap-navigation.png",
+    "1366-pause.png",
+    "progress.json"
+  ],
+  "missionAndForgivingAcceptance": "incomplete; do not treat as final-build acceptance",
+  "productionModifiedByQA": false
+}
