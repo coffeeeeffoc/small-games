@@ -1,0 +1,95 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "c9c04e58e5422bdf6e8592d88b24c0c16f22070af545b4d4a258b0bcb1d1ceba"
+  },
+  "scope": "Independent live UI review. No implementation, STATUS, polish documents, implementer scores or previous baseline evidence read. Only tests/browser.mjs read for permitted input patterns. Snapshots and screenPoint used read-only; no game state writes.",
+  "performance": {
+    "sampleSeconds": 8,
+    "frames": 480,
+    "medianMs": 16.699999999953434,
+    "p95Ms": 16.800000000046566,
+    "maxMs": 17.20000000006985,
+    "over50ms": 0
+  },
+  "touch": {
+    "twoFinger": {
+      "before": {
+        "fired": 0,
+        "aim": {
+          "x": -75,
+          "z": 16
+        }
+      },
+      "release": {
+        "fired": 10,
+        "aim": {
+          "x": -106.70330550122512,
+          "z": 5.364193328795068
+        }
+      },
+      "after400ms": {
+        "fired": 10,
+        "aim": {
+          "x": -106.70330550122512,
+          "z": 5.364193328795068
+        }
+      }
+    },
+    "touchCancel": {
+      "at100ms": 13,
+      "at600ms": 13
+    },
+    "fullscreenEntry": {
+      "fullscreen": true,
+      "width": 667,
+      "height": 375,
+      "time": 3.949999999999991,
+      "pauses": [
+        "manual"
+      ]
+    },
+    "fullscreenExit": {
+      "fullscreen": false,
+      "time": 3.949999999999991,
+      "pauses": [
+        "manual"
+      ]
+    }
+  },
+  "autoLog": [
+    {
+      "phase": "playing",
+      "time": 72.83333333333049,
+      "cleared": 5,
+      "convoy": "moving",
+      "fired": 35,
+      "friendlyDamage": 0
+    },
+    {
+      "phase": "playing",
+      "time": 97.96666666666239,
+      "cleared": 7,
+      "convoy": "moving",
+      "fired": 43,
+      "friendlyDamage": 0
+    },
+    {
+      "phase": "success",
+      "time": 128.01666666666068,
+      "cleared": 9,
+      "convoy": "arrived",
+      "fired": 52,
+      "friendlyDamage": 0
+    }
+  ],
+  "networkAfterFreeze": [],
+  "errors": [
+    {
+      "page": "mobile844",
+      "kind": "error",
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+    }
+  ]
+}

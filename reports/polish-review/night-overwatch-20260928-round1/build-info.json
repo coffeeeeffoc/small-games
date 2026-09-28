@@ -1,0 +1,12 @@
+{
+  "beforeLoad": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "3197dcc545dfc59602cb1f7b2c176cef127449474b155f5ca61f2299970f0dbe"
+  },
+  "afterLoad": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "3197dcc545dfc59602cb1f7b2c176cef127449474b155f5ca61f2299970f0dbe"
+  }
+}

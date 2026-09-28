@@ -45,6 +45,15 @@ importers:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)
 
+  apps/company-web:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)
+
   apps/shell-android:
     devDependencies:
       '@playwright/test':

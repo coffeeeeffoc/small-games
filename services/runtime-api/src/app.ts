@@ -36,7 +36,14 @@ export function createRuntimeService(
         }
       : {}),
   };
-  const app = createService('runtime', dependencies, logger, telemetry);
+  // One private Nginx hop; never enable this on a directly exposed listener.
+  const app = createService(
+    'runtime',
+    dependencies,
+    logger,
+    telemetry,
+    env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
+  );
   app.register(async (instance) => {
     if (env.COMPETITION_ENABLED === 'true') {
       const rules = new Map<string, Rule>();

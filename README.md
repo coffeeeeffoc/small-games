@@ -2,6 +2,8 @@
 
 完整游戏目录见 [游戏一览](docs/games.md)，包含各游戏的中文名、文件夹名、源码目录链接和简介。
 
+公司官网子应用见 [能工智人官网](apps/company-web/README.md)，介绍上海能工智人科技有限公司的软件开发、小游戏与 AI 应用业务。运行 `pnpm --filter @coffeeeeffoc/company-web dev` 本地预览。
+
 一套可直接在浏览器预览的 React + TypeScript 小游戏原型，包含：
 
 - **三分钟修仙**：3 章 18 个事件、三次章末劫难、属性成长、境界、结局与广告福缘转世。
@@ -62,6 +64,7 @@ VITE_BILI_AD_UNIT_ID=你的广告位ID
 
 ```text
 apps/
+  company-web/       能工智人公司官网（独立静态站点）
   shell-web/         Web 游戏大厅
   shell-android/     内嵌 Web 大厅的 Android 应用与 APK 构建
   shell-bilibili/    B 站原生 Shell

@@ -1,0 +1,23 @@
+✔ mission data and ActionRegistry have unique identifiers, bindings and real tutorial events (0.8695ms)
+✔ rapid overheats, switching preserves heat, all guns cool and unlock only at 40 (3.2714ms)
+✔ heavy fires once per press, respects reload and finite ammunition (3.1811ms)
+✔ burst repeats at its own cadence and cannot bypass cooldown by switching (0.4583ms)
+✔ launch snapshots aim; moving out before impact avoids damage; impacts are consumed once (0.8079ms)
+✔ blast damages several units once each, armor resists rapid fire (0.588ms)
+✔ protection rejects overlapping blast and its tangent without consuming ammo (0.19ms)
+✔ ordinary friendlies warn but do take damage; training immunity is explicit (0.6986ms)
+✔ hold request stops at next marker; time and events keep advancing; continue does not reset route (5.2776ms)
+✔ pause reasons compose, freeze every rule clock and clear held fire (0.4428ms)
+✔ separate trigger sources do not double-fire and releasing one leaves the other active (0.2446ms)
+✔ critical destruction fails before arrival; timeout fails; fresh retry has no leftovers (0.1427ms)
+✔ first mission is winnable using all three weapons and the unmodified finite event table (15.4662ms)
+✔ expanded route, friendly identification and launch position remain consistent (0.3663ms)
+✔ impact feedback describes actual damage and lethal rescue damage keeps its source (6.954ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 180.5614

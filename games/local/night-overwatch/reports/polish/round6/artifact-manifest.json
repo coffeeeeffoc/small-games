@@ -1,0 +1,291 @@
+{
+  "sourceHash": "6f7b439a65ab8d164354c784a090e8203a2d6107241c3590474babb2b0e3bebb",
+  "note": "Final named captures; earlier opaque recorder files are excluded.",
+  "files": [
+    {
+      "file": "1366-battle.png",
+      "bytes": 158411,
+      "sha256": "a89a60ee02fac08360ba60bf27a3c0723d03acc5b2eff017b667d10b07ed3949"
+    },
+    {
+      "file": "1366-briefing.png",
+      "bytes": 78834,
+      "sha256": "770f193b5dd16ac579dae09cc2d17f00525e31de1c98009e3c3931a6142b0db0"
+    },
+    {
+      "file": "1366-firing.png",
+      "bytes": 159427,
+      "sha256": "d4b701b95e033b7c2a50ec123e51c4779e5f6f07c53bd1fb77f7f1a4e4ae9147"
+    },
+    {
+      "file": "1366-help-basic.png",
+      "bytes": 68223,
+      "sha256": "8a732c3670a4f8bd0e65cdd4c4268ae8124433cfdfb2f9fb9f0d5a013ef5439c"
+    },
+    {
+      "file": "1366-help.png",
+      "bytes": 67830,
+      "sha256": "5fb2da235a8fbe46cc1f2637c1bc6c878e55a861a6acca1103f6142bbc84213a"
+    },
+    {
+      "file": "1366-pause.png",
+      "bytes": 59385,
+      "sha256": "1236ebd8652cfe1cd4d25043d46c8998b92337759c3e3276157faba5e34eca71"
+    },
+    {
+      "file": "568-battle.png",
+      "bytes": 35249,
+      "sha256": "8abdc93a52a6e85bc3043a030e919e6abe1b5d32a08d6cd68cff1351500f2a05"
+    },
+    {
+      "file": "568-briefing.png",
+      "bytes": 17002,
+      "sha256": "55faa4cf7893cd5dbb2c4e01c8c2d170803882a354f5743d515e3aebe7635309"
+    },
+    {
+      "file": "568-firing.png",
+      "bytes": 36138,
+      "sha256": "2de5ae248a91feb5ef3bce767f3afcd60c09e78582518777eeb520b09f2543ea"
+    },
+    {
+      "file": "568-help-basic.png",
+      "bytes": 19229,
+      "sha256": "bf301d227363a652c2647d60cd9db723be7e3ffbbb6a68ff0034e767d08db88b"
+    },
+    {
+      "file": "568-help.png",
+      "bytes": 20004,
+      "sha256": "2dc159f1711dc50e090fcc634373271d7da2ad878aba9cea72f4e97a3ebb6978"
+    },
+    {
+      "file": "568-natural-failure.png",
+      "bytes": 23796,
+      "sha256": "e8dd166ef8d1a8c31236b8cfd1d54977696d09bf84ffb48ed361fb5cb9ec71d8"
+    },
+    {
+      "file": "568-pause.png",
+      "bytes": 15784,
+      "sha256": "efca29ebf80bcafd438a4e5843dc1a2b2220d1e8e2ba3eb99010c1759d77335e"
+    },
+    {
+      "file": "568-portrait.png",
+      "bytes": 18681,
+      "sha256": "6870ef41d6de791c0bf2f06c22c7b01349ec5ac10d7a359238ce304e8afbd85a"
+    },
+    {
+      "file": "568-retry.png",
+      "bytes": 35048,
+      "sha256": "54f9d9169859baba2838af91b3c91a457aeaeeaff389a094ede2498f1df37613"
+    },
+    {
+      "file": "667-battle.png",
+      "bytes": 40506,
+      "sha256": "0146b8f02c740d327eb36d67ecda5359ec4758e1eb663d2fb206ed731828bf17"
+    },
+    {
+      "file": "667-briefing.png",
+      "bytes": 18280,
+      "sha256": "2b1d387f4f96cad497f059f7434237f83ce48ec657f06250d05f060a7429d90b"
+    },
+    {
+      "file": "667-firing.png",
+      "bytes": 43471,
+      "sha256": "de149e5f1ca64cd5a0ceba3b0ff9eb788c8a2382961b812ced8d43fa6b519727"
+    },
+    {
+      "file": "667-help-basic.png",
+      "bytes": 24362,
+      "sha256": "353ba8d396b85dc453d955629394cc58dee7a3c879e1bdbc573e7c4acd213ece"
+    },
+    {
+      "file": "667-help.png",
+      "bytes": 25675,
+      "sha256": "e7aeaaa949e7f9923bd28465456b2777b0f079c48691a0832c1048d99afb28ae"
+    },
+    {
+      "file": "667-pause.png",
+      "bytes": 18023,
+      "sha256": "cd8a0d0e7e7a31cad19180883e716a4e25d1b3a53c6db448d752674d76c53d47"
+    },
+    {
+      "file": "667-portrait.png",
+      "bytes": 24493,
+      "sha256": "57e42d392f9ce3d97bab7f2d5a8e0c22d415f33321378315cfbc2e9594634c17"
+    },
+    {
+      "file": "844-battle.png",
+      "bytes": 47285,
+      "sha256": "a730cee993404174b6bdb0aa2cac850ce3c529a4b2fcc129cae0f2d3ca015177"
+    },
+    {
+      "file": "844-briefing.png",
+      "bytes": 18688,
+      "sha256": "2d613c7113f277d87209e9ba1d03ce91e182b6cc35364309525f98ebf91d365c"
+    },
+    {
+      "file": "844-firing.png",
+      "bytes": 50288,
+      "sha256": "85c9e36327a1ed98332183a0a9a662f80677d401adec8ee3eb36969342716a42"
+    },
+    {
+      "file": "844-help-basic.png",
+      "bytes": 26667,
+      "sha256": "b809fdadd92750b0b79fd0a4fa3e0e673cf45d1af68c088263ded4c301793908"
+    },
+    {
+      "file": "844-help.png",
+      "bytes": 28457,
+      "sha256": "ce0e75c53065ab66a12565f439df5e717fab98c15c5b4ce8178e5c0934eaceb1"
+    },
+    {
+      "file": "844-pause.png",
+      "bytes": 18155,
+      "sha256": "5b5712f999e5593b230e8bb1370b2fd2232a38260e93f63d78f4ea63fae6226c"
+    },
+    {
+      "file": "844-portrait.png",
+      "bytes": 24580,
+      "sha256": "11771ec6039ae6c9b0586792f0e73c421e0dce73c8d47492ce76440d5c0be714"
+    },
+    {
+      "file": "browser-results.json",
+      "bytes": 26730,
+      "sha256": "e2b03f35530dab15c7c7f2dd159a2d520f7bd32954107dfcc30964abacb939d0"
+    },
+    {
+      "file": "core-test.log",
+      "bytes": 1534,
+      "sha256": "6ee59803863eaeb68f9c7ffdd9166a2c08c8ab6904328573c8a56997583af60a"
+    },
+    {
+      "file": "desktop-briefing.png",
+      "bytes": 78834,
+      "sha256": "770f193b5dd16ac579dae09cc2d17f00525e31de1c98009e3c3931a6142b0db0"
+    },
+    {
+      "file": "desktop-complete.webm",
+      "bytes": 8838316,
+      "sha256": "ca7e2c1698e09539097e68f4f4a1883d8d26c1b01757a6379f58dbbfcf390796"
+    },
+    {
+      "file": "desktop-daylight.png",
+      "bytes": 202756,
+      "sha256": "007c9f55126a62eac56d98da2d437f91d9987a69e9b67791417406c2cb04c233"
+    },
+    {
+      "file": "desktop-help-last.png",
+      "bytes": 70535,
+      "sha256": "a555c5582b823661b2332cb40b2a6202ecfbd912f0072ff269e7a211e94cfea3"
+    },
+    {
+      "file": "desktop-success.png",
+      "bytes": 70538,
+      "sha256": "a01183fa66f97564698d1ebacf7e3401cf2d10950618d791d3951b19646b922b"
+    },
+    {
+      "file": "final-smoke.json",
+      "bytes": 845,
+      "sha256": "074669830517babcc74138ea5a9a5012e0b9edf1706a90685f124aa0893de0f3"
+    },
+    {
+      "file": "friendly-fire-failure.png",
+      "bytes": 68928,
+      "sha256": "02e808657c03222fc1cb3f993aad85332648b885a2c8eea24a31ae63103eab5a"
+    },
+    {
+      "file": "lifecycle.json",
+      "bytes": 394,
+      "sha256": "3c1134a5cdbbaad31e14c70196b7e238328a4791ee5a50fbe163a5bf8c79efe4"
+    },
+    {
+      "file": "mobile-667-battle.png",
+      "bytes": 119342,
+      "sha256": "59b106ac5bbe69bdc8da1fa186ab52e0af8e1423ee1000610bcdcdc01f78401b"
+    },
+    {
+      "file": "mobile-667-help-first.png",
+      "bytes": 90900,
+      "sha256": "d19fdc476f39280e9af76b639e38b7b67c9e0585b8948dcd4f4795f782f39c6d"
+    },
+    {
+      "file": "mobile-667-help-last.png",
+      "bytes": 96634,
+      "sha256": "bf8aa7336fe4781fd1655c3a6b6bb08d9145aa9861ecbbbc221ecf7fa7f2045a"
+    },
+    {
+      "file": "mobile-844-battle.png",
+      "bytes": 130646,
+      "sha256": "ed52cd91d32f455484bf10552629a4de087a0918894637e2a9f10c4652e056fe"
+    },
+    {
+      "file": "mobile-844-help-first.png",
+      "bytes": 99192,
+      "sha256": "d9945cfd8007e744b228318c8bb16d47338b5eb0eaca1afa46adfde6d44cdc55"
+    },
+    {
+      "file": "mobile-844-help-last.png",
+      "bytes": 111742,
+      "sha256": "071bc69643269fca9a7bfbff1f4a6bcb5a46b47a13b148f4fbfdfa02342dbb8b"
+    },
+    {
+      "file": "mobile-success.png",
+      "bytes": 68346,
+      "sha256": "cdb90705eb57ff874bc0f882b48397fb71c0d8af33362560c537df53230e2784"
+    },
+    {
+      "file": "presentation.json",
+      "bytes": 1737,
+      "sha256": "f306b1f7cf764f680b71cc037076826b3b92815c9f05d460d9d1c9b847c48ca2"
+    },
+    {
+      "file": "results.json",
+      "bytes": 1689,
+      "sha256": "77fd65f2cdc1462618ae5163d900194df123972d26996f1a1d55352d12760049"
+    },
+    {
+      "file": "touch-667-interaction.webm",
+      "bytes": 307421,
+      "sha256": "28e2905377a8e9f6c9ecb6271a6374d24eac48af9f6ac53941270be94853e326"
+    },
+    {
+      "file": "touch-844-complete.webm",
+      "bytes": 11308505,
+      "sha256": "ba9401b37ad54f34d6b91d006dbb9107194d0e077997cdf3b0ed9f0bfaaf9e3f"
+    },
+    {
+      "file": "touch-844-interaction.webm",
+      "bytes": 564362,
+      "sha256": "33741daefad617c5b7cd35e9da0c3e55f8d5a70f6260f77092be8b9c8ec1c7ca"
+    },
+    {
+      "file": "h5\\results.json",
+      "bytes": 442,
+      "sha256": "3283221e3d508cf5c8a70cc2794a668842d9ac161b00d21c820110f59f291141"
+    },
+    {
+      "file": "h5\\shell-320-help.png",
+      "bytes": 30049,
+      "sha256": "98e38e867a3b2aa5805de2f01b687100f603594c81bd2b716abf3a66a8ed6d58"
+    },
+    {
+      "file": "h5\\shell-568-battle.png",
+      "bytes": 41911,
+      "sha256": "ca32ab3d798cbaa2c96480212dde7dbdee07e7235f2bb0119833551c7793e418"
+    },
+    {
+      "file": "h5\\shell-568-briefing.png",
+      "bytes": 23056,
+      "sha256": "6c7b975ecde7ec7dd10feeaabf3f7a3a4aef53d909b53780bd73658bed0433fb"
+    },
+    {
+      "file": "h5\\shell-568-pause.png",
+      "bytes": 20098,
+      "sha256": "09e74b63f1ff210d3317538bb6090d256307e683e2ea972dcef560891c4a676e"
+    },
+    {
+      "file": "h5\\simulated-safe-area.png",
+      "bytes": 36931,
+      "sha256": "6b7e8765419cafb8d6c3178cbdc1bed9615c3c7e854d85821405748a970db76f"
+    }
+  ]
+}

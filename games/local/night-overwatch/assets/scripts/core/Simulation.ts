@@ -41,6 +41,8 @@ export type BattleEvent = Point & {
   weapon: number;
   time: number;
   unit?: number;
+  outcome?: 'hit' | 'miss' | 'armor' | 'friendly' | 'destroyed';
+  damage?: number;
 };
 export type FireReason =
   | 'ready'
@@ -71,6 +73,9 @@ export class Simulation {
   fired = 0;
   hits = 0;
   friendlyDamage = 0;
+  rescueDamage = { friendly: 0, enemy: 0 };
+  damageByThreat: Partial<Record<Kind, number>> = {};
+  failureCause: '' | 'friendly' | 'enemy' = '';
   friendHitAt = -100;
   failure: '' | 'vehicle' | 'timeout' = '';
   lastWave = -1;
@@ -229,26 +234,42 @@ export class Simulation {
   }
   private impact(s: Shot) {
     const w = WEAPONS[s.weapon];
-    let hit = false;
+    let hit = false,
+      friendly = false,
+      armor = false,
+      destroyed = false,
+      total = 0;
     for (const u of this.units) {
       if (u.hp <= 0 || distance(u, s) > w.radius + UNITS[u.kind].radius) continue;
       if (u.friendly && this.training) continue;
       const damage = w.damage * (u.kind === 'heavy' ? w.armor : 1),
         actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
+      total += actual;
       u.hit = 0.18;
       if (u.friendly) {
+        friendly = true;
         this.friendlyDamage += actual;
         this.friendHitAt = this.time;
+        if (u.kind === 'rescue') {
+          this.rescueDamage.friendly += actual;
+          if (u.hp === 0) this.failureCause = 'friendly';
+        }
       } else {
         hit = true;
         this.hits++;
         this.completed.add('hit');
-        if (u.kind === 'heavy' && s.weapon === 0) this.warning = 'armor';
+        if (u.kind === 'heavy' && s.weapon === 0) {
+          this.warning = 'armor';
+          armor = true;
+        } else this.warning = '';
       }
       if (u.hp === 0) {
         u.deadAt = this.time;
-        if (!u.friendly) this.kills++;
+        if (!u.friendly) {
+          this.kills++;
+          destroyed = true;
+        }
         this.emit('kill', u, s.weapon, u.id);
       }
     }
@@ -257,6 +278,17 @@ export class Simulation {
       if (this.warning === 'lead') this.warning = '';
     } else if (++this.misses >= 7) this.warning = 'lead';
     this.emit('impact', s, s.weapon);
+    const event = this.events[this.events.length - 1];
+    event.outcome = friendly
+      ? 'friendly'
+      : destroyed
+        ? 'destroyed'
+        : armor
+          ? 'armor'
+          : hit
+            ? 'hit'
+            : 'miss';
+    event.damage = total;
   }
   step(dt: number) {
     if (this.phase !== 'playing' || this.paused) return;
@@ -309,7 +341,11 @@ export class Simulation {
         u.attack <= 0 &&
         distance(u, this.rescue) < spec.range
       ) {
+        const damage = Math.min(this.rescue.hp, spec.damage);
+        this.rescueDamage.enemy += damage;
+        this.damageByThreat[u.kind] = (this.damageByThreat[u.kind] || 0) + damage;
         this.rescue.hp = Math.max(0, this.rescue.hp - spec.damage);
+        if (this.rescue.hp === 0) this.failureCause = 'enemy';
         this.rescue.hit = 0.3;
         u.attack = 2.4;
         this.emit('attack', u, 0, this.rescue.id);

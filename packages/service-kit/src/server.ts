@@ -32,8 +32,9 @@ export function createService(
   dependencies: Record<string, DependencyProbe>,
   logger: FastifyServerOptions['logger'] = true,
   exporter?: RequestSpanExporter,
+  trustProxy: FastifyServerOptions['trustProxy'] = false,
 ) {
-  const app = Fastify({ logger, requestTimeout: 10_000, bodyLimit: 1_048_576 });
+  const app = Fastify({ logger, requestTimeout: 10_000, bodyLimit: 1_048_576, trustProxy });
   const telemetry: RequestSpanExporter =
     exporter ??
     ({
@@ -108,8 +109,9 @@ async function closeService(app: FastifyInstance) {
   }
 }
 
-/** Starts a loopback-only local service and drains it on terminal shutdown. */
+/** Defaults to loopback; containers explicitly opt into an external listener. */
 export async function listenService(app: FastifyInstance, defaultPort: number) {
+  const host = z.enum(['127.0.0.1', '0.0.0.0', '::1', '::']).parse(process.env.HOST ?? '127.0.0.1');
   const port = z.coerce
     .number()
     .int()
@@ -132,7 +134,7 @@ export async function listenService(app: FastifyInstance, defaultPort: number) {
     process.removeListener('SIGTERM', shutdown);
   });
   try {
-    await app.listen({ host: '127.0.0.1', port });
+    await app.listen({ host, port });
   } catch (error) {
     try {
       await closeService(app);
@@ -146,6 +148,6 @@ export async function listenService(app: FastifyInstance, defaultPort: number) {
         : code === 'EADDRINUSE'
           ? 'EADDRINUSE'
           : 'check its configured port';
-    throw new Error(`Service failed to listen on 127.0.0.1:${port} (${reason})`);
+    throw new Error(`Service failed to listen on ${host}:${port} (${reason})`);
   }
 }

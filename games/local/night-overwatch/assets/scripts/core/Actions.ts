@@ -1,4 +1,4 @@
-import { WEAPONS, text, type Language } from './Data.ts';
+import { WEAPONS, MISSION, text, type Language } from './Data.ts';
 type Group = 'basic' | 'advanced' | 'rules';
 export const ACTIONS = [
   {
@@ -173,8 +173,8 @@ export const ACTIONS = [
     binding: 'M',
     touch: ['点击任务', 'Tap MISSION'],
     description: [
-      '护送关键救援车到东侧撤离区；被毁或 140 秒超时则失败。',
-      'Escort rescue to the eastern exit. Destruction or 140s timeout fails.',
+      `护送救援车到撤离区；被毁或 ${MISSION.duration} 秒超时则失败。`,
+      `Escort rescue to the exit. Destruction or ${MISSION.duration}s timeout fails.`,
     ],
   },
   {
@@ -209,8 +209,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['点击全屏 / 退出全屏', 'Tap full screen / exit'],
     description: [
-      '右上角全屏入口，退出后任务进度保留。浏览器不支持时可继续窗口游玩。',
-      'Use the top-right full screen button. Progress is preserved on exit. Windowed play stays available.',
+      '战术菜单或暂停面板可进入全屏，退出后进度保留。不支持时仍可窗口游玩。',
+      'Use Full screen in TOOLS or Pause. Progress is preserved on exit. Windowed play stays available.',
     ],
   },
   {
@@ -283,17 +283,38 @@ export function actionLabel(id: string, lang: Language, touch = false, automatic
     return text(touch ? (automatic ? a.touchHold : a.touchTap) : automatic ? a.hold : a.tap, lang);
   return `${!touch && a.binding ? bindingLabel(id, lang).split(' / ')[0] + ' · ' : ''}${text(a.name, lang)}`;
 }
-export const TUTORIAL = [
-  'aim',
-  'fire',
-  'hit',
-  'weapon',
-  'zoom',
-  'sensor',
-  'hold',
-  'continue',
-] as const;
+export const TUTORIAL = ['aim', 'fire', 'hit', 'weapon'] as const;
 export function tutorialText(event: string, lang: Language, touch: boolean) {
+  if (event === 'weapon')
+    return text(
+      touch
+        ? [
+            '点「爆破炮」对付炮台；重甲出现时用重型炮。',
+            'Tap Burst for turrets. Use Heavy when armor arrives.',
+          ]
+        : [
+            '按 2 切爆破炮对付炮台；重甲出现时按 3。',
+            'Press 2 for turrets. Press 3 when armor arrives.',
+          ],
+      lang,
+    );
+  if (event === 'aim')
+    return text(
+      touch
+        ? [
+            '左手拖动战场，把准星移到菱形敌人前方。',
+            'Drag the battlefield. Aim ahead of a diamond.',
+          ]
+        : ['移动鼠标，把准星移到菱形敌人前方。', 'Move the mouse. Aim ahead of a diamond.'],
+      lang,
+    );
+  if (event === 'fire')
+    return text(
+      touch
+        ? ['右手按住开火；左手可以继续瞄准。', 'Hold FIRE with your other thumb. Keep aiming.']
+        : ['按住左键开火，松开即停。', 'Hold the left mouse button. Release to stop.'],
+      lang,
+    );
   if (event === 'hit')
     return text(
       [

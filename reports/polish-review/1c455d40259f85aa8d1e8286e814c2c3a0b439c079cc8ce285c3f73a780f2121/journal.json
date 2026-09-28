@@ -1,0 +1,38 @@
+[
+  {
+    "name": "568-default",
+    "at": "2026-09-28T07:01:14.476Z",
+    "note": "Fresh default battle; no zoom or sensor changes.",
+    "bytes": 49738
+  },
+  {
+    "name": "844-default",
+    "at": "2026-09-28T07:01:17.926Z",
+    "note": "Fresh default battle; no zoom or sensor changes.",
+    "bytes": 62293
+  },
+  {
+    "name": "568-turret-destroyed",
+    "at": "2026-09-28T07:03:18.994Z",
+    "note": "Real dual-finger blast fire at fixed turret diamond, then release/travel; no state edits.",
+    "bytes": 43783
+  },
+  {
+    "name": "568-moving-target",
+    "at": "2026-09-28T07:03:23.868Z",
+    "note": "Real rapid fire tracking moving light vehicle; then release and switch to heavy without firing.",
+    "bytes": 45920
+  },
+  {
+    "name": "844-turret-destroyed",
+    "at": "2026-09-28T07:03:27.736Z",
+    "note": "Real dual-finger blast fire at fixed turret diamond, then release/travel; no state edits.",
+    "bytes": 59932
+  },
+  {
+    "name": "844-moving-target",
+    "at": "2026-09-28T07:03:29.737Z",
+    "note": "Real rapid fire tracking moving light vehicle; then release and switch to heavy without firing.",
+    "bytes": 57821
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "01-final-banner-default",
+    "at": "2026-09-28T07:14:30.020Z",
+    "note": "Final hash, 568x320 default first-wave notice; real touch started mission.",
+    "bytes": 49726
+  },
+  {
+    "name": "02-kill-confirmation",
+    "at": "2026-09-28T07:16:34.219Z",
+    "note": "Real blast turret kill; capture initial confirmation.",
+    "bytes": 44662
+  },
+  {
+    "name": "03-kill-held-after-misses",
+    "at": "2026-09-28T07:16:34.887Z",
+    "note": "Fire rapid rounds into now-dead turret; check whether subsequent misses replace kill confirmation within1.1s.",
+    "bytes": 42378
+  },
+  {
+    "name": "04-feedback-after-hold",
+    "at": "2026-09-28T07:16:35.794Z",
+    "note": "Continuing real misses after hold window, check eventual feedback transition.",
+    "bytes": 47219
+  },
+  {
+    "name": "05-moving-label-banner",
+    "at": "2026-09-28T07:16:38.976Z",
+    "note": "Reproduce moving target near upper notice band after rapid fire and switch.",
+    "bytes": 45526
+  }
+]

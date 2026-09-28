@@ -274,3 +274,37 @@ test('expanded route, friendly identification and launch position remain consist
   assert.equal(s.shots[0].due - s.shots[0].born, WEAPONS[2].flight);
   assert(s.shots[0].origin.y > 100);
 });
+
+test('impact feedback describes actual damage and lethal rescue damage keeps its source', () => {
+  const s = start();
+  s.choose(1);
+  s.fire();
+  tick(s, 0.6);
+  assert.equal(s.events.filter((e) => e.type === 'impact').at(-1)?.outcome, 'miss');
+  tick(s, 0.3);
+  s.setAim(s.units.find((u) => u.kind === 'turret')!);
+  s.fire();
+  tick(s, 0.6);
+  const hit = s.events.filter((e) => e.type === 'impact').at(-1)!;
+  assert.equal(hit.outcome, 'hit');
+  assert.equal(hit.damage, 35);
+  s.choose(2);
+  s.setAim(s.rescue);
+  s.fire();
+  tick(s, 3.1);
+  s.setAim(s.rescue);
+  s.fire();
+  tick(s, 1.1);
+  assert.equal(s.phase, 'failure');
+  assert.equal(s.failureCause, 'friendly');
+  assert(s.rescueDamage.friendly > s.rescueDamage.enemy);
+  const enemy = start();
+  tick(enemy, 80);
+  assert.equal(enemy.failureCause, 'enemy');
+  assert.equal(enemy.rescueDamage.friendly, 0);
+  assert.equal(
+    Object.values(enemy.damageByThreat).reduce((sum, damage) => sum + damage, 0),
+    enemy.rescueDamage.enemy,
+  );
+  assert((enemy.damageByThreat.turret || 0) > 0, 'debrief attributes actual incoming damage');
+});
