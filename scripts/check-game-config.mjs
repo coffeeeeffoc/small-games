@@ -86,6 +86,13 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
       )
       .map((match) => match[2]),
   );
+  // Lazy registry entries destructure the public definition only when selected.
+  for (const match of withoutComments(registry).matchAll(
+    /\bconst\s*\{([^}]+)\}\s*=\s*await\s+import\(\s*['"]([^'"]+)['"]\s*\)/g,
+  )) {
+    if (match[1].split(',').some((name) => registeredDefinitions.has(name.trim())))
+      builtins.add(match[2]);
+  }
   const markerBlock =
     withoutComments(smoke).match(/export\s+const\s+markers\s*=\s*\{([\s\S]*?)\n?\};/)?.[1] || '';
   const markers = new Set(

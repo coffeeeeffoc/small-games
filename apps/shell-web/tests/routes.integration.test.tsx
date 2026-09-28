@@ -5,11 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import {
   ShellApp,
-  builtInGameRegistry,
+  builtInGameRegistry as lazyRegistry,
+  loadBuiltInGame,
   type BuiltInGame,
   type ShellAppProps,
   type createRuntimeClient,
 } from '@coffeeeeffoc/shell-web';
+
+const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
@@ -53,6 +56,37 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell routes', () => {
+  it('loads only the selected game and ignores its result after leaving the route', async () => {
+    const game = builtInGameRegistry[0];
+    let finish!: (value: BuiltInGame) => void;
+    const mount = vi.fn(game.definition.mount);
+    const load = vi.fn(
+      () =>
+        new Promise<BuiltInGame>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const other = { id: 'other', title: 'Other', description: '', load: vi.fn() };
+    const container = await renderShell({
+      registry: [{ id: game.id, title: game.title, description: game.description, load }, other],
+    });
+    expect(load).not.toHaveBeenCalled();
+    expect(other.load).not.toHaveBeenCalled();
+    const card = [...container.querySelectorAll('article')].find((node) =>
+      node.textContent?.includes(game.title),
+    )!;
+    await clickButton(card, '进入游戏');
+    expect(load).toHaveBeenCalledOnce();
+    await act(async () => {
+      window.history.replaceState(null, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await act(async () => finish({ ...game, definition: { ...game.definition, mount } }));
+    expect(mount).not.toHaveBeenCalled();
+    expect(other.load).not.toHaveBeenCalled();
+    expect(container.querySelector('.game-slot, iframe')).toBeNull();
+  });
+
   it('registers building-power and mounts its Canvas from the shared URL', async () => {
     const game = builtInGameRegistry.find((entry) => entry.id === 'building-power');
     expect(game?.definition.manifest.gameId).toBe('building-power');

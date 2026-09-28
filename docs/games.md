@@ -8,7 +8,7 @@
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。 |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。                  |
-| 夜航守望              | `night-overwatch`             | [games/local/night-overwatch](../games/local/night-overwatch/)                           | 切换三档空中火力打通公路，在待命点指挥车队，护送关键救援车完成撤离。        |
+| 夜航守望              | `night-overwatch`              | [games/local/night-overwatch](../games/local/night-overwatch/)                           | 切换三档空中火力打通公路，在待命点指挥车队，护送关键救援车完成撤离。        |
 | 围捕小队              | `cops-robbers`                 | [games/local/cops-robbers](../games/local/cops-robbers/)                                 | 追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。              |
 | 别跑！街区围捕        | `cops-robbers-realtime`        | [games/local/cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。            |
 | 电子斗蛐蛐            | `game-arena`                   | [games/local/game-arena](../games/local/game-arena/)                                     | 秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。                          |
@@ -36,7 +36,7 @@
 | 气球搬家公司          | `balloon-movers`               | [games/local/balloon-movers](../games/local/balloon-movers/)                             | 绑好气球，控制左右排气，让沙发、冰箱和钢琴穿过窄窗，稳稳落到收货垫上。      |
 | 天气指挥部            | `weather-command`              | [games/local/weather-command](../games/local/weather-command/)                           | 用雨、风、太阳和雪改变航道，在三次天气指令内把补给船送进码头。              |
 | 镜头外发生了什么      | `off-camera`                   | [games/local/off-camera](../games/local/off-camera/)                                     | 观察深夜小店的前后画面，排列事件卡重演盲区里的动作，还原三个喜剧谜案。      |
-| 小城救援队            | `rescue-team`               | [games/local/rescue-team](../games/local/rescue-team/)                             | 调度三辆救援车，接报后开始计时，选择路线、疏通道路，及时赶到现场完成救援。            |
+| 小城救援队            | `rescue-team`                  | [games/local/rescue-team](../games/local/rescue-team/)                                   | 调度三辆救援车，接报后开始计时，选择路线、疏通道路，及时赶到现场完成救援。  |
 | 一分钟拆对墙          | `precision-demolition`         | [games/local/precision-demolition](../games/local/precision-demolition/)                 | 按住接缝凿击，安排卸重顺序和倒塌方向，拆掉目标墙板并保护承重柱与花瓶。      |
 | Afterimage Arena      | `afterimage-arena`             | [games/local/afterimage-arena](../games/local/afterimage-arena/)                         | 留下二十秒的真实动作，与过去的自己协作破盾、躲避红环，击穿机械核心。        |
 | Ghost Shift Manager   | `ghost-shift-manager`          | [games/local/ghost-shift-manager](../games/local/ghost-shift-manager/)                   | 安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。        |

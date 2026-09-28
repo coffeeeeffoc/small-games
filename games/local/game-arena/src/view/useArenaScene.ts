@@ -29,6 +29,7 @@ export function useArenaScene(
   useEffect(() => {
     const sound = createArenaAudio((src, options) => {
       const element = new Audio(files[`../../public/${src}`]);
+      element.preload = 'none';
       element.loop = options?.loop ?? false;
       element.volume = options?.volume ?? 0.6;
       return {

@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 20
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
     steps:
@@ -54,6 +55,10 @@ jobs:
         with:
           name: carding-car-${{ github.sha }}
           path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

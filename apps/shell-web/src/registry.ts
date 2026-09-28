@@ -2,20 +2,8 @@ import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import type { GameDefinition, GameSessionContext, StoragePort } from '@coffeeeeffoc/game-contract';
 import type { RemoteGameArtifact } from '@coffeeeeffoc/game-loader';
 import type { ManagedAdConfig } from '@coffeeeeffoc/ad-config';
-import { arenaGameDefinition, defaultArenaEnvelope } from '@coffeeeeffoc/game-arena';
-import {
-  buildingPowerGameDefinition,
-  defaultBuildingPowerEnvelope,
-} from '@coffeeeeffoc/game-building-power';
-import {
-  cultivationGameDefinition,
-  defaultCultivationEnvelope,
-} from '@coffeeeeffoc/game-cultivation';
-import { defaultOfficeEnvelope, officeGameDefinition } from '@coffeeeeffoc/game-office';
 
-import { cricketGameDefinition, defaultCricketEnvelope } from '@coffeeeeffoc/game-cricket';
-
-/** Catalog metadata paired with a trusted build-time Game import. */
+/** A selected Game, after its trusted local module has loaded. */
 export type BuiltInGame = Readonly<{
   id: string;
   title: string;
@@ -29,6 +17,16 @@ export type BuiltInGame = Readonly<{
   playerId?: string;
 }>;
 
+export type LazyBuiltInGame = Pick<BuiltInGame, 'id' | 'title' | 'description'> & {
+  load: () => Promise<Pick<BuiltInGame, 'definition' | 'content' | 'remote'>>;
+};
+
+export async function loadBuiltInGame(game: BuiltInGame | LazyBuiltInGame): Promise<BuiltInGame> {
+  if (!('load' in game)) return game;
+  const { load, ...metadata } = game;
+  return { ...metadata, ...(await load()) };
+}
+
 const cultivationArtifactUrl = import.meta.env.VITE_CULTIVATION_ARTIFACT_URL as string | undefined;
 const cultivationArtifactIntegrity = import.meta.env.VITE_CULTIVATION_ARTIFACT_INTEGRITY as
   | string
@@ -37,13 +35,13 @@ const cultivationArtifactVersion = import.meta.env.VITE_CULTIVATION_ARTIFACT_VER
   | string
   | undefined;
 
-const remoteCultivation =
+const remoteCultivation = (definition: GameDefinition) =>
   cultivationArtifactUrl && cultivationArtifactIntegrity && cultivationArtifactVersion
     ? {
         target: {
           entryUrl: cultivationArtifactUrl,
           manifest: {
-            ...cultivationGameDefinition.manifest,
+            ...definition.manifest,
             version: cultivationArtifactVersion,
             integrity: cultivationArtifactIntegrity,
           },
@@ -51,42 +49,65 @@ const remoteCultivation =
       }
     : undefined;
 
-/** Trusted Games compiled into this Web Shell through public package exports only. */
-export const builtInGameRegistry: readonly BuiltInGame[] = [
+/** The lobby loads metadata only; each public package entry is fetched on selection. */
+export const builtInGameRegistry: readonly LazyBuiltInGame[] = [
   {
     id: 'cultivation',
     title: '三分钟修仙',
     description: '亲手吐纳，御剑寻缘。两分钟修炼探索，一分钟登台渡劫。',
-    definition: cultivationGameDefinition,
-    content: defaultCultivationEnvelope,
-    remote: remoteCultivation,
+    load: async () => {
+      const { cultivationGameDefinition, defaultCultivationEnvelope } = await import(
+        '@coffeeeeffoc/game-cultivation'
+      );
+      return {
+        definition: cultivationGameDefinition,
+        content: defaultCultivationEnvelope,
+        remote: remoteCultivation(cultivationGameDefinition),
+      };
+    },
   },
   {
     id: 'cricket',
     title: '秋声斗蟋',
     description: '撩拨蓄势，收梗闪避。老槐茶馆连闯三擂。',
-    definition: cricketGameDefinition,
-    content: defaultCricketEnvelope,
+    load: async () => {
+      const { cricketGameDefinition, defaultCricketEnvelope } = await import(
+        '@coffeeeeffoc/game-cricket'
+      );
+      return { definition: cricketGameDefinition, content: defaultCricketEnvelope };
+    },
   },
   {
     id: 'office',
     title: '打工人摸鱼记',
     description: '第一人称潜入工位，周一迟到首关已开放，一周摸鱼场景逐步登场。',
-    definition: officeGameDefinition,
-    content: defaultOfficeEnvelope,
+    load: async () => {
+      const { officeGameDefinition, defaultOfficeEnvelope } = await import(
+        '@coffeeeeffoc/game-office'
+      );
+      return { definition: officeGameDefinition, content: defaultOfficeEnvelope };
+    },
   },
   {
     id: 'arena',
     title: '电子斗蛐蛐',
     description: '秋夜瓦盆斗蟋蟀，拨草扑咬、闪身反击，亲手赢下五擂。',
-    definition: arenaGameDefinition,
-    content: defaultArenaEnvelope,
+    load: async () => {
+      const { arenaGameDefinition, defaultArenaEnvelope } = await import(
+        '@coffeeeeffoc/game-arena'
+      );
+      return { definition: arenaGameDefinition, content: defaultArenaEnvelope };
+    },
   },
   {
     id: 'building-power',
     title: '忙碌的电工',
     description: '居民急着做饭、洗澡、降温；看天气、错峰接电，守住邻里灯火。',
-    definition: buildingPowerGameDefinition,
-    content: defaultBuildingPowerEnvelope,
+    load: async () => {
+      const { buildingPowerGameDefinition, defaultBuildingPowerEnvelope } = await import(
+        '@coffeeeeffoc/game-building-power'
+      );
+      return { definition: buildingPowerGameDefinition, content: defaultBuildingPowerEnvelope };
+    },
   },
 ];

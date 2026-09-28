@@ -118,6 +118,28 @@ test('allows only exact shared competition rule edges, never game runtime servic
   assert.ok(violations.some((entry) => entry.message.includes('main.js')));
 });
 
+test('allows the shared Creator launcher only in the declared build scripts', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'games/local/night-overwatch',
+      manifest: { name: '@coffeeeeffoc/night-overwatch' },
+      files: {
+        'scripts/build.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'scripts/typecheck.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'scripts/other.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'assets/scripts/main.ts': "import '../../../carding-car/scripts/toolchain.mjs';\n",
+        'test-results/capture.mjs': "import '../../../apps/shell-web/internal.js';\n",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 2);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert(violations.some((entry) => entry.message.includes('other.mjs')));
+  assert(violations.some((entry) => entry.message.includes('main.ts')));
+});
+
 test('requires an explicit root export', async (t) => {
   const root = await createWorkspace([
     {

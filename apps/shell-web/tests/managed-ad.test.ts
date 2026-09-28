@@ -2,11 +2,14 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { normalizeManagedAdConfig, type ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import { publishedSessionSchema } from '@coffeeeeffoc/release-contract';
 import {
-  builtInGameRegistry,
+  builtInGameRegistry as lazyRegistry,
+  loadBuiltInGame,
   createManagedAdProvider,
   createWebGameHost,
   withPublishedSession,
 } from '@coffeeeeffoc/shell-web';
+
+const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
 
 const opportunity = { id: 'cultivation.reincarnate', reward: { luck: 2 } };
 

@@ -1,5 +1,10 @@
 export { ShellApp, type ShellAppProps } from './ShellApp.js';
-export { builtInGameRegistry, type BuiltInGame } from './registry.js';
+export {
+  builtInGameRegistry,
+  loadBuiltInGame,
+  type BuiltInGame,
+  type LazyBuiltInGame,
+} from './registry.js';
 export {
   createRuntimeClient,
   localPlayerCredential,

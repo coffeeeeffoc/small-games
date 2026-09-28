@@ -2,7 +2,8 @@ import { expect, it, vi } from 'vitest';
 import { publishedSessionSchema } from '@coffeeeeffoc/release-contract';
 import { gameSessionContextSchema } from '@coffeeeeffoc/game-contract';
 import {
-  builtInGameRegistry,
+  builtInGameRegistry as lazyRegistry,
+  loadBuiltInGame,
   withPublishedSession,
   createWebGameHost,
   createRuntimeClient,
@@ -14,6 +15,8 @@ import {
 } from '@coffeeeeffoc/shell-web';
 import { FallbackGameLoader } from '@coffeeeeffoc/game-loader';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
+
+const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
 
 it('stores a transferable cloud-save credential atomically', () => {
   localStorage.clear();

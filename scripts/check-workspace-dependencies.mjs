@@ -22,6 +22,11 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  // Build tooling and browser acceptance helpers, never game runtime dependencies.
+  'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/night-overwatch/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/night-overwatch/tests/h5.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
+  'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',
   'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
   'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
@@ -57,6 +62,7 @@ const IGNORED_DIRECTORIES = new Set([
   'library',
   'temp',
   'reports',
+  'test-results',
   'biligame-builder',
 ]);
 
