@@ -10,6 +10,7 @@ const templates = path.join(root, 'infra/tencent');
 
 export function deploymentConfig(env) {
   const config = {
+    DEPLOY_MODE: 'internal',
     ECS_SSH_PORT: '22',
     ECS_DEPLOY_DIR: '/opt/small-games',
     ECS_TLS_DIR: '/opt/small-games/certs',
@@ -18,6 +19,7 @@ export function deploymentConfig(env) {
     ...env,
   };
   const patterns = {
+    DEPLOY_MODE: /^(internal|public)$/,
     ECS_HOST: /^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/,
     ECS_USER: /^[a-z_][a-z0-9_-]*$/,
     GAME_DOMAIN: /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/,
@@ -33,6 +35,11 @@ export function deploymentConfig(env) {
     COS_SECRET_KEY: /^[^\r\n]+$/,
   };
   const invalid = Object.entries(patterns)
+    .filter(
+      ([key]) =>
+        config.DEPLOY_MODE !== 'internal' ||
+        (!key.startsWith('COS_') && !['GAME_DOMAIN', 'ECS_TLS_DIR'].includes(key)),
+    )
     .filter(([key, pattern]) => !pattern.test(config[key] || ''))
     .map(([key]) => key);
   if (
@@ -46,16 +53,90 @@ export function deploymentConfig(env) {
       `Missing/invalid variables: ${invalid.join(', ')}. See infra/tencent/.env.example`,
     );
   config.COS_HOST = `${config.COS_BUCKET}.cos.${config.COS_REGION}.myqcloud.com`;
+  config.APP_ORIGIN =
+    config.DEPLOY_MODE === 'internal' ? 'http://localhost:8080' : `https://${config.GAME_DOMAIN}`;
   return config;
 }
 
 export function renderNginx(template, config, release) {
   if (!/^[a-z0-9-]+$/.test(release)) throw new Error('Invalid release ID');
+  if (config.DEPLOY_MODE === 'internal') {
+    // Reuse the same API/WS routes, with local static files and no public virtual hosts.
+    template = template
+      .slice(template.indexOf('map $http_upgrade'))
+      .replace(/upstream game_cos \{[\s\S]*?\n\}/, '')
+      .replace(
+        /server \{\n    listen 80 default_server;[\s\S]*?    ssl_protocols TLSv1\.2 TLSv1\.3;/,
+        'server {\n    listen 80 default_server;\n    server_name localhost;\n    absolute_redirect off;',
+      )
+      .replace(
+        /    location \^~ \/releases\/ \{[\s\S]*?\n    \}/,
+        '    location ^~ /releases/ {\n        limit_except GET { deny all; }\n        root /srv/site;\n        index index.html;\n        try_files $uri $uri/ =404;\n    }',
+      );
+  }
   const values = { ...config, RELEASE_ID: release };
   return template.replace(/\$\{([A-Z_]+)\}/g, (_, key) => {
     if (values[key] === undefined) throw new Error(`Unknown template variable: ${key}`);
     return values[key];
   });
+}
+
+export function renderCompose(template, config) {
+  return template
+    .replace(
+      "ports: ['80:80', '443:443']",
+      config.DEPLOY_MODE === 'internal'
+        ? "ports: ['127.0.0.1:8080:80']"
+        : "ports: ['80:80', '443:443']",
+    )
+    .replace(/https:\/\/\$\{GAME_DOMAIN:\?required\}/g, '${APP_ORIGIN:?required}')
+    .split('\n')
+    .filter(
+      (line) =>
+        config.DEPLOY_MODE !== 'internal' ||
+        !/\/etc\/nginx\/(certs|extra)|\/var\/www:ro/.test(line),
+    )
+    .join('\n')
+    .replace(
+      '- ./nginx:/etc/nginx/conf.d:ro',
+      '- ./nginx:/etc/nginx/conf.d:ro' +
+        (config.DEPLOY_MODE === 'internal' ? '\n      - ./site:/srv/site:ro' : ''),
+    );
+}
+
+export function tunnelArgs(config) {
+  return [
+    '-N',
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    'ExitOnForwardFailure=yes',
+    '-o',
+    'StrictHostKeyChecking=accept-new',
+    ...(config.ECS_SSH_KEY ? ['-i', config.ECS_SSH_KEY] : []),
+    '-p',
+    config.ECS_SSH_PORT,
+    '-L',
+    '127.0.0.1:8080:127.0.0.1:8080',
+    `${config.ECS_USER}@${config.ECS_HOST}`,
+  ];
+}
+
+export function serverPreflight(config) {
+  return `set -eu
+docker compose version
+version=$(docker version --format '{{.Server.Version}}')
+printf 'Docker Engine: %s\\n' "$version"
+${
+  config.DEPLOY_MODE === 'internal'
+    ? `major=\${version%%.*}
+case "$major" in ''|*[!0-9]*) echo 'Cannot determine Docker Engine version.' >&2; exit 1;; esac
+if [ "$major" -lt 28 ]; then
+  echo "Internal mode requires Docker Engine 28+; found $version. Upgrade before deploying." >&2
+  exit 1
+fi`
+    : ''
+}`;
 }
 
 async function run(command, args, { cwd = root, env = process.env } = {}) {
@@ -91,7 +172,7 @@ async function pnpm(args) {
 export async function prepareSite(source, destination) {
   await cp(source, destination, { recursive: true, dereference: false });
   const config =
-    '<script data-tencent-runtime>globalThis.__COMPETITION_CONFIG__=Object.assign({},globalThis.__COMPETITION_CONFIG__,{apiUrl:location.origin+"/api/competition/v1"});globalThis.__kartServerUrl="wss://"+location.host+"/kart";</script>';
+    '<script data-tencent-runtime>globalThis.__COMPETITION_CONFIG__=Object.assign({},globalThis.__COMPETITION_CONFIG__,{apiUrl:location.origin+"/api/competition/v1"});globalThis.__kartServerUrl=(location.protocol==="http:"?"ws://":"wss://")+location.host+"/kart";</script>';
   let pages = 0;
   async function visit(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -168,29 +249,51 @@ export async function prepareBackend(destination, workspace = root) {
     'games/submodules/xiangqi-five/game.js',
   ])
     await copy(name);
+  for (const entry of ['services/runtime-api/dist/main.js', 'services/kart-server/src/main.ts'])
+    await stat(path.join(destination, entry));
 }
 
 async function main() {
   const args = process.argv.slice(2).filter((arg) => arg !== '--');
   if (args.includes('--help')) {
     console.log(
-      'pnpm deploy:tencent [--check | --prepare]\nReads .env.tencent.local (environment overrides file). Default: build, upload COS, deploy over SSH.',
+      'pnpm deploy:tencent [--internal | --public] [--check | --prepare | --tunnel]\nDefault: internal deployment, loopback HTTP and local static files. --public enables HTTPS/COS. --tunnel opens localhost:8080 over SSH.',
     );
     return;
   }
-  if (args.some((arg) => !['--check', '--prepare'].includes(arg)) || args.length > 1)
-    throw new Error('Use --check, --prepare, or no arguments.');
+  if (
+    args.some(
+      (arg) => !['--check', '--prepare', '--internal', '--public', '--tunnel'].includes(arg),
+    ) ||
+    ['--check', '--prepare', '--tunnel'].filter((arg) => args.includes(arg)).length > 1 ||
+    (args.includes('--internal') && args.includes('--public')) ||
+    (args.includes('--tunnel') && args.includes('--public'))
+  )
+    throw new Error(
+      'Choose one mode (--internal/--public) and at most one action (--check/--prepare/--tunnel).',
+    );
   let local = {};
   try {
     local = parseEnv(await readFile(path.join(root, '.env.tencent.local'), 'utf8'));
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
-  const config = deploymentConfig({ ...local, ...process.env });
+  const config = deploymentConfig({
+    ...local,
+    ...process.env,
+    DEPLOY_MODE: args.includes('--public') ? 'public' : 'internal',
+  });
   if (config.ECS_SSH_KEY) await stat(config.ECS_SSH_KEY);
+  if (args.includes('--tunnel')) {
+    console.log(
+      'Opening SSH tunnel. Visit http://localhost:8080 after SSH connects; keep this terminal open (Ctrl+C to close).',
+    );
+    await run('ssh', tunnelArgs(config), { env: toolEnvironment() });
+    return;
+  }
   if (args.includes('--check')) {
     console.log(
-      `Configuration OK: https://${config.GAME_DOMAIN}, COS ${config.COS_BUCKET}/${config.COS_PREFIX}, SSH ${config.ECS_USER}@${config.ECS_HOST}. No remote requests made.`,
+      `Configuration OK (${config.DEPLOY_MODE}): ${config.APP_ORIGIN}, SSH ${config.ECS_USER}@${config.ECS_HOST}. No remote requests made.`,
     );
     return;
   }
@@ -202,8 +305,9 @@ async function main() {
       env: toolEnvironment(),
     });
   if (!args.includes('--prepare')) {
-    await run(config.COS_PYTHON, ['-c', 'import qcloud_cos'], { env: toolEnvironment() });
-    await ssh('docker compose version');
+    if (config.DEPLOY_MODE === 'public')
+      await run(config.COS_PYTHON, ['-c', 'import qcloud_cos'], { env: toolEnvironment() });
+    await ssh(serverPreflight(config));
   }
   const release = `${new Date().toISOString().replace(/[-:.]/g, '').toLowerCase()}-${randomBytes(4).toString('hex')}`;
   const stage = path.join(root, '.scratch/tencent', release);
@@ -226,6 +330,14 @@ async function main() {
   await prepareBackend(path.join(bundle, 'backend'));
   for (const file of ['Dockerfile', 'compose.yaml', 'bootstrap.sql', 'deploy.sh'])
     await cp(path.join(templates, file), path.join(bundle, file));
+  await writeFile(
+    path.join(bundle, 'compose.yaml'),
+    renderCompose(await readFile(path.join(templates, 'compose.yaml'), 'utf8'), config),
+  );
+  if (config.DEPLOY_MODE === 'internal')
+    await cp(path.join(stage, 'site'), path.join(bundle, 'site/releases', release), {
+      recursive: true,
+    });
   for (const file of ['010-competition.sql', '011-competition-profiles.sql'])
     await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));
   await writeFile(
@@ -239,8 +351,9 @@ async function main() {
   const serverConfig = Object.fromEntries(
     [
       'ECS_DEPLOY_DIR',
-      'ECS_TLS_DIR',
-      'GAME_DOMAIN',
+      ...(config.DEPLOY_MODE === 'public' ? ['ECS_TLS_DIR', 'GAME_DOMAIN'] : []),
+      'DEPLOY_MODE',
+      'APP_ORIGIN',
       'POSTGRES_PASSWORD',
       'RUNTIME_DB_PASSWORD',
       'COMPETITION_INTERNAL_KEY',
@@ -269,11 +382,12 @@ async function main() {
     'COS_SESSION_TOKEN',
   ])
     if (config[key]) uploadEnv[key] = config[key];
-  await run(
-    config.COS_PYTHON,
-    [path.join(templates, 'upload.py'), path.join(stage, 'site'), release],
-    { env: uploadEnv },
-  );
+  if (config.DEPLOY_MODE === 'public')
+    await run(
+      config.COS_PYTHON,
+      [path.join(templates, 'upload.py'), path.join(stage, 'site'), release],
+      { env: uploadEnv },
+    );
   const archive = path.join(stage, 'server.tar.gz');
   await run('tar', ['-czf', archive, '-C', bundle, '.'], { env: toolEnvironment() });
   const remoteDirectory = `${config.ECS_DEPLOY_DIR}/releases/${release}`;
@@ -292,7 +406,9 @@ async function main() {
   await ssh(
     `cd '${remoteDirectory}' && umask 077 && tar -xzf server.tar.gz && chmod 600 .env && bash deploy.sh`,
   );
-  console.log(`Deployment complete: https://${config.GAME_DOMAIN}/`);
+  console.log(`Deployment complete (${config.DEPLOY_MODE}): ${config.APP_ORIGIN}/`);
+  if (config.DEPLOY_MODE === 'internal')
+    console.log('Run pnpm deploy:tencent --tunnel to access it. No COS upload was performed.');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))

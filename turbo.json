@@ -23,8 +23,14 @@
         "VITE_CULTIVATION_ARTIFACT_INTEGRITY"
       ]
     },
+    "@coffeeeeffoc/shell-web#build": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": ["dist/**"]
+    },
     "@coffeeeeffoc/shell-web#build:pages": {
       "dependsOn": ["^build"],
+      "cache": false,
       "outputs": ["dist/**"]
     },
     "test": {
