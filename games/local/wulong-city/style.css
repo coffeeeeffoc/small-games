@@ -3,3 +3,5 @@
 @media(max-width:430px){#game{padding:0 13px}header{height:58px}.mission{padding:12px 0}h1{font-size:25px}.controls{gap:5px}.move-controls button{width:55px;height:53px}.tools{gap:10px}footer{padding-top:12px}.keyboard-tip{display:none}.feedback{min-height:37px;font-size:11px}.edition{display:none}.utilities{gap:0}.utilities button{width:35px}.mission p{font-size:12px}}
 @media(max-height:720px) and (min-width:600px){#game{width:420px}header{height:50px}.mission{padding:8px 0}h1{font-size:23px}#stage{max-height:420px}.feedback{min-height:32px}.controls{padding:4px 0}footer{padding:8px 0}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+#menu{position:relative;min-height:44px;padding-bottom:12px}.menu-label{position:absolute;left:45px;bottom:0;font-size:10px;color:var(--green)}.utilities #pause{font-size:13px;border-radius:8px;width:44px}
