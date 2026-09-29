@@ -48,18 +48,21 @@ try {
     await page.keyboard.press('Tab');
     assert.equal(await page.locator(':focus').textContent(), '跳到正文');
     await page.keyboard.press('Enter');
-    assert.equal(new URL(page.url()).hash, '#main');
+    // Keyboard dispatch can finish before Chromium reports the anchor navigation.
+    await expect(page).toHaveURL(/#main$/);
     for (const id of ['about', 'expertise', 'approach']) {
       await page.locator(`nav a[href="#${id}"]`).click();
-      assert.equal(new URL(page.url()).hash, `#${id}`);
+      await expect(page).toHaveURL(new RegExp(`#${id}$`));
       const bounds = await page.locator(`#${id}`).boundingBox();
       assert(bounds.y >= 0 && bounds.y < 450, `${id} should be visible after navigation`);
     }
     await page.getByRole('link', { name: '返回顶部', exact: true }).click();
+    await expect(page).toHaveURL(/#top$/);
     assert.equal(await page.evaluate(() => window.scrollY), 0);
     await page.getByRole('link', { name: '探索我们所做的' }).click();
-    assert.equal(new URL(page.url()).hash, '#expertise');
+    await expect(page).toHaveURL(/#expertise$/);
     await page.getByRole('link', { name: '返回顶部', exact: true }).click();
+    await expect(page).toHaveURL(/#top$/);
     await page.screenshot({ path: `${screenshots}/${width}.png`, fullPage: true });
     assert.deepEqual(errors, []);
     await page.close();
