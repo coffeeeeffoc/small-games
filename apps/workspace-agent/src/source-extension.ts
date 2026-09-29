@@ -37,10 +37,10 @@ async function git(cwd: string, args: string[]) {
   return exec('git', args, { cwd, encoding: 'utf8' });
 }
 
-async function defaultGate(gate: Gate, cwd: string): Promise<GateResult> {
+export async function defaultGate(gate: Gate, cwd: string): Promise<GateResult> {
   try {
     const { stdout, stderr } = await exec(
-      process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+      process.env.npm_execpath || (process.platform === 'win32' ? 'pnpm.exe' : 'pnpm'),
       [gate],
       {
         cwd,

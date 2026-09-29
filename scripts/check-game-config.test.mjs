@@ -93,7 +93,7 @@ async function fixture(t) {
   shellPackage.dependencies = { [gameName]: 'workspace:*', [builtinName]: 'workspace:*' };
   await write('apps/shell-web/package.json', shellPackage);
   await write('pnpm-lock.yaml', {
-    lockfileVersion: '6.0',
+    lockfileVersion: '9.0',
     importers: {
       '.': {},
       [gameSource]: {},
@@ -176,6 +176,22 @@ test('discovers standalone and imported builtin games, including their built art
   assert.equal(result.games.find((game) => game.source === builtinSource)?.kind, 'builtin');
 });
 
+test('reads the dependency graph after pnpm toolchain metadata and still rejects a missing link', async (t) => {
+  const f = await fixture(t);
+  const lock = await f.json('pnpm-lock.yaml');
+  const metadata = {
+    lockfileVersion: '9.0',
+    importers: { '.': { packageManagerDependencies: {} } },
+  };
+  const writeLock = () =>
+    f.write('pnpm-lock.yaml', `---\n${yaml.dump(metadata)}---\n${yaml.dump(lock)}`);
+  await writeLock();
+  assert.deepEqual((await auditGameConfig(f.root)).errors, []);
+  delete lock.importers['apps/shell-web'].dependencies[gameName];
+  await writeLock();
+  requireCodes(await auditGameConfig(f.root), ['lock-missing']);
+});
+
 test('finds an omitted game and an incomplete directory instead of only following the catalog', async (t) => {
   const f = await fixture(t);
   await f.write('games/local/unlisted/package.json', {
@@ -206,7 +222,13 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
     process.platform === 'win32' ? 'junction' : 'dir',
   );
   const git = (...args) =>
-    spawnSync('git', args, { cwd: f.root, encoding: 'utf8', timeout: 20000 });
+    spawnSync('git', args, {
+      cwd: f.root,
+      encoding: 'utf8',
+      timeout: 20000,
+      // This fixture deliberately borrows installed modules; never reinstall through its junction.
+      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+    });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
   const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
