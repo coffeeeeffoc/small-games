@@ -22,10 +22,17 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     for (const name of ['engine', 'project'])
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');
     const script = path.join(game, 'assets/example.js');
+    const modelScript = path.join(game, 'scripts/model-aircraft.py');
+    await writeFile(modelScript, 'print("aircraft")\n');
     await writeFile(script, 'const active = true;\n');
     const hash = await sourceHash(game);
     await writeFile(script, 'const active = true;\r\n');
     assert.equal(await sourceHash(game), hash, 'Windows and Unix text must hash identically');
+    await writeFile(modelScript, 'print("aircraft")\r\n');
+    assert.equal(await sourceHash(game), hash, 'Python model scripts must hash identically across CI runners');
+    await writeFile(modelScript, 'print("changed aircraft")\n');
+    assert.notEqual(await sourceHash(game), hash, 'Model script changes must invalidate the artifact');
+    await writeFile(modelScript, 'print("aircraft")\n');
     await writeFile(script, 'const active = false;\n');
     assert.notEqual(await sourceHash(game), hash);
     await writeFile(script, 'const active = true;\n');
