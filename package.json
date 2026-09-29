@@ -2,13 +2,12 @@
   "name": "@coffeeeeffoc/small-games",
   "version": "0.2.0",
   "private": true,
-  "packageManager": "pnpm@8.14.1",
+  "packageManager": "pnpm@12.6.0",
   "volta": {
-    "node": "24.12.0",
-    "pnpm": "8.14.1"
+    "node": "24.21.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24.21.0"
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
@@ -75,6 +74,6 @@
     "@coffeeeeffoc/management-api": "workspace:*",
     "@coffeeeeffoc/runtime-api": "workspace:*",
     "prettier": "3.6.2",
-    "turbo": "2.5.6"
+    "turbo": "2.11.5"
   }
 }

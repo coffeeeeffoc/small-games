@@ -11,7 +11,7 @@ pnpm dev
 
 - 电脑开发预览：<http://localhost:43117/>
 - 手机和电脑在同一局域网时，打开终端显示的 `Network` 地址。本机当前为 <http://192.168.1.25:43117/>；电脑地址变化后以终端为准。
-- 项目固定使用 Node 24.12.0，pnpm 通过 `.npmrc` 选择运行时，避免本机旧 Node 被脚本意外选中。
+- 项目通过 Volta 固定 Node 24.21.0；在 small-games 中使用根目录固定的 pnpm 12.6.0。
 
 ```powershell
 pnpm test

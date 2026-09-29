@@ -166,7 +166,7 @@ function toolEnvironment() {
 async function pnpm(args) {
   if (!process.env.npm_execpath)
     throw new Error('Run with pnpm deploy:tencent so the pinned pnpm executable is available.');
-  await run(process.execPath, [process.env.npm_execpath, ...args], { env: toolEnvironment() });
+  await run(process.env.npm_execpath, args, { env: toolEnvironment() });
 }
 
 export async function prepareSite(source, destination) {

@@ -116,7 +116,7 @@ H5 的页面/资源走 CDN；微信/B站主包仍通过平台审核和分发，�
 
 ## 4. 2C2G 运行配置与备份
 
-- 构建放本机/CI：Node **≥24.12**、锁定 pnpm **8.14.1**，Cocos 使用既有 Creator 环境。云机不跑 Cocos、浏览器测试、Turbo 全仓构建、开发 watch。
+- 构建放本机/CI：Node **≥24.21**、锁定 pnpm **12.6.0**，Cocos 使用既有 Creator 环境。云机不跑 Cocos、浏览器测试、Turbo 全仓构建、开发 watch。
 - systemd 管理 Nginx、runtime-api、kart-server 和 PG，业务各 1 进程，不开 cluster；不部署 Management、Studio、Workspace Agent、MinIO。开发 Compose 含固定密码，不能整套复制上线。
 - PG 调优起点可评估 `shared_buffers=128MB`、`work_mem=4MB`、`max_connections=20`；现有 runtime 池上限 5。这些不是已应用值；监控总 RSS，不把 Node heap 上限当总内存上限。
 - 持续保留至少 20% 可用内存、30% 磁盘余量；日志轮转并限总量。数据库、日志、备份暂存与 outbox 都计入磁盘预算。

@@ -16,9 +16,8 @@ for (const game of catalog) {
 }
 // Turbo reuses the Game builds when the parent build has already completed them.
 const result = spawnSync(
-  process.execPath,
+  process.env.npm_execpath || (process.platform === 'win32' ? 'pnpm.exe' : 'pnpm'),
   [
-    process.env.npm_execpath,
     'exec',
     'turbo',
     'run',

@@ -44,6 +44,8 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
   async function read(location, format = 'text') {
     try {
       const value = await readFile(path.join(root, location), 'utf8');
+      // pnpm keeps toolchain metadata first and the project dependency graph last.
+      if (format === 'lockfile') return yaml.loadAll(value).at(-1);
       return format === 'json' ? JSON.parse(value) : format === 'yaml' ? yaml.load(value) : value;
     } catch (error) {
       fail(
@@ -57,7 +59,7 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
   const [workspace, lock, shell, manifest, registry, smoke, turbo, rootPackage] = await Promise.all(
     [
       read('pnpm-workspace.yaml', 'yaml'),
-      read('pnpm-lock.yaml', 'yaml'),
+      read('pnpm-lock.yaml', 'lockfile'),
       read('apps/shell-web/package.json', 'json'),
       read('apps/shell-web/src/standalone-games.json', 'json'),
       read('apps/shell-web/src/registry.ts'),
@@ -476,8 +478,7 @@ async function main(args) {
   }
   if (!flags.has('--verify')) return;
   if (!process.env.npm_execpath) throw new Error('请通过 pnpm check:games --verify 运行构建回归');
-  const pnpm = (args) =>
-    runCommand(process.execPath, [process.env.npm_execpath, ...args], { cwd: ROOT });
+  const pnpm = (args) => runCommand(process.env.npm_execpath, args, { cwd: ROOT });
   await pnpm(['check:dependencies']);
   await pnpm([
     'exec',

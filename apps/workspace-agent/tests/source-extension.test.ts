@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
-import { SourceExtensionManager } from '../src/source-extension.js';
+import { defaultGate, SourceExtensionManager } from '../src/source-extension.js';
 
 const exec = promisify(execFile);
 
@@ -26,6 +26,23 @@ async function fixture() {
 }
 
 describe('Source Extension workflow', () => {
+  it('runs the real pnpm executable and preserves a failing gate exit code', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'source-gate-'));
+    try {
+      await writeFile(
+        path.join(root, 'package.json'),
+        JSON.stringify({
+          private: true,
+          scripts: { test: 'node -e "process.exit(7)"' },
+        }),
+      );
+      const result = await defaultGate('test', root);
+      expect(result.exitCode).toBe(7);
+      expect(result.log).toContain('process.exit(7)');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
   it('isolates one active task per Game and preserves retry attempts', async () => {
     const root = await fixture();
     const manager = await SourceExtensionManager.open(root, {

@@ -2,7 +2,7 @@
 
 ## 启动与验证
 
-环境要求为 Node 24.12.0、pnpm 8.14.1 和已启动的 Docker Desktop Linux containers。
+环境要求为 Node 24.21.0、pnpm 12.6.0 和已启动的 Docker Desktop Linux containers。
 
 ```powershell
 pnpm install --frozen-lockfile
