@@ -14,9 +14,11 @@ v0.2 已加入章节幕布、事件切换、属性跳字、摸鱼角色动作、
 
 ## 本地启动
 
+工具链固定为 Node.js 24.21.0（LTS）和 pnpm 12.6.0。Volta 用户运行 `volta install node@24.21.0 pnpm@12.6.0`；CI 与 Docker 使用相同版本。pnpm 配置位于 `pnpm-workspace.yaml`，首次克隆先初始化子模块，再运行 `pnpm install --frozen-lockfile`。
+
 ```bash
-pnpm games:init
-pnpm install
+git submodule update --init --recursive
+pnpm install --frozen-lockfile
 pnpm --filter @coffeeeeffoc/shell-web dev
 ```
 

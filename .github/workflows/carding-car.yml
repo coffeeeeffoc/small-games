@@ -14,11 +14,9 @@ jobs:
         with:
           submodules: recursive
       - uses: pnpm/action-setup@v5
-        with:
-          version: 8.14.1
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.12.0
+          node-version: 24.21.0
           cache: pnpm
       - name: Hash game sources and runtime art
         id: source

@@ -36,7 +36,7 @@ pnpm deploy:tencent --public
 
 ## 首次需要准备（域名、TLS、COS、Python 仅公开模式需要）
 
-- 本机：Node 24.12+、pnpm 8.14.1、Python 3.10+、SSH/SCP、tar。先运行 `pnpm install --frozen-lockfile`、`pnpm games:init`；Python 安装 `python -m pip install cos-python-sdk-v5`。使用其他 Python 时填写 `COS_PYTHON`。
+- 本机：Node 24.21+、pnpm 12.6.0、Python 3.10+、SSH/SCP、tar。先运行 `git submodule update --init --recursive`、`pnpm install --frozen-lockfile`；Python 安装 `python -m pip install cos-python-sdk-v5`。使用其他 Python 时填写 `COS_PYTHON`。
 - 游戏构建沿用仓库现有流程：卡丁车需要 Cocos Creator 3.8.8 或匹配当前源码的 `KART_PREBUILT_DIR`；其它 Cocos 游戏沿用各自构建要求。脚本不会把旧 dist 当成最新版本。
 - 腾讯云服务器（CVM；这里沿用变量名 ECS）：Linux、Docker CE、Compose 2.20+、bash、curl、flock；SSH 用户能无 sudo 执行 docker，并能写入 `ECS_DEPLOY_DIR`。服务器需能拉取 Docker Hub 镜像和 npm 依赖。
 - `GAME_DOMAIN` 指向服务器，80/443 端口可用；安全组放行 SSH 和 80/443。已有 Nginx/容器占用 80/443 时需先规划共用入口，脚本不会停掉它们。
@@ -65,7 +65,7 @@ Compose 项目名固定为 `small-games`，仅 Nginx 发布宿主机端口；Pos
 
 ## 日常操作与回退
 
-Docker 构建默认使用 `https://registry.npmmirror.com`，pnpm 保持 8.14.1，保留冻结锁文件和完整性校验。下载请求超时为 60 秒、最多重试两次（不是整个构建的总时限）；BuildKit 缓存挂载保留已下载的依赖供后续构建复用，不会导出到应用镜像。首次切换时，旧的未完成安装层不能保证复用。
+Docker 构建默认使用 `https://registry.npmmirror.com`，pnpm 保持 12.6.0，保留冻结锁文件和完整性校验。下载请求超时为 60 秒、最多重试两次（不是整个构建的总时限）；BuildKit 缓存挂载保留已下载的依赖供后续构建复用，不会导出到应用镜像。首次切换时，旧的未完成安装层不能保证复用。
 
 如需切回官方源，将 Dockerfile 中 `ARG NPM_REGISTRY` 的默认值改为 `https://registry.npmjs.org` 后重新部署。单独构建时也可用 `docker compose build --build-arg NPM_REGISTRY=https://registry.npmjs.org runtime` 临时覆盖。已上传的发布包不会自动获得本地 Dockerfile 的更新。
 

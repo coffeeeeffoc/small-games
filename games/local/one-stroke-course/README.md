@@ -8,7 +8,7 @@
 
 ## 启动和验证
 
-在本目录执行（推荐 Node 22/24，最低 Node 20.9，pnpm 8+）：
+在本目录执行（仓库统一使用 Node 24.21.0、pnpm 12.6.0）：
 
 ```powershell
 pnpm dev
