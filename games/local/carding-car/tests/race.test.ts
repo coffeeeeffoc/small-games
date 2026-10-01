@@ -3,10 +3,41 @@ import test from 'node:test';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { createProgress } from '../assets/scripts/CheckpointSystem.ts';
 import { createKart } from '../assets/scripts/KartPhysics.ts';
-import { pointAt, wrapDistance } from '../assets/scripts/TrackGenerator.ts';
+import { pointAt, projectOnTrack, wrapDistance } from '../assets/scripts/TrackGenerator.ts';
 import { addRecord, formatTime, ranking, readRecords } from '../assets/scripts/RankingSystem.ts';
+import { aiInput } from '../assets/scripts/KartAI.ts';
+import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
+
+for (const [noise, period, delay] of [[0.6, 4, 0], [0.4, 7, 108]])
+test(`rough driving (${noise}/${period}) counts each physical lap and finishes on lap three`, () => {
+  const race = new RaceManager({}, 6);
+  race.phase = 'racing';
+  const driver = race.drivers[0];
+  let previousS = projectOnTrack(race.track, driver.kart.x, driver.kart.z).s;
+  let laps = -1; // The first crossing leaves the starting grid; it is not a completed lap.
+  let input: KartInput = { ...idle };
+  for (let frame = 0; frame < 60 * 300 && race.phase !== 'finished'; frame++) {
+    const road = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+    if (frame < delay) input = { ...idle, brake: true, reverse: true };
+    else if (frame % period === 0) {
+      // Drive from the physical road, independently of the progress state being tested.
+      input = aiInput(driver.kart, race.track, false, road.s);
+      input.steer = clamp(input.steer + Math.sin(frame / 30) * noise, -1, 1);
+    }
+    race.step(input, 1 / 60);
+    const s = projectOnTrack(race.track, driver.kart.x, driver.kart.z).s;
+    if (previousS > race.track.length - 5 && s < 5) {
+      laps++;
+      assert.equal(driver.progress.laps, laps, `physical lap ${laps} must be counted immediately`);
+    }
+    previousS = s;
+  }
+  assert.equal(laps, 3);
+  assert.equal(race.phase, 'finished');
+  assert.equal(driver.progress.lapTimes.length, 3);
+});
 
 test('recovery ranks the actual safe position after reversing, including across the start line', () => {
   for (const [safeS, currentS] of [

@@ -111,7 +111,7 @@ export function pointAt(track: TrackData, distance: number, shortcut = false) {
   };
 }
 
-export function projectOnTrack(track: TrackData, x: number, z: number, previousS?: number) {
+export function projectOnTrack(track: TrackData, x: number, z: number, previousS?: number, maxStep = 12) {
   let best = {
     distance: Infinity,
     s: 0,
@@ -138,13 +138,16 @@ export function projectOnTrack(track: TrackData, x: number, z: number, previousS
       if (
         previousS !== undefined &&
         Math.abs(wrapDistance(s - previousS + track.length / 2, track.length) - track.length / 2) >
-          12
+          Math.min(12, maxStep)
       )
         continue;
       const px = a.x + dx * t,
         pz = a.z + dz * t,
         dist = Math.hypot(x - px, z - pz);
-      if (dist < best.distance)
+      // At a fork, a nearer narrow centreline can be off-road while the wide road is legal.
+      const outside = Math.max(0, dist - width / 2);
+      const bestOutside = Math.max(0, best.distance - best.width / 2);
+      if (outside < bestOutside || (outside === bestOutside && dist < best.distance))
         best = {
           distance: dist,
           s,
