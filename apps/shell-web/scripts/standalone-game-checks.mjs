@@ -273,11 +273,22 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().time))
       .toBeGreaterThan(0);
+    await press('settings');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('settings')))
+      .toBe(true);
     await press('help');
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')))
       .toBe(true);
     await press('close');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .toEqual(['settings']);
+    await press('close');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .toEqual([]);
     await press('weapon2');
     await expect.poll(() => canvas.evaluate(() => globalThis.__night.snapshot().selected)).toBe(2);
   } else if (id === 'carding-car') {
