@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { registerHooks } from 'node:module';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
+import { createKart } from '../assets/scripts/KartPhysics.ts';
+import { pointAt } from '../assets/scripts/TrackGenerator.ts';
 
 // Exercise actual HUD content and UI geometry; this does not simulate Creator rendering.
 class Transform {
@@ -48,6 +50,31 @@ let HUD: any;
 try { ({ HUD } = await import(sourceURL.href)); }
 finally { hooks.deregister(); delete (globalThis as any).__kartHUDCC; }
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
+
+test('HUD updates fourth to first and back as cars pass on the wide lane at the fork', () => {
+  const hud = new HUD(new SceneNode()), race = new RaceManager();
+  const go = { ...idle, throttle: 1 };
+  race.phase = 'racing';
+  race.drivers.forEach((driver, i) => {
+    const s = race.track.shortcutStart + (i === 0 ? -2 : i);
+    const p = pointAt(race.track, s), side = i === 0 ? 6 : -3;
+    Object.assign(driver.kart, createKart(
+      p.x + Math.cos(p.heading) * side, p.z - Math.sin(p.heading) * side, p.heading,
+    ));
+    driver.progress.s = driver.progress.distance = s;
+    driver.safe = { ...p, s };
+  });
+  hud.update(race, idle, false);
+  assert.match(hud.top.string, /^第 4 \/ 4 名/);
+  for (let frame = 0; frame < 90; frame++) race.step(go, 1 / 60, [go, idle, idle, idle]);
+  hud.update(race, go, false);
+  assert.match(hud.top.string, /^第 1 \/ 4 名/);
+  const brake = { ...idle, brake: true };
+  for (let frame = 0; frame < 150; frame++) race.step(brake, 1 / 60, [brake, go, go, go]);
+  hud.update(race, brake, false);
+  assert.match(hud.top.string, /^第 4 \/ 4 名/);
+  assert.equal(race.resets, 0);
+});
 
 test('ready HUD presents both race formats with separate reachable buttons and the correct lap goal', () => {
   for (const mode of ['standard', 'sprint'] as const) {
