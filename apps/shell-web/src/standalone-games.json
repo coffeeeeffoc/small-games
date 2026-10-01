@@ -3,7 +3,7 @@
     "id": "carding-car",
     "source": "games/local/carding-car",
     "title": "浪湾卡丁车",
-    "description": "在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。",
+    "description": "在海湾赛道漂移蓄力，挑战一圈冲刺或三圈冠军，收集路线印章，邀请朋友挑战同一条赛道。",
     "output": "dist"
   },
   {
@@ -38,7 +38,7 @@
     "id": "xiangqi-five",
     "source": "games/submodules/xiangqi-five",
     "title": "象五子棋",
-    "description": "象棋走法与五子连线，同屏轮流对弈。",
+    "description": "象棋走法与五子连线，八道战术题从一手妙招到两步连招，也能同屏或与电脑对弈。",
     "output": "dist"
   },
   {
@@ -52,14 +52,14 @@
     "id": "cops-robbers",
     "source": "games/local/cops-robbers",
     "title": "围捕小队",
-    "description": "追逐或突围，自选角色与先后手，在三种百关模式中挑战路线与配合。",
+    "description": "先用三张短场试炼练夹击与封路，再挑战百关街区、换防接力，或切换角色与好友对抗。",
     "output": "dist"
   },
   {
     "id": "cops-robbers-realtime",
     "source": "games/local/cops-robbers-realtime",
     "title": "别跑！街区围捕",
-    "description": "追逐队与突围队实时过招，自选角色、装扮与开局顺序，挑战复杂街区。",
+    "description": "先在三张小街区实时夹击，再挑战百关街区、轮换指挥，或自选角色与好友过招。",
     "output": "dist"
   },
   {
@@ -80,7 +80,7 @@
     "id": "letters-words2",
     "source": "games/local/letters-words2",
     "title": "词屿 · 字母叠叠乐",
-    "description": "从层叠字母牌中拼出单词，一层层揭开新的线索。",
+    "description": "从三词早餐、海岸与星空小岛开始，揭开层叠字母，再挑战八大主题与每日同题。",
     "output": "dist"
   },
   {
@@ -108,7 +108,7 @@
     "id": "travel-bund",
     "source": "games/local/travel-bund",
     "title": "江风入境 · 外滩漫游",
-    "description": "第一视角自由漫游外滩两岸，看日夜江景、走过街巷，留下自己的旅行手记。",
+    "description": "沿建筑、桥畔与天际三条路线收集地标足迹，第一视角漫游外滩两岸，留下旅行明信片。",
     "output": "dist"
   },
   {
@@ -136,7 +136,7 @@
     "id": "vibeJam-myself-history-guess",
     "source": "games/local/vibeJam-myself-history-guess",
     "title": "此时 · 此地",
-    "description": "观察历史全景，猜测地点与年份，揭晓时空中的故事。",
+    "description": "观察历史全景，猜测地点与年份，走三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。",
     "output": "dist"
   },
   {
@@ -170,7 +170,7 @@
   {
     "id": "wulong-city",
     "title": "乌龙城",
-    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十四个喜剧机关谜题，也能分享单关邀请朋友解题。",
+    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十六个喜剧机关谜题，也能先试玩新关、分享单关邀请朋友解题。",
     "source": "games/local/wulong-city",
     "output": "dist"
   },
@@ -227,7 +227,7 @@
     "id": "night-overwatch",
     "source": "games/local/night-overwatch",
     "title": "夜航守望",
-    "description": "从高空观察山谷公路，切换三档火力清理前路，在待命点指挥车队，护送救援车完成撤离。",
+    "description": "先用60秒火控热身练三档火力，再在护送、伏击与巡逻任务中为救援车队清理前路。",
     "output": "dist"
   },
   {

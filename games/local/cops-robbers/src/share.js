@@ -6,9 +6,10 @@ export function readPuzzleLink(input) {
   if (!query.has('level')) return null;
   const raw = query.get('level'), level = Number(raw);
   if (!/^\d{1,3}$/.test(raw) || level < 1 || level > 100) return null;
-  const mode = ['challenge', 'escape', 'survival'].includes(query.get('mode')) ? query.get('mode') : 'challenge';
+  const mode = ['quick','challenge', 'escape', 'survival'].includes(query.get('mode')) ? query.get('mode') : 'challenge';
+  if (mode === 'quick' && level > 3) return null;
   const rule = mode === 'challenge' && query.get('rule') === 'relay' && relayLevelIds.includes(level) ? 'relay' : 'standard';
-  return { mode, level, rule, role: query.get('role') === 'runner' ? 'runner' : 'pursuer', first: query.get('first') === 'runner' ? 'runner' : 'pursuer' };
+  return { mode, level, rule, role: mode !== 'quick' && query.get('role') === 'runner' ? 'runner' : 'pursuer', first: mode !== 'quick' && query.get('first') === 'runner' ? 'runner' : 'pursuer' };
 }
 export function puzzleUrl(input, puzzle) {
   const url = new URL(input);
@@ -16,7 +17,7 @@ export function puzzleUrl(input, puzzle) {
   url.searchParams.set('mode', puzzle.mode);
   url.searchParams.set('level', String(puzzle.level));
   url.searchParams.set('rule', puzzle.rule || 'standard');
-  if (puzzle.mode !== 'challenge') {
+  if (!['challenge','quick'].includes(puzzle.mode)) {
     url.searchParams.set('role', puzzle.role);
     url.searchParams.set('first', puzzle.first);
   }

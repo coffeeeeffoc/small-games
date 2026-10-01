@@ -16,7 +16,7 @@
     <a class="brand" href="./" aria-label="围捕小队首页"><span class="brand-badge" aria-hidden="true">巡</span><span>围捕小队<small>NEIGHBORHOOD PATROL</small></span></a>
     <button type="button" id="focus-toggle" class="map-button">返回大厅</button>
     <div class="top-actions">
-      <span class="top-caption">小小街区，大大计谋。</span>
+      <span class="top-caption">先来两步收网，再练全城包抄。</span>
       <button type="button" class="fullscreen-button" data-game-fullscreen>全屏</button>
       <button class="icon-button" id="sound" data-testid="sound" aria-label="开启音效" aria-pressed="false"></button>
       <button class="icon-button" id="settings" aria-label="游戏设置"></button>
@@ -27,10 +27,11 @@
     <aside class="briefing">
       <div class="eyebrow"><span></span> 今日任务 · PATROL TIME</div>
       <h1>退路，<br>一条也别留<span class="title-dot">。</span></h1>
-      <p class="intro">环路相连，突围队员随时会绕路突围。<br>当追逐队包抄，或当突围队寻找空当。</p>
+      <p class="intro">三张短场尝尝守口、包抄与分工的乐趣。<br>再挑战换防接力、百图巡逻和双角色对抗。</p>
       <section class="mode-card" aria-label="选择玩法和角色">
         <h2>街区追逐赛</h2>
-        <label>玩法<select id="solo-mode"><option value="challenge">围堵挑战 · 100 关</option><option value="relay">换防接力 · 6 个精选街区</option><option value="escape">出口竞速 · 100 关</option><option value="survival">限步周旋 · 100 关</option></select></label>
+        <button type="button" id="quick-start" class="execute">先来 2 步收网 · 快速试炼 →</button>
+        <label>玩法<select id="solo-mode"><option value="challenge">围堵挑战 · 100 关</option><option value="quick">快速战术试炼 · 3 张小地图</option><option value="relay">换防接力 · 6 个精选街区</option><option value="escape">出口竞速 · 100 关</option><option value="survival">限步周旋 · 100 关</option></select></label>
         <p id="mode-description">固定对手 · 已验证有解，试着找出最佳路线。</p>
         <label id="solo-role-row">我的角色<select id="solo-role"><option value="pursuer">追逐队 · 蓝色盾牌</option><option value="runner">突围队 · 橙色闪电</option></select></label>
         <label id="solo-initiative-row">出手顺序<select id="solo-initiative"><option value="first">我方先手</option><option value="second">我方后手</option><option value="random">系统分配</option></select></label>

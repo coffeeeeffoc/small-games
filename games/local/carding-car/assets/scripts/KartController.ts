@@ -17,6 +17,7 @@ export class KartController {
     private start: () => void = () => this.race().start(),
     private help: () => void = () => {},
     private share: () => void = () => {},
+    private toggleMode: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -45,6 +46,11 @@ export class KartController {
     this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
+    if (e.keyCode === KeyCode.KEY_T && r.phase === 'ready' && !r.networked) {
+      this.clear();
+      this.toggleMode();
+      return;
+    }
     if (e.keyCode === KeyCode.KEY_C && r.phase === 'finished' && !r.networked) {
       this.share();
       return;
@@ -142,6 +148,11 @@ export class KartController {
       return;
     }
     if (r.phase === 'ready' || r.phase === 'finished' || r.phase === 'paused') {
+      if (r.phase === 'ready' && !r.networked && p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
+        this.clear();
+        this.toggleMode();
+        return;
+      }
       if (r.phase === 'ready' && p.x > 0.17 && p.x < 0.83) {
         const row = selectionRows.find(({ y }) => Math.abs(p.y * 540 - 270 - y) <= 19)?.field;
         if (row) {

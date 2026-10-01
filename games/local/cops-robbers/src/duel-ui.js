@@ -5,30 +5,32 @@ import { playSound, unlockSound } from './sound.js';
 import { relayLevelIds } from './relay.js';
 import { showPuzzleShare } from './share.js';
 
-export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sharedPuzzle }) {
+export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
   const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '追逐队' : '突围队';
   let level, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const saveKey = 'cops-robbers-duel-v1'; let saved = {};
   try { const data = JSON.parse(localStorage.getItem(saveKey) || '{}'); if (data && typeof data === 'object' && !Array.isArray(data)) saved = data; } catch { /* A damaged local preference never blocks play. */ }
   const wins = Object.fromEntries(Object.entries(saved.wins || {}).filter(([key, value]) => /^(escape|survival):(pursuer|runner):([1-9][0-9]?|100)$/.test(key) && value === true));
-  for (const [id, allowed] of [['solo-mode', ['challenge','relay','escape','survival']], ['solo-role',['pursuer','runner']], ['solo-initiative',['first','second','random']]]) if (allowed.includes(saved[id])) $(id).value = saved[id];
+  for (const [id, allowed] of [['solo-mode', ['quick','challenge','relay','escape','survival']], ['solo-role',['pursuer','runner']], ['solo-initiative',['first','second','random']]]) if (allowed.includes(saved[id])) $(id).value = saved[id];
   function persistOptions() {
     try { localStorage.setItem(saveKey, JSON.stringify({ wins, 'solo-mode': $('solo-mode').value, 'solo-role': $('solo-role').value, 'solo-initiative': $('solo-initiative').value, level: Number($('solo-level').value) })); }
     catch { $('friend-note').textContent = '当前浏览器无法保存本地进度；本次仍可继续玩。'; }
   }
   function renderOptions() {
     const current = $('solo-level').value || String(Number.isInteger(saved.level) && saved.level >= 1 && saved.level <= 100 ? saved.level : 1);
-    const ids = $('solo-mode').value === 'relay' ? relayLevelIds : Array.from({ length: 100 }, (_, i) => i + 1);
+    const ids = $('solo-mode').value === 'quick' ? [1,2,3] : $('solo-mode').value === 'relay' ? relayLevelIds : Array.from({ length: 100 }, (_, i) => i + 1);
     $('solo-level').innerHTML = ids.map(id => `<option value="${id}">${wins[`${$('solo-mode').value}:${$('solo-role').value}:${id}`] ? '✓ ' : ''}第 ${id} 关 · ${$('solo-mode').value === 'relay' ? '换防接力' : `难度 ${1 + Math.floor((id - 1) / 20)}`}</option>`).join('');
     $('solo-level').value = ids.includes(Number(current)) ? current : String(ids[0]);
   }
   renderOptions();
   function updateMode() {
-    const relay = $('solo-mode').value === 'relay', challenge = $('solo-mode').value === 'challenge' || relay;
+    const quick = $('solo-mode').value === 'quick', relay = $('solo-mode').value === 'relay', challenge = ['quick','challenge','relay'].includes($('solo-mode').value);
     for (const id of ['solo-role-row', 'solo-initiative-row']) $(id).hidden = challenge;
-    $('solo-level-row').hidden = challenge && !relay;
-    $('mode-description').textContent = relay ? '两次实际移动必须换队员；留守不重置。六个精选街区已在接力规则下完整复演获胜路线。' : challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
-    $('start-mode').textContent = $('solo-mode').value === 'relay' ? '开始换防接力' : challenge ? '开始围堵挑战' : '开始人机对抗';
+    $('solo-level-row').hidden = challenge && !relay && !quick;
+    $('mode-description').textContent = quick ? '2–4 步一个收网瞬间：两侧夹击、先封后追、双巷分工。三张专门编排的小地图，走错可立即撤销。' : relay ? '两次实际移动必须换队员；留守不重置。六个精选街区已在接力规则下完整复演获胜路线。' : challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
+    $('start-mode').textContent = quick ? '开始短场，马上收网' : relay ? '开始换防接力' : challenge ? '开始围堵挑战' : '开始人机对抗';
+    const patrol = quick || relay ? savedPatrol(quick ? 'quick' : 'challenge',relay ? 'relay' : 'standard') : null;
+    if (patrol?.levelId === Number($('solo-level').value)) $('start-mode').textContent = `继续第 ${patrol.levelId} 关${quick ? '短场试炼' : '换防接力'}`;
   }
   function stop() { clearTimeout(timer); serial++; }
   function render() {
@@ -88,9 +90,10 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     playSound(state.winner ? state.winner === role ? 'win' : 'lose' : 'step'); render(); scheduleAI();
   }
   $('friend-duel').addEventListener('click', () => { const entry = document.querySelector('[data-competition-launch]'); if (entry) entry.click(); else $('friend-note').textContent = '当前是单机预览。好友房间请从游戏大厅的联机入口进入。'; });
-  $('solo-mode').addEventListener('change', () => { updateMode(); renderOptions(); persistOptions(); });
-  for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); persistOptions(); });
-  $('start-mode').addEventListener('click', () => { stop(); if (['challenge','relay'].includes($('solo-mode').value)) startChallenge({ rule: $('solo-mode').value === 'relay' ? 'relay' : 'standard', id: $('solo-mode').value === 'relay' ? Number($('solo-level').value) : undefined }); else start(); });
+  $('solo-mode').addEventListener('change', () => { renderOptions(); const mode = $('solo-mode').value, patrol = savedPatrol(mode === 'quick' ? 'quick' : 'challenge',mode === 'relay' ? 'relay' : 'standard'); if (['quick','relay'].includes(mode) && patrol && [...$('solo-level').options].some(option=>Number(option.value)===patrol.levelId)) $('solo-level').value=String(patrol.levelId); updateMode(); persistOptions(); });
+  for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); updateMode(); persistOptions(); });
+  $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) startChallenge({ mode:$('solo-mode').value === 'quick' ? 'quick' : 'challenge', rule: $('solo-mode').value === 'relay' ? 'relay' : 'standard', id: ['quick','relay'].includes($('solo-mode').value) ? Number($('solo-level').value) : undefined }); else start(); });
+  $('quick-start').addEventListener('click',()=>{stop();$('solo-mode').value='quick';renderOptions();updateMode();persistOptions();startChallenge({mode:'quick',rule:'standard',id:1,fresh:true});});
   $('duel-back').addEventListener('click', () => { stop(); document.body.classList.remove('duel-active'); $('duel-game').hidden = true; returnLobby(); });
   $('focus-toggle').addEventListener('click', () => { if (document.body.classList.contains('duel-active')) $('duel-back').click(); });
   $('duel-retry').addEventListener('click', () => start(level.id, true));
@@ -112,6 +115,6 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     $('solo-role').value = sharedPuzzle.role;
     $('solo-initiative').value = sharedPuzzle.first === sharedPuzzle.role ? 'first' : 'second';
     renderOptions(); $('solo-level').value = String(sharedPuzzle.level); updateMode();
-    if (sharedPuzzle.mode !== 'challenge') start(sharedPuzzle.level);
+    if (!['challenge','quick'].includes(sharedPuzzle.mode)) start(sharedPuzzle.level);
   }
 }

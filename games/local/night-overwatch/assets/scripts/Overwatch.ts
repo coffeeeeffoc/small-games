@@ -19,7 +19,8 @@ import { World } from './World';
 import { HUD } from './HUD';
 import { Platform } from './Platform';
 import { MAP, WEAPONS, type Point } from './core/Data';
-import { nextMission } from './core/MissionCatalog';
+import { nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
+import { bestTrainingRecord } from './core/TrainingRecords';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; button?: string };
 @ccclass('Overwatch')
@@ -38,6 +39,7 @@ export class Overwatch extends Component {
   measuredFps = 0;
   resizeKey = '';
   lastAimInput = 0;
+  selectedMission: MissionId = 'corridor-01';
   private startupSignalled = false;
   start() {
     view.enableAutoFullScreen(false);
@@ -47,7 +49,7 @@ export class Overwatch extends Component {
     this.hud = new HUD(this.node);
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
-    this.sim = new Simulation(this.platform.readMission());
+    this.prepareMission(sys.isBrowser ? location.search : '');
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
     this.hud.reducedEffects = this.platform.reducedEffects;
@@ -80,6 +82,13 @@ export class Overwatch extends Component {
     this.accumulator = 0;
     if (on) this.platform?.stop();
   };
+  prepareMission(search: string) {
+    this.selectedMission = this.platform.readMission();
+    const launch = readMissionSearch(search);
+    if (launch && launch !== 'training-60') this.selectedMission = launch;
+    this.sim = new Simulation(launch || this.selectedMission);
+    this.hud.trainingBest = this.platform.readWarmupRecord();
+  }
   clear = () => {
     if (this.hud) this.hud.mousePointer = undefined;
     this.sim.clearInput();
@@ -109,19 +118,48 @@ export class Overwatch extends Component {
     this.world.reset();
     this.hud.modalKey = 'rebuild';
   }
+  selectMission(id: MissionId, persist = false) {
+    if (this.sim.phase === 'playing') return;
+    const pauses = new Set(this.sim.pauses);
+    this.clear();
+    this.sim = new Simulation(id);
+    if (this.sim.mission.mode === 'escort') {
+      this.selectedMission = this.sim.mission.id;
+      if (persist) this.platform.saveMission(this.selectedMission);
+    }
+    this.syncMissionAddress();
+    for (const reason of pauses)
+      if (['background', 'orientation', 'focus'].includes(reason)) this.sim.pauses.add(reason);
+    this.hud.trainingBest = this.platform.readWarmupRecord();
+    this.world.reset();
+    this.lastEvent = this.accumulator = 0;
+    this.hud.modalKey = 'rebuild';
+  }
+  syncMissionAddress() {
+    if (!sys.isBrowser) return;
+    try {
+      const url = new URL(location.href);
+      if (!url.searchParams.has('mission')) return;
+      url.search = new URLSearchParams({ mission: this.sim.mission.id }).toString();
+      url.hash = url.username = url.password = '';
+      history.replaceState(null, '', url.href);
+    } catch { /* A public shortcut stays optional when browser history is unavailable. */ }
+  }
+  saveTrainingResult() {
+    if (this.sim.mission.mode !== 'training') return;
+    const previous = this.platform.readWarmupRecord();
+    const best = bestTrainingRecord(previous, this.sim);
+    this.hud.trainingBest = best;
+    if (best && best !== previous) this.platform.saveWarmupRecord(best);
+  }
   action(id: string) {
     this.platform.activate();
+    if (id === 'training' || id === 'missionReturn') {
+      this.selectMission(id === 'training' ? 'training-60' : this.selectedMission);
+      return;
+    }
     if (id === 'missionNext') {
-      if (this.sim.phase === 'playing') return;
-      const pauses = new Set(this.sim.pauses);
-      this.clear();
-      this.sim = new Simulation(nextMission(this.sim.mission.id));
-      for (const reason of pauses)
-        if (['background', 'orientation', 'focus'].includes(reason)) this.sim.pauses.add(reason);
-      this.platform.saveMission(this.sim.mission.id);
-      this.world.reset();
-      this.lastEvent = this.accumulator = 0;
-      this.hud.modalKey = 'rebuild';
+      this.selectMission(nextMission(this.sim.mission.mode === 'training' ? this.selectedMission : this.sim.mission.id), true);
       return;
     }
     if (id === 'tools' || id === 'flightControls') {
@@ -475,6 +513,7 @@ export class Overwatch extends Component {
       this.world.updateCamera();
       this.pause('orientation', frame.width < frame.height);
     }
+    const before = this.sim.phase;
     if (this.sim.phase === 'playing' && !this.sim.paused) {
       this.accumulator += Math.min(dt, 0.1);
       let steps = 0;
@@ -483,6 +522,7 @@ export class Overwatch extends Component {
         this.accumulator -= 1 / 60;
       }
     } else this.accumulator = 0;
+    if (before === 'playing' && this.sim.phase !== 'playing') this.saveTrainingResult();
     // Pan in screen space: the ground axes rotate with the aircraft and sensor.
     if (
       !this.sim.paused &&
@@ -546,7 +586,8 @@ export class Overwatch extends Component {
   snapshot() {
     return {
       phase: this.sim.phase,
-      mission: { id: this.sim.mission.id, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
+      mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
+      trainingBest: this.hud.trainingBest,
       time: this.sim.time,
       remaining: this.sim.remaining,
       pauses: Array.from(this.sim.pauses),

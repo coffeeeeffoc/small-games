@@ -1,6 +1,7 @@
 import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
+import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
 export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
@@ -158,12 +159,24 @@ export class Platform {
     }
   }
   readMission(): MissionId {
-    try { return missionDefinition(sys.localStorage.getItem('night-overwatch-mission-v1')).id; }
+    try {
+      const mission = missionDefinition(sys.localStorage.getItem('night-overwatch-mission-v1'));
+      return mission.mode === 'escort' ? mission.id : 'corridor-01';
+    }
     catch { return 'corridor-01'; }
   }
   saveMission(id: MissionId) {
+    if (missionDefinition(id).mode !== 'escort') return;
     try { sys.localStorage.setItem('night-overwatch-mission-v1', id); }
     catch { /* Choosing a mission works even when storage is denied. */ }
+  }
+  readWarmupRecord(): TrainingRecord | undefined {
+    try { return parseTrainingRecord(sys.localStorage.getItem('night-overwatch-training-v1')); }
+    catch { return; }
+  }
+  saveWarmupRecord(record: TrainingRecord) {
+    try { sys.localStorage.setItem('night-overwatch-training-v1', JSON.stringify(record)); }
+    catch { /* A denied optional record never blocks another attempt. */ }
   }
   dispose() {
     for (const fn of this.cleanup) fn();

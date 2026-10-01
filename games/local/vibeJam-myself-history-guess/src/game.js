@@ -76,10 +76,10 @@ export const remainingSeconds = (deadline, now) =>
   Math.max(0, Math.ceil((deadline - now) / 1000));
 
 // Rebuild scores from answers, and discard incompatible/corrupt local journeys.
-export function restoreJourney(value, catalog) {
+export function restoreJourney(value, catalog, { roundCount = ROUND_COUNT } = {}) {
   if (!value || value.version !== 1 || !["guessing", "revealed"].includes(value.phase) ||
       !["all", "china"].includes(value.region) || typeof value.timed !== "boolean" ||
-      !Array.isArray(value.deck) || ![1, ROUND_COUNT].includes(value.deck.length) ||
+      !Array.isArray(value.deck) || ![1, roundCount].includes(value.deck.length) ||
       new Set(value.deck).size !== value.deck.length ||
       !Number.isInteger(value.index) || value.index < 0 || value.index >= value.deck.length ||
       !Array.isArray(value.results) || value.results.length !== value.index + (value.phase === "revealed" ? 1 : 0)) return null;
@@ -87,7 +87,7 @@ export function restoreJourney(value, catalog) {
   const validYear = (year) => Number.isInteger(year) && year !== 0 && year >= MIN_YEAR && year <= MAX_YEAR;
   const validGuess = (guess) => guess === null || (validPoint(guess) && typeof guess.name === "string" && guess.name.length <= 100);
   if (deck.some((round) => !round) ||
-      (value.practice ? value.deck.length !== 1 || value.practice !== value.deck[0] : value.deck.length !== ROUND_COUNT) ||
+      (value.practice ? value.deck.length !== 1 || value.practice !== value.deck[0] : value.deck.length !== roundCount) ||
       (!value.practice && value.region === "china" && deck.some((round) => round.region !== "china")) ||
       !validYear(value.year) || typeof value.yearTouched !== "boolean" || !validGuess(value.guess) ||
       (value.timed && (!Number.isSafeInteger(value.deadline) || value.deadline <= 0)) ||

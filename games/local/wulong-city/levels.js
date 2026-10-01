@@ -194,4 +194,37 @@ W.add(24,{
  update(s){if(s.awarded)win();},
  draw(s){background('inside');text('最佳乌龙处理奖',239,116,25,C.green);rect(158,14,164,49,C.paper,9);text('画外领取 ↑',240,37,15,C.orange);line(181,8,299,8,C.orange,3,[5,4]);rect(219,210,178,225,C.mint,7);rect(234,230,147,166,C.paper,4);rect(262,397,93,39,C.green,4);text('热心市民',309,417,13,C.paper);if(!s.awarded){const x=s.trophyX,y=s.trophyY;rect(x-18,y+28,36,10,C.yellow,3);line(x,y+2,x,y+30,C.orange,7);poly([[x-24,y-23],[x+24,y-23],[x+19,y+5],[x,y+15],[x-19,y+5]],C.yellow);ellipse(x-27,y-6,9,14,C.yellow);ellipse(x+27,y-6,9,14,C.yellow);text('岔',x,y-5,15,C.green);}if(!s.cabinetOpen){rect(233,229,148,166,'#a9c8c580',3);line(240,246,290,281,C.paper,3);line(272,250,318,281,C.paper,2);rect(368,281,8,39,C.yellow,3);}else poly([[381,230],[421,253],[421,377],[381,395]],'#c2d6ca77');hit('award-cabinet','奖杯展示柜的窗扣',355,267,44,66,()=>{s.cabinetOpen=!s.cabinetOpen;say(s.cabinetOpen?'展示柜开了。小岔向画面外招手：这次轮到你领奖。':'玻璃关上了，奖杯还留在柜里。');});if(s.cabinetOpen&&!s.awarded){hit('viewer-trophy','奖杯，送到画面上方的画外领取口',s.trophyX-34,s.trophyY-37,68,86,()=>say('收件人不在画里。把奖杯递向上方的虚线口。'),(x,y)=>{s.trophyDrag=true;s.trophyX=clamp(x,30,450);s.trophyY=clamp(y,-45,430);},()=>{if(s.trophyDrag&&s.trophyY<35&&s.trophyX>157&&s.trophyX<323){s.awarded=true;say('奖杯递出画面。谢谢你，热心市民！');tone(810,.2);}else{s.trophyX=308;s.trophyY=325;say('小岔不是这次的领奖人，再向画面上方递一点。');}s.trophyDrag=false;});}actor(110,436,1,1.15);text('小岔：谢谢你！',104,290,12,C.green);}
 });
+W.add(25,{
+ init:()=>({cloudParked:false,cloudDrag:false,cloudX:65,cloudY:304,weighed:false,overloaded:false,shake:0}),
+ cancel(s){if(s.cloudDrag){s.cloudDrag=false;s.cloudX=s.p.x;s.cloudY=s.p.y-132;}},
+ platforms:s=>s.weighed?[]:[{x:365,y:292,w:25,h:144,solid:true}],
+ update(s,dt){s.shake=Math.max(0,s.shake-dt);if(!s.cloudParked&&!s.cloudDrag){s.cloudX=s.p.x;s.cloudY=s.p.y-132;}if(s.weighed&&s.p.x>423)win();},
+ draw(s){background('inside');
+  text('称重门 · 限重 80 kg',257,81,21,C.green);door(433,436,s.weighed,'轻装出口');
+  rect(65,125,96,100,C.paper,8);text('心事寄存',113,107,14,C.green);line(113,138,113,163,C.green,4);line(113,163,130,163,C.green,4);line(130,163,130,176,C.green,4);ellipse(121,177,9,7,C.green);text('免费 · 不催取',113,247,12,C.green);
+  const shake=s.shake>0?Math.sin(s.t*42)*3:0;
+  rect(180+shake,223,147,88,s.weighed?C.mint:s.overloaded?C.pink:C.paper,8);text(s.weighed?'57 kg':s.overloaded?'156 kg':'— kg',254+shake,249,27,C.green);text(s.weighed?'本人重量，已放行':s.overloaded?'其中 99 kg 是心事':'先站上秤，再称一下',254+shake,284,12,C.green);
+  line(226,313,226,427,C.green,4);rect(169,426,114,10,C.green,3);line(181,422,270,422,C.orange,3);rect(256,344,82,43,C.yellow,6);text('称一下',297,365,14,C.green);
+  hit('worry-weigh','称重按钮，站上秤后操作',253,341,88,49,()=>{if(!near(223,44)||!s.p.grounded){say('先站到秤上，这台机器还不支持远程称心。');return;}if(!s.cloudParked){s.overloaded=true;s.shake=.75;say('超重！秤把九十九公斤的心事，也算在你头上了。');tone(190,.18);return;}s.weighed=true;say('本人五十七公斤，轻装放行。心事：我在寄存钩上歇一会儿。');tone(710,.12);});
+  if(!s.weighed){line(379,294,379,436,C.orange,6);text('未称重',378,276,11,C.green);}
+  const x=s.cloudX,y=s.cloudY;ellipse(x-23,y,25,19,C.blue);ellipse(x+21,y,28,19,C.blue);ellipse(x,y-12,28,23,C.blue);rect(x-35,y-1,71,20,C.blue,8,null);text('心事 99 kg',x,y,12,C.green);if(!s.cloudParked){for(let i=0;i<3;i++)ellipse(x-9+i*8,y+34+i*6,3+i,3+i,C.paper);text('明天的报告……',x,y-45,12,C.green);
+   hit('worry-cloud','头顶的心事云，可拖到左上寄存钩',x-43,y-34,86,68,()=>say('心事：我也要上秤，明天的报告可不能漏算。'),(cx,cy)=>{s.cloudDrag=true;s.cloudX=clamp(cx,43,437);s.cloudY=clamp(cy,72,395);},()=>{if(!s.cloudDrag)return;if(s.cloudX>=65&&s.cloudX<=161&&s.cloudY>=129&&s.cloudY<=225){s.cloudParked=true;s.cloudX=113;s.cloudY=190;say('心事挂好了。寄存钩：先去办事，不用急着来领。');}else{s.cloudX=s.p.x;s.cloudY=s.p.y-132;say('心事又跟回来了。左上方的寄存钩，才肯替你保管。');}s.cloudDrag=false;});
+  }else text('暂存中，慢慢来',113,275,11,C.green);
+ }
+});
+W.add(26,{
+ init:()=>({remoteHeld:false,channel:0,tooClose:false}),
+ update(s){if(s.remoteHeld&&s.channel===2&&s.p.x>369&&Math.abs(s.p.y-436)<12)win();},
+ draw(s){background('inside');text('请保持遥远控制',241,91,23,C.green);
+  rect(37,341,111,75,C.mint,12);rect(48,323,87,45,C.mint,12);line(91,334,91,363,C.green);rect(27,361,25,60,C.green,8);rect(135,361,25,60,C.green,8);line(49,418,49,436,C.green,5);line(135,418,135,436,C.green,5);text('沙发观众席',93,303,13,C.green);
+  line(286,355,286,436,C.green,4);line(239,355,309,355,C.green,5);text('桌上有遥控器',266,280,11,C.green);
+  rect(319,198,139,232,C.green,14);rect(330,212,117,198,s.channel===2?C.mint:C.paper,8);line(340,433,340,436,C.green,5);line(437,433,437,436,C.green,5);line(360,195,345,177,C.ink,2);line(404,195,419,177,C.ink,2);
+  if(s.channel===0){text('乌龙晚间新闻',389,250,16,C.green);face(388,299,-1,'happy',1);text('门堵在电视里',389,342,14,C.green);text('正在等新闻结束',389,365,12,C.green);}else if(s.channel===1){text('乌龙天气预报',389,249,15,C.green);ellipse(388,290,29,18,C.blue);text('局部有门',389,339,19,C.green);text('建议携带自己',389,368,13,C.green);}else{door(389,410,true,'出口频道');text('正在播出：出口',389,237,13,C.green);line(343,434,438,434,C.orange,3);}
+  text('频道 '+['新闻','天气','出口'][s.channel],388,455,12,C.green);
+  const rx=s.remoteHeld?clamp(s.p.x+29,40,437):266,ry=s.remoteHeld?s.p.y-39:327,far=380-s.p.x>=220;
+  if(s.remoteHeld){text(far?'距离：遥远 ✓':'距离：太近',130,211,15,far?C.green:C.orange);line(rx,ry-32,far?320:rx+27,far?240:ry-50,far?C.green:C.orange,2,[4,5]);}
+  rect(rx-22,ry-30,44,61,C.yellow,7);ellipse(rx,ry-14,6,6,C.orange);text(s.remoteHeld?'换台':'拿起',rx,ry+10,11,C.green);
+  hit('far-remote',s.remoteHeld?'手里的遥控器，点击调台':'桌上的遥控器，走近点击拿起',rx-34,ry-36,68,76,()=>{if(!s.remoteHeld){if(!near(266,65)){say('先走近桌子。遥控器还没有学会遥远取物。');return;}s.remoteHeld=true;say('拿好了。离电视这么近，它还不肯算作遥控。');return;}if(380-s.p.x<220){s.tooClose=true;say('遥控器只让自己亮了一下：靠得这么近，请叫我近控器。');tone(210,.1);return;}s.channel=(s.channel+1)%3;say(['新闻又开始了。随时可以再调台，不用等它播完。','天气预报：局部有门，建议携带自己。','出口频道开播。门会留在画面里，走过去就行。'][s.channel]);tone(460+s.channel*110,.1);});
+ }
+});
 })();
