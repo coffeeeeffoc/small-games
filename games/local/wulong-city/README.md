@@ -17,6 +17,7 @@ pnpm --filter @coffeeeeffoc/wulong-city dev
 
 - 电脑：A/D 或方向键移动，空格跳跃；鼠标点、拖物件；Esc 暂停。
 - 手机：底部左右与跳跃按钮，场景点拖，移动与跳跃最多双指。
+- 同一方向上的多指、键盘与触摸输入独立释放；松开其中一次操作不会打断其它仍按住的操作。场景拖动只接受开始拖动的手指，失去其指针捕获会取消预览并恢复角色，避免角色卡在拖动状态。
 - 键盘解谜：Tab 找物件，Enter 操作；拖动点 Enter 抓取、方向键调整、Enter 松开，Esc 取消并暂停。
 - 顶栏提供选关、奇遇记录、音效、全屏和暂停；下方提供重试与三级提示。
 - 普通模式从 L01 顺序解锁。存档键 `wulong-city-v1` 保持不变；换域名或端口不会自动迁移浏览器存储。
@@ -56,6 +57,8 @@ pnpm --filter @coffeeeeffoc/wulong-city test:lifecycle
 
 在游戏目录执行 `node tests/playtest.mjs 2 11 18` 可仅测指定关卡。生命周期测试可单独运行，会自行创建证据目录。截图路径使用 `fileURLToPath`，兼容 Windows、Linux 和空格路径；截图和报告保存在被忽略的 `tests/evidence/`。
 
+生命周期回归覆盖同一方向双指、键盘与触摸混用、两个同向按键的独立释放，以及地图拖动的无关指针取消和指针捕获丢失。
+
 ### Shell 验证
 
 在仓库根目录执行 `pnpm test:pages`，验证已构建的 Pages 产物；更新游戏后可先运行 `pnpm build:pages`。
@@ -74,3 +77,5 @@ pnpm --filter @coffeeeeffoc/wulong-city test:lifecycle
 - [迁移前试玩记录与边界](docs/PLAYTEST.md)
 
 原文档中的 games4 和证据路径表示迁移前历史，当前命令以本 README 为准。原创程序图形与 Web Audio 合成音效；未接入账号、后台、广告或设备权限。
+
+当前交付支持 Web / H5 浏览器。20 关规则可在没有 DOM 的环境独立验证，但正式入口仍使用 DOM 热点、对话框、浏览器存储及 Web Audio；微信、B 站、抖音、快手原生小游戏需要独立的 Canvas UI、输入和 Game Host 入口后再逐渠道验收。

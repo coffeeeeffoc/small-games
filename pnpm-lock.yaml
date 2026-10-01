@@ -310,6 +310,9 @@ importers:
       '@coffeeeeffoc/platform-douyin':
         specifier: workspace:*
         version: link:../../platforms/douyin
+      '@coffeeeeffoc/platform-kuaishou':
+        specifier: workspace:*
+        version: link:../../platforms/kuaishou
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
@@ -1896,6 +1899,34 @@ importers:
         version: 7.0.2
 
   platforms/douyin:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../packages/game-contract
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../packages/canvas-game-adapter
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  platforms/kuaishou:
     dependencies:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
@@ -5577,6 +5608,7 @@ packages:
   eslint@9.35.0:
     resolution: {integrity: sha512-QePbBFMJFjgmlE+cXAlbHZbHpdFVS2E/6vzCy7aKlebddvl1vadiC4JFV5u/wqTkNUwEV8WrQi257jf5f06hrg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'

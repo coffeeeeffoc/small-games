@@ -16,8 +16,9 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     await mkdir(path.join(temp, 'games/local/carding-car/scripts'), { recursive: true });
     for (const name of ['build.mjs', 'artifact.mjs'])
       await cp(new URL(`../scripts/${name}`, import.meta.url), path.join(game, 'scripts', name));
-    await cp(new URL('../../carding-car/scripts/toolchain.mjs', import.meta.url),
-      path.join(temp, 'games/local/carding-car/scripts/toolchain.mjs'));
+    for (const name of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'])
+      await cp(new URL('../../carding-car/scripts/' + name, import.meta.url),
+        path.join(temp, 'games/local/carding-car/scripts', name));
     await writeFile(path.join(game, 'package.json'), '{"type":"module"}\n');
     for (const name of ['engine', 'project'])
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');
@@ -26,6 +27,10 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     await writeFile(modelScript, 'print("aircraft")\n');
     await writeFile(script, 'const active = true;\n');
     const hash = await sourceHash(game);
+    const bundleSettings = path.join(game, 'settings/v2/packages/builder.json');
+    await writeFile(bundleSettings, '{"bundleConfig":{}}\n');
+    assert.notEqual(await sourceHash(game), hash, 'Native resource-bundle settings invalidate artifacts');
+    await rm(bundleSettings);
     await writeFile(script, 'const active = true;\r\n');
     assert.equal(await sourceHash(game), hash, 'Windows and Unix text must hash identically');
     await writeFile(modelScript, 'print("aircraft")\r\n');

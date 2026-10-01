@@ -168,6 +168,51 @@ assert.equal(restored.tiles.filter(tile => !tile.removed).length, letters(phrase
 assert.ok(findSpelling(restored, restored.activeWordId));
 assert.throws(() => restoreProgress(phrases, ['unknown']));
 assert.throws(() => restoreProgress(phrases, ['look at', 'look at']));
+
+function snapshot(game) {
+  return structuredClone({ tiles: game.tiles, boardHeight: game.boardHeight, activeWordId: game.activeWordId, selected: game.selected });
+}
+const live = createGame(entries, seeded(21));
+const firstSpelling = findSpelling(live, live.activeWordId);
+firstSpelling.forEach(id => selectTile(live, id));
+submitWord(live, seeded(19));
+const partialSpelling = findSpelling(live, live.activeWordId);
+selectTile(live, partialSpelling[0]);
+const completedWords = live.words.filter(word => word.done).map(word => word.word);
+const liveBoard = snapshot(live);
+const resumed = restoreProgress(entries, completedWords, seeded(92), liveBoard);
+assert.deepEqual(snapshot(resumed), liveBoard, 'reload preserves completed words, live layout, active meaning and selection order');
+partialSpelling.slice(1).forEach(id => selectTile(resumed, id));
+assert.equal(submitWord(resumed).status, 'correct', 'a saved partial answer can be finished normally');
+
+for (const corrupt of [
+  board => { board.tiles[0].char = 'z'; },
+  board => { board.tiles[0].x = Infinity; },
+  board => { board.tiles.find(tile => !tile.removed).removed = true; },
+  board => { board.activeWordId = 'unknown'; },
+  board => { board.selected.push(board.selected[0]); },
+  board => { board.selected = ['unknown']; },
+  board => { board.boardHeight = 999999; },
+]) {
+  const board = structuredClone(liveBoard);
+  corrupt(board);
+  const safe = restoreProgress(entries, completedWords, seeded(92), board);
+  assert.equal(safe.completed, completedWords.length, 'damaged snapshots never erase completed words');
+  assert.equal(safe.selected.length, 0, 'damaged snapshots discard unsafe selections');
+  assert.ok(findSpelling(safe, safe.activeWordId), 'damaged snapshots recover a playable board');
+}
+const tall = createGame([{ word: 'a'.repeat(70), meaning: '长词' }, { word: 'bc', meaning: '短词' }], seeded(21));
+chooseWord(tall, 'word-0');
+if (!findSpelling(tall, tall.activeWordId)) {
+  chooseWord(tall, 'word-1');
+  findSpelling(tall, tall.activeWordId).forEach(id => selectTile(tall, id));
+  submitWord(tall);
+}
+findSpelling(tall, tall.activeWordId).forEach(id => selectTile(tall, id));
+submitWord(tall);
+reshuffle(tall, seeded(77));
+const tallDone = tall.words.filter(word => word.done).map(word => word.word);
+assert.deepEqual(snapshot(restoreProgress(tall.words, tallDone, seeded(55), snapshot(tall))), snapshot(tall), 'removed tiles from a taller previous layout do not invalidate a saved board');
 const single = createGame([{ word: 'letter', meaning: '信' }]);
 findSpelling(single, single.activeWordId).forEach(id => selectTile(single, id));
 assert.equal(submitWord(single).won, true, 'a one-word final batch can finish');

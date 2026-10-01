@@ -2,7 +2,7 @@
 window.W = (() => {
   const c = document.querySelector('canvas'), ctx = c.getContext('2d'), $ = id => document.getElementById(id);
   const C = {ink:'#36463e',paper:'#f8f2df',green:'#537d63',mint:'#b8ceb5',orange:'#dc7852',yellow:'#e8bd62',blue:'#a9c8c5',pink:'#e5ab99',wall:'#e6e9d8'};
-  const levels = {}, held = new Set(), zones = new Map();
+  const levels = {}, held = new Set(), inputSources = new Map(), zones = new Map();
   let s, last=0, activeDrag=null, audio, sound=true, unlocked=1, records={}, savedLevel=1, modal=false, hintStep=0, run=0, dialogPointer=false;
   const dev = new URLSearchParams(location.search).get('dev') === '1';
   try { const save=JSON.parse(localStorage.getItem('wulong-city-v1')||'{}'); unlocked=Math.max(1,Math.min(20,Number(save.unlocked)||1)); records=save.records&&typeof save.records==='object'?save.records:{}; savedLevel=Number(save.level)||1; sound=save.sound!==false; } catch {}
@@ -24,7 +24,14 @@ window.W = (() => {
   function hit(id,label,x,y,w,h,click,drag,up){const min=(drag?44:36)*480/(c.clientWidth||480),nw=Math.max(w,min),nh=Math.max(h,min);x=Math.max(0,Math.min(480-nw,x-(nw-w)/2));y=Math.max(0,Math.min(490-nh,y-(nh-h)/2));W.frameZones.set(id,{id,label,x,y,w:nw,h:nh,click,drag,up});}
   function near(x,range=65){return Math.abs(s.p.x-x)<range;}
   function win(){if(s.won)return;s.won=true;s.finishAt=s.t+1.1;s.p.vx=0;clearInput();tone(730,.22);say(LEVEL_DATA[s.id].joke);records[s.id]=LEVEL_DATA[s.id].record;unlocked=Math.max(unlocked,Math.min(20,s.id+1));save();}
-  function clearInput(){held.clear();if(activeDrag){levels[s.id].cancel?.(s);activeDrag=null;}document.querySelectorAll('.pressed').forEach(b=>b.classList.remove('pressed'));}
+  function hold(action,source,down){
+    let sources=inputSources.get(action);
+    if(down){if(!sources)inputSources.set(action,sources=new Set());sources.add(source);}
+    else sources?.delete(source);
+    if(sources?.size)held.add(action);else{held.delete(action);inputSources.delete(action);}
+    $(action)?.classList.toggle('pressed',held.has(action));
+  }
+  function clearInput(){held.clear();inputSources.clear();if(activeDrag){levels[s.id].cancel?.(s);activeDrag=null;}document.querySelectorAll('.pressed').forEach(b=>b.classList.remove('pressed'));}
   function close(){if($('dialog').open)$('dialog').close();modal=false;clearInput();last=0;$('canvas').focus({preventScroll:true});}
   function open(html){clearInput();dialogPointer=false;modal=true;$('dialog-body').innerHTML=html;if(!$('dialog').open)$('dialog').showModal();$('dialog-body').querySelector('[data-close]')?.addEventListener('click',close);}
   // A held movement touch must not click a result button that appears beneath it.
@@ -42,12 +49,18 @@ window.W = (() => {
   function frame(now){let dt=Math.min((now-last)/1000||0,1/30);last=now;if(s&&!modal){s.t+=dt;if(!s.won){physics(dt);levels[s.id].update?.(s,dt);}else if(!s.presented&&s.t>s.finishAt){s.presented=true;result();}draw();}requestAnimationFrame(frame);}
   function point(e){const b=c.getBoundingClientRect();return{x:(e.clientX-b.left)*480/b.width,y:(e.clientY-b.top)*520/b.height};}
   function boot(){let requested=Number(new URLSearchParams(location.search).get('level'));start(dev&&levels[requested]?requested:levels[savedLevel]&&savedLevel<=unlocked?savedLevel:levels[1]?1:2);$('sound').textContent=sound?'♪':'♩';$('sound').setAttribute('aria-label',sound?'关闭音效':'开启音效');requestAnimationFrame(frame);}
-  $('stage').addEventListener('pointerdown',e=>{if(modal||s.won)return;const p=point(e);let list=[...zones.values()].reverse();let z=list.find(z=>p.x>=z.x&&p.x<=z.x+z.w&&p.y>=z.y&&p.y<=z.y+z.h);if(z){e.preventDefault();activeDrag={z,p,run,id:e.pointerId,moved:false};$('stage').setPointerCapture(e.pointerId);tone(380,.05);}});
+  $('stage').addEventListener('pointerdown',e=>{if(modal||s.won||activeDrag||e.button!==0)return;const p=point(e);let list=[...zones.values()].reverse();let z=list.find(z=>p.x>=z.x&&p.x<=z.x+z.w&&p.y>=z.y&&p.y<=z.y+z.h);if(z){e.preventDefault();activeDrag={z,p,run,id:e.pointerId,moved:false};$('stage').setPointerCapture(e.pointerId);tone(380,.05);}});
   $('stage').addEventListener('pointermove',e=>{if(!activeDrag||activeDrag.id!==e.pointerId||activeDrag.run!==run||modal)return;const p=point(e);if(Math.hypot(p.x-activeDrag.p.x,p.y-activeDrag.p.y)>4)activeDrag.moved=true;if(activeDrag.z.drag&&activeDrag.moved)activeDrag.z.drag(p.x,p.y);});
   $('stage').addEventListener('pointerup',e=>{if(!activeDrag||activeDrag.id!==e.pointerId)return;const {z,moved,run:started}=activeDrag;activeDrag=null;if(started!==run||modal)return;if(!moved)z.click?.();z.up?.();});
-  $('stage').addEventListener('pointercancel',()=>{if(activeDrag)levels[s.id].cancel?.(s);activeDrag=null;});
-  for(const action of ['left','right','jump']){const b=$(action);b.addEventListener('pointerdown',e=>{e.preventDefault();if(modal)return;b.setPointerCapture(e.pointerId);if(action==='jump')jump();else held.add(action);b.classList.add('pressed');});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>{held.delete(action);b.classList.remove('pressed');});b.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();if(action==='jump')jump();else held.add(action);}});b.addEventListener('keyup',()=>held.delete(action));}
-  document.addEventListener('keydown',e=>{if(modal)return;if(e.key==='Escape'){e.preventDefault();pause();return;}if(e.target.closest('button')&&e.target.dataset.zone)return;if(['ArrowLeft','a','A'].includes(e.key)){e.preventDefault();held.add('left');}if(['ArrowRight','d','D'].includes(e.key)){e.preventDefault();held.add('right');}if(e.code==='Space'&&!e.target.closest('button')){e.preventDefault();if(!e.repeat)jump();}});document.addEventListener('keyup',e=>{if(['ArrowLeft','a','A'].includes(e.key))held.delete('left');if(['ArrowRight','d','D'].includes(e.key))held.delete('right');});
+  for(const event of ['pointercancel','lostpointercapture'])$('stage').addEventListener(event,e=>{if(activeDrag?.id!==e.pointerId)return;levels[s.id].cancel?.(s);activeDrag=null;});
+  for(const action of ['left','right','jump']){
+    const b=$(action);
+    b.addEventListener('pointerdown',e=>{e.preventDefault();if(modal||s.won||e.button!==0)return;b.setPointerCapture(e.pointerId);hold(action,`pointer:${e.pointerId}`,true);if(action==='jump')jump();});
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>hold(action,`pointer:${e.pointerId}`,false));
+    b.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();if(modal||s.won)return;hold(action,`button:${e.code}`,true);if(action==='jump'&&!e.repeat)jump();}});
+    b.addEventListener('keyup',e=>hold(action,`button:${e.code}`,false));
+  }
+  document.addEventListener('keydown',e=>{if(modal)return;if(e.key==='Escape'){e.preventDefault();pause();return;}if(e.target.closest('button')&&e.target.dataset.zone)return;if(['ArrowLeft','a','A'].includes(e.key)){e.preventDefault();hold('left',`key:${e.code}`,true);}if(['ArrowRight','d','D'].includes(e.key)){e.preventDefault();hold('right',`key:${e.code}`,true);}if(e.code==='Space'&&!e.target.closest('button')){e.preventDefault();if(!e.repeat)jump();}});document.addEventListener('keyup',e=>{if(['ArrowLeft','a','A'].includes(e.key))hold('left',`key:${e.code}`,false);if(['ArrowRight','d','D'].includes(e.key))hold('right',`key:${e.code}`,false);});
   function pause(){open(heading('歇一小会儿')+'<p>城市可以等你。所有动作已经暂停。</p><button class="primary" data-resume>继续探索</button><button class="secondary" data-menu>选关 / 退出本关</button>');document.querySelector('[data-resume]').onclick=close;document.querySelector('[data-menu]').onclick=menu;}
   window.addEventListener('blur',()=>{clearInput();if(s&&!modal&&!s.won)pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(s&&!modal&&!s.won)pause();}});$('dialog').addEventListener('cancel',()=>{modal=false;clearInput();last=0;});$('dialog').addEventListener('close',()=>{if(!$('dialog').open){modal=false;last=0;$('canvas').focus({preventScroll:true});}});$('pause').onclick=pause;$('menu').onclick=menu;$('retry').onclick=()=>start(s.id);$('hint').onclick=()=>{const d=LEVEL_DATA[s.id];open(heading('换个角度看看')+`<div class="hint-step">提示 ${hintStep+1} / 3</div><p>${d.hints[hintStep]}</p><button class="primary" data-close-hint>回去试试</button><button class="secondary" data-more>${hintStep<2?'再明确一点':'重新看第一条'}</button>`);document.querySelector('[data-close-hint]').onclick=close;document.querySelector('[data-more]').onclick=()=>{hintStep=(hintStep+1)%3;$('hint').click();};};$('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'♪':'♩';$('sound').setAttribute('aria-label',sound?'关闭音效':'开启音效');save();tone();};$('fullscreen').onclick=async()=>{clearInput();try{if(document.fullscreenElement)await document.exitFullscreen();else if($('game').requestFullscreen)await $('game').requestFullscreen();else say('当前浏览器不支持全屏；可添加到主屏幕后游玩。');}catch{say('此浏览器未允许全屏，仍可正常游玩。');}};document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'退出全屏':'进入全屏');if(!modal)$('canvas').focus({preventScroll:true});});
   if(dev)window.__wulong={snapshot:()=>JSON.parse(JSON.stringify({state:s,modal,unlocked,records,sound,zones:[...zones.values()].map(({id,x,y,w,h,label})=>({id,x,y,w,h,label}))}))};

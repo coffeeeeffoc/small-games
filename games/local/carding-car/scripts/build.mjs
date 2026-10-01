@@ -7,11 +7,13 @@ import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { clearOutput } from './clear-output.mjs';
 import { prepareArt } from './prepare-art.mjs';
 import { instrumentWechatStartup } from './wechat-startup.mjs';
+import { nativeTarget, nativePackages, verifyNativeOutput } from './native-targets.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
-if (!['web-mobile', 'wechatgame', 'bilibili'].includes(target))
+if (!['web-mobile', 'wechatgame', 'bilibili', 'douyin'].includes(target))
   throw new Error('Unknown build target');
-if (!process.argv.includes('--check-output')) await prepareArt();
+const configOnly = process.argv.includes('--config-only');
+if (!process.argv.includes('--check-output') && !configOnly) await prepareArt();
 if (target === 'web-mobile' && process.env.KART_PREBUILT_DIR) {
   const source = await verifyPrebuilt(process.env.KART_PREBUILT_DIR),
     dist = path.resolve(root, 'dist');
@@ -21,17 +23,24 @@ if (target === 'web-mobile' && process.env.KART_PREBUILT_DIR) {
   console.log('Restored verified Creator artifact');
   process.exit(0);
 }
-if (!process.argv.includes('--check-output') && !existsSync(editor))
+if (!process.argv.includes('--check-output') && !configOnly && !existsSync(editor))
   throw new Error('Set COCOS_CREATOR to the Cocos Creator 3.8.8 executable.');
-const platform = target === 'bilibili' ? 'wechatgame' : target;
+const platform = target === 'bilibili' ? 'wechatgame' : target === 'douyin' ? 'bytedance-mini-game' : target;
 const outputName = target === 'bilibili' ? 'wechat-bilibili-source' : platform;
 if (
   target === 'bilibili' &&
+  !configOnly &&
   !existsSync(path.join(root, 'extensions/biligame-builder/package.json'))
 )
   throw new Error('Run node scripts/setup.mjs --bilibili first.');
 const localPath = path.join(root, 'release-config.local.json');
 const release = existsSync(localPath) ? JSON.parse(await readFile(localPath, 'utf8')) : {};
+const native = target === 'web-mobile' ? null : nativeTarget(target, release);
+if (process.argv.includes('--check-output') && ['wechatgame', 'douyin'].includes(target)) {
+  const checked = await verifyNativeOutput(path.join(root, 'build', native.outputName), native, await sourceHash());
+  console.log(`${target} output checked: main=${checked.mainBytes}, total=${checked.totalBytes}; platform authorization and devices unverified.`);
+  process.exit(0);
+}
 const bilibiliAppId = process.env.BILIBILI_APP_ID || release.bilibiliAppId || '';
 if (
   target === 'bilibili' &&
@@ -79,9 +88,9 @@ const competitionClient = await readFile(
   'utf8',
 );
 const competitionConfig = {
-  platform: target === 'bilibili' ? 'bilibili' : target === 'wechatgame' ? 'wechat' : 'h5',
+  platform: native?.channel || 'h5',
   appId:
-    target === 'bilibili' ? bilibiliAppId : process.env.WECHAT_APP_ID || release.wechatAppId || '',
+    native ? native.appId : process.env.WECHAT_APP_ID || release.wechatAppId || '',
   apiUrl: process.env.COMPETITION_PUBLIC_API_URL || release.competitionApiUrl || '',
 };
 const competitionBridge =
@@ -127,10 +136,17 @@ const config = {
       biliGameAppId: bilibiliAppId || 'preview-only',
       biliGameVersion: '0.1.0',
     },
+    ...(target === 'douyin' ? nativePackages(target, release) : {}),
   },
 };
 const configPath = path.join(report, `build-${target}.json`);
 await writeFile(configPath, JSON.stringify(config, null, 2));
+if (configOnly) {
+  console.log(`Saved ${target} build configuration: ${native?.configured ? 'AppID configured; authorization unverified' : 'preview configuration; platform AppID missing or tourist mode'}. No Creator build was run.`);
+  process.exit(0);
+}
+if (target === 'douyin' && !native.configured)
+  throw new Error('Set DOUYIN_APP_ID or release-config.local.json douyinAppId before building; --config-only can inspect the unconfigured target.');
 const outputDir = path.resolve(root, 'build', outputName);
 if (path.dirname(outputDir) !== path.resolve(root, 'build'))
   throw new Error('Build output escaped project');
@@ -194,7 +210,7 @@ if (target === 'wechatgame') {
     instrumentWechatStartup(await readFile(gameJs, 'utf8'), packs, new Date().toISOString()),
   );
 }
-if (platform === 'wechatgame') {
+if (platform === 'wechatgame' || platform === 'bytedance-mini-game') {
   const directory = path.dirname(path.join(root, 'build', entry));
   const serverUrl = process.env.KART_SERVER_URL || release.multiplayerServerUrl || '';
   if (serverUrl && !/^wss:\/\/[^\s/#?]+\/kart$/.test(serverUrl))
@@ -224,8 +240,11 @@ if (platform === 'wechatgame') {
     await writeFile(path.join(directory, 'game.json'), JSON.stringify(game, null, 2));
     await checkBilibiliOutput(directory, bilibiliAppId);
   }
-  if (!game.subpackages?.some((bundle) => bundle.name === 'resources'))
+  if (!(game.subpackages || game.subPackages)?.some((bundle) => bundle.name === 'resources'))
     throw new Error('Mini-game art must be exported as the resources subpackage.');
+  await writeFile(path.join(directory, 'build-info.json'), JSON.stringify({
+    creator: '3.8.8', target, sourceHash: await sourceHash(),
+  }));
   let totalBytes = 0,
     mainBytes = 0;
   for (const file of await readdir(directory, { recursive: true, withFileTypes: true })) {
@@ -238,6 +257,10 @@ if (platform === 'wechatgame') {
   if (mainBytes > 4 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024)
     throw new Error(`Mini-game package budget exceeded: main=${mainBytes}, total=${totalBytes}`);
   console.log(`Package budget: main=${mainBytes}, total=${totalBytes} bytes`);
+  if (target === 'douyin') {
+    const verified = await verifyNativeOutput(directory, native);
+    console.log(`Douyin Creator output checked: main=${verified.mainBytes}, total=${verified.totalBytes}; developer-tool and device authorization unverified.`);
+  }
 }
 if (target === 'web-mobile') {
   const index = path.join(outputDir, 'index.html');

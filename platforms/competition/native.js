@@ -4,7 +4,41 @@ const roleNames = { pursuer: '追逐队', runner: '突围队', random: '系统�
 
 // Reviewed Canvas gameplay; no DOM, webview or HTML emulation in mini-games.
 export function startNativeCompetition(sdk, config, createRenderer) {
-  globalThis.__installCompetition(config);
+  if (!['wechat', 'bilibili', 'douyin', 'kuaishou'].includes(config?.platform))
+    throw new Error('原生好友挑战需要明确的平台配置。');
+  if (!sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动游戏。`);
+  for (const name of [
+    'createCanvas',
+    'getSystemInfoSync',
+    'onTouchEnd',
+    'offTouchEnd',
+    'onHide',
+    'offHide',
+    'onShow',
+    'offShow',
+    'getStorageSync',
+    'setStorageSync',
+  ]) {
+    if (typeof sdk[name] !== 'function') throw new Error(`原生 SDK 缺少 ${name}，无法启动游戏。`);
+  }
+  let stopped = false;
+  const subscriptions = [];
+  function subscribe(on, off, listener, required = false) {
+    if (typeof sdk[on] !== 'function' || typeof sdk[off] !== 'function') {
+      if (required) throw new Error(`原生 SDK 缺少 ${on}/${off}，无法安全启动游戏。`);
+      return;
+    }
+    sdk[on](listener);
+    subscriptions.push(() => sdk[off](listener));
+  }
+  function safely(run) {
+    try {
+      run();
+    } catch {
+      /* Optional audio and cleanup cannot block gameplay. */
+    }
+  }
+  globalThis.__installCompetition(config, sdk);
   const client = globalThis.__competition,
     canvas = sdk.createCanvas(),
     ctx = canvas.getContext('2d'),
@@ -12,7 +46,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   const info = sdk.getSystemInfoSync();
   let width = info.windowWidth,
     height = info.windowHeight,
-    ratio = info.pixelRatio || 1;
+    ratio = Math.max(1, Number(info.pixelRatio) || 1);
   let room = null,
     board = null,
     message = '创建好友挑战或输入房间码',
@@ -26,7 +60,9 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     lastPoll = 0;
   let top = Math.max(info.safeArea?.top || 0, 26) + 36,
     bottom = Math.max(0, height - (info.safeArea?.bottom || height));
-  const roomKey = `competition-room:${config.game}`;
+  const namespace = `${config.platform}:${config.game}`;
+  const roomKey = `${namespace}:competition-room`;
+  const muteKey = `${namespace}:competition-muted`;
   let profile = null,
     keyboardTarget = 'code',
     modes = [],
@@ -49,26 +85,41 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   }
   let muted = false;
   try {
-    muted = sdk.getStorageSync('competition-muted') === true;
+    muted = sdk.getStorageSync(muteKey) === true;
   } catch {}
-  const sound = sdk.createInnerAudioContext?.();
-  if (sound) {
-    sound.src = 'competition-action.wav';
-    sound.volume = 0.18;
-    sound.obeyMuteSwitch = true;
-    sound.onError?.(() => {
-      message = '音效暂不可用，可关闭声音继续';
-    });
+  let sound = null;
+  try {
+    sound = sdk.createInnerAudioContext?.() || null;
+    if (sound) {
+      sound.src = 'competition-action.wav';
+      sound.volume = 0.18;
+      sound.obeyMuteSwitch = true;
+      const onSoundError = () => {
+        if (stopped) return;
+        message = '音效暂不可用，可关闭声音继续';
+      };
+      sound.onError?.(onSoundError);
+      subscriptions.push(() => sound?.offError?.(onSoundError));
+    }
+  } catch {
+    safely(() => sound?.destroy());
+    sound = null;
+    message = '音效暂不可用，可继续好友挑战';
   }
   const sharePayload = () => ({
     title: config.title + ' 好友挑战',
     query: room ? `pk=${room.code}` : '',
   });
-  sdk.showShareMenu?.({ menus: ['shareAppMessage'] });
-  sdk.onShareAppMessage?.(sharePayload);
+  safely(() => sdk.showShareMenu?.({ menus: ['shareAppMessage'] }));
+  subscribe('onShareAppMessage', 'offShareAppMessage', sharePayload);
   canvas.width = width * ratio;
   canvas.height = height * ratio;
-  const query = sdk.getLaunchOptionsSync?.().query || {};
+  let query = {};
+  try {
+    query = sdk.getLaunchOptionsSync?.()?.query || {};
+  } catch {
+    /* Manual room-code entry remains available if launch metadata fails. */
+  }
   if (query.pk) code = String(query.pk).toUpperCase();
   function button(label, x, y, w, action) {
     ctx.fillStyle = '#246969';
@@ -82,7 +133,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     hits.push({ x, y, w, h: 44, action });
   }
   function draw() {
-    if (!visible) return;
+    if (!visible || stopped) return;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.fillStyle = '#102a32';
     ctx.fillRect(0, 0, width, height);
@@ -92,11 +143,17 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     ctx.fillText(config.title, 12, top - 12);
     button(muted ? '声音：关' : '声音：开', width - 90, top - 38, 78, () => {
       muted = !muted;
-      sdk.setStorageSync('competition-muted', muted);
-      if (muted) sound?.stop();
+      try {
+        sdk.setStorageSync(muteKey, muted);
+      } catch {
+        message = '声音设置本次有效，本机暂不能保存';
+      }
+      if (muted) safely(() => sound?.stop());
       else if (sound) {
-        sound.stop();
-        sound.play();
+        safely(() => {
+          sound.stop();
+          sound.play();
+        });
       } else message = '当前平台音频不可用';
     });
     const text = String(message);
@@ -223,7 +280,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         });
       });
       button('邀请', 85, top + 64, 65, () => {
-        sdk.shareAppMessage?.(sharePayload());
+        safely(() => sdk.shareAppMessage?.(sharePayload()));
         message = '房间 ' + room.code + '，可分享或发送房间码';
       });
       button('规则', width - 74, top + 64, 62, () =>
@@ -347,15 +404,24 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     }
   }
   async function act(task) {
-    if (busy) return;
+    if (busy || stopped || !visible) return;
     busy = true;
     const seq = room?.seq ?? 0;
     try {
       await task();
-      if (room) sdk.setStorageSync(roomKey, room.code);
+      if (stopped) return;
+      if (room) {
+        try {
+          sdk.setStorageSync(roomKey, room.code);
+        } catch {
+          message += '；本机暂不能保存房间，请保留房间码。';
+        }
+      }
       if (visible && !muted && sound && room?.seq > seq) {
-        sound.stop();
-        sound.play();
+        safely(() => {
+          sound.stop();
+          sound.play();
+        });
       }
     } catch (error) {
       message = error.message || '服务不可用，请重试';
@@ -365,8 +431,9 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       draw();
     }
   }
-  sdk.onKeyboardConfirm?.((result) => {
-    sdk.hideKeyboard?.({});
+  subscribe('onKeyboardConfirm', 'offKeyboardConfirm', (result) => {
+    if (stopped || !visible) return;
+    safely(() => sdk.hideKeyboard?.({}));
     if (keyboardTarget === 'name') {
       void act(async () => {
         profile = await client.request('/me', {
@@ -383,32 +450,38 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     message = '房间码已输入，点击加入';
     draw();
   });
-  sdk.onTouchEnd((event) => {
-    const point = event.changedTouches?.[0];
-    if (!point) return;
-    const x = point.clientX ?? point.x,
-      y = point.clientY ?? point.y;
-    const hit = hits.find(
-      (item) => x >= item.x && x <= item.x + item.w && y >= item.y && y <= item.y + item.h,
-    );
-    if (hit) {
-      hit.action();
-      draw();
-      return;
-    }
-    if (!rulesOpen && room?.status === 'playing' && y > top + 118) {
-      const action = renderer.tap(x, y - top - 118, room.state);
-      if (action)
-        void act(async () => {
-          pending ??= { seq: room.seq + 1, action };
-          room = await client.request(`/rooms/${room.code}/actions`, {
-            body: JSON.stringify(pending),
+  subscribe(
+    'onTouchEnd',
+    'offTouchEnd',
+    (event) => {
+      if (stopped || !visible) return;
+      const point = event.changedTouches?.[0];
+      if (!point) return;
+      const x = point.clientX ?? point.x,
+        y = point.clientY ?? point.y;
+      const hit = hits.find(
+        (item) => x >= item.x && x <= item.x + item.w && y >= item.y && y <= item.y + item.h,
+      );
+      if (hit) {
+        hit.action();
+        draw();
+        return;
+      }
+      if (!rulesOpen && room?.status === 'playing' && y > top + 118) {
+        const action = renderer.tap(x, y - top - 118, room.state);
+        if (action)
+          void act(async () => {
+            pending ??= { seq: room.seq + 1, action };
+            room = await client.request(`/rooms/${room.code}/actions`, {
+              body: JSON.stringify(pending),
+            });
+            pending = null;
           });
-          pending = null;
-        });
-      draw();
-    }
-  });
+        draw();
+      }
+    },
+    true,
+  );
   const interval = setInterval(() => {
     if (visible && room && !busy && Date.now() - lastPoll >= (room.pollMs || 1200)) {
       lastPoll = Date.now();
@@ -427,20 +500,35 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       });
     }
   }, 250);
-  sdk.onHide(() => {
-    visible = false;
-    sound?.stop();
-  });
-  sdk.onAudioInterruptionBegin?.(() => sound?.stop());
-  sdk.onShow((event) => {
-    visible = true;
-    if (event.query?.pk) code = String(event.query.pk).toUpperCase();
-    draw();
-  });
-  sdk.onWindowResize?.((event) => {
+  subscribe(
+    'onHide',
+    'offHide',
+    () => {
+      visible = false;
+      safely(() => sound?.stop());
+    },
+    true,
+  );
+  subscribe('onAudioInterruptionBegin', 'offAudioInterruptionBegin', () =>
+    safely(() => sound?.stop()),
+  );
+  subscribe(
+    'onShow',
+    'offShow',
+    (event) => {
+      if (stopped) return;
+      visible = true;
+      if (event?.query?.pk) code = String(event.query.pk).toUpperCase();
+      draw();
+    },
+    true,
+  );
+  subscribe('onWindowResize', 'offWindowResize', (event) => {
+    if (stopped) return;
     width = event.windowWidth;
     height = event.windowHeight;
     const latest = sdk.getSystemInfoSync();
+    ratio = Math.max(1, Number(latest.pixelRatio) || 1);
     top = Math.max(latest.safeArea?.top || 0, 26) + 36;
     bottom = Math.max(0, height - (latest.safeArea?.bottom || height));
     canvas.width = width * ratio;
@@ -457,9 +545,12 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   return {
     canvas,
     stop() {
+      if (stopped) return;
+      stopped = true;
       visible = false;
       clearInterval(interval);
-      sound?.destroy();
+      for (const unsubscribe of subscriptions.splice(0)) safely(unsubscribe);
+      safely(() => sound?.destroy());
     },
   };
 }

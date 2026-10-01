@@ -321,7 +321,8 @@ export class Overwatch extends Component {
     this.sim.completed.add('zoom');
   }
   touchStart(e: EventTouch) {
-    if (e.simulate || !this.platform.touchInput) return;
+    if (e.simulate) return;
+    this.platform.useTouchInput(true);
     this.hud.mousePointer = undefined;
     this.hud.touch = true;
     this.platform.activate();
@@ -360,7 +361,7 @@ export class Overwatch extends Component {
     }
   }
   touchMove(e: EventTouch) {
-    if (e.simulate || !this.platform.touchInput) return;
+    if (e.simulate) return;
     const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
     if (fingers.length === 2) {
       const before = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
@@ -408,7 +409,7 @@ export class Overwatch extends Component {
     }
   }
   touchEnd(e: EventTouch) {
-    if (e.simulate || !this.platform.touchInput) return;
+    if (e.simulate) return;
     for (const t of e.getTouches()) {
       const id = t.getID(),
         role = this.touches.get(id);
@@ -424,7 +425,7 @@ export class Overwatch extends Component {
     }
   }
   touchCancel(e: EventTouch) {
-    if (e.simulate || !this.platform.touchInput) return;
+    if (e.simulate) return;
     this.clear();
   }
   keyDown(e: EventKeyboard) {
