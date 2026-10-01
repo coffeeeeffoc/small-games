@@ -1,5 +1,6 @@
 import standaloneGames from './standalone-games.json';
 import type { BuiltInGame, LazyBuiltInGame } from './registry.js';
+import { featuredPlay } from './featured-play.js';
 
 const featuredGameOrder: Record<string, number> = {
   'carding-car': 0,
@@ -34,7 +35,7 @@ export function GameCatalog({
   view: 'list' | 'cards';
   onQuery: (query: string) => void;
   onView: (view: 'list' | 'cards') => void;
-  onLaunch: (id: string) => void;
+  onLaunch: (id: string, search?: string) => void;
   disabled: boolean;
 }) {
   const terms = query.split(/\s+/u).map(normalize).filter(Boolean);
@@ -44,7 +45,10 @@ export function GameCatalog({
   const sourceOf = (game: (typeof games)[number]) =>
     'source' in game ? game.source : `games/local/game-${game.id}`;
   const matches = games.filter((game) => {
-    const text = normalize(`${game.title} ${game.description} ${game.id} ${sourceOf(game)}`);
+    const play = featuredPlay[game.id];
+    const text = normalize(
+      `${game.title} ${game.description} ${game.id} ${sourceOf(game)} ${play?.hook ?? ''} ${play?.choices.map((choice) => choice.label).join(' ') ?? ''}`,
+    );
     return terms.every((term) => text.includes(term));
   });
 
@@ -82,8 +86,8 @@ export function GameCatalog({
         aria-label="Game Catalog"
       >
         {matches.map((game) => (
-          <article key={game.id}>
-            {view === 'cards' && (
+          <article key={game.id} className={featuredPlay[game.id] ? 'featured-game' : undefined}>
+            {view === 'cards' && !featuredPlay[game.id] && (
               <span>
                 {!('source' in game)
                   ? 'remote' in game && game.remote
@@ -93,11 +97,21 @@ export function GameCatalog({
               </span>
             )}
             <h2>{game.title}</h2>
-            <code>{sourceOf(game)}</code>
-            <p>{game.description}</p>
+            {!featuredPlay[game.id] && <code>{sourceOf(game)}</code>}
+            <p>{featuredPlay[game.id]?.hook ?? game.description}</p>
             <button disabled={!('source' in game) && disabled} onClick={() => onLaunch(game.id)}>
               进入游戏
             </button>
+            {featuredPlay[game.id] && (
+              <div className="play-choices" role="group" aria-label={`${game.title}玩法`}>
+                {featuredPlay[game.id].choices.map((choice) => (
+                  <button key={choice.label} onClick={() => onLaunch(game.id, choice.search)}>
+                    {choice.label}
+                    <span aria-hidden="true"> ↗</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </article>
         ))}
       </section>

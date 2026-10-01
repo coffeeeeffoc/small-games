@@ -1,18 +1,22 @@
 import { useRef } from 'react';
 
 import { GameShare } from './GameShare.js';
+import { publicGameQuery } from './game-sharing.js';
 
 export function StandaloneGame({
   id,
   title,
+  search = '',
   onExit,
 }: {
   id: string;
   title: string;
+  search?: string;
   onExit: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
-  const entry = `${import.meta.env.BASE_URL}games/${id}/index.html`;
+  const query = publicGameQuery(id, search);
+  const entry = `${import.meta.env.BASE_URL}games/${id}/index.html${query ? `?${query}` : ''}`;
   return (
     <main className="game-page standalone-page" data-game-display-host>
       <nav aria-label="游戏导航">

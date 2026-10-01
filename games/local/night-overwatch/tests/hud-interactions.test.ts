@@ -93,6 +93,42 @@ const world = { thermal: false, project(p: data.Point, y = 0) {
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+test('HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports', () => {
+  for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) {
+    Object.assign(frame, { width, height }); inset = 12;
+    for (const lang of ['zh', 'en']) {
+      const hud = new HUD(new SceneNode()); hud.lang = lang; hud.resize();
+      const escort = new Simulation(); hud.update(escort, world);
+      const trainingEntry = hud.buttons.find((button: any) => button.id === 'training');
+      assert(trainingEntry); assert.equal(hud.hit(trainingEntry.x + trainingEntry.w / 2, trainingEntry.y + trainingEntry.h / 2)?.id, 'training');
+      const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
+      hud.trainingBest = { time: 20, fired: 5, hitShots: 5 };
+      for (const phase of ['briefing', 'success', 'failure'] as const) {
+        sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
+        hud.update(sim, world);
+        const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionReturn', 'start'] : ['missionReturn', 'retry']);
+        for (const button of buttons) {
+          assert(button.w >= 44 && button.h >= 44);
+          assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
+          assert(!buttons.some((other: any) => other !== button && overlaps(button, other)));
+        }
+        const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
+        assert.doesNotMatch(labels, /车队安全抵达|CONVOY EXTRACTED/);
+        if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /友军仍不能误伤/ : /do not hit allies/);
+        else {
+          assert.match(labels, lang === 'zh' ? /再练一轮|重甲用重炮/ : /TRY AGAIN|Heavy for armor/);
+          assert.match(labels, lang === 'zh' ? /最佳20.0s/ : /BEST 20.0s/);
+        }
+      }
+      sim.phase = 'playing'; hud.update(sim, world);
+      assert.match(hud.labels.get('progress').string, lang === 'zh' ? /热身清靶/ : /WARMUP/);
+      assert.equal(hud.buttons.find((button: any) => button.id === 'convoy').label.node.active, false);
+    }
+  }
+  inset = 0;
+});
+
 test('HUD: persistent global actions, compact modal layout, focus markers and zoom bindings', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1366, 768], [320, 568]]) {
     Object.assign(frame, { width, height });

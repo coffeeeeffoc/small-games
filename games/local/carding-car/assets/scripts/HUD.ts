@@ -18,7 +18,7 @@ import { DrivingCoach } from './DrivingCoach';
 import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
-import { STAMPS, stampCount, passportCount, earnedStamps, type RoutePassport, type KartChallenge } from './RouteChallenges';
+import { STAMPS, stampCount, passportCount, earnedStamps, sprintNextGoal, type RoutePassport, type KartChallenge } from './RouteChallenges';
 const keyboardHints = sys.isBrowser && !sys.isMobile;
 const color = (v: string) => new Color().fromHEX(v);
 export class HUD {
@@ -39,6 +39,7 @@ export class HUD {
   restartButton: Node;
   restartLabel: Label;
   garageButton: Node;
+  garageLabel: Label;
   picker: Node;
   choices: Label[] = [];
   selection: Selection = { ...defaultSelection };
@@ -151,7 +152,7 @@ export class HUD {
     this.garageButton.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.garageButton);
     this.box(this.garageButton, -263, -125, 170, 52, '#295870');
-    this.label(this.garageButton, '更换配置', -263, -125, 20, '#fff6dc', 170, 52);
+    this.garageLabel = this.label(this.garageButton, '更换配置', -263, -125, 20, '#fff6dc', 170, 52);
     this.picker = new Node('Selection');
     this.picker.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.picker);
@@ -206,8 +207,10 @@ export class HUD {
     const k = r.drivers[0].kart,
       p = r.drivers[0].progress,
       place = r.order.indexOf(0) + 1;
-    this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(C.laps, p.laps + 1)} / ${C.laps} 圈`;
-    this.timer.string = `总计 ${time(p.finishedAt || r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
+    this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(r.laps, p.laps + 1)} / ${r.laps} 圈`;
+    this.timer.string = r.mode === 'sprint'
+      ? `一圈冲刺 ${time(p.finishedAt || r.time)}\n漂移加速 ${r.driftBoosts} 次 · 有益补给 ${r.suppliesCollected} 个`
+      : `总计 ${time(p.finishedAt || r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
     this.pause.string = r.networked ? '房间' : 'Ⅱ';
@@ -229,13 +232,16 @@ export class HUD {
       ['ready', 'paused', 'finished'].includes(r.phase) &&
       !this.root.getChildByName('MultiplayerRoom')?.active;
     this.picker.active = r.phase === 'ready';
-    this.garageButton.active = r.phase === 'paused' || r.phase === 'finished';
+    this.garageButton.active = !r.networked && r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished';
+    this.garageLabel.string = r.phase === 'ready'
+      ? r.mode === 'sprint' ? '选 3 圈竞速' : '选一圈冲刺'
+      : '更换配置';
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
       this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
       this.restartLabel.string = r.phase === 'finished' ? '分享挑战' : '重新开跑';
-      this.leaderboard.string = `本路线最快 5 场\n${
+      this.leaderboard.string = `${r.mode === 'sprint' ? '一圈冲刺' : '本路线'}最快 5 场\n${
         this.records.length
           ? this.records
               .map(
@@ -277,7 +283,11 @@ export class HUD {
           })
           .join('\n')}`;
         this.footer.string = recordFeedback(r.time, this.previousBest);
-        if (!r.networked) {
+        if (r.mode === 'sprint') {
+          this.title.string = place === 1 ? '一圈冠军，爽快冲线！' : `一圈冲刺 · 第 ${place} 名`;
+          this.detail.string = `一圈 ${time(r.time)} · 漂移加速 ${r.driftBoosts} 次\n${r.suppliesCollected} 个有益补给 · ${r.collisions} 次碰撞`;
+          this.footer.string = recordFeedback(r.time, this.previousBest) + '\n' + sprintNextGoal(r);
+        } else if (!r.networked) {
           const bits = this.passport[this.selection.route] || 0, earned = earnedStamps(r);
           this.leaderboard.string = `路线印章 ${stampCount(bits)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}\n` +
             STAMPS.map((stamp) => `${bits & stamp.bit ? '★' : '☆'} ${stamp.name}${earned & stamp.bit ? ' · 本场达成' : ''}`).join('\n') +
@@ -295,29 +305,32 @@ export class HUD {
           ? '金牌 · 路线冠军'
           : place <= 3
             ? '银牌 · 登上领奖台'
-            : '铜牌 · 完成三圈'
+            : `铜牌 · 完成${r.laps === 1 ? '一' : '三'}圈`
         : this.previousBest
           ? `本路线目标：突破 ${time(this.previousBest)} · 本机纪录`
           : '本路线目标：完成 3 圈，赢取首枚完赛奖牌';
     if (r.phase === 'ready') {
       this.tagline.string = this.challenge
-        ? `同道具挑战 · 三圈目标 ${time(this.challenge.time)}`
-        : `路线印章 ${stampCount(this.passport[this.selection.route] || 0)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}`;
+        ? `同道具挑战 · ${r.laps === 1 ? '一圈' : '三圈'}目标 ${time(this.challenge.time)}`
+        : r.mode === 'sprint' ? '一圈冲刺 · 快速试驾 · 独立本机成绩'
+          : `三圈竞速 · 路线印章 ${stampCount(this.passport[this.selection.route] || 0)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}`;
       this.title.string = '浪湾卡丁车 · 出发准备';
       this.detail.string = r.loadError
         ? `素材加载失败：${r.loadError}\n切换配置可重试`
         : r.loaded
-          ? `${Math.round(r.track.length)} 米 · 3 圈竞速 · ${this.coach.enabled ? '开跑后逐步教你漂移' : '3 位对手 · 随机道具'}`
+          ? `${Math.round(r.track.length)} 米 · ${r.laps === 1 ? '一圈冲刺' : '3 圈竞速'} · ${this.coach.enabled ? '开跑后逐步教你漂移' : '3 位对手 · 随机道具'}`
           : '正在装配主题、路线图与赛车…';
-      this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? '开 跑  →' : '装配中…';
+      this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? `${r.laps === 1 ? '一圈冲刺' : '3 圈竞速'}开跑 →` : '装配中…';
       this.choices[0].string = `主题  ${theme.name}  ${themes.indexOf(theme) + 1}/${themes.length}`;
       this.choices[1].string = `路线图  ${selectedRoute.name}  ${routes.indexOf(selectedRoute) + 1}/${routes.length}`;
       this.choices[2].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
       this.choices[3].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
       this.footer.string = !keyboardHints
         ? '默认配置即可开跑 · 左手转向 · 右手漂移 · 开跑后自动加速'
-        : 'Enter 开跑 · W/↑ 前进 · A D 转向 · 空格漂移 · H 教学';
-      this.footer.string += '\n收集印章：冠军 · 4 次漂移加速 · 6 个有益补给';
+        : 'Enter 开跑 · T 切赛制 · W/↑ 前进 · A D 转向 · 空格漂移';
+      this.footer.string += r.mode === 'sprint'
+        ? '\n一圈快速冲线 · 三位对手 · 成绩不计三圈榜与路线印章'
+        : '\n收集印章：冠军 · 4 次漂移加速 · 6 个有益补给';
     }
     if (r.phase === 'finished' && this.challenge && !r.networked) {
       const delta = r.time - this.challenge.time;
@@ -351,7 +364,7 @@ export class HUD {
                       ? '保持过弯，火花正在蓄力'
                       : p.s > r.track.shortcutStart - 65 && p.s < r.track.shortcutStart
                         ? '前方近道：保持直行 · 窄路注意减速'
-                        : p.laps === C.laps - 1
+                        : p.laps === r.laps - 1
                           ? '最后一圈，冲刺！'
                           : '寻找出弯加速的时机'
         : '';

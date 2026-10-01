@@ -46,6 +46,12 @@ it('filters both catalog views and keeps the search when returning from a game',
     expect(container.querySelector('.catalog-list')).not.toBeNull();
     await search('games/local/game-building');
     expect(titles()).toEqual(['忙碌的电工']);
+    for (const query of ['双线连招', '两步连招']) {
+      await search(query);
+      expect(titles()).toEqual(['象五子棋']);
+    }
+    await search('海岸小岛');
+    expect(titles()).toEqual(['词屿 · 字母叠叠乐']);
     await search('并不存在的游戏123');
     expect(titles()).toEqual([]);
     expect(container.textContent).toContain('没有找到匹配的游戏');

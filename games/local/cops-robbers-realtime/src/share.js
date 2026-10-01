@@ -2,9 +2,10 @@ export function readPuzzleLink(input) {
   const url = new URL(input), query = url.searchParams, raw = query.get('level'), level = Number(raw);
   if (url.search.length > 1024 || ['mode','level','role','first','rule'].some(key => query.getAll(key).length > 1)) return null;
   if (!raw || !/^\d{1,3}$/.test(raw) || level < 1 || level > 100) return null;
-  const mode = ['challenge', 'classic', 'escape'].includes(query.get('mode')) ? query.get('mode') : 'challenge';
-  return { level, mode, role: query.get('role') === 'robber' ? 'robber' : 'cop', rule: query.get('rule') === 'relay' ? 'relay' : 'standard',
-    first: mode === 'challenge' || query.get('first') === 'none' ? null : query.get('first') === 'robber' ? 'robber' : 'cop' };
+  const mode = ['quick','challenge', 'classic', 'escape'].includes(query.get('mode')) ? query.get('mode') : 'challenge';
+  if (mode === 'quick' && level > 3) return null;
+  return { level, mode, role: mode !== 'quick' && query.get('role') === 'robber' ? 'robber' : 'cop', rule: mode !== 'quick' && query.get('rule') === 'relay' ? 'relay' : 'standard',
+    first: ['challenge','quick'].includes(mode) || query.get('first') === 'none' ? null : query.get('first') === 'robber' ? 'robber' : 'cop' };
 }
 export function puzzleUrl(input, puzzle) {
   const url = new URL(input); url.search = ''; url.hash = ''; url.username = ''; url.password = '';

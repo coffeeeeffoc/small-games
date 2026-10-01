@@ -17,10 +17,12 @@ import {
 } from './world';
 import { footstep, spatialAudio } from './audio';
 import { createGround, createWalker, createCar, walk, canOccupy } from './physics';
+import { compactCityScene, disposeCityRender, smoothRiverMaterial, smoothTreeInstances } from './render-budget';
+import { RENDER_DETAILS, type RenderDetail } from './render-settings';
 
 const url = (name: string) => `${import.meta.env.BASE_URL}world/${name}.glb`;
 const decoder = `${import.meta.env.BASE_URL}draco/`;
-export type Teleport = { position: V3; yaw: number; serial: number };
+export type Teleport = { position: V3; yaw: number; pitch?: number; serial: number };
 export type Telemetry = {
   position: V3;
   yaw: number;
@@ -39,6 +41,7 @@ type Props = {
   onReady: () => void;
   onTelemetry: (t: Telemetry) => void;
   quality: number;
+  renderDetail: RenderDetail;
 };
 
 function surfaceMaterial(material: THREE.Material) {
@@ -78,12 +81,19 @@ function CityTile({
   name,
   night,
   loaded,
+  renderDetail,
 }: {
   name: string;
   night: boolean;
   loaded: (name: string) => void;
+  renderDetail: RenderDetail;
 }) {
-  const { scene } = useGLTF(url(name), decoder);
+  const asset = useGLTF(url(name), decoder);
+  const render = useMemo(() => name.startsWith('city_')
+    ? compactCityScene(asset.scene, RENDER_DETAILS[renderDetail].buildingCellMetres)
+    : { scene: asset.scene, owned: [], ownedMaterials: [] }, [asset.scene, renderDetail, name]);
+  const scene = render.scene;
+  useEffect(() => () => disposeCityRender(render), [render]);
   const materials = useMemo(() => {
     const set = new Set<THREE.MeshStandardMaterial>();
     scene.traverse((o) => {
@@ -113,7 +123,7 @@ function CityTile({
   });
   return <primitive object={scene} />;
 }
-function StaticCity({ data, night }: { data: WorldData; night: boolean }) {
+function StaticCity({ data, night, renderDetail }: { data: WorldData; night: boolean; renderDetail: RenderDetail }) {
   const [requested, setRequested] = useState<string[]>([]);
   const loading = useRef(new Set<string>()),
     resident = useRef(new Set<string>());
@@ -157,7 +167,7 @@ function StaticCity({ data, night }: { data: WorldData; night: boolean }) {
     <>
       {requested.map((name) => (
         <Suspense key={name} fallback={null}>
-          <CityTile name={name} night={night} loaded={loaded} />
+          <CityTile name={name} night={night} loaded={loaded} renderDetail={renderDetail} />
         </Suspense>
       ))}
     </>
@@ -315,6 +325,17 @@ function Traffic({ placements, night }: { placements: Placement[]; night: boolea
   }, -1);
   return <Furniture name="city-car" placements={placements} night={night} live={live} />;
 }
+function SmoothTrees({ placements, detail }: { placements: Placement[]; detail: Exclude<RenderDetail,'original'> }) {
+  const objects = useMemo(() => smoothTreeInstances(placements, detail), [placements, detail]);
+  useEffect(() => () => {
+    const geometries = new Set(objects.map(object => object.geometry));
+    const materials = new Set(objects.map(object => object.material as THREE.Material));
+    objects.forEach(object => object.dispose());
+    geometries.forEach(geometry => geometry.dispose());
+    materials.forEach(material => material.dispose());
+  }, [objects]);
+  return <group>{objects.map((object, index) => <primitive key={index} object={object} />)}</group>;
+}
 function River({ night, quality }: { night: boolean; quality: number }) {
   const { scene } = useGLTF(url('water'), decoder);
   const river = useMemo(() => {
@@ -328,6 +349,12 @@ function River({ night, quality }: { night: boolean; quality: number }) {
           .translate(0, -0.25, 0)
           .rotateX(Math.PI / 2);
     });
+    if (quality === 0) {
+      const object = new THREE.Mesh(geometry!, smoothRiverMaterial());
+      object.rotation.x = -Math.PI / 2;
+      object.position.y = .25;
+      return { object };
+    }
     const object = new Water(geometry!, {
       textureWidth: quality === 0 ? 256 : quality === 1 ? 1024 : 2048,
       textureHeight: quality === 0 ? 256 : quality === 1 ? 1024 : 2048,
@@ -515,6 +542,12 @@ function Controller({
   const initialized = useRef(false);
   const stats = useRef({ time: 0, frames: 0 });
   useEffect(() => {
+    const previous = gl.info.autoReset;
+    // Include all passes, including the water reflection, in each rendered-frame sample.
+    gl.info.autoReset = false;
+    return () => { gl.info.autoReset = previous; };
+  }, [gl]);
+  useEffect(() => {
     const fixed = createGround({ world, rapier }, data);
     for (const r of bridgeRamps(data)) {
       const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r.yaw, r.slope, 'YXZ'));
@@ -537,7 +570,7 @@ function Controller({
       world.removeRigidBody(fixed);
     };
   }, [world, rapier, data, camera, onReady]);
-  function placeSafe(position: V3, yaw: number) {
+  function placeSafe(position: V3, yaw: number, pitch = 0) {
     const r = runtime.current;
     if (!r) return;
     for (let i = 0; i < 180; i++) {
@@ -577,7 +610,7 @@ function Controller({
       r.body.setNextKinematicTranslation(pos);
       r.velocity = 0;
       camera.position.set(x, y + 1.65, z);
-      camera.rotation.set(0, yaw, 0);
+      camera.rotation.set(pitch, yaw, 0);
       lastSafe.current = [x, y + 1, z];
       return;
     }
@@ -589,7 +622,7 @@ function Controller({
   useAfterPhysicsStep(() => {
     if (runtime.current && !initialized.current) {
       // Scene queries become valid after Rapier's first broad-phase update.
-      placeSafe(teleport.position, teleport.yaw);
+      placeSafe(teleport.position, teleport.yaw, teleport.pitch);
       serial.current = teleport.serial;
       initialized.current = true;
       onReady();
@@ -599,7 +632,7 @@ function Controller({
     const r = runtime.current;
     if (!r || !initialized.current) return;
     if (serial.current !== teleport.serial) {
-      placeSafe(teleport.position, teleport.yaw);
+      placeSafe(teleport.position, teleport.yaw, teleport.pitch);
       serial.current = teleport.serial;
       return;
     }
@@ -684,6 +717,7 @@ function Controller({
       });
       stats.current = { time: 0, frames: 0 };
     }
+    gl.info.reset();
   });
   return null;
 }
@@ -691,14 +725,16 @@ export function Scene(props: Props) {
   return (
     <>
       <Atmosphere night={props.night} />
-      <StaticCity data={props.data} night={props.night} />
+      <StaticCity data={props.data} night={props.night} renderDetail={props.renderDetail} />
       <Ground data={props.data} />
       <River night={props.night} quality={props.quality} />
       {Object.entries(props.data.props).map(
         ([name, placements]) =>
           name !== 'city-car' && (
             <Suspense key={name} fallback={null}>
-              <Furniture name={name} placements={placements} night={props.night} />
+              {name === 'plane-tree-planter' && props.renderDetail !== 'original'
+                ? <SmoothTrees placements={placements} detail={props.renderDetail} />
+                : <Furniture name={name} placements={placements} night={props.night} />}
             </Suspense>
           ),
       )}

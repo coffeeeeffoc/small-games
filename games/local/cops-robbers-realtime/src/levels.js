@@ -1,4 +1,5 @@
 import { FINAL_CHALLENGES } from "./challenge-finals.js";
+import { QUICK_TRIALS } from './quick-trials.js';
 export const CHAPTERS = [
   {
     id: 0,
@@ -650,6 +651,7 @@ const AUTHORED_LEVELS = [
 // Seeded street networks: a connected spanning tree, then independent cross streets.
 // The 100 layouts in each mode have distinct edge sets, rather than cosmetic rotations.
 export const MODES = [
+  {id:'quick',name:'快速战术试炼',description:'三张专编短场：两侧夹击、三岔收口、双街协作。20–25秒内收网，先玩一局，再进阶。'},
   { id: "challenge", name: "街区挑战", description: "固定同时起步 · 100 个有解局面，挑战合围与突围技巧" },
   { id: "classic", name: "自由追逐", description: "无出口 · 追逐队须限时合围全部成员，突围队坚持到计时结束获胜" },
   { id: "escape", name: "出口竞速", description: "开放出口 · 突围任意一人或坚持到计时结束获胜，追逐队须全部合围" },
@@ -722,4 +724,4 @@ export const LEVELS = [...AUTHORED_LEVELS, ...CHALLENGE_EXTENSIONS.map((spec,ind
     briefing:"分头抢占出口，再深入新增岔路，及时补上同伴留下的缺口。",par:Math.max(25,base.par-5)};
 }), ...FINAL_CHALLENGES].map(level=>({...level,chapter:Math.min(7,Math.floor((level.id-1)/13)),mode:"challenge",timeLimit:180,guarantee:"已验证追逐队解法"}));
 const MODE_LEVELS = {challenge:LEVELS, classic:Array.from({length:100},(_,i)=>generatedLevel(i+1,"classic")), escape:Array.from({length:100},(_,i)=>generatedLevel(i+1,"escape"))};
-export function getLevels(mode = "challenge") { return MODE_LEVELS[mode] || LEVELS; }
+export function getLevels(mode = "challenge") { return mode === 'quick' ? QUICK_TRIALS : MODE_LEVELS[mode] || LEVELS; }
