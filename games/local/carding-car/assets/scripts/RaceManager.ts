@@ -216,7 +216,22 @@ export class RaceManager {
           : 0;
       // The centreline advances faster than a kart cutting the inside of a tight bend.
       const previousS = d.progress.s;
-      const maxStep = (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction;
+      let maxStep = (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction;
+      const progressDelta = (s: number) =>
+        wrapDistance(s - previousS + this.track.length / 2, this.track.length) - this.track.length / 2;
+      if (Math.abs(progressDelta(road.s)) > maxStep && this.track.shortcut.length > 1) {
+        const before = projectOnTrack(this.track, previousPosition.x, previousPosition.z, previousS, maxStep);
+        if (before.branch !== road.branch && before.distance < before.width / 2 + 1.3) {
+          // Rebase only where both ribbons cover the previous physical position. The same
+          // position has different route distances; that offset is not a teleport or grass cut.
+          const other = projectOnTrack(
+            { ...this.track, [road.branch === 'main' ? 'shortcut' : 'main']: [] },
+            previousPosition.x,
+            previousPosition.z,
+          );
+          if (other.distance < other.width / 2 + 1.3) maxStep += Math.abs(progressDelta(other.s));
+        }
+      }
       // Select a reachable projection at overlaps; rejecting a branch jump afterwards strands progress.
       const progressRoad = projectOnTrack(this.track, k.x, k.z, previousS, maxStep);
       const legal = progressRoad.distance < progressRoad.width / 2 + 1.3;

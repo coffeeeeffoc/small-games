@@ -138,7 +138,7 @@ export function projectOnTrack(track: TrackData, x: number, z: number, previousS
       if (
         previousS !== undefined &&
         Math.abs(wrapDistance(s - previousS + track.length / 2, track.length) - track.length / 2) >
-          Math.min(12, maxStep)
+          maxStep
       )
         continue;
       const px = a.x + dx * t,

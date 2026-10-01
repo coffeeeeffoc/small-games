@@ -10,8 +10,8 @@ import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
-for (const [noise, period, delay] of [[0.6, 4, 0], [0.4, 7, 108]])
-test(`rough driving (${noise}/${period}) counts each physical lap and finishes on lap three`, () => {
+for (const [noise, period, delay, shortcut] of [[0.6, 4, 0, false], [0.4, 7, 108, false], [0, 4, 0, true]] as const)
+test(`${shortcut ? 'shortcut' : 'main'} driving (${noise}/${period}) counts each physical lap and finishes on lap three`, () => {
   const race = new RaceManager({}, 6);
   race.phase = 'racing';
   const driver = race.drivers[0];
@@ -23,11 +23,15 @@ test(`rough driving (${noise}/${period}) counts each physical lap and finishes o
     if (frame < delay) input = { ...idle, brake: true, reverse: true };
     else if (frame % period === 0) {
       // Drive from the physical road, independently of the progress state being tested.
-      input = aiInput(driver.kart, race.track, false, road.s);
+      input = aiInput(driver.kart, race.track, shortcut, road.s);
       input.steer = clamp(input.steer + Math.sin(frame / 30) * noise, -1, 1);
     }
     race.step(input, 1 / 60);
     const s = projectOnTrack(race.track, driver.kart.x, driver.kart.z).s;
+    if (shortcut && laps === 0 && s > race.track.shortcutStart + 100 && s < race.track.shortcutEnd - 50) {
+      assert.equal(race.order[0], 0, 'taking the shortcut must keep the lead over cars still on the longer road');
+      assert.ok(Math.abs(driver.progress.s - s) < 1, 'shortcut rank must follow the actual kart position');
+    }
     if (previousS > race.track.length - 5 && s < 5) {
       laps++;
       assert.equal(driver.progress.laps, laps, `physical lap ${laps} must be counted immediately`);
@@ -37,6 +41,20 @@ test(`rough driving (${noise}/${period}) counts each physical lap and finishes o
   assert.equal(laps, 3);
   assert.equal(race.phase, 'finished');
   assert.equal(driver.progress.lapTimes.length, 3);
+});
+
+test('switching ribbons cannot validate a distant jump onto the shortcut or past its exit', () => {
+  for (const [from, to, shortcut] of [[500, 700, true], [790, 920, false]] as const) {
+    const race = new RaceManager({}, undefined, 1);
+    race.phase = 'racing';
+    const driver = race.drivers[0], p = pointAt(race.track, to, shortcut);
+    Object.assign(driver.progress, { s: from, distance: from, nextGate: 3 });
+    Object.assign(driver.kart, createKart(p.x, p.z, p.heading));
+    race.step(idle, 1 / 60);
+    assert.equal(driver.progress.distance, from);
+    assert.equal(driver.progress.nextGate, 3);
+    assert.equal(driver.progress.laps, 0);
+  }
 });
 
 test('recovery ranks the actual safe position after reversing, including across the start line', () => {
