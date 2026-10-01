@@ -119,6 +119,21 @@ test('both physical road branches complete ordered gates, while distant grass cu
   assert.equal(progress.nextGate, 0);
 });
 
+test('the wide main road remains legal beside the narrower shortcut at the fork', () => {
+  const track = createTrack();
+  for (const offset of [0, 1, 2, 4, 6]) {
+    const s = track.shortcutStart + offset;
+    const p = pointAt(track, s);
+    const x = p.x + Math.cos(p.heading) * 6;
+    const z = p.z - Math.sin(p.heading) * 6;
+    for (const previousS of [undefined, s - 1]) {
+      const road = projectOnTrack(track, x, z, previousS);
+      assert.ok(road.distance <= road.width / 2, `legal main-road lane at ${offset}m was rejected`);
+      assert.equal(road.branch, 'main');
+    }
+  }
+});
+
 test('reverse finish crossings and repeated finish-line rocking never award a lap', () => {
   const track = createTrack();
   const progress = createProgress(1);
