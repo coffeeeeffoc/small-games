@@ -13,6 +13,7 @@
     "test:pages": "node scripts/lazy-loading-smoke.mjs && node scripts/pages-smoke.mjs",
     "test:lazy-loading": "node scripts/lazy-loading-smoke.mjs",
     "test:fullscreen-touch": "node scripts/fullscreen-touch-check.mjs",
+    "test:sharing": "node scripts/game-sharing-smoke.mjs",
     "test": "vitest run",
     "test:integration": "vitest run tests/shell.integration.test.tsx tests/standalone.integration.test.tsx tests/routes.integration.test.tsx",
     "typecheck": "tsc -b --pretty false",

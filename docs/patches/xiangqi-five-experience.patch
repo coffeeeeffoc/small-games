@@ -1,0 +1,1128 @@
+From 9220f2b324ee0e5c2ded90680e18654c6cb17397 Mon Sep 17 00:00:00 2001
+From: ju luo <luoju12345@gmail.com>
+Date: Thu, 1 Oct 2026 12:01:09 +0000
+Subject: [PATCH 1/2] fix: preserve chess keyboard focus and fullscreen
+ ownership
+
+---
+ README.md          |  4 +-
+ app.js             | 33 +++++++++++++++-
+ fullscreen.js      |  8 +++-
+ keyboard-check.mjs | 94 ++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 134 insertions(+), 5 deletions(-)
+ create mode 100644 keyboard-check.mjs
+
+diff --git a/README.md b/README.md
+index 0a120fb..4cab931 100644
+--- a/README.md
++++ b/README.md
+@@ -50,7 +50,7 @@ npm start
+ - 每次部署或移动后，任意种类己方棋子横竖斜连续 **至少五枚**，立即获胜。超过五枚也算。
+ - 棋池抽完仍能移动。轮到一方时无任何合法行动则和棋。没有自动重复局面判和，双方可协商重新开局。
+ 
+-点击己方棋子可查看合法落点，绿色点可走、红色虚线圈可吃。键盘 Tab 聚焦棋盘，方向键在交叉点间移动，Enter / 空格选择。规则弹窗支持 Esc 关闭。
++点击己方棋子可查看合法落点，绿色点可走、红色虚线圈可吃。键盘 Tab 一次进入或离开棋盘，方向键在交叉点间移动，Enter / 空格选择；Home / End 移至当前行首尾，Ctrl + Home / End 移至整盘首尾，Esc 取消走子选择（不能取消已抽出的棋子）。落子动画或电脑思考后恢复原落点的焦点，可连续用键盘行棋；等待期间转到其他控件则保留新的焦点。规则弹窗支持 Esc 关闭。
+ 
+ 单人挑战由玩家执红先行，电脑执黑，双方遵守同一规则和随机棋池。棋盘上方可随时在自己的回合选择 **简易 · 稳健应对 / 标准 · 攻防兼顾 / 困难 · 深入算棋**，无需重开，刷新后保留难度；旧的入门/策略存档分别沿用简易/标准。
+ 
+@@ -102,6 +102,8 @@ npm start
+ 
+ `pnpm build` 生成静态前端。在 small-games 工作区运行 `node browser-check.mjs`，使用现有 Playwright 验证 320/390/1280px、两种棋盘触摸交互、三档真实 Worker 落子、难度保存与刷新、思考中切换模式不会残留旧落子、胜负与重开。尚未在真实手机或跨运营商网络验证。
+ 
++`node keyboard-check.mjs` 验证两种棋盘的连续键盘行棋、单一 Tab 入口、首尾导航、Esc 取消选择、抽子锁定及电脑思考后的焦点恢复。可通过 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定已有 Chromium。
++
+ 
+ ## pnpm 与 small-games 集成
+ 
+diff --git a/app.js b/app.js
+index 39da70c..12e48f0 100644
+--- a/app.js
++++ b/app.js
+@@ -26,6 +26,8 @@ let busy = false;
+ let resultAnnounced = false;
+ let restartMode = state.mode;
+ let cells = [];
++let boardFocusIndex = 0;
++let resumeBoardFocus = false;
+ let room = null;
+ let networkBusy = false;
+ let networkHealthy = true;
+@@ -39,6 +41,8 @@ const pieceMarkup = (p, extra = '') => `<span class="piece ${p.side} ${extra}">$
+ 
+ function buildBoard() {
+   const { cols, rows } = state;
++  boardFocusIndex = 0;
++  resumeBoardFocus = false;
+   const board = $('board');
+   board.style.setProperty('--cols', cols);
+   board.style.aspectRatio = `${cols}/${rows}`;
+@@ -52,8 +56,24 @@ function buildBoard() {
+   cells = Array.from({ length: cols * rows }, (_, index) => {
+     const button = document.createElement('button');
+     button.className = 'cell'; button.type = 'button';
++    button.tabIndex = index === boardFocusIndex ? 0 : -1;
++    button.addEventListener('focus', () => {
++      boardFocusIndex = index;
++      cells.forEach((cell, i) => { cell.tabIndex = i === index ? 0 : -1; });
++    });
+     button.addEventListener('click', () => play(index));
+     button.addEventListener('keydown', (event) => {
++      if (event.key === 'Escape' && (selected !== null || moving)) {
++        event.preventDefault(); selected = null; moving = false; render();
++        return;
++      }
++      if (event.key === 'Home' || event.key === 'End') {
++        event.preventDefault();
++        const rowStart = Math.floor(index / cols) * cols;
++        const next = event.key === 'Home' ? (event.ctrlKey ? 0 : rowStart) : (event.ctrlKey ? cells.length - 1 : rowStart + cols - 1);
++        cells[next].focus();
++        return;
++      }
+       const shifts = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols };
+       if (!(event.key in shifts)) return;
+       event.preventDefault();
+@@ -173,6 +193,8 @@ function render() {
+   $('room-open').disabled = busy || networkBusy;
+   $('new-game').disabled = busy || networkBusy || Boolean(room && (!room.joined || !networkHealthy));
+   $('board').setAttribute('aria-busy', String(busy || thinking));
++  const boardLocked = ended || inputLocked();
++  if (!ended && boardLocked && cells.includes(document.activeElement)) resumeBoardFocus = true;
+   cells.forEach((cell, i) => {
+     const p = state.board[i];
+     const legal = !ended && selected !== null && canMove(state.board, selected, i, state.cols);
+@@ -181,8 +203,16 @@ function render() {
+     cell.innerHTML = p ? pieceMarkup(p, 'embodied') : '';
+     cell.setAttribute('aria-label', `${coord(i)} ${p ? sideName(p.side) + label(p) : '空位'}${legal ? '，可' + (p ? '吃子' : '移动') : ''}${threat ? '，对方下一手可在此成五' : ''}`);
+     cell.setAttribute('aria-pressed', String(selected === i));
+-    cell.disabled = ended || inputLocked();
++    cell.disabled = boardLocked;
+   });
++  if (!boardLocked && resumeBoardFocus) {
++    // Native disabled buttons lose focus during animations and computer turns.
++    // Resume only if the player has not moved to another control while waiting.
++    const active = document.activeElement;
++    if (active === document.body || cells.includes(active)) cells[boardFocusIndex].focus({ preventScroll: true });
++    resumeBoardFocus = false;
++  }
++  if (ended) resumeBoardFocus = false;
+   const connection = $('winning-connection');
+   connection.parentElement.style.display = state.winningLine.length ? '' : 'none';
+   if (state.winningLine.length) {
+@@ -501,4 +531,3 @@ try {
+ } catch { /* Invalid or inaccessible saved room: remain in local mode. */ }
+ render();
+ if (invitation.has('room') && !room) { $('room-dialog').showModal(); void checkRoomService(); }
+-
+diff --git a/fullscreen.js b/fullscreen.js
+index db5eeb7..bb8dcc6 100644
+--- a/fullscreen.js
++++ b/fullscreen.js
+@@ -6,8 +6,12 @@
+   function install() {
+     let host = document;
+     try {
+-      if (window.parent !== window && window.parent.document.querySelector('[data-game-display-host]'))
+-        host = window.parent.document;
++      if (window.parent !== window) {
++        const display = window.parent.document.querySelector('[data-game-display-host]');
++        // Other panels may have a game host too; only fullscreen this iframe's owner.
++        if (display && window.frameElement && display.contains(window.frameElement))
++          host = window.parent.document;
++      }
+     } catch { /* Cross-origin embeds control their own complete game document. */ }
+     const active = () => document.fullscreenElement || document.webkitFullscreenElement
+       || host.fullscreenElement || host.webkitFullscreenElement;
+diff --git a/keyboard-check.mjs b/keyboard-check.mjs
+new file mode 100644
+index 0000000..ee7bd9f
+--- /dev/null
++++ b/keyboard-check.mjs
+@@ -0,0 +1,94 @@
++// Run after `pnpm build` from the small-games workspace (uses its Playwright).
++import assert from 'node:assert/strict';
++import { createServer } from 'node:http';
++import { readFile } from 'node:fs/promises';
++import { once } from 'node:events';
++import { chromium } from '@playwright/test';
++
++const server = createServer(async (request, response) => {
++  const name = new URL(request.url, 'http://localhost').pathname.slice(1) || 'index.html';
++  if (!/^[\w.-]+$/.test(name)) return response.writeHead(404).end();
++  try {
++    const data = await readFile(new URL(`./dist/${name}`, import.meta.url));
++    response.writeHead(200, { 'Content-Type': ({ js: 'text/javascript', css: 'text/css', html: 'text/html' })[name.split('.').at(-1)] || 'text/plain' }).end(data);
++  } catch { response.writeHead(404).end(); }
++});
++server.listen(0, '127.0.0.1');
++await once(server, 'listening');
++const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
++const url = `http://127.0.0.1:${server.address().port}/`;
++const waitForTurn = (page, ply) => page.waitForFunction((expected) => document.querySelector('#history-count').textContent === String(expected) && !document.querySelector('#board .cell').disabled, ply);
++const activeIndex = (page) => page.locator('.cell').evaluateAll((cells) => cells.indexOf(document.activeElement));
++
++try {
++  for (const [mode, cols, count] of [['xiangqi', 9, 90], ['gomoku', 15, 225]]) {
++    const page = await browser.newPage();
++    await page.addInitScript(() => { Math.random = () => 0; });
++    await page.goto(url);
++    await page.selectOption('#play-mode', 'local');
++    await page.selectOption('#board-mode', mode);
++    const cells = page.locator('.cell');
++    assert.equal(await cells.evaluateAll((items) => items.filter((cell) => cell.tabIndex === 0).length), 1, 'a whole board takes one Tab stop');
++    await cells.nth(cols + 2).focus();
++    await page.keyboard.press('Home');
++    assert.equal(await activeIndex(page), cols);
++    await page.keyboard.press('End');
++    assert.equal(await activeIndex(page), 2 * cols - 1);
++    await page.keyboard.press('ArrowRight');
++    assert.equal(await activeIndex(page), 2 * cols - 1, 'right edge does not wrap rows');
++    await page.keyboard.press('Control+End');
++    assert.equal(await activeIndex(page), count - 1);
++    await page.keyboard.press('Control+Home');
++    assert.equal(await activeIndex(page), 0);
++    await page.keyboard.press('Tab');
++    assert.equal(await activeIndex(page), -1, 'Tab leaves the board instead of visiting every point');
++    await page.keyboard.press('Shift+Tab');
++    assert.equal(await activeIndex(page), 0, 'returning to the board remembers the focused point');
++
++    await page.keyboard.press('Enter');
++    // A synthetic event bypasses native disabled buttons, so this also proves
++    // the game keeps rejecting duplicate input during the real animation.
++    await cells.nth(1).dispatchEvent('click');
++    await waitForTurn(page, 1);
++    assert.equal(await activeIndex(page), 0, 'focus survives a normal deployment animation');
++    await page.keyboard.press('ArrowRight');
++    await page.keyboard.press('Enter');
++    await waitForTurn(page, 2);
++    assert.equal(await activeIndex(page), 1, 'a second move works without re-tabbing into the board');
++    await page.keyboard.press('ArrowLeft');
++    await page.keyboard.press('Enter');
++    assert.equal(await cells.first().getAttribute('aria-pressed'), 'true');
++    await page.keyboard.press('Escape');
++    assert.equal(await cells.first().getAttribute('aria-pressed'), 'false');
++    assert.equal(await page.locator('#history-count').textContent(), '2', 'canceling a selection does not consume a turn');
++
++    await page.locator('#draw-button').click();
++    await cells.nth(2).focus();
++    const saved = await page.evaluate(() => localStorage.getItem('xiangqi-five-local-v1'));
++    await page.keyboard.press('Escape');
++    assert.equal(await page.evaluate(() => localStorage.getItem('xiangqi-five-local-v1')), saved, 'Escape never cancels or redraws a pending piece');
++    await page.keyboard.press('Enter');
++    await waitForTurn(page, 3);
++    assert.equal(await activeIndex(page), 2);
++    await page.close();
++    console.log(`PASS ${mode}: one Tab stop, arrows/Home/End, consecutive keyboard turns, selection cancel, pending-piece lock`);
++  }
++
++  const page = await browser.newPage();
++  await page.goto(url);
++  await page.selectOption('#difficulty', 'practice');
++  await page.locator('.cell').first().focus();
++  await page.keyboard.press('Enter');
++  await waitForTurn(page, 2);
++  assert.equal(await activeIndex(page), 0, 'focus resumes when the computer finishes');
++  await page.locator('.cell').nth(2).focus();
++  await page.keyboard.press('Enter');
++  await page.waitForFunction(() => document.querySelector('#history-count').textContent === '3');
++  await page.locator('#rules-open').focus();
++  await waitForTurn(page, 4);
++  assert.equal(await page.evaluate(() => document.activeElement.id), 'rules-open', 'finishing a computer turn does not steal focus from another control');
++  await page.close();
++  console.log('PASS computer: focus resumes after thinking and respects navigation to other controls');
++} finally {
++  await browser.close(); server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
++}
+-- 
+2.52.0
+
+
+From aa7bd6a27e4370469115ef184295c00e7780fb91 Mon Sep 17 00:00:00 2001
+From: ju luo <luoju12345@gmail.com>
+Date: Thu, 1 Oct 2026 12:48:55 +0000
+Subject: [PATCH 2/2] feat: add six replayable mixed-chess tactical challenges
+
+---
+ README.md           |  10 ++
+ app.js              | 180 ++++++++++++++++++++++++++++++++----
+ browser-check.mjs   |   1 +
+ build.js            |   2 +-
+ challenge-check.mjs | 217 ++++++++++++++++++++++++++++++++++++++++++++
+ challenges.js       | 111 ++++++++++++++++++++++
+ challenges.test.js  |  63 +++++++++++++
+ index.html          |  11 ++-
+ package.json        |   2 +-
+ server.js           |   1 +
+ style.css           |  23 +++++
+ 11 files changed, 600 insertions(+), 21 deletions(-)
+ create mode 100644 challenge-check.mjs
+ create mode 100644 challenges.js
+ create mode 100644 challenges.test.js
+
+diff --git a/README.md b/README.md
+index 4cab931..cb93941 100644
+--- a/README.md
++++ b/README.md
+@@ -37,6 +37,14 @@ $env:HOST='0.0.0.0'
+ npm start
+ ```
+ 
++## 六道战术，一手破局
++
++从设置里的“战术挑战 · 六题”选题。前五题分别练习车的补线、马腿、象眼、炮架、兵可后退：都要用红方一步连成五枚。第六题练习防守，走一步消除黑方下一手的全部五连威胁；支持吃掉威胁与截断车路等多个正确解法。棋池已用完，不能再抽子，吃将本身不会判赢。
++
++非法走法不消耗机会；合法但未达到目标会给出原因并允许立即重试。独立完成获两颗星，使用提示获一颗星，可重练提升记录；完成后直接进入下一题。练习进度使用独立本机存档，原单人或同屏棋局与已抽出的棋子会保留，“返回棋局”恢复。刷新分享入口会重摆同题，练习不计入好友排位；在好友房间中不能进入练习。
++
++“分享同题”优先使用系统分享，否则复制干净的网页链接；复制不可用时可手动选中复制。链接只含公开题目 ID，例如 `?challenge=cannon-link`，支持 GitHub Pages 子路径，不携带房间、服务地址、账号或凭证。六个合法 ID 为 `rook-bridge`、`horse-leg`、`elephant-eye`、`cannon-link`、`pawn-return`、`break-threat`；重复或未知 ID 不会装载局面。当前战术练习供 Web/H5 单机入口使用，原生排位 Canvas 入口尚不包含练习模式。
++
+ ## 玩法（自由部署版）
+ 
+ - 可选 9×10 象棋棋盘或 15×15 五子棋棋盘。象棋棋盘显示楚河汉界，仅作标识、不影响走法；五子棋棋盘不显示。空盘红先黑后，各有车2、马2、相/象2、士2、帅/将1、炮2、兵/卒5。已有棋局切换尺寸时需确认重开。
+@@ -104,6 +112,8 @@ npm start
+ 
+ `node keyboard-check.mjs` 验证两种棋盘的连续键盘行棋、单一 Tab 入口、首尾导航、Esc 取消选择、抽子锁定及电脑思考后的焦点恢复。可通过 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定已有 Chromium。
+ 
++`challenges.test.js` 枚举每题全部合法红方走法，并枚举防守题每个黑方应对，以真实连五规则独立检查解题结果；`node challenge-check.mjs` 实际验证六题触摸解题、错误吃将/失败重试、多个有效防守、提示与星级、原存档保护、分享空值拒绝/连续点击/取消、手动复制焦点及离开训练后的延迟回调、键盘导航及禁用存储时的游玩。该脚本同样支持 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`。
++
+ 
+ ## pnpm 与 small-games 集成
+ 
+diff --git a/app.js b/app.js
+index 12e48f0..d57657f 100644
+--- a/app.js
++++ b/app.js
+@@ -4,6 +4,7 @@ import { silhouette, animateTurn } from './pieces.js';
+ import { setupBoardZoom } from './board-view.js';
+ import { applyComputerAction, winningActions } from './computer.js';
+ import { SAVE_KEY, encodeGame, decodeGame } from './local-game.js';
++import { CHALLENGES, CHALLENGE_SAVE_KEY, getChallenge, createChallengeState, challengeOutcome, challengeFromUrl, challengeLink, decodeChallengeProgress } from './challenges.js';
+ 
+ let state = newGame();
+ let opponent = 'computer';
+@@ -34,6 +35,13 @@ let networkHealthy = true;
+ let roomError = '';
+ let pollTask = null;
+ let focused = false;
++let challenge = null;
++let challengeSharing = false;
++let challengeReturn = null;
++let challengeProgress = {};
++let challengeStorageAvailable = true;
++try { challengeProgress = decodeChallengeProgress(localStorage.getItem(CHALLENGE_SAVE_KEY)); }
++catch { challengeStorageAvailable = false; }
+ const $ = (id) => document.getElementById(id);
+ const resetBoardZoom = setupBoardZoom($('board-scroll'), $('zoom-board'), $('zoom-out'), $('zoom-reset'), $('zoom-value'));
+ const coord = (i) => `${String.fromCharCode(65 + i % state.cols)}${Math.floor(i / state.cols) + 1}`;
+@@ -87,10 +95,13 @@ function buildBoard() {
+   resetBoardZoom();
+ }
+ 
+-function hint(message) { $('action-hint').textContent = message; }
++function hint(message) {
++  $('action-hint').textContent = message;
++  if (challenge) $('challenge-move-message').textContent = message;
++}
+ 
+ function saveLocal() {
+-  if (room) return;
++  if (room || challenge) return;
+   try { localStorage.setItem(SAVE_KEY, encodeGame(state, opponent, difficulty)); storageAvailable = true; }
+   catch { storageAvailable = false; }
+ }
+@@ -99,7 +110,7 @@ function cancelComputer() {
+   computerWorker?.terminate(); computerWorker = null; thinking = false; computerError = '';
+ }
+ function scheduleComputer() {
+-  if (room || opponent !== 'computer' || state.turn !== 'black' || state.result || busy || networkBusy || thinking || computerError) return;
++  if (room || challenge || opponent !== 'computer' || state.turn !== 'black' || state.result || busy || networkBusy || thinking || computerError) return;
+   thinking = true;
+   const currentState = state, ply = state.ply;
+   computerTimer = setTimeout(() => {
+@@ -150,6 +161,7 @@ async function play(index) {
+       return;
+     }
+     if (state.ply !== previousPly) {
++      finishChallengeTurn();
+       saveLocal();
+       busy = true; render();
+       try { await animateTurn($('board'), cells, state.history.at(-1), pieceMarkup); }
+@@ -159,21 +171,21 @@ async function play(index) {
+ }
+ 
+ function inputLocked() {
+-  return busy || networkBusy || Boolean(!room && opponent === 'computer' && state.turn === 'black') || Boolean(room && (!networkHealthy || !room.joined || room.side !== state.turn || room.restartVotes.length));
++  return busy || networkBusy || Boolean(challenge && challenge.status !== 'playing') || Boolean(!room && !challenge && opponent === 'computer' && state.turn === 'black') || Boolean(room && (!networkHealthy || !room.joined || room.side !== state.turn || room.restartVotes.length));
+ }
+ 
+ function render() {
+   scheduleComputer();
+-  const ended = Boolean(state.result);
++  const ended = Boolean(state.result) || Boolean(challenge && challenge.status !== 'playing');
+   const side = state.turn;
+   const direct = !moving && selected === null && canDeployDirectly(state);
+   document.body.dataset.turn = side;
+   document.body.dataset.result = state.result || '';
+   const last = state.history.at(-1);
+   $('play-mode').value = opponent;
+-  $('play-mode').disabled = busy || Boolean(room) || networkBusy;
++  $('play-mode').disabled = busy || Boolean(room) || Boolean(challenge) || networkBusy;
+   $('difficulty').value = difficulty;
+-  $('difficulty').hidden = opponent !== 'computer' || Boolean(room);
++  $('difficulty').hidden = opponent !== 'computer' || Boolean(room) || Boolean(challenge);
+   $('difficulty').disabled = busy || thinking;
+   $('difficulty-hint').hidden = $('difficulty').hidden;
+   $('difficulty-hint').textContent = {
+@@ -181,16 +193,17 @@ function render() {
+     standard: '兼顾连线与吃子，计算对手的反击。',
+     hard: '更深入计算连续攻防与交换，复杂局面需思考数秒。',
+   }[difficulty];
+-  $('match-label').textContent = room ? '好友对弈' : opponent === 'computer' ? '单人挑战 · 你执红' : '双人同屏';
+-  $('save-status').textContent = room ? '好友房间 · 自动同步' : !storageAvailable ? '浏览器未允许保存，请勿关闭本页' : `${restored ? '已续上次棋局 · ' : ''}本机自动保存`;
++  $('match-label').textContent = challenge ? '战术练习 · 你执红' : room ? '好友对弈' : opponent === 'computer' ? '单人挑战 · 你执红' : '双人同屏';
++  $('save-status').textContent = challenge ? (challengeStorageAvailable ? '战术练习 · 原棋局已保留' : '练习进度暂不能保存 · 原棋局已保留') : room ? '好友房间 · 自动同步' : !storageAvailable ? '浏览器未允许保存，请勿关闭本页' : `${restored ? '已续上次棋局 · ' : ''}本机自动保存`;
+   $('computer-retry').hidden = !computerError;
+   if (threatPly !== state.ply) {
+     threatPly = state.ply;
+     const enemy = side === 'red' ? 'black' : 'red';
+     threats = ended ? [] : winningActions({ ...state, pending: null, turn: enemy }, enemy);
+   }
+-  $('board-mode').disabled = busy || Boolean(room);
+-  $('room-open').disabled = busy || networkBusy;
++  $('board-mode').disabled = busy || Boolean(room) || Boolean(challenge);
++  $('room-open').disabled = busy || networkBusy || Boolean(challenge);
++  $('challenge-open').disabled = busy || networkBusy || Boolean(room);
+   $('new-game').disabled = busy || networkBusy || Boolean(room && (!room.joined || !networkHealthy));
+   $('board').setAttribute('aria-busy', String(busy || thinking));
+   const boardLocked = ended || inputLocked();
+@@ -200,7 +213,8 @@ function render() {
+     const legal = !ended && selected !== null && canMove(state.board, selected, i, state.cols);
+     const threat = threats.some((action) => action.to === i);
+     cell.className = ['cell', selected === i ? 'selected' : '', legal ? (p ? 'capture-target' : 'legal-target') : '', last?.to === i ? 'last-play' : '', state.winningLine.includes(i) ? 'winning' : '', threat ? 'threat-target' : '', (state.pending || direct) && !p ? 'deploy-target' : ''].filter(Boolean).join(' ');
+-    cell.innerHTML = p ? pieceMarkup(p, 'embodied') : '';
++    const coordinate = challenge && (i < state.cols || i % state.cols === 0) ? `<span class="challenge-coordinate" aria-hidden="true">${i < state.cols ? String.fromCharCode(65 + i) : Math.floor(i / state.cols) + 1}${i === 0 ? ' · 1' : ''}</span>` : '';
++    cell.innerHTML = (p ? pieceMarkup(p, 'embodied') : '') + coordinate;
+     cell.setAttribute('aria-label', `${coord(i)} ${p ? sideName(p.side) + label(p) : '空位'}${legal ? '，可' + (p ? '吃子' : '移动') : ''}${threat ? '，对方下一手可在此成五' : ''}`);
+     cell.setAttribute('aria-pressed', String(selected === i));
+     cell.disabled = boardLocked;
+@@ -232,10 +246,10 @@ function render() {
+       return `<div class="pool-piece ${count ? '' : 'depleted'}" aria-label="${NAMES[player][index]}剩余${count}枚"><span>${NAMES[player][index]}</span><small>${count}</small></div>`;
+     }).join('')}</div><div class="pool-total">待入场 <b>${pool.length}</b> 枚</div>`;
+   }
+-  const outcome = state.result === 'draw' ? '本局和棋' : `${sideName(side)}五子成势`;
+-  const computerTurn = !room && opponent === 'computer' && side === 'black';
++  const outcome = challenge && ended ? challenge.status === 'solved' ? challenge.definition.goal === 'defend' ? '防守成功' : '一手成五！' : '这手还差一点' : state.result === 'draw' ? '本局和棋' : `${sideName(side)}五子成势`;
++  const computerTurn = !room && !challenge && opponent === 'computer' && side === 'black';
+   $('turn-label').textContent = ended ? outcome : computerTurn ? '电脑思考中…' : `${sideName(side)}${!room && opponent === 'computer' ? ' · 轮到你' : state.ply === 0 ? '先行' : '行棋'}`;
+-  $('turn-count').textContent = ended ? `共 ${state.ply} 手` : `第 ${String(state.ply + 1).padStart(2, '0')} 手`;
++  $('turn-count').textContent = challenge ? '红方一步 · 棋池已用完' : ended ? `共 ${state.ply} 手` : `第 ${String(state.ply + 1).padStart(2, '0')} 手`;
+   $('action-side').textContent = ended ? 'MATCH COMPLETE' : `${side.toUpperCase()}'S TURN`;
+   $('action-title').textContent = ended ? outcome : state.pending ? `${label(state.pending)}已入手，请落子` : selected !== null ? `移动「${label(state.board[selected])}」` : moving ? '选择一枚己方棋子' : direct ? '点击空位，直接上场' : '落子，或走子';
+   $('action-description').textContent = ended ? (state.result === 'draw' ? '当前玩家没有可用行动。再来一局吧。' : '五枚相连，胜负已定。好棋，下一局见。') : state.pending ? '点击任意空点部署，落子后轮到对方。' : selected !== null ? '实心圆点可移动，红圈位置可吃子。' : direct ? '点击空位随机抽子并部署，或选择己方棋子移动。也可先抽子查看。' : '抽取一枚棋子入场，或移动棋盘上的己方棋子。';
+@@ -247,6 +261,10 @@ function render() {
+   hint(ended ? '点击「重新开局」开始下一场对弈。' : state.pending ? '本回合只能部署，落子后不能再移动。' : selected !== null ? '再次点击选中棋子可取消选择。' : moving ? '点击自己的棋子，查看可走的位置。' : direct ? '点空位随机落子，点己方棋子选择移动。' : '抽子后须完成部署，不能重抽。');
+   const movement = { rook: '车：横竖直走，不能越子。', horse: '马：走日字，直行相邻有子会蹩腿。', elephant: '象：斜走两格，中间有子不能走。', advisor: '士：斜走一格，不限九宫。', king: '将帅：横竖一格，被吃不直接判负。', cannon: '炮：直走，吃子须恰好隔一子。', pawn: '兵卒：上下左右一格，可以后退。' };
+   $('coach-hint').textContent = computerError || (ended ? '目标达成后可以换棋盘，或挑战更谨慎的电脑。' : computerTurn ? '电脑与您使用相同棋池、相同走子规则。' : selected !== null ? movement[state.board[selected].type] : threats.length ? '警惕金圈：对方下一手可成五！堵住落点，或吃掉连线中的棋子。' : state.ply < 4 ? '点空位随机上场，点己方棋子移动；同色横、竖、斜连五就赢。' : '连五才能获胜，吃将不算赢。点己方棋子，查看绿点走法与红圈吃子。');
++  if (challenge) {
++    $('coach-hint').textContent = ended ? '可重试同题，也可分享给好友比较解法。' : selected !== null ? movement[state.board[selected].type] : '点红子再点标记位置；棋池已用完，只能走子。';
++    hint(ended ? '点击「重试本题」或「下一题」继续练习。' : selected !== null ? movement[state.board[selected].type] : '点红子再点标记位置；非法落点不消耗机会。');
++  }
+   const historyMarkup = (events) => events.slice().reverse().map((event) => `<li><span class="move-number">${String(event.ply).padStart(2, '0')}</span><span class="record-piece ${event.side}">${label(event.piece)}</span><span>${event.action === 'deploy' ? '部署' : event.captured ? `吃${label(event.captured)}` : '移动'} <small>${event.action === 'move' ? coord(event.from) + ' → ' : ''}${coord(event.to)}</small></span><span class="record-side">${sideName(event.side)}</span></li>`).join('');
+   const empty = '<li class="empty-history">棋盘尚静，等你落下第一子。</li>';
+   $('history').innerHTML = historyMarkup(state.history.slice(-5)) || empty;
+@@ -254,10 +272,15 @@ function render() {
+   $('history-count').textContent = state.ply;
+   renderRoom();
+   $('result-banner').hidden = !ended;
+-  $('result-title').textContent = state.result === 'draw' ? '本局和棋' : `${sideName(side)}获胜！`;
++  $('result-title').textContent = challenge ? outcome : state.result === 'draw' ? '本局和棋' : `${sideName(side)}获胜！`;
+   $('result-description').textContent = room?.restartVotes.length ? `${sideName(room.restartVotes[0])}已申请重开，等待另一方同意。` : `共 ${state.ply} 手${state.result === 'draw' ? '，当前无可用行动。' : '，五子连线，胜负已定。'}${room ? '双方同意后开始下一局。' : '再来一局，重新开战。'}`;
+   $('result-restart').disabled = busy || networkBusy || Boolean(room && (!room.joined || !networkHealthy || room.restartVotes.includes(room.side)));
+   $('result-restart').textContent = !room ? '再来一局' : room.restartVotes.includes(room.side) ? '等待好友同意' : room.restartVotes.length ? '同意重开' : '申请再来一局';
++  if (challenge) {
++    $('result-description').textContent = challenge.status === 'solved' ? `${challenge.hintShown ? '借助提示完成' : '独立解出 · 获得两颗星'}。${challenge.definition.explanation}` : challenge.definition.goal === 'defend' ? '黑方仍有下一手成五的走法。试试拆掉威胁，或截断它的行车线。' : '这一步合法，但红方没有连成五枚；吃将也不直接算赢。可重试或查看提示。';
++    $('result-restart').textContent = challenge.status === 'solved' ? '下一题' : '重试本题';
++  }
++  renderChallenge();
+   if (!ended) resultAnnounced = false;
+   else if (!busy && !resultAnnounced) {
+     resultAnnounced = true;
+@@ -267,6 +290,119 @@ function render() {
+   $('announcement').textContent = `${$('turn-label').textContent}。${$('action-title').textContent}。${last ? `上一手${sideName(last.side)}${label(last.piece)}到${coord(last.to)}。` : ''}`;
+ }
+ 
++function renderChallenge() {
++  $('challenge-panel').hidden = !challenge;
++  if (!challenge) return;
++  const definition = challenge.definition;
++  $('challenge-title').textContent = `${CHALLENGES.indexOf(definition) + 1}/${CHALLENGES.length} · ${definition.title}`;
++  const record = challengeProgress[definition.id];
++  $('challenge-progress').textContent = record?.stars ? `${'★'.repeat(record.stars)}${'☆'.repeat(2 - record.stars)} 已完成` : '独立解题得两颗星';
++  $('challenge-objective').textContent = definition.description;
++  $('challenge-hint-text').hidden = !challenge.hintShown;
++  $('challenge-hint-text').textContent = definition.hint;
++  $('challenge-hint').textContent = challenge.hintShown ? '提示已展开' : '提示';
++  $('challenge-hint').disabled = busy || challenge.hintShown || challenge.status === 'solved';
++  $('challenge-share').disabled = busy || networkBusy || challengeSharing;
++  for (const id of ['challenge-select', 'challenge-exit']) $(id).disabled = busy || networkBusy;
++}
++
++function startChallenge(id) {
++  const definition = getChallenge(id);
++  if (!definition || room || busy || networkBusy) return;
++  if (!challenge) {
++    saveLocal();
++    challengeReturn = { state, opponent, difficulty, restored };
++  }
++  cancelComputer();
++  challenge = { definition, status: 'playing', hintShown: false };
++  state = createChallengeState(id);
++  selected = null; moving = false; threatPly = -1; resultAnnounced = false;
++  document.body.classList.add('challenge-active');
++  $('board-mode').value = state.mode;
++  $('challenge-share-fallback').hidden = true;
++  $('challenge-share-message').textContent = '';
++  const url = new URL(location.href); url.searchParams.set('challenge', id);
++  history.replaceState(null, '', url);
++  $('challenge-dialog').close();
++  buildBoard(); setFocus(true); render();
++  cells[definition.red[0][0]].focus({ preventScroll: true });
++}
++
++function finishChallengeTurn() {
++  if (!challenge || challenge.status !== 'playing') return;
++  challenge.status = challengeOutcome(challenge.definition.id, state);
++  if (challenge.status === 'playing') return;
++  const prior = challengeProgress[challenge.definition.id] || { stars: 0, attempts: 0 };
++  const stars = challenge.status === 'solved' ? challenge.hintShown ? 1 : 2 : 0;
++  challengeProgress[challenge.definition.id] = { stars: Math.max(prior.stars, stars), attempts: Math.min(10000, prior.attempts + 1) };
++  try {
++    localStorage.setItem(CHALLENGE_SAVE_KEY, JSON.stringify({ version: 1, progress: challengeProgress }));
++    challengeStorageAvailable = true;
++  } catch { challengeStorageAvailable = false; }
++}
++
++function exitChallenge() {
++  if (!challenge || busy || networkBusy) return;
++  cancelComputer();
++  ({ state, opponent, difficulty, restored } = challengeReturn);
++  challenge = null; challengeReturn = null;
++  selected = null; moving = false; threatPly = -1; resultAnnounced = false;
++  document.body.classList.remove('challenge-active');
++  const url = new URL(location.href); url.searchParams.delete('challenge');
++  history.replaceState(null, '', url);
++  $('board-mode').value = state.mode;
++  buildBoard(); setFocus(Boolean(state.ply || state.pending)); render();
++}
++
++function openChallenges() {
++  if (room || busy || networkBusy) return;
++  $('challenge-list').innerHTML = '';
++  for (const [index, item] of CHALLENGES.entries()) {
++    const button = document.createElement('button');
++    const stars = challengeProgress[item.id]?.stars || 0;
++    button.type = 'button'; button.className = 'challenge-card'; button.dataset.challenge = item.id;
++    button.innerHTML = `<strong>${index + 1}. ${item.title}<span>${'★'.repeat(stars)}${'☆'.repeat(2 - stars)}</span></strong><small>${item.description}</small>`;
++    button.addEventListener('click', () => startChallenge(item.id));
++    $('challenge-list').append(button);
++  }
++  $('challenge-dialog').showModal();
++}
++$('challenge-open').addEventListener('click', openChallenges);
++$('challenge-select').addEventListener('click', openChallenges);
++$('challenge-close').addEventListener('click', () => $('challenge-dialog').close());
++$('challenge-exit').addEventListener('click', exitChallenge);
++$('challenge-hint').addEventListener('click', () => { if (challenge && !busy && challenge.status !== 'solved') { challenge.hintShown = true; render(); } });
++$('challenge-share').addEventListener('click', async () => {
++  if (!challenge || busy || networkBusy || challengeSharing) return;
++  const activeChallenge = challenge;
++  const isCurrent = () => challenge === activeChallenge;
++  const feedback = (message) => { if (isCurrent()) $('challenge-share-message').textContent = message; };
++  challengeSharing = true;
++  renderChallenge();
++  try {
++    const url = challengeLink(location.href, activeChallenge.definition.id);
++    if (typeof navigator.share === 'function') {
++      try {
++        await navigator.share({ title: `象五子棋 · ${activeChallenge.definition.title}`, text: '同一局面，看你怎样一手解题。', url });
++        feedback('已打开分享，邀请好友解同一道题。'); return;
++      } catch (error) { if (error?.name === 'AbortError') { feedback('已取消分享。'); return; } }
++    }
++    if (!isCurrent()) return;
++    try { await navigator.clipboard.writeText(url); feedback('同题链接已复制。'); }
++    catch {
++      if (!isCurrent()) return;
++      $('challenge-share-link').value = url;
++      $('challenge-share-fallback').hidden = false;
++      $('challenge-share-link').focus();
++      $('challenge-share-link').select();
++      feedback('请长按或使用 Ctrl+C 复制下方链接。');
++    }
++  } finally {
++    challengeSharing = false;
++    renderChallenge();
++  }
++});
++
+ $('draw-button').addEventListener('click', () => {
+   if (inputLocked()) return;
+   setFocus(true);
+@@ -279,6 +415,7 @@ $('rules-open').addEventListener('click', () => $('rules-dialog').showModal());
+ $('rules-close').addEventListener('click', () => $('rules-dialog').close());
+ function requestRestart(mode, nextOpponent = opponent) {
+   if (busy) return;
++  if (challenge) { startChallenge(challenge.definition.id); return; }
+   restartMode = mode;
+   restartOpponent = nextOpponent;
+   $('restart-description').textContent = `当前棋局将被清空，开始${nextOpponent === 'computer' ? '单人挑战（你执红）' : '双人同屏'}，使用 ${BOARDS[mode].cols}×${BOARDS[mode].rows} 棋盘。双方恢复各 16 枚棋子，红方先手。`;
+@@ -300,7 +437,12 @@ $('difficulty').addEventListener('change', () => { difficulty = $('difficulty').
+ $('computer-retry').addEventListener('click', () => { computerError = ''; render(); });
+ $('new-game').addEventListener('click', () => requestRestart(state.mode));
+ $('result-restart').addEventListener('click', () => {
+-  if (busy || networkBusy || !state.result) return;
++  if (busy || networkBusy || (!state.result && !challenge)) return;
++  if (challenge) {
++    const index = CHALLENGES.indexOf(challenge.definition);
++    startChallenge(CHALLENGES[challenge.status === 'solved' ? (index + 1) % CHALLENGES.length : index].id);
++    return;
++  }
+   if (room) void sendAction({ type: 'restart' });
+   else { resetGame(state.mode); cells[0].focus({ preventScroll: true }); }
+ });
+@@ -423,7 +565,7 @@ function endpoint() {
+   return url.origin;
+ }
+ async function connectRoom(join) {
+-  if (room || networkBusy || busy || !roomServiceReady) return;
++  if (room || challenge || networkBusy || busy || !roomServiceReady) return;
+   cancelComputer(); roomError = '';
+   networkBusy = true; render();
+   try {
+@@ -531,3 +673,5 @@ try {
+ } catch { /* Invalid or inaccessible saved room: remain in local mode. */ }
+ render();
+ if (invitation.has('room') && !room) { $('room-dialog').showModal(); void checkRoomService(); }
++const initialChallenge = challengeFromUrl(location.href);
++if (initialChallenge && !room && !invitation.has('room')) startChallenge(initialChallenge);
+diff --git a/browser-check.mjs b/browser-check.mjs
+index be2df48..91e520d 100644
+--- a/browser-check.mjs
++++ b/browser-check.mjs
+@@ -280,6 +280,7 @@ try {
+     await red.goto(onlineUrl); await red.selectOption('#play-mode', 'local'); await red.locator('.cell').nth(40).click();
+     await red.locator('#room-open').click(); await red.locator('#room-create').click();
+     await red.waitForFunction(() => !document.querySelector('#room-connected').hidden);
++    assert.equal(await red.locator('#challenge-open').isDisabled(), true, 'online authoritative games cannot be replaced by local training');
+     const code = await red.locator('#room-code').inputValue();
+     await red.locator('#room-close').click();
+     await black.goto(onlineUrl); await black.locator('#room-open').click();
+diff --git a/build.js b/build.js
+index 22b7966..c142fe7 100644
+--- a/build.js
++++ b/build.js
+@@ -1,7 +1,7 @@
+ import { mkdir, copyFile, writeFile } from 'node:fs/promises';
+ 
+ await mkdir(new URL('./dist/', import.meta.url), { recursive: true });
+-for (const file of ['index.html', 'style.css', 'app.js', 'game.js', 'pieces.js', 'board-view.js', 'computer.js', 'computer-worker.js', 'local-game.js', 'fullscreen.js']) {
++for (const file of ['index.html', 'style.css', 'app.js', 'game.js', 'pieces.js', 'board-view.js', 'computer.js', 'computer-worker.js', 'local-game.js', 'challenges.js', 'fullscreen.js']) {
+   await copyFile(new URL(file, import.meta.url), new URL(`dist/${file}`, import.meta.url));
+ }
+ await writeFile(new URL('dist/.nojekyll', import.meta.url), '');
+diff --git a/challenge-check.mjs b/challenge-check.mjs
+new file mode 100644
+index 0000000..749fe34
+--- /dev/null
++++ b/challenge-check.mjs
+@@ -0,0 +1,217 @@
++// Actual touch/keyboard training, isolated saves, and safe same-position sharing.
++import assert from 'node:assert/strict';
++import { createServer } from 'node:http';
++import { readFile } from 'node:fs/promises';
++import { once } from 'node:events';
++import { chromium } from '@playwright/test';
++import { CHALLENGES } from './challenges.js';
++
++const server = createServer(async (request, response) => {
++  const name = new URL(request.url, 'http://localhost').pathname.slice(1) || 'index.html';
++  if (!/^[\w.-]+$/.test(name)) return response.writeHead(404).end();
++  try {
++    const data = await readFile(new URL(`dist/${name}`, import.meta.url));
++    response.writeHead(200, { 'Content-Type': ({ html: 'text/html', js: 'text/javascript', css: 'text/css' })[name.split('.').at(-1)] || 'text/plain' }).end(data);
++  } catch { response.writeHead(404).end(); }
++});
++server.listen(0, '127.0.0.1'); await once(server, 'listening');
++const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
++const base = `http://127.0.0.1:${server.address().port}/`;
++const solutions = { 'rook-bridge': [14, 41], 'horse-leg': [21, 40], 'elephant-eye': [55, 39], 'cannon-link': [11, 47], 'pawn-return': [11, 20], 'break-threat': [67, 13] };
++const idle = (page) => page.waitForFunction(() => document.querySelector('#board').getAttribute('aria-busy') === 'false');
++const play = async (page, from, to) => {
++  await page.locator('.cell').nth(from).tap();
++  await page.locator('.cell').nth(to).tap();
++  await idle(page);
++};
++const saved = (page) => page.evaluate(() => localStorage.getItem('xiangqi-five-local-v1'));
++const progress = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('xiangqi-five-challenges-v1')).progress);
++
++try {
++  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
++  const errors = []; page.on('pageerror', (error) => errors.push(error.message));
++  await page.goto(base);
++  await page.selectOption('#play-mode', 'local');
++  await page.locator('.cell').first().tap(); await idle(page);
++  await page.locator('.cell').last().tap(); await idle(page);
++  const original = await saved(page);
++  await page.locator('#focus-toggle').tap();
++  await page.locator('#challenge-open').tap();
++  assert.equal(await page.locator('.challenge-card').count(), 6);
++  await page.locator('[data-challenge="horse-leg"]').tap();
++  assert.equal(await page.locator('#room-open').isDisabled(), true);
++  await play(page, 23, 40);
++  assert.equal(await page.locator('#history-count').textContent(), '0', 'a blocked horse never consumes an attempt');
++  assert.match(await page.locator('#challenge-move-message').textContent(), /不能走到这里/, 'illegal input has visible training feedback');
++  assert.equal(await page.locator('.challenge-coordinate').count(), 18, 'visible row and column coordinates make hints usable');
++  await page.locator('#challenge-hint').tap();
++  assert.equal(await page.locator('#challenge-hint-text').isVisible(), true);
++  await play(page, 21, 40);
++  assert.equal(await page.locator('#result-title').textContent(), '一手成五！');
++  assert.equal((await progress(page))['horse-leg'].stars, 1);
++  assert.equal(await saved(page), original);
++  await page.locator('#challenge-exit').tap();
++  assert.equal(await page.locator('#history-count').textContent(), '2', 'return restores the original local game');
++  assert.equal(await saved(page), original);
++  assert.equal(new URL(page.url()).searchParams.has('challenge'), false);
++
++  await page.goto(base + '?challenge=cannon-link');
++  await play(page, 46, 47);
++  assert.equal(await page.locator('#result-title').textContent(), '这手还差一点', 'capturing the king does not pass without five');
++  assert.equal(await page.locator('.cell.winning').count(), 0);
++  await page.locator('#result-restart').tap();
++  assert.equal(await page.locator('#history-count').textContent(), '0');
++  await play(page, 11, 47);
++  assert.equal(await page.locator('#result-title').textContent(), '一手成五！');
++
++  for (const [index, challenge] of CHALLENGES.entries()) {
++    await page.goto(base + '?challenge=' + challenge.id);
++    await play(page, ...solutions[challenge.id]);
++    assert.equal(await page.locator('#result-title').textContent(), challenge.goal === 'defend' ? '防守成功' : '一手成五！');
++    assert.equal((await progress(page))[challenge.id].stars, 2);
++    assert.equal(await saved(page), original, 'training never overwrites ordinary saved moves');
++    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
++    await page.locator('#result-restart').tap();
++    assert.equal(new URL(page.url()).searchParams.get('challenge'), CHALLENGES[(index + 1) % CHALLENGES.length].id, 'next challenge is immediately playable');
++    assert.equal(await page.locator('#history-count').textContent(), '0');
++  }
++  await page.goto(base + '?challenge=break-threat');
++  await play(page, 67, 49);
++  assert.equal(await page.locator('#result-title').textContent(), '这手还差一点', 'blocking the endpoint still loses to a capture');
++  await page.locator('#result-restart').tap();
++  await play(page, 67, 31);
++  assert.equal(await page.locator('#result-title').textContent(), '防守成功', 'an alternative upstream defense is accepted');
++
++  await page.goto(base + '?challenge=rook-bridge&token=private&server=https://private.invalid/#secret=private');
++  await page.evaluate(() => {
++    window.shared = null;
++    Object.defineProperty(navigator, 'share', { configurable: true, value: async (payload) => { window.shared = payload; } });
++  });
++  await page.locator('#challenge-share').tap();
++  assert.equal(await page.evaluate(() => window.shared.url), base + '?challenge=rook-bridge');
++  await page.evaluate(() => {
++    Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new DOMException('cancelled', 'AbortError'); } });
++    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('clipboard must not be used after cancellation'); } } });
++  });
++  await page.locator('#challenge-share').tap();
++  assert.equal(await page.locator('#challenge-share-message').textContent(), '已取消分享。');
++  await page.evaluate(() => { Object.defineProperty(navigator, 'share', { configurable: true, value: undefined }); });
++  await page.locator('#challenge-share').tap();
++  assert.equal(await page.locator('#challenge-share-link').inputValue(), base + '?challenge=rook-bridge');
++  assert.equal(await page.locator('#challenge-share-fallback').isVisible(), true);
++  assert.equal(await page.locator('#challenge-share-link').evaluate((input) => document.activeElement === input), true, 'manual copying focuses the visible link');
++  assert.equal(await page.locator('#challenge-share-link').evaluate((input) => input.selectionEnd - input.selectionStart), (base + '?challenge=rook-bridge').length);
++  for (const rejection of [null, undefined]) {
++    await page.evaluate((value) => {
++      window.copyCalls = 0;
++      Object.defineProperty(navigator, 'share', { configurable: true, value: () => Promise.reject(value) });
++      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { window.copyCalls++; } } });
++    }, rejection);
++    await page.locator('#challenge-share').tap();
++    assert.equal(await page.locator('#challenge-share-message').textContent(), '同题链接已复制。', 'empty share rejections still allow clipboard fallback');
++    assert.equal(await page.evaluate(() => window.copyCalls), 1);
++    assert.equal(await page.locator('#challenge-share').isDisabled(), false);
++  }
++  await page.evaluate(() => {
++    window.shareCalls = 0; window.copyCalls = 0;
++    Object.defineProperty(navigator, 'share', { configurable: true, value: () => {
++      window.shareCalls++;
++      return new Promise((resolve) => { window.resolveShare = resolve; });
++    } });
++    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { window.copyCalls++; } } });
++    document.querySelector('#challenge-share').click();
++    document.querySelector('#challenge-share').click();
++  });
++  assert.equal(await page.locator('#challenge-share').isDisabled(), true);
++  await page.locator('#challenge-hint').tap();
++  assert.equal(await page.locator('#challenge-share').isDisabled(), true, 'a board render cannot unlock a pending share');
++  await page.evaluate(() => document.querySelector('#challenge-share').dispatchEvent(new MouseEvent('click', { bubbles: true })));
++  assert.equal(await page.evaluate(() => window.shareCalls), 1, 'consecutive clicks open only one system share');
++  assert.equal(await page.evaluate(() => window.copyCalls), 0, 'duplicate shares never fall into copying');
++  await page.evaluate(() => window.resolveShare());
++  await page.waitForFunction(() => !document.querySelector('#challenge-share').disabled);
++  assert.equal(await page.locator('#challenge-share-message').textContent(), '已打开分享，邀请好友解同一道题。');
++  assert.equal(await page.evaluate(() => window.copyCalls), 0);
++  await page.evaluate(() => {
++    window.copyCalls = 0;
++    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
++    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => {
++      window.copyCalls++;
++      return new Promise((resolve) => { window.resolveCopy = resolve; });
++    } } });
++    document.querySelector('#challenge-share').click();
++    document.querySelector('#challenge-share').click();
++  });
++  assert.equal(await page.evaluate(() => window.copyCalls), 1, 'consecutive clicks write the clipboard only once');
++  await page.evaluate(() => window.resolveCopy());
++  await page.waitForFunction(() => !document.querySelector('#challenge-share').disabled);
++  assert.equal(await page.locator('#challenge-share-message').textContent(), '同题链接已复制。');
++  await page.evaluate(() => {
++    Object.defineProperty(navigator, 'share', { configurable: true, value: () => new Promise((resolve, reject) => { window.rejectShare = reject; }) });
++    window.copyCalls = 0;
++  });
++  await page.locator('#challenge-share').tap();
++  await page.locator('#challenge-exit').tap();
++  await page.evaluate(() => window.rejectShare(null));
++  await page.waitForTimeout(50);
++  assert.equal(await page.evaluate(() => window.copyCalls), 0, 'leaving training prevents late share rejection from copying or moving focus');
++  assert.equal(await page.locator('#challenge-panel').isVisible(), false);
++  assert.equal(await saved(page), original);
++  for (const suffix of ['?challenge=unknown', '?challenge=horse-leg&challenge=rook-bridge', '?challenge=%3Cscript%3E']) {
++    await page.goto(base + suffix);
++    assert.equal(await page.locator('#challenge-panel').isVisible(), false);
++    assert.equal(await page.locator('#history-count').textContent(), '2');
++  }
++  assert.deepEqual(errors, []);
++  await page.close();
++  console.log('PASS six real touch challenges, failed/retry/next/alternate defense, hints/stars, old saves, share empty rejections/single flight/manual focus/exit, cancellation and hostile IDs');
++
++  const pending = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
++  await pending.goto(base); await pending.selectOption('#play-mode', 'local');
++  await pending.locator('#draw-button').tap();
++  const pendingSave = await saved(pending);
++  assert.ok(JSON.parse(pendingSave).pending);
++  await pending.locator('#focus-toggle').tap(); await pending.locator('#challenge-open').tap();
++  await pending.locator('[data-challenge="pawn-return"]').tap();
++  await play(pending, 11, 20); await pending.locator('#challenge-exit').tap();
++  assert.equal(await saved(pending), pendingSave, 'training preserves an already-drawn piece without a redraw');
++  assert.match(await pending.locator('#draw-button').textContent(), /已抽到/);
++  await pending.close();
++  const invite = await browser.newPage();
++  await invite.goto(base + '?challenge=horse-leg#room=ABCDEF12');
++  assert.equal(await invite.locator('#challenge-panel').isVisible(), false, 'friend invitations take priority over training links');
++  assert.equal(await invite.locator('#room-dialog').isVisible(), true);
++  await invite.close();
++  console.log('PASS pending-piece save preserved and friend invitations take priority');
++
++  for (const [width, height] of [[305, 568], [844, 390], [1280, 800]]) {
++    const page = await browser.newPage({ viewport: { width, height }, hasTouch: true });
++    await page.goto(base + '?challenge=rook-bridge');
++    await page.locator('.cell').nth(14).focus();
++    await page.keyboard.press('Enter');
++    await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
++    await page.keyboard.press('Enter'); await idle(page);
++    assert.equal(await page.locator('#result-title').textContent(), '一手成五！');
++    assert.equal(await page.locator('.cell').evaluateAll((cells) => cells.filter((cell) => cell.tabIndex === 0).length), 1);
++    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
++    await page.locator('#result-restart').click();
++    assert.equal(await page.locator('#challenge-title').textContent(), '2/6 · 两马一条路');
++    await page.close();
++    console.log(`PASS ${width}x${height}: real keyboard solution, roving focus, no overflow, next exercise`);
++  }
++  const denied = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
++  await denied.addInitScript(() => {
++    Storage.prototype.getItem = () => { throw new Error('storage unavailable'); };
++    Storage.prototype.setItem = () => { throw new Error('storage unavailable'); };
++  });
++  await denied.goto(base + '?challenge=break-threat');
++  await play(denied, 67, 13);
++  assert.equal(await denied.locator('#result-title').textContent(), '防守成功');
++  await denied.locator('#challenge-exit').tap();
++  assert.equal(await denied.locator('#history-count').textContent(), '0');
++  assert.match(await denied.locator('#save-status').textContent(), /未允许保存/);
++  await denied.close();
++  console.log('PASS storage disabled: training remains playable and returning restores the local board');
++} finally {
++  await browser.close(); server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
++}
+diff --git a/challenges.js b/challenges.js
+new file mode 100644
+index 0000000..d233f6f
+--- /dev/null
++++ b/challenges.js
+@@ -0,0 +1,111 @@
++import { newGame, TYPES, COUNTS, findFive } from './game.js';
++import { winningActions } from './computer.js';
++
++// Fixed, public training positions. Their remaining reserves have been exhausted.
++// These are mixed-chess five-in-a-row exercises, not checkmate puzzles.
++export const CHALLENGES = [
++  {
++    id: 'rook-bridge', title: '一车架桥', goal: 'five',
++    description: '红方走一步，把不同棋种接成横向五连。',
++    hint: '四枚红子已经在第五行。找一枚不在线上的车，补到 F5。',
++    explanation: 'F2 → F5：车补进横线。五连只看颜色，不要求相同棋种。',
++    red: [[37, 'pawn'], [38, 'horse'], [39, 'elephant'], [40, 'advisor'], [14, 'rook']],
++    black: [[36, 'pawn'], [80, 'king']],
++  },
++  {
++    id: 'horse-leg', title: '两马一条路', goal: 'five',
++    description: '两匹马都看似能补缺口，找出真正能成五的那一步。',
++    hint: '缺口在 E5。D3 的马腿是 D4；F3 的马腿是 F4。',
++    explanation: 'D3 → E5：另一匹马被 F4 的黑卒蹩腿，不能跳进缺口。',
++    red: [[37, 'pawn'], [38, 'advisor'], [39, 'elephant'], [41, 'king'], [21, 'horse'], [23, 'horse']],
++    black: [[32, 'pawn'], [80, 'king']],
++  },
++  {
++    id: 'elephant-eye', title: '斜线藏象眼', goal: 'five',
++    description: '补上斜线断点；先检查两步之间的象眼。',
++    hint: '缺口在 D5。B7 的象眼 C6 是空位，F3 的象眼 E4 被挡住。',
++    explanation: 'B7 → D5：象走田、眼要通。不同棋种沿斜线也能连成五枚。',
++    red: [[19, 'pawn'], [29, 'rook'], [49, 'advisor'], [59, 'king'], [55, 'elephant'], [23, 'elephant']],
++    black: [[31, 'pawn'], [80, 'king']],
++  },
++  {
++    id: 'cannon-link', title: '借卒为炮架', goal: 'five',
++    description: '黑将占着断点。吃将本身不算赢，连五才算。',
++    hint: 'C2 的炮与 C6 黑将之间只有 C3 一枚黑卒，恰好可作炮架。',
++    explanation: 'C2 → C6：炮隔一子吃将，接成 A6–E6 五连。B6 兵吃将会留下 B6 的空缺，不能成五。',
++    red: [[45, 'rook'], [46, 'pawn'], [48, 'advisor'], [49, 'horse'], [11, 'cannon'], [2, 'cannon']],
++    black: [[47, 'king'], [20, 'pawn']],
++  },
++  {
++    id: 'pawn-return', title: '兵退一步', goal: 'five',
++    description: '舍近处的吃将机会，用兵接出一条斜线。',
++    hint: 'C3 是斜线起点。C2 的兵可向下走一格；本游戏兵可向四个方向走。',
++    explanation: 'C2 → C3：兵可以后退。C3–G7 连五获胜，吃掉 D2 的将不会直接获胜。',
++    red: [[30, 'advisor'], [40, 'elephant'], [50, 'horse'], [60, 'king'], [11, 'pawn']],
++    black: [[12, 'king']],
++  },
++  {
++    id: 'break-threat', title: '堵点还是拆线', goal: 'defend',
++    description: '红方走一步，让黑方下一手无论怎样走都不能立即连五。',
++    hint: '直接堵 E6 会被黑车吃掉后连五。吃掉 E2 黑车，或在车路上游拦住它，都能防住。',
++    explanation: '防守可以有多个答案：吃掉 E2 黑车，或挡在 E3 / E4 / E5。只堵 E6，黑车仍可吃掉堵子连五。',
++    red: [[67, 'rook']],
++    black: [[45, 'pawn'], [46, 'advisor'], [47, 'elephant'], [48, 'horse'], [13, 'rook']],
++  },
++];
++
++export const CHALLENGE_SAVE_KEY = 'xiangqi-five-challenges-v1';
++export const getChallenge = (id) => typeof id === 'string' && /^[a-z][a-z-]{2,30}$/.test(id) ? CHALLENGES.find((item) => item.id === id) : undefined;
++
++export function createChallengeState(id) {
++  const challenge = getChallenge(id);
++  if (!challenge) throw new Error('未知战术挑战');
++  const state = newGame();
++  state.pools = { red: [], black: [] };
++  for (const side of ['red', 'black']) {
++    for (const [index, type] of challenge[side]) {
++      if (!Number.isInteger(index) || index < 0 || index >= state.board.length || state.board[index] || !TYPES.includes(type)) throw new Error('无效练习局面');
++      state.board[index] = { side, type };
++    }
++    if (TYPES.some((type, i) => state.board.filter((p) => p?.side === side && p.type === type).length > COUNTS[i]) || findFive(state.board, side).length) throw new Error('无效练习棋子');
++  }
++  return state;
++}
++
++export function challengeOutcome(id, state) {
++  const challenge = getChallenge(id);
++  if (!challenge) throw new Error('未知战术挑战');
++  if (state.ply === 0) return 'playing';
++  if (state.ply !== 1 || state.history[0]?.side !== 'red') return 'failed';
++  if (challenge.goal === 'five') return state.result === 'red' ? 'solved' : 'failed';
++  return state.result !== 'black' && winningActions({ ...state, turn: 'black', pending: null }, 'black').length === 0 ? 'solved' : 'failed';
++}
++
++export function challengeFromUrl(href) {
++  const url = new URL(href);
++  const ids = url.searchParams.getAll('challenge');
++  return ids.length === 1 && getChallenge(ids[0]) ? ids[0] : null;
++}
++
++export function challengeLink(href, id) {
++  if (!getChallenge(id)) throw new Error('未知战术挑战');
++  const url = new URL(href);
++  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('请通过网页地址分享练习');
++  url.username = ''; url.password = ''; url.search = ''; url.hash = '';
++  url.searchParams.set('challenge', id);
++  return url.href;
++}
++
++export function decodeChallengeProgress(text) {
++  if (!text || text.length > 4096) return {};
++  try {
++    const saved = JSON.parse(text);
++    if (saved.version !== 1 || !saved.progress || typeof saved.progress !== 'object') return {};
++    const result = {};
++    for (const item of CHALLENGES) {
++      const record = saved.progress[item.id];
++      if (record && [0, 1, 2].includes(record.stars) && Number.isInteger(record.attempts) && record.attempts >= 0 && record.attempts <= 10000) result[item.id] = { stars: record.stars, attempts: record.attempts };
++    }
++    return result;
++  } catch { return {}; }
++}
+diff --git a/challenges.test.js b/challenges.test.js
+new file mode 100644
+index 0000000..49e3957
+--- /dev/null
++++ b/challenges.test.js
+@@ -0,0 +1,63 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { canMove, move, findFive } from './game.js';
++import { legalActions, winningActions } from './computer.js';
++import { CHALLENGES, createChallengeState, challengeOutcome, challengeFromUrl, challengeLink, decodeChallengeProgress } from './challenges.js';
++
++test('all curated positions are legal mixed-chess one-move exercises, independently enumerate every answer', () => {
++  const recommended = { 'rook-bridge': [14, 41], 'horse-leg': [21, 40], 'elephant-eye': [55, 39], 'cannon-link': [11, 47], 'pawn-return': [11, 20], 'break-threat': [67, 13] };
++  for (const puzzle of CHALLENGES) {
++    const initial = createChallengeState(puzzle.id);
++    assert.equal(challengeOutcome(puzzle.id, initial), 'playing');
++    assert.equal(findFive(initial.board, 'red').length, 0);
++    assert.equal(findFive(initial.board, 'black').length, 0);
++    assert.deepEqual(initial.pools, { red: [], black: [] });
++    const solutions = [];
++    let failed = 0;
++    for (const action of legalActions(initial)) {
++      const state = structuredClone(initial);
++      move(state, action.from, action.to);
++      // Independently verify the actual rule objective rather than the declared answer.
++      const correct = puzzle.goal === 'five' ? findFive(state.board, 'red').length >= 5 :
++        legalActions({ ...state, turn: 'black' }).every((reply) => {
++          const after = structuredClone(state);
++          move(after, reply.from, reply.to);
++          return findFive(after.board, 'black').length === 0;
++        });
++      assert.equal(challengeOutcome(puzzle.id, state), correct ? 'solved' : 'failed');
++      if (correct) solutions.push([action.from, action.to]); else failed++;
++    }
++    assert.ok(solutions.some(([from, to]) => from === recommended[puzzle.id][0] && to === recommended[puzzle.id][1]), puzzle.id);
++    assert.ok(failed > 0, 'each challenge has legal moves that fail its objective');
++    if (puzzle.goal === 'five') assert.equal(solutions.length, 1, `${puzzle.id} has a unique winning move`);
++    else assert.ok(solutions.length > 1, 'all sound defenses are accepted');
++  }
++});
++
++test('training teaches horse legs, elephant eyes, cannon screens and five rather than king capture', () => {
++  const horse = createChallengeState('horse-leg');
++  assert.equal(canMove(horse.board, 23, 40), false);
++  const elephant = createChallengeState('elephant-eye');
++  assert.equal(canMove(elephant.board, 23, 39), false);
++  const cannon = createChallengeState('cannon-link');
++  assert.equal(canMove(cannon.board, 2, 47), false);
++  move(cannon, 46, 47);
++  assert.equal(cannon.history[0].captured.type, 'king');
++  assert.equal(cannon.result, null);
++  assert.equal(challengeOutcome('cannon-link', cannon), 'failed');
++  const defense = createChallengeState('break-threat');
++  assert.equal(winningActions({ ...defense, turn: 'black' }, 'black').length, 1);
++  move(defense, 67, 49);
++  assert.equal(challengeOutcome('break-threat', defense), 'failed');
++  assert.ok(winningActions(defense, 'black').some((action) => action.from === 13 && action.to === 49));
++});
++
++test('public challenge links accept only one known ID and remove all unrelated data', () => {
++  assert.equal(challengeFromUrl('https://example.org/xiangqi/?challenge=horse-leg'), 'horse-leg');
++  for (const query of ['challenge=unknown', 'challenge=../../x', 'challenge=horse-leg&challenge=cannon-link', 'challenge=%3Cscript%3E', 'state=%7B%7D']) assert.equal(challengeFromUrl(`https://example.org/?${query}`), null);
++  assert.equal(challengeLink('https://user:pass@example.org/games/xiangqi/?server=secret&token=private#room=123', 'cannon-link'), 'https://example.org/games/xiangqi/?challenge=cannon-link');
++  assert.throws(() => challengeLink('https://example.org/', '__proto__'));
++  assert.throws(() => challengeLink('javascript:alert(1)', 'horse-leg'));
++  assert.deepEqual(decodeChallengeProgress('broken'), {});
++  assert.deepEqual(decodeChallengeProgress(JSON.stringify({ version: 1, progress: { 'horse-leg': { stars: 2, attempts: 3 }, 'cannon-link': { stars: 99, attempts: 1 }, arbitrary: { stars: 2, attempts: 1 } } })), { 'horse-leg': { stars: 2, attempts: 3 } });
++});
+diff --git a/index.html b/index.html
+index 6a8d7cc..4a36b76 100644
+--- a/index.html
++++ b/index.html
+@@ -38,9 +38,17 @@
+             <button class="primary-button" id="result-restart">再来一局</button>
+           </section>
+           <div class="room-strip" id="room-strip" hidden><span id="room-status" role="status"></span><button class="text-button" id="cancel-restart" hidden>取消重开申请</button></div>
+-          <div class="play-settings"><select id="play-mode" aria-label="对局模式"><option value="computer">单人挑战 · 你执红</option><option value="local">双人同屏</option></select><select id="difficulty" aria-label="电脑难度" aria-describedby="difficulty-hint"><option value="practice">简易 · 稳健应对</option><option value="standard">标准 · 攻防兼顾</option><option value="hard">困难 · 深入算棋</option></select><span id="save-status" role="status">本机自动保存</span></div>
++          <div class="play-settings"><select id="play-mode" aria-label="对局模式"><option value="computer">单人挑战 · 你执红</option><option value="local">双人同屏</option></select><select id="difficulty" aria-label="电脑难度" aria-describedby="difficulty-hint"><option value="practice">简易 · 稳健应对</option><option value="standard">标准 · 攻防兼顾</option><option value="hard">困难 · 深入算棋</option></select><button id="challenge-open" class="text-button">战术挑战 · 六题</button><span id="save-status" role="status">本机自动保存</span></div>
+           <p id="difficulty-hint" class="coach-hint"></p>
+           <div class="board-settings"><label for="board-mode">棋盘</label><select id="board-mode"><option value="xiangqi">象棋 · 9 × 10</option><option value="gomoku">五子棋 · 15 × 15</option></select></div>
++          <section id="challenge-panel" class="challenge-panel" hidden aria-labelledby="challenge-title">
++            <div class="challenge-heading"><strong id="challenge-title"></strong><small id="challenge-progress"></small></div>
++            <p id="challenge-objective"></p><p id="challenge-hint-text" class="challenge-hint" hidden></p>
++            <p id="challenge-move-message" role="status"></p>
++            <div class="challenge-actions"><button id="challenge-hint">提示</button><button id="challenge-share">分享同题</button><button id="challenge-select">选题</button><button id="challenge-exit">返回棋局</button></div>
++            <p id="challenge-share-message" role="status"></p>
++            <div id="challenge-share-fallback" hidden><label for="challenge-share-link">同题链接</label><input id="challenge-share-link" readonly></div>
++          </section>
+           <p id="coach-hint" class="coach-hint" role="status"></p><button id="computer-retry" class="move-button" hidden>重试电脑回合</button>
+           <div class="board-topline"><span><i class="status-dot"></i> <span id="turn-label">红方先行</span></span><span id="turn-count">第 01 手</span></div>
+           <div class="zoom-controls" role="group" aria-label="棋盘缩放"><button id="zoom-out" aria-label="缩小棋盘" disabled>−</button><output id="zoom-value" aria-label="棋盘缩放比例">100%</output><button id="zoom-board" aria-label="放大棋盘">＋</button><button id="zoom-reset" disabled>恢复大小</button><span>双指缩放 / 移动</span></div>
+@@ -98,6 +106,7 @@
+   </dialog>
+   <button class="history-fab" id="history-open" aria-label="对局记录">记录 <span id="history-count">0</span></button>
+   <dialog id="history-dialog" aria-labelledby="history-title"><div class="dialog-heading"><h2 id="history-title">对局记录</h2><button class="close-button" id="history-close" aria-label="关闭对局记录">×</button></div><ol id="full-history" class="full-history"></ol></dialog>
++  <dialog id="challenge-dialog" aria-labelledby="challenge-dialog-title"><div class="dialog-heading"><h2 id="challenge-dialog-title">六道战术，一手破局</h2><button class="close-button" id="challenge-close" aria-label="关闭战术选题">×</button></div><p>棋池已用完，只走红方一步。前五题找连五，第六题解除黑方下一手的全部五连威胁。独立完成得两颗星，使用提示得一颗星；合法但未达成目标可立即重试。原本机棋局保留，练习不计入好友排位。</p><div id="challenge-list" class="challenge-list"></div></dialog>
+   <dialog id="restart-dialog" aria-labelledby="restart-title"><p class="eyebrow">A NEW MATCH</p><h2 id="restart-title">重新摆开这一局？</h2><p><span id="restart-description">当前棋局将被清空，双方各恢复 16 枚棋子，红方先手。</span></p><div class="dialog-actions"><button class="move-button" id="restart-cancel">继续当前对局</button><button class="primary-button" id="restart-confirm">重新开局</button></div></dialog>
+ </body>
+ </html>
+diff --git a/package.json b/package.json
+index d8a5ebf..cab9fd6 100644
+--- a/package.json
++++ b/package.json
+@@ -6,7 +6,7 @@
+   "scripts": {
+     "start": "node server.js",
+     "build": "node build.js",
+-    "test": "node --test game.test.js rooms.test.js computer.test.js",
++    "test": "node --test game.test.js rooms.test.js computer.test.js challenges.test.js",
+     "dev": "node server.js"
+   },
+   "engines": {
+diff --git a/server.js b/server.js
+index 457c8b9..995399f 100644
+--- a/server.js
++++ b/server.js
+@@ -13,6 +13,7 @@ const files = {
+   '/computer.js': ['computer.js', 'text/javascript; charset=utf-8'],
+   '/computer-worker.js': ['computer-worker.js', 'text/javascript; charset=utf-8'],
+   '/local-game.js': ['local-game.js', 'text/javascript; charset=utf-8'],
++  '/challenges.js': ['challenges.js', 'text/javascript; charset=utf-8'],
+   '/fullscreen.js': ['fullscreen.js', 'text/javascript; charset=utf-8'],
+ };
+ const host = process.env.HOST || '127.0.0.1';
+diff --git a/style.css b/style.css
+index ef694d8..3e8ce18 100644
+--- a/style.css
++++ b/style.css
+@@ -159,3 +159,26 @@ body:has([data-competition-launch]) .history-fab { left:8px; right:auto; }
+   body.play-focus .zoom-controls { grid-column:2; grid-row:9; }
+   body.play-focus .board-footnote { grid-column:2; grid-row:10; }
+ }
++
++.challenge-panel { border:1px solid #b7c3a7; border-radius:5px; padding:10px; background:#eef0e4; margin:4px 0 7px; }
++.challenge-heading { display:flex; flex-wrap:wrap; gap:4px 12px; justify-content:space-between; font-size:14px; }
++.challenge-heading small { font-size:11px; color:#657357; }
++.challenge-panel p { font-size:12px; line-height:1.5; margin:6px 0; }
++.challenge-panel .challenge-hint { padding:6px 8px; background:#fff7df; border-left:2px solid #b29243; }
++.challenge-actions { display:flex; gap:5px; }
++.challenge-actions button { flex:1; min-width:0; min-height:44px; padding:6px 4px; font-size:12px; white-space:nowrap; border:1px solid #b7c3a7; border-radius:4px; background:#fbfaf2; }
++.challenge-panel #challenge-share-message:empty { display:none; }
++.challenge-panel label { font-size:12px; }
++.challenge-panel input { width:100%; min-height:44px; margin-top:5px; padding:8px; border:1px solid var(--line); background:#fffdf6; }
++.challenge-list { display:grid; gap:9px; }
++.challenge-card { display:block; width:100%; min-height:72px; text-align:left; padding:13px; border:1px solid #b7c3a7; border-radius:4px; background:#f8f6ec; }
++.challenge-card strong { display:flex; justify-content:space-between; gap:10px; font-size:14px; }
++.challenge-card strong span { color:#a47b1f; letter-spacing:2px; }
++.challenge-card small { display:block; margin-top:6px; font-size:12px; line-height:1.5; color:#697363; }
++body.challenge-active .action-panel { display:none; }
++body.challenge-active #coach-hint { display:none; }
++.challenge-coordinate { position:absolute; top:1px; left:2px; color:#797b65; font:9px/1 var(--sans); pointer-events:none; }
++body.challenge-active.play-focus .board-scroll { width:min(100%,calc((100dvh - 280px) * var(--board-ratio))); }
++@media (min-width:560px) and (max-height:500px) and (orientation:landscape) {
++  body.challenge-active.play-focus .board-scroll { width:100%; }
++}
+-- 
+2.52.0
+

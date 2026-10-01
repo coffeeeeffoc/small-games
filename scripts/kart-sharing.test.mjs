@@ -11,7 +11,7 @@ for (const [platform, global] of Object.entries({
   kuaishou: 'ks',
 })) {
   test(`${platform} routes invitations through its own SDK`, () => {
-    let onShow, payload, invitation;
+    let onShow, payload, invitation, launch;
     const shares = [];
     const sdk = {
       getLaunchOptionsSync: () => ({ query: { room: 'launch-room' } }),
@@ -42,14 +42,26 @@ for (const [platform, global] of Object.entries({
     assert.equal(payload().query, 'room=shared-room');
     assert.equal(bridge.share('room=new-room'), true);
     assert.equal(shares[0].query, 'room=new-room');
+    bridge.onLaunch = (value) => {
+      launch = value;
+    };
     bridge.onInvite = (value) => {
       invitation = value.room;
     };
     onShow({ query: { room: 'return-room' } });
     assert.equal(invitation, 'return-room');
+    assert.equal(launch.room, 'return-room');
+    onShow({ query: { kartChallenge: 'v1', route: 'coast' } });
+    assert.equal(launch.kartChallenge, 'v1');
+    assert.equal(invitation, 'return-room', 'a challenge does not trigger a room invitation');
+    assert.equal(bridge.share('kartChallenge=v1&route=coast', '来挑战我的海岸路线！'), true);
+    assert.equal(shares[1].title, '来挑战我的海岸路线！');
+    assert.equal(payload().query, 'kartChallenge=v1&route=coast');
+    bridge.setQuery('room=normal');
+    assert.equal(payload().title, '好友一起开跑，来我的卡丁车房间！');
     onShow({});
     onShow();
-    assert.equal(bridge.query.room, 'return-room');
+    assert.equal(bridge.query.kartChallenge, 'v1');
   });
 }
 test('unavailable optional sharing never prevents manual room invitations', () => {
@@ -64,6 +76,9 @@ test('unavailable optional sharing never prevents manual room invitations', () =
       throw Error('unavailable');
     },
     shareAppMessage: () => {
+      throw Error('unavailable');
+    },
+    onShow: () => {
       throw Error('unavailable');
     },
   };

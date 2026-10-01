@@ -1,2 +1,4 @@
 .githooks/* text eol=lf
 infra/tencent/* text eol=lf
+# Git patch context markers and mail signatures require trailing spaces.
+docs/patches/*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof

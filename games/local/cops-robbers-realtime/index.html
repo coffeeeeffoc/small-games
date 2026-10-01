@@ -83,6 +83,7 @@
           <span class="status-dot"></span> 小小街区，实时大行动
         </div>
         <nav class="toolbar" aria-label="游戏工具">
+          <button id="share-puzzle" class="button quiet share-button" aria-label="分享同题">分享</button>
           <button class="button quiet level-nav" id="levels-button">
             <svg><use href="#i-grid" /></svg><span>街区地图</span><b>100</b>
           </button>
@@ -110,6 +111,7 @@
           <label>玩法 <select id="mode-select"><option value="challenge">街区挑战 · 100 关</option><option value="classic">自由追逐 · 100 关</option><option value="escape">出口竞速 · 100 关</option></select></label>
           <label>我的角色 <select id="role-select"><option value="cop">◆ 追逐队</option><option value="robber">● 突围队</option></select></label>
           <label>开局顺序 <select id="initiative-select"><option value="random">系统分配</option><option value="first">我方先动</option><option value="second">对方先动</option></select></label>
+          <label>指挥规则 <select id="rule-select"><option value="standard">自由调动</option><option value="relay">轮换指挥 · 每次调动换人</option></select></label>
           <button class="button quiet" id="appearance-button">角色装扮 / 本地头像</button>
           <p id="mode-description"></p><small>可直接选择任意关卡；对手由电脑指挥。先行动方有 2 秒起步时间，之后双方同时行动。</small>
         </section>
@@ -348,6 +350,7 @@
         收到，出发！<svg><use href="#i-arrow" /></svg>
       </button><button class="button quiet wide" id="help-practice">暂停本局，练习夹击</button>
     </dialog>
+    <dialog id="share-dialog" class="small-dialog"><div class="dialog-top"><h2 id="share-title">分享同题</h2><button class="icon-button" data-close aria-label="关闭分享">×</button></div><label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly><p id="share-note" role="status"></p><button id="copy-share" class="button primary wide">复制链接</button><button id="native-share" class="button quiet wide" hidden>打开分享面板</button></dialog>
     <script type="module" src="./src/main.js"></script>
     <script defer src="./src/fullscreen.js"></script>
   </body>

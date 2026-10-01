@@ -1,6 +1,99 @@
 import './client.js';
 import { scoreText, gapText, playerName } from './format.js';
 const roleNames = { pursuer: '追逐队', runner: '突围队', random: '系统分配' };
+const competitionGames = new Set([
+  'cops-robbers',
+  'cops-robbers-realtime',
+  'letters-words2',
+  'vibeJam-myself-history-guess',
+  'xiangqi-five',
+]);
+const roomCode = (value) => typeof value === 'string' && /^[A-F0-9]{12}$/.test(value);
+const closedRoom = (room) => ['finished', 'abandoned', 'expired'].includes(room?.status);
+
+/** Only public routing fields enter SDK shares; never spread rooms, profiles or session data. */
+export function nativeInvitation(config, code) {
+  if (!competitionGames.has(config.game) || !roomCode(code))
+    throw new Error('邀请信息无效，请重新创建挑战。');
+  return {
+    title: `${config.title} · 好友挑战`,
+    query: `game=${encodeURIComponent(config.game)}&matchId=${code}&entry=challenge`,
+  };
+}
+
+export function readNativeInvitation(query, game) {
+  if (!query || typeof query !== 'object') return { code: '' };
+  if (query.game !== undefined && query.game !== game)
+    return { code: '', message: '这是另一款游戏的邀请，请打开对应小游戏。' };
+  if (query.entry !== undefined && query.entry !== 'challenge')
+    return { code: '', message: '邀请入口无效，请让好友重新分享。' };
+  if (query.matchId !== undefined && (query.game !== game || query.entry !== 'challenge'))
+    return { code: '', message: '邀请信息不完整，请让好友重新分享。' };
+  const raw = query.matchId ?? query.pk;
+  if (raw !== undefined && typeof raw !== 'string')
+    return { code: '', message: '房间码无效，请核对好友的邀请。' };
+  const code =
+    typeof (query.matchId ?? query.pk) === 'string'
+      ? (query.matchId ?? query.pk).trim().toUpperCase()
+      : '';
+  if (code && !roomCode(code)) return { code: '', message: '房间码无效，请核对好友的邀请。' };
+  return { code };
+}
+
+/** Existing member permissions are enforced by the server; repeated taps reuse one rematch. */
+export function createRematchResolver(request, game) {
+  const requests = new Map();
+  return (room) => {
+    if (!closedRoom(room) || room.game !== game || !roomCode(room.code))
+      return Promise.reject(new Error('本局尚未结束，请先完成比赛。'));
+    if (requests.has(room.code)) return requests.get(room.code);
+    const pending = Promise.resolve()
+      .then(async () => {
+        const result = await request(`/rooms/${room.code}/rematch`, { body: '{}' });
+        if (result.game !== game || !roomCode(result.rematch) || result.rematch === room.code)
+          throw new Error('再战邀请暂不可用，请重试。');
+        return result.rematch;
+      })
+      .catch((error) => {
+        requests.delete(room.code);
+        throw error;
+      });
+    requests.set(room.code, pending);
+    return pending;
+  };
+}
+
+/** Clipboard feedback is based on a real callback/Promise; absence and faults are normal. */
+export function copyNativeInvitation(sdk, data, timeoutMs = 4000, registerCancellation) {
+  if (typeof sdk.setClipboardData !== 'function') return Promise.resolve(false);
+  return new Promise((resolve) => {
+    let settled = false;
+    let unregister;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unregister?.();
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    unregister = registerCancellation?.(() => finish(false));
+    try {
+      const result = sdk.setClipboardData({
+        data,
+        success: () => finish(true),
+        fail: () => finish(false),
+      });
+      if (result && typeof result.then === 'function')
+        result.then(
+          () => finish(true),
+          () => finish(false),
+        );
+    } catch {
+      finish(false);
+    }
+  });
+}
 
 // Reviewed Canvas gameplay; no DOM, webview or HTML emulation in mini-games.
 export function startNativeCompetition(sdk, config, createRenderer) {
@@ -22,6 +115,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     if (typeof sdk[name] !== 'function') throw new Error(`原生 SDK 缺少 ${name}，无法启动游戏。`);
   }
   let stopped = false;
+  const copyCancellations = new Set();
   const subscriptions = [];
   function subscribe(on, off, listener, required = false) {
     if (typeof sdk[on] !== 'function' || typeof sdk[off] !== 'function') {
@@ -57,12 +151,85 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     hits = [],
     boardPage = 0,
     rulesOpen = false,
+    invitationPanel = null,
     lastPoll = 0;
   let top = Math.max(info.safeArea?.top || 0, 26) + 36,
     bottom = Math.max(0, height - (info.safeArea?.bottom || height));
   const namespace = `${config.platform}:${config.game}`;
   const roomKey = `${namespace}:competition-room`;
   const muteKey = `${namespace}:competition-muted`;
+  const resolveRematch = createRematchResolver((...args) => client.request(...args), config.game);
+  const preparedRematches = new Map();
+  async function invitationCode() {
+    if (!room || !roomCode(room.code)) throw new Error('请先创建或加入好友挑战。');
+    if (!closedRoom(room)) return room.code;
+    const source = room.code;
+    const next = await resolveRematch(room);
+    preparedRematches.set(source, next);
+    return next;
+  }
+  function invitationText(code) {
+    return `${config.title} 好友挑战\n房间码 ${code}\n打开同一小游戏，输入房间码后点击加入。`;
+  }
+  async function copyInvitation(code) {
+    const copied = await copyNativeInvitation(sdk, invitationText(code), 4000, (cancel) => {
+      copyCancellations.add(cancel);
+      return () => copyCancellations.delete(cancel);
+    });
+    if (stopped) return;
+    message = copied
+      ? '邀请已复制，发给好友后请双方准备。'
+      : `未能复制，请手动发送房间码 ${code}。`;
+    if (invitationPanel) invitationPanel.notice = message;
+    draw();
+  }
+  async function shareInvitation(copyOnly = false) {
+    const rematch = closedRoom(room);
+    const source = room?.code;
+    const target = await invitationCode();
+    if (stopped || !visible || room?.code !== source) return;
+    invitationPanel = {
+      code: target,
+      rematch,
+      notice: rematch
+        ? '这是新一局的再战邀请，双方准备后才开赛。'
+        : '好友输入房间码加入，双方准备后开赛。',
+    };
+    message = `房间码 ${target}，可分享或手动发送。`;
+    if (copyOnly) {
+      await copyInvitation(target);
+      return;
+    }
+    if (typeof sdk.shareAppMessage !== 'function') {
+      invitationPanel.notice = '当前分享不可用，可复制邀请或手动发送房间码。';
+      return;
+    }
+    const failed = () => {
+      if (stopped || invitationPanel?.code !== target) return;
+      invitationPanel.notice = '分享未完成，可复制邀请或手动发送房间码。';
+      draw();
+    };
+    try {
+      const result = sdk.shareAppMessage({ ...nativeInvitation(config, target), fail: failed });
+      if (result && typeof result.catch === 'function') result.catch(failed);
+    } catch {
+      failed();
+    }
+  }
+  async function enterRematch() {
+    const source = room?.code;
+    const target = await invitationCode();
+    if (stopped || !visible || room?.code !== source) return;
+    const joined = await client.request('/rooms/join', {
+      body: JSON.stringify({ code: target, game: config.game }),
+    });
+    if (stopped) return;
+    room = joined;
+    pending = null;
+    rulesOpen = false;
+    invitationPanel = null;
+    message = '已进入再战房间，邀请好友后请双方准备。';
+  }
   let profile = null,
     keyboardTarget = 'code',
     modes = [],
@@ -106,10 +273,15 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     sound = null;
     message = '音效暂不可用，可继续好友挑战';
   }
-  const sharePayload = () => ({
-    title: config.title + ' 好友挑战',
-    query: room ? `pk=${room.code}` : '',
-  });
+  const sharePayload = () => {
+    const code = closedRoom(room) ? preparedRematches.get(room?.code) : room?.code;
+    return roomCode(code)
+      ? nativeInvitation(config, code)
+      : {
+          title: config.title + ' · 好友挑战',
+          query: `game=${encodeURIComponent(config.game)}&entry=challenge`,
+        };
+  };
   safely(() => sdk.showShareMenu?.({ menus: ['shareAppMessage'] }));
   subscribe('onShareAppMessage', 'offShareAppMessage', sharePayload);
   canvas.width = width * ratio;
@@ -120,7 +292,9 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   } catch {
     /* Manual room-code entry remains available if launch metadata fails. */
   }
-  if (query.pk) code = String(query.pk).toUpperCase();
+  const incoming = readNativeInvitation(query, config.game);
+  code = incoming.code;
+  if (incoming.message) message = incoming.message;
   function button(label, x, y, w, action) {
     ctx.fillStyle = '#246969';
     ctx.beginPath();
@@ -141,7 +315,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     ctx.font = '14px sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(config.title, 12, top - 12);
-    button(muted ? '声音：关' : '声音：开', width - 90, top - 38, 78, () => {
+    button(muted ? '声音：关' : '声音：开', width - 90, top - 36, 78, () => {
       muted = !muted;
       try {
         sdk.setStorageSync(muteKey, muted);
@@ -157,8 +331,9 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       } else message = '当前平台音频不可用';
     });
     const text = String(message);
-    for (let n = 0; n < Math.min(3, Math.ceil(text.length / 24)); n++)
-      ctx.fillText(text.slice(n * 24, n * 24 + 24), 12, top + 18 + n * 18);
+    const messageWidth = Math.max(14, Math.floor((width - 24) / 14));
+    for (let n = 0; n < Math.min(3, Math.ceil(text.length / messageWidth)); n++)
+      ctx.fillText(text.slice(n * messageWidth, (n + 1) * messageWidth), 12, top + 18 + n * 18);
     if (!room) {
       button('创建好友挑战', 12, top + 76, width / 2 - 18, () =>
         act(async () => {
@@ -279,10 +454,13 @@ export function startNativeCompetition(sdk, config, createRenderer) {
           }
         });
       });
-      button('邀请', 85, top + 64, 65, () => {
-        safely(() => sdk.shareAppMessage?.(sharePayload()));
-        message = '房间 ' + room.code + '，可分享或发送房间码';
-      });
+      button(
+        closedRoom(room) ? '再战邀请' : '邀请',
+        85,
+        top + 64,
+        closedRoom(room) ? 90 : 65,
+        () => void act(() => shareInvitation()),
+      );
       button('规则', width - 74, top + 64, 62, () =>
         act(async () => {
           rulesOpen = !rulesOpen;
@@ -299,22 +477,29 @@ export function startNativeCompetition(sdk, config, createRenderer) {
           }),
         );
       if (room.status === 'waiting' && !rulesOpen) {
+        button(
+          '复制邀请 · ' + room.code,
+          12,
+          top + 120,
+          width - 24,
+          () => void act(() => shareInvitation(true)),
+        );
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
         room.players.forEach((player, i) =>
           ctx.fillText(
             `${playerName(player, room.players)}${i === room.you ? '（你）' : ''} · ${roleNames[player.role] || ''} ${player.ready ? '已准备' : '等待准备'}`,
             16,
-            top + 155 + i * 40,
+            top + 190 + i * 40,
             width - 32,
           ),
         );
-        if (room.players.length < 2) ctx.fillText('等一位好友加入…', 16, top + 195, width - 32);
+        if (room.players.length < 2) ctx.fillText('等一位好友加入…', 16, top + 230, width - 32);
         if (room.roles) {
           button(
             '换到' + roleNames[room.players[room.you].role === 'pursuer' ? 'runner' : 'pursuer'],
             12,
-            top + 225,
+            top + 260,
             width - 24,
             () =>
               act(async () => {
@@ -329,7 +514,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
           button(
             '先手：' + roleNames[room.initiative] + (room.you === 0 ? ' · 切换' : ''),
             12,
-            top + 279,
+            top + 314,
             width - 24,
             () => {
               if (room.you !== 0) {
@@ -355,7 +540,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
               ? '先手先行动 2 秒，随后双方同时行动'
               : '先手先走一步，随后双方交替行动',
             12,
-            top + 350,
+            top + 385,
             width - 24,
           );
         }
@@ -374,14 +559,6 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         ctx.restore();
       }
       if (['finished', 'abandoned', 'expired'].includes(room.status)) {
-        button('再来一局', 158, top + 64, 100, () =>
-          act(async () => {
-            const old = await client.request(`/rooms/${room.code}/rematch`, { body: '{}' });
-            room = await client.request('/rooms/join', {
-              body: JSON.stringify({ code: old.rematch }),
-            });
-          }),
-        );
         if (!rulesOpen) {
           const own = room.results?.find((r) => r.playerId === room.players[room.you].id);
           ctx.fillStyle = '#fff';
@@ -399,8 +576,76 @@ export function startNativeCompetition(sdk, config, createRenderer) {
               ]
             : ['本局中断，无新成绩'];
           lines.forEach((line, i) => ctx.fillText(line, 12, top + 160 + i * 28));
+          button(
+            '分享再战邀请',
+            12,
+            top + 340,
+            width - 24,
+            () => void act(() => shareInvitation()),
+          );
+          button(
+            '复制再战邀请',
+            12,
+            top + 394,
+            width / 2 - 18,
+            () => void act(() => shareInvitation(true)),
+          );
+          button(
+            '再来一局',
+            width / 2 + 4,
+            top + 394,
+            width / 2 - 18,
+            () => void act(enterRematch),
+          );
         }
       }
+    }
+    if (invitationPanel) {
+      hits = [];
+      ctx.fillStyle = '#102a32f5';
+      ctx.fillRect(0, top + 64, width, height - top - 64);
+      ctx.fillStyle = '#fff';
+      ctx.font = '18px sans-serif';
+      ctx.fillText(
+        invitationPanel.rematch ? '邀请好友，再战一局' : '邀请好友加入本局',
+        16,
+        top + 112,
+      );
+      ctx.font = 'bold 25px monospace';
+      ctx.fillText(invitationPanel.code, 16, top + 155);
+      ctx.font = '14px sans-serif';
+      const lines = [
+        invitationPanel.notice,
+        '同一小游戏 → 输入房间码 → 加入',
+        room?.status === 'playing' ? '分享时比赛仍在继续，请及时返回。' : '双方点击准备后才开赛。',
+      ];
+      let row = 0;
+      const length = Math.max(14, Math.floor((width - 32) / 14));
+      for (const line of lines)
+        for (let i = 0; i < line.length; i += length)
+          ctx.fillText(line.slice(i, i + length), 16, top + 196 + row++ * 24);
+      const y = top + 210 + row * 24;
+      button(
+        '复制邀请',
+        12,
+        y,
+        width / 2 - 18,
+        () => void act(() => copyInvitation(invitationPanel.code)),
+      );
+      button(
+        invitationPanel.rematch ? '进入再战房间' : '返回比赛',
+        width / 2 + 4,
+        y,
+        width / 2 - 18,
+        () => {
+          if (invitationPanel.rematch) void act(enterRematch);
+          else invitationPanel = null;
+        },
+      );
+      if (invitationPanel.rematch)
+        button('返回本局结果', 12, y + 54, width - 24, () => {
+          invitationPanel = null;
+        });
     }
   }
   async function act(task) {
@@ -467,7 +712,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         draw();
         return;
       }
-      if (!rulesOpen && room?.status === 'playing' && y > top + 118) {
+      if (!invitationPanel && !rulesOpen && room?.status === 'playing' && y > top + 118) {
         const action = renderer.tap(x, y - top - 118, room.state);
         if (action)
           void act(async () => {
@@ -518,7 +763,16 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     (event) => {
       if (stopped) return;
       visible = true;
-      if (event?.query?.pk) code = String(event.query.pk).toUpperCase();
+      const incoming = readNativeInvitation(event?.query, config.game);
+      if (incoming.message) {
+        message = incoming.message;
+        if (invitationPanel) invitationPanel.notice = incoming.message;
+      } else if (incoming.code && incoming.code !== room?.code) {
+        code = incoming.code;
+        message = room
+          ? '收到新的邀请；请先完成或退出当前比赛，再加入。'
+          : '已收到好友邀请，点击加入。';
+      }
       draw();
     },
     true,
@@ -549,6 +803,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       stopped = true;
       visible = false;
       clearInterval(interval);
+      for (const cancel of copyCancellations) cancel();
       for (const unsubscribe of subscriptions.splice(0)) safely(unsubscribe);
       safely(() => sound?.destroy());
     },

@@ -16,8 +16,9 @@ export const platformSharing = () =>
         serverUrl: string;
         query: Record<string, unknown>;
         onInvite?: (query: Record<string, unknown>) => void;
-        setQuery(query: string): void;
-        share(query: string): boolean;
+        onLaunch?: (query: Record<string, unknown>) => void;
+        setQuery(query: string, title?: string): void;
+        share(query: string, title?: string): boolean;
       };
     }
   ).__kartPlatform;

@@ -1,5 +1,5 @@
 import type { TrackOptions } from './RouteCatalog.ts';
-import { createItems, collectItems, type RoadItem } from './RoadItems.ts';
+import { createItems, collectItems, isSupply, type RoadItem } from './RoadItems.ts';
 import { KartConfig as C, angleDelta, type KartInput } from './KartConfig.ts';
 import { createKart, driveKart, resolveKartBarriers } from './KartPhysics.ts';
 import { createTrack, pointAt, projectOnTrack, wrapDistance } from './TrackGenerator.ts';
@@ -12,6 +12,8 @@ export class RaceManager {
   track: ReturnType<typeof createTrack>;
   items: RoadItem[] = [];
   itemsCollected = 0;
+  suppliesCollected = 0;
+  driftBoosts = 0;
   loaded = true;
   loadError = '';
   networked = false;
@@ -151,6 +153,8 @@ export class RaceManager {
         continue;
       }
       const oldBoost = k.boost,
+        oldDriftTier = k.tier,
+        oldDrifting = k.drifting,
         oldCollision = k.collision;
       const controls = human
         ? (humanInputs?.[i] ?? input)
@@ -159,8 +163,11 @@ export class RaceManager {
       const oldRoad = projectOnTrack(this.track, k.x, k.z);
       const previousPosition = { x: k.x, z: k.z };
       driveKart(k, controls, dt);
+      if (i === 0 && oldDrifting && oldDriftTier > 0 && !controls.drift && !controls.brake && k.boost > oldBoost)
+        this.driftBoosts++;
       const hit = resolveKartBarriers(k, this.track.barriers);
-      const collected = collectItems(this.items, k, previousPosition, this.time);
+      const collected = collectItems(this.items, k, previousPosition, this.time, i === 0
+        ? (kind) => { if (isSupply(kind)) this.suppliesCollected++; } : undefined);
       if (i === 0) this.itemsCollected += collected;
       const road = projectOnTrack(this.track, k.x, k.z);
       k.offRoad = Math.max(0, road.distance - road.width / 2 + 0.4);

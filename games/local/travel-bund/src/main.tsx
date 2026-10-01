@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Telemetry, Teleport } from './Scene';
 import { clearInput, destinations, input, readVisits, stories, type WorldData } from './world';
 import { audioActivity, chime, setAudio } from './audio';
+import { explorationRoutes, readRoute, routeProgress, routeShareUrl, type RouteId } from './routes';
 import './style.css';
 
 const KEY = 'travel-bund.visits.v1';
@@ -56,12 +57,18 @@ function App() {
       return [];
     }
   });
+  const [selectedRoute, setSelectedRoute] = useState<RouteId | null>(() => readRoute(location.search)),
+    [shareBusy, setShareBusy] = useState(false),
+    [shareLink, setShareLink] = useState('');
   const [story, setStory] = useState<WorldData['landmarks'][number] | null>(null),
     [notice, setNotice] = useState(''),
     [photo, setPhoto] = useState<string | null>(null);
-  const [teleport, setTeleport] = useState<Teleport>({ ...destinations[0], serial: 0 });
+  const [teleport, setTeleport] = useState<Teleport>(() => {
+    const invited = routeProgress(selectedRoute, visits);
+    return { ...destinations[(invited?.next || invited?.route.stops[0])?.destination ?? 0], serial: 0 };
+  });
   const [stats, setStats] = useState<Telemetry>({
-    position: destinations[0].position,
+    position: teleport.position,
     yaw: -1.5,
     speed: 0,
     grounded: false,
@@ -238,6 +245,7 @@ function App() {
     .sort((a, b) => a.d - b.d)[0];
   const target =
     nearestBench && nearestBench.d < 4 ? 'bench' : nearest && nearest.d < 140 ? 'landmark' : null;
+  const progress = routeProgress(selectedRoute, visits);
   action.current = () => {
     if (sitting) {
       setSitting(false);
@@ -285,11 +293,76 @@ function App() {
     setVisits(next);
     try {
       localStorage.setItem(KEY, JSON.stringify(next));
-      notify('这一处风景，已收入手记。');
+      const updated = routeProgress(selectedRoute, next);
+      notify(updated && !updated.next ? `「${updated.route.title}」三处打卡完成，去手记留一张纪念卡吧。` : '这一处风景，已收入手记。');
     } catch {
       notify('已收入本次手记，浏览器暂时无法保存。');
     }
     chime();
+  }
+  function chooseRoute(id: RouteId) {
+    const selected = routeProgress(id, visits)!;
+    setSelectedRoute(id);
+    setShareLink('');
+    travel((selected.next || selected.route.stops[0]).destination);
+    notify(`已选「${selected.route.title}」。走近目标并收入手记，完成三处打卡。`);
+  }
+  async function shareWalk() {
+    setShareBusy(true);
+    setShareLink('');
+    setNotice('');
+    window.clearTimeout(noticeTimer.current);
+    const url = routeShareUrl(location.href, selectedRoute);
+    const text = progress
+      ? `我在「${progress.route.title}」收下了 ${progress.completed}/3 处风景。一起沿江走走？`
+      : `我在外滩收下了 ${visits.length} 处风景。一起把江风留在手记里？`;
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: '江风入境 · 外滩漫游', text, url });
+          notify('分享入口已打开。');
+          return;
+        } catch (error) {
+          if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        notify('漫游链接已复制，发给朋友一起走走。');
+      } catch {
+        setShareLink(url);
+        notify('可长按下面的链接，复制后发给朋友。');
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  }
+  function downloadPassport() {
+    if (!progress) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080; canvas.height = 1350;
+    const context = canvas.getContext('2d');
+    if (!context) { notify('暂时无法生成纪念卡，请稍后重试。'); return; }
+    context.fillStyle = '#f3ecdc'; context.fillRect(0, 0, 1080, 1350);
+    context.fillStyle = '#142f35'; context.fillRect(0, 0, 1080, 330);
+    context.fillStyle = '#dfbd84'; context.font = '36px sans-serif'; context.fillText('SHANGHAI / THE BUND', 90, 100);
+    context.fillStyle = '#f3ecdc'; context.font = 'bold 70px serif'; context.fillText('江风入境。', 90, 215);
+    context.fillStyle = '#142f35'; context.font = 'bold 48px sans-serif'; context.fillText(progress.route.title, 90, 450);
+    context.font = '34px sans-serif'; context.fillText(`我的漫游打卡  ${progress.completed} / 3`, 90, 535);
+    progress.route.stops.forEach((stop, index) => {
+      context.fillStyle = visits.includes(stop.landmark) ? '#315b61' : '#88897e';
+      context.font = '38px sans-serif'; context.fillText(`${visits.includes(stop.landmark) ? '✓' : '○'}  ${stop.name}`, 90, 655 + index * 105);
+    });
+    context.fillStyle = '#315b61';
+    for (let index = 0; index < 11; index++) context.fillRect(90 + index * 82, 1110 - (index % 4) * 28, 58, 80 + (index % 4) * 28);
+    context.fillStyle = '#142f35'; context.font = '30px sans-serif'; context.fillText('把时间留在江边。把风景留给朋友。', 90, 1250);
+    canvas.toBlob((blob) => {
+      if (!blob) { notify('纪念卡没有生成，请稍后重试。'); return; }
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = `江风入境-${progress.route.title}-${progress.completed}处打卡.png`;
+      link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify('纪念卡已生成，可保存后分享。');
+    }, 'image/png');
   }
   const drag = useRef<{ id: number; x: number; y: number } | null>(null),
     stick = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -428,6 +501,7 @@ function App() {
                 ? '左手行走 · 右手转头 · 横屏看得更远'
                 : 'W A S D 行走　·　鼠标环顾　·　Esc 暂停'}
             </p>
+            {progress && <p className="intro-hint">收到一张漫游邀请：{progress.route.title} · 三处打卡</p>}
           </div>
           <div className="intro-index">
             <span>01 — 05</span>
@@ -470,6 +544,12 @@ function App() {
               <div className="location-chip">
                 <i /> 黄浦江畔 <span>{night ? '21:00' : '17:40'}</span>
               </div>
+              {progress && (
+                <button className="route-task" onClick={() => open('map')} aria-label="查看探索路线">
+                  <b>{progress.route.title} · {progress.completed} / 3</b>
+                  <span>{progress.next ? `下一处：${progress.next.name} · 走近后收入手记` : '三处风景已收齐 · 去手记留念 ↗'}</span>
+                </button>
+              )}
               <div className="interaction">
                 <button
                   className="interact"
@@ -656,6 +736,16 @@ function App() {
             <p className="eyebrow">ACROSS THE RIVER</p>
             <h2>沿江，去走走。</h2>
             <p className="muted">选择一处落脚点，接下来的路由你决定。</p>
+            <section className="route-list" aria-label="探索路线">
+              <h3>给漫游一个小目标</h3>
+              {explorationRoutes.map((route) => (
+                <button key={route.id} aria-pressed={selectedRoute === route.id} onClick={() => chooseRoute(route.id)}>
+                  <b>{route.title}</b><span>{route.description}</span>
+                  <small>{routeProgress(route.id, visits)!.completed} / 3 已打卡 · 开始路线 ↗</small>
+                </button>
+              ))}
+              {progress && <ol>{progress.route.stops.map((stop) => <li key={stop.landmark}>{visits.includes(stop.landmark) ? '✓ 已收入手记' : '○ 待探索'} · {stop.name}</li>)}</ol>}
+            </section>
             <div className="map-art">
               <svg viewBox="-950 -1630 3500 3470" role="img" aria-label="外滩两岸位置图">
                 {data?.water.map((t, i) => (
@@ -721,6 +811,9 @@ function App() {
             <p className="eyebrow">LITTLE THINGS, KEPT</p>
             <h2>把江风留下。</h2>
             <p className="muted">已收藏 {visits.length} 处风景</p>
+            {progress && <div className="route-journal"><h3>{progress.route.title} · {progress.completed} / 3</h3><p>{progress.next ? `下一处：${progress.next.name}。从地图落脚点出发，走近地标并收入手记。` : '三处打卡完成。可以保存纪念卡，邀请朋友走同一条路线。'}</p><button className="primary" onClick={downloadPassport}>保存我的漫游纪念卡</button></div>}
+            <button className="share-walk" disabled={shareBusy} onClick={shareWalk}>{shareBusy ? '正在准备…' : '邀请朋友沿江走走'}</button>
+            {shareLink && <label className="share-link">漫游邀请链接<input value={shareLink} readOnly onFocus={(event) => event.currentTarget.select()} /></label>}
             {photo ? (
               <figure>
                 <img src={photo} alt="刚刚拍下的外滩风景" />
