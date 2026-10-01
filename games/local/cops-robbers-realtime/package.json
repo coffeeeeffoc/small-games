@@ -15,7 +15,8 @@
     "test:competition": "node scripts/competition-playtest.mjs",
     "test:review": "node scripts/review-repro.mjs",
     "test:mobile-roster": "node scripts/mobile-roster-playtest.mjs",
-    "test:input": "node scripts/input-playtest.mjs"
+    "test:input": "node scripts/input-playtest.mjs",
+    "test:relay-browser": "node scripts/relay-playtest.mjs"
   },
   "engines": {
     "node": ">=20"

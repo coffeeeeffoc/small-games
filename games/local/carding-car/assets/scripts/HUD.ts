@@ -18,6 +18,7 @@ import { DrivingCoach } from './DrivingCoach';
 import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
+import { STAMPS, stampCount, passportCount, earnedStamps, type RoutePassport, type KartChallenge } from './RouteChallenges';
 const keyboardHints = sys.isBrowser && !sys.isMobile;
 const color = (v: string) => new Color().fromHEX(v);
 export class HUD {
@@ -36,6 +37,7 @@ export class HUD {
   footer: Label;
   nitro: Label;
   restartButton: Node;
+  restartLabel: Label;
   garageButton: Node;
   picker: Node;
   choices: Label[] = [];
@@ -50,6 +52,9 @@ export class HUD {
   lastPhase = '';
   records: RaceRecord[] = [];
   previousBest?: number;
+  passport: RoutePassport = {};
+  challenge?: KartChallenge;
+  challengeNotice = '';
   coach = new DrivingCoach();
   coaching: Label;
   help: Label;
@@ -140,7 +145,7 @@ export class HUD {
     this.restartButton.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.restartButton);
     this.box(this.restartButton, 263, -125, 170, 52, '#295870');
-    this.label(this.restartButton, '重新开跑', 263, -125, 20, '#fff6dc', 170, 52);
+    this.restartLabel = this.label(this.restartButton, '重新开跑', 263, -125, 20, '#fff6dc', 170, 52);
     this.restartButton.active = false;
     this.garageButton = new Node('GarageButton');
     this.garageButton.layer = Layers.Enum.UI_2D;
@@ -228,7 +233,8 @@ export class HUD {
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
     if (r.phase !== this.lastPhase) {
       this.lastPhase = r.phase;
-      this.restartButton.active = r.phase === 'paused';
+      this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
+      this.restartLabel.string = r.phase === 'finished' ? '分享挑战' : '重新开跑';
       this.leaderboard.string = `本路线最快 5 场\n${
         this.records.length
           ? this.records
@@ -271,6 +277,12 @@ export class HUD {
           })
           .join('\n')}`;
         this.footer.string = recordFeedback(r.time, this.previousBest);
+        if (!r.networked) {
+          const bits = this.passport[this.selection.route] || 0, earned = earnedStamps(r);
+          this.leaderboard.string = `路线印章 ${stampCount(bits)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}\n` +
+            STAMPS.map((stamp) => `${bits & stamp.bit ? '★' : '☆'} ${stamp.name}${earned & stamp.bit ? ' · 本场达成' : ''}`).join('\n') +
+            `\n本机最快 ${this.records[0] ? time(this.records[0].time) : '—'}`;
+        }
       }
     }
     const theme = themes.find((t) => t.id === this.selection.theme)!;
@@ -288,6 +300,9 @@ export class HUD {
           ? `本路线目标：突破 ${time(this.previousBest)} · 本机纪录`
           : '本路线目标：完成 3 圈，赢取首枚完赛奖牌';
     if (r.phase === 'ready') {
+      this.tagline.string = this.challenge
+        ? `同道具挑战 · 三圈目标 ${time(this.challenge.time)}`
+        : `路线印章 ${stampCount(this.passport[this.selection.route] || 0)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}`;
       this.title.string = '浪湾卡丁车 · 出发准备';
       this.detail.string = r.loadError
         ? `素材加载失败：${r.loadError}\n切换配置可重试`
@@ -302,7 +317,14 @@ export class HUD {
       this.footer.string = !keyboardHints
         ? '默认配置即可开跑 · 左手转向 · 右手漂移 · 开跑后自动加速'
         : 'Enter 开跑 · W/↑ 前进 · A D 转向 · 空格漂移 · H 教学';
+      this.footer.string += '\n收集印章：冠军 · 4 次漂移加速 · 6 个有益补给';
     }
+    if (r.phase === 'finished' && this.challenge && !r.networked) {
+      const delta = r.time - this.challenge.time;
+      this.tagline.string = delta <= 0 ? `同道具挑战达成！${delta < 0 ? `快了 ${(-delta).toFixed(2)} 秒` : '追平目标'}`
+        : `同道具挑战差 ${delta.toFixed(2)} 秒 · 再跑一次布局不变`;
+    }
+    if (this.challengeNotice && ['ready', 'paused', 'finished'].includes(r.phase)) this.footer.string = this.challengeNotice;
     this.count.string =
       r.phase === 'countdown'
         ? String(Math.ceil(r.countdown))

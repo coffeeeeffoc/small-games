@@ -8,6 +8,9 @@ const featuredGameOrder: Record<string, number> = {
   'letters-words2': 3,
   'vibeJam-myself-history-guess': 4,
   'xiangqi-five': 5,
+  'travel-bund': 6,
+  'night-overwatch': 7,
+  'wulong-city': 8,
 };
 
 const normalize = (text: string) =>
@@ -36,7 +39,7 @@ export function GameCatalog({
 }) {
   const terms = query.split(/\s+/u).map(normalize).filter(Boolean);
   const games = [...registry, ...standaloneGames].sort(
-    (a, b) => (featuredGameOrder[a.id] ?? 6) - (featuredGameOrder[b.id] ?? 6),
+    (a, b) => (featuredGameOrder[a.id] ?? 9) - (featuredGameOrder[b.id] ?? 9),
   );
   const sourceOf = (game: (typeof games)[number]) =>
     'source' in game ? game.source : `games/local/game-${game.id}`;

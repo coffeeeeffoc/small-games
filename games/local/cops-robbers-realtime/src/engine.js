@@ -85,7 +85,7 @@ function actorAt(graph, node, id) {
   };
 }
 
-export function createGame(level, { playerRole = "cop", ai = true, firstRole = null } = {}) {
+export function createGame(level, { playerRole = "cop", ai = true, firstRole = null, orderRule = "standard" } = {}) {
   const graph = buildGraph(level);
   if (!level.cops?.length || !level.robbers?.length)
     throw new Error("关卡需要追逐队员和突围队员");
@@ -123,6 +123,8 @@ export function createGame(level, { playerRole = "cop", ai = true, firstRole = n
     firstRole,
     openingSeconds: firstRole ? 2 : 0,
     ai,
+    orderRule: orderRule === "relay" ? "relay" : "standard",
+    lastOrder: null,
     aiRethink: 0,
     graph,
     cops,
@@ -335,7 +337,7 @@ function pathTo(game, network, target) {
 export function routePreview(game, index, point, role = game.playerRole) {
   const cop = (role === "robber" ? game.robbers : game.cops)[index];
   const target = roadTarget(game, point);
-  if (!cop || !target || game.phase !== "playing") return null;
+  if (!cop || !target || game.phase !== "playing" || !canRelayOrder(game, role, index)) return null;
   const network = navigation(game, cop, target, role === "robber");
   const path = pathTo(game, network, network.to);
   return path ? [{ x: cop.x, y: cop.y }, ...path] : null;
@@ -343,14 +345,28 @@ export function routePreview(game, index, point, role = game.playerRole) {
 
 const canCommand = (game, role) => game.phase === "playing" && (!game.firstRole || game.time + EPS >= game.openingSeconds || game.firstRole === role);
 
+export function canRelayOrder(game, role, index) {
+  if (game.orderRule !== "relay" || role !== game.playerRole) return true;
+  const actors = role === "robber" ? game.robbers.filter(actor => !actor.caught && !actor.escaped) : game.cops;
+  // The final runner must remain controllable after teammates are captured.
+  return actors.length <= 1 || game.lastOrder !== index;
+}
+function recordOrder(game, role, index, path) {
+  if (game.orderRule !== "relay" || role !== game.playerRole) return true;
+  const actor = (role === "robber" ? game.robbers : game.cops)[index], end = path.at(-1);
+  if (!end || Math.hypot(end.x - actor.x, end.y - actor.y) < 1 || actor.destination && Math.hypot(end.x - actor.destination.x, end.y - actor.destination.y) < 1) return false;
+  game.lastOrder = index;
+  return true;
+}
+
 export function commandCop(game, index, point) {
-  if (!canCommand(game, "cop")) return false;
+  if (!canCommand(game, "cop") || !canRelayOrder(game, "cop", index)) return false;
   const cop = game.cops[index];
   const target = roadTarget(game, point);
   if (!cop || !target || game.phase !== "playing") return false;
   const network = navigation(game, cop, target, false);
   const path = pathTo(game, network, network.to);
-  if (!path) return false;
+  if (!path || !recordOrder(game, "cop", index, path)) return false;
   cop.routePoints = path;
   cop.destination = { ...target };
   cop.moving = path.length > 0;
@@ -370,12 +386,12 @@ export function holdCop(game, index) {
 }
 
 export function commandRobber(game, index, point) {
-  if (!canCommand(game, "robber")) return false;
+  if (!canCommand(game, "robber") || !canRelayOrder(game, "robber", index)) return false;
   const actor = game.robbers[index], target = roadTarget(game, point);
   if (!actor || actor.caught || actor.escaped || !target || game.phase !== "playing") return false;
   const network = navigation(game, actor, target, true);
   const path = pathTo(game, network, network.to);
-  if (!path) return false;
+  if (!path || !recordOrder(game, "robber", index, path)) return false;
   actor.routePoints = path; actor.destination = {...target}; actor.moving = path.length > 0; actor.blocked = false;
   return true;
 }

@@ -2,29 +2,33 @@ import { getDuelLevel } from './duel-levels.js';
 import { initialDuel, legalDuelTargets, stepDuel, chooseDuelAction } from './duel.js';
 import { character, scenery } from './art.js';
 import { playSound, unlockSound } from './sound.js';
+import { relayLevelIds } from './relay.js';
+import { showPuzzleShare } from './share.js';
 
-export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
+export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sharedPuzzle }) {
   const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '追逐队' : '突围队';
   let level, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const saveKey = 'cops-robbers-duel-v1'; let saved = {};
   try { const data = JSON.parse(localStorage.getItem(saveKey) || '{}'); if (data && typeof data === 'object' && !Array.isArray(data)) saved = data; } catch { /* A damaged local preference never blocks play. */ }
   const wins = Object.fromEntries(Object.entries(saved.wins || {}).filter(([key, value]) => /^(escape|survival):(pursuer|runner):([1-9][0-9]?|100)$/.test(key) && value === true));
-  for (const [id, allowed] of [['solo-mode', ['challenge','escape','survival']], ['solo-role',['pursuer','runner']], ['solo-initiative',['first','second','random']]]) if (allowed.includes(saved[id])) $(id).value = saved[id];
+  for (const [id, allowed] of [['solo-mode', ['challenge','relay','escape','survival']], ['solo-role',['pursuer','runner']], ['solo-initiative',['first','second','random']]]) if (allowed.includes(saved[id])) $(id).value = saved[id];
   function persistOptions() {
     try { localStorage.setItem(saveKey, JSON.stringify({ wins, 'solo-mode': $('solo-mode').value, 'solo-role': $('solo-role').value, 'solo-initiative': $('solo-initiative').value, level: Number($('solo-level').value) })); }
     catch { $('friend-note').textContent = '当前浏览器无法保存本地进度；本次仍可继续玩。'; }
   }
   function renderOptions() {
     const current = $('solo-level').value || String(Number.isInteger(saved.level) && saved.level >= 1 && saved.level <= 100 ? saved.level : 1);
-    $('solo-level').innerHTML = Array.from({ length: 100 }, (_, i) => `<option value="${i + 1}">${wins[`${$('solo-mode').value}:${$('solo-role').value}:${i + 1}`] ? '✓ ' : ''}第 ${i + 1} 关 · 难度 ${1 + Math.floor(i / 20)}</option>`).join('');
-    $('solo-level').value = current;
+    const ids = $('solo-mode').value === 'relay' ? relayLevelIds : Array.from({ length: 100 }, (_, i) => i + 1);
+    $('solo-level').innerHTML = ids.map(id => `<option value="${id}">${wins[`${$('solo-mode').value}:${$('solo-role').value}:${id}`] ? '✓ ' : ''}第 ${id} 关 · ${$('solo-mode').value === 'relay' ? '换防接力' : `难度 ${1 + Math.floor((id - 1) / 20)}`}</option>`).join('');
+    $('solo-level').value = ids.includes(Number(current)) ? current : String(ids[0]);
   }
   renderOptions();
   function updateMode() {
-    const challenge = $('solo-mode').value === 'challenge';
-    for (const id of ['solo-role-row', 'solo-initiative-row', 'solo-level-row']) $(id).hidden = challenge;
-    $('mode-description').textContent = challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
-    $('start-mode').textContent = challenge ? '开始围堵挑战' : '开始人机对抗';
+    const relay = $('solo-mode').value === 'relay', challenge = $('solo-mode').value === 'challenge' || relay;
+    for (const id of ['solo-role-row', 'solo-initiative-row']) $(id).hidden = challenge;
+    $('solo-level-row').hidden = challenge && !relay;
+    $('mode-description').textContent = relay ? '两次实际移动必须换队员；留守不重置。六个精选街区已在接力规则下完整复演获胜路线。' : challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
+    $('start-mode').textContent = $('solo-mode').value === 'relay' ? '开始换防接力' : challenge ? '开始围堵挑战' : '开始人机对抗';
   }
   function stop() { clearTimeout(timer); serial++; }
   function render() {
@@ -86,12 +90,13 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
   $('friend-duel').addEventListener('click', () => { const entry = document.querySelector('[data-competition-launch]'); if (entry) entry.click(); else $('friend-note').textContent = '当前是单机预览。好友房间请从游戏大厅的联机入口进入。'; });
   $('solo-mode').addEventListener('change', () => { updateMode(); renderOptions(); persistOptions(); });
   for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); persistOptions(); });
-  $('start-mode').addEventListener('click', () => { stop(); if ($('solo-mode').value === 'challenge') startChallenge(); else start(); });
+  $('start-mode').addEventListener('click', () => { stop(); if (['challenge','relay'].includes($('solo-mode').value)) startChallenge({ rule: $('solo-mode').value === 'relay' ? 'relay' : 'standard', id: $('solo-mode').value === 'relay' ? Number($('solo-level').value) : undefined }); else start(); });
   $('duel-back').addEventListener('click', () => { stop(); document.body.classList.remove('duel-active'); $('duel-game').hidden = true; returnLobby(); });
   $('focus-toggle').addEventListener('click', () => { if (document.body.classList.contains('duel-active')) $('duel-back').click(); });
   $('duel-retry').addEventListener('click', () => start(level.id, true));
   $('duel-next').addEventListener('click', () => { if (level.id < 100) start(level.id + 1); });
   $('duel-wait').addEventListener('click', () => move((role === 'pursuer' ? state.cops : state.robbers)[selected]));
+  $('duel-share').addEventListener('click', () => showPuzzleShare({ mode: level.mode, level: level.id, role, first: firstSide, rule: 'standard' }, `围捕小队 · ${level.mode === 'escape' ? '出口竞速' : '限步周旋'}第 ${level.id} 关 · ${label(firstSide)}先手`));
   $('duel-squad').addEventListener('click', event => { const button = event.target.closest('[data-select]'); if (button) { selected = Number(button.dataset.select); render(); } });
   $('duel-board').addEventListener('click', event => {
     const actor = event.target.closest('[data-actor]'), target = event.target.closest('[data-target]');
@@ -102,4 +107,11 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
   $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); if (!event.repeat) event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('visibilitychange', () => { stop(); if (!document.hidden) scheduleAI(); });
   updateMode();
+  if (sharedPuzzle) {
+    $('solo-mode').value = sharedPuzzle.mode === 'challenge' && sharedPuzzle.rule === 'relay' ? 'relay' : sharedPuzzle.mode;
+    $('solo-role').value = sharedPuzzle.role;
+    $('solo-initiative').value = sharedPuzzle.first === sharedPuzzle.role ? 'first' : 'second';
+    renderOptions(); $('solo-level').value = String(sharedPuzzle.level); updateMode();
+    if (sharedPuzzle.mode !== 'challenge') start(sharedPuzzle.level);
+  }
 }

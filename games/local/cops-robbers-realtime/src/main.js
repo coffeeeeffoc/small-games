@@ -15,13 +15,16 @@ import {
   isExitBlocked,
   captureStatus,
   CAPTURE_RADIUS,
+  canRelayOrder,
 } from "./engine.js";
 import { createRenderer } from "./renderer.js";
 import { createAudio } from "./audio.js";
 import { openAppearanceSettings, roleAvatarSvg } from "./role-appearance.js";
+import { readPuzzleLink, fillPuzzleShare } from "./share.js";
 
 const $ = (id) => document.getElementById(id);
 const STORAGE = "neighborhood-patrol-v1";
+const sharedPuzzle = readPuzzleLink(location.href);
 const formatTime = (seconds) =>
   `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 const ordinal = ["一", "二", "三", "四", "五", "六", "七", "八"];
@@ -49,8 +52,8 @@ function readProgress() {
       }
     const modeBest = {};
     for (const [key, seconds] of Object.entries(value?.modeBest || {}))
-      if (/^(challenge|classic|escape)-(cop|robber)-(100|[1-9]\d?)$/.test(key) && Number.isFinite(seconds) && seconds > 0 && seconds < 86400) modeBest[key] = seconds;
-    return { ...records, modeBest, settings: { mode: ["challenge","classic","escape"].includes(value?.settings?.mode) ? value.settings.mode : "challenge", role: value?.settings?.role === "robber" ? "robber" : "cop", initiative: ["first","second","random"].includes(value?.settings?.initiative) ? value.settings.initiative : "random" }, sound: value?.sound !== false, practiceDone: value?.practiceDone === true };
+      if (/^(challenge|classic|escape)-(cop|robber)-(100|[1-9]\d?)(:relay)?$/.test(key) && Number.isFinite(seconds) && seconds > 0 && seconds < 86400) modeBest[key] = seconds;
+    return { ...records, modeBest, settings: { rule: value?.settings?.rule === "relay" ? "relay" : "standard", mode: ["challenge","classic","escape"].includes(value?.settings?.mode) ? value.settings.mode : "challenge", role: value?.settings?.role === "robber" ? "robber" : "cop", initiative: ["first","second","random"].includes(value?.settings?.initiative) ? value.settings.initiative : "random" }, sound: value?.sound !== false, practiceDone: value?.practiceDone === true };
   } catch {
     return {
       best: {},
@@ -63,9 +66,11 @@ function readProgress() {
   }
 }
 let progress = readProgress();
-const recordKey = id => `${mode}-${playerRole}-${id}`;
-const bestTime = id => progress.modeBest[recordKey(id)] || (mode === "challenge" && playerRole === "cop" ? progress.streetBest[id] : null);
+const recordKey = id => `${mode}-${playerRole}-${id}${rule === "relay" ? ':relay' : ''}`;
+const bestTime = id => progress.modeBest[recordKey(id)] || (rule === "standard" && mode === "challenge" && playerRole === "cop" ? progress.streetBest[id] : null);
 let mode = progress.settings?.mode || "challenge", playerRole = progress.settings?.role || "cop", initiative = progress.settings?.initiative || "random";
+let rule = progress.settings?.rule === "relay" ? "relay" : "standard";
+if (sharedPuzzle) { mode = sharedPuzzle.mode; playerRole = sharedPuzzle.role; rule = sharedPuzzle.rule; initiative = sharedPuzzle.first === playerRole ? "first" : "second"; }
 const controlled = () => game.playerRole === "robber" ? game.robbers : game.cops;
 const roleLabel = () => game.playerRole === "robber" ? "突围队" : "追逐队";
 const playerWon = () => game.playerRole === "robber" ? game.phase === "lost" : game.phase === "won";
@@ -102,7 +107,7 @@ const audio = createAudio(progress.sound);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 function saveProgress() {
-  progress.settings = {mode, role:playerRole, initiative};
+  progress.settings = {mode, role:playerRole, initiative, rule};
   try {
     localStorage.setItem(STORAGE, JSON.stringify(progress));
   } catch {
@@ -259,7 +264,8 @@ function updateCaptureHint() {
           ? `${practice ? "练习 3/3 · " : `${robber.id + 1} 号 · `}近身 ${nearby}/2 人 · 派同伴从另一侧靠近`
           : `${robber.id + 1} 号 · 橙色路段仍可退避，继续压缩包围`;
   }
-  $("capture-message").textContent = game.playerRole === "robber" ? (game.exits.length ? "你指挥突围队：点队员，再点道路；任一人越过出口即获胜。" : `你指挥突围队：利用环路避开两侧夹击，坚持 ${game.level.timeLimit} 秒。`) : message;
+  const relayText = game.orderRule === "relay" ? game.lastOrder === null ? ' · 轮换指挥：每次有效调动后换人，守住不交棒。' : ` · 上次 ${game.lastOrder + 1} 号出发，下一道调动请换人${controlled().filter(actor => !actor.caught && !actor.escaped).length === 1 ? '；仅剩一人时可连续指挥' : ''}。` : '';
+  $("capture-message").textContent = (game.playerRole === "robber" ? (game.exits.length ? "你指挥突围队：点队员，再点道路；任一人越过出口即获胜。" : `你指挥突围队：利用环路避开两侧夹击，坚持 ${game.level.timeLimit} 秒。`) : message) + relayText;
 }
 function exitStates() {
   return (game.exits || []).map((exit) => ({
@@ -278,7 +284,7 @@ function updateCampaign() {
   $("campaign-count").textContent = `${count} / 100`;
   $("campaign-fill").style.width = `${(count / 100) * 100}%`;
 }
-function loadLevel(id, saved = null) {
+function loadLevel(id, saved = null, opening = {}) {
   if (!Number.isInteger(id) || id < 0 || id > 100) return false;
   if (id === 0 && game.level.id > 0) returnLevel = game.level.id;
   clearTimeout(winTimer);
@@ -289,7 +295,9 @@ function loadLevel(id, saved = null) {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
   document.body.classList.remove("modal-open");
   dialogResume = false;
-  game = saved?.game || createGame(id === 0 ? PRACTICE : getLevels(mode)[id - 1], {playerRole:id === 0 ? "cop" : playerRole, firstRole:id === 0 || mode === "challenge" ? null : initiative === "random" ? (Math.random() < .5 ? "cop" : "robber") : initiative === "first" ? playerRole : playerRole === "cop" ? "robber" : "cop"});
+  const samePuzzle = !opening.fresh && id === game.level.id && mode === game.level.mode && playerRole === game.playerRole;
+  const firstRole = id === 0 || mode === "challenge" ? null : 'first' in opening ? opening.first : samePuzzle ? game.firstRole : initiative === "random" ? (Math.random() < .5 ? "cop" : "robber") : initiative === "first" ? playerRole : playerRole === "cop" ? "robber" : "cop";
+  game = saved?.game || createGame(id === 0 ? PRACTICE : getLevels(mode)[id - 1], { playerRole:id === 0 ? "cop" : playerRole, firstRole, orderRule: id === 0 ? "standard" : rule });
   if (id !== 0) practiceReturn = null;
   practiceOrders.clear();
   captureHint = null;
@@ -316,9 +324,12 @@ function loadLevel(id, saved = null) {
   $("mode-select").value = mode;
   $("role-select").value = playerRole;
   $("initiative-select").value = initiative;
+  $("rule-select").value = rule;
   $("initiative-select").disabled = mode === "challenge";
   $("initiative-select").title = mode === "challenge" ? "解题挑战固定同时起步" : "先动方提前 2 秒行动";
   $("mode-description").textContent = MODES.find(item => item.id === mode).description;
+  if (rule === "relay") $("mode-description").textContent += ' 轮换指挥：调动后换队员；原地、重复目的地与守住不交棒。只剩一名突围队员时可连续指挥。这是额外自由挑战，标准参考解不保证在轮换规则下获胜。';
+  $("share-puzzle").disabled = id === 0;
   $("timer").previousElementSibling.textContent = game.level.timeLimit ? "剩余时间" : "行动用时";
   $("robber-count").textContent = game.robbers.length;
   $("guide-title").textContent = game.level.redeploy?.length
@@ -381,6 +392,7 @@ function issue(point) {
     return false;
   }
   audio.unlock();
+  if (!canRelayOrder(game, game.playerRole, selected)) { toast(`轮换要换人：请先让另一位队员出发，${selected + 1} 号仍按原路线行动。`); audio.play("invalid"); return false; }
   const accepted = (game.playerRole === "robber" ? commandRobber : commandCop)(game, selected, point);
   if (accepted) {
     if (game.level.id === 0 && (Math.abs(point.x - 500) < 45 || game.robbers.includes(point))) practiceOrders.add(selected);
@@ -493,7 +505,7 @@ function won() {
     updateHud();
     return;
   }
-  const recordEligible = mode === "challenge" && game.playerRole === "cop";
+  const recordEligible = rule === "standard" && mode === "challenge" && game.playerRole === "cop";
   const previousBest = bestTime(id);
   progress.modeBest[recordKey(id)] = Math.min(previousBest || Infinity, game.time);
   if (recordEligible) {
@@ -774,9 +786,11 @@ $("lose-review").addEventListener("click", () => {
 });
 $("review-return").addEventListener("click", () => loadLevel(game.level.id));
 $("review-retry").addEventListener("click", () => {loadLevel(game.level.id); begin();});
-$("mode-select").addEventListener("change", event => {mode = event.target.value; saveProgress(); loadLevel(1);});
-$("role-select").addEventListener("change", event => {playerRole = event.target.value; saveProgress(); loadLevel(game.level.id || 1);});
-$("initiative-select").addEventListener("change", event => {initiative = event.target.value; saveProgress(); loadLevel(game.level.id || 1);});
+$("mode-select").addEventListener("change", event => {mode = event.target.value; saveProgress(); loadLevel(1, null, {fresh:true});});
+$("role-select").addEventListener("change", event => {playerRole = event.target.value; saveProgress(); loadLevel(game.level.id || 1, null, {fresh:true});});
+$("initiative-select").addEventListener("change", event => {initiative = event.target.value; saveProgress(); loadLevel(game.level.id || 1, null, {fresh:true});});
+$("rule-select").addEventListener("change", event => {rule = event.target.value; saveProgress(); loadLevel(game.level.id || 1);});
+$("share-puzzle").addEventListener("click", () => { fillPuzzleShare({ mode, level: game.level.id || returnLevel, role: game.playerRole, rule: game.orderRule, first: game.firstRole }, `别跑！街区围捕 · ${game.level.name} · ${game.orderRule === "relay" ? '轮换指挥' : roleLabel()}`); openDialog("share-dialog"); });
 $("appearance-button").addEventListener("click", () => openAppearanceSettings(buildRoster));
 $("next-button").addEventListener("click", () => {
   if (game.level.id === 100) {
@@ -913,6 +927,8 @@ export function getSnapshot() {
     selected,
     fps,
     firstRole: game.firstRole,
+    rule: game.orderRule,
+    lastOrder: game.lastOrder,
     openingSeconds: game.openingSeconds,
     cops: game.cops.map(actor),
     robbers: game.robbers.map(actor),
@@ -926,7 +942,8 @@ export function worldToScreen(point) {
   return renderer.toScreen(point);
 }
 
-loadLevel(game.level.id);
+loadLevel(sharedPuzzle?.level || game.level.id, null, sharedPuzzle ? {first:sharedPuzzle.first} : {fresh:true});
+if (sharedPuzzle) { const clean = new URL(location.href); for (const key of ['mode','level','role','first','rule']) clean.searchParams.delete(key); history.replaceState(null, '', clean); }
 updateSound();
 animationId = requestAnimationFrame(frame);
 window.addEventListener("pagehide", (event) => {

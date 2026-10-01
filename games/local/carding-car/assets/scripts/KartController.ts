@@ -16,6 +16,7 @@ export class KartController {
     private blocked: () => boolean = () => false,
     private start: () => void = () => this.race().start(),
     private help: () => void = () => {},
+    private share: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -44,6 +45,10 @@ export class KartController {
     this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
+    if (e.keyCode === KeyCode.KEY_C && r.phase === 'finished' && !r.networked) {
+      this.share();
+      return;
+    }
     if (r.phase === 'ready') {
       const field =
         e.keyCode === KeyCode.DIGIT_1
@@ -153,6 +158,10 @@ export class KartController {
       if (r.phase === 'paused' && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
         this.restart();
+        return;
+      }
+      if (r.phase === 'finished' && !r.networked && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
+        this.share();
         return;
       }
       if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {

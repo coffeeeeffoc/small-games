@@ -19,6 +19,9 @@ it('opens each standalone Game and removes its frame on exit', async () => {
       '词屿 · 字母叠叠乐',
       '此时 · 此地',
       '象五子棋',
+      '江风入境 · 外滩漫游',
+      '夜航守望',
+      '乌龙城',
     ];
     expect(
       [...container.querySelectorAll('article h2')].map((heading) => heading.textContent),

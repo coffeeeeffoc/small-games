@@ -15,6 +15,7 @@ export const itemKinds = [
   'watermelon-peel',
 ] as const;
 export type ItemKind = (typeof itemKinds)[number];
+export const isSupply = (kind: ItemKind) => !['freeze-orb', 'oil-slick', 'roadblock', 'watermelon-peel'].includes(kind);
 export const itemNames: Record<ItemKind, string> = {
   'boost-pad': '加速带',
   coin: '金币加速',
@@ -62,7 +63,7 @@ export function createItems(track: TrackData, seed: number): RoadItem[] {
   });
 }
 export function applyItem(k: KartState, kind: ItemKind) {
-  const harmful = ['freeze-orb', 'oil-slick', 'roadblock', 'watermelon-peel'].includes(kind);
+  const harmful = !isSupply(kind);
   if (harmful && k.shield > 0) {
     k.shield = 0;
     k.itemMessage = '护盾抵挡了障碍';
@@ -127,6 +128,7 @@ export function collectItems(
   k: KartState,
   previous: { x: number; z: number },
   time: number,
+  onCollected?: (kind: ItemKind) => void,
 ) {
   if (k.itemCooldown > 0) return 0;
   for (const item of items) {
@@ -148,6 +150,7 @@ export function collectItems(
     item.availableAt = time + 12;
     k.itemCooldown = 0.65;
     applyItem(k, item.kind);
+    onCollected?.(item.kind);
     return 1;
   }
   return 0;

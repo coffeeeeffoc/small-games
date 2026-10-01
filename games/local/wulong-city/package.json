@@ -11,7 +11,8 @@
     "preview": "node server.mjs --dist",
     "test": "node --test tests/game.test.mjs",
     "test:browser": "node tests/playtest.mjs",
-    "test:lifecycle": "node tests/lifecycle.mjs"
+    "test:lifecycle": "node tests/lifecycle.mjs",
+    "test:progression": "node tests/progression.mjs"
   },
   "devDependencies": { "@playwright/test": "1.55.1" }
 }
