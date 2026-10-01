@@ -52,6 +52,27 @@ function mission() {
   return g;
 }
 
+test('browser mouse-generated touches with simulate=false never replace or cancel mouse input', () => {
+  const g = mission();
+  cc.sys.isBrowser = true;
+  try {
+    g.sim.setFire('mouse', true);
+    g.touchStart(touch(0));
+    g.touchMove(touch(0, 500));
+    g.touchEnd(touch(0));
+    g.touchCancel(touch(0));
+    assert.equal(g.platform.touchInput, false);
+    assert.deepEqual([...g.sim.held], ['mouse']);
+    assert.equal(g.touches.size, 0);
+    // A real browser pointerdown selects touch before Creator dispatches the touch event.
+    g.platform.useTouchInput(true);
+    g.touchStart(touch(1));
+    assert.deepEqual([...g.sim.held], ['touch:1']);
+    g.touchEnd(touch(1));
+    assert.equal(g.sim.held.size, 0);
+  } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
+});
+
 test('a real touch activates initially desktop-classified native devices and trigger release stays safe', () => {
   const g = mission();
   assert.equal(g.platform.touchInput, false);
