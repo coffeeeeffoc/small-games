@@ -13,6 +13,7 @@ spec.loader.exec_module(exporter)
 catalog = exporter.export(SOURCE / '精简词库/英语词库.sqlite', OUTPUT)
 publishers = json.loads((OUTPUT / 'publishers.json').read_text('utf-8'))
 reviewed = SOURCE / '完整素材/reviewed-units'
+replaced = set()
 if (reviewed / 'catalog.json').exists():
     for book in json.loads((reviewed / 'catalog.json').read_text('utf-8'))['books']:
         assert book['verification']['status'] in ('source-reviewed', 'pdf-reviewed')
@@ -23,13 +24,22 @@ if (reviewed / 'catalog.json').exists():
         assert data['id'] == book['id'] and len(data['entries']) == book['count']
         assert list(dict.fromkeys(e['unit'] for e in data['entries'] if e['unit'])) == book['units']
         assert all(e['unit'] in book['units'] for e in data['entries'])
+        for legacy_id in book.get('replaces', []):
+            legacy = next(item for item in catalog['books'] if item['id'] == legacy_id)
+            assert all(legacy[key] == book[key] for key in ('publisherId', 'grade', 'volume')), legacy_id
+            assert not legacy.get('verification') and legacy_id not in replaced, legacy_id
+            replaced.add(legacy_id)
         (OUTPUT / book['url']).write_bytes(payload)
         catalog['books'] = [item for item in catalog['books'] if item['id'] != book['id']]
         catalog['books'].append({**book, 'bytes': len(payload), 'revision': hashlib.sha256(payload).hexdigest()})
         if not any(item['id'] == book['publisherId'] for item in publishers):
             publishers.append({'id': book['publisherId'], 'name': book['publisher']})
+catalog['books'] = [book for book in catalog['books'] if book['id'] not in replaced]
+for legacy_id in replaced:
+    (OUTPUT / 'books' / f'{legacy_id}.json').unlink()
 catalog['books'].sort(key=lambda book: (not bool(book.get('verification')), book['publisherId'], book.get('grade') or 99, not book['id'].startswith('fltrp-sun-'), book.get('volume') != '上册', book['id']))
 catalog['publishers'] = publishers
 catalog['note'] = '仅带来源核验信息的教材支持按单元练习；历史词表不代表新版教材。'
 (OUTPUT / 'catalog.json').write_bytes(exporter.encode(catalog))
 print(f'Reviewed textbooks: {sum(bool(book.get("verification")) for book in catalog["books"])}')
+print(f'Replaced {len(replaced)} duplicate historical lists with reviewed textbooks')
