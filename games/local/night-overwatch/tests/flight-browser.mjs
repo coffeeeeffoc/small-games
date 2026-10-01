@@ -970,14 +970,14 @@ async function run() {
           );
         } else if (id.startsWith('orbit')) {
           assert.equal(s.aircraft.direction, id === 'orbitLeft' ? -1 : 1);
-          // Reversing an aircraft needs deceleration; test the actual orbit after it turns.
+          // A bank-limited reversal keeps cruise speed; full circle recapture is covered by Flight's fixed-step test.
           await page.waitForTimeout(2800);
           const a = (await snapshot(page)).aircraft;
           await page.waitForTimeout(450);
           const b = (await snapshot(page)).aircraft;
-          const angle = Math.atan2(b.z, b.x) - Math.atan2(a.z, a.x);
-          assert(Math.sign(Math.sin(angle)) === a.direction, `${id}: real orbital direction`);
-          assert(distance(a, b) > 0.1, `${id}: aircraft travels in the chosen orbit`);
+          assert(Math.sign(b.bank) === a.direction, `${id}: banks into the requested turn`);
+          assert(Math.abs(b.bank) <= FLIGHT.maxBank + 1e-8, `${id}: bounded physical bank`);
+          assert(distance(a, b) > 2, `${id}: keeps flying during reversal`);
         } else {
           const key = id.startsWith('altitude') ? 'altitude' : 'radius';
           const sign = id.endsWith('Up') || id.endsWith('Out') ? 1 : -1;
@@ -1085,7 +1085,8 @@ async function run() {
         'Shell originates at the aircraft, not near target',
       );
       const elapsed = s.time - shot.born;
-      const mountDistance = Math.hypot(FLIGHT.muzzle.x, FLIGHT.muzzle.y, FLIGHT.muzzle.z);
+      const mount = WEAPONS[shot.weapon].muzzle;
+      const mountDistance = Math.hypot(mount.x, mount.y, mount.z);
       assert(
         Math.abs(distance3(shot.origin, s.aircraft) - mountDistance) < FLIGHT.speed * elapsed + 1,
         'Launch point is the fixed aircraft mount, allowing only travel since launch',
@@ -1134,10 +1135,12 @@ async function run() {
       for (const key of ['time', 'aircraft', 'camera', 'shotPositions', 'shots', 'fired'])
         assert.deepEqual(still[key], frozen[key], `Pause freezes ${key}`);
       assert.deepEqual(still.held, []);
+      await press(page, 'settings', touch);
       await press(page, 'help', touch);
       assertLayout(await snapshot(page), width, height);
       await press(page, 'close', touch);
       assert((await snapshot(page)).pauses.includes('manual'), 'Closing help retains manual pause');
+      await press(page, 'close', touch);
       await press(page, 'resume', touch, false);
       await page.waitForTimeout(220);
       const resumed = await snapshot(page);

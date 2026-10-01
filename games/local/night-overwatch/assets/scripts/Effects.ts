@@ -6,6 +6,7 @@ import type { World } from './World';
 
 type ScreenPoint = { x: number; y: number };
 export type EffectsFrame = {
+  smoke?: { id: number; age: number; kind: 'damage' | 'wreck' }[];
   impacts: { id: number; weapon: number; outcome?: string; x: number; y: number; radius: number; age: number; primitives: number }[];
   projectiles: { id: number; weapon: number; x: number; y: number; width: number; length: number; speed: number }[];
 };
@@ -14,7 +15,7 @@ const clamp = (n: number) => Math.max(0, Math.min(1, n));
 
 /**
  * Append after Graphics.clear(), before target/aim markers; preserves their Graphics styles.
- * Budget: 16 rounds, 24 impacts/kills, 8 attacks, 8 wrecks. At most 312 filled ellipses.
+ * Budget: 16 rounds, 24 large / 8 small impacts, 8 attacks, 12 smoking vehicles.
  * With <=96px lobe radii and an estimated <=128 vertices/ellipse, allow ~46k FX vertices
  * including fixed-segment strokes/ribbons (Creator's default tessellation; estimate, not measured).
  */
@@ -26,7 +27,7 @@ export function drawEffects(
   height: number,
   reduced = false,
 ): EffectsFrame {
-  const frame: EffectsFrame = { impacts: [], projectiles: [] };
+  const frame: EffectsFrame = { impacts: [], projectiles: [], smoke: [] };
   let primitives = 0;
   const fill = g.fillColor.clone(),
     stroke = g.strokeColor.clone(),
@@ -111,59 +112,56 @@ export function drawEffects(
     primitives++;
   };
 
-  // ponytail: inspect only the last 64 units, render at most 8 wrecks; raise the window for larger missions.
+  // ponytail: inspect 64 units and render 12 plumes; spatial pooling if missions grow.
   let wrecks = 0;
   for (
     let i = s.units.length - 1, end = Math.max(0, s.units.length - 64);
-    i >= end && wrecks < 8 && !reduced;
+    i >= end && wrecks < 12;
     i--
   ) {
-    const u = s.units[i],
-      age = s.time - u.deadAt;
-    if (u.hp > 0 || u.deadAt < 0 || age < 0 || age >= 12) continue;
+    const u = s.units[i], dead = u.hp <= 0,
+      age = dead ? s.time - u.deadAt : s.time;
+    if (dead ? u.deadAt < 0 || age < 0 || age >= 35 : u.hp / u.maxHp > 0.55) continue;
     wrecks++;
     const scale = scaleAt(u);
-    const fade = (1 - age / 12) * Math.min(1, age * 2);
-    for (let j = 2; j >= 0; j--) {
-      const r = (0.65 + j * 0.3 + age * 0.035) * scale;
+    const fade = dead ? Math.min(1, age * 2) * Math.min(1, (35 - age) / 10) : 0.6;
+    for (let j = reduced ? 0 : 3; j >= 0; j--) {
+      const drift = (age * 0.35 + j * 0.7) % 3;
+      const r = (0.16 + drift * 0.14) * scale;
       const p = project(
-        { x: u.x + age * 0.12 + Math.sin(u.id + j) * 0.3, z: u.z },
-        0.8 + j * 0.85 + Math.min(age, 5) * 0.45,
+        { x: u.x + drift * 0.25 + Math.sin(u.id + j) * 0.08, z: u.z },
+        0.3 + drift * 0.6,
       );
-      blob(p, r, r * 1.2, 0.65 - age * 0.05, fade * 0.25, true);
+      blob(p, Math.max(1.5, r), Math.max(2, r * 1.2), dead ? 0.6 * Math.max(0, 1 - age / 30) : 0.3,
+        fade * (1 - drift / 3) * 0.6, true);
+    }
+    frame.smoke!.push({ id: u.id, age, kind: dead ? 'wreck' : 'damage' });
+    if (dead && age < 9 && !reduced) {
+      const p = project(u, 0.3), flicker = 0.75 + Math.sin(age * 13 + u.id) * 0.2;
+      blob(p, Math.max(1, scale * 0.16), Math.max(2, scale * 0.35 * flicker), 0.7, (1 - age / 9) * 0.7);
     }
   }
 
   // Every terrain impact explodes, including misses. Kill events use wreck smoke, not a second explosion.
-  const end = Math.max(0, s.events.length - 64);
-  let first = s.events.length,
-    impacts = 0;
-  for (let i = s.events.length - 1; i >= end; i--) {
-    const e = s.events[i],
-      age = s.time - e.time;
-    if (age >= 3.4) break;
-    first = i;
-    if (age >= 0 && e.type === 'impact' && ++impacts === 24) break;
-  }
   let attacks = 0;
-  for (let i = end; i < s.events.length; i++) {
-    const e = s.events[i],
+  for (const e of [...world.impactClouds, ...s.events.filter((event) => event.type === 'attack')]) {
+    const
       age = s.time - e.time;
     if (age < 0) continue;
     if (e.type === 'attack') {
       if (age >= 0.3 || attacks++ >= 8) continue;
       const target = e.target || s.units.find((u) => u.id === e.unit);
       if (!target) continue;
-      const a = project(e, 1.1),
-        b = project(target, 0.9),
+      const a = project(e, 0.3),
+        b = project(target, 0.25),
         t = clamp(age / 0.12);
       line(a, b, 0.45, (1 - age / 0.3) * 0.55, 1, e.friendly);
       blob({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, 2, 2, 1, 1 - age / 0.3);
       continue;
     }
-    if (i < first || e.type !== 'impact') continue;
+    if (e.type !== 'impact') continue;
     const weapon = e.weapon,
-      life = weapon === 0 ? 0.55 : weapon === 1 ? 2.4 : 3.4;
+      life = weapon === 0 ? 1.5 : weapon === 1 ? 10 : 16;
     if (age >= life) continue;
     const before = primitives;
     const scale = scaleAt(e);
@@ -186,7 +184,7 @@ export function drawEffects(
         const a = seed * TAU + j * 2.39996323;
         const spread = radius * (0.1 + t * 0.55);
         const p = project(
-          { x: e.x + Math.cos(a) * spread, z: e.z + Math.sin(a) * spread },
+          { x: e.x + Math.cos(a) * spread + age * 0.12, z: e.z + Math.sin(a) * spread },
           radius * (0.08 + t * (0.65 + j * 0.08)),
         );
         const r = radius * (0.16 + t * 0.42 + (j % 2) * 0.05) * scale;
@@ -238,7 +236,6 @@ export function drawEffects(
     }
   }
 
-  let muzzle = 0;
   // ponytail: last 16 rounds cover current cadence; raise this budget if weapons gain simultaneous volleys.
   for (let i = Math.max(0, s.shots.length - 16); i < s.shots.length; i++) {
     const shot = s.shots[i],
@@ -293,15 +290,7 @@ export function drawEffects(
       const origin = airborne(shot.origin);
       blob(origin, 7 + weapon * 3, 5 + weapon * 2, 0.65, flash * 0.35);
       blob(origin, 2.5 + weapon, 2.5 + weapon, 1, flash);
-      muzzle = Math.max(muzzle, flash * (0.35 + weapon * 0.15));
     }
-  }
-  // Aircraft origin is often outside the sensor view. Edge glint gives immediate feedback without moving aim/camera.
-  if (muzzle > 0 && !reduced) {
-    g.fillColor = color(1, muzzle * 0.35);
-    g.rect(-width / 2, height / 2 - 3, width, 3);
-    g.rect(-width / 2, -height / 2, width, 3);
-    g.fill();
   }
   g.fillColor = fill;
   g.strokeColor = stroke;

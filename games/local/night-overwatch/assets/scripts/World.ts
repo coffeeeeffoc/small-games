@@ -17,6 +17,7 @@ import {
 } from 'cc';
 import {
   MAP,
+  AIRFRAME,
   ROUTE,
   ROUTE_LENGTH,
   HOLD_POINTS,
@@ -30,7 +31,7 @@ import {
   type Point,
   type Kind,
 } from './core/Data';
-import type { Simulation } from './core/Simulation';
+import type { Simulation, BattleEvent } from './core/Simulation';
 import {
   aircraftCamera,
   groundAxes,
@@ -457,15 +458,18 @@ export class World {
   focusSpan?: { x: number; z: number };
   temporary = false;
   thermal = false;
-  views = new Map<number, { node: Node; material: Material }>();
+  views = new Map<number, { node: Node; material: Material; wreck: boolean }>();
+  impactClouds: BattleEvent[] = [];
+  private lastImpact = 0;
   terrain: { material: Material; day: string; heat: string }[] = [];
   meshes = new Map<Kind, Mesh>();
+  private wreckMeshes = new Map<Kind, Mesh>();
   modelImport = 'loading';
   assets = new Set<string>();
   triangleCount = 0;
   private ownedMeshes = new Set<Mesh>();
   private disposed = false;
-  private plane: Position & { heading: number; yaw?: number; pitch?: number } = aircraft(0);
+  private plane: Position & { heading: number; yaw?: number; pitch?: number; bank?: number } = aircraft(0);
   private sensorRotation = 0;
   private cameraTime = -1;
   private cameraPaused = false;
@@ -480,7 +484,7 @@ export class World {
     parent.addChild(this.cameraNode);
     this.camera = this.cameraNode.addComponent(Camera);
     this.camera.projection = Camera.ProjectionType.PERSPECTIVE;
-    this.camera.near = 0.2;
+    this.camera.near = AIRFRAME.cameraNear;
     this.camera.far = 2700;
     this.camera.clearColor = color('#26354e');
 
@@ -557,14 +561,14 @@ export class World {
           (a.x + b.x) / 2,
           TERRAIN.roadLift - 0.055,
           (a.z + b.z) / 2,
-          7,
+          1.4,
           0.11,
           Math.hypot(b.x - a.x, b.z - a.z),
           1,
           Math.atan2(b.x - a.x, b.z - a.z),
         );
       }
-      for (const p of ROUTE) addShape(g, cylinder, p.x, TERRAIN.roadLift - 0.056, p.z, 7, 0.11, 7);
+      for (const p of ROUTE) addShape(g, cylinder, p.x, TERRAIN.roadLift - 0.056, p.z, 1.4, 0.11, 1.4);
     });
     this.terrainBatch('terrain.markings', '#d3c7a4', '#4a595e', (g) => {
       for (let d = 0; d < ROUTE_LENGTH; d += 4) {
@@ -574,9 +578,9 @@ export class World {
           p.x,
           TERRAIN.roadLift + 0.024,
           p.z,
-          0.14,
           0.025,
-          Math.min(1.7, ROUTE_LENGTH - d + 0.01),
+          0.025,
+          Math.min(0.4, ROUTE_LENGTH - d + 0.01),
           1,
           p.heading,
         );
@@ -589,15 +593,15 @@ export class World {
             p.x + Math.sin(p.heading) * offset,
             TERRAIN.roadLift + 0.04,
             p.z + Math.cos(p.heading) * offset,
-            6.4,
+            1.2,
             0.035,
-            0.22,
+            0.045,
             1,
             p.heading,
           );
       }
       for (let x = -7; x <= 7; x += 2)
-        for (const z of [-2.65, 4.65]) addBox(g, x, 0.7, z, 0.45, 0.17, 0.27);
+        for (const z of [0.25, 1.75]) addBox(g, x, 0.3, z, 0.09, 0.05, 0.07);
     });
 
     const exit = ROUTE[ROUTE.length - 1];
@@ -673,7 +677,7 @@ export class World {
         camp.some((p) => Math.hypot(x - p.x, z - p.z) < 6)
       )
         continue;
-      trees.push({ x, z, y: surfaceHeight(x, z), h: 2.8 + noise(i * 3 + 2) * 2.8, seed: i });
+      trees.push({ x, z, y: surfaceHeight(x, z), h: 1.2 + noise(i * 3 + 2) * 1.6, seed: i });
     }
     this.terrainBatch('terrain.ridges', '#34434b', '#3a454b', (g) => {
       for (let i = 0; i < 120; i++) {
@@ -699,7 +703,7 @@ export class World {
           (a.x + b.x) / 2,
           0.015,
           (a.z + b.z) / 2,
-          8.4,
+          1.8,
           0.05,
           Math.hypot(b.x - a.x, b.z - a.z),
           0.8,
@@ -718,12 +722,12 @@ export class World {
     });
     this.terrainBatch('terrain.structures', '#414e53', '#49535a', (g) => {
       // The original crossing follows the shared road surface; all scenery offsets are local to terrain.
-      addBox(g, 0, -0.24, 1, 16, 0.36, 7.6);
+      addBox(g, 0, -0.24, 1, 16, 0.36, 1.6);
       for (const x of [-6, 6])
-        for (const z of [-1.5, 3.5]) addBox(g, x, -1.5, z, 0.9, 2.4, 0.9, 0.75);
-      for (const z of [-2.7, 4.7]) {
-        addBox(g, 0, 0.32, z, 16, 0.64, 0.28, 0.85);
-        for (let x = -8; x <= 8; x += 2) addBox(g, x, 0.64, z, 0.24, 0.6, 0.36);
+        for (const z of [0.4, 1.6]) addBox(g, x, -1.5, z, 0.4, 2.4, 0.4, 0.75);
+      for (const z of [0.25, 1.75]) {
+        addBox(g, 0, 0.16, z, 16, 0.3, 0.06, 0.85);
+        for (let x = -8; x <= 8; x += 2) addBox(g, x, 0.25, z, 0.06, 0.3, 0.08);
       }
       for (const [x, z, w, d, h] of houses) {
         addBox(g, x, h / 2, z, w, h, d, 0.85 + noise(x) * 0.15);
@@ -768,7 +772,7 @@ export class World {
               x,
               z,
               y: surfaceHeight(x, z),
-              h: 3 + noise(grove * 53 + i) * 3,
+              h: 1.4 + noise(grove * 53 + i) * 1.6,
               seed: grove * 101 + i + 2000,
             },
             true,
@@ -784,7 +788,7 @@ export class World {
           for (const offset of [-0.28, 0.28])
             addBox(g, x + offset * w, h * 0.63, z + side * (d / 2 + 0.03), 0.85, 0.8, 0.06, 1.3);
       }
-      for (const z of [-2.7, 4.7]) addBox(g, 0, 0.93, z, 16.4, 0.1, 0.15, 1.4);
+      for (const z of [0.25, 1.75]) addBox(g, 0, 0.4, z, 16.4, 0.03, 0.04, 1.4);
       for (const dx of [-1, 1])
         for (const dz of [-1, 1])
           addBox(g, station.x + 7 + dx, 5, station.z + dz, 0.17, 10, 0.17, 1.4);
@@ -893,6 +897,21 @@ export class World {
         addBox(g, 0, 0.6, d * 0.5, w * 0.96, 0.16, 0.15, 0.45);
       }
       this.meshes.set(kind, this.mesh(g));
+      const wreck = geometry();
+      const w = heavy ? 2.65 : rescue ? 2.1 : 1.8;
+      const d = kind === 'turret' ? 2.6 : heavy || rescue ? 4.2 : 3.2;
+      addBox(wreck, 0, 0.35, 0, w, 0.4, d, 0.5);
+      addShape(wreck, box, -0.15, 0.65, -0.25, w * 0.7, 0.65, d * 0.5, 0.32, 0.12, 0.16, 0.24);
+      if (heavy || kind === 'turret') {
+        addShape(wreck, cylinder, 0.5, 0.55, 0.75, 1.5, 0.6, 1.5, 0.35, 0.5, 0.6);
+        addShape(wreck, cylinder, 0.9, 0.25, 1.65, 0.2, 1.8, 0.2, 0.3, 0.5, Math.PI / 2);
+      }
+      for (let i = 0; i < 5; i++) {
+        const angle = i * 2.4;
+        addShape(wreck, box, Math.cos(angle) * (w * 0.6 + i * 0.16), 0.12,
+          Math.sin(angle) * (d * 0.55 + i * 0.1), 0.4, 0.16, 0.65, 0.35, angle, 0.1, 0.15);
+      }
+      this.wreckMeshes.set(kind, this.mesh(wreck));
     }
     resources.load('models/beacon/beacon', Prefab, (error, prefab) => {
       if (this.disposed || !isValid(this.root, true)) return;
@@ -959,7 +978,7 @@ export class World {
       -MAP.halfDepth,
       MAP.halfDepth,
     );
-    this.zoom = clamp(Number.isFinite(this.zoom) ? this.zoom : 1, 0.65, 3.2);
+    this.zoom = clamp(Number.isFinite(this.zoom) ? this.zoom : 1, 0.65, 5);
     this.cameraFrame = aircraftCamera(
       this.plane,
       this.center,
@@ -977,6 +996,23 @@ export class World {
       new Vec3(frame.up.x, frame.up.y, frame.up.z),
     );
     this.camera.camera?.update(true);
+  }
+  adjustZoom(factor: number, screenX?: number, screenY?: number) {
+    if (this.cameraPaused || !Number.isFinite(factor) || factor <= 0) return;
+    const anchor = screenX === undefined || screenY === undefined ? null : this.aimAt(screenX, screenY);
+    this.zoom = clamp(this.zoom * factor, 0.65, 5);
+    this.updateCamera();
+    // Preserve the terrain under the gesture, with bounded correction for perspective and hills.
+    if (anchor && screenX !== undefined && screenY !== undefined) {
+      for (let i = 0; i < 3; i++) {
+        const next = this.aimAt(screenX, screenY);
+        if (!next) break;
+        this.center.x += anchor.x - next.x;
+        this.center.z += anchor.z - next.z;
+        this.updateCamera();
+      }
+      this.follow = false;
+    }
   }
   /** Rotate the actual sensor around its optical axis, independent of aircraft orbital direction. */
   rotate(deltaDegrees: number) {
@@ -1051,6 +1087,8 @@ export class World {
       v.material.destroy();
     }
     this.views.clear();
+    this.impactClouds = [];
+    this.lastImpact = 0;
   }
   reset() {
     this.clearViews();
@@ -1075,16 +1113,26 @@ export class World {
     this.terrain.length = 0;
     this.ownedMeshes.clear();
     this.meshes.clear();
+    this.wreckMeshes.clear();
     if (isValid(this.cameraNode, true)) this.cameraNode.destroy();
   }
   update(s: Simulation) {
+    for (const event of s.events) {
+      if (event.id > this.lastImpact && event.type === 'impact') this.impactClouds.push(event);
+      this.lastImpact = Math.max(this.lastImpact, event.id);
+    }
+    // ponytail: keep 24 large clouds plus 8 recent small impacts; spatial pooling if missions grow.
+    this.impactClouds = [
+      ...this.impactClouds.filter((e) => e.weapon > 0 && s.time - e.time < (e.weapon === 2 ? 16 : 10)).slice(-24),
+      ...this.impactClouds.filter((e) => e.weapon === 0 && s.time - e.time < 1.5).slice(-8),
+    ];
     const cursor = this.project(s.aim);
     const elapsed = this.cameraTime < 0 ? 0 : clamp(s.time - this.cameraTime, 0, 0.1);
     this.cameraPaused = s.paused;
     this.cameraTime = s.time;
     if (!s.paused) {
       this.plane = { ...s.aircraft };
-      this.aircraftModel.update(s.aircraft, s.aircraft.yaw, s.aircraft.pitch, s.aircraft.direction);
+      this.aircraftModel.update(s.aircraft, s.aircraft.yaw, s.aircraft.pitch, s.aircraft.direction, s.aircraft.bank, s.selected);
       if (this.aircraftModel.status === 'ready') this.assets.add('aircraft.cabin');
     }
     if (this.follow && s.phase === 'playing' && !s.paused) {
@@ -1121,20 +1169,28 @@ export class World {
         r.mesh = this.meshes.get(u.kind)!;
         const material = this.material('#ffffff');
         r.setMaterial(material, 0);
-        v = { node, material };
+        v = { node, material, wreck: false };
         this.views.set(u.id, v);
         this.assets.add(UNITS[u.kind].assetId);
       }
       const axes = groundAxes(terrainHeight, u.x, u.z, u.heading);
       const orientation = Quat.fromAxes(new Quat(), axes.right, axes.up, axes.forward);
-      const lift = roadDistance(u.x, u.z) < 3.5 ? TERRAIN.roadLift : 0;
+      const lift = roadDistance(u.x, u.z) < 0.8 ? TERRAIN.roadLift : 0;
       v.node.setPosition(u.x, terrainHeight(u.x, u.z) + lift, u.z);
       v.node.setRotation(orientation);
-      v.node.setScale(1, u.hp <= 0 ? 0.35 : 1, 1);
+      if (u.hp <= 0 && !v.wreck) {
+        v.node.getComponent(MeshRenderer)!.mesh = this.wreckMeshes.get(u.kind)!;
+        v.wreck = true;
+      }
+      v.node.setScale(0.25, 0.25, 0.25);
       const heat = u.hp > 0 ? UNITS[u.kind].heat : Math.max(0.16, 0.9 - (s.time - u.deadAt) * 0.09);
       const c = this.thermal
         ? new Color(heat * 255, heat * 255, heat * 245)
-        : color(u.friendly ? '#afc7b5' : u.kind === 'heavy' ? '#988376' : '#b3a68b');
+        : u.hp <= 0 ? color('#302e2b') : color(u.friendly ? '#afc7b5' : u.kind === 'heavy' ? '#988376' : '#b3a68b');
+      if (!this.thermal && u.hp > 0) {
+        const shade = 0.45 + 0.55 * u.hp / u.maxHp;
+        c.r *= shade; c.g *= shade; c.b *= shade;
+      }
       v.material.setProperty('mainColor', u.hit > 0 ? Color.WHITE : c);
     }
   }

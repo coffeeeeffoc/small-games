@@ -1,4 +1,35 @@
-# 当前状态 · 2026-09-29 友军防御与任务容错
+# 当前状态 · 2026-09-30 交互、尺度与启动画面
+
+本轮直接修改 `F:/playground/playground-ai/small-games`，未提交或推送。下面的 2026-09-29 内容为历史记录，不代表本轮工作区或版本。
+
+- 当前源码与 Web Mobile / Web Desktop 构建：`f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb`。
+- [手机 H5](http://localhost:4318/?v=f8f28eab) · [Web Desktop](http://localhost:4319/?v=f8f28eab)。大厅和公网尚未发布本轮版本。
+- 触屏双指缩放，桌面滚轮、+ / − 键缩放；范围 0.65–5 倍。捏合围绕两指中点缩放，结束/取消不跳成单指拖动、不误开火；滚轮不再切枪。
+- 顶部始终保留设置、全屏；声音、效果、语言、帮助进入独立设置。暂停面板只负责任务状态与继续，帮助/设置保留原有暂停原因。小屏底部信息条按友伤警告、波次通知、教学提示的优先级复用；目标标签避让准星至少 40px，右键不激活 HUD 按钮。
+- 准星改为 64px 外径的明暗双描边十字；友军绿色方框、敌军琥珀菱形。去除单位血条、生命百分比和伤害数字，关注目标时显示身份与“受损/重创”。普通远处标记 10px、重甲 14px、关注标记 18px；屏幕间距不足 12px 的同组友军合并显示数量，关注时展开。
+- 战区从 2.3×1.44 km 扩至 3.22×2.016 km，路线、敌军、据点一起分散，面积约 1.96 倍。车模改至约 8–10.5m，道路约 14m，树木约 12–30m；任务期限 390s、正常撤离仍为 240s。
+- 飞机按 1 unit = 10m、90m/s、默认半径 2km 飞行，一圈 139.63s、协调倾侧 22.43°；半径最小 1.5km，倾侧上限 30°。反向通过连续倾侧/转弯完成，不会减速到停在空中。
+- 炮口分别位于左舷前、中、后三个机身挂点，模型/相机/弹道共用同一姿态变换，倾侧后仍一致。取消屏幕边缘假闪光；相机视野外的炮口不强行画进画面。
+- 爆破/重炮烟尘持续 10/16s；受损车辆变暗并冒烟，摧毁后使用独立残骸模型、散落碎片、短时火焰和最长 35s 烟柱。效果在暂停时冻结，重试清除。
+- [新启动画面与实现说明](design/startup.md)：image_gen 背景，HTML 实时文字、云雾/扫描与不定进度动画。公开初始化接口关闭默认 Cocos 插屏；场景和机舱就绪且实际绘制一帧后退出，资源失败显示可操作重试。支持减少动态效果。
+
+## 当前版本证据
+
+- `pnpm --filter @coffeeeeffoc/night-overwatch test`：44/44 通过；typecheck、diff 检查通过。
+- Creator 3.8.8 实际双目标构建成功。Web Mobile 3,917,779 bytes，Web Desktop 3,918,105 bytes。
+- `tests/interaction-browser.mjs`：1366×768 键鼠、844×390 与 568×320 模拟触摸通过；设置/暂停/全屏、滚轮/键盘/捏合、取消防误触、6s 后烟尘/残骸通过；页面异常 0。
+- 实际拦截 application 请求触发首屏错误，点击重新连接后进入游戏；运行时查询 `splashScreen.totalTime=0`、`logo.type=none`。
+- `tests/mission-replay.mjs` 桌面与触屏各完成一轮完整任务：240s 成功，24 次空中击毁，12 友军全部存活，零友伤、页面异常 0。
+- `tests/presentation.mjs` 在 Web Desktop 构建通过 1366×768、844×390、667×375、568×320 四尺寸检查，含真实 `document.fullscreenElement` 进入/退出、帮助中保持暂停、真实弹道和友军警告。
+- [本轮验证汇总](verification.json) · [独立 agent 最终复查](../reports/interaction-overhaul/review/REVIEW-f8f28eab.md)：三项 P2 已修复并复验，568/844 同组友军聚合与关注展开通过，关键截图已实际打开检查。本轮报告位于 [interaction-overhaul](../reports/interaction-overhaul/)。首轮捏合/聚合测量方式修正及原始失败记录保留，原因见独立报告。
+
+尺度和转弯关系参考 [FAA 飞行知识手册](https://www.faa.gov/sites/faa.gov/files/pilots/pilot_handbook.pdf)；侧射炮艇参考 [AFSOC AC-130J](https://www.afsoc.af.mil/About-Us/Fact-Sheets/Display/Article/2547234/ac-130j-ghostrider/)。三档武器、无限射界、弹药/装填和伤害仍是游戏设计，并非真实 AC-130 火控仿真。
+
+本轮验收属于本机 Chromium 的鼠标与模拟触屏；实体 Android/iPhone、Safari、声音听感、原生小游戏平台和公网部署未验证。浏览器全屏证据不等同于实体手机全屏验收。
+
+---
+
+# 历史记录 · 2026-09-29 友军防御与任务容错
 
 本轮按实际试玩反馈提高友军生存能力、增加弹药和任务时间，加入微弱地面反击；进一步细化暗绿树冠，并重绘暂停弹窗图标。保持已确认的火控席交互布局和真实三维飞行弹道。
 
@@ -34,6 +65,6 @@
 
 实际场景约 39.9–40.0 万三角面、69–84 draw calls。截屏自动化短采样约 50–53fps，不是受控性能基准，也不代表实体手机。Web Mobile 导出 3,806,523 bytes，Desktop 3,806,858 bytes。
 
-汇总：[verification.json](verification.json)；截图复核：[visual-review.json](../reports/balance-overhaul/visual-review.json)；具名证据哈希：[artifact-manifest.json](../reports/balance-overhaul/artifact-manifest.json)。旧飞行/反馈轮次证据完整保留，不冒充当前版本验收。
+历史汇总：[previous-verification.json](../reports/interaction-overhaul/previous-verification.json)；截图复核：[visual-review.json](../reports/balance-overhaul/visual-review.json)；具名证据哈希：[artifact-manifest.json](../reports/balance-overhaul/artifact-manifest.json)。旧飞行/反馈轮次证据完整保留，不冒充当前版本验收。
 
 真实后台信号此前在本机自动化中无法观察，只有历史合成 blur/focus 检查；实体 Android/iPhone、Safari、系统安全区/手势、来电中断、声音听感及公网部署尚未验证。

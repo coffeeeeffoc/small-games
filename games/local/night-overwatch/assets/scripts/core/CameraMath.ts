@@ -1,3 +1,6 @@
+import { AIRFRAME } from './Data.ts';
+import { aircraftPoint } from './Flight.ts';
+
 export type Position = { x: number; y: number; z: number };
 type Height = (x: number, z: number) => number;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -68,7 +71,7 @@ export function groundAxes(height: Height, x: number, z: number, yaw: number) {
 
 /** A fuselage-mounted camera, with a rollable sensor and a bounded downward viewing cone. */
 export function aircraftCamera(
-  aircraft: Position & { heading: number; yaw?: number; pitch?: number },
+  aircraft: Position & { heading: number; yaw?: number; pitch?: number; bank?: number },
   center: { x: number; z: number },
   height: Height,
   zoom: number,
@@ -76,15 +79,8 @@ export function aircraftCamera(
   sensorRotation: number,
 ) {
   const yaw = aircraft.yaw ?? aircraft.heading * radians;
-  const pitch = aircraft.pitch ?? 0;
-  // Match Flight.muzzlePosition's Ry(yaw) * Rx(-pitch), using the agreed fixed camera mount.
-  const mountY = -0.8 * Math.cos(pitch) - 0.55 * Math.sin(pitch);
-  const mountZ = -0.55 * Math.cos(pitch) + 0.8 * Math.sin(pitch);
-  const position = {
-    x: aircraft.x + 0.4 * Math.cos(yaw) + Math.sin(yaw) * mountZ,
-    y: aircraft.y + mountY,
-    z: aircraft.z - 0.4 * Math.sin(yaw) + Math.cos(yaw) * mountZ,
-  };
+  // The sensor stabilizes its view, but its physical position follows the complete airframe pose.
+  const position = aircraftPoint({ ...aircraft, yaw }, AIRFRAME.camera);
   const target = { x: center.x, y: height(center.x, center.z), z: center.z };
   for (let i = 0; i < 3; i++) {
     const altitude = Math.max(1, position.y - target.y);

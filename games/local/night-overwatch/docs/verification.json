@@ -1,335 +1,197 @@
 {
-  "date": "2026-09-29",
-  "stage": "defender-balance-and-forest",
-  "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
+  "date": "2026-09-30",
+  "stage": "interaction-scale-startup-and-combat-effects",
+  "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb",
   "creator": "3.8.8",
-  "branch": "codex/night-overwatch-flight",
-  "balance": {
-    "friendlies": 12,
-    "rescueHp": 520,
-    "escortHp": 360,
-    "enemyGroundDamageReduction": 0.8,
-    "escortDamage": 1.6,
-    "escortInterval": 6,
-    "escortRange": 17,
-    "missionSeconds": 360,
-    "convoySeconds": 240,
-    "burstAmmo": 80,
-    "heavyAmmo": 30,
-    "burstRadius": 3.4,
-    "heavyRadius": 6.5,
-    "heavyReload": 3
-  },
+  "workspace": "F:/playground/playground-ai/small-games",
+  "branch": "main",
+  "committed": false,
+  "pushed": false,
   "coreTests": {
-    "passed": 31,
+    "passed": 44,
     "failed": 0,
-    "evidence": "reports/balance-overhaul/core-tests.log",
-    "diagnostics": [
-      {
-        "at180": {
-          "allyHp": [
-            464.7999999999996,
-            353.99999999999994,
-            311.5999999999995,
-            345.5999999999998,
-            228.79999999999916,
-            215.99999999999935,
-            360,
-            342.39999999999975,
-            319.99999999999943,
-            230.3999999999994,
-            259.1999999999996,
-            204.39999999999924
-          ],
-          "threats": 22
-        },
-        "end": 360.00000000000125,
-        "allyHp": [
-          373.5999999999991,
-          343.1999999999999,
-          284.79999999999933,
-          331.1999999999996,
-          195.19999999999902,
-          64.79999999999961,
-          360,
-          342.39999999999975,
-          313.59999999999934,
-          93.59999999999962,
-          163.9999999999992,
-          55.999999999999524
-        ],
-        "threats": 20,
-        "groundKills": 4
-      },
-      {
-        "phase": "success",
-        "time": 337.4000000000218,
-        "attempts": 73,
-        "deliberateMisses": 19,
-        "kills": 22,
-        "groundKills": 2,
-        "ammo": [
-          null,
-          18,
-          19
-        ],
-        "allies": [
-          415.99999999999943,
-          349.99999999999994,
-          303.5999999999995,
-          347.1999999999998,
-          233.59999999999923,
-          278.7999999999994,
-          360,
-          342.39999999999975,
-          331.1999999999996,
-          305.99999999999966,
-          239.5999999999995,
-          267.5999999999992
-        ],
-        "remaining": []
-      },
-      {
-        "time": 240.00000000008313,
-        "phase": "success",
-        "kills": 24,
-        "ammo": [
-          null,
-          59,
-          24
-        ],
-        "friendlyHp": [
-          520,
-          360,
-          357.2,
-          360,
-          358.4,
-          356.4,
-          360,
-          360,
-          360,
-          352.79999999999995,
-          357.2,
-          360
-        ],
-        "friendlyDamage": 0,
-        "rating": "S",
-        "remaining": []
-      }
-    ]
+    "evidence": "reports/interaction-overhaul/core-tests.log"
   },
-  "typecheck": "passed",
-  "registration": {
-    "games": 39,
-    "issues": 0,
-    "evidence": "reports/balance-overhaul/game-config.log"
+  "typecheck": {
+    "status": "passed",
+    "evidence": "reports/interaction-overhaul/typecheck.log"
   },
   "liveBuilds": [
     {
-      "url": "http://localhost:4318",
       "creator": "3.8.8",
       "target": "web-mobile",
-      "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733"
+      "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb",
+      "bytes": 3917779,
+      "url": "http://localhost:4318"
     },
     {
-      "url": "http://localhost:4319",
       "creator": "3.8.8",
       "target": "web-desktop",
-      "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733"
-    },
-    {
-      "url": "http://127.0.0.1:5174/games/night-overwatch",
-      "creator": "3.8.8",
-      "target": "web-mobile",
-      "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733"
+      "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb",
+      "bytes": 3918105,
+      "url": "http://localhost:4319"
     }
   ],
+  "interaction": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+    },
+    "results": [
+      {
+        "width": 1366,
+        "height": 768,
+        "smokeAge": 6.000085291688654
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "pinchZoom": 0.9900000000000001
+      },
+      {
+        "width": 568,
+        "height": 320,
+        "pinchZoom": 0.990000091552711
+      }
+    ],
+    "errors": [],
+    "evidence": "reports/interaction-overhaul/interaction-results.json"
+  },
+  "startup": {
+    "actualRuntimeSplash": {
+      "totalTime": 0,
+      "logoType": "none"
+    },
+    "applicationFailureAndRetry": "passed",
+    "readyAfterSceneAndAircraft": "passed",
+    "art": "startup/background.webp",
+    "design": "docs/design/startup.md",
+    "generationPrompt": "docs/design/startup-prompt.md",
+    "evidence": "tests/interaction-browser.mjs"
+  },
   "missions": [
     {
-      "viewport": {
+      "mode": "desktop",
+      "time": 240.00000000008313,
+      "phase": "success",
+      "kills": 24,
+      "friendlyDamage": 0,
+      "alliesAlive": 12,
+      "errors": [],
+      "evidence": "reports/interaction-overhaul/desktop-mission.json"
+    },
+    {
+      "mode": "touch",
+      "time": 240.00000000008313,
+      "phase": "success",
+      "kills": 24,
+      "friendlyDamage": 0,
+      "alliesAlive": 12,
+      "errors": [],
+      "evidence": "reports/interaction-overhaul/touch-mission.json"
+    }
+  ],
+  "presentation": {
+    "status": "passed",
+    "viewports": [
+      {
         "width": 1366,
         "height": 768
       },
-      "mode": "mission",
-      "phase": "success",
-      "time": 240.00000000008313,
-      "playerKills": 24,
-      "defensiveKills": 0,
-      "fired": 91,
-      "deliberateMisses": 0,
-      "delayedStart": 0,
-      "friendlyDamage": 0,
-      "allyHp": [
-        520,
-        360,
-        352.79999999999995,
-        360,
-        353.99999999999994,
-        352.79999999999995,
-        360,
-        356.79999999999995,
-        358.4,
-        345.5999999999999,
-        348.79999999999995,
-        352.79999999999995
-      ],
-      "ammo": [
-        "infinite",
-        58,
-        24
-      ],
-      "mapNavigations": 0,
-      "heavyAmmo": {
-        "configured": 30,
-        "initial": 30,
-        "reloadSeconds": 3,
-        "afterOneShot": 29,
-        "reloadBlockedFreshPress": true,
-        "afterRetry": 30
+      {
+        "width": 667,
+        "height": 375
       },
-      "checks": [
-        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
-        "natural aircraft motion changes the actual camera and ground projection",
-        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
-        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
-        "terrain elevation picking and pointer projection",
-        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
-        "enemy types hidden by default, shown on hover, hidden on leave; fixed ground-relative anchor",
-        "complete mission: all 24 threats cleared (24 player + 0 defenders), every friendly survives, zero friendly fire; retry restores 30 heavy rounds"
-      ]
-    },
-    {
-      "viewport": {
+      {
         "width": 844,
         "height": 390
       },
-      "mode": "forgiving",
-      "phase": "success",
-      "time": 240.00000000008313,
-      "playerKills": 22,
-      "defensiveKills": 2,
-      "fired": 93,
-      "deliberateMisses": 23,
-      "delayedStart": 60.01666666666454,
-      "friendlyDamage": 0,
-      "allyHp": [
-        494.7999999999999,
-        355.59999999999997,
-        319.5999999999996,
-        351.9999999999999,
-        301.9999999999996,
-        305.1999999999996,
-        360,
-        342.39999999999975,
-        339.1999999999997,
-        295.1999999999996,
-        301.19999999999976,
-        288.3999999999994
-      ],
-      "ammo": [
-        "infinite",
-        56,
-        22
-      ],
-      "mapNavigations": 74,
-      "heavyAmmo": {
-        "configured": 30,
-        "initial": 30,
-        "reloadSeconds": 3,
-        "afterOneShot": 29,
-        "reloadBlockedFreshPress": true,
-        "afterRetry": 30
+      {
+        "width": 568,
+        "height": 320
+      }
+    ],
+    "evidence": "reports/interaction-overhaul/presentation/2026-09-29T18-18-20.036Z-40636/presentation.json"
+  },
+  "independentReview": {
+    "browserChecks": [
+      {
+        "name": "friendly-warning-overlap",
+        "width": 568,
+        "status": "passed",
+        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-22.746Z-21140/results.json"
       },
-      "checks": [
-        "permanent fullscreen: real entry/exit, progress retained, no accidental shot",
-        "natural aircraft motion changes the actual camera and ground projection",
-        "minimap sector navigation: real camera/aim alignment, no fire/ammo leak, no sticky trigger",
-        "rotation, both orbit directions, altitude and radius; panel input isolation and layout",
-        "terrain elevation picking and pointer projection",
-        "distance/height flight times, aircraft launch, long trajectory, pause freeze and clean resume",
-        "touch reticle aim, friendly warning and touch hints; no synthetic hover labels",
-        "real simultaneous drag/fire, slide-out, no re-arm and touch cancellation",
-        "complete forgiving: all 24 threats cleared (22 player + 2 defenders), every friendly survives, zero friendly fire; retry restores 30 heavy rounds"
-      ]
-    }
-  ],
-  "visual": {
-    "status": "reviewed",
-    "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
-    "method": "Actual four-viewport Chrome screenshots inspected by the main agent",
-    "findings": [
-      "Dark green crowns retain leaf-cluster gaps and branch silhouettes instead of bright blobs",
-      "Pause panel has thick geometric bars and clear sound/effects/help/fullscreen icons",
-      "12 friendly vehicles and 80/30 ammunition are visible in the game"
+      {
+        "name": "focused-target-label",
+        "width": 568,
+        "status": "passed",
+        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-27.351Z-41472/results.json"
+      },
+      {
+        "name": "right-click-controls",
+        "width": 1366,
+        "status": "passed",
+        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-36.034Z-48348/results.json"
+      },
+      {
+        "name": "friendly-group-focus",
+        "width": 568,
+        "status": "passed",
+        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-24-30.464Z-5776/results.json"
+      },
+      {
+        "name": "friendly-group-focus",
+        "width": 844,
+        "status": "passed",
+        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-24-34.070Z-20552/results.json"
+      }
     ],
-    "evidence": [
-      "reports/balance-overhaul/1366-forest-detail.png",
-      "reports/balance-overhaul/844-forest-detail.png",
-      "reports/balance-overhaul/1366-pause.png",
-      "reports/balance-overhaul/568-pause.png"
+    "visualReview": "passed: independent agent opened and inspected the final screenshots",
+    "report": "reports/interaction-overhaul/review/REVIEW-f8f28eab.md",
+    "fixedFindings": [
+      "568px friendly warning no longer covers reticle",
+      "568px focused label survives wave notice",
+      "Right mouse button no longer selects a weapon",
+      "568px and 844px distant friendly formations aggregate and expand when focused"
+    ]
+  },
+  "limits": {
+    "scale": "1 unit = 10m",
+    "speedMetersPerSecond": 90,
+    "defaultRadiusMeters": 2000,
+    "defaultOrbitSeconds": 139.62634015954634,
+    "defaultBankDegrees": 22.43299092212539,
+    "minRadiusMeters": 1500,
+    "maxBankDegrees": 30,
+    "battlefieldMeters": [
+      3220,
+      2016
     ],
-    "rejectedIteration": "reports/balance-overhaul/1366-forest-too-dark.png"
+    "zoom": [
+      0.65,
+      5
+    ],
+    "impactSmokeSeconds": {
+      "burst": 10,
+      "heavy": 16
+    },
+    "wreckSmokeMaxSeconds": 35
   },
-  "previews": [
-    {
-      "width": 1366,
-      "height": 768,
-      "sampledFps": 50.57516858434372,
-      "triangles": 400292,
-      "drawCalls": 84
-    },
-    {
-      "width": 844,
-      "height": 390,
-      "sampledFps": 52.56632779568561,
-      "triangles": 399000,
-      "drawCalls": 69
-    },
-    {
-      "width": 667,
-      "height": 375,
-      "sampledFps": 51.999999999999986,
-      "triangles": 398910,
-      "drawCalls": 69
-    },
-    {
-      "width": 568,
-      "height": 320,
-      "sampledFps": 52.56632779568562,
-      "triangles": 398888,
-      "drawCalls": 69
-    }
-  ],
-  "performanceLimit": "Short screenshot-automation samples (50–53fps), not a controlled benchmark or physical-device acceptance.",
-  "treeGeometry": {
-    "trees": 2019,
-    "triangles": 240216,
-    "bufferBytes": 8437056,
-    "newDrawCalls": 0,
-    "newTextures": 0,
-    "evidence": "reports/balance-overhaul/tree-geometry.log"
-  },
-  "evidence": [
-    "reports/balance-overhaul/flight/2026-09-28T19-32-12.682Z-42812/desktop-success.json",
-    "reports/balance-overhaul/flight/2026-09-28T19-40-02.401Z-42036/forgiving-touch-results.json",
-    "reports/polish/balance-overhaul/h5/results.json",
-    "reports/final-smoke.json"
+  "deliberateGameAbstractions": [
+    "Three selectable weapons, unlimited traverse, ammunition/reload and damage are gameplay choices, not validated AC-130 fire-control simulation."
   ],
   "previousRound": {
-    "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
-    "evidence": "reports/balance-overhaul/previous-verification.json",
-    "note": "Historical results only; current balance and ammunition differ."
-  },
-  "lifecycle": {
-    "realBackgroundVerified": false,
-    "syntheticBlurFocusHistorical": true,
-    "note": "Actual tab background signal remained unsupported in prior local headless/offscreen-headed automation."
+    "sourceHash": "edf105742132db5449185aae08b2f4e2c61331df05c4f92d5f7238043f420733",
+    "evidence": "reports/interaction-overhaul/previous-verification.json",
+    "note": "Historical acceptance is preserved separately; not current-version evidence."
   },
   "notVerified": [
     "Physical Android/iPhone and Safari",
-    "Real safe areas and OS gestures",
-    "Actual background or incoming calls",
-    "Subjective audio and new-player experience",
-    "Public deployment"
+    "Real safe areas, OS gestures and incoming calls",
+    "Subjective audio",
+    "Native mini-game platforms",
+    "Lobby integration and public deployment",
+    "Controlled performance benchmark"
   ]
 }

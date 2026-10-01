@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import {
   WEAPONS,
-  FLIGHT,
   MAP,
   ROUTE,
   HOLD_POINTS,
@@ -15,7 +14,9 @@ import {
   patrolPoint,
   routePoint,
   validateData,
+  impactDamage,
 } from '../assets/scripts/core/Data.ts';
+import { muzzlePosition } from '../assets/scripts/core/Flight.ts';
 import { ACTIONS, TUTORIAL } from '../assets/scripts/core/Actions.ts';
 const tick = (s: Simulation, seconds: number) => {
   for (let i = 0; i < Math.ceil(seconds * 60); i++) s.step(1 / 60);
@@ -102,9 +103,9 @@ test('launch snapshots aim; moving out before impact avoids damage; impacts are 
   tick(s, 0.4);
   s.fire();
   settle(s);
-  assert.equal(enemy.hp, 55);
+  assert.equal(enemy.hp, enemy.maxHp - WEAPONS[1].damage);
   tick(s, 0.2);
-  assert.equal(enemy.hp, 55);
+  assert.equal(enemy.hp, enemy.maxHp - WEAPONS[1].damage);
   assert.equal(s.shots.length, 0);
 });
 test('blast damages several units once each, armor resists rapid fire', () => {
@@ -116,8 +117,10 @@ test('blast damages several units once each, armor resists rapid fire', () => {
   s.choose(1);
   s.fire();
   settle(s);
-  assert.equal(a.hp, 55);
-  assert.equal(b.hp, 55);
+  assert.equal(a.hp, a.maxHp - WEAPONS[1].damage);
+  assert(Math.abs(b.hp - (b.maxHp - impactDamage(1, b.kind,
+    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)))) < 1e-5);
+  assert(b.hp > a.hp, 'a nearby smaller hull takes splash falloff, not a fabricated direct hit');
   const heavy = s.addUnit('heavy', { x: 25, z: -20 });
   s.addUnit('escort', { x: 25, z: -30 }, true); // Keep this armor test stationary.
   s.choose(0);
@@ -189,6 +192,7 @@ test('pause reasons compose, freeze every rule clock and clear held fire', () =>
   s.setFire('mouse', true);
   s.pause('manual', true);
   s.pause('help', true);
+  s.pause('settings', true);
   const frozen = JSON.stringify({ time: s.time, guns: s.guns, shots: s.shots, units: s.units });
   tick(s, 4);
   s.pause('help', false);
@@ -199,6 +203,9 @@ test('pause reasons compose, freeze every rule clock and clear held fire', () =>
   );
   assert.equal(s.held.size, 0);
   s.pause('manual', false);
+  tick(s, 0.2);
+  assert.equal(s.time, 0, 'settings still owns its independent pause');
+  s.pause('settings', false);
   tick(s, 0.2);
   assert.equal(s.fired, 1);
 });
@@ -297,6 +304,7 @@ test('expanded route, friendly identification and launch position remain consist
   assert.equal(s.aimedUnit?.id, s.rescue.id);
   assert(s.friendlyRisk);
   const flight = s.flightTime();
+  const muzzle = muzzlePosition(s.aircraft, s.selected);
   s.fire();
   assert.equal(s.reason(), 'cooldown');
   assert(s.friendlyRisk, 'reload must not hide the friendly warning');
@@ -305,7 +313,7 @@ test('expanded route, friendly identification and launch position remain consist
   s.setAim({ x: 5, z: 30 });
   assert.equal(JSON.stringify(s.shots[0]), launch);
   assert.equal(s.shots[0].due - s.shots[0].born, flight);
-  assert.equal(s.shots[0].origin.y, FLIGHT.altitude + FLIGHT.muzzle.y);
+  assert.deepEqual(s.shots[0].origin, muzzle);
 });
 
 test('impact feedback describes actual damage and lethal rescue damage keeps its source', () => {
@@ -323,7 +331,7 @@ test('impact feedback describes actual damage and lethal rescue damage keeps its
   settle(s);
   const hit = s.events.filter((e) => e.type === 'impact').at(-1)!;
   assert.equal(hit.outcome, 'hit');
-  assert.equal(hit.damage, 35);
+  assert.equal(hit.damage, WEAPONS[1].damage);
   s.choose(2);
   while (s.phase === 'playing') {
     s.setAim(s.rescue);

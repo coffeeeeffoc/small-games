@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { access, readdir, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = new URL('../', import.meta.url);
@@ -9,7 +10,9 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     'settings/v2/packages/engine.json',
     'settings/v2/packages/project.json',
   ];
-  for (const dir of ['assets', 'scripts'])
+  for (const dir of ['assets', 'scripts', 'startup'].filter(
+    (dir) => dir !== 'startup' || existsSync(path.join(directory, dir)),
+  ))
     for (const e of await readdir(path.join(directory, dir), {
       recursive: true,
       withFileTypes: true,
@@ -23,7 +26,7 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     const bytes = await readFile(path.join(directory, file));
     hash.update(file + '\0');
     hash.update(
-      /\.(?:ts|js|mjs|py|json|meta|scene|gltf)$/.test(file)
+      /\.(?:ts|js|mjs|py|json|meta|scene|gltf|html|css|svg|md)$/.test(file)
         ? bytes.toString('utf8').replaceAll('\r\n', '\n')
         : bytes,
     );

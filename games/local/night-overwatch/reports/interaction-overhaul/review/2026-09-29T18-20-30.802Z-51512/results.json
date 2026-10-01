@@ -1,0 +1,77 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T18:20:30.803Z",
+  "status": "failed",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "friendly-group-focus",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "choose-visible-friendly-group",
+          "group": 1,
+          "memberIds": [
+            4,
+            5,
+            6
+          ],
+          "label": {
+            "id": 4,
+            "text": "×3",
+            "active": true,
+            "x": 121.20639141823642,
+            "y": 37.00710679378997
+          }
+        },
+        {
+          "action": "focus-group-labels",
+          "labels": [
+            {
+              "id": 4,
+              "text": "护卫",
+              "active": true,
+              "x": 97.43087633496793,
+              "y": 94.68634402263726
+            },
+            {
+              "id": 6,
+              "text": "护卫",
+              "active": false,
+              "x": 92.46773425575702,
+              "y": 93.62597425870297
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "844-friendly-group-focus-distant-group-count.png",
+        "844-friendly-group-focus-focused-group-expanded.png",
+        "844-friendly-group-focus-failure.png"
+      ],
+      "failure": "AssertionError [ERR_ASSERTION]: Real aim reaches a member of the previously grouped formation\n    at file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:376:7\n    at async run (file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:94:9)\n    at async file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:363:5"
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T18:20:33.556Z"
+}

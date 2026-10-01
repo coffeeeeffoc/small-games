@@ -1,0 +1,267 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:41:52.338Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "pinch-or-wheel",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 323.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 209.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 358.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 323.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 274.24,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "remaining-finger-screen-drift",
+          "pixels": 0.0003529213741583849,
+          "before": {
+            "x": 0.16269519336746896,
+            "z": -59.99549508022665
+          },
+          "after": {
+            "x": 0.163013277313099,
+            "z": -59.995483601412644
+          }
+        },
+        {
+          "action": "touchCancel",
+          "touchPoints": []
+        }
+      ],
+      "evidence": [
+        "568-pinch-or-wheel-pinch-expanded.png"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "pinch-or-wheel",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 327.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 516.0799999999999,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 392.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "remaining-finger-screen-drift",
+          "pixels": 0.0002461648131140456,
+          "before": {
+            "x": 0.1497501518964155,
+            "z": -59.99571793695844
+          },
+          "after": {
+            "x": 0.14993213335348088,
+            "z": -59.995709676739494
+          }
+        },
+        {
+          "action": "touchCancel",
+          "touchPoints": []
+        }
+      ],
+      "evidence": [
+        "844-pinch-or-wheel-pinch-expanded.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "pinch-or-wheel",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-pinch-or-wheel-wheel-expanded.png"
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:42:00.733Z"
+}

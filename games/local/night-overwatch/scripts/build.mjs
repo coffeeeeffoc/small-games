@@ -27,6 +27,17 @@ const config = {
   platform: target,
   debug: false,
   md5Cache: true,
+  // Prefer Creator replacement; startup also applies the official runtime override.
+  replaceSplashScreen: true,
+  useSplashScreen: true,
+  splashScreen: {
+    totalTime: 0,
+    displayRatio: 1,
+    autoFit: true,
+    watermarkLocation: 'default',
+    logo: { type: 'none' },
+    background: { type: 'color', color: { x: 0.02, y: 0.04, z: 0.06, w: 1 } },
+  },
   buildPath: 'project://build',
   outputName: target,
   includeModules: [
@@ -79,6 +90,8 @@ html = html.replace(
   'name="screen-orientation" content="landscape"',
 );
 await writeFile(out + 'index.html', html);
+const { installStartup } = await import('../startup/install.mjs');
+await installStartup(out, target);
 await writeFile(
   out + 'build-info.json',
   JSON.stringify({ creator: '3.8.8', target, sourceHash: await sourceHash() }),

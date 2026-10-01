@@ -7,8 +7,8 @@ import {
   heightfieldHeight,
   type Position,
 } from '../assets/scripts/core/CameraMath.ts';
-import { FLIGHT, MAP, terrainHeight } from '../assets/scripts/core/Data.ts';
-import { Flight, muzzlePosition } from '../assets/scripts/core/Flight.ts';
+import { AIRFRAME, FLIGHT, MAP, WEAPONS, terrainHeight } from '../assets/scripts/core/Data.ts';
+import { Flight, aircraftPoint, muzzlePosition } from '../assets/scripts/core/Flight.ts';
 
 const dot = (a: Position, b: Position) => a.x * b.x + a.y * b.y + a.z * b.z;
 const difference = (a: Position, b: Position) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -64,12 +64,9 @@ test('camera: terrain picking, mount, FOV, complete roll, orbit parallax and gro
   const skyFraction =
     (1 - Math.tan((frame.elevation * Math.PI) / 180) / Math.tan((frame.fov * Math.PI) / 360)) / 2;
   assert(skyFraction > 0.05 && skyFraction < 0.2, `dusk skyline occupies ${skyFraction}`);
-  const muzzle = project(frame, muzzlePosition(plane));
-  assert(
-    muzzle.depth > 0.2 && Math.abs(muzzle.x) < 1 && Math.abs(muzzle.y) < 1,
-    'actual fixed muzzle is in front of the near plane and visible in the wide sensor',
-  );
-  assert(Math.hypot(...Object.values(difference(muzzlePosition(plane), frame.position))) > 1);
+  assert.deepEqual(frame.position, aircraftPoint(plane, AIRFRAME.camera));
+  assert(Math.hypot(...Object.values(difference(muzzlePosition(plane), frame.position))) < 1,
+    'gun and camera separation is metres, not tens of metres');
 
   const points = [
     { x: -90, z: 25 },
@@ -86,7 +83,7 @@ test('camera: terrain picking, mount, FOV, complete roll, orbit parallax and gro
         yaw: -angle,
         heading: (-angle * 180) / Math.PI,
       };
-      for (const zoom of [0.8, 1, 3.2]) {
+      for (const zoom of [0.8, 1, 3.2, 5]) {
         const camera = aircraftCamera(pose, { x: 0, z: 0 }, terrainHeight, zoom, aspect, rotation);
         for (const p of points) {
           const q = project(camera, { ...p, y: terrainHeight(p.x, p.z) });
@@ -146,11 +143,17 @@ test('camera: terrain picking, mount, FOV, complete roll, orbit parallax and gro
     aspect,
     0,
   );
-  const mountZ = -0.55 * Math.cos(0.2) + 0.8 * Math.sin(0.2);
-  close(pitched.position.y, plane.y - 0.8 * Math.cos(0.2) - 0.55 * Math.sin(0.2));
-  close(pitched.position.x, plane.x + 0.4 * Math.cos(plane.yaw) + mountZ * Math.sin(plane.yaw));
-  close(pitched.position.z, plane.z - 0.4 * Math.sin(plane.yaw) + mountZ * Math.cos(plane.yaw));
-  assert(muzzle.x < 0 && muzzle.y > 0, 'fixed cannon projects into the upper-left sensor quadrant');
+  assert.deepEqual(pitched.position, aircraftPoint({ ...plane, pitch: 0.2 }, AIRFRAME.camera));
+  const shifted = aircraftCamera(plane, { x: 80, z: -40 }, terrainHeight, 1, aspect, 0);
+  const rolled = aircraftCamera(plane, { x: 0, z: 0 }, terrainHeight, 1, aspect, 90);
+  for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+    const position = muzzlePosition(plane, weapon);
+    const initial = project(frame, position), pan = project(shifted, position), roll = project(rolled, position);
+    assert(Math.hypot(initial.x - pan.x, initial.y - pan.y) > 0.01,
+      'panning changes the physical gun projection; no fixed screen corner');
+    assert(Math.hypot(initial.x - roll.x, initial.y - roll.y) > 0.01);
+    assert.deepEqual(shifted.position, frame.position, 'panning never moves the sensor mount');
+  }
 
   const flat = () => 0;
   for (const d of [

@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import {
-  FLIGHT, MAP, MISSION, ROUTE_LENGTH, TERRAIN, UNITS, WEAPONS,
+  AIRFRAME, FLIGHT, MAP, MISSION, ROUTE_LENGTH, TERRAIN, UNITS, WEAPONS,
   aircraft, distance, patrolPoint, routePoint, terrainHeight,
 } from '../assets/scripts/core/Data.ts';
-import { ballisticLaunch, muzzlePosition } from '../assets/scripts/core/Flight.ts';
+import { Flight, aircraftPoint, aircraftRotation, ballisticLaunch, cabinPoint, muzzlePosition } from '../assets/scripts/core/Flight.ts';
+import { readFileSync } from 'node:fs';
 
 const tick = (s: Simulation, seconds: number, dt = 1 / 60) => {
   for (let i = 0; i < Math.ceil(seconds / dt); i++) s.step(dt);
@@ -18,6 +19,78 @@ const isolated = () => {
   return s;
 };
 const near = (a: number, b: number, tolerance = 1e-6) => assert(Math.abs(a - b) < tolerance, `${a} ≈ ${b}`);
+
+test('metre scale, coordinated bank, orbit period and constant-speed reversal agree', (t) => {
+  const f = new Flight(), a = f.aircraft;
+  const period = 2 * Math.PI * FLIGHT.radius / FLIGHT.speed;
+  const bank = Math.atan(FLIGHT.speed ** 2 / (FLIGHT.gravity * FLIGHT.radius));
+  near(FLIGHT.speed * FLIGHT.metersPerUnit, 90);
+  near(FLIGHT.gravity * FLIGHT.metersPerUnit, 9.81);
+  near(a.bank, bank);
+  assert(Math.atan(FLIGHT.speed ** 2 / (FLIGHT.gravity * FLIGHT.minRadius)) < FLIGHT.maxBank);
+  for (let i = 0, count = Math.ceil(period * 60); i < count; i++) f.step(period / count);
+  near(a.x, 0, 1e-4);
+  near(a.z, FLIGHT.radius, 1e-4);
+  f.setDirection(-1);
+  for (let i = 0; i < 1800; i++) {
+    const before = { ...a };
+    f.step(0.1);
+    const travelled = distance(before, a);
+    near(travelled, FLIGHT.speed * 0.1, 1e-5);
+    const heading = (before.yaw + a.yaw) / 2;
+    near((a.x - before.x) / travelled, Math.sin(heading));
+    near((a.z - before.z) / travelled, Math.cos(heading));
+    assert(Math.abs(a.bank) <= FLIGHT.maxBank);
+    assert(Math.abs(a.bank - before.bank) <= FLIGHT.rollRate * 0.1 + 1e-9);
+    near((a.yaw - before.yaw) / 0.1, -FLIGHT.gravity * Math.tan(a.bank) / FLIGHT.speed);
+  }
+  near(Math.hypot(a.x, a.z), FLIGHT.radius, 0.1);
+  assert(a.bank < 0);
+  for (const dt of [0, -1, NaN, Infinity, 1]) assert.throws(() => f.step(dt));
+  t.diagnostic(JSON.stringify({ speedMps: 90, radiusM: FLIGHT.radius * 10,
+    periodSeconds: period, bankDegrees: bank * 180 / Math.PI }));
+});
+
+test('port weapon stations, metre-authored mesh and banked model/camera transforms share one frame', () => {
+  const geometry = JSON.parse(readFileSync(new URL('../assets/resources/models/aircraft/cabin.json', import.meta.url), 'utf8'));
+  near(AIRFRAME.length * FLIGHT.metersPerUnit, 29.8);
+  near(AIRFRAME.wingspan * FLIGHT.metersPerUnit, 40.4);
+  const pose = { x: 17, y: 90, z: -25, yaw: 0.73, pitch: 0.18, bank: -0.41 };
+  const q = aircraftRotation(pose);
+  near(Math.hypot(q.x, q.y, q.z, q.w), 1);
+  assert(WEAPONS[0].muzzle.z > 0 && WEAPONS[2].muzzle.z < 0);
+  for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+    const mount = WEAPONS[weapon].muzzle;
+    assert(mount.x < 0 && Math.abs(mount.x) < AIRFRAME.wingspan / 2);
+    assert(Math.abs(mount.z) < AIRFRAME.length / 2 && Math.abs(mount.y) < AIRFRAME.height / 2);
+    assert.deepEqual(cabinPoint(AIRFRAME.cabinMuzzle, weapon), mount);
+    let crown = 0;
+    for (let i = 0; i < geometry.positions.length; i += 3) {
+      const local = cabinPoint({ x: geometry.positions[i], y: geometry.positions[i + 1], z: geometry.positions[i + 2] }, weapon);
+      assert(Math.abs(local.x) < AIRFRAME.wingspan / 2 && Math.abs(local.z) < AIRFRAME.length / 2);
+      assert(Math.abs(local.y) < AIRFRAME.height / 2, 'bay detail fits an aircraft, not a giant floating gun');
+      const delta = { x: local.x - mount.x, y: local.y - mount.y, z: local.z - mount.z };
+      if (Math.abs(delta.x + delta.y) < 1e-5 && Math.hypot(delta.x, delta.y, delta.z) < 0.012) crown++;
+    }
+    assert(crown >= 20, 'the loaded mesh muzzle crown is centred on the ballistic station');
+    // Independent matrix reference: roll, then pitch, then yaw.
+    const rx = mount.x * Math.cos(pose.bank) - mount.y * Math.sin(pose.bank);
+    const ry = mount.x * Math.sin(pose.bank) + mount.y * Math.cos(pose.bank);
+    const py = ry * Math.cos(pose.pitch) + mount.z * Math.sin(pose.pitch);
+    const pz = mount.z * Math.cos(pose.pitch) - ry * Math.sin(pose.pitch);
+    const muzzle = muzzlePosition(pose, weapon);
+    near(muzzle.x, pose.x + rx * Math.cos(pose.yaw) + pz * Math.sin(pose.yaw));
+    near(muzzle.y, pose.y + py);
+    near(muzzle.z, pose.z - rx * Math.sin(pose.yaw) + pz * Math.cos(pose.yaw));
+    assert.deepEqual(aircraftPoint(pose, cabinPoint(AIRFRAME.cabinMuzzle, weapon)), muzzle);
+    const s = isolated(); Object.assign(s.aircraft, pose); s.choose(weapon);
+    s.setAim({ x: 0, z: -20 });
+    const duration = s.flightTime();
+    assert(s.fire());
+    assert.deepEqual(s.shots[0].origin, muzzle);
+    near(s.shots[0].due - s.shots[0].born, duration);
+  }
+});
 
 test('aircraft is live simulation state and pauses freeze its orbit', () => {
   const s = new Simulation();
@@ -75,7 +148,7 @@ test('height/radius change smoothly, reverse orbit without teleporting, and boun
   assert(s.aircraft.y > initial.y && s.aircraft.y <= initial.y + FLIGHT.climbRate * 0.1);
   assert(s.aircraft.radius > initial.radius && s.aircraft.radius <= initial.radius + FLIGHT.radiusRate * 0.1);
   assert(s.aircraft.pitch > 0);
-  near(Math.hypot(s.aircraft.x, s.aircraft.z), s.aircraft.radius);
+  near(distance(initial, s.aircraft), Math.sqrt(FLIGHT.speed ** 2 - FLIGHT.climbRate ** 2) * 0.1, 1e-4);
   tick(s, 20);
   near(s.aircraft.altitude, initial.altitude + 20, 0.05);
   near(s.aircraft.radius, initial.radius + 20, 0.05);
@@ -85,10 +158,10 @@ test('height/radius change smoothly, reverse orbit without teleporting, and boun
   assert.equal(s.aircraft.x, before.x);
   assert.equal(s.aircraft.y, before.y);
   assert.equal(s.aircraft.z, before.z);
-  tick(s, 5);
-  const angle = Math.atan2(s.aircraft.z, s.aircraft.x);
+  tick(s, 65); // A transport-sized turn takes time; changing direction never reverses velocity.
+  const reversed = { ...s.aircraft };
   tick(s, 1);
-  assert(Math.atan2(s.aircraft.z, s.aircraft.x) < angle);
+  assert(reversed.x * s.aircraft.z - reversed.z * s.aircraft.x < 0);
   s.adjustAltitude(Infinity);
   s.adjustRadius(NaN);
   assert(Object.values(s.aircraft).every(Number.isFinite));
@@ -114,7 +187,7 @@ test('distance, height and weapon speed determine a frozen three-dimensional gra
   assert(duration > 1);
   assert(s.fire());
   const shot = s.shots[0];
-  assert.deepEqual(shot.origin, muzzlePosition(s.aircraft));
+  assert.deepEqual(shot.origin, muzzlePosition(s.aircraft, 1));
   near(shot.due - shot.born, duration);
   near(Math.hypot(shot.velocity.x, shot.velocity.y, shot.velocity.z), WEAPONS[1].speed);
   assert.deepEqual(s.shotPosition(shot, shot.born), shot.origin);

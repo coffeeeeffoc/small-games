@@ -2,23 +2,45 @@ export type Point = { x: number; z: number };
 export type Point3 = Point & { y: number };
 export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort';
 export type Language = 'zh' | 'en';
-export const MAP = { halfWidth: 115, halfDepth: 72 };
+// Spread the actual route, contacts and posts together; keep the 240-second convoy journey.
+export const BATTLEFIELD_SCALE = 1.4;
+const spread = <T extends Point>(p: T): T => ({ ...p, x: p.x * BATTLEFIELD_SCALE, z: p.z * BATTLEFIELD_SCALE });
+export const MAP = { halfWidth: 115 * BATTLEFIELD_SCALE, halfDepth: 72 * BATTLEFIELD_SCALE };
+// AC-130-sized reference envelope, NOT a claim of authentic weapon performance/layout.
+// AFSOC fact sheet: https://www.afsoc.af.mil/About-Us/Fact-Sheets/Display/Article/2547234/ac-130j-ghostrider/
+// Dimensions use the consistent metric/imperial table in AFSOCI32-1084, table 7.2.1.
+// https://static.e-publishing.af.mil/production/1/afsoc/publication/afsoci32-1084/afsoci32-1084.pdf
+export const AIRFRAME = {
+  length: 2.98, wingspan: 4.04, height: 1.194,
+  // Existing asset is a local gun-bay detail authored in metres, not a whole aircraft.
+  cabinScale: 0.1,
+  cabinMuzzle: { x: -1.8, y: -1.1, z: 1.2 },
+  camera: { x: -0.22, y: -0.12, z: 0.35 },
+  cameraNear: 0.02,
+  // +Z nose, -X port. Three stations are a creative gameplay abstraction.
+  muzzles: [
+    { x: -0.30, y: -0.04, z: 0.75 },
+    { x: -0.32, y: -0.04, z: 0.25 },
+    { x: -0.36, y: -0.05, z: -0.65 },
+  ],
+} as const;
 // One world unit is 10 metres; all speeds are world units/second, gravity units/second².
 export const FLIGHT = {
   metersPerUnit: 10,
   gravity: 0.981,
-  speed: 7,
-  radius: 180,
-  minRadius: 45,
-  maxRadius: 230,
+  speed: 9, // 90 m/s = 324 km/h; default 2 km orbit takes 139.6 seconds.
+  radius: 200,
+  minRadius: 150, // 1.5 km gives 28.8 degrees at cruise, below the 30-degree game limit.
+  maxRadius: 300,
   altitude: 100,
   minAltitude: 12,
   maxAltitude: 230,
   response: 0.45,
   climbRate: 2,
   radiusRate: 3.5,
-  yawRate: 0.65,
-  muzzle: { x: -1.8, y: -1.1, z: 1.2 },
+  maxBank: Math.PI / 6,
+  rollRate: 0.18,
+  muzzle: AIRFRAME.muzzles[0], // Compatibility alias; live fire selects WEAPONS[weapon].muzzle.
 } as const;
 export const TERRAIN = {
   roadLift: 0.12,
@@ -36,9 +58,14 @@ export function terrainHeight(x: number, z: number): number {
     height += h.height * Math.exp(-(((x - h.x) / h.width) ** 2 + ((z - h.z) / h.depth) ** 2));
   return height;
 }
+// AFSOC describes trainable 30 mm / 105 mm weapons. Our rapid/burst/heavy trio,
+// calibres, ammunition, traverse and ballistics are gameplay abstractions, not an AC-130J loadout.
+// Aim has no azimuth firing-sector restriction, including after orbit reversal; stations stay port.
+// This is arcade targeting, not authentic fire control.
 export const WEAPONS = [
   {
     id: 'rapid',
+    muzzle: AIRFRAME.muzzles[0],
     name: ['速射炮', 'Rapid'],
     interval: 0.12,
     speed: 60,
@@ -54,13 +81,14 @@ export const WEAPONS = [
   },
   {
     id: 'blast',
+    muzzle: AIRFRAME.muzzles[1],
     name: ['爆破炮', 'Burst'],
     interval: 0.8,
-    speed: 42,
+    speed: 56,
     calibre: 0.004,
     length: 0.021,
     tracerTime: 0.055,
-    damage: 35,
+    damage: 60, // Keep the dispersed mission forgiving with smaller vehicle hit hulls.
     radius: 3.4,
     ammo: 80,
     heat: 15,
@@ -69,6 +97,7 @@ export const WEAPONS = [
   },
   {
     id: 'heavy',
+    muzzle: AIRFRAME.muzzles[2],
     name: ['重型炮', 'Heavy'],
     interval: 3,
     speed: 32,
@@ -86,7 +115,7 @@ export const WEAPONS = [
 export const UNITS = {
   light: {
     hp: 32,
-    radius: 0.9,
+    radius: 0.225, // Matches World's 0.25-scale hulls; blast radii remain in world units.
     speed: 2.2,
     damage: 8,
     range: 19,
@@ -95,7 +124,7 @@ export const UNITS = {
   },
   heavy: {
     hp: 180,
-    radius: 1.6,
+    radius: 0.4,
     speed: 0.75,
     damage: 18,
     range: 24,
@@ -104,7 +133,7 @@ export const UNITS = {
   },
   turret: {
     hp: 90,
-    radius: 1.4,
+    radius: 0.35,
     speed: 0,
     damage: 14,
     range: 24,
@@ -113,7 +142,7 @@ export const UNITS = {
   },
   rescue: {
     hp: 520,
-    radius: 1.5,
+    radius: 0.375,
     speed: 0.85,
     damage: 0,
     range: 0,
@@ -122,7 +151,7 @@ export const UNITS = {
   },
   escort: {
     hp: 360,
-    radius: 1.3,
+    radius: 0.325,
     speed: 0.85,
     damage: 1.6,
     range: 17,
@@ -154,11 +183,11 @@ export const ROUTE: Point[] = [
   { x: 78, z: -18 },
   { x: 87, z: -18 },
   { x: 94, z: -6 },
-];
+].map(spread);
 export const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z);
 export const ROUTE_LENGTH = ROUTE.slice(1).reduce((n, p, i) => n + distance(ROUTE[i], p), 0);
 export const HOLD_POINTS = [ROUTE_LENGTH * 0.28, ROUTE_LENGTH * 0.64];
-export const PROTECTED = [{ x: -38, z: 25, radius: 8, assetId: 'zone.shelter' }];
+export const PROTECTED = [spread({ x: -38, z: 25, radius: 8, assetId: 'zone.shelter' })];
 export const SECTORS = [
   { end: 0.28, name: ['西岭盘山路', 'WESTERN SWITCHBACKS'] },
   { end: 0.64, name: ['河谷桥与村落', 'RIVER CROSSING'] },
@@ -171,6 +200,9 @@ export function aircraft(time: number) {
     x: Math.cos(angle) * FLIGHT.radius,
     z: Math.sin(angle) * FLIGHT.radius,
     y: FLIGHT.altitude,
+    yaw: -angle,
+    pitch: 0,
+    bank: Math.atan(FLIGHT.speed ** 2 / (FLIGHT.gravity * FLIGHT.radius)),
     heading: (((-angle * 180 / Math.PI) % 360) + 360) % 360,
   };
 }
@@ -178,7 +210,7 @@ export const FRIENDLY_POSTS: Point[] = [
   { x: -61, z: -32 },
   { x: 12, z: 26 },
   { x: 78, z: -24 },
-];
+].map(spread);
 const CONTACTS: [Kind, number, number][] = [
   ['light', -78, 16], ['light', -80, 50], ['turret', -62, 34], ['light', -101, 1],
   ['light', -78, -40], ['turret', -51, -43], ['light', -44, -21], ['heavy', -72, -13],
@@ -189,14 +221,14 @@ const CONTACTS: [Kind, number, number][] = [
 ];
 export const MISSION = {
   id: 'corridor-01',
-  duration: 360,
+  duration: 390, // Wider search area gets 30 seconds more; convoy still arrives in four minutes.
   speed: ROUTE_LENGTH / 240,
   warmup: 8,
   attackInterval: 4.8,
   friendlyAttackInterval: 6,
   friendlyArmor: 0.2, // Ground fire is resisted; aircraft friendly fire still deals full blast damage.
   events: CONTACTS.map(([kind, x, z], i) => ({
-    time: 0, progress: 0, kind, x, z,
+    time: 0, progress: 0, kind, ...spread({ x, z }),
     direction: [`第${Math.floor(i / 4) + 1}区：发现敌方目标，保护分散友军`,
       `SECTOR ${Math.floor(i / 4) + 1}: contacts near friendly positions`],
   })),

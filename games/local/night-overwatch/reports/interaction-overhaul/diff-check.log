@@ -1,0 +1,7 @@
+warning: in the working copy of 'games/local/night-overwatch/.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/docs/verification.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/reports/web-desktop-size.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/reports/web-mobile-size.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/scripts/artifact.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/night-overwatch/scripts/build.mjs', LF will be replaced by CRLF the next time Git touches it

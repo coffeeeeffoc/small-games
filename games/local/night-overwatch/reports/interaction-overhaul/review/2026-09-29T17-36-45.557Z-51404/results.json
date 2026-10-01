@@ -1,0 +1,2170 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:36:45.559Z",
+  "status": "failed",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "briefing-globals",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 394,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 68,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 496,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 468,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-briefing-globals-briefing.png",
+        "568-briefing-globals-fullscreen.png",
+        "568-briefing-globals-briefing-help.png"
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "pause-settings-help",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "pause",
+          "button": {
+            "id": "pause",
+            "x": 332,
+            "y": 6,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 394,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 68,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 68,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 288,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 288,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 288,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 288,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 68,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "tab:advanced",
+          "button": {
+            "id": "tab:advanced",
+            "x": 162.66666666666666,
+            "y": 123,
+            "w": 125.33333333333333,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 284,
+              "y": 198.4
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 284,
+              "y": 144
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": []
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 496,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 468,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "resume",
+          "button": {
+            "id": "resume",
+            "x": 68,
+            "y": 255,
+            "w": 432,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-pause-settings-help-pause.png",
+        "568-pause-settings-help-settings.png",
+        "568-pause-settings-help-settings-en.png",
+        "568-pause-settings-help-help.png",
+        "568-pause-settings-help-fullscreen.png",
+        "568-pause-settings-help-help-scrolled.png",
+        "568-pause-settings-help-fullscreen.png"
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "live-fullscreen-and-drawer",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 468,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomOut",
+          "button": {
+            "id": "zoomOut",
+            "x": 151,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 488.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-live-fullscreen-and-drawer-fullscreen.png",
+        "568-live-fullscreen-and-drawer-battle.png",
+        "568-live-fullscreen-and-drawer-drawer.png"
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "fire-cancellation",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 501,
+              "y": 283
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 284,
+              "y": 176
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 501,
+              "y": 283
+            }
+          ]
+        },
+        {
+          "action": "touchCancel",
+          "touchPoints": []
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 394,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 468,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-fire-cancellation-clean-resume.png"
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "pinch-or-wheel",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 323.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 209.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 358.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            },
+            {
+              "id": 2,
+              "x": 323.76,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 244.24,
+              "y": 179.20000000000002
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 274.24,
+              "y": 179.20000000000002
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "568-pinch-or-wheel-pinch-expanded.png",
+        "568-pinch-or-wheel-failure.png"
+      ],
+      "failure": "AssertionError [ERR_ASSERTION]: Remaining finger cannot become an unexpected aim drag\n+ actual - expected\n\n  {\n+   x: 0.16307511000812536,\n+   z: -59.99562865856595\n-   x: 0.16275832059726447,\n-   z: -59.99564026408552\n  }\n\n    at file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:225:16\n    at async run (file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:94:9)\n    at async file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:208:5"
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "markers-and-dust",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 488.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 16,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 180,
+            "y": 256,
+            "w": 78,
+            "h": 54
+          }
+        },
+        {
+          "action": "press",
+          "id": "fire",
+          "button": {
+            "id": "fire",
+            "x": 446,
+            "y": 254,
+            "w": 110,
+            "h": 58
+          }
+        },
+        {
+          "action": "impact",
+          "impact": {
+            "id": 64,
+            "type": "impact",
+            "x": -86.80001626246941,
+            "y": 5.02452719486035,
+            "z": 47.59998743846137,
+            "weapon": 2,
+            "time": 7.76874464244889,
+            "shot": 61,
+            "intercepted": false,
+            "outcome": "destroyed",
+            "damage": 90
+          }
+        }
+      ],
+      "evidence": [
+        "568-markers-and-dust-enemy-thermal.png",
+        "568-markers-and-dust-enemy-day.png",
+        "568-markers-and-dust-impact-0.png",
+        "568-markers-and-dust-dust-0.png",
+        "568-markers-and-dust-persistent-dust.png",
+        "568-markers-and-dust-friendly-focus.png"
+      ],
+      "visualReviewRequired": true,
+      "smoke": [
+        {
+          "id": 17,
+          "age": 3.847922024217933,
+          "kind": "wreck"
+        }
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "briefing-globals",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 670,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 206,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 772,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 606,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "844-briefing-globals-briefing.png",
+        "844-briefing-globals-fullscreen.png",
+        "844-briefing-globals-briefing-help.png"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "pause-settings-help",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "pause",
+          "button": {
+            "id": "pause",
+            "x": 608,
+            "y": 6,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 670,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 206,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 206,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 426,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 426,
+            "y": 129,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 426,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 426,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 206,
+            "y": 181,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "tab:advanced",
+          "button": {
+            "id": "tab:advanced",
+            "x": 254.66666666666666,
+            "y": 123,
+            "w": 217.33333333333334,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 422,
+              "y": 241.8
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 422,
+              "y": 175.5
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": []
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 772,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 606,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "resume",
+          "button": {
+            "id": "resume",
+            "x": 206,
+            "y": 325,
+            "w": 432,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "844-pause-settings-help-pause.png",
+        "844-pause-settings-help-settings.png",
+        "844-pause-settings-help-settings-en.png",
+        "844-pause-settings-help-help.png",
+        "844-pause-settings-help-fullscreen.png",
+        "844-pause-settings-help-help-scrolled.png",
+        "844-pause-settings-help-fullscreen.png"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "live-fullscreen-and-drawer",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 744,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomOut",
+          "button": {
+            "id": "zoomOut",
+            "x": 208,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "844-live-fullscreen-and-drawer-fullscreen.png",
+        "844-live-fullscreen-and-drawer-battle.png",
+        "844-live-fullscreen-and-drawer-drawer.png"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "fire-cancellation",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 777,
+              "y": 353
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 422,
+              "y": 214.50000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 2,
+              "x": 777,
+              "y": 353
+            }
+          ]
+        },
+        {
+          "action": "touchCancel",
+          "touchPoints": []
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 670,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 606,
+            "y": 73,
+            "w": 44,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "844-fire-cancellation-clean-resume.png"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "pinch-or-wheel",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 327.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 516.0799999999999,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 392.92,
+              "y": 218.40000000000003
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "844-pinch-or-wheel-pinch-expanded.png",
+        "844-pinch-or-wheel-failure.png"
+      ],
+      "failure": "AssertionError [ERR_ASSERTION]: Remaining finger cannot become an unexpected aim drag\n+ actual - expected\n\n  {\n+   x: 0.1392622759801707,\n+   z: -59.99621084566266\n-   x: 0.13903641676891088,\n-   z: -59.996218017789175\n  }\n\n    at file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:225:16\n    at async run (file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:94:9)\n    at async file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:208:5"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "markers-and-dust",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 16,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 180,
+            "y": 326,
+            "w": 78,
+            "h": 54
+          }
+        },
+        {
+          "action": "press",
+          "id": "fire",
+          "button": {
+            "id": "fire",
+            "x": 722,
+            "y": 324,
+            "w": 110,
+            "h": 58
+          }
+        },
+        {
+          "action": "impact",
+          "impact": {
+            "id": 64,
+            "type": "impact",
+            "x": -86.79990747130452,
+            "y": 5.02452235844481,
+            "z": 47.60000209273085,
+            "weapon": 2,
+            "time": 8.004312510711388,
+            "shot": 61,
+            "intercepted": false,
+            "outcome": "destroyed",
+            "damage": 90
+          }
+        }
+      ],
+      "evidence": [
+        "844-markers-and-dust-enemy-thermal.png",
+        "844-markers-and-dust-enemy-day.png",
+        "844-markers-and-dust-impact-0.png",
+        "844-markers-and-dust-dust-0.png",
+        "844-markers-and-dust-persistent-dust.png",
+        "844-markers-and-dust-friendly-focus.png"
+      ],
+      "visualReviewRequired": true,
+      "smoke": [
+        {
+          "id": 17,
+          "age": 3.879020822622115,
+          "kind": "wreck"
+        }
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "briefing-globals",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 1192,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 467,
+            "y": 401,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 1067,
+            "y": 151,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 867,
+            "y": 261,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-briefing-globals-briefing.png",
+        "1366-briefing-globals-fullscreen.png",
+        "1366-briefing-globals-briefing-help.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "pause-settings-help",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "pause",
+          "button": {
+            "id": "pause",
+            "x": 1130,
+            "y": 6,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 1192,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 467,
+            "y": 349,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sound",
+          "button": {
+            "id": "sound",
+            "x": 467,
+            "y": 349,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 687,
+            "y": 349,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "effects",
+          "button": {
+            "id": "effects",
+            "x": 687,
+            "y": 349,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 687,
+            "y": 401,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "language",
+          "button": {
+            "id": "language",
+            "x": 687,
+            "y": 401,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "help",
+          "button": {
+            "id": "help",
+            "x": 467,
+            "y": 401,
+            "w": 212,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "tab:advanced",
+          "button": {
+            "id": "tab:advanced",
+            "x": 504.33333333333337,
+            "y": 201,
+            "w": 240,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 1067,
+            "y": 151,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 867,
+            "y": 261,
+            "w": 44,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "resume",
+          "button": {
+            "id": "resume",
+            "x": 467,
+            "y": 515,
+            "w": 432,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-pause-settings-help-pause.png",
+        "1366-pause-settings-help-settings.png",
+        "1366-pause-settings-help-settings-en.png",
+        "1366-pause-settings-help-help.png",
+        "1366-pause-settings-help-fullscreen.png",
+        "1366-pause-settings-help-help-scrolled.png",
+        "1366-pause-settings-help-fullscreen.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "live-fullscreen-and-drawer",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "fullscreen",
+          "button": {
+            "id": "fullscreen",
+            "x": 1266,
+            "y": 6,
+            "w": 88,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomOut",
+          "button": {
+            "id": "zoomOut",
+            "x": 356,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-live-fullscreen-and-drawer-fullscreen.png",
+        "1366-live-fullscreen-and-drawer-battle.png",
+        "1366-live-fullscreen-and-drawer-drawer.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "fire-cancellation",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "settings",
+          "button": {
+            "id": "settings",
+            "x": 1192,
+            "y": 6,
+            "w": 68,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "close",
+          "button": {
+            "id": "close",
+            "x": 867,
+            "y": 261,
+            "w": 44,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-fire-cancellation-clean-resume.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "pinch-or-wheel",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-pinch-or-wheel-wheel-expanded.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "markers-and-dust",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 164,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 1010,
+            "y": 688,
+            "w": 160,
+            "h": 70
+          }
+        },
+        {
+          "action": "press",
+          "id": "fire",
+          "button": {
+            "id": "fire",
+            "x": 1194,
+            "y": 686,
+            "w": 160,
+            "h": 74
+          }
+        },
+        {
+          "action": "impact",
+          "impact": {
+            "id": 70,
+            "type": "impact",
+            "x": -86.95835967311135,
+            "y": 5.03990257354408,
+            "z": 47.6591889600698,
+            "weapon": 2,
+            "time": 8.269447676059892,
+            "shot": 61,
+            "intercepted": false,
+            "outcome": "destroyed",
+            "damage": 90
+          }
+        }
+      ],
+      "evidence": [
+        "1366-markers-and-dust-enemy-thermal.png",
+        "1366-markers-and-dust-enemy-day.png",
+        "1366-markers-and-dust-impact-0.png",
+        "1366-markers-and-dust-dust-0.png",
+        "1366-markers-and-dust-persistent-dust.png",
+        "1366-markers-and-dust-friendly-focus.png"
+      ],
+      "visualReviewRequired": true,
+      "smoke": [
+        {
+          "id": 17,
+          "age": 2.763885657273569,
+          "kind": "wreck"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:38:25.951Z"
+}
