@@ -66,6 +66,7 @@ try {
     const loaded = Date.now();
     await p.goto(base);
     await p.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready');
+    await p.waitForFunction(() => !document.getElementById('night-startup'));
     const loadMs = Date.now() - loaded;
     await capture('briefing');
     await press('start');
@@ -137,21 +138,28 @@ try {
       report.viewports.push({ width, height, loadMs });
     }
     await press('pause');
-    if ((await snap()).buttons.some((b) => b.id === 'effects')) {
-      const old = (await snap()).ui;
-      await press('sound');
-      await press('effects');
-      assert.equal((await snap()).ui.muted, !old.muted);
-      assert.equal((await snap()).ui.reducedEffects, !old.reducedEffects);
-      await press('sound');
-      await press('effects');
-    }
     await capture('pause');
+    await press('settings');
+    assert((await snap()).pauses.includes('settings'));
+    const old = (await snap()).ui;
+    await press('sound');
+    await press('effects');
+    assert.equal((await snap()).ui.muted, !old.muted);
+    assert.equal((await snap()).ui.reducedEffects, !old.reducedEffects);
+    await press('sound');
+    await press('effects');
+    assert.equal((await snap()).ui.muted, old.muted);
+    assert.equal((await snap()).ui.reducedEffects, old.reducedEffects);
     await press('help');
     await capture('help-basic');
     await press('tab:advanced');
     await capture('help');
     await press('close');
+    assert.equal((await snap()).modal, 'settings');
+    assert((await snap()).pauses.includes('manual'));
+    await press('close');
+    assert(!(await snap()).pauses.includes('settings'));
+    assert((await snap()).pauses.includes('manual'));
     await press('resume');
     if ((await snap()).ui.feedback !== undefined) {
       const shotCount = (await snap()).fired;

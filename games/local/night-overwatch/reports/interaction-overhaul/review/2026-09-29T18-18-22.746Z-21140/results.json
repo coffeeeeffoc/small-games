@@ -1,0 +1,81 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T18:18:22.748Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "friendly-warning-overlap",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 180,
+            "y": 256,
+            "w": 78,
+            "h": 54
+          }
+        },
+        {
+          "action": "reticle-position",
+          "point": {
+            "x": 283.99999999971686,
+            "y": 159.99999981712534
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 16,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-friendly-warning-overlap-centered-friendly-day.png",
+        "568-friendly-warning-overlap-centered-friendly-thermal.png"
+      ],
+      "visualReviewRequired": true
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T18:18:26.117Z"
+}

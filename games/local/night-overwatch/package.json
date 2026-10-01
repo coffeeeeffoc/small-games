@@ -12,7 +12,7 @@
     "build:desktop": "node scripts/build.mjs web-desktop",
     "dev": "node scripts/serve.mjs",
     "dev:desktop": "node scripts/serve.mjs --desktop",
-    "test": "node --test tests/*.test.ts",
+    "test": "node --test tests/*.test.ts tests/startup.test.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "test:browser": "node tests/browser.mjs"
   },

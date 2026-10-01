@@ -1,0 +1,211 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:43:25.961Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "friendly-warning-overlap",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 180,
+            "y": 256,
+            "w": 78,
+            "h": 54
+          }
+        },
+        {
+          "action": "reticle-position",
+          "point": {
+            "x": 284.0000000002506,
+            "y": 160.00000037652842
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 16,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "568-friendly-warning-overlap-centered-friendly-day.png",
+        "568-friendly-warning-overlap-centered-friendly-thermal.png"
+      ],
+      "visualReviewRequired": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "friendly-warning-overlap",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 180,
+            "y": 326,
+            "w": 78,
+            "h": 54
+          }
+        },
+        {
+          "action": "reticle-position",
+          "point": {
+            "x": 421.9999999996753,
+            "y": 195.0000011935236
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 16,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "844-friendly-warning-overlap-centered-friendly-day.png",
+        "844-friendly-warning-overlap-centered-friendly-thermal.png"
+      ],
+      "visualReviewRequired": true
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "friendly-warning-overlap",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "weapon2",
+          "button": {
+            "id": "weapon2",
+            "x": 1010,
+            "y": 688,
+            "w": 160,
+            "h": 70
+          }
+        },
+        {
+          "action": "reticle-position",
+          "point": {
+            "x": 685.0000000012914,
+            "y": 384.99999902732293
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "sensor",
+          "button": {
+            "id": "sensor",
+            "x": 164,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        }
+      ],
+      "evidence": [
+        "1366-friendly-warning-overlap-centered-friendly-day.png",
+        "1366-friendly-warning-overlap-centered-friendly-thermal.png"
+      ],
+      "visualReviewRequired": true
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:43:34.489Z"
+}

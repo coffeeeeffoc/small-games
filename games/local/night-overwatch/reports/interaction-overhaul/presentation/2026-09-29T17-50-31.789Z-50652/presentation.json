@@ -1,0 +1,71 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-desktop",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4319",
+  "results": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "单击左键开火\n每次一发",
+      "renderNodes": 36,
+      "triangles": 432909,
+      "drawCalls": 87,
+      "friendlyWarning": true,
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 36,
+      "triangles": 431121,
+      "drawCalls": 70,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 36,
+      "triangles": 431153,
+      "drawCalls": 70,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    },
+    {
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "fullScreenBriefingAndBattle": true,
+      "fullScreenHelpKeepsPause": true,
+      "fireHint": "点按开火\n每次一发",
+      "renderNodes": 36,
+      "triangles": 431103,
+      "drawCalls": 69,
+      "friendlyWarning": "desktop covered",
+      "modelImport": "loaded",
+      "audio": "ready"
+    }
+  ],
+  "errors": []
+}

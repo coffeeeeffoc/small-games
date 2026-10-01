@@ -1,0 +1,156 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T18:18:27.353Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "focused-target-label",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 488.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "focus-label-comparison",
+          "target": 17,
+          "early": [
+            {
+              "id": 4,
+              "text": "×3",
+              "active": false,
+              "x": 74.08695505356945,
+              "y": 41.15522358036526
+            },
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": -86.95664884753529,
+              "y": 9.809807110994768
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": -103.99996941672862,
+              "y": 2.3103188425040457
+            }
+          ],
+          "later": [
+            {
+              "id": 4,
+              "text": "×3",
+              "active": false,
+              "x": 74.08695505356945,
+              "y": 41.15522358036526
+            },
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": -86.95664884753529,
+              "y": 9.809807110994768
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": -103.99996086072207,
+              "y": 2.3959742920522444
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "568-focused-target-label-wave-banner-active.png",
+        "568-focused-target-label-wave-banner-cleared.png"
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T18:18:33.849Z"
+}

@@ -1,0 +1,109 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T18:24:30.465Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "friendly-group-focus",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "choose-visible-friendly-group",
+          "group": 1,
+          "memberIds": [
+            4,
+            5,
+            6
+          ],
+          "label": {
+            "id": 4,
+            "text": "×3",
+            "active": true,
+            "x": 103.39939873838534,
+            "y": 30.365008395340112
+          }
+        },
+        {
+          "action": "focus-group-labels",
+          "labels": [
+            {
+              "id": 4,
+              "text": "护卫",
+              "active": true,
+              "x": 80.20478289375006,
+              "y": -24.485818942049548
+            },
+            {
+              "id": 6,
+              "text": "护卫",
+              "active": false,
+              "x": 76.06270785657489,
+              "y": -25.301490138798385
+            }
+          ],
+          "aimedUnit": 4,
+          "focusGeometry": {
+            "aim": {
+              "x": 364.73120386906925,
+              "y": 129.93642607055992
+            },
+            "members": [
+              {
+                "id": 4,
+                "point": {
+                  "x": 364.093805908684,
+                  "y": 129.35493125221484
+                },
+                "distanceCSS": 0.8627933609303446
+              },
+              {
+                "id": 5,
+                "point": {
+                  "x": 366.63205488136634,
+                  "y": 130.7432168653255
+                },
+                "distanceCSS": 2.0649808612840426
+              },
+              {
+                "id": 6,
+                "point": {
+                  "x": 359.46809761778,
+                  "y": 129.73497253265327
+                },
+                "distanceCSS": 5.2669603131497835
+              }
+            ]
+          }
+        }
+      ],
+      "evidence": [
+        "568-friendly-group-focus-distant-group-count.png",
+        "568-friendly-group-focus-focused-group-expanded.png"
+      ],
+      "visualReviewRequired": true
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T18:24:33.069Z"
+}

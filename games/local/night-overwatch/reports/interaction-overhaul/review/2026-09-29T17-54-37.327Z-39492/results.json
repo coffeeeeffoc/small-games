@@ -1,0 +1,152 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:54:37.329Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "pinch-or-wheel",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchStart",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 327.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 516.0799999999999,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            },
+            {
+              "id": 2,
+              "x": 481.08,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchEnd",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 362.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "touchMove",
+          "touchPoints": [
+            {
+              "id": 1,
+              "x": 422.92,
+              "y": 218.40000000000003
+            }
+          ]
+        },
+        {
+          "action": "remaining-finger-screen-drift",
+          "fingerTravelCSS": 60,
+          "pixels": 6.745482612739601e-7,
+          "before": {
+            "aim": {
+              "x": 0.13939754774528446,
+              "z": -59.99619900354688
+            },
+            "aimScreen": {
+              "x": 421.9999942320421,
+              "y": 194.96246970434962
+            },
+            "zoom": 1.3499999999999999,
+            "fired": 0,
+            "held": []
+          },
+          "after": {
+            "aim": {
+              "x": 0.13953293205978312,
+              "z": -59.996191164281186
+            },
+            "aimScreen": {
+              "x": 421.9999942320673,
+              "y": 194.96247037889788
+            },
+            "zoom": 1.3499999999999999,
+            "fired": 0,
+            "held": []
+          }
+        },
+        {
+          "action": "touchCancel",
+          "touchPoints": []
+        }
+      ],
+      "evidence": [
+        "844-pinch-or-wheel-pinch-expanded.png",
+        "844-pinch-or-wheel-remaining-finger-before.png",
+        "844-pinch-or-wheel-remaining-finger-after-60px.png",
+        "844-pinch-or-wheel-cancelled-no-fire.png"
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:54:40.956Z"
+}

@@ -1,11 +1,34 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
-import { MISSION, UNITS, patrolPoint } from '../assets/scripts/core/Data.ts';
+import { FLIGHT, FRIENDLY_POSTS, MAP, MISSION, ROUTE, ROUTE_LENGTH, UNITS, WEAPONS, distance, impactDamage, patrolPoint } from '../assets/scripts/core/Data.ts';
 
 const tick = (s: Simulation, seconds: number) => {
   for (let n = 0; n < seconds * 60 && s.phase === 'playing'; n++) s.step(1 / 60);
 };
+
+test('larger battlefield disperses mission actors, preserves journey time and uses vehicle-sized hit hulls', () => {
+  const span = (points: { x: number; z: number }[], axis: 'x' | 'z') =>
+    Math.max(...points.map(p => p[axis])) - Math.min(...points.map(p => p[axis]));
+  assert(MAP.halfWidth * 2 * FLIGHT.metersPerUnit > 3000);
+  assert(MAP.halfDepth * 2 * FLIGHT.metersPerUnit > 1900);
+  assert(span(MISSION.events, 'x') > 270 && span(MISSION.events, 'z') > 125);
+  assert(span(ROUTE, 'x') > 250 && span(FRIENDLY_POSTS, 'x') > 180);
+  assert.equal(ROUTE_LENGTH / MISSION.speed, 240);
+  assert(MISSION.speed * FLIGHT.metersPerUnit < 16, 'convoy pace stays below 58 km/h');
+  for (let i = 0; i < FRIENDLY_POSTS.length; i++) for (let j = i + 1; j < FRIENDLY_POSTS.length; j++)
+    assert(distance(FRIENDLY_POSTS[i], FRIENDLY_POSTS[j]) > 90);
+  assert.equal(UNITS.light.radius, 0.9 * 0.25);
+  assert.equal(UNITS.heavy.radius, 1.6 * 0.25);
+  for (const kind of ['light', 'heavy', 'turret', 'rescue', 'escort'] as const) {
+    assert(UNITS[kind].radius < 0.5);
+    for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+      const damage = WEAPONS[weapon].damage * (kind === 'heavy' ? WEAPONS[weapon].armor : 1);
+      assert.equal(impactDamage(weapon, kind, UNITS[kind].radius), damage);
+      assert.equal(impactDamage(weapon, kind, UNITS[kind].radius + WEAPONS[weapon].radius + 0.001), 0);
+    }
+  }
+});
 
 test('defenders withstand three minutes without air support, but cannot win the mission alone', (t) => {
   const s = new Simulation(); s.start();
@@ -52,6 +75,7 @@ test('late air support with inaccurate aim and deliberate misses can still finis
     groundKills:s.friendlyKills, ammo:s.guns.map(g=>g.ammo), allies:s.units.filter(u=>u.friendly).map(u=>u.hp),
     remaining:s.units.filter(u=>!u.friendly&&u.hp>0).map(u=>({kind:u.kind,hp:u.hp,x:u.x,z:u.z})) }));
   assert.equal(s.phase, 'success');
+  assert(s.remaining >= 30, 'late, imperfect intervention retains time to inspect the wider battlefield');
   assert(deliberateMisses >= 6);
   assert.equal(s.friendlyDamage, 0);
   assert.equal(s.friendlyLosses, 0);

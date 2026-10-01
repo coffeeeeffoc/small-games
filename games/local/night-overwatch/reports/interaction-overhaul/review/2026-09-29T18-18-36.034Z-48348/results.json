@@ -1,0 +1,46 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f8f28eab6a6c710151d2b34e82050a5824f04338f7ec588fa942b5d2817171eb"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T18:18:36.035Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "right-click-controls",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "right-click",
+          "button": "weapon2",
+          "x": 1090,
+          "y": 723,
+          "selected": 0
+        }
+      ],
+      "evidence": [
+        "1366-right-click-controls-right-click-weapon.png"
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T18:18:38.720Z"
+}

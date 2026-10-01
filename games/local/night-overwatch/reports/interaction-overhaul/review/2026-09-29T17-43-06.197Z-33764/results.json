@@ -1,0 +1,382 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:43:06.199Z",
+  "status": "failed",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "focused-target-label",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 488.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "focus-label-comparison",
+          "target": 17,
+          "early": [
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": 17.027842541178984,
+              "y": -38.19463070585033
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": false,
+              "x": -284,
+              "y": 160
+            }
+          ],
+          "later": [
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": 17.027842541178984,
+              "y": -38.19463070585033
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": 0.00003919454513834353,
+              "y": 50.396496588997934
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "568-focused-target-label-wave-banner-active.png",
+        "568-focused-target-label-wave-banner-cleared.png",
+        "568-focused-target-label-failure.png"
+      ],
+      "failure": "AssertionError [ERR_ASSERTION]: A centered aimed enemy remains identified while the wave notice is shown\n    at file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:309:7\n    at async run (file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:94:9)\n    at async file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:295:5"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "focused-target-label",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "focus-label-comparison",
+          "target": 17,
+          "early": [
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": 20.74060631979762,
+              "y": -36.04686815325462
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": -0.00033277931913744396,
+              "y": -45.19001660291721
+            }
+          ],
+          "later": [
+            {
+              "id": 13,
+              "text": "轻车",
+              "active": false,
+              "x": 20.74060631979762,
+              "y": -36.04686815325462
+            },
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": -0.00036658319692151053,
+              "y": 50.920186703278404
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "844-focused-target-label-wave-banner-active.png",
+        "844-focused-target-label-wave-banner-cleared.png"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "focused-target-label",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "focus-label-comparison",
+          "target": 17,
+          "early": [
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": 1.7133434199446356,
+              "y": 50.05644438138148
+            }
+          ],
+          "later": [
+            {
+              "id": 17,
+              "text": "炮台",
+              "active": true,
+              "x": 2.4627420936516273,
+              "y": 50.10515689887484
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        "1366-focused-target-label-wave-banner-active.png",
+        "1366-focused-target-label-wave-banner-cleared.png"
+      ]
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:43:24.607Z"
+}

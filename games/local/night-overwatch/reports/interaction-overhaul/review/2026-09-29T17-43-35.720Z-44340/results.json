@@ -1,0 +1,48 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:43:35.721Z",
+  "status": "failed",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "right-click-controls",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "right-click",
+          "button": "weapon2",
+          "x": 1090,
+          "y": 723,
+          "selected": 2
+        }
+      ],
+      "evidence": [
+        "1366-right-click-controls-right-click-weapon.png",
+        "1366-right-click-controls-failure.png"
+      ],
+      "failure": "AssertionError [ERR_ASSERTION]: Temporary-focus mouse button does not activate HUD weapon selection\n\n2 !== 0\n\n    at file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:331:14\n    at async run (file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:94:9)\n    at async file:///F:/playground/playground-ai/small-games/games/local/night-overwatch/tests/usability-review.mjs:326:17"
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:43:38.694Z"
+}
