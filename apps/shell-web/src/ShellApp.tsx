@@ -6,6 +6,7 @@ import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-lo
 import { GameCatalog } from './GameCatalog.js';
 import { GameViewport } from './GameViewport.js';
 import { StandaloneGame } from './StandaloneGame.js';
+import { gameRouteHash, parseGameRoute } from './game-route.js';
 import standaloneGames from './standalone-games.json';
 import { createWebGameHost } from './host.js';
 import {
@@ -56,10 +57,9 @@ export function ShellApp({
   const [breaker] = useState(() => new VersionCircuitBreaker());
   const [hash, setHash] = useState(() => window.location.hash);
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
-  const game = registry.find((entry) => hash === `#/games/${encodeURIComponent(entry.id)}`);
-  const standalone = standaloneGames.find(
-    (entry) => hash === `#/games/${encodeURIComponent(entry.id)}`,
-  );
+  const route = parseGameRoute(hash);
+  const game = registry.find((entry) => entry.id === route?.id);
+  const standalone = standaloneGames.find((entry) => entry.id === route?.id);
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof defaultRuntime.catalog>>>([]);
   const [catalogReady, setCatalogReady] = useState(!runtimeClient);
   const [channel, setChannel] = useState<ReleaseChannel>('stable');
@@ -67,9 +67,7 @@ export function ShellApp({
   const [credential, setCredential] = useState(() => playerCredential ?? localPlayerCredential());
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [notice, setNotice] = useState(
-    runtimeClient ? '本地默认 Catalog 可随时启动。' : '即点即玩，游戏进度保存在当前浏览器。',
-  );
+  const [notice, setNotice] = useState('即点即玩，游戏进度保存在当前浏览器。');
   useEffect(() => {
     const syncRoute = () => setHash(window.location.hash);
     window.addEventListener('hashchange', syncRoute);
@@ -80,8 +78,8 @@ export function ShellApp({
     };
   }, []);
 
-  function navigate(gameId?: string) {
-    const next = gameId ? `#/games/${encodeURIComponent(gameId)}` : '';
+  function navigate(gameId?: string, search?: string) {
+    const next = gameRouteHash(gameId, search);
     if (window.location.hash !== next)
       window.history.pushState(
         null,
@@ -100,13 +98,11 @@ export function ShellApp({
         .then((entries) => {
           if (active) {
             setCatalog(entries);
-            setNotice(
-              entries.length ? '已连接已发布 Catalog。' : '尚无已发布版本，使用本地默认 Catalog。',
-            );
+            setNotice(entries.length ? '游戏列表已更新，选一个开始吧。' : '选一个玩法开始吧。');
           }
         })
         .catch(() => {
-          if (active) setNotice('Runtime 不可用，使用本地默认 Catalog。');
+          if (active) setNotice('云端暂不可用，仍可继续玩本地游戏。');
         })
         .finally(() => {
           if (active) setCatalogReady(true);
@@ -186,9 +182,10 @@ export function ShellApp({
 
   return standalone ? (
     <StandaloneGame
-      key={standalone.id}
+      key={`${standalone.id}:${route?.search}`}
       id={standalone.id}
       title={standalone.title}
+      search={route?.search}
       onExit={() => navigate()}
     />
   ) : selected && selected.id === game?.id ? (
@@ -206,7 +203,7 @@ export function ShellApp({
       <header>
         <small>COFFEEEEFFOC ARCADE</small>
         <h1>摸鱼游戏社</h1>
-        <p>选择一个小世界，随时可以安全返回。</p>
+        <p>漂移冲刺、围捕夹击、三词小岛、喜剧机关。挑个玩法，马上开玩。</p>
         <p role="status">{loading ? '正在进入游戏…' : notice}</p>
         {loadError && game && (
           <p role="alert">
@@ -215,32 +212,35 @@ export function ShellApp({
           </p>
         )}
         {runtimeClient && (
-          <fieldset disabled={loading}>
-            <legend>已发布版本选择</legend>
-            <label>
-              Release Channel
-              <select
-                value={channel}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value === 'development' || value === 'canary' || value === 'stable')
-                    setChannel(value);
-                }}
-              >
-                <option value="stable">stable</option>
-                <option value="canary">canary</option>
-                <option value="development">development</option>
-              </select>
-            </label>
-            <label>
-              固定版本（可选）
-              <input
-                value={versionId}
-                onChange={(event) => setVersionId(event.target.value.trim())}
-                placeholder="发布快照 SHA-256"
-              />
-            </label>
-          </fieldset>
+          <details>
+            <summary>版本设置</summary>
+            <fieldset disabled={loading}>
+              <legend>已发布版本选择</legend>
+              <label>
+                Release Channel
+                <select
+                  value={channel}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === 'development' || value === 'canary' || value === 'stable')
+                      setChannel(value);
+                  }}
+                >
+                  <option value="stable">stable</option>
+                  <option value="canary">canary</option>
+                  <option value="development">development</option>
+                </select>
+              </label>
+              <label>
+                固定版本（可选）
+                <input
+                  value={versionId}
+                  onChange={(event) => setVersionId(event.target.value.trim())}
+                  placeholder="发布快照 SHA-256"
+                />
+              </label>
+            </fieldset>
+          </details>
         )}
         {runtimeClient && (
           <details>

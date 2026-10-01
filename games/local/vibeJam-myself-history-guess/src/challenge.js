@@ -41,7 +41,7 @@ export function parseChallenge(search) {
   const params = new URLSearchParams(search);
   if (!params.has('daily')) return { challenge: null, error: false };
   const challenge = { day: params.get('daily'), region: params.get('region') ?? 'all', timed: params.get('timed') === '1' };
-  if (search.length > 512 || ['daily', 'v', 'region', 'timed'].some(key => params.getAll(key).length > 1)
+  if (search.length > 512 || params.has('route') || ['daily', 'v', 'region', 'timed'].some(key => params.getAll(key).length > 1)
       || !validChallenge(challenge) || ![null, '1'].includes(params.get('v'))
       || ![null, '0', '1'].includes(params.get('timed'))) return { challenge: null, error: true };
   return { challenge, error: false };

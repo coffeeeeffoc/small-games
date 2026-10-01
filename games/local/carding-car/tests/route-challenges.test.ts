@@ -55,7 +55,7 @@ test('a shared challenge reproduces every pickup and rejects forged or cross-mod
   const selection = { ...defaultSelection, route: 'city', theme: 'glacier' };
   const query = Object.fromEntries(new URLSearchParams(kartChallengeQuery(selection, 0xffffffff, 150.375)));
   const challenge = readKartChallenge(query)!;
-  assert.deepEqual(challenge, { selection, seed: 0xffffffff, time: 150.375 });
+  assert.deepEqual(challenge, { selection, seed: 0xffffffff, time: 150.375, mode: 'standard' });
   const search = kartChallengeQuery(selection, 0xffffffff, 150.375);
   assert.deepEqual(readKartChallengeSearch(search), challenge);
   for (const field of Object.keys(query)) {
@@ -67,7 +67,7 @@ test('a shared challenge reproduces every pickup and rejects forged or cross-mod
   assert.notDeepEqual(createItems(track, challenge.seed), createItems(track, 42));
   for (const override of [{ seed: '-1' }, { seed: '4294967296' }, { seed: '1e3' }, { seed: '00001' },
     { target: 'NaN' }, { target: '0' }, { target: '0150' }, { target: '3600001' }, { route: '../bad' },
-    { vehicle: 'unknown' }, { room: 'ABCD1234' }, { kartChallenge: 'v2' }])
+    { vehicle: 'unknown' }, { room: 'ABCD1234' }, { kartChallenge: 'v3' }, { mode: 'unknown' }])
     assert.equal(readKartChallenge({ ...query, ...override }), undefined);
   assert.equal(readKartChallenge({ kartChallenge: 'v1' }), undefined);
 });

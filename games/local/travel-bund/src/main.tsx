@@ -7,6 +7,7 @@ import type { Telemetry, Teleport } from './Scene';
 import { clearInput, destinations, input, readVisits, stories, type WorldData } from './world';
 import { audioActivity, chime, setAudio } from './audio';
 import { explorationRoutes, readRoute, routeProgress, routeShareUrl, type RouteId } from './routes';
+import { isRenderDetail, readRenderDetail, RENDER_DETAIL_KEY, type RenderDetail } from './render-settings';
 import './style.css';
 
 const KEY = 'travel-bund.visits.v1';
@@ -60,6 +61,19 @@ function App() {
   const [selectedRoute, setSelectedRoute] = useState<RouteId | null>(() => readRoute(location.search)),
     [shareBusy, setShareBusy] = useState(false),
     [shareLink, setShareLink] = useState('');
+  const shareFlight = useRef(false), shareVersion = useRef(0), mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; shareVersion.current++; };
+  }, []);
+  const [renderDetail, setRenderDetail] = useState<RenderDetail>(() => {
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(RENDER_DETAIL_KEY); } catch {}
+    return readRenderDetail(location.search, stored, touch ? 'light' : 'original');
+  });
+  useEffect(() => {
+    try { localStorage.setItem(RENDER_DETAIL_KEY, renderDetail); } catch {}
+  }, [renderDetail]);
   const [story, setStory] = useState<WorldData['landmarks'][number] | null>(null),
     [notice, setNotice] = useState(''),
     [photo, setPhoto] = useState<string | null>(null);
@@ -76,6 +90,16 @@ function App() {
     triangles: 0,
     fps: 0,
   });
+  useEffect(() => {
+    if (started || !data || !selectedRoute) return;
+    const invited = routeProgress(selectedRoute, visits)!;
+    const stop = invited.next || invited.route.stops[0], landing = destinations[stop.destination];
+    const landmark = data.landmarks.find(item => item.id === stop.landmark);
+    if (!landmark) return;
+    const yaw = Math.atan2(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]);
+    const pitch = Math.min(1.1, Math.atan2(stop.viewHeight,Math.hypot(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2])));
+    setTeleport(previous => ({...landing,yaw,pitch,serial:previous.serial+1}));
+  }, [data, selectedRoute, started]);
   const renderer = useRef<THREE.WebGLRenderer | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
     noticeTimer = useRef<number>(0),
@@ -246,6 +270,9 @@ function App() {
   const target =
     nearestBench && nearestBench.d < 4 ? 'bench' : nearest && nearest.d < 140 ? 'landmark' : null;
   const progress = routeProgress(selectedRoute, visits);
+  const nextLandmark = progress?.next && data?.landmarks.find(landmark=>landmark.id===progress.next!.landmark);
+  const routeDistance = nextLandmark ? Math.hypot(stats.position[0]-nextLandmark.position[0],stats.position[2]-nextLandmark.position[2]) : undefined;
+  const routeBearing = nextLandmark ? stats.yaw-Math.atan2(stats.position[0]-nextLandmark.position[0],stats.position[2]-nextLandmark.position[2]) : 0;
   action.current = () => {
     if (sitting) {
       setSitting(false);
@@ -280,10 +307,10 @@ function App() {
       notify('声音暂时无法启动，请再次点击。');
     }
   }
-  function travel(index: number) {
+  function travel(index: number, yaw?: number, pitch = [0,.3,.35,0,1.05][index]) {
     const d = destinations[index];
     setSitting(false);
-    setTeleport({ ...d, serial: teleport.serial + 1 });
+    setTeleport({ ...d, yaw: yaw ?? d.yaw, pitch, serial: teleport.serial + 1 });
     start();
     notify(`已到达 ${d.name}`);
   }
@@ -301,18 +328,33 @@ function App() {
     chime();
   }
   function chooseRoute(id: RouteId) {
+    shareVersion.current++;
     const selected = routeProgress(id, visits)!;
     setSelectedRoute(id);
     setShareLink('');
-    travel((selected.next || selected.route.stops[0]).destination);
+    const stop = selected.next || selected.route.stops[0], landing=destinations[stop.destination];
+    const landmark=data?.landmarks.find(item=>item.id===stop.landmark);
+    travel(stop.destination,landmark?Math.atan2(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]):landing.yaw,
+      landmark?Math.min(1.1,Math.atan2(stop.viewHeight,Math.hypot(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]))):0);
     notify(`已选「${selected.route.title}」。走近目标并收入手记，完成三处打卡。`);
   }
+  function changeRenderDetail(detail: RenderDetail) {
+    shareVersion.current++;
+    setShareLink('');
+    setRenderDetail(detail);
+    if (new URLSearchParams(location.search).has('renderDetail'))
+      history.replaceState(null,'',routeShareUrl(location.href,selectedRoute,detail));
+  }
   async function shareWalk() {
+    if (shareFlight.current) return;
+    shareFlight.current = true;
+    const version = shareVersion.current;
+    const current = () => mounted.current && shareVersion.current === version;
     setShareBusy(true);
     setShareLink('');
     setNotice('');
     window.clearTimeout(noticeTimer.current);
-    const url = routeShareUrl(location.href, selectedRoute);
+    const url = routeShareUrl(location.href, selectedRoute, renderDetail);
     const text = progress
       ? `我在「${progress.route.title}」收下了 ${progress.completed}/3 处风景。一起沿江走走？`
       : `我在外滩收下了 ${visits.length} 处风景。一起把江风留在手记里？`;
@@ -320,21 +362,26 @@ function App() {
       if (navigator.share) {
         try {
           await navigator.share({ title: '江风入境 · 外滩漫游', text, url });
-          notify('分享入口已打开。');
+          if (current()) notify('分享入口已打开。');
           return;
         } catch (error) {
+          if (!current()) return;
           if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') return;
         }
       }
+      if (!current()) return;
       try {
         await navigator.clipboard.writeText(url);
-        notify('漫游链接已复制，发给朋友一起走走。');
+        if (current()) notify('漫游链接已复制，发给朋友一起走走。');
       } catch {
-        setShareLink(url);
-        notify('可长按下面的链接，复制后发给朋友。');
+        if (current()) {
+          setShareLink(url);
+          notify('可长按下面的链接，复制后发给朋友。');
+        }
       }
     } finally {
-      setShareBusy(false);
+      shareFlight.current = false;
+      if (mounted.current) setShareBusy(false);
     }
   }
   function downloadPassport() {
@@ -417,6 +464,10 @@ function App() {
       data-grounded={stats.grounded}
       data-quality={quality}
       data-yaw={stats.yaw.toFixed(3)}
+      data-fps={stats.fps.toFixed(2)}
+      data-calls={stats.calls}
+      data-triangles={stats.triangles}
+      data-render-detail={renderDetail}
     >
       <div
         className="world"
@@ -431,7 +482,7 @@ function App() {
             <Canvas
               frameloop={active || !ready ? 'always' : 'demand'}
               shadows={quality > 0}
-              dpr={[1, quality === 0 ? 1 : quality === 1 ? 1.25 : 2]}
+              dpr={[quality === 0 ? .75 : 1, quality === 0 ? .75 : quality === 1 ? 1.25 : 2]}
               camera={{ position: [-393, 2.6, 37], fov: 68, near: 0.25, far: 12000 }}
               gl={{
                 antialias: true,
@@ -459,6 +510,7 @@ function App() {
                   onReady={readyScene}
                   onTelemetry={setStats}
                   quality={quality}
+                  renderDetail={renderDetail}
                 />
               </Suspense>
             </Canvas>
@@ -473,7 +525,7 @@ function App() {
             <span>31°14′ N &nbsp; 121°29′ E</span>
           </header>
           <div className="intro-copy">
-            <p className="eyebrow">一段没有行程表的旅行</p>
+            <p className="eyebrow">不赶时间，收下三处风景</p>
             <h1>
               江风
               <br />
@@ -502,6 +554,11 @@ function App() {
                 : 'W A S D 行走　·　鼠标环顾　·　Esc 暂停'}
             </p>
             {progress && <p className="intro-hint">收到一张漫游邀请：{progress.route.title} · 三处打卡</p>}
+            <div className="intro-routes" aria-label="挑一条漫游路线">
+              {explorationRoutes.map(route=><button key={route.id} aria-pressed={selectedRoute===route.id} onClick={()=>chooseRoute(route.id)}>
+                <b>{route.title}</b><small>三处风景 · 点这里出发 ↗</small>
+              </button>)}
+            </div>
           </div>
           <div className="intro-index">
             <span>01 — 05</span>
@@ -547,7 +604,8 @@ function App() {
               {progress && (
                 <button className="route-task" onClick={() => open('map')} aria-label="查看探索路线">
                   <b>{progress.route.title} · {progress.completed} / 3</b>
-                  <span>{progress.next ? `下一处：${progress.next.name} · 走近后收入手记` : '三处风景已收齐 · 去手记留念 ↗'}</span>
+                  <span>{progress.next ? `下一处：${progress.next.name}${routeDistance!==undefined?` · ${Math.round(routeDistance)} 米`:''} · 走近后收入手记` : '三处风景已收齐 · 去手记留念 ↗'}</span>
+                  {progress.next && <i className="route-bearing" aria-label="下一处风景的方向" style={{transform:`rotate(${routeBearing}rad)`}}>↑</i>}
                 </button>
               )}
               <div className="interaction">
@@ -698,12 +756,23 @@ function App() {
               </label>
               <label>
                 画面精度
-                <select value={quality} onChange={(e) => setQuality(Number(e.target.value))}>
+                <select aria-label="画面精度" value={quality} onChange={(e) => setQuality(Number(e.target.value))}>
                   <option value={0}>流畅</option>
                   <option value={1}>清晰</option>
                   <option value={2}>精细</option>
                 </select>
               </label>
+              <label>
+                模型细节
+                <select aria-label="模型细节" value={renderDetail} onChange={event=>{
+                  if(isRenderDetail(event.target.value))changeRenderDetail(event.target.value);
+                }}>
+                  <option value="original">原始 · 0 米，关闭几何简化</option>
+                  <option value="balanced">轻度 · 0.12 米，保留更多细部</option>
+                  <option value="light">轻量 · 0.35 米，优先降低绘制成本</option>
+                </select>
+              </label>
+              <p className="muted">模型细节只影响看见的装饰与树冠。行走碰撞、地标位置和打卡条件始终使用原始数据。</p>
               <label>
                 转头灵敏度
                 <input

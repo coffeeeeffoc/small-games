@@ -89,6 +89,7 @@ export class Simulation {
   friendlyKills = 0;
   fired = 0;
   hits = 0;
+  hitShots = 0;
   friendlyDamage = 0;
   rescueDamage = { friendly: 0, enemy: 0 };
   damageByThreat: Partial<Record<Kind, number>> = {};
@@ -108,6 +109,7 @@ export class Simulation {
   constructor(missionId: MissionId = 'corridor-01') {
     validateData();
     this.mission = missionDefinition(missionId);
+    this.aim = { x: this.mission.events[0].x, z: this.mission.events[0].z };
     Object.assign(this.addUnit('rescue', routePoint(0), true), { group: 0, routeOffset: 0 });
     Object.assign(this.addUnit('escort', routePoint(5), true), { group: 0, routeOffset: 5 });
     Object.assign(this.addUnit('escort', routePoint(10), true), { group: 0, routeOffset: 10 });
@@ -208,7 +210,7 @@ export class Simulation {
     if (pressed) this.fire();
   }
   command() {
-    if (this.phase !== 'playing' || this.paused || this.convoy === 'arrived') return;
+    if (this.mission.mode === 'training' || this.phase !== 'playing' || this.paused || this.convoy === 'arrived') return;
     if (this.convoy === 'moving') {
       if (!HOLD_POINTS.some((p) => p > this.progress + 0.01)) return;
       this.convoy = 'holdRequested';
@@ -339,6 +341,7 @@ export class Simulation {
       }
     }
     if (hit) {
+      this.hitShots++;
       this.misses = 0;
       if (this.warning === 'lead') this.warning = '';
     } else if (++this.misses >= 7) this.warning = 'lead';
@@ -360,6 +363,7 @@ export class Simulation {
   step(dt: number) {
     if (this.phase !== 'playing' || this.paused) return;
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
+    if (this.mission.mode === 'training') dt = Math.min(dt, Math.max(0, this.mission.duration - this.time));
     this.time += dt;
     this.flight.step(dt);
     const previous = this.units.map(({ x, y, z }) => ({ x, y, z }));
@@ -412,7 +416,7 @@ export class Simulation {
       if (u.hp <= 0) continue;
       const spec = UNITS[u.kind], target = this.nearestOpponent(u);
       if (
-        target &&
+        this.mission.mode !== 'training' && target &&
         spec.damage > 0 &&
         this.time - u.born >= this.mission.warmup &&
         u.attack <= 0 &&
@@ -440,13 +444,14 @@ export class Simulation {
     }
     this.spawn();
     if (this.progress >= ROUTE_LENGTH) this.convoy = 'arrived';
-    if (this.rescue.hp <= 0 || this.failedGroup !== undefined) {
-      this.failedGroup ??= 0;
+    if (this.rescue.hp <= 0 || this.failedGroup !== undefined || this.mission.mode === 'training' && this.friendlyLosses > 0) {
+      this.failedGroup ??= this.mission.mode === 'training'
+        ? this.units.find((unit) => unit.friendly && unit.hp <= 0)?.group ?? 0 : 0;
       this.phase = 'failure';
       this.failure = 'vehicle';
-    } else if (this.convoy === 'arrived' && this.threatsRemaining === 0) {
+    } else if ((this.convoy === 'arrived' || this.mission.mode === 'training') && this.threatsRemaining === 0) {
       this.phase = 'success';
-      this.completed.add('arrived');
+      if (this.mission.mode === 'escort') this.completed.add('arrived');
     } else if (this.time >= this.mission.duration) {
       this.phase = 'failure';
       this.failure = 'timeout';

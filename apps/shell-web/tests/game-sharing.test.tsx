@@ -38,6 +38,14 @@ it('retains only the selected Game public parameters', () => {
     ),
   ).toBe(`${cops}?mode=challenge&level=4&rule=relay`);
   expect(gameShareUrl('unknown', entry, `${entry}?daily=2026-10-01`)).toBe(entry);
+  const river = entry.replace('letters-words2', 'travel-bund');
+  expect(
+    gameShareUrl(
+      'travel-bund',
+      river,
+      `${river}?route=bridges&renderDetail=original&token=private`,
+    ),
+  ).toBe(`${river}?route=bridges&renderDetail=original`);
 });
 
 it('shows a selected manual link after clipboard failure and never reports cancellation as copying', async () => {
