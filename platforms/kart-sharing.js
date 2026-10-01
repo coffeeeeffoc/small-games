@@ -11,22 +11,29 @@
     ? sdks[platform]
     : sdks.bilibili || sdks.wechat || sdks.douyin || sdks.kuaishou;
   if (!sdk) return;
+  const defaultTitle = '好友一起开跑，来我的卡丁车房间！';
   let query = '',
+    title = defaultTitle,
     launchQuery = {};
   try {
     launchQuery = sdk.getLaunchOptionsSync?.()?.query || {};
   } catch {
     /* Optional launch metadata. */
   }
-  const payload = () => ({ title: '好友一起开跑，来我的卡丁车房间！', query });
+  function setQuery(value, nextTitle) {
+    query = typeof value === 'string' ? value : '';
+    title =
+      typeof nextTitle === 'string' && nextTitle.trim()
+        ? nextTitle.trim().slice(0, 80)
+        : defaultTitle;
+  }
+  const payload = () => ({ title, query });
   const bridge = (globalThis.__kartPlatform = {
     serverUrl: globalThis.__kartServerUrl || '',
     query: launchQuery,
-    setQuery(value) {
-      query = value;
-    },
-    share(value) {
-      query = value;
+    setQuery,
+    share(value, nextTitle) {
+      setQuery(value, nextTitle);
       if (!sdk.shareAppMessage) return false;
       try {
         sdk.shareAppMessage(payload());
@@ -47,9 +54,16 @@
   } catch {
     /* Optional share-menu capability. */
   }
-  sdk.onShow?.((options) => {
-    if (!options?.query?.room) return;
-    bridge.query = options.query;
-    bridge.onInvite?.(bridge.query);
-  });
+  try {
+    sdk.onShow?.((options) => {
+      const incoming = options?.query;
+      if (!incoming || typeof incoming !== 'object' || !Object.keys(incoming).length) return;
+      bridge.query = incoming;
+      // The Game validates public challenge parameters and decides when to start.
+      bridge.onLaunch?.(incoming);
+      if (incoming.room) bridge.onInvite?.(incoming);
+    });
+  } catch {
+    /* A missing warm-launch subscription must not block cold-launch play. */
+  }
 })();

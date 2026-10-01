@@ -1889,3 +1889,5 @@ body:is([data-phase="playing"],[data-phase="paused"]) .command-bar:has(.cop-card
 
 .cop-roster:has(.cop-card:nth-child(6)) .roster-role{display:none}.cop-roster:has(.cop-card:nth-child(6)) .cop-card svg{width:24px;height:24px}
 .cop-roster:has(.cop-card:nth-child(6)) .cop-card:before{content:attr(data-member);position:absolute;left:3px;top:1px;color:#29493f;background:#fff9e9;border-radius:3px;font:bold 10px sans-serif;line-height:12px;padding:0 2px}
+
+.share-url{display:block;width:100%;min-height:44px;margin-top:8px;padding:9px;border:1px solid #b6c9b7;border-radius:8px;font:inherit;font-size:12px}.share-button{min-width:44px;min-height:44px;padding:6px;font-size:13px}

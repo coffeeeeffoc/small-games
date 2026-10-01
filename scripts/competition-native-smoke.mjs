@@ -36,6 +36,7 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       const intervals = new Set();
       const labels = [];
       const paths = [];
+      const buttons = [];
       let transform = { x: 0, y: 0, sx: 1, sy: 1 };
       const stack = [];
       const context2d = new Proxy(
@@ -47,6 +48,7 @@ for (const [game, selected] of Object.entries(competitionGames)) {
             if (y === 0 && stack.length === 0) {
               labels.length = 0;
               paths.length = 0;
+              buttons.length = 0;
             }
           },
           fillText(text, x, y) {
@@ -58,6 +60,9 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           },
           measureText(text) {
             return { width: String(text).length * 8 };
+          },
+          roundRect(x, y, width, height) {
+            if (height === 44) buttons.push({ x, y, width, height });
           },
           save() {
             stack.push({ ...transform });
@@ -136,12 +141,20 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       let state = rule.initial(0),
         seq = 0,
         saves = 0,
-        storageFails = false;
+        storageFails = false,
+        status = 'playing',
+        currentCode = 'ABCDEFABCDEF',
+        seat = 0,
+        rematchRequests = 0,
+        deferRematch = false,
+        pendingRematchSuccess = null;
+      const shares = [],
+        clipboard = [];
       const room = () => ({
-        code: 'ABCDEFABCDEF',
+        code: currentCode,
         game,
         version: rule.version,
-        status: 'playing',
+        status,
         seq,
         roles: rule.roles,
         mode: rule.modes?.[0].id,
@@ -150,8 +163,8 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           { id: 'a', role: 'pursuer', ready: true },
           { id: 'b', role: 'runner', ready: true },
         ],
-        you: 0,
-        state: rule.view(state, 0),
+        you: seat,
+        state: status === 'waiting' ? null : rule.view(state, 0),
         serverNow: 1000,
         deadline: 1000 + rule.durationMs,
       });
@@ -199,15 +212,39 @@ for (const [game, selected] of Object.entries(competitionGames)) {
             state = rule.action(state, data.action, 0, 0) || state;
             seq++;
             result = room();
+          } else if (route.endsWith('/rematch')) {
+            assert.equal(status, 'finished');
+            rematchRequests++;
+            if (deferRematch) {
+              pendingRematchSuccess = () =>
+                success({ statusCode: 200, data: { ...room(), rematch: 'FEDCBAFEDCBA' } });
+              return;
+            }
+            result = { ...room(), rematch: '012345ABCDEF' };
+          } else if (route.endsWith('/join')) {
+            assert.equal(data.game, game);
+            assert.equal(data.code, '012345ABCDEF');
+            currentCode = data.code;
+            status = 'waiting';
+            seat = 0;
+            result = room();
           } else result = room();
           success({ statusCode: 200, data: result });
         },
         showShareMenu() {},
-        shareAppMessage() {},
+        shareAppMessage(payload) {
+          shares.push(payload);
+        },
+        setClipboardData({ data, success }) {
+          clipboard.push(data);
+          success();
+        },
         showKeyboard() {},
         hideKeyboard() {},
         getLaunchOptionsSync() {
           if (audioMode === 'create-failure') throw new Error('launch metadata unavailable');
+          if (audioMode === 'normal')
+            return { query: { game, matchId: '012345ABCDEF', entry: 'challenge' } };
           return undefined;
         },
       };
@@ -248,6 +285,11 @@ for (const [game, selected] of Object.entries(competitionGames)) {
         `${platform}/${game} must render title`,
       );
       assert.deepEqual([canvas.width, canvas.height], [780, 1688]);
+      if (audioMode === 'normal')
+        assert.ok(
+          labels.some(({ text }) => text === '加入 012345ABCDEF'),
+          'native launch receives the actual shared challenge code',
+        );
       const emit = (name, event) => {
         for (const fn of listeners.get(name)) fn(event);
       };
@@ -343,13 +385,18 @@ for (const [game, selected] of Object.entries(competitionGames)) {
         throw new Error('share unavailable');
       };
       tap('邀请');
+      await flush();
       assert.ok(
         labels
           .map(({ text }) => text)
           .join('')
-          .includes('可分享或发送房间码'),
+          .includes('分享未完成，可复制邀请或手动发送房间码'),
         'optional share failure preserves room-code invitation',
       );
+      tap('复制邀请');
+      await flush();
+      assert.ok(clipboard.at(-1).includes('ABCDEFABCDEF'));
+      tap('返回比赛');
       emit('Hide');
       assert.equal(audio.playing, false);
       const requestCount = requests.length;
@@ -362,6 +409,114 @@ for (const [game, selected] of Object.entries(competitionGames)) {
         'background taps and polling cannot mutate gameplay',
       );
       emit('Show');
+      // A server-confirmed terminal snapshot exposes a new, actually joinable rematch invitation.
+      status = 'finished';
+      seat = ['initialize-failure', 'play-failure'].includes(audioMode) ? 1 : 0;
+      for (const poll of intervals) poll();
+      await flush();
+      dimensions = {
+        windowWidth: 320,
+        windowHeight: 568,
+        pixelRatio: 2,
+        safeArea: { top: 30, bottom: 534 },
+      };
+      emit('WindowResize', dimensions);
+      const expectReachableButtons = () => {
+        for (const button of buttons) {
+          assert.ok(
+            button.x >= 0 && button.x + button.width <= 320,
+            'short-screen buttons fit horizontally',
+          );
+          assert.ok(
+            button.y >= 30 && button.y + button.height <= 534,
+            `button stays inside short-screen safe area: ${JSON.stringify(button)}`,
+          );
+        }
+      };
+      expectReachableButtons();
+      const beforeShare = seq;
+      sdk.shareAppMessage =
+        audioMode === 'create-failure'
+          ? undefined
+          : (payload) => {
+              shares.push(payload);
+              if (audioMode === 'initialize-failure')
+                return Promise.reject(new Error('share denied'));
+              if (audioMode === 'play-failure') payload.fail();
+            };
+      tap('分享再战邀请');
+      tap('分享再战邀请');
+      await flush();
+      expectReachableButtons();
+      assert.equal(rematchRequests, 1, 'duplicate result-share taps create only one rematch');
+      assert.equal(currentCode, 'ABCDEFABCDEF', 'sharing preserves the original result screen');
+      const sharedPayload =
+        audioMode === 'create-failure' ? [...listeners.get('ShareAppMessage')][0]() : shares.at(-1);
+      assert.equal(
+        sharedPayload.query,
+        `game=${encodeURIComponent(game)}&matchId=012345ABCDEF&entry=challenge`,
+      );
+      assert.doesNotMatch(JSON.stringify(sharedPayload), /token|authorization|playerId|expiresAt/);
+      if (audioMode !== 'normal')
+        assert.ok(
+          labels
+            .map(({ text }) => text)
+            .join('')
+            .includes('可复制邀请或手动发送房间码'),
+          'unsupported and rejected sharing preserves manual invitation',
+        );
+      sdk.setClipboardData =
+        audioMode === 'normal'
+          ? sdk.setClipboardData
+          : audioMode === 'create-failure'
+            ? undefined
+            : ({ fail }) => {
+                if (audioMode === 'initialize-failure') fail();
+                else throw new Error('clipboard denied');
+              };
+      tap('复制邀请');
+      await flush();
+      expectReachableButtons();
+      if (audioMode === 'normal')
+        assert.ok(clipboard.at(-1).includes('012345ABCDEF'), 'clipboard uses the new waiting room');
+      else
+        assert.ok(
+          labels
+            .map(({ text }) => text)
+            .join('')
+            .includes('未能复制，请手动发送房间码 012345ABCDEF'),
+          'clipboard failures provide the actual usable code',
+        );
+      assert.equal(
+        seq,
+        beforeShare,
+        'sharing and creating a waiting rematch do not submit scores/actions',
+      );
+      tap('返回本局结果');
+      tap('再来一局');
+      await flush();
+      assert.equal(rematchRequests, 1, 'entering after sharing reuses the exact rematch');
+      assert.equal(currentCode, '012345ABCDEF');
+      assert.equal(status, 'waiting', 'both original room seats can open an unstarted rematch');
+      assert.ok(labels.some(({ text }) => text === '准备'));
+      assert.ok(labels.some(({ text }) => text.includes('复制邀请 · 012345ABCDEF')));
+      const beforeWrongGame = requests.length;
+      emit('Show', {
+        query: { game: 'foreign-game', matchId: 'FEDCBAFEDCBA', entry: 'challenge' },
+      });
+      await flush();
+      assert.ok(
+        labels
+          .map(({ text }) => text)
+          .join('')
+          .includes('另一款游戏'),
+      );
+      assert.equal(
+        requests.length,
+        beforeWrongGame,
+        'foreign invitations never autojoin or discard an existing room',
+      );
+      assert.equal(currentCode, '012345ABCDEF');
       storageFails = true;
       tap('声音：');
       assert.ok(
@@ -374,6 +529,28 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       assert.deepEqual([canvas.width, canvas.height], [1260, 2700]);
       const instance = module.exports.instance;
       assert.ok(instance, 'native bundle exports its stoppable session');
+      if (audioMode === 'normal' || audioMode === 'initialize-failure') {
+        status = 'finished';
+        vm.runInContext(`Date.now = () => ${Date.now() + 10000}`, context);
+        for (const poll of intervals) poll();
+        await flush();
+        deferRematch = true;
+        const previousJoins = requests.filter(({ url }) => url.endsWith('/rooms/join')).length;
+        const previousShares = shares.length;
+        tap(audioMode === 'normal' ? '再来一局' : '分享再战邀请');
+        await flush();
+        assert.equal(typeof pendingRematchSuccess, 'function');
+        emit('Hide');
+        if (audioMode === 'normal') instance.stop();
+        pendingRematchSuccess();
+        await flush();
+        assert.equal(
+          requests.filter(({ url }) => url.endsWith('/rooms/join')).length,
+          previousJoins,
+          'a rematch resolving after disposal cannot join another room',
+        );
+        assert.equal(shares.length, previousShares, 'a hidden scene cannot open late SDK sharing');
+      }
       instance.stop();
       instance.stop();
       assert.equal(

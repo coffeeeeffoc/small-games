@@ -1,5 +1,6 @@
 import "./style.css";
 import { rounds, cities } from "./rounds.js";
+import { today, parseChallenge, dailyDeck, challengeKey, challengeUrl, validChallenge, restoreDailyJourney } from './challenge.js';
 import {
   chooseRounds,
   ROUND_COUNT,
@@ -46,6 +47,7 @@ const escape = (text) =>
       ],
   );
 let saved = { best: 0, visited: [], sound: true };
+const invitation = parseChallenge(location.search);
 try {
   const value = JSON.parse(localStorage.getItem("here-and-then.v1"));
   if (value && typeof value === "object")
@@ -56,6 +58,9 @@ try {
         : [],
       sound: value.sound !== false,
       journey: value.journey,
+      dailyJourney: value.dailyJourney,
+      dailyRecord: validChallenge(value.dailyRecord?.challenge) && Number.isInteger(value.dailyRecord?.total)
+        && value.dailyRecord.total >= 0 && value.dailyRecord.total <= 25000 ? value.dailyRecord : null,
     };
 } catch {
   /* A new travel journal is usable even when browser storage is unavailable. */
@@ -79,8 +84,9 @@ let viewer = null,
   screenEvents = new AbortController();
 let state = {
   screen: "home",
-  region: "all",
-  timed: false,
+  region: invitation.challenge?.region || "all",
+  timed: invitation.challenge?.timed || false,
+  daily: null,
   practice: "",
   deck: [],
   index: 0,
@@ -93,13 +99,15 @@ let state = {
 };
 function saveJourney() {
   if (state.screen !== "game" || !["guessing", "revealed"].includes(state.phase)) return;
-  saved.journey = {
+  const journey = {
     version: 1, region: state.region, timed: state.timed, practice: state.practice,
     deck: state.deck.map((round) => round.id), index: state.index,
     results: state.results.map(({ id, guess, year, timedOut }) => ({ id, guess, year, timedOut })),
     phase: state.phase, guess: state.guess, year: state.year,
     yearTouched: state.yearTouched, deadline: state.deadline,
   };
+  if (state.daily) saved.dailyJourney = { ...journey, daily: state.daily };
+  else saved.journey = journey;
   save();
 }
 function on(selector, event, fn) {
@@ -218,6 +226,8 @@ function cluesMarkup(round) {
 function home() {
   saveJourney();
   const journey = restoreJourney(saved.journey, rounds);
+  const day = invitation.challenge?.day || state.daily?.day || today();
+  const dailyJourney = restoreDailyJourney(saved.dailyJourney, rounds);
   const cover = rounds.find((round) => round.id === "kaifeng") || rounds[0];
   cleanup();
   state.screen = "home";
@@ -229,16 +239,35 @@ function home() {
       <label class="scene-picker" for="scene-select">指定场景练习<select id="scene-select"><option value="">随机旅途 · 每局 ${ROUND_COUNT} 幕</option>${["china", "world"].map((region) => `<optgroup label="${region === "china" ? "中国历史" : "世界历史"}">${rounds.filter((r) => r.region === region).map((r) => `<option value="${r.id}">${escape(r.title)}</option>`).join("")}</optgroup>`).join("")}</select></label>
       ${journey ? `<div class="resume-journey"><button class="primary" id="resume">继续上次旅途 · 第 ${journey.index + 1} / ${journey.deck.length} 幕 ${icon("arrow")}</button><small>地点、年代与进度已保留${journey.timed ? " · 限时仍按原截止时间计时" : " · 不限时"}</small></div>` : ""}
       <button class="${journey ? "secondary" : "primary"} start-button" id="start">${journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}</button><p class="start-note" id="start-note">${journey ? "另开会替换未完成旅途" : `每局 ${ROUND_COUNT} 幕 · 默认不限时`} <span>·</span> 优先探索未见场景</p>
+      <section class="daily-card" aria-label="每日同题旅途"><strong>${invitation.challenge ? "收到同题邀请" : "每日五幕 · 和朋友走同一条旅途"}</strong><p>${day} · 北京时间换新。使用上方旅途与限时规则；同题不受本机足迹影响，普通旅途进度另外保留。</p><div class="daily-actions"><button class="secondary" id="daily-start">开始每日五幕</button><button class="text-button" id="daily-share">邀请朋友同题</button></div><small id="daily-record"></small></section>
     </div><figure class="hero-postcard"><div class="postcard-image"><img src="${cover.image}" alt="${escape(cover.place)}的历史想象复原" fetchpriority="high"><span class="image-corner">历史的另一种打开方式</span><div class="panorama-badge">${icon("eye")}<span>360°<small>沉浸式观察</small></span></div></div><figcaption><span><i>第 001 号时空切片</i><strong>人间烟火，穿越千年。</strong></span><span class="postcard-stamp">山河<br>故人</span></figcaption><span class="postcard-edge" aria-hidden="true"></span></figure></section>
     <section class="how-strip" aria-label="三步开始探索"><div><span class="step-number">壹</span><p><strong>观其景</strong><small>转动视角，发现细节</small></p>${icon("eye")}</div><div><span class="step-number">贰</span><p><strong>辨其地</strong><small>展开地图，落下坐标</small></p>${icon("pin")}</div><div><span class="step-number">叁</span><p><strong>知其时</strong><small>拨动年份，揭开往事</small></p>${icon("clock")}</div></section>
     </main><footer class="site-footer"><span>${rounds.length} 幕历史想象 · 中国 ${rounds.filter((r) => r.region === "china").length} 幕 · 世界 ${rounds.filter((r) => r.region === "world").length} 幕</span><span>AI 场景复原 <span class="footer-dot">·</span> 中文地理底图 <span class="footer-dot">·</span> 为好奇心而作</span></footer></div>`;
   on("#start", "click", () => {
+    state.daily = null;
     state.region = $('input[name="region"]:checked').value;
     state.timed = $("#timed").checked;
     state.practice = $("#scene-select").value;
     start();
   });
   on("#resume", "click", () => start(journey));
+  const currentDaily = () => ({ day, region: $('input[name="region"]:checked').value, timed: $("#timed").checked });
+  const refreshDaily = () => {
+    const selected = currentDaily();
+    $("#daily-start").textContent = dailyJourney && challengeKey(dailyJourney.daily) === challengeKey(selected)
+      ? `继续每日五幕 · 第 ${dailyJourney.index + 1} 幕` : '开始每日五幕';
+    $("#daily-record").textContent = saved.dailyRecord && challengeKey(saved.dailyRecord.challenge) === challengeKey(selected)
+      ? `本机同题最佳 ${saved.dailyRecord.total.toLocaleString("zh-CN")} / 25000 分 · 可重玩、分享邀约` : '每日固定五幕；结算后可以同题再练、与朋友交流观察线索。';
+  };
+  on("#daily-start", "click", () => {
+    const selected = currentDaily();
+    if (dailyJourney && challengeKey(dailyJourney.daily) === challengeKey(selected)) return start(dailyJourney);
+    state.daily = selected; state.region = selected.region; state.timed = selected.timed; state.practice = "";
+    start();
+  });
+  on("#daily-share", "click", () => shareDaily(currentDaily()));
+  document.querySelectorAll('input[name="region"], #timed').forEach(field => field.addEventListener('change', refreshDaily, { signal: screenEvents.signal }));
+  refreshDaily();
   on("#scene-select", "change", (event) => {
     const practice = Boolean(event.target.value);
     $("#start").innerHTML = `${practice ? "走进这一幕" : journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}`;
@@ -251,10 +280,10 @@ function home() {
 async function start(journey = null) {
   cleanup();
   chime();
-  state = journey ? { ...state, ...journey, screen: "game", phase: "loading" } : {
+  state = journey ? { ...state, ...journey, daily: journey.daily || null, screen: "game", phase: "loading" } : {
     ...state,
     screen: "game",
-    deck: state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region, Math.random, saved.visited),
+    deck: state.daily ? dailyDeck(rounds, state.daily) : state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region, Math.random, saved.visited),
     index: 0,
     results: [],
     phase: "loading",
@@ -369,7 +398,7 @@ async function start(journey = null) {
   on("#submit", "click", () => reveal(false));
   on("#panorama", "viewererror", () => {
     clearInterval(clock);
-    const journey = restoreJourney(saved.journey, rounds);
+    const journey = state.daily ? restoreDailyJourney(saved.dailyJourney, rounds) : restoreJourney(saved.journey, rounds);
     state.phase = "error";
     showLoadError("画面连接已中断，请重新载入这一幕", async () => {
       const { createViewer } = await import("./viewer.js");
@@ -425,7 +454,7 @@ async function loadRound(journey = null) {
   $("#load-cover").hidden = false;
   $("#load-cover").innerHTML =
     `<span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p>`;
-  $("#round-label").textContent = `第 ${state.index + 1} 幕 / ${state.deck.length}`;
+    $("#round-label").textContent = `${state.daily ? "每日 · " : ""}第 ${state.index + 1} 幕 / ${state.deck.length}`;
   $("#progress-dots").innerHTML = state.deck
     .map(
       (_, i) =>
@@ -643,8 +672,14 @@ function renderResult() {
 }
 function finish() {
   const total = state.results.reduce((sum, result) => sum + result.total, 0);
-  if (!state.practice && state.results.length === ROUND_COUNT) saved.best = Math.max(saved.best, total);
-  saved.journey = null;
+  if (state.daily) {
+    const same = saved.dailyRecord && challengeKey(saved.dailyRecord.challenge) === challengeKey(state.daily);
+    saved.dailyRecord = { challenge: state.daily, total: Math.max(same ? saved.dailyRecord.total : 0, total) };
+    saved.dailyJourney = null;
+  } else {
+    if (!state.practice && state.results.length === ROUND_COUNT) saved.best = Math.max(saved.best, total);
+    saved.journey = null;
+  }
   save();
   cleanup();
   state.screen = "finish";
@@ -664,10 +699,27 @@ function finish() {
     })
     .join(
       "",
-    )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">${state.practice ? "再练这一幕" : "再赴一场相遇"} ${icon("arrow")}</button></div><p class="summary-best">${state.practice ? "单幕练习不计入五幕纪录 · " : ""}本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分 · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
+    )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">${state.daily ? "同题再练 · 再找一次线索" : state.practice ? "再练这一幕" : "再赴一场相遇"} ${icon("arrow")}</button>${state.daily ? '<button class="secondary" id="daily-share">分享战绩 · 邀请同题</button>' : ""}</div><p class="summary-best">${state.daily ? `${state.daily.day} · 本机同题最佳 ${saved.dailyRecord.total.toLocaleString("zh-CN")} 分 · 重玩已知题，不计普通旅途纪录` : `${state.practice ? "单幕练习不计入五幕纪录 · " : ""}本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分`} · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
   on("#home", "click", home);
   on("#again", "click", () => start());
   on("#journal", "click", journal);
+  on("#daily-share", "click", () => shareDaily(state.daily, total));
   window.scrollTo(0, 0);
 }
+async function shareDaily(challenge, total = null) {
+  const link = challengeUrl(location, challenge);
+  const text = `${challenge.day} 此时·此地每日五幕 · ${challenge.region === 'china' ? '中国足迹' : '世界漫游'} · ${challenge.timed ? '90 秒挑战' : '不限时'}${total === null ? '' : ` · 我得了 ${total} / 25000 分`}。一起观察同样的历史线索！`;
+  if (navigator.share) {
+    try { await navigator.share({ title: '此时·此地 · 每日五幕', text, url: link }); toast('已打开同题分享。'); return; }
+    catch (error) { if (error?.name === 'AbortError') { toast('已取消分享，旅途进度已保留。'); return; } }
+  }
+  const dialog = modal('邀朋友，走同一条旅途', `<p>${escape(text)}</p><label for="daily-link">每日同题链接</label><input class="daily-link" id="daily-link" type="text" readonly value="${escape(link)}"><p class="muted" id="share-status" role="status">链接只有日期与旅途规则，不包含场景答案。</p><button class="primary" id="copy-daily">复制同题链接</button>`);
+  const field = dialog.querySelector('#daily-link');
+  field.select();
+  dialog.querySelector('#copy-daily').onclick = async () => {
+    try { await navigator.clipboard.writeText(link); dialog.querySelector('#share-status').textContent = '同题链接已复制。'; }
+    catch { field.focus(); field.select(); dialog.querySelector('#share-status').textContent = '请长按或使用浏览器复制选中的链接。'; }
+  };
+}
 home();
+if (invitation.error) toast('同题链接日期、版本或规则无效；原旅途进度已保留。');

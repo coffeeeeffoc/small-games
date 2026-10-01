@@ -39,6 +39,8 @@ import { multiplayerVersion, type RoomState } from './MultiplayerProtocol';
 import { readInvitation, platformSharing } from './Invitation';
 import { angleDelta } from './KartConfig';
 import { competition, rankedResultText, type CompetitionBoard, type BoardEntry } from './CompetitionClient';
+import { readPassport, awardPassport, readKartChallenge, readKartChallengeSearch, kartChallengeQuery, kartChallengeTitle,
+  type RoutePassport, type KartChallenge } from './RouteChallenges';
 const { ccclass } = _decorator;
 
 @ccclass('KartGame')
@@ -58,6 +60,10 @@ export class KartGame extends Component {
   sceneryLoaded = false;
   records: RaceRecord[] = [];
   selection: Selection = { ...defaultSelection };
+  passport: RoutePassport = {};
+  activeChallenge?: KartChallenge;
+  pendingChallenge?: KartChallenge;
+  sharing = false;
   themeRoot?: Node;
   itemsView?: ItemsView;
   loadVersion = 0;
@@ -96,10 +102,71 @@ export class KartGame extends Component {
   choose = (field: keyof Selection, delta: number) => {
     if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
     this.selection = cycleSelection(this.selection, field, delta);
+    if (field === 'route') this.activeChallenge = undefined;
     try {
       sys.localStorage.setItem('kart-selection-v1', JSON.stringify(this.selection));
     } catch {}
     this.loadSelection(false, false);
+  };
+  receiveChallenge = (query: Record<string, unknown>) => {
+    const challenge = readKartChallenge(query);
+    if (!challenge) return;
+    if (this.race.phase === 'ready' && !this.multiplayer?.room && !this.roomPanel?.root.active) {
+      this.pendingChallenge = undefined;
+      this.activeChallenge = challenge;
+      this.selection = { ...challenge.selection };
+      this.loadSelection(false, false);
+    } else {
+      this.pendingChallenge = challenge;
+      this.hud.challengeNotice = '收到同路线挑战 · 更换配置后查看，不中断本场';
+    }
+  };
+  enterGarage = () => {
+    if (this.multiplayer?.room && this.roomPanel) {
+      this.roomPanel.root.active = true;
+      return;
+    }
+    if (this.pendingChallenge) {
+      this.activeChallenge = this.pendingChallenge;
+      this.selection = { ...this.pendingChallenge.selection };
+      this.pendingChallenge = undefined;
+      this.hud.challengeNotice = '';
+    }
+    this.loadSelection();
+  };
+  shareChallenge = async () => {
+    const p = this.race.drivers[0].progress;
+    if (this.sharing || this.race.networked || this.race.phase !== 'finished' || !p.finishedAt) return;
+    this.sharing = true;
+    const challenge = { selection: { ...this.selection }, seed: this.seed, time: p.finishedAt };
+    let browserAddressReady = false;
+    try {
+      const query = kartChallengeQuery(challenge.selection, challenge.seed, challenge.time);
+      const title = kartChallengeTitle(challenge);
+      const platform = platformSharing();
+      if (platform) {
+        this.hud.challengeNotice = platform.share(query, title)
+          ? '已请求分享 · 好友将挑战同路线、同道具布局'
+          : '当前平台未开放分享，可继续挑战路线印章';
+      } else if (sys.isBrowser) {
+        const url = new URL(location.href);
+        url.search = query;
+        url.hash = url.username = url.password = '';
+        history.replaceState(null, '', url.href);
+        browserAddressReady = true;
+        if (navigator.share) await navigator.share({ title, text: title, url: url.href });
+        else {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(title + '\n' + url.href);
+          else { this.hud.challengeNotice = '同道具挑战已写入当前地址 · 复制浏览器地址即可分享'; return; }
+        }
+        this.hud.challengeNotice = '挑战分享已完成 · 好友使用同路线、同道具布局';
+      }
+    } catch (error) {
+      this.hud.challengeNotice = error && typeof error === 'object' && 'name' in error && error.name === 'AbortError'
+        ? '已取消分享 · 本场成绩仍保留'
+        : browserAddressReady ? '同道具挑战已写入当前地址 · 复制浏览器地址即可分享'
+          : '分享未完成 · 本场成绩仍保留';
+    } finally { this.sharing = false; }
   };
   loadSelection(autoStart = false, rerollBots = true, room?: RoomState) {
     const version = ++this.loadVersion;
@@ -113,8 +180,9 @@ export class KartGame extends Component {
     const theme = themes.find((t) => t.id === this.selection.theme)!;
     const route = routes.find((r) => r.id === this.selection.route)!;
     setThemeLighting(this.themeRoot, theme.id === 'glacier');
-    if (room) this.seed = room.seed;
-    else this.seed++;
+    if (room) { this.seed = room.seed; this.activeChallenge = undefined; }
+    else if (this.activeChallenge) this.seed = this.activeChallenge.seed;
+    else this.seed = (this.seed + 1) >>> 0;
     this.race = new RaceManager(route.track, this.seed, room?.roster.length ?? 4);
     this.renderPoses = [];
     this.race.networked = !!room;
@@ -129,6 +197,9 @@ export class KartGame extends Component {
     this.camera.height = 3.6;
     this.camera.lookHeight = 1.5;
     this.hud.selection = { ...this.selection };
+    if (!this.pendingChallenge) this.hud.challengeNotice = '';
+    this.hud.passport = this.passport;
+    this.hud.challenge = this.activeChallenge;
     this.hud.lastPhase = '';
     this.readRouteRecords();
     if (rerollBots)
@@ -182,15 +253,19 @@ export class KartGame extends Component {
     this.audio = new AudioFeedback(this.node);
     try {
       this.selection = readSelection(sys.localStorage.getItem('kart-selection-v1'));
+      this.passport = readPassport(sys.localStorage.getItem('kart-route-passport-v1'));
       if (sys.localStorage.getItem('kart-driving-coach-v1') === 'done')
         this.hud.coach.enabled = false;
     } catch {}
-    const invitation = readInvitation(
-      sys.isBrowser
+    const launch = sys.isBrowser
         ? Object.fromEntries(new URLSearchParams(location.search))
-        : platformSharing()?.query || {},
-    );
+        : platformSharing()?.query || {};
+    const invitation = readInvitation(launch);
     if (invitation) this.selection = invitation.selection;
+    else if ((this.activeChallenge = sys.isBrowser ? readKartChallengeSearch(location.search) : readKartChallenge(launch)))
+      this.selection = { ...this.activeChallenge.selection };
+    const sharing = platformSharing();
+    if (sharing) sharing.onLaunch = this.receiveChallenge;
     this.controller = new KartController(
       () => this.race,
       () => this.restart(),
@@ -200,10 +275,7 @@ export class KartGame extends Component {
       },
       () => this.audio.activate(this.muted),
       this.choose,
-      () => {
-        if (this.multiplayer?.room && this.roomPanel) this.roomPanel.root.active = true;
-        else this.loadSelection();
-      },
+      this.enterGarage,
       () =>
         !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
       () => this.loadSelection(true),
@@ -216,6 +288,7 @@ export class KartGame extends Component {
         coach.enabled = !coach.enabled;
         if (coach.enabled) coach.step = 0;
       },
+      this.shareChallenge,
     );
     this.loadSelection();
     this.setupMultiplayer();
@@ -243,6 +316,9 @@ export class KartGame extends Component {
             : null,
           phase: this.race.phase,
           selection: { ...this.selection },
+          seed: this.seed,
+          challenge: this.activeChallenge ? { ...this.activeChallenge, selection: { ...this.activeChallenge.selection } } : null,
+          passport: { ...this.passport },
           loading: !this.race.loaded,
           requestedArt: Array.from(requestedArt),
           loadError: this.race.loadError,
@@ -382,7 +458,7 @@ export class KartGame extends Component {
           client.leave();
           this.networkRaceId = 0;
           this.roomPanel!.root.active = false;
-          this.loadSelection();
+          this.enterGarage();
         },
       );
       const storage = sys.isBrowser ? sessionStorage : sys.localStorage;
@@ -557,8 +633,11 @@ export class KartGame extends Component {
         place: this.race.order.indexOf(0) + 1,
       });
       this.hud.records = this.records;
+      this.passport = awardPassport(this.passport, this.selection.route, this.race);
+      this.hud.passport = this.passport;
       try {
         sys.localStorage.setItem(this.recordKey, JSON.stringify(this.records));
+        sys.localStorage.setItem('kart-route-passport-v1', JSON.stringify(this.passport));
       } catch {}
     }
     this.views.forEach((v, i) => {
@@ -611,6 +690,7 @@ export class KartGame extends Component {
   onDestroy() {
     const platform = platformSharing();
     if (platform) platform.onInvite = undefined;
+    if (platform?.onLaunch === this.receiveChallenge) platform.onLaunch = undefined;
     this.multiplayer?.leave();
     this.loadVersion++;
     game.off(Game.EVENT_HIDE, this.hide, this);
