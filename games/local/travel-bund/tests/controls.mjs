@@ -74,9 +74,14 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
     await page.getByRole('button', { name: '暂停漫游' }).tap();
     assert.deepEqual(await readInput(), { stick: [0, 0], look: [0, 0], active: false, keys: [] });
-    await page.getByRole('combobox').selectOption('1');
+    await page.getByRole('combobox',{name:'画面精度'}).selectOption('1');
     await expect(page.locator('main')).toHaveAttribute('data-quality', '1');
-    await page.getByRole('combobox').selectOption('0');
+    await page.getByRole('combobox',{name:'画面精度'}).selectOption('0');
+    for(const detail of ['original','balanced','light']) {
+      await page.getByRole('combobox',{name:'模型细节'}).selectOption(detail);
+      await expect(page.locator('main')).toHaveAttribute('data-render-detail',detail);
+      assert.equal(await page.evaluate(()=>localStorage.getItem('travel-bund.render-detail.v1')),detail);
+    }
     await page.getByRole('button', { name: '继续漫游' }).tap();
     assert((await readInput()).active);
     results.push({ viewport, checks: ['mobile defaults to smooth quality and allows switching', 'original joystick/look ownership survives extra fingers', 'lost joystick capture releases movement', 'pause clears controls and resume works'] });

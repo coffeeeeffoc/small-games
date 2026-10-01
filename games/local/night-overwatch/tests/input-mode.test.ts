@@ -104,3 +104,82 @@ test('changing missions requires a briefing or result; retry preserves the chose
   assert.equal(g.sim.held.size, 0);
   assert.equal(g.sim.time, 0);
 });
+
+test('actual warmup entry, retry and return keep saved escort preferences and system pauses independent', () => {
+  const g = mission(), saved = new Map([['night-overwatch-mission-v1', 'ambush-02']]);
+  const original = cc.sys.localStorage, writes: string[] = [];
+  cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
+    setItem: (key: string, value: string) => { writes.push(key); saved.set(key, value); } } as any;
+  try {
+    g.prepareMission('?mission=training-60');
+    assert.equal(g.sim.mission.id, 'training-60'); assert.equal(g.sim.phase, 'briefing');
+    assert.equal(g.selectedMission, 'ambush-02'); assert.deepEqual(writes, []);
+    g.sim.pause('background', true);
+    g.action('start'); g.action('missionReturn');
+    assert.equal(g.sim.mission.id, 'training-60', 'a live range cannot be abandoned by a hidden menu action');
+    g.sim.guns[2].ammo = 1; g.retry();
+    assert.equal(g.sim.time, 0); assert.equal(g.sim.spawned.size, 3);
+    assert.equal(g.sim.guns[2].ammo, 30); assert(g.sim.pauses.has('background'));
+    g.sim.phase = 'failure'; g.action('missionReturn');
+    assert.equal(g.sim.mission.id, 'ambush-02'); assert.equal(g.sim.phase, 'briefing');
+    assert(g.sim.pauses.has('background')); assert.deepEqual(writes, []);
+    for (const query of ['?mission=unknown', '?mission=training-60&mission=training-60']) {
+      g.prepareMission(query); assert.equal(g.sim.mission.id, 'ambush-02');
+    }
+    g.prepareMission('?mission=patrol-03');
+    assert.equal(g.sim.mission.id, 'patrol-03'); assert.deepEqual(writes, []);
+    g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
+    g.action('missionReturn'); assert.equal(g.sim.mission.id, 'patrol-03');
+    assert.equal(saved.get('night-overwatch-mission-v1'), 'ambush-02');
+    g.platform.saveMission('training-60'); assert.deepEqual(writes, []);
+  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
+});
+
+test('training result saves only a clean successful range score in its separate key', () => {
+  const g = mission(), saved = new Map([['night-overwatch-mission-v1', 'patrol-03'], ['night-overwatch-coach-v2', 'done']]);
+  const original = cc.sys.localStorage, writes: string[] = [];
+  cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
+    setItem: (key: string, value: string) => { writes.push(key); saved.set(key, value); } } as any;
+  try {
+    g.prepareMission('?mission=training-60'); g.action('start');
+    for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
+    Object.assign(g.sim, { phase: 'success', time: 20, fired: 5, hitShots: 5, kills: 3 });
+    g.saveTrainingResult();
+    assert.deepEqual(writes, ['night-overwatch-training-v1']);
+    assert.equal(g.hud.trainingBest.time, 20);
+    assert.equal(saved.get('night-overwatch-mission-v1'), 'patrol-03');
+    assert.equal(saved.get('night-overwatch-coach-v2'), 'done');
+    g.sim.time = 15; g.sim.friendlyDamage = 10; g.saveTrainingResult();
+    assert.equal(writes.length, 1); assert.equal(g.hud.trainingBest.time, 20);
+    g.sim.mission = { ...g.sim.mission, mode: 'escort' }; g.saveTrainingResult();
+    assert.equal(writes.length, 1);
+  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
+});
+
+test('actual task choices update public entry URLs without carrying private fields or credentials', () => {
+  const g = mission(); g.sim.phase = 'briefing';
+  const names = ['location', 'history'] as const;
+  const originals = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+  const browserLocation = { href: 'https://user:password@example.test/night/?mission=training-60&private=secret#old' };
+  cc.sys.isBrowser = true;
+  Object.defineProperties(globalThis, {
+    location: { configurable: true, value: browserLocation },
+    history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
+  });
+  try {
+    g.action('training');
+    assert.equal(browserLocation.href, 'https://example.test/night/?mission=training-60');
+    g.action('missionReturn');
+    assert.equal(browserLocation.href, 'https://example.test/night/?mission=corridor-01');
+    g.action('missionNext');
+    assert.equal(browserLocation.href, 'https://example.test/night/?mission=ambush-02');
+    assert.equal(g.sim.phase, 'briefing');
+  } finally {
+    cc.sys.isBrowser = false;
+    names.forEach((name, index) => {
+      if (originals[index]) Object.defineProperty(globalThis, name, originals[index]!);
+      else delete (globalThis as any)[name];
+    });
+    g.platform.dispose();
+  }
+});

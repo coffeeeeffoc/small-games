@@ -51,9 +51,9 @@ function game(id) {
   };
 }
 
-test('24 levels have complete content, independent reset state and no immediate win', () => {
+test('26 levels have complete content, independent reset state and no immediate win', () => {
   const { levels, data } = game(1);
-  assert.deepEqual(Object.keys(levels), Array.from({ length: 24 }, (_, i) => String(i + 1)));
+  assert.deepEqual(Object.keys(levels), Array.from({ length: 26 }, (_, i) => String(i + 1)));
   assert.deepEqual(Object.keys(data), Object.keys(levels));
   for (const id of Object.keys(levels)) {
     for (const field of ['title', 'goal', 'intro', 'joke', 'record']) assert.ok(data[id][field]?.trim(), `L${id} ${field}`);
@@ -188,4 +188,27 @@ test('L24: cabinet must open and trophy must reach the viewer slot; cancelled an
   run.draw().get('award-cabinet').click();let trophy=run.draw().get('viewer-trophy');trophy.drag(110,315);trophy.up();assert.equal(s.awarded,false);
   trophy=run.draw().get('viewer-trophy');trophy.drag(240,80);run.levels[24].cancel(s);assert.equal(s.trophyY,325);assert.equal(s.awarded,false);
   trophy=run.draw().get('viewer-trophy');trophy.drag(240,20);trophy.up();run.tick(.1);assert.equal(s.won,true);
+});
+
+test('L25: heartache is counted on the scale; parking it, weighing nearby, and leaving are separate actions', () => {
+  const run=game(25),s=run.state;
+  run.draw().get('worry-weigh').click();assert.equal(s.overloaded,false);assert.equal(s.weighed,false);
+  s.p.x=223;run.tick(.1);run.draw().get('worry-weigh').click();assert.equal(s.overloaded,true);assert.equal(s.weighed,false);
+  let cloud=run.draw().get('worry-cloud');cloud.drag(240,200);cloud.up();assert.equal(s.cloudParked,false);assert.equal(s.cloudX,223);
+  cloud=run.draw().get('worry-cloud');cloud.drag(113,190);run.levels[25].cancel(s);assert.equal(s.cloudDrag,false);assert.equal(s.cloudParked,false);assert.equal(s.cloudX,223);
+  cloud=run.draw().get('worry-cloud');cloud.drag(113,190);cloud.up();assert.equal(s.cloudParked,true);assert.equal(s.weighed,false);
+  s.p.x=65;run.draw().get('worry-weigh').click();assert.equal(s.weighed,false);
+  s.p.x=223;run.draw().get('worry-weigh').click();assert.equal(s.weighed,true);assert.equal(run.levels[25].platforms(s).length,0);run.tick(.1);assert.equal(s.won,false);
+  s.p.x=430;run.tick(.1);assert.equal(s.won,true);
+});
+
+test('L26: picking up a nearby remote and moving away enables channels; the exit remains open while walking back', () => {
+  const run=game(26),s=run.state;
+  run.draw().get('far-remote').click();assert.equal(s.remoteHeld,false);
+  s.p.x=245;run.draw().get('far-remote').click();assert.equal(s.remoteHeld,true);
+  run.draw().get('far-remote').click();assert.equal(s.tooClose,true);assert.equal(s.channel,0);
+  s.p.x=160;run.draw().get('far-remote').click();assert.equal(s.channel,1);assert.equal(s.won,false);
+  run.draw().get('far-remote').click();assert.equal(s.channel,2);run.tick(3);assert.equal(s.won,false);assert.equal(s.channel,2);
+  run.draw().get('far-remote').click();assert.equal(s.channel,0);s.p.x=380;run.tick(.1);assert.equal(s.won,false);
+  s.p.x=120;run.draw().get('far-remote').click();run.draw().get('far-remote').click();s.p.x=380;run.tick(.1);assert.equal(s.won,true);
 });

@@ -7,6 +7,7 @@ import { createProgress, advanceCheckpoint } from './CheckpointSystem.ts';
 import { updateLap } from './LapSystem.ts';
 import { ranking } from './RankingSystem.ts';
 import { aiInput } from './KartAI.ts';
+export type RaceMode = 'standard' | 'sprint';
 
 export class RaceManager {
   track: ReturnType<typeof createTrack>;
@@ -19,8 +20,13 @@ export class RaceManager {
   networked = false;
   names: string[] = [];
   networkOrder?: number[];
-  constructor(options: TrackOptions = {}, seed?: number, count = 4) {
+  readonly mode: RaceMode;
+  readonly laps: number;
+  constructor(options: TrackOptions = {}, seed?: number, count = 4, mode: RaceMode = 'standard') {
     if (!Number.isInteger(count) || count < 1 || count > 8) throw new Error('Invalid driver count');
+    if (mode !== 'standard' && mode !== 'sprint') throw new Error('Invalid race mode');
+    this.mode = mode;
+    this.laps = mode === 'sprint' ? 1 : C.laps;
     this.track = createTrack(options);
     this.drivers = this.makeDrivers(count);
     if (seed !== undefined) this.items = createItems(this.track, seed);
@@ -227,7 +233,7 @@ export class RaceManager {
           (dt * wrapDistance(-previousS, this.track.length)) /
             wrapDistance(progressRoad.s - previousS, this.track.length)
         : this.time;
-      const finished = updateLap(d.progress, crossed, crossingTime);
+      const finished = updateLap(d.progress, crossed, crossingTime, this.laps);
       if (crossed) d.shortcut = i === 3 && this.track.shortcut.length > 1;
       if (
         legal &&

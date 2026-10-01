@@ -30,6 +30,7 @@ import {
 } from './core/Data';
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
+import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 
 const C = {
   ink: '#101e24f5',
@@ -75,6 +76,7 @@ export class HUD {
   toolsOpen = false;
   toast = '';
   toastUntil = 0;
+  trainingBest?: TrainingRecord;
   unitLabels = new Map<number, Label>();
   lastHelpLine = '';
   safe = { left: 0, right: 0, top: 0, bottom: 0 };
@@ -369,6 +371,7 @@ export class HUD {
     const g = n.addComponent(Graphics);
     const paused = key === 'pause', settings = key === 'settings';
     const allies = s.units.filter((u) => u.friendly).length;
+    const training = s.mission.mode === 'training';
     this.rect(g, 0, 0, this.w, this.h, paused ? '#05090c9c' : '#061116d9');
     const pw = Math.min(paused || settings ? 480 : 880, this.w - this.safe.left - this.safe.right - 32),
       ph = Math.min(paused || settings ? 320 : 540, this.h - this.safe.top - this.safe.bottom - 72);
@@ -381,11 +384,11 @@ export class HUD {
       help = key.startsWith('help');
     const heading =
       key === 'briefing'
-        ? this.t('夜航守望', 'NIGHT OVERWATCH')
+        ? training ? this.t('60秒火控热身', '60s FIRE CONTROL') : this.t('夜航守望', 'NIGHT OVERWATCH')
         : key === 'success'
-          ? this.t('车队安全抵达', 'CONVOY EXTRACTED')
+          ? training ? this.t('三靶清除，热身完成', 'THREE TARGETS CLEARED') : this.t('车队安全抵达', 'CONVOY EXTRACTED')
           : key === 'failure'
-            ? this.t('护送中断', 'ESCORT INTERRUPTED')
+            ? training ? this.t('热身结束，再试一次', 'WARMUP ENDED · TRY AGAIN') : this.t('护送中断', 'ESCORT INTERRUPTED')
             : key === 'orientation'
               ? this.t('横屏，进入火控席', 'ROTATE TO LANDSCAPE')
               : help
@@ -515,8 +518,14 @@ export class HUD {
         contentTop = py + (low ? 52 : small ? 65 : 118);
       if (split) {
         this.label(n, 'NIGHT 07  /  ' + text(s.mission.name, this.lang), px + pw / 2, py + 86, 12, pw - 48, 24, C.mint);
-        this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235);
-        this.label(
+        if (training) {
+          for (const [i, target] of [this.t('◇ 静止目标 → 爆破炮', '◇ STATIC → BURST'),
+            this.t('◇ 巡逻目标 → 弹着提前量', '◇ ROVER → LEAD THE SHOT'),
+            this.t('◇ 重甲目标 → 重型炮', '◇ ARMOR → HEAVY')].entries())
+            this.label(n, target, px + pw * .72, contentTop + 52 + i * 56, 17, pw * .43, 44, C.amber);
+        } else {
+          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235);
+          this.label(
           n,
           this.t('西岭 → 河谷桥 → 东岭营地', 'WEST RIDGE → RIVER → EXTRACTION'),
           px + pw * 0.71,
@@ -526,12 +535,14 @@ export class HUD {
           32,
           C.dim,
         );
+        }
       }
       const cx = split ? px + pw * 0.25 : px + pw / 2,
         cw = split ? pw * 0.42 : pw - 36;
       this.label(
         n,
-        text(s.mission.name, this.lang) + ' · ' + this.t('护送清敌', 'ESCORT & CLEAR'),
+        training ? this.t('60 秒内清除 3 种目标', 'CLEAR THREE TARGET TYPES IN 60s')
+          : text(s.mission.name, this.lang) + ' · ' + this.t('护送清敌', 'ESCORT & CLEAR'),
         cx,
         contentTop + 14,
         small ? 16 : 21,
@@ -540,7 +551,8 @@ export class HUD {
         C.white,
       ).isBold = true;
       for (const [i, message] of [
-        this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
+        training ? this.t('练瞄准，友军仍不能误伤', 'Practice aiming; do not hit allies')
+          : this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
         text(s.mission.description, this.lang),
       ].entries())
         this.label(
@@ -568,14 +580,18 @@ export class HUD {
         low ? 28 : 44,
         C.dim,
       );
-      const primaryW = key === 'briefing' ? (pw - 56) / 2 : Math.min(260, pw - 48);
-      if (key === 'briefing') this.button('missionNext', this.t('切换任务  ↻', 'CHANGE MISSION  ↻'), px + 24, bottom, primaryW, 44, n);
+      const primaryW = key === 'briefing' ? (pw - (training ? 56 : 64)) / (training ? 2 : 3) : Math.min(260, pw - 48);
+      if (key === 'briefing') {
+        this.button(training ? 'missionReturn' : 'missionNext', training ? this.t('返回护送', 'BACK TO ESCORT')
+          : this.t('切换任务 ↻', 'CHANGE TASK ↻'), px + 24, bottom, primaryW, 44, n);
+        if (!training) this.button('training', this.t('60秒热身', '60s WARMUP'), px + 32 + primaryW, bottom, primaryW, 44, n);
+      }
       this.button(
         key === 'briefing' ? 'start' : 'resume',
         key === 'briefing'
-          ? this.t('开始护送  →', 'BEGIN ESCORT  →')
+          ? training ? this.t('开始60秒 →', 'START 60s →') : this.t('护送开跑 →', 'BEGIN ESCORT →')
           : this.t('返回任务', 'RESUME'),
-        key === 'briefing' ? px + 32 + primaryW : px + pw / 2 - primaryW / 2,
+        key === 'briefing' ? px + (training ? 32 + primaryW : 40 + 2 * primaryW) : px + pw / 2 - primaryW / 2,
         bottom,
         primaryW,
         44,
@@ -604,10 +620,10 @@ export class HUD {
       this.label(
         n,
         success
-          ? this.t(`护送评价  ${s.rating}`, `RATING  ${s.rating}`)
+          ? this.t(`${training ? '热身' : '护送'}评价  ${s.rating}`, `${training ? 'WARMUP' : 'ESCORT'} RATING  ${s.rating}`)
           : this.t(
-              s.failure === 'vehicle' ? lostOutpost ? `第 ${s.failedGroup} 据点全灭` : '救援车被毁' : '撤离窗口关闭',
-              s.failure === 'vehicle' ? lostOutpost ? `OUTPOST ${s.failedGroup} LOST` : 'Rescue vehicle lost' : 'Evacuation window closed',
+              training ? s.failure === 'vehicle' ? '误伤友军，热身中断' : '60秒结束，还有目标' : s.failure === 'vehicle' ? lostOutpost ? `第 ${s.failedGroup} 据点全灭` : '救援车被毁' : '撤离窗口关闭',
+              training ? s.failure === 'vehicle' ? 'FRIENDLY LOST · WARMUP STOPPED' : '60s ENDED · TARGETS REMAIN' : s.failure === 'vehicle' ? lostOutpost ? `OUTPOST ${s.failedGroup} LOST` : 'Rescue vehicle lost' : 'Evacuation window closed',
             ),
         px + pw / 2,
         py + (low ? 73 : small ? 75 : 120),
@@ -620,8 +636,10 @@ export class HUD {
         statW = (pw - 48) / 3,
         cleared = s.kills + s.friendlyKills;
       for (const [i, [value, caption]] of [
-        [`${allies - s.friendlyLosses} / ${allies}`, this.t('友军存活', 'ALLIES ALIVE')],
-        [`${cleared} / ${cleared + s.threatsRemaining}`, this.t('清除威胁', 'THREATS')],
+        [training ? `${s.time.toFixed(1)}s` : `${allies - s.friendlyLosses} / ${allies}`, training
+          ? this.trainingBest ? this.t(`用时 · 最佳${this.trainingBest.time.toFixed(1)}s`, `TIME · BEST ${this.trainingBest.time.toFixed(1)}s`)
+            : this.t('热身用时', 'WARMUP TIME') : this.t('友军存活', 'ALLIES ALIVE')],
+        [training ? `${s.hitShots} / ${s.fired}` : `${cleared} / ${cleared + s.threatsRemaining}`, training ? this.t('命中发 / 已发射', 'HIT SHOTS / FIRED') : this.t('清除威胁', 'THREATS')],
         [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
       ].entries()) {
         const x = px + 24 + statW * (i + 0.5);
@@ -629,9 +647,11 @@ export class HUD {
         this.label(n, caption, x, statY + 29, 12, statW - 8, 22, C.dim);
       }
       if (ph >= 310) this.label(n,
-        this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
-        px + pw / 2, statY + 51, 11, statW - 8, 20, C.dim);
-      const advice = success
+        training ? this.t(`清靶 ${s.kills} / 3${this.trainingBest ? ` · 零友伤最佳 ${this.trainingBest.time.toFixed(1)}s / ${this.trainingBest.fired}发` : ''}`,
+          `CLEARED ${s.kills}/3${this.trainingBest ? ` · CLEAN BEST ${this.trainingBest.time.toFixed(1)}s / ${this.trainingBest.fired} shots` : ''}`)
+          : this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
+        px + pw / 2, statY + 51, 11, training ? pw - 48 : statW - 8, 20, C.dim);
+      const advice = training ? text(trainingNextGoal(s), this.lang) : success
         ? s.rating === 'S'
           ? this.t(
               `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} 发。再战，减少耗弹。`,
@@ -672,12 +692,14 @@ export class HUD {
         low ? 24 : small ? 44 : 62,
         C.dim,
       );
-      const resultW = (pw - 56) / 2;
-      this.button('missionNext', this.t('换个任务', 'OTHER MISSION'), px + 24, bottom, resultW, 44, n);
+      const resultW = (pw - (training ? 56 : 64)) / (training ? 2 : 3);
+      this.button(training ? 'missionReturn' : 'missionNext', training ? this.t('返回护送', 'BACK TO ESCORT')
+        : this.t('换个任务', 'OTHER TASK'), px + 24, bottom, resultW, 44, n);
+      if (!training) this.button('training', this.t('60秒热身', '60s WARMUP'), px + 32 + resultW, bottom, resultW, 44, n);
       this.button(
         'retry',
-        this.t('再次出动  ↻', 'RETRY  ↻'),
-        px + 32 + resultW,
+        training ? this.t('再练一轮 ↻', 'TRY AGAIN ↻') : this.t('再次出动 ↻', 'RETRY ↻'),
+        px + (training ? 32 + resultW : 40 + 2 * resultW),
         bottom,
         resultW,
         44,
@@ -778,7 +800,9 @@ export class HUD {
     const allies = s.units.filter((u) => u.friendly).length;
     this.set('health', this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
     this.labels.get('health')!.color = col(s.rescue.hp / s.rescue.maxHp < 0.3 ? C.red : C.mint);
-    this.set('progress', this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
+    this.set('progress', s.mission.mode === 'training'
+      ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
+      : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
     const clock = Math.ceil(s.remaining);
     this.set('status', `${world.thermal ? 'IR' : 'DAY'}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('telemetry', this.desktop
@@ -810,7 +834,9 @@ export class HUD {
       ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
       : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
     const step = TUTORIAL.find((e) => !s.completed.has(e));
-    this.set('tutorial', this.tutorial && step
+    this.set('tutorial', s.mission.mode === 'training'
+      ? this.t('60秒清3靶 · 静止用爆破 · 巡逻留提前量 · 重甲用重炮', 'CLEAR THREE IN 60s · BURST STATIC · LEAD ROVER · HEAVY ARMOR')
+      : this.tutorial && step
       ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
       : this.t('护送并清除全部威胁 · □ 友军 / ◇ 敌军 · 小地图北向固定', 'ESCORT & CLEAR ALL THREATS · □ FRIEND / ◇ FOE · MAP NORTH UP'));
     if (this.compact) {
@@ -839,7 +865,7 @@ export class HUD {
     toggle.label.node.getComponent(UITransform)!.setContentSize(toggle.w - 8, 42);
     toggle.label.string = this.toolsOpen ? this.t('收起 ▴', 'CLOSE ▴')
       : this.desktop ? this.t('飞行控制 ▾', 'FLIGHT ▾') : this.t('飞行 ▾', 'FLIGHT ▾');
-    this.buttons.find((b) => b.id === 'convoy')!.label.node.active = !(this.toolsOpen && !this.desktop && panel.y < top + 110);
+    this.buttons.find((b) => b.id === 'convoy')!.label.node.active = s.mission.mode !== 'training' && !(this.toolsOpen && !this.desktop && panel.y < top + 110);
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
       const selected = b.id === 'weapon' + s.selected || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {

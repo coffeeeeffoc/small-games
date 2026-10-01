@@ -28,4 +28,6 @@ test('shared route selectors reject unknown and duplicated values and retain onl
   assert.equal(routeShareUrl('https://example.test/games/travel-bund/index.html?debug=1&token=private#settings', 'bridges'), 'https://example.test/games/travel-bund/index.html?route=bridges');
   assert.equal(routeShareUrl('https://user:password@example.test//games/travel-bund/?private=1#room', 'skyline'), 'https://example.test//games/travel-bund/?route=skyline');
   assert.equal(routeShareUrl('https://example.test/games/travel-bund/index.html?route=skyline', 'unknown' as any), 'https://example.test/games/travel-bund/index.html');
+  assert.equal(routeShareUrl('https://example.test/game/?account=private#room', 'skyline', 'original'), 'https://example.test/game/?route=skyline&renderDetail=original');
+  assert.equal(routeShareUrl('https://example.test/game/?renderDetail=__proto__', null, '__proto__' as any), 'https://example.test/game/');
 });
