@@ -18,7 +18,9 @@ const server = createServer((request, response) => {
       : html(
           request.url === '/host'
             ? `<main data-game-display-host><button data-game-fullscreen>全屏</button><iframe src="/game" allow="fullscreen" allowfullscreen style="height:600px;width:100%"></iframe></main>`
-            : game,
+            : request.url === '/separate-panel'
+              ? `<main data-game-display-host><p>另一个游戏面板</p></main><iframe src="/game" allow="fullscreen" allowfullscreen style="height:600px;width:100%"></iframe>`
+              : game,
         ),
   );
 });
@@ -72,6 +74,19 @@ try {
       progressPreserved: true,
       modalExit: true,
     });
+    await page.close();
+  }
+  // A marker in a sibling panel must not steal an independent iframe's fullscreen request.
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await page.goto(origin + '/separate-panel');
+    const gameFrame = page.frameLocator('iframe');
+    await gameFrame.getByRole('button', { name: '全屏', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.tagName)).toBe('IFRAME');
+    await expect.poll(() => page.frames()[1].evaluate(() => document.fullscreenElement?.tagName)).toBe('HTML');
+    await gameFrame.getByRole('button', { name: '退出全屏', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+    results.push({ entry: 'iframe beside another game panel', isolatedFullscreen: true });
     await page.close();
   }
   for (const mode of ['unsupported', 'rejected', 'no-event']) {

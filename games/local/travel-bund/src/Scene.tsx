@@ -8,6 +8,7 @@ import { Sky as EnvironmentSky } from 'three/addons/objects/Sky.js';
 import {
   input,
   movement,
+  placementBatches,
   onWater,
   destinations,
   type V3,
@@ -174,35 +175,41 @@ function Furniture({
   night: boolean;
 }) {
   const { scene } = useGLTF(url(name), decoder);
+  const batches = useMemo(
+    () => (live || name === 'huangpu-cruise-boat' ? [placements] : placementBatches(placements)),
+    [placements, live, name],
+  );
   const objects = useMemo(() => {
     const result: THREE.InstancedMesh[] = [];
     scene.updateMatrixWorld(true);
     scene.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
-      const materials = (Array.isArray(o.material) ? o.material : [o.material]).map((m) =>
-        m.clone(),
-      );
-      materials.forEach(surfaceMaterial);
-      const mesh = new THREE.InstancedMesh(
-        o.geometry,
-        Array.isArray(o.material) ? materials : materials[0],
-        placements.length,
-      );
-      mesh.castShadow = name !== 'plane-tree-planter';
-      mesh.receiveShadow = true;
-      placements.forEach((p, i) => {
-        const matrix = new THREE.Matrix4().compose(
-          new THREE.Vector3(...p.position),
-          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw),
-          new THREE.Vector3(...p.scale),
+      for (const batch of batches) {
+        const materials = (Array.isArray(o.material) ? o.material : [o.material]).map((m) =>
+          m.clone(),
         );
-        mesh.setMatrixAt(i, matrix.multiply(o.matrixWorld));
-      });
-      mesh.computeBoundingSphere();
-      result.push(mesh);
+        materials.forEach(surfaceMaterial);
+        const mesh = new THREE.InstancedMesh(
+          o.geometry,
+          Array.isArray(o.material) ? materials : materials[0],
+          batch.length,
+        );
+        mesh.castShadow = name !== 'plane-tree-planter';
+        mesh.receiveShadow = true;
+        batch.forEach((p, i) => {
+          const matrix = new THREE.Matrix4().compose(
+            new THREE.Vector3(...p.position),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw),
+            new THREE.Vector3(...p.scale),
+          );
+          mesh.setMatrixAt(i, matrix.multiply(o.matrixWorld));
+        });
+        mesh.computeBoundingSphere();
+        result.push(mesh);
+      }
     });
     return result;
-  }, [scene, name, placements]);
+  }, [scene, name, batches]);
   const elapsed = useRef(0);
   useFrame((_, dt) => {
     if (input.active) elapsed.current += Math.min(dt, 0.1);
@@ -322,8 +329,8 @@ function River({ night, quality }: { night: boolean; quality: number }) {
           .rotateX(Math.PI / 2);
     });
     const object = new Water(geometry!, {
-      textureWidth: quality === 1 ? 1024 : 2048,
-      textureHeight: quality === 1 ? 1024 : 2048,
+      textureWidth: quality === 0 ? 256 : quality === 1 ? 1024 : 2048,
+      textureHeight: quality === 0 ? 256 : quality === 1 ? 1024 : 2048,
       sunDirection: new THREE.Vector3(0.6, 0.18, -0.5).normalize(),
       sunColor: 0xffd4a0,
       waterColor: 0x315b61,

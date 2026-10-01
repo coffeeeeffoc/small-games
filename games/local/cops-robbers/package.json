@@ -12,6 +12,7 @@
     "test:browser": "node scripts/playtest.mjs",
     "test:interactions": "node scripts/check-interactions.mjs",
     "test:focus": "node scripts/check-focus.mjs",
+    "test:input": "node scripts/check-input-scope.mjs",
     "test:ranking": "node scripts/check-ranking.mjs",
     "test:competition-renderer": "node scripts/check-competition-renderer.mjs",
     "test:duel": "node scripts/check-duel.mjs",

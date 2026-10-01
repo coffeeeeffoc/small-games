@@ -10,7 +10,7 @@ const versions = {
   'cops-robbers-realtime': ['street-roles-initiative-v2', ['classic', 'escape']],
 };
 for (const [game, [version, modes]] of Object.entries(versions))
-  for (const platform of ['h5', 'wechat', 'bilibili']) {
+  for (const platform of ['h5', 'wechat', 'bilibili', 'douyin', 'kuaishou']) {
     let metadata = { version: 'old-race-v1' },
       roomVersion = version,
       leaveError;
@@ -33,6 +33,8 @@ for (const [game, [version, modes]] of Object.entries(versions))
       localStorage: { getItem: () => token },
       wx: sdk,
       bl: sdk,
+      tt: sdk,
+      ks: sdk,
       AbortSignal: { timeout: () => undefined },
       fetch: async (url, init) => ({
         status: status(url),
@@ -74,5 +76,55 @@ for (const [game, [version, modes]] of Object.entries(versions))
     );
   }
 console.log(
-  'H5 / WeChat / Bilibili reject both obsolete chase rules before create, join, resume; compatible retries and old-room exit pass.',
+  'H5 and four native channels reject obsolete chase rules; compatible retries and old-room exit pass.',
+);
+
+for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou']) {
+  const sdkName = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' }[platform];
+  const sent = [],
+    stored = [];
+  const sdk = {
+    getStorageSync: () => '',
+    setStorageSync: (key, value) => stored.push([key, value]),
+    login: ({ success }) => success({ code: 'official-sdk-code' }),
+    request: ({ url, data, success }) => {
+      sent.push({ url, data });
+      success({
+        statusCode: 200,
+        data: url.endsWith('/sessions/platform')
+          ? { token: 'session-token', expiresAt: Date.now() + 3600000 }
+          : { playerId: 'player' },
+      });
+    },
+  };
+  const context = { [sdkName]: sdk };
+  runInNewContext(source, context);
+  context.__installCompetition({
+    platform,
+    game: 'letters-words2',
+    appId: 'game-app',
+    apiUrl: 'https://test.invalid/api',
+  });
+  await context.__competition.request('/me');
+  assert.equal(sent[0].url, 'https://test.invalid/api/sessions/platform');
+  assert.equal(sent[0].data.platform, platform);
+  assert.equal(sent[0].data.appId, 'game-app');
+  assert.equal(sent[0].data.code, 'official-sdk-code');
+  assert.ok(stored[0][0].includes(`${platform}:game-app`));
+  assert.ok(sent.every(({ url }) => !url.endsWith('/sessions/guest')));
+
+  const missing = {};
+  runInNewContext(source, missing);
+  assert.throws(() => missing.__installCompetition({ platform }), /原生 SDK/);
+  sdk.login = ({ success }) => success({ code: '' });
+  const invalid = { [sdkName]: sdk };
+  runInNewContext(source, invalid);
+  invalid.__installCompetition({ platform, appId: 'game-app', apiUrl: 'https://test.invalid/api' });
+  await assert.rejects(
+    invalid.__competition.session(),
+    (error) => error.code === 'PLATFORM_LOGIN_FAILED',
+  );
+}
+console.log(
+  'Four native SDKs send platform codes, isolate sessions, reject empty codes and never fall back to guests.',
 );

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { Raycaster, Vector3 } from 'three';
+import { Frustum, InstancedMesh, Matrix4, Mesh, PerspectiveCamera, Quaternion, Raycaster, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { inTriangle, movement, onWater, readVisits, clearInput, input } from '../src/world.ts';
+import { inTriangle, movement, onWater, readVisits, clearInput, input, placementBatches, destinations } from '../src/world.ts';
 
 test('movement is frame-rate independent, diagonal-normalized and camera-relative', () => {
   assert(Math.abs(Math.hypot(...movement(1, 1, 0, 2, 1)) - 2) < 1e-9);
@@ -104,4 +104,51 @@ test('visible terrain has a 15 cm sidewalk curb above the asphalt', async () => 
   };
   assert(Math.abs(height(-400, 37) - .02) < .005);
   assert(Math.abs(height(-410, 37) - .17) < .005);
+});
+
+test('street-block tree instances preserve every placement and cull distant clusters in both viewport shapes', async (t) => {
+  const root = new URL('../../../../assets/bund/runtime/world/', import.meta.url);
+  const data = JSON.parse(readFileSync(new URL('world.json', root), 'utf8'));
+  const placements = data.props['plane-tree-planter'];
+  const batches = placementBatches(placements);
+  assert.equal(batches.flat().length, placements.length);
+  assert.equal(new Set(batches.flat()).size, placements.length, 'Every authored tree remains in exactly one batch');
+  const bytes = readFileSync(new URL('plane-tree-planter.glb', root));
+  const { scene } = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '',
+  );
+  scene.updateMatrixWorld(true);
+  for (const aspect of [390 / 844, 1440 / 900]) {
+    const camera = new PerspectiveCamera(68, aspect, .25, 12000);
+    camera.position.set(...destinations[0].position);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(0, destinations[0].yaw, 0);
+    camera.updateMatrixWorld();
+    const frustum = new Frustum().setFromProjectionMatrix(
+      new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
+    );
+    const visibleTriangles = (groups) => {
+      let triangles = 0;
+      scene.traverse((object) => {
+        if (!(object instanceof Mesh)) return;
+        for (const batch of groups) {
+          const mesh = new InstancedMesh(object.geometry, object.material, batch.length);
+          batch.forEach((p, index) => mesh.setMatrixAt(index, new Matrix4().compose(
+            new Vector3(...p.position),
+            new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), p.yaw),
+            new Vector3(...p.scale),
+          ).multiply(object.matrixWorld)));
+          mesh.computeBoundingSphere();
+          if (frustum.intersectsObject(mesh))
+            triangles += (object.geometry.index?.count || object.geometry.attributes.position.count) / 3 * batch.length;
+          mesh.dispose();
+        }
+      });
+      return triangles;
+    };
+    const wholeCity = visibleTriangles([placements]), grouped = visibleTriangles(batches);
+    t.diagnostic(`aspect=${aspect.toFixed(3)} tree triangles=${grouped}/${wholeCity}, preserved placements=${placements.length}`);
+    assert(grouped > 0, 'Nearby visible trees remain');
+    assert(grouped < wholeCity * .7, `Tree triangles must fall by at least 30% at aspect ${aspect}: ${grouped}/${wholeCity}`);
+  }
 });

@@ -4,8 +4,16 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { wechatPlatform } from '../platforms/wechat/build.mjs';
 import { bilibiliPlatform } from '../platforms/bilibili/build.mjs';
+import { douyinPlatform } from '../platforms/douyin/build.mjs';
+import { kuaishouPlatform } from '../platforms/kuaishou/build.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+export const competitionPlatforms = {
+  wechat: wechatPlatform,
+  bilibili: bilibiliPlatform,
+  douyin: douyinPlatform,
+  kuaishou: kuaishouPlatform,
+};
 export const competitionGames = {
   'cops-robbers': {
     directory: 'games/local/cops-robbers',
@@ -33,18 +41,41 @@ export const competitionGames = {
     title: '象五子棋',
   },
 };
-export async function buildCompetition({ native = false, only, outputRoot, config = {} } = {}) {
+export async function buildCompetition({
+  native = false,
+  only,
+  platform: onlyPlatform,
+  outputRoot,
+  config = {},
+} = {}) {
+  if (only && !Object.hasOwn(competitionGames, only))
+    throw new Error(`Unknown competition game: ${only}`);
+  if (onlyPlatform && (!native || !Object.hasOwn(competitionPlatforms, onlyPlatform)))
+    throw new Error(`Choose a native platform: ${Object.keys(competitionPlatforms).join('|')}`);
+  const targets = native
+    ? onlyPlatform
+      ? [onlyPlatform]
+      : Object.keys(competitionPlatforms)
+    : ['h5'];
   for (const [game, selected] of Object.entries(competitionGames)) {
     if (only && game !== only) continue;
     const renderer = path.join(root, selected.directory, selected.renderer).replaceAll('\\', '/');
     await stat(renderer); // Missing adapters block builds instead of silently publishing empty targets.
-    for (const platform of native ? ['wechat', 'bilibili'] : ['h5']) {
+    for (const platform of targets) {
+      const adapter = competitionPlatforms[platform];
       const platformConfig = config[game]?.[platform] || {};
+      if (
+        native &&
+        platformConfig.appId !== undefined &&
+        (typeof platformConfig.appId !== 'string' ||
+          (platformConfig.appId && !adapter.appId.test(platformConfig.appId)))
+      )
+        throw new Error(`Invalid ${platform}/${game} AppID`);
       const apiUrl = platformConfig.apiUrl || process.env.COMPETITION_PUBLIC_API_URL || '';
-      if (apiUrl && !/^https?:\/\//.test(apiUrl))
+      if (typeof apiUrl !== 'string' || (apiUrl && !/^https?:\/\//.test(apiUrl)))
         throw new Error('Competition API URL must be HTTP(S)');
       const outDir = outputRoot
-        ? path.join(outputRoot, game)
+        ? path.join(outputRoot, ...(native ? [platform, game] : [game]))
         : native
           ? path.join(root, 'apps/shell-minigame/dist', platform, game)
           : path.join(root, selected.directory, 'dist');
@@ -53,7 +84,7 @@ export async function buildCompetition({ native = false, only, outputRoot, confi
         .replaceAll('\\', '/');
       const configValue = { ...platformConfig, game, platform, title: selected.title, apiUrl };
       const source = native
-        ? `import {startNativeCompetition} from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};startNativeCompetition(${platform === 'wechat' ? 'wx' : 'bl'},${JSON.stringify(configValue)},createRenderer);`
+        ? `import {startNativeCompetition} from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
         : `globalThis.__COMPETITION_CONFIG__=Object.assign(${JSON.stringify(configValue)},globalThis.__COMPETITION_CONFIG__||{});import{mountCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};mountCompetition(${JSON.stringify(game)},createRenderer);`;
       const entry = path.join(root, '.scratch/competition', `${platform}-${game}.js`);
       await mkdir(path.dirname(entry), { recursive: true });
@@ -75,7 +106,6 @@ export async function buildCompetition({ native = false, only, outputRoot, confi
         },
       });
       if (native) {
-        const adapter = platform === 'wechat' ? wechatPlatform : bilibiliPlatform;
         // Reuse the repository's short confirmation sound instead of another audio dependency.
         await cp(
           new URL('../games/local/game-cricket/public/cricket-audio/perfect.wav', import.meta.url),
@@ -87,8 +117,6 @@ export async function buildCompetition({ native = false, only, outputRoot, confi
             path.join(outDir, 'assets/competition'),
             { recursive: true },
           );
-        if (platformConfig.appId && !adapter.appId.test(platformConfig.appId))
-          throw new Error(`Invalid ${platform}/${game} AppID`);
         for (const [name, value] of Object.entries(
           adapter.files({ game, appId: platformConfig.appId || '', version: '1.0.0' }),
         ))
@@ -103,6 +131,9 @@ export async function buildCompetition({ native = false, only, outputRoot, confi
               apiConfigured: !!apiUrl,
               mode: platformConfig.appId ? 'configured-unverified' : 'preview-unverified',
               rendering: 'native Canvas 2D',
+              gameplayScope: 'server-authoritative friend competition only',
+              nativeRuntimeVerified: false,
+              platformLoginVerified: false,
               builtAt: new Date().toISOString(),
             },
             null,
@@ -127,6 +158,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   await buildCompetition({
     native: process.argv.includes('--native'),
     only: process.argv.find((a) => a.startsWith('--game='))?.slice(7),
+    platform: process.argv.find((a) => a.startsWith('--platform='))?.slice(11),
     config,
   });
 }

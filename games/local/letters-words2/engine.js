@@ -173,7 +173,7 @@ export function reshuffle(game, rng = Math.random) {
   arrangeTiles(game, rng);
 }
 
-export function restoreProgress(entries, completed, rng = Math.random) {
+export function restoreProgress(entries, completed, rng = Math.random, board = null) {
   const game = createGame(entries, rng);
   if (!Array.isArray(completed) || new Set(completed).size !== completed.length
       || completed.some(word => !game.words.some(entry => entry.word === word))) throw new Error('进度记录无效。');
@@ -183,5 +183,44 @@ export function restoreProgress(entries, completed, rng = Math.random) {
     for (const char of letters(word.word)) game.tiles.find(tile => !tile.removed && tile.char === char).removed = true;
   }
   arrangeTiles(game, rng);
+  // Older saves only keep completed words. A damaged board must not erase those words.
+  if (board && validSavedBoard(game, board)) {
+    game.tiles = board.tiles.map(tile => ({ ...tile }));
+    game.boardHeight = board.boardHeight;
+    game.activeWordId = board.activeWordId;
+    game.selected = [...board.selected];
+  }
   return game;
+}
+
+function validSavedBoard(game, board) {
+  if (!Number.isInteger(board.boardHeight) || board.boardHeight < BOARD.height || board.boardHeight > 1620
+      || !Array.isArray(board.tiles) || board.tiles.length !== game.tiles.length
+      || !Array.isArray(board.selected) || new Set(board.selected).size !== board.selected.length) return false;
+  const remaining = game.words.filter(word => !word.done);
+  const active = remaining.find(word => word.id === board.activeWordId);
+  if (remaining.length ? !active : board.activeWordId !== null) return false;
+  if (board.selected.length > (active ? letters(active.word).length : 0)) return false;
+  const layers = new Set();
+  for (let i = 0; i < board.tiles.length; i++) {
+    const tile = board.tiles[i];
+    if (!tile || tile.id !== game.tiles[i].id || tile.char !== game.tiles[i].char
+        || tile.size !== BOARD.tileSize || typeof tile.removed !== 'boolean'
+        || !Number.isInteger(tile.z) || tile.z < 0 || tile.z >= game.tiles.length
+        || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)
+        || tile.x < 0 || tile.y < 0 || tile.x + tile.size > BOARD.width
+        || tile.y + tile.size > (tile.removed ? 1620 : board.boardHeight)) return false;
+    if (!tile.removed) {
+      if (layers.has(tile.z)) return false;
+      layers.add(tile.z);
+    }
+  }
+  const actual = board.tiles.filter(tile => !tile.removed).map(tile => tile.char).sort().join('');
+  const expected = remaining.flatMap(word => letters(word.word)).sort().join('');
+  if (actual !== expected) return false;
+  const candidate = { ...game, tiles: board.tiles };
+  return board.selected.every(id => {
+    const tile = board.tiles.find(tile => tile.id === id);
+    return tile && !tile.removed && !isBlocked(tile, board.tiles);
+  }) && (!remaining.length || remaining.some(word => findSpelling(candidate, word.id)));
 }

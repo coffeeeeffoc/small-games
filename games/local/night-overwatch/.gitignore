@@ -4,6 +4,8 @@ local/
 profiles/
 build/
 .prebuilt/
+extensions/biligame-builder/
+release-config.local.json
 cc.d.ts
 reports/*.log
 reports/build-*.json

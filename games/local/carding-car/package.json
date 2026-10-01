@@ -21,6 +21,7 @@
     "build": "node scripts/build.mjs web-mobile",
     "build:wechat": "node scripts/build.mjs wechatgame",
     "build:bilibili": "node scripts/build.mjs bilibili",
+    "build:douyin": "node scripts/build.mjs douyin",
     "dev": "node scripts/serve.mjs",
     "test:browser": "node tests/browser.mjs"
   },

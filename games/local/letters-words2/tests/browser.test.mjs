@@ -110,6 +110,9 @@ try {
     const selectable = (await tileSnapshot()).find(tile => !tile.blocked);
     await clickTile(selectable.id);
     const partialBoard = await tileSnapshot();
+    await page.reload({ waitUntil: 'networkidle' });
+    assert.deepEqual(await tileSnapshot(), partialBoard, 'reload preserves unfinished spelling and exact board positions');
+    await page.locator('#focus-button').click();
     await page.locator('#pause-button').click();
     assert.equal(await page.locator('.study-bar').isVisible(), true);
     await page.locator('#focus-button').click();
@@ -149,6 +152,20 @@ try {
     assert.equal(await tileCount(), entries.reduce((count, entry) => count + entry.word.length, 0));
     assert.equal((await tileSnapshot()).map(tile => tile.char).sort().join(''), entries.map(entry => entry.word).join('').split('').sort().join(''));
     await assertLayout();
+
+    const originalWordId = await page.locator('.word-row.active').getAttribute('data-word-id');
+    await openWords();
+    const waitingWord = page.locator('.word-row').filter({ has: page.locator('.word-status', { hasText: '待解锁' }) }).first();
+    if (await waitingWord.count()) {
+      await waitingWord.click();
+      await page.locator('#hint-button').click();
+      const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ciyu-progress')));
+      assert.deepEqual(saved.review, [], 'unlocking advice without a letter hint never marks a word for review');
+      await openWords();
+      await page.locator(`[data-word-id="${originalWordId}"]`).click();
+    } else if (await page.locator('#word-list-dialog').evaluate(dialog => dialog.open)) {
+      await page.locator('#word-list-dialog [data-close]').click();
+    }
 
     // Click an actually exposed corner of a blocked card, through the browser's real pointer path.
     await page.locator('#board').scrollIntoViewIfNeeded();
