@@ -356,7 +356,6 @@ export class KartGame extends Component {
           requestedArt: Array.from(requestedArt),
           loadError: this.race.loadError,
           itemsCollected: this.race.itemsCollected,
-          seed: this.seed,
           theme: this.selection.theme,
           route: {
             id: this.selection.route,

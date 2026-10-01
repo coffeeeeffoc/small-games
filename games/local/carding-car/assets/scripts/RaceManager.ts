@@ -201,14 +201,11 @@ export class RaceManager {
           k.verticalSpeed = 0;
         }
       } else k.y = road.y;
-      // A slide across a tight bend must not jump to a distant section's checkpoint.
-      const progressRoad = projectOnTrack(this.track, k.x, k.z, d.progress.s);
       const ratio =
         road.branch === 'shortcut' ||
         (d.progress.s >= this.track.shortcutStart && d.progress.s <= this.track.shortcutEnd)
           ? (this.track.shortcutEnd - this.track.shortcutStart) / this.track.shortcutLength
           : 1;
-      const legal = progressRoad.distance < progressRoad.width / 2 + 1.3;
       // Both ribbons overlap at a fork; their projected distances can differ by a few metres.
       const junction =
         Math.min(
@@ -219,11 +216,15 @@ export class RaceManager {
           : 0;
       // The centreline advances faster than a kart cutting the inside of a tight bend.
       const previousS = d.progress.s;
+      const maxStep = (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction;
+      // Select a reachable projection at overlaps; rejecting a branch jump afterwards strands progress.
+      const progressRoad = projectOnTrack(this.track, k.x, k.z, previousS, maxStep);
+      const legal = progressRoad.distance < progressRoad.width / 2 + 1.3;
       const crossed = advanceCheckpoint(
         d.progress,
         this.track,
         progressRoad.s,
-        (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction,
+        maxStep,
         legal,
       );
       // Resolve the crossing within the frame so a close finish is not decided by driver index.
