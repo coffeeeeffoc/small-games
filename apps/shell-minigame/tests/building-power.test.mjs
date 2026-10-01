@@ -11,7 +11,7 @@ describe('building-power release registration', () => {
       content: 'defaultBuildingPowerEnvelope',
       assets: [{ source: 'public/building-power-audio', target: 'building-power-audio' }],
     });
-    expect(Object.keys(platforms)).toEqual(['wechat', 'bilibili', 'douyin']);
+    expect(Object.keys(platforms)).toEqual(['wechat', 'bilibili', 'douyin', 'kuaishou']);
     expect(platforms.douyin.sdk).toBe('tt');
     expect(platforms.douyin.files({ game: 'building-power', appId: 'tt1234567890abcdef' })).toEqual(
       {

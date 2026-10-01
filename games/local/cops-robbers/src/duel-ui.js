@@ -29,6 +29,14 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
   function stop() { clearTimeout(timer); serial++; }
   function render() {
     if (!state) return;
+    // Repainting the board must not send keyboard players back to the page's first control.
+    const focused = document.activeElement;
+    const focusSelector = focused?.matches('#duel-board [data-actor]')
+      ? `#duel-board [data-side="${focused.dataset.side}"][data-actor="${focused.dataset.actor}"]`
+      : focused?.matches('#duel-board [data-target]')
+        ? `#duel-board [data-target="${focused.dataset.target}"]`
+        : focused?.matches('#duel-squad [data-select]')
+          ? `#duel-squad [data-select="${focused.dataset.select}"]` : null;
     if (state.winner === role && !wins[`${level.mode}:${role}:${level.id}`]) { wins[`${level.mode}:${role}:${level.id}`] = true; persistOptions(); renderOptions(); }
     const myTurn = state.side === role && !state.winner, positions = role === 'pursuer' ? state.cops : state.robbers;
     if (positions[selected] < 0) selected = Math.max(0, positions.findIndex(node => node >= 0));
@@ -46,6 +54,10 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
     const actors = ['pursuer', 'runner'].flatMap(side => (side === 'pursuer' ? state.cops : state.robbers).map((node, index) => node < 0 ? '' : `<g role="button" tabindex="0" data-side="${side}" data-actor="${index}" aria-label="${label(side)} ${index + 1} 号，${node + 1} 号路口" transform="translate(${level.nodes[node].x} ${level.nodes[node].y + 13})"><rect x="-30" y="-69" width="60" height="77" fill="transparent"/>${side === role && selected === index ? '<ellipse cy="1" rx="29" ry="12" fill="#83bbef" opacity=".6"/>' : ''}<g transform="scale(.64)">${character(side === 'pursuer' ? 'cop' : 'robber', side === role && selected === index ? 'selected' : 'idle', index)}</g></g>`)).join('');
     $('duel-board').innerHTML = `${scenery(level, Math.min(4, level.difficulty - 1))}<path d="${roads}" fill="none" stroke="#faf6e4" stroke-width="22" stroke-linecap="round"/><path d="${roads}" fill="none" stroke="#d9d2ae" stroke-width="2" stroke-dasharray="5 7"/>${nodes}${actors}`;
     $('duel-squad').innerHTML = positions.map((node, index) => `<button data-select="${index}" class="secondary-action" aria-pressed="${index === selected}" ${node < 0 || !myTurn ? 'disabled' : ''}>${label(role)} ${index + 1}${node < 0 ? ' 已拦截' : ''}</button>`).join('');
+    if (focusSelector) {
+      const replacement = document.querySelector(focusSelector);
+      (replacement && !replacement.disabled ? replacement : $('duel-board').querySelector(`[data-side="${role}"][data-actor="${selected}"]`) || $('duel-retry')).focus({ preventScroll: true });
+    }
   }
   function scheduleAI() {
     if (!state || state.winner || state.side === role || !document.body.classList.contains('duel-active')) return;
@@ -87,7 +99,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge }) {
     else if (actor && state.side === role) move((actor.dataset.side === 'pursuer' ? state.cops : state.robbers)[Number(actor.dataset.actor)]);
     else if (target) move(Number(target.dataset.target));
   });
-  $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+  $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); if (!event.repeat) event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('visibilitychange', () => { stop(); if (!document.hidden) scheduleAI(); });
   updateMode();
 }

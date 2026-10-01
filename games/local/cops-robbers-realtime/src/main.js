@@ -635,23 +635,21 @@ canvas.addEventListener("pointermove", (event) => {
 });
 canvas.addEventListener("pointerup", (event) => {
   if (!gesture || gesture.id !== event.pointerId) return;
-  const { cop, dragged } = gesture;
+  const { cop, dragged, startX, startY } = gesture;
+  // Returning a drag to its press point cancels it, preserving an order already in progress.
+  const droppedAway = Math.hypot(event.clientX - startX, event.clientY - startY) > 8;
   const hit = hitActor(event.clientX, event.clientY);
   const point =
     hit && !hit.cop
       ? hit.actor
       : renderer.toWorld(event.clientX, event.clientY);
   clearGesture();
-  if ((cop < 0 && !dragged) || (cop >= 0 && dragged)) issue(point);
+  if ((cop < 0 && !dragged) || (cop >= 0 && dragged && droppedAway)) issue(point);
   if (event.pointerType === "mouse")
     mousePosition = { x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener("pointercancel", clearGesture);
-canvas.addEventListener("lostpointercapture", () => {
-  gesture = null;
-  preview = null;
-  updateHover();
-});
+canvas.addEventListener("lostpointercapture", clearGesture);
 canvas.addEventListener("pointerleave", () => {
   mousePosition = null;
   hover = null;

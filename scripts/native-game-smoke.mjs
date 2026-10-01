@@ -263,7 +263,7 @@ export async function verifyNativeArtifact({
       ...(gameId === 'building-power'
         ? { Math: Object.assign(Object.create(Math), { random: () => 0 }) }
         : {}),
-      [{ wechat: 'wx', bilibili: 'bl', douyin: 'tt' }[platform]]: sdk,
+      [{ wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' }[platform]]: sdk,
       setTimeout,
       clearTimeout,
       Date: class extends Date {
@@ -603,6 +603,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       catalog: { type: 'boolean' },
       standalone: { type: 'boolean' },
       game: { type: 'string' },
+      platform: { type: 'string' },
     },
   });
   assert.ok(
@@ -614,15 +615,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       root: fileURLToPath(new URL('../apps/shell-bilibili/dist/', import.meta.url)),
     });
   } else {
+    const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
+    assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
     const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
     assert.ok(
       !values.game || [...originalGames, 'building-power'].includes(values.game),
       'Unknown game',
     );
     for (const game of values.game ? [values.game] : [...originalGames, 'building-power']) {
-      for (const platform of game === 'building-power'
-        ? ['wechat', 'bilibili', 'douyin']
-        : ['wechat', 'bilibili']) {
+      for (const platform of values.platform ? [values.platform] : platforms) {
         await verifyNativeArtifact({
           root: fileURLToPath(
             new URL(`../apps/shell-minigame/dist/${platform}/${game}/`, import.meta.url),

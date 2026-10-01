@@ -6,8 +6,13 @@ import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
+if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
+  const { buildNative } = await import('./build-native.mjs');
+  await buildNative(target, { configOnly: process.argv.includes('--config-only'), checkOutput: process.argv.includes('--check-output') });
+  process.exit(0);
+}
 if (!['web-mobile', 'web-desktop'].includes(target))
-  throw Error('Supported targets: web-mobile, web-desktop');
+  throw Error('Supported targets: web-mobile, web-desktop, wechatgame, bilibili, douyin. Kuaishou requires a separately validated Creator adapter.');
 if (target === 'web-mobile' && process.env.NIGHT_OVERWATCH_PREBUILT_DIR) {
   const source = await verifyPrebuilt(process.env.NIGHT_OVERWATCH_PREBUILT_DIR);
   const dist = path.resolve(root, 'dist');

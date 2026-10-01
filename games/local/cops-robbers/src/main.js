@@ -462,7 +462,7 @@ document.querySelectorAll('dialog').forEach(dialog => {
   dialog.addEventListener('close', () => { if (phase === 'won') notify('任务已完成。选择下一关，或撤销再试一种走法。', 'success'); if (phase === 'lost') notify('突围队员已逃脱。撤销这一步，或重新挑战。', 'alert'); });
 });
 document.addEventListener('keydown', event => {
-  if (document.querySelector('dialog[open]') || event.repeat) return;
+  if (!document.body.classList.contains('focus-play') || document.body.classList.contains('duel-active') || document.querySelector('dialog[open]') || event.repeat) return;
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); undo(); }
   if (event.code === 'Space' && !event.target.closest('button, input, a, [role="button"]')) { event.preventDefault(); if (phase === 'planning') execute([...state.cops]); }
 });

@@ -5,7 +5,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const scenes = readScenes();
 const url = process.env.PLAYTEST_URL || "http://127.0.0.1:4175/";
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({
+  ...(process.env.PLAYWRIGHT_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE } : { channel: "chrome" }),
+  headless: true,
+});
 await mkdir("artifacts", { recursive: true });
 const errors = [],
   requests = [],
@@ -101,6 +104,36 @@ try {
   );
   await page.locator("#hint").click();
   assert.equal(await page.locator("#hint-text").isVisible(), true);
+  await page.locator("#city-search").fill("京");
+  assert.ok(await page.locator("#search-results button").count() > 1, 'ambiguous searches offer several cities');
+  const secondCity = await page.locator("#search-results button").nth(1).getAttribute("data-city");
+  await page.locator("#city-search").dispatchEvent("keydown", { key: "Enter", isComposing: true });
+  assert.ok((await page.locator("#location-status").innerText()).includes("点击地图"), 'confirming Chinese composition never chooses a city');
+  await page.locator("#city-search").dispatchEvent("compositionstart");
+  await page.locator("#city-search").dispatchEvent("keydown", { key: "Enter", isComposing: false });
+  assert.ok((await page.locator("#location-status").innerText()).includes("点击地图"), 'composition lifecycle guards WebKit Enter with isComposing=false');
+  await page.locator("#city-search").dispatchEvent("compositionend");
+  await page.locator("#city-search").dispatchEvent("keydown", { key: "Enter", keyCode: 229, isComposing: false });
+  assert.ok((await page.locator("#location-status").innerText()).includes("点击地图"), 'legacy IME keyCode 229 never selects the first candidate');
+  await page.locator("#city-search").press("Escape");
+  assert.equal(await page.locator("#city-search").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.locator("#city-search").inputValue(), "京", 'Escape closes candidates without clearing the search query');
+  await page.locator("#city-search").press("Enter");
+  assert.ok((await page.locator("#location-status").innerText()).includes("点击地图"), 'Enter after Escape never chooses a hidden city');
+  await page.locator("#city-search").press("ArrowUp");
+  assert.equal(await page.locator("#city-search").getAttribute("aria-expanded"), "true", 'ArrowUp reopens retained candidates');
+  assert.equal(await page.locator('#search-results [aria-selected="true"]').count(), 1);
+  await page.locator("#city-search").fill("");
+  await page.locator("#city-search").press("ArrowUp");
+  assert.equal(await page.locator("#city-search").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.locator("#city-search").getAttribute("aria-activedescendant"), null, 'Empty queries never reference hidden stale options');
+  await page.locator("#city-search").fill("京");
+  await page.locator("#city-search").press("ArrowDown");
+  await page.locator("#city-search").press("ArrowDown");
+  assert.equal(await page.locator('#search-results [aria-selected="true"]').getAttribute("data-city"), secondCity);
+  await page.locator("#city-search").press("Enter");
+  assert.ok((await page.locator("#location-status").innerText()).includes(secondCity), 'keyboard selects the highlighted city');
+  assert.equal(await page.locator("#city-search").getAttribute("aria-expanded"), "false");
   await pick(page);
   await visibleMap(page);
   await page.locator("#year-number").fill("0");

@@ -893,7 +893,8 @@ legend {
   border-bottom: 1px solid var(--line);
   font-size: 12px;
 }
-.search-results button:hover {
+.search-results button:hover,
+.search-results button[aria-selected="true"] {
   background: #e6eddf;
 }
 .search-results button small {

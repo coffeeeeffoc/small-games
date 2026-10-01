@@ -16,7 +16,7 @@ const gameSchema = z.enum([
 ]);
 const platformConfig = z.array(
   z.object({
-    platform: z.enum(['wechat', 'bilibili']),
+    platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou']),
     appId: z.string().min(1),
     secret: z.string().min(16),
   }),
@@ -96,7 +96,7 @@ export async function registerCompetition(
         async (request) => {
           const input = z
             .object({
-              platform: z.enum(['wechat', 'bilibili']),
+              platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou']),
               appId: z.string().max(100),
               code: z.string().min(1).max(512),
             })
@@ -106,6 +106,10 @@ export async function registerCompetition(
             (p) => p.platform === input.platform && p.appId === input.appId,
           );
           if (!configured) throw new CompetitionError('PLATFORM_NOT_CONFIGURED', 503);
+          // The client/rendering adapters can exist before a verified server-side
+          // code exchange. Never issue a guest identity for a native platform.
+          if (input.platform === 'douyin' || input.platform === 'kuaishou')
+            throw new CompetitionError('PLATFORM_LOGIN_UNAVAILABLE', 503);
           const endpoint = new URL(
             input.platform === 'wechat'
               ? 'https://api.weixin.qq.com/sns/jscode2session'

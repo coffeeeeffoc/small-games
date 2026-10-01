@@ -2,6 +2,7 @@
 import { wechatPlatform } from '@coffeeeeffoc/platform-wechat/build';
 import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
+import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 export const games = {
   'building-power': {
     title: '忙碌的电工',
@@ -38,4 +39,5 @@ export const platforms = {
   wechat: wechatPlatform,
   bilibili: bilibiliPlatform,
   douyin: douyinPlatform,
+  kuaishou: kuaishouPlatform,
 };
