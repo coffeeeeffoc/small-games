@@ -5,6 +5,7 @@ import { practiceBatches } from '../library.js';
 
 const bookId = 'fltrp-sun-3-upper-2026';
 const book = JSON.parse(await readFile(new URL(`../assets/english-dict/books/${bookId}.json`, import.meta.url)));
+const catalog = JSON.parse(await readFile(new URL('../assets/english-dict/catalog.json', import.meta.url)));
 const batches = practiceBatches(book.entries.filter(entry => entry.unit === 'Welcome'));
 assert.equal(batches.at(-1).length, 1, 'exercise a real one-word final batch');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -15,6 +16,33 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4175');
   await page.locator('#open-library').click();
+  for (const publisher of catalog.publishers) {
+    await page.locator('#textbook-publisher').selectOption(publisher.id);
+    const books = catalog.books.filter(item => item.publisherId === publisher.id);
+    const grades = [...new Set(books.map(item => item.grade))].sort((a, b) => (a ?? 99) - (b ?? 99));
+    assert.deepEqual(await page.locator('#textbook-grade option').evaluateAll(options => options.map(option => option.value)), grades.map(grade => String(grade ?? '')));
+    for (const grade of grades) {
+      await page.locator('#textbook-grade').selectOption(String(grade ?? ''));
+      const expected = books.filter(item => item.grade === grade);
+      assert.deepEqual(await page.locator('#textbook-book option').evaluateAll(options => options.map(option => option.value)), expected.map(item => item.id));
+      for (const selected of expected) {
+        await page.locator('#textbook-book').selectOption(selected.id);
+        assert.deepEqual(await page.locator('#textbook-unit option').evaluateAll(options => options.map(option => option.value)), [...selected.units, '']);
+      }
+    }
+  }
+  await page.locator('#textbook-publisher').selectOption('fltrp');
+  await page.locator('#textbook-grade').selectOption('7');
+  const legacyId = 'fltrp-chenlin-2011-grade7-lower';
+  const legacy = JSON.parse(await readFile(new URL(`../assets/english-dict/books/${legacyId}.json`, import.meta.url)));
+  const legacyUnit = legacy.entries.find(entry => entry.word === 'Russia').unit;
+  await page.locator('#textbook-book').selectOption(legacyId);
+  await page.locator('#textbook-unit').selectOption(legacyUnit);
+  await page.locator('#library-start').tap();
+  await page.waitForFunction(() => !document.querySelector('#library-dialog').open);
+  assert.deepEqual(await page.locator('.word-text').allTextContents(), practiceBatches(legacy.entries.filter(entry => entry.unit === legacyUnit))[0].map(entry => entry.meaning));
+  await page.locator('#pause-button').tap();
+  await page.locator('#open-library').tap();
   await page.locator('#textbook-publisher').selectOption('fltrp');
   await page.locator('#textbook-grade').selectOption('3');
   await page.locator('#textbook-book').selectOption(bookId);
@@ -73,7 +101,7 @@ try {
   assert.match(await page.locator('#theme-name').textContent(), /Unit 2/);
   assert.deepEqual(await page.locator('.word-text').allTextContents(), practiceBatches(book.entries.filter(entry => entry.unit === 'Unit 2'))[0].map(entry => entry.meaning));
   assert.deepEqual(errors, []);
-  console.log('Textbook touch flow passed: exact new edition/unit, 31 words in 6 batches, one-word tail, reload, correct case, hinted-word review and cached-book offline practice.');
+  console.log(`Textbook touch flow passed: all ${catalog.books.length} publisher/grade/book/unit selections, reviewed legacy replacement, 31 new-edition words in 6 batches, one-word tail, reload, correct case, hinted-word review and cached-book offline practice.`);
 } finally {
   await browser.close();
 }
