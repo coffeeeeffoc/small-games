@@ -5,6 +5,7 @@ import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-lo
 
 import { GameCatalog } from './GameCatalog.js';
 import { GameViewport } from './GameViewport.js';
+import { StandaloneGame } from './StandaloneGame.js';
 import standaloneGames from './standalone-games.json';
 import { createWebGameHost } from './host.js';
 import {
@@ -184,28 +185,12 @@ export function ShellApp({
   }, [game, catalogReady, catalog, runtimeClient, versionId, channel, credential]);
 
   return standalone ? (
-    <main key={standalone.id} className="game-page standalone-page" data-game-display-host>
-      <nav aria-label="游戏导航">
-        <button onClick={() => navigate()}>返回目录</button>
-        <strong>{standalone.title}</strong>
-        <button type="button" data-game-fullscreen>
-          全屏
-        </button>
-        <a
-          href={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          独立打开
-        </a>
-      </nav>
-      <iframe
-        title={standalone.title}
-        src={`${import.meta.env.BASE_URL}games/${standalone.id}/index.html`}
-        allow="autoplay; fullscreen"
-        allowFullScreen
-      />
-    </main>
+    <StandaloneGame
+      key={standalone.id}
+      id={standalone.id}
+      title={standalone.title}
+      onExit={() => navigate()}
+    />
   ) : selected && selected.id === game?.id ? (
     <GameViewport
       key={selected.id}

@@ -170,7 +170,7 @@
   {
     "id": "wulong-city",
     "title": "乌龙城",
-    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十个喜剧机关谜题。",
+    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十四个喜剧机关谜题，也能分享单关邀请朋友解题。",
     "source": "games/local/wulong-city",
     "output": "dist"
   },

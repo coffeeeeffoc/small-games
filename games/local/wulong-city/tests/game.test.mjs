@@ -5,14 +5,31 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../levels.js', import.meta.url), 'utf8');
 const data = await readFile(new URL('../levels-data.js', import.meta.url), 'utf8');
+const appSource = await readFile(new URL('../game.js', import.meta.url), 'utf8');
+
+test('the actual share handler removes URL credentials, private query and hash while retaining Pages paths', async () => {
+  const copies=[],elements={share:{},'share-status':{},'share-link':{}};
+  const context=vm.createContext({URL,location:new URL('https://user:password@example.org//small-games/wulong/?private=secret#room'),s:{id:21,won:false},LEVEL_DATA:{21:{title:'风扇只吹背后的风'}},$:id=>elements[id],navigator:{clipboard:{writeText:async url=>copies.push(url)}}});
+  const handler=appSource.split('\n').find(line=>line.includes('async function shareChallenge()'));
+  assert.ok(handler);
+  vm.runInContext(handler,context);
+  await vm.runInContext('shareChallenge()',context);
+  assert.deepEqual(copies,['https://example.org//small-games/wulong/?challenge=21']);
+  assert.equal(elements.share.disabled,false);
+});
 
 // Exercise the original level rules without DOM, rendering, a server or a browser.
 function game(id) {
-  const levels = {};
+  const levels = {}, hotspots = new Map();
   let state;
   const context = vm.createContext({
     window: {},
     W: {
+      ...Object.fromEntries(['rect','line','ellipse','text','poly','face','actor','bird','sign','handle','door','background'].map(name=>[name,()=>{}])),
+      C: new Proxy({}, {get:()=> '#abcdef'}),
+      ctx: new Proxy({}, {get:()=>()=>{}}),
+      hit: (id,label,x,y,w,h,click,drag,up)=>hotspots.set(id,{click,drag,up}),
+      near: (x,range=65)=>Math.abs(state.p.x-x)<range,
       add: (key, level) => { levels[key] = level; },
       clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
       say() {}, tone() {},
@@ -24,6 +41,7 @@ function game(id) {
   state = { id, t: 0, won: false, p: { x: 65, y: 436, vx: 0, vy: 0, dir: 1, grounded: true }, ...levels[id].init() };
   return {
     state, levels, data: context.window.LEVEL_DATA,
+    draw(){hotspots.clear();levels[id].draw(state);return hotspots;},
     tick(seconds) {
       for (let i = 0; i < Math.round(seconds * 60) && !state.won; i++) {
         state.t += 1 / 60;
@@ -33,9 +51,9 @@ function game(id) {
   };
 }
 
-test('20 levels have complete content, independent reset state and no immediate win', () => {
+test('24 levels have complete content, independent reset state and no immediate win', () => {
   const { levels, data } = game(1);
-  assert.deepEqual(Object.keys(levels), Array.from({ length: 20 }, (_, i) => String(i + 1)));
+  assert.deepEqual(Object.keys(levels), Array.from({ length: 24 }, (_, i) => String(i + 1)));
   assert.deepEqual(Object.keys(data), Object.keys(levels));
   for (const id of Object.keys(levels)) {
     for (const field of ['title', 'goal', 'intro', 'joke', 'record']) assert.ok(data[id][field]?.trim(), `L${id} ${field}`);
@@ -140,4 +158,34 @@ test('L20: falling recovers; folding alone does not win; walking home does', () 
   s.p.x = 265;
   run.tick(0.1);
   assert.equal(s.won, true);
+});
+
+test('L21: powered fan blowing away cannot dry the sheet; turning around clears the path but still requires walking', () => {
+  const run=game(21),s=run.state;
+  run.draw().get('fan-power').click();run.tick(3);assert.equal(s.dry,0);assert.equal(s.won,false);
+  run.draw().get('fan-face').click();run.tick(2);assert.equal(s.dry,1);assert.equal(s.won,false);
+  assert.equal(run.levels[21].platforms(s).length,0);s.p.x=430;run.tick(.1);assert.equal(s.won,true);
+});
+test('L22: only the dirty word enters the washer; cleaning, collecting nearby, and leaving are distinct steps', () => {
+  const run=game(22),s=run.state;
+  run.draw().get('word-wash').click();run.tick(2);assert.equal(s.clean,false);
+  let word=run.draw().get('dirty-word');word.drag(250,350);word.up();assert.equal(s.wordIn,false);
+  word=run.draw().get('dirty-word');word.drag(112,340);word.up();assert.equal(s.wordIn,true);assert.equal(s.clean,false);
+  run.draw().get('word-wash').click();run.tick(1.4);assert.equal(s.clean,true);assert.equal(s.won,false);
+  run.draw().get('clean-shirt').click();assert.equal(s.collected,false);s.p.x=310;run.draw().get('clean-shirt').click();assert.equal(s.collected,true);
+  s.p.x=440;run.tick(.1);assert.equal(s.won,true);
+});
+test('L23: short speech cannot be anchored; long speech plus the period creates a continuous bridge', () => {
+  const run=game(23),s=run.state;
+  let dot=run.draw().get('bridge-period');dot.drag(330,407);dot.up();assert.equal(s.anchored,false);
+  run.draw().get('bridge-phrase-2').click();s.p.x=425;run.tick(.1);assert.equal(s.won,false);s.p.x=65;
+  dot=run.draw().get('bridge-period');dot.drag(330,407);dot.up();assert.equal(s.anchored,true);
+  assert.ok(run.levels[23].platforms(s).some(p=>p.x===185&&p.x+p.w>=340));assert.equal(s.won,false);
+  s.p.x=425;run.tick(.1);assert.equal(s.won,true);
+});
+test('L24: cabinet must open and trophy must reach the viewer slot; cancelled and wrong drops restore it', () => {
+  const run=game(24),s=run.state;assert.equal(run.draw().has('viewer-trophy'),false);
+  run.draw().get('award-cabinet').click();let trophy=run.draw().get('viewer-trophy');trophy.drag(110,315);trophy.up();assert.equal(s.awarded,false);
+  trophy=run.draw().get('viewer-trophy');trophy.drag(240,80);run.levels[24].cancel(s);assert.equal(s.trophyY,325);assert.equal(s.awarded,false);
+  trophy=run.draw().get('viewer-trophy');trophy.drag(240,20);trophy.up();run.tick(.1);assert.equal(s.won,true);
 });

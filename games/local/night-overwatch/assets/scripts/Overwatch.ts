@@ -19,6 +19,7 @@ import { World } from './World';
 import { HUD } from './HUD';
 import { Platform } from './Platform';
 import { MAP, WEAPONS, type Point } from './core/Data';
+import { nextMission } from './core/MissionCatalog';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; button?: string };
 @ccclass('Overwatch')
@@ -46,6 +47,7 @@ export class Overwatch extends Component {
     this.hud = new HUD(this.node);
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
+    this.sim = new Simulation(this.platform.readMission());
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
     this.hud.reducedEffects = this.platform.reducedEffects;
@@ -98,7 +100,7 @@ export class Overwatch extends Component {
   retry() {
     const pauses = new Set(this.sim.pauses);
     this.clear();
-    this.sim = new Simulation();
+    this.sim = new Simulation(this.sim.mission.id);
     for (const r of Array.from(pauses))
       if (['background', 'orientation', 'focus'].includes(r)) this.sim.pauses.add(r);
     this.sim.start();
@@ -109,6 +111,19 @@ export class Overwatch extends Component {
   }
   action(id: string) {
     this.platform.activate();
+    if (id === 'missionNext') {
+      if (this.sim.phase === 'playing') return;
+      const pauses = new Set(this.sim.pauses);
+      this.clear();
+      this.sim = new Simulation(nextMission(this.sim.mission.id));
+      for (const reason of pauses)
+        if (['background', 'orientation', 'focus'].includes(reason)) this.sim.pauses.add(reason);
+      this.platform.saveMission(this.sim.mission.id);
+      this.world.reset();
+      this.lastEvent = this.accumulator = 0;
+      this.hud.modalKey = 'rebuild';
+      return;
+    }
     if (id === 'tools' || id === 'flightControls') {
       this.clear();
       this.hud.toolsOpen = !this.hud.toolsOpen;
@@ -531,6 +546,7 @@ export class Overwatch extends Component {
   snapshot() {
     return {
       phase: this.sim.phase,
+      mission: { id: this.sim.mission.id, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
       time: this.sim.time,
       remaining: this.sim.remaining,
       pauses: Array.from(this.sim.pauses),

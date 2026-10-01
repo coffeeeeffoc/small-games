@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { registerHooks, stripTypeScriptTypes } from 'node:module';
 
-const KeyCode = { KEY_W: 87, KEY_A: 65, KEY_S: 83, KEY_D: 68, KEY_G: 71,
+const KeyCode = { KEY_W: 87, KEY_A: 65, KEY_S: 83, KEY_D: 68, KEY_G: 71, KEY_C: 67,
   KEY_P: 80, KEY_R: 82, KEY_M: 77, KEY_H: 72, ENTER: 13, ESCAPE: 27, SPACE: 32,
   ARROW_UP: 38, ARROW_DOWN: 40, ARROW_LEFT: 37, ARROW_RIGHT: 39,
   SHIFT_LEFT: 16, SHIFT_RIGHT: 161, DIGIT_1: 49, DIGIT_2: 50, DIGIT_3: 51, DIGIT_4: 52 };
@@ -65,5 +65,24 @@ test('real hybrid-device touches accelerate, while mouse clicks and released key
   c.clear();
   race.phase = 'paused';
   assert.equal(c.read().throttle, 0);
+  c.destroy();
+});
+
+test('challenge sharing requires an explicit solo result control', () => {
+  const race = { phase: 'racing', networked: false,
+    drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
+  let shares = 0;
+  const c = new KartController(() => race, () => {}, () => {}, () => {},
+    undefined, undefined, undefined, undefined, undefined, () => shares++);
+  c.keyDown({ keyCode: KeyCode.KEY_C }); c.keyUp({ keyCode: KeyCode.KEY_C });
+  assert.equal(shares, 0);
+  race.phase = 'finished';
+  c.keyDown({ keyCode: KeyCode.KEY_C }); c.keyUp({ keyCode: KeyCode.KEY_C });
+  assert.equal(shares, 1);
+  c.touchStart(touch(10, 0.77, 0.27));
+  assert.equal(shares, 2);
+  race.networked = true;
+  c.touchStart(touch(11, 0.77, 0.27));
+  assert.equal(shares, 2, 'network room sharing keeps its existing controller');
   c.destroy();
 });

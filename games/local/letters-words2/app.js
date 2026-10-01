@@ -1,14 +1,8 @@
 import { BOARD, letters, validateEntries, createGame, restoreProgress, parseWordList, isBlocked, getAvailableTiles, findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle } from './engine.js';
 import { practiceBatches, setupLibrary } from './library.js';
+import { collections, dailyIsland, seededRandom, validDay, today, parseChallenge, challengeUrl } from './challenge.js';
 
 const $ = id => document.getElementById(id);
-const collections = [
-  { name: '林间漫游', text: 'forest 森林\nflower 花朵\nleaf 叶子\nriver 河流\nbird 鸟儿\nsunshine 阳光' },
-  { name: '海风来信', text: 'ocean 海洋\nwave 海浪\nisland 岛屿\nshell 贝壳\nsand 沙子\nbreeze 微风' },
-  { name: '生活碎片', text: "coffee 咖啡\napple 苹果\nbook 书本\nmusic 音乐\ncan't 不能\nsmile 微笑" },
-  { name: '漫游宇宙', text: 'planet 行星\nmoon 月亮\nstar 星星\nspace 太空\nrocket 火箭\ndream 梦想' },
-  { name: '甜甜日常', text: "ice-cream 冰淇淋\ncake 蛋糕\nhoney 蜂蜜\nlemon 柠檬\npeach 桃子\ndon't 不要" },
-];
 let game;
 let lastCollection = -1;
 let pending;
@@ -21,6 +15,31 @@ let practice = null;
 let review = [];
 let roundName = '';
 let focused = false;
+let challenge = null;
+let dailyStats = { hints: 0, shuffles: 0, mistakes: 0 };
+const invitation = parseChallenge(location.search);
+let invitedDay = invitation.day;
+const challengeRandom = stage => challenge ? seededRandom(`ciyu-v1:${challenge}:${stage}`) : Math.random;
+
+function freeMode() {
+  challenge = null;
+  dailyStats = { hints: 0, shuffles: 0, mistakes: 0 };
+  savePreference('ciyu-active-daily', '');
+  if (invitedDay) {
+    invitedDay = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('daily'); url.searchParams.delete('v');
+    history.replaceState(null, '', url);
+  }
+}
+function renderChallenge() {
+  $('daily-note').textContent = challenge
+    ? `${challenge} · 提示 ${dailyStats.hints} 次 / 重排 ${dailyStats.shuffles} 次 / 拼错 ${dailyStats.mistakes} 次`
+    : '每天一座主题词岛 · 试试零提示、零重排清空 · 北京时间换新';
+  $('daily-start').textContent = challenge ? '继续每日词岛' : `每日词岛 · ${invitedDay || today()}`;
+  $('daily-exit').hidden = !challenge;
+  $('new-button').textContent = challenge ? '回到自由拾词' : '↻ 换一组';
+}
 
 function setFocus(enabled) {
   focused = enabled;
@@ -35,7 +54,7 @@ function setFocus(enabled) {
 }
 
 function saveProgress() {
-  savePreference('ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review,
+  savePreference(challenge ? 'ciyu-daily-v1' : 'ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review, ...(challenge ? { challenge, dailyStats } : {}),
     board: { tiles: game.tiles, boardHeight: game.boardHeight, activeWordId: game.activeWordId, selected: game.selected } }));
 }
 function markReview() {
@@ -207,13 +226,13 @@ function renderWords() {
   $('focus-progress').textContent = `${(practice?.learned || 0) + game.completed} / ${practice ? practice.batches.flat().length : game.words.length} 词`;
 }
 
-function render() { renderBoard(); renderWords(); renderAnswer(); }
+function render() { renderBoard(); renderWords(); renderAnswer(); renderChallenge(); }
 
-function startGame(entries, name, focus = true) {
+function startGame(entries, name, focus = true, random = Math.random) {
   clearTimeout(pending);
   busy = false;
   hintId = null;
-  game = createGame(entries);
+  game = createGame(entries, random);
   roundStarted = performance.now();
   roundName = name;
   $('theme-name').textContent = name;
@@ -225,6 +244,7 @@ function startGame(entries, name, focus = true) {
 }
 
 function randomGame(focus = true) {
+  freeMode();
   practice = null;
   review = [];
   const choices = collections.map((_, index) => index).filter(index => index !== lastCollection);
@@ -237,7 +257,9 @@ function showWin() {
   const minutes = Math.max(1, Math.ceil((performance.now() - roundStarted) / 60000));
   $('win-summary').textContent = `${game.words.length} 个单词，${game.tiles.length} 片字母。${minutes} 分钟的小小收获。`;
   if (practice) $('win-summary').textContent += ` 教材已完成 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词。`;
-  $('play-again-button').textContent = practice && practice.index + 1 < practice.batches.length ? '继续本单元 · 下一座词岛 →' : practice ? '本次教材练习完成 · 再练一遍' : '再去下一座词岛 →';
+  if (challenge) $('win-summary').textContent = `${challenge} 每日词岛已清空！提示 ${dailyStats.hints} 次，重排 ${dailyStats.shuffles} 次，拼错 ${dailyStats.mistakes} 次。${dailyStats.hints + dailyStats.shuffles + dailyStats.mistakes === 0 ? '达成「独立拾词」！' : '同题再练一次，试试减少求助。'}`;
+  $('play-again-button').textContent = challenge ? '同题重玩 · 挑战独立拾词 →' : practice && practice.index + 1 < practice.batches.length ? '继续本单元 · 下一座词岛 →' : practice ? '本次教材练习完成 · 再练一遍' : '再去下一座词岛 →';
+  $('win-share').hidden = !challenge;
   $('review-button').hidden = !review.length;
   $('review-button').textContent = `再练 ${review.length} 个提示 / 易错词`;
   $('win-words').replaceChildren(...game.words.map(word => {
@@ -252,13 +274,15 @@ function showWin() {
 function checkSpelling() {
   if (busy || !getActiveWord()) return;
   const picked = [...game.selected];
-  const result = submitWord(game);
+  const result = submitWord(game, challengeRandom(`clear:${game.completed}`));
   if (result.status === 'incomplete') {
     feedback('还差几个字母，完整拼出单词再检查。');
     return;
   }
   if (result.status === 'incorrect') {
+    if (challenge) dailyStats.mistakes++;
     markReview();
+    renderChallenge();
     feedback('还不是这个单词。可以点击答案格修改，或撤回再试。', 'error');
     $('answer-slots').classList.remove('is-shaking');
     void $('answer-slots').offsetWidth;
@@ -348,7 +372,8 @@ $('clear-button').addEventListener('click', () => {
 });
 $('shuffle-button').addEventListener('click', () => {
   if (busy || !getActiveWord()) return;
-  reshuffle(game);
+  if (challenge) dailyStats.shuffles++;
+  reshuffle(game, challengeRandom(`shuffle:${dailyStats.shuffles}`));
   hintId = null;
   render();
   saveProgress();
@@ -362,6 +387,7 @@ $('hint-button').addEventListener('click', () => {
     feedback(hasPlayableWord() ? '这个词的字母还没全部露出，先试试词单里标记「可拼」的词。' : '暂时没有完整可拼的词，点击「重新排列」就能继续。');
     return;
   }
+  if (challenge) dailyStats.hints++;
   markReview();
   if (!letters(word.word).join('').startsWith(selectedText())) {
     clearSelection(game);
@@ -370,16 +396,19 @@ $('hint-button').addEventListener('click', () => {
   const next = letters(word.word)[game.selected.length];
   hintId = getAvailableTiles(game).sort((a, b) => b.z - a.z).find(tile => tile.char === next && !game.selected.includes(tile.id))?.id || null;
   renderBoard(); renderAnswer();
+  renderChallenge();
   saveProgress();
 });
-$('new-button').addEventListener('click', randomGame);
+$('new-button').addEventListener('click', () => challenge ? leaveDaily() : randomGame());
 $('play-again-button').addEventListener('click', () => {
+  if (challenge) return startDaily(challenge, true);
   if (!practice) return randomGame();
   if (practice.index + 1 < practice.batches.length) { practice.learned += game.words.length; practice.index++; }
   else { practice.index = 0; practice.learned = 0; review = []; practice.review = review; }
   startGame(practice.batches[practice.index], practice.name);
 });
 $('review-button').addEventListener('click', () => {
+  freeMode();
   practice = { batches: practiceBatches(review), index: 0, learned: 0, name: '提示 / 易错词复习', review: [] };
   review = [];
   startGame(practice.batches[0], practice.name);
@@ -401,6 +430,7 @@ $('import-form').addEventListener('submit', event => {
   try {
     const entries = parseWordList($('word-input').value);
     savePreference('ciyu-word-list', $('word-input').value);
+    freeMode();
     practice = null; review = [];
     startGame(entries, '我的单词小岛');
     feedback('你的专属词单已就绪，字母和符号都放进小岛了。');
@@ -432,12 +462,12 @@ window.addEventListener('pagehide', saveProgress);
 soundEnabled = readPreference('ciyu-sound') === 'true';
 renderSound();
 setupLibrary(selected => {
+  freeMode();
   practice = selected;
   review = [];
   startGame(practice.batches[0], practice.name);
 });
-try {
-  const saved = JSON.parse(readPreference('ciyu-progress'));
+function restoreRecord(saved) {
   if (!saved) throw new Error('No save');
   game = restoreProgress(saved.entries, saved.completed, Math.random, saved.board);
   if (saved.practice) {
@@ -457,4 +487,63 @@ try {
   feedback(saved.board && JSON.stringify(game.tiles) === JSON.stringify(saved.board.tiles)
     ? '已恢复上次的棋盘和拼写，接着拾词吧。' : '已恢复上次完成进度，剩余字母重新摆好了。');
   if (game.completed === game.words.length) showWin();
-} catch { randomGame(false); }
+}
+function startDaily(day, replay = false, focus = true) {
+  const island = dailyIsland(day);
+  clearTimeout(pending); busy = false; hintId = null;
+  challenge = day; practice = null; review = [];
+  dailyStats = { hints: 0, shuffles: 0, mistakes: 0 };
+  savePreference('ciyu-active-daily', day);
+  document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+  try {
+    const record = JSON.parse(readPreference('ciyu-daily-v1'));
+    if (replay || !record || record.challenge !== day || record.practice
+        || JSON.stringify(record.entries) !== JSON.stringify(island.entries)
+        || !record.dailyStats || ['hints', 'shuffles', 'mistakes'].some(key => !Number.isSafeInteger(record.dailyStats[key]) || record.dailyStats[key] < 0 || record.dailyStats[key] > 1000000)) throw Error('new daily island');
+    dailyStats = record.dailyStats;
+    restoreRecord(record);
+    setFocus(focus);
+  } catch {
+    dailyStats = { hints: 0, shuffles: 0, mistakes: 0 };
+    startGame(island.entries, island.name, focus, challengeRandom('board'));
+  }
+}
+function leaveDaily() {
+  saveProgress();
+  freeMode();
+  clearTimeout(pending); busy = false; hintId = null;
+  document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+  try { restoreRecord(JSON.parse(readPreference('ciyu-progress'))); setFocus(false); }
+  catch { randomGame(false); }
+}
+async function shareDaily() {
+  const day = challenge || invitedDay || today();
+  const link = challengeUrl(location, day);
+  const text = challenge && game.completed === game.words.length
+    ? `我清空了 ${day} 的词屿每日词岛：提示 ${dailyStats.hints} 次、重排 ${dailyStats.shuffles} 次、拼错 ${dailyStats.mistakes} 次。你也来试试同一座岛！`
+    : `一起来玩 ${day} 的词屿每日词岛，试试零提示清空！`;
+  if (navigator.share) {
+    try { await navigator.share({ title: '词屿 · 每日词岛', text, url: link }); feedback('已打开分享，邀朋友来同题拾词。'); return; }
+    catch (error) { if (error?.name === 'AbortError') { feedback('已取消分享，词岛进度已保留。'); return; } }
+  }
+  $('challenge-link').value = link;
+  $('share-status').textContent = '链接只包含每日日期，不包含词单答案。可复制给朋友。';
+  $('share-dialog').showModal();
+  $('challenge-link').select();
+}
+$('daily-start').addEventListener('click', () => challenge ? setFocus(true) : startDaily(invitedDay || today()));
+$('daily-exit').addEventListener('click', leaveDaily);
+$('daily-share').addEventListener('click', shareDaily);
+$('win-share').addEventListener('click', shareDaily);
+$('copy-challenge').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('challenge-link').value); $('share-status').textContent = '同题链接已复制。'; }
+  catch { $('challenge-link').focus(); $('challenge-link').select(); $('share-status').textContent = '请长按或使用浏览器复制选中的链接。'; }
+});
+const resumeDay = !invitation.error && (invitedDay || readPreference('ciyu-active-daily'));
+if (validDay(resumeDay)) startDaily(resumeDay, false, false);
+else {
+  freeMode();
+  try { restoreRecord(JSON.parse(readPreference('ciyu-progress'))); }
+  catch { randomGame(false); }
+}
+if (invitation.error) feedback('同题链接的日期或版本无效，已保留自由拾词进度。', 'error');

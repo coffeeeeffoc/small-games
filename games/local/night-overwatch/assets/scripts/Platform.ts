@@ -1,5 +1,6 @@
 import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
+import { missionDefinition, type MissionId } from './core/MissionCatalog';
 export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
@@ -155,6 +156,14 @@ export class Platform {
     } catch {
       /* Optional preference; storage denial never blocks play. */
     }
+  }
+  readMission(): MissionId {
+    try { return missionDefinition(sys.localStorage.getItem('night-overwatch-mission-v1')).id; }
+    catch { return 'corridor-01'; }
+  }
+  saveMission(id: MissionId) {
+    try { sys.localStorage.setItem('night-overwatch-mission-v1', id); }
+    catch { /* Choosing a mission works even when storage is denied. */ }
   }
   dispose() {
     for (const fn of this.cleanup) fn();

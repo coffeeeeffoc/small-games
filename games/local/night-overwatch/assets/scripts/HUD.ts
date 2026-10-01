@@ -19,7 +19,6 @@ import {
   MAP,
   FLIGHT,
   terrainHeight,
-  MISSION,
   ROUTE,
   HOLD_POINTS,
   FRIENDLY_POSTS,
@@ -515,7 +514,7 @@ export class HUD {
       const split = !small,
         contentTop = py + (low ? 52 : small ? 65 : 118);
       if (split) {
-        this.label(n, 'NIGHT 07  /  OPERATION 01', px + pw / 2, py + 86, 12, pw - 48, 24, C.mint);
+        this.label(n, 'NIGHT 07  /  ' + text(s.mission.name, this.lang), px + pw / 2, py + 86, 12, pw - 48, 24, C.mint);
         this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235);
         this.label(
           n,
@@ -532,7 +531,7 @@ export class HUD {
         cw = split ? pw * 0.42 : pw - 36;
       this.label(
         n,
-        this.t('护送并清除全部威胁', 'ESCORT & CLEAR EVERY THREAT'),
+        text(s.mission.name, this.lang) + ' · ' + this.t('护送清敌', 'ESCORT & CLEAR'),
         cx,
         contentTop + 14,
         small ? 16 : 21,
@@ -542,7 +541,7 @@ export class HUD {
       ).isBold = true;
       for (const [i, message] of [
         this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
-        this.t('◇  轻车、炮台与重甲：清除', '◇  Rovers, turrets & armor: engage'),
+        text(s.mission.description, this.lang),
       ].entries())
         this.label(
           n,
@@ -569,13 +568,14 @@ export class HUD {
         low ? 28 : 44,
         C.dim,
       );
-      const primaryW = Math.min(260, pw - 48);
+      const primaryW = key === 'briefing' ? (pw - 56) / 2 : Math.min(260, pw - 48);
+      if (key === 'briefing') this.button('missionNext', this.t('切换任务  ↻', 'CHANGE MISSION  ↻'), px + 24, bottom, primaryW, 44, n);
       this.button(
         key === 'briefing' ? 'start' : 'resume',
         key === 'briefing'
           ? this.t('开始护送  →', 'BEGIN ESCORT  →')
           : this.t('返回任务', 'RESUME'),
-        px + pw / 2 - primaryW / 2,
+        key === 'briefing' ? px + 32 + primaryW : px + pw / 2 - primaryW / 2,
         bottom,
         primaryW,
         44,
@@ -634,8 +634,8 @@ export class HUD {
       const advice = success
         ? s.rating === 'S'
           ? this.t(
-              `用时 ${Math.floor(s.time)}s · 开火 ${s.fired} 发。再挑战：保住车队，减少耗弹。`,
-              `Time ${Math.floor(s.time)}s · ${s.fired} rounds. Challenge: same escort, fewer shots.`,
+              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} 发。再战，减少耗弹。`,
+              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} rounds. Try fewer shots.`,
             )
           : this.t(
               '下次目标：保护救援车，零友伤、零友军损失，争取 S。',
@@ -672,12 +672,14 @@ export class HUD {
         low ? 24 : small ? 44 : 62,
         C.dim,
       );
+      const resultW = (pw - 56) / 2;
+      this.button('missionNext', this.t('换个任务', 'OTHER MISSION'), px + 24, bottom, resultW, 44, n);
       this.button(
         'retry',
         this.t('再次出动  ↻', 'RETRY  ↻'),
-        px + pw / 2 - 105,
+        px + 32 + resultW,
         bottom,
-        210,
+        resultW,
         44,
         n,
       );
@@ -798,7 +800,7 @@ export class HUD {
     };
     let notice = reasons[reason] ? text(reasons[reason], this.lang)
       : s.rescue.hp / s.rescue.maxHp < 0.3 ? this.t('救援车危急 · 清除附近威胁', 'RESCUE CRITICAL · CLEAR THREATS')
-      : s.time - s.waveAt < 4 ? text(MISSION.events[s.lastWave]?.direction || ['', ''], this.lang)
+      : s.time - s.waveAt < 4 ? text(s.mission.events[s.lastWave]?.direction || ['', ''], this.lang)
       : s.convoy === 'holding' ? this.t('清路后，点击「车队继续」', 'CLEAR THE ROAD, THEN GO')
       : s.warning === 'armor' ? this.t('重甲抗速射 · 切换重炮', 'ARMOR · SWITCH TO HEAVY')
       : s.warning === 'lead' ? this.t('预留弹着提前量', 'LEAD THE TARGET') : '';

@@ -46,7 +46,7 @@ function mission() {
   const g = new Overwatch();
   g.hud = { h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
     minimapPoint: () => undefined, blocksBattlefield: () => false };
-  g.world = { updateCamera() {} };
+  g.world = { updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start();
   return g;
@@ -80,4 +80,27 @@ test('a real touch activates initially desktop-classified native devices and tri
   assert.equal(g.sim.held.size, 0);
   assert.equal(g.touches.size, 0);
   g.platform.dispose();
+});
+
+test('changing missions requires a briefing or result; retry preserves the chosen mission and system pauses', () => {
+  const g = mission();
+  g.action('missionNext');
+  assert.equal(g.sim.mission.id, 'corridor-01', 'a live mission cannot be replaced by an accidental switch');
+  g.sim.phase = 'success';
+  g.sim.pause('background', true);
+  g.sim.guns[2].ammo = 0;
+  g.action('missionNext');
+  assert.equal(g.sim.mission.id, 'ambush-02');
+  assert.equal(g.sim.phase, 'briefing', 'switching waits for the player to explicitly start');
+  assert(g.sim.pauses.has('background'));
+  assert.equal(g.sim.guns[2].ammo, 30);
+  g.action('start');
+  g.sim.pause('background', false);
+  g.sim.setFire('touch:99', true);
+  g.retry();
+  assert.equal(g.sim.mission.id, 'ambush-02');
+  assert.equal(g.sim.phase, 'playing');
+  assert.equal(g.sim.spawned.size, 8);
+  assert.equal(g.sim.held.size, 0);
+  assert.equal(g.sim.time, 0);
 });

@@ -13,6 +13,7 @@ pnpm --filter @coffeeeeffoc/travel-bund test
 pnpm --filter @coffeeeeffoc/travel-bund build
 pnpm --filter @coffeeeeffoc/travel-bund test:browser
 pnpm --filter @coffeeeeffoc/travel-bund test:controls
+pnpm --filter @coffeeeeffoc/travel-bund test:routes
 ```
 
 开发/预览地址 `http://localhost:4186/`。追加 `?debug=1` 显示帧率、绘制次数、三角面数量和人物坐标。浏览器测试自动选择空闲端口；`GAME_URL` 可覆盖目标，报告位于仓库 `.scratch/travel-bund-browser/`。
@@ -27,6 +28,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test:controls
 - 页面隐藏、失焦、鼠标解锁会暂停并清除输入；触摸取消不会持续行走。
 - 摇杆和转头区域各由首次按下的手指控制。额外手指不会抢走控制，松开额外手指也不会停止仍在继续的移动或转头。
 - 手机默认选择“流畅”：原生像素比例、256×256 水面反射、关闭动态阴影。暂停设置可选择“清晰”或“精细”，桌面默认“清晰”。
+- 地图新增三条轻量探索路线：“钟楼与旧石墙”“桥边的三段故事”“三种摩天轮廓”。每条三处，走近真实地标并收入手记后才计为打卡，界面显示下一处目标；原有收藏继续计入，无时间限制。分享邀请从下一处目标附近的既有安全落脚点开始。
+- 手记可保存 1080×1350 的个人漫游纪念卡，并邀请朋友走同一条路线。系统分享取消会直接结束；不支持时复制公开链接，剪贴板也不可用时显示可选中的链接。链接只保留自身 origin/path 与合法 `route=architecture|bridges|skyline`，不会携带进度或其它页面参数；重复/非法路线参数会忽略。
 
 ## 资产管线
 
@@ -62,6 +65,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test:browser
 
 `test:controls` 用真实 App 与 CDP 触摸事件检查横竖屏多指控制、指针捕获丢失、暂停恢复和画质设置，隔离 3D Scene，适合软件 WebGL 的云环境；它不代替完整场景的视效与性能验收。报告位于 `.scratch/travel-bund-controls/`。规则测试加载真实树 GLB，验证街区剔除保留全部位置，并使初始竖屏/桌面视锥的树三角面分别减少约 69% / 34%。
 
+`test:routes` 同样隔离 3D Scene，在真实 App 检查附近地标收藏、路线进度、手机交互按钮可点击、实际 PNG 纪念卡下载、公开链接复制/取消/手动回退与重复参数。三条路线的九个目标另外与真实 `world.json` 校验；探索 UI 和纪念卡仅用 DOM/2D Canvas，没有新增模型或场景绘制。本轮未完整实走三条 3D 路线，实体机帧率和完整场景限制继续适用。
+
 ## 范围
 
 当前为艺术化室外场景，建筑内部、驾驶及登船未开放。建筑碰撞采用外部体量，复杂内院需要单独制作。已加载分块在本次漫游中保留；若后续扩展到更大的城市，再增加显存淘汰策略。
@@ -70,7 +75,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test:browser
 
 ## 2026-10-01 云环境验证
 
-- 13 项规则、物理和真实 GLB 检查通过，TypeScript 检查与生产构建通过。
+- 第一轮 13 项规则、物理和真实 GLB 检查通过；第二轮加入 3 项路线规则检查，共 16 项。TypeScript 检查与生产构建通过。
+- 第二轮 `test:routes` 使用真实 App、隔离 3D Scene，检查共享路线不导入打卡进度、实际收集记一处、保存真实 1080×1350 PNG、取消分享不复制、手动复制入口和手机地图选线；该结果不代表完整 3D 路线走访或实体机性能验收。
 - `test:controls` 的 390×844 / 844×390 真实 App 和 CDP 触摸专项通过，包含三指所有权、丢失捕获、暂停恢复、手机默认“流畅”和画质切换；3D Scene 在该专项中被隔离。
 - 真实树模型的初始视锥检查保留全部 572 个位置：竖屏可见树三角面由 1,903,616 减为 589,056，桌面减为 1,257,984。该结果验证几何剔除，不等于整场景帧率达标。
 - 优化后真实生产入口以手机“流畅”配置启动，控制台错误为 0，初始视角记录约 2161k–2286k 三角面、约 1 FPS。这个云环境的 SwiftShader 结果仍未达到流畅体验要求；尚无实体手机、Safari 或硬件 GPU 的性能验收。

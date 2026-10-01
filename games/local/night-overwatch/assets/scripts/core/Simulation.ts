@@ -18,6 +18,7 @@ import {
   type Kind,
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
+import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
 export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
 export type Unit = Point3 & {
@@ -69,6 +70,7 @@ export type FireReason =
   | 'cooldown'
   | 'outside';
 export class Simulation {
+  readonly mission: MissionDefinition;
   phase: 'briefing' | 'playing' | 'success' | 'failure' = 'briefing';
   pauses = new Set<PauseReason>();
   time = 0;
@@ -103,8 +105,9 @@ export class Simulation {
   private flight = new Flight();
   readonly aircraft = this.flight.aircraft;
   private serial = 0;
-  constructor() {
+  constructor(missionId: MissionId = 'corridor-01') {
     validateData();
+    this.mission = missionDefinition(missionId);
     Object.assign(this.addUnit('rescue', routePoint(0), true), { group: 0, routeOffset: 0 });
     Object.assign(this.addUnit('escort', routePoint(5), true), { group: 0, routeOffset: 5 });
     Object.assign(this.addUnit('escort', routePoint(10), true), { group: 0, routeOffset: 10 });
@@ -121,13 +124,13 @@ export class Simulation {
     return this.units[0];
   }
   get remaining() {
-    return Math.max(0, MISSION.duration - this.time);
+    return Math.max(0, this.mission.duration - this.time);
   }
   get ratio() {
     return this.progress / ROUTE_LENGTH;
   }
   get threatsRemaining() {
-    return MISSION.events.length - this.spawned.size + this.units.filter((u) => !u.friendly && u.hp > 0).length;
+    return this.mission.events.length - this.spawned.size + this.units.filter((u) => !u.friendly && u.hp > 0).length;
   }
   get friendlyLosses() {
     return this.units.filter((u) => u.friendly && u.hp <= 0).length;
@@ -160,7 +163,7 @@ export class Simulation {
       friendly,
       heading: Math.PI / 2,
       born: this.time,
-      attack: MISSION.warmup,
+      attack: this.mission.warmup,
       hit: 0,
       deadAt: -1,
       origin: { ...p },
@@ -279,7 +282,7 @@ export class Simulation {
     return event;
   }
   private spawn() {
-    MISSION.events.forEach((e, i) => {
+    this.mission.events.forEach((e, i) => {
       if (!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
         this.spawned.add(i);
         this.addUnit(e.kind, e);
@@ -366,7 +369,7 @@ export class Simulation {
       if (g.overheated && g.heat <= 40) g.overheated = false;
     }
     if (this.convoy !== 'holding' && this.convoy !== 'arrived') {
-      let next = this.progress + MISSION.speed * dt;
+      let next = this.progress + this.mission.speed * dt;
       if (this.convoy === 'holdRequested') {
         const stop = HOLD_POINTS.find((p) => p >= this.progress - 0.001);
         if (stop !== undefined && next >= stop) {
@@ -411,11 +414,11 @@ export class Simulation {
       if (
         target &&
         spec.damage > 0 &&
-        this.time - u.born >= MISSION.warmup &&
+        this.time - u.born >= this.mission.warmup &&
         u.attack <= 0 &&
         distance(u, target) < spec.range
       ) {
-        const damage = Math.min(target.hp, spec.damage * (target.friendly ? MISSION.friendlyArmor : target.kind === 'heavy' ? 0.25 : 1));
+        const damage = Math.min(target.hp, spec.damage * (target.friendly ? this.mission.friendlyArmor : target.kind === 'heavy' ? 0.25 : 1));
         target.hp = Math.max(0, target.hp - damage);
         if (target === this.rescue) {
           this.rescueDamage.enemy += damage;
@@ -432,7 +435,7 @@ export class Simulation {
           else this.friendlyKills++;
           this.emit('kill', target, 0, target.id).friendly = u.friendly;
         }
-        u.attack = u.friendly ? MISSION.friendlyAttackInterval : MISSION.attackInterval;
+        u.attack = u.friendly ? this.mission.friendlyAttackInterval : this.mission.attackInterval;
       }
     }
     this.spawn();
@@ -444,7 +447,7 @@ export class Simulation {
     } else if (this.convoy === 'arrived' && this.threatsRemaining === 0) {
       this.phase = 'success';
       this.completed.add('arrived');
-    } else if (this.time >= MISSION.duration) {
+    } else if (this.time >= this.mission.duration) {
       this.phase = 'failure';
       this.failure = 'timeout';
     }

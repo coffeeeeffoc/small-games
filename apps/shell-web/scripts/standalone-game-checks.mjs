@@ -213,7 +213,7 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       expect(frame.locator('#next')).toBeVisible({ timeout: 15000 }),
     );
     await click(frame.locator('#next'));
-    await expect(frame.locator('#counter')).toHaveText('02 / 20');
+    await expect(frame.locator('#counter')).toHaveText('02 / 24');
     await click(frame.locator('#hint'));
     await expect(frame.locator('.hint-step')).toHaveText('提示 1 / 3');
     await click(frame.locator('[data-more]'));
