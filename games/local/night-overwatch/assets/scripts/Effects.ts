@@ -259,10 +259,10 @@ export function drawEffects(
       { x: location.x, y: location.y + 1, z: location.z },
       { x: location.x, y: location.y, z: location.z + 1 },
     ].map((p) => { const q = airborne(p); return Math.hypot(q.x - projected.x, q.y - projected.y); })));
-    // Real calibre is sub-pixel at this range. A thin tracer floor keeps it visible without giant fireballs.
-    const bodyWidth = Math.min(3, Math.max(0.65 + weapon * 0.4, spec.calibre * localScale));
-    const bodyLength = Math.min(8, Math.max(1.5 + weapon * 0.75, spec.length * localScale));
-    g.fillColor = color(0.6, 0.45);
+    // Keep distant rounds readable in UI pixels without changing their ballistic path.
+    const bodyWidth = Math.min(5, Math.max(1.5 + weapon * 0.65, spec.calibre * localScale));
+    const bodyLength = Math.min(12, Math.max(4 + weapon * 1.5, spec.length * localScale));
+    g.fillColor = color(0.8, 0.7);
     for (let side = 0; side < 2; side++) {
       for (let n = 0; n <= 6; n++) {
         const j = side === 0 ? n : 6 - n,

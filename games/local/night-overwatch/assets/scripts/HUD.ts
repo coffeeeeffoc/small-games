@@ -310,7 +310,7 @@ export class HUD {
   blocksBattlefield(x: number, y: number) {
     const panel = this.panelLayout, map = this.minimapLayout;
     return !!this.hit(x, y) || y < 58 + this.safe.top ||
-      y > this.h - this.footer - this.safe.bottom ||
+      (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
       (this.desktop && x < 152 + this.safe.left && y >= 110 + this.safe.top && y <= 414 + this.safe.top) ||
       (this.toolsOpen && x >= panel.x && x <= panel.x + panel.w && y >= panel.y && y <= panel.y + panel.h) ||
       (!this.toolsOpen && x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);

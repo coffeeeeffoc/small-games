@@ -374,7 +374,8 @@ export class Overwatch extends Component {
     this.sim.completed.add('zoom');
   }
   touchStart(e: EventTouch) {
-    if (e.simulate) return;
+    // Creator 3.8.8 leaves simulate=false on mouse-generated touches; browser pointer type is authoritative.
+    if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     this.platform.useTouchInput(true);
     this.hud.mousePointer = undefined;
     this.hud.touch = true;
@@ -414,7 +415,7 @@ export class Overwatch extends Component {
     }
   }
   touchMove(e: EventTouch) {
-    if (e.simulate) return;
+    if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
     if (fingers.length === 2) {
       const before = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
@@ -462,7 +463,7 @@ export class Overwatch extends Component {
     }
   }
   touchEnd(e: EventTouch) {
-    if (e.simulate) return;
+    if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     for (const t of e.getTouches()) {
       const id = t.getID(),
         role = this.touches.get(id);
@@ -478,7 +479,7 @@ export class Overwatch extends Component {
     }
   }
   touchCancel(e: EventTouch) {
-    if (e.simulate) return;
+    if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     this.clear();
   }
   keyDown(e: EventKeyboard) {

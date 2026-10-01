@@ -51,8 +51,8 @@ function checkProjectile(s, shot, fx) {
       'Finite rendered projectile telemetry',
     );
     assert(
-      fx.width > 0 && fx.width <= 3 && fx.length >= fx.width && fx.length <= 8,
-      `Projectile body stays within 3x8 CSS pixels: ${JSON.stringify(fx)}`,
+      fx.width >= 1.5 + shot.weapon * 0.65 && fx.width <= 5 && fx.length >= 4 + shot.weapon * 1.5 && fx.length <= 12,
+      `Projectile body remains readable within 5x12 CSS pixels: ${JSON.stringify(fx)}`,
     );
     assert(
       Math.abs(fx.speed - speed) < 1e-5,
