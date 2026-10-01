@@ -10,6 +10,9 @@
   "scripts": {
     "build": "node scripts/build.mjs web-mobile",
     "build:desktop": "node scripts/build.mjs web-desktop",
+    "build:wechat": "node scripts/build.mjs wechatgame",
+    "build:bilibili": "node scripts/build.mjs bilibili",
+    "build:douyin": "node scripts/build.mjs douyin",
     "dev": "node scripts/serve.mjs",
     "dev:desktop": "node scripts/serve.mjs --desktop",
     "test": "node --test tests/*.test.ts tests/startup.test.mjs",

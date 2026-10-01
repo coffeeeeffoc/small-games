@@ -15,9 +15,10 @@ const server = process.env.GAME_URL
     });
 const url = process.env.GAME_URL || `http://127.0.0.1:${server.httpServer.address().port}/`;
 const executablePath = [
+  process.env.PLAYWRIGHT_EXECUTABLE_PATH,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-].find(existsSync);
+].find((path) => path && existsSync(path));
 const browser = await chromium.launch({
   executablePath,
   headless: true,
@@ -264,6 +265,37 @@ try {
           { x: viewport.width * 0.6 + 60, y: viewport.height * 0.4, id: 2 },
         ],
       });
+      // Extra fingers must not replace either owner or release the original controls.
+      const walking = { x: box.x + 55, y: box.y + 15, id: 1 };
+      const looking = { x: viewport.width * 0.6 + 60, y: viewport.height * 0.4, id: 2 };
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [walking, looking, { x: box.x + 35, y: box.y + 55, id: 3 }],
+      });
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [{ x: box.x + 35, y: box.y + 55, id: 3 }],
+      });
+      await expect
+        .poll(async () => Number(await p.locator('main').getAttribute('data-speed')))
+        .toBeGreaterThan(0.5);
+      const beforeExtraLook = Number(await p.locator('main').getAttribute('data-yaw'));
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [walking, looking, { x: viewport.width * 0.65, y: viewport.height * 0.5, id: 4 }],
+      });
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [{ x: viewport.width * 0.65, y: viewport.height * 0.5, id: 4 }],
+      });
+      looking.x += 45;
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [walking, looking],
+      });
+      await expect
+        .poll(async () => Math.abs(Number(await p.locator('main').getAttribute('data-yaw')) - beforeExtraLook))
+        .toBeGreaterThan(0.03);
       await p.waitForTimeout(1500);
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
       await p.waitForTimeout(500);

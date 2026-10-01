@@ -63,7 +63,7 @@ export async function startNativeGame(
     report,
   );
   const pause = () => {
-    if (!disposed) {
+    if (!disposed && !hidden) {
       hidden = true;
       for (const cancel of cancelPointers) safely(cancel);
       media.pause();
@@ -71,7 +71,7 @@ export async function startNativeGame(
     }
   };
   const resume = () => {
-    if (!disposed) {
+    if (!disposed && hidden) {
       hidden = false;
       instance?.resume();
     }
@@ -112,17 +112,36 @@ export async function startNativeGame(
         onPress:
           sdk.onTouchStart && sdk.offTouchStart
             ? (start, end) => {
-                const touchStart = atTouch(start);
-                const touchEnd = () => end();
+                let pointerId: number | null = null;
+                const cancel = () => {
+                  if (pointerId === null) return;
+                  pointerId = null;
+                  end();
+                };
+                const touchStart = (event: TouchEvent) => {
+                  const first = event.changedTouches[0];
+                  if (!first || pointerId !== null || hidden || disposed) return;
+                  pointerId = first.identifier ?? 0;
+                  start(first.clientX, first.clientY);
+                };
+                const touchEnd = (event: TouchEvent) => {
+                  if (event.changedTouches.some((point) => (point.identifier ?? 0) === pointerId))
+                    cancel();
+                };
+                const touchCancel = (event: TouchEvent) => {
+                  if (event.changedTouches.length === 0) cancel();
+                  else touchEnd(event);
+                };
                 sdk.onTouchStart?.(touchStart);
                 sdk.onTouchEnd(touchEnd);
-                sdk.onTouchCancel?.(touchEnd);
-                cancelPointers.add(touchEnd);
+                sdk.onTouchCancel?.(touchCancel);
+                cancelPointers.add(cancel);
                 return remember(() => {
+                  safely(cancel);
                   safely(() => sdk.offTouchStart?.(touchStart));
                   safely(() => sdk.offTouchEnd(touchEnd));
-                  safely(() => sdk.offTouchCancel?.(touchEnd));
-                  cancelPointers.delete(touchEnd);
+                  safely(() => sdk.offTouchCancel?.(touchCancel));
+                  cancelPointers.delete(cancel);
                 });
               }
             : undefined,

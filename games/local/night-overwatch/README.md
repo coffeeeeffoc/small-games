@@ -17,6 +17,31 @@ pnpm dev
 
 构建调用器复用仓库 `../carding-car/scripts/toolchain.mjs`，类型检查使用该工程已安装的 TypeScript；请从完整工作区执行。工程入口、UI、渲染与音频均为 Cocos；浏览器 API 仅用于焦点、指针类型、无障碍画布说明和生命周期。
 
+## 原生小游戏构建
+
+复制 `release-config.example.json` 为 Git 忽略的 `release-config.local.json`，填写对应公开 AppID；也可使用 `WECHAT_APP_ID`、`BILIBILI_APP_ID`、`DOUYIN_APP_ID`。不在客户端填写 AppSecret。微信游客模式和 B站 `preview-only` 仅供配置预览；抖音实际构建需要该渠道的 `tt` AppID。
+
+```powershell
+pnpm --filter @coffeeeeffoc/night-overwatch build:wechat
+# 安装卡丁车已固定并校验的官方 B站插件后，本工程复制到自身忽略目录
+node games/local/carding-car/scripts/setup.mjs --bilibili
+pnpm --filter @coffeeeeffoc/night-overwatch build:bilibili
+pnpm --filter @coffeeeeffoc/night-overwatch build:douyin
+# 可先在没有 Creator 的机器检查配置，不生成原生制品
+node games/local/night-overwatch/scripts/build.mjs douyin --config-only
+```
+
+| 渠道 | Creator 构建方式 | 开发者工具目录 |
+| --- | --- | --- |
+| 微信 | `wechatgame` 官方扩展 | `build/wechatgame` |
+| B站 | `wechatgame` + 官方 `biligame-builder` 1.0.3；保留 `bl` 引擎适配 | `build/biligame` |
+| 抖音 | `bytedance-mini-game` 官方扩展，由 Creator 生成 `tt` 适配 | `build/bytedance-mini-game` |
+| 快手 | 尚缺与 Creator 3.8.8 兼容且已验证的构建扩展 | 尚无已验证制品 |
+
+原生目标使用同一任务规则、渲染、输入和音频，`resources` 在微信/抖音导出为本地素材分包；构建后校验横屏、项目 AppID、主包 4 MiB / 总包 20 MiB，并记录源码哈希。Web 保留原有本地资源加载与启动反馈。构建目标依据为官方 Creator 3.8 [抖音文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-bytedance-mini-game.md)和[命令行文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-in-command-line.md)。
+
+本轮云环境验证了实际控制器、规则、配置生成和制品校验测试。该机器没有 Creator 3.8.8 或匹配当前源码的预构建，新增原生制品、引擎类型检查、开发者工具、渲染、音频、首次启动和真机尚未验收；配置生成通过不等于原生游戏运行通过。快手须取得合适的 Creator 适配并实际验证，不能直接重命名微信制品。
+
 ## 操作
 
 鼠标移动瞄准，左键/Space 开火；1/2/3 或 Q/E/滚轮切枪；Z/X 缩放，右键临时放大；V 切换传感器；T 在下一待命点等待/继续；R 定位；M 任务；H/? 帮助；P/Esc 暂停。所有绑定与帮助来自 `assets/scripts/core/Actions.ts`。
@@ -24,6 +49,8 @@ pnpm dev
 ←/→ 旋转观察；[/] 切换逆/顺时针盘旋；PageUp/PageDown 调整高度；逗号/句号调整盘旋半径。小地图保持北向固定，点击可巡视对应区域并同步准星；高度、斜距和预计弹着时间实时显示。
 
 手机横屏：左手在战场相对拖动瞄准，右手按住右下开火；重炮逐次点按。滑出扳机、取消或失焦立即停火，滑回不会自动续射。手机默认跟随车队，巡视后可通过「飞行 → 定位」返回。飞行面板提供缩放、传感器、任务和帮助；右上角全屏始终可点。暂停面板提供继续、声音、简化特效、帮助与全屏，并保存声音及特效偏好。
+
+触屏电脑、手机桌面网页模式和原生工具中的真实触摸也会启用双手触控。触控与鼠标之间切换会释放旧扳机和临时放大，避免上一种输入方式继续开火；浏览器生成的鼠标模拟触摸不会重复发射。
 
 爆破炮携带 80 发、重型炮 30 发；重炮装填间隔 3 秒，每次点按发射一发。落空也产生弹着火光与烟尘；爆破/重炮爆炸半径为 3.4/6.5 世界单位，伤害随离目标车身的距离递减，范围外不受伤。三种炮弹使用不同口径与短曳光，约 600/420/320 米每秒的初速与三维距离共同决定飞行时间。
 
@@ -62,6 +89,6 @@ node tests/feedback-browser.mjs
 node tests/flight-browser.mjs
 ```
 
-截图保存在 `reports/`，本轮 QA 使用带时间戳的独立目录。真实手机、微信与抖音结果必须分别验证，浏览器触控模拟不代表这些平台通过。
+截图保存在 `reports/`，本轮 QA 使用带时间戳的独立目录。真实手机、微信、B站、抖音与快手结果必须分别验证，浏览器触控模拟不代表这些平台通过。
 
 核心规则依据 `__kit/GAME_REQUIREMENTS.md`。本次已进入产品打磨阶段，旧 M0/M1 和占位素材条款不作为完成依据；技术可用与发布质量分别记录。美术继续使用项目原创低模与程序音频，来源见 `docs/ASSETS.md`。

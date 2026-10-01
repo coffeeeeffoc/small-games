@@ -10,7 +10,9 @@ export class Platform {
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
+  private clear: () => void;
   constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
+    this.clear = clear;
     try {
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
@@ -70,12 +72,12 @@ export class Platform {
         canvas.tabIndex = 0;
         canvas.setAttribute('aria-label', '夜航守望：点击进入，H 查看操作帮助');
         listen(canvas, 'pointerdown', (e) => {
-          this.touchInput = (e as PointerEvent).pointerType !== 'mouse';
+          this.useTouchInput((e as PointerEvent).pointerType !== 'mouse');
           canvas.focus({ preventScroll: true });
           this.activate();
         });
         listen(canvas, 'pointermove', (e) => {
-          this.touchInput = (e as PointerEvent).pointerType !== 'mouse';
+          this.useTouchInput((e as PointerEvent).pointerType !== 'mouse');
         });
         listen(canvas, 'pointerleave', (e) => {
           if ((e as PointerEvent).pointerType === 'mouse') clear();
@@ -84,6 +86,11 @@ export class Platform {
         listen(canvas, 'contextmenu', (e) => e.preventDefault());
       }
     }
+  }
+  useTouchInput(touch: boolean) {
+    if (touch === this.touchInput) return;
+    this.clear();
+    this.touchInput = touch;
   }
   get focused() {
     return (

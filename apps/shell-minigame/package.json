@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
-    "smoke": "node ../../scripts/native-game-smoke.mjs --standalone"
+    "smoke": "node ../../scripts/native-game-smoke.mjs --standalone",
+    "test:competition": "node ../../scripts/competition-native-smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/platform-wechat": "workspace:*",
@@ -26,7 +27,8 @@
     "@coffeeeeffoc/game-cultivation": "workspace:*",
     "@coffeeeeffoc/game-arena": "workspace:*",
     "@coffeeeeffoc/game-building-power": "workspace:*",
-    "@coffeeeeffoc/game-office": "workspace:*"
+    "@coffeeeeffoc/game-office": "workspace:*",
+    "@coffeeeeffoc/platform-kuaishou": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

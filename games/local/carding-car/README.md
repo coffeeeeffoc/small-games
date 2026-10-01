@@ -1,6 +1,6 @@
 # 浪湾卡丁车
 
-Cocos Creator 3.8.8 + TypeScript 的横屏 3D 卡丁车。微信、B站分别发布一个独立小游戏；H5 使用同一 Cocos 工程、驾驶规则和触控代码。
+Cocos Creator 3.8.8 + TypeScript 的横屏 3D 卡丁车。微信、B站分别发布一个独立小游戏，另提供官方 Creator 抖音构建入口；Web/H5 使用同一 Cocos 工程、驾驶规则和触控代码。各渠道构建入口与配置检查不代表开发者工具、真机或发布审核已通过。
 
 ## 本地试玩
 
@@ -18,6 +18,8 @@ pnpm --filter @coffeeeeffoc/carding-car dev
 
 手机：横屏，自动加速；左侧滑动转向，右侧按住漂移或刹车，点击右侧氮气按钮加速。按住刹车先减速，停稳后继续按住即可倒车，松开后恢复向车头方向加速。过弯时蓄力，松开漂移释放加速。电脑端按住前进键加速，松开后滑行减速。键盘：Enter 开始/继续，W/上键前进，A/D 或左右键转向，空格漂移，左/右 Shift 氮气加速，S/下键刹车及倒车，P/Esc 暂停，M 声音，暂停或完赛后 R 重赛。允许掉头逆行，停车、逆行和近道碰墙不会自动复位；镜头平滑跟随车头。
 
+触屏电脑和手机的桌面网页模式也可直接触控驾驶，首次真实触摸启用自动加速。按驾驶键后切回键盘操作，松开前进键即可滑行；切换输入方式会清空上一种操作的漂移、刹车与氮气按压状态，鼠标点击菜单不会启用自动加速。
+
 首次驾驶会依次指导起步、转向、漂移蓄力、松手加速和氮气；必须真实完成操作才会推进。完成后在本机记忆，H 或左侧“驾驶教学”可随时重新学习/收起。车库显示所选路线的个人纪录目标，完赛显示奖牌与相比开赛前纪录的秒数差。H5 竖屏时提示横过手机。未配置联机服务的发布版本明确显示“好友赛待开放”，保留可直接开跑的单机竞速。
 
 H5 右上“全屏”覆盖游戏画面、HUD 与菜单，比赛中可退出；浏览器不支持或拒绝时会说明原因并保持普通页面可玩。微信/B站使用平台显示能力。装配期间重复点击开跑不会提前开赛，资源就绪后需明确点击开始。
@@ -32,18 +34,24 @@ H5 右上“全屏”覆盖游戏画面、HUD 与菜单，比赛中可退出；�
 
 ## 原生工程
 
-复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID` 环境变量。客户端构建不包含 AppSecret；平台排位登录所需密钥仅配置在共享后端。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。
+复制 `release-config.example.json` 为 **Git 忽略的** `release-config.local.json`，填写各平台 AppID。也可用 `WECHAT_APP_ID`、`BILIBILI_APP_ID`、`DOUYIN_APP_ID` 环境变量。客户端构建不包含 AppSecret；平台排位登录所需密钥仅配置在共享后端。未提供 ID 时只能生成预览配置，不能据此宣称平台发布通过。抖音实际构建要求该渠道的 `tt` AppID；不能复用微信或 B站 AppID。
 
 ```powershell
 pnpm --filter @coffeeeeffoc/carding-car build:wechat
 node games/local/carding-car/scripts/setup.mjs --bilibili
 pnpm --filter @coffeeeeffoc/carding-car build:bilibili
+pnpm --filter @coffeeeeffoc/carding-car build:douyin
+# 无引擎也可生成并检查渠道配置；不执行 Creator 或下载素材
+node games/local/carding-car/scripts/build.mjs douyin --config-only
 ```
 
 - 微信开发者工具打开 `build/wechatgame`。
 - B站开发者工具打开 `build/biligame`。使用官方 `biligame-builder` 1.0.3 插件；适配下载需要访问 B站开发者服务。
+- 抖音开发者工具打开 `build/bytedance-mini-game`。构建选择官方 `bytedance-mini-game` 扩展，由 Creator 生成 `tt` 引擎适配，素材沿用本地 `resources` 分包；检查横屏、AppID 及主包 4 MiB / 总包 20 MiB 预算。
 - Web 产物位于 `dist`，仓库 Shell 目录中选择“浪湾卡丁车”，独立入口为 `games/carding-car/index.html`。
 - CI 使用 Windows Runner 构建 Creator 产物，再交给 Linux/macOS 的检查与打包任务。产物校验源文件哈希；引擎下载缓存有固定版本和 SHA-256 校验。
+
+快手尚缺与 Creator 3.8.8 兼容且已验证的构建扩展；共享 `ks` 能力接入不等于该 3D 工程已生成快手制品。不能将微信输出改名后当作快手产物。官方 Creator 3.8 [抖音构建文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-bytedance-mini-game.md)与[命令行文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-in-command-line.md)提供当前目标依据。本轮云环境通过控制器与配置回归测试；缺少 Creator 引擎，因此新增抖音制品、渲染、启动、平台账号和真实设备均待验。
 
 ## 调整与验证
 

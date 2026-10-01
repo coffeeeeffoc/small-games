@@ -35,7 +35,8 @@ function setFocus(enabled) {
 }
 
 function saveProgress() {
-  savePreference('ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review }));
+  savePreference('ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review,
+    board: { tiles: game.tiles, boardHeight: game.boardHeight, activeWordId: game.activeWordId, selected: game.selected } }));
 }
 function markReview() {
   const word = getActiveWord();
@@ -303,6 +304,7 @@ function pickTile(id) {
   if (result.status === 'ignored') return;
   renderBoard();
   renderAnswer();
+  saveProgress();
   playSound();
   feedback(result.status === 'deselected' ? '已撤销这个字母，继续按顺序拼写。' : '选中的卡片留在原位，拼对整词才会一起消除。');
   if (game.selected.length === letters(getActiveWord().word).length) checkSpelling();
@@ -324,6 +326,7 @@ $('word-list').addEventListener('click', event => {
   chooseWord(game, row.dataset.wordId);
   hintId = null;
   render();
+  saveProgress();
   feedback(findSpelling(game, game.activeWordId) ? '已切换词义，按顺序拾取字母吧。' : '这词还有字母被压住，可以先拼词单里标记「可拼」的词。');
 });
 $('submit-button').addEventListener('click', checkSpelling);
@@ -332,6 +335,7 @@ $('undo-button').addEventListener('click', () => {
   undoSelection(game);
   hintId = null;
   renderBoard(); renderAnswer();
+  saveProgress();
   feedback('已撤回最后一个字母。');
 });
 $('clear-button').addEventListener('click', () => {
@@ -339,6 +343,7 @@ $('clear-button').addEventListener('click', () => {
   clearSelection(game);
   hintId = null;
   renderBoard(); renderAnswer();
+  saveProgress();
   feedback('已清空拼写，所有字母都还在原位。');
 });
 $('shuffle-button').addEventListener('click', () => {
@@ -346,17 +351,18 @@ $('shuffle-button').addEventListener('click', () => {
   reshuffle(game);
   hintId = null;
   render();
+  saveProgress();
   feedback('重新排列好了，已完成的单词保留。继续拾词吧。');
   playSound();
 });
 $('hint-button').addEventListener('click', () => {
   if (busy || !getActiveWord()) return;
   const word = getActiveWord();
-  markReview();
   if (!findSpelling(game, word.id)) {
     feedback(hasPlayableWord() ? '这个词的字母还没全部露出，先试试词单里标记「可拼」的词。' : '暂时没有完整可拼的词，点击「重新排列」就能继续。');
     return;
   }
+  markReview();
   if (!letters(word.word).join('').startsWith(selectedText())) {
     clearSelection(game);
     feedback('刚才的顺序不太对，已帮你清空。沿着金色边框从头拼吧。');
@@ -364,6 +370,7 @@ $('hint-button').addEventListener('click', () => {
   const next = letters(word.word)[game.selected.length];
   hintId = getAvailableTiles(game).sort((a, b) => b.z - a.z).find(tile => tile.char === next && !game.selected.includes(tile.id))?.id || null;
   renderBoard(); renderAnswer();
+  saveProgress();
 });
 $('new-button').addEventListener('click', randomGame);
 $('play-again-button').addEventListener('click', () => {
@@ -415,8 +422,12 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Enter' && !event.target.closest('button,a,input,textarea')) { event.preventDefault(); checkSpelling(); }
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && audioContext?.state === 'running') void audioContext.suspend().catch(() => {});
+  if (document.hidden) {
+    saveProgress();
+    if (audioContext?.state === 'running') void audioContext.suspend().catch(() => {});
+  }
 });
+window.addEventListener('pagehide', saveProgress);
 
 soundEnabled = readPreference('ciyu-sound') === 'true';
 renderSound();
@@ -428,7 +439,7 @@ setupLibrary(selected => {
 try {
   const saved = JSON.parse(readPreference('ciyu-progress'));
   if (!saved) throw new Error('No save');
-  game = restoreProgress(saved.entries, saved.completed);
+  game = restoreProgress(saved.entries, saved.completed, Math.random, saved.board);
   if (saved.practice) {
     const p = saved.practice;
     if (!Array.isArray(p.batches) || p.batches.length > 10000 || !Number.isInteger(p.index) || p.index < 0 || p.index >= p.batches.length
@@ -443,6 +454,7 @@ try {
   $('theme-name').textContent = roundName;
   roundStarted = performance.now();
   render();
-  feedback('已恢复上次完成进度，剩余字母重新摆好了。');
+  feedback(saved.board && JSON.stringify(game.tiles) === JSON.stringify(saved.board.tiles)
+    ? '已恢复上次的棋盘和拼写，接着拾词吧。' : '已恢复上次完成进度，剩余字母重新摆好了。');
   if (game.completed === game.words.length) showWin();
 } catch { randomGame(false); }

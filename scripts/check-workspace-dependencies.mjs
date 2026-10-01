@@ -24,6 +24,9 @@ const DEPENDENCY_FIELDS = [
 const REPOSITORY_IMPORTS = new Set([
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/native-targets.mjs',
+  'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/clear-output.mjs',
   'games/local/night-overwatch/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/tests/h5.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',

@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4186",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.ts",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:controls": "node tests/controls.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",

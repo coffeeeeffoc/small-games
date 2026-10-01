@@ -26,9 +26,13 @@ export function createNativeGameHost(
 ): GameHost {
   const telemetry = {
     async track(name: string, properties?: Readonly<Record<string, unknown>>) {
-      sdk
-        .getLogManager()
-        .info({ name, properties, gameId: manifest.gameId, sessionId: options.sessionId });
+      try {
+        sdk
+          .getLogManager()
+          .info({ name, properties, gameId: manifest.gameId, sessionId: options.sessionId });
+      } catch {
+        /* Optional telemetry must not reject an otherwise valid save or reward. */
+      }
     },
   };
   return createBrowserGameHost({

@@ -262,7 +262,7 @@ async function start(journey = null) {
   document.body.className = "game-page";
   app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="game-exit icon-button" id="leave" aria-label="暂停与退出" title="暂停与退出">${icon("pause")}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}${fullscreenButton()}</div></header>
       <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><div class="scene-actions"><button id="game-help" class="glass-button">玩法</button><button id="hint" class="glass-button">一点提示</button></div></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
-      <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
+      <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" role="listbox" aria-label="匹配城市" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
       <div class="guess-dock"><div class="mobile-tabs" role="group" aria-label="切换观察和地图"><button id="scene-tab" class="active" aria-pressed="true">${icon("eye")}观察场景</button><button id="map-tab" aria-pressed="false">${icon("pin")}地图选点 <i id="pin-dot"></i></button></div><div class="timeline"><div class="timeline-heading"><label for="year-range">第二步 · 这是哪一年？</label><div class="year-editor"><select id="era-select" aria-label="公元前或公元"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" type="number" inputmode="numeric" min="1" max="2026" value="1000" aria-label="猜测年份"><span>年</span></div><span class="year-status" id="year-status">请选择年代</span></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" value="1000" step="1" aria-label="拖动选择年份"><div class="era-stops"><button data-year="-2000">古文明</button><button data-year="-221">秦汉</button><button data-year="750">隋唐</button><button data-year="1100">宋元</button><button data-year="1600">明清</button><button data-year="1900">近现代</button></div></div><div class="submit-area"><button class="primary" id="submit" disabled>请先选择地点与年代 ${icon("arrow")}</button><span id="submit-note">两枚坐标，拼出一个历史瞬间</span></div></div>
       <div class="load-cover" id="load-cover" role="status"><span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div><div class="result-overlay" id="result-overlay" hidden></div></main>`;
   bindSound();
@@ -295,14 +295,41 @@ async function start(journey = null) {
   on("#map-plus", "click", () => guessMap?.zoom(1));
   on("#map-minus", "click", () => guessMap?.zoom(-1));
   on("#center-pin", "click", () => guessMap?.center());
+  let cityComposition = false;
+  on("#city-search", "compositionstart", () => { cityComposition = true; });
+  on("#city-search", "compositionend", () => { cityComposition = false; });
+  on("#city-search", "blur", () => { cityComposition = false; });
   on("#city-search", "input", searchCities);
+  on("#city-search", "focus", searchCities);
   on("#city-search", "keydown", (event) => {
-    if (event.key === "Escape") $("#search-results").hidden = true;
-    if (event.key === "Enter") {
-      $("#search-results button")?.click();
+    // WebKit can report a composition-confirming Enter with isComposing=false.
+    if (cityComposition || event.isComposing || event.keyCode === 229) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCitySearch();
+    }
+    const results = $("#search-results");
+    if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+      if (results.hidden) searchCities();
+      if (results.hidden) return;
+      const options = [...results.querySelectorAll("button")];
+      if (!options.length) return;
+      const current = options.findIndex(option => option.getAttribute("aria-selected") === "true");
+      const index = event.key === "ArrowDown" ? (current + 1) % options.length
+        : (current < 0 ? options.length - 1 : (current - 1 + options.length) % options.length);
+      options.forEach((option, i) => option.setAttribute("aria-selected", String(i === index)));
+      $("#city-search").setAttribute("aria-activedescendant", options[index].id);
+      options[index].scrollIntoView({ block: "nearest" });
+      event.preventDefault();
+    }
+    if (event.key === "Enter" && !results.hidden) {
+      (results.querySelector('[aria-selected="true"]') || results.querySelector("button"))?.click();
       event.preventDefault();
     }
   });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".search-wrap")) closeCitySearch();
+  }, { signal: screenEvents.signal });
   on("#year-range", "input", (event) =>
     setYear(Number(event.target.value) || 1),
   );
@@ -410,7 +437,7 @@ async function loadRound(journey = null) {
   $("#hint").textContent = "一点提示";
   $("#city-search").value = "";
   $("#city-search").disabled = false;
-  $("#search-results").hidden = true;
+  closeCitySearch();
   $("#location-status").innerHTML =
     `${icon("pin")}<span>点击地图，标记你的猜测</span>`;
   $("#pin-dot").classList.remove("set");
@@ -477,32 +504,44 @@ function setView(view) {
 window.addEventListener("resize", () => {
   if (state.screen === "game") setView(state.view);
 });
+function closeCitySearch() {
+  const results = $("#search-results"), field = $("#city-search");
+  if (results) {
+    results.hidden = true;
+    results.querySelectorAll("button").forEach(option => option.setAttribute("aria-selected", "false"));
+  }
+  field?.setAttribute("aria-expanded", "false");
+  field?.removeAttribute("aria-activedescendant");
+}
 function searchCities() {
   const query = $("#city-search").value.trim(),
     results = $("#search-results");
+  if (state.phase !== "guessing") return closeCitySearch();
   if (!query) {
-    results.hidden = true;
+    closeCitySearch();
     return;
   }
+  $("#city-search").removeAttribute("aria-activedescendant");
   const matches = cities
     .filter((city) => city.name.includes(query))
     .slice(0, 6);
   results.innerHTML = matches.length
     ? matches
         .map(
-          (city) =>
-            `<button data-city="${escape(city.name)}">${icon("pin")}${escape(city.name)}<small>在地图上标记</small></button>`,
+          (city, index) =>
+            `<button id="search-city-${index}" role="option" aria-selected="false" tabindex="-1" data-city="${escape(city.name)}">${icon("pin")}${escape(city.name)}<small>在地图上标记</small></button>`,
         )
         .join("")
-    : "<p>未收录这个城市，仍可在地图上点选。</p>";
+    : '<p role="status">未收录这个城市，仍可在地图上点选。</p>';
   results.hidden = false;
+  $("#city-search").setAttribute("aria-expanded", "true");
   results.querySelectorAll("button").forEach(
     (button) =>
       (button.onclick = () => {
         const city = cities.find((c) => c.name === button.dataset.city);
         guessMap.goTo(city);
         $("#city-search").value = city.name;
-        results.hidden = true;
+        closeCitySearch();
         $("#city-search").blur();
         chime();
       }),
@@ -541,7 +580,7 @@ function reveal(timedOut) {
   state.phase = "revealed";
   clearInterval(clock);
   $("#modal")?.close();
-  $("#search-results").hidden = true;
+  closeCitySearch();
   const round = state.deck[state.index],
     score = scoreGuess(
       round,

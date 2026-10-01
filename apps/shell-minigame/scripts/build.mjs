@@ -44,6 +44,8 @@ const checked = targets.map(({ game, platform }) => {
     throw new Error(`Release needs ${platform}/${game} AppID; use --preview only for local checks`);
   if (typeof adUnitId !== 'string' || (adUnitId && !/^[\w-]+$/.test(adUnitId)))
     throw new Error('Invalid advertising placement');
+  if (adUnitId && platforms[platform].advertising === false)
+    throw new Error(`${platform} rewarded advertising is not yet verified; omit the placement`);
   return { game, platform, appId, adUnitId };
 });
 
@@ -78,7 +80,7 @@ for (const { game, platform, appId, adUnitId } of checked) {
           return `import { ${adapter.start} } from ${JSON.stringify(adapter.module)};
           import { ${selected.definition} as original, ${selected.content} as content } from '@coffeeeeffoc/game-${game}/canvas';
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
-          export const ready = ${adapter.start}(${adapter.sdk}, { definition, content }, ${adapter.entryArguments({ title: selected.title, adUnitId })});
+          export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
           ready.catch(error => { console.error('小游戏启动失败', error); });`;
         },
         async generateBundle() {

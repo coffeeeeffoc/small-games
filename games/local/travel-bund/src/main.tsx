@@ -35,6 +35,7 @@ function Loading() {
 }
 
 function App() {
+  const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   const [data, setData] = useState<WorldData | null>(null),
     [error, setError] = useState(''),
     [ready, setReady] = useState(false),
@@ -46,7 +47,7 @@ function App() {
     [sitting, setSitting] = useState(false),
     [fast, setFast] = useState(false),
     [boost, setBoost] = useState(false),
-    [quality, setQuality] = useState(1),
+    [quality, setQuality] = useState(touch ? 0 : 1),
     [sensitivity, setSensitivity] = useState(1);
   const [visits, setVisits] = useState<string[]>(() => {
     try {
@@ -73,7 +74,6 @@ function App() {
     noticeTimer = useRef<number>(0),
     action = useRef(() => {}),
     capture = useRef(() => {});
-  const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   const notify = useCallback((text: string) => {
     setNotice(text);
     window.clearTimeout(noticeTimer.current);
@@ -294,9 +294,12 @@ function App() {
   const drag = useRef<{ id: number; x: number; y: number } | null>(null),
     stick = useRef<{ id: number; x: number; y: number } | null>(null);
   function pointerDown(e: React.PointerEvent) {
-    if (!input.active || document.pointerLockElement) return;
+    if (!input.active || document.pointerLockElement || drag.current || e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  }
+  function releaseLook(e: React.PointerEvent) {
+    if (drag.current?.id === e.pointerId) drag.current = null;
   }
   function pointerMove(e: React.PointerEvent) {
     const p = drag.current;
@@ -316,7 +319,8 @@ function App() {
     input.stick = [x / length, y / length];
     setThumb([(x / length) * 30, (y / length) * 30]);
   }
-  function releaseStick() {
+  function releaseStick(e?: React.PointerEvent) {
+    if (e && stick.current?.id !== e.pointerId) return;
     stick.current = null;
     input.stick = [0, 0];
     setThumb([0, 0]);
@@ -338,28 +342,23 @@ function App() {
       data-y={stats.position[1].toFixed(2)}
       data-speed={stats.speed.toFixed(2)}
       data-grounded={stats.grounded}
+      data-quality={quality}
       data-yaw={stats.yaw.toFixed(3)}
     >
       <div
         className="world"
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
-        onPointerUp={() => {
-          drag.current = null;
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-        }}
-        onLostPointerCapture={() => {
-          drag.current = null;
-        }}
+        onPointerUp={releaseLook}
+        onPointerCancel={releaseLook}
+        onLostPointerCapture={releaseLook}
       >
         {data && !error && (
           <SceneBoundary onError={sceneError}>
             <Canvas
               frameloop={active || !ready ? 'always' : 'demand'}
-              shadows
-              dpr={[1, quality === 1 ? 1.25 : 2]}
+              shadows={quality > 0}
+              dpr={[1, quality === 0 ? 1 : quality === 1 ? 1.25 : 2]}
               camera={{ position: [-393, 2.6, 37], fov: 68, near: 0.25, far: 12000 }}
               gl={{
                 antialias: true,
@@ -520,21 +519,16 @@ function App() {
                     aria-label="拖动环顾"
                     onPointerDown={pointerDown}
                     onPointerMove={pointerMove}
-                    onPointerUp={() => {
-                      drag.current = null;
-                    }}
-                    onPointerCancel={() => {
-                      drag.current = null;
-                    }}
-                    onLostPointerCapture={() => {
-                      drag.current = null;
-                    }}
+                    onPointerUp={releaseLook}
+                    onPointerCancel={releaseLook}
+                    onLostPointerCapture={releaseLook}
                   />
                   <div
                     className="joystick"
                     role="group"
                     aria-label="移动摇杆"
                     onPointerDown={(e) => {
+                      if (!input.active || stick.current || e.button !== 0) return;
                       e.currentTarget.setPointerCapture(e.pointerId);
                       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
                     }}
@@ -625,6 +619,7 @@ function App() {
               <label>
                 画面精度
                 <select value={quality} onChange={(e) => setQuality(Number(e.target.value))}>
+                  <option value={0}>流畅</option>
                   <option value={1}>清晰</option>
                   <option value={2}>精细</option>
                 </select>

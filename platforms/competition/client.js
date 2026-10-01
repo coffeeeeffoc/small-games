@@ -1,18 +1,12 @@
 // Browser and native clients use the same server-issued identity and protocol.
-globalThis.__installCompetition = (options) => {
+globalThis.__installCompetition = (options, nativeSdk) => {
   const root = globalThis;
   if (root.__competition) return;
   const config = options || root.__COMPETITION_CONFIG__ || {};
-  const sdk =
-    config.platform === 'bilibili'
-      ? typeof bl !== 'undefined'
-        ? bl
-        : null
-      : config.platform === 'wechat'
-        ? typeof wx !== 'undefined'
-          ? wx
-          : null
-        : null;
+  const nativePlatforms = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' };
+  const native = Object.hasOwn(nativePlatforms, config.platform);
+  const sdk = nativeSdk || (native ? root[nativePlatforms[config.platform]] : null);
+  if (native && !sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动好友挑战。`);
   const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
   const teamRules = {
     'cops-robbers': { version: 'roles-initiative-duel-v2', modes: ['escape', 'survival'] },
@@ -51,6 +45,7 @@ globalThis.__installCompetition = (options) => {
     SESSION_EXPIRED: '登录已过期，请重新进入；当前对局不会冒用新身份。',
     PLATFORM_NOT_CONFIGURED: '此游戏的平台登录尚未配置。',
     PLATFORM_LOGIN_FAILED: '平台登录失败，请重新进入。',
+    PLATFORM_LOGIN_UNAVAILABLE: '此平台的好友挑战暂不可用，请稍后再试。',
     ROOM_FULL: '房间已满。',
     INVITATION_EXPIRED: '邀请已过期或比赛已开始。',
     INVITATION_NOT_FOUND: '找不到这个邀请，请核对房间码。',
@@ -121,6 +116,11 @@ globalThis.__installCompetition = (options) => {
         const login = await new Promise((resolve, reject) =>
           sdk.login({ success: resolve, fail: reject }),
         );
+        if (typeof login?.code !== 'string' || !login.code) {
+          const error = new Error(errors.PLATFORM_LOGIN_FAILED);
+          error.code = 'PLATFORM_LOGIN_FAILED';
+          throw error;
+        }
         credential = await send('/sessions/platform', {
           body: JSON.stringify({
             platform: config.platform,

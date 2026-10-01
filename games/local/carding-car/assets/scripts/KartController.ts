@@ -5,6 +5,7 @@ import type { RaceManager } from './RaceManager';
 export class KartController {
   keys = new Set<number>();
   touches = new Map<number, { role: string; steer: number }>();
+  touchInput = sys.isMobile;
   constructor(
     private race: () => RaceManager,
     private restart: () => void,
@@ -34,6 +35,12 @@ export class KartController {
   keyDown(e: EventKeyboard) {
     if (this.blocked()) return;
     if (this.keys.has(e.keyCode)) return;
+    if ([KeyCode.KEY_W, KeyCode.KEY_A, KeyCode.KEY_S, KeyCode.KEY_D,
+      KeyCode.ARROW_UP, KeyCode.ARROW_LEFT, KeyCode.ARROW_DOWN, KeyCode.ARROW_RIGHT,
+      KeyCode.SPACE].includes(e.keyCode) && this.touchInput) {
+      this.clear();
+      this.touchInput = false;
+    }
     this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
@@ -105,6 +112,12 @@ export class KartController {
   }
   touchStart(e: EventTouch) {
     if (this.blocked()) return;
+    // Creator's mouse-generated touch events still operate menus, but only a
+    // real finger switches to automatic acceleration on hybrid H5 devices.
+    if (!e.simulate && !this.touchInput) {
+      this.clear();
+      this.touchInput = true;
+    }
     this.activateAudio();
     const p = this.location(e),
       r = this.race(),
@@ -196,7 +209,7 @@ export class KartController {
       if (t.role === 'brake') brake = true;
       if (t.role === 'nitro') nitro = true;
     }
-    const forward = sys.isMobile || key(KeyCode.ARROW_UP, KeyCode.KEY_W);
+    const forward = this.touchInput || key(KeyCode.ARROW_UP, KeyCode.KEY_W);
     return { steer, drift, brake, reverse: brake, nitro, throttle: !brake && forward ? 1 : 0 };
   }
   destroy() {

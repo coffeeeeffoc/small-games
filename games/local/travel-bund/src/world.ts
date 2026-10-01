@@ -1,5 +1,16 @@
 export type V3 = [number, number, number];
 export type Placement = { position: V3; yaw: number; scale: V3 };
+// Keep static instances close enough that Three can cull them as a local street block.
+export function placementBatches(placements: readonly Placement[], cellSize = 128): Placement[][] {
+  const cells = new Map<string, Placement[]>();
+  for (const placement of placements) {
+    const key = `${Math.floor(placement.position[0] / cellSize)},${Math.floor(placement.position[2] / cellSize)}`;
+    let cell = cells.get(key);
+    if (!cell) cells.set(key, (cell = []));
+    cell.push(placement);
+  }
+  return [...cells.values()];
+}
 export type WorldData = {
   tiles: { name: string; center: V3; radius: number }[];
   surfaces: { position: V3; half: V3; yaw: number }[];

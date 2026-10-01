@@ -5,12 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = new URL('../', import.meta.url);
 export async function sourceHash(directory = fileURLToPath(root)) {
-  const files = [
-    'package.json',
-    'settings/v2/packages/engine.json',
-    'settings/v2/packages/project.json',
-  ];
-  for (const dir of ['assets', 'scripts', 'startup'].filter(
+  const files = ['package.json'];
+  for (const dir of ['assets', 'scripts', 'settings', 'startup'].filter(
     (dir) => dir !== 'startup' || existsSync(path.join(directory, dir)),
   ))
     for (const e of await readdir(path.join(directory, dir), {
@@ -32,8 +28,9 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     );
   }
   // The shared Creator launcher also affects the build and its cache identity.
-  hash.update(await readFile(new URL('../../carding-car/scripts/toolchain.mjs', import.meta.url), 'utf8')
-    .then((source) => source.replaceAll('\r\n', '\n')));
+  for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'])
+    hash.update(await readFile(new URL('../../carding-car/scripts/' + file, import.meta.url), 'utf8')
+      .then((source) => source.replaceAll('\r\n', '\n')));
   return hash.digest('hex');
 }
 

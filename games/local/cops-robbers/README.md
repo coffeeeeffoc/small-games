@@ -18,6 +18,7 @@
 - 挑战：点队员后点亮起的相邻路口即走；点脚下数字留守；支持拖动、取消拖动、撤销、提示与重开。提示不会替玩家走棋。
 - 对抗：点自己的队员与路口移动；可直接点击相邻对手进行接触拦截。电脑行动、对局结束时仍有返回大厅和重新挑战入口。
 - 键盘 Tab 选择，Enter / 空格激活；挑战还支持 Ctrl / ⌘ + Z 撤销。
+- 人机对抗的选人和双方行动后保留键盘焦点；撤销与空格留守只在当前挑战生效，返回大厅或进入对抗时保留挑战进度。
 - 挑战记录沿用 `cops-robbers-v3`，保留原 60 图记录；新对抗的模式、角色、先后手偏好和按角色分开的完成标记使用 `cops-robbers-duel-v1`。清理浏览器数据会删除本地记录和头像。
 - `?level=100&motion=reduce` 可直接进入指定挑战关。直接选关不改变之后刷新恢复当前挑战的行为。
 
@@ -41,6 +42,7 @@ npm run preview
 npm run test:browser
 npm run test:interactions
 npm run test:focus
+npm run test:input
 npm run test:duel-browser
 npm run test:ranking
 npm run test:competition-renderer
@@ -50,6 +52,7 @@ npm run test:competition-renderer
 - `test:duel`：200 个独立道路图，连接性、真实节点与循环递增、双方角色和先手、接触/出口/限步结算、非法动作、六步开局审查、8,000 场随机回放及分层 AI 对局；报告为 `outputs/duel-audit.json`。
 - `test:browser`：真实输入回放全部挑战地图，同时检查触摸、首末关、选关、重开、撤销和存档。`LEVEL_IDS` 可用于定点回归，并生成独立报告以免覆盖全量结果。
 - `test:duel-browser`：双方角色 × 两种先手 × 两个模式的真实触摸，电脑响应、重试、返回、完整结果、本地完成标记和窄屏布局。
+- `test:input`：大厅与人机对抗不会触发后台挑战快捷键、双方角色选人与行棋保持键盘焦点、返回挑战后仍能撤销；支持 `BROWSER_EXECUTABLE` 指定 Chromium 路径。
 - `test:ranking` / `test:competition-renderer`：与真正服务器规则模块一致的双方视图和意图校验；这些本地测试不代替公网服务或实体手机验收。
 
 ## 关卡维护

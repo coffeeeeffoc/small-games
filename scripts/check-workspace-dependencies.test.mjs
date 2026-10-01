@@ -118,7 +118,7 @@ test('allows only exact shared competition rule edges, never game runtime servic
   assert.ok(violations.some((entry) => entry.message.includes('main.js')));
 });
 
-test('allows the shared Creator launcher only in the declared build scripts', async (t) => {
+test('allows shared Creator tooling only in declared build scripts', async (t) => {
   const root = await createWorkspace([
     {
       path: 'games/local/night-overwatch',
@@ -126,6 +126,9 @@ test('allows the shared Creator launcher only in the declared build scripts', as
       files: {
         'scripts/build.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
         'scripts/typecheck.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'scripts/build-native.mjs':
+          "import '../../carding-car/scripts/toolchain.mjs';\nimport '../../carding-car/scripts/native-targets.mjs';\nimport '../../carding-car/scripts/clear-output.mjs';\n",
+        'assets/scripts/native.ts': "import '../../../carding-car/scripts/native-targets.mjs';\n",
         'scripts/other.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
         'assets/scripts/main.ts': "import '../../../carding-car/scripts/toolchain.mjs';\n",
         'test-results/capture.mjs': "import '../../../apps/shell-web/internal.js';\n",
@@ -134,10 +137,11 @@ test('allows the shared Creator launcher only in the declared build scripts', as
   ]);
   t.after(() => rm(root, { recursive: true, force: true }));
   const violations = await validateWorkspace(root);
-  assert.equal(violations.length, 2);
+  assert.equal(violations.length, 3);
   assert(violations.every((entry) => entry.code === 'cross-package-relative'));
   assert(violations.some((entry) => entry.message.includes('other.mjs')));
   assert(violations.some((entry) => entry.message.includes('main.ts')));
+  assert(violations.some((entry) => entry.message.includes('native.ts')));
 });
 
 test('requires an explicit root export', async (t) => {

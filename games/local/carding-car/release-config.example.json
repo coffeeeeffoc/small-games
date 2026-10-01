@@ -1,5 +1,7 @@
 {
   "wechatAppId": "touristappid",
   "bilibiliAppId": "",
+  "douyinAppId": "",
+  "competitionApiUrl": "",
   "multiplayerServerUrl": ""
 }

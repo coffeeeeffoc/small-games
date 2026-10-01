@@ -1,18 +1,70 @@
 {
   "cricket": {
-    "wechat": { "appId": "", "adUnitId": "" },
-    "bilibili": { "appId": "", "adUnitId": "" }
+    "wechat": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "bilibili": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "douyin": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "kuaishou": {
+      "appId": ""
+    }
   },
   "cultivation": {
-    "wechat": { "appId": "", "adUnitId": "" },
-    "bilibili": { "appId": "", "adUnitId": "" }
+    "wechat": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "bilibili": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "douyin": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "kuaishou": {
+      "appId": ""
+    }
   },
   "arena": {
-    "wechat": { "appId": "", "adUnitId": "" },
-    "bilibili": { "appId": "", "adUnitId": "" }
+    "wechat": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "bilibili": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "douyin": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "kuaishou": {
+      "appId": ""
+    }
   },
   "office": {
-    "wechat": { "appId": "", "adUnitId": "" },
-    "bilibili": { "appId": "", "adUnitId": "" }
+    "wechat": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "bilibili": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "douyin": {
+      "appId": "",
+      "adUnitId": ""
+    },
+    "kuaishou": {
+      "appId": ""
+    }
   }
 }
