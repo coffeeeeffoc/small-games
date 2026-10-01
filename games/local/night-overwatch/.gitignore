@@ -8,4 +8,8 @@ cc.d.ts
 reports/*.log
 reports/build-*.json
 reports/engine.d.ts
+reports/**/*-trace.zip
+reports/startup-integration-mobile/*
+!reports/startup-integration-mobile/ready.png
+!reports/startup-integration-mobile/verification.json
 reports/browser-results.json

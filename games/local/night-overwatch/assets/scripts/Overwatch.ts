@@ -37,6 +37,7 @@ export class Overwatch extends Component {
   measuredFps = 0;
   resizeKey = '';
   lastAimInput = 0;
+  private startupSignalled = false;
   start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
@@ -118,8 +119,15 @@ export class Overwatch extends Component {
     if (!['zoomIn', 'zoomOut', 'sound', ...flightActions].includes(id)) this.hud.toolsOpen = false;
     if (id === 'close' || id === 'resume') {
       if (this.sim.pauses.has('help')) this.pause('help', false);
+      else if (this.sim.pauses.has('settings')) this.pause('settings', false);
       else if (this.sim.pauses.has('mission')) this.pause('mission', false);
       else this.pause('manual', false);
+      return;
+    }
+    if (id === 'settings') {
+      const wasHelp = this.sim.pauses.has('help');
+      if (wasHelp) this.pause('help', false);
+      this.pause('settings', wasHelp || !this.sim.pauses.has('settings'));
       return;
     }
     if (id === 'help') {
@@ -218,11 +226,7 @@ export class Overwatch extends Component {
       this.sim.completed.add('locate');
     }
     if (id === 'zoomIn' || id === 'zoomOut') {
-      this.world.zoom = Math.max(
-        0.8,
-        Math.min(3.2, this.world.zoom + (id === 'zoomIn' ? 0.2 : -0.2)),
-      );
-      this.world.updateCamera();
+      this.world.adjustZoom(id === 'zoomIn' ? 1.2 : 1 / 1.2);
       this.sim.completed.add('zoom');
     }
   }
@@ -265,7 +269,8 @@ export class Overwatch extends Component {
       b = this.hud.hit(p.x, p.y);
     this.hud.mousePointer = p;
     if (b) {
-      if (this.hud.modal && b.label.node.parent !== this.hud.modal) return;
+      if (e.getButton() !== 0) return;
+      if (this.hud.modal && b.label.node.parent !== this.hud.modal && !this.hud.isGlobalAction(b.id)) return;
       this.mouseButton = b.id;
       if (b.id === 'fire' && e.getButton() === 0) this.sim.setFire('mouse', true);
       return;
@@ -292,11 +297,12 @@ export class Overwatch extends Component {
   }
   mouseUp(e: EventMouse) {
     if (this.platform.touchInput) return;
-    this.sim.setFire('mouse', false);
     if (e.getButton() === 2) {
       this.world.temporary = false;
       this.world.updateCamera();
     }
+    if (e.getButton() !== 0) return;
+    this.sim.setFire('mouse', false);
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
     const id = this.mouseButton;
@@ -308,7 +314,11 @@ export class Overwatch extends Component {
       if (this.sim.pauses.has('help')) this.hud.scrollBy(-e.getScrollY() * 0.2);
       return;
     }
-    this.action(e.getScrollY() > 0 ? 'previous' : 'next');
+    const p = this.mousePosition(e);
+    if (this.sim.phase !== 'playing' || this.sim.paused || this.hud.blocksBattlefield(p.x, p.y)) return;
+    const q = e.getLocation();
+    this.world.adjustZoom(Math.exp(Math.max(-0.35, Math.min(0.35, e.getScrollY() * 0.0015))), q.x, q.y);
+    this.sim.completed.add('zoom');
   }
   touchStart(e: EventTouch) {
     if (e.simulate || !this.platform.touchInput) return;
@@ -328,20 +338,48 @@ export class Overwatch extends Component {
         this.touches.set(id, { role: 'map', x, y });
         continue;
       }
-      if (b && (!this.hud.modal || b.label.node.parent === this.hud.modal)) {
+      if (b && (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id))) {
+        if (b.id === 'fire' && Array.from(this.touches.values()).some((t) => t.role === 'pinch')) {
+          this.touches.set(id, { role: 'cancelled', x, y });
+          continue;
+        }
         this.touches.set(id, { role: b.id === 'fire' ? 'fire' : 'button', x, y, button: b.id });
         if (b.id === 'fire') this.sim.setFire('touch:' + id, true);
       } else if (this.hud.modal) {
         if (this.sim.pauses.has('help')) this.touches.set(id, { role: 'scroll', x, y });
       } else if (
-        !this.hud.blocksBattlefield(x, y) &&
-        !Array.from(this.touches.values()).some((t) => t.role === 'aim')
+        !this.hud.blocksBattlefield(x, y) && this.sim.phase === 'playing' && !this.sim.paused
       )
         this.touches.set(id, { role: 'aim', x, y });
+    }
+    const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'aim' || t.role === 'pinch');
+    if (fingers.length >= 2) {
+      this.sim.clearInput();
+      fingers.forEach((t, i) => { t.role = i < 2 ? 'pinch' : 'cancelled'; });
+      for (const t of this.touches.values()) if (t.role === 'fire') t.role = 'cancelled';
     }
   }
   touchMove(e: EventTouch) {
     if (e.simulate || !this.platform.touchInput) return;
+    const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
+    if (fingers.length === 2) {
+      const before = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
+      for (const t of e.getTouches()) {
+        const role = this.touches.get(t.getID());
+        if (role?.role !== 'pinch') continue;
+        const p = t.getUILocation();
+        role.x = p.x;
+        role.y = this.hud.h - p.y;
+      }
+      const after = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
+      if (before > 8 && after > 8 && !this.sim.paused) {
+        this.world.adjustZoom(after / before,
+          (fingers[0].x + fingers[1].x) / 2 * view.getScaleX(),
+          (this.hud.h - (fingers[0].y + fingers[1].y) / 2) * view.getScaleY());
+        this.sim.completed.add('zoom');
+      }
+      return;
+    }
     for (const t of e.getTouches()) {
       const role = this.touches.get(t.getID());
       if (!role) continue;
@@ -376,6 +414,8 @@ export class Overwatch extends Component {
         role = this.touches.get(id);
       this.touches.delete(id);
       this.sim.setFire('touch:' + id, false);
+      if (role?.role === 'pinch')
+        for (const finger of this.touches.values()) if (finger.role === 'pinch') finger.role = 'cancelled';
       if (role?.role === 'button') {
         const p = t.getUILocation(),
           b = this.hud.hit(p.x, this.hud.h - p.y);
@@ -392,6 +432,10 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
+    if (e.keyCode === 27 && ['help', 'settings', 'mission'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
+      this.action('close');
+      return;
+    }
     if (e.keyCode === 13 && this.sim.phase !== 'playing') {
       this.action(this.sim.phase === 'briefing' ? 'start' : 'retry');
       return;
@@ -464,6 +508,12 @@ export class Overwatch extends Component {
     this.world.update(this.sim);
     this.hud.fullscreen = this.platform.isFullscreen;
     this.hud.update(this.sim, this.world);
+    if (sys.isBrowser && !this.startupSignalled && this.world.aircraftModel.status !== 'loading' && this.world.modelImport !== 'loading') {
+      this.startupSignalled = true;
+      if (this.world.aircraftModel.status === 'error')
+        window.dispatchEvent(new CustomEvent('night-overwatch:error', { detail: new Error('机舱资源加载失败，请重试。') }));
+      else window.dispatchEvent(new Event('night-overwatch:ready'));
+    }
     this.platform.ambience(this.sim.phase === 'playing' && !this.sim.paused);
     if (TUTORIAL.every((e) => this.sim.completed.has(e)) && this.hud.tutorial) {
       this.hud.tutorial = false;
@@ -551,7 +601,7 @@ export class Overwatch extends Component {
         .filter(
           (b) =>
             b.label.node.activeInHierarchy &&
-            (!this.hud.modal || b.label.node.parent === this.hud.modal),
+            (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id)),
         )
         .map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
       zoom: this.world.zoom,
@@ -564,6 +614,7 @@ export class Overwatch extends Component {
       enginePlaying: this.platform.engine.playing,
       assets: Array.from(this.world.assets),
       renderNodes: this.world.views.size,
+      wrecks: Array.from(this.world.views, ([id, v]) => ({ id, wreck: v.wreck, scale: v.node.scale.x })),
       markerLabels: this.hud.unitLabels.size,
       frameRate: this.measuredFps,
       drawCalls: (director.root as any)?.device?.numDrawCalls,

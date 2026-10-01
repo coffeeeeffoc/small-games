@@ -56,6 +56,7 @@ async function open(width, height, touch = false) {
       globalThis.__night.snapshot().audio !== 'loading',
   );
   await page.waitForFunction(() => globalThis.__night?.snapshot().buttons.length > 0);
+  await page.waitForFunction(() => !document.getElementById('night-startup'));
   return page;
 }
 async function button(p, id, touch = false) {
@@ -91,6 +92,8 @@ try {
     await button(p, 'start');
     await p.keyboard.press('p');
     await p.waitForTimeout(60);
+    await button(p, 'settings');
+    assert((await snapshot(p)).pauses.includes('settings'));
     await p.keyboard.press('h');
     const before = await snapshot(p);
     console.log('nested pause', before.pauses);
@@ -107,6 +110,10 @@ try {
     await screenshot(p, 'desktop-help-last');
     await button(p, 'close');
     console.log('closed help', (await snapshot(p)).pauses);
+    assert.equal((await snapshot(p)).modal, 'settings');
+    assert((await snapshot(p)).pauses.includes('manual'));
+    await button(p, 'close');
+    assert(!(await snapshot(p)).pauses.includes('settings'));
     assert((await snapshot(p)).pauses.includes('manual'));
     await p.keyboard.press('p');
     await p.waitForTimeout(60);
@@ -151,6 +158,8 @@ try {
   ]) {
     const m = await open(w, h, true);
     await button(m, 'start', true);
+    await button(m, 'settings', true);
+    assert((await snapshot(m)).pauses.includes('settings'));
     await button(m, 'help', true);
     await button(m, 'tab:advanced', true);
     await screenshot(m, `mobile-${w}-help-first`);
@@ -172,6 +181,9 @@ try {
     assert.equal(s.scroll, s.scrollMax);
     await screenshot(m, `mobile-${w}-help-last`);
     await button(m, 'close', true);
+    assert.equal((await snapshot(m)).modal, 'settings');
+    await button(m, 'close', true);
+    assert(!(await snapshot(m)).pauses.includes('settings'));
     await button(m, 'weapon0', true);
     s = await snapshot(m);
     const fire = s.buttons.find((b) => b.id === 'fire'),
@@ -204,11 +216,17 @@ try {
     await m.waitForTimeout(220);
     assert.equal((await snapshot(m)).fired, cancelled);
     await button(m, 'pause', true);
+    await button(m, 'settings', true);
+    assert((await snapshot(m)).pauses.includes('settings'));
     await button(m, 'help', true);
     await m.setViewportSize({ width: h, height: w });
     await m.waitForTimeout(250);
     await button(m, 'close', true);
+    assert.equal((await snapshot(m)).modal, 'settings');
+    assert((await snapshot(m)).pauses.includes('manual'));
+    await button(m, 'close', true);
     s = await snapshot(m);
+    assert(!s.pauses.includes('settings'));
     assert(s.pauses.includes('manual'));
     assert(s.pauses.includes('orientation'));
     assert(s.buttons.some((b) => b.id === 'fullscreen'));
@@ -223,6 +241,7 @@ try {
       await m.waitForFunction(() =>
         globalThis.__night?.snapshot().buttons.some((b) => b.id === 'start'),
       );
+      await m.waitForFunction(() => !document.getElementById('night-startup'));
       await button(m, 'start', true);
       await button(m, 'convoy', true);
       report.mobileWin = await mobileWin(m);

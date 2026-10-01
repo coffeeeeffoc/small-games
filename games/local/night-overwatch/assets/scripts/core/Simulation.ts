@@ -18,7 +18,7 @@ import {
   type Kind,
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
-export type PauseReason = 'help' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus';
+export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
 export type Unit = Point3 & {
   id: number;
@@ -144,7 +144,7 @@ export class Simulation {
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
     if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
         Math.abs(p.x) > MAP.halfWidth || Math.abs(p.z) > MAP.halfDepth) return Infinity;
-    return ballisticLaunch(muzzlePosition(this.aircraft), p, WEAPONS[weapon].speed)?.duration ?? Infinity;
+    return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, WEAPONS[weapon].speed)?.duration ?? Infinity;
   }
   shotPosition(shot: Shot, time = this.time) {
     return shotPosition(shot, time);
@@ -248,7 +248,7 @@ export class Simulation {
     if (this.reason() !== 'ready') return false;
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
-    const origin = Object.freeze(muzzlePosition(this.aircraft));
+    const origin = Object.freeze(muzzlePosition(this.aircraft, this.selected));
     const launch = ballisticLaunch(origin, this.aim, w.speed);
     if (!launch) return false;
     g.ammo--;

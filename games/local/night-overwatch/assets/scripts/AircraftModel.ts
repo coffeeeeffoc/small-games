@@ -5,15 +5,17 @@ import {
   Mesh,
   MeshRenderer,
   Node,
+  Quat,
   Vec3,
   isValid,
   resources,
   utils,
 } from 'cc';
+import { AIRFRAME, WEAPONS } from './core/Data';
+import { aircraftRotation, cabinPoint } from './core/Flight';
 
 type Geometry = { positions: number[]; normals: number[]; colors: number[]; indices: number[] };
 const RESOURCE = 'models/aircraft/cabin';
-const MUZZLE = new Vec3(-1.8, -1.1, 1.2);
 
 function validate(payload: unknown): Geometry {
   if (!payload || typeof payload !== 'object') throw Error('Expected a geometry object');
@@ -60,9 +62,15 @@ export class AircraftModel {
   private mesh: Mesh | null = null;
   private material: Material | null = null;
   private renderer: MeshRenderer | null = null;
+  private bay: Node;
+  private weapon = 0;
 
   constructor(parent: Node) {
     this.node = new Node('asset:aircraft.cabin');
+    this.bay = new Node('Port gun bay (metre-authored detail)');
+    this.node.addChild(this.bay);
+    this.bay.setScale(AIRFRAME.cabinScale, AIRFRAME.cabinScale, AIRFRAME.cabinScale);
+    this.setWeapon(0);
     // Always resolves, including failure/cancellation; callers must inspect status.
     this.ready = new Promise<void>((resolve) => {
       this.settleReady = resolve;
@@ -95,7 +103,7 @@ export class AircraftModel {
             defines: { USE_VERTEX_COLOR: true },
           });
           this.material.setProperty('mainColor', Color.WHITE);
-          this.renderer = this.node.addComponent(MeshRenderer);
+          this.renderer = this.bay.addComponent(MeshRenderer);
           this.renderer.mesh = this.mesh;
           this.renderer.setMaterial(this.material, 0);
           this.triangleCount = geometry.indices.length / 3;
@@ -113,23 +121,34 @@ export class AircraftModel {
     }
   }
 
-  /** Simulation radians: Ry(yaw) * Rx(-pitch), matching Flight.muzzlePosition (positive = climb). */
+  /** Uses Flight's shared Ry(yaw) * Rx(-pitch) * Rz(bank); direction never mirrors port/starboard. */
   public update(
-    position: { x: number; y: number; z: number },
+    position: { x: number; y: number; z: number; bank?: number },
     yaw: number,
     pitch: number,
     direction: -1 | 1,
+    bank = position.bank ?? 0,
+    weapon = 0,
   ): void {
     if (!this.alive()) return;
-    this.direction = direction; // Orbit marker only: never mirror the mesh/muzzle or add bank.
+    this.direction = direction;
+    this.setWeapon(weapon);
     this.node.setPosition(position.x, position.y, position.z);
-    this.node.setRotationFromEuler((-pitch * 180) / Math.PI, (yaw * 180) / Math.PI, 0);
+    const q = aircraftRotation({ yaw, pitch, bank });
+    this.node.setRotation(new Quat(q.x, q.y, q.z, q.w));
+  }
+
+  private setWeapon(weapon: number) {
+    this.weapon = WEAPONS[weapon] ? weapon : 0;
+    const origin = cabinPoint({ x: 0, y: 0, z: 0 }, this.weapon);
+    this.bay.setPosition(origin.x, origin.y, origin.z);
   }
 
   /** Includes the parent world transform; available during loading, null after disposal. */
   public get worldMuzzle(): Vec3 | null {
     if (!this.alive()) return null;
-    return Vec3.transformMat4(new Vec3(), MUZZLE, this.node.worldMatrix);
+    const mount = WEAPONS[this.weapon].muzzle;
+    return Vec3.transformMat4(new Vec3(), new Vec3(mount.x, mount.y, mount.z), this.node.worldMatrix);
   }
 
   public dispose(): void {

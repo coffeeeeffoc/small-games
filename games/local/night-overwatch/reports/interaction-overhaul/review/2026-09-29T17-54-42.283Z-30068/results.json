@@ -1,0 +1,2666 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0903f04fd2eeb33eb102945938d2ced50cfc8a7c0507f5fe1f81acef5f8a1888"
+  },
+  "base": "http://localhost:4318",
+  "started": "2026-09-29T17:54:42.285Z",
+  "status": "browser-checks-passed-visual-review-pending",
+  "environment": "Isolated desktop Chromium; Playwright mouse and CDP emulated touch, NOT physical devices",
+  "productionMutations": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "name": "wide-field-markers",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 154,
+            "y": 255,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing",
+          "measurement": {
+            "zoom": 1.35,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": 258.88737101021655,
+                  "y": 155.69110648053552
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 264.4395471980331,
+                  "y": 156.91352441072638
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 270.1305103912118,
+                  "y": 158.07677964328866
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 364.9553307087177,
+                  "y": 130.1575003723692
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 367.45385270478624,
+                  "y": 131.54590477481804
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 360.3192836801614,
+                  "y": 130.51298124975065
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 502.156998960308,
+                  "y": 214.38877662889533
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 509.0566357111114,
+                  "y": 219.0592204819472
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 494.02119611295234,
+                  "y": 217.13345578730386
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 716.1609907130547,
+                  "y": 214.53072590742684
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 726.4250177360125,
+                  "y": 219.26975446462475
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 710.0869721210877,
+                  "y": 215.29597327209524
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 301.1071172326062,
+                  "y": 151.15519036309337
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 257.80318982327964,
+                  "y": 175.9779684631924
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 309.7523577623307,
+                  "y": 168.2995176366838
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 281.61696437700175,
+                  "y": 133.37353203654015
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 345.41035893449384,
+                  "y": 121.51664611405982
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 386.7748517707697,
+                  "y": 128.15319279132876
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 387.77234229942366,
+                  "y": 139.35828461954668
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 335.239067415827,
+                  "y": 136.1469126370127
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 434.3242280877195,
+                  "y": 142.16949138710447
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 414.9206773208865,
+                  "y": 177.82179295083287
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 463.40952429005284,
+                  "y": 164.95656075995439
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 356.9822209531135,
+                  "y": 155.36862322708265
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 544.9192251987945,
+                  "y": 268.7561609319258
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 581.4046183497248,
+                  "y": 214.9600361842389
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 453.6060386678718,
+                  "y": 244.43990557281992
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 564.2798297339356,
+                  "y": 178.67597113917623
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 655.5884575245555,
+                  "y": 180.5533265989747
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 782.8114802889323,
+                  "y": 227.6030226473799
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 644.2626547517374,
+                  "y": 203.29181074830962
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 704.7989021947931,
+                  "y": 190.95095561514697
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 810.9279240646821,
+                  "y": 332.7514871999608
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 935.1555294567256,
+                  "y": 331.85216171399054
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1023.2647495242601,
+                  "y": 453.62392977836464
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 681.0646868963456,
+                  "y": 328.4573693039097
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 1,
+                "b": 2,
+                "team": "friendly",
+                "dx": 5.552176187816542,
+                "dy": 1.2224179301908578
+              },
+              {
+                "a": 1,
+                "b": 3,
+                "team": "friendly",
+                "dx": 11.243139380995274,
+                "dy": 2.385673162753136
+              },
+              {
+                "a": 2,
+                "b": 3,
+                "team": "friendly",
+                "dx": 5.690963193178732,
+                "dy": 1.1632552325622783
+              },
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 2.4985219960685185,
+                "dy": 1.3884044024488276
+              },
+              {
+                "a": 4,
+                "b": 6,
+                "team": "friendly",
+                "dx": 4.636047028556334,
+                "dy": 0.35548087738143863
+              },
+              {
+                "a": 5,
+                "b": 6,
+                "team": "friendly",
+                "dx": 7.134569024624852,
+                "dy": 1.032923525067389
+              },
+              {
+                "a": 6,
+                "b": 21,
+                "team": "mixed",
+                "dx": 14.908924745667548,
+                "dy": 8.996335135690828
+              },
+              {
+                "a": 7,
+                "b": 8,
+                "team": "friendly",
+                "dx": 6.899636750803438,
+                "dy": 4.670443853051864
+              },
+              {
+                "a": 7,
+                "b": 9,
+                "team": "friendly",
+                "dx": 8.135802847355649,
+                "dy": 2.7446791584085304
+              },
+              {
+                "a": 8,
+                "b": 9,
+                "team": "friendly",
+                "dx": 15.035439598159087,
+                "dy": 1.925764694643334
+              },
+              {
+                "a": 21,
+                "b": 27,
+                "team": "enemy",
+                "dx": 10.171291518666862,
+                "dy": 14.630266522952866
+              },
+              {
+                "a": 23,
+                "b": 25,
+                "team": "enemy",
+                "dx": 0.997490528653941,
+                "dy": 11.205091828217917
+              }
+            ]
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 218.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 488.5,
+            "y": 164,
+            "w": 63.5,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing-zoomed",
+          "measurement": {
+            "zoom": 2.7993599999999996,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": 231.09468477199894,
+                  "y": 152.15093040646795
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 243.33327559574516,
+                  "y": 154.55213655454946
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 255.86810040947185,
+                  "y": 156.8454168447205
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 445.0195405493226,
+                  "y": 92.33523014113695
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 450.4793929796531,
+                  "y": 95.20885454176408
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 435.4869704980382,
+                  "y": 93.25164205784134
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 745.0673705410666,
+                  "y": 265.97473804659785
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 759.9263112011222,
+                  "y": 275.4984498876391
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 728.7837683089577,
+                  "y": 272.13461747458484
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1162.415943331613,
+                  "y": 254.04675710283544
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1182.9513821929027,
+                  "y": 263.24358680835616
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1151.072708079554,
+                  "y": 255.96642935820407
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 321.53419613929776,
+                  "y": 140.99686461643142
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 235.12525354683441,
+                  "y": 196.87224455540104
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 338.2873515694973,
+                  "y": 176.68218764745754
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 276.1386213830725,
+                  "y": 103.01679709650125
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 407.5068000857964,
+                  "y": 75.25084510008881
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 489.63528050768633,
+                  "y": 87.32916850367576
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 500.87389625433326,
+                  "y": 110.94780163759864
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 385.9812012712176,
+                  "y": 105.78507728669845
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 596.3672889566337,
+                  "y": 117.24851105479289
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 557.5745905468178,
+                  "y": 191.90356128858582
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 661.0485568994045,
+                  "y": 163.98404700484167
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 439.6072095101073,
+                  "y": 147.76196020038577
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 854.6133839191777,
+                  "y": 382.2690368128303
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 903.4362525198599,
+                  "y": 262.82445249170155
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 662.4596313997456,
+                  "y": 335.635571700734
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 862.1806668140799,
+                  "y": 187.44641669712885
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1048.1408677742265,
+                  "y": 189.54328625208083
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1291.2437121704274,
+                  "y": 277.22183150558016
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1032.9426866980502,
+                  "y": 236.68366438975204
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 1135.0119656661477,
+                  "y": 206.8179780889826
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1392.8546030025873,
+                  "y": 498.273914138533
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1602.2524354291145,
+                  "y": 481.1678933147507
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1831.1569876804997,
+                  "y": 734.0363523044562
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1123.2081648339888,
+                  "y": 494.74160055317986
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 1,
+                "b": 2,
+                "team": "friendly",
+                "dx": 12.238590823746222,
+                "dy": 2.4012061480815134
+              },
+              {
+                "a": 2,
+                "b": 3,
+                "team": "friendly",
+                "dx": 12.534824813726686,
+                "dy": 2.293280290171026
+              },
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 5.4598524303305,
+                "dy": 2.8736244006271363
+              },
+              {
+                "a": 4,
+                "b": 6,
+                "team": "friendly",
+                "dx": 9.532570051284381,
+                "dy": 0.9164119167043907
+              },
+              {
+                "a": 5,
+                "b": 6,
+                "team": "friendly",
+                "dx": 14.99242248161488,
+                "dy": 1.9572124839227456
+              }
+            ]
+          }
+        }
+      ],
+      "evidence": [
+        "568-wide-field-markers-wide.png",
+        "568-wide-field-markers-zoomed.png"
+      ],
+      "visualReviewRequired": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "name": "wide-field-markers",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 292,
+            "y": 325,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing",
+          "measurement": {
+            "zoom": 1.35,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": 391.3937891674347,
+                  "y": 189.74851695470346
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 398.1605047983406,
+                  "y": 191.23833713841586
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 405.0963669528765,
+                  "y": 192.6560527108448
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 520.6640957085681,
+                  "y": 158.62940557885457
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 523.7091689946349,
+                  "y": 160.32152258859512
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 515.0139149269239,
+                  "y": 159.06264904686518
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 687.8785690569943,
+                  "y": 261.28620050317534
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 696.2874962750811,
+                  "y": 266.978298731475
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 677.9630671860309,
+                  "y": 264.63128046155737
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 948.6956505675189,
+                  "y": 261.4591094965975
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 961.2049161888576,
+                  "y": 267.23479178308196
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 941.2929511486498,
+                  "y": 262.39175664265576
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 442.8491041856071,
+                  "y": 184.2203562513643
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 390.07244984085594,
+                  "y": 214.47313133498437
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 453.3854956902592,
+                  "y": 205.11500163152618
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 419.09547524913563,
+                  "y": 162.5489657603868
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 496.843664194923,
+                  "y": 148.09837040128266
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 547.2566285357592,
+                  "y": 156.18665045887423
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 548.472322950958,
+                  "y": 169.84285369585365
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 484.4474092990608,
+                  "y": 165.9290089242046
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 605.2074109883429,
+                  "y": 173.26899823808535
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 581.5593544137571,
+                  "y": 216.72023685262042
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 640.6551026747502,
+                  "y": 201.0407226730928
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 510.94687810488665,
+                  "y": 189.3554601581483
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 739.9950036923345,
+                  "y": 327.54640076613146
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 784.4615218513103,
+                  "y": 261.98238882037333
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 628.7071329764061,
+                  "y": 297.9110232383181
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 763.590697224849,
+                  "y": 217.76121312083433
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 874.872967434481,
+                  "y": 220.04920616064857
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1029.925811114782,
+                  "y": 277.39092903503547
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 861.0696669864316,
+                  "y": 247.76172089037627
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 934.8481201636085,
+                  "y": 232.72128986192908
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1064.192686215577,
+                  "y": 405.54048875798827
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1215.5947794753747,
+                  "y": 404.4443543350106
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1322.9776538988701,
+                  "y": 552.8534409079997
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 905.9221129313946,
+                  "y": 400.3071229255727
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 1,
+                "b": 2,
+                "team": "friendly",
+                "dx": 6.766715630905878,
+                "dy": 1.4898201837123963
+              },
+              {
+                "a": 1,
+                "b": 3,
+                "team": "friendly",
+                "dx": 13.702577785441804,
+                "dy": 2.9075357561413284
+              },
+              {
+                "a": 2,
+                "b": 3,
+                "team": "friendly",
+                "dx": 6.935862154535926,
+                "dy": 1.417715572428932
+              },
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 3.0450732860667813,
+                "dy": 1.6921170097405422
+              },
+              {
+                "a": 4,
+                "b": 6,
+                "team": "friendly",
+                "dx": 5.650180781644167,
+                "dy": 0.4332434680106019
+              },
+              {
+                "a": 5,
+                "b": 6,
+                "team": "friendly",
+                "dx": 8.695254067710948,
+                "dy": 1.2588735417299404
+              },
+              {
+                "a": 7,
+                "b": 8,
+                "team": "friendly",
+                "dx": 8.408927218086887,
+                "dy": 5.692098228299642
+              },
+              {
+                "a": 7,
+                "b": 9,
+                "team": "friendly",
+                "dx": 9.91550187096334,
+                "dy": 3.34507995838203
+              },
+              {
+                "a": 23,
+                "b": 25,
+                "team": "enemy",
+                "dx": 1.2156944151987545,
+                "dy": 13.656203236979422
+              }
+            ]
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 304,
+            "y": 212,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 96,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing-zoomed",
+          "measurement": {
+            "zoom": 2.7993599999999996,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": 357.5717963640741,
+                  "y": 185.3851437623046
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 372.4579278435087,
+                  "y": 188.31766029497146
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 387.70481264228437,
+                  "y": 191.1179585007876
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 618.5515662407564,
+                  "y": 112.76923929505074
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 625.1946121716397,
+                  "y": 116.27190531886572
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 606.9301360491925,
+                  "y": 113.87862817318728
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 983.6309234544561,
+                  "y": 324.4536109763439
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1001.7200448896647,
+                  "y": 336.06848443208406
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 963.7595001094636,
+                  "y": 331.9419571746636
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1493.3718157970204,
+                  "y": 310.4062794911936
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1518.4317563116265,
+                  "y": 321.64076465391696
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1479.4971811744579,
+                  "y": 312.73310418071515
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 467.68273712176284,
+                  "y": 171.87528924719157
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 362.21981942243576,
+                  "y": 239.7969599600577
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 488.1492256803306,
+                  "y": 215.35207816054447
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 412.56007890300157,
+                  "y": 125.62787594883565
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 572.7119764197015,
+                  "y": 91.91996459564751
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 672.9541124596684,
+                  "y": 106.70343245165304
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 686.2861189543081,
+                  "y": 135.4841463444118
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 546.4935530731589,
+                  "y": 129.11937023071783
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 802.7215199982978,
+                  "y": 143.14666367535963
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 755.3708480072276,
+                  "y": 234.09596903136182
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 881.3838004859537,
+                  "y": 200.13726362611942
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 611.5052240833058,
+                  "y": 180.20749648922956
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1116.3469594696264,
+                  "y": 466.1016882639209
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1176.9026913271425,
+                  "y": 320.7917851660561
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 882.2238411741588,
+                  "y": 409.09079445450556
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 1126.8439960948233,
+                  "y": 228.92338669880078
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1353.6742901081363,
+                  "y": 231.56770589680622
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1650.7628368072474,
+                  "y": 338.8070985302378
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1334.8240184519616,
+                  "y": 289.0345894321903
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 1460.1112858062697,
+                  "y": 252.77438373346044
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1773.0423558398177,
+                  "y": 608.2021823973813
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 2030.0701548964391,
+                  "y": 587.8774319111276
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 2307.5396094558214,
+                  "y": 896.2396165284833
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1444.2743015830501,
+                  "y": 603.6160000833304
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 1,
+                "b": 2,
+                "team": "friendly",
+                "dx": 14.886131479434596,
+                "dy": 2.9325165326668525
+              },
+              {
+                "a": 2,
+                "b": 3,
+                "team": "friendly",
+                "dx": 15.246884798775682,
+                "dy": 2.800298205816148
+              },
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 6.643045930883318,
+                "dy": 3.5026660238149816
+              },
+              {
+                "a": 4,
+                "b": 6,
+                "team": "friendly",
+                "dx": 11.621430191563945,
+                "dy": 1.1093888781365422
+              }
+            ]
+          }
+        }
+      ],
+      "evidence": [
+        "844-wide-field-markers-wide.png",
+        "844-wide-field-markers-zoomed.png"
+      ],
+      "visualReviewRequired": true
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "name": "wide-field-markers",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "press",
+          "id": "start",
+          "button": {
+            "id": "start",
+            "x": 553,
+            "y": 625,
+            "w": 260,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing",
+          "measurement": {
+            "zoom": 1,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": 289.44453941349104,
+                  "y": 449.7999681381792
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 304.56709031477266,
+                  "y": 448.5331240213951
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 319.6493715667683,
+                  "y": 447.0816791776696
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 502.966112655864,
+                  "y": 345.20850655171705
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 508.11169859074005,
+                  "y": 346.64898459075584
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 494.81757712873275,
+                  "y": 347.66524622395855
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 733.3888392620703,
+                  "y": 419.9578812435243
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 742.7261424681956,
+                  "y": 423.5322857661524
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 725.2769776929457,
+                  "y": 427.22307458506657
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 917.6101982075869,
+                  "y": 351.2906331705468
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 925.6339979345981,
+                  "y": 353.82968269524326
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 913.7470884270176,
+                  "y": 353.6455920899267
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 388.0039176371988,
+                  "y": 414.1492178777926
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 300.32267458966976,
+                  "y": 492.9944863246592
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 416.6301020024714,
+                  "y": 441.9009705803219
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 331.9520386945148,
+                  "y": 389.7852556946993
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 462.3998847741554,
+                  "y": 337.4941912665853
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 539.4991037585249,
+                  "y": 333.5861572184026
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 546.7838457650569,
+                  "y": 352.0271617605816
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 450.4925736852178,
+                  "y": 368.44814702885157
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 619.0217812719802,
+                  "y": 339.7002555450108
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 606.7710167745876,
+                  "y": 403.4339630436124
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 667.8330065147662,
+                  "y": 364.13945287926646
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 501.8666682197053,
+                  "y": 392.8049134811777
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 797.3858831137618,
+                  "y": 473.9974255151497
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 813.1195526194556,
+                  "y": 390.95938760123727
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 688.0960550880034,
+                  "y": 485.87953110766654
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 784.9585981345236,
+                  "y": 350.1566829701353
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 864.625623601468,
+                  "y": 328.07652915019196
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 962.3177670749656,
+                  "y": 348.9921143071711
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 862.5835574945468,
+                  "y": 357.5239912600851
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 903.4665277130218,
+                  "y": 328.3013730537748
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1003.1823306969156,
+                  "y": 444.86499187968445
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1060.259357125626,
+                  "y": 409.38144396482903
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1116.9526820522883,
+                  "y": 485.9250748696206
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 925.1914458739046,
+                  "y": 486.4513924204658
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 1,
+                "b": 2,
+                "team": "friendly",
+                "dx": 15.122550901281613,
+                "dy": 1.2668441167841138
+              },
+              {
+                "a": 2,
+                "b": 3,
+                "team": "friendly",
+                "dx": 15.082281251995653,
+                "dy": 1.4514448437254828
+              },
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 5.145585934876067,
+                "dy": 1.4404780390387941
+              },
+              {
+                "a": 4,
+                "b": 6,
+                "team": "friendly",
+                "dx": 8.14853552713123,
+                "dy": 2.456739672241497
+              },
+              {
+                "a": 5,
+                "b": 6,
+                "team": "friendly",
+                "dx": 13.294121462007297,
+                "dy": 1.0162616332027028
+              },
+              {
+                "a": 7,
+                "b": 8,
+                "team": "friendly",
+                "dx": 9.337303206125284,
+                "dy": 3.5744045226281287
+              },
+              {
+                "a": 7,
+                "b": 9,
+                "team": "friendly",
+                "dx": 8.111861569124585,
+                "dy": 7.265193341542272
+              },
+              {
+                "a": 10,
+                "b": 11,
+                "team": "friendly",
+                "dx": 8.023799727011237,
+                "dy": 2.539049524696452
+              },
+              {
+                "a": 10,
+                "b": 12,
+                "team": "friendly",
+                "dx": 3.863109780569289,
+                "dy": 2.3549589193798965
+              },
+              {
+                "a": 11,
+                "b": 12,
+                "team": "friendly",
+                "dx": 11.886909507580526,
+                "dy": 0.1840906053165554
+              }
+            ]
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "zoomIn",
+          "button": {
+            "id": "zoomIn",
+            "x": 452,
+            "y": 116,
+            "w": 92,
+            "h": 44
+          }
+        },
+        {
+          "action": "press",
+          "id": "flightControls",
+          "button": {
+            "id": "flightControls",
+            "x": 12,
+            "y": 64,
+            "w": 128,
+            "h": 44
+          }
+        },
+        {
+          "action": "projected-unit-spacing-zoomed",
+          "measurement": {
+            "zoom": 2.0736,
+            "units": [
+              {
+                "id": 1,
+                "group": 0,
+                "friendly": true,
+                "kind": "rescue",
+                "screen": {
+                  "x": -131.9764259895827,
+                  "y": 538.638303954654
+                }
+              },
+              {
+                "id": 2,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": -98.99560775865321,
+                  "y": 535.0608786165631
+                }
+              },
+              {
+                "id": 3,
+                "group": 0,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": -66.14978233425053,
+                  "y": 531.1446105370882
+                }
+              },
+              {
+                "id": 4,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 297.23421668186666,
+                  "y": 309.59536571706974
+                }
+              },
+              {
+                "id": 5,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 308.4746342675913,
+                  "y": 312.4438971107919
+                }
+              },
+              {
+                "id": 6,
+                "group": 1,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 280.39574603521504,
+                  "y": 315.0270128976098
+                }
+              },
+              {
+                "id": 7,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 796.1566733020439,
+                  "y": 456.28741013337344
+                }
+              },
+              {
+                "id": 8,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 815.9248364635155,
+                  "y": 463.2596534087547
+                }
+              },
+              {
+                "id": 9,
+                "group": 2,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 780.3523545544923,
+                  "y": 471.64680929252324
+                }
+              },
+              {
+                "id": 10,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1154.9029771095416,
+                  "y": 308.4651811266711
+                }
+              },
+              {
+                "id": 11,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1171.320700901609,
+                  "y": 313.3805804817649
+                }
+              },
+              {
+                "id": 12,
+                "group": 3,
+                "friendly": true,
+                "kind": "escort",
+                "screen": {
+                  "x": 1147.6402064045087,
+                  "y": 313.3944743166265
+                }
+              },
+              {
+                "id": 13,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 77.30383391208031,
+                  "y": 458.47361946599574
+                }
+              },
+              {
+                "id": 15,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": -93.03771985028341,
+                  "y": 628.7906324545024
+                }
+              },
+              {
+                "id": 17,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 134.3480921291588,
+                  "y": 516.536597185713
+                }
+              },
+              {
+                "id": 19,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": -50.13900401210747,
+                  "y": 409.17898246153555
+                }
+              },
+              {
+                "id": 21,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 217.99393156041157,
+                  "y": 294.1303382976444
+                }
+              },
+              {
+                "id": 23,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 372.33693375513644,
+                  "y": 284.0457278865243
+                }
+              },
+              {
+                "id": 25,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 401.7778793407474,
+                  "y": 319.6805662021617
+                }
+              },
+              {
+                "id": 27,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 192.5869430118813,
+                  "y": 359.0013306780776
+                }
+              },
+              {
+                "id": 29,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 550.0358934512955,
+                  "y": 294.9280290023917
+                }
+              },
+              {
+                "id": 31,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 527.5376209194203,
+                  "y": 427.4109894652404
+                }
+              },
+              {
+                "id": 33,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 656.4502461948218,
+                  "y": 343.1233905993381
+                }
+              },
+              {
+                "id": 35,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 315.0732219374699,
+                  "y": 408.85692695615705
+                }
+              },
+              {
+                "id": 37,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 948.1248291972086,
+                  "y": 563.5476844414528
+                }
+              },
+              {
+                "id": 39,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 953.5321074494732,
+                  "y": 393.33517293644496
+                }
+              },
+              {
+                "id": 41,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 727.0343027603653,
+                  "y": 593.3996214206938
+                }
+              },
+              {
+                "id": 43,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 889.2866965114096,
+                  "y": 310.22587673013237
+                }
+              },
+              {
+                "id": 45,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1052.162697848326,
+                  "y": 263.4478570884376
+                }
+              },
+              {
+                "id": 47,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1243.454742928259,
+                  "y": 302.3442683320093
+                }
+              },
+              {
+                "id": 49,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1054.4035406645075,
+                  "y": 322.49125439516035
+                }
+              },
+              {
+                "id": 51,
+                "friendly": false,
+                "kind": "heavy",
+                "screen": {
+                  "x": 1122.506698034973,
+                  "y": 262.8653600063792
+                }
+              },
+              {
+                "id": 53,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1353.8866434611678,
+                  "y": 494.2942418623845
+                }
+              },
+              {
+                "id": 55,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1449.081885021691,
+                  "y": 421.18283407161067
+                }
+              },
+              {
+                "id": 57,
+                "friendly": false,
+                "kind": "light",
+                "screen": {
+                  "x": 1586.6960331002651,
+                  "y": 571.4689998485063
+                }
+              },
+              {
+                "id": 59,
+                "friendly": false,
+                "kind": "turret",
+                "screen": {
+                  "x": 1195.3739757190813,
+                  "y": 583.6064821829791
+                }
+              }
+            ],
+            "closePairs": [
+              {
+                "a": 4,
+                "b": 5,
+                "team": "friendly",
+                "dx": 11.240417585724629,
+                "dy": 2.848531393722169
+              },
+              {
+                "a": 7,
+                "b": 9,
+                "team": "friendly",
+                "dx": 15.804318747551633,
+                "dy": 15.359399159149802
+              },
+              {
+                "a": 10,
+                "b": 12,
+                "team": "friendly",
+                "dx": 7.262770705032835,
+                "dy": 4.929293189955388
+              }
+            ]
+          }
+        }
+      ],
+      "evidence": [
+        "1366-wide-field-markers-wide.png",
+        "1366-wide-field-markers-zoomed.png"
+      ],
+      "visualReviewRequired": true
+    }
+  ],
+  "errors": [],
+  "finished": "2026-09-29T17:54:51.068Z"
+}

@@ -62,6 +62,7 @@ try {
     }
     await p.goto(base);
     await p.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready');
+    await p.waitForFunction(() => !document.getElementById('night-startup'));
     await click('fullscreen');
     await p.waitForFunction(() => !!document.fullscreenElement);
     await click('fullscreen');
@@ -123,6 +124,8 @@ try {
     assert.equal(s.held.length, 0);
     assert.equal(s.phase, 'playing');
     assert.equal(s.modelImport, 'loaded');
+    await click('settings');
+    assert((await snap()).pauses.includes('settings'));
     await click('help');
     const helpTime = (await snap()).time;
     await click('fullscreen');
@@ -131,6 +134,10 @@ try {
     await p.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snap()).time, helpTime);
     await click('close');
+    assert.equal((await snap()).modal, 'settings');
+    assert.equal((await snap()).time, helpTime, 'Closing help keeps settings paused');
+    await click('close');
+    assert(!(await snap()).pauses.includes('settings'));
     if (!touch) {
       for (let i = 0; i < 7; i++) await click('zoomIn');
       await click('locate');
