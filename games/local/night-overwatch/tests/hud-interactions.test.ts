@@ -93,6 +93,24 @@ const world = { thermal: false, project(p: data.Point, y = 0) {
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+test('HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked', () => {
+  for (const [width, height] of [[1366, 768], [1151, 798], [844, 390]]) {
+    Object.assign(frame, { width, height });
+    for (const safe of [0, 12]) {
+      inset = safe;
+      const hud = new HUD(new SceneNode()), sim = new Simulation();
+      sim.start(); hud.update(sim, world);
+      for (const y of [height - hud.footer + 2, height - safe - 2])
+        assert.equal(hud.blocksBattlefield(40 + safe, y), !hud.desktop, 'empty desktop footer is battlefield');
+      for (const id of ['weapon0', 'weapon1', 'weapon2', 'fire']) {
+        const b = hud.buttons.find((b: any) => b.id === id);
+        assert(hud.blocksBattlefield(b.x + b.w / 2, b.y + b.h / 2), `${id} still blocks aim and battlefield fire`);
+      }
+    }
+  }
+  inset = 0;
+});
+
 test('HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) {
     Object.assign(frame, { width, height }); inset = 12;
