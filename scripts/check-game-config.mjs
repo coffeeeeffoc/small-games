@@ -282,11 +282,7 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
       const upload = steps.find((step) => /actions\/upload-pages-artifact@/.test(step.uses || ''));
       if (upload?.with?.path !== '.scratch/pages-site')
         fail('workflow-gate', location, 'Pages 上传目录不是合并后的三环境站点');
-      if (
-        !Object.values(workflow.jobs || {}).some((job) =>
-          job.steps?.some((step) => /actions\/deploy-pages@/.test(step.uses || '')),
-        )
-      )
+      if (!/\bpython3 scripts\/publish-pages\.py\b/.test(run))
         fail('workflow-gate', location, '缺少 Pages 部署任务');
     }
   }
