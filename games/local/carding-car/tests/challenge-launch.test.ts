@@ -8,7 +8,7 @@ class SceneNode { active = true; addChild() {} destroy() {} }
 class Color { fromHEX() { return this; } }
 const cc = { _decorator: { ccclass: () => (type: any) => type },
   Node: SceneNode, Color, Component: class { node = new SceneNode(); isValid = true; },
-  Camera: { ClearFlag: { SKYBOX: 1 } }, Layers: {}, game: {}, Game: {}, JsonAsset: class {}, profiler: {}, resources: {},
+  Camera: { ClearFlag: { SKYBOX: 1 } }, Layers: {}, game: { emit() {} }, Game: {}, JsonAsset: class {}, profiler: {}, resources: {},
   sys: { isBrowser: false, localStorage: { getItem: () => null, setItem() {} } } };
 const folder = new URL('../assets/scripts/', import.meta.url), sourceURL = new URL('KartGame.ts', folder);
 const visual = new Map([
@@ -195,7 +195,7 @@ test('short finish saving cannot overwrite three-lap records, passport or legacy
     g.race = new RaceManager({}, 12, 4, 'sprint');
     g.readRouteRecords();
     assert.deepEqual(g.records, [], 'three-lap and legacy scores do not become a one-lap target');
-    g.race.phase = 'finished'; g.race.time = 30;
+    g.race.phase = 'finished'; g.race.time = 35;
     Object.assign(g.race.drivers[0].progress, { laps: 1, finishedAt: 30, lapTimes: [30] });
     g.saveFinishedRace();
     assert.deepEqual(writes, ['kart-sprint-records-v1-seaside']);
