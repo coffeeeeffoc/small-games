@@ -17,6 +17,10 @@ import {
 } from 'cc';
 import {
   MAP,
+  mapRoute,
+  routeLength,
+  riverX,
+  type BattlefieldId,
   AIRFRAME,
   ROUTE,
   ROUTE_LENGTH,
@@ -40,6 +44,7 @@ import {
   heightfieldHeight,
   type Position,
 } from './core/CameraMath';
+import { recoilOffset } from './core/Flight';
 import { AircraftModel } from './AircraftModel';
 
 type Geometry = {
@@ -48,6 +53,7 @@ type Geometry = {
   colors: number[];
   indices: number[];
   grounded?: boolean;
+  height?: (x: number, z: number) => number;
 };
 const color = (s: string) => new Color().fromHEX(s);
 const geometry = (): Geometry => ({ positions: [], normals: [], colors: [], indices: [] });
@@ -63,7 +69,7 @@ const noise = (n: number) => {
 const terrainExtent = { x: MAP.halfWidth * 1.8, z: MAP.halfDepth * 1.8 };
 const horizonExtent = { x: 1400, z: 1400 };
 // Decorative foothills only outside the playable region; all combat terrain uses Data.terrainHeight.
-function sceneryHeight(x: number, z: number) {
+function sceneryHeight(x: number, z: number, map: BattlefieldId = 'valley') {
   const outside = Math.hypot(
     Math.max(0, Math.abs(x) - MAP.halfWidth),
     Math.max(0, Math.abs(z) - MAP.halfDepth),
@@ -71,7 +77,7 @@ function sceneryHeight(x: number, z: number) {
   const fade = clamp(outside / 75, 0, 1);
   const distant = clamp((Math.hypot(x, z) - 270) / 850, 0, 1);
   return (
-    terrainHeight(x, z) +
+    terrainHeight(x, z, map) +
     fade *
       fade *
       (3 - 2 * fade) *
@@ -93,13 +99,6 @@ function terrainAxis(near: number, far: number) {
 }
 const terrainXs = terrainAxis(terrainExtent.x, horizonExtent.x);
 const terrainZs = terrainAxis(terrainExtent.z, horizonExtent.z);
-const terrainHeights = terrainXs.map((x) => terrainZs.map((z) => sceneryHeight(x, z)));
-function surfaceHeight(x: number, z: number) {
-  return Math.abs(x) <= MAP.halfWidth && Math.abs(z) <= MAP.halfDepth
-    ? terrainHeight(x, z)
-    : heightfieldHeight(terrainXs, terrainZs, terrainHeights, x, z);
-}
-
 type Tree = Position & { h: number; seed: number };
 
 function treeVertex(g: Geometry, p: Position, n: Position, shade: number, bark = false) {
@@ -134,7 +133,7 @@ function treeCrown(
   distant: boolean,
   spray = false,
 ) {
-  const sides = distant || spray ? 5 : 6;
+  const sides = distant || spray ? 5 : 9;
   const rings = spray ? [0] : [-0.4, 0.38];
   const start = g.positions.length / 3,
     c = Math.cos(yaw),
@@ -329,6 +328,7 @@ function addShape(
   pitch = 0,
   roll = 0,
 ) {
+  const surfaceHeight = g.height || terrainHeight;
   const offset = g.positions.length / 3,
     cy = Math.cos(yaw),
     sy = Math.sin(yaw),
@@ -378,6 +378,7 @@ function addBox(
   shade = 1,
   yaw = 0,
 ) {
+  const surfaceHeight = g.height || terrainHeight;
   if (g.grounded && h <= 0.25 && Math.max(w, d) > 3) {
     // Thin roads/fields need interior samples: raising only their corners bridges over valleys.
     const nx = Math.max(1, Math.ceil(w / 1.5)),
@@ -436,17 +437,6 @@ function segmentDistance(x: number, z: number, a: Point, b: Point) {
     t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
   return Math.hypot(x - a.x - dx * t, z - a.z - dz * t);
 }
-const roadDistance = (x: number, z: number) =>
-  Math.min(...ROUTE.slice(1).map((p, i) => segmentDistance(x, z, ROUTE[i], p)));
-const riverX = (z: number) =>
-  Math.sin((z - 1) * 0.045) * 1.6 +
-  clamp((Math.abs(z) - 75) / 100, 0, 1) * Math.sin(z * 0.013) * 32;
-function combatDistance(x: number, z: number) {
-  return Math.min(
-    roadDistance(x, z),
-    ...MISSION.events.map((e) => Math.hypot(x - e.x, z - e.z) - (e.kind === 'light' ? 2 : 0)),
-  );
-}
 export class World {
   root: Node;
   camera: Camera;
@@ -471,11 +461,26 @@ export class World {
   private disposed = false;
   private plane: Position & { heading: number; yaw?: number; pitch?: number; bank?: number } = aircraft(0);
   private sensorRotation = 0;
+  recoil = { x: 0, y: 0 };
   private cameraTime = -1;
   private cameraPaused = false;
   private cameraFrame = aircraftCamera(this.plane, this.center, terrainHeight, 1, 16 / 9, 0);
 
-  constructor(parent: Node) {
+  height = (x: number, z: number) => terrainHeight(x, z, this.map);
+  private elevations: number[][];
+  private cloudLayer?: Node;
+  private waterGlints?: Node;
+  private surfaceHeight = (x: number, z: number) => Math.abs(x) <= MAP.halfWidth && Math.abs(z) <= MAP.halfDepth
+    ? this.height(x, z) : heightfieldHeight(terrainXs, terrainZs, this.elevations, x, z);
+  private roadDistance = (x: number, z: number) => Math.min(...mapRoute(this.map).slice(1)
+    .map((p, i) => segmentDistance(x, z, mapRoute(this.map)[i], p)));
+  constructor(parent: Node, readonly map: BattlefieldId = 'valley') {
+    const terrainHeight = this.height, surfaceHeight = this.surfaceHeight, roadDistance = this.roadDistance;
+    const ROUTE = mapRoute(map), ROUTE_LENGTH = routeLength(map), HOLD_POINTS = [ROUTE_LENGTH * .28, ROUTE_LENGTH * .64];
+    const mapPoint = (d: number) => routePoint(d, map);
+    const combatDistance = (x: number, z: number) => Math.min(roadDistance(x, z),
+      ...MISSION.events.map(e => Math.hypot(x - e.x, z - e.z) - (e.kind === 'light' ? 2 : 0)));
+    const terrainHeights = this.elevations = terrainXs.map(x => terrainZs.map(z => sceneryHeight(x, z, map) - (map === 'valley' ? Math.max(0, 1 - Math.abs(x - riverX(z)) / 6) * 1.3 : 0)));
     this.root = new Node('Battlefield');
     parent.addChild(this.root);
     this.root.once(Node.EventType.NODE_DESTROYED, this.dispose, this);
@@ -490,10 +495,10 @@ export class World {
 
     this.terrainBatch('terrain.sky', '#ffffff', '#14222c', (g) => {
       const bands = [
-        [-100, '#db8a79'],
-        [70, '#e5a48b'],
-        [170, '#b77e8d'],
-        [400, '#626078'],
+        [-100, map === 'valley' ? '#46566c' : '#796f6e'],
+        [70, map === 'valley' ? '#546b88' : '#8f8080'],
+        [170, '#4e6788'],
+        [400, '#465e80'],
         [900, '#273c59'],
         [1800, '#172a45'],
       ] as const;
@@ -513,6 +518,32 @@ export class World {
         }
     });
 
+    this.cloudLayer = this.terrainBatch('terrain.clouds', '#f0f2f4', '#23313c', g => {
+      // Soft alpha edges keep the cloud bank from looking like solid ellipsoids.
+      for (let i = 0; i < 15; i++) {
+        const a = i * 2.39996, radius = 650 + noise(i + 880) * 400;
+        const x = Math.sin(a) * radius, z = Math.cos(a) * radius, y = 105 + noise(i + 900) * 55;
+        for (let j = 0; j < 9; j++) {
+          const start = g.positions.length / 3, offset = (j - 4) * 16;
+          const width = 28 + noise(i * 41 + j) * 28, height = 10 + noise(i * 13 + j) * 15;
+          for (let ring = 0; ring < 5; ring++) for (let k = 0; k < 24; k++) {
+            const angle = k * Math.PI / 12, r = ring / 4;
+            const dx = offset + Math.cos(angle) * width * r;
+            g.positions.push(x + Math.cos(a) * dx, y + Math.sin(j * 1.8) * 8 + Math.sin(angle) * height * r, z - Math.sin(a) * dx);
+            g.normals.push(-Math.sin(a), 0, -Math.cos(a));
+            const shade = .82 + Math.sin(angle) * r * .1;
+            g.colors.push(shade, shade, shade, [.48, .4, .22, .06, 0][ring]);
+            if (ring < 4) {
+              const p = start + ring * 24 + k, next = start + ring * 24 + (k + 1) % 24;
+              g.indices.push(p, next + 24, p + 24, p, next, next + 24);
+            }
+          }
+        }
+      }
+    });
+    this.terrainBatch('terrain.moon', '#fff4cc', '#536977', g => {
+      addShape(g, primitives.sphere(.5, { segments: 24 }), -420, 182, -1250, 36, 36, 36, 1.8);
+    });
     this.terrainBatch('terrain.ground', '#ffffff', '#314654', (g) => {
       // One shared, non-uniform grid: no separate ground colors, skirts or disconnected LOD seams.
       const xs = terrainXs,
@@ -521,7 +552,7 @@ export class World {
         for (let iz = 0; iz < zs.length; iz++) {
           const x = xs[ix],
             z = zs[iz];
-          const slope = terrainSlope(sceneryHeight, x, z),
+          const slope = terrainSlope((x, z) => sceneryHeight(x, z, map), x, z),
             normal = new Vec3(-slope.x, 1, -slope.z).normalize();
           const light =
             0.42 + Math.max(0, -normal.x * 0.58 + normal.y * 0.42 + normal.z * 0.66) * 0.8;
@@ -531,9 +562,9 @@ export class World {
           g.positions.push(x, terrainHeights[ix][iz] - 0.045, z);
           g.normals.push(normal.x, normal.y, normal.z);
           for (const [near, far] of [
-            [39, 116],
-            [58, 122],
-            [66, 143],
+            [map === 'valley' ? 47 : 84, 116],
+            [map === 'valley' ? 67 : 77, 122],
+            [map === 'valley' ? 65 : 68, 143],
           ])
             g.colors.push((near * light * variation * (1 - haze) + far * haze) / 255);
           g.colors.push(1);
@@ -544,12 +575,26 @@ export class World {
           }
         }
     });
-    this.terrainBatch('terrain.water', '#132d41', '#101c24', (g) => {
-      for (let z = -650; z < 650; z += 3) {
-        const end = Math.min(z + 3, 650),
-          mid = (z + end) / 2;
-        addBox(g, riverX(mid), -0.04, mid, 5.8, 0.12, end - z + 0.1, 0.9 + noise(z) * 0.1);
-        addBox(g, riverX(mid) + Math.sin(z) * 1.5, 0.035, mid, 0.1, 0.012, 1.7, 1.2);
+    if (map === 'valley') this.terrainBatch('terrain.water', '#476879', '#101c24', (g) => {
+      // A continuous ribbon avoids seams between individual river tiles.
+      for (let z = -650; z <= 650; z++) {
+        for (const dx of [-2.9, 0, 2.9]) {
+          const x = riverX(z) + dx;
+          g.positions.push(x, terrainHeight(x, z) + .025, z);
+          g.normals.push(0, 1, 0);
+          const light = dx === 0 ? 1.05 : .68;
+          g.colors.push(light, light, light, 1);
+        }
+        if (z < 650) for (let j = 0; j < 2; j++) {
+          const i = (z + 650) * 3 + j;
+          g.indices.push(i, i + 3, i + 1, i + 1, i + 3, i + 4);
+        }
+      }
+    });
+    if (map === 'valley') this.waterGlints = this.terrainBatch('terrain.reflections', '#afc9d9', '#344750', g => {
+      for (let i = 0; i < 520; i++) {
+        const z = -500 + i * 1.92, x = riverX(z) + (noise(i + 2800) - .5) * 4.4;
+        addBox(g, x, .065, z, .2 + noise(i + 3000) * .8, .008, .025 + noise(i) * .025, .2 + noise(i + 88) * .5);
       }
     });
     this.terrainBatch('terrain.roads', '#18272e', '#182127', (g) => {
@@ -572,7 +617,7 @@ export class World {
     });
     this.terrainBatch('terrain.markings', '#d3c7a4', '#4a595e', (g) => {
       for (let d = 0; d < ROUTE_LENGTH; d += 4) {
-        const p = routePoint(d);
+        const p = mapPoint(d);
         addBox(
           g,
           p.x,
@@ -586,7 +631,7 @@ export class World {
         );
       }
       for (const d of HOLD_POINTS) {
-        const p = routePoint(d);
+        const p = mapPoint(d);
         for (const offset of [-0.6, 0.6])
           addBox(
             g,
@@ -601,7 +646,7 @@ export class World {
           );
       }
       for (let x = -7; x <= 7; x += 2)
-        for (const z of [0.25, 1.75]) addBox(g, x, 0.3, z, 0.09, 0.05, 0.07);
+        for (const z of [0.5, 2.3]) addBox(g, x, 0.3, z, 0.09, 0.05, 0.07);
     });
 
     const exit = ROUTE[ROUTE.length - 1];
@@ -659,12 +704,12 @@ export class World {
     const camp = [0, 1, 2].map((i) => ({ x: exit.x - 8 + i * 7, z: exit.z + 12 }));
     const trees: Tree[] = [];
     // At most 105 crown vertices/tree: 620 trees still fit one 16-bit forest batch.
-    for (let i = 0; i < 1000 && trees.length < 620; i++) {
+    for (let i = 0; i < 1000 && trees.length < 400; i++) {
       const extent = i < 620 ? 1 : 1.7;
       const x = (noise(i * 3) * 2 - 1) * (MAP.halfWidth - 4) * extent,
         z = (noise(i * 3 + 1) * 2 - 1) * (MAP.halfDepth - 4) * extent;
       if (
-        Math.abs(x - riverX(z)) < 5 ||
+        (map === 'valley' && Math.abs(x - riverX(z)) < 5) ||
         combatDistance(x, z) < 5.5 ||
         Math.hypot(x - station.x, z - station.z) < 13 ||
         houses.some(
@@ -677,7 +722,7 @@ export class World {
         camp.some((p) => Math.hypot(x - p.x, z - p.z) < 6)
       )
         continue;
-      trees.push({ x, z, y: surfaceHeight(x, z), h: 1.2 + noise(i * 3 + 2) * 1.6, seed: i });
+      trees.push({ x, z, y: surfaceHeight(x, z), h: 1.5 + noise(i * 3 + 2) * 2.2, seed: i });
     }
     this.terrainBatch('terrain.ridges', '#34434b', '#3a454b', (g) => {
       for (let i = 0; i < 120; i++) {
@@ -689,7 +734,7 @@ export class World {
           fields.some(
             ([fx, fz, w, d]) => Math.abs(x - fx) < w / 2 + size && Math.abs(z - fz) < d / 2 + size,
           ) ||
-          Math.abs(x - riverX(z)) < 7
+          (map === 'valley' && Math.abs(x - riverX(z)) < 7)
         )
           continue;
         addShape(g, rock, x, size * 0.19, z, size * 1.4, size, size * 0.9, 0.85, i);
@@ -722,12 +767,14 @@ export class World {
     });
     this.terrainBatch('terrain.structures', '#414e53', '#49535a', (g) => {
       // The original crossing follows the shared road surface; all scenery offsets are local to terrain.
-      addBox(g, 0, -0.24, 1, 16, 0.36, 1.6);
+      if (map === 'valley') {
+      addBox(g, 0, -0.24, 1.4, 24, 0.36, 1.8);
       for (const x of [-6, 6])
-        for (const z of [0.4, 1.6]) addBox(g, x, -1.5, z, 0.4, 2.4, 0.4, 0.75);
-      for (const z of [0.25, 1.75]) {
+        for (const z of [0.7, 2.1]) addBox(g, x, -1.5, z, 0.4, 2.4, 0.4, 0.75);
+      for (const z of [0.5, 2.3]) {
         addBox(g, 0, 0.16, z, 16, 0.3, 0.06, 0.85);
         for (let x = -8; x <= 8; x += 2) addBox(g, x, 0.25, z, 0.06, 0.3, 0.08);
+      }
       }
       for (const [x, z, w, d, h] of houses) {
         addBox(g, x, h / 2, z, w, h, d, 0.85 + noise(x) * 0.15);
@@ -741,15 +788,19 @@ export class World {
         for (const sign of [-1, 1])
           addBox(g, p.x + sign * (p.radius - 0.7), 0.3, p.z, 0.5, 0.6, p.radius * 1.4, 0.8);
     });
+    this.terrainBatch('terrain.windows', '#ffd595', '#697773', g => {
+      for (const [x, z, w, d, h] of houses) for (const side of [-1, 1]) for (const offset of [-.28, .28])
+        addBox(g, x + offset * w, h * .63, z + side * (d / 2 + .08), .64, .57, .035, 1.4);
+    });
     this.terrainBatch('terrain.roofs', '#4a3940', '#344149', (g) => {
       for (const [x, z, w, d, h] of houses)
         addRoof(g, x, h, z, w + 0.8, 1.5, d + 0.8, 0.9 + noise(z) * 0.1);
       addRoof(g, station.x, 3, station.z, 8.5, 0.8, 5.5, 0.85);
     });
-    this.terrainBatch('terrain.forest', '#253632', '#0b1215', (g) => {
+    this.terrainBatch('terrain.forest', '#3d5142', '#0b1215', (g) => {
       for (const t of trees) addTree(g, null, t);
     });
-    this.terrainBatch('terrain.distantForest', '#293a35', '#0d161a', (g) => {
+    this.terrainBatch('terrain.distantForest', '#354e43', '#0d161a', (g) => {
       // ponytail: fixed scenery detail; 1,440 * 44 vertices max, use spatial LOD if the forest expands.
       for (let grove = 0; grove < 60; grove++) {
         const angle = grove * 2.399963,
@@ -788,7 +839,7 @@ export class World {
           for (const offset of [-0.28, 0.28])
             addBox(g, x + offset * w, h * 0.63, z + side * (d / 2 + 0.03), 0.85, 0.8, 0.06, 1.3);
       }
-      for (const z of [0.25, 1.75]) addBox(g, 0, 0.4, z, 16.4, 0.03, 0.04, 1.4);
+      for (const z of [0.5, 2.3]) addBox(g, 0, 0.4, z, 16.4, 0.03, 0.04, 1.4);
       for (const dx of [-1, 1])
         for (const dz of [-1, 1])
           addBox(g, station.x + 7 + dx, 5, station.z + dz, 0.17, 10, 0.17, 1.4);
@@ -945,24 +996,26 @@ export class World {
     this.triangleCount += g.indices.length / 3;
     return mesh;
   }
-  material(hex: string) {
+  material(hex: string, transparent = false) {
     const m = new Material();
-    m.initialize({ effectName: 'builtin-unlit', defines: { USE_VERTEX_COLOR: true } });
+    m.initialize({ effectName: 'builtin-unlit', technique: transparent ? 1 : 0, defines: { USE_VERTEX_COLOR: true } });
     m.setProperty('mainColor', color(hex));
     return m;
   }
   terrainBatch(id: string, day: string, heat: string, build: (g: Geometry) => void) {
     const g = geometry();
-    g.grounded = !['terrain.ground', 'terrain.foothills', 'terrain.sky'].includes(id);
+    g.grounded = !['terrain.ground', 'terrain.foothills', 'terrain.sky', 'terrain.clouds', 'terrain.moon'].includes(id);
+    g.height = this.surfaceHeight;
     build(g);
     const n = new Node('asset:' + id);
     this.root.addChild(n);
     const r = n.addComponent(MeshRenderer);
     r.mesh = this.mesh(g);
-    const m = this.material(this.thermal ? heat : day);
+    const m = this.material(this.thermal ? heat : day, id === 'terrain.clouds');
     r.setMaterial(m, 0);
     this.terrain.push({ material: m, day, heat });
     this.assets.add(id);
+    return n;
   }
   updateCamera() {
     if (this.cameraPaused) return;
@@ -982,7 +1035,7 @@ export class World {
     this.cameraFrame = aircraftCamera(
       this.plane,
       this.center,
-      terrainHeight,
+      this.height,
       this.zoom * (this.temporary ? 1.5 : 1),
       aspect,
       this.sensorRotation,
@@ -990,11 +1043,20 @@ export class World {
     const frame = this.cameraFrame;
     this.camera.fovAxis = Camera.FOVAxis.VERTICAL;
     this.camera.fov = frame.fov;
-    this.cameraNode.setPosition(frame.position.x, frame.position.y, frame.position.z);
-    this.cameraNode.lookAt(
-      new Vec3(frame.target.x, frame.target.y, frame.target.z),
-      new Vec3(frame.up.x, frame.up.y, frame.up.z),
-    );
+    this.cameraPose(true);
+  }
+  private cameraPose(shake: boolean) {
+    const frame = this.cameraFrame, pos = frame.position, target = new Vec3(frame.target.x, frame.target.y, frame.target.z);
+    const up = new Vec3(frame.up.x, frame.up.y, frame.up.z);
+    if (shake && (this.recoil.x || this.recoil.y)) {
+      const forward = Vec3.subtract(new Vec3(), target, new Vec3(pos.x, pos.y, pos.z)).normalize();
+      const right = Vec3.cross(new Vec3(), forward, up).normalize();
+      const scale = 2 * frame.range * Math.tan(frame.fov * Math.PI / 360) / Math.max(1, view.getFrameSize().height);
+      Vec3.scaleAndAdd(target, target, right, this.recoil.x * scale);
+      Vec3.scaleAndAdd(target, target, up, this.recoil.y * scale);
+    }
+    this.cameraNode.setPosition(pos.x, pos.y, pos.z);
+    this.cameraNode.lookAt(target, up);
     this.camera.camera?.update(true);
   }
   adjustZoom(factor: number, screenX?: number, screenY?: number) {
@@ -1039,19 +1101,24 @@ export class World {
   }
   aimAt(x: number, y: number): Point | null {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    this.cameraPose(false);
     const ray = this.camera.screenPointToRay(x, y);
+    this.cameraPose(true);
     const hit = terrainRay(
       ray.o,
       ray.d,
-      surfaceHeight,
+      this.surfaceHeight,
       horizonExtent.x,
       horizonExtent.z,
       this.camera.far,
     );
     return hit ? { x: hit.x, z: hit.z } : null;
   }
-  project(p: Point, y = 0) {
-    return this.projectAir({ x: p.x, y: surfaceHeight(p.x, p.z) + y, z: p.z });
+  project(p: Point, y = 0, stable = false) {
+    if (stable) this.cameraPose(false);
+    const point = this.projectAir({ x: p.x, y: this.surfaceHeight(p.x, p.z) + y, z: p.z });
+    if (stable) this.cameraPose(true);
+    return point;
   }
   /** Forward camera distance in world units; Effects can clip actual ballistic segments at camera.near. */
   cameraDepth(p: Position) {
@@ -1094,9 +1161,10 @@ export class World {
     this.clearViews();
     this.focusSpan = undefined;
     this.follow = view.getFrameSize().height < 500;
-    this.center = this.follow ? { x: ROUTE[0].x + 12, z: ROUTE[0].z - 6 } : { x: 0, z: 0 };
+    this.center = this.follow ? { x: mapRoute(this.map)[0].x + 12, z: mapRoute(this.map)[0].z - 6 } : { x: 0, z: 0 };
     this.zoom = this.follow ? 1.35 : 1;
     this.temporary = false;
+    this.recoil = { x: 0, y: 0 };
     this.plane = aircraft(0);
     this.cameraTime = -1;
     this.cameraPaused = false;
@@ -1116,7 +1184,12 @@ export class World {
     this.wreckMeshes.clear();
     if (isValid(this.cameraNode, true)) this.cameraNode.destroy();
   }
-  update(s: Simulation) {
+  update(s: Simulation, reduced = false) {
+    this.cloudLayer?.setPosition(Math.sin(s.time * .008) * 14, 0, Math.cos(s.time * .006) * 8);
+    if (this.waterGlints && !this.thermal) {
+      const glint = 190 + Math.sin(s.time * 1.4) * 22;
+      this.waterGlints.getComponent(MeshRenderer)!.getMaterial(0)!.setProperty('mainColor', new Color(glint * .86, glint * .95, glint));
+    }
     for (const event of s.events) {
       if (event.id > this.lastImpact && event.type === 'impact') this.impactClouds.push(event);
       this.lastImpact = Math.max(this.lastImpact, event.id);
@@ -1126,7 +1199,8 @@ export class World {
       ...this.impactClouds.filter((e) => e.weapon > 0 && s.time - e.time < (e.weapon === 2 ? 16 : 10)).slice(-24),
       ...this.impactClouds.filter((e) => e.weapon === 0 && s.time - e.time < 1.5).slice(-8),
     ];
-    const cursor = this.project(s.aim);
+    const cursor = this.project(s.aim, 0, true);
+    this.recoil = s.paused || s.phase !== 'playing' ? { x: 0, y: 0 } : recoilOffset(s.events, s.time, reduced);
     const elapsed = this.cameraTime < 0 ? 0 : clamp(s.time - this.cameraTime, 0, 0.1);
     this.cameraPaused = s.paused;
     this.cameraTime = s.time;
@@ -1173,10 +1247,10 @@ export class World {
         this.views.set(u.id, v);
         this.assets.add(UNITS[u.kind].assetId);
       }
-      const axes = groundAxes(terrainHeight, u.x, u.z, u.heading);
+      const axes = groundAxes(this.height, u.x, u.z, u.heading);
       const orientation = Quat.fromAxes(new Quat(), axes.right, axes.up, axes.forward);
-      const lift = roadDistance(u.x, u.z) < 0.8 ? TERRAIN.roadLift : 0;
-      v.node.setPosition(u.x, terrainHeight(u.x, u.z) + lift, u.z);
+      const lift = this.roadDistance(u.x, u.z) < 0.8 ? TERRAIN.roadLift : 0;
+      v.node.setPosition(u.x, this.height(u.x, u.z) + lift, u.z);
       v.node.setRotation(orientation);
       if (u.hp <= 0 && !v.wreck) {
         v.node.getComponent(MeshRenderer)!.mesh = this.wreckMeshes.get(u.kind)!;

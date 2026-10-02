@@ -74,7 +74,8 @@ try {
       'Live fullscreen never requires opening tools',
     );
     assert(!s.ui.fire.includes('LMB'));
-    assert(s.ui.fire.includes(touch ? '按住开火' : '按住左键开火'));
+    if (touch) assert(s.ui.fire.includes('按住开火'));
+    else assert(!s.buttons.some(b => b.id === 'fire'));
     const beforePanel = s.fired;
     await click('flightControls');
     await click('flightControls');
@@ -83,7 +84,7 @@ try {
     await click('sensor');
     await shot('daylight');
     await click('weapon2');
-    assert((await snap()).ui.fire.includes(touch ? '点按开火' : '单击左键开火'));
+    if (touch) assert((await snap()).ui.fire.includes('点按开火'));
     if (!touch) {
       const q = await p.evaluate((v) => __night.screenPoint(v), (await snap()).units[0]);
       await p.mouse.move(q.x, q.y);

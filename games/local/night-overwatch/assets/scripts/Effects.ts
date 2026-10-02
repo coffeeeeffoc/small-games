@@ -7,6 +7,8 @@ import type { World } from './World';
 type ScreenPoint = { x: number; y: number };
 export type EffectsFrame = {
   smoke?: { id: number; age: number; kind: 'damage' | 'wreck' }[];
+  fires?: { id: number; age: number; life: number }[];
+  lights?: number[];
   impacts: { id: number; weapon: number; outcome?: string; x: number; y: number; radius: number; age: number; primitives: number }[];
   projectiles: { id: number; weapon: number; x: number; y: number; width: number; length: number; speed: number }[];
 };
@@ -27,7 +29,7 @@ export function drawEffects(
   height: number,
   reduced = false,
 ): EffectsFrame {
-  const frame: EffectsFrame = { impacts: [], projectiles: [], smoke: [] };
+  const frame: EffectsFrame = { impacts: [], projectiles: [], smoke: [], fires: [], lights: [] };
   let primitives = 0;
   const fill = g.fillColor.clone(),
     stroke = g.strokeColor.clone(),
@@ -112,6 +114,38 @@ export function drawEffects(
     primitives++;
   };
 
+  const patch = (points: ScreenPoint[], tint: Color) => {
+    if (points.some(p => !Number.isFinite(p.x + p.y) || Math.abs(p.x) > width * 3 || Math.abs(p.y) > height * 3)) return;
+    g.fillColor = tint;
+    points.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+    g.close(); g.fill();
+  };
+  for (const u of s.units) {
+    const at = project(u);
+    if (Math.abs(at.x) > width / 2 + 40 || Math.abs(at.y) > height / 2 + 40) continue;
+    const radius = u.kind === 'heavy' ? .5 : .35;
+    for (let layer = 0; layer < 3; layer++) {
+      const r = radius + layer * .14;
+      patch(Array.from({ length: 12 }, (_, j) => {
+        const a = j * TAU / 12;
+        return project({ x: u.x + .3 + Math.cos(a) * r, z: u.z + .25 + Math.sin(a) * r * 1.6 }, .012 + layer * .004);
+      }), new Color(3, 8, 12, world.thermal ? 12 : 28));
+    }
+    if (u.hp <= 0 || u.kind === 'turret' || world.thermal) continue;
+    const c = Math.cos(u.heading), sn = Math.sin(u.heading);
+    const point = (side: number, forward: number, y = .025) => project({
+      x: u.x + c * side + sn * forward, z: u.z - sn * side + c * forward,
+    }, y);
+    for (const side of [-.16, .16]) {
+      patch([point(side - .06, .45), point(side - .75, 5.5), point(side + .75, 5.5), point(side + .06, .45)], new Color(255, 222, 157, reduced ? 13 : 22));
+      patch([point(side - .04, .45), point(side - .35, 2.7), point(side + .35, 2.7), point(side + .04, .45)], new Color(255, 229, 171, 34));
+      const p = point(side, .48, .23);
+      blob(p, 2.7, 2.3, .75, .18);
+      blob(p, 1.1, 1, 1, .95);
+    }
+    frame.lights!.push(u.id);
+  }
+
   // ponytail: inspect 64 units and render 12 plumes; spatial pooling if missions grow.
   let wrecks = 0;
   for (
@@ -136,9 +170,10 @@ export function drawEffects(
         fade * (1 - drift / 3) * 0.6, true);
     }
     frame.smoke!.push({ id: u.id, age, kind: dead ? 'wreck' : 'damage' });
-    if (dead && age < 9 && !reduced) {
+    if (dead && age < 18) {
       const p = project(u, 0.3), flicker = 0.75 + Math.sin(age * 13 + u.id) * 0.2;
-      blob(p, Math.max(1, scale * 0.16), Math.max(2, scale * 0.35 * flicker), 0.7, (1 - age / 9) * 0.7);
+      blob(p, Math.max(1.5, scale * 0.2), Math.max(3, scale * 0.5 * flicker), 0.85, (1 - age / 18) * 0.9);
+      frame.fires!.push({ id: u.id, age, life: 18 });
     }
   }
 
@@ -166,6 +201,7 @@ export function drawEffects(
     const before = primitives;
     const scale = scaleAt(e);
     const radius = WEAPONS[weapon].radius;
+    const burnLife = weapon === 0 ? .35 : e.outcome === 'destroyed' ? 8 : weapon === 2 ? 5 : 2.8;
     const t = age / life,
       fade = 1 - t,
       seed = (e.id * 0.61803398875) % 1;
@@ -192,7 +228,7 @@ export function drawEffects(
       }
       for (let j = 0; j < (reduced ? 0 : weapon === 2 ? 3 : 2); j++) {
         const a = seed * TAU + (j * TAU) / 3,
-          burn = clamp(1 - age / (weapon === 2 ? 0.9 : 0.65));
+          burn = clamp(1 - age / burnLife);
         const p = project(
           { x: e.x + Math.cos(a) * radius * 0.2, z: e.z + Math.sin(a) * radius * 0.2 },
           radius * (0.1 + t * 0.7),
@@ -203,6 +239,13 @@ export function drawEffects(
     } else {
       const p = project(e, 0.2);
       blob(p, (0.35 + age) * scale, (0.25 + age) * scale, fade, fade * 0.45);
+    }
+    if (weapon > 0 && age < burnLife) {
+      const fire = (1 - age / burnLife) * (.8 + Math.sin(age * 17 + e.id) * .15);
+      const p = project(e, radius * .08);
+      blob(p, Math.max(3, radius * .3 * scale), Math.max(2, radius * .13 * scale), .65, fire * .24);
+      blob(p, Math.max(1.5, radius * .12 * scale), Math.max(3, radius * .28 * scale), .95, fire * .9);
+      frame.fires!.push({ id: e.id, age, life: burnLife });
     }
     const flash = clamp(1 - age / (weapon === 2 ? 0.24 : 0.16));
     const core = Math.max(weapon === 0 ? 1 : 2, radius * 0.3 * scale);

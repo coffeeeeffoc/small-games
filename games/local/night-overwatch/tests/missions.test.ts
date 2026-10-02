@@ -27,7 +27,7 @@ test('mission combinations change deployment and motion while preserving weapon 
   const initial = { x: rover.x, z: rover.z }; tick(patrol, 1);
   assert(distance(initial, rover) > 0.5);
   for (const s of [ambush, patrol]) {
-    assert.equal(s.mission.speed, standard.mission.speed);
+    assert(Math.abs(s.routeLength / s.mission.speed - 240) < 1e-8);
     assert.equal(s.mission.duration, standard.mission.duration);
     assert.equal(s.rescue.maxHp, standard.rescue.maxHp);
     assert.equal(s.guns[2].ammo, WEAPONS[2].ammo);
@@ -53,9 +53,9 @@ for (const mission of MISSIONS.slice(1)) test(`${mission.name[0]} can be complet
       const target = friends.reduce((a, b) => distance(enemy, a) < distance(enemy, b) ? a : b);
       for (let iteration = 0; iteration < 8; iteration++) {
         const flight = s.flightTime(gun, aim);
-        if (enemy.kind === 'light') aim = patrolPoint(enemy.origin, s.time - enemy.born + flight);
+        if (enemy.kind === 'light') aim = patrolPoint(enemy.origin, s.time - enemy.born + flight, s.mission.map);
         if (enemy.kind === 'heavy') {
-          const ally = target.routeOffset === undefined ? target : routePoint(s.progress + target.routeOffset + s.mission.speed * flight);
+          const ally = target.routeOffset === undefined ? target : s.routePoint(s.progress + target.routeOffset + s.mission.speed * flight);
           const range = distance(enemy, ally), move = Math.min(UNITS.heavy.speed * flight, Math.max(0, range - 12));
           aim = { x: enemy.x + (ally.x - enemy.x) * move / range, z: enemy.z + (ally.z - enemy.z) * move / range };
         }

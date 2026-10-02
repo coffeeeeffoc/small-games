@@ -30,6 +30,8 @@ import {
 } from './core/Data';
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
+import { MISSIONS, TRAINING } from './core/MissionCatalog';
+import { mapRoute, routeLength, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 
 const C = {
@@ -84,10 +86,13 @@ export class HUD {
     return this.h < 500;
   }
   get footer() {
-    return this.compact ? 74 : 90;
+    return this.mouseDesktop ? 60 : this.compact ? 74 : 90;
   }
   get desktop() {
     return !this.compact && this.w - this.safe.left - this.safe.right >= 900;
+  }
+  get mouseDesktop() {
+    return this.desktop && !this.touch;
   }
   get panelLayout() {
     const available = this.w - this.safe.left - this.safe.right - 24;
@@ -214,27 +219,32 @@ export class HUD {
     this.live('title', left + 49, top + 24, 18, 98, 34, C.mint).isBold = true;
     this.live('health', statsX, top + 18, 13, 160, 25);
     this.live('progress', statsX, top + 40, 11, 160, 20, C.dim);
-    this.live('status', right - 260, top + 26, 11, 60, 40, C.dim);
-    this.button('settings', this.t('设置', 'SETTINGS'), right - 162, top + 6, 68, 44, this.globalControls).fontSize = 12;
-    this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - 88, top + 6, 88, 44, this.globalControls).fontSize = 12;
-    const pause = this.button('pause', this.t('暂停', 'PAUSE'), right - 224, top + 6, 56);
+    const small = this.mouseDesktop;
+    this.live('status', right - (small ? 214 : 260), top + 26, 11, 60, 40, C.dim);
+    this.button('settings', this.t('设置', 'SETTINGS'), right - (small ? 124 : 162), top + (small ? 12 : 6), small ? 54 : 68, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;
+    this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - (small ? 64 : 88), top + (small ? 12 : 6), small ? 64 : 88, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;
+    const pause = this.button('pause', this.t('暂停', 'PAUSE'), right - (small ? 184 : 224), top + (small ? 12 : 6), small ? 54 : 56, small ? 32 : 44);
     pause.fontSize = 12;
     pause.lineHeight = 16;
-    pause.node.setPosition(right - 196 - w / 2, h / 2 - top - 39);
-    pause.node.getComponent(UITransform)!.setContentSize(48, 18);
-    const telemetryLeft = statsX + 84, telemetryWidth = Math.max(0, right - 296 - telemetryLeft);
+    if (!small) {
+      pause.node.setPosition(right - 196 - w / 2, h / 2 - top - 39);
+      pause.node.getComponent(UITransform)!.setContentSize(48, 18);
+    }
+    const telemetryLeft = statsX + 84, telemetryWidth = Math.max(0, right - (small ? 250 : 296) - telemetryLeft);
     this.live('telemetry', telemetryLeft + telemetryWidth / 2, top + 28, this.desktop ? 14 : 11, telemetryWidth, 48, C.dim);
     this.live('globalToast', w / 2, h - this.safe.bottom - 24, 12, w - this.safe.left - this.safe.right - 32, 36, C.amber).node.parent = this.globalControls;
     const by = h - this.footer - this.safe.bottom;
-    const cardW = this.compact ? 78 : this.desktop ? 160 : 112;
+    const cardW = small ? 104 : this.compact ? 78 : this.desktop ? 160 : 112;
     const fireW = this.compact ? 110 : 160;
-    const cardsLeft = this.desktop ? right - fireW - 18 - 3 * (cardW + 6) : left;
-    for (let i = 0; i < 3; i++)
-      this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + 10, cardW, this.footer - 20);
+    const cardsLeft = this.desktop ? right - (this.touch ? fireW + 18 : -6) - 3 * (cardW + 6) : left;
+    for (let i = 0; i < 3; i++) {
+      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+      if (small) { label.fontSize = 12; label.lineHeight = 17; }
+    }
     this.button('fire', '', right - fireW, by + 8, fireW, this.footer - 16);
     const stateX = this.desktop ? cardsLeft - 144 : left + 3 * (cardW + 6) + 8;
     const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
-    this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
+    this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
     this.live('notice', w / 2, this.compact ? by - 17 : top + 80, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
     this.live('friendWarning', w / 2, this.compact ? by - 17 : top + 116, this.compact ? 13 : 16, this.compact ? w - 40 : Math.min(w - 260, 560), 28, C.red).isBold = true;
     this.live('tutorial', w / 2, by - 17, this.compact ? 11 : 13, w - 40, 28, C.mint);
@@ -319,7 +329,8 @@ export class HUD {
     this.scroll = Math.max(0, Math.min(this.scrollMax, this.scroll + amount));
     if (this.scrollNode) this.scrollNode.setPosition(0, this.scroll, 0);
   }
-  routeGraphic(g: Graphics, x: number, y: number, w: number, h: number, progress = 0) {
+  routeGraphic(g: Graphics, x: number, y: number, w: number, h: number, progress = 0, map: BattlefieldId = 'valley') {
+    const ROUTE = mapRoute(map), length = routeLength(map), HOLD_POINTS = [length * .28, length * .64];
     const point = (p: Point) => ({
       x: x + ((p.x + 100) / 210) * w - this.w / 2,
       y: this.h / 2 - y - ((p.z + 42) / 82) * h,
@@ -334,8 +345,8 @@ export class HUD {
     g.stroke();
     for (const [i, p] of [
       ROUTE[0],
-      routePoint(HOLD_POINTS[0]),
-      routePoint(HOLD_POINTS[1]),
+      routePoint(HOLD_POINTS[0], map),
+      routePoint(HOLD_POINTS[1], map),
       ROUTE[ROUTE.length - 1],
     ].entries()) {
       const q = point(p);
@@ -343,11 +354,47 @@ export class HUD {
       g.circle(q.x, q.y, i === 3 ? 5 : 3);
       g.fill();
     }
-    const q = point(routePoint(progress));
+    const q = point(routePoint(progress, map));
     g.strokeColor = col(C.mint);
     g.lineWidth = 2;
     g.rect(q.x - 6, q.y - 6, 12, 12);
     g.stroke();
+  }
+  renderHome(n: Node, g: Graphics, s: Simulation) {
+    const w = this.w, h = this.h, short = h < 500;
+    // The same live world sits behind this full-screen home and the mission.
+    this.rect(g, 0, 0, w, h, '#07121cb8');
+    const left = this.safe.left + (short ? 22 : 56), titleWidth = w * .38;
+    this.label(n, 'NIGHT OVERWATCH', left + titleWidth / 2, short ? 87 : h * .29, short ? 12 : 16, titleWidth, 26, C.amber);
+    this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleWidth / 2, short ? 125 : h * .39,
+      short ? 32 : 52, titleWidth, short ? 52 : 80, C.white).isBold = true;
+    this.label(n, this.t('长夜之上，一路守望', 'WATCH OVER THE WAY HOME'), left + titleWidth / 2,
+      short ? 168 : h * .48, short ? 12 : 17, titleWidth, 36, C.mint);
+    this.label(n, this.t('选择航区，开始你的下一次值勤。', 'Choose your next operation.'), left + titleWidth / 2,
+      short ? 208 : h * .57, short ? 11 : 14, titleWidth, 40, C.dim);
+    const x = w * .48, rw = w - x - this.safe.right - (short ? 20 : 52), top = this.safe.top + (short ? 60 : Math.max(95, h * .15));
+    const row = short ? 44 : 72, gap = short ? 3 : 10;
+    if (!short) this.label(n, this.t('任务中心  /  2 个航区', 'OPERATIONS  /  2 BATTLEFIELDS'), x + rw / 2, top - 17, 12, rw, 24, C.dim);
+    for (const [i, mission] of [...MISSIONS, TRAINING].entries()) {
+      const y = top + i * (row + gap), selected = mission.id === s.mission.id;
+      const id = mission.id === TRAINING.id ? 'training' : 'mission:' + mission.id;
+      this.rect(g, x, y, rw, row, selected ? '#233d46ef' : '#101e29dc', selected ? C.mint : '#67828d55', 4);
+      if (selected) this.rect(g, x, y + 5, 3, row - 10, C.mint);
+      const tag = mission.mode === 'training' ? this.t('练习', 'RANGE')
+        : mission.map === 'valley' ? this.t('河谷', 'VALLEY') : this.t('高地', 'HIGHLAND');
+      const label = this.button(id, `${selected ? '▸' : '  '} ${text(mission.name, this.lang)}  ·  ${tag}`, x, y, rw, row, n);
+      label.fontSize = short ? 12 : 18;
+      label.color = col(selected ? C.white : C.dim);
+    }
+    const startY = top + 4 * (row + gap) + (short ? 2 : 22);
+    const start = this.button('start', this.t('开始任务  →', 'START MISSION  →'), x, startY, rw, 44, n);
+    this.rect(g, x, startY, rw, 44, C.mint, undefined, 4);
+    start.color = col('#10252a'); start.isBold = true;
+    if (!short) {
+      this.label(n, text(s.mission.description, this.lang), x + rw / 2, startY + 72, 13, rw, 42, C.dim);
+      this.label(n, this.t('鼠标瞄准 · 左键开火 · 1 / 2 / 3 切换火炮', 'Mouse aim · Left click fire · 1 / 2 / 3 weapons'),
+        w / 2, h - this.safe.bottom - 28, 12, w - 48, 28, C.dim);
+    }
   }
   renderModal(key: string, s: Simulation) {
     if (key === this.modalKey) return;
@@ -369,6 +416,7 @@ export class HUD {
     const n = this.node('Panel', this.root);
     this.modal = n;
     const g = n.addComponent(Graphics);
+    if (key === 'home') { this.renderHome(n, g, s); return; }
     const paused = key === 'pause', settings = key === 'settings';
     const allies = s.units.filter((u) => u.friendly).length;
     const training = s.mission.mode === 'training';
@@ -524,7 +572,7 @@ export class HUD {
             this.t('◇ 重甲目标 → 重型炮', '◇ ARMOR → HEAVY')].entries())
             this.label(n, target, px + pw * .72, contentTop + 52 + i * 56, 17, pw * .43, 44, C.amber);
         } else {
-          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235);
+          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235, s.progress, s.mission.map);
           this.label(
           n,
           this.t('西岭 → 河谷桥 → 东岭营地', 'WEST RIDGE → RIVER → EXTRACTION'),
@@ -693,8 +741,7 @@ export class HUD {
         C.dim,
       );
       const resultW = (pw - (training ? 56 : 64)) / (training ? 2 : 3);
-      this.button(training ? 'missionReturn' : 'missionNext', training ? this.t('返回护送', 'BACK TO ESCORT')
-        : this.t('换个任务', 'OTHER TASK'), px + 24, bottom, resultW, 44, n);
+      this.button('home', this.t('返回首页', 'HOME'), px + 24, bottom, resultW, 44, n);
       if (!training) this.button('training', this.t('60秒热身', '60s WARMUP'), px + 32 + resultW, bottom, resultW, 44, n);
       this.button(
         'retry',
@@ -731,7 +778,8 @@ export class HUD {
         this.t('世界与倒计时已冻结 · 继续后重新按下开火', 'World and clock frozen · Press FIRE again on return'),
         px + pw / 2, py + 204, 11, pw - 48, 30, C.dim);
       this.button('resume', this.t('继续任务  →', 'RESUME MISSION  →'),
-        px + 24, bottom, pw - 48, 44, n);
+        px + 24, bottom, (pw - 56) / 2, 44, n);
+      this.button('home', this.t('中断任务 · 返回首页', 'ABORT · HOME'), px + 32 + (pw - 56) / 2, bottom, (pw - 56) / 2, 44, n);
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === n)) {
       const primary = ['start', 'retry', 'resume'].includes(b.id);
@@ -741,16 +789,33 @@ export class HUD {
       if (paused && primary) b.label.fontSize = this.compact ? 16 : 18;
     }
   }
+  drawCabin(g: Graphics) {
+    const w = this.w, h = this.h;
+    const polygon = (points: number[][], fill: string) => {
+      g.fillColor = col(fill);
+      points.forEach(([x, y], i) => i ? g.lineTo(x - w / 2, h / 2 - y) : g.moveTo(x - w / 2, h / 2 - y));
+      g.close(); g.fill();
+    };
+    // A gunner's observation window: frame and glass stay at the periphery of the targeting view.
+    polygon([[0, 45], [18, 60], [18, h * .86], [w * .045, h], [0, h]], '#10191fee');
+    polygon([[w, 45], [w - 14, 60], [w - 16, h * .88], [w * .965, h], [w, h]], '#121b23e8');
+    polygon([[0, h - 15], [w * .2, h - 28], [w * .72, h - 14], [w, h - 8], [w, h], [0, h]], '#0a121bef');
+    polygon([[w * .81, 58], [w * .84, 58], [w * .98, h * .67], [w * .975, h * .74]], '#b6d9ee0b');
+    polygon([[w * .87, 58], [w * .874, 58], [w - 21, h * .43], [w - 23, h * .46]], '#d7eafa16');
+    for (const side of [12, w - 10]) for (let y = 88; y < h * .7; y += 66) {
+      g.fillColor = col('#77828b88'); g.circle(side - w / 2, h / 2 - y, 1.8); g.fill();
+    }
+  }
   update(s: Simulation, world: World) {
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
       left = 12 + this.safe.left, by = h - this.footer - this.safe.bottom;
-    let key = s.phase === 'playing' ? '' : s.phase;
+    let key = s.phase === 'briefing' ? 'home' : s.phase === 'playing' ? '' : s.phase;
     if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
     else if (s.pauses.has('settings')) key = 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (s.pauses.has('mission')) key = 'mission';
-    else if (s.paused) key = 'pause';
+    else if (s.paused && s.phase !== 'briefing') key = 'pause';
     this.renderModal(key, s);
     g.clear();
     this.marks.clear();
@@ -760,7 +825,7 @@ export class HUD {
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
       if (b.label.node.parent === this.root)
-        b.label.node.active = !key && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
+        b.label.node.active = !key && (b.id !== 'fire' || this.touch) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
       if (b.id === 'fullscreen') {
         b.label.string = this.fullscreen ? this.t('退出全屏', 'EXIT FULL') : this.t('全屏', 'FULL SCREEN');
       }
@@ -778,6 +843,7 @@ export class HUD {
       if (s.phase === 'playing') this.effects = drawEffects(this.marks, s, world, this.w, this.h, this.reducedEffects);
       return;
     }
+    this.drawCabin(g);
     this.labels.get('title')!.node.active = this.desktop;
     this.labels.get('mapLegend')!.node.active = !this.toolsOpen;
     this.labels.get('orbit')!.node.active = this.toolsOpen;
@@ -794,7 +860,7 @@ export class HUD {
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
     const plane = s.aircraft;
     const metres = (value: number) => Math.round(value * FLIGHT.metersPerUnit);
-    const range = Math.hypot(plane.x - s.aim.x, plane.z - s.aim.z, plane.y - terrainHeight(s.aim.x, s.aim.z));
+    const range = Math.hypot(plane.x - s.aim.x, plane.z - s.aim.z, plane.y - s.height(s.aim.x, s.aim.z));
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
     this.set('title', this.t('夜航守望', 'OVERWATCH'));
     const allies = s.units.filter((u) => u.friendly).length;
@@ -804,7 +870,7 @@ export class HUD {
       ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
       : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
     const clock = Math.ceil(s.remaining);
-    this.set('status', `${world.thermal ? 'IR' : 'DAY'}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
+    this.set('status', `${world.thermal ? 'IR' : 'NIGHT'}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('telemetry', this.desktop
       ? this.t(`高度 ${metres(plane.altitude)}m   │   斜距 ${metres(range)}m   │   弹着 ${flightText}`, `ALT ${metres(plane.altitude)}m  │  SLANT ${metres(range)}m  │  IMPACT ${flightText}`)
       : this.t(`斜距 ${metres(range)}m\n高度 ${metres(plane.altitude)}m`, `SLANT ${metres(range)}m\nALT ${metres(plane.altitude)}m`));
@@ -814,8 +880,8 @@ export class HUD {
     this.set('flightRadius', this.t(`轨道 ${radiusKm} km`, `ORBIT ${radiusKm} km`));
     this.set('hold', s.convoy === 'holdRequested' ? this.t('前往下一待命点', 'TO NEXT HOLD POINT') : s.convoy === 'holding' ? this.t('待命中 · 时间继续', 'HOLDING · CLOCK RUNS') : '');
     this.set('weaponState', this.t(
-      `${flightText} 弹着\n${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
-      `${flightText} IMPACT\n${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
+      `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
+      `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
     const reasons: Record<string, string[]> = {
       protected: ['保护区 · 禁止开火', 'PROTECTED · FIRE BLOCKED'],
       overheated: ['武器过热 · 等待降温或切枪', 'OVERHEATED · COOL OR SWITCH'],
@@ -838,7 +904,7 @@ export class HUD {
       ? this.t('60秒清3靶 · 静止用爆破 · 巡逻留提前量 · 重甲用重炮', 'CLEAR THREE IN 60s · BURST STATIC · LEAD ROVER · HEAVY ARMOR')
       : this.tutorial && step
       ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
-      : this.t('护送并清除全部威胁 · □ 友军 / ◇ 敌军 · 小地图北向固定', 'ESCORT & CLEAR ALL THREATS · □ FRIEND / ◇ FOE · MAP NORTH UP'));
+      : this.mouseDesktop ? '' : this.t('护送并清除全部威胁 · □ 友军 / ◇ 敌军 · 小地图北向固定', 'ESCORT & CLEAR ALL THREATS · □ FRIEND / ◇ FOE · MAP NORTH UP'));
     if (this.compact) {
       const messages = ['friendWarning', 'notice', 'tutorial'];
       const active = messages.find((id) => this.labels.get(id)!.string);
@@ -875,7 +941,6 @@ export class HUD {
       if (b.id === 'convoy') b.label.string = (this.touch ? '' : 'T · ') + (s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续 →', 'CONVOY GO →'));
       if (b.id === 'fire') b.label.string = actionLabel('fire', this.lang, this.touch, weapon.automatic) + '\n' +
         (reason === 'protected' ? this.t('禁止开火', 'BLOCKED') : reason === 'overheated' ? this.t('过热', 'OVERHEATED') : reason === 'empty' ? this.t('无弹药', 'EMPTY')
-        : gun.cooldown > 0 && s.selected > 0 ? this.t('装填 ' + gun.cooldown.toFixed(1) + 's', 'RELOAD ' + gun.cooldown.toFixed(1) + 's')
         : weapon.automatic ? this.t('松开即停', 'RELEASE TO STOP') : this.t('每次一发', 'ONE SHOT / PRESS'));
       if (b.id === 'sensor') b.label.string = world.thermal ? this.t('热成像 → 日光', 'THERMAL → DAY') : this.t('日光 → 热成像', 'DAY → THERMAL');
       if (b.id === 'sound') b.label.string = this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON');
@@ -891,7 +956,7 @@ export class HUD {
       } else this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', 5);
       b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
       b.label.isBold = selected || fire;
-      if (b.id === 'pause') {
+      if (b.id === 'pause' && !this.mouseDesktop) {
         this.rect(g, b.x + b.w / 2 - 6, b.y + 6, 4, 14, C.white);
         this.rect(g, b.x + b.w / 2 + 2, b.y + 6, 4, 14, C.white);
       }
@@ -915,7 +980,7 @@ export class HUD {
     });
     g.strokeColor = col(C.line);
     g.lineWidth = 1;
-    ROUTE.forEach((p, i) => {
+    mapRoute(s.mission.map).forEach((p, i) => {
       const q = point(p);
       if (i) g.lineTo(q.x, q.y);
       else g.moveTo(q.x, q.y);
@@ -978,8 +1043,8 @@ export class HUD {
       g.lineWidth = 1;
       groundRing(p, p.radius);
     }
-    for (const d of HOLD_POINTS) {
-      const q = project(routePoint(d));
+    for (const d of s.holdPoints) {
+      const q = project(s.routePoint(d));
       if (!onScreen(q, 6)) continue;
       g.strokeColor = col(C.amber);
       g.lineWidth = 1;
