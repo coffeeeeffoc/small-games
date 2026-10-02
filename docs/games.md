@@ -41,6 +41,7 @@
 | Afterimage Arena      | `afterimage-arena`             | [games/local/afterimage-arena](../games/local/afterimage-arena/)                         | 留下二十秒的真实动作，与过去的自己协作破盾、躲避红环，击穿机械核心。        |
 | Ghost Shift Manager   | `ghost-shift-manager`          | [games/local/ghost-shift-manager](../games/local/ghost-shift-manager/)                   | 安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。        |
 | Rule Thief            | `rule-thief`                   | [games/local/rule-thief](../games/local/rule-thief/)                                     | 把穿墙、直行和北漂规则转交给身边目标，改变每一拍的位移，解开三幕机关。      |
+| 同频归航              | `tiny-signals`                 | [games/local/tiny-signals](../games/local/tiny-signals/)                                 | 一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。 |
 
 ## 子模块游戏（4 款）
 
