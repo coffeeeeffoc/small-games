@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#09131c"><title>Afterimage Arena · 与过去的自己并肩</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./style.css"></head>
+<body>
+<div class="app">
+  <header><a class="brand" href="./"><span class="brandmark">◉</span><span>AFTERIMAGE <b>ARENA</b><small>留下动作 · 改变下一次</small></span></a><div class="tools"><button id="mute" aria-pressed="false">声音 开</button><button id="pause">暂停</button></div></header>
+  <main>
+    <section class="play">
+      <div class="hud"><div><small id="chapter">01 / 03</small><h1 id="stage">留给下一次</h1></div><div class="clock"><small>距离回溯</small><strong id="time">20.0</strong><span>秒</span></div><div class="vitals"><small>现在的你</small><strong id="life">● ● ● ●</strong></div></div>
+      <div class="bossline"><span>机械快门</span><div class="meter"><i id="health"></i></div><span id="hp">40 / 40</span></div>
+      <div class="board">
+        <canvas id="arena" width="720" height="720" aria-label="时间协作竞技场；左摇杆移动，右按钮开火" role="img"></canvas>
+        <div id="overlay" class="veil"><div class="dialog" id="dialog"></div></div>
+        <div id="toast" role="status"></div>
+      </div>
+      <div class="hint"><span id="danger">观察红色预警，移动到没有红光的环带</span><span id="round">第 1 轮</span></div>
+    </section>
+    <aside>
+      <div class="sectionlabel">时间里的队友 <span>真实操作回放</span></div>
+      <div id="records" class="records"></div>
+      <div class="mission"><small>这一轮</small><p id="objective">从西侧射击，给下一个自己留下破盾火力。</p></div>
+      <div class="actions"><button id="retry">重试当前轮</button><button id="cancel" hidden>取消重录</button></div>
+      <div class="instructions"><span>01</span> 留下破盾动作<br><span>02</span> 20 秒后与自己并肩<br><span>03</span> 从白色射界击穿核心</div>
+    </aside>
+  </main>
+  <div class="controls"><div id="joystick" role="group" aria-label="移动摇杆"><div class="joystick-ring"><i id="knob"></i></div><span>移动</span></div><div class="control-caption"><span id="role">现在</span><small>移动避开红环<br>按住开火，自动朝向核心</small><small class="keyboard">WASD / 方向键 · 空格开火</small></div><button id="fire" aria-label="按住开火"><i>✧</i><span>开火</span></button></div>
+  <footer><span>一段动作，下一次的可能。</span><span>20s / TIME LOOP</span></footer>
+</div>
+<script type="module" src="./game.mjs"></script>
+</body></html>

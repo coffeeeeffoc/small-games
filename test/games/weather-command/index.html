@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#efe6d1">
+<title>天气指挥部 · 三次天气，一船补给</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E⛅%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./game.mjs"></script>
+</head>
+<body>
+<svg class="symbol-bank" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="icon-rain" viewBox="0 0 40 40"><path d="M10 24a8 8 0 1 1 2-16 10 10 0 0 1 19 4 6 6 0 0 1 0 12Z" fill="currentColor"/><path d="m12 29-3 6m12-6-3 6m12-6-3 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="icon-wind" viewBox="0 0 40 40"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 14h23c8 0 8-10 2-10-3 0-4 2-4 4M4 22h29c7 0 7 10 1 10-3 0-4-2-4-4M4 30h12c7 0 7 8 2 8"/></g></symbol>
+<symbol id="icon-sun" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="currentColor"/><path d="M20 2v6m0 24v6M2 20h6m24 0h6M7 7l4 4m18 18 4 4M7 33l4-4M29 11l4-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+<symbol id="icon-snow" viewBox="0 0 40 40"><path d="M20 2v36M4 11l32 18M4 29l32-18M14 5l6 6 6-6M14 35l6-6 6 6M5 17l8-2-2-8M29 33l-2-8 8-2M5 23l8 2-2 8M29 7l-2 8 8 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+</defs></svg>
+<main class="workbench">
+<header class="masthead">
+  <div><p class="eyebrow">WEATHER COMMAND <span>航运气象站</span></p><h1>天气指挥部<span class="title-dot">●</span></h1></div>
+  <div class="station-seal" aria-hidden="true">三次天气<br><strong>一船补给</strong><span>晴雨皆有用</span></div>
+</header>
+<section class="game-layout" aria-label="天气航道游戏">
+  <section class="play-area">
+    <div class="stage-heading"><div><span id="stage-number">01 / 05</span><h2 id="stage-name">让船浮起来</h2></div><span id="surface-label" class="surface-label">干涸 · 待启航</span></div>
+    <div class="enamel-frame">
+      <i class="screw top-left"></i><i class="screw top-right"></i><i class="screw bottom-left"></i><i class="screw bottom-right"></i>
+      <svg id="board" viewBox="0 0 560 560" tabindex="0" role="img" aria-label="航道沙盘，可从小船拖出风向，也可使用下方方向按钮" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="result" class="result" hidden><span id="result-stamp"></span><h3 id="result-title"></h3><p id="result-copy"></p><button id="result-action" type="button">下一航段 →</button></div>
+    </div>
+    <div class="board-caption"><span><i class="dock-key"></i>停进亮灯码头</span><span id="motion-rule">先涨水，或铺雪</span></div>
+  </section>
+  <aside class="controls" aria-label="天气控制台">
+    <div class="orders"><div><span class="eyebrow">本航段可用指令</span><p><strong id="remaining">3</strong><span>次天气</span></p></div><div class="tokens" id="tokens" aria-hidden="true"></div></div>
+    <div class="forecast"><span class="eyebrow" id="forecast-label">航行提示</span><p id="message" role="status" aria-live="polite"></p></div>
+    <div class="weather-buttons">
+      <button type="button" data-weather="rain" class="weather rain" aria-label="雨：涨水并融雪"><svg><use href="#icon-rain"/></svg><strong>雨</strong><small>涨水 · 融雪</small></button>
+      <button type="button" data-weather="wind" class="weather wind" aria-label="风：拖船定向或用方向按钮"><svg><use href="#icon-wind"/></svg><strong>风</strong><small>拖船定向</small></button>
+      <button type="button" data-weather="sun" class="weather sun" aria-label="太阳：退水并融雪"><svg><use href="#icon-sun"/></svg><strong>太阳</strong><small>退水 · 融雪</small></button>
+      <button type="button" data-weather="snow" class="weather snow" aria-label="雪：结冰铺雪并长滑"><svg><use href="#icon-snow"/></svg><strong>雪</strong><small>结冰 · 长滑</small></button>
+    </div>
+    <div class="wind-controls"><span>风向</span><button type="button" data-dir="up" aria-label="向上吹风">↑</button><button type="button" data-dir="left" aria-label="向左吹风">←</button><button type="button" data-dir="down" aria-label="向下吹风">↓</button><button type="button" data-dir="right" aria-label="向右吹风">→</button></div>
+    <p class="touch-note">拖动小船即可吹风 · 天气点一下就生效</p>
+    <div class="utility"><button type="button" id="undo">↶ <span>撤销</span></button><button type="button" id="restart">↻ <span>重来</span></button><button type="button" id="mute" aria-pressed="false">♫ <span>声音开</span></button></div>
+  </aside>
+</section>
+<footer class="logbook"><span>航段记录</span><nav id="level-nav" aria-label="选择航段"></nav><p>观云 · 调水 · 顺风而行</p></footer>
+</main>
+</body>
+</html>

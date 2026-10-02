@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ede3ce"><title>Rule Thief · 规则窃贼</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23245e58'/%3E%3Ctext x='12' y='49' font-size='46' fill='%23f6ecd4'%3E盗%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css"><script type="module" src="./game.js"></script>
+</head>
+<body>
+  <main class="workshop">
+    <header class="masthead"><div><p class="eyebrow">RULE THIEF <span>· 手作谜题 / 三幕</span></p><h1>规则窃贼<span class="seal" aria-hidden="true">盗<br>律</span></h1><p class="tagline">把能力，也把麻烦，交给别人。</p></div><button id="sound" class="quiet" aria-pressed="false">♫ 声音开</button></header>
+    <nav class="chapters" aria-label="关卡"><button data-level="0" aria-current="step"><b>壹</b> 借道</button><button data-level="1"><b>贰</b> 隔墙接力</button><button data-level="2"><b>叁</b> 带走麻烦</button></nav>
+    <div class="game">
+      <section class="board-block" aria-label="游戏区域">
+        <div class="board-top"><span id="level-subtitle"></span><span id="counter">第 0 拍</span></div>
+        <div id="board" class="board"><div id="terrain" class="terrain"></div><svg id="preview" class="preview" viewBox="0 0 600 600" aria-hidden="true"></svg><div id="actors"></div><svg id="transfer-fx" class="transfer-fx" viewBox="0 0 600 600" aria-hidden="true"></svg></div>
+        <p class="preview-caption"><span class="dashed-icon"></span><span id="preview-label">虚影：等一拍后的位置</span></p>
+      </section>
+      <section class="rules" aria-label="三条唯一规则">
+        <p class="section-label">揭一枚规则 · 贴给身边的它</p>
+        <button class="rule" data-rule="phase"><span class="rule-icon">▱</span><span class="rule-copy"><strong>穿墙</strong><span class="owner"></span><small>所有位移可穿内墙</small></span></button>
+        <button class="rule" data-rule="stride"><span class="rule-icon">→</span><span class="rule-copy"><strong>直行</strong><span class="owner"></span><small>走一格，受阻就右转</small></span></button>
+        <button class="rule" data-rule="drift"><span class="rule-icon">↑</span><span class="rule-copy"><strong>北漂</strong><span class="owner"></span><small>每拍最后向上漂一格</small></span></button>
+      </section>
+      <section class="control-panel" aria-label="操作区">
+        <div id="notice" class="notice"><strong id="result-title">小规则，换个世界。</strong><p id="message" role="status" aria-live="polite"></p><button id="next" hidden>下一幕 →</button></div>
+        <div class="move-controls"><button data-dir="3" aria-label="向左"><span>←</span></button><button data-dir="0" aria-label="向上"><span>↑</span></button><button data-dir="2" aria-label="向下"><span>↓</span></button><button data-dir="1" aria-label="向右"><span>→</span></button></div>
+        <div class="utilities"><button id="wait">◷ <span>等一拍</span></button><button id="undo" disabled>↶ <span>撤销</span></button><button id="retry">⟳ <span>重试</span></button></div>
+        <p class="instructions">点规则 → 点身边目标。也可拖动贴上。<br><span>方向键 / WASD 移动 · 空格等 · Z 撤销</span></p>
+      </section>
+    </div>
+    <footer><span>规则只有三枚，出口一直敞开。</span><a href="./docs/concept.png" target="_blank" rel="noopener">美术参考 ↗</a></footer>
+  </main>
+  <span id="drag-sticker" aria-hidden="true"></span>
+</body>
+</html>
