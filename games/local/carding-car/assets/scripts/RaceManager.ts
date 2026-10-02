@@ -216,20 +216,22 @@ export class RaceManager {
           : 0;
       // The centreline advances faster than a kart cutting the inside of a tight bend.
       const previousS = d.progress.s;
-      let maxStep = (k.speed * dt + contactTravel[i]) * Math.max(3, ratio) + 1 + junction;
+      // Collisions can move the kart and then reduce its speed; measure the resolved motion.
+      const travel = Math.hypot(k.x - previousPosition.x, k.z - previousPosition.z) + contactTravel[i];
+      let maxStep = travel * Math.max(3, ratio) + 1 + junction;
       const progressDelta = (s: number) =>
         wrapDistance(s - previousS + this.track.length / 2, this.track.length) - this.track.length / 2;
       if (Math.abs(progressDelta(road.s)) > maxStep && this.track.shortcut.length > 1) {
         const before = projectOnTrack(this.track, previousPosition.x, previousPosition.z, previousS, maxStep);
-        if (before.branch !== road.branch && before.distance < before.width / 2 + 1.3) {
-          // Rebase only where both ribbons cover the previous physical position. The same
-          // position has different route distances; that offset is not a teleport or grass cut.
+        if (before.branch !== road.branch && before.distance < before.width / 2 + 1.3 + travel) {
+          // A resolved collision can cross the fork's shoulder in one frame. Both ribbons
+          // must reach the swept position before their coordinate offset can be rebased.
           const other = projectOnTrack(
             { ...this.track, [road.branch === 'main' ? 'shortcut' : 'main']: [] },
             previousPosition.x,
             previousPosition.z,
           );
-          if (other.distance < other.width / 2 + 1.3) maxStep += Math.abs(progressDelta(other.s));
+          if (other.distance < other.width / 2 + 1.3 + travel) maxStep += Math.abs(progressDelta(other.s));
         }
       }
       // Select a reachable projection at overlaps; rejecting a branch jump afterwards strands progress.
