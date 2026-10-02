@@ -1,0 +1,440 @@
+/** Eight authored arcade puzzles; every gate begins closed. */
+export const LEVELS = [
+  {
+    id: 'first-link',
+    title: '初次联动',
+    chapter: '01 · 港口启航',
+    maxMoves: 3,
+    par: 1,
+    intro: '打开 A—B，让两个房间分享水量。箱子落下的同时，小船也会升起。',
+    tanks: [
+      {
+        id: 'A',
+        name: '箱子间',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 4,
+      },
+      {
+        id: 'B',
+        name: '登船间',
+        volume: 0,
+        kind: 'boat',
+        exitAt: 4,
+      },
+      {
+        id: 'C',
+        name: '储水间',
+        volume: 4,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+      },
+    ],
+  },
+  {
+    id: 'shared-level',
+    title: '一阀，三室',
+    chapter: '01 · 港口启航',
+    maxMoves: 3,
+    par: 2,
+    intro: '先让箱子点亮 A 开关，再打开联锁阀。连通的三个房间会一起改变液位。',
+    tanks: [
+      {
+        id: 'A',
+        name: '机关间',
+        volume: 10,
+        kind: 'crate',
+        switchAt: 5,
+      },
+      {
+        id: 'B',
+        name: '中转间',
+        volume: 0,
+        kind: 'reservoir',
+      },
+      {
+        id: 'C',
+        name: '出口间',
+        volume: 2,
+        kind: 'boat',
+        exitAt: 4,
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+        requires: 'A',
+      },
+    ],
+  },
+  {
+    id: 'spill-chain',
+    title: '溢流发电',
+    chapter: '01 · 港口启航',
+    maxMoves: 3,
+    par: 1,
+    intro: 'B 的溢流口在第 4 格。分享液位后，多出的水会推动水轮，再托起下游的小船。',
+    tanks: [
+      {
+        id: 'A',
+        name: '机关间',
+        volume: 10,
+        kind: 'crate',
+        switchAt: 4,
+      },
+      {
+        id: 'B',
+        name: '水轮间',
+        volume: 0,
+        kind: 'wheel',
+      },
+      {
+        id: 'C',
+        name: '下游港',
+        volume: 1,
+        kind: 'boat',
+        exitAt: 3,
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+      },
+    ],
+    overflow: [
+      {
+        from: 'B',
+        to: 'C',
+        at: 4,
+        powerNeeded: 2,
+      },
+    ],
+  },
+  {
+    id: 'keep-the-water',
+    title: '留住那格水',
+    chapter: '02 · 联动实验站',
+    maxMoves: 5,
+    par: 3,
+    intro: '开关点亮后会一直保持。先降低 A，再关阀隔离它，把右边的水留给小船。',
+    tanks: [
+      {
+        id: 'A',
+        name: '箱子间',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 4,
+      },
+      {
+        id: 'B',
+        name: '升船间',
+        volume: 0,
+        kind: 'boat',
+        exitAt: 7,
+      },
+      {
+        id: 'C',
+        name: '高水仓',
+        volume: 10,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+      },
+    ],
+  },
+  {
+    id: 'three-room-drawdown',
+    title: '先降，再升',
+    chapter: '02 · 联动实验站',
+    maxMoves: 6,
+    par: 4,
+    intro: '两个房间还不够低。借第三间压下箱子，再隔离中转区，让高水仓只托举小船。',
+    tanks: [
+      {
+        id: 'A',
+        name: '低位开关',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 3,
+      },
+      {
+        id: 'B',
+        name: '中转间',
+        volume: 0,
+        kind: 'reservoir',
+      },
+      {
+        id: 'C',
+        name: '升船间',
+        volume: 1,
+        kind: 'boat',
+        exitAt: 6.5,
+      },
+      {
+        id: 'D',
+        name: '高水仓',
+        volume: 10,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+      },
+      {
+        id: 'CD',
+        a: 'C',
+        b: 'D',
+        requires: 'A',
+      },
+    ],
+  },
+  {
+    id: 'two-crate-relay',
+    title: '双箱接力',
+    chapter: '02 · 联动实验站',
+    maxMoves: 6,
+    par: 4,
+    intro: '两盏机关灯都要点亮。完成 C 的任务后，关上 C—D，才能把小船送到更高的平台。',
+    tanks: [
+      {
+        id: 'A',
+        name: '左机关间',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 4,
+      },
+      {
+        id: 'B',
+        name: '缓冲间',
+        volume: 0,
+        kind: 'reservoir',
+      },
+      {
+        id: 'C',
+        name: '右机关间',
+        volume: 6,
+        kind: 'crate',
+        switchAt: 3,
+      },
+      {
+        id: 'D',
+        name: '升船间',
+        volume: 0,
+        kind: 'boat',
+        exitAt: 6.5,
+      },
+      {
+        id: 'E',
+        name: '高水仓',
+        volume: 10,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'CD',
+        a: 'C',
+        b: 'D',
+      },
+      {
+        id: 'DE',
+        a: 'D',
+        b: 'E',
+        requires: 'C',
+      },
+      {
+        id: 'BD',
+        a: 'B',
+        b: 'D',
+        requires: 'A',
+      },
+    ],
+  },
+  {
+    id: 'spill-isolation',
+    title: '关阀，才有落差',
+    chapter: '03 · 潮汐控制室',
+    maxMoves: 6,
+    par: 4,
+    intro: '先借船舱降低 A。B 和 C 连通时不会溢流；关上它们之间的阀门，水轮才会转起来。',
+    tanks: [
+      {
+        id: 'A',
+        name: '深位开关',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 2.7,
+      },
+      {
+        id: 'B',
+        name: '水轮间',
+        volume: 0,
+        kind: 'wheel',
+      },
+      {
+        id: 'C',
+        name: '下游港',
+        volume: 0,
+        kind: 'boat',
+        exitAt: 9,
+      },
+      {
+        id: 'D',
+        name: '高水仓',
+        volume: 10,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+      },
+      {
+        id: 'BD',
+        a: 'B',
+        b: 'D',
+        requires: 'A',
+      },
+    ],
+    overflow: [
+      {
+        from: 'B',
+        to: 'C',
+        at: 3,
+        powerNeeded: 6,
+      },
+    ],
+  },
+  {
+    id: 'station-symphony',
+    title: '全站协奏',
+    chapter: '03 · 潮汐控制室',
+    maxMoves: 7,
+    par: 5,
+    intro: '先点亮低位 A，再用溢流点亮 C，最后释放高水仓。两个开关、水轮和小船，一次全站联动。',
+    tanks: [
+      {
+        id: 'A',
+        name: '低位机关',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 2.7,
+      },
+      {
+        id: 'B',
+        name: '水轮间',
+        volume: 0,
+        kind: 'wheel',
+      },
+      {
+        id: 'C',
+        name: '联锁机关',
+        volume: 8,
+        kind: 'crate',
+        switchAt: 3,
+      },
+      {
+        id: 'D',
+        name: '最终出口',
+        volume: 0,
+        kind: 'boat',
+        exitAt: 9.5,
+      },
+      {
+        id: 'E',
+        name: '高水仓',
+        volume: 10,
+        kind: 'reservoir',
+      },
+    ],
+    gates: [
+      {
+        id: 'AB',
+        a: 'A',
+        b: 'B',
+      },
+      {
+        id: 'BD',
+        a: 'B',
+        b: 'D',
+      },
+      {
+        id: 'BC',
+        a: 'B',
+        b: 'C',
+        requires: 'A',
+      },
+      {
+        id: 'CE',
+        a: 'C',
+        b: 'E',
+        requires: 'C',
+      },
+    ],
+    overflow: [
+      {
+        from: 'B',
+        to: 'D',
+        at: 3,
+        powerNeeded: 7,
+      },
+    ],
+  },
+];
+
+export default LEVELS;
