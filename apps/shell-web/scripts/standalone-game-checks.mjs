@@ -9,6 +9,7 @@ export const markers = {
   'afterimage-arena': '#continue',
   'ghost-shift-manager': '#start',
   'rule-thief': '#actors .actor',
+  'tiny-signals': '#game-root[data-status="playing"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -159,6 +160,28 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#retry'));
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+  } else if (id === 'tiny-signals') {
+    await click(frame.locator('#level-nav [data-level]').first());
+    await expect(frame.locator('#moves')).toHaveText('00');
+    if (mobile) {
+      await click(frame.locator('[data-dir="right"]'));
+    } else {
+      await frame.locator('[data-dir="right"]').focus();
+      await frame.locator('#game-root').page().keyboard.press('ArrowRight');
+    }
+    await expect(frame.locator('#moves')).toHaveText('01');
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#moves')).toHaveText('00');
+    await click(frame.locator('[data-dir="down"]'));
+    await expect(frame.locator('#moves')).toHaveText('01');
+    await click(frame.locator('#restart'));
+    await expect(frame.locator('#moves')).toHaveText('00');
+    const next = frame.locator('#level-nav [data-level]').nth(1);
+    const level = await next.getAttribute('data-level');
+    await click(next);
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-level', level);
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-status', 'playing');
+    await expect(frame.locator('#moves')).toHaveText('00');
   } else if (id === 'one-stroke-course') {
     await expect(frame.locator('#start')).toBeDisabled();
     await click(frame.locator('#example'));

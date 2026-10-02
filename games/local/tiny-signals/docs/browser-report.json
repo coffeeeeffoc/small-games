@@ -1,0 +1,84 @@
+{
+  "origin": "http://127.0.0.1:5186/",
+  "checks": [
+    "enabling preview cancels a queued direction; it never commits after the animation window",
+    "async Host: dispose waits for its pending write; automatic remount reads only after the old save completes",
+    "native BFCache pageshow.persisted return preserves the live game and accepts the next direction",
+    "all 24 board SVG descriptions identify walls and the relevant mechanism",
+    "six optimal wins, stars, personal bests and persistence after reload",
+    {
+      "failure_undo_replay_restart": [
+        "up",
+        "up",
+        "right"
+      ]
+    },
+    "rules dialog blocks input; keyboard undo and restart work after closing",
+    "desktop preview requires explicit confirmation",
+    "wind preview draws both orthogonal movement segments and confirms the predicted landing cell",
+    {
+      "mobile_390x844": "touch preview, commit, undo, restart, hint; no horizontal overflow",
+      "viewport": {
+        "width": 390,
+        "document": 390,
+        "body": 390
+      }
+    }
+  ],
+  "levels": [
+    {
+      "id": "garden",
+      "name": "单向花园",
+      "status": "won",
+      "moves": 8,
+      "star": true
+    },
+    {
+      "id": "compass",
+      "name": "罗盘庭院",
+      "status": "won",
+      "moves": 10,
+      "star": true
+    },
+    {
+      "id": "bridge",
+      "name": "折叶溪谷",
+      "status": "won",
+      "moves": 13,
+      "star": true
+    },
+    {
+      "id": "wind",
+      "name": "风向工坊",
+      "status": "won",
+      "moves": 10,
+      "star": true
+    },
+    {
+      "id": "counterweight",
+      "name": "配重温室",
+      "status": "won",
+      "moves": 12,
+      "star": true
+    },
+    {
+      "id": "echo",
+      "name": "暮光回廊",
+      "status": "won",
+      "moves": 13,
+      "star": true
+    }
+  ],
+  "screenshots": [
+    "playtest-desktop.png",
+    "playtest-victory.png",
+    "playtest-mobile.png"
+  ],
+  "errors": [],
+  "passed": true,
+  "summary": {
+    "check_groups": 10,
+    "level_wins": 6,
+    "errors": 0
+  }
+}
