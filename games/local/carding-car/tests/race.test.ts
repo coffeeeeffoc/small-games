@@ -10,6 +10,53 @@ import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('slow travel around an inside bend cannot lock third-lap progress at a segment endpoint', () => {
+  const race = new RaceManager({}, undefined, 1), driver = race.drivers[0];
+  race.phase = 'racing';
+  Object.assign(driver.kart, createKart(104.6, -15, 0), { speed: 2 });
+  const start = projectOnTrack(race.track, driver.kart.x, driver.kart.z).s;
+  Object.assign(driver.progress, { s: start, distance: 2 * race.track.length + start, laps: 2, nextGate: 1 });
+  for (let frame = 0; frame < 600; frame++)
+    race.step({ ...idle, throttle: 0.05 }, 1 / 60);
+  const road = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+  assert.ok(road.distance < road.width / 2);
+  assert.equal(race.collisions, 0);
+  assert.equal(race.resets, 0);
+  assert.ok(Math.abs(driver.progress.s - road.s) < 0.01,
+    `kart at ${road.s} is still ranked at ${driver.progress.s}`);
+  assert.ok(Math.abs(driver.progress.distance - (2 * race.track.length + road.s)) < 0.01);
+  assert.equal(driver.progress.nextGate, 2);
+});
+
+test('two shortcut laps followed by the long route keep the lead and finish on the third crossing', () => {
+  const race = new RaceManager({}, 4230786066), driver = race.drivers[0];
+  race.phase = 'racing';
+  let laps = -1, previousS = driver.progress.s, input: KartInput = { ...idle };
+  const branches = new Set<string>();
+  for (let frame = 0; frame < 60 * 180 && race.phase !== 'finished'; frame++) {
+    const road = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+    if (frame % 4 === 0) {
+      input = aiInput(driver.kart, race.track, laps < 2, road.s);
+      if (!input.reverse) input = { ...input, throttle: 1, brake: false, nitro: frame % 120 < 60 };
+    }
+    race.step(input, 1 / 60);
+    const after = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+    // Inspect the separated middle sections; the ribbons overlap again near the merge.
+    if (after.s > race.track.shortcutStart + 100 && after.s < race.track.shortcutEnd - 100) {
+      branches.add(`${laps}:${after.branch}`);
+      assert.ok(Math.abs(driver.progress.s - after.s) < 1);
+      assert.equal(race.order[0], 0, 'the leading kart must stay first on either route');
+    }
+    if (previousS > race.track.length - 5 && after.s < 5)
+      assert.equal(driver.progress.laps, ++laps, 'each physical finish crossing must count immediately');
+    previousS = after.s;
+  }
+  assert.deepEqual([...branches], ['0:shortcut', '1:shortcut', '2:main']);
+  assert.equal(laps, 3);
+  assert.equal(race.phase, 'finished');
+  assert.equal(race.order[0], 0);
+});
+
 test('scraping the fork and being pushed onto the shortcut cannot strand race progress', () => {
   const race = new RaceManager({}, 4197891702);
   race.phase = 'racing';

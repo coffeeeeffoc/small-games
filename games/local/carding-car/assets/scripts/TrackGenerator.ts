@@ -133,14 +133,18 @@ export function projectOnTrack(track: TrackData, x: number, z: number, previousS
         b = points[i],
         dx = b.x - a.x,
         dz = b.z - a.z;
-      const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
+      let t = clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
+      if (previousS !== undefined) {
+        const delta = wrapDistance(a.s - previousS + track.length / 2, track.length) - track.length / 2;
+        const span = b.s - a.s;
+        const from = Math.max(0, (-maxStep - delta) / span);
+        const to = Math.min(1, (maxStep - delta) / span);
+        if (from > to) continue;
+        // Keep the reachable part of a segment: dropping the whole segment can pin
+        // slow karts to its previous endpoint forever on the inside of a bend.
+        t = clamp(t, from, to);
+      }
       const s = a.s + (b.s - a.s) * t;
-      if (
-        previousS !== undefined &&
-        Math.abs(wrapDistance(s - previousS + track.length / 2, track.length) - track.length / 2) >
-          maxStep
-      )
-        continue;
       const px = a.x + dx * t,
         pz = a.z + dz * t,
         dist = Math.hypot(x - px, z - pz);
