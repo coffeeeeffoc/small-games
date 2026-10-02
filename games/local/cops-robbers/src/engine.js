@@ -86,78 +86,43 @@ export function step(level, state, plan) {
   return advance(level, state, plan);
 }
 
-// Cop identities and caught robber identities do not change which positions can win.
-const searchKey = state => `${[...state.cops].sort((a, b) => a - b)}|${state.robbers.filter(n => n >= 0).sort((a, b) => a - b)}`;
+// Co-located robbers move and are caught together. Identities only matter for
+// officers in relay play, where the last officer must also be part of the key.
+const searchKey = (state, last) => `${last === null ? [...state.cops].sort((a, b) => a - b) : state.cops}|${[...new Set(state.robbers.filter(n => n >= 0))].sort((a, b) => a - b)}:${last}`;
 
-export function solve(level, state, { maxStates = 18000, maxDepth = 70 } = {}) {
-  if (state.robbers.includes(-2)) return null;
-  if (state.robbers.every(node => node === -1)) return [];
-  const live = current => [...new Set(current.robbers.filter(node => node >= 0))];
-  function estimate(current) {
-    let closest = Infinity, total = 0;
-    const targets = live(current);
-    if (!targets.length) return 0;
-    for (const robber of targets) {
-      let effort = Infinity;
-      // Plan toward a capturable node near the robber, including a dead end on a branch.
-      for (let node = 0; node < level.nodes.length; node++) {
-        if (level.exits.includes(node)) continue;
-        const exits = level.adj[node];
-        if (exits.length > current.cops.length) continue;
-        const cost = exits.reduce((sum, exit) => sum + Math.min(...current.cops.map(cop => level.dist[cop][exit])), 0) / exits.length;
-        effort = Math.min(effort, cost + level.dist[robber][node] * 1.4);
-      }
-      closest = Math.min(closest, effort); total += effort;
-    }
-    return targets.length * 9 + closest * 2 + total * 0.25;
-  }
-  const heap = [];
-  let sequence = 0;
-  const push = item => {
-    let i = heap.length; heap.push(item);
-    while (i > 0) {
-      const parent = (i - 1) >> 1;
-      if (heap[parent].score <= item.score) break;
-      heap[i] = heap[parent]; i = parent;
-    }
-    heap[i] = item;
-  };
-  const pop = () => {
-    const first = heap[0], last = heap.pop();
-    if (heap.length) {
-      let i = 0;
-      while (i * 2 + 1 < heap.length) {
-        let child = i * 2 + 1;
-        if (child + 1 < heap.length && heap[child + 1].score < heap[child].score) child++;
-        if (heap[child].score >= last.score) break;
-        heap[i] = heap[child]; i = child;
-      }
-      heap[i] = last;
-    }
-    return first;
-  };
-  const start = { state, depth: 0, parent: null, plan: null, score: estimate(state) };
-  push(start);
-  const visited = new Map([[searchKey(state), 0]]);
-  // ponytail: bounded best-first search keeps hints responsive; raise the state budget for larger future maps.
-  let examined = 0;
-  while (heap.length && examined++ < maxStates) {
-    const current = pop();
-    if (current.depth >= maxDepth || visited.get(searchKey(current.state)) < current.depth) continue;
+export function searchSolution(level, state, { maxStates = 240000, maxDepth = Infinity, relayLast = null } = {}) {
+  const result = (status, plans = null, reason = null, examined = 0) => ({ status, plans, reason, examined });
+  if (state.robbers.includes(-2)) return result('unsolvable', null, 'escaped');
+  if (state.robbers.every(node => node === -1)) return result('solved', []);
+  const queue = [{ state, last: relayLast, depth: 0, parent: -1, plan: null }];
+  const visited = new Set([searchKey(state, relayLast)]);
+  let depthLimited = false;
+  // Every action, including waiting, costs one turn. FIFO traversal visits all
+  // shorter paths before returning a win, so every returned route is shortest.
+  for (let index = 0; index < queue.length; index++) {
+    if (index >= maxStates) return result('incomplete', null, 'max-states', index);
+    const current = queue[index];
+    if (current.depth >= maxDepth) { depthLimited = true; continue; }
     for (const plan of legalPlans(level, current.state)) {
+      const actor = plan.findIndex((node, i) => node !== current.state.cops[i]);
+      if (current.last !== null && actor >= 0 && actor === current.last) continue;
       const nextState = advance(level, current.state, plan).state;
       if (nextState.robbers.includes(-2)) continue;
-      const key = searchKey(nextState), depth = current.depth + 1;
-      if ((visited.get(key) ?? Infinity) <= depth) continue;
-      visited.set(key, depth);
-      const next = { state: nextState, depth, parent: current, plan: [...plan], score: depth * 0.7 + estimate(nextState) + sequence++ * 1e-10 };
+      const last = current.last === null || actor < 0 ? current.last : actor;
+      const key = searchKey(nextState, last);
+      if (visited.has(key)) continue;
+      visited.add(key);
       if (nextState.robbers.every(node => node === -1)) {
-        const solution = [];
-        for (let entry = next; entry.parent; entry = entry.parent) solution.push(entry.plan);
-        return solution.reverse();
+        const plans = [plan];
+        for (let entry = current; entry.parent >= 0; entry = queue[entry.parent]) plans.push(entry.plan);
+        return result('solved', plans.reverse(), null, index + 1);
       }
-      push(next);
+      queue.push({ state: nextState, last, depth: current.depth + 1, parent: index, plan });
     }
   }
-  return null;
+  return result(depthLimited ? 'incomplete' : 'unsolvable', null, depthLimited ? 'max-depth' : 'exhausted', queue.length);
+}
+
+export function solve(level, state, options) {
+  return searchSolution(level, state, options).plans;
 }
