@@ -11,7 +11,7 @@
 ## 首次启用
 
 1. 将本次配置提交推送到 `main`。仓库 **Settings → Pages → Source** 保持 **GitHub Actions**。
-2. 在 **Settings → Environments → github-pages → Deployment branches and tags** 中允许 `main`、`dev`、`test` 三个分支。2026-10-02 检查时仅允许 `main`；修改 YAML 不会自动修改该权限。
+2. 在 **Settings → Environments → github-pages → Deployment branches and tags** 中允许 `main`、`dev`、`test` 三个分支。2026-10-02 已补齐并核验三个分支的权限；修改 YAML 不会自动修改该权限。
 3. 等待 main 的 Pages 工作流成功。它会创建只存构建产物的 `gh-pages` 分支；不要手动编辑该分支，也不要把 Pages Source 改成分支发布。仓库规则需允许 `GITHUB_TOKEN` 向 `gh-pages` 写入，部署任务已声明 `contents: write`。
 4. 从包含本次配置的 main 创建并推送 `dev`、`test`，各自成功发布后才会出现对应入口。若分支已存在，把配置合并到各分支。可以在 Actions 的 Pages 工作流中选择对应分支手动运行；其他分支和标签不会发布。
 
