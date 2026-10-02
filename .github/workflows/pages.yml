@@ -98,6 +98,7 @@ jobs:
         run: python3 scripts/prepare-pages-deploy.py "$BUILD_DIR" "$STATE_DIR" .scratch/pages-site "$GITHUB_REF_NAME" "$GITHUB_SHA"
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
+        id: site
         with:
           path: .scratch/pages-site
       - name: Save validated environment artifacts
@@ -113,4 +114,7 @@ jobs:
           fi
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.site.outputs.artifact_id }}
+        run: python3 scripts/publish-pages.py "$ARTIFACT_ID" "$(git -C "$STATE_DIR" rev-parse HEAD)" .scratch/pages-site

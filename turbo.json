@@ -37,6 +37,10 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "@coffeeeeffoc/game-building-power#test": {
+      "dependsOn": ["^build"],
+      "outputs": ["$TURBO_ROOT$/test-results/building-power/shift-witness.json"]
+    },
     "test:contract": {
       "dependsOn": ["^build"],
       "outputs": []
@@ -59,7 +63,7 @@
       "outputs": []
     },
     "@coffeeeeffoc/shell-minigame#smoke": {
-      "dependsOn": ["build"],
+      "dependsOn": ["build", "@coffeeeeffoc/game-building-power#test"],
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
     },
@@ -67,6 +71,10 @@
       "dependsOn": ["build"],
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
+    },
+    "@coffeeeeffoc/game-building-power#smoke": {
+      "dependsOn": ["build", "test"],
+      "outputs": []
     },
     "@coffeeeeffoc/travel-bund#build": {
       "dependsOn": ["^build"],
