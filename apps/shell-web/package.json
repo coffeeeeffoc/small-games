@@ -70,7 +70,8 @@
     "@coffeeeeffoc/afterimage-arena": "workspace:*",
     "@coffeeeeffoc/ghost-shift-manager": "workspace:*",
     "@coffeeeeffoc/rule-thief": "workspace:*",
-    "@coffeeeeffoc/waterline-station": "workspace:*"
+    "@coffeeeeffoc/waterline-station": "workspace:*",
+    "@coffeeeeffoc/tiny-signals": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
