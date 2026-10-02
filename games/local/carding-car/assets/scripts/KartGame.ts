@@ -257,6 +257,7 @@ export class KartGame extends Component {
         if (version !== this.loadVersion) return;
         this.race.loaded = true;
         this.sceneryLoaded = true;
+        game.emit('kart:loaded');
         if (!room) this.markPrepared();
         if (room) this.multiplayer?.send({ type: 'loaded', raceId: room.raceId });
       })
@@ -264,6 +265,7 @@ export class KartGame extends Component {
         if (version !== this.loadVersion) return;
         this.race.phase = 'ready';
         this.race.loadError = String(error.message || error).slice(0, 100);
+        game.emit('kart:load-error');
         if (room && this.multiplayer && this.roomPanel) {
           this.multiplayer.status = '赛车素材加载失败，请退出房间后重试';
           this.roomPanel.root.active = true;
@@ -600,7 +602,7 @@ export class KartGame extends Component {
     const p = this.race.drivers[0].progress;
     if (this.race.networked || this.race.phase !== 'finished' || !p.finishedAt || p.laps < this.race.laps || this.race.mode !== this.mode) return;
     this.records = addRecord(this.records, {
-      time: this.race.time,
+      time: p.finishedAt,
       bestLap: this.race.bestLapTime,
       place: this.race.order.indexOf(0) + 1,
     });

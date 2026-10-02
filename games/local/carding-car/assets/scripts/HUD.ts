@@ -206,11 +206,12 @@ export class HUD {
   update(r: RaceManager, input: KartInput, muted: boolean) {
     const k = r.drivers[0].kart,
       p = r.drivers[0].progress,
-      place = r.order.indexOf(0) + 1;
+      place = r.order.indexOf(0) + 1,
+      finishTime = p.finishedAt || r.time;
     this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(r.laps, p.laps + 1)} / ${r.laps} 圈`;
     this.timer.string = r.mode === 'sprint'
-      ? `一圈冲刺 ${time(p.finishedAt || r.time)}\n漂移加速 ${r.driftBoosts} 次 · 有益补给 ${r.suppliesCollected} 个`
-      : `总计 ${time(p.finishedAt || r.time)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
+      ? `一圈冲刺 ${time(finishTime)}\n漂移加速 ${r.driftBoosts} 次 · 有益补给 ${r.suppliesCollected} 个`
+      : `总计 ${time(finishTime)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
     this.pause.string = r.networked ? '房间' : 'Ⅱ';
@@ -235,9 +236,9 @@ export class HUD {
     this.garageButton.active = !r.networked && r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished';
     this.garageLabel.string = r.phase === 'ready'
       ? r.mode === 'sprint' ? '选 3 圈竞速' : '选一圈冲刺'
-      : '更换配置';
+      : r.phase === 'finished' && !r.networked ? '退出本局' : '更换配置';
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
-    if (r.phase !== this.lastPhase) {
+    if (r.phase !== this.lastPhase || r.phase === 'finished') {
       this.lastPhase = r.phase;
       this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
       this.restartLabel.string = r.phase === 'finished' ? '分享挑战' : '重新开跑';
@@ -274,19 +275,20 @@ export class HUD {
         this.title.string = place === 1 ? '冠军，漂亮！' : `第 ${place} 名，冲线！`;
         this.detail.string = r.networked
           ? `${p.finishedAt ? `完赛 ${time(p.finishedAt)}` : '未完成 3 圈，不产生有效成绩'}   ·   最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}\n服务端校验圈数、检查点与完赛时间`
-          : `总计 ${time(r.time)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次加速   ·   ${r.collisions} 次碰撞`;
+          : `总计 ${time(finishTime)}   ·   最快圈 ${time(r.bestLapTime)}\n${r.boosts} 次加速   ·   ${r.collisions} 次碰撞`;
         this.button.string = '再跑一场  →';
-        this.standings.string = `本场名次\n${r.order
+        this.standings.string = `本场成绩 · ${r.drivers.filter(d => d.progress.finishedAt > 0).length}/${r.drivers.length} 完赛\n${r.order
           .map((driver, i) => {
             const progress = r.drivers[driver].progress;
-            return `${i + 1}  ${driver === 0 ? '你' : r.names[driver] || `对手 ${driver}`}  ${progress.finishedAt ? time(progress.finishedAt) : '未完赛'}`;
+            return `${i + 1}  ${driver === 0 ? '你' : r.names[driver] || `对手 ${driver}`}  ${progress.finishedAt
+              ? time(progress.finishedAt) : r.networked ? '未完赛' : `比赛中 · 第 ${Math.min(r.laps, progress.laps + 1)} 圈`}`;
           })
           .join('\n')}`;
-        this.footer.string = recordFeedback(r.time, this.previousBest);
+        this.footer.string = recordFeedback(finishTime, this.previousBest);
         if (r.mode === 'sprint') {
           this.title.string = place === 1 ? '一圈冠军，爽快冲线！' : `一圈冲刺 · 第 ${place} 名`;
-          this.detail.string = `一圈 ${time(r.time)} · 漂移加速 ${r.driftBoosts} 次\n${r.suppliesCollected} 个有益补给 · ${r.collisions} 次碰撞`;
-          this.footer.string = recordFeedback(r.time, this.previousBest) + '\n' + sprintNextGoal(r);
+          this.detail.string = `一圈 ${time(finishTime)} · 漂移加速 ${r.driftBoosts} 次\n${r.suppliesCollected} 个有益补给 · ${r.collisions} 次碰撞`;
+          this.footer.string = recordFeedback(finishTime, this.previousBest) + '\n' + sprintNextGoal(r);
         } else if (!r.networked) {
           const bits = this.passport[this.selection.route] || 0, earned = earnedStamps(r);
           this.leaderboard.string = `路线印章 ${stampCount(bits)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}\n` +
@@ -333,7 +335,7 @@ export class HUD {
         : '\n收集印章：冠军 · 4 次漂移加速 · 6 个有益补给';
     }
     if (r.phase === 'finished' && this.challenge && !r.networked) {
-      const delta = r.time - this.challenge.time;
+      const delta = finishTime - this.challenge.time;
       this.tagline.string = delta <= 0 ? `同道具挑战达成！${delta < 0 ? `快了 ${(-delta).toFixed(2)} 秒` : '追平目标'}`
         : `同道具挑战差 ${delta.toFixed(2)} 秒 · 再跑一次布局不变`;
     }
