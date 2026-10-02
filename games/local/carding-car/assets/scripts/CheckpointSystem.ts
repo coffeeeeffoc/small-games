@@ -25,7 +25,8 @@ export function advanceCheckpoint(
   let delta = s - p.s;
   if (delta > track.length / 2) delta -= track.length;
   if (delta < -track.length / 2) delta += track.length;
-  if (!onRoad || Math.abs(delta) > maxStep || p.finishedAt) return false;
+  // Projection clipping and lap wrapping can round the same movement limit differently.
+  if (!onRoad || Math.abs(delta) > maxStep + 1e-9 || p.finishedAt) return false;
   const gates = track.checkpoints;
   const before = p.s;
   p.s = s;
