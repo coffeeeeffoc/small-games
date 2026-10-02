@@ -85,6 +85,7 @@ export const gameDefinition = {
     let timer = null;
     let previewMode = false;
     let previewDirection = null;
+    let swipe = null;
     let showHint = false;
     let sound = false;
     let audioContext = null;
@@ -95,8 +96,8 @@ export const gameDefinition = {
     target.innerHTML = shell();
     const $ = (selector) => target.querySelector(selector);
     const $$ = (selector) => [...target.querySelectorAll(selector)];
-    const on = (element, event, listener) =>
-      element.addEventListener(event, listener, { signal: abort.signal });
+    const on = (element, event, listener, options = {}) =>
+      element.addEventListener(event, listener, { ...options, signal: abort.signal });
 
     function persist() {
       if (!canSave) return;
@@ -255,7 +256,9 @@ export const gameDefinition = {
         ? '已暂停'
         : previewMode
           ? '先选方向，观察四盘，再确认'
-          : '方向键 / WASD · 点击也可以';
+          : globalThis.matchMedia?.('(pointer: coarse)').matches
+            ? '任意位置滑动一步 · 双指滚动页面'
+            : '方向键 / WASD · 点击也可以';
       $('#hint-panel').hidden = !showHint;
       $('#hint').setAttribute('aria-expanded', String(showHint));
       $('#hint-route').textContent = (session.level.solution || [])
@@ -303,6 +306,7 @@ export const gameDefinition = {
       renderBoards(previous);
     }
     function cancelAnimation() {
+      swipe = null;
       clearTimeout(timer);
       timer = null;
       busy = false;
@@ -359,11 +363,59 @@ export const gameDefinition = {
       render();
     }
     function chooseDirection(direction) {
+      if (paused || disposed || $('#rules-dialog').open || session.state.status !== 'playing')
+        return;
       if (previewMode) {
         previewDirection = direction;
         render();
       } else move(direction);
     }
+    on(
+      target,
+      'touchstart',
+      (event) => {
+        swipe = null;
+        if (event.touches.length !== 1 || paused || $('#rules-dialog').open) return;
+        const touch = event.touches[0];
+        swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+      },
+      { passive: true },
+    );
+    on(
+      target.ownerDocument,
+      'touchmove',
+      (event) => {
+        if (event.touches.length !== 1) swipe = null;
+        // Keep one-finger swipes from scrolling; two fingers retain native page scrolling.
+        if (swipe && event.cancelable) event.preventDefault();
+      },
+      { passive: false },
+    );
+    on(
+      target.ownerDocument,
+      'touchend',
+      (event) => {
+        const start = swipe;
+        swipe = null;
+        if (!start) return;
+        const touch = [...event.changedTouches].find((point) => point.identifier === start.id);
+        if (!touch) return;
+        const dx = touch.clientX - start.x;
+        const dy = touch.clientY - start.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+        if (event.cancelable) event.preventDefault();
+        chooseDirection(
+          Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up',
+        );
+      },
+      { passive: false },
+    );
+    on(target.ownerDocument, 'touchcancel', () => {
+      swipe = null;
+    });
+    on(target.ownerDocument.defaultView, 'blur', () => {
+      swipe = null;
+    });
     on(target, 'click', (event) => {
       const button = event.target.closest('button');
       if (!button || button.disabled) return;

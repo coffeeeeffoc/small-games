@@ -179,10 +179,32 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#board')).toHaveAttribute('data-status', 'playing');
     await expect(frame.locator('#moves-left')).toHaveText(String(moves));
   } else if (id === 'tiny-signals') {
+    const swipe = async (dx, dy) => {
+      const boards = frame.locator('#boards');
+      await boards.scrollIntoViewIfNeeded();
+      const bounds = await boards.boundingBox();
+      const page = boards.page();
+      const touch = await page.context().newCDPSession(page);
+      const x = bounds.x + bounds.width / 2;
+      const y = bounds.y + bounds.height / 2;
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x, y }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: x + dx, y: y + dy }],
+        });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    };
     await click(frame.locator('#level-nav [data-level]').first());
     await expect(frame.locator('#moves')).toHaveText('00');
     if (mobile) {
-      await click(frame.locator('[data-dir="right"]'));
+      await swipe(70, 0);
     } else {
       await frame.locator('[data-dir="right"]').focus();
       await frame.locator('#game-root').page().keyboard.press('ArrowRight');
@@ -190,7 +212,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#moves')).toHaveText('01');
     await click(frame.locator('#undo'));
     await expect(frame.locator('#moves')).toHaveText('00');
-    await click(frame.locator('[data-dir="down"]'));
+    if (mobile) await swipe(0, 70);
+    else await click(frame.locator('[data-dir="down"]'));
     await expect(frame.locator('#moves')).toHaveText('01');
     await click(frame.locator('#restart'));
     await expect(frame.locator('#moves')).toHaveText('00');
