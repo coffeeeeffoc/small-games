@@ -8,9 +8,10 @@ import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
 // The registry now also includes building-power; its own suite covers that game.
 const builtInCount = 5;
+const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  base: '/small-games/',
+  base: basePath,
   preview: { host: '127.0.0.1', port: 0 },
 });
 let browser;
@@ -19,7 +20,7 @@ const output = new URL('../../../.scratch/game-integration/', import.meta.url);
 await mkdir(output, { recursive: true });
 try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
-  const url = process.env.PAGES_URL ?? `${origin}/small-games/`;
+  const url = process.env.PAGES_URL ?? `${origin}${basePath}`;
   browser = await chromium.launch({
     // Full Chromium keeps the desktop WebGL path; headless_shell stalls on the 3D city.
     channel: 'chromium',
