@@ -1,3 +1,4 @@
+export type BattlefieldId = 'valley' | 'highland';
 export type Point = { x: number; z: number };
 export type Point3 = Point & { y: number };
 export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort';
@@ -52,7 +53,10 @@ export const TERRAIN = {
     { x: -92, z: 52, height: 5, width: 32, depth: 19 },
   ],
 } as const;
-export function terrainHeight(x: number, z: number): number {
+export function terrainHeight(x: number, z: number, map: BattlefieldId = 'valley'): number {
+  if (map === 'highland') return 1.2 + 5 * (1 + Math.sin(x * 0.025 + z * 0.017))
+    + 10 * Math.exp(-(((z + 35 - 12 * Math.sin(x * 0.02)) / 20) ** 2))
+    + 6 * Math.exp(-(((x - 75) / 32) ** 2) - ((z - 35) / 22) ** 2);
   let height = 0.3 + 0.45 * (1 + Math.sin(x * 0.04 + z * 0.025));
   for (const h of TERRAIN.hills)
     height += h.height * Math.exp(-(((x - h.x) / h.width) ** 2 + ((z - h.z) / h.depth) ** 2));
@@ -233,28 +237,47 @@ export const MISSION = {
       `SECTOR ${Math.floor(i / 4) + 1}: contacts near friendly positions`],
   })),
 };
-export function routePoint(d: number): Point3 & { heading: number } {
-  d = Math.max(0, Math.min(ROUTE_LENGTH, d));
-  for (let i = 1; i < ROUTE.length; i++) {
-    const a = ROUTE[i - 1],
-      b = ROUTE[i],
+export const HIGHLAND_ROUTE: Point[] = [
+  { x: -129, z: 67 }, { x: -95, z: 59 }, { x: -70, z: 30 }, { x: -40, z: 45 },
+  { x: -12, z: 20 }, { x: 22, z: 38 }, { x: 55, z: 3 }, { x: 85, z: 12 },
+  { x: 117, z: -28 }, { x: 137, z: -42 },
+];
+export const mapRoute = (map: BattlefieldId = 'valley') => map === 'highland' ? HIGHLAND_ROUTE : ROUTE;
+export const routeLength = (map: BattlefieldId = 'valley') => mapRoute(map).slice(1)
+  .reduce((n, p, i) => n + distance(mapRoute(map)[i], p), 0);
+export const riverX = (z: number) => Math.sin((z - 1.4) * 0.045) * 1.6
+  + Math.max(0, Math.min(1, (Math.abs(z) - 75) / 100)) * Math.sin(z * 0.013) * 32;
+export function isWater(p: Point, map: BattlefieldId = 'valley', margin = 0): boolean {
+  return map === 'valley' && Math.abs(p.x - riverX(p.z)) < 2.9 + margin
+    && !(Math.abs(p.z - 1.4) <= Math.max(0.1, 0.9 - margin) && Math.abs(p.x) < 12);
+}
+export function landPoint(p: Point, map: BattlefieldId = 'valley', side = p.x - riverX(p.z)): Point {
+  if (map !== 'valley' || Math.abs(p.z - 1.4) <= .4 && Math.abs(p.x) < 12) return p;
+  const bank = riverX(p.z) + (side < 0 ? -3.4 : 3.4);
+  return { x: side < 0 ? Math.min(p.x, bank) : Math.max(p.x, bank), z: p.z };
+}
+export function routePoint(d: number, map: BattlefieldId = 'valley'): Point3 & { heading: number } {
+  const route = mapRoute(map), length = routeLength(map);
+  d = Math.max(0, Math.min(length, d));
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1],
+      b = route[i],
       len = distance(a, b);
-    if (d <= len || i === ROUTE.length - 1) {
+    if (d <= len || i === route.length - 1) {
       const x = a.x + ((b.x - a.x) * d) / len, z = a.z + ((b.z - a.z) * d) / len;
       return {
-        x, z, y: terrainHeight(x, z) + TERRAIN.roadLift,
+        x, z, y: terrainHeight(x, z, map) + TERRAIN.roadLift,
         heading: Math.atan2(b.x - a.x, b.z - a.z),
       };
     }
     d -= len;
   }
-  return { ...ROUTE[0], y: terrainHeight(ROUTE[0].x, ROUTE[0].z) + TERRAIN.roadLift, heading: 0 };
+  return { ...route[0], y: terrainHeight(route[0].x, route[0].z, map) + TERRAIN.roadLift, heading: 0 };
 }
-export function patrolPoint(origin: Point, elapsed: number): Point & { heading: number } {
+export function patrolPoint(origin: Point, elapsed: number, map: BattlefieldId = 'valley'): Point & { heading: number } {
   const angle = elapsed * UNITS.light.speed / 7;
   return {
-    x: origin.x + Math.sin(angle) * 7,
-    z: origin.z + (Math.cos(angle) - 1) * 3,
+    ...landPoint({ x: origin.x + Math.sin(angle) * 7, z: origin.z + (Math.cos(angle) - 1) * 3 }, map, origin.x - riverX(origin.z)),
     heading: Math.atan2(7 * Math.cos(angle), -3 * Math.sin(angle)),
   };
 }

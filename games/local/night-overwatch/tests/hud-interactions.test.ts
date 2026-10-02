@@ -102,7 +102,7 @@ test('HUD: desktop bottom battlefield accepts aim while controls and touch foote
       sim.start(); hud.update(sim, world);
       for (const y of [height - hud.footer + 2, height - safe - 2])
         assert.equal(hud.blocksBattlefield(40 + safe, y), !hud.desktop, 'empty desktop footer is battlefield');
-      for (const id of ['weapon0', 'weapon1', 'weapon2', 'fire']) {
+      for (const id of ['weapon0', 'weapon1', 'weapon2']) {
         const b = hud.buttons.find((b: any) => b.id === id);
         assert(hud.blocksBattlefield(b.x + b.w / 2, b.y + b.h / 2), `${id} still blocks aim and battlefield fire`);
       }
@@ -125,7 +125,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionReturn', 'start'] : ['missionReturn', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'training', 'start'] : ['home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
@@ -133,7 +133,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         }
         const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
         assert.doesNotMatch(labels, /车队安全抵达|CONVOY EXTRACTED/);
-        if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /友军仍不能误伤/ : /do not hit allies/);
+        if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /高地伏击/ : /HIGHLAND AMBUSH/);
         else {
           assert.match(labels, lang === 'zh' ? /再练一轮|重甲用重炮/ : /TRY AGAIN|Heavy for armor/);
           assert.match(labels, lang === 'zh' ? /最佳20.0s/ : /BEST 20.0s/);
@@ -166,7 +166,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
         assert.equal(hud.root.children.at(-1), hud.globalControls, 'global graphics render above the modal');
         for (const b of globals) {
           assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.id, `${width}x${height} ${reason}: ${b.id}`);
-          assert(b.w >= 44 && b.h >= 44 && b.x >= safe && b.x + b.w <= width - safe);
+          assert(b.w >= 44 && b.h >= (hud.mouseDesktop ? 32 : 44) && b.x >= safe && b.x + b.w <= width - safe);
           assert(b.y >= safe && b.y + b.h <= height - safe);
           assert(!hud.buttons.some((other: any) => other !== b && other.label.node.activeInHierarchy && overlaps(b, other)), 'globals never overlap active controls');
         }
@@ -175,7 +175,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
           assert(b.y >= safe + 58 && b.y + b.h <= height - safe, `${reason}: panel control stays below the global row`);
           assert(!controls.some((other: any) => other !== b && overlaps(b, other)), `${reason}: panel controls do not overlap`);
         }
-        if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'resume');
+        if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'resume,home');
         if (reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'close,sound,effects,help,language');
         if (reason === 'help') assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');
       }
@@ -362,5 +362,27 @@ test('HUD: short-screen information priority, focus clearance and friendly group
       assert(!lead.node.activeInHierarchy, 'old count is hidden on the next frame');
     }
     group[2].x = 8;
+  }
+});
+
+
+test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home', () => {
+  for (const touch of [false, true]) for (const width of [1366, 1920, 2560]) {
+    Object.assign(frame, { width, height: 1080 }); inset = 0;
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    hud.touch = touch; hud.resize(); sim.start(); sim.selected = 2; sim.guns[2].cooldown = 2;
+    hud.update(sim, world);
+    const fire = hud.buttons.find((b: any) => b.id === 'fire');
+    assert.equal(fire.label.node.activeInHierarchy, touch);
+    assert.equal(hud.hit(fire.x + fire.w / 2, fire.y + fire.h / 2)?.id === 'fire', touch);
+    for (const id of ['pause', 'settings', 'fullscreen', 'weapon0', 'weapon1', 'weapon2']) {
+      const b = hud.buttons.find((b: any) => b.id === id);
+      assert(touch ? b.h >= 44 : b.h <= 44);
+      if (!touch) assert(b.w <= 104);
+    }
+    const visibleText = [...hud.labels.values(), ...hud.buttons.map((b: any) => b.label)]
+      .filter((l: any) => l.node.activeInHierarchy).map((l: any) => l.string).join('\n');
+    assert.equal(visibleText.match(/装填/g)?.length, 1);
+    if (!touch) assert.equal(hud.footer, 60);
   }
 });

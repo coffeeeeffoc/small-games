@@ -19,7 +19,7 @@ import { World } from './World';
 import { HUD } from './HUD';
 import { Platform } from './Platform';
 import { MAP, WEAPONS, type Point } from './core/Data';
-import { nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
+import { MISSIONS, nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
 import { bestTrainingRecord } from './core/TrainingRecords';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; button?: string };
@@ -50,6 +50,7 @@ export class Overwatch extends Component {
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
     this.prepareMission(sys.isBrowser ? location.search : '');
+    this.syncWorld();
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
     this.hud.reducedEffects = this.platform.reducedEffects;
@@ -131,9 +132,18 @@ export class Overwatch extends Component {
     for (const reason of pauses)
       if (['background', 'orientation', 'focus'].includes(reason)) this.sim.pauses.add(reason);
     this.hud.trainingBest = this.platform.readWarmupRecord();
-    this.world.reset();
+    this.syncWorld();
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
+  }
+  syncWorld() {
+    if (this.world.map !== this.sim.mission.map) {
+      this.world.root.active = false;
+      this.world.root.destroy();
+      this.world = new World(this.node, this.sim.mission.map);
+      this.world.camera.visibility = 1 << 30;
+    }
+    this.world.reset();
   }
   syncMissionAddress() {
     if (!sys.isBrowser) return;
@@ -154,6 +164,17 @@ export class Overwatch extends Component {
   }
   action(id: string) {
     this.platform.activate();
+    if (id === 'home') {
+      this.clear();
+      this.sim.phase = 'briefing';
+      this.selectMission(this.selectedMission);
+      return;
+    }
+    if (id.startsWith('mission:')) {
+      const mission = MISSIONS.find(m => m.id === id.slice(8));
+      if (mission) this.selectMission(mission.id, true);
+      return;
+    }
     if (id === 'training' || id === 'missionReturn') {
       this.selectMission(id === 'training' ? 'training-60' : this.selectedMission);
       return;
@@ -507,7 +528,7 @@ export class Overwatch extends Component {
   update(dt: number) {
     if (!this.hud) return;
     const frame = view.getFrameSize(),
-      key = frame.width + 'x' + frame.height;
+      key = frame.width + 'x' + frame.height + ':' + this.hud.touch;
     if (key !== this.resizeKey) {
       this.resizeKey = key;
       this.hud.resize();
@@ -558,11 +579,11 @@ export class Overwatch extends Component {
         else if (e.type === 'impact') {
           if (e.weapon > 0) this.platform.play('impact' + e.weapon);
           if (e.outcome === 'hit' || e.outcome === 'destroyed') this.platform.play('hit');
-        } else if (e.type === 'attack') this.platform.play(e.friendly ? 'rapid' : 'alert');
+        } else if (e.type === 'attack') this.platform.play(e.friendly ? 'rapid' : 'alert', .22);
         else if (e.type === 'wave') this.platform.play('alert');
         this.lastEvent = e.id;
       }
-    this.world.update(this.sim);
+    this.world.update(this.sim, this.platform.reducedEffects);
     this.hud.fullscreen = this.platform.isFullscreen;
     this.hud.update(this.sim, this.world);
     if (sys.isBrowser && !this.startupSignalled && this.world.aircraftModel.status !== 'loading' && this.world.modelImport !== 'loading') {
@@ -587,7 +608,7 @@ export class Overwatch extends Component {
   snapshot() {
     return {
       phase: this.sim.phase,
-      mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
+      mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, map: this.sim.mission.map, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
       trainingBest: this.hud.trainingBest,
       time: this.sim.time,
       remaining: this.sim.remaining,
@@ -617,6 +638,8 @@ export class Overwatch extends Component {
         x: label.node.position.x, y: label.node.position.y,
       })),
       effects: this.hud.effects,
+      recoil: this.world.recoil,
+      lastSound: this.platform.lastSound,
       mousePointer: this.hud.mousePointer,
       selected: this.sim.selected,
       guns: this.sim.guns.map((g) => ({ ...g, ammo: g.ammo === Infinity ? 'infinite' : g.ammo })),
