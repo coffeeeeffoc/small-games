@@ -38,6 +38,10 @@ for (const level of LEVELS) {
   test(level.title + ': closed start has a shortest solution at par', () => {
     let state = createState(level);
     assert.equal(state.won, false);
+    assert.ok(
+      getObjectives(level, state).every((objective) => !objective.done),
+      'Every authored objective must require player action.',
+    );
     assert.equal(
       state.gates.every((gate) => !gate),
       true,
@@ -46,8 +50,18 @@ for (const level of LEVELS) {
     const path = solve(level, state);
     assert.ok(path, 'A solution must exist.');
     assert.equal(path.length, level.par);
+    assert.deepEqual(
+      path,
+      level.solution,
+      'Published walkthroughs must match the shortest solver path.',
+    );
     let closes = 0;
     for (const gateId of path) {
+      assert.equal(
+        solve(level, state)?.length,
+        level.par - state.moves,
+        'Hints must find the shortest remaining solution at each step.',
+      );
       const index = level.gates.findIndex((gate) => gate.id === gateId);
       if (state.gates[index]) closes++;
       state = toggleGate(level, state, gateId);
@@ -62,10 +76,37 @@ for (const level of LEVELS) {
     assert.equal(state.lost, false);
     assert.ok(getObjectives(level, state).every((objective) => objective.done));
     assert.deepEqual(solve(level, state), []);
-    if (LEVELS.indexOf(level) >= 3)
-      assert.ok(closes > 0, 'Advanced solutions must isolate a tank.');
+    if (level.requiresIsolation) assert.ok(closes > 0, 'Advanced solutions must isolate a tank.');
   });
 }
+
+test('campaign has fifty distinct stations in five ten-level chapters', () => {
+  assert.equal(LEVELS.length, 50);
+  assert.equal(new Set(LEVELS.map((level) => level.id)).size, 50);
+  assert.equal(new Set(LEVELS.map((level) => level.title)).size, 50);
+  const chapters = Map.groupBy(LEVELS, (level) => level.chapter);
+  assert.equal(chapters.size, 5);
+  for (const chapter of chapters.values()) assert.equal(chapter.length, 10);
+  for (const level of LEVELS) {
+    assert.ok(level.design && level.intro);
+    assert.ok(level.maxMoves >= level.par + 1 && level.maxMoves <= level.par + 2);
+    for (const tank of level.tanks) {
+      assert.ok(['crate', 'boat', 'wheel', 'reservoir'].includes(tank.kind));
+      if (tank.kind === 'crate') assert.ok(tank.switchAt >= 0 && tank.switchAt < tank.volume);
+      if (tank.kind === 'boat') assert.ok(tank.exitAt > tank.volume && tank.exitAt <= CAPACITY);
+    }
+    for (const outlet of level.overflow ?? [])
+      assert.ok(outlet.powerNeeded > 0, 'Each outlet contributes to the shared wheel objective.');
+  }
+  assert.equal(LEVELS.at(-1).par, 9);
+  assert.ok(LEVELS.filter((level) => level.par >= 6).length >= 18);
+  assert.ok(LEVELS.filter((level) => (level.overflow?.length ?? 0) > 1).length >= 4);
+  assert.ok(
+    LEVELS.filter((level) =>
+      level.gates.some((gate) => Array.isArray(gate.requires) && gate.requires.length > 1),
+    ).length >= 6,
+  );
+});
 
 test('integer remainders conserve water across repeated unequal divisions', () => {
   const level = simpleLevel();
@@ -116,6 +157,42 @@ test('locked and unknown valves do not spend moves or change volumes', () => {
   const unknown = toggleGate(level, state, 'missing');
   assert.equal(unknown.moves, 0);
   assert.deepEqual(unknown.gates, state.gates);
+});
+
+test('a double-switch lock remains closed until both independent crates have latched', () => {
+  const level = LEVELS.find((entry) => entry.id === 'path-double-middle');
+  let state = toggleGate(level, createState(level), 'AB');
+  assert.deepEqual(state.latched, ['A']);
+  assert.equal(isGateLocked(level, state, 'DE'), true);
+  const blocked = toggleGate(level, state, 'DE');
+  assert.equal(blocked.moves, state.moves);
+  assert.deepEqual(blocked.volumes, state.volumes);
+  for (const gate of ['BC', 'BC', 'CD']) state = toggleGate(level, state, gate);
+  assert.deepEqual(state.latched, ['A', 'C']);
+  assert.equal(isGateLocked(level, state, 'DE'), false);
+});
+
+test('two authored overflow outlets form a finite cascade during one operation', () => {
+  const level = LEVELS.find((entry) => entry.id === 'cascade-reserve');
+  const initial = createState(level);
+  const state = toggleGate(level, initial, 'AB');
+  assert.deepEqual(state.volumes, [2.5, 2.5, 4, 1, 10]);
+  assert.equal(total(state), total(initial));
+  assert.deepEqual(
+    state.events
+      .filter((event) => event.type === 'overflow')
+      .map(({ from, to, amount }) => ({ from, to, amount })),
+    [
+      { from: 'B', to: 'C', amount: 5 },
+      { from: 'C', to: 'D', amount: 1 },
+    ],
+  );
+  assert.equal(state.wheelPower, 6);
+  assert.equal(
+    state.won,
+    false,
+    'Completed wheel power cannot substitute for reaching the boat exit.',
+  );
 });
 
 test('switches latch permanently even when the crate rises later', () => {
@@ -209,8 +286,8 @@ test('loss blocks operations and an extra move allows a final-turn win', () => {
   assert.equal(toggleGate(level, won, 'AB').moves, 3);
 });
 
-test('later stations cannot be won by opening every gate in any order', () => {
-  for (const level of LEVELS.slice(3)) {
+test('stations authored around isolation cannot be won by only opening gates', () => {
+  for (const level of LEVELS.filter((level) => level.requiresIsolation)) {
     const explore = (state) => {
       assert.equal(state.won, false, 'A closing operation is required in ' + level.title);
       level.gates.forEach((gate, index) => {
@@ -231,10 +308,12 @@ test('invalid level layouts fail before play begins', () => {
   assert.throws(() => createState(level), /Invalid gate/);
 });
 
-test('every reachable authored state conserves total volume and respects capacity', () => {
+test('every reachable authored state conserves volume, with a bounded hint search space', () => {
   for (const level of LEVELS) {
-    const initial = createState(level);
+    // Include the optional rewarded move, so mistakes and IAA retries are covered too.
+    const initial = { ...createState(level), bonusMoves: 1 };
     const conserved = total(initial);
+    const wheelTarget = (level.overflow ?? []).reduce((sum, outlet) => sum + outlet.powerNeeded, 0);
     const queue = [initial];
     const seen = new Set();
     for (let cursor = 0; cursor < queue.length; cursor++) {
@@ -248,9 +327,8 @@ test('every reachable authored state conserves total volume and respects capacit
         const identity = JSON.stringify([
           next.volumes,
           next.gates,
-          next.latched,
-          next.wheelPower,
-          next.moves,
+          [...next.latched].sort(),
+          Math.min(next.wheelPower, wheelTarget),
         ]);
         if (!seen.has(identity)) {
           seen.add(identity);
@@ -258,5 +336,8 @@ test('every reachable authored state conserves total volume and respects capacit
         }
       }
     }
+    // BFS reaches each physical state at its earliest move. Revisiting it later only
+    // shrinks the remaining budget, so it cannot add a new reachable transition.
+    assert.ok(seen.size < 12000, `${level.id}: keep arbitrary-state hints inexpensive`);
   }
 });
