@@ -28,15 +28,16 @@ const initialFiles = new Set(files(entry));
 for (const [source, chunk] of games)
   assert(!initialFiles.has(chunk.file), `Lobby eagerly imports ${source}`);
 
+const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  base: '/small-games/',
+  base: basePath,
   preview: { host: '127.0.0.1', port: 0 },
 });
 let browser;
 try {
   browser = await chromium.launch();
-  const base = `http://127.0.0.1:${server.httpServer.address().port}/small-games/`;
+  const base = `http://127.0.0.1:${server.httpServer.address().port}${basePath}`;
   const summary = [];
   for (const [source, chunk] of games) {
     const id = source.match(/game-([^/]+)\/src/)[1];
