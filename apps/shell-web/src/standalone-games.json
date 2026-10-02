@@ -243,5 +243,12 @@
     "title": "水位联动站",
     "description": "开关闸门，让相连水槽共享水位，落箱压开关、抬船进出口、溢流转水轮，解开连锁机关。",
     "output": "dist"
+  },
+  {
+    "id": "tiny-signals",
+    "source": "games/local/tiny-signals",
+    "title": "同频归航",
+    "description": "一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。",
+    "output": "dist"
   }
 ]
