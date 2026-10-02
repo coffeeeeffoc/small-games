@@ -9,6 +9,7 @@ export const markers = {
   'afterimage-arena': '#continue',
   'ghost-shift-manager': '#start',
   'rule-thief': '#actors .actor',
+  'waterline-station': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -159,6 +160,23 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#retry'));
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+  } else if (id === 'waterline-station') {
+    await expect(frame.locator('#level-name')).not.toBeEmpty();
+    const moves = Number(await frame.locator('#moves-left').textContent());
+    const initialWater = await frame.locator('[data-tank="A"]').getAttribute('data-water');
+    await click(frame.locator('[data-gate="AB"]'));
+    await expect(frame.locator('#moves-left')).toHaveText(String(moves - 1));
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await expect(frame.locator('[data-tank="A"]')).not.toHaveAttribute('data-water', initialWater);
+    await click(frame.locator('#result-undo'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'playing');
+    await expect(frame.locator('#moves-left')).toHaveText(String(moves));
+    await expect(frame.locator('[data-tank="A"]')).toHaveAttribute('data-water', initialWater);
+    await click(frame.locator('[data-gate="AB"]'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await click(frame.locator('#result-retry'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'playing');
+    await expect(frame.locator('#moves-left')).toHaveText(String(moves));
   } else if (id === 'one-stroke-course') {
     await expect(frame.locator('#start')).toBeDisabled();
     await click(frame.locator('#example'));

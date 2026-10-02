@@ -1,0 +1,42 @@
+# 水位联动站 / Waterline Station
+
+调一道闸门，让三至五个房间共享液位。箱子随水位下降压下开关，小船随水位上升抵达出口，溢流水量累计驱动水轮。八个手工关卡分为港口启航与联动实验站两章，后五关需要主动关阀隔离。
+
+## 运行与验证
+
+从仓库根目录运行：
+
+```sh
+pnpm --filter @coffeeeeffoc/waterline-station dev
+pnpm --filter @coffeeeeffoc/waterline-station test
+pnpm --filter @coffeeeeffoc/waterline-station build
+pnpm --filter @coffeeeeffoc/waterline-station test:browser
+pnpm check:games waterline-station
+```
+
+开发服务默认端口 `4410`。也可在游戏目录直接执行 `node server.mjs`、`node --test tests/*.test.mjs`、`node build.mjs`，游戏运行和构建无第三方依赖。`node server.mjs --dist` 预览生产输出。浏览器测试使用仓库已有的 Playwright，自动在 4411 端口启动生产预览；可用 `GAME_URL` 指向已启动服务，`BROWSER_EXECUTABLE` 指定 Chromium 路径。截图输出到忽略提交的 `test-results/`。
+
+大厅入口为 `#/games/waterline-station`，独立静态页面为 `games/waterline-station/index.html`。资源均使用相对路径，`dist/` 可部署到子目录，无在线素材、后端或账户要求。
+
+## 操作
+
+- 点击闸门开关；开、关各消耗一次操作。所有关卡可直接选择。
+- 液位预测：先点击闸门查看虚线水位，再点同一闸门确认，不确认不消耗操作。
+- 撤销恢复闸门、水量、锁存开关与水轮动力；重来重置当前局。
+- 提示使用当前状态的最短解，不自动执行。每局可免费增加一次操作；撤销不会再次获得领取资格。
+- 键盘 `1`–`5` 调闸门，`P` 预测，`Z` 撤销，`R` 重来，`H` 提示，`?` 说明，`Esc` 取消预测。
+- 本地保存已选关卡、最佳操作次数及音效偏好；不保存进行到一半的局面。存储不可用时仍能游玩。
+
+## 街机规则
+
+每个水槽容量 10 格、等宽。规则以整数千分格结算，连通分量平均分配水量；整除余量按槽顺序分配，最多相差 0.001 格，总量保持不变。视觉用高度插值显示，不运行连续流体模拟。
+
+箱子液位不高于触发线时压下平台开关，开关锁存直到撤销或重来。小船水位达到出口线、所有开关与水轮目标同时满足即获胜。水轮统计累计经过溢流口的水量；一次调度中每个溢流口只结算一次，上下游已由闸门连通时不发生溢流，下游容量不足会限制转移量。判胜优先于操作次数用尽。
+
+界面显示一位或两位小数，规则保留三位小数；关卡阈值已按整数结算验证。星级仅按操作次数：不超过最佳目标为三星，多一步为两星，其余通关为一星。关卡最短解见 [docs/solutions.md](docs/solutions.md)。
+
+## 文件与范围
+
+`engine.mjs` 为纯规则与广度优先求解器，`levels.mjs` 为八关数据，`render.mjs` 绘制 SVG 场景，`game.mjs` 管理输入、动画与辅助操作，`progress.mjs` 校验本地记录。`window.__waterlineSnapshot()` 仅返回副本，供浏览器回归读取，没有强制获胜或修改关卡状态接口。
+
+当前交付为适配桌面和手机触摸的 H5 MVP。预测、撤销、额外操作均免费，尚未接入 IAA 或微信、抖音、B站、Poki、CrazyGames 官方 SDK；H5 不能直接作为原生 Canvas 小游戏发布。关卡规则不是水利或压力工程教学模型。
