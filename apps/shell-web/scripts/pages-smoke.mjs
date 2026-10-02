@@ -67,7 +67,7 @@ try {
     }
   }
   for (const title of ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
-    await page.locator('article').filter({ hasText: title }).getByRole('button').click();
+    await page.locator('article').filter({ hasText: title }).getByRole('button', { name: '进入游戏', exact: true }).click();
     if (title === '三分钟修仙') {
       await verifySharedRoute('cultivation', title);
       await page.getByRole('button', { name: '点香 · 开始修行' }).click();
@@ -104,7 +104,7 @@ try {
     await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   }
   for (const game of games) {
-    await page.locator('article').filter({ hasText: game.title }).getByRole('button').click();
+    await page.locator('article').filter({ hasText: game.title }).getByRole('button', { name: '进入游戏', exact: true }).click();
     await expect(page).toHaveURL(`${url}#/games/${game.id}`);
     if (game === games[0]) await verifySharedRoute(game.id, game.title);
     const frame = page.frameLocator('iframe');
