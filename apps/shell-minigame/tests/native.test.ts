@@ -21,6 +21,13 @@ import {
 
 afterEach(() => vi.useRealTimers());
 
+function finishCricketMatch(fake: ReturnType<typeof fakeSdk>) {
+  // Stop at settlement instead of redrawing the finished match for 45 seconds.
+  for (let elapsed = 0; elapsed < 45000 && !fake.has('重新上擂'); elapsed += 1000)
+    vi.advanceTimersByTime(1000);
+  expect(fake.has('重新上擂')).toBe(true);
+}
+
 describe('standalone native Games', () => {
   it.each(['wechat', 'bilibili', 'douyin'] as const)(
     'mounts the building-power public Canvas export and pauses on %s',
@@ -96,8 +103,7 @@ describe('standalone native Games', () => {
       expect([...fake.labels]).toEqual(paused);
       expect(fake.audio.every((clip) => clip.stop.mock.calls.length)).toBe(true);
       for (const show of fake.shows) show();
-      await vi.advanceTimersByTimeAsync(45000);
-      expect(fake.has('重新上擂')).toBe(true);
+      finishCricketMatch(fake);
       await instance.dispose();
       expect(JSON.parse(fake.records.get(`${platform}:cricket:progress`)!).value).toMatchObject({
         runs: 1,
@@ -133,7 +139,7 @@ describe('standalone native Games', () => {
         host,
       );
       fake.choose('揭盖');
-      await vi.advanceTimersByTimeAsync(45000);
+      finishCricketMatch(fake);
       fake.choose('观看视频');
       await vi.advanceTimersByTimeAsync(0);
       expect(fake.has('开始蓄力')).toBe(status === 'completed');
