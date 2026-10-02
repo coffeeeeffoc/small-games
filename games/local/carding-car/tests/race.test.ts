@@ -10,6 +10,34 @@ import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('all rivals finish after either a player or AI wins, while each finish time stays fixed', () => {
+  for (const mode of ['standard', 'sprint'] as const) for (const winner of [0, 1]) {
+    const race = new RaceManager({}, undefined, 4, mode);
+    race.phase = 'racing'; race.time = 100;
+    race.drivers.forEach((driver, index) => {
+      const remaining = index === winner ? 0.1 : 10 + index * 6;
+      const s = race.track.length - remaining, p = pointAt(race.track, s);
+      Object.assign(driver.kart, createKart(p.x, p.z, p.heading), { speed: 30 });
+      Object.assign(driver.progress, { s, distance: race.laps * race.track.length - remaining,
+        laps: race.laps - 1, nextGate: race.track.checkpoints.length, lapStarted: 60 });
+    });
+    race.step(idle, 1 / 60);
+    assert.ok(race.drivers[winner].progress.finishedAt > 0);
+    assert.equal(race.phase, winner === 0 ? 'finished' : 'racing');
+    const winningTime = race.drivers[winner].progress.finishedAt;
+    const winningKart = { ...race.drivers[winner].kart };
+    for (let frame = 0; frame < 600 && race.drivers.some(d => !d.progress.finishedAt); frame++)
+      race.step({ ...idle, throttle: 1 }, 1 / 60);
+    assert.ok(race.drivers.every(d => d.progress.finishedAt > 0), `${mode}, winner ${winner}: remaining cars must continue`);
+    assert.equal(race.order[0], winner);
+    assert.equal(race.drivers[winner].progress.finishedAt, winningTime);
+    assert.deepEqual(race.drivers[winner].kart, winningKart, 'a finished kart no longer moves or collects pickups');
+    const completed = race.time;
+    race.step(idle, 1 / 60);
+    assert.equal(race.time, completed, 'the simulation stops once everyone has a result');
+  }
+});
+
 test('slow travel around an inside bend cannot lock third-lap progress at a segment endpoint', () => {
   const race = new RaceManager({}, undefined, 1), driver = race.drivers[0];
   race.phase = 'racing';
@@ -212,7 +240,7 @@ test('lap timer stays on the completed final lap and clock text carries minutes 
 });
 
 test('finish times settle a close race before progress and same-frame driver order', () => {
-  const race = new RaceManager();
+  const race = new RaceManager({}, undefined, 2);
   race.phase = 'racing';
   race.time = 100;
   race.drivers.forEach((driver, index) => {
@@ -230,7 +258,6 @@ test('finish times settle a close race before progress and same-frame driver ord
       lapStarted: 60,
       lapTimes: [30, 30],
       nextGate: race.track.checkpoints.length,
-      finishedAt: index > 1 ? 110 + index : 0,
     });
   });
   race.step(idle, 1 / 60);

@@ -8,6 +8,7 @@ import { clearOutput } from './clear-output.mjs';
 import { prepareArt } from './prepare-art.mjs';
 import { instrumentWechatStartup } from './wechat-startup.mjs';
 import { nativeTarget, nativePackages, verifyNativeOutput } from './native-targets.mjs';
+import { installLoading } from './loading.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili', 'douyin'].includes(target))
@@ -292,6 +293,7 @@ if (target === 'web-mobile') {
       'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );
   await writeFile(index, html);
+  await installLoading(outputDir);
   await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);
   await cp(new URL('./fullscreen.js', import.meta.url), path.join(outputDir, 'fullscreen.js'));
   await writeFile(

@@ -51,6 +51,34 @@ try { ({ HUD } = await import(sourceURL.href)); }
 finally { hooks.deregister(); delete (globalThis as any).__kartHUDCC; }
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('open results update remaining finishers without changing the player time or disabling exit and retry', () => {
+  for (const mode of ['standard', 'sprint'] as const) {
+    const hud = new HUD(new SceneNode()), race = new RaceManager({}, undefined, 4, mode);
+    race.phase = 'finished'; race.time = 130;
+    Object.assign(race.drivers[0].progress, { laps: race.laps, finishedAt: 120, lapTimes: [120] });
+    hud.update(race, idle, false);
+    assert.equal(hud.panel.active, true);
+    assert.match(hud.detail.string, /2:00\.00/);
+    assert.doesNotMatch(hud.detail.string, /2:10\.00/);
+    assert.match(hud.standings.string, /1\s*\/\s*4/);
+    assert.match(hud.standings.string, /比赛中/);
+    assert.match(hud.garageLabel.string, /退出本局/);
+    assert.match(hud.button.string, /再跑一场/);
+    race.drivers[2].progress.finishedAt = 132;
+    race.time = 134;
+    hud.update(race, idle, false);
+    assert.match(hud.standings.string, /2\s*\/\s*4/);
+    assert.match(hud.standings.string, /2\s+对手 2\s+2:12\.00/);
+    assert.match(hud.detail.string, /2:00\.00/);
+    race.drivers[1].progress.finishedAt = 135;
+    race.drivers[3].progress.finishedAt = 137;
+    hud.update(race, idle, false);
+    assert.match(hud.standings.string, /4\s*\/\s*4/);
+    assert.doesNotMatch(hud.standings.string, /比赛中|未完赛/);
+    assert.equal(hud.garageButton.active, true);
+  }
+});
+
 test('HUD updates fourth to first and back as cars pass on the wide lane at the fork', () => {
   const hud = new HUD(new SceneNode()), race = new RaceManager();
   const go = { ...idle, throttle: 1 };

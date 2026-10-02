@@ -1,0 +1,119 @@
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+// Runs before Creator's entry module, using its public initialization lifecycle.
+function loadingScreen() {
+  const overlay = document.getElementById('kart-loading');
+  const status = document.getElementById('kart-loading-status');
+  const retry = document.getElementById('kart-loading-retry');
+  let engine, settled = false;
+  const blockKeys = (event) => {
+    if (!event.ctrlKey && !event.metaKey && event.key !== 'Tab' && event.key !== 'F5'
+        && event.target !== retry) event.stopImmediatePropagation();
+  };
+  window.addEventListener('keydown', blockKeys, true);
+  const timeout = setTimeout(() => fail(), 60000);
+  function cleanup() {
+    clearTimeout(timeout);
+    engine?.game.off('kart:loaded', loaded);
+    engine?.game.off('kart:load-error', fail);
+    engine?.director.off(engine.Director.EVENT_AFTER_DRAW, finish);
+  }
+  function fail() {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    engine?.game.pause();
+    overlay.setAttribute('aria-busy', 'false');
+    status.textContent = '加载未完成，请检查网络后重试';
+    overlay.querySelector('progress').hidden = true;
+    retry.hidden = false;
+  }
+  function finish() {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    overlay.remove();
+    window.removeEventListener('keydown', blockKeys, true);
+    document.getElementById('GameDiv').removeAttribute('inert');
+    document.getElementById('GameCanvas').focus({ preventScroll: true });
+    delete window.KartLoading;
+  }
+  function loaded() {
+    status.textContent = '赛车就绪，正在进入出发准备…';
+    engine.director.once(engine.Director.EVENT_AFTER_DRAW, finish);
+  }
+  retry.addEventListener('click', () => location.reload());
+  window.KartLoading = {
+    async boot(applicationPath) {
+      document.getElementById('GameDiv').setAttribute('inert', '');
+      try {
+        const canvas = document.getElementById('GameCanvas');
+        const bounds = canvas.parentElement.getBoundingClientRect();
+        canvas.width = bounds.width;
+        canvas.height = bounds.height;
+        const { Application } = await System.import(applicationPath);
+        engine = await System.import('cc');
+        if (settled) return;
+        engine.game.onPostBaseInitDelegate.add(() => {
+          engine.settings.overrideSettings('splashScreen', 'totalTime', 0);
+          engine.settings.overrideSettings('splashScreen', 'logo', { type: 'none' });
+        });
+        engine.game.once('kart:loaded', loaded);
+        engine.game.once('kart:load-error', fail);
+        status.textContent = '正在装配赛道、赛车与车手…';
+        const application = new Application();
+        await application.init(engine);
+        await application.start();
+        if (settled && overlay.isConnected) engine.game.pause();
+      } catch (error) {
+        fail();
+        console.error('[carding-car startup]', error);
+      }
+    },
+  };
+}
+
+export async function installLoading(directory) {
+  const index = path.join(directory, 'index.html');
+  let html = await readFile(index, 'utf8');
+  const entry = html.match(/System\.import\(['"](\.\/index(?:\.[\w-]+)?\.js)['"]\)/)?.[0];
+  if (!entry || html.includes('id="kart-loading"'))
+    throw new Error('Expected a fresh Creator web entry for the kart loading screen');
+  const indexSource = await readFile(path.join(directory, entry.match(/['"]([^'"]+)['"]/)[1]), 'utf8');
+  const application = indexSource.match(/['"](\.\/application(?:\.[\w-]+)?\.js)['"]/)?.[1];
+  if (!application) throw new Error('Creator application module is missing from the web entry');
+  const picture = await readFile(new URL('./loading.jpg', import.meta.url));
+  const image = `kart-loading.${createHash('sha256').update(picture).digest('hex').slice(0, 12)}.jpg`;
+  html = html.replace('<html>', '<html lang="zh-CN">')
+    .replace('minimal-ui=true', 'viewport-fit=cover')
+    .replace('</head>', `<link rel="preload" as="image" href="${image}"><style>
+      #kart-loading { position:fixed; inset:0; z-index:30; display:flex; align-items:flex-end;
+        box-sizing:border-box; padding:max(28px,env(safe-area-inset-bottom)) max(6vw,env(safe-area-inset-left));
+        background:#173c55 url('${image}') center/cover no-repeat; color:#fff6dc; text-align:left;
+        font-family:system-ui,"Microsoft YaHei",sans-serif; }
+      #kart-loading::before { content:""; position:absolute; inset:0; background:linear-gradient(0deg,#102f49 0%,#173c55e0 22%,#173c5500 75%); }
+      #kart-loading .intro { position:relative; width:min(540px,100%); }
+      #kart-loading .eyebrow { color:#69dfc0; font-size:14px; letter-spacing:.18em; }
+      #kart-loading h1 { margin:8px 0; color:#fff6dc; font-size:clamp(32px,5vw,58px); font-weight:800; }
+      #kart-loading .tip { margin:0 0 22px; color:#d1e9e4; font-size:clamp(14px,2vw,18px); }
+      #kart-loading progress { display:block; width:min(360px,100%); height:8px; accent-color:#ffd15a; }
+      /* Creator's generic div display rule must respect hidden controls. */
+      [hidden] { display:none !important; }
+      #kart-loading-status { font-size:14px; line-height:1.6; margin:12px 0 0; }
+      #kart-loading-retry { margin-top:12px; min-height:44px; padding:8px 22px; border:0;
+        border-radius:12px; background:#ffd15a; color:#173c55; font:700 16px system-ui; cursor:pointer; }
+      @media (max-height:440px) { #kart-loading { padding-top:16px; padding-bottom:16px; } #kart-loading .tip { margin-bottom:12px; } }
+      @media (prefers-reduced-motion:reduce) { #kart-loading progress { visibility:hidden; } }
+    </style></head>`)
+    .replace('<body>', `<body><section id="kart-loading" aria-label="浪湾卡丁车加载中" aria-busy="true">
+      <div class="intro"><div class="eyebrow">海湾赛道 · 漂移出发</div><h1>浪湾卡丁车</h1>
+      <p class="tip">按住漂移，松手加速。下一个弯，漂亮超车。</p>
+      <progress aria-label="正在加载游戏"></progress><p id="kart-loading-status" role="status">正在准备出发…</p>
+      <button id="kart-loading-retry" type="button" hidden>重新加载</button></div>
+    </section><script>(${loadingScreen.toString()})();</script>`)
+    .replace(entry, `window.KartLoading.boot(${JSON.stringify(application)})`);
+  await writeFile(path.join(directory, image), picture);
+  await writeFile(index, html);
+}
