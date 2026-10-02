@@ -1,6 +1,7 @@
 import { levels, chapters } from './levels.js';
 import { initialState, legalTargets, validatePlan, step, stateKey } from './engine.js';
 import { solutions } from './solutions.js';
+import { optimalRelaySolutions } from './optimal-solutions.js';
 import { character, scenery } from './art.js';
 import { openAppearanceSettings } from './role-appearance.js';
 import { setupDuelLobby } from './duel-ui.js';
@@ -59,8 +60,9 @@ let playMode = 'challenge';
 const records = () => playMode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed;
 const availableLevels = () => playMode === 'quick' ? quickTrials : rule === 'relay' ? levels.filter(map => relayLevelIds.includes(map.id)) : levels;
 const targetsFor = actor => rule === 'relay' ? relayTargets(level, state, actor, lastOfficer(state, history)) : legalTargets(level, state, actor);
+const parTurns = () => rule === 'relay' ? optimalRelaySolutions[level.id].length : level.par;
 let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTab = 0, drag = null, suppressClickUntil = 0;
-let hintBusy = false;
+let hintBusy = false, hintTarget = null;
 const outcome = current => playMode === 'quick' ? quickOutcome(level,current) : current.robbers.includes(-2) ? 'lost' : current.robbers.every(n => n === -1) ? 'won' : 'planning';
 // Reuse the verified route so a map change cannot leave an impossible lesson.
 let lessonState = initialState(levels[0]);
@@ -113,7 +115,7 @@ function notify(message, tone = '') { $('instruction').textContent = message; $(
 function stopHint() {
   hintWorker?.terminate(); hintWorker = null; clearTimeout(hintTimer); hintTimer = null; hintBusy = false;
 }
-function clearHint() { stopHint(); $('hint-layer')?.replaceChildren(); }
+function clearHint() { stopHint(); hintTarget = null; $('hint-layer')?.replaceChildren(); }
 function focusPatrol(active) {
   cancelDrag();
   document.body.classList.toggle('focus-play', active);
@@ -143,7 +145,7 @@ function updateChrome() {
   const done = Object.keys(records()).length, total = availableLevels().length;
   $('completed-count').textContent = `${done} / ${total}`; $('progress-fill').style.width = `${done / total * 100}%`;
   const best = records()[level.id]?.turns;
-  $('reference-turns').textContent = `三星 ≤ ${level.par} 步${best ? ` · 最佳 ${best} 步` : ` · ${level.cops.length} 人协作`}`;
+  $('reference-turns').textContent = `三星 ≤ ${parTurns()} 步${best ? ` · 最佳 ${best} 步` : ` · ${level.cops.length} 人协作`}`;
 }
 function exitEndpoint(node, outside = false) {
   const p = level.nodes[node];
@@ -217,6 +219,8 @@ function updatePlanning() {
     $(`target-${i}`).setAttribute('class', `node-target ${type}`);
     const label = $('board').querySelector(`[data-testid="node-${i}"]`);
     label.classList.toggle('reachable', reachable.includes(i));
+    label.classList.toggle('hinted', hintTarget?.node === i);
+    label.querySelector('circle').setAttribute('r', hintTarget?.node === i ? '32' : '46');
     label.setAttribute('aria-label', `${i + 1}号路口${level.exits.includes(i) ? '，逃生出口' : ''}${reachable.includes(i) ? '，点击立即移动' : ''}`);
   });
   let markup = '';
@@ -241,7 +245,7 @@ function updatePlanning() {
     $('threat-label').classList.toggle('urgent', danger > 0);
   }
   const item = lessonStep();
-  if (item && inspected < 0) {
+  if (item && inspected < 0 && !hintTarget) {
     const p = level.nodes[item.node];
     markup += `<circle class="lesson-ring" cx="${p.x}" cy="${p.y}" r="33"/><text class="lesson-tip" x="${p.x}" y="${p.y + 59}">${item.cop + 1} 号到这里</text>`;
   }
@@ -346,20 +350,20 @@ function finishTurn(token) {
 function recordWin() {
   if (outcome(state) !== 'won') return;
   if (playMode === 'challenge' && level.id === 1 && rule === 'standard') { teaching = false; $('teaching-setting').checked = false; }
-  const stars = state.turn <= level.par ? 3 : state.turn <= level.par + 3 ? 2 : 1;
+  const stars = state.turn <= parTurns() ? 3 : state.turn <= parTurns() + 3 ? 2 : 1;
   const previous = records()[level.id];
   if (!previous || state.turn < previous.turns) records()[level.id] = { turns: state.turn, stars };
 }
 function showWin(sound = true) {
   if (outcome(state) !== 'won') return;
   recordWin(); updateChrome(); persist();
-  const stars = state.turn <= level.par ? 3 : state.turn <= level.par + 3 ? 2 : 1;
+  const stars = state.turn <= parTurns() ? 3 : state.turn <= parTurns() + 3 ? 2 : 1;
   $('win-title').textContent = playMode === 'quick' ? `战术试炼 ${level.id} / 3，收网！` : rule === 'relay' ? '换防接力，收网成功！' : level.id === levels.length ? '挑战全部完成！辛苦啦。' : '漂亮！一网打尽。';
   $('win-stars').innerHTML = '★'.repeat(stars) + `<span class="empty">${'★'.repeat(3 - stars)}</span>`;
   $('win-stars').setAttribute('aria-label', `获得${stars}颗星`);
-  $('win-details').textContent = `${level.robbers.length} 名突围队员全部完成拦截，用了 ${state.turn} 步。个人最佳 ${records()[level.id].turns} 步。${stars === 3 ? '已达成三星！下一关继续练配合。' : `再省 ${state.turn - level.par} 步就能获得三星，试着减少追赶和重复换防。`}`;
+  $('win-details').textContent = `${level.robbers.length} 名突围队员全部完成拦截，用了 ${state.turn} 步。个人最佳 ${records()[level.id].turns} 步。${stars === 3 ? '已达成三星！下一关继续练配合。' : `再省 ${state.turn - parTurns()} 步就能获得三星，试着减少追赶和重复换防。`}`;
   if (playMode === 'quick') $('win-details').textContent = `${state.turn} 步完成 · 试炼最佳 ${records()[level.id].turns} 步。${level.lesson}`;
-  $('replay').textContent = stars === 3 ? '重玩本关，挑战更少步数' : `重玩本关，挑战 ${level.par} 步三星`;
+  $('replay').textContent = stars === 3 ? '重玩本关' : `重玩本关，挑战 ${parTurns()} 步三星`;
   $('next-level').innerHTML = `${playMode === 'quick' ? level.id === 3 ? '三图完成，进阶换防接力' : '下一张短场试炼' : level.id === availableLevels().at(-1).id ? '看看街区巡逻记录' : '下一个任务'} <span aria-hidden="true">→</span>`;
   $('win-art').innerHTML = `<svg viewBox="0 0 260 180"><ellipse cx="130" cy="158" rx="95" ry="12" fill="#dfe6d2"/><g transform="translate(78 156) scale(1.4)">${character('cop', 'cheer', 0)}</g><g transform="translate(176 161) scale(1.15)">${character('robber', 'caught', 0)}</g><g fill="#e3ad46"><path d="m124 29 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z"/><circle cx="31" cy="61" r="3"/><circle cx="220" cy="83" r="4"/></g><path d="m213 37 5 9m-10-5 13-2M42 106l-7 5" stroke="#dc8b69" stroke-width="3" stroke-linecap="round"/></svg>`;
   if (!$('win-dialog').open) $('win-dialog').showModal();
@@ -398,31 +402,37 @@ function renderLevelDialog() {
   const chapterLevels = playMode === 'quick' || rule === 'relay' ? availableLevels() : levels.filter(map => map.chapter === chapterTab), threeStars = chapterLevels.filter(map => records()[map.id]?.stars === 3).length;
   $('chapter-description').textContent = `${playMode === 'quick' ? '三种短场战术：两侧夹击、先封后追、双巷分工。每图有独立步数上限。' : rule === 'relay' ? '换防接力：每次移动换一位队员，六图均有完整获胜路线。' : chapters[chapterTab].subtitle} · 三星 ${threeStars}/${chapterLevels.length}`;
   $('level-grid').setAttribute('role', 'tabpanel'); $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
-  $('level-grid').innerHTML = chapterLevels.map(map => `<button class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!records()[map.id]}" aria-label="第${map.id}关 ${map.name}${records()[map.id] ? `，已完成，${records()[map.id].stars}颗星，最佳${records()[map.id].turns}步` : ''}，三星${map.par}步以内"><span class="level-id">${String(map.id).padStart(2, '0')}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(records()[map.id]?.stars || 0)}${'☆'.repeat(3 - (records()[map.id]?.stars || 0))}</span><span class="level-record">${records()[map.id] ? `最佳 ${records()[map.id].turns} 步` : `三星 ≤ ${map.par} 步`}</span></button>`).join('');
+  $('level-grid').innerHTML = chapterLevels.map(map => {
+    const par = rule === 'relay' ? optimalRelaySolutions[map.id].length : map.par;
+    return `<button class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!records()[map.id]}" aria-label="第${map.id}关 ${map.name}${records()[map.id] ? `，已完成，${records()[map.id].stars}颗星，最佳${records()[map.id].turns}步` : ''}，三星${par}步以内"><span class="level-id">${String(map.id).padStart(2, '0')}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(records()[map.id]?.stars || 0)}${'☆'.repeat(3 - (records()[map.id]?.stars || 0))}</span><span class="level-record">${records()[map.id] ? `最佳 ${records()[map.id].turns} 步` : `三星 ≤ ${par} 步`}</span></button>`;
+  }).join('');
 }
 function openLevels() { chapterTab = level.chapter; renderLevelDialog(); $('level-dialog').showModal(); }
 function showHint() {
   if (phase !== 'planning') return;
-  const hintKey = () => `${playMode}:${level.id}:${rule}:${stateKey(state)}:${rule === 'relay' ? lastOfficer(state, history) : -1}`;
+  const hintKey = () => `${playMode}:${level.id}:${rule}:${stateKey(state)}:${playMode === 'quick' ? state.turn : ''}:${rule === 'relay' ? lastOfficer(state, history) : -1}`;
   const key = hintKey();
-  stopHint(); hintBusy = true; updateChrome(); notify('正在寻找拦截位置…你也可以继续走。');
+  clearHint(); hintBusy = true; updatePlanning(); notify('正在核对最短围捕路线…你也可以继续走。');
   try {
     hintWorker = new Worker(new URL('./hint-worker.js', import.meta.url), { type: 'module' });
     const finish = answer => {
       stopHint(); if (phase !== 'planning' || hintKey() !== key) return;
-      if (answer) {
-        const moved = answer.findIndex((node, i) => node !== state.cops[i]), index = Math.max(0, moved), node = answer[index], p = level.nodes[node];
-        selected = index; hovered = node; inspected = -1; updatePlanning();
-        $('hint-layer').innerHTML = `<circle class="hint-circle" cx="${p.x}" cy="${p.y}" r="34"/>`;
-        notify(`${index + 1} 号追逐队员${moved < 0 ? '可以先留守一拍' : `可到 ${node + 1} 号路口拦截`}。点高亮路口才会执行。`, 'success');
-      } else notify('暂时没找到能全部拦住的走法，试试撤销上一步。');
+      const plan = answer.plan;
+      if (answer.status === 'solved' && plan && validatePlan(level,state,plan) === null && (rule !== 'relay' || !relayError(state,plan,lastOfficer(state,history)))) {
+        const moved = plan.findIndex((node, i) => node !== state.cops[i]), index = Math.max(0, moved), node = plan[index], p = level.nodes[node];
+        selected = index; hovered = node; inspected = -1; hintTarget = {node}; updatePlanning();
+        $('hint-layer').innerHTML = `<circle class="hint-circle" data-hint-node="${node}" cx="${p.x}" cy="${p.y + 26}" r="32"/>`;
+        notify(`最短还需 ${answer.remaining} 步：${index + 1} 号追逐队员${moved < 0 ? '先留守一拍' : `到 ${node + 1} 号路口拦截`}。点高亮的 ${node + 1} 号数字${moved < 0 ? '留守' : '移动'}。`, 'success');
+      } else if (answer.status === 'unsolvable') notify(playMode === 'quick' ? '剩余步数内无法全部围捕，请撤销或重开。' : '当前局面已无法全部围捕，请撤销或重开。');
+      else if (answer.status === 'incomplete') notify('尚未确认最短路线，本次未给出提示。可以重试提示或撤销。');
+      else notify('提示暂时不可用，请稍后重试。');
       updateChrome();
     };
-    hintWorker.onmessage = event => finish(event.data.plan);
-    hintWorker.onerror = () => finish(null);
-    hintTimer = setTimeout(() => finish(null), 12000);
+    hintWorker.onmessage = event => { if (event.data.id === key) finish(event.data); };
+    hintWorker.onerror = () => finish({status:'error'});
+    hintTimer = setTimeout(() => finish({status:'incomplete',reason:'timeout'}), 12000);
     hintWorker.postMessage({ id: key, levelId: level.id, mode:playMode, rule, last: lastOfficer(state, history), state: copy(state) });
-  } catch { stopHint(); notify('暂时无法显示提示，试试先守住岔路口。'); updateChrome(); }
+  } catch { stopHint(); notify('提示暂时不可用，请稍后重试。'); updateChrome(); }
 }
 
 $('board').addEventListener('click', event => {
