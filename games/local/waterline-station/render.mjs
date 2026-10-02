@@ -52,11 +52,44 @@ function turbine(x, y, phase, active, ratio) {
     <path d="M-47 53H47" stroke="#0c3337" stroke-width="3" opacity=".45"/></g>`;
 }
 
-function valve(x, y, open, locked, label) {
-  return `<g transform="translate(${x} ${y})"><circle r="17" fill="#173e3f" stroke="#406565" stroke-width="3"/><circle r="12" fill="${open ? '#83cbb4' : '#d9b775'}" stroke="${open ? '#c0f5db' : '#f4dca8'}" stroke-width="2"/><path d="${open ? 'M-7 0H7' : 'M0-7V7'}" stroke="#23494a" stroke-width="4" stroke-linecap="round"/><circle r="3" fill="#294f4d"/>
-    <rect x="-24" y="22" width="48" height="18" rx="4" fill="#153e40"/>
-    <text y="35" text-anchor="middle" fill="${locked ? '#d9ae66' : '#a9c7bb'}" font-size="11" font-weight="600" letter-spacing="1">${escapeText(label)}</text>
-    ${locked ? '<g transform="translate(14 -18)"><rect x="-4" y="0" width="10" height="9" rx="2" fill="#d9b775"/><path d="M-2 0v-3a3 3 0 0 1 6 0v3" stroke="#d9b775" stroke-width="2" fill="none"/></g>' : ''}</g>`;
+/** Share geometry between the painted pipes and the native valve buttons. */
+export function getBoardLayout(level, viewportWidth = 960) {
+  const screenScale = Math.max(1, viewportWidth) / 960;
+  const count = level.tanks.length;
+  const gap = count > 3 ? 32 : 64;
+  const width = (852 - gap * (count - 1)) / count;
+  const tanks = level.tanks.map((tank, index) => ({
+    ...tank,
+    index,
+    x: 54 + index * (width + gap),
+    center: 54 + index * (width + gap) + width / 2,
+  }));
+  const byId = new Map(tanks.map((tank) => [tank.id, tank]));
+  const valves = [];
+  for (const [index, gate] of level.gates.entries()) {
+    const from = byId.get(gate.a);
+    const to = byId.get(gate.b);
+    const fromX = from.center + (index % 2 ? 10 : -10);
+    const toX = to.center + (index % 2 ? 10 : -10);
+    const x = (fromX + toX) / 2;
+    let y = 402 + 30 / screenScale + index * 10;
+    // Keep 44px touch targets and their labels clear, even in five-room stations.
+    while (
+      valves.some(
+        (other) =>
+          Math.abs(other.x - x) * screenScale < 66 && Math.abs(other.y - y) * screenScale < 76,
+      )
+    ) {
+      y += 76 / screenScale;
+    }
+    valves.push({ id: gate.id, x, y, fromX, toX });
+  }
+  return {
+    tanks,
+    width,
+    valves,
+    height: Math.max(530, ...valves.map((gate) => gate.y + 55 / screenScale)),
+  };
 }
 
 export function renderBoard(
@@ -66,19 +99,12 @@ export function renderBoard(
   displayVolumes = state.volumes,
   previewState = null,
   phase = 0,
+  layout = getBoardLayout(level),
 ) {
-  const count = level.tanks.length;
-  const gap = count > 3 ? 32 : 64;
-  const width = (852 - gap * (count - 1)) / count;
+  const { tanks: layouts, width, height } = layout;
   const tankTop = 125;
   const tankBottom = 363;
   const scale = (tankBottom - tankTop) / 10;
-  const layouts = level.tanks.map((tank, index) => ({
-    ...tank,
-    index,
-    x: 54 + index * (width + gap),
-    center: 54 + index * (width + gap) + width / 2,
-  }));
   const byId = new Map(layouts.map((tank) => [tank.id, tank]));
   const latched = new Set(state.latched || []);
   const overflows = Array.isArray(level.overflow)
@@ -95,32 +121,15 @@ export function renderBoard(
     <pattern id="station-stripe" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="10" fill="#102f33" opacity=".5"/></pattern>
     ${layouts.map((tank) => `<clipPath id="tank-clip-${tank.index}"><rect x="${tank.x + 4}" y="${tankTop - 1}" width="${width - 8}" height="${tankBottom - tankTop + 1}" rx="3"/></clipPath>`).join('')}
   </defs>`;
-  const background = `<rect width="960" height="530" fill="#153e40"/><rect width="960" height="530" fill="url(#station-grid)"/><path d="M28 21h12m-12 0v12m904-12h-12m12 0v12M28 510h12m-12 0v-12m904 12h-12m12 0v-12" stroke="#548c80" fill="none" stroke-opacity=".45"/><path d="M34 402H926" stroke="#4b786f" stroke-opacity=".18" stroke-dasharray="3 7"/>`;
-  const usedValves = [];
+  const background = `<rect width="960" height="${height}" fill="#153e40"/><rect width="960" height="${height}" fill="url(#station-grid)"/><path d="M28 21h12m-12 0v12m904-12h-12m12 0v12M28 ${height - 20}h12m-12 0v-12m904 12h-12m12 0v-12" stroke="#548c80" fill="none" stroke-opacity=".45"/><path d="M34 402H926" stroke="#4b786f" stroke-opacity=".18" stroke-dasharray="3 7"/>`;
   const pipes = level.gates
     .map((gate, index) => {
-      const from = byId.get(gate.a);
-      const to = byId.get(gate.b);
-      if (!from || !to) return '';
       const open = Boolean(state.gates[index]);
-      const locked = gate.requires && !latched.has(gate.requires);
-      const y = 425 + index * Math.min(17, 52 / Math.max(1, level.gates.length - 1));
-      const fromX = from.center + (index % 2 ? 10 : -10);
-      const toX = to.center + (index % 2 ? 10 : -10);
-      let mid = (fromX + toX) / 2;
-      for (
-        let attempt = 0;
-        attempt < 12 &&
-        usedValves.some((point) => Math.abs(point.x - mid) < 52 && Math.abs(point.y - y) < 45);
-        attempt += 1
-      ) {
-        mid += 26;
-      }
-      usedValves.push({ x: mid, y });
+      const { fromX, toX, y } = layout.valves[index];
       const path = `M${fromX} ${tankBottom + 1}V${y - 9}Q${fromX} ${y} ${fromX + (toX > fromX ? 9 : -9)} ${y}H${toX + (toX > fromX ? -9 : 9)}Q${toX} ${y} ${toX} ${y - 9}V${tankBottom + 1}`;
       return `<g data-pipe="${escapeText(gate.id)}"><path d="${path}" fill="none" stroke="#0d2f33" stroke-width="12" stroke-linejoin="round"/><path d="${path}" fill="none" stroke="${open ? '#609d90' : '#53716c'}" stroke-width="7" stroke-linejoin="round"/>
       <path d="${path}" fill="none" stroke="${open ? '#a2e3c8' : '#6f8980'}" stroke-width="2" stroke-linejoin="round" ${open ? `stroke-dasharray="5 13" stroke-dashoffset="${-phase * 16}"` : ''}/>
-      ${valve(mid, y, open, locked, String(index + 1).padStart(2, '0'))}</g>`;
+      </g>`;
     })
     .join('');
   const tanks = layouts
