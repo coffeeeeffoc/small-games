@@ -1,0 +1,283 @@
+{
+  "../../games/local/game-arena/public/arena-audio/dodge.wav": {
+    "file": "assets/dodge-K8gahkGv.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/dodge.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/hit.wav": {
+    "file": "assets/hit-AWMzdv4M.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/hit.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/hurt.wav": {
+    "file": "assets/hurt-Cx_6DLwH.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/hurt.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/lose.wav": {
+    "file": "assets/lose-BLKvrhEl.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/lose.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/night.wav": {
+    "file": "assets/night-Dck_1naf.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/night.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/rustle.wav": {
+    "file": "assets/rustle-BqG9b84p.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/rustle.wav"
+  },
+  "../../games/local/game-arena/public/arena-audio/win.wav": {
+    "file": "assets/win-ClXQ4ym2.wav",
+    "src": "../../games/local/game-arena/public/arena-audio/win.wav"
+  },
+  "../../games/local/game-arena/src/definition.ts": {
+    "file": "assets/definition-BAcE5eHd.js",
+    "name": "definition",
+    "src": "../../games/local/game-arena/src/definition.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_src-CWwzu_rU.js"
+    ],
+    "css": [
+      "assets/definition-iDV9JJ3H.css"
+    ],
+    "assets": [
+      "assets/dodge-K8gahkGv.wav",
+      "assets/hit-AWMzdv4M.wav",
+      "assets/hurt-Cx_6DLwH.wav",
+      "assets/lose-BLKvrhEl.wav",
+      "assets/night-Dck_1naf.wav",
+      "assets/rustle-BqG9b84p.wav",
+      "assets/win-ClXQ4ym2.wav"
+    ]
+  },
+  "../../games/local/game-building-power/public/building-power-audio/alarm.wav": {
+    "file": "assets/alarm-GMGIoyz0.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/alarm.wav"
+  },
+  "../../games/local/game-building-power/public/building-power-audio/complete.wav": {
+    "file": "assets/complete-qgh9y3-I.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/complete.wav"
+  },
+  "../../games/local/game-building-power/public/building-power-audio/connect.wav": {
+    "file": "assets/connect-Dt9N0nya.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/connect.wav"
+  },
+  "../../games/local/game-building-power/public/building-power-audio/disconnect.wav": {
+    "file": "assets/disconnect-Dbn5Wqkj.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/disconnect.wav"
+  },
+  "../../games/local/game-building-power/public/building-power-audio/lose.wav": {
+    "file": "assets/lose-vIyQBiIq.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/lose.wav"
+  },
+  "../../games/local/game-building-power/public/building-power-audio/win.wav": {
+    "file": "assets/win-BYwWfet9.wav",
+    "src": "../../games/local/game-building-power/public/building-power-audio/win.wav"
+  },
+  "../../games/local/game-building-power/src/definition.ts": {
+    "file": "assets/definition-DMzw7dg_.js",
+    "name": "definition",
+    "src": "../../games/local/game-building-power/src/definition.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "css": [
+      "assets/definition-DruGyXBH.css"
+    ],
+    "assets": [
+      "assets/connect-Dt9N0nya.wav",
+      "assets/disconnect-Dbn5Wqkj.wav",
+      "assets/complete-qgh9y3-I.wav",
+      "assets/alarm-GMGIoyz0.wav",
+      "assets/win-BYwWfet9.wav",
+      "assets/lose-vIyQBiIq.wav"
+    ]
+  },
+  "../../games/local/game-cricket/src/assets/cricket-macro.png": {
+    "file": "assets/cricket-macro-DA9zbctD.png",
+    "src": "../../games/local/game-cricket/src/assets/cricket-macro.png"
+  },
+  "../../games/local/game-cricket/src/assets/teahouse.png": {
+    "file": "assets/teahouse-B3dnPLfc.png",
+    "src": "../../games/local/game-cricket/src/assets/teahouse.png"
+  },
+  "../../games/local/game-cricket/src/definition.ts": {
+    "file": "assets/definition-BgrO8xCO.js",
+    "name": "definition",
+    "src": "../../games/local/game-cricket/src/definition.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_src-CWwzu_rU.js"
+    ],
+    "assets": [
+      "assets/teahouse-B3dnPLfc.png",
+      "assets/cricket-macro-DA9zbctD.png"
+    ]
+  },
+  "../../games/local/game-cultivation/src/assets/audio/bell.wav": {
+    "file": "assets/bell-CVWsceD9.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/bell.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/cave.wav": {
+    "file": "assets/cave-DGXsrFo3.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/cave.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/dodge.wav": {
+    "file": "assets/dodge-sK_t5QXr.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/dodge.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/forest.wav": {
+    "file": "assets/forest-cX8GGIN_.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/forest.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/fox.wav": {
+    "file": "assets/fox-Dp1UDLoa.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/fox.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/hit.wav": {
+    "file": "assets/hit-DMUGhjqG.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/hit.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/hurt.wav": {
+    "file": "assets/hurt-x7k4ThQz.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/hurt.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/lose.wav": {
+    "file": "assets/lose-BeDg2KyR.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/lose.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/qi.wav": {
+    "file": "assets/qi-FYUeXABv.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/qi.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/scatter.wav": {
+    "file": "assets/scatter-B76BFrb2.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/scatter.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/step.wav": {
+    "file": "assets/step-oF0FQcr3.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/step.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/stone.wav": {
+    "file": "assets/stone-BdCDf91g.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/stone.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/summit.wav": {
+    "file": "assets/summit-CH8EAtif.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/summit.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/sword.wav": {
+    "file": "assets/sword-DA4cSyUR.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/sword.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/thunder.wav": {
+    "file": "assets/thunder-MZV5ATDp.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/thunder.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/water.wav": {
+    "file": "assets/water-BNABpzlI.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/water.wav"
+  },
+  "../../games/local/game-cultivation/src/assets/audio/win.wav": {
+    "file": "assets/win-ClQvDQTH.wav",
+    "src": "../../games/local/game-cultivation/src/assets/audio/win.wav"
+  },
+  "../../games/local/game-cultivation/src/definition.ts": {
+    "file": "assets/definition-3jug0Gmv.js",
+    "name": "definition",
+    "src": "../../games/local/game-cultivation/src/definition.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_src-CWwzu_rU.js"
+    ],
+    "assets": [
+      "assets/bell-CVWsceD9.wav",
+      "assets/cave-DGXsrFo3.wav",
+      "assets/dodge-sK_t5QXr.wav",
+      "assets/forest-cX8GGIN_.wav",
+      "assets/fox-Dp1UDLoa.wav",
+      "assets/hit-DMUGhjqG.wav",
+      "assets/hurt-x7k4ThQz.wav",
+      "assets/lose-BeDg2KyR.wav",
+      "assets/qi-FYUeXABv.wav",
+      "assets/scatter-B76BFrb2.wav",
+      "assets/step-oF0FQcr3.wav",
+      "assets/stone-BdCDf91g.wav",
+      "assets/summit-CH8EAtif.wav",
+      "assets/sword-DA4cSyUR.wav",
+      "assets/thunder-MZV5ATDp.wav",
+      "assets/water-BNABpzlI.wav",
+      "assets/win-ClQvDQTH.wav"
+    ]
+  },
+  "../../games/local/game-office/public/office-scene/audio/buzz.wav": {
+    "file": "assets/buzz-XBbUAQDc.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/buzz.wav"
+  },
+  "../../games/local/game-office/public/office-scene/audio/contact.wav": {
+    "file": "assets/contact-D9-cQ63u.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/contact.wav"
+  },
+  "../../games/local/game-office/public/office-scene/audio/keyboard.wav": {
+    "file": "assets/keyboard-BuIOHEcv.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/keyboard.wav"
+  },
+  "../../games/local/game-office/public/office-scene/audio/relief.wav": {
+    "file": "assets/relief-DWkTBsoa.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/relief.wav"
+  },
+  "../../games/local/game-office/public/office-scene/audio/room.wav": {
+    "file": "assets/room-411SA1zM.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/room.wav"
+  },
+  "../../games/local/game-office/public/office-scene/audio/steps.wav": {
+    "file": "assets/steps-BZMTcd__.wav",
+    "src": "../../games/local/game-office/public/office-scene/audio/steps.wav"
+  },
+  "../../games/local/game-office/src/definition.ts": {
+    "file": "assets/definition-BmyLONZf.js",
+    "name": "definition",
+    "src": "../../games/local/game-office/src/definition.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_src-CWwzu_rU.js"
+    ],
+    "css": [
+      "assets/definition-0cQQVhq6.css"
+    ],
+    "assets": [
+      "assets/buzz-XBbUAQDc.wav",
+      "assets/contact-D9-cQ63u.wav",
+      "assets/keyboard-BuIOHEcv.wav",
+      "assets/relief-DWkTBsoa.wav",
+      "assets/room-411SA1zM.wav",
+      "assets/steps-BZMTcd__.wav"
+    ]
+  },
+  "_src-CWwzu_rU.js": {
+    "file": "assets/src-CWwzu_rU.js",
+    "name": "src",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index-dd0DDp_P.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "../../games/local/game-cultivation/src/definition.ts",
+      "../../games/local/game-cricket/src/definition.ts",
+      "../../games/local/game-office/src/definition.ts",
+      "../../games/local/game-arena/src/definition.ts",
+      "../../games/local/game-building-power/src/definition.ts"
+    ],
+    "css": [
+      "assets/index-BYCxRhqW.css"
+    ]
+  }
+}

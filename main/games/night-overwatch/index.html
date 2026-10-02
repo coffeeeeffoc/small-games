@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><link rel="icon" href="data:,">
+  <meta charset="utf-8">
+
+  <title>夜航守望 · Night Overwatch</title>
+
+  <!--http://www.html5rocks.com/en/mobile/mobifying/-->
+  <meta name="viewport"
+        content="width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,viewport-fit=cover"/>
+
+  <!--https://developer.apple.com/library/safari/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html-->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- force webkit on 360 -->
+  <meta name="renderer" content="webkit"/>
+  <meta name="force-rendering" content="webkit"/>
+  <!-- force edge on IE -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <meta name="msapplication-tap-highlight" content="no">
+
+  <!-- force full screen on some browser -->
+  <meta name="full-screen" content="yes"/>
+  <meta name="x5-fullscreen" content="true"/>
+  <meta name="360-fullscreen" content="true"/>
+
+  <!--fix fireball/issues/3568 -->
+  <!--<meta name="browsermode" content="application">-->
+  <meta name="x5-page-mode" content="app">
+
+  <!--<link rel="apple-touch-icon" href=".png" />-->
+  <!--<link rel="apple-touch-icon-precomposed" href=".png" />-->
+
+  <link rel="stylesheet" type="text/css" href="style.f76d1.css"/>
+
+<style>canvas{touch-action:none;outline:none}</style><!-- night-startup:head --><link rel="preload" as="image" href="startup/background.3b4f6c38863d.webp" fetchpriority="high"><style>#night-startup {
+  --night-gold: #e4be78;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #07111b;
+  color: #eff2ef;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  text-align: left;
+  isolation: isolate;
+  touch-action: manipulation;
+  transition: opacity 420ms ease;
+}
+#night-startup *, #night-startup *::before, #night-startup *::after { box-sizing: border-box; }
+#night-startup p, #night-startup h1 { margin: 0; }
+#night-startup [hidden] { display: none !important; }
+#night-startup .night-art, #night-startup .night-shade, #night-startup .night-mist, #night-startup .night-scan { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+#night-startup .night-art { background: url("startup/background.3b4f6c38863d.webp") 64% 42% / cover no-repeat; animation: night-drift 24s ease-in-out infinite alternate; }
+#night-startup .night-shade { background: linear-gradient(90deg, #06111cbd, #08121a0a 80%), linear-gradient(0deg, #050d17f5, transparent 65%); }
+#night-startup .night-mist { inset: -15%; background: radial-gradient(ellipse at 20% 65%, #9db9c826, transparent 42%), radial-gradient(ellipse at 65% 95%, #9bb4c51f, transparent 40%); animation: night-mist 18s ease-in-out infinite alternate; }
+#night-startup .night-scan { inset: 0 0 auto; height: 20%; opacity: .2; background: linear-gradient(transparent, #afcbd216, transparent); animation: night-scan 12s linear infinite; }
+#night-startup .night-topline { position: absolute; top: max(28px, env(safe-area-inset-top)); left: max(5.5vw, env(safe-area-inset-left)); right: max(5.5vw, env(safe-area-inset-right)); display: flex; align-items: center; gap: 14px; font-size: 10px; letter-spacing: .22em; color: #b5c3cb; }
+#night-startup .night-emblem { font-size: 25px; color: var(--night-gold); }
+#night-startup .night-toprule { width: 38px; height: 1px; background: #e4be7860; }
+#night-startup .night-copy { position: absolute; top: 34%; left: max(8vw, env(safe-area-inset-left)); right: 6vw; }
+#night-startup .night-eyebrow { color: var(--night-gold); font-size: 12px; letter-spacing: .3em; margin-bottom: 19px; }
+#night-startup #night-title { color: #f0f2ec; font-family: "STSong", "Songti SC", "SimSun", serif; font-size: clamp(48px, 6.4vw, 100px); font-weight: 700; letter-spacing: .13em; line-height: 1.2; text-shadow: 0 4px 30px #03101bb3; }
+#night-startup .night-english { margin-top: 16px; font-family: "Palatino Linotype", "Book Antiqua", serif; font-size: clamp(11px, 1.2vw, 16px); letter-spacing: .46em; color: #c3cfd5; }
+#night-startup .night-description { margin-top: 31px; font-size: 14px; line-height: 1.8; letter-spacing: .1em; color: #d3dce0; }
+#night-startup .night-route { display: flex; align-items: center; width: 122px; margin-top: 22px; color: var(--night-gold); }
+#night-startup .night-route i { width: 5px; height: 5px; border: 1px solid currentColor; transform: rotate(45deg); }
+#night-startup .night-route i:last-child { background: currentColor; box-shadow: 0 0 12px #e4be7866; }
+#night-startup .night-route span { flex: 1; border-top: 1px solid #e4be7850; }
+#night-startup .night-loading { position: absolute; left: max(8vw, env(safe-area-inset-left)); bottom: max(12%, calc(env(safe-area-inset-bottom) + 50px)); width: min(340px, 80vw); }
+#night-startup .night-statusline { display: flex; gap: 10px; align-items: center; min-height: 24px; }
+#night-startup #night-status { font-size: 13px; line-height: 1.7; letter-spacing: .06em; }
+#night-startup .night-signal { flex: 0 0 5px; height: 5px; border-radius: 50%; background: var(--night-gold); box-shadow: 0 0 9px #e4be78; animation: night-pulse 2s ease-in-out infinite; }
+#night-startup #night-progress { height: 2px; background: #d4e0e027; overflow: hidden; margin-top: 12px; }
+#night-startup #night-progress span { display: block; width: 32%; height: 100%; background: linear-gradient(90deg, transparent, var(--night-gold), transparent); animation: night-progress 2.4s ease-in-out infinite; }
+#night-startup #night-hint { margin-top: 11px; color: #a9b8c3; font-size: 11px; line-height: 1.7; letter-spacing: .08em; }
+#night-startup #night-retry { margin-top: 14px; min-height: 44px; padding: 10px 22px; border: 1px solid #e4be7880; color: #f0d5a5; background: #12202de8; border-radius: 2px; font: inherit; font-size: 13px; letter-spacing: .15em; cursor: pointer; }
+#night-startup #night-retry span { margin-left: 24px; }
+#night-startup #night-retry:hover { background: #25333e; border-color: var(--night-gold); }
+#night-startup #night-retry:focus-visible { outline: 2px solid #f3dbaf; outline-offset: 4px; }
+#night-startup .night-footer { position: absolute; bottom: max(25px, env(safe-area-inset-bottom)); left: max(5.5vw, env(safe-area-inset-left)); right: max(5.5vw, env(safe-area-inset-right)); display: flex; justify-content: space-between; color: #9baebb; font-size: 10px; letter-spacing: .16em; }
+#night-startup .night-noscript { position: absolute; bottom: 20%; left: 8%; padding: 14px; background: #07111b; color: #f0d5a5; }
+#night-startup[data-state="error"] .night-signal { background: #e0a187; animation: none; }
+#night-startup[data-state="error"] #night-status { color: #f0c5ab; }
+#night-startup[data-state="error"] #night-progress { display: none; }
+#night-startup[data-state="leaving"] { opacity: 0; }
+@keyframes night-drift { to { transform: scale(1.035) translate(-.35%, .25%); } }
+@keyframes night-mist { to { transform: translate(4%, -2%); opacity: .5; } }
+@keyframes night-scan { from { transform: translateY(-100%); } to { transform: translateY(600%); } }
+@keyframes night-pulse { 50% { opacity: .4; } }
+@keyframes night-progress { from { transform: translateX(-110%); } to { transform: translateX(420%); } }
+@media (max-width: 600px) and (orientation: portrait) {
+  #night-startup .night-art { background-position: 70% 28%; }
+  #night-startup .night-shade { background: linear-gradient(0deg, #050d17 4%, #050d17a6 49%, #07121d22 83%); }
+  #night-startup .night-copy { top: 46%; left: 8%; }
+  #night-startup #night-title { font-size: clamp(40px, 12.5vw, 67px); }
+  #night-startup .night-eyebrow { font-size: 10px; margin-bottom: 14px; }
+  #night-startup .night-english { font-size: 10px; letter-spacing: .34em; margin-top: 12px; }
+  #night-startup .night-description { margin-top: 25px; font-size: 12px; letter-spacing: .04em; }
+  #night-startup .night-loading { bottom: max(11%, calc(env(safe-area-inset-bottom) + 50px)); }
+  #night-startup .night-footer span:last-child { display: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  #night-startup .night-topline { top: max(13px, env(safe-area-inset-top)); font-size: 8px; gap: 9px; }
+  #night-startup .night-emblem { font-size: 18px; }
+  #night-startup .night-copy { top: 25%; left: max(6vw, env(safe-area-inset-left)); }
+  #night-startup .night-eyebrow { margin-bottom: 8px; font-size: 9px; }
+  #night-startup #night-title { font-size: clamp(34px, 7vw, 55px); }
+  #night-startup .night-english { font-size: 9px; margin-top: 8px; letter-spacing: .3em; }
+  #night-startup .night-description { font-size: 11px; margin-top: 13px; }
+  #night-startup .night-route { display: none; }
+  #night-startup .night-loading { left: max(6vw, env(safe-area-inset-left)); bottom: max(35px, calc(env(safe-area-inset-bottom) + 20px)); width: 230px; }
+  #night-startup #night-status { font-size: 11px; }
+  #night-startup #night-progress { margin-top: 5px; }
+  #night-startup #night-hint { font-size: 9px; margin-top: 5px; }
+  #night-startup .night-footer { bottom: max(12px, env(safe-area-inset-bottom)); font-size: 8px; }
+  #night-startup[data-state="error"] .night-loading { left: auto; right: max(5vw, env(safe-area-inset-right)); width: 205px; bottom: 45px; padding: 14px; background: #07111be8; border-left: 1px solid #e4be7850; }
+  #night-startup #night-retry { margin-top: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #night-startup { transition: none; }
+  #night-startup *, #night-startup *::before, #night-startup *::after { animation: none !important; }
+  #night-startup .night-scan { display: none; }
+  #night-startup #night-progress span { transform: translateX(100%); }
+}
+</style><!-- /night-startup:head -->
+</head>
+<body>
+<!-- night-startup:body --><section id="night-startup" aria-labelledby="night-title" aria-busy="true" data-state="loading">
+  <div class="night-art" aria-hidden="true"></div>
+  <div class="night-shade" aria-hidden="true"></div>
+  <div class="night-mist" aria-hidden="true"></div>
+  <div class="night-scan" aria-hidden="true"></div>
+  <div class="night-topline" aria-hidden="true"><span class="night-emblem">✦</span> 空中护航 <span class="night-toprule"></span> NIGHT OPERATIONS</div>
+  <div class="night-copy">
+    <p class="night-eyebrow">长夜之上 · 一路守望</p>
+    <h1 id="night-title">夜航守望</h1>
+    <p class="night-english" lang="en">NIGHT OVERWATCH</p>
+    <p class="night-description">穿越暗夜，护送每一束归途的灯火。</p>
+    <div class="night-route" aria-hidden="true"><i></i><span></span><i></i><span></span><i></i></div>
+  </div>
+  <div class="night-loading">
+    <div class="night-statusline"><span class="night-signal" aria-hidden="true"></span><p id="night-status" role="status" aria-live="polite">正在建立夜航链路…</p></div>
+    <div id="night-progress" role="progressbar" aria-label="游戏加载中"><span></span></div>
+    <p id="night-hint">请稍候，正在进入任务中心</p>
+    <button id="night-retry" type="button" hidden>重新连接 <span aria-hidden="true">↗</span></button>
+  </div>
+  <div class="night-footer" aria-hidden="true"><span>守住航线 · 护送归途</span><span>空中支援 / 护送行动</span></div>
+  <noscript><p class="night-noscript">请启用 JavaScript 后重新加载游戏。</p></noscript>
+</section>
+<script>(() => {
+  'use strict';
+  const overlay = document.getElementById('night-startup');
+  const status = document.getElementById('night-status');
+  const hint = document.getElementById('night-hint');
+  const retry = document.getElementById('night-retry');
+  const cleanups = [];
+  let state = 'loading';
+  let engine;
+  let sceneLaunched = false;
+  let gameReady = false;
+  let waitingDraw = false;
+  const watchdog = setTimeout(() => fail(new Error('连接超时，请检查网络后重试。')), 60000);
+
+  function listen(target, name, callback, capture = false) {
+    target.addEventListener(name, callback, capture);
+    cleanups.push(() => target.removeEventListener(name, callback, capture));
+  }
+  function once(target, name, callback) {
+    target.once(name, callback);
+    cleanups.push(() => target.off(name, callback));
+  }
+  function cleanup() {
+    clearTimeout(watchdog);
+    for (const remove of cleanups.splice(0)) remove();
+  }
+  function stage(text) {
+    if (state === 'loading') status.textContent = text;
+  }
+  function fail(error) {
+    if (state !== 'loading') return;
+    state = 'error';
+    cleanup();
+    engine?.game.pause();
+    overlay.dataset.state = state;
+    overlay.setAttribute('aria-busy', 'false');
+    status.textContent = '夜航连接未完成';
+    hint.textContent = error?.message || '资源加载失败，请检查网络后重试。';
+    document.getElementById('night-progress').hidden = true;
+    retry.hidden = false;
+    console.error('[Night Overwatch startup]', error);
+    retry.focus({ preventScroll: true });
+  }
+  function finish() {
+    if (state !== 'loading') return;
+    state = 'leaving';
+    cleanup();
+    overlay.dataset.state = state;
+    overlay.setAttribute('aria-busy', 'false');
+    status.textContent = '护航已就绪';
+    const remove = () => {
+      if (state === 'ready') return;
+      state = 'ready';
+      overlay.remove();
+      document.getElementById('GameDiv')?.removeAttribute('inert');
+      document.getElementById('GameCanvas')?.focus({ preventScroll: true });
+    };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) remove();
+    else {
+      overlay.addEventListener('transitionend', remove, { once: true });
+      // Only a fade-out fallback, never a readiness timer.
+      setTimeout(remove, 450);
+    }
+  }
+  function awaitFrame() {
+    if (state !== 'loading' || !sceneLaunched || !gameReady || waitingDraw) return;
+    waitingDraw = true;
+    stage('正在呈现护航画面…');
+    once(engine.director, engine.Director.EVENT_AFTER_DRAW, finish);
+  }
+
+  listen(window, 'night-overwatch:ready', () => {
+    gameReady = true;
+    awaitFrame();
+  });
+  listen(window, 'night-overwatch:error', (event) => fail(event.detail));
+  listen(window, 'error', (event) => {
+    if (event.target === window || event.target?.tagName === 'SCRIPT')
+      fail(event.error || new Error('启动资源加载失败，请检查网络后重试。'));
+  }, true);
+  listen(window, 'unhandledrejection', (event) => fail(event.reason));
+  retry.addEventListener('click', () => window.location.reload());
+
+  window.NightStartup = {
+    async boot(applicationPath, target) {
+      try {
+        const canvas = document.getElementById('GameCanvas');
+        document.getElementById('GameDiv').setAttribute('inert', '');
+        listen(canvas, 'webglcontextlost', () => fail(new Error('图形连接已中断，请重试。')));
+        if (target === 'web-mobile') {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+        stage('正在连接飞行系统…');
+        const { Application } = await System.import(applicationPath);
+        if (state !== 'loading') return;
+        engine = await System.import('cc');
+        if (state !== 'loading') return;
+        stage('正在初始化飞行系统…');
+        once(engine.game, engine.Game.EVENT_POST_SUBSYSTEM_INIT, () => stage('正在装载护航资源…'));
+        once(engine.game, engine.Game.EVENT_POST_PROJECT_INIT, () => stage('正在展开夜航场景…'));
+        once(engine.director, engine.Director.EVENT_AFTER_SCENE_LAUNCH, () => {
+          sceneLaunched = true;
+          stage('正在准备机舱与护航界面…');
+          awaitFrame();
+        });
+        const application = new Application();
+        await application.init(engine);
+        // Official hook: settings.json has loaded, but SplashScreen.init has not run.
+        // Creator 3.8.8 may emit its default logo despite CLI replacement options.
+        engine.game.onPostBaseInitDelegate.add(() => {
+          engine.settings.overrideSettings('splashScreen', 'totalTime', 0);
+          engine.settings.overrideSettings('splashScreen', 'logo', { type: 'none' });
+          engine.settings.overrideSettings('splashScreen', 'background', {
+            type: 'color', color: { x: 0.02, y: 0.04, z: 0.06, w: 1 },
+          });
+          if (engine.settings.querySettings('splashScreen', 'totalTime') !== 0
+              || engine.settings.querySettings('splashScreen', 'logo')?.type !== 'none')
+            throw new Error('启动画面配置未生效，请重新加载。');
+        });
+        if (state === 'loading') await application.start();
+        if (state === 'error') engine.game.pause();
+      } catch (error) {
+        fail(error);
+      }
+    },
+  };
+})();
+</script><!-- /night-startup:body -->
+<div id="GameDiv" cc_exact_fit_screen="true">
+      <div id="Cocos3dGameContainer">
+        <canvas id="GameCanvas" oncontextmenu="event.preventDefault()" tabindex="99"></canvas>
+      </div>
+    </div>
+  
+
+<!-- Polyfills bundle. -->
+
+<script src="src/polyfills.bundle.5adbf.js" charset="utf-8"> </script>
+
+
+<!-- SystemJS support. -->
+<script src="src/system.bundle.543e6.js" charset="utf-8"> </script>
+
+<!-- Import map -->
+<script src="src/import-map.e3ee0.json" type="systemjs-importmap" charset="utf-8"> </script>
+
+<script data-night-entry="./index.c5840.js">window.NightStartup.boot("./application.12b61.js", "web-mobile");</script>
+
+</body>
+</html>
