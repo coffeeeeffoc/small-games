@@ -10,6 +10,31 @@ import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('scraping the fork and being pushed onto the shortcut cannot strand race progress', () => {
+  const race = new RaceManager({}, 4197891702);
+  race.phase = 'racing';
+  const driver = race.drivers[0];
+  let input: KartInput = { ...idle }, stalled = 0;
+  let previousS = projectOnTrack(race.track, driver.kart.x, driver.kart.z).s, laps = -1;
+  for (let frame = 0; frame < 30 * 300 && race.phase !== 'finished'; frame++) {
+    const road = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+    if (frame % 4 === 0) {
+      input = aiInput(driver.kart, race.track, true, road.s);
+      input.steer = clamp(input.steer + Math.sin(frame / 15) * 0.8, -1, 1);
+    }
+    race.step(input, 1 / 30);
+    const after = projectOnTrack(race.track, driver.kart.x, driver.kart.z);
+    const gap = wrapDistance(after.s - driver.progress.s + race.track.length / 2, race.track.length) - race.track.length / 2;
+    stalled = after.distance < after.width / 2 && driver.kart.speed > 4 && gap > 20 ? stalled + 1 : 0;
+    assert.ok(stalled < 15, `on-road kart at ${after.s} remains ranked at ${driver.progress.s}`);
+    if (previousS > race.track.length - 5 && after.s < 5)
+      assert.equal(driver.progress.laps, ++laps, 'scraping a barrier must not lose a completed lap');
+    previousS = after.s;
+  }
+  assert.equal(race.phase, 'finished');
+  assert.equal(laps, 3);
+});
+
 for (const [noise, period, delay, shortcut] of [[0.6, 4, 0, false], [0.4, 7, 108, false], [0, 4, 0, true]] as const)
 test(`${shortcut ? 'shortcut' : 'main'} driving (${noise}/${period}) counts each physical lap and finishes on lap three`, () => {
   const race = new RaceManager({}, 6);
