@@ -1,0 +1,21 @@
+{
+  "name": "@coffeeeeffoc/tiny-signals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./game.mjs"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test *.test.mjs",
+    "build": "node build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}
