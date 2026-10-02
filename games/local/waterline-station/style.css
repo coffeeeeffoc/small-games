@@ -354,14 +354,12 @@ h1 {
   line-height: 1.9;
   margin: 0 0 22px;
 }
-.objectives-heading,
-.valves-heading {
+.objectives-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.objectives-heading h3,
-.valves-heading h3 {
+.objectives-heading h3 {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
@@ -420,109 +418,6 @@ h1 {
   color: #8a9b7c;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-.valves-heading {
-  border-top: 1px solid #e2e7da;
-  padding-top: 18px;
-  margin-bottom: 11px;
-}
-.valves-heading > span {
-  font-size: 9px;
-  color: #99a18f;
-}
-.gate-controls {
-  display: grid;
-  gap: 8px;
-}
-.gate-controls button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 10px 12px;
-  border-radius: 7px;
-  border: 1px solid #d7dfce;
-  background: #f2f5eb;
-  text-align: left;
-}
-.gate-controls button:hover:not(:disabled) {
-  background: #eaf1e2;
-  border-color: #90ac89;
-}
-.gate-controls button.open,
-.gate-controls button[aria-pressed='true'] {
-  background: #e4f0df;
-  border-color: #9fc398;
-}
-.gate-controls button.preview,
-.gate-controls button.previewing,
-.gate-controls button.selected {
-  border-color: #b29456;
-  background: #f8f0d9;
-  box-shadow: 0 0 0 2px #d7bd7933;
-}
-.gate-controls button.locked {
-  opacity: 0.55;
-}
-.gate-symbol {
-  width: 25px;
-  flex: 0 0 25px;
-  font-size: 25px;
-  line-height: 1;
-  color: #98aa88;
-  text-align: center;
-}
-.gate-controls button.open .gate-symbol {
-  color: #578d63;
-}
-.gate-number,
-.gate-index {
-  display: inline-grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
-  background: #e4e9dc;
-  border-radius: 50%;
-  color: #8a9b7e;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-.gate-controls strong,
-.gate-name {
-  font-size: 13px;
-  letter-spacing: 0.6px;
-  font-weight: 600;
-}
-.gate-controls small,
-.gate-detail {
-  display: block;
-  color: #94a08b;
-  font-size: 9px;
-  line-height: 1.5;
-  letter-spacing: 0;
-}
-.gate-state,
-.gate-status {
-  margin-left: auto;
-  font-size: 10px;
-  color: #8b977f;
-  white-space: nowrap;
-}
-.gate-state i {
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  margin-right: 5px;
-  background: currentColor;
-  vertical-align: 2px;
-}
-.gate-controls button.open .gate-state,
-.gate-controls button[aria-pressed='true'] .gate-state {
-  color: #40784a;
 }
 .assist-controls {
   padding-top: 18px;
@@ -872,6 +767,132 @@ dialog .primary-button {
   width: 100%;
 }
 
+/* Native controls sit on the painted pipe coordinates, not in a remote control panel. */
+.board-scene {
+  position: relative;
+}
+#board-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.scene-valve {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px;
+  border: 0;
+  border-radius: 50%;
+  background: #123538;
+  pointer-events: auto;
+  touch-action: manipulation;
+  box-shadow: 0 2px 4px #082e3260;
+}
+.scene-valve:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.94);
+}
+.valve-wheel {
+  display: block;
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 4px solid #e9c787;
+  border-radius: 50%;
+  background: #b89458;
+  box-shadow: inset 0 0 0 2px #75633f;
+}
+.valve-wheel::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 5px;
+  left: 4px;
+  top: 12px;
+  border-radius: 3px;
+  background: #234b48;
+  transform: rotate(90deg);
+  transition: transform 0.18s ease;
+}
+.valve-wheel::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  left: 11px;
+  top: 11px;
+  border-radius: 50%;
+  background: #e5c78d;
+  box-shadow: 0 0 0 2px #31534b;
+}
+.scene-valve.open .valve-wheel {
+  border-color: #b2ead3;
+  background: #71b39c;
+  box-shadow: inset 0 0 0 2px #416f61;
+}
+.scene-valve.open .valve-wheel::before {
+  transform: rotate(0);
+}
+.scene-valve.open .valve-wheel::after {
+  background: #b2ead3;
+}
+.scene-valve:hover:not(:disabled) .valve-wheel {
+  filter: brightness(1.18);
+}
+.scene-valve.selected {
+  outline: 2px solid #f7f8db;
+  outline-offset: 3px;
+}
+.scene-valve.locked .valve-wheel {
+  border-color: #899c8b;
+  background: #6c7e70;
+}
+.scene-valve.locked .valve-wheel::before {
+  transform: rotate(45deg);
+}
+.scene-valve[aria-disabled='true'] {
+  cursor: default;
+}
+.scene-valve:disabled {
+  opacity: 0.65;
+}
+.valve-label {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  min-width: 44px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #153e40;
+  color: #d3e8cc;
+  font-size: 10px;
+  line-height: 13px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.valve-state {
+  font-size: 9px;
+  color: #e1bf81;
+}
+.scene-valve.open .valve-state {
+  color: #b2ead3;
+}
+.scene-valve.selected .valve-state {
+  color: #fffbe2;
+}
+.board-instruction {
+  margin: 14px 0 0;
+  color: #527e67;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
 @media (min-width: 1450px) {
   .station {
     padding-top: 47px;
@@ -927,18 +948,8 @@ dialog .primary-button {
     margin: 0 0 0 auto;
   }
   .control-panel {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 20px;
+    display: block;
     padding: 20px 23px;
-  }
-  .control-heading,
-  .control-panel > h2,
-  .control-intro,
-  .assist-controls,
-  .utility,
-  .extra-button {
-    grid-column: 1 / -1;
   }
   .control-panel > h2 {
     margin-top: 10px;
@@ -949,32 +960,10 @@ dialog .primary-button {
   .desktop-break {
     display: none;
   }
-  .objectives-heading {
-    grid-column: 1;
-    grid-row: 4;
-  }
   .objectives {
-    grid-column: 1;
-    grid-row: 5;
     align-content: start;
     margin: 11px 0 0;
     gap: 8px;
-  }
-  .valves-heading {
-    grid-column: 2;
-    grid-row: 4;
-    border-top: 0;
-    padding: 0;
-    margin: 0;
-  }
-  .valves-heading > span {
-    font-size: 8px;
-  }
-  .gate-controls {
-    grid-column: 2;
-    grid-row: 5;
-    align-content: start;
-    padding-top: 11px;
   }
   .assist-controls {
     margin-top: 17px;
@@ -1096,7 +1085,6 @@ dialog .primary-button {
   }
   .control-panel {
     padding: 18px 14px;
-    column-gap: 14px;
   }
   .control-panel > h2 {
     font-size: 20px;
@@ -1115,37 +1103,6 @@ dialog .primary-button {
     height: 18px;
     flex-basis: 18px;
   }
-  .gate-controls {
-    gap: 7px;
-  }
-  .gate-controls button {
-    padding: 9px 8px;
-    gap: 6px;
-    min-height: 51px;
-  }
-  .gate-number,
-  .gate-index {
-    width: 21px;
-    height: 21px;
-    flex-basis: 21px;
-    font-size: 9px;
-  }
-  .gate-symbol {
-    width: 19px;
-    flex-basis: 19px;
-    font-size: 21px;
-  }
-  .gate-controls strong,
-  .gate-name {
-    font-size: 11px;
-  }
-  .gate-state,
-  .gate-status {
-    font-size: 9px;
-  }
-  .gate-state i {
-    display: none;
-  }
   .objective-value {
     font-size: 8px;
   }
@@ -1156,13 +1113,6 @@ dialog .primary-button {
   }
   .objectives li > span:nth-child(2) {
     flex: 1;
-  }
-  .objectives li .objective-value {
-    flex-basis: 100%;
-    padding-left: 23px;
-  }
-  .gate-controls small {
-    font-size: 8px;
   }
   .route-panel {
     padding: 20px 16px;

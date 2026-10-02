@@ -50,13 +50,16 @@
               <span><i class="signal"></i><span id="board-status">等待调度</span></span
               ><span id="volume-total">总水量守恒</span>
             </div>
-            <svg
-              id="board"
-              viewBox="0 0 960 530"
-              role="img"
-              aria-label="水槽、共享液位与联动机关"
-              xmlns="http://www.w3.org/2000/svg"
-            ></svg>
+            <div class="board-scene">
+              <svg
+                id="board"
+                viewBox="0 0 960 530"
+                role="img"
+                aria-label="水槽、共享液位与联动机关"
+                xmlns="http://www.w3.org/2000/svg"
+              ></svg>
+              <div id="board-controls" role="group" aria-label="场景阀门"></div>
+            </div>
             <div
               id="result"
               class="result"
@@ -76,6 +79,7 @@
               </div>
             </div>
           </div>
+          <p class="board-instruction">点击管道上的圆形阀门打开，再点一次关闭。</p>
           <div class="board-legend">
             <span><i class="key water-key"></i>共享液位</span
             ><span><i class="key target-key"></i>机关触发线</span
@@ -91,25 +95,20 @@
           </div>
         </section>
 
-        <aside class="control-panel" aria-label="闸门控制台">
+        <aside class="control-panel" aria-label="任务与辅助操作">
           <div class="control-heading">
             <span class="eyebrow">CONTROL ROOM</span
             ><span class="console-dots" aria-hidden="true">•••</span>
           </div>
           <h2>一阀，牵动全局。</h2>
           <p class="control-intro">
-            每次开关一道闸门。相连的水槽，<br class="desktop-break" />会自动分享同一片水面。
+            直接点场景里的阀门。相连的水槽，<br class="desktop-break" />会自动分享同一片水面。
           </p>
           <div class="objectives-heading">
             <h3>本关任务</h3>
             <span id="objective-count">0 / 2</span>
           </div>
           <ul id="objectives" class="objectives"></ul>
-          <div class="valves-heading">
-            <h3>闸门调度</h3>
-            <span>点击开 / 关</span>
-          </div>
-          <div id="gate-controls" class="gate-controls"></div>
           <div class="assist-controls">
             <button id="predict" aria-pressed="false">
               <span aria-hidden="true">⌁</span>液位预测<span
@@ -150,8 +149,10 @@
       <h2>你调闸门，水找平衡。</h2>
       <ol>
         <li>
-          <strong>点击一道闸门</strong>
-          <p>打开后，相连水槽立刻重新分配水量；关上后保留各自液位。开、关都消耗一次操作。</p>
+          <strong>直接点击场景里的阀门</strong>
+          <p>
+            点水槽下方管道上的圆形阀门打开，再点一次关闭。打开后水量自动均分，关上后保留各自液位；每次开关消耗一次操作。
+          </p>
         </li>
         <li>
           <strong>让机关依次启动</strong>

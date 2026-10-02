@@ -7,7 +7,7 @@ import {
   solve,
   isGateLocked,
 } from './engine.mjs';
-import { renderBoard } from './render.mjs';
+import { renderBoard, getBoardLayout } from './render.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
 
 const $ = (selector) => document.querySelector(selector);
@@ -30,6 +30,7 @@ let frame = 0;
 let extraClaimed = false;
 let audioContext;
 let displayedVolumes = [];
+let boardLayout;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const escapeHtml = (value) =>
   String(value).replace(
@@ -72,7 +73,15 @@ function message(text, label = '调度提示') {
 }
 
 function draw() {
-  renderBoard($('#board'), level, state, displayedVolumes, preview, performance.now() / 1000);
+  renderBoard(
+    $('#board'),
+    level,
+    state,
+    displayedVolumes,
+    preview,
+    performance.now() / 1000,
+    boardLayout,
+  );
   $('#board').dataset.level = String(levelIndex + 1);
   $('#board').dataset.status = animating
     ? 'flowing'
@@ -87,6 +96,17 @@ function draw() {
       .map((tank, i) => `${tank.id}槽${tank.name}液位${format(state.volumes[i])}`)
       .join('，'),
   );
+}
+
+function updateBoardLayout() {
+  boardLayout = getBoardLayout(level, $('#board').getBoundingClientRect().width);
+  $('#board').setAttribute('viewBox', `0 0 960 ${boardLayout.height}`);
+  $('#board').style.aspectRatio = `960 / ${boardLayout.height}`;
+  for (const gate of boardLayout.valves) {
+    const button = $(`#board-controls [data-gate="${gate.id}"]`);
+    button.style.left = `${(gate.x / 960) * 100}%`;
+    button.style.top = `${(gate.y / boardLayout.height) * 100}%`;
+  }
 }
 
 function renderRoutes() {
@@ -119,16 +139,21 @@ function renderControls() {
     const locked = isGateLocked(level, state, gate.id);
     const open = state.gates[index];
     const selected = selectedGate === gate.id;
-    button.className = `gate-button ${open ? 'open' : ''} ${locked ? 'locked' : ''} ${selected ? 'selected' : ''}`;
-    button.disabled = animating || state.won || state.lost || locked;
+    button.className = `scene-valve ${open ? 'open' : ''} ${locked ? 'locked' : ''} ${selected ? 'selected' : ''}`;
+    // aria-disabled preserves keyboard focus while water animates; useGate guards every input.
+    button.disabled = state.won || state.lost || locked;
+    button.setAttribute('aria-disabled', String(animating || button.disabled));
     button.setAttribute('aria-pressed', String(open));
-    button.setAttribute(
-      'aria-label',
-      `${gate.a}到${gate.b}闸门，${locked ? '等待箱子开关解锁' : selected ? '再次点击确认' : open ? '已打开，点击关闭' : '已关闭，点击打开'}`,
-    );
-    button.querySelector('.gate-symbol').textContent = locked ? '⊗' : open ? '⊖' : '⊕';
-    button.querySelector('.gate-state').innerHTML =
-      `<i></i>${locked ? `等待 ${escapeHtml([gate.requires].flat().join('、'))}` : selected ? '确认 →' : open ? '已打开' : '已关闭'}`;
+    const description = `${gate.a}到${gate.b}阀门，${locked ? `等待 ${[gate.requires].flat().join('、')} 箱子开关解锁` : selected ? '再次点击确认' : open ? '已打开，点击关闭' : '已关闭，点击打开'}`;
+    button.setAttribute('aria-label', description);
+    button.title = description;
+    button.querySelector('.valve-state').textContent = locked
+      ? '待解锁'
+      : selected
+        ? '再点确认'
+        : open
+          ? '已开'
+          : '已关';
   }
   $('#undo').disabled = animating || !history.length;
   $('#restart').disabled = animating;
@@ -150,7 +175,7 @@ function renderControls() {
         ? '全站联动完成'
         : state.lost
           ? '操作次数已用尽'
-          : '等待调度';
+          : '点击场景阀门，开 / 关';
   $('#volume-total').textContent =
     `总水量 ${format(state.volumes.reduce((a, b) => a + b, 0))} · 守恒`;
   $('#predict-note').textContent = prediction
@@ -159,7 +184,13 @@ function renderControls() {
 }
 
 function setBackgroundInert(value) {
-  for (const selector of ['.masthead', '.stage-header', '.control-panel', '.route-panel'])
+  for (const selector of [
+    '.masthead',
+    '.stage-header',
+    '#board-controls',
+    '.control-panel',
+    '.route-panel',
+  ])
     $(selector).inert = value;
 }
 
@@ -288,7 +319,7 @@ function addMove() {
   message('增加了 1 次操作。这次调度已经领取过额外机会。', '继续调度');
   draw();
   renderControls();
-  $('#gate-controls button:not(:disabled)')?.focus({ preventScroll: true });
+  $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
 }
 
 function loadLevel(index) {
@@ -308,20 +339,21 @@ function loadLevel(index) {
   $('#level-number').textContent = String(index + 1).padStart(2, '0');
   $('#level-name').textContent = level.title;
   $('#chapter').textContent = level.chapter;
-  $('#gate-controls').innerHTML = level.gates
+  $('#board-controls').innerHTML = level.gates
     .map(
       (gate) =>
-        `<button data-gate="${escapeHtml(gate.id)}" class="gate-button"><span class="gate-symbol" aria-hidden="true"></span><span class="gate-name">${escapeHtml(gate.a)} ↔ ${escapeHtml(gate.b)}</span><span class="gate-state"></span></button>`,
+        `<button type="button" data-gate="${escapeHtml(gate.id)}" class="scene-valve"><span class="valve-wheel" aria-hidden="true"></span><span class="valve-label" aria-hidden="true"><span>${escapeHtml(gate.a)}—${escapeHtml(gate.b)}</span><span class="valve-state"></span></span></button>`,
     )
     .join('');
+  updateBoardLayout();
   message(level.intro);
   renderControls();
   renderRoutes();
   draw();
-  if (wasResultVisible) $('#gate-controls button:not(:disabled)')?.focus({ preventScroll: true });
+  if (wasResultVisible) $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
 }
 
-$('#gate-controls').addEventListener('click', (event) => {
+$('#board-controls').addEventListener('click', (event) => {
   const button = event.target.closest('[data-gate]');
   if (button) useGate(button.dataset.gate);
 });
@@ -451,3 +483,11 @@ Object.defineProperty(window, '__waterlineSnapshot', {
     }),
 });
 loadLevel(levelIndex);
+// Resize only moves the native controls; it never recreates a focused valve.
+let boardWidth = $('#board').getBoundingClientRect().width;
+new ResizeObserver(([entry]) => {
+  if (Math.abs(entry.contentRect.width - boardWidth) < 0.5) return;
+  boardWidth = entry.contentRect.width;
+  updateBoardLayout();
+  draw();
+}).observe($('#board'));
