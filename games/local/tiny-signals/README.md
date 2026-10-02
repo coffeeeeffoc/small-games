@@ -21,7 +21,7 @@ node build.mjs
 
 ## 操作与机关
 
-- 方向键、WASD 或屏幕方向按钮控制四位信使。撞墙的信使留在原地；这一拍其他信使和机关照常行动。
+- 手机端在屏幕任意位置单指滑动指定方向，一次滑动走一步；轻触不移动，双指可滚动页面。电脑端使用方向键、WASD 或右侧方向按钮。撞墙的信使留在原地；这一拍其他信使和机关照常行动。
 - 撤销可逐步恢复整个局面；重开回到当前关卡起点。选关栏可直接体验六关。
 - 单向风门：只允许朝标识方向通过。
 - 转向罗盘：让下一拍输入顺时针旋转 90°，每块棋盘独立结算。
@@ -57,6 +57,7 @@ node scripts/solve-levels.mjs
 pnpm --filter @coffeeeeffoc/tiny-signals test
 pnpm --filter @coffeeeeffoc/tiny-signals build
 pnpm check:games tiny-signals
+node scripts/test-tiny-signals-input.mjs
 ```
 
 Web Shell 通过 `#/games/tiny-signals` 加载本游戏，独立静态入口为 `/games/tiny-signals/index.html`。大厅登记信息在 `apps/shell-web/src/standalone-games.json`；Pages 操作回归包含移动、撤销、重开与选关。

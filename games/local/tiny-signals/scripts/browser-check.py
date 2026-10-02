@@ -86,6 +86,15 @@ def screenshot(page, name):
     return str(ARTIFACTS / name)
 
 
+def swipe_right(page):
+    page.evaluate("window.scrollTo(0, 0)")
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": 140, "y": 300}]})
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": 230, "y": 300}]})
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    cdp.detach()
+
+
 def watch(page, errors):
     page.on("pageerror", lambda error: errors.append({"type": "pageerror", "message": str(error)}))
     page.on("console", lambda message: errors.append({"type": "console", "message": message.text}) if message.type == "error" else None)
@@ -335,7 +344,7 @@ def main():
         mobile_page.goto(ORIGIN, wait_until="networkidle")
         ready(mobile_page)
         mobile_page.locator("#preview-toggle").tap()
-        mobile_page.locator('[data-dir="right"]').tap()
+        swipe_right(mobile_page)
         moves(mobile_page, 0)
         expect(mobile_page.locator("#preview-toggle")).to_have_attribute("aria-pressed", "true")
         expect(mobile_page.locator("#commit-preview")).to_be_visible()
@@ -345,7 +354,7 @@ def main():
         mobile_page.locator("#undo").tap()
         moves(mobile_page, 0)
         mobile_page.locator("#preview-toggle").tap()
-        mobile_page.locator('[data-dir="right"]').tap()
+        swipe_right(mobile_page)
         ready(mobile_page)
         moves(mobile_page, 1)
         mobile_page.locator("#restart").tap()
