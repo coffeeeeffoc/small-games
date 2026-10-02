@@ -34,6 +34,8 @@
 | vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
 
+《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
+
 原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
 新增十一款从同级目录导入源码、素材、测试及文档，排除 `node_modules`、构建输出、缓存和生成的测试截图。原同级目录保留作核对；后续统一在本仓库的新目录开发，避免维护两份未同步源码。

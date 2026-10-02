@@ -236,5 +236,12 @@
     "title": "Rule Thief",
     "description": "把穿墙、直行和北漂规则转交给身边目标，改变每一拍的位移，解开三幕机关。",
     "output": "dist"
+  },
+  {
+    "id": "waterline-station",
+    "source": "games/local/waterline-station",
+    "title": "水位联动站",
+    "description": "开关闸门，让相连水槽共享水位，落箱压开关、抬船进出口、溢流转水轮，解开连锁机关。",
+    "output": "dist"
   }
 ]
