@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#153e40" />
+    <title>水位联动站 · 一阀牵动全局</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23153e40'/%3E%3Cpath d='M7 18q6-6 13 0t13 0M7 26q6-6 13 0t13 0' fill='none' stroke='%2387dfca' stroke-width='3'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./game.mjs"></script>
+  </head>
+  <body>
+    <main class="station">
+      <header class="masthead">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">≈</span>
+          <div>
+            <p class="eyebrow">TIDELINK · 水位实验计划</p>
+            <h1>水位联动站<span class="edition">01</span></h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="online"><i></i>站点运行中</span
+          ><button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false">
+            ♪</button
+          ><button id="help" class="icon-button" aria-label="玩法说明">?</button>
+        </div>
+      </header>
+
+      <div class="game-layout">
+        <section class="play-panel" aria-label="水位联动沙盘">
+          <div class="stage-header">
+            <div class="stage-title">
+              <span id="level-number" class="stage-number">01</span>
+              <div>
+                <p id="chapter" class="eyebrow">第一章 / 港口初见</p>
+                <h2 id="level-name">共享一片水面</h2>
+              </div>
+            </div>
+            <div class="turn-display">
+              <span>剩余操作</span><strong id="moves-left">—</strong
+              ><span class="turn-unit">次</span>
+            </div>
+          </div>
+          <div class="board-wrap">
+            <div class="board-topline">
+              <span><i class="signal"></i><span id="board-status">等待调度</span></span
+              ><span id="volume-total">总水量守恒</span>
+            </div>
+            <svg
+              id="board"
+              viewBox="0 0 960 530"
+              role="img"
+              aria-label="水槽、共享液位与联动机关"
+              xmlns="http://www.w3.org/2000/svg"
+            ></svg>
+            <div
+              id="result"
+              class="result"
+              hidden
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="result-title"
+            >
+              <div class="result-card">
+                <span id="result-mark" aria-hidden="true">✦</span>
+                <p id="result-kicker" class="eyebrow">调度完成</p>
+                <h3 id="result-title">全站联动成功</h3>
+                <p id="result-copy"></p>
+                <button id="next-level" class="primary-button">下一站 →</button
+                ><button id="result-undo" class="text-button">撤销上一步</button
+                ><button id="result-retry" class="text-button">重新挑战</button>
+              </div>
+            </div>
+          </div>
+          <div class="board-legend">
+            <span><i class="key water-key"></i>共享液位</span
+            ><span><i class="key target-key"></i>机关触发线</span
+            ><span><i class="key preview-key"></i>预测水位</span
+            ><span class="arcade-note">街机规则 · 非真实水利模拟</span>
+          </div>
+          <div class="dispatch">
+            <span class="dispatch-icon" aria-hidden="true">→</span>
+            <div>
+              <span class="eyebrow" id="message-label">调度提示</span>
+              <p id="message" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+        <aside class="control-panel" aria-label="闸门控制台">
+          <div class="control-heading">
+            <span class="eyebrow">CONTROL ROOM</span
+            ><span class="console-dots" aria-hidden="true">•••</span>
+          </div>
+          <h2>一阀，牵动全局。</h2>
+          <p class="control-intro">
+            每次开关一道闸门。相连的水槽，<br class="desktop-break" />会自动分享同一片水面。
+          </p>
+          <div class="objectives-heading">
+            <h3>本关任务</h3>
+            <span id="objective-count">0 / 2</span>
+          </div>
+          <ul id="objectives" class="objectives"></ul>
+          <div class="valves-heading">
+            <h3>闸门调度</h3>
+            <span>点击开 / 关</span>
+          </div>
+          <div id="gate-controls" class="gate-controls"></div>
+          <div class="assist-controls">
+            <button id="predict" aria-pressed="false">
+              <span aria-hidden="true">⌁</span>液位预测<span
+                class="switch"
+                aria-hidden="true"
+              ></span>
+            </button>
+            <p id="predict-note">开启后，先看水位，再确认操作</p>
+          </div>
+          <div class="utility">
+            <button id="undo" disabled><span aria-hidden="true">↶</span>撤销</button
+            ><button id="restart"><span aria-hidden="true">↻</span>重来</button
+            ><button id="hint"><span aria-hidden="true">✧</span>提示</button>
+          </div>
+          <button id="extra-move" class="extra-button">
+            ＋ 多一次操作 <span>本关一次 · 免费</span>
+          </button>
+        </aside>
+      </div>
+
+      <footer class="route-panel">
+        <div class="route-heading">
+          <div>
+            <span class="eyebrow">STATION ROUTE</span>
+            <h2>下一次，连接更多可能。</h2>
+          </div>
+          <span id="route-progress">航站记录 0 / 8</span>
+        </div>
+        <nav id="level-nav" class="level-nav" aria-label="选择关卡"></nav>
+      </footer>
+      <div class="page-footer">
+        <span>让水自己找到平衡。</span><span>CONNECTED VESSELS × LOGIC PUZZLE</span>
+      </div>
+    </main>
+    <dialog id="help-dialog">
+      <button id="close-help" class="dialog-close icon-button" aria-label="关闭说明">×</button>
+      <p class="eyebrow">值班员手册 / QUICK START</p>
+      <h2>你调闸门，水找平衡。</h2>
+      <ol>
+        <li>
+          <strong>点击一道闸门</strong>
+          <p>打开后，相连水槽立刻重新分配水量；关上后保留各自液位。开、关都消耗一次操作。</p>
+        </li>
+        <li>
+          <strong>让机关依次启动</strong>
+          <p>
+            箱子降到黄色平台，会压下并锁存开关；船升到出口线且任务完成即可出航。实验站还会出现溢流水轮。
+          </p>
+        </li>
+        <li>
+          <strong>计划，再试一次</strong>
+          <p>
+            预测模式先显示虚线液位，再次点击同一闸门确认。撤销和提示免费，卡住时每关可加一次操作。
+          </p>
+        </li>
+      </ol>
+      <p class="manual-note">
+        溢流每次调度结算一次；水轮累计收到的水量。所有数值为街机规则，不用于水利或压力工程教学。
+      </p>
+      <button id="start-playing" class="primary-button">开始调度 →</button>
+    </dialog>
+  </body>
+</html>

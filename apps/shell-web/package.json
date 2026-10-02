@@ -69,7 +69,8 @@
     "@coffeeeeffoc/precision-demolition": "workspace:*",
     "@coffeeeeffoc/afterimage-arena": "workspace:*",
     "@coffeeeeffoc/ghost-shift-manager": "workspace:*",
-    "@coffeeeeffoc/rule-thief": "workspace:*"
+    "@coffeeeeffoc/rule-thief": "workspace:*",
+    "@coffeeeeffoc/waterline-station": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
