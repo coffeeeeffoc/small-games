@@ -2,7 +2,7 @@ name: Deploy arcade to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev, test]
   pull_request:
   workflow_dispatch:
 
@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  # Let a running publication finish; newer pending runs replace only the same branch.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   kart:
@@ -23,6 +24,7 @@ jobs:
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -42,6 +44,7 @@ jobs:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
       - run: pnpm check:games
+      - run: python3 scripts/test-pages-deploy.py
       - run: pnpm games:test
       - run: pnpm build:pages
       - run: pnpm check:games --artifacts
@@ -49,23 +52,65 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:pages
       - run: python3 scripts/test-mobile-assets.py
-      - run: python3 scripts/mobile-assets.py
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
+          name: pages-build
           path: apps/shell-web/dist
+          include-hidden-files: true
+          if-no-files-found: error
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && contains(fromJSON('["refs/heads/main", "refs/heads/dev", "refs/heads/test"]'), github.ref)
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: pages-publish
+      queue: max
     permissions:
+      contents: write
       pages: write
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}${{ github.ref_name != 'main' && format('{0}/', github.ref_name) || '' }}
+    env:
+      STATE_DIR: ${{ github.workspace }}/.scratch/pages-state
+      BUILD_DIR: ${{ github.workspace }}/.scratch/pages-build
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: pages-build
+          path: ${{ env.BUILD_DIR }}
+      - name: Restore all published environments
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing=$(git ls-remote --heads origin refs/heads/gh-pages)
+          if [ -n "$existing" ]; then
+            git fetch --no-tags --depth=1 origin gh-pages
+            git worktree add --detach "$STATE_DIR" FETCH_HEAD
+          else
+            git worktree add --orphan -b gh-pages "$STATE_DIR"
+          fi
+      - name: Update this environment and assemble the site
+        run: python3 scripts/prepare-pages-deploy.py "$BUILD_DIR" "$STATE_DIR" .scratch/pages-site "$GITHUB_REF_NAME" "$GITHUB_SHA"
       - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .scratch/pages-site
+      - name: Save validated environment artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$STATE_DIR" config user.name 'github-actions[bot]'
+          git -C "$STATE_DIR" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$STATE_DIR" add --all
+          if ! git -C "$STATE_DIR" diff --cached --quiet; then
+            git -C "$STATE_DIR" commit -m "Pages $GITHUB_REF_NAME at $GITHUB_SHA"
+            git -C "$STATE_DIR" push origin HEAD:gh-pages
+          fi
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5

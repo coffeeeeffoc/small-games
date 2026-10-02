@@ -24,7 +24,15 @@ pnpm --filter @coffeeeeffoc/shell-web dev
 
 浏览器访问终端显示的地址（默认 `http://localhost:5173`）。生产检查：
 
-在线大厅：[摸鱼游戏社](https://coffeeeeffoc.github.io/small-games/)。每次推送 `main` 自动测试、构建并部署大厅和四款独立 Game；本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）。
+推送 `main`、`dev`、`test` 会分别触发 CI 和 Pages 测试、构建、部署；每次只更新对应环境，保留其他环境已经构建验证的内容。首次启用步骤见 [Pages 三环境部署](docs/deployment/github-pages.md)。
+
+| 分支   | 环境 | 部署后访问路径                                             |
+| ------ | ---- | ---------------------------------------------------------- |
+| `main` | 正式 | [摸鱼游戏社](https://coffeeeeffoc.github.io/small-games/)  |
+| `dev`  | 开发 | [开发版](https://coffeeeeffoc.github.io/small-games/dev/)  |
+| `test` | 测试 | [测试版](https://coffeeeeffoc.github.io/small-games/test/) |
+
+本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）；设置 `PAGES_BASE_PATH=/small-games/dev/` 或 `/small-games/test/` 可验证对应嵌套路径。
 
 ```bash
 pnpm test

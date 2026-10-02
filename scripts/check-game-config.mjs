@@ -251,6 +251,8 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
     );
     for (const job of jobs) {
       const steps = job.steps || [];
+      // The Pages publisher only assembles already-tested artifacts; it does not build games.
+      if (name === 'pages' && job === workflow.jobs.deploy) continue;
       if (
         !steps.some(
           (step) =>
@@ -270,11 +272,16 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
     for (const command of required)
       if (!run.includes(`pnpm ${command}`)) fail('workflow-gate', location, `缺少 pnpm ${command}`);
     if (name === 'pages') {
-      const upload = jobs
-        .flatMap((job) => job.steps || [])
-        .find((step) => /actions\/upload-pages-artifact@/.test(step.uses || ''));
-      if (upload?.with?.path !== 'apps/shell-web/dist')
-        fail('workflow-gate', location, 'Pages 上传目录不是 Shell dist');
+      const steps = jobs.flatMap((job) => job.steps || []);
+      const buildUpload = steps.find(
+        (step) =>
+          /actions\/upload-artifact@/.test(step.uses || '') && step.with?.name === 'pages-build',
+      );
+      if (buildUpload?.with?.path !== 'apps/shell-web/dist')
+        fail('workflow-gate', location, 'Pages 构建产物不是 Shell dist');
+      const upload = steps.find((step) => /actions\/upload-pages-artifact@/.test(step.uses || ''));
+      if (upload?.with?.path !== '.scratch/pages-site')
+        fail('workflow-gate', location, 'Pages 上传目录不是合并后的三环境站点');
       if (
         !Object.values(workflow.jobs || {}).some((job) =>
           job.steps?.some((step) => /actions\/deploy-pages@/.test(step.uses || '')),
