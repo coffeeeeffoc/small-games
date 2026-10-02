@@ -416,6 +416,9 @@ importers:
       '@coffeeeeffoc/rule-thief':
         specifier: workspace:*
         version: link:../../games/local/rule-thief
+      '@coffeeeeffoc/tiny-signals':
+        specifier: workspace:*
+        version: link:../../games/local/tiny-signals
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -1103,6 +1106,8 @@ importers:
   games/local/rescue-team: {}
 
   games/local/rule-thief: {}
+
+  games/local/tiny-signals: {}
 
   games/local/travel:
     devDependencies:
