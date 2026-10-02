@@ -1,14 +1,14 @@
-import { MISSION, MAP, UNITS, type Kind } from './Data.ts';
+import { MISSION, MAP, UNITS, routeLength, type BattlefieldId, type Kind } from './Data.ts';
 export type MissionId = 'corridor-01' | 'ambush-02' | 'patrol-03' | 'training-60';
 export type MissionEvent = { time: number; progress: number; kind: Kind; x: number; z: number; direction: readonly string[] };
 export type MissionDefinition = Omit<typeof MISSION, 'id' | 'events'> & {
-  id: MissionId; mode: 'escort' | 'training'; name: readonly string[]; description: readonly string[]; events: readonly MissionEvent[];
+  id: MissionId; map: BattlefieldId; mode: 'escort' | 'training'; name: readonly string[]; description: readonly string[]; events: readonly MissionEvent[];
 };
 const profiles: MissionDefinition[] = [
-  { ...MISSION, id: 'corridor-01', mode: 'escort', name: ['山谷护送', 'VALLEY ESCORT'],
+  { ...MISSION, id: 'corridor-01', map: 'valley', mode: 'escort', name: ['山谷护送', 'VALLEY ESCORT'],
     description: ['24 个威胁同时出现 · 巡视四组友军', '24 visible contacts · Four friendly groups'],
     events: MISSION.events },
-  { ...MISSION, id: 'ambush-02', mode: 'escort', name: ['分段伏击', 'STAGED AMBUSH'],
+  { ...MISSION, id: 'ambush-02', map: 'highland', speed: routeLength('highland') / 240, mode: 'escort', name: ['高地伏击', 'HIGHLAND AMBUSH'],
     description: ['三批各 8 个威胁 · 时间/路程触发', 'Three waves of eight · Time/route triggered'],
     events: MISSION.events.map((event, i) => {
       const wave = Math.floor(i / 8);
@@ -16,13 +16,13 @@ const profiles: MissionDefinition[] = [
         direction: [`第 ${wave + 1} / 3 批伏击出现 · 各 8 个目标，巡视友军附近`,
           `AMBUSH ${wave + 1}/3: eight contacts. Scan friendly positions.`] };
     }) },
-  { ...MISSION, id: 'patrol-03', mode: 'escort', name: ['机动拦截', 'MOVING INTERCEPT'],
+  { ...MISSION, id: 'patrol-03', map: 'valley', mode: 'escort', name: ['机动拦截', 'MOVING INTERCEPT'],
     description: ['巡逻轻车与重甲 · 预留弹着提前量', 'Rovers & armor · Lead the moving target'],
     events: MISSION.events.map((event) => ({ ...event, kind: event.kind === 'turret' ? 'light' : event.kind,
       direction: ['机动目标已出现 · 追踪移动并预留弹着时间', 'Moving contacts. Track and allow for flight time.'] })) },
 ];
 export const TRAINING: MissionDefinition = {
-  ...MISSION, id: 'training-60', mode: 'training', duration: 60, speed: 0,
+  ...MISSION, id: 'training-60', map: 'valley', mode: 'training', duration: 60, speed: 0,
   name: ['60 秒火控热身', '60s FIRE CONTROL'],
   description: ['静止 / 巡逻 / 重甲 · 练切炮与提前量', 'Static / rover / armor · Switch & lead'],
   events: [

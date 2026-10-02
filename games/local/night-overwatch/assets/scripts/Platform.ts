@@ -113,9 +113,12 @@ export class Platform {
       /* Optional local preferences. */
     }
   }
-  play(id: string) {
+  lastSound = '';
+  play(id: string, gain = 1) {
     const source = this.voices.get(id);
     if (source?.clip && this.activated && !this.muted) {
+      source.volume = (id === 'heavy' ? .7 : id === 'blast' ? .5 : id === 'rapid' ? .32 : .3) * gain;
+      this.lastSound = id;
       source.stop();
       source.play();
     }

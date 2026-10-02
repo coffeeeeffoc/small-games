@@ -1,0 +1,58 @@
+{
+  "sourceHash": "8b4e861cdc242705f73b93a088cb864bf760c1703a02e4cd3beb61fdd3eff5ae",
+  "result": [
+    {
+      "weapon": 0,
+      "recoil": {
+        "x": -0.31247698574679755,
+        "y": 1.1
+      },
+      "sound": "rapid"
+    },
+    {
+      "weapon": 1,
+      "recoil": {
+        "x": 0.2737362100651023,
+        "y": 2.2871088951034846
+      },
+      "sound": "blast"
+    },
+    {
+      "weapon": 2,
+      "recoil": {
+        "x": 2.045522415605083,
+        "y": 1.8260643048154412
+      },
+      "sound": "heavy"
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "homeAndBothMaps": true,
+      "settingsHelpFullscreen": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "touch": false,
+      "homeAndBothMaps": true,
+      "settingsHelpFullscreen": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "homeAndBothMaps": true,
+      "settingsHelpFullscreen": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "homeAndBothMaps": true,
+      "settingsHelpFullscreen": true
+    }
+  ],
+  "errors": []
+}
