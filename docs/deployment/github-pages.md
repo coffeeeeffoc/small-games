@@ -22,7 +22,8 @@
 - 复用现有 Cocos 产物校验、游戏测试、构建、Shell 测试和 Pages 浏览器冒烟测试。PR 仅验证和上传临时产物，没有发布或写仓库权限。
 - 每次构建只检出触发分支。发布阶段在同一 `pages-publish` 队列中执行，先读取最新 `gh-pages`，只替换当前分支目录，再打包整个站点。目录替换会移除该版本已经删除的旧资源。
 - 同一源码分支的新推送仅替换尚未开始的旧运行；已开始的发布完成后再运行下一次，避免中途取消破坏保存/发布顺序。跨分支发布使用 `queue: max`，三次发布不会争抢同一个待运行名额。
-- 合并后的 Pages artifact 上传成功后，先保存已验证产物，再调用官方 `deploy-pages`。若最后部署失败，线上仍是上次成功部署，但 `gh-pages` 中保留新产物；重跑失败任务或下次发布可恢复。`gh-pages` 是持久构建状态，不等同于线上已成功部署的证明。
+- 合并后的 Pages artifact 上传成功后，先保存已验证产物，再调用 GitHub Pages API。部署版本使用 `gh-pages` 产物提交 SHA，避免三个源码分支同 SHA 时复用旧部署。发布后会读取线上所有已有环境的 `deployment.json` 并核对版本，最多等待缓存刷新 5 分钟；不一致则任务失败。[上游同 SHA 部署问题](https://github.com/actions/deploy-pages/issues/383)。
+- 若部署或线上核验失败，`gh-pages` 中仍保留新产物；重跑失败任务或下次发布可恢复。`gh-pages` 是持久构建状态，不等同于线上已成功部署的证明。
 - Android 的 `/small-games/mobile/update.json` 和 `web.zip` 始终只包含正式版。ZIP 在发布任务中从 main 产物重新生成，不进入 Git；dev/test 没有单独的移动下载包。原生 mobile 工作流仍只随 main 推送运行。
 
 ## 本地验证与容量
