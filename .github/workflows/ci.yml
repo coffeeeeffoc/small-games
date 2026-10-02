@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+      - dev
+      - test
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -63,6 +65,9 @@ jobs:
 
       - name: Test game registration checker
         run: pnpm test:game-config
+
+      - name: Test Pages environment assembly
+        run: python3 scripts/test-pages-deploy.py
 
       - name: Check formatting
         run: pnpm format:check

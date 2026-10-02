@@ -19,6 +19,32 @@ const artifactRoots = [
   'apps/shell-web/dist/games/mini-front',
 ];
 
+test('Pages publishes three branches through one queued publisher with read-only PR builds', async () => {
+  const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
+  const ci = await read('.github/workflows/ci.yml');
+  const pages = await read('.github/workflows/pages.yml');
+  for (const config of [ci, pages])
+    assert.deepEqual(config.on.push.branches, ['main', 'dev', 'test']);
+  assert.equal(pages.permissions.contents, 'read');
+  assert.equal(pages.jobs.build.permissions, undefined);
+  assert.equal(
+    pages.concurrency['cancel-in-progress'],
+    "${{ github.event_name == 'pull_request' }}",
+  );
+  assert.equal(pages.jobs.deploy.concurrency.group, 'pages-publish');
+  assert.equal(pages.jobs.deploy.concurrency.queue, 'max');
+  assert.match(pages.jobs.deploy.if, /github.event_name != 'pull_request'/);
+  for (const branch of ['main', 'dev', 'test'])
+    assert(pages.jobs.deploy.if.includes(`refs/heads/${branch}`));
+  assert.equal(pages.jobs.deploy.permissions.contents, 'write');
+  const buildUpload = pages.jobs.build.steps.find((step) => step.with?.name === 'pages-build');
+  assert.equal(buildUpload.with.path, 'apps/shell-web/dist');
+  assert.equal(buildUpload.with['include-hidden-files'], true);
+  const commands = pages.jobs.deploy.steps.map((step) => step.run ?? '').join('\n');
+  assert.match(commands, /scripts\/prepare-pages-deploy\.py/);
+  assert.match(commands, /push origin HEAD:gh-pages/);
+});
+
 test('all Cocos consumers download both source-verified artifacts and pass them through Turbo', async () => {
   const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
   const producer = await read('.github/workflows/carding-car.yml');
