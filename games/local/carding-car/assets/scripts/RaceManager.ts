@@ -115,7 +115,9 @@ export class RaceManager {
       if (this.countdown <= 0) this.phase = 'racing';
       return;
     }
-    if (this.phase !== 'racing') return;
+    // Solo results open at the player's finish; rivals keep racing behind the panel.
+    if (this.phase !== 'racing' && (this.phase !== 'finished' || humanInputs ||
+      !this.drivers[0].progress.finishedAt || this.drivers.every(d => d.progress.finishedAt > 0))) return;
     this.time += dt;
     const contactTravel = this.drivers.map(() => 0);
     // Resolve every circle contact before any checkpoint sees the new positions.
@@ -279,11 +281,9 @@ export class RaceManager {
         if (finished && !humanInputs) this.phase = 'finished';
       }
     }
-    if (humanInputs && this.drivers.every((d) => d.progress.finishedAt > 0))
+    if (this.drivers.every((d) => d.progress.finishedAt > 0)) {
       this.phase = 'finished';
-    if (this.phase === 'finished')
-      this.time = humanInputs
-        ? Math.max(...this.drivers.map((d) => d.progress.finishedAt))
-        : this.drivers[0].progress.finishedAt;
+      this.time = Math.max(...this.drivers.map((d) => d.progress.finishedAt));
+    }
   }
 }
