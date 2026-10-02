@@ -1,11 +1,15 @@
 """Run with python scripts/test-pages-deploy.py; no network or third-party modules."""
 import json
+import os
 import pathlib
 import runpy
 import tempfile
+import urllib.parse
 import zipfile
+from unittest.mock import patch
 
 prepare = runpy.run_path(str(pathlib.Path(__file__).with_name("prepare-pages-deploy.py")))["prepare"]
+publisher = runpy.run_path(str(pathlib.Path(__file__).with_name("publish-pages.py")))
 
 
 def rejected(action, message):
@@ -61,10 +65,42 @@ with tempfile.TemporaryDirectory() as directory:
         assert set(archive.namelist()) == {"index.html", "new.js", "deployment.json"}
         assert archive.read("index.html") == b"maine"
 
+    # Use the combined site's revision even when source branches share a commit.
+    payloads = []
+    statuses = iter(("deployment_in_progress", "succeed"))
+    endpoint = "https://api.github.com/repos/example/arcade/pages/deployments"
+    def response(url, token=None, payload=None):
+        if url == "https://oidc.example/token":
+            return {"value": "test-oidc"}
+        if url == endpoint:
+            payloads.append(payload)
+            return {"id": "f" * 40, "page_url": "https://example.github.io/arcade/"}
+        if url == endpoint + "/" + "f" * 40:
+            return {"status": next(statuses)}
+        assert token is None  # Never send credentials to the public site.
+        name = urllib.parse.urlsplit(url).path.removeprefix("/arcade/")
+        return json.loads((site / name).read_text(encoding="utf-8"))
+
+    with patch.dict(os.environ, {
+        "GITHUB_API_URL": "https://api.github.com", "GITHUB_REPOSITORY": "example/arcade",
+        "GH_TOKEN": "test-token", "ACTIONS_ID_TOKEN_REQUEST_URL": "https://oidc.example/token",
+        "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "test-request", "GITHUB_OUTPUT": str(root / "outputs"),
+    }), patch.dict(publisher["publish"].__globals__, {"request_json": response}), patch("time.sleep"):
+        publisher["publish"]("123", "f" * 40, site)
+    assert payloads == [{"artifact_id": 123, "pages_build_version": "f" * 40, "oidc_token": "test-oidc"}]
+    assert (root / "outputs").read_text().strip() == "page_url=https://example.github.io/arcade/"
+    with patch.dict(publisher["verify"].__globals__, {"request_json": lambda url: {"sha": "old"}}):
+        try:
+            publisher["verify"](site, "https://example.github.io/arcade/", timeout=0)
+        except RuntimeError as error:
+            assert "Stale Pages content" in str(error)
+        else:
+            raise AssertionError("A successful API response must not hide a stale live site")
+
     prepare.__globals__["MAX_GIT_FILE_BYTES"] = 1
     rejected(lambda: prepare(source, state, site, "main", "f" * 40), "100 MiB")
     prepare.__globals__["MAX_GIT_FILE_BYTES"] = 100 * 1024 ** 2
     prepare.__globals__["MAX_SITE_BYTES"] = 1
     rejected(lambda: prepare(source, state, site, "main", "f" * 40), "1 GiB")
 
-print("Pages bootstrap, branch isolation, replacement, metadata, native bundle and size checks passed")
+print("Pages bootstrap, isolation, deployment revision, live verification, native bundle and size checks passed")
