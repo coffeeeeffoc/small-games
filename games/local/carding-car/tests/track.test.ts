@@ -13,6 +13,18 @@ import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { createKart } from '../assets/scripts/KartPhysics.ts';
 import { angleDelta, clamp } from '../assets/scripts/KartConfig.ts';
 
+test('clipped road projections cannot stall at a rounded movement limit', () => {
+  const track = createTrack(), kart = pointAt(track, 304), progress = createProgress(300);
+  progress.nextGate = 2;
+  for (let frame = 0; frame < 4; frame++) {
+    const road = projectOnTrack(track, kart.x, kart.z, progress.s, 1.2);
+    advanceCheckpoint(progress, track, road.s, 1.2, road.distance < road.width / 2);
+  }
+  assert.ok(Math.abs(progress.s - 304) < 1e-8, `on-road progress is stuck at ${progress.s}`);
+  assert.equal(progress.nextGate, 2);
+  assert.equal(progress.laps, 0);
+});
+
 test('the player can return through either fork branch without automatic recovery', () => {
   for (const shortcut of [false, true]) {
     const race = new RaceManager(),
