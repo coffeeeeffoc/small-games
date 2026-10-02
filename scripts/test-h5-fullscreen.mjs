@@ -82,8 +82,12 @@ try {
     await page.goto(origin + '/separate-panel');
     const gameFrame = page.frameLocator('iframe');
     await gameFrame.getByRole('button', { name: '全屏', exact: true }).click();
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.tagName)).toBe('IFRAME');
-    await expect.poll(() => page.frames()[1].evaluate(() => document.fullscreenElement?.tagName)).toBe('HTML');
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.tagName))
+      .toBe('IFRAME');
+    await expect
+      .poll(() => page.frames()[1].evaluate(() => document.fullscreenElement?.tagName))
+      .toBe('HTML');
     await gameFrame.getByRole('button', { name: '退出全屏', exact: true }).click();
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
     results.push({ entry: 'iframe beside another game panel', isolatedFullscreen: true });
