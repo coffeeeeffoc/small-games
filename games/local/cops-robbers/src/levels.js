@@ -658,7 +658,7 @@ export const levels = [
       3,
       0
     ],
-    "par": 8
+    "par": 7
   },
   {
     "id": 6,
@@ -1277,7 +1277,7 @@ export const levels = [
       3,
       0
     ],
-    "par": 8
+    "par": 7
   },
   {
     "id": 11,
@@ -1392,7 +1392,7 @@ export const levels = [
       4,
       1
     ],
-    "par": 6
+    "par": 5
   },
   {
     "id": 12,
@@ -2267,7 +2267,7 @@ export const levels = [
       0,
       3
     ],
-    "par": 13
+    "par": 10
   },
   {
     "id": 18,
@@ -2523,7 +2523,7 @@ export const levels = [
       1,
       4
     ],
-    "par": 8
+    "par": 7
   },
   {
     "id": 20,
@@ -2783,7 +2783,7 @@ export const levels = [
       3,
       0
     ],
-    "par": 10
+    "par": 9
   },
   {
     "id": 22,
@@ -2955,7 +2955,7 @@ export const levels = [
       6,
       0
     ],
-    "par": 14
+    "par": 12
   },
   {
     "id": 23,
@@ -3275,7 +3275,7 @@ export const levels = [
       4,
       0
     ],
-    "par": 13
+    "par": 11
   },
   {
     "id": 25,
@@ -3394,7 +3394,7 @@ export const levels = [
       1,
       4
     ],
-    "par": 10
+    "par": 8
   },
   {
     "id": 26,
@@ -3704,7 +3704,7 @@ export const levels = [
       2,
       5
     ],
-    "par": 10
+    "par": 8
   },
   {
     "id": 28,
@@ -3839,7 +3839,7 @@ export const levels = [
       0,
       3
     ],
-    "par": 9
+    "par": 8
   },
   {
     "id": 29,
@@ -3999,7 +3999,7 @@ export const levels = [
       4,
       0
     ],
-    "par": 14
+    "par": 9
   },
   {
     "id": 30,
@@ -4167,7 +4167,7 @@ export const levels = [
       2,
       5
     ],
-    "par": 14
+    "par": 6
   },
   {
     "id": 31,
@@ -4323,7 +4323,7 @@ export const levels = [
       4,
       2
     ],
-    "par": 10
+    "par": 9
   },
   {
     "id": 32,
@@ -4507,7 +4507,7 @@ export const levels = [
       6,
       0
     ],
-    "par": 14
+    "par": 11
   },
   {
     "id": 33,
@@ -4831,7 +4831,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 14
+    "par": 8
   },
   {
     "id": 35,
@@ -4999,7 +4999,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 11
+    "par": 9
   },
   {
     "id": 36,
@@ -5331,7 +5331,7 @@ export const levels = [
       0,
       4
     ],
-    "par": 16
+    "par": 7
   },
   {
     "id": 38,
@@ -5475,7 +5475,7 @@ export const levels = [
       0,
       3
     ],
-    "par": 11
+    "par": 8
   },
   {
     "id": 39,
@@ -5639,7 +5639,7 @@ export const levels = [
       4,
       0
     ],
-    "par": 12
+    "par": 8
   },
   {
     "id": 40,
@@ -5799,7 +5799,7 @@ export const levels = [
       0,
       3
     ],
-    "par": 13
+    "par": 11
   },
   {
     "id": 41,
@@ -5959,7 +5959,7 @@ export const levels = [
       2,
       5
     ],
-    "par": 14
+    "par": 11
   },
   {
     "id": 42,
@@ -6119,7 +6119,7 @@ export const levels = [
       4,
       0
     ],
-    "par": 12
+    "par": 8
   },
   {
     "id": 43,
@@ -6283,7 +6283,7 @@ export const levels = [
       5,
       2
     ],
-    "par": 16
+    "par": 11
   },
   {
     "id": 44,
@@ -6459,7 +6459,7 @@ export const levels = [
       2,
       6
     ],
-    "par": 13
+    "par": 9
   },
   {
     "id": 45,
@@ -6623,7 +6623,7 @@ export const levels = [
       4,
       0
     ],
-    "par": 14
+    "par": 8
   },
   {
     "id": 46,
@@ -6791,7 +6791,7 @@ export const levels = [
       2,
       5
     ],
-    "par": 13
+    "par": 8
   },
   {
     "id": 47,
@@ -6971,7 +6971,7 @@ export const levels = [
       0,
       4
     ],
-    "par": 16
+    "par": 12
   },
   {
     "id": 48,
@@ -7159,7 +7159,7 @@ export const levels = [
       2,
       6
     ],
-    "par": 16
+    "par": 8
   },
   {
     "id": 49,
@@ -7373,7 +7373,7 @@ export const levels = [
       4,
       5
     ],
-    "par": 14
+    "par": 12
   },
   {
     "id": 50,
@@ -7769,7 +7769,7 @@ export const levels = [
       2,
       0
     ],
-    "par": 13
+    "par": 11
   },
   {
     "id": 52,
@@ -8395,7 +8395,7 @@ export const levels = [
       2,
       5
     ],
-    "par": 16
+    "par": 12
   },
   {
     "id": 55,
@@ -8605,7 +8605,7 @@ export const levels = [
       4,
       7
     ],
-    "par": 17
+    "par": 14
   },
   {
     "id": 56,
@@ -8823,7 +8823,7 @@ export const levels = [
       4,
       2
     ],
-    "par": 15
+    "par": 14
   },
   {
     "id": 57,
@@ -9038,7 +9038,7 @@ export const levels = [
       5,
       4
     ],
-    "par": 17
+    "par": 13
   },
   {
     "id": 58,
@@ -9249,7 +9249,7 @@ export const levels = [
       4,
       7
     ],
-    "par": 17
+    "par": 11
   },
   {
     "id": 59,
@@ -9464,7 +9464,7 @@ export const levels = [
       7,
       5
     ],
-    "par": 17
+    "par": 11
   },
   {
     "id": 60,
@@ -9679,7 +9679,7 @@ export const levels = [
       5,
       7
     ],
-    "par": 16
+    "par": 13
   },
   {
     "id": 61,
@@ -9883,7 +9883,7 @@ export const levels = [
       2,
       7
     ],
-    "par": 20
+    "par": 14
   },
   {
     "id": 62,
@@ -10095,7 +10095,7 @@ export const levels = [
       2,
       7
     ],
-    "par": 20
+    "par": 9
   },
   {
     "id": 63,
@@ -10299,7 +10299,7 @@ export const levels = [
       3,
       7
     ],
-    "par": 20
+    "par": 8
   },
   {
     "id": 64,
@@ -10507,7 +10507,7 @@ export const levels = [
       7,
       2
     ],
-    "par": 20
+    "par": 12
   },
   {
     "id": 65,
@@ -10711,7 +10711,7 @@ export const levels = [
       6,
       0
     ],
-    "par": 20
+    "par": 14
   },
   {
     "id": 66,
@@ -10931,7 +10931,7 @@ export const levels = [
       8,
       3
     ],
-    "par": 21
+    "par": 15
   },
   {
     "id": 67,
@@ -11135,7 +11135,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 21
+    "par": 13
   },
   {
     "id": 68,
@@ -11359,7 +11359,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 21
+    "par": 10
   },
   {
     "id": 69,
@@ -11583,7 +11583,7 @@ export const levels = [
       5,
       0
     ],
-    "par": 21
+    "par": 12
   },
   {
     "id": 70,
@@ -11807,7 +11807,7 @@ export const levels = [
       8,
       7
     ],
-    "par": 23
+    "par": 19
   },
   {
     "id": 71,
@@ -11999,7 +11999,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 22
+    "par": 14
   },
   {
     "id": 72,
@@ -12215,7 +12215,7 @@ export const levels = [
       7,
       8
     ],
-    "par": 22
+    "par": 18
   },
   {
     "id": 73,
@@ -12427,7 +12427,7 @@ export const levels = [
       3,
       2
     ],
-    "par": 22
+    "par": 17
   },
   {
     "id": 74,
@@ -12639,7 +12639,7 @@ export const levels = [
       3,
       5
     ],
-    "par": 22
+    "par": 14
   },
   {
     "id": 75,
@@ -12879,7 +12879,7 @@ export const levels = [
       6,
       8
     ],
-    "par": 24
+    "par": 13
   },
   {
     "id": 76,
@@ -13099,7 +13099,7 @@ export const levels = [
       2,
       0
     ],
-    "par": 29
+    "par": 20
   },
   {
     "id": 77,
@@ -13343,7 +13343,7 @@ export const levels = [
       8,
       6
     ],
-    "par": 25
+    "par": 16
   },
   {
     "id": 78,
@@ -13559,7 +13559,7 @@ export const levels = [
       5,
       3
     ],
-    "par": 24
+    "par": 16
   },
   {
     "id": 79,
@@ -13799,7 +13799,7 @@ export const levels = [
       3,
       5
     ],
-    "par": 23
+    "par": 14
   },
   {
     "id": 80,
@@ -14027,7 +14027,7 @@ export const levels = [
       2,
       0
     ],
-    "par": 28
+    "par": 18
   },
   {
     "id": 81,
@@ -14244,7 +14244,7 @@ export const levels = [
       2,
       0
     ],
-    "par": 28
+    "par": 17
   },
   {
     "id": 82,
@@ -14477,7 +14477,7 @@ export const levels = [
       3,
       2
     ],
-    "par": 24
+    "par": 22
   },
   {
     "id": 83,
@@ -14690,7 +14690,7 @@ export const levels = [
       2,
       3
     ],
-    "par": 26
+    "par": 16
   },
   {
     "id": 84,
@@ -14927,7 +14927,7 @@ export const levels = [
       0,
       3
     ],
-    "par": 25
+    "par": 19
   },
   {
     "id": 85,
@@ -15148,7 +15148,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 24
+    "par": 11
   },
   {
     "id": 86,
@@ -15389,7 +15389,7 @@ export const levels = [
       3,
       2
     ],
-    "par": 26
+    "par": 14
   },
   {
     "id": 87,
@@ -15630,7 +15630,7 @@ export const levels = [
       6,
       5
     ],
-    "par": 25
+    "par": 18
   },
   {
     "id": 88,
@@ -15863,7 +15863,7 @@ export const levels = [
       5,
       6
     ],
-    "par": 28
+    "par": 15
   },
   {
     "id": 89,
@@ -16092,7 +16092,7 @@ export const levels = [
       0,
       9
     ],
-    "par": 25
+    "par": 14
   },
   {
     "id": 90,
@@ -16353,7 +16353,7 @@ export const levels = [
       5,
       11
     ],
-    "par": 25
+    "par": 13
   },
   {
     "id": 91,
@@ -16586,7 +16586,7 @@ export const levels = [
       8,
       6
     ],
-    "par": 30
+    "par": 13
   },
   {
     "id": 92,
@@ -16811,7 +16811,7 @@ export const levels = [
       0,
       9
     ],
-    "par": 27
+    "par": 15
   },
   {
     "id": 93,
@@ -17060,7 +17060,7 @@ export const levels = [
       0,
       1
     ],
-    "par": 26
+    "par": 19
   },
   {
     "id": 94,
@@ -17305,7 +17305,7 @@ export const levels = [
       0,
       1
     ],
-    "par": 26
+    "par": 12
   },
   {
     "id": 95,
@@ -17554,7 +17554,7 @@ export const levels = [
       2,
       1
     ],
-    "par": 27
+    "par": 15
   },
   {
     "id": 96,
@@ -17807,7 +17807,7 @@ export const levels = [
       2,
       1
     ],
-    "par": 27
+    "par": 13
   },
   {
     "id": 97,
@@ -18060,7 +18060,7 @@ export const levels = [
       9,
       5
     ],
-    "par": 29
+    "par": 12
   },
   {
     "id": 98,
@@ -18293,7 +18293,7 @@ export const levels = [
       0,
       2
     ],
-    "par": 28
+    "par": 15
   },
   {
     "id": 99,
@@ -18554,7 +18554,7 @@ export const levels = [
       10,
       9
     ],
-    "par": 28
+    "par": 25
   },
   {
     "id": 100,
@@ -18811,6 +18811,6 @@ export const levels = [
       11,
       1
     ],
-    "par": 28
+    "par": 17
   }
 ].map(prepareLevel);

@@ -1,4 +1,4 @@
-import { prepareLevel, initialState, solve } from './engine.js';
+import { prepareLevel, initialState, searchSolution } from './engine.js';
 
 const ring = start => Array.from({length:6},(_,i) => [start+i,start+(i+1)%6]);
 export const quickTrials = [
@@ -14,6 +14,13 @@ export const quickTrials = [
     lesson:'抓到一人只是半程：留住另一侧的分工，不要全队围着同一个目标。' },
 ].map(raw => prepareLevel({...raw,mode:'quick',chapter:0,nodes:raw.nodes.map(([x,y])=>({x,y}))}));
 export const quickOutcome = (level,state) => state.robbers.includes(-2) ? 'lost' : state.robbers.every(node=>node===-1) ? (state.turn <= level.turnLimit ? 'won' : 'lost') : state.turn >= level.turnLimit ? 'lost' : 'planning';
-export const solveQuick = (level,state) => solve(level,state,{maxDepth:Math.max(0,level.turnLimit-state.turn),maxStates:24000});
+export function searchQuick(level, state) {
+  if (state.turn > level.turnLimit) return { status:'unsolvable', plans:null, reason:'turn-limit', examined:0 };
+  const answer = searchSolution(level,state,{maxDepth:Math.max(0,level.turnLimit-state.turn),maxStates:24000});
+  // A complete search through the remaining turn budget proves a quick loss.
+  if (answer.status === 'incomplete' && answer.reason === 'max-depth') return {...answer,status:'unsolvable',reason:'turn-limit'};
+  return answer;
+}
+export const solveQuick = (level,state) => searchQuick(level,state).plans;
 export const quickSolutions = Object.fromEntries(quickTrials.map(level => [level.id,solveQuick(level,initialState(level))]));
 if (quickTrials.some(level=>!quickSolutions[level.id])) throw new Error('Quick trial requires a complete legal win witness.');
