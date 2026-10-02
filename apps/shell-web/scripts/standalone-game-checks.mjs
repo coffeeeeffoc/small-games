@@ -162,9 +162,19 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
   } else if (id === 'waterline-station') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
     await expect(frame.locator('#level-name')).not.toBeEmpty();
     await expect(frame.locator('#gate-controls')).toHaveCount(0);
     await expect(frame.locator('.board-wrap #board-controls button[data-gate]')).toHaveCount(2);
+    await expect(frame.locator('#chapter-nav [data-chapter-index]')).toHaveCount(5);
+    await expect(frame.locator('#level-nav [data-level-index]')).toHaveCount(10);
+    await click(frame.locator('[data-chapter-index="4"]'));
+    await expect(frame.locator('[data-level-index="49"]')).toBeVisible();
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
+    await click(frame.locator('[data-level-index="49"]'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', '50');
+    await click(frame.locator('[data-chapter-index="0"]'));
+    await click(frame.locator('[data-level-index="0"]'));
     const valve = frame.locator('#board-controls button[data-gate="AB"]');
     await expect(valve).toHaveAttribute('aria-pressed', 'false');
     const moves = Number(await frame.locator('#moves-left').textContent());
@@ -193,6 +203,40 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(valve).toBeEnabled();
     await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves - 2));
     await click(frame.locator('#restart'));
+    await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
+    const pipe = frame.locator('#board [data-connection="AB"]');
+    await pipe.scrollIntoViewIfNeeded();
+    const position = await pipe.evaluate((group) => {
+      const path = group.querySelector('.pipe-hit');
+      const bounds = document.querySelector('#board').getBoundingClientRect();
+      const matrix = path.getScreenCTM();
+      for (let step = 5; step < 196; step += 1) {
+        const point = path.getPointAtLength((path.getTotalLength() * step) / 200);
+        const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+        const target = document.elementFromPoint(screen.x, screen.y);
+        if (target?.closest('[data-connection]')?.dataset.connection === 'AB') {
+          return { x: screen.x - bounds.left, y: screen.y - bounds.top };
+        }
+      }
+      return null;
+    });
+    expect(position).not.toBeNull();
+    const pipeBounds = await frame.locator('#board').boundingBox();
+    const beforePipe = await snapshot();
+    const pipePage = pipe.page();
+    if (mobile)
+      await pipePage.touchscreen.tap(pipeBounds.x + position.x, pipeBounds.y + position.y);
+    else await pipePage.mouse.click(pipeBounds.x + position.x, pipeBounds.y + position.y);
+    await expect.poll(async () => (await snapshot()).focusedConnection).toBe('AB');
+    await expect(frame.locator('#board [data-connection="AB"]')).toHaveAttribute(
+      'data-focused',
+      'true',
+    );
+    await expect(frame.locator('#board-foreground [data-foreground-connection]')).toHaveAttribute(
+      'data-foreground-connection',
+      'AB',
+    );
+    expect((await snapshot()).state).toEqual(beforePipe.state);
     await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
   } else if (id === 'tiny-signals') {
     await click(frame.locator('#level-nav [data-level]').first());
