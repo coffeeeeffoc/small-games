@@ -51,12 +51,7 @@ try {
     await page.waitForTimeout(100);
     assert.deepEqual((await snapshot(page)).held, [], 'mouse release stops firing');
     await page.waitForFunction(() => __night.snapshot().reason === 'ready');
-    const buttonFired = (await snapshot(page)).fired;
-    await press(page, 'fire');
-    const clicked = await snapshot(page);
-    assert(clicked.fired > buttonFired, `fire button click fires weapon ${weapon}`);
-    assert.deepEqual(clicked.held, [], 'button release stops firing');
-    if (weapon === 2) assert.equal(clicked.fired, buttonFired + 1, 'heavy click fires exactly once');
+    assert(!(await snapshot(page)).buttons.some(b => b.id === 'fire'), 'mouse mode has no fire button');
   }
   await press(page, 'weapon0');
   await page.mouse.move(420, 580);
@@ -82,9 +77,11 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   const touchFired = (await snapshot(touchPage)).fired;
   await touchPage.mouse.move(400, 200);
-  await press(touchPage, 'fire');
-  assert((await snapshot(touchPage)).fired > touchFired, 'switching from real touch back to mouse still fires');
+  await touchPage.waitForFunction(() => __night.snapshot().reason === 'ready');
+  await touchPage.mouse.click(400, 200);
+  await touchPage.waitForFunction(fired => __night.snapshot().fired > fired, touchFired);
+  assert(!(await snapshot(touchPage)).buttons.some(b => b.id === 'fire'), 'switching back to mouse hides FIRE');
   assert.deepEqual((await snapshot(touchPage)).held, []);
   assert.deepEqual(errors, []);
-  console.log('PASS: bottom aim, three mouse weapons, fire button, sustained fire, touch release and touch-to-mouse switch');
+  console.log('PASS: bottom aim, three mouse weapons, hidden desktop fire, sustained fire, touch release and touch-to-mouse switch');
 } finally { await browser.close(); }

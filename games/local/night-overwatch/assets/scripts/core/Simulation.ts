@@ -6,8 +6,9 @@ import {
   patrolPoint,
   UNITS,
   MISSION,
-  HOLD_POINTS,
-  ROUTE_LENGTH,
+  routeLength,
+  landPoint,
+  riverX,
   PROTECTED,
   routePoint,
   distance,
@@ -110,15 +111,19 @@ export class Simulation {
     validateData();
     this.mission = missionDefinition(missionId);
     this.aim = { x: this.mission.events[0].x, z: this.mission.events[0].z };
-    Object.assign(this.addUnit('rescue', routePoint(0), true), { group: 0, routeOffset: 0 });
-    Object.assign(this.addUnit('escort', routePoint(5), true), { group: 0, routeOffset: 5 });
-    Object.assign(this.addUnit('escort', routePoint(10), true), { group: 0, routeOffset: 10 });
+    Object.assign(this.addUnit('rescue', this.routePoint(0), true), { group: 0, routeOffset: 0 });
+    Object.assign(this.addUnit('escort', this.routePoint(5), true), { group: 0, routeOffset: 5 });
+    Object.assign(this.addUnit('escort', this.routePoint(10), true), { group: 0, routeOffset: 10 });
     FRIENDLY_POSTS.forEach((p, i) => {
       Object.assign(this.addUnit('escort', p, true), { group: i + 1 });
       Object.assign(this.addUnit('escort', { x: p.x + 3, z: p.z + 2 }, true), { group: i + 1 });
       Object.assign(this.addUnit('escort', { x: p.x - 3, z: p.z + 3 }, true), { group: i + 1 });
     });
   }
+  height = (x: number, z: number) => terrainHeight(x, z, this.mission.map);
+  get routeLength() { return routeLength(this.mission.map); }
+  get holdPoints() { return [this.routeLength * 0.28, this.routeLength * 0.64]; }
+  routePoint(d: number) { return routePoint(d, this.mission.map); }
   get paused() {
     return this.pauses.size > 0;
   }
@@ -129,7 +134,7 @@ export class Simulation {
     return Math.max(0, this.mission.duration - this.time);
   }
   get ratio() {
-    return this.progress / ROUTE_LENGTH;
+    return this.progress / this.routeLength;
   }
   get threatsRemaining() {
     return this.mission.events.length - this.spawned.size + this.units.filter((u) => !u.friendly && u.hp > 0).length;
@@ -149,7 +154,7 @@ export class Simulation {
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
     if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
         Math.abs(p.x) > MAP.halfWidth || Math.abs(p.z) > MAP.halfDepth) return Infinity;
-    return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, WEAPONS[weapon].speed)?.duration ?? Infinity;
+    return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, WEAPONS[weapon].speed, this.height)?.duration ?? Infinity;
   }
   shotPosition(shot: Shot, time = this.time) {
     return shotPosition(shot, time);
@@ -157,7 +162,7 @@ export class Simulation {
   addUnit(kind: Kind, p: Point, friendly = false) {
     const u: Unit = {
       ...p,
-      y: terrainHeight(p.x, p.z),
+      y: this.height(p.x, p.z),
       id: ++this.serial,
       kind,
       hp: UNITS[kind].hp,
@@ -212,7 +217,7 @@ export class Simulation {
   command() {
     if (this.mission.mode === 'training' || this.phase !== 'playing' || this.paused || this.convoy === 'arrived') return;
     if (this.convoy === 'moving') {
-      if (!HOLD_POINTS.some((p) => p > this.progress + 0.01)) return;
+      if (!this.holdPoints.some((p) => p > this.progress + 0.01)) return;
       this.convoy = 'holdRequested';
       this.completed.add('hold');
     } else {
@@ -254,7 +259,7 @@ export class Simulation {
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
     const origin = Object.freeze(muzzlePosition(this.aircraft, this.selected));
-    const launch = ballisticLaunch(origin, this.aim, w.speed);
+    const launch = ballisticLaunch(origin, this.aim, w.speed, this.height);
     if (!launch) return false;
     g.ammo--;
     g.heat = Math.min(100, g.heat + w.heat);
@@ -278,7 +283,7 @@ export class Simulation {
     return true;
   }
   emit(type: BattleEvent['type'], p: Point & { y?: number }, weapon = 0, unit?: number) {
-    const event: BattleEvent = { id: ++this.serial, type, x: p.x, y: p.y ?? terrainHeight(p.x, p.z), z: p.z, weapon, time: this.time, unit };
+    const event: BattleEvent = { id: ++this.serial, type, x: p.x, y: p.y ?? this.height(p.x, p.z), z: p.z, weapon, time: this.time, unit };
     this.events.push(event);
     if (this.events.length > 64) this.events.shift();
     return event;
@@ -287,7 +292,7 @@ export class Simulation {
     this.mission.events.forEach((e, i) => {
       if (!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
         this.spawned.add(i);
-        this.addUnit(e.kind, e);
+        this.addUnit(e.kind, landPoint(e, this.mission.map));
         this.lastWave = i;
         this.waveAt = this.time;
         this.emit('wave', e);
@@ -305,7 +310,7 @@ export class Simulation {
       const u = this.units[i], before = previous[i] ?? u;
       const x = before.x + (u.x - before.x) * fraction;
       const z = before.z + (u.z - before.z) * fraction;
-      const y = terrainHeight(x, z);
+      const y = this.height(x, z);
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
       const damage = impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
@@ -375,13 +380,13 @@ export class Simulation {
     if (this.convoy !== 'holding' && this.convoy !== 'arrived') {
       let next = this.progress + this.mission.speed * dt;
       if (this.convoy === 'holdRequested') {
-        const stop = HOLD_POINTS.find((p) => p >= this.progress - 0.001);
+        const stop = this.holdPoints.find((p) => p >= this.progress - 0.001);
         if (stop !== undefined && next >= stop) {
           next = stop;
           this.convoy = 'holding';
         }
       }
-      this.progress = Math.min(ROUTE_LENGTH, next);
+      this.progress = Math.min(this.routeLength, next);
     }
     for (const u of this.units) {
       u.hit = Math.max(0, u.hit - dt);
@@ -389,25 +394,25 @@ export class Simulation {
       u.attack -= dt;
       if (u.friendly) {
         if (u.routeOffset !== undefined)
-          Object.assign(u, routePoint(Math.min(ROUTE_LENGTH, this.progress + u.routeOffset)));
+          Object.assign(u, this.routePoint(Math.min(this.routeLength, this.progress + u.routeOffset)));
         continue;
       }
       const spec = UNITS[u.kind];
       if (u.kind === 'light') {
-        Object.assign(u, patrolPoint(u.origin, this.time - u.born));
+        Object.assign(u, patrolPoint(u.origin, this.time - u.born, this.mission.map));
       }
       const target = this.nearestOpponent(u);
       if (u.kind === 'heavy' && target && distance(u, target) > 12) {
         const angle = Math.atan2(target.x - u.x, target.z - u.z);
         const move = Math.min(spec.speed * dt, distance(u, target) - 12);
-        u.x += Math.sin(angle) * move;
-        u.z += Math.cos(angle) * move;
+        Object.assign(u, landPoint({ x: u.x + Math.sin(angle) * move, z: u.z + Math.cos(angle) * move },
+          this.mission.map, u.x - riverX(u.z)));
         u.heading = angle;
       }
-      u.y = terrainHeight(u.x, u.z);
+      u.y = this.height(u.x, u.z);
     }
     const contacts = this.shots.flatMap((shot) => {
-      const contact = terrainContact(shot, this.time - dt, this.time);
+      const contact = terrainContact(shot, this.time - dt, this.time, this.height);
       return contact ? [{ shot, ...contact }] : [];
     }).sort((a, b) => a.time - b.time);
     for (const contact of contacts) this.impact(contact.shot, contact.point, contact.time, previous, dt);
@@ -443,7 +448,7 @@ export class Simulation {
       }
     }
     this.spawn();
-    if (this.progress >= ROUTE_LENGTH) this.convoy = 'arrived';
+    if (this.progress >= this.routeLength) this.convoy = 'arrived';
     if (this.rescue.hp <= 0 || this.failedGroup !== undefined || this.mission.mode === 'training' && this.friendlyLosses > 0) {
       this.failedGroup ??= this.mission.mode === 'training'
         ? this.units.find((unit) => unit.friendly && unit.hp <= 0)?.group ?? 0 : 0;

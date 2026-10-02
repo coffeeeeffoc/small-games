@@ -97,10 +97,10 @@ export function cabinPoint(point: Point3, weapon = 0): Point3 {
 }
 
 // Low ballistic arc at the specified muzzle speed. Stable quadratic root in t².
-export function ballisticLaunch(origin: Point3, target: Point, speed: number) {
+export function ballisticLaunch(origin: Point3, target: Point, speed: number, height = terrainHeight) {
   if (![origin.x, origin.y, origin.z, target.x, target.z, speed].every(Number.isFinite) ||
-      speed <= 0 || origin.y <= terrainHeight(origin.x, origin.z)) return;
-  const targetY = terrainHeight(target.x, target.z);
+      speed <= 0 || origin.y <= height(origin.x, origin.z)) return;
+  const targetY = height(target.x, target.z);
   const dx = target.x - origin.x, dy = targetY - origin.y, dz = target.z - origin.z;
   const distance2 = dx * dx + dy * dy + dz * dz;
   const k = speed * speed - FLIGHT.gravity * dy;
@@ -124,7 +124,7 @@ export function shotPosition(shot: Trajectory, time: number): Point3 {
   };
 }
 
-export function terrainContact(shot: Trajectory, from: number, to: number) {
+export function terrainContact(shot: Trajectory, from: number, to: number, height = terrainHeight) {
   let start = Math.max(shot.born, from);
   const end = Math.min(shot.due, to);
   if (end < start) return;
@@ -136,16 +136,29 @@ export function terrainContact(shot: Trajectory, from: number, to: number) {
   for (let i = 1; i <= count; i++) {
     let stop = begin + (end - begin) * i / count;
     const p = shotPosition(shot, stop);
-    if (p.y <= terrainHeight(p.x, p.z) + 1e-8) {
+    if (p.y <= height(p.x, p.z) + 1e-8) {
       for (let n = 0; n < 24; n++) {
         const mid = (start + stop) / 2, q = shotPosition(shot, mid);
-        if (q.y <= terrainHeight(q.x, q.z)) stop = mid;
+        if (q.y <= height(q.x, q.z)) stop = mid;
         else start = mid;
       }
       const point = shotPosition(shot, stop);
-      point.y = terrainHeight(point.x, point.z);
+      point.y = height(point.x, point.z);
       return { time: stop, point };
     }
     start = stop;
   }
+}
+
+/** Presentation-only recoil in UI pixels; never feeds the physical gun or aim. */
+export function recoilOffset(events: readonly { type: string; weapon: number; time: number }[], time: number, reduced = false) {
+  let x = 0, y = 0;
+  for (const e of events.slice(-24)) {
+    const age = time - e.time, life = [.12, .24, .42][e.weapon];
+    if (e.type !== 'shot' || age < 0 || age >= life) continue;
+    const strength = [1.1, 3.4, 7][e.weapon] * (1 - age / life) ** 2 * (reduced ? .2 : 1);
+    x += Math.sin(age * 105 + e.time * 8) * strength * .45;
+    y += (Math.cos(age * 72) * .35 + .65) * strength;
+  }
+  return { x: Math.max(-8, Math.min(8, x)), y: Math.max(-8, Math.min(8, y)) };
 }

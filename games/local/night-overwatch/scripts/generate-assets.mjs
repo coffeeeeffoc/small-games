@@ -5,8 +5,8 @@ await mkdir(new URL('audio/', root), { recursive: true });
 await mkdir(new URL('models/', root), { recursive: true });
 for (const [name, freq, seconds] of [
   ['rapid', 155, 0.1],
-  ['blast', 105, 0.18],
-  ['heavy', 64, 0.28],
+  ['blast', 105, 0.42],
+  ['heavy', 64, 0.8],
   ['hit', 230, 0.16],
   ['alert', 680, 0.2],
   ['impact1', 60, 0.65],
@@ -28,18 +28,23 @@ for (const [name, freq, seconds] of [
   b.writeUInt16LE(16, 34);
   b.write('data', 36);
   b.writeUInt32LE(n * 2, 40);
-  let seed = 123;
+  let seed = 123, rumble = 0;
   for (let i = 0; i < n; i++) {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     const t = i / rate,
       envelope = Math.exp((-t / seconds) * 7) * Math.min(1, i / 80),
       noise = (seed / 4294967296 - 0.5) * 0.5;
+    rumble = rumble * .92 + noise * .08;
+    const gun = ['rapid', 'blast', 'heavy'].includes(name);
     const sample =
       name === 'engine'
         ? (Math.sin(2 * Math.PI * 42 * t) * 0.4 +
             Math.sin(2 * Math.PI * 84 * t) * 0.12 +
             Math.sin(2 * Math.PI * 126 * t) * 0.08) *
           (0.85 + Math.sin(2 * Math.PI * 6 * t) * 0.15)
+        : gun ? (noise * 2.2 * Math.exp(-t * 65)
+          + Math.sin(2 * Math.PI * (freq * t + .045 * (1 - Math.exp(-t * 55)))) * .55 * Math.exp(-t / seconds * 8)
+          + rumble * (name === 'heavy' ? 4 : 2) * Math.exp(-t / seconds * 3)) * Math.min(1, i / 12)
         : (Math.sin(2 * Math.PI * freq * t * (1 - t * 0.25)) * 0.6 +
             noise * (name.startsWith('impact') ? 1.5 : 1)) *
           envelope;

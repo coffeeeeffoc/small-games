@@ -28,7 +28,7 @@ const hooks = registerHooks({
     if (url === 'night-input:cc') return { format: 'module', shortCircuit: true,
       source: `export const { ${Object.keys(cc).join(',')} } = globalThis.__nightInputCC;` };
     if (url === 'night-input:./World' || url === 'night-input:./HUD') return { format: 'module', shortCircuit: true,
-      source: 'export class World {} export class HUD {}' };
+      source: `export class World { constructor(parent, map = 'valley') { this.map = map; } root = { active: true, destroy() {} }; camera = {}; reset() {} updateCamera() {} } export class HUD {}` };
     const result = next(url, context);
     if (url === sourceURL.href) return { ...result, format: 'module', source:
       stripTypeScriptTypes(result.source!.toString().replace("@ccclass('Overwatch')", ''), { mode: 'transform' }) };
@@ -46,7 +46,7 @@ function mission() {
   const g = new Overwatch();
   g.hud = { h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
     minimapPoint: () => undefined, blocksBattlefield: () => false };
-  g.world = { updateCamera() {}, reset() {} };
+  g.world = { map: 'valley', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start();
   return g;
@@ -203,4 +203,16 @@ test('actual task choices update public entry URLs without carrying private fiel
     });
     g.platform.dispose();
   }
+});
+
+test('returning home aborts a live mission, clears input and starts the next map cleanly', () => {
+  const g = mission(); g.sim.choose(2); g.sim.setFire('mouse', true); g.keys.add(32);
+  g.sim.pause('manual', true); g.action('home');
+  assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.time, 0);
+  assert.equal(g.sim.pauses.size, 0); assert.equal(g.keys.size, 0); assert.equal(g.sim.shots.length, 0);
+  g.action('mission:ambush-02');
+  assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
+  assert.equal(g.sim.phase, 'briefing');
+  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 8);
+  g.action('home'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
 });
