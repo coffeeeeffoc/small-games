@@ -7,7 +7,7 @@ const cube = (x: number, y: number, z: number): Box =>
 /** Original introductory fork-slot assemblies, not replicas of a historic burr.
  * The long spine and two teeth of each fork are one face-connected solid.
  * Dependencies arise solely from those teeth physically surrounding another bar.
- * Pieces deliberately keep one translation axis to make touch intent unambiguous.
+ * All pieces can translate freely on three axes, individually or as rigid groups.
  */
 const pieces: readonly PieceDefinition[] = [
   {
@@ -61,8 +61,8 @@ export const levels: readonly Level[] = [
   {
     id: 'first-key',
     title: '初见 · 三向榫',
-    subtitle: '先找到能动的那一根',
-    description: '一根钥匙条，两个相扣的榫槽。试着找出第一个松动的位置，再把它们原样装回。',
+    subtitle: '自由移动，观察榫槽如何相扣',
+    description: '三根木条可以沿三个方向移动。既可以逐件分离，也可以先把两件一起挪开，再原样装回。',
     difficulty: '入门',
     estimatedMinutes: '2–3 分钟',
     pieces: pieces.slice(0, 3),
@@ -80,7 +80,7 @@ export const levels: readonly Level[] = [
     id: 'five-links',
     title: '层叠 · 五件锁',
     subtitle: '拆开之后，再顺着结构复原',
-    description: '五根木条一环扣一环。留意最后一层抱榫，以及复原时需要先放回的那一根。',
+    description: '五根木条交叠相扣。选择一件或组合移动，观察哪些接触阻挡去路，再将所有木条归位。',
     difficulty: '挑战',
     estimatedMinutes: '4–6 分钟',
     pieces,
