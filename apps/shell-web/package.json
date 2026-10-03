@@ -22,6 +22,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",
     "@coffeeeeffoc/urban-breakout": "workspace:*",
     "@coffeeeeffoc/homebound-station": "workspace:*",

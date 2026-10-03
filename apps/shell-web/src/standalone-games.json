@@ -1,5 +1,12 @@
 [
   {
+    "id": "echo-lab",
+    "source": "games/local/echo-lab",
+    "title": "回声实验室 · Echo Lab",
+    "description": "拖动和旋转反射板、消音板，分别调节四面墙的反射率，听见空间改变声音；导出原声与调制声，分享房间链接邀请朋友一起实验。",
+    "output": "dist"
+  },
+  {
     "id": "maze-wander",
     "source": "games/local/maze-wander",
     "title": "迷境漫游",

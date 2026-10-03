@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'echo-lab': '#scene [data-object="reflector-1"]',
   'bullet-garden': '#start',
   'maze-wander': '#start',
   'urban-breakout': '#start',
@@ -431,6 +432,27 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     );
     expect((await snapshot()).state).toEqual(beforePipe.state);
     await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
+  } else if (id === 'echo-lab') {
+    await frame.locator('#preset').selectOption('first');
+    await expect(frame.locator('#roomBadge')).toHaveText('72 × 40 m');
+    await click(frame.locator('#addAbsorber'));
+    await expect(frame.locator('#panelCount')).toHaveText('2 / 8');
+    await expect(frame.locator('#selectionTitle')).toContainText('吸音屏');
+    await expect(frame.locator('#scene [data-rotate]')).toHaveCount(1);
+    const angle = frame.locator('#panelAngle');
+    const box = await angle.boundingBox();
+    if (mobile) await angle.tap({ position: { x: box.width * 0.25, y: box.height / 2 } });
+    else await angle.click({ position: { x: box.width * 0.25, y: box.height / 2 } });
+    await expect(frame.locator('#angleValue')).not.toHaveText('90°');
+    await click(frame.locator('#removePanel'));
+    await expect(frame.locator('#panelCount')).toHaveText('1 / 8');
+    await click(frame.locator('#playWet'));
+    await expect(frame.locator('#playWet')).toHaveClass(/playing/);
+    await click(frame.locator('#stopAudio'));
+    await click(frame.locator('#shareLayout'));
+    await expect(frame.locator('#shareDialog')).toBeVisible();
+    await expect(frame.locator('#shareLink')).toHaveValue(/\/games\/echo-lab\/index\.html#room=/);
+    await click(frame.locator('#closeShare'));
   } else if (id === 'echo-weaver') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__echoWeaverSnapshot());
     await click(frame.locator('#level-nav [data-level]').first());
