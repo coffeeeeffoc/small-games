@@ -22,7 +22,12 @@ const apply = (level, state, action) => {
     case 'shaft':
       return moveShaft(level, state, action.id, action.value);
     case 'latch':
-      return toggleLatch(level, state, action.id);
+      return toggleLatch(
+        level,
+        state,
+        action.id,
+        level.latches.find((latch) => latch.id === action.id)?.side,
+      );
     case 'release':
       return releaseBall(level, state);
     case 'advance':
@@ -153,6 +158,8 @@ for (const level of LEVELS) {
     }
     assert.equal(state.completed, true);
     assert.equal(state.moves, level.estimatedMoves);
+    assert.equal(state.flips, 0, 'Both faces can be operated without switching views.');
+    assert.equal(state.side, 'front', 'Operating a rear latch keeps the front ball accessible.');
     assert.equal(getSnapshot(level, state).ballPathIndex, level.path.length - 1);
   });
 }
