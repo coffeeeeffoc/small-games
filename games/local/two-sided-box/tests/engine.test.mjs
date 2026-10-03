@@ -1,321 +1,357 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LEVELS } from '../levels.mjs';
+import { BOX_HALF, FACE_IDS, FACE_DEFS, facePoint, projectFace } from '../faces.mjs';
+import {
+  BALL_RADIUS,
+  dot,
+  cross,
+  subtract,
+  getGateGeometry,
+  getShaftGeometry,
+} from '../geometry.mjs';
 import {
   createState,
+  validateLevel,
   moveShaft,
   toggleLatch,
-  flipView,
+  viewFace,
+  revealFace,
+  revealStructure,
   releaseBall,
   advanceBall,
   getGateStatus,
-  getBlockingReason,
   getSnapshot,
-  validateLevel,
 } from '../engine.mjs';
 
+const fixture = () => ({
+  id: 'spatial-fixture',
+  shafts: [
+    {
+      id: 'A',
+      label: 'A轴',
+      face: 'front',
+      anchor: [-60, -100],
+      slideAxis: [0, 1, 0],
+      initial: 0,
+      min: 0,
+      max: 2,
+    },
+    {
+      id: 'B',
+      label: 'B轴',
+      face: 'top',
+      anchor: [80, -100],
+      slideAxis: [0, 0, -1],
+      initial: 0,
+      min: 0,
+      max: 2,
+    },
+  ],
+  latches: [
+    {
+      id: 'lock-A',
+      label: 'A锁扣',
+      shaft: 'A',
+      face: 'back',
+      anchor: [0, -100],
+      initial: true,
+      releaseWhen: [{ shaft: 'B', positions: [1] }],
+    },
+  ],
+  gates: [
+    {
+      id: 'entry',
+      label: '入口板',
+      shaft: 'A',
+      pathIndex: 2,
+      center: [-40, 0, 0],
+      normal: [1, 0, 0],
+      aperture: { offsets: [128], radius: 12 },
+      travel: 64,
+    },
+    {
+      id: 'exit',
+      label: '出口板',
+      shaft: 'A',
+      pathIndex: 5,
+      center: [40, 0, 0],
+      normal: [1, 0, 0],
+      aperture: { offsets: [0], radius: 12 },
+      travel: 64,
+    },
+  ],
+  path: [
+    [-100, 0, 0],
+    [-54, 0, 0],
+    [-40, 0, 0],
+    [-26, 0, 0],
+    [26, 0, 0],
+    [40, 0, 0],
+    [54, 0, 0],
+    [100, 0, 0],
+  ],
+  checkpoints: [
+    { pathIndex: 2, gateIds: ['entry'] },
+    { pathIndex: 5, gateIds: ['exit'] },
+    { pathIndex: 7, gateIds: [] },
+  ],
+});
+const newState = (level = fixture()) => createState(level, { initialFaces: ['front', 'back'] });
 const clone = (value) => structuredClone(value);
-const apply = (level, state, action) => {
-  switch (action.type) {
-    case 'flip':
-      return flipView(state);
-    case 'shaft':
-      return moveShaft(level, state, action.id, action.value);
-    case 'latch':
-      return toggleLatch(
-        level,
-        state,
-        action.id,
-        level.latches.find((latch) => latch.id === action.id)?.side,
-      );
-    case 'release':
-      return releaseBall(level, state);
-    case 'advance':
-      return advanceBall(level, state);
-    default:
-      throw new Error(`Unknown action: ${action.type}`);
-  }
-};
 
-/**
- * An independent finite-state search: it evaluates data conditions itself and
- * never calls the engine under test to generate transitions. Counters are not
- * part of physical state, so flip loops cannot grow the search indefinitely.
- */
-function solveIndependently(level, { freezeAfterRelease = false } = {}) {
-  const initial = {
-    side: 'front',
-    positions: level.shafts.map((shaft) => shaft.initial),
-    locks: level.latches.map((latch) => latch.initial),
-    released: false,
-    checkpoint: 0,
-  };
-  const shaftIndex = new Map(level.shafts.map((shaft, index) => [shaft.id, index]));
-  const gateMap = new Map(level.gates.map((gate) => [gate.id, gate]));
-  const key = (state) =>
-    [
-      state.side,
-      state.positions.join(','),
-      state.locks.map(Number).join(''),
-      Number(state.released),
-      state.checkpoint,
-    ].join('|');
-  const nodes = [{ state: initial, parent: -1, action: null }];
-  const seen = new Set([key(initial)]);
-  for (let cursor = 0; cursor < nodes.length; cursor += 1) {
-    const { state } = nodes[cursor];
-    if (state.checkpoint === level.checkpoints.length) {
-      const actions = [];
-      for (let index = cursor; nodes[index].parent !== -1; index = nodes[index].parent)
-        actions.unshift(nodes[index].action);
-      return { solvable: true, actions, explored: nodes.length };
-    }
-    const candidates = [];
-    const flipped = clone(state);
-    flipped.side = state.side === 'front' ? 'back' : 'front';
-    candidates.push([flipped, { type: 'flip' }]);
-
-    if (!freezeAfterRelease || !state.released) {
-      for (const [index, shaft] of level.shafts.entries()) {
-        const locked = level.latches.some(
-          (latch, lockIndex) => latch.shaft === shaft.id && state.locks[lockIndex],
-        );
-        if (locked) continue;
-        for (let value = shaft.min; value <= shaft.max; value += 1) {
-          if (value === state.positions[index]) continue;
-          const next = clone(state);
-          next.positions[index] = value;
-          candidates.push([next, { type: 'shaft', id: shaft.id, value }]);
-        }
-      }
-    }
-    for (const [index, latch] of level.latches.entries()) {
-      if (latch.side !== state.side) continue;
-      const aligned = (latch.releaseWhen ?? []).every((condition) =>
-        condition.positions.includes(state.positions[shaftIndex.get(condition.shaft)]),
-      );
-      if (state.locks[index] && !aligned) continue;
-      const next = clone(state);
-      next.locks[index] = !next.locks[index];
-      candidates.push([next, { type: 'latch', id: latch.id }]);
-    }
-    if (!state.released && state.side === 'front') {
-      const next = clone(state);
-      next.released = true;
-      candidates.push([next, { type: 'release' }]);
-    }
-    if (state.released) {
-      const checkpoint = level.checkpoints[state.checkpoint];
-      const allOpen = checkpoint.gateIds.every((id) => {
-        const gate = gateMap.get(id);
-        return gate.positions.includes(state.positions[shaftIndex.get(gate.shaft)]);
-      });
-      if (allOpen) {
-        const next = clone(state);
-        next.checkpoint += 1;
-        candidates.push([next, { type: 'advance' }]);
-      }
-    }
-    for (const [next, action] of candidates) {
-      const nextKey = key(next);
-      if (seen.has(nextKey)) continue;
-      seen.add(nextKey);
-      nodes.push({ state: next, parent: cursor, action });
-    }
-  }
-  return { solvable: false, actions: [], explored: nodes.length };
-}
-
-test('six data-defined levels have valid schemas and stable unique ids', () => {
-  assert.equal(LEVELS.length, 6);
-  assert.equal(new Set(LEVELS.map((level) => level.id)).size, LEVELS.length);
-  for (const level of LEVELS) {
-    assert.deepEqual(validateLevel(level), { valid: true, errors: [] }, level.id);
-    assert.deepEqual(level.path[0], [70, 120]);
-    assert.deepEqual(level.path.at(-1), [625, 515]);
-    assert.deepEqual(level.checkpoints.at(-1), { pathIndex: level.path.length - 1, gateIds: [] });
-  }
-});
-
-for (const level of LEVELS) {
-  test(`independent search solves box ${level.number} and replays through the real engine`, () => {
-    const result = solveIndependently(level);
-    assert.equal(result.solvable, true, level.id);
-    assert.ok(result.explored < 10000, 'Search stays finite without relying on action counters.');
-    const state = createState(level);
-    for (const action of result.actions) {
-      assert.equal(apply(level, state, action).ok, true, `${level.id}: ${JSON.stringify(action)}`);
-    }
-    assert.equal(state.completed, true);
-    assert.equal(state.checkpoint, level.checkpoints.length);
-  });
-
-  test(`authored walkthrough for box ${level.number} succeeds with its advertised move count`, () => {
-    const state = createState(level);
-    for (const action of level.solution) {
-      const result = apply(level, state, action);
-      assert.equal(result.ok, true, `${level.id}: ${JSON.stringify(action)}: ${result.message}`);
-    }
-    assert.equal(state.completed, true);
-    assert.equal(state.moves, level.estimatedMoves);
-    assert.equal(state.flips, 0, 'Both faces can be operated without switching views.');
-    assert.equal(state.side, 'front', 'Operating a rear latch keeps the front ball accessible.');
-    assert.equal(getSnapshot(level, state).ballPathIndex, level.path.length - 1);
-  });
-}
-
-test('boxes 1–3 permit preparation; boxes 4–6 require repositioning while the ball is on the route', () => {
-  for (const level of LEVELS) {
-    const result = solveIndependently(level, { freezeAfterRelease: true });
-    assert.equal(result.solvable, level.number <= 3, level.id);
-  }
-});
-
-test('conditional lock cycle with no aligned entry point is genuinely unwinnable', () => {
-  const deadlocked = clone(LEVELS[5]);
-  deadlocked.latches.find((latch) => latch.id === 'lock-C').releaseWhen = [
-    { shaft: 'A', positions: [2] },
-  ];
-  assert.equal(validateLevel(deadlocked).valid, true);
-  const result = solveIndependently(deadlocked);
-  assert.equal(result.solvable, false);
-  assert.ok(result.explored < 10);
-});
-
-test('flipping changes visibility and counters, never mechanisms, barrier states, or ball progress', () => {
-  const level = LEVELS[5];
-  const state = createState(level);
-  const physical = (candidate) => ({
-    shafts: clone(candidate.shafts),
-    latches: clone(candidate.latches),
-    released: candidate.released,
-    checkpoint: candidate.checkpoint,
-    completed: candidate.completed,
-    gates: level.gates.map((gate) => getGateStatus(level, candidate, gate.id).open),
-  });
-  const before = physical(state);
-  flipView(state);
-  assert.equal(state.side, 'back');
-  assert.deepEqual(physical(state), before);
-  flipView(state);
-  assert.equal(state.side, 'front');
-  assert.deepEqual(physical(state), before);
-  assert.equal(state.flips, 2);
-});
-
-test('a locked shaft cannot move on either side, and a wrong-side latch cannot be operated', () => {
-  const level = LEVELS[0];
-  const state = createState(level);
-  const before = clone(state);
-  assert.equal(moveShaft(level, state, 'A', 2).ok, false);
-  assert.equal(toggleLatch(level, state, 'lock-A').ok, false);
-  assert.deepEqual(state, before);
-  flipView(state);
-  const backBefore = clone(state);
-  assert.equal(moveShaft(level, state, 'A', 2).ok, false);
-  assert.deepEqual(state, backBefore);
-  assert.equal(toggleLatch(level, state, 'lock-A').ok, true);
-  assert.equal(moveShaft(level, state, 'A', 2).ok, true);
-});
-
-test('alignment conditions are shared across views and cannot be bypassed by toggling', () => {
-  const level = LEVELS[2];
-  const state = createState(level);
-  flipView(state);
-  const before = clone(state);
-  assert.equal(toggleLatch(level, state, 'lock-A').ok, false);
-  assert.deepEqual(state, before);
-  assert.equal(getSnapshot(level, state).latches[0].canRelease, false);
+function unlock(level, state) {
+  revealFace(state, 'top');
+  viewFace(state, 'top');
   assert.equal(moveShaft(level, state, 'B', 1).ok, true);
-  assert.equal(getSnapshot(level, state).latches[0].canRelease, true);
+  viewFace(state, 'back');
   assert.equal(toggleLatch(level, state, 'lock-A').ok, true);
-  assert.equal(toggleLatch(level, state, 'lock-A').ok, true, 'A released latch can be re-engaged.');
-  assert.equal(
-    moveShaft(level, state, 'A', 2).ok,
-    false,
-    'Re-engaging restores the mechanical lock.',
-  );
-});
-
-test('opposite roles use one shaft: high opens the front but closes the back, middle opens both', () => {
-  const level = LEVELS[1];
-  const state = createState(level);
-  flipView(state);
-  toggleLatch(level, state, 'lock-A');
+  viewFace(state, 'front');
+}
+function complete(level, state) {
+  unlock(level, state);
   moveShaft(level, state, 'A', 2);
-  assert.equal(getGateStatus(level, state, 'door-A').open, true);
-  assert.equal(getGateStatus(level, state, 'panel-A').open, false);
-  moveShaft(level, state, 'A', 1);
-  assert.equal(getGateStatus(level, state, 'door-A').open, true);
-  assert.equal(getGateStatus(level, state, 'panel-A').open, true);
-});
-
-test('ball waits at a blocked rear gate, can recover, and completes only on exit arrival', () => {
-  const level = LEVELS[3];
-  const state = createState(level);
-  flipView(state);
-  assert.equal(releaseBall(level, state).ok, false);
-  toggleLatch(level, state, 'lock-A');
-  moveShaft(level, state, 'A', 2);
-  flipView(state);
   releaseBall(level, state);
-  assert.equal(getSnapshot(level, state).ballPathIndex, 1);
   advanceBall(level, state);
-  assert.equal(state.checkpoint, 1);
-  assert.equal(getSnapshot(level, state).ballPathIndex, 5);
-  const before = clone(state);
+  moveShaft(level, state, 'A', 0);
+  advanceBall(level, state);
+  advanceBall(level, state);
+}
+
+test('six camera bases are right-handed, invertible and correctly mirrored', () => {
+  for (const face of FACE_IDS) {
+    const basis = FACE_DEFS[face];
+    assert.deepEqual(
+      cross(basis.u, basis.v).map((x) => x || 0),
+      basis.normal,
+    );
+    assert.equal(dot(basis.u, basis.v), 0);
+    const projected = projectFace(facePoint(face, 31, -72, 123), face).map((x) => x || 0);
+    assert.deepEqual(projected, [31, -72, 123]);
+    assert.equal(Math.max(...facePoint(face, 0, 0).map(Math.abs)), BOX_HALF);
+  }
+  assert.equal(projectFace([32, 10, 80], 'front')[0], 32);
+  assert.equal(projectFace([32, 10, 80], 'back')[0], -32);
+  assert.equal(projectFace([32, 10, 80], 'top')[1], -80);
+  assert.equal(projectFace([32, 10, 80], 'bottom')[1], 80);
+});
+
+test('all 15 distinct face pairs are available through uniform deterministic bins', () => {
+  const level = fixture();
+  const pairs = new Set();
+  for (let index = 0; index < 15; index += 1) {
+    let call = 0;
+    const state = createState(level, { random: () => (call++ ? 0 : (index + 0.5) / 15) });
+    assert.equal(state.revealedFaces.length, 2);
+    assert.equal(new Set(state.revealedFaces).size, 2);
+    pairs.add([...state.revealedFaces].sort().join(','));
+  }
+  assert.equal(pairs.size, 15);
+  assert.throws(() => createState(level, { random: () => 1 }), /随机源/);
+  assert.throws(() => createState(level, { initialFaces: ['front', 'front'] }), /两个不同/);
+  level.initialViews = { eligiblePairs: [['top', 'back']] };
+  assert.deepEqual(createState(level, { random: () => 0 }).initialFaces, ['top', 'back']);
+});
+
+test('hints reveal one face for free, cannot bypass the final structure hint, and preserve physical state', () => {
+  const level = fixture();
+  const state = newState(level);
+  const original = clone(state);
+  assert.equal(viewFace(state, 'left').ok, false);
+  assert.equal(revealStructure(state).ok, false);
+  assert.deepEqual(state, original);
+  assert.equal(revealFace(state, 'left').changed, true);
+  assert.equal(revealFace(state, 'left').changed, false);
+  viewFace(state, 'left');
+  for (const face of FACE_IDS) revealFace(state, face);
+  assert.equal(revealStructure(state).ok, true);
+  assert.equal(state.structureViewed, true);
+  assert.equal(state.moves, 0);
+  assert.deepEqual(state.shafts, original.shafts);
+  assert.deepEqual(state.latches, original.latches);
+  assert.equal(state.checkpoint, original.checkpoint);
+  assert.deepEqual(state.initialFaces, ['front', 'back']);
+});
+
+test('only the currently revealed control face allows manipulation; conditional locks cannot be bypassed', () => {
+  const level = fixture();
+  const state = newState(level);
+  const original = clone(state);
+  assert.equal(moveShaft(level, state, 'A', 2).ok, false);
+  assert.equal(moveShaft(level, state, 'B', 1).ok, false);
+  assert.equal(toggleLatch(level, state, 'lock-A').ok, false);
+  assert.deepEqual(state, original);
+  viewFace(state, 'back');
+  const locked = clone(state);
+  assert.equal(toggleLatch(level, state, 'lock-A').ok, false);
+  assert.deepEqual(state, locked);
+  unlock(level, state);
+  assert.equal(moveShaft(level, state, 'A', 2).ok, true);
+  viewFace(state, 'back');
+  assert.equal(toggleLatch(level, state, 'lock-A').ok, true);
+  viewFace(state, 'front');
+  assert.equal(moveShaft(level, state, 'A', 0).ok, false);
+});
+
+test('one physical shaft drives both holes and their plate corners by the same displacement', () => {
+  const level = fixture();
+  const state = newState(level);
+  const before = getGateGeometry(level, state, 'entry');
+  const handleBefore = getShaftGeometry(level, state, 'A').handle;
+  state.shafts.A = 2;
+  const after = getGateGeometry(level, state, 'entry');
+  assert.equal(before.open, false);
+  assert.equal(after.open, true);
+  assert.equal(getGateStatus(level, state, 'exit').open, false);
+  for (let index = 0; index < 4; index += 1)
+    assert.deepEqual(subtract(after.corners[index], before.corners[index]), [0, 128, 0]);
+  assert.deepEqual(subtract(after.apertures[0].center, before.apertures[0].center), [0, 128, 0]);
+  assert.deepEqual(subtract(getShaftGeometry(level, state, 'A').handle, handleBefore), [0, 128, 0]);
+  assert.equal(after.clearance, 12 - BALL_RADIUS);
+});
+
+test('hole clearance is geometric, including the ball radius and off-detent bore centers', () => {
+  const level = fixture();
+  const state = newState(level);
+  state.shafts.A = 1;
+  level.gates[0].aperture.offsets = [68];
+  assert.equal(
+    getGateStatus(level, state, 'entry').open,
+    true,
+    'A 4-unit gap is exactly traversable with r=8 in r=12.',
+  );
+  level.gates[0].aperture.offsets = [68.01];
+  assert.equal(getGateStatus(level, state, 'entry').open, false);
+  level.gates[0].aperture.offsets = [0, 128];
+  assert.equal(getGateStatus(level, state, 'entry').open, false);
+  state.shafts.A = 0;
+  assert.equal(getGateStatus(level, state, 'entry').open, true);
+  state.shafts.A = 2;
+  assert.equal(getGateStatus(level, state, 'entry').open, true);
+});
+
+test('the solid plate covers the route at every detent, so closed holes cannot be bypassed around its edge', () => {
+  const level = fixture();
+  const state = newState(level);
+  for (let position = 0; position <= 2; position += 1) {
+    state.shafts.A = position;
+    for (const gate of level.gates) {
+      const shape = getGateGeometry(level, state, gate);
+      const along = dot(subtract(gate.center, shape.center), shape.slideAxis);
+      const across = dot(subtract(gate.center, shape.center), shape.transverse);
+      assert.ok(Math.abs(along) + BALL_RADIUS <= shape.halfLength);
+      assert.ok(Math.abs(across) + BALL_RADIUS <= shape.halfWidth);
+      assert.ok(shape.corners.flat().every((value) => Math.abs(value) <= BOX_HALF));
+    }
+  }
+});
+
+test('a ball can launch on any revealed face, wait at a closed gate, and recover by changing detents', () => {
+  const level = fixture();
+  const state = newState(level);
+  unlock(level, state);
+  moveShaft(level, state, 'A', 2);
+  viewFace(state, 'back');
+  assert.equal(releaseBall(level, state).ok, true);
+  assert.equal(advanceBall(level, state).ok, true);
+  const blocked = clone(state);
   assert.equal(advanceBall(level, state).ok, false);
-  assert.deepEqual(state, before);
-  assert.match(getBlockingReason(level, state), /背面.*低位/);
+  assert.deepEqual(state, blocked);
+  viewFace(state, 'front');
   moveShaft(level, state, 'A', 0);
   assert.equal(advanceBall(level, state).ok, true);
-  assert.equal(
-    state.completed,
-    false,
-    'Passing the last gate is distinct from arriving at the exit.',
-  );
+  assert.equal(state.completed, false, 'Passing the last hole is not arriving at the exit.');
+  assert.equal(advanceBall(level, state).completed, true);
   assert.equal(getSnapshot(level, state).ballPathIndex, level.path.length - 1);
-  assert.equal(advanceBall(level, state).ok, true);
-  assert.equal(state.completed, true);
+  assert.equal(state.moves, 5);
+  assert.equal(state.structureViewed, false);
+  assert.equal(
+    revealStructure(state).ok,
+    true,
+    'Completion permits the automatic full-structure review without six hints.',
+  );
 });
 
-test('invalid detents, missing mechanisms, and premature advancement do not change state', () => {
-  const level = LEVELS[0];
-  const state = createState(level);
-  const before = clone(state);
-  for (const action of [
-    { type: 'shaft', id: 'A', value: 0.5 },
-    { type: 'shaft', id: 'A', value: 3 },
-    { type: 'shaft', id: 'missing', value: 1 },
-    { type: 'latch', id: 'missing' },
-    { type: 'advance' },
-  ]) {
-    assert.equal(apply(level, state, action).ok, false);
-    assert.deepEqual(state, before);
+test('invalid and post-completion actions do not change physical state', () => {
+  const level = fixture();
+  const state = newState(level);
+  const original = clone(state);
+  for (const value of [-1, 3, 0.5, NaN])
+    assert.equal(moveShaft(level, state, 'A', value).ok, false);
+  assert.equal(moveShaft(level, state, 'missing', 0).ok, false);
+  assert.equal(toggleLatch(level, state, 'missing').ok, false);
+  assert.equal(advanceBall(level, state).ok, false);
+  assert.deepEqual(state, original);
+  complete(level, state);
+  const completed = clone(state);
+  assert.equal(moveShaft(level, state, 'A', 1).ok, false);
+  assert.equal(toggleLatch(level, state, 'lock-A').ok, false);
+  assert.equal(releaseBall(level, state).ok, false);
+  assert.equal(advanceBall(level, state).ok, false);
+  assert.deepEqual(state, completed);
+});
+
+test('validation rejects broken 3D geometry, references, exits and camera assignments before play', () => {
+  assert.deepEqual(validateLevel(fixture()), { valid: true, errors: [] });
+  const corruptions = [
+    (level) => {
+      level.path[0] = [1, 2];
+    },
+    (level) => {
+      level.path[0][0] = Infinity;
+    },
+    (level) => {
+      level.path[1][1] = 5;
+    },
+    (level) => {
+      level.path[1][0] = -46;
+    },
+    (level) => {
+      level.gates[0].center[1] = 1;
+    },
+    (level) => {
+      level.gates[0].normal = [0, 1, 0];
+    },
+    (level) => {
+      level.gates[0].aperture.radius = 7;
+    },
+    (level) => {
+      level.gates[0].aperture.offsets = [60, 68];
+    },
+    (level) => {
+      level.gates[0].travel = 32;
+    },
+    (level) => {
+      level.gates[0].aperture.offsets = [500];
+    },
+    (level) => {
+      level.shafts[0].anchor[1] = 240;
+    },
+    (level) => {
+      level.shafts[0].slideAxis = [0, 0, 1];
+    },
+    (level) => {
+      level.latches[0].shaft = 'missing';
+    },
+    (level) => {
+      level.latches[0].releaseWhen[0].positions = [4];
+    },
+    (level) => {
+      level.latches[0].face = 'up';
+    },
+    (level) => {
+      level.checkpoints.pop();
+    },
+    (level) => {
+      level.checkpoints[0].gateIds = ['exit'];
+    },
+    (level) => {
+      level.initialViews = { eligiblePairs: [['front', 'front']] };
+    },
+  ];
+  for (const corrupt of corruptions) {
+    const level = fixture();
+    corrupt(level);
+    assert.equal(validateLevel(level).valid, false, String(corrupt));
+    assert.throws(() => createState(level), /无效关卡/);
   }
-});
-
-test('a seventh box can extend detents and conditions without changing engine code', () => {
-  const extended = clone(LEVELS[0]);
-  extended.id = 'extension-fixture';
-  extended.shafts[0].max = 3;
-  extended.shafts[0].notches = ['低', '中', '高', '顶'];
-  extended.gates[0].positions = [3];
-  assert.equal(validateLevel(extended).valid, true);
-  const result = solveIndependently(extended);
-  assert.equal(result.solvable, true);
-  const state = createState(extended);
-  for (const action of result.actions) assert.equal(apply(extended, state, action).ok, true);
-  assert.equal(state.completed, true);
-});
-
-test('schema validation identifies bad references and refuses an incomplete exit', () => {
-  const broken = clone(LEVELS[0]);
-  broken.latches[0].shaft = 'missing';
-  broken.gates[0].positions = [5];
-  broken.checkpoints.pop();
-  const result = validateLevel(broken);
-  assert.equal(result.valid, false);
-  assert.ok(result.errors.length >= 3);
-  assert.throws(() => createState(broken), /无效关卡/);
 });
