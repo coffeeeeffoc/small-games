@@ -71,32 +71,33 @@ button {
 .station {
   width: min(1360px, 100%);
   margin: 0 auto;
-  padding: 36px 52px 20px;
+  padding: 14px 36px 16px;
 }
 .masthead {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 27px;
-  margin-bottom: 30px;
+  min-height: 44px;
+  padding-bottom: 5px;
+  margin-bottom: 4px;
   border-bottom: 1px solid var(--line);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
 }
 .brand-icon {
   display: grid;
   place-items: center;
-  width: 53px;
-  height: 53px;
-  border-radius: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   background: #204f49;
   color: #b8e7cb;
-  font-size: 45px;
+  font-size: 31px;
   line-height: 1;
-  padding-bottom: 8px;
+  padding-bottom: 5px;
   box-shadow: 0 3px 0 #153d37;
 }
 .eyebrow {
@@ -108,43 +109,16 @@ button {
   color: #7b9284;
 }
 h1 {
-  margin: 5px 0 0;
-  font-size: 29px;
+  margin: 0;
+  font-size: 22px;
   font-weight: 750;
   line-height: 1.2;
-  letter-spacing: 2px;
-}
-.edition {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 500;
-  vertical-align: top;
-  border: 1px solid #bccab8;
-  border-radius: 4px;
-  padding: 2px 4px;
-  margin: 0 0 0 8px;
-  letter-spacing: 0;
-  color: #7b9180;
+  letter-spacing: 1px;
 }
 .header-actions {
   display: flex;
   align-items: center;
   gap: 9px;
-}
-.online {
-  font-size: 11px;
-  color: #829184;
-  margin-right: 17px;
-  white-space: nowrap;
-}
-.online i,
-.signal {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #70a68a;
-  margin-right: 7px;
 }
 .icon-button {
   border: 1px solid #d6dece;
@@ -165,8 +139,8 @@ h1 {
 }
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 306px;
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 274px;
+  gap: 18px;
   align-items: start;
 }
 .play-panel {
@@ -176,18 +150,18 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 91px;
+  min-height: 48px;
   gap: 12px;
 }
 .stage-title {
   display: flex;
   align-items: center;
-  gap: 17px;
+  gap: 12px;
   min-width: 0;
 }
 .stage-number {
   color: #a6b4a1;
-  font-size: 35px;
+  font-size: 29px;
   line-height: 1;
   font-weight: 300;
   font-variant-numeric: tabular-nums;
@@ -197,8 +171,8 @@ h1 {
   letter-spacing: 1px;
 }
 .stage-title h2 {
-  font-size: 20px;
-  margin: 6px 0 0;
+  font-size: 18px;
+  margin: 3px 0 0;
   letter-spacing: 0.5px;
 }
 .turn-display {
@@ -212,7 +186,7 @@ h1 {
   color: #8a9485;
 }
 .turn-display strong {
-  font-size: 37px;
+  font-size: 30px;
   line-height: 1;
   color: #436c52;
   font-weight: 500;
@@ -236,7 +210,9 @@ h1 {
   z-index: 1;
   display: flex;
   justify-content: space-between;
-  padding: 15px 22px 0;
+  align-items: center;
+  min-height: 20px;
+  padding: 4px 18px 0;
   color: #8ab4a3;
   font-size: 10px;
   letter-spacing: 0.5px;
@@ -246,6 +222,9 @@ h1 {
   align-items: center;
 }
 .signal {
+  display: inline-block;
+  border-radius: 50%;
+  margin-right: 7px;
   width: 5px;
   height: 5px;
   background: #aadbbb;
@@ -255,7 +234,6 @@ h1 {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 960 / 530;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -263,8 +241,8 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 17px;
-  margin: 17px 1px 0;
+  gap: 14px;
+  margin: 10px 1px 0;
   color: #819082;
   font-size: 10px;
 }
@@ -298,40 +276,46 @@ h1 {
 .dispatch {
   display: flex;
   align-items: flex-start;
-  gap: 13px;
-  padding: 21px 21px 18px;
-  margin-top: 23px;
+  gap: 9px;
+  padding: 10px 13px;
+  margin-top: 10px;
   background: #e8eee0;
   border-left: 3px solid #91af8c;
   border-radius: 0 7px 7px 0;
-  min-height: 86px;
 }
 .dispatch-icon {
-  font-size: 27px;
+  font-size: 22px;
   line-height: 1.1;
   color: #749575;
 }
 .dispatch .eyebrow {
   color: #719071;
   font-size: 9px;
+  flex-shrink: 0;
+}
+.dispatch > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 .dispatch p {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 12px;
-  line-height: 1.75;
+  line-height: 1.6;
   color: #5f765d;
 }
 .control-panel {
   border: 1px solid #dce1d3;
   background: #fafbf5;
   border-radius: 12px;
-  padding: 24px 22px 20px;
+  padding: 16px;
   box-shadow: 0 3px 0 #e4e8dc;
 }
 .control-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 15px;
 }
 .control-heading .eyebrow {
   font-size: 9px;
@@ -342,26 +326,12 @@ h1 {
   letter-spacing: 3px;
   font-size: 12px;
 }
-.control-panel > h2 {
-  font-size: 22px;
-  line-height: 1.5;
-  letter-spacing: 0.5px;
-  margin: 18px 0 9px;
-}
-.control-intro {
-  color: #849180;
-  font-size: 11px;
-  line-height: 1.9;
-  margin: 0 0 22px;
-}
-.objectives-heading,
-.valves-heading {
+.objectives-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.objectives-heading h3,
-.valves-heading h3 {
+.objectives-heading h3 {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
@@ -374,7 +344,7 @@ h1 {
 }
 .objectives {
   list-style: none;
-  margin: 11px 0 21px;
+  margin: 9px 0 12px;
   padding: 0;
   display: grid;
   gap: 8px;
@@ -421,112 +391,9 @@ h1 {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.valves-heading {
-  border-top: 1px solid #e2e7da;
-  padding-top: 18px;
-  margin-bottom: 11px;
-}
-.valves-heading > span {
-  font-size: 9px;
-  color: #99a18f;
-}
-.gate-controls {
-  display: grid;
-  gap: 8px;
-}
-.gate-controls button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 10px 12px;
-  border-radius: 7px;
-  border: 1px solid #d7dfce;
-  background: #f2f5eb;
-  text-align: left;
-}
-.gate-controls button:hover:not(:disabled) {
-  background: #eaf1e2;
-  border-color: #90ac89;
-}
-.gate-controls button.open,
-.gate-controls button[aria-pressed='true'] {
-  background: #e4f0df;
-  border-color: #9fc398;
-}
-.gate-controls button.preview,
-.gate-controls button.previewing,
-.gate-controls button.selected {
-  border-color: #b29456;
-  background: #f8f0d9;
-  box-shadow: 0 0 0 2px #d7bd7933;
-}
-.gate-controls button.locked {
-  opacity: 0.55;
-}
-.gate-symbol {
-  width: 25px;
-  flex: 0 0 25px;
-  font-size: 25px;
-  line-height: 1;
-  color: #98aa88;
-  text-align: center;
-}
-.gate-controls button.open .gate-symbol {
-  color: #578d63;
-}
-.gate-number,
-.gate-index {
-  display: inline-grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
-  background: #e4e9dc;
-  border-radius: 50%;
-  color: #8a9b7e;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-.gate-controls strong,
-.gate-name {
-  font-size: 13px;
-  letter-spacing: 0.6px;
-  font-weight: 600;
-}
-.gate-controls small,
-.gate-detail {
-  display: block;
-  color: #94a08b;
-  font-size: 9px;
-  line-height: 1.5;
-  letter-spacing: 0;
-}
-.gate-state,
-.gate-status {
-  margin-left: auto;
-  font-size: 10px;
-  color: #8b977f;
-  white-space: nowrap;
-}
-.gate-state i {
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  margin-right: 5px;
-  background: currentColor;
-  vertical-align: 2px;
-}
-.gate-controls button.open .gate-state,
-.gate-controls button[aria-pressed='true'] .gate-state {
-  color: #40784a;
-}
 .assist-controls {
-  padding-top: 18px;
-  margin-top: 16px;
+  padding-top: 10px;
+  margin-top: 10px;
   border-top: 1px solid #e2e7da;
 }
 .assist-controls > button {
@@ -534,7 +401,7 @@ h1 {
   align-items: center;
   gap: 7px;
   width: 100%;
-  min-height: 35px;
+  min-height: 40px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -577,7 +444,7 @@ h1 {
 .assist-controls > p {
   color: #9aa492;
   font-size: 9px;
-  margin: 2px 0 14px;
+  margin: 0 0 10px;
   line-height: 1.6;
 }
 .utility {
@@ -590,7 +457,7 @@ h1 {
   justify-content: center;
   gap: 5px;
   flex: 1;
-  min-height: 39px;
+  min-height: 44px;
   padding: 5px;
   border: 1px solid #dce2d3;
   background: #f6f8ef;
@@ -611,7 +478,7 @@ h1 {
   align-items: center;
   gap: 9px;
   width: 100%;
-  min-height: 39px;
+  min-height: 44px;
   margin-top: 10px;
   padding: 8px 2px;
   background: transparent;
@@ -629,8 +496,8 @@ h1 {
   background: #f0f5e9;
 }
 .route-panel {
-  margin-top: 32px;
-  padding: 25px 28px 23px;
+  margin-top: 18px;
+  padding: 16px 18px;
   border: 1px solid #dae1d1;
   border-radius: 11px;
   background: #edf0e5;
@@ -655,17 +522,56 @@ h1 {
   font-size: 10px;
   white-space: nowrap;
 }
+.chapter-nav {
+  display: flex;
+  gap: 7px;
+  margin-top: 13px;
+  padding: 1px 1px 3px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b7c9ae transparent;
+}
+.chapter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 0 auto;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid #d1dcc7;
+  border-radius: 6px;
+  background: #f6f8ef;
+  color: #71886a;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.chapter-button small {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.chapter-button:hover {
+  background: #e3ecd9;
+  border-color: #a7ba98;
+}
+.chapter-button.active,
+.chapter-button[aria-pressed='true'] {
+  border-color: #688d72;
+  background: #dbe9d4;
+  color: #285b44;
+  box-shadow: inset 0 -2px 0 #688d72;
+}
 .level-nav {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 21px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
 }
 .level-nav button {
   position: relative;
   min-width: 0;
-  min-height: 70px;
-  padding: 11px 7px;
+  min-height: 57px;
+  padding: 7px 10px;
   border: 1px solid #d7dfcc;
   border-radius: 7px;
   background: #f5f7ed;
@@ -682,8 +588,8 @@ h1 {
 .level-nav button > span:last-child,
 .level-nav button > small {
   display: block;
-  margin-top: 7px;
-  font-size: 9px;
+  margin-top: 4px;
+  font-size: 10px;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -725,7 +631,7 @@ h1 {
   color: #9ca793;
   font-size: 9px;
   letter-spacing: 0.7px;
-  padding: 20px 2px 0;
+  padding: 12px 2px 0;
 }
 .page-footer > span:last-child {
   font-size: 8px;
@@ -739,7 +645,7 @@ h1 {
   padding: 18px;
   background: #0c30354d;
   backdrop-filter: blur(5px);
-  z-index: 3;
+  z-index: 8;
 }
 .result-card {
   width: min(350px, 100%);
@@ -872,242 +778,303 @@ dialog .primary-button {
   width: 100%;
 }
 
-@media (min-width: 1450px) {
-  .station {
-    padding-top: 47px;
-  }
-  .masthead {
-    margin-bottom: 36px;
-  }
+/* Native controls sit on the painted pipe coordinates, not in a remote control panel. */
+.board-scene {
+  position: relative;
+}
+#board-foreground {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+/* The duplicate is visual only: enlarged pipe targets must not cover other valves. */
+#board-foreground * {
+  pointer-events: none;
+}
+#board-controls {
+  position: absolute;
+  inset: 0;
+  z-index: auto;
+  pointer-events: none;
+}
+.scene-valve {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px;
+  border: 0;
+  border-radius: 50%;
+  background: #123538;
+  pointer-events: auto;
+  touch-action: manipulation;
+  box-shadow: 0 2px 4px #082e3260;
+}
+.scene-valve.is-focused {
+  z-index: 4;
+  box-shadow:
+    0 0 0 3px #e9d49470,
+    0 3px 10px #072527a0;
+}
+.scene-valve:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.94);
+}
+.valve-wheel {
+  display: block;
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 4px solid #e9c787;
+  border-radius: 50%;
+  background: #b89458;
+  box-shadow: inset 0 0 0 2px #75633f;
+}
+.valve-wheel::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 5px;
+  left: 4px;
+  top: 12px;
+  border-radius: 3px;
+  background: #234b48;
+  transform: rotate(90deg);
+  transition: transform 0.18s ease;
+}
+.valve-wheel::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  left: 11px;
+  top: 11px;
+  border-radius: 50%;
+  background: #e5c78d;
+  box-shadow: 0 0 0 2px #31534b;
+}
+.scene-valve.open .valve-wheel {
+  border-color: #b2ead3;
+  background: #71b39c;
+  box-shadow: inset 0 0 0 2px #416f61;
+}
+.scene-valve.open .valve-wheel::before {
+  transform: rotate(0);
+}
+.scene-valve.open .valve-wheel::after {
+  background: #b2ead3;
+}
+.scene-valve:hover:not(:disabled) .valve-wheel {
+  filter: brightness(1.18);
+}
+.scene-valve.selected {
+  outline: 2px solid #f7f8db;
+  outline-offset: 3px;
+}
+.scene-valve.locked .valve-wheel {
+  border-color: #899c8b;
+  background: #6c7e70;
+}
+.scene-valve.locked .valve-wheel::before {
+  transform: rotate(45deg);
+}
+.scene-valve[aria-disabled='true'] {
+  cursor: default;
+}
+.scene-valve:disabled {
+  opacity: 0.65;
+}
+.valve-label {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  min-width: 44px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #153e40;
+  color: #d3e8cc;
+  font-size: 10px;
+  line-height: 13px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.valve-state {
+  font-size: 9px;
+  color: #e1bf81;
+}
+.scene-valve.open .valve-state {
+  color: #b2ead3;
+}
+.scene-valve.selected .valve-state {
+  color: #fffbe2;
+}
+.board-instruction {
+  margin: 8px 0 0;
+  color: #527e67;
+  font-size: 11px;
+  letter-spacing: 0.4px;
 }
 @media (max-width: 1150px) {
   .station {
-    padding: 26px 28px 20px;
+    padding: 12px 22px 16px;
   }
   .game-layout {
-    grid-template-columns: minmax(0, 1fr) 268px;
-    gap: 23px;
+    grid-template-columns: minmax(0, 1fr) 244px;
+    gap: 15px;
   }
   .control-panel {
-    padding: 21px 18px 18px;
-  }
-  .control-panel > h2 {
-    font-size: 20px;
+    padding: 14px;
   }
   .board-legend {
-    gap: 12px;
+    gap: 10px;
   }
   .board-legend .arcade-note {
     width: 100%;
-    margin: -5px 0 0;
-  }
-  .route-panel {
-    margin-top: 25px;
+    margin: -3px 0 0;
   }
 }
 @media (max-width: 780px) {
   .station {
     width: min(680px, 100%);
-    padding: 23px 22px 18px;
+    padding: 10px 16px 16px;
   }
   .masthead {
-    padding-bottom: 22px;
-    margin-bottom: 20px;
+    margin-bottom: 4px;
   }
   .game-layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 21px;
+    gap: 13px;
   }
   .stage-header {
     min-height: 50px;
-    margin-bottom: 16px;
   }
   .board-legend .arcade-note {
     width: auto;
     margin: 0 0 0 auto;
   }
   .control-panel {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 20px;
-    padding: 20px 23px;
+    padding: 13px 16px;
   }
-  .control-heading,
-  .control-panel > h2,
-  .control-intro,
-  .assist-controls,
-  .utility,
-  .extra-button {
-    grid-column: 1 / -1;
-  }
-  .control-panel > h2 {
-    margin-top: 10px;
-  }
-  .control-intro {
-    margin-bottom: 15px;
-  }
-  .desktop-break {
-    display: none;
-  }
-  .objectives-heading {
-    grid-column: 1;
-    grid-row: 4;
+  .control-heading {
+    margin-bottom: 10px;
   }
   .objectives {
-    grid-column: 1;
-    grid-row: 5;
     align-content: start;
-    margin: 11px 0 0;
-    gap: 8px;
-  }
-  .valves-heading {
-    grid-column: 2;
-    grid-row: 4;
-    border-top: 0;
-    padding: 0;
-    margin: 0;
-  }
-  .valves-heading > span {
-    font-size: 8px;
-  }
-  .gate-controls {
-    grid-column: 2;
-    grid-row: 5;
-    align-content: start;
-    padding-top: 11px;
+    margin: 8px 0 0;
+    gap: 5px;
   }
   .assist-controls {
-    margin-top: 17px;
-    padding-top: 13px;
-  }
-  .utility > button {
-    min-height: 44px;
-  }
-  .extra-button {
-    min-height: 44px;
-  }
-  .level-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 9px;
-  }
-  .level-nav button {
-    min-height: 64px;
-    padding-left: 11px;
+    margin-top: 10px;
+    padding-top: 7px;
   }
   .route-panel {
-    padding: 21px 23px;
+    padding: 13px 16px;
+    margin-top: 15px;
+  }
+  .chapter-button {
+    padding-inline: 10px;
   }
 }
 @media (max-width: 480px) {
   .station {
-    padding: 19px 14px max(16px, env(safe-area-inset-bottom));
+    padding: 8px 10px max(12px, env(safe-area-inset-bottom));
   }
   .masthead {
-    padding-bottom: 19px;
-    margin-bottom: 16px;
+    min-height: 42px;
+    padding-bottom: 5px;
   }
   .brand {
-    gap: 10px;
+    gap: 8px;
   }
   .brand-icon {
-    width: 43px;
-    height: 43px;
-    border-radius: 12px;
-    font-size: 38px;
-  }
-  .brand .eyebrow {
-    font-size: 7px;
-    letter-spacing: 1px;
+    width: 29px;
+    height: 29px;
+    border-radius: 9px;
+    font-size: 28px;
   }
   h1 {
-    font-size: 23px;
-    letter-spacing: 1px;
-    margin-top: 4px;
-  }
-  .edition {
-    font-size: 8px;
-    margin-left: 5px;
-    padding: 1px 3px;
-  }
-  .online {
-    display: none;
+    font-size: 19px;
+    letter-spacing: 0.5px;
   }
   .header-actions {
-    gap: 6px;
+    gap: 4px;
   }
   .icon-button {
-    width: 35px;
-    min-height: 35px;
+    width: 36px;
+    min-height: 36px;
   }
   .stage-title {
-    gap: 10px;
+    gap: 9px;
   }
   .stage-number {
-    font-size: 27px;
+    font-size: 25px;
   }
   .stage-title .eyebrow {
     font-size: 8px;
     letter-spacing: 0.5px;
   }
   .stage-title h2 {
-    font-size: 16px;
-    margin-top: 5px;
+    font-size: 15px;
+    margin-top: 3px;
   }
   .turn-display {
-    gap: 5px;
+    gap: 4px;
   }
   .turn-display > span {
     font-size: 9px;
   }
   .turn-display strong {
-    font-size: 29px;
+    font-size: 27px;
   }
   .board-wrap {
     border-radius: 9px;
   }
   .board-topline {
-    padding: 12px 14px 0;
+    min-height: 20px;
+    padding: 4px 11px 0;
     font-size: 8px;
     letter-spacing: 0;
   }
   .board-legend {
-    gap: 12px;
+    gap: 8px;
     font-size: 8px;
-    margin-top: 14px;
+    margin-top: 9px;
   }
   .board-legend .arcade-note {
     width: 100%;
-    margin: -6px 0 0;
+    margin: -3px 0 0;
     font-size: 8px;
   }
   .dispatch {
-    padding: 15px 13px 13px;
-    min-height: 75px;
-    margin-top: 14px;
-    gap: 9px;
+    padding: 8px 10px;
+    margin-top: 9px;
+    gap: 7px;
   }
   .dispatch p {
     font-size: 11px;
-    line-height: 1.75;
-    margin-top: 4px;
+    line-height: 1.6;
   }
   .dispatch-icon {
-    font-size: 24px;
+    font-size: 20px;
   }
   .control-panel {
-    padding: 18px 14px;
-    column-gap: 14px;
-  }
-  .control-panel > h2 {
-    font-size: 20px;
-    margin: 10px 0 5px;
-  }
-  .control-intro {
-    font-size: 10px;
+    padding: 12px;
   }
   .objectives li {
     font-size: 10px;
-    gap: 7px;
+    flex-wrap: wrap;
+    column-gap: 5px;
+    row-gap: 2px;
   }
   .objectives li > span:first-child,
   .objective-check {
@@ -1115,58 +1082,15 @@ dialog .primary-button {
     height: 18px;
     flex-basis: 18px;
   }
-  .gate-controls {
-    gap: 7px;
-  }
-  .gate-controls button {
-    padding: 9px 8px;
-    gap: 6px;
-    min-height: 51px;
-  }
-  .gate-number,
-  .gate-index {
-    width: 21px;
-    height: 21px;
-    flex-basis: 21px;
-    font-size: 9px;
-  }
-  .gate-symbol {
-    width: 19px;
-    flex-basis: 19px;
-    font-size: 21px;
-  }
-  .gate-controls strong,
-  .gate-name {
-    font-size: 11px;
-  }
-  .gate-state,
-  .gate-status {
-    font-size: 9px;
-  }
-  .gate-state i {
-    display: none;
+  .objectives li > span:nth-child(2) {
+    flex: 1;
   }
   .objective-value {
     font-size: 8px;
   }
-  .objectives li {
-    flex-wrap: wrap;
-    column-gap: 5px;
-    row-gap: 2px;
-  }
-  .objectives li > span:nth-child(2) {
-    flex: 1;
-  }
-  .objectives li .objective-value {
-    flex-basis: 100%;
-    padding-left: 23px;
-  }
-  .gate-controls small {
-    font-size: 8px;
-  }
   .route-panel {
-    padding: 20px 16px;
-    margin-top: 22px;
+    padding: 12px 10px;
+    margin-top: 13px;
   }
   .route-heading h2 {
     font-size: 12px;
@@ -1178,25 +1102,43 @@ dialog .primary-button {
   .route-heading .eyebrow {
     font-size: 8px;
   }
+  .chapter-nav {
+    gap: 5px;
+    margin-top: 9px;
+  }
+  .chapter-button {
+    padding-inline: 9px;
+    font-size: 10px;
+  }
   .level-nav {
-    margin-top: 17px;
-    gap: 7px;
+    gap: 5px;
+    margin-top: 7px;
   }
   .level-nav button {
-    min-height: 62px;
-    padding: 9px 8px;
+    min-height: 56px;
+    padding: 6px 5px;
+  }
+  .level-nav button > span:first-child,
+  .level-nav button > strong {
+    font-size: 17px;
   }
   .level-nav button > span:last-child,
   .level-nav button > small {
     font-size: 8px;
   }
+  .level-nav .level-check,
+  .level-nav .level-stars {
+    top: 7px;
+    right: 5px;
+    font-size: 8px;
+  }
   .page-footer {
     font-size: 8px;
-    padding-top: 18px;
+    padding-top: 10px;
   }
   .page-footer > span:last-child {
     font-size: 6px;
-    letter-spacing: 0.7px;
+    letter-spacing: 0.4px;
   }
   .result {
     padding: 10px;
