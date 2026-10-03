@@ -1,0 +1,127 @@
+export const HZ = 30;
+export const PLAYER_Z = 7;
+export const RULES_VERSION = 'p1.1';
+export type WeaponId = 'rifle' | 'shotgun' | 'grenade';
+export type EnemyKind = 'walker' | 'runner' | 'shield' | 'boss';
+export type Side = -1 | 1;
+export type Reward =
+  | { kind: 'weapon'; weapon: WeaponId; count: number }
+  | { kind: 'rescue' | 'shield' | 'heal' | 'haste' | 'mechanism'; amount: number };
+export type SupplyConfig = {
+  id: string;
+  name: string;
+  side: Side;
+  start: number;
+  end: number;
+  tiers: { damage: number; label: string; reward: Reward }[];
+  group?: string;
+  hint: string;
+  zStart?: number;
+  zEnd?: number;
+};
+export type Wave = {
+  id: string;
+  tick: number;
+  kind: EnemyKind;
+  count: number;
+  x?: number;
+  z?: number;
+  hp?: number;
+};
+export type Level = {
+  id: string;
+  title: string;
+  subtitle: string;
+  seed: number;
+  duration: number;
+  bossRequired: boolean;
+  waves: Wave[];
+  supplies: SupplyConfig[];
+  formation: boolean;
+};
+export type Member = { id: number; hp: number; weapon: WeaponId; nextShot: number };
+export type Enemy = {
+  id: string;
+  kind: EnemyKind;
+  x: number;
+  z: number;
+  hp: number;
+  maxHp: number;
+  nextAttack: number;
+  hitTick: number;
+  born: number;
+  aimX: number;
+  armorUntil: number;
+  dashX: number;
+  dashZ: number;
+};
+export type Supply = {
+  config: SupplyConfig;
+  damage: number;
+  claimed: number;
+  status: 'waiting' | 'active' | 'claimed' | 'expired' | 'excluded';
+};
+export type Projectile = {
+  id: string;
+  x: number;
+  z: number;
+  fromX: number;
+  fromZ: number;
+  toX: number;
+  toZ: number;
+  born: number;
+  land: number;
+  damage: number;
+  supplyId: string | null;
+};
+export type Effect = {
+  id: number;
+  kind: 'shot' | 'hit' | 'death' | 'reward' | 'hurt' | 'blast' | 'warning';
+  tick: number;
+  x: number;
+  z: number;
+  toX?: number;
+  toZ?: number;
+  label?: string;
+  weapon?: WeaponId;
+  memberId?: number;
+  entityId?: string;
+  enemyKind?: EnemyKind;
+  surface?: 'flesh' | 'armor' | 'supply';
+  fromX?: number;
+  fromZ?: number;
+};
+export type Input = { moveX?: number; targetX?: number; skill?: boolean; formation?: boolean };
+export type GameState = {
+  level: Level;
+  seed: number;
+  tick: number;
+  phase: 'playing' | 'won' | 'lost';
+  reason: string;
+  x: number;
+  members: Member[];
+  nextMember: number;
+  shield: number;
+  formation: 'compact' | 'wide';
+  focus: string | null;
+  candidate: string | null;
+  focusTicks: number;
+  enemies: Enemy[];
+  supplies: Supply[];
+  projectiles: Projectile[];
+  effects: Effect[];
+  effectId: number;
+  skillReady: number;
+  hasteUntil: number;
+  bossDefeated: boolean;
+  grants: { id: string; tick: number; label: string }[];
+  stats: {
+    kills: number;
+    rescued: number;
+    lost: number;
+    forwardDamage: number;
+    supplyDamage: number;
+    shots: number;
+    score: number;
+  };
+};

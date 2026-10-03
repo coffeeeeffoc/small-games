@@ -7,6 +7,13 @@
     "output": "dist"
   },
   {
+    "id": "urban-breakout",
+    "source": "games/local/urban-breakout",
+    "title": "街区突围",
+    "description": "橙白救援小队穿越老街，转火击破限时补给，回防冲刺尸潮。P1 单人实战样板。",
+    "output": "dist"
+  },
+  {
     "id": "homebound-station",
     "source": "games/local/homebound-station",
     "title": "归途站",

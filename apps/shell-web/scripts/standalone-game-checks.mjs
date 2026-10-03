@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 
 export const markers = {
   'maze-wander': '#start',
+  'urban-breakout': '#start',
   'homebound-station': '[data-level="0"]',
   'balloon-movers': '#launch',
   'weather-command': '#board[data-level="1"]',
@@ -83,6 +84,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
+  } else if (id === 'urban-breakout') {
+    await click(frame.locator('#start'));
+    await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
+    await expect.poll(() => frame.locator('body').evaluate(() => globalThis.urbanSnapshot().tick)).toBeGreaterThan(15);
+    await click(frame.locator('#pause'));
+    await expect(frame.getByRole('dialog', { name: '暂停菜单' })).toBeVisible();
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
   } else if (id === 'homebound-station') {
     await click(frame.locator('[data-level="0"]'));
     await click(frame.locator('[data-vehicle="巡01"]'));

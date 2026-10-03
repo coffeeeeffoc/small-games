@@ -1,0 +1,10 @@
+{
+  "kind": "local headless core throughput, NOT online concurrency",
+  "runs": 100,
+  "ticks": 86780,
+  "peakEnemies": 12,
+  "elapsedMs": 295,
+  "node": "v24.21.0",
+  "os": "win32",
+  "cpu": "12th Gen Intel(R) Core(TM) i7-12700KF"
+}

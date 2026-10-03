@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "errors": [],
+  "beforeExitTick": 49,
+  "freshEntryTick": 0,
+  "note": "Actual Shell iframe, start/pause/resume, route exit/remount; only this game artifact refreshed."
+}
