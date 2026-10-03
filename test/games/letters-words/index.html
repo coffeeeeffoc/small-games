@@ -229,7 +229,7 @@
     </div>
 
     <dialog id="library-dialog" class="modal library-modal" aria-labelledby="library-title">
-      <div class="modal-heading"><span class="eyebrow">MY WORD LIBRARY</span><button class="icon-button close-dialog" aria-label="关闭词库管理">×</button></div>
+      <div class="modal-heading"><span class="eyebrow">MY WORD LIBRARY</span></div>
       <h2 id="library-title">我的教材词库</h2>
       <p id="library-note" class="input-note">词库按书独立下载，练习只使用已加载的内容。</p>
       <section class="library-section" aria-labelledby="download-title">
@@ -271,6 +271,7 @@
           <p id="practice-summary" class="input-note" aria-live="polite">先下载，再选择整册或单元。</p>
           <p id="practice-size-error" class="form-error" role="alert" hidden></p>
           <button id="start-practice" class="button button-green full-width" disabled>开始所选练习</button>
+          <button class="button close-dialog full-width">返回拼词</button>
         </div>
       </section>
     </dialog>
@@ -278,9 +279,7 @@
     <dialog id="words-dialog" class="modal">
       <div class="modal-heading">
         <span class="eyebrow">YOUR OWN WORD GARDEN</span
-        ><button class="icon-button close-dialog" aria-label="关闭词单编辑">
-          <svg class="icon"><use href="#i-close" /></svg>
-        </button>
+        >
       </div>
       <h2>今天，想记住哪些词？</h2>
       <p class="modal-description">
@@ -307,14 +306,13 @@
           </button>
         </div>
       </form>
+      <button class="button close-dialog full-width">取消编辑，返回拼词</button>
     </dialog>
 
     <dialog id="help-dialog" class="modal help-modal">
       <div class="modal-heading">
         <span class="eyebrow">HOW TO PLAY</span
-        ><button class="icon-button close-dialog" aria-label="关闭玩法说明">
-          <svg class="icon"><use href="#i-close" /></svg>
-        </button>
+        >
       </div>
       <h2>三个小步骤，拼出好记性。</h2>
       <ol class="help-steps">
@@ -354,9 +352,7 @@
     <dialog id="win-dialog" class="modal win-modal">
       <div class="modal-heading">
         <span class="eyebrow">A LITTLE WIN FOR TODAY</span
-        ><button class="icon-button close-dialog" aria-label="查看完成的棋盘">
-          <svg class="icon"><use href="#i-close" /></svg>
-        </button>
+        >
       </div>
       <div class="win-badge" aria-hidden="true">
         <svg class="icon"><use href="#i-leaf" /></svg><span>✦</span>
@@ -370,6 +366,7 @@
       <button id="play-again" class="button button-green full-width">
         <svg class="icon"><use href="#i-refresh" /></svg> 再种一片单词花园
       </button>
+      <button class="button close-dialog full-width">查看完成的棋盘</button>
     </dialog>
     <div id="confetti" class="confetti" aria-hidden="true"></div>
   </body>
