@@ -353,6 +353,9 @@ importers:
       '@coffeeeeffoc/balloon-movers':
         specifier: workspace:*
         version: link:../../games/local/balloon-movers
+      '@coffeeeeffoc/bullet-garden':
+        specifier: workspace:*
+        version: link:../../games/local/bullet-garden
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
@@ -648,6 +651,8 @@ importers:
   games/local/afterimage-arena: {}
 
   games/local/balloon-movers: {}
+
+  games/local/bullet-garden: {}
 
   games/local/carding-car:
     devDependencies:
