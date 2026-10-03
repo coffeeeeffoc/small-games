@@ -318,7 +318,7 @@
     "id": "two-sided-box",
     "source": "games/local/two-sided-box",
     "title": "双面机关盒",
-    "description": "左右同时观察正面和背面，操作共享的滑轴、锁扣和挡板，让小球穿过六个机械谜盒。",
+    "description": "从随机两个角度观察六面机关，逐面揭示线索、对齐孔板，让小球穿过五十个谜盒，通关后旋转查看完整三维结构。",
     "output": "dist"
   },
   {
