@@ -66,6 +66,9 @@ jobs:
       - name: Test game registration checker
         run: pnpm test:game-config
 
+      - name: Test local format hooks
+        run: pnpm test:hooks
+
       - name: Test Pages environment assembly
         run: python3 scripts/test-pages-deploy.py
 

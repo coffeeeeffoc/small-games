@@ -39,6 +39,16 @@ pnpm test
 pnpm build
 ```
 
+## 提交与推送检查
+
+`pnpm install --frozen-lockfile` 的 `prepare` 会在当前仓库设置 `core.hooksPath=.githooks`。已有依赖时可运行 `pnpm prepare` 重新启用，使用 `git config --show-origin --get core.hooksPath` 核实应指向 `.githooks`。
+
+- 提交前：`pre-commit` 运行 `pnpm format:staged`，用锁定的 Prettier 检查暂存区内新增、修改和重命名文件的内容，不改写文件或暂存区；未暂存的格式修复不能掩盖即将提交的错误。
+- 推送前：`pre-push` 依次运行 `pnpm format:check`（与 CI 相同的全仓范围）和 `pnpm check:games`，任一步失败都会阻止推送。
+- 格式修复：运行 `pnpm exec prettier --write <文件路径>` 后重新 `git add <文件路径>`。`pnpm test:hooks` 验证真实 hooks 的成功与拦截行为，CI 也执行这些回归测试。
+
+提交检查沿用当前工作树的 Prettier 配置和忽略规则，配置修改也应一并暂存。推送检查覆盖当前工作树，不能代替对待推送提交的 CI 检查；本地 hooks 也依赖已安装的依赖、启用的 hooksPath 和正常执行 Git hooks。远端 CI 继续独立执行全仓格式检查及后续质量检查。
+
 Android 安装包：配置 JDK 17 和 Android SDK 34 后运行 `pnpm android:apk`，将 Web 大厅和六个游戏嵌入 APK，支持离线游玩。工程、Android Studio 操作和设备验证见 [Android Shell](apps/shell-android/README.md)。
 
 ## 广告模式
