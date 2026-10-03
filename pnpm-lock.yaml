@@ -452,6 +452,9 @@ importers:
       '@coffeeeeffoc/travel2':
         specifier: workspace:*
         version: link:../../games/local/travel2
+      '@coffeeeeffoc/two-sided-box':
+        specifier: workspace:*
+        version: link:../../games/local/two-sided-box
       '@coffeeeeffoc/urban-breakout':
         specifier: workspace:*
         version: link:../../games/local/urban-breakout
@@ -1324,6 +1327,8 @@ importers:
       vite:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+
+  games/local/two-sided-box: {}
 
   games/local/urban-breakout:
     dependencies:
