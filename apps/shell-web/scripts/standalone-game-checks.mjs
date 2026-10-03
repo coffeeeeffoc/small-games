@@ -17,7 +17,7 @@ export const markers = {
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'echo-weaver': '#emit',
-  'ink-is-everything': '#game-root',
+  'ink-is-everything': '#start-game',
   'out-of-frame': '#board[data-level="1"]',
   'two-sided-box': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
@@ -345,17 +345,76 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
   } else if (id === 'ink-is-everything') {
+    const page = frame.locator('#game-canvas').page();
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__inkGame.snapshot());
     await click(frame.locator('#start-game'));
-    await expect(frame.locator('#game-root')).toHaveAttribute('data-started', 'true');
-    const ink = () =>
-      frame
-        .locator('#ink-value')
-        .textContent()
-        .then((value) => parseInt(value, 10));
-    const before = await ink();
-    await click(frame.locator('[data-room="crossing"]'));
-    await click(frame.locator('#primary-action'));
-    await expect.poll(ink).toBeLessThan(before);
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-status', 'playing');
+    await expect(frame.locator('#game-canvas')).toBeVisible();
+
+    // Exercise continuous movement with real keyboard/touch input, including release.
+    const initialPlayer = (await snapshot()).player;
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        const bounds = await frame.locator('#joystick').boundingBox();
+        const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, ...start }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+        });
+      } else {
+        await page.keyboard.down('d');
+      }
+      await expect
+        .poll(async () => (await snapshot()).player.x - initialPlayer.x)
+        .toBeGreaterThan(12);
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.keyboard.up('d');
+      }
+    }
+    const releasedPlayer = (await snapshot()).player;
+    await page.waitForTimeout(160);
+    expect(Math.abs((await snapshot()).player.x - releasedPlayer.x)).toBeLessThan(2);
+
+    // The same finite ink meter must pay for firing, on both direct and embedded pages.
+    const inkBefore = (await snapshot()).player.ink;
+    const fire = await frame.locator('#fire').boundingBox();
+    const firingTouch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (firingTouch) {
+        await firingTouch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, x: fire.x + fire.width / 2, y: fire.y + fire.height / 2 }],
+        });
+      } else {
+        await page.mouse.move(fire.x + fire.width / 2, fire.y + fire.height / 2);
+        await page.mouse.down();
+      }
+      await expect.poll(async () => (await snapshot()).player.ink).toBeLessThan(inkBefore);
+    } finally {
+      if (firingTouch) {
+        await firingTouch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await firingTouch.detach();
+      } else {
+        await page.mouse.up();
+      }
+    }
+    await click(frame.locator('#pause'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
+    const pausedTime = (await snapshot()).time;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).time).toBe(pausedTime);
+    await click(frame.locator('#resume'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
   } else if (id === 'waterline-station') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
     await expect(frame.locator('#level-name')).not.toBeEmpty();

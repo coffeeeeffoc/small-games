@@ -1,67 +1,95 @@
 {
-  "url": "http://127.0.0.1:4412/",
-  "date": "2026-10-03T07:16:54.757Z",
+  "url": "http://127.0.0.1:4416",
+  "date": "2026-10-03T14:35:02.181Z",
+  "input": "Public mouse, keyboard and native multi-touch events; snapshots read-only",
   "cases": [
     {
-      "name": "Desktop direct route, native keyboard, pause/help input lock, gate selection cancellation, victory and restart",
+      "name": "Desktop direct movement, one-viewport layout, real pause bars, complete simulation/input pause",
+      "status": "passed"
+    },
+    {
+      "name": "Desktop full chapter: mixed ranged / melee combat, drawn bridge + archive reward, contract, save/resume, both seals and boss",
       "status": "passed",
-      "summary": {
-        "title": "利墨破局者",
-        "turns": 21,
-        "explored": 7,
-        "totalRooms": 13,
-        "inkRemaining": 9,
-        "totalSpent": 81,
+      "stats": {
         "spent": {
-          "explore": 36,
-          "attack": 45,
+          "attack": 160,
           "heal": 0,
-          "trade": 0
+          "explore": 8,
+          "trade": 18
         },
-        "efficiency": "行云流水"
-      }
+        "shots": 80,
+        "hits": 103,
+        "freeAttacks": 102,
+        "dashes": 15,
+        "enemiesDefeated": 20,
+        "inkRecovered": 143,
+        "damageTaken": 3,
+        "roomsVisited": 6,
+        "heals": 0,
+        "trades": 1,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 186
+      },
+      "elapsedGameSeconds": 71.81666666666388,
+      "finalInk": 21,
+      "finalHp": 4
     },
     {
-      "name": "390×844 native touch, both contracts, all 13 rooms, combat healing, mid-fight reload, saved restart confirmation, reward selection cancellation and victory",
+      "name": "390×844 native three-finger movement / fire / melee and touchcancel releases every held input",
+      "status": "passed"
+    },
+    {
+      "name": "Touch full chapter: free melee focused combat, drawn bridge + archive reward, contract, save/resume, both seals and boss",
       "status": "passed",
-      "summary": {
-        "title": "绘界旅人",
-        "turns": 36,
-        "explored": 13,
-        "totalRooms": 13,
-        "inkRemaining": 50,
-        "totalSpent": 112,
+      "stats": {
         "spent": {
-          "explore": 42,
-          "attack": 40,
-          "heal": 8,
-          "trade": 22
+          "attack": 4,
+          "heal": 0,
+          "explore": 8,
+          "trade": 18
         },
-        "efficiency": "从容有度"
-      }
+        "shots": 2,
+        "hits": 126,
+        "freeAttacks": 220,
+        "dashes": 38,
+        "enemiesDefeated": 20,
+        "inkRecovered": 66,
+        "damageTaken": 6,
+        "roomsVisited": 6,
+        "heals": 0,
+        "trades": 1,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 30
+      },
+      "elapsedGameSeconds": 116.13333333332803,
+      "finalInk": 100,
+      "finalHp": 4
     },
     {
-      "name": "Ignoring enemy intent causes loss; terminal save is removed; result restart restores full resources",
+      "name": "Real enemy damage, shared-pool healing, eventual defeat and public restart with fresh resources",
       "status": "passed"
     },
     {
-      "name": "Unavailable local storage does not block touch exploration, rewards, pause or sound preference",
-      "status": "passed"
-    },
-    {
-      "name": "Native mouse drag draws an adjacent room and returns along a free existing route",
-      "status": "passed"
-    },
-    {
-      "name": "Native touch (including cancellation) drag draws an adjacent room and returns along a free existing route",
+      "name": "Unavailable browser storage does not prevent native touch movement and shooting",
       "status": "passed"
     }
   ],
   "screenshots": [
     "screenshots/desktop-opening.png",
-    "screenshots/desktop-combat.png",
+    "screenshots/desktop-bridge.png",
+    "screenshots/desktop-market.png",
+    "screenshots/desktop-boss.png",
     "screenshots/desktop-victory.png",
-    "screenshots/mobile-combat.png"
+    "screenshots/mobile-combat.png",
+    "screenshots/mobile-bridge.png",
+    "screenshots/mobile-market.png",
+    "screenshots/mobile-boss.png",
+    "screenshots/mobile-victory.png",
+    "screenshots/desktop-defeat.png"
   ],
   "errors": [],
   "status": "passed"

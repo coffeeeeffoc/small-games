@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-03T14:41:36.067Z",
+  "url": "http://127.0.0.1:4416",
+  "viewport": "390×844",
+  "input": "Native four-finger touch events; snapshot reads only",
+  "cases": [
+    {
+      "name": "Single-finger pause survives the compatibility click, Space on a focused close button remains paused, and explicit resume works",
+      "status": "passed"
+    },
+    {
+      "name": "Fourth finger heals during simultaneous joystick, ranged and melee input; shared ink pool pays 10",
+      "status": "passed",
+      "hpBefore": 3,
+      "hpAfter": 6
+    },
+    {
+      "name": "Fourth finger pauses, cancels all captures and held controls, freezes simulation even with Space on a focused button, then resumes without stale movement or attacks",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

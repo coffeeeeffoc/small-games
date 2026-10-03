@@ -1,344 +1,456 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { act, createGame, getIntent, getOptions, getRoom } from './engine.mjs';
 import { LEVELS } from './levels.mjs';
+import {
+  createGame,
+  step,
+  command,
+  getRoom,
+  getNearbyInteractable,
+  serializeGame,
+  restoreGame,
+} from './engine.mjs';
 
-function run(state, type, target) {
-  const result = act(state, { type, ...(target ? { target } : {}) });
-  assert.equal(result.ok, true, `${type} ${target ?? ''}: ${result.message}`);
-  return result.state;
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const normalize = (x, y) => {
+  const d = Math.hypot(x, y) || 1;
+  return { x: x / d, y: y / d };
+};
+const tick = (game, input = {}, count = 1) => {
+  for (let i = 0; i < count; i++) step(game, input, 0.05);
+};
+function start(id) {
+  const game = createGame(id);
+  command(game, { type: 'start' });
+  return game;
+}
+let fixtureCounter = 0;
+function fixture({
+  roomId = 'arrival',
+  spawn = { x: 150, y: 300 },
+  initial = {},
+  enemies = [],
+  obstacles = [],
+} = {}) {
+  const level = structuredClone(LEVELS['chapter-1']);
+  level.id = `fixture-${++fixtureCounter}`;
+  level.start = roomId;
+  level.spawn = spawn;
+  Object.assign(level.initial, initial);
+  const room = level.rooms.find((item) => item.id === roomId);
+  room.enemySpawns = enemies;
+  room.waves = [];
+  room.obstacles = obstacles;
+  LEVELS[level.id] = level;
+  return start(level.id);
 }
 
-function travel(state, id, method = 'draw') {
-  return run(state, getRoom(state, id).revealed ? 'move' : method, id);
-}
-
-function fight(state, strategy = 'balanced') {
-  let budget = 100;
-  while (state.status === 'playing' && getRoom(state).enemy?.hp > 0) {
-    assert.ok(budget-- > 0, 'Every fight must make finite progress.');
-    const enemy = getRoom(state).enemy;
-    const attack = getOptions(state).find((option) => option.type === 'attack');
-    const damage = state.contracts.includes('fine-nib') ? 6 : 4;
-    let type = 'dry';
-    if (strategy !== 'dry' && attack.enabled && (enemy.hp > 1 + state.focus || enemy.hp <= damage))
-      type = 'attack';
-    if (
-      getIntent(state).damage > 0 &&
-      (type === 'dry' ? enemy.hp > 1 + state.focus : enemy.hp > damage)
-    )
-      type = 'guard';
-    state = run(state, type);
-  }
-  assert.notEqual(state.status, 'lost', 'Readable intentions should support a no-damage strategy.');
-  return state;
-}
-
-function directClear(initial, method, strategy) {
-  let state = initial;
-  state = travel(state, 'crossing', method);
-  state = travel(state, 'sentinel', method);
-  state = fight(state, strategy);
-  state = run(state, 'claim');
-  state = travel(state, 'causeway', method);
-  state = travel(state, 'warden', method);
-  state = fight(state, strategy);
-  state = run(state, 'claim');
-  state = travel(state, 'threshold', method);
-  state = run(state, 'unlock');
-  state = travel(state, 'gate', method);
-  return fight(state, strategy);
-}
-
-test('a direct ink-first route finishes safely with two seals', () => {
-  const state = directClear(createGame(), 'draw', 'balanced');
-  assert.equal(state.status, 'won');
-  assert.equal(state.seals, 2);
-  assert.equal(state.hp, 5);
-  assert.ok(state.stats.spent.attack > 0);
-  assert.equal(state.stats.spent.explore, 36);
-  assert.ok(state.ink >= 0);
-  assert.equal(state.summary.explored, 7);
-  assert.ok(state.turn < 45);
-  assert.equal(state.summary.efficiency, '行云流水');
+test('ready/finished simulations freeze, and tab-resume dt is bounded', () => {
+  const game = createGame();
+  const x = game.player.x;
+  tick(game, { moveX: 1 }, 10);
+  assert.equal(game.player.x, x);
+  command(game, { type: 'start' });
+  step(game, { moveX: 1 }, 20);
+  assert.ok(game.player.x - x <= 11.11);
+  assert.equal(game.time, 0.05);
 });
 
-test('an exploration and trade route is independently viable', () => {
-  let state = createGame();
-  state = travel(state, 'crossing');
-  state = travel(state, 'market');
-  state = run(state, 'buy', 'fine-nib');
-  state = run(state, 'buy', 'wayfinder');
-  state = travel(state, 'reliquary');
-  state = fight(state);
-  state = run(state, 'claim');
-  state = travel(state, 'market');
-  state = travel(state, 'crossing');
-  state = travel(state, 'archive');
-  state = run(state, 'claim');
-  state = travel(state, 'spring');
-  state = travel(state, 'sentinel');
-  state = fight(state);
-  state = run(state, 'claim');
-  state = travel(state, 'garden');
-  state = run(state, 'claim');
-  state = travel(state, 'warden');
-  state = fight(state);
-  state = run(state, 'claim');
-  state = travel(state, 'causeway');
-  state = travel(state, 'lookout');
-  state = run(state, 'claim');
-  state = travel(state, 'threshold');
-  state = run(state, 'unlock');
-  state = travel(state, 'gate');
-  state = fight(state);
-  assert.equal(state.status, 'won');
-  assert.equal(state.stats.roomsRevealed, 13);
-  assert.deepEqual(state.contracts, ['fine-nib', 'wayfinder']);
-  assert.equal(state.stats.spent.trade, 22);
-  assert.ok(state.ink > 0);
+test('walking and dashing collide with a pillar without tunnelling', () => {
+  const game = fixture({
+    spawn: { x: 140, y: 270 },
+    obstacles: [{ x: 200, y: 200, w: 50, h: 150, kind: 'wall' }],
+  });
+  tick(game, { moveX: 1, dash: true }, 50);
+  assert.ok(game.player.x <= 183);
+  assert.equal(game.player.ink, 64);
+  assert.ok(game.stats.dashes >= 2);
 });
 
-test('zero initial ink has a complete path despite nonlethal exploration scrapes', () => {
-  const initial = createGame();
-  initial.ink = 0;
-  const state = directClear(initial, 'trace', 'dry');
-  assert.equal(state.status, 'won');
-  assert.equal(state.hp, 1);
-  assert.equal(state.stats.damageTaken, 4, 'Only exploration scrapes cause damage.');
-  assert.deepEqual(state.stats.spent, { explore: 0, attack: 0, heal: 0, trade: 0 });
-  assert.equal(state.stats.tracedRooms, 6);
-  assert.ok(state.stats.freeAttacks > 0);
-  assert.ok(state.stats.guards > 0);
-  assert.ok(state.turn < 75, 'The fallback must not require unbounded stalling.');
-  assert.ok(
-    state.turn > directClear(createGame(), 'draw', 'balanced').turn,
-    'Spending ink offers visible turn efficiency.',
-  );
-  assert.equal(state.summary.efficiency, '从容有度');
+test('aimed ink projectiles spend two ink and deal three damage on an actual collision', () => {
+  const game = fixture({
+    spawn: { x: 100, y: 300 },
+    enemies: [{ type: 'blot', x: 340, y: 300, speed: 0 }],
+  });
+  tick(game, { shoot: true, aimX: 340, aimY: 300 });
+  assert.equal(game.player.ink, 62);
+  assert.equal(game.enemies[0].hp, 8);
+  tick(game, {}, 10);
+  assert.equal(game.enemies[0].hp, 5);
+  assert.equal(game.stats.hits, 1);
 });
 
-test('zero ink and one starting life can still complete the entire chapter', () => {
-  const initial = createGame();
-  initial.ink = 0;
-  initial.hp = 1;
-  const state = directClear(initial, 'trace', 'dry');
-  assert.equal(state.status, 'won');
-  assert.equal(state.hp, 1);
-  assert.equal(state.stats.damageTaken, 0);
-  assert.equal(state.stats.spent.explore, 0);
-  assert.equal(state.stats.spent.attack, 0);
+test('pillars block shots from reaching enemies behind them', () => {
+  const game = fixture({
+    spawn: { x: 100, y: 300 },
+    enemies: [{ type: 'blot', x: 340, y: 300, speed: 0 }],
+    obstacles: [{ x: 215, y: 250, w: 30, h: 100, kind: 'wall' }],
+  });
+  tick(game, { shoot: true, aimX: 340, aimY: 300 });
+  tick(game, {}, 15);
+  assert.equal(game.enemies[0].hp, 8);
+  assert.equal(game.projectiles.length, 0);
 });
 
-test('tracing trades life and two turns for ink, while drawn and known paths avoid scrapes', () => {
-  const initial = createGame();
-  const traceOption = getOptions(initial).find((option) => option.type === 'trace');
-  assert.match(traceOption.description, /2 回合/);
-  assert.match(traceOption.description, /擦伤不会致死/);
-  const drawn = travel(initial, 'crossing');
-  assert.equal(drawn.hp, 5);
-  assert.equal(drawn.turn, 1);
-  assert.equal(drawn.ink, 66);
-  let traced = travel(initial, 'crossing', 'trace');
-  assert.equal(traced.hp, 4);
-  assert.equal(traced.turn, 2);
-  assert.equal(traced.ink, 72);
-  assert.equal(traced.stats.damageTaken, 1);
-  traced = travel(traced, 'arrival');
-  assert.equal(traced.hp, 4);
-  assert.equal(traced.turn, 3);
-  traced = travel(traced, 'crossing');
-  assert.equal(traced.hp, 4);
-  assert.equal(traced.turn, 4);
-  assert.equal(traced.stats.tracedRooms, 1);
-  assert.equal(act(traced, { type: 'trace', target: 'arrival' }).ok, false);
-  traced.hp = 1;
-  traced = travel(traced, 'archive', 'trace');
-  assert.equal(traced.hp, 1);
-  assert.equal(traced.status, 'playing');
-  assert.equal(traced.turn, 6);
-  assert.equal(traced.stats.damageTaken, 1);
-});
-
-test('zero ink inside a boss fight still permits a complete victory', () => {
-  let state = createGame();
-  state.roomId = 'gate';
-  state.rooms.gate.revealed = true;
-  state.ink = 0;
-  state.hp = 1;
-  state = fight(state, 'dry');
-  assert.equal(state.status, 'won');
-  assert.equal(state.hp, 1);
-});
-
-test('ignoring intent can cause defeat, terminal actions are locked, and restart is clean', () => {
-  let state = createGame();
-  state = travel(state, 'crossing', 'trace');
-  state = travel(state, 'sentinel', 'trace');
-  while (state.status === 'playing') state = run(state, 'dry');
-  assert.equal(state.status, 'lost');
-  assert.equal(state.hp, 0);
-  const snapshot = structuredClone(state);
-  const rejected = act(state, { type: 'heal' });
-  assert.equal(rejected.ok, false);
-  assert.deepEqual(state, snapshot);
-  assert.strictEqual(rejected.state, state);
-  const restarted = run(state, 'restart');
-  assert.deepEqual(restarted, createGame());
-});
-
-test('insufficient ink and invalid destinations are rejected without mutation', () => {
-  let state = createGame();
-  state.ink = 5;
-  const snapshot = structuredClone(state);
-  const draw = act(state, { type: 'draw', target: 'crossing' });
-  assert.equal(draw.ok, false);
-  assert.match(draw.message, /墨水不足/);
-  assert.strictEqual(draw.state, state);
-  assert.deepEqual(state, snapshot);
-  assert.equal(act(state, { type: 'trace', target: 'gate' }).ok, false);
-  state = travel(state, 'crossing', 'trace');
-  state = travel(state, 'sentinel', 'trace');
-  state.ink = 4;
-  assert.equal(act(state, { type: 'attack' }).ok, false);
-  assert.equal(
-    act(state, { type: 'move', target: 'crossing' }).ok,
-    false,
-    'Cannot escape an active encounter.',
-  );
-  state.hp = 4;
-  assert.equal(act(state, { type: 'heal' }).ok, false);
-});
-
-test('all mutations are isolated from earlier snapshots and chapter configuration', () => {
-  const initial = createGame();
-  const initialSnapshot = structuredClone(initial);
-  const configSnapshot = structuredClone(LEVELS);
-  let state = travel(initial, 'crossing', 'trace');
-  state = travel(state, 'sentinel', 'trace');
-  state = run(state, 'dry');
-  assert.deepEqual(initial, initialSnapshot);
-  assert.deepEqual(LEVELS, configSnapshot);
-  assert.equal(getRoom(state).enemy.maxHp, 9);
-  assert.equal(createGame().rooms.sentinel.enemy.maxHp, 7);
-});
-
-test('rewards and contracts cannot be purchased or collected twice', () => {
-  let state = travel(createGame(), 'crossing');
-  state = travel(state, 'archive');
-  state = run(state, 'claim');
-  const afterClaim = state.ink;
-  assert.equal(act(state, { type: 'claim' }).ok, false);
-  state = travel(state, 'crossing');
-  state = travel(state, 'archive');
-  assert.equal(state.ink, afterClaim);
-  assert.equal(act(state, { type: 'claim' }).ok, false);
-  state = travel(state, 'crossing');
-  state = travel(state, 'market');
-  state = run(state, 'buy', 'fine-nib');
-  const bought = structuredClone(state);
-  assert.equal(act(state, { type: 'buy', target: 'fine-nib' }).ok, false);
-  assert.deepEqual(state, bought);
-  state = run(state, 'buy', 'binding');
-  assert.equal(state.maxHp, 6);
-  assert.equal(state.hp, 6);
-  state.hp = 2;
-  state = run(state, 'heal');
-  assert.equal(state.hp, 5, 'Binding increases subsequent heal amount to three.');
-});
-
-test('the gate requires both claimed seals and explicit unlock', () => {
-  let state = createGame();
-  for (const id of ['crossing', 'market', 'causeway', 'lookout', 'threshold'])
-    state = travel(state, id, 'trace');
-  assert.equal(act(state, { type: 'unlock' }).ok, false);
-  assert.equal(act(state, { type: 'trace', target: 'gate' }).ok, false);
-  state.seals = 1;
-  assert.equal(act(state, { type: 'unlock' }).ok, false);
-  state.seals = 2;
-  assert.equal(act(state, { type: 'trace', target: 'gate' }).ok, false);
-  state = run(state, 'unlock');
-  assert.equal(state.seals, 2);
-  state = travel(state, 'gate', 'trace');
-  assert.equal(state.roomId, 'gate');
-});
-
-test('winning locks movement, purchases and loot, while restart remains available', () => {
-  const state = directClear(createGame(), 'draw', 'balanced');
-  for (const action of [
-    { type: 'attack' },
-    { type: 'claim' },
-    { type: 'buy', target: 'binding' },
-    { type: 'move', target: 'threshold' },
-  ]) {
-    const result = act(state, action);
-    assert.equal(result.ok, false);
-    assert.strictEqual(result.state, state);
-  }
+test('dry brush is free, directional, and limited to close range', () => {
+  const game = fixture({
+    initial: { ink: 0 },
+    enemies: [
+      { type: 'blot', x: 210, y: 300 },
+      { type: 'blot', x: 90, y: 300 },
+      { type: 'blot', x: 350, y: 300 },
+    ],
+  });
+  tick(game, { melee: true, aimX: 400, aimY: 300 });
   assert.deepEqual(
-    getOptions(state).map((option) => option.type),
-    ['restart'],
+    game.enemies.map((enemy) => enemy.hp),
+    [6, 8, 8],
   );
-  assert.deepEqual(run(state, 'restart'), createGame());
+  assert.equal(game.player.ink, 0);
+  assert.equal(game.stats.freeAttacks, 1);
+  tick(game, { melee: true, aimX: 400, aimY: 300 }, 2);
+  assert.equal(game.stats.freeAttacks, 1);
 });
 
-test('healing advances enemy intent and defense only grants focus on a real attack', () => {
-  let state = travel(travel(createGame(), 'crossing'), 'sentinel');
-  assert.equal(
-    state.rooms.sentinel.enemy.intentIndex,
-    0,
-    'Entering combat gives time to read the first intent.',
+test('dash grants brief invulnerability and cannot bypass its cooldown', () => {
+  const game = fixture({ initial: { ink: 0 } });
+  tick(game, { dash: true, moveX: 1 });
+  assert.ok(game.player.invuln > 0);
+  tick(game, { dash: true, moveX: 1 }, 4);
+  assert.equal(game.stats.dashes, 1);
+  assert.equal(game.player.ink, 0);
+  tick(game, { dash: true, moveX: 1 }, 20);
+  assert.equal(game.stats.dashes, 2);
+});
+
+test('guard visibly winds up, locks its aim, then commits to a dodgeable charge', () => {
+  const game = fixture({ enemies: [{ type: 'guard', x: 400, y: 300 }] });
+  for (let i = 0; i < 50 && game.enemies[0].state !== 'windup'; i++) tick(game);
+  const enemy = game.enemies[0];
+  assert.equal(enemy.state, 'windup');
+  const direction = { x: enemy.aimX, y: enemy.aimY };
+  tick(game, { moveY: 1 }, 7);
+  assert.equal(enemy.state, 'windup');
+  assert.equal(enemy.aimX, direction.x);
+  assert.equal(enemy.aimY, direction.y);
+  assert.equal(game.player.hp, 6);
+  for (let i = 0; i < 30 && enemy.state === 'windup'; i++) tick(game, { moveY: 1 });
+  assert.equal(enemy.state, 'attack');
+  tick(game, { moveY: 1 }, 12);
+  assert.equal(game.player.hp, 6);
+});
+
+test('standing in an announced lunge causes real damage', () => {
+  const game = fixture({ enemies: [{ type: 'blot', x: 230, y: 300 }] });
+  tick(game, {}, 55);
+  assert.ok(game.player.hp < game.player.maxHp);
+  assert.ok(game.stats.damageTaken > 0);
+});
+
+test('insufficient ink prevents healing and shooting without disabling free actions', () => {
+  const game = fixture({ initial: { ink: 0, hp: 3 } });
+  assert.equal(command(game, { type: 'heal' }).ok, false);
+  tick(game, { shoot: true, melee: true, dash: true, moveX: 1 });
+  assert.equal(game.stats.shots, 0);
+  assert.equal(game.stats.freeAttacks, 1);
+  assert.equal(game.stats.dashes, 1);
+  assert.equal(game.player.hp, 3);
+});
+
+test('healing draws from the same ink pool and cannot over-heal or spend at full health', () => {
+  const game = fixture({ initial: { hp: 4 } });
+  assert.equal(command(game, { type: 'heal' }).ok, true);
+  assert.equal(game.player.ink, 54);
+  assert.equal(game.player.hp, 6);
+  assert.equal(command(game, { type: 'heal' }).ok, false);
+  assert.equal(game.player.ink, 54);
+});
+
+test('drawing needs the nearby anchor and ink, permanently opens terrain, and pays once', () => {
+  const game = fixture({
+    spawn: { x: 480, y: 240 },
+    obstacles: [{ x: 420, y: 108, w: 120, h: 86, kind: 'pit', bridgeId: 'archive-bridge' }],
+  });
+  tick(game, { moveY: -1 }, 10);
+  assert.ok(game.player.y >= 211);
+  assert.equal(command(game, { type: 'draw', bridgeId: 'archive-bridge' }).ok, true);
+  assert.equal(game.player.ink, 56);
+  assert.equal(command(game, { type: 'draw', bridgeId: 'archive-bridge' }).ok, false);
+  tick(game, { moveY: -1 }, 9);
+  assert.ok(game.player.y < 160);
+  assert.equal(game.stats.spent.explore, 8);
+  const poor = fixture({ spawn: { x: 480, y: 240 }, initial: { ink: 7 } });
+  assert.equal(command(poor, { type: 'draw', bridgeId: 'archive-bridge' }).ok, false);
+});
+
+test('the final portal is locked until both seals have been earned', () => {
+  const game = fixture({ roomId: 'market', spawn: { x: 830, y: 300 } });
+  const result = command(game, { type: 'interact', target: 'market-east' });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /2 枚钥印/);
+  assert.equal(game.roomId, 'market');
+});
+
+test('opened chests issue their finite reward once and nearby pickups are automatic', () => {
+  const game = fixture({
+    roomId: 'archive',
+    spawn: { x: 480, y: 155 },
+    initial: { ink: 20, hp: 3 },
+  });
+  assert.equal(command(game, { type: 'interact', objectId: 'archive-cache' }).ok, true);
+  assert.equal(command(game, { type: 'interact', objectId: 'archive-cache' }).ok, false);
+  tick(game, {}, 20);
+  assert.equal(game.player.ink, 54);
+  assert.equal(game.player.hp, 5);
+  tick(game, {}, 20);
+  assert.equal(game.player.ink, 54);
+});
+
+test('contracts use ink, require the merchant, and cannot be purchased twice', () => {
+  const far = fixture({ roomId: 'market' });
+  assert.equal(command(far, { type: 'buy', contractId: 'fine-nib' }).ok, false);
+  const game = fixture({ roomId: 'market', spawn: { x: 665, y: 190 } });
+  assert.equal(getNearbyInteractable(game).type, 'merchant');
+  assert.equal(command(game, { type: 'interact' }).shop, true);
+  assert.equal(command(game, { type: 'buy', contractId: 'fine-nib' }).ok, true);
+  assert.equal(game.player.ink, 46);
+  assert.equal(command(game, { type: 'buy', contractId: 'fine-nib' }).ok, false);
+  assert.equal(game.player.ink, 46);
+});
+
+test('save round-trips active projectiles and rebinds current-room arrays', () => {
+  const game = start();
+  tick(game, { shoot: true, aimX: 900, aimY: 400 });
+  const restored = restoreGame(serializeGame(game));
+  assert.ok(restored);
+  assert.equal(restored.player.ink, game.player.ink);
+  assert.equal(restored.projectiles.length, game.projectiles.length);
+  assert.equal(restored.enemies, getRoom(restored).enemies);
+  assert.equal(restored.pickups, getRoom(restored).pickups);
+  tick(restored, { moveY: 1 }, 2);
+  assert.ok(restored.time > game.time);
+  assert.equal(restoreGame('{broken'), null);
+  assert.equal(restoreGame({ ...game, version: 1 }), null);
+  assert.equal(restoreGame({ ...game, player: { ...game.player, ink: NaN } }), null);
+});
+
+// Deterministic player driver: it only supplies movement/aim/action input. It never changes
+// player health, enemy health, encounter state, resources, or progression flags.
+let walking = false;
+function clearPath(game, a, b) {
+  const room = getRoom(game);
+  const obstacles = room.obstacles.filter(
+    (o) => !o.bridgeId || !room.bridges.find((bridge) => bridge.id === o.bridgeId)?.drawn,
   );
-  state = run(state, 'guard');
-  assert.equal(state.focus, 0);
-  state = run(state, 'guard');
-  assert.equal(state.focus, 2);
-  assert.equal(state.hp, 5);
-  const before = getRoom(state).enemy.hp;
-  state = run(state, 'dry');
-  assert.equal(getRoom(state).enemy.hp, before - 3);
-  assert.equal(state.focus, 0);
-  state.hp = 2;
-  const turnBefore = getRoom(state).enemy.intentIndex;
-  state = run(state, 'heal');
-  assert.equal(state.hp, 4);
-  assert.equal(getRoom(state).enemy.intentIndex, turnBefore + 1);
-  state = run(state, 'heal');
-  assert.equal(state.hp, 3, 'Healing into a telegraphed attack still takes enemy damage.');
-});
-
-test('full fountains can be saved and rewards respect resource caps', () => {
-  let state = createGame();
-  for (const id of ['crossing', 'archive', 'spring']) state = travel(state, id);
-  assert.equal(act(state, { type: 'claim' }).ok, false);
-  assert.equal(getRoom(state).claimed, false);
-  state.hp = 4;
-  state = run(state, 'claim');
-  assert.equal(state.hp, 5);
-  assert.equal(getRoom(state).claimed, true);
-  state = travel(state, 'archive');
-  state.ink = 98;
-  state = run(state, 'claim');
-  assert.equal(state.ink, 100);
-  assert.equal(state.stats.inkRecovered, 2);
-});
-
-test('chapter links are symmetric and every room is reachable', () => {
-  const level = LEVELS['chapter-1'];
-  const visited = new Set([level.start]);
-  const queue = [level.start];
-  while (queue.length) {
-    const roomId = queue.shift();
-    const room = level.rooms.find((candidate) => candidate.id === roomId);
-    for (const id of room.exits) {
-      const next = level.rooms.find((candidate) => candidate.id === id);
-      assert.ok(next.exits.includes(room.id));
-      if (!visited.has(id)) {
-        visited.add(id);
-        queue.push(id);
+  for (let t = 0; t <= 1; t += 0.06) {
+    const x = a.x + (b.x - a.x) * t,
+      y = a.y + (b.y - a.y) * t;
+    if (x < 51 || x > 909 || y < 51 || y > 549) return false;
+    if (
+      obstacles.some((o) =>
+        walking
+          ? Math.hypot(
+              x - Math.max(o.x, Math.min(o.x + o.w, x)),
+              y - Math.max(o.y, Math.min(o.y + o.h, y)),
+            ) < 17
+          : x > o.x - 19 && x < o.x + o.w + 19 && y > o.y - 19 && y < o.y + o.h + 19,
+      )
+    )
+      return false;
+  }
+  return true;
+}
+function navigate(game, destination) {
+  const target = {
+    x: Math.max(54, Math.min(906, destination.x)),
+    y: Math.max(54, Math.min(546, destination.y)),
+  };
+  const player = game.player;
+  if (clearPath(game, player, target)) return normalize(target.x - player.x, target.y - player.y);
+  let closest = null;
+  for (let radius = 70; radius <= 400; radius += 50) {
+    for (let angle = 0; angle < 6.28; angle += 0.25) {
+      const point = {
+        x: player.x + Math.cos(angle) * radius,
+        y: player.y + Math.sin(angle) * radius,
+      };
+      if (clearPath(game, player, point)) {
+        const score = distance(point, target) + radius * 0.12;
+        if (!closest || score < closest.score) closest = { ...point, score };
       }
     }
+    if (closest && closest.score < distance(player, target) - 10) break;
   }
-  assert.equal(visited.size, level.rooms.length);
-  assert.throws(() => createGame('missing'), /未知章节/);
+  return closest ? normalize(closest.x - player.x, closest.y - player.y) : { x: 0, y: 0 };
+}
+function fight(game, dry = false) {
+  let ticks = 0;
+  while (!getRoom(game).cleared && game.status === 'playing' && ticks++ < 10000) {
+    const player = game.player;
+    const enemies = game.enemies
+      .filter((enemy) => enemy.hp > 0)
+      .sort((a, b) => distance(player, a) - distance(player, b));
+    const target = enemies[0];
+    if (!target) {
+      tick(game);
+      continue;
+    }
+    const d = distance(player, target);
+    let move = navigate(game, target);
+    if (d < target.r + 67) {
+      const direction = normalize(target.x - player.x, target.y - player.y);
+      const radial = (d - (target.r + 42)) * 0.018;
+      move = normalize(-direction.y + direction.x * radial, direction.x + direction.y * radial);
+      if (!clearPath(game, player, { x: player.x + move.x * 55, y: player.y + move.y * 55 }))
+        move = normalize(direction.y + direction.x * radial, -direction.x + direction.y * radial);
+    }
+    const threat = enemies.find(
+      (enemy) =>
+        ((enemy.state === 'windup' && enemy.timer < 0.5) ||
+          enemy.state === 'attack' ||
+          (enemy.state === 'recover' && enemy.attackKind === 'burst' && enemy.timer > 1.0)) &&
+        distance(player, enemy) < enemy.range + 80,
+    );
+    let dash = false;
+    if (threat) {
+      const cross = (player.x - threat.x) * threat.aimY - (player.y - threat.y) * threat.aimX;
+      move = { x: threat.aimY * (cross >= 0 ? 1 : -1), y: -threat.aimX * (cross >= 0 ? 1 : -1) };
+      if (!clearPath(game, player, { x: player.x + move.x * 145, y: player.y + move.y * 145 }))
+        move = { x: -move.x, y: -move.y };
+      dash = true;
+    }
+    for (const shot of game.projectiles) {
+      if (shot.owner !== 'enemy') continue;
+      const dx = player.x - shot.x,
+        dy = player.y - shot.y,
+        speed = Math.hypot(shot.vx, shot.vy);
+      const time = (dx * shot.vx + dy * shot.vy) / (speed * speed);
+      const cross = (dx * shot.vy - dy * shot.vx) / speed;
+      if (time > 0 && time < 0.38 && Math.abs(cross) < 45) {
+        move = {
+          x: (shot.vy / speed) * (cross >= 0 ? 1 : -1),
+          y: (-shot.vx / speed) * (cross >= 0 ? 1 : -1),
+        };
+        if (!clearPath(game, player, { x: player.x + move.x * 130, y: player.y + move.y * 130 }))
+          move = { x: -move.x, y: -move.y };
+        dash = true;
+        break;
+      }
+    }
+    if (player.hp <= 3 && player.ink >= 10 && !dry) command(game, { type: 'heal' });
+    tick(game, {
+      moveX: move.x,
+      moveY: move.y,
+      aimX: target.x,
+      aimY: target.y,
+      melee: true,
+      shoot: !dry && player.ink >= 12,
+      dash,
+    });
+  }
+  assert.notEqual(
+    game.status,
+    'lost',
+    `player lost in ${game.roomId}; enemies ${game.enemies.map((enemy) => `${enemy.type}:${enemy.hp}`).join(',')}`,
+  );
+  assert.ok(getRoom(game).cleared, `${game.roomId} stalled`);
+}
+function walk(game, target) {
+  walking = true;
+  for (
+    let i = 0;
+    i < 1000 && distance(game.player, target) > 45 && game.status === 'playing';
+    i++
+  ) {
+    const move = navigate(game, target);
+    tick(game, { moveX: move.x, moveY: move.y });
+  }
+  walking = false;
+}
+function door(game, id) {
+  const portal = getRoom(game).portals.find((item) => item.id === id);
+  const previous = game.roomId;
+  assert.ok(portal, `unknown portal ${id} in ${previous}`);
+  walk(game, portal);
+  if (game.roomId === previous)
+    assert.equal(command(game, { type: 'interact', objectId: id }).ok, true, `cannot enter ${id}`);
+  assert.equal(game.roomId, portal.target);
+}
+function completeMainRoute(game) {
+  for (const portal of [
+    'arrival-east',
+    'sentinel-east',
+    'market-north',
+    'warden-south',
+    'market-east',
+  ]) {
+    fight(game);
+    door(game, portal);
+  }
+  fight(game);
+  assert.equal(game.status, 'won');
+  assert.equal(game.seals, 2);
+}
+
+test('complete main route wins through real movement and combat, without buying or drawing', () => {
+  const game = start();
+  completeMainRoute(game);
+  assert.equal(game.stats.roomsVisited, 5);
+  assert.equal(game.stats.bridgesDrawn, 0);
+  assert.equal(game.stats.trades, 0);
+  assert.equal(game.stats.enemiesDefeated, 17);
+  assert.ok(game.stats.shots > 0 && game.stats.freeAttacks > 0 && game.stats.dashes > 0);
+});
+
+test('optional archive reward and a contract support a second complete route', () => {
+  const game = start();
+  fight(game);
+  walk(game, getRoom(game).bridges[0].from);
+  assert.equal(command(game, { type: 'draw', bridgeId: 'archive-bridge' }).ok, true);
+  door(game, 'arrival-north');
+  fight(game);
+  walk(game, getRoom(game).objects[0]);
+  tick(game, {}, 60);
+  assert.equal(getRoom(game).objects[0].used, true);
+  door(game, 'archive-south');
+  walk(game, getRoom(game).bridges[0].from);
+  door(game, 'arrival-east');
+  fight(game);
+  door(game, 'sentinel-east');
+  walk(
+    game,
+    getRoom(game).objects.find((object) => object.kind === 'merchant'),
+  );
+  assert.equal(command(game, { type: 'buy', contractId: 'fine-nib' }).ok, true);
+  door(game, 'market-north');
+  fight(game);
+  door(game, 'warden-south');
+  door(game, 'market-east');
+  fight(game);
+  assert.equal(game.status, 'won');
+  assert.equal(game.stats.roomsVisited, 6);
+  assert.equal(game.stats.bridgesDrawn, 1);
+  assert.equal(game.stats.spent.explore, 8);
+  assert.equal(game.stats.spent.trade, 18);
+  assert.equal(game.seals, 2);
+  assert.equal(game.stats.enemiesDefeated, 20);
+});
+
+test('the full-strength two-phase boss is beatable with zero ink and no upgrades', () => {
+  const level = structuredClone(LEVELS['chapter-1']);
+  level.id = 'zero-ink-boss';
+  level.start = 'gate';
+  level.spawn = { x: 102, y: 300 };
+  level.initial.ink = 0;
+  LEVELS[level.id] = level;
+  const game = start(level.id);
+  assert.equal(game.enemies[0].hp, 110);
+  fight(game, true);
+  assert.equal(game.status, 'won');
+  assert.equal(game.stats.spent.attack, 0);
+  assert.equal(game.stats.spent.heal, 0);
+  assert.equal(game.player.ink, 0);
+  assert.ok(game.player.hp > 0);
+  assert.ok(game.stats.freeAttacks >= 55);
+  assert.equal(game.contracts.length, 0);
 });
