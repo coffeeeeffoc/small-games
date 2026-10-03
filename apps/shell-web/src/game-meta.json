@@ -74,8 +74,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "6bafb5d593f9c590f0b61db570266aea57f020ea",
-        "time": "2026-10-03T13:58:56+08:00"
+        "commit": "d2cfc14e8c395c22967d1a3729372582f3420f7b",
+        "time": "2026-10-03T18:43:03+08:00"
       }
     },
     "cops-robbers-realtime": {
@@ -118,19 +118,19 @@
         "time": "2026-10-03T16:59:10+08:00"
       },
       "updated": {
-        "commit": "ce6627d81d55bb837536b8886701d9b2c8760be4",
-        "time": "2026-10-03T16:59:10+08:00"
+        "commit": "3f2e70c890f73bff4057e7da9f3790354b645cff",
+        "time": "2026-10-03T22:29:30+08:00"
       }
     },
     "echo-weaver": {
       "source": "games/local/echo-weaver",
       "created": {
         "commit": "b5044b6bfe86a9dc564d3552510ae14b6064a9cb",
-        "time": "2026-10-03T07:35:13+00:00"
+        "time": "2026-10-03T07:35:13Z"
       },
       "updated": {
-        "commit": "b5044b6bfe86a9dc564d3552510ae14b6064a9cb",
-        "time": "2026-10-03T07:35:13+00:00"
+        "commit": "133bd36f33e121949170e4da1f0320d5fb29ad55",
+        "time": "2026-10-03T15:14:32Z"
       }
     },
     "fishing": {
@@ -335,7 +335,7 @@
       "source": "games/local/out-of-frame",
       "created": {
         "commit": "69c387e9d7a3c00d9e070792fb0badccccb48d8c",
-        "time": "2026-10-03T07:30:43+00:00"
+        "time": "2026-10-03T07:30:43Z"
       },
       "updated": {
         "commit": "08cc3c143570e5bcbd8494cddd60a3634ff2e34e",
@@ -390,7 +390,7 @@
       "source": "games/local/tiny-signals",
       "created": {
         "commit": "472eaeb9545e76f8793f8ab62ff1cb2ee4fae64f",
-        "time": "2026-10-02T13:18:30+00:00"
+        "time": "2026-10-02T13:18:30Z"
       },
       "updated": {
         "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
@@ -427,7 +427,7 @@
       },
       "updated": {
         "commit": "f2998a9542f6fbd2abf3cf4e329c39db8c39b04d",
-        "time": "2026-10-01T14:08:20+00:00"
+        "time": "2026-10-01T14:08:20Z"
       }
     },
     "travel-bund-25d": {
@@ -456,11 +456,11 @@
       "source": "games/local/two-sided-box",
       "created": {
         "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
-        "time": "2026-10-03T09:08:53+00:00"
+        "time": "2026-10-03T09:08:53Z"
       },
       "updated": {
-        "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
-        "time": "2026-10-03T09:08:53+00:00"
+        "commit": "3103a826786d67009b7a41a6cdc5089e24df9c10",
+        "time": "2026-10-03T20:58:49+08:00"
       }
     },
     "urban-breakout": {
@@ -511,7 +511,7 @@
       "source": "games/local/waterline-station",
       "created": {
         "commit": "285cf19b8e0add1636596a1542f0877c162359e0",
-        "time": "2026-10-02T12:57:38+00:00"
+        "time": "2026-10-02T12:57:38Z"
       },
       "updated": {
         "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
@@ -536,8 +536,8 @@
         "time": "2026-09-27T00:07:35+08:00"
       },
       "updated": {
-        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
-        "time": "2026-10-03T12:34:46+08:00"
+        "commit": "e5e366771a978d67d76cca2669aec6ffc5e22bfc",
+        "time": "2026-10-03T16:22:58Z"
       }
     },
     "xiangqi-five": {
