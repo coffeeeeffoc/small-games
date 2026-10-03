@@ -7,7 +7,7 @@ import {
   solve,
   isGateLocked,
 } from './engine.mjs';
-import { renderBoard } from './render.mjs';
+import { renderBoard, getBoardLayout } from './render.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
 
 const $ = (selector) => document.querySelector(selector);
@@ -19,17 +19,20 @@ try {
 }
 const progress = readProgress(storage, LEVELS);
 let levelIndex = progress.selected;
+let chapterIndex = Math.floor(levelIndex / 10);
 let level = LEVELS[levelIndex];
 let state;
 let history = [];
 let prediction = false;
 let selectedGate = null;
+let focusedConnection = null;
 let preview = null;
 let animating = false;
 let frame = 0;
 let extraClaimed = false;
 let audioContext;
 let displayedVolumes = [];
+let boardLayout;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const escapeHtml = (value) =>
   String(value).replace(
@@ -72,7 +75,18 @@ function message(text, label = '调度提示') {
 }
 
 function draw() {
-  renderBoard($('#board'), level, state, displayedVolumes, preview, performance.now() / 1000);
+  const keyboardPipe = document.activeElement?.closest?.('#board [data-connection]')?.dataset
+    .connection;
+  renderBoard(
+    $('#board'),
+    level,
+    state,
+    displayedVolumes,
+    preview,
+    performance.now() / 1000,
+    boardLayout,
+    focusedConnection,
+  );
   $('#board').dataset.level = String(levelIndex + 1);
   $('#board').dataset.status = animating
     ? 'flowing'
@@ -87,14 +101,86 @@ function draw() {
       .map((tank, i) => `${tank.id}槽${tank.name}液位${format(state.volumes[i])}`)
       .join('，'),
   );
+  syncConnectionLayers();
+  if (keyboardPipe) $(`#board [data-connection="${keyboardPipe}"]`)?.focus({ preventScroll: true });
+}
+
+// The active pipe is above unrelated valve buttons; its own valve remains above the pipe.
+function syncConnectionLayers() {
+  const foreground = $('#board-foreground');
+  foreground.replaceChildren();
+  foreground.removeAttribute('data-focused-connection');
+  if (focusedConnection) {
+    const source = $(`#board [data-connection="${focusedConnection}"]`);
+    if (source) {
+      const front = source.cloneNode(true);
+      front.removeAttribute('data-connection');
+      front.removeAttribute('role');
+      front.removeAttribute('tabindex');
+      front.removeAttribute('id');
+      front.dataset.foregroundConnection = focusedConnection;
+      for (const node of front.querySelectorAll('[tabindex], [id]')) {
+        node.removeAttribute('tabindex');
+        node.removeAttribute('id');
+      }
+      foreground.append(front);
+      foreground.dataset.focusedConnection = focusedConnection;
+    }
+  }
+  for (const button of $('#board-controls').querySelectorAll('[data-gate]')) {
+    const active = button.dataset.gate === focusedConnection;
+    button.classList.toggle('is-focused', active);
+    button.style.zIndex = active ? '4' : '2';
+  }
+  $('#board').dataset.focusedConnection = focusedConnection || '';
+}
+
+function selectConnection(id) {
+  if (state.won || state.lost) return;
+  const exists =
+    level.gates.some((gate) => gate.id === id) ||
+    (level.overflow || []).some((_, index) => `overflow:${index}` === id);
+  if (!exists || id === focusedConnection) return;
+  focusedConnection = id;
+  draw();
+}
+
+function updateBoardLayout() {
+  boardLayout = getBoardLayout(level, $('#board').getBoundingClientRect().width);
+  $('#board').setAttribute('viewBox', `0 0 960 ${boardLayout.height}`);
+  $('#board-foreground').setAttribute('viewBox', `0 0 960 ${boardLayout.height}`);
+  $('#board').style.aspectRatio = `960 / ${boardLayout.height}`;
+  for (const gate of boardLayout.valves) {
+    const button = $(`#board-controls [data-gate="${gate.id}"]`);
+    button.style.left = `${(gate.x / 960) * 100}%`;
+    button.style.top = `${(gate.y / boardLayout.height) * 100}%`;
+  }
 }
 
 function renderRoutes() {
-  $('#level-nav').innerHTML = LEVELS.map((item, index) => {
-    const best = progress.best[item.id];
-    const stars = best ? (best <= item.par ? 3 : best <= item.par + 1 ? 2 : 1) : 0;
-    return `<button class="level-button ${index === levelIndex ? 'active' : ''} ${best ? 'completed' : ''}" data-level-index="${index}" ${index === levelIndex ? 'aria-current="step"' : ''} aria-label="第${index + 1}关 ${escapeHtml(item.title)}${best ? `，最佳${best}步` : ''}"><span class="level-index">${String(index + 1).padStart(2, '0')}</span><span class="level-stars" aria-hidden="true">${stars ? '✦'.repeat(stars) : '·'}</span><span class="level-name">${escapeHtml(item.title)}</span></button>`;
-  }).join('');
+  const chapters = Array.from({ length: Math.ceil(LEVELS.length / 10) }, (_, index) => {
+    const chapterLevels = LEVELS.slice(index * 10, index * 10 + 10);
+    const completed = chapterLevels.filter((item) => progress.best[item.id]).length;
+    const name = chapterLevels[0].chapter.replace(/^\d+\s*[·/．.]\s*/, '');
+    return `<button type="button" class="chapter-button ${index === chapterIndex ? 'active' : ''}" data-chapter-index="${index}" aria-pressed="${index === chapterIndex}"><span>${String(index + 1).padStart(2, '0')} ${escapeHtml(name)}</span><small>${completed}/${chapterLevels.length}</small></button>`;
+  });
+  $('#chapter-nav').innerHTML = chapters.join('');
+  const chapterNav = $('#chapter-nav');
+  const activeChapter = chapterNav.querySelector('.active');
+  const navBounds = chapterNav.getBoundingClientRect();
+  const activeBounds = activeChapter.getBoundingClientRect();
+  if (activeBounds.right > navBounds.right)
+    chapterNav.scrollLeft += activeBounds.right - navBounds.right;
+  else if (activeBounds.left < navBounds.left)
+    chapterNav.scrollLeft += activeBounds.left - navBounds.left;
+  $('#level-nav').innerHTML = LEVELS.slice(chapterIndex * 10, chapterIndex * 10 + 10)
+    .map((item, offset) => {
+      const index = chapterIndex * 10 + offset;
+      const best = progress.best[item.id];
+      const stars = best ? (best <= item.par ? 3 : best <= item.par + 1 ? 2 : 1) : 0;
+      return `<button class="level-button ${index === levelIndex ? 'active' : ''} ${best ? 'completed' : ''}" data-level-index="${index}" ${index === levelIndex ? 'aria-current="step"' : ''} aria-label="第${index + 1}关 ${escapeHtml(item.title)}${best ? `，最佳${best}步` : ''}"><span class="level-index">${String(index + 1).padStart(2, '0')}</span><span class="level-stars" aria-hidden="true">${stars ? '✦'.repeat(stars) : '·'}</span><span class="level-name">${escapeHtml(item.title)}</span></button>`;
+    })
+    .join('');
   $('#route-progress').textContent =
     `航站记录 ${Object.keys(progress.best).length} / ${LEVELS.length}`;
 }
@@ -119,16 +205,21 @@ function renderControls() {
     const locked = isGateLocked(level, state, gate.id);
     const open = state.gates[index];
     const selected = selectedGate === gate.id;
-    button.className = `gate-button ${open ? 'open' : ''} ${locked ? 'locked' : ''} ${selected ? 'selected' : ''}`;
-    button.disabled = animating || state.won || state.lost || locked;
+    button.className = `scene-valve ${open ? 'open' : ''} ${locked ? 'locked' : ''} ${selected ? 'selected' : ''} ${focusedConnection === gate.id ? 'is-focused' : ''}`;
+    // Locked valves remain selectable; useGate prevents locked or animated operations.
+    button.disabled = state.won || state.lost;
+    button.setAttribute('aria-disabled', String(animating || button.disabled || locked));
     button.setAttribute('aria-pressed', String(open));
-    button.setAttribute(
-      'aria-label',
-      `${gate.a}到${gate.b}闸门，${locked ? '等待箱子开关解锁' : selected ? '再次点击确认' : open ? '已打开，点击关闭' : '已关闭，点击打开'}`,
-    );
-    button.querySelector('.gate-symbol').textContent = locked ? '⊗' : open ? '⊖' : '⊕';
-    button.querySelector('.gate-state').innerHTML =
-      `<i></i>${locked ? `等待 ${escapeHtml([gate.requires].flat().join('、'))}` : selected ? '确认 →' : open ? '已打开' : '已关闭'}`;
+    const description = `${gate.a}到${gate.b}阀门，${locked ? `等待 ${[gate.requires].flat().join('、')} 箱子开关解锁` : selected ? '再次点击确认' : open ? '已打开，点击关闭' : '已关闭，点击打开'}`;
+    button.setAttribute('aria-label', description);
+    button.title = description;
+    button.querySelector('.valve-state').textContent = locked
+      ? '待解锁'
+      : selected
+        ? '再点确认'
+        : open
+          ? '已开'
+          : '已关';
   }
   $('#undo').disabled = animating || !history.length;
   $('#restart').disabled = animating;
@@ -143,14 +234,14 @@ function renderControls() {
   $('#sound').setAttribute('aria-label', progress.sound ? '关闭音效' : '开启音效');
   $('#sound').textContent = progress.sound ? '♫' : '♪';
   $('#board-status').textContent = animating
-    ? '水位重新分配中'
+    ? '液位结算'
     : preview
-      ? '液位预测 · 再点一次确认'
+      ? '预览 · 再点确认'
       : state.won
-        ? '全站联动完成'
+        ? '联动完成'
         : state.lost
-          ? '操作次数已用尽'
-          : '等待调度';
+          ? '操作已用尽'
+          : '点阀开关 · 点管置顶';
   $('#volume-total').textContent =
     `总水量 ${format(state.volumes.reduce((a, b) => a + b, 0))} · 守恒`;
   $('#predict-note').textContent = prediction
@@ -159,7 +250,13 @@ function renderControls() {
 }
 
 function setBackgroundInert(value) {
-  for (const selector of ['.masthead', '.stage-header', '.control-panel', '.route-panel'])
+  for (const selector of [
+    '.masthead',
+    '.stage-header',
+    '.board-scene',
+    '.control-panel',
+    '.route-panel',
+  ])
     $(selector).inert = value;
 }
 
@@ -242,8 +339,17 @@ function clearPreview() {
 }
 
 function useGate(id) {
-  if (animating || state.won || state.lost || isGateLocked(level, state, id)) return;
   const gate = level.gates.find((item) => item.id === id);
+  if (!gate || state.won || state.lost) return;
+  selectConnection(id);
+  if (animating) return;
+  if (isGateLocked(level, state, id)) {
+    message(
+      `这条连接已置顶。先点亮 ${[gate.requires].flat().join('、')} 箱子开关，再操作 ${gate.a}—${gate.b}。`,
+      '联锁阀',
+    );
+    return;
+  }
   if (prediction && selectedGate !== id) {
     selectedGate = id;
     preview = previewGate(level, state, id);
@@ -288,13 +394,15 @@ function addMove() {
   message('增加了 1 次操作。这次调度已经领取过额外机会。', '继续调度');
   draw();
   renderControls();
-  $('#gate-controls button:not(:disabled)')?.focus({ preventScroll: true });
+  $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
 }
 
 function loadLevel(index) {
   const wasResultVisible = !$('#result').hidden;
   cancelAnimationFrame(frame);
   levelIndex = index;
+  chapterIndex = Math.floor(index / 10);
+  focusedConnection = null;
   level = LEVELS[index];
   state = createState(level);
   history = [];
@@ -308,20 +416,49 @@ function loadLevel(index) {
   $('#level-number').textContent = String(index + 1).padStart(2, '0');
   $('#level-name').textContent = level.title;
   $('#chapter').textContent = level.chapter;
-  $('#gate-controls').innerHTML = level.gates
+  $('#board-controls').innerHTML = level.gates
     .map(
       (gate) =>
-        `<button data-gate="${escapeHtml(gate.id)}" class="gate-button"><span class="gate-symbol" aria-hidden="true"></span><span class="gate-name">${escapeHtml(gate.a)} ↔ ${escapeHtml(gate.b)}</span><span class="gate-state"></span></button>`,
+        `<button type="button" data-gate="${escapeHtml(gate.id)}" class="scene-valve"><span class="valve-wheel" aria-hidden="true"></span><span class="valve-label" aria-hidden="true"><span>${escapeHtml(gate.a)}—${escapeHtml(gate.b)}</span><span class="valve-state"></span></span></button>`,
     )
     .join('');
+  updateBoardLayout();
   message(level.intro);
   renderControls();
   renderRoutes();
   draw();
-  if (wasResultVisible) $('#gate-controls button:not(:disabled)')?.focus({ preventScroll: true });
+  if (wasResultVisible) $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
 }
 
-$('#gate-controls').addEventListener('click', (event) => {
+function pipeFromEvent(event) {
+  return event.target.closest('[data-connection], [data-foreground-connection]');
+}
+function focusPipe(event) {
+  const pipe = pipeFromEvent(event);
+  if (pipe) selectConnection(pipe.dataset.connection || pipe.dataset.foregroundConnection);
+}
+$('.board-scene').addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  const valve = event.target.closest('[data-gate]');
+  if (valve) selectConnection(valve.dataset.gate);
+  else focusPipe(event);
+});
+$('.board-scene').addEventListener('click', focusPipe);
+$('#board').addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const pipe = pipeFromEvent(event);
+  if (!pipe) return;
+  event.preventDefault();
+  selectConnection(pipe.dataset.connection);
+});
+$('#chapter-nav').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-chapter-index]');
+  if (!button) return;
+  chapterIndex = Number(button.dataset.chapterIndex);
+  renderRoutes();
+  $(`#chapter-nav [data-chapter-index="${chapterIndex}"]`)?.focus({ preventScroll: true });
+});
+$('#board-controls').addEventListener('click', (event) => {
   const button = event.target.closest('[data-gate]');
   if (button) useGate(button.dataset.gate);
 });
@@ -445,9 +582,19 @@ Object.defineProperty(window, '__waterlineSnapshot', {
       animating,
       prediction,
       selectedGate,
+      focusedConnection,
+      chapterIndex,
       historyLength: history.length,
       extraClaimed,
       progress,
     }),
 });
 loadLevel(levelIndex);
+// Resize only moves the native controls; it never recreates a focused valve.
+let boardWidth = $('#board').getBoundingClientRect().width;
+new ResizeObserver(([entry]) => {
+  if (Math.abs(entry.contentRect.width - boardWidth) < 0.5) return;
+  boardWidth = entry.contentRect.width;
+  updateBoardLayout();
+  draw();
+}).observe($('#board'));
