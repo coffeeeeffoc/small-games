@@ -34,7 +34,7 @@
         </div>
         <div class="intro-note">
           <span class="note-symbol">↗</span>
-          <p>先听一声拍手，<br />再拖动右边的绿色反射板。</p>
+          <p>先听一声拍手，<br />再用手指改变这个房间。</p>
         </div>
       </section>
       <div class="workspace">
@@ -63,6 +63,11 @@
             <label for="wallReflection">默认墙面反射率</label><output id="wallValue">10%</output>
           </div>
           <input type="range" id="wallReflection" min="0" max="95" step="1" />
+          <div class="range-label">
+            <label for="wallScatter">墙面扩散角度 ±</label
+            ><output id="wallScatterValue">25°</output>
+          </div>
+          <input type="range" id="wallScatter" min="0" max="90" step="1" />
           <p class="muted small">默认统一调节四面墙；独立设置的墙面保持自己的数值。</p>
           <details class="wall-settings">
             <summary>分别调节四面墙</summary>
@@ -154,6 +159,9 @@
                 ><span class="tiny" id="roomBadge">60 × 40 m</span>
               </div>
               <div>
+                <button id="sceneListen" class="pill-button" aria-label="播放当前房间声音">
+                  ▶ 试听
+                </button>
                 <button id="togglePaths" class="pill-button active" aria-pressed="true">
                   路径 ON</button
                 ><button
@@ -171,7 +179,7 @@
                 id="scene"
                 viewBox="0 0 1000 640"
                 role="group"
-                aria-label="可交互声场：拖动声源、收音点与板材；拖动圆形手柄旋转板材；点击墙壁调节反射率。"
+                aria-label="可交互声场：拖动声源、收音点与板材；拖动板端改变长度、圆柄旋转；拖动房间角柄改变尺寸；点击墙壁调节反射率。"
                 tabindex="0"
               ></svg>
               <div class="scene-scale">
@@ -179,14 +187,105 @@
                 ><span id="animationLabel">位置决定声音路径</span>
               </div>
             </div>
+            <div class="scene-editor" aria-label="当前选中对象的触屏编辑工具">
+              <div class="editor-heading">
+                <strong id="sceneSelection">反射板</strong>
+                <button id="selectRoom" class="text-button" aria-pressed="false">
+                  房间尺寸 ↗
+                </button>
+              </div>
+              <p id="sceneGestureHint" class="muted small">拖板移动 · 拖两端改变长度 · 圆柄旋转</p>
+              <div id="scenePanelTools">
+                <div class="segmented movement-modes" id="movementModes" aria-label="板材拖动方向">
+                  <button data-move="free" class="active" aria-pressed="true">自由移动</button>
+                  <button data-move="parallel" aria-pressed="false">沿板平移</button>
+                  <button data-move="normal" aria-pressed="false">垂直于板</button>
+                </div>
+                <div class="quick-fields">
+                  <label
+                    >角度
+                    <input
+                      id="quickAngle"
+                      type="number"
+                      min="0"
+                      max="360"
+                      step="1"
+                      inputmode="decimal"
+                      aria-label="选中板材角度"
+                    /><span>°</span></label
+                  >
+                  <label
+                    >长度
+                    <input
+                      id="quickLength"
+                      type="number"
+                      min="0.8"
+                      step="0.5"
+                      inputmode="decimal"
+                      aria-label="选中板材长度"
+                    /><span>m</span></label
+                  >
+                </div>
+                <div class="angle-presets" aria-label="快捷旋转角度">
+                  <button data-angle="0">水平 0°</button><button data-angle="45">斜向 45°</button
+                  ><button data-angle="90">竖直 90°</button>
+                </div>
+                <div class="quick-acoustics">
+                  <div>
+                    <div class="range-label">
+                      <label for="quickReflection">反射强度</label
+                      ><output id="quickReflectionValue"></output>
+                    </div>
+                    <input id="quickReflection" type="range" min="0" max="95" step="1" />
+                  </div>
+                  <div>
+                    <div class="range-label">
+                      <label for="quickScatter">扩散角度 ±</label
+                      ><output id="quickScatterValue"></output>
+                    </div>
+                    <input id="quickScatter" type="range" min="0" max="90" step="1" />
+                  </div>
+                </div>
+              </div>
+              <div id="sceneRoomTools" hidden>
+                <div class="quick-fields">
+                  <label
+                    >长度
+                    <input
+                      id="roomWidthDirect"
+                      type="number"
+                      min="8"
+                      max="120"
+                      step="0.5"
+                      inputmode="decimal"
+                      aria-label="直接设置房间长度"
+                    /><span>m</span></label
+                  >
+                  <label
+                    >宽度
+                    <input
+                      id="roomHeightDirect"
+                      type="number"
+                      min="8"
+                      max="100"
+                      step="0.5"
+                      inputmode="decimal"
+                      aria-label="直接设置房间宽度"
+                    /><span>m</span></label
+                  >
+                </div>
+                <p class="muted small">拖动图中右下角的尺寸手柄；板材与收音点会留在房间内。</p>
+              </div>
+            </div>
             <div class="stage-footer">
               <div class="legend">
                 <span><i class="dot source"></i>声源</span
                 ><span><i class="dot listener"></i>收音点</span
                 ><span><i class="line mint"></i>反射</span
-                ><span><i class="line amber"></i>消音</span>
+                ><span><i class="line amber"></i>消音</span
+                ><span><i class="line blue"></i>扩散</span>
               </div>
-              <span class="tiny">拖动移动 · 圆柄旋转 · 点击墙壁调节</span>
+              <span class="tiny">板端调长度 · 圆柄旋转 · 角柄调房间</span>
             </div>
           </div>
           <div class="timeline panel">
@@ -220,6 +319,37 @@
                 <p>选中装置后，在这里精细调整</p>
               </div>
             </div>
+            <div id="roomProperties" hidden>
+              <div class="range-label">
+                <label for="roomWidthNumber">房间长度</label
+                ><span class="number-value"
+                  ><input
+                    id="roomWidthNumber"
+                    type="number"
+                    min="8"
+                    max="120"
+                    step="0.5"
+                    inputmode="decimal"
+                  />
+                  m</span
+                >
+              </div>
+              <div class="range-label">
+                <label for="roomHeightNumber">房间宽度</label
+                ><span class="number-value"
+                  ><input
+                    id="roomHeightNumber"
+                    type="number"
+                    min="8"
+                    max="100"
+                    step="0.5"
+                    inputmode="decimal"
+                  />
+                  m</span
+                >
+              </div>
+              <p class="muted small">也可以拖动房间右下角的尺寸手柄。</p>
+            </div>
             <div id="positionControls" class="position-row">
               <label
                 >X
@@ -252,11 +382,32 @@
             </div>
             <div id="panelProperties">
               <div class="range-label">
-                <label for="panelAngle">旋转角度</label><output id="angleValue">90°</output>
+                <label for="panelAngle">旋转角度</label
+                ><span class="number-value"
+                  ><input
+                    id="panelAngleNumber"
+                    type="number"
+                    min="0"
+                    max="360"
+                    step="1"
+                    inputmode="decimal"
+                    aria-label="板材旋转角度"
+                  />°</span
+                ><output id="angleValue" class="sr-only">90°</output>
               </div>
-              <input type="range" id="panelAngle" min="0" max="180" step="1" />
+              <input type="range" id="panelAngle" min="0" max="360" step="1" />
               <div class="range-label">
-                <label for="panelLength">板材长度</label><output id="lengthValue">20 m</output>
+                <label for="panelLength">板材长度</label
+                ><span class="number-value"
+                  ><input
+                    id="panelLengthNumber"
+                    type="number"
+                    min="0.8"
+                    step="0.5"
+                    inputmode="decimal"
+                    aria-label="板材长度米"
+                  />m</span
+                ><output id="lengthValue" class="sr-only">20 m</output>
               </div>
               <input type="range" id="panelLength" min="2" max="50" step="0.5" />
               <div class="range-label">
@@ -264,6 +415,11 @@
                 ><output id="reflectionValue">90%</output>
               </div>
               <input type="range" id="panelReflection" min="0" max="95" step="1" />
+              <div class="range-label">
+                <label for="panelScatter">扩散角度 ±</label><output id="scatterValue">35°</output>
+              </div>
+              <input type="range" id="panelScatter" min="0" max="90" step="1" />
+              <p class="muted small">0° 为镜面反射；增大角度让反射声向更多方向散开。</p>
               <button id="removePanel" class="text-button delete-button">移除这个装置</button>
             </div>
             <p id="pointHint" class="muted small" hidden></p>
@@ -351,7 +507,7 @@
       </section>
       <div class="bottom-note">
         <span>戴上耳机，听见左右两侧的回应。录音与音频处理都在本机完成。</span
-        ><span>二维几何声学原型 <b>v0.2</b></span>
+        ><span>二维几何声学原型 <b>v0.3</b></span>
       </div>
     </main>
     <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a,.flac" hidden />
@@ -361,7 +517,7 @@
       <button id="closeShare" class="icon-button dialog-close" aria-label="关闭配置分享">×</button>
       <h2 id="shareTitle">把这个房间分享出去</h2>
       <p>
-        包含房间尺寸、声源、收音点、板材、四面墙的反射率、传播规则和内置测试音。对方打开后可一键复用。
+        包含房间尺寸、声源、收音点、板材、反射强度与扩散角度、传播规则和内置测试音。对方打开后可一键复用。
       </p>
       <label for="shareLink">房间配置链接</label
       ><textarea id="shareLink" readonly rows="4"></textarea>
@@ -380,15 +536,21 @@
       <ol>
         <li>点击「试听空间效果」，先听一声拍手。</li>
         <li>拖动绿色反射板。越远的路径，声音回来得越晚。</li>
-        <li>选中板材，调整角度与长度；拖动红色声源、蓝色收音点。</li>
+        <li>选中板材，拖动板端改变长度，拖圆柄旋转；选「沿板平移」或「垂直于板」约束移动方向。</li>
+        <li>
+          在画面下方直接输入角度、长度，调节反射强度与扩散角度；点击「房间尺寸」或拖房间角柄调整空间。
+        </li>
+        <li>
+          拖蓝色「声」手柄，沿板方向调反射强度，垂直于板调扩散角度；画面中的蓝色扇形实时显示扩散范围。
+        </li>
         <li>添加吸音屏，放到一条路径上，听见它被减弱或遮挡。</li>
         <li>录下自己的声音或导入音频，再导出 WAV。</li>
       </ol>
       <p>支持方向键移动选中对象（Shift 加速），Delete 移除板材，空格试听。触屏直接拖动。</p>
       <p class="muted">
-        这是二维创意声学实验：只计算直达声、一次和二次镜面反射。屏是双面、不透声的薄板，吸音屏也会遮挡直达声。未模拟绕射、驻波、材料频率特性及高阶混响。延迟
-        ×4 是明确的增强玩法。图中最多显示 8 条最强反射路径，音频使用全部有效路径。录音/导入最长 15
-        秒，导入文件最大 20 MB。
+        声源向四周发声，墙面与板材产生镜面反射和一定角度内的扩散反射。图中细线展示传播方向，亮线表示到达收音点的路径，试听使用全部有效路径。
+        这是二维创意声学实验：包含直达声、一次和二次镜面反射及有限采样的扩散反射。屏是双面、不透声的薄板，吸音屏也会遮挡直达声。未模拟绕射、驻波、材料频率特性及高阶混响。延迟
+        ×4 是明确的增强玩法。录音/导入最长 15 秒，导入文件最大 20 MB。
       </p>
       <button id="startExperiment" class="primary-button">开始实验 →</button>
     </dialog>

@@ -61,28 +61,42 @@
           </div>
           <div id="mechanism-list" class="mechanism-list" aria-label="共享机关状态"></div>
           <div class="notebook-bottom">
-            <p class="eyebrow">观察 · 翻面 · 联动</p>
+            <p class="eyebrow">观察 · 对照 · 联动</p>
             <p>同一根轴，在两面有不同的作用。</p>
           </div>
         </aside>
         <div class="play-panel">
           <div class="scene-header">
-            <span class="side-tag"><i></i><span id="side-name">正面</span></span>
-            <div class="view-tabs" aria-label="当前视图">
-              <span id="front-tab" class="active">FRONT</span
-              ><span class="tab-link" aria-hidden="true">↔</span><span id="back-tab">BACK</span>
-            </div>
+            <span class="side-tag"><i></i><span id="side-name">正面 / 背面同步联动</span></span>
             <span class="move-counter"><strong id="move-count">0</strong> 次操作</span>
           </div>
           <div id="scene" class="scene">
-            <svg
-              id="board"
-              viewBox="0 0 720 600"
-              role="group"
-              aria-label="可操作机关盒"
-              xmlns="http://www.w3.org/2000/svg"
-            ></svg>
-            <div class="flip-shadow" aria-hidden="true"></div>
+            <section class="box-face" aria-labelledby="front-label">
+              <h3 id="front-label" class="face-label">
+                <span>正面</span><small>FRONT · 球道与挡门</small>
+              </h3>
+              <svg
+                id="board"
+                data-side="front"
+                viewBox="0 0 720 600"
+                role="group"
+                aria-label="正面可操作机关盒"
+                xmlns="http://www.w3.org/2000/svg"
+              ></svg>
+            </section>
+            <section class="box-face" aria-labelledby="back-label">
+              <h3 id="back-label" class="face-label">
+                <span>背面</span><small>BACK · 锁扣与挡板</small>
+              </h3>
+              <svg
+                id="back-board"
+                data-side="back"
+                viewBox="0 0 720 600"
+                role="group"
+                aria-label="背面可操作机关盒"
+                xmlns="http://www.w3.org/2000/svg"
+              ></svg>
+            </section>
           </div>
           <div class="scene-caption">
             <span><i class="legend-brass"></i>拖动滑轴 / 点选档位</span
@@ -97,16 +111,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="8" cy="12" r="5" />
                 <path d="m16 7 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" /></svg
-              ><span>放出小球</span></button
-            ><button id="flip" class="flip-button">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M20 9a8 8 0 1 0 0 7M20 3v6h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                /></svg
-              ><span>转到背面</span>
+              ><span>放出小球</span>
             </button>
           </div>
           <div class="utility-controls">
@@ -159,7 +164,9 @@
       </div>
       <p class="eyebrow">黄铜工坊 / VOL. 01</p>
       <h2 id="welcome-title">每个盒子<br />都有另一面。</h2>
-      <p class="welcome-copy">拖动滑轴，解开锁扣。<br />翻到背面，看看是什么卡住了它。</p>
+      <p class="welcome-copy">
+        左边正面，右边背面，同时操作。<br />拖动滑轴、解开锁扣，两面机关同步变化。
+      </p>
       <button id="start" class="flip-button">
         打开第一个盒子 <span aria-hidden="true">→</span>
       </button>
@@ -174,8 +181,10 @@
           <p>拖动黄铜把手到低、中、高三档，也可以点选轨道上的空档位。红色锁扣用点击开合。</p>
         </li>
         <li>
-          <strong>翻面只换视角</strong>
-          <p>同名滑轴在两面共享位置。正面抬门时，背面的挡板可能下降。虚线轮廓代表另一面的挡板。</p>
+          <strong>左右两面同步联动</strong>
+          <p>
+            左边是正面，右边是背面。同名滑轴共享位置，任意一面都能调轴。正面抬门时，背面的挡板可能下降。虚线轮廓代表另一面的挡板。
+          </p>
         </li>
         <li>
           <strong>小球可以等待</strong>

@@ -264,21 +264,6 @@ h2 {
   background: #afcba7;
   border-radius: 50%;
 }
-.view-tabs {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  font-size: 9px;
-  letter-spacing: 1.6px;
-  color: #768d84;
-}
-.view-tabs > .active {
-  color: var(--brass);
-}
-.tab-link {
-  color: #6d847a;
-  font-size: 16px;
-}
 .move-counter {
   color: var(--muted);
 }
@@ -289,25 +274,43 @@ h2 {
 }
 .scene {
   position: relative;
-  perspective: 1200px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
   border-radius: 12px;
   background: linear-gradient(135deg, #253e36, #203631);
   box-shadow: 0 18px 40px #081d1b60;
   overflow: hidden;
 }
-.scene > svg {
+.box-face {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d8bf7e24;
+  border-radius: 8px;
+  background: #243c32;
+}
+.face-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin: 0;
+  padding: 10px 12px;
+  color: #eee1c6;
+  font-size: 13px;
+  font-weight: 500;
+}
+.face-label small {
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.box-face > svg {
   width: 100%;
   height: auto;
   touch-action: none;
   user-select: none;
-  transform-origin: center;
-  transition:
-    transform 0.18s ease,
-    opacity 0.18s ease;
-}
-.scene.flipping > svg {
-  transform: rotateY(85deg);
-  opacity: 0.35;
 }
 .scene-caption {
   display: flex;
@@ -359,7 +362,7 @@ h2 {
 }
 .primary-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-top: 15px;
 }
@@ -724,8 +727,23 @@ dialog ol p {
   .page-footer span:last-child {
     letter-spacing: 0;
   }
-  .view-tabs {
-    gap: 10px;
+  .scene {
+    gap: 4px;
+    padding: 2px;
+  }
+  .face-label {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .face-label small {
+    font-size: 7px;
+    letter-spacing: 0;
+    max-width: 70px;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .side-tag {
+    letter-spacing: 1px;
   }
 }
 @media (max-width: 360px) {
@@ -756,8 +774,20 @@ dialog ol p {
   .page-footer {
     font-size: 8px;
   }
-  .view-tabs {
-    font-size: 8px;
+  .face-label {
+    padding: 7px 6px;
+  }
+  .face-label small {
+    max-width: 62px;
+    font-size: 6px;
+  }
+  .scene-header {
+    font-size: 10px;
+    gap: 5px;
+  }
+  .side-tag {
+    gap: 5px;
+    letter-spacing: 0;
   }
   .primary-controls button {
     font-size: 13px;
@@ -838,10 +868,5 @@ dialog ol p {
   }
   .scene .board-label {
     letter-spacing: 0;
-  }
-}
-@media (min-width: 761px) and (min-height: 501px) {
-  .scene > svg {
-    max-height: clamp(320px, calc(100dvh - 450px), 560px);
   }
 }

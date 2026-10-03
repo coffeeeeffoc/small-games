@@ -11,6 +11,13 @@ import {
 import { AudioEngine } from './audio.js';
 import { createLayout, validateLayout, createRoomLink, readRoomLink } from './layout.js';
 import { createZip } from './archive.js';
+import {
+  movePanel,
+  resizePanel,
+  resizeRoom,
+  adjustPanelAcoustics,
+  layoutPanelHandles,
+} from './editor-geometry.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -28,6 +35,7 @@ let selected = scene.panels[0]?.id || 'source';
 let geometry;
 let pathsVisible = true;
 let drag = null;
+let movementMode = 'free';
 let view;
 let displayedPaths = [];
 let timelineMax = 1;
@@ -95,6 +103,11 @@ function selectedObject() {
   return scene.panels.find((panel) => panel.id === selected);
 }
 
+function commitNumberEdit() {
+  const field = document.activeElement;
+  if (field instanceof HTMLInputElement && field.type === 'number') field.blur();
+}
+
 function stopPlayback() {
   playRequest += 1;
   audio.stop();
@@ -126,7 +139,8 @@ audio.onPlaybackEnd = () => {
 function commit() {
   try {
     scene = validateScene(scene);
-    if (!selectedObject() && !WALL_IDS.includes(selected)) selected = 'source';
+    if (!selectedObject() && !WALL_IDS.includes(selected) && selected !== 'room')
+      selected = 'source';
     if (activePlayback || animationStarted) stopPlayback();
     geometry = computePaths(scene);
     renderControls();
@@ -144,7 +158,11 @@ function renderControls() {
   $('presetDescription').textContent = presetDescriptions[presetKey];
   $('roomWidth').value = scene.width;
   $('roomHeight').value = scene.height;
+  for (const id of ['roomWidthDirect', 'roomWidthNumber']) $(id).value = round(scene.width);
+  for (const id of ['roomHeightDirect', 'roomHeightNumber']) $(id).value = round(scene.height);
   $('wallReflection').value = scene.wallReflection * 100;
+  $('wallScatter').value = scene.wallScatter ?? 25;
+  $('wallScatterValue').textContent = `${Math.round(scene.wallScatter ?? 25)}°`;
   $('widthValue').textContent = `${round(scene.width)} m`;
   $('heightValue').textContent = `${round(scene.height)} m`;
   $('wallValue').textContent = `${Math.round(scene.wallReflection * 100)}%`;
@@ -174,8 +192,18 @@ function renderControls() {
 
 function renderInspector() {
   const isWall = WALL_IDS.includes(selected);
-  $('positionControls').hidden = isWall;
+  const isRoom = selected === 'room';
+  $('positionControls').hidden = isWall || isRoom;
   $('wallProperties').hidden = !isWall;
+  $('roomProperties').hidden = !isRoom;
+  renderSceneTools();
+  if (isRoom) {
+    $('selectionTitle').innerHTML =
+      '<span class="selection-icon">▱</span><div><h3>房间尺寸</h3><p>拖动角柄或直接输入米数</p></div>';
+    $('panelProperties').hidden = true;
+    $('pointHint').hidden = true;
+    return;
+  }
   if (isWall) {
     $('selectionTitle').innerHTML =
       `<span class="selection-icon">▱</span><div><h3>${WALL_NAMES[selected]}</h3><p>单独调节这面墙的反射率</p></div>`;
@@ -202,7 +230,7 @@ function renderInspector() {
     ? '拖动或输入坐标，探索不同位置'
     : object.type === 'absorber'
       ? '低反射 · 同时阻挡穿过板材的声音'
-      : '双面镜面反射 · 转向改变反射路径';
+      : '双面反射与扩散 · 转向改变声场';
   $('selectionTitle').innerHTML =
     `<span class="selection-icon" style="color:${isPoint ? (selected === 'source' ? '#ed9b89' : '#8ab8dc') : object.type === 'absorber' ? '#e5b46c' : '#bcf18b'}">${isPoint ? '◉' : '↔'}</span><div><h3>${title}</h3><p>${sub}</p></div>`;
   $('positionX').value = round(object.x);
@@ -216,23 +244,58 @@ function renderInspector() {
       ? '声音从这里发出。当前为全方向发声；短促拍手更容易听清反射。'
       : '声音在这里被接收。画面左边对应耳机左侧，右边对应右侧。';
   if (!isPoint) {
-    $('panelAngle').value = object.angle % 180;
-    $('angleValue').textContent = `${Math.round(object.angle % 180)}°`;
+    $('panelAngle').value = object.angle;
+    for (const id of ['quickAngle', 'panelAngleNumber']) $(id).value = round(object.angle);
+    $('angleValue').textContent = `${round(object.angle)}°`;
     $('panelLength').max = Math.hypot(scene.width - 0.4, scene.height - 0.4);
     $('panelLength').min = 0.8;
     $('panelLength').value = object.length;
+    for (const id of ['quickLength', 'panelLengthNumber']) {
+      $(id).max = $('panelLength').max;
+      $(id).value = round(object.length);
+    }
     $('lengthValue').textContent = `${round(object.length)} m`;
     $('panelReflection').max = object.type === 'absorber' ? 20 : 95;
     $('panelReflection').value = object.reflection * 100;
     $('reflectionValue').textContent = `${Math.round(object.reflection * 100)}%`;
+    $('quickReflection').max = $('panelReflection').max;
+    $('quickReflection').value = $('panelReflection').value;
+    $('quickReflectionValue').textContent = $('reflectionValue').textContent;
+    for (const id of ['panelScatter', 'quickScatter']) $(id).value = object.scatter ?? 35;
+    for (const id of ['scatterValue', 'quickScatterValue'])
+      $(id).textContent = `${Math.round(object.scatter ?? 35)}°`;
   }
+}
+
+function renderSceneTools() {
+  const panel = scene.panels.find((item) => item.id === selected);
+  const isRoom = selected === 'room';
+  $('scenePanelTools').hidden = !panel;
+  $('sceneRoomTools').hidden = !isRoom;
+  $('selectRoom').setAttribute('aria-pressed', isRoom);
+  $('sceneSelection').textContent = panel
+    ? panel.type === 'absorber'
+      ? '吸音屏'
+      : '反射板'
+    : isRoom
+      ? '房间尺寸'
+      : WALL_NAMES[selected] || (selected === 'source' ? '声源' : '收音点');
+  $('sceneGestureHint').textContent = panel
+    ? `${movementMode === 'free' ? '拖板自由移动' : movementMode === 'parallel' ? '拖板沿自身方向平移' : '拖板沿垂直方向移动'} · 两端调长度 · 圆柄旋转；声柄沿板调强度，垂直调扩散。`
+    : isRoom
+      ? '拖右下角尺寸手柄；也可直接输入房间长宽。'
+      : WALL_IDS.includes(selected)
+        ? '已选中这面墙，在装置属性中调节反射率。'
+        : '拖动改变位置。声音向四周传播，亮线表示到达收音点的声音。';
+  document.querySelectorAll('[data-move]').forEach((button) => {
+    const active = button.dataset.move === movementMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active);
+  });
 }
 
 function project(point) {
   return { x: view.x + point.x * view.scale, y: view.y + point.y * view.scale };
-}
-function unproject(point) {
-  return { x: (point.x - view.x) / view.scale, y: (point.y - view.y) / view.scale };
 }
 function polyline(points) {
   return points
@@ -277,12 +340,22 @@ function renderScene() {
     return `<g data-wall="${id}" role="button" tabindex="0" aria-label="${WALL_NAMES[id]}反射率 ${Math.round(value * 100)}%，点击调节" aria-pressed="${active}" class="scene-wall">${wallHit}<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${active ? '#d6ffb1' : '#91ab7d'}" stroke-opacity="${active ? 1 : 0.25 + value * 0.7}" stroke-width="${active ? 7 : 4}"/><title>${WALL_NAMES[id]} · ${Math.round(value * 100)}%${Object.hasOwn(scene.wallReflections, id) ? ' · 独立设置' : ' · 使用默认'}</title></g>`;
   }).join('');
   const sorted = geometry.paths.filter((p) => p.order > 0).sort((a, b) => b.gain - a.gain);
-  displayedPaths = [...geometry.paths.filter((p) => p.order === 0), ...sorted.slice(0, 8)];
+  const specular = sorted.filter((p) => p.kind !== 'diffuse').slice(0, 6);
+  const diffuse = sorted.filter((p) => p.kind === 'diffuse').slice(0, 12);
+  displayedPaths = [...geometry.paths.filter((p) => p.order === 0), ...specular, ...diffuse];
+  const propagationMarkup = pathsVisible
+    ? (geometry.propagationRays || [])
+        .map(
+          (ray) =>
+            `<polyline points="${polyline(ray.points)}" class="propagation-ray" fill="none" stroke="${ray.kind === 'emission' ? '#ed9b89' : ray.kind === 'diffuse' ? '#8ab8dc' : '#bcf18b'}" stroke-width="1" stroke-opacity="${ray.kind === 'emission' ? 0.1 : clamp(ray.gain * 0.9, 0.004, 0.12)}"/>`,
+        )
+        .join('')
+    : '';
   const pathMarkup = pathsVisible
     ? displayedPaths
         .map(
           (p, i) =>
-            `<polyline points="${polyline(p.points)}" class="path-line" stroke="${p.order === 0 ? '#ed9b89' : '#bbed8a'}" stroke-width="${p.order === 0 ? 2 : i === (geometry.blocked ? 0 : 1) ? 2.6 : 1.3}" stroke-opacity="${clamp(p.gain * 2.2, 0.1, 0.8)}" ${p.order > 1 ? 'stroke-dasharray="4 8"' : p.order === 0 ? 'stroke-dasharray="5 6"' : ''}><title>${p.order === 0 ? '直达声' : `${p.order} 次反射`} · ${(p.delay * 1000).toFixed(1)} ms · 路径 ${p.distance.toFixed(1)} m</title></polyline>`,
+            `<polyline points="${polyline(p.points)}" class="path-line${p.kind === 'diffuse' ? ' diffuse-path' : ''}" stroke="${p.order === 0 ? '#ed9b89' : p.kind === 'diffuse' ? '#8ab8dc' : '#bbed8a'}" stroke-width="${p.order === 0 ? 2 : i === (geometry.blocked ? 0 : 1) ? 2.6 : 1.3}" stroke-opacity="${clamp(p.gain * 2.2, 0.1, 0.8)}" ${p.kind === 'diffuse' ? 'stroke-dasharray="2 6"' : p.order > 1 ? 'stroke-dasharray="4 8"' : p.order === 0 ? 'stroke-dasharray="5 6"' : ''}><title>${p.order === 0 ? '直达声' : p.kind === 'diffuse' ? '扩散反射' : `${p.order} 次镜面反射`} · ${(p.delay * 1000).toFixed(1)} ms · 路径 ${p.distance.toFixed(1)} m</title></polyline>`,
         )
         .join('')
     : '';
@@ -293,16 +366,54 @@ function renderScene() {
       const color = p.type === 'absorber' ? '#e5b46c' : '#bcf18b';
       const active = p.id === selected;
       const radians = (p.angle * Math.PI) / 180;
-      const handleOffset = Math.max(48, 58 / screenScale);
-      const handleMargin = Math.max(22, 22 / screenScale) + 8;
-      const handle = {
-        x: clamp(center.x - Math.sin(radians) * handleOffset, handleMargin, 1000 - handleMargin),
-        y: clamp(center.y + Math.cos(radians) * handleOffset, handleMargin, 640 - handleMargin),
-      };
+      const handleLayout = active
+        ? layoutPanelHandles(center, [a, b], p.angle, screenScale)
+        : { endpoints: [a, b], rotation: center, acoustics: center };
+      const handle = handleLayout.rotation;
       const rotateHandle = active
         ? `<g data-rotate="${esc(p.id)}" class="rotation-handle" role="button" tabindex="0" aria-label="旋转${p.type === 'absorber' ? '消音板' : '反射板'}，拖动手柄或用左右方向键"><line x1="${center.x}" y1="${center.y}" x2="${handle.x}" y2="${handle.y}" stroke="${color}" stroke-opacity=".5" stroke-dasharray="4 5" pointer-events="none"/><circle cx="${handle.x}" cy="${handle.y}" r="${Math.max(22, 22 / screenScale)}" fill="transparent"/><circle cx="${handle.x}" cy="${handle.y}" r="${Math.max(14, 14 / screenScale)}" fill="#243027" stroke="${color}" stroke-width="2"/><text x="${handle.x}" y="${handle.y}" dy=".35em" text-anchor="middle" fill="${color}" font-size="${Math.max(16, 16 / screenScale)}" pointer-events="none">↻</text></g>`
         : '';
-      return `<g class="scene-object" data-object="${esc(p.id)}" tabindex="0" role="button" aria-label="${p.type === 'absorber' ? '吸音屏' : '反射板'} ${index + 1}，拖动移动"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="${hitWidth}"/>${active ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="19" stroke-opacity=".10" stroke-linecap="round"/>` : ''}<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="7" stroke-linecap="round" ${p.type === 'absorber' ? 'stroke-dasharray="5 5"' : ''}/>${active ? [a, b].map((point) => `<circle cx="${point.x}" cy="${point.y}" r="5" fill="#152218" stroke="${color}" stroke-width="2"/>`).join('') : ''}<circle cx="${center.x}" cy="${center.y}" r="4" fill="#142019" stroke="${color}" stroke-width="1.6"/><text class="object-label" x="${center.x + 17}" y="${center.y - 13}" font-size="12">${p.type === 'absorber' ? '吸音' : '反射'} ${index + 1}</text></g>${rotateHandle}`;
+      const soundHandle = handleLayout.acoustics;
+      const acousticsHandle = active
+        ? `<g data-acoustics="${esc(p.id)}" class="acoustics-handle" role="button" tabindex="0" aria-label="声音手柄，沿板拖动调反射强度，垂直拖动调扩散角度；左右键调强度，上下键调扩散"><line x1="${center.x}" y1="${center.y}" x2="${soundHandle.x}" y2="${soundHandle.y}" stroke="#8ab8dc" stroke-opacity=".5" stroke-dasharray="4 5" pointer-events="none"/><circle cx="${soundHandle.x}" cy="${soundHandle.y}" r="${Math.max(22, 22 / screenScale)}" fill="transparent"/><circle cx="${soundHandle.x}" cy="${soundHandle.y}" r="${Math.max(14, 14 / screenScale)}" fill="#243027" stroke="#8ab8dc" stroke-width="2"/><text x="${soundHandle.x}" y="${soundHandle.y}" dy=".35em" text-anchor="middle" fill="#8ab8dc" font-size="${Math.max(13, 13 / screenScale)}" pointer-events="none">声</text></g>`
+        : '';
+      const lengthHandles = active
+        ? [a, b]
+            .map((point, endpoint) => {
+              const grip = handleLayout.endpoints[endpoint];
+              return `<g data-resize-panel="${esc(p.id)}" data-endpoint="${endpoint}" class="length-handle" role="button" tabindex="0" aria-label="拖动板材${endpoint === 0 ? '起点' : '终点'}调整长度，方向键精细调整"><line x1="${point.x}" y1="${point.y}" x2="${grip.x}" y2="${grip.y}" stroke="${color}" stroke-opacity=".5" stroke-dasharray="3 4" pointer-events="none"/><circle cx="${grip.x}" cy="${grip.y}" r="${Math.max(22, 22 / screenScale)}" fill="transparent"/><circle cx="${grip.x}" cy="${grip.y}" r="${Math.max(11, 11 / screenScale)}" fill="#243027" stroke="${color}" stroke-width="2"/><path d="M${grip.x - 5 / screenScale} ${grip.y}h${10 / screenScale}" stroke="${color}" stroke-width="2" pointer-events="none"/></g>`;
+            })
+            .join('')
+        : '';
+      const centerGrip = active
+        ? `<circle data-move-panel="${esc(p.id)}" class="scene-object panel-move-grip" cx="${center.x}" cy="${center.y}" r="${Math.max(22, 22 / screenScale)}" fill="transparent" role="button" tabindex="0" aria-label="移动选中板材"/>`
+        : '';
+      let guides = '';
+      if (active) {
+        const incoming = Math.atan2(p.y - scene.source.y, p.x - scene.source.x);
+        const reflectedAngle = 2 * radians - incoming;
+        const spread = ((p.scatter ?? 35) * Math.PI) / 180;
+        const radius = Math.max(72, 38 / screenScale);
+        const sourceSide =
+          Math.cos(radians) * (scene.source.y - p.y) - Math.sin(radians) * (scene.source.x - p.x);
+        const fanPoints = Array.from({ length: 9 }, (_, index) => {
+          const angle = reflectedAngle - spread + (spread * 2 * index) / 8;
+          return {
+            x: center.x + Math.cos(angle) * radius,
+            y: center.y + Math.sin(angle) * radius,
+            angle,
+          };
+        }).filter((point) => sourceSide * Math.sin(point.angle - radians) > 1e-7);
+        if (p.reflection > 0 && fanPoints.length)
+          guides += `<g class="scatter-fan" pointer-events="none" clip-path="url(#roomClip)"><path d="M${center.x} ${center.y} ${fanPoints.map((point) => `L${point.x} ${point.y}`).join(' ')}Z" fill="#8ab8dc" fill-opacity="${p.reflection * 0.08}"/>${fanPoints.map((point) => `<line x1="${center.x}" y1="${center.y}" x2="${point.x}" y2="${point.y}" stroke="#8ab8dc" stroke-opacity="${p.reflection * 0.4}" stroke-width="1"/>`).join('')}</g>`;
+        if (movementMode !== 'free') {
+          const axisAngle = radians + (movementMode === 'normal' ? Math.PI / 2 : 0);
+          const axisX = Math.cos(axisAngle) * 150;
+          const axisY = Math.sin(axisAngle) * 150;
+          guides += `<line class="movement-guide" x1="${center.x - axisX}" y1="${center.y - axisY}" x2="${center.x + axisX}" y2="${center.y + axisY}" stroke="${color}" stroke-opacity=".7" stroke-width="2" stroke-dasharray="8 7" pointer-events="none" clip-path="url(#roomClip)"/>`;
+        }
+      }
+      return `${guides}<g class="scene-object" data-object="${esc(p.id)}" tabindex="0" role="button" aria-label="${p.type === 'absorber' ? '吸音屏' : '反射板'} ${index + 1}，拖动移动" aria-pressed="${active}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="${hitWidth}"/>${active ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="19" stroke-opacity=".10" stroke-linecap="round"/>` : ''}<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="7" stroke-linecap="round" ${p.type === 'absorber' ? 'stroke-dasharray="5 5"' : ''}/><circle cx="${center.x}" cy="${center.y}" r="4" fill="#142019" stroke="${color}" stroke-width="1.6"/><text class="object-label" x="${center.x + 17}" y="${center.y - 13}" font-size="12">${p.type === 'absorber' ? '吸音' : '反射'} ${index + 1}</text></g>${lengthHandles}${rotateHandle}${acousticsHandle}${centerGrip}`;
     })
     .join('');
   const points = ['source', 'listener']
@@ -330,8 +441,10 @@ function renderScene() {
       return `${anchor}<g class="scene-object" data-object="${id}" tabindex="0" role="button" aria-label="${label}，拖动移动" transform="translate(${iconPoint.x} ${iconPoint.y}) scale(${pointScale})" style="color:${color}"><circle r="27" fill="transparent"/><circle class="object-ring" r="23" fill="${color}" fill-opacity=".07" stroke="${color}" stroke-opacity="${selected === id ? 0.7 : 0.18}" stroke-width="1"/><circle r="16" fill="#243027" stroke="${color}" stroke-width="1.5"/>${icon}<text class="object-label" text-anchor="middle" x="0" y="${id === 'source' ? -33 : 40}">${label}</text></g>`;
     })
     .join('');
+  const corner = { x: view.x + w, y: view.y + h };
+  const roomHandle = `<g data-resize-room="both" class="room-handle" role="button" tabindex="0" aria-label="房间尺寸，拖动右下角改变长宽，方向键精细调整"><circle cx="${corner.x}" cy="${corner.y}" r="${Math.max(22, 22 / screenScale)}" fill="transparent"/><circle cx="${corner.x}" cy="${corner.y}" r="${Math.max(14, 14 / screenScale)}" fill="#243027" stroke="${selected === 'room' ? '#d6ffb1' : '#91ab7d'}" stroke-width="2"/><text x="${corner.x}" y="${corner.y}" dy=".35em" text-anchor="middle" fill="#d6ffb1" font-size="${Math.max(16, 16 / screenScale)}" pointer-events="none">↔</text></g>`;
   $('scene').innerHTML =
-    `<defs><pattern id="grid" x="${view.x}" y="${view.y}" width="${gridSize}" height="${gridSize}" patternUnits="userSpaceOnUse"><path d="M ${gridSize} 0 L 0 0 0 ${gridSize}" fill="none" stroke="#9ec184" stroke-opacity=".085" stroke-width="1"/></pattern><pattern id="absorb" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#e5b46c" stroke-opacity=".2"/></pattern></defs><rect x="${view.x - 5}" y="${view.y - 5}" width="${w + 10}" height="${h + 10}" rx="5" fill="#263329" stroke="#607851" stroke-width="1"/><rect x="${view.x}" y="${view.y}" width="${w}" height="${h}" rx="2" fill="#17241a"/><rect x="${view.x}" y="${view.y}" width="${w}" height="${h}" fill="url(#grid)"/><path d="M${view.x} ${view.y - 28}H${view.x + w}M${view.x} ${view.y - 34}v12M${view.x + w} ${view.y - 34}v12" stroke="#4b6041" stroke-width="1"/><rect x="${500 - 32}" y="${view.y - 39}" width="64" height="20" rx="5" fill="#16221a"/><text x="500" y="${view.y - 24}" text-anchor="middle" class="wall-label">${round(scene.width)} m</text><text x="${view.x - 23}" y="${view.y + h / 2}" text-anchor="middle" class="wall-label" transform="rotate(-90 ${view.x - 23} ${view.y + h / 2})">${round(scene.height)} m</text><g pointer-events="none">${pathMarkup}</g><g id="particles" pointer-events="none"></g>${walls}${panels}${points}${geometry.blocked ? `<text x="500" y="${view.y + h + 36}" text-anchor="middle" fill="#e5b46c" font-size="12">直达路径被板材挡住 · 仍可能听到绕行反射</text>` : ''}`;
+    `<defs><clipPath id="roomClip"><rect x="${view.x}" y="${view.y}" width="${w}" height="${h}"/></clipPath><pattern id="grid" x="${view.x}" y="${view.y}" width="${gridSize}" height="${gridSize}" patternUnits="userSpaceOnUse"><path d="M ${gridSize} 0 L 0 0 0 ${gridSize}" fill="none" stroke="#9ec184" stroke-opacity=".085" stroke-width="1"/></pattern><pattern id="absorb" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#e5b46c" stroke-opacity=".2"/></pattern></defs><rect x="${view.x - 5}" y="${view.y - 5}" width="${w + 10}" height="${h + 10}" rx="5" fill="#263329" stroke="#607851" stroke-width="1"/><rect x="${view.x}" y="${view.y}" width="${w}" height="${h}" rx="2" fill="#17241a"/><rect x="${view.x}" y="${view.y}" width="${w}" height="${h}" fill="url(#grid)"/><path d="M${view.x} ${view.y - 28}H${view.x + w}M${view.x} ${view.y - 34}v12M${view.x + w} ${view.y - 34}v12" stroke="#4b6041" stroke-width="1"/><rect x="${500 - 32}" y="${view.y - 39}" width="64" height="20" rx="5" fill="#16221a"/><text x="500" y="${view.y - 24}" text-anchor="middle" class="wall-label">${round(scene.width)} m</text><text x="${view.x - 23}" y="${view.y + h / 2}" text-anchor="middle" class="wall-label" transform="rotate(-90 ${view.x - 23} ${view.y + h / 2})">${round(scene.height)} m</text><g pointer-events="none" clip-path="url(#roomClip)">${propagationMarkup}${pathMarkup}</g><g id="particles" pointer-events="none"></g>${walls}${panels}${points}${roomHandle}${geometry.blocked ? `<text x="500" y="${view.y + h + 36}" text-anchor="middle" fill="#e5b46c" font-size="12">直达路径被板材挡住 · 仍可能听到绕行反射</text>` : ''}`;
   $('scaleLabel').textContent =
     `每格约 ${Math.round(gridSize / scale)} m · ${scene.delayScale === 1 ? '真实传播' : '延迟增强 ×4'}`;
 }
@@ -347,12 +460,13 @@ function renderTimeline() {
   const bars = geometry.paths
     .map(
       (p) =>
-        `<line x1="${x(p.delay)}" x2="${x(p.delay)}" y1="104" y2="${104 - clamp(p.gain, 0, 1) * 84}" stroke="${p.order === 0 ? '#ed9b89' : '#bcf18b'}" stroke-width="${p.order === 0 ? 4 : 3}" stroke-linecap="round" opacity="${p.order === 0 ? 0.9 : clamp(0.22 + p.gain * 2.5, 0.22, 0.95)}"><title>${p.order === 0 ? '直达声' : `${p.order} 次反射`} ${(p.delay * 1000).toFixed(1)} ms，增益 ${p.gain.toFixed(3)}</title></line>`,
+        `<line x1="${x(p.delay)}" x2="${x(p.delay)}" y1="104" y2="${104 - clamp(p.gain, 0, 1) * 84}" stroke="${p.order === 0 ? '#ed9b89' : p.kind === 'diffuse' ? '#8ab8dc' : '#bcf18b'}" stroke-width="${p.order === 0 ? 4 : p.kind === 'diffuse' ? 2 : 3}" stroke-linecap="round" opacity="${p.order === 0 ? 0.9 : clamp(0.22 + p.gain * 2.5, 0.22, 0.95)}"><title>${p.order === 0 ? '直达声' : p.kind === 'diffuse' ? '扩散反射' : `${p.order} 次镜面反射`} ${(p.delay * 1000).toFixed(1)} ms，增益 ${p.gain.toFixed(3)}</title></line>`,
     )
     .join('');
   $('timeline').innerHTML =
     `${ticks}<line x1="38" x2="865" y1="105" y2="105" stroke="#50623e"/>${bars}<line id="timeCursor" x1="38" x2="38" y1="15" y2="108" stroke="#e4eddc" opacity=".65" stroke-width="1" visibility="hidden"/>`;
-  $('pathSummary').textContent = `${geometry.paths.length} 条声音路径 · 二阶反射`;
+  const diffuseCount = geometry.paths.filter((path) => path.kind === 'diffuse').length;
+  $('pathSummary').textContent = `${geometry.paths.length} 条到达路径 · ${diffuseCount} 条扩散`;
 }
 
 function renderMetrics() {
@@ -389,70 +503,123 @@ function renderMetrics() {
               : `当前 ${Math.round(delay)} ms · 试着缩短反射路径`;
 }
 
-function eventPoint(event) {
+function eventPoint(event, frame = view) {
   const point = new DOMPoint(event.clientX, event.clientY);
-  return unproject(point.matrixTransform($('scene').getScreenCTM().inverse()));
+  const screenPoint = point.matrixTransform($('scene').getScreenCTM().inverse());
+  return { x: (screenPoint.x - frame.x) / frame.scale, y: (screenPoint.y - frame.y) / frame.scale };
 }
 
 $('scene').addEventListener('pointerdown', (event) => {
   if (event.button !== 0) return;
   if (drag) return;
+  const room = event.target.closest('[data-resize-room]');
+  const lengthHandle = event.target.closest('[data-resize-panel]');
+  const rotation = event.target.closest('[data-rotate]');
+  const acoustics = event.target.closest('[data-acoustics]');
+  const target = event.target.closest('[data-object], [data-move-panel]');
   const wall = event.target.closest('[data-wall]');
+  if (room || lengthHandle || rotation || acoustics || target) {
+    event.preventDefault();
+    commitNumberEdit();
+    selected = room
+      ? 'room'
+      : lengthHandle?.dataset.resizePanel ||
+        rotation?.dataset.rotate ||
+        acoustics?.dataset.acoustics ||
+        target.dataset.object ||
+        target.dataset.movePanel;
+    const object = selectedObject();
+    const pointer = eventPoint(event);
+    drag = {
+      id: event.pointerId,
+      mode: room
+        ? 'room'
+        : lengthHandle
+          ? 'length'
+          : rotation
+            ? 'rotate'
+            : acoustics
+              ? 'acoustics'
+              : 'move',
+      view: { ...view },
+      startPointer: pointer,
+      startObject: object ? { ...object } : null,
+      startRoom: { width: scene.width, height: scene.height },
+      movementMode,
+      pixelsPerMeter: (view.scale * $('scene').getBoundingClientRect().width) / 1000,
+      endpoint: Number(lengthHandle?.dataset.endpoint),
+      pointerAngle: object ? Math.atan2(pointer.y - object.y, pointer.x - object.x) : 0,
+    };
+    $('scene').setPointerCapture(event.pointerId);
+    $('scene').focus({ preventScroll: true });
+    $('scene').classList.add('editing');
+    renderInspector();
+    renderScene();
+    return;
+  }
   if (wall) {
     event.preventDefault();
+    commitNumberEdit();
     selected = wall.dataset.wall;
     renderInspector();
     renderScene();
     return;
   }
-  const rotation = event.target.closest('[data-rotate]');
-  if (rotation) {
-    event.preventDefault();
-    selected = rotation.dataset.rotate;
-    const object = selectedObject();
-    const pointer = eventPoint(event);
-    drag = {
-      id: event.pointerId,
-      mode: 'rotate',
-      startAngle: object.angle,
-      pointerAngle: Math.atan2(pointer.y - object.y, pointer.x - object.x),
-    };
-    $('scene').setPointerCapture(event.pointerId);
-    $('scene').focus({ preventScroll: true });
-    return;
-  }
-  const target = event.target.closest('[data-object]');
-  if (!target) return;
-  event.preventDefault();
-  selected = target.dataset.object;
-  const object = selectedObject();
-  const pointer = eventPoint(event);
-  drag = { id: event.pointerId, mode: 'move', dx: pointer.x - object.x, dy: pointer.y - object.y };
-  $('scene').setPointerCapture(event.pointerId);
-  $('scene').focus({ preventScroll: true });
-  renderInspector();
-  renderScene();
 });
 $('scene').addEventListener('pointermove', (event) => {
   if (!drag || drag.id !== event.pointerId) return;
-  const p = eventPoint(event);
+  const p = eventPoint(event, drag.view);
+  if (drag.mode === 'room') {
+    Object.assign(
+      scene,
+      resizeRoom(drag.startRoom, { x: p.x - drag.startPointer.x, y: p.y - drag.startPointer.y }),
+    );
+    commit();
+    return;
+  }
   const object = selectedObject();
   if (!object) {
     finishDrag(event);
     return;
   }
   if (drag.mode === 'rotate') {
-    const angle = Math.atan2(p.y - object.y, p.x - object.x);
-    object.angle = drag.startAngle + ((angle - drag.pointerAngle) * 180) / Math.PI;
+    const angle = Math.atan2(p.y - drag.startObject.y, p.x - drag.startObject.x);
+    object.angle = drag.startObject.angle + ((angle - drag.pointerAngle) * 180) / Math.PI;
+  } else if (drag.mode === 'length') {
+    const endpoint = panelEndpoints(drag.startObject)[drag.endpoint];
+    Object.assign(
+      object,
+      resizePanel(
+        drag.startObject,
+        drag.endpoint,
+        { x: endpoint.x + p.x - drag.startPointer.x, y: endpoint.y + p.y - drag.startPointer.y },
+        scene,
+      ),
+    );
+  } else if (drag.mode === 'acoustics') {
+    Object.assign(
+      object,
+      adjustPanelAcoustics(
+        drag.startObject,
+        { x: p.x - drag.startPointer.x, y: p.y - drag.startPointer.y },
+        drag.pixelsPerMeter,
+      ),
+    );
+  } else if (scene.panels.some((panel) => panel.id === selected)) {
+    Object.assign(
+      object,
+      movePanel(drag.startObject, drag.startPointer, p, drag.movementMode, scene),
+    );
   } else {
-    object.x = p.x - drag.dx;
-    object.y = p.y - drag.dy;
+    object.x = drag.startObject.x + p.x - drag.startPointer.x;
+    object.y = drag.startObject.y + p.y - drag.startPointer.y;
   }
   commit();
 });
 function finishDrag(event) {
   if (drag?.id === event.pointerId) {
     drag = null;
+    $('scene').classList.remove('editing');
     if ($('scene').hasPointerCapture(event.pointerId))
       $('scene').releasePointerCapture(event.pointerId);
   }
@@ -461,16 +628,86 @@ $('scene').addEventListener('pointerup', finishDrag);
 $('scene').addEventListener('pointercancel', finishDrag);
 $('scene').addEventListener('lostpointercapture', () => {
   drag = null;
+  $('scene').classList.remove('editing');
 });
 $('scene').addEventListener('focusin', (event) => {
-  const target = event.target.closest('[data-object], [data-wall], [data-rotate]');
+  const target = event.target.closest(
+    '[data-object], [data-move-panel], [data-wall], [data-rotate], [data-acoustics], [data-resize-panel], [data-resize-room]',
+  );
   if (target) {
-    selected = target.dataset.object || target.dataset.wall || target.dataset.rotate;
+    selected = target.dataset.resizeRoom
+      ? 'room'
+      : target.dataset.object ||
+        target.dataset.movePanel ||
+        target.dataset.wall ||
+        target.dataset.rotate ||
+        target.dataset.acoustics ||
+        target.dataset.resizePanel;
     renderInspector();
   }
 });
 window.addEventListener('resize', () => {
+  if (drag) finishDrag({ pointerId: drag.id });
   if (geometry) renderScene();
+});
+$('selectRoom').addEventListener('click', () => {
+  commitNumberEdit();
+  selected = 'room';
+  renderInspector();
+  renderScene();
+});
+function setMovementMode(button) {
+  if (!button) return;
+  commitNumberEdit();
+  movementMode = button.dataset.move;
+  renderInspector();
+  renderScene();
+}
+$('movementModes').addEventListener('click', (event) => {
+  if (event.pointerType === 'touch' || event.sourceCapabilities?.firesTouchEvents) return;
+  setMovementMode(event.target.closest('[data-move]'));
+});
+// Some mobile browsers suppress a compatibility click after a captured drag
+// or a nearby mouse tap. Completed touch taps still switch modes immediately.
+let movementTap = null;
+$('movementModes').addEventListener('pointerdown', (event) => {
+  const button = event.target.closest('[data-move]');
+  movementTap =
+    event.pointerType === 'touch' && button
+      ? { id: event.pointerId, button, x: event.clientX, y: event.clientY }
+      : null;
+});
+$('movementModes').addEventListener('pointermove', (event) => {
+  if (
+    movementTap?.id === event.pointerId &&
+    Math.hypot(event.clientX - movementTap.x, event.clientY - movementTap.y) > 12
+  )
+    movementTap = null;
+});
+$('movementModes').addEventListener('pointercancel', () => {
+  movementTap = null;
+});
+$('movementModes').addEventListener('pointerup', (event) => {
+  const tap = movementTap;
+  movementTap = null;
+  if (!tap || tap.id !== event.pointerId) return;
+  const bounds = tap.button.getBoundingClientRect();
+  if (
+    event.clientX < bounds.left ||
+    event.clientX > bounds.right ||
+    event.clientY < bounds.top ||
+    event.clientY > bounds.bottom
+  )
+    return;
+  setMovementMode(tap.button);
+});
+document.querySelectorAll('[data-angle]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const object = selectedObject();
+    if (!object || !scene.panels.includes(object)) return;
+    object.angle = Number(button.dataset.angle);
+    commit();
+  });
 });
 
 for (const id of WALL_IDS) {
@@ -503,9 +740,22 @@ for (const [id, property, divisor] of [
   ['roomWidth', 'width', 1],
   ['roomHeight', 'height', 1],
   ['wallReflection', 'wallReflection', 100],
+  ['wallScatter', 'wallScatter', 1],
 ]) {
   $(id).addEventListener('input', (event) => {
     scene[property] = Number(event.target.value) / divisor;
+    commit();
+  });
+}
+for (const [id, property, min, max] of [
+  ['roomWidthDirect', 'width', 8, 120],
+  ['roomWidthNumber', 'width', 8, 120],
+  ['roomHeightDirect', 'height', 8, 100],
+  ['roomHeightNumber', 'height', 8, 100],
+]) {
+  $(id).addEventListener('change', (event) => {
+    const value = event.target.valueAsNumber;
+    if (Number.isFinite(value)) scene[property] = clamp(value, min, max);
     commit();
   });
 }
@@ -513,10 +763,17 @@ for (const [id, property, divisor] of [
   ['panelAngle', 'angle', 1],
   ['panelLength', 'length', 1],
   ['panelReflection', 'reflection', 100],
+  ['panelScatter', 'scatter', 1],
+  ['quickAngle', 'angle', 1],
+  ['panelAngleNumber', 'angle', 1],
+  ['quickLength', 'length', 1],
+  ['panelLengthNumber', 'length', 1],
+  ['quickReflection', 'reflection', 100],
+  ['quickScatter', 'scatter', 1],
   ['positionX', 'x', 1],
   ['positionY', 'y', 1],
 ]) {
-  $(id).addEventListener(id.startsWith('position') ? 'change' : 'input', (event) => {
+  $(id).addEventListener($(id).type === 'number' ? 'change' : 'input', (event) => {
     const object = selectedObject();
     const value = event.target.valueAsNumber;
     if (!object || !Number.isFinite(value)) {
@@ -524,6 +781,7 @@ for (const [id, property, divisor] of [
       return;
     }
     object[property] = value / divisor;
+    if (property === 'length') object.length = Math.max(0.8, object.length);
     commit();
   });
 }
@@ -567,6 +825,7 @@ function addPanel(type) {
     angle: 90,
     length: Math.min(scene.height * 0.4, 18),
     reflection: type === 'absorber' ? 0.08 : 0.9,
+    scatter: 35,
   });
   selected = id;
   commit();
@@ -602,6 +861,43 @@ document.addEventListener('keydown', (event) => {
     $('scene')
       .querySelector(`[data-rotate="${CSS.escape(id)}"]`)
       ?.focus({ preventScroll: true });
+    return;
+  }
+  const roomHandle = event.target.closest('[data-resize-room]');
+  const lengthHandle = event.target.closest('[data-resize-panel]');
+  const soundHandle = event.target.closest('[data-acoustics]');
+  if ((roomHandle || lengthHandle || soundHandle) && event.key.startsWith('Arrow')) {
+    event.preventDefault();
+    const step = event.shiftKey ? 2 : 0.5;
+    const positive = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+    const direction = positive ? 1 : -1;
+    const id = selected;
+    if (roomHandle) {
+      const property = ['ArrowLeft', 'ArrowRight'].includes(event.key) ? 'width' : 'height';
+      scene[property] = clamp(
+        scene[property] + step * direction,
+        8,
+        property === 'width' ? 120 : 100,
+      );
+    } else if (lengthHandle) {
+      selectedObject().length = Math.max(0.8, selectedObject().length + step * direction);
+    } else {
+      const object = selectedObject();
+      if (['ArrowLeft', 'ArrowRight'].includes(event.key))
+        object.reflection = clamp(
+          object.reflection + direction * 0.05,
+          0,
+          object.type === 'absorber' ? 0.2 : 0.95,
+        );
+      else object.scatter = clamp(object.scatter + direction * 5, 0, 90);
+    }
+    commit();
+    const selector = roomHandle
+      ? '[data-resize-room]'
+      : lengthHandle
+        ? `[data-resize-panel="${CSS.escape(id)}"][data-endpoint="${lengthHandle.dataset.endpoint}"]`
+        : `[data-acoustics="${CSS.escape(id)}"]`;
+    $('scene').querySelector(selector)?.focus({ preventScroll: true });
     return;
   }
   if (event.code === 'Space') {
@@ -780,7 +1076,11 @@ function pointOnPath(path, fraction) {
 function animate() {
   if (!animationStarted) return;
   const elapsed = (performance.now() - animationStarted) / 1000;
-  const visualDuration = Math.max(0.2, ...displayedPaths.map((path) => path.delay * 4));
+  const visualDuration = Math.max(
+    0.2,
+    ...displayedPaths.map((path) => path.delay * 4),
+    ...(geometry.propagationRays || []).map((ray) => ray.delay * 4),
+  );
   if (elapsed > visualDuration + 0.1) {
     animationStarted = 0;
     if ($('particles')) $('particles').innerHTML = '';
@@ -795,9 +1095,29 @@ function animate() {
     cursor.setAttribute('x1', x);
     cursor.setAttribute('x2', x);
   }
-  if ($('particles'))
+  if ($('particles')) {
+    const emission = (geometry.propagationRays || []).filter((ray) => ray.kind === 'emission');
+    const branches = (geometry.propagationRays || []).filter((ray) => ray.order > 0);
+    const branchStep = Math.max(1, Math.ceil(branches.length / 48));
+    const shownRays = [...emission, ...branches.filter((_, index) => index % branchStep === 0)];
+    const rayParticles = shownRays
+      .map((ray) => {
+        const fraction = elapsed / Math.max(0.01, ray.delay * 4);
+        if (fraction > 1) return '';
+        if (ray.order > 0) {
+          const firstLeg = Math.hypot(
+            ray.points[1].x - ray.points[0].x,
+            ray.points[1].y - ray.points[0].y,
+          );
+          if (fraction * ray.distance < firstLeg) return '';
+        }
+        const point = pointOnPath(ray, fraction);
+        return `<circle class="propagation-particle" cx="${point.x}" cy="${point.y}" r="2.3" fill="${ray.kind === 'emission' ? '#ed9b89' : ray.kind === 'diffuse' ? '#8ab8dc' : '#bcf18b'}" opacity="${clamp(ray.gain * 5, 0.15, 0.6)}"/>`;
+      })
+      .join('');
     $('particles').innerHTML = pathsVisible
-      ? displayedPaths
+      ? rayParticles +
+        displayedPaths
           .map((p) => {
             const fraction = elapsed / Math.max(0.01, p.delay * 4);
             if (fraction > 1) return '';
@@ -806,6 +1126,7 @@ function animate() {
           })
           .join('')
       : '';
+  }
   animationId = requestAnimationFrame(animate);
 }
 async function play(dry) {
@@ -836,6 +1157,7 @@ async function play(dry) {
   }
 }
 $('playWet').addEventListener('click', () => play(false));
+$('sceneListen').addEventListener('click', () => play(false));
 $('playDry').addEventListener('click', () => play(true));
 $('stopAudio').addEventListener('click', stopPlayback);
 $('volume').addEventListener('input', () => {
@@ -889,6 +1211,7 @@ function setSourceBusy(busy) {
     'soundSelect',
     'playDry',
     'playWet',
+    'sceneListen',
     'exportAudio',
     'exportDry',
     'exportBoth',

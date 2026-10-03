@@ -3,7 +3,15 @@
  * contacts, which lets new plants and enemies share the same depth ordering. */
 
 const TAU = Math.PI * 2;
-const COLORS = { thorn: '#a2e866', ice: '#75ddff', mushroom: '#ffc26c', normal: '#ff83dc' };
+const COLORS = {
+  thorn: '#a2e866',
+  ice: '#75ddff',
+  mushroom: '#ffc26c',
+  normal: '#ff83dc',
+  fire: '#ff9a61',
+  explosive: '#ffca73',
+  split: '#e2bbff',
+};
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const noise = (n) => {
   const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
@@ -710,6 +718,17 @@ function monster(c, enemy, t) {
   c.translate(enemy.x, enemy.y);
   c.scale(size, size);
   shadow(c, 0, 0, 29, 10, 0.45);
+  if (enemy.chillTime > 0) {
+    ellipse(c, 0, 0, 32, 11, 'rgba(99,206,255,.16)', 'rgba(147,231,255,.6)', 1.5);
+  }
+  if (enemy.burnTime > 0) {
+    for (let i = 0; i < 3; i++) {
+      const flameX = (i - 1) * 17;
+      const flameY = -7 + Math.sin(t * 12 + i * 2) * 3;
+      ellipse(c, flameX, flameY, 5, 12, '#f49445');
+      ellipse(c, flameX, flameY + 3, 2.5, 6, '#ffdf8e');
+    }
+  }
   const flash = enemy.hit > 0;
   // Tail, grounded feet, then a soft, round charcoal body.
   c.strokeStyle = flash ? '#929278' : '#293034';
@@ -1022,11 +1041,12 @@ function player(c, p, t, portrait = false) {
 }
 
 function seedProjectile(c, b, t) {
-  const kind = b.kind || 'normal';
+  const kind = b.element || b.kind || 'normal';
   const angle = Math.atan2(b.vy || 0, b.vx || 1);
   c.save();
   c.translate(b.x, b.y - 10);
   c.rotate(angle);
+  if (b.generation > 0 || b.kind === 'split') c.scale(0.68, 0.68);
   const color = COLORS[kind] || '#ff9b72';
   c.globalAlpha = 0.7;
   c.fillStyle = gradient(c, -30, 0, 5, 0, [
@@ -1056,8 +1076,9 @@ function seedProjectile(c, b, t) {
     c.strokeStyle = '#4dccff';
     c.lineWidth = 2;
     c.stroke();
-  } else if (kind === 'mushroom') {
-    ellipse(c, 0, 0, 7, 6, '#ffc263');
+  } else if (kind === 'explosive' || kind === 'mushroom') {
+    ellipse(c, 0, 0, 8, 7, '#71462b', '#ffd081', 1.5);
+    ellipse(c, 1, 0, 5, 5, '#ffc263');
     ellipse(c, 2, -2, 2, 2, '#fff1a2');
   } else {
     c.beginPath();
@@ -1073,6 +1094,15 @@ function seedProjectile(c, b, t) {
     c.lineWidth = 1.5;
     c.stroke();
   }
+  if (kind === 'fire') {
+    c.beginPath();
+    c.moveTo(-3, -4);
+    c.lineTo(-15 - Math.sin(t * 22) * 4, 0);
+    c.lineTo(-3, 4);
+    c.fillStyle = '#ffc46e';
+    c.fill();
+  }
+  if (b.reflected) ellipse(c, 0, 0, 11, 9, null, '#f6df99', 1.2);
   c.restore();
 }
 function explosion(c, p, t) {
@@ -1249,24 +1279,23 @@ export class GardenRenderer {
       this.camera.x = clamp(px, Math.min(halfWidth + 15, 720), Math.max(1425 - halfWidth, 720));
       this.camera.y = py;
       this.offsetX = this.width / 2 - this.camera.x * this.scale;
-      // Keep the gardener above the thumb controls and seed dock.
-      const fieldCenter =
-        (Math.min(150, this.height * 0.28) + Math.max(190, this.height - 315)) / 2;
+      // Keep the gardener above the thumb controls and compact growth strip.
+      const fieldCenter = (Math.min(190, this.height * 0.3) + Math.max(235, this.height - 240)) / 2;
       this.offsetY = fieldCenter - this.camera.y * this.scale;
     } else {
       const top = this.height < 540 ? 61 : 87,
-        bottom = this.height < 540 ? 92 : 166;
+        bottom = this.height < 540 ? 86 : 111;
       this.scale = Math.min(this.width / 1440, (this.height - top - bottom) / 600);
       this.scale = Math.max(this.scale, Math.min(this.width / 1600, this.height / 1060));
       this.camera = { x: 720, y: 450 };
       this.offsetX = (this.width - 1440 * this.scale) / 2;
       this.offsetY = top - 150 * this.scale;
       // Preserve the opening composition, then pan only when the gardener would
-      // enter the HUD or seed dock. Include the sprite's height above its feet.
-      const maxPlayerY = this.height < 540 ? this.height - 155 : this.height - 273;
+      // enter the HUD or growth strip. Include the sprite's height above its feet.
+      const maxPlayerY = this.height < 540 ? this.height - 132 : this.height - 190;
       const minPlayerY = Math.min(
         maxPlayerY,
-        Math.max(this.height < 540 ? 90 : 145, top + 83 * this.scale + 24),
+        Math.max(this.height < 540 ? 111 : 159, top + 83 * this.scale + 24),
       );
       const playerY = (state?.player?.y ?? 450) * this.scale + this.offsetY;
       this.offsetY += clamp(playerY, minPlayerY, maxPlayerY) - playerY;
@@ -1282,7 +1311,7 @@ export class GardenRenderer {
   worldToScreen(x, y) {
     return { x: x * this.scale + this.offsetX, y: y * this.scale + this.offsetY };
   }
-  render(state, { aim = null, planting = false, time = 0 } = {}) {
+  render(state, { aim = null, time = 0 } = {}) {
     this.lastState = state;
     this.updateCamera(state);
     const c = this.ctx,
@@ -1347,7 +1376,7 @@ export class GardenRenderer {
         c.setLineDash([]);
       }
     });
-    if (aim && state.phase === 'playing') this.drawAim(state, aim, planting, t);
+    if (aim && state.phase === 'playing') this.drawAim(aim);
     const objects = [];
     plants.forEach((p) => objects.push({ y: p.y, draw: () => drawPlant(c, p, t) }));
     enemies.forEach((e) => objects.push({ y: e.y, draw: () => monster(c, e, t) }));
@@ -1407,47 +1436,12 @@ export class GardenRenderer {
     c.fillStyle = vignette;
     c.fillRect(0, 0, this.width, this.height);
   }
-  drawAim(state, aim, planting, t) {
+  drawAim(aim) {
     const c = this.ctx;
-    const kind = state.selectedSeed || 'thorn',
-      color = COLORS[kind];
-    if (planting) {
-      c.save();
-      const r = kind === 'thorn' ? 47 : kind === 'ice' ? 35 : 68;
-      ellipse(
-        c,
-        aim.x,
-        aim.y,
-        r,
-        r * 0.52,
-        kind === 'ice'
-          ? 'rgba(85,201,255,.08)'
-          : kind === 'mushroom'
-            ? 'rgba(255,185,70,.08)'
-            : 'rgba(149,218,98,.08)',
-      );
-      c.setLineDash([7, 6]);
-      c.lineDashOffset = -t * 12;
-      ellipse(c, aim.x, aim.y, r, r * 0.52, null, color, 2);
-      c.setLineDash([]);
-      c.globalAlpha = 0.12;
-      if (kind === 'thorn') thorn(c, aim.x, aim.y, 0.7, 5, t);
-      if (kind === 'ice') ice(c, aim.x, aim.y, 0.7, 5, t);
-      if (kind === 'mushroom') mushroom(c, aim.x, aim.y, 0.7, 5, t);
-      c.globalAlpha = 0.38;
-      c.beginPath();
-      c.moveTo(state.player.x, state.player.y - 24);
-      c.lineTo(aim.x, aim.y);
-      c.setLineDash([3, 8]);
-      c.strokeStyle = color;
-      c.lineWidth = 1;
-      c.stroke();
-      c.restore();
-    }
     c.save();
-    c.strokeStyle = planting ? color : 'rgba(255,240,205,.65)';
+    c.strokeStyle = 'rgba(255,240,205,.8)';
     c.lineWidth = 1.8;
-    const r = planting ? 9 : 7;
+    const r = 7;
     ellipse(c, aim.x, aim.y, r, r * 0.58, null, c.strokeStyle, 1.4);
     [
       [-1, 0],
@@ -1487,7 +1481,24 @@ export function drawSeedIcon(canvas, kind) {
   else if (kind === 'mushroom') mushroom(c, 0, 0, 1, 5, 0);
   else if (kind === 'leaf') leaf(c, 0, 7, 57, 0.65, '#4f842b', '#a3d75f');
   else if (kind === 'flower') flower(c, 0, 0, 1.55, 0);
-  else if (kind === 'normal') {
+  else if (kind === 'heart') {
+    c.translate(0, -28);
+    c.beginPath();
+    c.moveTo(0, 16);
+    c.bezierCurveTo(-44, -7, -27, -41, 0, -21);
+    c.bezierCurveTo(27, -41, 44, -7, 0, 16);
+    c.fillStyle = gradient(c, -20, -30, 20, 18, [
+      [0, '#ffc4a4'],
+      [0.45, '#ef7e70'],
+      [1, '#ac4150'],
+    ]);
+    c.shadowColor = '#f7997e';
+    c.shadowBlur = 12;
+    c.fill();
+    c.strokeStyle = '#ffe1be';
+    c.lineWidth = 1.5;
+    c.stroke();
+  } else {
     c.rotate(-0.4);
     c.shadowColor = '#ff96da';
     c.shadowBlur = 16;

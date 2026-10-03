@@ -172,11 +172,11 @@ export function moveShaft(level, state, id, value) {
   });
 }
 
-export function toggleLatch(level, state, id) {
+export function toggleLatch(level, state, id, side = state.side) {
   const latch = latchById(level, id);
   if (!latch) return failure('找不到这个锁扣。');
   if (state.completed) return failure('小球已经抵达终点。');
-  if (state.side !== latch.side) return failure(`这个锁扣在${sideName(latch.side)}，先翻面。`);
+  if (side !== latch.side) return failure(`请在${sideName(latch.side)}点击这个锁扣。`);
   if (state.latches[id]) {
     const alignment = latchAlignment(level, state, latch);
     if (!alignment.aligned) return failure(alignment.message);
@@ -236,7 +236,7 @@ export function releaseBall(level, state) {
   if (state.side !== 'front') return failure('放球口在正面，翻到正面再放球。');
   state.released = true;
   state.moves += 1;
-  return success('小球出发！遇到挡板会停住，仍可翻面调整机关。');
+  return success('小球出发！遇到挡板会停住，可以在左右两面继续调整机关。');
 }
 
 /**

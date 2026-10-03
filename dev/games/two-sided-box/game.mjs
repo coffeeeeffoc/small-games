@@ -3,16 +3,23 @@ import {
   createState,
   moveShaft,
   toggleLatch,
-  flipView,
   releaseBall,
   advanceBall,
   getSnapshot,
 } from './engine.mjs';
-import { renderBoard, renderDragPreview, shaftY, RAIL_TOP, RAIL_BOTTOM } from './render.mjs';
+import {
+  renderBoard,
+  renderDragPreview,
+  boardBallPoint,
+  shaftY,
+  RAIL_TOP,
+  RAIL_BOTTOM,
+} from './render.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
+const boards = [board, $('#back-board')];
 const clone = (value) => structuredClone(value);
 let storage;
 try {
@@ -27,9 +34,7 @@ let history = [];
 let ball = [...LEVELS[levelIndex].path[0]];
 let ballPathCursor = 0;
 let ballMoving = false;
-let animating = false;
 let generation = 0;
-let flipGeneration = 0;
 let drag = null;
 let deferredScene = false;
 let highlighted = null;
@@ -113,7 +118,6 @@ function sound(kind) {
     const tones = {
       move: [360, 440],
       latch: [240, 310],
-      flip: [200, 270],
       blocked: [135, 110],
       win: [440, 550, 660, 880],
     }[kind] || [400];
@@ -145,16 +149,18 @@ function paintScene() {
       0,
       Math.min(2, Math.round((RAIL_BOTTOM - drag.y) / 150)),
     );
-    renderDragPreview(board, level(), visualState, drag);
+    for (const face of boards) renderDragPreview(face, level(), visualState, drag);
     return;
   }
   const focusedShaft = document.activeElement?.getAttribute('data-shaft');
   const focusedLatch = document.activeElement?.getAttribute('data-latch');
-  renderBoard(board, level(), visualState, { ball, drag, highlighted });
+  const focusedBoard = document.activeElement?.closest('svg');
+  for (const face of boards)
+    renderBoard(face, level(), visualState, { side: face.dataset.side, ball, drag, highlighted });
   if (focusedShaft && !drag)
-    board.querySelector(`[data-shaft="${focusedShaft}"]`)?.focus({ preventScroll: true });
+    focusedBoard?.querySelector(`[data-shaft="${focusedShaft}"]`)?.focus({ preventScroll: true });
   if (focusedLatch && !drag)
-    board.querySelector(`[data-latch="${focusedLatch}"]`)?.focus({ preventScroll: true });
+    focusedBoard?.querySelector(`[data-latch="${focusedLatch}"]`)?.focus({ preventScroll: true });
 }
 
 function deferSceneUntilTouchEnds() {
@@ -170,27 +176,19 @@ function deferSceneUntilTouchEnds() {
 function update() {
   paintScene();
   const snapshot = getSnapshot(level(), state);
-  const back = state.side === 'back';
   $('#level-number').textContent = String(levelIndex + 1).padStart(2, '0');
   $('#level-title').textContent = level().title;
   $('#level-subtitle').textContent = level().subtitle;
   $('#intro').textContent = level().intro;
-  $('#side-name').textContent = back ? '背面' : '正面';
-  $('#front-tab').classList.toggle('active', !back);
-  $('#back-tab').classList.toggle('active', back);
   $('#move-count').textContent = state.moves;
-  $('#flip span').textContent = back ? '转到正面' : '转到背面';
-  $('#flip').disabled = animating || state.completed;
-  $('#release').disabled = back || state.released || state.completed || animating;
-  $('#release span').textContent = back
-    ? '到正面放球'
-    : state.completed
-      ? '已进入终点'
-      : state.released
-        ? ballMoving
-          ? '小球前进中'
-          : '小球停靠中'
-        : '放出小球';
+  $('#release').disabled = state.released || state.completed;
+  $('#release span').textContent = state.completed
+    ? '已进入终点'
+    : state.released
+      ? ballMoving
+        ? '小球前进中'
+        : '小球停靠中'
+      : '放出小球';
   $('#ball-state').textContent = state.completed
     ? '已进入终点 ✓'
     : !state.released
@@ -198,7 +196,7 @@ function update() {
       : ballMoving
         ? '小球前进中'
         : '等候机关打开';
-  $('#undo').disabled = !history.length || animating || ballMoving;
+  $('#undo').disabled = !history.length || ballMoving;
   $('#status').textContent = feedback;
   $('#collection-count').textContent = `${Object.keys(progress.best).length}/${LEVELS.length}`;
   $('#sound').classList.toggle('muted', !progress.sound);
@@ -217,7 +215,7 @@ function update() {
       details.className = 'mechanism-details';
       details.textContent = shaft.locked ? '锁扣固定中' : '两面同步联动';
       const role = document.createElement('small');
-      role.textContent = back ? shaft.backRole : shaft.frontRole;
+      role.textContent = `正面：${shaft.frontRole}；背面：${shaft.backRole}`;
       details.append(role);
       const value = document.createElement('span');
       value.className = 'shaft-value';
@@ -233,14 +231,16 @@ function showFeedback(message, blocked = false, id = null) {
   $('#status').textContent = message;
   if (blocked) {
     sound('blocked');
-    const element = id ? board.querySelector(`[data-shaft="${id}"], [data-latch="${id}"]`) : null;
-    element?.classList.add('jolt');
-    setTimeout(() => element?.classList.remove('jolt'), 500);
+    const elements = id
+      ? $('#scene').querySelectorAll(`[data-shaft="${id}"], [data-latch="${id}"]`)
+      : [];
+    elements.forEach((element) => element.classList.add('jolt'));
+    setTimeout(() => elements.forEach((element) => element.classList.remove('jolt')), 500);
   }
 }
 
 function change(action, id = null) {
-  if (animating || drag || state.completed) return false;
+  if (drag || state.completed) return false;
   if (ballMoving) {
     showFeedback('小球正在沿球道前进。停靠后，继续调整机关即可。');
     return false;
@@ -274,7 +274,8 @@ function animateSegment(target, token) {
       const p = Math.min(1, (now - at) / duration);
       ball = [start[0] + (target[0] - start[0]) * p, start[1] + (target[1] - start[1]) * p];
       const sprite = board.querySelector('#ball');
-      sprite?.setAttribute('transform', `translate(${ball[0]} ${ball[1]})`);
+      const point = boardBallPoint(board, level(), ball);
+      sprite?.setAttribute('transform', `translate(${point[0]} ${point[1]})`);
       if (p < 1) requestAnimationFrame(tick);
       else resolve(true);
     };
@@ -303,7 +304,7 @@ async function runBall() {
       save();
       sound('win');
       $('#result-copy').textContent =
-        `第 ${levelIndex + 1} 盒「${level().title}」已完成。${state.moves} 次操作，${state.flips} 次翻面。`;
+        `第 ${levelIndex + 1} 盒「${level().title}」已完成。${state.moves} 次操作。`;
       $('#next').textContent =
         levelIndex === LEVELS.length - 1 ? '查看六盒收藏 →' : '打开下一个盒子 →';
       if (!document.querySelector('dialog[open]')) $('#result').showModal();
@@ -320,9 +321,11 @@ async function runBall() {
 function cancelDrag() {
   if (!drag) return;
   const pointer = drag.pointerId;
-  renderDragPreview(board, level(), state, { ...drag, y: shaftY(state.shafts[drag.id]) });
+  const capturedBoard = drag.board;
+  for (const face of boards)
+    renderDragPreview(face, level(), state, { ...drag, y: shaftY(state.shafts[drag.id]) });
   drag = null;
-  if (board.hasPointerCapture(pointer)) board.releasePointerCapture(pointer);
+  if (capturedBoard.hasPointerCapture(pointer)) capturedBoard.releasePointerCapture(pointer);
   deferSceneUntilTouchEnds();
   paintScene();
 }
@@ -334,11 +337,8 @@ function closeDialogs() {
 function loadLevel(index) {
   cancelDrag();
   generation += 1;
-  flipGeneration += 1;
   ballMoving = false;
-  animating = false;
   deferredScene = false;
-  $('#scene').classList.remove('flipping');
   levelIndex = index;
   state = createState(level());
   history = [];
@@ -376,97 +376,118 @@ function openLevels() {
   $('#level-dialog').showModal();
 }
 
-async function flip() {
-  if (animating || state.completed) return;
-  cancelDrag();
-  const before = remember();
-  history.push(before);
-  animating = true;
-  const token = ++flipGeneration;
-  sound('flip');
-  $('#scene').classList.add('flipping');
-  update();
-  await new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 5 : 170));
-  if (token !== flipGeneration) return;
-  feedback = flipView(state).message;
-  update();
-  $('#scene').classList.remove('flipping');
-  await new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 5 : 180));
-  if (token !== flipGeneration) return;
-  animating = false;
-  update();
-}
-
-function boardPoint(event) {
-  const matrix = board.getScreenCTM();
+function boardPoint(face, event) {
+  const matrix = face.getScreenCTM();
   if (!matrix) return null;
   return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
 }
 
-board.addEventListener('pointerdown', (event) => {
-  if (!event.isPrimary || event.button !== 0 || animating || ballMoving || state.completed || drag)
-    return;
-  const shaftElement = event.target.closest('[data-shaft]');
-  if (
-    !shaftElement ||
-    (event.target.closest('[data-notch-shaft]') && !event.target.closest('[data-shaft-handle]'))
-  )
-    return;
-  const id = shaftElement.dataset.shaft;
-  const value = state.shafts[id];
-  if (getSnapshot(level(), state).lockedShafts.includes(id)) {
-    const result = moveShaft(level(), state, id, value === 2 ? 1 : 2);
-    showFeedback(result.message, true, id);
-    return;
-  }
-  const point = boardPoint(event);
-  if (!point) return;
-  drag = {
-    id,
-    pointerId: event.pointerId,
-    y: shaftY(value),
-    startY: point.y,
-    handleY: shaftY(value),
-    moved: false,
-    before: remember(),
-  };
-  board.setPointerCapture(event.pointerId);
-});
-board.addEventListener('pointermove', (event) => {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  const point = boardPoint(event);
-  if (!point) return;
-  const nextY = Math.max(RAIL_TOP, Math.min(RAIL_BOTTOM, drag.handleY + point.y - drag.startY));
-  drag.moved ||= Math.abs(nextY - drag.handleY) > 5;
-  drag.y = nextY;
-  highlighted = drag.id;
-  paintScene();
-});
-board.addEventListener('pointerup', (event) => {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  const gesture = drag;
-  const value = Math.max(0, Math.min(2, Math.round((RAIL_BOTTOM - drag.y) / 150)));
-  drag = null;
-  if (board.hasPointerCapture(event.pointerId)) board.releasePointerCapture(event.pointerId);
-  if (gesture.moved) {
-    const result = moveShaft(level(), state, gesture.id, value);
-    if (result.ok && result.changed) {
-      history.push(gesture.before);
-      feedback = result.message;
-      sound('move');
-    } else if (!result.ok) feedback = result.message;
-  }
-  renderDragPreview(board, level(), state, { ...gesture, y: shaftY(state.shafts[gesture.id]) });
-  deferSceneUntilTouchEnds();
-  update();
-  if (state.released) void runBall();
-});
-board.addEventListener('pointercancel', (event) => {
-  if (drag?.pointerId === event.pointerId) cancelDrag();
-});
-board.addEventListener('lostpointercapture', () => {
-  if (drag) cancelDrag();
-});
+for (const face of boards) {
+  face.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary || event.button !== 0 || ballMoving || state.completed || drag) return;
+    const shaftElement = event.target.closest('[data-shaft]');
+    if (
+      !shaftElement ||
+      (event.target.closest('[data-notch-shaft]') && !event.target.closest('[data-shaft-handle]'))
+    )
+      return;
+    const id = shaftElement.dataset.shaft;
+    const value = state.shafts[id];
+    if (getSnapshot(level(), state).lockedShafts.includes(id)) {
+      const result = moveShaft(level(), state, id, value === 2 ? 1 : 2);
+      showFeedback(result.message, true, id);
+      return;
+    }
+    const point = boardPoint(face, event);
+    if (!point) return;
+    drag = {
+      id,
+      board: face,
+      pointerId: event.pointerId,
+      y: shaftY(value),
+      startY: point.y,
+      handleY: shaftY(value),
+      moved: false,
+      before: remember(),
+    };
+    face.setPointerCapture(event.pointerId);
+  });
+  face.addEventListener('pointermove', (event) => {
+    if (!drag || drag.board !== face || event.pointerId !== drag.pointerId) return;
+    const point = boardPoint(face, event);
+    if (!point) return;
+    const nextY = Math.max(RAIL_TOP, Math.min(RAIL_BOTTOM, drag.handleY + point.y - drag.startY));
+    drag.moved ||= Math.abs(nextY - drag.handleY) > 5;
+    drag.y = nextY;
+    highlighted = drag.id;
+    paintScene();
+  });
+  face.addEventListener('pointerup', (event) => {
+    if (!drag || drag.board !== face || event.pointerId !== drag.pointerId) return;
+    const gesture = drag;
+    const value = Math.max(0, Math.min(2, Math.round((RAIL_BOTTOM - drag.y) / 150)));
+    drag = null;
+    if (face.hasPointerCapture(event.pointerId)) face.releasePointerCapture(event.pointerId);
+    if (gesture.moved) {
+      const result = moveShaft(level(), state, gesture.id, value);
+      if (result.ok && result.changed) {
+        history.push(gesture.before);
+        feedback = result.message;
+        sound('move');
+      } else if (!result.ok) feedback = result.message;
+    }
+    for (const target of boards)
+      renderDragPreview(target, level(), state, {
+        ...gesture,
+        y: shaftY(state.shafts[gesture.id]),
+      });
+    deferSceneUntilTouchEnds();
+    update();
+    if (state.released) void runBall();
+  });
+  face.addEventListener('pointercancel', (event) => {
+    if (drag?.pointerId === event.pointerId) cancelDrag();
+  });
+  face.addEventListener('lostpointercapture', () => {
+    if (drag?.board === face) cancelDrag();
+  });
+  face.addEventListener('click', (event) => {
+    const latch = event.target.closest('[data-latch]');
+    const notch = event.target.closest('[data-notch-shaft]');
+    if (latch)
+      change(
+        () => toggleLatch(level(), state, latch.dataset.latch, face.dataset.side),
+        latch.dataset.latch,
+      );
+    else if (notch)
+      change(
+        () => moveShaft(level(), state, notch.dataset.notchShaft, Number(notch.dataset.value)),
+        notch.dataset.notchShaft,
+      );
+  });
+  face.addEventListener('keydown', (event) => {
+    const shaft = event.target.closest('[data-shaft]');
+    const latch = event.target.closest('[data-latch]');
+    if (latch && ['Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      change(
+        () => toggleLatch(level(), state, latch.dataset.latch, face.dataset.side),
+        latch.dataset.latch,
+      );
+    } else if (shaft && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const id = shaft.dataset.shaft;
+      const value =
+        event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? 2
+            : Math.max(0, Math.min(2, state.shafts[id] + (event.key === 'ArrowUp' ? 1 : -1)));
+      change(() => moveShaft(level(), state, id, value), id);
+    }
+  });
+}
+
 window.addEventListener('blur', cancelDrag);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
@@ -474,42 +495,14 @@ document.addEventListener('visibilitychange', () => {
     void audioContext?.suspend().catch(() => {});
   }
 });
-board.addEventListener('click', (event) => {
-  const latch = event.target.closest('[data-latch]');
-  const notch = event.target.closest('[data-notch-shaft]');
-  if (latch) change(() => toggleLatch(level(), state, latch.dataset.latch), latch.dataset.latch);
-  else if (notch)
-    change(
-      () => moveShaft(level(), state, notch.dataset.notchShaft, Number(notch.dataset.value)),
-      notch.dataset.notchShaft,
-    );
-});
-board.addEventListener('keydown', (event) => {
-  const shaft = event.target.closest('[data-shaft]');
-  const latch = event.target.closest('[data-latch]');
-  if (latch && ['Enter', ' '].includes(event.key)) {
-    event.preventDefault();
-    change(() => toggleLatch(level(), state, latch.dataset.latch), latch.dataset.latch);
-  } else if (shaft && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
-    event.preventDefault();
-    const id = shaft.dataset.shaft;
-    const value =
-      event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? 2
-          : Math.max(0, Math.min(2, state.shafts[id] + (event.key === 'ArrowUp' ? 1 : -1)));
-    change(() => moveShaft(level(), state, id, value), id);
-  }
-});
 
-$('#flip').addEventListener('click', () => void flip());
 $('#release').addEventListener('click', () => change(() => releaseBall(level(), state)));
 $('#restart').addEventListener('click', () => loadLevel(levelIndex));
 $('#undo').addEventListener('click', () => {
-  if (!history.length || animating || ballMoving) return;
+  if (!history.length || ballMoving) return;
   cancelDrag();
   generation += 1;
+  deferredScene = false;
   const previous = history.pop();
   state = previous.state;
   ball = previous.ball;
@@ -576,13 +569,26 @@ window.__twoSidedSnapshot = () =>
     state,
     historyLength: history.length,
     progress,
-    animating,
+    animating: false,
     ballMoving,
     dragging: Boolean(drag),
     ball,
     ballPathCursor,
     ...{ mechanisms: getSnapshot(level(), state) },
   });
+const resizeBoards = () => {
+  const layouts = boards.map((face) =>
+    face.getBoundingClientRect().width < 300 ? 'compact' : 'wide',
+  );
+  if (boards.every((face, index) => face.dataset.layout === layouts[index])) return;
+  cancelDrag();
+  boards.forEach((face, index) => {
+    face.dataset.layout = layouts[index];
+  });
+  paintScene();
+};
+new ResizeObserver(resizeBoards).observe($('#scene'));
+resizeBoards();
 update();
 $('#start').firstChild.textContent = Object.keys(progress.best).length
   ? '继续探索机关盒 '
