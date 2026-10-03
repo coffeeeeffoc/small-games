@@ -468,9 +468,9 @@ export class HUD {
       this.rect(g, x - 7, y - barH / 2, 5, barH, C.mint);
       this.rect(g, x + 2, y - barH / 2, 5, barH, C.mint);
     }
-    if (!['briefing', 'success', 'failure', 'orientation', 'pause'].includes(key))
-      this.button('close', '×', px + pw - 56, py + 8, 44, 44, n);
     const bottom = py + ph - 58;
+    if (help || settings)
+      this.button('close', this.t('返回', 'BACK'), px + pw - (pw < 360 ? 104 : 116), bottom, pw < 360 ? 88 : 100, 44, n);
     if (help) {
       const tabs = [
         ['basic', this.t('基础', 'BASIC')],
@@ -532,14 +532,14 @@ export class HUD {
         this.t('重玩教学', 'COACH'),
         px + 16,
         bottom,
-        pw < 360 ? 90 : 108,
+        pw < 360 ? 78 : 108,
         44,
         n,
       );
       this.button(
         'language',
         this.lang === 'zh' ? 'EN' : '中文',
-        px + (pw < 360 ? 114 : 132),
+        px + (pw < 360 ? 102 : 132),
         bottom,
         pw < 360 ? 44 : 56,
         44,

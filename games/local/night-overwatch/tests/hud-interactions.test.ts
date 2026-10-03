@@ -175,6 +175,11 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
           assert(b.y >= safe + 58 && b.y + b.h <= height - safe, `${reason}: panel control stays below the global row`);
           assert(!controls.some((other: any) => other !== b && overlaps(b, other)), `${reason}: panel controls do not overlap`);
         }
+        if (reason === 'settings' || reason === 'help') {
+          const back = controls.find((b: any) => b.id === 'close');
+          assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
+          assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
+        }
         if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'resume,home');
         if (reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'close,sound,effects,help,language');
         if (reason === 'help') assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');

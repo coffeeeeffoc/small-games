@@ -516,7 +516,7 @@ $('#sound').addEventListener('click', () => {
   sound();
 });
 $('#help').addEventListener('click', () => $('#help-dialog').showModal());
-for (const selector of ['#close-help', '#start-playing'])
+for (const selector of ['#start-playing'])
   $(selector).addEventListener('click', () => $('#help-dialog').close());
 $('#help-dialog').addEventListener('click', (event) => {
   if (event.target === $('#help-dialog')) {

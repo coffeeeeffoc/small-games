@@ -11,7 +11,7 @@ export function CricketSidebar({
   return (
     <aside className={`cricket-sidebar ${help ? 'show-help' : ''}`}>
       <button className="cricket-help-close" onClick={() => onClose()}>
-        收起玩法 ×
+        收起玩法
       </button>
       <div className="cricket-side-title">
         <small>茶馆擂台</small>

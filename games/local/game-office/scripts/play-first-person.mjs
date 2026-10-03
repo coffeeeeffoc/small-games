@@ -82,12 +82,12 @@ try {
     await page.getByRole('button', { name: '周一', exact: true }).getAttribute('aria-pressed'),
     'true',
   );
-  await page.getByRole('button', { name: '关闭场景表' }).click();
+  await page.getByRole('button', { name: '返回游戏', exact: true }).click();
   await page.getByRole('button', { name: '悄悄进入办公室' }).click();
   await page.getByRole('button', { name: '打开一周场景表' }).click();
   await page.keyboard.press('Escape');
   await walk('w', 1500);
-  await page.getByRole('button', { name: '关闭场景表' }).click();
+  await page.getByRole('button', { name: '返回游戏', exact: true }).click();
   await page.getByRole('heading', { name: '先缓一口气。' }).waitFor();
   await page.getByRole('button', { name: '继续潜入' }).click();
   await page.clock.runFor(111000);

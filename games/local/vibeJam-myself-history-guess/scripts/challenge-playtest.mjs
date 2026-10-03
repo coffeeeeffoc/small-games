@@ -44,7 +44,7 @@ try {
   assert.ok(!/private|year/.test(shared.href));
   await page.locator('#copy-daily').click();
   assert.match(await page.locator('#share-status').innerText(), /请长按/);
-  await page.getByRole('button', { name: '关闭弹窗', exact: true }).click();
+  await page.getByRole('button', { name: '返回旅途', exact: true }).click();
   await page.locator('#daily-start').click(); await ready(page);
   assert.deepEqual((await saved(page)).dailyJourney.deck, expected.map(round => round.id));
   assert.deepEqual((await saved(page)).journey, ordinary);

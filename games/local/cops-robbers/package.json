@@ -16,6 +16,7 @@
     "test:quick-browser": "node scripts/check-quick-browser.mjs",
     "test:browser": "node scripts/playtest.mjs",
     "test:interactions": "node scripts/check-interactions.mjs",
+    "test:dialogs": "node scripts/check-dialogs.mjs",
     "test:focus": "node scripts/check-focus.mjs",
     "test:input": "node scripts/check-input-scope.mjs",
     "test:relay": "node scripts/check-relay.mjs",

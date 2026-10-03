@@ -107,11 +107,6 @@ body:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-l
   border-color: transparent;
   color: var(--pk-muted);
 }
-.competition-dialog button.pk-icon {
-  padding: 8px;
-  width: 44px;
-  flex: none;
-}
 .pk-shell {
   height: 100%;
   min-height: 0;
@@ -162,31 +157,6 @@ body:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-l
   display: flex;
   gap: 4px;
   align-items: center;
-}
-.competition-dialog [data-game-fullscreen] {
-  min-width: 70px;
-  border-radius: 999px;
-  background: #e6ece1;
-  border-color: transparent;
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  justify-content: center;
-}
-.competition-dialog [data-game-fullscreen]::before {
-  content: '';
-  width: 13px;
-  height: 13px;
-  display: block;
-  background:
-    linear-gradient(currentColor, currentColor) left top/5px 1.5px no-repeat,
-    linear-gradient(currentColor, currentColor) left top/1.5px 5px no-repeat,
-    linear-gradient(currentColor, currentColor) right top/5px 1.5px no-repeat,
-    linear-gradient(currentColor, currentColor) right top/1.5px 5px no-repeat,
-    linear-gradient(currentColor, currentColor) left bottom/5px 1.5px no-repeat,
-    linear-gradient(currentColor, currentColor) left bottom/1.5px 5px no-repeat,
-    linear-gradient(currentColor, currentColor) right bottom/5px 1.5px no-repeat,
-    linear-gradient(currentColor, currentColor) right bottom/1.5px 5px no-repeat;
 }
 .pk-status {
   flex: none;
@@ -698,12 +668,6 @@ body:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-l
     padding: 8px 9px;
     font-size: 12px;
   }
-  .competition-dialog .pk-tools .pk-icon {
-    width: 36px;
-  }
-  .competition-dialog [data-game-fullscreen] {
-    min-width: 64px;
-  }
   .pk-hero {
     padding: 10px 0 16px;
   }
@@ -843,9 +807,6 @@ body:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-l
 .pk-brand > div {
   min-width: 0;
 }
-.competition-dialog .pk-tools .pk-icon {
-  width: 44px;
-}
 .competition-dialog[aria-busy] [data-create],
 .competition-dialog[aria-busy] [data-join] {
   opacity: 0.6;
@@ -924,4 +885,16 @@ body:has(.competition-dialog[open]) {
   border-radius: 8px;
   padding: 8px;
   font: inherit;
+}
+
+.pk-exit {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+.pk-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
 }

@@ -186,8 +186,12 @@ try {
   const count=(await snapshot()).objects;
   for(let i=0;i<50;i++) {await drive({kind:'fold',crease:'A',direction:'right-to-left'});await drive({kind:'unfold'});assert.equal((await snapshot()).objects,count);if((i+1)%10===0)console.log(`PASS browser fold soak ${i+1}/50`);}
   results.push({check:'50 browser fold/unfold cycles',objects:count,folds:(await snapshot()).folds,unfolds:(await snapshot()).unfolds});
-  await page.keyboard.press('Escape');await waitMode('PAUSED');await page.locator('#fullscreen').click();await page.waitForFunction(()=>!!document.fullscreenElement);
+  await page.locator('#fullscreen').click();await page.waitForFunction(()=>!!document.fullscreenElement);
+  // A browser may pause on fullscreen transitions; resume before using the HUD again.
+  if((await snapshot()).mode==='PAUSED')await page.getByRole('button',{name:T.resume}).click();
   await page.locator('#fullscreen').click();await page.waitForFunction(()=>!document.fullscreenElement);
+  if((await snapshot()).mode!=='PAUSED')await page.keyboard.press('Escape');await waitMode('PAUSED');
+  assert.equal(await page.locator('#overlay #fullscreen').count(),0);
   await page.locator('#sound').click();assert.equal(await page.locator('#sound').getAttribute('aria-pressed'),'true');
   await page.getByRole('button',{name:T.resume}).click();await waitMode('PLAYING');
   await page.keyboard.press('KeyR');await page.waitForTimeout(100);

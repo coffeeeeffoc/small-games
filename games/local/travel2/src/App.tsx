@@ -402,13 +402,6 @@ export function App() {
           }}
         >
           <div className="dialog-content">
-            <button
-              className="dialog-close icon-button"
-              aria-label="关闭弹窗"
-              onClick={() => setModal(null)}
-            >
-              <Icon name="close" />
-            </button>
             {selected ? (
               <>
                 <p className="eyebrow">
@@ -500,6 +493,7 @@ export function App() {
             {!storageAvailable && (
               <p className="storage-note">浏览器暂不允许保存，印章将保留到本次游览结束。</p>
             )}
+            <button className="primary-button" onClick={() => setModal(null)}>返回漫游</button>
             <div className="dialog-notice" role="status">
               {notice}
             </div>

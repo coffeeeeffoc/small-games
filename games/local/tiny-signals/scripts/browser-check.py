@@ -298,7 +298,7 @@ def main():
         for key in ["ArrowDown", "w", "z", "r"]:
             page.keyboard.press(key)
         moves(page, 1)
-        page.locator("#close-help").click()
+        page.locator("#close-help-bottom").click()
         expect(page.locator("#rules-dialog")).not_to_be_visible()
         press(page, "up")
         moves(page, 2)

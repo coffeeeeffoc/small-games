@@ -336,7 +336,7 @@ try {
       assert.equal(png.subarray(1, 4).toString(), 'PNG');
       assert.equal(png.readUInt32BE(16), 1200);
       assert.equal(png.readUInt32BE(20), 1500);
-      await click(page.getByRole('button', { name: '关闭弹窗', exact: true }));
+      await click(page.getByRole('button', { name: '返回漫游', exact: true }));
       await enterChapter(page, total - 1, scenario.mobile);
       await click(page.getByRole('button', { name: '走到旅程尽头', exact: true }));
       await expect(page.locator('.ending')).toContainText(

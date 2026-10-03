@@ -272,9 +272,6 @@
           <h2>下一站，哪个街区？</h2>
           <p>100 场行动。一步步成为围捕高手。</p>
         </div>
-        <button class="icon-button" data-close aria-label="关闭街区地图">
-          <svg><use href="#i-close" /></svg>
-        </button>
       </div>
       <div
         id="chapter-tabs"
@@ -284,6 +281,7 @@
       ></div>
       <div id="level-grid" class="level-grid"></div>
       <p class="dialog-note">全部关卡开放，可自由选关 · 最佳用时保存在当前浏览器</p>
+      <button class="button quiet wide" data-close>返回游戏</button>
     </dialog>
     <dialog id="pause-dialog" class="small-dialog">
       <span class="dialog-emblem">Ⅱ</span
@@ -328,13 +326,7 @@
       <button class="button quiet wide" id="lose-review">看看哪里漏了</button>
     </dialog>
     <dialog id="help-dialog" class="small-dialog help-dialog">
-      <button
-        class="icon-button dialog-close"
-        data-close
-        aria-label="关闭操作指南"
-      >
-        <svg><use href="#i-close" /></svg></button
-      ><span class="eyebrow">HOW TO CATCH A ROBBER</span>
+      <span class="eyebrow">HOW TO CATCH A ROBBER</span>
       <h2>指挥就三步。</h2>
       <ol>
         <li><b>选人。</b>点击我方队员或下方编号头像。</li>
@@ -352,7 +344,7 @@
         收到，出发！<svg><use href="#i-arrow" /></svg>
       </button><button class="button quiet wide" id="help-practice">暂停本局，练习夹击</button>
     </dialog>
-    <dialog id="share-dialog" class="small-dialog"><div class="dialog-top"><h2 id="share-title">分享同题</h2><button class="icon-button" data-close aria-label="关闭分享">×</button></div><label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly><p id="share-note" role="status"></p><button id="copy-share" class="button primary wide">复制链接</button><button id="native-share" class="button quiet wide" hidden>打开分享面板</button></dialog>
+    <dialog id="share-dialog" class="small-dialog"><div class="dialog-top"><h2 id="share-title">分享同题</h2></div><label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly><p id="share-note" role="status"></p><button id="copy-share" class="button primary wide">复制链接</button><button id="native-share" class="button quiet wide" hidden>打开分享面板</button><button class="button quiet wide" data-close>返回游戏</button></dialog>
     <script type="module" src="./src/main.js"></script>
     <script defer src="./src/fullscreen.js"></script>
   </body>

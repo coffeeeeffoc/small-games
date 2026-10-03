@@ -126,9 +126,10 @@ try {
     await assertLayout();
     assert.deepEqual(await tileSnapshot(), partialBoard, 'rotation never rearranges or clears the board');
     await page.locator('#help-button').click();
-    await page.locator('#help-dialog [data-game-fullscreen]').click();
-    await page.waitForFunction(() => !document.fullscreenElement);
+    assert.equal(await page.locator('#help-dialog [data-game-fullscreen]').count(), 0);
     await page.locator('#help-dialog [data-close]').last().click();
+    await fullscreen.click();
+    await page.waitForFunction(() => !document.fullscreenElement);
     assert.deepEqual(await tileSnapshot(), partialBoard);
     await page.setViewportSize(viewport);
     await page.locator('#clear-button').click();
@@ -278,7 +279,7 @@ try {
     const completedProgress = await page.evaluate(() => JSON.stringify(localStorage));
     for (const size of [viewport, { width: 844, height: 390 }]) {
       await page.setViewportSize(size);
-      const close = page.locator('#win-dialog .dialog-close');
+      const close = page.locator('#win-dialog [data-close]');
       await (viewport.width < 600 ? close.tap() : close.click());
       assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), false, 'result decoration must not intercept the close button');
       await page.locator('#result-button').click();
