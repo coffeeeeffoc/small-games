@@ -7,14 +7,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from '@playwright/test';
 import { LEVELS } from '../levels.mjs';
-import {
-  createState,
-  moveShaft,
-  toggleLatch,
-  flipView,
-  releaseBall,
-  advanceBall,
-} from '../engine.mjs';
+import { createState, moveShaft, toggleLatch, releaseBall, advanceBall } from '../engine.mjs';
 import { STORAGE_KEY } from '../progress.mjs';
 
 const gameRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +18,11 @@ const reportName = mobileOnly ? 'browser-mobile-report.json' : 'browser-report.j
 const runtimeErrors = [];
 const checks = [];
 const touchSessions = new WeakMap();
+const boardSelector = (side = 'front') => (side === 'back' ? '#back-board' : '#board');
+const shaftLocator = (page, id, side = 'front') =>
+  page.locator(boardSelector(side) + ' [data-shaft="' + id + '"]');
+const handleLocator = (page, id, side = 'front') =>
+  page.locator(boardSelector(side) + ' [data-shaft-handle="' + id + '"]');
 let server;
 let browser;
 let serverOutput = '';
@@ -55,17 +53,21 @@ async function settled(page) {
       if (typeof window.__twoSidedSnapshot !== 'function') return false;
       const current = window.__twoSidedSnapshot();
       if (current.animating || current.ballMoving || current.dragging) return false;
-      if (getComputedStyle(document.querySelector('#board')).transform !== 'none') return false;
+      const boards = [document.querySelector('#board'), document.querySelector('#back-board')];
+      if (boards.some((board) => !board || getComputedStyle(board).transform !== 'none'))
+        return false;
       // Wait for a deferred gesture redraw as well as rule state. In particular,
       // a cancelled touch must visibly return the handle before the next input.
-      return Object.entries(current.state.shafts).every(([id, value]) => {
-        const shaft = document.querySelector('[data-shaft="' + id + '"]');
-        const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
-        const position = handle?.transform.baseVal.consolidate()?.matrix.f;
-        return (
-          shaft?.dataset.value === String(value) && Math.abs(position - (450 - 150 * value)) < 1
-        );
-      });
+      return boards.every((board) =>
+        Object.entries(current.state.shafts).every(([id, value]) => {
+          const shaft = board.querySelector('[data-shaft="' + id + '"]');
+          const handle = board.querySelector('[data-shaft-handle="' + id + '"]');
+          const position = handle?.transform.baseVal.consolidate()?.matrix.f;
+          return (
+            shaft?.dataset.value === String(value) && Math.abs(position - (450 - 150 * value)) < 1
+          );
+        }),
+      );
     },
     null,
     { timeout: 15_000 },
@@ -86,6 +88,7 @@ async function openGame(context, label) {
   page.setDefaultTimeout(15_000);
   await page.goto(gameUrl, { waitUntil: 'networkidle', timeout: 30_000 });
   await page.locator('#board').waitFor({ state: 'visible' });
+  await page.locator('#back-board').waitFor({ state: 'visible' });
   if (await page.locator('#welcome[open]').count()) {
     await tapOrClick(
       page.locator('#start'),
@@ -113,6 +116,7 @@ async function selectLevel(page, index, touch = false) {
   assert.equal(current.state.released, false, 'Selection returns the ball to the start');
   assert.equal(current.state.moves, 0, 'Selection resets move count');
   assert.equal(await page.locator('#board').getAttribute('data-level'), String(index + 1));
+  assert.equal(await page.locator('#back-board').getAttribute('data-level'), String(index + 1));
   return current;
 }
 
@@ -156,29 +160,36 @@ async function tapNative(locator) {
 async function executeAction(page, action, label, touch = false) {
   const before = await snapshot(page);
   if (action.type === 'flip') {
-    await tapOrClick(page.locator('#flip'), touch);
+    // Authored routes still describe the original alternating views. Both
+    // faces are now visible, so these observation steps need no UI operation.
     const after = await settled(page);
-    assert.notEqual(after.state.side, before.state.side, label + ': side changed');
+    assert.equal(await page.locator('#flip').count(), 0, label + ': no flip control remains');
+    assert.equal(after.state.side, 'front', label + ': release side remains the front');
     assert.deepEqual(
       physicalState(after.state),
       physicalState(before.state),
-      label + ': changing the view preserves the machine',
+      label + ': observing both faces preserves the machine',
     );
+    assert.equal(after.state.moves, before.state.moves, label + ': observation adds no operation');
+    assert.equal(after.state.flips, before.state.flips, label + ': observation adds no flip');
+    if ('historyLength' in before) assert.equal(after.historyLength, before.historyLength);
     return after;
   }
   if (action.type === 'latch') {
     await tapOrClick(page.locator('[data-latch="' + action.id + '"]'), touch);
     const after = await settled(page);
     assert.notDeepEqual(after.state.latches, before.state.latches, label + ': latch operated');
+    await verifyCoupledMechanisms(page, label);
     return after;
   }
   if (action.type === 'shaft') {
     const notch = page.locator(
-      '[data-notch-shaft="' + action.id + '"][data-value="' + action.value + '"]',
+      '#board [data-notch-shaft="' + action.id + '"][data-value="' + action.value + '"]',
     );
     await tapOrClick(notch, touch);
     const after = await settled(page);
     assert.equal(after.state.shafts[action.id], action.value, label + ': shaft reached detent');
+    await verifyCoupledMechanisms(page, label);
     return after;
   }
   if (action.type === 'release') {
@@ -203,6 +214,7 @@ async function executeAction(page, action, label, touch = false) {
 
 async function solveVisibleRoute(page, index, touch = false) {
   await selectLevel(page, index, touch);
+  await verifyLayout(page, 'Box ' + (index + 1) + (touch ? ' touch' : ' pointer'));
   const solution = LEVELS[index].solution;
   const expected = createState(LEVELS[index]);
   assert.ok(solution?.length, 'Box ' + (index + 1) + ' supplies a reviewed solution');
@@ -210,9 +222,11 @@ async function solveVisibleRoute(page, index, touch = false) {
     const label = 'Box ' + (index + 1) + ', action ' + (step + 1);
     const actual = await executeAction(page, action, label, touch);
     let result;
-    if (action.type === 'flip') result = flipView(expected);
-    else if (action.type === 'latch') result = toggleLatch(LEVELS[index], expected, action.id);
-    else if (action.type === 'shaft')
+    if (action.type === 'flip') result = { ok: true };
+    else if (action.type === 'latch') {
+      const latch = LEVELS[index].latches.find((entry) => entry.id === action.id);
+      result = toggleLatch(LEVELS[index], expected, action.id, latch.side);
+    } else if (action.type === 'shaft')
       result = moveShaft(LEVELS[index], expected, action.id, action.value);
     else if (action.type === 'release') result = releaseBall(LEVELS[index], expected);
     else result = { ok: true };
@@ -229,14 +243,16 @@ async function solveVisibleRoute(page, index, touch = false) {
     'Box ' + (index + 1) + ' completes through visible controls',
   );
   assert.equal(await page.locator('#board').getAttribute('data-status'), 'won');
+  assert.equal(await page.locator('#back-board').getAttribute('data-status'), 'won');
   assert.equal(await page.locator('#next').isVisible(), true, 'Completion provides the next box');
   checks.push('Box ' + (index + 1) + ' solved via ' + (touch ? 'touch' : 'pointer') + ' UI');
   return final;
 }
 
-async function svgPoint(page, x, y) {
-  await page.locator('#board').scrollIntoViewIfNeeded();
-  return page.locator('#board').evaluate(
+async function svgPoint(page, x, y, side = 'front') {
+  const board = page.locator(boardSelector(side));
+  await board.scrollIntoViewIfNeeded();
+  return board.evaluate(
     (board, local) => {
       const point = new DOMPoint(local.x, local.y).matrixTransform(board.getScreenCTM());
       return { x: point.x, y: point.y };
@@ -245,22 +261,25 @@ async function svgPoint(page, x, y) {
   );
 }
 
-async function shaftPoint(page, id, value) {
-  const current = await snapshot(page);
-  const shaft = LEVELS[current.levelIndex].shafts.find((entry) => entry.id === id);
-  assert.ok(shaft, 'The selected level defines shaft ' + id);
-  return svgPoint(page, shaft.x, 450 - 150 * value);
+async function shaftPoint(page, id, value, side = 'front') {
+  // Narrow panels reposition shafts. Read the rendered local x instead of
+  // assuming the authored desktop coordinate still describes the target.
+  const x = await handleLocator(page, id, side).evaluate(
+    (handle) => handle.transform.baseVal.consolidate()?.matrix.e,
+  );
+  assert.ok(Number.isFinite(x), 'The ' + side + ' face renders shaft ' + id);
+  return svgPoint(page, x, 450 - 150 * value, side);
 }
 
-async function verifyDragPreview(page, id, end, before, initialHandle) {
+async function verifyDragPreview(page, id, end, before, initialHandle, side = 'front') {
   await page.waitForFunction(
-    ({ id, end }) => {
-      const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
+    ({ id, end, selector }) => {
+      const handle = document.querySelector(selector + ' [data-shaft-handle="' + id + '"]');
       if (!handle || !window.__twoSidedSnapshot().dragging) return false;
       const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
       return Math.abs(point.y - end.y) <= 2;
     },
-    { id, end },
+    { id, end, selector: boardSelector(side) },
     { timeout: 2_000 },
   );
   const preview = await snapshot(page);
@@ -269,7 +288,9 @@ async function verifyDragPreview(page, id, end, before, initialHandle) {
       (handle) =>
         handle.isConnected &&
         handle ===
-          document.querySelector('[data-shaft-handle="' + handle.dataset.shaftHandle + '"]'),
+          handle.ownerSVGElement.querySelector(
+            '[data-shaft-handle="' + handle.dataset.shaftHandle + '"]',
+          ),
     ),
     true,
     'A continuous drag keeps the original touch target connected',
@@ -280,7 +301,7 @@ async function verifyDragPreview(page, id, end, before, initialHandle) {
     before.state,
     'A drag preview keeps committed puzzle state unchanged',
   );
-  const visual = await page.locator('[data-shaft-handle="' + id + '"]').evaluate((handle) => {
+  const visual = await handleLocator(page, id, side).evaluate((handle) => {
     const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
     return { x: point.x, y: point.y };
   });
@@ -290,13 +311,11 @@ async function verifyDragPreview(page, id, end, before, initialHandle) {
   );
 }
 
-async function dragShaft(page, id, target, { touch = false, cancel = false } = {}) {
+async function dragShaft(page, id, target, { touch = false, cancel = false, side = 'front' } = {}) {
   const before = await snapshot(page);
-  const start = await shaftPoint(page, id, before.state.shafts[id]);
-  const end = await shaftPoint(page, id, target);
-  const initialHandle = touch
-    ? null
-    : await page.locator('[data-shaft-handle="' + id + '"]').elementHandle();
+  const start = await shaftPoint(page, id, before.state.shafts[id], side);
+  const end = await shaftPoint(page, id, target, side);
+  const initialHandle = touch ? null : await handleLocator(page, id, side).elementHandle();
   if (!touch) assert.ok(initialHandle, 'The drag starts on a visible scene handle');
   if (touch) {
     // All taps and drags on this page share one native input source, just as a
@@ -329,10 +348,11 @@ async function dragShaft(page, id, target, { touch = false, cancel = false } = {
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 6 });
-    await verifyDragPreview(page, id, end, before, initialHandle);
+    await verifyDragPreview(page, id, end, before, initialHandle, side);
     await page.mouse.up();
   }
   const after = await settled(page);
+  await verifyCoupledMechanisms(page, side + ' shaft ' + id + ' gesture');
   await initialHandle?.dispose();
   if (cancel) {
     assert.deepEqual(
@@ -353,8 +373,53 @@ async function dragShaft(page, id, target, { touch = false, cancel = false } = {
   return after;
 }
 
+async function verifyCoupledMechanisms(page, label) {
+  const current = await snapshot(page);
+  const level = LEVELS[current.levelIndex];
+  assert.equal(current.state.side, 'front', label + ': both faces keep the release side available');
+  for (const shaft of level.shafts) {
+    const locked = level.latches.some(
+      (latch) => latch.shaft === shaft.id && current.state.latches[latch.id],
+    );
+    for (const side of ['front', 'back']) {
+      const control = shaftLocator(page, shaft.id, side);
+      assert.equal(
+        await control.getAttribute('data-value'),
+        String(current.state.shafts[shaft.id]),
+        label + ': ' + side + ' shaft shows the shared detent',
+      );
+      assert.equal(
+        await control.getAttribute('data-locked'),
+        String(locked),
+        label + ': ' + side + ' shaft shows the shared latch lock',
+      );
+      assert.equal(
+        await control.getAttribute('aria-disabled'),
+        String(locked),
+        label + ': ' + side + ' shaft interaction follows its lock',
+      );
+    }
+  }
+  for (const latch of level.latches) {
+    const control = page.locator('[data-latch="' + latch.id + '"]');
+    assert.equal(await control.count(), 1, label + ': latch exists only on its own face');
+    assert.equal(
+      await control.evaluate((element) => element.ownerSVGElement.dataset.side),
+      latch.side,
+      label + ': latch can be operated directly on its authored face',
+    );
+    assert.equal(
+      await control.getAttribute('aria-pressed'),
+      String(current.state.latches[latch.id]),
+      label + ': latch state matches the shared machine',
+    );
+  }
+}
+
 async function verifyMechanics(page) {
   await selectLevel(page, 0);
+  await verifyLayout(page, 'desktop simultaneous faces');
+  await verifyCoupledMechanisms(page, 'Initial coupled machine');
   const initial = await snapshot(page);
   await page.locator('#levels').click();
   assert.equal(
@@ -368,7 +433,7 @@ async function verifyMechanics(page) {
     initial.state,
     'Browsing and dismissing chapter selection keeps the puzzle',
   );
-  const lockedNotch = page.locator('[data-notch-shaft="A"][data-value="2"]');
+  const lockedNotch = page.locator('#board [data-notch-shaft="A"][data-value="2"]');
   const lockedBounds = await lockedNotch.boundingBox();
   assert.ok(lockedBounds, 'Locked shaft still has a discoverable physical target');
   // Raw input checks the feedback from an intentionally disabled mechanism;
@@ -397,9 +462,10 @@ async function verifyMechanics(page) {
   );
   await page.locator('[data-close="hint-dialog"]').click();
 
-  await executeAction(page, { type: 'flip' }, 'Look behind the first box');
+  await executeAction(page, { type: 'flip' }, 'Observe the first box from both faces');
   await executeAction(page, { type: 'latch', id: 'lock-A' }, 'Unlock the first shaft');
-  await executeAction(page, { type: 'flip' }, 'Return to the unlocked front');
+  await verifyCoupledMechanisms(page, 'Back latch unlocks both face handles');
+  await executeAction(page, { type: 'flip' }, 'Observe the unlocked front');
   const beforeDrag = await snapshot(page);
   await dragShaft(page, 'A', 2);
   await page.locator('#undo').click();
@@ -408,7 +474,42 @@ async function verifyMechanics(page) {
     beforeDrag.state,
     'Undo restores the entire shaft gesture',
   );
-  await dragShaft(page, 'A', 1);
+  await dragShaft(page, 'A', 1, { side: 'back' });
+  await page.locator('#board [data-notch-shaft="A"][data-value="0"]').click();
+  await settled(page);
+  const beforeBackNotch = await snapshot(page);
+  await page.locator('#back-board [data-notch-shaft="A"][data-value="2"]').click();
+  await settled(page);
+  await verifyCoupledMechanisms(page, 'Back notch moves both face handles');
+  const beforeUndoDrag = await snapshot(page);
+  const undoDragStart = await shaftPoint(page, 'A', 2, 'back');
+  const undoDragEnd = await shaftPoint(page, 'A', 0, 'back');
+  const undoDragHandle = await handleLocator(page, 'A', 'back').elementHandle();
+  assert.ok(undoDragHandle, 'Undo during dragging starts on the back face handle');
+  await page.mouse.move(undoDragStart.x, undoDragStart.y);
+  await page.mouse.down();
+  await page.mouse.move(undoDragEnd.x, undoDragEnd.y, { steps: 6 });
+  await verifyDragPreview(page, 'A', undoDragEnd, beforeUndoDrag, undoDragHandle, 'back');
+  // Keep the pointer held while keyboard activation invokes Undo. Its deferred
+  // redraw must clear the cancelled gesture so later controls remain usable.
+  await page.locator('#undo').focus();
+  await page.keyboard.press('Enter');
+  await page.mouse.up();
+  await undoDragHandle.dispose();
+  const undoWhileDragging = await settled(page);
+  assert.deepEqual(
+    undoWhileDragging.state,
+    beforeBackNotch.state,
+    'Undo during an active back-face drag restores the preceding committed state',
+  );
+  assert.equal(undoWhileDragging.dragging, false, 'Undo ends an active scene drag');
+  await page.locator('#board [data-notch-shaft="A"][data-value="1"]').click();
+  assert.equal(
+    (await settled(page)).state.shafts.A,
+    1,
+    'The front notch still responds after Undo cancelled a back-face drag',
+  );
+  await verifyCoupledMechanisms(page, 'Undo during dragging leaves both faces responsive');
   await page.locator('#restart').click();
   assert.deepEqual(
     (await settled(page)).state,
@@ -416,7 +517,7 @@ async function verifyMechanics(page) {
     'Restart restores the original box and ball',
   );
 
-  await executeAction(page, { type: 'flip' }, 'Keyboard unlock view');
+  await executeAction(page, { type: 'flip' }, 'Keyboard sees both faces');
   const latch = page.locator('[data-latch="lock-A"]');
   await latch.focus();
   await page.keyboard.press('Enter');
@@ -442,15 +543,19 @@ async function verifyMechanics(page) {
     false,
     'The latch can be unlocked again without refocusing',
   );
-  await executeAction(page, { type: 'flip' }, 'Keyboard front view');
-  const shaft = page.locator('[data-shaft="A"]');
+  await executeAction(page, { type: 'flip' }, 'Keyboard uses the front face');
+  const shaft = shaftLocator(page, 'A');
   await shaft.focus();
   await page.keyboard.press('ArrowUp');
   const keyboard = await settled(page);
   assert.equal(keyboard.state.shafts.A, 1, 'Arrow keys move a focused shaft by one detent');
+  await shaftLocator(page, 'A', 'back').focus();
+  await page.keyboard.press('ArrowUp');
+  assert.equal((await settled(page)).state.shafts.A, 2, 'Arrow keys also operate the back handle');
+  await verifyCoupledMechanisms(page, 'Keyboard moves the shared shaft from either face');
   await page.locator('#restart').click();
   checks.push(
-    'Locked feedback, flip invariance, progressive hints, mouse drag, undo, reset and keyboard',
+    'Both faces visible, shared shaft/lock state, progressive hints, drag on either face, undo during drag, reset and keyboard',
   );
 }
 
@@ -527,16 +632,22 @@ async function verifyLayout(page, label) {
       viewport: { width: innerWidth, height: innerHeight },
       documentWidth: document.documentElement.scrollWidth,
       bodyWidth: document.body.scrollWidth,
-      board: rect(document.querySelector('#board')),
+      boards: ['#board', '#back-board'].map((selector) => {
+        const board = document.querySelector(selector);
+        return { side: board?.dataset.side, visible: !!board && visible(board), ...rect(board) };
+      }),
+      flipControls: document.querySelectorAll('#flip').length,
+      frontBalls: document.querySelectorAll('#board #ball').length,
+      backBalls: document.querySelectorAll('#back-board #ball').length,
       targets: [
         ...document.querySelectorAll(
-          '#flip, #release, #hint, #undo, #restart, #levels, [data-latch], [data-notch-shaft], [data-shaft-handle]',
+          '#release, #hint, #undo, #restart, #levels, [data-latch], [data-notch-shaft], [data-shaft-handle]',
         ),
       ]
         .filter(visible)
         .map((element) => ({
           name: element.id || element.getAttribute('aria-label') || element.outerHTML.slice(0, 100),
-          ...rect(element),
+          ...rect(element.querySelector(':scope > .svg-hit') || element),
         })),
     };
   });
@@ -548,6 +659,19 @@ async function verifyLayout(page, label) {
     layout.bodyWidth <= layout.viewport.width + 1,
     label + ': body has no horizontal overflow',
   );
+  assert.equal(layout.flipControls, 0, label + ': no flip button is needed');
+  assert.equal(layout.frontBalls, 1, label + ': the ball is drawn on the front route');
+  assert.equal(
+    layout.backBalls,
+    0,
+    label + ': the back face shows mechanisms without a second ball',
+  );
+  const [front, back] = layout.boards;
+  assert.equal(front.side, 'front', label + ': left panel is the front');
+  assert.equal(back.side, 'back', label + ': right panel is the back');
+  assert.ok(front.visible && back.visible, label + ': both faces are visible together');
+  assert.ok(front.right <= back.left + 1, label + ': faces occupy distinct left/right regions');
+  assert.ok(Math.abs(front.top - back.top) <= 1, label + ': faces align side by side');
   for (const target of layout.targets) {
     assert.ok(
       target.width >= 43.99 && target.height >= 43.99,
@@ -558,10 +682,12 @@ async function verifyLayout(page, label) {
       label + ': target remains within viewport width: ' + target.name,
     );
   }
-  assert.ok(
-    layout.board.left >= -1 && layout.board.right <= layout.viewport.width + 1,
-    label + ': whole box fits horizontally',
-  );
+  for (const board of layout.boards) {
+    assert.ok(
+      board.left >= -1 && board.right <= layout.viewport.width + 1,
+      label + ': whole ' + board.side + ' face fits horizontally',
+    );
+  }
 }
 
 async function verifyMobile() {
@@ -583,13 +709,21 @@ async function verifyMobile() {
       try {
         const page = await openGame(context, label);
         assert.equal(await page.evaluate(() => navigator.maxTouchPoints > 0), true);
-        await verifyLayout(page, label + ' front');
-        await executeAction(page, { type: 'flip' }, label + ' touch flip', true);
-        await verifyLayout(page, label + ' back');
+        await verifyLayout(page, label + ' simultaneous faces');
+        await executeAction(page, { type: 'flip' }, label + ' observe both faces', true);
         await executeAction(page, { type: 'latch', id: 'lock-A' }, label + ' touch unlock', true);
-        await executeAction(page, { type: 'flip' }, label + ' touch return', true);
+        await executeAction(page, { type: 'flip' }, label + ' observe the unlocked front', true);
         await dragShaft(page, 'A', 2, { touch: true, cancel: true });
         await dragShaft(page, 'A', 2, { touch: true });
+        await dragShaft(page, 'A', 0, { touch: true, cancel: true, side: 'back' });
+        await dragShaft(page, 'A', 1, { touch: true, side: 'back' });
+        await tapNative(page.locator('#undo'));
+        assert.equal(
+          (await settled(page)).state.shafts.A,
+          2,
+          label + ': touch undo restores a shaft gesture from the back face',
+        );
+        await verifyCoupledMechanisms(page, label + ' touch undo updates both face handles');
         await tapNative(page.locator('#undo'));
         await page.waitForFunction(() => window.__twoSidedSnapshot().state.shafts.A === 0, null, {
           timeout: 2_000,
@@ -599,13 +733,9 @@ async function verifyMobile() {
           0,
           label + ': touch undo restores shaft',
         );
-        await solveVisibleRoute(page, 0, true);
-        if (viewport.width === 390) {
-          for (let index = 1; index < LEVELS.length - 1; index += 1) {
-            await solveVisibleRoute(page, index, true);
-          }
+        for (let index = 0; index < LEVELS.length; index += 1) {
+          await solveVisibleRoute(page, index, true);
         }
-        await solveVisibleRoute(page, 5, true);
         await verifyLayout(page, label + ' finale');
         await tapNative(page.locator('#replay'));
         await settled(page);
@@ -615,7 +745,7 @@ async function verifyMobile() {
           fullPage: true,
         });
         checks.push(
-          label + ' touch drag/cancel, tutorial and finale routes, responsive bounds and targets',
+          label + ' native touch on both faces, drag/cancel/undo, all six routes and 44px targets',
         );
       } finally {
         await context.close();

@@ -36,7 +36,7 @@
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
-《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。首章提供六个谜盒；两套二维视图读取同一份机关状态，翻面保留滑轴位置、锁扣状态和小球进度。玩家直接拖动场景内滑轴、点按锁扣，逐步学习反向挡板、锁扣对位和途中换挡。关卡配置与纯规则模块分离，新增谜盒沿用滑轴、锁扣、挡板三类机关及其条件组合。开发运行 `pnpm --filter @coffeeeeffoc/two-sided-box dev`，构建与规则验证分别使用 `build`、`test`。
+《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。首章提供六个谜盒；正面和背面分左右两区同时显示，读取同一份机关状态；两侧滑轴均可操作，位置、锁定状态与挡板变化同步，窄屏手机使用紧凑布局维持左右并排。玩家直接拖动场景内滑轴、点按锁扣，逐步学习反向挡板、锁扣对位和途中换挡。关卡配置与纯规则模块分离，新增谜盒沿用滑轴、锁扣、挡板三类机关及其条件组合。开发运行 `pnpm --filter @coffeeeeffoc/two-sided-box dev`，构建与规则验证分别使用 `build`、`test`。
 
 原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
