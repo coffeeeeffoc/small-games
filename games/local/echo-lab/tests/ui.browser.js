@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaths } from '../src/acoustics.js';
+import { computePaths, panelEndpoints } from '../src/acoustics.js';
 import { encodeWav } from '../src/audio.js';
 import { readRoomLink } from '../src/layout.js';
 import { once } from 'node:events';
@@ -43,13 +43,24 @@ const waitValue = (page, id, expected) =>
   });
 const download = async (page, id) => {
   const pending = page.waitForEvent('download');
-  await page.locator(`#${id}`).click();
+  if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches))
+    await nativeTap(page, `#${id}`);
+  else await page.locator(`#${id}`).click();
   const item = await pending;
   assert.equal(await item.failure(), null);
   return { filename: item.suggestedFilename(), file: await item.path() };
 };
-const saveLayout = async (page) =>
-  JSON.parse(await readFile((await download(page, 'saveLayout')).file, 'utf8'));
+const saveLayout = async (page) => {
+  if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches)) {
+    // Read the user's persisted layout without leaving the touch scene after
+    // every gesture. JSON download itself is exercised by the desktop cases.
+    await page.waitForTimeout(350);
+    const saved = await page.evaluate(() => localStorage.getItem('echo-lab.scene.v1'));
+    assert.ok(saved, 'touch edits must persist a room configuration');
+    return JSON.parse(saved);
+  }
+  return JSON.parse(await readFile((await download(page, 'saveLayout')).file, 'utf8'));
+};
 const unzipStored = (zip) => {
   const files = new Map();
   let offset = 0;
@@ -65,6 +76,13 @@ const unzipStored = (zip) => {
     offset = start + size;
   }
   return files;
+};
+const touchProfiles = new WeakMap();
+const restoreTouchProfile = async (page) => {
+  if (!touchProfiles.has(page)) touchProfiles.set(page, await page.context().newCDPSession(page));
+  await touchProfiles
+    .get(page)
+    .send('Emulation.setTouchEmulationEnabled', { enabled: true, configuration: 'mobile' });
 };
 const touchGesture = async (page, start, points, cancel = false) => {
   const cdp = await page.context().newCDPSession(page);
@@ -84,7 +102,33 @@ const touchGesture = async (page, start, points, cancel = false) => {
     });
   } finally {
     await cdp.detach();
+    // Chromium clears emulated touch capabilities when a CDP input session
+    // closes. Restore them before the next native tap or responsive-layout check.
+    await restoreTouchProfile(page);
   }
+};
+const nativeTap = async (page, selector, options = {}) => {
+  await restoreTouchProfile(page);
+  await page.locator(selector).tap(options);
+};
+const centerOf = async (locator) => {
+  const box = await locator.boundingBox();
+  assert.ok(box, 'the direct-manipulation target must be visible');
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+};
+const sceneTouch = async (page, selector, delta, cancel = false) => {
+  await restoreTouchProfile(page);
+  await page.locator('#scene').scrollIntoViewIfNeeded();
+  const start = await centerOf(page.locator(selector).first());
+  await touchGesture(
+    page,
+    start,
+    [1, 2, 3].map((step) => ({
+      x: start.x + (delta.x * step) / 3,
+      y: start.y + (delta.y * step) / 3,
+    })),
+    cancel,
+  );
 };
 
 try {
@@ -101,6 +145,14 @@ try {
   await page.goto(base);
   await page.waitForFunction(() => document.querySelector('#scene [data-object="reflector-1"]'));
   await page.evaluate(() => document.fonts.ready);
+  assert.ok(
+    (await page.locator('#scene .propagation-ray').count()) >= 24,
+    'the scene must show sound spreading in many directions',
+  );
+  assert.ok(
+    (await page.locator('#scene .diffuse-path').count()) >= 2,
+    'the receiver must display several dispersed echo paths',
+  );
   await page.screenshot({ path: path.join(qaDirectory, 'echo-lab-desktop.png'), fullPage: true });
 
   await page.locator('#playWet').click();
@@ -123,6 +175,12 @@ try {
   assert.match(await page.locator('#presetDescription').textContent(), /柔软/);
   await page.locator('#preset').selectOption('first');
   results.push('three scene presets');
+
+  await page.locator('[data-move="normal"]').click();
+  assert.equal(await page.locator('[data-move="normal"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('[data-move="free"]').focus();
+  await page.locator('[data-move="free"]').press('Space');
+  assert.equal(await page.locator('[data-move="free"]').getAttribute('aria-pressed'), 'true');
 
   const initialDelay = await page.locator('#echoDelay').textContent();
   const initialX = Number(await page.locator('#positionX').inputValue());
@@ -354,6 +412,18 @@ try {
   await mobilePage.goto(base);
   await mobilePage.waitForFunction(() => document.querySelector('#scene [data-object="source"]'));
   await mobilePage.evaluate(() => document.fonts.ready);
+  for (const selector of [
+    '[data-rotate] circle',
+    '[data-resize-panel] circle',
+    '[data-acoustics] circle',
+    '[data-resize-room] circle',
+  ]) {
+    const target = await mobilePage.locator(`#scene ${selector}`).first().boundingBox();
+    assert.ok(
+      target.width >= 43.9 && target.height >= 43.9,
+      `${selector} must expose a 44px touch target in the rendered mobile scene`,
+    );
+  }
   assert.equal(
     await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     true,
@@ -361,14 +431,18 @@ try {
   );
   await mobilePage.screenshot({
     path: path.join(qaDirectory, 'echo-lab-mobile.png'),
-    fullPage: true,
   });
-  await mobilePage.locator('#playWet').tap();
+  assert.equal(
+    await mobilePage.evaluate(() => matchMedia('(pointer: coarse)').matches),
+    true,
+    'mobile captures must preserve native touch emulation',
+  );
+  await nativeTap(mobilePage, '#sceneListen');
   await mobilePage.waitForFunction(() =>
     document.getElementById('playWet').classList.contains('playing'),
   );
-  await mobilePage.locator('#stopAudio').tap();
-  results.push('390px responsive layout and touch playback');
+  await nativeTap(mobilePage, '#stopAudio');
+  results.push('390px responsive layout, rendered 44px handles and native scene audition');
   const originalSource = (await saveLayout(mobilePage)).scene.source;
   const sourceIcon = mobilePage.locator('#scene [data-object="source"] circle[r="16"]');
   await sourceIcon.scrollIntoViewIfNeeded();
@@ -385,8 +459,8 @@ try {
     movedSource.x > originalSource.x + 2 && movedSource.y < originalSource.y - 1,
     'source callout must drag the actual emission point',
   );
-  await mobilePage.locator('#resetLayout').tap();
-  await mobilePage.locator('#scene [data-object="reflector-1"] circle[r="4"]').tap();
+  await nativeTap(mobilePage, '#resetLayout');
+  await nativeTap(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]');
   await mobilePage
     .locator('#scene [data-object="reflector-1"] circle[r="4"]')
     .scrollIntoViewIfNeeded();
@@ -443,28 +517,550 @@ try {
   };
   await touchGesture(mobilePage, cancelStart, [{ x: cancelStart.x - 8, y: cancelStart.y }], true);
   const afterCancel = await saveLayout(mobilePage);
-  await mobilePage.locator('#togglePaths').tap();
+  await nativeTap(mobilePage, '#togglePaths');
   assert.deepEqual(
     (await saveLayout(mobilePage)).scene,
     afterCancel.scene,
     'canceled drag must not continue when another control is tapped',
   );
-  await mobilePage.locator('#addAbsorber').tap();
+  await nativeTap(mobilePage, '#addAbsorber');
   assert.match(await mobilePage.locator('#selectionTitle').textContent(), /吸音屏/);
-  await mobilePage.locator('#panelAngle').tap({ position: { x: 30, y: 22 } });
+  await nativeTap(mobilePage, '#panelAngle', { position: { x: 30, y: 22 } });
   assert.notEqual(await mobilePage.locator('#angleValue').textContent(), '90°');
-  await mobilePage.locator('#removePanel').tap();
-  await mobilePage.locator('#resetLayout').tap();
+  await nativeTap(mobilePage, '#removePanel');
+  await nativeTap(mobilePage, '#resetLayout');
+
+  const lengthStart = (await saveLayout(mobilePage)).scene.panels[0];
+  const fixedEndpoint = panelEndpoints(lengthStart)[0];
+  await sceneTouch(
+    mobilePage,
+    '#scene [data-resize-panel="reflector-1"][data-endpoint="1"] circle',
+    { x: 0, y: 20 },
+  );
+  const lengthened = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    lengthened.length > lengthStart.length + 2,
+    'dragging a board endpoint must lengthen the physical panel',
+  );
+  const retainedEndpoint = panelEndpoints(lengthened)[0];
+  assert.ok(
+    Math.hypot(retainedEndpoint.x - fixedEndpoint.x, retainedEndpoint.y - fixedEndpoint.y) <
+      0.00001,
+    'resizing one board end must keep the other end anchored',
+  );
+  assert.equal(
+    lengthened.angle,
+    lengthStart.angle,
+    'an endpoint resize must preserve board rotation',
+  );
+  await sceneTouch(
+    mobilePage,
+    '#scene [data-resize-panel="reflector-1"][data-endpoint="1"] circle',
+    { x: 0, y: -6 },
+    true,
+  );
+  assert.equal(
+    await mobilePage.locator('#scene').evaluate((element) => element.classList.contains('editing')),
+    false,
+    'native cancellation must clear resize feedback',
+  );
+  const lengthCancel = (await saveLayout(mobilePage)).scene;
+  await nativeTap(mobilePage, '[data-move="free"]');
+  assert.deepEqual(
+    (await saveLayout(mobilePage)).scene,
+    lengthCancel,
+    'a canceled endpoint gesture must release capture before the next touch',
+  );
+
+  const roomStart = (await saveLayout(mobilePage)).scene;
+  await sceneTouch(mobilePage, '#scene [data-resize-room] circle', { x: -28, y: -16 });
+  const resizedRoom = (await saveLayout(mobilePage)).scene;
+  assert.ok(
+    resizedRoom.width < roomStart.width - 2 && resizedRoom.height < roomStart.height - 2,
+    'room corner dragging must set both physical dimensions',
+  );
+  assert.equal(
+    await mobilePage.locator('#sceneRoomTools').isVisible(),
+    true,
+    'room handles must reveal nearby dimension controls',
+  );
+  for (const panel of resizedRoom.panels)
+    assert.ok(
+      panelEndpoints(panel).every(
+        (point) =>
+          point.x >= 0.2 - 0.00001 &&
+          point.y >= 0.2 - 0.00001 &&
+          point.x <= resizedRoom.width - 0.2 + 0.00001 &&
+          point.y <= resizedRoom.height - 0.2 + 0.00001,
+      ),
+      'room resizing must retain the whole panel inside its walls',
+    );
+  await nativeTap(mobilePage, '#roomWidthDirect');
+  await mobilePage.locator('#roomWidthDirect').fill('54.5');
+  await nativeTap(mobilePage, '#roomHeightDirect');
+  await mobilePage.locator('#roomHeightDirect').fill('32.5');
+  await nativeTap(mobilePage, '#selectRoom');
+  const preciseRoom = (await saveLayout(mobilePage)).scene;
+  assert.equal(
+    preciseRoom.width,
+    54.5,
+    'the nearby room length field must support precise decimal dimensions',
+  );
+  assert.equal(
+    preciseRoom.height,
+    32.5,
+    'the nearby room width field must support precise decimal dimensions',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push(
+    'native touch panel-end resizing, anchored geometry, cancellation and room sizing with precise nearby fields',
+  );
+
+  const soundStart = (await saveLayout(mobilePage)).scene;
+  await sceneTouch(mobilePage, '#scene [data-acoustics="reflector-1"] circle', { x: 0, y: -32 });
+  const soundWeakened = (await saveLayout(mobilePage)).scene;
+  assert.ok(
+    soundWeakened.panels[0].reflection < soundStart.panels[0].reflection - 0.2,
+    'sliding the sound handle along a vertical board must lower reflection strength',
+  );
+  assert.ok(
+    Math.abs(soundWeakened.panels[0].scatter - soundStart.panels[0].scatter) < 0.00001,
+    'parallel sound-handle movement must preserve dispersion angle',
+  );
+  assert.equal(
+    soundWeakened.panels[0].x,
+    soundStart.panels[0].x,
+    'the sound handle must change acoustics while the board stays in place',
+  );
+  assert.equal(soundWeakened.panels[0].y, soundStart.panels[0].y);
+  await sceneTouch(mobilePage, '#scene [data-acoustics="reflector-1"] circle', { x: -32, y: 0 });
+  const soundWidened = (await saveLayout(mobilePage)).scene;
+  assert.ok(
+    soundWidened.panels[0].scatter > soundWeakened.panels[0].scatter + 15,
+    'moving the sound handle across the board must widen its reflected fan',
+  );
+  assert.ok(
+    Math.abs(soundWidened.panels[0].reflection - soundWeakened.panels[0].reflection) < 0.00001,
+    'perpendicular sound-handle movement must preserve reflection strength',
+  );
+  assert.notDeepEqual(
+    computePaths(soundWidened).paths,
+    computePaths(soundWeakened).paths,
+    'direct sound-handle gestures must change the actual echoes',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push(
+    'native touch sound handle independently edits reflection strength along the board and dispersion across it',
+  );
+
+  const pointBeforeNumericEdit = (await saveLayout(mobilePage)).scene.source;
+  await nativeTap(mobilePage, '#positionX');
+  await mobilePage.locator('#positionX').fill('31');
+  await nativeTap(mobilePage, '#scene [data-object="source"] circle[r="16"]');
+  const editedBeforeSelection = (await saveLayout(mobilePage)).scene;
+  assert.equal(
+    editedBeforeSelection.panels[0].x,
+    31,
+    'selecting another object must commit a pending board coordinate to the board',
+  );
+  assert.deepEqual(
+    editedBeforeSelection.source,
+    pointBeforeNumericEdit,
+    'a pending board coordinate must not be applied to the newly selected source',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+
+  await nativeTap(mobilePage, '#quickLength');
+  await mobilePage.locator('#quickLength').fill('2');
+  await nativeTap(mobilePage, '[data-move="free"]');
+  const shortStart = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.equal(shortStart.length, 2);
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', { x: 24, y: 0 });
+  const shortMoved = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    shortMoved.x > shortStart.x + 2,
+    'a short board must remain directly draggable without its endpoint targets stealing the touch',
+  );
+  assert.equal(
+    shortMoved.length,
+    shortStart.length,
+    'grabbing a short board center must move it rather than resize it',
+  );
+  await sceneTouch(
+    mobilePage,
+    '#scene [data-resize-panel="reflector-1"][data-endpoint="1"] circle',
+    { x: 0, y: 16 },
+  );
+  const shortResized = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    shortResized.length > shortMoved.length + 2,
+    'a short board must retain a reachable endpoint resize target',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push(
+    'native touch short-board movement and endpoint sizing without overlapping touch targets',
+  );
+
+  await nativeTap(mobilePage, '#quickLength');
+  await mobilePage.locator('#quickLength').fill('0.8');
+  await nativeTap(mobilePage, '[data-angle="0"]');
+  await nativeTap(mobilePage, '[data-move="free"]');
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: -260,
+    y: 0,
+  });
+  const edgeBoard = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    Math.abs(edgeBoard.x - 0.6) < 0.00001,
+    'a tiny horizontal board must move fully to the left room edge',
+  );
+  await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+  const sceneBounds = await mobilePage.locator('#scene').boundingBox();
+  for (const endpoint of [0, 1]) {
+    const selector = `#scene [data-resize-panel="reflector-1"][data-endpoint="${endpoint}"] circle`;
+    const target = await mobilePage.locator(selector).first().boundingBox();
+    assert.ok(
+      target.x >= sceneBounds.x - 0.1 &&
+        target.y >= sceneBounds.y - 0.1 &&
+        target.x + target.width <= sceneBounds.x + sceneBounds.width + 0.1 &&
+        target.y + target.height <= sceneBounds.y + sceneBounds.height + 0.1,
+      'near-edge length handles must remain entirely visible within the scene',
+    );
+    const center = await centerOf(mobilePage.locator(selector).first());
+    assert.equal(
+      await mobilePage.evaluate(
+        ({ x, y, endpoint }) =>
+          document.elementFromPoint(x, y)?.closest('[data-resize-panel]')?.dataset.endpoint ===
+          String(endpoint),
+        { ...center, endpoint },
+      ),
+      true,
+      'near-edge handle centers must be reachable without another touch target intercepting them',
+    );
+  }
+  await sceneTouch(
+    mobilePage,
+    '#scene [data-resize-panel="reflector-1"][data-endpoint="1"] circle',
+    { x: 16, y: 0 },
+  );
+  const edgeLengthened = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    edgeLengthened.length > edgeBoard.length + 2,
+    'the outward near-edge callout must resize a tiny panel',
+  );
+  const fixedRight = panelEndpoints(edgeLengthened)[1];
+  await sceneTouch(
+    mobilePage,
+    '#scene [data-resize-panel="reflector-1"][data-endpoint="0"] circle',
+    { x: 8, y: 0 },
+  );
+  const edgeShortened = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    edgeShortened.length < edgeLengthened.length - 1,
+    'the left-wall callout must remain usable after lengthening',
+  );
+  const retainedRight = panelEndpoints(edgeShortened)[1];
+  assert.ok(
+    Math.hypot(retainedRight.x - fixedRight.x, retainedRight.y - fixedRight.y) < 0.00001,
+    'the wall-side callout must preserve the opposite physical endpoint',
+  );
+  for (const attribute of ['data-rotate', 'data-acoustics']) {
+    const selector = `#scene [${attribute}="reflector-1"] circle`;
+    await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+    const center = await centerOf(mobilePage.locator(selector).first());
+    assert.equal(
+      await mobilePage.evaluate(
+        ({ x, y, attribute }) =>
+          document.elementFromPoint(x, y)?.closest(`[${attribute}]`)?.getAttribute(attribute) ===
+          'reflector-1',
+        { ...center, attribute },
+      ),
+      true,
+      'rotation and sound callouts must remain reachable beside the wall',
+    );
+  }
+  const edgeSoundStart = (await saveLayout(mobilePage)).scene.panels[0];
+  await sceneTouch(mobilePage, '#scene [data-acoustics="reflector-1"] circle', { x: -24, y: 0 });
+  const edgeSoundEdited = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    edgeSoundEdited.reflection < edgeSoundStart.reflection - 0.15,
+    'the near-wall sound callout must adjust reflection',
+  );
+  assert.equal(
+    edgeSoundEdited.scatter,
+    edgeSoundStart.scatter,
+    'the near-wall sound callout must preserve the independent scatter setting',
+  );
+  await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+  const edgeCenter = await centerOf(
+    mobilePage.locator('#scene [data-object="reflector-1"] circle[r="4"]'),
+  );
+  const edgeRotation = await centerOf(
+    mobilePage.locator('#scene [data-rotate="reflector-1"] circle').first(),
+  );
+  const edgeVector = { x: edgeRotation.x - edgeCenter.x, y: edgeRotation.y - edgeCenter.y };
+  await touchGesture(
+    mobilePage,
+    edgeRotation,
+    [1, 2, 3].map((step) => {
+      const angle = (-Math.PI * step) / 18;
+      return {
+        x: edgeCenter.x + edgeVector.x * Math.cos(angle) - edgeVector.y * Math.sin(angle),
+        y: edgeCenter.y + edgeVector.x * Math.sin(angle) + edgeVector.y * Math.cos(angle),
+      };
+    }),
+  );
+  const edgeRotated = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    Math.abs(edgeRotated.angle - edgeSoundEdited.angle) > 20,
+    'the near-wall rotation callout must turn the actual panel',
+  );
+  assert.equal(
+    edgeRotated.length,
+    edgeSoundEdited.length,
+    'turning a near-wall panel must preserve its length',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push(
+    'native touch 0.8m board at the room edge with reachable length, rotation and sound callouts',
+  );
+
+  await nativeTap(mobilePage, '[data-angle="45"]');
+  await nativeTap(mobilePage, '[data-move="parallel"]');
+  assert.equal(
+    await mobilePage.locator('[data-move="parallel"]').getAttribute('aria-pressed'),
+    'true',
+  );
+  await mobilePage.locator('[data-move="normal"]').scrollIntoViewIfNeeded();
+  const canceledModeStart = await centerOf(mobilePage.locator('[data-move="normal"]'));
+  await touchGesture(mobilePage, canceledModeStart, [], true);
+  assert.equal(
+    await mobilePage.locator('[data-move="parallel"]').getAttribute('aria-pressed'),
+    'true',
+    'a canceled mode tap must preserve the selected movement axis',
+  );
+  const swipedModeStart = await centerOf(mobilePage.locator('[data-move="normal"]'));
+  await touchGesture(mobilePage, swipedModeStart, [
+    { x: swipedModeStart.x - 60, y: swipedModeStart.y + 24 },
+  ]);
+  assert.equal(
+    await mobilePage.locator('[data-move="parallel"]').getAttribute('aria-pressed'),
+    'true',
+    'a scrolling gesture over mode buttons must not switch the movement axis',
+  );
+  const diagonalStart = (await saveLayout(mobilePage)).scene.panels[0];
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: 28,
+    y: -10,
+  });
+  const diagonalMoved = (await saveLayout(mobilePage)).scene.panels[0];
+  const diagonalDelta = {
+    x: diagonalMoved.x - diagonalStart.x,
+    y: diagonalMoved.y - diagonalStart.y,
+  };
+  assert.ok(
+    diagonalDelta.x > 1 && diagonalDelta.y > 1,
+    'diagonal parallel dragging must move along the board',
+  );
+  assert.ok(
+    Math.abs(diagonalDelta.x - diagonalDelta.y) < 0.00001,
+    'parallel movement must preserve the board normal',
+  );
+
+  await nativeTap(mobilePage, '[data-move="normal"]');
+  const normalStart = (await saveLayout(mobilePage)).scene.panels[0];
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: 24,
+    y: -10,
+  });
+  const normalMoved = (await saveLayout(mobilePage)).scene.panels[0];
+  const normalDelta = { x: normalMoved.x - normalStart.x, y: normalMoved.y - normalStart.y };
+  assert.ok(
+    normalDelta.x > 1 && normalDelta.y < -1,
+    'perpendicular dragging must move across the board',
+  );
+  assert.ok(
+    Math.abs(normalDelta.x + normalDelta.y) < 0.00001,
+    'normal movement must preserve the board tangent',
+  );
+
+  await nativeTap(mobilePage, '[data-angle="90"]');
+  await waitValue(mobilePage, 'quickAngle', '90');
+  await nativeTap(mobilePage, '[data-move="parallel"]');
+  const verticalStart = (await saveLayout(mobilePage)).scene.panels[0];
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: 24,
+    y: 16,
+  });
+  const verticalMoved = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    verticalMoved.y > verticalStart.y + 2,
+    'vertical boards must slide vertically in parallel mode',
+  );
+  assert.ok(
+    Math.abs(verticalMoved.x - verticalStart.x) < 0.00001,
+    'vertical parallel dragging must ignore lateral finger motion',
+  );
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: -24,
+    y: -180,
+  });
+  const bounded = (await saveLayout(mobilePage)).scene.panels[0];
+  assert.ok(
+    Math.abs(bounded.x - verticalMoved.x) < 0.00001,
+    'hitting the room edge must preserve the requested axis',
+  );
+  assert.ok(
+    bounded.y - bounded.length / 2 >= 0.2 - 0.00001,
+    'panel endpoints must remain inside the room after a captured out-of-room touch',
+  );
+  await nativeTap(mobilePage, '[data-move="free"]');
+  assert.equal(await mobilePage.locator('[data-move="free"]').getAttribute('aria-pressed'), 'true');
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push(
+    'native touch diagonal parallel/perpendicular movement, vertical sliding and room-edge constraints',
+  );
+
+  const strengthBefore = (await saveLayout(mobilePage)).scene;
+  const reflectionBox = await mobilePage.locator('#quickReflection').boundingBox();
+  await nativeTap(mobilePage, '#quickReflection', {
+    position: { x: reflectionBox.width / 2, y: reflectionBox.height / 2 },
+  });
+  const weakened = (await saveLayout(mobilePage)).scene;
+  assert.ok(
+    weakened.panels[0].reflection < strengthBefore.panels[0].reflection - 0.2,
+    'near-scene touch strength control must lower actual reflection',
+  );
+  const panelEchoGain = (room) =>
+    computePaths(room)
+      .paths.filter((entry) => entry.surfaces.includes('reflector-1'))
+      .reduce((total, entry) => total + entry.gain, 0);
+  assert.ok(
+    panelEchoGain(weakened) < panelEchoGain(strengthBefore),
+    'lower touch strength must reduce the echoes used for audio',
+  );
+
+  const scatterBox = await mobilePage.locator('#quickScatter').boundingBox();
+  await nativeTap(mobilePage, '#quickScatter', { position: { x: 1, y: scatterBox.height / 2 } });
+  const mirrorOnly = (await saveLayout(mobilePage)).scene;
+  assert.equal(
+    mirrorOnly.panels[0].scatter,
+    0,
+    'the touch control must allow mirror-only reflection',
+  );
+  assert.ok(
+    computePaths(mirrorOnly).paths.every((entry) => !entry.id.startsWith('reflector-1:diffuse:')),
+    'zero dispersion must remove the panel fan from actual audio paths',
+  );
+  await nativeTap(mobilePage, '#quickScatter', {
+    position: { x: scatterBox.width * 0.78, y: scatterBox.height / 2 },
+  });
+  const widened = (await saveLayout(mobilePage)).scene;
+  assert.ok(widened.panels[0].scatter >= 60, 'the touch control must open the angular fan');
+  assert.ok(
+    computePaths(widened).paths.filter((entry) => entry.id.startsWith('reflector-1:diffuse:'))
+      .length >= 3,
+    'angular fan edits must create several real receiver arrivals',
+  );
+  assert.match(await mobilePage.locator('#pathSummary').textContent(), /扩散/);
+  if ((await mobilePage.locator('#togglePaths').getAttribute('aria-pressed')) === 'false')
+    await nativeTap(mobilePage, '#togglePaths');
+  await mobilePage.waitForFunction(() => document.getElementById('toast').hidden);
+  await mobilePage.locator('.stage').scrollIntoViewIfNeeded();
+  await mobilePage.screenshot({ path: path.join(qaDirectory, 'echo-lab-mobile-stage.png') });
+  await mobilePage.screenshot({
+    path: path.join(qaDirectory, 'echo-lab-mobile-editor.png'),
+  });
+  assert.equal(
+    await mobilePage.evaluate(() => matchMedia('(pointer: coarse)').matches),
+    true,
+    'scene screenshots must retain the native touch profile for the remaining walkthrough',
+  );
+  await nativeTap(mobilePage, '#resetLayout');
+  results.push('native touch reflection strength and angular dispersion update real audible paths');
+
   await mobilePage.setViewportSize({ width: 360, height: 900 });
   assert.equal(
     await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     true,
   );
   await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+  await mobilePage.waitForFunction(() => document.getElementById('toast').hidden);
   await mobilePage.screenshot({ path: path.join(qaDirectory, 'echo-lab-mobile-room.png') });
   results.push(
     'native touch drag, rotation, gesture cancellation and absorber controls at 390/360px',
   );
+  const beforeOrientation = (await saveLayout(mobilePage)).scene;
+  await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+  const orientationStart = await centerOf(
+    mobilePage.locator('#scene [data-object="reflector-1"] circle[r="4"]'),
+  );
+  const orientationCdp = await mobilePage.context().newCDPSession(mobilePage);
+  try {
+    await orientationCdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ ...orientationStart, id: 1 }],
+    });
+    assert.equal(
+      await mobilePage
+        .locator('#scene')
+        .evaluate((element) => element.classList.contains('editing')),
+      true,
+      'native touch press must show editing feedback',
+    );
+    await mobilePage.setViewportSize({ width: 844, height: 390 });
+    await mobilePage.waitForFunction(
+      () => !document.getElementById('scene').classList.contains('editing'),
+    );
+    await orientationCdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: orientationStart.x + 24, y: orientationStart.y, id: 1 }],
+    });
+    await orientationCdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await orientationCdp.detach();
+    await restoreTouchProfile(mobilePage);
+  }
+  assert.deepEqual(
+    (await saveLayout(mobilePage)).scene,
+    beforeOrientation,
+    'an orientation change must release a captured gesture before later touch movement',
+  );
+  results.push('native touch capture is safely released when device orientation changes');
+  await mobilePage.setViewportSize({ width: 844, height: 390 });
+  assert.equal(
+    await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    true,
+    'landscape touch viewport must not overflow horizontally',
+  );
+  await mobilePage.locator('#scene').scrollIntoViewIfNeeded();
+  await mobilePage.waitForFunction(() => document.getElementById('toast').hidden);
+  await mobilePage.screenshot({
+    path: path.join(qaDirectory, 'echo-lab-mobile-landscape.png'),
+  });
+  assert.equal(
+    await mobilePage.evaluate(() => matchMedia('(pointer: coarse)').matches),
+    true,
+    'landscape screenshot capture must preserve the native touch layout',
+  );
+  await nativeTap(mobilePage, '[data-move="free"]');
+  const landscapeStart = (await saveLayout(mobilePage)).scene.panels[0];
+  await sceneTouch(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]', {
+    x: -16,
+    y: 8,
+  });
+  const landscapeMoved = (await saveLayout(mobilePage)).scene.panels[0];
+  if (!(landscapeMoved.x < landscapeStart.x - 1))
+    console.error('Landscape touch state:', {
+      landscapeStart,
+      landscapeMoved,
+      mode: await mobilePage.locator('[data-move].active').getAttribute('data-move'),
+    });
+  assert.ok(
+    landscapeMoved.x < landscapeStart.x - 1,
+    'landscape scene objects must remain directly touch draggable',
+  );
+  results.push('844 × 390 landscape layout and native touch panel movement');
   assert.deepEqual(errors, [], 'browser must not report console or page errors');
   console.log(`PASS: ${results.length} E2E scenarios`);
   console.log(results.join('\n'));

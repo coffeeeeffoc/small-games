@@ -6,6 +6,8 @@ import {
   panelEndpoints,
   presets,
   validateScene,
+  MAX_SOUND_PATHS,
+  MAX_PROPAGATION_RAYS,
 } from '../src/acoustics.js';
 
 const close = (actual, expected, tolerance = 1e-7) =>
@@ -153,7 +155,8 @@ test('stationary results are deterministic, sorted, independent and finite', () 
     const first = computePaths(preset);
     assert.deepEqual(first, computePaths(preset));
     assert.deepEqual(preset, snapshot);
-    assert.ok(first.paths.length <= 145);
+    assert.ok(first.paths.length <= MAX_SOUND_PATHS);
+    assert.ok(first.propagationRays.length <= MAX_PROPAGATION_RAYS);
     first.paths.forEach((path, index) => {
       assert.ok(Number.isFinite(path.gain) && path.gain >= 0 && path.gain <= 1);
       assert.ok(Number.isFinite(path.pan) && Math.abs(path.pan) <= 1);
@@ -212,6 +215,7 @@ test('eight panels are accepted; reserved and duplicate object IDs are rejected'
   for (const id of [
     'source',
     'listener',
+    'room',
     'direct',
     'wall-top',
     'wall-right',
@@ -275,4 +279,195 @@ test('rotating a panel changes its bounce point and audible path', () => {
     computePaths(scene).paths.some((path) => path.id === 'reflector-1'),
     false,
   );
+});
+
+test('zero scatter recovers the exact specular amplitude and removes every diffuse arrival', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallScatter = 0;
+  scene.panels[0].scatter = 0;
+  const result = computePaths(scene);
+  const reflection = result.paths.find((path) => path.id === 'reflector-1');
+  close(reflection.gain, Math.sqrt(12 / (12 + reflection.distance)) * 0.68 * 0.9);
+  assert.ok(result.paths.every((path) => path.kind !== 'diffuse'));
+  assert.ok(result.propagationRays.every((ray) => ray.kind !== 'diffuse'));
+});
+
+test('surface scattering produces several physical arrivals inside its angular lobe', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  scene.panels[0].scatter = 35;
+  const paths = computePaths(scene).paths;
+  const diffuse = paths.filter((path) => path.kind === 'diffuse');
+  assert.ok(diffuse.length >= 5, 'a board must contribute multiple reflected directions');
+  assert.ok(new Set(diffuse.map((path) => path.points[1].y)).size >= 5);
+  assert.ok(new Set(diffuse.map((path) => path.pan)).size >= 5);
+  for (const path of diffuse) {
+    close(path.points[1].x, 45);
+    assert.ok(path.angleDeviation >= 0 && path.angleDeviation < 35);
+    close(
+      path.distance,
+      Math.hypot(35, path.points[1].y - 18) + Math.hypot(35, path.points[1].y - 22),
+    );
+    close(path.delay, path.distance / 343);
+  }
+});
+
+test('diffusion shares the surface energy budget instead of adding full-strength echoes', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  scene.panels[0].scatter = 0;
+  const original = computePaths(scene).paths.find((path) => path.id === 'reflector-1');
+  for (const scatter of [10, 35, 90]) {
+    scene.panels[0].scatter = scatter;
+    const reflections = computePaths(scene).paths.filter((path) =>
+      path.surfaces.includes('reflector-1'),
+    );
+    const specular = reflections.find((path) => path.id === 'reflector-1');
+    close(specular.gain / original.gain, Math.sqrt(1 - (0.6 * scatter) / 90));
+    const energy = reflections.reduce((sum, path) => {
+      const geometricAmplitude = Math.sqrt(12 / (12 + path.distance)) * 0.68 * 0.9;
+      return sum + (path.gain / geometricAmplitude) ** 2;
+    }, 0);
+    assert.ok(energy <= 1 + 1e-7, `energy budget exceeded for ${scatter} degrees`);
+  }
+});
+
+test('a rough board can reach the listener outside its single specular direction', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  scene.panels[0].length = 2;
+  scene.panels[0].y = 5;
+  scene.panels[0].scatter = 5;
+  assert.ok(computePaths(scene).paths.every((path) => !path.surfaces.includes('reflector-1')));
+  scene.panels[0].scatter = 90;
+  const result = computePaths(scene);
+  assert.ok(!result.paths.some((path) => path.id === 'reflector-1'));
+  assert.ok(
+    result.paths.some((path) => path.kind === 'diffuse' && path.surfaces[0] === 'reflector-1'),
+  );
+});
+
+test('occlusion removes all diffuse board arrivals without increasing surviving gains', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  scene.panels[0].scatter = 90;
+  const before = computePaths(scene).paths;
+  scene.panels.push({
+    id: 'screen',
+    type: 'absorber',
+    x: 28,
+    y: 20,
+    length: 39.6,
+    angle: 90,
+    reflection: 0,
+    scatter: 90,
+  });
+  const after = computePaths(scene);
+  assert.ok(after.paths.every((path) => !path.surfaces.includes('reflector-1')));
+  assert.ok(after.propagationRays.every((ray) => !ray.surfaces.includes('reflector-1')));
+  close(
+    after.paths.find((path) => path.id === 'direct').gain,
+    before.find((path) => path.id === 'direct').gain,
+  );
+});
+
+test('zero reflection silences diffuse arrivals and reflected fans while leaving opaque panels', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  scene.panels[0].reflection = 0;
+  scene.panels[0].scatter = 90;
+  let result = computePaths(scene);
+  assert.deepEqual(
+    result.paths.map((path) => path.id),
+    ['direct'],
+  );
+  assert.ok(result.propagationRays.every((ray) => ray.kind === 'emission'));
+  scene.panels[0].x = 10;
+  scene.panels[0].angle = 0;
+  result = computePaths(scene);
+  assert.equal(result.blocked, true);
+  assert.equal(result.paths.length, 0);
+});
+
+test('source rays radiate in every direction and reflected branches stop at the next obstacle', () => {
+  const scene = cloneScene(presets.first);
+  scene.wallReflection = 0;
+  const result = computePaths(scene);
+  const emissions = result.propagationRays.filter((ray) => ray.kind === 'emission');
+  assert.equal(emissions.length, 48);
+  const headings = emissions.map((ray) => Math.atan2(ray.points[1].y - 18, ray.points[1].x - 10));
+  for (let quadrant = 0; quadrant < 4; quadrant += 1) {
+    assert.ok(
+      headings.some(
+        (angle) => Math.floor(((angle + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 2)) === quadrant,
+      ),
+    );
+  }
+  const fans = result.propagationRays.filter((ray) => ray.surfaces[0] === 'reflector-1');
+  assert.ok(fans.some((ray) => ray.kind === 'specular'));
+  assert.ok(fans.filter((ray) => ray.kind === 'diffuse').length >= 4);
+  for (const ray of fans) {
+    close(ray.points[1].x, 45);
+    assert.ok(ray.points[2].x < 45, 'reflection must stay on the source side');
+    const end = ray.points[2];
+    assert.ok(Math.min(end.x, end.y, scene.width - end.x, scene.height - end.y) < 1e-7);
+  }
+  const horizontal = emissions.find(
+    (ray) => Math.abs(ray.points[1].y - 18) < 1e-7 && ray.points[1].x > 10,
+  );
+  close(horizontal.points[1].x, 45);
+});
+
+test('scatter values are whitelisted, defaulted and validated independently of reflectivity', () => {
+  const defaults = validateScene(presets.first);
+  assert.equal(defaults.wallScatter, 25);
+  assert.equal(defaults.panels[0].scatter, 35);
+  for (const scatter of [-1, 91, '35', NaN, Infinity]) {
+    assert.throws(() => validateScene({ ...presets.first, wallScatter: scatter }));
+    assert.throws(() =>
+      validateScene({ ...presets.first, panels: [{ ...presets.first.panels[0], scatter }] }),
+    );
+  }
+  const custom = validateScene({
+    ...presets.first,
+    panels: [{ ...presets.first.panels[0], scatter: 72, reflection: 0.4, secret: 'private' }],
+  });
+  assert.equal(custom.panels[0].scatter, 72);
+  assert.equal(custom.panels[0].reflection, 0.4);
+  assert.ok(!Object.hasOwn(custom.panels[0], 'secret'));
+});
+
+test('a grazing emission ray stops at an opaque collinear panel edge', () => {
+  const scene = {
+    width: 30,
+    height: 20,
+    source: { x: 2, y: 10 },
+    listener: { x: 20, y: 10 },
+    wallReflection: 0,
+    panels: [{ id: 'screen', type: 'absorber', x: 10, y: 10, length: 8, angle: 0, reflection: 0 }],
+  };
+  const result = computePaths(scene);
+  assert.equal(result.blocked, true);
+  const east = result.propagationRays.find((ray) => ray.id === 'emission-0');
+  close(east.points[1].x, 6);
+  close(east.points[1].y, 10);
+});
+
+test('eight distinct rough panels stay within mobile computation bounds', () => {
+  const scene = cloneScene(presets.hall);
+  scene.wallScatter = 90;
+  scene.panels = Array.from({ length: 8 }, (_, index) => ({
+    id: `p-${index}`,
+    type: 'reflector',
+    x: 10 + index * 10,
+    y: 15 + (index % 3) * 15,
+    length: 12,
+    angle: index * 25,
+    reflection: 0.95,
+    scatter: 90,
+  }));
+  const result = computePaths(scene);
+  assert.ok(result.paths.length <= MAX_SOUND_PATHS);
+  assert.ok(result.propagationRays.length <= MAX_PROPAGATION_RAYS);
+  assert.ok(result.paths.every((path) => path.gain > 0 && Number.isFinite(path.delay)));
 });
