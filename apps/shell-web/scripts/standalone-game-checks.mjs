@@ -16,6 +16,7 @@ export const markers = {
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'ink-is-everything': '#game-root',
+  'out-of-frame': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -210,6 +211,66 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('[data-weather="rain"]'));
     await click(frame.locator('[data-dir="right"]'));
     await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+  } else if (id === 'out-of-frame') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__outOfFrameSnapshot());
+    await click(frame.locator('#start-button'));
+    const beforeMove = await snapshot();
+    await holdControl('#move-right', 'ArrowRight', () =>
+      expect
+        .poll(async () => (await snapshot()).state.player.x)
+        .toBeGreaterThan(beforeMove.state.player.x + 8),
+    );
+    await click(frame.locator('#restart'));
+    await expect
+      .poll(async () => (await snapshot()).state.player.x)
+      .toBe(beforeMove.state.player.x);
+
+    const canvas = frame.locator('#board');
+    const page = canvas.page();
+    await canvas.scrollIntoViewIfNeeded();
+    const bounds = await canvas.boundingBox();
+    const beforeDrag = await snapshot();
+    const { x, y, w, h } = beforeDrag.state.frame;
+    const from = {
+      x: bounds.x + ((x + w / 2) / beforeDrag.world.w) * bounds.width,
+      y: bounds.y + ((y + h / 2) / beforeDrag.world.h) * bounds.height,
+    };
+    const dx = x + w + 110 < beforeDrag.world.w ? 100 : -100;
+    const to = { x: from.x + (dx / beforeDrag.world.w) * bounds.width, y: from.y };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ ...from, id: 1 }],
+        });
+        for (let step = 1; step <= 6; step += 1) {
+          await touch.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [{ x: from.x + ((to.x - from.x) * step) / 6, y: to.y, id: 1 }],
+          });
+        }
+      } finally {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 6 });
+      await page.mouse.up();
+    }
+    await expect
+      .poll(async () => Math.abs((await snapshot()).state.frame.x - x))
+      .toBeGreaterThan(50);
+    // Touch may scroll to the controls for longer than one second; rewind until
+    // the recorded drag has been crossed, using the same free rewind as players.
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      if (Math.abs((await snapshot()).state.frame.x - x) < 0.001) break;
+      await click(frame.locator('#undo'));
+    }
+    await expect.poll(async () => (await snapshot()).state.frame.x).toBe(x);
+    await click(frame.locator('#restart'));
   } else if (id === 'off-camera') {
     await click(frame.locator('#bank [data-card="move"]'));
     await click(frame.locator('#bank [data-card="sit"]'));
