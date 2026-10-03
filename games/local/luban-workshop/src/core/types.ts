@@ -22,6 +22,10 @@ export interface Level {
   description: string;
   difficulty: string;
   estimatedMinutes: string;
+  /** A chapter groups five puzzles around a shared spatial skill. */
+  chapter?: string;
+  mechanic?: string;
+  clue?: string;
   pieces: readonly PieceDefinition[];
 }
 export type Phase = 'disassemble' | 'reassemble';

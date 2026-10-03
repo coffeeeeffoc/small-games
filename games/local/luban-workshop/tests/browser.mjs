@@ -26,6 +26,7 @@ export async function exerciseStandalone(
     screenshotPrefix = mobile ? 'mobile' : 'desktop',
     screenshotDir = evidenceDir,
     completeAllLevels = true,
+    levelIndices,
     interactionsOnly = false,
   } = {},
 ) {
@@ -106,9 +107,16 @@ export async function exerciseStandalone(
       };
       if (
         point.x < data.stage.x + 4 ||
-        point.x > data.stage.x + data.stage.width - 58 ||
-        point.y < data.stage.y + 110 ||
-        point.y > data.stage.y + data.stage.height - 75
+        point.x > data.stage.x + data.stage.width - 4 ||
+        point.y < data.stage.y + 4 ||
+        point.y > data.stage.y + data.stage.height - 4
+      )
+        continue;
+      if (
+        !(await scope.evaluate(
+          ({ x, y }) => document.elementFromPoint(x, y)?.tagName === 'CANVAS',
+          point,
+        ))
       )
         continue;
       await tap(point);
@@ -127,7 +135,7 @@ export async function exerciseStandalone(
     layout.canvas.width >= 300 && layout.canvas.height >= 180,
     '3D interaction area must stay usable',
   );
-  for (const selector of ['#levels', '#help', '#hint', '#restart', '[data-piece="key"]']) {
+  for (const selector of ['#levels', '#help', '#clue', '#hint', '#restart', '[data-piece="key"]']) {
     assert.ok(await scope.locator(selector).isVisible(), `${selector} must be discoverable`);
   }
   await screenshot('initial');
@@ -135,6 +143,37 @@ export async function exerciseStandalone(
   await activate('#help');
   assert.equal(await scope.locator('#dialog').evaluate((element) => element.open), true);
   await activate('#help-done');
+
+  await activate('#levels');
+  const catalog = await scope.locator('button[data-level]').evaluateAll((buttons) =>
+    buttons.map((button) => ({
+      index: Number(button.dataset.level),
+      number: button.querySelector('.level-number')?.textContent.trim(),
+    })),
+  );
+  if (!interactionsOnly) assert.equal(catalog.length, 20, 'The workshop must offer all 20 levels');
+  assert.deepEqual(
+    catalog.map((item) => item.index),
+    Array.from({ length: catalog.length }, (_, i) => i),
+  );
+  assert.deepEqual(
+    catalog.map((item) => item.number),
+    Array.from({ length: catalog.length }, (_, i) => String(i + 1).padStart(2, '0')),
+    'Level numbering must remain correct after level 09',
+  );
+  await screenshot('level-catalog');
+  await activate('#close-dialog');
+
+  // A conceptual clue helps observation without performing a move or giving
+  // the exact next action. It must not consume an undo step.
+  const beforeClue = await snapshot();
+  await activate('#clue');
+  const afterClue = await snapshot();
+  assert.deepEqual(afterClue.state.offsets, beforeClue.state.offsets);
+  assert.deepEqual(afterClue.state.history, beforeClue.state.history);
+  assert.equal(afterClue.state.moves, beforeClue.state.moves);
+  assert.equal(afterClue.hint, null, 'A conceptual clue must not reveal the exact move');
+  assert.ok((await scope.locator('#status').innerText()).trim().length > 0);
 
   // Blocking feedback must identify the obstructing part and preserve history.
   await activate('[data-piece="cross"]');
@@ -288,10 +327,12 @@ export async function exerciseStandalone(
   }
 
   // Verify scene-attached controls when present, including reversing a move.
-  if (await scope.locator('#axis-positive').count()) {
+  if (await scope.locator('#axis-positive').isVisible()) {
     await activate('#axis-positive');
     assert.equal((await snapshot()).state.offsets.key, 0.5);
-    await activate('#axis-negative');
+    await activate(
+      (await scope.locator('#axis-negative').isVisible()) ? '#axis-negative' : '#nudge-negative',
+    );
     assert.equal((await snapshot()).state.offsets.key, 0);
   }
 
@@ -300,11 +341,14 @@ export async function exerciseStandalone(
     return { levels: 0, mobile, screenshots: screenshotDir };
   }
 
+  let slowestHintMs = 0;
   const solvePhase = async () => {
     for (let attempt = 0; attempt < 30; attempt++) {
       const beforeHint = await snapshot();
       if (beforeHint.progress.complete) return;
+      const started = performance.now();
       await activate('#hint');
+      slowestHintMs = Math.max(slowestHintMs, performance.now() - started);
       const hinted = await snapshot();
       assert.ok(hinted.hint, `No hint from a reachable ${hinted.state.phase} state`);
       assert.equal(
@@ -314,7 +358,36 @@ export async function exerciseStandalone(
       );
       const { pieceId, targetOffset, direction } = hinted.hint;
       const selector = direction > 0 ? '#nudge-positive' : '#nudge-negative';
-      for (let step = 0; step < 25; step++) {
+      const otherDirection = direction > 0 ? '#nudge-negative' : '#nudge-positive';
+      assert.equal(
+        await scope
+          .locator(selector)
+          .evaluate((button) => button.classList.contains('hint-direction')),
+        true,
+      );
+      assert.equal(
+        await scope
+          .locator(otherDirection)
+          .evaluate((button) => button.classList.contains('hint-direction')),
+        false,
+      );
+      assert.deepEqual(
+        hinted.state.offsets,
+        beforeHint.state.offsets,
+        'Revealing a step cannot move pieces',
+      );
+      const axisSelector = direction > 0 ? '#axis-positive' : '#axis-negative';
+      if (await scope.locator(axisSelector).isVisible()) {
+        assert.equal(
+          await scope
+            .locator(axisSelector)
+            .evaluate((button) => button.classList.contains('hint-direction')),
+          true,
+        );
+      }
+      const maximumSteps =
+        Math.ceil(Math.abs(targetOffset - hinted.state.offsets[pieceId]) / 0.5) + 1;
+      for (let step = 0; step < maximumSteps; step++) {
         const current = (await snapshot()).state.offsets[pieceId];
         if (Math.abs(current - targetOffset) < 0.001) break;
         await activate(selector);
@@ -324,6 +397,13 @@ export async function exerciseStandalone(
           'The suggested motion must be physically executable',
         );
         assert.ok(Math.abs(targetOffset - next) < Math.abs(targetOffset - current) + 0.001);
+        assert.equal(
+          await scope
+            .locator(selector)
+            .evaluate((button) => button.classList.contains('hint-direction')),
+          Math.abs(targetOffset - next) > 0.001,
+          'The suggested direction must stay lit until the hinted target is reached',
+        );
       }
       assert.ok(
         Math.abs((await snapshot()).state.offsets[pieceId] - targetOffset) < 0.001,
@@ -333,33 +413,52 @@ export async function exerciseStandalone(
     assert.fail('Puzzle did not complete within 30 hinted actions');
   };
 
-  const levelCount = completeAllLevels ? 3 : 1;
-  for (let index = 0; index < levelCount; index++) {
-    if (index > 0) {
+  const playableLevels =
+    levelIndices ?? (completeAllLevels ? catalog.map((item) => item.index) : [0]);
+  assert.ok(playableLevels.length > 0);
+  assert.ok(playableLevels.every((index) => catalog.some((item) => item.index === index)));
+  const captureLevels = new Set([0, 4, 9, 14, 19]);
+  for (const [position, index] of playableLevels.entries()) {
+    if (position > 0 || index !== 0) {
       await activate('#levels');
-      await activate(`[data-level="${index}"]`);
+      await activate(`button[data-level="${index}"]`);
     }
-    assert.equal((await snapshot()).pieces.length, index + 3);
+    const pieceCount = (await snapshot()).pieces.length;
+    assert.ok(pieceCount >= 3, `Level ${index + 1} must contain a complete puzzle`);
     await solvePhase();
-    assert.equal((await snapshot()).progress.removed, index + 3);
-    await screenshot(`level-${index + 1}-disassembled`);
+    assert.equal((await snapshot()).progress.removed, pieceCount);
+    if (captureLevels.has(index)) await screenshot(`level-${index + 1}-disassembled`);
     await activate('#reassemble');
     assert.equal((await snapshot()).state.phase, 'reassemble');
     assert.equal((await snapshot()).state.history.length, 0);
     await solvePhase();
     const complete = await snapshot();
-    assert.equal(complete.progress.assembled, index + 3);
+    assert.equal(complete.progress.assembled, pieceCount);
     assert.equal(complete.progress.complete, true);
     assert.ok(Object.values(complete.state.offsets).every((value) => value === 0));
-    assert.ok(await scope.locator('#next-level').isVisible());
-    await screenshot(`level-${index + 1}-reassembled`);
+    assert.ok(await scope.locator('#replay-level').isVisible());
+    if (index < catalog.length - 1) assert.ok(await scope.locator('#next-level').isVisible());
+    if (captureLevels.has(index)) await screenshot(`level-${index + 1}-reassembled`);
     console.log(`${screenshotPrefix}: level ${index + 1} disassembly and reassembly passed`);
   }
 
   await activate('#levels');
-  assert.equal(
-    await scope.locator('.level-badge').filter({ hasText: '已复原' }).count(),
-    levelCount,
+  const badges = () =>
+    scope.locator('button[data-level]').evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        index: Number(button.dataset.level),
+        badge: button.querySelector('.level-badge')?.textContent.trim(),
+        seals: [...button.querySelectorAll('.seal.earned')].map((seal) => seal.textContent.trim()),
+      })),
+    );
+  const completedBadges = (await badges()).filter((item) => playableLevels.includes(item.index));
+  assert.ok(completedBadges.every((item) => /复原|独立/.test(item.badge)));
+  assert.ok(
+    completedBadges.every((item) => item.seals.includes('解开') && item.seals.includes('复原')),
+  );
+  assert.ok(
+    completedBadges.every((item) => !item.seals.includes('独立')),
+    'Step-assisted solves must not earn an independent seal',
   );
   await activate('#close-dialog');
   await activate('#restart');
@@ -369,13 +468,105 @@ export async function exerciseStandalone(
     true,
     'Dismissing restart must preserve completion',
   );
+  await activate('#replay-level');
+  const replayed = await snapshot();
+  assert.equal(replayed.state.moves, 0);
+  assert.equal(replayed.state.phase, 'disassemble');
+  assert.equal(replayed.progress.complete, false);
+  assert.ok(Object.values(replayed.state.offsets).every((value) => value === 0));
+  if (scope === page) await page.reload();
+  else await scope.goto(scope.url());
+  await scope.locator('#app[data-ready="true"]').waitFor();
+  assert.deepEqual((await snapshot()).state, replayed.state, 'Replay must survive a reload');
+  await activate('#levels');
+  assert.deepEqual(
+    (await badges()).filter((item) => playableLevels.includes(item.index)),
+    completedBadges,
+    'Replaying a completed puzzle must preserve all completion records after reload',
+  );
+  await activate('#close-dialog');
   await activate('#restart');
   await activate('#confirm-restart');
   assert.equal((await snapshot()).state.moves, 0);
   assert.equal((await snapshot()).state.phase, 'disassemble');
   assert.equal((await snapshot()).progress.complete, false);
   await cdp?.detach();
-  return { levels: levelCount, mobile, screenshots: screenshotDir };
+  return {
+    levels: playableLevels.length,
+    mobile,
+    slowestHintMs: Math.round(slowestHintMs),
+    screenshots: screenshotDir,
+  };
+}
+
+/** Check every control at six phone sizes, including each tile in the
+ * intentionally scrollable piece tray. All selections use real touch input.
+ */
+export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir } = {}) {
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 740 },
+    { width: 390, height: 844 },
+    { width: 568, height: 320 },
+    { width: 740, height: 360 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const pieces = page.locator('button[data-piece]');
+    for (let index = 0; index < (await pieces.count()); index++) {
+      const piece = pieces.nth(index);
+      await piece.tap();
+      const id = await piece.getAttribute('data-piece');
+      assert.equal(await page.evaluate(() => window.lubanSnapshot().selected), id);
+      const size = await piece.boundingBox();
+      assert.ok(size.width >= 44 && size.height >= 44, 'Each part needs a 44px touch target');
+    }
+    await pieces.first().tap();
+    await mkdir(screenshotDir, { recursive: true });
+    await page.screenshot({
+      path: resolve(screenshotDir, `mobile-layout-${viewport.width}x${viewport.height}.png`),
+      fullPage: true,
+    });
+    const layout = await page.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth > innerWidth + 1,
+      overflowY: document.documentElement.scrollHeight > innerHeight + 1,
+      controls: [
+        ...document.querySelectorAll(
+          '.controls button, .topbar button, .view-tools button, .axis-handle',
+        ),
+      ]
+        .filter(
+          (button) => button.getBoundingClientRect().width > 0 && !button.closest('.piece-list'),
+        )
+        .map((button) => {
+          const box = button.getBoundingClientRect();
+          const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return {
+            name: button.id || button.getAttribute('aria-label'),
+            onScreen:
+              box.x >= 0 &&
+              box.y >= 0 &&
+              box.right <= innerWidth + 1 &&
+              box.bottom <= innerHeight + 1,
+            unobstructed: button === hit || button.contains(hit),
+            touchSized: box.width >= 44 && box.height >= 44,
+          };
+        }),
+    }));
+    assert.equal(
+      layout.overflowX || layout.overflowY,
+      false,
+      `No page scrolling at ${viewport.width}×${viewport.height}`,
+    );
+    assert.deepEqual(
+      layout.controls.filter(
+        (control) => !control.onScreen || !control.unobstructed || !control.touchSized,
+      ),
+      [],
+      `Controls must stay visible, unobstructed and touch-sized at ${viewport.width}×${viewport.height}`,
+    );
+    console.log(`mobile layout: ${viewport.width}×${viewport.height} passed`);
+  }
 }
 
 async function runBrowserChecks() {
@@ -443,56 +634,11 @@ async function runBrowserChecks() {
       page.on('pageerror', (error) => errors.push(error.message));
       try {
         await page.goto(url);
-        await exerciseStandalone(page, { mobile });
-        if (mobile) {
-          for (const viewport of [
-            { width: 360, height: 740 },
-            { width: 844, height: 390 },
-          ]) {
-            await page.setViewportSize(viewport);
-            await page.locator('[data-piece="key"]').tap();
-            await page.screenshot({
-              path: resolve(evidenceDir, `mobile-layout-${viewport.width}x${viewport.height}.png`),
-              fullPage: true,
-            });
-            const layout = await page.evaluate(() => ({
-              overflowX: document.documentElement.scrollWidth > innerWidth + 1,
-              overflowY: document.documentElement.scrollHeight > innerHeight + 1,
-              controls: [
-                ...document.querySelectorAll(
-                  '.controls button, .topbar button, .view-tools button, .axis-handle',
-                ),
-              ]
-                .filter((button) => button.getBoundingClientRect().width > 0)
-                .map((button) => {
-                  const box = button.getBoundingClientRect();
-                  const hit = document.elementFromPoint(
-                    box.x + box.width / 2,
-                    box.y + box.height / 2,
-                  );
-                  return {
-                    name: button.id || button.getAttribute('aria-label'),
-                    onScreen:
-                      box.x >= 0 &&
-                      box.y >= 0 &&
-                      box.right <= innerWidth + 1 &&
-                      box.bottom <= innerHeight + 1,
-                    unobstructed: button === hit || button.contains(hit),
-                  };
-                }),
-            }));
-            assert.equal(
-              layout.overflowX || layout.overflowY,
-              false,
-              `No scrolling at ${viewport.width}×${viewport.height}`,
-            );
-            assert.deepEqual(
-              layout.controls.filter((control) => !control.onScreen || !control.unobstructed),
-              [],
-              `Controls must remain visible and unobstructed at ${viewport.width}×${viewport.height}`,
-            );
-          }
-        }
+        await exerciseStandalone(page, {
+          mobile,
+          levelIndices: mobile ? undefined : [0, 4, 9, 14, 19],
+        });
+        if (mobile) await exerciseMobileLayouts(page);
         assert.deepEqual(errors, [], 'The browser must not raise uncaught errors');
       } catch (error) {
         await mkdir(evidenceDir, { recursive: true });
