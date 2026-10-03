@@ -41,58 +41,68 @@ export function getRoleAppearance(role) {
   };
 }
 
+// The same vector face is used by SVG scenes and Canvas competition views.
+function facePaths(role) {
+  const { color, accent, style } = getRoleAppearance(role);
+  const chaser = side(role) === 'cop';
+  const animal = style === 'animals';
+  const paths = [];
+  const add = (d, fill, stroke = '', width = 3) => paths.push({ d, fill, stroke, width });
+  if (animal) {
+    add(chaser ? 'M9 43 10 6Q12 0 18 6L39 27M61 27 82 6Q88 0 90 6L91 43' : 'M6 48 13 5Q15 0 21 7L42 29M58 29 79 7Q85 0 87 5L94 48', color);
+    add('M16 29 17 13 30 30M70 30 83 13 84 29', '#ffb6a2');
+  }
+  add(chaser ? 'M8 46Q8 22 31 19H69Q92 22 92 46V65Q92 94 50 96 8 94 8 65Z' : 'M5 53Q5 17 50 17T95 53Q95 92 50 97 5 92 5 53Z', animal ? color : accent, color);
+  if (animal) add(chaser ? 'M16 58Q27 43 42 57L50 65 58 57Q73 43 84 58V70Q81 89 50 90 19 89 16 70Z' : 'M10 50 42 60 50 70 58 60 90 50Q90 87 50 91 10 87 10 50Z', '#fff4df');
+  else {
+    add(chaser ? 'M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z' : 'M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z', color);
+    if (style === 'cosmic') add('M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z', '#ffe075');
+  }
+  add('M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0', '#243d49');
+  add('M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0', '#fff');
+  add('M17 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0M69 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0', '#f49d92');
+  if (animal) add('M45 68Q50 64 55 68L50 73Z', '#9e5149');
+  add('M39 76Q50 90 61 76', 'none', '#9e5149', 3.5);
+  return paths;
+}
+
+const portraitOutline = (role) => side(role) === 'cop'
+  ? 'M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z'
+  : 'M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0';
+let clipSequence = 0;
+
 export function roleAvatarSvg(role, x, y, size) {
-  const { color, accent, badge, avatar } = getRoleAppearance(role);
-  const chaser = side(role) === 'cop',
-    radius = chaser ? size * 0.16 : size / 2;
-  return (
-    `<g class="role-avatar" pointer-events="none"><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${radius}" fill="${accent}" stroke="${color}" stroke-width="${Math.max(2, size * 0.065)}"/>` +
-    (avatar
-      ? `<image href="${avatar}" x="${x + size * 0.1}" y="${y + size * 0.1}" width="${size * 0.8}" height="${size * 0.8}" preserveAspectRatio="xMidYMid slice"/>`
-      : `<text x="${x + size / 2}" y="${y + size * 0.7}" text-anchor="middle" font-size="${size * 0.65}" fill="${color}" stroke="none">${badge}</text>`) +
-    `<circle cx="${x + size * 0.87}" cy="${y + size * 0.9}" r="${size * 0.2}" fill="${color}" stroke="#fff9ed" stroke-width="1"/><text x="${x + size * 0.87}" y="${y + size * 0.975}" text-anchor="middle" font-size="${size * 0.22}" fill="white" stroke="none">${chaser ? '追' : '突'}</text></g>`
-  );
+  const { avatar } = getRoleAppearance(role);
+  const id = `role-portrait-${++clipSequence}`;
+  const content = avatar
+    ? `<defs><clipPath id="${id}"><path d="${portraitOutline(role)}"/></clipPath></defs><image href="${avatar}" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`
+    : facePaths(role).map(({ d, fill, stroke, width }) => `<path d="${d}" fill="${fill}" stroke="${stroke || 'none'}" stroke-width="${width}"/>`).join('');
+  return `<g class="role-avatar" pointer-events="none" transform="translate(${x} ${y}) scale(${size / 100})" stroke-linecap="round" stroke-linejoin="round">${content}</g>`;
 }
 
 export function drawRoleAvatar(ctx, role, x, y, size) {
-  const { color, accent, badge, avatar } = getRoleAppearance(role);
-  const chaser = side(role) === 'cop';
-  ctx.save();
-  ctx.fillStyle = accent;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(2, size * 0.065);
-  ctx.beginPath();
-  if (chaser) ctx.rect(x, y, size, size);
-  else ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  const { avatar } = getRoleAppearance(role);
   let img = images.get(avatar);
   if (avatar && !img && typeof Image !== 'undefined') {
     img = new Image();
     img.src = avatar;
     images.set(avatar, img);
   }
-  if (img?.complete && img.naturalWidth)
-    ctx.drawImage(img, x + size * 0.1, y + size * 0.1, size * 0.8, size * 0.8);
-  else {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `${size * 0.65}px sans-serif`;
-    ctx.fillStyle = color;
-    ctx.fillText(badge, x + size / 2, y + size / 2);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 100, size / 100);
+  ctx.lineCap = ctx.lineJoin = 'round';
+  if (img?.complete && img.naturalWidth) {
+    ctx.clip(new Path2D(portraitOutline(role)));
+    const edge = Math.min(img.naturalWidth, img.naturalHeight);
+    ctx.drawImage(img, (img.naturalWidth - edge) / 2, (img.naturalHeight - edge) / 2, edge, edge, 0, 0, 100, 100);
+  } else {
+    for (const { d, fill, stroke, width } of facePaths(role)) {
+      const path = new Path2D(d);
+      if (fill !== 'none') { ctx.fillStyle = fill; ctx.fill(path); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(path); }
+    }
   }
-  ctx.beginPath();
-  ctx.arc(x + size * 0.87, y + size * 0.9, size * 0.2, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.strokeStyle = '#fff9ed';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `bold ${size * 0.22}px sans-serif`;
-  ctx.fillStyle = 'white';
-  ctx.fillText(chaser ? '追' : '突', x + size * 0.87, y + size * 0.9);
   ctx.restore();
 }
 
@@ -144,7 +154,7 @@ export function openAppearanceSettings(onChange = () => {}) {
     [data-role-appearance] select,[data-role-appearance] input{box-sizing:border-box;max-width:100%;width:100%}[data-role-appearance] input{font:inherit;font-size:12px}[data-role-appearance] input::file-selector-button{min-height:44px}
     [data-role-appearance] svg{display:block;margin:auto;width:88px;height:88px}[data-role-appearance] footer{display:flex;justify-content:flex-end;margin-top:12px}[data-role-appearance] [role=status]{min-height:24px;font-size:14px}
     @media(max-width:370px){[data-role-appearance]{padding:14px}[data-role-appearance] .role-options{grid-template-columns:1fr}}
-  </style><h2>双方角色装扮</h2><p>给自己和好友配一套形象。头像只保存在当前设备，不会发送给好友或服务器；队标始终保留，避免认错。</p><div class="role-options"></div><p role="status" aria-live="polite"></p><footer><button type="button" data-close-appearance>完成</button></footer>`;
+  </style><h2>双方角色装扮</h2><p>给自己和好友配一套形象。头像只保存在当前设备，不会发送给好友或服务器；蓝橙队色和身体队标帮助区分双方。</p><div class="role-options"></div><p role="status" aria-live="polite"></p><footer><button type="button" data-close-appearance>完成</button></footer>`;
   const status = dialog.querySelector('[role=status]');
   const save = (key, update) => {
     const previous = read(),
@@ -165,7 +175,7 @@ export function openAppearanceSettings(onChange = () => {}) {
   for (const key of ['cop', 'robber']) {
     const field = document.createElement('fieldset'),
       appearance = getRoleAppearance(key);
-    field.innerHTML = `<legend>${appearance.label}</legend><svg viewBox="0 0 96 96" aria-label="${appearance.label}头像预览"></svg><label>角色样式<select aria-label="${appearance.label}样式"><option value="team">运动队标</option><option value="animals">猫狐追逐</option><option value="cosmic">星际追逐</option></select></label><label>本地头像<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="${appearance.label}本地头像"></label><button type="button">恢复默认形象</button>`;
+    field.innerHTML = `<legend>${appearance.label}</legend><svg viewBox="0 0 96 96" aria-label="${appearance.label}头像预览"></svg><label>角色样式<select aria-label="${appearance.label}样式"><option value="team">卡通小队</option><option value="animals">猫狐追逐</option><option value="cosmic">星际追逐</option></select></label><label>本地头像<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="${appearance.label}本地头像"></label><button type="button">恢复默认形象</button>`;
     const preview = () => {
       field.querySelector('svg').innerHTML = roleAvatarSvg(key, 7, 7, 76);
     };

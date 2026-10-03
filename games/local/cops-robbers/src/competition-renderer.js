@@ -45,7 +45,7 @@ export function createRenderer() {
         const p = point(node), mine = role === side;
         if (mine && index === selected) circle(p.x, p.y - 10, 21, '#d0e7f8', '#1258c2');
         drawRoleAvatar(ctx, side === 'pursuer' ? 'cop' : 'robber', p.x - 16, p.y - 29, 32);
-        ctx.textAlign = 'center'; text(`${side === 'pursuer' ? '追' : '突'}${index + 1}`, p.x, p.y - 33, 11, side === 'pursuer' ? '#1258c2' : '#a44908');
+        ctx.textAlign = 'center'; text(`${index + 1}`, p.x, p.y - 33, 11, side === 'pursuer' ? '#1258c2' : '#a44908');
         hit(`${side === 'pursuer' ? '追逐队' : '突围队'} ${index + 1} 号`, p.x - 22, p.y - 35, 44, 40, mine ? { local: index } : { target: node });
       });
       const message = ended ? `${duel ? board.winner === 'runner' ? '突围队获胜' : '追逐队获胜' : board.robbers.includes(-2) ? '突围成功' : '拦截成功'} · 等待结算`
