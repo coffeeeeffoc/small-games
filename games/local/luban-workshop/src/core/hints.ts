@@ -214,7 +214,9 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
 
 const routeCache = new WeakMap<Level, Map<string, Hint>>();
 const exactKey = (level: Level, state: GameState): string =>
-  `${state.phase}:${JSON.stringify(level.pieces.map((piece) => state.offsets[piece.id]))}`;
+  `${state.phase}:${level.pieces
+    .flatMap((piece) => state.offsets[piece.id]!.map((value) => Math.round(value / EPSILON)))
+    .join(',')}`;
 
 function plannedHint(
   level: Level,
@@ -242,7 +244,8 @@ function plannedHint(
  * geometry, park the pieces in open space, route to a freshly solved separated
  * arrangement, then reverse its legal extraction sweeps. The parking paths use
  * conservative enclosing boxes, so no detour can pass through a fork or tooth.
- * Cache only exact poses; any player deviation triggers fresh collision checks.
+ * Cache poses at collision precision so harmless touch-drag roundoff does not
+ * discard a valid route. Every cached action still receives a fresh sweep check.
  */
 function planReassembly(level: Level, initial: GameState): Hint | null {
   const route: { state: GameState; hint: Hint }[] = [];

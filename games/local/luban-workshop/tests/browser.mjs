@@ -28,6 +28,7 @@ export async function exerciseStandalone(
     completeAllLevels = true,
     levelIndices,
     interactionsOnly = false,
+    skipInteractions = false,
   } = {},
 ) {
   await scope.locator('#app[data-ready="true"]').waitFor();
@@ -196,334 +197,344 @@ export async function exerciseStandalone(
   await screenshot('level-catalog');
   await activate('#close-dialog');
 
-  // A conceptual clue helps observation without performing a move or giving
-  // the exact next action. It must not consume an undo step.
-  const beforeClue = await snapshot();
-  await activate('#clue');
-  const afterClue = await snapshot();
-  assert.deepEqual(afterClue.state.offsets, beforeClue.state.offsets);
-  assert.deepEqual(afterClue.state.history, beforeClue.state.history);
-  assert.equal(afterClue.state.moves, beforeClue.state.moves);
-  assert.equal(afterClue.hint, null, 'A conceptual clue must not reveal the exact move');
-  assert.ok((await scope.locator('#status').innerText()).trim().length > 0);
+  if (!skipInteractions) {
+    // A conceptual clue helps observation without performing a move or giving
+    // the exact next action. It must not consume an undo step.
+    const beforeClue = await snapshot();
+    await activate('#clue');
+    const afterClue = await snapshot();
+    assert.deepEqual(afterClue.state.offsets, beforeClue.state.offsets);
+    assert.deepEqual(afterClue.state.history, beforeClue.state.history);
+    assert.equal(afterClue.state.moves, beforeClue.state.moves);
+    assert.equal(afterClue.hint, null, 'A conceptual clue must not reveal the exact move');
+    assert.ok((await scope.locator('#status').innerText()).trim().length > 0);
 
-  // Every part is directly selectable, including the blue cap which can lift
-  // off immediately. Sideways moves use the same geometry as axial moves.
-  for (const piece of (await snapshot()).pieces) await findPiece(piece.id);
-  for (const [direction, id] of [
-    ['negative', 'cross'],
-    ['positive', 'upright'],
-  ]) {
-    await selectSingle('key');
+    // Every part is directly selectable, including the blue cap which can lift
+    // off immediately. Sideways moves use the same geometry as axial moves.
+    for (const piece of (await snapshot()).pieces) await findPiece(piece.id);
+    for (const [direction, id] of [
+      ['negative', 'cross'],
+      ['positive', 'upright'],
+    ]) {
+      await selectSingle('key');
+      await chooseAxis('y');
+      const beforeHandleSelection = await snapshot();
+      const handle = scope.locator(`#axis-${direction}`);
+      assert.equal(
+        await handle.isVisible(),
+        false,
+        `The Y ${direction} handle must not cover ${id}`,
+      );
+      const point = await handle.evaluate((element) => {
+        const stage = element.parentElement.getBoundingClientRect();
+        return {
+          x: stage.x + parseFloat(element.style.left),
+          y: stage.y + parseFloat(element.style.top),
+        };
+      });
+      await tap(point);
+      assert.equal(
+        (await snapshot()).selected,
+        id,
+        'A covered face must remain directly selectable',
+      );
+      assert.deepEqual((await snapshot()).state, beforeHandleSelection.state);
+    }
+    for (const id of ['cross', 'upright']) {
+      await selectSingle('key');
+      await chooseAxis('z');
+      await findPiece(id, { preserveSelection: true });
+    }
+    await selectSingle('upright');
     await chooseAxis('y');
-    const beforeHandleSelection = await snapshot();
-    const handle = scope.locator(`#axis-${direction}`);
-    assert.equal(await handle.isVisible(), false, `The Y ${direction} handle must not cover ${id}`);
-    const point = await handle.evaluate((element) => {
-      const stage = element.parentElement.getBoundingClientRect();
-      return {
-        x: stage.x + parseFloat(element.style.left),
-        y: stage.y + parseFloat(element.style.top),
-      };
-    });
-    await tap(point);
-    assert.equal((await snapshot()).selected, id, 'A covered face must remain directly selectable');
-    assert.deepEqual((await snapshot()).state, beforeHandleSelection.state);
-  }
-  for (const id of ['cross', 'upright']) {
+    const beforeLift = (await snapshot()).state;
+    await activate('#nudge-positive');
+    assert.deepEqual((await snapshot()).state.offsets.upright, [0, 0.5, 0]);
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets, beforeLift.offsets);
     await selectSingle('key');
     await chooseAxis('z');
-    await findPiece(id, { preserveSelection: true });
-  }
-  await selectSingle('upright');
-  await chooseAxis('y');
-  const beforeLift = (await snapshot()).state;
-  await activate('#nudge-positive');
-  assert.deepEqual((await snapshot()).state.offsets.upright, [0, 0.5, 0]);
-  await activate('#undo');
-  assert.deepEqual((await snapshot()).state.offsets, beforeLift.offsets);
-  await selectSingle('key');
-  await chooseAxis('z');
-  await activate('#nudge-negative');
-  assert.deepEqual((await snapshot()).state.offsets.key, [0, 0, -0.5]);
-  await activate('#undo');
+    await activate('#nudge-negative');
+    assert.deepEqual((await snapshot()).state.offsets.key, [0, 0, -0.5]);
+    await activate('#undo');
 
-  // Blocking feedback must identify the obstructing part and preserve history.
-  await selectSingle('cross');
-  await chooseAxis('y');
-  const beforeCollision = (await snapshot()).state;
-  await activate('#nudge-positive');
-  assert.deepEqual(
-    (await snapshot()).state,
-    beforeCollision,
-    'A blocked move cannot change state or add history',
-  );
-  assert.match(await scope.locator('#status').innerText(), /挡住/);
-  assert.ok(
-    await scope
-      .locator('[data-piece="key"]')
-      .evaluate((element) => element.classList.contains('blocked')),
-  );
-  await screenshot('collision');
-
-  // A direct drag moves only the selected bar and records one undoable action.
-  const from = await findPiece('key');
-  const beforeDrag = await snapshot();
-  await dragAlong(from, 'key', 'x', 1.2);
-  const afterDragSnapshot = await snapshot();
-  const afterDrag = afterDragSnapshot.state;
-  assert.deepEqual(afterDrag.offsets.key, [1, 0, 0], 'A direct drag should snap to one unit');
-  assert.deepEqual(afterDrag.offsets.cross, [0, 0, 0]);
-  assert.deepEqual(afterDrag.offsets.upright, [0, 0, 0]);
-  assert.equal(afterDrag.moves, beforeDrag.state.moves + 1, 'A drag is one history action');
-  for (const axis of axes) {
-    const before = beforeDrag.pieces.find((piece) => piece.id === 'key').directions[axis];
-    const after = afterDragSnapshot.pieces.find((piece) => piece.id === 'key').directions[axis];
+    // Blocking feedback must identify the obstructing part and preserve history.
+    await selectSingle('cross');
+    await chooseAxis('y');
+    const beforeCollision = (await snapshot()).state;
+    await activate('#nudge-positive');
+    assert.deepEqual(
+      (await snapshot()).state,
+      beforeCollision,
+      'A blocked move cannot change state or add history',
+    );
+    assert.match(await scope.locator('#status').innerText(), /挡住/);
     assert.ok(
-      Math.abs(before.pixelsPerUnit - after.pixelsPerUnit) < 0.001 &&
-        Math.hypot(before.x - after.x, before.y - after.y) < 0.001,
-      `A translated piece must retain its projected ${axis} direction and scale`,
+      await scope
+        .locator('[data-piece="key"]')
+        .evaluate((element) => element.classList.contains('blocked')),
     );
-  }
-  await activate('#undo');
-  assert.deepEqual((await snapshot()).state.offsets, beforeDrag.state.offsets);
-  await activate('#redo');
-  assert.deepEqual((await snapshot()).state.offsets, afterDrag.offsets);
+    await screenshot('collision');
 
-  // Reload is a real page/iframe navigation; persistence must restore history.
-  if (scope === page) await page.reload();
-  else await scope.goto(scope.url());
-  await scope.locator('#app[data-ready="true"]').waitFor();
-  assert.deepEqual(
-    (await snapshot()).state,
-    afterDrag,
-    'Reload must recover offsets and undo history',
-  );
-  await activate('#undo');
-  assert.deepEqual((await snapshot()).state.offsets.key, [0, 0, 0]);
-
-  // A and B stay engaged with each other while translating as a subassembly.
-  // Pressing an already selected body must preserve the entire selected set.
-  const groupFrom = await findPiece('key');
-  await activate('#group-select');
-  await activate('[data-piece="cross"]');
-  await chooseAxis('y');
-  assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(['key', 'cross']));
-  const beforeGroup = (await snapshot()).state;
-  await dragAlong(groupFrom, 'key', 'y', -1.2);
-  const afterGroupSnapshot = await snapshot();
-  const afterGroup = afterGroupSnapshot.state;
-  assert.deepEqual(new Set(afterGroupSnapshot.selectedIds), new Set(['key', 'cross']));
-  assert.deepEqual(afterGroup.offsets.key, [0, -1, 0]);
-  assert.deepEqual(afterGroup.offsets.cross, [0, -1, 0]);
-  assert.deepEqual(afterGroup.offsets.upright, [0, 0, 0]);
-  assert.equal(afterGroup.moves, beforeGroup.moves + 1, 'One group drag is one history action');
-  assert.equal(
-    afterGroupSnapshot.progress.complete,
-    false,
-    'An engaged group is not fully disassembled',
-  );
-  await screenshot('group-move');
-  await activate('#undo');
-  assert.deepEqual((await snapshot()).state.offsets, beforeGroup.offsets);
-  await activate('#redo');
-  assert.deepEqual((await snapshot()).state.offsets, afterGroup.offsets);
-  if (scope === page) await page.reload();
-  else await scope.goto(scope.url());
-  await scope.locator('#app[data-ready="true"]').waitFor();
-  assert.deepEqual(
-    (await snapshot()).state,
-    afterGroup,
-    'Reload preserves a group action atomically',
-  );
-  await activate('#undo');
-  assert.deepEqual((await snapshot()).state.offsets, beforeGroup.offsets);
-
-  if (mobile) {
-    const start = await findPiece('key');
-    const stateBeforeCancel = (await snapshot()).state;
-    const end = await dragAlong(start, 'key', 'x', 1.3, { keepDown: true });
-    assert.ok(
-      component(await snapshot(), 'key', 'x') > 0.5,
-      'Touch preview must follow the finger',
-    );
-    await touch('touchCancel', []);
-    assert.deepEqual(
-      (await snapshot()).state,
-      stateBeforeCancel,
-      'pointercancel must restore the whole transaction',
-    );
-
-    // Adding a second finger cancels a part drag before camera zoom begins.
-    await drag(start, end, { keepDown: true });
-    const other = { x: end.x - 90, y: end.y + 30 };
-    await touch('touchStart', [end, other]);
-    assert.deepEqual(
-      (await snapshot()).state,
-      stateBeforeCancel,
-      'A pinch cannot accidentally commit a part drag',
-    );
-    const beforePinch = (await snapshot()).pieces[0].direction.pixelsPerUnit;
-    await touch('touchMove', [
-      { x: end.x + 20, y: end.y - 8 },
-      { x: other.x - 20, y: other.y + 8 },
-    ]);
-    await touch('touchEnd', []);
-    const afterPinch = await snapshot();
-    assert.deepEqual(afterPinch.state, stateBeforeCancel);
-    assert.ok(
-      afterPinch.pieces[0].direction.pixelsPerUnit > beforePinch * 1.08,
-      'Pinching out must zoom in',
-    );
-    await activate('#camera-reset');
-  }
-
-  // Background drags rotate the view without modifying puzzle state.
-  const beforeOrbit = await snapshot();
-  const blank = {
-    x: beforeOrbit.stage.x + 25,
-    y: beforeOrbit.stage.y + beforeOrbit.stage.height * 0.68,
-  };
-  await drag(blank, { x: blank.x + 40, y: blank.y + 18 });
-  const afterOrbit = await snapshot();
-  assert.deepEqual(afterOrbit.state, beforeOrbit.state);
-  assert.ok(
-    Math.hypot(
-      afterOrbit.pieces[0].direction.x - beforeOrbit.pieces[0].direction.x,
-      afterOrbit.pieces[0].direction.y - beforeOrbit.pieces[0].direction.y,
-    ) > 0.01,
-    `Background drag must rotate the camera: ${JSON.stringify({ before: beforeOrbit.pieces[0].direction, after: afterOrbit.pieces[0].direction })}`,
-  );
-  for (const piece of afterOrbit.pieces) await findPiece(piece.id);
-  const rotatedFrom = await findPiece('key');
-  const beforeRotatedDrag = await snapshot();
-  await dragAlong(rotatedFrom, 'key', 'x', 1.2);
-  const afterRotatedDrag = await snapshot();
-  assert.deepEqual(afterRotatedDrag.state.offsets.key, [1, 0, 0]);
-  const beforeScreen = beforeRotatedDrag.pieces.find((piece) => piece.id === 'key').screen;
-  const afterScreen = afterRotatedDrag.pieces.find((piece) => piece.id === 'key').screen;
-  const projected = beforeRotatedDrag.pieces.find((piece) => piece.id === 'key').directions.x;
-  const screenDelta = { x: afterScreen.x - beforeScreen.x, y: afterScreen.y - beforeScreen.y };
-  assert.ok(
-    screenDelta.x * projected.x + screenDelta.y * projected.y > 0,
-    'After orbiting, the piece must move in the pointer direction',
-  );
-  assert.ok(
-    Math.hypot(
-      screenDelta.x - projected.x * projected.pixelsPerUnit,
-      screenDelta.y - projected.y * projected.pixelsPerUnit,
-    ) < 0.01,
-    'The drag projection must use world coordinates consistently',
-  );
-  await activate('#undo');
-  await activate('#camera-reset');
-
-  await activate('[data-piece="key"]');
-  await activate('#xray');
-  assert.equal((await snapshot()).xray, true);
-  assert.equal(await scope.locator('#xray').getAttribute('aria-pressed'), 'true');
-  await activate('#xray');
-  assert.equal((await snapshot()).xray, false);
-
-  if (mobile) {
-    const button = await scope.locator('#nudge-positive').evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    });
-    const beforeButtonGesture = (await snapshot()).state;
-    await drag(button, { x: button.x + 55, y: button.y });
-    assert.deepEqual(
-      (await snapshot()).state,
-      beforeButtonGesture,
-      'Swiping across a button must not activate it',
-    );
-    await touch('touchStart', [button]);
-    await touch('touchCancel', []);
-    assert.deepEqual(
-      (await snapshot()).state,
-      beforeButtonGesture,
-      'Cancelling a button touch must not activate it',
-    );
-  }
-
-  if (!mobile) {
-    await selectSingle('key');
-    await chooseAxis('x');
-    await activate('[data-piece="key"]');
-    await page.keyboard.press('ArrowRight');
-    assert.equal(
-      component(await snapshot(), 'key', 'x'),
-      0.5,
-      'Focused piece buttons must still allow keyboard movement',
-    );
-    await page.keyboard.press('Control+z');
-    assert.equal(
-      component(await snapshot(), 'key', 'x'),
-      0,
-      'Undo shortcut must work while a button is focused',
-    );
-  }
-
-  // Verify scene-attached controls when present, including reversing a move.
-  await selectSingle('key');
-  await chooseAxis('x');
-  if (await scope.locator('#axis-positive').isVisible()) {
-    await activate('#axis-positive');
-    assert.equal(component(await snapshot(), 'key', 'x'), 0.5);
-    await activate(
-      (await scope.locator('#axis-negative').isVisible()) ? '#axis-negative' : '#nudge-negative',
-    );
-    assert.equal(component(await snapshot(), 'key', 'x'), 0);
-  }
-
-  // Free movement can carry an entire engaged assembly well beyond its old
-  // rails. Reframing, reloading, and restarting must fit the current geometry,
-  // rather than fitting the poses from before the state change.
-  await activate('#camera-reset');
-  const originFraming = await snapshot();
-  await selectSingle('key');
-  await activate('#group-select');
-  for (const piece of originFraming.pieces.filter((piece) => piece.id !== 'key'))
-    await activate(`[data-piece="${piece.id}"]`);
-  await chooseAxis('x');
-  for (let step = 0; step < 16; step++) await activate('#nudge-positive');
-  const translatedAssembly = await snapshot();
-  for (const offset of Object.values(translatedAssembly.state.offsets))
-    assert.deepEqual(offset, [8, 0, 0]);
-  assert.equal(
-    translatedAssembly.progress.complete,
-    false,
-    'Moving an engaged assembly beyond the old rails cannot count as disassembly',
-  );
-  const assertFraming = (data, expected, message) => {
-    for (const piece of data.pieces) {
-      const before = expected.pieces.find((item) => item.id === piece.id);
+    // A direct drag moves only the selected bar and records one undoable action.
+    const from = await findPiece('key');
+    const beforeDrag = await snapshot();
+    await dragAlong(from, 'key', 'x', 1.2);
+    const afterDragSnapshot = await snapshot();
+    const afterDrag = afterDragSnapshot.state;
+    assert.deepEqual(afterDrag.offsets.key, [1, 0, 0], 'A direct drag should snap to one unit');
+    assert.deepEqual(afterDrag.offsets.cross, [0, 0, 0]);
+    assert.deepEqual(afterDrag.offsets.upright, [0, 0, 0]);
+    assert.equal(afterDrag.moves, beforeDrag.state.moves + 1, 'A drag is one history action');
+    for (const axis of axes) {
+      const before = beforeDrag.pieces.find((piece) => piece.id === 'key').directions[axis];
+      const after = afterDragSnapshot.pieces.find((piece) => piece.id === 'key').directions[axis];
       assert.ok(
-        Math.hypot(piece.screen.x - before.screen.x, piece.screen.y - before.screen.y) < 0.01,
-        `${message}: ${piece.id} must stay centered in the fitted scene (${JSON.stringify({ expected: before.screen, actual: piece.screen })})`,
+        Math.abs(before.pixelsPerUnit - after.pixelsPerUnit) < 0.001 &&
+          Math.hypot(before.x - after.x, before.y - after.y) < 0.001,
+        `A translated piece must retain its projected ${axis} direction and scale`,
       );
     }
-  };
-  await activate('#camera-reset');
-  const reframedAssembly = await snapshot();
-  assert.deepEqual(reframedAssembly.state, translatedAssembly.state);
-  assertFraming(reframedAssembly, originFraming, 'Camera reset after translation');
-  if (scope === page) await page.reload();
-  else await scope.goto(scope.url());
-  await scope.locator('#app[data-ready="true"]').waitFor();
-  const restoredAssembly = await snapshot();
-  assert.deepEqual(restoredAssembly.state, translatedAssembly.state);
-  assertFraming(restoredAssembly, originFraming, 'Reload of a translated assembly');
-  for (const piece of restoredAssembly.pieces) await findPiece(piece.id);
-  await screenshot('translated-assembly-reloaded');
-  await activate('#restart');
-  await activate('#confirm-restart');
-  const restartedAssembly = await snapshot();
-  assert.equal(restartedAssembly.state.moves, 0);
-  for (const offset of Object.values(restartedAssembly.state.offsets))
-    assert.deepEqual(offset, [0, 0, 0]);
-  assertFraming(restartedAssembly, originFraming, 'Restart of a translated assembly');
-  for (const piece of restartedAssembly.pieces) await findPiece(piece.id);
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets, beforeDrag.state.offsets);
+    await activate('#redo');
+    assert.deepEqual((await snapshot()).state.offsets, afterDrag.offsets);
+
+    // Reload is a real page/iframe navigation; persistence must restore history.
+    if (scope === page) await page.reload();
+    else await scope.goto(scope.url());
+    await scope.locator('#app[data-ready="true"]').waitFor();
+    assert.deepEqual(
+      (await snapshot()).state,
+      afterDrag,
+      'Reload must recover offsets and undo history',
+    );
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets.key, [0, 0, 0]);
+
+    // A and B stay engaged with each other while translating as a subassembly.
+    // Pressing an already selected body must preserve the entire selected set.
+    const groupFrom = await findPiece('key');
+    await activate('#group-select');
+    await activate('[data-piece="cross"]');
+    await chooseAxis('y');
+    assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(['key', 'cross']));
+    const beforeGroup = (await snapshot()).state;
+    await dragAlong(groupFrom, 'key', 'y', -1.2);
+    const afterGroupSnapshot = await snapshot();
+    const afterGroup = afterGroupSnapshot.state;
+    assert.deepEqual(new Set(afterGroupSnapshot.selectedIds), new Set(['key', 'cross']));
+    assert.deepEqual(afterGroup.offsets.key, [0, -1, 0]);
+    assert.deepEqual(afterGroup.offsets.cross, [0, -1, 0]);
+    assert.deepEqual(afterGroup.offsets.upright, [0, 0, 0]);
+    assert.equal(afterGroup.moves, beforeGroup.moves + 1, 'One group drag is one history action');
+    assert.equal(
+      afterGroupSnapshot.progress.complete,
+      false,
+      'An engaged group is not fully disassembled',
+    );
+    await screenshot('group-move');
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets, beforeGroup.offsets);
+    await activate('#redo');
+    assert.deepEqual((await snapshot()).state.offsets, afterGroup.offsets);
+    if (scope === page) await page.reload();
+    else await scope.goto(scope.url());
+    await scope.locator('#app[data-ready="true"]').waitFor();
+    assert.deepEqual(
+      (await snapshot()).state,
+      afterGroup,
+      'Reload preserves a group action atomically',
+    );
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets, beforeGroup.offsets);
+
+    if (mobile) {
+      const start = await findPiece('key');
+      const stateBeforeCancel = (await snapshot()).state;
+      const end = await dragAlong(start, 'key', 'x', 1.3, { keepDown: true });
+      assert.ok(
+        component(await snapshot(), 'key', 'x') > 0.5,
+        'Touch preview must follow the finger',
+      );
+      await touch('touchCancel', []);
+      assert.deepEqual(
+        (await snapshot()).state,
+        stateBeforeCancel,
+        'pointercancel must restore the whole transaction',
+      );
+
+      // Adding a second finger cancels a part drag before camera zoom begins.
+      await drag(start, end, { keepDown: true });
+      const other = { x: end.x - 90, y: end.y + 30 };
+      await touch('touchStart', [end, other]);
+      assert.deepEqual(
+        (await snapshot()).state,
+        stateBeforeCancel,
+        'A pinch cannot accidentally commit a part drag',
+      );
+      const beforePinch = (await snapshot()).pieces[0].direction.pixelsPerUnit;
+      await touch('touchMove', [
+        { x: end.x + 20, y: end.y - 8 },
+        { x: other.x - 20, y: other.y + 8 },
+      ]);
+      await touch('touchEnd', []);
+      const afterPinch = await snapshot();
+      assert.deepEqual(afterPinch.state, stateBeforeCancel);
+      assert.ok(
+        afterPinch.pieces[0].direction.pixelsPerUnit > beforePinch * 1.08,
+        'Pinching out must zoom in',
+      );
+      await activate('#camera-reset');
+    }
+
+    // Background drags rotate the view without modifying puzzle state.
+    const beforeOrbit = await snapshot();
+    const blank = {
+      x: beforeOrbit.stage.x + 25,
+      y: beforeOrbit.stage.y + beforeOrbit.stage.height * 0.68,
+    };
+    await drag(blank, { x: blank.x + 40, y: blank.y + 18 });
+    const afterOrbit = await snapshot();
+    assert.deepEqual(afterOrbit.state, beforeOrbit.state);
+    assert.ok(
+      Math.hypot(
+        afterOrbit.pieces[0].direction.x - beforeOrbit.pieces[0].direction.x,
+        afterOrbit.pieces[0].direction.y - beforeOrbit.pieces[0].direction.y,
+      ) > 0.01,
+      `Background drag must rotate the camera: ${JSON.stringify({ before: beforeOrbit.pieces[0].direction, after: afterOrbit.pieces[0].direction })}`,
+    );
+    for (const piece of afterOrbit.pieces) await findPiece(piece.id);
+    const rotatedFrom = await findPiece('key');
+    const beforeRotatedDrag = await snapshot();
+    await dragAlong(rotatedFrom, 'key', 'x', 1.2);
+    const afterRotatedDrag = await snapshot();
+    assert.deepEqual(afterRotatedDrag.state.offsets.key, [1, 0, 0]);
+    const beforeScreen = beforeRotatedDrag.pieces.find((piece) => piece.id === 'key').screen;
+    const afterScreen = afterRotatedDrag.pieces.find((piece) => piece.id === 'key').screen;
+    const projected = beforeRotatedDrag.pieces.find((piece) => piece.id === 'key').directions.x;
+    const screenDelta = { x: afterScreen.x - beforeScreen.x, y: afterScreen.y - beforeScreen.y };
+    assert.ok(
+      screenDelta.x * projected.x + screenDelta.y * projected.y > 0,
+      'After orbiting, the piece must move in the pointer direction',
+    );
+    assert.ok(
+      Math.hypot(
+        screenDelta.x - projected.x * projected.pixelsPerUnit,
+        screenDelta.y - projected.y * projected.pixelsPerUnit,
+      ) < 0.01,
+      'The drag projection must use world coordinates consistently',
+    );
+    await activate('#undo');
+    await activate('#camera-reset');
+
+    await activate('[data-piece="key"]');
+    await activate('#xray');
+    assert.equal((await snapshot()).xray, true);
+    assert.equal(await scope.locator('#xray').getAttribute('aria-pressed'), 'true');
+    await activate('#xray');
+    assert.equal((await snapshot()).xray, false);
+
+    if (mobile) {
+      const button = await scope.locator('#nudge-positive').evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      });
+      const beforeButtonGesture = (await snapshot()).state;
+      await drag(button, { x: button.x + 55, y: button.y });
+      assert.deepEqual(
+        (await snapshot()).state,
+        beforeButtonGesture,
+        'Swiping across a button must not activate it',
+      );
+      await touch('touchStart', [button]);
+      await touch('touchCancel', []);
+      assert.deepEqual(
+        (await snapshot()).state,
+        beforeButtonGesture,
+        'Cancelling a button touch must not activate it',
+      );
+    }
+
+    if (!mobile) {
+      await selectSingle('key');
+      await chooseAxis('x');
+      await activate('[data-piece="key"]');
+      await page.keyboard.press('ArrowRight');
+      assert.equal(
+        component(await snapshot(), 'key', 'x'),
+        0.5,
+        'Focused piece buttons must still allow keyboard movement',
+      );
+      await page.keyboard.press('Control+z');
+      assert.equal(
+        component(await snapshot(), 'key', 'x'),
+        0,
+        'Undo shortcut must work while a button is focused',
+      );
+    }
+
+    // Verify scene-attached controls when present, including reversing a move.
+    await selectSingle('key');
+    await chooseAxis('x');
+    if (await scope.locator('#axis-positive').isVisible()) {
+      await activate('#axis-positive');
+      assert.equal(component(await snapshot(), 'key', 'x'), 0.5);
+      await activate(
+        (await scope.locator('#axis-negative').isVisible()) ? '#axis-negative' : '#nudge-negative',
+      );
+      assert.equal(component(await snapshot(), 'key', 'x'), 0);
+    }
+
+    // Free movement can carry an entire engaged assembly well beyond its old
+    // rails. Reframing, reloading, and restarting must fit the current geometry,
+    // rather than fitting the poses from before the state change.
+    await activate('#camera-reset');
+    const originFraming = await snapshot();
+    await selectSingle('key');
+    await activate('#group-select');
+    for (const piece of originFraming.pieces.filter((piece) => piece.id !== 'key'))
+      await activate(`[data-piece="${piece.id}"]`);
+    await chooseAxis('x');
+    for (let step = 0; step < 16; step++) await activate('#nudge-positive');
+    const translatedAssembly = await snapshot();
+    for (const offset of Object.values(translatedAssembly.state.offsets))
+      assert.deepEqual(offset, [8, 0, 0]);
+    assert.equal(
+      translatedAssembly.progress.complete,
+      false,
+      'Moving an engaged assembly beyond the old rails cannot count as disassembly',
+    );
+    const assertFraming = (data, expected, message) => {
+      for (const piece of data.pieces) {
+        const before = expected.pieces.find((item) => item.id === piece.id);
+        assert.ok(
+          Math.hypot(piece.screen.x - before.screen.x, piece.screen.y - before.screen.y) < 0.01,
+          `${message}: ${piece.id} must stay centered in the fitted scene (${JSON.stringify({ expected: before.screen, actual: piece.screen })})`,
+        );
+      }
+    };
+    await activate('#camera-reset');
+    const reframedAssembly = await snapshot();
+    assert.deepEqual(reframedAssembly.state, translatedAssembly.state);
+    assertFraming(reframedAssembly, originFraming, 'Camera reset after translation');
+    if (scope === page) await page.reload();
+    else await scope.goto(scope.url());
+    await scope.locator('#app[data-ready="true"]').waitFor();
+    const restoredAssembly = await snapshot();
+    assert.deepEqual(restoredAssembly.state, translatedAssembly.state);
+    assertFraming(restoredAssembly, originFraming, 'Reload of a translated assembly');
+    for (const piece of restoredAssembly.pieces) await findPiece(piece.id);
+    await screenshot('translated-assembly-reloaded');
+    await activate('#restart');
+    await activate('#confirm-restart');
+    const restartedAssembly = await snapshot();
+    assert.equal(restartedAssembly.state.moves, 0);
+    for (const offset of Object.values(restartedAssembly.state.offsets))
+      assert.deepEqual(offset, [0, 0, 0]);
+    assertFraming(restartedAssembly, originFraming, 'Restart of a translated assembly');
+    for (const piece of restartedAssembly.pieces) await findPiece(piece.id);
+  }
 
   if (interactionsOnly) {
     await cdp?.detach();
@@ -574,6 +585,18 @@ export async function exerciseStandalone(
       slowestHintMs = Math.max(slowestHintMs, performance.now() - started);
       const hinted = await snapshot();
       assert.ok(hinted.hint, `No hint from a reachable ${hinted.state.phase} state`);
+      if (process.env.BROWSER_TRACE_HINTS) {
+        console.log(
+          JSON.stringify({
+            level: hinted.state.levelId,
+            phase: hinted.state.phase,
+            action: attempt,
+            moves: hinted.state.moves,
+            offsets: hinted.state.offsets,
+            hint: hinted.hint,
+          }),
+        );
+      }
       assert.equal(
         hinted.selected,
         hinted.hint.pieceId,
@@ -684,8 +707,9 @@ export async function exerciseStandalone(
     assert.equal(complete.progress.complete, true);
     assert.ok(
       Object.values(complete.state.offsets).every((value) =>
-        value.every((coordinate) => coordinate === 0),
+        value.every((coordinate) => Math.abs(coordinate) < 0.000001),
       ),
+      'Rigid-group vector arithmetic must return every coordinate to the engine origin tolerance',
     );
     assert.ok(await scope.locator('#replay-level').isVisible());
     if (index < catalog.length - 1) assert.ok(await scope.locator('#next-level').isVisible());

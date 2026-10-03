@@ -12,6 +12,7 @@ import {
 } from './index.ts';
 import { createSearchSweep } from './search-sweep.ts';
 import type { GameState, Level } from './types.ts';
+import type { Vec3 } from './types.ts';
 
 function finish(level: Level, initial: GameState): GameState {
   let state = initial;
@@ -58,6 +59,25 @@ test('reverse assembly hints retain short reversible routes for every multi-axis
     const removed = finish(level, createGame(level));
     const restored = finish(level, switchToReassembly(level, removed));
     assert.ok(restored.moves <= removed.moves, `${level.id}: no parking detour is needed for a reversible known layout`);
+  }
+});
+
+test('touch-drag floating-point tails preserve short reverse routes instead of parking detours', () => {
+  for (const source of levels.slice(-3)) {
+    // Isolate the cache so this exercises both reverse search and later hits.
+    const level = { ...source };
+    const removed = finish(level, createGame(level));
+    let coordinate = 0;
+    const perturbed: GameState = {
+      ...switchToReassembly(level, removed),
+      offsets: Object.fromEntries(Object.entries(removed.offsets).map(([id, position]) => [
+        id,
+        position.map((value) => value + (++coordinate % 2 ? 1 : -1) * 1e-14) as unknown as Vec3,
+      ])),
+    };
+    const restored = finish(level, perturbed);
+    assert.ok(restored.moves <= removed.moves,
+      `${level.id}: tiny drag roundoff must not trigger a long parking route`);
   }
 });
 
