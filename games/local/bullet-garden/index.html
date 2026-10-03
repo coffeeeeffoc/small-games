@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#19261e" />
     <meta
       name="description"
-      content="选择庭院增益，积蓄战斗能量，亲手决定技能落点。在失落庭院中守住五分钟。"
+      content="升级解锁庭院增益，积蓄战斗能量，亲手决定技能落点。在失落庭院中守住五分钟。"
     />
     <title>子弹花园 · Bullet Garden</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -149,7 +149,7 @@
         <div class="skill-instruction" id="skill-instruction">点亮已充满的技能，再选择战场落点</div>
       </section>
       <aside class="boon-status" aria-label="已获得地形增益">
-        <span>庭院增益</span><strong id="active-boons">尚未选择</strong>
+        <span>庭院增益</span><strong id="active-boons">升级选择后解锁</strong>
       </aside>
       <div id="targeting" class="targeting" hidden>
         <span id="targeting-text">选择落点 · 松手释放</span
@@ -190,33 +190,16 @@
               <h1 id="ready-title" tabindex="-1">子弹<span>花园</span></h1>
             </div>
           </div>
-          <p class="intro">为花园挑选战术，守住 10 波敌人。</p>
-          <fieldset class="loadout-section">
-            <legend><span>01</span> 选择一个庭院增益 <small>选中后才会自动生成</small></legend>
-            <div class="boon-options">
-              <button type="button" data-boon="shrub" aria-pressed="false">
-                <canvas data-icon="shrub" width="120" height="100" aria-hidden="true"></canvas
-                ><strong>花叶灌木</strong><small>柔软叶丛 · 减速伤害</small>
-              </button>
-              <button type="button" data-boon="trench" aria-pressed="false">
-                <canvas data-icon="trench" width="120" height="100" aria-hidden="true"></canvas
-                ><strong>沟渠</strong><small>下陷浅沟 · 拖慢追兵</small>
-              </button>
-              <button type="button" data-boon="frost" aria-pressed="false">
-                <canvas data-icon="frost" width="120" height="100" aria-hidden="true"></canvas
-                ><strong>冻结</strong><small>冰霜地面 · 短暂定身</small>
-              </button>
-              <button type="button" data-boon="poison" aria-pressed="false">
-                <canvas data-icon="poison" width="120" height="100" aria-hidden="true"></canvas
-                ><strong>持续毒素</strong><small>毒雾草坪 · 持续伤害</small>
-              </button>
-            </div>
-            <p id="boon-description" class="loadout-note">
-              先选一个增益，后续强化还可解锁更多地形。
+          <p class="intro">携带能量技能，守住 10 波敌人。</p>
+          <aside class="terrain-unlock-note">
+            <strong>庭院地形 · 在战斗中解锁</strong>
+            <p>
+              开局没有地形。击退敌人获得经验，在升级的三 /
+              四选一中选中对应增益后，才会自动生成灌木、沟渠、冻结或毒素地形。
             </p>
-          </fieldset>
+          </aside>
           <fieldset class="loadout-section skill-loadout">
-            <legend><span>02</span> 携带两个能量技能 <small>自由选择落点与时机</small></legend>
+            <legend>携带两个能量技能 <small>自由选择落点与时机</small></legend>
             <div class="loadout-skills">
               <label
                 ><span>技能槽 1</span
@@ -230,7 +213,7 @@
               ></label>
             </div>
           </fieldset>
-          <button id="start" class="primary-button" disabled>先选择庭院增益 <span>→</span></button>
+          <button id="start" class="primary-button">进入花园 <span>→</span></button>
           <p class="ready-tip">自动射击护身 · 战斗与击退积攒能量 · 满能不会自动释放</p>
           <button id="ready-help" class="text-button">查看战术手册</button>
         </section>
@@ -247,13 +230,14 @@
           <div class="modal-kicker">THE GARDENER'S HANDBOOK</div>
           <h2 id="help-title">让花园，听你的。</h2>
           <p>
-            普通花瓣弹自动攻击附近敌人。准备时选择一个庭院增益和两个能量技能，普通子弹不会生成地形。击退获得经验，升级时选择枪械、地形或生存强化，组合出自己的战术。
+            普通花瓣弹自动攻击附近敌人。准备时携带两个能量技能，开局没有地形。击退获得经验，升级时选择枪械、地形或生存强化，组合出自己的战术。
           </p>
           <div class="handbook-seeds">
             <p>
               <b class="text-green">庭院增益</b
               ><span
-                >只生成已选中的灌木、沟渠、冻结或毒素地形。击退敌人获得经验，升级强化还能解锁更多地形。</span
+                >只有在经验升级的三 /
+                四选一中选中对应地形增益后，才会自动生成灌木、沟渠、冻结或毒素。没有选中的地形不会出现。</span
               >
             </p>
             <p>

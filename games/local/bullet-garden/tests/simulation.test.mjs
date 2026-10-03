@@ -18,9 +18,9 @@ import {
 
 const idle = { moveX: 0, moveY: 0, firing: false, autoFire: false };
 
-function isolatedGame(seed = 42, boon = null, skills = ['blast', 'gale']) {
+function isolatedGame(seed = 42, skills = ['blast', 'gale']) {
   const state = createGame('ruins', seed);
-  configureLoadout(state, { boon, skills });
+  configureLoadout(state, { skills });
   startGame(state);
   state.enemies = [];
   state.plants = [];
@@ -463,17 +463,16 @@ test('loadout choices are atomic, unique, and locked during combat', () => {
   const state = createGame();
   const original = structuredClone(state.loadout);
   for (const value of [
-    { boon: 'missing', skills: ['blast', 'gale'] },
-    { boon: 'shrub', skills: ['blast', 'blast'] },
-    { boon: 'shrub', skills: ['blast'] },
-    { boon: 'shrub', skills: ['blast', 'missing'] },
+    { skills: ['blast', 'blast'] },
+    { skills: ['blast'] },
+    { skills: ['blast', 'missing'] },
   ])
     assert.equal(configureLoadout(state, value), false);
   assert.deepEqual(state.loadout, original);
-  assert.equal(configureLoadout(state, { boon: 'poison', skills: ['horse', 'laser'] }), true);
+  assert.equal(configureLoadout(state, { skills: ['horse', 'laser'] }), true);
   startGame(state);
-  assert.deepEqual(state.boons, ['poison']);
-  assert.equal(configureLoadout(state, { boon: 'shrub', skills: ['blast', 'gale'] }), false);
+  assert.deepEqual(state.boons, []);
+  assert.equal(configureLoadout(state, { skills: ['blast', 'gale'] }), false);
   assert.equal(selectSkill(state, 2), false);
   assert.equal(selectSkill(state, 0.5), false);
 });
@@ -494,16 +493,40 @@ test('no boon means no terrain; full energy never automatically releases a skill
   assert.equal(castSeed(state, { x: 1000, y: 400 }), false);
 });
 
+function earnUpgrade(state) {
+  // Earn configured XP through real projectile kills; no level/XP edits.
+  while (state.phase === 'playing') killWithGun(state);
+  assert.equal(state.phase, 'upgrade');
+}
+
+function gameOfferingBoon(boonId, skills = ['blast', 'gale']) {
+  for (let seed = 1; seed <= 100; seed += 1) {
+    const state = isolatedGame(seed, skills);
+    earnUpgrade(state);
+    assert.deepEqual(state.boons, []);
+    assert.equal(state.stats.plantsGrown, 0);
+    if (state.upgradeChoices.includes(`boon-${boonId}`)) return state;
+  }
+  assert.fail(`the upgrade pool must offer ${boonId}`);
+}
+
 for (const [boonId, definition] of Object.entries(BOONS)) {
-  test(`only selected ${boonId} generates finite terrain, independently of firing`, () => {
-    const state = isolatedGame(42, boonId);
+  test(`only choosing the XP upgrade for ${boonId} starts its finite terrain cycle`, () => {
+    const state = gameOfferingBoon(boonId);
+    assert.equal(state.upgradeChoices.length, 3);
+    const pending = structuredClone(state);
+    advance(state, 2);
+    assert.deepEqual(state, pending, 'offering a boon cannot start its timer');
+    assert.equal(chooseUpgrade(state, `boon-${boonId}`), true);
+    const shotsAtUnlock = state.stats.shots;
+    const xpAtUnlock = state.progression.xp;
     advance(state, 0.4);
     assert.equal(state.plants.length, 0);
     advance(state, 10);
     assert.ok(state.stats.plantsGrown >= 2);
     assert.ok(state.plants.every((item) => item.kind === definition.kind));
-    assert.equal(state.stats.shots, 0);
-    assert.equal(state.progression.xp, 0);
+    assert.equal(state.stats.shots, shotsAtUnlock, 'terrain no longer needs firing after unlock');
+    assert.equal(state.progression.xp, xpAtUnlock, 'terrain growth alone grants no XP');
     const first = state.plants[0];
     state.boonTimers[boonId] = 1e6;
     advance(state, definition.life + 1);
@@ -512,25 +535,48 @@ for (const [boonId, definition] of Object.entries(BOONS)) {
   });
 }
 
-test('terrain unlocks only after choosing its eligible upgrade, and never twice', () => {
-  const state = isolatedGame(42, 'shrub');
-  advance(state, 1);
-  assert.ok(state.plants.every((item) => item.kind === 'thorn'));
-  state.phase = 'upgrade';
-  state.progression.pending = 1;
-  state.progression.queue = [2];
-  state.upgradeChoices = ['boon-trench', 'attack-power', 'wild-heart'];
-  const frozen = structuredClone(state);
-  advance(state, 3);
-  assert.deepEqual(state, frozen);
-  assert.equal(chooseUpgrade(state, 'boon-trench'), true);
+test('passing on an offered boon leaves terrain locked until a later upgrade is chosen', () => {
+  const state = gameOfferingBoon('shrub');
+  const weapon = state.upgradeChoices.find(
+    (id) => UPGRADES.find((entry) => entry.id === id).category === 'weapon',
+  );
+  assert.equal(chooseUpgrade(state, weapon), true);
+  advance(state, 10);
+  assert.deepEqual(state.boons, []);
+  assert.deepEqual(state.boonTimers, {});
+  assert.equal(state.plants.length, 0);
+  assert.equal(state.stats.plantsGrown, 0);
+
+  earnUpgrade(state);
+  const unlock = state.upgradeChoices.find((id) => id.startsWith('boon-'));
+  assert.ok(unlock);
+  assert.equal(chooseUpgrade(state, unlock), true);
   advance(state, 0.7);
-  assert.ok(state.plants.some((item) => item.kind === 'trench'));
-  assert.deepEqual(state.boons, ['shrub', 'trench']);
-  triggerUpgrade(state);
-  assert.ok(!state.upgradeChoices.includes('boon-trench'));
-  assert.ok(!state.upgradeChoices.includes('boon-shrub'));
+  const boonId = unlock.slice(5);
+  assert.deepEqual(state.boons, [boonId]);
+  assert.ok(state.plants.length > 0);
+  assert.ok(state.plants.every((item) => item.kind === BOONS[boonId].kind));
+  earnUpgrade(state);
+  assert.ok(!state.upgradeChoices.includes(unlock), 'an acquired boon is never offered twice');
 });
+
+for (const boonId of Object.keys(BOONS)) {
+  test(`legacy loadout.boon=${boonId} cannot grant terrain in a fresh or restarted run`, () => {
+    const state = createGame();
+    assert.equal(configureLoadout(state, { boon: boonId, skills: ['horse', 'laser'] }), true);
+    assert.deepEqual(state.loadout, { skills: ['horse', 'laser'] });
+    // Also cover old persisted state that bypasses the new loadout setter.
+    state.loadout.boon = boonId;
+    startGame(state);
+    state.spawnTimer = 1e6;
+    advance(state, 20, { ...idle, autoFire: true });
+    assert.deepEqual(state.loadout, { skills: ['horse', 'laser'] });
+    assert.deepEqual(state.boons, []);
+    assert.deepEqual(state.boonTimers, {});
+    assert.equal(state.stats.plantsGrown, 0);
+    assert.equal(state.plants.length, 0);
+  });
+}
 
 test('energy comes from combat time and one reward per kill, then freezes in all noncombat phases', () => {
   const state = isolatedGame();
@@ -679,7 +725,7 @@ test('gale pushes away from its center, slows temporarily, and leaves outside ta
 
 for (const kind of ['cart', 'horse']) {
   test(`${kind} travels along its path, affects each target once and its control expires`, () => {
-    const state = isolatedGame(42, null, [kind, 'blast']);
+    const state = isolatedGame(42, [kind, 'blast']);
     const victim = enemy(state, { x: 1000, y: state.player.y });
     const outside = enemy(state, { x: 1000, y: state.player.y - 180 });
     readySkill(state, kind);
@@ -705,7 +751,7 @@ for (const kind of ['cart', 'horse']) {
 }
 
 test('laser only hits its beam and vulnerability increases subsequent damage for a limited time', () => {
-  const state = isolatedGame(42, null, ['laser', 'blast']);
+  const state = isolatedGame(42, ['laser', 'blast']);
   const victim = enemy(state, { x: 950, y: state.player.y });
   const outside = enemy(state, { x: 950, y: state.player.y - 120 });
   readySkill(state, 'laser');
@@ -723,24 +769,20 @@ test('laser only hits its beam and vulnerability increases subsequent damage for
 });
 
 test('restarting preserves chosen loadout while clearing energy, acquired boons, statuses and XP', () => {
-  const state = isolatedGame(42, 'poison', ['horse', 'laser']);
+  const state = gameOfferingBoon('poison', ['horse', 'laser']);
+  assert.equal(chooseUpgrade(state, 'boon-poison'), true);
   readySkill(state, 'horse');
   castSkill(state, { x: 1100, y: 470 });
-  state.boons.push('frost');
-  state.boonTimers.frost = 0;
   advance(state, 1);
   startGame(state);
-  const fresh = createGame('ruins', 42);
-  configureLoadout(fresh, { boon: 'poison', skills: ['horse', 'laser'] });
+  const fresh = createGame('ruins', state.initialSeed);
+  configureLoadout(fresh, { skills: ['horse', 'laser'] });
   startGame(fresh);
   assert.deepEqual(state, fresh);
 });
 
 test('all terrain and weapon combinations remain bounded, deterministic and serializable', () => {
-  const states = [
-    isolatedGame(19, 'shrub', ['laser', 'horse']),
-    isolatedGame(19, 'shrub', ['laser', 'horse']),
-  ];
+  const states = [isolatedGame(19, ['laser', 'horse']), isolatedGame(19, ['laser', 'horse'])];
   for (const state of states) {
     state.boons = Object.keys(BOONS);
     state.boonTimers = Object.fromEntries(state.boons.map((kind) => [kind, 0]));
@@ -820,7 +862,7 @@ test('maximum weapon effects cap visual rings without reducing any explosion dam
 });
 
 test('fully ranked gun combinations and all boons stay bounded with 48 active enemies', () => {
-  const state = isolatedGame(77, 'shrub', ['laser', 'gale']);
+  const state = isolatedGame(77, ['laser', 'gale']);
   state.player.invulnerable = 100;
   state.boons = Object.keys(BOONS);
   state.boonTimers = Object.fromEntries(state.boons.map((kind) => [kind, 0]));
@@ -908,4 +950,31 @@ test('optimized swept shots retain tangent hits at the beginning, middle and end
     assert.equal(state.enemies.length, 48);
     assert.ok(state.enemies.every((entry) => entry.age > 0));
   }
+});
+
+test('earning four-choice upgrades still cannot grant terrain until its boon card is selected', () => {
+  const state = isolatedGame();
+  for (let level = 2; level <= 5; level += 1) {
+    earnUpgrade(state);
+    assert.equal(state.progression.level, level);
+    assert.equal(state.upgradeChoices.length, level < 5 ? 3 : 4);
+    assert.deepEqual(state.boons, []);
+    assert.equal(state.stats.plantsGrown, 0);
+    if (level < 5) {
+      const weapon = state.upgradeChoices.find(
+        (id) => UPGRADES.find((entry) => entry.id === id).category === 'weapon',
+      );
+      assert.equal(chooseUpgrade(state, weapon), true);
+    }
+  }
+  const unlocked = state.upgradeChoices.find((id) => id.startsWith('boon-'));
+  assert.ok(unlocked);
+  const snapshot = structuredClone(state);
+  advance(state, 2);
+  assert.deepEqual(state, snapshot);
+  assert.equal(chooseUpgrade(state, unlocked), true);
+  advance(state, 0.7);
+  assert.deepEqual(state.boons, [unlocked.slice(5)]);
+  assert.ok(state.plants.length > 0);
+  assert.ok(state.plants.every((plant) => plant.kind === BOONS[unlocked.slice(5)].kind));
 });

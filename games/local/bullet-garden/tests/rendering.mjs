@@ -157,7 +157,7 @@ async function runProfile(profile, baseline) {
           ...overrides,
         };
       }
-      state.loadout = { boon: 'shrub', skills: ['blast', 'gale'] };
+      state.loadout = { skills: ['blast', 'gale'] };
       state.boons = Object.keys(BOONS);
       state.selectedSkill = 0;
       state.skillSlots = [

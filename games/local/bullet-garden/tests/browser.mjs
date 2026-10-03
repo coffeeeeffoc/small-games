@@ -1,5 +1,5 @@
 /**
- * Native-input acceptance for selected passive boons and manually released skills.
+ * Native-input acceptance for XP-unlocked passive boons and manually released skills.
  * Virtual time accelerates the five-minute run, with normal health, energy,
  * enemies and upgrade choices. The application exposes only a read-only snapshot;
  * this test never calls simulation actions or changes game state directly.
@@ -64,22 +64,28 @@ async function setup(options = {}) {
   await advance(page, 64);
   return { context, page };
 }
-async function prepare(page, boon = 'shrub', skills = ['blast', 'laser']) {
+async function prepare(page, skills = ['blast', 'laser']) {
   assert.equal((await snapshot(page)).phase, 'ready');
   assert.equal(
-    await page.locator('#start').isDisabled(),
-    true,
-    'a first run requires choosing a boon',
+    await page.locator('[data-boon]').count(),
+    0,
+    'preparation has no terrain selection',
   );
-  await click(page, `[data-boon="${boon}"]`);
+  assert.equal(
+    await page.locator('#start').isDisabled(),
+    false,
+    'two active skills are enough to start',
+  );
   await page.locator('#loadout-skill-0').selectOption(skills[0]);
   await page.locator('#loadout-skill-1').selectOption(skills[1]);
   assert.equal(await page.locator('#start').isDisabled(), false);
   await click(page, '#start');
   const state = await snapshot(page);
   assert.equal(state.phase, 'playing');
-  assert.deepEqual(state.loadout, { boon, skills });
-  assert.deepEqual(state.boons, [boon]);
+  assert.deepEqual(state.loadout, { skills });
+  assert.deepEqual(state.boons, [], 'every run begins without terrain boons');
+  assert.equal(state.plants.length, 0, 'no terrain is granted at the start');
+  assert.equal(state.stats.plantsGrown, 0);
   assert.deepEqual(
     state.skillSlots.map((slot) => slot.kind),
     skills,
@@ -92,6 +98,14 @@ async function prepare(page, boon = 'shrub', skills = ['blast', 'laser']) {
   return state;
 }
 function assertTerrainUnlocked(state) {
+  if (state.boons.length === 0) {
+    assert.equal(state.plants.length, 0, 'no terrain exists before selecting its XP upgrade');
+    assert.equal(
+      state.stats.plantsGrown,
+      0,
+      'time, misses and non-boon upgrades never generate terrain',
+    );
+  }
   const allowed = new Set(state.boons.map((id) => BOONS[id].kind));
   for (const plant of state.plants)
     assert.ok(
@@ -314,7 +328,7 @@ async function pauseAndRecovery(page) {
 }
 async function speedControls() {
   const { context, page } = await setup();
-  await prepare(page, 'trench', ['blast', 'gale']);
+  await prepare(page, ['blast', 'gale']);
   await click(page, '#auto-fire');
   const measurements = [];
   for (const speed of [1, 2, 3, 5]) {
@@ -531,16 +545,15 @@ async function desktopControls() {
   await click(page, '#pause');
   await click(page, '#restart');
   assert.equal((await snapshot(page)).phase, 'ready', 'restart returns to preparation');
-  await click(page, '[data-boon="trench"]');
   await click(page, '#start');
   state = await snapshot(page);
   assert.equal(state.player.hp, state.player.maxHp);
   assert.equal(state.kills, 0);
   assert.equal(state.stats.skillCasts, 0);
   assert.ok(energy(state).every((value) => value < 1));
-  assert.deepEqual(state.boons, ['trench']);
+  assert.deepEqual(state.boons, [], 'restart clears every acquired terrain boon');
   assertTerrainUnlocked(state);
-  check('restart allows a fresh boon and resets health, energy, skills and terrain');
+  check('restart retains only active skill choices and clears boons, terrain, health and energy');
   await context.close();
 }
 
@@ -552,7 +565,7 @@ async function touchControls(width, height) {
     deviceScaleFactor: 1,
   });
   const skills = height > width ? ['cart', 'horse'] : ['gale', 'laser'];
-  await prepare(page, 'frost', skills);
+  await prepare(page, skills);
   const cdp = await context.newCDPSession(page);
   await chargeNaturally(page, await touchMovement(page, cdp));
   await advance(page, 50);
@@ -677,12 +690,13 @@ async function touchControls(width, height) {
 
 async function fullChallenge() {
   const { context, page } = await setup();
-  await prepare(page, 'shrub', ['blast', 'laser']);
+  await prepare(page, ['blast', 'laser']);
   const movement = keyboardMovement(page);
   let snapshots = 0,
     maxPlants = 0,
     maxEnemies = 0,
-    captures = 0;
+    captures = 0,
+    latestUnownedTime = 0;
   const upgradeSelections = [],
     seenTerrain = new Set();
   let state = await snapshot(page);
@@ -700,6 +714,7 @@ async function fullChallenge() {
       );
       const preferred = [
         ...(!state.upgrades.includes('multishot') ? ['multishot'] : []),
+        'boon-shrub',
         'boon-poison',
         'boon-frost',
         'boon-trench',
@@ -713,8 +728,12 @@ async function fullChallenge() {
         'terrain-heart',
         'energy-cycle',
       ];
-      const selected =
-        preferred.find((id) => state.upgradeChoices.includes(id)) || state.upgradeChoices[0];
+      const eligible =
+        upgradeSelections.length === 0
+          ? state.upgradeChoices.filter((id) => !id.startsWith('boon-'))
+          : state.upgradeChoices;
+      const selected = preferred.find((id) => eligible.includes(id)) || eligible[0];
+      assert.ok(selected, 'the first XP choice offers a non-boon upgrade to verify zero terrain');
       if (
         !upgradeSelections.some(
           (selection) => selection.choices.length === state.upgradeChoices.length,
@@ -754,6 +773,17 @@ async function fullChallenge() {
       state = await snapshot(page);
       if (selected.startsWith('boon-'))
         assert.ok(state.boons.includes(selected.slice(5)), 'upgrade acquires its named terrain');
+      if (upgradeSelections.length === 1) {
+        assert.deepEqual(state.boons, [], 'selecting a non-boon XP card grants no terrain');
+        assert.equal(state.stats.plantsGrown, 0);
+        await page.screenshot({ path: `${output}/desktop-non-boon-upgrade.png` });
+        check('first natural XP upgrade chooses a non-boon card and still grants no terrain', {
+          selected,
+          time: state.time,
+          boons: state.boons,
+          plantsGrown: state.stats.plantsGrown,
+        });
+      }
       assertTerrainUnlocked(state);
       continue;
     }
@@ -790,6 +820,7 @@ async function fullChallenge() {
     state = await snapshot(page);
     snapshots++;
     assertTerrainUnlocked(state);
+    if (state.boons.length === 0) latestUnownedTime = state.time;
     state.plants.forEach((plant) => seenTerrain.add(plant.kind));
     maxPlants = Math.max(maxPlants, state.plants.length);
     maxEnemies = Math.max(maxEnemies, state.enemies.length);
@@ -819,6 +850,7 @@ async function fullChallenge() {
     maxEnemies,
     boons: state.boons,
     seenTerrain: [...seenTerrain],
+    latestUnownedTime,
     upgradeSelections,
   };
   await page.screenshot({ path: `${output}/desktop-result.png` });
@@ -827,9 +859,14 @@ async function fullChallenge() {
   assert.ok(upgradeSelections.length >= 4, 'kills grant repeated experience upgrades');
   assert.ok(upgradeSelections.some((selection) => selection.choices.length === 3));
   assert.ok(upgradeSelections.some((selection) => selection.choices.length === 4));
+  assert.ok(!upgradeSelections[0].selected.startsWith('boon-'));
+  assert.ok(
+    latestUnownedTime > upgradeSelections[0].time + 1,
+    'ordinary play after a non-boon upgrade remains terrain-free until a boon is chosen',
+  );
   assert.ok(
     upgradeSelections.some(({ selected }) => selected.startsWith('boon-')),
-    'real upgrade unlocks another passive terrain',
+    'only a real experience upgrade unlocks passive terrain',
   );
   assert.ok(
     state.stats.skillCasts >= 5 && state.stats.skillDamage > 0 && state.stats.skillKills > 0,
@@ -857,7 +894,8 @@ async function fullChallenge() {
   assert.equal(replay.player.hp, replay.player.maxHp);
   assert.equal(replay.stats.skillCasts, 0);
   assert.ok(energy(replay).every((value) => value < 1));
-  assert.deepEqual(replay.boons, ['shrub'], 'replay resets run-only boon upgrades');
+  assert.deepEqual(replay.boons, [], 'replay resets all run-only boon upgrades');
+  assertTerrainUnlocked(replay);
   check('result replay returns to preparation and resets run-only unlocks and energy');
   await context.close();
 }

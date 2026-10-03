@@ -13,8 +13,8 @@ Native ES modules, Canvas 2D and HTML controls, with no runtime dependencies. Wo
 Simulation exports:
 
 - `createGame(levelId = 'ruins', seed = 42)` creates a serializable ready state.
-- `configureLoadout(state, { boon, skills })` configures one initial boon and two distinct skill IDs outside combat. UI requires an explicit boon choice; null is supported for no-terrain baseline tests.
-- `startGame(state)` preserves the configured loadout and resets runtime state, including energy and acquired upgrades.
+- `configureLoadout(state, { skills })` configures two distinct skill IDs outside combat. There is no initial boon selection; legacy `boon` fields never grant terrain.
+- `startGame(state)` preserves the configured skills and resets runtime state, including energy and acquired upgrades. Every run begins with empty `boons`, `boonTimers` and `plants`; only selecting an offered `boon-*` XP upgrade unlocks terrain.
 - `selectSkill(state, index)` selects slot 0 or 1.
 - `castSkill(state, target, index = state.selectedSkill)` validates playing phase, energy, cooldown and target; clamps valid targets to skill range and world bounds; only a successful cast consumes energy.
 - `step(state, dt, input)`, `chooseUpgrade(state, id)`, `pauseGame(state)`, `resumeGame(state)`, `dash(state, direction)` own combat and lifecycle.
@@ -27,7 +27,7 @@ Relevant state:
 ```js
 {
   phase: 'ready', // playing | paused | upgrade | won | lost
-  loadout: { boon: null, skills: ['blast', 'gale'] },
+  loadout: { skills: ['blast', 'gale'] },
   boons: [], boonTimers: {},
   progression: { level: 1, xp: 0, nextXp: 12, pending: 0, queue: [] },
   skillSlots: [{ kind: 'blast', energy: 0 }, { kind: 'gale', energy: 0 }],
@@ -52,7 +52,7 @@ Enemy statuses are remaining-time values: `frozen`, `freezeCooldown`, `poison`, 
 
 The renderer owns camera/fit/DPR and bounded artwork atlases. It culls offscreen drawing without culling simulation. Main and offscreen canvas restoration invalidate raster caches. The app pauses combat during context loss and prevents premature resume until restoration.
 
-Stable selectors: `#start`, `#pause`, `#resume`, `#restart`, `#arena`, `#joystick`, `[data-boon]`, `#loadout-skill-0`, `#loadout-skill-1`, `[data-skill-slot="0|1"]`, `#cast`, `#dash`, `#game-speed`. The speed selector uses values `1`, `2`, `3`, `5`; read-only `snapshot().controls.speed` records its current multiplier. Ready requires choosing a boon; loadout changes occur before combat. Restart returns to preparation. `body.dataset.phase` mirrors simulation phase. `window.__bulletGarden.snapshot()` returns a deep copy only.
+Stable selectors: `#start`, `#pause`, `#resume`, `#restart`, `#arena`, `#joystick`, `[data-upgrade]`, `#loadout-skill-0`, `#loadout-skill-1`, `[data-skill-slot="0|1"]`, `#cast`, `#dash`, `#game-speed`. The speed selector uses values `1`, `2`, `3`, `5`; read-only `snapshot().controls.speed` records its current multiplier. Ready allows starting immediately with the default skills and no terrain. Skill loadout changes occur before combat; passive terrain boons are selected exclusively in XP upgrade choices. Restart returns to preparation. `body.dataset.phase` mirrors simulation phase. `window.__bulletGarden.snapshot()` returns a deep copy only.
 
 Touch interaction is arm → target → pointerup to cast, with joystick and targeting as independent pointers. A cancelled gesture never spends energy; an unarmed field touch only aims. Keyboard 1/2 arms slots, E/right click confirms, Escape cancels aiming before toggling pause, Space dashes. Loss of focus, visibility or canvas clears held inputs. Keep two parallel filled SVG rectangles for the pause icon.
 
