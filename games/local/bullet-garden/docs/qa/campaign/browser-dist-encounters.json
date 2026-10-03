@@ -1,0 +1,168 @@
+{
+  "date": "2026-10-03T18:30:14.116Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4412",
+  "policy": "native keyboard/mouse/CDP touch; read-only simulation snapshot; fixtures explicitly separated from natural victory",
+  "checks": [
+    {
+      "name": "native combat encounters quarry",
+      "fixture": true,
+      "kind": "warden",
+      "hp": 190
+    },
+    {
+      "name": "native combat encounters bastion",
+      "fixture": true,
+      "kind": "bastionlord",
+      "hp": 171.3119266055046
+    },
+    {
+      "name": "native combat encounters heartgarden",
+      "fixture": true,
+      "kind": "overgrowth",
+      "hp": 195.4954128440367
+    }
+  ],
+  "errors": [],
+  "encounters": [
+    {
+      "levelId": "quarry",
+      "fixture": true,
+      "savedProfile": {
+        "version": 1,
+        "xp": 2290,
+        "coins": 0,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 6,
+          "fireRate": 4,
+          "health": 6,
+          "armor": 3,
+          "seedMastery": 3,
+          "pet": 1,
+          "weaponDamage": 2,
+          "weaponRate": 1,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "capture": {
+        "kind": "warden",
+        "rank": "leader",
+        "hp": 800,
+        "time": 125.34999999999417,
+        "fixture": true
+      },
+      "result": "won",
+      "hp": 190
+    },
+    {
+      "levelId": "bastion",
+      "fixture": true,
+      "savedProfile": {
+        "version": 1,
+        "xp": 2290,
+        "coins": 0,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 6,
+          "fireRate": 4,
+          "health": 6,
+          "armor": 3,
+          "seedMastery": 3,
+          "pet": 1,
+          "weaponDamage": 2,
+          "weaponRate": 1,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "capture": {
+        "kind": "bastionlord",
+        "rank": "leader",
+        "hp": 1200,
+        "time": 150.0833333333449,
+        "fixture": true
+      },
+      "result": "won",
+      "hp": 171.3119266055046
+    },
+    {
+      "levelId": "heartgarden",
+      "fixture": true,
+      "savedProfile": {
+        "version": 1,
+        "xp": 2290,
+        "coins": 0,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 6,
+          "fireRate": 4,
+          "health": 6,
+          "armor": 3,
+          "seedMastery": 3,
+          "pet": 1,
+          "weaponDamage": 2,
+          "weaponRate": 1,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "capture": {
+        "kind": "overgrowth",
+        "rank": "boss",
+        "hp": 2000,
+        "time": 150.03333333334487,
+        "fixture": true
+      },
+      "result": "won",
+      "hp": 195.4954128440367
+    }
+  ],
+  "passed": true
+}

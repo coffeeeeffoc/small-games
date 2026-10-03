@@ -1,0 +1,108 @@
+{
+  "passed": true,
+  "ranAt": "2026-10-03T18:31:49.286779+00:00",
+  "clientDate": "2026-10-04",
+  "clientTimezone": "Asia/Shanghai",
+  "environment": {
+    "engine": "Chromium /usr/bin/chromium",
+    "tool": "Playwright",
+    "viewports": ["390x844", "844x390"],
+    "isMobile": true,
+    "hasTouch": true,
+    "url": "http://127.0.0.1:4411",
+    "timing": "Real wall time for menus/storage; Playwright virtual clock for natural runs",
+    "realPhoneVerified": false
+  },
+  "checks": [
+    {
+      "name": "touch preparation and campaign",
+      "passed": true,
+      "details": "Both sizes: 11 stable level IDs; first unlocked and meadow locked in an empty save; choose ruins; select horse + laser skills; start with no acquired boons, normal 100 HP and empty energy; UUID generated in main."
+    },
+    {
+      "name": "released combat controls retained",
+      "passed": true,
+      "details": "Both sizes: 3x speed reflected in read-only controls.speed, pause and restart return to skill preparation; loadout remains horse + laser. Center interaction points hit arena; SVG pause uses two filled parallel rectangles, checked in screenshots."
+    },
+    {
+      "name": "permanent growth shop",
+      "passed": true,
+      "details": "Nine cards split growth and weapon workshop, current/next values and costs visible; armor disabled at permanent level 1. Shop return stays within viewport after scrolling to weaponPierce."
+    },
+    {
+      "name": "purchase, storage and combat snapshot",
+      "passed": true,
+      "fixture": "Valid starting profile with 200 coins and zero XP",
+      "details": "Purchase attack rank 1 for 35 coins, wallet 165. Reload retains rank and balance. Card current damage 20.5 / next 22. New combat permanent damage is 20.520000000000003 (within 1e-9 of 20.52)."
+    },
+    {
+      "name": "storage failure continues in memory",
+      "passed": true,
+      "fixture": "Storage.prototype.setItem throws SecurityError, without modifying simulation state",
+      "details": "Starting still enters playing and visible save-status says current progress was not saved."
+    },
+    {
+      "name": "natural success settles once",
+      "passed": true,
+      "fixture": "Empty profile, normal HP, automatic fire, native upgrade buttons, virtual clock, no mutable simulation injection",
+      "details": {
+        "phase": "won",
+        "time": 300,
+        "initialHp": 100,
+        "kills": 279,
+        "rewardCoins": 1093,
+        "rewardXp": 110,
+        "localLevel": 14,
+        "upgradesChosen": 13,
+        "nextLevelUnlocked": "meadow",
+        "resultShopNavigationDidNotSettleAgain": true,
+        "purchaseHealthThenRetryUsesLatestProfile": true,
+        "retryHasNewUuid": true
+      }
+    },
+    {
+      "name": "natural failure settles once",
+      "passed": true,
+      "fixture": "Empty profile, normal HP, automatic fire switched off through its button, virtual clock, no mutable simulation injection",
+      "details": {
+        "phase": "lost",
+        "time": 21.23333333333341,
+        "initialHp": 100,
+        "kills": 0,
+        "runCoins": 0,
+        "rewardCoins": 0,
+        "rewardXp": 1,
+        "completed": [],
+        "settledOnce": true,
+        "nextLevelHidden": true,
+        "retryHasNewUuid": true,
+        "errors": []
+      }
+    },
+    {
+      "name": "source formatting and syntax",
+      "passed": true,
+      "details": "node --check src/main.mjs; Prettier formatted main/index/style."
+    }
+  ],
+  "pageErrors": [],
+  "artifacts": [
+    "ui-ready-390x844.png",
+    "ui-ready-844x390.png",
+    "ui-camp-390x844.png",
+    "ui-camp-844x390.png",
+    "ui-camp-scroll-390x844.png",
+    "ui-camp-scroll-844x390.png",
+    "ui-playing-390x844.png",
+    "ui-playing-844x390.png",
+    "ui-purchase-save.png",
+    "ui-save-denied.png",
+    "ui-natural-success.png",
+    "ui-natural-failure.png",
+    "ui-natural-failure.json"
+  ],
+  "limits": [
+    "Touch and viewport checks use desktop Chromium emulation, not a physical phone.",
+    "No per-level claim of an 11-level browser playthrough; the natural success and failure evidence are for ruins."
+  ]
+}

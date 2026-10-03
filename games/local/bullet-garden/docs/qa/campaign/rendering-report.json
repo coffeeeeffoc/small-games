@@ -1,0 +1,151 @@
+{
+  "date": "2026-10-03T18:30:13.626Z",
+  "checks": [
+    {
+      "levelId": "ruins",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 4,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "meadow",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 5,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "wetland",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 6,
+      "weather": "rain"
+    },
+    {
+      "levelId": "quarry",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "overcast"
+    },
+    {
+      "levelId": "windpass",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "hollow",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "rain"
+    },
+    {
+      "levelId": "terraces",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "rain"
+    },
+    {
+      "levelId": "bastion",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "overcast"
+    },
+    {
+      "levelId": "mistwood",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "fog"
+    },
+    {
+      "levelId": "hailfield",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 9,
+      "weather": "hail"
+    },
+    {
+      "levelId": "heartgarden",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "overcast"
+    }
+  ],
+  "skillChecks": {
+    "kinds": ["blast", "gale", "cart", "horse", "laser"],
+    "lost": true,
+    "restored": true
+  },
+  "errors": [],
+  "clientDateTime": "2026-10-04T02:30:13.626000+08:00",
+  "clientTimezone": "Asia/Shanghai",
+  "browser": {
+    "engine": "Chromium",
+    "version": "151.0.7922.173",
+    "executable": "/usr/bin/chromium",
+    "headless": true,
+    "operatingSystem": "Debian GNU/Linux 13 (trixie)",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "deviceScaleFactor": 1,
+    "automation": "Playwright 1.55.1"
+  },
+  "scope": "Actual Chromium rendering of the production Canvas renderer and content modules in a dedicated canvas-only fixture document. This complements the separate real-game UI and touch acceptance reports.",
+  "method": {
+    "runtimeOrigin": "http://127.0.0.1:4411",
+    "entryModules": [
+      "src/renderer.mjs",
+      "src/ecology-renderer.mjs",
+      "src/scenery-renderer.mjs",
+      "src/config.mjs",
+      "src/simulation.mjs"
+    ],
+    "maps": "Render each of all 11 registered levels using fresh serializable fixture states, the real level terrain/weather/palette definitions, all six plant styles and representative enemies; required encounters include their leader/BOSS sprites and bars.",
+    "skills": "Render blast, gale, cart, horse and laser; also render the retained trench/frost/poison terrain and skill aiming geometry.",
+    "immutability": "Compare JSON.stringify(state) immediately before and after renderer.render for every map. All 11 states remain identical.",
+    "coordinateRoundTrip": "Convert the gardener world position to CSS screen coordinates and back using the renderer camera. All errors are zero.",
+    "contextRecovery": "Dispatch contextlost and contextrestored canvas DOM events, check renderer.contextLost transitions, and redraw successfully after cached artwork is released. Events are synthetic; this does not force an operating-system GPU reset.",
+    "productionUiStateMutation": false,
+    "capturedPageErrors": 0,
+    "consoleErrors": "Console messages were not separately collected by this canvas-only fixture; real-game browser acceptance records console errors independently."
+  },
+  "summary": {
+    "passed": true,
+    "mapsRendered": 11,
+    "skillsRendered": 5,
+    "immutableStates": 11,
+    "coordinateRoundTripsPassed": 11,
+    "contextLostHandled": true,
+    "contextRestoredHandled": true,
+    "browserErrors": 0
+  },
+  "sourceSha256": {
+    "src/renderer.mjs": "98291b745ecbc361790a64dd869c4a23ab5000b0bde058737c31f812b82e2ad8",
+    "src/ecology-renderer.mjs": "9cd48e239276c0f7f96d26477fe651c4316a548e989b787a5356fb420b89d2eb",
+    "src/scenery-renderer.mjs": "433e39037bdfb9bce1aa4db3bc98184e24b7795b6466755a568847591982ebf3"
+  },
+  "artifacts": [
+    {
+      "file": "rendering-ruins.png",
+      "levelId": "ruins",
+      "description": "Opening courtyard with the six plant styles, pet, bullets and hazard geometry.",
+      "sha256": "f1197f5d7ccacbc2a6a1c2d62dbde372c2d79b6ef3bf4ddf57d3e41ec1c9b51e"
+    },
+    {
+      "file": "rendering-heartgarden.png",
+      "levelId": "heartgarden",
+      "description": "Final garden with all six plant styles, pet, BOSS phase/health display, terrain and lightning telegraph.",
+      "sha256": "24ea45d39a479f86eb066967fddd19806575075ce9fde5062c42799983f60a51"
+    }
+  ]
+}
