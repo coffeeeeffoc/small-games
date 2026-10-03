@@ -14,10 +14,22 @@ async function dragTouch(page,id,x,y){
 }
 async function open(save,search=''){
   const context=await browser.newContext({viewport:{width:360,height:900},hasTouch:true,isMobile:true});
-  if(save)await context.addInitScript(save=>localStorage.setItem('wulong-city-v1',JSON.stringify(save)),save);
+  if(save)await context.addInitScript(save=>{if(!localStorage.getItem('wulong-city-v1'))localStorage.setItem('wulong-city-v1',JSON.stringify(save));},save);
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));const url=new URL(base);url.search=search;await page.goto(url.href);return{context,page};
 }
 try{
+  // Old IDs remain in links and records; only the player-facing route is numbered anew.
+  let {context:orderContext,page:orderPage}=await open({unlocked:3,records:{1:'旧门',2:'旧电梯'},level:3,sound:false});
+  await expect(orderPage.locator('#title')).toHaveText('宠物通道');await expect(orderPage.locator('#counter')).toHaveText('08 / 26');await expect(orderPage.locator('#chapter')).toHaveText('第二章 · 街上的东西各有想法');
+  let migrated=await orderPage.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1')));assert.equal(migrated.orderVersion,2);assert.deepEqual(migrated.unlockedLevels,[1,2,4,3]);assert.equal(migrated.level,3);assert.deepEqual(migrated.records,{1:'旧门',2:'旧电梯'});assert.equal(migrated.sound,false);
+  await orderPage.locator('#menu').tap();assert.deepEqual(await orderPage.locator('[data-level]').evaluateAll(buttons=>buttons.slice(0,9).map(button=>[Number(button.dataset.level),button.textContent])),[[1,'01'],[2,'02'],[4,'03'],[5,'04'],[6,'05'],[7,'06'],[8,'07'],[3,'08'],[9,'09']]);
+  await expect(orderPage.locator('[data-level="3"]')).toHaveAccessibleName('第8关 宠物通道');await expect(orderPage.locator('[data-level="3"]')).toBeEnabled();await expect(orderPage.locator('[data-level="4"]')).toBeEnabled();await expect(orderPage.locator('[data-level="5"]')).toBeDisabled();await expect(orderPage.locator('[data-level="9"]')).toBeDisabled();
+  await orderPage.locator('[data-level="4"]').tap();await expect(orderPage.locator('#title')).toHaveText('门卫只看影子');await expect(orderPage.locator('#counter')).toHaveText('03 / 26');await expect(orderPage.locator('#chapter')).toHaveText('第一章 · 先出得了门');
+  await orderPage.reload();await expect(orderPage.locator('#counter')).toHaveText('03 / 26');assert.deepEqual((await orderPage.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1')))).unlockedLevels,[1,2,4,3]);await orderContext.close();
+  checks.push('Revised menu numbers, chapter boundaries and current level follow the new route; old dog unlock remains available, the new third encounter opens, and migration survives reload without opening skipped encounters');
+  ({context:orderContext,page:orderPage}=await open(null,'?challenge=3'));await expect(orderPage.locator('#title')).toHaveText('宠物通道');await expect(orderPage.locator('#counter')).toHaveText('08 / 26');assert.equal(await orderPage.evaluate(()=>localStorage.getItem('wulong-city-v1')),null);await orderContext.close();
+  ({context:orderContext,page:orderPage}=await open({unlocked:3,records:{3:'旧宠物关完成'},level:3}));await orderPage.locator('#menu').tap();await expect(orderPage.locator('[data-level="3"]')).toHaveClass(/done/);await expect(orderPage.locator('[data-level="8"]')).not.toHaveClass(/done/);await expect(orderPage.locator('.records')).toContainText('08 / 小狗携带一名人类顺利通过检查。');await expect(orderPage.locator('[data-level="9"]')).toBeEnabled();await orderContext.close();
+  checks.push('Existing challenge=3 still opens the dog encounter; old completion records stay with the same puzzle, display eighth, and unlock its new successor');
   let {context,page}=await open({unlocked:20,records:{20:'保留旧的通关记录'},level:20,sound:false});
   await expect(page.locator('#counter')).toHaveText('20 / 26');
   let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1')));assert.equal(saved.unlocked,21);assert.equal(saved.records[20],'保留旧的通关记录');assert.equal(saved.sound,false);
@@ -55,19 +67,19 @@ try{
   checks.push('Out-of-range, noninteger, zero-padded and duplicate challenge parameters fall back visibly to normal progress');
   const main={unlocked:3,records:{1:'门已主动来接',2:'电梯已有墨镜'},level:1,sound:false};
   ({context,page}=await open(main));assert.equal(await page.evaluate(()=>typeof window.__wulong),'undefined');await expect(page.locator('#tryout-choices')).toBeVisible();
-  const original=await page.evaluate(()=>localStorage.getItem('wulong-city-v1'));
+  const original=await page.evaluate(()=>localStorage.getItem('wulong-city-v1')),migratedMain=JSON.parse(original);
   await page.locator('[data-try="25"]').tap();await expect(page.locator('#chapter')).toHaveText('今日试演 · 不改主线进度');await expect(page.locator('#counter')).toHaveText('25 / 26');
   await page.locator('[data-zone="worry-weigh"]').tap();await expect(page.locator('#feedback')).toContainText('先站到秤上');
   await holdTouch(page,'right',1100);await page.locator('[data-zone="worry-weigh"]').tap();await expect(page.locator('#feedback')).toContainText('九十九公斤的心事');
   await dragTouch(page,'worry-cloud',113,190);await expect(page.locator('#feedback')).toContainText('心事挂好了');await page.locator('[data-zone="worry-weigh"]').tap();await expect(page.locator('#feedback')).toContainText('五十七公斤');
   await holdTouch(page,'right',1600);await page.locator('#next').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>localStorage.getItem('wulong-city-v1')),original);
-  await page.locator('#again').tap();await expect(page.locator('#counter')).toHaveText('25 / 26');await page.locator('#retry').tap();assert.equal(await page.evaluate(()=>localStorage.getItem('wulong-city-v1')),original);await page.locator('#tryout-back').tap();await expect(page.locator('#counter')).toHaveText('01 / 26');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),main);
+  await page.locator('#again').tap();await expect(page.locator('#counter')).toHaveText('25 / 26');await page.locator('#retry').tap();assert.equal(await page.evaluate(()=>localStorage.getItem('wulong-city-v1')),original);await page.locator('#tryout-back').tap();await expect(page.locator('#counter')).toHaveText('01 / 26');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),migratedMain);
   await page.locator('[data-try="26"]').tap();await page.locator('[data-zone="far-remote"]').tap();await expect(page.locator('#feedback')).toContainText('先走近桌子');
   await holdTouch(page,'right',1250);await page.locator('[data-zone="far-remote"]').tap();await expect(page.locator('#feedback')).toContainText('拿好了');await page.locator('[data-zone="far-remote"]').tap();await expect(page.locator('#feedback')).toContainText('近控器');
   await holdTouch(page,'left',880);await page.locator('[data-zone="far-remote"]').tap();await expect(page.locator('#feedback')).toContainText('局部有门');await page.locator('[data-zone="far-remote"]').tap();await expect(page.locator('#feedback')).toContainText('出口频道开播');
   await holdTouch(page,'right',1850);await page.locator('#next').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>localStorage.getItem('wulong-city-v1')),original);
   await page.evaluate(()=>{window.copies=[];Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copies.push(text)}});});await page.locator('#share').tap();const finalURL=new URL(base);finalURL.search='';finalURL.hash='';finalURL.searchParams.set('challenge','26');assert.deepEqual(await page.evaluate(()=>window.copies),[finalURL.href]);
-  await page.locator('#next').tap();await expect(page.locator('#counter')).toHaveText('01 / 26');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),main);
+  await page.locator('#next').tap();await expect(page.locator('#counter')).toHaveText('01 / 26');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),migratedMain);
   for(const width of [320,360,390]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await expect(page.locator('[data-try="25"]')).toBeVisible();await expect(page.locator('[data-try="26"]')).toBeVisible();}
   checks.push('Normal first-screen previews L25/L26 solve using only real CDP touch and DOM feedback, including wrong attempts; retries, completed L26 share, and return restore the original main save; 320/360/390px cards do not overflow');await context.close();
   ({context,page}=await open(main,'?dev=1'));await page.locator('canvas').focus();await page.keyboard.down('ArrowRight');await page.waitForFunction(()=>window.__wulong.snapshot().state.p.x>110);await page.keyboard.up('ArrowRight');
@@ -75,7 +87,7 @@ try{
   const prior=await page.evaluate(()=>window.__wulong.snapshot());await page.locator('[data-try="26"]').tap();await page.waitForTimeout(200);
   await page.locator('[data-try="25"]').evaluate(button=>button.click());await expect(page.locator('#counter')).toHaveText('26 / 26');
   await page.locator('#tryout-back').tap();const resumed=await page.evaluate(()=>window.__wulong.snapshot());assert.equal(resumed.state.p.x,prior.state.p.x);assert.equal(resumed.state.p.dir,prior.state.p.dir);assert(resumed.state.t<prior.state.t+.25);assert.equal(resumed.challengeMode,false);
-  await page.locator('#hint').tap();await expect(page.locator('.hint-step')).toHaveText('提示 2 / 3');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),main);await context.close();
+  await page.locator('#hint').tap();await expect(page.locator('.hint-step')).toHaveText('提示 2 / 3');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('wulong-city-v1'))),migratedMain);await context.close();
   checks.push('Leaving a preview resumes the paused original actor, puzzle clock and hint step; duplicate or hidden preview activations cannot replace the return state');
   assert.deepEqual(errors,[]);await mkdir(new URL('evidence/',import.meta.url),{recursive:true});await writeFile(new URL('evidence/progression.json',import.meta.url),JSON.stringify({checks,errors},null,2));console.log(checks.join('\n'));
 }finally{await browser.close();}
