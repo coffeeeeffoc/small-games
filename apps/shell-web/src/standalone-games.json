@@ -304,7 +304,7 @@
     "id": "echo-weaver",
     "source": "games/local/echo-weaver",
     "title": "回声编织 · Echo Weaver",
-    "description": "转动反射板，分配声能与延迟，让一次敲击的三道回声准时抵达，解开八关节拍谜题。",
+    "description": "在网格上摆放有限的反射板、分声器与延迟块，亲手搭出声路，让回声按目标节奏抵达；五关学习绕路、共享延迟与能量取舍。",
     "output": "dist"
   },
   {

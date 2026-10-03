@@ -544,18 +544,54 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#level-nav [data-level]').first());
     await expect(frame.locator('#level-title')).not.toBeEmpty();
     const initial = (await snapshot()).state;
-    await click(frame.locator('#board [data-control]').first());
+    expect((await snapshot()).report).toBeNull();
+    // Read a legal fixture, then exercise the same placement controls as a player.
+    const placement = await frame.locator('body').evaluate(async () => {
+      const [{ LEVELS }, { createState, canPlace }] = await Promise.all([
+        import('./levels.mjs'),
+        import('./engine.mjs'),
+      ]);
+      const level = LEVELS[0];
+      const state = createState(level);
+      const piece = state.pieces.find((item) => item.x === null && item.type === 'mirror');
+      for (let y = 0; y < level.rows; y++) {
+        for (let x = 0; x < level.cols; x++) {
+          if (piece && canPlace(level, state, piece.id, x, y)) return { id: piece.id, x, y };
+        }
+      }
+      return null;
+    });
+    expect(placement).not.toBeNull();
+    await click(frame.locator(`#inventory button[data-piece="${placement.id}"]`));
+    await expect.poll(async () => (await snapshot()).selectedPiece).toBe(placement.id);
+    await click(frame.locator(`#board .cell[data-x="${placement.x}"][data-y="${placement.y}"]`));
     await expect.poll(async () => (await snapshot()).state).not.toEqual(initial);
+    await expect(frame.locator(`#board .cell[data-piece="${placement.id}"]`)).toBeVisible();
+    const placed = (await snapshot()).state;
+    await click(frame.locator('#rotate'));
+    await expect.poll(async () => (await snapshot()).state).not.toEqual(placed);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(placed);
+    if ((await snapshot()).selectedPiece !== placement.id) {
+      await click(frame.locator(`#board .cell[data-piece="${placement.id}"]`));
+    }
+    await click(frame.locator('#return-piece'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(placed);
     await click(frame.locator('#undo'));
     await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    expect((await snapshot()).report).toBeNull();
     await click(frame.locator('#emit'));
     await expect.poll(async () => (await snapshot()).phase).toBe('running');
     await expect.poll(async () => (await snapshot()).phase, { timeout: 20000 }).toBe('result');
-    await expect(frame.locator('#result')).toBeVisible();
-    await click(frame.locator('#result-close'));
+    expect((await snapshot()).report.won).toBe(false);
+    await expect(frame.locator('#arrival-log')).not.toBeEmpty();
+    await expect(frame.locator('#result')).not.toBeVisible();
     await click(frame.locator('#restart'));
     await expect.poll(async () => (await snapshot()).phase).toBe('ready');
     await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    expect((await snapshot()).report).toBeNull();
     await click(frame.locator('#level-nav [data-level]').nth(1));
     await expect.poll(async () => (await snapshot()).levelIndex).toBe(1);
     await expect.poll(async () => (await snapshot()).historyLength).toBe(0);

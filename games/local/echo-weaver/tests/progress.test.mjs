@@ -4,7 +4,7 @@ import { PROGRESS_KEY, readProgress, persistProgress } from '../progress.mjs';
 import { createAudio } from '../audio.mjs';
 
 const levels = [{ id: 'first' }, { id: 'second' }, { id: 'third' }];
-const defaults = { version: 1, selected: 0, completed: {}, sound: false, locale: 'zh' };
+const defaults = { version: 2, selected: 0, completed: {}, sound: false, locale: 'zh' };
 
 function memoryStorage(initial) {
   const entries = new Map(initial === undefined ? [] : [[PROGRESS_KEY, initial]]);
@@ -21,7 +21,7 @@ function memoryStorage(initial) {
 test('progress survives a reload with best-attempt scores and explicit preferences', () => {
   const storage = memoryStorage();
   const progress = {
-    version: 1,
+    version: 2,
     selected: 2,
     completed: { first: { attempts: 3 }, second: { attempts: 1 } },
     sound: true,
@@ -39,7 +39,7 @@ test('missing, malformed, old and denied storage all start a playable game', () 
     'null',
     '[]',
     '12',
-    '{"version":2,"selected":1}',
+    '{"version":1,"selected":1}',
     '{"selected":1}',
   ]) {
     assert.deepEqual(readProgress(memoryStorage(value), levels), defaults);
@@ -61,7 +61,7 @@ test('missing, malformed, old and denied storage all start a playable game', () 
 test('only known levels with positive safe-integer attempt scores are restored', () => {
   const storage = memoryStorage(
     JSON.stringify({
-      version: 1,
+      version: 2,
       selected: 999,
       sound: 'true',
       locale: 'xx',
@@ -80,7 +80,7 @@ test('only known levels with positive safe-integer attempt scores are restored',
   for (const attempts of [-1, 0, 1.1, '1', null, Number.MAX_SAFE_INTEGER + 1]) {
     storage.setItem(
       PROGRESS_KEY,
-      JSON.stringify({ version: 1, completed: { first: { attempts } } }),
+      JSON.stringify({ version: 2, completed: { first: { attempts } } }),
     );
     assert.deepEqual(readProgress(storage, levels).completed, {});
   }
@@ -88,7 +88,7 @@ test('only known levels with positive safe-integer attempt scores are restored',
 
 test('malicious object keys and unexpected fields cannot pollute the stored schema', () => {
   const hostile =
-    '{"version":1,"selected":1,"completed":{"__proto__":{"attempts":1,"polluted":true},"constructor":{"attempts":1},"prototype":{"attempts":1},"first":{"attempts":2,"secret":"drop"}},"token":"drop"}';
+    '{"version":2,"selected":1,"completed":{"__proto__":{"attempts":1,"polluted":true},"constructor":{"attempts":1},"prototype":{"attempts":1},"first":{"attempts":2,"secret":"drop"}},"token":"drop"}';
   const storage = memoryStorage(hostile);
   const result = readProgress(storage, [...levels, { id: '__proto__' }, { id: 'constructor' }]);
   assert.deepEqual(result, { ...defaults, selected: 1, completed: { first: { attempts: 2 } } });
@@ -99,11 +99,11 @@ test('malicious object keys and unexpected fields cannot pollute the stored sche
 
 test('invalid selection values and malformed completion lists are discarded', () => {
   for (const selected of [-1, 3, 1.5, '1', null]) {
-    const storage = memoryStorage(JSON.stringify({ version: 1, selected, completed: [] }));
+    const storage = memoryStorage(JSON.stringify({ version: 2, selected, completed: [] }));
     assert.deepEqual(readProgress(storage, levels), defaults);
   }
   const storage = memoryStorage(
-    '{"version":1,"selected":0,"completed":{"first":null,"second":[1],"third":2}}',
+    '{"version":2,"selected":0,"completed":{"first":null,"second":[1],"third":2}}',
   );
   assert.deepEqual(readProgress(storage, []), defaults);
   assert.deepEqual(readProgress(storage, levels), defaults);

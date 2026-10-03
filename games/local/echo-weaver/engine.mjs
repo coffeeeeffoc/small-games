@@ -1,93 +1,118 @@
 /**
- * Echo Weaver's clock and acoustics are deliberately discrete. A unit of path
- * takes one tick; a delay chamber adds ticks without adding path. Audio and
- * animation consume this result and never participate in the win condition.
+ * A deterministic, discrete acoustic grid. One orthogonal cell costs one tick;
+ * Web Audio and animation only replay this trace, never decide the outcome.
+ * Splitters subtract splitterLoss, then send half the remaining energy straight
+ * and half around the reflected corner (no additional reflectionLoss).
  */
 
-const nonnegative = (value) => Number.isFinite(value) && value >= 0;
+const DIRECTIONS = {
+  N: { x: 0, y: -1 },
+  E: { x: 1, y: 0 },
+  S: { x: 0, y: 1 },
+  W: { x: -1, y: 0 },
+};
+const REFLECTION = {
+  '/': { N: 'E', E: 'N', S: 'W', W: 'S' },
+  '\\': { N: 'W', E: 'S', S: 'E', W: 'N' },
+};
+const TYPES = new Set(['mirror', 'splitter', 'delay']);
+const MAX_BRANCHES = 24;
+const key = ({ x, y }) => `${x},${y}`;
+const point = ({ x, y }) => ({ x, y });
+const inBounds = (level, x, y) =>
+  Number.isInteger(x) &&
+  Number.isInteger(y) &&
+  x >= 0 &&
+  x < level.cols &&
+  y >= 0 &&
+  y < level.rows;
+const sameCell = (a, b) => a?.x === b?.x && a?.y === b?.y;
+const inTray = (piece) => piece.x === null && piece.y === null;
+const arrayOf = (value) => (Array.isArray(value) ? value : []);
 
-/** Return human-readable schema errors, without changing authored level data. */
+/** Schema/geometry diagnostics for authors. Solutions are not part of physics. */
 export function validateLevel(level) {
-  const errors = [];
   if (!level || typeof level !== 'object') return ['Level must be an object.'];
-  if (!level.id) errors.push('Level requires an id.');
-  for (const key of ['lossPerUnit', 'reflectionLoss', 'minEnergy']) {
-    if (!nonnegative(level[key])) errors.push(`${key} must be a nonnegative number.`);
+  const errors = [];
+  if (typeof level.id !== 'string' || !level.id) errors.push('Level requires a string id.');
+  for (const field of ['cols', 'rows', 'ticksPerBeat', 'maxTicks']) {
+    if (!Number.isInteger(level[field]) || level[field] <= 0)
+      errors.push(`${field} must be a positive integer.`);
   }
-  for (const key of ['ticksPerBeat', 'beatMs']) {
-    if (!Number.isFinite(level[key]) || level[key] <= 0) errors.push(`${key} must be positive.`);
+  for (const field of ['beatMs', 'sourceEnergy', 'minEnergy']) {
+    if (!Number.isFinite(level[field]) || level[field] <= 0)
+      errors.push(`${field} must be positive.`);
   }
+  for (const field of ['travelLoss', 'reflectionLoss', 'splitterLoss', 'delayLoss']) {
+    if (!Number.isFinite(level[field]) || level[field] < 0)
+      errors.push(`${field} must be nonnegative.`);
+  }
+  if (level.sourceEnergy < level.minEnergy) errors.push('sourceEnergy must reach minEnergy.');
   if (
     !Array.isArray(level.targets) ||
-    level.targets.length !== 3 ||
+    level.targets.length < 1 ||
     level.targets.some(
-      (target, i, targets) =>
-        !Number.isFinite(target) || target <= 0 || (i > 0 && target <= targets[i - 1]),
+      (tick, i, targets) =>
+        !Number.isInteger(tick) ||
+        tick <= 0 ||
+        tick > level.maxTicks ||
+        (i > 0 && tick <= targets[i - 1]),
     )
   ) {
-    errors.push('Exactly three increasing, positive target ticks are required.');
+    errors.push('Targets must be increasing positive integer ticks within maxTicks.');
   }
-  const modes = level.splitter?.modes;
-  if (!Array.isArray(modes) || modes.length === 0) {
-    errors.push('Splitter requires at least one mode.');
-  } else {
-    for (const mode of modes) {
-      if (
-        !Array.isArray(mode.energy) ||
-        mode.energy.length !== 3 ||
-        mode.energy.some((value) => !nonnegative(value))
-      ) {
-        errors.push('Every splitter mode requires three nonnegative energy values.');
-      } else if (Math.abs(mode.energy.reduce((sum, value) => sum + value, 0) - 300) > 1e-9) {
-        errors.push('Splitter modes must conserve the initial 300 energy.');
-      }
+  const occupied = new Map();
+  const occupy = (item, label) => {
+    if (!item || !inBounds(level, item.x, item.y)) {
+      errors.push(`${label} must be inside the grid.`);
+      return;
     }
-    if (!validIndex(level.splitter.initial, modes)) errors.push('Invalid initial splitter mode.');
+    const cell = key(item);
+    if (occupied.has(cell)) errors.push(`${label} overlaps ${occupied.get(cell)} at ${cell}.`);
+    else occupied.set(cell, label);
+  };
+  occupy(level.source, 'Source');
+  occupy(level.receiver, 'Receiver');
+  if (!Object.hasOwn(DIRECTIONS, level.source?.dir))
+    errors.push('Source requires N, E, S, or W direction.');
+  for (const name of ['walls', 'absorbers', 'fixed', 'inventory']) {
+    if (!Array.isArray(level[name])) errors.push(`${name} must be an array.`);
   }
-  if (!Array.isArray(level.routes) || level.routes.length !== 3) {
-    errors.push('Exactly three routes are required.');
-    return errors;
+  for (const [i, wall] of arrayOf(level.walls).entries()) occupy(wall, `Wall ${i}`);
+  // Absorption is a floor property: a movable or fixed piece can sit on it.
+  const absorberCells = new Set();
+  for (const [i, absorber] of arrayOf(level.absorbers).entries()) {
+    if (!absorber || !inBounds(level, absorber.x, absorber.y))
+      errors.push(`Absorber ${i} must be inside the grid.`);
+    else {
+      const cell = key(absorber);
+      if (absorberCells.has(cell) || occupied.has(cell))
+        errors.push(`Absorber ${i} overlaps another terrain feature at ${cell}.`);
+      absorberCells.add(cell);
+    }
+    if (!Number.isFinite(absorber?.loss) || absorber.loss < 0)
+      errors.push(`Absorber ${i} requires nonnegative loss.`);
   }
-  const routeIds = new Set();
-  const controlIds = new Set(['splitter']);
-  for (const route of level.routes) {
-    if (!route.id || routeIds.has(route.id)) errors.push('Route ids must be present and unique.');
-    routeIds.add(route.id);
-    for (const key of ['baseLength', 'baseLoss']) {
-      if (!nonnegative(route[key])) errors.push(`${route.id}.${key} must be nonnegative.`);
-    }
-    if (!Array.isArray(route.stages)) {
-      errors.push(`${route.id} requires a stages array.`);
-      continue;
-    }
-    for (const stage of route.stages) {
-      if (!stage.id || controlIds.has(stage.id))
-        errors.push('Control ids must be present and unique.');
-      controlIds.add(stage.id);
-      if (!['reflector', 'delay'].includes(stage.kind))
-        errors.push(`${stage.id} has an unsupported kind.`);
-      if (!Array.isArray(stage.options) || stage.options.length === 0) {
-        errors.push(`${stage.id} requires at least one option.`);
-        continue;
-      }
-      if (!validIndex(stage.initial, stage.options))
-        errors.push(`${stage.id} has an invalid initial option.`);
-      for (const option of stage.options) {
-        for (const key of ['length', 'reflections', 'loss', 'delay']) {
-          if (!nonnegative(option[key]))
-            errors.push(`${stage.id} option ${key} must be nonnegative.`);
-        }
-        if (option.blocked !== undefined && typeof option.blocked !== 'boolean') {
-          errors.push(`${stage.id} option blocked must be a boolean.`);
-        }
-      }
+  const ids = new Set();
+  for (const [kind, pieces] of [
+    ['fixed', arrayOf(level.fixed)],
+    ['inventory', arrayOf(level.inventory)],
+  ]) {
+    for (const piece of pieces) {
+      if (!piece || typeof piece.id !== 'string' || !piece.id || ids.has(piece.id))
+        errors.push('Piece ids must be present and unique.');
+      ids.add(piece?.id);
+      if (!TYPES.has(piece?.type)) errors.push(`${piece?.id || 'Piece'} has an invalid type.`);
+      if (piece?.type === 'delay') {
+        if (!Number.isInteger(piece.delayTicks) || piece.delayTicks <= 0)
+          errors.push(`${piece.id} delayTicks must be a positive integer.`);
+      } else if (!Object.hasOwn(REFLECTION, piece?.orientation))
+        errors.push(`${piece?.id || 'Piece'} requires / or \\ orientation.`);
+      if (kind === 'inventory' && piece && inTray(piece)) continue;
+      occupy(piece, `Piece ${piece?.id}`);
     }
   }
   return errors;
-}
-
-function validIndex(index, options) {
-  return Number.isInteger(index) && index >= 0 && index < options.length;
 }
 
 function assertLevel(level) {
@@ -95,146 +120,251 @@ function assertLevel(level) {
   if (errors.length) throw new TypeError(`Invalid Echo Weaver level: ${errors.join(' ')}`);
 }
 
-function selectedOption(stage, state) {
-  const index = state.choices?.[stage.id];
-  if (!validIndex(index, stage.options)) throw new RangeError(`Invalid option for ${stage.id}.`);
-  return stage.options[index];
-}
-
-/** A fresh, serializable state. Authored solutions are never consulted in play. */
+/** A fresh, serializable setup, independent of the authored inventory. */
 export function createState(level) {
   assertLevel(level);
+  return { pieces: level.inventory.map((piece) => ({ ...piece })) };
+}
+
+/** Occupancy is checked for the selected piece, so dragging it to itself is safe. */
+export function canPlace(level, state, id, x, y) {
+  if (
+    !inBounds(level, x, y) ||
+    !state?.pieces?.some((piece) => piece.id === id) ||
+    !level.inventory.some((piece) => piece.id === id)
+  )
+    return false;
+  const target = { x, y };
+  return ![
+    level.source,
+    level.receiver,
+    ...level.walls,
+    ...level.fixed,
+    ...state.pieces.filter((piece) => piece.id !== id),
+  ].some((item) => sameCell(item, target));
+}
+
+export function placePiece(level, state, id, x, y) {
+  if (!canPlace(level, state, id, x, y)) return state;
+  if (state.pieces.some((piece) => piece.id === id && piece.x === x && piece.y === y)) return state;
   return {
-    splitter: level.splitter.initial,
-    choices: Object.fromEntries(
-      level.routes.flatMap((route) => route.stages.map((stage) => [stage.id, stage.initial])),
+    ...state,
+    pieces: state.pieces.map((piece) => (piece.id === id ? { ...piece, x, y } : piece)),
+  };
+}
+
+export function rotatePiece(level, state, id) {
+  const piece = state.pieces.find((item) => item.id === id);
+  if (!level.inventory.some((item) => item.id === id) || !piece || piece.type === 'delay')
+    return state;
+  return {
+    ...state,
+    pieces: state.pieces.map((item) =>
+      item.id === id ? { ...item, orientation: item.orientation === '/' ? '\\' : '/' } : item,
     ),
   };
 }
 
-/** Cycle one directly manipulated object; the previous state remains untouched. */
-export function cycleControl(level, state, id) {
-  const next = { splitter: state.splitter, choices: { ...state.choices } };
-  if (id === 'splitter') {
-    if (!validIndex(state.splitter, level.splitter.modes))
-      throw new RangeError('Invalid splitter mode.');
-    next.splitter = (state.splitter + 1) % level.splitter.modes.length;
-    return next;
-  }
-  const stage = level.routes.flatMap((route) => route.stages).find((item) => item.id === id);
-  if (!stage) throw new RangeError(`Unknown control: ${id}.`);
-  selectedOption(stage, state);
-  next.choices[id] = (state.choices[id] + 1) % stage.options.length;
-  return next;
-}
-
-/**
- * start/end/arrival/target/duration are simulation ticks. Each segment waits
- * `delay` ticks at its entrance, then travels `length` ticks. `loss` is the
- * authored extra absorption; `attenuation` includes distance and reflections.
- */
-export function simulate(level, state) {
-  assertLevel(level);
-  if (!validIndex(state.splitter, level.splitter.modes))
-    throw new RangeError('Invalid splitter mode.');
-  const split = level.splitter.modes[state.splitter];
-  const echoes = level.routes.map((route, routeIndex) => {
-    const sourceEnergy = split.energy[routeIndex];
-    let energy = sourceEnergy;
-    let time = 0;
-    let blocked = false;
-    let length = 0;
-    let reflections = 0;
-    let delay = 0;
-    const segments = [];
-    const append = (stageId, kind, option) => {
-      const start = time;
-      const energyBefore = energy;
-      const attenuation =
-        option.length * level.lossPerUnit + option.reflections * level.reflectionLoss + option.loss;
-      blocked ||= option.blocked === true;
-      energy = blocked ? 0 : Math.max(0, energy - attenuation);
-      time += option.length + option.delay;
-      length += option.length;
-      reflections += option.reflections;
-      delay += option.delay;
-      segments.push({
-        stageId,
-        kind,
-        length: option.length,
-        delay: option.delay,
-        reflections: option.reflections,
-        loss: option.loss,
-        attenuation,
-        start,
-        end: time,
-        energyBefore,
-        energyAfter: energy,
-        blocked: option.blocked === true,
-        status: blocked ? 'blocked' : energy < level.minEnergy ? 'weak' : 'travel',
-      });
-    };
-    if (route.baseLength > 0 || route.baseLoss > 0) {
-      append(null, 'travel', {
-        length: route.baseLength,
-        loss: route.baseLoss,
-        reflections: 0,
-        delay: 0,
-      });
-    }
-    for (const stage of route.stages) append(stage.id, stage.kind, selectedOption(stage, state));
-    const target = level.targets[routeIndex];
-    const targetDelta = time - target;
-    const status = blocked
-      ? 'blocked'
-      : energy < level.minEnergy
-        ? 'weak'
-        : targetDelta < 0
-          ? 'early'
-          : targetDelta > 0
-            ? 'late'
-            : 'on-time';
-    return {
-      id: route.id,
-      arrival: time,
-      target,
-      targetDelta,
-      sourceEnergy,
-      energy,
-      status,
-      length,
-      reflections,
-      delay,
-      segments,
-    };
-  });
+export function removePiece(level, state, id) {
+  const piece = state.pieces.find((item) => item.id === id);
+  if (!level.inventory.some((item) => item.id === id) || !piece || inTray(piece)) return state;
   return {
-    won: echoes.every((echo) => echo.status === 'on-time'),
-    // Keep the visual clock alive through missed target beats as well as echoes.
-    duration: Math.max(...level.targets, ...echoes.map((echo) => echo.arrival)) + 1,
-    echoes,
+    ...state,
+    pieces: state.pieces.map((item) => (item.id === id ? { ...item, x: null, y: null } : item)),
   };
 }
 
-/** Exhaustive authoring aid for these small, discrete puzzles. */
-export function enumerateSolutions(level) {
-  const initial = createState(level);
-  const controls = level.routes.flatMap((route) => route.stages);
-  const solutions = [];
-  function visit(state, position) {
-    if (position === controls.length) {
-      if (simulate(level, state).won)
-        solutions.push({ splitter: state.splitter, choices: { ...state.choices } });
-      return;
+function assertState(level, state) {
+  if (!Array.isArray(state?.pieces) || state.pieces.length !== level.inventory.length)
+    throw new TypeError('State must contain every inventory piece.');
+  const seen = new Set();
+  for (const piece of state.pieces) {
+    const authored = level.inventory.find((item) => item.id === piece?.id);
+    if (
+      !authored ||
+      seen.has(piece.id) ||
+      authored.type !== piece.type ||
+      authored.delayTicks !== piece.delayTicks
+    )
+      throw new TypeError('State has unknown, duplicate, or modified inventory pieces.');
+    seen.add(piece.id);
+    if (piece.type !== 'delay' && !Object.hasOwn(REFLECTION, piece.orientation))
+      throw new TypeError(`Invalid orientation for ${piece.id}.`);
+    if (!inTray(piece) && !canPlace(level, state, piece.id, piece.x, piece.y))
+      throw new TypeError(`Invalid placement for ${piece.id}.`);
+  }
+}
+
+/**
+ * Return the whole trace in simulation ticks. A branch keeps its identity when
+ * transmitted through a splitter; the reflected child receives the next id.
+ * Every emitted branch must arrive at its own exact target. Lost branches and
+ * unsolicited arrivals cannot be hidden to pass a puzzle.
+ */
+export function simulate(level, state) {
+  assertLevel(level);
+  assertState(level, state);
+  const pieces = new Map(
+    [...level.fixed, ...state.pieces.filter((piece) => !inTray(piece))].map((piece) => [
+      key(piece),
+      piece,
+    ]),
+  );
+  const walls = new Set(level.walls.map(key));
+  const absorbers = new Map(level.absorbers.map((absorber) => [key(absorber), absorber.loss]));
+  const segments = [];
+  const arrivals = [];
+  const failures = [];
+  let emittedBranches = 1;
+  const active = [
+    {
+      ...point(level.source),
+      dir: level.source.dir,
+      tick: 0,
+      energy: level.sourceEnergy,
+      branchId: 0,
+      colorIndex: 0,
+      visited: new Set(),
+    },
+  ];
+  const fail = (packet, reason) =>
+    failures.push({
+      reason,
+      energy: Math.max(0, packet.energy),
+      ...point(packet),
+      tick: packet.tick,
+      branchId: packet.branchId,
+      colorIndex: packet.colorIndex,
+    });
+  while (active.length) {
+    active.sort((a, b) => a.tick - b.tick || a.branchId - b.branchId);
+    const packet = active.shift();
+    if (packet.tick >= level.maxTicks) {
+      fail(packet, 'overload');
+      continue;
     }
-    const stage = controls[position];
-    for (let i = 0; i < stage.options.length; i++) {
-      state.choices[stage.id] = i;
-      visit(state, position + 1);
+    const delta = DIRECTIONS[packet.dir];
+    const next = {
+      ...packet,
+      x: packet.x + delta.x,
+      y: packet.y + delta.y,
+      tick: packet.tick + 1,
+      energy: packet.energy - level.travelLoss,
+    };
+    segments.push({
+      branchId: packet.branchId,
+      colorIndex: packet.colorIndex,
+      from: point(packet),
+      to: point(next),
+      start: packet.tick,
+      end: next.tick,
+      energy: Math.max(0, next.energy),
+      kind: 'travel',
+    });
+    if (!inBounds(level, next.x, next.y)) {
+      fail(next, 'escaped');
+      continue;
+    }
+    if (walls.has(key(next))) {
+      fail(next, 'wall');
+      continue;
+    }
+    if (sameCell(next, level.source)) {
+      fail(next, 'source');
+      continue;
+    }
+    next.energy -= absorbers.get(key(next)) || 0;
+    if (next.energy < level.minEnergy) {
+      fail(next, 'weak');
+      continue;
+    }
+    if (sameCell(next, level.receiver)) {
+      arrivals.push({
+        tick: next.tick,
+        energy: next.energy,
+        branchId: next.branchId,
+        colorIndex: next.colorIndex,
+        matched: false,
+        targetIndex: -1,
+      });
+      continue;
+    }
+    const visitKey = `${key(next)},${next.dir}`;
+    if (next.visited.has(visitKey)) {
+      fail(next, 'loop');
+      continue;
+    }
+    next.visited.add(visitKey);
+    const piece = pieces.get(key(next));
+    if (!piece) {
+      active.push(next);
+      continue;
+    }
+    if (piece.type === 'mirror') {
+      next.energy -= level.reflectionLoss;
+      next.dir = REFLECTION[piece.orientation][next.dir];
+      if (next.energy < level.minEnergy) fail(next, 'weak');
+      else active.push(next);
+    } else if (piece.type === 'delay') {
+      const end = Math.min(level.maxTicks, next.tick + piece.delayTicks);
+      const held = end - next.tick;
+      segments.push({
+        branchId: next.branchId,
+        colorIndex: next.colorIndex,
+        from: point(next),
+        to: point(next),
+        start: next.tick,
+        end,
+        energy: next.energy,
+        kind: 'hold',
+        pieceId: piece.id,
+      });
+      next.tick = end;
+      next.energy -= held * level.delayLoss;
+      if (next.energy < level.minEnergy) fail(next, 'weak');
+      else if (next.tick >= level.maxTicks) fail(next, 'overload');
+      else active.push(next);
+    } else {
+      if (emittedBranches >= MAX_BRANCHES) {
+        fail(next, 'overload');
+        continue;
+      }
+      const child = {
+        ...next,
+        dir: REFLECTION[piece.orientation][next.dir],
+        branchId: emittedBranches,
+        colorIndex: emittedBranches % 3,
+        visited: new Set(next.visited),
+      };
+      emittedBranches += 1;
+      next.energy = (next.energy - level.splitterLoss) / 2;
+      child.energy = next.energy;
+      for (const outgoing of [next, child]) {
+        if (outgoing.energy < level.minEnergy) fail(outgoing, 'weak');
+        else active.push(outgoing);
+      }
     }
   }
-  for (let splitter = 0; splitter < level.splitter.modes.length; splitter++) {
-    visit({ splitter, choices: { ...initial.choices } }, 0);
-  }
-  return solutions;
+  arrivals.sort((a, b) => a.tick - b.tick || a.branchId - b.branchId);
+  failures.sort((a, b) => a.tick - b.tick || a.branchId - b.branchId);
+  segments.sort((a, b) => a.start - b.start || a.branchId - b.branchId);
+  const targetResults = level.targets.map((target, targetIndex) => {
+    const arrival = arrivals.find((item) => !item.matched && item.tick === target);
+    if (arrival) {
+      arrival.matched = true;
+      arrival.targetIndex = targetIndex;
+    }
+    return { target, arrival: arrival || null, status: arrival ? 'hit' : 'miss' };
+  });
+  const won =
+    failures.length === 0 &&
+    arrivals.length === level.targets.length &&
+    targetResults.every((target) => target.status === 'hit');
+  const duration = Math.max(
+    1,
+    level.targets.at(-1) + 1,
+    ...segments.map((segment) => segment.end),
+    ...failures.map((failure) => failure.tick),
+  );
+  return { won, duration, segments, arrivals, failures, targetResults, emittedBranches };
 }
