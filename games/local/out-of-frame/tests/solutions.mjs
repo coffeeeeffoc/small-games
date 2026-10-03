@@ -1,4 +1,4 @@
-import { LEVELS } from '../levels.mjs';
+import { LEVELS, CAMPAIGN_SOLUTIONS } from '../levels.mjs';
 import { createState, moveFrame, step } from '../engine.mjs';
 
 /** Real controls only: portable scripts for both simulation and browser QA.
@@ -6,7 +6,7 @@ import { createState, moveFrame, step } from '../engine.mjs';
  * crosses value; walk = hold right to x; jump = pulse jump while holding right
  * for frames; ride = stay still and keep dragging the frame to follow object.
  */
-export const SOLUTIONS = [
+const ORIGINAL_SOLUTIONS = [
   [
     { kind: 'watch', object: 'keeper', axis: 'x', atLeast: 354 },
     { kind: 'frame', x: 0, y: 0 },
@@ -64,7 +64,15 @@ export const SOLUTIONS = [
   ],
 ];
 
-export function solveRoom(index, onStep = () => {}, { reactionFrames = 0 } = {}) {
+export const SOLUTIONS = CAMPAIGN_SOLUTIONS.map((route) =>
+  Array.isArray(route) ? route : ORIGINAL_SOLUTIONS[route.originalIndex],
+);
+
+export function solveRoom(
+  index,
+  onStep = () => {},
+  { reactionFrames = 0, actions = SOLUTIONS[index] } = {},
+) {
   const level = LEVELS[index];
   const state = createState(level);
   const tick = (input = {}) => {
@@ -82,7 +90,7 @@ export function solveRoom(index, onStep = () => {}, { reactionFrames = 0 } = {})
       `Room ${index + 1} solution timed out at player ${state.player.x},${state.player.y}`,
     );
   };
-  for (const action of SOLUTIONS[index]) {
+  for (const action of actions) {
     if (action.kind === 'frame' || action.kind === 'ride') {
       for (let n = 0; n < reactionFrames; n++) tick();
     }

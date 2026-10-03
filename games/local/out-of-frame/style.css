@@ -21,7 +21,8 @@ body {
   min-height: 100svh;
 }
 button,
-a {
+a,
+select {
   -webkit-tap-highlight-color: transparent;
 }
 button {
@@ -40,6 +41,7 @@ button:hover {
 }
 button:focus-visible,
 a:focus-visible,
+select:focus-visible,
 canvas:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: 3px;
@@ -71,6 +73,7 @@ button.pressed {
 }
 .brand {
   display: flex;
+  min-height: 44px;
   gap: 13px;
   align-items: center;
   text-decoration: none;
@@ -195,7 +198,23 @@ button.pressed {
 }
 .room-header .icon-button {
   border: 0;
-  width: 38px;
+  width: 44px;
+  flex-shrink: 0;
+}
+.room-chapter {
+  font-size: 9px;
+  color: var(--muted);
+  margin: 6px 0 0;
+  line-height: 1.2;
+}
+.room-heading > div {
+  min-width: 0;
+}
+.room-heading h1,
+.room-chapter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pause-icon {
   display: block;
@@ -299,6 +318,43 @@ canvas.dragging {
   display: flex;
   gap: 6px;
   align-items: center;
+}
+.frame-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px 14px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--muted);
+  background: #1a2d26;
+}
+.frame-guide.awaiting-drag,
+.frame-guide.is-dragging {
+  color: var(--mint);
+  background: #254334;
+}
+#frame-feedback {
+  color: var(--gold);
+  white-space: nowrap;
+}
+.run-stats {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -10px 0 17px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.run-stats b {
+  font-weight: 400;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  margin-left: 5px;
 }
 .player-legend {
   margin-left: auto;
@@ -507,12 +563,13 @@ canvas.dragging {
 }
 #level-nav {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 #level-nav button {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 5px 9px;
   align-items: center;
   text-align: left;
   padding: 13px 12px;
@@ -520,11 +577,13 @@ canvas.dragging {
   min-width: 0;
   background: #192c24;
   font-size: 10px;
+  min-height: 60px;
 }
 #level-nav button .level-index {
   font-family: Georgia, serif;
   color: #81987f;
   font-size: 20px;
+  grid-row: 1 / 3;
 }
 #level-nav button.current {
   border-color: #96b58a;
@@ -536,6 +595,85 @@ canvas.dragging {
 #level-nav button .level-check {
   margin-left: auto;
   color: var(--mint);
+}
+.level-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.level-best {
+  grid-column: 2 / 4;
+  font-size: 9px;
+  color: var(--muted);
+}
+#level-nav button.completed {
+  border-color: #547b5c;
+}
+.chapter-nav {
+  display: grid;
+  grid-template-columns: 44px minmax(160px, 300px) 44px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.chapter-nav button {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+}
+.chapter-nav select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #56725b;
+  border-radius: 8px;
+  background: #1c3329;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chapter-progress {
+  justify-self: end;
+  font-size: 10px;
+  color: var(--muted);
+}
+.chapter-subtitle {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 10px 0;
+}
+#route-progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin: 0 0 12px;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  accent-color: var(--mint);
+  background: var(--line);
+}
+#route-progress::-webkit-progress-bar {
+  background: var(--line);
+}
+#route-progress::-webkit-progress-value {
+  background: var(--mint);
+}
+#route-progress::-moz-progress-bar {
+  background: var(--mint);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .colophon {
   display: flex;
@@ -714,7 +852,7 @@ dialog .primary-button {
     gap: 4px;
   }
   .header-actions .icon-button {
-    width: 40px;
+    width: 44px;
     border: 0;
   }
   .game-layout {
@@ -722,7 +860,7 @@ dialog .primary-button {
     gap: 12px;
   }
   .room-header {
-    height: 68px;
+    height: 80px;
     padding: 12px 15px;
   }
   #room-number {
@@ -816,6 +954,21 @@ dialog .primary-button {
   .status-row {
     font-size: 9px;
   }
+  .run-stats {
+    margin: 0 0 10px;
+    font-size: 9px;
+  }
+  .frame-guide {
+    padding: 7px 12px;
+    font-size: 9px;
+  }
+  .chapter-nav {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+  .chapter-progress {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
   .rule-note {
     display: none;
   }
@@ -834,7 +987,7 @@ dialog .primary-button {
   .hint-button {
     font-size: 10px;
     margin-top: 3px;
-    min-height: 38px;
+    min-height: 44px;
   }
   .hint-copy {
     font-size: 9px;
@@ -845,7 +998,7 @@ dialog .primary-button {
     margin-top: 18px;
   }
   #level-nav {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
   #level-nav button {
@@ -910,8 +1063,8 @@ dialog .primary-button {
     display: none;
   }
   .intro .primary-button {
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
     margin-top: 5px;
   }
   .mission-panel {
@@ -954,12 +1107,12 @@ dialog .primary-button {
     display: none;
   }
   .game-layout {
-    grid-template-columns: minmax(0, calc((100svh - 153px) * 16 / 9)) 210px;
+    grid-template-columns: minmax(0, calc((100svh - 183px) * 16 / 9)) 210px;
     gap: 10px;
     justify-content: center;
   }
   .room-header {
-    height: 48px;
+    height: 52px;
   }
   .room-heading h1 {
     font-size: 14px;
@@ -972,6 +1125,13 @@ dialog .primary-button {
   }
   .scene-legend {
     padding: 6px 12px;
+  }
+  .frame-guide {
+    padding: 5px 12px;
+    font-size: 9px;
+  }
+  #frame-instruction {
+    display: none;
   }
   .touch-controls {
     padding: 7px 12px;
@@ -1024,9 +1184,15 @@ dialog .primary-button {
   padding: 9px;
   font-size: 11px;
   text-align: left;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 7px;
 }
 #pause-levels button[aria-current='step'] {
   border-color: var(--mint);
+}
+.pause-chapter-nav {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
 }
 @media (max-width: 760px) {
   .app {
