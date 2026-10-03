@@ -268,7 +268,14 @@ test('the real pre-push hook blocks missing registration or metadata after forma
       encoding: 'utf8',
       timeout: 20000,
       // This fixture deliberately borrows installed modules; never reinstall through its junction.
-      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+      // Its synthetic lockfile also omits the package-manager graph. Reuse the running pnpm
+      // instead of downloading it here; pmOnFail replaces managePackageManagerVersions in
+      // pnpm 11/12: https://pnpm.io/settings/cli#pmonfail. Real hooks still run unchanged.
+      env: {
+        ...process.env,
+        PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+        PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+      },
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
@@ -351,7 +358,13 @@ test('the real pre-push hook rejects bad formatting before running the game chec
       cwd: root,
       encoding: 'utf8',
       timeout: 20000,
-      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+      // This throwaway formatting fixture has no toolchain lockfile. Use the installed pnpm,
+      // not a fresh package-manager download; see the pnpm 11/12 pmOnFail note above.
+      env: {
+        ...process.env,
+        PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+        PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+      },
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);

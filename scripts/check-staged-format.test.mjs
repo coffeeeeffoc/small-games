@@ -161,7 +161,14 @@ async function installRealHooks(f) {
       cwd: f.root,
       encoding: 'utf8',
       timeout: 30000,
-      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+      // This fixture has no toolchain lockfile. Reuse the installed pnpm rather than
+      // bootstrapping packageManager dependencies; pnpm 11/12 uses pmOnFail for this:
+      // https://pnpm.io/settings/cli#pmonfail. The real hooks and scripts still execute.
+      env: {
+        ...process.env,
+        PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+        PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+      },
     });
 }
 
