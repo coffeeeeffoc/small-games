@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-03T18:30:13.626Z",
+  "checks": [
+    {
+      "levelId": "ruins",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 4,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "meadow",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 5,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "wetland",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 6,
+      "weather": "rain"
+    },
+    {
+      "levelId": "quarry",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "overcast"
+    },
+    {
+      "levelId": "windpass",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "sunny"
+    },
+    {
+      "levelId": "hollow",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 7,
+      "weather": "rain"
+    },
+    {
+      "levelId": "terraces",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "rain"
+    },
+    {
+      "levelId": "bastion",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "overcast"
+    },
+    {
+      "levelId": "mistwood",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "fog"
+    },
+    {
+      "levelId": "hailfield",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 9,
+      "weather": "hail"
+    },
+    {
+      "levelId": "heartgarden",
+      "mutated": false,
+      "coordinateError": 0,
+      "terrain": 8,
+      "weather": "overcast"
+    }
+  ],
+  "skillChecks": {
+    "kinds": ["blast", "gale", "cart", "horse", "laser"],
+    "lost": true,
+    "restored": true
+  },
+  "errors": []
+}

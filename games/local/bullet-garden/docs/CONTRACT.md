@@ -1,63 +1,47 @@
-# Module contract
+# Bullet Garden module contract
 
-Native ES modules, Canvas 2D and HTML controls, with no runtime dependencies. World coordinates refer to ground contacts in a 1440 × 900 courtyard, bounded by x=100..1340, y=150..750.
+Native ES modules and Canvas 2D; no runtime dependencies. `WORLD` is1440×900, default arena x100..1340/y150..750. Stable IDs and `order` drive the campaign; neither completion nor unlock logic hardcodes11.
 
-## Configuration and simulation
+## Data and extension
 
-`config.mjs` exports `LEVELS`, `ENEMIES`, `BOONS`, `SKILLS`, `UPGRADES`. Legacy `SEEDS` remains for old artwork/helpers, not a selectable gameplay resource.
+`config.mjs` exports `LEVELS`, `ENEMIES`, `SEEDS`, `WEATHER`, `WEATHER_MODIFIERS`, `BOONS`, `SKILLS`, `UPGRADES`, `WEAPONS`, and `registerContentPack`. SEEDS describe plant behavior and artwork; they are not manually selectable ammunition. BOONS grant ownership only through an offered run-XP upgrade.
 
-- Boon IDs: `shrub`, `trench`, `frost`, `poison`. Terrain kind for shrub is `thorn`; other kinds match IDs. Each definition describes interval, life, radius, color and status rules.
-- Skill IDs: `blast`, `gale`, `cart`, `horse`, `laser`. Each definition describes color, shape (`circle`/`line`), range, radius, width, duration and 100-point energy capacity.
-- XP-driven upgrade choices can unlock an unowned `boon-*` or strengthen weapons, health, energy or terrain. Preserve progression level/XP overflow, 3 choices expanding to 4 at level 5, rank limits, weights and prerequisites. Wave boundaries do not award upgrades.
+Levels have `{id,order,name,duration,waveDuration,waves,world,bounds,playerStart,plantCap,spawn,progression,terrain,weather,rewards,encounter,visual}`. Terrain is circular `{id,kind:'wall'|'mud'|'slope',x,y,radius,...}`. Weather is `{kind,wind,thunder}`; wind and thunder overlay one base weather. Encounter is null or `{kind,rank,atWave,required:true}`; required enemies must die before a victory.
 
-Simulation exports:
+`registerContentPack({version:1, levels:[], enemies:[], plants:[], weather:[], buffs:[]})` validates the complete append-only JSON pack before changing stable catalogue containers. Definitions are frozen; IDs/order cannot replace existing content. `validateContentPack` in content-schema.mjs checks references, supported handlers, finite bounded values, art references, safe player spawn and connected traversable arena. Register before creating a run. A new behavior requires a source handler; JSON cannot execute code.
 
-- `createGame(levelId = 'ruins', seed = 42)` creates a serializable ready state.
-- `configureLoadout(state, { skills })` configures two distinct skill IDs outside combat. There is no initial boon selection; legacy `boon` fields never grant terrain.
-- `startGame(state)` preserves the configured skills and resets runtime state, including energy and acquired upgrades. Every run begins with empty `boons`, `boonTimers` and `plants`; only selecting an offered `boon-*` XP upgrade unlocks terrain.
-- `selectSkill(state, index)` selects slot 0 or 1.
-- `castSkill(state, target, index = state.selectedSkill)` validates playing phase, energy, cooldown and target; clamps valid targets to skill range and world bounds; only a successful cast consumes energy.
-- `step(state, dt, input)`, `chooseUpgrade(state, id)`, `pauseGame(state)`, `resumeGame(state)`, `dash(state, direction)` own combat and lifecycle.
-- Legacy `selectSeed`/`castSeed` no longer provide manual terrain generation.
+Enemy definitions combine hp/radius/speed/damage/xp/coins, rank, armor, controlResistance, shield, unlockStage and `abilities:[{type,...}]`. Supported abilities are controlResist/charger/brood/burrower/glider/spitter/shield/shieldBreakStun/bossPhases. Plants use effects slowAura/damageAura/block/explode/healAura/chainLightning/shoot. Visuals consume the same geometry as collisions.
 
-`input = { moveX, moveY, aimX, aimY, firing, autoFire }`. The app advances a fixed 60 Hz simulation, multiplying accumulated wall time by the selected 1/2/3/5 speed while rendering only once per animation frame; `step` bounds long deltas. Only playing phase advances time, energy, status durations or terrain. Ordinary bullets never generate terrain. Acquired boons alone trigger automatic terrain. Energy accrues over combat time and kills, stays capped, and never casts automatically.
+## Permanent progression
 
-Relevant state:
+`progression.mjs` exports createProfile, levelFromXp, profileStats, upgradeCost, purchaseUpgrade, isLevelUnlocked, settleLevel, registerGrowthDefinitions, PERMANENT_UPGRADES and UPGRADE_DEFINITIONS. The registry powers shop, validation, saves and stat aggregation. Permanent profile and run XP remain separate.
 
-```js
-{
-  phase: 'ready', // playing | paused | upgrade | won | lost
-  loadout: { skills: ['blast', 'gale'] },
-  boons: [], boonTimers: {},
-  progression: { level: 1, xp: 0, nextXp: 12, pending: 0, queue: [] },
-  skillSlots: [{ kind: 'blast', energy: 0 }, { kind: 'gale', energy: 0 }],
-  selectedSkill: 0, skillCooldown: 0,
-  player: {}, enemies: [], plants: [], bullets: [],
-  skillEffects: [], particles: [], floaters: [], telegraphs: [],
-  stats: { shots: 0, plantsGrown: 0, plantKills: 0, terrainDamage: 0,
-           skillCasts: 0, skillDamage: 0, skillKills: 0 },
-  upgrades: [], upgradeChoices: [], events: []
-}
-```
+Profile is `{version:1,xp,coins,completed:[],settledRuns:[],upgrades:{},equippedWeapon,equippedPet,selectedLevelId}`. Purchases mutate only after all guards pass. Terminal runs settle once by a nonempty `runId`. First clear earns full rewards; replay35%; loss25% partial rewards. The last128 receipt IDs persist; active runs are not saved or restored. A profile cannot be used as a saved combat session.
 
-Terrain has `{ id, kind, x, y, radius, age, life, hp, maxHp }`; ditch width is its major diameter with minor radius 0.45 × radius. Active effect fields include `{ id, kind, x, y, startX, startY, targetX, targetY, dx, dy, age, life, radius, width, length, hitIds }`. `x/y` follow traveling charges; beam origin remains `startX/startY`. Width denotes full line width. Effects may also carry delay, triggered and travelled bookkeeping.
+Stats include damage/fireInterval/maxHp/armor/seedPower/pierce/level/petUnlocked/petRank/petDamage/petInterval. Player level5 unlocks the helper; new plants require2/4/6 and their run boon remains acquisition gated. Main handles localStorage and visible save failure; the model never reads storage, wall clock or DOM.
 
-Weapon upgrades retain multishot, bursts, ricochet, ice/fire/explosive rounds and bounded one-generation splits. Enemy deaths award XP once for weapon, terrain and skill sources; burns cannot recursively spawn bullets. Miss accounting no longer triggers unchosen terrain.
+## Simulation
 
-Enemy statuses are remaining-time values: `frozen`, `freezeCooldown`, `poison`, `poisonDps`, `stunned`, `feared`, `fearX`, `fearY`, `vulnerable`. Statuses do not form unbounded stacks. Frozen/stunned enemies cannot move or attack; fear retreats from its impact origin. Effects, terrain, particles, enemies and projectiles have explicit caps.
+`createGame(levelId='ruins',seed=42,profile=null)` creates a serializable ready preview. `startGame(state)` resets combat and run XP/energy/boons while preserving profile, configured skill pair and caller-injected runId. Main assigns a fresh UUID for every start. `configureLoadout(state,{skills})` accepts two distinct known skills outside combat.
 
-## Renderer and app
+`selectSkill(state,index)`, `castSkill(state,target,index=state.selectedSkill)`, step, chooseUpgrade, pauseGame, resumeGame and dash retain dev behavior. Legacy selectSeed/castSeed return false. Each run starts without acquired terrain. Kill XP offers3 choices, expanding to4 at run level5, with weighted categories, prerequisites and bounded ranks; wave transitions do not award upgrades.
 
-`GardenRenderer(canvas)` exposes `resize()`, `render(state, { aim, planting, time })`, `screenToWorld(clientX, clientY)` and `worldToScreen(x, y)`. The legacy render option `planting` now means an armed energy skill; its range preview uses the selected skill. `drawSeedIcon(canvas, kind)` remains the shared illustrated-icon export, including new boon/skill kinds. Attribute projectiles and burn/chill statuses retain their visual feedback. `drawPortrait(canvas)` draws the gardener.
+Ordinary bullets never grow terrain. Weapons retain multishot/burst/ricochet/ice/fire/explosive/split upgrades. `source` distinguishes normal/seed/pet/plant/skill/enemy damage. `layer:'ground'|'air'|'underground'` controls legal targets; burrowing and flight expire and have visible transitions. Shields precede armor; contact damage uses player armor. Piercing bullets record hit IDs to avoid repeating a hit across frames. All entities have caps; a required encounter has a reserved spawn slot.
 
-The renderer owns camera/fit/DPR and bounded artwork atlases. It culls offscreen drawing without culling simulation. Main and offscreen canvas restoration invalidate raster caches. The app pauses combat during context loss and prevents premature resume until restoration.
+State includes phase ready/playing/paused/upgrade/won/lost, time/duration/wave, profile/permanent, loadout/skillSlots/selectedSkill/skillCooldown/skillEffects, boons/boonTimers, progression, player/pet, enemies/plants/bullets/particles/floaters/telegraphs, terrain/weather/encounter, upgrades/upgradeChoices/stats/events, randomState and runId. Skills/statuses/weather/terrain freeze outside playing. Renderer never consumes battle RNG.
 
-Stable selectors: `#start`, `#pause`, `#resume`, `#restart`, `#arena`, `#joystick`, `[data-upgrade]`, `#loadout-skill-0`, `#loadout-skill-1`, `[data-skill-slot="0|1"]`, `#cast`, `#dash`, `#game-speed`. The speed selector uses values `1`, `2`, `3`, `5`; read-only `snapshot().controls.speed` records its current multiplier. Ready allows starting immediately with the default skills and no terrain. Skill loadout changes occur before combat; passive terrain boons are selected exclusively in XP upgrade choices. Restart returns to preparation. `body.dataset.phase` mirrors simulation phase. `window.__bulletGarden.snapshot()` returns a deep copy only.
+`world.mjs` exposes terrainSolids, terrainPointBlocked, terrainMovement and weatherStats. terrainMovement returns speedMultiplier and optional slip displacement; all displacement passes through common collision movement. Slip RNG is evaluated at slope entry, not every frame. Weather hazards have timed visible circles before damage.
 
-Touch interaction is arm → target → pointerup to cast, with joystick and targeting as independent pointers. A cancelled gesture never spends energy; an unarmed field touch only aims. Keyboard 1/2 arms slots, E/right click confirms, Escape cancels aiming before toggling pause, Space dashes. Loss of focus, visibility or canvas clears held inputs. Keep two parallel filled SVG rectangles for the pause icon.
+## Renderer and controls
 
-## Acceptance
+GardenRenderer exposes resize, render, screenToWorld, worldToScreen. `planting` means an armed skill. drawSeedIcon supports skills, boons, plants and shop icons; drawPortrait draws the gardener. Canvas context loss pauses play and cache restoration invalidates textures. Artwork caches are bounded; offscreen culling never alters simulation.
 
-Simulation tests cover acquisition-gated terrain, energy guards/lifecycle, spatial skill hits, status expiry, bounded entities and deterministic replay. Browser tests use actual controls and read-only snapshots for preparation, skill charging/casting/cancelling, dual touch, pause, upgrades and the full challenge. `tests/rendering.mjs` imports modules on an independent canvas for deterministic maximum-load raster and restoration checks; it does not modify the public game's state.
+Stable dev selectors remain start/pause/resume/restart/arena/joystick/loadout-skill-0/loadout-skill-1, `[data-skill-slot]`, `[data-upgrade]`, cast/dash/game-speed. Speed values1/2/3/5 are app timing multipliers, recorded in read-only snapshot.controls.speed. New selectors ready-campaign/ready-shop/result-campaign/result-shop/next-level, `[data-level]`, `[data-purchase]`, close-campaign/close-shop, reward-coins/reward-xp/reward-note/save-status. Campaign pages render at most12 rows.
 
-Canvas-loss event injection verifies recovery handlers, not a physical GPU reset. Synchronous readback timings and desktop touch emulation must not be described as real-phone performance or validation. Run reports are generated in `QA_OUTPUT`; the current browser, balance and rendering reports are archived in `docs/qa`.
+Touch follows arm→target→pointerup; unarmed field touch only aims, cancellation never spends energy. Joystick and target use independent pointers. Keyboard1/2 selects skills, E/right-click confirms, Escape cancels aiming before pause, Space dashes. Focus/visibility loss clears controls. Pause uses two separate filled SVG rectangles with aria-label="暂停". Restart returns to preparation with permanent growth retained.
+
+window.\_\_bulletGarden.snapshot() returns a deep copy only; no mutable test shortcuts. Tests may import pure modules for controlled fixtures, while public browser flow uses native input.
+
+## Verification boundaries
+
+Simulation, content, progression and combat tests verify effects and lifecycle. Browser campaign fixtures inspect already-unlocked content; a separate normal-resource first-level challenge verifies actual victory→reward→purchase→next-level. Rendering fixtures inspect maximum load and restoration without modifying the public game. Desktop touch emulation is not Android/iOS performance testing; injected canvas loss is not a physical GPU reset. Reports retain validation environment and these limits.

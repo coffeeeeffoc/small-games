@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-03T18:29:41.782Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4412",
+  "selection": "controls",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "native 1/2/3/5× selector, proportional time, frozen pause/XP choices and clean 1× resume",
+      "measurements": [
+        {
+          "speed": 1,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.39999999999999997
+        },
+        {
+          "speed": 2,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.8000000000000005
+        },
+        {
+          "speed": 3,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.1833333333333291
+        },
+        {
+          "speed": 5,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.9999999999999933
+        }
+      ]
+    },
+    {
+      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
+    }
+  ],
+  "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
+  },
+  "passed": false,
+  "failure": "AssertionError [ERR_ASSERTION]: armed right-click manually releases slot one\n\n0 !== 1\n\n    at desktopControls (file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:511:10)\n    at async file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:907:5"
+}

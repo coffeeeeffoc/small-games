@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-03T18:24:15.698Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4411",
+  "policy": "native keyboard/mouse/CDP touch; read-only simulation snapshot; fixtures explicitly separated from natural victory",
+  "checks": [
+    {
+      "name": "saved-profile camp + native dual-touch 390x844",
+      "fixture": true,
+      "wallet": 115,
+      "attackRank": 1,
+      "healthRank": 1
+    },
+    {
+      "name": "saved-profile camp + native dual-touch 844x390",
+      "fixture": true,
+      "wallet": 115,
+      "attackRank": 1,
+      "healthRank": 1
+    },
+    {
+      "name": "storage denial reports unsaved progress while retaining playable memory state",
+      "fixture": true
+    },
+    {
+      "name": "all 11 unlocked-map previews render through native campaign selection",
+      "fixture": true,
+      "previews": [
+        {
+          "id": "ruins",
+          "weather": {
+            "kind": "sunny",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "meadow",
+          "weather": {
+            "kind": "sunny",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "wetland",
+          "weather": {
+            "kind": "rain",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "quarry",
+          "weather": {
+            "kind": "overcast",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": "warden"
+        },
+        {
+          "id": "windpass",
+          "weather": {
+            "kind": "sunny",
+            "wind": 0.65,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "hollow",
+          "weather": {
+            "kind": "rain",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "terraces",
+          "weather": {
+            "kind": "rain",
+            "wind": 0.35,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "bastion",
+          "weather": {
+            "kind": "overcast",
+            "wind": 0.4,
+            "thunder": false
+          },
+          "encounter": "bastionlord"
+        },
+        {
+          "id": "mistwood",
+          "weather": {
+            "kind": "fog",
+            "wind": 0,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "hailfield",
+          "weather": {
+            "kind": "hail",
+            "wind": 0.6,
+            "thunder": false
+          },
+          "encounter": null
+        },
+        {
+          "id": "heartgarden",
+          "weather": {
+            "kind": "overcast",
+            "wind": 0.25,
+            "thunder": true
+          },
+          "encounter": "overgrowth"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

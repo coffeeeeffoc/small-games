@@ -20,7 +20,11 @@ test('disabled browser storage preserves puzzle state, attempt stats, and record
   try {
     const first: Level = { ...levels[0]!, id: 'session-puzzle-first' };
     const second: Level = { ...levels[0]!, id: 'session-puzzle-second' };
-    const firstState = tryMove(first, createGame(first), first.pieces[0]!.id, 1).state;
+    const shifted = tryMove(first, createGame(first), ['key', 'cross'], -6, 'y').state;
+    const firstState = tryMove(first, shifted, 'key', -2, 'z').state;
+    assert.deepEqual(firstState.offsets.key, [0, -6, -2]);
+    assert.deepEqual(firstState.offsets.cross, [0, -6, 0]);
+    assert.equal(firstState.history.length, 2);
     const secondState = createGame(second);
     assert.equal(storage.load(first), null);
     assert.equal(storage.save(firstState), false);

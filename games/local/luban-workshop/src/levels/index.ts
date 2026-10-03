@@ -7,7 +7,7 @@ const cube = (x: number, y: number, z: number): Box =>
 /** Original introductory fork-slot assemblies, not replicas of a historic burr.
  * The long spine and two teeth of each fork are one face-connected solid.
  * Dependencies arise solely from those teeth physically surrounding another bar.
- * Pieces deliberately keep one translation axis to make touch intent unambiguous.
+ * Each piece has a preferred presentation axis; all world axes and rigid groups remain movable.
  */
 const pieces: readonly PieceDefinition[] = [
   {
@@ -106,9 +106,9 @@ const doubleGate = (x: number): Timber => ({
   cells: [...line('y', [x, 0, 1], -3, 3), ...[-3, -1, 1, 3].map((y): Vec3 => [x, y, 0])],
 });
 
-/** The end stops prevent full key extraction. A short key shift clears one
- * narrow slot, allowing the frame to move before the key can leave. A second
- * frame on the opposite face requires a second, reversed clearing movement.
+/** Along the preferred axes, the end stops limit a key's straight extraction.
+ * A short shift clears a narrow slot and offers a route through the frame.
+ * Other world-axis moves and moving a rigid group remain valid alternatives.
  */
 const captiveFrame = (slot = 2, side = 1, edge = 4): Timber => ({
   axis: 'y',
@@ -164,8 +164,8 @@ function assembly(timbers: readonly Timber[], names: readonly string[]): PieceDe
   return timbers.map((timber, index) => {
     const axis = axisNumber(timber.axis);
     const boxes = timberBoxes(timber);
-    // Both endpoint positions put the entire piece beyond the original
-    // assembly on its travel axis. No invisible "removed" collision override.
+    // Keep useful reference distances for the preferred-axis layout. These
+    // metadata values neither constrain movement nor determine completion.
     const removedAt = Math.ceil(
       Math.max(
         max[axis]! - Math.min(...boxes.map((part) => part.min[axis]!)),
@@ -196,22 +196,22 @@ const plans: readonly LevelPlan[] = [
   {
     id: 'first-key',
     title: '初见 · 三向榫',
-    mechanic: '找钥匙',
-    clue: '先轻推不同方向，能完整退出的那根会打开第一道榫槽。',
+    mechanic: '自由拆装',
+    clue: '每根木条都能沿 X、Y、Z 移动。可以逐件分离，也可以组合挪开，再把它们原样装回。',
     pieces: pieces.slice(0, 3),
   },
   {
     id: 'cross-roads',
     title: '交错 · 四件锁',
     mechanic: '看阻挡',
-    clue: '观察木条侧面的齿；上一根留下的空隙，就是下一根的出口。',
+    clue: '观察木条侧面的齿，试试换轴或组合移动，找出不同的出口。',
     pieces: pieces.slice(0, 4),
   },
   {
     id: 'five-links',
     title: '层叠 · 五件锁',
     mechanic: '连续拆装',
-    clue: '顺着相扣的槽口向后看，复原时也要给后来的木条留出入口。',
+    clue: '五根木条交叠相扣。选择一件或组合移动，观察哪些接触挡住去路，再将各件归位。',
     pieces,
   },
   {
@@ -225,7 +225,7 @@ const plans: readonly LevelPlan[] = [
     id: 'captive-key',
     title: '借位 · 先退一步',
     mechanic: '局部让位',
-    clue: '能动不等于能抽出。先挪开槽口内的钥匙，再看看套框。',
+    clue: '试着先小幅挪动槽口内的钥匙，看看套框会怎样松开；也可以寻找其他方向的出口。',
     pieces: assembly(
       [keyBar([0, 0, 0], -1, 2), captiveFrame(), standingFork(2, 2)],
       ['短钥', '套框', '立榫'],
@@ -235,7 +235,7 @@ const plans: readonly LevelPlan[] = [
     id: 'twin-keys',
     title: '合闸 · 两钥同开',
     mechanic: '双钥汇合',
-    clue: '中间长榫的两道槽各有一根钥匙，只清空一处还不够。',
+    clue: '沿长闸方向观察，两道槽各有一根钥匙。可以逐一清空，也可以试着组合挪动。',
     pieces: assembly(
       [keyBar([0, -2, 0]), keyBar([0, 2, 0]), doubleGate(0)],
       ['下钥', '上钥', '双槽闸'],
@@ -275,7 +275,7 @@ const plans: readonly LevelPlan[] = [
     id: 'passing-bridge',
     title: '错步 · 套框让路',
     mechanic: '中途换手',
-    clue: '套框两端都被扣住。它只要先挪出一小段，就可能放开另一根。',
+    clue: '沿套框方向试着先挪一小段，看看哪一端会松开，再决定下一步换谁移动。',
     pieces: assembly(
       [keyBar([0, 0, 0], -1, 2), captiveFrame(), standingFork(2, 3), standingFork(2, -3)],
       ['短钥', '套框', '上立榫', '下立榫'],
@@ -303,7 +303,7 @@ const plans: readonly LevelPlan[] = [
     id: 'branching-path',
     title: '双枝 · 各有后手',
     mechanic: '双支接力',
-    clue: '左右两路都有下一层，留意立榫怎样限制上一根的退出方向。',
+    clue: '左右两路都有下一层，比较沿木条方向、侧向和组合移动时的不同阻挡。',
     pieces: assembly(
       [keyBar(), sideFork(-2), sideFork(2), standingFork(-2, -2, 1, -1), standingFork(2, 2)],
       ['中钥', '左枝', '右枝', '左立榫', '右立榫'],
@@ -333,7 +333,7 @@ const plans: readonly LevelPlan[] = [
     id: 'return-before-release',
     title: '迂回 · 借位再接力',
     mechanic: '多次让位',
-    clue: '套框让出一步后，新的移动方向才会出现；别急着一直拉同一根。',
+    clue: '试试先让套框挪一步，再转向新露出的槽口；换轴和组合移动也能带来不同路线。',
     pieces: assembly(
       [
         keyBar([0, 0, 0], -1, 2),
@@ -364,9 +364,9 @@ const plans: readonly LevelPlan[] = [
   },
   {
     id: 'split-and-pass',
-    title: '分庭 · 一路需借位',
+    title: '分庭 · 两路相接',
     mechanic: '分路与换手',
-    clue: '一条路能顺着拆，另一条路需要先挪动中间件，再换手。',
+    clue: '比较两路的槽口：顺着木条拆时，可以尝试先挪中间件再换手，也可以另找出口。',
     pieces: assembly(
       [
         keyBar(),
@@ -383,7 +383,7 @@ const plans: readonly LevelPlan[] = [
     id: 'opposing-frames',
     title: '对扣 · 左右借位',
     mechanic: '反向让位',
-    clue: '钥匙两侧各有一道套框，一次让位只能先放开其中一边。',
+    clue: '钥匙两侧各有一道套框。试试左右让位怎样改变槽口，也留意侧向和组合路线。',
     pieces: assembly(
       [
         keyBar([0, 0, 0], -2, 2),
@@ -416,7 +416,7 @@ const plans: readonly LevelPlan[] = [
     id: 'master-workshop',
     title: '匠心 · 归榫成器',
     mechanic: '综合机关',
-    clue: '先借位、再换手、再沿支路拆开。把每次新露出的槽口连成一条思路。',
+    clue: '借位、换手、沿支路拆开是一种思路；也试试自由换轴和组合，寻找自己的路线。',
     pieces: assembly(
       [
         keyBar([0, 0, 0], -2, 2),

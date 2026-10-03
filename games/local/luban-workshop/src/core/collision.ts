@@ -1,14 +1,18 @@
-import type { Box, Level, Offsets, PieceDefinition } from './types.ts';
+import type { Axis, Box, Level, Offsets, PieceDefinition, Vec3 } from './types.ts';
 
 export const EPSILON = 0.000001;
-export const axisIndex = (axis: PieceDefinition['axis']): 0 | 1 | 2 =>
-  axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+export const axisIndex = (axis: Axis): 0 | 1 | 2 => (axis === 'x' ? 0 : axis === 'y' ? 1 : 2);
+export const axes: readonly Axis[] = ['x', 'y', 'z'];
+export const selectionIds = (ids: string | readonly string[]): string[] => [
+  ...new Set(typeof ids === 'string' ? [ids] : ids),
+];
+export const finiteVector = (value: unknown): value is Vec3 =>
+  Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
 
-export function worldBox(box: Box, piece: PieceDefinition, offset: number): Box {
-  const index = axisIndex(piece.axis);
+export function worldBox(box: Box, _piece: PieceDefinition, offset: Vec3): Box {
   return {
-    min: box.min.map((value, i) => value + (i === index ? offset : 0)) as unknown as Box['min'],
-    max: box.max.map((value, i) => value + (i === index ? offset : 0)) as unknown as Box['max'],
+    min: box.min.map((value, i) => value + offset[i]!) as unknown as Vec3,
+    max: box.max.map((value, i) => value + offset[i]!) as unknown as Vec3,
   };
 }
 
@@ -16,7 +20,29 @@ export function boxesOverlap(a: Box, b: Box): boolean {
   return a.min.every((value, i) => value < b.max[i]! - EPSILON && a.max[i]! > b.min[i]! + EPSILON);
 }
 
+export function pieceBounds(piece: PieceDefinition, offset: Vec3): Box {
+  return {
+    min: [0, 1, 2].map(
+      (i) => Math.min(...piece.boxes.map((box) => box.min[i]!)) + offset[i]!,
+    ) as unknown as Vec3,
+    max: [0, 1, 2].map(
+      (i) => Math.max(...piece.boxes.map((box) => box.max[i]!)) + offset[i]!,
+    ) as unknown as Vec3,
+  };
+}
+
+/** Clearance between enclosing boxes prevents a piece sitting inside a fork's
+ * empty slot from counting as removed. It also depends only on relative pose. */
+export function piecesSeparated(a: Box, b: Box): boolean {
+  const clearance = 0.25;
+  return a.min.some(
+    (value, i) =>
+      value >= b.max[i]! + clearance - EPSILON || b.min[i]! >= a.max[i]! + clearance - EPSILON,
+  );
+}
+
 export function isCollisionFree(level: Level, offsets: Offsets): boolean {
+  if (level.pieces.some((piece) => !finiteVector(offsets[piece.id]))) return false;
   for (let i = 0; i < level.pieces.length; i++) {
     const a = level.pieces[i]!;
     for (let j = i + 1; j < level.pieces.length; j++) {
@@ -37,68 +63,82 @@ export interface SweepResult {
   blockedBy: string[];
 }
 
-/** Exact swept AABB test for a union of boxes translating along one fixed axis.
- * Testing the entire swept interval prevents even a very fast drag from tunnelling.
+/** Exact swept AABB test for a rigid selection translating on a world axis.
+ * Selected members retain their relative poses and never obstruct each other.
+ * The entire interval is checked, including obstacles beyond the drag endpoint.
  * Face contact is permitted; positive-volume intersection is not.
  */
 export function sweepMove(
   level: Level,
   offsets: Offsets,
-  pieceId: string,
+  pieceIds: string | readonly string[],
   requestedOffset: number,
+  requestedAxis?: Axis,
 ): SweepResult {
-  const piece = level.pieces.find((candidate) => candidate.id === pieceId);
-  const current = offsets[pieceId];
-  if (!piece || !Number.isFinite(current) || !Number.isFinite(requestedOffset)) {
-    return { actualOffset: current ?? 0, blocked: true, blockedBy: [] };
-  }
-  const target = Math.min(piece.range[1], Math.max(piece.range[0], requestedOffset));
-  const delta = target - current!;
-  if (Math.abs(delta) < EPSILON) {
-    return {
-      actualOffset: current!,
-      blocked: Math.abs(requestedOffset - current!) > EPSILON,
-      blockedBy: [],
-    };
-  }
-  const axis = axisIndex(piece.axis);
+  const ids = selectionIds(pieceIds);
+  const leader = level.pieces.find((candidate) => candidate.id === ids[0]);
+  const axis = requestedAxis ?? leader?.axis ?? 'x';
+  const index = axisIndex(axis);
+  const current = offsets[ids[0] ?? '']?.[index];
+  const invalid = {
+    actualOffset: Number.isFinite(current) ? current! : 0,
+    blocked: true,
+    blockedBy: [],
+  };
+  if (
+    !leader ||
+    !axes.includes(axis) ||
+    !Number.isFinite(requestedOffset) ||
+    !Number.isFinite(current) ||
+    !Number.isFinite(requestedOffset - current!) ||
+    level.pieces.some((piece) => !finiteVector(offsets[piece.id])) ||
+    ids.some((id) => !level.pieces.some((piece) => piece.id === id))
+  )
+    return invalid;
+  const delta = requestedOffset - current!;
+  if (ids.some((id) => !Number.isFinite(offsets[id]![index] + delta))) return invalid;
+  if (Math.abs(delta) < EPSILON) return { actualOffset: current!, blocked: false, blockedBy: [] };
   const sign = Math.sign(delta);
   let permittedDistance = Math.abs(delta);
   let blockedBy: string[] = [];
-  for (const other of level.pieces) {
-    if (other.id === pieceId) continue;
-    for (const original of piece.boxes) {
-      const a = worldBox(original, piece, current!);
-      for (const originalOther of other.boxes) {
-        const b = worldBox(originalOther, other, offsets[other.id]!);
-        // A pair can collide only if its projections overlap on both fixed axes.
-        if (
-          a.min.some(
-            (value, i) =>
-              i !== axis && (value >= b.max[i]! - EPSILON || a.max[i]! <= b.min[i]! + EPSILON),
+  const selected = new Set(ids);
+  for (const piece of level.pieces) {
+    if (!selected.has(piece.id)) continue;
+    for (const other of level.pieces) {
+      if (selected.has(other.id)) continue;
+      for (const original of piece.boxes) {
+        const a = worldBox(original, piece, offsets[piece.id]!);
+        for (const originalOther of other.boxes) {
+          const b = worldBox(originalOther, other, offsets[other.id]!);
+          if (
+            a.min.some(
+              (value, i) =>
+                i !== index && (value >= b.max[i]! - EPSILON || a.max[i]! <= b.min[i]! + EPSILON),
+            )
           )
-        )
-          continue;
-        let gap: number;
-        if (sign > 0 && a.max[axis] <= b.min[axis] + EPSILON) gap = b.min[axis] - a.max[axis];
-        else if (sign < 0 && a.min[axis] >= b.max[axis] - EPSILON) gap = a.min[axis] - b.max[axis];
-        else if (a.min[axis] < b.max[axis] - EPSILON && a.max[axis] > b.min[axis] + EPSILON)
-          gap = 0;
-        else continue; // This obstacle is behind the moving piece.
-        gap = Math.max(0, gap);
-        if (gap < permittedDistance - EPSILON) {
-          permittedDistance = gap;
-          blockedBy = [other.id];
-        } else if (
-          Math.abs(gap - permittedDistance) < EPSILON &&
-          gap < Math.abs(delta) - EPSILON &&
-          !blockedBy.includes(other.id)
-        ) {
-          blockedBy.push(other.id);
+            continue;
+          let gap: number;
+          if (sign > 0 && a.max[index] <= b.min[index] + EPSILON) gap = b.min[index] - a.max[index];
+          else if (sign < 0 && a.min[index] >= b.max[index] - EPSILON)
+            gap = a.min[index] - b.max[index];
+          else if (a.min[index] < b.max[index] - EPSILON && a.max[index] > b.min[index] + EPSILON)
+            gap = 0;
+          else continue;
+          gap = Math.max(0, gap);
+          if (gap < permittedDistance - EPSILON) {
+            permittedDistance = gap;
+            blockedBy = [other.id];
+          } else if (
+            Math.abs(gap - permittedDistance) < EPSILON &&
+            gap < Math.abs(delta) - EPSILON &&
+            !blockedBy.includes(other.id)
+          ) {
+            blockedBy.push(other.id);
+          }
         }
       }
     }
   }
-  const actualOffset = Math.round((current! + sign * permittedDistance) * 1e6) / 1e6;
+  const actualOffset = current! + sign * permittedDistance;
   return { actualOffset, blocked: Math.abs(actualOffset - requestedOffset) > EPSILON, blockedBy };
 }

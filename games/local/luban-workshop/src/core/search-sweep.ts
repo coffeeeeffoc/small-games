@@ -1,97 +1,94 @@
-import { axisIndex, EPSILON } from './collision.ts';
-import type { Level, Offsets, PieceDefinition } from './types.ts';
+import { axes, axisIndex, EPSILON, finiteVector, selectionIds } from './collision.ts';
+import type { Axis, Level, Offsets, PieceDefinition } from './types.ts';
 
-interface Interval {
-  min: number;
-  max: number;
-}
+interface Interval { min: number; max: number }
 
-/** A search evaluates the same pair geometry thousands of times. For a moving
- * piece, another piece's offset completely determines its forbidden intervals.
- * Compile and cache those intervals instead of allocating world-space boxes on
- * every search edge. Gameplay still uses sweepMove for feedback and validation.
- */
-export function createSearchSweep(
-  level: Level,
-): (offsets: Offsets, pieceId: string, requestedOffset: number) => number {
-  const pairs = new Map<
-    string,
-    {
-      piece: PieceDefinition;
-      obstacles: { piece: PieceDefinition; intervals: Map<number, Interval[]> }[];
-    }
-  >();
-  for (const piece of level.pieces) {
-    pairs.set(piece.id, {
-      piece,
-      obstacles: level.pieces
-        .filter((other) => other.id !== piece.id)
-        .map((other) => ({ piece: other, intervals: new Map() })),
-    });
-  }
+/** Cached pair intervals accelerate search without changing the live collision
+ * rules. All three position coordinates, any travel axis, and rigid selections
+ * are supported; selected members never obstruct one another. */
+export function createSearchSweep(level: Level): (
+  offsets: Offsets,
+  pieceIds: string | readonly string[],
+  requestedOffset: number,
+  axis?: Axis,
+) => number {
+  const pairs = new Map<string, {
+    piece: PieceDefinition;
+    obstacles: { piece: PieceDefinition; intervals: Map<string, Interval[]> }[];
+  }>();
+  for (const piece of level.pieces) pairs.set(piece.id, {
+    piece,
+    obstacles: level.pieces.filter((other) => other.id !== piece.id)
+      .map((other) => ({ piece: other, intervals: new Map() })),
+  });
 
-  return (offsets, pieceId, requestedOffset) => {
-    const pair = pairs.get(pieceId);
-    const current = offsets[pieceId];
-    if (!pair || !Number.isFinite(current) || !Number.isFinite(requestedOffset))
-      return current ?? 0;
-    const target = Math.min(pair.piece.range[1], Math.max(pair.piece.range[0], requestedOffset));
-    const delta = target - current!;
+  return (offsets, pieceIds, requestedOffset, requestedAxis) => {
+    const ids = selectionIds(pieceIds);
+    const leader = pairs.get(ids[0] ?? '');
+    const axis = requestedAxis ?? leader?.piece.axis ?? 'x';
+    const index = axisIndex(axis);
+    const current = offsets[ids[0] ?? '']?.[index];
+    if (!leader || !axes.includes(axis) || !Number.isFinite(current) ||
+        !Number.isFinite(requestedOffset) || !Number.isFinite(requestedOffset - current!) ||
+        ids.some((id) => !pairs.has(id)) ||
+        level.pieces.some((piece) => !finiteVector(offsets[piece.id])))
+      return Number.isFinite(current) ? current! : 0;
+    const delta = requestedOffset - current!;
+    if (ids.some((id) => !Number.isFinite(offsets[id]![index] + delta))) return current!;
     if (Math.abs(delta) < EPSILON) return current!;
-    const movingAxis = axisIndex(pair.piece.axis);
     const positive = delta > 0;
+    const selected = new Set(ids);
     let distance = Math.abs(delta);
-    for (const obstacle of pair.obstacles) {
-      const otherOffset = offsets[obstacle.piece.id]!;
-      let intervals = obstacle.intervals.get(otherOffset);
-      if (!intervals) {
-        const otherAxis = axisIndex(obstacle.piece.axis);
-        const found: Interval[] = [];
-        for (const a of pair.piece.boxes) {
-          for (const b of obstacle.piece.boxes) {
+    for (const id of ids) {
+      const pair = pairs.get(id)!;
+      const position = offsets[id]!;
+      for (const obstacle of pair.obstacles) {
+        if (selected.has(obstacle.piece.id)) continue;
+        const otherPosition = offsets[obstacle.piece.id]!;
+        const key = `${axis}:${position.join(',')}:${otherPosition.join(',')}`;
+        let intervals = obstacle.intervals.get(key);
+        if (!intervals) {
+          const found: Interval[] = [];
+          for (const a of pair.piece.boxes) for (const b of obstacle.piece.boxes) {
             let overlap = true;
-            for (let axis = 0; axis < 3; axis++) {
-              if (axis === movingAxis) continue;
-              const shift = axis === otherAxis ? otherOffset : 0;
-              if (
-                a.min[axis]! >= b.max[axis]! + shift - EPSILON ||
-                a.max[axis]! <= b.min[axis]! + shift + EPSILON
-              ) {
+            for (let i = 0; i < 3; i++) {
+              if (i === index) continue;
+              if (a.min[i]! + position[i]! >= b.max[i]! + otherPosition[i]! - EPSILON ||
+                  a.max[i]! + position[i]! <= b.min[i]! + otherPosition[i]! + EPSILON) {
                 overlap = false;
                 break;
               }
             }
-            if (!overlap) continue;
-            const shift = movingAxis === otherAxis ? otherOffset : 0;
-            found.push({
-              min: b.min[movingAxis] + shift - a.max[movingAxis],
-              max: b.max[movingAxis] + shift - a.min[movingAxis],
+            if (overlap) found.push({
+              min: b.min[index] + otherPosition[index] - (a.max[index] + position[index]),
+              max: b.max[index] + otherPosition[index] - (a.min[index] + position[index]),
             });
           }
+          found.sort((a, b) => a.min - b.min);
+          intervals = [];
+          for (const interval of found) {
+            const previous = intervals.at(-1);
+            if (previous && interval.min <= previous.max)
+              previous.max = Math.max(previous.max, interval.max);
+            else intervals.push({ ...interval });
+          }
+          if (obstacle.intervals.size >= 1024)
+            obstacle.intervals.delete(obstacle.intervals.keys().next().value!);
+          obstacle.intervals.set(key, intervals);
         }
-        found.sort((a, b) => a.min - b.min);
-        intervals = [];
-        for (const interval of found) {
-          const previous = intervals.at(-1);
-          if (previous && interval.min <= previous.max)
-            previous.max = Math.max(previous.max, interval.max);
-          else intervals.push({ ...interval });
+        for (const interval of intervals) {
+          let gap: number;
+          if (positive && interval.min >= -EPSILON) gap = interval.min;
+          else if (!positive && interval.max <= EPSILON) gap = -interval.max;
+          else if (interval.min < -EPSILON && interval.max > EPSILON) gap = 0;
+          else continue;
+          gap = Math.max(0, gap);
+          if (gap < distance - EPSILON) distance = gap;
         }
-        // Dragged positions can be arbitrary fractions; bound each pair cache.
-        if (obstacle.intervals.size >= 256)
-          obstacle.intervals.delete(obstacle.intervals.keys().next().value!);
-        obstacle.intervals.set(otherOffset, intervals);
+        if (distance === 0) break;
       }
-      for (const interval of intervals) {
-        let gap: number;
-        if (positive && current! <= interval.min + EPSILON) gap = interval.min - current!;
-        else if (!positive && current! >= interval.max - EPSILON) gap = current! - interval.max;
-        else if (current! > interval.min + EPSILON && current! < interval.max - EPSILON) gap = 0;
-        else continue;
-        distance = Math.min(distance, Math.max(0, gap));
-      }
-      if (distance < EPSILON) break;
+      if (distance === 0) break;
     }
-    return Math.round((current! + Math.sign(delta) * distance) * 1e6) / 1e6;
+    return current! + Math.sign(delta) * distance;
   };
 }
