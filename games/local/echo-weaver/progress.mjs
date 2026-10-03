@@ -1,12 +1,12 @@
 /** Only puzzle outcomes and preferences are stored; route edits stay ephemeral. */
-export const PROGRESS_KEY = 'echo-weaver-progress-v1';
+export const PROGRESS_KEY = 'echo-weaver-progress-v2';
 
 const unsafeIds = new Set(['__proto__', 'constructor', 'prototype']);
 const validId = (id) =>
   typeof id === 'string' && id.length > 0 && id.length <= 160 && !unsafeIds.has(id);
 const validAttempts = (value) => Number.isSafeInteger(value) && value > 0;
 const emptyProgress = () => ({
-  version: 1,
+  version: 2,
   selected: 0,
   completed: {},
   sound: false,
@@ -31,12 +31,12 @@ export function readProgress(storage, levels = []) {
     const raw = storage?.getItem(PROGRESS_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.version !== 1)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.version !== 2)
       return fallback;
     const knownLevels = Array.isArray(levels) ? levels : [];
     const ids = new Set(knownLevels.map((level) => level?.id).filter(validId));
     return {
-      version: 1,
+      version: 2,
       selected:
         Number.isSafeInteger(parsed.selected) &&
         parsed.selected >= 0 &&
@@ -63,7 +63,7 @@ export function persistProgress(storage, progress) {
     )
       return false;
     const snapshot = {
-      version: 1,
+      version: 2,
       selected:
         Number.isSafeInteger(progress.selected) && progress.selected >= 0 ? progress.selected : 0,
       completed: cleanCompleted(progress.completed),

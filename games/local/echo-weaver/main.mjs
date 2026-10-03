@@ -1,155 +1,186 @@
 import { LEVELS } from './levels.mjs';
-import { createState, cycleControl, simulate } from './engine.mjs';
-import { renderBoard, animateBoard, COLORS, localized, escapeHtml, format } from './render.mjs';
+import {
+  createState,
+  canPlace,
+  placePiece,
+  rotatePiece,
+  removePiece,
+  simulate,
+} from './engine.mjs';
+import {
+  renderBoard,
+  renderInventory,
+  renderTrace,
+  pieceIcon,
+  COLORS,
+  localized,
+  escapeHtml,
+  format,
+  coordinate,
+} from './render.mjs';
 import { readProgress, persistProgress } from './progress.mjs';
 import { createAudio } from './audio.mjs';
 
 const $ = (selector) => document.querySelector(selector);
-const STRINGS = {
+const COPY = {
   zh: {
-    brandSub: '回声编织 / 声音实验室',
-    headline: '把声音，织成节奏。',
-    tagline: '一次发声，三次回响。让每一条声路，恰好赶上它的节拍。',
-    chapter: '初始共鸣',
-    boardLabel: '声路编织台',
-    boardNote: '点击发光机关调整',
-    routeLegend: '声路 / 标注时长',
-    reflectorLegend: '反射板',
-    delayLegend: '延迟段',
-    keyboard: 'SPACE / 试奏',
-    scoreKicker: 'THE SCORE / 目标节奏',
-    scoreTitle: '恰好，在这一拍。',
-    scoreCopy: '三条回声分别在目标拍抵达，且有足够能量。',
-    playhead: '内部节拍',
-    ruleNote: '更长的声路，换来更晚的回声。',
-    routeReadout: '声路读数',
-    prediction: '实时预测',
-    footer: '原创节拍谜题 · 8 个声音实验',
-    silent: '静音也能完整游玩',
-    helpTitle: '声音需要时间。',
-    understood: '开始编织 →',
-    backBoard: '返回编织台',
-    ready: '等待编织',
-    running: '回声传播中',
-    paused: '已暂停',
-    result: '试奏结束',
-    emit: '发出声音',
-    stop: '停止试奏',
+    brandSub: '回声编织 / 空间节拍实验',
+    target: '目标到达时刻',
+    unit: '每走一格 = ¼ 拍',
+    boardLabel: '构建你的声路',
+    mirror: '反射板',
+    splitter: '分声器',
+    delay: '延迟器',
+    inventory: '器件架 · 拖入棋盘',
+    rotate: '旋转',
+    returnPiece: '收回器件',
     undo: '撤销',
     restart: '重置',
-    hint: '一点提示 ↗',
-    messageLabel: '实验笔记',
+    notes: '实验记录',
+    replay: '重放本次布局',
+    ideaTitle: '一个机关，影响几次回声？',
+    ideaCopy: '延迟器放在分声前，会让后面的回声一起晚到。放在支路，只影响其中一道。',
+    hint: '给一点线索 ↗',
+    rulesTitle: '工作台规则',
+    silent: '不用麦克风 · 静音同样可玩',
+    helpTitle: '自己搭路，再让声音出发。',
+    closeHelp: '回到工作台 →',
+    backBoard: '留在棋盘查看轨迹',
+    emit: '发声试奏',
+    stop: '停止',
+    ready: '等待你来搭路',
+    running: '声音正在传播',
+    paused: '已暂停',
+    result: '轨迹已保留',
     beat: '拍',
-    energy: '能量',
-    minimum: '接收阈值',
-    completed: '已完成',
-    ontime: '准时抵达',
+    ticks: '格时',
+    selected: '已选',
+    nothingSelected: '选器件，再点格子放置',
+    moveHint: '点空格移动 · 再点原位旋转',
+    tapHint: '拖动，或选中后点格子',
+    locked: '这是固定机关，不能移动。',
+    invalid: '这里放不下。找一块空地，或先收回占位器件。',
+    returned: '器件已收回，换条路线试试。',
+    placed: '已放置。再次点选中的器件可旋转。',
+    rotated: '已旋转。声路会随朝向改变。',
+    undone: '已撤销上一步。',
+    stopped: '已停止试奏，可以继续搭路。',
+    trialReady: '先搭一条声路，然后试奏。',
+    trialEmpty: '试奏后，这里会记录声音走过的路径、到达时间和剩余能量。',
+    inFlight: '观察声波怎样分开、停留和抵达。',
+    passed: '每一道回声都在目标时刻回来。',
+    failed: '这次还没对上。轨迹留在棋盘上，可以直接修改。',
     early: '提前',
     late: '迟到',
+    onTime: '准时',
+    extra: '多余回声',
+    missing: '缺少回声',
+    energy: '剩余能量',
+    wall: '撞上墙',
+    escaped: '离开棋盘',
     weak: '能量不足',
-    blocked: '被吸音块吞没',
-    winTitle: '三次回响，恰如其分。',
-    finalTitle: '你已成为回声编织者。',
-    winCopy: '一次声音，沿不同的路，在各自的节拍归来。',
-    finalCopy: '8 个声音实验全部完成。你把距离、等待与能量，织成了节奏。',
-    loseTitle: '差一点，再调整一下。',
-    loseCopy: '观察读数与节拍灯，修改声路后可以无限次试奏。',
-    next: '下一个实验 →',
-    retry: '继续调整 →',
-    replay: '重新探索 →',
-    soundOn: '关闭音效',
-    soundOff: '开启音效',
+    loop: '陷入循环',
+    overload: '传播超出上限',
+    source: '返回声源',
+    attempt: '次试奏',
+    pieces: '个器件已放置',
+    completed: '个实验完成',
+    mute: '关闭音效',
+    unmute: '开启音效',
     resume: '继续',
-    pausedMessage: '传播已暂停，继续后从当前节拍恢复。',
-    changed: '机关已调整。查看右侧读数，再试奏验证。',
-    stopped: '试奏已停止。可以继续调整声路。',
-    undoMessage: '已撤销上一步。',
-    noHint: '先看每条声路的抵达拍数；时间正确后，再检查能量。',
-    loss: '损耗',
-    units: '格',
-    reflections: '次反射',
-    delay: '延迟',
-    arrival: '抵达',
-    target: '目标',
-    hintLabel: '一点灵感',
-    storage: '当前浏览器无法保存，仍可完整游玩。',
-    saved: '进度保存在当前浏览器',
-    source: '一次发声',
-    helpLabel: '玩法说明',
-    levelLabel: '选择关卡',
+    next: '下一个实验 →',
+    explore: '从头再探索 →',
+    winTitle: '这条声路，是你织出来的。',
+    finalTitle: '五个实验，都找到了节奏。',
+    winCopy: '距离、分声位置与等待时间，终于在同一条节奏上相遇。',
+    finalCopy: '你已经亲手构建了绕路、分声与共享等待。可以返回任意关卡，寻找不同的搭法。',
+    storage: '浏览器未允许存档，本次仍可继续游玩。',
+    fixedDelay: '延迟时长固定；试着改变它的位置。',
+    failureAt: '终止于',
+    notArrived: '目标时刻没有回声抵达',
+    slow: '半速观察',
+    help: '玩法说明',
   },
   en: {
-    brandSub: 'A SMALL LAB FOR SOUND',
-    headline: 'Weave a little rhythm.',
-    tagline: 'One sound. Three echoes. Find the right path to the right moment.',
-    chapter: 'First resonance',
-    boardLabel: 'THE WEAVING DESK',
-    boardNote: 'Tap a glowing mechanism',
-    routeLegend: 'Route / marked duration',
-    reflectorLegend: 'Reflector',
-    delayLegend: 'Delay',
-    keyboard: 'SPACE / PLAY',
-    scoreKicker: 'THE SCORE / TARGET RHYTHM',
-    scoreTitle: 'Right on the beat.',
-    scoreCopy: 'Each echo must arrive on its own target beat, with enough energy.',
-    playhead: 'INTERNAL BEAT',
-    ruleNote: 'A longer journey makes a later echo.',
-    routeReadout: 'Route readings',
-    prediction: 'LIVE FORECAST',
-    footer: 'Original rhythm puzzles · 8 experiments',
-    silent: 'Fully playable on mute',
-    helpTitle: 'Sound takes time.',
-    understood: 'Start weaving →',
-    backBoard: 'Back to the desk',
-    ready: 'Ready to weave',
-    running: 'Echoes in flight',
-    paused: 'Paused',
-    result: 'Playback complete',
-    emit: 'Strike a note',
-    stop: 'Stop playback',
+    brandSub: 'BUILD A CIRCUIT FOR SOUND',
+    target: 'TARGET ARRIVALS',
+    unit: 'One cell = ¼ beat',
+    boardLabel: 'BUILD YOUR OWN ROUTES',
+    mirror: 'Mirror',
+    splitter: 'Splitter',
+    delay: 'Delay',
+    inventory: 'PARTS TRAY · DRAG TO BUILD',
+    rotate: 'Rotate',
+    returnPiece: 'Return part',
     undo: 'Undo',
     restart: 'Reset',
-    hint: 'A little hint ↗',
-    messageLabel: 'FIELD NOTES',
+    notes: 'Trial notebook',
+    replay: 'Replay this layout',
+    ideaTitle: 'How many echoes does one part affect?',
+    ideaCopy:
+      'A delay before a split holds every echo downstream. Put it on a branch to hold only that echo.',
+    hint: 'A little clue ↗',
+    rulesTitle: 'Workbench rules',
+    silent: 'No microphone · Fully playable muted',
+    helpTitle: 'Build the route. Then strike.',
+    closeHelp: 'Back to the workbench →',
+    backBoard: 'Stay and inspect the trace',
+    emit: 'Strike & listen',
+    stop: 'Stop',
+    ready: 'Ready to build',
+    running: 'Sound in flight',
+    paused: 'Paused',
+    result: 'Trace retained',
     beat: 'beat',
-    energy: 'Energy',
-    minimum: 'Receiver threshold',
-    completed: 'complete',
-    ontime: 'On time',
+    ticks: 'ticks',
+    selected: 'Selected',
+    nothingSelected: 'Select a part, then tap a cell',
+    moveHint: 'Tap empty cell to move · Tap again to rotate',
+    tapHint: 'Drag, or select then tap a cell',
+    locked: 'This part is fixed in place.',
+    invalid: 'That cell is occupied. Choose an empty cell or return its part first.',
+    returned: 'Part returned to the tray. Try a different route.',
+    placed: 'Placed. Tap the selected part again to rotate it.',
+    rotated: 'Rotated. Orientation changes the actual route.',
+    undone: 'Last edit undone.',
+    stopped: 'Playback stopped. Keep building.',
+    trialReady: 'Build a route, then make a trial.',
+    trialEmpty:
+      'Strike a note to record its route, actual arrival times and remaining energy here.',
+    inFlight: 'Watch the pulse split, wait, and find its way home.',
+    passed: 'Every echo returned at its target moment.',
+    failed: 'Not quite. The trace stays on the board; edit it directly.',
     early: 'Early by',
     late: 'Late by',
-    weak: 'Too weak',
-    blocked: 'Absorbed',
-    winTitle: 'Three echoes. In harmony.',
-    finalTitle: 'You are an echo weaver.',
-    winCopy: 'One sound took three different journeys. Every echo found its moment.',
-    finalCopy: 'All eight experiments complete. Distance, patience and energy, woven into rhythm.',
-    loseTitle: 'Almost. Try another route.',
-    loseCopy:
-      'Check the readings and beat lights. Adjust your routes and try as often as you like.',
-    next: 'Next experiment →',
-    retry: 'Keep weaving →',
-    replay: 'Explore again →',
-    soundOn: 'Mute audio',
-    soundOff: 'Enable audio',
+    onTime: 'On time',
+    extra: 'Extra echo',
+    missing: 'Missing echo',
+    energy: 'Energy left',
+    wall: 'Hit a wall',
+    escaped: 'Left the board',
+    weak: 'Too little energy',
+    loop: 'Trapped in a loop',
+    overload: 'Propagation limit',
+    source: 'Returned to source',
+    attempt: 'trials',
+    pieces: 'parts placed',
+    completed: 'experiments complete',
+    mute: 'Mute audio',
+    unmute: 'Enable audio',
     resume: 'Resume',
-    pausedMessage: 'Propagation is paused. Resume to continue from this exact beat.',
-    changed: 'Mechanism adjusted. Check the readings, then strike a note.',
-    stopped: 'Playback stopped. Keep shaping the routes.',
-    undoMessage: 'Last change undone.',
-    noHint: 'Check each arrival beat first, then the energy left at the receiver.',
-    loss: 'Loss',
-    units: 'units',
-    reflections: 'reflections',
-    delay: 'delay',
-    arrival: 'Arrival',
-    target: 'Target',
-    hintLabel: 'A LITTLE INSPIRATION',
-    storage: 'Storage is unavailable; you can still play every level.',
-    saved: 'Progress saved in this browser',
-    source: 'One sound',
-    helpLabel: 'How to play',
-    levelLabel: 'Choose a level',
+    next: 'Next experiment →',
+    explore: 'Explore again →',
+    winTitle: 'A circuit you wove yourself.',
+    finalTitle: 'Five experiments. A rhythm of your own.',
+    winCopy: 'Distance, the placement of each split, and time spent waiting found the same rhythm.',
+    finalCopy:
+      'You built real detours, split echoes and shared waits. Revisit any experiment to try a different construction.',
+    storage: 'Browser storage is unavailable. You can still play.',
+    fixedDelay: 'Delay duration is fixed. Change its position instead.',
+    failureAt: 'Stopped at',
+    notArrived: 'No echo reached this target moment',
+    slow: 'Half-speed playback',
+    help: 'How to play',
   },
 };
 let storage;
@@ -159,191 +190,317 @@ try {
   storage = null;
 }
 const progress = readProgress(storage, LEVELS);
-let levelIndex = progress.selected;
-let level = LEVELS[levelIndex];
-let state = createState(level);
-let report = simulate(level, state);
-let phase = 'ready';
-let history = [];
-let attempts = 0;
-let elapsed = 0;
-let frame = 0;
-let lastTime = 0;
-let heard = new Set();
-let hintShown = false;
-let messageKey = null;
-let storageAvailable = true;
-let audioGeneration = 0;
+let levelIndex = progress.selected,
+  level = LEVELS[levelIndex],
+  state = createState(level);
+let phase = 'ready',
+  report = null,
+  elapsed = 0,
+  history = [],
+  selectedPiece = null,
+  attempts = 0;
+let slow = false,
+  frame = 0,
+  lastTime = 0,
+  heard = new Set(),
+  audioGeneration = 0,
+  storageOK = true;
+let instruction = null,
+  hintShown = false,
+  drag = null,
+  suppressClickUntil = 0;
 const audio = createAudio();
 audio.setEnabled(progress.sound);
-const t = (key) => STRINGS[progress.locale][key] || key;
+const t = (key) => COPY[progress.locale][key] || key;
 const loc = (item, key) => localized(item, key, progress.locale);
-const beatText = (ticks) => `${format(ticks / level.ticksPerBeat)} ${t('beat')}`;
-const isBusy = () => phase === 'running' || phase === 'paused';
+const busy = () => phase === 'running' || phase === 'paused';
+const beat = (ticks) => `${format(ticks / level.ticksPerBeat)} ${t('beat')}`;
+const persist = () => {
+  storageOK = persistProgress(storage, progress);
+};
 function activatedTone(kind) {
   const generation = audioGeneration;
   void audio.unlock().then((ready) => {
     if (ready && generation === audioGeneration) audio.tone(kind);
   });
 }
-const persist = () => {
-  storageAvailable = persistProgress(storage, progress);
-};
 function soundIcon() {
-  return progress.sound
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 7q7 5 0 10M16 10q3 2 0 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 5 6m0-6-5 6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/>${progress.sound ? '<path d="M17 7q7 5 0 10" fill="none" stroke="currentColor" stroke-width="1.5"/>' : '<path d="m17 9 5 6m0-6-5 6" fill="none" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
 }
-function statusText(echo) {
-  if (echo.status === 'on-time') return t('ontime');
-  if (echo.status === 'weak' || echo.status === 'blocked') return t(echo.status);
-  return `${t(echo.status)} ${beatText(Math.abs(echo.targetDelta))}`;
-}
-function renderStaticText() {
+function updateText() {
   document.documentElement.lang = progress.locale === 'zh' ? 'zh-CN' : 'en';
-  document.title =
-    progress.locale === 'zh' ? 'Echo Weaver · 回声编织' : 'Echo Weaver · First resonance';
   document
     .querySelectorAll('[data-i18n]')
     .forEach((node) => (node.textContent = t(node.dataset.i18n)));
+  $('#level-number').textContent = String(levelIndex + 1).padStart(2, '0');
+  $('#level-title').textContent = loc(level, 'title');
+  $('#level-subtitle').textContent = loc(level, 'subtitle');
+  $('#lesson').textContent = loc(level, 'intro');
   $('#language').textContent = progress.locale === 'zh' ? 'EN' : '中文';
   $('#language').setAttribute(
     'aria-label',
     progress.locale === 'zh' ? 'Switch to English' : '切换中文',
   );
-  $('#help').setAttribute('aria-label', t('helpLabel'));
+  $('#help').setAttribute('aria-label', t('help'));
   $('#board').setAttribute('aria-label', t('boardLabel'));
-  $('#level-nav').setAttribute('aria-label', t('levelLabel'));
+  $('#inventory').setAttribute('aria-label', t('inventory'));
+  $('#quick-rules').innerHTML =
+    progress.locale === 'zh'
+      ? '<li>把器件拖进任意空格。也可先选器件，再点格子；重复点选中的器件可旋转。</li><li>分声器让声音一半直行、一半反射。所有分出的回声都必须回来。</li><li>接通不等于成功。路径决定到达时间；延迟器的数值固定，位置由你选择。</li>'
+      : '<li>Drag parts onto any empty cell. Or select a part, then tap a cell. Tap the selected part again to rotate.</li><li>A splitter sends half forward and reflects half. Every emitted branch must return.</li><li>Connected does not mean solved. Routes determine arrival time. A delay has a fixed duration; you choose where it goes.</li>';
+  $('#energy-rule').textContent =
+    progress.locale === 'zh'
+      ? `初始声能 ${level.sourceEnergy} · 接收至少 ${level.minEnergy}。每格损耗 ${level.travelLoss}，每次反射损耗 ${level.reflectionLoss}；分声先减 ${level.splitterLoss} 再平分，每格等待损耗 ${level.delayLoss}。吸音地格另扣标注能量。`
+      : `Start: ${level.sourceEnergy} energy · Receiver needs ${level.minEnergy}. Each cell costs ${level.travelLoss}; mirrors cost ${level.reflectionLoss}. Splitters cost ${level.splitterLoss} then halve energy; each waiting tick costs ${level.delayLoss}. Absorbers spend their marked energy.`;
   $('#help-content').innerHTML =
     progress.locale === 'zh'
-      ? '<div class="help-step"><b>01</b><div><h3>点击反射板，改变声路</h3><p>发光机关可点按，暗色机关已固定。每格路程耗时 ¼ 拍。长路线晚到，反射更多则损耗更大。</p></div></div><div class="help-step"><b>02</b><div><h3>让三个回声各就各位</h3><p>点声源或「发出声音」只敲击一次。三路要分别赶上目标拍；只接通路线还不够。右侧读数会告诉你提前或迟到了多少。</p></div></div><div class="help-step"><b>03</b><div><h3>时间正确，也要留足能量</h3><p>延迟段增加等待时间；分声器分配 300 点能量。路程、反射和软吸音消耗能量，深色吸音块会彻底阻断声波。接收器至少需要 18 点。</p></div></div><p class="help-footnote">无限试奏 · 随时撤销 · 所有关卡可自由选择<br>画面为声路示意，时长以格数标注为准。声音仅作反馈，静音不影响判定。</p>'
-      : '<div class="help-step"><b>01</b><div><h3>Tap a reflector. Shape a route.</h3><p>Glowing mechanisms are editable; dim ones are fixed. Each path unit takes ¼ beat. Longer routes arrive later, while more reflections cost more energy.</p></div></div><div class="help-step"><b>02</b><div><h3>Give each echo its moment.</h3><p>Tap the source or Strike a note to emit one pulse. Every echo must reach its own target beat. A connected route alone is not enough. Readings show exactly how early or late it is.</p></div></div><div class="help-step"><b>03</b><div><h3>Keep enough energy alive.</h3><p>Delays add waiting time; the splitter shares 300 energy. Distance, reflections and soft damping spend energy. Dark absorbers block an echo. The receiver needs at least 18 energy.</p></div></div><p class="help-footnote">Unlimited attempts · Undo anytime · All levels available<br>Paths are schematic: marked units determine time. Audio is feedback only; mute never changes the result.</p>';
+      ? '<div class="help-step"><h3>01 / 自己决定位置</h3><p>从器件架拖一个反射板到空格。也可以先点器件，再点格子。点棋盘上的器件选中，再点它一次或按「旋转」改变方向。拖回器件架或按「收回器件」回收。</p></div><div class="help-step"><h3>02 / 只发声一次</h3><p>声音每走一格用 ¼ 拍。反射板转弯，分声器一半直行、一半转弯。数字 +2 的延迟器让路过的声音等待 2 格时间，即 ½ 拍。每一道回声都要按目标时间回来，漏掉或多出一声都失败。</p></div><div class="help-step"><h3>03 / 先试奏，再推理</h3><p>目标圆灯标记必须到达的时刻，小菱形记录实际到达。失败不会弹窗打断；路径和停止位置留在棋盘上。可以半速观察、暂停、重放、撤销。新编辑会清除旧轨迹。</p></div><div class="help-step"><h3>04 / 分享一段等待</h3><p>一块延迟器可以同时影响分声后的两路。放在分声前还是分声后，是不同的决定。分声也平分能量，越晚分出去的声音越弱。</p></div><p>键盘：Z 撤销 / R 旋转 / Delete 收回 / P 暂停 / 空白处 Space 试奏。声音仅作反馈，静音不影响判定。</p>'
+      : '<div class="help-step"><h3>01 / Choose every position</h3><p>Drag a mirror from the tray to an empty cell, or select it and tap a cell. Select a placed part, then tap it again or press Rotate. Drag back to the tray or press Return part to recover it.</p></div><div class="help-step"><h3>02 / Emit just once</h3><p>Every cell takes ¼ beat. Mirrors turn; splitters send half forward and reflect half. A +2 delay holds sound for 2 ticks (½ beat). Every emitted echo must return on a target; extra or lost echoes fail.</p></div><div class="help-step"><h3>03 / Experiment, then reason</h3><p>Target circles mark required times. Diamonds record real arrivals. Failure keeps the route and stop positions visible. Observe at half speed, pause, replay or undo. Editing clears stale traces.</p></div><div class="help-step"><h3>04 / Share a wait</h3><p>One delay can hold both branches downstream. Before or after a split is a meaningful choice. Splitting also halves energy, so late branches have less to spend.</p></div><p>Keyboard: Z undo / R rotate / Delete return / P pause / Space on page play. Audio is optional feedback and never judges a win.</p>';
 }
 function renderNav() {
   $('#level-nav').innerHTML = LEVELS.map(
     (item, i) =>
-      `<button class="level-button ${i === levelIndex ? 'current' : ''} ${progress.completed[item.id] ? 'done' : ''}" data-level="${i}" ${i === levelIndex ? 'aria-current="step"' : ''} aria-label="${i + 1}. ${escapeHtml(loc(item, 'title'))}${progress.completed[item.id] ? ` · ${t('completed')}` : ''}"><span class="level-num">${String(i + 1).padStart(2, '0')}</span><small>${escapeHtml(loc(item, 'title'))}</small></button>`,
+      `<button class="level-button ${i === levelIndex ? 'current' : ''} ${progress.completed[item.id] ? 'done' : ''}" data-level="${i}" ${i === levelIndex ? 'aria-current="step"' : ''} aria-label="${i + 1}. ${escapeHtml(loc(item, 'title'))}"><span>${String(i + 1).padStart(2, '0')}</span><small>${escapeHtml(loc(item, 'title'))}</small></button>`,
   ).join('');
   $('#completion').textContent =
     `${Object.keys(progress.completed).length} / ${LEVELS.length} ${t('completed')}`;
 }
-function renderReadouts() {
-  $('#route-readouts').innerHTML = report.echoes
-    .map(
-      (echo, i) =>
-        `<div class="route-readout" style="--route-color:${COLORS[i]}"><div class="readout-header"><span class="route-name">0${i + 1} · ${progress.locale === 'zh' ? '回声' : 'ECHO'}</span><span class="route-status ${echo.status === 'on-time' ? '' : 'bad'}">${escapeHtml(statusText(echo))}</span></div><div class="route-stats"><span>${t('arrival')} <strong>${format(echo.arrival / level.ticksPerBeat)}</strong> / ${format(echo.target / level.ticksPerBeat)} ${t('beat')}</span><span>${t('energy')} <strong>${format(echo.energy)}</strong> / ${echo.sourceEnergy}</span></div><div class="energy-track"><div class="energy-fill" style="width:${(Math.max(0, echo.energy) / 150) * 100}%"></div><span class="energy-threshold" style="left:${(level.minEnergy / 150) * 100}%"></span></div><div class="route-stats"><span>${echo.length} ${t('units')} · ${echo.reflections} ${t('reflections')}</span><span>+${beatText(echo.delay)} ${t('delay')}</span></div></div>`,
-    )
-    .join('');
-  $('#energy-note').textContent =
-    `${t('minimum')} ≥ ${level.minEnergy} · ${t('loss')}: ${level.lossPerUnit}/${t('units')} + ${level.reflectionLoss}/${progress.locale === 'zh' ? '次反射' : 'reflection'}`;
-}
-function renderControls() {
-  $('#emit').innerHTML = isBusy()
+function updateControls() {
+  $('#emit').innerHTML = busy()
     ? `<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="1"/></svg>${t('stop')}`
     : `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 3 11 7-11 7z"/></svg>${t('emit')}`;
-  $('#undo').innerHTML =
-    `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4 3 8l4 4M4 8h7a5 5 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>${t('undo')}`;
-  $('#restart').innerHTML =
-    `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8a6 6 0 1 1 0 5M4 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>${t('restart')}`;
-  $('#undo').disabled = isBusy() || !history.length;
-  $('#restart').disabled = false;
-  $('#pause').hidden = !isBusy();
+  $('#pause').hidden = !busy();
   $('#pause').setAttribute('aria-label', phase === 'paused' ? t('resume') : '暂停');
   $('#pause').innerHTML =
     phase === 'paused'
       ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 2 10 6-10 6z"/></svg>'
       : '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3" height="12"/><rect x="10" y="2" width="3" height="12"/></svg>';
+  $('#undo').disabled = busy() || !history.length;
+  const selected = state.pieces.find((p) => p.id === selectedPiece);
+  $('#rotate').disabled = busy() || !selected || selected.type === 'delay';
+  $('#return-piece').disabled = busy() || !selected || selected.x === null;
+  $('#selected-label').textContent = selected
+    ? `${t('selected')}：${t(selected.type)} ${selected.type === 'delay' ? `+${selected.delayTicks}` : selected.orientation}${selected.x === null ? '' : ` · ${coordinate(selected.x, selected.y)}`}`
+    : t('nothingSelected');
+  $('#selection-hint').textContent = selected ? t('moveHint') : t('tapHint');
+  $('#piece-count').textContent =
+    `${state.pieces.filter((p) => p.x !== null).length} / ${state.pieces.length} ${t('pieces')}`;
+  $('#replay').disabled = busy() || !report;
+  $('#slow').setAttribute('aria-pressed', String(slow));
+  $('#slow').setAttribute('aria-label', t('slow'));
   $('#sound').innerHTML = soundIcon();
-  $('#sound').setAttribute('aria-label', t(progress.sound ? 'soundOn' : 'soundOff'));
+  $('#sound').setAttribute('aria-label', t(progress.sound ? 'mute' : 'unmute'));
   $('#sound').setAttribute('aria-pressed', String(progress.sound));
-  $('#hint').textContent = t('hint');
-  $('#hint').disabled = isBusy();
-  $('#phase').textContent = t(phase);
-  $('#message-label').textContent = t(hintShown ? 'hintLabel' : 'messageLabel');
-  $('#message').textContent = hintShown
-    ? loc(level, 'hint')
-    : messageKey
-      ? t(messageKey)
-      : loc(level, 'intro');
+  $('#hint').disabled = busy();
+  $('#hint-copy').textContent = hintShown ? loc(level, 'hint') : instruction ? t(instruction) : '';
+  $('#attempts').textContent = `${attempts} ${t('attempt')}`;
 }
-function renderRhythm() {
-  $('#beat-lights').innerHTML = level.targets
+function updateRhythm() {
+  const max = Math.max(...level.targets) + 2;
+  const end =
+    phase === 'result' && report ? Math.max(max, ...report.arrivals.map((a) => a.tick)) : max;
+  const position = (tick) => Math.min(100, (tick / end) * 100);
+  $('#rhythm').innerHTML =
+    '<div class="rhythm-line"></div>' +
+    level.targets
+      .map((target, i) => {
+        const status =
+          report && elapsed >= target
+            ? report.targetResults[i].status === 'hit'
+              ? 'hit'
+              : 'miss'
+            : 'waiting';
+        return `<span class="beat-light" data-status="${status}" style="left:${position(target)}%;--color:${status === 'hit' ? COLORS[report.targetResults[i].arrival.colorIndex % COLORS.length] : '#aec6b5'}">${i + 1}<small>${beat(target)}</small></span>`;
+      })
+      .join('') +
+    (report
+      ? report.arrivals
+          .filter((a) => a.tick <= elapsed)
+          .map(
+            (a) =>
+              `<span class="arrival-marker" style="left:${position(a.tick)}%;--color:${COLORS[a.colorIndex % COLORS.length]}" title="${beat(a.tick)}"></span>`,
+          )
+          .join('')
+      : '') +
+    `<span class="time-cursor" style="left:${position(elapsed)}%"></span>`;
+  $('#clock').textContent = beat(elapsed);
+  $('#phase-label').textContent = t(phase);
+}
+function arrivalStatus(arrival, index) {
+  if (arrival.matched) return t('onTime');
+  const unmatchedIndex = report.arrivals.filter((item) => !item.matched).indexOf(arrival);
+  const missing = report.targetResults.filter((item) => item.status !== 'hit')[unmatchedIndex];
+  if (!missing) return t('extra');
+  const delta = arrival.tick - missing.target;
+  return `${t(delta < 0 ? 'early' : 'late')} ${beat(Math.abs(delta))} → ${beat(missing.target)}`;
+}
+function renderLog() {
+  $('#trial-state').textContent = !report
+    ? t('trialReady')
+    : busy()
+      ? t('inFlight')
+      : report.won
+        ? t('passed')
+        : t('failed');
+  if (!report) {
+    $('#arrival-log').innerHTML = `<p class="empty-log">${escapeHtml(t('trialEmpty'))}</p>`;
+    return;
+  }
+  let html = report.arrivals
+    .filter((a) => a.tick <= elapsed)
     .map(
-      (target, i) =>
-        `<div class="beat" data-beat="${i}" style="--route-color:${COLORS[i]}"><span class="beat-orb">${format(target / level.ticksPerBeat)}</span><small>0${i + 1} / ${progress.locale === 'zh' ? '回声' : 'ECHO'}</small></div>`,
+      (arrival, i) =>
+        `<div class="arrival-entry ${arrival.matched ? '' : 'bad'}" style="--color:${COLORS[arrival.colorIndex % COLORS.length]}"><div><b>${i + 1} · ${beat(arrival.tick)}</b><span>${arrivalStatus(arrival, i)}</span></div><small>${t('energy')} ${format(arrival.energy)} / ≥${level.minEnergy}</small></div>`,
     )
     .join('');
-  const maxBeat = Math.max(...level.targets) / level.ticksPerBeat;
-  $('#timeline-ticks').innerHTML = Array.from(
-    { length: Math.ceil(maxBeat) + 1 },
-    (_, i) => `<span class="tick" style="left:${(i / maxBeat) * 100}%"><small>${i}</small></span>`,
-  ).join('');
+  html += report.failures
+    .filter((f) => f.tick <= elapsed)
+    .map(
+      (f) =>
+        `<div class="arrival-entry bad"><div><b>${escapeHtml(t(f.reason))}</b><span>${beat(f.tick)}</span></div><small>${t('failureAt')} ${coordinate(Math.max(0, Math.min(level.cols - 1, f.x)), Math.max(0, Math.min(level.rows - 1, f.y)))}${f.reason === 'weak' ? ` · ${t('energy')} ${format(f.energy)} / ≥${level.minEnergy}` : ''}</small></div>`,
+    )
+    .join('');
+  if (phase === 'result')
+    html += report.targetResults
+      .filter((r) => r.status !== 'hit')
+      .map(
+        (r) =>
+          `<div class="arrival-entry bad"><div><b>${t('missing')}</b><span>${beat(r.target)}</span></div><small>${t('notArrived')}</small></div>`,
+      )
+      .join('');
+  $('#arrival-log').innerHTML = html || `<p class="empty-log">${t('inFlight')}</p>`;
 }
 function draw() {
-  report = simulate(level, state);
-  renderStaticText();
+  updateText();
   renderNav();
-  renderReadouts();
-  renderControls();
-  renderRhythm();
-  $('#level-number').textContent = String(levelIndex + 1).padStart(2, '0');
-  $('#level-title').textContent = loc(level, 'title');
-  $('#board-tip').textContent = loc(level, 'tip') || loc(level, 'intro');
-  $('#level-subtitle').textContent = loc(level, 'subtitle');
-  renderBoard($('#board'), level, state, report, { locale: progress.locale, phase });
+  updateControls();
+  renderBoard($('#board'), level, state, { selectedPiece, phase, locale: progress.locale });
+  renderInventory($('#inventory'), level, state, { selectedPiece, phase, locale: progress.locale });
   updatePlayback();
+  renderLog();
 }
 function updatePlayback() {
-  const active = isBusy();
-  animateBoard($('#board'), report, elapsed, active);
-  $('#time-readout').textContent = `${(elapsed / level.ticksPerBeat).toFixed(1)} ${t('beat')}`;
-  $('#playhead').style.left = `${Math.min(100, (elapsed / Math.max(...level.targets)) * 100)}%`;
-  report.echoes.forEach((echo, i) => {
-    const node = $(`[data-beat="${i}"]`);
-    node.classList.toggle('hit', elapsed >= echo.arrival && echo.status === 'on-time');
-    node.classList.toggle(
-      'miss',
-      elapsed >= Math.min(echo.arrival, echo.target) && echo.status !== 'on-time',
-    );
-  });
+  renderTrace($('#board'), level, report, elapsed, phase);
+  updateRhythm();
   $('#board').dataset.status = phase;
 }
-function cancelPlayback() {
+function stopClock() {
   cancelAnimationFrame(frame);
   frame = 0;
   audioGeneration++;
   audio.suspend();
 }
-function setReady(key = null) {
-  cancelPlayback();
-  phase = 'ready';
+function clearTrial() {
+  stopClock();
+  report = null;
   elapsed = 0;
+  phase = 'ready';
   heard.clear();
   hintShown = false;
-  messageKey = key;
-  if ($('#result').open) $('#result').close();
+}
+function applyEdit(next, key) {
+  if (busy() || JSON.stringify(next) === JSON.stringify(state)) return false;
+  history.push(structuredClone(state));
+  state = next;
+  clearTrial();
+  instruction = key;
+  activatedTone('control');
+  draw();
+  return true;
+}
+function select(id) {
+  if (busy()) return;
+  if (id === selectedPiece) {
+    rotate();
+    return;
+  }
+  if (!state.pieces.some((p) => p.id === id)) return;
+  selectedPiece = id;
+  instruction = null;
+  draw();
+}
+function put(id, x, y) {
+  if (busy()) return;
+  if (!canPlace(level, state, id, x, y)) {
+    instruction = 'invalid';
+    hintShown = false;
+    updateControls();
+    return;
+  }
+  selectedPiece = id;
+  applyEdit(placePiece(level, state, id, x, y), 'placed');
+}
+function rotate() {
+  if (busy() || !selectedPiece) return;
+  const piece = state.pieces.find((p) => p.id === selectedPiece);
+  if (piece?.type === 'delay') {
+    instruction = 'fixedDelay';
+    updateControls();
+    return;
+  }
+  applyEdit(rotatePiece(level, state, selectedPiece), 'rotated');
+}
+function returnPiece(id = selectedPiece) {
+  if (!id || busy()) return;
+  if (applyEdit(removePiece(level, state, id), 'returned')) {
+    selectedPiece = id;
+    draw();
+  }
+}
+function undo() {
+  if (busy() || !history.length) return;
+  state = history.pop();
+  selectedPiece = null;
+  clearTrial();
+  instruction = 'undone';
+  draw();
+}
+function cancelDrag() {
+  if (drag?.active) suppressClickUntil = performance.now() + 350;
+  $('#drag-ghost').hidden = true;
+  document
+    .querySelectorAll('.drop-valid,.drop-invalid,.drag-origin')
+    .forEach((n) => n.classList.remove('drop-valid', 'drop-invalid', 'drag-origin'));
+  if (drag?.capture?.hasPointerCapture?.(drag.pointerId))
+    try {
+      drag.capture.releasePointerCapture(drag.pointerId);
+    } catch {
+      /* Pointer already released. */
+    }
+  drag = null;
 }
 function loadLevel(index) {
   if (!Number.isInteger(index) || !LEVELS[index]) return;
-  setReady();
+  cancelDrag();
+  clearTrial();
+  if ($('#result').open) $('#result').close();
   levelIndex = index;
   level = LEVELS[index];
   state = createState(level);
+  selectedPiece = null;
   history = [];
   attempts = 0;
+  instruction = null;
   progress.selected = index;
   persist();
   draw();
 }
-function changeControl(id) {
-  if (isBusy()) return;
-  const next = cycleControl(level, state, id);
-  if (JSON.stringify(next) === JSON.stringify(state)) return;
-  history.push(structuredClone(state));
-  state = next;
-  setReady('changed');
-  activatedTone('control');
-  draw();
+function showResult() {
+  if (!report?.won) return;
+  const all = Object.keys(progress.completed).length === LEVELS.length;
+  $('#result-kicker').textContent = 'RESONANCE FOUND / 共鸣达成';
+  $('#result-title').textContent = t(all ? 'finalTitle' : 'winTitle');
+  $('#result-copy').textContent =
+    t(all ? 'finalCopy' : 'winCopy') + (storageOK ? '' : ` ${t('storage')}`);
+  $('#result-arrivals').innerHTML = report.arrivals
+    .map(
+      (a, i) =>
+        `<div class="result-row" style="--color:${COLORS[a.colorIndex % COLORS.length]}"><b>${i + 1} · ${beat(a.tick)}</b><span>${t('energy')} ${format(a.energy)}</span></div>`,
+    )
+    .join('');
+  $('#continue').textContent = t(levelIndex === LEVELS.length - 1 ? 'explore' : 'next');
+  $('#result').showModal();
+  $('#continue').focus({ preventScroll: true });
 }
 function finish() {
   cancelAnimationFrame(frame);
@@ -351,8 +508,9 @@ function finish() {
   elapsed = report.duration;
   phase = 'result';
   if (report.won) {
-    const previous = progress.completed[level.id]?.attempts ?? Infinity;
-    progress.completed[level.id] = { attempts: Math.min(previous, attempts) };
+    progress.completed[level.id] = {
+      attempts: Math.min(progress.completed[level.id]?.attempts ?? Infinity, Math.max(1, attempts)),
+    };
     persist();
     audio.tone('success');
   }
@@ -361,35 +519,51 @@ function finish() {
 }
 function tick(now) {
   if (phase !== 'running') return;
-  // A hidden document freezes playback. No wall-clock or audio callback decides success.
   elapsed = Math.min(
     report.duration,
-    elapsed + (now - lastTime) / (level.beatMs / level.ticksPerBeat),
+    elapsed + ((now - lastTime) / (level.beatMs / level.ticksPerBeat)) * (slow ? 0.5 : 1),
   );
   lastTime = now;
-  for (const [i, echo] of report.echoes.entries()) {
-    if (elapsed >= echo.arrival && !heard.has(echo.id)) {
-      heard.add(echo.id);
-      audio.tone(echo.status === 'on-time' ? 'echo' : 'fail', i);
+  let changed = false;
+  report.arrivals.forEach((a, i) => {
+    if (a.tick <= elapsed && !heard.has(`a${i}`)) {
+      heard.add(`a${i}`);
+      audio.tone(a.matched ? 'echo' : 'fail', i);
+      changed = true;
     }
-  }
+  });
+  report.failures.forEach((f, i) => {
+    if (f.tick <= elapsed && !heard.has(`f${i}`)) {
+      heard.add(`f${i}`);
+      audio.tone('fail');
+      changed = true;
+    }
+  });
   updatePlayback();
+  if (changed) renderLog();
   if (elapsed >= report.duration) finish();
   else frame = requestAnimationFrame(tick);
 }
-function emit() {
-  if ($('#help-dialog').open || $('#result').open) return;
-  if (isBusy()) {
-    setReady('stopped');
+function startPlayback(replay = false) {
+  if ($('#result').open || $('#help-dialog').open) return;
+  if (busy()) {
+    clearTrial();
+    instruction = 'stopped';
     draw();
     return;
   }
+  if (replay && !report) return;
+  cancelDrag();
+  if (!replay) {
+    report = simulate(level, state);
+    attempts++;
+  }
+  phase = 'running';
   elapsed = 0;
   heard.clear();
-  phase = 'running';
+  selectedPiece = null;
+  instruction = null;
   hintShown = false;
-  messageKey = null;
-  attempts++;
   activatedTone('emit');
   draw();
   lastTime = performance.now();
@@ -397,81 +571,210 @@ function emit() {
 }
 function pause() {
   if (phase === 'running') {
-    cancelPlayback();
+    stopClock();
     phase = 'paused';
-    messageKey = 'pausedMessage';
     draw();
   } else if (phase === 'paused') {
     phase = 'running';
-    messageKey = null;
-    audio.unlock();
+    void audio.unlock();
     draw();
     lastTime = performance.now();
     frame = requestAnimationFrame(tick);
   }
 }
-function undo() {
-  if (isBusy() || !history.length) return;
-  state = history.pop();
-  setReady('undoMessage');
-  draw();
-}
-function showResult() {
-  const won = report.won;
-  const allComplete = Object.keys(progress.completed).length === LEVELS.length;
-  $('#result-kicker').textContent = won ? 'RESONANCE FOUND / 共鸣达成' : 'RETUNE & TRY / 再调一调';
-  $('#result-title').textContent = t(won ? (allComplete ? 'finalTitle' : 'winTitle') : 'loseTitle');
-  $('#result-copy').textContent = t(won ? (allComplete ? 'finalCopy' : 'winCopy') : 'loseCopy');
-  $('#result-echoes').innerHTML = report.echoes
-    .map(
-      (echo, i) =>
-        `<div class="result-echo" style="--route-color:${COLORS[i]}"><b>0${i + 1} · ${beatText(echo.arrival)}</b><span>${escapeHtml(statusText(echo))} · ${format(echo.energy)} ${t('energy')}</span></div>`,
+$('#board').addEventListener('click', (event) => {
+  if (busy() || performance.now() < suppressClickUntil) return;
+  const cell = event.target.closest('.cell');
+  if (!cell) return;
+  if (cell.dataset.piece) {
+    select(cell.dataset.piece);
+    return;
+  }
+  if (cell.dataset.fixed) {
+    instruction = 'locked';
+    hintShown = false;
+    updateControls();
+    return;
+  }
+  if (selectedPiece) put(selectedPiece, Number(cell.dataset.x), Number(cell.dataset.y));
+});
+$('#inventory').addEventListener('click', (event) => {
+  if (performance.now() < suppressClickUntil) return;
+  const button = event.target.closest('button[data-piece]');
+  if (button && !button.disabled) select(button.dataset.piece);
+});
+// Native Chromium can suppress a synthetic click immediately after a fast touch
+// drag. Activate stationary button taps on pointer release when no native click
+// arrived, and consume its later duplicate. Mouse/keyboard keep native clicks.
+let touchTap = null;
+const completedTouches = new Map();
+document.addEventListener(
+  'pointerdown',
+  (event) => {
+    if (event.pointerType !== 'touch') return;
+    const target = event.target.closest('button');
+    touchTap =
+      target && !target.disabled
+        ? {
+            id: event.pointerId,
+            target,
+            x: event.clientX,
+            y: event.clientY,
+            moved: false,
+            clicked: false,
+          }
+        : null;
+  },
+  true,
+);
+document.addEventListener(
+  'pointermove',
+  (event) => {
+    if (
+      touchTap?.id === event.pointerId &&
+      Math.hypot(event.clientX - touchTap.x, event.clientY - touchTap.y) > 7
     )
-    .join('');
-  $('#continue').textContent = t(
-    won ? (levelIndex === LEVELS.length - 1 ? 'replay' : 'next') : 'retry',
-  );
-  if (!storageAvailable) $('#result-copy').textContent += ` ${t('storage')}`;
-  if (!$('#result').open) $('#result').showModal();
-  $('#continue').focus({ preventScroll: true });
+      touchTap.moved = true;
+  },
+  true,
+);
+document.addEventListener(
+  'pointercancel',
+  (event) => {
+    if (touchTap?.id === event.pointerId) touchTap = null;
+  },
+  true,
+);
+document.addEventListener(
+  'pointerup',
+  (event) => {
+    if (touchTap?.id !== event.pointerId) return;
+    const tap = touchTap;
+    touchTap = null;
+    if (tap.moved) return;
+    completedTouches.set(tap.id, tap);
+    if (completedTouches.size > 32) completedTouches.delete(completedTouches.keys().next().value);
+    requestAnimationFrame(() => {
+      if (tap.clicked || !tap.target.isConnected || tap.target.disabled) return;
+      tap.clicked = true;
+      tap.target.click();
+    });
+  },
+  true,
+);
+document.addEventListener(
+  'click',
+  (event) => {
+    if (
+      !event.isTrusted ||
+      (event.pointerType !== 'touch' && !event.sourceCapabilities?.firesTouchEvents)
+    )
+      return;
+    const tap = completedTouches.get(event.pointerId);
+    if (!tap) return;
+    if (tap.clicked) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    } else tap.clicked = true;
+  },
+  true,
+);
+function pointerDown(event) {
+  if (busy() || drag || event.button !== 0) return;
+  suppressClickUntil = 0;
+  const part = event.target.closest('[data-piece]');
+  if (!part || part.disabled) return;
+  const piece = state.pieces.find((p) => p.id === part.dataset.piece);
+  if (!piece) return;
+  drag = {
+    id: piece.id,
+    piece,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    active: false,
+    origin: part,
+    capture: event.currentTarget,
+  };
 }
-$('#scene-controls').addEventListener('click', (event) => {
-  const control = event.target.closest('[data-control]');
-  if (control) changeControl(control.dataset.control);
-  else if (event.target.closest('[data-emit]')) emit();
+$('#board').addEventListener('pointerdown', pointerDown);
+$('#inventory').addEventListener('pointerdown', pointerDown);
+document.addEventListener(
+  'pointermove',
+  (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag.active && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 7)
+      return;
+    if (!drag.active) {
+      drag.active = true;
+      drag.origin.classList.add('drag-origin');
+      drag.capture.setPointerCapture(event.pointerId);
+      $('#drag-ghost').innerHTML = pieceIcon(drag.piece);
+      $('#drag-ghost').hidden = false;
+    }
+    if (event.cancelable) event.preventDefault();
+    $('#drag-ghost').style.left = `${event.clientX}px`;
+    $('#drag-ghost').style.top = `${event.clientY}px`;
+    document
+      .querySelectorAll('.drop-valid,.drop-invalid')
+      .forEach((n) => n.classList.remove('drop-valid', 'drop-invalid'));
+    const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest('#board .cell');
+    if (cell)
+      cell.classList.add(
+        canPlace(level, state, drag.id, Number(cell.dataset.x), Number(cell.dataset.y))
+          ? 'drop-valid'
+          : 'drop-invalid',
+      );
+  },
+  { passive: false },
+);
+document.addEventListener('pointerup', (event) => {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  const current = drag;
+  if (!current.active) {
+    drag = null;
+    return;
+  }
+  const target = document.elementFromPoint(event.clientX, event.clientY);
+  const cell = target?.closest('#board .cell');
+  cancelDrag();
+  const layout = state;
+  const activeLevel = level;
+  const destination = cell ? { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } : null;
+  const toTray = Boolean(target?.closest('.inventory-panel'));
+  // Keep the touched node alive until touchend has completed its native dispatch.
+  requestAnimationFrame(() => {
+    if (state !== layout || level !== activeLevel || busy()) return;
+    if (destination) put(current.id, destination.x, destination.y);
+    else if (toTray) returnPiece(current.id);
+  });
+});
+document.addEventListener('pointercancel', (event) => {
+  if (event.pointerId === drag?.pointerId) cancelDrag();
+});
+window.addEventListener('blur', cancelDrag);
+$('#rotate').addEventListener('click', rotate);
+$('#return-piece').addEventListener('click', () => returnPiece());
+$('#undo').addEventListener('click', undo);
+$('#restart').addEventListener('click', () => loadLevel(levelIndex));
+$('#emit').addEventListener('click', () => startPlayback());
+$('#replay').addEventListener('click', () => startPlayback(true));
+$('#pause').addEventListener('click', pause);
+$('#slow').addEventListener('click', () => {
+  slow = !slow;
+  updateControls();
 });
 $('#level-nav').addEventListener('click', (event) => {
   const button = event.target.closest('[data-level]');
-  if (!button) return;
-  loadLevel(Number(button.dataset.level));
-  $(`#level-nav [data-level="${levelIndex}"]`)?.focus({ preventScroll: true });
-});
-$('#emit').addEventListener('click', emit);
-$('#pause').addEventListener('click', pause);
-$('#undo').addEventListener('click', undo);
-$('#restart').addEventListener('click', () => loadLevel(levelIndex));
-$('#continue').addEventListener('click', () => {
-  if (report.won) loadLevel((levelIndex + 1) % LEVELS.length);
-  else {
-    $('#result').close();
-    $('#emit').focus({ preventScroll: true });
+  if (button) {
+    loadLevel(Number(button.dataset.level));
+    $(`[data-level="${levelIndex}"]`)?.focus({ preventScroll: true });
   }
 });
-$('#result-close').addEventListener('click', () => {
-  $('#result').close();
-  $('#emit').focus({ preventScroll: true });
-});
 $('#hint').addEventListener('click', () => {
-  if (isBusy()) return;
   hintShown = true;
-  messageKey = null;
-  renderControls();
-  const target = level.routes
-    .flatMap((r) => r.stages)
-    .find((s) => s.options.length > 1 && state.choices[s.id] !== level.solution.choices[s.id]);
-  const button = target ? $(`[data-control="${target.id}"]`) : $('[data-control="splitter"]');
-  button?.classList.remove('hinted');
-  requestAnimationFrame(() => button?.classList.add('hinted'));
+  instruction = null;
+  updateControls();
 });
 $('#sound').addEventListener('click', () => {
   progress.sound = !progress.sound;
@@ -479,54 +782,73 @@ $('#sound').addEventListener('click', () => {
   audio.setEnabled(progress.sound);
   if (progress.sound) activatedTone('control');
   persist();
-  renderControls();
+  updateControls();
 });
 $('#language').addEventListener('click', () => {
+  cancelDrag();
   progress.locale = progress.locale === 'zh' ? 'en' : 'zh';
   persist();
   draw();
 });
 $('#help').addEventListener('click', () => {
+  cancelDrag();
   if (phase === 'running') pause();
   $('#help-dialog').showModal();
 });
 $('#close-help').addEventListener('click', () => $('#help-dialog').close());
+$('#continue').addEventListener('click', () => loadLevel((levelIndex + 1) % LEVELS.length));
+$('#result-close').addEventListener('click', () => {
+  $('#result').close();
+  $('#emit').focus({ preventScroll: true });
+});
 for (const dialog of [$('#help-dialog'), $('#result')])
   dialog.addEventListener('click', (event) => {
     if (event.target !== dialog) return;
-    const r = dialog.getBoundingClientRect();
+    const rect = dialog.getBoundingClientRect();
     if (
-      event.clientX < r.left ||
-      event.clientX > r.right ||
-      event.clientY < r.top ||
-      event.clientY > r.bottom
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
     )
       dialog.close();
   });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
+    cancelDrag();
     if (phase === 'running') pause();
     audio.suspend();
   }
 });
-window.addEventListener('pagehide', cancelPlayback);
+window.addEventListener('pagehide', () => {
+  cancelDrag();
+  stopClock();
+});
 document.addEventListener('keydown', (event) => {
   if (
     event.repeat ||
-    event.altKey ||
     event.ctrlKey ||
+    event.altKey ||
     event.metaKey ||
+    $('#result').open ||
     $('#help-dialog').open ||
-    $('#result').open
+    event.target.closest('input,select,textarea')
   )
     return;
-  if (event.target.closest('input,select,textarea')) return;
+  if (event.key === 'Escape') {
+    cancelDrag();
+    selectedPiece = null;
+    draw();
+    return;
+  }
   if (event.key === ' ' && event.target.closest('button,a')) return;
   const actions = {
-    ' ': emit,
+    ' ': () => startPlayback(),
     z: undo,
-    r: () => loadLevel(levelIndex),
+    r: rotate,
     p: pause,
+    delete: () => returnPiece(),
+    backspace: () => returnPiece(),
     h: () => $('#hint').click(),
   };
   const action = actions[event.key.toLowerCase()];
@@ -542,11 +864,13 @@ Object.defineProperty(window, '__echoWeaverSnapshot', {
       levelId: level.id,
       state,
       phase,
-      historyLength: history.length,
-      progress,
       report,
       elapsed,
+      historyLength: history.length,
+      selectedPiece,
+      progress,
       attempts,
+      slow,
     }),
 });
 persist();
