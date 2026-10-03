@@ -395,6 +395,9 @@ importers:
       '@coffeeeeffoc/homebound-station':
         specifier: workspace:*
         version: link:../../games/local/homebound-station
+      '@coffeeeeffoc/maze-wander':
+        specifier: workspace:*
+        version: link:../../games/local/maze-wander
       '@coffeeeeffoc/night-overwatch':
         specifier: workspace:*
         version: link:../../games/local/night-overwatch
@@ -1044,6 +1047,40 @@ importers:
         version: 1.55.1
 
   games/local/letters-words2: {}
+
+  games/local/maze-wander:
+    dependencies:
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      '@types/node':
+        specifier: 24.10.4
+        version: 24.10.4
+      '@types/react':
+        specifier: 19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.14)
+      '@types/three':
+        specifier: 0.180.0
+        version: 0.180.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
 
   games/local/merge-front:
     devDependencies:

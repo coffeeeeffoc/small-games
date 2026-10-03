@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'maze-wander': '#start',
   'homebound-station': '[data-level="0"]',
   'balloon-movers': '#launch',
   'weather-command': '#board[data-level="1"]',
@@ -66,7 +67,23 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'homebound-station') {
+  if (id === 'maze-wander') {
+    await click(frame.locator('#start'));
+    await click(frame.locator('#enter'));
+    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
+    if (mobile) {
+      await click(frame.locator('#pause'));
+    } else {
+      const page = frame.locator('canvas').page();
+      await page.keyboard.down('w');
+      await page.waitForTimeout(350);
+      await page.keyboard.up('w');
+      await page.keyboard.press('Escape');
+    }
+    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
+  } else if (id === 'homebound-station') {
     await click(frame.locator('[data-level="0"]'));
     await click(frame.locator('[data-vehicle="巡01"]'));
     await expect

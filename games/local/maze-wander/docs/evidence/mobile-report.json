@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-02T19:06:50.583Z",
+  "browser": "140.0.7339.186",
+  "environment": "Chromium touch emulation, not physical phones",
+  "results": [
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "passed": true,
+      "checks": [
+        "native two-touch movement+look",
+        "individual release",
+        "pointercancel",
+        "no button look leakage",
+        "44px controls",
+        "fog pause",
+        "fullscreen enter/exit",
+        "blur event",
+        "saved pose reload"
+      ],
+      "metrics": {
+        "drawCalls": 41,
+        "triangles": 4528,
+        "geometries": 23,
+        "textures": 10,
+        "reflections": 0,
+        "frames": 43,
+        "medianMs": 16.699999999999932,
+        "p95Ms": 16.799999999999955
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "passed": true,
+      "checks": [
+        "native two-touch movement+look",
+        "individual release",
+        "pointercancel",
+        "no button look leakage",
+        "44px controls",
+        "fog pause",
+        "fullscreen enter/exit",
+        "blur event",
+        "saved pose reload"
+      ],
+      "metrics": {
+        "drawCalls": 27,
+        "triangles": 4108,
+        "geometries": 21,
+        "textures": 9,
+        "reflections": 0,
+        "frames": 42,
+        "medianMs": 16.700000000000045,
+        "p95Ms": 16.700000000000045
+      }
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 640
+      },
+      "passed": true,
+      "checks": [
+        "native two-touch movement+look",
+        "individual release",
+        "pointercancel",
+        "no button look leakage",
+        "44px controls",
+        "fog pause",
+        "fullscreen enter/exit",
+        "blur event",
+        "saved pose reload"
+      ],
+      "metrics": {
+        "drawCalls": 27,
+        "triangles": 4108,
+        "geometries": 21,
+        "textures": 9,
+        "reflections": 0,
+        "frames": 40,
+        "medianMs": 16.700000000000045,
+        "p95Ms": 16.700000000000045
+      }
+    }
+  ],
+  "errors": []
+}
