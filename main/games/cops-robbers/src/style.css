@@ -83,3 +83,29 @@ body:not(.focus-play) .briefing{display:block}
 @media(min-width:640px) and (max-height:560px){.focus-play .duel-game{display:grid;grid-template-columns:minmax(0,calc(100dvh - 80px)) minmax(230px,1fr);gap:0 14px;max-width:950px}.focus-play .duel-game .board-frame{grid-column:1;grid-row:1/7;width:100%;align-self:start}.focus-play .duel-game>:not(.board-frame){grid-column:2}.focus-play .duel-game .game-heading{grid-row:1}.focus-play .duel-game #duel-rules{grid-row:2}.focus-play .duel-game .board-hud{grid-row:3}.focus-play .duel-game #duel-squad{grid-row:4}.focus-play .duel-game #duel-note{grid-row:5}.focus-play .duel-game .duel-controls:last-child{grid-row:6}}
 
 .dialog-actions{display:flex;justify-content:flex-end;margin-top:20px}.dialog-actions .secondary-action{min-height:44px;padding:10px 18px}
+/* Board expansion keeps the live SVG and its controls in one focused surface. */
+.map-expand-button{position:absolute;right:8px;top:8px;z-index:3;display:grid;place-items:center;width:44px;height:44px;border:1px solid #c4d1bb;border-radius:14px;background:#fffdf3ed;box-shadow:0 2px 6px #243e431c;color:var(--ink)}
+.map-expand-button:hover{background:#dfece7}.map-expand-button[aria-pressed=true]{background:#d3e4d3}
+body.map-expanded{overflow:hidden}
+body.map-expanded .topbar{visibility:hidden}
+body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){position:fixed;inset:0;z-index:10;max-width:none;width:100%;height:100dvh;margin:0;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));background:var(--paper);display:grid;grid-template-columns:minmax(0,min(calc(100dvh - 24px),calc(100dvw - 292px))) 250px;grid-template-rows:repeat(7,min-content);align-content:center;align-items:center;justify-content:center;gap:12px 18px}
+body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{grid-column:1;grid-row:1/9;width:100%;align-self:center;margin:0}
+body.map-expanded.focus-play :is(.game,.duel-game)>:not(.board-frame){grid-column:2}
+body.map-expanded .game-heading{grid-row:1;margin:0}body.map-expanded .board-hud{grid-row:2;margin:0}
+body.map-expanded .threat-strip{grid-row:3}body.map-expanded .instruction{grid-row:4;padding:0;font-size:12px}
+body.map-expanded .squad-row,body.map-expanded #duel-squad{grid-row:5;margin:0}
+body.map-expanded .action-bar,body.map-expanded .duel-controls:last-child{grid-row:6}
+body.map-expanded .game-footnote{grid-row:7;margin:0}
+body.map-expanded #duel-note{grid-row:4}body.map-expanded #duel-rules,body.map-expanded .relay-note,body.map-expanded .game-footnote span,body.map-expanded #selection-label,body.map-expanded .squad-label{display:none}
+body.map-expanded #duel-board{width:100%;aspect-ratio:1}
+@media(max-width:700px) and (orientation:portrait){
+ body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));grid-template-columns:1fr 1fr;grid-template-rows:26px minmax(0,1fr) 44px 44px;gap:6px;align-content:stretch}
+ body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{grid-column:1/3;grid-row:2;width:min(calc(100dvw - 16px),calc(100dvh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));justify-self:center}
+ body.map-expanded.focus-play :is(.game,.duel-game) .board-hud{grid-column:1/3;grid-row:1}
+ body.map-expanded.focus-play :is(.game,.duel-game) .squad-row,body.map-expanded.focus-play :is(.game,.duel-game) #duel-squad{grid-column:1/3;grid-row:3;justify-content:center}
+ body.map-expanded.focus-play :is(.game,.duel-game) .action-bar,body.map-expanded.focus-play :is(.game,.duel-game) .duel-controls:last-child{grid-column:1/3;grid-row:4}
+ body.map-expanded .game-heading,body.map-expanded .threat-strip,body.map-expanded .instruction,body.map-expanded .game-footnote,body.map-expanded #duel-note{display:none}
+ body.map-expanded .secondary-action{min-height:44px}
+}
+body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{max-width:none}
+body.map-expanded.duel-active .challenge-game{display:none}

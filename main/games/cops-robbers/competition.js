@@ -11891,44 +11891,63 @@
 			avatar: validAvatar(value?.avatar) ? value.avatar : ""
 		};
 	}
-	function drawRoleAvatar(ctx, role, x, y, size) {
-		const { color, accent, badge, avatar } = getRoleAppearance(role);
+	function facePaths(role) {
+		const { color, accent, style } = getRoleAppearance(role);
 		const chaser = side(role) === "cop";
-		ctx.save();
-		ctx.fillStyle = accent;
-		ctx.strokeStyle = color;
-		ctx.lineWidth = Math.max(2, size * .065);
-		ctx.beginPath();
-		if (chaser) ctx.rect(x, y, size, size);
-		else ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-		ctx.fill();
-		ctx.stroke();
+		const animal = style === "animals";
+		const paths = [];
+		const add = (d, fill, stroke = "", width = 3) => paths.push({
+			d,
+			fill,
+			stroke,
+			width
+		});
+		if (animal) {
+			add(chaser ? "M9 43 10 6Q12 0 18 6L39 27M61 27 82 6Q88 0 90 6L91 43" : "M6 48 13 5Q15 0 21 7L42 29M58 29 79 7Q85 0 87 5L94 48", color);
+			add("M16 29 17 13 30 30M70 30 83 13 84 29", "#ffb6a2");
+		}
+		add(chaser ? "M8 46Q8 22 31 19H69Q92 22 92 46V65Q92 94 50 96 8 94 8 65Z" : "M5 53Q5 17 50 17T95 53Q95 92 50 97 5 92 5 53Z", animal ? color : accent, color);
+		if (animal) add(chaser ? "M16 58Q27 43 42 57L50 65 58 57Q73 43 84 58V70Q81 89 50 90 19 89 16 70Z" : "M10 50 42 60 50 70 58 60 90 50Q90 87 50 91 10 87 10 50Z", "#fff4df");
+		else {
+			add(chaser ? "M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z" : "M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z", color);
+			if (style === "cosmic") add("M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z", "#ffe075");
+		}
+		add("M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0", "#243d49");
+		add("M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0", "#fff");
+		add("M17 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0M69 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0", "#f49d92");
+		if (animal) add("M45 68Q50 64 55 68L50 73Z", "#9e5149");
+		add("M39 76Q50 90 61 76", "none", "#9e5149", 3.5);
+		return paths;
+	}
+	var portraitOutline = (role) => side(role) === "cop" ? "M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z" : "M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0";
+	function drawRoleAvatar(ctx, role, x, y, size) {
+		const { avatar } = getRoleAppearance(role);
 		let img = images.get(avatar);
 		if (avatar && !img && typeof Image !== "undefined") {
 			img = new Image();
 			img.src = avatar;
 			images.set(avatar, img);
 		}
-		if (img?.complete && img.naturalWidth) ctx.drawImage(img, x + size * .1, y + size * .1, size * .8, size * .8);
-		else {
-			ctx.textAlign = "center";
-			ctx.textBaseline = "middle";
-			ctx.font = `${size * .65}px sans-serif`;
-			ctx.fillStyle = color;
-			ctx.fillText(badge, x + size / 2, y + size / 2);
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.scale(size / 100, size / 100);
+		ctx.lineCap = ctx.lineJoin = "round";
+		if (img?.complete && img.naturalWidth) {
+			ctx.clip(new Path2D(portraitOutline(role)));
+			const edge = Math.min(img.naturalWidth, img.naturalHeight);
+			ctx.drawImage(img, (img.naturalWidth - edge) / 2, (img.naturalHeight - edge) / 2, edge, edge, 0, 0, 100, 100);
+		} else for (const { d, fill, stroke, width } of facePaths(role)) {
+			const path = new Path2D(d);
+			if (fill !== "none") {
+				ctx.fillStyle = fill;
+				ctx.fill(path);
+			}
+			if (stroke) {
+				ctx.strokeStyle = stroke;
+				ctx.lineWidth = width;
+				ctx.stroke(path);
+			}
 		}
-		ctx.beginPath();
-		ctx.arc(x + size * .87, y + size * .9, size * .2, 0, Math.PI * 2);
-		ctx.fillStyle = color;
-		ctx.fill();
-		ctx.strokeStyle = "#fff9ed";
-		ctx.lineWidth = 1;
-		ctx.stroke();
-		ctx.textAlign = "center";
-		ctx.textBaseline = "middle";
-		ctx.font = `bold ${size * .22}px sans-serif`;
-		ctx.fillStyle = "white";
-		ctx.fillText(chaser ? "追" : "突", x + size * .87, y + size * .9);
 		ctx.restore();
 	}
 	//#endregion
@@ -12020,7 +12039,7 @@
 					if (mine && index === selected) circle(p.x, p.y - 10, 21, "#d0e7f8", "#1258c2");
 					drawRoleAvatar(ctx, side === "pursuer" ? "cop" : "robber", p.x - 16, p.y - 29, 32);
 					ctx.textAlign = "center";
-					text(`${side === "pursuer" ? "追" : "突"}${index + 1}`, p.x, p.y - 33, 11, side === "pursuer" ? "#1258c2" : "#a44908");
+					text(`${index + 1}`, p.x, p.y - 33, 11, side === "pursuer" ? "#1258c2" : "#a44908");
 					hit(`${side === "pursuer" ? "追逐队" : "突围队"} ${index + 1} 号`, p.x - 22, p.y - 35, 44, 40, mine ? { local: index } : { target: node });
 				});
 				text(ended ? `${duel ? board.winner === "runner" ? "突围队获胜" : "追逐队获胜" : board.robbers.includes(-2) ? "突围成功" : "拦截成功"} · 等待结算` : duel && board.side !== role ? "等待对手行动" : note || `已选 ${selected + 1} 号，点相邻路口数字移动`, width / 2, top + size + 17, 12);
