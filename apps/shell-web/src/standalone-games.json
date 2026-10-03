@@ -1,5 +1,12 @@
 [
   {
+    "id": "homebound-station",
+    "source": "games/local/homebound-station",
+    "title": "归途站",
+    "description": "看箭头解开密集出租车阵，点击或滑动车辆出库，自动接上旅客，让整片车场有序清空。",
+    "output": "dist"
+  },
+  {
     "id": "carding-car",
     "source": "games/local/carding-car",
     "title": "浪湾卡丁车",

@@ -6,6 +6,7 @@
 
 | 中文名                | 文件夹名                       | 目录路径                                                                                 | 简介                                                                         |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 归途站                | `homebound-station`            | [games/local/homebound-station](../games/local/homebound-station/)                       | 看箭头解开出租车阵，点击或滑动车辆出库，自动接客并清空停车场。 |
 | 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。  |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。                   |
 | 夜航守望              | `night-overwatch`              | [games/local/night-overwatch](../games/local/night-overwatch/)                           | 切换三档空中火力打通公路，在待命点指挥车队，护送关键救援车完成撤离。         |
