@@ -21,6 +21,7 @@ export const markers = {
   'ink-is-everything': '#start-game',
   'out-of-frame': '#board[data-level="1"]',
   'two-sided-box': '#board[data-level="1"]',
+  'luban-workshop': '#stage canvas',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -104,6 +105,18 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'luban-workshop') {
+    await click(frame.locator('#levels'));
+    await click(frame.locator('[data-level="0"]'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    await click(frame.locator('[data-piece]').first());
+    await click(frame.locator('#nudge-positive'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+    await expect(frame.locator('#status')).toBeVisible();
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    await click(frame.locator('#redo'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
   } else if (id === 'bullet-garden') {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());

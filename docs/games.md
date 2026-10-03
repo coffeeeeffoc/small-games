@@ -48,6 +48,7 @@
 | 同频归航              | `tiny-signals`                 | [games/local/tiny-signals](../games/local/tiny-signals/)                                 | 一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。                 |
 | 一滴墨，决定一切      | `ink-is-everything`            | [games/local/ink-is-everything](../games/local/ink-is-everything/)                       | 墨汁即生命：射墨、近战命中吸墨，走位回收技能墨滴；拾取装备、三选一成长，夺回钥印挑战墨之门。 |
 | 双面机关盒            | `two-sided-box`                | [games/local/two-sided-box](../games/local/two-sided-box/)                               | 左右同时观察正面和背面，操作共享的滑轴、锁扣和挡板，让小球穿过六个机械谜盒。                 |
+| 榫间 · 鲁班锁         | `luban-workshop`               | [games/local/luban-workshop](../games/local/luban-workshop/)                             | 亲手拆解与复原彩色榫卯机关，沿轨道拖动零件，观察彼此让路。                                   |
 
 ## 子模块游戏（4 款）
 
