@@ -130,6 +130,64 @@ const sceneTouch = async (page, selector, delta, cancel = false) => {
     cancel,
   );
 };
+const exerciseAngleRange = async (page, mobile = false) => {
+  const range = page.locator('#panelAngle');
+  for (let repeat = 0; repeat < 3; repeat += 1) {
+    const before = Number(await range.inputValue());
+    const min = Number(await range.getAttribute('min'));
+    const max = Number(await range.getAttribute('max'));
+    // A fixed quarter-track press can land on the 90-degree thumb when max=360.
+    // Choose the far side of the current value and require an actual UI edit.
+    const fraction = before < (min + max) / 2 ? 0.85 : 0.15;
+    await range.scrollIntoViewIfNeeded();
+    const bounds = await range.boundingBox();
+    assert.ok(bounds, 'the angle range must be visible');
+    const position = { x: bounds.width * fraction, y: bounds.height / 2 };
+    if (mobile) await nativeTap(page, '#panelAngle', { position });
+    else await range.click({ position });
+    const angle = Number(await range.inputValue());
+    assert.ok(
+      Math.abs(angle - before) > (max - min) / 4,
+      'every native range press must change the selected panel angle',
+    );
+    for (const id of ['quickAngle', 'panelAngleNumber'])
+      assert.equal(
+        Number(await page.locator(`#${id}`).inputValue()),
+        angle,
+        `${id} must agree with the edited range`,
+      );
+    assert.equal(await page.locator('#angleValue').textContent(), `${angle}°`);
+    const rendered = await page
+      .locator('#scene [data-object][aria-pressed="true"]')
+      .evaluate((panel) => {
+        const segment = panel.querySelector('line');
+        return {
+          id: panel.dataset.object,
+          angle:
+            ((Math.atan2(
+              Number(segment.getAttribute('y2')) - Number(segment.getAttribute('y1')),
+              Number(segment.getAttribute('x2')) - Number(segment.getAttribute('x1')),
+            ) *
+              180) /
+              Math.PI +
+              360) %
+            360,
+        };
+      });
+    assert.ok(
+      Math.abs(rendered.angle - angle) < 0.00001,
+      'the rendered board endpoints must rotate with the angle controls',
+    );
+    const savedPanel = (await saveLayout(page)).scene.panels.find(
+      (panel) => panel.id === rendered.id,
+    );
+    assert.equal(
+      savedPanel?.angle,
+      angle,
+      'the exported or persisted scene must contain the same physical angle',
+    );
+  }
+};
 
 try {
   browser = await chromium.launch(browserOptions);
@@ -175,6 +233,10 @@ try {
   assert.match(await page.locator('#presetDescription').textContent(), /柔软/);
   await page.locator('#preset').selectOption('first');
   results.push('three scene presets');
+
+  await exerciseAngleRange(page);
+  await page.locator('#resetLayout').click();
+  results.push('repeated native mouse angle edits synchronize controls, export and board geometry');
 
   await page.locator('[data-move="normal"]').click();
   assert.equal(await page.locator('[data-move="normal"]').getAttribute('aria-pressed'), 'true');
@@ -525,8 +587,10 @@ try {
   );
   await nativeTap(mobilePage, '#addAbsorber');
   assert.match(await mobilePage.locator('#selectionTitle').textContent(), /吸音屏/);
-  await nativeTap(mobilePage, '#panelAngle', { position: { x: 30, y: 22 } });
-  assert.notEqual(await mobilePage.locator('#angleValue').textContent(), '90°');
+  await exerciseAngleRange(mobilePage, true);
+  results.push(
+    'repeated native touch angle edits synchronize controls, storage and board geometry',
+  );
   await nativeTap(mobilePage, '#removePanel');
   await nativeTap(mobilePage, '#resetLayout');
 
