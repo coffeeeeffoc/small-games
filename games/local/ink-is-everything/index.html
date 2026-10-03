@@ -6,14 +6,14 @@
     <meta name="theme-color" content="#242720" />
     <meta
       name="description"
-      content="亲自走进纸墨地牢。移动、瞄准、闪避，用同一瓶墨水战斗、架桥、治疗与交易。"
+      content="亲自走进纸墨地牢。移动、瞄准、闪避，墨汁就是生命：施法、回收、吸取，获得装备让每一笔更强。"
     />
     <title>Ink Is Everything · 一滴墨，决定一切</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div id="game-root" data-version="2" data-status="ready" data-started="false">
+    <div id="game-root" data-version="3" data-status="ready" data-started="false">
       <header class="hud">
         <div class="brand">
           <strong>Ink<span> Is Everything.</span></strong
@@ -23,24 +23,31 @@
           <span class="bottle" data-icon="ink"></span>
           <div class="ink-meter">
             <div class="meter-label">
-              <span>共 享 墨 水</span><span><b id="ink-value">64</b><small> / 100</small></span>
+              <span>墨 汁 即 生 命</span
+              ><span
+                ><b id="ink-value">90</b><small> / <span id="max-ink">100</span></small></span
+              >
             </div>
             <div
               class="ink-track"
               role="progressbar"
-              aria-label="剩余墨水"
+              aria-label="生命墨汁"
               aria-valuemin="0"
               aria-valuemax="100"
-              aria-valuenow="64"
+              aria-valuenow="90"
             >
               <i id="ink-fill"></i>
             </div>
           </div>
         </div>
         <div class="vitals">
-          <div id="hearts" aria-label="生命6/6"></div>
+          <div class="progression-hud">
+            <span>Lv.<b id="level-value">1</b> <small id="xp-value">0 / 12</small></span>
+            <div class="xp-track"><i id="xp-fill"></i></div>
+          </div>
           <div class="seals">
-            <span data-icon="key"></span><b id="seal-value">0</b><span>/ 2</span>
+            <span data-icon="key"></span><b id="seal-value">0</b
+            ><span>/ <span id="seal-total">2</span></span>
           </div>
         </div>
         <div class="hud-tools">
@@ -63,18 +70,22 @@
           aria-label="游戏场景。点击空地移动，按住敌人射击，拖动桥的两个锚点绘路。"
         ></canvas>
         <div class="room-heading">
-          <span class="chapter-label">CHAPTER 01 · 遗忘之庭</span>
-          <h1 id="room-name">落笔处</h1>
-          <p id="objective">找到两枚钥印，开启墨之门。</p>
+          <span id="chapter-name" class="chapter-label"></span>
+          <h1 id="room-name"></h1>
+          <p id="objective"></p>
         </div>
         <div id="room-map" aria-label="关卡探索进度"></div>
         <div class="field-tools">
+          <button id="equipment" aria-label="查看装备与技能">
+            <span data-icon="trade"></span
+            ><span>装备 <b id="equipment-count">0</b><small>成长与技能</small></span>
+          </button>
           <button id="draw-tool" aria-label="绘桥模式" aria-pressed="false">
             <span data-icon="brush"></span><span>绘桥<small>连接锚点</small></span>
           </button>
         </div>
         <div id="tutorial-hint" class="tutorial-hint">
-          先向右移动，找到墨灵后按住墨弹。看到红色预警就侧向闪避。
+          施法掉墨，走过去拾回墨滴。近身挥笔能吸墨；红色预警出现时侧闪。
         </div>
         <div id="feedback" role="status" aria-live="polite"></div>
         <div id="controls" aria-label="游戏操作">
@@ -91,39 +102,46 @@
             ><span id="context-hint"></span>
           </div>
           <div class="combat-control">
-            <button id="heal" class="action-button utility" aria-label="治疗，消耗10墨水">
-              <span data-icon="heal"></span><b>疗伤</b><small>10 墨 <kbd>Q</kbd></small></button
+            <button id="nova" class="action-button utility" aria-label="溅墨，消耗14点生命墨汁">
+              <span data-icon="nova"></span><b>溅墨</b><small>14 墨 · Q</small
+              ><i class="cooldown-mask"></i></button
             ><button id="dash" class="action-button dash" aria-label="闪避，免费">
               <span data-icon="dodge"></span><b>闪避</b><small>免费 <kbd>空格</kbd></small
               ><i class="cooldown-mask"></i></button
-            ><button id="melee" class="action-button melee" aria-label="干笔近战，免费">
+            ><button id="melee" class="action-button melee" aria-label="干笔近战，免费，命中吸墨">
               <span data-icon="brush"></span><b>干笔</b><small>近战 · 0 墨 <kbd>F</kbd></small
               ><i class="cooldown-mask"></i></button
-            ><button id="fire" class="action-button fire" aria-label="按住发射墨弹，每发2墨水">
-              <span data-icon="attack"></span><b>墨弹</b><small>按住 · 2 墨</small
+            ><button
+              id="fire"
+              class="action-button fire"
+              aria-label="按住发射墨弹，每发消耗6点生命墨汁"
+            >
+              <span data-icon="attack"></span><b>墨弹</b><small>按住 · 6 墨</small
               ><span class="aim-thumb"></span>
             </button>
           </div>
         </div>
         <div class="desktop-hint">
-          点击空地走动 · 按住敌人射击 · 右键干笔 · <span>墨水见底，仍能挥笔。</span>
+          点击空地走动 · 按住敌人射击 · 右键汲墨 · <span>你的生命，是流动的墨汁。</span>
         </div>
         <section id="cover" aria-labelledby="cover-title">
           <div class="cover-card">
-            <span class="eyebrow">一张纸，一支笔，一条归途</span>
-            <h2 id="cover-title">这一次，<br />亲自写出前路。</h2>
+            <span class="eyebrow">施法 · 回收 · 汲墨 · 成长</span>
+            <h2 id="cover-title">每一滴，<br />都是活着的你。</h2>
             <div id="cover-art" aria-hidden="true"></div>
-            <p>用墨弹拉开距离，用干笔近身破局。<br />躲开墨灵的扑击，画出通往宝库的桥。</p>
+            <p id="cover-description"></p>
             <div class="cover-tips">
-              <span><i data-icon="dodge"></i><b>自由走位</b>躲开红色预警</span
-              ><span><i data-icon="ink"></i><b>同一瓶墨</b>战斗 / 绘路 / 治疗</span
-              ><span><i data-icon="key"></i><b>两枚钥印</b>开启最终墨之门</span>
+              <span><i data-icon="dodge"></i><b>回收墨滴</b>技能耗墨，走位拾回</span
+              ><span><i data-icon="ink"></i><b>越战越强</b>吸取恢复 / 装备升阶</span
+              ><span><i data-icon="key"></i><b id="cover-seals"></b>探索与首领挑战</span>
             </div>
-            <button id="start-game" class="primary-button">
-              进入遗忘之庭 <span data-icon="arrow"></span></button
+            <p id="cover-chapter" class="cover-chapter"></p>
+            <label id="chapter-picker" hidden>选择章节<select id="chapter-select"></select></label
+            ><button id="start-game" class="primary-button">
+              进入旅程 <span data-icon="arrow"></span></button
             ><button id="new-game" class="text-button" hidden>重新开始这章</button
             ><small class="cover-footnote"
-              >移动与攻击可以同时进行 · 触屏直接操作 · 无广告补墨</small
+              >移动与攻击可以同时进行 · 触屏直接操作 · 墨汁耗尽即失败</small
             >
           </div>
         </section>

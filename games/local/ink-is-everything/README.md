@@ -1,99 +1,120 @@
 # Ink Is Everything · 一滴墨，决定一切
 
-纸墨风格的单关卡俯视动作冒险。玩家直接移动绘图师，在场景中瞄准墨灵、近身挥笔、闪避红色攻击预告，用墨画出通往补给的桥，再击败两名守卫和墨之门后的首领。探索、远程攻击、治疗和契约共用一瓶墨水；没有金币，也不能擦除已画地图换取资源。
+纸墨风格的俯视动作冒险，当前正式内容只有第一章、六个房间。**墨汁就是生命**：受伤、射击、溅墨、绘桥和交易共用 `player.ink`；没有独立玩家 HP、金币或花墨治疗按钮。墨汁归零失败，主动消费必须至少留下 1 点。
 
-## 运行
+## 运行与检查
 
-从仓库根目录运行：
+在仓库根目录运行：
 
 ```sh
 node games/local/ink-is-everything/server.mjs
-node --test games/local/ink-is-everything/engine.test.mjs
+node --test games/local/ink-is-everything/engine.test.mjs games/local/ink-is-everything/tests/*.test.mjs
 node games/local/ink-is-everything/build.mjs
 ```
 
-独立服务默认地址为 `http://127.0.0.1:4412/`，支持 `/ink-is-everything/` 子路径，以及 `--host`、`--port` 参数。构建输出在本游戏的 `dist/`，可由静态服务器托管。游戏无远程图片、字体或运行时依赖。
+开发地址默认 `http://127.0.0.1:4412/`，支持 `--port`、`--host` 与 `/ink-is-everything/` 子路径。也可使用 `pnpm --filter @coffeeeeffoc/ink-is-everything dev`，将最后的 `dev` 改为 `test` 或 `build` 即运行对应任务。构建产物位于本游戏 `dist/`，无远程字体、图片或运行时依赖。
 
-使用仓库配置的 pnpm 也可以运行：
+## 怎么玩
 
-```sh
-pnpm --filter @coffeeeeffoc/ink-is-everything dev
-pnpm --filter @coffeeeeffoc/ink-is-everything test
-pnpm --filter @coffeeeeffoc/ink-is-everything build
+| 动作            | 触屏 / 场景操作                  | 键鼠补充         |
+| --------------- | -------------------------------- | ---------------- |
+| 移动            | 左下摇杆，或点地面走近           | WASD / 方向键    |
+| 墨弹            | 按住墨弹自动瞄准，向外拖动改瞄准 | 按住场景中的敌人 |
+| 干笔            | 按住免费近战按钮                 | F / 鼠标右键     |
+| 溅墨            | 点击溅墨，攻击身边敌人           | Q                |
+| 闪避            | 点击闪避，可与移动、攻击同时操作 | 空格             |
+| 门、泉水、商人  | 走近后点场景物体或互动按钮       | E                |
+| 绘桥            | 走近笔尖锚点，拖到对岸圆点       | 同样拖动         |
+| 查看成长 / 暂停 | 装备面板 / 暂停按钮              | Esc 暂停         |
+
+初始 90/100 墨汁。墨弹消耗 6、伤害 8；溅墨消耗 14、范围伤害 14；免费干笔伤害 5。所有有效命中按**实际造成伤害的 25%**吸回墨汁，每次击杀再直接恢复 6。敌人墨滴、宝库与泉水也能补墨。
+
+技能将消耗的 50% 留成墨滴：通常落在施法位置约 80–110 像素外，0.5 秒后可拾取，12 秒后干涸。玩家需真正移动并接近约 26 像素，不能站着连射自动收回。装备可改变返还比例与拾取范围；返还比例最高 80%，空放技能不能无限产墨。干笔与闪避免费，低墨时仍可通过反击恢复。
+
+击杀获得经验，第一次升级需 12 经验，以后每级门槛增加 8；升级增加 8 墨汁上限、恢复 8，并提供装备选择。清场后走近金色装备刻印，也会暂停战斗并提供三选一。六类装备均最多三阶，可加强伤害、吸取、容量、溅墨、闪避或回收。驿站商人用墨汁为装备升阶；墨囊每阶售价 24，上限增加 16 并立即恢复 16，购买净消耗 8 墨汁。
+
+庭院北侧花 8 墨汁绘桥，可进书库获取 24 墨汁与装备。主线经守印长廊、洗笔驿站、断笔兵营，集齐两枚钥印后挑战墨之门。已清房间、奖励和桥不会重复刷新。
+
+## 模块与 API
+
+| 层         | 职责                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `content/` | `rules.mjs`、`skills.mjs`、`enemies.mjs`、`equipment.mjs` 定义公共内容；`chapters/` 只编排章节，`room-helpers.mjs` 提供声明助手 |
+| `core/`    | 15 个独立模块处理状态、碰撞、战斗、敌人、资源、掉落、成长、交互与存档；不导入内容目录或访问 DOM                                 |
+| `ui/`      | 12 个模块负责真实键鼠/多指输入、HUD、导航、装备选择、对话框、音频与本地存储                                                     |
+| `render/`  | 10 个模块只读状态与章节几何，绘制角色、场景、墨滴、装备和反馈                                                                   |
+| 根入口     | `engine.mjs` 解析章节并转接核心；`game.mjs` 启动 UI；`art.mjs`、`levels.mjs` 保留兼容导出                                       |
+
+使用公开 API，不直接修改状态来完成游戏动作：
+
+```js
+import {
+  createGame,
+  command,
+  step,
+  getPlayerStats,
+  getRewardChoices,
+  getLevelDefinition,
+  serializeGame,
+  restoreGame,
+} from './engine.mjs';
+
+const game = createGame('chapter-1');
+command(game, { type: 'start' });
+step(game, { moveX: 1, moveY: 0, aimX: 650, aimY: 300, shoot: true }, 1 / 60);
+command(game, { type: 'nova' });
+const choices = getRewardChoices(game);
+if (choices.length) command(game, { type: 'chooseReward', itemId: choices[0].id });
+const stats = getPlayerStats(game); // 已计算装备与等级的实际数值
+const saved = serializeGame(game);
+const resumed = restoreGame(saved, getLevelDefinition(game));
 ```
 
-## 操作
+其他合法命令为 `draw`（`bridgeId`）、`interact`（可选 `objectId`）、`buy`（`itemId`）和 `restart`。命令返回 `{ok, message}`；奖励等待期间模拟停止。`getSnapshot` 返回状态副本，浏览器的 `window.__inkGame.snapshot()` 与 `worldToScreen()` 仅供只读验收。
 
-| 动作             | 触屏 / 画面内操作                    | 键鼠补充            |
-| ---------------- | ------------------------------------ | ------------------- |
-| 移动             | 拖动左下摇杆，或点击空地             | `WASD` / 方向键     |
-| 墨弹             | 按住右下墨弹按钮；拖动调整瞄准       | 按住敌人射击        |
-| 干笔近战         | 按住干笔按钮                         | 按住 `F` / 鼠标右键 |
-| 闪避             | 点击闪避按钮                         | `Space`             |
-| 治疗             | 点击疗伤按钮                         | `Q`                 |
-| 开门、泉水、商人 | 走近物体，点击场景或互动按钮         | `E`                 |
-| 绘桥             | 走近桥头，从下方笔尖锚点拖至对岸锚点 | 鼠标拖动相同锚点    |
-| 暂停             | 右上暂停按钮                         | `Esc`               |
+## 新增章节：新增文件并注册
 
-移动、攻击和闪避可以同时操作。画桥松手完成才扣墨；取消手势不会建桥或扣除墨水。界面始终显示共用墨水、生命、钥印和当前目标。
+1. 在 `content/chapters/` 新建模块，以第一章为结构参考。公共敌人、技能、装备继续从公共目录提供，不粘贴进章节。
+2. 在 `content/chapters/index.mjs` 导入新模块，加入 `definitions` 数组。注册器补齐公共规则，UI 自动列出章节。
+3. 运行规则、架构、浏览器和构建检查。无需修改核心、界面或构建复制清单。
 
-## 核心取舍
+章节至少声明 `id/title/shortTitle/description/start/spawn/initial/requiredSeals/rooms`。`initial` 只有 `ink/maxInk`。房间可声明不同 `width/height/boundary`、目标 `objective/clearedObjective/clearMessage`、障碍、门、桥、物体、首波 `enemySpawns`、后续 `waves`，以及 `isFinal`。门通过 `target/spawn/requiresClear/requiresSeals/bridgeId` 表达通行条件。
 
-- 墨弹可以在远处攻击，却会消耗绘桥、治疗和买契约所需的同一份墨水。
-- 干笔近战免费，必须靠近敌人并留意攻击预告。免费闪避帮助脱离危险，不能代替持续观察和移动。
-- 支路上的补给和契约会影响后续战斗。画出的桥永久保留，可以沿桥往返。
-- 两名守卫持有开启终门的钥印。终门之后是有独立招式的首领，击败它才完成本章。
-- 墨水归零仍可移动、近战和闪避。熟练操作可以节省墨水，墨水则可以降低战斗风险。
+清场奖励示例（第一章使用同一协议）：
 
-## 本地续玩
+```js
+{
+  objective: '清散守卫，取回钥印。',
+  clearedObjective: '拾取中央金色刻印，再前往东门。',
+  clearMessage: '装备与钥印已落地。',
+  rewardPosition: { x: 480, y: 300 },
+  clearReward: {
+    ink: 8,
+    seals: 1,
+    gear: { pool: ['fine-nib', 'splash-sigil', 'swift-boots'], title: '守印战利品' },
+  },
+}
+```
 
-未结束的旅程会定期保存在当前浏览器的 `localStorage`，暂停、切换页面、离开页面及关键交互也会保存。重开网页后点击「继续」恢复人物、敌人、已画的桥和已取的奖励。胜负结算后清除未完成存档；重新开始会覆盖本局。记录不上传服务器，不跨浏览器或设备同步。禁用存储时仍可玩，无法保证刷新后保留进度。
+房间对象的 `reward` 使用相同奖励结构。新敌人可以复用公共 `behavior`：`melee/ranged/charger/boss`；新增行为才需要扩展核心与对应预警绘制。章节可覆盖公共规则、装备池和成长参数；`skills` 中的技能名称与数值会自动进入对应规则，`chapter.rules` 可作最终显式覆盖。独立测试章节可先 `resolveChapter(rawChapter)`，然后 `createGame(definition)`；未注册章节恢复时必须传入可信定义 `restoreGame(saved, definition)`。
 
-新动作版本采用独立的 v2 存档键，不回放旧回合制版本的行动记录。声音偏好同样保存在本地。
+`build.mjs` 自动递归复制 `core/ui/render/content` 的运行时文件，排除 tests、docs、dist 与测试脚本。因此新增章文件和嵌套运行模块不需要改构建列表。
 
-## 规则与扩展
+## 存档与验收
 
-第一章包含庭院、可选书库、守印长廊、驿站、断笔兵营和最终战共六个场景。初始为 64 墨、6 生命。墨弹每发 2 墨，治疗消耗 10 墨恢复 3 生命，宝库桥消耗 8 墨。书库在清场后提供一次 34 墨与 2 生命补给；怪物掉落需靠近拾取。守印长廊与兵营各有两波敌人。
+存档使用本地 `localStorage` v3 键。定时、暂停和离开页面保存；恢复保留墨汁、装备、经验、待选奖励、敌人及尚未消失的技能墨滴。规则与几何从可信章节重建；v2 独立生命值存档不迁入本版。记录不上传、不跨设备同步，禁用存储仍可游玩。
 
-| 文件                       | 职责                                                       |
-| -------------------------- | ---------------------------------------------------------- |
-| `levels.mjs`               | 章节、房间几何、障碍、桥、出口、物体、刷怪波次和契约数据   |
-| `engine.mjs`               | 按时间步推进的移动、碰撞、弹道、敌人状态机、战斗和资源规则 |
-| `game.mjs`                 | Canvas 游戏循环、相机、界面、键鼠及多触点输入、本地存档    |
-| `art.mjs`                  | 原创纸墨插画、角色和场景素材                               |
-| `style.css` / `index.html` | 一屏布局、触控区、准备/暂停/商店/结算界面                  |
-| `engine.test.mjs`          | 独立规则与战斗验证                                         |
-| `docs/playtest.mjs`        | 真实浏览器输入驱动的完整路线与触控回归                     |
-
-新增章节时在 `LEVELS` 中增加稳定 ID、`spawn`、`initial`、`rules` 和 `rooms`。房间声明 `width`、`height`、`obstacles`、`bridges`、`objects`、`portals`、`enemySpawns`、`waves` 及可选 `clearReward`。桥通过 `bridgeId` 关联可解除的碰撞区域；出口声明目标房间和出生位置。新敌人招式同时扩展引擎状态机和绘制预警，不能只换外观而复用所有行为。
-
-当前入口只选择第一章；增加章节选择还需同步目标提示、微地图、界面章节名与存档版本。改变已有章节规则或状态结构时必须迁移旧存档或升级保存版本。新增静态文件时同步 `build.mjs` 的复制清单。
-
-## 浏览器验收
-
-启动独立服务后运行：
+启动服务后可运行：
 
 ```sh
 node games/local/ink-is-everything/docs/playtest.mjs
 node games/local/ink-is-everything/docs/playtest.mjs --pressure-only
 node games/local/ink-is-everything/docs/touch-input.playtest.mjs
+node games/local/ink-is-everything/docs/playtest-trade.mjs
+node games/local/ink-is-everything/docs/playtest-balance.mjs
+node games/local/ink-is-everything/docs/chapter-extension.playtest.mjs
 ```
 
-可用 `PLAYWRIGHT_MODULE` 指定 Playwright 模块路径、`CHROMIUM_PATH` 指定 Chromium 可执行文件、`GAME_URL` 指定站点。脚本通过真实鼠标、键盘和 Chromium 原生多指触摸事件操作游戏；`window.__inkGame.snapshot()` 和 `worldToScreen()` 只用于读取状态和定位场景目标，不调用引擎动作、不修改游戏状态。
+`GAME_URL` 指定站点，`PLAYWRIGHT_MODULE`、`CHROMIUM_PATH` 可指定浏览器工具位置。规则测试覆盖单一墨池、吸取、回收守恒、装备升阶、奖励、存档及自定义章；架构测试检查模块边界与循环依赖。浏览器用真实鼠标、键盘和原生触摸事件通关，另验证低正墨恢复、多指取消、商店与续档。平衡脚本记录 30 秒站桩表现，仅是观察数据，不将站桩存活作为通过标准。
 
-实际验收结果记录在 `docs/playtest-report.json`，截图保存在 `docs/screenshots/`。测试覆盖和设备限制以该次报告及下方验证记录为准，不把自动化通关等同于玩家趣味性测试。
-
-### 本轮验证记录
-
-Chromium 桌面 1440×960 与原生触摸模拟 390×844 完整通过；另检查 375×667、844×390、1280×720 布局，均无页面横纵滚动。两条正常路线都经过实际绘桥、宝库取补给、购买契约、刷新续玩、两处守卫波次和首领两阶段。
-
-| 真实输入路线         | 战斗用墨 | 免费近战次数 | 闪避次数 | 结果                      |
-| -------------------- | -------: | -----------: | -------: | ------------------------- |
-| 键鼠，远程与近战结合 |      160 |          102 |       15 | 20 敌通关，4 生命、21 墨  |
-| 触屏，以近战为主     |        4 |          220 |       38 | 20 敌通关，4 生命、100 墨 |
-
-这些数字是本轮自动操作回归的结果，不代表普通玩家的难度或游玩时长。近战路线依靠更多接近、侧移、闪避和收招反击节省墨水。尚未进行实体手机、Safari 真机或玩家留存测试；本章也尚未验证最初设想的 8–15 分钟人类单局时长。
-
-`playtest-report.json` 还记录受伤后治疗、死亡重开、禁用存储继续游玩、暂停阻断战斗输入、触摸绘桥取消不扣墨以及三指控制同时操作。`touch-input-report.json` 专门回归普通单指暂停的兼容点击、第四指治疗与暂停，检查多个手指保持按压时动作响应、暂停后捕获释放、焦点在关闭按钮时空格不误解除暂停，以及恢复后无持续移动或攻击。
-
-`playtest-pressure-report.json` 是单独的资源耗尽压力测试：在安全驿站**主动把墨瓶射空**，再用真实触控继续近战、闪避、夺第二枚钥印并击败首领。该路线通关时为 6 生命、46 墨；它证明零墨仍可继续，不作为自然资源分配策略推荐。
+`chapter-extension.playtest.mjs` 只在测试 HTTP 响应中注册额外章节定义，验证自动章节选择、1200×720 房间、73/125 初始墨汁、3 枚钥印目标、移动与刷新恢复，不修改生产章节或游戏状态。正式内容仍只有第一章。当前证据记录在各 `docs/*report.json`；自动回归不等于真人趣味性、留存或时长验证，尚未做实体手机与 Safari 真机验收。

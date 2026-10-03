@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-03T15:36:06.182Z",
+  "url": "http://127.0.0.1:4420/",
+  "input": "Native chapter selection, keyboard movement, pause and reload; read-only snapshots",
+  "fixture": "Only the chapter-registry HTTP response adds a data fixture; no simulation state is injected.",
+  "cases": [
+    {
+      "name": "Registering chapter data automatically supplies selection, metadata, objectives, resources, seal count and 1200×720 rendering",
+      "status": "passed"
+    },
+    {
+      "name": "The same movement, pause and save adapters resume the new registered chapter without code changes",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

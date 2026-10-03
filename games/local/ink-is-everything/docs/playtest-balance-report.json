@@ -1,0 +1,102 @@
+{
+  "version": 3,
+  "date": "2026-10-03T15:22:36.221Z",
+  "url": "http://127.0.0.1:4416",
+  "purpose": "Observational balance probe, not a player study or a substitute for input regression",
+  "input": "Native touch: hold attack controls without movement/dash/nova; choose earned rewards through visible buttons",
+  "probes": [
+    {
+      "name": "Opening room: stand still and hold ranged attack only",
+      "cleared": false,
+      "status": "playing",
+      "elapsedGameSeconds": 30.016666666666243,
+      "minimumInk": 5,
+      "finalInk": 5,
+      "maxInk": 108,
+      "equipment": {
+        "fine-nib": 1
+      },
+      "stats": {
+        "spent": {
+          "attack": 114,
+          "nova": 0,
+          "explore": 0,
+          "trade": 0
+        },
+        "shots": 19,
+        "hits": 6,
+        "projectileHits": 6,
+        "damageDealt": 36,
+        "freeAttacks": 51,
+        "dashes": 0,
+        "enemiesDefeated": 2,
+        "inkRecovered": 0,
+        "damageTaken": 0,
+        "roomsVisited": 1,
+        "trades": 0,
+        "bridgesDrawn": 0,
+        "drawn": 0,
+        "kills": 2,
+        "inkSpent": 114,
+        "lifeStolen": 9,
+        "killRestored": 12,
+        "reclaimed": 0,
+        "spilled": 57,
+        "expiredInk": 57,
+        "skillsUsed": 19,
+        "novas": 0,
+        "equipmentFound": 1,
+        "levelsGained": 1,
+        "rewardsOffered": 1,
+        "rewardsChosen": 1
+      }
+    },
+    {
+      "name": "Opening room: stand still and hold dry melee only",
+      "cleared": false,
+      "status": "playing",
+      "elapsedGameSeconds": 29.98333333333291,
+      "minimumInk": 76.5,
+      "finalInk": 103,
+      "maxInk": 108,
+      "equipment": {
+        "fine-nib": 1
+      },
+      "stats": {
+        "spent": {
+          "attack": 0,
+          "nova": 0,
+          "explore": 0,
+          "trade": 0
+        },
+        "shots": 0,
+        "hits": 8,
+        "projectileHits": 0,
+        "damageDealt": 36,
+        "freeAttacks": 67,
+        "dashes": 0,
+        "enemiesDefeated": 2,
+        "inkRecovered": 8,
+        "damageTaken": 24,
+        "roomsVisited": 1,
+        "trades": 0,
+        "bridgesDrawn": 0,
+        "drawn": 0,
+        "kills": 2,
+        "inkSpent": 0,
+        "lifeStolen": 9,
+        "killRestored": 12,
+        "reclaimed": 0,
+        "spilled": 0,
+        "expiredInk": 0,
+        "skillsUsed": 0,
+        "novas": 0,
+        "equipmentFound": 1,
+        "levelsGained": 1,
+        "rewardsOffered": 1,
+        "rewardsChosen": 1
+      }
+    }
+  ],
+  "errors": []
+}

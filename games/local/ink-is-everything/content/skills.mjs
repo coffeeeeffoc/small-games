@@ -1,0 +1,40 @@
+/** 共用技能定义；章节只引用，不复制技能数值。 */
+export const SKILLS = {
+  shot: {
+    id: 'shot',
+    name: '墨弹',
+    reclaimDrops: 1,
+    cost: 6,
+    damage: 8,
+    cooldown: 0.4,
+    description: '耗 6 墨汁发射墨弹，命中吸墨；部分消耗散落成可回收墨滴。',
+  },
+  nova: {
+    id: 'nova',
+    name: '溅墨',
+    reclaimDrops: 2,
+    cost: 14,
+    damage: 14,
+    radius: 135,
+    cooldown: 4,
+    description: '耗 14 墨汁震开近身敌人，范围命中吸墨，并留下回收墨滴。',
+  },
+  melee: {
+    id: 'melee',
+    name: '干笔',
+    cost: 0,
+    damage: 5,
+    range: 65,
+    cooldown: 0.45,
+    description: '免费近身挥笔；命中同样吸墨，低墨汁时也能主动反击。',
+  },
+  dash: {
+    id: 'dash',
+    name: '闪避',
+    cost: 0,
+    cooldown: 1.1,
+    duration: 0.18,
+    invulnerability: 0.22,
+    description: '免费侧闪并短暂无敌，穿过危险后回收落地墨滴。',
+  },
+};
