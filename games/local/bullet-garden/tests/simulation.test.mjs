@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LEVELS, BOONS, SKILLS, ENEMIES, UPGRADES } from '../src/config.mjs';
+import { createProfile } from '../src/progression.mjs';
 import {
   createGame,
   configureLoadout,
@@ -18,12 +19,13 @@ import {
 
 const idle = { moveX: 0, moveY: 0, firing: false, autoFire: false };
 
-function isolatedGame(seed = 42, skills = ['blast', 'gale']) {
-  const state = createGame('ruins', seed);
+function isolatedGame(seed = 42, skills = ['blast', 'gale'], profile = null) {
+  const state = createGame('ruins', seed, profile);
   configureLoadout(state, { skills });
   startGame(state);
   state.enemies = [];
   state.plants = [];
+  state.terrain = [];
   state.bullets = [];
   state.spawnTimer = 1e6;
   return state;
@@ -500,8 +502,11 @@ function earnUpgrade(state) {
 }
 
 function gameOfferingBoon(boonId, skills = ['blast', 'gale']) {
+  const unlockLevel = BOONS[boonId].unlockPlayerLevel ?? 1;
+  let xp = 0;
+  for (let level = 1; level < unlockLevel; level += 1) xp += 80 + level * 35;
   for (let seed = 1; seed <= 100; seed += 1) {
-    const state = isolatedGame(seed, skills);
+    const state = isolatedGame(seed, skills, createProfile({ xp }));
     earnUpgrade(state);
     assert.deepEqual(state.boons, []);
     assert.equal(state.stats.plantsGrown, 0);

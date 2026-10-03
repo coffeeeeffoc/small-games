@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-03T18:35:57.597Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4412",
+  "selection": "desktop",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
+    },
+    {
+      "name": "preparation, time/kill energy, ordinary fire, two skill slots, arm/confirm/cancel and pause release"
+    },
+    {
+      "name": "restart retains only active skill choices and clears boons, terrain, health and energy"
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
+  },
+  "passed": true
+}

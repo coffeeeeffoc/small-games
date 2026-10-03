@@ -1,0 +1,55 @@
+{
+  "command": "node tests/*.test.mjs (each file executed directly to preserve Node24 subtest counts)",
+  "files": [
+    {
+      "file": "tests/combat.test.mjs",
+      "exitCode": 0,
+      "tests": 29,
+      "pass": 29,
+      "fail": 0
+    },
+    {
+      "file": "tests/content.test.mjs",
+      "exitCode": 0,
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "file": "tests/loadout.test.mjs",
+      "exitCode": 0,
+      "tests": 7,
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "file": "tests/progression.test.mjs",
+      "exitCode": 0,
+      "tests": 11,
+      "pass": 11,
+      "fail": 0
+    },
+    {
+      "file": "tests/simulation.test.mjs",
+      "exitCode": 0,
+      "tests": 66,
+      "pass": 66,
+      "fail": 0
+    },
+    {
+      "file": "tests/world.test.mjs",
+      "exitCode": 0,
+      "tests": 8,
+      "pass": 8,
+      "fail": 0
+    }
+  ],
+  "tests": 126,
+  "pass": 126,
+  "fail": 0,
+  "environment": {
+    "node": "24.19.0",
+    "date": "2026-10-03",
+    "reporter": "Node spec reporter; file wrappers are not counted as test cases"
+  }
+}

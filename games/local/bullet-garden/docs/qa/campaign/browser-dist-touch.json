@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-03T18:31:40.049Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4412",
+  "selection": "touch",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "touch 390×844: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": ["cart", "horse"],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "name": "touch 844×390: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": ["gale", "laser"],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

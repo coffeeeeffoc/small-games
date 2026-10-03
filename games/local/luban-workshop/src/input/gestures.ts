@@ -1,20 +1,26 @@
+import type { Axis } from '../core/types.ts';
+
 export interface GestureView {
   canvas: HTMLElement;
   pick(x: number, y: number): string | null;
-  axisScreen(id: string): { x: number; y: number; pixelsPerUnit: number };
+  axisScreen(id: string, axis?: Axis): { x: number; y: number; pixelsPerUnit: number };
   orbit(dx: number, dy: number): void;
   zoom(factor: number): void;
 }
 export interface GestureActions {
-  select(id: string): void;
-  begin(id: string): number;
+  select(id: string, additive?: boolean): void;
+  begin(id: string, axis?: Axis): number;
   move(target: number): { actualOffset: number; blocked: boolean } | undefined;
   end(): void;
   cancel(): void;
   cameraChanged(): void;
   edgeOn(): void;
-  nudge(direction: number): void;
+  nudge(direction: number, axis?: Axis): void;
 }
+
+const AXES: readonly Axis[] = ['x', 'y', 'z'];
+const MIN_AXIS_PROJECTION = 12;
+const DRAG_THRESHOLD = 7;
 
 /** One owner per gesture: part drag, background orbit, or two-finger camera. */
 export function bindGestures(view: GestureView, actions: GestureActions): () => void {
@@ -27,13 +33,28 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
     x: number;
     y: number;
     offset: number;
-    axis: ReturnType<GestureView['axisScreen']>;
+    axis: ReturnType<GestureView['axisScreen']> | null;
+    explicitAxis?: Axis;
+    started: boolean;
     moved: boolean;
+    edgeOnShown: boolean;
     handleDirection: number;
   } | null = null;
   let pinching = false;
   let pinchDistance = 0;
   let pinchCenter = { x: 0, y: 0 };
+  const releasePointers = () => {
+    const ids = [...pointers.keys()];
+    // Clear first: releasing capture can synchronously emit lostpointercapture.
+    pointers.clear();
+    for (const id of ids) {
+      try {
+        if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+      } catch {
+        // The pointer may already have ended or the stage may have detached.
+      }
+    }
+  };
   const pinch = () => {
     const [a, b] = [...pointers.values()];
     return {
@@ -47,9 +68,13 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
       if (event.button !== 0 && event.pointerType !== 'touch') return;
       event.preventDefault();
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      canvas.setPointerCapture(event.pointerId);
+      try {
+        canvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Some touch environments lose capture during a DOM update.
+      }
       if (pointers.size > 1) {
-        if (drag) actions.cancel();
+        if (drag?.started) actions.cancel();
         drag = null;
         pinching = true;
         const p = pinch();
@@ -59,18 +84,22 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
       }
       const id = view.pick(event.clientX, event.clientY);
       if (id) {
-        actions.select(id);
         const handle =
           event.target instanceof Element
             ? event.target.closest<HTMLElement>('[data-axis-step]')
             : null;
+        const handleAxis = handle?.dataset.axis;
+        actions.select(id, event.shiftKey);
         drag = {
           id,
           x: event.clientX,
           y: event.clientY,
-          offset: actions.begin(id),
-          axis: view.axisScreen(id),
+          offset: 0,
+          axis: null,
+          explicitAxis: AXES.includes(handleAxis as Axis) ? (handleAxis as Axis) : undefined,
+          started: false,
           moved: false,
+          edgeOnShown: false,
           handleDirection: Number(handle?.dataset.axisStep ?? 0),
         };
       }
@@ -98,11 +127,28 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
       if (drag) {
         const dx = event.clientX - drag.x,
           dy = event.clientY - drag.y;
-        if (!drag.moved && Math.hypot(dx, dy) < 7) return;
+        if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
         drag.moved = true;
-        if (drag.axis.pixelsPerUnit < 12) {
-          actions.edgeOn();
-          return;
+        if (!drag.axis) {
+          // Keep the projection's current sign so the piece follows the pointer
+          // even when orbiting has reversed an axis on screen.
+          const candidates = (drag.explicitAxis ? [drag.explicitAxis] : AXES)
+            .map((axis) => ({ axis, screen: view.axisScreen(drag!.id, axis) }))
+            .filter(({ screen }) => screen.pixelsPerUnit >= MIN_AXIS_PROJECTION)
+            .sort(
+              (a, b) =>
+                Math.abs(dx * b.screen.x + dy * b.screen.y) -
+                Math.abs(dx * a.screen.x + dy * a.screen.y),
+            );
+          const choice = candidates[0];
+          if (!choice) {
+            if (!drag.edgeOnShown) actions.edgeOn();
+            drag.edgeOnShown = true;
+            return;
+          }
+          drag.axis = choice.screen;
+          drag.offset = actions.begin(drag.id, choice.axis);
+          drag.started = true;
         }
         const result = actions.move(
           drag.offset + (dx * drag.axis.x + dy * drag.axis.y) / drag.axis.pixelsPerUnit,
@@ -124,10 +170,11 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
     if (!pointers.has(event.pointerId)) return;
     if (drag) {
       const tapDirection = drag.moved ? 0 : drag.handleDirection;
-      if (cancelled) actions.cancel();
-      else {
-        actions.end();
-        if (tapDirection) actions.nudge(tapDirection);
+      if (cancelled) {
+        if (drag.started) actions.cancel();
+      } else {
+        if (drag.started) actions.end();
+        if (tapDirection) actions.nudge(tapDirection, drag.explicitAxis);
       }
       drag = null;
     }
@@ -142,9 +189,9 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
     (e) => {
       e.preventDefault();
       if (drag) {
-        actions.cancel();
+        if (drag.started) actions.cancel();
         drag = null;
-        pointers.clear();
+        releasePointers();
         pinching = false;
       }
       view.zoom(Math.exp(Math.max(-100, Math.min(100, e.deltaY)) * 0.002));
@@ -154,9 +201,9 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
   );
   canvas.addEventListener('contextmenu', (e) => e.preventDefault(), options);
   const cancel = () => {
-    if (drag) actions.cancel();
+    if (drag?.started) actions.cancel();
     drag = null;
-    pointers.clear();
+    releasePointers();
     pinching = false;
   };
   window.addEventListener('blur', cancel, options);

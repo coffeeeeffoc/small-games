@@ -1,4 +1,21 @@
-import { SKILLS, LEVELS } from './config.mjs';
+import { ENEMIES, LEVELS, SEEDS } from './config.mjs';
+import * as CONTENT from './config.mjs';
+import {
+  tint,
+  drawMapGround,
+  drawMapWall,
+  drawMapLandmark,
+  drawWeatherGround,
+  drawWeatherParticles,
+} from './scenery-renderer.mjs';
+import {
+  drawEnemy,
+  drawAdditionalPlant,
+  drawPet,
+  drawHeartIcon,
+  drawShieldIcon,
+  drawCombatTelegraph,
+} from './ecology-renderer.mjs';
 
 /* Bullet Garden's illustrated world. All artwork is generated locally; there are no
  * remote textures or runtime art dependencies. Simulation coordinates are ground
@@ -13,6 +30,11 @@ const COLORS = {
   fire: '#ff9a61',
   explosive: '#ffca73',
   split: '#e2bbff',
+  enemy: '#ff906d',
+  sunflower: '#f5d467',
+  stormreed: '#79dfef',
+  bloomturret: '#f193d4',
+  hostile: '#ff906d',
 };
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const noise = (n) => {
@@ -263,20 +285,26 @@ function fire(c, x, y, t, scale = 1) {
   c.restore();
 }
 
-function createBackdrop() {
+function createBackdrop(level = {}) {
+  const palette = {
+    ground: '#a49773',
+    accent: '#ffe3ac',
+    sky: '#182e29',
+    ...level.visual?.palette,
+  };
   const canvas = document.createElement('canvas');
   canvas.width = 1680;
   canvas.height = 1120;
   const c = canvas.getContext('2d');
   c.translate(120, 110);
-  c.fillStyle = '#182e29';
+  c.fillStyle = palette.sky;
   c.fillRect(-120, -110, 1680, 1120);
   const garden = gradient(c, 0, 50, 1350, 860, [
-    [0, '#596653'],
-    [0.23, '#8a8666'],
-    [0.5, '#a49773'],
-    [0.82, '#7f8466'],
-    [1, '#324f40'],
+    [0, tint(palette.ground, -40)],
+    [0.23, tint(palette.ground, -12)],
+    [0.5, tint(palette.ground, 5)],
+    [0.82, tint(palette.ground, -20)],
+    [1, tint(palette.ground, -58)],
   ]);
   c.fillStyle = garden;
   c.fillRect(15, 65, 1425, 805);
@@ -297,7 +325,7 @@ function createBackdrop() {
         [x, y + 29],
         [x - 43, y],
       ]);
-      c.fillStyle = `rgb(${tone + 43},${tone + 14},${tone - 9})`;
+      c.fillStyle = tint(palette.ground, tone - 123);
       c.fill();
       c.strokeStyle = 'rgba(69,65,47,.29)';
       c.lineWidth = 1.3;
@@ -419,6 +447,7 @@ function createBackdrop() {
     c.restore();
   }
   c.restore();
+  drawMapLandmark(c, level);
   return canvas;
 }
 
@@ -709,7 +738,7 @@ function directionArrow(c, x, y, angle, color, size = 10) {
   c.restore();
 }
 function skillEffect(c, effect, t) {
-  const definition = SKILLS[effect.kind] || {};
+  const definition = CONTENT.SKILLS?.[effect.kind] || {};
   const duration = Math.max(0.01, effect.life || definition.duration || 1);
   const progress = clamp((effect.age || 0) / duration, 0, 1);
   const radius = effect.radius || definition.radius || 90;
@@ -907,6 +936,103 @@ function enemyStatus(c, enemy, size, t) {
   }
 }
 
+function thorn(c, x, y, size = 1, age = 5, t = 0) {
+  c.save();
+  c.translate(x, y);
+  c.scale(size, size);
+  const grow = clamp(age / 0.65, 0.05, 1);
+  c.scale(grow, grow);
+  shadow(c, 0, 0, 60, 22, 0.4);
+  ellipse(c, 0, 0, 48, 15, 'rgba(62,108,46,.16)');
+  for (let i = 0; i < 7; i++)
+    leaf(c, -37 + i * 12, 5 + (i % 2) * 3, 17 + (i % 3) * 3, (i - 3) * 0.28, '#3e7037', '#779344');
+  const vines = [
+    [
+      [-44, 0],
+      [-61, -27],
+      [-24, -46],
+      [-8, -32],
+      [10, -9],
+      [-16, 10],
+      [-38, -1],
+    ],
+    [
+      [-20, 8],
+      [15, 22],
+      [49, 3],
+      [36, -25],
+      [24, -52],
+      [-4, -46],
+      [-7, -28],
+    ],
+    [
+      [13, 8],
+      [55, 9],
+      [59, -21],
+      [40, -36],
+      [21, -48],
+      [10, -26],
+      [32, -19],
+    ],
+  ];
+  vines.forEach((p, i) => {
+    c.beginPath();
+    c.moveTo(...p[0]);
+    c.bezierCurveTo(...p[1], ...p[2], ...p[3]);
+    c.bezierCurveTo(...p[4], ...p[5], ...p[6]);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.lineWidth = 19;
+    c.strokeStyle = '#355f2c';
+    c.stroke();
+    c.lineWidth = 14;
+    c.strokeStyle = gradient(c, 0, -44, 0, 12, [
+      [0, '#75a43e'],
+      [0.35, '#568e35'],
+      [1, '#3b772e'],
+    ]);
+    c.stroke();
+    c.save();
+    c.translate(-2, -3);
+    c.lineWidth = 3;
+    c.strokeStyle = 'rgba(176,205,85,.45)';
+    c.stroke();
+    c.restore();
+  });
+  const spikes = [
+    [-44, -18, -1],
+    [-29, -32, -0.45],
+    [-8, -23, 0.8],
+    [-27, 6, 2.5],
+    [14, 11, 2.8],
+    [38, -2, 1.6],
+    [29, -35, -0.2],
+    [7, -39, -0.75],
+    [47, -25, 0.9],
+    [33, -28, -0.25],
+    [-53, -7, -1.3],
+  ];
+  spikes.forEach(([sx, sy, a], i) => {
+    c.save();
+    c.translate(sx, sy);
+    c.rotate(a);
+    path(c, [
+      [-4, 2],
+      [0, -12 - (i % 3) * 2],
+      [5, 1],
+    ]);
+    c.fillStyle = gradient(c, -3, 0, 3, -12, [
+      [0, '#c4a24e'],
+      [0.5, '#edcf76'],
+      [1, '#fff3b0'],
+    ]);
+    c.fill();
+    c.restore();
+  });
+  leaf(c, -11, -34, 20, -0.8 + Math.sin(t * 1.6 + x) * 0.04, '#4f8735', '#8daf47');
+  leaf(c, 34, -4, 16, 1.2, '#416f2e', '#84a53e');
+  c.restore();
+}
 function crystal(c, x, y, width, height, tilt = 0) {
   c.save();
   c.translate(x, y);
@@ -1098,113 +1224,8 @@ function star(c, x, y, r, color) {
   c.stroke();
 }
 
-function monster(c, enemy, t, sprite = false) {
-  const brute = enemy.kind === 'brute',
-    runner = enemy.kind === 'runner';
-  const phase = Number(enemy.id) || enemy.x * 0.1;
-  const size = sprite ? 1 : brute ? 1.75 : runner ? 0.8 : 1;
-  const bob = Math.sin(t * (runner ? 13 : 6) + phase * 1.8) * 2;
-  c.save();
-  c.translate(enemy.x, enemy.y);
-  c.scale(size, size);
-  shadow(c, 0, 0, 29, 10, 0.45);
-  const flash = enemy.hit > 0;
-  // Tail, grounded feet, then a soft, round charcoal body.
-  c.strokeStyle = flash ? '#929278' : '#293034';
-  c.lineWidth = 6;
-  c.lineCap = 'round';
-  c.beginPath();
-  c.moveTo(-19, -12);
-  c.bezierCurveTo(-35, -9, -36, -22, -29, -26);
-  c.stroke();
-  path(c, [
-    [-32, -29],
-    [-23, -25],
-    [-33, -21],
-  ]);
-  c.fillStyle = flash ? '#d4cdaa' : '#303435';
-  c.fill();
-  ellipse(c, -13, 0 + Math.sin(t * 8 + phase) * 2, 9, 6, '#252b2c');
-  ellipse(c, 13, -Math.sin(t * 8 + phase) * 2, 9, 6, '#252b2c');
-  c.translate(0, bob);
-  ellipse(c, -23, -20, 7, 11, flash ? '#b9bba2' : '#31363a');
-  ellipse(c, 23, -20, 7, 11, flash ? '#b9bba2' : '#31363a');
-  ellipse(
-    c,
-    0,
-    -25,
-    25,
-    27,
-    gradient(c, -15, -49, 14, 1, [
-      [0, flash ? '#e4e1c2' : '#48504b'],
-      [0.35, flash ? '#b7b597' : '#333a3c'],
-      [0.75, flash ? '#919577' : '#252d32'],
-      [1, '#202a2c'],
-    ]),
-  );
-  c.beginPath();
-  c.moveTo(-19, -40);
-  c.quadraticCurveTo(-30, -48, -20, -61);
-  c.quadraticCurveTo(-18, -50, -11, -45);
-  c.fillStyle = flash ? '#b9bba2' : '#33393c';
-  c.fill();
-  c.beginPath();
-  c.moveTo(14, -46);
-  c.quadraticCurveTo(25, -62, 26, -47);
-  c.quadraticCurveTo(30, -36, 21, -35);
-  c.fillStyle = flash ? '#b9bba2' : '#2a3235';
-  c.fill();
-  if (brute) {
-    leaf(c, -3, -46, 26, -1.1, '#3c6438', '#7c994c');
-    leaf(c, 0, -46, 33, 0.1, '#38623b', '#6e9750');
-    leaf(c, 4, -48, 28, 0.9, '#3b6840', '#84a354');
-    ellipse(c, -15, -18, 8, 5, '#3a463a');
-    ellipse(c, 13, -6, 7, 4, '#3b453b');
-  } else {
-    leaf(c, 0, -48, 15, -0.8, '#497143', '#8caf56');
-    leaf(c, 0, -49, 12, 0.65, '#496e3a', '#93b755');
-  }
-  const lookingLeft = Math.cos(enemy.angle || 0) < 0;
-  const look = lookingLeft ? -2 : 2;
-  c.save();
-  c.translate(look, 0);
-  c.shadowColor = '#ffc74b';
-  c.shadowBlur = 11;
-  c.beginPath();
-  c.moveTo(-16, -29);
-  c.quadraticCurveTo(-6, -26, -5, -17);
-  c.quadraticCurveTo(-16, -14, -16, -29);
-  c.fillStyle = '#ffe378';
-  c.fill();
-  c.beginPath();
-  c.moveTo(15, -29);
-  c.quadraticCurveTo(5, -26, 5, -17);
-  c.quadraticCurveTo(16, -14, 15, -29);
-  c.fill();
-  c.shadowBlur = 0;
-  ellipse(c, -11, -23, 2, 3, '#fff5b5');
-  ellipse(c, 10, -23, 2, 3, '#fff5b5');
-  c.restore();
-  if (runner) {
-    c.beginPath();
-    c.moveTo(-24, -15);
-    c.lineTo(-34, -11);
-    c.moveTo(-22, -10);
-    c.lineTo(-29, -5);
-    c.strokeStyle = '#b3c776';
-    c.lineWidth = 2;
-    c.stroke();
-  }
-  c.restore();
-  if (!sprite && enemy.hp < enemy.maxHp)
-    healthbar(
-      c,
-      enemy.x,
-      enemy.y - (brute ? 110 : 68),
-      brute ? 62 : 40,
-      enemy.hp / enemy.maxHp,
-      '#f57a64',
-    );
+function monster(c, enemy, t, sprite = false, healthbarBounds = null) {
+  drawEnemy(c, enemy, t, ENEMIES[enemy.kind], sprite, healthbarBounds);
 }
 function healthbar(c, x, y, width, fraction, color) {
   c.fillStyle = 'rgba(19,31,28,.85)';
@@ -1426,7 +1447,14 @@ function seedProjectile(c, b, t) {
   c.translate(b.x, b.y - 10);
   c.rotate(angle);
   if (b.generation > 0 || b.kind === 'split') c.scale(0.68, 0.68);
-  const color = COLORS[kind] || '#ff9b72';
+  const hostile = kind === 'hostile' || kind === 'enemy' || b.source === 'enemy';
+  const color = hostile
+    ? '#ff785a'
+    : b.source === 'pet'
+      ? '#ffdb79'
+      : b.source === 'plant'
+        ? '#ffb0e5'
+        : COLORS[kind] || '#ff9b72';
   c.globalAlpha = 0.7;
   c.fillStyle = gradient(c, -30, 0, 5, 0, [
     [0, 'rgba(255,155,224,0)'],
@@ -1443,7 +1471,26 @@ function seedProjectile(c, b, t) {
   c.globalAlpha = 1;
   c.shadowColor = color;
   c.shadowBlur = kind === 'normal' ? 11 : 16;
-  if (kind === 'ice') {
+  if (hostile) {
+    ellipse(c, 0, 0, 8, 8, '#752742', '#ffac73', 2);
+    ellipse(c, 1, 0, 4, 4, '#ffc36e');
+    path(c, [
+      [-3, -11],
+      [3, -10],
+      [0, -6],
+    ]);
+    c.fillStyle = '#ff7863';
+    c.fill();
+  } else if (b.source === 'pet') {
+    path(c, [
+      [10, 0],
+      [0, -5],
+      [-7, 0],
+      [0, 5],
+    ]);
+    c.fillStyle = '#ffeaa9';
+    c.fill();
+  } else if (kind === 'ice' || kind === 'stormreed') {
     path(c, [
       [12, 0],
       [-3, -6],
@@ -1455,9 +1502,9 @@ function seedProjectile(c, b, t) {
     c.strokeStyle = '#4dccff';
     c.lineWidth = 2;
     c.stroke();
-  } else if (kind === 'explosive' || kind === 'mushroom') {
+  } else if (kind === 'mushroom' || kind === 'explosive') {
     ellipse(c, 0, 0, 8, 7, '#71462b', '#ffd081', 1.5);
-    ellipse(c, 1, 0, 5, 5, '#ffc263');
+    ellipse(c, 0, 0, 5, 5, '#ffc263');
     ellipse(c, 2, -2, 2, 2, '#fff1a2');
   } else {
     c.beginPath();
@@ -1474,10 +1521,11 @@ function seedProjectile(c, b, t) {
     c.stroke();
   }
   if (kind === 'fire') {
-    c.beginPath();
-    c.moveTo(-3, -4);
-    c.lineTo(-15 - Math.sin(t * 22) * 4, 0);
-    c.lineTo(-3, 4);
+    path(c, [
+      [-3, -4],
+      [-15 - Math.sin(t * 22) * 4, 0],
+      [-3, 4],
+    ]);
     c.fillStyle = '#ffc46e';
     c.fill();
   }
@@ -1521,8 +1569,34 @@ function drawPlant(c, p, t) {
   const size = p.radius
     ? clamp(p.radius / (p.kind === 'thorn' ? 43 : p.kind === 'ice' ? 29 : 30), 0.7, 1.25)
     : 1;
-  if (p.kind === 'thorn') shrub(c, p.x, p.y, size, p.age, t);
-  if (p.kind === 'ice') ice(c, p.x, p.y, size, p.age, t);
+  if (p.kind === 'thorn') {
+    ellipse(
+      c,
+      p.x,
+      p.y,
+      p.radius || 58,
+      p.radius || 58,
+      'rgba(109,176,75,.04)',
+      'rgba(122,192,89,.23)',
+      1,
+    );
+    thorn(c, p.x, p.y, size, p.age, t);
+  }
+  if (p.kind === 'ice') {
+    ellipse(c, p.x, p.y, p.radius || 28, p.radius || 28, 'rgba(100,206,245,.08)', '#74c6db', 1.4);
+    ice(c, p.x, p.y, size, p.age, t);
+    if (p.hp < p.maxHp * 0.6) {
+      c.beginPath();
+      c.moveTo(p.x - 4, p.y - 70);
+      c.lineTo(p.x + 5, p.y - 49);
+      c.lineTo(p.x - 6, p.y - 31);
+      c.strokeStyle = '#247fa1';
+      c.lineWidth = 2.5;
+      c.stroke();
+    }
+  }
+  if (!['thorn', 'ice', 'mushroom', 'trench', 'frost', 'poison'].includes(p.kind))
+    drawAdditionalPlant(c, p, t, false, SEEDS[p.kind]);
   if (p.kind === 'mushroom') {
     mushroom(c, p.x, p.y, size, p.age, t);
     const remaining = p.life - p.age;
@@ -1543,8 +1617,7 @@ function drawPlant(c, p, t) {
     const r = p.age * 70;
     ellipse(c, p.x, p.y, r, r * 0.4, null, `rgba(223,253,169,${1 - p.age / 0.7})`, 2);
   }
-  if (p.kind === 'ice' && p.hp < p.maxHp)
-    healthbar(c, p.x, p.y + 13, 28, p.hp / p.maxHp, '#9ce8ff');
+  if (p.maxHp > 1 && p.hp < p.maxHp) healthbar(c, p.x, p.y + 13, 28, p.hp / p.maxHp, '#9ce8ff');
   c.restore();
 }
 
@@ -1567,6 +1640,12 @@ const SPRITE_SCALE = 1.5;
 const MONSTER_WIDTH = 96;
 const MONSTER_HEIGHT = 112;
 const PROJECTILE_KINDS = [
+  'hostile',
+  'pet',
+  'plant',
+  'sunflower',
+  'stormreed',
+  'bloomturret',
   'normal',
   'thorn',
   'ice',
@@ -1630,7 +1709,15 @@ function createProjectileAtlas() {
     );
     seedProjectile(
       c,
-      { kind: kind === 'split' ? 'normal' : kind, element: kind, x: 0, y: 10, vx: 1, vy: 0 },
+      {
+        kind: ['split', 'pet', 'plant'].includes(kind) ? 'normal' : kind,
+        element: ['pet', 'plant'].includes(kind) ? undefined : kind,
+        source: ['pet', 'plant'].includes(kind) ? kind : undefined,
+        x: 0,
+        y: 10,
+        vx: 1,
+        vy: 0,
+      },
       0,
     );
   });
@@ -1754,8 +1841,27 @@ export class GardenRenderer {
     return left < this.width && top < this.height && left + diameter > 0 && top + diameter > 0;
   }
   drawMonster(enemy, t, atlas) {
+    if (
+      !MONSTER_KINDS.includes(enemy.kind) ||
+      enemy.layer === 'underground' ||
+      enemy.layer === 'air' ||
+      enemy.shield > 0 ||
+      ['leader', 'boss'].includes(enemy.rank)
+    ) {
+      if (!this.visible(enemy.x, enemy.y, 230)) return;
+      const animationTime = enemy.frozen > 0 || enemy.stunned > 0 ? 0 : t;
+      const healthbarBounds = ['leader', 'boss'].includes(enemy.rank)
+        ? {
+            top: ((this.height < 540 ? 151 : 245) - this.offsetY) / this.scale,
+            bottom: (this.height - (this.height < 540 ? 120 : 205) - this.offsetY) / this.scale,
+          }
+        : null;
+      monster(this.ctx, enemy, animationTime, false, healthbarBounds);
+      enemyStatus(this.ctx, enemy, Math.max(0.5, (enemy.radius || 19) / 19), t);
+      return;
+    }
     const kind = Math.max(0, MONSTER_KINDS.indexOf(enemy.kind));
-    const size = kind === 2 ? 1.75 : kind === 1 ? 0.8 : 1;
+    const size = kind === 2 ? 1.6 : kind === 1 ? 0.78 : 1;
     if (!this.visible(enemy.x, enemy.y, 110 * size)) return;
     const animationTime = enemy.frozen > 0 || enemy.stunned > 0 ? 0 : t;
     if (!atlas) {
@@ -1799,11 +1905,23 @@ export class GardenRenderer {
       seedProjectile(this.ctx, bullet, 0);
       return;
     }
-    const index = Math.max(0, PROJECTILE_KINDS.indexOf(bullet.element || bullet.kind));
+    const visualKind =
+      bullet.source === 'enemy'
+        ? 'hostile'
+        : bullet.source === 'pet' || bullet.source === 'plant'
+          ? bullet.source
+          : bullet.element || bullet.kind;
+    const index = PROJECTILE_KINDS.indexOf(visualKind);
+    if (index < 0) {
+      seedProjectile(this.ctx, bullet, 0);
+      return;
+    }
     const c = this.ctx;
     c.save();
     c.translate(bullet.x, bullet.y - 10);
     c.rotate(Math.atan2(bullet.vy || 0, bullet.vx || 1));
+    if (bullet.source === 'normal')
+      c.scale(clamp(Math.sqrt((bullet.damage || 19) / 19), 1, 1.35), 1);
     if (bullet.generation > 0 || bullet.kind === 'split') c.scale(0.68, 0.68);
     c.drawImage(
       atlas,
@@ -1816,6 +1934,16 @@ export class GardenRenderer {
       96,
       80,
     );
+    if (bullet.remainingPierce > 0) {
+      c.strokeStyle = '#ffe2f6';
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(-42, -4);
+      c.lineTo(-15, -4);
+      c.moveTo(-42, 4);
+      c.lineTo(-15, 4);
+      c.stroke();
+    }
     if (bullet.reflected) ellipse(c, 0, 0, 11, 9, null, '#f6df99', 1.2);
     c.restore();
   }
@@ -1824,8 +1952,16 @@ export class GardenRenderer {
     if (this.contextLost || this.ctx.isContextLost?.()) return;
     this.updateCamera(state);
     const c = this.ctx,
-      t = time || performance.now() / 1000;
-    const backdrop = this.artwork('backdrop', createBackdrop);
+      t = Number.isFinite(state.time) ? state.time : time || performance.now() / 1000;
+    const level = LEVELS[state.levelId] || LEVELS.ruins;
+    if (this.backdropDefinition !== level) {
+      this.releaseArtwork();
+      this.backdropDefinition = level;
+    }
+    const backdrop = this.artwork('backdrop', () => createBackdrop(level));
+    const mapTerrain = (state.terrain || level.terrain || []).filter((region) =>
+      this.visible(region.x, region.y, region.radius + 100),
+    );
     const monsterAtlas = this.artwork('monsterAtlas', createMonsterAtlas);
     const projectileAtlas = this.artwork('projectileAtlas', createProjectileAtlas);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -1843,6 +1979,8 @@ export class GardenRenderer {
       c.fillStyle = '#8a8666';
       c.fillRect(15, 65, 1425, 805);
     }
+    drawMapGround(c, mapTerrain, level.visual?.palette);
+    drawWeatherGround(c, state, t, level);
     // Floating motes, torchlight and edge blossoms enliven an otherwise stable field.
     [
       [89, 260],
@@ -1879,26 +2017,11 @@ export class GardenRenderer {
         ? PREVIEW_ENEMIES.map((e, i) => ({ ...e, id: i, hp: 100, maxHp: 100, angle: Math.PI }))
         : state.enemies || [];
     // Ground-only telegraphs are rendered beneath all solid objects.
-    (state.telegraphs || []).forEach((p) => {
-      if (!this.visible(p.x, p.y, p.radius + 20)) return;
-      const alpha = clamp(p.life, 0.15, 0.7);
-      const danger = p.kind !== 'ice';
-      ellipse(
-        c,
-        p.x,
-        p.y,
-        p.radius,
-        p.radius * 0.55,
-        danger ? `rgba(248,133,63,${alpha * 0.17})` : `rgba(77,199,245,${alpha * 0.16})`,
-        danger ? `rgba(255,154,93,${alpha})` : `rgba(122,227,255,${alpha})`,
-        2,
-      );
-      if (p.kind === 'spawn') {
-        c.setLineDash([4, 7]);
-        ellipse(c, p.x, p.y, p.radius * 0.7, p.radius * 0.38, null, 'rgba(255,189,124,.7)', 1);
-        c.setLineDash([]);
-      }
-    });
+    (state.telegraphs || [])
+      .filter((p) => p.kind !== 'lightning' || p.dangerous)
+      .forEach((p) => {
+        if (this.visible(p.x, p.y, (p.length || p.radius || 24) + 80)) drawCombatTelegraph(c, p, t);
+      });
     // Passive ground patches and area skills stay beneath feet and characters.
     for (const plant of plants) {
       if (
@@ -1916,6 +2039,14 @@ export class GardenRenderer {
     }
     if (aim && state.phase === 'playing') this.drawAim(state, aim, planting, t);
     const objects = [];
+    mapTerrain
+      .filter((region) => region.kind === 'wall')
+      .forEach((region) =>
+        objects.push({
+          y: region.y + region.radius * 0.4,
+          draw: () => drawMapWall(c, region, level.visual?.palette),
+        }),
+      );
     plants.forEach((p) => {
       if (!['trench', 'frost', 'poison'].includes(p.kind) && this.visible(p.x, p.y, 130))
         objects.push({ y: p.y, draw: () => drawPlant(c, p, t) });
@@ -1924,6 +2055,8 @@ export class GardenRenderer {
       objects.push({ y: e.y, draw: () => this.drawMonster(e, t, monsterAtlas) }),
     );
     if (state.player) objects.push({ y: state.player.y, draw: () => player(c, state.player, t) });
+    if (state.pet && this.visible(state.pet.x, state.pet.y, 100))
+      objects.push({ y: state.pet.y, draw: () => drawPet(c, state.pet, t) });
     (state.telegraphs || [])
       .filter((p) => p.kind === 'explosion' && this.visible(p.x, p.y, 190))
       .forEach((p) => objects.push({ y: p.y + 5, draw: () => explosion(c, p, t) }));
@@ -1951,6 +2084,9 @@ export class GardenRenderer {
         skillEffect(c, effect, t);
     }
     (state.bullets || []).forEach((b) => this.drawProjectile(b, projectileAtlas));
+    (state.telegraphs || [])
+      .filter((p) => p.kind === 'lightning' && !p.dangerous)
+      .forEach((p) => drawCombatTelegraph(c, p, t));
     for (const p of state.particles || []) {
       if (!this.visible(p.x, p.y, (p.size || 3) + 8)) continue;
       c.save();
@@ -1965,6 +2101,7 @@ export class GardenRenderer {
       ellipse(c, p.x, p.y, p.size || 3, (p.size || 3) * 0.8, p.color || '#ffd086');
       c.restore();
     }
+    drawWeatherParticles(c, state, t, level);
     for (const f of state.floaters || []) {
       if (!this.visible(f.x, f.y, 120)) continue;
       c.save();
@@ -2011,7 +2148,7 @@ export class GardenRenderer {
   drawAim(state, aim, planting, t) {
     const c = this.ctx;
     const slot = state.skillSlots?.[state.selectedSkill ?? 0];
-    const definition = SKILLS[slot?.kind];
+    const definition = CONTENT.SKILLS?.[slot?.kind];
     const color = definition?.color || '#ffe3a1';
     let x = aim.x,
       y = aim.y;
@@ -2110,7 +2247,7 @@ export function drawSeedIcon(canvas, kind) {
   c.save();
   c.translate(w * 0.5, h * 0.84);
   c.scale(scale, scale);
-  if (kind === 'thorn' || kind === 'shrub') shrub(c, 0, 0, 0.96, 5, 0);
+  if (kind === 'shrub') shrub(c, 0, 0, 0.96, 5, 0);
   else if (kind === 'trench' || kind === 'frost' || kind === 'poison')
     terrain(c, { kind, x: 0, y: -35, radius: kind === 'trench' ? 56 : 40, age: 5, life: 99 }, 1);
   else if (kind === 'cart') wagon(c, 0, -21, 0, 0.15, 0.9);
@@ -2150,28 +2287,18 @@ export function drawSeedIcon(canvas, kind) {
       },
       1,
     );
-  } else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
+  } else if (kind === 'thorn') thorn(c, 0, 0, 0.96, 5, 0);
+  else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
   else if (kind === 'mushroom') mushroom(c, 0, 0, 1, 5, 0);
+  else if (SEEDS[kind]) drawAdditionalPlant(c, { kind, x: 0, y: 0, age: 5 }, 0, true, SEEDS[kind]);
+  else if (kind === 'heart' || kind === 'health') drawHeartIcon(c);
+  else if (kind === 'pet') {
+    c.translate(0, -32);
+    drawPet(c, { x: 0, y: 0 }, 0, true);
+  } else if (kind === 'shield' || kind === 'armor') drawShieldIcon(c);
   else if (kind === 'leaf') leaf(c, 0, 7, 57, 0.65, '#4f842b', '#a3d75f');
   else if (kind === 'flower') flower(c, 0, 0, 1.55, 0);
-  else if (kind === 'heart') {
-    c.translate(0, -28);
-    c.beginPath();
-    c.moveTo(0, 16);
-    c.bezierCurveTo(-44, -7, -27, -41, 0, -21);
-    c.bezierCurveTo(27, -41, 44, -7, 0, 16);
-    c.fillStyle = gradient(c, -20, -30, 20, 18, [
-      [0, '#ffc4a4'],
-      [0.45, '#ef7e70'],
-      [1, '#ac4150'],
-    ]);
-    c.shadowColor = '#f7997e';
-    c.shadowBlur = 12;
-    c.fill();
-    c.strokeStyle = '#ffe1be';
-    c.lineWidth = 1.5;
-    c.stroke();
-  } else {
+  else {
     c.rotate(-0.4);
     c.shadowColor = '#ff96da';
     c.shadowBlur = 16;

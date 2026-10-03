@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Box, Level, PieceDefinition } from '../core/types';
+import type { Axis, Box, Level, Offsets, PieceDefinition } from '../core/types';
 
 interface PieceView {
   definition: PieceDefinition;
@@ -240,10 +240,14 @@ export class PuzzleScene {
   private pitch = 0.5;
   private zoomFactor = 1;
   private baseSpan = 12;
+  private cameraDistance = 35;
   private assemblyMinY = 0;
   private selectedId: string | null = null;
+  private selectedIds = new Set<string>();
+  private activeAxis: Axis | undefined;
   private xray = false;
   private hintDirection: -1 | 1 | null = null;
+  private phase: 'disassemble' | 'reassemble' = 'disassemble';
 
   constructor(
     private readonly container: HTMLElement,
@@ -303,7 +307,10 @@ export class PuzzleScene {
     this.piecesGroup.clear();
     this.pieces.clear();
     this.selectedId = null;
+    this.selectedIds.clear();
+    this.activeAxis = undefined;
     this.xray = false;
+    this.phase = 'disassemble';
     const bounds = new THREE.Box3();
 
     for (const definition of level.pieces) {
@@ -369,29 +376,36 @@ export class PuzzleScene {
   }
 
   update(
-    offsets: Record<string, number>,
+    offsets: Offsets,
     selectedId: string | null,
     blockedIds: readonly string[] = [],
     xray = false,
+    selectedIds: readonly string[] = selectedId ? [selectedId] : [],
+    axis?: Axis,
     hintDirection: -1 | 1 | null = null,
     phase: 'disassemble' | 'reassemble' = 'disassemble',
   ): void {
     this.selectedId = selectedId;
+    this.selectedIds = new Set(selectedIds);
+    this.activeAxis = axis;
     this.xray = xray;
     this.hintDirection = hintDirection;
+    this.phase = phase;
     let lowestY = this.assemblyMinY;
     for (const [id, view] of this.pieces) {
-      view.group.position.set(0, 0, 0);
-      view.group.position[view.definition.axis] = offsets[id] ?? 0;
+      view.group.position.set(...(offsets[id] ?? [0, 0, 0]));
       lowestY = Math.min(lowestY, view.mesh.geometry.boundingBox!.min.y + view.group.position.y);
-      const selected = id === selectedId;
+      const selected = this.selectedIds.has(id);
       const blocked = blockedIds.includes(id);
       // The dashed silhouette stays at the assembled position while its part moves.
-      view.seat.visible = phase === 'reassemble' && selected && Math.abs(offsets[id] ?? 0) > 0.001;
+      view.seat.visible =
+        phase === 'reassemble' &&
+        selected &&
+        (offsets[id] ?? [0, 0, 0]).some((value) => Math.abs(value) > 0.001);
       const material = view.mesh.material;
       material.emissive.set(blocked ? 0xff3454 : selected ? view.definition.color : 0x000000);
       material.emissiveIntensity = blocked ? 0.55 : selected ? 0.24 : 0;
-      const transparent = xray && selectedId !== null && !selected;
+      const transparent = xray && this.selectedIds.size > 0 && !selected;
       if (material.transparent !== transparent) {
         material.transparent = transparent;
         material.needsUpdate = true;
@@ -415,18 +429,19 @@ export class PuzzleScene {
       ((clientX - rect.left) / rect.width) * 2 - 1,
       -((clientY - rect.top) / rect.height) * 2 + 1,
     );
+    // Input can arrive before the next render frame after a camera gesture.
+    // The camera is not a child of scene, so scene's update does not cover it.
+    this.camera.updateMatrixWorld(true);
     this.scene.updateMatrixWorld(true);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(
       [...this.pieces.values()].map((view) => view.mesh),
       false,
     );
-    if (
-      this.xray &&
-      this.selectedId &&
-      hits.some((hit) => hit.object.userData.pieceId === this.selectedId)
-    )
-      return this.selectedId;
+    if (this.xray) {
+      const selectedHit = hits.find((hit) => this.selectedIds.has(hit.object.userData.pieceId));
+      if (selectedHit) return selectedHit.object.userData.pieceId as string;
+    }
     return hits.length ? (hits[0].object.userData.pieceId as string) : null;
   }
 
@@ -436,24 +451,27 @@ export class PuzzleScene {
     return this.project(view.center.clone().add(view.group.position));
   }
 
-  projectAxisEnds(pieceId: string): { negative: ScreenPoint; positive: ScreenPoint } {
+  projectAxisEnds(pieceId: string, axis?: Axis): { negative: ScreenPoint; positive: ScreenPoint } {
     const view = this.pieces.get(pieceId);
     if (!view)
       return { negative: this.projectPiece(pieceId), positive: this.projectPiece(pieceId) };
+    const movementAxis = axis ?? view.definition.axis;
     const center = view.center.clone().add(view.group.position);
-    const extension = AXES[view.definition.axis].clone().multiplyScalar(this.guideHalfLength(view));
+    const extension = AXES[movementAxis]
+      .clone()
+      .multiplyScalar(this.guideHalfLength(view, movementAxis));
     return {
       negative: this.project(center.clone().sub(extension)),
       positive: this.project(center.add(extension)),
     };
   }
 
-  axisScreen(pieceId: string): { x: number; y: number; pixelsPerUnit: number } {
+  axisScreen(pieceId: string, axis?: Axis): { x: number; y: number; pixelsPerUnit: number } {
     const view = this.pieces.get(pieceId);
     if (!view) return { x: 1, y: 0, pixelsPerUnit: 1 };
     const start = view.center.clone().add(view.group.position);
     const a = this.project(start);
-    const b = this.project(start.add(AXES[view.definition.axis]));
+    const b = this.project(start.add(AXES[axis ?? view.definition.axis]));
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const pixelsPerUnit = Math.hypot(dx, dy);
@@ -463,6 +481,25 @@ export class PuzzleScene {
       y: pixelsPerUnit > 0.001 ? dy / pixelsPerUnit : 0,
       pixelsPerUnit,
     };
+  }
+
+  /** Surface samples stay on actual wood, unlike the center of a notched part.
+   * Consumers can use pick() to identify which samples are visible. */
+  projectedSurfacePoints(pieceId: string): ScreenPoint[] {
+    const view = this.pieces.get(pieceId);
+    if (!view) return [];
+    const positions = view.mesh.geometry.getAttribute('position');
+    const center = new THREE.Vector3();
+    const corner = new THREE.Vector3();
+    const points: ScreenPoint[] = [];
+    // unionGeometry emits four vertices for each exposed rectangular face.
+    for (let i = 0; i < positions.count; i += 4) {
+      center.set(0, 0, 0);
+      for (let j = 0; j < 4; j++) center.add(corner.fromBufferAttribute(positions, i + j));
+      center.multiplyScalar(0.25).add(view.group.position);
+      points.push(this.project(center));
+    }
+    return points;
   }
 
   orbit(dx: number, dy: number): void {
@@ -480,42 +517,31 @@ export class PuzzleScene {
   }
 
   resetCamera(): void {
-    this.assemblyBounds.getCenter(this.target);
-    const size = this.assemblyBounds.getSize(new THREE.Vector3());
-    this.baseSpan = Math.max(size.x, size.y, size.z) * 1.55 + 2;
     this.yaw = 0.72;
     this.pitch = 0.5;
-    this.zoomFactor = 1;
-    this.positionCamera();
-    this.resize();
+    this.fitPieces();
   }
 
   /** Explicit framing only: dragging never changes the screen-space movement scale. */
-  fitPieces(offsets: Record<string, number>): void {
-    const bounds = this.assemblyBounds.clone();
+  fitPieces(offsets?: Offsets): void {
+    // Disassembly follows the actual assembly even after a whole-group translation.
+    // Reassembly also includes the original seats so its ghost outlines stay visible.
+    const bounds = this.phase === 'reassemble' ? this.assemblyBounds.clone() : new THREE.Box3();
     for (const [id, view] of this.pieces) {
-      const position = new THREE.Vector3();
-      position[view.definition.axis] = offsets[id] ?? 0;
+      const position = offsets
+        ? new THREE.Vector3(...(offsets[id] ?? [0, 0, 0]))
+        : view.group.position;
       bounds.union(view.mesh.geometry.boundingBox!.clone().translate(position));
     }
+    if (bounds.isEmpty()) bounds.copy(this.assemblyBounds);
     bounds.getCenter(this.target);
-    this.positionCamera();
-    const projected = new THREE.Box3();
-    for (const x of [bounds.min.x, bounds.max.x])
-      for (const y of [bounds.min.y, bounds.max.y])
-        for (const z of [bounds.min.z, bounds.max.z])
-          projected.expandByPoint(
-            new THREE.Vector3(x, y, z).applyMatrix4(this.camera.matrixWorldInverse),
-          );
-    const size = projected.getSize(new THREE.Vector3());
-    const aspect = this.width / this.height;
-    // Leave room for the heading, feedback, and the camera tools around the model.
-    const span = Math.max(
-      size.x / (Math.max(1, aspect) * 0.76),
-      (size.y * Math.min(1, aspect)) / 0.66,
-    );
-    this.baseSpan = Math.max(this.baseSpan, span);
+    const size = bounds.getSize(new THREE.Vector3());
+    const diagonal = size.length();
+    this.baseSpan = Math.max(Math.max(size.x, size.y, size.z) * 1.55, diagonal) + 2;
+    this.cameraDistance = Math.max(35, diagonal * 1.2);
+    this.camera.far = Math.max(160, this.cameraDistance + diagonal + 35);
     this.zoomFactor = 1;
+    this.positionCamera();
     this.resize();
   }
 
@@ -645,8 +671,8 @@ export class PuzzleScene {
     const view = this.selectedId ? this.pieces.get(this.selectedId) : undefined;
     this.axisGuide.visible = Boolean(view);
     if (!view) return;
-    const axis = view.definition.axis;
-    const halfLength = this.guideHalfLength(view);
+    const axis = this.activeAxis ?? view.definition.axis;
+    const halfLength = this.guideHalfLength(view, axis);
     this.axisGuide.position.copy(view.center).add(view.group.position);
     this.axisGuide.quaternion.setFromUnitVectors(AXES.y, AXES[axis]);
     const line = this.axisGuide.children[0];
@@ -668,19 +694,21 @@ export class PuzzleScene {
     }
   }
 
-  private guideHalfLength(view: PieceView): number {
+  private guideHalfLength(view: PieceView, axis: Axis): number {
     const box = view.mesh.geometry.boundingBox!;
-    const axis = view.definition.axis;
     return Math.max(1, (box.max[axis] - box.min[axis]) / 2 + 0.85);
   }
 
   private project(point: THREE.Vector3): ScreenPoint {
-    point.project(this.camera);
-    return { x: ((point.x + 1) * this.width) / 2, y: ((1 - point.y) * this.height) / 2 };
+    this.camera.updateMatrixWorld(true);
+    // Projecting must not mutate the world point: axisScreen reuses it to form
+    // the endpoint one world unit away when determining drag direction.
+    const projected = point.clone().project(this.camera);
+    return { x: ((projected.x + 1) * this.width) / 2, y: ((1 - projected.y) * this.height) / 2 };
   }
 
   private positionCamera(): void {
-    const distance = 35;
+    const distance = this.cameraDistance;
     this.stage.visible = this.pitch > 0.02;
     this.camera.position.set(
       this.target.x + Math.sin(this.yaw) * Math.cos(this.pitch) * distance,

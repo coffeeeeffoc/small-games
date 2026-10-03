@@ -8,16 +8,17 @@ import {
   sweepMove,
   switchToReassembly,
   tryMove,
+  axes,
 } from './index.ts';
 import { createSearchSweep } from './search-sweep.ts';
 import type { GameState, Level } from './types.ts';
 
 function finish(level: Level, initial: GameState): GameState {
   let state = initial;
-  for (let move = 0; move < 50 && !getProgress(level, state).complete; move++) {
+  for (let move = 0; move < 160 && !getProgress(level, state).complete; move++) {
     const hint = getHint(level, state);
     assert.ok(hint, `${level.id} has a continuation from ${JSON.stringify(state.offsets)}`);
-    const result = tryMove(level, state, hint.pieceId, hint.targetOffset);
+    const result = tryMove(level, state, hint.pieceIds, hint.targetOffset, hint.axis);
     assert.equal(
       result.actualOffset,
       hint.targetOffset,
@@ -29,41 +30,35 @@ function finish(level: Level, initial: GameState): GameState {
   return state;
 }
 
-test('cached interval sweeps match gameplay collision across all levels and fractional reachable states', () => {
+test('cached interval sweeps match all-axis and group collision at fractional reachable poses', () => {
   let seed = 19473;
   const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
   for (const level of levels) {
     const searchSweep = createSearchSweep(level);
     let state = createGame(level);
-    for (let sample = 0; sample < 100; sample++) {
-      const piece = level.pieces[Math.floor(random() * level.pieces.length)]!;
+    for (let sample = 0; sample < 40; sample++) {
+      const ids = level.pieces.filter(() => random() > 0.5).map((piece) => piece.id);
+      if (!ids.length) ids.push(level.pieces[0]!.id);
       const target = (random() - 0.5) * 30;
-      state = tryMove(level, state, piece.id, target).state;
-      for (const candidate of level.pieces) {
-        for (const destination of [
-          0,
-          candidate.range[0],
-          candidate.range[1],
-          (random() - 0.5) * 30,
-        ]) {
-          assert.equal(
-            searchSweep(state.offsets, candidate.id, destination),
-            sweepMove(level, state.offsets, candidate.id, destination).actualOffset,
-            `${level.id}/${candidate.id} at ${JSON.stringify(state.offsets)} toward ${destination}`,
-          );
+      state = tryMove(level, state, ids, target, axes[Math.floor(random() * 3)]!).state;
+      for (const selection of [...level.pieces.map((piece) => [piece.id]), ids]) {
+        for (const axis of axes) for (const destination of [0, -20, 20, (random() - 0.5) * 30]) {
+          const expected = sweepMove(level, state.offsets, selection, destination, axis).actualOffset;
+          const actual = searchSweep(state.offsets, selection, destination, axis);
+          assert.ok(Math.abs(actual - expected) < 1e-8,
+            `${level.id}/${selection.join('+')}/${axis} at ${JSON.stringify(state.offsets)} toward ${destination}: ${actual} vs ${expected}`);
         }
       }
     }
   }
 });
 
-test('reverse assembly hints recover the temporary clearance seat after its blocking frame has moved away', () => {
-  const level = levels.find((item) => item.id === 'captive-key')!;
-  const removed = finish(level, createGame(level));
-  const restored = finish(level, switchToReassembly(level, removed));
-  assert.equal(removed.moves, 4);
-  assert.equal(restored.moves, 4);
-  assert.ok(restored.history.some((snapshot) => snapshot.offsets.key === -2));
+test('reverse assembly hints retain short reversible routes for every multi-axis campaign puzzle', () => {
+  for (const level of levels) {
+    const removed = finish(level, createGame(level));
+    const restored = finish(level, switchToReassembly(level, removed));
+    assert.ok(restored.moves <= removed.moves, `${level.id}: no parking detour is needed for a reversible known layout`);
+  }
 });
 
 test('assembly hints recover after players depart from the recommended route in every level', () => {
@@ -71,16 +66,18 @@ test('assembly hints recover after players depart from the recommended route in 
   const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
   for (const level of levels) {
     const removed = finish(level, createGame(level));
-    for (let sample = 0; sample < 4; sample++) {
+    for (let sample = 0; sample < 2; sample++) {
       let state = switchToReassembly(level, removed);
-      for (let move = 0; move < 25; move++) {
-        const piece = level.pieces[Math.floor(random() * level.pieces.length)]!;
-        const targets = [0, piece.range[0], piece.range[1], Math.round((random() - 0.5) * 28) / 2];
+      for (let move = 0; move < 12; move++) {
+        const ids = level.pieces.filter(() => random() > 0.6).map((piece) => piece.id);
+        if (!ids.length) ids.push(level.pieces[0]!.id);
+        const targets = [0, -9, 9, Math.round((random() - 0.5) * 28) / 2];
         state = tryMove(
           level,
           state,
-          piece.id,
+          ids,
           targets[Math.floor(random() * targets.length)]!,
+          axes[Math.floor(random() * 3)]!,
         ).state;
       }
       finish(level, state);

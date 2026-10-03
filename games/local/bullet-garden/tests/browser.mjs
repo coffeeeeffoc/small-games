@@ -496,14 +496,39 @@ async function desktopControls() {
 
   let state = await snapshot(page);
   const nearest = steering(state).nearest;
-  const target = await screenPoint(
+  let target = await screenPoint(
     page,
     state,
     nearest?.x || state.player.x - 60,
     nearest?.y || state.player.y,
   );
+  const targetElement = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.id,
+    target,
+  );
+  // Different map collision/spawn routes may place the nearest enemy behind a
+  // HUD control. This checks input release on accessible ground, independently
+  // of the full challenge's enemy targeting and damage assertions.
+  if (targetElement !== 'arena') {
+    target = await screenPoint(page, state, state.player.x - 60, state.player.y);
+    report.desktopCastTarget = {
+      occludedEnemy: targetElement ?? null,
+      fallback: 'ground beside player',
+    };
+  }
+  assert.equal(
+    await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, target),
+    'arena',
+    'manual release targets accessible battlefield',
+  );
   await page.keyboard.press('1');
   await advance(page, 32);
+  assert.equal(
+    await page.locator('body').getAttribute('data-armed'),
+    'true',
+    'number key arms slot one before pointer confirmation',
+  );
+  assert.equal((await snapshot(page)).phase, 'playing');
   await page.mouse.move(target.x, target.y);
   await page.mouse.click(target.x, target.y, { button: 'right' });
   await advance(page, 800);
