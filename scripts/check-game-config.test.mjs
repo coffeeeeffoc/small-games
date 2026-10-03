@@ -241,10 +241,12 @@ test('finds an omitted game and an incomplete directory instead of only followin
   );
 });
 
-test('the real pre-push hook fails when an existing game is omitted from Shell', async (t) => {
+test('the real pre-push hook blocks missing registration or metadata after formatting', async (t) => {
   const f = await fixture(t);
   for (const relative of [
     '.githooks/pre-push',
+    '.prettierrc.json',
+    '.prettierignore',
     'scripts/check-game-config.mjs',
     'scripts/game-meta.mjs',
     'scripts/platform-process.mjs',
@@ -266,7 +268,16 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
-  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  const hook = () => {
+    // The real hook also checks formatting; keep fixture edits formatted before testing registration.
+    const formatted = spawnSync(
+      process.execPath,
+      [path.join(repo, 'node_modules/prettier/bin/prettier.cjs'), '--write', '.'],
+      { cwd: f.root, encoding: 'utf8', timeout: 20000 },
+    );
+    assert.equal(formatted.status, 0, formatted.stdout + formatted.stderr);
+    return git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  };
   const registered = hook();
   assert.equal(registered.status, 0, registered.stdout + registered.stderr);
 
