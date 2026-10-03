@@ -15,15 +15,16 @@ pnpm --filter @coffeeeeffoc/wulong-city dev
 
 打开 `http://127.0.0.1:4174/`，环境变量 `PORT` 可覆盖端口。Shell 中选择“乌龙城”，或访问 Shell 的 `#/games/wulong-city` 路由。
 
-- 电脑：A/D 或方向键移动，空格跳跃；鼠标点、拖物件；Esc 暂停。
+- 电脑：A/D、←/→ 左右移动，W/↑/空格跳跃，S/↓ 加速下落；鼠标点、拖物件；Esc 暂停。
 - 手机：底部左右与跳跃按钮，场景点拖，移动与跳跃最多双指。
 - 同一方向上的多指、键盘与触摸输入独立释放；松开其中一次操作不会打断其它仍按住的操作。场景拖动只接受开始拖动的手指，失去其指针捕获会取消预览并恢复角色，避免角色卡在拖动状态。
 - 键盘解谜：Tab 找物件，Enter 操作；拖动点 Enter 抓取、方向键调整、Enter 松开，Esc 取消并暂停。
 - 顶栏提供选关、奇遇记录、音效、全屏和暂停；下方提供重试与三级提示。
-- 普通模式从 L01 顺序解锁。存档键 `wulong-city-v1` 保持不变；换域名或端口不会自动迁移浏览器存储。
+- 普通模式从第一关顺序解锁。原第三关「宠物通道」移到第八关，原第四至第八关依次前移；关卡菜单、章节、计数器、结算与下一关统一使用新顺序。
+- 存档键 `wulong-city-v1` 保持不变；`level`、`records` 键、`?challenge=` 和开发 `?level=` 仍使用稳定内部 ID，避免旧存档或链接指向另一谜题。新存档增加 `orderVersion: 2` 与内部 ID 数组 `unlockedLevels`，`unlocked` 表示新顺序中连续开放的关卡数。旧存档保留原有解锁、完成、当前关和音效，并按已完成关补开新顺序后继；例如已完成前两关的旧档同时保留第八关宠物关并开放新的第三关，不提前开放中间未玩关。换域名或端口不会自动迁移浏览器存储。
 - 已完成旧 L20 / L24 的存档保留当前关、奇遇记录和音效设置，并分别解锁 L21 / L25；仅到达旧末关的存档仍需先完成它。新增关卡依次解锁。
 - 主线首关直接显示“今日试演”两个入口：心事也上秤、遥控器嫌你太近。可立即试 L25 / L26，完成、重玩和分享都不写主线进度；随时返回会恢复原来的首关位置、谜题状态和提示级数。
-- 结算提供“分享这段奇遇”。公开 `?challenge=1` 至 `?challenge=26` 以分享体验运行，可试玩未解锁关卡，完成与重玩均不改主线存档。无效或重复参数明确退回主线；从选关进入已解锁关卡后恢复正常进度。
+- 结算提供“分享这段奇遇”。公开 `?challenge=1` 至 `?challenge=26` 以稳定内部 ID 选择分享体验（例如 `?challenge=3` 仍是宠物通道，界面显示 `08 / 26`）运行，可试玩未解锁关卡，完成与重玩均不改主线存档。无效或重复参数明确退回主线；从选关进入已解锁关卡后恢复正常进度。
 - 开发入口 `?dev=1&level=18` 可选关，并提供只读快照，没有自动通关 API。
 
 ## 构建与测试
@@ -36,9 +37,9 @@ pnpm --filter @coffeeeeffoc/wulong-city build
 pnpm --filter @coffeeeeffoc/wulong-city preview
 ```
 
-`test` 使用 Node 内置测试，无需预先启动服务器、安装浏览器或加载第三方依赖，可直接供 CI 使用。14 项检查覆盖全部 26 关内容与初始化独立性，以及原有谜题和新增六关的错误尝试、实际机关组合及完成条件；实际分享函数检查还覆盖 URL 用户信息、私有参数及子路径清理。
+`test` 使用 Node 内置测试，无需预先启动服务器、安装浏览器或加载第三方依赖，可直接供 CI 使用。检查覆盖全部 26 关内容与初始化独立性，以及原有谜题和新增六关的错误尝试、实际机关组合及完成条件；还覆盖新顺序、逐关解锁、旧档迁移和稳定记录 ID。实际分享函数检查覆盖 URL 用户信息、私有参数及子路径清理。
 
-`build` 将 `index.html`、`style.css`、`levels-data.js`、`game.js`、`levels.js` 复制到静态 `dist/`，保留经典脚本顺序与相对资源地址，可部署到任意子目录。`preview` 服务构建结果。游戏本身零运行依赖；也可在游戏目录直接执行 `node --test tests/game.test.mjs`、`node build.mjs`、`node server.mjs --dist`。
+`build` 将 `index.html`、`style.css`、`levels-data.js`、`level-order.js`、`game.js`、`levels.js` 复制到静态 `dist/`，保留经典脚本顺序与相对资源地址，可部署到任意子目录。`preview` 服务构建结果。游戏本身零运行依赖；也可在游戏目录直接执行 `node --test tests/game.test.mjs tests/order.test.mjs`、`node build.mjs`、`node server.mjs --dist`。
 
 ### 真实浏览器回归
 
@@ -47,6 +48,7 @@ pnpm --filter @coffeeeeffoc/wulong-city preview
 ```sh
 pnpm --filter @coffeeeeffoc/wulong-city test:browser
 pnpm --filter @coffeeeeffoc/wulong-city test:lifecycle
+pnpm --filter @coffeeeeffoc/wulong-city test:keyboard
 pnpm --filter @coffeeeeffoc/wulong-city test:progression
 ```
 
@@ -59,11 +61,11 @@ pnpm --filter @coffeeeeffoc/wulong-city test:progression
 | `WIDTH=360` | 通关测试视口宽度，默认 390 |
 | `FLOW=1` | 检查下一关、菜单回访和连续重试 |
 
-在游戏目录执行 `node tests/playtest.mjs 2 11 18` 可仅测指定关卡。生命周期测试可单独运行，会自行创建证据目录。截图路径使用 `fileURLToPath`，兼容 Windows、Linux 和空格路径；截图和报告保存在被忽略的 `tests/evidence/`。
+在游戏目录执行 `node tests/playtest.mjs 2 11 18` 可仅测指定内部 ID 的关卡（编号映射见 `level-order.js`）。生命周期测试可单独运行，会自行创建证据目录。截图路径使用 `fileURLToPath`，兼容 Windows、Linux 和空格路径；截图和报告保存在被忽略的 `tests/evidence/`。
 
-生命周期回归覆盖同一方向双指、键盘与触摸混用、两个同向按键的独立释放，以及地图拖动的无关指针取消和指针捕获丢失。
+生命周期回归覆盖同一方向双指、键盘与触摸混用、两个同向按键的独立释放，以及地图拖动的无关指针取消和指针捕获丢失。`test:keyboard` 覆盖 WASD、四方向键和空格、物件/按钮获得焦点后的角色操作、Enter 抓取和取消、暂停与重试时清理按键，以及手机触摸操作保留。
 
-`test:progression` 检查旧 20 / 24 关存档兼容、未解锁分享体验通关与重玩不写主线、首屏两个试演的真实触摸完成与返回、分享 URL 清理、对象形式的取消错误、无剪贴板时的手动链接和非法参数回退。浏览器分享优先使用系统分享，取消不会再复制；缺少系统分享时复制公开挑战链接，再缺少剪贴板则显示可选中的链接。
+`test:progression` 检查旧第三关存档在后移后的解锁/编号/章节/菜单/记录与刷新恢复、旧挑战链接仍指向相同谜题、旧 20 / 24 关存档兼容、未解锁分享体验通关与重玩不写主线、首屏两个试演的真实触摸完成与返回、分享 URL 清理、对象形式的取消错误、无剪贴板时的手动链接和非法参数回退。浏览器分享优先使用系统分享，取消不会再复制；缺少系统分享时复制公开挑战链接，再缺少剪贴板则显示可选中的链接。
 
 新增内容：L21 让风扇背对床单送风；L22 洗掉衣服名字中的“脏”字；L23 用长话与句号固定聊天桥；L24 将奖杯从展示柜递向画面外的玩家。可用 `INPUT=touch WIDTH=360 FLOW=1 node tests/playtest.mjs 20 21 22 23 24` 验证旧结尾到新尾声的衔接、逐关真实解题、下一关、回访和重试。
 

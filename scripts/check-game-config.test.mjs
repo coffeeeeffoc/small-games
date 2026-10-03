@@ -23,26 +23,68 @@ test('Pages publishes three branches through one queued publisher with read-only
   const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
   const ci = await read('.github/workflows/ci.yml');
   const pages = await read('.github/workflows/pages.yml');
+  const validation = await read('.github/workflows/pages-validate.yml');
   for (const config of [ci, pages])
     assert.deepEqual(config.on.push.branches, ['main', 'dev', 'test']);
   assert.equal(pages.permissions.contents, 'read');
+  assert.equal(validation.permissions.contents, 'read');
   assert.equal(pages.jobs.build.permissions, undefined);
-  assert.equal(
-    pages.concurrency['cancel-in-progress'],
-    "${{ github.event_name == 'pull_request' }}",
-  );
+  assert.equal(pages.concurrency, undefined);
+  assert.equal(pages.jobs.validate.concurrency['cancel-in-progress'], true);
+  assert.equal(pages.jobs.validate.uses, './.github/workflows/pages-validate.yml');
+  assert.deepEqual(pages.jobs.validate.with, {
+    full: "${{ needs.changes.outputs.full == 'true' }}",
+    game_ids: '${{ needs.changes.outputs.game_ids }}',
+    game_sources: '${{ needs.changes.outputs.game_sources }}',
+  });
   assert.equal(pages.jobs.deploy.concurrency.group, 'pages-publish');
   assert.equal(pages.jobs.deploy.concurrency.queue, 'max');
-  assert.match(pages.jobs.deploy.if, /github.event_name != 'pull_request'/);
+  assert.match(pages.jobs.deploy.if, /github.event_name == 'push'/);
+  assert.match(pages.jobs.deploy.if, /github.event_name == 'workflow_dispatch'/);
+  assert.match(pages.jobs.deploy.if, /needs.build.result == 'success'/);
+  assert.deepEqual(pages.jobs.deploy.needs, ['changes', 'build']);
   for (const branch of ['main', 'dev', 'test'])
     assert(pages.jobs.deploy.if.includes(`refs/heads/${branch}`));
   assert.equal(pages.jobs.deploy.permissions.contents, 'write');
-  const buildUpload = pages.jobs.build.steps.find((step) => step.with?.name === 'pages-build');
+  const buildUpload = validation.jobs.build.steps.find((step) => step.with?.name === 'pages-build');
   assert.equal(buildUpload.with.path, 'apps/shell-web/dist');
   assert.equal(buildUpload.with['include-hidden-files'], true);
   const commands = pages.jobs.deploy.steps.map((step) => step.run ?? '').join('\n');
   assert.match(commands, /scripts\/prepare-pages-deploy\.py/);
   assert.match(commands, /push origin HEAD:gh-pages/);
+});
+
+test('Pages summary propagates selected validation failures and permits only explicit skips', async () => {
+  const pages = yaml.load(await readFile(path.join(repo, '.github/workflows/pages.yml'), 'utf8'));
+  assert.deepEqual(pages.jobs.build.needs, ['changes', 'validate']);
+  assert.equal(pages.jobs.build.if, 'always()');
+  const gate = pages.jobs.build.steps.find((step) => step.env?.VALIDATION_RESULT);
+  assert.equal(gate.env.SCOPE_RESULT, '${{ needs.changes.result }}');
+  assert.equal(gate.env.VALIDATION_RESULT, '${{ needs.validate.result }}');
+  assert.equal(gate.env.VALIDATION_REQUIRED, '${{ needs.changes.outputs.required }}');
+  const cases = [
+    ['success', 'true', 'success', 0],
+    ['success', 'false', 'skipped', 0],
+    ['failure', 'false', 'skipped', 1],
+    ['cancelled', 'true', 'success', 1],
+    ['success', 'true', 'failure', 1],
+    ['success', 'true', 'cancelled', 1],
+    ['success', 'true', 'skipped', 1],
+    ['success', '', 'skipped', 1],
+    ['success', 'unexpected', 'success', 1],
+  ];
+  for (const [scope, required, validation, expected] of cases) {
+    const result = spawnSync('bash', ['-c', gate.run], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        SCOPE_RESULT: scope,
+        VALIDATION_REQUIRED: required,
+        VALIDATION_RESULT: validation,
+      },
+    });
+    assert.equal(result.status, expected, `${scope}/${required}/${validation}: ${result.stdout}`);
+  }
 });
 
 test('all Cocos consumers download both source-verified artifacts and pass them through Turbo', async () => {
@@ -52,9 +94,11 @@ test('all Cocos consumers download both source-verified artifacts and pass them 
   const turbo = await read('turbo.json');
   for (const variable of ['KART_PREBUILT_DIR', 'NIGHT_OVERWATCH_PREBUILT_DIR'])
     assert(turbo.globalPassThroughEnv.includes(variable));
-  for (const workflow of ['ci', 'pages', 'mobile']) {
+  for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
-    for (const job of Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR)) {
+    const consumers = Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR);
+    assert(consumers.length > 0, `${workflow} must consume the verified Cocos artifacts`);
+    for (const job of consumers) {
       assert.equal(
         job.env.NIGHT_OVERWATCH_PREBUILT_DIR,
         '${{ github.workspace }}/games/local/night-overwatch/.prebuilt',
@@ -87,6 +131,8 @@ async function fixture(t) {
     'turbo.json',
     '.github/workflows/ci.yml',
     '.github/workflows/pages.yml',
+    '.github/workflows/pages-validate.yml',
+    '.github/workflows/carding-car.yml',
     '.github/workflows/mobile.yml',
     'apps/shell-web/scripts/prepare-standalone-games.mjs',
     'apps/shell-android/app/build.gradle',
@@ -268,7 +314,14 @@ test('the real pre-push hook blocks missing registration or metadata after forma
       encoding: 'utf8',
       timeout: 20000,
       // This fixture deliberately borrows installed modules; never reinstall through its junction.
-      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+      // Its synthetic lockfile also omits the package-manager graph. Reuse the running pnpm
+      // instead of downloading it here; pmOnFail replaces managePackageManagerVersions in
+      // pnpm 11/12: https://pnpm.io/settings/cli#pmonfail. Real hooks still run unchanged.
+      env: {
+        ...process.env,
+        PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+        PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+      },
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
@@ -351,7 +404,13 @@ test('the real pre-push hook rejects bad formatting before running the game chec
       cwd: root,
       encoding: 'utf8',
       timeout: 20000,
-      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+      // This throwaway formatting fixture has no toolchain lockfile. Use the installed pnpm,
+      // not a fresh package-manager download; see the pnpm 11/12 pmOnFail note above.
+      env: {
+        ...process.env,
+        PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+        PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+      },
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
@@ -445,9 +504,9 @@ test('rejects origin-absolute asset paths that break nested Pages URLs', async (
 
 test('commented workflow gates do not satisfy the CI requirement', async (t) => {
   const f = await fixture(t);
-  const workflow = (await f.read('.github/workflows/pages.yml')).replaceAll('\r\n', '\n');
+  const workflow = (await f.read('.github/workflows/pages-validate.yml')).replaceAll('\r\n', '\n');
   await f.write(
-    '.github/workflows/pages.yml',
+    '.github/workflows/pages-validate.yml',
     workflow.replace(
       /^(\s*)- run: pnpm check:games(?: --artifacts)?$/gm,
       '$1# - run: pnpm check:games',
@@ -467,9 +526,12 @@ test('requires game build output to be covered by the Turbo cache', async (t) =>
 for (const condition of ['false', '${{ false }}']) {
   test(`disabled workflow gates (${condition}) do not count as checks`, async (t) => {
     const f = await fixture(t);
-    const workflow = (await f.read('.github/workflows/pages.yml')).replaceAll('\r\n', '\n');
+    const workflow = (await f.read('.github/workflows/pages-validate.yml')).replaceAll(
+      '\r\n',
+      '\n',
+    );
     await f.write(
-      '.github/workflows/pages.yml',
+      '.github/workflows/pages-validate.yml',
       workflow.replace(
         /^([ \t]*)- run: (pnpm check:games(?: --artifacts)?)$/gm,
         (_, indent, command) => `${indent}- if: ${condition}\n${indent}  run: ${command}`,
@@ -481,15 +543,106 @@ for (const condition of ['false', '${{ false }}']) {
 
 test('a shell comment inside a workflow run block is not an executed gate', async (t) => {
   const f = await fixture(t);
-  const workflow = (await f.read('.github/workflows/pages.yml')).replaceAll('\r\n', '\n');
+  const workflow = (await f.read('.github/workflows/pages-validate.yml')).replaceAll('\r\n', '\n');
   await f.write(
-    '.github/workflows/pages.yml',
+    '.github/workflows/pages-validate.yml',
     workflow.replace(
       /^([ \t]*)- run: (pnpm check:games(?: --artifacts)?)$/gm,
       (_, indent, command) => `${indent}- run: |\n${indent}    # ${command}`,
     ),
   );
   requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+});
+
+test('echoed command names and allowed failures are not workflow gates', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/pages-validate.yml';
+  const source = (await f.read(location)).replaceAll('\r\n', '\n');
+  for (const replace of [
+    (_, indent, command) => `${indent}- run: echo "${command}"`,
+    (_, indent, command) => `${indent}- run: ${command} || true`,
+    (_, indent, command) => `${indent}- continue-on-error: true\n${indent}  run: ${command}`,
+  ]) {
+    await f.write(
+      location,
+      source.replace(/^([ \t]*)- run: (pnpm check:games(?: --artifacts)?)$/gm, replace),
+    );
+    requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+  }
+});
+
+test('requires both split Pages gates or the complete legacy browser command', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/pages-validate.yml';
+  const source = await f.read(location);
+  for (const command of ['test:pages:smoke', 'test:pages:games']) {
+    await f.write(location, source.replace(`run: pnpm ${command}`, 'run: echo skipped'));
+    requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+  }
+  await f.write(
+    location,
+    source
+      .replace('run: pnpm test:pages:smoke', 'run: pnpm test:pages')
+      .replace('run: pnpm test:pages:games', 'run: echo legacy command covers both checks'),
+  );
+  assert.deepEqual((await auditGameConfig(f.root)).errors, []);
+});
+
+test('scoped game logic must execute the runner and its job cannot ignore failures', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/pages-validate.yml';
+  const source = await f.read(location);
+  await f.write(
+    location,
+    source.replace('run: node scripts/run-pages-game-tests.mjs', 'run: echo game tests'),
+  );
+  requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+  const workflow = yaml.load(source);
+  workflow.jobs.logic['continue-on-error'] = true;
+  await f.write(location, yaml.dump(workflow));
+  requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+  delete workflow.jobs.logic['continue-on-error'];
+  delete workflow.jobs.logic.env.PAGES_GAME_SOURCES;
+  await f.write(location, yaml.dump(workflow));
+  requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+});
+
+test('disabled reusable callers cannot supply required Pages gates', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/pages.yml';
+  const workflow = yaml.load(await f.read(location));
+  workflow.jobs.validate.if = false;
+  await f.write(location, yaml.dump(workflow));
+  requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+});
+
+test('rejects missing, cyclic and escaping local reusable workflow references', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/pages.yml';
+  const source = await f.read(location);
+  for (const reference of [
+    './.github/workflows/missing.yml',
+    './.github/workflows/pages.yml',
+    './.github/workflows/../../outside.yml',
+  ]) {
+    const workflow = yaml.load(source);
+    workflow.jobs.validate.uses = reference;
+    await f.write(location, yaml.dump(workflow));
+    const report = await auditGameConfig(f.root);
+    requireCodes(report, ['workflow-gate']);
+    assert(report.errors.some((error) => error.message.includes(reference)));
+  }
+});
+
+test('rejects a reusable workflow symlink outside the workflow directory', async (t) => {
+  const f = await fixture(t);
+  const called = '.github/workflows/pages-validate.yml';
+  await f.write('outside.yml', await f.read(called));
+  await rm(path.join(f.root, called));
+  await symlink(path.join(f.root, 'outside.yml'), path.join(f.root, called));
+  const report = await auditGameConfig(f.root);
+  requireCodes(report, ['workflow-gate']);
+  assert(report.errors.some((error) => /越出工作流目录/.test(error.message)));
 });
 
 test('requires a shell-to-game lockfile dependency in addition to the game importer', async (t) => {

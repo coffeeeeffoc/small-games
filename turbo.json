@@ -1,5 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "assets/**",
+    "games/local/carding-car/scripts/toolchain.mjs",
+    "games/local/carding-car/scripts/native-targets.mjs",
+    "games/local/carding-car/scripts/clear-output.mjs",
+    "platforms/**",
+    "scripts/**",
+    "services/runtime-api/rules/**"
+  ],
   "globalPassThroughEnv": ["COCOS_CREATOR", "KART_PREBUILT_DIR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
   "tasks": {
     "dev": {
@@ -83,8 +92,15 @@
     },
     "@coffeeeeffoc/carding-car#build": {
       "dependsOn": ["^build"],
+      "cache": false,
       "outputs": ["dist/**"],
       "env": ["COCOS_CREATOR", "KART_PREBUILT_DIR"]
+    },
+    "@coffeeeeffoc/night-overwatch#build": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "NIGHT_OVERWATCH_PREBUILT_DIR"]
     }
   }
 }

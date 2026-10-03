@@ -34,6 +34,7 @@
               <div>
                 <p id="room-kicker" class="eyebrow">观察入门</p>
                 <h1 id="room-title">留下这一刻</h1>
+                <p id="room-chapter" class="room-chapter"></p>
               </div>
             </div>
             <div class="live-label"><i></i><span id="live-status">实验待开始</span></div>
@@ -81,12 +82,16 @@
             ><span><i class="pause-mini"></i>框外 · 冻结</span
             ><span class="player-legend"><i class="dot player-dot"></i>你 · 始终自由</span>
           </div>
+          <div class="frame-guide" id="frame-guide">
+            <span id="frame-instruction">拖框内或边缘移动 · 点框外把观察框移过去</span>
+            <span id="frame-feedback" role="status" aria-live="polite"></span>
+          </div>
           <div class="touch-controls" aria-label="角色控制">
             <div class="direction-pad">
               <button id="move-left" aria-label="向左移动">←</button
               ><button id="move-right" aria-label="向右移动">→</button>
             </div>
-            <p>拖动场景中的观察框<span>方向键 / A D 移动 · 空格跳跃</span></p>
+            <p>一手移动 · 一手拖框<span>方向键 / A D 移动 · 空格跳跃</span></p>
             <button id="jump" aria-label="跳跃">
               <svg width="22" height="24" viewBox="0 0 22 24" fill="none" aria-hidden="true">
                 <path
@@ -108,6 +113,10 @@
           <div class="mission-main">
             <p class="eyebrow">本关目标</p>
             <h2 id="goal">让机器人留在开关上，再走向出口。</h2>
+            <div class="run-stats" aria-label="本关用时与纪录">
+              <span>本次 <b id="run-time">0:00</b></span>
+              <span>最佳 <b id="best-time">—</b></span>
+            </div>
             <div id="object-status" class="object-status"></div>
             <div class="rule-note">
               <span class="diamond"></span>
@@ -129,19 +138,35 @@
         <div class="route-title">
           <span class="eyebrow">EXPERIMENT ROOMS</span><span id="progress-label">实验进度</span>
         </div>
+        <div id="chapter-nav" class="chapter-nav" aria-label="选择实验章节">
+          <button id="chapter-prev" aria-label="上一章">←</button>
+          <label for="chapter-select" class="sr-only">选择章节</label>
+          <select id="chapter-select"></select>
+          <button id="chapter-next" aria-label="下一章">→</button>
+          <span id="chapter-progress" class="chapter-progress"></span>
+        </div>
+        <p id="chapter-subtitle" class="chapter-subtitle"></p>
+        <progress id="route-progress" max="100" value="0" aria-label="总完成进度"></progress>
         <nav id="level-nav" aria-label="选择实验房间"></nav>
       </footer>
       <div class="colophon">
-        <span>你决定，哪些时刻继续。</span><span>OUT OF FRAME · WEB PROLOGUE</span>
+        <span>你决定，哪些时刻继续。</span><span>OUT OF FRAME · 100 EXPERIMENTS</span>
       </div>
     </main>
     <dialog id="pause-dialog" aria-labelledby="pause-title">
       <p class="eyebrow">TAKE YOUR TIME</p>
       <h2 id="pause-title">时间在等你。</h2>
-      <p>实验已暂停。准备好后继续。</p>
+      <p id="pause-copy">实验已暂停。准备好后继续。</p>
       <button id="resume" class="primary-button">继续实验 →</button
       ><button id="pause-help" class="text-button">玩法说明</button>
       <p class="eyebrow pause-route-label">重访实验房间</p>
+      <div class="chapter-nav pause-chapter-nav">
+        <button id="pause-chapter-prev" aria-label="暂停菜单上一章">←</button>
+        <label for="pause-chapter-select" class="sr-only">暂停菜单选择章节</label>
+        <select id="pause-chapter-select"></select>
+        <button id="pause-chapter-next" aria-label="暂停菜单下一章">→</button>
+      </div>
+      <p id="pause-chapter-progress" class="chapter-subtitle"></p>
       <nav id="pause-levels" aria-label="暂停菜单选择房间"></nav>
       <button id="pause-home" class="text-button">回到开场</button>
     </dialog>
@@ -172,7 +197,8 @@
           <strong>放心试错</strong>
           <p>
             回退按钮或 Z 免费回到 1 秒前，同时恢复角色、物体和观察框；每关记录从头保留。R 重来，Esc
-            暂停。切换关卡会清空当前回退记录。
+            暂停。进度与当前房间会自动保存，回到开场后可继续；刷新后保留最近 8
+            秒的回退。切换关卡会清空当前回退记录。
           </p>
         </li>
       </ol>

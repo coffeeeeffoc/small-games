@@ -1,3 +1,8 @@
+import { corridor, liftRoom, ferryRoom } from './campaign-early.mjs';
+import { TRANSFERS } from './campaign-transfers.mjs';
+import { CIRCUITS } from './campaign-circuits.mjs';
+import { ADVANCED } from './campaign-mastery.mjs';
+
 /** Room data is deliberately separate from physics and presentation. Add a room here to extend the game. */
 const floor = (x, y, w, h = 540 - y) => ({ x, y, w, h });
 const robot = (id, x, y, toX, speed = 62) => ({
@@ -27,7 +32,7 @@ const plate = (id, x, groundY, w = 68) => ({ id, x, y: groundY - 7, w, h: 7 });
 const gate = (id, x, groundY, requires) => ({ id, x, y: groundY - 116, w: 24, h: 116, requires });
 const exit = (x, groundY) => ({ x, y: groundY - 62, w: 48, h: 62 });
 
-export const LEVELS = [
+const INTRO_LEVELS = [
   {
     id: 'first-still',
     number: 1,
@@ -161,5 +166,75 @@ export const LEVELS = [
     exit: exit(896, 300),
   },
 ];
+
+/** Ten focused chapters introduce one additional scheduling demand at a time.
+ * start/end are one-based level numbers; index fields are zero-based UI indices.
+ * Original room IDs remain stable so existing completion records still apply. */
+export const CHAPTERS = [
+  ['first-look', '定格入门', '认识观察框、冻结与安全落脚'],
+  ['separate-time', '分别暂停', '顺序保留开关，跨越不同高度的地面'],
+  ['three-lamps', '三重定格', '三座台阶与依次点亮的门'],
+  ['borrow-height', '借来高度', '两岸调度与升降台的定格时机'],
+  ['follow-the-ferry', '目光同行', '折线渡船、岸上守门人与视线取舍'],
+  ['transfer', '静止换乘', '两段抬升、双舟换乘与逐渐缩窄的落点'],
+  ['thin-margin', '边界之间', '三层开关、窄平台与上下核心间的余量'],
+  ['split-the-view', '层间接力', '多层开关、双舟换乘与观察框上下边界'],
+  ['three-stages', '三层调度', '分层守门人与折线平台的连续调度'],
+  ['last-rehearsal', '框外谢幕', '四层开关、窄台与精细的边界配合'],
+].map(([id, title, subtitle], index) => ({
+  id,
+  number: index + 1,
+  title,
+  subtitle,
+  start: index * 10 + 1,
+  end: (index + 1) * 10,
+  startIndex: index * 10,
+  endIndex: (index + 1) * 10 - 1,
+}));
+
+const original = (index) => ({ level: INTRO_LEVELS[index], originalIndex: index });
+const ROOMS = [
+  original(0),
+  original(1),
+  original(2),
+  corridor(4, 3, 1),
+  liftRoom(5, 1, 0),
+  ferryRoom(6, 1, 0),
+  liftRoom(7, 0, 1),
+  ferryRoom(8, 0, 1),
+  liftRoom(9, 2, 1),
+  original(3),
+  original(4),
+  ...Array.from({ length: 9 }, (_, index) => corridor(12 + index, index + 1, 2, index >= 4)),
+  ...CIRCUITS.slice(0, 10),
+  ...Array.from({ length: 10 }, (_, index) => liftRoom(31 + index, index, 2)),
+  ...Array.from({ length: 9 }, (_, index) => ferryRoom(41 + index, index, 2)),
+  original(5),
+  ...TRANSFERS.slice(0, 10),
+  ...CIRCUITS.slice(10),
+  ...TRANSFERS.slice(10),
+  ...ADVANCED,
+];
+
+export const LEVELS = ROOMS.map(({ level }, index) => {
+  const chapter = CHAPTERS[Math.floor(index / 10)];
+  const number = index + 1;
+  return {
+    ...level,
+    number,
+    kicker: `${String(number).padStart(2, '0')} / ${chapter.title}`,
+    chapterId: chapter.id,
+    chapterNumber: chapter.number,
+    chapterTitle: chapter.title,
+    chapterLevel: (index % 10) + 1,
+    difficulty: number,
+  };
+});
+
+/** Reference controls are data, shared by simulation and DOM replay tests.
+ * Original room slots refer to the six routes retained by their stable IDs. */
+export const CAMPAIGN_SOLUTIONS = ROOMS.map(
+  ({ solution, originalIndex }) => solution ?? { originalIndex },
+);
 
 export default LEVELS;

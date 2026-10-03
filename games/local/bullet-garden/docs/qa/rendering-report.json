@@ -1,0 +1,1508 @@
+{
+  "date": "2026-10-03T16:18:14.631Z",
+  "browser": "151.0.7922.173",
+  "timing": "Real performance.now; getImageData raster flush after each measured render",
+  "contextLoss": "Synthetic contextlost/contextrestored events test recovery handlers; no real GPU loss induced",
+  "fixture": "Four passive terrains, five active effects at the 12-effect cap, 48 enemies with seven statuses, 120 mixed elemental/reflected/split projectiles, and 40 explosion/spawn telegraphs; legacy baseline uses its original terrain fixture",
+  "baselineComparison": "An optional legacy baseline lacks the new mechanisms; its timing is separate historical evidence, not an equivalent-load speedup claim",
+  "profiles": [
+    {
+      "name": "phone-portrait",
+      "width": 390,
+      "height": 844,
+      "dpr": 3,
+      "current": {
+        "entities": {
+          "enemies": 48,
+          "plants": 18,
+          "bullets": 120,
+          "particles": 240,
+          "floaters": 60,
+          "telegraphs": 40,
+          "skillEffects": 12
+        },
+        "coveredKinds": {
+          "terrain": [
+            "thorn",
+            "trench",
+            "frost",
+            "poison"
+          ],
+          "skills": [
+            "blast",
+            "gale",
+            "cart",
+            "horse",
+            "laser"
+          ],
+          "enemyStatuses": [
+            "frozen",
+            "poison",
+            "stunned",
+            "feared",
+            "vulnerable",
+            "chillTime",
+            "burnTime"
+          ],
+          "projectiles": [
+            "normal",
+            "thorn",
+            "ice",
+            "mushroom",
+            "enemy",
+            "fire",
+            "explosive",
+            "split",
+            "reflected",
+            "generation"
+          ]
+        },
+        "coverage": {
+          "terrain": [
+            {
+              "kind": "thorn",
+              "changedPixels": 17984,
+              "signature": 1665615200
+            },
+            {
+              "kind": "trench",
+              "changedPixels": 20225,
+              "signature": 2210904610
+            },
+            {
+              "kind": "frost",
+              "changedPixels": 23840,
+              "signature": 910131492
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 23645,
+              "signature": 288387653
+            }
+          ],
+          "skills": [
+            {
+              "kind": "blast",
+              "phase": "active",
+              "changedPixels": 104358,
+              "signature": 3354055204
+            },
+            {
+              "kind": "gale",
+              "phase": "active",
+              "changedPixels": 141212,
+              "signature": 2770330438
+            },
+            {
+              "kind": "cart",
+              "phase": "active",
+              "changedPixels": 10285,
+              "signature": 2858699778
+            },
+            {
+              "kind": "horse",
+              "phase": "active",
+              "changedPixels": 11599,
+              "signature": 3807912331
+            },
+            {
+              "kind": "laser",
+              "phase": "active",
+              "changedPixels": 30237,
+              "signature": 1078175667
+            },
+            {
+              "kind": "blast",
+              "phase": "waiting",
+              "changedPixels": 103012,
+              "signature": 3135258517
+            }
+          ],
+          "statuses": [
+            {
+              "kind": "frozen",
+              "changedPixels": 7783,
+              "signature": 3214071983,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 424,
+              "signature": 3771420155,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "stunned",
+              "changedPixels": 3915,
+              "signature": 3157414318,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "feared",
+              "changedPixels": 430,
+              "signature": 3797804339,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "vulnerable",
+              "changedPixels": 427,
+              "signature": 1853676776,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "chillTime",
+              "changedPixels": 2827,
+              "signature": 1439000106,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "burnTime",
+              "changedPixels": 1377,
+              "signature": 2724819411,
+              "expiredChangedPixels": 0
+            }
+          ],
+          "aiming": [
+            {
+              "kind": "blast",
+              "changedPixels": 90931,
+              "signature": 2645944305
+            },
+            {
+              "kind": "gale",
+              "changedPixels": 115942,
+              "signature": 2484307488
+            },
+            {
+              "kind": "cart",
+              "changedPixels": 32473,
+              "signature": 3268202092
+            },
+            {
+              "kind": "horse",
+              "changedPixels": 29976,
+              "signature": 1039409767
+            },
+            {
+              "kind": "laser",
+              "changedPixels": 17911,
+              "signature": 1717964812
+            }
+          ],
+          "projectiles": [
+            {
+              "kind": "normal",
+              "changedPixels": 1212,
+              "signature": 4053914529
+            },
+            {
+              "kind": "thorn",
+              "changedPixels": 1514,
+              "signature": 4000313877
+            },
+            {
+              "kind": "ice",
+              "changedPixels": 2023,
+              "signature": 2145825019
+            },
+            {
+              "kind": "mushroom",
+              "changedPixels": 2062,
+              "signature": 3252006564
+            },
+            {
+              "kind": "enemy",
+              "changedPixels": 1523,
+              "signature": 256402211
+            },
+            {
+              "kind": "fire",
+              "changedPixels": 1683,
+              "signature": 156761290
+            },
+            {
+              "kind": "explosive",
+              "changedPixels": 2060,
+              "signature": 2337895674
+            },
+            {
+              "kind": "split",
+              "changedPixels": 775,
+              "signature": 2731836397
+            },
+            {
+              "kind": "reflected",
+              "changedPixels": 1212,
+              "signature": 3384184825
+            },
+            {
+              "kind": "generation",
+              "changedPixels": 962,
+              "signature": 3509639339
+            }
+          ],
+          "clearedChangedPixels": 0
+        },
+        "measuredFrames": 36,
+        "totalFrames": 540,
+        "meanMs": 56.536111111112405,
+        "medianMs": 58.699999999953434,
+        "p95Ms": 74.19999999995343,
+        "backingStore": {
+          "width": 780,
+          "height": 1688,
+          "pixels": 1316640
+        },
+        "warmedCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "finalCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "stressPixels": [
+          [
+            93,
+            107,
+            80,
+            255
+          ],
+          [
+            155,
+            141,
+            103,
+            255
+          ],
+          [
+            152,
+            124,
+            71,
+            255
+          ],
+          [
+            222,
+            200,
+            146,
+            255
+          ]
+        ],
+        "syntheticContextRecovery": {
+          "lossDetected": true,
+          "restored": true,
+          "canvasesCreated": 3,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              155,
+              141,
+              103,
+              255
+            ],
+            [
+              152,
+              124,
+              71,
+              255
+            ],
+            [
+              173,
+              160,
+              127,
+              255
+            ]
+          ]
+        },
+        "syntheticArtworkRecovery": {
+          "canvasesCreated": 1,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              163,
+              145,
+              103,
+              255
+            ],
+            [
+              152,
+              124,
+              71,
+              255
+            ],
+            [
+              173,
+              150,
+              115,
+              255
+            ]
+          ]
+        },
+        "resized": {
+          "width": 624,
+          "height": 1350,
+          "pixels": 842400,
+          "background": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              163,
+              146,
+              104,
+              255
+            ],
+            [
+              53,
+              55,
+              38,
+              255
+            ],
+            [
+              173,
+              150,
+              114,
+              255
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "phone-landscape",
+      "width": 844,
+      "height": 390,
+      "dpr": 3,
+      "current": {
+        "entities": {
+          "enemies": 48,
+          "plants": 18,
+          "bullets": 120,
+          "particles": 240,
+          "floaters": 60,
+          "telegraphs": 40,
+          "skillEffects": 12
+        },
+        "coveredKinds": {
+          "terrain": [
+            "thorn",
+            "trench",
+            "frost",
+            "poison"
+          ],
+          "skills": [
+            "blast",
+            "gale",
+            "cart",
+            "horse",
+            "laser"
+          ],
+          "enemyStatuses": [
+            "frozen",
+            "poison",
+            "stunned",
+            "feared",
+            "vulnerable",
+            "chillTime",
+            "burnTime"
+          ],
+          "projectiles": [
+            "normal",
+            "thorn",
+            "ice",
+            "mushroom",
+            "enemy",
+            "fire",
+            "explosive",
+            "split",
+            "reflected",
+            "generation"
+          ]
+        },
+        "coverage": {
+          "terrain": [
+            {
+              "kind": "thorn",
+              "changedPixels": 5122,
+              "signature": 1080906801
+            },
+            {
+              "kind": "trench",
+              "changedPixels": 5712,
+              "signature": 312002049
+            },
+            {
+              "kind": "frost",
+              "changedPixels": 6780,
+              "signature": 1391550068
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 6682,
+              "signature": 3203741170
+            }
+          ],
+          "skills": [
+            {
+              "kind": "blast",
+              "phase": "active",
+              "changedPixels": 29170,
+              "signature": 2700415896
+            },
+            {
+              "kind": "gale",
+              "phase": "active",
+              "changedPixels": 39422,
+              "signature": 2191467916
+            },
+            {
+              "kind": "cart",
+              "phase": "active",
+              "changedPixels": 2909,
+              "signature": 1119145872
+            },
+            {
+              "kind": "horse",
+              "phase": "active",
+              "changedPixels": 3306,
+              "signature": 1638353261
+            },
+            {
+              "kind": "laser",
+              "phase": "active",
+              "changedPixels": 8598,
+              "signature": 3184501122
+            },
+            {
+              "kind": "blast",
+              "phase": "waiting",
+              "changedPixels": 28735,
+              "signature": 1762149077
+            }
+          ],
+          "statuses": [
+            {
+              "kind": "frozen",
+              "changedPixels": 2184,
+              "signature": 3658613193,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 120,
+              "signature": 594394565,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "stunned",
+              "changedPixels": 1101,
+              "signature": 1673829897,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "feared",
+              "changedPixels": 120,
+              "signature": 1577807480,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "vulnerable",
+              "changedPixels": 120,
+              "signature": 2596366435,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "chillTime",
+              "changedPixels": 819,
+              "signature": 2229703784,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "burnTime",
+              "changedPixels": 413,
+              "signature": 176755556,
+              "expiredChangedPixels": 0
+            }
+          ],
+          "aiming": [
+            {
+              "kind": "blast",
+              "changedPixels": 25428,
+              "signature": 3494534981
+            },
+            {
+              "kind": "gale",
+              "changedPixels": 32415,
+              "signature": 2824681868
+            },
+            {
+              "kind": "cart",
+              "changedPixels": 9086,
+              "signature": 668095789
+            },
+            {
+              "kind": "horse",
+              "changedPixels": 8415,
+              "signature": 2006644725
+            },
+            {
+              "kind": "laser",
+              "changedPixels": 5068,
+              "signature": 2569749083
+            }
+          ],
+          "projectiles": [
+            {
+              "kind": "normal",
+              "changedPixels": 339,
+              "signature": 1307125559
+            },
+            {
+              "kind": "thorn",
+              "changedPixels": 417,
+              "signature": 172483741
+            },
+            {
+              "kind": "ice",
+              "changedPixels": 566,
+              "signature": 552183756
+            },
+            {
+              "kind": "mushroom",
+              "changedPixels": 576,
+              "signature": 3242384912
+            },
+            {
+              "kind": "enemy",
+              "changedPixels": 418,
+              "signature": 1314418709
+            },
+            {
+              "kind": "fire",
+              "changedPixels": 463,
+              "signature": 2869386875
+            },
+            {
+              "kind": "explosive",
+              "changedPixels": 573,
+              "signature": 719125067
+            },
+            {
+              "kind": "split",
+              "changedPixels": 214,
+              "signature": 1295481628
+            },
+            {
+              "kind": "reflected",
+              "changedPixels": 340,
+              "signature": 1112946416
+            },
+            {
+              "kind": "generation",
+              "changedPixels": 269,
+              "signature": 1314641421
+            }
+          ],
+          "clearedChangedPixels": 0
+        },
+        "measuredFrames": 36,
+        "totalFrames": 540,
+        "meanMs": 42.88611111111499,
+        "medianMs": 40.5,
+        "p95Ms": 52.60000000009313,
+        "backingStore": {
+          "width": 1688,
+          "height": 780,
+          "pixels": 1316640
+        },
+        "warmedCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "finalCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "stressPixels": [
+          [
+            93,
+            107,
+            80,
+            255
+          ],
+          [
+            158,
+            143,
+            105,
+            255
+          ],
+          [
+            53,
+            55,
+            38,
+            255
+          ],
+          [
+            223,
+            200,
+            147,
+            255
+          ]
+        ],
+        "syntheticContextRecovery": {
+          "lossDetected": true,
+          "restored": true,
+          "canvasesCreated": 3,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              158,
+              143,
+              105,
+              255
+            ],
+            [
+              53,
+              55,
+              38,
+              255
+            ],
+            [
+              174,
+              160,
+              127,
+              255
+            ]
+          ]
+        },
+        "syntheticArtworkRecovery": {
+          "canvasesCreated": 1,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              165,
+              147,
+              105,
+              255
+            ],
+            [
+              53,
+              55,
+              38,
+              255
+            ],
+            [
+              173,
+              150,
+              114,
+              255
+            ]
+          ]
+        },
+        "resized": {
+          "width": 1350,
+          "height": 624,
+          "pixels": 842400,
+          "background": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              164,
+              146,
+              104,
+              255
+            ],
+            [
+              53,
+              55,
+              38,
+              255
+            ],
+            [
+              174,
+              151,
+              115,
+              255
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "dpr": 2,
+      "current": {
+        "entities": {
+          "enemies": 48,
+          "plants": 18,
+          "bullets": 120,
+          "particles": 240,
+          "floaters": 60,
+          "telegraphs": 40,
+          "skillEffects": 12
+        },
+        "coveredKinds": {
+          "terrain": [
+            "thorn",
+            "trench",
+            "frost",
+            "poison"
+          ],
+          "skills": [
+            "blast",
+            "gale",
+            "cart",
+            "horse",
+            "laser"
+          ],
+          "enemyStatuses": [
+            "frozen",
+            "poison",
+            "stunned",
+            "feared",
+            "vulnerable",
+            "chillTime",
+            "burnTime"
+          ],
+          "projectiles": [
+            "normal",
+            "thorn",
+            "ice",
+            "mushroom",
+            "enemy",
+            "fire",
+            "explosive",
+            "split",
+            "reflected",
+            "generation"
+          ]
+        },
+        "coverage": {
+          "terrain": [
+            {
+              "kind": "thorn",
+              "changedPixels": 24684,
+              "signature": 4512961
+            },
+            {
+              "kind": "trench",
+              "changedPixels": 27763,
+              "signature": 4071842558
+            },
+            {
+              "kind": "frost",
+              "changedPixels": 32682,
+              "signature": 756407970
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 32493,
+              "signature": 3177651246
+            }
+          ],
+          "skills": [
+            {
+              "kind": "blast",
+              "phase": "active",
+              "changedPixels": 143461,
+              "signature": 3318421507
+            },
+            {
+              "kind": "gale",
+              "phase": "active",
+              "changedPixels": 194272,
+              "signature": 3586802573
+            },
+            {
+              "kind": "cart",
+              "phase": "active",
+              "changedPixels": 13863,
+              "signature": 2928488651
+            },
+            {
+              "kind": "horse",
+              "phase": "active",
+              "changedPixels": 15753,
+              "signature": 2043793029
+            },
+            {
+              "kind": "laser",
+              "phase": "active",
+              "changedPixels": 40962,
+              "signature": 2035930676
+            },
+            {
+              "kind": "blast",
+              "phase": "waiting",
+              "changedPixels": 141691,
+              "signature": 1801962569
+            }
+          ],
+          "statuses": [
+            {
+              "kind": "frozen",
+              "changedPixels": 10673,
+              "signature": 143998113,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 575,
+              "signature": 3944773186,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "stunned",
+              "changedPixels": 5436,
+              "signature": 1055006517,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "feared",
+              "changedPixels": 582,
+              "signature": 3100285883,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "vulnerable",
+              "changedPixels": 578,
+              "signature": 1365186709,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "chillTime",
+              "changedPixels": 3866,
+              "signature": 454276624,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "burnTime",
+              "changedPixels": 1885,
+              "signature": 1392578488,
+              "expiredChangedPixels": 0
+            }
+          ],
+          "aiming": [
+            {
+              "kind": "blast",
+              "changedPixels": 125124,
+              "signature": 809940864
+            },
+            {
+              "kind": "gale",
+              "changedPixels": 159564,
+              "signature": 939044884
+            },
+            {
+              "kind": "cart",
+              "changedPixels": 44737,
+              "signature": 1198778553
+            },
+            {
+              "kind": "horse",
+              "changedPixels": 41231,
+              "signature": 3166725582
+            },
+            {
+              "kind": "laser",
+              "changedPixels": 24586,
+              "signature": 3690194081
+            }
+          ],
+          "projectiles": [
+            {
+              "kind": "normal",
+              "changedPixels": 1673,
+              "signature": 2333956745
+            },
+            {
+              "kind": "thorn",
+              "changedPixels": 2079,
+              "signature": 378761684
+            },
+            {
+              "kind": "ice",
+              "changedPixels": 2781,
+              "signature": 4075038450
+            },
+            {
+              "kind": "mushroom",
+              "changedPixels": 2827,
+              "signature": 1702160089
+            },
+            {
+              "kind": "enemy",
+              "changedPixels": 2089,
+              "signature": 3399741513
+            },
+            {
+              "kind": "fire",
+              "changedPixels": 2311,
+              "signature": 2475255687
+            },
+            {
+              "kind": "explosive",
+              "changedPixels": 2829,
+              "signature": 3296048487
+            },
+            {
+              "kind": "split",
+              "changedPixels": 1061,
+              "signature": 1439069092
+            },
+            {
+              "kind": "reflected",
+              "changedPixels": 1673,
+              "signature": 395689890
+            },
+            {
+              "kind": "generation",
+              "changedPixels": 1321,
+              "signature": 1525688953
+            }
+          ],
+          "clearedChangedPixels": 0
+        },
+        "measuredFrames": 36,
+        "totalFrames": 540,
+        "meanMs": 138.59722222219636,
+        "medianMs": 134.5,
+        "p95Ms": 169.6999999997206,
+        "backingStore": {
+          "width": 2529,
+          "height": 1581,
+          "pixels": 3998349
+        },
+        "warmedCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "finalCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "stressPixels": [
+          [
+            93,
+            107,
+            80,
+            255
+          ],
+          [
+            156,
+            141,
+            103,
+            255
+          ],
+          [
+            83,
+            76,
+            48,
+            255
+          ],
+          [
+            223,
+            201,
+            147,
+            255
+          ]
+        ],
+        "syntheticContextRecovery": {
+          "lossDetected": true,
+          "restored": true,
+          "canvasesCreated": 3,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              156,
+              141,
+              103,
+              255
+            ],
+            [
+              83,
+              76,
+              48,
+              255
+            ],
+            [
+              174,
+              161,
+              128,
+              255
+            ]
+          ]
+        },
+        "syntheticArtworkRecovery": {
+          "canvasesCreated": 1,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              163,
+              145,
+              103,
+              255
+            ],
+            [
+              83,
+              76,
+              48,
+              255
+            ],
+            [
+              174,
+              151,
+              115,
+              255
+            ]
+          ]
+        },
+        "resized": {
+          "width": 2304,
+          "height": 1440,
+          "pixels": 3317760,
+          "background": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              164,
+              146,
+              104,
+              255
+            ],
+            [
+              97,
+              85,
+              52,
+              255
+            ],
+            [
+              174,
+              151,
+              115,
+              255
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "name": "large-desktop",
+      "width": 2560,
+      "height": 1440,
+      "dpr": 3,
+      "current": {
+        "entities": {
+          "enemies": 48,
+          "plants": 18,
+          "bullets": 120,
+          "particles": 240,
+          "floaters": 60,
+          "telegraphs": 40,
+          "skillEffects": 12
+        },
+        "coveredKinds": {
+          "terrain": [
+            "thorn",
+            "trench",
+            "frost",
+            "poison"
+          ],
+          "skills": [
+            "blast",
+            "gale",
+            "cart",
+            "horse",
+            "laser"
+          ],
+          "enemyStatuses": [
+            "frozen",
+            "poison",
+            "stunned",
+            "feared",
+            "vulnerable",
+            "chillTime",
+            "burnTime"
+          ],
+          "projectiles": [
+            "normal",
+            "thorn",
+            "ice",
+            "mushroom",
+            "enemy",
+            "fire",
+            "explosive",
+            "split",
+            "reflected",
+            "generation"
+          ]
+        },
+        "coverage": {
+          "terrain": [
+            {
+              "kind": "thorn",
+              "changedPixels": 27403,
+              "signature": 4001479300
+            },
+            {
+              "kind": "trench",
+              "changedPixels": 30850,
+              "signature": 3310158569
+            },
+            {
+              "kind": "frost",
+              "changedPixels": 36299,
+              "signature": 3118225661
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 36076,
+              "signature": 1630402253
+            }
+          ],
+          "skills": [
+            {
+              "kind": "blast",
+              "phase": "active",
+              "changedPixels": 159354,
+              "signature": 2017639237
+            },
+            {
+              "kind": "gale",
+              "phase": "active",
+              "changedPixels": 215742,
+              "signature": 3740770316
+            },
+            {
+              "kind": "cart",
+              "phase": "active",
+              "changedPixels": 15502,
+              "signature": 2208274246
+            },
+            {
+              "kind": "horse",
+              "phase": "active",
+              "changedPixels": 17470,
+              "signature": 1561479792
+            },
+            {
+              "kind": "laser",
+              "phase": "active",
+              "changedPixels": 45571,
+              "signature": 4181101521
+            },
+            {
+              "kind": "blast",
+              "phase": "waiting",
+              "changedPixels": 157368,
+              "signature": 2461247731
+            }
+          ],
+          "statuses": [
+            {
+              "kind": "frozen",
+              "changedPixels": 11898,
+              "signature": 3044696416,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "poison",
+              "changedPixels": 645,
+              "signature": 1067198585,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "stunned",
+              "changedPixels": 6067,
+              "signature": 3984411249,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "feared",
+              "changedPixels": 652,
+              "signature": 2755074894,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "vulnerable",
+              "changedPixels": 650,
+              "signature": 1169664779,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "chillTime",
+              "changedPixels": 4284,
+              "signature": 1808849034,
+              "expiredChangedPixels": 0
+            },
+            {
+              "kind": "burnTime",
+              "changedPixels": 2077,
+              "signature": 3974050909,
+              "expiredChangedPixels": 0
+            }
+          ],
+          "aiming": [
+            {
+              "kind": "blast",
+              "changedPixels": 139123,
+              "signature": 3577685241
+            },
+            {
+              "kind": "gale",
+              "changedPixels": 177354,
+              "signature": 3487303304
+            },
+            {
+              "kind": "cart",
+              "changedPixels": 49692,
+              "signature": 821739714
+            },
+            {
+              "kind": "horse",
+              "changedPixels": 45821,
+              "signature": 2222251651
+            },
+            {
+              "kind": "laser",
+              "changedPixels": 27293,
+              "signature": 1258824162
+            }
+          ],
+          "projectiles": [
+            {
+              "kind": "normal",
+              "changedPixels": 1857,
+              "signature": 4220033497
+            },
+            {
+              "kind": "thorn",
+              "changedPixels": 2318,
+              "signature": 2541094838
+            },
+            {
+              "kind": "ice",
+              "changedPixels": 3084,
+              "signature": 1868444141
+            },
+            {
+              "kind": "mushroom",
+              "changedPixels": 3148,
+              "signature": 107001335
+            },
+            {
+              "kind": "enemy",
+              "changedPixels": 2321,
+              "signature": 3545065400
+            },
+            {
+              "kind": "fire",
+              "changedPixels": 2566,
+              "signature": 792357454
+            },
+            {
+              "kind": "explosive",
+              "changedPixels": 3143,
+              "signature": 329488561
+            },
+            {
+              "kind": "split",
+              "changedPixels": 1183,
+              "signature": 3153629782
+            },
+            {
+              "kind": "reflected",
+              "changedPixels": 1857,
+              "signature": 3679376082
+            },
+            {
+              "kind": "generation",
+              "changedPixels": 1476,
+              "signature": 4066900346
+            }
+          ],
+          "clearedChangedPixels": 0
+        },
+        "measuredFrames": 36,
+        "totalFrames": 540,
+        "meanMs": 171.5916666666615,
+        "medianMs": 172.79999999981374,
+        "p95Ms": 284.3000000002794,
+        "backingStore": {
+          "width": 2666,
+          "height": 1500,
+          "pixels": 3999000
+        },
+        "warmedCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "finalCanvases": {
+          "count": 3,
+          "pixels": 3761664
+        },
+        "stressPixels": [
+          [
+            93,
+            107,
+            80,
+            255
+          ],
+          [
+            156,
+            141,
+            104,
+            255
+          ],
+          [
+            78,
+            71,
+            46,
+            255
+          ],
+          [
+            223,
+            201,
+            147,
+            255
+          ]
+        ],
+        "syntheticContextRecovery": {
+          "lossDetected": true,
+          "restored": true,
+          "canvasesCreated": 3,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              156,
+              141,
+              104,
+              255
+            ],
+            [
+              78,
+              71,
+              46,
+              255
+            ],
+            [
+              174,
+              161,
+              128,
+              255
+            ]
+          ]
+        },
+        "syntheticArtworkRecovery": {
+          "canvasesCreated": 1,
+          "pixels": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              163,
+              146,
+              104,
+              255
+            ],
+            [
+              78,
+              71,
+              46,
+              255
+            ],
+            [
+              174,
+              151,
+              115,
+              255
+            ]
+          ]
+        },
+        "resized": {
+          "width": 2666,
+          "height": 1500,
+          "pixels": 3999000,
+          "background": [
+            [
+              93,
+              107,
+              80,
+              255
+            ],
+            [
+              163,
+              145,
+              103,
+              255
+            ],
+            [
+              85,
+              77,
+              48,
+              255
+            ],
+            [
+              174,
+              151,
+              115,
+              255
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

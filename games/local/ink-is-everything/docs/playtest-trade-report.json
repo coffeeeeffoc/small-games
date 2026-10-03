@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "date": "2026-10-03T15:27:17.223Z",
+  "url": "http://127.0.0.1:4416",
+  "input": "Native touch through the free main route, public shop and browser reload",
+  "cases": [
+    {
+      "name": "Actual shop purchase consumes only survival ink, adds one equipment rank, and persists exactly once across refresh",
+      "status": "passed",
+      "offer": "backflow-amber",
+      "itemId": "backflow-amber",
+      "price": 18,
+      "inkBefore": 140,
+      "inkAfter": 122,
+      "maxInk": 140,
+      "previousRank": 0,
+      "rank": 1
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

@@ -9,8 +9,9 @@
     "start": "node server.mjs",
     "build": "node build.mjs",
     "preview": "node server.mjs --dist",
-    "test": "node --test tests/game.test.mjs",
+    "test": "node --test tests/game.test.mjs tests/order.test.mjs",
     "test:browser": "node tests/playtest.mjs",
+    "test:keyboard": "node tests/keyboard.mjs",
     "test:lifecycle": "node tests/lifecycle.mjs",
     "test:progression": "node tests/progression.mjs"
   },

@@ -1,0 +1,176 @@
+name: Validate GitHub Pages artifacts
+
+on:
+  workflow_call:
+    inputs:
+      full:
+        description: Run the full game regression suite.
+        required: true
+        type: boolean
+      game_ids:
+        description: JSON array of affected standalone game IDs.
+        required: true
+        type: string
+      game_sources:
+        description: JSON array of affected game source directories.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  kart:
+    uses: ./.github/workflows/carding-car.yml
+
+  build:
+    needs: kart
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Restore Turborepo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          # Separate build and logic writers while allowing both to reuse earlier task results.
+          key: turbo-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-pages-${{ runner.os }}-${{ github.job }}-
+            turbo-pages-${{ runner.os }}-
+            turbo-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: carding-car-${{ github.sha }}
+          path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
+      - run: pnpm check:games
+      - run: pnpm build:pages
+      - run: pnpm check:games --artifacts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pages-build
+          path: apps/shell-web/dist
+          include-hidden-files: true
+          if-no-files-found: error
+
+  logic:
+    needs: kart
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
+      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      PAGES_FULL_REGRESSION: ${{ inputs.full }}
+      PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Restore Turborepo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-pages-${{ runner.os }}-${{ github.job }}-
+            turbo-pages-${{ runner.os }}-
+            turbo-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: carding-car-${{ github.sha }}
+          path: games/local/carding-car/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: games/local/night-overwatch/.prebuilt
+      - run: pnpm check:games
+      - run: pnpm test:game-config
+      - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
+      - run: python3 scripts/test-pages-deploy.py
+      - run: python3 scripts/test-mobile-assets.py
+      - run: pnpm --filter @coffeeeeffoc/shell-web test
+      - run: node scripts/run-pages-game-tests.mjs
+
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: pages-build
+          path: apps/shell-web/dist
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:pages:smoke
+      - name: Upload Pages host diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pages-host-smoke-${{ github.run_attempt }}
+          path: .scratch/pages-host
+          if-no-files-found: ignore
+
+  regression:
+    needs: build
+    if: inputs.full || inputs.game_sources != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
+      PAGES_GAME_IDS: ${{ !inputs.full && inputs.game_ids || '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: pages-build
+          path: apps/shell-web/dist
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:pages:games
+      - name: Upload browser regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pages-game-regression-${{ github.run_attempt }}
+          path: .scratch/game-integration
+          if-no-files-found: ignore

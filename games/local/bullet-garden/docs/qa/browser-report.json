@@ -1,99 +1,497 @@
 {
-  "recordedAt": "2026-10-03T07:12:08.952Z",
+  "date": "2026-10-03T17:48:22.550Z",
   "browser": "151.0.7922.173",
-  "url": "http://127.0.0.1:4410",
+  "url": "http://127.0.0.1:4412",
+  "selection": "controls + challenge (separate fresh contexts)",
+  "scenario": "No initial boons or terrain; only selecting a corresponding XP upgrade unlocks passive terrain.",
   "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
-  "validation": "Gameplay completed normally; final UI controls passed. Revised browser contribution criteria passed against the recorded final snapshot.",
-  "challenge": {
-    "result": "won",
-    "seconds": 300,
-    "hp": 82,
-    "wave": 10,
-    "kills": 285,
-    "stats": {
-      "shots": 1076,
-      "seedShots": 135,
-      "plantsGrown": 130,
-      "plantKills": 18,
-      "terrainDamage": 2225.700000000073,
-      "seedHits": 4,
-      "damageTaken": 32,
-      "castsAtGround": 130
+  "limitations": [
+    "Chromium touch emulation; physical Android/iOS devices were not tested.",
+    "Virtual animation clock advances normal simulation without changing health, energy, enemies or XP.",
+    "Canvas recovery events are synthetic; no actual GPU context loss was induced."
+  ],
+  "checks": [
+    {
+      "group": "controls",
+      "name": "native 1/2/3/5× selector, proportional time, frozen pause/XP choices and clean 1× resume",
+      "measurements": [
+        {
+          "speed": 1,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.39999999999999997
+        },
+        {
+          "speed": 2,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.8000000000000005
+        },
+        {
+          "speed": 3,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.1833333333333291
+        },
+        {
+          "speed": 5,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.9999999999999933
+        }
+      ]
     },
-    "maxPlants": 9,
-    "maxEnemies": 12,
-    "upgradeSelections": [
-      {
-        "afterWave": 3,
-        "beforeWave": 4,
-        "selected": "bloom-shot"
+    {
+      "group": "controls",
+      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
+    },
+    {
+      "group": "controls",
+      "name": "preparation, time/kill energy, ordinary fire, two skill slots, arm/confirm/cancel and pause release"
+    },
+    {
+      "group": "controls",
+      "name": "restart retains only active skill choices and clears boons, terrain, health and energy"
+    },
+    {
+      "group": "controls",
+      "name": "touch 390×844: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "cart",
+        "horse"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "group": "controls",
+      "name": "touch 844×390: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "gale",
+        "laser"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "group": "controls",
+      "name": "no browser JavaScript or console errors"
+    },
+    {
+      "group": "challenge",
+      "name": "first natural XP upgrade chooses a non-boon card and still grants no terrain",
+      "selected": "split-shot",
+      "time": 14.050000000000278,
+      "boons": [],
+      "plantsGrown": 0
+    },
+    {
+      "group": "challenge",
+      "name": "four-choice experience upgrade fits portrait and landscape viewports"
+    },
+    {
+      "group": "challenge",
+      "name": "five-minute victory, experience upgrades, manually targeted skills and acquired-only terrain",
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "wave": 10,
+      "kills": 291,
+      "stats": {
+        "shots": 2231,
+        "misses": 1700,
+        "reflections": 0,
+        "splitShots": 4340,
+        "autoPlants": 212,
+        "skillCasts": 77,
+        "skillDamage": 3555.498809523809,
+        "skillKills": 57,
+        "plantsGrown": 212,
+        "plantKills": 43,
+        "terrainDamage": 3753.9398809527966,
+        "damageTaken": 0
       },
-      {
-        "afterWave": 6,
-        "beforeWave": 7,
-        "selected": "bloom-shot"
-      },
-      {
-        "afterWave": 9,
-        "beforeWave": 10,
-        "selected": "bloom-shot"
-      }
-    ]
-  },
-  "controls": [
-    {
-      "name": "desktop movement, pause/resume, ready/pause help, Escape"
+      "maxPlants": 15,
+      "maxEnemies": 11,
+      "boons": [
+        "trench",
+        "poison",
+        "shrub",
+        "frost"
+      ],
+      "seenTerrain": [
+        "trench",
+        "poison",
+        "thorn",
+        "frost"
+      ],
+      "latestUnownedTime": 34.09999999999935,
+      "upgradeSelections": [
+        {
+          "time": 14.03333333333361,
+          "beforeWave": 1,
+          "level": 2,
+          "choices": [
+            "boon-frost",
+            "boon-trench",
+            "split-shot"
+          ],
+          "selected": "split-shot"
+        },
+        {
+          "time": 34.09999999999935,
+          "beforeWave": 2,
+          "level": 3,
+          "choices": [
+            "attack-power",
+            "split-shot",
+            "boon-trench"
+          ],
+          "selected": "boon-trench"
+        },
+        {
+          "time": 51.23333333333171,
+          "beforeWave": 2,
+          "level": 4,
+          "choices": [
+            "boon-shrub",
+            "attack-power",
+            "multishot"
+          ],
+          "selected": "multishot"
+        },
+        {
+          "time": 79.54999999999677,
+          "beforeWave": 3,
+          "level": 5,
+          "choices": [
+            "explosive-shot",
+            "boon-poison",
+            "fire-shot",
+            "terrain-duration"
+          ],
+          "selected": "boon-poison"
+        },
+        {
+          "time": 101.33333333332887,
+          "beforeWave": 4,
+          "level": 6,
+          "choices": [
+            "boon-frost",
+            "terrain-heart",
+            "ricochet",
+            "boon-shrub"
+          ],
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 128.13333333332744,
+          "beforeWave": 5,
+          "level": 7,
+          "choices": [
+            "fire-shot",
+            "attack-speed",
+            "energy-cycle",
+            "boon-frost"
+          ],
+          "selected": "boon-frost"
+        },
+        {
+          "time": 150.96666666667895,
+          "beforeWave": 6,
+          "level": 8,
+          "choices": [
+            "explosive-shot",
+            "terrain-duration",
+            "attack-power",
+            "wild-heart"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 175.0833333333648,
+          "beforeWave": 6,
+          "level": 9,
+          "choices": [
+            "terrain-heart",
+            "terrain-duration",
+            "burst",
+            "split-shot"
+          ],
+          "selected": "terrain-heart"
+        },
+        {
+          "time": 194.65000000004704,
+          "beforeWave": 7,
+          "level": 10,
+          "choices": [
+            "terrain-duration",
+            "energy-cycle",
+            "terrain-heart",
+            "explosive-shot"
+          ],
+          "selected": "terrain-heart"
+        },
+        {
+          "time": 219.80000000006706,
+          "beforeWave": 8,
+          "level": 11,
+          "choices": [
+            "split-shot",
+            "wild-heart",
+            "attack-power",
+            "terrain-duration"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 243.88333333341956,
+          "beforeWave": 9,
+          "level": 12,
+          "choices": [
+            "terrain-duration",
+            "terrain-heart",
+            "attack-speed",
+            "attack-power"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 272.0000000000813,
+          "beforeWave": 10,
+          "level": 13,
+          "choices": [
+            "terrain-duration",
+            "burst",
+            "attack-speed",
+            "ricochet"
+          ],
+          "selected": "attack-speed"
+        },
+        {
+          "time": 291.2833333333971,
+          "beforeWave": 10,
+          "level": 14,
+          "choices": [
+            "terrain-heart",
+            "attack-power",
+            "ice-shot",
+            "split-explosion"
+          ],
+          "selected": "attack-power"
+        }
+      ]
     },
     {
-      "name": "blur event suspends simulation (headless tabs remain visible)",
-      "phase": "playing",
-      "hidden": false
+      "group": "challenge",
+      "name": "result replay returns to preparation and resets run-only unlocks and energy"
     },
     {
-      "name": "left hold + right click plants concurrently; release stops manual firing"
-    },
-    {
-      "name": "natural combat loss",
-      "seconds": 21.950000000000035,
-      "damageTaken": 104
-    },
-    {
-      "name": "result replay resets health, score, terrain"
-    },
-    {
-      "name": "native multi-touch 390×844: move + plant, seed growth, cancel release/no ghost seed, selection, dash",
-      "maximumConcurrentPointers": 2,
-      "planted": 1
-    },
-    {
-      "name": "native multi-touch 844×390: move + plant, seed growth, cancel release/no ghost seed, selection, dash",
-      "maximumConcurrentPointers": 2,
-      "planted": 1
-    },
-    {
+      "group": "challenge",
       "name": "no browser JavaScript or console errors"
     }
   ],
-  "originalHarness": {
-    "passed": false,
-    "failure": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(state.stats.plantKills > 20)\n\n    at fullChallenge (file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:236:10)\n    at async file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:245:68"
+  "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
   },
-  "criterionCorrection": {
-    "original": "plantKills > 20",
-    "observed": 18,
-    "revised": "plantKills >= 10 and terrainDamage > 2000",
-    "reason": "The per-frame analog balance bot and quarter-second native eight-direction browser bot follow different combat paths. Browser acceptance proves terrain contribution; tests/balance.mjs retains its separate stronger tuning criteria.",
-    "verification": "The revised condition and win/time/three-upgrade/cap/error conditions were asserted against the unchanged recorded final snapshot. The five-minute run was not repeated for this test-only threshold correction."
+  "challenge": {
+    "result": "won",
+    "seconds": 300,
+    "hp": 100,
+    "wave": 10,
+    "kills": 291,
+    "stats": {
+      "shots": 2231,
+      "misses": 1700,
+      "reflections": 0,
+      "splitShots": 4340,
+      "autoPlants": 212,
+      "skillCasts": 77,
+      "skillDamage": 3555.498809523809,
+      "skillKills": 57,
+      "plantsGrown": 212,
+      "plantKills": 43,
+      "terrainDamage": 3753.9398809527966,
+      "damageTaken": 0
+    },
+    "maxPlants": 15,
+    "maxEnemies": 11,
+    "boons": [
+      "trench",
+      "poison",
+      "shrub",
+      "frost"
+    ],
+    "seenTerrain": [
+      "trench",
+      "poison",
+      "thorn",
+      "frost"
+    ],
+    "latestUnownedTime": 34.09999999999935,
+    "upgradeSelections": [
+      {
+        "time": 14.03333333333361,
+        "beforeWave": 1,
+        "level": 2,
+        "choices": [
+          "boon-frost",
+          "boon-trench",
+          "split-shot"
+        ],
+        "selected": "split-shot"
+      },
+      {
+        "time": 34.09999999999935,
+        "beforeWave": 2,
+        "level": 3,
+        "choices": [
+          "attack-power",
+          "split-shot",
+          "boon-trench"
+        ],
+        "selected": "boon-trench"
+      },
+      {
+        "time": 51.23333333333171,
+        "beforeWave": 2,
+        "level": 4,
+        "choices": [
+          "boon-shrub",
+          "attack-power",
+          "multishot"
+        ],
+        "selected": "multishot"
+      },
+      {
+        "time": 79.54999999999677,
+        "beforeWave": 3,
+        "level": 5,
+        "choices": [
+          "explosive-shot",
+          "boon-poison",
+          "fire-shot",
+          "terrain-duration"
+        ],
+        "selected": "boon-poison"
+      },
+      {
+        "time": 101.33333333332887,
+        "beforeWave": 4,
+        "level": 6,
+        "choices": [
+          "boon-frost",
+          "terrain-heart",
+          "ricochet",
+          "boon-shrub"
+        ],
+        "selected": "boon-shrub"
+      },
+      {
+        "time": 128.13333333332744,
+        "beforeWave": 5,
+        "level": 7,
+        "choices": [
+          "fire-shot",
+          "attack-speed",
+          "energy-cycle",
+          "boon-frost"
+        ],
+        "selected": "boon-frost"
+      },
+      {
+        "time": 150.96666666667895,
+        "beforeWave": 6,
+        "level": 8,
+        "choices": [
+          "explosive-shot",
+          "terrain-duration",
+          "attack-power",
+          "wild-heart"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 175.0833333333648,
+        "beforeWave": 6,
+        "level": 9,
+        "choices": [
+          "terrain-heart",
+          "terrain-duration",
+          "burst",
+          "split-shot"
+        ],
+        "selected": "terrain-heart"
+      },
+      {
+        "time": 194.65000000004704,
+        "beforeWave": 7,
+        "level": 10,
+        "choices": [
+          "terrain-duration",
+          "energy-cycle",
+          "terrain-heart",
+          "explosive-shot"
+        ],
+        "selected": "terrain-heart"
+      },
+      {
+        "time": 219.80000000006706,
+        "beforeWave": 8,
+        "level": 11,
+        "choices": [
+          "split-shot",
+          "wild-heart",
+          "attack-power",
+          "terrain-duration"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 243.88333333341956,
+        "beforeWave": 9,
+        "level": 12,
+        "choices": [
+          "terrain-duration",
+          "terrain-heart",
+          "attack-speed",
+          "attack-power"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 272.0000000000813,
+        "beforeWave": 10,
+        "level": 13,
+        "choices": [
+          "terrain-duration",
+          "burst",
+          "attack-speed",
+          "ricochet"
+        ],
+        "selected": "attack-speed"
+      },
+      {
+        "time": 291.2833333333971,
+        "beforeWave": 10,
+        "level": 14,
+        "choices": [
+          "terrain-heart",
+          "attack-power",
+          "ice-shot",
+          "split-explosion"
+        ],
+        "selected": "attack-power"
+      }
+    ]
   },
-  "resultScreen": {
-    "verification": "Visually inspected real completed-game screenshot: 花园，生生不息。; 5:00, 285 kills, 130 plants, 18 terrain kills.",
-    "note": "The original >20 assertion ran before the result-title DOM assertion; do not treat that later DOM assertion as executed."
-  },
-  "finalSourceCoverage": "The full challenge used the same final combat implementation. Desktop and both mobile control runs were repeated after final camera/UI refinements.",
-  "limitations": [
-    "Headless Chromium keeps background pages visible, so native document.hidden transition could not be exercised. Native background behavior was recorded, and blur-event suspension was verified.",
-    "Mobile interaction used Chromium touch emulation with genuine concurrent CDP touch points; physical-device and Safari testing remain unverified."
+  "groups": [
+    {
+      "group": "controls",
+      "date": "2026-10-03T17:41:31.773Z",
+      "passed": true
+    },
+    {
+      "group": "challenge",
+      "date": "2026-10-03T17:41:36.317Z",
+      "passed": true
+    }
   ],
-  "artifacts": ["desktop-wave-5.png", "mobile-390x844.png"],
-  "errors": []
+  "passed": true
 }

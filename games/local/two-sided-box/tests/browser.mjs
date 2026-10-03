@@ -7,783 +7,644 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from '@playwright/test';
 import { LEVELS } from '../levels.mjs';
-import {
-  createState,
-  moveShaft,
-  toggleLatch,
-  flipView,
-  releaseBall,
-  advanceBall,
-} from '../engine.mjs';
+import { FACE_IDS } from '../faces.mjs';
 import { STORAGE_KEY } from '../progress.mjs';
 
 const gameRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = resolve(gameRoot, 'test-results');
-const gameUrl = process.env.GAME_URL || 'http://127.0.0.1:4412/';
+const gameUrl = process.env.GAME_URL || 'http://127.0.0.1:4413/';
 const mobileOnly = process.argv.includes('--mobile-only');
-const reportName = mobileOnly ? 'browser-mobile-report.json' : 'browser-report.json';
-const runtimeErrors = [];
-const checks = [];
+const smokeOnly = process.argv.includes('--smoke-only');
+const reportName = smokeOnly
+  ? 'browser-smoke-report.json'
+  : mobileOnly
+    ? 'browser-mobile-report.json'
+    : 'browser-report.json';
+const runtimeErrors = [],
+  checks = [];
 const touchSessions = new WeakMap();
-let server;
-let browser;
-let serverOutput = '';
-let serverError;
-
-async function launchBrowser() {
-  const executablePath = process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium';
-  assert.ok(existsSync(executablePath), 'Chromium exists at ' + executablePath);
-  return chromium.launch({
-    headless: true,
-    executablePath,
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
-  });
-}
-
-function physicalState(state) {
-  const { shafts, latches, released, checkpoint, completed } = state;
-  return { shafts, latches, released, checkpoint, completed };
-}
-
-async function snapshot(page) {
-  return page.evaluate(() => window.__twoSidedSnapshot());
-}
+let server,
+  browser,
+  currentPage,
+  serverOutput = '';
+const snapshot = (page) => page.evaluate(() => window.__twoSidedSnapshot());
+const physical = ({ state, ball, historyLength }) => ({
+  shafts: state.shafts,
+  latches: state.latches,
+  released: state.released,
+  completed: state.completed,
+  checkpoint: state.checkpoint,
+  moves: state.moves,
+  ball,
+  historyLength,
+});
+const preserved = (current) => ({
+  state: current.state,
+  ball: current.ball,
+  historyLength: current.historyLength,
+  progress: current.progress,
+});
 
 async function settled(page) {
-  await page.waitForFunction(
-    () => {
-      if (typeof window.__twoSidedSnapshot !== 'function') return false;
-      const current = window.__twoSidedSnapshot();
-      if (current.animating || current.ballMoving || current.dragging) return false;
-      if (getComputedStyle(document.querySelector('#board')).transform !== 'none') return false;
-      // Wait for a deferred gesture redraw as well as rule state. In particular,
-      // a cancelled touch must visibly return the handle before the next input.
-      return Object.entries(current.state.shafts).every(([id, value]) => {
-        const shaft = document.querySelector('[data-shaft="' + id + '"]');
-        const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
-        const position = handle?.transform.baseVal.consolidate()?.matrix.f;
-        return (
-          shaft?.dataset.value === String(value) && Math.abs(position - (450 - 150 * value)) < 1
-        );
-      });
-    },
-    null,
-    { timeout: 15_000 },
+  await page.waitForFunction(() => {
+    const s = window.__twoSidedSnapshot?.();
+    return s && !s.ballMoving && !s.revealPending;
+  });
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
   return snapshot(page);
 }
-
-function recordErrors(page, label) {
+async function touch(page, type, points = []) {
+  if (!touchSessions.has(page)) touchSessions.set(page, await page.context().newCDPSession(page));
+  await touchSessions.get(page).send('Input.dispatchTouchEvent', { type, touchPoints: points });
+  await delay(30);
+}
+async function tapAt(page, x, y) {
+  await touch(page, 'touchStart', [{ x, y, id: 1 }]);
+  await touch(page, 'touchEnd');
+}
+async function activate(locator, mobile = false) {
+  if (!mobile) return locator.click();
+  await locator.scrollIntoViewIfNeeded();
+  assert.equal(await locator.isEnabled(), true, 'Touch target is enabled');
+  const r = await locator.boundingBox();
+  assert.ok(r, 'Touch target is visible');
+  await tapAt(locator.page(), r.x + r.width / 2, r.y + r.height / 2);
+}
+async function openGame(context, label) {
+  const page = await context.newPage();
+  currentPage = page;
+  page.setDefaultTimeout(10_000);
   page.on('pageerror', (error) => runtimeErrors.push(label + ': ' + error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') runtimeErrors.push(label + ': ' + message.text());
   });
-}
-
-async function openGame(context, label) {
-  const page = await context.newPage();
-  recordErrors(page, label);
-  page.setDefaultTimeout(15_000);
-  await page.goto(gameUrl, { waitUntil: 'networkidle', timeout: 30_000 });
-  await page.locator('#board').waitFor({ state: 'visible' });
-  if (await page.locator('#welcome[open]').count()) {
-    await tapOrClick(
-      page.locator('#start'),
-      await page.evaluate(() => navigator.maxTouchPoints > 0),
-    );
-  }
+  await page.goto(gameUrl, { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => typeof window.__twoSidedSnapshot === 'function');
+  await activate(page.locator('#start'), await page.evaluate(() => navigator.maxTouchPoints > 0));
   await settled(page);
   return page;
 }
-
-async function selectLevel(page, index, touch = false) {
-  if (await page.locator('#result[open]').count()) {
-    if (touch) await tapNative(page.locator('#replay'));
-    else await page.keyboard.press('Escape');
-  }
-  if (touch) await tapNative(page.locator('#levels'));
-  else await page.locator('#levels').click();
-  const button = page.locator('[data-level-index="' + index + '"]');
-  assert.equal(await button.isEnabled(), true, 'All six prototype boxes are available');
-  if (touch) await tapNative(button);
-  else await button.click();
-  const current = await settled(page);
-  assert.equal(current.levelIndex, index, 'Selecting box ' + (index + 1));
-  assert.equal(current.state.completed, false, 'Selection starts a fresh attempt');
-  assert.equal(current.state.released, false, 'Selection returns the ball to the start');
-  assert.equal(current.state.moves, 0, 'Selection resets move count');
-  assert.equal(await page.locator('#board').getAttribute('data-level'), String(index + 1));
-  return current;
-}
-
-async function tapOrClick(locator, touch = false) {
-  if (touch) await tapNative(locator);
-  else await locator.click();
-}
-
-async function nativeInput(page) {
-  let session = touchSessions.get(page);
-  if (!session) {
-    session = await page.context().newCDPSession(page);
-    touchSessions.set(page, session);
-  }
-  return session;
-}
-
-async function tapNative(locator) {
-  await locator.waitFor({ state: 'visible' });
-  await locator.scrollIntoViewIfNeeded();
-  assert.equal(await locator.isEnabled(), true, 'The native touch target is available');
-  const bounds = await locator.boundingBox();
-  assert.ok(bounds, 'The native touch target has a visible physical location');
-  const page = locator.page();
-  const session = await nativeInput(page);
-  await session.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [
-      {
-        x: bounds.x + bounds.width / 2,
-        y: bounds.y + bounds.height / 2,
-        id: 1,
-      },
-    ],
+async function context(options = {}) {
+  const created = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    reducedMotion: 'reduce',
+    ...options,
   });
-  await delay(60);
-  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await delay(60);
+  // A reproducible stream still chooses different legal starting pairs.
+  await created.addInitScript(() => {
+    let seed = 41023;
+    Math.random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  });
+  return created;
 }
-
-async function executeAction(page, action, label, touch = false) {
+async function dismissCompletion(page, mobile = false) {
+  if (await page.locator('#structure-dialog[open]').count())
+    await activate(page.locator('#structure-close'), mobile);
+  if (await page.locator('#result[open]').count()) await activate(page.locator('#replay'), mobile);
+}
+async function selectLevel(page, index, mobile = false) {
+  await dismissCompletion(page, mobile);
+  await activate(page.locator('#levels'), mobile);
+  assert.equal(await page.locator('[data-level-index]').count(), 50, 'All 50 boxes are selectable');
+  await activate(page.locator('[data-level-index="' + index + '"]'), mobile);
+  const s = await settled(page);
+  assert.equal(s.levelIndex, index);
+  assert.equal(s.state.moves, 0);
+  assert.equal(s.state.revealedFaces.length, 2);
+  assert.equal(new Set(s.initialFaces).size, 2);
+  assert.equal(s.state.structureViewed, false);
+  assert.deepEqual(s.board.faces, [s.state.side], 'Only the selected face is exposed');
+  return s;
+}
+async function reveal(page, face, mobile = false) {
   const before = await snapshot(page);
-  if (action.type === 'flip') {
-    await tapOrClick(page.locator('#flip'), touch);
-    const after = await settled(page);
-    assert.notEqual(after.state.side, before.state.side, label + ': side changed');
-    assert.deepEqual(
-      physicalState(after.state),
-      physicalState(before.state),
-      label + ': changing the view preserves the machine',
-    );
-    return after;
-  }
-  if (action.type === 'latch') {
-    await tapOrClick(page.locator('[data-latch="' + action.id + '"]'), touch);
-    const after = await settled(page);
-    assert.notDeepEqual(after.state.latches, before.state.latches, label + ': latch operated');
-    return after;
-  }
-  if (action.type === 'shaft') {
-    const notch = page.locator(
-      '[data-notch-shaft="' + action.id + '"][data-value="' + action.value + '"]',
-    );
-    await tapOrClick(notch, touch);
-    const after = await settled(page);
-    assert.equal(after.state.shafts[action.id], action.value, label + ': shaft reached detent');
-    return after;
-  }
-  if (action.type === 'release') {
-    await tapOrClick(page.locator('#release'), touch);
-    const after = await settled(page);
-    assert.equal(after.state.released, true, label + ': ball released');
-    return after;
-  }
-  if (action.type === 'advance') {
-    // Gravity advances the visible ball automatically after release or a legal
-    // mechanism change. The route marker is never an extra UI control.
-    const after = await settled(page);
-    assert.equal(after.state.released, true, label + ': gravity follows a released ball');
-    assert.ok(
-      after.state.checkpoint >= before.state.checkpoint,
-      label + ': ball never goes backward',
-    );
-    return after;
-  }
-  throw new Error(label + ': unknown solution action ' + JSON.stringify(action));
-}
-
-async function solveVisibleRoute(page, index, touch = false) {
-  await selectLevel(page, index, touch);
-  const solution = LEVELS[index].solution;
-  const expected = createState(LEVELS[index]);
-  assert.ok(solution?.length, 'Box ' + (index + 1) + ' supplies a reviewed solution');
-  for (const [step, action] of solution.entries()) {
-    const label = 'Box ' + (index + 1) + ', action ' + (step + 1);
-    const actual = await executeAction(page, action, label, touch);
-    let result;
-    if (action.type === 'flip') result = flipView(expected);
-    else if (action.type === 'latch') result = toggleLatch(LEVELS[index], expected, action.id);
-    else if (action.type === 'shaft')
-      result = moveShaft(LEVELS[index], expected, action.id, action.value);
-    else if (action.type === 'release') result = releaseBall(LEVELS[index], expected);
-    else result = { ok: true };
-    assert.equal(result.ok, true, label + ': reviewed action is legal');
-    // The UI moves the ball under gravity until it reaches the next closed
-    // panel. Compute that same public rule transition without changing the UI.
-    while (expected.released && !expected.completed && advanceBall(LEVELS[index], expected).ok) {}
-    assert.deepEqual(actual.state, expected, label + ': rendered game follows the shared rules');
-  }
-  const final = await settled(page);
+  if (before.state.revealedFaces.includes(face)) return;
+  await activate(page.locator('[data-face="' + face + '"]'), mobile);
+  await page.locator('#hint-dialog[open]').waitFor({ state: 'visible' });
   assert.equal(
-    final.state.completed,
-    true,
-    'Box ' + (index + 1) + ' completes through visible controls',
+    await page.locator('#reveal-structure').count(),
+    0,
+    'Full 3D stays gated until all six faces are revealed',
   );
-  assert.equal(await page.locator('#board').getAttribute('data-status'), 'won');
-  assert.equal(await page.locator('#next').isVisible(), true, 'Completion provides the next box');
-  checks.push('Box ' + (index + 1) + ' solved via ' + (touch ? 'touch' : 'pointer') + ' UI');
-  return final;
-}
-
-async function svgPoint(page, x, y) {
-  await page.locator('#board').scrollIntoViewIfNeeded();
-  return page.locator('#board').evaluate(
-    (board, local) => {
-      const point = new DOMPoint(local.x, local.y).matrixTransform(board.getScreenCTM());
-      return { x: point.x, y: point.y };
-    },
-    { x, y },
-  );
-}
-
-async function shaftPoint(page, id, value) {
-  const current = await snapshot(page);
-  const shaft = LEVELS[current.levelIndex].shafts.find((entry) => entry.id === id);
-  assert.ok(shaft, 'The selected level defines shaft ' + id);
-  return svgPoint(page, shaft.x, 450 - 150 * value);
-}
-
-async function verifyDragPreview(page, id, end, before, initialHandle) {
-  await page.waitForFunction(
-    ({ id, end }) => {
-      const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
-      if (!handle || !window.__twoSidedSnapshot().dragging) return false;
-      const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
-      return Math.abs(point.y - end.y) <= 2;
-    },
-    { id, end },
-    { timeout: 2_000 },
-  );
-  const preview = await snapshot(page);
-  assert.equal(
-    await initialHandle.evaluate(
-      (handle) =>
-        handle.isConnected &&
-        handle ===
-          document.querySelector('[data-shaft-handle="' + handle.dataset.shaftHandle + '"]'),
-    ),
-    true,
-    'A continuous drag keeps the original touch target connected',
-  );
-  assert.equal(preview.dragging, true, 'The pointer is actively dragging a scene shaft');
+  await activate(page.locator('[data-reveal-face="' + face + '"]'), mobile);
+  await page.locator('#hint-dialog').waitFor({ state: 'hidden' });
+  const after = await settled(page);
+  assert.ok(after.state.revealedFaces.includes(face));
+  assert.equal(after.state.side, face);
+  assert.equal(after.state.revealedFaces.length, before.state.revealedFaces.length + 1);
   assert.deepEqual(
-    preview.state,
-    before.state,
-    'A drag preview keeps committed puzzle state unchanged',
+    physical(after),
+    physical(before),
+    'Free reveal leaves mechanisms and moves unchanged',
   );
-  const visual = await page.locator('[data-shaft-handle="' + id + '"]').evaluate((handle) => {
-    const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
-    return { x: point.x, y: point.y };
-  });
+}
+async function view(page, face, mobile = false) {
+  await reveal(page, face, mobile);
+  const before = await snapshot(page);
+  await activate(page.locator('[data-face="' + face + '"]'), mobile);
+  const after = await settled(page);
+  assert.equal(after.state.side, face);
+  assert.deepEqual(physical(after), physical(before), 'Switching observed faces is free');
+  assert.deepEqual(after.board.faces, [face]);
+  assert.equal(after.board.camera.projection, 'orthographic');
   assert.ok(
-    Math.abs(visual.y - end.y) <= 2,
-    'The handle follows the pointer before release: ' + JSON.stringify({ visual, end }),
+    after.board.projected.controls.every((c) => c.face === face),
+    'Hidden-face controls are not rendered',
   );
 }
-
-async function dragShaft(page, id, target, { touch = false, cancel = false } = {}) {
+async function openFullStructure(page, mobile = false) {
+  for (const face of FACE_IDS) await reveal(page, face, mobile);
   const before = await snapshot(page);
-  const start = await shaftPoint(page, id, before.state.shafts[id]);
-  const end = await shaftPoint(page, id, target);
-  const initialHandle = touch
-    ? null
-    : await page.locator('[data-shaft-handle="' + id + '"]').elementHandle();
-  if (!touch) assert.ok(initialHandle, 'The drag starts on a visible scene handle');
-  if (touch) {
-    // All taps and drags on this page share one native input source, just as a
-    // real touchscreen does. Closing the browser context releases the session.
-    const cdp = await nativeInput(page);
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [{ ...start, id: 1 }],
-    });
-    for (let step = 1; step <= 6; step += 1) {
-      // Pace a real 180ms drag from the initial contact onward.
-      await delay(30);
-      await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchMove',
-        touchPoints: [
-          {
-            x: start.x + ((end.x - start.x) * step) / 6,
-            y: start.y + ((end.y - start.y) * step) / 6,
-            id: 1,
-          },
-        ],
-      });
-    }
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: cancel ? 'touchCancel' : 'touchEnd',
-      touchPoints: [],
-    });
-    await delay(60);
-  } else {
-    await page.mouse.move(start.x, start.y);
-    await page.mouse.down();
-    await page.mouse.move(end.x, end.y, { steps: 6 });
-    await verifyDragPreview(page, id, end, before, initialHandle);
-    await page.mouse.up();
-  }
+  await activate(page.locator('#hint'), mobile);
+  if (!before.state.structureViewed) await activate(page.locator('#reveal-structure'), mobile);
+  await page.locator('#structure-dialog[open]').waitFor({ state: 'visible' });
   const after = await settled(page);
-  await initialHandle?.dispose();
-  if (cancel) {
-    assert.deepEqual(
-      after.state,
-      before.state,
-      'Cancelling a real touch drag rolls back the entire gesture',
-    );
-    if ('historyLength' in before) assert.equal(after.historyLength, before.historyLength);
-  } else {
-    assert.equal(after.state.shafts[id], target, 'Dragging the visible shaft reaches its detent');
-    assert.equal(
-      after.state.moves,
-      before.state.moves + 1,
-      'A drag records exactly one mechanism operation',
-    );
-    if ('historyLength' in before) assert.equal(after.historyLength, before.historyLength + 1);
-  }
-  return after;
+  assert.equal(after.state.structureViewed, true);
+  assert.deepEqual(
+    physical(after),
+    physical(before),
+    'Final hint changes knowledge, not mechanisms or moves',
+  );
+  return preserved(after);
 }
-
-async function verifyMechanics(page) {
-  await selectLevel(page, 0);
-  const initial = await snapshot(page);
-  await page.locator('#levels').click();
-  assert.equal(
-    await page.locator('[data-level-index]').count(),
-    LEVELS.length,
-    'Chapter selection lists six boxes',
-  );
-  await page.keyboard.press('Escape');
+async function closeStructure(page, before, mobile = false) {
+  await activate(page.locator('#structure-close'), mobile);
+  await page.locator('#structure-dialog').waitFor({ state: 'hidden' });
   assert.deepEqual(
-    (await snapshot(page)).state,
-    initial.state,
-    'Browsing and dismissing chapter selection keeps the puzzle',
-  );
-  const lockedNotch = page.locator('[data-notch-shaft="A"][data-value="2"]');
-  const lockedBounds = await lockedNotch.boundingBox();
-  assert.ok(lockedBounds, 'Locked shaft still has a discoverable physical target');
-  // Raw input checks the feedback from an intentionally disabled mechanism;
-  // Playwright's actionable click correctly refuses aria-disabled controls.
-  await page.mouse.click(
-    lockedBounds.x + lockedBounds.width / 2,
-    lockedBounds.y + lockedBounds.height / 2,
-  );
-  const locked = await settled(page);
-  assert.deepEqual(locked.state, initial.state, 'A locked front shaft cannot be moved');
-  assert.match(
-    await page.locator('#status').innerText(),
-    /锁|背|扣/,
-    'A locked shaft gives actionable feedback',
-  );
-
-  await page.locator('#hint').click();
-  const hinted = await snapshot(page);
-  assert.deepEqual(hinted.state, initial.state, 'Hints preserve machine state and move count');
-  if ('historyLength' in initial) assert.equal(hinted.historyLength, initial.historyLength);
-  await page.locator('#hint-more').click();
-  assert.deepEqual(
-    (await snapshot(page)).state,
-    initial.state,
-    'Progressive hints still leave the puzzle untouched',
-  );
-  await page.locator('[data-close="hint-dialog"]').click();
-
-  await executeAction(page, { type: 'flip' }, 'Look behind the first box');
-  await executeAction(page, { type: 'latch', id: 'lock-A' }, 'Unlock the first shaft');
-  await executeAction(page, { type: 'flip' }, 'Return to the unlocked front');
-  const beforeDrag = await snapshot(page);
-  await dragShaft(page, 'A', 2);
-  await page.locator('#undo').click();
-  assert.deepEqual(
-    (await settled(page)).state,
-    beforeDrag.state,
-    'Undo restores the entire shaft gesture',
-  );
-  await dragShaft(page, 'A', 1);
-  await page.locator('#restart').click();
-  assert.deepEqual(
-    (await settled(page)).state,
-    initial.state,
-    'Restart restores the original box and ball',
-  );
-
-  await executeAction(page, { type: 'flip' }, 'Keyboard unlock view');
-  const latch = page.locator('[data-latch="lock-A"]');
-  await latch.focus();
-  await page.keyboard.press('Enter');
-  assert.notDeepEqual(
-    (await settled(page)).state.latches,
-    initial.state.latches,
-    'Enter operates a focused scene latch',
-  );
-  assert.equal(
-    await latch.evaluate((element) => document.activeElement === element),
-    true,
-    'Keyboard focus follows the rebuilt latch',
-  );
-  await page.keyboard.press('Space');
-  assert.deepEqual(
-    (await settled(page)).state.latches,
-    initial.state.latches,
-    'Space closes the same focused latch',
-  );
-  await page.keyboard.press('Enter');
-  assert.equal(
-    (await settled(page)).state.latches['lock-A'],
-    false,
-    'The latch can be unlocked again without refocusing',
-  );
-  await executeAction(page, { type: 'flip' }, 'Keyboard front view');
-  const shaft = page.locator('[data-shaft="A"]');
-  await shaft.focus();
-  await page.keyboard.press('ArrowUp');
-  const keyboard = await settled(page);
-  assert.equal(keyboard.state.shafts.A, 1, 'Arrow keys move a focused shaft by one detent');
-  await page.locator('#restart').click();
-  checks.push(
-    'Locked feedback, flip invariance, progressive hints, mouse drag, undo, reset and keyboard',
+    preserved(await settled(page)),
+    before,
+    'Viewing 3D and returning preserve puzzle state',
   );
 }
-
-async function verifyPersistence(page) {
-  const before = await snapshot(page);
-  assert.ok(before.progress, 'A progress snapshot is exposed for verification');
-  const progress = structuredClone(before.progress);
-  const raw = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
-  assert.ok(raw, 'Completing boxes writes progress');
-  await page.reload({ waitUntil: 'networkidle' });
-  if (await page.locator('#welcome[open]').count()) await page.locator('#start').click();
-  const after = await settled(page);
-  assert.deepEqual(after.progress, progress, 'Completed boxes and best move counts survive reload');
-  assert.equal(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), raw);
-  checks.push('Completed progress survives reload');
-}
-
-async function verifyCompletionDuringHint(page) {
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  try {
-    await selectLevel(page, 0);
-    for (const action of LEVELS[0].solution) {
-      if (action.type === 'release') break;
-      await executeAction(page, action, 'Prepare completion while reading a hint');
+async function pixels(page, selector = '#structure-canvas') {
+  await settled(page);
+  return page.locator(selector).evaluate((canvas) => {
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let hash = 2166136261;
+    const colors = new Set();
+    for (let i = 0; i < data.length; i += 4) {
+      const color = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+      colors.add(color);
+      hash = Math.imul(hash ^ color, 16777619);
     }
-    await page.locator('#release').click();
-    assert.equal((await snapshot(page)).ballMoving, true, 'Normal motion visibly rolls the ball');
-    await page.locator('#hint').click();
-    assert.equal(
-      await page.locator('#hint-dialog[open]').count(),
-      1,
-      'A hint can be read while the ball rolls',
-    );
-    assert.equal(
-      (await settled(page)).state.completed,
-      true,
-      'The clear route completes while reading a hint',
-    );
-    await page.locator('[data-close="hint-dialog"]').click();
-    await page.locator('#result[open]').waitFor({ state: 'visible' });
-    assert.equal(
-      await page.locator('#next').isVisible(),
-      true,
-      'Closing the hint exposes completion and next box',
-    );
-    await page.locator('#replay').click();
-    checks.push('Completion while reading a hint still presents the next box');
-  } finally {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-  }
+    return { hash: hash >>> 0, colors: colors.size };
+  });
 }
-
-async function verifyLayout(page, label) {
-  const layout = await page.evaluate(() => {
-    const rect = (element) => {
-      const box = element.getBoundingClientRect();
-      return {
-        left: box.left,
-        right: box.right,
-        top: box.top,
-        bottom: box.bottom,
-        width: box.width,
-        height: box.height,
-      };
-    };
-    const visible = (element) => {
-      const style = getComputedStyle(element);
-      const box = element.getBoundingClientRect();
-      return (
-        style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0
+async function visibleChange(page, action, label, selector) {
+  const before = await pixels(page, selector);
+  await action();
+  const after = await pixels(page, selector);
+  assert.ok(after.colors > 100, label + ': nonblank scene');
+  assert.notEqual(after.hash, before.hash, label + ': actual pixels change');
+}
+async function verifyModelSync(page, structure = false) {
+  const s = await settled(page),
+    model = structure ? s.structure : s.board;
+  assert.equal(model.levelId, s.levelId);
+  assert.deepEqual(
+    model.snapshot,
+    JSON.parse(JSON.stringify(s.mechanisms)),
+    'Renderer uses live rules',
+  );
+  assert.deepEqual(model.ball, s.ball, 'Renderer follows the same world-space ball');
+  assert.equal(model.counts.channels, 1, 'One shared ball channel');
+  if (structure) {
+    assert.deepEqual(model.faces, FACE_IDS);
+    const text = await page.locator('#structure-state').innerText();
+    for (const gate of s.mechanisms.gates)
+      assert.ok(
+        text.includes(gate.label + '：' + (gate.open ? '孔口对齐' : '未对齐')),
+        '3D hint explains current gate states',
       );
-    };
+  }
+}
+async function perform(page, action, mobile = false) {
+  const before = await snapshot(page);
+  if (action.type === 'reveal') await reveal(page, action.face, mobile);
+  else if (action.type === 'view') await view(page, action.face, mobile);
+  else if (action.type === 'shaft') {
+    await activate(
+      page.locator('[data-shaft="' + action.id + '"][data-value="' + action.value + '"]'),
+      mobile,
+    );
+    assert.equal(
+      (await settled(page)).state.shafts[action.id],
+      action.value,
+      'Visible shaft reaches requested notch',
+    );
+  } else if (action.type === 'latch') {
+    await activate(page.locator('[data-latch="' + action.id + '"]'), mobile);
+    assert.notEqual(
+      (await settled(page)).state.latches[action.id],
+      before.state.latches[action.id],
+      'Visible latch operates',
+    );
+  } else if (action.type === 'release') await activate(page.locator('#release'), mobile);
+  else assert.equal(action.type, 'advance');
+  await settled(page);
+}
+async function solve(page, index, { mobile = false, finalHint = false } = {}) {
+  await selectLevel(page, index, mobile);
+  if (finalHint) {
+    const observed = await openFullStructure(page, mobile);
+    await verifyModelSync(page, true);
+    if (!mobile) await page.screenshot({ path: resolve(outputDir, 'structure-desktop.png') });
+    await closeStructure(page, observed, mobile);
+  }
+  for (const action of LEVELS[index].solution) {
+    if ((await snapshot(page)).state.completed) break;
+    await perform(page, action, mobile);
+  }
+  const completed = await settled(page);
+  assert.equal(
+    completed.state.completed,
+    true,
+    'Box ' + (index + 1) + ' solves through visible controls',
+  );
+  assert.deepEqual(completed.ball, LEVELS[index].path.at(-1));
+  if (!finalHint) {
+    await page.locator('#structure-dialog[open]').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#result[open]').count(), 0, 'Unseen 3D appears before result');
+    assert.match(await page.locator('#structure-close').innerText(), /结算/);
+    await verifyModelSync(page, true);
+    await activate(page.locator('#structure-close'), mobile);
+  } else
+    assert.equal(
+      await page.locator('#structure-dialog[open]').count(),
+      0,
+      'Already observed 3D is not forced again',
+    );
+  await page.locator('#result[open]').waitFor({ state: 'visible' });
+  assert.ok((await snapshot(page)).progress.best[LEVELS[index].id] > 0);
+  checks.push(
+    'Box ' +
+      (index + 1) +
+      ': ' +
+      (mobile ? 'native touch' : 'mouse') +
+      ', ' +
+      (finalHint ? 'hint → direct result' : 'solve → 3D → result'),
+  );
+  console.log('PASS box ' + (index + 1) + (mobile ? ' (touch)' : ''));
+}
+async function verifyStructureControls(page) {
+  for (const [selector, label] of [
+    ['#structure-xray', 'Opaque exterior'],
+    ['#structure-xray', 'X-ray exterior'],
+    ['#structure-explode', 'Exploded'],
+    ['#structure-explode', 'Assembled'],
+    ...FACE_IDS.map((face) => ['[data-structure-view="' + face + '"]', face + ' 3D view']),
+    ['#structure-zoom-in', 'Zoom in'],
+    ['#structure-zoom-out', 'Zoom out'],
+  ])
+    await visibleChange(page, () => activate(page.locator(selector)), label);
+  const canvas = page.locator('#structure-canvas');
+  await canvas.scrollIntoViewIfNeeded();
+  const r = await canvas.boundingBox(),
+    x = r.x + r.width / 2,
+    y = r.y + r.height / 2;
+  await visibleChange(
+    page,
+    async () => {
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + 65, y + 24, { steps: 5 });
+      await page.mouse.up();
+    },
+    'Mouse orbit',
+  );
+  await visibleChange(page, () => page.mouse.wheel(0, -100), 'Wheel zoom');
+  await canvas.focus();
+  await visibleChange(page, () => page.keyboard.press('ArrowRight'), 'Keyboard orbit');
+  await visibleChange(page, () => page.keyboard.press('+'), 'Keyboard zoom');
+  await page.keyboard.press('Home');
+  await settled(page);
+  await page.screenshot({ path: resolve(outputDir, 'structure-desktop-controls.png') });
+}
+async function verifyObservation(page) {
+  const pairs = new Set();
+  for (let i = 0; i < 6; i++)
+    pairs.add((await selectLevel(page, 0)).initialFaces.slice().sort().join(','));
+  assert.ok(pairs.size >= 2, 'Fresh attempts choose different legal random pairs');
+  const before = await snapshot(page),
+    hidden = FACE_IDS.find((face) => !before.state.revealedFaces.includes(face));
+  await activate(page.locator('[data-face="' + hidden + '"]'));
+  await activate(page.locator('[data-close="hint-dialog"]'));
+  assert.deepEqual(
+    preserved(await snapshot(page)),
+    preserved(before),
+    'Cancelling an ungranted hint reveals nothing',
+  );
+  const observed = await openFullStructure(page);
+  await verifyModelSync(page, true);
+  await verifyStructureControls(page);
+  await closeStructure(page, observed);
+  const projected = {};
+  for (const face of FACE_IDS) {
+    await view(page, face);
+    const s = await snapshot(page),
+      r = await page.locator('#board').boundingBox(),
+      p = s.board.projected.ball;
+    projected[face] = [(p.x - r.width / 2) / p.scale, -(p.y - r.height / 2 - 3) / p.scale];
+    assert.ok((await pixels(page, '#board')).colors > 100);
+  }
+  const near = (a, b) =>
+    assert.ok(Math.abs(a - b) < 1e-7, 'Opposite face projections mirror the same world point');
+  near(projected.front[0], -projected.back[0]);
+  near(projected.front[1], projected.back[1]);
+  near(projected.top[0], projected.bottom[0]);
+  near(projected.top[1], -projected.bottom[1]);
+  near(projected.left[0], -projected.right[0]);
+  near(projected.left[1], projected.right[1]);
+  await view(page, 'back');
+  await activate(page.locator('[data-latch="lock-A"]'));
+  const unlocked = await snapshot(page);
+  await activate(page.locator('#undo'));
+  const undone = await settled(page);
+  assert.equal(undone.state.latches['lock-A'], true);
+  assert.deepEqual(undone.state.revealedFaces, unlocked.state.revealedFaces);
+  assert.equal(undone.state.structureViewed, true, 'Undo preserves knowledge');
+  await activate(page.locator('#restart'));
+  const restarted = await settled(page);
+  assert.equal(restarted.state.moves, 0);
+  assert.deepEqual(restarted.state.revealedFaces, unlocked.state.revealedFaces);
+  assert.equal(restarted.state.structureViewed, true, 'Restart preserves knowledge');
+  checks.push(
+    'Random pairs, free reveals, final hint gating, six true projections, undo/restart knowledge',
+  );
+}
+async function boardPoint(page, kind, id, value) {
+  await page.locator('#board').scrollIntoViewIfNeeded();
+  const s = await settled(page),
+    r = await page.locator('#board').boundingBox();
+  const c = s.board.projected.controls.find((item) => item.type === kind && item.id === id);
+  assert.ok(c, 'Canvas target exists: ' + id);
+  const p =
+    kind === 'latch'
+      ? c.point
+      : value === undefined
+        ? c.handle
+        : c.notches.find((n) => n.value === value);
+  return { x: r.x + p.x, y: r.y + p.y };
+}
+async function dragShaft(page, id, value, cancel = false) {
+  const before = await snapshot(page),
+    start = await boardPoint(page, 'shaft', id),
+    end = await boardPoint(page, 'shaft', id, value);
+  await touch(page, 'touchStart', [{ ...start, id: 1 }]);
+  await touch(page, 'touchMove', [{ ...end, id: 1 }]);
+  assert.deepEqual(
+    physical(await snapshot(page)),
+    physical(before),
+    'Drag preview does not commit state',
+  );
+  assert.equal((await snapshot(page)).board.preview?.shaft, id, 'Canvas drag creates a preview');
+  await touch(page, cancel ? 'touchCancel' : 'touchEnd');
+  const after = await settled(page);
+  assert.equal(after.board.pointers, 0, 'Release/cancel clears pointer tracking');
+  if (cancel)
+    assert.deepEqual(
+      physical(after),
+      physical(before),
+      'Cancellation preserves mechanisms and moves',
+    );
+  else assert.equal(after.state.shafts[id], value, 'Canvas drag commits target notch');
+}
+async function verifyLayout(page, label, structure = false) {
+  const layout = await page.locator(structure ? '#structure-dialog' : 'main').evaluate((root) => {
+    const r = root.getBoundingClientRect();
     return {
-      viewport: { width: innerWidth, height: innerHeight },
-      documentWidth: document.documentElement.scrollWidth,
-      bodyWidth: document.body.scrollWidth,
-      board: rect(document.querySelector('#board')),
-      targets: [
-        ...document.querySelectorAll(
-          '#flip, #release, #hint, #undo, #restart, #levels, [data-latch], [data-notch-shaft], [data-shaft-handle]',
-        ),
-      ]
-        .filter(visible)
-        .map((element) => ({
-          name: element.id || element.getAttribute('aria-label') || element.outerHTML.slice(0, 100),
-          ...rect(element),
-        })),
+      width: innerWidth,
+      left: r.left,
+      right: r.right,
+      overflow: root.scrollWidth - root.clientWidth,
+      targets: [...root.querySelectorAll('button')]
+        .filter((b) => b.getBoundingClientRect().width > 0)
+        .map((b) => {
+          const r = b.getBoundingClientRect();
+          return { text: b.textContent.trim(), width: r.width, height: r.height };
+        }),
     };
   });
   assert.ok(
-    layout.documentWidth <= layout.viewport.width + 1,
-    label + ': page has no horizontal overflow',
+    layout.left >= -1 && layout.right <= layout.width + 1 && layout.overflow <= 1,
+    label + ': no horizontal overflow',
   );
-  assert.ok(
-    layout.bodyWidth <= layout.viewport.width + 1,
-    label + ': body has no horizontal overflow',
-  );
-  for (const target of layout.targets) {
+  for (const t of layout.targets)
     assert.ok(
-      target.width >= 43.99 && target.height >= 43.99,
-      label + ': target is at least 44 CSS px: ' + JSON.stringify(target),
+      t.width >= 43.9 && t.height >= 43.9,
+      label + ': 44 px touch target: ' + JSON.stringify(t),
     );
-    assert.ok(
-      target.left >= -1 && target.right <= layout.viewport.width + 1,
-      label + ': target remains within viewport width: ' + target.name,
+}
+async function verifyMobile(viewport, index) {
+  const label = viewport.width + 'x' + viewport.height,
+    mobile = await context({ viewport, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  try {
+    const page = await openGame(mobile, label);
+    await selectLevel(page, 0, true);
+    await view(page, 'back', true);
+    const latch = await boardPoint(page, 'latch', 'lock-A');
+    await tapAt(page, latch.x, latch.y);
+    assert.equal(
+      (await settled(page)).state.latches['lock-A'],
+      false,
+      'Native canvas tap opens actual latch',
     );
+    await view(page, 'front', true);
+    await verifyLayout(page, label);
+    await dragShaft(page, 'A', 2, true);
+    await dragShaft(page, 'A', 2);
+    await activate(page.locator('#undo'), true);
+    assert.equal(
+      (await settled(page)).state.shafts.A,
+      0,
+      'Touch controls recover after cancellation',
+    );
+    const observed = await openFullStructure(page, true);
+    await verifyModelSync(page, true);
+    await verifyLayout(page, label, true);
+    await page.locator('#structure-canvas').scrollIntoViewIfNeeded();
+    const r = await page.locator('#structure-canvas').boundingBox(),
+      x = r.x + r.width / 2,
+      y = r.y + r.height / 2;
+    await visibleChange(
+      page,
+      async () => {
+        await touch(page, 'touchStart', [{ x: x - 35, y, id: 1 }]);
+        await touch(page, 'touchMove', [{ x: x + 35, y: y + 15, id: 1 }]);
+        await touch(page, 'touchEnd');
+      },
+      label + ': native orbit',
+    );
+    await touch(page, 'touchStart', [{ x, y, id: 1 }]);
+    await touch(page, 'touchMove', [{ x: x + 15, y, id: 1 }]);
+    await touch(page, 'touchCancel');
+    assert.equal((await snapshot(page)).structure.pointers, 0);
+    await visibleChange(
+      page,
+      async () => {
+        await touch(page, 'touchStart', [
+          { x: x - 30, y, id: 1 },
+          { x: x + 30, y, id: 2 },
+        ]);
+        await touch(page, 'touchMove', [
+          { x: x - 60, y, id: 1 },
+          { x: x + 60, y, id: 2 },
+        ]);
+        await touch(page, 'touchEnd');
+      },
+      label + ': native pinch',
+    );
+    await visibleChange(
+      page,
+      () => activate(page.locator('#structure-xray'), true),
+      label + ': x-ray toggle',
+    );
+    await visibleChange(
+      page,
+      () => activate(page.locator('#structure-explode'), true),
+      label + ': layer toggle',
+    );
+    // Restore framing only after all native-input assertions, for evidence images.
+    await page.locator('#structure-canvas').focus();
+    await page.keyboard.press('Home');
+    await activate(page.locator('#structure-xray'), true);
+    await activate(page.locator('#structure-explode'), true);
+    await settled(page);
+    await page.screenshot({ path: resolve(outputDir, 'structure-' + label + '.png') });
+    await closeStructure(page, observed, true);
+    await solve(page, index, { mobile: true, finalHint: index === 24 });
+    await activate(page.locator('#replay'), true);
+    await verifyLayout(page, label + ' replay');
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({
+      path: resolve(outputDir, 'six-face-' + label + '.png'),
+      fullPage: true,
+    });
+    checks.push(label + ': canvas latch/drag/cancel, pinch, toggles, layout and return');
+  } catch (error) {
+    await currentPage
+      ?.screenshot({ path: resolve(outputDir, 'acceptance-failure.png') })
+      .catch(() => {});
+    throw error;
+  } finally {
+    await mobile.close();
   }
-  assert.ok(
-    layout.board.left >= -1 && layout.board.right <= layout.viewport.width + 1,
-    label + ': whole box fits horizontally',
+}
+async function verifyPersistence(page) {
+  await dismissCompletion(page);
+  const before = (await snapshot(page)).progress;
+  await page.reload({ waitUntil: 'networkidle' });
+  await activate(page.locator('#start'));
+  assert.deepEqual(
+    (await settled(page)).progress,
+    before,
+    'Collection and best scores survive reload',
   );
+  checks.push('Collection progress survives reload');
 }
-
-async function verifyMobile() {
-  for (const viewport of [
-    { width: 390, height: 844 },
-    { width: 320, height: 640 },
-    { width: 844, height: 390 },
-  ]) {
-    const label = viewport.width + 'x' + viewport.height;
-    const mobile = await launchBrowser();
-    try {
-      const context = await mobile.newContext({
-        viewport,
-        deviceScaleFactor: 1,
-        isMobile: true,
-        hasTouch: true,
-        reducedMotion: 'reduce',
-      });
-      try {
-        const page = await openGame(context, label);
-        assert.equal(await page.evaluate(() => navigator.maxTouchPoints > 0), true);
-        await verifyLayout(page, label + ' front');
-        await executeAction(page, { type: 'flip' }, label + ' touch flip', true);
-        await verifyLayout(page, label + ' back');
-        await executeAction(page, { type: 'latch', id: 'lock-A' }, label + ' touch unlock', true);
-        await executeAction(page, { type: 'flip' }, label + ' touch return', true);
-        await dragShaft(page, 'A', 2, { touch: true, cancel: true });
-        await dragShaft(page, 'A', 2, { touch: true });
-        await tapNative(page.locator('#undo'));
-        await page.waitForFunction(() => window.__twoSidedSnapshot().state.shafts.A === 0, null, {
-          timeout: 2_000,
-        });
-        assert.equal(
-          (await settled(page)).state.shafts.A,
-          0,
-          label + ': touch undo restores shaft',
-        );
-        await solveVisibleRoute(page, 0, true);
-        if (viewport.width === 390) {
-          for (let index = 1; index < LEVELS.length - 1; index += 1) {
-            await solveVisibleRoute(page, index, true);
-          }
-        }
-        await solveVisibleRoute(page, 5, true);
-        await verifyLayout(page, label + ' finale');
-        await tapNative(page.locator('#replay'));
-        await settled(page);
-        // Capture screenshots after input assertions to keep the touch session uninterrupted.
-        await page.screenshot({
-          path: resolve(outputDir, 'two-sided-' + label + '-final.png'),
-          fullPage: true,
-        });
-        checks.push(
-          label + ' touch drag/cancel, tutorial and finale routes, responsive bounds and targets',
-        );
-      } finally {
-        await context.close();
-      }
-      const capture = await mobile.newContext({
-        viewport,
-        deviceScaleFactor: 1,
-        isMobile: true,
-        hasTouch: true,
-        reducedMotion: 'reduce',
-      });
-      try {
-        const page = await openGame(capture, label + '-capture');
-        await page.screenshot({
-          path: resolve(outputDir, 'two-sided-' + label + '-front.png'),
-          fullPage: true,
-        });
-      } finally {
-        await capture.close();
-      }
-    } finally {
-      await mobile.close();
-    }
-  }
-}
-
 async function verifyOptionalStorage() {
   for (const mode of ['corrupt', 'blocked']) {
-    const context = await browser.newContext({
-      viewport: { width: 1280, height: 900 },
-      reducedMotion: 'reduce',
-    });
-    await context.addInitScript(
+    const optional = await context();
+    await optional.addInitScript(
       ({ key, mode }) => {
-        if (mode === 'corrupt') localStorage.setItem(key, '{broken save');
+        if (mode === 'corrupt') localStorage.setItem(key, '{invalid');
         else
           Object.defineProperty(window, 'localStorage', {
-            configurable: true,
             get() {
-              throw new DOMException('Storage unavailable in regression test', 'SecurityError');
+              throw new DOMException('Blocked for test', 'SecurityError');
             },
           });
       },
       { key: STORAGE_KEY, mode },
     );
     try {
-      const page = await openGame(context, mode + '-storage');
-      assert.equal((await snapshot(page)).levelIndex, 0, mode + ' storage falls back to first box');
-      await solveVisibleRoute(page, 0);
-      await page.locator('#replay').click();
-      assert.equal(
-        (await settled(page)).state.completed,
-        false,
-        mode + ' storage does not prevent restarting',
-      );
-      checks.push(mode + ' storage preserves playability');
+      const page = await openGame(optional, mode);
+      await solve(page, 0);
+      checks.push(mode + ' storage remains playable');
     } finally {
-      await context.close();
+      await optional.close();
     }
   }
 }
-
 async function startServer() {
   if (process.env.GAME_URL) return;
   server = spawn(
     process.execPath,
-    [resolve(gameRoot, 'server.mjs'), '--dist', '--host', '127.0.0.1', '--port', '4412'],
-    {
-      cwd: gameRoot,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
+    [resolve(gameRoot, 'server.mjs'), '--host', '127.0.0.1', '--port', '4413'],
+    { cwd: gameRoot, stdio: ['ignore', 'pipe', 'pipe'] },
   );
   for (const stream of [server.stdout, server.stderr])
     stream.on('data', (chunk) => {
-      serverOutput = (serverOutput + chunk.toString()).slice(-8_000);
+      serverOutput = (serverOutput + chunk).slice(-8000);
     });
-  server.on('error', (error) => {
-    serverError = error;
-  });
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    if (serverError) throw serverError;
-    if (server.exitCode !== null || server.signalCode !== null)
-      throw new Error('Server exited before becoming ready:\n' + serverOutput);
+    if (server.exitCode !== null) throw new Error('Server stopped: ' + serverOutput);
     try {
-      if ((await fetch(gameUrl, { signal: AbortSignal.timeout(1_000) })).ok) return;
-    } catch {
-      // Retry only until the bounded startup deadline.
-    }
-    await delay(150);
+      if ((await fetch(gameUrl, { signal: AbortSignal.timeout(1000) })).ok) return;
+    } catch {}
+    await delay(100);
   }
-  throw new Error('Server did not become ready:\n' + serverOutput);
+  throw new Error('Server did not start: ' + serverOutput);
 }
-
-async function stopServer() {
-  if (!server || server.exitCode !== null || server.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => server.once('exit', resolveExit));
-  server.kill('SIGTERM');
-  if (!(await Promise.race([exited.then(() => true), delay(3_000).then(() => false)]))) {
-    server.kill('SIGKILL');
-    await Promise.race([exited, delay(1_000)]);
-  }
-}
-
 try {
   await mkdir(outputDir, { recursive: true });
   await startServer();
-  browser = await launchBrowser();
+  const executablePath = process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium';
+  assert.ok(existsSync(executablePath));
+  browser = await chromium.launch({
+    executablePath,
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  });
   if (!mobileOnly) {
-    const desktop = await browser.newContext({
-      viewport: { width: 1440, height: 1000 },
-      reducedMotion: 'reduce',
-    });
+    const desktop = await context();
     try {
       const page = await openGame(desktop, 'desktop');
-      assert.equal(LEVELS.length, 6, 'The first chapter contains six boxes');
-      await page.screenshot({
-        path: resolve(outputDir, 'two-sided-desktop-front.png'),
-        fullPage: true,
-      });
-      await verifyMechanics(page);
-      await verifyCompletionDuringHint(page);
-      for (let index = 0; index < LEVELS.length; index += 1) {
-        await solveVisibleRoute(page, index);
-        if (index < LEVELS.length - 1) {
-          await page.locator('#next').click();
-          const next = await settled(page);
-          assert.equal(next.levelIndex, index + 1, 'Next box follows campaign order');
-          assert.deepEqual(
-            next.state,
-            createState(LEVELS[index + 1]),
-            'Next box starts with a fresh mechanism state',
-          );
-        }
-      }
-      await page.screenshot({
-        path: resolve(outputDir, 'two-sided-desktop-final.png'),
-        fullPage: true,
-      });
+      await verifyObservation(page);
+      for (const index of smokeOnly ? [0, 24, 49] : LEVELS.map((_, i) => i))
+        await solve(page, index, { finalHint: index === 24 });
       await verifyPersistence(page);
+    } catch (error) {
+      await currentPage
+        ?.screenshot({ path: resolve(outputDir, 'acceptance-failure.png') })
+        .catch(() => {});
+      throw error;
     } finally {
       await desktop.close();
     }
   }
-  await verifyMobile();
-  await verifyOptionalStorage();
+  if (!smokeOnly) {
+    await verifyMobile({ width: 390, height: 844 }, 0);
+    await verifyMobile({ width: 320, height: 640 }, 24);
+    await verifyMobile({ width: 844, height: 390 }, 49);
+    await verifyOptionalStorage();
+  }
   assert.deepEqual(runtimeErrors, [], 'No browser runtime or console errors');
   await writeFile(
     resolve(outputDir, reportName),
-    JSON.stringify(
-      { passed: true, scope: mobileOnly ? 'mobile and storage' : 'all', checks, runtimeErrors },
-      null,
-      2,
-    ) + '\n',
+    JSON.stringify({ passed: true, checks, runtimeErrors }, null, 2) + '\n',
   );
-  console.log('PASS: ' + checks.join('; ') + '.');
-  console.log('Screenshots and report: ' + outputDir);
+  console.log('PASS: ' + checks.length + ' checks. Report: ' + resolve(outputDir, reportName));
 } catch (error) {
+  await currentPage
+    ?.screenshot({ path: resolve(outputDir, 'acceptance-failure.png') })
+    .catch(() => {});
   await writeFile(
     resolve(outputDir, reportName),
     JSON.stringify({ passed: false, checks, runtimeErrors, error: error.stack }, null, 2) + '\n',
   ).catch(() => {});
   console.error(error);
+  if (runtimeErrors.length) console.error(runtimeErrors);
   process.exitCode = 1;
 } finally {
-  try {
-    if (browser) await browser.close();
-  } finally {
-    await stopServer();
+  if (browser) await browser.close();
+  if (server && server.exitCode === null) {
+    const exited = new Promise((done) => server.once('exit', done));
+    server.kill('SIGTERM');
+    await Promise.race([exited, delay(3000)]);
+    if (server.exitCode === null) server.kill('SIGKILL');
   }
 }

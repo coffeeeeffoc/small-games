@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "date": "2026-10-03T15:18:02.431Z",
+  "url": "http://127.0.0.1:4416",
+  "viewport": "390×844",
+  "input": "Native four-finger touch events; snapshots read-only",
+  "cases": [
+    {
+      "name": "Single-finger pause remains open after the compatibility click and gameplay keys cannot activate its focused close button",
+      "status": "passed"
+    },
+    {
+      "name": "Three held fingers move, shoot and dry-attack while the fourth casts nova, pays life ink and scatters two physical recovery drops",
+      "status": "passed",
+      "novaCost": 14
+    },
+    {
+      "name": "Native touch cancellation releases movement and all held attacks without sticky input",
+      "status": "passed"
+    },
+    {
+      "name": "Fourth finger pauses and clears every capture; explicit resume restores play without ghost movement, shots or melee",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

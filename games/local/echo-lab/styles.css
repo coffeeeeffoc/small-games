@@ -36,6 +36,7 @@ select {
 }
 button {
   color: inherit;
+  touch-action: manipulation;
   transition:
     background 0.15s,
     border-color 0.15s,
@@ -873,6 +874,7 @@ h1 > span {
   margin-left: 6px;
 }
 .toast {
+  pointer-events: none;
   position: fixed;
   bottom: 26px;
   left: 50%;
@@ -1607,5 +1609,199 @@ main {
   }
   .volume-control input {
     width: 100px;
+  }
+}
+
+/* Keep manipulation settings beside the scene on touch screens. */
+.scene-wrap {
+  flex-direction: column;
+  justify-content: center;
+}
+.scene-editor {
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--border);
+  background: #1a271e;
+}
+.editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.editor-heading strong {
+  font-size: 13px;
+  color: var(--mint);
+}
+.editor-heading .text-button {
+  min-height: 44px;
+  padding: 4px 8px;
+  margin: 0;
+}
+.editor-heading button[aria-pressed='true'] {
+  border-radius: 8px;
+  background: #34452b;
+}
+#sceneGestureHint {
+  line-height: 1.75;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+.movement-modes {
+  width: 100%;
+  margin: 0 0 10px;
+}
+.movement-modes button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 11px;
+}
+.quick-fields,
+.quick-acoustics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.quick-fields label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #405139;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.quick-fields input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  text-align: right;
+  font-size: 16px;
+}
+.angle-presets {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.angle-presets button {
+  flex: 1;
+  min-height: 44px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #223023;
+  font-size: 11px;
+  color: #d5e2c9;
+}
+.quick-acoustics .range-label {
+  font-size: 11px;
+}
+.quick-acoustics input[type='range'] {
+  min-height: 44px;
+  margin: 0;
+}
+.number-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0 7px;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.number-value input {
+  width: 64px;
+  text-align: right;
+  font-size: 16px;
+}
+#roomProperties .range-label {
+  margin-bottom: 10px;
+}
+.length-handle,
+.room-handle {
+  cursor: nwse-resize;
+}
+.acoustics-handle {
+  cursor: crosshair;
+}
+.length-handle:focus-visible circle,
+.room-handle:focus-visible circle,
+.acoustics-handle:focus-visible circle,
+.panel-move-grip:focus-visible {
+  stroke: white;
+}
+#scene.editing {
+  cursor: grabbing;
+}
+.line.blue {
+  background: var(--blue);
+}
+@media (max-width: 690px) {
+  .intro {
+    margin-bottom: 15px;
+  }
+  main {
+    padding-top: 14px;
+  }
+  .workspace {
+    order: 1;
+  }
+  .audio-dock {
+    order: 2;
+    margin-top: 14px;
+  }
+  .scene-editor {
+    padding: 9px 12px 12px;
+  }
+  .scene-wrap {
+    min-height: 250px;
+  }
+  .scene-scale {
+    width: 100%;
+  }
+  .stage-toolbar {
+    padding: 9px 12px;
+  }
+  .stage-toolbar > div {
+    gap: 5px;
+  }
+  .stage-toolbar > div:last-child {
+    gap: 4px;
+  }
+  .stage-toolbar .pill-button,
+  .stage-toolbar .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .legend {
+    flex-wrap: wrap;
+    gap: 8px 13px;
+  }
+  .quick-fields,
+  .quick-acoustics {
+    gap: 10px;
+  }
+  .quick-fields label {
+    padding: 6px 8px;
+  }
+  .inspector .range-label {
+    min-height: 44px;
+  }
+}
+@media (pointer: coarse) {
+  .workspace {
+    order: 1;
+  }
+  .audio-dock {
+    position: relative;
+    top: auto;
+    order: 2;
+    margin-top: 14px;
   }
 }

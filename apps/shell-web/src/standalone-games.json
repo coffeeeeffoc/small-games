@@ -1,5 +1,12 @@
 [
   {
+    "id": "voiceprint-case",
+    "source": "games/local/voiceprint-case",
+    "title": "声纹疑案",
+    "description": "听取嘈杂现场的一句话，对照三位虚构成年人的同句录音，辨认同一个声音，挑战十二关渐进听觉谜案。",
+    "output": "dist"
+  },
+  {
     "id": "echo-lab",
     "source": "games/local/echo-lab",
     "title": "回声实验室 · Echo Lab",
@@ -283,35 +290,42 @@
     "id": "bullet-garden",
     "source": "games/local/bullet-garden",
     "title": "子弹花园 · Bullet Garden",
-    "description": "在遗迹庭院守住五分钟：射击暗影怪物，把落空的种子弹种成荆棘、寒冰柱与爆炸蘑菇，亲手布置下一波战场。",
+    "description": "在庭院守住五分钟：经验升级选中地形增益后才生成灌木、沟渠、冻土或毒素，积蓄能量，手动瞄准释放爆破、大风、冲锋车、战马与激光。",
     "output": "dist"
   },
   {
     "id": "ink-is-everything",
     "source": "games/local/ink-is-everything",
     "title": "一滴墨，决定一切",
-    "description": "在手绘遗迹中，用同一池墨水绘路、战斗、疗愈与交易，探索支路获取回报，越过第一章墨之门。",
+    "description": "墨汁即生命：射墨、近战命中吸墨，走位回收技能墨滴；拾取装备、三选一成长，夺回钥印挑战墨之门。",
     "output": "dist"
   },
   {
     "id": "out-of-frame",
     "source": "games/local/out-of-frame",
     "title": "Out of Frame · 框外静止",
-    "description": "拖动观察框，让机器人与平台在框内运动、框外冻结，定格开关、搭起归途，解开六间时光工坊。",
+    "description": "拖动观察框，让机器人与平台在框内运动、框外冻结。从定格开关到多机关调度，挑战难度递进的十章一百关，随时回退并继续上次探索。",
     "output": "dist"
   },
   {
     "id": "echo-weaver",
     "source": "games/local/echo-weaver",
     "title": "回声编织 · Echo Weaver",
-    "description": "转动反射板，分配声能与延迟，让一次敲击的三道回声准时抵达，解开八关节拍谜题。",
+    "description": "在网格上摆放有限的反射板、分声器与延迟块，亲手搭出声路，让回声按目标节奏抵达；五关学习绕路、共享延迟与能量取舍。",
     "output": "dist"
   },
   {
     "id": "two-sided-box",
     "source": "games/local/two-sided-box",
     "title": "双面机关盒",
-    "description": "翻转盒子，观察两侧共享的滑轴、锁扣和挡板，安排解锁与移动顺序，让小球穿过六个机械谜盒。",
+    "description": "从随机两个角度观察六面机关，逐面揭示线索、对齐孔板，让小球穿过五十个谜盒，通关后旋转查看完整三维结构。",
+    "output": "dist"
+  },
+  {
+    "id": "luban-workshop",
+    "source": "games/local/luban-workshop",
+    "title": "榫间 · 鲁班锁",
+    "description": "亲手拆解与复原彩色榫卯机关，沿轨道拖动零件，观察彼此让路。",
     "output": "dist"
   }
 ]

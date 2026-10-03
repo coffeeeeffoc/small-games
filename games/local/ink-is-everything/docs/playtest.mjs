@@ -1,218 +1,391 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { createGame, act, getRoom, getIntent, getOptions } from '../engine.mjs';
+import { attachRewardHandler } from './playtest-rewards.mjs';
+import {
+  Player,
+  snapshot,
+  project,
+  distance,
+  sleep,
+  fitsViewport,
+  checkPauseIcon,
+  clearSegment,
+} from './playtest-driver.mjs';
 
-// Start the standalone server first. This script only drives public browser controls.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const url = process.env.GAME_URL || 'http://127.0.0.1:4412/';
+const pressureOnly = process.argv.includes('--pressure-only');
+const desktopOnly = process.argv.includes('--desktop-only');
 const output = new URL('./screenshots/', import.meta.url);
 await mkdir(output, { recursive: true });
-const report = { url, date: new Date().toISOString(), cases: [], screenshots: [], errors: [], status: 'running' };
+const report = {
+  version: 3,
+  url,
+  date: new Date().toISOString(),
+  mode: pressureOnly ? 'low-positive-ink-recovery' : 'real-input-chapter-regression',
+  input: 'Public mouse, keyboard and native touch; snapshots and world projection read-only',
+  cases: [],
+  screenshots: [],
+  errors: [],
+  status: 'running',
+};
 let browser;
-const pauseBetweenActions = 220;
-
 function monitor(page, label) {
-  page.on('pageerror', error => report.errors.push(`${label}: ${error.message}`));
-  page.on('console', message => { if (message.type() === 'error') report.errors.push(`${label}: ${message.text()}`); });
-  page.on('response', response => { if (response.url().startsWith(url) && response.status() >= 400) report.errors.push(`${label}: HTTP ${response.status()} ${response.url()}`); });
-  page.on('requestfailed', request => { if (!request.failure()?.errorText.includes('ERR_ABORTED')) report.errors.push(`${label}: ${request.failure()?.errorText} ${request.url()}`); });
+  page.on('pageerror', (error) => report.errors.push(`${label}: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') report.errors.push(`${label}: ${message.text()}`);
+  });
+  page.on('response', (response) => {
+    if (response.url().startsWith(url) && response.status() >= 400)
+      report.errors.push(`${label}: HTTP ${response.status()} ${response.url()}`);
+  });
+  page.on('requestfailed', (request) => {
+    if (!request.failure()?.errorText.includes('ERR_ABORTED'))
+      report.errors.push(`${label}: ${request.failure()?.errorText} ${request.url()}`);
+  });
 }
-async function screenshot(page, name, fullPage = true) {
-  await page.waitForFunction(() => !document.querySelector('#toast').classList.contains('visible'));
-  await page.waitForTimeout(250);
-  await page.screenshot({ path: fileURLToPath(new URL(name, output)), fullPage, animations: 'disabled' });
-  report.screenshots.push(`screenshots/${name}`);
+async function capture(page, name) {
+  const filename = `v3-${pressureOnly ? 'pressure-' : ''}${name}.png`;
+  await page.screenshot({ path: fileURLToPath(new URL(filename, output)), fullPage: false });
+  report.screenshots.push(`screenshots/${filename}`);
 }
-async function noOverflow(page) {
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'The mobile page must not overflow horizontally.');
-}
-async function makeRunner(context, label, mobile = false) {
+async function freshPlayer(label, mobile = false, storageDisabled = false) {
+  const context = await browser.newContext({
+    viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 960 },
+    isMobile: mobile,
+    hasTouch: mobile,
+    deviceScaleFactor: 1,
+  });
+  if (storageDisabled)
+    await context.addInitScript(() => {
+      for (const method of ['getItem', 'setItem', 'removeItem'])
+        Object.defineProperty(Storage.prototype, method, {
+          value() {
+            throw new DOMException('Storage disabled for test', 'SecurityError');
+          },
+        });
+    });
   const page = await context.newPage();
   monitor(page, label);
   await page.goto(url, { waitUntil: 'networkidle' });
-  let state = createGame();
-  const click = selector => mobile ? page.locator(selector).tap() : page.locator(selector).click();
-  async function verify() {
-    assert.equal(await page.locator('#game-root').getAttribute('data-ink'), String(state.ink));
-    assert.equal(await page.locator('#game-root').getAttribute('data-status'), state.status);
-    assert.equal(await page.locator('#location-name').textContent(), getRoom(state).name);
-    assert.equal(await page.locator('#hearts').getAttribute('aria-label'), `生命 ${state.hp} / ${state.maxHp}`);
-    assert.equal(await page.locator('#seal-value').textContent(), String(state.seals));
-    assert.match(await page.locator('#turn-label').textContent(), new RegExp(`第 ${String(state.turn).padStart(2, '0')} 笔`));
-    if (getRoom(state).enemy?.hp > 0 && state.status === 'playing') {
-      assert.equal(await page.locator('.enemy-hp b').textContent(), `${getRoom(state).enemy.hp} / ${getRoom(state).enemy.maxHp}`);
-      assert.ok((await page.locator('.enemy-intent').textContent()).includes(getIntent(state).name));
-    }
-    if (mobile) await noOverflow(page);
-  }
-  async function command(type, target, key) {
-    const result = act(state, { type, ...(target ? { target } : {}) });
-    assert.ok(result.ok, `${label}: ${type} ${target || ''}: ${result.message}`);
-    if (key) await page.keyboard.press(key);
-    else if (['draw', 'trace', 'move'].includes(type)) {
-      await click(`[data-room="${target}"]`);
-      await click(`[data-action="${type}"][data-target="${target}"]`);
-    } else if (type === 'heal' && !getRoom(state).enemy?.hp) await click('[data-card="heal"]');
-    else await click(`[data-action="${type}"]${target ? `[data-target="${target}"]` : ''}`);
-    state = result.state;
-    await page.waitForTimeout(pauseBetweenActions);
-    await verify();
-  }
-  async function travel(target, method = 'draw') { await command(state.rooms[target].revealed ? 'move' : method, target); }
-  async function drag(target, cancel = false) {
-    const type = state.rooms[target].revealed ? 'move' : 'draw';
-    const result = act(state, { type, target });
-    assert.ok(result.ok);
-    await page.locator('.map-viewport').scrollIntoViewIfNeeded();
-    const from = await page.locator(`[data-room="${state.roomId}"]`).boundingBox();
-    const to = await page.locator(`[data-room="${target}"]`).boundingBox();
-    const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-    const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
-    if (mobile) {
-      const touch = await context.newCDPSession(page);
-      try {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, radiusX: 4, radiusY: 4, force: 1 }] });
-        for (let i = 1; i <= 12; i++) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + (end.x - start.x) * i / 12, y: start.y + (end.y - start.y) * i / 12, radiusX: 4, radiusY: 4, force: 1 }] });
-        await touch.send('Input.dispatchTouchEvent', { type: cancel ? 'touchCancel' : 'touchEnd', touchPoints: [] });
-      } finally { await touch.detach(); }
-    } else {
-      await page.mouse.move(start.x, start.y); await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 12 }); await page.mouse.up();
-    }
-    if (!cancel) state = result.state;
-    await page.waitForTimeout(pauseBetweenActions);
-    await verify();
-    assert.equal(await page.locator('#brush-trail').getAttribute('points'), '', 'The temporary brush trail must be removed.');
-  }
-
-  async function fight(keyboard = false) {
-    let budget = 100;
-    while (state.status === 'playing' && getRoom(state).enemy?.hp > 0) {
-      assert.ok(budget-- > 0);
-      const enemy = getRoom(state).enemy, attack = getOptions(state).find(option => option.type === 'attack');
-      const attackDamage = state.contracts.includes('fine-nib') ? 6 : 4;
-      let type = attack.enabled && (enemy.hp > 1 + state.focus || enemy.hp <= attackDamage) ? 'attack' : 'dry';
-      if (getIntent(state).damage > 0 && enemy.hp > (type === 'attack' ? attackDamage : 1 + state.focus)) type = 'guard';
-      await command(type, undefined, keyboard ? { attack: '2', dry: 'a', guard: 'd' }[type] : undefined);
-    }
-    assert.notEqual(state.status, 'lost');
-  }
-  async function start() { await click('#start-game'); await verify(); }
-  async function resetFromResult() {
-    await click('#result-restart'); state = createGame(); await verify();
-    assert.equal(await page.locator('#modal').evaluate(dialog => dialog.open), false);
-  }
-  return { page, click, verify, command, travel, drag, fight, start, resetFromResult, get state() { return state; } };
+  await page.waitForFunction(() => Boolean(window.__inkGame));
+  const player = new Player(page, context, mobile);
+  await player.init();
+  attachRewardHandler(player, report, capture);
+  return player;
 }
-
-try {
-  browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
-  const desktop = await browser.newContext({ viewport: { width: 1512, height: 1000 }, deviceScaleFactor: 1 });
-  const d = await makeRunner(desktop, 'desktop');
-  await screenshot(d.page, 'desktop-opening.png');
-  // Check the actual pause artwork, including its equal parallel solid bars.
-  const bars = await d.page.locator('#pause svg rect').evaluateAll(nodes => nodes.map(node => ({ x: node.getAttribute('x'), y: node.getAttribute('y'), width: node.getAttribute('width'), height: node.getAttribute('height') })));
-  assert.equal(bars.length, 2); assert.equal(bars[0].width, bars[1].width); assert.equal(bars[0].height, bars[1].height); assert.equal(bars[0].y, bars[1].y);
-  assert.ok(Number(bars[1].x) > Number(bars[0].x) + Number(bars[0].width));
-  await d.start();
-  // 1 triggers the preselected first route using a real keyboard event.
-  await d.command('draw', 'crossing', '1');
-  await d.travel('sentinel');
-  await screenshot(d.page, 'desktop-combat.png');
-  const beforeModal = await d.page.locator('#game-root').getAttribute('data-ink');
-  await d.page.keyboard.press('Escape');
-  assert.equal(await d.page.locator('#modal').evaluate(dialog => dialog.open), true);
-  for (const key of ['2', 'a', 'd', '3']) await d.page.keyboard.press(key);
-  assert.equal(await d.page.locator('#game-root').getAttribute('data-ink'), beforeModal);
-  await d.verify();
-  await d.page.keyboard.press('Escape');
-  await d.click('#help');
-  await d.page.keyboard.press('2'); await d.page.keyboard.press('a'); await d.verify();
-  await d.click('[data-close]');
-  await d.fight(true); await d.command('claim');
-  await d.travel('causeway'); await d.travel('warden'); await d.fight(true); await d.command('claim');
-  await d.travel('threshold');
-  await d.click('[data-room="gate"]'); assert.equal(await d.page.locator('#primary-action').isDisabled(), true);
-  await d.click('[data-room="threshold"]'); assert.equal(await d.page.locator('[data-action="unlock"]').isEnabled(), true);
-  await d.command('unlock'); await d.travel('gate'); await d.fight(true);
-  assert.equal(d.state.status, 'won'); assert.match(await d.page.locator('#modal-title').textContent(), /下一页/);
-  assert.equal(await d.page.locator('.result-stats strong').nth(1).textContent(), '7/13');
-  assert.equal(await d.page.evaluate(() => localStorage.getItem('ink-is-everything:chapter:v1')), null);
-  await screenshot(d.page, 'desktop-victory.png', false);
-  report.cases.push({ name: 'Desktop direct route, native keyboard, pause/help input lock, gate selection cancellation, victory and restart', status: 'passed', summary: d.state.summary });
-  await d.resetFromResult(); await desktop.close();
-
-  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, screen: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-  const m = await makeRunner(mobile, 'mobile', true);
-  await m.start(); await m.travel('crossing', 'trace'); await m.travel('market');
-  await m.command('buy', 'fine-nib'); await m.command('buy', 'wayfinder');
-  assert.equal(await m.page.locator('[data-action="buy"][data-target="fine-nib"]').isDisabled(), true);
-  await m.travel('reliquary'); await m.fight(); await m.command('claim');
-  await m.travel('market'); await m.travel('crossing'); await m.travel('archive');
-  await m.click('[data-room="spring"]'); assert.equal(await m.page.locator('[data-action="claim"]').count(), 0);
-  await m.click('[data-room="archive"]'); assert.equal(await m.page.locator('[data-action="claim"]').isEnabled(), true);
-  await m.command('claim'); await m.travel('spring'); await m.command('claim');
-  await m.travel('sentinel', 'trace'); await m.command('attack'); await m.command('heal');
-  const savedBefore = await m.page.evaluate(() => localStorage.getItem('ink-is-everything:chapter:v1'));
-  assert.ok(JSON.parse(savedBefore).actions.length > 10);
-  await m.page.reload({ waitUntil: 'networkidle' });
-  assert.match(await m.page.locator('#start-game').textContent(), /继续上次旅程/);
-  // Cancelling a fresh start must preserve the actual existing save.
-  await m.click('#fresh-game'); assert.match(await m.page.locator('#modal-title').textContent(), /重写/);
-  await m.click('[data-close]'); assert.equal(await m.page.evaluate(() => localStorage.getItem('ink-is-everything:chapter:v1')), savedBefore);
-  await m.click('#restart'); assert.match(await m.page.locator('#modal-title').textContent(), /重写/);
-  await m.click('[data-close]'); await m.start();
-  await screenshot(m.page, 'mobile-combat.png', true);
-  await m.fight(); await m.command('claim');
-  await m.travel('garden'); await m.command('claim'); await m.travel('warden'); await m.fight(); await m.command('claim');
-  await m.travel('causeway'); await m.travel('lookout'); await m.command('claim'); await m.travel('threshold');
-  await m.command('unlock'); await m.travel('gate'); await m.fight();
-  assert.equal(m.state.status, 'won'); assert.equal(m.state.stats.roomsRevealed, 13);
-  assert.deepEqual(m.state.contracts, ['fine-nib', 'wayfinder']);
-  assert.equal(await m.page.locator('.result-stats strong').nth(1).textContent(), '13/13');
-  await noOverflow(m.page);
-  report.cases.push({ name: '390×844 native touch, both contracts, all 13 rooms, combat healing, mid-fight reload, saved restart confirmation, reward selection cancellation and victory', status: 'passed', summary: m.state.summary });
-  await mobile.close();
-
-  const failure = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  const f = await makeRunner(failure, 'failure');
-  await f.start(); await f.travel('crossing', 'trace'); await f.travel('sentinel', 'trace');
-  while (f.state.status === 'playing') await f.command('dry');
-  assert.equal(f.state.status, 'lost'); assert.equal(f.state.hp, 0);
-  assert.equal(await f.page.locator('#modal').evaluate(dialog => dialog.open), true);
-  assert.equal(await f.page.evaluate(() => localStorage.getItem('ink-is-everything:chapter:v1')), null);
-  await f.resetFromResult();
-  report.cases.push({ name: 'Ignoring enemy intent causes loss; terminal save is removed; result restart restores full resources', status: 'passed' });
-  await failure.close();
-
-  const blocked = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await blocked.addInitScript(() => {
-    for (const method of ['getItem', 'setItem', 'removeItem']) Object.defineProperty(Storage.prototype, method, { value() { throw new DOMException('Storage disabled for test', 'SecurityError'); } });
+async function start(player) {
+  await player.tap('#start-game');
+  await fitsViewport(player.page);
+  const state = await snapshot(player.page);
+  assert.equal(state.version, 3, 'Do not report the previous v2 build as tested');
+  assert.equal(Object.hasOwn(state.player, 'hp'), false, 'Ink is the only survival pool');
+  assert.equal(Object.hasOwn(state.player, 'maxHp'), false);
+  return state;
+}
+async function pulseShot(player) {
+  await player.page.waitForFunction(() => window.__inkGame.snapshot().player.shootCd <= 0);
+  const before = await snapshot(player.page);
+  await player.tap('#fire');
+  await player.page.waitForFunction(
+    (shots) => window.__inkGame.snapshot().stats.shots > shots,
+    before.stats.shots,
+  );
+  return { before, after: await snapshot(player.page) };
+}
+async function resourceLoop(player) {
+  const page = player.page;
+  const first = await snapshot(page);
+  const shot = await pulseShot(player);
+  assert.equal(
+    shot.after.stats.spent.attack - shot.before.stats.spent.attack,
+    first.definition.rules.attackCost,
+  );
+  assert.equal(shot.after.player.ink, shot.before.player.ink - first.definition.rules.attackCost);
+  const projectile = shot.after.projectiles.find((projectile) => projectile.owner === 'player');
+  assert.ok(projectile);
+  player.baseProjectileDamage = projectile.damage;
+  const initialDrops = shot.after.pickups.filter((pickup) => pickup.kind === 'reclaim');
+  assert.equal(initialDrops.length, 1, 'One shot scatters one reclaimable drop');
+  const beforeNova = await snapshot(page);
+  await player.nova();
+  await page.waitForFunction(
+    (count) => window.__inkGame.snapshot().stats.skillsUsed > count,
+    beforeNova.stats.skillsUsed,
+  );
+  const afterNova = await snapshot(page);
+  assert.equal(
+    afterNova.stats.spent.nova - beforeNova.stats.spent.nova,
+    first.definition.rules.novaCost,
+  );
+  assert.equal(afterNova.player.ink, beforeNova.player.ink - first.definition.rules.novaCost);
+  assert.equal(
+    afterNova.pickups.filter((pickup) => pickup.kind === 'reclaim').length,
+    initialDrops.length + 2,
+  );
+  const reclaimBefore = afterNova.stats.reclaimed;
+  await sleep(page, 750);
+  const stationary = await snapshot(page);
+  assert.equal(
+    stationary.stats.reclaimed,
+    reclaimBefore,
+    'Standing still must not swallow freshly generated drops',
+  );
+  assert.ok(
+    stationary.stats.lifeStolen > first.stats.lifeStolen,
+    'The actual opening projectile hit must restore ink through life steal',
+  );
+  const drop = stationary.pickups
+    .filter((pickup) => pickup.kind === 'reclaim')
+    .sort((a, b) => distance(a, stationary.player) - distance(b, stationary.player))[0];
+  assert.ok(drop);
+  await player.moveTo(drop, { radius: 12 });
+  await sleep(page, 150);
+  const reclaimed = await snapshot(page);
+  assert.ok(
+    reclaimed.stats.reclaimed > reclaimBefore,
+    'Moving over the skill drop must restore the same survival pool',
+  );
+  await capture(page, player.mobile ? 'mobile-resource-loop' : 'desktop-resource-loop');
+  report.cases.push({
+    name: `${player.mobile ? 'Touch' : 'Desktop'} single ink/life pool: shot and nova costs, physical spill, stationary non-collection, walking reclamation and actual-hit life steal`,
+    status: 'passed',
+    shotCost: first.definition.rules.attackCost,
+    novaCost: first.definition.rules.novaCost,
+    inkAfterSkills: afterNova.player.ink,
+    lifeStolen: stationary.stats.lifeStolen,
+    reclaimed: reclaimed.stats.reclaimed,
   });
-  const b = await makeRunner(blocked, 'storage-disabled', true);
-  await b.start(); await b.travel('crossing'); await b.travel('archive'); await b.command('claim');
-  await b.click('#pause'); await b.click('#modal-sound'); await b.click('[data-close]'); await b.verify();
-  report.cases.push({ name: 'Unavailable local storage does not block touch exploration, rewards, pause or sound preference', status: 'passed' });
-  await blocked.close();
-  for (const mobileDrag of [false, true]) {
-    const context = await browser.newContext({ viewport: mobileDrag ? { width: 390, height: 844 } : { width: 1512, height: 1000 }, isMobile: mobileDrag, hasTouch: mobileDrag });
-    const draw = await makeRunner(context, mobileDrag ? 'touch-drag' : 'mouse-drag', mobileDrag);
-    await draw.start();
-    if (mobileDrag) { await draw.drag('crossing', true); assert.equal(draw.state.ink, 72); }
-    await draw.drag('crossing');
-    assert.equal(draw.state.ink, 66);
-    await draw.drag('arrival');
-    assert.equal(draw.state.ink, 66, 'Dragging along an existing route must remain free.');
-    report.cases.push({ name: `${mobileDrag ? 'Native touch (including cancellation)' : 'Native mouse'} drag draws an adjacent room and returns along a free existing route`, status: 'passed' });
-    await context.close();
+}
+async function bridgeAndBoundary(player) {
+  const page = player.page;
+  await player.moveTo({ x: 480, y: 225 });
+  let before = await snapshot(page);
+  await player.nova();
+  await page.waitForFunction(
+    (count) => window.__inkGame.snapshot().stats.skillsUsed > count,
+    before.stats.skillsUsed,
+  );
+  let after = await snapshot(page);
+  const drops = after.pickups.filter(
+    (pickup) => pickup.kind === 'reclaim' && pickup.skillId === 'nova',
+  );
+  assert.equal(drops.length, 2);
+  for (const drop of drops) {
+    assert.ok(
+      clearSegment(after.rooms.arrival, after.player, drop, 8),
+      'A pre-bridge skill drop cannot cross a pit or wall',
+    );
+    await player.moveTo(drop, { radius: 12 });
   }
-  assert.deepEqual(report.errors, [], 'No console errors, page exceptions or failed requests.');
+  assert.ok((await snapshot(page)).stats.reclaimed > before.stats.reclaimed);
+  await player.moveTo({ x: 480, y: 242 });
+  before = await snapshot(page);
+  const bridge = before.rooms.arrival.bridges[0],
+    from = await project(page, bridge.from.x, bridge.from.y),
+    to = await project(page, bridge.to.x, bridge.to.y);
+  if (player.mobile) {
+    await player.touch.down(5, from);
+    await player.touch.move(5, to);
+    await player.touch.cancel();
+    assert.equal((await snapshot(page)).rooms.arrival.bridges[0].drawn, false);
+    assert.equal((await snapshot(page)).player.ink, before.player.ink);
+    await player.touch.down(5, from);
+    for (let i = 1; i <= 14; i++)
+      await player.touch.move(5, {
+        x: from.x + ((to.x - from.x) * i) / 14,
+        y: from.y + ((to.y - from.y) * i) / 14,
+      });
+    await player.touch.up(5);
+  } else {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 14 });
+    await page.mouse.up();
+  }
+  after = await snapshot(page);
+  assert.equal(after.rooms.arrival.bridges[0].drawn, true);
+  assert.equal(after.stats.spent.explore - before.stats.spent.explore, bridge.cost);
+  await capture(page, player.mobile ? 'mobile-bridge' : 'desktop-bridge');
+  report.cases.push({
+    name: `${player.mobile ? 'Touch' : 'Desktop'} boundary skill drops stay reachable before drawing the bridge; completing the actual stroke pays ink and creates a usable route`,
+    status: 'passed',
+  });
+}
+async function journey(player, { reserve = 38, lowInkPressure = false } = {}) {
+  const page = player.page;
+  await player.clearRoom({ reserve });
+  await player.pickupAll();
+  await player.handleRewards();
+  assert.ok(
+    (await snapshot(page)).stats.killRestored > 0,
+    'Real kills must restore ink separately from life steal',
+  );
+  await bridgeAndBoundary(player);
+  await player.moveTo({ x: 480, y: 53 }, { expectedRoom: 'archive' });
+  await player.clearRoom({ reserve });
+  await player.pickupAll();
+  await player.moveTo({ x: 480, y: 114 });
+  await sleep(page, 250);
+  await player.handleRewards();
+  await player.pickupAll();
+  assert.equal((await snapshot(page)).rooms.archive.objects[0].used, true);
+  await player.moveTo({ x: 480, y: 546 }, { expectedRoom: 'arrival' });
+  await player.moveTo({ x: 480, y: 270 });
+  await player.moveTo({ x: 905, y: 300 }, { expectedRoom: 'sentinel' });
+  await player.clearRoom({ reserve });
+  await player.pickupAll();
+  await player.handleRewards();
+  assert.equal((await snapshot(page)).seals, 1);
+  await player.moveTo({ x: 905, y: 300 }, { expectedRoom: 'market' });
+  // In a cleared safe room, the actual next projectile exposes the equipped damage.
+  const changedShot = await pulseShot(player);
+  const equippedProjectile = changedShot.after.projectiles.find(
+    (projectile) => projectile.owner === 'player',
+  );
+  assert.ok(equippedProjectile);
+  assert.ok(
+    equippedProjectile.damage > player.baseProjectileDamage,
+    'Chosen equipment must alter a projectile actually fired in the game',
+  );
+  report.cases.push({
+    name: `${player.mobile ? 'Touch' : 'Desktop'} both dropped equipment and level rewards were selected and changed actual projectile damage`,
+    status: 'passed',
+    beforeDamage: player.baseProjectileDamage,
+    afterDamage: equippedProjectile.damage,
+    rewards: player.rewardHistory,
+  });
+  let state = await snapshot(page);
+  assert.ok(state.stats.levelsGained >= 1);
+  assert.ok(player.rewardHistory.some((reward) => reward.source === 'level'));
+  assert.ok(player.rewardHistory.some((reward) => reward.source !== 'level'));
+  await capture(page, player.mobile ? 'mobile-growth' : 'desktop-growth');
+  if (lowInkPressure) {
+    // Deliberately spend down at a safe location, preserving the required one ink.
+    const attackCost = state.definition.rules.attackCost;
+    while ((await snapshot(page)).player.ink > attackCost + 1) {
+      await pulseShot(player);
+      await sleep(page, 430);
+    }
+    state = await snapshot(page);
+    assert.ok(state.player.ink > 0 && state.player.ink <= attackCost + 1);
+    await capture(page, 'mobile-low-positive-ink');
+    const beforeDry = state;
+    await player.controls(1, 0, null, false, true);
+    await player.dash();
+    await sleep(page, 300);
+    await player.release();
+    state = await snapshot(page);
+    assert.ok(state.stats.freeAttacks > beforeDry.stats.freeAttacks);
+    assert.ok(state.stats.dashes > beforeDry.stats.dashes);
+    assert.equal(state.player.ink, beforeDry.player.ink);
+    player.pressureStart = {
+      ink: state.player.ink,
+      lifeStolen: state.stats.lifeStolen,
+      killRestored: state.stats.killRestored,
+    };
+    reserve = Infinity;
+  }
+  await player.moveTo({ x: 480, y: 53 }, { expectedRoom: 'warden' });
+  await player.clearRoom({ reserve });
+  await player.pickupAll();
+  await player.handleRewards();
+  assert.equal((await snapshot(page)).seals, 2);
+  if (lowInkPressure) {
+    state = await snapshot(page);
+    assert.ok(state.stats.lifeStolen > player.pressureStart.lifeStolen);
+    assert.ok(state.player.ink > player.pressureStart.ink);
+    report.cases.push({
+      name: 'Low positive ink pressure: free melee hits and kills recover survival ink while clearing the second guardian',
+      status: 'passed',
+      startingInk: player.pressureStart.ink,
+      recoveredInk: state.player.ink,
+    });
+  }
+  await player.moveTo({ x: 480, y: 546 }, { expectedRoom: 'market' });
+  await player.moveTo({ x: 905, y: 300 }, { expectedRoom: 'gate' });
+  await capture(page, player.mobile ? 'mobile-boss' : 'desktop-boss');
+  await player.clearRoom({ reserve });
+  await player.handleRewards();
+  state = await snapshot(page);
+  assert.equal(state.status, 'won');
+  assert.ok(player.bossPhases.has(2));
+  assert.ok(player.bossMoves.has('charge') && player.bossMoves.has('burst'));
+  assert.ok(
+    state.stats.lifeStolen > 0 && state.stats.killRestored > 0 && state.stats.reclaimed > 0,
+  );
+  assert.ok(state.stats.rewardsChosen >= 2 && state.stats.levelsGained >= 1);
+  await fitsViewport(page);
+  await capture(page, player.mobile ? 'mobile-victory' : 'desktop-victory');
+  report.cases.push({
+    name: `${player.mobile ? 'Touch' : 'Desktop'} full v3 chapter including resource combat, physical recovery, growth, both guardians and boss`,
+    status: 'passed',
+    stats: state.stats,
+    finalInk: state.player.ink,
+    level: state.progression.level,
+    equipment: state.equipment,
+    elapsedGameSeconds: state.time,
+    observations: player.observations,
+  });
+}
+try {
+  browser = await chromium.launch({
+    headless: true,
+    ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
+  });
+  if (!pressureOnly) {
+    const desktop = await freshPlayer('desktop');
+    await capture(desktop.page, 'desktop-opening');
+    await checkPauseIcon(desktop.page);
+    await start(desktop);
+    await resourceLoop(desktop);
+    await journey(desktop);
+    await desktop.context.close();
+  }
+  if (!desktopOnly) {
+    const mobile = await freshPlayer('mobile', true);
+    await start(mobile);
+    await resourceLoop(mobile);
+    await journey(mobile, { reserve: pressureOnly ? Infinity : 42, lowInkPressure: pressureOnly });
+    await mobile.context.close();
+  }
+  assert.deepEqual(report.errors, []);
   report.status = 'passed';
-  console.log(`Passed ${report.cases.length} browser scenarios; saved ${report.screenshots.length} screenshots.`);
 } catch (error) {
-  report.status = 'failed'; report.failure = { message: error.message, stack: error.stack }; throw error;
+  report.status = 'failed';
+  report.failure = error.stack;
+  process.exitCode = 1;
+  if (browser)
+    for (const context of browser.contexts())
+      for (const page of context.pages())
+        try {
+          await page.screenshot({ path: '/tmp/ink-v3-playtest-failure.png' });
+          report.failureSnapshot = await snapshot(page);
+        } catch {}
 } finally {
   await browser?.close();
-  await writeFile(new URL('./playtest-report.json', import.meta.url), JSON.stringify(report, null, 2) + '\n');
+  await writeFile(
+    new URL(
+      pressureOnly
+        ? './playtest-pressure-report.json'
+        : desktopOnly
+          ? './playtest-desktop-report.json'
+          : './playtest-report.json',
+      import.meta.url,
+    ),
+    JSON.stringify(report, null, 2) + '\n',
+  );
+  console.log(
+    JSON.stringify(
+      {
+        status: report.status,
+        cases: report.cases,
+        errors: report.errors,
+        failure: report.failure,
+      },
+      null,
+      2,
+    ),
+  );
 }

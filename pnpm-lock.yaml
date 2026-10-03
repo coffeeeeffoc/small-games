@@ -407,6 +407,9 @@ importers:
       '@coffeeeeffoc/ink-is-everything':
         specifier: workspace:*
         version: link:../../games/local/ink-is-everything
+      '@coffeeeeffoc/luban-workshop':
+        specifier: workspace:*
+        version: link:../../games/local/luban-workshop
       '@coffeeeeffoc/maze-wander':
         specifier: workspace:*
         version: link:../../games/local/maze-wander
@@ -458,6 +461,9 @@ importers:
       '@coffeeeeffoc/urban-breakout':
         specifier: workspace:*
         version: link:../../games/local/urban-breakout
+      '@coffeeeeffoc/voiceprint-case':
+        specifier: workspace:*
+        version: link:../../games/local/voiceprint-case
       '@coffeeeeffoc/waterline-station':
         specifier: workspace:*
         version: link:../../games/local/waterline-station
@@ -1077,6 +1083,25 @@ importers:
 
   games/local/letters-words2: {}
 
+  games/local/luban-workshop:
+    dependencies:
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      '@types/three':
+        specifier: 0.180.0
+        version: 0.180.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+
   games/local/maze-wander:
     dependencies:
       react:
@@ -1399,6 +1424,8 @@ importers:
       vite:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.21.0)
+
+  games/local/voiceprint-case: {}
 
   games/local/waterline-station: {}
 

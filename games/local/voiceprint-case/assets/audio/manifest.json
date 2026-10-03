@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "language": "zh-CN",
+  "generator": {
+    "engine": "sherpa-onnx",
+    "version": "1.13.8",
+    "model": "vits-icefall-zh-aishell3",
+    "modelSha256": "5511d651b7840c0a93a6bbfd4afd070a2c7f39ca1ec3ff2ecd73191519bbb852",
+    "modelDownload": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-icefall-zh-aishell3.tar.bz2",
+    "noiseScale": 0,
+    "noiseScaleW": 0,
+    "speed": 1,
+    "postprocess": "DC removal, edge trim, RMS 0.13 / peak 0.68 caps, 8ms fades, 100/160ms silence"
+  },
+  "voices": [
+    {
+      "id": "v0",
+      "sourceSpeakerId": 10,
+      "fictionalAdultRole": true
+    },
+    {
+      "id": "v1",
+      "sourceSpeakerId": 33,
+      "fictionalAdultRole": true
+    },
+    {
+      "id": "v2",
+      "sourceSpeakerId": 99,
+      "fictionalAdultRole": true
+    }
+  ],
+  "phrases": [
+    {
+      "id": "p0",
+      "text": "你今天吃早饭了吗？",
+      "clips": [
+        {
+          "voiceId": "v0",
+          "url": "./assets/audio/e67733254da6b50c.wav",
+          "duration": 1.824875,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.09278398,
+          "peak": 0.67999268,
+          "sha256": "e67733254da6b50c644491db973e33c21d316ca14bcc60f7d9ebf76febeb92f0"
+        },
+        {
+          "voiceId": "v1",
+          "url": "./assets/audio/7ca39d6c6604fb95.wav",
+          "duration": 2.21925,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.12100497,
+          "peak": 0.67999268,
+          "sha256": "7ca39d6c6604fb95312a7ada878174931c76d19121efcee0f9cd6eac3873b70e"
+        },
+        {
+          "voiceId": "v2",
+          "url": "./assets/audio/0f03e85a3ce129bb.wav",
+          "duration": 1.644,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.1192744,
+          "peak": 0.41549683,
+          "sha256": "0f03e85a3ce129bbdfc8ead39975798177f040aaba3002f32489763aca2c8d52"
+        }
+      ]
+    },
+    {
+      "id": "p1",
+      "text": "请把门口的灯打开。",
+      "clips": [
+        {
+          "voiceId": "v0",
+          "url": "./assets/audio/e3925b10d7da883d.wav",
+          "duration": 1.90125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.06934556,
+          "peak": 0.67999268,
+          "sha256": "e3925b10d7da883d5c29118713fc74edbc22bcaa1a1955f65c50cd2a3330acd3"
+        },
+        {
+          "voiceId": "v1",
+          "url": "./assets/audio/cf84df8321acab82.wav",
+          "duration": 2.254125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.12032434,
+          "peak": 0.67999268,
+          "sha256": "cf84df8321acab82bdfaba7b413cc55ef748ff55b18baf0d4a7f0837c8e1d1b1"
+        },
+        {
+          "voiceId": "v2",
+          "url": "./assets/audio/aeda8291a01449fd.wav",
+          "duration": 1.64675,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.11929295,
+          "peak": 0.60180664,
+          "sha256": "aeda8291a01449fdfd55fa0d7823ba914098e30f18337d04d652c962fbe0e184"
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "text": "我们明天还在这里见。",
+      "clips": [
+        {
+          "voiceId": "v0",
+          "url": "./assets/audio/16c5799ef4f29c60.wav",
+          "duration": 2.049125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.1161558,
+          "peak": 0.67999268,
+          "sha256": "16c5799ef4f29c60a3772d25b82fc71158ed293adb61dbe7c402fddb2b929a65"
+        },
+        {
+          "voiceId": "v1",
+          "url": "./assets/audio/a6facf7c101ddf47.wav",
+          "duration": 2.388375,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.1152806,
+          "peak": 0.67999268,
+          "sha256": "a6facf7c101ddf47d57b25314c07fd11cd9639f759889bb8a0e8f6b112cea1a1"
+        },
+        {
+          "voiceId": "v2",
+          "url": "./assets/audio/1a6eef4b75081592.wav",
+          "duration": 1.752125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.11996377,
+          "peak": 0.47955322,
+          "sha256": "1a6eef4b75081592faf645446cb5c3434888b21f931d4615ffbe8f38a73f4bea"
+        }
+      ]
+    },
+    {
+      "id": "p3",
+      "text": "那把蓝色的雨伞是我的。",
+      "clips": [
+        {
+          "voiceId": "v0",
+          "url": "./assets/audio/19b01ef1ccc58b5b.wav",
+          "duration": 2.067125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.08092375,
+          "peak": 0.67999268,
+          "sha256": "19b01ef1ccc58b5bbe37e71d13d559f04660b8ff29785de1c2104f699448c8d3"
+        },
+        {
+          "voiceId": "v1",
+          "url": "./assets/audio/57b75849c20e87f6.wav",
+          "duration": 2.513125,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.12308807,
+          "peak": 0.67584229,
+          "sha256": "57b75849c20e87f6316ccc207cf943396d5b5c600baf4b318e5c5365f7ca1c2a"
+        },
+        {
+          "voiceId": "v2",
+          "url": "./assets/audio/b7074de370b8ee89.wav",
+          "duration": 1.7485,
+          "sampleRate": 8000,
+          "channels": 1,
+          "rms": 0.1199412,
+          "peak": 0.58908081,
+          "sha256": "b7074de370b8ee89dcdedd3db3375fb3f4dd45c31a3ea4cb15b5656396f1b480"
+        }
+      ]
+    }
+  ]
+}

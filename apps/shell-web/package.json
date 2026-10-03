@@ -10,7 +10,9 @@
     "dev": "node scripts/prepare-standalone-games.mjs && vite --host 0.0.0.0",
     "build": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build",
     "build:pages": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build --mode pages",
-    "test:pages": "node scripts/lazy-loading-smoke.mjs && node scripts/pages-smoke.mjs",
+    "test:pages": "pnpm test:pages:smoke && pnpm test:pages:games",
+    "test:pages:smoke": "node scripts/lazy-loading-smoke.mjs && node scripts/pages-host-smoke.mjs",
+    "test:pages:games": "node scripts/pages-smoke.mjs",
     "test:lazy-loading": "node scripts/lazy-loading-smoke.mjs",
     "test:game-meta": "node scripts/game-meta-smoke.mjs",
     "test:fullscreen-touch": "node scripts/fullscreen-touch-check.mjs",
@@ -23,6 +25,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/voiceprint-case": "workspace:*",
     "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",
     "@coffeeeeffoc/urban-breakout": "workspace:*",
@@ -81,7 +84,8 @@
     "@coffeeeeffoc/ink-is-everything": "workspace:*",
     "@coffeeeeffoc/out-of-frame": "workspace:*",
     "@coffeeeeffoc/echo-weaver": "workspace:*",
-    "@coffeeeeffoc/two-sided-box": "workspace:*"
+    "@coffeeeeffoc/two-sided-box": "workspace:*",
+    "@coffeeeeffoc/luban-workshop": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

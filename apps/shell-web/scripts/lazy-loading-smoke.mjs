@@ -36,7 +36,11 @@ const server = await preview({
 });
 let browser;
 try {
-  browser = await chromium.launch();
+  browser = await chromium.launch({
+    ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : {}),
+  });
   const base = `http://127.0.0.1:${server.httpServer.address().port}${basePath}`;
   const summary = [];
   for (const [source, chunk] of games) {
