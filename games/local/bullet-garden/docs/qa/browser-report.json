@@ -1,55 +1,18 @@
 {
-  "date": "2026-10-03T16:26:03.694Z",
+  "date": "2026-10-03T17:48:22.550Z",
   "browser": "151.0.7922.173",
-  "url": "http://127.0.0.1:4410",
-  "selection": "desktop + touch + speed + challenge (separate fresh contexts)",
+  "url": "http://127.0.0.1:4412",
+  "selection": "controls + challenge (separate fresh contexts)",
+  "scenario": "No initial boons or terrain; only selecting a corresponding XP upgrade unlocks passive terrain.",
   "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
   "limitations": [
-    "Chromium touch emulation; no physical Android/iOS verification.",
-    "Virtual clock drives normal simulation without modifying health, energy, enemy state or XP.",
-    "Canvas recovery events are synthetic; no real GPU context loss was induced."
+    "Chromium touch emulation; physical Android/iOS devices were not tested.",
+    "Virtual animation clock advances normal simulation without changing health, energy, enemies or XP.",
+    "Canvas recovery events are synthetic; no actual GPU context loss was induced."
   ],
   "checks": [
     {
-      "group": "desktop",
-      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
-    },
-    {
-      "group": "desktop",
-      "name": "preparation, time/kill energy, ordinary fire, two skill slots, arm/confirm/cancel and pause release"
-    },
-    {
-      "group": "desktop",
-      "name": "restart allows a fresh boon and resets health, energy, skills and terrain"
-    },
-    {
-      "group": "desktop",
-      "name": "no browser JavaScript or console errors"
-    },
-    {
-      "group": "touch",
-      "name": "touch 390×844: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
-      "skills": [
-        "cart",
-        "horse"
-      ],
-      "maximumConcurrentPointers": 2
-    },
-    {
-      "group": "touch",
-      "name": "touch 844×390: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
-      "skills": [
-        "gale",
-        "laser"
-      ],
-      "maximumConcurrentPointers": 2
-    },
-    {
-      "group": "touch",
-      "name": "no browser JavaScript or console errors"
-    },
-    {
-      "group": "speed",
+      "group": "controls",
       "name": "native 1/2/3/5× selector, proportional time, frozen pause/XP choices and clean 1× resume",
       "measurements": [
         {
@@ -75,8 +38,46 @@
       ]
     },
     {
-      "group": "speed",
+      "group": "controls",
+      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
+    },
+    {
+      "group": "controls",
+      "name": "preparation, time/kill energy, ordinary fire, two skill slots, arm/confirm/cancel and pause release"
+    },
+    {
+      "group": "controls",
+      "name": "restart retains only active skill choices and clears boons, terrain, health and energy"
+    },
+    {
+      "group": "controls",
+      "name": "touch 390×844: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "cart",
+        "horse"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "group": "controls",
+      "name": "touch 844×390: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "gale",
+        "laser"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "group": "controls",
       "name": "no browser JavaScript or console errors"
+    },
+    {
+      "group": "challenge",
+      "name": "first natural XP upgrade chooses a non-boon card and still grants no terrain",
+      "selected": "split-shot",
+      "time": 14.050000000000278,
+      "boons": [],
+      "plantsGrown": 0
     },
     {
       "group": "challenge",
@@ -89,155 +90,156 @@
       "seconds": 300,
       "hp": 100,
       "wave": 10,
-      "kills": 285,
+      "kills": 291,
       "stats": {
-        "shots": 2687,
-        "misses": 1986,
+        "shots": 2231,
+        "misses": 1700,
         "reflections": 0,
-        "splitShots": 0,
-        "autoPlants": 232,
-        "skillCasts": 76,
-        "skillDamage": 4520.53482142858,
+        "splitShots": 4340,
+        "autoPlants": 212,
+        "skillCasts": 77,
+        "skillDamage": 3555.498809523809,
         "skillKills": 57,
-        "plantsGrown": 232,
-        "plantKills": 37,
-        "terrainDamage": 3782.26130952334,
+        "plantsGrown": 212,
+        "plantKills": 43,
+        "terrainDamage": 3753.9398809527966,
         "damageTaken": 0
       },
       "maxPlants": 15,
-      "maxEnemies": 14,
+      "maxEnemies": 11,
       "boons": [
-        "shrub",
+        "trench",
         "poison",
-        "frost",
-        "trench"
+        "shrub",
+        "frost"
       ],
       "seenTerrain": [
-        "thorn",
+        "trench",
         "poison",
-        "frost",
-        "trench"
+        "thorn",
+        "frost"
       ],
+      "latestUnownedTime": 34.09999999999935,
       "upgradeSelections": [
         {
           "time": 14.03333333333361,
           "beforeWave": 1,
           "level": 2,
           "choices": [
-            "ricochet",
-            "multishot",
-            "boon-trench"
+            "boon-frost",
+            "boon-trench",
+            "split-shot"
           ],
-          "selected": "multishot"
+          "selected": "split-shot"
         },
         {
-          "time": 37.766666666665806,
+          "time": 34.09999999999935,
           "beforeWave": 2,
           "level": 3,
           "choices": [
-            "ricochet",
-            "boon-poison",
-            "explosive-shot"
-          ],
-          "selected": "boon-poison"
-        },
-        {
-          "time": 61.81666666666444,
-          "beforeWave": 3,
-          "level": 4,
-          "choices": [
             "attack-power",
-            "explosive-shot",
-            "boon-frost"
-          ],
-          "selected": "boon-frost"
-        },
-        {
-          "time": 81.11666666666335,
-          "beforeWave": 3,
-          "level": 5,
-          "choices": [
-            "terrain-duration",
-            "attack-power",
-            "fire-shot",
-            "terrain-heart"
-          ],
-          "selected": "attack-power"
-        },
-        {
-          "time": 105.26666666666198,
-          "beforeWave": 4,
-          "level": 6,
-          "choices": [
-            "ricochet",
-            "attack-speed",
-            "fire-shot",
-            "terrain-heart"
-          ],
-          "selected": "attack-speed"
-        },
-        {
-          "time": 136.3000000000006,
-          "beforeWave": 5,
-          "level": 7,
-          "choices": [
-            "terrain-duration",
-            "ricochet",
-            "multishot",
-            "attack-power"
-          ],
-          "selected": "attack-power"
-        },
-        {
-          "time": 162.1333333333545,
-          "beforeWave": 6,
-          "level": 8,
-          "choices": [
-            "multishot",
-            "wild-heart",
-            "attack-speed",
+            "split-shot",
             "boon-trench"
           ],
           "selected": "boon-trench"
         },
         {
-          "time": 190.60000000004382,
-          "beforeWave": 7,
-          "level": 9,
+          "time": 51.23333333333171,
+          "beforeWave": 2,
+          "level": 4,
+          "choices": [
+            "boon-shrub",
+            "attack-power",
+            "multishot"
+          ],
+          "selected": "multishot"
+        },
+        {
+          "time": 79.54999999999677,
+          "beforeWave": 3,
+          "level": 5,
           "choices": [
             "explosive-shot",
-            "attack-power",
+            "boon-poison",
+            "fire-shot",
+            "terrain-duration"
+          ],
+          "selected": "boon-poison"
+        },
+        {
+          "time": 101.33333333332887,
+          "beforeWave": 4,
+          "level": 6,
+          "choices": [
+            "boon-frost",
+            "terrain-heart",
+            "ricochet",
+            "boon-shrub"
+          ],
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 128.13333333332744,
+          "beforeWave": 5,
+          "level": 7,
+          "choices": [
+            "fire-shot",
+            "attack-speed",
+            "energy-cycle",
+            "boon-frost"
+          ],
+          "selected": "boon-frost"
+        },
+        {
+          "time": 150.96666666667895,
+          "beforeWave": 6,
+          "level": 8,
+          "choices": [
+            "explosive-shot",
             "terrain-duration",
-            "fire-shot"
+            "attack-power",
+            "wild-heart"
           ],
           "selected": "attack-power"
         },
         {
-          "time": 215.3666666667302,
-          "beforeWave": 8,
+          "time": 175.0833333333648,
+          "beforeWave": 6,
+          "level": 9,
+          "choices": [
+            "terrain-heart",
+            "terrain-duration",
+            "burst",
+            "split-shot"
+          ],
+          "selected": "terrain-heart"
+        },
+        {
+          "time": 194.65000000004704,
+          "beforeWave": 7,
           "level": 10,
           "choices": [
-            "attack-power",
-            "multishot",
+            "terrain-duration",
+            "energy-cycle",
             "terrain-heart",
             "explosive-shot"
           ],
-          "selected": "attack-power"
+          "selected": "terrain-heart"
         },
         {
-          "time": 237.90000000008146,
+          "time": 219.80000000006706,
           "beforeWave": 8,
           "level": 11,
           "choices": [
-            "ice-shot",
-            "terrain-heart",
-            "ricochet",
-            "attack-speed"
+            "split-shot",
+            "wild-heart",
+            "attack-power",
+            "terrain-duration"
           ],
-          "selected": "attack-speed"
+          "selected": "attack-power"
         },
         {
-          "time": 254.6500000000948,
+          "time": 243.88333333341956,
           "beforeWave": 9,
           "level": 12,
           "choices": [
@@ -249,28 +251,28 @@
           "selected": "attack-power"
         },
         {
-          "time": 272.2000000000811,
+          "time": 272.0000000000813,
           "beforeWave": 10,
           "level": 13,
           "choices": [
-            "split-shot",
             "terrain-duration",
-            "terrain-heart",
+            "burst",
+            "attack-speed",
             "ricochet"
           ],
-          "selected": "terrain-heart"
+          "selected": "attack-speed"
         },
         {
-          "time": 286.90000000006773,
+          "time": 291.2833333333971,
           "beforeWave": 10,
           "level": 14,
           "choices": [
+            "terrain-heart",
+            "attack-power",
             "ice-shot",
-            "fire-shot",
-            "wild-heart",
-            "terrain-duration"
+            "split-explosion"
           ],
-          "selected": "fire-shot"
+          "selected": "attack-power"
         }
       ]
     },
@@ -284,160 +286,165 @@
     }
   ],
   "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
+  },
   "challenge": {
     "result": "won",
     "seconds": 300,
     "hp": 100,
     "wave": 10,
-    "kills": 285,
+    "kills": 291,
     "stats": {
-      "shots": 2687,
-      "misses": 1986,
+      "shots": 2231,
+      "misses": 1700,
       "reflections": 0,
-      "splitShots": 0,
-      "autoPlants": 232,
-      "skillCasts": 76,
-      "skillDamage": 4520.53482142858,
+      "splitShots": 4340,
+      "autoPlants": 212,
+      "skillCasts": 77,
+      "skillDamage": 3555.498809523809,
       "skillKills": 57,
-      "plantsGrown": 232,
-      "plantKills": 37,
-      "terrainDamage": 3782.26130952334,
+      "plantsGrown": 212,
+      "plantKills": 43,
+      "terrainDamage": 3753.9398809527966,
       "damageTaken": 0
     },
     "maxPlants": 15,
-    "maxEnemies": 14,
+    "maxEnemies": 11,
     "boons": [
-      "shrub",
+      "trench",
       "poison",
-      "frost",
-      "trench"
+      "shrub",
+      "frost"
     ],
     "seenTerrain": [
-      "thorn",
+      "trench",
       "poison",
-      "frost",
-      "trench"
+      "thorn",
+      "frost"
     ],
+    "latestUnownedTime": 34.09999999999935,
     "upgradeSelections": [
       {
         "time": 14.03333333333361,
         "beforeWave": 1,
         "level": 2,
         "choices": [
-          "ricochet",
-          "multishot",
-          "boon-trench"
+          "boon-frost",
+          "boon-trench",
+          "split-shot"
         ],
-        "selected": "multishot"
+        "selected": "split-shot"
       },
       {
-        "time": 37.766666666665806,
+        "time": 34.09999999999935,
         "beforeWave": 2,
         "level": 3,
         "choices": [
-          "ricochet",
-          "boon-poison",
-          "explosive-shot"
-        ],
-        "selected": "boon-poison"
-      },
-      {
-        "time": 61.81666666666444,
-        "beforeWave": 3,
-        "level": 4,
-        "choices": [
           "attack-power",
-          "explosive-shot",
-          "boon-frost"
-        ],
-        "selected": "boon-frost"
-      },
-      {
-        "time": 81.11666666666335,
-        "beforeWave": 3,
-        "level": 5,
-        "choices": [
-          "terrain-duration",
-          "attack-power",
-          "fire-shot",
-          "terrain-heart"
-        ],
-        "selected": "attack-power"
-      },
-      {
-        "time": 105.26666666666198,
-        "beforeWave": 4,
-        "level": 6,
-        "choices": [
-          "ricochet",
-          "attack-speed",
-          "fire-shot",
-          "terrain-heart"
-        ],
-        "selected": "attack-speed"
-      },
-      {
-        "time": 136.3000000000006,
-        "beforeWave": 5,
-        "level": 7,
-        "choices": [
-          "terrain-duration",
-          "ricochet",
-          "multishot",
-          "attack-power"
-        ],
-        "selected": "attack-power"
-      },
-      {
-        "time": 162.1333333333545,
-        "beforeWave": 6,
-        "level": 8,
-        "choices": [
-          "multishot",
-          "wild-heart",
-          "attack-speed",
+          "split-shot",
           "boon-trench"
         ],
         "selected": "boon-trench"
       },
       {
-        "time": 190.60000000004382,
-        "beforeWave": 7,
-        "level": 9,
+        "time": 51.23333333333171,
+        "beforeWave": 2,
+        "level": 4,
+        "choices": [
+          "boon-shrub",
+          "attack-power",
+          "multishot"
+        ],
+        "selected": "multishot"
+      },
+      {
+        "time": 79.54999999999677,
+        "beforeWave": 3,
+        "level": 5,
         "choices": [
           "explosive-shot",
-          "attack-power",
+          "boon-poison",
+          "fire-shot",
+          "terrain-duration"
+        ],
+        "selected": "boon-poison"
+      },
+      {
+        "time": 101.33333333332887,
+        "beforeWave": 4,
+        "level": 6,
+        "choices": [
+          "boon-frost",
+          "terrain-heart",
+          "ricochet",
+          "boon-shrub"
+        ],
+        "selected": "boon-shrub"
+      },
+      {
+        "time": 128.13333333332744,
+        "beforeWave": 5,
+        "level": 7,
+        "choices": [
+          "fire-shot",
+          "attack-speed",
+          "energy-cycle",
+          "boon-frost"
+        ],
+        "selected": "boon-frost"
+      },
+      {
+        "time": 150.96666666667895,
+        "beforeWave": 6,
+        "level": 8,
+        "choices": [
+          "explosive-shot",
           "terrain-duration",
-          "fire-shot"
+          "attack-power",
+          "wild-heart"
         ],
         "selected": "attack-power"
       },
       {
-        "time": 215.3666666667302,
-        "beforeWave": 8,
+        "time": 175.0833333333648,
+        "beforeWave": 6,
+        "level": 9,
+        "choices": [
+          "terrain-heart",
+          "terrain-duration",
+          "burst",
+          "split-shot"
+        ],
+        "selected": "terrain-heart"
+      },
+      {
+        "time": 194.65000000004704,
+        "beforeWave": 7,
         "level": 10,
         "choices": [
-          "attack-power",
-          "multishot",
+          "terrain-duration",
+          "energy-cycle",
           "terrain-heart",
           "explosive-shot"
         ],
-        "selected": "attack-power"
+        "selected": "terrain-heart"
       },
       {
-        "time": 237.90000000008146,
+        "time": 219.80000000006706,
         "beforeWave": 8,
         "level": 11,
         "choices": [
-          "ice-shot",
-          "terrain-heart",
-          "ricochet",
-          "attack-speed"
+          "split-shot",
+          "wild-heart",
+          "attack-power",
+          "terrain-duration"
         ],
-        "selected": "attack-speed"
+        "selected": "attack-power"
       },
       {
-        "time": 254.6500000000948,
+        "time": 243.88333333341956,
         "beforeWave": 9,
         "level": 12,
         "choices": [
@@ -449,54 +456,40 @@
         "selected": "attack-power"
       },
       {
-        "time": 272.2000000000811,
+        "time": 272.0000000000813,
         "beforeWave": 10,
         "level": 13,
         "choices": [
-          "split-shot",
           "terrain-duration",
-          "terrain-heart",
+          "burst",
+          "attack-speed",
           "ricochet"
         ],
-        "selected": "terrain-heart"
+        "selected": "attack-speed"
       },
       {
-        "time": 286.90000000006773,
+        "time": 291.2833333333971,
         "beforeWave": 10,
         "level": 14,
         "choices": [
+          "terrain-heart",
+          "attack-power",
           "ice-shot",
-          "fire-shot",
-          "wild-heart",
-          "terrain-duration"
+          "split-explosion"
         ],
-        "selected": "fire-shot"
+        "selected": "attack-power"
       }
     ]
   },
   "groups": [
     {
-      "group": "desktop",
-      "date": "2026-10-03T16:17:00.729Z",
-      "source": "/tmp/bullet-garden-mechanisms-desktop",
-      "passed": true
-    },
-    {
-      "group": "touch",
-      "date": "2026-10-03T16:18:55.448Z",
-      "source": "/tmp/bullet-garden-mechanisms-touch",
-      "passed": true
-    },
-    {
-      "group": "speed",
-      "date": "2026-10-03T16:21:31.378Z",
-      "source": "/tmp/bullet-garden-mechanisms-speed",
+      "group": "controls",
+      "date": "2026-10-03T17:41:31.773Z",
       "passed": true
     },
     {
       "group": "challenge",
-      "date": "2026-10-03T16:18:11.023Z",
-      "source": "/tmp/bullet-garden-mechanisms-challenge",
+      "date": "2026-10-03T17:41:36.317Z",
       "passed": true
     }
   ],

@@ -2,6 +2,7 @@
  * Different loadouts consume RNG differently; these are viability smoke runs.
  */
 import assert from 'node:assert/strict';
+import { BOONS } from '../src/config.mjs';
 import {
   createGame,
   configureLoadout,
@@ -19,12 +20,13 @@ const BUILDS = {
   poison: ['laser', 'gale'],
 };
 
-function replay(seed, boon) {
+function replay(seed, preferredBoon) {
   const state = createGame('ruins', seed);
-  configureLoadout(state, { boon, skills: BUILDS[boon] });
+  configureLoadout(state, { skills: BUILDS[preferredBoon] });
   startGame(state);
   let frame = 0,
     firstPlant = null,
+    firstBoonUpgrade = null,
     maxBullets = 0,
     maxPlants = 0,
     maxEnemies = 0,
@@ -33,6 +35,7 @@ function replay(seed, boon) {
   while (['playing', 'upgrade'].includes(state.phase) && frame < 19000) {
     if (state.phase === 'upgrade') {
       const preferred = [
+        `boon-${preferredBoon}`,
         'boon-shrub',
         'boon-trench',
         'boon-frost',
@@ -50,6 +53,8 @@ function replay(seed, boon) {
       const selected =
         preferred.find((key) => state.upgradeChoices.includes(key)) ?? state.upgradeChoices[0];
       assert.ok(chooseUpgrade(state, selected));
+      if (firstBoonUpgrade === null && selected.startsWith('boon-'))
+        firstBoonUpgrade = { time: Number(state.time.toFixed(3)), selected };
       choices.push({ time: Math.round(state.time), selected });
       continue;
     }
@@ -92,6 +97,13 @@ function replay(seed, boon) {
     maxBullets = Math.max(maxBullets, state.bullets.length);
     maxEnemies = Math.max(maxEnemies, state.enemies.length);
     maxEffects = Math.max(maxEffects, state.skillEffects.length);
+    if (firstBoonUpgrade === null) {
+      assert.deepEqual(state.boons, [], 'no terrain ownership before an XP boon choice');
+      assert.equal(state.stats.plantsGrown, 0, 'no terrain generation before an XP boon choice');
+    }
+    assert.ok(
+      state.plants.every((plant) => state.boons.some((id) => BOONS[id].kind === plant.kind)),
+    );
     assert.ok(state.plants.length <= state.plantCap);
     assert.ok(state.enemies.length <= 48);
     assert.ok(state.bullets.length <= 120);
@@ -103,8 +115,8 @@ function replay(seed, boon) {
   }
   assert.ok(['won', 'lost'].includes(state.phase), 'a replay finishes naturally');
   return {
-    boon,
-    skills: BUILDS[boon].join('/'),
+    preferredBoon,
+    skills: BUILDS[preferredBoon].join('/'),
     seed,
     result: state.phase,
     seconds: Math.round(state.time),
@@ -113,6 +125,7 @@ function replay(seed, boon) {
     upgrades: choices.length,
     firstUpgrade: choices[0]?.time ?? null,
     firstPlant,
+    firstBoonUpgrade,
     plants: state.stats.autoPlants,
     terrainKills: state.stats.plantKills,
     terrainDamage: Math.round(state.stats.terrainDamage),
@@ -130,18 +143,28 @@ function replay(seed, boon) {
 const runs = Object.keys(BUILDS).flatMap((build) =>
   REPLAY_SEEDS.map((seed) => replay(seed, build)),
 );
-console.table(runs.map(({ choices, ...summary }) => summary));
+console.table(
+  runs.map(({ choices, firstBoonUpgrade, ...summary }) => ({
+    ...summary,
+    firstBoonUpgrade: firstBoonUpgrade?.time ?? null,
+  })),
+);
 if (process.env.BALANCE_DETAILS) console.log(JSON.stringify(runs, null, 2));
 for (const run of runs) {
   assert.ok(run.plants > 0);
+  assert.ok(run.firstBoonUpgrade !== null, 'terrain requires an actual XP upgrade choice');
+  assert.ok(
+    run.firstPlant > run.firstBoonUpgrade.time,
+    'the first terrain appears after its unlock',
+  );
   assert.ok(run.upgrades >= 1);
   assert.ok(run.skillCasts > 0 && run.skillDamage > 0);
   assert.equal(
     run.result,
     'won',
-    `${run.boon}/${run.seed} should support a natural-health victory`,
+    `${run.preferredBoon}/${run.seed} should support a natural-health victory`,
   );
 }
 console.log(
-  'Twelve normal-health five-minute victories cover all four boons and five manually released skills.',
+  'Twelve normal-health five-minute victories begin without terrain and unlock boons through XP choices; all five manually released skills are covered.',
 );

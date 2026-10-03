@@ -121,7 +121,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
-    await click(frame.locator('[data-boon="trench"]'));
     await frame.locator('#loadout-skill-0').selectOption('blast');
     await frame.locator('#loadout-skill-1').selectOption('gale');
     await click(frame.locator('#start'));
@@ -143,7 +142,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         )
         .toBe('arena');
     }
-    expect((await snapshot()).boons).toEqual(['trench']);
+    expect((await snapshot()).boons).toEqual([]);
+    expect((await snapshot()).plants).toEqual([]);
     expect((await snapshot()).stats.skillCasts).toBe(0);
 
     const initialPlayer = (await snapshot()).player;
@@ -205,7 +205,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     if (mobile) await arena.tap(target);
     else await arena.click(target);
     await expect.poll(async () => (await snapshot()).stats.skillCasts).toBe(1);
-    expect((await snapshot()).plants.every((plant) => plant.kind === 'trench')).toBe(true);
+    // Neither time, ordinary shots nor active skills unlock passive terrain.
+    expect((await snapshot()).boons).toEqual([]);
+    expect((await snapshot()).plants).toEqual([]);
   } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));

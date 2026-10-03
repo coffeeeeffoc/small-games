@@ -31,10 +31,8 @@ const input = {
 const keys = new Set();
 const panels = ['ready', 'pause', 'help', 'upgrade', 'result'];
 const skillButtons = [...document.querySelectorAll('[data-skill-slot]')];
-const boonButtons = [...document.querySelectorAll('[data-boon]')];
 const prepSkills = ['blast', 'gale'];
-let prepBoon = null,
-  armed = false,
+let armed = false,
   fieldArmed = false;
 let helpOpen = false,
   previousPhase = '',
@@ -62,7 +60,6 @@ try {
 }
 
 drawPortrait($('portrait'));
-document.querySelectorAll('[data-icon]').forEach((icon) => drawSeedIcon(icon, icon.dataset.icon));
 drawSeedIcon($('title-seed'), 'flower');
 
 function announce(text, duration = 3) {
@@ -111,7 +108,7 @@ function resetInput() {
 }
 
 function begin() {
-  if (!prepBoon || !configureLoadout(state, { boon: prepBoon, skills: prepSkills })) return;
+  if (!configureLoadout(state, { skills: prepSkills })) return;
   resetInput();
   helpOpen = false;
   savedResult = false;
@@ -164,27 +161,17 @@ function prepare() {
   helpOpen = false;
   previousPhase = '';
   savedResult = false;
-  if (prepBoon) configureLoadout(state, { boon: prepBoon, skills: prepSkills });
+  configureLoadout(state, { skills: prepSkills });
   refreshPreparation();
   syncPhase();
   refreshHUD();
 }
 
 function refreshPreparation() {
-  for (const button of boonButtons) {
-    const selected = button.dataset.boon === prepBoon;
-    button.classList.toggle('selected', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  }
-  $('boon-description').textContent = prepBoon
-    ? BOONS[prepBoon].description
-    : '先选一个增益，后续强化还可解锁更多地形。';
   for (let index = 0; index < 2; index++) {
     $(`loadout-skill-${index}`).value = prepSkills[index];
     $(`loadout-description-${index}`).textContent = SKILLS[prepSkills[index]].description;
   }
-  $('start').disabled = !prepBoon;
-  $('start').firstChild.textContent = prepBoon ? '进入花园 ' : '先选择庭院增益 ';
 }
 
 const skillLabels = { blast: '爆破', gale: '大风', cart: '冲锋车', horse: '战马', laser: '激光' };
@@ -204,12 +191,6 @@ for (let index = 0; index < 2; index++) {
     refreshPreparation();
   });
 }
-for (const button of boonButtons)
-  button.addEventListener('click', () => {
-    prepBoon = button.dataset.boon;
-    refreshPreparation();
-  });
-
 function cancelSkill(message = false) {
   armed = false;
   fieldArmed = false;
@@ -624,7 +605,7 @@ function refreshHUD() {
   experienceTrack.setAttribute('aria-valuemax', nextXp);
   $('active-boons').textContent = state.boons.length
     ? state.boons.map((id) => BOONS[id].name).join(' · ')
-    : '尚未选择';
+    : '升级选择后解锁';
   for (const button of skillButtons) {
     const index = Number(button.dataset.skillSlot),
       slot = state.skillSlots[index];
