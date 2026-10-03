@@ -20,7 +20,7 @@ export const markers = {
   'echo-weaver': '#emit',
   'ink-is-everything': '#start-game',
   'out-of-frame': '#board[data-level="1"]',
-  'two-sided-box': '#board[data-level="1"]',
+  'two-sided-box': '#board[data-level]',
   'luban-workshop': '#stage canvas',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
@@ -685,49 +685,62 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   } else if (id === 'two-sided-box') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
     await click(frame.locator('#start'));
-    const front = frame.locator('#board');
-    const back = frame.locator('#back-board');
-    await expect(front).toHaveAttribute('data-level', '1');
-    await expect(front).toHaveAttribute('data-side', 'front');
-    await expect(back).toHaveAttribute('data-side', 'back');
-    await expect(front).toBeVisible();
-    await expect(back).toBeVisible();
-    await expect(frame.locator('#flip')).toHaveCount(0);
-    // Both faces now expose the same shaft. Operate the front detent and back
-    // latch explicitly, and require both rendered controls to stay in sync.
-    const upperNotch = front.locator('[data-notch-shaft="A"][data-value="2"]');
-    const expectSharedShaft = async (value, locked) => {
-      await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(value);
-      for (const face of [front, back]) {
-        const shaft = face.locator('[data-shaft="A"]');
-        await expect(shaft).toHaveAttribute('aria-valuenow', String(value));
-        await expect(shaft).toHaveAttribute('aria-disabled', String(locked));
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', 'first-turn');
+    await expect(frame.locator('#board')).toBeVisible();
+    await expect(frame.locator('#face-nav [data-face]')).toHaveCount(6);
+    await expect(frame.locator('#face-nav [data-revealed="true"]')).toHaveCount(2);
+    expect((await snapshot()).state.structureViewed).toBe(false);
+    const view = async (face) => {
+      const before = (await snapshot()).state;
+      const tab = frame.locator(`[data-face="${face}"]`);
+      await click(tab);
+      if (!before.revealedFaces.includes(face)) {
+        await expect(frame.locator('#hint-dialog')).toBeVisible();
+        await expect(frame.locator('#reveal-structure')).toHaveCount(0);
+        await click(frame.locator(`[data-reveal-face="${face}"]`));
+        await expect(frame.locator('#hint-dialog')).not.toBeVisible();
       }
+      await expect.poll(async () => (await snapshot()).state.side).toBe(face);
+      await expect(frame.locator('#board')).toHaveAttribute('data-side', face);
+      const after = await snapshot();
+      expect(after.board.faces).toEqual([face]);
+      expect(after.state.shafts).toEqual(before.shafts);
+      expect(after.state.latches).toEqual(before.latches);
+      expect(after.state.moves).toBe(before.moves);
     };
-    await expectSharedShaft(0, true);
+    // Initial observations are random; discover the actual control faces through
+    // the same reveal flow available to the player before operating the box.
+    await view('front');
+    const upperNotch = frame.locator('[data-shaft="A"][data-value="2"]');
     const initialState = (await snapshot()).state;
-    // A locked shaft still gives feedback to a physical touch or mouse press.
-    // Send that input directly because the notch inherits aria-disabled.
-    await upperNotch.scrollIntoViewIfNeeded();
-    const lockedBounds = await upperNotch.boundingBox();
-    expect(lockedBounds).not.toBeNull();
-    const page = upperNotch.page();
-    const lockedX = lockedBounds.x + lockedBounds.width / 2;
-    const lockedY = lockedBounds.y + lockedBounds.height / 2;
-    if (mobile) await page.touchscreen.tap(lockedX, lockedY);
-    else await page.mouse.click(lockedX, lockedY);
+    await click(upperNotch);
     await expect.poll(async () => (await snapshot()).state).toEqual(initialState);
     await expect(frame.locator('#status')).toContainText(/锁|背|扣/);
-    await click(back.locator('[data-latch="lock-A"]'));
+    await view('back');
+    await click(frame.locator('[data-latch="lock-A"]'));
     await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
-    await expectSharedShaft(0, false);
+    await expect(frame.locator('[data-latch="lock-A"]')).toHaveAttribute('aria-pressed', 'false');
+    await view('front');
     await click(upperNotch);
-    await expectSharedShaft(2, false);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
+    await expect(upperNotch).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#release'));
     await expect
       .poll(async () => (await snapshot()).state.completed, { timeout: 15000 })
       .toBe(true);
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await expect(frame.locator('#structure-dialog')).toBeVisible();
+    await expect(frame.locator('#result')).not.toBeVisible();
+    const xray = frame.locator('#structure-xray');
+    await expect(xray).toHaveAttribute('aria-pressed', 'true');
+    await click(xray);
+    await expect(xray).toHaveAttribute('aria-pressed', 'false');
+    expect((await snapshot()).structure.xray).toBe(false);
+    await click(xray);
+    await expect(xray).toHaveAttribute('aria-pressed', 'true');
+    expect((await snapshot()).structure.xray).toBe(true);
+    await click(frame.locator('#structure-close'));
+    await expect(frame.locator('#structure-dialog')).not.toBeVisible();
+    await expect(frame.locator('#result')).toBeVisible();
     await expect(frame.locator('#next')).toBeVisible();
   } else if (id === 'tiny-signals') {
     const swipe = async (dx, dy) => {
