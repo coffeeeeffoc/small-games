@@ -17,14 +17,10 @@
       <header class="masthead">
         <div class="brand">
           <span class="brand-icon" aria-hidden="true">≈</span>
-          <div>
-            <p class="eyebrow">TIDELINK · 水位实验计划</p>
-            <h1>水位联动站<span class="edition">01</span></h1>
-          </div>
+          <h1>水位联动站</h1>
         </div>
         <div class="header-actions">
-          <span class="online"><i></i>站点运行中</span
-          ><button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false">
+          <button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false">
             ♪</button
           ><button id="help" class="icon-button" aria-label="玩法说明">?</button>
         </div>
@@ -50,13 +46,22 @@
               <span><i class="signal"></i><span id="board-status">等待调度</span></span
               ><span id="volume-total">总水量守恒</span>
             </div>
-            <svg
-              id="board"
-              viewBox="0 0 960 530"
-              role="img"
-              aria-label="水槽、共享液位与联动机关"
-              xmlns="http://www.w3.org/2000/svg"
-            ></svg>
+            <div class="board-scene">
+              <svg
+                id="board"
+                viewBox="0 0 960 530"
+                role="group"
+                aria-label="水槽与可选择管线"
+                xmlns="http://www.w3.org/2000/svg"
+              ></svg>
+              <svg
+                id="board-foreground"
+                viewBox="0 0 960 530"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+              ></svg>
+              <div id="board-controls" role="group" aria-label="场景阀门"></div>
+            </div>
             <div
               id="result"
               class="result"
@@ -91,25 +96,16 @@
           </div>
         </section>
 
-        <aside class="control-panel" aria-label="闸门控制台">
+        <aside class="control-panel" aria-label="任务与辅助操作">
           <div class="control-heading">
-            <span class="eyebrow">CONTROL ROOM</span
+            <span class="eyebrow">任务 / 辅助</span
             ><span class="console-dots" aria-hidden="true">•••</span>
           </div>
-          <h2>一阀，牵动全局。</h2>
-          <p class="control-intro">
-            每次开关一道闸门。相连的水槽，<br class="desktop-break" />会自动分享同一片水面。
-          </p>
           <div class="objectives-heading">
             <h3>本关任务</h3>
             <span id="objective-count">0 / 2</span>
           </div>
           <ul id="objectives" class="objectives"></ul>
-          <div class="valves-heading">
-            <h3>闸门调度</h3>
-            <span>点击开 / 关</span>
-          </div>
-          <div id="gate-controls" class="gate-controls"></div>
           <div class="assist-controls">
             <button id="predict" aria-pressed="false">
               <span aria-hidden="true">⌁</span>液位预测<span
@@ -134,10 +130,11 @@
         <div class="route-heading">
           <div>
             <span class="eyebrow">STATION ROUTE</span>
-            <h2>下一次，连接更多可能。</h2>
+            <h2>选择航站</h2>
           </div>
-          <span id="route-progress">航站记录 0 / 8</span>
+          <span id="route-progress">航站记录 0 / 50</span>
         </div>
+        <nav id="chapter-nav" class="chapter-nav" aria-label="选择章节"></nav>
         <nav id="level-nav" class="level-nav" aria-label="选择关卡"></nav>
       </footer>
       <div class="page-footer">
@@ -150,8 +147,10 @@
       <h2>你调闸门，水找平衡。</h2>
       <ol>
         <li>
-          <strong>点击一道闸门</strong>
-          <p>打开后，相连水槽立刻重新分配水量；关上后保留各自液位。开、关都消耗一次操作。</p>
+          <strong>直接点击场景里的阀门</strong>
+          <p>
+            点圆形阀门打开，再点一次关闭。点水管只将这条连接和相关阀门置顶，不消耗操作；锁住的阀门也可以点选查看。打开后水量自动均分，每次开关消耗一次操作。
+          </p>
         </li>
         <li>
           <strong>让机关依次启动</strong>
