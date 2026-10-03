@@ -235,6 +235,10 @@ test('finds an omitted game and an incomplete directory instead of only followin
 
 test('the real pre-push hook fails when an existing game is omitted from Shell', async (t) => {
   const f = await fixture(t);
+  // Formatting is covered with real Prettier in check-staged-format.test.mjs.
+  const fixturePackage = await f.json('package.json');
+  fixturePackage.scripts['format:check'] = 'node -e "process.exit(0)"';
+  await f.write('package.json', fixturePackage);
   for (const relative of [
     '.githooks/pre-push',
     'scripts/check-game-config.mjs',
