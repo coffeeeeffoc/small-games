@@ -32,7 +32,10 @@ export class GardenAudio {
       dash: [280, 700, 0.15, 0.03, 'triangle'],
       wave: [480, 760, 0.3, 0.08, 'sine'],
       upgrade: [520, 1040, 0.4, 0.07, 'sine'],
-      seed: [800, 400, 0.12, 0.04, 'sine'],
+      skill: [720, 180, 0.22, 0.06, 'triangle'],
+      'growth-ready': [500, 720, 0.1, 0.025, 'sine'],
+      'upgrade-ready': [620, 1240, 0.3, 0.07, 'sine'],
+      reflect: [920, 620, 0.05, 0.018, 'triangle'],
     };
     const settings = presets[type];
     if (!settings) return;

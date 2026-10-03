@@ -1,0 +1,14 @@
+{
+  "phase": "lost",
+  "time": 21.23333333333341,
+  "initialHp": 100,
+  "kills": 0,
+  "runCoins": 0,
+  "rewardCoins": 0,
+  "rewardXp": 1,
+  "completed": [],
+  "settledOnce": true,
+  "nextLevelHidden": true,
+  "retryHasNewUuid": true,
+  "errors": []
+}

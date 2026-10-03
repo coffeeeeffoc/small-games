@@ -1,0 +1,88 @@
+{
+  "design_references": ["../architecture.md", "../encounters.md", "../visual-plan.md"],
+  "workflow": "design -> generated concept reference -> corresponding implementation",
+  "runtime_art": "Canvas 2D; concepts are design references, not runtime textures",
+  "maps": [
+    {
+      "id": "ruins",
+      "reference": "map-ruins.png",
+      "sha256": "12963feec8b4a4fa5da880d3e83578d203c3212f00201f2f5afb8f05e275071d",
+      "generated_at_utc": "2026-10-03T18:07:06.529865+00:00"
+    },
+    {
+      "id": "meadow",
+      "reference": "map-meadow.png",
+      "sha256": "311fb019ec16b2377f28e0430aa9d092845f72325efc883931a948d6997dd120",
+      "generated_at_utc": "2026-10-03T18:08:06.183102+00:00"
+    },
+    {
+      "id": "wetland",
+      "reference": "map-wetland.png",
+      "sha256": "f2bbf86957238f5876568eb8c7d6bc52a39a604761b8946d06199f0aeeab4ecc",
+      "generated_at_utc": "2026-10-03T18:09:08.924390+00:00"
+    },
+    {
+      "id": "quarry",
+      "reference": "map-quarry.png",
+      "sha256": "1e0bb4e419bb578da1d9b1430e7ec2379f7970ab3501da8f8f78f65bfa7ed44e",
+      "generated_at_utc": "2026-10-03T18:11:00.354707+00:00"
+    },
+    {
+      "id": "windpass",
+      "reference": "map-windpass.png",
+      "sha256": "50cd8d79485215fc0e9445c3a7013dd00709ccbccedfcc3a571e6660bf43e6d7",
+      "generated_at_utc": "2026-10-03T18:14:11.226994+00:00"
+    },
+    {
+      "id": "hollow",
+      "reference": "map-hollow.png",
+      "sha256": "300134f0a989f1aece7d8c9fc5b9946d1fe1f9be58a5aae9bbec5f5fce7dbb2c",
+      "generated_at_utc": "2026-10-03T18:16:01.613364+00:00"
+    },
+    {
+      "id": "terraces",
+      "reference": "map-terraces.png",
+      "sha256": "25d29200ef2da3d35b6a97deef9938d474d6e2a9759ba13d410189da17ef75dc",
+      "generated_at_utc": "2026-10-03T18:13:07.865590+00:00"
+    },
+    {
+      "id": "bastion",
+      "reference": "map-bastion.png",
+      "sha256": "1fade955fcb14a6c0a2c4c256e69315e8b219b12009290db8d2ec208e1373866",
+      "generated_at_utc": "2026-10-03T18:12:06.548085+00:00"
+    },
+    {
+      "id": "mistwood",
+      "reference": "map-mistwood.png",
+      "sha256": "3bf892fadf5e0449d112b145953d678b3b13d3bf595ffcd50dc38da5b53bf621",
+      "generated_at_utc": "2026-10-03T18:14:54.419919+00:00"
+    },
+    {
+      "id": "hailfield",
+      "reference": "map-hailfield.png",
+      "sha256": "c09cbf58945214ce9f8f88a137fdfb81377b636553753972b62677d78c099925",
+      "generated_at_utc": "2026-10-03T18:17:07.638850+00:00"
+    },
+    {
+      "id": "heartgarden",
+      "reference": "map-heartgarden.png",
+      "sha256": "540e30d32061a59504e3c47a4244d56763efe95a383082d688591dc765d90947",
+      "generated_at_utc": "2026-10-03T18:18:08.452175+00:00"
+    }
+  ],
+  "mechanisms": [
+    {
+      "id": "growth-weapons-plants",
+      "reference": "growth-weapons-plants.png",
+      "sha256": "89b86e1511c86646a329e2b8208d65d13fe500bc1abc46da4e9eaea800621323",
+      "generated_at_utc": "2026-10-03T18:04:39.854819+00:00"
+    },
+    {
+      "id": "monsters",
+      "reference": "monsters.png",
+      "sha256": "b543371bd5cc060bbec3e9e8d4ec287eaab9b113b60cfcc3ac4d166cb1f36a82",
+      "generated_at_utc": "2026-10-03T18:06:03.340564+00:00"
+    }
+  ],
+  "implementation_gate_opened_at_utc": "2026-10-03T18:18:39.479464+00:00"
+}

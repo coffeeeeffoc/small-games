@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-03T18:24:59.951Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4411",
+  "policy": "native keyboard/mouse/CDP touch; read-only simulation snapshot; fixtures explicitly separated from natural victory",
+  "checks": [
+    {
+      "name": "natural first clear → exact reward → paid growth → next map → reload persistence",
+      "fixture": false,
+      "wallet": 1058,
+      "kills": 282,
+      "hp": 75
+    }
+  ],
+  "errors": [],
+  "naturalRun": {
+    "result": "won",
+    "time": 300,
+    "hp": 75,
+    "kills": 282,
+    "stats": {
+      "shots": 1576,
+      "plantsGrown": 132,
+      "plantKills": 30,
+      "terrainDamage": 3125.9209821417953,
+      "damageTaken": 32,
+      "misses": 854,
+      "reflections": 0,
+      "splitShots": 0,
+      "autoPlants": 132,
+      "skillCasts": 76,
+      "skillDamage": 5820.470684523821,
+      "skillKills": 74,
+      "petShots": 0,
+      "petKills": 0,
+      "hostileShots": 0,
+      "shieldDamage": 0
+    },
+    "selections": [
+      {
+        "id": "fire-shot",
+        "time": 15.10000000000033,
+        "choices": ["boon-poison", "ice-shot", "fire-shot"]
+      },
+      {
+        "id": "attack-power",
+        "time": 35.13333333333262,
+        "choices": ["attack-power", "fire-shot", "boon-ice"]
+      },
+      {
+        "id": "boon-poison",
+        "time": 52.93333333333161,
+        "choices": ["fire-shot", "boon-poison", "split-shot"]
+      },
+      {
+        "id": "boon-shrub",
+        "time": 81.01666666666335,
+        "choices": ["attack-speed", "energy-cycle", "boon-shrub", "wild-heart"]
+      },
+      {
+        "id": "explosive-shot",
+        "time": 104.24999999999537,
+        "choices": ["explosive-shot", "boon-ice", "ricochet", "terrain-duration"]
+      },
+      {
+        "id": "ice-shot",
+        "time": 127.0833333333274,
+        "choices": ["burst", "boon-ice", "explosive-shot", "ice-shot"]
+      },
+      {
+        "id": "boon-trench",
+        "time": 153.71666666668114,
+        "choices": ["boon-ice", "energy-cycle", "boon-trench", "attack-speed"]
+      },
+      {
+        "id": "fire-shot",
+        "time": 186.00000000004016,
+        "choices": ["ricochet", "explosive-shot", "boon-ice", "fire-shot"]
+      },
+      {
+        "id": "attack-speed",
+        "time": 201.9166666667195,
+        "choices": ["boon-ice", "energy-cycle", "burst", "attack-speed"]
+      },
+      {
+        "id": "boon-frost",
+        "time": 225.11666666673796,
+        "choices": ["attack-speed", "attack-power", "terrain-heart", "boon-frost"]
+      },
+      {
+        "id": "multishot",
+        "time": 247.81666666675602,
+        "choices": ["explosive-shot", "multishot", "terrain-duration", "terrain-heart"]
+      },
+      {
+        "id": "attack-speed",
+        "time": 262.8833333334229,
+        "choices": ["multishot", "attack-speed", "boon-ice", "terrain-heart"]
+      },
+      {
+        "id": "attack-speed",
+        "time": 288.16666666673325,
+        "choices": ["terrain-duration", "burst", "attack-speed", "multishot"]
+      }
+    ],
+    "runId": "07fc4066-a88a-481d-a301-67774d8444b9"
+  },
+  "passed": true
+}
