@@ -299,8 +299,7 @@ button:active {
 .field-status {
   position: absolute;
   right: 28px;
-  top: 119px;
-  bottom: auto;
+  bottom: 235px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -328,143 +327,308 @@ button:active {
   color: #b9e988;
   margin-left: 3px;
 }
-/* Growth is passive: keep its status compact and the battlefield visible. */
-.experience-caption {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 8px 0 4px;
-  color: #c8d7e2;
-  font-size: 9px;
-  text-shadow: 0 1px 4px #172b22;
-}
-.experience-caption strong {
-  color: #bddcfb;
-  font-size: 10px;
-}
-#experience {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-}
-.experience-track,
-.growth-track {
-  height: 5px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #0c211fcc;
-  border: 1px solid #bacdba30;
-}
-#experience-fill {
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #749fcf, #c0e5ff);
-  border-radius: inherit;
-  transition: width 0.12s;
-}
-.growth-dock {
+.seed-dock {
   position: absolute;
-  bottom: 42px;
+  bottom: 43px;
   left: 50%;
   transform: translateX(-50%);
-  width: 422px;
   z-index: 3;
-  padding: 10px 16px 8px;
-  pointer-events: none;
-  border: 1px solid #86948270;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #23302ddd, #152325e8);
+  padding: 13px 14px 12px;
+  background: linear-gradient(135deg, #23302dea, #152325ed);
+  border: 1px solid #86948280;
+  border-radius: 17px;
   box-shadow:
-    0 5px 20px #04181155,
-    inset 0 1px #e1dec11a;
+    0 5px 0 #13242070,
+    0 10px 40px #04181166,
+    inset 0 1px #e1dec127;
+  width: 492px;
 }
-.growth-heading {
+.dock-heading {
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 7px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 9px;
+  background: #202b29;
+  border: 1px solid #6f7c6270;
+  border-radius: 20px;
+  height: 30px;
+  padding: 0 18px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px #081a1950;
 }
-.growth-heading strong {
-  color: #cbe6a5;
+.dock-heading strong {
+  font-size: 14px;
   letter-spacing: 1px;
 }
-#growth-next {
-  margin-left: auto;
-  color: #bdcdb6;
+.dock-heading > span:not(.decorative-leaf) {
   font-size: 10px;
+  color: #b3c2a6;
+  letter-spacing: 0.5px;
 }
-#growth-count {
-  color: #d9ecc3;
-  font-variant-numeric: tabular-nums;
+.decorative-leaf {
+  color: #bdd58c;
+  font-size: 12px;
 }
-.growth-track {
-  height: 5px;
+.seed-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
 }
-#growth-fill {
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #789b59, #d1ec9e);
-  border-radius: inherit;
-  transition: width 0.12s;
-}
-.terrain-legend {
+.seed-card {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin: 4px 0 0;
+  border-radius: 11px;
+  padding: 0 7px 11px;
+  min-height: 164px;
+  overflow: hidden;
+  border: 2px solid #75a85e;
+  background: linear-gradient(150deg, #3d663bf2, #253e29f5);
+  box-shadow:
+    inset 0 0 0 3px #94c98025,
+    0 3px 0 #091b1980;
+  isolation: isolate;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
 }
-.terrain-legend > span {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  opacity: 0.58;
-  transition: opacity 0.2s;
+.seed-card:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, #bde17d38, transparent 65%);
+  z-index: -1;
 }
-.terrain-legend > span.next {
-  opacity: 1;
+.seed-card.ice {
+  border-color: #467faa;
+  background: linear-gradient(150deg, #294f6bf2, #1f3345f5);
 }
-.terrain-legend canvas {
-  width: 52px;
-  height: 39px;
-  flex: none;
+.seed-card.ice:before {
+  background: radial-gradient(ellipse at 50% 40%, #58c9ff38, transparent 65%);
 }
-.terrain-legend b {
+.seed-card.mushroom {
+  border-color: #b18042;
+  background: linear-gradient(150deg, #76512cf2, #453022f5);
+}
+.seed-card.mushroom:before {
+  background: radial-gradient(ellipse at 50% 40%, #ffb64e3d, transparent 65%);
+}
+.seed-card.selected {
+  border-color: #c3f08b;
+  box-shadow:
+    inset 0 0 0 3px #baf68966,
+    0 0 16px #aeed6454,
+    0 4px 0 #25452c;
+  transform: translateY(-3px);
+}
+.seed-card.ice.selected {
+  border-color: #b2eaff;
+  box-shadow:
+    inset 0 0 0 3px #71dcff70,
+    0 0 18px #51ccff60,
+    0 4px 0 #253e54;
+}
+.seed-card.mushroom.selected {
+  border-color: #ffe2a3;
+  box-shadow:
+    inset 0 0 0 3px #ffcb6070,
+    0 0 18px #ffb24d60,
+    0 4px 0 #614127;
+}
+.seed-card canvas {
+  width: 132px;
+  height: 90px;
+  max-width: 100%;
+  pointer-events: none;
+  margin-top: 4px;
+}
+.seed-card strong {
+  font-size: 17px;
+  line-height: 1.4;
+  text-shadow: 0 2px #132616;
+  letter-spacing: 1px;
+}
+.seed-description {
   font-size: 10px;
-  color: #e6ebd2;
-  display: block;
-  font-weight: 600;
-}
-.terrain-legend small {
-  font-size: 8px;
-  color: #b8c6ad;
+  margin-top: 5px;
+  color: #e3e8cf;
   white-space: nowrap;
 }
-.terrain-legend [data-terrain='ice'] b {
-  color: #b9eaff;
+.seed-role {
+  font-size: 9px;
+  color: #dbe8c2;
+  background: #172d244a;
+  border-radius: 9px;
+  padding: 2px 12px;
+  margin-top: 6px;
+  letter-spacing: 2px;
 }
-.terrain-legend [data-terrain='mushroom'] b {
-  color: #ffe0ad;
+.seed-shortcut {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  border: 1px solid #d7e7b94f;
+  font-size: 9px;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  line-height: 15px;
+  color: #dfebcf;
 }
-.growth-dock > p {
-  font-size: 8px;
-  color: #aebba6;
-  text-align: center;
-  margin: 3px 0 0;
-  letter-spacing: 0.3px;
+.seed-stock {
+  position: absolute;
+  right: 9px;
+  top: 7px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #faf4df;
 }
-.handbook-growth {
-  text-align: left;
+.seed-stock:before {
+  content: '×';
+  font-size: 9px;
+  opacity: 0.65;
+  margin-right: 3px;
+}
+.seed-cooldown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #d7f1a9;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.seed-card.ice .seed-cooldown {
+  background: #8edfff;
+}
+.seed-card.mushroom .seed-cooldown {
+  background: #ffd098;
+}
+.growth-guide {
+  position: absolute;
+  left: 28px;
+  bottom: 44px;
+  width: 257px;
+  padding: 12px 15px 10px;
+  border: 1px solid #d0d2b96b;
+  border-radius: 13px;
+  z-index: 2;
+  background: #192827c9;
+  box-shadow: 0 4px 12px #09241f55;
+}
+.guide-heading {
   font-size: 11px;
-  color: #d0dcc0;
-  line-height: 1.8;
+  letter-spacing: 1px;
+  color: #eadfc2;
+  border-bottom: 1px solid #94a49138;
+  padding-bottom: 7px;
 }
-.handbook-growth b {
+.growth-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 7px 0 4px;
+}
+.growth-steps > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 53px;
+}
+.growth-steps b {
+  font-size: 10px;
+  color: #f3eed8;
+  letter-spacing: 0.5px;
+}
+.growth-steps canvas {
+  width: 58px;
+  height: 46px;
+}
+.step-arrow {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f0d6a0;
+  margin-bottom: 12px;
+}
+.step-art {
+  height: 46px;
+  width: 53px;
   display: block;
-  color: #d5e9b8;
+  position: relative;
+}
+.bullet-art:before {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 12px;
+  border-radius: 90% 40%;
+  background: #ffb4ec;
+  box-shadow:
+    0 0 9px #ff88dc,
+    10px 0 15px #fb8bd8;
+  transform: rotate(-25deg);
+  top: 16px;
+  left: 16px;
+}
+.bullet-art:after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 3px;
+  top: 27px;
+  left: -3px;
+  transform: rotate(-25deg);
+  background: linear-gradient(90deg, transparent, #ff8adb);
+}
+.sprout-art:before {
+  content: '';
+  width: 32px;
+  height: 10px;
+  border: 2px solid #eaa858;
+  border-radius: 50%;
+  position: absolute;
+  left: 11px;
+  top: 29px;
+  box-shadow: 0 0 12px #ffb65977;
+}
+.sprout-art:after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 26px;
+  background: #b9d98b;
+  left: 28px;
+  top: 8px;
+}
+.sprout-art i {
+  display: block;
+  position: absolute;
+  left: 28px;
+  top: 6px;
+  width: 12px;
+  height: 17px;
+  background: #f4a3d6;
+  border-radius: 90% 20%;
+  box-shadow: 0 0 10px #ed8ac0;
+}
+.growth-guide p {
+  font-size: 9px;
+  color: #b4c2ab;
+  text-align: center;
+  margin: 6px 0 0;
+  letter-spacing: 0.5px;
 }
 .touch-controls {
   position: absolute;
-  bottom: 43px;
+  bottom: 48px;
   left: 26px;
   right: 26px;
   display: flex;
@@ -520,6 +684,7 @@ button:active {
   margin-left: auto;
   pointer-events: auto;
 }
+#cast,
 #dash {
   border-radius: 50%;
   display: flex;
@@ -535,13 +700,26 @@ button:active {
     inset 0 0 0 4px #a2c46b1a;
   touch-action: none;
 }
-
+#cast svg {
+  width: 28px;
+  height: 28px;
+  fill: #dbe8ae;
+  stroke: #405a33;
+  stroke-width: 1.5;
+}
+#cast svg path + path {
+  stroke: #678342;
+  fill: none;
+  stroke-width: 2;
+}
+#cast span,
 #dash span {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
   margin-left: 2px;
 }
+#cast small,
 #dash small {
   font-size: 8px;
   opacity: 0.7;
@@ -930,7 +1108,8 @@ button:active {
 .compact-panel .primary-button {
   margin-top: 10px;
 }
-body[data-phase='ready'] .growth-dock,
+body[data-phase='ready'] .seed-dock,
+body[data-phase='ready'] .growth-guide,
 body[data-phase='ready'] .touch-controls,
 body[data-phase='ready'] .field-status,
 body[data-phase='ready'] .control-hint {
@@ -945,6 +1124,39 @@ body[data-phase='ready'] .overlay {
   backdrop-filter: blur(2px);
 }
 @media (max-width: 1150px) {
+  .growth-guide {
+    width: 200px;
+    left: 20px;
+    padding: 10px;
+  }
+  .guide-heading {
+    font-size: 10px;
+  }
+  .growth-steps > div {
+    min-width: 43px;
+  }
+  .growth-steps b {
+    font-size: 9px;
+  }
+  .growth-steps canvas {
+    width: 48px;
+  }
+  .seed-dock {
+    width: 425px;
+  }
+  .seed-card {
+    min-height: 147px;
+  }
+  .seed-card canvas {
+    height: 76px;
+    width: 116px;
+  }
+  .seed-card strong {
+    font-size: 15px;
+  }
+  .seed-description {
+    font-size: 9px;
+  }
   .touch-controls {
     right: 20px;
     left: 20px;
@@ -952,7 +1164,10 @@ body[data-phase='ready'] .overlay {
   .action-controls {
     gap: 9px;
   }
-
+  #cast {
+    width: 74px;
+    height: 74px;
+  }
   #dash {
     width: 57px;
     height: 57px;
@@ -995,7 +1210,9 @@ body[data-phase='ready'] .overlay {
   #joystick {
     display: block;
   }
-
+  .growth-guide {
+    display: none;
+  }
   .control-hint > span {
     display: none;
   }
@@ -1005,7 +1222,10 @@ body[data-phase='ready'] .overlay {
   .control-hint button {
     margin-left: 0;
   }
-
+  .seed-shortcut {
+    display: none;
+  }
+  #cast small,
   #dash small {
     font-size: 9px;
   }
@@ -1013,9 +1233,15 @@ body[data-phase='ready'] .overlay {
     bottom: 45px;
   }
   .field-status {
-    bottom: auto;
+    bottom: 227px;
   }
-
+  .seed-dock {
+    bottom: 44px;
+  }
+  #cast {
+    width: 86px;
+    height: 86px;
+  }
   #dash {
     width: 64px;
     height: 64px;
@@ -1095,7 +1321,58 @@ body[data-phase='ready'] .overlay {
     font-size: 17px;
     min-width: 15px;
   }
-
+  .seed-dock {
+    width: 316px;
+    bottom: 24px;
+    padding: 9px 9px 7px;
+    border-radius: 12px;
+  }
+  .dock-heading {
+    height: 24px;
+    top: -13px;
+    gap: 7px;
+    padding: 0 12px;
+  }
+  .dock-heading strong {
+    font-size: 10px;
+  }
+  .dock-heading > span:not(.decorative-leaf) {
+    font-size: 8px;
+  }
+  .seed-cards {
+    gap: 7px;
+  }
+  .seed-card {
+    min-height: 95px;
+    border-radius: 8px;
+    padding: 0 3px 6px;
+  }
+  .seed-card canvas {
+    height: 50px;
+    width: 75px;
+    margin-top: 1px;
+  }
+  .seed-card strong {
+    font-size: 11px;
+  }
+  .seed-description {
+    font-size: 7px;
+    margin-top: 3px;
+  }
+  .seed-role {
+    display: none;
+  }
+  .seed-stock {
+    font-size: 10px;
+    right: 6px;
+    top: 5px;
+  }
+  .seed-shortcut {
+    display: none;
+  }
+  .growth-guide {
+    display: none;
+  }
   .control-hint {
     bottom: 3px;
     font-size: 8px;
@@ -1118,19 +1395,27 @@ body[data-phase='ready'] .overlay {
     width: 42px;
     height: 42px;
   }
-
+  #cast {
+    width: 67px;
+    height: 67px;
+  }
   #dash {
     width: 50px;
     height: 50px;
   }
-
+  #cast svg {
+    width: 23px;
+    height: 23px;
+  }
   #dash svg {
     width: 18px;
     height: 18px;
   }
+  #cast span,
   #dash span {
     font-size: 10px;
   }
+  #cast small,
   #dash small {
     font-size: 7px;
   }
@@ -1377,7 +1662,58 @@ body[data-phase='ready'] .overlay {
     white-space: normal;
     width: max-content;
   }
-
+  .seed-dock {
+    bottom: calc(155px + env(safe-area-inset-bottom));
+    width: calc(100% - 34px);
+    max-width: 410px;
+    padding: 11px 10px 9px;
+    border-radius: 13px;
+  }
+  .dock-heading {
+    height: 25px;
+    top: -13px;
+    padding: 0 15px;
+    gap: 7px;
+  }
+  .dock-heading strong {
+    font-size: 11px;
+  }
+  .dock-heading > span:not(.decorative-leaf) {
+    font-size: 8px;
+  }
+  .seed-cards {
+    gap: 9px;
+  }
+  .seed-card {
+    min-height: 121px;
+    border-radius: 8px;
+    padding: 0 3px 7px;
+  }
+  .seed-card canvas {
+    height: 65px;
+    width: 98px;
+    margin-top: 4px;
+  }
+  .seed-card strong {
+    font-size: 13px;
+  }
+  .seed-description {
+    font-size: 8px;
+    margin-top: 4px;
+  }
+  .seed-role {
+    font-size: 7px;
+    padding: 1px 10px;
+    margin-top: 5px;
+  }
+  .seed-stock {
+    font-size: 11px;
+    top: 7px;
+    right: 7px;
+  }
+  .seed-shortcut {
+    display: none;
+  }
   .touch-controls {
     bottom: calc(33px + env(safe-area-inset-bottom));
     left: 26px;
@@ -1399,12 +1735,18 @@ body[data-phase='ready'] .overlay {
     gap: 12px;
     padding-bottom: 5px;
   }
-
+  #cast {
+    width: 79px;
+    height: 79px;
+  }
   #dash {
     width: 60px;
     height: 60px;
   }
-
+  #cast svg {
+    width: 27px;
+    height: 27px;
+  }
   #dash svg {
     width: 21px;
     height: 21px;
@@ -1419,7 +1761,9 @@ body[data-phase='ready'] .overlay {
   .field-status button {
     font-size: 9px;
   }
-
+  .growth-guide {
+    display: none;
+  }
   .control-hint {
     justify-content: center;
     bottom: max(8px, env(safe-area-inset-bottom));
@@ -1540,7 +1884,414 @@ body[data-phase='ready'] .overlay {
   }
 }
 
-/* Three and four choices share the same rhythm, including narrow touch screens. */
+/* Chosen terrain and manually released energy share a compact battle HUD. */
+.skill-dock {
+  position: absolute;
+  bottom: max(37px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: 430px;
+  padding: 10px;
+  border: 1px solid #a1b58b66;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #283b30ef, #152722f5);
+  box-shadow:
+    0 7px 25px #081c1955,
+    inset 0 1px #e5efce15;
+}
+.skill-dock-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 0 3px 8px;
+}
+.skill-dock-heading strong {
+  color: #dce8bc;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.skill-dock-heading > span {
+  font-size: 9px;
+  color: #aec2a4;
+}
+.skill-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.skill-card {
+  --skill-color: #b9e988;
+  position: relative;
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  min-height: 79px;
+  padding: 6px 9px 15px 0;
+  text-align: left;
+  border: 1px solid #8ba77e5c;
+  border-radius: 10px;
+  background: #294031;
+  overflow: hidden;
+  isolation: isolate;
+}
+.skill-card canvas {
+  grid-row: 1 / 3;
+  width: 62px;
+  height: 53px;
+  pointer-events: none;
+}
+.skill-copy strong {
+  display: block;
+  color: #eaf1d8;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+.skill-copy small {
+  display: block;
+  color: #acbea2;
+  font-size: 9px;
+  margin-top: 4px;
+}
+.skill-energy {
+  grid-column: 2;
+  color: var(--skill-color);
+  font-size: 11px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.skill-meter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: #142a21;
+}
+.skill-meter i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: var(--skill-color);
+}
+.skill-key {
+  position: absolute;
+  right: 6px;
+  bottom: 9px;
+  font-size: 9px;
+  color: #bdc9b5;
+  border: 1px solid #a8bb9766;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.skill-card.ready {
+  border-color: var(--skill-color);
+  background: linear-gradient(135deg, #3a5136, #284130);
+}
+.skill-card.ready .skill-copy small {
+  color: var(--skill-color);
+}
+.skill-card.armed {
+  outline: 2px solid #fff1b6;
+  outline-offset: 2px;
+  background: linear-gradient(135deg, #506341, #354b31);
+}
+.skill-instruction {
+  text-align: center;
+  color: #b5c7a7;
+  font-size: 10px;
+  margin-top: 8px;
+}
+.boon-status {
+  position: absolute;
+  left: 25px;
+  top: 157px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 265px;
+  padding: 8px 11px;
+  border: 1px solid #a8bb8533;
+  border-radius: 8px;
+  background: #182c21bc;
+  pointer-events: none;
+}
+.boon-status > span {
+  font-size: 9px;
+  color: #a7bc95;
+  letter-spacing: 1px;
+}
+.boon-status strong {
+  font-size: 11px;
+  color: #d4e6b9;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.targeting {
+  position: absolute;
+  top: 176px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 5px 5px 5px 16px;
+  border: 1px solid #e4d791a8;
+  border-radius: 30px;
+  background: #263d2cf0;
+  box-shadow: 0 3px 20px #0c251e66;
+}
+.targeting > span {
+  color: #f4ebca;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#cancel-cast {
+  min-width: 66px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: #556847;
+  border-radius: 24px;
+  color: #fff1d3;
+  font-size: 12px;
+}
+#cancel-cast span {
+  font-size: 18px;
+  margin-left: 5px;
+}
+.field-status {
+  bottom: 199px;
+}
+.field-status button {
+  min-height: 32px;
+}
+.touch-controls {
+  bottom: max(44px, env(safe-area-inset-bottom));
+}
+.action-controls {
+  align-items: flex-end;
+}
+#cast {
+  width: 74px;
+  height: 74px;
+}
+#cast:disabled {
+  opacity: 0.38;
+}
+body[data-phase='ready'] .skill-dock,
+body[data-phase='ready'] .boon-status {
+  opacity: 0.3;
+  pointer-events: none;
+}
+body:not([data-phase='playing']) .targeting {
+  display: none;
+}
+body[data-armed='true'] #arena {
+  cursor: crosshair;
+}
+
+/* Preparation gives each option a real touch target without covering combat. */
+.ready-panel.modal {
+  width: min(100%, 620px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 23px 28px 16px;
+  text-align: left;
+}
+.ready-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.ready-heading > canvas {
+  width: 73px;
+  height: 64px;
+}
+.ready-heading .modal-kicker {
+  font-size: 8px;
+  letter-spacing: 2px;
+  justify-content: flex-start;
+  margin-bottom: 4px;
+}
+.ready-panel h1 {
+  font-size: 37px;
+  letter-spacing: 6px;
+  padding: 0;
+}
+.ready-panel .intro {
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 9px 0 17px;
+  letter-spacing: 0.3px;
+}
+.loadout-section {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.loadout-section legend {
+  width: 100%;
+  margin-bottom: 9px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: #e4e8cd;
+}
+.loadout-section legend > span {
+  color: #a9c987;
+  font-size: 11px;
+  margin-right: 7px;
+}
+.loadout-section legend small {
+  float: right;
+  color: #b6c4a6;
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 1px;
+}
+.boon-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.boon-options button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 4px 10px;
+  border: 1px solid #8ba67766;
+  border-radius: 10px;
+  background: #20372b;
+}
+.boon-options canvas {
+  width: 70px;
+  height: 53px;
+  pointer-events: none;
+}
+.boon-options strong {
+  font-size: 12px;
+  color: #e5ebd0;
+}
+.boon-options small {
+  font-size: 9px;
+  color: #b6c4a7;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+.boon-options button.selected {
+  border-color: #d4eea6;
+  background: #3c5538;
+  box-shadow: inset 0 0 0 1px #d4eea6;
+}
+.loadout-note {
+  margin: 8px 0 0;
+  color: #abc29f;
+  font-size: 10px;
+  line-height: 1.6;
+  min-height: 32px;
+}
+.loadout-skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.loadout-skills label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.loadout-skills label > span {
+  font-size: 10px;
+  color: #b8cca8;
+}
+.loadout-skills select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #879e7180;
+  border-radius: 8px;
+  background: #182f25;
+  color: #eff0dc;
+  padding: 8px;
+  font: inherit;
+  font-size: 12px;
+}
+.loadout-skills select:focus-visible {
+  outline: 2px solid #fff1b6;
+  outline-offset: 2px;
+}
+.loadout-skills option {
+  background: #20372b;
+  color: #eff0dc;
+}
+.loadout-skills small {
+  color: #acbfa1;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.ready-panel .primary-button {
+  min-height: 48px;
+  padding: 10px;
+  font-size: 15px;
+}
+.ready-panel .primary-button:disabled {
+  filter: saturate(0.35);
+  box-shadow: none;
+  opacity: 0.5;
+}
+.ready-panel .ready-tip {
+  font-size: 10px;
+  text-align: center;
+  margin: 11px 0 2px;
+  letter-spacing: 0;
+}
+.ready-panel .text-button {
+  display: block;
+  margin: auto;
+  min-height: 35px;
+}
+.experience-caption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 4px;
+  color: #c8d7e2;
+  font-size: 9px;
+  text-shadow: 0 1px 4px #172b22;
+}
+.experience-caption strong {
+  color: #bddcfb;
+  font-size: 10px;
+}
+#experience {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.experience-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0c211fcc;
+  border: 1px solid #bacdba30;
+}
+#experience-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #749fcf, #c0e5ff);
+  border-radius: inherit;
+  transition: width 0.12s;
+}
 .upgrade-panel {
   width: min(100%, 820px);
   max-height: calc(100dvh - 32px);
@@ -1569,217 +2320,479 @@ body[data-phase='ready'] .overlay {
 .upgrade-option[data-category='survival'] .upgrade-category {
   color: #bddaf4;
 }
-.handbook-controls {
-  line-height: 1.8;
-}
-
-@media (max-width: 1080px), (max-height: 650px) {
-  .experience-caption {
-    margin-top: 5px;
-    font-size: 8px;
+@media (pointer: coarse) {
+  .skill-key {
+    display: none;
   }
-  .experience-caption strong {
-    font-size: 9px;
-  }
-  .experience-track {
-    height: 4px;
-  }
-  .growth-dock {
-    width: 346px;
-    bottom: 28px;
-    padding: 8px 12px 6px;
-    border-radius: 11px;
-  }
-  .growth-heading {
-    margin-bottom: 5px;
-    font-size: 10px;
-  }
-  #growth-next {
-    font-size: 9px;
-  }
-  .terrain-legend {
-    gap: 6px;
-    margin-top: 1px;
-  }
-  .terrain-legend canvas {
-    width: 44px;
-    height: 32px;
-  }
-  .terrain-legend b {
-    font-size: 9px;
-  }
-  .terrain-legend small,
-  .growth-dock > p {
-    font-size: 7px;
-  }
-  .field-status {
-    top: 91px;
-    bottom: auto;
-    right: 18px;
-    font-size: 9px;
-  }
-  .announcement {
-    top: 109px;
-  }
-  #dash {
-    width: 62px;
-    height: 62px;
-  }
-}
-@media (max-height: 500px) and (orientation: landscape) {
-  .growth-dock {
-    bottom: 24px;
-    width: 310px;
-  }
-  .terrain-legend canvas {
-    height: 26px;
-    width: 38px;
-  }
-  .growth-dock > p {
-    margin-top: 0;
-    letter-spacing: 0;
-  }
-  .field-status {
-    top: auto;
-    bottom: 104px;
-  }
-  .announcement {
-    top: 84px;
-    font-size: 9px;
-  }
-  .touch-controls {
-    bottom: 28px;
-  }
-  .upgrade-panel {
-    padding: 18px 22px;
-  }
-  .upgrade-panel > p {
-    margin-bottom: 8px;
-  }
-  #upgrade-options {
-    margin-top: 8px;
-  }
-  .upgrade-option {
-    padding: 7px 10px;
-  }
-  .upgrade-option canvas {
-    height: 39px;
-  }
-  .upgrade-option strong {
-    font-size: 12px;
-  }
-  .upgrade-category {
-    margin: 3px 0;
-    font-size: 8px;
+  #cast {
+    display: none;
   }
 }
 @media (max-width: 620px) and (orientation: portrait) {
-  .health-group {
-    width: 215px;
+  .skill-dock {
+    bottom: calc(25px + env(safe-area-inset-bottom));
+    left: auto;
+    right: 13px;
+    transform: none;
+    width: calc(100% - 140px);
+    max-width: 286px;
+    padding: 8px;
+    border-radius: 12px;
   }
-  .health-caption {
-    font-size: 7px;
+  .skill-dock-heading {
+    justify-content: center;
+    margin-bottom: 6px;
   }
-  .wave-group {
-    top: 86px;
-    width: 180px;
-  }
-  .announcement {
-    top: 178px;
-  }
-  .growth-dock {
-    bottom: calc(24px + env(safe-area-inset-bottom));
-    width: calc(100% - 30px);
-    max-width: 410px;
-    padding: 9px 13px 7px;
-  }
-  .growth-heading {
+  .skill-dock-heading strong {
     font-size: 10px;
   }
-  .terrain-legend {
-    gap: 8px;
-  }
-  .terrain-legend canvas {
-    width: 45px;
-    height: 32px;
-  }
-  .terrain-legend b {
-    font-size: 10px;
-  }
-  .terrain-legend small {
-    font-size: 7px;
-  }
-  .growth-dock > p {
-    font-size: 7px;
-    letter-spacing: 0;
-  }
-  .touch-controls {
-    bottom: calc(122px + env(safe-area-inset-bottom));
-    left: 23px;
-    right: 23px;
-  }
-  #dash {
-    width: 70px;
-    height: 70px;
-  }
-  #dash svg {
-    width: 25px;
-    height: 25px;
-  }
-  #dash span {
-    font-size: 11px;
-  }
-  #dash small {
-    font-size: 8px;
-  }
-  .field-status {
-    top: auto;
-    bottom: calc(207px + env(safe-area-inset-bottom));
-    right: 23px;
-    font-size: 8px;
-    padding: 6px 8px;
-  }
-  .field-status .field-divider,
-  .field-status > span:last-child {
+  .skill-dock-heading > span {
     display: none;
   }
-  .upgrade-panel {
-    padding: 23px 20px;
-    width: min(100%, 365px);
+  .skill-cards {
+    gap: 6px;
+  }
+  .skill-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    text-align: center;
+    min-height: 115px;
+    padding: 3px 2px 12px;
+  }
+  .skill-card canvas {
+    width: 52px;
+    height: 40px;
+  }
+  .skill-copy strong {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .skill-copy small {
+    font-size: 8px;
+    line-height: 1.5;
+    min-height: 12px;
+  }
+  .skill-energy {
+    font-size: 10px;
+    margin-top: 3px;
+  }
+  .skill-instruction {
+    font-size: 8px;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .touch-controls {
+    bottom: calc(40px + env(safe-area-inset-bottom));
+    left: 14px;
+    right: auto;
+    width: 108px;
+  }
+  .action-controls {
+    position: absolute;
+    left: 25px;
+    bottom: 126px;
+    padding: 0;
+  }
+  #joystick {
+    width: 105px;
+    height: 105px;
+  }
+  #dash {
+    width: 56px;
+    height: 56px;
+  }
+  #cast {
+    display: none;
+  }
+  .field-status {
+    bottom: calc(205px + env(safe-area-inset-bottom));
+    right: 13px;
+    padding: 1px 8px;
+    font-size: 9px;
+  }
+  .boon-status {
+    top: 175px;
+    left: 14px;
+    padding: 6px 8px;
+    max-width: 185px;
+    gap: 2px;
+  }
+  .boon-status strong {
+    font-size: 9px;
+  }
+  .boon-status > span {
+    font-size: 8px;
+  }
+  .wave-group {
+    top: 87px;
+  }
+  .announcement {
+    top: 234px;
+  }
+  .targeting {
+    top: 237px;
+    padding-left: 12px;
+    gap: 6px;
+  }
+  .targeting > span {
+    font-size: 10px;
+  }
+  body[data-armed='true'] .announcement {
+    opacity: 0;
+  }
+  .control-hint {
+    bottom: max(3px, env(safe-area-inset-bottom));
+  }
+  .control-hint button {
+    font-size: 8px;
+    padding: 2px;
+  }
+  .experience-caption {
+    font-size: 7px;
+    margin-top: 5px;
+  }
+  .experience-caption strong {
+    font-size: 8px;
+  }
+  .ready-panel.modal {
+    width: min(100%, 390px);
+    padding: 18px 18px 12px;
+    max-height: calc(100dvh - 24px);
+  }
+  .ready-heading > canvas {
+    width: 59px;
+    height: 54px;
+  }
+  .ready-panel h1 {
+    font-size: 31px;
+    letter-spacing: 4px;
+  }
+  .ready-heading .modal-kicker {
+    font-size: 6px;
+    letter-spacing: 1.3px;
+  }
+  .ready-panel .intro {
+    font-size: 11px;
+    margin: 7px 0 14px;
+  }
+  .loadout-section legend {
+    font-size: 11px;
+  }
+  .loadout-section legend small {
+    font-size: 8px;
+  }
+  .boon-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .boon-options button {
+    display: grid;
+    grid-template-columns: 43px 1fr;
+    column-gap: 2px;
+    text-align: left;
+    padding: 6px 4px;
+    min-height: 63px;
+  }
+  .boon-options canvas {
+    grid-row: 1 / 3;
+    width: 43px;
+    height: 43px;
+  }
+  .boon-options strong {
+    font-size: 11px;
+    align-self: end;
+  }
+  .boon-options small {
+    font-size: 8px;
+    letter-spacing: -0.2px;
+    white-space: normal;
+    align-self: start;
+  }
+  .loadout-note {
+    font-size: 9px;
+    line-height: 1.5;
+    min-height: 28px;
+  }
+  .loadout-section {
+    margin-bottom: 11px;
+  }
+  .loadout-skills {
+    gap: 8px;
+  }
+  .loadout-skills select {
+    font-size: 11px;
+    padding: 6px;
+  }
+  .loadout-skills small {
+    font-size: 9px;
+  }
+  .ready-panel .ready-tip {
+    font-size: 8px;
+    line-height: 1.5;
   }
   #upgrade-options,
   #upgrade-options[data-count='4'] {
     grid-template-columns: 1fr;
     gap: 9px;
   }
-  .upgrade-option {
-    grid-template-columns: 58px 1fr;
-    padding: 8px 10px;
-    column-gap: 10px;
-  }
   .upgrade-option canvas {
     grid-row: 1 / 5;
-    width: 58px;
-    height: 62px;
   }
-  .upgrade-option strong {
-    font-size: 13px;
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .skill-dock {
+    bottom: max(13px, env(safe-area-inset-bottom));
+    width: 346px;
+    padding: 7px;
   }
-  .upgrade-category {
-    margin: 1px 0;
+  .skill-dock-heading {
+    margin-bottom: 5px;
+  }
+  .skill-dock-heading strong {
+    font-size: 10px;
+  }
+  .skill-dock-heading > span {
     font-size: 8px;
   }
-  .upgrade-option p {
-    font-size: 10px;
+  .skill-card {
+    min-height: 66px;
+    grid-template-columns: 45px 1fr;
+    padding: 3px 7px 11px 0;
   }
-  .handbook-growth {
-    font-size: 10px;
+  .skill-card canvas {
+    width: 48px;
+    height: 42px;
   }
-  .icon-button {
-    min-height: 40px;
-    min-width: 40px;
+  .skill-copy strong {
+    font-size: 11px;
   }
-  .coins {
+  .skill-copy small {
+    font-size: 8px;
+  }
+  .skill-energy {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+  .skill-instruction {
+    margin-top: 5px;
+    font-size: 8px;
+  }
+  .touch-controls {
+    bottom: max(22px, env(safe-area-inset-bottom));
+  }
+  .field-status {
+    bottom: 80px;
+    right: 16px;
+    font-size: 8px;
+    padding: 0 6px;
+  }
+  .field-status button {
+    font-size: 8px;
+  }
+  .boon-status {
+    top: 97px;
+    left: 16px;
+    max-width: 204px;
+    padding: 4px 7px;
+    gap: 1px;
+  }
+  .boon-status > span {
     display: none;
+  }
+  .boon-status strong {
+    font-size: 8px;
+  }
+  .experience-caption {
+    font-size: 7px;
+    margin-top: 4px;
+  }
+  .experience-caption strong {
+    font-size: 8px;
+  }
+  .experience-track {
+    height: 4px;
+  }
+  .announcement {
+    top: 103px;
+  }
+  .targeting {
+    top: 95px;
+    padding: 3px 3px 3px 12px;
+  }
+  .targeting > span {
+    font-size: 10px;
+  }
+  #cancel-cast {
+    min-height: 40px;
+  }
+  body[data-armed='true'] .announcement {
+    opacity: 0;
+  }
+  .control-hint {
+    bottom: 1px;
+  }
+  .ready-panel.modal {
+    width: min(100%, 710px);
+    padding: 14px 22px;
+    display: grid;
+    grid-template-columns: 1.08fr 1fr;
+    gap: 7px 20px;
+  }
+  .ready-heading {
+    justify-content: flex-start;
+  }
+  .ready-heading > canvas {
+    width: 42px;
+    height: 40px;
+  }
+  .ready-panel h1 {
+    font-size: 24px;
+    letter-spacing: 3px;
+  }
+  .ready-heading .modal-kicker {
+    font-size: 5px;
+    margin-bottom: 2px;
+  }
+  .ready-panel .intro {
+    align-self: center;
+    margin: 0;
+    text-align: left;
+    font-size: 10px;
+  }
+  .loadout-section {
+    margin: 0;
+  }
+  .loadout-section legend {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .loadout-section legend small {
+    font-size: 8px;
+  }
+  .boon-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .boon-options button {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    padding: 4px;
+    min-height: 55px;
+    text-align: left;
+  }
+  .boon-options canvas {
+    width: 42px;
+    height: 40px;
+    grid-row: 1 / 3;
+  }
+  .boon-options strong {
+    font-size: 10px;
+  }
+  .boon-options small {
+    font-size: 7px;
+    margin-top: 0;
+    white-space: normal;
+  }
+  .loadout-note {
+    font-size: 8px;
+    min-height: 25px;
+    margin-top: 5px;
+  }
+  .loadout-skills {
+    gap: 8px;
+  }
+  .loadout-skills select {
+    min-height: 44px;
+    font-size: 10px;
+    padding: 4px;
+  }
+  .loadout-skills small {
+    font-size: 8px;
+  }
+  .ready-panel .primary-button {
+    min-height: 44px;
+    grid-column: 2;
+    grid-row: 3 / 5;
+    align-self: center;
+    font-size: 12px;
+  }
+  .ready-panel .ready-tip {
+    font-size: 8px;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .ready-panel .text-button {
+    min-height: 28px;
+    font-size: 9px;
+    padding: 3px;
+  }
+  .upgrade-option canvas {
+    height: 40px;
+  }
+  .upgrade-option strong {
+    font-size: 12px;
+  }
+  .upgrade-category {
+    font-size: 8px;
+    margin: 2px 0;
+  }
+}
+
+.ready-panel h1:focus {
+  outline: none;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #bbcfaa;
+}
+#game-speed {
+  min-width: 55px;
+  min-height: 44px;
+  padding: 7px 4px;
+  color: #eff0dc;
+  background: #263e2d;
+  border: 1px solid #8a9f7366;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12px;
+  touch-action: manipulation;
+}
+#game-speed:focus-visible {
+  outline: 2px solid #fff1b6;
+  outline-offset: 2px;
+}
+@media (max-width: 620px) and (orientation: portrait) {
+  .field-status > .green-dot,
+  .field-status > .field-divider,
+  #plant-count {
+    display: none;
+  }
+  .field-status {
+    gap: 10px;
+  }
+  .speed-control {
+    font-size: 9px;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .field-status {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 174px;
+    bottom: 84px;
+    column-gap: 5px;
+    row-gap: 1px;
+  }
+  .field-status > .green-dot,
+  .field-status > .field-divider {
+    display: none;
+  }
+  .speed-control {
+    font-size: 8px;
   }
 }
