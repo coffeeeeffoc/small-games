@@ -452,6 +452,17 @@
         "time": "2026-10-03T12:34:46+08:00"
       }
     },
+    "two-sided-box": {
+      "source": "games/local/two-sided-box",
+      "created": {
+        "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
+        "time": "2026-10-03T09:08:53+00:00"
+      },
+      "updated": {
+        "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
+        "time": "2026-10-03T09:08:53+00:00"
+      }
+    },
     "urban-breakout": {
       "source": "games/local/urban-breakout",
       "created": {
