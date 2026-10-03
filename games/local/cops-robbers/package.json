@@ -18,6 +18,7 @@
     "test:interactions": "node scripts/check-interactions.mjs",
     "test:dialogs": "node scripts/check-dialogs.mjs",
     "test:focus": "node scripts/check-focus.mjs",
+    "test:map-display": "node scripts/check-map-display.mjs",
     "test:input": "node scripts/check-input-scope.mjs",
     "test:relay": "node scripts/check-relay.mjs",
     "test:relay-browser": "node scripts/check-relay-browser.mjs",

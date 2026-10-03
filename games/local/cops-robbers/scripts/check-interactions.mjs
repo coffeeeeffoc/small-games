@@ -215,7 +215,7 @@ try {
     await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 0);
     assert.equal(await page.locator('.lesson-ring').count(), 0);
     await page.locator('#settings').click(); await page.locator('#teaching-setting').check();
-    await page.getByRole('button', { name: '关闭设置', exact: true }).click();
+    await page.locator('#settings-dialog .dialog-close').click();
     assert.equal(await page.locator('.lesson-ring').count(), 1);
     await page.getByTestId('level-select').click();
     assert.match(await page.getByTestId('level-button-1').getAttribute('aria-label'), /最佳7步/);
