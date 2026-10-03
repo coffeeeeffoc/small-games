@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101815" />
+    <title>回声实验室 · Echo Lab</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='22' fill='%2318201c'/%3E%3Cpath d='M20 31v18m13-28v38m14-31v24m13-18v12' stroke='%23b7ee81' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="回声实验室首页"
+        ><span class="brand-icon"><i></i><i></i><i></i><i></i></span
+        ><span
+          >ECHO LAB<span class="brand-separator">/</span
+          ><span class="brand-cn">回声实验室</span></span
+        ></a
+      >
+      <div class="top-actions">
+        <span class="local-badge"><b></b> 声音留在你的设备</span
+        ><button class="icon-button" id="helpButton" aria-label="打开使用说明">?</button>
+      </div>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">AN INTERACTIVE SOUND PLAYGROUND <span>· 01</span></p>
+          <h1>把空间，变成你的声音<span>。</span></h1>
+          <p class="subtitle">移动一面墙，听见另一种可能。</p>
+        </div>
+        <div class="intro-note">
+          <span class="note-symbol">↗</span>
+          <p>先听一声拍手，<br />再拖动右边的绿色反射板。</p>
+        </div>
+      </section>
+      <div class="workspace">
+        <aside class="left-panel panel">
+          <div class="section-heading">
+            <h2>构建空间</h2>
+            <span>01</span>
+          </div>
+          <label class="field-label" for="preset">从一个场景开始</label>
+          <select id="preset">
+            <option value="first">一声回应</option>
+            <option value="hall">空旷大厅</option>
+            <option value="dry">安静房间</option>
+          </select>
+          <p id="presetDescription" class="muted small">远处一块反射板，让拍手有了回应。</p>
+          <div class="divider"></div>
+          <div class="range-label">
+            <label for="roomWidth">房间长度</label><output id="widthValue">60 m</output>
+          </div>
+          <input type="range" id="roomWidth" min="8" max="120" step="1" />
+          <div class="range-label">
+            <label for="roomHeight">房间宽度</label><output id="heightValue">40 m</output>
+          </div>
+          <input type="range" id="roomHeight" min="8" max="100" step="1" />
+          <div class="range-label">
+            <label for="wallReflection">默认墙面反射率</label><output id="wallValue">10%</output>
+          </div>
+          <input type="range" id="wallReflection" min="0" max="95" step="1" />
+          <p class="muted small">默认统一调节四面墙；独立设置的墙面保持自己的数值。</p>
+          <details class="wall-settings">
+            <summary>分别调节四面墙</summary>
+            <div class="wall-setting">
+              <label><input type="checkbox" id="wall-top-override" />上墙单独调节</label
+              ><output id="wall-top-value"></output
+              ><input
+                type="range"
+                id="wall-top-reflection"
+                min="0"
+                max="95"
+                step="1"
+                aria-label="上墙反射率"
+              />
+            </div>
+            <div class="wall-setting">
+              <label><input type="checkbox" id="wall-right-override" />右墙单独调节</label
+              ><output id="wall-right-value"></output
+              ><input
+                type="range"
+                id="wall-right-reflection"
+                min="0"
+                max="95"
+                step="1"
+                aria-label="右墙反射率"
+              />
+            </div>
+            <div class="wall-setting">
+              <label><input type="checkbox" id="wall-bottom-override" />下墙单独调节</label
+              ><output id="wall-bottom-value"></output
+              ><input
+                type="range"
+                id="wall-bottom-reflection"
+                min="0"
+                max="95"
+                step="1"
+                aria-label="下墙反射率"
+              />
+            </div>
+            <div class="wall-setting">
+              <label><input type="checkbox" id="wall-left-override" />左墙单独调节</label
+              ><output id="wall-left-value"></output
+              ><input
+                type="range"
+                id="wall-left-reflection"
+                min="0"
+                max="95"
+                step="1"
+                aria-label="左墙反射率"
+              />
+            </div>
+            <button id="resetWalls" class="text-button">四面墙恢复统一调节</button>
+          </details>
+          <div class="divider"></div>
+          <div class="range-label"><span>传播规则</span><span class="tiny">343 m/s</span></div>
+          <div class="segmented" id="delayModes">
+            <button data-scale="1" class="active">真实距离</button
+            ><button data-scale="4">延迟 ×4</button>
+          </div>
+          <p id="modeDescription" class="muted small">按实际路径长度计算声音到达时间。</p>
+          <div class="divider"></div>
+          <div class="range-label">
+            <h3>添加装置</h3>
+            <span id="panelCount" class="tiny">1 / 8</span>
+          </div>
+          <button id="addReflector" class="device-button">
+            <span class="device-line mint"></span
+            ><span>反射板<small>把声音弹向另一个方向</small></span
+            ><b>＋</b>
+          </button>
+          <button id="addAbsorber" class="device-button">
+            <span class="device-line amber"></span
+            ><span>消音板 / 吸音屏<small>可旋转，吸收反射并遮挡路径</small></span
+            ><b>＋</b>
+          </button>
+          <div class="layout-actions">
+            <button id="saveLayout" class="text-button">↓ 保存布局</button
+            ><button id="loadLayout" class="text-button">↑ 导入布局</button>
+          </div>
+          <button id="shareLayout" class="secondary-button">分享房间配置链接</button>
+          <p class="muted micro">自动记住布局 · 最多 8 个装置</p>
+        </aside>
+
+        <section class="stage-column">
+          <div class="stage panel">
+            <div class="stage-toolbar">
+              <div>
+                <span class="live-dot"></span><strong>声场俯视图</strong
+                ><span class="tiny" id="roomBadge">60 × 40 m</span>
+              </div>
+              <div>
+                <button id="togglePaths" class="pill-button active" aria-pressed="true">
+                  路径 ON</button
+                ><button
+                  id="resetLayout"
+                  class="icon-button"
+                  title="重置当前场景"
+                  aria-label="重置当前场景"
+                >
+                  ↺
+                </button>
+              </div>
+            </div>
+            <div class="scene-wrap" id="sceneWrap">
+              <svg
+                id="scene"
+                viewBox="0 0 1000 640"
+                role="group"
+                aria-label="可交互声场：拖动声源、收音点与板材；拖动圆形手柄旋转板材；点击墙壁调节反射率。"
+                tabindex="0"
+              ></svg>
+              <div class="scene-scale">
+                <span id="scaleLabel">俯视 · 米</span
+                ><span id="animationLabel">位置决定声音路径</span>
+              </div>
+            </div>
+            <div class="stage-footer">
+              <div class="legend">
+                <span><i class="dot source"></i>声源</span
+                ><span><i class="dot listener"></i>收音点</span
+                ><span><i class="line mint"></i>反射</span
+                ><span><i class="line amber"></i>消音</span>
+              </div>
+              <span class="tiny">拖动移动 · 圆柄旋转 · 点击墙壁调节</span>
+            </div>
+          </div>
+          <div class="timeline panel">
+            <div class="section-heading">
+              <h2>声音到达时间线</h2>
+              <span id="pathSummary">计算中</span>
+            </div>
+            <svg
+              id="timeline"
+              viewBox="0 0 900 136"
+              role="img"
+              aria-label="直达声与反射声的到达时间和相对强度"
+            ></svg>
+            <div class="timeline-footer">
+              <span><i class="dot source"></i>直达声 <i class="dot reflection"></i>反射声</span
+              ><span id="timelineHint">柱高表示路径增益，时间包含声传播。</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="right-panel">
+          <section class="panel inspector">
+            <div class="section-heading">
+              <h2>装置属性</h2>
+              <span>02</span>
+            </div>
+            <div id="selectionTitle" class="selection-title">
+              <span class="selection-icon">↔</span>
+              <div>
+                <h3>反射板</h3>
+                <p>选中装置后，在这里精细调整</p>
+              </div>
+            </div>
+            <div id="positionControls" class="position-row">
+              <label
+                >X
+                <input
+                  id="positionX"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  aria-label="对象 X 坐标" /></label
+              ><label
+                >Y
+                <input
+                  id="positionY"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  aria-label="对象 Y 坐标" /></label
+              ><span>m</span>
+            </div>
+            <div id="wallProperties" hidden>
+              <label class="checkbox-label"
+                ><input type="checkbox" id="selectedWallDefault" />使用默认反射率</label
+              >
+              <div class="range-label">
+                <label for="selectedWallReflection">此墙反射率</label
+                ><output id="selectedWallValue"></output>
+              </div>
+              <input type="range" id="selectedWallReflection" min="0" max="95" step="1" />
+              <p class="muted small">取消默认后可单独调节。也可在「构建空间」中同时查看四面墙。</p>
+            </div>
+            <div id="panelProperties">
+              <div class="range-label">
+                <label for="panelAngle">旋转角度</label><output id="angleValue">90°</output>
+              </div>
+              <input type="range" id="panelAngle" min="0" max="180" step="1" />
+              <div class="range-label">
+                <label for="panelLength">板材长度</label><output id="lengthValue">20 m</output>
+              </div>
+              <input type="range" id="panelLength" min="2" max="50" step="0.5" />
+              <div class="range-label">
+                <label for="panelReflection">反射强度</label
+                ><output id="reflectionValue">90%</output>
+              </div>
+              <input type="range" id="panelReflection" min="0" max="95" step="1" />
+              <button id="removePanel" class="text-button delete-button">移除这个装置</button>
+            </div>
+            <p id="pointHint" class="muted small" hidden></p>
+          </section>
+          <section class="panel readout">
+            <div class="section-heading">
+              <h2>此刻的声音</h2>
+              <span class="live-dot"></span>
+            </div>
+            <div class="metric">
+              <span>最强回声延迟</span><strong id="echoDelay">—<small> ms</small></strong>
+            </div>
+            <div class="metric-row"><span>直达路径</span><strong id="directMetric">—</strong></div>
+            <div class="metric-row">
+              <span>有效反射路径</span><strong id="reflectionMetric">—</strong>
+            </div>
+            <p class="muted small">回声延迟相对于直达声；不含地板、天花板与高阶混响。</p>
+          </section>
+          <section class="challenge-card" id="challengeCard">
+            <p class="eyebrow">A LITTLE EXPERIMENT</p>
+            <h3>让远方，回答一次。</h3>
+            <p>拖动反射板，让最强回声在原声后 <b>220–280 ms</b> 到达。</p>
+            <div class="challenge-track"><i id="challengeProgress"></i></div>
+            <div id="challengeStatus">从“一声回应”场景开始尝试</div>
+          </section>
+        </aside>
+      </div>
+
+      <section class="audio-dock panel">
+        <div class="audio-source">
+          <span class="audio-symbol">≋</span>
+          <div>
+            <span class="eyebrow">YOUR SOUND</span
+            ><label for="soundSelect" class="sr-only">测试音</label
+            ><select id="soundSelect">
+              <option value="clap">一声拍手</option>
+              <option value="kick">短促鼓点</option>
+              <option value="chime">清脆琴音</option></select
+            ><span id="inputInfo" class="tiny">内置测试音 · 点击试听开始</span>
+          </div>
+        </div>
+        <div class="source-actions">
+          <button id="uploadAudio" class="secondary-button">↑ 导入音频</button
+          ><button id="recordAudio" class="secondary-button">
+            <i class="record-dot"></i><span>录制</span>
+          </button>
+        </div>
+        <div class="transport">
+          <button id="playDry" class="secondary-button">▷ 原声</button
+          ><button id="playWet" class="primary-button"><span>▶</span> 试听空间效果</button
+          ><button id="stopAudio" class="icon-button" aria-label="停止播放" title="停止播放">
+            ■
+          </button>
+        </div>
+        <div class="output-actions">
+          <label class="volume-control"
+            ><span aria-hidden="true">◖</span
+            ><input
+              id="volume"
+              type="range"
+              min="0"
+              max="100"
+              value="65"
+              aria-label="播放与导出音量"
+          /></label>
+          <details class="export-menu">
+            <summary>导出音频</summary>
+            <div>
+              <button id="exportBoth" class="secondary-button">原声 + 调制声（ZIP）</button
+              ><button id="exportDry" class="text-button">仅原声 WAV</button
+              ><button id="exportAudio" class="text-button">仅调制声 WAV</button>
+              <p class="muted micro">原声无房间效果；均使用当前音量。</p>
+            </div>
+          </details>
+        </div>
+      </section>
+      <section id="sharedRoom" class="shared-room panel" hidden aria-label="分享的房间配置">
+        <div>
+          <strong>收到一个房间配置</strong>
+          <p id="sharedRoomSummary"></p>
+          <p class="muted small">应用后替换当前布局，使用内置测试音；不包含对方的录音。</p>
+        </div>
+        <button id="applySharedRoom" class="primary-button">一键复用配置</button
+        ><button id="dismissSharedRoom" class="text-button">保留当前房间</button>
+      </section>
+      <div class="bottom-note">
+        <span>戴上耳机，听见左右两侧的回应。录音与音频处理都在本机完成。</span
+        ><span>二维几何声学原型 <b>v0.2</b></span>
+      </div>
+    </main>
+    <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a,.flac" hidden />
+    <input id="layoutFile" type="file" accept="application/json,.json" hidden />
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <dialog id="shareDialog" aria-labelledby="shareTitle">
+      <button id="closeShare" class="icon-button dialog-close" aria-label="关闭配置分享">×</button>
+      <h2 id="shareTitle">把这个房间分享出去</h2>
+      <p>
+        包含房间尺寸、声源、收音点、板材、四面墙的反射率、传播规则和内置测试音。对方打开后可一键复用。
+      </p>
+      <label for="shareLink">房间配置链接</label
+      ><textarea id="shareLink" readonly rows="4"></textarea>
+      <div class="share-actions">
+        <button id="copyShareLink" class="primary-button">复制链接</button
+        ><button id="downloadShareLink" class="secondary-button">下载链接文件</button>
+      </div>
+      <p class="muted small">
+        录音和导入音频不会进入链接。分享自定义声音时，对方先用拍手测试；请另外分享已导出的音频。
+      </p>
+    </dialog>
+    <dialog id="helpDialog">
+      <button id="closeHelp" class="icon-button dialog-close" aria-label="关闭使用说明">×</button>
+      <p class="eyebrow">A QUICK FIELD GUIDE</p>
+      <h2>听见一次改变</h2>
+      <ol>
+        <li>点击「试听空间效果」，先听一声拍手。</li>
+        <li>拖动绿色反射板。越远的路径，声音回来得越晚。</li>
+        <li>选中板材，调整角度与长度；拖动红色声源、蓝色收音点。</li>
+        <li>添加吸音屏，放到一条路径上，听见它被减弱或遮挡。</li>
+        <li>录下自己的声音或导入音频，再导出 WAV。</li>
+      </ol>
+      <p>支持方向键移动选中对象（Shift 加速），Delete 移除板材，空格试听。触屏直接拖动。</p>
+      <p class="muted">
+        这是二维创意声学实验：只计算直达声、一次和二次镜面反射。屏是双面、不透声的薄板，吸音屏也会遮挡直达声。未模拟绕射、驻波、材料频率特性及高阶混响。延迟
+        ×4 是明确的增强玩法。图中最多显示 8 条最强反射路径，音频使用全部有效路径。录音/导入最长 15
+        秒，导入文件最大 20 MB。
+      </p>
+      <button id="startExperiment" class="primary-button">开始实验 →</button>
+    </dialog>
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>

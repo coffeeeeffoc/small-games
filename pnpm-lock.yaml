@@ -362,6 +362,9 @@ importers:
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema
+      '@coffeeeeffoc/echo-lab':
+        specifier: workspace:*
+        version: link:../../games/local/echo-lab
       '@coffeeeeffoc/echo-weaver':
         specifier: workspace:*
         version: link:../../games/local/echo-weaver
@@ -683,6 +686,8 @@ importers:
       playwright:
         specifier: ^1.63.0
         version: 1.63.0
+
+  games/local/echo-lab: {}
 
   games/local/echo-weaver: {}
 
