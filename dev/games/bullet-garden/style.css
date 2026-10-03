@@ -2159,47 +2159,23 @@ body[data-armed='true'] #arena {
   font-weight: 400;
   margin-top: 1px;
 }
-.boon-options {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-.boon-options button {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3px 4px 10px;
-  border: 1px solid #8ba67766;
+.terrain-unlock-note {
+  margin-bottom: 19px;
+  padding: 13px 15px;
+  border: 1px solid #a7bd8a42;
   border-radius: 10px;
-  background: #20372b;
+  background: #1b322780;
 }
-.boon-options canvas {
-  width: 70px;
-  height: 53px;
-  pointer-events: none;
-}
-.boon-options strong {
+.terrain-unlock-note strong {
+  color: #d1e5b4;
   font-size: 12px;
-  color: #e5ebd0;
+  letter-spacing: 0.5px;
 }
-.boon-options small {
-  font-size: 9px;
-  color: #b6c4a7;
-  margin-top: 5px;
-  white-space: nowrap;
-}
-.boon-options button.selected {
-  border-color: #d4eea6;
-  background: #3c5538;
-  box-shadow: inset 0 0 0 1px #d4eea6;
-}
-.loadout-note {
-  margin: 8px 0 0;
-  color: #abc29f;
-  font-size: 10px;
-  line-height: 1.6;
-  min-height: 32px;
+.terrain-unlock-note p {
+  color: #b9cba9;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 6px 0 0;
 }
 .loadout-skills {
   display: grid;
@@ -2482,38 +2458,6 @@ body[data-armed='true'] #arena {
   .loadout-section legend small {
     font-size: 8px;
   }
-  .boon-options {
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
-  }
-  .boon-options button {
-    display: grid;
-    grid-template-columns: 43px 1fr;
-    column-gap: 2px;
-    text-align: left;
-    padding: 6px 4px;
-    min-height: 63px;
-  }
-  .boon-options canvas {
-    grid-row: 1 / 3;
-    width: 43px;
-    height: 43px;
-  }
-  .boon-options strong {
-    font-size: 11px;
-    align-self: end;
-  }
-  .boon-options small {
-    font-size: 8px;
-    letter-spacing: -0.2px;
-    white-space: normal;
-    align-self: start;
-  }
-  .loadout-note {
-    font-size: 9px;
-    line-height: 1.5;
-    min-height: 28px;
-  }
   .loadout-section {
     margin-bottom: 11px;
   }
@@ -2670,35 +2614,6 @@ body[data-armed='true'] #arena {
   .loadout-section legend small {
     font-size: 8px;
   }
-  .boon-options {
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-  }
-  .boon-options button {
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    padding: 4px;
-    min-height: 55px;
-    text-align: left;
-  }
-  .boon-options canvas {
-    width: 42px;
-    height: 40px;
-    grid-row: 1 / 3;
-  }
-  .boon-options strong {
-    font-size: 10px;
-  }
-  .boon-options small {
-    font-size: 7px;
-    margin-top: 0;
-    white-space: normal;
-  }
-  .loadout-note {
-    font-size: 8px;
-    min-height: 25px;
-    margin-top: 5px;
-  }
   .loadout-skills {
     gap: 8px;
   }
@@ -2794,5 +2709,31 @@ body[data-armed='true'] #arena {
   }
   .speed-control {
     font-size: 8px;
+  }
+}
+
+@media (max-width: 620px) and (orientation: portrait) {
+  .terrain-unlock-note {
+    padding: 11px 12px;
+    margin-bottom: 17px;
+  }
+  .terrain-unlock-note strong {
+    font-size: 11px;
+  }
+  .terrain-unlock-note p {
+    font-size: 10px;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .terrain-unlock-note {
+    margin: 0;
+    padding: 10px 12px;
+  }
+  .terrain-unlock-note strong {
+    font-size: 10px;
+  }
+  .terrain-unlock-note p {
+    font-size: 9px;
+    line-height: 1.8;
   }
 }

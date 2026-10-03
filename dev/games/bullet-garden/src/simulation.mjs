@@ -135,7 +135,7 @@ export function createGame(levelId = 'ruins', seed = 42) {
     waveProgress: 0,
     coins: 0,
     kills: 0,
-    loadout: { boon: null, skills: ['blast', 'gale'] },
+    loadout: { skills: ['blast', 'gale'] },
     boons: [],
     boonTimers: {},
     skillSlots: [
@@ -204,17 +204,16 @@ export function createGame(levelId = 'ruins', seed = 42) {
 }
 
 /** Loadouts can only change between runs; invalid choices never partly apply. */
-export function configureLoadout(state, { boon = null, skills } = {}) {
+export function configureLoadout(state, { skills } = {}) {
   if (
     !['ready', 'won', 'lost'].includes(state.phase) ||
-    (boon !== null && !BOONS[boon]) ||
     !Array.isArray(skills) ||
     skills.length !== 2 ||
     skills[0] === skills[1] ||
     skills.some((kind) => !SKILLS[kind])
   )
     return false;
-  state.loadout = { boon, skills: [...skills] };
+  state.loadout = { skills: [...skills] };
   state.skillSlots = skills.map((kind) => ({ kind, energy: 0 }));
   state.selectedSkill = 0;
   return true;
@@ -222,7 +221,6 @@ export function configureLoadout(state, { boon = null, skills } = {}) {
 
 export function startGame(state) {
   const loadout = {
-    boon: state.loadout?.boon ?? null,
     skills: [...(state.loadout?.skills ?? ['blast', 'gale'])],
   };
   const fresh = createGame(state.levelId, state.initialSeed);
@@ -231,7 +229,6 @@ export function startGame(state) {
   fresh.enemies = [];
   fresh.nextId = 0;
   fresh.randomState = fresh.initialSeed;
-  if (fresh.loadout.boon) acquireBoon(fresh, fresh.loadout.boon);
   Object.assign(state, fresh);
   event(state, 'start');
   return state;
