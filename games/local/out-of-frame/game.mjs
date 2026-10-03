@@ -1,7 +1,7 @@
-import { LEVELS } from './levels.mjs';
+import { LEVELS, CHAPTERS } from './levels.mjs';
 import { createState, step, moveFrame, snapshot, restore } from './engine.mjs';
 import { render } from './render.mjs';
-import { readProgress, writeProgress } from './progress.mjs';
+import { createCheckpoint, readProgress, writeProgress } from './progress.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('board');
@@ -15,6 +15,8 @@ try {
 }
 const progress = readProgress(storage, LEVELS);
 let levelIndex = 0;
+let chapterIndex = 0;
+let checkpointRestored = false;
 let state = createState(LEVELS[0]);
 let mode = 'intro';
 let history = [];
@@ -27,6 +29,9 @@ let jumpQueued = false;
 let audio;
 let lastStatus = '';
 let lastSwitches = '';
+let lastClock = '';
+let lastFrameFeedback = '';
+let hasMovedFrame = false;
 const keys = new Set();
 const pointers = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -60,6 +65,15 @@ function tone(frequency = 440, duration = 0.1) {
 function save() {
   writeProgress(storage, progress);
 }
+function saveSession() {
+  progress.lastLevelId = LEVELS[levelIndex].id;
+  progress.checkpoint = mode === 'playing' ? createCheckpoint(state, history) : progress.checkpoint;
+  save();
+}
+function formatTime(seconds) {
+  const total = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
 function clearInput() {
   jumpQueued = false;
   keys.clear();
@@ -72,53 +86,95 @@ function clearInput() {
 }
 function openDialog(dialog) {
   clearInput();
+  saveSession();
+  $('pause-copy').textContent =
+    `第 ${levelIndex + 1} 关 · ${LEVELS[levelIndex].title} · 本次 ${formatTime(state.time)}。准备好后继续。`;
   if (!dialog.open) dialog.showModal();
 }
 function refreshRoute() {
-  $('progress-label').textContent =
-    `完成 ${Object.keys(progress.completed).length} / ${LEVELS.length}`;
-  $('level-nav').replaceChildren(
-    ...LEVELS.map((level, index) => {
-      const button = document.createElement('button');
-      button.dataset.level = index;
-      button.className = index === levelIndex ? 'current' : '';
-      button.setAttribute('aria-current', index === levelIndex ? 'step' : 'false');
-      button.setAttribute(
-        'aria-label',
-        `第 ${index + 1} 关：${level.title}${progress.completed[level.id] ? '，已完成' : ''}`,
+  const completedCount = Object.keys(progress.completed).length;
+  const chapter = CHAPTERS[chapterIndex];
+  const chapterLevels = LEVELS.slice(chapter.start - 1, chapter.end);
+  const chapterCompleted = chapterLevels.filter((level) => progress.completed[level.id]).length;
+  $('progress-label').textContent = `完成 ${completedCount} / ${LEVELS.length}`;
+  $('route-progress').max = LEVELS.length;
+  $('route-progress').value = completedCount;
+  $('chapter-subtitle').textContent = chapter.subtitle;
+  $('chapter-progress').textContent =
+    `第 ${chapter.start}–${chapter.end} 关 · 已完成 ${chapterCompleted} / ${chapterLevels.length}`;
+  $('pause-chapter-progress').textContent =
+    `${chapter.title} · 已完成 ${chapterCompleted} / ${chapterLevels.length}`;
+  for (const prefix of ['', 'pause-']) {
+    const select = $(`${prefix}chapter-select`);
+    if (!select.options.length)
+      select.replaceChildren(
+        ...CHAPTERS.map((item, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = `第 ${String(item.number).padStart(2, '0')} 章 · ${item.title}`;
+          return option;
+        }),
       );
-      const number = document.createElement('span');
-      number.className = 'level-index';
-      number.textContent = String(index + 1).padStart(2, '0');
-      const title = document.createElement('span');
-      title.textContent = level.title;
-      const check = document.createElement('span');
-      check.className = 'level-check';
-      check.textContent = progress.completed[level.id] ? '✓' : '';
-      button.append(number, title, check);
-      button.addEventListener('click', () => loadLevel(index, true));
-      return button;
-    }),
+    select.value = String(chapterIndex);
+    $(`${prefix}chapter-prev`).disabled = chapterIndex === 0;
+    $(`${prefix}chapter-next`).disabled = chapterIndex === CHAPTERS.length - 1;
+  }
+  function levelButton(level, index, compact = false) {
+    const button = document.createElement('button');
+    button.dataset.level = index;
+    button.className = index === levelIndex ? 'current' : '';
+    if (progress.completed[level.id]) button.classList.add('completed');
+    button.setAttribute('aria-current', index === levelIndex ? 'step' : 'false');
+    button.setAttribute(
+      'aria-label',
+      `第 ${index + 1} 关：${level.title}${progress.completed[level.id] ? '，已完成' : ''}`,
+    );
+    const number = document.createElement('span');
+    number.className = 'level-index';
+    number.textContent = String(index + 1).padStart(2, '0');
+    const title = document.createElement('span');
+    title.className = 'level-title';
+    title.textContent = level.title;
+    const check = document.createElement('span');
+    check.className = 'level-check';
+    check.textContent = progress.completed[level.id] ? '✓' : '';
+    check.setAttribute('aria-hidden', 'true');
+    button.append(number, title, check);
+    if (!compact) {
+      const best = document.createElement('small');
+      best.className = 'level-best';
+      best.textContent = progress.completed[level.id]
+        ? `最佳 ${formatTime(progress.completed[level.id])}`
+        : `难度 ${level.difficulty} / ${LEVELS.length}`;
+      button.append(best);
+    }
+    button.addEventListener('click', () => loadLevel(index, true));
+    return button;
+  }
+  $('level-nav').replaceChildren(
+    ...chapterLevels.map((level, index) => levelButton(level, chapter.start - 1 + index)),
   );
   $('pause-levels').replaceChildren(
-    ...LEVELS.map((level, index) => {
-      const button = document.createElement('button');
-      button.textContent = `${String(index + 1).padStart(2, '0')} ${level.title}`;
-      button.setAttribute('aria-current', index === levelIndex ? 'step' : 'false');
-      button.addEventListener('click', () => loadLevel(index, true));
-      return button;
-    }),
+    ...chapterLevels.map((level, index) => levelButton(level, chapter.start - 1 + index, true)),
   );
 }
-function loadLevel(index, start = false) {
+function loadLevel(index, start = false, checkpoint = null) {
   clearInput();
   levelIndex = index;
+  chapterIndex = CHAPTERS.findIndex(
+    (chapter) => index + 1 >= chapter.start && index + 1 <= chapter.end,
+  );
   state = createState(LEVELS[index]);
-  history = [snapshot(state)];
-  ticks = 0;
+  checkpointRestored = Boolean(checkpoint);
+  if (checkpoint) restore(state, checkpoint.state);
+  history = checkpoint?.history.length ? checkpoint.history : [snapshot(state)];
+  ticks = state.ticks;
   hintIndex = 0;
   lastStatus = '';
   lastSwitches = '';
+  lastClock = '';
+  lastFrameFeedback = '';
+  hasMovedFrame = checkpointRestored;
   if (start) mode = 'playing';
   dialogs.forEach((dialog) => dialog.close());
   $('intro').hidden = mode !== 'intro';
@@ -126,18 +182,30 @@ function loadLevel(index, start = false) {
   $('room-number').textContent = String(index + 1).padStart(2, '0');
   $('room-title').textContent = LEVELS[index].title;
   $('room-kicker').textContent = LEVELS[index].kicker;
+  $('room-chapter').textContent =
+    `第 ${LEVELS[index].chapterNumber} 章 · ${LEVELS[index].chapterTitle} · ${LEVELS[index].chapterLevel} / 10`;
   $('goal').textContent = LEVELS[index].goal;
   $('hint-copy').textContent = '先观察，再试着移开目光。';
   $('hint').firstChild.textContent = '需要一点线索？ ';
   canvas.dataset.level = String(index + 1);
   $('object-status').dataset.key = '';
+  progress.lastLevelId = LEVELS[index].id;
+  progress.checkpoint = checkpoint;
+  $('start-button').textContent = checkpoint
+    ? `继续第 ${String(index + 1).padStart(2, '0')} 关 →`
+    : `进入第 ${String(index + 1).padStart(2, '0')} 关 ↗`;
+  $('intro-meta').textContent = checkpoint
+    ? `已保存 ${formatTime(state.time)} · ${LEVELS.length} 个房间 · 免费回退`
+    : `${LEVELS.length} 个房间 · 10 个章节 · 自由探索`;
   refreshRoute();
   updateUI();
+  saveSession();
   if (start) canvas.focus({ preventScroll: true });
 }
 function start() {
   mode = 'playing';
   $('intro').hidden = true;
+  saveSession();
   tone(520);
   canvas.focus({ preventScroll: true });
 }
@@ -156,6 +224,7 @@ function undo() {
   $('result').hidden = true;
   tone(280);
   updateUI();
+  saveSession();
   canvas.focus({ preventScroll: true });
 }
 function row(name, value, className) {
@@ -178,6 +247,23 @@ function row(name, value, className) {
 function updateUI() {
   $('undo').disabled = mode !== 'playing' || history.length === 0 || state.time <= 0;
   $('pause').disabled = mode !== 'playing' || state.status !== 'playing';
+  const clock = formatTime(state.time);
+  if (clock !== lastClock) {
+    lastClock = clock;
+    $('run-time').textContent = clock;
+  }
+  const best = progress.completed[LEVELS[levelIndex].id];
+  $('best-time').textContent = best ? formatTime(best) : '—';
+  const activeCount = state.objects.filter((object) => object.active).length;
+  const feedback = drag
+    ? `正在移框 · ${activeCount} 台运动 / ${state.objects.length - activeCount} 台冻结`
+    : `${activeCount} 台运动 · ${state.objects.length - activeCount} 台冻结`;
+  if (feedback !== lastFrameFeedback) {
+    lastFrameFeedback = feedback;
+    $('frame-feedback').textContent = feedback;
+  }
+  $('frame-guide').classList.toggle('awaiting-drag', mode === 'playing' && !hasMovedFrame);
+  $('frame-guide').classList.toggle('is-dragging', Boolean(drag));
   $('live-status').textContent =
     mode === 'intro'
       ? '实验待开始'
@@ -209,6 +295,13 @@ function updateUI() {
           item.pressed ? 'pressed-switch' : '',
         ),
       ),
+      ...state.gates.map((item, i) =>
+        row(
+          `门 ${i + 1}`,
+          item.open ? '出口已通行' : '等待开关',
+          item.open ? 'pressed-switch' : '',
+        ),
+      ),
     );
   }
   const switchKey = state.switches.map((item) => item.pressed).join(',');
@@ -221,20 +314,30 @@ function updateUI() {
     if (state.status === 'won' || state.status === 'lost') {
       clearInput();
       const won = state.status === 'won';
+      const previousBest = progress.completed[LEVELS[levelIndex].id];
+      const newBest = won && (!previousBest || state.time < previousBest);
+      const completedCount =
+        Object.keys(progress.completed).length + (won && !previousBest ? 1 : 0);
       $('result').hidden = false;
       $('result-icon').textContent = won ? '↗' : '↶';
       $('result-kicker').textContent = won ? 'EXPERIMENT COMPLETE' : 'NOTHING IS LOST';
       $('result-title').textContent = won
-        ? levelIndex === LEVELS.length - 1
+        ? completedCount === LEVELS.length
           ? '所有房间，时间由你。'
           : '这一刻，恰到好处。'
         : '只是错过了一步。';
       $('result-copy').textContent = won
-        ? `用时 ${Math.ceil(state.time)} 秒 · ${levelIndex === LEVELS.length - 1 ? '序章已完成，可以重访任意房间。' : '带着这条规则，继续下一次实验。'}`
+        ? `用时 ${state.time.toFixed(1)} 秒 · ${newBest ? '新的最佳纪录' : `最佳 ${previousBest.toFixed(1)} 秒`} · 已完成 ${completedCount} / ${LEVELS.length}`
         : '回退 1 秒，换一种安排。也可以重新开始。';
       $('next-level').hidden = !won;
       $('next-level').textContent =
-        levelIndex === LEVELS.length - 1 ? '重访第一个房间 ↻' : '下一个房间 →';
+        levelIndex === LEVELS.length - 1
+          ? completedCount === LEVELS.length
+            ? '重访第一个房间 ↻'
+            : '继续未完成的房间 →'
+          : (levelIndex + 1) % 10 === 0
+            ? '进入下一章 →'
+            : '下一个房间 →';
       if (won) {
         const level = LEVELS[levelIndex];
         progress.completed[level.id] = Math.min(
@@ -244,6 +347,7 @@ function updateUI() {
         save();
         refreshRoute();
       }
+      saveSession();
       tone(won ? 880 : 190, 0.3);
     }
   }
@@ -274,6 +378,7 @@ canvas.addEventListener('pointerdown', (event) => {
   };
   canvas.setPointerCapture(event.pointerId);
   canvas.classList.add('dragging');
+  hasMovedFrame = true;
   moveFrame(state, point.x - drag.offsetX, point.y - drag.offsetY);
 });
 canvas.addEventListener('pointermove', (event) => {
@@ -286,6 +391,7 @@ function endDrag(event) {
   if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   drag = null;
   canvas.classList.remove('dragging');
+  saveSession();
 }
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
@@ -333,6 +439,12 @@ const gameKeys = new Set([
   'KeyR',
 ]);
 window.addEventListener('keydown', (event) => {
+  if (
+    event.target instanceof HTMLSelectElement ||
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  )
+    return;
   if (event.code === 'Escape') {
     if (!paused() && mode === 'playing' && state.status === 'playing') {
       event.preventDefault();
@@ -357,7 +469,10 @@ window.addEventListener('blur', backgroundPause);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) backgroundPause();
 });
-window.addEventListener('pagehide', clearInput);
+window.addEventListener('pagehide', () => {
+  clearInput();
+  saveSession();
+});
 window.addEventListener('resize', clearInput);
 dialogs.forEach((dialog) => {
   dialog.addEventListener('close', () => {
@@ -374,8 +489,7 @@ $('pause-help').addEventListener('click', () => {
   openDialog($('help-dialog'));
 });
 $('pause-home').addEventListener('click', () => {
-  mode = 'intro';
-  loadLevel(levelIndex);
+  showIntro();
 });
 $('help').addEventListener('click', () => openDialog($('help-dialog')));
 $('close-help').addEventListener('click', () => $('help-dialog').close());
@@ -383,7 +497,32 @@ $('undo').addEventListener('click', undo);
 $('result-undo').addEventListener('click', undo);
 $('restart').addEventListener('click', () => loadLevel(levelIndex, true));
 $('result-retry').addEventListener('click', () => loadLevel(levelIndex, true));
-$('next-level').addEventListener('click', () => loadLevel((levelIndex + 1) % LEVELS.length, true));
+$('next-level').addEventListener('click', () => {
+  const unfinished = LEVELS.findIndex((level) => !progress.completed[level.id]);
+  loadLevel(
+    levelIndex === LEVELS.length - 1 && unfinished >= 0
+      ? unfinished
+      : (levelIndex + 1) % LEVELS.length,
+    true,
+  );
+});
+for (const prefix of ['', 'pause-']) {
+  $(`${prefix}chapter-select`).addEventListener('pointerdown', clearInput);
+  $(`${prefix}chapter-select`).addEventListener('change', (event) => {
+    clearInput();
+    chapterIndex = Number(event.target.value);
+    refreshRoute();
+  });
+  for (const [direction, delta] of [
+    ['prev', -1],
+    ['next', 1],
+  ]) {
+    $(`${prefix}chapter-${direction}`).addEventListener('click', () => {
+      chapterIndex = Math.max(0, Math.min(CHAPTERS.length - 1, chapterIndex + delta));
+      refreshRoute();
+    });
+  }
+}
 $('hint').addEventListener('click', () => {
   const hints = LEVELS[levelIndex].hint;
   $('hint-copy').textContent = hints[Math.min(hintIndex, hints.length - 1)];
@@ -404,9 +543,22 @@ function updateSound() {
 }
 document.querySelector('.brand').addEventListener('click', (event) => {
   event.preventDefault();
-  mode = 'intro';
-  loadLevel(levelIndex);
+  showIntro();
 });
+function showIntro() {
+  saveSession();
+  clearInput();
+  mode = 'intro';
+  dialogs.forEach((dialog) => dialog.close());
+  $('result').hidden = true;
+  $('intro').hidden = false;
+  if (state.status !== 'playing') loadLevel(levelIndex);
+  else {
+    $('start-button').textContent = `继续第 ${String(levelIndex + 1).padStart(2, '0')} 关 →`;
+    $('intro-meta').textContent =
+      `已保存 ${formatTime(state.time)} · ${LEVELS.length} 个房间 · 免费回退`;
+  }
+}
 
 function draw() {
   const bounds = canvas.getBoundingClientRect();
@@ -418,7 +570,10 @@ function draw() {
     canvas.height = height;
   }
   context.setTransform(width / world.w, 0, 0, height / world.h, 0, 0);
-  render(context, LEVELS[levelIndex], state, { dragging: Boolean(drag), reducedMotion });
+  render(context, LEVELS[levelIndex], state, {
+    dragging: Boolean(drag),
+    reducedMotion,
+  });
 }
 function frame(time) {
   const elapsed = Math.min((time - previousTime) / 1000 || 0, 0.1);
@@ -440,10 +595,14 @@ function frame(time) {
       if (ticks % 15 === 0) history.push(snapshot(state));
       const fx = Number(keys.has('KeyL')) - Number(keys.has('KeyJ'));
       const fy = Number(keys.has('KeyK')) - Number(keys.has('KeyI'));
-      if (fx || fy) moveFrame(state, state.frame.x + fx * 5, state.frame.y + fy * 5);
+      if (fx || fy) {
+        hasMovedFrame = true;
+        moveFrame(state, state.frame.x + fx * 5, state.frame.y + fy * 5);
+      }
       step(LEVELS[levelIndex], state, input, 1 / 60);
       jumpQueued = false;
       ticks += 1;
+      if (ticks % 120 === 0) saveSession();
       accumulator -= 1 / 60;
     }
   } else accumulator = 0;
@@ -453,13 +612,21 @@ function frame(time) {
 }
 window.__outOfFrameSnapshot = () => ({
   levelIndex,
+  chapterIndex,
+  checkpointRestored,
   state: snapshot(state),
   world: { ...world },
   mode,
   paused: paused(),
   historyLength: history.length,
 });
-loadLevel(0);
-$('intro-meta').textContent = `${LEVELS.length} 个房间 · 自由探索 · 免费回退`;
+loadLevel(
+  Math.max(
+    0,
+    LEVELS.findIndex((level) => level.id === progress.lastLevelId),
+  ),
+  false,
+  progress.checkpoint,
+);
 updateSound();
 window.requestAnimationFrame(frame);

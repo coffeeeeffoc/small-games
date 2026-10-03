@@ -12,6 +12,8 @@ import {
 import { LEVELS } from '../levels.mjs';
 import { solveRoom } from './solutions.mjs';
 
+const originalRoom = (id) => LEVELS.find((level) => level.id === id);
+
 const tick = (level, state, frames = 1, input = {}) => {
   for (let i = 0; i < frames; i++) step(level, state, input);
 };
@@ -75,7 +77,7 @@ test('robot weight keeps a switch and gate active after freezing', () => {
 });
 
 test('two-switch door uses AND and a closed gate blocks travel', () => {
-  const level = LEVELS[4],
+  const level = originalRoom('two-still-lives'),
     state = createState(level);
   tick(level, state, 125);
   moveFrame(state, 0, 0);
