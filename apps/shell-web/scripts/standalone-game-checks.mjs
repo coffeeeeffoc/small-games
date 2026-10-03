@@ -15,6 +15,7 @@ export const markers = {
   'rule-thief': '#actors .actor',
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
+  'echo-weaver': '#emit',
   'ink-is-everything': '#game-root',
   'out-of-frame': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
@@ -344,7 +345,11 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   } else if (id === 'ink-is-everything') {
     await click(frame.locator('#start-game'));
     await expect(frame.locator('#game-root')).toHaveAttribute('data-started', 'true');
-    const ink = () => frame.locator('#ink-value').textContent().then(value => parseInt(value, 10));
+    const ink = () =>
+      frame
+        .locator('#ink-value')
+        .textContent()
+        .then((value) => parseInt(value, 10));
     const before = await ink();
     await click(frame.locator('[data-room="crossing"]'));
     await click(frame.locator('#primary-action'));
@@ -426,6 +431,26 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     );
     expect((await snapshot()).state).toEqual(beforePipe.state);
     await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
+  } else if (id === 'echo-weaver') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__echoWeaverSnapshot());
+    await click(frame.locator('#level-nav [data-level]').first());
+    await expect(frame.locator('#level-title')).not.toBeEmpty();
+    const initial = (await snapshot()).state;
+    await click(frame.locator('#board [data-control]').first());
+    await expect.poll(async () => (await snapshot()).state).not.toEqual(initial);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#emit'));
+    await expect.poll(async () => (await snapshot()).phase).toBe('running');
+    await expect.poll(async () => (await snapshot()).phase, { timeout: 20000 }).toBe('result');
+    await expect(frame.locator('#result')).toBeVisible();
+    await click(frame.locator('#result-close'));
+    await click(frame.locator('#restart'));
+    await expect.poll(async () => (await snapshot()).phase).toBe('ready');
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#level-nav [data-level]').nth(1));
+    await expect.poll(async () => (await snapshot()).levelIndex).toBe(1);
+    await expect.poll(async () => (await snapshot()).historyLength).toBe(0);
   } else if (id === 'tiny-signals') {
     const swipe = async (dx, dy) => {
       const boards = frame.locator('#boards');
