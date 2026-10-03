@@ -441,10 +441,36 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#selectionTitle')).toContainText('吸音屏');
     await expect(frame.locator('#scene [data-rotate]')).toHaveCount(1);
     const angle = frame.locator('#panelAngle');
-    const box = await angle.boundingBox();
-    if (mobile) await angle.tap({ position: { x: box.width * 0.25, y: box.height / 2 } });
-    else await angle.click({ position: { x: box.width * 0.25, y: box.height / 2 } });
-    await expect(frame.locator('#angleValue')).not.toHaveText('90°');
+    for (let repeat = 0; repeat < 3; repeat += 1) {
+      const before = Number(await angle.inputValue());
+      const min = Number(await angle.getAttribute('min'));
+      const max = Number(await angle.getAttribute('max'));
+      // On a 0–360 range, a quarter-track click hits the initial 90-degree thumb.
+      // Press the far side instead, and verify a physical edit on every attempt.
+      const fraction = before < (min + max) / 2 ? 0.85 : 0.15;
+      await angle.scrollIntoViewIfNeeded();
+      const box = await angle.boundingBox();
+      expect(box).not.toBeNull();
+      const position = { x: box.width * fraction, y: box.height / 2 };
+      if (mobile) await angle.tap({ position });
+      else await angle.click({ position });
+      await expect
+        .poll(async () => Math.abs(Number(await angle.inputValue()) - before))
+        .toBeGreaterThan((max - min) / 4);
+      const value = await angle.inputValue();
+      await expect(frame.locator('#angleValue')).toHaveText(`${value}°`);
+      await expect(frame.locator('#panelAngleNumber')).toHaveValue(value);
+      await expect(frame.locator('#quickAngle')).toHaveValue(value);
+      const renderedAngle = await frame
+        .locator('#scene [data-object][aria-pressed="true"] line')
+        .first()
+        .evaluate((line) => {
+          const dx = Number(line.getAttribute('x2')) - Number(line.getAttribute('x1'));
+          const dy = Number(line.getAttribute('y2')) - Number(line.getAttribute('y1'));
+          return ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+        });
+      expect(renderedAngle).toBeCloseTo(Number(value), 5);
+    }
     await click(frame.locator('#removePanel'));
     await expect(frame.locator('#panelCount')).toHaveText('1 / 8');
     await click(frame.locator('#playWet'));
@@ -477,10 +503,30 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   } else if (id === 'two-sided-box') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
     await click(frame.locator('#start'));
-    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
-    const upperNotch = frame.locator('[data-notch-shaft="A"][data-value="2"]');
+    const front = frame.locator('#board');
+    const back = frame.locator('#back-board');
+    await expect(front).toHaveAttribute('data-level', '1');
+    await expect(front).toHaveAttribute('data-side', 'front');
+    await expect(back).toHaveAttribute('data-side', 'back');
+    await expect(front).toBeVisible();
+    await expect(back).toBeVisible();
+    await expect(frame.locator('#flip')).toHaveCount(0);
+    // Both faces now expose the same shaft. Operate the front detent and back
+    // latch explicitly, and require both rendered controls to stay in sync.
+    const upperNotch = front.locator('[data-notch-shaft="A"][data-value="2"]');
+    const expectSharedShaft = async (value, locked) => {
+      await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(value);
+      for (const face of [front, back]) {
+        const shaft = face.locator('[data-shaft="A"]');
+        await expect(shaft).toHaveAttribute('aria-valuenow', String(value));
+        await expect(shaft).toHaveAttribute('aria-disabled', String(locked));
+      }
+    };
+    await expectSharedShaft(0, true);
+    const initialState = (await snapshot()).state;
     // A locked shaft still gives feedback to a physical touch or mouse press.
     // Send that input directly because the notch inherits aria-disabled.
+    await upperNotch.scrollIntoViewIfNeeded();
     const lockedBounds = await upperNotch.boundingBox();
     expect(lockedBounds).not.toBeNull();
     const page = upperNotch.page();
@@ -488,20 +534,13 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const lockedY = lockedBounds.y + lockedBounds.height / 2;
     if (mobile) await page.touchscreen.tap(lockedX, lockedY);
     else await page.mouse.click(lockedX, lockedY);
-    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(true);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('back');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
-    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
-    await click(frame.locator('[data-latch="lock-A"]'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(initialState);
+    await expect(frame.locator('#status')).toContainText(/锁|背|扣/);
+    await click(back.locator('[data-latch="lock-A"]'));
     await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('front');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await expectSharedShaft(0, false);
     await click(upperNotch);
-    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
+    await expectSharedShaft(2, false);
     await click(frame.locator('#release'));
     await expect
       .poll(async () => (await snapshot()).state.completed, { timeout: 15000 })
