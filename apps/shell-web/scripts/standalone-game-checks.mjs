@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'voiceprint-case': '#start',
   'echo-lab': '#scene [data-object="reflector-1"]',
   'bullet-garden': '#start',
   'maze-wander': '#start',
@@ -74,7 +75,36 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'bullet-garden') {
+  if (id === 'voiceprint-case') {
+    await click(frame.locator('#start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
+      timeout: 20_000,
+    });
+    await expect(frame.locator('#game')).toBeVisible();
+    await expect(frame.locator('#confirm')).toBeDisabled();
+    // Starting a round automatically plays the scene after the user unlocks audio.
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false', {
+      timeout: 20_000,
+    });
+    await click(frame.locator('#scene-play'));
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    for (const slot of [0, 1, 2]) {
+      await click(frame.locator(`button[data-listen="${slot}"]`));
+    }
+    await click(frame.locator('button[data-select="0"]'));
+    await expect(frame.locator('#confirm')).toBeEnabled();
+    await click(frame.locator('#confirm'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'feedback');
+    await expect(frame.locator('#feedback')).toBeVisible();
+    await click(frame.locator('#next'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#feedback')).toBeHidden();
+    await expect(frame.locator('#confirm')).toBeDisabled();
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    await click(frame.locator('#stop'));
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'bullet-garden') {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
