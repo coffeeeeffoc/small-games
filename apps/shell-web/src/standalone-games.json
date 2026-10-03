@@ -285,5 +285,12 @@
     "title": "一滴墨，决定一切",
     "description": "在手绘遗迹中，用同一池墨水绘路、战斗、疗愈与交易，探索支路获取回报，越过第一章墨之门。",
     "output": "dist"
+  },
+  {
+    "id": "out-of-frame",
+    "source": "games/local/out-of-frame",
+    "title": "Out of Frame · 框外静止",
+    "description": "拖动观察框，让机器人与平台在框内运动、框外冻结，定格开关、搭起归途，解开六间时光工坊。",
+    "output": "dist"
   }
 ]

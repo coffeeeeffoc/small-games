@@ -416,6 +416,9 @@ importers:
       '@coffeeeeffoc/one-stroke-course':
         specifier: workspace:*
         version: link:../../games/local/one-stroke-course
+      '@coffeeeeffoc/out-of-frame':
+        specifier: workspace:*
+        version: link:../../games/local/out-of-frame
       '@coffeeeeffoc/precision-demolition':
         specifier: workspace:*
         version: link:../../games/local/precision-demolition
@@ -1147,6 +1150,8 @@ importers:
       vite:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.21.0)
+
+  games/local/out-of-frame: {}
 
   games/local/precision-demolition: {}
 
