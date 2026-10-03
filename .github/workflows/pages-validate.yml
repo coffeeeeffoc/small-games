@@ -110,7 +110,8 @@ jobs:
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
       - run: python3 scripts/test-pages-deploy.py
       - run: python3 scripts/test-mobile-assets.py
-      - run: pnpm --filter @coffeeeeffoc/shell-web test
+      - name: Test Shell with workspace dependencies
+        run: pnpm exec turbo run test --filter=@coffeeeeffoc/shell-web --concurrency=1
       - run: node scripts/run-pages-game-tests.mjs
 
   smoke:

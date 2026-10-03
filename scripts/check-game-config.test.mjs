@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,6 +86,58 @@ test('Pages summary propagates selected validation failures and permits only exp
     });
     assert.equal(result.status, expected, `${scope}/${required}/${validation}: ${result.stdout}`);
   }
+});
+
+test('parallel Pages logic builds Shell dependencies and keeps Node test gates', async () => {
+  const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
+  const pages = await read('.github/workflows/pages.yml');
+  const validation = await read('.github/workflows/pages-validate.yml');
+  const turbo = await read('turbo.json');
+  const { build, logic } = validation.jobs;
+  assert.equal(build.needs, 'kart');
+  assert.equal(logic.needs, 'kart');
+  assert.equal(logic.if, undefined);
+  assert.equal(logic['continue-on-error'], undefined);
+  const shellTest = logic.steps.find(
+    (step) =>
+      step.run === 'pnpm exec turbo run test --filter=@coffeeeeffoc/shell-web --concurrency=1',
+  );
+  assert(shellTest, 'Shell tests must use the Turbo dependency graph in the independent logic job');
+  assert.equal(shellTest.if, undefined);
+  assert.equal(shellTest['continue-on-error'], undefined);
+  const shellTask = turbo.tasks['@coffeeeeffoc/shell-web#test'] ?? turbo.tasks.test;
+  assert(shellTask.dependsOn.includes('^build'));
+  for (const job of [pages.jobs.changes, logic]) {
+    const nodeTests = job.steps.find(
+      (step) =>
+        step.run ===
+        'node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs',
+    );
+    assert(nodeTests, 'Pages selection and artifact tests must still run through node:test');
+    assert.equal(nodeTests.if, undefined);
+    assert.equal(nodeTests['continue-on-error'], undefined);
+  }
+});
+
+test('Shell Vitest discovery includes every application test and excludes Node script tests', async () => {
+  const shell = path.join(repo, 'apps/shell-web');
+  const require = createRequire(path.join(shell, 'package.json'));
+  const vitestCli = path.join(path.dirname(require.resolve('vitest/package.json')), 'vitest.mjs');
+  const result = spawnSync(process.execPath, [vitestCli, 'list', '--filesOnly', '--json'], {
+    cwd: shell,
+    encoding: 'utf8',
+    timeout: 30000,
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const actual = JSON.parse(result.stdout)
+    .map(({ file }) => path.relative(shell, file).replaceAll('\\', '/'))
+    .sort();
+  const expected = (await readdir(path.join(shell, 'tests'), { recursive: true }))
+    .filter((file) => /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file))
+    .map((file) => `tests/${file.replaceAll('\\', '/')}`)
+    .sort();
+  assert(expected.length > 0, 'Shell application tests must be present');
+  assert.deepEqual(actual, expected);
 });
 
 test('all Cocos consumers download both source-verified artifacts and pass them through Turbo', async () => {
