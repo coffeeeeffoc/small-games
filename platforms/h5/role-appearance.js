@@ -49,14 +49,37 @@ function facePaths(role) {
   const paths = [];
   const add = (d, fill, stroke = '', width = 3) => paths.push({ d, fill, stroke, width });
   if (animal) {
-    add(chaser ? 'M9 43 10 6Q12 0 18 6L39 27M61 27 82 6Q88 0 90 6L91 43' : 'M6 48 13 5Q15 0 21 7L42 29M58 29 79 7Q85 0 87 5L94 48', color);
+    add(
+      chaser
+        ? 'M9 43 10 6Q12 0 18 6L39 27M61 27 82 6Q88 0 90 6L91 43'
+        : 'M6 48 13 5Q15 0 21 7L42 29M58 29 79 7Q85 0 87 5L94 48',
+      color,
+    );
     add('M16 29 17 13 30 30M70 30 83 13 84 29', '#ffb6a2');
   }
-  add(chaser ? 'M8 46Q8 22 31 19H69Q92 22 92 46V65Q92 94 50 96 8 94 8 65Z' : 'M5 53Q5 17 50 17T95 53Q95 92 50 97 5 92 5 53Z', animal ? color : accent, color);
-  if (animal) add(chaser ? 'M16 58Q27 43 42 57L50 65 58 57Q73 43 84 58V70Q81 89 50 90 19 89 16 70Z' : 'M10 50 42 60 50 70 58 60 90 50Q90 87 50 91 10 87 10 50Z', '#fff4df');
+  add(
+    chaser
+      ? 'M8 46Q8 22 31 19H69Q92 22 92 46V65Q92 94 50 96 8 94 8 65Z'
+      : 'M5 53Q5 17 50 17T95 53Q95 92 50 97 5 92 5 53Z',
+    animal ? color : accent,
+    color,
+  );
+  if (animal)
+    add(
+      chaser
+        ? 'M16 58Q27 43 42 57L50 65 58 57Q73 43 84 58V70Q81 89 50 90 19 89 16 70Z'
+        : 'M10 50 42 60 50 70 58 60 90 50Q90 87 50 91 10 87 10 50Z',
+      '#fff4df',
+    );
   else {
-    add(chaser ? 'M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z' : 'M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z', color);
-    if (style === 'cosmic') add('M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z', '#ffe075');
+    add(
+      chaser
+        ? 'M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z'
+        : 'M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z',
+      color,
+    );
+    if (style === 'cosmic')
+      add('M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z', '#ffe075');
   }
   add('M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0', '#243d49');
   add('M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0', '#fff');
@@ -66,9 +89,10 @@ function facePaths(role) {
   return paths;
 }
 
-const portraitOutline = (role) => side(role) === 'cop'
-  ? 'M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z'
-  : 'M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0';
+const portraitOutline = (role) =>
+  side(role) === 'cop'
+    ? 'M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z'
+    : 'M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0';
 let clipSequence = 0;
 
 export function roleAvatarSvg(role, x, y, size) {
@@ -76,7 +100,12 @@ export function roleAvatarSvg(role, x, y, size) {
   const id = `role-portrait-${++clipSequence}`;
   const content = avatar
     ? `<defs><clipPath id="${id}"><path d="${portraitOutline(role)}"/></clipPath></defs><image href="${avatar}" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`
-    : facePaths(role).map(({ d, fill, stroke, width }) => `<path d="${d}" fill="${fill}" stroke="${stroke || 'none'}" stroke-width="${width}"/>`).join('');
+    : facePaths(role)
+        .map(
+          ({ d, fill, stroke, width }) =>
+            `<path d="${d}" fill="${fill}" stroke="${stroke || 'none'}" stroke-width="${width}"/>`,
+        )
+        .join('');
   return `<g class="role-avatar" pointer-events="none" transform="translate(${x} ${y}) scale(${size / 100})" stroke-linecap="round" stroke-linejoin="round">${content}</g>`;
 }
 
@@ -95,12 +124,29 @@ export function drawRoleAvatar(ctx, role, x, y, size) {
   if (img?.complete && img.naturalWidth) {
     ctx.clip(new Path2D(portraitOutline(role)));
     const edge = Math.min(img.naturalWidth, img.naturalHeight);
-    ctx.drawImage(img, (img.naturalWidth - edge) / 2, (img.naturalHeight - edge) / 2, edge, edge, 0, 0, 100, 100);
+    ctx.drawImage(
+      img,
+      (img.naturalWidth - edge) / 2,
+      (img.naturalHeight - edge) / 2,
+      edge,
+      edge,
+      0,
+      0,
+      100,
+      100,
+    );
   } else {
     for (const { d, fill, stroke, width } of facePaths(role)) {
       const path = new Path2D(d);
-      if (fill !== 'none') { ctx.fillStyle = fill; ctx.fill(path); }
-      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(path); }
+      if (fill !== 'none') {
+        ctx.fillStyle = fill;
+        ctx.fill(path);
+      }
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = width;
+        ctx.stroke(path);
+      }
     }
   }
   ctx.restore();
