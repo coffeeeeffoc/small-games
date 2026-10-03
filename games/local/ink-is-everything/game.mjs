@@ -1,651 +1,933 @@
-import { createGame, act, getRoom, getOptions, getIntent } from './engine.mjs';
+import * as Engine from './engine.mjs';
 import { LEVELS } from './levels.mjs';
-import { renderScene, renderVignette, icon } from './art.mjs';
+import { createRenderer, icon, renderVignette } from './art.mjs';
 
+const { createGame, step, command, getRoom, getSnapshot, getNearbyInteractable, getObjective } =
+  Engine;
 const $ = (selector) => document.querySelector(selector);
-const saveKey = 'ink-is-everything:chapter:v1';
-let state = createGame(),
-  started = false,
-  selected = 'crossing',
-  history = [],
-  saved = null;
-let brushDrag = null,
-  suppressClickUntil = 0;
-let storageAvailable = true;
-let muted = true,
-  audio = null,
-  toastTimer,
-  lastFocus,
-  actionLocked = false,
-  lockTimer;
-const esc = (value) =>
-  String(value ?? '').replace(
+const esc = (text) =>
+  String(text ?? '').replace(
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const saveKey = 'ink-is-everything:action-chapter:v2';
+let state = createGame(),
+  saved = null,
+  paused = false,
+  muted = true,
+  storageAvailable = true;
+let navPath = [],
+  navAction = null,
+  aimPoint = null,
+  lockedEnemy = null,
+  canvasPointer = null,
+  drawStroke = null,
+  drawBridge = null,
+  drawMode = false;
+let movePointer = null,
+  firePointer = null,
+  meleePointer = null,
+  moveStick = { x: 0, y: 0 },
+  fireAim = null,
+  canvasFire = false,
+  fireHeld = false,
+  meleeHeld = false,
+  dashQueued = false,
+  fireQueued = false,
+  meleeQueued = false;
+let lastMessage = '',
+  feedbackUntil = 0,
+  hudClock = 0,
+  saveClock = 0,
+  audio = null,
+  lastFrame = performance.now(),
+  accumulator = 0,
+  lastModalFocus = null;
+let lastRoom = state.roomId,
+  lastStatus = state.status,
+  lastShots = 0,
+  lastHits = 0,
+  lastHp = state.player.hp,
+  ended = false,
+  navStall = 0;
+const keys = new Set();
+const canvas = $('#game-canvas');
+const renderer = createRenderer(canvas);
 const level = () => LEVELS[state.levelId];
-const fighting = () => Boolean(getRoom(state).enemy?.hp > 0);
-const options = () => getOptions(state);
-const findOption = (type, target) =>
-  options().find((item) => item.type === type && item.target === target);
-const optionAttributes = (option) =>
-  `data-action="${option.type}" ${option.target ? `data-target="${option.target}"` : ''} ${!option.enabled ? 'disabled' : ''} title="${esc(option.reason || option.description)}"`;
+const active = () => state.status === 'playing' && !paused && !document.hidden;
 
-// Persist the player's commands, then replay through the reducer on load. Stored JSON
-// never becomes trusted game state or rendered HTML, and old saves can be rejected.
 try {
   muted = localStorage.getItem('ink-is-everything:muted') !== 'false';
-  const candidate = JSON.parse(localStorage.getItem(saveKey) || 'null');
-  if (
-    candidate?.version === 1 &&
-    LEVELS[candidate.levelId] &&
-    Array.isArray(candidate.actions) &&
-    candidate.actions.length <= 1000
-  ) {
-    let replay = createGame(candidate.levelId);
-    for (const command of candidate.actions) {
-      const result = act(replay, command);
-      if (!result.ok || command.type === 'restart') throw new Error('Invalid saved action');
-      replay = result.state;
-    }
-    if (replay.status === 'playing' && candidate.actions.length)
-      saved = { state: replay, actions: candidate.actions };
+  const data = localStorage.getItem(saveKey);
+  if (data && Engine.restoreGame) {
+    const restored = Engine.restoreGame(JSON.parse(data));
+    if (restored?.status === 'playing') saved = restored;
   }
 } catch {
-  /* Storage can be disabled in an embedded or private browser. */
+  /* A missing, outdated or disabled save never blocks the chapter. */
 }
 
-function persist() {
+function save() {
   try {
-    if (state.status === 'playing')
+    if (state.status === 'playing') {
+      const snapshot = Engine.serializeGame ? Engine.serializeGame(state) : state;
       localStorage.setItem(
         saveKey,
-        JSON.stringify({ version: 1, levelId: state.levelId, actions: history }),
+        typeof snapshot === 'string' ? snapshot : JSON.stringify(snapshot),
       );
-    else localStorage.removeItem(saveKey);
+    } else if (state.status === 'won' || state.status === 'lost') localStorage.removeItem(saveKey);
     storageAvailable = true;
   } catch {
     storageAvailable = false;
-    /* Gameplay remains fully available without local storage. */
   }
 }
-
-function sound(type) {
+function sound(kind) {
   if (muted) return;
   try {
     audio ||= new (window.AudioContext || window.webkitAudioContext)();
     if (audio.state === 'suspended') audio.resume().catch(() => {});
-    const now = audio.currentTime;
     const oscillator = audio.createOscillator(),
-      gain = audio.createGain();
-    const pitches = {
-      draw: 260,
-      trace: 150,
-      attack: 105,
-      dry: 170,
-      guard: 350,
-      heal: 530,
-      claim: 660,
-      buy: 430,
-      win: 780,
-      hurt: 75,
-      move: 210,
-    };
-    oscillator.type = ['attack', 'hurt'].includes(type) ? 'sawtooth' : 'triangle';
-    oscillator.frequency.setValueAtTime(pitches[type] || 310, now);
+      gain = audio.createGain(),
+      now = audio.currentTime;
+    const hz =
+      { shot: 155, hit: 90, hurt: 66, dash: 350, pickup: 600, heal: 440, draw: 275, win: 780 }[
+        kind
+      ] || 290;
+    oscillator.type = kind === 'hurt' || kind === 'shot' ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(hz, now);
     oscillator.frequency.exponentialRampToValueAtTime(
-      (pitches[type] || 310) * (type === 'win' ? 1.5 : 0.55),
-      now + 0.16,
+      hz * (kind === 'win' ? 1.6 : 0.55),
+      now + 0.13,
     );
-    gain.gain.setValueAtTime(0.045, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    gain.gain.setValueAtTime(kind === 'shot' ? 0.025 : 0.045, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
     oscillator.connect(gain);
     gain.connect(audio.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.24);
+    oscillator.start();
+    oscillator.stop(now + 0.18);
     oscillator.onended = () => {
       oscillator.disconnect();
       gain.disconnect();
     };
   } catch {
-    /* Sound is optional. */
+    /* Audio is optional. */
   }
 }
-
-function toast(message, error = false) {
-  clearTimeout(toastTimer);
-  $('#toast').textContent = message;
-  $('#toast').className = `visible${error ? ' error' : ''}`;
-  toastTimer = setTimeout(() => ($('#toast').className = ''), 4400);
+function feedback(text, error = false, duration = 3200) {
+  $('#feedback').textContent = text;
+  $('#feedback').className = `visible${error ? ' error' : ''}`;
+  feedbackUntil = performance.now() + duration;
 }
-
-function paintHud() {
-  $('#game-root').dataset.started = String(started);
+function bindPress(selector, handler) {
+  const button = $(selector);
+  button.addEventListener('pointerdown', (event) => {
+    if (button.disabled || event.button !== 0) return;
+    event.preventDefault();
+    handler(event);
+  });
+  button.addEventListener('click', (event) => {
+    if (!button.disabled && event.detail === 0) handler(event);
+  });
+}
+function setText(selector, text) {
+  const el = $(selector);
+  if (el.textContent !== String(text)) el.textContent = text;
+}
+function updateHUD() {
+  const p = state.player;
   $('#game-root').dataset.status = state.status;
-  $('#game-root').dataset.ink = String(state.ink);
-  $('#ink-value').textContent = state.ink;
-  $('#ink-fill').style.width = `${(state.ink / state.maxInk) * 100}%`;
-  $('#ink-fill').style.background = state.ink < 15 ? '#bb886c' : '';
-  $('.ink-track').setAttribute('aria-valuenow', state.ink);
-  $('.ink-track').setAttribute('aria-valuemax', state.maxInk);
-  $('#hearts').innerHTML = Array.from({ length: state.maxHp }, (_, i) =>
-    icon('heart').replace('<svg', `<svg class="${i >= state.hp ? 'empty' : ''}"`),
-  ).join('');
-  $('#hearts').dataset.label = `生命 ${state.hp} / ${state.maxHp}`;
-  $('#hearts').setAttribute('aria-label', `生命 ${state.hp} / ${state.maxHp}`);
-  $('#seal-value').textContent = state.seals;
-  $('#sound').setAttribute('aria-label', muted ? '开启声音' : '静音');
-  $('#sound').setAttribute('aria-pressed', String(muted));
+  $('#game-root').dataset.started = String(state.status !== 'ready');
+  $('#game-root').dataset.paused = String(paused);
+  setText('#ink-value', p.ink);
+  setText('#seal-value', state.seals);
+  $('#ink-fill').style.width = `${(p.ink / p.maxInk) * 100}%`;
+  $('#ink-fill').style.background = p.ink < 12 ? '#bf8767' : '';
+  $('.ink-track').setAttribute('aria-valuenow', p.ink);
+  $('.ink-track').setAttribute('aria-valuemax', p.maxInk);
+  if ($('#hearts').dataset.value !== `${p.hp}/${p.maxHp}`) {
+    $('#hearts').innerHTML = Array.from({ length: p.maxHp }, (_, i) =>
+      icon('heart').replace('<svg', `<svg class="${i >= p.hp ? 'empty' : ''}"`),
+    ).join('');
+    $('#hearts').dataset.value = `${p.hp}/${p.maxHp}`;
+    $('#hearts').dataset.label = `生命 ${p.hp} / ${p.maxHp}`;
+    $('#hearts').setAttribute('aria-label', `生命${p.hp}/${p.maxHp}`);
+  }
+  setText('#room-name', getRoom(state).name);
+  setText('#objective', getObjective(state));
+  const mapMarkup = level()
+    .rooms.map(
+      (room) =>
+        `<span class="map-dot ${room.id === state.roomId ? 'current' : state.rooms[room.id].cleared && state.rooms[room.id].visited ? 'cleared' : ''}" title="${esc(room.name)}">${esc(room.name.slice(0, 2))}<small>${room.id === state.roomId ? '所在' : state.rooms[room.id].cleared && state.rooms[room.id].visited ? '已清' : state.rooms[room.id].visited ? '已访' : '未访'}</small></span>`,
+    )
+    .join('');
+  if ($('#room-map').innerHTML !== mapMarkup) $('#room-map').innerHTML = mapMarkup;
+  const nearby = state.status === 'playing' ? getNearbyInteractable(state) : null;
+  $('#interact').hidden = !nearby || paused;
+  if (nearby)
+    setText(
+      '#interact-label',
+      nearby.kind === 'portal'
+        ? nearby.label
+        : nearby.kind === 'merchant'
+          ? '与契约师交易'
+          : nearby.kind === 'spring'
+            ? '饮用洗笔泉'
+            : '开启墨匣',
+    );
+  setText(
+    '#context-hint',
+    drawMode ? '从桥下笔尖锚点，拖到对岸圆点' : p.ink < 2 ? '墨水见底：干笔与闪避永远免费' : '',
+  );
+  $('#heal').disabled = p.hp >= p.maxHp || p.ink < level().rules.healCost || p.healCd > 0;
+  $('#dash .cooldown-mask').style.transform =
+    `translateY(${100 - Math.min(1, p.dashCd / (state.contracts.includes('brush-step') ? 0.72 : level().rules.dashCooldown)) * 100}%)`;
+  $('#melee .cooldown-mask').style.transform =
+    `translateY(${100 - Math.min(1, p.meleeCd / level().rules.meleeCooldown) * 100}%)`;
+  setText('#fire b', p.ink >= level().rules.attackCost ? '墨弹' : '干笔');
+  setText('#fire small', p.ink >= level().rules.attackCost ? '按住 · 2 墨' : '近身 · 0 墨');
+  $('#fire').setAttribute(
+    'aria-label',
+    p.ink >= 2 ? '按住发射墨弹，每发2墨水' : '墨水耗尽，按住使用免费干笔近战',
+  );
+  $('#tutorial-hint').classList.toggle(
+    'faded',
+    state.time > 9 ||
+      state.stats.enemiesDefeated > 0 ||
+      $('#feedback').classList.contains('visible'),
+  );
+  $('#draw-tool').setAttribute('aria-pressed', String(drawMode));
+  $('#game-root').classList.toggle(
+    'game-quiet',
+    state.status === 'ready' || paused || state.status === 'won' || state.status === 'lost',
+  );
+}
+function syncSoundButton() {
   $('#sound').innerHTML = icon(muted ? 'muted' : 'sound');
-  $('#location-name').textContent = getRoom(state).name;
-  $('#map-progress').textContent =
-    `已绘 ${state.stats.roomsRevealed} / ${Object.keys(state.rooms).length}`;
-  $('#turn-label').textContent = started
-    ? `第 ${String(state.turn).padStart(2, '0')} 笔 · ${fighting() ? '交锋中' : '探索中'}`
-    : '落笔之前';
-  $('#objectives').innerHTML = [
-    `找到两枚失落的钥印 ${state.seals}/2`,
-    '抵达北方的古老拱门',
-    '击败门后的守门者',
-  ]
-    .map(
-      (text, i) =>
-        `<li class="${[state.seals >= 2, state.gateUnlocked, state.status === 'won'][i] ? 'done' : ''}">${text}</li>`,
-    )
-    .join('');
+  $('#sound').setAttribute('aria-label', muted ? '开启声音' : '静音');
 }
-
-function paintMap() {
-  const rooms = Object.values(state.rooms),
-    current = getRoom(state);
-  $('#map-art').innerHTML = renderScene({
-    rooms,
-    links: level().links,
-    currentRoomId: state.roomId,
-    revealed: rooms.filter((room) => room.revealed).map((room) => room.id),
-    cleared: rooms.filter((room) => room.cleared).map((room) => room.id),
-    selectedRoomId: selected,
-    combat: current.enemy?.hp > 0 ? { ...current.enemy, intent: getIntent(state) } : null,
-    time: state.turn,
-  });
-  $('#map-nodes').innerHTML = rooms
-    .map((room) => {
-      const adjacent = current.exits.includes(room.id),
-        known = room.revealed || adjacent || room.kind === 'boss';
-      if (!known) return '';
-      const reachable = adjacent && !fighting() && state.status === 'playing';
-      const selectable = reachable || room.id === state.roomId;
-      return `<button class="room-node ${reachable ? 'reachable' : ''} ${room.id === selected ? 'selected' : ''} ${room.id === state.roomId ? 'current' : ''}" data-room="${room.id}" aria-label="${esc(room.name)}${room.id === state.roomId ? '，当前所在，查看房间' : reachable ? '，可前往' : '，暂不可抵达'}" aria-pressed="${room.id === selected}" ${!selectable ? 'disabled' : ''}><span class="room-name">${room.id === state.roomId ? '· ' : ''}${esc(room.name)}</span>${adjacent && !room.revealed ? `<small>${room.reward?.seals ? '◆ 钥印' : room.kind === 'merchant' ? '墨水交易' : room.reward ? esc(room.rewardText) : room.kind === 'boss' ? '最终试炼' : '安全通路'}</small>` : ''}</button>`;
-    })
-    .join('');
-  positionNodes();
-}
-
-function positionNodes() {
-  const { width, height } = $('.map-viewport').getBoundingClientRect();
-  const scale = Math.min(width / 1100, height / 660);
-  const offsetX = (width - 1100 * scale) / 2,
-    offsetY = (height - 660 * scale) / 2;
-  document.querySelectorAll('.room-node').forEach((button) => {
-    const room = state.rooms[button.dataset.room];
-    button.style.left = `${offsetX + (100 + room.x * 9) * scale}px`;
-    button.style.top = `${offsetY + (90 + room.y * 5) * scale}px`;
-  });
-}
-
-const illustration = (name) => `<div class="encounter-illustration">${renderVignette(name)}</div>`;
-const reward = (room) =>
-  `<div class="reward-preview"><span>这 条 路 的 回 报</span>${esc(room.rewardText)}</div>`;
-
-function paintEncounter() {
-  const panel = $('#encounter'),
-    room = getRoom(state);
-  if (!started) {
-    panel.innerHTML = `<div class="encounter-kicker"><span>给 初 次 执 笔 的 你</span><span>✦</span></div><h2>故事，始于一滴。</h2>${illustration('map')}<p class="encounter-copy">你是一位迷失在旧书中的绘图师。用墨画出前路，找回两枚钥印，穿过最后的墨之门。</p><div class="reward-preview"><span>随 身 行 囊</span>72 滴墨水 · 5 点生命 · 一支旧笔</div><div class="context-actions"><button id="start-game" class="primary-button">${saved ? '继续上次旅程' : '开始落笔'} ${icon('arrow')}</button>${saved ? '<button id="fresh-game" class="secondary-button">从空白页开始</button>' : ''}<p class="context-footnote">点地图选路，或拖动旅人绘出相邻房间。<br>回合制，无倒计时。每一步都可以慢慢想。</p></div>`;
-    return;
-  }
-  if (state.status !== 'playing') {
-    panel.innerHTML = `<div class="encounter-kicker">这 一 页 的 终 章</div><h2>${state.status === 'won' ? '门后，还有世界。' : '下一笔，会更好。'}</h2>${illustration(state.status === 'won' ? 'map' : 'heal')}<p class="encounter-copy">${state.status === 'won' ? '你为这张空白的纸，写出了属于自己的归途。' : '失误也会留在纸上。记住敌人的意图，重新分配你的墨水。'}</p><div class="context-actions"><button id="show-result" class="primary-button">翻阅旅程手记</button><button data-action="restart" class="secondary-button">重新落笔</button></div>`;
-    return;
-  }
-  if (fighting()) {
-    const enemy = room.enemy,
-      intent = getIntent(state);
-    const buttons = ['attack', 'dry', 'guard', 'heal']
-      .map((type) => {
-        const option = findOption(type);
-        return `<button ${optionAttributes(option)} class="${type === 'attack' ? 'ink-attack' : ''}">${option.label}<small>${type === 'attack' ? `${state.contracts.includes('fine-nib') ? 6 : 4} 伤害 · ${option.cost} 墨` : type === 'dry' ? `${1 + state.focus} 伤害 · 免费` : type === 'guard' ? '挡伤 → 专注' : `${option.cost} 墨 · 回生命`}</small></button>`;
-      })
-      .join('');
-    panel.innerHTML = `<div class="encounter-kicker"><span>${room.kind === 'boss' ? '最 终 试 炼' : '遭 遇 墨 灵'}</span><span>交锋</span></div><h2>${esc(enemy.name)}</h2>${illustration('attack')}<div class="enemy-hp"><span>敌方生命</span><b>${enemy.hp} / ${enemy.maxHp}</b></div><div class="enemy-health"><i style="width:${(enemy.hp / enemy.maxHp) * 100}%"></i></div><div class="enemy-intent">下一步：${esc(intent.name)} · ${intent.damage ? `造成 ${intent.damage} 伤害` : '不会攻击'}<small>${esc(intent.tell)}</small></div><div class="combat-actions">${buttons}</div><p class="focus-badge">${state.focus ? `✦ 专注 ${state.focus}：下一次干笔造成 ${1 + state.focus} 伤害` : '成功防守 → 下次干笔伤害提升至 3'}</p><p class="quick-note">出手后敌人会执行上方意图。<br><b>蓄墨时进攻，攻击时防守。</b></p>`;
-    return;
-  }
-  const target = selected && selected !== state.roomId ? state.rooms[selected] : null;
-  if (target && room.exits.includes(target.id)) {
-    const primary = findOption(target.revealed ? 'move' : 'draw', target.id),
-      trace = findOption('trace', target.id);
-    panel.innerHTML = `<div class="encounter-kicker"><span>${target.revealed ? '重 访 已 绘 之 地' : '未 知 的 下 一 页'}</span><span>${target.revealed ? '已绘' : '待绘'}</span></div><h2>${esc(target.name)}</h2>${illustration(target.kind === 'merchant' ? 'trade' : target.enemy ? 'attack' : target.kind === 'spring' ? 'heal' : 'map')}<p class="encounter-copy">${esc(target.hint)}</p>${reward(target)}<div class="context-actions"><button id="primary-action" class="primary-button" ${optionAttributes(primary)}>${target.revealed ? '沿旧路前往 · 免费' : `绘出这条路 · ${primary.cost} 墨`} ${icon('arrow')}</button>${trace ? `<button class="secondary-button" ${optionAttributes(trace)}>干笔摸索 · 0 墨</button><p class="context-footnote">${primary.reason ? `${esc(primary.reason)}<br>` : ''}摸索多用一回合，擦伤 1 生命（最低留 1）${target.enemy ? '；敌人生命 +2' : ''}。</p>` : ''}</div>`;
-    return;
-  }
-  const claim = findOption('claim'),
-    unlock = findOption('unlock'),
-    buys = options().filter((option) => option.type === 'buy');
-  const routes = room.exits
-    .map((id) => `<button data-select="${id}">${esc(state.rooms[id].name)} →</button>`)
-    .join('');
-  panel.innerHTML = `<div class="encounter-kicker"><span>当 前 所 在</span><span>${room.claimed ? '已领取' : '已绘'}</span></div><h2>${esc(room.name)}</h2>${illustration(room.kind === 'merchant' ? 'trade' : room.kind === 'spring' ? 'heal' : 'map')}<p class="encounter-copy">${esc(room.description)}</p>${room.reward && !room.claimed ? reward(room) : ''}${buys.length ? buys.map((option) => `<button class="contract-option" ${optionAttributes(option)}><strong>${esc(option.label)}<span>${option.reason === '已签订' ? '✓ 已签订' : `${option.cost} 墨`}</span></strong><small>${esc(option.description)}</small></button>`).join('') : ''}${state.contracts.length && room.kind === 'merchant' ? `<p class="active-contracts">契约将持续生效至本次旅程结束。</p>` : ''}<div class="context-actions">${claim ? `<button id="primary-action" class="primary-button" ${optionAttributes(claim)}>${claim.enabled ? claim.label : claim.reason} · 免费</button><p class="context-footnote">${esc(claim.description)}</p>` : ''}${unlock ? `<button id="primary-action" class="primary-button" ${optionAttributes(unlock)}>${unlock.enabled ? unlock.label : unlock.reason} ${icon('key')}</button>` : ''}<p class="quick-note">${claim && !room.claimed ? '领取后选择下一条路，也可以稍后回来。' : '点选地图，或选择相邻的下一站：'}</p><div class="route-buttons">${routes}</div></div>`;
-}
-
-function paintCards() {
-  const attack = findOption('attack'),
-    heal = findOption('heal');
-  const data = [
-    {
-      number: '01',
-      name: '绘出前路',
-      en: 'REVEAL THE UNKNOWN',
-      type: 'map',
-      text: '让未知显形，寻找藏在<br>留白深处的馈赠。',
-      cost: `${state.contracts.includes('wayfinder') ? 4 : 6} 墨 / 新区域`,
-      disabled: started && (fighting() || state.status !== 'playing'),
-    },
-    {
-      number: '02',
-      name: '以墨为刃',
-      en: 'MAKE YOUR MARK',
-      type: 'attack',
-      text: '一笔击退墨灵。<br>读懂意图，再落笔。',
-      cost: '5 墨 / 次攻击',
-      disabled: started && !attack?.enabled,
-    },
-    {
-      number: '03',
-      name: '缝合伤口',
-      en: 'MEND THE WOUNDS',
-      type: 'heal',
-      text: '用未写完的故事，<br>换一次继续前行。',
-      cost: `8 墨 / +${state.contracts.includes('binding') ? 3 : 2} 生命`,
-      disabled: started && !heal?.enabled,
-    },
-    {
-      number: '04',
-      name: '签下契约',
-      en: 'A PRICE IN INK',
-      type: 'trade',
-      text: '以墨交换更强的力量。<br>每一份契约，都有代价。',
-      cost: '10–12 墨 / 份契约',
-      disabled: started && (fighting() || state.status !== 'playing'),
-    },
+function cancelInput() {
+  const captured = [
+    [$('#joystick'), movePointer],
+    [$('#fire'), firePointer],
+    [canvas, canvasPointer],
+    [$('#melee'), meleePointer],
   ];
-  $('#action-cards').innerHTML = data
-    .map(
-      (card) =>
-        `<button class="action-card" data-card="${card.type}" ${card.disabled ? 'disabled' : ''} aria-label="${card.name}，${card.cost}"><div><header><span class="action-num">${card.number}</span><div><h3>${card.name}</h3><span class="action-en">${card.en}</span></div></header><p>${card.text}</p><span class="cost">${icon('ink')}${card.cost}</span></div><div class="card-art">${renderVignette(card.type)}</div></button>`,
-    )
-    .join('');
+  keys.clear();
+  moveStick = { x: 0, y: 0 };
+  fireAim = null;
+  movePointer = null;
+  firePointer = null;
+  canvasPointer = null;
+  meleePointer = null;
+  fireHeld = false;
+  canvasFire = false;
+  meleeHeld = false;
+  dashQueued = false;
+  fireQueued = false;
+  meleeQueued = false;
+  drawStroke = null;
+  drawBridge = null;
+  navPath = [];
+  navAction = null;
+  $('#stick-thumb').style.transform = '';
+  $('#fire .aim-thumb').style.transform = '';
+  document.querySelectorAll('.held,.aiming').forEach((el) => el.classList.remove('held', 'aiming'));
+  for (const [element, id] of captured)
+    if (id !== null && element.hasPointerCapture(id)) element.releasePointerCapture(id);
 }
-
-function render() {
-  paintHud();
-  paintMap();
-  paintEncounter();
-  paintCards();
-}
-
-function paintEffects(events) {
-  const svg = $('#map-art > svg');
-  if (!svg) return;
-  const room = getRoom(state),
-    x = 100 + room.x * 9,
-    y = 90 + room.y * 5;
-  const attack = events.find((event) => event.type === 'attack');
-  const healing = events.find((event) => event.type === 'heal');
-  const blocking = events.some((event) => event.type === 'block');
-  if (!attack && !healing && !blocking) return;
-  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  group.setAttribute('class', 'scene-effect');
-  if (attack)
-    group.innerHTML = `<path class="ink-slash" d="M${x - 42} ${y - 21}Q${x - 16} ${y - 48} ${x + 25} ${y - 20}" fill="none" stroke="#1b211a" stroke-width="${attack.method === 'attack' ? 9 : 3}" stroke-linecap="round" pathLength="1"/><text class="floating-feedback" x="${x + 15}" y="${y - 62}" fill="#923e2c">−${attack.damage}</text>`;
-  else if (healing)
-    group.innerHTML = `<circle class="heal-ring" cx="${x - 30}" cy="${y - 10}" r="33" fill="none" stroke="#5b7849" stroke-width="3"/><text class="floating-feedback" x="${x - 30}" y="${y - 62}" fill="#4d6b36">+${healing.amount}</text>`;
-  else
-    group.innerHTML = `<path class="heal-ring" d="m${x - 47} ${y - 57} 24 9-4 33-20 17-20-17-4-33Z" fill="#a9b19577" stroke="#4d6440" stroke-width="3"/><text class="floating-feedback" x="${x - 45}" y="${y - 70}" fill="#4d6b36">挡下</text>`;
-  svg.append(group);
-  setTimeout(() => group.remove(), 850);
-}
-
-function perform(command) {
-  if ($('#modal').open || actionLocked) return;
-  if (!started) {
-    start();
-    return;
-  }
-  if (command.type === 'restart') {
-    restart();
-    return;
-  }
-  const oldHp = state.hp,
-    result = act(state, command);
-  if (!result.ok) {
-    toast(result.message, true);
-    return;
-  }
-  state = result.state;
-  history.push({ type: command.type, ...(command.target ? { target: command.target } : {}) });
-  selected = null;
-  actionLocked = true;
-  clearTimeout(lockTimer);
-  lockTimer = setTimeout(() => {
-    actionLocked = false;
-  }, 180);
-  render();
-  persist();
-  paintEffects(result.events);
-  toast(result.message, state.hp < oldHp);
-  sound(state.hp < oldHp ? 'hurt' : command.type);
-  if (['draw', 'trace'].includes(command.type)) {
-    $('.map-panel').classList.remove('reveal-effect');
-    requestAnimationFrame(() => $('.map-panel').classList.add('reveal-effect'));
-  }
-  if (state.hp < oldHp) {
-    $('#hearts').classList.remove('shake');
-    requestAnimationFrame(() => $('#hearts').classList.add('shake'));
-  }
-  if (state.status !== 'playing') {
-    sound(state.status === 'won' ? 'win' : 'hurt');
-    showResult();
-  }
-}
-
 function start(fresh = false) {
-  if (saved && !fresh) {
-    state = saved.state;
-    history = saved.actions;
-    selected = null;
-  } else {
+  if (saved && !fresh) state = saved;
+  else {
     state = createGame();
-    history = [];
-    selected = 'crossing';
+    command(state, { type: 'start' });
   }
   saved = null;
-  started = true;
-  actionLocked = false;
-  render();
-  persist();
-  sound('draw');
-  toast('先选择一条相邻路线。绘路花墨，摸索耗血；每一步都由你决定。');
+  paused = false;
+  ended = false;
+  drawMode = false;
+  cancelInput();
+  $('#cover').hidden = true;
+  $('#modal').close();
+  lastRoom = state.roomId;
+  lastStatus = state.status;
+  lastHp = state.player.hp;
+  lastHits = state.stats.hits;
+  lastShots = state.stats.shots;
+  lastFrame = performance.now();
+  accumulator = 0;
+  save();
+  updateHUD();
+  renderer.render(state, { time: state.time });
+  feedback('沿东侧门前进。墨弹远攻，干笔近战；红色笔迹出现时，侧向闪避。', false, 4200);
+  canvas.focus({ preventScroll: true });
 }
-
-function chooseRoom(id) {
-  if ($('#modal').open) return;
-  if (!started) {
-    start();
-  }
-  if (id === state.roomId) {
-    selected = null;
-    paintMap();
-    paintEncounter();
-    paintCards();
-    return;
-  }
-  if (fighting()) {
-    toast('先解决眼前的墨灵，再继续前行。');
-    return;
-  }
-  if (!getRoom(state).exits.includes(id)) return;
-  selected = id;
-  paintMap();
-  paintEncounter();
-  paintCards();
-  sound('move');
-}
-
-// Drawing is an alternative to selecting a destination and pressing its button.
-// A stroke must start on the traveler and finish on a legal adjacent room.
-const nodeLayer = $('#map-nodes');
-function endStroke(event, cancelled = false) {
-  if (!brushDrag || (event && brushDrag.pointerId !== event.pointerId)) return;
-  const stroke = brushDrag;
-  const target =
-    event && document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-room]');
-  brushDrag = null;
-  $('#brush-trail').setAttribute('points', '');
-  document.querySelectorAll('.drag-target').forEach((node) => node.classList.remove('drag-target'));
-  if (nodeLayer.hasPointerCapture(stroke.pointerId))
-    nodeLayer.releasePointerCapture(stroke.pointerId);
-  // Pointer capture targets the layer, so a tap needs its own room selection.
-  if (!stroke.moved) {
-    if (!cancelled) chooseRoom(state.roomId);
-    return;
-  }
-  suppressClickUntil = performance.now() + 350;
-  if (cancelled || !target) return;
-  const id = target.dataset.room;
-  if (!getRoom(state).exits.includes(id)) {
-    toast('把笔迹连到一个相邻的房间。');
-    return;
-  }
-  const type = state.rooms[id].revealed ? 'move' : 'draw';
-  perform({ type, target: id });
-}
-nodeLayer.addEventListener('pointerdown', (event) => {
-  if (
-    !started ||
-    fighting() ||
-    state.status !== 'playing' ||
-    $('#modal').open ||
-    event.button !== 0 ||
-    brushDrag
-  )
-    return;
-  const node = event.target.closest('[data-room]');
-  if (node?.dataset.room !== state.roomId) return;
-  const rect = $('.map-viewport').getBoundingClientRect();
-  brushDrag = {
-    pointerId: event.pointerId,
-    x: event.clientX,
-    y: event.clientY,
-    rect,
-    moved: false,
-    points: [[event.clientX - rect.left, event.clientY - rect.top]],
-  };
-  $('#map-drag-layer').setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
-  nodeLayer.setPointerCapture(event.pointerId);
-});
-nodeLayer.addEventListener(
-  'pointermove',
-  (event) => {
-    if (!brushDrag || brushDrag.pointerId !== event.pointerId) return;
-    if (
-      !brushDrag.moved &&
-      Math.hypot(event.clientX - brushDrag.x, event.clientY - brushDrag.y) < 9
-    )
-      return;
-    event.preventDefault();
-    brushDrag.moved = true;
-    brushDrag.points.push([
-      event.clientX - brushDrag.rect.left,
-      event.clientY - brushDrag.rect.top,
-    ]);
-    $('#brush-trail').setAttribute(
-      'points',
-      brushDrag.points.map((point) => point.join(',')).join(' '),
-    );
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-room]');
-    document
-      .querySelectorAll('.drag-target')
-      .forEach((node) => node.classList.remove('drag-target'));
-    if (target && getRoom(state).exits.includes(target.dataset.room))
-      target.classList.add('drag-target');
-  },
-  { passive: false },
-);
-nodeLayer.addEventListener('pointerup', (event) => endStroke(event));
-nodeLayer.addEventListener('pointercancel', (event) => endStroke(event, true));
-nodeLayer.addEventListener('lostpointercapture', (event) => endStroke(event, true));
-
-function activateCard(type) {
-  if (!started) {
-    start();
-    return;
-  }
-  if (type === 'attack' || type === 'heal') {
-    perform({ type });
-    return;
-  }
-  if (type === 'map') {
-    if (selected) {
-      const option = findOption(state.rooms[selected].revealed ? 'move' : 'draw', selected);
-      if (option) {
-        perform({ type: option.type, target: selected });
-        return;
-      }
+function perform(action, allowModal = false) {
+  if (state.status !== 'playing' || (paused && !allowModal)) return { ok: false };
+  const beforeRoom = state.roomId,
+    result = command(state, action);
+  feedback(result.message, !result.ok);
+  if (result.ok) {
+    if (action.type === 'heal') sound('heal');
+    if (action.type === 'draw') {
+      drawMode = false;
+      sound('draw');
     }
-    toast('选择地图上带虚线标记的相邻房间，再绘出这条路。');
-    $('.room-node.reachable')?.focus();
+    if (action.type === 'buy') sound('pickup');
+    if (beforeRoom !== state.roomId) onRoomChanged();
+    if (result.shop) showShop();
+    save();
+    updateHUD();
   }
-  if (type === 'trade') {
-    if (state.roomId === 'market') {
-      selected = null;
-      paintEncounter();
-    } else if (getRoom(state).exits.includes('market')) chooseRoom('market');
-    else toast('契约师在地图南侧。沿断句长廊或留白石桥前往。');
-  }
+  return result;
+}
+function onRoomChanged() {
+  lastRoom = state.roomId;
+  navPath = [];
+  navAction = null;
+  aimPoint = null;
+  lockedEnemy = null;
+  canvasFire = false;
+  drawStroke = null;
+  drawBridge = null;
+  drawMode = false;
+  feedback(getRoom(state).subtitle);
+  save();
+  updateHUD();
 }
 
-function openModal(content) {
-  lastFocus = document.activeElement;
-  $('#modal-content').innerHTML = content;
+function solids() {
+  const room = getRoom(state);
+  return room.obstacles.filter(
+    (o) => !o.bridgeId || !room.bridges.find((b) => b.id === o.bridgeId)?.drawn,
+  );
+}
+function pointClear(point, radius = state.player.r + 4) {
+  const room = getRoom(state);
+  if (
+    point.x < 33 + radius ||
+    point.y < 33 + radius ||
+    point.x > room.width - 33 - radius ||
+    point.y > room.height - 33 - radius
+  )
+    return false;
+  return !solids().some(
+    (o) =>
+      Math.hypot(
+        point.x - clamp(point.x, o.x, o.x + o.w),
+        point.y - clamp(point.y, o.y, o.y + o.h),
+      ) < radius,
+  );
+}
+// Tap-to-walk uses a small grid path; stick and keyboard always give direct movement.
+function routeTo(target) {
+  const grid = 24,
+    room = getRoom(state),
+    cols = Math.ceil(room.width / grid),
+    rows = Math.ceil(room.height / grid);
+  const cell = (point) => ({
+    x: clamp(Math.floor(point.x / grid), 0, cols - 1),
+    y: clamp(Math.floor(point.y / grid), 0, rows - 1),
+  });
+  const point = (c) => ({ x: c.x * grid + grid / 2, y: c.y * grid + grid / 2 });
+  const begin = cell(state.player),
+    goal = cell(target),
+    queue = [begin],
+    seen = new Map([[`${begin.x},${begin.y}`, null]]);
+  let final = null;
+  for (let i = 0; i < queue.length && i < 1200; i++) {
+    const current = queue[i];
+    if (current.x === goal.x && current.y === goal.y) {
+      final = current;
+      break;
+    }
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ]) {
+      const next = { x: current.x + dx, y: current.y + dy },
+        key = `${next.x},${next.y}`;
+      if (
+        next.x < 0 ||
+        next.y < 0 ||
+        next.x >= cols ||
+        next.y >= rows ||
+        seen.has(key) ||
+        !pointClear(point(next))
+      )
+        continue;
+      if (
+        dx &&
+        dy &&
+        (!pointClear(point({ x: current.x + dx, y: current.y })) ||
+          !pointClear(point({ x: current.x, y: current.y + dy })))
+      )
+        continue;
+      seen.set(key, current);
+      queue.push(next);
+    }
+  }
+  if (!final) return [];
+  const path = [];
+  for (let c = final; c; c = seen.get(`${c.x},${c.y}`)) path.unshift(point(c));
+  path.shift();
+  if (pointClear(target)) path.push(target);
+  return path;
+}
+function walkTo(point, interaction = null) {
+  const dest = { x: clamp(point.x, 58, 902), y: clamp(point.y, 58, 542) };
+  navPath = routeTo(dest);
+  navAction = interaction;
+  navStall = 0;
+  if (!navPath.length && dist(state.player, dest) > 40) {
+    feedback('这里还不能通过。绕开石墙，或先画出墨桥。', true);
+    navAction = null;
+  }
+}
+function inputFrame(dt) {
+  const p = state.player;
+  let moveX = moveStick.x,
+    moveY = moveStick.y;
+  const keyX =
+    Number(keys.has('d') || keys.has('arrowright')) -
+    Number(keys.has('a') || keys.has('arrowleft'));
+  const keyY =
+    Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup'));
+  if (keyX || keyY) {
+    moveX = keyX;
+    moveY = keyY;
+    navPath = [];
+    navAction = null;
+  }
+  if (Math.hypot(moveStick.x, moveStick.y) > 0.1) {
+    navPath = [];
+    navAction = null;
+  }
+  if (!moveX && !moveY && navPath.length) {
+    while (navPath.length && dist(p, navPath[0]) < 13) navPath.shift();
+    if (navPath.length) {
+      const d = dist(p, navPath[0]);
+      moveX = (navPath[0].x - p.x) / d;
+      moveY = (navPath[0].y - p.y) / d;
+    }
+  }
+  if (navAction && dist(p, navAction) < 94) {
+    const object = navAction;
+    navPath = [];
+    navAction = null;
+    moveX = moveY = 0;
+    perform({ type: 'interact', objectId: object.id });
+  }
+  let aim = aimPoint;
+  const alive = state.enemies.filter((e) => e.hp > 0);
+  const target =
+    alive.find((e) => e.id === lockedEnemy) || alive.sort((a, b) => dist(p, a) - dist(p, b))[0];
+  if (fireAim) aim = { x: p.x + fireAim.x * 400, y: p.y + fireAim.y * 400 };
+  else if ((fireHeld || !aim) && target) aim = { x: target.x, y: target.y };
+  else if (!aim) aim = { x: p.x + p.aimX * 200, y: p.y + p.aimY * 200 };
+  const shooting = fireHeld || canvasFire || fireQueued;
+  const input = {
+    moveX,
+    moveY,
+    aimX: aim.x,
+    aimY: aim.y,
+    shoot: shooting && p.ink >= level().rules.attackCost,
+    melee:
+      meleeHeld || meleeQueued || keys.has('f') || (shooting && p.ink < level().rules.attackCost),
+    dash: dashQueued,
+  };
+  dashQueued = false;
+  fireQueued = false;
+  meleeQueued = false;
+  return input;
+}
+
+canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+canvas.addEventListener('pointerdown', (event) => {
+  if (!active() || canvasPointer !== null) return;
+  event.preventDefault();
+  canvas.focus({ preventScroll: true });
+  const point = renderer.screenToWorld(event.clientX, event.clientY),
+    room = getRoom(state);
+  if (event.button === 2) {
+    aimPoint = point;
+    meleeHeld = true;
+    meleeQueued = true;
+    canvasPointer = event.pointerId;
+    canvas.setPointerCapture(event.pointerId);
+    return;
+  }
+  if (event.button !== 0) return;
+  const bridge = room.bridges.find((b) => !b.drawn && dist(point, b.from) < 57);
+  if (bridge && dist(state.player, bridge.from) <= 125) {
+    drawBridge = bridge;
+    drawStroke = [point];
+    canvasPointer = event.pointerId;
+    canvas.setPointerCapture(event.pointerId);
+    navPath = [];
+    return;
+  }
+  if (drawMode) {
+    feedback(bridge ? '先走近桥下方的笔尖锚点。' : '从裂隙下方的笔尖锚点拖到对岸圆点。', true);
+    return;
+  }
+  const enemy = state.enemies.filter((e) => e.hp > 0).find((e) => dist(point, e) < e.r + 35);
+  if (enemy) {
+    lockedEnemy = enemy.id;
+    aimPoint = point;
+    canvasFire = true;
+    fireQueued = true;
+    canvasPointer = event.pointerId;
+    canvas.setPointerCapture(event.pointerId);
+    return;
+  }
+  const object = [...room.objects.filter((o) => !o.used), ...room.portals].find(
+    (o) => dist(point, o) < o.r + 35,
+  );
+  if (object) {
+    if (dist(state.player, object) < 106) perform({ type: 'interact', objectId: object.id });
+    else walkTo(object, object);
+    return;
+  }
+  if (event.pointerType === 'mouse' && (event.shiftKey || keys.has('shift'))) {
+    aimPoint = point;
+    canvasFire = true;
+    fireQueued = true;
+    canvasPointer = event.pointerId;
+    canvas.setPointerCapture(event.pointerId);
+    return;
+  }
+  walkTo(point);
+});
+canvas.addEventListener('pointermove', (event) => {
+  const point = renderer.screenToWorld(event.clientX, event.clientY);
+  if (drawStroke && canvasPointer === event.pointerId) {
+    if (dist(drawStroke.at(-1), point) > 3) drawStroke.push(point);
+    return;
+  }
+  if (!active()) return;
+  if (event.pointerType === 'mouse' || canvasPointer === event.pointerId) aimPoint = point;
+});
+function releaseCanvas(event, cancelled = false) {
+  if (event.pointerId !== canvasPointer) return;
+  if (drawStroke && drawBridge && !cancelled) {
+    const end = renderer.screenToWorld(event.clientX, event.clientY);
+    const length = drawStroke.slice(1).reduce((sum, p, i) => sum + dist(p, drawStroke[i]), 0);
+    if (dist(end, drawBridge.to) < 60 && length > dist(drawBridge.from, drawBridge.to) * 0.65)
+      perform({ type: 'draw', bridgeId: drawBridge.id });
+    else feedback('笔迹没有连到对岸，未消耗墨水。再试一次。');
+  }
+  drawStroke = null;
+  drawBridge = null;
+  canvasFire = false;
+  meleeHeld = false;
+  canvasPointer = null;
+  if (cancelled) {
+    fireQueued = false;
+    meleeQueued = false;
+  }
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+}
+canvas.addEventListener('pointerup', (event) => releaseCanvas(event));
+canvas.addEventListener('pointercancel', (event) => releaseCanvas(event, true));
+canvas.addEventListener('lostpointercapture', (event) => releaseCanvas(event, true));
+
+function updateStick(event) {
+  const rect = $('#joystick').getBoundingClientRect(),
+    max = rect.width * 0.3;
+  let x = event.clientX - rect.left - rect.width / 2,
+    y = event.clientY - rect.top - rect.height / 2,
+    d = Math.hypot(x, y);
+  if (d > max) {
+    x = (x / d) * max;
+    y = (y / d) * max;
+    d = max;
+  }
+  moveStick = d < 5 ? { x: 0, y: 0 } : { x: x / max, y: y / max };
+  $('#stick-thumb').style.transform = `translate(${x}px,${y}px)`;
+}
+$('#joystick').addEventListener('pointerdown', (event) => {
+  if (!active() || movePointer !== null) return;
+  event.preventDefault();
+  movePointer = event.pointerId;
+  navPath = [];
+  navAction = null;
+  $('#joystick').setPointerCapture(event.pointerId);
+  updateStick(event);
+});
+$('#joystick').addEventListener('pointermove', (event) => {
+  if (event.pointerId === movePointer) {
+    event.preventDefault();
+    updateStick(event);
+  }
+});
+function releaseStick(event) {
+  if (event.pointerId !== movePointer) return;
+  movePointer = null;
+  moveStick = { x: 0, y: 0 };
+  $('#stick-thumb').style.transform = '';
+  if ($('#joystick').hasPointerCapture(event.pointerId))
+    $('#joystick').releasePointerCapture(event.pointerId);
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  $('#joystick').addEventListener(type, releaseStick);
+function updateFireAim(event) {
+  const rect = $('#fire').getBoundingClientRect(),
+    x = event.clientX - rect.left - rect.width / 2,
+    y = event.clientY - rect.top - rect.height / 2,
+    d = Math.hypot(x, y);
+  fireAim = d > 15 ? { x: x / d, y: y / d } : null;
+  $('#fire').classList.toggle('aiming', Boolean(fireAim));
+  $('#fire .aim-thumb').style.transform = fireAim
+    ? `translate(${fireAim.x * Math.min(d, 42)}px,${fireAim.y * Math.min(d, 42)}px)`
+    : '';
+}
+$('#fire').addEventListener('pointerdown', (event) => {
+  if (!active() || firePointer !== null) return;
+  event.preventDefault();
+  firePointer = event.pointerId;
+  fireHeld = true;
+  fireQueued = true;
+  $('#fire').classList.add('held');
+  $('#fire').setPointerCapture(event.pointerId);
+  updateFireAim(event);
+});
+$('#fire').addEventListener('pointermove', (event) => {
+  if (event.pointerId === firePointer) {
+    event.preventDefault();
+    updateFireAim(event);
+  }
+});
+function releaseFire(event) {
+  if (event.pointerId !== firePointer) return;
+  if (event.type !== 'pointerup') fireQueued = false;
+  firePointer = null;
+  fireHeld = false;
+  fireAim = null;
+  $('#fire').classList.remove('held', 'aiming');
+  $('#fire .aim-thumb').style.transform = '';
+  if ($('#fire').hasPointerCapture(event.pointerId))
+    $('#fire').releasePointerCapture(event.pointerId);
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  $('#fire').addEventListener(type, releaseFire);
+$('#melee').addEventListener('pointerdown', (event) => {
+  if (!active()) return;
+  event.preventDefault();
+  meleeHeld = true;
+  meleeQueued = true;
+  meleePointer = event.pointerId;
+  $('#melee').classList.add('held');
+  $('#melee').setPointerCapture(event.pointerId);
+});
+function releaseMelee(event) {
+  if (event.pointerId !== meleePointer) return;
+  if (event.type !== 'pointerup') meleeQueued = false;
+  meleePointer = null;
+  meleeHeld = false;
+  $('#melee').classList.remove('held');
+  if ($('#melee').hasPointerCapture(event.pointerId))
+    $('#melee').releasePointerCapture(event.pointerId);
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  $('#melee').addEventListener(type, releaseMelee);
+$('#dash').addEventListener('pointerdown', (event) => {
+  if (!active()) return;
+  event.preventDefault();
+  dashQueued = true;
+  sound('dash');
+});
+bindPress('#heal', () => perform({ type: 'heal' }));
+bindPress('#interact', () => perform({ type: 'interact' }));
+bindPress('#draw-tool', () => {
+  if (!active()) return;
+  const bridge = getRoom(state).bridges.find((b) => !b.drawn);
+  if (!bridge) {
+    feedback('墨桥在落笔庭院北侧。主路不需要花墨开门。');
+    return;
+  }
+  if (dist(state.player, bridge.from) > 125) {
+    walkTo({ x: bridge.from.x, y: bridge.from.y + 36 });
+    feedback('正在走向桥下锚点。到达后，从笔尖拖到对岸。');
+    drawMode = false;
+  } else {
+    drawMode = !drawMode;
+    feedback(
+      drawMode
+        ? `连接两个锚点，花 ${bridge.cost} 墨画桥；宝库有 34 墨与 2 生命。`
+        : '已回到移动与战斗。',
+    );
+  }
+  updateHUD();
+});
+
+function openModal(html) {
+  cancelInput();
+  paused = true;
+  lastModalFocus = document.activeElement;
+  $('#modal-content').innerHTML = html;
   if (!$('#modal').open) $('#modal').showModal();
-  $('#modal-close').focus();
+  $('#modal-title').tabIndex = -1;
+  $('#modal-title').focus({ preventScroll: true });
+  updateHUD();
+  save();
 }
 function closeModal() {
   $('#modal').close();
 }
 $('#modal').addEventListener('close', () => {
-  if (lastFocus?.isConnected) lastFocus.focus();
+  paused = false;
+  cancelInput();
+  lastFrame = performance.now();
+  accumulator = 0;
+  updateHUD();
+  if (lastModalFocus?.isConnected) lastModalFocus.focus({ preventScroll: true });
 });
-$('#modal-close').onclick = closeModal;
-$('#modal').addEventListener('click', (event) => {
-  if (event.target === $('#modal')) {
-    const rect = $('#modal').getBoundingClientRect();
-    if (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    )
-      closeModal();
-  }
-});
-
-function showHelp() {
-  openModal(
-    `<span class="modal-kicker">A TRAVELER’S FIELD GUIDE</span><h2 id="modal-title">每一滴，都有去处。</h2><p>收集两枚钥印，在终页门廊开启墨之门，然后击败守门者。<br>这是回合制游戏：你不行动，敌人也不会行动。</p><ul class="help-list"><li><b>① 绘路：</b>选相邻房间，花 6 墨安全进入。免费摸索用 2 回合并擦伤 1 生命（最低留 1），遇敌时敌人生命 +2。</li><li><b>② 交锋：</b>墨弹 5 墨造成 4 伤害；干笔免费。每次行动后，敌人执行预告的意图。成功防守完全挡伤，并让下一次干笔造成 3 伤害。</li><li><b>③ 疗伤：</b>花 8 墨恢复 2 生命。战斗中治疗也会触发敌人行动；洗笔泉则提供一次免费恢复。</li><li><b>④ 签约：</b>在无名契约师处花墨购买永久能力。支路藏有补给，清理房间后记得点“收下馈赠”。</li><li><b>操作：</b>点击选路，或按住旅人拖到相邻房间直接绘路；1 绘路，2 墨弹，3 治疗，4 契约；A 干笔、D 防守，Esc 暂停。触屏直接点击按钮。进度保存在此浏览器。</li></ul><button class="primary-button" data-close>带上这页手记</button>`,
-  );
-}
-function pause() {
+bindPress('#modal-close', closeModal);
+// Resume explicitly. A modal opened on pointerdown can receive that same
+// gesture's compatibility click on its backdrop after the page becomes inert.
+// Treating that click as dismissal would immediately undo a touch pause.
+function showPause() {
   if ($('#modal').open) {
     closeModal();
     return;
   }
   openModal(
-    `<span class="modal-kicker">A MOMENT BETWEEN THE LINES</span><h2 id="modal-title">让墨，歇一会儿。</h2><p>纸上的世界正在等你。<br>${!started ? '落笔之前，先让心静下来。' : state.status !== 'playing' ? '这一页已经结束，新的故事等你落笔。' : storageAvailable ? '当前旅程已自动保存在此浏览器。' : '浏览器未能保存进度，请保持此页面打开。'}</p><button class="primary-button" data-close>继续旅程</button><button class="secondary-button" id="modal-sound">${muted ? '开启声音' : '关闭声音'}</button><button class="secondary-button" id="pause-restart">重新落笔</button>`,
+    `<span class="modal-kicker">BETWEEN TWO STROKES</span><h2 id="modal-title">让墨，歇一会儿。</h2><p>${state.status === 'ready' ? '纸上的世界正在等你。' : state.status !== 'playing' ? '这一页已经写完。' : storageAvailable ? '敌人和时间都已暂停，旅程已保存在此浏览器。' : '敌人和时间已暂停。浏览器未能保存，请保持页面打开。'}</p><button id="resume" class="primary-button" data-close>继续旅程</button><button class="secondary-button" id="modal-sound">${muted ? '开启声音' : '关闭声音'}</button><button class="secondary-button" data-restart>重新落笔</button>`,
   );
 }
-function restart() {
-  if (!saved && (!started || state.turn === 0 || state.status !== 'playing')) {
-    closeModal();
-    start(true);
-    return;
-  }
+function showHelp() {
   openModal(
-    `<span class="modal-kicker">A NEW BLANK PAGE</span><h2 id="modal-title">重写这一页？</h2><p>本次旅程将被新的空白页替代。<br>你会带着 72 墨水和完整生命重新出发。</p><button id="confirm-restart" class="primary-button">重新落笔</button><button class="secondary-button" data-close>保留当前旅程</button>`,
+    `<span class="modal-kicker">THE TRAVELER'S HANDBOOK</span><h2 id="modal-title">笔，要握在手里。</h2><ul class="help-list"><li><b>移动：</b>左下摇杆 / WASD / 方向键。也可以点地面、门或人物，旅人会自动走近。</li><li><b>墨弹：</b>按住右下墨弹，自动瞄准最近敌人；向外拖动可手动瞄准。电脑可直接按住敌人射击。每发 2 墨。</li><li><b>干笔与闪避：</b>免费近战伤害 2，需要靠近；闪避有短暂无敌。红色预警出现后侧向避开，敌人出招后的空当再近身。F 干笔，空格闪避，右键也能干笔。</li><li><b>绘桥：</b>庭院北侧有两个锚点。走近下方笔尖，拖线连到对岸，花 8 墨架桥。桥后宝库藏 34 墨与 2 生命；不画桥也能走免费主路。</li><li><b>补给：</b>战利品靠近自动拾取。Q / 疗伤按钮花 10 墨回 3 生命；洗笔驿站有一次免费泉水，也能用墨签永久契约。</li><li><b>目标：</b>拿到两枚钥印，进入驿站东门击败两阶段守门者。墨水见底仍可挥笔与闪避。Esc 暂停，E 交互。</li></ul><button class="primary-button" data-close>握紧画笔，继续</button>`,
+  );
+}
+function askRestart() {
+  openModal(
+    `<span class="modal-kicker">A CLEAN PAGE</span><h2 id="modal-title">重新落笔？</h2><p>本次旅程会被新的空白页替代。重新获得 64 墨水与完整生命。</p><button id="confirm-restart" class="primary-button">重新开始</button><button class="secondary-button" data-close>保留这段旅程</button>`,
+  );
+}
+function showShop() {
+  const contracts = level().contracts;
+  openModal(
+    `<span class="modal-kicker">THE NAMELESS SCRIBE</span><h2 id="modal-title">以墨，签下可能。</h2><p>同一瓶墨，也是你的武器与伤药。<br>现在持有 <b id="shop-ink">${state.player.ink}</b> 墨，契约持续至本局结束。</p>${contracts.map((c) => `<button class="shop-option" data-buy="${c.id}" ${state.contracts.includes(c.id) || state.player.ink < c.price ? 'disabled' : ''}><strong>${esc(c.name)}<span>${state.contracts.includes(c.id) ? '已签订' : c.price + ' 墨'}</span></strong><small>${esc(c.description)}</small></button>`).join('')}<p class="contract-tags" id="shop-message">选择你的打法，不必签下每一份。</p><button class="secondary-button" data-close>收笔，继续前行</button>`,
   );
 }
 function showResult() {
-  const summary = state.summary,
-    won = state.status === 'won';
-  const spent = summary.spent;
+  const won = state.status === 'won',
+    s = state.stats,
+    time = Math.floor(state.time),
+    minutes = Math.floor(time / 60),
+    seconds = String(time % 60).padStart(2, '0');
   openModal(
-    `<span class="modal-kicker">THE END OF CHAPTER ONE</span><span class="stamp">${won ? '此页已成' : '未完待续'}</span><h2 id="modal-title">${won ? '你写出了，下一页。' : '墨尽之前，再想一步。'}</h2><p>${won ? `墨之门在你身后合拢。你的故事被记作「${esc(summary.title)}」。` : '不是每一笔都要进攻。观察敌人的预告，在危险的回合防守，也可以留些墨给疗伤。'}</p><div class="result-stats"><div><strong>${summary.turns}</strong><span>行动回合</span></div><div><strong>${summary.explored}/${summary.totalRooms}</strong><span>探索房间</span></div><div><strong>${summary.inkRemaining}</strong><span>剩余墨水</span></div></div><p class="allocation-label">你把墨，花在了哪里</p><div class="allocation">${Object.values(
-      spent,
-    )
-      .map((value) => `<i style="flex:${value || 0.01}"></i>`)
-      .join(
-        '',
-      )}</div><div class="allocation-label">探索 ${spent.explore} · 战斗 ${spent.attack} · 治疗 ${spent.heal} · 交易 ${spent.trade}</div><p>${won ? `${esc(summary.efficiency)}。下一次，试着把墨交给另一条路。` : '干笔与防守不消耗墨水，墨水见底也能继续。'}</p><button id="result-restart" class="primary-button">再写一种结局 ${icon('arrow')}</button><button class="secondary-button" data-close>留在这张地图</button>`,
+    `<span class="modal-kicker">THE END OF THIS PAGE</span><h2 id="modal-title">${won ? '你亲手写出了归途。' : '下一笔，会更稳。'}</h2><p>${won ? '两枚钥印，六处遗迹。你花掉的每一滴墨，都改变了这趟旅程。' : '红色笔迹是敌人的预告。侧向闪避，绕开弹幕，利用石墙，再抓住收招的空当。'}</p><div class="result-stats"><div><b>${minutes}:${seconds}</b><small>冒险时间</small></div><div><b>${s.enemiesDefeated}</b><small>击散墨灵</small></div><div><b>${state.player.ink}</b><small>余墨</small></div></div><div class="spent-summary">墨水去向：战斗 ${s.spent.attack} · 绘桥 ${s.spent.explore} · 治疗 ${s.spent.heal} · 契约 ${s.spent.trade}<br>干笔 ${s.freeAttacks} 次 · 闪避 ${s.dashes} 次 · 探索 ${s.roomsVisited}/${level().rooms.length} 处</div><button id="result-restart" class="primary-button">${won ? '换一种打法，再写一页' : '重新落笔'}</button><button class="secondary-button" data-close>看看这张地图</button>`,
   );
 }
-
 function toggleSound() {
   muted = !muted;
   try {
     localStorage.setItem('ink-is-everything:muted', String(muted));
   } catch {}
-  paintHud();
-  sound('claim');
+  syncSoundButton();
+  sound('pickup');
   if ($('#modal-sound')) $('#modal-sound').textContent = muted ? '开启声音' : '关闭声音';
 }
-$('#sound').onclick = toggleSound;
-$('#help').onclick = showHelp;
-$('#pause').onclick = pause;
-$('#restart').onclick = restart;
-$('.wordmark').onclick = (event) => {
-  event.preventDefault();
-  showHelp();
-};
-document.addEventListener('click', (event) => {
-  if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
-  const button = event.target.closest('button');
-  if (!button || button.disabled) return;
-  if (button.id === 'start-game') start();
-  else if (button.id === 'fresh-game') restart();
-  else if (button.id === 'show-result') showResult();
-  else if (button.id === 'confirm-restart' || button.id === 'result-restart') {
+bindPress('#start-game', () => start());
+bindPress('#new-game', askRestart);
+bindPress('#pause', showPause);
+bindPress('#help', showHelp);
+bindPress('#sound', toggleSound);
+function handleDialogButton(event) {
+  const b = event.target.closest('button');
+  if (!b || b.disabled || !b.closest('#modal')) return;
+  if (event.type === 'pointerdown') event.preventDefault();
+  if (b.hasAttribute('data-close')) closeModal();
+  if (b.hasAttribute('data-restart')) askRestart();
+  if (b.id === 'confirm-restart' || b.id === 'result-restart') {
     closeModal();
     start(true);
-  } else if (button.id === 'pause-restart') restart();
-  else if (button.id === 'modal-sound') toggleSound();
-  else if (button.hasAttribute('data-close')) closeModal();
-  else if (button.dataset.room || button.dataset.select)
-    chooseRoom(button.dataset.room || button.dataset.select);
-  else if (button.dataset.action)
-    perform({
-      type: button.dataset.action,
-      ...(button.dataset.target ? { target: button.dataset.target } : {}),
-    });
-  else if (button.dataset.card) activateCard(button.dataset.card);
+  }
+  if (b.id === 'modal-sound') toggleSound();
+  if (b.dataset.buy) {
+    const result = perform({ type: 'buy', contractId: b.dataset.buy }, true);
+    if (result.ok) {
+      showShop();
+      $('#shop-message').textContent = result.message;
+    } else $('#shop-message').textContent = result.message;
+  }
+}
+document.addEventListener('pointerdown', (event) => {
+  if (event.button === 0) handleDialogButton(event);
+});
+document.addEventListener('click', (event) => {
+  if (event.detail === 0) handleDialogButton(event);
 });
 document.addEventListener('keydown', (event) => {
   if (
-    event.repeat ||
     event.altKey ||
     event.ctrlKey ||
     event.metaKey ||
     /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)
   )
     return;
-  if (event.key === 'Escape') {
+  const key = event.key.toLowerCase();
+  if (key === 'escape') {
     if (!$('#modal').open) {
       event.preventDefault();
-      pause();
+      showPause();
     }
     return;
   }
-  if ($('#modal').open) return;
-  const key = event.key.toLowerCase();
-  const card = { 1: 'map', 2: 'attack', 3: 'heal', 4: 'trade' }[key];
-  if (card) {
-    event.preventDefault();
-    if (!$(`[data-card="${card}"]`)?.disabled) activateCard(card);
-  } else if (started && ['a', 'd'].includes(key)) {
-    event.preventDefault();
-    perform({ type: key === 'a' ? 'dry' : 'guard' });
+  if ($('#modal').open) {
+    // Gameplay keys must not activate the button that opened the dialog.
+    // Enter and Tab remain available for keyboard navigation.
+    if (
+      [
+        'w',
+        'a',
+        's',
+        'd',
+        'arrowup',
+        'arrowdown',
+        'arrowleft',
+        'arrowright',
+        'f',
+        'q',
+        'e',
+        'r',
+        ' ',
+      ].includes(key)
+    )
+      event.preventDefault();
+    return;
   }
+  if (!active()) return;
+  if (
+    ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'f', ' '].includes(key)
+  ) {
+    event.preventDefault();
+    keys.add(key);
+  }
+  if (event.repeat) return;
+  if (key === ' ') {
+    dashQueued = true;
+    sound('dash');
+  } else if (key === 'f') meleeQueued = true;
+  else if (key === 'q') perform({ type: 'heal' });
+  else if (key === 'e') perform({ type: 'interact' });
+  else if (key === 'r') $('#draw-tool').click();
 });
-new ResizeObserver(positionNodes).observe($('.map-viewport'));
-document
-  .querySelectorAll('[data-icon]')
-  .forEach((element) => (element.innerHTML = icon(element.dataset.icon)));
-render();
+document.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
+window.addEventListener('blur', () => {
+  cancelInput();
+  if (state.status === 'playing' && !paused) showPause();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelInput();
+    save();
+    if (state.status === 'playing' && !paused) showPause();
+  }
+  lastFrame = performance.now();
+  accumulator = 0;
+});
+window.addEventListener('pagehide', save);
+
+function tick(now) {
+  const elapsed = Math.min(0.06, Math.max(0, (now - lastFrame) / 1000));
+  lastFrame = now;
+  if (active()) {
+    accumulator += elapsed;
+    while (accumulator >= 1 / 60 && active()) {
+      const old = { x: state.player.x, y: state.player.y };
+      const input = inputFrame(1 / 60);
+      step(state, input, 1 / 60);
+      accumulator -= 1 / 60;
+      if (navPath.length && Math.hypot(input.moveX, input.moveY) > 0.1) {
+        navStall = dist(old, state.player) < 0.1 ? navStall + 1 / 60 : 0;
+        if (navStall > 0.7) {
+          navPath = [];
+          navAction = null;
+          feedback('前路受阻，用摇杆绕开障碍。');
+        }
+      }
+      if (state.roomId !== lastRoom) onRoomChanged();
+    }
+    saveClock += elapsed;
+    if (saveClock >= 4) {
+      saveClock = 0;
+      save();
+    }
+    if (state.stats.shots !== lastShots) {
+      lastShots = state.stats.shots;
+      sound('shot');
+    }
+    if (state.stats.hits !== lastHits) {
+      lastHits = state.stats.hits;
+      sound('hit');
+    }
+    if (state.player.hp < lastHp) sound('hurt');
+    lastHp = state.player.hp;
+  } else accumulator = 0;
+  if (state.message !== lastMessage) {
+    lastMessage = state.message;
+    if (state.status !== 'ready' && state.message) feedback(state.message);
+  }
+  if (state.status !== lastStatus) {
+    lastStatus = state.status;
+    if ((state.status === 'won' || state.status === 'lost') && !ended) {
+      ended = true;
+      cancelInput();
+      save();
+      sound(state.status === 'won' ? 'win' : 'hurt');
+      showResult();
+    }
+  }
+  if (now > feedbackUntil) $('#feedback').classList.remove('visible');
+  hudClock += elapsed;
+  if (hudClock > 0.09) {
+    hudClock = 0;
+    updateHUD();
+  }
+  renderer.render(state, {
+    time: state.time,
+    drawStroke,
+    aimPoint,
+    paused: paused || state.status === 'ready',
+  });
+  requestAnimationFrame(tick);
+}
+// Read-only observability for repeatable browser playtests; no mutation or command hooks.
+Object.defineProperty(window, '__inkGame', {
+  value: Object.freeze({
+    snapshot: () => ({
+      ...getSnapshot(state),
+      paused,
+      input: {
+        moveX: moveStick.x,
+        moveY: moveStick.y,
+        shoot: fireHeld || canvasFire,
+        melee: meleeHeld,
+        drawing: Boolean(drawStroke),
+      },
+    }),
+    worldToScreen: (x, y) => renderer.worldToScreen(x, y),
+  }),
+  writable: false,
+});
+document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = icon(el.dataset.icon)));
+$('#cover-art').innerHTML = renderVignette('attack');
+if (saved) {
+  $('#start-game').innerHTML = `继续上次旅程 ${icon('arrow')}`;
+  $('#new-game').hidden = false;
+}
+syncSoundButton();
+updateHUD();
+renderer.render(state, { time: 0 });
+requestAnimationFrame(tick);

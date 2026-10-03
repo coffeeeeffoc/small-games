@@ -314,3 +314,1110 @@ export function renderVignette(name) {
   const prefix = `ie-card-${String(name).replace(/[^a-z]/gi, '')}-${++vignetteSerial}-`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 114" aria-hidden="true" class="vignette"><defs>${defs.replaceAll('id="ie-', `id="${prefix}`).replaceAll('#ie-', `#${prefix}`)}</defs><path d="M4 99q100-15 211 1" stroke="${INK}" fill="none" opacity=".3"/>${art.replaceAll('#ie-', `#${prefix}`)}</svg>`;
 }
+
+/* Live arena renderer. All expensive paper marks and SVG sprites are cached once;
+ * the frame loop only paints moving entities, telegraphs and small effects. */
+const WORLD_W = 960;
+const WORLD_H = 600;
+const TAU = Math.PI * 2;
+const PHONE_VIEW_WIDTH = 540;
+const CLAMP = (n, a, b) => Math.min(b, Math.max(a, n));
+const liveSpriteDefs = `
+<symbol id="ie-guard" viewBox="-58 -73 116 117">
+<ellipse cy="29" rx="38" ry="10" fill="#20221d" opacity=".2"/>
+<path d="M-25 17-27-22-17-40 13-45 27-17 23 17 6 24-10 17-26 26Z" fill="#343a2d" stroke="#20221d" stroke-width="2.5"/>
+<path d="m-20-30 4-25 9 6 7-11 9 12 11-6 5 22Z" fill="#74715a" stroke="#20221d" stroke-width="2.5"/>
+<path d="m-13-32 7 9 6-10 7 10 8-11m-29 17 5 11m16-14-3 13" stroke="#ada281" fill="none" stroke-width="1.5"/>
+<path d="m-12-17 9 2m8-1 9-3" stroke="#bc694d" stroke-width="3"/>
+<path d="m-19-2-17 11m53-12 22 8m-75-40-6 55" stroke="#20221d" stroke-width="7"/>
+<path d="m-42-58 14 13-20 3Z" fill="#929078" stroke="#20221d" stroke-width="2"/>
+<path d="m-21 8-1 12M15 4l3 12m-27-20 3 20m-9-6-2 8M12 10l2 9" stroke="#9a9980" fill="none" stroke-width="1.3"/>
+<path d="m-18 23-6 9 16 1 7-8m12-1 4 9 14 1-9-10" fill="#20221d"/>
+</symbol>
+<symbol id="ie-boss" viewBox="-85 -117 170 155">
+<ellipse cy="20" rx="67" ry="14" fill="#20221d" opacity=".28"/>
+<path d="M-60 18q-19-8-3-25l9-32-7-23 20 6 14-27 55-4 26 31 3 29 15 19-13 24-27-3-18 8-26-6-28 6Z" fill="#242c21" stroke="#121910" stroke-width="3"/>
+<path d="m-44-52 4-36 11 11 14-29 14 26 18-25 8 26 16-14 4 37Z" fill="#74745a" stroke="#182116" stroke-width="3"/>
+<path d="m-41-56 82 1m-65-22 3 15m25-19 1 18m23-14-3 15" fill="none" stroke="#c0b68e" stroke-width="2"/>
+<path d="m-32-35 21 4-10 9-12-7m43-1 21-9-1 12-18 6" fill="#b5563f" stroke="#d28a5d" stroke-width="1.5"/>
+<path d="m-3-29-8 20 15-1Zm-32 24 18 8 18-5 12 5 20-10" stroke="#6a7155" fill="none" stroke-width="2.5"/>
+<path d="m-49-14 5 18m82-19-1 15m-70-41 6-7m41-11 8 8m-36 41 1 8m-15-64 10-6" stroke="#738061" stroke-width="1.5" fill="none"/>
+<path d="m-70 12-8 5m133 0 16 4m-22 8 6 3m-110 1-9 2" stroke="#20221d" stroke-width="4" stroke-linecap="round"/>
+</symbol>`;
+const SPRITES = {
+  hero: { symbol: 'hero', w: 84, h: 84, foot: 15 },
+  slime: { symbol: 'slime', w: 71, h: 59, foot: 15 },
+  guard: { symbol: 'guard', w: 98, h: 99, foot: 25 },
+  boss: { symbol: 'boss', w: 155, h: 141, foot: 28 },
+  chest: { symbol: 'chest', w: 92, h: 78, foot: 22 },
+  spring: { symbol: 'shrine', w: 108, h: 104, foot: 21 },
+  merchant: { symbol: 'merchant', w: 147, h: 129, foot: 36 },
+  gate: { symbol: 'gate', w: 148, h: 152, foot: 28 },
+  bottle: { symbol: 'bottle', w: 31, h: 37, foot: 12 },
+  skull: { symbol: 'skull', w: 29, h: 29, foot: 11 },
+  stone: { symbol: 'stone', w: 36, h: 27, foot: 13 },
+  torch: { symbol: 'torch', w: 34, h: 77, foot: 7 },
+};
+
+function makeSprite(spec) {
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${spec.w * 3}" height="${spec.h * 3}" viewBox="0 0 ${spec.w} ${spec.h}"><defs>${defs}${liveSpriteDefs}</defs><use href="#ie-${spec.symbol}" width="${spec.w}" height="${spec.h}"/></svg>`)}`;
+  return { ...spec, img };
+}
+
+function drawLabel(
+  ctx,
+  text,
+  x,
+  y,
+  { color = INK, size = 14, background = true, align = 'center', accent = false } = {},
+) {
+  if (!text) return;
+  ctx.save();
+  ctx.font = `${accent ? 700 : 600} ${size}px "Noto Serif SC", "Songti SC", SimSun, serif`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  if (background) {
+    const w = ctx.measureText(text).width + 20;
+    const left = align === 'left' ? x - 10 : align === 'right' ? x - w + 10 : x - w / 2;
+    ctx.fillStyle = 'rgba(238,226,198,.94)';
+    ctx.beginPath();
+    ctx.moveTo(left, y - size * 0.72 - 4);
+    ctx.lineTo(left + w - 2, y - size * 0.72 - 3);
+    ctx.lineTo(left + w, y + size * 0.72 + 4);
+    ctx.lineTo(left + 2, y + size * 0.72 + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = accent ? color : 'rgba(88,76,52,.24)';
+    ctx.lineWidth = accent ? 1.4 : 0.7;
+    ctx.stroke();
+  }
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function inkBlot(ctx, x, y, radius, seed, alpha = 1) {
+  const rng = random(seed);
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.fillStyle = INK;
+  ctx.beginPath();
+  for (let i = 0; i <= 17; i++) {
+    const a = (i / 17) * TAU;
+    const r = radius * (0.69 + rng() * 0.31);
+    const px = x + Math.cos(a) * r;
+    const py = y + Math.sin(a) * r * 0.64;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  for (let i = 0; i < 8; i++) {
+    const a = rng() * TAU,
+      r = radius * (1 + rng() * 0.4);
+    ctx.beginPath();
+    ctx.ellipse(
+      x + Math.cos(a) * r,
+      y + Math.sin(a) * r * 0.7,
+      1 + rng() * 2,
+      1 + rng(),
+      a,
+      0,
+      TAU,
+    );
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function stoneBlock(ctx, x, y, w, h, seed) {
+  const rng = random(seed);
+  const top = Math.min(14, h * 0.3);
+  ctx.save();
+  ctx.fillStyle = 'rgba(31,35,26,.16)';
+  ctx.fillRect(x + 4, y + 10, w + 5, h);
+  ctx.fillStyle = '#918d74';
+  ctx.strokeStyle = '#373b2d';
+  ctx.lineWidth = 1.7;
+  ctx.beginPath();
+  ctx.moveTo(x, y + top);
+  ctx.lineTo(x + 3, y);
+  ctx.lineTo(x + w - 6, y - 3);
+  ctx.lineTo(x + w, y + top - 3);
+  ctx.lineTo(x + w - 2, y + h);
+  ctx.lineTo(x + 3, y + h + 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#bcb397';
+  ctx.beginPath();
+  ctx.moveTo(x + 3, y);
+  ctx.lineTo(x + w - 6, y - 3);
+  ctx.lineTo(x + w, y + top - 3);
+  ctx.lineTo(x, y + top);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(42,44,32,.3)';
+  ctx.lineWidth = 0.9;
+  for (let i = 0; i < Math.floor(w / 7); i++) {
+    const px = x + 5 + i * 7;
+    ctx.beginPath();
+    ctx.moveTo(px, y + top + 2);
+    ctx.lineTo(px - 3, y + h - 3);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#444635';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.3, y + top);
+  ctx.lineTo(x + w * 0.34, y + top + 5);
+  ctx.lineTo(x + w * 0.25, y + top + 10);
+  ctx.lineTo(x + w * 0.36, y + h - 1);
+  ctx.moveTo(x + 5, y + h * 0.69);
+  ctx.lineTo(x + w - 2, y + h * 0.69 - rng() * 3);
+  ctx.stroke();
+  ctx.strokeStyle = '#ded0aa';
+  ctx.beginPath();
+  ctx.moveTo(x + 5, y + 3);
+  ctx.lineTo(x + w * 0.5, y + 1);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function createFloor(room) {
+  const surface = document.createElement('canvas');
+  surface.width = WORLD_W * 2;
+  surface.height = WORLD_H * 2;
+  const ctx = surface.getContext('2d');
+  ctx.scale(2, 2);
+  const rng = random(`arena-${room.id || room.name}`);
+  const gradient = ctx.createRadialGradient(440, 240, 80, 480, 300, 620);
+  gradient.addColorStop(0, '#ece0c4');
+  gradient.addColorStop(0.6, '#ded0b0');
+  gradient.addColorStop(1, '#b9aa8b');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  // Irregular flagstones: enough definition to make movement and range legible.
+  for (let row = 0; row < 13; row++) {
+    for (let col = -1; col < 20; col++) {
+      const x = col * 57 + (row % 2) * 28,
+        y = row * 48;
+      ctx.strokeStyle = `rgba(69,69,51,${0.11 + rng() * 0.12})`;
+      ctx.lineWidth = 0.7 + rng() * 0.6;
+      ctx.fillStyle = rng() > 0.76 ? 'rgba(157,148,118,.1)' : 'rgba(255,244,214,.09)';
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + 2);
+      ctx.lineTo(x + 52, y + rng() * 3);
+      ctx.lineTo(x + 56 - rng() * 3, y + 43);
+      ctx.lineTo(x + rng() * 3, y + 47);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      if (rng() > 0.65) {
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y + 7);
+        ctx.lineTo(x + 18, y + 12);
+        ctx.lineTo(x + 16, y + 20);
+        ctx.moveTo(x + 18, y + 12);
+        ctx.lineTo(x + 24, y + 13);
+        ctx.stroke();
+      }
+    }
+  }
+  // Texture is deterministic and baked once, never generated by the frame loop.
+  for (let i = 0; i < 4500; i++) {
+    const x = rng() * WORLD_W,
+      y = rng() * WORLD_H;
+    ctx.fillStyle = `rgba(63,52,35,${0.025 + rng() * 0.075})`;
+    ctx.fillRect(x, y, 0.4 + rng() * 1.5, 0.4 + rng() * 1.5);
+  }
+  for (let i = 0; i < 64; i++) {
+    const x = 55 + rng() * 850,
+      y = 56 + rng() * 480;
+    ctx.strokeStyle = 'rgba(50,51,35,.26)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 3, y - 2);
+    ctx.lineTo(x + 7, y + 1);
+    ctx.stroke();
+  }
+  // Dark, rough paper perimeter frames the playable page without obstructing it.
+  ctx.fillStyle = '#30382a';
+  ctx.fillRect(0, 0, 960, 26);
+  ctx.fillRect(0, 574, 960, 26);
+  ctx.fillRect(0, 0, 27, 600);
+  ctx.fillRect(933, 0, 27, 600);
+  for (let i = 0; i < 22; i++) {
+    stoneBlock(ctx, i * 45 - 9, -9 + rng() * 5, 45, 43, `north${i}`);
+    stoneBlock(ctx, i * 45 - 9, 578 + rng() * 4, 45, 38, `south${i}`);
+  }
+  for (let i = 1; i < 13; i++) {
+    stoneBlock(ctx, -18, i * 45, 43, 44, `west${i}`);
+    stoneBlock(ctx, 937, i * 45, 43, 44, `east${i}`);
+  }
+  // Drawing-page ornamentation lives outside the action lanes.
+  ctx.save();
+  ctx.translate(85, 82);
+  ctx.rotate(-0.12);
+  ctx.globalAlpha = 0.19;
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, 26, 0, TAU);
+  ctx.moveTo(-36, 0);
+  ctx.lineTo(36, 0);
+  ctx.moveTo(0, -36);
+  ctx.lineTo(0, 36);
+  ctx.stroke();
+  ctx.restore();
+  const obstacles = room.obstacles || [];
+  for (const [index, ob] of obstacles.entries()) {
+    const x = ob.x,
+      y = ob.y,
+      w = ob.w ?? ob.width ?? 60,
+      h = ob.h ?? ob.height ?? 50;
+    if (ob.kind === 'pit' || ob.type === 'pit' || ob.kind === 'void') {
+      const depth = ctx.createLinearGradient(0, y, 0, y + h);
+      depth.addColorStop(0, '#515541');
+      depth.addColorStop(0.3, '#282e23');
+      depth.addColorStop(0.8, '#22291f');
+      depth.addColorStop(1, '#444c36');
+      ctx.fillStyle = depth;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#9b9779';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < w; i += 21) {
+        ctx.beginPath();
+        ctx.moveTo(x + i, y + 1);
+        ctx.lineTo(x + i + 7, y + 5 + rng() * 4);
+        ctx.lineTo(x + Math.min(w, i + 17), y + 2);
+        ctx.moveTo(x + i, y + h - 1);
+        ctx.lineTo(x + i + 9, y + h - 5 - rng() * 5);
+        ctx.lineTo(x + Math.min(w, i + 19), y + h - 2);
+        ctx.stroke();
+      }
+      for (let i = 0; i < (w * h) / 400; i++) {
+        const px = x + rng() * w,
+          py = y + 12 + rng() * (h - 24);
+        ctx.fillStyle = 'rgba(10,15,8,.35)';
+        ctx.beginPath();
+        ctx.ellipse(px, py, 2 + rng() * 11, 1 + rng() * 3, -0.2, 0, TAU);
+        ctx.fill();
+      }
+      if (w > 200)
+        drawLabel(ctx, '未写出的深渊', x + w / 2, y + h / 2, {
+          size: 14,
+          color: '#8f957b',
+          background: false,
+        });
+    } else if (ob.kind === 'ink' || ob.type === 'ink') {
+      inkBlot(ctx, x + w / 2, y + h / 2, w / 2, index, 0.9);
+    } else {
+      const cols = Math.max(1, Math.round(w / 44)),
+        rows = Math.max(1, Math.round(h / 33));
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++) {
+          stoneBlock(
+            ctx,
+            x + (c * w) / cols,
+            y + (r * h) / rows,
+            w / cols + 0.5,
+            h / rows,
+            `${room.id}-${index}-${r}-${c}`,
+          );
+        }
+      for (let i = 0; i < 3; i++) {
+        const sx = x - 7 + rng() * (w + 14),
+          sy = y + h + 8 + rng() * 7;
+        ctx.fillStyle = '#948f73';
+        ctx.strokeStyle = '#414633';
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + 5, sy - 5);
+        ctx.lineTo(sx + 10, sy - 1);
+        ctx.lineTo(sx + 8, sy + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+  }
+  return surface;
+}
+
+/** Render state produced by engine.mjs; world coordinates are always 960 × 600. */
+export function createRenderer(canvas) {
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const sprites = Object.fromEntries(
+    Object.entries(SPRITES).map(([name, spec]) => [name, makeSprite(spec)]),
+  );
+  const backgrounds = new Map();
+  const paperTile = document.createElement('canvas');
+  paperTile.width = paperTile.height = 128;
+  const paperContext = paperTile.getContext('2d');
+  paperContext.fillStyle = '#ded0b0';
+  paperContext.fillRect(0, 0, 128, 128);
+  const paperRandom = random('live-page-border');
+  for (let i = 0; i < 650; i++) {
+    paperContext.fillStyle = `rgba(88,70,39,${0.02 + paperRandom() * 0.08})`;
+    paperContext.fillRect(
+      paperRandom() * 128,
+      paperRandom() * 128,
+      0.6 + paperRandom(),
+      0.4 + paperRandom() * 2,
+    );
+  }
+  const pagePaper = ctx.createPattern(paperTile, 'repeat');
+  let width = 960,
+    height = 600,
+    pixelRatio = 1,
+    scale = 1,
+    offsetX = 0,
+    offsetY = 0;
+  let cameraX = 0,
+    cameraY = 0,
+    lastState = null,
+    destroyed = false;
+  let lastPlayerX = null,
+    lastPlayerY = null,
+    lastHp = null,
+    walking = false,
+    hurtUntil = 0;
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
+  observer?.observe(canvas);
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    width = Math.max(1, rect.width || canvas.clientWidth || 960);
+    height = Math.max(1, rect.height || canvas.clientHeight || 600);
+    pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    updateCamera(lastState?.player);
+  }
+
+  function updateCamera(player) {
+    const portrait = width / height < 1.12;
+    if (portrait) {
+      // A fixed horizontal field of view keeps enemies and bridge anchors in
+      // sight on tall phones. Follow vertically inside the space between the
+      // heading and thumb controls instead of letting feet disappear below UI.
+      scale = width / PHONE_VIEW_WIDTH;
+      const safeTop = Math.min(95, height * 0.22);
+      const safeBottom = Math.min(135, height * 0.25);
+      const safeHeight = Math.max(100, height - safeTop - safeBottom);
+      const viewH = safeHeight / scale;
+      cameraX = CLAMP((player?.x ?? 480) - PHONE_VIEW_WIDTH / 2, 0, WORLD_W - PHONE_VIEW_WIDTH);
+      cameraY = viewH < WORLD_H ? CLAMP((player?.y ?? 300) - viewH * 0.52, 0, WORLD_H - viewH) : 0;
+      offsetX = 0;
+      offsetY = safeTop + Math.max(0, (safeHeight - WORLD_H * scale) / 2);
+      return;
+    }
+    scale = Math.min(width / WORLD_W, height / WORLD_H);
+    cameraX = 0;
+    cameraY = 0;
+    offsetX = Math.max(0, (width - WORLD_W * scale) / 2);
+    offsetY = Math.max(0, (height - WORLD_H * scale) / 2);
+  }
+
+  function screenToWorld(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left - offsetX) / scale + cameraX,
+      y: (clientY - rect.top - offsetY) / scale + cameraY,
+    };
+  }
+
+  function worldToScreen(x, y) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: rect.left + offsetX + (x - cameraX) * scale,
+      y: rect.top + offsetY + (y - cameraY) * scale,
+    };
+  }
+
+  function label(context, text, x, y, options = {}) {
+    // World-space labels remain readable when a phone shows a wider arena.
+    drawLabel(context, text, x, y, { ...options, size: Math.max(options.size || 14, 11 / scale) });
+  }
+
+  function sprite(name, x, y, { size = 1, flip = false, alpha = 1, rotate = 0 } = {}) {
+    const spec = sprites[name];
+    if (!spec?.img.complete || !spec.img.naturalWidth) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale((flip ? -1 : 1) * size, size);
+    ctx.rotate(rotate);
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(spec.img, -spec.w / 2, -spec.h + spec.foot, spec.w, spec.h);
+    ctx.restore();
+  }
+
+  function ring(x, y, radius, color = '#60734e', alpha = 0.6, width = 2) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha *= alpha;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * 0.48, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawDoor(door, room, state, time) {
+    const x = door.x,
+      y = door.y;
+    const destination = state.rooms?.[door.target || door.to] || {};
+    const bridge = room.bridges?.find((b) => b.id === door.bridgeId);
+    const locked =
+      Boolean(door.requiresClear && state.enemies.some((enemy) => enemy.hp > 0)) ||
+      Boolean(door.requiresSeals && (state.seals || 0) < door.requiresSeals) ||
+      Boolean(bridge && !bridge.drawn);
+    const boss =
+      door.kind === 'boss' || destination.kind === 'boss' || (door.target || door.to) === 'gate';
+    const direction =
+      door.side ||
+      door.direction ||
+      (x < 100 ? 'left' : x > 860 ? 'right' : y < 100 ? 'up' : 'down');
+    const vertical =
+      direction === 'left' || direction === 'right' || direction === 'west' || direction === 'east';
+    ctx.save();
+    ctx.fillStyle = '#353b2e';
+    if (vertical) ctx.fillRect(x - 22, y - 40, 44, 80);
+    else ctx.fillRect(x - 43, y - 22, 86, 44);
+    ctx.fillStyle = locked ? 'rgba(153,69,50,.2)' : 'rgba(231,216,170,.36)';
+    ctx.fillRect(x - 18, y - 18, 36, 36);
+    ctx.strokeStyle = locked ? '#993f31' : '#dbcead';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 5]);
+    ctx.strokeRect(x - 17, y - 20, 34, 40);
+    ctx.setLineDash([]);
+    if (boss) sprite('gate', x, y + 32, { size: 0.65 });
+    if (!locked) {
+      const pulse = 3 * Math.sin(time * 3);
+      ctx.strokeStyle = '#ead9ac';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      if (vertical) {
+        const s = x < 100 ? -1 : 1;
+        ctx.moveTo(x - s * (8 + pulse), y - 7);
+        ctx.lineTo(x + s * (pulse + 1), y);
+        ctx.lineTo(x - s * (8 + pulse), y + 7);
+      } else {
+        const s = y < 100 ? -1 : 1;
+        ctx.moveTo(x - 7, y - s * (8 + pulse));
+        ctx.lineTo(x, y + s * (pulse + 1));
+        ctx.lineTo(x + 7, y - s * (8 + pulse));
+      }
+      ctx.stroke();
+    }
+    const bridgeAtDoor = room.bridges?.some(
+      (item) => Math.hypot(item.to.x - x, item.to.y - y) < 85,
+    );
+    const bridgeLabelSide = x + 240 > cameraX + (width - offsetX) / scale ? -1 : 1;
+    const labelX = vertical
+      ? x + (x < 100 ? 63 : -63)
+      : x + (bridgeAtDoor ? 130 * bridgeLabelSide : 0);
+    const labelY = vertical ? y - 44 : y + (y < 100 ? 40 : -39);
+    const lockLabel =
+      door.requiresSeals && (state.seals || 0) < door.requiresSeals
+        ? `需 ${door.requiresSeals} 钥印 · `
+        : bridge && !bridge.drawn
+          ? '绘桥后 · '
+          : '清场后 · ';
+    label(
+      ctx,
+      `${locked ? lockLabel : ''}${door.label || door.name || destination.name || '下一页'}`,
+      labelX,
+      labelY,
+      { size: 13, color: locked ? RED : INK },
+    );
+    ctx.restore();
+  }
+
+  function drawBridge(bridge, room, time) {
+    const a = bridge.from || bridge.start || bridge.a || { x: bridge.x ?? 425, y: bridge.y ?? 300 };
+    const b = bridge.to || bridge.end || bridge.b || { x: a.x + 150, y: a.y };
+    const built = bridge.built || bridge.drawn || room.bridgeBuilt;
+    ctx.save();
+    if (built) {
+      ctx.strokeStyle = INK;
+      ctx.lineWidth =
+        bridge.width ||
+        (bridge.rect
+          ? Math.abs(b.y - a.y) > Math.abs(b.x - a.x)
+            ? bridge.rect.w
+            : bridge.rect.h
+          : 66);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.strokeStyle = '#c7ba94';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([17, 8]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      ctx.strokeStyle = '#8e4936';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (const p of [a, b]) {
+        ctx.fillStyle = '#e8d9b6';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 17, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = RED;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 24 + Math.sin(time * 3) * 3, 0, TAU);
+        ctx.strokeStyle = 'rgba(154,68,49,.3)';
+        ctx.stroke();
+      }
+      const vertical = Math.abs(b.y - a.y) > Math.abs(b.x - a.x);
+      const instructionX = CLAMP(
+        vertical ? a.x : (a.x + b.x) / 2,
+        cameraX + 125,
+        cameraX + (width - offsetX) / scale - 125,
+      );
+      label(
+        ctx,
+        `拖墨连起两点 · ${bridge.cost || 8} 墨`,
+        instructionX,
+        vertical ? a.y + (a.y > b.y ? 42 : -42) : Math.min(a.y, b.y) - 38,
+        { size: 14, color: RED, accent: true },
+      );
+      ctx.fillStyle = RED;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 5, 0, TAU);
+      ctx.fill();
+      label(ctx, '起笔', a.x - 46, a.y, { size: 12 });
+    }
+    ctx.restore();
+  }
+
+  function drawObject(object, state, time) {
+    const kind = object.kind || object.type;
+    const used = object.claimed || object.used || object.opened || object.collected;
+    const near = Math.hypot(object.x - state.player.x, object.y - state.player.y) < 95;
+    const pulse = 0.45 + 0.17 * Math.sin(time * 3);
+    const names = {
+      chest: '墨匣',
+      cache: '墨匣',
+      spring: '洗笔泉',
+      merchant: '契约师',
+      seal: '钥印',
+      gate: '墨之门',
+      bottle: '旧墨瓶',
+      lore: '残页',
+    };
+    const action = {
+      chest: '开启',
+      cache: '开启',
+      spring: '免费治疗',
+      merchant: '签约',
+      seal: '拾取',
+      gate: '开启',
+      bottle: '拾取',
+      lore: '阅读',
+    };
+    if (!used) {
+      const halo = ctx.createRadialGradient(object.x, object.y, 2, object.x, object.y, 58);
+      halo.addColorStop(0, `rgba(185,149,74,${pulse * 0.5})`);
+      halo.addColorStop(1, 'rgba(185,149,74,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.ellipse(object.x, object.y, 58, 30, 0, 0, TAU);
+      ctx.fill();
+      ring(
+        object.x,
+        object.y + 4,
+        near ? 38 : 28,
+        near ? '#8f4b35' : '#827147',
+        pulse,
+        near ? 2 : 1,
+      );
+    }
+    if (kind === 'seal') {
+      ctx.save();
+      ctx.translate(object.x, object.y - 20 + Math.sin(time * 2) * 3);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = '#c7ac70';
+      ctx.strokeStyle = '#54452e';
+      ctx.lineWidth = 2;
+      ctx.fillRect(-13, -13, 26, 26);
+      ctx.strokeRect(-13, -13, 26, 26);
+      ctx.strokeStyle = '#e5d6ad';
+      ctx.strokeRect(-8, -8, 16, 16);
+      ctx.restore();
+    } else if (kind === 'lore') {
+      ctx.save();
+      ctx.translate(object.x - 25, object.y - 42);
+      ctx.rotate(-0.12);
+      ctx.fillStyle = '#efdfb9';
+      ctx.strokeStyle = INK;
+      ctx.fillRect(0, 0, 48, 38);
+      ctx.strokeRect(0, 0, 48, 38);
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        ctx.moveTo(7, 8 + i * 7);
+        ctx.lineTo(37 - i * 3, 8 + i * 7);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else
+      sprite(kind === 'cache' ? 'chest' : kind === 'shrine' ? 'spring' : kind, object.x, object.y, {
+        alpha: used ? 0.52 : 1,
+      });
+    if (used && (kind === 'chest' || kind === 'cache'))
+      label(ctx, '已取墨', object.x, object.y + 18, { color: '#716c55', size: 12 });
+    else if (!used) {
+      const title = near
+        ? `点击${action[kind] || '交互'}`
+        : object.label || object.name || names[kind];
+      label(ctx, title, object.x, object.y + (kind === 'merchant' ? 34 : 24), {
+        size: near ? 14 : 12,
+        color: near ? '#914632' : '#625536',
+        accent: near,
+      });
+    }
+  }
+
+  function drawWarning(enemy, time) {
+    const windup = enemy.windup ?? enemy.windupTimer ?? enemy.telegraph ?? 0;
+    const state = enemy.state || enemy.mode;
+    if (!(windup > 0 || state === 'windup' || state === 'telegraph' || state === 'charging'))
+      return;
+    const angle =
+      enemy.attackAngle ??
+      enemy.angle ??
+      Math.atan2(
+        enemy.aimY ?? (enemy.targetY ?? lastState.player.y) - enemy.y,
+        enemy.aimX ?? (enemy.targetX ?? lastState.player.x) - enemy.x,
+      );
+    const kind = enemy.kind || enemy.type;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.rotate(angle);
+    ctx.fillStyle = `rgba(157,47,34,${0.14 + 0.08 * Math.sin(time * 14)})`;
+    ctx.strokeStyle = '#a34733';
+    ctx.lineWidth = 2;
+    if (enemy.attackKind === 'burst' || kind === 'spitter' || kind === 'ranged') {
+      const boss = kind === 'boss';
+      const count = boss ? (enemy.phase === 2 ? 9 : 5) : 3;
+      const step = boss ? 0.25 : 0.14;
+      const halfAngle = ((count - 1) * step) / 2 + 0.035;
+      const radius = enemy.range || 430;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radius, -halfAngle, halfAngle);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha *= 0.6;
+      ctx.setLineDash([7, 8]);
+      for (let i = 0; i < count; i++) {
+        const a = (i - (count - 1) / 2) * step;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+        ctx.stroke();
+      }
+    } else {
+      const length = kind === 'boss' ? 320 : kind === 'guard' || kind === 'warden' ? 306 : 115;
+      const half = enemy.r || 20;
+      ctx.beginPath();
+      ctx.moveTo(0, -half);
+      ctx.lineTo(length, -half);
+      ctx.arc(length, 0, half, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(0, half);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(length - 24, -8);
+      ctx.lineTo(length - 13, 0);
+      ctx.lineTo(length - 24, 8);
+      ctx.stroke();
+    }
+    ctx.restore();
+    const progress = CLAMP(1 - (enemy.timer || 0) / (enemy.windupTime || 1), 0, 1);
+    ctx.strokeStyle = '#a44731';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, (enemy.r || 20) + 8, -Math.PI / 2, -Math.PI / 2 + TAU * progress);
+    ctx.stroke();
+    label(
+      ctx,
+      enemy.attackKind === 'burst'
+        ? '墨潮！'
+        : kind === 'boss' || kind === 'guard'
+          ? '冲锋！'
+          : '扑击！',
+      enemy.x,
+      enemy.y - (kind === 'boss' ? 140 : kind === 'guard' ? 109 : 82),
+      { color: RED, size: 12, accent: true },
+    );
+  }
+
+  function drawEnemy(enemy, time) {
+    if (enemy.hp <= 0) return;
+    const kind = enemy.kind || enemy.type || 'slime';
+    const big = kind === 'boss' || kind === 'warden' || kind === 'guard';
+    const size = kind === 'spitter' || kind === 'ranged' ? 0.96 : 0.9;
+    const bob = Math.sin(time * 5 + enemy.x * 0.01) * 1.5;
+    const isHit = (enemy.hitTimer || enemy.flash || 0) > 0;
+    const spriteName =
+      kind === 'guard' || kind === 'warden' ? 'guard' : kind === 'boss' ? 'boss' : 'slime';
+    sprite(spriteName, enemy.x, enemy.y + bob, {
+      size: big ? 1 : size,
+      alpha: isHit ? 0.55 : 1,
+      flip: lastState.player.x < enemy.x,
+    });
+    if (kind === 'spitter' || kind === 'ranged') {
+      ctx.strokeStyle = '#b0a277';
+      ctx.fillStyle = '#3e4631';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(enemy.x, enemy.y - 18, 9, 12, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(enemy.x, enemy.y - 18, 3, 5, 0, 0, TAU);
+      ctx.fillStyle = '#e0d2b0';
+      ctx.fill();
+    }
+    const maxHp = enemy.maxHp || enemy.hp;
+    const w = big ? 84 : 44,
+      y = enemy.y - (kind === 'boss' ? 119 : big ? 89 : 61);
+    ctx.fillStyle = '#504d3c';
+    ctx.fillRect(enemy.x - w / 2, y, w, 5);
+    ctx.fillStyle = '#ad5542';
+    ctx.fillRect(enemy.x - w / 2, y, w * CLAMP(enemy.hp / maxHp, 0, 1), 5);
+    ctx.strokeStyle = '#e6d5ac';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(enemy.x - w / 2, y, w, 5);
+  }
+
+  function drawPlayer(player, time) {
+    const angle = player.angle ?? player.facing ?? Math.atan2(player.aimY || 0, player.aimX || 1);
+    const moving =
+      walking || Math.abs(player.vx || 0) + Math.abs(player.vy || 0) > 3 || player.moving;
+    const bob = moving ? Math.sin(time * 17) * 2 : Math.sin(time * 2) * 0.65;
+    ring(player.x, player.y + 3, 20, '#87543c', 0.8, 2);
+    if ((player.dashTimer || player.dashing || 0) > 0) {
+      const dx = player.dashX ?? Math.cos(angle),
+        dy = player.dashY ?? Math.sin(angle);
+      for (let i = 3; i > 0; i--)
+        sprite('hero', player.x - dx * i * 15, player.y - dy * i * 15, {
+          alpha: 0.12 + 0.07 * (3 - i),
+          flip: Math.cos(angle) < 0,
+        });
+    }
+    const invulnerable = (player.invulnerable || player.invuln || player.invulnerability || 0) > 0;
+    sprite('hero', player.x, player.y + bob, {
+      flip: Math.cos(angle) < -0.12,
+      alpha: invulnerable && Math.sin(time * 35) > 0.25 ? 0.45 : 1,
+    });
+    ctx.save();
+    ctx.translate(player.x, player.y - 16);
+    ctx.rotate(angle);
+    ctx.strokeStyle = '#615a3e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(13, 0);
+    ctx.lineTo(35, 0);
+    ctx.stroke();
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.moveTo(35, -3);
+    ctx.lineTo(45, 0);
+    ctx.lineTo(35, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPickup(pickup, time) {
+    if (pickup.collected) return;
+    const kind = pickup.kind || pickup.type;
+    const y = pickup.y - 4 + Math.sin(time * 4 + pickup.x) * 3;
+    ring(
+      pickup.x,
+      pickup.y + 3,
+      kind === 'seal' ? 20 : 12,
+      '#9b793d',
+      0.6 + Math.sin(time * 4) * 0.2,
+    );
+    if (kind === 'seal') {
+      ctx.save();
+      ctx.translate(pickup.x, y - 14);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = '#c4a863';
+      ctx.strokeStyle = '#4c4931';
+      ctx.lineWidth = 2;
+      ctx.fillRect(-12, -12, 24, 24);
+      ctx.strokeRect(-12, -12, 24, 24);
+      ctx.strokeStyle = '#eee0b5';
+      ctx.strokeRect(-7, -7, 14, 14);
+      ctx.restore();
+      label(ctx, '钥印 · 靠近拾取', pickup.x, pickup.y + 24, {
+        size: 13,
+        color: '#806236',
+        accent: true,
+      });
+    } else if (kind === 'heart') {
+      ctx.save();
+      ctx.translate(pickup.x, y - 10);
+      ctx.fillStyle = '#ae5946';
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 8);
+      ctx.bezierCurveTo(-23, -6, -10, -20, 0, -9);
+      ctx.bezierCurveTo(10, -20, 23, -6, 0, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    } else sprite('bottle', pickup.x, y, { size: 0.7 });
+  }
+
+  function drawProjectile(p) {
+    const enemy = p.enemy || p.owner === 'enemy' || p.team === 'enemy';
+    const angle = p.angle ?? Math.atan2(p.vy || 0, p.vx || 1);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(angle);
+    const color = enemy ? '#944231' : '#232a1e';
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.2;
+    ctx.lineWidth = enemy ? 9 : 13;
+    ctx.beginPath();
+    ctx.moveTo(-27, 0);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, p.radius || p.r || (enemy ? 6 : 8), enemy ? 4 : 5, 0, 0, TAU);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-17, -3);
+    ctx.lineTo(-7, -2);
+    ctx.moveTo(-23, 4);
+    ctx.lineTo(-12, 3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEffect(effect, time) {
+    const kind = effect.kind || effect.type;
+    const life = effect.life ?? effect.ttl ?? 1;
+    const maxLife = effect.maxLife || effect.duration || 1;
+    const t = CLAMP(1 - life / maxLife, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = CLAMP(life / Math.min(maxLife, 0.3), 0, 1);
+    if (kind === 'text' || kind === 'number' || kind === 'damage' || kind === 'pickup') {
+      const color =
+        effect.color || (kind === 'damage' ? '#aa3629' : kind === 'pickup' ? '#557048' : INK);
+      label(
+        ctx,
+        effect.text ?? `${effect.amount ?? effect.value ?? ''}`,
+        effect.x,
+        effect.y - t * 25,
+        { color, size: effect.size || 20, background: false, accent: true },
+      );
+    } else if (kind === 'slash' || kind === 'dry' || kind === 'melee') {
+      const angle = effect.angle || 0;
+      ctx.translate(effect.x, effect.y);
+      ctx.rotate(angle);
+      ctx.strokeStyle = effect.color || '#323829';
+      ctx.lineWidth = 12 * (1 - t) + 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(0, 0, effect.radius || 64, -0.95 + t * 0.45, 0.85 + t * 0.45);
+      ctx.stroke();
+      ctx.strokeStyle = '#eee0bc';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 68, -0.8, 0.75);
+      ctx.stroke();
+    } else if (kind === 'heal') {
+      ring(effect.x, effect.y, 25 + t * 45, '#5e7751', 1 - t, 3);
+      ctx.strokeStyle = '#61794e';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const x = effect.x + Math.cos((i / 4) * TAU + time) * 28,
+          y = effect.y - 20 + Math.sin((i / 4) * TAU + time) * 18 - t * 30;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y);
+        ctx.lineTo(x + 4, y);
+        ctx.moveTo(x, y - 4);
+        ctx.lineTo(x, y + 4);
+        ctx.stroke();
+      }
+    } else if (kind === 'dash' || kind === 'ghost') {
+      sprite('hero', effect.x, effect.y, {
+        alpha: 0.3 * (1 - t),
+        flip: Math.cos(effect.angle || 0) < 0,
+      });
+    } else if (kind === 'ring' || kind === 'shockwave') {
+      ring(effect.x, effect.y, (effect.radius || 100) * t, effect.color || RED, 1 - t, 3);
+    } else {
+      const count = 7;
+      ctx.fillStyle = effect.color || INK;
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * TAU + (effect.seed || 0);
+        const distance = 5 + t * (effect.radius || 34);
+        ctx.beginPath();
+        ctx.ellipse(
+          effect.x + Math.cos(angle) * distance,
+          effect.y + Math.sin(angle) * distance * 0.65,
+          Math.max(0.3, (1 - t) * 4),
+          Math.max(0.3, (1 - t) * 2),
+          angle,
+          0,
+          TAU,
+        );
+        ctx.fill();
+      }
+    }
+    if (effect.text && !['text', 'number', 'damage', 'pickup'].includes(kind)) {
+      label(ctx, effect.text, effect.x, effect.y - 40 - t * 26, {
+        color: kind === 'hit' ? RED : '#526c42',
+        size: 21,
+        background: false,
+        accent: true,
+      });
+    }
+    ctx.restore();
+  }
+
+  function render(state, { time = 0, drawStroke = null, aimPoint = null, paused = false } = {}) {
+    if (destroyed || !state) return;
+    if (lastState !== state) {
+      lastHp = null;
+      hurtUntil = 0;
+      lastPlayerX = null;
+      lastPlayerY = null;
+    }
+    lastState = state;
+    const player = state.player || { x: 480, y: 300 };
+    const room = state.rooms?.[state.roomId] || state.room || {};
+    walking =
+      lastPlayerX !== null && Math.hypot(player.x - lastPlayerX, player.y - lastPlayerY) > 0.1;
+    if (lastHp !== null && player.hp < lastHp) hurtUntil = time + 0.22;
+    lastPlayerX = player.x;
+    lastPlayerY = player.y;
+    lastHp = player.hp;
+    updateCamera(player);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.fillStyle = pagePaper || '#ded0b0';
+    ctx.fillRect(0, 0, width, height);
+    ctx.translate(offsetX - cameraX * scale, offsetY - cameraY * scale);
+    ctx.scale(scale, scale);
+    const key = room.id || state.roomId || 'default';
+    if (!backgrounds.has(key)) backgrounds.set(key, createFloor(room));
+    ctx.drawImage(backgrounds.get(key), 0, 0, WORLD_W, WORLD_H);
+    for (const door of room.portals || room.doors || room.exits || [])
+      if (typeof door === 'object') drawDoor(door, room, state, time);
+    const bridges = room.bridges || (room.bridge ? [room.bridge] : []);
+    for (const bridge of bridges) drawBridge(bridge, room, time);
+    // Telegraphs stay beneath characters: red is always a real incoming attack.
+    const enemies = state.enemies || room.enemies || [];
+    for (const enemy of enemies) if (enemy.hp > 0) drawWarning(enemy, time);
+    for (const dead of state.corpses || []) inkBlot(ctx, dead.x, dead.y, 22, dead.id, 0.7);
+    const objects = room.objects || room.interactables || state.interactables || [];
+    const drawables = objects.map((object) => ({
+      y: object.y,
+      draw: () => drawObject(object, state, time),
+    }));
+    for (const pickup of state.pickups || room.pickups || []) drawPickup(pickup, time);
+    for (const enemy of enemies) drawables.push({ y: enemy.y, draw: () => drawEnemy(enemy, time) });
+    drawables.push({ y: player.y, draw: () => drawPlayer(player, time) });
+    drawables.sort((a, b) => a.y - b.y);
+    for (const drawable of drawables) drawable.draw();
+    for (const projectile of state.projectiles || []) drawProjectile(projectile);
+    for (const effect of state.effects || []) drawEffect(effect, time);
+    if (drawStroke?.length) {
+      ctx.strokeStyle = '#23291f';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      drawStroke.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.stroke();
+      const end = drawStroke[drawStroke.length - 1];
+      inkBlot(ctx, end.x, end.y, 7, 'stroke-end');
+    }
+    if (aimPoint && !paused) {
+      ctx.strokeStyle = 'rgba(112,61,44,.65)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(aimPoint.x, aimPoint.y, 12, 0, TAU);
+      ctx.moveTo(aimPoint.x - 18, aimPoint.y);
+      ctx.lineTo(aimPoint.x - 8, aimPoint.y);
+      ctx.moveTo(aimPoint.x + 8, aimPoint.y);
+      ctx.lineTo(aimPoint.x + 18, aimPoint.y);
+      ctx.moveTo(aimPoint.x, aimPoint.y - 18);
+      ctx.lineTo(aimPoint.x, aimPoint.y - 8);
+      ctx.moveTo(aimPoint.x, aimPoint.y + 8);
+      ctx.lineTo(aimPoint.x, aimPoint.y + 18);
+      ctx.stroke();
+    }
+    // Vignette is screen-space and never changes input coordinates.
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    const vignette = ctx.createRadialGradient(
+      width / 2,
+      height / 2,
+      Math.min(width, height) * 0.3,
+      width / 2,
+      height / 2,
+      Math.max(width, height) * 0.72,
+    );
+    vignette.addColorStop(0, 'rgba(36,33,21,0)');
+    vignette.addColorStop(1, 'rgba(36,33,21,.26)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+    if (hurtUntil > time) {
+      const hurt = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        Math.min(width, height) * 0.15,
+        width / 2,
+        height / 2,
+        Math.max(width, height) * 0.6,
+      );
+      hurt.addColorStop(0, 'rgba(154,39,26,0)');
+      hurt.addColorStop(1, `rgba(154,39,26,${Math.min(0.3, (hurtUntil - time) * 1.5)})`);
+      ctx.fillStyle = hurt;
+      ctx.fillRect(0, 0, width, height);
+    }
+  }
+  resize();
+  return {
+    render,
+    resize,
+    screenToWorld,
+    worldToScreen,
+    destroy() {
+      destroyed = true;
+      observer?.disconnect();
+      backgrounds.clear();
+    },
+  };
+}

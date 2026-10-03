@@ -1,0 +1,54 @@
+{
+  "url": "http://127.0.0.1:4416",
+  "date": "2026-10-03T14:35:02.187Z",
+  "input": "Public mouse, keyboard and native multi-touch events; snapshots read-only",
+  "cases": [
+    {
+      "name": "390×844 native three-finger movement / fire / melee and touchcancel releases every held input",
+      "status": "passed"
+    },
+    {
+      "name": "Pressure test: intentionally empty the bottle in the safe station, then move, dry attack and dash at zero ink",
+      "status": "passed"
+    },
+    {
+      "name": "Touch full chapter: free melee focused combat, drawn bridge + archive reward, contract, save/resume, both seals and boss",
+      "status": "passed",
+      "stats": {
+        "spent": {
+          "attack": 86,
+          "heal": 0,
+          "explore": 8,
+          "trade": 18
+        },
+        "shots": 43,
+        "hits": 126,
+        "freeAttacks": 196,
+        "dashes": 33,
+        "enemiesDefeated": 20,
+        "inkRecovered": 94,
+        "damageTaken": 4,
+        "roomsVisited": 6,
+        "heals": 0,
+        "trades": 1,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 112
+      },
+      "elapsedGameSeconds": 116.43333333332801,
+      "finalInk": 46,
+      "finalHp": 6
+    }
+  ],
+  "screenshots": [
+    "screenshots/mobile-pressure-combat.png",
+    "screenshots/mobile-pressure-bridge.png",
+    "screenshots/mobile-pressure-market.png",
+    "screenshots/mobile-pressure-empty-ink.png",
+    "screenshots/mobile-pressure-boss.png",
+    "screenshots/mobile-pressure-victory.png"
+  ],
+  "errors": [],
+  "status": "passed"
+}
