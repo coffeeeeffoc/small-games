@@ -271,5 +271,12 @@
     "title": "同频归航",
     "description": "一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。",
     "output": "dist"
+  },
+  {
+    "id": "bullet-garden",
+    "source": "games/local/bullet-garden",
+    "title": "子弹花园 · Bullet Garden",
+    "description": "在遗迹庭院守住五分钟：射击暗影怪物，把落空的种子弹种成荆棘、寒冰柱与爆炸蘑菇，亲手布置下一波战场。",
+    "output": "dist"
   }
 ]

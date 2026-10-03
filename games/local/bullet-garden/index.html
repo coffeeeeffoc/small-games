@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#19261e" />
+    <meta
+      name="description"
+      content="子弹落地，花园生长。在失落庭院中，用三种种子改造战场，守住五分钟。"
+    />
+    <title>子弹花园 · Bullet Garden</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body data-phase="ready">
+    <main id="game" aria-label="子弹花园">
+      <canvas
+        id="arena"
+        aria-label="花园战场；触屏点击空地播种，桌面按住鼠标射击、右键播种"
+      ></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+      <header class="hud">
+        <div class="health-group">
+          <canvas id="portrait" width="160" height="160" aria-hidden="true"></canvas>
+          <div class="health-info">
+            <div class="eyebrow">BULLET GARDEN <span>子弹花园</span></div>
+            <div class="health-track">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21C9 18 1 13 1 7a6 6 0 0 1 11-3A6 6 0 0 1 23 7c0 6-8 11-11 14" />
+              </svg>
+              <div id="health-fill"></div>
+              <strong id="health">100 / 100</strong>
+            </div>
+            <div class="health-caption">
+              <span class="green-dot"></span> 庭院守望者 <span id="kill-count">击退 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="wave-group">
+          <div class="wave-title">第 <strong id="wave">1</strong><span> / 10</span> 波</div>
+          <div class="wave-track"><div id="wave-fill"></div></div>
+          <div class="wave-caption"><span>01 · 失落庭院</span><span id="timer">05:00</span></div>
+        </div>
+        <div class="tools">
+          <div class="coins">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="m16 2 10 5 4 10-6 10-12 3L3 22 2 11 8 4Z" fill="#bf771c" />
+              <path d="m16 4 9 5 2 8-5 8-9 2-8-6-1-9 5-7Z" fill="#ffcd59" />
+              <path
+                d="m16 8 7 4-1 9-8 3-6-6 2-8Z"
+                fill="#e6a534"
+                stroke="#ffe796"
+                stroke-width="2"
+              /></svg
+            ><strong id="coins">0</strong>
+          </div>
+          <button
+            id="sound"
+            class="icon-button secondary-tool"
+            aria-label="开启音效"
+            aria-pressed="false"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 9h4l5-4v14l-5-4H4Z" />
+              <path id="sound-waves" d="m17 9 5 6m0-6-5 6" />
+            </svg>
+          </button>
+          <button id="pause" class="icon-button" aria-label="暂停">
+            <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="4" width="5" height="16" rx="1.5" />
+              <rect x="14" y="4" width="5" height="16" rx="1.5" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="announcement" class="announcement" role="status" aria-live="polite"></div>
+      <aside class="field-status">
+        <span class="green-dot"></span><span id="plant-count">生长中 0 / 18</span
+        ><span class="field-divider"></span
+        ><button id="auto-fire" aria-pressed="true">自动射击 <b>开</b></button>
+      </aside>
+
+      <section class="seed-dock" aria-label="种子选择">
+        <div class="dock-heading">
+          <span class="decorative-leaf">✦</span><strong>选择种子</strong
+          ><span>让落空，也成为战术</span><span class="decorative-leaf">✦</span>
+        </div>
+        <div class="seed-cards">
+          <button
+            class="seed-card thorn selected"
+            data-seed="thorn"
+            aria-label="荆棘藤蔓"
+            aria-pressed="true"
+          >
+            <span class="seed-shortcut">1</span><span class="seed-stock" id="stock-thorn">6</span
+            ><canvas data-icon="thorn" width="220" height="150" aria-hidden="true"></canvas
+            ><strong>荆棘藤蔓</strong><span class="seed-description">落地生长 · 减速缠绕</span
+            ><span class="seed-role">控场</span>
+            <div class="seed-cooldown"></div>
+          </button>
+          <button class="seed-card ice" data-seed="ice" aria-label="寒冰柱" aria-pressed="false">
+            <span class="seed-shortcut">2</span><span class="seed-stock" id="stock-ice">4</span
+            ><canvas data-icon="ice" width="220" height="150" aria-hidden="true"></canvas
+            ><strong>寒冰柱</strong><span class="seed-description">筑起冰墙 · 阻挡敌人</span
+            ><span class="seed-role">阻挡</span>
+            <div class="seed-cooldown"></div>
+          </button>
+          <button
+            class="seed-card mushroom"
+            data-seed="mushroom"
+            aria-label="爆炸蘑菇"
+            aria-pressed="false"
+          >
+            <span class="seed-shortcut">3</span><span class="seed-stock" id="stock-mushroom">4</span
+            ><canvas data-icon="mushroom" width="220" height="150" aria-hidden="true"></canvas
+            ><strong>爆炸蘑菇</strong><span class="seed-description">短暂酝酿 · 范围爆破</span
+            ><span class="seed-role">爆发</span>
+            <div class="seed-cooldown"></div>
+          </button>
+        </div>
+      </section>
+
+      <aside class="growth-guide" aria-label="种子生长过程">
+        <div class="guide-heading">每一发，都有新的可能</div>
+        <div class="growth-steps">
+          <div><span class="step-art bullet-art"></span><b>子弹落地</b></div>
+          <span class="step-arrow">→</span>
+          <div>
+            <span class="step-art sprout-art"><i></i></span><b>播下种子</b>
+          </div>
+          <span class="step-arrow">→</span>
+          <div>
+            <canvas id="guide-flower" width="80" height="70" aria-hidden="true"></canvas
+            ><b>改变战场</b>
+          </div>
+        </div>
+        <p>命中造成伤害，落空长出植物</p>
+      </aside>
+
+      <div class="touch-controls">
+        <div id="joystick" role="group" aria-label="移动摇杆">
+          <div class="joystick-ring"></div>
+          <div id="joystick-knob"></div>
+          <span>移动</span>
+        </div>
+        <div class="action-controls">
+          <button id="dash" aria-label="冲刺">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="m17 4-7 12h7l-3 12 12-17h-8l5-7Z" /></svg
+            ><span>冲刺</span><small id="dash-cooldown">SPACE</small></button
+          ><button id="cast" aria-label="发射种子">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M26 5C10 1 4 13 11 21c9 6 18-3 15-16Z" />
+              <path d="m7 28 15-17" /></svg
+            ><span>播种</span><small id="cast-cooldown">右键 / E</small>
+          </button>
+        </div>
+      </div>
+      <footer class="control-hint">
+        <span><kbd>W A S D</kbd> 移动</span><span>鼠标瞄准 · 长按射击</span
+        ><span><kbd>右键 / E</kbd> 播种</span><span><kbd>空格</kbd> 冲刺</span
+        ><button id="help">玩法指南 <span>?</span></button>
+      </footer>
+
+      <div id="overlay" class="overlay">
+        <section id="ready-panel" class="modal ready-panel" aria-labelledby="ready-title">
+          <div class="modal-kicker">
+            <span></span> A LITTLE CHAOS. A LOT OF GROWTH. <span></span>
+          </div>
+          <div class="title-mark" aria-hidden="true">
+            <canvas id="title-seed" width="160" height="130"></canvas>
+          </div>
+          <h1 id="ready-title">子弹<span>花园</span></h1>
+          <div class="english-title">B U L L E T &nbsp; G A R D E N</div>
+          <p class="intro">子弹落地的地方，<br class="mobile-break" />就是下一场战斗的开始。</p>
+          <div class="level-badge">
+            <span>01</span>
+            <div>
+              <strong>失落庭院</strong><small>10 波敌人 <i>·</i> 5 分钟守卫战</small>
+            </div>
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="m7 25 9-20 9 20M10 19h12M4 27h24" />
+            </svg>
+          </div>
+          <button id="start" class="primary-button">进入花园 <span>→</span></button>
+          <p class="ready-tip">自动射击护身，主动播种改变战场</p>
+          <button id="ready-help" class="text-button">第一次来？看看园艺手册</button>
+        </section>
+        <section id="pause-panel" class="modal compact-panel" hidden aria-labelledby="pause-title">
+          <div class="modal-kicker">TAKE A BREATH</div>
+          <h2 id="pause-title">让花园休息一下</h2>
+          <p>战场已暂停，植物也在等你。</p>
+          <button id="resume" class="primary-button">继续守卫 <span>→</span></button
+          ><button id="pause-help" class="outline-button">园艺手册</button
+          ><button id="pause-sound" class="text-button" aria-pressed="false">音效：关闭</button
+          ><button id="restart" class="text-button">重新开始本关</button>
+        </section>
+        <section id="help-panel" class="modal help-panel" hidden aria-labelledby="help-title">
+          <div class="modal-kicker">THE GARDENER'S HANDBOOK</div>
+          <h2 id="help-title">有时候，故意打空。</h2>
+          <p>普通花瓣弹自动攻击附近敌人。种子弹击中敌人造成伤害；飞到空地，才会长成植物。</p>
+          <div class="handbook-seeds">
+            <p>
+              <b class="text-green">荆棘藤蔓</b><span>在追兵前方播种，减速并持续造成伤害。</span>
+            </p>
+            <p>
+              <b class="text-blue">寒冰柱</b
+              ><span>隔开你和怪物。冰柱会挡住双方，敌人会绕行或拆除。</span>
+            </p>
+            <p>
+              <b class="text-orange">爆炸蘑菇</b><span>提前种在必经之路，约 2 秒后范围爆炸。</span>
+            </p>
+          </div>
+          <p class="handbook-rule">
+            植物会枯萎，场上最多 18 株；满额时最早的植物被替换。种子自动补充，每 3 波可选一次强化。
+          </p>
+          <div class="handbook-controls">
+            <span>触屏</span>左手摇杆移动，右手点空地播种；按冲刺躲避。<br /><span>键鼠</span>WASD
+            移动，鼠标瞄准，左键射击，右键 / E 播种，空格冲刺。
+          </div>
+          <button id="close-help" class="primary-button">明白了 <span>✓</span></button>
+        </section>
+        <section
+          id="upgrade-panel"
+          class="modal upgrade-panel"
+          hidden
+          aria-labelledby="upgrade-title"
+        >
+          <div class="modal-kicker">ROOTS GROW STRONGER</div>
+          <h2 id="upgrade-title">选择一个强化</h2>
+          <p>下一波之前，为花园添一点可能。</p>
+          <div id="upgrade-options"></div>
+        </section>
+        <section
+          id="result-panel"
+          class="modal compact-panel"
+          hidden
+          aria-labelledby="result-title"
+        >
+          <div class="modal-kicker" id="result-kicker">GARDEN PROTECTED</div>
+          <h2 id="result-title">花园，生生不息。</h2>
+          <p id="result-description"></p>
+          <div id="result-stats"></div>
+          <p id="best-record"></p>
+          <button id="play-again" class="primary-button">再种一片花园 <span>↻</span></button>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="./src/main.mjs"></script>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'bullet-garden': '#start',
   'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': '[data-level="0"]',
@@ -68,7 +69,68 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'maze-wander') {
+  if (id === 'bullet-garden') {
+    const snapshot = () =>
+      frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
+    const page = frame.locator('#arena').page();
+    await click(frame.locator('#start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    // Keep the middle of the battlefield available for direct touch targeting.
+    if (mobile) {
+      await expect
+        .poll(() =>
+          frame.locator('body').evaluate(() => {
+            const target = globalThis.document.elementFromPoint(
+              globalThis.innerWidth / 2,
+              globalThis.innerHeight * 0.45,
+            );
+            return target?.id;
+          }),
+        )
+        .toBe('arena');
+    }
+    await click(frame.locator('[data-seed="ice"]'));
+    await expect.poll(async () => (await snapshot()).selectedSeed).toBe('ice');
+    await click(frame.locator('#cast'));
+    await expect.poll(async () => (await snapshot()).stats.seedShots).toBeGreaterThan(0);
+
+    const initialPlayer = (await snapshot()).player;
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        const bounds = await frame.locator('#joystick').boundingBox();
+        const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, ...start }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+        });
+      } else {
+        await page.keyboard.down('d');
+      }
+      await expect
+        .poll(async () => Math.abs((await snapshot()).player.x - initialPlayer.x))
+        .toBeGreaterThan(12);
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.keyboard.up('d');
+      }
+    }
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    const pausedTime = (await snapshot()).time;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).time).toBe(pausedTime);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
+  } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
