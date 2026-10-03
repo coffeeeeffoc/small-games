@@ -6,11 +6,11 @@
   <header><button id="menu" aria-label="返回选关与奇遇记录"><span class="brand-mark">岔</span><b>乌龙城</b><span class="menu-label">返回选关</span></button><div class="utilities"><button id="sound" aria-label="关闭音效">♪</button><button id="fullscreen" aria-label="进入全屏">⛶</button><button id="pause" aria-label="暂停">暂停</button></div></header>
   <section class="mission"><div class="eyebrow"><span id="chapter"></span><span id="counter"></span></div><h1 id="title"></h1><p><span class="task-label">眼前的事</span><span id="goal"></span></p></section>
   <aside id="tryout" aria-label="今日试演" hidden><div class="tryout-label">今日试演 · 不改主线进度</div><div id="tryout-choices"><button data-try="25">心事也上秤 <span>先试这段 →</span></button><button data-try="26">遥控器嫌你太近 <span>先试这段 →</span></button></div><button id="tryout-back" hidden>回到刚才的主线 →</button></aside>
-  <div id="stage"><canvas id="canvas" width="960" height="1040" aria-label="乌龙城互动场景，方向键移动，空格跳跃，Tab 切换场景物件" tabindex="0"></canvas><div id="hotspots"></div><div class="scene-caption"><span class="live-dot"></span> 乌龙现场 <span id="scene-note">观察 · 试试看</span></div></div>
+  <div id="stage"><canvas id="canvas" width="960" height="1040" aria-label="乌龙城互动场景，A D 或左右方向键移动，W 或上方向键或空格跳跃，S 或下方向键加速下落，Tab 切换场景物件，回车操作物件" tabindex="0"></canvas><div id="hotspots"></div><div class="scene-caption"><span class="live-dot"></span> 乌龙现场 <span id="scene-note">观察 · 试试看</span></div></div>
   <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
   <nav class="controls" aria-label="角色操作"><div class="move-controls"><button id="left" aria-label="向左移动">◀</button><button id="right" aria-label="向右移动">▶</button></div><div class="tools"><button id="retry"><span>↻</span>重试</button><button id="hint"><span>?</span>提示</button></div><button id="jump" aria-label="跳跃">↑<small>跳跃</small></button></nav>
-  <footer><span>这座城市，总差一点才正常。</span><span class="keyboard-tip">A D / ← → 移动 · 空格跳跃</span></footer>
+  <footer><span>这座城市，总差一点才正常。</span><span class="keyboard-tip">A D / ← → 移动 · W / ↑ / 空格跳跃<br>S / ↓ 加速下落 · 回车操作物件</span></footer>
 </main>
 <dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-body"></div></dialog>
-<script src="levels-data.js"></script><script src="game.js"></script><script src="levels.js"></script><script>W.boot();</script>
+<script src="levels-data.js"></script><script src="level-order.js"></script><script src="game.js"></script><script src="levels.js"></script><script>W.boot();</script>
 </body></html>

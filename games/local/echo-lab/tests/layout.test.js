@@ -38,6 +38,29 @@ test('private audio and unrecognized fields never enter a room link', () => {
   assert.deepEqual(restored.scene.wallReflections, { 'wall-left': 0.4 });
 });
 
+test('saved and shared rooms preserve edited dimensions, angles and scattering', () => {
+  const scene = cloneScene(presets.hall);
+  scene.width = 82.5;
+  scene.height = 58.5;
+  scene.wallScatter = 48;
+  Object.assign(scene.panels[0], { angle: 37.5, length: 21.5, reflection: 0.61, scatter: 72 });
+  scene.panels[1].scatter = 0;
+  const layout = createLayout(scene);
+  const saved = validateLayout(JSON.parse(JSON.stringify(layout)));
+  const shared = readRoomLink(createRoomLink('https://example.com/echo-lab/', layout));
+  for (const restored of [saved, shared]) {
+    assert.equal(restored.scene.width, 82.5);
+    assert.equal(restored.scene.height, 58.5);
+    assert.equal(restored.scene.wallScatter, 48);
+    assert.equal(restored.scene.panels[0].angle, 37.5);
+    assert.equal(restored.scene.panels[0].length, 21.5);
+    assert.equal(restored.scene.panels[0].reflection, 0.61);
+    assert.equal(restored.scene.panels[0].scatter, 72);
+    assert.equal(restored.scene.panels[1].scatter, 0);
+    assert.deepEqual(computePaths(restored.scene), computePaths(scene));
+  }
+});
+
 test('legacy v1 files retain uniform walls and upgrade without changing paths', () => {
   const data = { format: 'echo-lab', version: 1, scene: presets.first };
   const upgraded = validateLayout(data);

@@ -24,16 +24,26 @@ const safePath = (value) =>
 const withoutComments = (source) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const disabled = (value) =>
-  value === false || /^(?:false|\$\{\{\s*false\s*\}\})$/.test(String(value));
+  value === false || /^(?:false|\$\{\{\s*false\s*\}\})$/.test(String(value).trim());
+const ignoresFailure = (value) => value !== undefined && !disabled(value);
+const activeSteps = (job) =>
+  disabled(job.if) || ignoresFailure(job['continue-on-error'])
+    ? []
+    : (job.steps || []).filter(
+        (step) => !disabled(step.if) && !ignoresFailure(step['continue-on-error']),
+      );
 const commands = (workflow) =>
   Object.values(workflow?.jobs || {})
-    .flatMap((job) =>
-      disabled(job.if)
-        ? []
-        : (job.steps || []).filter((step) => !disabled(step.if)).map((step) => step.run || ''),
-    )
+    .flatMap((job) => activeSteps(job).map((step) => step.run || ''))
     .join('\n')
     .replace(/^\s*#.*$/gm, '');
+const executed = (source, command) => {
+  const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const invocation = new RegExp(`^\\s*${escaped}(?=\\s|$)`);
+  return source
+    .split(/\r?\n/)
+    .some((line) => invocation.test(line) && !/\|\|\s*(?:true|:|echo\b|exit\s+0\b)/.test(line));
+};
 
 /** Discover from disk first, so an unregistered game cannot disappear from the audit. */
 export async function auditGameConfig(root = ROOT, { artifacts = false, meta = true } = {}) {
@@ -56,6 +66,45 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
       );
       return format === 'text' ? '' : {};
     }
+  }
+  async function workflowJobs(location, workflow, ancestors = new Set()) {
+    const jobs = [];
+    const workflowRoot = path.join(root, '.github/workflows');
+    const current = path.resolve(root, location);
+    const chain = new Set([...ancestors, current]);
+    for (const [id, job] of Object.entries(workflow?.jobs || {})) {
+      if (!job || disabled(job.if) || ignoresFailure(job['continue-on-error'])) continue;
+      if (!job.uses) {
+        jobs.push({ id, job, location });
+        continue;
+      }
+      if (!job.uses.startsWith('./')) continue;
+      if (!/^\.\/\.github\/workflows\/[\w.-]+\.ya?ml$/.test(job.uses)) {
+        fail('workflow-gate', location, `不安全的本地 reusable workflow 路径：${job.uses}`);
+        continue;
+      }
+      const target = path.resolve(root, job.uses);
+      try {
+        const resolved = await realpath(target);
+        if (!inside(workflowRoot, resolved) || (await lstat(target)).isSymbolicLink()) {
+          fail('workflow-gate', location, `reusable workflow 越出工作流目录：${job.uses}`);
+          continue;
+        }
+        if (chain.has(resolved)) {
+          fail('workflow-gate', location, `reusable workflow 存在循环调用：${job.uses}`);
+          continue;
+        }
+      } catch (error) {
+        fail('workflow-gate', location, `无法读取 reusable workflow ${job.uses}：${error.code}`);
+        continue;
+      }
+      const calledLocation = normalize(path.relative(root, target));
+      const called = await read(calledLocation, 'yaml');
+      if (!Object.hasOwn(called.on || {}, 'workflow_call'))
+        fail('workflow-gate', calledLocation, 'reusable workflow 必须声明 workflow_call');
+      jobs.push(...(await workflowJobs(calledLocation, called, chain)));
+    }
+    return jobs;
   }
   const [workspace, lock, shell, manifest, registry, smoke, turbo, rootPackage] = await Promise.all(
     [
@@ -254,39 +303,76 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
   for (const name of ['ci', 'pages', 'mobile']) {
     const location = `.github/workflows/${name}.yml`;
     const workflow = await read(location, 'yaml');
-    const run = commands(workflow);
+    const effectiveJobs = await workflowJobs(location, workflow);
+    const run = commands({
+      jobs: Object.fromEntries(effectiveJobs.map(({ job }, index) => [index, job])),
+    });
     if (
       !workflow.on?.push ||
       (!workflow.on?.pull_request && !Object.hasOwn(workflow.on || {}, 'pull_request'))
     )
       fail('workflow-gate', location, '必须覆盖 push 和 pull_request');
-    const jobs = Object.values(workflow.jobs || {}).filter((job) =>
-      (job.steps || []).some((step) => /actions\/checkout@/.test(step.uses || '')),
+    const jobs = effectiveJobs.filter(({ job }) =>
+      activeSteps(job).some((step) => /actions\/checkout@/.test(step.uses || '')),
     );
-    for (const job of jobs) {
-      const steps = job.steps || [];
+    for (const { id, job, location: jobLocation } of jobs) {
+      const steps = activeSteps(job);
       // The Pages publisher only assembles already-tested artifacts; it does not build games.
-      if (name === 'pages' && job === workflow.jobs.deploy) continue;
+      if (name === 'pages' && jobLocation === location && id === 'deploy') continue;
+      const jobRun = commands({ jobs: { current: job } });
+      const buildsSources =
+        /\bpnpm (?:build:|games:(?:build|test)|android:|ios:)/.test(jobRun) ||
+        executed(jobRun, 'node scripts/run-pages-game-tests.mjs');
+      // Change detection and artifact-only browser checks do not compile source games.
+      if (
+        name === 'pages' &&
+        !buildsSources &&
+        ((jobLocation === location && id === 'changes') ||
+          steps.some(
+            (step) =>
+              /actions\/download-artifact@/.test(step.uses || '') &&
+              step.with?.name === 'pages-build',
+          ))
+      )
+        continue;
       if (
         !steps.some(
           (step) =>
             /actions\/checkout@/.test(step.uses || '') && step.with?.submodules === 'recursive',
         )
       )
-        fail('workflow-gate', location, '构建任务必须递归检出素材与游戏子模块');
-      if (!/\bpnpm check:games\b/.test(commands({ jobs: { current: job } })))
-        fail('workflow-gate', location, '构建任务缺少 pnpm check:games');
+        fail('workflow-gate', jobLocation, '构建任务必须递归检出素材与游戏子模块');
+      if (!executed(jobRun, 'pnpm check:games'))
+        fail('workflow-gate', jobLocation, '构建任务缺少 pnpm check:games');
     }
     const required =
       name === 'ci'
         ? ['test:game-config', 'build:affected', 'test:affected', 'check:dependencies']
         : name === 'pages'
-          ? ['games:test', 'build:pages', 'test:pages', 'check:games --artifacts']
+          ? ['build:pages', 'check:games --artifacts']
           : ['android:apk', 'ios:simulator'];
     for (const command of required)
-      if (!run.includes(`pnpm ${command}`)) fail('workflow-gate', location, `缺少 pnpm ${command}`);
+      if (!executed(run, `pnpm ${command}`))
+        fail('workflow-gate', location, `缺少 pnpm ${command}`);
     if (name === 'pages') {
-      const steps = jobs.flatMap((job) => job.steps || []);
+      const scopedGameTests = effectiveJobs.some(({ job }) =>
+        activeSteps(job).some((step) => {
+          const env = { ...job.env, ...step.env };
+          return (
+            executed(step.run || '', 'node scripts/run-pages-game-tests.mjs') &&
+            env.PAGES_FULL_REGRESSION === '${{ inputs.full }}' &&
+            env.PAGES_GAME_SOURCES === '${{ inputs.game_sources }}'
+          );
+        }),
+      );
+      if (!executed(run, 'pnpm games:test') && !scopedGameTests)
+        fail('workflow-gate', location, '缺少全量或受影响游戏逻辑测试');
+      if (
+        !executed(run, 'pnpm test:pages') &&
+        !(executed(run, 'pnpm test:pages:smoke') && executed(run, 'pnpm test:pages:games'))
+      )
+        fail('workflow-gate', location, '缺少 Pages 冒烟或游戏浏览器回归');
+      const steps = effectiveJobs.flatMap(({ job }) => activeSteps(job));
       const buildUpload = steps.find(
         (step) =>
           /actions\/upload-artifact@/.test(step.uses || '') && step.with?.name === 'pages-build',
@@ -296,7 +382,7 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
       const upload = steps.find((step) => /actions\/upload-pages-artifact@/.test(step.uses || ''));
       if (upload?.with?.path !== '.scratch/pages-site')
         fail('workflow-gate', location, 'Pages 上传目录不是合并后的三环境站点');
-      if (!/\bpython3 scripts\/publish-pages\.py\b/.test(run))
+      if (!executed(run, 'python3 scripts/publish-pages.py'))
         fail('workflow-gate', location, '缺少 Pages 部署任务');
     }
   }

@@ -1,0 +1,22 @@
+{
+  "name": "@coffeeeeffoc/voiceprint-case",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "声纹疑案：同句中文三人音色辨识游戏",
+  "engines": {
+    "node": ">=24.21.0"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "preview": "node server.mjs --dist",
+    "build": "node build.mjs",
+    "lint": "node --check main.mjs && node --check audio.mjs && node --check levels.mjs && node --check server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

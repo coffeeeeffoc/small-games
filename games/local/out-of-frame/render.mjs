@@ -271,6 +271,67 @@ function drawPaths(ctx, objects) {
   ctx.restore();
 }
 
+function drawHazard(ctx, hazard) {
+  const { x, y, w, h } = hazard;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  box(ctx, x, y, w, h, 0, 'rgba(239,146,123,0.18)');
+  for (let offset = -h; offset < w; offset += 18) {
+    line(
+      ctx,
+      [
+        [x + offset, y + h],
+        [x + offset + h, y],
+      ],
+      'rgba(239,146,123,0.45)',
+      4,
+    );
+  }
+  line(
+    ctx,
+    [
+      [x, y + 2],
+      [x + w, y + 2],
+    ],
+    CORAL,
+    3,
+  );
+  ctx.restore();
+}
+
+// A drag shows the exact observation point and each pressure plate's usable
+// range. These marks follow the engine's core/feet rule rather than body edges.
+function drawPlacementGuides(ctx, state) {
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  for (const object of state.objects) {
+    const cx = object.x + object.w / 2;
+    const cy = object.y + object.h / 2;
+    const color = object.active ? AMBER : MINT;
+    circle(ctx, cx, cy, 11, 'rgba(9,30,34,0.5)', color);
+    diamond(ctx, cx, cy, 4, color);
+  }
+  for (const plate of state.switches) {
+    const groundY = plate.y + plate.h;
+    const color = plate.pressed ? MINT : 'rgba(239,199,137,0.65)';
+    ctx.setLineDash([3, 5]);
+    for (const edge of [plate.x, plate.x + plate.w]) {
+      line(
+        ctx,
+        [
+          [edge, groundY - 58],
+          [edge, groundY - 12],
+        ],
+        color,
+      );
+    }
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
 function drawSolid(ctx, solid) {
   const { x, y, w, h } = solid;
   ctx.save();
@@ -432,11 +493,10 @@ function drawGate(ctx, gate, switches) {
     );
   }
   const tag = (gate.requires ?? [])
-    .map((id) =>
-      String(id)
-        .replace(/^switch[-_]?/i, '')
-        .toUpperCase(),
-    )
+    .map((id) => {
+      const index = switches.findIndex((item) => item.id === id);
+      return index >= 0 ? switches[index].label || String.fromCharCode(65 + index) : String(id);
+    })
     .join(' + ');
   if (tag) {
     box(
@@ -480,11 +540,7 @@ function drawSwitch(ctx, item, index) {
     pressed ? '#e0f3bf' : '#c5cbae',
     1,
   );
-  const tag =
-    item.label ??
-    String(item.id ?? String.fromCharCode(65 + index))
-      .replace(/^switch[-_]?/i, '')
-      .toUpperCase();
+  const tag = item.label || String.fromCharCode(65 + index);
   box(
     ctx,
     x + w / 2 - 10,
@@ -733,6 +789,7 @@ export function render(ctx, level, state, { dragging = false, reducedMotion = fa
   fieldLight(ctx, state.frame);
   drawPaths(ctx, state.objects ?? []);
   for (const solid of level.solids ?? []) drawSolid(ctx, solid);
+  for (const hazard of level.hazards ?? []) drawHazard(ctx, hazard);
   drawWires(ctx, state);
   drawExit(ctx, level.exit, state);
   for (const gate of state.gates ?? []) drawGate(ctx, gate, state.switches ?? []);
@@ -743,6 +800,7 @@ export function render(ctx, level, state, { dragging = false, reducedMotion = fa
     else drawRobot(ctx, object, time, reducedMotion);
   }
   drawPlayer(ctx, state.player, time, reducedMotion, state.status);
+  if (dragging) drawPlacementGuides(ctx, state);
   fieldBorder(ctx, state.frame, dragging);
   ctx.restore();
 }

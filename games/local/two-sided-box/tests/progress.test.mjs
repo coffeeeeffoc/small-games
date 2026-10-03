@@ -80,6 +80,21 @@ test('stable ids preserve scores when another box is appended or chapter order c
   assert.equal(Object.hasOwn(readProgress(storage, expanded).best, 'future-box'), false);
 });
 
+test('a fifty-box catalog preserves the last selection and scores from early and late boxes', () => {
+  const catalog = Array.from({ length: 50 }, (_, index) => ({
+    id: LEVELS[index]?.id ?? `expanded-box-${index + 1}`,
+  }));
+  const progress = {
+    selected: 49,
+    sound: false,
+    best: { [catalog[0].id]: 5, [catalog[5].id]: 14, [catalog[49].id]: 32 },
+  };
+  const storage = memoryStorage();
+  assert.equal(saveProgress(storage, progress), true);
+  assert.deepEqual(readProgress(storage, catalog), progress);
+  assert.deepEqual(readProgress(storage, [...catalog].reverse()).best, progress.best);
+});
+
 test('blocked reads or quota-limited writes remain optional and never throw', () => {
   const blocked = {
     getItem() {

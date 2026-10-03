@@ -11,6 +11,10 @@ for (const file of [
   'render.mjs',
   'engine.mjs',
   'levels.mjs',
+  'campaign-early.mjs',
+  'campaign-transfers.mjs',
+  'campaign-circuits.mjs',
+  'campaign-mastery.mjs',
   'progress.mjs',
 ]) {
   await cp(new URL(file, import.meta.url), new URL(file, dist));

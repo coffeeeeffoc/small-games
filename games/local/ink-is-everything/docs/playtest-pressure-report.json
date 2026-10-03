@@ -1,0 +1,285 @@
+{
+  "version": 3,
+  "url": "http://127.0.0.1:4416",
+  "date": "2026-10-03T15:24:00.628Z",
+  "mode": "low-positive-ink-recovery",
+  "input": "Public mouse, keyboard and native touch; snapshots and world projection read-only",
+  "cases": [
+    {
+      "name": "Touch single ink/life pool: shot and nova costs, physical spill, stationary non-collection, walking reclamation and actual-hit life steal",
+      "status": "passed",
+      "shotCost": 6,
+      "novaCost": 14,
+      "inkAfterSkills": 70,
+      "lifeStolen": 2,
+      "reclaimed": 3
+    },
+    {
+      "name": "Touch reward pause and refresh preserve pending IDs, choices and equipment without rerolling or duplicate grants",
+      "status": "passed"
+    },
+    {
+      "name": "Touch boundary skill drops stay reachable before drawing the bridge; completing the actual stroke pays ink and creates a usable route",
+      "status": "passed"
+    },
+    {
+      "name": "Touch both dropped equipment and level rewards were selected and changed actual projectile damage",
+      "status": "passed",
+      "beforeDamage": 8,
+      "afterDamage": 14,
+      "rewards": [
+        {
+          "source": "level",
+          "rewardId": "reward-81",
+          "item": "fine-nib",
+          "rank": 1,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "drop-93",
+          "rewardId": "reward-94",
+          "item": "fine-nib",
+          "rank": 2,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-140",
+          "item": "ink-sac",
+          "rank": 1,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "drop-162",
+          "rewardId": "reward-164",
+          "item": "backflow-amber",
+          "rank": 1,
+          "modifiers": {
+            "lifeSteal": 0.08
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-221",
+          "item": "fine-nib",
+          "rank": 3,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "drop-280",
+          "rewardId": "reward-282",
+          "item": "swift-boots",
+          "rank": 1,
+          "modifiers": {
+            "speed": 12,
+            "dashCooldown": -0.1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-431",
+          "item": "ink-sac",
+          "rank": 2,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-579",
+          "item": "splash-sigil",
+          "rank": 1,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        },
+        {
+          "source": "drop-593",
+          "rewardId": "reward-596",
+          "item": "ink-sac",
+          "rank": 3,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-703",
+          "item": "splash-sigil",
+          "rank": 2,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        }
+      ]
+    },
+    {
+      "name": "Low positive ink pressure: free melee hits and kills recover survival ink while clearing the second guardian",
+      "status": "passed",
+      "startingInk": 2,
+      "recoveredInk": 185.96
+    },
+    {
+      "name": "Touch full v3 chapter including resource combat, physical recovery, growth, both guardians and boss",
+      "status": "passed",
+      "stats": {
+        "spent": {
+          "attack": 144,
+          "nova": 28,
+          "explore": 8,
+          "trade": 0
+        },
+        "shots": 24,
+        "hits": 97,
+        "projectileHits": 1,
+        "damageDealt": 669,
+        "freeAttacks": 176,
+        "dashes": 33,
+        "enemiesDefeated": 20,
+        "inkRecovered": 58,
+        "damageTaken": 48,
+        "roomsVisited": 6,
+        "trades": 0,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 180,
+        "lifeStolen": 107.00000000000001,
+        "killRestored": 63,
+        "reclaimed": 10,
+        "spilled": 86,
+        "expiredInk": 37,
+        "skillsUsed": 26,
+        "novas": 2,
+        "equipmentFound": 10,
+        "levelsGained": 6,
+        "rewardsOffered": 10,
+        "rewardsChosen": 10
+      },
+      "finalInk": 196,
+      "level": 7,
+      "equipment": {
+        "fine-nib": 3,
+        "ink-sac": 3,
+        "backflow-amber": 1,
+        "swift-boots": 1,
+        "splash-sigil": 2
+      },
+      "elapsedGameSeconds": 121.33333333332773,
+      "observations": {
+        "minInk": 2,
+        "maxInk": 196,
+        "sampleCount": 465,
+        "fullSamples": 213,
+        "rooms": [
+          {
+            "id": "arrival",
+            "ink": 108,
+            "maxInk": 108,
+            "time": 11.750000000000163,
+            "damageTaken": 12,
+            "lifeStolen": 15,
+            "killRestored": 15,
+            "reclaimed": 3,
+            "spent": {
+              "attack": 6,
+              "nova": 14,
+              "explore": 0,
+              "trade": 0
+            }
+          },
+          {
+            "id": "archive",
+            "ink": 132,
+            "maxInk": 132,
+            "time": 26.749999999999762,
+            "damageTaken": 12,
+            "lifeStolen": 23,
+            "killRestored": 21,
+            "reclaimed": 10,
+            "spent": {
+              "attack": 6,
+              "nova": 28,
+              "explore": 8,
+              "trade": 0
+            }
+          },
+          {
+            "id": "sentinel",
+            "ink": 140,
+            "maxInk": 140,
+            "time": 53.616666666664905,
+            "damageTaken": 12,
+            "lifeStolen": 23,
+            "killRestored": 21,
+            "reclaimed": 10,
+            "spent": {
+              "attack": 6,
+              "nova": 28,
+              "explore": 8,
+              "trade": 0
+            }
+          },
+          {
+            "id": "warden",
+            "ink": 159.96,
+            "maxInk": 172,
+            "time": 100.1499999999956,
+            "damageTaken": 36,
+            "lifeStolen": 92.96000000000001,
+            "killRestored": 63,
+            "reclaimed": 10,
+            "spent": {
+              "attack": 144,
+              "nova": 28,
+              "explore": 8,
+              "trade": 0
+            }
+          },
+          {
+            "id": "gate",
+            "ink": 196,
+            "maxInk": 196,
+            "time": 121.33333333332773,
+            "damageTaken": 48,
+            "lifeStolen": 107.00000000000001,
+            "killRestored": 63,
+            "reclaimed": 10,
+            "spent": {
+              "attack": 144,
+              "nova": 28,
+              "explore": 8,
+              "trade": 0
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    "screenshots/v3-pressure-mobile-resource-loop.png",
+    "screenshots/v3-pressure-mobile-pending-reward.png",
+    "screenshots/v3-pressure-mobile-bridge.png",
+    "screenshots/v3-pressure-mobile-growth.png",
+    "screenshots/v3-pressure-mobile-low-positive-ink.png",
+    "screenshots/v3-pressure-mobile-boss.png",
+    "screenshots/v3-pressure-mobile-victory.png"
+  ],
+  "errors": [],
+  "status": "passed"
+}

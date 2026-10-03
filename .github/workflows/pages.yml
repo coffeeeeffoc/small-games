@@ -5,66 +5,99 @@ on:
     branches: [main, dev, test]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Full regression daily at 02:00 Asia/Shanghai; scheduled runs never publish.
+    - cron: '0 18 * * *'
 
 permissions:
   contents: read
 
-concurrency:
-  group: pages-${{ github.ref }}
-  # Let a running publication finish; newer pending runs replace only the same branch.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  kart:
-    uses: ./.github/workflows/carding-car.yml
-  build:
-    needs: kart
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
-      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
-      PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+      full: ${{ steps.scope.outputs.full }}
+      game_ids: ${{ steps.scope.outputs.game_ids }}
+      game_sources: ${{ steps.scope.outputs.game_sources }}
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: recursive
-      - uses: pnpm/action-setup@v5
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 24.21.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v8
-        with:
-          name: carding-car-${{ github.sha }}
-          path: games/local/carding-car/.prebuilt
-      - uses: actions/download-artifact@v8
-        with:
-          name: night-overwatch-${{ github.sha }}
-          path: games/local/night-overwatch/.prebuilt
-      - run: pnpm check:games
-      - run: python3 scripts/test-pages-deploy.py
-      - run: pnpm games:test
-      - run: pnpm build:pages
-      - run: pnpm check:games --artifacts
-      - run: pnpm --filter @coffeeeeffoc/shell-web test
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:pages
-      - run: python3 scripts/test-mobile-assets.py
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pages-build
-          path: apps/shell-web/dist
-          include-hidden-files: true
-          if-no-files-found: error
+      - name: Test Pages validation selection
+        run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
+      - name: Select Pages validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_DIFF_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          PAGES_DIFF_HEAD: ${{ github.sha }}
+        run: node scripts/pages-test-scope.mjs
+
+  validate:
+    needs: changes
+    if: needs.changes.outputs.required == 'true'
+    uses: ./.github/workflows/pages-validate.yml
+    with:
+      full: ${{ needs.changes.outputs.full == 'true' }}
+      game_ids: ${{ needs.changes.outputs.game_ids }}
+      game_sources: ${{ needs.changes.outputs.game_sources }}
+    concurrency:
+      # Nightly checks must not cancel validation needed by a branch publication.
+      group: pages-validation-${{ github.event_name == 'schedule' && 'scheduled' || 'branch' }}-${{ github.ref }}
+      cancel-in-progress: true
+
+  # Keep the existing required "build" check, including successful documentation-only runs.
+  build:
+    needs: [changes, validate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected validation gate
+        env:
+          SCOPE_RESULT: ${{ needs.changes.result }}
+          VALIDATION_REQUIRED: ${{ needs.changes.outputs.required }}
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$SCOPE_RESULT" != success ]; then
+            echo "Pages scope detection did not succeed: $SCOPE_RESULT"
+            exit 1
+          fi
+          case "$VALIDATION_REQUIRED" in
+            true)
+              if [ "$VALIDATION_RESULT" != success ]; then
+                echo "Pages validation did not succeed: $VALIDATION_RESULT"
+                exit 1
+              fi
+              echo "Every selected Pages validation gate passed."
+              ;;
+            false)
+              echo "This change does not affect Pages; validation is unnecessary."
+              ;;
+            *)
+              echo "Pages scope detection returned an invalid validation requirement."
+              exit 1
+              ;;
+          esac
 
   deploy:
-    if: github.event_name != 'pull_request' && contains(fromJSON('["refs/heads/main", "refs/heads/dev", "refs/heads/test"]'), github.ref)
-    needs: build
+    if: >-
+      needs.changes.result == 'success' && needs.build.result == 'success' &&
+      needs.changes.outputs.required == 'true' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      contains(fromJSON('["refs/heads/main", "refs/heads/dev", "refs/heads/test"]'), github.ref)
+    needs: [changes, build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
+      # Verification can be cancelled; saving environment state and publishing must finish together.
       group: pages-publish
       queue: max
     permissions:

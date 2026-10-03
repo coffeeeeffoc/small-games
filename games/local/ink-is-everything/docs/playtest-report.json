@@ -1,67 +1,381 @@
 {
-  "url": "http://127.0.0.1:4412/",
-  "date": "2026-10-03T07:16:54.757Z",
+  "version": 3,
+  "url": "http://127.0.0.1:4416",
+  "date": "2026-10-03T15:18:38.412Z",
+  "mode": "real-input-chapter-regression",
+  "input": "Public mouse, keyboard and native touch; snapshots and world projection read-only",
   "cases": [
     {
-      "name": "Desktop direct route, native keyboard, pause/help input lock, gate selection cancellation, victory and restart",
+      "name": "Desktop single ink/life pool: shot and nova costs, physical spill, stationary non-collection, walking reclamation and actual-hit life steal",
       "status": "passed",
-      "summary": {
-        "title": "利墨破局者",
-        "turns": 21,
-        "explored": 7,
-        "totalRooms": 13,
-        "inkRemaining": 9,
-        "totalSpent": 81,
+      "shotCost": 6,
+      "novaCost": 14,
+      "inkAfterSkills": 70,
+      "lifeStolen": 2,
+      "reclaimed": 3
+    },
+    {
+      "name": "Desktop reward pause and refresh preserve pending IDs, choices and equipment without rerolling or duplicate grants",
+      "status": "passed"
+    },
+    {
+      "name": "Desktop boundary skill drops stay reachable before drawing the bridge; completing the actual stroke pays ink and creates a usable route",
+      "status": "passed"
+    },
+    {
+      "name": "Desktop both dropped equipment and level rewards were selected and changed actual projectile damage",
+      "status": "passed",
+      "beforeDamage": 8,
+      "afterDamage": 14,
+      "rewards": [
+        {
+          "source": "level",
+          "rewardId": "reward-67",
+          "item": "fine-nib",
+          "rank": 1,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "drop-99",
+          "rewardId": "reward-100",
+          "item": "fine-nib",
+          "rank": 2,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-169",
+          "item": "ink-sac",
+          "rank": 1,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "drop-203",
+          "rewardId": "reward-205",
+          "item": "backflow-amber",
+          "rank": 1,
+          "modifiers": {
+            "lifeSteal": 0.08
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-284",
+          "item": "fine-nib",
+          "rank": 3,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "drop-361",
+          "rewardId": "reward-363",
+          "item": "swift-boots",
+          "rank": 1,
+          "modifiers": {
+            "speed": 12,
+            "dashCooldown": -0.1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-413",
+          "item": "ink-sac",
+          "rank": 2,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-553",
+          "item": "splash-sigil",
+          "rank": 1,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        },
+        {
+          "source": "drop-577",
+          "rewardId": "reward-580",
+          "item": "ink-sac",
+          "rank": 3,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-702",
+          "item": "splash-sigil",
+          "rank": 2,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        }
+      ]
+    },
+    {
+      "name": "Desktop full v3 chapter including resource combat, physical recovery, growth, both guardians and boss",
+      "status": "passed",
+      "stats": {
         "spent": {
-          "explore": 36,
-          "attack": 45,
-          "heal": 0,
+          "attack": 276,
+          "nova": 70,
+          "explore": 8,
           "trade": 0
         },
-        "efficiency": "行云流水"
+        "shots": 46,
+        "hits": 71,
+        "projectileHits": 41,
+        "damageDealt": 669,
+        "freeAttacks": 81,
+        "dashes": 13,
+        "enemiesDefeated": 20,
+        "inkRecovered": 52.59,
+        "damageTaken": 30,
+        "roomsVisited": 6,
+        "trades": 0,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 354,
+        "lifeStolen": 187.50999999999993,
+        "killRestored": 84.17999999999999,
+        "reclaimed": 63,
+        "spilled": 173,
+        "expiredInk": 74,
+        "skillsUsed": 51,
+        "novas": 5,
+        "equipmentFound": 10,
+        "levelsGained": 6,
+        "rewardsOffered": 10,
+        "rewardsChosen": 10
+      },
+      "finalInk": 189.28,
+      "level": 7,
+      "equipment": {
+        "fine-nib": 3,
+        "ink-sac": 3,
+        "backflow-amber": 1,
+        "swift-boots": 1,
+        "splash-sigil": 2
+      },
+      "elapsedGameSeconds": 98.18333333332905,
+      "observations": {
+        "minInk": 67.5,
+        "maxInk": 189.28,
+        "sampleCount": 207,
+        "fullSamples": 85,
+        "rooms": []
       }
     },
     {
-      "name": "390×844 native touch, both contracts, all 13 rooms, combat healing, mid-fight reload, saved restart confirmation, reward selection cancellation and victory",
+      "name": "Touch single ink/life pool: shot and nova costs, physical spill, stationary non-collection, walking reclamation and actual-hit life steal",
       "status": "passed",
-      "summary": {
-        "title": "绘界旅人",
-        "turns": 36,
-        "explored": 13,
-        "totalRooms": 13,
-        "inkRemaining": 50,
-        "totalSpent": 112,
-        "spent": {
-          "explore": 42,
-          "attack": 40,
-          "heal": 8,
-          "trade": 22
+      "shotCost": 6,
+      "novaCost": 14,
+      "inkAfterSkills": 70,
+      "lifeStolen": 2,
+      "reclaimed": 3
+    },
+    {
+      "name": "Touch reward pause and refresh preserve pending IDs, choices and equipment without rerolling or duplicate grants",
+      "status": "passed"
+    },
+    {
+      "name": "Touch boundary skill drops stay reachable before drawing the bridge; completing the actual stroke pays ink and creates a usable route",
+      "status": "passed"
+    },
+    {
+      "name": "Touch both dropped equipment and level rewards were selected and changed actual projectile damage",
+      "status": "passed",
+      "beforeDamage": 8,
+      "afterDamage": 14,
+      "rewards": [
+        {
+          "source": "level",
+          "rewardId": "reward-73",
+          "item": "fine-nib",
+          "rank": 1,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
         },
-        "efficiency": "从容有度"
+        {
+          "source": "drop-106",
+          "rewardId": "reward-124",
+          "item": "fine-nib",
+          "rank": 2,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-194",
+          "item": "ink-sac",
+          "rank": 1,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "drop-217",
+          "rewardId": "reward-219",
+          "item": "backflow-amber",
+          "rank": 1,
+          "modifiers": {
+            "lifeSteal": 0.08
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-297",
+          "item": "fine-nib",
+          "rank": 3,
+          "modifiers": {
+            "attackDamage": 2,
+            "meleeDamage": 1
+          }
+        },
+        {
+          "source": "drop-396",
+          "rewardId": "reward-398",
+          "item": "swift-boots",
+          "rank": 1,
+          "modifiers": {
+            "speed": 12,
+            "dashCooldown": -0.1
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-449",
+          "item": "ink-sac",
+          "rank": 2,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-553",
+          "item": "splash-sigil",
+          "rank": 1,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        },
+        {
+          "source": "drop-596",
+          "rewardId": "reward-598",
+          "item": "ink-sac",
+          "rank": 3,
+          "modifiers": {
+            "maxInk": 16
+          }
+        },
+        {
+          "source": "level",
+          "rewardId": "reward-727",
+          "item": "splash-sigil",
+          "rank": 2,
+          "modifiers": {
+            "novaDamage": 4,
+            "novaRadius": 18,
+            "novaCooldown": -0.35
+          }
+        }
+      ]
+    },
+    {
+      "name": "Touch full v3 chapter including resource combat, physical recovery, growth, both guardians and boss",
+      "status": "passed",
+      "stats": {
+        "spent": {
+          "attack": 282,
+          "nova": 84,
+          "explore": 8,
+          "trade": 0
+        },
+        "shots": 47,
+        "hits": 70,
+        "projectileHits": 41,
+        "damageDealt": 669,
+        "freeAttacks": 84,
+        "dashes": 14,
+        "enemiesDefeated": 20,
+        "inkRecovered": 53.38,
+        "damageTaken": 36,
+        "roomsVisited": 6,
+        "trades": 0,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 374,
+        "lifeStolen": 196.88000000000002,
+        "killRestored": 82.08000000000001,
+        "reclaimed": 87.66,
+        "spilled": 183,
+        "expiredInk": 74,
+        "skillsUsed": 53,
+        "novas": 6,
+        "equipmentFound": 10,
+        "levelsGained": 6,
+        "rewardsOffered": 10,
+        "rewardsChosen": 10
+      },
+      "finalInk": 196,
+      "level": 7,
+      "equipment": {
+        "fine-nib": 3,
+        "ink-sac": 3,
+        "backflow-amber": 1,
+        "swift-boots": 1,
+        "splash-sigil": 2
+      },
+      "elapsedGameSeconds": 93.79999999999596,
+      "observations": {
+        "minInk": 54.75,
+        "maxInk": 196,
+        "sampleCount": 218,
+        "fullSamples": 79,
+        "rooms": []
       }
-    },
-    {
-      "name": "Ignoring enemy intent causes loss; terminal save is removed; result restart restores full resources",
-      "status": "passed"
-    },
-    {
-      "name": "Unavailable local storage does not block touch exploration, rewards, pause or sound preference",
-      "status": "passed"
-    },
-    {
-      "name": "Native mouse drag draws an adjacent room and returns along a free existing route",
-      "status": "passed"
-    },
-    {
-      "name": "Native touch (including cancellation) drag draws an adjacent room and returns along a free existing route",
-      "status": "passed"
     }
   ],
   "screenshots": [
-    "screenshots/desktop-opening.png",
-    "screenshots/desktop-combat.png",
-    "screenshots/desktop-victory.png",
-    "screenshots/mobile-combat.png"
+    "screenshots/v3-desktop-opening.png",
+    "screenshots/v3-desktop-resource-loop.png",
+    "screenshots/v3-desktop-pending-reward.png",
+    "screenshots/v3-desktop-bridge.png",
+    "screenshots/v3-desktop-growth.png",
+    "screenshots/v3-desktop-boss.png",
+    "screenshots/v3-desktop-victory.png",
+    "screenshots/v3-mobile-resource-loop.png",
+    "screenshots/v3-mobile-pending-reward.png",
+    "screenshots/v3-mobile-bridge.png",
+    "screenshots/v3-mobile-growth.png",
+    "screenshots/v3-mobile-boss.png",
+    "screenshots/v3-mobile-victory.png"
   ],
   "errors": [],
   "status": "passed"

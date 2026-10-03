@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'voiceprint-case': '#start',
   'echo-lab': '#scene [data-object="reflector-1"]',
   'bullet-garden': '#start',
   'maze-wander': '#start',
@@ -17,9 +18,10 @@ export const markers = {
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'echo-weaver': '#emit',
-  'ink-is-everything': '#game-root',
+  'ink-is-everything': '#start-game',
   'out-of-frame': '#board[data-level="1"]',
-  'two-sided-box': '#board[data-level="1"]',
+  'two-sided-box': '#board[data-level]',
+  'luban-workshop': '#stage canvas',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -74,12 +76,58 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'bullet-garden') {
+  if (id === 'voiceprint-case') {
+    await click(frame.locator('#start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
+      timeout: 20_000,
+    });
+    await expect(frame.locator('#game')).toBeVisible();
+    await expect(frame.locator('#confirm')).toBeDisabled();
+    // Starting a round automatically plays the scene after the user unlocks audio.
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false', {
+      timeout: 20_000,
+    });
+    await click(frame.locator('#scene-play'));
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    for (const slot of [0, 1, 2]) {
+      await click(frame.locator(`button[data-listen="${slot}"]`));
+    }
+    await click(frame.locator('button[data-select="0"]'));
+    await expect(frame.locator('#confirm')).toBeEnabled();
+    await click(frame.locator('#confirm'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'feedback');
+    await expect(frame.locator('#feedback')).toBeVisible();
+    await click(frame.locator('#next'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#feedback')).toBeHidden();
+    await expect(frame.locator('#confirm')).toBeDisabled();
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
+    await click(frame.locator('#stop'));
+    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'luban-workshop') {
+    await click(frame.locator('#levels'));
+    await click(frame.locator('[data-level="0"]'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    await click(frame.locator('[data-piece]').first());
+    await click(frame.locator('#nudge-positive'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+    await expect(frame.locator('#status')).toBeVisible();
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    await click(frame.locator('#redo'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+  } else if (id === 'bullet-garden') {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
+    await frame.locator('#loadout-skill-0').selectOption('blast');
+    await frame.locator('#loadout-skill-1').selectOption('gale');
     await click(frame.locator('#start'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    // Isolate the time-based skill charge from an XP modal opening between taps.
+    await click(frame.locator('#auto-fire'));
+    expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
     // Keep the middle of the battlefield available for direct touch targeting.
     if (mobile) {
       await expect
@@ -94,10 +142,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         )
         .toBe('arena');
     }
-    await click(frame.locator('[data-seed="ice"]'));
-    await expect.poll(async () => (await snapshot()).selectedSeed).toBe('ice');
-    await click(frame.locator('#cast'));
-    await expect.poll(async () => (await snapshot()).stats.seedShots).toBeGreaterThan(0);
+    expect((await snapshot()).boons).toEqual([]);
+    expect((await snapshot()).plants).toEqual([]);
+    expect((await snapshot()).stats.skillCasts).toBe(0);
 
     const initialPlayer = (await snapshot()).player;
     const touch = mobile ? await page.context().newCDPSession(page) : undefined;
@@ -135,6 +182,32 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
+    const finishUpgrade = async () => {
+      let current = await snapshot();
+      while (current.phase === 'upgrade') {
+        const choice = current.upgradeChoices.find((id) => !id.startsWith('boon-'));
+        expect(choice).toBeTruthy();
+        await click(frame.locator(`[data-upgrade="${choice}"]`));
+        current = await snapshot();
+      }
+      return current;
+    };
+    await expect
+      .poll(async () => (await finishUpgrade()).skillSlots[0].energy, { timeout: 20000 })
+      .toBe(100);
+    await finishUpgrade();
+    // Full slots wait for the player's target; they never release automatically.
+    expect((await snapshot()).stats.skillCasts).toBe(0);
+    await click(frame.locator('[data-skill-slot="0"]'));
+    const arena = frame.locator('#arena');
+    const bounds = await arena.boundingBox();
+    const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.4 } };
+    if (mobile) await arena.tap(target);
+    else await arena.click(target);
+    await expect.poll(async () => (await snapshot()).stats.skillCasts).toBe(1);
+    // Neither time, ordinary shots nor active skills unlock passive terrain.
+    expect((await snapshot()).boons).toEqual([]);
+    expect((await snapshot()).plants).toEqual([]);
   } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));
@@ -345,17 +418,92 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
   } else if (id === 'ink-is-everything') {
+    const page = frame.locator('#game-canvas').page();
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__inkGame.snapshot());
     await click(frame.locator('#start-game'));
-    await expect(frame.locator('#game-root')).toHaveAttribute('data-started', 'true');
-    const ink = () =>
-      frame
-        .locator('#ink-value')
-        .textContent()
-        .then((value) => parseInt(value, 10));
-    const before = await ink();
-    await click(frame.locator('[data-room="crossing"]'));
-    await click(frame.locator('#primary-action'));
-    await expect.poll(ink).toBeLessThan(before);
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-status', 'playing');
+    await expect(frame.locator('#game-canvas')).toBeVisible();
+
+    // Exercise continuous movement with real keyboard/touch input, including release.
+    const initialState = await snapshot();
+    expect(initialState.version).toBe(3);
+    const initialPlayer = initialState.player;
+    expect(initialPlayer).not.toHaveProperty('hp');
+    expect(initialPlayer).not.toHaveProperty('maxHp');
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        const bounds = await frame.locator('#joystick').boundingBox();
+        const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, ...start }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+        });
+      } else {
+        await page.keyboard.down('d');
+      }
+      await expect
+        .poll(async () => (await snapshot()).player.x - initialPlayer.x)
+        .toBeGreaterThan(12);
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.keyboard.up('d');
+      }
+    }
+    const releasedPlayer = (await snapshot()).player;
+    await page.waitForTimeout(160);
+    expect(Math.abs((await snapshot()).player.x - releasedPlayer.x)).toBeLessThan(2);
+
+    // The same finite ink meter must pay for firing, on both direct and embedded pages.
+    const inkBefore = (await snapshot()).player.ink;
+    const fire = await frame.locator('#fire').boundingBox();
+    const firingTouch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (firingTouch) {
+        await firingTouch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, x: fire.x + fire.width / 2, y: fire.y + fire.height / 2 }],
+        });
+      } else {
+        await page.mouse.move(fire.x + fire.width / 2, fire.y + fire.height / 2);
+        await page.mouse.down();
+      }
+      await expect.poll(async () => (await snapshot()).player.ink).toBeLessThan(inkBefore);
+      await expect
+        .poll(async () => (await snapshot()).pickups.some((drop) => drop.kind === 'reclaim'))
+        .toBe(true);
+    } finally {
+      if (firingTouch) {
+        await firingTouch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await firingTouch.detach();
+      } else {
+        await page.mouse.up();
+      }
+    }
+    await click(frame.locator('#equipment'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
+    const summary = frame.locator('#modal .skill-summary');
+    await expect(summary).toContainText('8 伤害 / 6 墨');
+    await expect(summary).toContainText('25% 实际伤害');
+    await expect(summary).toContainText('50% 技能消耗');
+    await click(frame.locator('#modal [data-close]'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+
+    await click(frame.locator('#pause'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
+    const pausedTime = (await snapshot()).time;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).time).toBe(pausedTime);
+    await click(frame.locator('#resume'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
   } else if (id === 'waterline-station') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
     await expect(frame.locator('#level-name')).not.toBeEmpty();
@@ -441,10 +589,36 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#selectionTitle')).toContainText('吸音屏');
     await expect(frame.locator('#scene [data-rotate]')).toHaveCount(1);
     const angle = frame.locator('#panelAngle');
-    const box = await angle.boundingBox();
-    if (mobile) await angle.tap({ position: { x: box.width * 0.25, y: box.height / 2 } });
-    else await angle.click({ position: { x: box.width * 0.25, y: box.height / 2 } });
-    await expect(frame.locator('#angleValue')).not.toHaveText('90°');
+    for (let repeat = 0; repeat < 3; repeat += 1) {
+      const before = Number(await angle.inputValue());
+      const min = Number(await angle.getAttribute('min'));
+      const max = Number(await angle.getAttribute('max'));
+      // On a 0–360 range, a quarter-track click hits the initial 90-degree thumb.
+      // Press the far side instead, and verify a physical edit on every attempt.
+      const fraction = before < (min + max) / 2 ? 0.85 : 0.15;
+      await angle.scrollIntoViewIfNeeded();
+      const box = await angle.boundingBox();
+      expect(box).not.toBeNull();
+      const position = { x: box.width * fraction, y: box.height / 2 };
+      if (mobile) await angle.tap({ position });
+      else await angle.click({ position });
+      await expect
+        .poll(async () => Math.abs(Number(await angle.inputValue()) - before))
+        .toBeGreaterThan((max - min) / 4);
+      const value = await angle.inputValue();
+      await expect(frame.locator('#angleValue')).toHaveText(`${value}°`);
+      await expect(frame.locator('#panelAngleNumber')).toHaveValue(value);
+      await expect(frame.locator('#quickAngle')).toHaveValue(value);
+      const renderedAngle = await frame
+        .locator('#scene [data-object][aria-pressed="true"] line')
+        .first()
+        .evaluate((line) => {
+          const dx = Number(line.getAttribute('x2')) - Number(line.getAttribute('x1'));
+          const dy = Number(line.getAttribute('y2')) - Number(line.getAttribute('y1'));
+          return ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+        });
+      expect(renderedAngle).toBeCloseTo(Number(value), 5);
+    }
     await click(frame.locator('#removePanel'));
     await expect(frame.locator('#panelCount')).toHaveText('1 / 8');
     await click(frame.locator('#playWet'));
@@ -459,54 +633,116 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#level-nav [data-level]').first());
     await expect(frame.locator('#level-title')).not.toBeEmpty();
     const initial = (await snapshot()).state;
-    await click(frame.locator('#board [data-control]').first());
+    expect((await snapshot()).report).toBeNull();
+    // Read a legal fixture, then exercise the same placement controls as a player.
+    const placement = await frame.locator('body').evaluate(async () => {
+      const [{ LEVELS }, { createState, canPlace }] = await Promise.all([
+        import('./levels.mjs'),
+        import('./engine.mjs'),
+      ]);
+      const level = LEVELS[0];
+      const state = createState(level);
+      const piece = state.pieces.find((item) => item.x === null && item.type === 'mirror');
+      for (let y = 0; y < level.rows; y++) {
+        for (let x = 0; x < level.cols; x++) {
+          if (piece && canPlace(level, state, piece.id, x, y)) return { id: piece.id, x, y };
+        }
+      }
+      return null;
+    });
+    expect(placement).not.toBeNull();
+    await click(frame.locator(`#inventory button[data-piece="${placement.id}"]`));
+    await expect.poll(async () => (await snapshot()).selectedPiece).toBe(placement.id);
+    await click(frame.locator(`#board .cell[data-x="${placement.x}"][data-y="${placement.y}"]`));
     await expect.poll(async () => (await snapshot()).state).not.toEqual(initial);
+    await expect(frame.locator(`#board .cell[data-piece="${placement.id}"]`)).toBeVisible();
+    const placed = (await snapshot()).state;
+    await click(frame.locator('#rotate'));
+    await expect.poll(async () => (await snapshot()).state).not.toEqual(placed);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(placed);
+    if ((await snapshot()).selectedPiece !== placement.id) {
+      await click(frame.locator(`#board .cell[data-piece="${placement.id}"]`));
+    }
+    await click(frame.locator('#return-piece'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(placed);
     await click(frame.locator('#undo'));
     await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    expect((await snapshot()).report).toBeNull();
     await click(frame.locator('#emit'));
     await expect.poll(async () => (await snapshot()).phase).toBe('running');
     await expect.poll(async () => (await snapshot()).phase, { timeout: 20000 }).toBe('result');
-    await expect(frame.locator('#result')).toBeVisible();
-    await click(frame.locator('#result-close'));
+    expect((await snapshot()).report.won).toBe(false);
+    await expect(frame.locator('#arrival-log')).not.toBeEmpty();
+    await expect(frame.locator('#result')).not.toBeVisible();
     await click(frame.locator('#restart'));
     await expect.poll(async () => (await snapshot()).phase).toBe('ready');
     await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    expect((await snapshot()).report).toBeNull();
     await click(frame.locator('#level-nav [data-level]').nth(1));
     await expect.poll(async () => (await snapshot()).levelIndex).toBe(1);
     await expect.poll(async () => (await snapshot()).historyLength).toBe(0);
   } else if (id === 'two-sided-box') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
     await click(frame.locator('#start'));
-    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
-    const upperNotch = frame.locator('[data-notch-shaft="A"][data-value="2"]');
-    // A locked shaft still gives feedback to a physical touch or mouse press.
-    // Send that input directly because the notch inherits aria-disabled.
-    const lockedBounds = await upperNotch.boundingBox();
-    expect(lockedBounds).not.toBeNull();
-    const page = upperNotch.page();
-    const lockedX = lockedBounds.x + lockedBounds.width / 2;
-    const lockedY = lockedBounds.y + lockedBounds.height / 2;
-    if (mobile) await page.touchscreen.tap(lockedX, lockedY);
-    else await page.mouse.click(lockedX, lockedY);
-    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(true);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('back');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
-    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', 'first-turn');
+    await expect(frame.locator('#board')).toBeVisible();
+    await expect(frame.locator('#face-nav [data-face]')).toHaveCount(6);
+    await expect(frame.locator('#face-nav [data-revealed="true"]')).toHaveCount(2);
+    expect((await snapshot()).state.structureViewed).toBe(false);
+    const view = async (face) => {
+      const before = (await snapshot()).state;
+      const tab = frame.locator(`[data-face="${face}"]`);
+      await click(tab);
+      if (!before.revealedFaces.includes(face)) {
+        await expect(frame.locator('#hint-dialog')).toBeVisible();
+        await expect(frame.locator('#reveal-structure')).toHaveCount(0);
+        await click(frame.locator(`[data-reveal-face="${face}"]`));
+        await expect(frame.locator('#hint-dialog')).not.toBeVisible();
+      }
+      await expect.poll(async () => (await snapshot()).state.side).toBe(face);
+      await expect(frame.locator('#board')).toHaveAttribute('data-side', face);
+      const after = await snapshot();
+      expect(after.board.faces).toEqual([face]);
+      expect(after.state.shafts).toEqual(before.shafts);
+      expect(after.state.latches).toEqual(before.latches);
+      expect(after.state.moves).toBe(before.moves);
+    };
+    // Initial observations are random; discover the actual control faces through
+    // the same reveal flow available to the player before operating the box.
+    await view('front');
+    const upperNotch = frame.locator('[data-shaft="A"][data-value="2"]');
+    const initialState = (await snapshot()).state;
+    await click(upperNotch);
+    await expect.poll(async () => (await snapshot()).state).toEqual(initialState);
+    await expect(frame.locator('#status')).toContainText(/锁|背|扣/);
+    await view('back');
     await click(frame.locator('[data-latch="lock-A"]'));
     await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('front');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await expect(frame.locator('[data-latch="lock-A"]')).toHaveAttribute('aria-pressed', 'false');
+    await view('front');
     await click(upperNotch);
     await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
+    await expect(upperNotch).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#release'));
     await expect
       .poll(async () => (await snapshot()).state.completed, { timeout: 15000 })
       .toBe(true);
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await expect(frame.locator('#structure-dialog')).toBeVisible();
+    await expect(frame.locator('#result')).not.toBeVisible();
+    const xray = frame.locator('#structure-xray');
+    await expect(xray).toHaveAttribute('aria-pressed', 'true');
+    await click(xray);
+    await expect(xray).toHaveAttribute('aria-pressed', 'false');
+    expect((await snapshot()).structure.xray).toBe(false);
+    await click(xray);
+    await expect(xray).toHaveAttribute('aria-pressed', 'true');
+    expect((await snapshot()).structure.xray).toBe(true);
+    await click(frame.locator('#structure-close'));
+    await expect(frame.locator('#structure-dialog')).not.toBeVisible();
+    await expect(frame.locator('#result')).toBeVisible();
     await expect(frame.locator('#next')).toBeVisible();
   } else if (id === 'tiny-signals') {
     const swipe = async (dx, dy) => {

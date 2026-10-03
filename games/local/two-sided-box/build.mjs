@@ -7,11 +7,17 @@ for (const file of [
   'index.html',
   'style.css',
   'game.mjs',
-  'render.mjs',
+  'structure-view.mjs',
+  'structure-model.mjs',
+  'faces.mjs',
+  'geometry.mjs',
+  'reveal-access.mjs',
+  'touch-buttons.mjs',
   'engine.mjs',
   'levels.mjs',
   'progress.mjs',
+  'levels',
 ]) {
-  await cp(new URL(file, import.meta.url), new URL(file, dist));
+  await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 }
 console.log('Built two-sided-box: dist/');
