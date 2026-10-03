@@ -315,6 +315,57 @@ test('blocks missing metadata for both standalone and builtin games', async (t) 
   }
 });
 
+test('the real pre-push hook rejects bad formatting before running the game checker', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'small-games-push-format-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const write = async (relative, content) => {
+    const destination = path.join(root, relative);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, content);
+  };
+  for (const relative of ['.githooks/pre-push', '.prettierrc.json', '.prettierignore'])
+    await write(relative, await readFile(path.join(repo, relative), 'utf8'));
+  await chmod(path.join(root, '.githooks/pre-push'), 0o755);
+  const prettierCli = path.join(repo, 'node_modules/prettier/bin/prettier.cjs');
+  await write(
+    'package.json',
+    `${JSON.stringify(
+      {
+        private: true,
+        packageManager: 'pnpm@12.6.0',
+        scripts: {
+          'format:check': `node "${prettierCli.replaceAll('\\', '/')}" --check .`,
+          'check:games': 'node -e "console.log(\'game-check-ran\')"',
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  const git = (...args) =>
+    spawnSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 20000,
+      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+    });
+  const init = git('init', '--quiet');
+  assert.equal(init.status, 0, init.stderr);
+  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  const source = 'apps/shell-web/src/format-regression.js';
+  const bad = 'const message="hello"\n';
+  await write(source, bad);
+  const rejected = hook();
+  assert.equal(rejected.status, 1, rejected.stdout + rejected.stderr);
+  assert.match(rejected.stderr, /format-regression\.js/);
+  assert.doesNotMatch(rejected.stdout + rejected.stderr, /game-check-ran/);
+  assert.equal(await readFile(path.join(root, source), 'utf8'), bad);
+  await write(source, "const message = 'hello';\n");
+  const accepted = hook();
+  assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr);
+  assert.match(accepted.stdout + accepted.stderr, /game-check-ran/);
+});
+
 test('rejects duplicate ids, sources, package names and escaping catalog paths', async (t) => {
   const f = await fixture(t);
   const catalog = await f.json('apps/shell-web/src/standalone-games.json');
