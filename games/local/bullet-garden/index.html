@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#19261e" />
     <meta
       name="description"
-      content="子弹落地，花园生长。在失落庭院中，用三种种子改造战场，守住五分钟。"
+      content="打空自动长出地形，击退怪物获得强化。在失落庭院中，让每一发子弹都有新的可能。"
     />
     <title>子弹花园 · Bullet Garden</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -16,7 +16,7 @@
     <main id="game" aria-label="子弹花园">
       <canvas
         id="arena"
-        aria-label="花园战场；触屏点击空地播种，桌面按住鼠标射击、右键播种"
+        aria-label="花园战场；自动射击与生长，摇杆移动，按住或拖动战场定向射击，松开恢复自动瞄准"
       ></canvas>
       <div class="vignette" aria-hidden="true"></div>
       <header class="hud">
@@ -33,6 +33,20 @@
             </div>
             <div class="health-caption">
               <span class="green-dot"></span> 庭院守望者 <span id="kill-count">击退 0</span>
+            </div>
+            <div class="experience-caption">
+              <strong id="level">Lv. 1</strong><span>击退经验</span
+              ><span id="experience">0 / 12</span>
+            </div>
+            <div
+              class="experience-track"
+              role="progressbar"
+              aria-label="升级经验"
+              aria-valuemin="0"
+              aria-valuemax="12"
+              aria-valuenow="0"
+            >
+              <div id="experience-fill"></div>
             </div>
           </div>
         </div>
@@ -77,66 +91,40 @@
       <div id="announcement" class="announcement" role="status" aria-live="polite"></div>
       <aside class="field-status">
         <span class="green-dot"></span><span id="plant-count">生长中 0 / 18</span
-        ><span class="field-divider"></span
-        ><button id="auto-fire" aria-pressed="true">自动射击 <b>开</b></button>
+        ><span class="field-divider"></span><span>自动射击 <b>开启</b></span>
       </aside>
 
-      <section class="seed-dock" aria-label="种子选择">
-        <div class="dock-heading">
-          <span class="decorative-leaf">✦</span><strong>选择种子</strong
-          ><span>让落空，也成为战术</span><span class="decorative-leaf">✦</span>
+      <section class="growth-dock" aria-label="打空生长与地形图例">
+        <div class="growth-heading">
+          <strong>打空生长</strong><span id="growth-next">下一株 · 荆棘藤蔓</span
+          ><b id="growth-count">0 / 6</b>
         </div>
-        <div class="seed-cards">
-          <button
-            class="seed-card thorn selected"
-            data-seed="thorn"
-            aria-label="荆棘藤蔓"
-            aria-pressed="true"
-          >
-            <span class="seed-shortcut">1</span><span class="seed-stock" id="stock-thorn">6</span
-            ><canvas data-icon="thorn" width="220" height="150" aria-hidden="true"></canvas
-            ><strong>荆棘藤蔓</strong><span class="seed-description">落地生长 · 减速缠绕</span
-            ><span class="seed-role">控场</span>
-            <div class="seed-cooldown"></div>
-          </button>
-          <button class="seed-card ice" data-seed="ice" aria-label="寒冰柱" aria-pressed="false">
-            <span class="seed-shortcut">2</span><span class="seed-stock" id="stock-ice">4</span
-            ><canvas data-icon="ice" width="220" height="150" aria-hidden="true"></canvas
-            ><strong>寒冰柱</strong><span class="seed-description">筑起冰墙 · 阻挡敌人</span
-            ><span class="seed-role">阻挡</span>
-            <div class="seed-cooldown"></div>
-          </button>
-          <button
-            class="seed-card mushroom"
-            data-seed="mushroom"
-            aria-label="爆炸蘑菇"
-            aria-pressed="false"
-          >
-            <span class="seed-shortcut">3</span><span class="seed-stock" id="stock-mushroom">4</span
-            ><canvas data-icon="mushroom" width="220" height="150" aria-hidden="true"></canvas
-            ><strong>爆炸蘑菇</strong><span class="seed-description">短暂酝酿 · 范围爆破</span
-            ><span class="seed-role">爆发</span>
-            <div class="seed-cooldown"></div>
-          </button>
+        <div
+          class="growth-track"
+          role="progressbar"
+          aria-label="打空生长进度"
+          aria-valuemin="0"
+          aria-valuemax="6"
+          aria-valuenow="0"
+        >
+          <div id="growth-fill"></div>
         </div>
+        <div class="terrain-legend" aria-label="自动生成的临时地形">
+          <span data-terrain="thorn"
+            ><canvas data-icon="thorn" width="100" height="72" aria-hidden="true"></canvas
+            ><span><b>藤蔓</b><small>减速伤害</small></span></span
+          >
+          <span data-terrain="ice"
+            ><canvas data-icon="ice" width="100" height="72" aria-hidden="true"></canvas
+            ><span><b>寒冰</b><small>阻挡寒域</small></span></span
+          >
+          <span data-terrain="mushroom"
+            ><canvas data-icon="mushroom" width="100" height="72" aria-hidden="true"></canvas
+            ><span><b>蘑菇</b><small>延迟爆破</small></span></span
+          >
+        </div>
+        <p>打空攒满 → 沿最后方向自动生长 · 反弹 / 分裂弹不计入</p>
       </section>
-
-      <aside class="growth-guide" aria-label="种子生长过程">
-        <div class="guide-heading">每一发，都有新的可能</div>
-        <div class="growth-steps">
-          <div><span class="step-art bullet-art"></span><b>子弹落地</b></div>
-          <span class="step-arrow">→</span>
-          <div>
-            <span class="step-art sprout-art"><i></i></span><b>播下种子</b>
-          </div>
-          <span class="step-arrow">→</span>
-          <div>
-            <canvas id="guide-flower" width="80" height="70" aria-hidden="true"></canvas
-            ><b>改变战场</b>
-          </div>
-        </div>
-        <p>命中造成伤害，落空长出植物</p>
-      </aside>
 
       <div class="touch-controls">
         <div id="joystick" role="group" aria-label="移动摇杆">
@@ -148,19 +136,13 @@
           <button id="dash" aria-label="冲刺">
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <path d="m17 4-7 12h7l-3 12 12-17h-8l5-7Z" /></svg
-            ><span>冲刺</span><small id="dash-cooldown">SPACE</small></button
-          ><button id="cast" aria-label="发射种子">
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <path d="M26 5C10 1 4 13 11 21c9 6 18-3 15-16Z" />
-              <path d="m7 28 15-17" /></svg
-            ><span>播种</span><small id="cast-cooldown">右键 / E</small>
+            ><span>冲刺</span><small id="dash-cooldown">SPACE</small>
           </button>
         </div>
       </div>
       <footer class="control-hint">
-        <span><kbd>W A S D</kbd> 移动</span><span>鼠标瞄准 · 长按射击</span
-        ><span><kbd>右键 / E</kbd> 播种</span><span><kbd>空格</kbd> 冲刺</span
-        ><button id="help">玩法指南 <span>?</span></button>
+        <span><kbd>W A S D</kbd> 移动</span><span>自动射击 · 按住场地定向</span
+        ><span><kbd>空格</kbd> 冲刺</span><button id="help">玩法指南 <span>?</span></button>
       </footer>
 
       <div id="overlay" class="overlay">
@@ -184,7 +166,7 @@
             </svg>
           </div>
           <button id="start" class="primary-button">进入花园 <span>→</span></button>
-          <p class="ready-tip">自动射击护身，主动播种改变战场</p>
+          <p class="ready-tip">打空自动生长 · 击退升级强化 · 专注走位</p>
           <button id="ready-help" class="text-button">第一次来？看看园艺手册</button>
         </section>
         <section id="pause-panel" class="modal compact-panel" hidden aria-labelledby="pause-title">
@@ -199,25 +181,35 @@
         <section id="help-panel" class="modal help-panel" hidden aria-labelledby="help-title">
           <div class="modal-kicker">THE GARDENER'S HANDBOOK</div>
           <h2 id="help-title">有时候，故意打空。</h2>
-          <p>普通花瓣弹自动攻击附近敌人。种子弹击中敌人造成伤害；飞到空地，才会长成植物。</p>
+          <p>
+            自动射击附近敌人，只需移动和冲刺。想改变火力方向时，按住或拖动战场；松手便恢复自动瞄准。
+          </p>
+          <div class="handbook-growth">
+            <p>
+              <b>① 打空 → 自动地形</b
+              >未命中的原始子弹累计达到门槛，便沿最后一发打空方向的随机位置生成下一种临时地形；反弹过的子弹与分裂弹不计入。
+            </p>
+            <p>
+              <b>② 击退 → 升级选择</b>击退怪物获得经验，攒满即暂停战场，随机三选一强化；5
+              级起四选一。枪械与地形可逐级组合，选择后继续战斗。
+            </p>
+          </div>
           <div class="handbook-seeds">
+            <p><b class="text-green">荆棘藤蔓</b><span>让经过的追兵减速，并持续受到伤害。</span></p>
             <p>
-              <b class="text-green">荆棘藤蔓</b><span>在追兵前方播种，减速并持续造成伤害。</span>
+              <b class="text-blue">寒冰柱</b><span>挡住怪物，附近敌人减速；敌人会绕行或拆除。</span>
             </p>
             <p>
-              <b class="text-blue">寒冰柱</b
-              ><span>隔开你和怪物。冰柱会挡住双方，敌人会绕行或拆除。</span>
-            </p>
-            <p>
-              <b class="text-orange">爆炸蘑菇</b><span>提前种在必经之路，约 2 秒后范围爆炸。</span>
+              <b class="text-orange">爆炸蘑菇</b><span>自动生长，短暂酝酿后造成范围爆炸。</span>
             </p>
           </div>
           <p class="handbook-rule">
-            植物会枯萎，场上最多 18 株；满额时最早的植物被替换。种子自动补充，每 3 波可选一次强化。
+            地形持续一段时间后消失，场上最多 18
+            株，满额时自动替换。生长与经验独立累计；火力、反弹、分裂、冰火爆弹和地形强化，可组合出不同路线。
           </p>
           <div class="handbook-controls">
-            <span>触屏</span>左手摇杆移动，右手点空地播种；按冲刺躲避。<br /><span>键鼠</span>WASD
-            移动，鼠标瞄准，左键射击，右键 / E 播种，空格冲刺。
+            <span>触屏</span>摇杆移动，点击冲刺；可按住 / 拖动战场定向射击。<br /><span>键鼠</span
+            >WASD 移动，按住左键定向射击，空格冲刺，Esc 暂停。
           </div>
           <button id="close-help" class="primary-button">明白了 <span>✓</span></button>
         </section>
@@ -229,7 +221,7 @@
         >
           <div class="modal-kicker">ROOTS GROW STRONGER</div>
           <h2 id="upgrade-title">选择一个强化</h2>
-          <p>下一波之前，为花园添一点可能。</p>
+          <p id="upgrade-description">经验已满，为这场守卫选一条成长路线。</p>
           <div id="upgrade-options"></div>
         </section>
         <section

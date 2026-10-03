@@ -3,11 +3,9 @@ import {
   createGame,
   startGame,
   step,
-  selectSeed,
   chooseUpgrade,
   pauseGame,
   resumeGame,
-  castSeed,
   dash,
 } from './simulation.mjs';
 import { GardenRenderer, drawSeedIcon, drawPortrait } from './renderer.mjs';
@@ -18,10 +16,18 @@ const canvas = $('arena');
 const renderer = new GardenRenderer(canvas);
 const audio = new GardenAudio();
 const state = createGame('ruins');
-const input = { moveX: 0, moveY: 0, aimX: 900, aimY: 470, firing: false, autoFire: true };
+const input = {
+  moveX: 0,
+  moveY: 0,
+  aimX: 900,
+  aimY: 470,
+  firing: false,
+  autoFire: true,
+  aimActive: false,
+};
 const keys = new Set();
 const panels = ['ready', 'pause', 'help', 'upgrade', 'result'];
-const seedButtons = [...document.querySelectorAll('[data-seed]')];
+const terrainLegend = [...document.querySelectorAll('[data-terrain]')];
 let helpOpen = false,
   previousPhase = '',
   savedResult = false;
@@ -48,7 +54,6 @@ try {
 
 drawPortrait($('portrait'));
 document.querySelectorAll('[data-icon]').forEach((icon) => drawSeedIcon(icon, icon.dataset.icon));
-drawSeedIcon($('guide-flower'), 'flower');
 drawSeedIcon($('title-seed'), 'flower');
 
 function announce(text, duration = 3) {
@@ -74,6 +79,9 @@ function resetInput() {
   input.moveX = 0;
   input.moveY = 0;
   input.firing = false;
+  input.aimActive = false;
+  hasAimed = false;
+  pointerClient = null;
   stickX = 0;
   stickY = 0;
   if (joystickPointer !== null && $('joystick').hasPointerCapture(joystickPointer))
@@ -102,8 +110,8 @@ function begin() {
   refreshHUD();
   announce(
     matchMedia('(pointer:coarse)').matches
-      ? '摇杆移动 · 点空地播种 · 普通弹自动射击'
-      : 'WASD 移动 · 右键播种 · 普通弹自动射击',
+      ? '摇杆移动 · 自动射击与生长 · 击退升级'
+      : 'WASD 移动 · 自动射击与生长 · 击退升级',
     5,
   );
 }
@@ -133,30 +141,13 @@ function closeHelp() {
   syncPhase();
 }
 
-function pickSeed(kind) {
-  if (helpOpen || !['playing', 'ready'].includes(state.phase)) return;
-  if (selectSeed(state, kind)) {
-    constrainAim(aim);
-    refreshHUD();
-    if (state.phase === 'playing') announce(`${SEEDS[kind].name} · ${SEEDS[kind].subtitle}`, 2);
-  }
-}
-
-function plant() {
-  if (state.phase !== 'playing' || helpOpen) return;
-  audio.unlock();
-  if (!castSeed(state, aim)) {
-    if (state.seeds[state.selectedSeed] < 1) announce('种子正在恢复，先用其他植物布局', 2);
-    else if (state.seedCooldown <= 0) announce('瞄准庭院里的空地播种', 2);
-  }
-  refreshHUD();
-}
-
 function doDash() {
   const direction =
     Math.hypot(input.moveX, input.moveY) > 0.1
       ? { x: input.moveX, y: input.moveY }
-      : { x: aim.x - state.player.x, y: aim.y - state.player.y };
+      : input.aimActive
+        ? { x: aim.x - state.player.x, y: aim.y - state.player.y }
+        : { x: Math.cos(state.player.angle), y: Math.sin(state.player.angle) };
   dash(state, direction);
   audio.unlock();
   refreshHUD();
@@ -164,7 +155,7 @@ function doDash() {
 
 function constrainAim(world) {
   const bounds = LEVELS[state.levelId].bounds;
-  const radius = SEEDS[state.selectedSeed].radius;
+  const radius = 8;
   aim = {
     x: Math.max(bounds.left + radius, Math.min(bounds.right - radius, world.x)),
     y: Math.max(bounds.top + radius, Math.min(bounds.bottom - radius, world.y)),
@@ -225,45 +216,29 @@ canvas.addEventListener('pointerdown', (event) => {
   pointerOnField = true;
   fieldPointer = event.pointerId;
   canvas.setPointerCapture(event.pointerId);
-  if (event.pointerType === 'mouse') input.firing = true;
+  input.firing = true;
+  input.aimActive = true;
 });
 canvas.addEventListener('pointermove', (event) => {
   if (state.phase !== 'playing') return;
-  if (event.pointerType === 'mouse' || fieldPointer === event.pointerId) {
+  if (fieldPointer === event.pointerId) {
     updateAim(event);
     pointerOnField = true;
   }
 });
-canvas.addEventListener('pointerup', (event) => {
+function releaseAim(event) {
   if (event.pointerId !== fieldPointer) return;
-  if (event.pointerType !== 'mouse' && state.phase === 'playing') {
-    updateAim(event);
-    plant();
-  }
-  input.firing = false;
+  const capturedPointer = fieldPointer;
   fieldPointer = null;
-  pointerOnField = event.pointerType === 'mouse';
-});
-for (const type of ['pointercancel', 'lostpointercapture'])
-  canvas.addEventListener(type, (event) => {
-    if (event.pointerId === fieldPointer) {
-      fieldPointer = null;
-      input.firing = false;
-      pointerOnField = false;
-    }
-  });
-canvas.addEventListener('pointerleave', () => {
-  if (fieldPointer === null) pointerOnField = false;
-});
-// A second mouse button does not emit pointerdown while the first stays held.
-canvas.addEventListener('mousedown', (event) => {
-  if (event.button === 2 && state.phase === 'playing') {
-    event.preventDefault();
-    updateAim(event);
-    pointerOnField = true;
-    plant();
-  }
-});
+  input.firing = false;
+  input.aimActive = false;
+  hasAimed = false;
+  pointerOnField = false;
+  pointerClient = null;
+  if (canvas.hasPointerCapture(capturedPointer)) canvas.releasePointerCapture(capturedPointer);
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  canvas.addEventListener(type, releaseAim);
 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 const controls = new Set([
@@ -276,10 +251,6 @@ const controls = new Set([
   'ArrowDown',
   'ArrowRight',
   'Space',
-  'KeyE',
-  'Digit1',
-  'Digit2',
-  'Digit3',
   'Escape',
 ]);
 window.addEventListener('keydown', (event) => {
@@ -307,10 +278,7 @@ window.addEventListener('keydown', (event) => {
   keys.add(event.code);
   audio.unlock();
   if (event.repeat) return;
-  if (event.code === 'KeyE') plant();
   if (event.code === 'Space') doDash();
-  if (event.code.startsWith('Digit'))
-    pickSeed(['thorn', 'ice', 'mushroom'][Number(event.code.slice(5)) - 1]);
 });
 window.addEventListener('keyup', (event) => keys.delete(event.code));
 function suspend() {
@@ -337,15 +305,7 @@ $('pause').addEventListener('click', togglePause);
 $('resume').addEventListener('click', togglePause);
 for (const id of ['help', 'ready-help', 'pause-help']) $(id).addEventListener('click', openHelp);
 $('close-help').addEventListener('click', closeHelp);
-$('cast').addEventListener('click', plant);
 $('dash').addEventListener('click', doDash);
-for (const button of seedButtons)
-  button.addEventListener('click', () => pickSeed(button.dataset.seed));
-$('auto-fire').addEventListener('click', () => {
-  input.autoFire = !input.autoFire;
-  refreshHUD();
-  announce(input.autoFire ? '自动射击已开启' : '自动射击已关闭 · 桌面可按住左键射击', 2);
-});
 function syncSound() {
   $('sound').setAttribute('aria-pressed', String(audio.enabled));
   $('pause-sound').setAttribute('aria-pressed', String(audio.enabled));
@@ -370,12 +330,17 @@ $('pause-sound').addEventListener('click', toggleSound);
 
 function populateUpgrades() {
   $('upgrade-options').replaceChildren();
+  $('upgrade-options').dataset.count = state.upgradeChoices.length;
+  const rewardLevel = state.progression.queue?.[0] || state.progression.level;
+  $('upgrade-description').textContent =
+    `Lv. ${rewardLevel} 强化 · 随机 ${state.upgradeChoices.length} 选 1${state.progression.pending > 1 ? ` · 待选 ${state.progression.pending} 次` : '，选择后继续战斗'}`;
   for (const id of state.upgradeChoices) {
     const definition = UPGRADES.find((upgrade) => upgrade.id === id);
     if (!definition) continue;
     const button = document.createElement('button');
     button.className = 'upgrade-option';
     button.dataset.upgrade = id;
+    button.dataset.category = definition.category;
     const icon = document.createElement('canvas');
     icon.width = 180;
     icon.height = 140;
@@ -383,16 +348,21 @@ function populateUpgrades() {
     title.textContent = definition.name;
     const description = document.createElement('p');
     description.textContent = definition.description;
+    const category = document.createElement('span');
+    category.className = 'upgrade-category';
+    const rank = state.upgrades.filter((upgradeId) => upgradeId === id).length + 1;
+    category.textContent = `${{ weapon: '枪械', terrain: '地形', survival: '生存' }[definition.category] || '强化'} · ${rank} / ${definition.maxRank}`;
     const choose = document.createElement('small');
     choose.textContent = '选择强化 →';
-    button.append(icon, title, description, choose);
+    button.append(icon, category, title, description, choose);
     $('upgrade-options').append(button);
-    drawSeedIcon(icon, definition.kind || 'thorn');
+    drawSeedIcon(icon, definition.icon || definition.kind || 'normal');
     button.addEventListener('click', () => {
       if (chooseUpgrade(state, id)) {
+        previousPhase = '';
         syncPhase();
         refreshHUD();
-        announce(`获得 ${definition.name} · 第 ${state.wave} 波开始`, 3);
+        announce(`获得 ${definition.name} · Lv. ${state.progression.level}`, 3);
       }
     });
   }
@@ -404,12 +374,12 @@ function populateResult() {
   $('result-title').textContent = won ? '花园，生生不息。' : '下一次，会开花。';
   $('result-description').textContent = won
     ? '五分钟守卫完成。你把一片废墟，种成了自己的战场。'
-    : `坚持到第 ${state.wave} 波。试试提前种下荆棘，再用蘑菇守住追兵的路线。`;
+    : `坚持到第 ${state.wave} 波。移动留出空间，让自动地形与枪械强化一起守住追兵的路线。`;
   const seconds = Math.floor(state.time);
   const values = [
     [`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, '守卫时间'],
     [state.kills, '击退怪物'],
-    [state.stats.plantsGrown, '落空生长'],
+    [state.stats.autoPlants, '自动生长'],
     [state.stats.plantKills, '植物击退'],
   ];
   $('result-stats').replaceChildren();
@@ -469,21 +439,28 @@ function refreshHUD() {
     `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
   $('kill-count').textContent = `击退 ${state.kills}`;
   $('plant-count').textContent = `生长中 ${state.plants.length} / ${state.plantCap}`;
-  for (const button of seedButtons) {
-    const kind = button.dataset.seed,
-      selected = state.selectedSeed === kind;
-    button.classList.toggle('selected', selected);
-    button.setAttribute('aria-pressed', String(selected));
-    $(`stock-${kind}`).textContent = Math.floor(state.seeds[kind]);
-    const regen =
-      state.seeds[kind] < SEEDS[kind].capacity
-        ? (state.seedRegen?.[kind] || 0) / SEEDS[kind].regenSeconds
-        : 0;
-    button.querySelector('.seed-cooldown').style.transform = `scaleX(${Math.min(1, regen)})`;
-  }
+  const { level, xp, nextXp } = state.progression;
+  $('level').textContent = `Lv. ${level}`;
+  $('experience').textContent = `${xp} / ${nextXp}`;
+  $('experience-fill').style.width = `${Math.min(100, (xp / nextXp) * 100)}%`;
+  const experienceTrack = $('experience-fill').parentElement;
+  experienceTrack.setAttribute('aria-valuenow', xp);
+  experienceTrack.setAttribute('aria-valuemax', nextXp);
+  const { misses, threshold, nextKind, cooldown, pending } = state.growth;
+  $('growth-count').textContent = `${Math.min(misses, threshold)} / ${threshold}`;
+  $('growth-fill').style.width = `${Math.min(100, (misses / threshold) * 100)}%`;
+  const growthTrack = $('growth-fill').parentElement;
+  growthTrack.setAttribute('aria-valuenow', Math.min(misses, threshold));
+  growthTrack.setAttribute('aria-valuemax', threshold);
+  $('growth-next').textContent =
+    pending && cooldown > 0
+      ? `${SEEDS[nextKind]?.name || '地形'} · ${cooldown.toFixed(1)}s 后生长`
+      : pending
+        ? '生长已就绪 · 移动腾出空间'
+        : `下一株 · ${SEEDS[nextKind]?.name || '临时地形'}`;
+  for (const item of terrainLegend)
+    item.classList.toggle('next', item.dataset.terrain === nextKind);
   const coarse = matchMedia('(pointer:coarse)').matches;
-  $('cast-cooldown').textContent =
-    state.seedCooldown > 0 ? `${state.seedCooldown.toFixed(1)}s` : coarse ? '点空地' : '右键 / E';
   $('dash-cooldown').textContent =
     state.player.dashCooldown > 0
       ? `${state.player.dashCooldown.toFixed(1)}s`
@@ -491,9 +468,6 @@ function refreshHUD() {
         ? '就绪'
         : 'SPACE';
   $('dash').style.opacity = state.player.dashCooldown > 0 ? '.6' : '1';
-  $('cast').style.opacity = state.seeds[state.selectedSeed] < 1 ? '.5' : '1';
-  $('auto-fire').setAttribute('aria-pressed', String(input.autoFire));
-  $('auto-fire').querySelector('b').textContent = input.autoFire ? '开' : '关';
 }
 
 function frame(now) {
@@ -527,9 +501,7 @@ function frame(now) {
       );
   }
   renderer.render(state, {
-    aim,
-    planting:
-      state.phase === 'playing' && (pointerOnField || matchMedia('(pointer:coarse)').matches),
+    aim: input.aimActive ? aim : null,
     time: uiTime,
   });
   syncPhase();
@@ -543,7 +515,13 @@ function frame(now) {
 
 // Read-only observability for browser acceptance; never expose mutable state or time controls.
 Object.defineProperty(window, '__bulletGarden', {
-  value: Object.freeze({ snapshot: () => structuredClone(state) }),
+  value: Object.freeze({
+    snapshot: () =>
+      structuredClone({
+        ...state,
+        controls: { manualAim: input.aimActive, moveX: input.moveX, moveY: input.moveY },
+      }),
+  }),
   writable: false,
   configurable: false,
 });
