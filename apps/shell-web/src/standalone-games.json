@@ -1,5 +1,12 @@
 [
   {
+    "id": "maze-wander",
+    "source": "games/local/maze-wander",
+    "title": "迷境漫游",
+    "description": "在五种风景、二十个手工迷宫中第一人称探索，留下标记，辨认回环与倒影，慢慢找到归途。支持电脑与手机网页。",
+    "output": "dist"
+  },
+  {
     "id": "homebound-station",
     "source": "games/local/homebound-station",
     "title": "归途站",

@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-02T19:03:17.316Z",
+  "environment": {
+    "browser": "140.0.7339.186",
+    "viewport": "1440x900",
+    "mode": "headless Chromium"
+  },
+  "results": [
+    {
+      "check": "native desktop movement/turn, mark, A-to-B, pause, save reload, real exit settlement",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-02T19:13:47.177Z",
+  "browser": "140.0.7339.186",
+  "results": [
+    {
+      "check": "production build: same-origin iframe, real pointer lock, keyboard movement, pause, save and fog map; no developer API/menu",
+      "passed": true
+    },
+    {
+      "check": "storage denial/quota failure keeps the game playable and shows a warning",
+      "passed": true
+    },
+    {
+      "check": "corrupt run uses independent progress/settings backup",
+      "passed": true
+    },
+    {
+      "check": "WebGL unavailable shows a recoverable error screen",
+      "passed": true
+    },
+    {
+      "check": "pointer-lock denial offers playable drag-to-look fallback",
+      "passed": true
+    },
+    {
+      "check": "missing JavaScript resources retain an accessible reload action and recover on retry",
+      "passed": true
+    }
+  ],
+  "errors": []
+}
