@@ -4,8 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { chromium, devices, expect } from '@playwright/test';
 import { preview } from 'vite';
 import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
+import { selectPagesGames } from './pages-validation.mjs';
+import { monitorPagesPage } from './pages-browser-monitor.mjs';
 
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
+// Parse before starting either the preview server or Chromium: invalid CI selection must fail fast.
+const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 // The registry now also includes building-power; its own suite covers that game.
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
@@ -15,9 +19,42 @@ const server = await preview({
   preview: { host: '127.0.0.1', port: 0 },
 });
 let browser;
+let page;
 const results = [];
+const failures = [];
+let status = 'running';
+let activeGame;
 const output = new URL('../../../.scratch/game-integration/', import.meta.url);
 await mkdir(output, { recursive: true });
+const report = () =>
+  writeFile(
+    new URL('report.json', output),
+    JSON.stringify(
+      {
+        status,
+        builtIn: builtInCount,
+        selected: selectedGames.map((game) => game.id),
+        standalone: results,
+        failures,
+      },
+      null,
+      2,
+    ),
+  );
+async function phase(result, name, run) {
+  result.phase = name;
+  console.log(`Started: ${result.id} / ${name}`);
+  await report();
+  const started = performance.now();
+  try {
+    return await run();
+  } finally {
+    result.timings[name] = Math.round(performance.now() - started);
+    console.log(`Finished: ${result.id} / ${name} (${result.timings[name]} ms)`);
+    await report();
+  }
+}
+await report();
 try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
   const url = process.env.PAGES_URL ?? `${origin}${basePath}`;
@@ -29,21 +66,8 @@ try {
       : {}),
     headless: true,
   });
-  const page = await browser.newPage();
-  const failures = [];
-  page.on('pageerror', (error) => failures.push(error.message));
-  page.on('request', (request) => {
-    if (/127\.0\.0\.1:43002|localhost:43002/.test(request.url()))
-      failures.push(`Pages requested a local Runtime: ${request.url()}`);
-  });
-  page.on('response', (response) => {
-    if (response.url().startsWith(url) && response.status() >= 400)
-      failures.push(`${response.status()} ${response.url()}`);
-  });
-  page.on('requestfailed', (request) => {
-    if (request.url().startsWith(url) && !request.failure()?.errorText.includes('ERR_ABORTED'))
-      failures.push(`${request.failure()?.errorText} ${request.url()}`);
-  });
+  page = await browser.newPage();
+  monitorPagesPage(page, url, failures);
   await page.goto(url);
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
@@ -58,7 +82,7 @@ try {
     await page.reload();
     await expect(page.locator('nav strong')).toHaveText(title);
     const shared = await browser.newPage();
-    shared.on('pageerror', (error) => failures.push(error.message));
+    monitorPagesPage(shared, url, failures, `share/${id}`);
     try {
       assert.equal((await shared.goto(sharedUrl)).status(), 200);
       await expect(shared.locator('nav strong')).toHaveText(title);
@@ -108,46 +132,56 @@ try {
     await expect(page).toHaveURL(url);
     await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   }
-  for (const game of games) {
-    await page
-      .locator('article')
-      .filter({ hasText: game.title })
-      .getByRole('button', { name: '进入游戏', exact: true })
-      .click();
-    await expect(page).toHaveURL(`${url}#/games/${game.id}`);
-    if (game === games[0]) await verifySharedRoute(game.id, game.title);
+  for (const game of selectedGames) {
+    const result = { id: game.id, status: 'running', phase: 'embedded-load', timings: {} };
+    activeGame = result;
+    results.push(result);
+    console.log(`Started game: ${game.id}`);
+    const started = performance.now();
     const frame = page.frameLocator('iframe');
     const marker = markers[game.id];
     assert(marker, `Missing ready marker for ${game.id}`);
-    await expect(frame.locator(marker).first()).toBeVisible({ timeout: 120000 });
-    // Static controls can appear before module scripts attach their event listeners.
-    const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
-    await gameFrame.waitForLoadState();
-    if (game.id === 'hold-tight-acrobats') {
-      // Reproduce slow CI frames: charging may safely cancel, but walking must remain usable.
-      await gameFrame.evaluate(() => {
-        const raf = globalThis.requestAnimationFrame.bind(globalThis);
-        globalThis.requestAnimationFrame = (callback) =>
-          raf(() => {
-            const until = performance.now() + 140;
-            while (performance.now() < until) {
-              /* Sustained slow rendering must not freeze physics. */
-            }
-            callback(performance.now());
-          });
-      });
-    }
-    await exerciseStandalone(frame, game.id);
+    await phase(result, 'embedded-load', async () => {
+      await page
+        .locator('article')
+        .filter({ hasText: game.title })
+        .getByRole('button', { name: '进入游戏', exact: true })
+        .click();
+      await expect(page).toHaveURL(`${url}#/games/${game.id}`);
+      if (game === selectedGames[0]) await verifySharedRoute(game.id, game.title);
+      await expect(frame.locator(marker).first()).toBeVisible({ timeout: 120000 });
+      // Static controls can appear before module scripts attach their event listeners.
+      const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
+      await gameFrame.waitForLoadState();
+      if (game.id === 'hold-tight-acrobats') {
+        // Reproduce slow CI frames: charging may safely cancel, but walking must remain usable.
+        await gameFrame.evaluate(() => {
+          const raf = globalThis.requestAnimationFrame.bind(globalThis);
+          globalThis.requestAnimationFrame = (callback) =>
+            raf(() => {
+              const until = performance.now() + 140;
+              while (performance.now() < until) {
+                /* Sustained slow rendering must not freeze physics. */
+              }
+              callback(performance.now());
+            });
+        });
+      }
+    });
+    await phase(result, 'embedded-gameplay', () => exerciseStandalone(frame, game.id));
+    result.embedded = 'passed';
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
-    assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
-    assert.equal(
-      await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
-      standaloneUrl,
-    );
-    // Release the desktop WebGL context before starting the mobile instance.
-    await page.getByRole('button', { name: '返回目录', exact: true }).click();
-    await expect(page).toHaveURL(url);
-    await expect(page.locator('iframe')).toHaveCount(0);
+    await phase(result, 'embedded-return', async () => {
+      assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
+      assert.equal(
+        await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
+        standaloneUrl,
+      );
+      // Release the desktop WebGL context before starting the mobile instance.
+      await page.getByRole('button', { name: '返回目录', exact: true }).click();
+      await expect(page).toHaveURL(url);
+      await expect(page.locator('iframe')).toHaveCount(0);
+    });
     const landscape = [
       'fold-the-world',
       'one-stroke-course',
@@ -165,31 +199,49 @@ try {
         : landscape
           ? { width: 844, height: 390 }
           : { width: 390, height: 844 };
+    result.viewport = viewport;
     const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();
-    direct.on('pageerror', (error) => failures.push(`${game.id}: ${error.message}`));
-    direct.on('response', (response) => {
-      if (response.url().startsWith(url) && response.status() >= 400)
-        failures.push(`${response.status()} ${response.url()}`);
-    });
+    monitorPagesPage(direct, url, failures, `${game.id}/mobile`);
     try {
-      const response = await direct.goto(standaloneUrl);
-      assert.equal(response.status(), 200);
-      await expect(direct.locator(marker).first()).toBeVisible({ timeout: 120000 });
-      await exerciseStandalone(direct, game.id, true);
+      await phase(result, 'mobile-load', async () => {
+        const response = await direct.goto(standaloneUrl);
+        assert.equal(response.status(), 200);
+        await expect(direct.locator(marker).first()).toBeVisible({ timeout: 120000 });
+      });
+      await phase(result, 'mobile-gameplay', () => exerciseStandalone(direct, game.id, true));
       assert(
         await direct.evaluate(
           () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth + 1,
         ),
         `${game.id}: mobile overflow`,
       );
-      await direct.screenshot({ path: fileURLToPath(new URL(`${game.id}-phone.png`, output)) });
-      results.push({ id: game.id, embedded: 'passed', directMobile: 'passed', viewport });
-      console.log(`Passed: ${game.id} (embedded and ${viewport.width}x${viewport.height} touch)`);
+      if (process.env.PAGES_SCREENSHOTS !== '0')
+        await phase(result, 'mobile-screenshot', () =>
+          direct.screenshot({ path: fileURLToPath(new URL(`${game.id}-phone.png`, output)) }),
+        );
+      Object.assign(result, {
+        status: 'passed',
+        phase: 'complete',
+        directMobile: 'passed',
+        durationMs: Math.round(performance.now() - started),
+      });
+      await report();
+      console.log(
+        `Passed: ${game.id} (embedded and ${viewport.width}x${viewport.height} touch, ${result.durationMs} ms)`,
+      );
+    } catch (error) {
+      await direct
+        .screenshot({
+          path: fileURLToPath(new URL(`${game.id}-failure.png`, output)),
+        })
+        .catch(() => {});
+      throw error;
     } finally {
       await mobileContext.close();
       assert.equal(browser.contexts().length, 1, `${game.id}: mobile context was not released`);
     }
+    activeGame = undefined;
   }
   await page.goto(`${url}#/games/not-a-game`);
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
@@ -200,13 +252,23 @@ try {
     ),
   );
   assert.deepEqual(failures, []);
-  await writeFile(
-    new URL('report.json', output),
-    JSON.stringify({ builtIn: builtInCount, standalone: results, failures }, null, 2),
-  );
+  activeGame = undefined;
+  status = 'passed';
+  await report();
   console.log(
-    `Pages: ${builtInCount + games.length} catalog entries, ${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
+    `Pages: ${builtInCount + games.length} catalog entries, ${selectedGames.length}/${games.length} embedded/direct games, return navigation, mobile width and Runtime isolation passed.`,
   );
+} catch (error) {
+  status = 'failed';
+  if (activeGame) {
+    activeGame.status = 'failed';
+    activeGame.error = error.stack ?? String(error);
+  }
+  if (page)
+    await page.screenshot({ path: fileURLToPath(new URL('failure.png', output)) }).catch(() => {});
+  failures.push(error.stack ?? String(error));
+  await report();
+  throw error;
 } finally {
   await browser?.close();
   await server.close();
