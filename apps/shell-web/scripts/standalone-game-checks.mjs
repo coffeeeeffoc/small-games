@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'homebound-station': '[data-level="0"]',
   'balloon-movers': '#launch',
   'weather-command': '#board[data-level="1"]',
   'off-camera': '#bank [data-card]',
@@ -65,7 +66,24 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'balloon-movers') {
+  if (id === 'homebound-station') {
+    await click(frame.locator('[data-level="0"]'));
+    await click(frame.locator('[data-vehicle="巡01"]'));
+    await expect
+      .poll(() =>
+        frame.locator('body').evaluate(() => globalThis.homeboundSnapshot().services.length),
+      )
+      .toBe(1);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#dialog')).toContainText('已暂停');
+    await click(frame.locator('[data-action="retry"]'));
+    await expect(frame.locator('#remaining')).toHaveText('12');
+    await expect
+      .poll(() =>
+        frame.locator('body').evaluate(() => globalThis.homeboundSnapshot().services.length),
+      )
+      .toBe(0);
+  } else if (id === 'balloon-movers') {
     await expect(frame.locator('#launch')).toBeDisabled();
     await click(frame.locator('#suggest'));
     await expect(frame.locator('#left-count')).toHaveText('2');

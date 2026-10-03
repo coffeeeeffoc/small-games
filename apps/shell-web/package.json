@@ -22,6 +22,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/homebound-station": "workspace:*",
     "@coffeeeeffoc/fold-the-world": "workspace:*",
     "@coffeeeeffoc/carding-car": "workspace:*",
     "@coffeeeeffoc/night-overwatch": "workspace:*",

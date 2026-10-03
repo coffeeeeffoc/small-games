@@ -1,0 +1,18 @@
+{
+  "name": "@coffeeeeffoc/homebound-station",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4326",
+    "preview": "vite preview --host 0.0.0.0 --port 4326",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/simulation.test.ts",
+    "test:interaction": "node tests/dispatch-click.mjs",
+    "test:browser": "node tests/dispatch-click.mjs && node tests/browser.mjs",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": { "three": "0.180.0" },
+  "devDependencies": { "@types/three": "0.180.0", "typescript": "7.0.2", "vite": "8.2.2", "@playwright/test": "1.55.1" },
+  "coffeeeeffoc": { "role": "game" }
+}
