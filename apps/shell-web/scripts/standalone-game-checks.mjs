@@ -84,10 +84,22 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
+    if (!mobile) {
+      // Resuming captures the mouse again; Escape must release it before Shell navigation.
+      await frame.locator('canvas').page().keyboard.press('Escape');
+      await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
+      await expect
+        .poll(() =>
+          frame.locator('body').evaluate(() => globalThis.document.pointerLockElement === null),
+        )
+        .toBe(true);
+    }
   } else if (id === 'urban-breakout') {
     await click(frame.locator('#start'));
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
-    await expect.poll(() => frame.locator('body').evaluate(() => globalThis.urbanSnapshot().tick)).toBeGreaterThan(15);
+    await expect
+      .poll(() => frame.locator('body').evaluate(() => globalThis.urbanSnapshot().tick))
+      .toBeGreaterThan(15);
     await click(frame.locator('#pause'));
     await expect(frame.getByRole('dialog', { name: '暂停菜单' })).toBeVisible();
     await click(frame.locator('#resume'));
@@ -252,12 +264,12 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await pipe.scrollIntoViewIfNeeded();
     const position = await pipe.evaluate((group) => {
       const path = group.querySelector('.pipe-hit');
-      const bounds = document.querySelector('#board').getBoundingClientRect();
+      const bounds = globalThis.document.querySelector('#board').getBoundingClientRect();
       const matrix = path.getScreenCTM();
       for (let step = 5; step < 196; step += 1) {
         const point = path.getPointAtLength((path.getTotalLength() * step) / 200);
-        const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix);
-        const target = document.elementFromPoint(screen.x, screen.y);
+        const screen = new globalThis.DOMPoint(point.x, point.y).matrixTransform(matrix);
+        const target = globalThis.document.elementFromPoint(screen.x, screen.y);
         if (target?.closest('[data-connection]')?.dataset.connection === 'AB') {
           return { x: screen.x - bounds.left, y: screen.y - bounds.top };
         }
