@@ -144,6 +144,14 @@ async function fixture(t) {
       output: 'dist',
     },
   ]);
+  const record = { commit: 'a'.repeat(40), time: '2026-09-01T08:00:00+08:00' };
+  await write('apps/shell-web/src/game-meta.json', {
+    schemaVersion: 1,
+    games: {
+      'mini-front': { source: gameSource, created: record, updated: record },
+      builtin: { source: builtinSource, created: record, updated: record },
+    },
+  });
   await write(
     'apps/shell-web/src/registry.ts',
     `import { builtinGameDefinition } from '${builtinName}';
@@ -233,7 +241,7 @@ test('finds an omitted game and an incomplete directory instead of only followin
   );
 });
 
-test('the real pre-push hook fails when an existing game is omitted from Shell', async (t) => {
+test('the real pre-push hook blocks missing registration or metadata after formatting', async (t) => {
   const f = await fixture(t);
   // Formatting is covered with real Prettier in check-staged-format.test.mjs.
   const fixturePackage = await f.json('package.json');
@@ -241,7 +249,10 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
   await f.write('package.json', fixturePackage);
   for (const relative of [
     '.githooks/pre-push',
+    '.prettierrc.json',
+    '.prettierignore',
     'scripts/check-game-config.mjs',
+    'scripts/game-meta.mjs',
     'scripts/platform-process.mjs',
   ])
     await f.write(relative, await readFile(path.join(repo, relative), 'utf8'));
@@ -261,14 +272,102 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
-  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  const hook = () => {
+    // The real hook also checks formatting; keep fixture edits formatted before testing registration.
+    const formatted = spawnSync(
+      process.execPath,
+      [path.join(repo, 'node_modules/prettier/bin/prettier.cjs'), '--write', '.'],
+      { cwd: f.root, encoding: 'utf8', timeout: 20000 },
+    );
+    assert.equal(formatted.status, 0, formatted.stdout + formatted.stderr);
+    return git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  };
   const registered = hook();
   assert.equal(registered.status, 0, registered.stdout + registered.stderr);
+
+  const meta = await f.json('apps/shell-web/src/game-meta.json');
+  const saved = meta.games['mini-front'];
+  delete meta.games['mini-front'];
+  await f.write('apps/shell-web/src/game-meta.json', meta);
+  const missingMeta = hook();
+  assert.equal(missingMeta.status, 1, missingMeta.stdout + missingMeta.stderr);
+  assert.match(missingMeta.stderr, /\[game-meta-missing\].*games\/local\/mini-front/);
+  meta.games['mini-front'] = saved;
+  await f.write('apps/shell-web/src/game-meta.json', meta);
 
   await f.write('apps/shell-web/src/standalone-games.json', []);
   const omitted = hook();
   assert.equal(omitted.status, 1, omitted.stdout + omitted.stderr);
   assert.match(omitted.stderr, /\[unregistered-game\].*games\/local\/mini-front/);
+});
+
+test('blocks missing metadata for both standalone and builtin games', async (t) => {
+  const f = await fixture(t);
+  for (const id of ['mini-front', 'builtin']) {
+    const meta = await f.json('apps/shell-web/src/game-meta.json');
+    const saved = meta.games[id];
+    delete meta.games[id];
+    await f.write('apps/shell-web/src/game-meta.json', meta);
+    const report = await auditGameConfig(f.root);
+    assert(
+      report.errors.some(
+        (error) => error.code === 'game-meta-missing' && error.path === saved.source,
+      ),
+    );
+    meta.games[id] = saved;
+    await f.write('apps/shell-web/src/game-meta.json', meta);
+  }
+});
+
+test('the real pre-push hook rejects bad formatting before running the game checker', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'small-games-push-format-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const write = async (relative, content) => {
+    const destination = path.join(root, relative);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, content);
+  };
+  for (const relative of ['.githooks/pre-push', '.prettierrc.json', '.prettierignore'])
+    await write(relative, await readFile(path.join(repo, relative), 'utf8'));
+  await chmod(path.join(root, '.githooks/pre-push'), 0o755);
+  const prettierCli = path.join(repo, 'node_modules/prettier/bin/prettier.cjs');
+  await write(
+    'package.json',
+    `${JSON.stringify(
+      {
+        private: true,
+        packageManager: 'pnpm@12.6.0',
+        scripts: {
+          'format:check': `node "${prettierCli.replaceAll('\\', '/')}" --check .`,
+          'check:games': 'node -e "console.log(\'game-check-ran\')"',
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  const git = (...args) =>
+    spawnSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 20000,
+      env: { ...process.env, PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' },
+    });
+  const init = git('init', '--quiet');
+  assert.equal(init.status, 0, init.stderr);
+  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  const source = 'apps/shell-web/src/format-regression.js';
+  const bad = 'const message="hello"\n';
+  await write(source, bad);
+  const rejected = hook();
+  assert.equal(rejected.status, 1, rejected.stdout + rejected.stderr);
+  assert.match(rejected.stderr, /format-regression\.js/);
+  assert.doesNotMatch(rejected.stdout + rejected.stderr, /game-check-ran/);
+  assert.equal(await readFile(path.join(root, source), 'utf8'), bad);
+  await write(source, "const message = 'hello';\n");
+  const accepted = hook();
+  assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr);
+  assert.match(accepted.stdout + accepted.stderr, /game-check-ran/);
 });
 
 test('rejects duplicate ids, sources, package names and escaping catalog paths', async (t) => {

@@ -1,6 +1,8 @@
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'echo-lab': '#scene [data-object="reflector-1"]',
+  'bullet-garden': '#start',
   'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': '[data-level="0"]',
@@ -14,6 +16,10 @@ export const markers = {
   'rule-thief': '#actors .actor',
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
+  'echo-weaver': '#emit',
+  'ink-is-everything': '#game-root',
+  'out-of-frame': '#board[data-level="1"]',
+  'two-sided-box': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -68,7 +74,68 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'maze-wander') {
+  if (id === 'bullet-garden') {
+    const snapshot = () =>
+      frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
+    const page = frame.locator('#arena').page();
+    await click(frame.locator('#start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    // Keep the middle of the battlefield available for direct touch targeting.
+    if (mobile) {
+      await expect
+        .poll(() =>
+          frame.locator('body').evaluate(() => {
+            const target = globalThis.document.elementFromPoint(
+              globalThis.innerWidth / 2,
+              globalThis.innerHeight * 0.45,
+            );
+            return target?.id;
+          }),
+        )
+        .toBe('arena');
+    }
+    await click(frame.locator('[data-seed="ice"]'));
+    await expect.poll(async () => (await snapshot()).selectedSeed).toBe('ice');
+    await click(frame.locator('#cast'));
+    await expect.poll(async () => (await snapshot()).stats.seedShots).toBeGreaterThan(0);
+
+    const initialPlayer = (await snapshot()).player;
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        const bounds = await frame.locator('#joystick').boundingBox();
+        const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, ...start }],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+        });
+      } else {
+        await page.keyboard.down('d');
+      }
+      await expect
+        .poll(async () => Math.abs((await snapshot()).player.x - initialPlayer.x))
+        .toBeGreaterThan(12);
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.keyboard.up('d');
+      }
+    }
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    const pausedTime = (await snapshot()).time;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).time).toBe(pausedTime);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
+  } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
@@ -147,6 +214,66 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('[data-weather="rain"]'));
     await click(frame.locator('[data-dir="right"]'));
     await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+  } else if (id === 'out-of-frame') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__outOfFrameSnapshot());
+    await click(frame.locator('#start-button'));
+    const beforeMove = await snapshot();
+    await holdControl('#move-right', 'ArrowRight', () =>
+      expect
+        .poll(async () => (await snapshot()).state.player.x)
+        .toBeGreaterThan(beforeMove.state.player.x + 8),
+    );
+    await click(frame.locator('#restart'));
+    await expect
+      .poll(async () => (await snapshot()).state.player.x)
+      .toBe(beforeMove.state.player.x);
+
+    const canvas = frame.locator('#board');
+    const page = canvas.page();
+    await canvas.scrollIntoViewIfNeeded();
+    const bounds = await canvas.boundingBox();
+    const beforeDrag = await snapshot();
+    const { x, y, w, h } = beforeDrag.state.frame;
+    const from = {
+      x: bounds.x + ((x + w / 2) / beforeDrag.world.w) * bounds.width,
+      y: bounds.y + ((y + h / 2) / beforeDrag.world.h) * bounds.height,
+    };
+    const dx = x + w + 110 < beforeDrag.world.w ? 100 : -100;
+    const to = { x: from.x + (dx / beforeDrag.world.w) * bounds.width, y: from.y };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ ...from, id: 1 }],
+        });
+        for (let step = 1; step <= 6; step += 1) {
+          await touch.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [{ x: from.x + ((to.x - from.x) * step) / 6, y: to.y, id: 1 }],
+          });
+        }
+      } finally {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 6 });
+      await page.mouse.up();
+    }
+    await expect
+      .poll(async () => Math.abs((await snapshot()).state.frame.x - x))
+      .toBeGreaterThan(50);
+    // Touch may scroll to the controls for longer than one second; rewind until
+    // the recorded drag has been crossed, using the same free rewind as players.
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      if (Math.abs((await snapshot()).state.frame.x - x) < 0.001) break;
+      await click(frame.locator('#undo'));
+    }
+    await expect.poll(async () => (await snapshot()).state.frame.x).toBe(x);
+    await click(frame.locator('#restart'));
   } else if (id === 'off-camera') {
     await click(frame.locator('#bank [data-card="move"]'));
     await click(frame.locator('#bank [data-card="sit"]'));
@@ -217,6 +344,18 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#retry'));
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+  } else if (id === 'ink-is-everything') {
+    await click(frame.locator('#start-game'));
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-started', 'true');
+    const ink = () =>
+      frame
+        .locator('#ink-value')
+        .textContent()
+        .then((value) => parseInt(value, 10));
+    const before = await ink();
+    await click(frame.locator('[data-room="crossing"]'));
+    await click(frame.locator('#primary-action'));
+    await expect.poll(ink).toBeLessThan(before);
   } else if (id === 'waterline-station') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
     await expect(frame.locator('#level-name')).not.toBeEmpty();
@@ -294,6 +433,81 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     );
     expect((await snapshot()).state).toEqual(beforePipe.state);
     await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
+  } else if (id === 'echo-lab') {
+    await frame.locator('#preset').selectOption('first');
+    await expect(frame.locator('#roomBadge')).toHaveText('72 × 40 m');
+    await click(frame.locator('#addAbsorber'));
+    await expect(frame.locator('#panelCount')).toHaveText('2 / 8');
+    await expect(frame.locator('#selectionTitle')).toContainText('吸音屏');
+    await expect(frame.locator('#scene [data-rotate]')).toHaveCount(1);
+    const angle = frame.locator('#panelAngle');
+    const box = await angle.boundingBox();
+    if (mobile) await angle.tap({ position: { x: box.width * 0.25, y: box.height / 2 } });
+    else await angle.click({ position: { x: box.width * 0.25, y: box.height / 2 } });
+    await expect(frame.locator('#angleValue')).not.toHaveText('90°');
+    await click(frame.locator('#removePanel'));
+    await expect(frame.locator('#panelCount')).toHaveText('1 / 8');
+    await click(frame.locator('#playWet'));
+    await expect(frame.locator('#playWet')).toHaveClass(/playing/);
+    await click(frame.locator('#stopAudio'));
+    await click(frame.locator('#shareLayout'));
+    await expect(frame.locator('#shareDialog')).toBeVisible();
+    await expect(frame.locator('#shareLink')).toHaveValue(/\/games\/echo-lab\/index\.html#room=/);
+    await click(frame.locator('#closeShare'));
+  } else if (id === 'echo-weaver') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__echoWeaverSnapshot());
+    await click(frame.locator('#level-nav [data-level]').first());
+    await expect(frame.locator('#level-title')).not.toBeEmpty();
+    const initial = (await snapshot()).state;
+    await click(frame.locator('#board [data-control]').first());
+    await expect.poll(async () => (await snapshot()).state).not.toEqual(initial);
+    await click(frame.locator('#undo'));
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#emit'));
+    await expect.poll(async () => (await snapshot()).phase).toBe('running');
+    await expect.poll(async () => (await snapshot()).phase, { timeout: 20000 }).toBe('result');
+    await expect(frame.locator('#result')).toBeVisible();
+    await click(frame.locator('#result-close'));
+    await click(frame.locator('#restart'));
+    await expect.poll(async () => (await snapshot()).phase).toBe('ready');
+    await expect.poll(async () => (await snapshot()).state).toEqual(initial);
+    await click(frame.locator('#level-nav [data-level]').nth(1));
+    await expect.poll(async () => (await snapshot()).levelIndex).toBe(1);
+    await expect.poll(async () => (await snapshot()).historyLength).toBe(0);
+  } else if (id === 'two-sided-box') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
+    await click(frame.locator('#start'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
+    const upperNotch = frame.locator('[data-notch-shaft="A"][data-value="2"]');
+    // A locked shaft still gives feedback to a physical touch or mouse press.
+    // Send that input directly because the notch inherits aria-disabled.
+    const lockedBounds = await upperNotch.boundingBox();
+    expect(lockedBounds).not.toBeNull();
+    const page = upperNotch.page();
+    const lockedX = lockedBounds.x + lockedBounds.width / 2;
+    const lockedY = lockedBounds.y + lockedBounds.height / 2;
+    if (mobile) await page.touchscreen.tap(lockedX, lockedY);
+    else await page.mouse.click(lockedX, lockedY);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(true);
+    await click(frame.locator('#flip'));
+    await expect.poll(async () => (await snapshot()).state.side).toBe('back');
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
+    await click(frame.locator('[data-latch="lock-A"]'));
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await click(frame.locator('#flip'));
+    await expect.poll(async () => (await snapshot()).state.side).toBe('front');
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await click(upperNotch);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
+    await click(frame.locator('#release'));
+    await expect
+      .poll(async () => (await snapshot()).state.completed, { timeout: 15000 })
+      .toBe(true);
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await expect(frame.locator('#next')).toBeVisible();
   } else if (id === 'tiny-signals') {
     const swipe = async (dx, dy) => {
       const boards = frame.locator('#boards');

@@ -1,5 +1,12 @@
 [
   {
+    "id": "echo-lab",
+    "source": "games/local/echo-lab",
+    "title": "回声实验室 · Echo Lab",
+    "description": "拖动和旋转反射板、消音板，分别调节四面墙的反射率，听见空间改变声音；导出原声与调制声，分享房间链接邀请朋友一起实验。",
+    "output": "dist"
+  },
+  {
     "id": "maze-wander",
     "source": "games/local/maze-wander",
     "title": "迷境漫游",
@@ -270,6 +277,41 @@
     "source": "games/local/tiny-signals",
     "title": "同频归航",
     "description": "一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。",
+    "output": "dist"
+  },
+  {
+    "id": "bullet-garden",
+    "source": "games/local/bullet-garden",
+    "title": "子弹花园 · Bullet Garden",
+    "description": "在遗迹庭院守住五分钟：射击暗影怪物，把落空的种子弹种成荆棘、寒冰柱与爆炸蘑菇，亲手布置下一波战场。",
+    "output": "dist"
+  },
+  {
+    "id": "ink-is-everything",
+    "source": "games/local/ink-is-everything",
+    "title": "一滴墨，决定一切",
+    "description": "在手绘遗迹中，用同一池墨水绘路、战斗、疗愈与交易，探索支路获取回报，越过第一章墨之门。",
+    "output": "dist"
+  },
+  {
+    "id": "out-of-frame",
+    "source": "games/local/out-of-frame",
+    "title": "Out of Frame · 框外静止",
+    "description": "拖动观察框，让机器人与平台在框内运动、框外冻结，定格开关、搭起归途，解开六间时光工坊。",
+    "output": "dist"
+  },
+  {
+    "id": "echo-weaver",
+    "source": "games/local/echo-weaver",
+    "title": "回声编织 · Echo Weaver",
+    "description": "转动反射板，分配声能与延迟，让一次敲击的三道回声准时抵达，解开八关节拍谜题。",
+    "output": "dist"
+  },
+  {
+    "id": "two-sided-box",
+    "source": "games/local/two-sided-box",
+    "title": "双面机关盒",
+    "description": "翻转盒子，观察两侧共享的滑轴、锁扣和挡板，安排解锁与移动顺序，让小球穿过六个机械谜盒。",
     "output": "dist"
   }
 ]

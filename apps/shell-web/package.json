@@ -12,6 +12,7 @@
     "build:pages": "node scripts/prepare-standalone-games.mjs && tsc -b && vite build --mode pages",
     "test:pages": "node scripts/lazy-loading-smoke.mjs && node scripts/pages-smoke.mjs",
     "test:lazy-loading": "node scripts/lazy-loading-smoke.mjs",
+    "test:game-meta": "node scripts/game-meta-smoke.mjs",
     "test:fullscreen-touch": "node scripts/fullscreen-touch-check.mjs",
     "test:sharing": "node scripts/game-sharing-smoke.mjs",
     "test": "vitest run",
@@ -22,6 +23,7 @@
     "smoke:remote": "node scripts/remote-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",
     "@coffeeeeffoc/urban-breakout": "workspace:*",
     "@coffeeeeffoc/homebound-station": "workspace:*",
@@ -74,7 +76,12 @@
     "@coffeeeeffoc/ghost-shift-manager": "workspace:*",
     "@coffeeeeffoc/rule-thief": "workspace:*",
     "@coffeeeeffoc/waterline-station": "workspace:*",
-    "@coffeeeeffoc/tiny-signals": "workspace:*"
+    "@coffeeeeffoc/tiny-signals": "workspace:*",
+    "@coffeeeeffoc/bullet-garden": "workspace:*",
+    "@coffeeeeffoc/ink-is-everything": "workspace:*",
+    "@coffeeeeffoc/out-of-frame": "workspace:*",
+    "@coffeeeeffoc/echo-weaver": "workspace:*",
+    "@coffeeeeffoc/two-sided-box": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

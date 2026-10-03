@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#122824" />
+    <title>Out of Frame · 框外静止</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23122824'/%3E%3Cpath d='M16 8H8v9m16-9h8v9M8 24v8h8m8 0h8v-8' fill='none' stroke='%239ce6c3' stroke-width='3'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./game.mjs"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="masthead">
+        <a class="brand" href="#" aria-label="Out of Frame 首页"
+          ><span class="brand-mark" aria-hidden="true"></span
+          ><span>OUT OF FRAME<small>框外静止 / 空间时间实验</small></span></a
+        >
+        <div class="header-actions">
+          <span class="edition">THE OBSERVER SERIES <b>VOL. 01</b></span
+          ><button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false">
+            ♪</button
+          ><button id="help" class="icon-button" aria-label="玩法说明">?</button>
+        </div>
+      </header>
+      <div class="game-layout">
+        <section class="play-panel" aria-label="实验房间">
+          <header class="room-header">
+            <div class="room-heading">
+              <span id="room-number">01</span>
+              <div>
+                <p id="room-kicker" class="eyebrow">观察入门</p>
+                <h1 id="room-title">留下这一刻</h1>
+              </div>
+            </div>
+            <div class="live-label"><i></i><span id="live-status">实验待开始</span></div>
+            <button id="pause" class="icon-button" aria-label="暂停">
+              <span class="pause-icon" aria-hidden="true"></span>
+            </button>
+          </header>
+          <div class="scene-wrap">
+            <canvas
+              id="board"
+              width="960"
+              height="540"
+              data-level="1"
+              tabindex="0"
+              aria-label="实验场景。拖动观察框，框内带菱形核心的物体运动，框外冻结。"
+              >请使用支持 Canvas 的现代浏览器。</canvas
+            >
+            <div id="intro" class="scene-overlay intro">
+              <div class="intro-card">
+                <p class="eyebrow">A SMALL EXPERIMENT IN TIME</p>
+                <h2>有些时刻，<br />值得<span>移开目光。</span></h2>
+                <p class="intro-copy">
+                  拖动观察框，让机械继续前进，<br />或把这一刻，留作你的下一步。
+                </p>
+                <button id="start-button" class="primary-button">进入实验室 <span>↗</span></button>
+                <p id="intro-meta" class="intro-meta">自由探索 · 免费回退</p>
+              </div>
+            </div>
+            <div id="result" class="scene-overlay" hidden>
+              <div class="result-card">
+                <span id="result-icon" class="result-icon" aria-hidden="true">↗</span>
+                <p id="result-kicker" class="eyebrow">EXPERIMENT COMPLETE</p>
+                <h2 id="result-title">这一刻，恰到好处。</h2>
+                <p id="result-copy"></p>
+                <button id="next-level" class="primary-button">下一个房间 →</button>
+                <div class="result-actions">
+                  <button id="result-undo">回退 1 秒</button
+                  ><button id="result-retry">再试一次</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="scene-legend">
+            <span><i class="dot running"></i>框内 · 运动</span
+            ><span><i class="pause-mini"></i>框外 · 冻结</span
+            ><span class="player-legend"><i class="dot player-dot"></i>你 · 始终自由</span>
+          </div>
+          <div class="touch-controls" aria-label="角色控制">
+            <div class="direction-pad">
+              <button id="move-left" aria-label="向左移动">←</button
+              ><button id="move-right" aria-label="向右移动">→</button>
+            </div>
+            <p>拖动场景中的观察框<span>方向键 / A D 移动 · 空格跳跃</span></p>
+            <button id="jump" aria-label="跳跃">
+              <svg width="22" height="24" viewBox="0 0 22 24" fill="none" aria-hidden="true">
+                <path
+                  d="M11 18V4m-6 6 6-6 6 6M4 21h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              跳跃
+            </button>
+          </div>
+        </section>
+        <aside class="mission-panel">
+          <div class="mission-top">
+            <span class="eyebrow">FIELD NOTES / 实验记录</span><span class="note-mark">↗</span>
+          </div>
+          <div class="mission-main">
+            <p class="eyebrow">本关目标</p>
+            <h2 id="goal">让机器人留在开关上，再走向出口。</h2>
+            <div id="object-status" class="object-status"></div>
+            <div class="rule-note">
+              <span class="diamond"></span>
+              <p>只有带菱形核心的机械受框控制。<strong>核心在框内：运动；框外：冻结。</strong></p>
+            </div>
+          </div>
+          <div class="utility">
+            <button id="undo" disabled>
+              <span>↶</span> 回退 1 秒<small>免费 · 包含观察框</small></button
+            ><button id="restart"><span>↻</span> 重新开始<small>重置当前房间</small></button>
+          </div>
+          <button id="hint" class="hint-button">需要一点线索？ <span>＋</span></button>
+          <p id="hint-copy" class="hint-copy" role="status" aria-live="polite">
+            先观察，再试着移开目光。
+          </p>
+        </aside>
+      </div>
+      <footer class="route">
+        <div class="route-title">
+          <span class="eyebrow">EXPERIMENT ROOMS</span><span id="progress-label">实验进度</span>
+        </div>
+        <nav id="level-nav" aria-label="选择实验房间"></nav>
+      </footer>
+      <div class="colophon">
+        <span>你决定，哪些时刻继续。</span><span>OUT OF FRAME · WEB PROLOGUE</span>
+      </div>
+    </main>
+    <dialog id="pause-dialog" aria-labelledby="pause-title">
+      <p class="eyebrow">TAKE YOUR TIME</p>
+      <h2 id="pause-title">时间在等你。</h2>
+      <p>实验已暂停。准备好后继续。</p>
+      <button id="resume" class="primary-button">继续实验 →</button
+      ><button id="pause-help" class="text-button">玩法说明</button>
+      <p class="eyebrow pause-route-label">重访实验房间</p>
+      <nav id="pause-levels" aria-label="暂停菜单选择房间"></nav>
+      <button id="pause-home" class="text-button">回到开场</button>
+    </dialog>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <p class="eyebrow">OBSERVER'S HANDBOOK</p>
+      <h2 id="help-title">让目光成为工具。</h2>
+      <ol>
+        <li>
+          <strong>拖动观察框</strong>
+          <p>
+            拖框内或边缘可移动固定尺寸的框；点击框外，可把框中心移到那里。键盘 I J K L 也能移动框。
+          </p>
+        </li>
+        <li>
+          <strong>安排哪些机械运动</strong>
+          <p>
+            机器人和平台的菱形核心在框内才运动（边界算框内），框外精确停住。机器人、平台始终可站立；机器人或玩家都能压住开关。
+          </p>
+        </li>
+        <li>
+          <strong>你始终自由</strong>
+          <p>
+            屏幕按钮或 A/D、方向键移动，空格/W/↑
+            跳跃。看着平台让它载你前进；移开框，让机器人守住开关。
+          </p>
+        </li>
+        <li>
+          <strong>放心试错</strong>
+          <p>
+            回退按钮或 Z 免费回到 1 秒前，同时恢复角色、物体和观察框；每关记录从头保留。R 重来，Esc
+            暂停。切换关卡会清空当前回退记录。
+          </p>
+        </li>
+      </ol>
+      <button id="close-help" class="primary-button">明白了 →</button>
+    </dialog>
+  </body>
+</html>

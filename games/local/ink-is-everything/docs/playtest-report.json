@@ -1,0 +1,68 @@
+{
+  "url": "http://127.0.0.1:4412/",
+  "date": "2026-10-03T07:16:54.757Z",
+  "cases": [
+    {
+      "name": "Desktop direct route, native keyboard, pause/help input lock, gate selection cancellation, victory and restart",
+      "status": "passed",
+      "summary": {
+        "title": "利墨破局者",
+        "turns": 21,
+        "explored": 7,
+        "totalRooms": 13,
+        "inkRemaining": 9,
+        "totalSpent": 81,
+        "spent": {
+          "explore": 36,
+          "attack": 45,
+          "heal": 0,
+          "trade": 0
+        },
+        "efficiency": "行云流水"
+      }
+    },
+    {
+      "name": "390×844 native touch, both contracts, all 13 rooms, combat healing, mid-fight reload, saved restart confirmation, reward selection cancellation and victory",
+      "status": "passed",
+      "summary": {
+        "title": "绘界旅人",
+        "turns": 36,
+        "explored": 13,
+        "totalRooms": 13,
+        "inkRemaining": 50,
+        "totalSpent": 112,
+        "spent": {
+          "explore": 42,
+          "attack": 40,
+          "heal": 8,
+          "trade": 22
+        },
+        "efficiency": "从容有度"
+      }
+    },
+    {
+      "name": "Ignoring enemy intent causes loss; terminal save is removed; result restart restores full resources",
+      "status": "passed"
+    },
+    {
+      "name": "Unavailable local storage does not block touch exploration, rewards, pause or sound preference",
+      "status": "passed"
+    },
+    {
+      "name": "Native mouse drag draws an adjacent room and returns along a free existing route",
+      "status": "passed"
+    },
+    {
+      "name": "Native touch (including cancellation) drag draws an adjacent room and returns along a free existing route",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    "screenshots/desktop-opening.png",
+    "screenshots/desktop-combat.png",
+    "screenshots/desktop-victory.png",
+    "screenshots/mobile-combat.png"
+  ],
+  "errors": [],
+  "status": "passed"
+}

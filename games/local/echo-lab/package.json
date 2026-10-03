@@ -1,0 +1,21 @@
+{
+  "name": "@coffeeeeffoc/echo-lab",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A small, local-first acoustic sandbox",
+  "engines": {
+    "node": ">=24.21.0"
+  },
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "check": "node --check src/app.js && node --check src/acoustics.js && node --check src/audio.js && node --check src/layout.js && node --check src/archive.js && node --check server.js",
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/audio.browser.js && node tests/ui.browser.js",
+    "build": "node build.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

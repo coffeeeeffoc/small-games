@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1d211f" />
+    <meta
+      name="description"
+      content="一滴墨，决定一切。用同一瓶墨水探索、战斗、疗伤与交易，在手绘地牢中写下自己的结局。"
+    />
+    <title>Ink Is Everything · 一滴墨，决定一切</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="game-root" data-started="false">
+      <header class="topbar">
+        <a class="wordmark" href="#" aria-label="Ink Is Everything 首页"
+          ><span>Ink Is Everything<span class="title-dot">.</span></span
+          ><small>一滴墨，决定一切</small></a
+        >
+        <div class="ink-hud" aria-label="共享墨水池">
+          <span class="bottle" data-icon="ink"></span>
+          <div class="ink-meter">
+            <div class="meter-label">
+              <span>墨 水 <small>INK IS EVERYTHING</small></span
+              ><span><b id="ink-value">72</b><em> / 100</em></span>
+            </div>
+            <div
+              class="ink-track"
+              role="progressbar"
+              aria-label="剩余墨水"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="72"
+            >
+              <i id="ink-fill"></i>
+            </div>
+            <small class="ink-caption">探索 · 战斗 · 治疗 · 交易，共用这一瓶</small>
+          </div>
+        </div>
+        <div class="vitals">
+          <div id="hearts" class="hearts" aria-label="生命5/5"></div>
+          <div class="seal-stat">
+            <span data-icon="key"></span><b id="seal-value">0</b><span>/ 2<small>钥印</small></span>
+          </div>
+        </div>
+        <div class="header-tools">
+          <button id="sound" class="icon-button" aria-label="开启声音" title="声音">
+            <span data-icon="sound"></span></button
+          ><button id="help" class="icon-button" aria-label="玩法说明" title="玩法说明">
+            <span data-icon="help"></span></button
+          ><button id="pause" class="icon-button" aria-label="暂停" title="暂停 · Esc">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="chapter-heading">
+          <div>
+            <span class="eyebrow"><i></i> THE UNWRITTEN WORLD</span>
+            <h1>第一章<span>遗忘之庭</span></h1>
+          </div>
+          <p>世界尚未成形。<br />你落下的每一笔，都有代价。</p>
+          <div class="chapter-number">CHAPTER <strong>01</strong><span> / 序章</span></div>
+        </section>
+        <div class="adventure-layout">
+          <aside class="journey-panel">
+            <div class="section-label"><span>旅 人 手 记</span><span>01 — 01</span></div>
+            <h2>让世界，<br />在笔下醒来。</h2>
+            <p class="intro-copy">
+              这里没有金币。<br />没有无代价的捷径。<br />只有一瓶墨，和你的选择。
+            </p>
+            <div class="objective">
+              <span class="mini-label">此 行 目 标</span>
+              <h3>开启墨之门</h3>
+              <ul id="objectives">
+                <li>找到两枚失落的钥印</li>
+                <li>抵达北方的古老拱门</li>
+                <li>击败门后的守门者</li>
+              </ul>
+            </div>
+            <div class="ink-note">
+              <span class="note-pin"></span>
+              <p>“墨水不只是资源，<br />而是这个世界本身。”</p>
+              <svg viewBox="0 0 150 22" aria-hidden="true">
+                <path d="M8 15 Q57 0 140 9 M30 20 Q95 8 128 14" />
+              </svg>
+            </div>
+            <div class="journal-bottom">
+              <span data-icon="brush"></span>
+              <p>不必画出整个世界。<br /><b>只需找到你的那条路。</b></p>
+            </div>
+          </aside>
+
+          <section class="map-panel" aria-label="遗忘之庭地图">
+            <div class="map-topline">
+              <span><i class="live-dot"></i> <b id="location-name">旅人的落笔处</b></span
+              ><span id="map-progress">已绘 1 / 13</span>
+            </div>
+            <div class="map-viewport">
+              <div id="map-art" aria-hidden="true"></div>
+              <div id="map-nodes" aria-label="选择相邻房间"></div>
+              <svg id="map-drag-layer" aria-hidden="true"><polyline id="brush-trail" /></svg>
+              <div class="compass" aria-hidden="true">
+                <span>N</span
+                ><svg viewBox="0 0 48 48">
+                  <path d="M24 3 29 21 45 24 29 29 24 45 19 29 3 24 19 21Z" />
+                  <path d="M24 3V45M3 24H45" />
+                </svg>
+              </div>
+              <div class="map-watermark">
+                THE FORGOTTEN COURT<br /><span>— 一张尚未写完的地图 —</span>
+              </div>
+            </div>
+            <div class="map-bottomline">
+              <span class="map-legend"><i></i> 已绘区域 <i></i> 未知区域 <i></i> 当前所在</span
+              ><span id="turn-label">落笔之前</span>
+            </div>
+            <div id="toast" role="status" aria-live="polite"></div>
+          </section>
+
+          <aside class="encounter-panel" id="encounter" aria-live="polite"></aside>
+        </div>
+
+        <section class="actions-section" aria-label="墨水的四种用途">
+          <div class="action-heading">
+            <span>一 瓶 墨 水 · 四 种 抉 择</span>
+            <p>多画一条路，就少一次挥笔。</p>
+            <span class="keyboard-hint"
+              >快捷键 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></span
+            >
+          </div>
+          <div id="action-cards" class="action-cards"></div>
+        </section>
+        <footer>
+          <span>INK IS EVERYTHING <i>◆</i> 单章节试玩</span>
+          <p>留白，也是一种选择。</p>
+          <button id="restart">重新落笔 <span data-icon="restart"></span></button>
+        </footer>
+      </main>
+    </div>
+    <dialog id="modal" aria-labelledby="modal-title">
+      <button id="modal-close" class="icon-button" aria-label="关闭">
+        <span data-icon="close"></span>
+      </button>
+      <div id="modal-content"></div>
+    </dialog>
+    <script type="module" src="./game.mjs"></script>
+  </body>
+</html>

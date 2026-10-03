@@ -41,7 +41,13 @@ export function StandaloneGame({
           独立打开
         </a>
       </nav>
-      <iframe ref={frame} title={title} src={entry} allow="autoplay; fullscreen" allowFullScreen />
+      <iframe
+        ref={frame}
+        title={title}
+        src={entry}
+        allow={id === 'echo-lab' ? 'autoplay; fullscreen; microphone' : 'autoplay; fullscreen'}
+        allowFullScreen
+      />
     </main>
   );
 }

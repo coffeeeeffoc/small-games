@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it } from 'vitest';
 import { ShellApp } from '../src/ShellApp.js';
+import gameMeta from '../src/game-meta.json';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -25,6 +26,7 @@ it('filters both catalog views and keeps the search when returning from a game',
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
     const all = titles();
     expect(container.querySelector('.catalog-list')).not.toBeNull();
+    expect(container.querySelector('.game-history')).toBeNull();
     for (const query of ['湾卡丁', '漂移蓄力', 'LOCAL/CARDING', '  ＣＡＲＤＩＮＧ_car  海湾 ']) {
       await search(query);
       expect(titles()).toEqual(['浪湾卡丁车']);
@@ -33,6 +35,16 @@ it('filters both catalog views and keeps the search when returning from a game',
     expect(container.querySelector('.catalog-list')).toBeNull();
     expect(container.querySelector('[aria-pressed="true"]')?.textContent).toBe('详情卡片');
     expect(titles()).toEqual(['浪湾卡丁车']);
+    expect(container.querySelectorAll('.game-history time')).toHaveLength(2);
+    expect(container.querySelector('.game-history time')?.getAttribute('datetime')).toBe(
+      gameMeta.games['carding-car'].created.time,
+    );
+    expect(container.querySelector('.game-history code')?.getAttribute('title')).toBe(
+      gameMeta.games['carding-car'].created.commit,
+    );
+    expect(container.querySelector('.game-history code')?.textContent).toBe(
+      gameMeta.games['carding-car'].created.commit.slice(0, 8),
+    );
     await click('进入游戏');
     expect(container.querySelector('iframe')?.title).toBe('浪湾卡丁车');
     await click('返回目录');
@@ -57,6 +69,11 @@ it('filters both catalog views and keeps the search when returning from a game',
     expect(container.textContent).toContain('没有找到匹配的游戏');
     await click('清空搜索');
     expect(titles()).toEqual(all);
+    await click('详情卡片');
+    expect(container.querySelectorAll('.game-history')).toHaveLength(all.length);
+    expect(container.querySelectorAll('.game-history time')).toHaveLength(all.length * 2);
+    await click('简洁一览');
+    expect(container.querySelector('.game-history')).toBeNull();
     await search('   ');
     expect(titles()).toEqual(all);
   } finally {
