@@ -122,6 +122,29 @@ select {
 .catalog-grid article {
   min-width: 0;
 }
+.game-history {
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 1px solid #34394a;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #aeb4c4;
+}
+.game-history > div {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+.game-history dd {
+  margin: 0;
+}
+.game-history time {
+  display: block;
+}
+.game-history code {
+  letter-spacing: 0.04em;
+}
 .catalog-list {
   grid-template-columns: 1fr;
   gap: 8px;

@@ -31,3 +31,4 @@ __pycache__/
 .tmp/arena/
 outputs/
 /test-results/building-power/
+/test-results/game-meta/

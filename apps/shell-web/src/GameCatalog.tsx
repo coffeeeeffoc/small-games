@@ -1,4 +1,5 @@
 import standaloneGames from './standalone-games.json';
+import gameMeta from './game-meta.json';
 import type { BuiltInGame, LazyBuiltInGame } from './registry.js';
 import { featuredPlay } from './featured-play.js';
 
@@ -19,6 +20,39 @@ const normalize = (text: string) =>
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[\s\p{P}]/gu, '');
+
+const metadata: Record<string, (typeof gameMeta.games)[keyof typeof gameMeta.games]> =
+  gameMeta.games;
+const commitTime = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+});
+
+function GameHistory({ id }: { id: string }) {
+  const meta = metadata[id];
+  if (!meta) return null;
+  return (
+    <dl className="game-history" aria-label="游戏提交记录">
+      {(['created', 'updated'] as const).map((kind) => (
+        <div key={kind}>
+          <dt>{kind === 'created' ? '创建' : '最后更新'}</dt>
+          <dd>
+            <time dateTime={meta[kind].time} title="北京时间">
+              {commitTime.format(new Date(meta[kind].time))}
+            </time>
+            <code title={meta[kind].commit}>{meta[kind].commit.slice(0, 8)}</code>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 /** The same searchable catalog in compact and detailed layouts. */
 export function GameCatalog({
@@ -86,7 +120,11 @@ export function GameCatalog({
         aria-label="Game Catalog"
       >
         {matches.map((game) => (
-          <article key={game.id} className={featuredPlay[game.id] ? 'featured-game' : undefined}>
+          <article
+            key={game.id}
+            data-game-id={game.id}
+            className={featuredPlay[game.id] ? 'featured-game' : undefined}
+          >
             {view === 'cards' && !featuredPlay[game.id] && (
               <span>
                 {!('source' in game)
@@ -99,6 +137,7 @@ export function GameCatalog({
             <h2>{game.title}</h2>
             {!featuredPlay[game.id] && <code>{sourceOf(game)}</code>}
             <p>{featuredPlay[game.id]?.hook ?? game.description}</p>
+            {view === 'cards' && <GameHistory id={game.id} />}
             <button disabled={!('source' in game) && disabled} onClick={() => onLaunch(game.id)}>
               进入游戏
             </button>

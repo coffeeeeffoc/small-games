@@ -144,6 +144,14 @@ async function fixture(t) {
       output: 'dist',
     },
   ]);
+  const record = { commit: 'a'.repeat(40), time: '2026-09-01T08:00:00+08:00' };
+  await write('apps/shell-web/src/game-meta.json', {
+    schemaVersion: 1,
+    games: {
+      'mini-front': { source: gameSource, created: record, updated: record },
+      builtin: { source: builtinSource, created: record, updated: record },
+    },
+  });
   await write(
     'apps/shell-web/src/registry.ts',
     `import { builtinGameDefinition } from '${builtinName}';
@@ -238,6 +246,7 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
   for (const relative of [
     '.githooks/pre-push',
     'scripts/check-game-config.mjs',
+    'scripts/game-meta.mjs',
     'scripts/platform-process.mjs',
   ])
     await f.write(relative, await readFile(path.join(repo, relative), 'utf8'));
@@ -261,10 +270,38 @@ test('the real pre-push hook fails when an existing game is omitted from Shell',
   const registered = hook();
   assert.equal(registered.status, 0, registered.stdout + registered.stderr);
 
+  const meta = await f.json('apps/shell-web/src/game-meta.json');
+  const saved = meta.games['mini-front'];
+  delete meta.games['mini-front'];
+  await f.write('apps/shell-web/src/game-meta.json', meta);
+  const missingMeta = hook();
+  assert.equal(missingMeta.status, 1, missingMeta.stdout + missingMeta.stderr);
+  assert.match(missingMeta.stderr, /\[game-meta-missing\].*games\/local\/mini-front/);
+  meta.games['mini-front'] = saved;
+  await f.write('apps/shell-web/src/game-meta.json', meta);
+
   await f.write('apps/shell-web/src/standalone-games.json', []);
   const omitted = hook();
   assert.equal(omitted.status, 1, omitted.stdout + omitted.stderr);
   assert.match(omitted.stderr, /\[unregistered-game\].*games\/local\/mini-front/);
+});
+
+test('blocks missing metadata for both standalone and builtin games', async (t) => {
+  const f = await fixture(t);
+  for (const id of ['mini-front', 'builtin']) {
+    const meta = await f.json('apps/shell-web/src/game-meta.json');
+    const saved = meta.games[id];
+    delete meta.games[id];
+    await f.write('apps/shell-web/src/game-meta.json', meta);
+    const report = await auditGameConfig(f.root);
+    assert(
+      report.errors.some(
+        (error) => error.code === 'game-meta-missing' && error.path === saved.source,
+      ),
+    );
+    meta.games[id] = saved;
+    await f.write('apps/shell-web/src/game-meta.json', meta);
+  }
 });
 
 test('rejects duplicate ids, sources, package names and escaping catalog paths', async (t) => {
