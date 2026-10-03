@@ -11,6 +11,10 @@ import {
   getProgress,
   getHint,
   switchToReassembly,
+  axisIndex,
+  pieceBounds,
+  piecesSeparated,
+  type Axis,
   type Transaction,
 } from './core/index.ts';
 import { levels } from './levels/index.ts';
@@ -48,11 +52,11 @@ app.innerHTML = `
     <div class="view-tools" aria-label="视角工具"><button id="camera-reset" class="icon-button" aria-label="还原视角" title="还原视角">${icon('focus')}</button><button id="zoom-in" class="icon-button" aria-label="放大">${icon('plus')}</button><button id="zoom-out" class="icon-button" aria-label="缩小">${icon('minus')}</button><button id="xray" class="icon-button" aria-label="透视观察" aria-pressed="false" title="透视观察">${icon('eye')}</button></div>
     <div class="scene-caption" aria-hidden="true"><span>拖空白旋转</span><i></i><span>双指缩放</span></div>
     <div id="completion" class="completion" hidden></div>
-    <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">点选一根榫条，沿它的方向拖动</p></div>
+    <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">拖动任意榫条试探方向，也可组合多件一起移动</p></div>
   </main>
   <footer class="controls">
-    <div class="pieces-section"><div class="section-label">零件<span>点选 · 拖动</span></div><div id="pieces" class="piece-list" aria-label="选择零件"></div></div>
-    <div class="manipulation"><div class="selected-meta"><span id="selected-dot"></span><strong id="selected-name">选择一个零件</strong><span id="selected-axis">沿轨道移动</span></div><div class="move-buttons"><button id="nudge-negative" aria-label="沿负方向微调" disabled>${icon('minus')}<span>微移</span></button><div class="axis-indicator"><span id="axis-letter">—</span><small>滑动轴</small></div><button id="nudge-positive" aria-label="沿正方向微调" disabled>${icon('plus')}<span>微移</span></button></div></div>
+    <div class="pieces-section"><div class="section-label">零件<button id="group-select" class="group-select" aria-label="组合选择多个零件" aria-pressed="false">组合</button></div><div id="pieces" class="piece-list" aria-label="选择零件"></div></div>
+    <div class="manipulation"><div class="selected-meta"><span id="selected-dot"></span><strong id="selected-name">选择一个零件</strong><span id="selected-axis">三个方向均可试探</span></div><div class="move-buttons"><button id="nudge-negative" aria-label="沿负方向微调" disabled>${icon('minus')}<span>微移</span></button><div class="axis-choices" role="group" aria-label="移动方向">${(['x', 'y', 'z'] as const).map((axis, i) => `<button id="axis-${axis}" data-axis-choice="${axis}" aria-label="${['X 横向', 'Y 上下', 'Z 纵深'][i]}移动" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}<small>${['横向', '上下', '纵深'][i]}</small></button>`).join('')}</div><button id="nudge-positive" aria-label="沿正方向微调" disabled>${icon('plus')}<span>微移</span></button></div></div>
     <div class="actions"><div class="history-buttons"><button id="undo" aria-label="撤销" title="撤销">${icon('undo')}</button><button id="redo" aria-label="重做" title="重做">${icon('redo')}</button><button id="restart" aria-label="重新开始" title="重新开始">${icon('reset')}</button></div><button id="hint" class="hint-button">${icon('bulb')}<span>一点提示</span></button></div>
   </footer>
   <dialog id="dialog" aria-labelledby="dialog-title"><div class="dialog-top"><span class="eyebrow">榫间 / WORKSHOP</span><button id="close-dialog" class="icon-button" aria-label="关闭">${icon('close')}</button></div><div id="dialog-content"></div></dialog>`;
@@ -61,6 +65,9 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 let level = levels.find((item) => item.id === storage.current()) ?? levels[0]!;
 let state = storage.load(level) ?? createGame(level);
 let selected: string | null = null;
+let selectedIds: string[] = [];
+let groupMode = false;
+let activeAxis: Axis = 'x';
 let transaction: Transaction | null = null;
 let blockedIds: string[] = [];
 let xray = false;
@@ -90,6 +97,7 @@ function save() {
 
 function render() {
   const progress = getProgress(level, state);
+  const bounds = level.pieces.map((piece) => pieceBounds(piece, state.offsets[piece.id]!));
   const done = state.phase === 'disassemble' ? progress.removed : progress.assembled;
   $('level-index').textContent =
     `${String(levels.indexOf(level) + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`;
@@ -109,25 +117,36 @@ function render() {
   $('nudge-negative').toggleAttribute('disabled', !selected || transaction !== null);
   for (const button of $('pieces').querySelectorAll<HTMLButtonElement>('[data-piece]')) {
     const id = button.dataset.piece!;
-    const piece = level.pieces.find((p) => p.id === id)!;
-    button.setAttribute('aria-pressed', String(id === selected));
-    button.classList.toggle('removed', Math.abs(state.offsets[id]!) >= piece.removedAt - 0.001);
+    button.setAttribute('aria-pressed', String(selectedIds.includes(id)));
+    const index = level.pieces.findIndex((piece) => piece.id === id);
+    button.classList.toggle(
+      'removed',
+      bounds.every((box, other) => index === other || piecesSeparated(bounds[index]!, box)),
+    );
     button.classList.toggle('blocked', blockedIds.includes(id));
   }
   const piece = level.pieces.find((p) => p.id === selected);
-  $('selected-name').textContent = piece?.name ?? '选择一个零件';
+  $('selected-name').textContent =
+    selectedIds.length > 1
+      ? `${selectedIds.map(pieceLetter).join(' + ')} · 组合移动`
+      : (piece?.name ?? '选择一个零件');
   $('selected-dot').style.background = piece?.color ?? '#526173';
-  $('selected-axis').textContent = piece ? '也可直接拖动榫条' : '点选场景或下方色块';
-  $('axis-letter').textContent = piece?.axis.toUpperCase() ?? '—';
+  $('selected-axis').textContent = piece ? '拖动试探，或选方向微移' : '点选场景或下方色块';
+  $('group-select').setAttribute('aria-pressed', String(groupMode));
+  for (const axis of ['x', 'y', 'z'] as const) {
+    $(`axis-${axis}`).setAttribute('aria-pressed', String(activeAxis === axis));
+    $(`axis-${axis}`).toggleAttribute('disabled', transaction !== null);
+  }
   const completion = $('completion');
   completion.hidden = !progress.complete || transaction !== null;
   if (!completion.hidden) {
     if (state.phase === 'disassemble') {
-      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>一榫一卯，解开了。</h3><p>现在试着亲手把它们装回去。</p></div><button id="reassemble" class="primary">开始复原</button>`;
+      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>一榫一卯，解开了。</h3><p>各件已彼此分离，现在试着把它们装回去。</p></div><button id="reassemble" class="primary">开始复原</button>`;
       $('reassemble').onclick = () => {
         cancelActive();
         state = switchToReassembly(level, state);
         selected = null;
+        selectedIds = [];
         blockedIds = [];
         lastHint = null;
         save();
@@ -143,29 +162,78 @@ function render() {
           : openLevels();
     }
   }
-  scene?.update(state.offsets, selected, blockedIds, xray);
+  scene?.update(state.offsets, selected, blockedIds, xray, selectedIds, activeAxis);
   positionHandles();
 }
 
 function positionHandles() {
   const stage = $('stage');
-  const endpoints = selected && scene ? scene.projectAxisEnds(selected) : null;
+  const rect = stage.getBoundingClientRect();
+  const endpoints = selected && scene ? scene.projectAxisEnds(selected, activeAxis) : null;
+  const edgeOn =
+    selected && scene ? scene.axisScreen(selected, activeAxis).pixelsPerUnit < 12 : false;
   for (const direction of ['negative', 'positive'] as const) {
     const handle = $(`axis-${direction}`);
-    handle.hidden = !endpoints || !scene || !selected || stage.clientHeight < 280;
+    handle.dataset.axis = activeAxis;
+    handle.setAttribute(
+      'aria-label',
+      `${activeAxis.toUpperCase()} ${direction === 'positive' ? '正' : '负'}方向手柄：点击微移或拖动`,
+    );
+    handle.hidden = !endpoints || !scene || !selected || edgeOn || stage.clientHeight < 280;
     if (endpoints) {
-      handle.style.left = `${Math.max(26, Math.min(stage.clientWidth - 66, endpoints[direction].x))}px`;
-      handle.style.top = `${Math.max(128, Math.min(stage.clientHeight - 92, endpoints[direction].y))}px`;
+      const point = endpoints[direction];
+      // A handle must remain on the projected axis; clamping it onto another
+      // visible piece would steal that piece's touch target after orbiting.
+      handle.hidden ||=
+        point.x < 26 ||
+        point.x > stage.clientWidth - 66 ||
+        point.y < 120 ||
+        point.y > stage.clientHeight - 66;
+      // Projected controls must not cover another piece's visible face. Keep
+      // that face directly selectable; the fixed XYZ controls remain available.
+      if (!handle.hidden) {
+        handle.hidden = [
+          [0, 0],
+          [-20, 0],
+          [20, 0],
+          [0, -20],
+          [0, 20],
+          [-14, -14],
+          [-14, 14],
+          [14, -14],
+          [14, 14],
+        ].some(([dx, dy]) => {
+          const hit = scene.pick(rect.left + point.x + dx!, rect.top + point.y + dy!);
+          return hit !== null && !selectedIds.includes(hit);
+        });
+      }
+      handle.style.left = `${point.x}px`;
+      handle.style.top = `${point.y}px`;
     }
   }
 }
 
-function select(id: string) {
+function pieceLetter(id: string) {
+  return String.fromCharCode(65 + level.pieces.findIndex((piece) => piece.id === id));
+}
+
+function select(id: string, additive = false) {
+  const alreadySelected = selectedIds.includes(id);
+  if (groupMode || additive) {
+    if (!alreadySelected) selectedIds = [...selectedIds, id];
+    if (additive) groupMode = true;
+  } else if (!alreadySelected) selectedIds = [id];
+  if (!selectedIds.length) selectedIds = [id];
   selected = id;
   blockedIds = [];
   lastHint = null;
   const piece = level.pieces.find((p) => p.id === id)!;
-  status(`已选中${piece.name} · 沿发光轨道拖动，或用下方 ± 微移`);
+  if (!alreadySelected && selectedIds.length === 1) activeAxis = piece.axis;
+  status(
+    selectedIds.length > 1
+      ? `已选中 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动任一选中件，组合一起移动`
+      : `已选中${piece.name} · 可向三个方向拖动，也可点“组合”一起移动`,
+  );
   render();
 }
 
@@ -187,24 +255,26 @@ function describeMove(result: { blocked: boolean; blockedBy: string[]; actualOff
     status(
       names.length
         ? `被${names.join('、')}挡住了 · 先给它让出空间`
-        : '已到轨道尽头 · 试试另一个方向',
+        : '这个方向暂时无法移动 · 换个方向试探',
       true,
     );
   } else if (selected) {
-    const piece = level.pieces.find((p) => p.id === selected)!;
     status(
-      Math.abs(result.actualOffset) >= piece.removedAt - 0.001
-        ? `${piece.name}已完全取出`
-        : Math.abs(result.actualOffset) < 0.001
-          ? `${piece.name}回到装配位置`
-          : `${piece.name}正在移动 · 松手后轻轻吸附`,
+      `${selectedIds.map(pieceLetter).join(' + ')} 正沿 ${activeAxis.toUpperCase()} 方向移动 · 松手后轻轻吸附`,
     );
   }
 }
 
 function moveBy(delta: number) {
   if (!selected || transaction) return;
-  const result = tryMove(level, state, selected, state.offsets[selected]! + delta);
+  const ids = [selected, ...selectedIds.filter((id) => id !== selected)];
+  const result = tryMove(
+    level,
+    state,
+    ids,
+    state.offsets[selected]![axisIndex(activeAxis)] + delta,
+    activeAxis,
+  );
   state = result.state;
   lastHint = null;
   describeMove(result);
@@ -222,9 +292,26 @@ function mountPieces() {
   $('pieces')
     .querySelectorAll<HTMLButtonElement>('[data-piece]')
     .forEach((button) => {
-      button.onclick = () => {
+      button.onclick = (event) => {
         cancelActive();
-        select(button.dataset.piece!);
+        const id = button.dataset.piece!;
+        if (groupMode || event.shiftKey) {
+          groupMode = true;
+          if (selectedIds.includes(id)) {
+            selectedIds = selectedIds.filter((value) => value !== id);
+            selected = selectedIds.at(-1) ?? null;
+            blockedIds = [];
+            lastHint = null;
+            render();
+            status(
+              selected
+                ? `组合中保留 ${selectedIds.map(pieceLetter).join(' + ')}`
+                : '点选要一起移动的零件',
+            );
+            return;
+          }
+        } else selectedIds = [];
+        select(id, event.shiftKey);
       };
     });
 }
@@ -238,15 +325,20 @@ function connectInput() {
         const target = document.elementFromPoint(x, y);
         return target?.closest('[data-axis-step]') && selected ? selected : scene.pick(x, y);
       },
-      axisScreen: (id) => scene.axisScreen(id),
+      axisScreen: (id, axis) => scene.axisScreen(id, axis),
       orbit: (dx, dy) => scene.orbit(dx, dy),
       zoom: (factor) => scene.zoom(factor),
     },
     {
       select,
-      begin(id) {
-        transaction = beginTransaction(state, id);
-        return state.offsets[id]!;
+      begin(id, axis) {
+        activeAxis = axis ?? activeAxis;
+        transaction = beginTransaction(
+          state,
+          [id, ...selectedIds.filter((value) => value !== id)],
+          activeAxis,
+        );
+        return state.offsets[id]![axisIndex(activeAxis)];
       },
       move(target) {
         if (!transaction) return;
@@ -264,14 +356,13 @@ function connectInput() {
         save();
         render();
         if (!blockedIds.length && selected) {
-          const piece = level.pieces.find((item) => item.id === selected)!;
-          const offset = Math.abs(state.offsets[selected]!);
+          const atOrigin = selectedIds.every((id) =>
+            state.offsets[id]!.every((value) => Math.abs(value) < 0.001),
+          );
           status(
-            offset >= piece.removedAt
-              ? `${piece.name}已完全取出`
-              : offset < 0.001
-                ? `${piece.name}回到装配位置`
-                : `${piece.name}已移动到位 · 继续试探，或换根榫条`,
+            atOrigin
+              ? '选中零件已回到装配位置'
+              : `${selectedIds.map(pieceLetter).join(' + ')} 已移动到位 · 可继续换方向或拆分组合`,
           );
         }
       },
@@ -289,7 +380,8 @@ function connectInput() {
       edgeOn() {
         status('这个角度不易拖动 · 转一下视角，或用下方 ± 微移');
       },
-      nudge(direction) {
+      nudge(direction, axis) {
+        if (axis) activeAxis = axis;
         moveBy(direction * 0.5);
       },
     },
@@ -310,18 +402,25 @@ function loadLevel(index: number) {
   level = levels[index]!;
   state = storage.load(level) ?? createGame(level);
   selected = null;
+  selectedIds = [];
+  groupMode = false;
+  activeAxis = 'x';
   blockedIds = [];
   transaction = null;
   xray = false;
   lastHint = null;
   $('xray').setAttribute('aria-pressed', 'false');
   scene.setLevel(level);
+  scene.update(state.offsets, selected);
+  scene.resetCamera();
   mountPieces();
   render();
   save();
   dialog.close();
   status(
-    state.moves > 0 ? '已接续上次的进度 · 随时可以撤销和继续尝试' : '点选一根榫条，沿它的方向拖动',
+    state.moves > 0
+      ? '已接续上次的进度 · 随时可以撤销和继续尝试'
+      : '拖动任意榫条试探方向，也可组合多件一起移动',
   );
 }
 
@@ -343,7 +442,7 @@ function openLevels() {
 
 function openHelp() {
   openDialog(
-    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">不用着急，每一次试探都算发现。</p><ol class="help-list"><li><b>01</b><div><strong>点选，再沿轨道拖动</strong><p>每根榫条一种颜色，也有字母标记。点场景或底部色块选中，发光轨道就是它能移动的方向。</p></div></li><li><b>02</b><div><strong>看不清，就转个角度</strong><p>拖动空白处转动整体，双指捏合缩放。眼睛按钮可暂时看透其他零件，选中后仍能拖动。</p></div></li><li><b>03</b><div><strong>卡住时，看看谁挡住了它</strong><p>阻挡的榫条会变红。先移动它，或者试试反方向。下方 ± 每次微移半格，减少精细拖动的负担。</p></div></li><li><b>04</b><div><strong>拆开以后，亲手装回</strong><p>完全取出后点“开始复原”，依次把榫条推回中心。撤销、重做和提示始终可以使用。</p></div></li></ol><p class="dialog-footnote">电脑也可用方向键微移，Ctrl / ⌘ + Z 撤销，Shift + Z 重做。首版为轴向榫锁，零件自身不旋转。</p><button id="help-done" class="primary full">开始把玩</button>`,
+    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">不用着急，每一次试探都算发现。</p><ol class="help-list"><li><b>01</b><div><strong>每根榫条，三个移动方向</strong><p>点场景或底部字母选中。直接拖动会沿最接近手势的方向移动，本次拖动保持该方向；松手后可换方向。也可选择 X 横向、Y 上下、Z 纵深，再拖动发光手柄或点 ± 微移半格。</p></div></li><li><b>02</b><div><strong>组合移动，再分别拆开</strong><p>点“组合”，再点字母选择多根榫条；再次点字母可移出组合。拖动其中任一选中件，整组一起移动。关闭“组合”即可回到单件操作，不必一次抽出一整根。</p></div></li><li><b>03</b><div><strong>看清接触，顺着空隙试探</strong><p>拖空白转动视角，双指缩放。受阻零件会变红；换方向，或把它选入组合一起移动。透视可看清遮挡，底部字母始终可选中。零件移出画面时，点“还原视角”找回。</p></div></li><li><b>04</b><div><strong>拆开以后，亲手装回</strong><p>各件彼此分离后点“开始复原”，把它们送回装配位置。整组平移不会算作拆解完成。撤销、重做和提示始终可以使用，一次组合拖动也只算一步。</p></div></li></ol><p class="dialog-footnote">电脑可按住 Shift 加选，方向键微移，Ctrl / ⌘ + Z 撤销，Ctrl / ⌘ + Shift + Z 重做。零件可沿三个轴平移，自身不旋转。</p><button id="help-done" class="primary full">开始把玩</button>`,
   );
   $('help-done').onclick = () => dialog.close();
 }
@@ -365,6 +464,29 @@ dialog.addEventListener('click', (event) => {
 });
 $('nudge-positive').onclick = () => moveBy(0.5);
 $('nudge-negative').onclick = () => moveBy(-0.5);
+$('group-select').onclick = () => {
+  cancelActive();
+  groupMode = !groupMode;
+  if (!groupMode) selectedIds = selected ? [selected] : [];
+  lastHint = null;
+  blockedIds = [];
+  render();
+  status(
+    groupMode
+      ? '组合选择已开启 · 点字母加入或移出，再拖动任一选中件'
+      : '已回到单件操作 · 可逐件拆开刚才的组合',
+  );
+};
+for (const axis of ['x', 'y', 'z'] as const) {
+  $(`axis-${axis}`).onclick = () => {
+    cancelActive();
+    activeAxis = axis;
+    blockedIds = [];
+    lastHint = null;
+    render();
+    status(`已选择 ${axis.toUpperCase()} 方向 · 拖动发光手柄，或点 ± 微移`);
+  };
+}
 $('undo').onclick = () => {
   cancelActive();
   state = undo(state);
@@ -391,8 +513,12 @@ $('restart').onclick = () => {
   $('confirm-restart').onclick = () => {
     state = createGame(level);
     selected = null;
+    selectedIds = [];
+    groupMode = false;
+    activeAxis = 'x';
     blockedIds = [];
     lastHint = null;
+    scene.update(state.offsets, selected);
     scene.resetCamera();
     save();
     render();
@@ -405,6 +531,9 @@ $('hint').onclick = () => {
   lastHint = getHint(level, state);
   if (lastHint) {
     selected = lastHint.pieceId;
+    selectedIds = [...lastHint.pieceIds];
+    groupMode = selectedIds.length > 1;
+    activeAxis = lastHint.axis;
     blockedIds = [];
     status(`${lastHint.message} 试试 ${lastHint.direction > 0 ? '＋' : '−'} 方向。`);
   } else
@@ -454,12 +583,23 @@ window.addEventListener('keydown', (event) => {
     (event.shiftKey ? $('redo') : $('undo')).click();
   } else if (selected && ['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp'].includes(event.key)) {
     event.preventDefault();
-    moveBy(['ArrowLeft', 'ArrowDown'].includes(event.key) ? -0.5 : 0.5);
+    const direction = scene.axisScreen(selected, activeAxis);
+    const component =
+      event.key === 'ArrowLeft'
+        ? -direction.x
+        : event.key === 'ArrowRight'
+          ? direction.x
+          : event.key === 'ArrowUp'
+            ? -direction.y
+            : direction.y;
+    if (Math.abs(component) > 0.1) moveBy(Math.sign(component) * 0.5);
   }
 });
 
 try {
   scene = new PuzzleScene($('stage'), level);
+  scene.update(state.offsets, selected);
+  scene.resetCamera();
   mountPieces();
   render();
   connectInput();
@@ -482,6 +622,9 @@ Object.assign(window, {
     return {
       state: structuredClone(state),
       selected,
+      selectedIds: [...selectedIds],
+      activeAxis,
+      groupMode,
       hint: lastHint,
       progress: getProgress(level, state),
       xray,
@@ -491,7 +634,13 @@ Object.assign(window, {
         color: piece.color,
         offset: state.offsets[piece.id],
         screen: scene ? scene.projectPiece(piece.id) : null,
+        screenSamples: scene ? scene.projectedSurfacePoints(piece.id) : [],
         direction: scene ? scene.axisScreen(piece.id) : null,
+        directions: scene
+          ? Object.fromEntries(
+              (['x', 'y', 'z'] as const).map((axis) => [axis, scene.axisScreen(piece.id, axis)]),
+            )
+          : null,
       })),
       stage: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     };

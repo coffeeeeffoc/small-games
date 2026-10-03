@@ -8,11 +8,12 @@ export interface PieceDefinition {
   id: string;
   name: string;
   color: string;
+  /** Preferred presentation direction; movement is allowed on every world axis. */
   axis: Axis;
   /** Every box is used by both the renderer and the collision solver. */
   boxes: readonly Box[];
+  /** Legacy save metadata, not a movement constraint. */
   range: readonly [number, number];
-  /** At this absolute offset the piece is outside the original assembly. */
   removedAt: number;
 }
 export interface Level {
@@ -25,7 +26,7 @@ export interface Level {
   pieces: readonly PieceDefinition[];
 }
 export type Phase = 'disassemble' | 'reassemble';
-export type Offsets = Record<string, number>;
+export type Offsets = Record<string, Vec3>;
 export interface Snapshot {
   offsets: Offsets;
   moves: number;
@@ -40,12 +41,15 @@ export interface GameState {
 }
 export interface MoveResult {
   state: GameState;
+  /** The leader's resulting coordinate on the requested world axis. */
   actualOffset: number;
   blocked: boolean;
   blockedBy: string[];
 }
 export interface Transaction {
   pieceId: string;
+  pieceIds: string[];
+  axis?: Axis;
   before: GameState;
   state: GameState;
   /** The safe release position computed against the same collision geometry. */
@@ -59,6 +63,8 @@ export interface Progress {
 }
 export interface Hint {
   pieceId: string;
+  pieceIds: string[];
+  axis: Axis;
   targetOffset: number;
   direction: -1 | 1;
   message: string;
