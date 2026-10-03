@@ -15,6 +15,7 @@ export const markers = {
   'rule-thief': '#actors .actor',
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
+  'ink-is-everything': '#game-root',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -279,6 +280,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#retry'));
     await expect.poll(async () => (await snapshot()).state.status).toBe('playing');
     await expect(frame.locator('#counter')).toHaveText('第 0 拍');
+  } else if (id === 'ink-is-everything') {
+    await click(frame.locator('#start-game'));
+    await expect(frame.locator('#game-root')).toHaveAttribute('data-started', 'true');
+    const ink = () => frame.locator('#ink-value').textContent().then(value => parseInt(value, 10));
+    const before = await ink();
+    await click(frame.locator('[data-room="crossing"]'));
+    await click(frame.locator('#primary-action'));
+    await expect.poll(ink).toBeLessThan(before);
   } else if (id === 'waterline-station') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
     await expect(frame.locator('#level-name')).not.toBeEmpty();

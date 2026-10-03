@@ -45,6 +45,7 @@
 | Ghost Shift Manager   | `ghost-shift-manager`          | [games/local/ghost-shift-manager](../games/local/ghost-shift-manager/)                   | 安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。                 |
 | Rule Thief            | `rule-thief`                   | [games/local/rule-thief](../games/local/rule-thief/)                                     | 把穿墙、直行和北漂规则转交给身边目标，改变每一拍的位移，解开三幕机关。               |
 | 同频归航              | `tiny-signals`                 | [games/local/tiny-signals](../games/local/tiny-signals/)                                 | 一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。         |
+| 一滴墨，决定一切      | `ink-is-everything`             | [games/local/ink-is-everything](../games/local/ink-is-everything/)                       | 在手绘遗迹中，用同一池墨水绘路、战斗、疗愈与交易，探索支路获取回报，越过第一章墨之门。 |
 
 ## 子模块游戏（4 款）
 
