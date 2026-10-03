@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 1,
+  "games": {
+    "afterimage-arena": {
+      "source": "games/local/afterimage-arena",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "arena": {
+      "source": "games/local/game-arena",
+      "created": {
+        "commit": "5176558af9408eb15a362ef61f65c2420057ae27",
+        "time": "2026-09-05T06:11:52+08:00"
+      },
+      "updated": {
+        "commit": "fe82bb74c468c5c0defad309ccc657b23d1ddb9e",
+        "time": "2026-09-28T19:24:38+08:00"
+      }
+    },
+    "balloon-movers": {
+      "source": "games/local/balloon-movers",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "building-power": {
+      "source": "games/local/game-building-power",
+      "created": {
+        "commit": "21d6ec36aa2b556b53a7ac72842431e1b4de493e",
+        "time": "2026-09-26T20:46:24+08:00"
+      },
+      "updated": {
+        "commit": "736505f5cbea72c6b3a4c6cb35cde6dcd5eb2b2b",
+        "time": "2026-09-27T00:07:35+08:00"
+      }
+    },
+    "bullet-garden": {
+      "source": "games/local/bullet-garden",
+      "created": {
+        "commit": "28ae80a4900a4a5f7aaacb977be8dd8a0bf7dc59",
+        "time": "2026-10-03T07:12:45+00:00"
+      },
+      "updated": {
+        "commit": "28ae80a4900a4a5f7aaacb977be8dd8a0bf7dc59",
+        "time": "2026-10-03T07:12:45+00:00"
+      }
+    },
+    "carding-car": {
+      "source": "games/local/carding-car",
+      "created": {
+        "commit": "537ecabd8995337b8241494fcbc30eee81c4a71a",
+        "time": "2026-09-18T03:33:11+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "cops-robbers": {
+      "source": "games/local/cops-robbers",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "6bafb5d593f9c590f0b61db570266aea57f020ea",
+        "time": "2026-10-03T13:58:56+08:00"
+      }
+    },
+    "cops-robbers-realtime": {
+      "source": "games/local/cops-robbers-realtime",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "6bafb5d593f9c590f0b61db570266aea57f020ea",
+        "time": "2026-10-03T13:58:56+08:00"
+      }
+    },
+    "cricket": {
+      "source": "games/local/game-cricket",
+      "created": {
+        "commit": "8d32be7fd70183ccd6067d2c25b885d6a0473503",
+        "time": "2026-09-11T00:06:13+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "cultivation": {
+      "source": "games/local/game-cultivation",
+      "created": {
+        "commit": "5ff6403b454442abba19c082e98938bd16a69935",
+        "time": "2026-09-05T05:22:37+08:00"
+      },
+      "updated": {
+        "commit": "fe82bb74c468c5c0defad309ccc657b23d1ddb9e",
+        "time": "2026-09-28T19:24:38+08:00"
+      }
+    },
+    "echo-lab": {
+      "source": "games/local/echo-lab",
+      "created": {
+        "commit": "ce6627d81d55bb837536b8886701d9b2c8760be4",
+        "time": "2026-10-03T16:59:10+08:00"
+      },
+      "updated": {
+        "commit": "ce6627d81d55bb837536b8886701d9b2c8760be4",
+        "time": "2026-10-03T16:59:10+08:00"
+      }
+    },
+    "echo-weaver": {
+      "source": "games/local/echo-weaver",
+      "created": {
+        "commit": "b5044b6bfe86a9dc564d3552510ae14b6064a9cb",
+        "time": "2026-10-03T07:35:13+00:00"
+      },
+      "updated": {
+        "commit": "b5044b6bfe86a9dc564d3552510ae14b6064a9cb",
+        "time": "2026-10-03T07:35:13+00:00"
+      }
+    },
+    "fishing": {
+      "source": "games/submodules/fishing",
+      "created": {
+        "commit": "b82972daa0736cb1b0375131e7950375e8b04584",
+        "time": "2026-09-11T00:08:56+08:00"
+      },
+      "updated": {
+        "commit": "151f47c43b3ac6ef0773a4ac2d0cdb4943de2d2d",
+        "time": "2026-10-03T12:04:37+08:00"
+      }
+    },
+    "fold-the-world": {
+      "source": "games/local/fold-the-world",
+      "created": {
+        "commit": "b99986ddb09bf01a27a19147e02ee0e6a9b17689",
+        "time": "2026-09-26T23:33:42+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "ghost-shift-manager": {
+      "source": "games/local/ghost-shift-manager",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "h5-security": {
+      "source": "games/local/h5-security",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "hold-tight-acrobats": {
+      "source": "games/local/hold-tight-acrobats",
+      "created": {
+        "commit": "736505f5cbea72c6b3a4c6cb35cde6dcd5eb2b2b",
+        "time": "2026-09-27T00:07:35+08:00"
+      },
+      "updated": {
+        "commit": "f824ec7821882309c48ebc977e1c4af773c94174",
+        "time": "2026-09-27T14:25:05+08:00"
+      }
+    },
+    "homebound-station": {
+      "source": "games/local/homebound-station",
+      "created": {
+        "commit": "43b6b305c17cf716da214ef976236c8b0a0ab49e",
+        "time": "2026-10-03T09:52:21+08:00"
+      },
+      "updated": {
+        "commit": "43b6b305c17cf716da214ef976236c8b0a0ab49e",
+        "time": "2026-10-03T09:52:21+08:00"
+      }
+    },
+    "ink-is-everything": {
+      "source": "games/local/ink-is-everything",
+      "created": {
+        "commit": "a763744001ccaa0155a42b9d5128f8fd48b01fd8",
+        "time": "2026-10-03T07:19:45+00:00"
+      },
+      "updated": {
+        "commit": "a763744001ccaa0155a42b9d5128f8fd48b01fd8",
+        "time": "2026-10-03T07:19:45+00:00"
+      }
+    },
+    "letters-words": {
+      "source": "games/local/letters-words",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "letters-words2": {
+      "source": "games/local/letters-words2",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "maze-wander": {
+      "source": "games/local/maze-wander",
+      "created": {
+        "commit": "bd0f1bce25b51202a726c36e2c7c58325899fdcc",
+        "time": "2026-10-03T09:54:08+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "merge-front": {
+      "source": "games/local/merge-front",
+      "created": {
+        "commit": "891229377aa3eb841699386c2b71bdcdf24a2476",
+        "time": "2026-09-16T02:40:08+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "multi-battle": {
+      "source": "games/local/multi-battle",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "night-merge": {
+      "source": "games/local/night-merge",
+      "created": {
+        "commit": "f4459cf626b29ca73236757d4ebdb154032be3cb",
+        "time": "2026-09-16T02:36:04+08:00"
+      },
+      "updated": {
+        "commit": "f4459cf626b29ca73236757d4ebdb154032be3cb",
+        "time": "2026-09-16T02:36:04+08:00"
+      }
+    },
+    "night-overwatch": {
+      "source": "games/local/night-overwatch",
+      "created": {
+        "commit": "b50f26a66a46ea9b25f00aa569cfeefc5ae85621",
+        "time": "2026-09-28T13:34:28+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "off-camera": {
+      "source": "games/local/off-camera",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "office": {
+      "source": "games/local/game-office",
+      "created": {
+        "commit": "88bc5334eadc68c74d0d49835b093000f800e28c",
+        "time": "2026-09-05T05:59:00+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "office-slacking": {
+      "source": "games/submodules/office-slacking",
+      "created": {
+        "commit": "2276ae1b5c47ee20b9d2338f7a11eb9c8a9c838b",
+        "time": "2026-09-09T07:33:57+08:00"
+      },
+      "updated": {
+        "commit": "2f24a8fce0f2212b56b4e1e017b39358eb290ba1",
+        "time": "2026-10-03T12:04:45+08:00"
+      }
+    },
+    "one-stroke-course": {
+      "source": "games/local/one-stroke-course",
+      "created": {
+        "commit": "736505f5cbea72c6b3a4c6cb35cde6dcd5eb2b2b",
+        "time": "2026-09-27T00:07:35+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "out-of-frame": {
+      "source": "games/local/out-of-frame",
+      "created": {
+        "commit": "69c387e9d7a3c00d9e070792fb0badccccb48d8c",
+        "time": "2026-10-03T07:30:43+00:00"
+      },
+      "updated": {
+        "commit": "69c387e9d7a3c00d9e070792fb0badccccb48d8c",
+        "time": "2026-10-03T07:30:43+00:00"
+      }
+    },
+    "precision-demolition": {
+      "source": "games/local/precision-demolition",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "puzzle": {
+      "source": "games/local/puzzle",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "rescue-team": {
+      "source": "games/local/rescue-team",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "rule-thief": {
+      "source": "games/local/rule-thief",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "tiny-signals": {
+      "source": "games/local/tiny-signals",
+      "created": {
+        "commit": "472eaeb9545e76f8793f8ab62ff1cb2ee4fae64f",
+        "time": "2026-10-02T13:18:30+00:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "tower-defense-game": {
+      "source": "games/submodules/tower-defense-game",
+      "created": {
+        "commit": "560d8cbc0023303a004cebf59c19f5fc65a9ed87",
+        "time": "2026-09-08T23:20:08+08:00"
+      },
+      "updated": {
+        "commit": "6f5101ea0a3da464250521531fcbc01fc325f9e6",
+        "time": "2026-10-03T12:05:11+08:00"
+      }
+    },
+    "travel": {
+      "source": "games/local/travel",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "travel-bund": {
+      "source": "games/local/travel-bund",
+      "created": {
+        "commit": "f3079fb4b6eb270d2299a40863c958ae4a07ca9b",
+        "time": "2026-09-16T02:32:15+08:00"
+      },
+      "updated": {
+        "commit": "f2998a9542f6fbd2abf3cf4e329c39db8c39b04d",
+        "time": "2026-10-01T14:08:20+00:00"
+      }
+    },
+    "travel-bund-25d": {
+      "source": "games/local/travel-bund-2.5D",
+      "created": {
+        "commit": "5c246c9db4b57be7faa2fbbdbe67d3baf6cc73f3",
+        "time": "2026-09-16T02:17:13+08:00"
+      },
+      "updated": {
+        "commit": "5e6611ea762243e108d59e13c8ae353df1951707",
+        "time": "2026-09-16T02:58:59+08:00"
+      }
+    },
+    "travel2": {
+      "source": "games/local/travel2",
+      "created": {
+        "commit": "7b46221e1a11688e3f7390a0d11b1f6e3465a26a",
+        "time": "2026-09-14T03:09:21+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "two-sided-box": {
+      "source": "games/local/two-sided-box",
+      "created": {
+        "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
+        "time": "2026-10-03T09:08:53+00:00"
+      },
+      "updated": {
+        "commit": "cb3e2d16057928f12993093002f0b8b77f9d93eb",
+        "time": "2026-10-03T09:08:53+00:00"
+      }
+    },
+    "urban-breakout": {
+      "source": "games/local/urban-breakout",
+      "created": {
+        "commit": "51b7dfd014a26a2f7ccaab7a5e0571296f1d9c49",
+        "time": "2026-10-03T09:55:18+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "vibeJam-myself-delivery": {
+      "source": "games/local/vibeJam-myself-delivery",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "vibeJam-myself-history-guess": {
+      "source": "games/local/vibeJam-myself-history-guess",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "vibeJam-myself-nullrange": {
+      "source": "games/local/vibeJam-myself-nullrange",
+      "created": {
+        "commit": "f2365b17175effcab59cb86bdbc3df285f746401",
+        "time": "2026-09-14T01:49:09+08:00"
+      },
+      "updated": {
+        "commit": "3f123e36186fd857c3b7644b95a5ce4b24c466a4",
+        "time": "2026-09-29T19:24:51+08:00"
+      }
+    },
+    "waterline-station": {
+      "source": "games/local/waterline-station",
+      "created": {
+        "commit": "285cf19b8e0add1636596a1542f0877c162359e0",
+        "time": "2026-10-02T12:57:38+00:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "weather-command": {
+      "source": "games/local/weather-command",
+      "created": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      },
+      "updated": {
+        "commit": "63d67e2e827a373cfc4655fbc7f6e494efb4a43f",
+        "time": "2026-09-27T21:54:05+08:00"
+      }
+    },
+    "wulong-city": {
+      "source": "games/local/wulong-city",
+      "created": {
+        "commit": "736505f5cbea72c6b3a4c6cb35cde6dcd5eb2b2b",
+        "time": "2026-09-27T00:07:35+08:00"
+      },
+      "updated": {
+        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
+        "time": "2026-10-03T12:34:46+08:00"
+      }
+    },
+    "xiangqi-five": {
+      "source": "games/submodules/xiangqi-five",
+      "created": {
+        "commit": "b742b6a4bacd79b7067fe4f76693405b1b2a28cf",
+        "time": "2026-09-09T01:10:15+08:00"
+      },
+      "updated": {
+        "commit": "4c2d8d654261cdff61d885ef4b207dc7358a10d5",
+        "time": "2026-10-03T12:05:18+08:00"
+      }
+    }
+  }
+}

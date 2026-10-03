@@ -36,6 +36,8 @@
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
+《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。首章提供六个谜盒；两套二维视图读取同一份机关状态，翻面保留滑轴位置、锁扣状态和小球进度。玩家直接拖动场景内滑轴、点按锁扣，逐步学习反向挡板、锁扣对位和途中换挡。关卡配置与纯规则模块分离，新增谜盒沿用滑轴、锁扣、挡板三类机关及其条件组合。开发运行 `pnpm --filter @coffeeeeffoc/two-sided-box dev`，构建与规则验证分别使用 `build`、`test`。
+
 原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
 新增十一款从同级目录导入源码、素材、测试及文档，排除 `node_modules`、构建输出、缓存和生成的测试截图。原同级目录保留作核对；后续统一在本仓库的新目录开发，避免维护两份未同步源码。
@@ -100,6 +102,25 @@ Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变�
 父仓库的格式化保留四个 Game Host 包的检查，导入的独立 H5 沿用各自格式。lint 排除 Git 子模块，普通游戏中存在 lint 命令的包仍参与检查。测试和依赖边界检查覆盖两类游戏目录。
 
 ## 游戏接入检查
+
+游戏提交记录集中存放在 `apps/shell-web/src/game-meta.json`，以访问 id 为键；每项包含 `source`、`created.commit/time` 和 `updated.commit/time`。commit 保存完整的 40 位 SHA，time 保存 Git 的提交者时间（`%cI`，带时区），卡片以北京时间显示时间和 8 位 SHA，完整 SHA 可通过 title 查看。简洁一览不渲染这些信息。
+
+普通游戏的创建记录是本仓库中对应目录最早的提交，沿 `package.json` 的重命名历史追溯迁移前目录，遇到模板复制关系则停止追溯；更新记录是目录最近的提交，包括代码、资源、测试和文档。独立子模块使用父仓库 HEAD 固定版本所能到达的子仓库历史，commit 属于子仓库。meta 或 Shell 的变化不算游戏更新。
+
+新增或更新游戏时，先提交游戏源码（子模块还需提交父仓库 gitlink），再执行并提交元数据回填：
+
+```sh
+pnpm sync:game-meta
+pnpm check:game-meta
+# 需要完整父仓库和子模块历史；逐项核对创建/更新 commit 和时间
+pnpm check:game-meta --check-history
+git add apps/shell-web/src/game-meta.json
+git commit -m "chore(shell): refresh game commit metadata"
+```
+
+卡片/列表、手机触屏与桌面浏览器回归使用 `pnpm --filter @coffeeeeffoc/shell-web test:game-meta`，运行前先构建 Shell。可通过 `PLAYWRIGHT_EXECUTABLE_PATH` 指定现有 Chromium 浏览器；截图写入 `test-results/game-meta/`。
+
+回填只读取已提交历史，缺少完整历史或游戏尚未提交时会失败，不会填入当前时间或虚构 SHA。常规 `pnpm check:games` 已包含 meta 检查，覆盖内置与独立游戏，拒绝缺失记录、目录错配、非法 SHA/时间以及多余 id；CI 和 pre-push 因此会阻止增量游戏漏填。常规检查不依赖 Git 历史，支持浅克隆；需要核对元数据是否已更新时使用 `--check-history`。
 
 `scripts/check-game-config.mjs` 从 `games/local/*` 和 `games/submodules/*` 的实际目录发现游戏，核对注册清单或 Game Host 注册、workspace、锁文件、大厅依赖、构建与测试脚本、浏览器操作用例，以及 CI、Pages、Android/iOS 和 B 站 SDK 的构建链路。新建目录但漏配任一必要入口时返回非零退出码；不会自动修改配置。
 
