@@ -569,7 +569,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '进入现场', exact: true }));
     await click(frame.getByRole('button', { name: '调查提示', exact: true }));
     await expect(frame.locator('dialog')).toBeVisible();
-    await click(frame.getByRole('button', { name: '关闭弹窗', exact: true }));
+    await click(frame.getByRole('button', { name: '返回调查', exact: true }));
+    await expect(frame.locator('dialog')).toBeHidden();
   } else if (id === 'travel') {
     await click(frame.locator('[data-place="oldtown"]'));
     await click(frame.locator('#travel-button'));
@@ -638,7 +639,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#timer')).not.toHaveText('03:00');
     await click(frame.locator('#minimap-button'));
     await expect(frame.locator('#large-map')).toBeVisible();
-    await click(frame.getByRole('button', { name: '关闭地图' }));
+    await click(frame.getByRole('button', { name: '继续配送' }));
+    await expect(frame.locator('#large-map')).toBeHidden();
   } else if (id === 'vibeJam-myself-history-guess') {
     await click(frame.locator('#start'));
     await expect(frame.locator('#load-cover')).toBeHidden({ timeout: 20000 });

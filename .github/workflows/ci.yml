@@ -88,13 +88,13 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Test affected packages
-        run: pnpm test:affected
+        run: pnpm test:affected --concurrency=1
 
       - name: Run affected contract tests
-        run: pnpm test:contract:affected
+        run: pnpm test:contract:affected --concurrency=1
 
       - name: Run affected integration tests
-        run: pnpm test:integration:affected
+        run: pnpm test:integration:affected --concurrency=1
 
       - name: Build affected packages
         run: pnpm build:affected
