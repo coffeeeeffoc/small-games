@@ -19,9 +19,14 @@
 
 ## 发布行为
 
-- 复用现有 Cocos 产物校验、游戏测试、构建、Shell 测试和 Pages 浏览器冒烟测试。PR 仅验证和上传临时产物，没有发布或写仓库权限。
+- 所有 PR、main/dev/test 推送均先检测 Pages 影响范围。文档、已知独立服务和其他平台应用的变更不执行重任务、不发布，但仍返回成功的 `build` 检查；未知路径或无法取得比较基线时保守执行全量验证。PR 仅验证和上传临时产物，没有发布或写仓库权限。
+- 验证在 `pages-validate.yml` 中执行：Cocos 制品准备完成后，Pages 构建与逻辑测试并行；构建上传 `pages-build` 后，发布冒烟和游戏浏览器回归独立执行。发布必须等待所选验证全部成功，失败、取消或意外跳过都不能绕过门禁。
+- 发布冒烟检查全部游戏入口及静态资源依赖，并在真实 Chromium 中验证懒加载、大厅、代表性分享路由、iframe、手机直开和 Runtime 隔离。游戏浏览器回归保留桌面嵌入、手机触屏和原有玩法断言。
+- PR 和 dev 的单游戏变更只执行该游戏的包测试及浏览器回归，子模块指针变更也按对应游戏选择。Shell、共享包、素材、注册表、根脚本和构建配置等变更执行全量。main/test 的相关推送、手动运行始终全量；每日北京时间 02:00 在默认分支执行全量验证，定时运行不发布。
+- dev 以 `gh-pages/dev/deployment.json` 中最近已验证并保存的 SHA 为比较基线，累计覆盖此前被取消或失败运行的改动；后续仅改文档也不会漏掉尚未验证的代码。无法读取基线或找到该提交时执行全量。
+- Turbo 缓存将仓库级素材、平台适配、脚本和 Runtime 规则纳入输入；两款 Cocos 的构建任务始终校验并复制本次下载的制品，避免旧 Turbo 缓存覆盖新的已验证输出。Cocos 制品自身仍使用源码 hash 缓存。
 - 每次构建只检出触发分支。发布阶段在同一 `pages-publish` 队列中执行，先读取最新 `gh-pages`，只替换当前分支目录，再打包整个站点。目录替换会移除该版本已经删除的旧资源。
-- 同一源码分支的新推送仅替换尚未开始的旧运行；已开始的发布完成后再运行下一次，避免中途取消破坏保存/发布顺序。跨分支发布使用 `queue: max`，三次发布不会争抢同一个待运行名额。
+- 同一源码分支的新运行会取消过时的验证阶段，避免长回归拖延新提交。定时验证使用独立并发组。已排队或正在执行的发布不随验证取消；跨分支发布仍使用 `pages-publish` 的 `queue: max`，保存与发布一起完成。
 - 合并后的 Pages artifact 上传成功后，先保存已验证产物，再调用 GitHub Pages API。部署版本使用 `gh-pages` 产物提交 SHA，避免三个源码分支同 SHA 时复用旧部署。发布后会读取线上所有已有环境的 `deployment.json` 并核对版本，最多等待缓存刷新 5 分钟；不一致则任务失败。[上游同 SHA 部署问题](https://github.com/actions/deploy-pages/issues/383)。
 - 若部署或线上核验失败，`gh-pages` 中仍保留新产物；重跑失败任务或下次发布可恢复。`gh-pages` 是持久构建状态，不等同于线上已成功部署的证明。
 - Android 的 `/small-games/mobile/update.json` 和 `web.zip` 始终只包含正式版。ZIP 在发布任务中从 main 产物重新生成，不进入 Git；dev/test 没有单独的移动下载包。原生 mobile 工作流仍只随 main 推送运行。
@@ -34,9 +39,17 @@ pnpm test:game-config
 pnpm check:games
 pnpm build:pages
 $env:PAGES_BASE_PATH = '/small-games/dev/'
-pnpm test:pages
+pnpm test:pages:smoke
+# 只验证受影响的独立游戏；不设置 PAGES_GAME_IDS 或置空时执行全部游戏。
+$env:PAGES_GAME_IDS = '["merge-front"]'
+pnpm test:pages:games
+Remove-Item Env:PAGES_GAME_IDS
 Remove-Item Env:PAGES_BASE_PATH
 ```
+
+`pnpm test:pages` 保留完整验证入口，依次执行发布冒烟和游戏回归；`pnpm test:pages:selection` 验证范围选择与静态制品检查规则。`PAGES_GAME_IDS` 是注册表 ID 的 JSON 数组，未知 ID 或格式错误会立即失败，`[]` 仅保留内置游戏和宿主检查。
+
+游戏回归按加载、交互、手机加载和手机交互输出开始日志与耗时，并持续更新 `.scratch/game-integration/report.json`；失败时也保留已完成结果和当前阶段。CI 上传该目录及发布冒烟的 `.scratch/pages-host` 诊断，便于定位慢点。
 
 构建使用相对资源路径，不需要为三个环境改写 Vite base 或重复生成代码。CI 会在触发分支对应的子路径跑浏览器测试。
 
