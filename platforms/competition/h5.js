@@ -29,7 +29,7 @@ export function mountCompetition(game, createRenderer) {
   dialog.setAttribute('aria-label', `${titles[game]} · 好友对决`);
   dialog.innerHTML = `<div class="pk-shell">
     <header class="pk-header"><div class="pk-brand"><span class="pk-brand-mark" aria-hidden="true">PK</span><div><strong>${titles[game]}</strong><small>好友对决 · 同场较量</small></div></div>
-      <nav class="pk-tools" aria-label="游玩工具"><button class="pk-quiet" data-rules>玩法</button><button data-game-fullscreen>全屏</button><button class="pk-quiet pk-icon" data-close aria-label="退出 PK" title="退出 PK">×</button></nav></header>
+      <nav class="pk-tools" aria-label="游玩工具"><button class="pk-quiet" data-rules>玩法</button></nav></header>
     <p class="pk-status" role="status" data-status>同一规则，和好友认真比一局。</p>
     <main class="pk-content">
       <section data-lobby><div class="pk-hero"><span class="pk-eyebrow">一起玩，更有意思</span><h2>叫上好友，比一局。</h2><p>同样的起点，各自的本事。邀请一位好友，完成挑战，看看谁更胜一筹。</p></div>
@@ -42,6 +42,7 @@ export function mountCompetition(game, createRenderer) {
       <canvas data-play hidden aria-label="好友挑战操作区"></canvas>
     </main>
     <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。游客身份保存在当前浏览器。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
+    <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
   document.body.append(launch, dialog);
   const select = (q) => dialog.querySelector(q),
@@ -76,6 +77,7 @@ export function mountCompetition(game, createRenderer) {
     details.hidden = true;
     select('.pk-content').inert = false;
     select('.pk-footer').inert = false;
+    select('.pk-exit').inert = false;
     if (returnFocus?.isConnected && !returnFocus.closest('[hidden]')) returnFocus.focus();
     else select('[data-rules]').focus();
   }
@@ -85,20 +87,24 @@ export function mountCompetition(game, createRenderer) {
     details.replaceChildren();
     select('.pk-content').inert = true;
     select('.pk-footer').inert = true;
+    select('.pk-exit').inert = true;
     const sheet = text('div', '', 'pk-sheet');
     sheet.dataset.kind = kind;
     const head = text('div', '', 'pk-sheet-head'),
       label = document.createElement('div');
     label.append(text('h2', title), text('small', subtitle));
-    const close = action('×', dismiss, 'pk-quiet pk-icon');
+    const close = action('返回游戏', dismiss);
+    const actions = text('div', '', 'pk-sheet-actions');
+    const content = text('div', '', 'pk-sheet-content');
     close.dataset.dismiss = '';
     close.setAttribute('aria-label', '返回游戏');
     close.title = '返回游戏';
-    head.append(label, close);
-    sheet.append(head);
+    head.append(label);
+    actions.append(close);
+    sheet.append(head, content, actions);
     details.append(sheet);
     close.focus();
-    return sheet;
+    return content;
   }
   function feedback(error) {
     status.textContent = error instanceof Error ? error.message : String(error);
@@ -391,7 +397,7 @@ export function mountCompetition(game, createRenderer) {
         room?.state?.rules ||
         (await client.request(`/boards/${game}`)).description ||
         '双方准备后开始，服务端验证操作与计时。';
-      if (sheet.parentNode !== details) return;
+      if (!sheet.isConnected || sheet.closest('[data-details]') !== details) return;
       loading.remove();
       const list = text('ol', '', 'pk-rule-list');
       for (const part of rules

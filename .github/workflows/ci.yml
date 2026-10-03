@@ -99,5 +99,10 @@ jobs:
       - name: Build affected packages
         run: pnpm build:affected
 
+      - name: Test game dialog controls
+        run: |
+          pnpm exec turbo run build --filter=./games/submodules/* --concurrency=1
+          pnpm test:dialogs
+
       - name: Smoke-test affected applications
         run: pnpm smoke:affected

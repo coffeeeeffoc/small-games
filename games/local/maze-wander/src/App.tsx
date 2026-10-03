@@ -339,6 +339,7 @@ export function App() {
                 启程 <span>→</span>
               </button>
               <button onClick={() => show('levels')}>旅行手记 · 选择关卡</button>
+              <button onClick={() => void fullscreen()}>切换全屏</button>
               <button
                 className="quiet"
                 onClick={() => {
@@ -374,9 +375,10 @@ export function App() {
                 {rehearsal.current ? ' · 开发试玩' : ''}
               </span>
             </div>
+            <div className="hud-actions"><button className="icon-button" aria-label="切换全屏" onClick={() => void fullscreen()}>⛶</button>
             <button id="pause" className="icon-button" aria-label="暂停" onClick={pause}>
               <PauseIcon />
-            </button>
+            </button></div>
           </header>
           <div className={`crosshair ${target || anchor ? 'focused' : ''}`} aria-hidden="true" />
           {touch || drag ? <TouchControls runtime={runtime} dragOnly={!touch} /> : null}
@@ -557,7 +559,6 @@ export function App() {
                   >
                     设置
                   </button>
-                  <button onClick={() => void fullscreen()}>切换全屏</button>
                   <button onClick={() => show('restart')}>重新开始本关</button>
                   <button
                     onClick={() => {
@@ -648,7 +649,7 @@ export function App() {
                   className="primary"
                   onClick={() => {
                     save();
-                    if (runtime && create(runtime.run)) show(settingsFrom.current);
+                    if (!runtime || create(runtime.run)) show(settingsFrom.current);
                   }}
                 >
                   保存设置

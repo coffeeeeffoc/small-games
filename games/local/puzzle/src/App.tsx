@@ -36,7 +36,7 @@ function Modal({ title, children, onClose, wide = false, notice }: { title: stri
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
   return <dialog ref={ref} aria-labelledby="modal-title" className={`modal ${wide ? 'modal-wide' : ''}`} onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div className="modal-shell"><header className="modal-header"><span id="modal-title">{title}</span><button className="icon-button" onClick={onClose} aria-label="关闭弹窗"><Icon name="close" /></button></header><div className="modal-content">{children}</div>{notice && <div className="modal-notice" role="status" aria-live="polite"><Icon name="files" size={17}/><span>{notice}</span></div>}</div>
+    <div className="modal-shell"><header className="modal-header"><span id="modal-title">{title}</span></header><div className="modal-content">{children}<button className="secondary full" onClick={onClose}>返回调查</button></div>{notice && <div className="modal-notice" role="status" aria-live="polite"><Icon name="files" size={17}/><span>{notice}</span></div>}</div>
   </dialog>;
 }
 

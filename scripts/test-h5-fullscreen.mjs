@@ -29,7 +29,10 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 const results = [];
 try {
-  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  browser = await chromium.launch({
+    channel: process.env.BROWSER_CHANNEL || undefined,
+    headless: true,
+  });
   for (const embedded of [false, true]) {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const errors = [];
@@ -45,9 +48,10 @@ try {
     await expect(gameFrame.getByRole('button', { name: '退出全屏', exact: true })).toBeVisible();
     await gameFrame.locator('#play').click();
     await gameFrame.locator('#pause').click();
-    await gameFrame.locator('dialog [data-game-fullscreen]').click();
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+    await expect(gameFrame.locator('dialog [data-game-fullscreen]')).toHaveCount(0);
     await gameFrame.getByRole('button', { name: '继续', exact: true }).click();
+    await gameFrame.locator('body > [data-game-fullscreen]').click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
     await gameFrame.locator('#play').click();
     await expect(gameFrame.locator('#play')).toHaveText('3');
     await expect(gameFrame.getByRole('textbox')).toHaveValue('本局进度');
@@ -72,7 +76,8 @@ try {
       viewport: '390x844 -> 844x390',
       realDesktopFullscreen: true,
       progressPreserved: true,
-      modalExit: true,
+      modalHasNoFullscreen: true,
+      mainFullscreenExit: true,
     });
     await page.close();
   }

@@ -43,6 +43,20 @@ try {
   const page = await newGame();
   await page.screenshot({ path: 'artifacts/welcome-mobile.png' });
   await start(page);
+  // These panels need a visible return path without a corner close icon.
+  for (let repeat = 0; repeat < 3; repeat++) {
+    for (const [target, actionName] of [['phone', 'contact'], ['wallet', 'account']]) {
+      await navigate(page, target);
+      const before = await storage(page);
+      await action(page, actionName).click();
+      assert.equal(await page.locator('.modal-close, .modal [data-game-fullscreen]').count(), 0);
+      await page.getByRole('button', { name: '返回手机', exact: true }).click();
+      assert.equal(await page.locator('.modal').count(), 0);
+      assert.deepEqual(await storage(page), before);
+    }
+  }
+  checks.push('contact/account dialogs: visible return path, three repeated opens, unchanged progress');
+  await page.locator('.bottom-nav [aria-label="返回桌面"]').click();
   await page.screenshot({ path: 'artifacts/home-mobile.png' });
   await noOverflow(page, 'mobile home');
 

@@ -35,9 +35,6 @@ export function WeekPlanner({
           <h1>给这一周，留点空隙。</h1>
           <p>按时间前进，每天换一种组合。首个场景已开放，其余正在制作。</p>
         </div>
-        <button className="office-close" onClick={onClose} aria-label="关闭场景表">
-          ×
-        </button>
       </div>
       <div className="office-week-body">
         <div className="office-agenda">
@@ -134,6 +131,7 @@ export function WeekPlanner({
         </article>
       </div>
       <footer>
+        <button onClick={onClose}>返回游戏</button>
         <span>共 {SCENES.length} 个场景构想 / 1 个可玩场景</span>
         <button onClick={newWeek}>重新组合一周 ↻</button>
         <span>日程预览不计入通关成绩</span>

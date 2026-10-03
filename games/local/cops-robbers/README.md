@@ -51,6 +51,7 @@ npm run test:browser
 npm run test:hints-browser
 npm run test:interactions
 npm run test:focus
+npm run test:dialogs
 npm run test:input
 npm run test:duel-browser
 npm run test:ranking
@@ -63,6 +64,7 @@ npm run test:competition-renderer
 - `test:duel`：200 个独立道路图，连接性、真实节点与循环递增、双方角色和先手、接触/出口/限步结算、非法动作、六步开局审查、8,000 场随机回放及分层 AI 对局；报告为 `outputs/duel-audit.json`。
 - `test:browser`：真实输入回放全部挑战地图，同时检查触摸、首末关、选关、重开、撤销和存档。`LEVEL_IDS` 可用于定点回归，并生成独立报告以免覆盖全量结果。
 - `test:duel-browser`：双方角色 × 两种先手 × 两个模式的真实触摸，电脑响应、重试、返回、完整结果、本地完成标记和窄屏布局。
+- `test:dialogs`：桌面、320/390 像素触屏竖屏与横屏检查全部七类弹窗，重复及嵌套开关、胜负退出与继续、返回大厅、主游戏全屏保留；弹窗不含全屏按钮或右上角关闭叉号。
 - `test:input`：大厅与人机对抗不会触发后台挑战快捷键、双方角色选人与行棋保持键盘焦点、返回挑战后仍能撤销；支持 `BROWSER_EXECUTABLE` 指定 Chromium 路径。
 - `test:relay` / `test:relay-browser`：六图完整接力解与逐步提示、等待与历史边界、重复参数拒绝和干净链接；真实触摸通关六图，检验独立成绩、错误动作、撤销、手机布局和原生分享取消反馈。
 - `test:quick` / `test:quick-browser`：三张新图最短解、限步结算和剩余预算提示；真实触摸通关、失败撤销、320 像素竖屏与横屏、同题分享、独立成绩和三种巡逻存档互相恢复。

@@ -424,7 +424,6 @@ function App() {
                 >
                   {r.shake ? '关闭震屏' : '打开震屏'}
                 </button>
-                <button onClick={fullscreen}>切换全屏</button>
                 <button onClick={() => setDebug(!debug)}>{debug ? '关闭调试' : '调试面板'}</button>
               </div>
               <div className="audio-settings">

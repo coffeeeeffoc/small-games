@@ -78,11 +78,11 @@ function closeModal() {
 function showOrders() {
   audio.unlock(); audio.resume();
   selection = s.orderIndex;
-  setModal('orders', `<button class="close-panel" aria-label="关闭订单" data-action="close">×</button>
+  setModal('orders', `
     <div class="panel-eyebrow">THE ISLAND DISPATCH / 今日配送</div><h2 id="panel-title">一份小小的期待。</h2>
     <p class="panel-copy">从橘风集市出发。选一份订单，把新鲜送到岛民手里。</p>
     <div class="order-options">${ORDERS.map((o, i) => `<button class="order-option ${i === selection ? 'selected' : ''}" data-order="${i}" aria-pressed="${i === selection}"><span class="order-emoji">${['☕', '⚑', '❀'][i]}</span><div><b>${o.name}</b><small>${o.title} · 橘子 / 面包 / 牛奶</small></div><strong>+${o.reward}<small>橘子币 + 小费</small></strong></button>`).join('')}</div>
-    <div class="panel-actions"><button class="primary" data-action="accept">接下这份期待 <span>↗</span></button></div>`);
+    <div class="panel-actions"><button class="primary" data-action="accept">接下这份期待 <span>↗</span></button><button class="plain-button" data-action="close">取消，返回小岛</button></div>`);
 }
 
 function begin(index, retry = false) {
@@ -110,7 +110,7 @@ function returnHome() {
 }
 
 function showHelp() {
-  setModal('help', `<button class="close-panel" aria-label="关闭手册" data-action="close">×</button><div class="panel-eyebrow">A LITTLE FIELD GUIDE / 配送手册</div><h2 id="panel-title">第一次上岛？</h2>
+  setModal('help', `<div class="panel-eyebrow">A LITTLE FIELD GUIDE / 配送手册</div><h2 id="panel-title">第一次上岛？</h2>
     <div class="guide-rows"><div class="guide-row"><span>01</span><div><b>向前推摇杆，海风就来了</b><p>上下控制前进与倒车，左右始终控制车头转向，停下也能转头。按住加速更快，松手会慢慢停下；急弯前记得刹车。</p></div></div>
     <div class="guide-row"><span>02</span><div><b>取货，要亲自走一趟</b><p>跟随橘色光圈到集市，停稳后点「下车取货」。走到各摊位，拿齐橘子、面包与牛奶，再回入口上车。</p></div></div>
     <div class="guide-row"><span>03</span><div><b>慢一点，货物会谢谢你</b><p>碰撞、急速转弯和高速跳跃落地会损伤货物。3 分钟内送达，完整又准时，能拿到三星和更多小费。</p></div></div></div>
@@ -129,7 +129,7 @@ function showMap() {
   if (mode !== 'play' || s.phase === 'result') return;
   if (modal === 'map') { closeModal(); return; }
   if (modal) return;
-  setModal('map', `<button class="close-panel" aria-label="关闭地图" data-action="close">×</button><div class="panel-eyebrow">TANGERINE ISLAND / 停下来，看看路</div><h2 id="panel-title">每条路都有好风景。</h2><canvas id="large-map" width="600" height="480" aria-label="小岛地图：显示当前位置、集市与配送点"></canvas><div class="map-legend"><span>● 当前目标</span><span>▲ 你在这里</span><span>绿块为绕行花坛 · 虚线仅指方向 · 外圈为海岸路</span></div>`);
+  setModal('map', `<div class="panel-eyebrow">TANGERINE ISLAND / 停下来，看看路</div><h2 id="panel-title">每条路都有好风景。</h2><canvas id="large-map" width="600" height="480" aria-label="小岛地图：显示当前位置、集市与配送点"></canvas><div class="map-legend"><span>● 当前目标</span><span>▲ 你在这里</span><span>绿块为绕行花坛 · 虚线仅指方向 · 外圈为海岸路</span></div><div class="panel-actions"><button class="primary" data-action="close">继续配送</button></div>`);
   drawMap($('large-map'), s, world.colliders, true);
 }
 

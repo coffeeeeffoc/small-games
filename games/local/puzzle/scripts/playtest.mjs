@@ -24,7 +24,7 @@ async function saved(page, field, item) {
   await page.waitForFunction(({ field, item }) => JSON.parse(localStorage.getItem('rain-case-v1'))?.[field]?.includes(item), { field, item });
 }
 async function click(page, name, exact = true) { await page.getByRole('button', { name, exact }).click(); }
-async function close(page) { await click(page, '关闭弹窗'); await page.locator('dialog').waitFor({ state: 'detached' }); }
+async function close(page) { await click(page, '返回调查'); await page.locator('dialog').waitFor({ state: 'detached' }); }
 async function nav(page, name) {
   await page.getByRole('navigation', { name: '主要导航' }).getByRole('button', { name: new RegExp(`^${name}`) }).click();
 }

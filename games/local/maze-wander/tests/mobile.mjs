@@ -117,11 +117,12 @@ try {
     assert.equal((await snap()).run.seconds, pausedTime);
     await page.getByRole('button', { name: '收起地图，继续探索' }).tap();
     await page.locator('#pause').tap();
+    assert.equal(await page.locator('[role=dialog]').getByRole('button', { name: '切换全屏', exact: true }).count(), 0);
+    await page.locator('#resume').tap();
     await page.getByRole('button', { name: '切换全屏', exact: true }).tap();
     assert.equal(await page.evaluate(() => !!document.fullscreenElement), true);
     await page.getByRole('button', { name: '切换全屏', exact: true }).tap();
     assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
-    await page.locator('#resume').tap();
     await page.screenshot({ path: `${out}/mobile-${viewport.width}x${viewport.height}.png` });
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     assert.equal((await snap()).screen, 'pause');

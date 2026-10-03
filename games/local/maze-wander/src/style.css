@@ -878,3 +878,5 @@ summary {
     justify-content: center;
   }
 }
+
+.hud-actions { display: flex; gap: 8px; pointer-events: auto; }

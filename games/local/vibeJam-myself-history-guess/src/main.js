@@ -187,9 +187,9 @@ function modal(title, content) {
   const dialog = document.createElement("dialog");
   dialog.id = "modal";
   dialog.className = "paper-dialog";
-  dialog.innerHTML = `<div class="dialog-top"><span class="eyebrow">旅行手记</span><button class="icon-button" aria-label="关闭弹窗">${icon("close")}</button></div><h2>${title}</h2>${content}`;
+  dialog.innerHTML = `<div class="dialog-top"><span class="eyebrow">旅行手记</span></div><h2>${title}</h2>${content}<button class="secondary" data-dialog-return>返回旅途</button>`;
   document.body.append(dialog);
-  dialog.querySelector("button").onclick = () => dialog.close();
+  dialog.querySelector("[data-dialog-return]").onclick = () => dialog.close();
   dialog.addEventListener("close", () => dialog.remove());
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) {

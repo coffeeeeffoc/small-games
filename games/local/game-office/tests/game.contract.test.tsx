@@ -156,7 +156,10 @@ describe('first-person Office Game Contract', () => {
     expect(runtime.getView().state).toEqual(paused);
     expect(runtime.getView().state.status).toBe('paused');
     await act(async () => {
-      target.querySelector<HTMLButtonElement>('[aria-label="关闭场景表"]')!.click();
+      expect(target.querySelector('.office-close')).toBeNull();
+      [...target.querySelectorAll<HTMLButtonElement>('.office-week button')]
+        .find((button) => button.textContent === '返回游戏')!
+        .click();
     });
     expect(runtime.getView().state.status).toBe('paused');
     await click(target, '继续潜入');

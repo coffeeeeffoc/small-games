@@ -73,9 +73,10 @@ try {
   assert.ok(
     (await page.locator("dialog").innerText()).includes("没有公元 0 年"),
   );
-  await page.locator("dialog [data-game-fullscreen]").click();
+  assert.equal(await page.locator("dialog [data-game-fullscreen]").count(), 0);
+  await page.getByRole("button", { name: "返回旅途", exact: true }).click();
+  await page.locator(".display-button").click();
   await page.waitForFunction(() => !document.fullscreenElement);
-  await page.keyboard.press("Escape");
   await page.locator("#start").click();
   await ready(page);
   const firstImage = await page.locator('#panorama').getAttribute('data-image');
@@ -145,7 +146,7 @@ try {
   await page.waitForFunction(() => !!document.fullscreenElement);
   await page.locator("#game-help").click();
   assert.match(await page.locator("dialog").innerText(), /切到后台继续计时/);
-  await page.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+  await page.getByRole("button", { name: "返回旅途", exact: true }).click();
   await page.locator(".display-button").click();
   await page.waitForFunction(() => !document.fullscreenElement);
   assert.equal(await page.evaluate(() => localStorage.getItem("here-and-then.v1")), beforeDisplay);
@@ -436,7 +437,7 @@ try {
   await timerPage.waitForFunction(() => !!document.fullscreenElement);
   await timerPage.locator("#game-help").click();
   await timerPage.clock.fastForward(30000);
-  await timerPage.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+  await timerPage.getByRole("button", { name: "返回旅途", exact: true }).click();
   assert.match(await timerPage.locator("#timer").innerText(), /60 秒/);
   await timerPage.reload();
   await timerPage.clock.fastForward(62000);
@@ -505,7 +506,7 @@ try {
     await fallback.locator("#start").click();
     await ready(fallback);
     await fallback.locator("#game-help").click();
-    await fallback.getByRole("button", { name: "关闭弹窗", exact: true }).click();
+    await fallback.getByRole("button", { name: "返回旅途", exact: true }).click();
     await pick(fallback, "安阳");
     await fallback.locator("#era-select").selectOption("bce");
     await fallback.locator("#year-number").fill("1200");
