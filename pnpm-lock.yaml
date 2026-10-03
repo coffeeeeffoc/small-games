@@ -458,6 +458,9 @@ importers:
       '@coffeeeeffoc/urban-breakout':
         specifier: workspace:*
         version: link:../../games/local/urban-breakout
+      '@coffeeeeffoc/voiceprint-case':
+        specifier: workspace:*
+        version: link:../../games/local/voiceprint-case
       '@coffeeeeffoc/waterline-station':
         specifier: workspace:*
         version: link:../../games/local/waterline-station
@@ -1399,6 +1402,8 @@ importers:
       vite:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.21.0)
+
+  games/local/voiceprint-case: {}
 
   games/local/waterline-station: {}
 

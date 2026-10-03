@@ -1,5 +1,12 @@
 [
   {
+    "id": "voiceprint-case",
+    "source": "games/local/voiceprint-case",
+    "title": "声纹疑案",
+    "description": "听取嘈杂现场的一句话，对照三位虚构成年人的同句录音，辨认同一个声音，挑战十二关渐进听觉谜案。",
+    "output": "dist"
+  },
+  {
     "id": "echo-lab",
     "source": "games/local/echo-lab",
     "title": "回声实验室 · Echo Lab",
