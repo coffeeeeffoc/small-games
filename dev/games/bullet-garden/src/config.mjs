@@ -1,0 +1,152 @@
+/** Data-only definitions: add a level or seed without coupling it to the UI. */
+export const WORLD = Object.freeze({ width: 1440, height: 900 });
+
+export const SEEDS = Object.freeze({
+  thorn: Object.freeze({
+    id: 'thorn',
+    name: '荆棘藤蔓',
+    subtitle: '减速 · 持续伤害',
+    description: '空地落种，长出荆棘。敌人减速 58%，每秒受到 12 点伤害。',
+    color: '#81da65',
+    damage: 30,
+    radius: 58,
+    life: 14,
+    health: 1,
+    capacity: 6,
+    regenSeconds: 5,
+    slow: 0.42,
+    damagePerSecond: 12,
+  }),
+  ice: Object.freeze({
+    id: 'ice',
+    name: '寒冰柱',
+    subtitle: '阻挡 · 改变路线',
+    description: '空地落种，筑起冰柱。阻挡双方移动，怪物会绕行或击碎它。',
+    color: '#67d4ff',
+    damage: 38,
+    radius: 28,
+    life: 12,
+    health: 105,
+    capacity: 4,
+    regenSeconds: 7,
+  }),
+  mushroom: Object.freeze({
+    id: 'mushroom',
+    name: '爆炸蘑菇',
+    subtitle: '延迟 2.4 秒 · 范围爆炸',
+    description: '空地落种，2.4 秒后爆炸，造成 105 点范围伤害。用荆棘留住敌人！',
+    color: '#ffb34b',
+    damage: 42,
+    radius: 23,
+    life: 2.4,
+    health: 1,
+    capacity: 4,
+    regenSeconds: 6,
+    blastRadius: 124,
+    blastDamage: 105,
+  }),
+});
+
+export const ENEMIES = Object.freeze({
+  sprout: Object.freeze({
+    name: '芽怪',
+    hp: 50,
+    radius: 19,
+    speed: 61,
+    damage: 8,
+    coins: 2,
+    bite: 16,
+  }),
+  runner: Object.freeze({
+    name: '疾行芽',
+    hp: 34,
+    radius: 14,
+    speed: 114,
+    damage: 6,
+    coins: 3,
+    bite: 11,
+  }),
+  brute: Object.freeze({
+    name: '岩壳巨芽',
+    hp: 178,
+    radius: 33,
+    speed: 43,
+    damage: 16,
+    coins: 8,
+    bite: 39,
+  }),
+});
+
+export const UPGRADES = Object.freeze([
+  {
+    id: 'thorn-heart',
+    name: '缠绕根系',
+    description: '荆棘伤害 +50%，生长范围 +15%。',
+    kind: 'thorn',
+    icon: 'thorn',
+  },
+  {
+    id: 'ice-heart',
+    name: '不融坚冰',
+    description: '冰柱耐久 +70%，持续时间 +4 秒。',
+    kind: 'ice',
+    icon: 'ice',
+  },
+  {
+    id: 'mushroom-heart',
+    name: '连锁菌群',
+    description: '蘑菇爆炸伤害 +40%，爆炸范围 +15%。',
+    kind: 'mushroom',
+    icon: 'mushroom',
+  },
+  {
+    id: 'seed-cycle',
+    name: '丰收循环',
+    description: '种子恢复速度 +30%，立即补满所有种子。',
+    kind: 'thorn',
+    icon: 'leaf',
+  },
+  {
+    id: 'bloom-shot',
+    name: '花火连发',
+    description: '普通射击伤害 +25%，射速 +15%。',
+    kind: 'mushroom',
+    icon: 'shot',
+  },
+  {
+    id: 'wild-heart',
+    name: '荒野之心',
+    description: '生命上限 +25，恢复 40 生命，冲刺冷却缩短。',
+    kind: 'ice',
+    icon: 'heart',
+  },
+]);
+
+export const LEVELS = Object.freeze({
+  ruins: Object.freeze({
+    id: 'ruins',
+    name: '失落庭院',
+    subtitle: '第一章 · 在荒芜中盛放',
+    duration: 300,
+    waveDuration: 30,
+    waves: 10,
+    plantCap: 18,
+    world: WORLD,
+    bounds: Object.freeze({ left: 100, right: 1340, top: 150, bottom: 750 }),
+    playerStart: Object.freeze({ x: 720, y: 470 }),
+    upgradeAfter: Object.freeze([3, 6, 9]),
+    spawn: Object.freeze({
+      initialDelay: 1.4,
+      interval: 1.8,
+      acceleration: 0.14,
+      minimumInterval: 0.54,
+      maxEnemies: 48,
+      composition: Object.freeze([
+        { fromWave: 1, weights: { sprout: 1 } },
+        { fromWave: 2, weights: { sprout: 0.62, runner: 0.38 } },
+        { fromWave: 3, weights: { sprout: 0.55, runner: 0.27, brute: 0.18 } },
+        { fromWave: 7, weights: { sprout: 0.4, runner: 0.36, brute: 0.24 } },
+      ]),
+    }),
+  }),
+});

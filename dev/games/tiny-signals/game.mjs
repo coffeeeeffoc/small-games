@@ -47,7 +47,7 @@ function shell() {
     </div>
     <section class="chapter-selection" aria-label="关卡选择"><div class="chapter-section-title"><p class="eyebrow">THE JOURNEY</p><span>慢慢来，每一站都有新发现。</span><strong id="completion-count">0 / 6</strong></div><nav id="level-nav" aria-label="选择关卡"></nav></section>
     <footer class="page-footer"><span><i class="status-dot"></i><span id="save-status">本机进度 · 自动保存</span></span><span>一次方向输入，同时控制四块棋盘。</span><span>TINY SIGNALS <b>✧</b> 2026</span></footer>
-    <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-heading"><div><p class="eyebrow">A LITTLE FIELD GUIDE</p><h2 id="rules-title">归航手册</h2></div><button id="close-help" class="round-button" aria-label="关闭玩法说明">×</button></div><p class="rules-intro">上下左右，同时影响四位信使。撞墙的伙伴留在原地，到家的伙伴会停下来。没有时间限制，随时撤销。</p><div class="rules-grid">${MECHANICS.map((m, i) => `<article><span>${ICONS[i]}</span><h3>${escapeHTML(m.name)}</h3><p>${escapeHTML(m.description)}</p></article>`).join('')}</div><p class="rules-footer">每次方向输入都算一拍，即使全部撞墙。撤销恢复全部机关。<br>获得最优星需要在这一轮未查看路线提示，并达到已验证的最少步数。</p><button id="close-help-bottom" class="primary-button">明白了，一起出发 →</button></dialog>
+    <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-heading"><div><p class="eyebrow">A LITTLE FIELD GUIDE</p><h2 id="rules-title">归航手册</h2></div></div><p class="rules-intro">上下左右，同时影响四位信使。撞墙的伙伴留在原地，到家的伙伴会停下来。没有时间限制，随时撤销。</p><div class="rules-grid">${MECHANICS.map((m, i) => `<article><span>${ICONS[i]}</span><h3>${escapeHTML(m.name)}</h3><p>${escapeHTML(m.description)}</p></article>`).join('')}</div><p class="rules-footer">每次方向输入都算一拍，即使全部撞墙。撤销恢复全部机关。<br>获得最优星需要在这一轮未查看路线提示，并达到已验证的最少步数。</p><button id="close-help-bottom" class="primary-button">明白了，一起出发 →</button></dialog>
   </main>`;
 }
 
@@ -472,7 +472,6 @@ export const gameDefinition = {
       render();
       $('#rules-dialog').showModal();
     });
-    on($('#close-help'), 'click', () => $('#rules-dialog').close());
     on($('#close-help-bottom'), 'click', () => $('#rules-dialog').close());
     const keyMap = {
       ArrowUp: 'up',

@@ -4,15 +4,15 @@ import { getRoleAppearance, roleAvatarSvg } from './role-appearance.js';
 export function character(kind, mood = 'idle', index = 0) {
   const pursuit = kind === 'cop', appearance = getRoleAppearance(kind), running = mood === 'run';
   const raised = ['caught', 'cheer'].includes(mood);
-  return `<g class="paper-person ${kind} mood-${mood}" stroke="#213e43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    ${pursuit ? '<path d="M-22-48h44v32L0-3-22-16Z" fill="#e7f5ff" stroke="#1258c2" stroke-width="4"/>' : '<path d="m-14-42-24 12 16 5-13 14 24-5" fill="#ffb939" stroke="#8f4209"/><circle cy="-30" r="22" fill="#fff0cd" stroke="#be560d" stroke-width="4"/>'}
-    <path d="M-9-16l${running ? '-8 12' : '-2 13'}m20-13 ${running ? '8 9' : '2 13'}" fill="none" stroke="${appearance.color}" stroke-width="10"/>
-    <path d="M-16-40l-12 ${raised ? '-19' : '18'}m44-18 12 ${raised ? '-19' : '18'}" fill="none" stroke="${appearance.color}" stroke-width="9"/>
-    <path d="M-14-46h28l4 27-18 8-18-8Z" fill="${appearance.color}"/>
-    <text x="0" y="-24" text-anchor="middle" font-size="17" font-weight="900" fill="#fff" stroke="none">${pursuit ? '追' : '突'}</text>
+  return `<g class="paper-person ${kind} mood-${mood}" stroke="${pursuit ? '#235b86' : '#974726'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    ${pursuit ? '' : '<path d="M12-39q27 4 15 20l-10-4" fill="#ffca73"/>'}
+    <path d="M-9-15l${running ? '-8 13' : '-3 15'}m21-15 ${running ? '8 10' : '3 15'}" fill="none" stroke="${appearance.color}" stroke-width="10"/>
+    <path d="M-15-41q-9 ${raised ? '-14-13-22' : '7-12 17'}M15-41q9 ${raised ? '-14 13-22' : '7 12 17'}" fill="none" stroke="${appearance.color}" stroke-width="9"/>
+    <path d="M-14-48Q0-55 14-48L18-26Q18-12 0-12T-18-26Z" fill="${appearance.color}"/>
+    <path d="M-11-45Q0-35 11-45" fill="none" stroke="${appearance.accent}" stroke-width="4"/>
+    ${pursuit ? '<path d="M-9-34H9v9L0-20-9-25Z" fill="#fff4cb" stroke="none"/>' : '<path d="m1-35-10 10h8l-1 8 11-12H1Z" fill="#fff4cb" stroke="none"/>'}
+    <text y="-14" text-anchor="middle" font-size="7" font-weight="900" fill="#fff" stroke="none">${index + 1}</text>
     ${roleAvatarSvg(kind, -25, -91, 50)}
-    <rect x="-26" y="-108" width="52" height="20" rx="${pursuit ? 3 : 10}" fill="${appearance.color}" stroke="#fff9eb" stroke-width="2"/>
-    <text y="-94" text-anchor="middle" fill="#fff" stroke="none" font-size="12" font-weight="900">${pursuit ? '追' : '突'} ${index + 1}</text>
   </g>`;
 }
 
