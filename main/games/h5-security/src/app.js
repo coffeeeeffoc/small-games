@@ -211,7 +211,7 @@ function modal() {
   if (m.type === 'finish') content = `<h2>${summarize(game).completed === 3 ? '今天的小事，都办妥了' : '现在收工吗？'}</h2><p>已完成 ${summarize(game).completed}/3 件事务。复盘会保留你的实际操作记录，之后也可以继续处理。</p><div class="modal-actions">${button('查看今日复盘', 'finish')}${button('再忙一会儿', 'close-modal', 'secondary')}</div>`;
   if (m.type === 'restart') content = `<h2>重新开始这一章？</h2><p>当前进度和关键选择存档将被清除。你会重新拿到搬家第一天的手机。</p><div class="modal-actions">${button('重新开始', 'restart', 'danger')}${button('保留当前进度', 'close-modal', 'secondary')}</div>`;
   if (m.type === 'retry') content = `<h2>回到关键选择前？</h2><p>手机、钱包、消息和操作记录会一起恢复到最近一次打开业务链接之前。</p><div class="modal-actions">${button('恢复并重新选择', 'retry')}${button('保留当前进度', 'close-modal', 'secondary')}</div>`;
-  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.type === 'contact' ? '联系人详情' : '确认操作')}"><button class="modal-close header-action" data-action="close-modal" aria-label="关闭">${icon('close')}</button>${content}</section></div>`;
+  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.type === 'contact' ? '联系人详情' : '确认操作')}">${content}${['contact', 'account'].includes(m.type) ? `<div class="modal-actions">${button('返回手机', 'close-modal', 'secondary')}</div>` : ''}</section></div>`;
 }
 function render() {
   captureScroll();
