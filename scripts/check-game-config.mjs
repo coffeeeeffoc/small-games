@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import yaml from 'js-yaml';
 import { runCommand } from './platform-process.mjs';
+import { auditGameMeta } from './game-meta.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const GAME_ROOTS = ['games/local', 'games/submodules'];
@@ -35,7 +36,7 @@ const commands = (workflow) =>
     .replace(/^\s*#.*$/gm, '');
 
 /** Discover from disk first, so an unregistered game cannot disappear from the audit. */
-export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
+export async function auditGameConfig(root = ROOT, { artifacts = false, meta = true } = {}) {
   root = path.resolve(root);
   const errors = [],
     warnings = [],
@@ -110,6 +111,16 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
   const ids = new Set(),
     sources = new Set(),
     names = new Set();
+  const builtinIds = new Map(
+    [
+      ...withoutComments(registry).matchAll(
+        /\bid\s*:\s*['"]([^'"]+)['"]([\s\S]*?)(?=\bid\s*:\s*['"]|$)/g,
+      ),
+    ].flatMap((match) => {
+      const imported = match[2].match(/\bimport\(\s*['"]([^'"]+)['"]/);
+      return imported ? [[imported[1], match[1]]] : [];
+    }),
+  );
   for (const entry of catalog) {
     if (!entry || typeof entry !== 'object') {
       fail('invalid-config', 'catalog', '游戏条目必须是对象');
@@ -167,7 +178,10 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
       const game = {
         source,
         name: pkg.name,
-        id: entry?.id || child.name,
+        id:
+          entry?.id ||
+          builtinIds.get(pkg.name) ||
+          (builtin ? child.name.replace(/^game-/, '') : child.name),
         kind: entry ? 'standalone' : builtin ? 'builtin' : 'unregistered',
       };
       games.push(game);
@@ -316,6 +330,7 @@ export async function auditGameConfig(root = ROOT, { artifacts = false } = {}) {
       );
     }
   }
+  if (meta) errors.push(...(await auditGameMeta(root, games)));
   return { games, errors, warnings };
 }
 
