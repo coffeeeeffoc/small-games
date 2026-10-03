@@ -1,11 +1,14 @@
-import { LEVELS, SEEDS, UPGRADES } from './config.mjs';
+import { LEVELS, BOONS, SKILLS, UPGRADES } from './config.mjs';
 import {
   createGame,
   startGame,
   step,
+  configureLoadout,
+  selectSkill,
   chooseUpgrade,
   pauseGame,
   resumeGame,
+  castSkill,
   dash,
 } from './simulation.mjs';
 import { GardenRenderer, drawSeedIcon, drawPortrait } from './renderer.mjs';
@@ -27,7 +30,12 @@ const input = {
 };
 const keys = new Set();
 const panels = ['ready', 'pause', 'help', 'upgrade', 'result'];
-const terrainLegend = [...document.querySelectorAll('[data-terrain]')];
+const skillButtons = [...document.querySelectorAll('[data-skill-slot]')];
+const boonButtons = [...document.querySelectorAll('[data-boon]')];
+const prepSkills = ['blast', 'gale'];
+let prepBoon = null,
+  armed = false,
+  fieldArmed = false;
 let helpOpen = false,
   previousPhase = '',
   savedResult = false;
@@ -45,6 +53,7 @@ let hasAimed = false,
   pointerOnField = false;
 let pointerClient = null;
 let best = 0;
+let gameSpeed = 1;
 try {
   best = Number(localStorage.getItem('bullet-garden.best') || 0);
   audio.enabled = localStorage.getItem('bullet-garden.sound') === 'true';
@@ -68,13 +77,20 @@ function showPanel(name) {
   if (name) {
     resetInput();
     requestAnimationFrame(() => {
-      const focus = $(`${name}-panel`).querySelector('button');
+      const focus =
+        name === 'ready'
+          ? $('ready-title')
+          : $(`${name}-panel`).querySelector('button:not(:disabled), select');
       focus?.focus({ preventScroll: true });
     });
   }
 }
 
 function resetInput() {
+  armed = false;
+  fieldArmed = false;
+  $('targeting').hidden = true;
+  document.body.dataset.armed = 'false';
   keys.clear();
   input.moveX = 0;
   input.moveY = 0;
@@ -95,6 +111,7 @@ function resetInput() {
 }
 
 function begin() {
+  if (!prepBoon || !configureLoadout(state, { boon: prepBoon, skills: prepSkills })) return;
   resetInput();
   helpOpen = false;
   savedResult = false;
@@ -110,8 +127,8 @@ function begin() {
   refreshHUD();
   announce(
     matchMedia('(pointer:coarse)').matches
-      ? '摇杆移动 · 自动射击与生长 · 击退升级'
-      : 'WASD 移动 · 自动射击与生长 · 击退升级',
+      ? '摇杆移动 · 满能后点技能，再点战场释放'
+      : 'WASD 移动 · 1 / 2 选满能技能 · 点击战场释放',
     5,
   );
 }
@@ -141,11 +158,100 @@ function closeHelp() {
   syncPhase();
 }
 
+function prepare() {
+  resetInput();
+  Object.assign(state, createGame(state.levelId));
+  helpOpen = false;
+  previousPhase = '';
+  savedResult = false;
+  if (prepBoon) configureLoadout(state, { boon: prepBoon, skills: prepSkills });
+  refreshPreparation();
+  syncPhase();
+  refreshHUD();
+}
+
+function refreshPreparation() {
+  for (const button of boonButtons) {
+    const selected = button.dataset.boon === prepBoon;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  }
+  $('boon-description').textContent = prepBoon
+    ? BOONS[prepBoon].description
+    : '先选一个增益，后续强化还可解锁更多地形。';
+  for (let index = 0; index < 2; index++) {
+    $(`loadout-skill-${index}`).value = prepSkills[index];
+    $(`loadout-description-${index}`).textContent = SKILLS[prepSkills[index]].description;
+  }
+  $('start').disabled = !prepBoon;
+  $('start').firstChild.textContent = prepBoon ? '进入花园 ' : '先选择庭院增益 ';
+}
+
+const skillLabels = { blast: '爆破', gale: '大风', cart: '冲锋车', horse: '战马', laser: '激光' };
+for (let index = 0; index < 2; index++) {
+  const select = $(`loadout-skill-${index}`);
+  for (const definition of Object.values(SKILLS)) {
+    const option = document.createElement('option');
+    option.value = definition.id;
+    option.textContent = `${skillLabels[definition.id]} · ${definition.name}`;
+    select.append(option);
+  }
+  select.addEventListener('change', () => {
+    const previous = prepSkills[index];
+    prepSkills[index] = select.value;
+    // Swapping a duplicate keeps both native controls usable and the pair distinct.
+    if (prepSkills[1 - index] === select.value) prepSkills[1 - index] = previous;
+    refreshPreparation();
+  });
+}
+for (const button of boonButtons)
+  button.addEventListener('click', () => {
+    prepBoon = button.dataset.boon;
+    refreshPreparation();
+  });
+
+function cancelSkill(message = false) {
+  armed = false;
+  fieldArmed = false;
+  refreshHUD();
+  if (message) announce('已取消瞄准 · 能量保留', 2);
+}
+
+function armSkill(index) {
+  if (helpOpen || state.phase !== 'playing') return;
+  if (armed && state.selectedSkill === index) {
+    cancelSkill(true);
+    return;
+  }
+  if (!selectSkill(state, index)) return;
+  const slot = state.skillSlots[index];
+  armed = slot.energy >= SKILLS[slot.kind].energyMax;
+  fieldArmed = false;
+  constrainAim(aim);
+  refreshHUD();
+  announce(
+    armed
+      ? `${SKILLS[slot.kind].name} · ${SKILLS[slot.kind].shape === 'line' ? '拖动选择方向' : '拖动选择落点'}，松手释放`
+      : '技能正在充能 · 战斗与击退敌人都能积攒能量',
+    2.5,
+  );
+}
+
+function releaseSkill() {
+  if (!armed || state.phase !== 'playing' || helpOpen) return;
+  audio.unlock();
+  if (castSkill(state, aim)) {
+    armed = false;
+    fieldArmed = false;
+  } else announce('技能暂未就绪 · 能量已保留', 2);
+  refreshHUD();
+}
+
 function doDash() {
   const direction =
     Math.hypot(input.moveX, input.moveY) > 0.1
       ? { x: input.moveX, y: input.moveY }
-      : input.aimActive
+      : input.aimActive || armed
         ? { x: aim.x - state.player.x, y: aim.y - state.player.y }
         : { x: Math.cos(state.player.angle), y: Math.sin(state.player.angle) };
   dash(state, direction);
@@ -155,11 +261,20 @@ function doDash() {
 
 function constrainAim(world) {
   const bounds = LEVELS[state.levelId].bounds;
-  const radius = 8;
   aim = {
-    x: Math.max(bounds.left + radius, Math.min(bounds.right - radius, world.x)),
-    y: Math.max(bounds.top + radius, Math.min(bounds.bottom - radius, world.y)),
+    x: Math.max(bounds.left, Math.min(bounds.right, world.x)),
+    y: Math.max(bounds.top, Math.min(bounds.bottom, world.y)),
   };
+  const definition = SKILLS[state.skillSlots[state.selectedSkill]?.kind];
+  if (armed && definition) {
+    const dx = aim.x - state.player.x,
+      dy = aim.y - state.player.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > definition.range) {
+      aim.x = state.player.x + (dx / distance) * definition.range;
+      aim.y = state.player.y + (dy / distance) * definition.range;
+    }
+  }
   input.aimX = aim.x;
   input.aimY = aim.y;
 }
@@ -208,37 +323,68 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
 
 canvas.addEventListener('pointerdown', (event) => {
   if (state.phase !== 'playing') return;
-  if (event.button === 2) return;
+  if (event.button !== 0) return;
   if (fieldPointer !== null) return;
   if (event.pointerType !== 'mouse') event.preventDefault();
   audio.unlock();
   updateAim(event);
   pointerOnField = true;
   fieldPointer = event.pointerId;
+  fieldArmed = armed;
   canvas.setPointerCapture(event.pointerId);
-  input.firing = true;
-  input.aimActive = true;
+  input.firing = !armed;
+  input.aimActive = !armed;
 });
 canvas.addEventListener('pointermove', (event) => {
   if (state.phase !== 'playing') return;
-  if (fieldPointer === event.pointerId) {
+  if (event.pointerType === 'mouse' || fieldPointer === event.pointerId) {
     updateAim(event);
     pointerOnField = true;
   }
 });
-function releaseAim(event) {
+canvas.addEventListener('pointerup', (event) => {
   if (event.pointerId !== fieldPointer) return;
-  const capturedPointer = fieldPointer;
-  fieldPointer = null;
+  const rect = canvas.getBoundingClientRect();
+  const inside =
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom &&
+    document.elementFromPoint(event.clientX, event.clientY) === canvas;
+  if (fieldArmed && state.phase === 'playing') {
+    if (inside) {
+      updateAim(event);
+      releaseSkill();
+    } else cancelSkill(true);
+  }
   input.firing = false;
   input.aimActive = false;
-  hasAimed = false;
-  pointerOnField = false;
-  pointerClient = null;
-  if (canvas.hasPointerCapture(capturedPointer)) canvas.releasePointerCapture(capturedPointer);
-}
-for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
-  canvas.addEventListener(type, releaseAim);
+  fieldPointer = null;
+  fieldArmed = false;
+  pointerOnField = event.pointerType === 'mouse';
+});
+for (const type of ['pointercancel', 'lostpointercapture'])
+  canvas.addEventListener(type, (event) => {
+    if (event.pointerId === fieldPointer) {
+      fieldPointer = null;
+      input.firing = false;
+      input.aimActive = false;
+      pointerOnField = false;
+      cancelSkill();
+    }
+  });
+canvas.addEventListener('pointerleave', () => {
+  if (fieldPointer === null) pointerOnField = false;
+});
+// A second mouse button does not emit pointerdown while the first stays held.
+canvas.addEventListener('mousedown', (event) => {
+  if (event.button === 2 && state.phase === 'playing') {
+    event.preventDefault();
+    updateAim(event);
+    pointerOnField = true;
+    releaseSkill();
+  }
+});
 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 const controls = new Set([
@@ -251,16 +397,24 @@ const controls = new Set([
   'ArrowDown',
   'ArrowRight',
   'Space',
+  'KeyE',
+  'Digit1',
+  'Digit2',
   'Escape',
 ]);
 window.addEventListener('keydown', (event) => {
   if (event.code === 'Tab' && !$('overlay').hidden) {
-    const focusable = [...$('overlay').querySelectorAll('section:not([hidden]) button')].filter(
-      (button) => !button.disabled,
-    );
+    const focusable = [
+      ...$('overlay').querySelectorAll(
+        'section:not([hidden]) button, section:not([hidden]) select',
+      ),
+    ].filter((button) => !button.disabled);
     const first = focusable[0],
       last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
+    if (
+      event.shiftKey &&
+      (document.activeElement === first || !focusable.includes(document.activeElement))
+    ) {
       event.preventDefault();
       last?.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
@@ -268,17 +422,21 @@ window.addEventListener('keydown', (event) => {
       first?.focus();
     }
   }
+  if (event.target instanceof HTMLSelectElement && event.code !== 'Escape') return;
   if (!controls.has(event.code)) return;
   if (state.phase === 'playing' || event.code === 'Escape') event.preventDefault();
   if (event.code === 'Escape' && !event.repeat) {
-    togglePause();
+    if (armed) cancelSkill(true);
+    else togglePause();
     return;
   }
   if (state.phase !== 'playing' || helpOpen) return;
   keys.add(event.code);
   audio.unlock();
   if (event.repeat) return;
+  if (event.code === 'KeyE') releaseSkill();
   if (event.code === 'Space') doDash();
+  if (event.code.startsWith('Digit')) armSkill(Number(event.code.slice(5)) - 1);
 });
 window.addEventListener('keyup', (event) => keys.delete(event.code));
 function suspend() {
@@ -290,6 +448,7 @@ function suspend() {
   accumulator = 0;
 }
 window.addEventListener('blur', suspend);
+canvas.addEventListener('contextlost', suspend);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) suspend();
 });
@@ -299,13 +458,28 @@ window.addEventListener('resize', () => {
 });
 
 $('start').addEventListener('click', begin);
-$('restart').addEventListener('click', begin);
-$('play-again').addEventListener('click', begin);
+$('restart').addEventListener('click', prepare);
+$('play-again').addEventListener('click', prepare);
 $('pause').addEventListener('click', togglePause);
 $('resume').addEventListener('click', togglePause);
 for (const id of ['help', 'ready-help', 'pause-help']) $(id).addEventListener('click', openHelp);
 $('close-help').addEventListener('click', closeHelp);
+$('cast').addEventListener('click', releaseSkill);
+$('cancel-cast').addEventListener('click', () => cancelSkill(true));
 $('dash').addEventListener('click', doDash);
+for (const button of skillButtons)
+  button.addEventListener('click', () => armSkill(Number(button.dataset.skillSlot)));
+$('game-speed').addEventListener('change', () => {
+  const speed = Number($('game-speed').value);
+  gameSpeed = [1, 2, 3, 5].includes(speed) ? speed : 1;
+  accumulator = 0;
+  announce(`战斗速度 ${gameSpeed}× · 充能与技能同步加速`, 2);
+});
+$('auto-fire').addEventListener('click', () => {
+  input.autoFire = !input.autoFire;
+  refreshHUD();
+  announce(input.autoFire ? '自动射击已开启' : '自动射击已关闭 · 按住战场定向射击', 2);
+});
 function syncSound() {
   $('sound').setAttribute('aria-pressed', String(audio.enabled));
   $('pause-sound').setAttribute('aria-pressed', String(audio.enabled));
@@ -351,9 +525,9 @@ function populateUpgrades() {
     const category = document.createElement('span');
     category.className = 'upgrade-category';
     const rank = state.upgrades.filter((upgradeId) => upgradeId === id).length + 1;
-    category.textContent = `${{ weapon: '枪械', terrain: '地形', survival: '生存' }[definition.category] || '强化'} · ${rank} / ${definition.maxRank}`;
+    category.textContent = `${{ weapon: '枪械', terrain: '地形', survival: '生存' }[definition.category] || '强化'} · ${rank} / ${definition.maxRank || 1}`;
     const choose = document.createElement('small');
-    choose.textContent = '选择强化 →';
+    choose.textContent = id.startsWith('boon-') ? '解锁地形 →' : '选择强化 →';
     button.append(icon, category, title, description, choose);
     $('upgrade-options').append(button);
     drawSeedIcon(icon, definition.icon || definition.kind || 'normal');
@@ -373,14 +547,16 @@ function populateResult() {
   $('result-kicker').textContent = won ? 'GARDEN PROTECTED' : 'EVERY GARDEN GROWS AGAIN';
   $('result-title').textContent = won ? '花园，生生不息。' : '下一次，会开花。';
   $('result-description').textContent = won
-    ? '五分钟守卫完成。你把一片废墟，种成了自己的战场。'
-    : `坚持到第 ${state.wave} 波。移动留出空间，让自动地形与枪械强化一起守住追兵的路线。`;
+    ? '五分钟守卫完成。你的庭院增益与能量战术，守住了这片花园。'
+    : `坚持到第 ${state.wave} 波。让地形拖慢追兵，把充满的能量留给最需要的时刻。`;
   const seconds = Math.floor(state.time);
   const values = [
     [`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, '守卫时间'],
     [state.kills, '击退怪物'],
-    [state.stats.autoPlants, '自动生长'],
-    [state.stats.plantKills, '植物击退'],
+    [state.stats.skillCasts, '手动释放'],
+    [state.progression.level, '守望等级'],
+    [state.upgrades.length, '获得强化'],
+    [state.stats.plantKills + state.stats.skillKills, '战术击退'],
   ];
   $('result-stats').replaceChildren();
   for (const [value, label] of values) {
@@ -402,7 +578,7 @@ function populateResult() {
     }
   }
   $('best-record').textContent =
-    `最佳守卫 ${Math.floor(best / 60)}:${String(best % 60).padStart(2, '0')} · 地形造成 ${Math.round(state.stats.terrainDamage)} 伤害`;
+    `最佳守卫 ${Math.floor(best / 60)}:${String(best % 60).padStart(2, '0')} · 地形与技能造成 ${Math.round(state.stats.terrainDamage + state.stats.skillDamage)} 伤害`;
 }
 
 function syncPhase() {
@@ -446,21 +622,50 @@ function refreshHUD() {
   const experienceTrack = $('experience-fill').parentElement;
   experienceTrack.setAttribute('aria-valuenow', xp);
   experienceTrack.setAttribute('aria-valuemax', nextXp);
-  const { misses, threshold, nextKind, cooldown, pending } = state.growth;
-  $('growth-count').textContent = `${Math.min(misses, threshold)} / ${threshold}`;
-  $('growth-fill').style.width = `${Math.min(100, (misses / threshold) * 100)}%`;
-  const growthTrack = $('growth-fill').parentElement;
-  growthTrack.setAttribute('aria-valuenow', Math.min(misses, threshold));
-  growthTrack.setAttribute('aria-valuemax', threshold);
-  $('growth-next').textContent =
-    pending && cooldown > 0
-      ? `${SEEDS[nextKind]?.name || '地形'} · ${cooldown.toFixed(1)}s 后生长`
-      : pending
-        ? '生长已就绪 · 移动腾出空间'
-        : `下一株 · ${SEEDS[nextKind]?.name || '临时地形'}`;
-  for (const item of terrainLegend)
-    item.classList.toggle('next', item.dataset.terrain === nextKind);
+  $('active-boons').textContent = state.boons.length
+    ? state.boons.map((id) => BOONS[id].name).join(' · ')
+    : '尚未选择';
+  for (const button of skillButtons) {
+    const index = Number(button.dataset.skillSlot),
+      slot = state.skillSlots[index];
+    const definition = SKILLS[slot.kind],
+      ready = slot.energy >= definition.energyMax;
+    const selected = armed && state.selectedSkill === index;
+    if (button.dataset.kind !== slot.kind) {
+      button.dataset.kind = slot.kind;
+      button.style.setProperty('--skill-color', definition.color);
+      $(`skill-name-${index}`).textContent = definition.name;
+      drawSeedIcon($(`skill-icon-${index}`), slot.kind);
+    }
+    button.classList.toggle('ready', ready);
+    button.classList.toggle('armed', selected);
+    button.setAttribute('aria-pressed', String(selected));
+    button.setAttribute(
+      'aria-label',
+      `${definition.name}，能量 ${Math.floor(slot.energy)} / ${definition.energyMax}，${selected ? '正在瞄准，再点取消' : ready ? '已就绪，点击选择落点' : '充能中'}`,
+    );
+    $(`skill-energy-${index}`).textContent = `${Math.floor(slot.energy)} / ${definition.energyMax}`;
+    $(`skill-status-${index}`).textContent = selected
+      ? '瞄准中 · 再点取消'
+      : ready
+        ? '已就绪 · 点此瞄准'
+        : '充能中';
+    const meter = button.querySelector('.skill-meter');
+    meter.setAttribute('aria-valuenow', String(Math.floor(slot.energy)));
+    meter.querySelector('i').style.transform =
+      `scaleX(${Math.min(1, slot.energy / definition.energyMax)})`;
+  }
+  const definition = SKILLS[state.skillSlots[state.selectedSkill].kind];
+  $('targeting').hidden = !armed;
+  document.body.dataset.armed = String(armed);
+  $('targeting-text').textContent =
+    `${definition.name} · ${definition.shape === 'line' ? '选择方向' : '选择落点'}，松手释放`;
+  $('skill-instruction').textContent = armed
+    ? '在战场拖动瞄准 · 松手释放 · 取消保留能量'
+    : '点亮已充满的技能，再选择战场落点';
+  $('cast').disabled = !armed;
   const coarse = matchMedia('(pointer:coarse)').matches;
+  $('cast-cooldown').textContent = armed ? (coarse ? '松手释放' : '右键 / E') : '先选技能';
   $('dash-cooldown').textContent =
     state.player.dashCooldown > 0
       ? `${state.player.dashCooldown.toFixed(1)}s`
@@ -468,6 +673,8 @@ function refreshHUD() {
         ? '就绪'
         : 'SPACE';
   $('dash').style.opacity = state.player.dashCooldown > 0 ? '.6' : '1';
+  $('auto-fire').setAttribute('aria-pressed', String(input.autoFire));
+  $('auto-fire').querySelector('b').textContent = input.autoFire ? '开' : '关';
 }
 
 function frame(now) {
@@ -485,8 +692,12 @@ function frame(now) {
     Number(keys.has('KeyS') || keys.has('ArrowDown')) -
     Number(keys.has('KeyW') || keys.has('ArrowUp'));
   if (!hasAimed) constrainAim({ x: state.player.x + 150, y: state.player.y });
+  // HTML controls remain clickable during canvas recovery. Keep combat paused
+  // even if start, resume or an upgrade is pressed before the canvas returns.
+  if (state.phase === 'playing' && (renderer.contextLost || renderer.ctx.isContextLost?.()))
+    suspend();
   if (state.phase === 'playing') {
-    accumulator += elapsed;
+    accumulator += elapsed * gameSpeed;
     while (accumulator >= 1 / 60 && state.phase === 'playing') {
       step(state, 1 / 60, input);
       accumulator -= 1 / 60;
@@ -501,7 +712,8 @@ function frame(now) {
       );
   }
   renderer.render(state, {
-    aim: input.aimActive ? aim : null,
+    aim,
+    planting: state.phase === 'playing' && armed,
     time: uiTime,
   });
   syncPhase();
@@ -519,12 +731,19 @@ Object.defineProperty(window, '__bulletGarden', {
     snapshot: () =>
       structuredClone({
         ...state,
-        controls: { manualAim: input.aimActive, moveX: input.moveX, moveY: input.moveY },
+        controls: {
+          manualAim: input.aimActive,
+          moveX: input.moveX,
+          moveY: input.moveY,
+          armed,
+          speed: gameSpeed,
+        },
       }),
   }),
   writable: false,
   configurable: false,
 });
+refreshPreparation();
 syncSound();
 syncPhase();
 refreshHUD();
