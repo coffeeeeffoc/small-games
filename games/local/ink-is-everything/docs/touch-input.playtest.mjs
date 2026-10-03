@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
+import { Touches, snapshot, center, distance, fitsViewport } from './playtest-driver.mjs';
 
-// Targeted regression for the non-primary-finger healing and pause bugs.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const url = process.env.GAME_URL || 'http://127.0.0.1:4412/';
 const report = {
+  version: 3,
   date: new Date().toISOString(),
   url,
   viewport: '390×844',
-  input: 'Native four-finger touch events; snapshot reads only',
+  input: 'Native four-finger touch events; snapshots read-only',
   cases: [],
   errors: [],
   status: 'running',
@@ -28,95 +29,90 @@ try {
   page.on('pageerror', (error) => report.errors.push(error.message));
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.locator('#start-game').tap();
-  const session = await context.newCDPSession(page),
-    points = new Map();
-  const snapshot = () => page.evaluate(() => window.__inkGame.snapshot());
+  await fitsViewport(page);
+  const initial = await snapshot(page);
+  assert.equal(initial.version, 3);
+  assert.equal(Object.hasOwn(initial.player, 'hp'), false);
   await page.locator('#pause').tap();
   assert.equal(
     await page.locator('#modal').evaluate((dialog) => dialog.open),
     true,
-    'A single-finger pause tap must leave the dialog open after its compatibility click',
+    'The compatibility click must not close a pause opened by touch',
   );
-  const singlePaused = await snapshot();
-  assert.equal(singlePaused.paused, true);
+  const frozen = await snapshot(page);
+  assert.equal(frozen.paused, true);
   await page.locator('#modal-close').focus();
-  await page.keyboard.press('Space');
+  for (const key of ['Space', 'q', 'f', 'e']) await page.keyboard.press(key);
   await page.waitForTimeout(250);
-  assert.equal((await snapshot()).paused, true);
-  assert.equal((await snapshot()).time, singlePaused.time);
+  assert.equal((await snapshot(page)).paused, true);
+  assert.equal((await snapshot(page)).time, frozen.time);
   await page.locator('#resume').tap();
-  await page.waitForFunction(() => !window.__inkGame.snapshot().paused, null, { timeout: 2000 });
-  assert.equal((await snapshot()).paused, false);
+  await page.waitForFunction(() => !window.__inkGame.snapshot().paused);
   report.cases.push({
-    name: 'Single-finger pause survives the compatibility click, Space on a focused close button remains paused, and explicit resume works',
+    name: 'Single-finger pause remains open after the compatibility click and gameplay keys cannot activate its focused close button',
     status: 'passed',
-  });
-  const center = async (selector) => {
-    const box = await page.locator(selector).boundingBox();
-    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  };
-  const dispatch = (type) =>
-    session.send('Input.dispatchTouchEvent', {
-      type,
-      touchPoints: [...points].map(([id, point]) => ({
-        id,
-        ...point,
-        radiusX: 5,
-        radiusY: 5,
-        force: 1,
-      })),
-    });
-  const down = async (id, point) => {
-    points.set(id, point);
-    await dispatch('touchStart');
-  };
-  const up = async (id) => {
-    const point = points.get(id);
-    points.delete(id);
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchEnd',
-      touchPoints: [{ id, ...point, radiusX: 5, radiusY: 5, force: 1 }],
-    });
-  };
-  const cancel = async () => {
-    if (points.size) {
-      points.clear();
-      await dispatch('touchCancel');
-    }
-  };
-  const stick = await center('#joystick');
-  await down(1, stick);
-  points.set(1, { x: stick.x + 37, y: stick.y });
-  await dispatch('touchMove');
-  await page.waitForTimeout(900);
-  await cancel();
-  await page.waitForFunction(() => window.__inkGame.snapshot().player.hp <= 3, null, {
-    timeout: 35000,
-  });
-  assert.equal((await snapshot()).status, 'playing');
-  await down(1, stick);
-  await down(2, await center('#fire'));
-  await down(3, await center('#melee'));
-  const wounded = await snapshot();
-  await down(4, await center('#heal'));
-  await up(4);
-  const healed = await snapshot();
-  assert.equal(
-    healed.stats.heals,
-    wounded.stats.heals + 1,
-    'The fourth finger must activate healing while three other controls are held',
-  );
-  assert.equal(healed.stats.spent.heal, wounded.stats.spent.heal + 10);
-  assert.ok(healed.player.hp > wounded.player.hp);
-  report.cases.push({
-    name: 'Fourth finger heals during simultaneous joystick, ranged and melee input; shared ink pool pays 10',
-    status: 'passed',
-    hpBefore: wounded.player.hp,
-    hpAfter: healed.player.hp,
   });
 
-  await down(4, await center('#pause'));
-  const paused = await snapshot();
+  const touch = new Touches(await context.newCDPSession(page));
+  const stick = await center(page, '#joystick');
+  await touch.down(1, stick);
+  await touch.move(1, { x: stick.x + 37, y: stick.y });
+  await touch.down(2, await center(page, '#fire'));
+  await touch.down(3, await center(page, '#melee'));
+  await page.waitForTimeout(240);
+  const beforeNova = await snapshot(page);
+  assert.ok(beforeNova.player.x > initial.player.x + 25);
+  assert.ok(beforeNova.stats.shots > 0);
+  assert.ok(beforeNova.stats.freeAttacks > 0);
+  await touch.down(4, await center(page, '#nova'));
+  await touch.up(4);
+  await page.waitForFunction(
+    (count) => window.__inkGame.snapshot().stats.spent.nova > count,
+    beforeNova.stats.spent.nova || 0,
+  );
+  const nova = await snapshot(page);
+  assert.equal(
+    nova.stats.spent.nova - (beforeNova.stats.spent.nova || 0),
+    initial.definition.rules.novaCost,
+  );
+  assert.ok(
+    nova.player.ink < beforeNova.player.ink,
+    'Nova spends the same survival ink during multi-touch combat',
+  );
+  assert.equal(
+    nova.pickups.filter((pickup) => pickup.kind === 'reclaim' && pickup.skillId === 'nova').length,
+    2,
+  );
+  report.cases.push({
+    name: 'Three held fingers move, shoot and dry-attack while the fourth casts nova, pays life ink and scatters two physical recovery drops',
+    status: 'passed',
+    novaCost: nova.stats.spent.nova - (beforeNova.stats.spent.nova || 0),
+  });
+  await touch.cancel();
+  const cancelled = await snapshot(page);
+  await page.waitForTimeout(180);
+  const stopped = await snapshot(page);
+  assert.deepEqual(stopped.input, {
+    moveX: 0,
+    moveY: 0,
+    shoot: false,
+    melee: false,
+    drawing: false,
+  });
+  assert.ok(distance(cancelled.player, stopped.player) < 2);
+  assert.equal(stopped.stats.shots, cancelled.stats.shots);
+  assert.equal(stopped.stats.freeAttacks, cancelled.stats.freeAttacks);
+  report.cases.push({
+    name: 'Native touch cancellation releases movement and all held attacks without sticky input',
+    status: 'passed',
+  });
+
+  await touch.down(1, stick);
+  await touch.move(1, { x: stick.x - 36, y: stick.y });
+  await touch.down(2, await center(page, '#fire'));
+  await touch.down(3, await center(page, '#melee'));
+  await touch.down(4, await center(page, '#pause'));
+  const paused = await snapshot(page);
   assert.equal(paused.paused, true);
   assert.deepEqual(paused.input, {
     moveX: 0,
@@ -125,27 +121,22 @@ try {
     melee: false,
     drawing: false,
   });
-  await page.locator('#modal-close').focus();
-  for (const key of ['Space', 'f', 'q', 'e']) await page.keyboard.press(key);
-  await page.waitForTimeout(350);
-  assert.equal(
-    (await snapshot()).paused,
-    true,
-    'Gameplay keys must not activate focused dialog controls',
-  );
-  assert.equal((await snapshot()).time, paused.time);
-  await cancel();
+  await page.waitForTimeout(250);
+  assert.equal((await snapshot(page)).time, paused.time);
+  await touch.cancel();
   await page.locator('#resume').tap();
-  const resumed = await snapshot();
-  await page.waitForTimeout(200);
-  const after = await snapshot();
+  await page.waitForFunction(() => !window.__inkGame.snapshot().paused);
+  const resumed = await snapshot(page);
+  await page.waitForTimeout(180);
+  const after = await snapshot(page);
+  assert.ok(distance(resumed.player, after.player) < 2);
   assert.equal(after.stats.shots, resumed.stats.shots);
   assert.equal(after.stats.freeAttacks, resumed.stats.freeAttacks);
-  assert.ok(Math.hypot(after.player.x - resumed.player.x, after.player.y - resumed.player.y) < 2);
   report.cases.push({
-    name: 'Fourth finger pauses, cancels all captures and held controls, freezes simulation even with Space on a focused button, then resumes without stale movement or attacks',
+    name: 'Fourth finger pauses and clears every capture; explicit resume restores play without ghost movement, shots or melee',
     status: 'passed',
   });
+  await touch.close();
   assert.deepEqual(report.errors, []);
   report.status = 'passed';
 } catch (error) {

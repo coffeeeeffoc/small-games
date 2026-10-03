@@ -161,30 +161,6 @@ button i {
   gap: 28px;
   flex: none;
 }
-#hearts {
-  display: flex;
-  gap: 3px;
-  position: relative;
-  padding-bottom: 14px;
-}
-#hearts:after {
-  content: attr(data-label);
-  font-size: 9px;
-  position: absolute;
-  bottom: 0;
-  color: #bdb79e;
-  letter-spacing: 1px;
-}
-#hearts svg {
-  width: 17px;
-  height: 19px;
-  fill: #b76b54;
-  color: #b76b54;
-}
-#hearts svg.empty {
-  fill: transparent;
-  color: #777967;
-}
 .seals {
   display: flex;
   align-items: center;
@@ -280,8 +256,10 @@ button i {
   right: 27px;
   top: 99px;
   z-index: 3;
+  display: flex;
+  gap: 6px;
 }
-#draw-tool {
+.field-tools button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -292,15 +270,15 @@ button i {
   border: 1px solid #94876a;
   box-shadow: 2px 3px 0 #5a553327;
 }
-#draw-tool > span:first-child {
+.field-tools button > span:first-child {
   width: 23px;
   height: 27px;
 }
-#draw-tool > span:last-child {
+.field-tools button > span:last-child {
   font-size: 13px;
   letter-spacing: 2px;
 }
-#draw-tool small {
+.field-tools button small {
   display: block;
   font-size: 8px;
   letter-spacing: 1px;
@@ -1057,18 +1035,6 @@ dialog::backdrop {
     grid-row: 1;
     gap: 8px;
   }
-  #hearts {
-    gap: 1px;
-    padding-bottom: 11px;
-  }
-  #hearts svg {
-    width: 11px;
-    height: 13px;
-  }
-  #hearts:after {
-    font-size: 7px;
-    letter-spacing: 0.5px;
-  }
   .seals {
     gap: 3px;
   }
@@ -1167,22 +1133,22 @@ dialog::backdrop {
     right: 13px;
     top: 81px;
   }
-  #draw-tool {
+  .field-tools button {
     width: 58px;
     height: 45px;
     min-width: 0;
     padding: 5px;
     gap: 3px;
   }
-  #draw-tool > span:first-child {
+  .field-tools button > span:first-child {
     width: 17px;
     height: 21px;
   }
-  #draw-tool > span:last-child {
+  .field-tools button > span:last-child {
     font-size: 11px;
     letter-spacing: 0;
   }
-  #draw-tool small {
+  .field-tools button small {
     display: none;
   }
   .tutorial-hint {
@@ -1389,9 +1355,6 @@ dialog::backdrop {
   .vitals {
     gap: 6px;
   }
-  #hearts svg {
-    width: 9px;
-  }
   .hud-tools .icon-button {
     width: 25px;
   }
@@ -1578,4 +1541,238 @@ dialog::backdrop {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Single-resource growth HUD and paused reward selection. */
+.progression-hud {
+  min-width: 90px;
+  font:
+    11px Georgia,
+    serif;
+  color: #e7d8ad;
+}
+.progression-hud b {
+  font-size: 22px;
+  margin-left: 2px;
+}
+.progression-hud small {
+  font-size: 9px;
+  color: #c7c0a3;
+  margin-left: 5px;
+}
+.xp-track {
+  height: 3px;
+  margin-top: 3px;
+  background: #5c604b;
+  overflow: hidden;
+}
+.xp-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #bdbe7d;
+  transition: width 0.2s;
+}
+.ink-danger .meter-label {
+  color: #efaf8e;
+}
+#equipment-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  font: 10px Georgia;
+  background: #686d4b;
+  color: #f3e5c2;
+  border-radius: 50%;
+}
+.cover-card .cover-chapter {
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin: -10px 0 12px;
+  color: #767849;
+}
+#chapter-picker {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 13px;
+}
+#chapter-select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  background: #f3e7c9;
+  border: 1px solid #a79670;
+  font: inherit;
+  color: #34402d;
+}
+.skill-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-block: 1px solid #b8a57e;
+  padding: 13px 0;
+}
+.skill-summary span {
+  font-size: 10px;
+  color: #7f6a48;
+  line-height: 1.8;
+}
+.skill-summary b {
+  display: block;
+  font-size: 12px;
+  color: #465b37;
+}
+.equipment-list {
+  margin: 12px 0 20px;
+}
+.equipment-list article {
+  border-bottom: 1px solid #c6b48d;
+  padding: 12px 0;
+}
+.equipment-list strong {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+}
+.equipment-list strong span {
+  color: #797746;
+  font-size: 10px;
+}
+.equipment-list p {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #806b4a;
+  line-height: 1.7;
+}
+.reward-options {
+  display: grid;
+  gap: 10px;
+}
+.reward-option {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 6px;
+  padding: 14px 16px;
+  background: #e7d7ae;
+  border: 1px solid #ac9460;
+  box-shadow: 2px 3px 0 #82714222;
+  min-height: 108px;
+}
+.reward-option:hover,
+.reward-option:focus-visible {
+  background: #f4e8c6;
+  border-color: #617448;
+}
+.reward-rank {
+  font-size: 9px;
+  color: #8d733f;
+  letter-spacing: 1px;
+}
+.reward-option strong {
+  font-size: 19px;
+  color: #374d30;
+  letter-spacing: 2px;
+}
+.reward-option small {
+  font-size: 11px;
+  color: #76613e;
+  line-height: 1.7;
+}
+.reward-take {
+  align-self: flex-end;
+  font-size: 9px;
+  color: #536342;
+}
+#modal-content > .reward-note {
+  font-size: 10px;
+  margin-bottom: 0;
+  color: #8a7957;
+}
+@media (max-width: 650px) {
+  .progression-hud {
+    min-width: 62px;
+  }
+  .progression-hud b {
+    font-size: 17px;
+  }
+  .progression-hud small {
+    font-size: 7px;
+    margin-left: 2px;
+  }
+  .brand strong {
+    font-size: 21px;
+  }
+  .brand strong span {
+    font-size: 11px;
+  }
+  .brand small {
+    letter-spacing: 2px;
+  }
+  .vitals {
+    gap: 6px;
+  }
+  .hud {
+    column-gap: 6px;
+  }
+  .field-tools {
+    top: 78px;
+  }
+  .field-tools button {
+    width: 53px;
+    height: 42px;
+  }
+  .field-tools button > span:first-child {
+    width: 15px;
+  }
+  .field-tools button > span:last-child {
+    font-size: 10px;
+  }
+  #equipment-count {
+    min-width: 12px;
+    height: 12px;
+    font-size: 8px;
+  }
+  .reward-option {
+    min-height: 103px;
+    padding: 12px;
+  }
+  .reward-option strong {
+    font-size: 17px;
+  }
+  dialog[data-kind='reward'] {
+    padding: 24px;
+  }
+  dialog[data-kind='reward'] #modal-title {
+    font-size: 22px;
+  }
+}
+@media (max-width: 380px) {
+  .brand strong span {
+    display: none;
+  }
+  .field-tools {
+    right: 9px;
+  }
+}
+
+#modal-title:focus {
+  outline: none;
+}
+.reward-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 9px;
+  color: #6e714b;
+}
+.reward-preview span {
+  display: inline-flex;
+  gap: 4px;
+}
+.reward-preview b {
+  font-weight: 500;
+  color: #3c5733;
 }

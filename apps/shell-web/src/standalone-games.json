@@ -290,7 +290,7 @@
     "id": "ink-is-everything",
     "source": "games/local/ink-is-everything",
     "title": "一滴墨，决定一切",
-    "description": "亲手走位、射墨、挥斩与翻滚；用同一池墨水绘桥探索、治疗与交易，夺回钥印，迎战墨之门守卫。",
+    "description": "墨汁即生命：射墨、近战命中吸墨，走位回收技能墨滴；拾取装备、三选一成长，夺回钥印挑战墨之门。",
     "output": "dist"
   },
   {

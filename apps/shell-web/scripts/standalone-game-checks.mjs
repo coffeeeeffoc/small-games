@@ -352,7 +352,11 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#game-canvas')).toBeVisible();
 
     // Exercise continuous movement with real keyboard/touch input, including release.
-    const initialPlayer = (await snapshot()).player;
+    const initialState = await snapshot();
+    expect(initialState.version).toBe(3);
+    const initialPlayer = initialState.player;
+    expect(initialPlayer).not.toHaveProperty('hp');
+    expect(initialPlayer).not.toHaveProperty('maxHp');
     const touch = mobile ? await page.context().newCDPSession(page) : undefined;
     try {
       if (touch) {
@@ -399,6 +403,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         await page.mouse.down();
       }
       await expect.poll(async () => (await snapshot()).player.ink).toBeLessThan(inkBefore);
+      await expect
+        .poll(async () => (await snapshot()).pickups.some((drop) => drop.kind === 'reclaim'))
+        .toBe(true);
     } finally {
       if (firingTouch) {
         await firingTouch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
@@ -407,6 +414,15 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         await page.mouse.up();
       }
     }
+    await click(frame.locator('#equipment'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
+    const summary = frame.locator('#modal .skill-summary');
+    await expect(summary).toContainText('8 伤害 / 6 墨');
+    await expect(summary).toContainText('25% 实际伤害');
+    await expect(summary).toContainText('50% 技能消耗');
+    await click(frame.locator('#modal [data-close]'));
+    await expect.poll(async () => (await snapshot()).paused).toBe(false);
+
     await click(frame.locator('#pause'));
     await expect.poll(async () => (await snapshot()).paused).toBe(true);
     const pausedTime = (await snapshot()).time;
