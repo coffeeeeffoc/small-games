@@ -1,4 +1,4 @@
-import { ENEMIES, LEVELS, SEEDS, UPGRADES } from './config.mjs';
+import { BOONS, ENEMIES, LEVELS, SKILLS, UPGRADES } from './config.mjs';
 
 const TAU = Math.PI * 2;
 const PLAYER_SPEED = 202;
@@ -7,6 +7,12 @@ const DASH_DURATION = 0.15;
 const MAX_PARTICLES = 240;
 const MAX_FLOATERS = 60;
 const MAX_BULLETS = 120;
+const MAX_TELEGRAPHS = 40;
+const MAX_EXPLOSION_TELEGRAPHS = 24;
+const MAX_SKILL_EFFECTS = 12;
+const ENERGY_PER_SECOND = 6;
+const ENERGY_PER_KILL = 8;
+const terrainDefinition = (kind) => Object.values(BOONS).find((boon) => boon.kind === kind);
 
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -31,6 +37,23 @@ function event(state, type, detail = {}) {
 function floater(state, x, y, text, color = '#ffffff') {
   state.floaters.push({ x, y: y - 30, text: String(text), color, life: 0.85 });
   if (state.floaters.length > MAX_FLOATERS) state.floaters.shift();
+}
+
+function addTelegraph(state, item) {
+  // Derived weapon explosions can hit many times in one tick. Limit their
+  // visual rings independently of damage, and keep spawn warnings visible.
+  if (item.kind === 'explosion') {
+    let explosions = 0;
+    for (const existing of state.telegraphs) if (existing.kind === 'explosion') explosions += 1;
+    if (explosions >= MAX_EXPLOSION_TELEGRAPHS) return;
+  }
+  if (state.telegraphs.length >= MAX_TELEGRAPHS) {
+    const oldestExplosion = state.telegraphs.findIndex((existing) => existing.kind === 'explosion');
+    if (oldestExplosion >= 0) state.telegraphs.splice(oldestExplosion, 1);
+    else if (item.kind === 'explosion') return;
+    else state.telegraphs.shift();
+  }
+  state.telegraphs.push(item);
 }
 
 function particles(state, x, y, color, count = 7, speed = 100) {
@@ -70,33 +93,32 @@ function newEnemy(state, kind, x, y, preview = false) {
     slow: 1,
     age: 0,
     stuck: 0,
+    frozen: 0,
+    freezeCooldown: 0,
+    poison: 0,
+    poisonDps: 0,
+    stunned: 0,
+    feared: 0,
+    fearX: x,
+    fearY: y,
+    vulnerable: 0,
+    windSlow: 0,
   };
 }
 
 function newPlant(state, kind, x, y) {
-  const definition = SEEDS[kind];
-  const maxHp = definition.health * (kind === 'ice' ? 1 + bonus(state, 'iceHealth') : 1);
+  const definition = terrainDefinition(kind);
   return {
     id: id(state),
     kind,
     x,
     y,
-    radius: definition.radius * (kind === 'thorn' ? 1 + bonus(state, 'thornRadius') : 1),
+    radius: definition.radius * (1 + bonus(state, 'terrainRadius')),
     age: 0,
-    life: definition.life * (kind === 'mushroom' ? 1 : 1 + bonus(state, 'terrainLife')),
-    hp: maxHp,
-    maxHp,
+    life: definition.life * (1 + bonus(state, 'terrainLife')),
+    hp: 1,
+    maxHp: 1,
   };
-}
-
-function refillTerrainBag(state) {
-  const bag = [...levelOf(state).growth.kinds];
-  for (let index = bag.length - 1; index > 0; index -= 1) {
-    const swap = Math.floor(random(state) * (index + 1));
-    [bag[index], bag[swap]] = [bag[swap], bag[index]];
-  }
-  state.growth.bag = bag;
-  state.growth.nextKind = bag[0];
 }
 
 /** A fresh serializable simulation; the ready scene is an inert visual preview. */
@@ -113,6 +135,16 @@ export function createGame(levelId = 'ruins', seed = 42) {
     waveProgress: 0,
     coins: 0,
     kills: 0,
+    loadout: { boon: null, skills: ['blast', 'gale'] },
+    boons: [],
+    boonTimers: {},
+    skillSlots: [
+      { kind: 'blast', energy: 0 },
+      { kind: 'gale', energy: 0 },
+    ],
+    selectedSkill: 0,
+    skillCooldown: 0,
+    skillEffects: [],
     player: {
       ...level.playerStart,
       hp: 100,
@@ -125,16 +157,6 @@ export function createGame(levelId = 'ruins', seed = 42) {
       dashX: 0,
       dashY: 0,
     },
-    growth: {
-      misses: 0,
-      threshold: level.growth.missThreshold,
-      cooldown: 0,
-      nextKind: level.growth.kinds[0],
-      pending: false,
-      pendingAngle: 0,
-      retryCooldown: 0,
-      bag: [],
-    },
     progression: { level: 1, xp: 0, nextXp: level.progression.firstXp, pending: 0, queue: [] },
     plantCap: level.plantCap,
     enemies: [],
@@ -146,9 +168,12 @@ export function createGame(levelId = 'ruins', seed = 42) {
     stats: {
       shots: 0,
       misses: 0,
-      autoPlants: 0,
       reflections: 0,
       splitShots: 0,
+      autoPlants: 0,
+      skillCasts: 0,
+      skillDamage: 0,
+      skillKills: 0,
       plantsGrown: 0,
       plantKills: 0,
       terrainDamage: 0,
@@ -165,20 +190,6 @@ export function createGame(levelId = 'ruins', seed = 42) {
     burstQueue: [],
     cameraShake: 0,
   };
-  refillTerrainBag(state);
-  for (const [kind, x, y, age] of [
-    ['thorn', 340, 490, 1],
-    ['thorn', 905, 325, 1],
-    ['thorn', 1060, 585, 1],
-    ['thorn', 590, 650, 1],
-    ['ice', 490, 280, 1],
-    ['ice', 985, 505, 1],
-    ['ice', 1120, 310, 1],
-    ['mushroom', 850, 420, 0.7],
-    ['mushroom', 470, 580, 1.2],
-    ['mushroom', 1220, 470, 0.5],
-  ])
-    state.plants.push({ ...newPlant(state, kind, x, y), age });
   for (const [kind, x, y] of [
     ['sprout', 340, 300],
     ['sprout', 565, 355],
@@ -192,17 +203,52 @@ export function createGame(levelId = 'ruins', seed = 42) {
   return state;
 }
 
+/** Loadouts can only change between runs; invalid choices never partly apply. */
+export function configureLoadout(state, { boon = null, skills } = {}) {
+  if (
+    !['ready', 'won', 'lost'].includes(state.phase) ||
+    (boon !== null && !BOONS[boon]) ||
+    !Array.isArray(skills) ||
+    skills.length !== 2 ||
+    skills[0] === skills[1] ||
+    skills.some((kind) => !SKILLS[kind])
+  )
+    return false;
+  state.loadout = { boon, skills: [...skills] };
+  state.skillSlots = skills.map((kind) => ({ kind, energy: 0 }));
+  state.selectedSkill = 0;
+  return true;
+}
+
 export function startGame(state) {
+  const loadout = {
+    boon: state.loadout?.boon ?? null,
+    skills: [...(state.loadout?.skills ?? ['blast', 'gale'])],
+  };
   const fresh = createGame(state.levelId, state.initialSeed);
+  configureLoadout(fresh, loadout);
   fresh.phase = 'playing';
   fresh.enemies = [];
-  fresh.plants = [];
   fresh.nextId = 0;
   fresh.randomState = fresh.initialSeed;
-  refillTerrainBag(fresh);
+  if (fresh.loadout.boon) acquireBoon(fresh, fresh.loadout.boon);
   Object.assign(state, fresh);
   event(state, 'start');
   return state;
+}
+
+export function selectSkill(state, index) {
+  if (!Number.isInteger(index) || !state.skillSlots[index]) return false;
+  state.selectedSkill = index;
+  return true;
+}
+
+// Old integrations cannot bypass boon ownership with a seed projectile.
+export function selectSeed() {
+  return false;
+}
+export function castSeed() {
+  return false;
 }
 
 export function pauseGame(state) {
@@ -225,6 +271,85 @@ function constrainPoint(state, point, radius = 0) {
     x: clamp(finite(point?.x, state.player.x), left + radius, right - radius),
     y: clamp(finite(point?.y, state.player.y), top + radius, bottom - radius),
   };
+}
+
+/** Manual energy release. Positions and line paths stay inside the arena. */
+export function castSkill(state, target, index = state.selectedSkill) {
+  const slot = state.skillSlots[index];
+  const definition = SKILLS[slot?.kind];
+  if (
+    state.phase !== 'playing' ||
+    !Number.isInteger(index) ||
+    !definition ||
+    slot.energy < definition.energyMax ||
+    state.skillCooldown > 0 ||
+    state.skillEffects.length >= MAX_SKILL_EFFECTS ||
+    !Number.isFinite(target?.x) ||
+    !Number.isFinite(target?.y)
+  )
+    return false;
+  const origin = state.player;
+  let dx = target.x - origin.x,
+    dy = target.y - origin.y;
+  let length = Math.hypot(dx, dy);
+  const targetDistance = length;
+  if (length < 0.001) {
+    dx = Math.cos(origin.angle);
+    dy = Math.sin(origin.angle);
+    length = 1;
+  }
+  dx /= length;
+  dy /= length;
+  const requested =
+    definition.shape === 'line' ? definition.range : Math.min(targetDistance, definition.range);
+  const bounds = levelOf(state).bounds;
+  // Clip along the ray so diagonal line targets retain their chosen direction.
+  let travel = requested;
+  if (dx > 0) travel = Math.min(travel, (bounds.right - origin.x) / dx);
+  if (dx < 0) travel = Math.min(travel, (bounds.left - origin.x) / dx);
+  if (dy > 0) travel = Math.min(travel, (bounds.bottom - origin.y) / dy);
+  if (dy < 0) travel = Math.min(travel, (bounds.top - origin.y) / dy);
+  const point = { x: origin.x + dx * travel, y: origin.y + dy * travel };
+  state.skillEffects.push({
+    id: id(state),
+    kind: slot.kind,
+    x: definition.shape === 'circle' ? point.x : origin.x,
+    y: definition.shape === 'circle' ? point.y : origin.y,
+    startX: origin.x,
+    startY: origin.y,
+    targetX: point.x,
+    targetY: point.y,
+    dx,
+    dy,
+    age: 0,
+    life: definition.duration,
+    radius: definition.radius,
+    width: definition.width,
+    length: travel,
+    hitIds: [],
+    travelled: 0,
+    delay: definition.delay ?? 0,
+    triggered: false,
+  });
+  slot.energy = 0;
+  state.selectedSkill = index;
+  state.skillCooldown = 0.3;
+  state.player.angle = Math.atan2(dy, dx);
+  state.stats.skillCasts += 1;
+  event(state, 'skill', { kind: slot.kind, x: point.x, y: point.y });
+  return true;
+}
+
+function chargeEnergy(state, amount) {
+  const multiplier = 1 + bonus(state, 'energy');
+  for (const slot of state.skillSlots)
+    slot.energy = Math.min(SKILLS[slot.kind].energyMax, slot.energy + amount * multiplier);
+}
+
+function acquireBoon(state, boonId) {
+  if (!BOONS[boonId] || state.boons.includes(boonId)) return;
+  state.boons.push(boonId);
+  state.boonTimers[boonId] = 0.6;
 }
 
 export function dash(state, direction = {}) {
@@ -252,6 +377,9 @@ function eligibleUpgrades(state) {
   return UPGRADES.filter(
     (upgrade) =>
       (!allowed || allowed.includes(upgrade.id)) &&
+      (!upgrade.id.startsWith('boon-') || !state.boons.includes(upgrade.id.slice(5))) &&
+      (!(upgrade.id === 'terrain-heart' || upgrade.id === 'terrain-duration') ||
+        state.boons.length > 0) &&
       countUpgrade(state, upgrade.id) < upgrade.maxRank &&
       (upgrade.requires ?? []).every((required) => countUpgrade(state, required) > 0),
   );
@@ -317,16 +445,6 @@ function gainExperience(state, amount) {
   }
 }
 
-function queueGrowth(state, angle) {
-  const growth = state.growth;
-  if (growth.misses < growth.threshold) return;
-  // Keep one waiting trigger and the exact remainder; high fire rates cannot stockpile a burst.
-  growth.misses %= growth.threshold;
-  growth.pending = true;
-  growth.pendingAngle = angle;
-  event(state, 'growth-ready', { kind: growth.nextKind });
-}
-
 export function chooseUpgrade(state, upgradeId) {
   const upgrade = upgradeById.get(upgradeId);
   if (
@@ -340,11 +458,11 @@ export function chooseUpgrade(state, upgradeId) {
   if (upgrade.effects.maxHp) state.player.maxHp += upgrade.effects.maxHp;
   if (upgrade.effects.heal)
     state.player.hp = Math.min(state.player.maxHp, state.player.hp + upgrade.effects.heal);
-  state.growth.threshold = Math.max(
-    levelOf(state).growth.minimumThreshold,
-    levelOf(state).growth.missThreshold - bonus(state, 'missReduction'),
-  );
-  queueGrowth(state, state.growth.lastMissAngle ?? state.player.angle);
+  if (upgradeId.startsWith('boon-')) acquireBoon(state, upgradeId.slice(5));
+  if (upgradeId === 'energy-cycle') {
+    for (const slot of state.skillSlots)
+      slot.energy = Math.min(SKILLS[slot.kind].energyMax, slot.energy + 25);
+  }
   state.progression.pending = Math.max(0, state.progression.pending - 1);
   state.progression.queue.shift();
   state.upgradeChoices = [];
@@ -357,10 +475,12 @@ export function chooseUpgrade(state, upgradeId) {
 
 function hurtEnemy(state, enemy, damage, source = 'normal', showNumber = true) {
   if (enemy.hp <= 0) return;
+  damage *= enemy.vulnerable > 0 ? 1.35 : 1;
   const actual = Math.min(enemy.hp, damage);
   enemy.hp -= damage;
   enemy.hit = 0.13;
   if (source === 'plant') state.stats.terrainDamage += actual;
+  if (source === 'skill') state.stats.skillDamage += actual;
   if (showNumber)
     floater(
       state,
@@ -375,6 +495,8 @@ function hurtEnemy(state, enemy, damage, source = 'normal', showNumber = true) {
     state.coins += coins;
     gainExperience(state, ENEMIES[enemy.kind]?.xp ?? 2);
     if (source === 'plant') state.stats.plantKills += 1;
+    if (source === 'skill') state.stats.skillKills += 1;
+    chargeEnergy(state, ENERGY_PER_KILL);
     particles(state, enemy.x, enemy.y, '#edc45e', 6, 88);
     event(state, 'kill', { kind: enemy.kind, x: enemy.x, y: enemy.y, source, coins });
   }
@@ -427,7 +549,7 @@ function spawnEnemy(state) {
     if (distance(point, state.player) > 250) break;
   }
   state.enemies.push(newEnemy(state, kind, point.x, point.y));
-  state.telegraphs.push({ ...point, radius: radius + 12, life: 0.65, kind: 'spawn' });
+  addTelegraph(state, { ...point, radius: radius + 12, life: 0.65, kind: 'spawn' });
 }
 
 function closestEnemy(state, maximumRange = NORMAL_RANGE) {
@@ -513,7 +635,7 @@ function canOccupy(state, x, y, radius, obstacles) {
   );
 }
 
-/** Axis sliding and swept steps keep enemies outside solid ice and bodies inside bounds. */
+/** Axis sliding and short swept steps prevent even dashes tunnelling through ice. */
 function moveBody(state, body, dx, dy, obstacles) {
   const segments = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 8));
   const oldX = body.x,
@@ -535,104 +657,52 @@ function moveBody(state, body, dx, dy, obstacles) {
   return Math.hypot(body.x - oldX, body.y - oldY);
 }
 
-function pushOut(state, body, obstacles) {
-  for (let pass = 0; pass < 3; pass += 1)
-    for (const obstacle of obstacles) {
-      const dx = body.x - obstacle.x,
-        dy = body.y - obstacle.y;
-      const length = Math.hypot(dx, dy),
-        minimum = body.radius + obstacle.radius + 2;
-      if (length >= minimum) continue;
-      const angle = length > 0.001 ? Math.atan2(dy, dx) : (((body.id ?? 0) % 8) * TAU) / 8;
-      const point = constrainPoint(
-        state,
-        { x: obstacle.x + Math.cos(angle) * minimum, y: obstacle.y + Math.sin(angle) * minimum },
-        body.radius,
-      );
-      body.x = point.x;
-      body.y = point.y;
-    }
-}
-
-function findGrowthPoint(state, kind, angle) {
-  const config = levelOf(state).growth;
-  const radius = SEEDS[kind].radius * (kind === 'thorn' ? 1 + bonus(state, 'thornRadius') : 1);
-  const bounds = levelOf(state).bounds;
-  const safeDistance = state.player.radius + radius + 24;
-  const valid = (point) =>
-    point.x >= bounds.left + radius &&
-    point.x <= bounds.right - radius &&
-    point.y >= bounds.top + radius &&
-    point.y <= bounds.bottom - radius &&
-    distance(point, state.player) >= safeDistance &&
-    !state.plants.some(
-      (plant) => plant.kind === kind && distance(plant, point) < radius + plant.radius + 8,
-    );
-  // Intersect rays in the requested sector with radius-inset bounds. Near walls,
-  // shorten the distance but never turn the trigger behind the last missed shot.
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const direction = angle + (random(state) * 2 - 1) * config.sector;
-    const ux = Math.cos(direction),
-      uy = Math.sin(direction);
-    let enter = 0,
-      leave = config.maxDistance;
-    for (const [origin, velocity, low, high] of [
-      [state.player.x, ux, bounds.left + radius, bounds.right - radius],
-      [state.player.y, uy, bounds.top + radius, bounds.bottom - radius],
-    ]) {
-      if (Math.abs(velocity) < 1e-9) {
-        if (origin < low || origin > high) {
-          leave = -1;
-          break;
-        }
-      } else {
-        const near = (low - origin) / velocity,
-          far = (high - origin) / velocity;
-        enter = Math.max(enter, Math.min(near, far));
-        leave = Math.min(leave, Math.max(near, far));
-      }
-    }
-    const minimum = Math.max(
-      enter,
-      safeDistance,
-      leave >= config.minDistance ? config.minDistance : safeDistance,
-    );
-    if (leave < minimum) continue;
-    const length = minimum + random(state) * (leave - minimum);
-    const point = { x: state.player.x + ux * length, y: state.player.y + uy * length };
-    if (valid(point)) return point;
-  }
-  return null; // Preserve the pending direction until movement opens a valid area.
-}
-
-function updateGrowth(state) {
-  const growth = state.growth;
-  if (!growth.pending || growth.cooldown > 0 || growth.retryCooldown > 0) return;
-  const kind = growth.nextKind;
-  const point = findGrowthPoint(state, kind, growth.pendingAngle);
-  if (!point) {
-    growth.retryCooldown = 0.15;
-    return;
-  }
+function growTerrain(state, boonId) {
+  const definition = BOONS[boonId];
+  const target = closestEnemy(state, Infinity);
+  const heading = target
+    ? Math.atan2(target.y - state.player.y, target.x - state.player.x)
+    : state.player.angle;
+  // Put the patch on the incoming route, so passive terrain still has a readable purpose.
+  const offset = target ? Math.max(45, Math.min(300, distance(target, state.player) - 45)) : 95;
+  const point = constrainPoint(
+    state,
+    {
+      x: state.player.x + Math.cos(heading) * offset,
+      y: state.player.y + Math.sin(heading) * offset,
+    },
+    definition.radius * (1 + bonus(state, 'terrainRadius')),
+  );
+  const plant = newPlant(state, definition.kind, point.x, point.y);
   if (state.plants.length >= state.plantCap) {
-    const oldest = state.plants.reduce((best, plant) =>
-      plant.age / plant.life > best.age / best.life ? plant : best,
-    );
+    const oldest = state.plants.reduce((best, item) => (item.age > best.age ? item : best));
     state.plants.splice(state.plants.indexOf(oldest), 1);
   }
-  const plant = newPlant(state, kind, point.x, point.y);
   state.plants.push(plant);
   state.stats.plantsGrown += 1;
   state.stats.autoPlants += 1;
-  growth.pending = false;
-  growth.cooldown = levelOf(state).growth.triggerInterval;
-  growth.bag.shift();
-  if (!growth.bag.length) refillTerrainBag(state);
-  else growth.nextKind = growth.bag[0];
-  particles(state, point.x, point.y, SEEDS[kind].color, 12, 80);
-  floater(state, point.x, point.y, SEEDS[kind].name, SEEDS[kind].color);
-  if (kind === 'ice') for (const enemy of state.enemies) pushOut(state, enemy, solidPlants(state));
-  event(state, 'plant', { kind, x: point.x, y: point.y, automatic: true });
+  particles(state, plant.x, plant.y, definition.color, 8, 70);
+  event(state, 'plant', { kind: plant.kind, x: plant.x, y: plant.y });
+}
+
+function updateBoons(state, dt) {
+  for (const boonId of state.boons) {
+    state.boonTimers[boonId] -= dt;
+    if (state.boonTimers[boonId] <= 0) {
+      growTerrain(state, boonId);
+      state.boonTimers[boonId] += BOONS[boonId].interval;
+    }
+  }
+}
+
+function segmentHit(x1, y1, x2, y2, enemy, radius) {
+  const dx = x2 - x1,
+    dy = y2 - y1;
+  const squared = dx * dx + dy * dy;
+  const t = squared > 0 ? clamp(((enemy.x - x1) * dx + (enemy.y - y1) * dy) / squared, 0, 1) : 0;
+  return Math.hypot(x1 + dx * t - enemy.x, y1 + dy * t - enemy.y) <= enemy.radius + radius
+    ? t
+    : null;
 }
 
 function recordMiss(state, bullet) {
@@ -646,19 +716,6 @@ function recordMiss(state, bullet) {
     return;
   bullet.missRecorded = true;
   state.stats.misses += 1;
-  state.growth.misses += 1;
-  state.growth.lastMissAngle = finite(bullet.originalAngle, Math.atan2(bullet.vy, bullet.vx));
-  queueGrowth(state, state.growth.lastMissAngle);
-}
-
-function segmentHit(x1, y1, x2, y2, enemy, radius) {
-  const dx = x2 - x1,
-    dy = y2 - y1;
-  const squared = dx * dx + dy * dy;
-  const t = squared > 0 ? clamp(((enemy.x - x1) * dx + (enemy.y - y1) * dy) / squared, 0, 1) : 0;
-  return Math.hypot(x1 + dx * t - enemy.x, y1 + dy * t - enemy.y) <= enemy.radius + radius
-    ? t
-    : null;
 }
 
 function bulletExplosion(state, bullet, fraction) {
@@ -668,7 +725,7 @@ function bulletExplosion(state, bullet, fraction) {
     if (enemy.hp > 0 && distance(bullet, enemy) < radius + enemy.radius)
       hurtEnemy(state, enemy, bullet.damage * fraction, 'normal', false);
   particles(state, bullet.x, bullet.y, '#ffc35b', 6, 110);
-  state.telegraphs.push({ x: bullet.x, y: bullet.y, radius, life: 0.2, kind: 'explosion' });
+  addTelegraph(state, { x: bullet.x, y: bullet.y, radius, life: 0.2, kind: 'explosion' });
 }
 
 function splitBullet(state, bullet, fragments) {
@@ -725,11 +782,23 @@ function updateBullets(state, dt) {
       const length = Math.min(travel, wallDistance);
       const endX = bullet.x + ux * length,
         endY = bullet.y + uy * length;
+      const radius = bullet.radius ?? 4;
+      const left = Math.min(bullet.x, endX) - radius,
+        right = Math.max(bullet.x, endX) + radius;
+      const top = Math.min(bullet.y, endY) - radius,
+        bottom = Math.max(bullet.y, endY) + radius;
       let target = null,
         nearest = Infinity;
       for (const enemy of state.enemies) {
         if (enemy.hp <= 0) continue;
-        const intersection = segmentHit(bullet.x, bullet.y, endX, endY, enemy, bullet.radius ?? 4);
+        if (
+          enemy.x + enemy.radius < left ||
+          enemy.x - enemy.radius > right ||
+          enemy.y + enemy.radius < top ||
+          enemy.y - enemy.radius > bottom
+        )
+          continue;
+        const intersection = segmentHit(bullet.x, bullet.y, endX, endY, enemy, radius);
         if (intersection !== null && intersection < nearest) {
           target = enemy;
           nearest = intersection;
@@ -791,44 +860,156 @@ function updateBullets(state, dt) {
   state.bullets = survivors.concat(fragments).slice(0, MAX_BULLETS);
 }
 
+function terrainTouches(plant, enemy) {
+  if (plant.kind === 'trench') {
+    const dx = (enemy.x - plant.x) / (plant.radius + enemy.radius);
+    const dy = (enemy.y - plant.y) / (plant.radius * 0.45 + enemy.radius);
+    return dx * dx + dy * dy < 1;
+  }
+  return distance(plant, enemy) < plant.radius + enemy.radius * 0.5;
+}
+
 function updatePlants(state, dt) {
   const remaining = [];
+  const power = 1 + bonus(state, 'terrainDamage');
   for (const plant of state.plants) {
     plant.age += dt;
-    if (plant.kind === 'thorn') {
-      const damage = SEEDS.thorn.damagePerSecond * (1 + bonus(state, 'thornDamage')) * dt;
-      for (const enemy of state.enemies) {
-        if (enemy.hp > 0 && distance(plant, enemy) < plant.radius + enemy.radius * 0.5) {
-          enemy.slow = Math.min(enemy.slow ?? 1, SEEDS.thorn.slow);
-          hurtEnemy(state, enemy, damage, 'plant', false);
-        }
+    const definition = terrainDefinition(plant.kind);
+    if (plant.hp <= 0 || plant.age >= plant.life || !definition) continue;
+    for (const enemy of state.enemies) {
+      if (enemy.hp <= 0 || !terrainTouches(plant, enemy)) continue;
+      if (plant.kind === 'thorn') {
+        enemy.slow = Math.min(enemy.slow, definition.slow);
+        hurtEnemy(state, enemy, definition.damagePerSecond * power * dt, 'plant', false);
+      } else if (plant.kind === 'trench') enemy.slow = Math.min(enemy.slow, definition.slow);
+      else if (plant.kind === 'frost' && !(enemy.freezeCooldown > 0)) {
+        enemy.frozen = definition.freezeDuration;
+        enemy.freezeCooldown = definition.freezeCooldown;
+      } else if (plant.kind === 'poison') {
+        enemy.poison = definition.poisonDuration;
+        enemy.poisonDps = definition.damagePerSecond * power;
       }
     }
-    if (plant.kind === 'ice' && plant.hp > 0) {
-      const radius = SEEDS.ice.auraRadius * (1 + bonus(state, 'iceRadius'));
-      for (const enemy of state.enemies)
-        if (enemy.hp > 0 && distance(plant, enemy) < radius + enemy.radius)
-          enemy.slow = Math.min(
-            enemy.slow ?? 1,
-            Math.max(0.4, SEEDS.ice.slow - bonus(state, 'iceSlow')),
-          );
-    }
-    if (plant.hp <= 0 || plant.age >= plant.life) {
-      if (plant.kind === 'mushroom') {
-        const radius = SEEDS.mushroom.blastRadius * (1 + bonus(state, 'mushroomRadius'));
-        const damage = SEEDS.mushroom.blastDamage * (1 + bonus(state, 'mushroomDamage'));
-        for (const enemy of state.enemies)
-          if (enemy.hp > 0 && distance(plant, enemy) < radius + enemy.radius)
-            hurtEnemy(state, enemy, damage, 'plant');
-        particles(state, plant.x, plant.y, '#ffc35b', 24, 240);
-        state.telegraphs.push({ x: plant.x, y: plant.y, radius, life: 0.38, kind: 'explosion' });
-        state.cameraShake = 0.16;
-        event(state, 'explode', { x: plant.x, y: plant.y, radius });
-      } else
-        particles(state, plant.x, plant.y, plant.kind === 'ice' ? '#97e8ff' : '#8fbe65', 5, 65);
-    } else remaining.push(plant);
+    remaining.push(plant);
   }
   state.plants = remaining;
+}
+
+function updateStatuses(state, dt) {
+  for (const enemy of state.enemies) {
+    if (enemy.hp <= 0) continue;
+    if (enemy.poison > 0)
+      hurtEnemy(state, enemy, finite(enemy.poisonDps) * Math.min(dt, enemy.poison), 'plant', false);
+    for (const key of [
+      'frozen',
+      'freezeCooldown',
+      'poison',
+      'stunned',
+      'feared',
+      'vulnerable',
+      'windSlow',
+    ])
+      enemy[key] = Math.max(0, finite(enemy[key]) - dt);
+    if (enemy.poison <= 0) enemy.poisonDps = 0;
+    enemy.slow = enemy.windSlow > 0 ? SKILLS.gale.slow : 1;
+  }
+}
+
+function effectHitsSegment(effect, enemy, fromX, fromY, toX, toY) {
+  const radius = effect.width / 2;
+  if (
+    enemy.x + enemy.radius < Math.min(fromX, toX) - radius ||
+    enemy.x - enemy.radius > Math.max(fromX, toX) + radius ||
+    enemy.y + enemy.radius < Math.min(fromY, toY) - radius ||
+    enemy.y - enemy.radius > Math.max(fromY, toY) + radius
+  )
+    return false;
+  return segmentHit(fromX, fromY, toX, toY, enemy, radius) !== null;
+}
+
+function updateSkills(state, dt) {
+  const remaining = [];
+  for (const effect of state.skillEffects) {
+    const definition = SKILLS[effect.kind];
+    const activeDt = Math.min(dt, Math.max(0, effect.life - effect.age));
+    effect.age += dt;
+    if (effect.kind === 'blast' && !effect.triggered && effect.age >= effect.delay) {
+      effect.triggered = true;
+      for (const enemy of state.enemies) {
+        if (enemy.hp <= 0 || distance(effect, enemy) > effect.radius + enemy.radius) continue;
+        hurtEnemy(state, enemy, definition.damage, 'skill');
+        enemy.stunned = Math.max(enemy.stunned, definition.stunDuration);
+        effect.hitIds.push(enemy.id);
+      }
+      particles(state, effect.x, effect.y, definition.color, 24, 235);
+      state.cameraShake = 0.16;
+      event(state, 'explode', { x: effect.x, y: effect.y, radius: effect.radius });
+    } else if (effect.kind === 'gale') {
+      for (const enemy of state.enemies) {
+        if (enemy.hp <= 0 || distance(effect, enemy) > effect.radius + enemy.radius) continue;
+        hurtEnemy(state, enemy, definition.damagePerSecond * activeDt, 'skill', false);
+        const dx = enemy.x - effect.x,
+          dy = enemy.y - effect.y;
+        const length = Math.hypot(dx, dy);
+        const pushX = length > 0.001 ? dx / length : effect.dx;
+        const pushY = length > 0.001 ? dy / length : effect.dy;
+        if (!(enemy.frozen > 0) && !(enemy.stunned > 0))
+          moveBody(
+            state,
+            enemy,
+            pushX * definition.pushSpeed * activeDt,
+            pushY * definition.pushSpeed * activeDt,
+            [],
+          );
+        enemy.windSlow = definition.slowDuration;
+        enemy.slow = Math.min(enemy.slow, definition.slow);
+      }
+    } else if (effect.kind === 'cart' || effect.kind === 'horse') {
+      const fromX = effect.x,
+        fromY = effect.y;
+      effect.travelled = Math.min(effect.length, effect.travelled + definition.speed * activeDt);
+      effect.x = effect.startX + effect.dx * effect.travelled;
+      effect.y = effect.startY + effect.dy * effect.travelled;
+      for (const enemy of state.enemies) {
+        if (
+          enemy.hp <= 0 ||
+          effect.hitIds.includes(enemy.id) ||
+          !effectHitsSegment(effect, enemy, fromX, fromY, effect.x, effect.y)
+        )
+          continue;
+        effect.hitIds.push(enemy.id);
+        hurtEnemy(state, enemy, definition.damage, 'skill');
+        if (effect.kind === 'cart')
+          enemy.stunned = Math.max(enemy.stunned, definition.stunDuration);
+        else {
+          enemy.feared = Math.max(enemy.feared, definition.fearDuration);
+          enemy.fearX = effect.startX;
+          enemy.fearY = effect.startY;
+        }
+      }
+    } else if (effect.kind === 'laser' && !effect.triggered) {
+      effect.triggered = true;
+      for (const enemy of state.enemies) {
+        if (
+          enemy.hp <= 0 ||
+          !effectHitsSegment(
+            effect,
+            enemy,
+            effect.startX,
+            effect.startY,
+            effect.targetX,
+            effect.targetY,
+          )
+        )
+          continue;
+        hurtEnemy(state, enemy, definition.damage, 'skill');
+        enemy.vulnerable = definition.vulnerableDuration;
+        effect.hitIds.push(enemy.id);
+      }
+    }
+    if (effect.age < effect.life) remaining.push(effect);
+  }
+  state.skillEffects = remaining;
 }
 
 function updateEnemies(state, dt, obstacles) {
@@ -849,8 +1030,9 @@ function updateEnemies(state, dt, obstacles) {
     enemy.attackCooldown = Math.max(0, finite(enemy.attackCooldown) - dt);
     enemy.biteCooldown = Math.max(0, finite(enemy.biteCooldown) - dt);
     enemy.age = finite(enemy.age) + dt;
-    let dx = state.player.x - enemy.x,
-      dy = state.player.y - enemy.y;
+    if (enemy.frozen > 0 || enemy.stunned > 0) continue;
+    let dx = enemy.feared > 0 ? enemy.x - enemy.fearX : state.player.x - enemy.x,
+      dy = enemy.feared > 0 ? enemy.y - enemy.fearY : state.player.y - enemy.y;
     const length = Math.hypot(dx, dy);
     enemy.angle = Math.atan2(dy, dx);
     const speed = definition.speed * (enemy.slow ?? 1) * (1 + (state.wave - 1) * 0.016);
@@ -906,8 +1088,11 @@ function updateEnemies(state, dt, obstacles) {
       if (other === enemy || other.hp <= 0) continue;
       const sx = enemy.x - other.x,
         sy = enemy.y - other.y;
-      const separation = Math.hypot(sx, sy),
-        minimum = (enemy.radius + other.radius) * 0.8;
+      const minimum = (enemy.radius + other.radius) * 0.8;
+      // The crowd is bounded, but evaluating a square root for every pair made
+      // late waves expensive. Only nearby pairs need the exact separation.
+      if (Math.abs(sx) >= minimum || Math.abs(sy) >= minimum) continue;
+      const separation = Math.hypot(sx, sy);
       if (separation > 0.01 && separation < minimum) {
         separationX += (sx / separation) * (minimum - separation) * 2.5;
         separationY += (sy / separation) * (minimum - separation) * 2.5;
@@ -938,6 +1123,7 @@ function updateEnemies(state, dt, obstacles) {
       moveBody(state, enemy, -dy * speed * dt * direction, dx * speed * dt * direction, obstacles);
     }
     if (
+      !(enemy.feared > 0) &&
       distance(state.player, enemy) < state.player.radius + enemy.radius + 3 &&
       enemy.attackCooldown <= 0
     ) {
@@ -964,7 +1150,7 @@ function updateEffects(state, dt) {
   }
   state.floaters = state.floaters.filter((item) => item.life > 0);
   for (const item of state.telegraphs) item.life -= dt;
-  state.telegraphs = state.telegraphs.filter((item) => item.life > 0).slice(-60);
+  state.telegraphs = state.telegraphs.filter((item) => item.life > 0).slice(-MAX_TELEGRAPHS);
   state.cameraShake = Math.max(0, state.cameraShake - dt);
 }
 
@@ -986,10 +1172,11 @@ function tick(state, dt, input) {
   const player = state.player;
   player.invulnerable = Math.max(0, player.invulnerable - dt);
   player.dashCooldown = Math.max(0, player.dashCooldown - dt);
-  state.growth.cooldown = Math.max(0, state.growth.cooldown - dt);
-  state.growth.retryCooldown = Math.max(0, state.growth.retryCooldown - dt);
+  state.skillCooldown = Math.max(0, state.skillCooldown - dt);
+  chargeEnergy(state, ENERGY_PER_SECOND * dt);
   state.shotCooldown = Math.max(0, state.shotCooldown - dt);
   updateEffects(state, dt);
+  const obstacles = [];
   let moveX = clamp(finite(input.moveX), -1, 1),
     moveY = clamp(finite(input.moveY), -1, 1);
   const moveLength = Math.hypot(moveX, moveY);
@@ -997,11 +1184,10 @@ function tick(state, dt, input) {
     moveX /= moveLength;
     moveY /= moveLength;
   }
-  // Automatically grown ice never blocks or pushes its owner, including during a dash.
   if (player.dashTime > 0) {
-    moveBody(state, player, player.dashX * 860 * dt, player.dashY * 860 * dt, []);
+    moveBody(state, player, player.dashX * 860 * dt, player.dashY * 860 * dt, obstacles);
     player.dashTime = Math.max(0, player.dashTime - dt);
-  } else moveBody(state, player, moveX * PLAYER_SPEED * dt, moveY * PLAYER_SPEED * dt, []);
+  } else moveBody(state, player, moveX * PLAYER_SPEED * dt, moveY * PLAYER_SPEED * dt, obstacles);
   for (const burst of state.burstQueue) {
     burst.delay -= dt;
     if (burst.delay <= 0) fireVolley(state, burst.angle, 0.65);
@@ -1023,10 +1209,11 @@ function tick(state, dt, input) {
         },
       );
   }
+  updateStatuses(state, dt);
   updateBullets(state, dt);
-  for (const enemy of state.enemies) enemy.slow = 1;
+  updateBoons(state, dt);
   updatePlants(state, dt);
-  updateGrowth(state);
+  updateSkills(state, dt);
   updateEnemies(state, dt, solidPlants(state));
   if (state.phase !== 'playing') return;
   state.spawnTimer -= dt;

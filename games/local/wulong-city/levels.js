@@ -151,20 +151,47 @@ W.add(8,{
  }
 });
 W.add(2,{
- init:()=>({curtain:0,liftY:436,liftMode:'idle',scared:0,rider:false}),
+ init:()=>({curtain:0,liftY:436,liftMode:'idle',scared:0,rider:false,liftPress:0}),
  platforms:s=>[{x:285,y:252,w:195,h:14},{x:155,y:s.liftY,w:135,h:12}],
  update(s,dt){
    if(s.liftMode==='up'){s.liftY=Math.max(252,s.liftY-80*dt);s.p.x=220;s.p.y=s.liftY;s.p.vy=0;s.manual=true;s.locked=true;
-     if(s.curtain<.9&&s.liftY<398){s.liftMode='down';s.scared=2;say('哇！好高！它看了一眼窗外，立刻往回缩。');tone(130,.25);}
+     if(s.curtain<.9&&s.liftY<398){s.liftMode='down';s.scared=2;say('哇！外面和脚下都看得见！观光电梯吓得缩回了一楼。');tone(130,.25);}
      else if(s.liftY<=252){s.liftMode='arrived';s.manual=false;s.locked=false;s.p.x=275;s.p.grounded=true;say('电梯松开了扶手。二楼到了，走到右边下梯吧。');}
    }else if(s.liftMode==='down'){s.liftY=Math.min(436,s.liftY+100*dt);s.p.y=s.liftY;s.p.x=220;s.p.vy=0;if(s.liftY===436){s.liftMode='idle';s.manual=false;s.locked=false;}}
-   s.scared=Math.max(0,s.scared-dt);if(s.liftMode==='arrived'&&s.p.x>350&&s.p.y<=254)win();
+   s.scared=Math.max(0,s.scared-dt);s.liftPress=Math.max(0,s.liftPress-dt);if(s.liftMode==='arrived'&&s.p.x>350&&s.p.y<=254)win();
  },
- draw(s){background('inside');
-   rect(323,66,113,149,C.blue,36);for(let i=0;i<3;i++)rect(332+i*31,163-i*20,22,43+i*20,'#83a9a2',2,null);line(380,67,380,214,'#f7f1df',5);line(325,139,434,139,'#f7f1df',5);
-   line(150,46,150,438,'#b1bca8',5);line(294,46,294,438,'#b1bca8',5);rect(145,39,155,22,C.mint,4);text('慢 慢 来 电 梯',221,51,12);
-   const shake=s.scared>0?Math.sin(s.t*45)*3:0;ctx.save();ctx.translate(shake,0);rect(163,s.liftY-127,123,127,C.mint,14);rect(175,s.liftY-82,97,77,'#809982',4);face(222,s.liftY-108,1,s.scared>0?'fear':s.curtain>.9?'happy':'shy',.75);rect(164,s.liftY-132,122,8,C.green,3);if(s.curtain>0){rect(168,s.liftY-124,113,40*s.curtain,C.orange,2);for(let x=177;x<282;x+=17)line(x,s.liftY-124,x,s.liftY-124+40*s.curtain,'#b55e43',2);}line(310,s.liftY-128,310,s.liftY-116+s.curtain*80,C.green,2);line(285,s.liftY-128,310,s.liftY-128,C.green,2);handle(310,s.liftY-106+s.curtain*80);hit('curtain','电梯轿厢窗帘拉环',288,s.liftY-128+s.curtain*80,44,44,()=>say('窗帘装在电梯上。拉下圆环，替它遮住视线。'),(x,y)=>{s.curtain=clamp((y-(s.liftY-106))/80,0,1);if(s.curtain>.9)say('轿厢的窗帘遮住了视线，电梯终于放心了。');});rect(159,s.liftY,130,10,C.green,3);rect(248,s.liftY-61,22,31,C.yellow,6);text('2',259,s.liftY-45,17);hit('lift','电梯内二楼按钮（走进电梯后操作）',238,s.liftY-73,44,52,()=>{if(s.liftMode!=='idle'){say('电梯正在慢慢来。');return;}if(!near(220,62)){say('按钮在电梯里面，先走进去。');return;}s.rider=true;s.liftMode='up';s.p.x=220;say('电梯攥紧了扶手，开始上楼……');});ctx.restore();
-   rect(285,252,195,14,C.green,2);door(411,252,true,'二楼');text('1F',111,403,18,'#7c9173');text('2F',111,250,18,'#7c9173');sign('禁止吓唬电梯',73,319,107);
+ draw(s){background();
+   // Open-air shaft: the city remains visible through the car, with a view below its glass floor.
+   // Small, distant street details make the view through the lower car visible before it moves.
+   poly([[154,364],[297,341],[297,389],[154,412]],'#d4dfc8',null);line(157,397,296,374,'#f8f2df',9);
+   for(const x of [181,256]){line(x,374,x,355,'#8fa58c',2);ellipse(x,352,10,15,'#a4bea0',null);}
+   rect(207,352,28,24,'#becfba',2,null);poly([[203,352],[220,339],[239,352]],'#9fb39c',null);rect(217,359,8,10,'#eff0dd',1,null);
+   rect(327,83,153,353,C.wall,5,'#b1bca8');line(337,277,480,277,'#c8cfba',2);text('二楼连廊',400,111,16,C.green);
+   rect(153,436,141,66,'#c2d1bd',0,null);poly([[153,445],[184,467],[221,459],[258,480],[294,452],[294,502],[153,502]],'#a7bba0',null);
+   line(176,480,274,494,'#eef0db',8);line(150,438,150,502,'#91a68d',3);line(297,438,297,502,'#91a68d',3);
+   line(150,67,150,438,'#91a68d',4);line(294,67,294,438,'#91a68d',4);rect(139,35,170,30,C.paper,7);text('慢慢来 · 观光电梯',224,50,13,C.green);
+   const shake=s.scared>0?Math.sin(s.t*45)*3:0,y=s.liftY,selected=s.liftMode!=='idle',pressed=s.liftPress>0?2:0;
+   ctx.save();ctx.translate(shake,0);
+   rect(163,y-132,123,132,'#a9d8dc28',9,C.green);
+   poly([[164,y-22],[285,y-22],[285,y],[164,y]],'#c5e7e944',C.green);
+   for(const x of [173,211,249]){line(x,y-82,x+22,y-105,'#ffffff99',3);line(x,y-5,x+15,y-18,'#ffffffaa',2);}
+   // The roll-down blind belongs to the moving car and shades its glazing all the way to the floor.
+   const shade=110*s.curtain;
+   if(shade>0){rect(166,y-126,117,shade,C.orange,2);for(let x=175;x<283;x+=15)line(x,y-125,x,y-126+shade,'#b55e43',2);line(166,y-126+shade,283,y-126+shade,C.yellow,3);}
+   if(s.curtain>.8){const cover=(s.curtain-.8)/.2;rect(166,y-19,117,19*cover,C.orange,1);for(let x=175;x<282;x+=15)line(x,y-19,x,y-19+19*cover,'#b55e43',2);}
+   line(163,y-132,163,y,C.green,4);line(286,y-132,286,y,C.green,4);line(166,y-31,242,y-31,C.green,3);
+   rect(160,y-138,129,15,C.green,4);rect(198,y-121,47,32,C.paper,9);face(222,y-110,1,s.scared>0?'fear':s.curtain>.9?'happy':'shy',.7);
+   line(287,y-130,310,y-130,C.green,3);line(310,y-130,310,y-116+s.curtain*80,C.green,2);handle(310,y-106+s.curtain*80);
+   hit('curtain','观光电梯轿厢遮光帘拉环，向下拉遮住玻璃和脚下',288,y-128+s.curtain*80,44,44,()=>say('拉环连着轿厢顶上的卷帘，向下拉能遮住玻璃和脚下。'),(x,py)=>{s.curtain=clamp((py-(s.liftY-106))/80,0,1);if(s.curtain>.9)say('轿厢四周和脚下都遮好了。再按亮「2F」按钮上楼。');});
+   line(160,y+3,289,y+3,C.green,5);
+   // A raised floor-selection button: metal panel, rim, face, and a lit selection state.
+   rect(243,y-83,44,68,'#768e82',7);rect(242,y-86,44,67,'#e6e9df',7);text('楼层',264,y-75,10,C.green);
+   ellipse(264,y-44,18,18,'#667d70');ellipse(264,y-48+pressed,18,18,selected?C.yellow:C.paper,selected?C.orange:C.green);
+   ellipse(264,y-48+pressed,14,14,selected?'#f8dc86':'#eef2e8',selected?C.orange:'#91a58d');text('2F',264,y-48+pressed,14,C.ink);
+   ellipse(280,y-79,3,3,selected?C.orange:'#9eae9a',null);
+   hit('lift','电梯内二楼 2F 按钮（走进电梯后按下）',240,y-69,48,49,()=>{s.liftPress=.2;if(s.liftMode!=='idle'){say(s.liftMode==='arrived'?'二楼到了，向右走出电梯。':'2F 已亮起，电梯正在移动。');return;}if(!near(220,62)){say('按钮在电梯里面，先走进去。');return;}s.rider=true;s.liftMode='up';s.p.x=220;say('2F 按钮亮了。观光电梯攥紧扶手，开始上楼……');});ctx.restore();
+   rect(285,252,195,14,C.green,2);door(411,252,true,'二楼出口');text('1F',111,409,18,'#7c9173');text('2F',111,250,18,'#7c9173');sign('禁止吓唬电梯',73,319,107);
+   if(s.liftMode==='idle'&&s.curtain<.9){text('玻璃轿厢 · 脚下可见',223,286,12,C.green);text('拉环 ↓',324,361,11,C.green);}
  }
 });
 W.add(21,{

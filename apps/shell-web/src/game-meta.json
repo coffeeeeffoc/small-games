@@ -52,8 +52,8 @@
         "time": "2026-10-03T07:12:45+00:00"
       },
       "updated": {
-        "commit": "e81ce962a60aa88753bfc55d87937609a427ab0d",
-        "time": "2026-10-03T14:03:23+00:00"
+        "commit": "cf12d1905274a21ef2485de6279fe56e2d8cf9ae",
+        "time": "2026-10-03T16:30:19+00:00"
       }
     },
     "carding-car": {
@@ -547,8 +547,8 @@
         "time": "2026-09-27T00:07:35+08:00"
       },
       "updated": {
-        "commit": "ed1e13923ebfe056458ce751cf3c59cca7cd5ce8",
-        "time": "2026-10-03T12:34:46+08:00"
+        "commit": "e5e366771a978d67d76cca2669aec6ffc5e22bfc",
+        "time": "2026-10-03T16:22:58+00:00"
       }
     },
     "xiangqi-five": {

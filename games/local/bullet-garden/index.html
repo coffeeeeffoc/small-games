@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#19261e" />
     <meta
       name="description"
-      content="打空自动长出地形，击退怪物获得强化。在失落庭院中，让每一发子弹都有新的可能。"
+      content="选择庭院增益，积蓄战斗能量，亲手决定技能落点。在失落庭院中守住五分钟。"
     />
     <title>子弹花园 · Bullet Garden</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -16,7 +16,7 @@
     <main id="game" aria-label="子弹花园">
       <canvas
         id="arena"
-        aria-label="花园战场；自动射击与生长，摇杆移动，按住或拖动战场定向射击，松开恢复自动瞄准"
+        aria-label="花园战场；点亮已充能的技能槽，再点击或拖动战场，松手释放；未选技能时点击仅瞄准"
       ></canvas>
       <div class="vignette" aria-hidden="true"></div>
       <header class="hud">
@@ -91,40 +91,70 @@
       <div id="announcement" class="announcement" role="status" aria-live="polite"></div>
       <aside class="field-status">
         <span class="green-dot"></span><span id="plant-count">生长中 0 / 18</span
-        ><span class="field-divider"></span><span>自动射击 <b>开启</b></span>
+        ><span class="field-divider"></span
+        ><button id="auto-fire" aria-pressed="true">自动射击 <b>开</b></button>
+        <label class="speed-control"
+          ><span>倍速</span
+          ><select id="game-speed" aria-label="战斗倍速">
+            <option value="1">1×</option>
+            <option value="2">2×</option>
+            <option value="3">3×</option>
+            <option value="5">5×</option>
+          </select></label
+        >
       </aside>
 
-      <section class="growth-dock" aria-label="打空生长与地形图例">
-        <div class="growth-heading">
-          <strong>打空生长</strong><span id="growth-next">下一株 · 荆棘藤蔓</span
-          ><b id="growth-count">0 / 6</b>
+      <section class="skill-dock" aria-label="战术技能">
+        <div class="skill-dock-heading">
+          <strong>战术能量</strong><span>战斗与击退充能 · 满能后手动释放</span>
         </div>
-        <div
-          class="growth-track"
-          role="progressbar"
-          aria-label="打空生长进度"
-          aria-valuemin="0"
-          aria-valuemax="6"
-          aria-valuenow="0"
-        >
-          <div id="growth-fill"></div>
+        <div class="skill-cards">
+          <button class="skill-card" data-skill-slot="0" aria-pressed="false">
+            <canvas id="skill-icon-0" width="160" height="120" aria-hidden="true"></canvas>
+            <span class="skill-copy"
+              ><strong id="skill-name-0">爆破</strong
+              ><small id="skill-status-0">充能中</small></span
+            >
+            <span class="skill-energy" id="skill-energy-0">0 / 100</span>
+            <span
+              class="skill-meter"
+              role="progressbar"
+              aria-label="技能一能量"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              ><i></i
+            ></span>
+            <span class="skill-key" aria-hidden="true">1</span>
+          </button>
+          <button class="skill-card" data-skill-slot="1" aria-pressed="false">
+            <canvas id="skill-icon-1" width="160" height="120" aria-hidden="true"></canvas>
+            <span class="skill-copy"
+              ><strong id="skill-name-1">大风</strong
+              ><small id="skill-status-1">充能中</small></span
+            >
+            <span class="skill-energy" id="skill-energy-1">0 / 100</span>
+            <span
+              class="skill-meter"
+              role="progressbar"
+              aria-label="技能二能量"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              ><i></i
+            ></span>
+            <span class="skill-key" aria-hidden="true">2</span>
+          </button>
         </div>
-        <div class="terrain-legend" aria-label="自动生成的临时地形">
-          <span data-terrain="thorn"
-            ><canvas data-icon="thorn" width="100" height="72" aria-hidden="true"></canvas
-            ><span><b>藤蔓</b><small>减速伤害</small></span></span
-          >
-          <span data-terrain="ice"
-            ><canvas data-icon="ice" width="100" height="72" aria-hidden="true"></canvas
-            ><span><b>寒冰</b><small>阻挡寒域</small></span></span
-          >
-          <span data-terrain="mushroom"
-            ><canvas data-icon="mushroom" width="100" height="72" aria-hidden="true"></canvas
-            ><span><b>蘑菇</b><small>延迟爆破</small></span></span
-          >
-        </div>
-        <p>打空攒满 → 沿最后方向自动生长 · 反弹 / 分裂弹不计入</p>
+        <div class="skill-instruction" id="skill-instruction">点亮已充满的技能，再选择战场落点</div>
       </section>
+      <aside class="boon-status" aria-label="已获得地形增益">
+        <span>庭院增益</span><strong id="active-boons">尚未选择</strong>
+      </aside>
+      <div id="targeting" class="targeting" hidden>
+        <span id="targeting-text">选择落点 · 松手释放</span
+        ><button id="cancel-cast">取消 <span aria-hidden="true">×</span></button>
+      </div>
 
       <div class="touch-controls">
         <div id="joystick" role="group" aria-label="移动摇杆">
@@ -136,80 +166,118 @@
           <button id="dash" aria-label="冲刺">
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <path d="m17 4-7 12h7l-3 12 12-17h-8l5-7Z" /></svg
-            ><span>冲刺</span><small id="dash-cooldown">SPACE</small>
+            ><span>冲刺</span><small id="dash-cooldown">SPACE</small></button
+          ><button id="cast" aria-label="在瞄准位置释放技能" disabled>
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M26 5C10 1 4 13 11 21c9 6 18-3 15-16Z" />
+              <path d="m7 28 15-17" /></svg
+            ><span>释放</span><small id="cast-cooldown">先选技能</small>
           </button>
         </div>
       </div>
       <footer class="control-hint">
-        <span><kbd>W A S D</kbd> 移动</span><span>自动射击 · 按住场地定向</span
-        ><span><kbd>空格</kbd> 冲刺</span><button id="help">玩法指南 <span>?</span></button>
+        <span><kbd>W A S D</kbd> 移动</span><span>鼠标瞄准 · 长按射击</span
+        ><span><kbd>1 / 2</kbd> 选技能 · <kbd>E</kbd> 释放</span><span><kbd>空格</kbd> 冲刺</span
+        ><button id="help">玩法指南 <span>?</span></button>
       </footer>
 
       <div id="overlay" class="overlay">
         <section id="ready-panel" class="modal ready-panel" aria-labelledby="ready-title">
-          <div class="modal-kicker">
-            <span></span> A LITTLE CHAOS. A LOT OF GROWTH. <span></span>
-          </div>
-          <div class="title-mark" aria-hidden="true">
-            <canvas id="title-seed" width="160" height="130"></canvas>
-          </div>
-          <h1 id="ready-title">子弹<span>花园</span></h1>
-          <div class="english-title">B U L L E T &nbsp; G A R D E N</div>
-          <p class="intro">子弹落地的地方，<br class="mobile-break" />就是下一场战斗的开始。</p>
-          <div class="level-badge">
-            <span>01</span>
+          <div class="ready-heading">
+            <canvas id="title-seed" width="160" height="130" aria-hidden="true"></canvas>
             <div>
-              <strong>失落庭院</strong><small>10 波敌人 <i>·</i> 5 分钟守卫战</small>
+              <div class="modal-kicker">BULLET GARDEN · 失落庭院</div>
+              <h1 id="ready-title" tabindex="-1">子弹<span>花园</span></h1>
             </div>
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <path d="m7 25 9-20 9 20M10 19h12M4 27h24" />
-            </svg>
           </div>
-          <button id="start" class="primary-button">进入花园 <span>→</span></button>
-          <p class="ready-tip">打空自动生长 · 击退升级强化 · 专注走位</p>
-          <button id="ready-help" class="text-button">第一次来？看看园艺手册</button>
+          <p class="intro">为花园挑选战术，守住 10 波敌人。</p>
+          <fieldset class="loadout-section">
+            <legend><span>01</span> 选择一个庭院增益 <small>选中后才会自动生成</small></legend>
+            <div class="boon-options">
+              <button type="button" data-boon="shrub" aria-pressed="false">
+                <canvas data-icon="shrub" width="120" height="100" aria-hidden="true"></canvas
+                ><strong>花叶灌木</strong><small>柔软叶丛 · 减速伤害</small>
+              </button>
+              <button type="button" data-boon="trench" aria-pressed="false">
+                <canvas data-icon="trench" width="120" height="100" aria-hidden="true"></canvas
+                ><strong>沟渠</strong><small>下陷浅沟 · 拖慢追兵</small>
+              </button>
+              <button type="button" data-boon="frost" aria-pressed="false">
+                <canvas data-icon="frost" width="120" height="100" aria-hidden="true"></canvas
+                ><strong>冻结</strong><small>冰霜地面 · 短暂定身</small>
+              </button>
+              <button type="button" data-boon="poison" aria-pressed="false">
+                <canvas data-icon="poison" width="120" height="100" aria-hidden="true"></canvas
+                ><strong>持续毒素</strong><small>毒雾草坪 · 持续伤害</small>
+              </button>
+            </div>
+            <p id="boon-description" class="loadout-note">
+              先选一个增益，后续强化还可解锁更多地形。
+            </p>
+          </fieldset>
+          <fieldset class="loadout-section skill-loadout">
+            <legend><span>02</span> 携带两个能量技能 <small>自由选择落点与时机</small></legend>
+            <div class="loadout-skills">
+              <label
+                ><span>技能槽 1</span
+                ><select id="loadout-skill-0" aria-label="技能槽一"></select
+                ><small id="loadout-description-0"></small
+              ></label>
+              <label
+                ><span>技能槽 2</span
+                ><select id="loadout-skill-1" aria-label="技能槽二"></select
+                ><small id="loadout-description-1"></small
+              ></label>
+            </div>
+          </fieldset>
+          <button id="start" class="primary-button" disabled>先选择庭院增益 <span>→</span></button>
+          <p class="ready-tip">自动射击护身 · 战斗与击退积攒能量 · 满能不会自动释放</p>
+          <button id="ready-help" class="text-button">查看战术手册</button>
         </section>
         <section id="pause-panel" class="modal compact-panel" hidden aria-labelledby="pause-title">
           <div class="modal-kicker">TAKE A BREATH</div>
           <h2 id="pause-title">让花园休息一下</h2>
-          <p>战场已暂停，植物也在等你。</p>
+          <p>战场与能量充能已暂停，花园在等你。</p>
           <button id="resume" class="primary-button">继续守卫 <span>→</span></button
-          ><button id="pause-help" class="outline-button">园艺手册</button
+          ><button id="pause-help" class="outline-button">战术手册</button
           ><button id="pause-sound" class="text-button" aria-pressed="false">音效：关闭</button
-          ><button id="restart" class="text-button">重新开始本关</button>
+          ><button id="restart" class="text-button">重新搭配战术</button>
         </section>
         <section id="help-panel" class="modal help-panel" hidden aria-labelledby="help-title">
           <div class="modal-kicker">THE GARDENER'S HANDBOOK</div>
-          <h2 id="help-title">有时候，故意打空。</h2>
+          <h2 id="help-title">让花园，听你的。</h2>
           <p>
-            自动射击附近敌人，只需移动和冲刺。想改变火力方向时，按住或拖动战场；松手便恢复自动瞄准。
+            普通花瓣弹自动攻击附近敌人。准备时选择一个庭院增益和两个能量技能，普通子弹不会生成地形。击退获得经验，升级时选择枪械、地形或生存强化，组合出自己的战术。
           </p>
-          <div class="handbook-growth">
-            <p>
-              <b>① 打空 → 自动地形</b
-              >未命中的原始子弹累计达到门槛，便沿最后一发打空方向的随机位置生成下一种临时地形；反弹过的子弹与分裂弹不计入。
-            </p>
-            <p>
-              <b>② 击退 → 升级选择</b>击退怪物获得经验，攒满即暂停战场，随机三选一强化；5
-              级起四选一。枪械与地形可逐级组合，选择后继续战斗。
-            </p>
-          </div>
           <div class="handbook-seeds">
-            <p><b class="text-green">荆棘藤蔓</b><span>让经过的追兵减速，并持续受到伤害。</span></p>
             <p>
-              <b class="text-blue">寒冰柱</b><span>挡住怪物，附近敌人减速；敌人会绕行或拆除。</span>
+              <b class="text-green">庭院增益</b
+              ><span
+                >只生成已选中的灌木、沟渠、冻结或毒素地形。击退敌人获得经验，升级强化还能解锁更多地形。</span
+              >
             </p>
             <p>
-              <b class="text-orange">爆炸蘑菇</b><span>自动生长，短暂酝酿后造成范围爆炸。</span>
+              <b class="text-blue">能量技能</b
+              ><span
+                >爆破震晕，大风击退，冲锋车冲撞，战马驱散，激光削弱。战斗时间与击退敌人都会为两个技能槽充能。</span
+              >
+            </p>
+            <p>
+              <b class="text-orange">手动释放</b
+              ><span
+                >满能后点技能槽，再点住战场选择落点或方向，松手释放。再次点同一技能槽或点“取消”，能量会保留。</span
+              >
             </p>
           </div>
           <p class="handbook-rule">
-            地形持续一段时间后消失，场上最多 18
-            株，满额时自动替换。生长与经验独立累计；火力、反弹、分裂、冰火爆弹和地形强化，可组合出不同路线。
+            地形会消退，最多同时保留 18 处。能量充满后会一直保留，直到你亲手释放。战斗可选择 1 / 2 /
+            3 / 5 倍速；技能持续时间与充能按游戏内时间同步加速，暂停与强化选择时全部停止。
           </p>
           <div class="handbook-controls">
-            <span>触屏</span>摇杆移动，点击冲刺；可按住 / 拖动战场定向射击。<br /><span>键鼠</span
-            >WASD 移动，按住左键定向射击，空格冲刺，Esc 暂停。
+            <span>触屏</span
+            >左手摇杆移动，右手选技能并在战场拖动瞄准、松手释放。冲刺可躲避。<br /><span>键鼠</span
+            >WASD 移动，鼠标瞄准，1 / 2 选技能，点击战场或 E / 右键释放，空格冲刺。Esc
+            先取消瞄准，再按暂停。
           </div>
           <button id="close-help" class="primary-button">明白了 <span>✓</span></button>
         </section>
@@ -235,7 +303,7 @@
           <p id="result-description"></p>
           <div id="result-stats"></div>
           <p id="best-record"></p>
-          <button id="play-again" class="primary-button">再种一片花园 <span>↻</span></button>
+          <button id="play-again" class="primary-button">重新搭配，再战 <span>↻</span></button>
         </section>
       </div>
     </main>

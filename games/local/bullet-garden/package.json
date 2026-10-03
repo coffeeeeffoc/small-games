@@ -9,6 +9,7 @@
     "test": "node --test tests/simulation.test.mjs",
     "test:balance": "node tests/balance.mjs",
     "test:browser": "node tests/browser.mjs",
+    "test:rendering": "node tests/rendering.mjs",
     "build": "node build.mjs"
   },
   "engines": {

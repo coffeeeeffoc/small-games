@@ -1,62 +1,52 @@
-/** Normal-health, movement-only replays; no manual aim, casts or state cheats.
- * Different builds consume RNG differently: compare viability, not paired causal effects.
+/** Normal-health deterministic replays. All choices and casts use the public API.
+ * Different loadouts consume RNG differently; these are viability smoke runs.
  */
 import assert from 'node:assert/strict';
-import { createGame, startGame, step, chooseUpgrade } from '../src/simulation.mjs';
+import {
+  createGame,
+  configureLoadout,
+  startGame,
+  step,
+  chooseUpgrade,
+  castSkill,
+} from '../src/simulation.mjs';
 
 const REPLAY_SEEDS = [7, 42, 81];
 const BUILDS = {
-  weapon: [
-    'multishot',
-    'attack-power',
-    'attack-speed',
-    'burst',
-    'split-shot',
-    'explosive-shot',
-    'wild-heart',
-  ],
-  'terrain-only': [
-    'thorn-heart',
-    'mushroom-heart',
-    'seed-cycle',
-    'terrain-duration',
-    'ice-heart',
-    'wild-heart',
-    'multishot',
-  ],
-  garden: [
-    'thorn-heart',
-    'mushroom-heart',
-    'seed-cycle',
-    'terrain-duration',
-    'ice-heart',
-    'wild-heart',
-    'attack-power',
-  ],
-  hybrid: [
-    'multishot',
-    'thorn-heart',
-    'attack-power',
-    'mushroom-heart',
-    'fire-shot',
-    'split-shot',
-    'wild-heart',
-  ],
+  shrub: ['blast', 'laser'],
+  trench: ['cart', 'gale'],
+  frost: ['horse', 'blast'],
+  poison: ['laser', 'gale'],
 };
-function replay(seed, build) {
+
+function replay(seed, boon) {
   const state = createGame('ruins', seed);
+  configureLoadout(state, { boon, skills: BUILDS[boon] });
   startGame(state);
   let frame = 0,
     firstPlant = null,
     maxBullets = 0,
-    maxPlants = 0;
+    maxPlants = 0,
+    maxEnemies = 0,
+    maxEffects = 0;
   const choices = [];
   while (['playing', 'upgrade'].includes(state.phase) && frame < 19000) {
     if (state.phase === 'upgrade') {
-      // Extra primary misses fuel the same six-miss rule. Keep the terrain-only
-      // baseline visible, and take one spread rank for the complete garden build.
-      const needsSpread = build === 'garden' && !state.upgrades.includes('multishot');
-      const preferred = needsSpread ? ['multishot', ...BUILDS[build]] : BUILDS[build];
+      const preferred = [
+        'boon-shrub',
+        'boon-trench',
+        'boon-frost',
+        'boon-poison',
+        'multishot',
+        'attack-power',
+        'attack-speed',
+        'burst',
+        'wild-heart',
+        'split-shot',
+        'explosive-shot',
+        'energy-cycle',
+        'terrain-heart',
+      ];
       const selected =
         preferred.find((key) => state.upgradeChoices.includes(key)) ?? state.upgradeChoices[0];
       assert.ok(chooseUpgrade(state, selected));
@@ -83,21 +73,38 @@ function replay(seed, build) {
         moveX -= (dx / distance) * 2;
         moveY -= (dy / distance) * 2;
       }
+      if (distance > 0 && distance < 500) {
+        for (let index = 0; index < state.skillSlots.length; index += 1) {
+          if (state.skillSlots[index].energy < 100) continue;
+          const lead = state.skillSlots[index].kind === 'blast' ? 30 : 0;
+          castSkill(
+            state,
+            { x: nearest.x - (dx / distance) * lead, y: nearest.y - (dy / distance) * lead },
+            index,
+          );
+        }
+      }
     }
     step(state, 1 / 60, { moveX, moveY, autoFire: true });
     if (firstPlant === null && state.stats.autoPlants > 0)
       firstPlant = Number(state.time.toFixed(1));
     maxPlants = Math.max(maxPlants, state.plants.length);
     maxBullets = Math.max(maxBullets, state.bullets.length);
-    assert.ok(state.plants.length <= state.plantCap, 'terrain stays bounded');
-    assert.ok(state.enemies.length <= 48, 'spawns stay bounded');
-    assert.ok(state.bullets.length <= 120, 'derived bullets stay bounded');
+    maxEnemies = Math.max(maxEnemies, state.enemies.length);
+    maxEffects = Math.max(maxEffects, state.skillEffects.length);
+    assert.ok(state.plants.length <= state.plantCap);
+    assert.ok(state.enemies.length <= 48);
+    assert.ok(state.bullets.length <= 120);
+    assert.ok(state.skillEffects.length <= 12);
+    assert.ok(state.telegraphs.length <= 40);
+    assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 100));
     assert.ok(Number.isFinite(state.player.hp));
     frame += 1;
   }
   assert.ok(['won', 'lost'].includes(state.phase), 'a replay finishes naturally');
   return {
-    build,
+    boon,
+    skills: BUILDS[boon].join('/'),
     seed,
     result: state.phase,
     seconds: Math.round(state.time),
@@ -107,11 +114,15 @@ function replay(seed, build) {
     firstUpgrade: choices[0]?.time ?? null,
     firstPlant,
     plants: state.stats.autoPlants,
-    misses: state.stats.misses,
     terrainKills: state.stats.plantKills,
     terrainDamage: Math.round(state.stats.terrainDamage),
+    skillCasts: state.stats.skillCasts,
+    skillKills: state.stats.skillKills,
+    skillDamage: Math.round(state.stats.skillDamage),
     maxPlants,
     maxBullets,
+    maxEnemies,
+    maxEffects,
     choices,
   };
 }
@@ -122,10 +133,15 @@ const runs = Object.keys(BUILDS).flatMap((build) =>
 console.table(runs.map(({ choices, ...summary }) => summary));
 if (process.env.BALANCE_DETAILS) console.log(JSON.stringify(runs, null, 2));
 for (const run of runs) {
-  assert.ok(run.plants > 0, `automatic terrain participates in ${run.build}/${run.seed}`);
-  assert.ok(run.upgrades >= 1, `combat earns an upgrade in ${run.build}/${run.seed}`);
-  assert.ok(run.terrainDamage > 0, `terrain damages enemies in ${run.build}/${run.seed}`);
+  assert.ok(run.plants > 0);
+  assert.ok(run.upgrades >= 1);
+  assert.ok(run.skillCasts > 0 && run.skillDamage > 0);
+  assert.equal(
+    run.result,
+    'won',
+    `${run.boon}/${run.seed} should support a natural-health victory`,
+  );
 }
 console.log(
-  'Twelve deterministic normal-health replays passed lifecycle and growth checks; results above report viability.',
+  'Twelve normal-health five-minute victories cover all four boons and five manually released skills.',
 );
