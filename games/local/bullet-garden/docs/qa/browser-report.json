@@ -1,99 +1,358 @@
 {
-  "recordedAt": "2026-10-03T07:12:08.952Z",
-  "browser": "151.0.7922.173",
-  "url": "http://127.0.0.1:4410",
-  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
-  "validation": "Gameplay completed normally; final UI controls passed. Revised browser contribution criteria passed against the recorded final snapshot.",
-  "challenge": {
-    "result": "won",
-    "seconds": 300,
-    "hp": 82,
-    "wave": 10,
-    "kills": 285,
-    "stats": {
-      "shots": 1076,
-      "seedShots": 135,
-      "plantsGrown": 130,
-      "plantKills": 18,
-      "terrainDamage": 2225.700000000073,
-      "seedHits": 4,
-      "damageTaken": 32,
-      "castsAtGround": 130
-    },
-    "maxPlants": 9,
-    "maxEnemies": 12,
-    "upgradeSelections": [
+  "date": "2026-10-03T13:52:21.544Z",
+  "passed": true,
+  "scope": "Bullet Garden source five-minute challenge, final dist desktop/mobile controls, and standalone Shell helper checks. No physical-device or full repository build validation.",
+  "sourceChallenge": {
+    "date": "2026-10-03T13:52:21.544Z",
+    "browser": "151.0.7922.173",
+    "url": "http://127.0.0.1:4410",
+    "selection": "challenge",
+    "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+    "limitations": [
+      "Chromium touch emulation; physical iOS and Android devices were not tested.",
+      "Virtual clock accelerates natural simulation frames without changing health, enemies, or game state."
+    ],
+    "checks": [
       {
-        "afterWave": 3,
-        "beforeWave": 4,
-        "selected": "bloom-shot"
+        "name": "four-choice upgrade fits portrait and landscape mobile viewports"
       },
       {
-        "afterWave": 6,
-        "beforeWave": 7,
-        "selected": "bloom-shot"
+        "name": "five-minute normal-health movement-only victory with automatic terrain and experience upgrades",
+        "result": "won",
+        "seconds": 300,
+        "hp": 100,
+        "wave": 10,
+        "kills": 282,
+        "stats": {
+          "shots": 2654,
+          "misses": 1715,
+          "autoPlants": 190,
+          "reflections": 0,
+          "splitShots": 0,
+          "plantsGrown": 190,
+          "plantKills": 12,
+          "terrainDamage": 2223.6142857143673,
+          "damageTaken": 0
+        },
+        "maxPlants": 9,
+        "maxEnemies": 14,
+        "upgradeSelections": [
+          {
+            "time": 10.466666666666766,
+            "beforeWave": 1,
+            "level": 2,
+            "choices": ["terrain-duration", "thorn-heart", "attack-speed"],
+            "selected": "attack-speed"
+          },
+          {
+            "time": 32.783333333332756,
+            "beforeWave": 2,
+            "level": 3,
+            "choices": ["fire-shot", "mushroom-heart", "ice-heart"],
+            "selected": "mushroom-heart"
+          },
+          {
+            "time": 59.86666666666455,
+            "beforeWave": 2,
+            "level": 4,
+            "choices": ["thorn-heart", "attack-power", "ice-heart"],
+            "selected": "attack-power"
+          },
+          {
+            "time": 84.11666666666318,
+            "beforeWave": 3,
+            "level": 5,
+            "choices": ["attack-power", "terrain-duration", "ice-heart", "split-shot"],
+            "selected": "attack-power"
+          },
+          {
+            "time": 103.46666666666208,
+            "beforeWave": 4,
+            "level": 6,
+            "choices": ["mushroom-heart", "fire-shot", "terrain-duration", "ice-heart"],
+            "selected": "mushroom-heart"
+          },
+          {
+            "time": 128.6666666666612,
+            "beforeWave": 5,
+            "level": 7,
+            "choices": ["thorn-heart", "mushroom-heart", "multishot", "fire-shot"],
+            "selected": "multishot"
+          },
+          {
+            "time": 151.78333333334626,
+            "beforeWave": 6,
+            "level": 8,
+            "choices": ["attack-speed", "ice-heart", "seed-cycle", "thorn-heart"],
+            "selected": "attack-speed"
+          },
+          {
+            "time": 176.5000000000326,
+            "beforeWave": 6,
+            "level": 9,
+            "choices": ["mushroom-heart", "ricochet", "attack-speed", "terrain-duration"],
+            "selected": "attack-speed"
+          },
+          {
+            "time": 205.88333333338932,
+            "beforeWave": 7,
+            "level": 10,
+            "choices": ["fire-shot", "ice-shot", "ricochet", "terrain-duration"],
+            "selected": "fire-shot"
+          },
+          {
+            "time": 223.13333333340304,
+            "beforeWave": 8,
+            "level": 11,
+            "choices": ["thorn-heart", "attack-speed", "terrain-duration", "burst"],
+            "selected": "attack-speed"
+          },
+          {
+            "time": 249.15000000009042,
+            "beforeWave": 9,
+            "level": 12,
+            "choices": ["wild-heart", "attack-power", "thorn-heart", "ice-heart"],
+            "selected": "attack-power"
+          },
+          {
+            "time": 270.7500000000824,
+            "beforeWave": 10,
+            "level": 13,
+            "choices": ["mushroom-heart", "ricochet", "thorn-heart", "fire-shot"],
+            "selected": "mushroom-heart"
+          },
+          {
+            "time": 295.8500000000596,
+            "beforeWave": 10,
+            "level": 14,
+            "choices": ["thorn-heart", "mushroom-heart", "fire-shot", "terrain-duration"],
+            "selected": "mushroom-heart"
+          }
+        ]
       },
       {
-        "afterWave": 9,
-        "beforeWave": 10,
-        "selected": "bloom-shot"
+        "name": "no browser JavaScript or console errors"
       }
-    ]
-  },
-  "controls": [
-    {
-      "name": "desktop movement, pause/resume, ready/pause help, Escape"
+    ],
+    "errors": [],
+    "challenge": {
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "wave": 10,
+      "kills": 282,
+      "stats": {
+        "shots": 2654,
+        "misses": 1715,
+        "autoPlants": 190,
+        "reflections": 0,
+        "splitShots": 0,
+        "plantsGrown": 190,
+        "plantKills": 12,
+        "terrainDamage": 2223.6142857143673,
+        "damageTaken": 0
+      },
+      "maxPlants": 9,
+      "maxEnemies": 14,
+      "upgradeSelections": [
+        {
+          "time": 10.466666666666766,
+          "beforeWave": 1,
+          "level": 2,
+          "choices": ["terrain-duration", "thorn-heart", "attack-speed"],
+          "selected": "attack-speed"
+        },
+        {
+          "time": 32.783333333332756,
+          "beforeWave": 2,
+          "level": 3,
+          "choices": ["fire-shot", "mushroom-heart", "ice-heart"],
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 59.86666666666455,
+          "beforeWave": 2,
+          "level": 4,
+          "choices": ["thorn-heart", "attack-power", "ice-heart"],
+          "selected": "attack-power"
+        },
+        {
+          "time": 84.11666666666318,
+          "beforeWave": 3,
+          "level": 5,
+          "choices": ["attack-power", "terrain-duration", "ice-heart", "split-shot"],
+          "selected": "attack-power"
+        },
+        {
+          "time": 103.46666666666208,
+          "beforeWave": 4,
+          "level": 6,
+          "choices": ["mushroom-heart", "fire-shot", "terrain-duration", "ice-heart"],
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 128.6666666666612,
+          "beforeWave": 5,
+          "level": 7,
+          "choices": ["thorn-heart", "mushroom-heart", "multishot", "fire-shot"],
+          "selected": "multishot"
+        },
+        {
+          "time": 151.78333333334626,
+          "beforeWave": 6,
+          "level": 8,
+          "choices": ["attack-speed", "ice-heart", "seed-cycle", "thorn-heart"],
+          "selected": "attack-speed"
+        },
+        {
+          "time": 176.5000000000326,
+          "beforeWave": 6,
+          "level": 9,
+          "choices": ["mushroom-heart", "ricochet", "attack-speed", "terrain-duration"],
+          "selected": "attack-speed"
+        },
+        {
+          "time": 205.88333333338932,
+          "beforeWave": 7,
+          "level": 10,
+          "choices": ["fire-shot", "ice-shot", "ricochet", "terrain-duration"],
+          "selected": "fire-shot"
+        },
+        {
+          "time": 223.13333333340304,
+          "beforeWave": 8,
+          "level": 11,
+          "choices": ["thorn-heart", "attack-speed", "terrain-duration", "burst"],
+          "selected": "attack-speed"
+        },
+        {
+          "time": 249.15000000009042,
+          "beforeWave": 9,
+          "level": 12,
+          "choices": ["wild-heart", "attack-power", "thorn-heart", "ice-heart"],
+          "selected": "attack-power"
+        },
+        {
+          "time": 270.7500000000824,
+          "beforeWave": 10,
+          "level": 13,
+          "choices": ["mushroom-heart", "ricochet", "thorn-heart", "fire-shot"],
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 295.8500000000596,
+          "beforeWave": 10,
+          "level": 14,
+          "choices": ["thorn-heart", "mushroom-heart", "fire-shot", "terrain-duration"],
+          "selected": "mushroom-heart"
+        }
+      ]
     },
-    {
-      "name": "blur event suspends simulation (headless tabs remain visible)",
+    "passed": true
+  },
+  "distControls": {
+    "date": "2026-10-03T13:51:26.595Z",
+    "browser": "151.0.7922.173",
+    "url": "http://127.0.0.1:4411",
+    "selection": "controls",
+    "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+    "limitations": [
+      "Chromium touch emulation; physical iOS and Android devices were not tested.",
+      "Virtual clock accelerates natural simulation frames without changing health, enemies, or game state."
+    ],
+    "checks": [
+      {
+        "name": "desktop movement, pause/resume, ready/pause help, Escape"
+      },
+      {
+        "name": "blur event suspends simulation (headless tabs remain visible)",
+        "phase": "playing",
+        "hidden": false
+      },
+      {
+        "name": "optional mouse aim releases into automatic fire; no manual planting controls"
+      },
+      {
+        "name": "natural combat loss",
+        "result": "lost",
+        "seconds": 41.49999999999893,
+        "damageTaken": 112
+      },
+      {
+        "name": "result replay resets health, score, terrain and experience level"
+      },
+      {
+        "name": "native multi-touch 390×844: move + aim, cancellation, automatic recovery and dash",
+        "maximumConcurrentPointers": 2,
+        "pauseBars": [
+          {
+            "x": 5,
+            "y": 4,
+            "width": 5,
+            "height": 16,
+            "fill": "rgb(247, 243, 232)"
+          },
+          {
+            "x": 14,
+            "y": 4,
+            "width": 5,
+            "height": 16,
+            "fill": "rgb(247, 243, 232)"
+          }
+        ]
+      },
+      {
+        "name": "touch 390×844: movement-only automatic terrain and experience choice",
+        "seconds": 13.76666666666693,
+        "grown": 6,
+        "level": 2
+      },
+      {
+        "name": "native multi-touch 844×390: move + aim, cancellation, automatic recovery and dash",
+        "maximumConcurrentPointers": 2,
+        "pauseBars": [
+          {
+            "x": 5,
+            "y": 4,
+            "width": 5,
+            "height": 16,
+            "fill": "rgb(247, 243, 232)"
+          },
+          {
+            "x": 14,
+            "y": 4,
+            "width": 5,
+            "height": 16,
+            "fill": "rgb(247, 243, 232)"
+          }
+        ]
+      },
+      {
+        "name": "touch 844×390: movement-only automatic terrain and experience choice",
+        "seconds": 15.250000000000338,
+        "grown": 7,
+        "level": 2
+      },
+      {
+        "name": "no browser JavaScript or console errors"
+      }
+    ],
+    "errors": [],
+    "nativeBackgroundSuspension": {
       "phase": "playing",
       "hidden": false
     },
-    {
-      "name": "left hold + right click plants concurrently; release stops manual firing"
-    },
-    {
-      "name": "natural combat loss",
-      "seconds": 21.950000000000035,
-      "damageTaken": 104
-    },
-    {
-      "name": "result replay resets health, score, terrain"
-    },
-    {
-      "name": "native multi-touch 390×844: move + plant, seed growth, cancel release/no ghost seed, selection, dash",
-      "maximumConcurrentPointers": 2,
-      "planted": 1
-    },
-    {
-      "name": "native multi-touch 844×390: move + plant, seed growth, cancel release/no ghost seed, selection, dash",
-      "maximumConcurrentPointers": 2,
-      "planted": 1
-    },
-    {
-      "name": "no browser JavaScript or console errors"
-    }
-  ],
-  "originalHarness": {
-    "passed": false,
-    "failure": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(state.stats.plantKills > 20)\n\n    at fullChallenge (file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:236:10)\n    at async file:///workspace/small-games/games/local/bullet-garden/tests/browser.mjs:245:68"
+    "passed": true
   },
-  "criterionCorrection": {
-    "original": "plantKills > 20",
-    "observed": 18,
-    "revised": "plantKills >= 10 and terrainDamage > 2000",
-    "reason": "The per-frame analog balance bot and quarter-second native eight-direction browser bot follow different combat paths. Browser acceptance proves terrain contribution; tests/balance.mjs retains its separate stronger tuning criteria.",
-    "verification": "The revised condition and win/time/three-upgrade/cap/error conditions were asserted against the unchanged recorded final snapshot. The five-minute run was not repeated for this test-only threshold correction."
-  },
-  "resultScreen": {
-    "verification": "Visually inspected real completed-game screenshot: 花园，生生不息。; 5:00, 285 kills, 130 plants, 18 terrain kills.",
-    "note": "The original >20 assertion ran before the result-title DOM assertion; do not treat that later DOM assertion as executed."
-  },
-  "finalSourceCoverage": "The full challenge used the same final combat implementation. Desktop and both mobile control runs were repeated after final camera/UI refinements.",
-  "limitations": [
-    "Headless Chromium keeps background pages visible, so native document.hidden transition could not be exercised. Native background behavior was recorded, and blur-event suspension was verified.",
-    "Mobile interaction used Chromium touch emulation with genuine concurrent CDP touch points; physical-device and Safari testing remain unverified."
-  ],
-  "artifacts": ["desktop-wave-5.png", "mobile-390x844.png"],
-  "errors": []
+  "standalone": {
+    "date": "2026-10-03T13:59:13.897027+00:00",
+    "url": "http://127.0.0.1:4411",
+    "passed": true,
+    "scope": "exerciseStandalone bullet-garden branch against built game; remaining game branches and full shell harness were not run",
+    "checks": [
+      "Desktop iframe: start, automatic shots, no manual planting controls, growth and XP state, native keyboard movement, pause/resume",
+      "390x844 native touch: start, unobstructed field, automatic shots, no manual planting controls, growth and XP state, native joystick movement, pause/resume"
+    ],
+    "errors": []
+  }
 }

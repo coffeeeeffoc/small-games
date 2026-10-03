@@ -94,10 +94,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         )
         .toBe('arena');
     }
-    await click(frame.locator('[data-seed="ice"]'));
-    await expect.poll(async () => (await snapshot()).selectedSeed).toBe('ice');
-    await click(frame.locator('#cast'));
-    await expect.poll(async () => (await snapshot()).stats.seedShots).toBeGreaterThan(0);
+    await expect(frame.locator('#auto-fire, #cast, [data-seed]')).toHaveCount(0);
+    await expect.poll(async () => (await snapshot()).stats.shots).toBeGreaterThan(0);
+    expect((await snapshot()).growth.threshold).toBeGreaterThan(0);
+    expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
 
     const initialPlayer = (await snapshot()).player;
     const touch = mobile ? await page.context().newCDPSession(page) : undefined;

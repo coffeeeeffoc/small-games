@@ -1,27 +1,58 @@
 # Module contract
 
-Game uses native ES modules, Canvas 2D, CSS/HTML UI; no runtime dependencies.
+Native ES modules, Canvas 2D and HTML/CSS; no runtime dependencies. Content and combat are Game-owned. The immutable config exports `LEVELS`, `SEEDS` (the three terrain species), `ENEMIES`, and `UPGRADES`.
 
-Simulation exports from `src/simulation.mjs`: `createGame(levelId = 'ruins', seed = 42)`, `startGame(state)`, `step(state, dt, input)`, `selectSeed(state, kind)`, `chooseUpgrade(state, id)`, `pauseGame(state)`, `resumeGame(state)`, `castSeed(state, target)`, `dash(state, direction)`. Configuration exports `LEVELS`, `SEEDS`, `UPGRADES` from `src/config.mjs`.
+## Simulation and state
 
-World is 1440 x 900, playable bounds x=100..1340, y=150..750. Coordinates locate ground contact. State is mutable and JSON serializable:
+`src/simulation.mjs` exports `createGame(levelId = 'ruins', seed = 42)`, `startGame(state)`, `step(state, dt, input)`, `chooseUpgrade(state, id)`, `pauseGame(state)`, `resumeGame(state)`, and `dash(state, direction)`.
 
+The manual seed APIs, inventories and cooldowns have been removed. Callers must not call `selectSeed` or `castSeed`. A new run resets progression, miss counts, queued shots, statuses and terrain.
+
+State is mutable and JSON serializable. Relevant public fields:
+
+```js
+{
+  levelId, phase, time, duration, wave, waveProgress, coins, kills,
+  player, enemies, plants, bullets, particles, floaters, telegraphs,
+  growth: { misses, threshold, cooldown, nextKind },
+  progression: { level, xp, nextXp },
+  stats: { shots, misses, autoPlants, plantsGrown, plantKills, terrainDamage,
+    reflections, splitShots, damageTaken },
+  upgradeChoices: [], // IDs currently offered
+  upgrades: [],       // selected IDs; repeated ID means another rank
+  events: []
+}
 ```
-{levelId, phase:'ready'|'playing'|'paused'|'upgrade'|'won'|'lost', time:0, duration:300,
- wave:1, waveProgress:0, coins:0, kills:0, selectedSeed:'thorn',
- player:{x:720,y:470,hp:100,maxHp:100,radius:18,angle:0,invulnerable:0,dashCooldown:0},
- seeds:{thorn:5,ice:4,mushroom:3}, seedCooldown:0, plantCap:18,
- enemies:[{id,kind:'sprout'|'runner'|'brute',x,y,hp,maxHp,radius,angle,hit:0}],
- plants:[{id,kind:'thorn'|'ice'|'mushroom',x,y,radius,age,life,hp,maxHp}],
- bullets:[{id,kind:'normal'|'thorn'|'ice'|'mushroom'|'enemy',x,y,vx,vy,targetX,targetY}],
- particles:[{x,y,vx,vy,life,maxLife,color,size}],
- floaters:[{x,y,text,color,life}], telegraphs:[{x,y,radius,life,kind}],
- stats:{shots:0,seedShots:0,plantsGrown:0,plantKills:0,terrainDamage:0},
- upgradeChoices:[], upgrades:[], events:[] }
-```
 
-`input = {moveX:0,moveY:0,aimX:900,aimY:470,firing:false,autoFire:true}`. Auto fire targets nearest enemy in range; manual held fire aims at input point. `castSeed` launches finite seed projectile toward an exact ground point, grows if no direct enemy hit; normal bullets never grow. `step` only advances playing phase. Events are short array for audio/UI and drained by app each frame. Ten 30s waves, pause for upgrade at wave 3, 6, 9; survive 300 seconds to win. Seed resources regenerate / wave replenish; clear readable cooldowns. Dash accepts `{x,y}` vector. Configuration/units are game-owned and extensible.
+`phase` is `ready | playing | paused | upgrade | won | lost`. The ready scene is an inert preview. Only `playing` advances; upgrade selection freezes enemies, projectiles, terrain timers and the five-minute clock. `step` subdivides bounded elapsed time to prevent tunnelling. All combat randomness is seeded; identical seeds and inputs replay deterministically.
 
-Renderer exports `class GardenRenderer` from `src/renderer.mjs`: constructor(canvas), resize(), render(state, {aim, planting, time} = {}), screenToWorld(clientX,clientY), worldToScreen(x,y); methods return local CSS coordinates for worldToScreen and world coordinates for screenToWorld. Renderer handles DPR/fit/camera. It renders the entire scene, UI is separate HTML overlay. Portrait camera follows player, desktop whole world with sensible crop; reserve approximately 100px top and 180px bottom UI in desktop composition. Export `drawSeedIcon(canvas, kind)` and `drawPortrait(canvas)` for UI illustrated cards/portrait. Renderer accepts ready state as populated preview garden, implementation may render decorative plants independently of simulation.
+Input is `{moveX, moveY, aimX, aimY, firing, autoFire}`. Normal UI always enables auto fire; the simulator permits `autoFire:false` for isolated tests. Holding a field pointer temporarily chooses the aim; releasing/cancelling returns to nearest-enemy aiming. With no target, auto fire uses the last heading. Dash accepts `{x,y}`.
 
-App entry `src/main.mjs`, `index.html`, `style.css` owned by main agent. Required stable selectors: `#start`, `#pause`, `#resume`, `#restart`, `#arena`, `#joystick`, `[data-seed="thorn|ice|mushroom"]`, `#cast`, `#dash`. Readonly test observability: `window.__bulletGarden.snapshot()` returns deep-cloned state. Gameplay phase mirrored on `document.body.dataset.phase`. App must support dual touch move + field target/cast, WASD + mouse, 1/2/3 seed selection, right click/E cast, Space dash, Escape pause. Full game flow including ready/pause/upgrades/results. No mutable debug shortcuts.
+## Separate reward loops
+
+A primary projectile that finishes without any hit or reflection adds one miss. Reflected paths and derived split projectiles do not add misses. Impact explosions and damage-over-time do not create new counted projectiles. A projectile is settled once; an enemy death awards XP once, regardless of damage source.
+
+`LEVELS[levelId].growth` owns the miss threshold, minimum threshold, minimum spawn interval, forward distance range, angular sector and terrain species pool. Each threshold schedules automatic terrain in the final miss direction. Placement uses the current player origin and a safe point inside playable bounds; unavailable placement can wait for a valid point. Pending growth is bounded. Species use a shuffled bag; terrain expires and respects `plantCap`. Ice obstructs enemies but never the player. Replacing a mushroom at the cap does not explode it.
+
+Enemy definitions own XP. `progression` config owns initial XP, the per-level increase and the level at which choices expand from 3 to 4. Excess XP is retained across consecutive choices. Wave boundaries do not award upgrades. Death and victory take precedence over opening a new upgrade modal.
+
+`UPGRADES` entries define `id`, `name`, `description`, `category` (`weapon | terrain | survival`), `kind`, `icon`, `maxRank`, `weight`, `effects`, and optional `requires` (IDs requiring at least one rank). The offer pool filters unavailable/maxed/prerequisite-blocked entries, draws without replacement, and includes a weapon and terrain option when available. Empty pools must not deadlock the game. A level can restrict its upgrade pool.
+
+Gunshot modifiers are additive per rank with bounded counts. Split projectiles are terminal children: they cannot split again or inherit recursive explosion triggers. A burn refreshes its duration instead of stacking unbounded instances. Terrain-duration upgrades affect persistent thorn/ice terrain, not the mushroom fuse.
+
+## Rendering and browser contract
+
+`GardenRenderer` exposes `resize()`, `render(state, options)`, `screenToWorld(clientX,clientY)` and `worldToScreen(x,y)`. The latter returns local CSS coordinates. `drawSeedIcon` and `drawPortrait` render illustrations for UI; they do not imply manual planting. World coordinates locate ground contact; portrait camera follows the player with HUD and thumb-control safe areas.
+
+Required selectors: `#start`, `#pause`, `#resume`, `#restart`, `#arena`, `#joystick`, `#dash`, `[data-upgrade]`. Do not depend on the removed `[data-seed]`, `#cast` or `#auto-fire` controls. Pause uses two separated solid SVG bars with `aria-label="暂停"`.
+
+`window.__bulletGarden.snapshot()` returns a deep clone for read-only acceptance checks. No mutable debug controls. `document.body.dataset.phase` mirrors the phase. Input resets on panel opening, blur, pointer cancellation and capture loss. Touch supports simultaneous movement and temporary manual aim.
+
+`tests/browser.mjs` exercises native keyboard/mouse/CDP touch actions plus read-only snapshots. Virtual time accelerates requestAnimationFrame without changing health, enemies, XP or game state. The Shell's standalone check lives in `apps/shell-web/scripts/standalone-game-checks.mjs`.
+
+## Extension checklist
+
+- New level: add a `LEVELS` entry with bounds, player spawn, waves, enemy composition, growth and progression tuning; optionally restrict upgrade IDs, then add an entry point.
+- New upgrade using existing stats: add metadata and effects, including ranks and prerequisites. A new effect needs simulation behaviour and readable feedback as well.
+- New terrain or enemy: add content, lifecycle/AI behaviour, rendering and meaningful regression coverage. Do not copy the entire simulation per level.
+- Keep source attribution for new damage paths so child effects cannot farm misses or duplicate XP. Preserve projectile, enemy, terrain and effect caps.

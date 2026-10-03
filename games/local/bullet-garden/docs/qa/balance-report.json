@@ -1,0 +1,794 @@
+{
+  "date": "2026-10-03",
+  "method": "Fixed seeds 7/42/81; normal health; movement-only bot; no manual aim or terrain commands. Different builds consume different RNG sequences, so outcomes are not paired causal comparisons.",
+  "runs": [
+    {
+      "build": "weapon",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 176,
+      "misses": 1779,
+      "terrainKills": 8,
+      "terrainDamage": 1039,
+      "maxPlants": 9,
+      "maxBullets": 33,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "multishot"
+        },
+        {
+          "time": 32,
+          "selected": "ricochet"
+        },
+        {
+          "time": 54,
+          "selected": "multishot"
+        },
+        {
+          "time": 81,
+          "selected": "attack-power"
+        },
+        {
+          "time": 100,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 124,
+          "selected": "attack-power"
+        },
+        {
+          "time": 154,
+          "selected": "attack-power"
+        },
+        {
+          "time": 176,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 204,
+          "selected": "burst"
+        },
+        {
+          "time": 229,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 257,
+          "selected": "attack-power"
+        },
+        {
+          "time": 278,
+          "selected": "burst"
+        },
+        {
+          "time": 300,
+          "selected": "split-shot"
+        }
+      ]
+    },
+    {
+      "build": "weapon",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 15,
+      "firstPlant": 1.7,
+      "plants": 182,
+      "misses": 1144,
+      "terrainKills": 7,
+      "terrainDamage": 977,
+      "maxPlants": 8,
+      "maxBullets": 16,
+      "choices": [
+        {
+          "time": 15,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 31,
+          "selected": "attack-power"
+        },
+        {
+          "time": 54,
+          "selected": "attack-power"
+        },
+        {
+          "time": 73,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 96,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 118,
+          "selected": "split-shot"
+        },
+        {
+          "time": 151,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 176,
+          "selected": "split-explosion"
+        },
+        {
+          "time": 199,
+          "selected": "attack-power"
+        },
+        {
+          "time": 227,
+          "selected": "ice-shot"
+        },
+        {
+          "time": 245,
+          "selected": "attack-power"
+        },
+        {
+          "time": 265,
+          "selected": "ice-shot"
+        },
+        {
+          "time": 287,
+          "selected": "multishot"
+        }
+      ]
+    },
+    {
+      "build": "weapon",
+      "seed": 81,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 289,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 191,
+      "misses": 1998,
+      "terrainKills": 8,
+      "terrainDamage": 1659,
+      "maxPlants": 9,
+      "maxBullets": 18,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 31,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 58,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 80,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 95,
+          "selected": "burst"
+        },
+        {
+          "time": 118,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 149,
+          "selected": "ice-shot"
+        },
+        {
+          "time": 180,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 207,
+          "selected": "multishot"
+        },
+        {
+          "time": 223,
+          "selected": "burst"
+        },
+        {
+          "time": 244,
+          "selected": "attack-power"
+        },
+        {
+          "time": 265,
+          "selected": "attack-power"
+        },
+        {
+          "time": 286,
+          "selected": "multishot"
+        }
+      ]
+    },
+    {
+      "build": "terrain-only",
+      "seed": 7,
+      "result": "lost",
+      "seconds": 240,
+      "hp": 0,
+      "kills": 173,
+      "upgrades": 9,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 58,
+      "misses": 265,
+      "terrainKills": 3,
+      "terrainDamage": 295,
+      "maxPlants": 8,
+      "maxBullets": 3,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 31,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 52,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 78,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 100,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 127,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 156,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 189,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 221,
+          "selected": "mushroom-heart"
+        }
+      ]
+    },
+    {
+      "build": "terrain-only",
+      "seed": 42,
+      "result": "lost",
+      "seconds": 211,
+      "hp": 0,
+      "kills": 143,
+      "upgrades": 8,
+      "firstUpgrade": 15,
+      "firstPlant": 1.7,
+      "plants": 48,
+      "misses": 292,
+      "terrainKills": 10,
+      "terrainDamage": 589,
+      "maxPlants": 6,
+      "maxBullets": 3,
+      "choices": [
+        {
+          "time": 15,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 35,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 59,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 75,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 99,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 126,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 158,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 189,
+          "selected": "thorn-heart"
+        }
+      ]
+    },
+    {
+      "build": "terrain-only",
+      "seed": 81,
+      "result": "lost",
+      "seconds": 223,
+      "hp": 0,
+      "kills": 153,
+      "upgrades": 8,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 44,
+      "misses": 268,
+      "terrainKills": 4,
+      "terrainDamage": 464,
+      "maxPlants": 6,
+      "maxBullets": 3,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 34,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 54,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 77,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 99,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 127,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 160,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 191,
+          "selected": "thorn-heart"
+        }
+      ]
+    },
+    {
+      "build": "garden",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 284,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 177,
+      "misses": 1207,
+      "terrainKills": 64,
+      "terrainDamage": 5402,
+      "maxPlants": 9,
+      "maxBullets": 6,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "multishot"
+        },
+        {
+          "time": 32,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 61,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 84,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 102,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 124,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 153,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 177,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 205,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 228,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 253,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 278,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 299,
+          "selected": "thorn-heart"
+        }
+      ]
+    },
+    {
+      "build": "garden",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 36,
+      "kills": 279,
+      "upgrades": 12,
+      "firstUpgrade": 15,
+      "firstPlant": 1.7,
+      "plants": 141,
+      "misses": 925,
+      "terrainKills": 49,
+      "terrainDamage": 4233,
+      "maxPlants": 10,
+      "maxBullets": 6,
+      "choices": [
+        {
+          "time": 15,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 35,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 59,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 75,
+          "selected": "multishot"
+        },
+        {
+          "time": 97,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 125,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 154,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 186,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 210,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 234,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 258,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 279,
+          "selected": "mushroom-heart"
+        }
+      ]
+    },
+    {
+      "build": "garden",
+      "seed": 81,
+      "result": "lost",
+      "seconds": 291,
+      "hp": 0,
+      "kills": 258,
+      "upgrades": 12,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 125,
+      "misses": 897,
+      "terrainKills": 40,
+      "terrainDamage": 3715,
+      "maxPlants": 10,
+      "maxBullets": 6,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 34,
+          "selected": "terrain-duration"
+        },
+        {
+          "time": 54,
+          "selected": "multishot"
+        },
+        {
+          "time": 85,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 100,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 121,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 148,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 176,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 202,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 221,
+          "selected": "seed-cycle"
+        },
+        {
+          "time": 244,
+          "selected": "ice-heart"
+        },
+        {
+          "time": 271,
+          "selected": "mushroom-heart"
+        }
+      ]
+    },
+    {
+      "build": "hybrid",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 285,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 227,
+      "misses": 2352,
+      "terrainKills": 23,
+      "terrainDamage": 2627,
+      "maxPlants": 9,
+      "maxBullets": 25,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "multishot"
+        },
+        {
+          "time": 32,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 61,
+          "selected": "multishot"
+        },
+        {
+          "time": 83,
+          "selected": "ice-shot"
+        },
+        {
+          "time": 106,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 125,
+          "selected": "fire-shot"
+        },
+        {
+          "time": 160,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 187,
+          "selected": "attack-power"
+        },
+        {
+          "time": 214,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 233,
+          "selected": "split-shot"
+        },
+        {
+          "time": 252,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 275,
+          "selected": "split-shot"
+        },
+        {
+          "time": 294,
+          "selected": "thorn-heart"
+        }
+      ]
+    },
+    {
+      "build": "hybrid",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 290,
+      "upgrades": 13,
+      "firstUpgrade": 15,
+      "firstPlant": 1.7,
+      "plants": 161,
+      "misses": 1118,
+      "terrainKills": 30,
+      "terrainDamage": 1812,
+      "maxPlants": 9,
+      "maxBullets": 11,
+      "choices": [
+        {
+          "time": 15,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 35,
+          "selected": "attack-power"
+        },
+        {
+          "time": 59,
+          "selected": "attack-power"
+        },
+        {
+          "time": 79,
+          "selected": "multishot"
+        },
+        {
+          "time": 105,
+          "selected": "fire-shot"
+        },
+        {
+          "time": 131,
+          "selected": "attack-power"
+        },
+        {
+          "time": 154,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 177,
+          "selected": "ricochet"
+        },
+        {
+          "time": 202,
+          "selected": "attack-power"
+        },
+        {
+          "time": 227,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 248,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 272,
+          "selected": "multishot"
+        },
+        {
+          "time": 289,
+          "selected": "thorn-heart"
+        }
+      ]
+    },
+    {
+      "build": "hybrid",
+      "seed": 81,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 290,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 1.7,
+      "plants": 185,
+      "misses": 1523,
+      "terrainKills": 28,
+      "terrainDamage": 3568,
+      "maxPlants": 9,
+      "maxBullets": 9,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 34,
+          "selected": "ice-shot"
+        },
+        {
+          "time": 54,
+          "selected": "attack-power"
+        },
+        {
+          "time": 76,
+          "selected": "attack-power"
+        },
+        {
+          "time": 101,
+          "selected": "multishot"
+        },
+        {
+          "time": 120,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 143,
+          "selected": "mushroom-heart"
+        },
+        {
+          "time": 173,
+          "selected": "multishot"
+        },
+        {
+          "time": 195,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 219,
+          "selected": "attack-power"
+        },
+        {
+          "time": 239,
+          "selected": "attack-power"
+        },
+        {
+          "time": 265,
+          "selected": "thorn-heart"
+        },
+        {
+          "time": 286,
+          "selected": "attack-power"
+        }
+      ]
+    }
+  ]
+}

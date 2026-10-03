@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-03T13:51:26.595Z",
+  "browser": "151.0.7922.173",
+  "url": "http://127.0.0.1:4411",
+  "selection": "controls",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "limitations": [
+    "Chromium touch emulation; physical iOS and Android devices were not tested.",
+    "Virtual clock accelerates natural simulation frames without changing health, enemies, or game state."
+  ],
+  "checks": [
+    {
+      "name": "desktop movement, pause/resume, ready/pause help, Escape"
+    },
+    {
+      "name": "blur event suspends simulation (headless tabs remain visible)",
+      "phase": "playing",
+      "hidden": false
+    },
+    {
+      "name": "optional mouse aim releases into automatic fire; no manual planting controls"
+    },
+    {
+      "name": "natural combat loss",
+      "result": "lost",
+      "seconds": 41.49999999999893,
+      "damageTaken": 112
+    },
+    {
+      "name": "result replay resets health, score, terrain and experience level"
+    },
+    {
+      "name": "native multi-touch 390×844: move + aim, cancellation, automatic recovery and dash",
+      "maximumConcurrentPointers": 2,
+      "pauseBars": [
+        {
+          "x": 5,
+          "y": 4,
+          "width": 5,
+          "height": 16,
+          "fill": "rgb(247, 243, 232)"
+        },
+        {
+          "x": 14,
+          "y": 4,
+          "width": 5,
+          "height": 16,
+          "fill": "rgb(247, 243, 232)"
+        }
+      ]
+    },
+    {
+      "name": "touch 390×844: movement-only automatic terrain and experience choice",
+      "seconds": 13.76666666666693,
+      "grown": 6,
+      "level": 2
+    },
+    {
+      "name": "native multi-touch 844×390: move + aim, cancellation, automatic recovery and dash",
+      "maximumConcurrentPointers": 2,
+      "pauseBars": [
+        {
+          "x": 5,
+          "y": 4,
+          "width": 5,
+          "height": 16,
+          "fill": "rgb(247, 243, 232)"
+        },
+        {
+          "x": 14,
+          "y": 4,
+          "width": 5,
+          "height": 16,
+          "fill": "rgb(247, 243, 232)"
+        }
+      ]
+    },
+    {
+      "name": "touch 844×390: movement-only automatic terrain and experience choice",
+      "seconds": 15.250000000000338,
+      "grown": 7,
+      "level": 2
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
+  },
+  "passed": true
+}
