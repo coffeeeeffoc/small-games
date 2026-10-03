@@ -78,7 +78,8 @@
     "@coffeeeeffoc/bullet-garden": "workspace:*",
     "@coffeeeeffoc/ink-is-everything": "workspace:*",
     "@coffeeeeffoc/out-of-frame": "workspace:*",
-    "@coffeeeeffoc/echo-weaver": "workspace:*"
+    "@coffeeeeffoc/echo-weaver": "workspace:*",
+    "@coffeeeeffoc/two-sided-box": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
