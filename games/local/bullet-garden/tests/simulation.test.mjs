@@ -1,8 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LEVELS, SEEDS, ENEMIES, UPGRADES } from '../src/config.mjs';
+import { LEVELS, BOONS, SKILLS, ENEMIES, UPGRADES } from '../src/config.mjs';
 import {
   createGame,
+  configureLoadout,
+  selectSkill,
+  castSkill,
+  selectSeed,
+  castSeed,
   startGame,
   step,
   chooseUpgrade,
@@ -13,8 +18,9 @@ import {
 
 const idle = { moveX: 0, moveY: 0, firing: false, autoFire: false };
 
-function isolatedGame(seed = 42) {
+function isolatedGame(seed = 42, boon = null, skills = ['blast', 'gale']) {
   const state = createGame('ruins', seed);
+  configureLoadout(state, { boon, skills });
   startGame(state);
   state.enemies = [];
   state.plants = [];
@@ -53,7 +59,7 @@ function enemy(state, overrides = {}) {
 }
 
 function plant(state, kind, overrides = {}) {
-  const definition = SEEDS[kind];
+  const definition = Object.values(BOONS).find((boon) => boon.kind === kind);
   const result = {
     id: ++state.nextId,
     kind,
@@ -62,8 +68,8 @@ function plant(state, kind, overrides = {}) {
     radius: definition.radius,
     age: 0,
     life: definition.life,
-    hp: definition.health,
-    maxHp: definition.health,
+    hp: 1,
+    maxHp: 1,
     ...overrides,
   };
   state.plants.push(result);
@@ -108,171 +114,11 @@ test('the first level starts ready and only advances after starting', () => {
   assert.ok(state.time > 0);
 });
 
-test('a primary miss counts once only after the projectile finishes travelling', () => {
-  const state = isolatedGame();
-  fireOnce(state);
-  assert.ok(state.bullets.length > 0);
-  assert.equal(state.growth.misses, 0);
-  assert.equal(state.stats.plantsGrown, 0);
-  advance(state, 0.8);
-  assert.equal(state.bullets.length, 0);
-  assert.equal(state.growth.misses, 1);
-  advance(state, 1);
-  assert.equal(state.growth.misses, 1, 'a finished projectile cannot count twice');
-  assert.equal(state.progression.xp, 0, 'empty shots cannot farm upgrade experience');
-});
-
-test('a primary hit damages its target without advancing the miss threshold', () => {
-  const state = isolatedGame();
-  const victim = enemy(state);
-  fireOnce(state);
-  advance(state, 0.8);
-  assert.ok(victim.hp < victim.maxHp);
-  assert.equal(state.growth.misses, 0);
-  assert.equal(state.stats.plantsGrown, 0);
-});
-
-for (const kind of ['thorn', 'ice', 'mushroom']) {
-  test(`the final miss automatically grows ${kind} in the latest firing direction`, () => {
-    const state = isolatedGame();
-    state.growth.nextKind = kind;
-    state.growth.misses = state.growth.threshold - 1;
-    fireOnce(state, -1, 0);
-    assert.equal(state.plants.length, 0, 'terrain waits for the final miss to resolve');
-    advance(state, 0.8);
-    const grown = state.plants.find((entry) => entry.kind === kind);
-    assert.ok(grown, 'crossing the threshold grows terrain without a cast command');
-    assert.ok(grown.x < state.player.x, 'the latest missed direction controls the spawn side');
-    const spawnAngle = Math.atan2(grown.y - state.player.y, grown.x - state.player.x);
-    const angleDifference = Math.atan2(
-      Math.sin(spawnAngle - Math.PI),
-      Math.cos(spawnAngle - Math.PI),
-    );
-    assert.ok(
-      Math.abs(angleDifference) <= LEVELS.ruins.growth.sector,
-      'random placement must stay within the missed direction sector',
-    );
-    assert.ok(
-      Math.hypot(grown.x - state.player.x, grown.y - state.player.y) >
-        state.player.radius + grown.radius,
-    );
-    assert.equal(state.growth.misses, 0);
-    assert.equal(state.stats.plantsGrown, 1);
-    assert.ok(grown.life > 0 && Number.isFinite(grown.life));
-  });
-}
-
-test('growing terrain preserves surplus misses and never grants experience by itself', () => {
-  const state = isolatedGame();
-  const remainder = 2;
-  state.growth.misses = state.growth.threshold + remainder - 1;
-  fireOnce(state);
-  advance(state, 0.8);
-  assert.equal(state.stats.plantsGrown, 1);
-  assert.equal(state.growth.misses, remainder);
-  assert.equal(state.progression.xp, 0);
-  assert.equal(state.progression.level, 1);
-});
-
-test('natural repeated misses respect the active terrain cap', () => {
-  const state = isolatedGame();
-  state.plantCap = 2;
-  advance(state, 15, { ...idle, firing: true, aimX: 1200, aimY: 300 });
-  assert.ok(state.stats.plantsGrown > state.plantCap, 'the run must exercise replacement');
-  assert.ok(state.plants.length <= state.plantCap);
-  assert.ok(state.plants.length > 0);
-});
-
-test('automatically generated terrain stays inside the arena near its corners', () => {
-  for (const [x, y, dx, dy] of [
-    [120, 170, -1, -1],
-    [1320, 730, 1, 1],
-  ]) {
-    const state = isolatedGame();
-    state.player.x = x;
-    state.player.y = y;
-    state.growth.misses = state.growth.threshold - 1;
-    fireOnce(state, dx, dy);
-    advance(state, 0.8);
-    const bounds = LEVELS.ruins.bounds;
-    for (const terrain of state.plants) {
-      assert.ok(terrain.x >= bounds.left + terrain.radius);
-      assert.ok(terrain.x <= bounds.right - terrain.radius);
-      assert.ok(terrain.y >= bounds.top + terrain.radius);
-      assert.ok(terrain.y <= bounds.bottom - terrain.radius);
-      assert.ok(Math.hypot(terrain.x - x, terrain.y - y) >= state.player.radius + terrain.radius);
-    }
-  }
-});
-
-test('expired terrain is removed and releases capacity', () => {
-  const state = isolatedGame();
-  const expired = plant(state, 'thorn', { life: 0.1 });
-  const lasting = plant(state, 'ice', { y: state.player.y + 100, life: 20 });
-  advance(state, 0.3);
-  assert.ok(!state.plants.some((entry) => entry.id === expired.id));
-  assert.ok(state.plants.some((entry) => entry.id === lasting.id));
-});
-
-test('automatic ice terrain does not block player movement', () => {
-  const state = isolatedGame();
-  const ice = plant(state, 'ice', { x: state.player.x + 80, life: 30 });
-  advance(state, 1, { ...idle, moveX: 1 });
-  assert.ok(state.player.x > ice.x + ice.radius, 'automatic terrain must not trap its owner');
-});
-
-for (const kind of ['thorn', 'ice']) {
-  test(`${kind} terrain slows enemies while they cross it`, () => {
-    const ordinary = isolatedGame();
-    const overgrown = isolatedGame();
-    const normalEnemy = enemy(ordinary, { x: ordinary.player.x + 200 });
-    const slowedEnemy = enemy(overgrown, { x: overgrown.player.x + 200 });
-    plant(overgrown, kind, { x: slowedEnemy.x, y: slowedEnemy.y });
-    advance(ordinary, 0.3);
-    advance(overgrown, 0.3);
-    assert.ok(slowedEnemy.x > normalEnemy.x + 2, 'terrain enemies must advance less');
-    if (kind === 'thorn') {
-      assert.ok(slowedEnemy.hp < slowedEnemy.maxHp);
-      assert.ok(overgrown.stats.terrainDamage > 0);
-    }
-  });
-}
-
-test('a mushroom waits before blasting, damages an area, and credits terrain kills', () => {
-  const state = isolatedGame();
-  const mushroom = plant(state, 'mushroom', { x: 1000, y: 400 });
-  const nearby = enemy(state, { x: mushroom.x + 10, y: mushroom.y, hp: 1 });
-  const secondNearby = enemy(state, { x: mushroom.x - 20, y: mushroom.y + 20 });
-  const outside = enemy(state, { x: 200, y: 650 });
-  advance(state, 0.05);
-  assert.equal(nearby.hp, nearby.maxHp, 'a delayed blast must advertise before dealing damage');
-  for (
-    let elapsed = 0;
-    elapsed < SEEDS.mushroom.life + 2 && state.plants.includes(mushroom);
-    elapsed += 1 / 60
-  ) {
-    nearby.x = mushroom.x + 10;
-    nearby.y = mushroom.y;
-    secondNearby.x = mushroom.x - 20;
-    secondNearby.y = mushroom.y + 20;
-    outside.x = 200;
-    outside.y = 650;
-    step(state, 1 / 60, idle);
-  }
-  assert.ok(!state.plants.includes(mushroom));
-  assert.ok(nearby.hp <= 0);
-  assert.ok(secondNearby.hp < secondNearby.maxHp);
-  assert.equal(outside.hp, outside.maxHp);
-  assert.equal(state.stats.plantKills, 1);
-  assert.equal(state.progression.xp, ENEMIES.sprout.xp);
-  assert.ok(state.stats.terrainDamage > 0);
-});
-
 test('automatic fire continues in the last direction in an empty arena and targets nearby enemies', () => {
   const empty = isolatedGame();
   advance(empty, 2.5, { ...idle, autoFire: true });
   assert.ok(empty.stats.shots > 0);
-  assert.ok(empty.stats.plantsGrown > 0, 'automatic fire alone must feed the garden cycle');
+  assert.equal(empty.stats.plantsGrown, 0, 'empty shots cannot unlock unchosen terrain');
   assert.equal(empty.progression.xp, 0);
   const state = isolatedGame();
   const near = enemy(state, { x: state.player.x + 110 });
@@ -313,15 +159,17 @@ test('experience opens unique upgrade choices and freezes combat until a valid s
   assert.ok(state.player.invulnerable > 0);
 });
 
-test('one terrain explosion retains overflow experience for consecutive upgrades', () => {
+test('one active blast retains overflow experience for consecutive upgrades', () => {
   const state = isolatedGame();
-  const mushroom = plant(state, 'mushroom', { x: 1000, y: 400, life: 0.05 });
+  const center = { x: 1000, y: 400 };
+  state.skillSlots[0].energy = 100;
   for (let index = 0; index < 6; index += 1) {
-    enemy(state, { kind: 'brute', hp: 1, x: mushroom.x + index * 3, y: mushroom.y });
+    enemy(state, { kind: 'brute', hp: 1, x: center.x + index * 3, y: center.y });
   }
-  advance(state, 0.2);
+  castSkill(state, center);
+  advance(state, 0.7);
   assert.equal(state.kills, 6);
-  assert.equal(state.stats.plantKills, 6);
+  assert.equal(state.stats.skillKills, 6);
   assert.equal(state.phase, 'upgrade');
   let selections = 0;
   while (state.phase === 'upgrade' && selections < 10) {
@@ -351,10 +199,10 @@ test('the upgrade draw excludes capped upgrades and eventually offers unlocked s
   assert.ok(sawSynergy, 'a prerequisite should unlock an actual reachable upgrade');
 });
 
-test('pause freezes all timers, bullets, terrain and growth, then resumes the same run', () => {
+test('pause freezes all timers, bullets, terrain and energy, then resumes the same run', () => {
   const state = isolatedGame();
   fireOnce(state);
-  plant(state, 'mushroom');
+  plant(state, 'thorn');
   pauseGame(state);
   assert.equal(state.phase, 'paused');
   const paused = structuredClone(state);
@@ -408,13 +256,13 @@ test('movement and dashes stay inside arena bounds and dash has a cooldown', () 
   assert.ok(state.player.y >= 150 + state.player.radius);
 });
 
-test('restarting clears experience, upgrades, pending growth and combat entities', () => {
+test('restarting clears experience, upgrades, skill energy and combat entities', () => {
   const state = isolatedGame();
   triggerUpgrade(state);
   chooseUpgrade(state, state.upgradeChoices[0]);
   fireOnce(state);
   plant(state, 'thorn');
-  state.growth.misses = 2;
+  state.stats.misses = 2;
   startGame(state);
   const fresh = createGame('ruins', state.initialSeed);
   startGame(fresh);
@@ -447,10 +295,10 @@ test('an unreflected primary that reaches the arena edge counts as one miss', ()
   fireOnce(state);
   advance(state, 0.3);
   assert.equal(state.bullets.length, 0);
-  assert.equal(state.growth.misses, 1);
+  assert.equal(state.stats.misses, 1);
 });
 
-test('a reflected primary never earns miss growth when the reflected flight expires', () => {
+test('a reflected primary never counts as an ordinary miss when the reflected flight expires', () => {
   const state = isolatedGame();
   state.player.x = 1130;
   state.upgrades.push('ricochet');
@@ -462,7 +310,7 @@ test('a reflected primary never earns miss growth when the reflected flight expi
   }
   assert.ok(sawReflection, 'the shot must actually bounce off a boundary');
   assert.equal(state.bullets.length, 0);
-  assert.equal(state.growth.misses, 0);
+  assert.equal(state.stats.misses, 0);
   assert.equal(state.stats.plantsGrown, 0);
 });
 
@@ -482,7 +330,7 @@ test('split children fly but cannot multiply the primary miss reward or split re
   assert.ok([...generations.values()].every((generation) => generation === 0 || generation === 1));
   assert.ok(generations.size <= 5, 'one shot cannot grow an unbounded projectile tree');
   assert.equal(state.bullets.length, 0);
-  assert.equal(state.growth.misses, 1, 'only the missed primary may advance growth');
+  assert.equal(state.stats.misses, 1, 'only the missed primary changes the miss statistic');
 });
 
 test('children from a successful primary hit do not count as missed primary shots', () => {
@@ -497,7 +345,7 @@ test('children from a successful primary hit do not count as missed primary shot
   }
   assert.ok(victim.hp < victim.maxHp);
   assert.ok(sawChildren);
-  assert.equal(state.growth.misses, 0);
+  assert.equal(state.stats.misses, 0);
 });
 
 test('attack power increases damage dealt by an actual projectile', () => {
@@ -568,7 +416,7 @@ test('fire bullets apply damage over time after the projectile disappears', () =
   const hpAfterHit = victim.hp;
   advance(state, 1);
   assert.ok(victim.hp < hpAfterHit, 'burning must continue dealing damage without new shots');
-  assert.equal(state.growth.misses, 0);
+  assert.equal(state.stats.misses, 0);
 });
 
 test('explosive bullets damage nearby targets and grant each kill experience once', () => {
@@ -587,30 +435,8 @@ test('explosive bullets damage nearby targets and grant each kill experience onc
   advance(state, 1);
   assert.equal(state.kills, 2);
   assert.equal(state.progression.xp, ENEMIES.sprout.xp * 2);
-  assert.equal(state.growth.misses, 0);
+  assert.equal(state.stats.misses, 0);
 });
-
-for (const kind of ['sprout', 'runner', 'brute']) {
-  test(`${kind} enemies can route around or destroy temporary ice`, () => {
-    const state = isolatedGame();
-    const ice = plant(state, 'ice', { x: 920, life: 60 });
-    const pursuer = enemy(state, { kind, x: 1080, radius: ENEMIES[kind].radius });
-    let lateralTravel = 0;
-    const passedColumn = () => pursuer.x < ice.x - ice.radius - pursuer.radius;
-    for (let elapsed = 0; elapsed < 14 && !passedColumn(); elapsed += 1 / 60) {
-      step(state, 1 / 60, idle);
-      lateralTravel = Math.max(lateralTravel, Math.abs(pursuer.y - ice.y));
-      if (ice.hp > 0) {
-        assert.ok(
-          Math.hypot(pursuer.x - ice.x, pursuer.y - ice.y) >= pursuer.radius + ice.radius - 1,
-        );
-      }
-    }
-    assert.ok(passedColumn(), 'ice must not permanently trap pursuing enemies');
-    assert.ok(lateralTravel > ice.radius || ice.hp <= 0);
-    assert.ok(ice.age < ice.life, 'progress must not depend on ice expiring');
-  });
-}
 
 test('later experience levels offer four eligible upgrades with weapon and terrain options', () => {
   const state = isolatedGame();
@@ -625,54 +451,461 @@ test('later experience levels offer four eligible upgrades with weapon and terra
   assert.ok(categories.includes('terrain'));
 });
 
-test('rapid multishot and bursts respect the terrain generation interval and projectile cap', () => {
+function readySkill(state, kind) {
+  const index = state.skillSlots.findIndex((slot) => slot.kind === kind);
+  assert.ok(index >= 0);
+  state.skillSlots[index].energy = SKILLS[kind].energyMax;
+  assert.equal(selectSkill(state, index), true);
+  return index;
+}
+
+test('loadout choices are atomic, unique, and locked during combat', () => {
+  const state = createGame();
+  const original = structuredClone(state.loadout);
+  for (const value of [
+    { boon: 'missing', skills: ['blast', 'gale'] },
+    { boon: 'shrub', skills: ['blast', 'blast'] },
+    { boon: 'shrub', skills: ['blast'] },
+    { boon: 'shrub', skills: ['blast', 'missing'] },
+  ])
+    assert.equal(configureLoadout(state, value), false);
+  assert.deepEqual(state.loadout, original);
+  assert.equal(configureLoadout(state, { boon: 'poison', skills: ['horse', 'laser'] }), true);
+  startGame(state);
+  assert.deepEqual(state.boons, ['poison']);
+  assert.equal(configureLoadout(state, { boon: 'shrub', skills: ['blast', 'gale'] }), false);
+  assert.equal(selectSkill(state, 2), false);
+  assert.equal(selectSkill(state, 0.5), false);
+});
+
+test('no boon means no terrain; full energy never automatically releases a skill', () => {
   const state = isolatedGame();
-  state.upgrades.push('multishot', 'multishot', 'burst', 'burst', ...Array(4).fill('attack-speed'));
-  const growthTimes = [];
-  let grown = 0;
-  for (let frame = 0; frame < 600; frame += 1) {
-    step(state, 1 / 60, { ...idle, firing: true, aimX: 1200, aimY: 300 });
-    if (state.stats.plantsGrown > grown) {
-      assert.equal(
-        state.stats.plantsGrown - grown,
-        1,
-        'a burst must not release multiple pending terrain spawns at once',
-      );
-      growthTimes.push(state.time);
-      grown = state.stats.plantsGrown;
-    }
-    assert.ok(state.bullets.length <= 180);
-    assert.ok(state.plants.length <= state.plantCap);
-    assert.ok(state.growth.misses >= 0 && state.growth.misses < state.growth.threshold);
-  }
-  assert.ok(growthTimes.length >= 3, 'the scenario must exercise several terrain cooldowns');
-  for (let index = 1; index < growthTimes.length; index += 1) {
-    assert.ok(
-      growthTimes[index] - growthTimes[index - 1] >=
-        LEVELS.ruins.growth.triggerInterval - 1 / 60 - 1e-8,
-    );
+  advance(state, 25, { ...idle, autoFire: true });
+  assert.ok(state.stats.shots > 0);
+  assert.equal(state.plants.length, 0);
+  assert.equal(state.stats.plantsGrown, 0);
+  assert.deepEqual(
+    state.skillSlots.map((slot) => slot.energy),
+    [100, 100],
+  );
+  assert.equal(state.stats.skillCasts, 0);
+  assert.equal(state.skillEffects.length, 0);
+  assert.equal(selectSeed(state, 'thorn'), false);
+  assert.equal(castSeed(state, { x: 1000, y: 400 }), false);
+});
+
+for (const [boonId, definition] of Object.entries(BOONS)) {
+  test(`only selected ${boonId} generates finite terrain, independently of firing`, () => {
+    const state = isolatedGame(42, boonId);
+    advance(state, 0.4);
+    assert.equal(state.plants.length, 0);
+    advance(state, 10);
+    assert.ok(state.stats.plantsGrown >= 2);
+    assert.ok(state.plants.every((item) => item.kind === definition.kind));
+    assert.equal(state.stats.shots, 0);
+    assert.equal(state.progression.xp, 0);
+    const first = state.plants[0];
+    state.boonTimers[boonId] = 1e6;
+    advance(state, definition.life + 1);
+    assert.ok(!state.plants.includes(first));
+    assert.equal(state.plants.length, 0);
+  });
+}
+
+test('terrain unlocks only after choosing its eligible upgrade, and never twice', () => {
+  const state = isolatedGame(42, 'shrub');
+  advance(state, 1);
+  assert.ok(state.plants.every((item) => item.kind === 'thorn'));
+  state.phase = 'upgrade';
+  state.progression.pending = 1;
+  state.progression.queue = [2];
+  state.upgradeChoices = ['boon-trench', 'attack-power', 'wild-heart'];
+  const frozen = structuredClone(state);
+  advance(state, 3);
+  assert.deepEqual(state, frozen);
+  assert.equal(chooseUpgrade(state, 'boon-trench'), true);
+  advance(state, 0.7);
+  assert.ok(state.plants.some((item) => item.kind === 'trench'));
+  assert.deepEqual(state.boons, ['shrub', 'trench']);
+  triggerUpgrade(state);
+  assert.ok(!state.upgradeChoices.includes('boon-trench'));
+  assert.ok(!state.upgradeChoices.includes('boon-shrub'));
+});
+
+test('energy comes from combat time and one reward per kill, then freezes in all noncombat phases', () => {
+  const state = isolatedGame();
+  advance(state, 1);
+  assert.ok(Math.abs(state.skillSlots[0].energy - 6) < 1e-8);
+  const before = state.skillSlots[0].energy;
+  killWithGun(state);
+  assert.ok(Math.abs(state.skillSlots[0].energy - before - 8 - 6 * (13 / 60)) < 1e-7);
+  for (const phase of ['ready', 'paused', 'upgrade', 'won', 'lost']) {
+    state.phase = phase;
+    const frozen = structuredClone(state);
+    advance(state, 1);
+    assert.deepEqual(state, frozen);
+    assert.equal(castSkill(state, { x: 900, y: 400 }), false);
   }
 });
 
-test('a blocked growth direction waits at the wall and releases forward after the player moves', () => {
+test('manual skills validate targets, consume only the selected slot, clip range and respect cooldown', () => {
   const state = isolatedGame();
-  state.player.x = LEVELS.ruins.bounds.right - state.player.radius;
-  state.growth.nextKind = 'thorn';
-  state.growth.misses = state.growth.threshold - 1;
-  fireOnce(state, 1, 0);
-  advance(state, 0.8);
-  assert.equal(state.stats.misses, 1);
-  assert.equal(state.growth.pending, true);
-  assert.equal(
-    state.plants.length,
-    0,
-    'an impossible forward sector must not redirect terrain behind the player',
+  const target = { x: 5000, y: 400 };
+  assert.equal(castSkill(state, target), false);
+  readySkill(state, 'blast');
+  readySkill(state, 'gale');
+  assert.equal(castSkill(state, { x: NaN, y: 500 }, 0), false);
+  assert.equal(castSkill(state, target, 3), false);
+  assert.equal(castSkill(state, target, 0), true);
+  assert.equal(state.skillSlots[0].energy, 0);
+  assert.equal(state.skillSlots[1].energy, 100);
+  assert.equal(state.stats.skillCasts, 1);
+  const effect = state.skillEffects[0];
+  assert.ok(
+    Math.hypot(effect.x - state.player.x, effect.y - state.player.y) <= SKILLS.blast.range + 1e-8,
   );
-  advance(state, 0.9, { ...idle, moveX: -1 });
-  assert.equal(state.stats.misses, 1, 'opening space must not require another missed shot');
-  assert.equal(state.growth.pending, false);
-  assert.equal(state.stats.plantsGrown, 1);
-  const grown = state.plants[0];
-  assert.ok(grown.x > state.player.x);
-  assert.ok(grown.x + grown.radius <= LEVELS.ruins.bounds.right);
+  assert.ok(effect.x <= LEVELS.ruins.bounds.right && effect.y >= LEVELS.ruins.bounds.top);
+  assert.equal(castSkill(state, target, 1), false);
+  advance(state, 0.35);
+  assert.equal(castSkill(state, target, 1), true);
+});
+
+test('shrub slows and damages enemies while the player remains free to cross', () => {
+  const normal = isolatedGame(),
+    garden = isolatedGame();
+  const first = enemy(normal, { x: 920 }),
+    second = enemy(garden, { x: 920 });
+  plant(garden, 'thorn', { x: 920 });
+  advance(normal, 0.3);
+  advance(garden, 0.3);
+  assert.ok(second.x > first.x + 2);
+  assert.ok(second.hp < second.maxHp);
+  const startX = garden.player.x;
+  advance(garden, 1, { ...idle, moveX: 1 });
+  assert.ok(garden.player.x > startX + 190);
+});
+
+test('trench collision follows its oval shape and only slows enemies', () => {
+  const state = isolatedGame();
+  const ditch = plant(state, 'trench', { x: 950, y: 400 });
+  const inside = enemy(state, { x: 950, y: 440 });
+  const outside = enemy(state, { x: 950, y: 490 });
+  const normalInside = isolatedGame(),
+    normalOutside = isolatedGame();
+  const controlInside = enemy(normalInside, { x: inside.x, y: inside.y });
+  const controlOutside = enemy(normalOutside, { x: outside.x, y: outside.y });
+  advance(state, 0.1);
+  advance(normalInside, 0.1);
+  advance(normalOutside, 0.1);
+  assert.ok(inside.x > controlInside.x + 2);
+  assert.ok(Math.abs(outside.x - controlOutside.x) < 1e-8);
+  assert.equal(inside.hp, inside.maxHp);
+  assert.equal(ditch.radius, BOONS.trench.radius);
+});
+
+test('frost freezes movement and contact attacks, then allows movement before refreezing', () => {
+  const state = isolatedGame();
+  const victim = enemy(state, { x: state.player.x, y: state.player.y, attackCooldown: 0 });
+  plant(state, 'frost', { x: victim.x, y: victim.y });
+  const original = { x: victim.x, y: victim.y };
+  advance(state, 0.5);
+  assert.deepEqual({ x: victim.x, y: victim.y }, original);
+  assert.equal(state.player.hp, 100);
+  assert.ok(victim.frozen > 0);
+  advance(state, 0.5);
+  assert.equal(victim.frozen, 0);
+  assert.ok(victim.freezeCooldown > 1);
+  assert.ok(state.player.hp < 100, 'an unfrozen enemy can attack during the immunity window');
+  state.plants = [];
+  advance(state, 4);
+  assert.equal(victim.freezeCooldown, 0);
+});
+
+test('poison persists after leaving the patch, expires, and credits terrain damage', () => {
+  const state = isolatedGame();
+  const victim = enemy(state, { x: 1000, y: 400 });
+  plant(state, 'poison', { x: victim.x, y: victim.y });
+  advance(state, 0.05);
+  state.plants = [];
+  const poisonedHp = victim.hp;
+  advance(state, 1);
+  assert.ok(victim.hp < poisonedHp - 9);
+  advance(state, 2.2);
+  assert.equal(victim.poison, 0);
+  assert.equal(victim.poisonDps, 0);
+  const curedHp = victim.hp;
+  advance(state, 1);
+  assert.equal(victim.hp, curedHp);
+  assert.ok(state.stats.terrainDamage >= 30);
+});
+
+test('blast advertises its delay, damages only its area, and its stun expires', () => {
+  const state = isolatedGame();
+  const victim = enemy(state, { x: 1000, y: 400 });
+  const outside = enemy(state, { x: 200, y: 650 });
+  readySkill(state, 'blast');
+  castSkill(state, { x: victim.x, y: victim.y });
+  advance(state, 0.4);
+  assert.equal(victim.hp, victim.maxHp);
+  advance(state, 0.2);
+  assert.equal(victim.hp, victim.maxHp - SKILLS.blast.damage);
+  assert.ok(victim.stunned > 0);
+  const frozenX = victim.x;
+  advance(state, 0.3);
+  assert.equal(victim.x, frozenX);
+  assert.equal(outside.hp, outside.maxHp);
+  advance(state, 0.7);
+  assert.equal(victim.stunned, 0);
+  assert.ok(victim.x < frozenX);
+  assert.equal(state.skillEffects.length, 0);
+});
+
+test('gale pushes away from its center, slows temporarily, and leaves outside targets alone', () => {
+  const state = isolatedGame();
+  const victim = enemy(state, { x: 1000, y: 400 });
+  const outside = enemy(state, { x: 200, y: 650 });
+  readySkill(state, 'gale');
+  castSkill(state, { x: 950, y: 400 });
+  advance(state, 0.3);
+  assert.ok(victim.x > 1000);
+  assert.ok(victim.hp < victim.maxHp);
+  assert.ok(victim.windSlow > 0);
+  assert.equal(outside.hp, outside.maxHp);
+  assert.equal(outside.windSlow, 0);
+  advance(state, 3);
+  assert.equal(victim.windSlow, 0);
+  assert.equal(state.skillEffects.length, 0);
+});
+
+for (const kind of ['cart', 'horse']) {
+  test(`${kind} travels along its path, affects each target once and its control expires`, () => {
+    const state = isolatedGame(42, null, [kind, 'blast']);
+    const victim = enemy(state, { x: 1000, y: state.player.y });
+    const outside = enemy(state, { x: 1000, y: state.player.y - 180 });
+    readySkill(state, kind);
+    castSkill(state, { x: 1200, y: state.player.y });
+    advance(state, 0.1);
+    assert.equal(victim.hp, victim.maxHp, 'travel takes time');
+    advance(state, 0.3);
+    assert.equal(victim.hp, victim.maxHp - SKILLS[kind].damage);
+    assert.equal(outside.hp, outside.maxHp);
+    if (kind === 'cart') assert.ok(victim.stunned > 0);
+    else {
+      assert.ok(victim.feared > 0);
+      const hitX = victim.x;
+      advance(state, 0.3);
+      assert.ok(victim.x > hitX, 'fear retreats from the charge origin');
+    }
+    advance(state, 3);
+    assert.equal(victim.hp, victim.maxHp - SKILLS[kind].damage, 'one charge cannot repeatedly hit');
+    assert.equal(victim.stunned, 0);
+    assert.equal(victim.feared, 0);
+    assert.equal(state.skillEffects.length, 0);
+  });
+}
+
+test('laser only hits its beam and vulnerability increases subsequent damage for a limited time', () => {
+  const state = isolatedGame(42, null, ['laser', 'blast']);
+  const victim = enemy(state, { x: 950, y: state.player.y });
+  const outside = enemy(state, { x: 950, y: state.player.y - 120 });
+  readySkill(state, 'laser');
+  castSkill(state, { x: 1200, y: state.player.y });
+  advance(state, 1 / 60);
+  assert.equal(victim.hp, victim.maxHp - SKILLS.laser.damage);
+  assert.equal(outside.hp, outside.maxHp);
+  assert.ok(victim.vulnerable > 0);
+  fireOnce(state);
+  advance(state, 0.4);
+  assert.ok(Math.abs(victim.hp - (victim.maxHp - SKILLS.laser.damage - 19 * 1.35)) < 1e-7);
+  advance(state, 4);
+  assert.equal(victim.vulnerable, 0);
+  assert.equal(outside.vulnerable, 0);
+});
+
+test('restarting preserves chosen loadout while clearing energy, acquired boons, statuses and XP', () => {
+  const state = isolatedGame(42, 'poison', ['horse', 'laser']);
+  readySkill(state, 'horse');
+  castSkill(state, { x: 1100, y: 470 });
+  state.boons.push('frost');
+  state.boonTimers.frost = 0;
+  advance(state, 1);
+  startGame(state);
+  const fresh = createGame('ruins', 42);
+  configureLoadout(fresh, { boon: 'poison', skills: ['horse', 'laser'] });
+  startGame(fresh);
+  assert.deepEqual(state, fresh);
+});
+
+test('all terrain and weapon combinations remain bounded, deterministic and serializable', () => {
+  const states = [
+    isolatedGame(19, 'shrub', ['laser', 'horse']),
+    isolatedGame(19, 'shrub', ['laser', 'horse']),
+  ];
+  for (const state of states) {
+    state.boons = Object.keys(BOONS);
+    state.boonTimers = Object.fromEntries(state.boons.map((kind) => [kind, 0]));
+    state.plantCap = 5;
+    state.upgrades.push(
+      'multishot',
+      'multishot',
+      'burst',
+      'burst',
+      'split-shot',
+      'split-explosion',
+      'ricochet',
+      'fire-shot',
+      'ice-shot',
+      ...Array(4).fill('attack-speed'),
+    );
+  }
+  for (let frame = 0; frame < 2400; frame += 1)
+    for (const state of states) {
+      const index = frame % 2;
+      if (state.skillSlots[index].energy >= 100) castSkill(state, { x: 1100, y: 450 }, index);
+      step(state, 1 / 60, {
+        ...idle,
+        autoFire: true,
+        moveX: Math.cos(frame / 100),
+        moveY: Math.sin(frame / 100),
+      });
+      assert.ok(state.plants.length <= state.plantCap);
+      assert.ok(state.bullets.length <= 120);
+      assert.ok(state.particles.length <= 240);
+      assert.ok(state.skillEffects.length <= 12);
+      assert.ok(
+        state.skillSlots.every(
+          (slot) => Number.isFinite(slot.energy) && slot.energy >= 0 && slot.energy <= 100,
+        ),
+      );
+    }
+  assert.deepEqual(states[0], states[1]);
+  assert.deepEqual(JSON.parse(JSON.stringify(states[0])), states[0]);
+  assert.ok(states[0].stats.skillCasts > 0);
+});
+
+test('maximum weapon effects cap visual rings without reducing any explosion damage or spawn warnings', () => {
+  const state = isolatedGame();
+  const victim = enemy(state, { x: 900, y: 450, hp: 100000 });
+  state.telegraphs.push({ x: 1100, y: 650, radius: 30, life: 1, kind: 'spawn' });
+  for (let index = 0; index < 120; index += 1)
+    state.bullets.push({
+      id: ++state.nextId,
+      kind: 'normal',
+      generation: 0,
+      x: 880,
+      y: 450,
+      vx: 850,
+      vy: 0,
+      radius: 4,
+      remaining: 500,
+      life: 1,
+      damage: 1,
+      explosion: 1,
+      split: 2,
+      splitExplosion: 0.8,
+    });
+  step(state, 1 / 60, idle);
+  assert.equal(victim.hp, victim.maxHp - 240, 'all 120 direct hits and explosions still apply');
+  assert.equal(state.telegraphs.filter((item) => item.kind === 'explosion').length, 24);
+  assert.ok(state.telegraphs.some((item) => item.kind === 'spawn'));
+  assert.ok(state.telegraphs.length <= 40);
+  assert.ok(state.bullets.length <= 120);
+  assert.ok(state.particles.length <= 240);
+  assert.ok(state.skillEffects.length <= 12);
+  advance(state, 0.3);
+  assert.ok(
+    state.telegraphs.every((item) => item.kind === 'spawn'),
+    'capped rings expire normally',
+  );
+});
+
+test('fully ranked gun combinations and all boons stay bounded with 48 active enemies', () => {
+  const state = isolatedGame(77, 'shrub', ['laser', 'gale']);
+  state.player.invulnerable = 100;
+  state.boons = Object.keys(BOONS);
+  state.boonTimers = Object.fromEntries(state.boons.map((kind) => [kind, 0]));
+  for (const upgrade of UPGRADES.filter((item) => item.category === 'weapon'))
+    state.upgrades.push(...Array(upgrade.maxRank).fill(upgrade.id));
+  for (let index = 0; index < 48; index += 1)
+    enemy(state, {
+      x: 180 + (index % 8) * 150,
+      y: 200 + Math.floor(index / 8) * 95,
+      hp: 100000,
+    });
+  for (let frame = 0; frame < 1200; frame += 1) {
+    for (let index = 0; index < 2; index += 1) {
+      if (state.skillSlots[index].energy >= 100) castSkill(state, { x: 900, y: 450 }, index);
+    }
+    step(state, 1 / 60, {
+      autoFire: true,
+      moveX: Math.cos(frame / 50),
+      moveY: Math.sin(frame / 50),
+    });
+    assert.equal(state.enemies.length, 48);
+    assert.ok(state.bullets.length <= 120);
+    assert.ok(state.plants.length <= 18);
+    assert.ok(state.telegraphs.length <= 40);
+    assert.ok(state.particles.length <= 240);
+    assert.ok(state.skillEffects.length <= 12);
+  }
+  assert.ok(
+    state.enemies.every((entry) => entry.age > 19.9),
+    'every enemy remains fully simulated',
+  );
+  assert.ok(state.stats.splitShots > 0);
+  assert.ok(state.stats.skillCasts > 0);
+  assert.ok(state.stats.terrainDamage > 0);
+});
+
+for (const status of ['frozen', 'stunned']) {
+  test(`gale damages ${status} enemies without moving them until the hold ends`, () => {
+    const state = isolatedGame();
+    const victim = enemy(state, { x: 780, y: 470, [status]: 0.5 });
+    readySkill(state, 'gale');
+    castSkill(state, { x: 760, y: 470 });
+    advance(state, 0.3);
+    assert.equal(victim.x, 780);
+    assert.equal(victim.y, 470);
+    assert.ok(victim.hp < victim.maxHp);
+    assert.ok(victim.windSlow > 0);
+    advance(state, 0.3);
+    assert.ok(victim.x > 780, 'wind pushes once the immobilizing status expires');
+  });
+}
+
+test('a circle skill can target the exact player position without a directional offset', () => {
+  const state = isolatedGame();
+  readySkill(state, 'blast');
+  castSkill(state, { x: state.player.x, y: state.player.y });
+  assert.equal(state.skillEffects[0].x, state.player.x);
+  assert.equal(state.skillEffects[0].y, state.player.y);
+});
+
+test('optimized swept shots retain tangent hits at the beginning, middle and end of a full-crowd path', () => {
+  for (const hitX of [200, 800, 1200]) {
+    const state = isolatedGame();
+    for (let index = 0; index < 47; index += 1)
+      enemy(state, {
+        x: 180 + (index % 12) * 95,
+        y: 570 + Math.floor(index / 12) * 35,
+      });
+    const victim = enemy(state, { kind: 'brute', x: hitX, y: 337, radius: 33 });
+    state.bullets.push({
+      id: ++state.nextId,
+      kind: 'normal',
+      x: 200,
+      y: 300,
+      vx: 60000,
+      vy: 0,
+      remaining: 1000,
+      radius: 4,
+      damage: 19,
+      life: 1,
+    });
+    step(state, 1 / 60, idle);
+    assert.equal(victim.hp, victim.maxHp - 19);
+    assert.equal(state.bullets.length, 0);
+    assert.equal(state.enemies.length, 48);
+    assert.ok(state.enemies.every((entry) => entry.age > 0));
+  }
 });

@@ -1,792 +1,916 @@
 {
-  "date": "2026-10-03",
-  "method": "Fixed seeds 7/42/81; normal health; movement-only bot; no manual aim or terrain commands. Different builds consume different RNG sequences, so outcomes are not paired causal comparisons.",
+  "description": "Normal-health 300-second replays using public configureLoadout/chooseUpgrade/castSkill APIs; four starting boons, all five active skills, three deterministic seeds. No HP/resource cheats.",
+  "passed": true,
   "runs": [
     {
-      "build": "weapon",
+      "boon": "shrub",
+      "skills": "blast/laser",
       "seed": 7,
       "result": "won",
       "seconds": 300,
-      "hp": 100,
+      "hp": 125,
       "kills": 288,
       "upgrades": 13,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 176,
-      "misses": 1779,
-      "terrainKills": 8,
-      "terrainDamage": 1039,
-      "maxPlants": 9,
-      "maxBullets": 33,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 270,
+      "terrainKills": 15,
+      "terrainDamage": 2073,
+      "skillCasts": 90,
+      "skillKills": 71,
+      "skillDamage": 5906,
+      "maxPlants": 15,
+      "maxBullets": 12,
+      "maxEnemies": 10,
+      "maxEffects": 2,
       "choices": [
         {
-          "time": 14,
+          "time": 16,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 30,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 55,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 75,
           "selected": "multishot"
         },
         {
-          "time": 32,
-          "selected": "ricochet"
+          "time": 99,
+          "selected": "energy-cycle"
         },
         {
-          "time": 54,
+          "time": 120,
+          "selected": "attack-power"
+        },
+        {
+          "time": 148,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 172,
           "selected": "multishot"
-        },
-        {
-          "time": 81,
-          "selected": "attack-power"
-        },
-        {
-          "time": 100,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 124,
-          "selected": "attack-power"
-        },
-        {
-          "time": 154,
-          "selected": "attack-power"
-        },
-        {
-          "time": 176,
-          "selected": "explosive-shot"
-        },
-        {
-          "time": 204,
-          "selected": "burst"
-        },
-        {
-          "time": 229,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 257,
-          "selected": "attack-power"
-        },
-        {
-          "time": 278,
-          "selected": "burst"
-        },
-        {
-          "time": 300,
-          "selected": "split-shot"
-        }
-      ]
-    },
-    {
-      "build": "weapon",
-      "seed": 42,
-      "result": "won",
-      "seconds": 300,
-      "hp": 100,
-      "kills": 288,
-      "upgrades": 13,
-      "firstUpgrade": 15,
-      "firstPlant": 1.7,
-      "plants": 182,
-      "misses": 1144,
-      "terrainKills": 7,
-      "terrainDamage": 977,
-      "maxPlants": 8,
-      "maxBullets": 16,
-      "choices": [
-        {
-          "time": 15,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 31,
-          "selected": "attack-power"
-        },
-        {
-          "time": 54,
-          "selected": "attack-power"
-        },
-        {
-          "time": 73,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 96,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 118,
-          "selected": "split-shot"
-        },
-        {
-          "time": 151,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 176,
-          "selected": "split-explosion"
         },
         {
           "time": 199,
           "selected": "attack-power"
         },
         {
-          "time": 227,
-          "selected": "ice-shot"
+          "time": 226,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 247,
+          "selected": "attack-power"
+        },
+        {
+          "time": 273,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 295,
+          "selected": "terrain-heart"
+        }
+      ]
+    },
+    {
+      "boon": "shrub",
+      "skills": "blast/laser",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 244,
+      "terrainKills": 25,
+      "terrainDamage": 2017,
+      "skillCasts": 80,
+      "skillKills": 55,
+      "skillDamage": 3584,
+      "maxPlants": 15,
+      "maxBullets": 15,
+      "maxEnemies": 10,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 16,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 31,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 53,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 76,
+          "selected": "multishot"
+        },
+        {
+          "time": 95,
+          "selected": "multishot"
+        },
+        {
+          "time": 121,
+          "selected": "burst"
+        },
+        {
+          "time": 143,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 173,
+          "selected": "attack-power"
+        },
+        {
+          "time": 206,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 232,
+          "selected": "energy-cycle"
+        },
+        {
+          "time": 253,
+          "selected": "attack-power"
+        },
+        {
+          "time": 275,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 294,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "shrub",
+      "skills": "blast/laser",
+      "seed": 81,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 254,
+      "terrainKills": 28,
+      "terrainDamage": 2595,
+      "skillCasts": 91,
+      "skillKills": 58,
+      "skillDamage": 3704,
+      "maxPlants": 15,
+      "maxBullets": 15,
+      "maxEnemies": 11,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 16,
+          "selected": "multishot"
+        },
+        {
+          "time": 31,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 60,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 84,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 111,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 134,
+          "selected": "energy-cycle"
+        },
+        {
+          "time": 163,
+          "selected": "attack-power"
+        },
+        {
+          "time": 194,
+          "selected": "multishot"
+        },
+        {
+          "time": 216,
+          "selected": "attack-power"
+        },
+        {
+          "time": 240,
+          "selected": "burst"
+        },
+        {
+          "time": 257,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 280,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 300,
+          "selected": "attack-speed"
+        }
+      ]
+    },
+    {
+      "boon": "trench",
+      "skills": "cart/gale",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 290,
+      "upgrades": 13,
+      "firstUpgrade": 17,
+      "firstPlant": 0.6,
+      "plants": 268,
+      "terrainKills": 19,
+      "terrainDamage": 2621,
+      "skillCasts": 77,
+      "skillKills": 33,
+      "skillDamage": 3226,
+      "maxPlants": 15,
+      "maxBullets": 30,
+      "maxEnemies": 11,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 17,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 32,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 59,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 75,
+          "selected": "split-shot"
+        },
+        {
+          "time": 97,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 121,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 144,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 170,
+          "selected": "multishot"
+        },
+        {
+          "time": 199,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 224,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 248,
+          "selected": "multishot"
+        },
+        {
+          "time": 273,
+          "selected": "attack-power"
+        },
+        {
+          "time": 291,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "trench",
+      "skills": "cart/gale",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 290,
+      "upgrades": 13,
+      "firstUpgrade": 17,
+      "firstPlant": 0.6,
+      "plants": 250,
+      "terrainKills": 23,
+      "terrainDamage": 2278,
+      "skillCasts": 77,
+      "skillKills": 47,
+      "skillDamage": 3420,
+      "maxPlants": 15,
+      "maxBullets": 30,
+      "maxEnemies": 10,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 17,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 37,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 59,
+          "selected": "attack-power"
+        },
+        {
+          "time": 81,
+          "selected": "multishot"
+        },
+        {
+          "time": 110,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 125,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 150,
+          "selected": "burst"
+        },
+        {
+          "time": 179,
+          "selected": "multishot"
+        },
+        {
+          "time": 200,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 228,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 247,
+          "selected": "attack-power"
+        },
+        {
+          "time": 267,
+          "selected": "attack-power"
+        },
+        {
+          "time": 286,
+          "selected": "split-shot"
+        }
+      ]
+    },
+    {
+      "boon": "trench",
+      "skills": "cart/gale",
+      "seed": 81,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 292,
+      "upgrades": 13,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 248,
+      "terrainKills": 14,
+      "terrainDamage": 1683,
+      "skillCasts": 78,
+      "skillKills": 32,
+      "skillDamage": 2810,
+      "maxPlants": 15,
+      "maxBullets": 32,
+      "maxEnemies": 8,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 16,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 38,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 61,
+          "selected": "split-shot"
+        },
+        {
+          "time": 84,
+          "selected": "multishot"
+        },
+        {
+          "time": 105,
+          "selected": "multishot"
+        },
+        {
+          "time": 132,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 149,
+          "selected": "split-shot"
+        },
+        {
+          "time": 181,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 202,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 222,
+          "selected": "attack-power"
+        },
+        {
+          "time": 246,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 265,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 287,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "frost",
+      "skills": "horse/blast",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 0.6,
+      "plants": 243,
+      "terrainKills": 19,
+      "terrainDamage": 1961,
+      "skillCasts": 76,
+      "skillKills": 58,
+      "skillDamage": 4765,
+      "maxPlants": 15,
+      "maxBullets": 18,
+      "maxEnemies": 11,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 36,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 57,
+          "selected": "burst"
+        },
+        {
+          "time": 83,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 102,
+          "selected": "multishot"
+        },
+        {
+          "time": 128,
+          "selected": "multishot"
+        },
+        {
+          "time": 154,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 185,
+          "selected": "attack-power"
+        },
+        {
+          "time": 207,
+          "selected": "burst"
+        },
+        {
+          "time": 231,
+          "selected": "attack-power"
+        },
+        {
+          "time": 253,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 275,
+          "selected": "attack-power"
+        },
+        {
+          "time": 296,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "frost",
+      "skills": "horse/blast",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 285,
+      "upgrades": 13,
+      "firstUpgrade": 14,
+      "firstPlant": 0.6,
+      "plants": 264,
+      "terrainKills": 20,
+      "terrainDamage": 2346,
+      "skillCasts": 76,
+      "skillKills": 52,
+      "skillDamage": 3839,
+      "maxPlants": 15,
+      "maxBullets": 6,
+      "maxEnemies": 9,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 14,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 31,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 59,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 78,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 96,
+          "selected": "wild-heart"
+        },
+        {
+          "time": 129,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 154,
+          "selected": "attack-power"
+        },
+        {
+          "time": 177,
+          "selected": "attack-power"
+        },
+        {
+          "time": 199,
+          "selected": "terrain-heart"
+        },
+        {
+          "time": 221,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 247,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 267,
+          "selected": "burst"
+        },
+        {
+          "time": 288,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "frost",
+      "skills": "horse/blast",
+      "seed": 81,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 286,
+      "upgrades": 13,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 248,
+      "terrainKills": 24,
+      "terrainDamage": 2130,
+      "skillCasts": 76,
+      "skillKills": 54,
+      "skillDamage": 4483,
+      "maxPlants": 15,
+      "maxBullets": 22,
+      "maxEnemies": 11,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 16,
+          "selected": "multishot"
+        },
+        {
+          "time": 35,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 61,
+          "selected": "boon-poison"
+        },
+        {
+          "time": 85,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 108,
+          "selected": "attack-power"
+        },
+        {
+          "time": 132,
+          "selected": "multishot"
+        },
+        {
+          "time": 151,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 177,
+          "selected": "attack-power"
+        },
+        {
+          "time": 206,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 232,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 253,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 274,
+          "selected": "attack-power"
+        },
+        {
+          "time": 289,
+          "selected": "split-shot"
+        }
+      ]
+    },
+    {
+      "boon": "poison",
+      "skills": "laser/gale",
+      "seed": 7,
+      "result": "won",
+      "seconds": 300,
+      "hp": 125,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 12,
+      "firstPlant": 0.6,
+      "plants": 267,
+      "terrainKills": 18,
+      "terrainDamage": 2118,
+      "skillCasts": 77,
+      "skillKills": 37,
+      "skillDamage": 3285,
+      "maxPlants": 15,
+      "maxBullets": 24,
+      "maxEnemies": 10,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 12,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 35,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 57,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 77,
+          "selected": "multishot"
+        },
+        {
+          "time": 95,
+          "selected": "multishot"
+        },
+        {
+          "time": 118,
+          "selected": "split-shot"
+        },
+        {
+          "time": 140,
+          "selected": "split-shot"
+        },
+        {
+          "time": 170,
+          "selected": "attack-power"
+        },
+        {
+          "time": 197,
+          "selected": "attack-power"
+        },
+        {
+          "time": 229,
+          "selected": "attack-power"
         },
         {
           "time": 245,
           "selected": "attack-power"
         },
         {
-          "time": 265,
-          "selected": "ice-shot"
+          "time": 272,
+          "selected": "attack-power"
         },
         {
-          "time": 287,
-          "selected": "multishot"
+          "time": 290,
+          "selected": "wild-heart"
         }
       ]
     },
     {
-      "build": "weapon",
+      "boon": "poison",
+      "skills": "laser/gale",
+      "seed": 42,
+      "result": "won",
+      "seconds": 300,
+      "hp": 100,
+      "kills": 288,
+      "upgrades": 13,
+      "firstUpgrade": 15,
+      "firstPlant": 0.6,
+      "plants": 265,
+      "terrainKills": 26,
+      "terrainDamage": 2154,
+      "skillCasts": 86,
+      "skillKills": 46,
+      "skillDamage": 4181,
+      "maxPlants": 15,
+      "maxBullets": 18,
+      "maxEnemies": 12,
+      "maxEffects": 2,
+      "choices": [
+        {
+          "time": 15,
+          "selected": "boon-frost"
+        },
+        {
+          "time": 38,
+          "selected": "boon-trench"
+        },
+        {
+          "time": 58,
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 79,
+          "selected": "burst"
+        },
+        {
+          "time": 96,
+          "selected": "multishot"
+        },
+        {
+          "time": 119,
+          "selected": "burst"
+        },
+        {
+          "time": 145,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 172,
+          "selected": "energy-cycle"
+        },
+        {
+          "time": 199,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 219,
+          "selected": "attack-speed"
+        },
+        {
+          "time": 243,
+          "selected": "multishot"
+        },
+        {
+          "time": 266,
+          "selected": "explosive-shot"
+        },
+        {
+          "time": 289,
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "boon": "poison",
+      "skills": "laser/gale",
       "seed": 81,
       "result": "won",
       "seconds": 300,
       "hp": 100,
       "kills": 289,
       "upgrades": 13,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 191,
-      "misses": 1998,
-      "terrainKills": 8,
-      "terrainDamage": 1659,
-      "maxPlants": 9,
-      "maxBullets": 18,
+      "firstUpgrade": 16,
+      "firstPlant": 0.6,
+      "plants": 268,
+      "terrainKills": 20,
+      "terrainDamage": 1855,
+      "skillCasts": 77,
+      "skillKills": 53,
+      "skillDamage": 3236,
+      "maxPlants": 15,
+      "maxBullets": 12,
+      "maxEnemies": 10,
+      "maxEffects": 2,
       "choices": [
         {
-          "time": 14,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 31,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 58,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 80,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 95,
-          "selected": "burst"
-        },
-        {
-          "time": 118,
-          "selected": "explosive-shot"
-        },
-        {
-          "time": 149,
-          "selected": "ice-shot"
-        },
-        {
-          "time": 180,
-          "selected": "attack-speed"
-        },
-        {
-          "time": 207,
-          "selected": "multishot"
-        },
-        {
-          "time": 223,
-          "selected": "burst"
-        },
-        {
-          "time": 244,
-          "selected": "attack-power"
-        },
-        {
-          "time": 265,
-          "selected": "attack-power"
-        },
-        {
-          "time": 286,
-          "selected": "multishot"
-        }
-      ]
-    },
-    {
-      "build": "terrain-only",
-      "seed": 7,
-      "result": "lost",
-      "seconds": 240,
-      "hp": 0,
-      "kills": 173,
-      "upgrades": 9,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 58,
-      "misses": 265,
-      "terrainKills": 3,
-      "terrainDamage": 295,
-      "maxPlants": 8,
-      "maxBullets": 3,
-      "choices": [
-        {
-          "time": 14,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 31,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 52,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 78,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 100,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 127,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 156,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 189,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 221,
-          "selected": "mushroom-heart"
-        }
-      ]
-    },
-    {
-      "build": "terrain-only",
-      "seed": 42,
-      "result": "lost",
-      "seconds": 211,
-      "hp": 0,
-      "kills": 143,
-      "upgrades": 8,
-      "firstUpgrade": 15,
-      "firstPlant": 1.7,
-      "plants": 48,
-      "misses": 292,
-      "terrainKills": 10,
-      "terrainDamage": 589,
-      "maxPlants": 6,
-      "maxBullets": 3,
-      "choices": [
-        {
-          "time": 15,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 35,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 59,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 75,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 99,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 126,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 158,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 189,
-          "selected": "thorn-heart"
-        }
-      ]
-    },
-    {
-      "build": "terrain-only",
-      "seed": 81,
-      "result": "lost",
-      "seconds": 223,
-      "hp": 0,
-      "kills": 153,
-      "upgrades": 8,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 44,
-      "misses": 268,
-      "terrainKills": 4,
-      "terrainDamage": 464,
-      "maxPlants": 6,
-      "maxBullets": 3,
-      "choices": [
-        {
-          "time": 14,
-          "selected": "mushroom-heart"
+          "time": 16,
+          "selected": "boon-shrub"
         },
         {
           "time": 34,
-          "selected": "terrain-duration"
+          "selected": "boon-trench"
         },
         {
-          "time": 54,
-          "selected": "thorn-heart"
+          "time": 60,
+          "selected": "boon-frost"
         },
         {
-          "time": 77,
-          "selected": "mushroom-heart"
+          "time": 82,
+          "selected": "attack-power"
         },
         {
-          "time": 99,
-          "selected": "mushroom-heart"
+          "time": 111,
+          "selected": "attack-power"
         },
         {
-          "time": 127,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 160,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 191,
-          "selected": "thorn-heart"
-        }
-      ]
-    },
-    {
-      "build": "garden",
-      "seed": 7,
-      "result": "won",
-      "seconds": 300,
-      "hp": 100,
-      "kills": 284,
-      "upgrades": 13,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 177,
-      "misses": 1207,
-      "terrainKills": 64,
-      "terrainDamage": 5402,
-      "maxPlants": 9,
-      "maxBullets": 6,
-      "choices": [
-        {
-          "time": 14,
+          "time": 135,
           "selected": "multishot"
         },
         {
-          "time": 32,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 61,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 84,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 102,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 124,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 153,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 177,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 205,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 228,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 253,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 278,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 299,
-          "selected": "thorn-heart"
-        }
-      ]
-    },
-    {
-      "build": "garden",
-      "seed": 42,
-      "result": "won",
-      "seconds": 300,
-      "hp": 36,
-      "kills": 279,
-      "upgrades": 12,
-      "firstUpgrade": 15,
-      "firstPlant": 1.7,
-      "plants": 141,
-      "misses": 925,
-      "terrainKills": 49,
-      "terrainDamage": 4233,
-      "maxPlants": 10,
-      "maxBullets": 6,
-      "choices": [
-        {
-          "time": 15,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 35,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 59,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 75,
-          "selected": "multishot"
-        },
-        {
-          "time": 97,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 125,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 154,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 186,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 210,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 234,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 258,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 279,
-          "selected": "mushroom-heart"
-        }
-      ]
-    },
-    {
-      "build": "garden",
-      "seed": 81,
-      "result": "lost",
-      "seconds": 291,
-      "hp": 0,
-      "kills": 258,
-      "upgrades": 12,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 125,
-      "misses": 897,
-      "terrainKills": 40,
-      "terrainDamage": 3715,
-      "maxPlants": 10,
-      "maxBullets": 6,
-      "choices": [
-        {
-          "time": 14,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 34,
-          "selected": "terrain-duration"
-        },
-        {
-          "time": 54,
-          "selected": "multishot"
-        },
-        {
-          "time": 85,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 100,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 121,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 148,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 176,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 202,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 221,
-          "selected": "seed-cycle"
-        },
-        {
-          "time": 244,
-          "selected": "ice-heart"
-        },
-        {
-          "time": 271,
-          "selected": "mushroom-heart"
-        }
-      ]
-    },
-    {
-      "build": "hybrid",
-      "seed": 7,
-      "result": "won",
-      "seconds": 300,
-      "hp": 100,
-      "kills": 285,
-      "upgrades": 13,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 227,
-      "misses": 2352,
-      "terrainKills": 23,
-      "terrainDamage": 2627,
-      "maxPlants": 9,
-      "maxBullets": 25,
-      "choices": [
-        {
-          "time": 14,
-          "selected": "multishot"
-        },
-        {
-          "time": 32,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 61,
-          "selected": "multishot"
-        },
-        {
-          "time": 83,
-          "selected": "ice-shot"
-        },
-        {
-          "time": 106,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 125,
-          "selected": "fire-shot"
-        },
-        {
-          "time": 160,
-          "selected": "mushroom-heart"
+          "time": 162,
+          "selected": "attack-power"
         },
         {
           "time": 187,
-          "selected": "attack-power"
+          "selected": "explosive-shot"
         },
         {
-          "time": 214,
-          "selected": "thorn-heart"
+          "time": 210,
+          "selected": "multishot"
         },
         {
           "time": 233,
-          "selected": "split-shot"
-        },
-        {
-          "time": 252,
           "selected": "attack-speed"
         },
         {
-          "time": 275,
-          "selected": "split-shot"
+          "time": 256,
+          "selected": "explosive-shot"
         },
         {
-          "time": 294,
-          "selected": "thorn-heart"
-        }
-      ]
-    },
-    {
-      "build": "hybrid",
-      "seed": 42,
-      "result": "won",
-      "seconds": 300,
-      "hp": 100,
-      "kills": 290,
-      "upgrades": 13,
-      "firstUpgrade": 15,
-      "firstPlant": 1.7,
-      "plants": 161,
-      "misses": 1118,
-      "terrainKills": 30,
-      "terrainDamage": 1812,
-      "maxPlants": 9,
-      "maxBullets": 11,
-      "choices": [
-        {
-          "time": 15,
-          "selected": "thorn-heart"
+          "time": 278,
+          "selected": "attack-speed"
         },
         {
-          "time": 35,
-          "selected": "attack-power"
-        },
-        {
-          "time": 59,
-          "selected": "attack-power"
-        },
-        {
-          "time": 79,
-          "selected": "multishot"
-        },
-        {
-          "time": 105,
-          "selected": "fire-shot"
-        },
-        {
-          "time": 131,
-          "selected": "attack-power"
-        },
-        {
-          "time": 154,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 177,
-          "selected": "ricochet"
-        },
-        {
-          "time": 202,
-          "selected": "attack-power"
-        },
-        {
-          "time": 227,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 248,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 272,
-          "selected": "multishot"
-        },
-        {
-          "time": 289,
-          "selected": "thorn-heart"
-        }
-      ]
-    },
-    {
-      "build": "hybrid",
-      "seed": 81,
-      "result": "won",
-      "seconds": 300,
-      "hp": 100,
-      "kills": 290,
-      "upgrades": 13,
-      "firstUpgrade": 14,
-      "firstPlant": 1.7,
-      "plants": 185,
-      "misses": 1523,
-      "terrainKills": 28,
-      "terrainDamage": 3568,
-      "maxPlants": 9,
-      "maxBullets": 9,
-      "choices": [
-        {
-          "time": 14,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 34,
-          "selected": "ice-shot"
-        },
-        {
-          "time": 54,
-          "selected": "attack-power"
-        },
-        {
-          "time": 76,
-          "selected": "attack-power"
-        },
-        {
-          "time": 101,
-          "selected": "multishot"
-        },
-        {
-          "time": 120,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 143,
-          "selected": "mushroom-heart"
-        },
-        {
-          "time": 173,
-          "selected": "multishot"
-        },
-        {
-          "time": 195,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 219,
-          "selected": "attack-power"
-        },
-        {
-          "time": 239,
-          "selected": "attack-power"
-        },
-        {
-          "time": 265,
-          "selected": "thorn-heart"
-        },
-        {
-          "time": 286,
-          "selected": "attack-power"
+          "time": 300,
+          "selected": "attack-speed"
         }
       ]
     }

@@ -108,8 +108,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
+    await click(frame.locator('[data-boon="trench"]'));
+    await frame.locator('#loadout-skill-0').selectOption('blast');
+    await frame.locator('#loadout-skill-1').selectOption('gale');
     await click(frame.locator('#start'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    // Isolate the time-based skill charge from an XP modal opening between taps.
+    await click(frame.locator('#auto-fire'));
+    expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
     // Keep the middle of the battlefield available for direct touch targeting.
     if (mobile) {
       await expect
@@ -124,10 +130,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         )
         .toBe('arena');
     }
-    await expect(frame.locator('#auto-fire, #cast, [data-seed]')).toHaveCount(0);
-    await expect.poll(async () => (await snapshot()).stats.shots).toBeGreaterThan(0);
-    expect((await snapshot()).growth.threshold).toBeGreaterThan(0);
-    expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
+    expect((await snapshot()).boons).toEqual(['trench']);
+    expect((await snapshot()).stats.skillCasts).toBe(0);
 
     const initialPlayer = (await snapshot()).player;
     const touch = mobile ? await page.context().newCDPSession(page) : undefined;
@@ -165,6 +169,30 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
+    const finishUpgrade = async () => {
+      let current = await snapshot();
+      while (current.phase === 'upgrade') {
+        const choice = current.upgradeChoices.find((id) => !id.startsWith('boon-'));
+        expect(choice).toBeTruthy();
+        await click(frame.locator(`[data-upgrade="${choice}"]`));
+        current = await snapshot();
+      }
+      return current;
+    };
+    await expect
+      .poll(async () => (await finishUpgrade()).skillSlots[0].energy, { timeout: 20000 })
+      .toBe(100);
+    await finishUpgrade();
+    // Full slots wait for the player's target; they never release automatically.
+    expect((await snapshot()).stats.skillCasts).toBe(0);
+    await click(frame.locator('[data-skill-slot="0"]'));
+    const arena = frame.locator('#arena');
+    const bounds = await arena.boundingBox();
+    const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.4 } };
+    if (mobile) await arena.tap(target);
+    else await arena.click(target);
+    await expect.poll(async () => (await snapshot()).stats.skillCasts).toBe(1);
+    expect((await snapshot()).plants.every((plant) => plant.kind === 'trench')).toBe(true);
   } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));
