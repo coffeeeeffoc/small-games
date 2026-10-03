@@ -63,7 +63,9 @@
     "smoke": "turbo run smoke",
     "smoke:affected": "turbo run smoke --affected",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "format:staged": "node scripts/check-staged-format.mjs",
+    "test:hooks": "node --test scripts/check-staged-format.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
