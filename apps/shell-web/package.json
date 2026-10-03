@@ -82,7 +82,8 @@
     "@coffeeeeffoc/ink-is-everything": "workspace:*",
     "@coffeeeeffoc/out-of-frame": "workspace:*",
     "@coffeeeeffoc/echo-weaver": "workspace:*",
-    "@coffeeeeffoc/two-sided-box": "workspace:*"
+    "@coffeeeeffoc/two-sided-box": "workspace:*",
+    "@coffeeeeffoc/luban-workshop": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

@@ -320,5 +320,12 @@
     "title": "双面机关盒",
     "description": "左右同时观察正面和背面，操作共享的滑轴、锁扣和挡板，让小球穿过六个机械谜盒。",
     "output": "dist"
+  },
+  {
+    "id": "luban-workshop",
+    "source": "games/local/luban-workshop",
+    "title": "榫间 · 鲁班锁",
+    "description": "亲手拆解与复原彩色榫卯机关，沿轨道拖动零件，观察彼此让路。",
+    "output": "dist"
   }
 ]
