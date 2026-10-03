@@ -306,5 +306,12 @@
     "title": "回声编织 · Echo Weaver",
     "description": "转动反射板，分配声能与延迟，让一次敲击的三道回声准时抵达，解开八关节拍谜题。",
     "output": "dist"
+  },
+  {
+    "id": "two-sided-box",
+    "source": "games/local/two-sided-box",
+    "title": "双面机关盒",
+    "description": "翻转盒子，观察两侧共享的滑轴、锁扣和挡板，安排解锁与移动顺序，让小球穿过六个机械谜盒。",
+    "output": "dist"
   }
 ]

@@ -19,6 +19,7 @@ export const markers = {
   'echo-weaver': '#emit',
   'ink-is-everything': '#game-root',
   'out-of-frame': '#board[data-level="1"]',
+  'two-sided-box': '#board[data-level="1"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -473,6 +474,40 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#level-nav [data-level]').nth(1));
     await expect.poll(async () => (await snapshot()).levelIndex).toBe(1);
     await expect.poll(async () => (await snapshot()).historyLength).toBe(0);
+  } else if (id === 'two-sided-box') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
+    await click(frame.locator('#start'));
+    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
+    const upperNotch = frame.locator('[data-notch-shaft="A"][data-value="2"]');
+    // A locked shaft still gives feedback to a physical touch or mouse press.
+    // Send that input directly because the notch inherits aria-disabled.
+    const lockedBounds = await upperNotch.boundingBox();
+    expect(lockedBounds).not.toBeNull();
+    const page = upperNotch.page();
+    const lockedX = lockedBounds.x + lockedBounds.width / 2;
+    const lockedY = lockedBounds.y + lockedBounds.height / 2;
+    if (mobile) await page.touchscreen.tap(lockedX, lockedY);
+    else await page.mouse.click(lockedX, lockedY);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(true);
+    await click(frame.locator('#flip'));
+    await expect.poll(async () => (await snapshot()).state.side).toBe('back');
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
+    await click(frame.locator('[data-latch="lock-A"]'));
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await click(frame.locator('#flip'));
+    await expect.poll(async () => (await snapshot()).state.side).toBe('front');
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
+    await click(upperNotch);
+    await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
+    await click(frame.locator('#release'));
+    await expect
+      .poll(async () => (await snapshot()).state.completed, { timeout: 15000 })
+      .toBe(true);
+    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
+    await expect(frame.locator('#next')).toBeVisible();
   } else if (id === 'tiny-signals') {
     const swipe = async (dx, dy) => {
       const boards = frame.locator('#boards');
