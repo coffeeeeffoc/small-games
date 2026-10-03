@@ -1,57 +1,312 @@
-import { EPSILON, sweepMove } from './collision.ts';
-import { getProgress } from './game.ts';
-import type { GameState, Hint, Level, Offsets } from './types.ts';
+import { axes, axisIndex, EPSILON, pieceBounds, piecesSeparated, sweepMove } from './collision.ts';
+import { createGame, getProgress } from './game.ts';
+import { routePiece } from './routing.ts';
+import type { Axis, GameState, Hint, Level, Offsets, Vec3 } from './types.ts';
 
 interface SearchNode {
   offsets: Offsets;
   first: Hint | null;
+  depth: number;
+  priority: number;
 }
 
-/** Searches legal maximal slides from the actual current position. Nothing in
- * the level data encodes a move order. Contact positions become search states,
- * allowing the next piece to move as soon as physical clearance is available.
- * This bounded solver is intended for these small, axis-only introductory locks.
+/** A tiny binary heap keeps bounded current-pose searches responsive on phones. */
+class Frontier {
+  private nodes: SearchNode[] = [];
+  get length(): number {
+    return this.nodes.length;
+  }
+  push(node: SearchNode): void {
+    this.nodes.push(node);
+    let index = this.nodes.length - 1;
+    while (index > 0) {
+      const parent = (index - 1) >> 1;
+      if (this.nodes[parent]!.priority <= node.priority) break;
+      this.nodes[index] = this.nodes[parent]!;
+      index = parent;
+    }
+    this.nodes[index] = node;
+  }
+  pop(): SearchNode {
+    const result = this.nodes[0]!;
+    const last = this.nodes.pop()!;
+    if (this.nodes.length) {
+      let index = 0;
+      while (index * 2 + 1 < this.nodes.length) {
+        let child = index * 2 + 1;
+        if (
+          child + 1 < this.nodes.length &&
+          this.nodes[child + 1]!.priority < this.nodes[child]!.priority
+        )
+          child++;
+        if (last.priority <= this.nodes[child]!.priority) break;
+        this.nodes[index] = this.nodes[child]!;
+        index = child;
+      }
+      this.nodes[index] = last;
+    }
+    return result;
+  }
+}
+
+function groups(level: Level): string[][] {
+  // These levels have at most five pieces. Include every proper subassembly;
+  // moving the entire puzzle cannot improve relative separation.
+  const result: string[][] = [];
+  for (let mask = 1; mask < 2 ** level.pieces.length; mask++) {
+    result.push(level.pieces.filter((_, index) => mask & (1 << index)).map((piece) => piece.id));
+  }
+  return result.sort((a, b) => a.length - b.length);
+}
+
+/** Search only legal sweeps from the actual 3D pose. Directions, group choices,
+ * contact stops, and parking positions all derive from current solid geometry;
+ * the level data contains no extraction order or solution script.
  */
-export function getHint(level: Level, state: GameState): Hint | null {
+function directHint(level: Level, state: GameState): Hint | null {
   if (getProgress(level, state).complete) return null;
   const key = (offsets: Offsets) =>
-    level.pieces.map((piece) => Math.round(offsets[piece.id]! * 1e4)).join(',');
-  const queue: SearchNode[] = [{ offsets: state.offsets, first: null }];
+    level.pieces
+      .flatMap((piece) => offsets[piece.id]!.map((value) => Math.round(value * 1e5)))
+      .join(',');
+  const score = (offsets: Offsets): number => {
+    if (state.phase === 'reassemble') {
+      return level.pieces.reduce(
+        (sum, piece) =>
+          sum +
+          offsets[piece.id]!.reduce(
+            (subtotal, value) =>
+              subtotal + (Math.abs(value) < EPSILON ? 0 : 8 + Math.min(Math.abs(value), 30) * 0.02),
+            0,
+          ),
+        0,
+      );
+    }
+    const bounds = level.pieces.map((piece) => pieceBounds(piece, offsets[piece.id]!));
+    let contacts = 0;
+    for (let i = 0; i < bounds.length; i++)
+      for (let j = i + 1; j < bounds.length; j++)
+        if (!piecesSeparated(bounds[i]!, bounds[j]!)) contacts++;
+    return contacts * 8;
+  };
+  const initialScore = score(state.offsets);
+  const selections = groups(level);
+  const frontier = new Frontier();
+  frontier.push({ offsets: state.offsets, first: null, depth: 0, priority: initialScore });
   const visited = new Set([key(state.offsets)]);
-  for (let cursor = 0; cursor < queue.length && cursor < 12000; cursor++) {
-    const node = queue[cursor]!;
-    for (const piece of level.pieces) {
-      const current = node.offsets[piece.id]!;
-      // Include returning a partly moved piece to its seat. This keeps advice
-      // useful after experiments rather than merely replaying a canned solution.
-      const targets =
-        state.phase === 'reassemble'
-          ? [0, piece.range[0], piece.range[1]]
-          : [piece.range[1], piece.range[0], 0];
-      for (const target of targets) {
-        const result = sweepMove(level, node.offsets, piece.id, target);
-        if (Math.abs(result.actualOffset - current) < EPSILON) continue;
-        const offsets = { ...node.offsets, [piece.id]: result.actualOffset };
-        const stateKey = key(offsets);
-        if (visited.has(stateKey)) continue;
-        visited.add(stateKey);
-        const direction = result.actualOffset > current ? 1 : -1;
-        const goalAction =
-          state.phase === 'reassemble' && Math.abs(result.actualOffset) < EPSILON
-            ? '推回原位'
-            : Math.abs(result.actualOffset) >= piece.removedAt - EPSILON
-              ? '沿轨道抽出'
-              : '沿轨道移动到接触处';
-        const hint: Hint = node.first ?? {
-          pieceId: piece.id,
-          targetOffset: result.actualOffset,
-          direction,
-          message: `试着将${piece.name.split(' · ').at(-1)}${goalAction}。沿高亮箭头拖动。`,
-        };
-        if (getProgress(level, { ...state, offsets }).complete) return hint;
-        queue.push({ offsets, first: hint });
+  let fallback: { hint: Hint; score: number } | null = null;
+  // Keep both memory and work bounded. A fallback must improve the current
+  // geometry; never suggest an arbitrary legal move that can cause a loop.
+  for (let cursor = 0; cursor < 80 && frontier.length && visited.size < 2200; cursor++) {
+    const node = frontier.pop();
+    const bounds = Object.fromEntries(
+      level.pieces.map((piece) => [piece.id, pieceBounds(piece, node.offsets[piece.id]!)]),
+    );
+    for (const ids of selections) {
+      const leader = level.pieces.find((piece) => piece.id === ids[0])!;
+      const outsiders = level.pieces.filter((piece) => !ids.includes(piece.id));
+      if (!outsiders.length && state.phase === 'disassemble') continue;
+      // Prefer the displayed primary direction only as a tie breaker.
+      const directions: Axis[] = [leader.axis, ...axes.filter((axis) => axis !== leader.axis)];
+      for (const axis of directions) {
+        const index = axisIndex(axis);
+        const current = node.offsets[leader.id]![index];
+        const targets: number[] = [];
+        if (state.phase === 'reassemble') {
+          // A group can return one shared displacement to zero atomically.
+          // Unequal offsets still have individual candidates below.
+          if (ids.every((id) => Math.abs(node.offsets[id]![index] - current) < EPSILON))
+            targets.push(0);
+        } else targets.push(0);
+        if (outsiders.length) {
+          const movingMin = Math.min(...ids.map((id) => bounds[id]!.min[index]));
+          const movingMax = Math.max(...ids.map((id) => bounds[id]!.max[index]));
+          // Include the original seat in parking extents during reassembly so
+          // detours provide clearance to both the current and final assemblies.
+          const fixed = outsiders.map((piece) => bounds[piece.id]!);
+          if (state.phase === 'reassemble')
+            fixed.push(...level.pieces.map((piece) => pieceBounds(piece, [0, 0, 0])));
+          targets.push(current + Math.max(...fixed.map((box) => box.max[index])) - movingMin + 1);
+          targets.push(current + Math.min(...fixed.map((box) => box.min[index])) - movingMax - 1);
+        }
+        for (const target of targets) {
+          const result = sweepMove(level, node.offsets, ids, target, axis);
+          const delta = result.actualOffset - current;
+          if (Math.abs(delta) < EPSILON) continue;
+          const offsets = { ...node.offsets };
+          for (const id of ids)
+            offsets[id] = offsets[id]!.map(
+              (value, i) => value + (i === index ? delta : 0),
+            ) as unknown as Vec3;
+          const stateKey = key(offsets);
+          if (visited.has(stateKey)) continue;
+          visited.add(stateKey);
+          const direction = delta > 0 ? 1 : -1;
+          const labels = ids
+            .map((id) =>
+              String.fromCharCode(65 + level.pieces.findIndex((piece) => piece.id === id)),
+            )
+            .join('、');
+          const hint: Hint = node.first ?? {
+            pieceId: leader.id,
+            pieceIds: ids,
+            axis,
+            targetOffset: result.actualOffset,
+            direction,
+            message: `选择${labels}${ids.length > 1 ? '组成一组' : ''}，沿${axis.toUpperCase()}轴${direction > 0 ? '正向' : '负向'}${state.phase === 'reassemble' && Math.abs(result.actualOffset) < EPSILON ? '移回原位' : result.blocked ? '移到接触处' : '移动'}。按高亮箭头操作。`,
+          };
+          const nextScore = score(offsets);
+          if (nextScore < EPSILON) return hint;
+          if (
+            !node.first &&
+            nextScore < initialScore - EPSILON &&
+            (!fallback || nextScore < fallback.score)
+          )
+            fallback = { hint, score: nextScore };
+          frontier.push({
+            offsets,
+            first: hint,
+            depth: node.depth + 1,
+            priority: nextScore + (node.depth + 1) * 0.12 + ids.length * 0.001,
+          });
+        }
       }
     }
   }
-  return null;
+  return fallback?.hint ?? null;
+}
+
+const routeCache = new WeakMap<Level, Map<string, Hint>>();
+const exactKey = (level: Level, state: GameState): string =>
+  `${state.phase}:${JSON.stringify(level.pieces.map((piece) => state.offsets[piece.id]))}`;
+
+function plannedHint(
+  level: Level,
+  state: GameState,
+  pieceIds: string[],
+  axis: Axis,
+  targetOffset: number,
+): Hint {
+  const index = axisIndex(axis);
+  const direction = targetOffset > state.offsets[pieceIds[0]!]![index] ? 1 : -1;
+  const labels = pieceIds
+    .map((id) => String.fromCharCode(65 + level.pieces.findIndex((piece) => piece.id === id)))
+    .join('、');
+  return {
+    pieceId: pieceIds[0]!,
+    pieceIds,
+    axis,
+    targetOffset,
+    direction,
+    message: `选择${labels}${pieceIds.length > 1 ? '组成一组' : ''}，沿${axis.toUpperCase()}轴${direction > 0 ? '正向' : '负向'}移动，${Math.abs(targetOffset) < EPSILON ? '将这一方向归位' : '留出移动空间'}。按高亮箭头操作。`,
+  };
+}
+
+/** A constructive fallback for unusual reassembly poses: separate the current
+ * geometry, park the pieces in open space, route to a freshly solved separated
+ * arrangement, then reverse its legal extraction sweeps. The parking paths use
+ * conservative enclosing boxes, so no detour can pass through a fork or tooth.
+ * Cache only exact poses; any player deviation triggers fresh collision checks.
+ */
+function planReassembly(level: Level, initial: GameState): Hint | null {
+  const route: { state: GameState; hint: Hint }[] = [];
+  let state = initial;
+  const append = (hint: Hint): boolean => {
+    const index = axisIndex(hint.axis);
+    const result = sweepMove(level, state.offsets, hint.pieceIds, hint.targetOffset, hint.axis);
+    if (Math.abs(result.actualOffset - hint.targetOffset) > EPSILON) return false;
+    const delta = result.actualOffset - state.offsets[hint.pieceId]![index];
+    if (Math.abs(delta) < EPSILON) return true;
+    const offsets = { ...state.offsets };
+    for (const id of hint.pieceIds)
+      offsets[id] = offsets[id]!.map(
+        (value, i) => value + (i === index ? delta : 0),
+      ) as unknown as Vec3;
+    route.push({ state, hint });
+    state = { ...state, offsets };
+    return true;
+  };
+  const separate = (): boolean => {
+    for (let i = 0; i < level.pieces.length * 5; i++) {
+      const separating = { ...state, phase: 'disassemble' as const };
+      if (getProgress(level, separating).complete) return true;
+      const hint = directHint(level, separating);
+      if (!hint || !append(hint)) return false;
+    }
+    return false;
+  };
+  // Derive a reversible assembly sequence using exactly the same physical
+  // solver used for live hints. No per-level solution or preferred order.
+  state = createGame(level);
+  if (!separate()) return null;
+  const canonical = state.offsets;
+  const reverse = route
+    .map(({ state: before, hint }) => ({
+      ...hint,
+      targetOffset: before.offsets[hint.pieceId]![axisIndex(hint.axis)],
+    }))
+    .reverse();
+  route.length = 0;
+  state = initial;
+  if (!separate()) return null;
+  const currentBounds = level.pieces.map((piece) => pieceBounds(piece, state.offsets[piece.id]!));
+  const originalBounds = level.pieces.map((piece) => pieceBounds(piece, [0, 0, 0]));
+  const canonicalBounds = level.pieces.map((piece) => pieceBounds(piece, canonical[piece.id]!));
+  const spacing =
+    Math.ceil(
+      (Math.max(
+        ...originalBounds.flatMap((box) => box.max.map((value, i) => value - box.min[i]!)),
+      ) +
+        4) *
+        2,
+    ) / 2;
+  const outside =
+    Math.ceil(
+      (Math.max(
+        ...[...currentBounds, ...originalBounds, ...canonicalBounds].flatMap((box) =>
+          [...box.min, ...box.max].map(Math.abs),
+        ),
+      ) +
+        spacing * 2) *
+        2,
+    ) / 2;
+  const routeTo = (pieceId: string, target: Vec3): boolean => {
+    const steps = routePiece(level, state.offsets, pieceId, target);
+    if (!steps) return false;
+    for (const step of steps)
+      if (!append(plannedHint(level, state, [pieceId], step.axis, step.targetOffset))) return false;
+    return true;
+  };
+  for (let i = 0; i < level.pieces.length; i++)
+    if (!routeTo(level.pieces[i]!.id, [outside + i * spacing, outside, outside])) return null;
+  for (const piece of level.pieces) if (!routeTo(piece.id, canonical[piece.id]!)) return null;
+  for (const step of reverse)
+    if (!append(plannedHint(level, state, step.pieceIds, step.axis, step.targetOffset)))
+      return null;
+  if (!getProgress(level, { ...state, phase: 'reassemble' }).complete) return null;
+  let cache = routeCache.get(level);
+  if (!cache) {
+    cache = new Map();
+    routeCache.set(level, cache);
+  }
+  if (cache.size > 2000) cache.clear();
+  for (const step of route) cache.set(exactKey(level, step.state), step.hint);
+  return route[0]?.hint ?? null;
+}
+
+export function getHint(level: Level, state: GameState): Hint | null {
+  if (getProgress(level, state).complete) return null;
+  const cached = routeCache.get(level)?.get(exactKey(level, state));
+  if (cached) {
+    const check = sweepMove(
+      level,
+      state.offsets,
+      cached.pieceIds,
+      cached.targetOffset,
+      cached.axis,
+    );
+    if (Math.abs(check.actualOffset - cached.targetOffset) < EPSILON) return cached;
+  }
+  const direct = directHint(level, state);
+  return direct ?? (state.phase === 'reassemble' ? planReassembly(level, state) : null);
 }
