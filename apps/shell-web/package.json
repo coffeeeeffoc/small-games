@@ -75,7 +75,8 @@
     "@coffeeeeffoc/rule-thief": "workspace:*",
     "@coffeeeeffoc/waterline-station": "workspace:*",
     "@coffeeeeffoc/tiny-signals": "workspace:*",
-    "@coffeeeeffoc/bullet-garden": "workspace:*"
+    "@coffeeeeffoc/bullet-garden": "workspace:*",
+    "@coffeeeeffoc/ink-is-everything": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

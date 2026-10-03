@@ -398,6 +398,9 @@ importers:
       '@coffeeeeffoc/homebound-station':
         specifier: workspace:*
         version: link:../../games/local/homebound-station
+      '@coffeeeeffoc/ink-is-everything':
+        specifier: workspace:*
+        version: link:../../games/local/ink-is-everything
       '@coffeeeeffoc/maze-wander':
         specifier: workspace:*
         version: link:../../games/local/maze-wander
@@ -1047,6 +1050,8 @@ importers:
       vite:
         specifier: 8.2.2
         version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+
+  games/local/ink-is-everything: {}
 
   games/local/letters-words:
     devDependencies:
