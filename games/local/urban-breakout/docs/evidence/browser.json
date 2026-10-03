@@ -1,0 +1,1611 @@
+{
+  "passed": true,
+  "browser": "140.0.7339.186",
+  "environment": {
+    "os": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700KF",
+    "node": "v24.21.0",
+    "url": "http://127.0.0.1:4332"
+  },
+  "errors": [],
+  "results": [
+    {
+      "check": "keyboard, pause, real supply focus",
+      "passed": true,
+      "state": {
+        "tick": 250,
+        "phase": "playing",
+        "x": -3.400000000000001,
+        "hp": 120,
+        "alive": 6,
+        "focus": "safe-weapon",
+        "enemies": 3,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 150,
+          "shots": 54,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 150,
+            "claimed": 0,
+            "status": "active"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 5,
+          "peakVoices": 15,
+          "musicSteps": 29,
+          "cues": 22
+        },
+        "feedbackEvents": [
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 40,
+            "tick": 199
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": -2.2875,
+            "fromX": -4.15,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 41,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 42,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 43,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 44,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 45,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -2.2875,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 46,
+            "tick": 199
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 47,
+            "tick": 214
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": -1.725,
+            "fromX": -4.15,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 48,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 49,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 50,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 51,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 52,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.725,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 53,
+            "tick": 214
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 54,
+            "tick": 229
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": -1.1625,
+            "fromX": -4.15,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 55,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 56,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 57,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 58,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 59,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -1.1625,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 60,
+            "tick": 229
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 61,
+            "tick": 244
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": -0.6000000000000001,
+            "fromX": -4.15,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 62,
+            "tick": 244
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 63,
+            "tick": 244
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 64,
+            "tick": 244
+          },
+          {
+            "kind": "shot",
+            "x": -4.15,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 65,
+            "tick": 244
+          },
+          {
+            "kind": "shot",
+            "x": -3.400000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 66,
+            "tick": 244
+          },
+          {
+            "kind": "shot",
+            "x": -2.650000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.6000000000000001,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 67,
+            "tick": 244
+          }
+        ],
+        "render": {
+          "frames": 437,
+          "averageFps": 52.3372097201097,
+          "p1Fps": 29.940119760478552,
+          "peakEnemies": 3,
+          "width": 520,
+          "height": 960,
+          "drawCalls": 13,
+          "effectParts": 11,
+          "triangles": 11154
+        }
+      }
+    },
+    {
+      "check": "actual full battle and settlement",
+      "passed": true,
+      "state": {
+        "tick": 2700,
+        "phase": "won",
+        "x": 0.15000000000000124,
+        "hp": 180,
+        "alive": 9,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 70,
+          "rescued": 3,
+          "lost": 0,
+          "forwardDamage": 2985,
+          "supplyDamage": 1192,
+          "shots": 598,
+          "score": 2465
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 360,
+            "claimed": 1,
+            "status": "claimed"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "expired"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 240,
+            "claimed": 1,
+            "status": "claimed"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "excluded"
+          },
+          {
+            "id": "tier-box",
+            "damage": 412,
+            "claimed": 1,
+            "status": "expired"
+          },
+          {
+            "id": "scaffold",
+            "damage": 180,
+            "claimed": 1,
+            "status": "claimed"
+          }
+        ],
+        "grants": [
+          {
+            "id": "safe-weapon:0",
+            "tick": 349,
+            "label": "2 人装备榴弹"
+          },
+          {
+            "id": "rescue-lock:0",
+            "tick": 1206,
+            "label": "救援 3 名队员"
+          },
+          {
+            "id": "tier-box:0",
+            "tick": 1746,
+            "label": "护盾 +30"
+          },
+          {
+            "id": "scaffold:0",
+            "tick": 2371,
+            "label": "落物破甲 · Boss 受创"
+          }
+        ],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": false,
+          "voices": 4,
+          "peakVoices": 22,
+          "musicSteps": 344,
+          "cues": 373
+        },
+        "feedbackEvents": [],
+        "render": {
+          "frames": 5045,
+          "averageFps": 56.04733527971453,
+          "p1Fps": 29.94011976047774,
+          "peakEnemies": 12,
+          "width": 520,
+          "height": 960,
+          "drawCalls": 12,
+          "effectParts": 0,
+          "triangles": 9234
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 390x844",
+      "passed": true,
+      "state": {
+        "tick": 94,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 3,
+          "peakVoices": 16,
+          "musicSteps": 13,
+          "cues": 19
+        },
+        "feedbackEvents": [
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 9,
+            "tick": 45
+          },
+          {
+            "kind": "hit",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 10,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 11,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 12,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 13,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 14,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 15,
+            "tick": 45
+          },
+          {
+            "kind": "death",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "id": 16,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 17,
+            "tick": 60
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 18,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 19,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 20,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 21,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 22,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 23,
+            "tick": 60
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "id": 24,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 25,
+            "tick": 75
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 26,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 27,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 28,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 29,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 30,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 31,
+            "tick": 75
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "id": 32,
+            "tick": 75
+          }
+        ],
+        "render": {
+          "frames": 189,
+          "averageFps": 59.687351965892944,
+          "p1Fps": 59.52380952380888,
+          "peakEnemies": 3,
+          "width": 390,
+          "height": 844,
+          "drawCalls": 13,
+          "effectParts": 6,
+          "triangles": 9154
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 360x640",
+      "passed": true,
+      "state": {
+        "tick": 94,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 3,
+          "peakVoices": 14,
+          "musicSteps": 13,
+          "cues": 16
+        },
+        "feedbackEvents": [
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 9,
+            "tick": 45
+          },
+          {
+            "kind": "hit",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 10,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 11,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 12,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 13,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 14,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 15,
+            "tick": 45
+          },
+          {
+            "kind": "death",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "id": 16,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 17,
+            "tick": 60
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 18,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 19,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 20,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 21,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 22,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 23,
+            "tick": 60
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "id": 24,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 25,
+            "tick": 75
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 26,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 27,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 28,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 29,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 30,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 31,
+            "tick": 75
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "id": 32,
+            "tick": 75
+          }
+        ],
+        "render": {
+          "frames": 189,
+          "averageFps": 60.003809765699394,
+          "p1Fps": 59.52380952380888,
+          "peakEnemies": 3,
+          "width": 360,
+          "height": 640,
+          "drawCalls": 13,
+          "effectParts": 6,
+          "triangles": 9154
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 844x390",
+      "passed": true,
+      "state": {
+        "tick": 95,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 3,
+          "peakVoices": 14,
+          "musicSteps": 13,
+          "cues": 16
+        },
+        "feedbackEvents": [
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 9,
+            "tick": 45
+          },
+          {
+            "kind": "hit",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 10,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 11,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 12,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 13,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 14,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": -2.5558043831307415,
+            "toZ": -12.175000000000004,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 15,
+            "tick": 45
+          },
+          {
+            "kind": "death",
+            "x": -2.5558043831307415,
+            "z": -12.175000000000004,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:1",
+            "enemyKind": "walker",
+            "id": 16,
+            "tick": 45
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 17,
+            "tick": 60
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 18,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 19,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 20,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 21,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 22,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -11.350000000000009,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 23,
+            "tick": 60
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -11.350000000000009,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:2",
+            "enemyKind": "walker",
+            "id": 24,
+            "tick": 60
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 25,
+            "tick": 75
+          },
+          {
+            "kind": "hit",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": -0.75,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "surface": "flesh",
+            "id": 26,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 27,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 28,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": -0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 29,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 30,
+            "tick": 75
+          },
+          {
+            "kind": "shot",
+            "x": 0.75,
+            "z": 7.62,
+            "toX": 0.75,
+            "toZ": -10.525000000000013,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 31,
+            "tick": 75
+          },
+          {
+            "kind": "death",
+            "x": 0.75,
+            "z": -10.525000000000013,
+            "fromX": 0.75,
+            "fromZ": 7.62,
+            "weapon": "rifle",
+            "entityId": "welcome:3",
+            "enemyKind": "walker",
+            "id": 32,
+            "tick": 75
+          }
+        ],
+        "render": {
+          "frames": 191,
+          "averageFps": 60.004398228142385,
+          "p1Fps": 59.52380952380888,
+          "peakEnemies": 3,
+          "width": 650,
+          "height": 390,
+          "drawCalls": 13,
+          "effectParts": 6,
+          "triangles": 9154
+        }
+      }
+    }
+  ],
+  "limits": "Desktop headless Chromium, mobile viewport emulation. Not native phone or multiplayer acceptance."
+}

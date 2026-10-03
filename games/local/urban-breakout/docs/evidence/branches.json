@@ -1,0 +1,172 @@
+{
+  "passed": true,
+  "note": "Two independent offline playthroughs with native keyboard input; no time acceleration or state edits; not multiplayer.",
+  "errors": [],
+  "results": [
+    {
+      "branch": "greedy",
+      "state": {
+        "tick": 867,
+        "phase": "lost",
+        "x": 3.65,
+        "hp": 0,
+        "alive": 0,
+        "focus": "risky-weapon",
+        "enemies": 6,
+        "bossWarning": null,
+        "stats": {
+          "kills": 20,
+          "rescued": 0,
+          "lost": 6,
+          "forwardDamage": 610,
+          "supplyDamage": 514,
+          "shots": 172,
+          "score": 290
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 360,
+            "claimed": 1,
+            "status": "claimed"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 154,
+            "claimed": 0,
+            "status": "active"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [
+          {
+            "id": "safe-weapon:0",
+            "tick": 366,
+            "label": "2 人装备榴弹"
+          }
+        ],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "render": {
+          "frames": 1382,
+          "averageFps": 47.76701311000584,
+          "p1Fps": 20,
+          "peakEnemies": 12,
+          "width": 390,
+          "height": 844,
+          "drawCalls": 13,
+          "triangles": 7974
+        }
+      }
+    },
+    {
+      "branch": "shotgun",
+      "state": {
+        "tick": 1321,
+        "phase": "playing",
+        "x": 3.65,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 8,
+        "bossWarning": null,
+        "stats": {
+          "kills": 35,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 1030,
+          "supplyDamage": 600,
+          "shots": 216,
+          "score": 580
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 360,
+            "claimed": 1,
+            "status": "claimed"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "expired"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "excluded"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 240,
+            "claimed": 1,
+            "status": "claimed"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [
+          {
+            "id": "safe-weapon:0",
+            "tick": 366,
+            "label": "2 人装备榴弹"
+          },
+          {
+            "id": "bus-weapon:0",
+            "tick": 1205,
+            "label": "3 人装备霰弹"
+          }
+        ],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "render": {
+          "frames": 2462,
+          "averageFps": 55.893316866523485,
+          "p1Fps": 29.94011976047774,
+          "peakEnemies": 12,
+          "width": 390,
+          "height": 844,
+          "drawCalls": 12,
+          "triangles": 11926
+        }
+      }
+    }
+  ]
+}

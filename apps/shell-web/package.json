@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/maze-wander": "workspace:*",
+    "@coffeeeeffoc/urban-breakout": "workspace:*",
     "@coffeeeeffoc/homebound-station": "workspace:*",
     "@coffeeeeffoc/fold-the-world": "workspace:*",
     "@coffeeeeffoc/carding-car": "workspace:*",

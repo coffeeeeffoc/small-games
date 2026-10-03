@@ -1,0 +1,37 @@
+{
+  "name": "@coffeeeeffoc/urban-breakout",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4330 --strictPort",
+    "preview": "vite preview --host 0.0.0.0 --port 4330 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "test": "node --test tests/core.test.ts",
+    "test:balance": "node tests/balance.ts",
+    "test:browser": "node tests/browser.mjs",
+    "test:branches": "node tests/branches.mjs",
+    "test:visual": "node tests/visual.mjs",
+    "test:audio": "node tests/audio.mjs",
+    "test:shell": "node tests/shell.mjs",
+    "test:load": "node tests/load.ts"
+  },
+  "dependencies": {
+    "three": "0.180.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/three": "0.180.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/node": "24.10.4",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "@playwright/test": "1.55.1"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

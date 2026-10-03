@@ -1,0 +1,680 @@
+{
+  "passed": true,
+  "browser": "140.0.7339.186",
+  "environment": {
+    "os": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700KF",
+    "node": "v24.21.0",
+    "url": "http://127.0.0.1:4330"
+  },
+  "errors": [],
+  "results": [
+    {
+      "check": "keyboard, pause, real supply focus",
+      "passed": true,
+      "state": {
+        "tick": 307,
+        "phase": "playing",
+        "x": -3.600000000000001,
+        "hp": 120,
+        "alive": 6,
+        "focus": "safe-weapon",
+        "enemies": 3,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 270,
+          "shots": 78,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 270,
+            "claimed": 0,
+            "status": "active"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 4,
+          "peakVoices": 15,
+          "musicSteps": 36,
+          "cues": 30
+        },
+        "feedbackEvents": [
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 68,
+            "tick": 259
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": -0.03750000000000009,
+            "fromX": -4.350000000000001,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 69,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 70,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 71,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 72,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 73,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": -0.03750000000000009,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 74,
+            "tick": 259
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 75,
+            "tick": 274
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": 0.5249999999999999,
+            "fromX": -4.350000000000001,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 76,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 77,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 78,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 79,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 80,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 0.5249999999999999,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 81,
+            "tick": 274
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 82,
+            "tick": 289
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": 1.0875000000000004,
+            "fromX": -4.350000000000001,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 83,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 84,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 85,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 86,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 87,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.0875000000000004,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 88,
+            "tick": 289
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 0,
+            "id": 89,
+            "tick": 304
+          },
+          {
+            "kind": "hit",
+            "x": -4.65,
+            "z": 1.6500000000000004,
+            "fromX": -4.350000000000001,
+            "fromZ": 7,
+            "weapon": "rifle",
+            "surface": "supply",
+            "entityId": "safe-weapon",
+            "id": 90,
+            "tick": 304
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 1,
+            "id": 91,
+            "tick": 304
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 2,
+            "id": 92,
+            "tick": 304
+          },
+          {
+            "kind": "shot",
+            "x": -4.350000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 3,
+            "id": 93,
+            "tick": 304
+          },
+          {
+            "kind": "shot",
+            "x": -3.600000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 4,
+            "id": 94,
+            "tick": 304
+          },
+          {
+            "kind": "shot",
+            "x": -2.850000000000001,
+            "z": 7.62,
+            "toX": -4.65,
+            "toZ": 1.6500000000000004,
+            "weapon": "rifle",
+            "memberId": 5,
+            "id": 95,
+            "tick": 304
+          }
+        ],
+        "render": {
+          "frames": 266,
+          "averageFps": 25.910268648574938,
+          "p1Fps": 15.015015015014523,
+          "peakEnemies": 3,
+          "width": 520,
+          "height": 960,
+          "drawCalls": 13,
+          "effectParts": 12,
+          "triangles": 11234
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 390x844",
+      "passed": true,
+      "state": {
+        "tick": 176,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 2,
+          "peakVoices": 15,
+          "musicSteps": 24,
+          "cues": 27
+        },
+        "feedbackEvents": [],
+        "render": {
+          "frames": 180,
+          "averageFps": 30.596114293484735,
+          "p1Fps": 15.015015015014933,
+          "peakEnemies": 3,
+          "width": 390,
+          "height": 844,
+          "drawCalls": 10,
+          "effectParts": 0,
+          "triangles": 7682
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 360x640",
+      "passed": true,
+      "state": {
+        "tick": 157,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 5,
+          "peakVoices": 14,
+          "musicSteps": 21,
+          "cues": 25
+        },
+        "feedbackEvents": [],
+        "render": {
+          "frames": 191,
+          "averageFps": 36.26697047374917,
+          "p1Fps": 20,
+          "peakEnemies": 3,
+          "width": 360,
+          "height": 640,
+          "drawCalls": 12,
+          "effectParts": 0,
+          "triangles": 7686
+        }
+      }
+    },
+    {
+      "check": "touch, cancellation, UI isolation, restart 844x390",
+      "passed": true,
+      "state": {
+        "tick": 164,
+        "phase": "playing",
+        "x": 0,
+        "hp": 120,
+        "alive": 6,
+        "focus": null,
+        "enemies": 0,
+        "bossWarning": null,
+        "stats": {
+          "kills": 4,
+          "rescued": 0,
+          "lost": 0,
+          "forwardDamage": 120,
+          "supplyDamage": 0,
+          "shots": 24,
+          "score": 40
+        },
+        "supplies": [
+          {
+            "id": "safe-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "risky-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "rescue-lock",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "bus-weapon",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "tier-box",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          },
+          {
+            "id": "scaffold",
+            "damage": 0,
+            "claimed": 0,
+            "status": "waiting"
+          }
+        ],
+        "grants": [],
+        "started": true,
+        "paused": false,
+        "activeLoops": 1,
+        "audio": {
+          "context": "running",
+          "muted": false,
+          "music": 0.35,
+          "sfx": 0.8,
+          "playing": true,
+          "voices": 2,
+          "peakVoices": 17,
+          "musicSteps": 22,
+          "cues": 25
+        },
+        "feedbackEvents": [],
+        "render": {
+          "frames": 240,
+          "averageFps": 43.637950470926214,
+          "p1Fps": 29.94011976047774,
+          "peakEnemies": 3,
+          "width": 650,
+          "height": 390,
+          "drawCalls": 12,
+          "effectParts": 0,
+          "triangles": 7686
+        }
+      }
+    }
+  ],
+  "limits": "Desktop headless Chromium, mobile viewport emulation. Not native phone or multiplayer acceptance."
+}

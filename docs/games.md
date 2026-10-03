@@ -7,6 +7,7 @@
 | 中文名                | 文件夹名                       | 目录路径                                                                                 | 简介                                                                         |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | 迷境漫游              | `maze-wander`                  | [games/local/maze-wander](../games/local/maze-wander/)                                   | 五种主题、二十个第一人称迷宫；观察地标、留下标记、验证倒影并寻找归途。PC / 手机 H5。 |
+| 街区突围              | `urban-breakout`               | [games/local/urban-breakout](../games/local/urban-breakout/)                             | 橙白救援小队穿越老街，转火击破限时补给，回防冲刺尸潮。P1 单人实战样板。 |
 | 归途站                | `homebound-station`            | [games/local/homebound-station](../games/local/homebound-station/)                       | 看箭头解开出租车阵，点击或滑动车辆出库，自动接客并清空停车场。 |
 | 折叠世界              | `fold-the-world`               | [games/local/fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。  |
 | 浪湾卡丁车            | `carding-car`                  | [games/local/carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战狭窄近道，与三位车手争夺三圈冠军。                   |

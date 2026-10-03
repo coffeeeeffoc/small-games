@@ -1,0 +1,120 @@
+{
+  "passed": true,
+  "browser": "140.0.7339.186",
+  "measurements": {
+    "results": [
+      {
+        "name": "rifle",
+        "rms": 0.003273547764032051,
+        "peak": 0.14256075024604797,
+        "crossings": 562,
+        "finite": true
+      },
+      {
+        "name": "shotgun",
+        "rms": 0.003973782206602246,
+        "peak": 0.13652710616588593,
+        "crossings": 876,
+        "finite": true
+      },
+      {
+        "name": "grenade",
+        "rms": 0.004093153176264414,
+        "peak": 0.06441107392311096,
+        "crossings": 31,
+        "finite": true
+      },
+      {
+        "name": "flesh",
+        "rms": 0.0013463348507574246,
+        "peak": 0.04249785840511322,
+        "crossings": 155,
+        "finite": true
+      },
+      {
+        "name": "armor",
+        "rms": 0.002099171481488,
+        "peak": 0.07747604697942734,
+        "crossings": 399,
+        "finite": true
+      },
+      {
+        "name": "death",
+        "rms": 0.004268059909399014,
+        "peak": 0.05429760366678238,
+        "crossings": 151,
+        "finite": true
+      },
+      {
+        "name": "blast",
+        "rms": 0.011416463992372674,
+        "peak": 0.16608309745788574,
+        "crossings": 433,
+        "finite": true
+      },
+      {
+        "name": "reward",
+        "rms": 0.01126154328216998,
+        "peak": 0.10081218183040619,
+        "crossings": 890,
+        "finite": true
+      },
+      {
+        "name": "warning",
+        "rms": 0.0039681236539549055,
+        "peak": 0.083142951130867,
+        "crossings": 300,
+        "finite": true
+      },
+      {
+        "name": "music",
+        "rms": 0.006246106603715091,
+        "peak": 0.09140799194574356,
+        "crossings": 1137,
+        "finite": true
+      },
+      {
+        "name": "mix",
+        "rms": 0.02628439017214732,
+        "peak": 0.5624878406524658,
+        "crossings": 1271,
+        "finite": true
+      },
+      {
+        "name": "muted",
+        "rms": 0,
+        "peak": 0,
+        "crossings": 0,
+        "finite": true
+      }
+    ],
+    "deduplicated": true,
+    "peakVoices": 48,
+    "pausedVoices": 0,
+    "fallback": true
+  },
+  "paused": {
+    "context": "running",
+    "muted": false,
+    "music": 0.35,
+    "sfx": 0.8,
+    "playing": false,
+    "voices": 0,
+    "peakVoices": 19,
+    "musicSteps": 4,
+    "cues": 9
+  },
+  "restarted": {
+    "context": "running",
+    "muted": false,
+    "music": 0.35,
+    "sfx": 0.8,
+    "playing": true,
+    "voices": 6,
+    "peakVoices": 19,
+    "musicSteps": 2,
+    "cues": 9
+  },
+  "errors": [],
+  "note": "Measured synthesized waveforms and browser lifecycle; not a subjective listening test or physical-device audio validation."
+}
