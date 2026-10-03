@@ -22,7 +22,7 @@ import type { GameState, Level, PieceDefinition } from './types.ts';
 
 function solve(level: Level, initial: GameState): GameState {
   let state = initial;
-  for (let i = 0; i < 24 && !getProgress(level, state).complete; i++) {
+  for (let i = 0; i < 48 && !getProgress(level, state).complete; i++) {
     const hint = getHint(level, state);
     assert.ok(hint, `a valid next action exists in ${level.id} (${state.phase})`);
     const result = tryMove(level, state, hint.pieceId, hint.targetOffset);
@@ -70,33 +70,35 @@ for (const level of levels) {
     assert.equal(new Set(level.pieces.map((piece) => piece.id)).size, level.pieces.length);
   });
 
-  test(`${level.id}: only the physical key can initially be extracted`, () => {
-    const state = createGame(level);
-    for (const piece of level.pieces) {
-      const distances = [-6, 6].map((target) =>
-        Math.abs(sweepMove(level, state.offsets, piece.id, target).actualOffset),
-      );
-      assert.equal(
-        distances.some((distance) => distance >= piece.removedAt),
-        piece.id === 'key',
-      );
-    }
-    assert.ok(sweepMove(level, state.offsets, 'cross', 6).blockedBy.includes('key'));
-  });
+  if (levels.indexOf(level) < 3)
+    test(`${level.id}: only the introductory physical key can initially be extracted`, () => {
+      const state = createGame(level);
+      for (const piece of level.pieces) {
+        const distances = piece.range.map((target) =>
+          Math.abs(sweepMove(level, state.offsets, piece.id, target).actualOffset),
+        );
+        assert.equal(
+          distances.some((distance) => distance >= piece.removedAt),
+          piece.id === 'key',
+        );
+      }
+      assert.ok(sweepMove(level, state.offsets, 'cross', 6).blockedBy.includes('key'));
+    });
 
   test(`${level.id}: current-state hints disassemble and reassemble with real collision checks`, () => {
     const removed = solve(level, createGame(level));
-    assert.equal(removed.moves, level.pieces.length);
+    assert.ok(removed.moves >= level.pieces.length);
     const reassembling = switchToReassembly(level, removed);
     assert.deepEqual(reassembling.offsets, removed.offsets);
     assert.equal(reassembling.moves, 0);
     const assembled = solve(level, reassembling);
     assert.deepEqual(assembled.offsets, createGame(level).offsets);
-    assert.equal(assembled.moves, level.pieces.length);
+    assert.ok(assembled.moves >= level.pieces.length);
   });
 
   test(`${level.id}: hints adapt when the player chooses the other key direction`, () => {
-    const state = tryMove(level, createGame(level), 'key', -6).state;
+    const key = level.pieces.find((piece) => piece.id === 'key')!;
+    const state = tryMove(level, createGame(level), key.id, key.range[0]).state;
     const removed = solve(level, state);
     solve(level, switchToReassembly(level, removed));
   });

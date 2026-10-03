@@ -7,6 +7,7 @@ interface PieceView {
   mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   edges: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
   labelMaterial: THREE.MeshBasicMaterial;
+  seat: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineDashedMaterial>;
   center: THREE.Vector3;
 }
 
@@ -228,6 +229,7 @@ export class PuzzleScene {
   private readonly stage = new THREE.Group();
   private readonly axisGuide = new THREE.Group();
   private readonly target = new THREE.Vector3();
+  private readonly assemblyBounds = new THREE.Box3();
   private readonly resizeObserver: ResizeObserver;
   private readonly shadowLight: THREE.DirectionalLight;
   private frame = 0;
@@ -241,6 +243,7 @@ export class PuzzleScene {
   private assemblyMinY = 0;
   private selectedId: string | null = null;
   private xray = false;
+  private hintDirection: -1 | 1 | null = null;
 
   constructor(
     private readonly container: HTMLElement,
@@ -326,13 +329,37 @@ export class PuzzleScene {
         String.fromCharCode(65 + this.pieces.size),
       );
       const center = geometry.boundingBox!.getCenter(new THREE.Vector3());
+      const seat = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geometry, 25),
+        new THREE.LineDashedMaterial({
+          color: definition.color,
+          transparent: true,
+          opacity: 0.62,
+          dashSize: 0.12,
+          gapSize: 0.09,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      seat.computeLineDistances();
+      seat.visible = false;
+      seat.renderOrder = 8;
       bounds.union(geometry.boundingBox!);
-      this.pieces.set(definition.id, { definition, group, mesh, edges, labelMaterial, center });
-      this.piecesGroup.add(group);
+      this.pieces.set(definition.id, {
+        definition,
+        group,
+        mesh,
+        edges,
+        labelMaterial,
+        seat,
+        center,
+      });
+      this.piecesGroup.add(group, seat);
     }
 
     if (bounds.isEmpty()) bounds.set(new THREE.Vector3(-3, -3, -3), new THREE.Vector3(3, 3, 3));
     bounds.getCenter(this.target);
+    this.assemblyBounds.copy(bounds);
     const size = bounds.getSize(new THREE.Vector3());
     this.assemblyMinY = bounds.min.y;
     this.baseSpan = Math.max(size.x, size.y, size.z) * 1.55 + 2;
@@ -346,9 +373,12 @@ export class PuzzleScene {
     selectedId: string | null,
     blockedIds: readonly string[] = [],
     xray = false,
+    hintDirection: -1 | 1 | null = null,
+    phase: 'disassemble' | 'reassemble' = 'disassemble',
   ): void {
     this.selectedId = selectedId;
     this.xray = xray;
+    this.hintDirection = hintDirection;
     let lowestY = this.assemblyMinY;
     for (const [id, view] of this.pieces) {
       view.group.position.set(0, 0, 0);
@@ -356,6 +386,8 @@ export class PuzzleScene {
       lowestY = Math.min(lowestY, view.mesh.geometry.boundingBox!.min.y + view.group.position.y);
       const selected = id === selectedId;
       const blocked = blockedIds.includes(id);
+      // The dashed silhouette stays at the assembled position while its part moves.
+      view.seat.visible = phase === 'reassemble' && selected && Math.abs(offsets[id] ?? 0) > 0.001;
       const material = view.mesh.material;
       material.emissive.set(blocked ? 0xff3454 : selected ? view.definition.color : 0x000000);
       material.emissiveIntensity = blocked ? 0.55 : selected ? 0.24 : 0;
@@ -448,10 +480,42 @@ export class PuzzleScene {
   }
 
   resetCamera(): void {
+    this.assemblyBounds.getCenter(this.target);
+    const size = this.assemblyBounds.getSize(new THREE.Vector3());
+    this.baseSpan = Math.max(size.x, size.y, size.z) * 1.55 + 2;
     this.yaw = 0.72;
     this.pitch = 0.5;
     this.zoomFactor = 1;
     this.positionCamera();
+    this.resize();
+  }
+
+  /** Explicit framing only: dragging never changes the screen-space movement scale. */
+  fitPieces(offsets: Record<string, number>): void {
+    const bounds = this.assemblyBounds.clone();
+    for (const [id, view] of this.pieces) {
+      const position = new THREE.Vector3();
+      position[view.definition.axis] = offsets[id] ?? 0;
+      bounds.union(view.mesh.geometry.boundingBox!.clone().translate(position));
+    }
+    bounds.getCenter(this.target);
+    this.positionCamera();
+    const projected = new THREE.Box3();
+    for (const x of [bounds.min.x, bounds.max.x])
+      for (const y of [bounds.min.y, bounds.max.y])
+        for (const z of [bounds.min.z, bounds.max.z])
+          projected.expandByPoint(
+            new THREE.Vector3(x, y, z).applyMatrix4(this.camera.matrixWorldInverse),
+          );
+    const size = projected.getSize(new THREE.Vector3());
+    const aspect = this.width / this.height;
+    // Leave room for the heading, feedback, and the camera tools around the model.
+    const span = Math.max(
+      size.x / (Math.max(1, aspect) * 0.76),
+      (size.y * Math.min(1, aspect)) / 0.66,
+    );
+    this.baseSpan = Math.max(this.baseSpan, span);
+    this.zoomFactor = 1;
     this.resize();
   }
 
@@ -589,6 +653,19 @@ export class PuzzleScene {
     line.scale.y = halfLength;
     this.axisGuide.children[1].position.y = -halfLength;
     this.axisGuide.children[2].position.y = halfLength;
+    for (const [index, direction] of [
+      [1, -1],
+      [2, 1],
+    ] as const) {
+      const arrow = this.axisGuide.children[index] as THREE.Mesh<
+        THREE.ConeGeometry,
+        THREE.MeshBasicMaterial
+      >;
+      const suggested = this.hintDirection === direction;
+      arrow.material.opacity = this.hintDirection === null ? 0.9 : suggested ? 1 : 0.18;
+      arrow.material.color.set(suggested ? 0xffedb0 : 0xf7dba9);
+      arrow.scale.setScalar(suggested ? 1.55 : 1);
+    }
   }
 
   private guideHalfLength(view: PieceView): number {

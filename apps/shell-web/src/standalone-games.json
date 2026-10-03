@@ -325,7 +325,7 @@
     "id": "luban-workshop",
     "source": "games/local/luban-workshop",
     "title": "榫间 · 鲁班锁",
-    "description": "亲手拆解与复原彩色榫卯机关，沿轨道拖动零件，观察彼此让路。",
+    "description": "二十关榫卯机关，从辨认钥匙到分支与让位，亲手拆解复原，收集独立完成印章。",
     "output": "dist"
   }
 ]

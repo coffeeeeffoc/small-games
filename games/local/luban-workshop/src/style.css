@@ -330,6 +330,16 @@ nav {
 .piece-list {
   display: flex;
   gap: 9px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #526173 transparent;
+  padding: 2px 2px 5px;
+  touch-action: pan-x;
+}
+.pieces-section {
+  min-width: 0;
 }
 .piece-list button {
   position: relative;
@@ -376,8 +386,15 @@ nav {
   width: 13px;
   height: 13px;
 }
-.piece-list .removed .piece-check {
+#app[data-phase='disassemble'] .piece-list .removed .piece-check {
   display: flex;
+}
+.piece-list .placed .piece-check {
+  display: flex;
+}
+.piece-list .placed {
+  border-color: #76a79666;
+  background: #76a7960b;
 }
 .piece-list .blocked {
   border-color: #ff917f;
@@ -428,6 +445,9 @@ nav {
 .move-buttons button:active {
   background: #3c4f64;
 }
+.move-buttons button span {
+  white-space: nowrap;
+}
 .axis-indicator {
   display: flex;
   flex-direction: column;
@@ -466,6 +486,60 @@ nav {
 }
 .hint-button svg {
   width: 18px;
+}
+.hint-actions {
+  display: flex;
+  gap: 6px;
+}
+.hint-actions button {
+  flex: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.hint-actions svg {
+  width: 17px;
+}
+.level-seals {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 4px 7px;
+  color: #8293a8;
+  border: 1px solid #8293a833;
+  border-radius: 5px;
+}
+.seal.earned {
+  color: #f1d39d;
+  border-color: #d4b17b66;
+  background: #d4b17b12;
+}
+.seal svg {
+  width: 13px;
+  height: 13px;
+}
+.completion-record {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #bbccdb;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+}
+.completion-record strong {
+  color: #f1d39d;
+  font-weight: 500;
 }
 .completion {
   position: absolute;
@@ -564,6 +638,77 @@ dialog h2 {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.chapter-section + .chapter-section {
+  margin-top: 25px;
+}
+.chapter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+  color: #dfe8ee;
+  font-size: 15px;
+  font-weight: 500;
+}
+.chapter-heading h3,
+.chapter-heading strong {
+  font-size: inherit;
+  font-weight: 500;
+}
+.chapter-progress {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  color: #9bacc0;
+}
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.level-grid .level-card {
+  min-height: 115px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 7px 11px;
+  padding: 13px 12px;
+}
+.level-grid .level-number {
+  grid-row: 1 / span 2;
+  font-size: 23px;
+}
+.level-grid .level-info {
+  gap: 6px;
+  min-width: 0;
+}
+.level-grid .level-info strong {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.level-grid .level-info > span,
+.level-grid .level-info small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.level-grid .level-badge {
+  grid-column: 2;
+  margin-top: 0;
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.5;
+}
+.level-grid .level-seals {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  gap: 4px;
+}
+.level-grid .seal {
+  padding: 2px 4px;
+  font-size: 10px;
 }
 .level-card {
   width: 100%;
@@ -791,10 +936,10 @@ dialog h2 {
     border-radius: 12px;
   }
   .view-tools .icon-button {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
   .view-tools svg {
     width: 18px;
@@ -848,8 +993,8 @@ dialog h2 {
     flex: 1;
   }
   .piece-list button {
-    flex: 1;
-    min-width: 0;
+    flex: 1 0 44px;
+    min-width: 44px;
     min-height: 54px;
     padding: 8px 5px 6px;
     gap: 4px;
@@ -898,18 +1043,38 @@ dialog h2 {
     gap: 4px;
   }
   .history-buttons button {
-    min-width: 36px;
-    min-height: 38px;
-    width: 36px;
-    height: 38px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
     border: 0;
   }
   .history-buttons button svg {
     width: 18px;
   }
   .hint-button {
-    min-height: 38px;
+    min-height: 44px;
     font-size: 12px;
+  }
+  .hint-actions {
+    gap: 4px;
+  }
+  .hint-actions button {
+    min-height: 44px;
+    padding: 0 7px;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .hint-actions svg {
+    display: none;
+  }
+  .level-seals {
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .seal {
+    padding: 3px 5px;
+    font-size: 10px;
   }
   .completion {
     padding: 19px;
@@ -951,6 +1116,19 @@ dialog h2 {
   .level-info > span {
     font-size: 13px;
   }
+  .level-grid {
+    gap: 8px;
+  }
+  .level-grid .level-card {
+    padding: 11px 9px;
+    gap: 6px 8px;
+  }
+  .level-grid .level-number {
+    font-size: 20px;
+  }
+  .level-grid .level-info strong {
+    font-size: 13px;
+  }
 }
 @media (max-width: 370px) {
   .controls {
@@ -979,9 +1157,9 @@ dialog h2 {
     max-width: 190px;
   }
 }
-@media (max-height: 540px) and (min-width: 600px) {
+@media (max-height: 540px) and (min-width: 480px) and (orientation: landscape) {
   #app {
-    min-height: 360px;
+    min-height: min(360px, 100svh);
   }
   .topbar {
     height: 52px;
@@ -995,7 +1173,7 @@ dialog h2 {
     font-size: 24px;
   }
   .workbench {
-    min-height: 190px;
+    min-height: min(190px, calc(100svh - 165px));
   }
   .level-heading {
     top: 16px;
@@ -1026,7 +1204,7 @@ dialog h2 {
     display: none;
   }
   .piece-list button {
-    min-width: 40px;
+    min-width: 44px;
     min-height: 50px;
   }
   .manipulation {
@@ -1045,14 +1223,55 @@ dialog h2 {
     gap: 3px;
   }
   .history-buttons button {
-    width: 36px;
-    min-width: 36px;
+    width: 44px;
+    min-width: 44px;
   }
   .hint-button {
     padding: 0 10px;
   }
   .hint-button span {
     display: none;
+  }
+  .hint-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hint-actions button {
+    min-height: 44px;
+    font-size: 11px;
+    padding: 0 7px;
+  }
+  .hint-actions button span {
+    display: inline;
+  }
+  .hint-actions svg,
+  .level-seals {
+    display: none;
+  }
+  .completion {
+    position: fixed;
+    max-height: calc(100svh - 20px);
+    overflow-y: auto;
+    top: 50%;
+    padding: 15px;
+    gap: 8px;
+  }
+  .workbench:has(.completion:not([hidden])) {
+    z-index: 3;
+  }
+  .move-buttons button svg {
+    display: none;
+  }
+  .completion .full {
+    margin-top: 0;
+  }
+  .completion-record {
+    padding-top: 8px;
+    font-size: 12px;
+  }
+  .level-grid .level-seals,
+  .completion .level-seals {
+    display: flex;
   }
   .feedback {
     bottom: 8px;
@@ -1075,10 +1294,29 @@ dialog h2 {
     flex-direction: row;
   }
   .view-tools button {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    min-height: 36px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-height: 540px) and (min-width: 480px) and (max-width: 599px) and (orientation: landscape) {
+  .controls {
+    padding: 8px 12px;
+    gap: 10px;
+    grid-template-columns: minmax(82px, 1fr) minmax(138px, 1fr) auto;
+  }
+  .manipulation {
+    padding-left: 10px;
+  }
+  .actions {
+    gap: 6px;
+  }
+  .feedback {
+    max-width: calc(100% - 28px);
+  }
+  .scene-caption {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1112,4 +1350,13 @@ dialog h2 {
 .axis-handle:hover {
   background: #46515a;
   border-color: #f6d49a;
+}
+.axis-handle.hint-direction,
+.move-buttons button.hint-direction {
+  color: #172435;
+  background: #f4d08b;
+  border-color: #fff0c4;
+  box-shadow:
+    0 0 0 5px #f4d08b20,
+    0 4px 22px #0005;
 }
