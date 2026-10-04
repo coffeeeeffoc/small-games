@@ -1,21 +1,14 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { gameURL, verifyBuild, startBrowser, designPoint } from './browser-utils.mjs';
 import { invitationQuery } from '../assets/scripts/Invitation.ts';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:43003/play/';
+const url = gameURL(process.env.KART_URL || 'http://127.0.0.1:43003/play/');
 const report = new URL('../reports/loading-invitation/', import.meta.url);
 await mkdir(report, { recursive: true });
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-);
-const browser = await chromium.launch({
-  headless: true,
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+await verifyBuild(url);
+const browser = await startBrowser(url);
 const errors = [],
   evidence = {};
 const snapshot = (page) => page.evaluate(() => __kart.snapshot());
@@ -84,14 +77,12 @@ try {
     headers: { 'If-None-Match': response.headers.get('etag') },
   });
   assert.equal(cached.status, 304);
-  await page.mouse.click(126, 117);
+  const entry = await designPoint(page, 796, 46);
+  await page.mouse.click(entry.x, entry.y);
   await page.setViewportSize({ width: 1593, height: 726 });
   const click = async (x, y) => {
-    const bounds = await page.locator('canvas').first().boundingBox();
-    await page.mouse.click(
-      bounds.x + (bounds.width * x) / 960,
-      bounds.y + (bounds.height * y) / 540,
-    );
+    const point = await designPoint(page, x, y);
+    await page.mouse.click(point.x, point.y);
   };
   await click(480, 218);
   await page.locator('input:visible').fill('房主测试');

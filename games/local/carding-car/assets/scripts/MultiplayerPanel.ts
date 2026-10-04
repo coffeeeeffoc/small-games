@@ -278,6 +278,8 @@ export class MultiplayerPanel {
       if(this.root.active&&!client.room)this.loadName();
     });
     this.openButton.fontSize = 16;
+    // KartGame reveals this only when the configured room entry is relevant.
+    this.openButton.node.parent!.active = false;
     this.root.setSiblingIndex(hud.root.children.length - 1);
     this.root.active = false;
     client.changed = () => this.refresh();

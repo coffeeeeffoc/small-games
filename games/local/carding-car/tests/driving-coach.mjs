@@ -1,21 +1,11 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { gameURL, verifyBuild, startBrowser, waitForReady, designPoint, displayGeometry } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-const build = await fetch(new URL('build-info.json', url)).then((r) => r.json());
-assert.equal(build.sourceHash, await sourceHash());
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    (existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')
-      ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-      : undefined),
-});
+const url = gameURL();
+const build = await verifyBuild(url);
+const browser = await startBrowser(url);
 const reports = new URL('../reports/', import.meta.url);
 await mkdir(reports, { recursive: true });
 const evidence = { build, errors: [] };
@@ -23,9 +13,16 @@ try {
   const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
   page.on('pageerror', (e) => evidence.errors.push(e.message));
   await page.goto(url);
-  await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
+  await waitForReady(page);
   assert.equal(await page.title(), '浪湾卡丁车');
-  assert.match(await page.evaluate(() => __kart.snapshot().hud.target), /首枚/);
+  assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false, 'teaching is opt-in');
+  const click = async (x, y) => { const p = await designPoint(page, x, y); await page.mouse.click(p.x, p.y); };
+  await click(910, 46);
+  await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
+  await click(480, 304);
+  await page.waitForFunction(() => __kart.snapshot().hud.coachingEnabled);
+  await click(640, 114);
+  await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible);
   await page.screenshot({ path: fileURLToPath(new URL('coach-menu.png', reports)) });
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
@@ -77,16 +74,24 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem('kart-driving-coach-v1')), 'done');
   await page.screenshot({ path: fileURLToPath(new URL('coach-complete.png', reports)) });
   await page.reload();
-  await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
-  assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false);
+  await waitForReady(page);
+  assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), true, 'the explicit global teaching preference survives reload');
+  await page.keyboard.press('h');
+  await page.reload();
+  await waitForReady(page);
+  assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false, 'turning teaching off also persists');
   await page.keyboard.press('h');
   await page.waitForFunction(() => __kart.snapshot().hud.coachingEnabled);
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingStep), 0);
   await page.setViewportSize({ width: 390, height: 844 });
-  assert.equal(await page.locator('#kart-rotate').isVisible(), true);
+  await page.waitForTimeout(300);
+  const portrait = await displayGeometry(page);
+  assert.ok(portrait.visible.width >= portrait.visible.height, 'portrait-held phone keeps a landscape game');
+  assert.equal(await page.locator('#kart-rotate').count(), 0, 'the old rotate-phone interruption is absent');
   await page.screenshot({ path: fileURLToPath(new URL('coach-portrait.png', reports)) });
   await page.setViewportSize({ width: 844, height: 390 });
-  assert.equal(await page.locator('#kart-rotate').isVisible(), false);
+  await page.waitForTimeout(300);
+  assert.ok((await displayGeometry(page)).visible.width >= (await displayGeometry(page)).visible.height);
   assert.deepEqual(evidence.errors, []);
   // A production-like hostname disables the localhost-only development server fallback.
   const publicPage = await browser.newPage({ viewport: { width: 960, height: 540 } });
@@ -100,19 +105,22 @@ try {
     });
   });
   await publicPage.goto('http://kart.example.test/');
+  await waitForReady(publicPage);
   await publicPage.waitForFunction(() => globalThis.__kart?.snapshot().multiplayer);
   assert.equal(
     await publicPage.evaluate(() => __kart.snapshot().multiplayer.entryLabel),
     '好友赛待开放',
   );
-  await publicPage.mouse.click(124, 117);
+  const unavailableEntry = await designPoint(publicPage, 796, 46);
+  await publicPage.mouse.click(unavailableEntry.x, unavailableEntry.y);
   evidence.unconfigured = await publicPage.evaluate(() => __kart.snapshot().multiplayer);
   assert.equal(evidence.unconfigured.entryVisible, false);
+  assert.equal(evidence.unconfigured.panelOpen, false, 'unconfigured multiplayer has no visible lobby entry');
   assert.match(evidence.unconfigured.panelStatus, /单机竞速/);
   await publicPage.screenshot({ path: fileURLToPath(new URL('coach-offline.png', reports)) });
   await writeFile(new URL('driving-coach.json', reports), JSON.stringify(evidence, null, 2));
   console.log(
-    'Driving coach: 5 real-input steps, interrupted charge retry, completion persistence, replay, portrait hint, unavailable multiplayer passed',
+    'Driving coach: 5 real-input steps, interrupted charge retry, completion and global preference persistence, replay, portrait landscape, unavailable multiplayer passed',
   );
 } finally {
   await browser.close();

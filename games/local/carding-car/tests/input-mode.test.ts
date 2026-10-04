@@ -146,3 +146,20 @@ test('settings consumes driving touches and releases inputs, with reachable opti
   assert.equal(open, false);
   c.destroy();
 });
+
+
+test('holding Escape while closing settings cannot immediately pause the resumed race', () => {
+  const race = { phase: 'racing', pauses: 0, pause() { this.pauses++; },
+    drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
+  let open = true;
+  const c = new KartController(() => race, () => {}, () => {}, () => {},
+    undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+    () => { c.clear(); open = false; }, () => open);
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  assert.equal(open, false); assert.equal(race.pauses, 0);
+  c.keyUp({ keyCode: KeyCode.ESCAPE });
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  assert.equal(race.pauses, 1);
+  c.destroy();
+});

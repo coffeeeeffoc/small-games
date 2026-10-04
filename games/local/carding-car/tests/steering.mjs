@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign } from './browser-utils.mjs';
 import { fileURLToPath } from 'node:url';
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 const errors = [];
 try {
   for (const touch of [false, true]) {
@@ -20,10 +17,10 @@ try {
           : undefined,
       });
       page.on('pageerror', (error) => errors.push(error.message));
-      await page.goto(process.env.KART_URL || 'http://127.0.0.1:4198');
-      await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
+      await page.goto(url);
+      await waitForReady(page);
       const cdp = touch ? await page.context().newCDPSession(page) : null;
-      if (touch) await page.touchscreen.tap(480, 395);
+      if (touch) await tapDesign(page, 198, 433);
       else {
         await page.keyboard.press('Enter');
         await page.keyboard.down('ArrowUp');
@@ -101,9 +98,9 @@ try {
         ),
       });
       if (touch) {
-        await page.touchscreen.tap(70, 240);
+        await tapDesign(page, 56, 126);
         await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
-        await page.touchscreen.tap(743, 395);
+        await tapDesign(page, 743, 395);
         await page.waitForFunction(() => __kart.snapshot().phase === 'countdown');
         assert.equal((await page.evaluate(() => __kart.snapshot())).time, 0);
       }

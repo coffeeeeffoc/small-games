@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
 import { themes } from '../assets/scripts/ThemeCatalog.ts';
 import { routes } from '../assets/scripts/RouteCatalog.ts';
-import { vehicles, drivers } from '../assets/scripts/Selection.ts';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { defaultSelection, vehicles, drivers } from '../assets/scripts/Selection.ts';
+import { gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-const build = await fetch(new URL('build-info.json', url)).then(r => r.json());
-assert.equal(build.sourceHash, await sourceHash(), 'use the current built game');
-const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 const reports = new URL('../reports/worlds/', import.meta.url);
 await mkdir(reports, { recursive: true });
 const errors = [], evidence = { worlds: [], choices: [], mobile: [] };
@@ -92,9 +90,8 @@ try {
     await page.keyboard.press('KeyG');
     await loaded(page);
   }
-  const saved = (await snapshot(page)).selection;
   await page.reload(); await loaded(page);
-  assert.deepEqual((await snapshot(page)).selection, saved, 'selection survives reload');
+  assert.deepEqual((await snapshot(page)).selection, defaultSelection, 'a plain URL reload restores the default selection');
   // Real input during overlapping loads must leave only the final selected world active.
   for (let i = 0; i < 5; i++) { await page.keyboard.press('Digit1'); await page.keyboard.press('Digit2'); }
   const finalChoice = (await snapshot(page)).selection;
@@ -104,20 +101,16 @@ try {
 
   for (const viewport of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
     const mobile = await open({ viewport, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' });
-    const portrait = viewport.height > viewport.width;
-    const scale = portrait ? Math.min(viewport.width / 540, viewport.height / 960) : Math.min(viewport.width / 960, viewport.height / 540);
-    const tap = (x, y) => portrait
-      ? mobile.touchscreen.tap((viewport.width + 540 * scale) / 2 - y * scale, (viewport.height - 960 * scale) / 2 + x * scale)
-      : mobile.touchscreen.tap((viewport.width - 960 * scale) / 2 + x * scale, (viewport.height - 540 * scale) / 2 + y * scale);
+    const tap = (x, y) => tapDesign(mobile, x, y);
     const before = (await snapshot(mobile)).selection;
-    await tap(710, 226); await loaded(mobile);
+    await tap(320, 182); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.theme, before.theme);
-    await tap(710, 306); await loaded(mobile);
+    await tap(320, 274); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.vehicle, before.vehicle);
-    await tap(710, 346); await loaded(mobile);
+    await tap(320, 320); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.driver, before.driver);
     await mobile.screenshot({ path: fileURLToPath(new URL(`mobile-${viewport.width}-menu.png`, reports)) });
-    await tap(480, 395);
+    await tap(198, 433);
     await mobile.waitForFunction(() => __kart.snapshot().time > 1);
     assert.ok((await snapshot(mobile)).player.speed > 0, 'touch starts automatic driving');
     assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

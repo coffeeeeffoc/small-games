@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { sourceHash } from '../scripts/artifact.mjs';
+import { tapDesign } from './browser-utils.mjs';
 
 const url = process.env.KART_URL || 'http://127.0.0.1:43003/play/';
 const build = await fetch(new URL('build-info.json', url)).then((response) => response.json());
@@ -30,7 +31,7 @@ async function open(address) {
 }
 try {
   const host = await open(url);
-  await host.touchscreen.tap(126, 117);
+  await tapDesign(host, 796, 46);
   await host.touchscreen.tap(480, 348);
   await host.waitForFunction(() => __kart.snapshot().multiplayer.room?.ranked, {}, { timeout: 20000 });
   const room = (await snapshot(host)).multiplayer.room;

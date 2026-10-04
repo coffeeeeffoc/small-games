@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
 import { defaultSelection } from '../assets/scripts/Selection.ts';
+import { gameURL, startBrowser, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198/';
-const build = await fetch(new URL('build-info.json', url)).then((response) => response.json());
-assert.equal(build.sourceHash, await sourceHash(), 'browser checks must use the current source build');
-const browser = await chromium.launch({
-  headless: true,
-  ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
-});
+const url = gameURL();
+const build = await verifyBuild(url);
+const browser = await startBrowser(url);
 const staleSelection = { theme: 'glacier', route: 'highland', vehicle: 'supercar', driver: 'polar-guide' };
 const sharedSelection = { theme: 'danxia', route: 'city', vehicle: 'formula', driver: 'champion' };
 const reports = [];

@@ -46,6 +46,7 @@ export class KartController {
       if (e.keyCode === KeyCode.ESCAPE || e.keyCode === KeyCode.ENTER) this.settings();
       if (e.keyCode === KeyCode.KEY_M) this.sound();
       if (e.keyCode === KeyCode.KEY_H) this.help();
+      this.keys.add(e.keyCode); // Closing settings clears input; retain repeat suppression.
       return;
     }
     if ([KeyCode.KEY_W, KeyCode.KEY_A, KeyCode.KEY_S, KeyCode.KEY_D,

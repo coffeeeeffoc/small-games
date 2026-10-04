@@ -75,7 +75,7 @@ try {
     await confirm(field);
   }
   await tap(256, 150);
-  await tap(-354, 153);
+  await tap(316, 224);
   await tap(0, -10);
   assert.equal(inputVisible(), true, 'Input must work after reopening the dialog');
   assertLayout('reopened');
