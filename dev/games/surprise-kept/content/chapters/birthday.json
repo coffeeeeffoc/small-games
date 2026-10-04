@@ -1,0 +1,633 @@
+{
+  "id": "birthday",
+  "title": "生日惊喜",
+  "levels": [
+    {
+      "id": "birthday-01",
+      "title": "一起藏好",
+      "theme": "birthday",
+      "intro": "彩旗挂好了，两位朋友都看着你。先试着搬动礼物，看看他们会记住什么。",
+      "objective": "把礼物放进蓝箱，让两人都先去蓝箱。",
+      "hints": [
+        "按住礼物拖到蓝箱；也可以先点礼物，再点蓝箱。",
+        "在场且看得见的人，会记下这一次搬运的终点。",
+        "准备好后，点「揭开惊喜」看两人首先去哪找。"
+      ],
+      "items": ["gift"],
+      "initial": {
+        "locations": {
+          "gift": "red"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 0,
+        "maxAway": 1,
+        "canLeave": [],
+        "movableItems": ["gift"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "blue"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "blue"
+          },
+          "orange": {
+            "gift": "blue"
+          }
+        }
+      },
+      "recommendedSteps": 1,
+      "solution": [
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "blue"
+        }
+      ]
+    },
+    {
+      "id": "birthday-02",
+      "title": "倒茶的空档",
+      "theme": "afternoon",
+      "intro": "小蓝答应去倒茶。趁他离开换个藏处，回来时他还会记得原来见过的位置。",
+      "objective": "礼物放蓝箱：小蓝先找红箱，小橙先找蓝箱。",
+      "hints": [
+        "点小蓝，请他去倒茶。离开的人看不到之后的搬运。",
+        "小蓝不在时，把礼物搬到蓝箱。小橙仍在房间里。",
+        "叫小蓝回来；回来本身不会刷新记忆。"
+      ],
+      "items": ["gift"],
+      "initial": {
+        "locations": {
+          "gift": "red"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 0,
+        "maxAway": 1,
+        "canLeave": ["blue"],
+        "movableItems": ["gift"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "blue"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "red"
+          },
+          "orange": {
+            "gift": "blue"
+          }
+        }
+      },
+      "recommendedSteps": 3,
+      "solution": [
+        {
+          "type": "leave",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "blue"
+        },
+        {
+          "type": "return",
+          "character": "blue"
+        }
+      ]
+    },
+    {
+      "id": "birthday-03",
+      "title": "生日别穿帮",
+      "theme": "birthday",
+      "intro": "礼物最终在绿箱，却要让小蓝先去红箱、小橙先去蓝箱。安排两人各自最后看见的那一次。",
+      "objective": "礼物放绿箱：小蓝找红箱，小橙找蓝箱。",
+      "hints": [
+        "先让小蓝离开，把礼物搬到蓝箱，让小橙看到。",
+        "屏风只挡住选中角色的下一次有效搬运；把它摆在小橙面前。",
+        "再把礼物搬到绿箱，最后叫小蓝回来。"
+      ],
+      "items": ["gift"],
+      "initial": {
+        "locations": {
+          "gift": "red"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 1,
+        "maxAway": 1,
+        "canLeave": ["blue"],
+        "movableItems": ["gift"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "red"
+          },
+          "orange": {
+            "gift": "blue"
+          }
+        }
+      },
+      "recommendedSteps": 5,
+      "solution": [
+        {
+          "type": "leave",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "blue"
+        },
+        {
+          "type": "screen",
+          "character": "orange"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        },
+        {
+          "type": "return",
+          "character": "blue"
+        }
+      ]
+    },
+    {
+      "id": "birthday-04",
+      "title": "重新演给你看",
+      "theme": "afternoon",
+      "intro": "开场前，小蓝最后看见礼物在红箱，小橙最后看见它在蓝箱；礼物实际上已经在绿箱。这次大家都留下。",
+      "objective": "礼物仍放绿箱，让两人都亲眼记住绿箱。",
+      "hints": [
+        "站在房间里，并不代表自动知道箱子里的东西。",
+        "礼物已经在绿箱；原地不动不会产生新的目击。",
+        "先搬到另一个箱子，再当着两人的面搬回绿箱。"
+      ],
+      "items": ["gift"],
+      "initial": {
+        "locations": {
+          "gift": "green"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "blue"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 0,
+        "maxAway": 1,
+        "canLeave": [],
+        "movableItems": ["gift"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "green"
+          },
+          "orange": {
+            "gift": "green"
+          }
+        }
+      },
+      "recommendedSteps": 2,
+      "solution": [
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "red"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        }
+      ]
+    },
+    {
+      "id": "birthday-05",
+      "title": "屏风留给礼物",
+      "theme": "birthday",
+      "intro": "礼物与钥匙要分别安排。两人这次都不能离席，只有一张屏风；搬动任何一件物品都会用掉已摆好的屏风。",
+      "objective": "礼物放绿箱、钥匙放红箱；小蓝记礼物红箱，小橙记绿箱，两人都记钥匙红箱。",
+      "hints": [
+        "搬动钥匙，只会刷新钥匙的记忆；礼物的记忆不会跟着变。",
+        "先让两人看到钥匙搬进红箱。一个箱子可以同时放礼物和钥匙。",
+        "把屏风摆在小蓝面前，再搬礼物到绿箱。"
+      ],
+      "items": ["gift", "key"],
+      "initial": {
+        "locations": {
+          "gift": "red",
+          "key": "blue"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "blue"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "blue"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 1,
+        "maxAway": 1,
+        "canLeave": [],
+        "movableItems": ["gift", "key"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green",
+          "key": "red"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "red",
+            "key": "red"
+          },
+          "orange": {
+            "gift": "green",
+            "key": "red"
+          }
+        }
+      },
+      "recommendedSteps": 3,
+      "solution": [
+        {
+          "type": "move",
+          "item": "key",
+          "to": "red"
+        },
+        {
+          "type": "screen",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        }
+      ]
+    },
+    {
+      "id": "birthday-06",
+      "title": "交换倒茶班",
+      "theme": "afternoon",
+      "intro": "倒茶区一次只能站一人。这次没有屏风，让两位朋友轮流离开，分别错过一件物品的搬运。",
+      "objective": "礼物放绿箱、钥匙放蓝箱；小蓝记礼物红箱和钥匙蓝箱，小橙记礼物绿箱和钥匙绿箱。",
+      "hints": [
+        "小蓝需要错过礼物的搬运，小橙需要错过钥匙的搬运。",
+        "先请小蓝离开，搬礼物，再叫他回来。",
+        "换小橙去倒茶，搬钥匙到蓝箱，最后请他回来。"
+      ],
+      "items": ["gift", "key"],
+      "initial": {
+        "locations": {
+          "gift": "red",
+          "key": "green"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "green"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "green"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 0,
+        "maxAway": 1,
+        "canLeave": ["blue", "orange"],
+        "movableItems": ["gift", "key"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green",
+          "key": "blue"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "red",
+            "key": "blue"
+          },
+          "orange": {
+            "gift": "green",
+            "key": "green"
+          }
+        }
+      },
+      "recommendedSteps": 6,
+      "solution": [
+        {
+          "type": "leave",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        },
+        {
+          "type": "return",
+          "character": "blue"
+        },
+        {
+          "type": "leave",
+          "character": "orange"
+        },
+        {
+          "type": "move",
+          "item": "key",
+          "to": "blue"
+        },
+        {
+          "type": "return",
+          "character": "orange"
+        }
+      ]
+    },
+    {
+      "id": "birthday-07",
+      "title": "寿星不能离席",
+      "theme": "twilight",
+      "intro": "小蓝是寿星，必须一直留在房间。小橙可以去倒茶；一张屏风能让小蓝只错过最关键的一次搬运。",
+      "objective": "礼物放绿箱、钥匙放红箱；小蓝记礼物蓝箱和钥匙红箱，小橙记礼物红箱和钥匙绿箱。",
+      "hints": [
+        "先把钥匙搬到绿箱，让小橙记住，再请小橙离开。",
+        "小橙不在时，把礼物搬蓝箱、钥匙搬红箱，让小蓝看到。",
+        "屏风挡住小蓝，再把礼物搬绿箱。请小橙回来揭晓。"
+      ],
+      "items": ["gift", "key"],
+      "initial": {
+        "locations": {
+          "gift": "red",
+          "key": "blue"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "blue"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "blue"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 1,
+        "maxAway": 1,
+        "canLeave": ["orange"],
+        "movableItems": ["gift", "key"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green",
+          "key": "red"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "blue",
+            "key": "red"
+          },
+          "orange": {
+            "gift": "red",
+            "key": "green"
+          }
+        }
+      },
+      "recommendedSteps": 7,
+      "solution": [
+        {
+          "type": "move",
+          "item": "key",
+          "to": "green"
+        },
+        {
+          "type": "leave",
+          "character": "orange"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "blue"
+        },
+        {
+          "type": "move",
+          "item": "key",
+          "to": "red"
+        },
+        {
+          "type": "screen",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        },
+        {
+          "type": "return",
+          "character": "orange"
+        }
+      ]
+    },
+    {
+      "id": "birthday-08",
+      "title": "双重惊喜",
+      "theme": "twilight",
+      "intro": "两件物品，各有三种位置：真正的藏处、小蓝的记录、小橙的记录。两张屏风，加上一次巧妙的回搬，就能完成最后的生日排练。",
+      "objective": "礼物放绿箱：蓝记红、橙记蓝；钥匙放红箱：蓝记蓝、橙记绿。",
+      "hints": [
+        "先让两人看到礼物在蓝箱，然后请小橙离开。这样小橙就记住了礼物蓝箱、钥匙绿箱。",
+        "小橙不在时，把礼物搬回红箱、钥匙搬到蓝箱，让小蓝分别记住这两个位置。",
+        "两张屏风都可以挡小蓝：挡一次搬礼物到绿箱，再挡一次搬钥匙到红箱。最后叫小橙回来。"
+      ],
+      "items": ["gift", "key"],
+      "initial": {
+        "locations": {
+          "gift": "red",
+          "key": "green"
+        },
+        "characters": {
+          "blue": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "green"
+            }
+          },
+          "orange": {
+            "present": true,
+            "beliefs": {
+              "gift": "red",
+              "key": "green"
+            }
+          }
+        }
+      },
+      "rules": {
+        "screens": 2,
+        "maxAway": 1,
+        "canLeave": ["blue", "orange"],
+        "movableItems": ["gift", "key"],
+        "requireEveryoneHome": true
+      },
+      "goals": {
+        "locations": {
+          "gift": "green",
+          "key": "red"
+        },
+        "beliefs": {
+          "blue": {
+            "gift": "red",
+            "key": "blue"
+          },
+          "orange": {
+            "gift": "blue",
+            "key": "green"
+          }
+        }
+      },
+      "recommendedSteps": 9,
+      "solution": [
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "blue"
+        },
+        {
+          "type": "leave",
+          "character": "orange"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "red"
+        },
+        {
+          "type": "move",
+          "item": "key",
+          "to": "blue"
+        },
+        {
+          "type": "screen",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "gift",
+          "to": "green"
+        },
+        {
+          "type": "screen",
+          "character": "blue"
+        },
+        {
+          "type": "move",
+          "item": "key",
+          "to": "red"
+        },
+        {
+          "type": "return",
+          "character": "orange"
+        }
+      ]
+    }
+  ]
+}
