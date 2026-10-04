@@ -271,12 +271,15 @@ export class MultiplayerPanel {
     button(this.ranking, '下一页', 275, -170, 145, () => { this.boardPage = Math.min(Math.max(0, Math.ceil((this.board?.top.length || 0) / 10) - 1), this.boardPage + 1); this.renderRanking(); });
     this.ranking.active = false;
     // Keep the full-screen input shield above the entry button while the dialog is open.
-    this.openButton = button(hud.root, '好友联机', -354, 153, 195, () => {
+    this.openButton = button(hud.root, '好友联机', 316, 224, 152, () => {
       this.root.active = !this.root.active;
       clearInput();
       this.refresh();
       if(this.root.active&&!client.room)this.loadName();
     });
+    this.openButton.fontSize = 16;
+    // KartGame reveals this only when the configured room entry is relevant.
+    this.openButton.node.parent!.active = false;
     this.root.setSiblingIndex(hud.root.children.length - 1);
     this.root.active = false;
     client.changed = () => this.refresh();

@@ -1,22 +1,14 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
 import { themes } from '../assets/scripts/ThemeCatalog.ts';
 import { routes } from '../assets/scripts/RouteCatalog.ts';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { defaultSelection } from '../assets/scripts/Selection.ts';
+import { gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-);
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 const reports = new URL('../reports/themes-routes/', import.meta.url);
 await mkdir(reports, { recursive: true });
 const errors = [],
@@ -67,6 +59,13 @@ try {
   });
   await page.reload();
   await loaded(page);
+  assert.deepEqual((await snapshot(page)).selection, defaultSelection,
+    'a plain URL starts the default selection even when legacy preferences exist');
+  const glacierURL = new URL(url);
+  for (const [key, value] of Object.entries({ theme: 'glacier', route: 'glacier', vehicle: 'rally', driver: 'ranger' }))
+    glacierURL.searchParams.set(key, value);
+  await page.goto(glacierURL.href);
+  await loaded(page);
   assert.deepEqual((await snapshot(page)).selection, {
     theme: 'glacier',
     route: 'glacier',
@@ -114,8 +113,8 @@ try {
       assert.equal(state.selection.theme, theme.id);
       assert.equal(state.selection.route, route.id);
       assert.equal(state.hud.choices.length, 4);
-      assert.ok(state.hud.choices[0].startsWith('主题'));
-      assert.ok(state.hud.choices[1].startsWith('路线图'));
+      assert.equal(state.hud.choices[0], theme.name);
+      assert.equal(state.hud.choices[1], route.name);
       assert.equal(state.items.length, 24);
       assert.equal(
         await page.evaluate(async () => {
@@ -144,10 +143,15 @@ try {
     }
     console.log(`validated theme: ${theme.id}`);
   }
-  const saved = (await snapshot(page)).selection;
   await page.reload();
   await loaded(page);
-  assert.deepEqual((await snapshot(page)).selection, saved);
+  assert.deepEqual((await snapshot(page)).selection, {
+    theme: 'glacier', route: 'glacier', vehicle: 'rally', driver: 'ranger',
+  }, 'reloading honors the launch URL instead of the last menu selection');
+  await page.goto(url);
+  await loaded(page);
+  assert.deepEqual((await snapshot(page)).selection, defaultSelection,
+    'a plain URL restores the lightweight default selection');
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press('Digit1');
     await page.keyboard.press('Digit2');
@@ -170,23 +174,10 @@ try {
     observe(mobile);
     await mobile.goto(url);
     await loaded(mobile);
-    const portrait = viewport.height > viewport.width;
-    const scale = portrait
-      ? Math.min(viewport.width / 540, viewport.height / 960)
-      : Math.min(viewport.width / 960, viewport.height / 540);
-    const tap = (x, y) =>
-      portrait
-        ? mobile.touchscreen.tap(
-            (viewport.width + 540 * scale) / 2 - y * scale,
-            (viewport.height - 960 * scale) / 2 + x * scale,
-          )
-        : mobile.touchscreen.tap(
-            (viewport.width - 960 * scale) / 2 + x * scale,
-            (viewport.height - 540 * scale) / 2 + y * scale,
-          );
+    const tap = (x, y) => tapDesign(mobile, x, y);
     for (const [i, field] of ['theme', 'route', 'vehicle', 'driver'].entries()) {
       const before = (await snapshot(mobile)).selection;
-      await tap(710, 226 + i * 40);
+      await tap(320, 182 + i * 46);
       await loaded(mobile);
       const after = (await snapshot(mobile)).selection;
       assert.notEqual(after[field], before[field]);
@@ -196,7 +187,7 @@ try {
     await mobile.screenshot({
       path: fileURLToPath(new URL(`menu-${viewport.width}.png`, reports)),
     });
-    await tap(480, 395);
+    await tap(198, 433);
     await mobile.waitForFunction(() => __kart.snapshot().time > 1);
     assert.ok((await snapshot(mobile)).player.speed > 0);
     assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -208,7 +199,7 @@ try {
     JSON.stringify({ combinations: evidence, errors }, null, 2),
   );
   console.log(
-    `PASS: ${evidence.length} combinations, independent touch choices, persistence, rapid switching; no errors.`,
+    `PASS: ${evidence.length} combinations, independent touch choices, default/URL selection, rapid switching; no errors.`,
   );
 } finally {
   await browser.close();

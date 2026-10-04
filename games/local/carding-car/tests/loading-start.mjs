@@ -1,15 +1,10 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { gameURL, verifyBuild, startBrowser, tapDesign } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-const build = await fetch(new URL('build-info.json', url)).then((r) => r.json());
-assert.equal(build.sourceHash, await sourceHash());
-const browser = await chromium.launch({
-  headless: true,
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+const build = await verifyBuild(url);
+const browser = await startBrowser(url);
 let release;
 const held = new Promise((resolve) => { release = resolve; });
 try {
@@ -43,7 +38,7 @@ try {
   await page.setViewportSize({ width: 960, height: 540 });
   const before = await page.evaluate(() => __kart.snapshot());
   await page.keyboard.press('Enter');
-  for (let i = 0; i < 3; i++) await page.touchscreen.tap(480, 395);
+  for (let i = 0; i < 3; i++) await tapDesign(page, 198, 433);
   const after = await page.evaluate(() => __kart.snapshot());
   await writeFile(new URL('../reports/loading-start.json', import.meta.url), JSON.stringify({ build, before, after, errors }, null, 2));
   assert.equal(after.phase, 'ready', 'loading taps must not start or restart the race');
@@ -52,7 +47,7 @@ try {
   await page.waitForFunction(() => !__kart.snapshot().loading);
   await loading.waitFor({ state: 'detached' });
   assert.equal(await page.evaluate(() => __kart.snapshot().phase), 'ready');
-  await page.touchscreen.tap(480, 395);
+  await tapDesign(page, 198, 433);
   await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await page.waitForFunction(() => __kart.snapshot().player.speed > 5);
   const failure = await browser.newPage({ viewport: { width: 960, height: 540 } });

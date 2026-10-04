@@ -1,6 +1,5 @@
 import './client.js';
 import { scoreText, gapText, playerName } from './format.js';
-const roleNames = { pursuer: '追逐队', runner: '突围队', random: '系统分配' };
 const competitionGames = new Set([
   'cops-robbers',
   'cops-robbers-realtime',
@@ -97,6 +96,11 @@ export function copyNativeInvitation(sdk, data, timeoutMs = 4000, registerCancel
 
 // Reviewed Canvas gameplay; no DOM, webview or HTML emulation in mini-games.
 export function startNativeCompetition(sdk, config, createRenderer) {
+  const street = config.game === 'cops-robbers-realtime';
+  if (street) globalThis.__CLASSIC_CHASE_ROLES__ = true;
+  const roleNames = street
+    ? { pursuer: '警察', runner: '小偷', random: '系统分配' }
+    : { pursuer: '追逐队', runner: '突围队', random: '系统分配' };
   if (!['wechat', 'bilibili', 'douyin', 'kuaishou'].includes(config?.platform))
     throw new Error('原生好友挑战需要明确的平台配置。');
   if (!sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动游戏。`);
@@ -134,7 +138,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   }
   globalThis.__installCompetition(config, sdk);
   const client = globalThis.__competition,
-    canvas = sdk.createCanvas(),
+    canvas = config.canvas || sdk.createCanvas(),
     ctx = canvas.getContext('2d'),
     renderer = createRenderer({ createImage: () => sdk.createImage(), assetBase: '' });
   const info = sdk.getSystemInfoSync();
@@ -314,6 +318,179 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     hits = [];
     ctx.font = '14px sans-serif';
     ctx.fillStyle = '#fff';
+    if (street && !invitationPanel && !rulesOpen) {
+      if (room?.status === 'playing') {
+        renderer.draw(ctx, width, height - 54, room.state);
+        button(
+          '退出',
+          12,
+          height - 50,
+          76,
+          () =>
+            void act(async () => {
+              const prior = room;
+              room = null;
+              try {
+                await client.request('/rooms/' + prior.code + '/leave', { body: '{}' });
+                sdk.removeStorageSync?.(roomKey);
+              } catch {
+                message = '服务器尚未确认退出';
+              }
+              config.onExit?.();
+            }),
+        );
+        return;
+      }
+      ctx.fillText('街区追捕 · 好友 PK', 20, 30);
+      button('首页', width - 96, 10, 78, () => {
+        if (room)
+          void act(async () => {
+            await client.request('/rooms/' + room.code + '/leave', { body: '{}' });
+            room = null;
+            config.onExit?.();
+          });
+        else config.onExit?.();
+      });
+      ctx.fillText(message, 20, 70, width - 40);
+      if (board && !room) {
+        board.top
+          .slice(boardPage * 5, boardPage * 5 + 5)
+          .forEach((row, i) =>
+            ctx.fillText(
+              row.rank +
+                '. ' +
+                playerName(row, board.top) +
+                ' ' +
+                scoreText(config.game, row.score, row.secondary),
+              24,
+              108 + i * 32,
+              width - 48,
+            ),
+          );
+        button('上一页', 20, height - 58, 100, () => {
+          boardPage = Math.max(0, boardPage - 1);
+        });
+        button('下一页', 132, height - 58, 100, () => {
+          boardPage = Math.min(Math.max(0, Math.ceil(board.top.length / 5) - 1), boardPage + 1);
+        });
+        button('返回房间', 244, height - 58, 120, () => {
+          board = null;
+        });
+        return;
+      }
+      if (!room) {
+        button('创建好友挑战', 20, 98, 220, () =>
+          act(async () => {
+            room = await client.request('/rooms', {
+              body: JSON.stringify({
+                game: config.game,
+                mode: modes[modeIndex]?.id,
+                role: preferredRole,
+                initiative,
+              }),
+            });
+          }),
+        );
+        button(code ? '加入 ' + code : '输入房间码', 20, 152, 220, () =>
+          act(async () => {
+            if (!code) {
+              keyboardTarget = 'code';
+              sdk.showKeyboard?.({ defaultValue: '', maxLength: 12, confirmType: 'done' });
+              return;
+            }
+            room = await client.request('/rooms/join', {
+              body: JSON.stringify({ code, game: config.game }),
+            });
+          }),
+        );
+        button('好友积分榜', 20, 206, 220, () =>
+          act(async () => {
+            board = await client.request('/boards/' + config.game);
+            boardPage = 0;
+          }),
+        );
+        const x = width / 2 + 12,
+          w = width / 2 - 32;
+        button('模式：' + (modes[modeIndex]?.title || '正在加载'), x, 98, w, () => {
+          if (modes.length) modeIndex = (modeIndex + 1) % modes.length;
+        });
+        button('角色：' + roleNames[preferredRole], x, 152, w, () => {
+          preferredRole = preferredRole === 'pursuer' ? 'runner' : 'pursuer';
+        });
+        button('先手：' + roleNames[initiative], x, 206, w, () => {
+          initiative = { random: 'pursuer', pursuer: 'runner', runner: 'random' }[initiative];
+        });
+        button('昵称：' + (profile?.name || '新玩家'), 20, height - 58, 220, editName);
+        return;
+      }
+      room.players.forEach((player, i) =>
+        ctx.fillText(
+          playerName(player, room.players) +
+            ' · ' +
+            roleNames[player.role] +
+            ' · ' +
+            (player.ready ? '已准备' : '等待准备'),
+          24,
+          110 + i * 38,
+          width - 48,
+        ),
+      );
+      if (room.status === 'waiting') {
+        button('准备', 20, height - 58, 100, () =>
+          act(async () => {
+            room = await client.request('/rooms/' + room.code + '/ready', { body: '{}' });
+          }),
+        );
+        button('邀请好友', 132, height - 58, 120, () => void act(() => shareInvitation()));
+        button('交换角色', 264, height - 58, 120, () =>
+          act(async () => {
+            room = await client.request('/rooms/' + room.code + '/role', {
+              body: JSON.stringify({
+                role: room.players[room.you].role === 'pursuer' ? 'runner' : 'pursuer',
+              }),
+            });
+          }),
+        );
+        if (room.you === 0)
+          button('先手：' + roleNames[room.initiative], width / 2, 198, width / 2 - 24, () =>
+            act(async () => {
+              room = await client.request('/rooms/' + room.code + '/initiative', {
+                body: JSON.stringify({
+                  initiative: { random: 'pursuer', pursuer: 'runner', runner: 'random' }[
+                    room.initiative
+                  ],
+                }),
+              });
+            }),
+          );
+      } else {
+        const own = room.results?.find((entry) => entry.playerId === room.players[room.you].id);
+        ctx.fillText(
+          own ? (own.result.score > 0 ? '本局获胜' : '本局落败') : '本局中断',
+          24,
+          196,
+          width - 48,
+        );
+        ctx.fillText(
+          own?.reason || (own ? '结果已由服务器确认' : '本局不计成绩'),
+          24,
+          226,
+          width - 48,
+        );
+        button(
+          '再来一局',
+          20,
+          height - 58,
+          120,
+          () =>
+            void act(async () => {
+              const next = await resolveRematch(room);
+              room = await client.request('/rooms/' + next);
+            }),
+        );
+      }
+      return;
+    }
     ctx.fillText(config.title, 12, top - 12);
     button(muted ? '声音：关' : '声音：开', width - 90, top - 36, 78, () => {
       muted = !muted;
@@ -712,8 +889,13 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         draw();
         return;
       }
-      if (!invitationPanel && !rulesOpen && room?.status === 'playing' && y > top + 118) {
-        const action = renderer.tap(x, y - top - 118, room.state);
+      if (
+        !invitationPanel &&
+        !rulesOpen &&
+        room?.status === 'playing' &&
+        (street ? y < height - 54 : y > top + 118)
+      ) {
+        const action = renderer.tap(x, street ? y : y - top - 118, room.state);
         if (action)
           void act(async () => {
             pending ??= { seq: room.seq + 1, action };

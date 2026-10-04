@@ -65,8 +65,8 @@ export function cycleSelection(selection: Selection, field: keyof Selection, del
 
 // Shared by menu layout and touch hit testing (960 x 540 design coordinates).
 export const selectionRows = [
-  { field: 'theme', y: 44 },
-  { field: 'route', y: 4 },
-  { field: 'vehicle', y: -36 },
-  { field: 'driver', y: -76 },
+  { field: 'theme', y: 88 },
+  { field: 'route', y: 42 },
+  { field: 'vehicle', y: -4 },
+  { field: 'driver', y: -50 },
 ] as const;

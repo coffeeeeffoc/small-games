@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { sourceHash } from '../scripts/artifact.mjs';
+import { designPoint, tapDesign } from './browser-utils.mjs';
 
 const origin = process.env.KART_MULTIPLAYER_URL || 'http://127.0.0.1:43003';
 const url = new URL('/play/', origin);
@@ -66,18 +67,21 @@ try {
   const host = await open(false, 'classic-kart');
   await host.goto(url.href);
   await loaded(host);
-  await host.mouse.click(126, 117);
+  const entry = await designPoint(host, 796, 46);
+  await host.mouse.click(entry.x, entry.y);
   for (const [width, height] of [[844, 390], [1280, 585]]) {
     await host.setViewportSize({ width, height });
     await host.waitForTimeout(350); // Cocos debounces canvas resize.
-    const scale = Math.min(width / 960, height / 540);
-    const click = (x, y) => host.mouse.click(width / 2 + x * scale, height / 2 - y * scale);
+    const click = async (x, y) => {
+      const point = await designPoint(host, 480 + x, 270 - y);
+      await host.mouse.click(point.x, point.y);
+    };
     await host.screenshot({ path: fileURLToPath(new URL(`entry-${width}.png`, reports)) });
-    await click(-354, 153);
+    await click(316, 224);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'modal shields the entry behind it');
     await click(256, 150);
     assert.equal((await snap(host)).multiplayer.panelOpen, false, 'compact close button works');
-    await click(-354, 153);
+    await click(316, 224);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'entry reopens after closing');
   }
   await host.setViewportSize({ width: 960, height: 540 });
@@ -166,7 +170,8 @@ try {
   );
   assert.ok((await snap(friend)).time >= b.time);
   assert.equal((await snap(host)).multiplayer.room.members.length, 2);
-  await friend.touchscreen.tap(126, 117);
+  await tapDesign(friend, 56, 126); // The in-race room button replaces the ready-only entry.
+  await friend.waitForFunction(() => __kart.snapshot().multiplayer.panelOpen);
   await friend.touchscreen.tap(750, 430);
   await friend.waitForFunction(() => !__kart.snapshot().multiplayer.room);
   await loaded(friend);

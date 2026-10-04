@@ -36,7 +36,7 @@ export const markers = {
   'xiangqi-five': '#draw-button',
   'office-slacking': '#start',
   'cops-robbers': '#start-mode',
-  'cops-robbers-realtime': '#start-button',
+  'cops-robbers-realtime': '#levels-button',
   'h5-security': '[data-action="start"]',
   'letters-words': '#board button',
   'letters-words2': '#board button',
@@ -955,8 +955,18 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().loading), { timeout: 120000 })
       .toBe(false);
     const bounds = await canvas.boundingBox();
-    const scale = Math.min(bounds.width / 960, bounds.height / 540);
-    const position = { x: bounds.width / 2, y: bounds.height / 2 + 125 * scale };
+    const rotated = await canvas.evaluate(() => {
+      const transform = new DOMMatrix(
+        getComputedStyle(document.getElementById('GameDiv')).transform,
+      );
+      return transform.b > 0.5 && Math.abs(transform.a) < 0.01;
+    });
+    const width = rotated ? bounds.height : bounds.width;
+    const height = rotated ? bounds.width : bounds.height;
+    const scale = Math.min(width / 960, height / 540);
+    const x = width / 2 - 282 * scale;
+    const y = height / 2 + 163 * scale;
+    const position = rotated ? { x: bounds.width - y, y: x } : { x, y };
     await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase), { timeout: 30000 })
@@ -1015,9 +1025,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByTestId('undo'));
     await expect(frame.locator('body')).toHaveAttribute('data-turn', '0');
   } else if (id === 'cops-robbers-realtime') {
+    await click(frame.locator('#levels-button'));
     await click(frame.locator('#start-button'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('.cop-card').first());
+    await expect(frame.locator('#cop-roster')).toHaveCount(0);
     await click(frame.locator('#pause-button'));
     await expect(frame.locator('#resume-button')).toBeVisible();
     await click(frame.locator('#resume-button'));

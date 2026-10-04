@@ -9,6 +9,7 @@ import { prepareArt } from './prepare-art.mjs';
 import { instrumentWechatStartup } from './wechat-startup.mjs';
 import { nativeTarget, nativePackages, verifyNativeOutput } from './native-targets.mjs';
 import { installLoading } from './loading.mjs';
+import { installDisplay } from './display.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili', 'douyin'].includes(target))
@@ -268,32 +269,14 @@ if (target === 'web-mobile') {
   const html = (await readFile(index, 'utf8'))
     .replace('<title>Cocos Creator | carding-car</title>', '<title>浪湾卡丁车</title>')
     .replace('<head>', '<head>\n<link rel="icon" href="data:,">')
-    .replace(
-      '</head>',
-      `<style>
-      #kart-fullscreen { position: fixed; z-index: 21; top: max(8px, env(safe-area-inset-top));
-        right: max(8px, env(safe-area-inset-right)); min-height: 44px; padding: 0 14px;
-        border: 1px solid #69dfc0; border-radius: 12px; background: #173c55; color: #fff6dc;
-        font: 600 14px sans-serif; cursor: pointer; }
-      #kart-rotate { display: none; }
-      @media (orientation: portrait) {
-        #kart-rotate { display: block; position: fixed; z-index: 20; top: max(64px, calc(env(safe-area-inset-top) + 56px));
-          left: 8%; right: 8%; padding: 18px 12px; border-radius: 16px; color: #fff6dc;
-          background: #173c55; text-align: center; font: 600 18px/1.6 sans-serif; pointer-events: none; }
-        #kart-rotate small { display: block; color: #69dfc0; font-size: 14px; }
-      }
-      </style><script src="./dev-mode.js"></script><script src="./competition-session.js"></script><script defer src="./fullscreen.js"></script></head>`,
-    )
-    .replace(
-      '<body>',
-      '<body><button id="kart-fullscreen" type="button" data-game-fullscreen aria-label="全屏">全屏</button><aside id="kart-rotate" role="status">横过手机，驾驶更顺手<small>左手转向 · 右手漂移 · 松手加速</small></aside>',
-    )
+    .replace('</head>', '<script src="./dev-mode.js"></script></head>')
     .replace(
       'id="GameCanvas"',
       'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );
   await writeFile(index, html);
   await installLoading(outputDir);
+  await installDisplay(outputDir);
   await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);
   await cp(new URL('./fullscreen.js', import.meta.url), path.join(outputDir, 'fullscreen.js'));
   await cp(new URL('./dev-mode.js', import.meta.url), path.join(outputDir, 'dev-mode.js'));

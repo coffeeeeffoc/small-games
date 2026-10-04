@@ -1,4 +1,5 @@
 import { getLevels } from '../../../games/local/cops-robbers-realtime/src/levels.js';
+import { streetRunBoard, verifyStreetRun } from './street-runs.mjs';
 import {
   createGame,
   startGame,
@@ -15,7 +16,7 @@ import {
 const roles = ['pursuer', 'runner'];
 const durationMs = 120000;
 const description =
-  '追逐队与突围队由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；追逐队合围全部对手获胜，突围队抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。';
+  '警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。';
 const finished = (state) => state.game.phase !== 'playing' || state.timedOut;
 
 function initial(seed, mode = 'classic', firstRole = 'pursuer') {
@@ -140,8 +141,10 @@ function result(state, seat = 0) {
 }
 
 export default {
+  runBoard: streetRunBoard,
+  verifyRun: verifyStreetRun,
   id: 'cops-robbers-realtime',
-  title: '别跑！街区围捕 · 双队对抗',
+  title: '街区追捕 · 警察与小偷',
   version: 'street-roles-initiative-v2',
   durationMs,
   description,

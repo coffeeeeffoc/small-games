@@ -94,7 +94,7 @@ test('the short race selector works by key and touch only before a solo race', (
   const c = new KartController(() => race, () => {}, () => {}, () => {},
     undefined, undefined, undefined, () => starts++, undefined, undefined, () => modes++);
   c.keyDown({ keyCode: KeyCode.KEY_T }); c.keyUp({ keyCode: KeyCode.KEY_T });
-  c.touchStart(touch(20, 0.225, 0.27));
+  c.touchStart(touch(20, 198 / 960, 167 / 540));
   assert.equal(modes, 2);
   assert.equal(starts, 0, 'choosing a race mode still requires an explicit start');
   for (const phase of ['countdown', 'racing', 'paused', 'finished']) {
@@ -102,8 +102,64 @@ test('the short race selector works by key and touch only before a solo race', (
     c.keyDown({ keyCode: KeyCode.KEY_T }); c.keyUp({ keyCode: KeyCode.KEY_T });
   }
   race.phase = 'ready'; race.networked = true;
-  c.touchStart(touch(21, 0.225, 0.27));
+  c.touchStart(touch(21, 198 / 960, 167 / 540));
   c.keyDown({ keyCode: KeyCode.KEY_T }); c.keyUp({ keyCode: KeyCode.KEY_T });
   assert.equal(modes, 2, 'room races cannot switch away from their three-lap rules');
+  c.destroy();
+});
+
+
+test('compact ready targets select, switch mode and start without invisible old controls', () => {
+  const race = { phase: 'ready', loaded: true, networked: false,
+    drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
+  let starts = 0; const choices: unknown[] = [];
+  const c = new KartController(() => race, () => {}, () => {}, () => {},
+    (field: string, delta: number) => choices.push([field, delta]), undefined, undefined, () => starts++);
+  c.touchStart(touch(1, 80 / 960, 358 / 540));
+  c.touchStart(touch(2, 310 / 960, 358 / 540));
+  assert.deepEqual(choices, [['theme', -1], ['theme', 1]]);
+  c.touchStart(touch(3, .5, .27));
+  assert.equal(starts, 0, 'road preview does not trigger the old start hit area');
+  c.touchStart(touch(4, 198 / 960, 107 / 540));
+  assert.equal(starts, 1);
+  c.destroy();
+});
+
+test('settings consumes driving touches and releases inputs, with reachable options and close', () => {
+  const race = { phase: 'racing', drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
+  let open = false, sounds = 0, helps = 0, fullscreens = 0;
+  const c = new KartController(() => race, () => {}, () => sounds++, () => {},
+    undefined, undefined, undefined, undefined, () => helps++, undefined, undefined,
+    () => { open = !open; }, () => open, () => fullscreens++);
+  c.touchStart(touch(1, .15, .2));
+  c.touchStart(touch(2, .9, .2));
+  assert.equal(c.read().drift, true);
+  c.touchStart(touch(3, 910 / 960, 494 / 540));
+  assert.equal(open, true); assert.equal(c.touches.size, 0);
+  c.touchStart(touch(4, .9, .2));
+  assert.equal(c.read().throttle, 0); assert.equal(c.read().drift, false);
+  c.touchStart(touch(5, .5, 356 / 540));
+  c.touchStart(touch(6, .5, 296 / 540));
+  c.touchStart(touch(7, .5, 236 / 540));
+  assert.deepEqual([sounds, fullscreens, helps], [1, 1, 1]);
+  c.touchStart(touch(8, 640 / 960, 426 / 540));
+  assert.equal(open, false);
+  c.destroy();
+});
+
+
+test('holding Escape while closing settings cannot immediately pause the resumed race', () => {
+  const race = { phase: 'racing', pauses: 0, pause() { this.pauses++; },
+    drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
+  let open = true;
+  const c = new KartController(() => race, () => {}, () => {}, () => {},
+    undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+    () => { c.clear(); open = false; }, () => open);
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  assert.equal(open, false); assert.equal(race.pauses, 0);
+  c.keyUp({ keyCode: KeyCode.ESCAPE });
+  c.keyDown({ keyCode: KeyCode.ESCAPE });
+  assert.equal(race.pauses, 1);
   c.destroy();
 });

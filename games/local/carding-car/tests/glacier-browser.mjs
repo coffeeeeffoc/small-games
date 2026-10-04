@@ -1,22 +1,16 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-);
+const url = gameURL();
+await verifyBuild(url);
+const glacierURL = new URL(url);
+glacierURL.searchParams.set('theme', 'glacier');
+glacierURL.searchParams.set('route', 'glacier');
 const reports = new URL('../reports/glacier/', import.meta.url);
 await mkdir(reports, { recursive: true });
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const browser = await startBrowser(url);
 const errors = [],
   evidence = [];
 const snapshot = (page) => page.evaluate(() => __kart.snapshot());
@@ -49,10 +43,13 @@ async function sceneInfo(page) {
         .every((r) => r.sharedMaterials[0].effectName === 'builtin-standard'),
       itemsEnlarged:
         items.length === 24 &&
-        items.every(
-          (n) =>
-            Math.abs(n.scale.x - 1.3) < 0.001 && n.scale.x === n.scale.y && n.scale.y === n.scale.z,
-        ),
+        items.every((n) => {
+          const model = n.getChildByName(n.name.slice('Item-'.length));
+          return model && Math.abs(model.scale.x - 1.3) < 0.001 &&
+            model.scale.x === model.scale.y && model.scale.y === model.scale.z;
+        }),
+      itemsMarked: items.length === 24 && items.every((n) =>
+        n.getChildByName('Supply-Plus') || n.getChildByName('Hazard-Warning')),
       sky: scene.globals.skybox.enabled,
       reflection: scene.globals.skybox.useIBL,
       shadows: scene.globals.shadows.enabled,
@@ -81,7 +78,7 @@ try {
       )
         errors.push(message.text());
     });
-    await page.goto(url);
+    await page.goto(glacierURL.href);
     assert.equal(await page.title(), '浪湾卡丁车');
     await loaded(page);
     while ((await snapshot(page)).selection.theme !== 'glacier') {
@@ -95,21 +92,15 @@ try {
       JSON.stringify(info),
     );
     assert.ok(
-      info.wallSections >= 12 && info.arches === 3 && info.itemsEnlarged,
+      info.wallSections >= 12 && info.arches === 3 && info.itemsEnlarged && info.itemsMarked,
       JSON.stringify(info),
     );
     const prefix = mobile ? 'mobile' : 'desktop';
     await page.screenshot({ path: fileURLToPath(new URL(`${prefix}-menu.png`, reports)) });
     const cdp = mobile ? await page.context().newCDPSession(page) : null;
-    // HUD fits a centred 960x540 landscape canvas, including wide phones.
-    const scale = Math.min(viewport.width / 960, viewport.height / 540);
-    const touch = (x, y) => ({
-      x: (viewport.width - 960 * scale) / 2 + x * scale,
-      y: (viewport.height - 540 * scale) / 2 + y * scale,
-    });
+    const touch = (x, y) => designPoint(page, x, y);
     if (mobile) {
-      const p = touch(480, 395);
-      await page.touchscreen.tap(p.x, p.y);
+      await tapDesign(page, 198, 433);
     } else {
       await page.keyboard.press('Enter');
       await page.keyboard.down('ArrowUp');
@@ -164,10 +155,10 @@ try {
       if (state.progress.distance > length + 25) break;
       const { steer, brake, drift } = state.suggestedInput;
       if (mobile) {
-        const p = touch(960 * (0.16 + steer * 0.095), 440);
+        const p = await touch(960 * (0.16 + steer * 0.095), 440);
         const points = [{ ...p, id: 1 }];
-        if (drift) points.push({ ...touch(844, 440), id: 2 });
-        if (brake) points.push({ ...touch(674, 440), id: 3 });
+        if (drift) points.push({ ...await touch(844, 440), id: 2 });
+        if (brake) points.push({ ...await touch(674, 440), id: 3 });
         if (previous.some((p) => !points.some((q) => p.id === q.id))) {
           await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
           previous = [];
@@ -238,7 +229,7 @@ try {
           !other.shadows &&
           !other.reflection &&
           !other.fog &&
-          other.itemsEnlarged,
+          other.itemsEnlarged && other.itemsMarked,
       );
       while ((await snapshot(page)).selection.theme !== 'glacier') await nextWorld(page);
       assert.ok((await sceneInfo(page)).glacier);

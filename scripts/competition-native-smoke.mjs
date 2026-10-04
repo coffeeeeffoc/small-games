@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { runStreetNativeSmoke } from './street-native-smoke.mjs';
 import { competitionGames, competitionPlatforms } from '../scripts/competition-build.mjs';
 import cops from '../services/runtime-api/rules/cops.mjs';
 import realtime from '../services/runtime-api/rules/realtime.mjs';
@@ -19,7 +20,9 @@ const flush = async () => {
 
 // Execute the actual reviewed bundles without document/window/fetch, against the real game rules.
 // This SDK fixture verifies contracts and build isolation, not official SDK/device compatibility.
+await runStreetNativeSmoke();
 for (const [game, selected] of Object.entries(competitionGames)) {
+  if (game === 'cops-robbers-realtime') continue; // Campaign shell tested above using real replay-verified field input.
   for (const [platform, adapter] of Object.entries(competitionPlatforms)) {
     for (const audioMode of ['normal', 'create-failure', 'initialize-failure', 'play-failure']) {
       const directory = path.join(root, platform, game);

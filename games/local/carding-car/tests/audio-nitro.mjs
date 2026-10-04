@@ -1,17 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-);
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url, {
   args: ['--autoplay-policy=document-user-activation-required'],
 });
 try {
@@ -55,7 +47,7 @@ try {
     await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
     await page.keyboard.press('Shift');
     await page.waitForFunction(() => __kart.snapshot().audioClips === 7);
-    if (touch) await page.touchscreen.tap(480, 395);
+    if (touch) await tapDesign(page, 198, 433);
     else await page.keyboard.press('Enter');
     await page.waitForFunction(() => audioLevel() > 0.01);
     await page.waitForFunction(() => __kart.snapshot().time > 1);
@@ -66,8 +58,8 @@ try {
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
         touchPoints: [
-          { x: 845, y: 280, id: 1 },
-          { x: 110, y: 440, id: 2 },
+          { ...await designPoint(page, 845, 280), id: 1 },
+          { ...await designPoint(page, 110, 440), id: 2 },
         ],
       });
     } else await page.keyboard.down(mode);
@@ -91,12 +83,24 @@ try {
     else await page.keyboard.up(mode);
     assert.equal((await page.evaluate(() => __kart.snapshot())).input.nitro, false);
     await page.waitForFunction(() => __kart.snapshot().player.boost === 0);
-    if (touch) await page.touchscreen.tap(70, 180);
+    if (touch) {
+      await tapDesign(page, 910, 46);
+      await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible && __kart.snapshot().phase === 'paused');
+      await tapDesign(page, 480, 184);
+      await tapDesign(page, 640, 114);
+      await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible && __kart.snapshot().phase === 'racing');
+    }
     else await page.keyboard.press('m');
     await page.waitForFunction(() => __kart.snapshot().muted && !__kart.snapshot().audioPlaying);
     await page.waitForTimeout(150);
     assert.ok(await page.evaluate(() => audioLevel() < 0.001), 'mute silences audio output');
-    if (touch) await page.touchscreen.tap(70, 180);
+    if (touch) {
+      await tapDesign(page, 910, 46);
+      await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
+      await tapDesign(page, 480, 184);
+      await tapDesign(page, 640, 114);
+      await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible && __kart.snapshot().phase === 'racing');
+    }
     else await page.keyboard.press('m');
     await page.waitForFunction(() => !__kart.snapshot().muted && audioLevel() > 0.01);
     assert.deepEqual(errors, []);

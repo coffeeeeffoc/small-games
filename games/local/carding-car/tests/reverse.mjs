@@ -1,20 +1,11 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 import { angleDelta } from '../assets/scripts/KartConfig.ts';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-);
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 try {
   for (const touch of [false, true]) {
     const page = await browser.newPage({
@@ -28,7 +19,7 @@ try {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(url);
     await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
-    if (touch) await page.touchscreen.tap(480, 395);
+    if (touch) await tapDesign(page, 198, 433);
     else {
       await page.keyboard.press('Enter');
       await page.keyboard.down('ArrowUp');
@@ -40,7 +31,7 @@ try {
     if (touch)
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
-        touchPoints: [{ x: 674, y: 440, id: 1 }],
+        touchPoints: [{ ...await designPoint(page, 674, 440), id: 1 }],
       });
     else await page.keyboard.down('ArrowDown');
     let previous = before,

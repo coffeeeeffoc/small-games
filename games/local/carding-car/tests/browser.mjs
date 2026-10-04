@@ -1,20 +1,12 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
 import { createTrack } from '../assets/scripts/TrackGenerator.ts';
 import { barrierOverlap } from '../assets/scripts/KartPhysics.ts';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign, designPoint } from './browser-utils.mjs';
 const track = createTrack();
-const executablePath =
-  process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-  (existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')
-    ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-    : undefined);
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-const build = await fetch(new URL('build-info.json', url)).then((response) => response.json());
-assert.equal(build.sourceHash, await sourceHash(), 'browser must exercise the current game build');
-const browser = await chromium.launch({ headless: true, executablePath });
+const url = gameURL();
+const build = await verifyBuild(url);
+const browser = await startBrowser(url);
 const reports = new URL('../reports/', import.meta.url);
 await mkdir(reports, { recursive: true });
 const errors = [],
@@ -39,12 +31,7 @@ async function open(options) {
   });
   await page.goto(url);
   assert.equal(await page.title(), '浪湾卡丁车', 'verify the server identity before driving');
-  await page.waitForFunction(
-    () =>
-      globalThis.__kart &&
-      globalThis.__kart.snapshot().modelsLoaded &&
-      globalThis.__kart.snapshot().sceneryLoaded,
-  );
+  await waitForReady(page);
   return page;
 }
 try {
@@ -166,34 +153,31 @@ try {
     hasTouch: true,
     isMobile: true,
   });
-  const ui = (x, y, id = 1) => ({
-    x: (844 - (960 * 390) / 540) / 2 + (x * 390) / 540,
-    y: (y * 390) / 540,
-    id,
-  });
-  const tap = async (x, y) => {
-    const p = ui(x, y);
-    await wide.touchscreen.tap(p.x, p.y);
-  };
+  const ui = async (x, y, id = 1) => ({ ...(await designPoint(wide, x, y)), id });
+  const tap = (x, y) => tapDesign(wide, x, y);
   const wideCdp = await wide.context().newCDPSession(wide);
-  await tap(480, 395);
+  await tap(198, 433);
   await wide.waitForFunction(() => __kart.snapshot().time > 2);
   await wideCdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
-    touchPoints: [ui(200, 440), ui(844, 440, 2)],
+    touchPoints: [await ui(200, 440), await ui(844, 440, 2)],
   });
   await wide.waitForTimeout(80);
   assert.ok((await snapshot(wide)).input.steer > 0 && (await snapshot(wide)).input.drift);
   await wideCdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await tap(70, 180);
+  await tap(910, 46);
+  await wide.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
+  await tap(480, 184);
   assert.equal((await snapshot(wide)).muted, true);
-  await tap(70, 240);
+  await tap(640, 114);
+  await wide.waitForFunction(() => !__kart.snapshot().hud.settingsVisible && __kart.snapshot().phase === 'racing');
+  await tap(56, 126);
   await wide.waitForFunction(() => __kart.snapshot().phase === 'paused');
   await tap(480, 395);
   const speedBeforeBrake = (await snapshot(wide)).player.speed;
   await wideCdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
-    touchPoints: [ui(674, 440)],
+    touchPoints: [await ui(674, 440)],
   });
   await wide.waitForTimeout(500);
   assert.ok((await snapshot(wide)).input.brake);
@@ -244,7 +228,7 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
     previous = points;
   }
-  await mobile.touchscreen.tap(480, 395);
+  await tapDesign(mobile, 198, 433);
   await mobile.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await touches([
     { x: 185, y: 440, id: 1 },
@@ -346,7 +330,7 @@ try {
   await mobile.screenshot({
     path: new URL('finish.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
-  await mobile.touchscreen.tap(480, 395);
+  await tapDesign(mobile, 480, 395);
   await mobile.waitForFunction(() => __kart.snapshot().phase === 'countdown');
   assert.equal((await snapshot(mobile)).progress.laps, 0);
   assert.equal(

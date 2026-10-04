@@ -88,7 +88,7 @@ function actorAt(graph, node, id) {
 export function createGame(level, { playerRole = "cop", ai = true, firstRole = null, orderRule = "standard" } = {}) {
   const graph = buildGraph(level);
   if (!level.cops?.length || !level.robbers?.length)
-    throw new Error("关卡需要追逐队员和突围队员");
+    throw new Error("关卡需要警察和小偷");
   if (
     level.exits !== undefined &&
     (!Array.isArray(level.exits) ||
@@ -146,7 +146,7 @@ export function createGame(level, { playerRole = "cop", ai = true, firstRole = n
       robbers.some((robber) => roadDistance(game, cop, robber) < BODY_GAP),
     )
   ) {
-    throw new Error("追逐队员和突围队员出生点过近");
+    throw new Error("警察和小偷出生点过近");
   }
   return game;
 }

@@ -16,6 +16,7 @@ import type { RaceManager } from './RaceManager';
 import { formatTime as time, recordFeedback, type RaceRecord } from './RankingSystem';
 import { DrivingCoach } from './DrivingCoach';
 import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
+import { readyLayout, settingsLayout, type HitRect } from './HUDLayout';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
 import { STAMPS, stampCount, passportCount, earnedStamps, sprintNextGoal, type RoutePassport, type KartChallenge } from './RouteChallenges';
@@ -61,6 +62,18 @@ export class HUD {
   help: Label;
   pause: Label;
   rulesVisible = false;
+  settingsVisible = false;
+  settings: Node;
+  settingsHelp: Label;
+  fullscreen: Label;
+  racingHUD: Node;
+  drivingControls: Node;
+  menuBackground: Graphics;
+  startBackground: Graphics;
+  garageBackground: Graphics;
+  noticeBackground: Graphics;
+  pauseIcon: Graphics;
+  settingsIcon: Graphics;
   constructor(parent: Node) {
     view.setDesignResolutionSize(960, 540, ResolutionPolicy.SHOW_ALL);
     this.root = new Node('HUD');
@@ -81,53 +94,55 @@ export class HUD {
     camera.clearFlags = Camera.ClearFlag.DEPTH_ONLY;
     camera.visibility = Layers.Enum.UI_2D;
     canvas.cameraComponent = camera;
-    this.box(this.root, -354, 216, 216, 64, '#173c55ee');
-    this.top = this.label(this.root, '1 / 4   ·   第 1 / 3 圈', -354, 216, 22, '#fff6dc', 214, 60);
-    this.box(this.root, 0, 220, 458, 64, '#173c55ee');
-    this.timer = this.label(this.root, '', 0, 220, 20, '#fff6dc', 450, 62);
-    this.box(this.root, -410, 90, 96, 48, '#173c55dd');
-    this.sound = this.label(this.root, '声音 开', -410, 90, 18, '#fff6dc', 96, 48);
-    this.box(this.root, -410, 30, 72, 48, '#173c55');
-    this.pause = this.label(this.root, 'Ⅱ', -410, 30, 24, '#fff6dc', 72, 48);
-    this.box(this.root, -410, -30, 96, 48, '#173c55');
-    this.help = this.label(this.root, '收起教学', -410, -30, 18, '#fff6dc', 96, 48);
-    this.box(this.root, 0, -209, 180, 70, '#173c55ee');
-    this.speed = this.label(this.root, '0  km/h', 0, -200, 30, '#fff6dc', 180, 48);
-    this.label(
-      this.root,
-      !keyboardHints ? '自动加速' : 'W / ↑ 前进',
-      0,
-      -230,
-      12,
-      '#b8dcda',
-      180,
-      20,
-    );
-    this.box(this.root, 0, 170, 560, 34, '#173c55dd');
-    this.message = this.label(this.root, '', 0, 170, 21, '#fff6dc', 550, 45);
+    this.racingHUD = new Node('RaceHUD');
+    this.root.addChild(this.racingHUD);
+    this.box(this.racingHUD, -354, 224, 216, 48, '#173c55ce');
+    this.top = this.label(this.racingHUD, '', -354, 224, 16, '#fff6dc', 210, 44);
+    this.box(this.racingHUD, 0, 224, 246, 44, '#173c55ce');
+    this.timer = this.label(this.racingHUD, '', 0, 224, 16, '#fff6dc', 238, 42);
+    const pauseRect = settingsLayout.pause;
+    this.box(this.racingHUD, pauseRect.x, pauseRect.y, 48, 48, '#173c55ce');
+    this.pause = this.label(this.racingHUD, '', pauseRect.x, pauseRect.y, 14, '#fff6dc', 48, 48);
+    this.pause.node.name = '暂停';
+    this.pauseIcon = this.graphics(this.racingHUD, 'PauseIcon');
+    this.pauseIcon.fillColor = color('#fff6dc');
+    this.pauseIcon.rect(pauseRect.x - 10, pauseRect.y - 11, 7, 22);
+    this.pauseIcon.rect(pauseRect.x + 3, pauseRect.y - 11, 7, 22);
+    this.pauseIcon.fill();
+    this.box(this.racingHUD, 0, -213, 130, 48, '#173c55ce');
+    this.speed = this.label(this.racingHUD, '0 km/h', 0, -213, 23, '#fff6dc', 130, 44);
+    this.noticeBackground = this.box(this.racingHUD, 0, 167, 380, 32, '#173c55ce');
+    this.message = this.label(this.racingHUD, '', 0, 167, 16, '#fff6dc', 370, 32);
     const coachPanel = new Node('DrivingCoach');
-    coachPanel.layer = Layers.Enum.UI_2D;
-    this.root.addChild(coachPanel);
-    this.box(coachPanel, 65, 129, 620, 36, '#173c55ee');
-    this.coaching = this.label(coachPanel, '', 65, 129, 17, '#69dfc0', 610, 36);
-    this.count = this.label(this.root, '', 0, 35, 92, '#fff7dd', 700, 150);
-    this.meter = this.graphics(this.root, 'DriftMeter');
-    this.controls = this.graphics(this.root, 'TouchControls');
-    this.label(this.root, '‹          ›', -326, -169, 42, '#fff7dd', 240, 72);
-    this.label(this.root, '转向', -326, -225, 14, '#fff6dc', 220, 30);
-    this.label(this.root, '刹车/倒车', 194, -171, 18, '#fff7dd', 90, 80);
-    this.label(this.root, '漂移', 365, -165, 27, '#193c54', 140, 90);
-    this.nitro = this.label(this.root, '', 365, -10, 20, '#193c54', 150, 70);
-    this.box(this.root, 340, -229, 230, 26, '#173c55dd');
-    this.label(this.root, '按住过弯 · 松手加速', 340, -229, 14, '#fff6dc', 230, 28);
-    this.mapRoute = this.graphics(this.root, 'MiniMapRoute');
-    this.map = this.graphics(this.root, 'MiniMap');
+    this.racingHUD.addChild(coachPanel);
+    this.box(coachPanel, 0, 128, 580, 32, '#173c55dd');
+    this.coaching = this.label(coachPanel, '', 0, 128, 14, '#69dfc0', 566, 32);
+    this.count = this.label(this.racingHUD, '', 0, 35, 80, '#fff7dd', 700, 150);
+    this.meter = this.graphics(this.racingHUD, 'DriftMeter');
+    this.drivingControls = new Node('DrivingControls');
+    this.racingHUD.addChild(this.drivingControls);
+    this.controls = this.graphics(this.drivingControls, 'TouchControls');
+    this.label(this.drivingControls, '‹          ›', -326, -171, 36, '#fff7dd', 230, 70);
+    this.label(this.drivingControls, '刹车', 194, -171, 14, '#fff7dd', 80, 70);
+    this.label(this.drivingControls, '漂移', 365, -165, 22, '#193c54', 130, 80);
+    this.nitro = this.label(this.drivingControls, '', 365, -10, 18, '#193c54', 150, 70);
+    this.mapRoute = this.graphics(this.racingHUD, 'MiniMapRoute');
+    this.map = this.graphics(this.racingHUD, 'MiniMap');
+    const gear = settingsLayout.open;
+    this.box(this.root, gear.x, gear.y, gear.width, gear.height, '#173c55ce');
+    this.settingsIcon = this.graphics(this.root, 'SettingsIcon');
+    this.settingsIcon.strokeColor = color('#fff6dc');
+    this.settingsIcon.lineWidth = 2;
+    for (const [y, knob] of [[234, 423], [224, 437], [214, 427]]) {
+      this.settingsIcon.moveTo(418, y); this.settingsIcon.lineTo(442, y);
+      this.settingsIcon.stroke(); this.settingsIcon.circle(knob, y, 3); this.settingsIcon.stroke();
+    }
     this.panel = new Node('Menu');
     this.root.addChild(this.panel);
     this.panel.layer = Layers.Enum.UI_2D;
-    this.box(this.panel, 0, -6, 710, 390, '#163b55f5');
+    this.menuBackground = this.box(this.panel, 0, -6, 710, 390, '#163b55ec');
     this.tagline = this.label(this.panel, '海湾三圈挑战', 0, 168, 16, '#69dfc0', 530, 25);
-    this.title = this.label(this.panel, '浪湾卡丁车', 0, 127, 40, '#fff6dc', 650, 55);
+    this.title = this.label(this.panel, '浪湾卡丁车', 0, 127, 28, '#fff6dc', 650, 55);
     this.detail = this.label(
       this.panel,
       '3 圈海湾竞速 · 3 位对手\n转弯时按住漂移，松手冲出去',
@@ -140,7 +155,7 @@ export class HUD {
     );
     this.standings = this.label(this.panel, '', -174, -23, 18, '#d1e9e4', 325, 146);
     this.leaderboard = this.label(this.panel, '', 174, -23, 18, '#69dfc0', 325, 146);
-    this.box(this.panel, 0, -125, 286, 52, '#ffd15a');
+    this.startBackground = this.box(this.panel, 0, -125, 286, 52, '#ffd15a');
     this.button = this.label(this.panel, '开 跑  →', 0, -125, 24, '#173b53', 280, 52);
     this.restartButton = new Node('RestartButton');
     this.restartButton.layer = Layers.Enum.UI_2D;
@@ -151,18 +166,35 @@ export class HUD {
     this.garageButton = new Node('GarageButton');
     this.garageButton.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.garageButton);
-    this.box(this.garageButton, -263, -125, 170, 52, '#295870');
+    this.garageBackground = this.box(this.garageButton, -263, -125, 170, 52, '#295870');
     this.garageLabel = this.label(this.garageButton, '更换配置', -263, -125, 20, '#fff6dc', 170, 52);
     this.picker = new Node('Selection');
     this.picker.layer = Layers.Enum.UI_2D;
     this.panel.addChild(this.picker);
     for (const { y } of selectionRows) {
-      this.box(this.picker, 0, y, 590, 38, '#295870');
-      this.label(this.picker, '‹', -270, y, 30, '#ffd15a', 50, 38);
-      this.label(this.picker, '›', 270, y, 30, '#ffd15a', 50, 38);
-      this.choices.push(this.label(this.picker, '', 0, y, 20, '#fff6dc', 480, 38));
+      this.box(this.picker, readyLayout.x, y, readyLayout.width, 42, '#295870dd');
+      this.label(this.picker, '‹', readyLayout.x - 122, y, 26, '#ffd15a', 50, 38);
+      this.label(this.picker, '›', readyLayout.x + 122, y, 26, '#ffd15a', 50, 38);
+      this.choices.push(this.label(this.picker, '', readyLayout.x, y, 16, '#fff6dc', 224, 42));
     }
     this.footer = this.label(this.panel, '', 0, -176, 14, '#a9cdd0', 660, 32);
+    this.settings = new Node('Settings');
+    this.root.addChild(this.settings);
+    this.box(this.settings, 0, 0, 1920, 1080, '#081c3080');
+    this.box(this.settings, 0, 0, 384, 370, '#163b55fa');
+    this.label(this.settings, '设置', 0, 150, 24, '#fff6dc', 220, 40);
+    this.label(this.settings, '×', settingsLayout.close.x, settingsLayout.close.y, 30, '#fff6dc', 48, 48);
+    const option = (rect: HitRect) => {
+      const row = new Node('Setting');
+      this.settings.addChild(row);
+      this.box(row, rect.x, rect.y, rect.width, rect.height, '#295870');
+      return this.label(row, '', rect.x, rect.y, 18, '#fff6dc', rect.width, rect.height);
+    };
+    this.sound = option(settingsLayout.sound);
+    this.fullscreen = option(settingsLayout.fullscreen);
+    this.help = option(settingsLayout.help);
+    this.settingsHelp = this.label(this.settings, '', 0, -124, 13, '#b8dcda', 344, 80);
+    this.settings.active = false;
   }
   graphics(parent: Node, name: string) {
     const n = new Node(name);
@@ -203,35 +235,57 @@ export class HUD {
     l.verticalAlign = Label.VerticalAlign.CENTER;
     return l;
   }
+  layoutMenu(ready: boolean) {
+    const draw = (g: Graphics, rect: HitRect, hex: string) => {
+      g.clear(); g.fillColor = color(hex);
+      g.roundRect(rect.x - rect.width / 2, rect.y - rect.height / 2, rect.width, rect.height, 14); g.fill();
+    };
+    const place = (label: Label, x: number, y: number, width: number, height: number, size: number) => {
+      label.node.setPosition(x, y, 0);
+      label.node.getComponent(UITransform)!.setContentSize(width, height);
+      label.fontSize = size; label.lineHeight = size * 1.35;
+    };
+    draw(this.menuBackground, ready ? { x: -282, y: 2, width: 332, height: 456 } : { x: 0, y: -6, width: 710, height: 390 }, '#163b55e8');
+    draw(this.startBackground, ready ? readyLayout.start : { x: 0, y: -125, width: 286, height: 52 }, '#ffd15a');
+    draw(this.garageBackground, ready ? readyLayout.mode : { x: -263, y: -125, width: 170, height: 52 }, '#295870');
+    place(this.title, ready ? -282 : 0, ready ? 180 : 127, ready ? 300 : 650, 44, 28);
+    place(this.tagline, ready ? -282 : 0, ready ? 216 : 168, ready ? 300 : 600, 25, 12);
+    place(this.detail, ready ? -282 : 0, ready ? 139 : 76, ready ? 292 : 650, ready ? 32 : 52, ready ? 14 : 17);
+    place(this.button, ready ? readyLayout.start.x : 0, ready ? readyLayout.start.y : -125, ready ? 280 : 280, 52, 22);
+    place(this.garageLabel, ready ? readyLayout.mode.x : -263, ready ? readyLayout.mode.y : -125, ready ? 280 : 170, 44, 16);
+    place(this.footer, ready ? -282 : 0, ready ? -206 : -176, ready ? 296 : 660, 32, ready ? 11 : 13);
+  }
   update(r: RaceManager, input: KartInput, muted: boolean) {
     const k = r.drivers[0].kart,
       p = r.drivers[0].progress,
       place = r.order.indexOf(0) + 1,
       finishTime = p.finishedAt || r.time;
-    this.top.string = `第 ${place} / ${r.drivers.length} 名\n第 ${Math.min(r.laps, p.laps + 1)} / ${r.laps} 圈`;
-    this.timer.string = r.mode === 'sprint'
-      ? `一圈冲刺 ${time(finishTime)}\n漂移加速 ${r.driftBoosts} 次 · 有益补给 ${r.suppliesCollected} 个`
-      : `总计 ${time(finishTime)}   ·   本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
+    this.top.string = `第 ${place} / ${r.drivers.length} 名  ·  ${Math.min(r.laps, p.laps + 1)} / ${r.laps} 圈`;
+    this.timer.string = `${time(finishTime)}  ·  ${r.mode === 'sprint' ? '冲刺' : `本圈 ${time(r.currentLapTime)}`}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
     this.sound.string = muted ? '声音 关' : '声音 开';
-    this.pause.string = r.networked ? '房间' : 'Ⅱ';
+    this.pause.string = r.networked ? '房间' : '';
+    this.pauseIcon.node.active = !r.networked;
     this.help.string = r.networked
       ? this.rulesVisible ? '收起规则' : '竞赛规则'
-      : this.coach.enabled ? '收起教学' : '驾驶教学';
+      : this.coach.enabled ? '教学  开' : '教学  关';
     this.coaching.node.parent!.active =
       (r.networked ? this.rulesVisible : this.coach.enabled) && (r.phase === 'racing' || r.phase === 'countdown');
     this.coaching.string = r.networked
       ? '合法完成 3 圈比用时 · 首车冲线后 60 秒截止 · 房间中不暂停比赛'
       : this.coach.hint(keyboardHints);
-    this.nitro.string =
-      k.nitroCooldown > 0
-        ? `氮气 ${k.nitroCooldown.toFixed(1)}s`
-        : !keyboardHints
-          ? '氮气加速'
-          : '氮气 Shift';
+    this.nitro.string = k.nitroCooldown > 0 ? `${k.nitroCooldown.toFixed(1)}s` : '氮气';
+    this.racingHUD.active = r.phase === 'racing' || r.phase === 'countdown';
+    this.settings.active = this.settingsVisible;
+    const display = (globalThis as typeof globalThis & { KartDisplay?: { getFullscreen(): boolean } }).KartDisplay;
+    this.fullscreen.string = display?.getFullscreen() ? '退出全屏' : '全屏';
+    this.fullscreen.node.parent!.active = sys.isBrowser;
+    this.settingsHelp.string = this.coach.enabled
+      ? (keyboardHints ? 'W / ↑ 加速 · A D / ← → 转向\n空格漂移 · Shift 氮气 · S / ↓ 刹车' : '自动加速 · 左手滑动转向\n按住漂移过弯，松手加速') + '\n圆形 ＋ 补给 · 三角 ! 危险'
+      : '圆形 ＋ 补给 · 三角 ! 危险';
     this.panel.active =
       ['ready', 'paused', 'finished'].includes(r.phase) &&
-      !this.root.getChildByName('MultiplayerRoom')?.active;
+      !this.root.getChildByName('MultiplayerRoom')?.active && !this.settingsVisible;
     this.picker.active = r.phase === 'ready';
     this.garageButton.active = !r.networked && r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished';
     this.garageLabel.string = r.phase === 'ready'
@@ -239,6 +293,7 @@ export class HUD {
       : r.phase === 'finished' && !r.networked ? '退出本局' : '更换配置';
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
     if (r.phase !== this.lastPhase || r.phase === 'finished') {
+      this.layoutMenu(r.phase === 'ready');
       this.lastPhase = r.phase;
       this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
       this.restartLabel.string = r.phase === 'finished' ? '分享挑战' : '重新开跑';
@@ -312,27 +367,17 @@ export class HUD {
           ? `本路线目标：突破 ${time(this.previousBest)} · 本机纪录`
           : '本路线目标：完成 3 圈，赢取首枚完赛奖牌';
     if (r.phase === 'ready') {
-      this.tagline.string = this.challenge
-        ? `同道具挑战 · ${r.laps === 1 ? '一圈' : '三圈'}目标 ${time(this.challenge.time)}`
-        : r.mode === 'sprint' ? '一圈冲刺 · 快速试驾 · 独立本机成绩'
-          : `三圈竞速 · 路线印章 ${stampCount(this.passport[this.selection.route] || 0)} / 3 · 全路线 ${passportCount(this.passport)} / ${routes.length * 3}`;
-      this.title.string = '浪湾卡丁车 · 出发准备';
-      this.detail.string = r.loadError
-        ? `素材加载失败：${r.loadError}\n切换配置可重试`
-        : r.loaded
-          ? `${Math.round(r.track.length)} 米 · ${r.laps === 1 ? '一圈冲刺' : '3 圈竞速'} · ${this.coach.enabled ? '开跑后逐步教你漂移' : '3 位对手 · 随机道具'}`
-          : '正在装配主题、路线图与赛车…';
-      this.button.string = r.loadError ? '请重试素材加载' : r.loaded ? `${r.laps === 1 ? '一圈冲刺' : '3 圈竞速'}开跑 →` : '装配中…';
-      this.choices[0].string = `主题  ${theme.name}  ${themes.indexOf(theme) + 1}/${themes.length}`;
-      this.choices[1].string = `路线图  ${selectedRoute.name}  ${routes.indexOf(selectedRoute) + 1}/${routes.length}`;
-      this.choices[2].string = `赛车  ${vehicles.find((v) => v[0] === this.selection.vehicle)?.[1]}  ${vehicles.findIndex((v) => v[0] === this.selection.vehicle) + 1}/10`;
-      this.choices[3].string = `车手  ${drivers.find((v) => v[0] === this.selection.driver)?.[1]}  ${drivers.findIndex((v) => v[0] === this.selection.driver) + 1}/10`;
-      this.footer.string = !keyboardHints
-        ? '默认配置即可开跑 · 左手转向 · 右手漂移 · 开跑后自动加速'
-        : 'Enter 开跑 · T 切赛制 · W/↑ 前进 · A D 转向 · 空格漂移';
-      this.footer.string += r.mode === 'sprint'
-        ? '\n一圈快速冲线 · 三位对手 · 成绩不计三圈榜与路线印章'
-        : '\n收集印章：冠军 · 4 次漂移加速 · 6 个有益补给';
+      this.tagline.string = this.challenge ? `好友挑战 · ${time(this.challenge.time)}` : 'KART / RACING';
+      this.title.string = '浪湾卡丁车';
+      this.detail.string = r.loadError ? '加载失败 · 点击重试' : r.loaded
+        ? `${theme.name} · ${Math.round(r.track.length)} m` : '装配中…';
+      this.button.string = r.loadError ? '重试' : r.loaded ? '开跑 →' : '装配中…';
+      this.garageLabel.string = r.mode === 'sprint' ? '‹   一圈冲刺   ›' : '‹   三圈竞速   ›';
+      this.choices[0].string = theme.name;
+      this.choices[1].string = selectedRoute.name;
+      this.choices[2].string = vehicles.find((v) => v[0] === this.selection.vehicle)?.[1] || '';
+      this.choices[3].string = drivers.find((v) => v[0] === this.selection.driver)?.[1] || '';
+      this.footer.string = this.previousBest ? `最佳 ${time(this.previousBest)}` : '';
     }
     if (r.phase === 'finished' && this.challenge && !r.networked) {
       const delta = finishTime - this.challenge.time;
@@ -368,10 +413,11 @@ export class HUD {
                         ? '前方近道：保持直行 · 窄路注意减速'
                         : p.laps === r.laps - 1
                           ? '最后一圈，冲刺！'
-                          : '寻找出弯加速的时机'
+                          : ''
         : '';
     if (r.phase === 'racing' && k.itemMessageTime > 0)
       this.message.string = `${k.itemMessage}${k.coins ? ` · 金币 ${k.coins}` : ''}`;
+    this.noticeBackground.node.active = !!this.message.string;
     this.meter.clear();
     this.meter.fillColor = color('#193c55');
     this.meter.roundRect(-78, -171, 156, 9, 4);

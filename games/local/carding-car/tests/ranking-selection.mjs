@@ -1,22 +1,12 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
 import { vehicles } from '../assets/scripts/Selection.ts';
-import { sourceHash } from '../scripts/artifact.mjs';
+import { gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
 
-const url = process.env.KART_URL || 'http://127.0.0.1:4198';
-assert.equal(
-  (await fetch(new URL('build-info.json', url)).then((r) => r.json())).sourceHash,
-  await sourceHash(),
-  'test the current build',
-);
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 const snapshot = (page) => page.evaluate(() => __kart.snapshot());
 const loaded = (page) =>
   page.waitForFunction(
@@ -49,7 +39,7 @@ try {
     const initial = await snapshot(page);
     assert.ok(initial.renderedVehicles.every((id) => vehicles.some((v) => v[0] === id)));
     for (let i = 0; i < 3; i++) {
-      if (mobile) await page.touchscreen.tap(750, 306);
+      if (mobile) await tapDesign(page, 320, 274);
       else await page.keyboard.press('Digit3');
       await loaded(page);
       const selected = await snapshot(page);
@@ -60,7 +50,7 @@ try {
         'choosing the player car must leave every bot car unchanged',
       );
     }
-    if (mobile) await page.touchscreen.tap(480, 395);
+    if (mobile) await tapDesign(page, 198, 433);
     else await page.keyboard.press('Enter');
     // Hold the mobile brake so real AI inputs can pass the player.
     if (mobile) await page.keyboard.down('ArrowDown');
