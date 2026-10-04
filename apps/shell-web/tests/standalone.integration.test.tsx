@@ -15,7 +15,7 @@ it('opens each standalone Game and removes its frame on exit', async () => {
     const featuredTitles = [
       '浪湾卡丁车',
       '围捕小队',
-      '别跑！街区围捕',
+      '街区追捕',
       '词屿 · 字母叠叠乐',
       '此时 · 此地',
       '象五子棋',
