@@ -10,6 +10,10 @@ import {
   isPieceAssembled,
   pieceBounds,
   quarterTurnOrientation,
+  rotationOrientation,
+  relativeAxisRotation,
+  validOrientation,
+  sweepRotation,
   redo,
   restoreGame,
   serializeGame,
@@ -166,7 +170,7 @@ test('drag roundoff within positional tolerance does not amplify into a volume m
   );
 });
 
-test('version 3 rejects reflections, malformed orientations and forged combined translation/rotation', () => {
+test('rotation saves reject reflections, malformed orientations and forged combined translation/rotation', () => {
   const level = fixture([rod]);
   const initial = createGame(level);
   for (const value of [null, [], [1, 0, 0, 0, 1, 0, 0, 0, -1], [1, 1, 0, 0, 1, 0, 0, 0, 1]]) {
@@ -196,7 +200,7 @@ test('version 2 positions migrate to identity orientations throughout undo histo
   assert.deepEqual(restored!.history[0]!.orientations['0'], IDENTITY_ORIENTATION);
 });
 
-test('version 3 retains the full 2,000-action allowance with six-piece orientation snapshots', () => {
+test('integer-matrix saves retain the full 2,000-action allowance with six-piece orientation snapshots', () => {
   const level = fixture(
     Array.from({ length: 6 }, (_, i) => ({
       min: [i * 3, 0, 0] as Vec3,
@@ -225,4 +229,156 @@ test('invalid rotation requests cannot mutate game state', () => {
   for (const ids of [[], ['missing'], ['0', 'missing']])
     assert.equal(tryRotate(level, state, ids, 'x', 1).state, state);
   assert.equal(tryRotate(level, state, '0', 'x', 0 as 1).state, state);
+});
+
+test('partial turns use all eight corners for bounds and close after a full revolution', () => {
+  const level = fixture([rod]);
+  const initial = createGame(level);
+  const turned = tryRotate(level, initial, '0', 'z', 1, 45);
+  assert.equal(turned.blocked, false);
+  const bounds = pieceBounds(
+    level.pieces[0]!,
+    turned.state.offsets['0']!,
+    turned.state.orientations['0'],
+  );
+  const extent = 2.25 / Math.sqrt(2);
+  assert.ok(Math.abs(bounds.max[0] - extent) < EPSILON);
+  assert.ok(Math.abs(bounds.max[1] - extent) < EPSILON);
+  assert.equal(
+    isPieceAssembled(level.pieces[0]!, [0, 0, 0], turned.state.orientations['0']),
+    false,
+  );
+  let state = initial;
+  for (let i = 0; i < 24; i++) state = tryRotate(level, state, '0', 'z', 1, 15).state;
+  assert.deepEqual(state.offsets, initial.offsets);
+  assert.deepEqual(state.orientations, initial.orientations);
+  assert.equal(state.moves, 24);
+});
+
+test('oblique material can clear overlapping bounds and translates to exact oriented contact', () => {
+  const level = fixture([
+    { min: [-2, -0.1, -0.1], max: [2, 0.1, 0.1] },
+    { min: [0.7, -0.8, -0.05], max: [0.8, -0.7, 0.05] },
+  ]);
+  const initial = createGame(level);
+  const turned = tryRotate(level, initial, '0', 'z', 1, 45);
+  assert.equal(turned.blocked, false, 'AABB overlap alone must not forbid a legal oblique pose');
+  assert.ok(isCollisionFree(level, turned.state.offsets, turned.state.orientations));
+  const moved = tryMove(level, turned.state, '0', 3, 'x');
+  assert.equal(moved.blocked, true);
+  assert.ok(Math.abs(moved.actualOffset - (1.4 - 0.1 * Math.sqrt(2))) < EPSILON);
+  assert.ok(isCollisionFree(level, moved.state.offsets, moved.state.orientations));
+  assert.deepEqual(restoreGame(level, serializeGame(moved.state)), moved.state);
+});
+
+test('partial-turn swept collision catches a thin obstacle between clear endpoints', () => {
+  const level = fixture([
+    { min: [-2, -0.01, -0.05], max: [2, 0.01, 0.05] },
+    { min: [1.4, 0.12, -0.01], max: [1.42, 0.13, 0.01] },
+  ]);
+  const initial = createGame(level);
+  const finalOrientations = { ...initial.orientations, '0': rotationOrientation('z', 1, 15) };
+  assert.ok(isCollisionFree(level, initial.offsets, finalOrientations));
+  const turn = tryRotate(level, initial, '0', 'z', 1, 15);
+  assert.equal(turn.blocked, true);
+  assert.deepEqual(turn.blockedBy, ['1']);
+  const forged = {
+    ...initial,
+    orientations: finalOrientations,
+    moves: 1,
+    history: [{ offsets: initial.offsets, orientations: initial.orientations, moves: 0 }],
+  };
+  assert.equal(restoreGame(level, serializeGame(forged)), null);
+});
+
+test('asymmetric selected centers give inverse partial turns a stable pivot and exact undo', () => {
+  const level = fixture([
+    { min: [-4, -0.2, -0.2], max: [-2, 0.2, 0.2] },
+    { min: [1, 1, -0.2], max: [1.5, 2, 0.2] },
+    { min: [3, -3, -0.2], max: [4, -2, 0.2] },
+  ]);
+  const initial = createGame(level);
+  const ids = level.pieces.map((piece) => piece.id);
+  const turned = tryRotate(level, initial, ids, 'z', 1, 15).state;
+  const returned = tryRotate(level, turned, ids, 'z', -1, 15).state;
+  for (const id of ids) {
+    assert.ok(returned.offsets[id]!.every((value) => Math.abs(value) < EPSILON));
+    assert.deepEqual(returned.orientations[id], initial.orientations[id]);
+  }
+  assert.equal(returned.moves, 2);
+  assert.deepEqual(redo(undo(turned)), turned);
+  assert.deepEqual(restoreGame(level, serializeGame(returned)), returned);
+});
+
+test('mixed-axis fractional histories survive v4 undo/redo and infer their inverse turn', () => {
+  const level = fixture([rod]);
+  const initial = createGame(level);
+  let state = tryRotate(level, initial, '0', 'z', 1, 15).state;
+  state = tryRotate(level, state, '0', 'y', -1, 30).state;
+  state = tryRotate(level, state, '0', 'x', 1, 5).state;
+  assert.ok(validOrientation(state.orientations['0']));
+  const inverse = relativeAxisRotation(
+    state.orientations['0']!,
+    state.history.at(-1)!.orientations['0']!,
+  );
+  assert.equal(inverse?.axis, 'x');
+  assert.equal(inverse?.direction, -1);
+  assert.ok(Math.abs(inverse!.degrees - 5) < EPSILON);
+  for (const saved of [state, undo(state), undo(undo(state))]) {
+    assert.equal(JSON.parse(serializeGame(saved)).version, 4);
+    assert.deepEqual(restoreGame(level, serializeGame(saved)), saved);
+  }
+  for (const degrees of [0, -15, NaN, Infinity, 181])
+    assert.equal(tryRotate(level, initial, '0', 'x', 1, degrees).state, initial);
+});
+
+test('legacy v3 bounding-center group turns retain a valid timeline after v4 migration', () => {
+  const level = fixture([
+    { min: [-4, 0, 0], max: [-2, 1, 1] },
+    { min: [1, 1, 0], max: [2, 3, 1] },
+    { min: [4, -2, 0], max: [5, -1, 1] },
+  ]);
+  const initial = createGame(level);
+  const result = sweepRotation(
+    level,
+    initial.offsets,
+    initial.orientations,
+    ['0', '1', '2'],
+    'z',
+    1,
+    90,
+    [0.5, 0.5, 0.5],
+  );
+  assert.equal(result.blocked, false);
+  const legacy = {
+    ...initial,
+    offsets: result.offsets,
+    orientations: result.orientations,
+    moves: 1,
+    history: [{ offsets: initial.offsets, orientations: initial.orientations, moves: 0 }],
+  };
+  const restored = restoreGame(level, JSON.stringify({ version: 3, state: legacy }));
+  assert.deepEqual(restored, legacy);
+  assert.deepEqual(restoreGame(level, serializeGame(restored!)), legacy);
+});
+
+test('v4 preserves the 2,000-action allowance for larger fractional orientation histories', () => {
+  const level = fixture(
+    Array.from({ length: 6 }, (_, i) => ({
+      min: [i * 3, 0, 0] as Vec3,
+      max: [i * 3 + 1, 1, 1] as Vec3,
+    })),
+  );
+  const ids = level.pieces.map((piece) => piece.id);
+  let state = createGame(level);
+  for (let step = 0; step < 2_000; step++)
+    state = tryRotate(level, state, ids, (['x', 'y', 'z'] as const)[step % 3]!, 1, 15).state;
+  assert.equal(state.moves, 2_000);
+  const raw = serializeGame(state);
+  assert.ok(
+    raw.length > 2_000_000,
+    'fractional matrices exceed the previous integer-only byte budget',
+  );
+  assert.deepEqual(restoreGame(level, raw), state);
+  assert.equal(restoreGame(level, ' '.repeat(8_000_001)), null);
 });

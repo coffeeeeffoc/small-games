@@ -204,8 +204,17 @@ export function tryRotate(
   pieceIds: string | readonly string[],
   axis: Axis,
   direction: -1 | 1,
+  rotationDegrees = 90,
 ): RotationResult {
-  const result = sweepRotation(level, state.offsets, state.orientations, pieceIds, axis, direction);
+  const result = sweepRotation(
+    level,
+    state.offsets,
+    state.orientations,
+    pieceIds,
+    axis,
+    direction,
+    rotationDegrees,
+  );
   return {
     state: result.blocked
       ? state

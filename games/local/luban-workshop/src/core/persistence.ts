@@ -1,4 +1,11 @@
-import { axisIndex, EPSILON, isCollisionFree, sweepMove, sweepRotation } from './collision.ts';
+import {
+  axisIndex,
+  EPSILON,
+  isCollisionFree,
+  pieceBounds,
+  sweepMove,
+  sweepRotation,
+} from './collision.ts';
 import type {
   Axis,
   GameState,
@@ -10,14 +17,20 @@ import type {
   Vec3,
 } from './types.ts';
 
-import { IDENTITY_ORIENTATION, validOrientation } from './rotation.ts';
+import {
+  IDENTITY_ORIENTATION,
+  isCubeOrientation,
+  orientationsEqual,
+  relativeAxisRotation,
+  validOrientation,
+} from './rotation.ts';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
 const axes: readonly Axis[] = ['x', 'y', 'z'];
 
 export function serializeGame(state: GameState): string {
-  return JSON.stringify({ version: 3, state });
+  return JSON.stringify({ version: 4, state });
 }
 
 /** Local storage is untrusted. Validate both endpoint geometry and the complete
@@ -25,18 +38,19 @@ export function serializeGame(state: GameState): string {
  * retain their original axis and range restrictions while being migrated.
  */
 export function restoreGame(level: Level, raw: string): GameState | null {
-  // A v3 snapshot includes six orientation matrices as well as positions.
-  // Keep enough room for the existing 2,000-step timeline allowance.
-  if (typeof raw !== 'string' || raw.length > 2_000_000) return null;
+  // Orientation snapshots include full rotation matrices as well as positions.
+  // Oblique matrices need more bytes than signed permutations. Keep enough
+  // room for 2,000 actions, including ten-piece fractional-turn histories.
+  if (typeof raw !== 'string' || raw.length > 8_000_000) return null;
   try {
     const data: unknown = JSON.parse(raw);
     if (
       !isObject(data) ||
-      (data.version !== 1 && data.version !== 2 && data.version !== 3) ||
+      (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) ||
       !isObject(data.state)
     )
       return null;
-    if (data.version !== 3 && raw.length > 400_000) return null;
+    if (Number(data.version) < 3 && raw.length > 400_000) return null;
     const legacy = data.version === 1;
     const state = data.state;
     if (
@@ -82,7 +96,7 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       return offsets;
     };
     const readOrientations = (input: unknown): Orientations | null => {
-      if (data.version !== 3)
+      if (Number(data.version) < 3)
         return Object.fromEntries(
           level.pieces.map((piece) => [
             piece.id,
@@ -93,6 +107,7 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       const orientations: Orientations = {};
       for (const piece of level.pieces) {
         if (!Object.hasOwn(input, piece.id) || !validOrientation(input[piece.id])) return null;
+        if (data.version === 3 && !isCubeOrientation(input[piece.id] as Orientation)) return null;
         orientations[piece.id] = [...(input[piece.id] as Orientation)] as unknown as Orientation;
       }
       return orientations;
@@ -126,23 +141,45 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       const after = timeline[i]!;
       if (after.moves !== before.moves + 1) return null;
       const rotating = level.pieces
-        .filter((piece) =>
-          before.orientations[piece.id]!.some(
-            (entry, j) => entry !== after.orientations[piece.id]![j],
-          ),
+        .filter(
+          (piece) =>
+            !orientationsEqual(before.orientations[piece.id]!, after.orientations[piece.id]!),
         )
         .map((piece) => piece.id);
       if (rotating.length) {
-        if (data.version !== 3) return null;
-        const matches = axes.some((axis) =>
-          ([-1, 1] as const).some((direction) => {
+        if (Number(data.version) < 3) return null;
+        const turn = relativeAxisRotation(
+          before.orientations[rotating[0]!]!,
+          after.orientations[rotating[0]!]!,
+        );
+        if (!turn || (data.version === 3 && Math.abs(turn.degrees - 90) > EPSILON)) return null;
+        // A 180° endpoint has two possible swept arcs; accept if either is legal.
+        const directions =
+          Math.abs(turn.degrees - 180) < EPSILON ? ([-1, 1] as const) : [turn.direction];
+        const matches = directions.some((direction) => {
+          const bounds = level.pieces
+            .filter((piece) => rotating.includes(piece.id))
+            .map((piece) =>
+              pieceBounds(piece, before.offsets[piece.id]!, before.orientations[piece.id]),
+            );
+          const legacyPivot = [0, 1, 2].map(
+            (i) =>
+              (Math.min(...bounds.map((box) => box.min[i]!)) +
+                Math.max(...bounds.map((box) => box.max[i]!))) /
+              2,
+          ) as unknown as Vec3;
+          // v3 used the enclosing-box center. Keep that legal history readable
+          // even after migration and a later v4 save of the same timeline.
+          return [undefined, legacyPivot].some((pivot) => {
             const result = sweepRotation(
               level,
               before.offsets,
               before.orientations,
               rotating,
-              axis,
-              direction,
+              turn.axis,
+              direction as -1 | 1,
+              turn.degrees,
+              pivot,
             );
             return (
               !result.blocked &&
@@ -151,13 +188,11 @@ export function restoreGame(level: Level, raw: string): GameState | null {
                   result.offsets[piece.id]!.every(
                     (value, j) => Math.abs(value - after.offsets[piece.id]![j]!) <= EPSILON,
                   ) &&
-                  result.orientations[piece.id]!.every(
-                    (value, j) => value === after.orientations[piece.id]![j],
-                  ),
+                  orientationsEqual(result.orientations[piece.id]!, after.orientations[piece.id]!),
               )
             );
-          }),
-        );
+          });
+        });
         if (!matches) return null;
         continue;
       }

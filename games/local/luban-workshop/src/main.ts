@@ -13,6 +13,7 @@ import {
   redo,
   getProgress,
   getHint,
+  applyHint,
   switchToReassembly,
   sweepMove,
   axisIndex,
@@ -21,6 +22,7 @@ import {
   type Axis,
   type Transaction,
 } from './core/index.ts';
+import { requestHintAccess, type HintHost } from './core/hint-access.ts';
 import { levels } from './levels/index.ts';
 import { PuzzleScene } from './view/PuzzleScene.ts';
 import { bindGestures } from './input/gestures.ts';
@@ -47,9 +49,11 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="topbar">
     <div class="brand"><span class="brand-mark">${icon('layers')}</span><h1>榫间<span>鲁班锁</span></h1><span class="edition">把玩 · 解构 · 复原</span></div>
-    <nav aria-label="游戏菜单"><button id="levels" class="soft">${icon('layers')}<span>机关匣</span><span class="count">${levels.length}</span></button><button id="toggle-controls" class="soft" aria-label="辅助工具" aria-controls="controls" aria-expanded="false">辅助</button><button id="help" class="icon-button" aria-label="操作说明">${icon('help')}</button></nav>
+    <nav aria-label="游戏菜单"><button id="levels" class="soft">${icon('layers')}<span>机关匣</span><span class="count">${levels.length}</span></button></nav>
   </header>
+  <section id="home" class="home" aria-label="机关主页"><div class="home-intro"><span class="eyebrow">一榫一卯 · 从完整开始</span><h2>挑一件机关，慢慢解开。</h2><p>拖动、转动，再亲手装回。每件机关的进度都会为你保留。</p><button id="continue-game" class="primary">继续把玩</button></div><div id="home-level-list"></div></section>
   <main class="workbench">
+    <div class="play-toolbar" aria-label="游玩工具"><button id="back-home" class="soft" aria-label="返回主页">← 主页</button><button id="toggle-controls" class="soft" aria-label="辅助工具" aria-controls="controls" aria-expanded="false">辅助</button><button id="help" class="icon-button" aria-label="操作说明">${icon('help')}</button></div>
     <div class="level-heading"><div class="eyebrow"><span id="level-index"></span><span class="line"></span><span id="level-difficulty">初识榫卯</span></div><h2 id="level-title"></h2><p id="level-subtitle"></p></div>
     <div class="progress-heading"><span id="phase-label">拆解</span><strong id="progress">0 <small>/ 3</small></strong><span id="move-count">0 次操作</span><button id="phase-toggle" class="soft">尝试复原</button></div>
     <aside class="assembly-reference" aria-label="完整形态参考"><div class="reference-title">完整形态 <span>视角同步</span></div><div id="assembly-preview" aria-label="完整鲁班锁三维参考，拖动可同步旋转视角"></div></aside>
@@ -59,11 +63,12 @@ app.innerHTML = `
     <div id="completion" class="completion" hidden></div>
     <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">直接拖动榫条试探 · 轻点多件可组合，再点取消</p></div>
   </main>
-  <div id="rotation-tools" class="rotation-tools" aria-label="旋转选中零件或组合" hidden><span id="rotation-selection">旋转零件</span><div class="turn-axes" role="group" aria-label="旋转轴">${(['x', 'y', 'z'] as const).map((axis) => `<button id="turn-axis-${axis}" aria-label="绕 ${axis.toUpperCase()} 轴旋转" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}</button>`).join('')}</div><button id="rotate-negative" aria-label="绕选定轴旋转负90度">−90°</button><button id="rotate-positive" aria-label="绕选定轴旋转正90度">+90°</button></div>
+  <div class="play-actions"><button id="restore" class="soft" aria-label="一键复原，回到完整形态重新探索">${icon('reset')}<span>一键复原</span></button><button id="hint" class="hint-button" aria-label="拆解提示，自动执行一步">${icon('bulb')}<span>拆解提示</span></button></div>
+  <div id="rotation-tools" class="rotation-tools" aria-label="旋转选中零件或组合" hidden><span id="rotation-selection">旋转零件</span><div class="turn-axes" role="group" aria-label="旋转轴">${(['x', 'y', 'z'] as const).map((axis) => `<button id="turn-axis-${axis}" aria-label="绕 ${axis.toUpperCase()} 轴旋转" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}</button>`).join('')}</div><label class="angle-control"><span class="sr-only">旋转角度</span><select id="rotation-angle" aria-label="旋转角度"></select></label><button id="rotate-negative" aria-label="绕选定轴旋转负90度">−90°</button><button id="rotate-positive" aria-label="绕选定轴旋转正90度">+90°</button></div>
   <footer id="controls" class="controls" aria-label="可选辅助工具" hidden>
     <div class="pieces-section"><div class="section-label">零件<button id="group-select" class="group-select" aria-label="组合选择多个零件" aria-pressed="false">组合</button></div><div id="pieces" class="piece-list" aria-label="选择零件"></div></div>
     <div class="manipulation"><div class="selected-meta"><span id="selected-dot"></span><strong id="selected-name">选择一个零件</strong><span id="selected-axis">三个方向均可试探</span></div><div class="move-buttons"><button id="nudge-negative" aria-label="沿负方向微调" disabled>${icon('minus')}<span>微移</span></button><div class="axis-choices" role="group" aria-label="移动方向">${(['x', 'y', 'z'] as const).map((axis, i) => `<button id="axis-${axis}" data-axis-choice="${axis}" aria-label="${['X 横向', 'Y 上下', 'Z 纵深'][i]}移动" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}<small>${['横向', '上下', '纵深'][i]}</small></button>`).join('')}</div><button id="nudge-positive" aria-label="沿正方向微调" disabled>${icon('plus')}<span>微移</span></button></div></div>
-    <div class="actions"><div class="history-buttons"><button id="undo" aria-label="撤销" title="撤销">${icon('undo')}</button><button id="redo" aria-label="重做" title="重做">${icon('redo')}</button><button id="restart" aria-label="重新开始" title="重新开始">${icon('reset')}</button></div><div class="hint-actions"><button id="clue" class="hint-button" aria-label="思路提示">思路</button><button id="hint" class="hint-button">${icon('bulb')}<span>下一步</span></button></div></div>
+    <div class="actions"><div class="history-buttons"><button id="undo" aria-label="撤销" title="撤销">${icon('undo')}</button><button id="redo" aria-label="重做" title="重做">${icon('redo')}</button><button id="restart" aria-label="重新开始" title="重新开始">${icon('reset')}</button></div><div class="hint-actions"><button id="clue" class="hint-button" aria-label="思路提示">思路</button></div></div>
   </footer>
   <dialog id="dialog" aria-labelledby="dialog-title"><div class="dialog-top"><span class="eyebrow">榫间 / WORKSHOP</span><button id="close-dialog" class="icon-button" aria-label="关闭">${icon('close')}</button></div><div id="dialog-content"></div></dialog>`;
 
@@ -77,6 +82,9 @@ let run: RunStats = (savedState ? storage.loadRun(level.id) : null) ?? {
 };
 let recordedCompletion = '';
 let recordedDisassembly = false;
+let currentScreen: 'home' | 'play' = 'home';
+let rotationDegrees = 90;
+let hintRequest: AbortController | null = null;
 
 let selected: string | null = null;
 let selectedIds: string[] = [];
@@ -119,6 +127,20 @@ function save() {
 }
 
 function render() {
+  app.dataset.screen = currentScreen;
+  app.dataset.hintPending = String(hintRequest !== null);
+  $('hint').toggleAttribute('disabled', hintRequest !== null || transaction !== null);
+  const hintLabel = hintRequest
+    ? '正在准备…'
+    : state.phase === 'disassemble'
+      ? '拆解提示'
+      : '复原提示';
+  $('hint').querySelector('span')!.textContent = hintLabel;
+  $('hint').setAttribute('aria-label', `${hintLabel}，自动执行一步`);
+  $('rotate-positive').textContent = `+${rotationDegrees}°`;
+  $('rotate-negative').textContent = `−${rotationDegrees}°`;
+  $('rotate-positive').setAttribute('aria-label', `绕选定轴旋转正${rotationDegrees}度`);
+  $('rotate-negative').setAttribute('aria-label', `绕选定轴旋转负${rotationDegrees}度`);
   const progress = getProgress(level, state);
   const bounds = level.pieces.map((piece) =>
     pieceBounds(piece, state.offsets[piece.id]!, state.orientations[piece.id]),
@@ -133,7 +155,7 @@ function render() {
   $('progress').innerHTML = `${done} <small>/ ${progress.total}</small>`;
   $('move-count').textContent = `${state.moves} 次操作 · ${run.hints ? '借助提示' : '自主探索'}`;
   $('phase-toggle').textContent = state.phase === 'disassemble' ? '尝试复原' : '继续拆解';
-  $('rotation-tools').hidden = !selected;
+  $('rotation-tools').hidden = !selected || (Boolean(level.tutorial) && $('controls').hidden);
   $('rotation-selection').textContent =
     selectedIds.length > 1
       ? `旋转 ${selectedIds.map(pieceLetter).join('+')}`
@@ -189,7 +211,7 @@ function render() {
         storage.markDismantled(level.id);
         recordedDisassembly = true;
       }
-      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>一榫一卯，解开了。</h3><p>${level.mechanic ?? '读懂阻挡，再依次让路'} · ${state.moves} 次移动</p></div><p class="completion-record">保留眼前的散件，亲手复原。选中零件可看到它的原位轮廓。</p><button id="reassemble" class="primary">开始复原</button><button id="browse-levels" class="soft full">先逛机关匣</button>`;
+      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>一榫一卯，解开了。</h3><p>${level.mechanic ?? '读懂阻挡，再依次让路'} · ${state.moves} 次移动</p></div><p class="completion-record">${level.tutorial ? '已经学会拆开了！再把木条放回去，试试完整的拆装。' : '保留眼前的散件，亲手复原。选中零件可看到它的原位轮廓。'}</p><button id="reassemble" class="primary">开始复原</button><button id="browse-levels" class="soft full">先逛机关匣</button>`;
       $('browse-levels').onclick = openLevels;
       $('reassemble').onclick = () => {
         cancelActive();
@@ -201,7 +223,11 @@ function render() {
         lastHint = null;
         save();
         render();
-        status('选取一根榫条，向中心推回；装配顺序也藏在槽口里');
+        status(
+          level.tutorial
+            ? '选中青色横榫，向下放回虚线位置；也可以试试复原提示'
+            : '选取一根榫条，向中心推回；装配顺序也藏在槽口里',
+        );
       };
     } else {
       const recordKey = `${level.id}:${run.hints}:${run.disassemblyMoves}:${state.moves}`;
@@ -235,32 +261,20 @@ function render() {
     xray,
     selectedIds,
     activeAxis,
-    lastHint?.kind === 'rotate' ? null : (lastHint?.direction ?? null),
+    null,
     state.phase,
     state.orientations,
   );
-  for (const direction of ['negative', 'positive']) {
-    const highlighted =
-      !!lastHint &&
-      lastHint.kind !== 'rotate' &&
-      lastHint.direction > 0 === (direction === 'positive');
-    $(`nudge-${direction}`).classList.toggle('hint-direction', highlighted);
-    $(`axis-${direction}`).classList.toggle('hint-direction', highlighted);
-  }
-  for (const direction of ['negative', 'positive']) {
-    $(`rotate-${direction}`).classList.toggle(
-      'hint-direction',
-      lastHint?.kind === 'rotate' && lastHint.direction > 0 === (direction === 'positive'),
-    );
-  }
   positionHandles();
 }
 
 function positionHandles() {
+  if (!scene || app.dataset.error) return;
   const stage = $('stage');
   const rect = stage.getBoundingClientRect();
   const exclusions = [
     '.view-tools',
+    '.play-toolbar',
     '.level-heading',
     '.progress-heading',
     '.feedback',
@@ -345,7 +359,9 @@ function select(id: string, additive = false) {
   status(
     selectedIds.length > 1
       ? `已选 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动整组，再点移出，点空白清空`
-      : `已选${piece.name} · 再点取消，点其他件加入组合`,
+      : level.tutorial
+        ? `已选${piece.name} · ${state.phase === 'disassemble' ? (id === 'key' ? '向上拖动试试' : '试试向下拖动，或提起青色横榫') : '拖回虚线位置，两个缺口就能合上'}`
+        : `已选${piece.name} · 再点取消，点其他件加入组合`,
   );
   render();
   const button = $('pieces').querySelector<HTMLElement>(`[data-piece="${id}"]`);
@@ -370,11 +386,18 @@ function tapSelection(id: string | null) {
   status(
     selected
       ? `保留 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动移动，再点移出，点空白清空`
-      : '已取消选择 · 直接拖动单件，或轻点多件组合',
+      : level.tutorial
+        ? '直接拖动青色横榫，就能开始探索'
+        : '已取消选择 · 直接拖动单件，或轻点多件组合',
   );
 }
 
 function cancelActive() {
+  if (hintRequest) {
+    hintRequest.abort();
+    hintRequest = null;
+    render();
+  }
   cancelGesture?.();
   if (transaction) {
     state = cancelTransaction(transaction);
@@ -441,6 +464,10 @@ function updateHintProgress() {
 
 function describeDiscovery(previous: typeof state) {
   if (previous === state || !selected || state.phase !== 'disassemble') return;
+  if (level.tutorial && getProgress(level, state).complete) {
+    status('拆开了 · 点“开始复原”，再把横榫放回去');
+    return;
+  }
   for (const piece of level.pieces.filter((item) => !selectedIds.includes(item.id))) {
     for (const axis of ['x', 'y', 'z'] as const) {
       const free = (pose: typeof state) =>
@@ -588,6 +615,8 @@ function loadLevel(index: number) {
   cancelActive();
   save();
   level = levels[index]!;
+  currentScreen = 'play';
+  configureRotation();
   savedState = storage.load(level);
   state = savedState ?? createGame(level);
   run = (savedState ? storage.loadRun(level.id) : null) ?? {
@@ -625,7 +654,9 @@ function loadLevel(index: number) {
   status(
     state.moves > 0
       ? '已接续上次的进度 · 随时可以撤销和继续尝试'
-      : '直接拖动榫条试探 · 轻点多件可组合，再点取消',
+      : level.tutorial
+        ? level.clue!
+        : '直接拖动榫条试探 · 轻点多件可组合，再点取消',
   );
 }
 
@@ -635,16 +666,22 @@ function openDialog(content: string) {
   if (!dialog.open) dialog.showModal();
 }
 function openLevels() {
+  cancelActive();
+  save();
+  currentScreen = 'home';
+  dialog.close();
+  $('continue-game').textContent = `${state.moves > 0 ? '继续把玩' : '开始把玩'} · ${level.title}`;
+  render();
   const chapters = [...new Set(levels.map((item) => item.chapter ?? '初识榫卯'))];
   const finished = levels.filter((item) => storage.completed(item.id)).length;
-  openDialog(
-    `<h2 id="dialog-title">打开机关匣</h2><p class="dialog-intro">${levels.length} 关 · 已复原 ${finished} / ${levels.length}<br>从完整机关开始，按结构挑选；随时拆解、复原或交替尝试。</p>${chapters
+  $('home-level-list').innerHTML =
+    `<h2>打开机关匣</h2><p class="dialog-intro">${levels.length} 关 · 已复原 ${finished} / ${levels.length}<br>从完整机关开始，按结构挑选；随时拆解、复原或交替尝试。</p>${chapters
       .map((chapter) => {
         const entries = levels.filter((item) => (item.chapter ?? '初识榫卯') === chapter);
         return `<section class="chapter-section"><div class="chapter-heading"><h3>${chapter}</h3><span class="chapter-progress">${entries.filter((item) => storage.completed(item.id)).length} / ${entries.length}</span></div><div class="level-grid">${entries
           .map((item) => {
             const i = levels.indexOf(item);
-            return `<button data-level="${i}" class="level-card ${level.id === item.id ? 'current' : ''}" aria-label="第${i + 1}关 ${item.title}"><span class="level-number">${String(i + 1).padStart(2, '0')}</span><span class="level-info"><strong>${item.title}</strong><small>${item.pieces.length} 件 · ${item.mechanic ?? item.difficulty}</small></span><span class="level-badge">${storage.completed(item.id) ? '已复原' : storage.dismantled(item.id) ? '已解开' : level.id === item.id ? '把玩中' : '可把玩'}</span>${seals(item.id)}</button>`;
+            return `<button data-level="${i}" data-level-id="${item.id}" class="level-card ${level.id === item.id ? 'current' : ''}" aria-label="第${i + 1}关 ${item.title}"><span class="level-number">${String(i + 1).padStart(2, '0')}</span><span class="level-info"><strong>${item.title}</strong><small>${item.pieces.length} 件 · ${item.mechanic ?? item.difficulty}</small></span><span class="level-badge">${storage.completed(item.id) ? '已复原' : storage.dismantled(item.id) ? '已解开' : level.id === item.id ? '把玩中' : '可把玩'}</span>${seals(item.id)}</button>`;
           })
           .join('')}</div></section>`;
       })
@@ -656,9 +693,8 @@ function openLevels() {
         (item) =>
           `<a href="${item.source!.url}" target="_blank" rel="noopener noreferrer">${item.title} · ${item.source!.title} ↗</a>`,
       )
-      .join('')}</div>`,
-  );
-  $('dialog-content')
+      .join('')}</div>`;
+  $('home-level-list')
     .querySelectorAll<HTMLButtonElement>('[data-level]')
     .forEach((button) => {
       button.onclick = () => loadLevel(Number(button.dataset.level));
@@ -697,20 +733,24 @@ function restartLevel() {
     state.orientations,
   );
   scene.resetCamera();
+  configureRotation();
   save();
   render();
   dialog.close();
-  status('重新开始 · 先找找哪根榫条可以移动');
+  status(level.tutorial ? level.clue! : '已回到完整形态 · 开始新一轮探索');
 }
 
 function openHelp() {
   openDialog(
-    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">每件机关以完整形态开始，边拆边观察，也可以随时装回。</p><ol class="help-list"><li><b>01</b><div><strong>直接拖动，轻点组合</strong><p>直接拖动榫条，沿最接近手势的轴移动。轻点多件可组成一组，拖动其中任一件移动整组；再点同一件取消，轻点空白清空选择。</p></div></li><li><b>02</b><div><strong>给旋转留出空间</strong><p>选中单件或组合后，在下方选择 X / Y / Z 轴，点 −90° 或 +90°。绕所选件中心整体旋转，正向遵循右手定则。转动途中碰到其他零件会阻止本次操作，先拆出空隙再试。</p></div></li><li><b>03</b><div><strong>对照完整形态</strong><p>右上角始终显示完整机关，与主画面保持相同观察方向；拖动小窗或主画面空白都能同步旋转视角。双指缩放主画面，观察动作保留选择。</p></div></li><li><b>04</b><div><strong>随时拆解，随时复原</strong><p>点“尝试复原”或“继续拆解”切换观察目标，保留零件位置和撤销记录；两种状态都可自由拆装。选中件的虚线轮廓标示原位，归位需位置和形状朝向吻合。整件搬走不会算拆解完成。</p></div></li></ol><p class="dialog-footnote">辅助工具提供半格微移、透视、看全机关、撤销和提示。电脑可按 Esc 清空选择、方向键微移、Ctrl / ⌘ + Z 撤销。每次移动或90°旋转记一次操作。完整拆解后再复原且全程未用提示可获独立印章。机关匣中可查看每种结构的公开资料。</p><button id="help-done" class="primary full">开始把玩</button>`,
+    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">每件机关以完整形态开始，边拆边观察，也可以随时装回。</p><ol class="help-list"><li><b>01</b><div><strong>直接拖动，轻点组合</strong><p>直接拖动榫条，沿最接近手势的轴移动。轻点多件可组成一组，拖动其中任一件移动整组；再点同一件取消，轻点空白清空选择。</p></div></li><li><b>02</b><div><strong>给旋转留出空间</strong><p>选中单件或组合后，在下方选择 X / Y / Z 轴，选择旋转角度（默认 90°），再点负向或正向旋转。绕所选件中心整体旋转，正向遵循右手定则。转动途中碰到其他零件会阻止本次操作，先拆出空隙再试。</p></div></li><li><b>03</b><div><strong>对照完整形态</strong><p>右上角始终显示完整机关，与主画面保持相同观察方向；拖动小窗或主画面空白都能同步旋转视角。双指缩放主画面，观察动作保留选择。</p></div></li><li><b>04</b><div><strong>随时拆解，随时复原</strong><p>点“尝试复原”或“继续拆解”切换观察目标，保留零件位置和撤销记录；两种状态都可自由拆装。选中件的虚线轮廓标示原位，归位需位置和形状朝向吻合。整件搬走不会算拆解完成。</p></div></li></ol><p class="dialog-footnote">点拆解提示或复原提示，会根据眼前零件的位置和朝向自动完成一步；一键复原可回到完整形态，重新探索，不计复原成绩。返回主页可换机关，当前进度会保留。辅助工具提供半格微移、透视、看全机关和撤销。电脑可按 Esc 清空选择、方向键微移、Ctrl / ⌘ + Z 撤销。每次移动或旋转记一次操作。完整拆解后再复原且全程未用提示可获独立印章。机关匣中可查看每种结构的公开资料。</p><button id="help-done" class="primary full">开始把玩</button>`,
   );
   $('help-done').onclick = () => dialog.close();
 }
 
 $('levels').onclick = openLevels;
+$('back-home').onclick = openLevels;
+$('continue-game').onclick = () => loadLevel(levels.indexOf(level));
+$('restore').onclick = restartLevel;
 $('help').onclick = openHelp;
 $('toggle-controls').onclick = () => {
   cancelActive();
@@ -733,17 +773,38 @@ dialog.addEventListener('click', (event) => {
       dialog.close();
   }
 });
+function setAngleOptions() {
+  const options = [
+    ...new Set([...(level.rotationSteps ?? [5, 15, 30, 45, 90]), 90, rotationDegrees]),
+  ]
+    .filter((value) => Number.isFinite(value) && value >= 1 && value <= 180)
+    .sort((a, b) => a - b);
+  const select = $<HTMLSelectElement>('rotation-angle');
+  select.innerHTML = options.map((value) => `<option value="${value}">${value}°</option>`).join('');
+  select.value = String(rotationDegrees);
+}
+function configureRotation() {
+  rotationDegrees = 90;
+  setAngleOptions();
+}
+$('rotation-angle').onchange = () => {
+  cancelActive();
+  rotationDegrees = Number($<HTMLSelectElement>('rotation-angle').value);
+  render();
+  status(`每次旋转 ${rotationDegrees}° · 已选件会整体绕中心转动`);
+};
+
 function rotateSelection(direction: -1 | 1) {
   if (!selected || transaction) return;
   cancelActive();
-  const result = tryRotate(level, state, selectedIds, activeAxis, direction);
+  const result = tryRotate(level, state, selectedIds, activeAxis, direction, rotationDegrees);
   state = result.state;
   blockedIds = result.blockedBy;
   lastHint = null;
   status(
     result.blocked
       ? '旋转途中会碰到其他零件 · 先移出更多空间再转动'
-      : `${selectedIds.map(pieceLetter).join(' + ')} 已绕 ${activeAxis.toUpperCase()} 轴旋转 ${direction > 0 ? '+' : '−'}90°`,
+      : `${selectedIds.map(pieceLetter).join(' + ')} 已绕 ${activeAxis.toUpperCase()} 轴旋转 ${direction > 0 ? '+' : '−'}${rotationDegrees}°`,
     result.blocked,
   );
   save();
@@ -758,7 +819,9 @@ for (const axis of ['x', 'y', 'z'] as const) {
     blockedIds = [];
     lastHint = null;
     render();
-    status(`绕 ${axis.toUpperCase()} 轴旋转 · 点 −90° 或 +90°，先留出转动空间`);
+    status(
+      `绕 ${axis.toUpperCase()} 轴旋转 · 点 −${rotationDegrees}° 或 +${rotationDegrees}°，先留出转动空间`,
+    );
   };
 }
 $('phase-toggle').onclick = () => {
@@ -841,28 +904,86 @@ $('clue').onclick = () => {
       : (level.clue ?? '看一看接触处：先找到有移动余量的榫条，挪出一点空间，再试相扣的另一根。'),
   );
 };
-$('hint').onclick = () => {
+$('hint').onclick = async () => {
+  if (hintRequest) return;
   cancelActive();
-  lastHint = getHint(level, state);
-  if (lastHint) {
-    run.hints++;
-    selected = lastHint.pieceId;
-    selectedIds = [...lastHint.pieceIds];
-    groupMode = selectedIds.length > 1;
-    activeAxis = lastHint.axis;
-    blockedIds = [];
-    status(lastHint.message);
-  } else
-    status(
-      getProgress(level, state).complete
-        ? '已经完成了，继续下一步吧'
-        : getProgress(level, state).assembled === level.pieces.length &&
-            state.phase === 'reassemble'
-          ? '当前已是完整形态 · 可以先拆开一些，再尝试装回'
-          : '试着撤销一步，换一个方向观察',
-    );
+  const controller = new AbortController();
+  hintRequest = controller;
+  const initialState = state;
+  const initialLevel = level;
   render();
-  save();
+  status('正在观察当前结构…');
+  try {
+    // Give the pending state a frame before the bounded geometry search.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    if (controller.signal.aborted || state !== initialState) return;
+    const hint = getHint(level, state);
+    if (!hint) {
+      status(
+        getProgress(level, state).complete
+          ? '这一阶段已完成'
+          : state.phase === 'reassemble' &&
+              getProgress(level, state).assembled === level.pieces.length
+            ? '当前已是完整形态 · 可以先拆开一些，再尝试装回'
+            : '暂时没有找到可靠的下一步 · 可撤销最近操作，或一键复原后重新探索',
+      );
+      return;
+    }
+    const host = (window as Window & { lubanWorkshopHost?: HintHost }).lubanWorkshopHost;
+    const access = await requestHintAccess(
+      host,
+      {
+        levelId: level.id,
+        phase: state.phase,
+        action: hint.kind === 'rotate' ? 'rotate' : 'move',
+      },
+      { signal: controller.signal },
+    );
+    // A reward belongs to this exact attempt, never to a later gesture or level.
+    if (
+      controller.signal.aborted ||
+      level !== initialLevel ||
+      state !== initialState ||
+      transaction ||
+      currentScreen !== 'play'
+    )
+      return;
+    if (access.status !== 'granted') {
+      status(
+        access.status === 'dismissed'
+          ? '本次提示已取消，零件保持原样'
+          : '提示暂时不可用，请稍后重试',
+      );
+      return;
+    }
+    const next = applyHint(level, state, hint);
+    if (next === state) {
+      status('当前结构已变化，请重新获取提示');
+      return;
+    }
+    state = next;
+    run.hints++;
+    lastHint = hint;
+    selected = hint.pieceId;
+    selectedIds = [...hint.pieceIds];
+    groupMode = selectedIds.length > 1;
+    activeAxis = hint.axis;
+    blockedIds = [];
+    if (hint.kind === 'rotate') {
+      rotationDegrees = hint.rotationDegrees ?? 90;
+      setAngleOptions();
+    }
+    status(`已完成一步 · ${hint.message.replace(/按高亮箭头操作。?/, '')}`);
+    save();
+  } catch (error) {
+    if (!controller.signal.aborted) status('这次未能生成提示，请稍后重试');
+    console.error('Luban hint unavailable', error);
+  } finally {
+    if (hintRequest === controller) {
+      hintRequest = null;
+      render();
+    }
+  }
 };
 $('xray').onclick = () => {
   xray = !xray;
@@ -895,6 +1016,7 @@ const handleObserver = new ResizeObserver(() => requestAnimationFrame(positionHa
 handleObserver.observe($('stage'));
 window.addEventListener('keydown', (event) => {
   if (
+    currentScreen !== 'play' ||
     dialog.open ||
     (event.target instanceof HTMLElement &&
       (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)))
@@ -940,7 +1062,9 @@ try {
   );
   scene.resetCamera();
   mountPieces();
+  configureRotation();
   render();
+  openLevels();
   connectInput();
   app.dataset.ready = 'true';
   if (state.moves > 0) status('已接续上次的进度 · 随时可以撤销和继续尝试');
@@ -948,8 +1072,10 @@ try {
   $('stage').innerHTML =
     `<div class="webgl-error"><h2>暂时无法打开 3D 画面</h2><p>请使用支持 WebGL 2 的新版浏览器，并开启硬件加速。</p><button id="retry" class="primary">重新尝试</button></div>`;
   $('retry').onclick = () => location.reload();
-  for (const id of ['levels', 'xray', 'camera-reset', 'zoom-in', 'zoom-out', 'hint', 'restart'])
-    $(id).setAttribute('disabled', '');
+  app.dataset.screen = 'play';
+  app.dataset.error = 'webgl';
+  for (const button of app.querySelectorAll<HTMLButtonElement>('button'))
+    if (button.id !== 'retry') button.disabled = true;
   status('3D 画面尚未就绪，当前进度已保留');
   console.error('Luban renderer unavailable', error);
 }
@@ -965,6 +1091,9 @@ Object.assign(window, {
       activeAxis,
       groupMode,
       hint: lastHint,
+      rotationDegrees,
+      screen: currentScreen,
+      hintPending: hintRequest !== null,
       run: { ...run },
       record: storage.record(level.id),
       levelCount: levels.length,
@@ -999,11 +1128,13 @@ Object.assign(window, {
   },
 });
 window.addEventListener('pagehide', () => {
+  hintRequest?.abort();
   if (transaction) state = cancelTransaction(transaction);
   save();
 });
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
+    hintRequest?.abort();
     detachTouchButtons();
     compactTools.removeEventListener('change', placeViewTools);
     handleObserver.disconnect();

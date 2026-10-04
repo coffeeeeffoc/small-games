@@ -65,7 +65,7 @@ test('version 1 reassembly saves retain their phase and reverse movement timelin
   for (const saved of [state, undo(state)]) {
     const restored = restoreGame(level, legacySave(saved));
     assert.deepEqual(restored, saved);
-    assert.equal(JSON.parse(serializeGame(restored!)).version, 3);
+    assert.equal(JSON.parse(serializeGame(restored!)).version, 4);
   }
 });
 
@@ -187,7 +187,7 @@ test('malformed versions, metadata, oversized payloads and broken move counts ar
   const initial = createGame(level);
   for (const raw of ['not json', '{}', ' '.repeat(400001)])
     assert.equal(restoreGame(level, raw), null);
-  for (const version of [0, 4, '2', null]) {
+  for (const version of [0, 5, '2', null]) {
     assert.equal(restoreGame(level, JSON.stringify({ version, state: initial })), null);
   }
   for (const metadata of [

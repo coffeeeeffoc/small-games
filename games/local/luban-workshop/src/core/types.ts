@@ -1,6 +1,6 @@
 export type Axis = 'x' | 'y' | 'z';
 export type Vec3 = readonly [number, number, number];
-/** Row-major proper signed permutation matrix: the 24 cube orientations. */
+/** Row-major proper orthonormal rotation matrix, including partial turns. */
 export type Orientation = readonly [
   number,
   number,
@@ -36,11 +36,17 @@ export interface Level {
   description: string;
   difficulty: string;
   estimatedMinutes: string;
+  /** A short hands-on introduction; advanced tools stay optional. */
+  tutorial?: boolean;
   /** A chapter groups puzzles around a shared structure or spatial skill. */
   chapter?: string;
   mechanic?: string;
   clue?: string;
   source?: { title: string; url: string; note?: string };
+  /** Optional angle choices in degrees; omitted levels default to 90°. */
+  rotationSteps?: readonly number[];
+  /** State-matched, validated tutorial suggestions for this mechanism. */
+  hintRules?: readonly HintRule[];
   pieces: readonly PieceDefinition[];
 }
 export type Phase = 'disassemble' | 'reassemble';
@@ -87,8 +93,27 @@ export interface Progress {
   assembled: number;
   complete: boolean;
 }
+export interface HintPoseCondition {
+  pieceId: string;
+  offset?: Vec3;
+  offsetRange?: { min: Vec3; max: Vec3 };
+  orientation?: Orientation;
+  tolerance?: number;
+}
+export interface HintRule {
+  id: string;
+  /** Optional translated rule frame, following this piece's live offset. */
+  relativeToPieceId?: string;
+  phase?: Phase;
+  when?: readonly HintPoseCondition[];
+  action: Hint;
+}
 export interface Hint {
+  /** Pose/phase fingerprint; delayed hints must match before execution. */
+  stateKey?: string;
   kind?: 'move' | 'rotate';
+  /** Angle for rotate hints; omitted preserves the original 90° action. */
+  rotationDegrees?: number;
   pieceId: string;
   pieceIds: string[];
   axis: Axis;

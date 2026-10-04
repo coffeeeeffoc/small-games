@@ -21,7 +21,7 @@ export const markers = {
   'ink-is-everything': '#start-game',
   'out-of-frame': '#board[data-level="1"]',
   'two-sided-box': '#board[data-level]',
-  'luban-workshop': '#stage canvas',
+  'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
   'surprise-kept': '#game[data-ready="true"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
@@ -122,32 +122,31 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
   } else if (id === 'luban-workshop') {
     await expect(frame.locator('#controls')).toBeHidden();
-    await expect(frame.locator('#toggle-controls')).toHaveAttribute('aria-expanded', 'false');
-    await click(frame.locator('#levels'));
-    await click(frame.locator('[data-level="0"]'));
+    await click(frame.locator('#home-level-list [data-level-id="first-lift-v1"]'));
+    await expect(frame.locator('.topbar')).toBeHidden();
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    // The two-piece introduction separates with one automatic hint, no extra nudge.
+    await click(frame.locator('#hint'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-hint-pending', 'false');
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+    await expect(frame.locator('#app')).toHaveAttribute('data-complete', 'true');
+    await click(frame.locator('#reassemble'));
     await click(frame.locator('#toggle-controls'));
     await expect(frame.locator('#controls')).toBeVisible();
-    await expect(frame.locator('#toggle-controls')).toHaveAttribute('aria-expanded', 'true');
-    // Real interlocking structures need the currently movable piece/group.
-    await click(frame.locator('#hint'));
-    const hint = await frame.locator('#app').evaluate(() => globalThis.lubanSnapshot().hint);
-    expect(hint).toBeTruthy();
-    await click(
-      frame.locator(
-        hint.kind === 'rotate'
-          ? `#rotate-${hint.direction > 0 ? 'positive' : 'negative'}`
-          : `#nudge-${hint.direction > 0 ? 'positive' : 'negative'}`,
-      ),
-    );
-    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
-    await expect(frame.locator('#status')).toBeVisible();
     await click(frame.locator('#undo'));
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
     await click(frame.locator('#redo'));
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+    await click(frame.locator('#hint'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-hint-pending', 'false');
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '2');
+    await expect(frame.locator('#app')).toHaveAttribute('data-complete', 'true');
+    await click(frame.locator('#restore'));
+    await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
     await click(frame.locator('#toggle-controls'));
     await expect(frame.locator('#controls')).toBeHidden();
+    await click(frame.locator('#back-home'));
+    await expect(frame.locator('#home')).toBeVisible();
   } else if (id === 'bullet-garden') {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());

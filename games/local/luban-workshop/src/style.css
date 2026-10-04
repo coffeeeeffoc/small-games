@@ -1727,3 +1727,198 @@ dialog h2 {
     right: 212px;
   }
 }
+
+/* Select an object on the home screen; give the entire workbench to play. */
+#app[data-screen='home'] > :not(.topbar, .home, dialog),
+#app[data-screen='play'] > .topbar,
+#app[data-screen='play'] > .home,
+#app[data-screen='play'] .level-heading,
+#app[data-screen='play'] .scene-caption {
+  display: none !important;
+}
+#app[data-screen='home'] {
+  display: flex;
+  min-height: 0;
+}
+.home {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 40px max(24px, calc((100% - 940px) / 2)) max(32px, env(safe-area-inset-bottom));
+}
+.home-intro {
+  margin-bottom: 36px;
+}
+.home-intro h2 {
+  margin: 14px 0;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 500;
+}
+.home-intro p {
+  color: var(--muted);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+#home-level-list > h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+#home-level-list .level-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+#app[data-screen='play'] {
+  min-height: 0;
+}
+.play-toolbar {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.play-toolbar button {
+  background: #122131b8;
+}
+#app[data-screen='play'] .progress-heading {
+  top: max(70px, calc(env(safe-area-inset-top) + 56px));
+  left: 20px;
+  right: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: calc(100% - 160px);
+}
+#app[data-screen='play'] .progress-heading strong {
+  font-size: 20px;
+}
+#app[data-screen='play'] .progress-heading small {
+  font-size: 13px;
+}
+#app[data-screen='play'] #move-count {
+  display: none;
+}
+#app[data-screen='play'] .assembly-reference {
+  top: max(14px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  width: 120px;
+}
+#app[data-screen='play'] #assembly-preview {
+  height: 102px;
+}
+#app[data-screen='play'] .feedback {
+  bottom: 14px;
+  max-width: min(680px, calc(100% - 32px));
+}
+.play-actions {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 6px 12px max(6px, env(safe-area-inset-bottom));
+  background: #142232;
+  border-top: 1px solid var(--line);
+}
+.play-actions button {
+  padding: 0 16px;
+  min-height: 44px;
+}
+.play-actions #hint {
+  min-width: 140px;
+  background: #e6bc7820;
+}
+.angle-control select {
+  color: var(--accent);
+  background: #1c2a3a;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-height: 44px;
+  min-width: 58px;
+  padding: 0 5px;
+  font: inherit;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+.angle-control select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  #rotation-selection {
+    display: none;
+  }
+  .rotation-tools {
+    gap: 4px;
+    padding-inline: 4px;
+  }
+  .turn-axes {
+    gap: 0;
+  }
+  #rotate-negative,
+  #rotate-positive {
+    min-width: 54px;
+    padding: 0 4px;
+  }
+}
+@media (max-width: 370px) {
+  #app[data-screen='play'] .assembly-reference {
+    width: 94px;
+    right: 10px;
+  }
+  #app[data-screen='play'] #assembly-preview {
+    height: 76px;
+  }
+  #app[data-screen='play'] .reference-title span {
+    display: none;
+  }
+  #app[data-screen='play'] .progress-heading {
+    max-width: calc(100% - 125px);
+    gap: 4px 6px;
+  }
+  .home {
+    padding-inline: 18px;
+  }
+}
+@media (max-height: 540px) and (min-width: 480px) and (orientation: landscape) {
+  #app[data-screen='play'] {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  #app[data-screen='play'] .workbench {
+    grid-row: 1;
+  }
+  .play-actions {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  #app[data-screen='play'] .rotation-tools {
+    grid-row: 3;
+    flex-wrap: wrap;
+  }
+  #app[data-screen='play'] .controls {
+    grid-row: 1 / 4;
+  }
+  #app[data-screen='play']:has(#controls:not([hidden])) .assembly-reference {
+    width: 86px;
+    right: 8px;
+  }
+  #app[data-screen='play']:has(#controls:not([hidden])) #assembly-preview {
+    height: 64px;
+  }
+  #app[data-screen='play'] .progress-heading {
+    max-width: calc(100% - 110px);
+  }
+  #app[data-screen='play'] .feedback {
+    bottom: 6px;
+  }
+}

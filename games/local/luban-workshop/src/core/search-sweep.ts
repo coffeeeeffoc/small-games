@@ -1,5 +1,13 @@
-import { axes, axisIndex, EPSILON, finiteVector, selectionIds, worldBox } from './collision.ts';
-import { IDENTITY_ORIENTATION, validOrientation } from './rotation.ts';
+import {
+  axes,
+  axisIndex,
+  EPSILON,
+  finiteVector,
+  selectionIds,
+  sweepMove,
+  worldBox,
+} from './collision.ts';
+import { IDENTITY_ORIENTATION, isCubeOrientation, validOrientation } from './rotation.ts';
 import type { Axis, Level, Offsets, Orientations, PieceDefinition } from './types.ts';
 
 interface Interval {
@@ -54,6 +62,11 @@ export function createSearchSweep(
       )
     )
       return Number.isFinite(current) ? current! : 0;
+    // Cached axis-aligned intervals are exact only for cube orientations.
+    // Oblique pieces need the same swept oriented-box solver as live movement;
+    // their enclosing boxes would incorrectly close real angled clearances.
+    if (orientations && level.pieces.some((piece) => !isCubeOrientation(orientations[piece.id]!)))
+      return sweepMove(level, offsets, ids, requestedOffset, axis, orientations).actualOffset;
     const delta = requestedOffset - current!;
     if (ids.some((id) => !Number.isFinite(offsets[id]![index] + delta))) return current!;
     if (Math.abs(delta) < EPSILON) return current!;

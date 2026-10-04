@@ -33,6 +33,7 @@ export async function exerciseStandalone(
 ) {
   await scope.locator('#app[data-ready="true"]').waitFor();
   const snapshot = () => scope.evaluate(() => window.lubanSnapshot());
+  let activeLevelIndex = 0;
   const settleLayout = () =>
     scope.evaluate(
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
@@ -51,11 +52,24 @@ export async function exerciseStandalone(
       await setControls(true);
     if (mobile) await button.tap();
     else await button.click();
+    if (selector === '#hint') await scope.locator('#app[data-hint-pending="false"]').waitFor();
+  };
+  const openHome = async () => {
+    if (await scope.locator('#back-home').isVisible()) await activate('#back-home');
+    await scope.locator('#home').waitFor({ state: 'visible' });
+  };
+  const enterLevel = async (index = activeLevelIndex) => {
+    await activate(`#home-level-list button[data-level="${index}"]`);
+    activeLevelIndex = index;
+    await scope.locator('#app[data-screen="play"]').waitFor();
+    await settleLayout();
   };
   const reloadGame = async () => {
     if (scope === page) await page.reload();
     else await scope.goto(scope.url());
     await scope.locator('#app[data-ready="true"]').waitFor();
+    await activate('#continue-game');
+    await scope.locator('#app[data-screen="play"]').waitFor();
     await setControls(true);
   };
   const cdp = mobile ? await page.context().newCDPSession(page) : null;
@@ -77,6 +91,9 @@ export async function exerciseStandalone(
         })),
       ),
     });
+    // CDP may acknowledge a terminal touch before its pointer event is rendered.
+    // Observe the completed gesture transaction after the next browser frames.
+    if (type === 'touchEnd' || type === 'touchCancel') await settleLayout();
   };
   const tap = async (point) => {
     if (mobile) {
@@ -183,6 +200,18 @@ export async function exerciseStandalone(
     throw new Error(`Could not locate visible ${id} directly in the scene`);
   };
 
+  assert.equal(await scope.locator('#home').isVisible(), true, 'Launch opens the level catalog');
+  const tutorialCard = scope.locator('#home-level-list button[data-level="0"]');
+  assert.equal(await tutorialCard.getAttribute('data-level-id'), 'first-lift-v1');
+  assert.match(await tutorialCard.innerText(), /初识 · 一提一合/);
+  const complexLevelIndex = Number(
+    await scope
+      .locator('#home-level-list button[data-level-id="burr-interlocking-6-v1"]')
+      .getAttribute('data-level'),
+  );
+  assert.ok(complexLevelIndex > 0, 'The established six-piece lock remains in the catalog');
+  await screenshot('home');
+  await enterLevel(0);
   const mainCanvas = scope.locator('#stage > canvas');
   const layout = await scope.evaluate(() => ({
     width: innerWidth,
@@ -193,13 +222,18 @@ export async function exerciseStandalone(
   assert.ok(layout.canvas.width >= 300 && layout.canvas.height >= 180);
   assert.equal(await scope.locator('#controls').isVisible(), false);
   for (const selector of [
-    '#levels',
+    '#back-home',
     '#help',
     '#toggle-controls',
     '#phase-toggle',
     '#assembly-preview',
+    '#hint',
+    '#restore',
   ])
     assert.ok(await scope.locator(selector).isVisible(), `${selector} must be discoverable`);
+  assert.equal(await scope.locator('.topbar').isVisible(), false, 'Gameplay hides the home header');
+  assert.equal(await scope.locator('#home').isVisible(), false);
+  assert.match(await scope.locator('#hint').innerText(), /拆解提示/);
   assert.equal(await scope.locator('#assembly-preview canvas').count(), 1);
   await screenshot('initial');
 
@@ -216,12 +250,63 @@ export async function exerciseStandalone(
     await activate('#restart');
     await activate('#confirm-restart');
   };
+  const restore = async () => {
+    const before = await snapshot();
+    await activate('#restore');
+    const restored = await snapshot();
+    assert.equal(restored.state.phase, 'disassemble');
+    assert.equal(restored.state.moves, 0);
+    assert.deepEqual(restored.state.history, []);
+    assert.deepEqual(restored.state.future, []);
+    assert.deepEqual(restored.run, { hints: 0, disassemblyMoves: null });
+    assert.deepEqual(restored.record, before.record, 'One-click restore cannot award completion');
+    assert.equal(restored.progress.complete, false);
+    assert.equal(restored.progress.assembled, restored.pieces.length);
+    assert.equal(await scope.locator('#dialog').evaluate((element) => element.open), false);
+    return restored;
+  };
   const selectGroup = async (ids) => {
     await selectSingle(ids[0]);
     await activate('#group-select');
     for (const id of ids.slice(1)) await activate(`[data-piece="${id}"]`);
     assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(ids));
   };
+
+  if (!skipInteractions) {
+    const tutorial = await snapshot();
+    assert.equal(tutorial.state.levelId, 'first-lift-v1');
+    assert.equal(tutorial.pieces.length, 2, 'The first lesson uses only two interlocking bars');
+    const start = await piecePoint('key');
+    await dragAlong(start, 'key', 'y', 2.15);
+    const lifted = await snapshot();
+    assert.equal(lifted.state.moves, 1, 'One upward scene drag teaches the complete first move');
+    assert.equal(lifted.progress.complete, true);
+    assert.equal(lifted.progress.removed, 2);
+    assert.equal(component(lifted, 'key', 'y'), 2);
+    await screenshot('tutorial-lifted');
+    await activate('#reassemble');
+    await activate('#hint');
+    const seated = await snapshot();
+    assert.equal(seated.state.moves, 2, 'One return hint seats the teaching joint');
+    assert.equal(seated.progress.assembled, 2);
+    assert.equal(seated.progress.complete, true);
+    assertPose(seated.state, tutorial.state);
+    await screenshot('tutorial-seated');
+    await restore();
+    await activate('#hint');
+    assert.equal((await snapshot()).state.moves, 1);
+    assert.equal(
+      (await snapshot()).progress.complete,
+      true,
+      'The first hint fully opens the lesson',
+    );
+    await restore();
+  }
+
+  // Keep the established interactions demanding even though the first lesson is now simpler.
+  await openHome();
+  await enterLevel(complexLevelIndex);
+  assert.equal((await snapshot()).pieces.length, 6);
 
   if (!skipInteractions) {
     // Native scene taps add and remove pieces without mutating their poses.
@@ -306,15 +391,7 @@ export async function exerciseStandalone(
 
   await setControls(true);
   assert.ok((await mainCanvas.boundingBox()).height < layout.canvas.height);
-  for (const selector of [
-    '#clue',
-    '#hint',
-    '#restart',
-    '#group-select',
-    '#axis-x',
-    '#axis-y',
-    '#axis-z',
-  ])
+  for (const selector of ['#clue', '#restart', '#group-select', '#axis-x', '#axis-y', '#axis-z'])
     assert.ok(
       await scope.locator(selector).isVisible(),
       `${selector} remains in optional controls`,
@@ -322,14 +399,22 @@ export async function exerciseStandalone(
   await activate('#help');
   assert.equal(await scope.locator('#dialog').evaluate((element) => element.open), true);
   await activate('#help-done');
-  await activate('#levels');
-  const catalog = await scope.locator('button[data-level]').evaluateAll((buttons) =>
-    buttons.map((button) => ({
-      index: Number(button.dataset.level),
-      number: button.querySelector('.level-number')?.textContent.trim(),
-    })),
+  const beforeHome = await snapshot();
+  await openHome();
+  assert.deepEqual(
+    (await snapshot()).state,
+    beforeHome.state,
+    'Home preserves the current attempt',
   );
-  assert.ok(catalog.length > 0);
+  const catalog = await scope
+    .locator('#home-level-list button[data-level]')
+    .evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        index: Number(button.dataset.level),
+        number: button.querySelector('.level-number')?.textContent.trim(),
+      })),
+    );
+  assert.ok(catalog.length >= 11, 'The catalog retains ten puzzles after the first lesson');
   assert.equal(catalog.length, (await snapshot()).levelCount);
   assert.deepEqual(
     catalog.map((item) => item.index),
@@ -340,7 +425,10 @@ export async function exerciseStandalone(
     Array.from({ length: catalog.length }, (_, i) => String(i + 1).padStart(2, '0')),
   );
   await screenshot('level-catalog');
-  await activate('#close-dialog');
+  await activate('#continue-game');
+  await settleLayout();
+  assert.deepEqual((await snapshot()).state, beforeHome.state);
+  await setControls(true);
 
   if (!skipInteractions) {
     await restart();
@@ -351,20 +439,31 @@ export async function exerciseStandalone(
     assert.deepEqual(clue.state, initial.state);
     assert.equal(clue.hint, null);
 
-    // The hint identifies a real legal first move, without encoding one puzzle's geometry.
+    // One hint executes one legal action, and remains an ordinary undoable move.
     await activate('#hint');
     const hinted = await snapshot();
     assert.ok(hinted.hint && hinted.hint.kind !== 'rotate');
     const { pieceId, pieceIds, axis, direction } = hinted.hint;
-    const beforeMove = hinted.state;
-    await activate(direction > 0 ? '#nudge-positive' : '#nudge-negative');
-    const moved = await snapshot();
+    const beforeMove = initial.state;
+    const moved = hinted;
     assert.notDeepEqual(moved.state.offsets, beforeMove.offsets);
     assert.equal(moved.state.moves, beforeMove.moves + 1);
     assert.equal(moved.progress.complete, false);
+    await openHome();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Control+z');
+    assert.deepEqual(
+      (await snapshot()).state,
+      moved.state,
+      'Home keyboard shortcuts cannot manipulate or undo a selected puzzle part',
+    );
+    await activate('#continue-game');
+    await setControls(true);
+    assert.deepEqual((await snapshot()).state, moved.state);
     await activate('#phase-toggle');
     const returning = await snapshot();
     assert.equal(returning.state.phase, 'reassemble');
+    assert.match(await scope.locator('#hint').innerText(), /复原提示/);
     assertPose(returning.state, moved.state);
     assert.deepEqual(returning.state.history, moved.state.history);
     assert.equal(returning.state.moves, moved.state.moves);
@@ -378,6 +477,7 @@ export async function exerciseStandalone(
     await reloadGame();
     assert.deepEqual((await snapshot()).state, moved.state);
     await activate('#undo');
+    assertPose((await snapshot()).state, beforeMove);
 
     // A direct drag follows the same legal motion and remains a single transaction.
     await selectGroup(pieceIds);
@@ -468,6 +568,22 @@ export async function exerciseStandalone(
     await activate('#rotate-negative');
     assertPose((await snapshot()).state, beforeRotation);
 
+    assert.equal(await scope.locator('#rotation-angle').inputValue(), '90');
+    await scope.locator('#rotation-angle').selectOption('15');
+    const beforePartialTurn = (await snapshot()).state;
+    await activate('#rotate-positive');
+    const partialTurn = (await snapshot()).state;
+    assert.equal(partialTurn.moves, beforePartialTurn.moves + 1);
+    assert.ok(
+      Object.values(partialTurn.orientations).some((orientation) =>
+        orientation.some((value) => Math.abs(value) > 0.01 && Math.abs(value) < 0.99),
+      ),
+      'A 15 degree turn retains continuous orientation values',
+    );
+    await activate('#rotate-negative');
+    assertPose((await snapshot()).state, beforePartialTurn);
+    await scope.locator('#rotation-angle').selectOption('90');
+
     // Free group translation keeps every member's relative placement.
     await chooseAxis('x');
     await activate('#camera-reset');
@@ -496,7 +612,94 @@ export async function exerciseStandalone(
     assert.equal((await snapshot()).xray, true);
     await activate('#xray');
     assert.equal((await snapshot()).xray, false);
-    await restart();
+    const restored = await restore();
+    await reloadGame();
+    assert.deepEqual((await snapshot()).state, restored.state, 'One-click restore persists');
+
+    // The optional platform port grants one operation only after reward completion.
+    // The stub supplies host behavior, never a game-state setter or a solver.
+    for (const outcome of ['dismissed', 'unavailable', 'failed']) {
+      await scope.evaluate((status) => {
+        window.lubanWorkshopHost = {
+          session: { capabilities: ['advertising'] },
+          ads: { offer: async () => ({ status }) },
+        };
+      }, outcome);
+      const beforeDenied = await snapshot();
+      await activate('#hint');
+      const afterDenied = await snapshot();
+      assert.deepEqual(afterDenied.state, beforeDenied.state);
+      assert.deepEqual(afterDenied.run, beforeDenied.run, `${outcome} cannot consume a hint`);
+    }
+    await scope.evaluate(() => {
+      window.__lubanHintOffers = [];
+      window.lubanWorkshopHost = {
+        session: { capabilities: ['advertising'] },
+        ads: {
+          offer: (request) => {
+            window.__lubanHintOffers.push(request);
+            return new Promise((resolve) => {
+              window.__finishLubanHint = resolve;
+            });
+          },
+        },
+      };
+    });
+    const startReward = async () => {
+      const before = await snapshot();
+      if (mobile) await scope.locator('#hint').tap();
+      else await scope.locator('#hint').click();
+      await scope.locator('#app[data-hint-pending="true"]').waitFor();
+      assert.equal(await scope.locator('#hint').isDisabled(), true);
+      assert.deepEqual((await snapshot()).state, before.state, 'Pending reward cannot move pieces');
+      return before;
+    };
+    const finishReward = async () => {
+      await scope.evaluate(() => window.__finishLubanHint({ status: 'completed' }));
+      await scope.locator('#app[data-hint-pending="false"]').waitFor();
+      await settleLayout();
+    };
+    const beforeReward = await startReward();
+    await finishReward();
+    assert.equal((await snapshot()).state.moves, beforeReward.state.moves + 1);
+    assert.equal((await snapshot()).run.hints, beforeReward.run.hints + 1);
+    const opportunity = await scope.evaluate(() => window.__lubanHintOffers[0]);
+    assert.equal(opportunity.id, 'luban-workshop.hint.disassemble');
+    assert.deepEqual(opportunity.reward, {
+      levelId: beforeReward.state.levelId,
+      phase: 'disassemble',
+      action: 'move',
+      steps: 1,
+    });
+    await activate('#phase-toggle');
+    const beforeReturnReward = await startReward();
+    await finishReward();
+    assert.equal((await snapshot()).state.moves, beforeReturnReward.state.moves + 1);
+    assert.equal(
+      await scope.evaluate(() => window.__lubanHintOffers.at(-1).id),
+      'luban-workshop.hint.reassemble',
+    );
+    await restore();
+    for (const cancelWith of ['#restore', '#phase-toggle', '#back-home']) {
+      await startReward();
+      await activate(cancelWith);
+      const cancelled = await snapshot();
+      await finishReward();
+      const afterLateReward = await snapshot();
+      assert.deepEqual(
+        afterLateReward.state,
+        cancelled.state,
+        `${cancelWith} invalidates a late hint`,
+      );
+      assert.deepEqual(afterLateReward.run, cancelled.run, 'Cancelled hints cannot consume help');
+      if (cancelWith === '#back-home') await activate('#continue-game');
+      await restore();
+    }
+    await scope.evaluate(() => {
+      delete window.lubanWorkshopHost;
+      delete window.__lubanHintOffers;
+      delete window.__finishLubanHint;
+    });
   }
 
   if (interactionsOnly) {
@@ -505,150 +708,54 @@ export async function exerciseStandalone(
   }
 
   let slowestHintMs = 0;
-  const dragHintTowardTarget = async (hinted) => {
-    const { pieceId, axis, targetOffset, direction } = hinted.hint;
-    const handle = scope.locator(direction > 0 ? '#axis-positive' : '#axis-negative');
-    if (!(await handle.isVisible())) return false;
-    const projected = hinted.pieces.find((piece) => piece.id === pieceId).directions[axis];
-    const from = await handle.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    });
-    const remaining = targetOffset - component(hinted, pieceId, axis);
-    const vector = {
-      x: projected.x * projected.pixelsPerUnit * remaining,
-      y: projected.y * projected.pixelsPerUnit * remaining,
-    };
-    let fraction = 1;
-    for (const coordinate of ['x', 'y']) {
-      if (Math.abs(vector[coordinate]) < 0.001) continue;
-      const low = hinted.stage[coordinate] + 8;
-      const high =
-        hinted.stage[coordinate] + hinted.stage[coordinate === 'x' ? 'width' : 'height'] - 8;
-      const edge = vector[coordinate] > 0 ? high : low;
-      fraction = Math.min(fraction, (edge - from[coordinate]) / vector[coordinate]);
-    }
-    const distance = (direction * Math.floor(Math.abs(remaining) * Math.max(0, fraction) * 2)) / 2;
-    if (Math.abs(distance) < 1 || Math.abs(distance) * projected.pixelsPerUnit < 10) return false;
-    await dragAlong(from, pieceId, axis, distance);
-    return (
-      Math.abs(component(await snapshot(), pieceId, axis) - component(hinted, pieceId, axis)) >
-      0.001
-    );
-  };
-
   const solvePhase = async () => {
     const maximumActions = Math.max(80, (await snapshot()).pieces.length * 40);
     for (let attempt = 0; attempt < maximumActions; attempt++) {
-      const beforeHint = await snapshot();
-      if (beforeHint.progress.complete) return;
+      const before = await snapshot();
+      if (before.progress.complete) return;
       const started = performance.now();
       await activate('#hint');
-      // Keep separated pieces visible so large legal moves use real drag handles.
-      await activate('#camera-reset');
       slowestHintMs = Math.max(slowestHintMs, performance.now() - started);
-      const hinted = await snapshot();
-      assert.ok(hinted.hint, `No hint from a reachable ${hinted.state.phase} state`);
-      if (process.env.BROWSER_TRACE_HINTS) {
+      const after = await snapshot();
+      assert.ok(after.hint, `No hint from a reachable ${after.state.phase} state`);
+      if (process.env.BROWSER_TRACE_HINTS)
         console.log(
           JSON.stringify({
-            level: hinted.state.levelId,
-            phase: hinted.state.phase,
+            level: after.state.levelId,
+            phase: after.state.phase,
             action: attempt,
-            moves: hinted.state.moves,
-            offsets: hinted.state.offsets,
-            hint: hinted.hint,
+            moves: after.state.moves,
+            offsets: after.state.offsets,
+            hint: after.hint,
           }),
         );
-      }
-      assert.equal(
-        hinted.selected,
-        hinted.hint.pieceId,
-        'A hint must highlight the part to manipulate',
-      );
-      const { pieceId, pieceIds, axis, targetOffset, direction } = hinted.hint;
-      if (hinted.hint.kind === 'rotate') {
-        await activate(direction > 0 ? '#rotate-positive' : '#rotate-negative');
-        const afterRotation = await snapshot();
-        assert.notDeepEqual(afterRotation.state.orientations, hinted.state.orientations);
-        assert.equal(afterRotation.state.moves, hinted.state.moves + 1);
-        continue;
-      }
-      assert.deepEqual(new Set(hinted.selectedIds), new Set(pieceIds));
-      assert.equal(hinted.activeAxis, axis, 'Hints must set the movement axis they describe');
-      const selector = direction > 0 ? '#nudge-positive' : '#nudge-negative';
-      const otherDirection = direction > 0 ? '#nudge-negative' : '#nudge-positive';
-      assert.equal(
-        await scope
-          .locator(selector)
-          .evaluate((button) => button.classList.contains('hint-direction')),
-        true,
+      assert.equal(after.state.phase, before.state.phase, 'Assistance preserves the chosen goal');
+      assert.equal(after.state.moves, before.state.moves + 1, 'A hint executes exactly one action');
+      assert.equal(after.run.hints, before.run.hints + 1, 'Only applied assistance counts');
+      assert.notDeepEqual(
+        { offsets: after.state.offsets, orientations: after.state.orientations },
+        { offsets: before.state.offsets, orientations: before.state.orientations },
+        'The suggested operation must actually change the current puzzle pose',
       );
       assert.equal(
-        await scope
-          .locator(otherDirection)
-          .evaluate((button) => button.classList.contains('hint-direction')),
-        false,
+        await scope.locator('.hint-direction').count(),
+        0,
+        'An already applied hint cannot leave a misleading direction cue',
       );
-      assert.deepEqual(
-        hinted.state.offsets,
-        beforeHint.state.offsets,
-        'Revealing a step cannot move pieces',
-      );
-      const axisSelector = direction > 0 ? '#axis-positive' : '#axis-negative';
-      if (await scope.locator(axisSelector).isVisible()) {
-        assert.equal(
-          await scope
-            .locator(axisSelector)
-            .evaluate((button) => button.classList.contains('hint-direction')),
-          true,
-        );
-      }
-      const maximumSteps =
-        Math.ceil(Math.abs(targetOffset - component(hinted, pieceId, axis)) / 0.5) + 1;
-      for (let step = 0; step < maximumSteps; step++) {
-        const currentSnapshot = await snapshot();
-        if (currentSnapshot.progress.complete) return;
-        assert.equal(currentSnapshot.state.phase, hinted.state.phase);
-        const current = component(currentSnapshot, pieceId, axis);
-        if (Math.abs(current - targetOffset) < 0.001) break;
-        // Keep the first half-step as a direction-cue regression, then use a
-        // visible explicit-axis handle for larger moves. Fallback taps are real
-        // native input, without a per-tap Playwright animation wait.
-        const dragged =
-          step > 0 && currentSnapshot.hint && (await dragHintTowardTarget(currentSnapshot));
-        if (!dragged) {
-          const center = await scope.locator(selector).evaluate((element) => {
-            const rect = element.getBoundingClientRect();
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-          });
-          await tap(center);
-        }
-        const afterStep = await snapshot();
-        if (afterStep.progress.complete) return;
-        assert.equal(
-          afterStep.state.phase,
-          hinted.state.phase,
-          'A motion cannot switch the player goal',
-        );
-        const next = component(afterStep, pieceId, axis);
+      if (after.hint.kind !== 'rotate') {
+        const { pieceId, axis, targetOffset } = after.hint;
         assert.ok(
-          Math.abs(next - current) > 0.001,
-          'The suggested motion must be physically executable',
-        );
-        assert.ok(Math.abs(targetOffset - next) < Math.abs(targetOffset - current) + 0.001);
-        assert.equal(
-          await scope
-            .locator(selector)
-            .evaluate((button) => button.classList.contains('hint-direction')),
-          Math.abs(targetOffset - next) > 0.001,
-          'The suggested direction must stay lit until the hinted target is reached',
+          Math.abs(component(after, pieceId, axis) - targetOffset) < 0.000001,
+          'A movement hint executes its complete safe target in one transaction',
         );
       }
-      assert.ok(
-        Math.abs(component(await snapshot(), pieceId, axis) - targetOffset) < 0.001,
-        'The hinted target must be reachable with touch controls',
-      );
+      // Exercise history in both phases without driving the solver through diagnostics.
+      if (attempt === 0 && !after.progress.complete) {
+        await activate('#undo');
+        assertPose((await snapshot()).state, before.state);
+        await activate('#redo');
+        assertPose((await snapshot()).state, after.state);
+      }
     }
     assert.fail(`Puzzle did not complete within ${maximumActions} hinted actions`);
   };
@@ -658,17 +765,17 @@ export async function exerciseStandalone(
   assert.ok(playableLevels.length > 0);
   assert.ok(playableLevels.every((index) => catalog.some((item) => item.index === index)));
   const captureLevels = new Set(playableLevels);
-  for (const [position, index] of playableLevels.entries()) {
-    if (position > 0 || index !== 0) {
-      await activate('#levels');
-      await activate(`button[data-level="${index}"]`);
-    }
+  for (const index of playableLevels) {
+    await openHome();
+    await enterLevel(index);
     const pieceCount = (await snapshot()).pieces.length;
-    assert.ok(pieceCount >= 3, `Level ${index + 1} must contain a complete puzzle`);
+    if (index === 0)
+      assert.equal(pieceCount, 2, 'The first lesson remains a simple two-part joint');
+    else assert.ok(pieceCount >= 3, `Level ${index + 1} must contain a complete puzzle`);
     await solvePhase();
     assert.equal((await snapshot()).progress.removed, pieceCount);
     if (captureLevels.has(index)) await screenshot(`level-${index + 1}-disassembled`);
-    if (position === 0 && !skipInteractions) {
+    if (index === complexLevelIndex && !skipInteractions) {
       const separated = await snapshot();
       let turned;
       for (const piece of separated.pieces) {
@@ -713,9 +820,9 @@ export async function exerciseStandalone(
     console.log(`${screenshotPrefix}: level ${index + 1} disassembly and reassembly passed`);
   }
 
-  await activate('#levels');
+  await openHome();
   const badges = () =>
-    scope.locator('button[data-level]').evaluateAll((buttons) =>
+    scope.locator('#home-level-list button[data-level]').evaluateAll((buttons) =>
       buttons.map((button) => ({
         index: Number(button.dataset.level),
         badge: button.querySelector('.level-badge')?.textContent.trim(),
@@ -731,7 +838,8 @@ export async function exerciseStandalone(
     completedBadges.every((item) => !item.seals.includes('独立')),
     'Step-assisted solves must not earn an independent seal',
   );
-  await activate('#close-dialog');
+  await activate('#continue-game');
+  await setControls(true);
   await activate('#restart');
   await activate('#keep-playing');
   assert.equal(
@@ -751,13 +859,14 @@ export async function exerciseStandalone(
   );
   await reloadGame();
   assert.deepEqual((await snapshot()).state, replayed.state, 'Replay must survive a reload');
-  await activate('#levels');
+  await openHome();
   assert.deepEqual(
     (await badges()).filter((item) => playableLevels.includes(item.index)),
     completedBadges,
     'Replaying a completed puzzle must preserve all completion records after reload',
   );
-  await activate('#close-dialog');
+  await activate('#continue-game');
+  await setControls(true);
   await activate('#restart');
   await activate('#confirm-restart');
   assert.equal((await snapshot()).state.moves, 0);
@@ -797,7 +906,7 @@ export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir 
       })(),
       controls: [
         ...document.querySelectorAll(
-          '.controls button, .topbar button, .view-tools button, .axis-handle, .rotation-tools button, #phase-toggle',
+          '.controls button, .topbar button, .view-tools button, .axis-handle, .rotation-tools button, #rotation-angle, #phase-toggle, #back-home, #help, #toggle-controls, #hint, #restore',
         ),
       ]
         .filter(
@@ -845,12 +954,11 @@ export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir 
     return layout;
   };
   // Start from the six-piece lock so narrow-screen checks exercise the scrollable tray.
-  await page.locator('#levels').tap();
-  await page.locator('button[data-level="0"]').tap();
+  if (await page.locator('#back-home').isVisible()) await page.locator('#back-home').tap();
+  await page.locator('#home-level-list button[data-level-id="burr-interlocking-6-v1"]').tap();
   if ((await page.locator('#toggle-controls').getAttribute('aria-expanded')) !== 'true')
     await page.locator('#toggle-controls').tap();
-  await page.locator('#restart').tap();
-  await page.locator('#confirm-restart').tap();
+  await page.locator('#restore').tap();
   for (const viewport of [
     { width: 320, height: 568 },
     { width: 360, height: 740 },
@@ -892,6 +1000,51 @@ export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir 
       `mobile layout: ${viewport.width}×${viewport.height}, optional controls closed and open passed`,
     );
   }
+}
+
+export async function exerciseUnavailableGraphics(page, url) {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+      if (typeof kind === 'string' && /^(webgl|experimental-webgl)/.test(kind)) return null;
+      return Reflect.apply(getContext, this, [kind, ...args]);
+    };
+  });
+  await page.goto(url);
+  const checkFallback = async () => {
+    await page.locator('#app[data-screen="play"][data-error="webgl"]').waitFor();
+    assert.equal(await page.locator('#retry').isVisible(), true, 'Graphics failure exposes retry');
+    assert.equal(await page.locator('#retry').isEnabled(), true);
+    assert.match(await page.locator('.webgl-error').innerText(), /暂时无法打开 3D 画面/);
+    assert.deepEqual(
+      await page
+        .locator('#app button:not(#retry)')
+        .evaluateAll((buttons) =>
+          buttons.filter((button) => !button.disabled).map((button) => button.id),
+        ),
+      [],
+      'All game actions, including hidden continue and restore, are disabled without graphics',
+    );
+    for (const selector of ['#continue-game', '#restore', '#hint', '#back-home'])
+      assert.equal(await page.locator(selector).isDisabled(), true);
+    assert.deepEqual(errors, [], 'Graphics initialization failure must remain a handled error');
+  };
+  await checkFallback();
+  const state = await page.evaluate(() => window.lubanSnapshot().state);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Control+z');
+  assert.deepEqual(await page.evaluate(() => window.lubanSnapshot().state), state);
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+    page.locator('#retry').click(),
+  ]);
+  await checkFallback();
+  assert.deepEqual(await page.evaluate(() => window.lubanSnapshot().state), state);
+  await mkdir(evidenceDir, { recursive: true });
+  await page.screenshot({ path: resolve(evidenceDir, 'webgl-unavailable.png'), fullPage: true });
+  console.log('WebGL unavailable: visible retry, disabled scene actions, and safe retry passed');
 }
 
 async function runBrowserChecks() {
@@ -946,6 +1099,13 @@ async function runBrowserChecks() {
       headless: true,
       args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
     });
+    const unavailableContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    try {
+      await exerciseUnavailableGraphics(await unavailableContext.newPage(), url);
+    } finally {
+      await unavailableContext.close();
+    }
+    if (process.env.BROWSER_WEBGL_ONLY === '1') return;
     for (const mobile of process.env.BROWSER_MOBILE_ONLY === '1' ? [true] : [false, true]) {
       const context = await browser.newContext({
         viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 960 },
