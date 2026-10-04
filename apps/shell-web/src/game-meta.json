@@ -52,8 +52,8 @@
         "time": "2026-10-03T07:12:45Z"
       },
       "updated": {
-        "commit": "0967cc0c1ac658b61b58a6423f4e59db6eba8715",
-        "time": "2026-10-03T18:39:26Z"
+        "commit": "f3ed9af75e3ff4eef60ea20777f6af502c07d236",
+        "time": "2026-10-04T19:56:06+08:00"
       }
     },
     "carding-car": {
@@ -481,8 +481,8 @@
         "time": "2026-10-03T09:08:53Z"
       },
       "updated": {
-        "commit": "b718e78c4c145e363faca4942eadff70076aeaa0",
-        "time": "2026-10-03T17:38:51Z"
+        "commit": "d8bce26bbd909dcbb17db245d6cbbdd9b9a47ff8",
+        "time": "2026-10-04T12:01:20Z"
       }
     },
     "urban-breakout": {
