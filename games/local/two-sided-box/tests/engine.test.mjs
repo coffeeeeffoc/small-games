@@ -355,3 +355,22 @@ test('validation rejects broken 3D geometry, references, exits and camera assign
     assert.throws(() => createState(level), /无效关卡/);
   }
 });
+
+test('simultaneous revealed faces operate shared mechanisms without switching the camera', () => {
+  const level = fixture();
+  const state = createState(level, { initialFaces: ['front', 'top'] });
+  const initial = structuredClone(state);
+  assert.equal(toggleLatch(level, state, 'lock-A', 'back').ok, false);
+  assert.deepEqual(state, initial, 'An explicit hidden face cannot bypass observation access');
+  assert.equal(moveShaft(level, state, 'B', 1, 'front').ok, false);
+  assert.deepEqual(state, initial, 'A face cannot operate another face’s handle');
+  assert.equal(moveShaft(level, state, 'B', 1, 'top').ok, true);
+  assert.equal(state.side, 'front');
+  assert.equal(revealFace(state, 'back').ok, true);
+  assert.equal(toggleLatch(level, state, 'lock-A', 'back').ok, true);
+  assert.equal(moveShaft(level, state, 'A', 2, 'front').ok, true);
+  assert.equal(getGateStatus(level, state, 'entry').open, true);
+  assert.equal(state.side, 'front');
+  assert.equal(state.flips, 0);
+  assert.equal(state.moves, 3);
+});

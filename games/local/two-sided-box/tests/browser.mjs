@@ -22,6 +22,7 @@ const reportName = smokeOnly
     : 'browser-report.json';
 const runtimeErrors = [],
   checks = [];
+const layouts = [];
 const touchSessions = new WeakMap();
 let server,
   browser,
@@ -115,7 +116,8 @@ async function selectLevel(page, index, mobile = false) {
   assert.equal(s.state.revealedFaces.length, 2);
   assert.equal(new Set(s.initialFaces).size, 2);
   assert.equal(s.state.structureViewed, false);
-  assert.deepEqual(s.board.faces, [s.state.side], 'Only the selected face is exposed');
+  await verifySimultaneous(page, s);
+  assert.equal(Object.keys(s.boards).length, 2, 'Exactly two initial face viewers');
   return s;
 }
 async function reveal(page, face, mobile = false) {
@@ -132,27 +134,58 @@ async function reveal(page, face, mobile = false) {
   await page.locator('#hint-dialog').waitFor({ state: 'hidden' });
   const after = await settled(page);
   assert.ok(after.state.revealedFaces.includes(face));
-  assert.equal(after.state.side, face);
+  assert.equal(after.state.side, before.state.side, 'Revealing does not select a different face');
   assert.equal(after.state.revealedFaces.length, before.state.revealedFaces.length + 1);
   assert.deepEqual(
     physical(after),
     physical(before),
     'Free reveal leaves mechanisms and moves unchanged',
   );
+  await verifySimultaneous(page, after);
+}
+async function verifySimultaneous(page, current = null) {
+  const s = current ?? (await settled(page));
+  assert.deepEqual(
+    Object.keys(s.boards).sort(),
+    [...s.state.revealedFaces].sort(),
+    'Every known face keeps its own live viewer',
+  );
+  assert.deepEqual(
+    await page
+      .locator('canvas[data-face-board]')
+      .evaluateAll((canvases) => canvases.map((canvas) => canvas.dataset.faceBoard).sort()),
+    [...s.state.revealedFaces].sort(),
+  );
+  for (const face of s.state.revealedFaces) {
+    assert.equal(
+      await page.locator('canvas[data-face-board="' + face + '"]').isVisible(),
+      true,
+      face + ' stays visible alongside the other faces',
+    );
+    assert.deepEqual(s.boards[face].faces, [face]);
+    assert.equal(s.boards[face].camera.projection, 'orthographic');
+    assert.equal(s.boards[face].camera.face, face);
+    assert.ok(
+      s.boards[face].projected.controls.every((control) => control.face === face),
+      'A face viewer renders only its own physical controls',
+    );
+  }
+  assert.equal(
+    await page.locator('[role="tab"], [role="tablist"], #flip').count(),
+    0,
+    'The observation table never switches faces through tabs',
+  );
+  assert.equal(
+    await page.locator('#face-nav button[data-revealed="true"]').count(),
+    0,
+    'Revealed face labels do not act as view switches',
+  );
 }
 async function view(page, face, mobile = false) {
+  // Reviewed solutions retain view steps. Observation is now already available
+  // in its own canvas and requires only discovery if the face remains hidden.
   await reveal(page, face, mobile);
-  const before = await snapshot(page);
-  await activate(page.locator('[data-face="' + face + '"]'), mobile);
-  const after = await settled(page);
-  assert.equal(after.state.side, face);
-  assert.deepEqual(physical(after), physical(before), 'Switching observed faces is free');
-  assert.deepEqual(after.board.faces, [face]);
-  assert.equal(after.board.camera.projection, 'orthographic');
-  assert.ok(
-    after.board.projected.controls.every((c) => c.face === face),
-    'Hidden-face controls are not rendered',
-  );
+  await verifySimultaneous(page);
 }
 async function openFullStructure(page, mobile = false) {
   for (const face of FACE_IDS) await reveal(page, face, mobile);
@@ -200,18 +233,20 @@ async function visibleChange(page, action, label, selector) {
   assert.notEqual(after.hash, before.hash, label + ': actual pixels change');
 }
 async function verifyModelSync(page, structure = false) {
-  const s = await settled(page),
-    model = structure ? s.structure : s.board;
-  assert.equal(model.levelId, s.levelId);
-  assert.deepEqual(
-    model.snapshot,
-    JSON.parse(JSON.stringify(s.mechanisms)),
-    'Renderer uses live rules',
-  );
-  assert.deepEqual(model.ball, s.ball, 'Renderer follows the same world-space ball');
-  assert.equal(model.counts.channels, 1, 'One shared ball channel');
+  const s = await settled(page);
+  const models = structure ? [s.structure] : Object.values(s.boards);
+  for (const model of models) {
+    assert.equal(model.levelId, s.levelId);
+    assert.deepEqual(
+      model.snapshot,
+      JSON.parse(JSON.stringify(s.mechanisms)),
+      'Every renderer uses the same live rules',
+    );
+    assert.deepEqual(model.ball, s.ball, 'Every renderer follows the same world-space ball');
+    assert.equal(model.counts.channels, 1, 'One shared ball channel');
+  }
   if (structure) {
-    assert.deepEqual(model.faces, FACE_IDS);
+    assert.deepEqual(s.structure.faces, FACE_IDS);
     const text = await page.locator('#structure-state').innerText();
     for (const gate of s.mechanisms.gates)
       assert.ok(
@@ -225,8 +260,17 @@ async function perform(page, action, mobile = false) {
   if (action.type === 'reveal') await reveal(page, action.face, mobile);
   else if (action.type === 'view') await view(page, action.face, mobile);
   else if (action.type === 'shaft') {
+    const shaft = LEVELS[before.levelIndex].shafts.find((item) => item.id === action.id);
     await activate(
-      page.locator('[data-shaft="' + action.id + '"][data-value="' + action.value + '"]'),
+      page.locator(
+        '[data-face-card="' +
+          shaft.face +
+          '"] [data-shaft="' +
+          action.id +
+          '"][data-value="' +
+          action.value +
+          '"]',
+      ),
       mobile,
     );
     assert.equal(
@@ -235,7 +279,11 @@ async function perform(page, action, mobile = false) {
       'Visible shaft reaches requested notch',
     );
   } else if (action.type === 'latch') {
-    await activate(page.locator('[data-latch="' + action.id + '"]'), mobile);
+    const latch = LEVELS[before.levelIndex].latches.find((item) => item.id === action.id);
+    await activate(
+      page.locator('[data-face-card="' + latch.face + '"] [data-latch="' + action.id + '"]'),
+      mobile,
+    );
     assert.notEqual(
       (await settled(page)).state.latches[action.id],
       before.state.latches[action.id],
@@ -244,6 +292,7 @@ async function perform(page, action, mobile = false) {
   } else if (action.type === 'release') await activate(page.locator('#release'), mobile);
   else assert.equal(action.type, 'advance');
   await settled(page);
+  await verifyModelSync(page);
 }
 async function solve(page, index, { mobile = false, finalHint = false } = {}) {
   await selectLevel(page, index, mobile);
@@ -327,6 +376,11 @@ async function verifyObservation(page) {
   for (let i = 0; i < 6; i++)
     pairs.add((await selectLevel(page, 0)).initialFaces.slice().sort().join(','));
   assert.ok(pairs.size >= 2, 'Fresh attempts choose different legal random pairs');
+  assert.equal(
+    await page.locator('#reward-reveal').isEnabled(),
+    false,
+    'Standalone play does not pretend that an ad was watched',
+  );
   const before = await snapshot(page),
     hidden = FACE_IDS.find((face) => !before.state.revealedFaces.includes(face));
   await activate(page.locator('[data-face="' + hidden + '"]'));
@@ -344,10 +398,11 @@ async function verifyObservation(page) {
   for (const face of FACE_IDS) {
     await view(page, face);
     const s = await snapshot(page),
-      r = await page.locator('#board').boundingBox(),
-      p = s.board.projected.ball;
+      r = await page.locator('canvas[data-face-board="' + face + '"]').boundingBox(),
+      p = s.boards[face].projected.ball;
     projected[face] = [(p.x - r.width / 2) / p.scale, -(p.y - r.height / 2 - 3) / p.scale];
-    assert.ok((await pixels(page, '#board')).colors > 100);
+    assert.ok((await pixels(page, 'canvas[data-face-board="' + face + '"]')).colors > 100);
+    await verifyModelSync(page);
   }
   const near = (a, b) =>
     assert.ok(Math.abs(a - b) < 1e-7, 'Opposite face projections mirror the same world point');
@@ -368,17 +423,25 @@ async function verifyObservation(page) {
   await activate(page.locator('#restart'));
   const restarted = await settled(page);
   assert.equal(restarted.state.moves, 0);
-  assert.deepEqual(restarted.state.revealedFaces, unlocked.state.revealedFaces);
-  assert.equal(restarted.state.structureViewed, true, 'Restart preserves knowledge');
+  assert.equal(restarted.state.revealedFaces.length, 2, 'Restart samples exactly two faces');
+  assert.equal(new Set(restarted.state.revealedFaces).size, 2);
+  assert.equal(restarted.state.structureViewed, false, 'Restart resets structure discovery');
+  await verifySimultaneous(page, restarted);
   checks.push(
-    'Random pairs, free reveals, final hint gating, six true projections, undo/restart knowledge',
+    'Random pairs, simultaneous face discovery, final hint gating, six true projections, undo knowledge and fresh restart',
   );
 }
 async function boardPoint(page, kind, id, value) {
-  await page.locator('#board').scrollIntoViewIfNeeded();
+  const current = await snapshot(page);
+  const mechanisms =
+    kind === 'latch' ? LEVELS[current.levelIndex].latches : LEVELS[current.levelIndex].shafts;
+  const face = mechanisms.find((item) => item.id === id)?.face;
+  assert.ok(face, 'The mechanism belongs to a physical face');
+  const canvas = page.locator('canvas[data-face-board="' + face + '"]');
+  await canvas.scrollIntoViewIfNeeded();
   const s = await settled(page),
-    r = await page.locator('#board').boundingBox();
-  const c = s.board.projected.controls.find((item) => item.type === kind && item.id === id);
+    r = await canvas.boundingBox();
+  const c = s.boards[face].projected.controls.find((item) => item.type === kind && item.id === id);
   assert.ok(c, 'Canvas target exists: ' + id);
   const p =
     kind === 'latch'
@@ -399,10 +462,18 @@ async function dragShaft(page, id, value, cancel = false) {
     physical(before),
     'Drag preview does not commit state',
   );
-  assert.equal((await snapshot(page)).board.preview?.shaft, id, 'Canvas drag creates a preview');
+  const face = LEVELS[before.levelIndex].shafts.find((shaft) => shaft.id === id).face;
+  assert.equal(
+    (await snapshot(page)).boards[face].preview?.shaft,
+    id,
+    'Canvas drag creates a preview',
+  );
   await touch(page, cancel ? 'touchCancel' : 'touchEnd');
   const after = await settled(page);
-  assert.equal(after.board.pointers, 0, 'Release/cancel clears pointer tracking');
+  assert.ok(
+    Object.values(after.boards).every((board) => board.pointers === 0),
+    'Release/cancel clears pointer tracking in every face',
+  );
   if (cancel)
     assert.deepEqual(
       physical(after),
@@ -436,6 +507,7 @@ async function verifyLayout(page, label, structure = false) {
       t.width >= 43.9 && t.height >= 43.9,
       label + ': 44 px touch target: ' + JSON.stringify(t),
     );
+  layouts.push({ label, structure, ...layout });
 }
 async function verifyMobile(viewport, index) {
   const label = viewport.width + 'x' + viewport.height,
@@ -517,6 +589,8 @@ async function verifyMobile(viewport, index) {
     await solve(page, index, { mobile: true, finalHint: index === 24 });
     await activate(page.locator('#replay'), true);
     await verifyLayout(page, label + ' replay');
+    for (const face of FACE_IDS) await reveal(page, face, true);
+    await verifyLayout(page, label + ' simultaneous six faces');
     await page.evaluate(() => scrollTo(0, 0));
     await page.screenshot({
       path: resolve(outputDir, 'six-face-' + label + '.png'),
@@ -565,6 +639,77 @@ async function verifyOptionalStorage() {
       checks.push(mode + ' storage remains playable');
     } finally {
       await optional.close();
+    }
+  }
+}
+async function verifyRewardedDiscovery() {
+  for (const outcome of ['completed', 'dismissed', 'unavailable', 'failed', 'rejected', 'stale']) {
+    const rewarded = await context();
+    await rewarded.addInitScript((outcome) => {
+      window.__testAdCalls = 0;
+      window.twoSidedBoxHost = {
+        session: { capabilities: ['advertising'] },
+        ads: {
+          offer: async () => {
+            window.__testAdCalls += 1;
+            if (outcome === 'stale')
+              return new Promise((resolve) => {
+                window.__testCompleteAd = resolve;
+              });
+            if (outcome === 'rejected') throw new Error('Simulated host failure');
+            return { status: outcome };
+          },
+        },
+      };
+    }, outcome);
+    try {
+      const page = await openGame(rewarded, 'ad-' + outcome);
+      const before = await snapshot(page);
+      const face = FACE_IDS.find((id) => !before.state.revealedFaces.includes(id));
+      await activate(page.locator('#face-nav [data-face="' + face + '"]'));
+      assert.equal(await page.locator('#reward-reveal').isEnabled(), true);
+      await activate(page.locator('#reward-reveal'));
+      await page.waitForFunction(() => window.__testAdCalls === 1);
+      let expected = before;
+      if (outcome === 'stale') {
+        await activate(page.locator('[data-close="hint-dialog"]'));
+        await activate(page.locator('#restart'));
+        expected = await settled(page);
+        await page.evaluate(() => window.__testCompleteAd({ status: 'completed' }));
+      }
+      const after = await settled(page);
+      assert.equal(after.state.revealedFaces.length, outcome === 'completed' ? 3 : 2);
+      assert.deepEqual(physical(after), physical(expected), 'Ad discovery preserves the mechanism');
+      if (outcome === 'completed') {
+        assert.ok(
+          after.state.revealedFaces.includes(face),
+          'Completed reward reveals the selected face',
+        );
+        assert.equal(
+          await page.locator('#hint-dialog[open]').count(),
+          0,
+          'A successful reward displays the newly discovered face',
+        );
+      } else {
+        assert.deepEqual(
+          after.state.revealedFaces,
+          expected.state.revealedFaces,
+          'Incomplete, failed and stale rewards reveal nothing',
+        );
+        if (outcome !== 'stale') {
+          assert.equal(await page.locator('#hint-dialog[open]').count(), 1);
+          assert.match(
+            await page.locator('#reward-note').innerText(),
+            /未看完|无法|不可|失败|暂时/,
+            'The dialog explains why the reward was not granted',
+          );
+        }
+      }
+      await verifySimultaneous(page, after);
+      assert.equal(await page.evaluate(() => window.__testAdCalls), 1);
+      checks.push('Rewarded face discovery: ' + outcome);
+    } finally {
+      await rewarded.close();
     }
   }
 }
@@ -621,11 +766,12 @@ try {
     await verifyMobile({ width: 320, height: 640 }, 24);
     await verifyMobile({ width: 844, height: 390 }, 49);
     await verifyOptionalStorage();
+    await verifyRewardedDiscovery();
   }
   assert.deepEqual(runtimeErrors, [], 'No browser runtime or console errors');
   await writeFile(
     resolve(outputDir, reportName),
-    JSON.stringify({ passed: true, checks, runtimeErrors }, null, 2) + '\n',
+    JSON.stringify({ passed: true, checks, layouts, runtimeErrors }, null, 2) + '\n',
   );
   console.log('PASS: ' + checks.length + ' checks. Report: ' + resolve(outputDir, reportName));
 } catch (error) {
@@ -634,7 +780,8 @@ try {
     .catch(() => {});
   await writeFile(
     resolve(outputDir, reportName),
-    JSON.stringify({ passed: false, checks, runtimeErrors, error: error.stack }, null, 2) + '\n',
+    JSON.stringify({ passed: false, checks, layouts, runtimeErrors, error: error.stack }, null, 2) +
+      '\n',
   ).catch(() => {});
   console.error(error);
   if (runtimeErrors.length) console.error(runtimeErrors);

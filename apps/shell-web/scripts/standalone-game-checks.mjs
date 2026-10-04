@@ -707,28 +707,30 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#face-nav [data-face]')).toHaveCount(6);
     await expect(frame.locator('#face-nav [data-revealed="true"]')).toHaveCount(2);
     expect((await snapshot()).state.structureViewed).toBe(false);
+    await expect(frame.locator('canvas[data-face-board]')).toHaveCount(2);
+    await expect(frame.locator('[role="tab"], [role="tablist"], #flip')).toHaveCount(0);
     const view = async (face) => {
       const before = (await snapshot()).state;
-      const tab = frame.locator(`[data-face="${face}"]`);
-      await click(tab);
       if (!before.revealedFaces.includes(face)) {
+        await click(frame.locator(`#face-nav [data-face="${face}"]`));
         await expect(frame.locator('#hint-dialog')).toBeVisible();
         await expect(frame.locator('#reveal-structure')).toHaveCount(0);
         await click(frame.locator(`[data-reveal-face="${face}"]`));
         await expect(frame.locator('#hint-dialog')).not.toBeVisible();
       }
-      await expect.poll(async () => (await snapshot()).state.side).toBe(face);
-      await expect(frame.locator('#board')).toHaveAttribute('data-side', face);
       const after = await snapshot();
-      expect(after.board.faces).toEqual([face]);
+      expect(after.boards[face].faces).toEqual([face]);
+      expect(Object.keys(after.boards).sort()).toEqual([...after.state.revealedFaces].sort());
+      await expect(frame.locator(`canvas[data-face-board="${face}"]`)).toBeVisible();
       expect(after.state.shafts).toEqual(before.shafts);
       expect(after.state.latches).toEqual(before.latches);
       expect(after.state.moves).toBe(before.moves);
+      expect(after.state.side).toBe(before.side);
     };
     // Initial observations are random; discover the actual control faces through
     // the same reveal flow available to the player before operating the box.
     await view('front');
-    const upperNotch = frame.locator('[data-shaft="A"][data-value="2"]');
+    const upperNotch = frame.locator('[data-face-card="front"] [data-shaft="A"][data-value="2"]');
     const initialState = (await snapshot()).state;
     await click(upperNotch);
     await expect.poll(async () => (await snapshot()).state).toEqual(initialState);

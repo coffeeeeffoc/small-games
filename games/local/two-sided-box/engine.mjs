@@ -319,7 +319,7 @@ export function revealFace(state, face) {
   if (!FACE_IDS.includes(face)) return failure('不存在这个观察面。');
   const changed = !state.revealedFaces.includes(face);
   if (changed) state.revealedFaces.push(face);
-  return success(`已揭示${faceLabel(face)}，可随时切换观察。`, { changed });
+  return success(`已揭示${faceLabel(face)}，所有已知面同时保留在观察台。`, { changed });
 }
 
 export function revealStructure(state) {
@@ -329,11 +329,11 @@ export function revealStructure(state) {
   return success('完整 3D 结构已打开，可旋转观察或切换透视。');
 }
 
-export function moveShaft(level, state, id, value) {
+export function moveShaft(level, state, id, value, face = state.side) {
   const shaft = shaftById(level, id);
   if (!shaft) return failure('找不到这根滑轴。');
   if (state.completed) return failure('小球已经抵达终点。');
-  if (state.side !== shaft.face || !state.revealedFaces.includes(shaft.face))
+  if (face !== shaft.face || !state.revealedFaces.includes(shaft.face))
     return failure(`${shaft.label}的操作柄在${faceLabel(shaft.face)}。`);
   if (!Number.isInteger(value) || value < shaft.min || value > shaft.max)
     return failure('滑轴只能停在标记的挡位。');
@@ -352,12 +352,12 @@ export function moveShaft(level, state, id, value) {
   });
 }
 
-export function toggleLatch(level, state, id) {
+export function toggleLatch(level, state, id, face = state.side) {
   const latch = latchById(level, id);
   if (!latch) return failure('找不到这个锁扣。');
   if (state.completed) return failure('小球已经抵达终点。');
-  if (state.side !== latch.face || !state.revealedFaces.includes(latch.face))
-    return failure(`这个锁扣在${faceLabel(latch.face)}，先切换观察面。`);
+  if (face !== latch.face || !state.revealedFaces.includes(latch.face))
+    return failure(`这个锁扣在${faceLabel(latch.face)}，请在该面的观察窗操作。`);
   if (state.latches[id]) {
     const alignment = latchAlignment(level, state, latch);
     if (!alignment.aligned) return failure(alignment.message);

@@ -12,6 +12,7 @@ for (const file of [
   'faces.mjs',
   'geometry.mjs',
   'reveal-access.mjs',
+  'rewards.mjs',
   'touch-buttons.mjs',
   'engine.mjs',
   'levels.mjs',

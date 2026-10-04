@@ -4,7 +4,6 @@ import {
   createState,
   moveShaft,
   toggleLatch,
-  viewFace,
   revealFace,
   revealStructure,
   releaseBall,
@@ -15,6 +14,7 @@ import { createStructureViewer } from './structure-view.mjs';
 import { createRevealAccess } from './reveal-access.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
 import { installTouchButtons } from './touch-buttons.mjs';
+import { canOfferReward, offerFaceReward } from './rewards.mjs';
 
 installTouchButtons(document);
 
@@ -48,13 +48,12 @@ let structureExploded = false;
 let structureForCompletion = false;
 let switchingLevel = false;
 let revealPending = false;
+let rewardPending = false;
+let observationRequest = 0;
+let rewardController;
+let rewardFeedback = '';
 let selectedReveal = null;
-
-const boardViewer = createStructureViewer($('#board'), {
-  mode: 'face',
-  onShaft: (id, value) => change(() => moveShaft(level(), state, id, value)),
-  onLatch: (id) => change(() => toggleLatch(level(), state, id)),
-});
+const faceBoards = new Map();
 
 const remember = () => ({ state: clone(state), ball: [...ball], ballPathCursor });
 const save = () => saveProgress(storage, progress);
@@ -92,33 +91,31 @@ function renderFaces() {
   $('#face-nav').replaceChildren(
     ...FACE_IDS.map((face) => {
       const known = state.revealedFaces.includes(face);
-      const button = document.createElement('button');
-      button.dataset.face = face;
-      button.dataset.revealed = String(known);
-      button.setAttribute('aria-current', String(state.side === face));
-      button.setAttribute('aria-label', known ? `观察${faceName(face)}` : `揭示${faceName(face)}`);
-      button.textContent = faceName(face);
+      const marker = document.createElement(known ? 'span' : 'button');
+      marker.dataset.face = face;
+      marker.dataset.revealed = String(known);
+      marker.className = known ? 'face-marker revealed' : 'face-marker';
+      marker.setAttribute(
+        'aria-label',
+        known ? `${faceName(face)}已展开` : `揭示${faceName(face)}`,
+      );
+      marker.textContent = faceName(face);
       if (!known) {
-        const marker = document.createElement('small');
-        marker.textContent = '？';
-        marker.setAttribute('aria-hidden', 'true');
-        button.append(marker);
+        const note = document.createElement('small');
+        note.textContent = '提示展开';
+        note.setAttribute('aria-hidden', 'true');
+        marker.append(note);
+        marker.disabled = revealPending || state.completed;
+        marker.addEventListener('click', () => openHint(face));
       }
-      button.addEventListener('click', () => {
-        if (!known) return openHint(face);
-        const result = viewFace(state, face);
-        if (!result.ok) return message(result.message, true);
-        feedback = `${faceName(face)}观察窗。可以操作本面的滑轴和锁扣。`;
-        update();
-      });
-      return button;
+      return marker;
     }),
   );
 }
 
-function renderControls(snapshot) {
+function renderControls(snapshot, face, target) {
   const fragment = document.createDocumentFragment();
-  for (const shaft of snapshot.shafts.filter((item) => item.face === state.side)) {
+  for (const shaft of snapshot.shafts.filter((item) => item.face === face)) {
     const row = document.createElement('div');
     row.className = 'control-row';
     const label = document.createElement('span');
@@ -134,17 +131,17 @@ function renderControls(snapshot) {
       button.dataset.value = String(value);
       button.setAttribute('aria-label', `${shaft.id} 轴${positions[value]}位`);
       button.setAttribute('aria-pressed', String(shaft.value === value));
-      button.disabled = ballMoving || state.completed;
+      button.disabled = ballMoving || state.completed || revealPending;
       button.textContent = positions[value];
       button.addEventListener('click', () =>
-        change(() => moveShaft(level(), state, shaft.id, value)),
+        change(() => moveShaft(level(), state, shaft.id, value, face)),
       );
       detents.append(button);
     }
     row.append(label, detents);
     fragment.append(row);
   }
-  for (const latch of snapshot.latches.filter((item) => item.face === state.side)) {
+  for (const latch of snapshot.latches.filter((item) => item.face === face)) {
     const row = document.createElement('div');
     row.className = 'control-row';
     const label = document.createElement('span');
@@ -163,19 +160,74 @@ function renderControls(snapshot) {
     button.dataset.latch = latch.id;
     button.setAttribute('aria-label', `${latch.engaged ? '松开' : '扣紧'}${latch.shaft}轴锁扣`);
     button.setAttribute('aria-pressed', String(latch.engaged));
-    button.disabled = ballMoving || state.completed;
+    button.disabled = ballMoving || state.completed || revealPending;
     button.textContent = latch.engaged ? '松开锁扣' : '扣紧锁扣';
-    button.addEventListener('click', () => change(() => toggleLatch(level(), state, latch.id)));
+    button.addEventListener('click', () =>
+      change(() => toggleLatch(level(), state, latch.id, face)),
+    );
     row.append(label, button);
     fragment.append(row);
   }
   if (!fragment.childNodes.length) {
     const note = document.createElement('p');
     note.className = 'empty-face';
-    note.textContent = '这一面没有可操作的把手或锁扣。观察其他已知面，或揭示另一个角度。';
+    note.textContent = '机关检视窗 · 这一面展示内部联动，可在其他已展开的面上操作。';
     fragment.append(note);
   }
-  $('#face-controls').replaceChildren(fragment);
+  target.replaceChildren(fragment);
+}
+
+function renderBoards(snapshot) {
+  for (const face of state.revealedFaces) {
+    let entry = faceBoards.get(face);
+    if (!entry) {
+      const card = document.createElement('section');
+      card.className = 'face-card';
+      card.dataset.faceCard = face;
+      card.setAttribute('aria-label', `${faceName(face)}观察窗`);
+      const heading = document.createElement('header');
+      heading.className = 'face-heading';
+      const title = document.createElement('h3');
+      title.textContent = faceName(face);
+      const note = document.createElement('span');
+      note.textContent = '同一只盒子 · 实时联动';
+      heading.append(title, note);
+      const canvas = document.createElement('canvas');
+      canvas.dataset.faceBoard = face;
+      canvas.tabIndex = 0;
+      canvas.setAttribute('role', 'img');
+      canvas.setAttribute('aria-label', `${faceName(face)}机关盒，可拖动滑轴或点按锁扣`);
+      canvas.setAttribute('aria-describedby', 'board-gesture status');
+      canvas.textContent = '机关画面不可用，可使用本面下方的档位和锁扣按钮。';
+      const controls = document.createElement('div');
+      controls.className = 'face-controls';
+      controls.setAttribute('aria-label', `${faceName(face)}机关操作`);
+      card.append(heading, canvas, controls);
+      $('#board').append(card);
+      const viewer = createStructureViewer(canvas, {
+        mode: 'face',
+        face,
+        onShaft: (id, value) => change(() => moveShaft(level(), state, id, value, face)),
+        onLatch: (id) => change(() => toggleLatch(level(), state, id, face)),
+      });
+      entry = { card, viewer, controls };
+      faceBoards.set(face, entry);
+    }
+    entry.viewer.update(level(), state, ball);
+    renderControls(snapshot, face, entry.controls);
+  }
+  $('#board').dataset.level = level().id;
+  $('#board').dataset.status = state.completed ? 'won' : 'playing';
+}
+
+function updateBoards() {
+  for (const { viewer } of faceBoards.values()) viewer.update(level(), state, ball);
+}
+
+function clearBoards() {
+  for (const { viewer } of faceBoards.values()) viewer.destroy();
+  faceBoards.clear();
+  $('#board').replaceChildren();
 }
 
 function updateStructure() {
@@ -201,6 +253,7 @@ function updateStructure() {
 
 function update() {
   const focused = document.activeElement;
+  const focusedFace = focused?.closest('[data-face-card]')?.dataset.faceCard;
   const focusKey = focused?.dataset.shaft
     ? `[data-shaft="${focused.dataset.shaft}"][data-value="${focused.dataset.value}"]`
     : focused?.dataset.latch
@@ -208,14 +261,14 @@ function update() {
       : focused?.dataset.face
         ? `[data-face="${focused.dataset.face}"]`
         : null;
-  boardViewer.update(level(), state, ball);
   const snapshot = getSnapshot(level(), state);
+  renderBoards(snapshot);
   $('#chapter-name').textContent = `第 ${level().chapter.number} 章 · ${level().chapter.title}`;
   $('#level-number').textContent = String(level().number).padStart(2, '0');
   $('#level-title').textContent = level().title;
   $('#difficulty').textContent = level().difficulty;
   $('#intro').textContent = level().intro;
-  $('#side-name').textContent = faceName(state.side);
+  $('#side-name').textContent = `${state.revealedFaces.length} 面同时展开`;
   $('#move-count').textContent = state.moves;
   $('#status').textContent = feedback;
   $('#collection-count').textContent = `${Object.keys(progress.best).length} / ${LEVELS.length}`;
@@ -224,15 +277,16 @@ function update() {
     ? '重看完整 3D'
     : state.revealedFaces.length === 6
       ? '最终提示：完整 3D'
-      : '揭示另一面';
+      : '提示 · 展开一面';
   $('#hint [data-label]').textContent = hintLabel;
-  $('#release').disabled = state.released || state.completed || ballMoving;
+  $('#hint').disabled = revealPending || state.completed;
+  $('#release').disabled = state.released || state.completed || ballMoving || revealPending;
   $('#release [data-label]').textContent = state.completed
     ? '已进入终点'
     : state.released
       ? '小球已出发'
       : '放出小球';
-  $('#undo').disabled = !history.length || ballMoving || state.completed;
+  $('#undo').disabled = !history.length || ballMoving || state.completed || revealPending;
   $('#ball-state').textContent = state.completed
     ? '已进入终点'
     : ballMoving
@@ -243,13 +297,16 @@ function update() {
   $('#sound').textContent = progress.sound ? '关闭音效' : '开启音效';
   $('#sound').setAttribute('aria-pressed', String(progress.sound));
   renderFaces();
-  renderControls(snapshot);
-  if (focusKey) document.querySelector(focusKey)?.focus({ preventScroll: true });
+  if (focusKey) {
+    const scope = focusedFace ? faceBoards.get(focusedFace)?.card : document;
+    scope?.querySelector(focusKey)?.focus({ preventScroll: true });
+  }
+  if ($('#hint-dialog').open) renderHint();
   updateStructure();
 }
 
 function change(action) {
-  if (state.completed || ballMoving) return;
+  if (state.completed || ballMoving || revealPending) return;
   const before = remember();
   const result = action();
   if (!result.ok) return message(result.message, true);
@@ -273,7 +330,7 @@ async function animateTo(index, token) {
         if (token !== generation) return resolve(false);
         const fraction = Math.min(1, (now - began) / duration);
         ball = start.map((v, i) => v + (target[i] - v) * fraction);
-        boardViewer.update(level(), state, ball);
+        updateBoards();
         if ($('#structure-dialog').open) structureViewer?.update(level(), state, ball);
         if (fraction < 1) requestAnimationFrame(tick);
         else resolve(true);
@@ -319,35 +376,23 @@ function loadLevel(index, restart = false) {
   switchingLevel = true;
   generation += 1;
   access.invalidate();
+  rewardController?.abort();
+  observationRequest += 1;
   revealPending = false;
+  rewardPending = false;
   structureForCompletion = false;
   ballMoving = false;
-  const previousKnowledge = restart
-    ? {
-        faces: [...state.revealedFaces],
-        structure: state.structureViewed,
-        side: state.side,
-        initial: [...initialFaces],
-      }
-    : null;
   closeDialogs();
+  clearBoards();
   levelIndex = index;
-  state = createState(
-    level(),
-    previousKnowledge ? { initialFaces: previousKnowledge.initial } : {},
-  );
-  initialFaces = previousKnowledge?.initial ?? [...state.revealedFaces];
-  if (previousKnowledge) {
-    state.revealedFaces = previousKnowledge.faces;
-    state.structureViewed = previousKnowledge.structure;
-    state.side = previousKnowledge.side;
-  }
+  state = createState(level());
+  initialFaces = [...state.revealedFaces];
   history = [];
   ball = [...level().path[0]];
   ballPathCursor = 0;
   feedback = restart
-    ? '机关已复位，已经观察过的角度保留。'
-    : `先从${initialFaces.map(faceName).join('和')}观察。${level().intro}`;
+    ? `机关已复位，重新随机展开${initialFaces.map(faceName).join('和')}。`
+    : `先从${initialFaces.map(faceName).join('和')}同时观察。${level().intro}`;
   progress.selected = index;
   save();
   update();
@@ -358,7 +403,7 @@ function renderHint() {
   const hidden = FACE_IDS.filter((face) => !state.revealedFaces.includes(face));
   $('#hint-title').textContent = hidden.length ? '从哪一面继续看？' : '最后一条线索：完整结构';
   $('#hint-copy').textContent = hidden.length
-    ? `已观察 ${state.revealedFaces.length} 面。选一个新角度，查看它的滑轴、锁扣和孔板。`
+    ? `已展开 ${state.revealedFaces.length} 面。选一个新角度，所有已展开的面都会留在同一个观察台。`
     : '六面已揭示。现在可以旋转完整结构，并选择是否透视外壳。';
   const options =
     selectedReveal && hidden.includes(selectedReveal)
@@ -392,11 +437,28 @@ function renderHint() {
           })(),
         ]),
   );
+  const rewardFace = options[0];
+  $('#reward-reveal').hidden = !hidden.length;
+  $('#reward-note').hidden = !hidden.length;
+  $('#reward-reveal').disabled =
+    revealPending || ballMoving || state.completed || !canOfferReward(window.twoSidedBoxHost);
+  $('#reward-reveal').textContent = rewardPending
+    ? '等待视频奖励…'
+    : rewardFace
+      ? `看视频 · 展开${faceName(rewardFace)}`
+      : '六面已全部展开';
+  $('#reward-note').textContent =
+    rewardFeedback ||
+    (canOfferReward(window.twoSidedBoxHost)
+      ? '完整观看后展开这一面，也可以直接使用上方的免费提示。'
+      : '当前暂无可用视频，可使用上方的免费提示展开。');
 }
 
 function openHint(face = null) {
+  if (revealPending || state.completed) return;
   if (state.structureViewed) return openStructure(false);
   selectedReveal = face;
+  rewardFeedback = '';
   $('#reveal-feedback').textContent = '';
   renderHint();
   $('#hint-dialog').showModal();
@@ -405,11 +467,12 @@ function openHint(face = null) {
 async function requestObservation(kind, face) {
   if (revealPending) return;
   const token = generation;
+  const request = ++observationRequest;
   revealPending = true;
   renderHint();
   $('#reveal-feedback').textContent = '正在打开观察窗…';
   const grant = await access.request({ kind, face, levelId: level().id });
-  if (token !== generation || !$('#hint-dialog').open) return;
+  if (token !== generation || request !== observationRequest || !$('#hint-dialog').open) return;
   revealPending = false;
   if (!grant.granted) {
     $('#reveal-feedback').textContent = '这次没有打开，可以稍后重试。';
@@ -424,13 +487,54 @@ async function requestObservation(kind, face) {
   }
   $('#hint-dialog').close();
   if (kind === 'face') {
-    viewFace(state, face);
-    feedback = `已揭示${faceName(face)}。查看新出现的机关如何与已知部分相连。`;
+    feedback = `已展开${faceName(face)}。所有已知面同时保留，机关位置不变。`;
     update();
   } else {
     update();
     openStructure(false);
   }
+}
+
+async function requestRewardedFace() {
+  const hidden = FACE_IDS.filter((face) => !state.revealedFaces.includes(face));
+  if (
+    revealPending ||
+    ballMoving ||
+    state.completed ||
+    !hidden.length ||
+    !canOfferReward(window.twoSidedBoxHost)
+  )
+    return;
+  const face = hidden.includes(selectedReveal) ? selectedReveal : hidden[0];
+  const token = generation;
+  const request = ++observationRequest;
+  rewardController = new AbortController();
+  rewardPending = true;
+  revealPending = true;
+  rewardFeedback = '';
+  update();
+  const outcome = await offerFaceReward(window.twoSidedBoxHost, face, {
+    signal: rewardController.signal,
+  });
+  if (token !== generation || request !== observationRequest || !$('#hint-dialog').open) return;
+  rewardController = null;
+  rewardPending = false;
+  revealPending = false;
+  if (outcome.status === 'completed') {
+    const result = revealFace(state, face);
+    if (result.ok) {
+      $('#hint-dialog').close();
+      feedback = `视频奖励已完成，${faceName(face)}已展开。所有已知面同时保留。`;
+      sound();
+      update();
+      return;
+    }
+  }
+  rewardFeedback =
+    outcome.status === 'dismissed'
+      ? '视频未看完，没有展开新面。也可以使用免费提示。'
+      : '暂时无法播放视频，没有展开新面。可以使用免费提示。';
+  update();
 }
 
 function openStructure(forCompletion) {
@@ -508,9 +612,10 @@ function openLevels() {
 
 $('#release').addEventListener('click', () => change(() => releaseBall(level(), state)));
 $('#hint').addEventListener('click', () => openHint());
+$('#reward-reveal').addEventListener('click', () => void requestRewardedFace());
 $('#restart').addEventListener('click', () => loadLevel(levelIndex, true));
 $('#undo').addEventListener('click', () => {
-  if (!history.length || ballMoving || state.completed) return;
+  if (!history.length || ballMoving || state.completed || revealPending) return;
   generation += 1;
   const knowledge = {
     revealedFaces: [...state.revealedFaces],
@@ -539,7 +644,7 @@ $('#sound').addEventListener('click', () => {
 });
 $('#start').addEventListener('click', () => {
   $('#welcome').close();
-  boardViewer.resize();
+  for (const { viewer } of faceBoards.values()) viewer.resize();
 });
 $('#next').addEventListener('click', () => {
   $('#result').close();
@@ -560,7 +665,12 @@ $('#structure-dialog').addEventListener('close', () => {
 });
 $('#hint-dialog').addEventListener('close', () => {
   access.invalidate();
+  rewardController?.abort();
+  rewardController = null;
+  observationRequest += 1;
   revealPending = false;
+  rewardPending = false;
+  if (!switchingLevel) update();
 });
 $('#structure-xray').addEventListener('click', () => {
   structureXray = !structureXray;
@@ -608,8 +718,14 @@ window.__twoSidedSnapshot = () =>
     historyLength: history.length,
     progress,
     revealPending,
+    rewardPending,
     mechanisms: getSnapshot(level(), state),
-    board: boardViewer.getSnapshot(),
+    boards: Object.fromEntries(
+      [...faceBoards].map(([face, entry]) => [face, entry.viewer.getSnapshot()]),
+    ),
+    board:
+      (faceBoards.get(state.side) ?? faceBoards.values().next().value)?.viewer.getSnapshot() ??
+      null,
     structure: structureViewer?.getSnapshot() ?? null,
     structureOpen: $('#structure-dialog').open,
   });

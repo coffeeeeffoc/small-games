@@ -18,7 +18,8 @@ export function createStructureViewer(canvas, options = {}) {
   const context = canvas.getContext('2d');
   if (!context) throw new Error('当前浏览器无法显示机关盒。');
   const mode = options.mode === 'face' ? 'face' : 'structure';
-  let basisFace = 'front';
+  const fixedFace = mode === 'face' && FACE_IDS.includes(options.face) ? options.face : null;
+  let basisFace = fixedFace ?? 'front';
   let yaw = mode === 'face' ? 0 : -0.58;
   let pitch = mode === 'face' ? 0 : 0.35;
   let magnification = 1;
@@ -47,7 +48,8 @@ export function createStructureViewer(canvas, options = {}) {
       : '机关盒 3D 结构。拖动旋转，双指或滚轮缩放，方向键旋转。',
   );
   canvas.dataset.mode = mode;
-  canvas.dataset.view = mode === 'face' ? 'front' : 'angled';
+  canvas.dataset.view = mode === 'face' ? basisFace : 'angled';
+  if (mode === 'face') canvas.dataset.face = basisFace;
 
   function on(type, handler, eventOptions) {
     canvas.addEventListener(type, handler, eventOptions);
@@ -116,11 +118,72 @@ export function createStructureViewer(canvas, options = {}) {
       if (item.type === 'polygon') {
         context.closePath();
         holes?.forEach(trace);
-        context.fillStyle = tint(item.fill, item.shade ?? 1);
+        const shade = item.shade ?? 1;
+        const left = Math.min(...points.map((point) => point.x));
+        const right = Math.max(...points.map((point) => point.x));
+        const top = Math.min(...points.map((point) => point.y));
+        const bottom = Math.max(...points.map((point) => point.y));
+        const gradient = context.createLinearGradient(left, top, right + 0.1, bottom + 0.1);
+        if (item.material === 'wood') {
+          gradient.addColorStop(0, tint('#d1a36a', shade));
+          gradient.addColorStop(0.22, tint('#af7840', shade));
+          gradient.addColorStop(0.56, tint('#c19359', shade));
+          gradient.addColorStop(1, tint('#80512d', shade));
+        } else if (item.material === 'metal') {
+          gradient.addColorStop(0, tint(item.fill, Math.min(1.28, shade * 1.23)));
+          gradient.addColorStop(0.22, tint(item.fill, shade * 0.91));
+          gradient.addColorStop(0.46, tint(item.fill, Math.min(1.3, shade * 1.25)));
+          gradient.addColorStop(0.55, tint(item.fill, shade));
+          gradient.addColorStop(1, tint(item.fill, shade * 0.68));
+        } else {
+          gradient.addColorStop(0, tint(item.fill, shade));
+          gradient.addColorStop(1, tint(item.fill, shade * 0.85));
+        }
+        context.fillStyle = gradient;
         context.fill('evenodd');
+        if (item.material === 'wood' && right - left > 4 && bottom - top > 4) {
+          context.save();
+          context.clip('evenodd');
+          const vertical = bottom - top > (right - left) * 2;
+          const length = vertical ? bottom - top : right - left;
+          const breadth = vertical ? right - left : bottom - top;
+          context.strokeStyle = 'rgba(61, 32, 15, .20)';
+          context.lineWidth = 0.65;
+          for (let grain = 3; grain < breadth; grain += 4) {
+            context.beginPath();
+            const bend = Math.sin(grain * 0.91) * 2.3;
+            if (vertical) {
+              context.moveTo(left + grain, top);
+              context.bezierCurveTo(
+                left + grain + bend,
+                top + length * 0.3,
+                left + grain - bend,
+                top + length * 0.68,
+                left + grain + 1,
+                bottom,
+              );
+            } else {
+              context.moveTo(left, top + grain);
+              context.bezierCurveTo(
+                left + length * 0.3,
+                top + grain + bend,
+                left + length * 0.68,
+                top + grain - bend,
+                right,
+                top + grain + 1,
+              );
+            }
+            context.stroke();
+          }
+          context.restore();
+          context.beginPath();
+          trace(points);
+          holes?.forEach(trace);
+        }
       }
       context.strokeStyle = item.stroke;
-      context.lineWidth = item.type === 'polygon' ? 0.65 : item.width;
+      context.lineWidth =
+        item.type === 'polygon' ? (item.material === 'wood' ? 0.8 : 0.55) : item.width;
       context.setLineDash(item.dash ?? []);
       context.stroke();
       context.setLineDash([]);
@@ -145,6 +208,14 @@ export function createStructureViewer(canvas, options = {}) {
       if (item.ball) {
         context.strokeStyle = '#ffdaa1';
         context.lineWidth = 1;
+        context.stroke();
+      }
+      if (item.screw) {
+        context.strokeStyle = '#5b472c';
+        context.lineWidth = Math.max(0.8, radius * 0.17);
+        context.beginPath();
+        context.moveTo(point.x - radius * 0.48, point.y + radius * 0.48);
+        context.lineTo(point.x + radius * 0.48, point.y - radius * 0.48);
         context.stroke();
       }
     } else if (item.type === 'label') {
@@ -210,19 +281,40 @@ export function createStructureViewer(canvas, options = {}) {
     backdrop.addColorStop(1, '#10271f');
     context.fillStyle = backdrop;
     context.fillRect(0, 0, width, height);
-    context.lineWidth = 0.5;
-    context.strokeStyle = 'rgba(161, 185, 144, .065)';
-    for (let x = 20; x < width; x += 28) {
-      context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, height);
-      context.stroke();
-    }
-    for (let y = 20; y < height; y += 28) {
-      context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(width, y);
-      context.stroke();
+    if (mode === 'face') {
+      // The felt-lined cavity stays behind the exact orthographic world model.
+      const frameHalf = BOX_HALF + 14;
+      const corner = project(
+        add(mul(FACE_DEFS[basisFace].u, -frameHalf), mul(FACE_DEFS[basisFace].v, frameHalf)),
+      );
+      const span = frameHalf * 2 * corner.scale;
+      context.save();
+      context.shadowColor = 'rgba(4, 12, 8, .7)';
+      context.shadowBlur = 13;
+      context.shadowOffsetY = 8;
+      context.fillStyle = '#263c2e';
+      context.fillRect(corner.x, corner.y, span, span);
+      context.restore();
+      const cavity = context.createRadialGradient(
+        width / 2,
+        height / 2,
+        span * 0.18,
+        width / 2,
+        height / 2,
+        span * 0.67,
+      );
+      cavity.addColorStop(0, '#42533c');
+      cavity.addColorStop(1, '#16271d');
+      context.fillStyle = cavity;
+      context.fillRect(corner.x, corner.y, span, span);
+      context.strokeStyle = 'rgba(226, 214, 167, .045)';
+      context.lineWidth = 0.55;
+      for (let grain = 2; grain < span; grain += 5) {
+        context.beginPath();
+        context.moveTo(corner.x, corner.y + grain);
+        context.lineTo(corner.x + span, corner.y + grain);
+        context.stroke();
+      }
     }
     if (model) {
       const projectedItems = model.items
@@ -282,7 +374,11 @@ export function createStructureViewer(canvas, options = {}) {
     context.fillText(message, width / 2, height - 27);
     context.fillStyle = '#819f89';
     context.fillText(
-      mode === 'face' ? '本面机关可操作 · 换个角度观察孔板' : '拖动旋转 · 双指 / 滚轮缩放',
+      mode === 'face'
+        ? model?.controls.length
+          ? '机关同步联动 · 对照其它面观察孔板'
+          : '内部孔板由其它面机关驱动'
+        : '拖动旋转 · 双指 / 滚轮缩放',
       width / 2,
       height - 12,
     );
@@ -504,21 +600,23 @@ export function createStructureViewer(canvas, options = {}) {
         state.latches,
         state.released,
         state.completed,
-        mode === 'face' ? state.side : null,
+        mode === 'face' ? (fixedFace ?? state.side) : null,
         position,
       ]);
       const geometryUnchanged = current?.level === level && stateSignature === signature;
       current = { level, snapshot, ball: [...position] };
-      if (mode === 'face' && basisFace !== state.side) {
-        basisFace = state.side;
+      const observedFace = fixedFace ?? state.side;
+      if (mode === 'face' && basisFace !== observedFace) {
+        basisFace = observedFace;
         action = null;
         selectedIndex = 0;
-        canvas.dataset.view = state.side;
+        canvas.dataset.view = observedFace;
+        canvas.dataset.face = observedFace;
       }
       if (geometryUnchanged) return;
       stateSignature = signature;
       canvas.dataset.level = level.id;
-      canvas.dataset.side = state.side;
+      canvas.dataset.side = mode === 'face' ? observedFace : state.side;
       canvas.dataset.ball = position.join(',');
       rebuild();
     },
