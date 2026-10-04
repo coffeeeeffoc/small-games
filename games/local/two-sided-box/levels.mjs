@@ -62,7 +62,7 @@ export const LEVELS = [
     number: 1,
     title: '打不开的正面',
     subtitle: '先找到固定轴的锁扣',
-    intro: '让橙色小球进入终点槽。试着抬起 A 轴；如果拉不动，翻到背面看看。',
+    intro: '让橙色小球进入终点槽。试着抬起 A 轴；如果拉不动，展开背面看看。',
     shafts: [shaft('A', 0, '高位抬起挡门', '锁扣固定同一根轴')],
     latches: [latch('lock-A', 'A', 'back', 'A 轴锁扣')],
     gates: [gate('door-A', 'A', 'front', [2], 1, '起步挡门')],
@@ -70,8 +70,8 @@ export const LEVELS = [
     checkpoints: [checkpoint(1, 'door-A'), checkpoint(8)],
     hints: [
       '正面挡门和背面锁扣都连着 A 轴。轴被锁住时，换挡不会生效。',
-      '翻到背面，点开 A 轴右侧的大锁扣；再把 A 轴移到高位。',
-      '回到正面放球。球道中没有其他挡板。',
+      '展开背面，点开 A 轴右侧的大锁扣；再把 A 轴移到高位。',
+      '从正面放球。球道中没有其他挡板。',
     ],
     solution: [flip(), unlock('lock-A'), flip(), move('A', 2), release(), advance(), advance()],
     estimatedMoves: 5,
@@ -91,9 +91,9 @@ export const LEVELS = [
     path: route(),
     checkpoints: [checkpoint(1, 'door-A'), checkpoint(5, 'panel-A'), checkpoint(8)],
     hints: [
-      '同一根 A 轴抬起正面门，也会压下背面挡板。翻面不改变轴的位置。',
+      '同一根 A 轴抬起正面门，也会压下背面挡板。展开新面不改变轴的位置。',
       '正面接受中位或高位；背面接受低位或中位。两面共同的挡位是中位。',
-      '松开背面锁扣，把 A 轴移到中位，再回正面放球。',
+      '松开背面锁扣，把 A 轴移到中位，从正面放球。',
     ],
     solution: [
       flip(),
@@ -126,8 +126,8 @@ export const LEVELS = [
     checkpoints: [checkpoint(1, 'door-A'), checkpoint(2, 'panel-B'), checkpoint(8)],
     hints: [
       'A 的锁扣刻着「B · 中」。它会检查 B 轴当前的位置，不只是看锁扣所在的面。',
-      '先把 B 轴移到中位，再到背面松开 A 轴锁扣。',
-      'A 放到高位，B 留在中位，回正面放球。',
+      '先把 B 轴移到中位，再在背面松开 A 轴锁扣。',
+      'A 放到高位，B 留在中位，从正面放球。',
     ],
     solution: [
       move('B', 1),
@@ -261,7 +261,7 @@ export const LEVELS = [
     ],
     hints: [
       '从已经满足条件的锁扣开始：A 在低位，所以背面 C 锁扣现在就能松开。',
-      '松开 C 后将它移到低位；回正面松开 B 并移到中位；再到背面松开 A。准备 A 高、B 中、C 低后放球。',
+      '松开 C 后将它移到低位；在正面松开 B 并移到中位；再在背面松开 A。准备 A 高、B 中、C 低后放球。',
       '小球通过三道正面门后，依次把 B 移到高位、A 移到低位、C 移到高位。每次等球通过对应挡板再继续。',
     ],
     solution: [

@@ -3,13 +3,14 @@ import {
   createState,
   moveShaft,
   toggleLatch,
-  flipView,
   releaseBall,
   advanceBall,
   getSnapshot,
 } from './engine.mjs';
 import { renderBoard, renderDragPreview, shaftY, RAIL_TOP, RAIL_BOTTOM } from './render.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
+import { FACES, createFaceAccess, faceById, hiddenFaces, revealFace } from './faces.mjs';
+import { canOfferReward, offerFaceReward } from './rewards.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
@@ -29,12 +30,16 @@ let ballPathCursor = 0;
 let ballMoving = false;
 let animating = false;
 let generation = 0;
-let flipGeneration = 0;
+let faceAccess = createFaceAccess();
+let rewardPending = false;
+let rewardFeedback = '';
 let drag = null;
 let deferredScene = false;
 let highlighted = null;
 let hintIndex = 0;
-let feedback = LEVELS[levelIndex].intro;
+const openingFeedback = () =>
+  `本次随机展开${faceAccess.visibleFaces.map((id) => faceById(id).label).join('和')}。需要更多线索时，点击「提示 · 展开一面」。`;
+let feedback = openingFeedback();
 let audioContext;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const level = () => LEVELS[levelIndex];
@@ -113,7 +118,6 @@ function sound(kind) {
     const tones = {
       move: [360, 440],
       latch: [240, 310],
-      flip: [200, 270],
       blocked: [135, 110],
       win: [440, 550, 660, 880],
     }[kind] || [400];
@@ -138,23 +142,52 @@ function sound(kind) {
 
 function paintScene() {
   if (deferredScene) return;
-  let visualState = state;
+  board.dataset.level = String(level().number);
+  board.dataset.status = state.completed ? 'won' : 'playing';
+  board.dataset.faceCount = String(faceAccess.visibleFaces.length);
   if (drag) {
-    visualState = clone(state);
+    const visualState = clone(state);
     visualState.shafts[drag.id] = Math.max(
       0,
       Math.min(2, Math.round((RAIL_BOTTOM - drag.y) / 150)),
     );
-    renderDragPreview(board, level(), visualState, drag);
+    for (const svg of board.querySelectorAll('svg[data-face]'))
+      renderDragPreview(svg, level(), visualState, drag);
     return;
   }
-  const focusedShaft = document.activeElement?.getAttribute('data-shaft');
-  const focusedLatch = document.activeElement?.getAttribute('data-latch');
-  renderBoard(board, level(), visualState, { ball, drag, highlighted });
-  if (focusedShaft && !drag)
-    board.querySelector(`[data-shaft="${focusedShaft}"]`)?.focus({ preventScroll: true });
-  if (focusedLatch && !drag)
-    board.querySelector(`[data-latch="${focusedLatch}"]`)?.focus({ preventScroll: true });
+  const focused = document.activeElement;
+  const focusedFace = focused?.closest('svg[data-face]')?.dataset.face;
+  const focusedShaft = focused?.getAttribute('data-shaft');
+  const focusedLatch = focused?.getAttribute('data-latch');
+  // Retain the existing face cards: revealing a face never replaces another one.
+  for (const id of faceAccess.visibleFaces) {
+    let svg = board.querySelector(`svg[data-face="${id}"]`);
+    if (!svg) {
+      const face = faceById(id);
+      const card = document.createElement('section');
+      card.className = 'face-card';
+      card.dataset.faceCard = id;
+      const heading = document.createElement('div');
+      heading.className = 'face-heading';
+      const title = document.createElement('h3');
+      title.textContent = face.label;
+      const caption = document.createElement('span');
+      caption.textContent = face.caption;
+      heading.append(title, caption);
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 720 600');
+      svg.setAttribute('role', 'group');
+      svg.dataset.face = id;
+      card.append(heading, svg);
+      board.append(card);
+    }
+    renderBoard(svg, level(), state, { face: id, ball, highlighted });
+  }
+  const focusedBoard = board.querySelector(`svg[data-face="${focusedFace}"]`);
+  if (focusedShaft)
+    focusedBoard?.querySelector(`[data-shaft="${focusedShaft}"]`)?.focus({ preventScroll: true });
+  if (focusedLatch)
+    focusedBoard?.querySelector(`[data-latch="${focusedLatch}"]`)?.focus({ preventScroll: true });
 }
 
 function deferSceneUntilTouchEnds() {
@@ -170,20 +203,49 @@ function deferSceneUntilTouchEnds() {
 function update() {
   paintScene();
   const snapshot = getSnapshot(level(), state);
-  const back = state.side === 'back';
+  const frontVisible = faceAccess.visibleFaces.includes('front');
+  const remaining = hiddenFaces(faceAccess);
   $('#level-number').textContent = String(levelIndex + 1).padStart(2, '0');
   $('#level-title').textContent = level().title;
   $('#level-subtitle').textContent = level().subtitle;
   $('#intro').textContent = level().intro;
-  $('#side-name').textContent = back ? '背面' : '正面';
-  $('#front-tab').classList.toggle('active', !back);
-  $('#back-tab').classList.toggle('active', back);
+  $('#side-name').textContent = `${faceAccess.visibleFaces.length} / 6 面已展开`;
+  $('#face-strip').replaceChildren(
+    ...FACES.map((face) => {
+      const marker = document.createElement('span');
+      const visible = faceAccess.visibleFaces.includes(face.id);
+      marker.className = visible ? 'face-marker revealed' : 'face-marker';
+      marker.textContent = face.label;
+      marker.setAttribute('aria-label', `${face.label}：${visible ? '已展开' : '未展开'}`);
+      return marker;
+    }),
+  );
+  $('#reveal').disabled = !remaining.length || rewardPending || state.completed;
+  $('#reveal span').textContent = remaining.length ? '提示 · 展开一面' : '六面已全部展开';
+  $('#hint-reveal').disabled = !remaining.length || rewardPending || state.completed;
+  $('#hint-reveal').textContent = remaining.length
+    ? `展开${remaining[0].label} · 免费`
+    : '六面已全部展开';
+  $('#reward-reveal').disabled =
+    !remaining.length ||
+    rewardPending ||
+    ballMoving ||
+    state.completed ||
+    !canOfferReward(window.twoSidedBoxHost);
+  $('#reward-reveal').textContent = rewardPending ? '等待视频奖励…' : '看视频 · 多看一面';
+  $('#reward-note').textContent =
+    rewardFeedback ||
+    (canOfferReward(window.twoSidedBoxHost)
+      ? '完整观看后展开一面，也可使用免费提示。'
+      : '当前暂无可用视频，可使用免费提示展开。');
+  $('#reveal-note').textContent = remaining.length
+    ? `还藏着 ${remaining.length} 面 · 展开后会一直留在观察台上`
+    : '六面共同联动 · 拖动任意可操作面上的黄铜滑轴';
   $('#move-count').textContent = state.moves;
-  $('#flip span').textContent = back ? '转到正面' : '转到背面';
-  $('#flip').disabled = animating || state.completed;
-  $('#release').disabled = back || state.released || state.completed || animating;
-  $('#release span').textContent = back
-    ? '到正面放球'
+  $('#release').disabled =
+    !frontVisible || state.released || state.completed || animating || rewardPending;
+  $('#release span').textContent = !frontVisible
+    ? '先展开正面放球'
     : state.completed
       ? '已进入终点'
       : state.released
@@ -198,7 +260,7 @@ function update() {
       : ballMoving
         ? '小球前进中'
         : '等候机关打开';
-  $('#undo').disabled = !history.length || animating || ballMoving;
+  $('#undo').disabled = !history.length || animating || ballMoving || rewardPending;
   $('#status').textContent = feedback;
   $('#collection-count').textContent = `${Object.keys(progress.best).length}/${LEVELS.length}`;
   $('#sound').classList.toggle('muted', !progress.sound);
@@ -217,7 +279,7 @@ function update() {
       details.className = 'mechanism-details';
       details.textContent = shaft.locked ? '锁扣固定中' : '两面同步联动';
       const role = document.createElement('small');
-      role.textContent = back ? shaft.backRole : shaft.frontRole;
+      role.textContent = `${shaft.frontRole} / ${shaft.backRole}`;
       details.append(role);
       const value = document.createElement('span');
       value.className = 'shaft-value';
@@ -240,7 +302,7 @@ function showFeedback(message, blocked = false, id = null) {
 }
 
 function change(action, id = null) {
-  if (animating || drag || state.completed) return false;
+  if (animating || drag || rewardPending || state.completed) return false;
   if (ballMoving) {
     showFeedback('小球正在沿球道前进。停靠后，继续调整机关即可。');
     return false;
@@ -273,8 +335,8 @@ function animateSegment(target, token) {
       if (token !== generation) return resolve(false);
       const p = Math.min(1, (now - at) / duration);
       ball = [start[0] + (target[0] - start[0]) * p, start[1] + (target[1] - start[1]) * p];
-      const sprite = board.querySelector('#ball');
-      sprite?.setAttribute('transform', `translate(${ball[0]} ${ball[1]})`);
+      for (const sprite of board.querySelectorAll('[data-ball]'))
+        sprite.setAttribute('transform', `translate(${ball[0]} ${ball[1]})`);
       if (p < 1) requestAnimationFrame(tick);
       else resolve(true);
     };
@@ -303,7 +365,7 @@ async function runBall() {
       save();
       sound('win');
       $('#result-copy').textContent =
-        `第 ${levelIndex + 1} 盒「${level().title}」已完成。${state.moves} 次操作，${state.flips} 次翻面。`;
+        `第 ${levelIndex + 1} 盒「${level().title}」已完成。${state.moves} 次机关操作，展开了 ${faceAccess.visibleFaces.length} 个面。`;
       $('#next').textContent =
         levelIndex === LEVELS.length - 1 ? '查看六盒收藏 →' : '打开下一个盒子 →';
       if (!document.querySelector('dialog[open]')) $('#result').showModal();
@@ -320,7 +382,8 @@ async function runBall() {
 function cancelDrag() {
   if (!drag) return;
   const pointer = drag.pointerId;
-  renderDragPreview(board, level(), state, { ...drag, y: shaftY(state.shafts[drag.id]) });
+  for (const svg of board.querySelectorAll('svg[data-face]'))
+    renderDragPreview(svg, level(), state, { ...drag, y: shaftY(state.shafts[drag.id]) });
   drag = null;
   if (board.hasPointerCapture(pointer)) board.releasePointerCapture(pointer);
   deferSceneUntilTouchEnds();
@@ -334,11 +397,13 @@ function closeDialogs() {
 function loadLevel(index) {
   cancelDrag();
   generation += 1;
-  flipGeneration += 1;
+  rewardPending = false;
+  rewardFeedback = '';
+  faceAccess = createFaceAccess();
+  board.replaceChildren();
   ballMoving = false;
   animating = false;
   deferredScene = false;
-  $('#scene').classList.remove('flipping');
   levelIndex = index;
   state = createState(level());
   history = [];
@@ -346,7 +411,7 @@ function loadLevel(index) {
   ballPathCursor = 0;
   highlighted = null;
   hintIndex = 0;
-  feedback = level().intro;
+  feedback = openingFeedback();
   progress.selected = index;
   save();
   closeDialogs();
@@ -376,35 +441,66 @@ function openLevels() {
   $('#level-dialog').showModal();
 }
 
-async function flip() {
-  if (animating || state.completed) return;
-  cancelDrag();
-  const before = remember();
-  history.push(before);
-  animating = true;
-  const token = ++flipGeneration;
-  sound('flip');
-  $('#scene').classList.add('flipping');
-  update();
-  await new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 5 : 170));
-  if (token !== flipGeneration) return;
-  feedback = flipView(state).message;
-  update();
-  $('#scene').classList.remove('flipping');
-  await new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 5 : 180));
-  if (token !== flipGeneration) return;
-  animating = false;
+function revealNextFace(requestedId) {
+  if (drag || state.completed) return;
+  const next = revealFace(faceAccess, requestedId);
+  if (next === faceAccess) return;
+  faceAccess = next;
+  const face = faceById(faceAccess.visibleFaces.at(-1));
+  feedback = `已展开${face.label}。所有已展开的面都保留在观察台，机关位置不变。`;
+  sound('latch');
   update();
 }
 
-function boardPoint(event) {
-  const matrix = board.getScreenCTM();
+async function revealWithReward() {
+  const hidden = hiddenFaces(faceAccess);
+  if (
+    rewardPending ||
+    drag ||
+    ballMoving ||
+    state.completed ||
+    !hidden.length ||
+    !canOfferReward(window.twoSidedBoxHost)
+  )
+    return;
+  const token = generation;
+  const face = hidden[0];
+  rewardPending = true;
+  rewardFeedback = '';
+  update();
+  const outcome = await offerFaceReward(window.twoSidedBoxHost, face.id);
+  // A reward requested for an old attempt cannot unlock a fresh box.
+  if (token !== generation) return;
+  rewardPending = false;
+  if (outcome.status === 'completed') {
+    revealNextFace(face.id);
+    $('#hint-dialog').close();
+  } else {
+    feedback =
+      outcome.status === 'dismissed'
+        ? '视频未看完，没有展开新面。也可以使用免费提示。'
+        : '暂时无法播放视频。可以使用免费提示展开一面。';
+    rewardFeedback = feedback;
+    update();
+  }
+}
+
+function boardPoint(event, svg = drag?.svg || event.target.closest('svg[data-face]')) {
+  const matrix = svg?.getScreenCTM();
   if (!matrix) return null;
   return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
 }
 
 board.addEventListener('pointerdown', (event) => {
-  if (!event.isPrimary || event.button !== 0 || animating || ballMoving || state.completed || drag)
+  if (
+    !event.isPrimary ||
+    event.button !== 0 ||
+    animating ||
+    ballMoving ||
+    rewardPending ||
+    state.completed ||
+    drag
+  )
     return;
   const shaftElement = event.target.closest('[data-shaft]');
   if (
@@ -424,6 +520,7 @@ board.addEventListener('pointerdown', (event) => {
   drag = {
     id,
     pointerId: event.pointerId,
+    svg: shaftElement.closest('svg[data-face]'),
     y: shaftY(value),
     startY: point.y,
     handleY: shaftY(value),
@@ -456,7 +553,8 @@ board.addEventListener('pointerup', (event) => {
       sound('move');
     } else if (!result.ok) feedback = result.message;
   }
-  renderDragPreview(board, level(), state, { ...gesture, y: shaftY(state.shafts[gesture.id]) });
+  for (const svg of board.querySelectorAll('svg[data-face]'))
+    renderDragPreview(svg, level(), state, { ...gesture, y: shaftY(state.shafts[gesture.id]) });
   deferSceneUntilTouchEnds();
   update();
   if (state.released) void runBall();
@@ -477,7 +575,17 @@ document.addEventListener('visibilitychange', () => {
 board.addEventListener('click', (event) => {
   const latch = event.target.closest('[data-latch]');
   const notch = event.target.closest('[data-notch-shaft]');
-  if (latch) change(() => toggleLatch(level(), state, latch.dataset.latch), latch.dataset.latch);
+  if (latch)
+    change(
+      () =>
+        toggleLatch(
+          level(),
+          state,
+          latch.dataset.latch,
+          latch.closest('svg[data-face]').dataset.face,
+        ),
+      latch.dataset.latch,
+    );
   else if (notch)
     change(
       () => moveShaft(level(), state, notch.dataset.notchShaft, Number(notch.dataset.value)),
@@ -489,7 +597,16 @@ board.addEventListener('keydown', (event) => {
   const latch = event.target.closest('[data-latch]');
   if (latch && ['Enter', ' '].includes(event.key)) {
     event.preventDefault();
-    change(() => toggleLatch(level(), state, latch.dataset.latch), latch.dataset.latch);
+    change(
+      () =>
+        toggleLatch(
+          level(),
+          state,
+          latch.dataset.latch,
+          latch.closest('svg[data-face]').dataset.face,
+        ),
+      latch.dataset.latch,
+    );
   } else if (shaft && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
     event.preventDefault();
     const id = shaft.dataset.shaft;
@@ -503,11 +620,21 @@ board.addEventListener('keydown', (event) => {
   }
 });
 
-$('#flip').addEventListener('click', () => void flip());
-$('#release').addEventListener('click', () => change(() => releaseBall(level(), state)));
+$('#reveal').addEventListener('click', () => {
+  if (!rewardPending) revealNextFace();
+});
+$('#hint-reveal').addEventListener('click', () => {
+  if (rewardPending) return;
+  revealNextFace();
+  $('#hint-dialog').close();
+});
+$('#reward-reveal').addEventListener('click', () => void revealWithReward());
+$('#release').addEventListener('click', () => {
+  if (faceAccess.visibleFaces.includes('front')) change(() => releaseBall(level(), state, 'front'));
+});
 $('#restart').addEventListener('click', () => loadLevel(levelIndex));
 $('#undo').addEventListener('click', () => {
-  if (!history.length || animating || ballMoving) return;
+  if (!history.length || animating || ballMoving || rewardPending) return;
   cancelDrag();
   generation += 1;
   const previous = history.pop();
@@ -572,6 +699,8 @@ document.querySelectorAll('dialog:not(#result)').forEach((dialog) =>
 window.__twoSidedSnapshot = () =>
   clone({
     levelIndex,
+    faceAccess,
+    rewardPending,
     levelId: level().id,
     state,
     historyLength: history.length,

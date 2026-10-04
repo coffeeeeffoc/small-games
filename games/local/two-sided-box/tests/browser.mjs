@@ -7,14 +7,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from '@playwright/test';
 import { LEVELS } from '../levels.mjs';
-import {
-  createState,
-  moveShaft,
-  toggleLatch,
-  flipView,
-  releaseBall,
-  advanceBall,
-} from '../engine.mjs';
+import { createState, moveShaft, toggleLatch, releaseBall, advanceBall } from '../engine.mjs';
 import { STORAGE_KEY } from '../progress.mjs';
 
 const gameRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,6 +17,8 @@ const mobileOnly = process.argv.includes('--mobile-only');
 const reportName = mobileOnly ? 'browser-mobile-report.json' : 'browser-report.json';
 const runtimeErrors = [];
 const checks = [];
+const layouts = [];
+const FACE_IDS = ['front', 'back', 'left', 'right', 'top', 'bottom'];
 const touchSessions = new WeakMap();
 let server;
 let browser;
@@ -40,9 +35,48 @@ async function launchBrowser() {
   });
 }
 
-function physicalState(state) {
-  const { shafts, latches, released, checkpoint, completed } = state;
-  return { shafts, latches, released, checkpoint, completed };
+function faceBoard(page, face = 'front') {
+  return page.locator('svg[data-face="' + face + '"]');
+}
+
+function assertFaceAccess(current, count, label) {
+  const visible = current.faceAccess.visibleFaces;
+  assert.equal(visible.length, count, label + ': requested count of faces');
+  assert.equal(new Set(visible).size, count, label + ': every exposed face is unique');
+  assert.ok(
+    visible.every((face) => FACE_IDS.includes(face)),
+    label + ': valid box faces',
+  );
+}
+
+async function revealFace(page, touch = false, control = '#reveal') {
+  const before = await snapshot(page);
+  await tapOrClick(page.locator(control), touch);
+  const after = await settled(page);
+  assertFaceAccess(after, before.faceAccess.visibleFaces.length + 1, 'Reveal');
+  assert.ok(
+    before.faceAccess.visibleFaces.every((face) => after.faceAccess.visibleFaces.includes(face)),
+    'Revealing a face preserves all previously exposed faces',
+  );
+  assert.deepEqual(after.state, before.state, 'Face discovery preserves all mechanism state');
+  assert.deepEqual(after.ball, before.ball, 'Face discovery preserves the ball location');
+  assert.equal(after.historyLength, before.historyLength, 'Face discovery creates no move history');
+  assert.deepEqual(
+    await page
+      .locator('svg[data-face]')
+      .evaluateAll((faces) => faces.map((face) => face.dataset.face).sort()),
+    [...after.faceAccess.visibleFaces].sort(),
+    'Every revealed face is rendered in the same scene',
+  );
+  return after;
+}
+
+async function revealMechanisms(page, touch = false) {
+  let current = await snapshot(page);
+  while (!['front', 'back'].every((face) => current.faceAccess.visibleFaces.includes(face))) {
+    current = await revealFace(page, touch);
+  }
+  return current;
 }
 
 async function snapshot(page) {
@@ -58,12 +92,12 @@ async function settled(page) {
       if (getComputedStyle(document.querySelector('#board')).transform !== 'none') return false;
       // Wait for a deferred gesture redraw as well as rule state. In particular,
       // a cancelled touch must visibly return the handle before the next input.
-      return Object.entries(current.state.shafts).every(([id, value]) => {
-        const shaft = document.querySelector('[data-shaft="' + id + '"]');
-        const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
+      return [...document.querySelectorAll('svg[data-face] [data-shaft]')].every((shaft) => {
+        const value = current.state.shafts[shaft.dataset.shaft];
+        const handle = shaft.querySelector('[data-shaft-handle]');
         const position = handle?.transform.baseVal.consolidate()?.matrix.f;
         return (
-          shaft?.dataset.value === String(value) && Math.abs(position - (450 - 150 * value)) < 1
+          shaft.dataset.value === String(value) && Math.abs(position - (450 - 150 * value)) < 1
         );
       });
     },
@@ -112,6 +146,7 @@ async function selectLevel(page, index, touch = false) {
   assert.equal(current.state.completed, false, 'Selection starts a fresh attempt');
   assert.equal(current.state.released, false, 'Selection returns the ball to the start');
   assert.equal(current.state.moves, 0, 'Selection resets move count');
+  assertFaceAccess(current, 2, 'Selecting a box samples two faces');
   assert.equal(await page.locator('#board').getAttribute('data-level'), String(index + 1));
   return current;
 }
@@ -156,24 +191,22 @@ async function tapNative(locator) {
 async function executeAction(page, action, label, touch = false) {
   const before = await snapshot(page);
   if (action.type === 'flip') {
-    await tapOrClick(page.locator('#flip'), touch);
-    const after = await settled(page);
-    assert.notEqual(after.state.side, before.state.side, label + ': side changed');
-    assert.deepEqual(
-      physicalState(after.state),
-      physicalState(before.state),
-      label + ': changing the view preserves the machine',
-    );
-    return after;
+    // Legacy solutions include camera changes; the simultaneous view needs no
+    // corresponding input and does not charge a mechanism move for observation.
+    return before;
   }
   if (action.type === 'latch') {
-    await tapOrClick(page.locator('[data-latch="' + action.id + '"]'), touch);
+    const latch = LEVELS[before.levelIndex].latches.find((entry) => entry.id === action.id);
+    await tapOrClick(
+      faceBoard(page, latch.side).locator('[data-latch="' + action.id + '"]'),
+      touch,
+    );
     const after = await settled(page);
     assert.notDeepEqual(after.state.latches, before.state.latches, label + ': latch operated');
     return after;
   }
   if (action.type === 'shaft') {
-    const notch = page.locator(
+    const notch = faceBoard(page).locator(
       '[data-notch-shaft="' + action.id + '"][data-value="' + action.value + '"]',
     );
     await tapOrClick(notch, touch);
@@ -203,6 +236,7 @@ async function executeAction(page, action, label, touch = false) {
 
 async function solveVisibleRoute(page, index, touch = false) {
   await selectLevel(page, index, touch);
+  await revealMechanisms(page, touch);
   const solution = LEVELS[index].solution;
   const expected = createState(LEVELS[index]);
   assert.ok(solution?.length, 'Box ' + (index + 1) + ' supplies a reviewed solution');
@@ -210,11 +244,13 @@ async function solveVisibleRoute(page, index, touch = false) {
     const label = 'Box ' + (index + 1) + ', action ' + (step + 1);
     const actual = await executeAction(page, action, label, touch);
     let result;
-    if (action.type === 'flip') result = flipView(expected);
-    else if (action.type === 'latch') result = toggleLatch(LEVELS[index], expected, action.id);
-    else if (action.type === 'shaft')
+    if (action.type === 'flip') result = { ok: true };
+    else if (action.type === 'latch') {
+      const latch = LEVELS[index].latches.find((entry) => entry.id === action.id);
+      result = toggleLatch(LEVELS[index], expected, action.id, latch.side);
+    } else if (action.type === 'shaft')
       result = moveShaft(LEVELS[index], expected, action.id, action.value);
-    else if (action.type === 'release') result = releaseBall(LEVELS[index], expected);
+    else if (action.type === 'release') result = releaseBall(LEVELS[index], expected, 'front');
     else result = { ok: true };
     assert.equal(result.ok, true, label + ': reviewed action is legal');
     // The UI moves the ball under gravity until it reaches the next closed
@@ -235,8 +271,8 @@ async function solveVisibleRoute(page, index, touch = false) {
 }
 
 async function svgPoint(page, x, y) {
-  await page.locator('#board').scrollIntoViewIfNeeded();
-  return page.locator('#board').evaluate(
+  await faceBoard(page).scrollIntoViewIfNeeded();
+  return faceBoard(page).evaluate(
     (board, local) => {
       const point = new DOMPoint(local.x, local.y).matrixTransform(board.getScreenCTM());
       return { x: point.x, y: point.y };
@@ -255,7 +291,9 @@ async function shaftPoint(page, id, value) {
 async function verifyDragPreview(page, id, end, before, initialHandle) {
   await page.waitForFunction(
     ({ id, end }) => {
-      const handle = document.querySelector('[data-shaft-handle="' + id + '"]');
+      const handle = document.querySelector(
+        'svg[data-face="front"] [data-shaft-handle="' + id + '"]',
+      );
       if (!handle || !window.__twoSidedSnapshot().dragging) return false;
       const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
       return Math.abs(point.y - end.y) <= 2;
@@ -269,7 +307,9 @@ async function verifyDragPreview(page, id, end, before, initialHandle) {
       (handle) =>
         handle.isConnected &&
         handle ===
-          document.querySelector('[data-shaft-handle="' + handle.dataset.shaftHandle + '"]'),
+          document.querySelector(
+            'svg[data-face="front"] [data-shaft-handle="' + handle.dataset.shaftHandle + '"]',
+          ),
     ),
     true,
     'A continuous drag keeps the original touch target connected',
@@ -280,10 +320,12 @@ async function verifyDragPreview(page, id, end, before, initialHandle) {
     before.state,
     'A drag preview keeps committed puzzle state unchanged',
   );
-  const visual = await page.locator('[data-shaft-handle="' + id + '"]').evaluate((handle) => {
-    const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
-    return { x: point.x, y: point.y };
-  });
+  const visual = await faceBoard(page)
+    .locator('[data-shaft-handle="' + id + '"]')
+    .evaluate((handle) => {
+      const point = new DOMPoint(0, 0).matrixTransform(handle.getScreenCTM());
+      return { x: point.x, y: point.y };
+    });
   assert.ok(
     Math.abs(visual.y - end.y) <= 2,
     'The handle follows the pointer before release: ' + JSON.stringify({ visual, end }),
@@ -296,7 +338,9 @@ async function dragShaft(page, id, target, { touch = false, cancel = false } = {
   const end = await shaftPoint(page, id, target);
   const initialHandle = touch
     ? null
-    : await page.locator('[data-shaft-handle="' + id + '"]').elementHandle();
+    : await faceBoard(page)
+        .locator('[data-shaft-handle="' + id + '"]')
+        .elementHandle();
   if (!touch) assert.ok(initialHandle, 'The drag starts on a visible scene handle');
   if (touch) {
     // All taps and drags on this page share one native input source, just as a
@@ -353,8 +397,160 @@ async function dragShaft(page, id, target, { touch = false, cancel = false } = {
   return after;
 }
 
+async function verifyFaceDiscovery(page) {
+  const initial = await selectLevel(page, 0);
+  assertFaceAccess(initial, 2, 'A fresh attempt');
+  assert.equal(await page.locator('svg[data-face]').count(), 2);
+  assert.equal(
+    await page.locator('#flip, [role="tab"], [role="tablist"]').count(),
+    0,
+    'Observation uses simultaneous faces without a flip button or tabs',
+  );
+  assert.equal(
+    await page.locator('#reward-reveal').isEnabled(),
+    false,
+    'Standalone play does not pretend that an ad was watched',
+  );
+  await page.locator('#hint').click();
+  await revealFace(page, false, '#hint-reveal');
+  if (await page.locator('#hint-dialog[open]').count()) {
+    await page.locator('[data-close="hint-dialog"]').click();
+  }
+  while ((await snapshot(page)).faceAccess.visibleFaces.length < 6) await revealFace(page);
+  const visible = await page.locator('svg[data-face]').evaluateAll((faces) =>
+    faces.map((face) => {
+      const box = face.getBoundingClientRect();
+      const style = getComputedStyle(face);
+      return {
+        face: face.dataset.face,
+        width: box.width,
+        height: box.height,
+        display: style.display,
+        visibility: style.visibility,
+      };
+    }),
+  );
+  assert.ok(
+    visible.every(
+      (face) =>
+        face.width > 0 &&
+        face.height > 0 &&
+        face.display !== 'none' &&
+        face.visibility !== 'hidden',
+    ),
+    'All six unlocked faces have a visible simultaneous scene',
+  );
+  assert.equal(
+    await page.locator('#reveal').isEnabled(),
+    false,
+    'Face discovery stops when the complete box is visible',
+  );
+  await page.screenshot({
+    path: resolve(outputDir, 'two-sided-desktop-all-faces.png'),
+    fullPage: true,
+  });
+  await page.locator('#restart').click();
+  const restarted = await settled(page);
+  assertFaceAccess(restarted, 2, 'Restart samples a fresh pair');
+  assert.deepEqual(restarted.state, initial.state);
+  assert.equal(
+    await page.locator('svg[data-face]').count(),
+    2,
+    'Restart does not retain extra discovered faces',
+  );
+  checks.push(
+    'Two unique random starting faces, simultaneous six-face reveal, hint discovery and fresh restart',
+  );
+}
+
+async function verifyRewardedDiscovery() {
+  for (const outcome of ['completed', 'dismissed', 'unavailable', 'failed', 'rejected', 'stale']) {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      reducedMotion: 'reduce',
+    });
+    await context.addInitScript((outcome) => {
+      window.__testAdCalls = 0;
+      window.twoSidedBoxHost = {
+        session: { capabilities: ['advertising'] },
+        ads: {
+          offer: async () => {
+            window.__testAdCalls += 1;
+            if (outcome === 'stale') {
+              return new Promise((resolve) => {
+                window.__testCompleteAd = resolve;
+              });
+            }
+            if (outcome === 'rejected') throw new Error('Simulated host failure');
+            return { status: outcome };
+          },
+        },
+      };
+    }, outcome);
+    try {
+      const page = await openGame(context, 'ad-' + outcome);
+      const before = await snapshot(page);
+      await page.locator('#hint').click();
+      assert.equal(
+        await page.locator('#reward-reveal').isEnabled(),
+        true,
+        'A capable host offers optional rewarded discovery',
+      );
+      await page.locator('#reward-reveal').click();
+      await page.waitForFunction(() => window.__testAdCalls === 1);
+      let expected = before;
+      if (outcome === 'stale') {
+        await page.locator('[data-close="hint-dialog"]').click();
+        await page.locator('#restart').click();
+        expected = await settled(page);
+        await page.evaluate(() => window.__testCompleteAd({ status: 'completed' }));
+      }
+      await page.waitForFunction(() => !document.querySelector('#reward-reveal').disabled);
+      const after = await settled(page);
+      assertFaceAccess(after, outcome === 'completed' ? 3 : 2, 'Ad ' + outcome);
+      if (outcome === 'completed') {
+        assert.equal(
+          await page.locator('#hint-dialog[open]').count(),
+          0,
+          'Completed reward exposes the newly discovered face immediately',
+        );
+        assert.equal(await page.locator('svg[data-face]').count(), 3);
+      } else if (outcome !== 'stale') {
+        assert.equal(
+          await page.locator('#hint-dialog[open]').count(),
+          1,
+          'An incomplete ad keeps its explanation visible',
+        );
+        assert.match(
+          await page.locator('#reward-note').innerText(),
+          /未看完|无法|不可|失败|暂时/,
+          'The visible dialog explains why the face was not revealed',
+        );
+      }
+      if (outcome !== 'completed') {
+        assert.deepEqual(
+          after.faceAccess.visibleFaces,
+          expected.faceAccess.visibleFaces,
+          'An unfinished, failed or stale ad cannot reveal a face',
+        );
+      }
+      assert.deepEqual(after.state, expected.state, 'Reward discovery preserves the mechanism');
+      assert.equal(
+        after.historyLength,
+        expected.historyLength,
+        'Reward discovery creates no moves',
+      );
+      assert.equal(await page.evaluate(() => window.__testAdCalls), 1, 'One click requests one ad');
+      checks.push('Rewarded face discovery: ' + outcome);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function verifyMechanics(page) {
   await selectLevel(page, 0);
+  await revealMechanisms(page);
   const initial = await snapshot(page);
   await page.locator('#levels').click();
   assert.equal(
@@ -368,7 +564,7 @@ async function verifyMechanics(page) {
     initial.state,
     'Browsing and dismissing chapter selection keeps the puzzle',
   );
-  const lockedNotch = page.locator('[data-notch-shaft="A"][data-value="2"]');
+  const lockedNotch = faceBoard(page).locator('[data-notch-shaft="A"][data-value="2"]');
   const lockedBounds = await lockedNotch.boundingBox();
   assert.ok(lockedBounds, 'Locked shaft still has a discoverable physical target');
   // Raw input checks the feedback from an intentionally disabled mechanism;
@@ -397,9 +593,7 @@ async function verifyMechanics(page) {
   );
   await page.locator('[data-close="hint-dialog"]').click();
 
-  await executeAction(page, { type: 'flip' }, 'Look behind the first box');
   await executeAction(page, { type: 'latch', id: 'lock-A' }, 'Unlock the first shaft');
-  await executeAction(page, { type: 'flip' }, 'Return to the unlocked front');
   const beforeDrag = await snapshot(page);
   await dragShaft(page, 'A', 2);
   await page.locator('#undo').click();
@@ -416,8 +610,8 @@ async function verifyMechanics(page) {
     'Restart restores the original box and ball',
   );
 
-  await executeAction(page, { type: 'flip' }, 'Keyboard unlock view');
-  const latch = page.locator('[data-latch="lock-A"]');
+  await revealMechanisms(page);
+  const latch = faceBoard(page, 'back').locator('[data-latch="lock-A"]');
   await latch.focus();
   await page.keyboard.press('Enter');
   assert.notDeepEqual(
@@ -442,15 +636,14 @@ async function verifyMechanics(page) {
     false,
     'The latch can be unlocked again without refocusing',
   );
-  await executeAction(page, { type: 'flip' }, 'Keyboard front view');
-  const shaft = page.locator('[data-shaft="A"]');
+  const shaft = faceBoard(page).locator('[data-shaft="A"]');
   await shaft.focus();
   await page.keyboard.press('ArrowUp');
   const keyboard = await settled(page);
   assert.equal(keyboard.state.shafts.A, 1, 'Arrow keys move a focused shaft by one detent');
   await page.locator('#restart').click();
   checks.push(
-    'Locked feedback, flip invariance, progressive hints, mouse drag, undo, reset and keyboard',
+    'Locked feedback, simultaneous mechanism controls, progressive hints, mouse drag, undo, reset and keyboard',
   );
 }
 
@@ -472,6 +665,7 @@ async function verifyCompletionDuringHint(page) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   try {
     await selectLevel(page, 0);
+    await revealMechanisms(page);
     for (const action of LEVELS[0].solution) {
       if (action.type === 'release') break;
       await executeAction(page, action, 'Prepare completion while reading a hint');
@@ -530,12 +724,13 @@ async function verifyLayout(page, label) {
       board: rect(document.querySelector('#board')),
       targets: [
         ...document.querySelectorAll(
-          '#flip, #release, #hint, #undo, #restart, #levels, [data-latch], [data-notch-shaft], [data-shaft-handle]',
+          '#reveal, #release, #hint, #undo, #restart, #levels, [data-latch], [data-notch-shaft], [data-shaft-handle]',
         ),
       ]
         .filter(visible)
         .map((element) => ({
           name: element.id || element.getAttribute('aria-label') || element.outerHTML.slice(0, 100),
+          sceneTarget: Boolean(element.closest('svg[data-face]')),
           ...rect(element),
         })),
     };
@@ -551,7 +746,7 @@ async function verifyLayout(page, label) {
   for (const target of layout.targets) {
     assert.ok(
       target.width >= 43.99 && target.height >= 43.99,
-      label + ': target is at least 44 CSS px: ' + JSON.stringify(target),
+      label + ': every touch target is at least 44 CSS px: ' + JSON.stringify(target),
     );
     assert.ok(
       target.left >= -1 && target.right <= layout.viewport.width + 1,
@@ -562,6 +757,7 @@ async function verifyLayout(page, label) {
     layout.board.left >= -1 && layout.board.right <= layout.viewport.width + 1,
     label + ': whole box fits horizontally',
   );
+  layouts.push({ label, ...layout });
 }
 
 async function verifyMobile() {
@@ -583,11 +779,11 @@ async function verifyMobile() {
       try {
         const page = await openGame(context, label);
         assert.equal(await page.evaluate(() => navigator.maxTouchPoints > 0), true);
-        await verifyLayout(page, label + ' front');
-        await executeAction(page, { type: 'flip' }, label + ' touch flip', true);
-        await verifyLayout(page, label + ' back');
+        assertFaceAccess(await snapshot(page), 2, label + ' initial random pair');
+        await verifyLayout(page, label + ' initial pair');
+        await revealMechanisms(page, true);
+        await verifyLayout(page, label + ' simultaneous front and back');
         await executeAction(page, { type: 'latch', id: 'lock-A' }, label + ' touch unlock', true);
-        await executeAction(page, { type: 'flip' }, label + ' touch return', true);
         await dragShaft(page, 'A', 2, { touch: true, cancel: true });
         await dragShaft(page, 'A', 2, { touch: true });
         await tapNative(page.locator('#undo'));
@@ -609,6 +805,9 @@ async function verifyMobile() {
         await verifyLayout(page, label + ' finale');
         await tapNative(page.locator('#replay'));
         await settled(page);
+        while ((await snapshot(page)).faceAccess.visibleFaces.length < 6)
+          await revealFace(page, true);
+        await verifyLayout(page, label + ' all six faces');
         // Capture screenshots after input assertions to keep the touch session uninterrupted.
         await page.screenshot({
           path: resolve(outputDir, 'two-sided-' + label + '-final.png'),
@@ -736,6 +935,7 @@ try {
         path: resolve(outputDir, 'two-sided-desktop-front.png'),
         fullPage: true,
       });
+      await verifyFaceDiscovery(page);
       await verifyMechanics(page);
       await verifyCompletionDuringHint(page);
       for (let index = 0; index < LEVELS.length; index += 1) {
@@ -762,11 +962,18 @@ try {
   }
   await verifyMobile();
   await verifyOptionalStorage();
+  await verifyRewardedDiscovery();
   assert.deepEqual(runtimeErrors, [], 'No browser runtime or console errors');
   await writeFile(
     resolve(outputDir, reportName),
     JSON.stringify(
-      { passed: true, scope: mobileOnly ? 'mobile and storage' : 'all', checks, runtimeErrors },
+      {
+        passed: true,
+        scope: mobileOnly ? 'mobile and storage' : 'all',
+        checks,
+        layouts,
+        runtimeErrors,
+      },
       null,
       2,
     ) + '\n',
@@ -776,7 +983,8 @@ try {
 } catch (error) {
   await writeFile(
     resolve(outputDir, reportName),
-    JSON.stringify({ passed: false, checks, runtimeErrors, error: error.stack }, null, 2) + '\n',
+    JSON.stringify({ passed: false, checks, layouts, runtimeErrors, error: error.stack }, null, 2) +
+      '\n',
   ).catch(() => {});
   console.error(error);
   process.exitCode = 1;

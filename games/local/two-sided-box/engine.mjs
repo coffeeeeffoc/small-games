@@ -172,11 +172,11 @@ export function moveShaft(level, state, id, value) {
   });
 }
 
-export function toggleLatch(level, state, id) {
+export function toggleLatch(level, state, id, side = state.side) {
   const latch = latchById(level, id);
   if (!latch) return failure('找不到这个锁扣。');
   if (state.completed) return failure('小球已经抵达终点。');
-  if (state.side !== latch.side) return failure(`这个锁扣在${sideName(latch.side)}，先翻面。`);
+  if (side !== latch.side) return failure(`这个锁扣在${sideName(latch.side)}，请展开该面。`);
   if (state.latches[id]) {
     const alignment = latchAlignment(level, state, latch);
     if (!alignment.aligned) return failure(alignment.message);
@@ -230,13 +230,13 @@ export function getBlockingReason(level, state) {
     .join(' ');
 }
 
-export function releaseBall(level, state) {
+export function releaseBall(level, state, side = state.side) {
   if (state.completed) return failure('小球已经抵达终点。');
   if (state.released) return failure('小球已在球道里，可以继续调整机关。');
-  if (state.side !== 'front') return failure('放球口在正面，翻到正面再放球。');
+  if (side !== 'front') return failure('放球口在正面，请先展开正面。');
   state.released = true;
   state.moves += 1;
-  return success('小球出发！遇到挡板会停住，仍可翻面调整机关。');
+  return success('小球出发！遇到挡板会停住，仍可在已展开的面上调整机关。');
 }
 
 /**

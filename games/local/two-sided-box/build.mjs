@@ -9,6 +9,8 @@ for (const file of [
   'game.mjs',
   'render.mjs',
   'engine.mjs',
+  'faces.mjs',
+  'rewards.mjs',
   'levels.mjs',
   'progress.mjs',
 ]) {

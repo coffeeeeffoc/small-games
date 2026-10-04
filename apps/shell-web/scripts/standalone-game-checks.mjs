@@ -478,7 +478,24 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__twoSidedSnapshot());
     await click(frame.locator('#start'));
     await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
-    const upperNotch = frame.locator('[data-notch-shaft="A"][data-value="2"]');
+    const initial = await snapshot();
+    expect(initial.faceAccess.visibleFaces).toHaveLength(2);
+    expect(new Set(initial.faceAccess.visibleFaces).size).toBe(2);
+    await expect(frame.locator('svg[data-face]')).toHaveCount(2);
+    while (!['front', 'back'].every((face) => initial.faceAccess.visibleFaces.includes(face))) {
+      await click(frame.locator('#reveal'));
+      const revealed = await snapshot();
+      expect(revealed.state).toEqual(initial.state);
+      expect(revealed.historyLength).toBe(initial.historyLength);
+      initial.faceAccess = revealed.faceAccess;
+    }
+    await expect(frame.locator('svg[data-face="front"]')).toBeVisible();
+    await expect(frame.locator('svg[data-face="back"]')).toBeVisible();
+    await expect(frame.locator('#flip, [role="tab"]')).toHaveCount(0);
+    const upperNotch = frame.locator(
+      'svg[data-face="front"] [data-notch-shaft="A"][data-value="2"]',
+    );
+    await upperNotch.scrollIntoViewIfNeeded();
     // A locked shaft still gives feedback to a physical touch or mouse press.
     // Send that input directly because the notch inherits aria-disabled.
     const lockedBounds = await upperNotch.boundingBox();
@@ -490,16 +507,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     else await page.mouse.click(lockedX, lockedY);
     await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
     await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(true);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('back');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await click(frame.locator('svg[data-face="back"] [data-latch="lock-A"]'));
+    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
     await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(0);
-    await click(frame.locator('[data-latch="lock-A"]'));
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
-    await click(frame.locator('#flip'));
-    await expect.poll(async () => (await snapshot()).state.side).toBe('front');
-    await expect.poll(async () => (await snapshot()).animating).toBe(false);
-    await expect.poll(async () => (await snapshot()).state.latches['lock-A']).toBe(false);
     await click(upperNotch);
     await expect.poll(async () => (await snapshot()).state.shafts.A).toBe(2);
     await click(frame.locator('#release'));

@@ -312,3 +312,70 @@ test('schema validation identifies bad references and refuses an incomplete exit
   assert.ok(result.errors.length >= 3);
   assert.throws(() => createState(broken), /无效关卡/);
 });
+
+test('an explicit back-face latch updates shared mechanisms without changing the selected side', () => {
+  const level = LEVELS[1];
+  const state = createState(level);
+  const before = clone(state);
+  for (const face of ['front', 'left', 'unknown']) {
+    assert.equal(toggleLatch(level, state, 'lock-A', face).ok, false);
+    assert.deepEqual(state, before, 'Wrong-face input must not unlock or count an operation.');
+  }
+  assert.equal(toggleLatch(level, state, 'lock-A', 'back').ok, true);
+  assert.equal(state.side, 'front');
+  assert.equal(state.flips, 0);
+  assert.equal(state.moves, 1);
+  assert.equal(getSnapshot(level, state).shafts[0].locked, false);
+  assert.equal(moveShaft(level, state, 'A', 2).ok, true);
+  assert.equal(getGateStatus(level, state, 'door-A').open, true);
+  assert.equal(getGateStatus(level, state, 'panel-A').open, false);
+  assert.equal(moveShaft(level, state, 'A', 1).ok, true);
+  assert.equal(getGateStatus(level, state, 'door-A').open, true);
+  assert.equal(getGateStatus(level, state, 'panel-A').open, true);
+  assert.equal(state.side, 'front');
+  assert.equal(state.moves, 3);
+});
+
+test('an explicit front-face release works independently of the legacy selected side', () => {
+  const level = LEVELS[0];
+  const state = createState(level);
+  state.side = 'back';
+  const before = clone(state);
+  for (const face of ['back', 'top', 'unknown']) {
+    assert.equal(releaseBall(level, state, face).ok, false);
+    assert.deepEqual(state, before);
+  }
+  assert.equal(releaseBall(level, state, 'front').ok, true);
+  assert.equal(state.released, true);
+  assert.equal(state.side, 'back');
+  assert.equal(state.flips, 0);
+  assert.equal(state.moves, 1);
+});
+
+test('all walkthroughs complete through explicit faces with no flip operations or move charges', () => {
+  for (const level of LEVELS) {
+    const state = createState(level);
+    for (const action of level.solution) {
+      if (action.type === 'flip') continue;
+      const result =
+        action.type === 'latch'
+          ? toggleLatch(
+              level,
+              state,
+              action.id,
+              level.latches.find((latch) => latch.id === action.id).side,
+            )
+          : action.type === 'release'
+            ? releaseBall(level, state, 'front')
+            : apply(level, state, action);
+      assert.equal(result.ok, true, `${level.id}: ${JSON.stringify(action)}: ${result.message}`);
+      assert.equal(state.side, 'front');
+    }
+    assert.equal(state.completed, true, level.id);
+    assert.equal(state.flips, 0);
+    assert.equal(
+      state.moves,
+      level.estimatedMoves - level.solution.filter((action) => action.type === 'flip').length,
+    );
+  }
+});
