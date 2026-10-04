@@ -6,6 +6,7 @@ const presets = {
   cosmic: { cop: ['#4d51b8', '#e4e4ff', '✦'], robber: ['#b54920', '#ffdfb4', '☄'] },
 };
 const images = new Map();
+const classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
 let settings, stored;
 const side = (role) => (['cop', 'pursuer', 'chaser'].includes(role) ? 'cop' : 'robber');
 const validAvatar = (value) =>
@@ -15,7 +16,8 @@ const validAvatar = (value) =>
 
 function read() {
   try {
-    const value = globalThis.localStorage?.getItem(storageKey) || '{}';
+    const value =
+      (globalThis.__chaseRoleStorage || globalThis.localStorage)?.getItem(storageKey) || '{}';
     if (settings && value === stored) return settings;
     stored = value;
     settings = JSON.parse(value);
@@ -32,7 +34,7 @@ export function getRoleAppearance(role) {
   const style = Object.hasOwn(presets, value?.style) ? value.style : 'team';
   const [color, accent, badge] = presets[style][key];
   return {
-    label: key === 'cop' ? '追逐队' : '突围队',
+    label: classicRoles() ? (key === 'cop' ? '警察' : '小偷') : key === 'cop' ? '追逐队' : '突围队',
     style,
     color,
     accent,
@@ -81,6 +83,17 @@ function facePaths(role) {
     if (style === 'cosmic')
       add('M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z', '#ffe075');
   }
+  if (classicRoles() && style === 'team') {
+    if (chaser) {
+      add('M8 29 14 12Q50-5 86 12L92 29 76 39H24Z', '#1677bf', '#155681');
+      add('M20 32H80L86 39Q50 50 14 39Z', '#183e59');
+      add('M50 9 59 14 57 26 50 31 43 26 41 14Z', '#ffd671');
+    } else {
+      add('M9 38Q8 4 50 4T91 38Z', '#243b40');
+      add('M12 48Q27 43 50 50 73 43 88 48L85 67Q70 75 51 65 30 75 15 67Z', '#243b40');
+      add('M24 57Q32 48 41 57L39 64H26ZM59 57Q68 48 77 57L75 64H61Z', '#fff8e9');
+    }
+  }
   add('M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0', '#243d49');
   add('M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0', '#fff');
   add('M17 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0M69 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0', '#f49d92');
@@ -109,11 +122,124 @@ export function roleAvatarSvg(role, x, y, size) {
   return `<g class="role-avatar" pointer-events="none" transform="translate(${x} ${y}) scale(${size / 100})" stroke-linecap="round" stroke-linejoin="round">${content}</g>`;
 }
 
+// Mini-game Canvas implementations do not consistently expose Path2D.
+function drawNativeFace(ctx, role) {
+  const { color, accent, style } = getRoleAppearance(role);
+  const cop = side(role) === 'cop';
+  const circle = (x, y, radius, fill) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  };
+  const polygon = (points, fill) => {
+    ctx.beginPath();
+    ctx.moveTo(...points[0]);
+    for (const point of points.slice(1)) ctx.lineTo(...point);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  };
+  if (style === 'animals') {
+    polygon(
+      [
+        [10, 43],
+        [13, 4],
+        [42, 30],
+      ],
+      color,
+    );
+    polygon(
+      [
+        [58, 30],
+        [87, 4],
+        [90, 43],
+      ],
+      color,
+    );
+  }
+  circle(50, 55, 41, style === 'animals' ? color : accent);
+  if (style === 'animals') circle(50, 68, 26, '#fff4df');
+  if (classicRoles() && style === 'team') {
+    if (cop) {
+      polygon(
+        [
+          [8, 32],
+          [14, 12],
+          [50, 4],
+          [86, 12],
+          [92, 32],
+        ],
+        color,
+      );
+      ctx.fillStyle = '#183e59';
+      ctx.fillRect(14, 31, 72, 9);
+      polygon(
+        [
+          [50, 10],
+          [59, 15],
+          [57, 26],
+          [50, 31],
+          [43, 26],
+          [41, 15],
+        ],
+        '#ffd671',
+      );
+    } else {
+      polygon(
+        [
+          [9, 35],
+          [17, 9],
+          [50, 3],
+          [83, 9],
+          [91, 35],
+        ],
+        '#243b40',
+      );
+      ctx.fillStyle = '#243b40';
+      ctx.fillRect(12, 45, 76, 22);
+      circle(32, 56, 9, '#fff8e9');
+      circle(68, 56, 9, '#fff8e9');
+    }
+  } else if (style === 'cosmic') {
+    polygon(
+      [
+        [50, 12],
+        [56, 28],
+        [73, 29],
+        [60, 40],
+        [65, 56],
+        [50, 46],
+        [35, 56],
+        [40, 40],
+        [27, 29],
+        [44, 28],
+      ],
+      '#ffd671',
+    );
+  }
+  circle(32, 57, 5, '#243d49');
+  circle(68, 57, 5, '#243d49');
+  circle(30, 55, 1.7, '#fff');
+  circle(66, 55, 1.7, '#fff');
+  circle(22, 72, 5, '#f49d92');
+  circle(78, 72, 5, '#f49d92');
+  ctx.beginPath();
+  ctx.moveTo(39, 76);
+  ctx.quadraticCurveTo(50, 90, 61, 76);
+  ctx.strokeStyle = '#9e5149';
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+}
+
 export function drawRoleAvatar(ctx, role, x, y, size) {
   const { avatar } = getRoleAppearance(role);
   let img = images.get(avatar);
-  if (avatar && !img && typeof Image !== 'undefined') {
-    img = new Image();
+  if (avatar && !img && (globalThis.__chaseRoleImage || typeof Image !== 'undefined')) {
+    img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
+    img.onload = () => {
+      img.roleLoaded = true;
+    };
     img.src = avatar;
     images.set(avatar, img);
   }
@@ -121,13 +247,19 @@ export function drawRoleAvatar(ctx, role, x, y, size) {
   ctx.translate(x, y);
   ctx.scale(size / 100, size / 100);
   ctx.lineCap = ctx.lineJoin = 'round';
-  if (img?.complete && img.naturalWidth) {
-    ctx.clip(new Path2D(portraitOutline(role)));
-    const edge = Math.min(img.naturalWidth, img.naturalHeight);
+  if ((img?.complete || img?.roleLoaded) && (img.naturalWidth || img.width)) {
+    if (typeof Path2D !== 'undefined') ctx.clip(new Path2D(portraitOutline(role)));
+    else {
+      ctx.beginPath();
+      if (side(role) === 'cop') ctx.rect(0, 0, 100, 100);
+      else ctx.arc(50, 50, 50, 0, Math.PI * 2);
+      ctx.clip();
+    }
+    const edge = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
     ctx.drawImage(
       img,
-      (img.naturalWidth - edge) / 2,
-      (img.naturalHeight - edge) / 2,
+      ((img.naturalWidth || img.width) - edge) / 2,
+      ((img.naturalHeight || img.height) - edge) / 2,
       edge,
       edge,
       0,
@@ -135,6 +267,8 @@ export function drawRoleAvatar(ctx, role, x, y, size) {
       100,
       100,
     );
+  } else if (typeof Path2D === 'undefined') {
+    drawNativeFace(ctx, role);
   } else {
     for (const { d, fill, stroke, width } of facePaths(role)) {
       const path = new Path2D(d);

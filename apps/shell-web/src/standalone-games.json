@@ -93,8 +93,8 @@
   {
     "id": "cops-robbers-realtime",
     "source": "games/local/cops-robbers-realtime",
-    "title": "别跑！街区围捕",
-    "description": "先在三张小街区实时夹击，再挑战百关街区、轮换指挥，或自选角色与好友过招。",
+    "title": "街区追捕",
+    "description": "点选警察封住路口，合作抓住小偷。横屏街区百关挑战、个人与全站通关纪录、好友 PK。",
     "output": "dist"
   },
   {

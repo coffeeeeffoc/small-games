@@ -14,6 +14,8 @@ export type Rule = {
   view(state: unknown, seat?: number): unknown;
   action(state: unknown, action: unknown, elapsedMs: number, seat?: number): unknown;
   result(state: unknown, seat?: number): Result;
+  runBoard?(config: Record<string, unknown>): string;
+  verifyRun?(config: Record<string, unknown>, input: unknown): { board: string; elapsedMs: number };
 };
 export type Member = {
   id: string;

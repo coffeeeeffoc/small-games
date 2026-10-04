@@ -394,6 +394,39 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     ranking,
     ruleFor,
     roomAction,
+    async streetRuns(playerId: string, config: Record<string, unknown>, input?: unknown) {
+      const rule = ruleFor('cops-robbers-realtime');
+      let board: string;
+      let result: { board: string; elapsedMs: number } | undefined;
+      try {
+        if (!rule.runBoard || !rule.verifyRun) throw new Error('unsupported');
+        board = rule.runBoard(config);
+        if (input !== undefined) result = rule.verifyRun(config, input);
+      } catch {
+        throw new CompetitionError('INVALID_RUN', 422);
+      }
+      if (result) {
+        const matchId = 'street-run:' + hash(json([playerId, config, input]));
+        const elapsedMs = result.elapsedMs;
+        await db.transaction(async (tx) => {
+          await record(tx, matchId, board, playerId, -elapsedMs, 0);
+        });
+      }
+      const rankingResult = await ranking(board, playerId);
+      const top = rankingResult.top.map((row) => ({
+        playerId: row.playerId,
+        name: row.name,
+        elapsedMs: -Number(row.score),
+        rank: row.rank,
+      }));
+      return {
+        accepted: !!result,
+        board,
+        fastestMs: top[0]?.elapsedMs ?? null,
+        top,
+        personalMs: rankingResult.me ? -Number(rankingResult.me.score) : null,
+      };
+    },
     async create(
       playerId: string,
       game: string,

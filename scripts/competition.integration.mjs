@@ -8,6 +8,7 @@ import { createCompetitionStore } from '../services/runtime-api/dist/competition
 import { getDuelLevel } from '../games/local/cops-robbers/src/duel-levels.js';
 import { chooseDuelAction } from '../games/local/cops-robbers/src/duel.js';
 import { playerName } from '../platforms/competition/format.js';
+import { verifyStreetRunHttp } from './street-runs.integration.mjs';
 const names = [
   { id: 'abcdef01', name: '海湾旅人' },
   { id: 'abcdef02', name: '海湾旅人' },
@@ -47,6 +48,7 @@ async function request(path, session, body, status = 200) {
 }
 try {
   await start();
+  await verifyStreetRunHttp(base);
   await request('/me', null, undefined, 401);
   const a = await request('/sessions/guest', null, {}),
     b = await request('/sessions/guest', null, {}),

@@ -36,7 +36,7 @@ export const markers = {
   'xiangqi-five': '#draw-button',
   'office-slacking': '#start',
   'cops-robbers': '#start-mode',
-  'cops-robbers-realtime': '#start-button',
+  'cops-robbers-realtime': '#levels-button',
   'h5-security': '[data-action="start"]',
   'letters-words': '#board button',
   'letters-words2': '#board button',
@@ -1025,9 +1025,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByTestId('undo'));
     await expect(frame.locator('body')).toHaveAttribute('data-turn', '0');
   } else if (id === 'cops-robbers-realtime') {
+    await click(frame.locator('#levels-button'));
     await click(frame.locator('#start-button'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('.cop-card').first());
+    await expect(frame.locator('#cop-roster')).toHaveCount(0);
     await click(frame.locator('#pause-button'));
     await expect(frame.locator('#resume-button')).toBeVisible();
     await click(frame.locator('#resume-button'));

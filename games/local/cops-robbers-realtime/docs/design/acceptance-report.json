@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "844x390: home/selection/canvas role input/win/server verification/local persistence/leaderboard/friends/cancel/pause",
+    "390x844: home/selection/canvas role input/win/server verification/local persistence/leaderboard/friends/cancel/pause",
+    "320x740: home/selection/canvas role input/win/server verification/local persistence/leaderboard/friends/cancel/pause",
+    "1366x768: home/selection/canvas role input/win/server verification/local persistence/leaderboard/friends/cancel/pause",
+    "Two authenticated H5 clients: create/join/ready, police and thief canvas selection, rotated destination taps accepted by real server",
+    "Actual WeChat bundle in Canvas SDK fixture: native home/selection/play/pause/avatars/PK/back, no fullscreen or DOM dependencies"
+  ],
+  "errors": [],
+  "database": "Actual routes/store using persistent PGlite PostgreSQL, not a deployed PostgreSQL host",
+  "native": "SDK fixture, not physical device"
+}

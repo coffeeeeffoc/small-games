@@ -3,6 +3,7 @@ import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { CompetitionError } from './types.js';
+import { registerRunRoutes } from './run-routes.js';
 import type { createCompetitionStore } from './store.js';
 
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -170,6 +171,7 @@ export async function registerCompetition(
           .parse((request.params as { game: string }).game);
         return store.board(game, await player(request.headers.authorization));
       });
+      registerRunRoutes(routes, store, player);
       routes.post('/rooms', { bodyLimit: 2048 }, async (request) => {
         const input = z
           .object({
