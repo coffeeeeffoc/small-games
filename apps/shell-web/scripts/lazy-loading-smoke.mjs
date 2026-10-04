@@ -119,14 +119,14 @@ try {
   const retry = await browser.newPage();
   const [retrySource, retryChunk] = games[0];
   const retryId = retrySource.match(/game-([^/]+)\/src/)[1];
-  let blocked = false;
+  let blocked = true;
   await retry.route(`**/${retryChunk.file}`, (route) => {
-    if (blocked) return route.continue();
-    blocked = true;
-    return route.abort();
+    // A failed module preload can be retried by import(); keep the outage active.
+    return blocked ? route.abort() : route.continue();
   });
   await retry.goto(`${base}#/games/${retryId}`);
   await expect(retry.getByRole('alert')).toContainText('游戏资源加载失败');
+  blocked = false;
   await retry.getByRole('button', { name: '重新加载', exact: true }).click();
   await expect(retry.locator('.game-slot > *').first()).toBeVisible();
   await retry.close();
