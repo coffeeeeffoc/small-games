@@ -1794,20 +1794,19 @@ export class GardenRenderer {
   updateCamera(state) {
     const portrait = this.height > this.width * 1.15;
     if (portrait) {
-      this.scale = Math.max(this.width / 780, (this.height - 200) / 860);
+      this.scale = Math.max(this.width / 780, (this.height - 150) / 860);
       const px = state?.player?.x ?? 720,
         py = state?.player?.y ?? 450;
       const halfWidth = this.width / this.scale / 2;
       this.camera.x = clamp(px, Math.min(halfWidth + 15, 720), Math.max(1425 - halfWidth, 720));
       this.camera.y = py;
       this.offsetX = this.width / 2 - this.camera.x * this.scale;
-      // Keep the gardener above the thumb controls and seed dock.
-      const fieldCenter =
-        (Math.min(150, this.height * 0.28) + Math.max(190, this.height - 315)) / 2;
+      // The canvas ends above the controls; only the upper HUD needs camera clearance.
+      const fieldCenter = (Math.min(240, this.height * 0.42) + this.height - 30) / 2;
       this.offsetY = fieldCenter - this.camera.y * this.scale;
     } else {
       const top = this.height < 540 ? 61 : 87,
-        bottom = this.height < 540 ? 92 : 166;
+        bottom = 28;
       this.scale = Math.min(this.width / 1440, (this.height - top - bottom) / 600);
       this.scale = Math.max(this.scale, Math.min(this.width / 1600, this.height / 1060));
       this.camera = { x: 720, y: 450 };
@@ -1815,7 +1814,7 @@ export class GardenRenderer {
       this.offsetY = top - 150 * this.scale;
       // Preserve the opening composition, then pan only when the gardener would
       // enter the HUD or seed dock. Include the sprite's height above its feet.
-      const maxPlayerY = this.height < 540 ? this.height - 155 : this.height - 273;
+      const maxPlayerY = this.height - 35;
       const minPlayerY = Math.min(
         maxPlayerY,
         Math.max(this.height < 540 ? 90 : 145, top + 83 * this.scale + 24),
@@ -1853,7 +1852,7 @@ export class GardenRenderer {
       const healthbarBounds = ['leader', 'boss'].includes(enemy.rank)
         ? {
             top: ((this.height < 540 ? 151 : 245) - this.offsetY) / this.scale,
-            bottom: (this.height - (this.height < 540 ? 120 : 205) - this.offsetY) / this.scale,
+            bottom: (this.height - 24 - this.offsetY) / this.scale,
           }
         : null;
       monster(this.ctx, enemy, animationTime, false, healthbarBounds);
@@ -2247,7 +2246,7 @@ export function drawSeedIcon(canvas, kind) {
   c.save();
   c.translate(w * 0.5, h * 0.84);
   c.scale(scale, scale);
-  if (kind === 'shrub') shrub(c, 0, 0, 0.96, 5, 0);
+  if (kind === 'shrub' || kind === 'thorn') shrub(c, 0, 0, 0.96, 5, 0);
   else if (kind === 'trench' || kind === 'frost' || kind === 'poison')
     terrain(c, { kind, x: 0, y: -35, radius: kind === 'trench' ? 56 : 40, age: 5, life: 99 }, 1);
   else if (kind === 'cart') wagon(c, 0, -21, 0, 0.15, 0.9);
@@ -2287,8 +2286,7 @@ export function drawSeedIcon(canvas, kind) {
       },
       1,
     );
-  } else if (kind === 'thorn') thorn(c, 0, 0, 0.96, 5, 0);
-  else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
+  } else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
   else if (kind === 'mushroom') mushroom(c, 0, 0, 1, 5, 0);
   else if (SEEDS[kind]) drawAdditionalPlant(c, { kind, x: 0, y: 0, age: 5 }, 0, true, SEEDS[kind]);
   else if (kind === 'heart' || kind === 'health') drawHeartIcon(c);

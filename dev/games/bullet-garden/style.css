@@ -47,6 +47,7 @@ button:active {
   display: none !important;
 }
 #game {
+  --control-height: calc(174px + env(safe-area-inset-bottom));
   position: relative;
   width: 100%;
   height: 100dvh;
@@ -58,17 +59,26 @@ button:active {
 #arena {
   display: block;
   width: 100%;
-  height: 100%;
+  height: calc(100% - var(--control-height));
   touch-action: none;
 }
 .vignette {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--control-height);
   pointer-events: none;
   background:
     linear-gradient(180deg, #0e211a50, transparent 22%, transparent 56%, #071a17a8),
     radial-gradient(ellipse at center, transparent 45%, #0d211b4d);
   z-index: 1;
+}
+.control-floor {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--control-height);
+  border-top: 1px solid #a1b58b66;
+  background: linear-gradient(180deg, #24392d, #152722);
+  z-index: 1;
+  pointer-events: none;
 }
 .hud {
   position: absolute;
@@ -1887,7 +1897,7 @@ body[data-phase='ready'] .overlay {
 /* Chosen terrain and manually released energy share a compact battle HUD. */
 .skill-dock {
   position: absolute;
-  bottom: max(37px, env(safe-area-inset-bottom));
+  bottom: calc(14px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
@@ -2067,7 +2077,7 @@ body[data-phase='ready'] .overlay {
   margin-left: 5px;
 }
 .field-status {
-  bottom: 199px;
+  bottom: calc(var(--control-height) + 8px);
 }
 .field-status button {
   min-height: 32px;
@@ -2306,7 +2316,7 @@ body[data-armed='true'] #arena {
 }
 @media (max-width: 620px) and (orientation: portrait) {
   .skill-dock {
-    bottom: calc(25px + env(safe-area-inset-bottom));
+    bottom: calc(12px + env(safe-area-inset-bottom));
     left: auto;
     right: 13px;
     transform: none;
@@ -2333,7 +2343,7 @@ body[data-armed='true'] #arena {
     flex-direction: column;
     gap: 0;
     text-align: center;
-    min-height: 115px;
+    min-height: 82px;
     padding: 3px 2px 12px;
   }
   .skill-card canvas {
@@ -2359,7 +2369,7 @@ body[data-armed='true'] #arena {
     margin-top: 6px;
   }
   .touch-controls {
-    bottom: calc(40px + env(safe-area-inset-bottom));
+    bottom: calc(14px + env(safe-area-inset-bottom));
     left: 14px;
     right: auto;
     width: 108px;
@@ -2367,7 +2377,7 @@ body[data-armed='true'] #arena {
   .action-controls {
     position: absolute;
     left: 25px;
-    bottom: 126px;
+    bottom: 98px;
     padding: 0;
   }
   #joystick {
@@ -2382,7 +2392,7 @@ body[data-armed='true'] #arena {
     display: none;
   }
   .field-status {
-    bottom: calc(205px + env(safe-area-inset-bottom));
+    bottom: calc(var(--control-height) + 8px);
     right: 13px;
     padding: 1px 8px;
     font-size: 9px;
@@ -2485,8 +2495,11 @@ body[data-armed='true'] #arena {
   }
 }
 @media (max-height: 540px) and (orientation: landscape) {
+  #game {
+    --control-height: calc(124px + env(safe-area-inset-bottom));
+  }
   .skill-dock {
-    bottom: max(13px, env(safe-area-inset-bottom));
+    bottom: calc(8px + env(safe-area-inset-bottom));
     width: 346px;
     padding: 7px;
   }
@@ -2526,7 +2539,7 @@ body[data-armed='true'] #arena {
     bottom: max(22px, env(safe-area-inset-bottom));
   }
   .field-status {
-    bottom: 80px;
+    bottom: calc(var(--control-height) + 6px);
     right: 16px;
     font-size: 8px;
     padding: 0 6px;
@@ -3211,5 +3224,74 @@ body[data-armed='true'] #arena {
   .ready-launch .unlock-tip {
     margin-top: 9px;
     text-align: center;
+  }
+}
+
+/* Each screen owns the viewport and its own scroll; battle is never a menu backdrop. */
+body:not([data-screen='battle']) #game > :not(#overlay):not(#save-status) {
+  visibility: hidden;
+  pointer-events: none;
+}
+#game > .overlay {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #152923;
+  backdrop-filter: none;
+}
+.overlay > .modal {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: radial-gradient(ellipse at top, #304835, #152923 75%);
+  padding: max(24px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right), calc((100% - 1100px) / 2))
+    max(24px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left), calc((100% - 1100px) / 2));
+}
+.overlay > .modal::before {
+  display: none;
+}
+.overlay > .ready-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 60px);
+  align-content: safe center;
+  align-items: center;
+}
+.overlay > #result-panel {
+  padding-inline: max(20px, calc((100% - 760px) / 2));
+  align-content: safe center;
+}
+.overlay > .compact-panel {
+  align-content: safe center;
+}
+.developer-note {
+  color: #edce88;
+  text-align: center;
+  font-size: 12px;
+}
+#ready-last-result {
+  grid-column: 1 / -1;
+}
+.control-hint {
+  bottom: calc(4px + env(safe-area-inset-bottom));
+}
+@media (pointer: coarse) {
+  .control-hint {
+    display: none;
+  }
+}
+@media (max-width: 620px) and (orientation: portrait) {
+  .overlay > .ready-panel {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 20px;
   }
 }

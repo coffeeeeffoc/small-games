@@ -75,22 +75,12 @@
             <span class="side-tag"><i aria-hidden="true"></i><span id="side-name">前面</span></span
             ><span class="move-counter"><strong id="move-count">0</strong> 次操作</span>
           </div>
-          <nav id="face-nav" class="face-nav" aria-label="观察盒子的六个面"></nav>
-          <div class="scene">
-            <canvas
-              id="board"
-              tabindex="0"
-              role="img"
-              aria-label="当前观察面的机关盒，可拖动滑轴或点按锁扣"
-              aria-describedby="board-gesture status"
-              >机关画面不可用。可使用下方的滑轴档位与锁扣按钮操作。</canvas
-            >
-          </div>
+          <div id="face-nav" class="face-nav" aria-label="六面展开状态与提示入口"></div>
+          <div id="board" class="face-grid" role="group" aria-label="机关盒多面观察台"></div>
           <div class="scene-caption">
             <span id="board-gesture">拖动滑轴 · 点按锁扣</span
             ><span id="ball-state">小球待出发</span>
           </div>
-          <div id="face-controls" class="face-controls" aria-label="当前面的机关操作"></div>
           <div class="message-box">
             <span class="status-light" aria-hidden="true"></span>
             <p id="status" role="status" aria-live="polite">
@@ -105,7 +95,7 @@
               ><span data-label>放出小球</span>
             </button>
             <button id="hint" class="secondary-button" aria-haspopup="dialog">
-              <span data-label>揭示另一面</span
+              <span data-label>提示 · 展开一面</span
               ><span id="view-count" class="count-badge">2 / 6</span>
             </button>
           </div>
@@ -154,7 +144,9 @@
       </div>
       <p class="eyebrow">五章 · 五十盒 · 六个角度</p>
       <h2 id="welcome-title">每个盒子，<br />都藏着新的联系。</h2>
-      <p class="welcome-copy">从随机揭示的两面开始，<br />移动滑轴、对齐孔口，让小球找到出口。</p>
+      <p class="welcome-copy">
+        随机两面同时展开，用提示看见更多。<br />移动滑轴、对齐孔口，让小球找到出口。
+      </p>
       <button id="start" class="primary-button">
         进入六面工坊 <span aria-hidden="true">→</span>
       </button>
@@ -174,7 +166,7 @@
         <li>
           <strong>直接操作看见的机关</strong>
           <p>
-            拖动滑轴，或点下方的低、中、高档位；点按锁扣开合。相同字母表示同一根轴，换面不会改变机关状态。
+            拖动滑轴，或点本面下方的低、中、高档位；点按锁扣开合。各个观察窗共用同一套机关，可以同时对照变化。
           </p>
         </li>
         <li>
@@ -186,8 +178,9 @@
         <li>
           <strong>按需逐面揭示</strong>
           <p>
-            点「揭示另一面」选择一个尚未看到的方向，目前免费。看完六面后，最终提示可以打开完整 3D
-            结构，自由旋转并选择是否透视。
+            点「提示 ·
+            展开一面」免费选择一个新方向，已展开的面一直留在同一个观察台。有可用视频时也可通过完整观看来展开。看完六面后，最终提示可以打开完整
+            3D 结构，自由旋转并选择是否透视。
           </p>
         </li>
         <li>
@@ -215,6 +208,8 @@
       <h2 id="hint-title">揭示另一面</h2>
       <p id="hint-copy" class="dialog-copy">选择你想观察的方向，看看另一面连接着什么。</p>
       <div id="reveal-options" class="reveal-options"></div>
+      <button id="reward-reveal" class="secondary-button" disabled>看视频 · 展开一面</button>
+      <p id="reward-note" class="reward-note">当前暂无可用视频，可使用上方的免费提示展开。</p>
       <p id="reveal-feedback" class="reveal-feedback" role="status" aria-live="polite"></p>
       <button class="secondary-button" data-close="hint-dialog">先自己试试</button>
     </dialog>

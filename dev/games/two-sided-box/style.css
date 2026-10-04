@@ -65,7 +65,7 @@ p {
   line-height: 1.75;
 }
 .workshop {
-  max-width: 1180px;
+  max-width: 1440px;
   margin: auto;
   padding: 28px 36px max(24px, env(safe-area-inset-bottom));
 }
@@ -289,14 +289,78 @@ h1 {
   background: linear-gradient(130deg, #223c34, #1b302c);
   box-shadow: 0 14px 40px #061d1940;
 }
-#board {
+.face-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+.face-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #c8a77845;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #2d4033, #172c25);
+  box-shadow:
+    0 12px 25px #08171238,
+    inset 0 1px #f1d49c12;
+}
+.face-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px 0;
+}
+.face-heading h3 {
+  margin: 0;
+  color: #efd2a0;
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: 2px;
+}
+.face-heading > span {
+  color: #b2b39b;
+  font-size: 9px;
+}
+canvas[data-face-board] {
   display: block;
   width: 100%;
-  height: clamp(280px, 42dvh, 440px);
+  height: auto;
+  aspect-ratio: 1 / 1;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: pointer;
+}
+.face-card .face-controls {
+  margin: 0;
+  padding: 0 10px 10px;
+}
+.face-card .control-row {
+  gap: 6px;
+  padding: 7px;
+}
+.face-card .detents button {
+  padding: 8px;
+}
+.face-marker {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  min-height: 48px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.face-marker.revealed {
+  background: #ddbc7918;
+  border: 1px solid #d2b47d66;
+  color: #efd2a0;
+}
+.reward-note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 8px 0 16px;
 }
 .scene-caption {
   display: flex;
@@ -846,6 +910,9 @@ dialog > .text-button {
     grid-template-columns: 190px minmax(0, 1fr);
     gap: 24px;
   }
+  .face-grid {
+    grid-template-columns: 1fr;
+  }
   .notebook h2 {
     font-size: 22px;
   }
@@ -942,6 +1009,12 @@ dialog > .text-button {
   }
   .scene-header {
     margin-bottom: 9px;
+  }
+  .face-grid {
+    gap: 16px;
+  }
+  .face-heading {
+    padding: 10px 12px 0;
   }
   .scene-caption {
     font-size: 9px;

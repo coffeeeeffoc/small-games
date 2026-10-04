@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#132923" />
     <meta
       name="description"
-      content="在嘈杂的虚构案件现场，凭音色从三段同句录音中找到同一个人。12 关原创中文听声辨人小游戏。"
+      content="听现场声音，看人物录像，从音色、姿势和表情中寻找线索。12 关原创中文听声辨人小游戏。"
     />
     <title>声纹疑案 · 听见藏在噪声里的线索</title>
     <link
@@ -35,7 +35,7 @@
               深夜，一件展品不翼而飞。<br />现场留下了一句话，和藏在噪声里的声音。
             </p>
             <p class="intro-description">
-              听现场录音，再试听 A、B、C 的同一句话。<br />不猜台词，只凭音色，找到同一个人。
+              听现场声音，再看 A、B、C 的人物录像。<br />留意音色、姿势和表情，找到同一个人。
             </p>
 
             <div class="case-details" aria-label="游戏概况">
@@ -76,11 +76,11 @@
           <div class="field-notes">
             <div class="field-note">
               <span class="note-number">01</span>
-              <p><strong>先听现场</strong><span>记住声音的质感和说话方式。</span></p>
+              <p><strong>先看现场</strong><span>黑影遮住身份，留意声音与动作。</span></p>
             </div>
             <div class="field-note">
               <span class="note-number">02</span>
-              <p><strong>再作比较</strong><span>三人说同一句话，可以反复试听。</span></p>
+              <p><strong>再看人物</strong><span>三人说同一句话，比较表情和姿势。</span></p>
             </div>
             <div class="field-note">
               <span class="note-number">03</span>
@@ -109,7 +109,7 @@
             <div class="scene-heading">
               <span class="section-number">01</span>
               <div>
-                <p class="section-kicker">现场录音</p>
+                <p class="section-kicker">现场录音 · 虚拟回放</p>
                 <h2 id="scene-title">等待第一段线索</h2>
               </div>
             </div>
@@ -117,16 +117,29 @@
               仔细听声音的质感，再与下面三个候选声音比较。
             </p>
             <button id="scene-play" class="scene-play" type="button" aria-pressed="false">
-              <span class="play-disc" aria-hidden="true"
-                ><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" /></svg
-              ></span>
-              <span class="scene-play-text"
-                ><span class="button-label">播放现场录音</span
-                ><span class="play-helper">同一段线索，可随时重听</span></span
-              >
-              <span class="mini-wave" aria-hidden="true"
-                ><i></i><i></i><i></i><i></i><i></i><i></i><i></i
-              ></span>
+              <span class="recording-frame">
+                <canvas
+                  id="scene-recording"
+                  width="720"
+                  height="450"
+                  data-anonymous="true"
+                  aria-hidden="true"
+                ></canvas>
+                <span class="recording-badge">身份已遮蔽</span>
+                <span class="recording-caption">虚拟人物 · 保留说话姿态</span>
+              </span>
+              <span class="recording-control">
+                <span class="play-disc" aria-hidden="true"
+                  ><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" /></svg
+                ></span>
+                <span class="scene-play-text"
+                  ><span class="button-label">播放 / 重看现场</span
+                  ><span class="play-helper">点画面回放，观察黑影的说话习惯</span></span
+                >
+                <span class="mini-wave" aria-hidden="true"
+                  ><i></i><i></i><i></i><i></i><i></i
+                ></span>
+              </span>
             </button>
             <p id="playback-status" class="playback-status" role="status" aria-live="polite">
               准备好后，点开现场录音。
@@ -139,13 +152,16 @@
                 <span class="section-number">02</span>
                 <h2 id="comparison-title">谁是同一个人？</h2>
               </div>
-              <span>试听后选中</span>
+              <span>点画面播放 · 再选中</span>
             </div>
+            <p class="comparison-hint">
+              听语气，也看点头、抬手和表情。<span class="swipe-hint">左右滑动查看三人 →</span>
+            </p>
             <div id="candidates" class="candidates">
               <article class="candidate" data-slot="0" aria-label="候选声音 A">
                 <div class="candidate-header">
                   <span class="candidate-letter">A</span
-                  ><span class="candidate-caption">候选声音</span>
+                  ><span class="candidate-caption">人物录像 <small>虚构情景演绎</small></span>
                 </div>
                 <button
                   class="button listen-button"
@@ -153,8 +169,20 @@
                   type="button"
                   aria-label="试听候选声音 A"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z" /></svg
-                  ><span class="button-label">试听</span>
+                  <span class="recording-frame"
+                    ><canvas
+                      data-recording-slot="0"
+                      data-anonymous="false"
+                      width="720"
+                      height="450"
+                      aria-hidden="true"
+                    ></canvas
+                  ></span>
+                  <span class="recording-control"
+                    ><span class="recording-play-icon" aria-hidden="true"
+                      ><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" /></svg></span
+                    ><span class="button-label">播放人物录像</span></span
+                  >
                 </button>
                 <button
                   class="button select-button"
@@ -168,7 +196,7 @@
               <article class="candidate" data-slot="1" aria-label="候选声音 B">
                 <div class="candidate-header">
                   <span class="candidate-letter">B</span
-                  ><span class="candidate-caption">候选声音</span>
+                  ><span class="candidate-caption">人物录像 <small>虚构情景演绎</small></span>
                 </div>
                 <button
                   class="button listen-button"
@@ -176,8 +204,20 @@
                   type="button"
                   aria-label="试听候选声音 B"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z" /></svg
-                  ><span class="button-label">试听</span>
+                  <span class="recording-frame"
+                    ><canvas
+                      data-recording-slot="1"
+                      data-anonymous="false"
+                      width="720"
+                      height="450"
+                      aria-hidden="true"
+                    ></canvas
+                  ></span>
+                  <span class="recording-control"
+                    ><span class="recording-play-icon" aria-hidden="true"
+                      ><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" /></svg></span
+                    ><span class="button-label">播放人物录像</span></span
+                  >
                 </button>
                 <button
                   class="button select-button"
@@ -191,7 +231,7 @@
               <article class="candidate" data-slot="2" aria-label="候选声音 C">
                 <div class="candidate-header">
                   <span class="candidate-letter">C</span
-                  ><span class="candidate-caption">候选声音</span>
+                  ><span class="candidate-caption">人物录像 <small>虚构情景演绎</small></span>
                 </div>
                 <button
                   class="button listen-button"
@@ -199,8 +239,20 @@
                   type="button"
                   aria-label="试听候选声音 C"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z" /></svg
-                  ><span class="button-label">试听</span>
+                  <span class="recording-frame"
+                    ><canvas
+                      data-recording-slot="2"
+                      data-anonymous="false"
+                      width="720"
+                      height="450"
+                      aria-hidden="true"
+                    ></canvas
+                  ></span>
+                  <span class="recording-control"
+                    ><span class="recording-play-icon" aria-hidden="true"
+                      ><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" /></svg></span
+                    ><span class="button-label">播放人物录像</span></span
+                  >
                 </button>
                 <button
                   class="button select-button"
@@ -239,7 +291,7 @@
             <div class="feedback-actions">
               <button id="review-correct" class="button button-secondary" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z" /></svg
-                ><span class="button-label">重听正确声音</span></button
+                ><span class="button-label">回看正确人物</span></button
               ><button id="next" class="button button-primary" type="button">
                 <span>下一段线索</span
                 ><svg viewBox="0 0 24 24" aria-hidden="true">
@@ -298,7 +350,7 @@
             <button id="stop" class="utility-button" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="6" y="6" width="12" height="12" rx="1" /></svg
-              ><span>停止声音</span></button
+              ><span>停止回放</span></button
             ><button id="home" class="utility-button" type="button">回到准备</button>
           </div>
         </div>

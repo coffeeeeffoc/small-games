@@ -12,13 +12,14 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body data-phase="ready">
+  <body data-phase="ready" data-screen="ready">
     <main id="game" aria-label="子弹花园">
       <canvas
         id="arena"
         aria-label="花园战场；点亮已充能的技能槽，再点击或拖动战场，松手释放；未选技能时点击仅瞄准"
       ></canvas>
       <div class="vignette" aria-hidden="true"></div>
+      <div class="control-floor" aria-hidden="true"></div>
       <header class="hud">
         <div class="health-group">
           <canvas id="portrait" width="160" height="160" aria-hidden="true"></canvas>
@@ -113,7 +114,7 @@
 
       <section class="skill-dock" aria-label="战术技能">
         <div class="skill-dock-heading">
-          <strong>战术能量</strong><span>战斗与击退充能 · 满能后手动释放</span>
+          <strong>战术能量</strong><span>每槽储存 3 次 · 手动连续释放</span>
         </div>
         <div class="skill-cards">
           <button class="skill-card" data-skill-slot="0" aria-pressed="false">
@@ -122,13 +123,13 @@
               ><strong id="skill-name-0">爆破</strong
               ><small id="skill-status-0">充能中</small></span
             >
-            <span class="skill-energy" id="skill-energy-0">0 / 100</span>
+            <span class="skill-energy" id="skill-energy-0">0 / 3 次 · 0%</span>
             <span
               class="skill-meter"
               role="progressbar"
               aria-label="技能一能量"
               aria-valuemin="0"
-              aria-valuemax="100"
+              aria-valuemax="300"
               aria-valuenow="0"
               ><i></i
             ></span>
@@ -140,20 +141,22 @@
               ><strong id="skill-name-1">大风</strong
               ><small id="skill-status-1">充能中</small></span
             >
-            <span class="skill-energy" id="skill-energy-1">0 / 100</span>
+            <span class="skill-energy" id="skill-energy-1">0 / 3 次 · 0%</span>
             <span
               class="skill-meter"
               role="progressbar"
               aria-label="技能二能量"
               aria-valuemin="0"
-              aria-valuemax="100"
+              aria-valuemax="300"
               aria-valuenow="0"
               ><i></i
             ></span>
             <span class="skill-key" aria-hidden="true">2</span>
           </button>
         </div>
-        <div class="skill-instruction" id="skill-instruction">点亮已充满的技能，再选择战场落点</div>
+        <div class="skill-instruction" id="skill-instruction">
+          点技能后在战场释放，每次消耗 1 次储存
+        </div>
       </section>
       <aside class="boon-status" aria-label="已获得地形增益">
         <span>庭院增益</span><strong id="active-boons">升级选择后解锁</strong>
@@ -200,6 +203,7 @@
             </div>
             <p class="intro">携带两个能量技能，选择下一座庭院。</p>
             <p class="profile-summary" data-profile></p>
+            <p class="developer-note" hidden>开发者模式 · 全部关卡开放试玩</p>
             <div class="level-badge">
               <span id="ready-level-order">01</span>
               <div>
@@ -214,6 +218,7 @@
             <div class="camp-actions">
               <button id="ready-campaign" class="outline-button">选择关卡</button>
               <button id="ready-shop" class="outline-button">营地 · 成长与枪械</button>
+              <button id="ready-last-result" class="outline-button" hidden>上一局概览</button>
             </div>
 
             <aside class="terrain-unlock-note">
@@ -241,7 +246,7 @@
               </div>
             </fieldset>
             <button id="start" class="primary-button">进入花园 <span>→</span></button>
-            <p class="ready-tip">自动射击护身 · 战斗与击退积攒能量 · 满能不会自动释放</p>
+            <p class="ready-tip">到时停止刷怪 · 清空敌人通关 · 每个技能最多储存 3 次</p>
             <p id="ready-unlocks" class="unlock-tip"></p>
             <button id="ready-help" class="text-button">查看战术手册</button>
           </div>
@@ -278,15 +283,16 @@
             <p>
               <b class="text-orange">手动释放</b
               ><span
-                >满能后点技能槽，再点住战场选择落点或方向，松手释放。再次点同一技能槽或点“取消”，能量会保留。</span
+                >每槽最多储存 3 次。点技能槽，再点住战场选择落点或方向，松手消耗 1
+                次；剩余储存可接着释放。再次点同一技能槽或点“取消”，能量会保留。</span
               >
             </p>
           </div>
           <p class="handbook-rule">
-            自动生成的植物与地形会消退，最多同时保留 18
-            处。能量充满后会一直保留，直到你亲手释放。战斗可选择 1 / 2 / 3 / 5
-            倍速；技能持续时间与充能按游戏内时间同步加速，暂停与强化选择时全部停止。首领关和终章
-            BOSS 必须击败目标，计时结束后仍需战斗。
+            自动生成的植物与地形会消退，最多同时保留 18 处。技能储存最多 3
+            次，充满后保留到手动释放。战斗可选择 1 / 2 / 3 / 5
+            倍速；技能持续时间与充能按游戏内时间同步加速，暂停与强化选择时全部停止。计时结束后停止普通刷怪，清空所有敌人才能通关；首领与
+            BOSS 也必须击败。
           </p>
           <div class="handbook-controls">
             <span>触屏</span
@@ -330,13 +336,7 @@
           <p id="reward-note" class="reward-note"></p>
           <p class="profile-summary" data-profile></p>
           <p id="best-record"></p>
-          <div class="camp-actions">
-            <button id="result-campaign" class="outline-button">选择关卡</button>
-            <button id="result-shop" class="outline-button">回营地升级</button>
-          </div>
-          <button id="next-level" class="primary-button" hidden>下一关 →</button>
-
-          <button id="play-again" class="primary-button">重新搭配，再战 <span>↻</span></button>
+          <button id="result-home" class="primary-button">返回主页 <span>→</span></button>
         </section>
         <section
           id="campaign-panel"
@@ -349,10 +349,11 @@
               <div class="modal-kicker">THE GARDEN CAMPAIGN</div>
               <h2 id="campaign-title">深入花园</h2>
             </div>
-            <button id="close-campaign" class="panel-back">返回</button>
+            <button id="close-campaign" class="panel-back">返回主页</button>
           </div>
           <p class="profile-summary" data-profile></p>
           <p class="panel-intro">逐关通关，开启新的庭院。已通关的关卡可以重玩。</p>
+          <p class="developer-note" hidden>开发者模式 · 全部关卡开放试玩</p>
           <div id="campaign-list"></div>
           <div id="campaign-pagination" class="campaign-pagination" hidden>
             <button id="campaign-previous" class="panel-back">上一页</button>
@@ -366,7 +367,7 @@
               <div class="modal-kicker">ROOTS TO GROW</div>
               <h2 id="shop-title">花园营地</h2>
             </div>
-            <button id="close-shop" class="panel-back">返回</button>
+            <button id="close-shop" class="panel-back">返回主页</button>
           </div>
           <p class="profile-summary" data-profile></p>
           <p class="shop-wallet">可用金币 <strong id="shop-wallet">0</strong></p>

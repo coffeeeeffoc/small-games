@@ -72,7 +72,7 @@ export function buildStructureModel(
   const activeGates = snapshot.gates;
   const activeLatches = snapshot.latches.filter((latch) => mode !== 'face' || latch.face === face);
   const polygon = (points, fill, options = {}) =>
-    items.push({ type: 'polygon', points, fill, stroke: '#c3b68d', ...options });
+    items.push({ type: 'polygon', points, fill, stroke: '#c3b68d', material: 'metal', ...options });
   const line = (points, stroke, options = {}) =>
     items.push({ type: 'line', points, stroke, width: 1.2, ...options });
   const label = (point, text, color = '#eee4c9', options = {}) =>
@@ -158,16 +158,54 @@ export function buildStructureModel(
       [border, border],
       [-border, border],
     ].map(([u, v]) => facePoint(owner, u, v, depth));
-    polygon(corners, '#516956', {
+    polygon(corners, '#a47b4e', {
       alpha: mode === 'face' ? 0.045 : xray ? 0.065 : 1,
       stroke: COLORS[owner],
       shell: true,
+      material: mode === 'structure' && !xray ? 'wood' : 'glass',
     });
-    corners.forEach((point, i) =>
-      rod(point, corners[(i + 1) % 4], 4, COLORS[owner], {
+    const basis = FACE_DEFS[owner];
+    // Furniture-grade timber surrounds the same open inspection window.
+    // These are surface trim only; route, plate apertures and hit targets retain
+    // their world coordinates from geometry.mjs.
+    for (const [u, v, size] of [
+      [-262, 0, [24, 548, 20]],
+      [262, 0, [24, 548, 20]],
+      [0, -262, [500, 24, 20]],
+      [0, 262, [500, 24, 20]],
+    ]) {
+      block(
+        facePoint(owner, u, v, depth),
+        size,
+        '#bd8e55',
+        {
+          material: 'wood',
+          stroke: '#79552e',
+          alpha: mode === 'face' || !xray ? 1 : 0.8,
+          shell: true,
+        },
+        [basis.u, basis.v, basis.normal],
+      );
+    }
+    const inner = 248;
+    const innerCorners = [
+      [-inner, -inner],
+      [inner, -inner],
+      [inner, inner],
+      [-inner, inner],
+    ].map(([u, v]) => facePoint(owner, u, v, depth + 5));
+    innerCorners.forEach((point, i) =>
+      rod(point, innerCorners[(i + 1) % 4], 2.2, '#b79960', {
+        stroke: '#dac28c',
         alpha: mode === 'face' || !xray ? 1 : 0.65,
+        shell: true,
       }),
     );
+    for (const u of [-262, 262]) {
+      for (const v of [-223, 223]) {
+        sphere(facePoint(owner, u, v, depth + 13), 5.5, '#d7c58f', { screw: true, shell: true });
+      }
+    }
     if (mode === 'structure') {
       label(facePoint(owner, -165, 216, depth + 8), FACE_DEFS[owner].label, COLORS[owner], {
         face: owner,
@@ -245,7 +283,17 @@ export function buildStructureModel(
     const start = add(geometry.railStart, offset);
     const end = add(geometry.railEnd, offset);
     const color = shaft.color ?? COLORS[shaft.face];
-    rod(start, end, 5, '#827546', { stroke: '#c1b083' });
+    rod(start, end, 7, '#3c4938', { stroke: '#18261c' });
+    rod(add(start, mul(normal, 3)), add(end, mul(normal, 3)), 4.8, '#c1a268', {
+      stroke: '#ead3a0',
+    });
+    for (const cap of [start, end]) {
+      block(cap, [25, 15, 11], '#a08b57', { stroke: '#e1c78e' }, [basis.u, basis.v, normal]);
+      for (const side of [-1, 1])
+        sphere(add(cap, add(mul(basis.u, side * 8), mul(normal, 7))), 2.2, '#d5c596', {
+          screw: true,
+        });
+    }
     const notches = [];
     for (let value = shaft.min; value <= shaft.max; value++) {
       const point = add(add(geometry.base, mul(geometry.slideAxis, value * SHAFT_TRAVEL)), offset);
@@ -260,7 +308,12 @@ export function buildStructureModel(
         { face: shaft.face, size: 10 },
       );
     }
-    block(add(handle, mul(normal, 6)), [38, 29, 12], color, { stroke: '#f0d49c' }, [
+    block(add(handle, mul(normal, 6)), [42, 34, 14], '#c7a66a', { stroke: '#f0d49c' }, [
+      basis.u,
+      basis.v,
+      normal,
+    ]);
+    block(add(handle, mul(normal, 14)), [29, 20, 3], '#3d4c39', { stroke: '#967c48' }, [
       basis.u,
       basis.v,
       normal,
@@ -268,10 +321,10 @@ export function buildStructureModel(
     for (const offsetY of [-5, 0, 5])
       line(
         [
-          add(add(handle, mul(basis.u, -9)), add(mul(basis.v, offsetY), mul(normal, 13))),
-          add(add(handle, mul(basis.u, 9)), add(mul(basis.v, offsetY), mul(normal, 13))),
+          add(add(handle, mul(basis.u, -9)), add(mul(basis.v, offsetY), mul(normal, 16))),
+          add(add(handle, mul(basis.u, 9)), add(mul(basis.v, offsetY), mul(normal, 16))),
         ],
-        '#685d3f',
+        '#c4bf95',
       );
     label(add(end, mul(geometry.slideAxis, 32)), `${shaft.id} 轴`, color, {
       face: shaft.face,
@@ -383,12 +436,24 @@ export function buildStructureModel(
     const basis = FACE_DEFS[latch.face];
     const pivot = surfacePoint(latch.face, latch.anchor, BOX_HALF + 20);
     const color = latch.engaged ? '#d99c82' : '#a0c394';
+    block(add(pivot, mul(basis.normal, -4)), [29, 29, 9], '#b79b61', { stroke: '#e1c78e' }, [
+      basis.u,
+      basis.v,
+      basis.normal,
+    ]);
+    for (const diagonal of [-1, 1])
+      sphere(
+        add(pivot, add(mul(basis.u, diagonal * 10), mul(basis.v, diagonal * 10))),
+        2.2,
+        '#e0cfa0',
+        { screw: true },
+      );
     const end = add(
       pivot,
       add(mul(basis.u, latch.engaged ? -36 : -16), mul(basis.v, latch.engaged ? 0 : 34)),
     );
     rod(pivot, end, 7, color, { stroke: '#ddc796' });
-    sphere(pivot, 10, '#c7a773');
+    sphere(add(pivot, mul(basis.normal, 4)), 10, '#d4bb83', { screw: true });
     label(add(pivot, mul(basis.v, -27)), `${latch.shaft} ${latch.engaged ? '锁' : '松'}`, color, {
       face: latch.face,
       size: 11,
