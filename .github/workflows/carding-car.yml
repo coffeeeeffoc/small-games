@@ -1,8 +1,75 @@
 name: Build Cocos game artifacts
 on:
   workflow_call:
+    inputs:
+      reuse_ci:
+        description: Reuse successful same-SHA CI Creator jobs on push events.
+        type: boolean
+        default: false
 jobs:
+  reuse:
+    if: inputs.reuse_ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      available: ${{ steps.verify.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+      - name: Wait for successful CI Creator gates
+        id: producer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/reuse-cocos-artifacts.mjs discover
+      - name: Download CI carding-car artifact
+        id: kart
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: carding-car-${{ github.sha }}
+          path: .scratch/ci-cocos/carding-car
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download CI night-overwatch artifact
+        id: night
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: .scratch/ci-cocos/night-overwatch
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify both downloaded artifacts or rebuild
+        id: verify
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'
+        continue-on-error: true
+        env:
+          PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
+          PRODUCER_RUN_ATTEMPT: ${{ steps.producer.outputs.run_attempt }}
+        run: |
+          node scripts/reuse-cocos-artifacts.mjs verify carding-car .scratch/ci-cocos/carding-car
+          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: carding-car-${{ github.sha }}
+          path: .scratch/ci-cocos/carding-car
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: night-overwatch-${{ github.sha }}
+          path: .scratch/ci-cocos/night-overwatch
+          if-no-files-found: error
   creator:
+    needs: reuse
+    if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
     strategy:
       fail-fast: false
       matrix:
@@ -75,12 +142,15 @@ jobs:
             games/local/${{ matrix.game }}/dist
             games/local/${{ matrix.game }}/cc.d.ts
           key: ${{ steps.artifact.outputs.cache-primary-key }}
+      - name: Stamp verified producer provenance
+        run: node scripts/reuse-cocos-artifacts.mjs stamp ${{ matrix.game }} games/local/${{ matrix.game }}
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.game }}-${{ github.sha }}
           path: |
             games/local/${{ matrix.game }}/dist
             games/local/${{ matrix.game }}/cc.d.ts
+            games/local/${{ matrix.game }}/cocos-provenance.json
           if-no-files-found: error
       - name: Upload Creator build diagnostics
         if: always()

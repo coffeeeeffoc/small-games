@@ -322,7 +322,17 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
       const jobRun = commands({ jobs: { current: job } });
       const buildsSources =
         /\bpnpm (?:build:|games:(?:build|test)|android:|ios:)/.test(jobRun) ||
+        /\bpnpm --filter \S+ (?:build|test|typecheck)\b/.test(jobRun) ||
         executed(jobRun, 'node scripts/run-pages-game-tests.mjs');
+      // Scheduling and source-verified artifact transfer do not compile games.
+      const coordinatesOnly =
+        (jobLocation === '.github/workflows/pages-validate.yml' &&
+          id === 'plan' &&
+          executed(jobRun, 'node scripts/pages-regression-shards.mjs')) ||
+        (jobLocation === '.github/workflows/carding-car.yml' &&
+          id === 'reuse' &&
+          executed(jobRun, 'node scripts/reuse-cocos-artifacts.mjs discover'));
+      if (coordinatesOnly && !buildsSources) continue;
       // Change detection and artifact-only browser checks do not compile source games.
       if (
         name === 'pages' &&

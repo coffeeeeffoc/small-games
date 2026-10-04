@@ -41,12 +41,16 @@ jobs:
           cache: pnpm
 
       - name: Restore Turborepo cache
-        uses: actions/cache@v5
+        id: turbo
+        uses: actions/cache/restore@v5
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: turbo-bounded-v1-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            turbo-${{ runner.os }}-
+            turbo-bounded-v1-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -65,6 +69,9 @@ jobs:
 
       - name: Test game registration checker
         run: pnpm test:game-config
+
+      - name: Test CI optimization gates
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs
 
       - name: Test local format hooks
         run: pnpm test:hooks
@@ -111,3 +118,14 @@ jobs:
 
       - name: Smoke-test affected applications
         run: pnpm smoke:affected
+      - name: Bound local Turborepo task cache
+        run: node scripts/prune-turbo-cache.mjs
+      - name: Save bounded Turborepo cache
+        if: steps.turbo.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: ${{ steps.turbo.outputs.cache-primary-key }}

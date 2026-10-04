@@ -13,6 +13,7 @@ import {
   selectPagesScope,
 } from './pages-test-scope.mjs';
 import { gameTestCommand } from './run-pages-game-tests.mjs';
+import { registrationFileScopes } from './pages-registration-scope.mjs';
 
 const catalog = {
   standaloneGames: [
@@ -29,6 +30,230 @@ const catalog = {
 };
 const scope = (options) => selectPagesScope({ ...catalog, ...options });
 const skipped = { required: false, full: false, game_ids: [], game_sources: [] };
+
+const REGISTRY = 'apps/shell-web/src/standalone-games.json';
+const META = 'apps/shell-web/src/game-meta.json';
+const SHELL = 'apps/shell-web/package.json';
+const LOCK = 'pnpm-lock.yaml';
+const registration = (id) => ({
+  id,
+  source: `games/local/${id}`,
+  title: id,
+  description: id,
+  output: 'dist',
+});
+const metaEntry = (id, commit = 'a'.repeat(40)) => ({
+  source: `games/local/${id}`,
+  created: { commit, time: '2026-10-01T00:00:00Z' },
+  updated: { commit, time: '2026-10-01T00:00:00Z' },
+});
+
+function semanticScope(before, after, options = {}) {
+  const changedPaths =
+    options.changedPaths || Object.keys(after).filter((file) => before[file] !== after[file]);
+  const games = [registration('echo-lab'), registration('new-game')];
+  const read = (files) => (file) => {
+    if (!Object.hasOwn(files, file)) throw new Error(`Missing ${file}`);
+    return files[file];
+  };
+  return selectPagesScope({
+    eventName: 'push',
+    refName: 'dev',
+    standaloneGames: games,
+    gameSources: games.map((game) => game.source),
+    ...options,
+    changedPaths,
+    fileScopes: registrationFileScopes({
+      changedPaths,
+      readBase: read(before),
+      readHead: read(after),
+      gameSources: games.map((game) => game.source),
+    }),
+  });
+}
+
+function wiringFixture() {
+  const oldRegistry = JSON.stringify([registration('echo-lab')]);
+  const newRegistry = JSON.stringify([registration('echo-lab'), registration('new-game')]);
+  const manifest = {
+    name: '@games/shell',
+    scripts: { build: 'vite build' },
+    dependencies: { react: '19.2.8' },
+  };
+  const lock =
+    "---\nlockfileVersion: '9.0'\nimporters:\n  .: {}\n---\nlockfileVersion: '9.0'\n\nimporters:\n\n  apps/shell-web:\n    dependencies:\n      react:\n        specifier: 19.2.8\n        version: 19.2.8\n\n  games/local/echo-lab: {}\n\npackages:\n  react@19.2.8: {}\n\nsnapshots:\n  react@19.2.8: {}\n";
+  const before = { [REGISTRY]: oldRegistry, [SHELL]: JSON.stringify(manifest), [LOCK]: lock };
+  const after = {
+    ...before,
+    [REGISTRY]: newRegistry,
+    [SHELL]: JSON.stringify({
+      ...manifest,
+      dependencies: { ...manifest.dependencies, '@games/new-game': 'workspace:*' },
+    }),
+    [LOCK]: lock
+      .replace(
+        '      react:',
+        "      '@games/new-game':\n        specifier: workspace:*\n        version: link:../../games/local/new-game\n      react:",
+      )
+      .replace('packages:\n', '  games/local/new-game: {}\n\npackages:\n'),
+    'games/local/new-game/package.json': JSON.stringify({
+      name: '@games/new-game',
+      scripts: { build: 'node build.mjs' },
+    }),
+  };
+  return { before, after };
+}
+
+test('registration-only manifest and multi-document lock wiring select the new game', () => {
+  const { before, after } = wiringFixture();
+  assert.deepEqual(semanticScope(before, after), {
+    required: true,
+    full: false,
+    game_ids: ['new-game'],
+    game_sources: ['games/local/new-game'],
+  });
+});
+
+test('one registration presentation or output change selects only its game', () => {
+  for (const update of [
+    { description: 'new description' },
+    { title: 'New title' },
+    { output: 'dist-pages' },
+  ]) {
+    const games = [registration('echo-lab'), registration('new-game')];
+    assert.deepEqual(
+      semanticScope(
+        { [REGISTRY]: JSON.stringify(games) },
+        { [REGISTRY]: JSON.stringify([{ ...games[0], ...update }, games[1]]) },
+      ),
+      {
+        required: true,
+        full: false,
+        game_ids: ['echo-lab'],
+        game_sources: ['games/local/echo-lab'],
+      },
+    );
+  }
+});
+
+test('metadata history changes retain host gates without unrelated gameplay tests', () => {
+  const games = [registration('echo-lab'), registration('new-game')];
+  const before = {
+    [REGISTRY]: JSON.stringify(games),
+    [META]: JSON.stringify({ schemaVersion: 1, games: { 'echo-lab': metaEntry('echo-lab') } }),
+  };
+  const after = {
+    ...before,
+    [META]: JSON.stringify({
+      schemaVersion: 1,
+      games: {
+        'echo-lab': metaEntry('echo-lab', 'b'.repeat(40)),
+        'new-game': metaEntry('new-game'),
+      },
+    }),
+  };
+  assert.deepEqual(semanticScope(before, after), {
+    required: true,
+    full: false,
+    game_ids: [],
+    game_sources: [],
+  });
+  for (const refName of ['main', 'test'])
+    assert.equal(semanticScope(before, after, { refName }).full, true);
+});
+
+test('registration removals, identity changes, duplicates, reordering and unknown fields stay full', () => {
+  const games = [registration('echo-lab'), registration('new-game')];
+  const before = { [REGISTRY]: JSON.stringify(games) };
+  for (const current of [
+    [games[0]],
+    [games[1], games[0]],
+    [games[0], games[0]],
+    [{ ...games[0], id: 'renamed' }, games[1]],
+    [{ ...games[0], source: 'games/local/renamed' }, games[1]],
+    [{ ...games[0], sharedRuntime: 'new-runtime' }, games[1]],
+    [{ ...games[0], output: '../other-game' }, games[1]],
+  ])
+    assert.equal(semanticScope(before, { [REGISTRY]: JSON.stringify(current) }).full, true);
+  for (const invalid of ['{', 'null', '{}'])
+    assert.equal(semanticScope(before, { [REGISTRY]: invalid }).full, true);
+  assert.equal(semanticScope({}, before).full, true);
+});
+
+test('invalid or removed metadata and changed source mappings stay full', () => {
+  const before = {
+    [REGISTRY]: JSON.stringify([registration('echo-lab')]),
+    [META]: JSON.stringify({ schemaVersion: 1, games: { 'echo-lab': metaEntry('echo-lab') } }),
+  };
+  for (const meta of [
+    { schemaVersion: 2, games: { 'echo-lab': metaEntry('echo-lab') } },
+    { schemaVersion: 1, games: {} },
+    { schemaVersion: 1, games: { 'echo-lab': metaEntry('new-game') } },
+    { schemaVersion: 1, games: { 'echo-lab': { ...metaEntry('echo-lab'), runtime: 'shared' } } },
+    { schemaVersion: 1, games: { 'echo-lab': metaEntry('echo-lab', 'not-a-sha') } },
+  ])
+    assert.equal(semanticScope(before, { ...before, [META]: JSON.stringify(meta) }).full, true);
+  assert.equal(semanticScope(before, { ...before, [META]: '{' }).full, true);
+});
+
+test('shared runtime, global configuration and shared browser assertions still override local registration', () => {
+  const { before, after } = wiringFixture();
+  for (const file of [
+    'apps/shell-web/scripts/standalone-game-checks.mjs',
+    'apps/shell-web/src/registry.ts',
+    'packages/game-host/src/index.ts',
+    'platforms/competition/h5.js',
+    'turbo.json',
+    '.gitignore',
+    'unknown-config.json',
+  ]) {
+    assert.equal(semanticScope(before, { ...after, [file]: 'changed' }).full, true, file);
+  }
+  for (const options of [
+    { diffAvailable: false },
+    { eventName: 'schedule' },
+    { eventName: 'workflow_dispatch' },
+  ]) {
+    assert.equal(semanticScope(before, after, options).full, true);
+  }
+});
+
+test('real Shell dependency, script and lock resolution changes cannot masquerade as registration wiring', () => {
+  const { before, after } = wiringFixture();
+  assert.equal(semanticScope(before, { ...after, [LOCK]: before[LOCK] }).full, true);
+  const manifest = JSON.parse(after[SHELL]);
+  for (const next of [
+    { ...manifest, scripts: { build: 'another-builder' } },
+    { ...manifest, dependencies: { ...manifest.dependencies, react: '20.0.0' } },
+    { ...manifest, dependencies: { '@games/new-game': 'workspace:*' } },
+    { ...manifest, dependencies: { ...manifest.dependencies, '@games/new-game': 'workspace:^' } },
+    { ...manifest, devDependencies: { vite: '99.0.0' } },
+  ])
+    assert.equal(semanticScope(before, { ...after, [SHELL]: JSON.stringify(next) }).full, true);
+  for (const next of [
+    after[LOCK].replace('version: 19.2.8', 'version: 20.0.0'),
+    after[LOCK].replace('snapshots:\n', 'snapshots:\n  unexpected: {}\n'),
+    after[LOCK].replace('  .: {}', '  .: {injected: true}'),
+    after[LOCK].replace('link:../../games/local/new-game', 'link:../../packages/shared'),
+    after[LOCK].replace(
+      'games/local/new-game: {}',
+      'games/local/new-game:\n    dependencies:\n      external: {version: 1.0.0}',
+    ),
+    after[LOCK] + '\nsettings: {injected: true}\n',
+    'not valid yaml',
+  ])
+    assert.equal(semanticScope(before, { ...after, [LOCK]: next }).full, true);
+  assert.equal(
+    semanticScope(before, {
+      ...after,
+      'games/local/new-game/package.json': JSON.stringify({
+        name: '@games/new-game',
+        dependencies: { react: '19.2.8' },
+      }),
+    }).full,
+    true,
+  );
+});
 
 test('dev and PR game changes select the registry ID and exact package directory', () => {
   for (const options of [
@@ -220,6 +445,152 @@ async function temporaryRepository(t) {
   git('config', 'user.email', 'pages-scope@example.invalid');
   return { root, git };
 }
+
+test('adding one standalone registration selects only that game and keeps Pages required', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  const registration = (id) => ({
+    id,
+    source: `games/local/${id}`,
+    title: id,
+    description: id,
+    output: 'dist',
+  });
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  for (const id of ['echo-lab', 'new-game']) {
+    await mkdir(path.join(root, `games/local/${id}`), { recursive: true });
+    await writeFile(
+      path.join(root, `games/local/${id}/package.json`),
+      JSON.stringify({ name: `@games/${id}` }),
+    );
+  }
+  const file = path.join(root, 'apps/shell-web/src/standalone-games.json');
+  await writeFile(file, JSON.stringify([registration('echo-lab')]));
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  const base = git('rev-parse', 'HEAD');
+  await writeFile(file, JSON.stringify([registration('echo-lab'), registration('new-game')]));
+  git('add', '.');
+  git('commit', '-m', 'register new game');
+  assert.deepEqual(
+    await main(
+      { GITHUB_EVENT_NAME: 'push', GITHUB_REF_NAME: 'dev', PAGES_VALIDATED_BASE: base },
+      root,
+    ),
+    {
+      required: true,
+      full: false,
+      game_ids: ['new-game'],
+      game_sources: ['games/local/new-game'],
+    },
+  );
+});
+
+test('CLI semantic comparison uses the PR merge base, not unrelated target-branch registrations', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  for (const id of ['echo-lab', 'new-game']) {
+    await mkdir(path.join(root, `games/local/${id}`), { recursive: true });
+    await writeFile(
+      path.join(root, `games/local/${id}/package.json`),
+      JSON.stringify({ name: `@games/${id}` }),
+    );
+  }
+  const file = path.join(root, REGISTRY);
+  await writeFile(file, JSON.stringify([registration('echo-lab')]));
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  git('checkout', '-b', 'feature');
+  await writeFile(file, JSON.stringify([registration('echo-lab'), registration('new-game')]));
+  git('add', '.');
+  git('commit', '-m', 'new registration');
+  const head = git('rev-parse', 'HEAD');
+  git('checkout', 'main');
+  await writeFile(
+    file,
+    JSON.stringify([{ ...registration('echo-lab'), title: 'Unrelated target branch edit' }]),
+  );
+  git('add', '.');
+  git('commit', '-m', 'target changed');
+  const base = git('rev-parse', 'HEAD');
+  git('checkout', 'feature');
+  assert.deepEqual(
+    await main(
+      { GITHUB_EVENT_NAME: 'pull_request', PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: head },
+      root,
+    ),
+    {
+      required: true,
+      full: false,
+      game_ids: ['new-game'],
+      game_sources: ['games/local/new-game'],
+    },
+  );
+});
+
+test('CLI retains full coverage for relevant deletion and rename, even within one game', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+  await writeFile(path.join(root, 'games/local/echo-lab/package.json'), '{}');
+  await writeFile(path.join(root, 'games/local/echo-lab/old.js'), 'export const value = 1;');
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  const base = git('rev-parse', 'HEAD');
+  git('mv', 'games/local/echo-lab/old.js', 'games/local/echo-lab/new.js');
+  git('commit', '-m', 'rename');
+  assert.equal((await main({ PAGES_DIFF_BASE: base }, root)).full, true);
+  const renamed = git('rev-parse', 'HEAD');
+  git('rm', 'games/local/echo-lab/new.js');
+  git('commit', '-m', 'delete');
+  assert.equal((await main({ PAGES_DIFF_BASE: renamed }, root)).full, true);
+});
+
+test('CLI metadata-only commit keeps required=true and empty gameplay selection in GitHub outputs', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+  await writeFile(path.join(root, 'games/local/echo-lab/package.json'), '{}');
+  await writeFile(
+    path.join(root, META),
+    JSON.stringify({ schemaVersion: 1, games: { 'echo-lab': metaEntry('echo-lab') } }),
+  );
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  const base = git('rev-parse', 'HEAD');
+  await writeFile(
+    path.join(root, META),
+    JSON.stringify({
+      schemaVersion: 1,
+      games: { 'echo-lab': metaEntry('echo-lab', 'b'.repeat(40)) },
+    }),
+  );
+  git('add', '.');
+  git('commit', '-m', 'metadata');
+  const outputPath = path.join(root, 'github-output');
+  assert.deepEqual(
+    await main(
+      {
+        GITHUB_EVENT_NAME: 'push',
+        GITHUB_REF_NAME: 'dev',
+        PAGES_VALIDATED_BASE: base,
+        GITHUB_OUTPUT: outputPath,
+      },
+      root,
+    ),
+    {
+      required: true,
+      full: false,
+      game_ids: [],
+      game_sources: [],
+    },
+  );
+  assert.equal(
+    await readFile(outputPath, 'utf8'),
+    'required=true\nfull=false\ngame_ids=[]\ngame_sources=[]\n',
+  );
+});
 
 test('real git diff uses a merge base for PRs and keeps rename and gitlink paths', async (t) => {
   const { root, git } = await temporaryRepository(t);

@@ -641,6 +641,23 @@ test('requires both split Pages gates or the complete legacy browser command', a
   assert.deepEqual((await auditGameConfig(f.root)).errors, []);
 });
 
+test('coordination jobs gain normal registration gates if they start building sources', async (t) => {
+  const f = await fixture(t);
+  for (const [location, id] of [
+    ['.github/workflows/pages-validate.yml', 'plan'],
+    ['.github/workflows/carding-car.yml', 'reuse'],
+  ]) {
+    const original = await f.read(location);
+    for (const command of ['pnpm build:pages', 'pnpm --filter @fixture/mini-front build']) {
+      const workflow = yaml.load(original);
+      workflow.jobs[id].steps.push({ run: command });
+      await f.write(location, yaml.dump(workflow));
+      requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
+    }
+    await f.write(location, original);
+  }
+});
+
 test('scoped game logic must execute the runner and its job cannot ignore failures', async (t) => {
   const f = await fixture(t);
   const location = '.github/workflows/pages-validate.yml';

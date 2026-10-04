@@ -2,6 +2,7 @@ import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { registrationFileScopes } from './pages-registration-scope.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const GAME_SOURCE = /^games\/(?:local|submodules)\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -109,6 +110,7 @@ export function selectPagesScope({
   diffAvailable = true,
   standaloneGames = [],
   gameSources = [],
+  fileScopes = new Map(),
 }) {
   const sources = new Set(gameSources);
   const fullScope = () => ({
@@ -122,9 +124,18 @@ export function selectPagesScope({
   }
 
   let needsFull = false;
+  let needsHost = false;
   const selected = new Set();
   for (const file of changedPaths) {
     if (isDocumentation(file) || isKnownNonPagesPath(file)) continue;
+    if (fileScopes.has(file)) {
+      needsHost = true;
+      for (const source of fileScopes.get(file)) {
+        if (sources.has(source)) selected.add(source);
+        else needsFull = true;
+      }
+      continue;
+    }
     // Night Overwatch imports and hashes these files from the Carding Car package.
     if (SHARED_COCOS_SCRIPTS.has(file)) {
       needsFull = true;
@@ -134,7 +145,7 @@ export function selectPagesScope({
     if (source && sources.has(source)) selected.add(source);
     else needsFull = true;
   }
-  if (!needsFull && selected.size === 0) {
+  if (!needsFull && !needsHost && selected.size === 0) {
     return { required: false, full: false, game_ids: [], game_sources: [] };
   }
   if (needsFull || (eventName === 'push' && ['main', 'test'].includes(refName))) {
@@ -183,7 +194,7 @@ function git(root, args) {
   return result.stdout;
 }
 
-export function collectChangedPaths({ root = ROOT, base, head = 'HEAD', eventName = 'push' }) {
+function comparison({ root = ROOT, base, head = 'HEAD', eventName = 'push' }) {
   if (!base || /^0+$/.test(base)) throw new Error('No usable diff base');
   const baseCommit = git(root, [
     'rev-parse',
@@ -201,6 +212,12 @@ export function collectChangedPaths({ root = ROOT, base, head = 'HEAD', eventNam
     eventName === 'pull_request'
       ? git(root, ['merge-base', baseCommit, headCommit]).trim()
       : baseCommit;
+  return { diffBase, headCommit };
+}
+
+export function collectChangedPaths(options) {
+  const root = options.root || ROOT;
+  const { diffBase, headCommit } = comparison(options);
   return parseChangedPaths(
     git(root, [
       'diff',
@@ -257,6 +274,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
   const eventName = env.GITHUB_EVENT_NAME || 'push';
   let changedPaths = [];
   let diffAvailable = true;
+  let fileScopes = new Map();
   if (!['schedule', 'workflow_dispatch'].includes(eventName)) {
     try {
       // A newer dev push can cancel earlier validation. Diff from the last successful
@@ -271,6 +289,40 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         head: env.PAGES_DIFF_HEAD || 'HEAD',
         eventName,
       });
+      const { diffBase, headCommit } = comparison({
+        root,
+        base,
+        head: env.PAGES_DIFF_HEAD || 'HEAD',
+        eventName,
+      });
+      console.log(`Pages comparison: ${diffBase}..${headCommit}`);
+      const removed = git(root, [
+        'diff',
+        '--no-ext-diff',
+        '--name-only',
+        '-z',
+        '--find-renames',
+        '--diff-filter=DR',
+        diffBase,
+        headCommit,
+        '--',
+      ])
+        .split('\0')
+        .filter(Boolean);
+      if (removed.some((file) => !isDocumentation(file) && !isKnownNonPagesPath(file))) {
+        throw new Error('Relevant deletion or rename requires full regression');
+      }
+      fileScopes = registrationFileScopes({
+        changedPaths,
+        gameSources: catalog.gameSources,
+        readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
+        readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
+      });
+      for (const [file, sources] of fileScopes) {
+        console.log(
+          `Pages scoped registration: ${file} -> ${sources.length ? sources.join(', ') : 'host checks'}`,
+        );
+      }
     } catch (error) {
       diffAvailable = false;
       console.warn(`Pages scope: falling back to full regression (${error.message})`);
@@ -282,6 +334,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
     refName: env.GITHUB_REF_NAME,
     changedPaths,
     diffAvailable,
+    fileScopes,
   });
   const output = Object.entries(result)
     .map(([key, value]) => `${key}=${JSON.stringify(value)}\n`)

@@ -17,12 +17,21 @@
 
 首次必须先发布 main；当产物状态缺失时，dev/test 发布会明确失败，避免用预览版覆盖已有正式站点。main、dev、test 的代码和子模块指针可以分别演进，发布流程不会自动合并源码。
 
+## CI performance and preserved gates
+
+- Push Pages validations reuse the two successful Creator jobs from the same repository, branch and exact SHA in CI. CI never waits for Pages. The consumer waits only for Creator job completion, verifies source hashes, Creator 3.8.8, web-mobile, Windows and producer run/attempt provenance, then uploads the verified pair into the Pages run. A missing producer after 90 seconds, unavailable artifact or invalid artifact triggers the existing complete Creator build/test path. Failed or cancelled producer gates and the 25-minute wait deadline fail validation; they are not hidden by fallback. PR, scheduled and manual validations keep independent Creator jobs.
+- Browser regressions use up to four independent runners. Longest measured games are assigned first, using the per-game durations from [run 37181853091](https://github.com/coffeeeeffoc/small-games/actions/runs/37181853091); new games default to 30 seconds for planning only. Each selected standalone game runs exactly once, with its existing desktop and mobile phases unchanged. Each shard also retains built-in checks. Shards do not cancel siblings on failure, and any failed shard blocks the existing publication gate. Empty selections still retain host validation. The historical durations are balancing weights, not a promised completion time or test timeout.
+- CI, Pages build and Pages logic save separate Turbo caches, each limited to 512 MiB of task archives and their metadata. The newest complete task groups are retained; old or individually oversized groups are discarded locally. Only task cache files are uploaded, and the new cache key namespace avoids restoring the previous multi-gigabyte archives. Cocos engine/import/artifact caches retain their existing keys. This reduces cache pressure without deleting remote caches or changing test gates; the first new-namespace run is cold.
+
 ## 发布行为
 
 - 所有 PR、main/dev/test 推送均先检测 Pages 影响范围。文档、已知独立服务和其他平台应用的变更不执行重任务、不发布，但仍返回成功的 `build` 检查；未知路径或无法取得比较基线时保守执行全量验证。PR 仅验证和上传临时产物，没有发布或写仓库权限。
 - 验证在 `pages-validate.yml` 中执行：Cocos 制品准备完成后，Pages 构建与逻辑测试并行；构建上传 `pages-build` 后，发布冒烟和游戏浏览器回归独立执行。发布必须等待所选验证全部成功，失败、取消或意外跳过都不能绕过门禁。
 - 发布冒烟检查全部游戏入口及静态资源依赖，并在真实 Chromium 中验证懒加载、大厅、代表性分享路由、iframe、手机直开和 Runtime 隔离。游戏浏览器回归保留桌面嵌入、手机触屏和原有玩法断言。
-- PR 和 dev 的单游戏变更只执行该游戏的包测试及浏览器回归，子模块指针变更也按对应游戏选择。Shell、共享包、素材、注册表、根脚本和构建配置等变更执行全量。main/test 的相关推送、手动运行始终全量；每日北京时间 02:00 在默认分支执行全量验证，定时运行不发布。
+- PR 和 dev 的单游戏变更只执行该游戏的包测试及浏览器回归，子模块指针变更也按对应游戏选择。注册表使用比较基线与当前提交中的 JSON 结构判断：新增游戏，以及保持 ID/source 不变的单项标题、描述或产物目录修改，只选择对应游戏；删除、重命名、重排、未知字段或解析失败保持全量。
+- `game-meta.json` 仅有合法的 commit/time 历史更新，或为已注册游戏补充元数据时，仍运行 Pages 构建、Shell 逻辑测试和全站宿主/资源检查，不触发未改动游戏的玩法回归。删除元数据、修改 source 或结构异常保持全量。普通 CI 的格式、依赖边界、集成、弹窗等门禁不变。
+- Shell `package.json` 仅新增注册游戏的 `workspace:*` 依赖接线时可以收窄。lockfile 只接受可证明对应这些接线的新增 `link:` 与无依赖游戏的空 importer；工具链文档、其余 importer、settings、packages 和 snapshots 必须保持不变。采用 pnpm 当前生成格式的严格比较，不安装依赖来运行范围检测；不认识的格式、实际依赖变化或不一致的接线均保守全量。
+- 其他 Shell 代码（包括共享 `standalone-game-checks.mjs`）、共享包、素材、根脚本和构建配置等变更仍执行全量；相关文件删除/重命名也保持全量。main/test 的相关推送、手动运行始终全量；每日北京时间 02:00 在默认分支执行全量验证，定时运行不发布。
 - dev 以 `gh-pages/dev/deployment.json` 中最近已验证并保存的 SHA 为比较基线，累计覆盖此前被取消或失败运行的改动；后续仅改文档也不会漏掉尚未验证的代码。无法读取基线或找到该提交时执行全量。
 - Turbo 缓存将仓库级素材、平台适配、脚本和 Runtime 规则纳入输入；两款 Cocos 的构建任务始终校验并复制本次下载的制品，避免旧 Turbo 缓存覆盖新的已验证输出。Cocos 制品自身仍使用源码 hash 缓存。
 - 每次构建只检出触发分支。发布阶段在同一 `pages-publish` 队列中执行，先读取最新 `gh-pages`，只替换当前分支目录，再打包整个站点。目录替换会移除该版本已经删除的旧资源。

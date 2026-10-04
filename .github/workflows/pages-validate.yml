@@ -22,6 +22,28 @@ permissions:
 jobs:
   kart:
     uses: ./.github/workflows/carding-car.yml
+    with:
+      reuse_ci: ${{ github.event_name == 'push' }}
+    permissions:
+      contents: read
+      actions: read
+
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.shards.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+      - name: Balance browser regression shards
+        id: shards
+        env:
+          PAGES_FULL_REGRESSION: ${{ inputs.full }}
+          PAGES_GAME_IDS: ${{ inputs.game_ids }}
+        run: node scripts/pages-regression-shards.mjs
 
   build:
     needs: kart
@@ -41,15 +63,18 @@ jobs:
           node-version: 24.21.0
           cache: pnpm
       - name: Restore Turborepo cache
-        uses: actions/cache@v5
+        id: turbo
+        uses: actions/cache/restore@v5
         with:
-          path: .turbo
-          # Separate build and logic writers while allowing both to reuse earlier task results.
-          key: turbo-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
           restore-keys: |
-            turbo-pages-${{ runner.os }}-${{ github.job }}-
-            turbo-pages-${{ runner.os }}-
-            turbo-${{ runner.os }}-
+            turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-
+            turbo-bounded-v1-pages-${{ runner.os }}-
+            turbo-bounded-v1-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
         with:
@@ -68,6 +93,17 @@ jobs:
           path: apps/shell-web/dist
           include-hidden-files: true
           if-no-files-found: error
+      - name: Bound local Turborepo task cache
+        run: node scripts/prune-turbo-cache.mjs
+      - name: Save bounded Turborepo cache
+        if: steps.turbo.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: ${{ steps.turbo.outputs.cache-primary-key }}
 
   logic:
     needs: kart
@@ -88,14 +124,18 @@ jobs:
           node-version: 24.21.0
           cache: pnpm
       - name: Restore Turborepo cache
-        uses: actions/cache@v5
+        id: turbo
+        uses: actions/cache/restore@v5
         with:
-          path: .turbo
-          key: turbo-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
           restore-keys: |
-            turbo-pages-${{ runner.os }}-${{ github.job }}-
-            turbo-pages-${{ runner.os }}-
-            turbo-${{ runner.os }}-
+            turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-
+            turbo-bounded-v1-pages-${{ runner.os }}-
+            turbo-bounded-v1-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
         with:
@@ -108,11 +148,24 @@ jobs:
       - run: pnpm check:games
       - run: pnpm test:game-config
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
+      - name: Test CI optimization gates
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs
       - run: python3 scripts/test-pages-deploy.py
       - run: python3 scripts/test-mobile-assets.py
       - name: Test Shell with workspace dependencies
         run: pnpm exec turbo run test --filter=@coffeeeeffoc/shell-web --concurrency=1
       - run: node scripts/run-pages-game-tests.mjs
+      - name: Bound local Turborepo task cache
+        run: node scripts/prune-turbo-cache.mjs
+      - name: Save bounded Turborepo cache
+        if: steps.turbo.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .turbo/cache/*.tar.zst
+            .turbo/cache/*-meta.json
+            .turbo/cache/*-manifest.json
+          key: ${{ steps.turbo.outputs.cache-primary-key }}
 
   smoke:
     needs: build
@@ -145,13 +198,18 @@ jobs:
           if-no-files-found: ignore
 
   regression:
-    needs: build
+    name: regression (shard ${{ matrix.shard }})
+    needs: [build, plan]
     if: inputs.full || inputs.game_sources != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
-      PAGES_GAME_IDS: ${{ !inputs.full && inputs.game_ids || '' }}
+      PAGES_GAME_IDS: ${{ matrix.game_ids }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -172,6 +230,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: pages-game-regression-${{ github.run_attempt }}
+          name: pages-game-regression-${{ github.run_attempt }}-${{ matrix.shard }}
           path: .scratch/game-integration
           if-no-files-found: ignore
