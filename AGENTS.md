@@ -29,3 +29,9 @@ Domain documentation uses a single-context layout. See `docs/agents/domain.md`.
 
 - 暂停图标必须是两根等高、等宽、平行且分离的实心竖条。优先复用已有图标库，或用 SVG、CSS、Canvas 绘制；不得用 `Ⅱ`、`II`、`||`、`π`、`⏸` 等字体字符代替，避免字体回退后变成罗马数字或近似 π。
 - 暂停按钮保留明确的“暂停”无障碍名称（Web 使用 `aria-label="暂停"`）。交付前在实际运行画面中检查图标的形状、间距和缩放效果，不能只检查源码中的字符。
+
+## 小游戏开发者模式
+
+- 所有现有及新增小游戏统一支持 URL 的 `dev` 参数和 `localStorage.dev` 开关，独立打开、Shell 内置运行及 iframe 嵌入均须生效。新增游戏、调整调试入口或构建流程时，遵循 [开发者模式约定](docs/game-dev-mode.md)。
+- 复用统一的 `SmallGamesDev` 判断和调试面板，游戏专属的选关、参数及调试操作也以该判断为入口；正式构建保留显式启用能力，默认关闭。
+- 提交前运行 `pnpm check:dev-mode`、`pnpm test:dev-mode`，并在手机尺寸验证独立及 iframe 模式、URL 与存储开关、显式关闭、触屏操作和手势取消。

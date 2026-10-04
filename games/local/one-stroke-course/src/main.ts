@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import Phaser from 'phaser';
 import { CourseScene } from './scene';
 import { HEIGHT, levels, WIDTH } from './levels';
@@ -80,8 +81,8 @@ function render(): void {
   lastPhase=state.phase;
 }
 setInterval(render,80);
-// Explicit diagnostic opt-in; never used by normal gameplay or production builds.
-if(import.meta.env.DEV && new URLSearchParams(location.search).has('test')){
+// Explicit developer opt-in also works in production builds.
+if(window.SmallGamesDev.isEnabled()){
   Object.assign(window,{__course:scene});
 }
 // Register ready/UI listeners before Phaser boots, including warm-cache page reloads.

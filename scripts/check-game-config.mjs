@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import yaml from 'js-yaml';
 import { runCommand } from './platform-process.mjs';
 import { auditGameMeta } from './game-meta.mjs';
+import { syncGameDevMode } from './sync-game-dev-mode.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const GAME_ROOTS = ['games/local', 'games/submodules'];
@@ -552,6 +553,15 @@ async function main(args) {
     throw new Error('--verify 会输出构建日志，请单独使用 --json');
   const names = args.filter((arg) => !arg.startsWith('--'));
   const report = await auditGameConfig(ROOT, { artifacts: flags.has('--artifacts') });
+  const devMode = await syncGameDevMode({ check: true });
+  for (const error of devMode.errors) {
+    const split = error.indexOf(': ');
+    report.errors.push({
+      code: 'game-dev-mode',
+      path: error.slice(0, split),
+      message: error.slice(split + 2),
+    });
+  }
   const selected = names.length
     ? report.games.filter((game) =>
         names.some((name) =>

@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import './style.css';
 import { createGame, startGame, updateGame, action, aimTarget, terrainHeight } from './sim.js';
 import { createInput } from './input.js';
@@ -190,7 +191,7 @@ try {
   requestAnimationFrame(frame);
   $('world').addEventListener('webglcontextlost', event => { event.preventDefault(); pause(); $('error').textContent = '图形连接中断。请刷新页面重新起飞。'; $('error').hidden = false; });
   // Development-only readout supports repeatable interaction checks without a production cheat API.
-  if (import.meta.env.DEV) window.__flight = { game, input, stats: () => view.getStats() };
+  if (window.SmallGamesDev.isEnabled()) window.__flight = { game, input, stats: () => view.getStats() };
 } catch (error) {
   console.error(error); $('error').hidden = false; $('deploy').firstElementChild.textContent = '引擎启动失败';
 }

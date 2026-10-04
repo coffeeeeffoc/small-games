@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import '../dev-mode.js';
 
 import { GameShare } from './GameShare.js';
 import { publicGameQuery } from './game-sharing.js';
@@ -15,7 +16,14 @@ export function StandaloneGame({
   onExit: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
-  const query = publicGameQuery(id, search);
+  const parameters = new URLSearchParams(publicGameQuery(id, search));
+  const incoming = new URLSearchParams(search);
+  if (incoming.has('dev')) parameters.set('dev', incoming.get('dev') ?? '');
+  const query = window.SmallGamesDev.withMode(parameters.toString());
+  useEffect(() => {
+    window.SmallGamesDev.setPanelHidden(true);
+    return () => window.SmallGamesDev.setPanelHidden(false);
+  }, []);
   const entry = `${import.meta.env.BASE_URL}games/${id}/index.html${query ? `?${query}` : ''}`;
   return (
     <main className="game-page standalone-page" data-game-display-host>

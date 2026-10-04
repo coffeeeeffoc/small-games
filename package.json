@@ -25,7 +25,7 @@
     "check:games": "node scripts/check-game-config.mjs",
     "check:game-meta": "node scripts/game-meta.mjs",
     "sync:game-meta": "node scripts/game-meta.mjs --write",
-    "test:game-config": "node --test scripts/check-game-config.test.mjs scripts/game-meta.test.mjs",
+    "test:game-config": "node --test scripts/check-game-config.test.mjs scripts/game-meta.test.mjs scripts/game-dev-mode.test.mjs",
     "test:dialogs": "pnpm test:h5-fullscreen && node scripts/test-competition-dialogs.mjs && node scripts/test-submodule-dialogs.mjs && pnpm --filter cops-robbers test:dialogs",
     "test:h5-fullscreen": "node scripts/sync-h5-fullscreen.mjs --check && node scripts/test-h5-fullscreen.mjs",
     "competition:up": "node scripts/competition.mjs up",
@@ -68,7 +68,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:staged": "node scripts/check-staged-format.mjs",
-    "test:hooks": "node --test scripts/check-staged-format.test.mjs"
+    "test:hooks": "node --test scripts/check-staged-format.test.mjs",
+    "sync:dev-mode": "node scripts/sync-game-dev-mode.mjs",
+    "check:dev-mode": "node scripts/sync-game-dev-mode.mjs --check",
+    "test:dev-mode": "node --test scripts/game-dev-mode.test.mjs",
+    "test:dev-mode:browser": "node scripts/test-game-dev-mode.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

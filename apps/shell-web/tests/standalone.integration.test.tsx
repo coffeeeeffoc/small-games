@@ -78,3 +78,31 @@ it.each(games)('restores standalone Game $id from a shared URL', async ({ id, ti
     localStorage.clear();
   }
 });
+
+it.each([
+  ['/small-games/?dev=1#/games/wulong-city?challenge=26', null, 'challenge=26&dev=1'],
+  ['/small-games/#/games/wulong-city?challenge=26&dev', null, 'challenge=26&dev=1'],
+  ['/small-games/#/games/wulong-city?challenge=26', 'true', 'challenge=26&dev=1'],
+  ['/small-games/?dev=0#/games/wulong-city?challenge=26', 'true', 'challenge=26&dev=0'],
+  ['/small-games/?dev=1#/games/wulong-city?challenge=26&dev=0', 'true', 'challenge=26&dev=0'],
+])(
+  'propagates effective developer mode to the frame and independent link: %s',
+  async (url, stored, expected) => {
+    window.history.replaceState(null, '', url!);
+    if (stored) localStorage.setItem('dev', stored);
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<ShellApp runtimeClient={false} />));
+      const entry = `/games/wulong-city/index.html?${expected}`;
+      expect(container.querySelector('iframe')?.getAttribute('src')).toBe(entry);
+      expect(container.querySelector('a')?.getAttribute('href')).toBe(entry);
+      expect(window.location.href).toContain('challenge=26');
+    } finally {
+      await act(async () => root.unmount());
+      window.history.replaceState(null, '', '/');
+      localStorage.clear();
+      window.SmallGamesDev.refresh();
+    }
+  },
+);

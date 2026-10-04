@@ -6,6 +6,7 @@ if (target !== resolve(process.cwd(), 'dist')) throw new Error('Invalid build ta
 await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await cp('index.html', `${target}/index.html`);
+await cp('dev-mode.js', `${target}/dev-mode.js`);
 await cp('src', `${target}/src`, { recursive: true });
 try { for (const file of await readdir('public')) await cp(`public/${file}`, `${target}/${file}`, { recursive: true }); }
 catch (error) { if (error.code !== 'ENOENT') throw error; }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { chmod, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import yaml from 'js-yaml';
 import { auditGameConfig } from './check-game-config.mjs';
+import { syncGameDevMode } from './sync-game-dev-mode.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const gameSource = 'games/local/mini-front';
@@ -74,8 +75,15 @@ test('Pages summary propagates selected validation failures and permits only exp
     ['success', '', 'skipped', 1],
     ['success', 'unexpected', 'success', 1],
   ];
+  const bash =
+    process.platform === 'win32'
+      ? path.resolve(
+          execFileSync('git', ['--exec-path'], { encoding: 'utf8' }).trim(),
+          '../../../bin/bash.exe',
+        )
+      : 'bash';
   for (const [scope, required, validation, expected] of cases) {
-    const result = spawnSync('bash', ['-c', gate.run], {
+    const result = spawnSync(bash, ['-c', gate.run], {
       encoding: 'utf8',
       env: {
         ...process.env,
@@ -353,8 +361,18 @@ test('the real pre-push hook blocks missing registration or metadata after forma
     'scripts/check-game-config.mjs',
     'scripts/game-meta.mjs',
     'scripts/platform-process.mjs',
+    'scripts/sync-game-dev-mode.mjs',
+    'platforms/h5/dev-mode.js',
+    'platforms/h5/dev-mode.d.ts',
   ])
     await f.write(relative, await readFile(path.join(repo, relative), 'utf8'));
+  for (const source of ['apps/shell-web', gameSource, builtinSource])
+    await f.write(`${source}/index.html`, '<script type="module" src="./dev-mode.js"></script>');
+  await f.write(`${gameSource}/build.mjs`, "const files = ['index.html', 'dev-mode.js'];");
+  const builtinPackage = await f.json(`${builtinSource}/package.json`);
+  builtinPackage.scripts.build = 'tsc -b && vite build';
+  await f.write(`${builtinSource}/package.json`, builtinPackage);
+  await syncGameDevMode({ root: f.root });
   await chmod(path.join(f.root, '.githooks/pre-push'), 0o755);
   await symlink(
     path.join(repo, 'node_modules'),
@@ -709,7 +727,13 @@ test('rejects a reusable workflow symlink outside the workflow directory', async
   const called = '.github/workflows/pages-validate.yml';
   await f.write('outside.yml', await f.read(called));
   await rm(path.join(f.root, called));
-  await symlink(path.join(f.root, 'outside.yml'), path.join(f.root, called));
+  try {
+    await symlink(path.join(f.root, 'outside.yml'), path.join(f.root, called));
+  } catch (error) {
+    if (process.platform !== 'win32' || error.code !== 'EPERM') throw error;
+    t.skip('Windows file symlink creation requires a privilege unavailable to this process');
+    return;
+  }
   const report = await auditGameConfig(f.root);
   requireCodes(report, ['workflow-gate']);
   assert(report.errors.some((error) => /越出工作流目录/.test(error.message)));

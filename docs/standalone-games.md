@@ -105,6 +105,8 @@ Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变�
 
 ## 游戏接入检查
 
+所有游戏还须接入 [开发者模式约定](game-dev-mode.md)，在独立页面、Shell 与 iframe 中支持统一的 URL / 存储开关。`pnpm check:games` 同时检查调试代码副本、网页入口及独立构建，新增游戏也受此约束。
+
 游戏提交记录集中存放在 `apps/shell-web/src/game-meta.json`，以访问 id 为键；每项包含 `source`、`created.commit/time` 和 `updated.commit/time`。commit 保存完整的 40 位 SHA，time 保存 Git 的提交者时间（`%cI`，带时区），卡片以北京时间显示时间和 8 位 SHA，完整 SHA 可通过 title 查看。简洁一览不渲染这些信息。
 
 普通游戏的创建记录是本仓库中对应目录最早的提交，沿 `package.json` 的重命名历史追溯迁移前目录，遇到模板复制关系则停止追溯；更新记录是目录最近的提交，包括代码、资源、测试和文档。独立子模块使用父仓库 HEAD 固定版本所能到达的子仓库历史，commit 属于子仓库。meta 或 Shell 的变化不算游戏更新。

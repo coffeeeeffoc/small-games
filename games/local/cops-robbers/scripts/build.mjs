@@ -29,6 +29,7 @@ async function copy(source, destination) {
   }
 }
 await copy(resolve(root, 'index.html'), resolve(output, 'index.html'));
+await copy(resolve(root, 'dev-mode.js'), resolve(output, 'dev-mode.js'));
 await copy(resolve(root, 'src'), resolve(output, 'src'));
 for (const name of ['assets', 'favicon.svg', 'favicon.ico', 'favicon.png']) {
   try { await lstat(resolve(root, name)); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }

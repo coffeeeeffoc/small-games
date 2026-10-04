@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import { useEffect, useRef, useState } from 'react';
 import { GAME, THEME_NAMES } from './config.ts';
 import { getLevel, levels } from './game/levels/levels.ts';
@@ -215,7 +216,7 @@ export function App() {
     };
     window.addEventListener('pagehide', beforeUnload);
     window.addEventListener('beforeunload', beforeUnload);
-    if (import.meta.env.DEV) {
+    if (window.SmallGamesDev.isEnabled()) {
       Object.assign(window, {
         mazeDebug: {
           snapshot: () => ({
@@ -226,7 +227,7 @@ export function App() {
             unlocked: profile.current.unlocked,
           }),
           select: (id: number) => prepare(id, true),
-          // Developer-only inspection of authored layout; excluded from production by Vite.
+          // Authored layout inspection requires the shared explicit developer opt-in.
           layout: () => structuredClone(controller.current?.level),
         },
       });
@@ -237,7 +238,7 @@ export function App() {
       clearTimeout(noticeTimer.current);
       window.removeEventListener('pagehide', beforeUnload);
       window.removeEventListener('beforeunload', beforeUnload);
-      if (import.meta.env.DEV) delete (window as unknown as { mazeDebug?: unknown }).mazeDebug;
+      if (window.SmallGamesDev.isEnabled()) delete (window as unknown as { mazeDebug?: unknown }).mazeDebug;
     };
   }, []);
   useEffect(() => {
@@ -479,7 +480,7 @@ export function App() {
                     </button>
                   ))}
                 </div>
-                {import.meta.env.DEV && (
+                {window.SmallGamesDev.isEnabled() && (
                   <details>
                     <summary>开发环境 · 全关试玩（不计入个人进度）</summary>
                     <div className="dev-levels">

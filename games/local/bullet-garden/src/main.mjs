@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import { LEVELS, SEEDS, BOONS, SKILLS, UPGRADES, WEATHER } from './config.mjs';
 import {
   createGame,
@@ -111,9 +112,7 @@ function loadProfile() {
 }
 
 function readDeveloperMode() {
-  const flag = new URLSearchParams(location.search).get('dev');
-  if (flag !== null) return ['', '1', 'true'].includes(flag);
-  return false;
+  return window.SmallGamesDev.isEnabled();
 }
 
 function saveProfile() {

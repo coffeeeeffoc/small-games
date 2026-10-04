@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import { useEffect, useState } from 'react';
 
 import type { GameHost, GameManifest, ReleaseChannel } from '@coffeeeeffoc/game-contract';
@@ -211,7 +212,7 @@ export function ShellApp({
             <button onClick={() => window.location.reload()}>重新加载</button>
           </p>
         )}
-        {runtimeClient && (
+        {runtimeClient && window.SmallGamesDev.isEnabled() && (
           <details>
             <summary>版本设置</summary>
             <fieldset disabled={loading}>

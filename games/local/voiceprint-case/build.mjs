@@ -7,7 +7,7 @@ const manifest = validateManifest(
 );
 await mkdir(new URL('dist/', root), { recursive: true });
 for (const file of [
-  'index.html',
+  'index.html', 'dev-mode.js',
   'style.css',
   'main.mjs',
   'audio.mjs',

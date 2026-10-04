@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import Phaser from 'phaser';
 import type { MatterAPI } from './physics';
 import { Physics } from './physics';
@@ -121,7 +122,14 @@ class GameScene extends Phaser.Scene {
     $('#fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch { sim.tell('当前浏览器暂不支持全屏'); } });
     dialog.addEventListener('cancel', e => { e.preventDefault(); if (panel !== 'intro' && panel !== 'result') closePanel(); });
     Object.defineProperty(window, '__acroSnapshot', { configurable: true, get: () => ({ ...sim.snapshot(), panel, view: { x: this.cameras.main.worldView.x, y: this.cameras.main.worldView.y, zoom: this.cameras.main.zoom, width: this.scale.width, height: this.scale.height } }) });
-    if (import.meta.env.DEV) Object.defineProperty(window, '__acroDev', { configurable: true, value: { load, sim, painter } });
+    if (window.SmallGamesDev.isEnabled()) {
+      Object.defineProperty(window, '__acroDev', { configurable: true, value: { load, sim, painter } });
+      window.SmallGamesDev.registerSnapshot(() => sim.snapshot());
+      window.SmallGamesDev.registerActions([
+        { id: 'acro-physics', label: '切换物理调试', run: () => { painter.debug = !painter.debug; hud(); } },
+        { id: 'acro-practice', label: '进入练习场', run: () => load(0) },
+      ]);
+    }
     painter.camera(0, true); openPanel('intro'); hud();
   }
   update(_time: number, delta: number) {

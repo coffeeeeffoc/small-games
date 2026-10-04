@@ -282,7 +282,7 @@ if (target === 'web-mobile') {
           background: #173c55; text-align: center; font: 600 18px/1.6 sans-serif; pointer-events: none; }
         #kart-rotate small { display: block; color: #69dfc0; font-size: 14px; }
       }
-      </style><script src="./competition-session.js"></script><script defer src="./fullscreen.js"></script></head>`,
+      </style><script src="./dev-mode.js"></script><script src="./competition-session.js"></script><script defer src="./fullscreen.js"></script></head>`,
     )
     .replace(
       '<body>',
@@ -296,6 +296,7 @@ if (target === 'web-mobile') {
   await installLoading(outputDir);
   await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);
   await cp(new URL('./fullscreen.js', import.meta.url), path.join(outputDir, 'fullscreen.js'));
+  await cp(new URL('./dev-mode.js', import.meta.url), path.join(outputDir, 'dev-mode.js'));
   await writeFile(
     path.join(outputDir, 'build-info.json'),
     JSON.stringify({ creator: '3.8.8', sourceHash: await sourceHash() }),

@@ -14,7 +14,7 @@ await loadCatalog(async (url) => ({
 }));
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const name of ['index.html', 'styles.css', 'src', 'content']) {
+for (const name of ['index.html', 'dev-mode.js', 'styles.css', 'src', 'content']) {
   await cp(new URL(name, import.meta.url), new URL(name, output), { recursive: true });
 }
 await stat(new URL('src/main.js', output));

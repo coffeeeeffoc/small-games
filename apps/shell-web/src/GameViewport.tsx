@@ -9,6 +9,16 @@ import {
 
 import type { BuiltInGame } from './registry.js';
 import { dynamicContentEnvelopeSchema } from '@coffeeeeffoc/content-schema';
+import '../dev-mode.js';
+
+function withDeveloperMode(artifact: RemoteGameArtifact | null): RemoteGameArtifact | null {
+  if (!artifact) return null;
+  const entry = new URL(artifact.entryUrl);
+  // Cached artifacts must use the current launch's mode, including an explicit opt-out.
+  entry.searchParams.delete('dev');
+  entry.search = window.SmallGamesDev.withMode(entry.search);
+  return { ...artifact, entryUrl: entry.href };
+}
 
 function readLastKnownGood(gameId: string): RemoteGameArtifact | null {
   try {
@@ -80,8 +90,8 @@ export function GameViewport({
     const launch = game.remote
       ? (loader as FallbackGameLoader).launch(
           {
-            target: game.remote.target,
-            lastKnownGood: readLastKnownGood(game.id),
+            target: withDeveloperMode(game.remote.target)!,
+            lastKnownGood: withDeveloperMode(readLastKnownGood(game.id)),
             builtIn: game.definition,
             rememberLastKnownGood: (artifact) => rememberLastKnownGood(game.id, artifact),
           },

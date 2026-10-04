@@ -43,7 +43,7 @@ async function copyRuntimeTree(directory) {
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 for (const entry of [
-  'index.html',
+  'index.html', 'dev-mode.js',
   'favicon.svg',
   'style.css',
   'game.mjs',

@@ -5,7 +5,7 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Ship only the game runtime; exclude development tools and tests.
 for (const file of [
-  'index.html',
+  'index.html', 'dev-mode.js',
   'style.css',
   'main.mjs',
   'render.mjs',

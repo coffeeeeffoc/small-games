@@ -1,3 +1,4 @@
+import '../../dev-mode.js';
 import { useEffect, useRef, useState } from 'react';
 import type { GameHost } from '@coffeeeeffoc/game-contract';
 import type { CultivationContent } from '../content/schema.js';
@@ -48,7 +49,7 @@ export function CultivationGame({ host, content, active }: Props) {
     };
     window.addEventListener('blur', blur);
     document.addEventListener('visibilitychange', visibility);
-    if (import.meta.env.DEV)
+    if (window.SmallGamesDev.isEnabled())
       Object.defineProperty(node, 'getCultivationSnapshot', {
         configurable: true,
         value: () => structuredClone(game.state),
@@ -58,7 +59,7 @@ export function CultivationGame({ host, content, active }: Props) {
       controller.current = null;
       window.removeEventListener('blur', blur);
       document.removeEventListener('visibilitychange', visibility);
-      if (import.meta.env.DEV) Reflect.deleteProperty(node, 'getCultivationSnapshot');
+      if (window.SmallGamesDev.isEnabled()) Reflect.deleteProperty(node, 'getCultivationSnapshot');
       void game.dispose();
     };
   }, [host, content]);

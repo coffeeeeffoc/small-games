@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import { Simulation } from './simulation';
 export class Input {
   pointer: number | null = null;
@@ -41,7 +42,7 @@ export class Input {
     if (e.repeat || this.keys.has(code)) return;
     this.keys.add(code); this.unlock();
     if (code === 'Escape' || code === 'KeyP') { this.clear(); this.onPause(); return; }
-    if (code === 'F2' && import.meta.env.DEV) { e.preventDefault(); this.onDebug(); return; }
+    if (code === 'F2' && window.SmallGamesDev.isEnabled()) { e.preventDefault(); this.onDebug(); return; }
     if (code === 'KeyR' && (!this.s.paused || this.s.status !== 'playing')) { this.clear(); this.onReset(); return; }
     if (this.s.paused) return;
     if (code.startsWith('Digit') && +code.slice(-1) >= 1 && +code.slice(-1) <= 3) this.s.select(+code.slice(-1) - 1);

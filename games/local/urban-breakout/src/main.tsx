@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { WEAPONS } from './content/levels.ts';
@@ -20,7 +21,7 @@ function App() {
   const [, update] = useState(0),
     [error, setError] = useState(''),
     [panel, setPanel] = useState<'records' | 'roadmap' | null>(null),
-    [debug, setDebug] = useState(new URLSearchParams(location.search).has('debug'));
+    [debug, setDebug] = useState(window.SmallGamesDev.isEnabled());
   const [notice, setNotice] = useState('');
   useEffect(() => {
     try {
@@ -424,7 +425,7 @@ function App() {
                 >
                   {r.shake ? '关闭震屏' : '打开震屏'}
                 </button>
-                <button onClick={() => setDebug(!debug)}>{debug ? '关闭调试' : '调试面板'}</button>
+                {window.SmallGamesDev.isEnabled() && <button onClick={() => setDebug(!debug)}>{debug ? '关闭调试' : '调试面板'}</button>}
               </div>
               <div className="audio-settings">
                 {(['music', 'sfx'] as const).map((bus) => (

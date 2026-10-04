@@ -28,7 +28,7 @@ pnpm --filter @coffeeeeffoc/maze-wander test:themes
 pnpm --filter @coffeeeeffoc/maze-wander test:mobile
 ```
 
-可以通过 `MAZE_URL` 指向另一个开发地址。测试使用 `import.meta.env.DEV` 下的只读快照和全关试玩入口获取状态；移动、转向、贴牌、地图、暂停和出口均使用浏览器实际输入。生产包没有该调试入口。
+可以通过 `MAZE_URL` 指向另一个地址。测试显式添加 `?dev=1`，使用统一开发模式下的快照和全关试玩入口获取状态；移动、转向、贴牌、地图、暂停和出口均使用浏览器实际输入。独立页面、Shell iframe 与正式构建均支持此开关；也可设置 `localStorage.setItem('dev', '1')` 后刷新，`?dev=0` 优先于存储并关闭，普通模式不显示该入口。
 
 ```powershell
 # 先 build；测试自行在 127.0.0.1:4438 启停生产预览服务

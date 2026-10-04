@@ -5,7 +5,7 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Publish the runtime only; keep tests, development tools and design sources out.
 for (const file of [
-  'index.html',
+  'index.html', 'dev-mode.js',
   'style.css',
   'main.mjs',
   'game.mjs',

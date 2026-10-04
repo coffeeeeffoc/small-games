@@ -73,7 +73,7 @@ async function setup(viewport, stored = null, query = '') {
   const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
   if (stored !== null)
     await context.addInitScript(
-      (value) => localStorage.setItem('bullet-garden.dev', value),
+      (value) => localStorage.setItem('dev', value),
       stored,
     );
   const page = await context.newPage();
@@ -154,7 +154,7 @@ try {
   }
   for (const [stored, query, enabled] of [
     [null, '?dev=1', true],
-    ['true', '', false],
+    ['true', '', true],
     ['true', '?dev=0', false],
   ]) {
     const { context, page } = await setup({ width: 844, height: 390 }, stored, query);

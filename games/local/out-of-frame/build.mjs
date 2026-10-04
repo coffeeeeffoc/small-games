@@ -5,7 +5,7 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Keep the published game self-contained without development tools or test fixtures.
 for (const file of [
-  'index.html',
+  'index.html', 'dev-mode.js',
   'style.css',
   'game.mjs',
   'render.mjs',

@@ -119,7 +119,7 @@ $('#staff').addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==dragg
 function endDrag(e,cancel=false){if(!dragging)return;const d=dragging;dragging=null;$('#drag-ghost').style.display='none';if(d.b.hasPointerCapture(d.pointer))d.b.releasePointerCapture(d.pointer);if(d.moved){e.preventDefault?.();ignoreClick=!cancel&&e.pointerType!=='touch';const b=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-guest]');if(!cancel&&b)place(+b.dataset.guest);else clearPreview();}render();}
 $('#staff').addEventListener('pointerup',e=>endDrag(e));$('#staff').addEventListener('pointercancel',e=>endDrag(e,true));
 // Native touch drags can suppress the following compatibility click; activate taps on pointerup once.
-document.addEventListener('click',e=>{if(e.pointerType==='touch'){e.preventDefault();e.stopImmediatePropagation();}},true);
+document.addEventListener('click',e=>{if(e.pointerType==='touch'&&!e.target.closest('[data-game-dev-tools]')){e.preventDefault();e.stopImmediatePropagation();}},true);
 document.addEventListener('pointerup',e=>{if(e.pointerType==='touch'&&!e.defaultPrevented)e.target.closest('button')?.click();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('夜班暂离，已停钟。');});window.addEventListener('blur',()=>pause('夜班暂离，已停钟。'));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#overlay').hidden)pause();return;}if(!$('#overlay').hidden&&e.key==='Tab'){const focus=[...$('#overlay').querySelectorAll('button')].filter(b=>b.offsetParent!==null);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});

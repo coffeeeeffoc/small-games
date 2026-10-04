@@ -1,3 +1,4 @@
+import '../dev-mode.js';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Canvas } from '@react-three/fiber';
@@ -902,7 +903,7 @@ function App() {
           </>
         )}
       </dialog>
-      {new URLSearchParams(location.search).has('debug') && (
+      {window.SmallGamesDev.isEnabled() && (
         <output className="debug">
           {Math.round(stats.fps)} FPS · {stats.calls} calls · {Math.round(stats.triangles / 1000)}k
           △<br />

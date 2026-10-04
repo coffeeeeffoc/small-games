@@ -31,8 +31,8 @@ try {
         .map((s) => readFile(`${root}/dist/assets/${s}`, 'utf8')),
     )
   ).join('');
-  assert.equal(bundle.includes('mazeDebug'), false);
-  assert.equal(bundle.includes('开发环境 · 全关试玩'), false);
+  assert.equal(bundle.includes('mazeDebug'), true, 'production retains explicit developer opt-in');
+  assert.equal(bundle.includes('开发环境 · 全关试玩'), true);
   const { context, page } = await newPage();
   await page.route('**/frame-host', (route) =>
     route.fulfill({

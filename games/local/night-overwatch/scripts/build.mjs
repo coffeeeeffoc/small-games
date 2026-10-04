@@ -78,7 +78,7 @@ let html = await readFile(out + 'index.html', 'utf8');
 html = html
   .replace(/<title>.*?<\/title>/, '<title>夜航守望 · Night Overwatch</title>')
   .replace('<head>', '<head><link rel="icon" href="data:,">');
-html = html.replace('</head>', '<style>canvas{touch-action:none;outline:none}</style></head>');
+html = html.replace('</head>', '<style>canvas{touch-action:none;outline:none}</style><script src="./dev-mode.js"></script></head>');
 html = html.replace('minimal-ui=true', 'viewport-fit=cover');
 if (target === 'web-desktop')
   html = html
@@ -95,6 +95,7 @@ html = html.replace(
   'name="screen-orientation" content="landscape"',
 );
 await writeFile(out + 'index.html', html);
+await cp(new URL('./dev-mode.js', import.meta.url), out + 'dev-mode.js');
 const { installStartup } = await import('../startup/install.mjs');
 await installStartup(out, target);
 await writeFile(

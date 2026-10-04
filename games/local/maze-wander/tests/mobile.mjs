@@ -29,7 +29,9 @@ try {
     });
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(process.env.MAZE_URL || 'http://127.0.0.1:4437');
+    const developerUrl = new URL(process.env.MAZE_URL || 'http://127.0.0.1:4437');
+    developerUrl.searchParams.set('dev', '1');
+    await page.goto(developerUrl.href);
     await page.waitForFunction(() => window.mazeDebug);
     await page.locator('#start').tap();
     await page.locator('#enter').tap();

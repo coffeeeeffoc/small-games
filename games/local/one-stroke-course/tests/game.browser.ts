@@ -4,7 +4,7 @@ import { writeFile } from 'node:fs/promises';
 import { levels } from '../src/levels';
 import { routeInputs, runReference } from './replay';
 declare global { interface Window { __course: CourseScene } }
-async function boot(page: Page){await page.goto('/?test');await page.waitForFunction(()=>!!window.__course?.course);}
+async function boot(page: Page){await page.goto('/?dev=1');await page.waitForFunction(()=>!!window.__course?.course);}
 async function replay(page: Page,index: number,alternate=false,naive=false){
   const actions=structuredClone(routeInputs[levels[index].id]);
   if(alternate&&index===5)actions[1].after=34/120;

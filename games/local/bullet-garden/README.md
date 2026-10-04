@@ -44,7 +44,7 @@ GAME_URL=http://127.0.0.1:4410 npm run test:home-browser
 
 ## 开发者模式
 
-URL 加 `?dev=1`（已有查询参数时用 `&dev=1`）开启开发模式；`?dev`、`?dev=true` 也可开启，移除参数或使用 `?dev=0` 关闭。旧的 `localStorage` 开发开关不再启用模式。
+URL 加 `?dev=1`（已有查询参数时用 `&dev=1`）开启开发模式；`?dev`、`?dev=true` 也可开启。统一存储开关 `localStorage.setItem('dev', '1')` 刷新后生效，独立页面和 Shell iframe 均支持；`?dev=0` 优先于存储并显式关闭。删除 URL 参数和 `localStorage.dev` 恢复默认关闭；旧的 `bullet-garden.dev` 不再使用。
 
 开发模式开放全部关卡及手动天气、地图、技能配置，不提升永久属性。主页和选关页显示提示，试玩不发放金币、永久经验、正式通关记录或最佳成绩；`settleLevel` 也会拒绝开发局，避免绕过界面导致发奖。普通模式忽略传入的手动配置。
 
