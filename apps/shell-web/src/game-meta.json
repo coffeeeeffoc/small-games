@@ -397,6 +397,17 @@
         "time": "2026-09-27T21:54:05+08:00"
       }
     },
+    "surprise-kept": {
+      "source": "games/local/surprise-kept",
+      "created": {
+        "commit": "7efec1bfcb5dbb09f747676285189686184300c5",
+        "time": "2026-10-04T13:24:41+08:00"
+      },
+      "updated": {
+        "commit": "7efec1bfcb5dbb09f747676285189686184300c5",
+        "time": "2026-10-04T13:24:41+08:00"
+      }
+    },
     "tiny-signals": {
       "source": "games/local/tiny-signals",
       "created": {
