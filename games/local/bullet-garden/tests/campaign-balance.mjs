@@ -192,7 +192,7 @@ function challenge(seed, spendCoins) {
       assert.ok(state.plants.length <= state.plantCap, `${level.id} plants stay bounded`);
       assert.ok(state.bullets.length <= 120, `${level.id} projectiles stay bounded`);
       assert.ok(state.skillEffects.length <= 12, `${level.id} skills stay bounded`);
-      assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 100));
+      assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 300));
       assert.ok(
         state.plants.every((plant) => state.boons.some((id) => BOONS[id].kind === plant.kind)),
         'terrain requires a selected XP boon',

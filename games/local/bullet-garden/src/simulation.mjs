@@ -26,6 +26,7 @@ import {
   gainRunExperience,
   drawUpgradeChoices,
   acquireBoon,
+  SKILL_CHARGE_CAP,
 } from './loadout.mjs';
 export { configureLoadout, selectSkill };
 import { terrainSolids, terrainPointBlocked, terrainMovement, weatherStats } from './world.mjs';
@@ -220,7 +221,8 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null) {
       hail: WEATHER.hail.hazard.interval,
       thunder: WEATHER_MODIFIERS.thunder.hazard.interval,
     },
-    terrain: structuredClone(level.terrain ?? []),
+    // Battle terrain is earned through run upgrades, never inherited from a map.
+    terrain: [],
     encounter: {
       kind: level.encounter?.kind ?? null,
       spawned: false,
@@ -412,7 +414,7 @@ export function castSkill(state, target, index = state.selectedSkill) {
     delay: definition.delay ?? 0,
     triggered: false,
   });
-  slot.energy = 0;
+  slot.energy -= definition.energyMax;
   state.selectedSkill = index;
   state.skillCooldown = 0.3;
   state.player.angle = Math.atan2(dy, dx);
@@ -424,7 +426,10 @@ export function castSkill(state, target, index = state.selectedSkill) {
 function chargeEnergy(state, amount) {
   const multiplier = 1 + bonus(state, 'energy');
   for (const slot of state.skillSlots)
-    slot.energy = Math.min(SKILLS[slot.kind].energyMax, slot.energy + amount * multiplier);
+    slot.energy = Math.min(
+      SKILLS[slot.kind].energyMax * SKILL_CHARGE_CAP,
+      slot.energy + amount * multiplier,
+    );
 }
 
 export function dash(state, direction = {}) {
@@ -486,7 +491,7 @@ export function chooseUpgrade(state, upgradeId) {
   if (upgradeId.startsWith('boon-')) acquireBoon(state, upgradeId.slice(5));
   if (upgradeId === 'energy-cycle') {
     for (const slot of state.skillSlots)
-      slot.energy = Math.min(SKILLS[slot.kind].energyMax, slot.energy + 25);
+      slot.energy = Math.min(SKILLS[slot.kind].energyMax * SKILL_CHARGE_CAP, slot.energy + 25);
   }
   state.progression.pending = Math.max(0, state.progression.pending - 1);
   state.progression.queue.shift();
@@ -2020,7 +2025,10 @@ function advanceWave(state) {
 
 function tick(state, dt, input) {
   const level = levelOf(state);
-  state.time = Math.min(state.duration, state.time + dt);
+  const previousTime = state.time;
+  state.time += dt;
+  if (previousTime < state.duration && state.time >= state.duration)
+    event(state, 'clear-ready');
   const player = state.player;
   state.encounter.retryIn = Math.max(0, finite(state.encounter.retryIn) - dt);
   player.invulnerable = Math.max(0, player.invulnerable - dt);
@@ -2109,6 +2117,7 @@ function tick(state, dt, input) {
   if (
     state.phase === 'playing' &&
     state.time >= state.duration &&
+    aliveEnemies(state) === 0 &&
     state.player.hp > 0 &&
     (!level.encounter?.required || state.encounter.defeated)
   ) {

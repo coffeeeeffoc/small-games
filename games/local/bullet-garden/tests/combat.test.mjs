@@ -503,9 +503,17 @@ for (const levelId of ['quarry', 'bastion', 'heartgarden']) {
     const required = state.enemies.find((entry) => entry.id === state.encounter.enemyId);
     assert.ok(required, 'required encounter exists even when ordinary spawns are disabled');
     assert.equal(required.kind, level.encounter.kind);
+    const remaining = enemy(state, 'sprout', { x: state.player.x + 200, y: state.player.y + 150 });
     bullet(state, required, required.maxHp + required.shield + 1000);
     advance(state, 0.08);
     assert.equal(state.encounter.defeated, true);
+    assert.ok(
+      ['playing', 'upgrade'].includes(state.phase),
+      'defeating the boss still requires clearing ordinary enemies',
+    );
+    while (state.phase === 'upgrade') chooseUpgrade(state, state.upgradeChoices[0]);
+    bullet(state, remaining, 1000);
+    advance(state, 0.08);
     assert.equal(state.phase, 'won');
     const frozen = structuredClone(state);
     advance(state, 0.2);

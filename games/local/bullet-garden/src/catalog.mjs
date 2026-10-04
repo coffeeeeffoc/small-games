@@ -54,7 +54,7 @@ export const BOONS = {
     kind: 'ice',
     name: '寒冰柱',
     color: '#67d4ff',
-    description: '每 7 秒自动长出冰柱，阻挡追兵，怪物会绕行或击碎它。',
+    description: '每 7 秒长出冰柱，阻挡双方移动与子弹；怪物会绕行或击碎它。',
     interval: 7,
     life: 12,
     radius: 28,

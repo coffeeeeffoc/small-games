@@ -12,7 +12,8 @@
     "build": "node build.mjs",
     "test:rendering": "node tests/rendering.mjs",
     "test:campaign-balance": "node tests/campaign-balance.mjs",
-    "test:campaign-browser": "node tests/campaign-browser.mjs"
+    "test:campaign-browser": "node tests/campaign-browser.mjs",
+    "test:screens": "node tests/screens-browser.mjs"
   },
   "engines": {
     "node": ">=20"

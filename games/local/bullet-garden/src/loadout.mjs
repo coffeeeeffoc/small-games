@@ -1,6 +1,7 @@
 import { BOONS, SKILLS, UPGRADES, LEVELS } from './config.mjs';
 
 export const GAME_SPEEDS = Object.freeze([1, 2, 3, 5]);
+export const SKILL_CHARGE_CAP = 3;
 export const normalizeGameSpeed = (speed) =>
   GAME_SPEEDS.includes(Number(speed)) ? Number(speed) : 1;
 

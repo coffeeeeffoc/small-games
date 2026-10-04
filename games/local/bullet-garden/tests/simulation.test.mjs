@@ -216,7 +216,7 @@ test('pause freezes all timers, bullets, terrain and energy, then resumes the sa
   assert.ok(state.time > paused.time);
 });
 
-test('wave transitions alone do not grant upgrades, and surviving five minutes wins', () => {
+test('wave transitions alone do not grant upgrades, and an empty field wins after five minutes', () => {
   const state = isolatedGame();
   for (let iterations = 0; state.phase !== 'won' && iterations < 4000; iterations += 1) {
     step(state, 0.1, idle);
@@ -485,10 +485,7 @@ test('no boon means no terrain; full energy never automatically releases a skill
   assert.ok(state.stats.shots > 0);
   assert.equal(state.plants.length, 0);
   assert.equal(state.stats.plantsGrown, 0);
-  assert.deepEqual(
-    state.skillSlots.map((slot) => slot.energy),
-    [100, 100],
-  );
+  assert.ok(state.skillSlots.every((slot) => Math.abs(slot.energy - 150) < 1e-8));
   assert.equal(state.stats.skillCasts, 0);
   assert.equal(state.skillEffects.length, 0);
   assert.equal(selectSeed(state, 'thorn'), false);
@@ -821,7 +818,7 @@ test('all terrain and weapon combinations remain bounded, deterministic and seri
       assert.ok(state.skillEffects.length <= 12);
       assert.ok(
         state.skillSlots.every(
-          (slot) => Number.isFinite(slot.energy) && slot.energy >= 0 && slot.energy <= 100,
+          (slot) => Number.isFinite(slot.energy) && slot.energy >= 0 && slot.energy <= 300,
         ),
       );
     }

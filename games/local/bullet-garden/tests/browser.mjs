@@ -42,7 +42,31 @@ function check(name, details = {}) {
   checks.push({ name, ...details });
   console.log(`PASS ${name}`, JSON.stringify(details));
 }
+async function inspectBattleLayout(page) {
+  const arena = await page.locator('#arena').boundingBox();
+  const dock = await page.locator('.skill-dock').boundingBox();
+  const viewport = page.viewportSize();
+  assert.ok(dock.y >= arena.y + arena.height, 'tactical panel is entirely outside the canvas');
+  assert.ok(dock.x >= 0 && dock.x + dock.width <= viewport.width);
+  assert.ok(dock.y + dock.height <= viewport.height, 'tactical panel fits the viewport');
+  for (const selector of ['#dash', ...(touchPages.has(page) ? ['#joystick'] : [])]) {
+    const rect = await page.locator(selector).boundingBox();
+    assert.ok(rect && rect.y >= arena.y + arena.height, `${selector} stays outside the canvas`);
+    assert.ok(
+      rect.x + rect.width <= dock.x ||
+        rect.x >= dock.x + dock.width ||
+        rect.y + rect.height <= dock.y ||
+        rect.y >= dock.y + dock.height,
+      `${selector} does not cover tactical cards`,
+    );
+  }
+  await page.screenshot({
+    path: `${output}/battle-layout-${viewport.width}x${viewport.height}.png`,
+  });
+  check('tactical panel and thumb controls occupy a separate area', { viewport, arena, dock });
+}
 async function click(page, selector) {
+  await page.locator(selector).scrollIntoViewIfNeeded();
   const rect = await page.locator(selector).boundingBox();
   assert.ok(rect, `visible control ${selector}`);
   if (touchPages.has(page))
@@ -84,6 +108,7 @@ async function prepare(page, skills = ['blast', 'laser']) {
   assert.equal(state.phase, 'playing');
   assert.deepEqual(state.loadout, { skills });
   assert.deepEqual(state.boons, [], 'every run begins without terrain boons');
+  assert.deepEqual(state.terrain, [], 'map obstacles are absent from a fresh run');
   assert.equal(state.plants.length, 0, 'no terrain is granted at the start');
   assert.equal(state.stats.plantsGrown, 0);
   assert.deepEqual(
@@ -115,7 +140,7 @@ function assertTerrainUnlocked(state) {
   assert.ok(state.plants.length <= state.plantCap);
   assert.ok(state.enemies.length <= 48);
   assert.ok(state.skillEffects.length <= 12);
-  assert.ok(energy(state).every((value) => Number.isFinite(value) && value >= 0 && value <= 100));
+  assert.ok(energy(state).every((value) => Number.isFinite(value) && value >= 0 && value <= 300));
 }
 async function inspectExperienceChoices(page, state) {
   const rewardLevel = state.progression.queue[0] ?? state.progression.level;
@@ -270,7 +295,10 @@ async function chargeNaturally(page, movement, timeRate = null) {
     }
   }
   await movement.release();
-  assert.deepEqual(energy(state), [100, 100], 'both independently fill through natural combat');
+  assert.ok(
+    energy(state).every((value) => value >= 100),
+    'both independently earn a stored cast',
+  );
   return { state, killChargeObserved };
 }
 async function screenPoint(page, state, x, y) {
@@ -380,8 +408,8 @@ async function speedControls() {
     energy(state),
     '5× upgrade selection freezes energy',
   );
-  await page.locator('#game-speed').selectOption('1');
   await settleExperienceChoices(page);
+  await page.locator('#game-speed').selectOption('1');
   const afterChoice = await snapshot(page);
   await advance(page, 400);
   assert.ok(
@@ -400,6 +428,7 @@ async function desktopControls() {
   assert.equal(await page.locator('#help-panel').isVisible(), true);
   await click(page, '#close-help');
   const begun = await prepare(page);
+  await inspectBattleLayout(page);
   await advance(page, 1000);
   const timed = await snapshot(page);
   assert.equal(timed.kills, 0, 'first second isolates passive energy charging');
@@ -471,18 +500,15 @@ async function desktopControls() {
   assert.ok(charged.killChargeObserved, 'a natural kill adds energy beyond elapsed-time charging');
   await advance(page, 500);
   await settleExperienceChoices(page);
-  assert.deepEqual(
-    energy(await snapshot(page)),
-    [100, 100],
-    'full charge persists until manual release',
-  );
+  const stored = energy(await snapshot(page));
+  assert.ok(stored.every((value, index) => value >= energy(charged.state)[index]));
   await click(page, slotSelector(0));
   assert.equal(await page.locator('body').getAttribute('data-armed'), 'true');
   await page.keyboard.press('Escape');
   await advance(page, 32);
   assert.equal((await snapshot(page)).phase, 'playing', 'Escape cancels targeting before pausing');
   assert.equal(await page.locator('body').getAttribute('data-armed'), 'false');
-  assert.deepEqual(energy(await snapshot(page)), [100, 100]);
+  assert.ok(energy(await snapshot(page)).every((value, index) => value >= stored[index]));
   await click(page, slotSelector(0));
   await click(page, slotSelector(0));
   assert.equal(
@@ -492,7 +518,10 @@ async function desktopControls() {
   );
   await click(page, slotSelector(0));
   await click(page, '#cancel-cast');
-  assert.deepEqual(energy(await snapshot(page)), [100, 100], 'explicit cancel preserves charge');
+  assert.ok(
+    energy(await snapshot(page)).every((value, index) => value >= stored[index]),
+    'explicit cancel preserves stored charge while combat continues charging',
+  );
 
   let state = await snapshot(page);
   const nearest = steering(state).nearest;
@@ -535,7 +564,7 @@ async function desktopControls() {
   state = await settleExperienceChoices(page);
   assert.equal(state.stats.skillCasts, 1, 'armed right-click manually releases slot one');
   assert.ok(state.skillSlots[0].energy < 100);
-  assert.equal(state.skillSlots[1].energy, 100, 'other slot keeps its charge');
+  assert.ok(state.skillSlots[1].energy >= stored[1], 'other slot keeps charging');
   await click(page, slotSelector(1));
   await click(page, '#pause');
   const paused = await snapshot(page);
@@ -591,6 +620,7 @@ async function touchControls(width, height) {
   });
   const skills = height > width ? ['cart', 'horse'] : ['gale', 'laser'];
   await prepare(page, skills);
+  await inspectBattleLayout(page);
   const cdp = await context.newCDPSession(page);
   await chargeNaturally(page, await touchMovement(page, cdp));
   await advance(page, 50);
@@ -660,7 +690,7 @@ async function touchControls(width, height) {
     `field release commits once: ${JSON.stringify(await page.evaluate(() => window.__touchEvidence))}`,
   );
   assert.ok(state.skillSlots[0].energy < 100);
-  assert.equal(state.skillSlots[1].energy, 100);
+  assert.ok(state.skillSlots[1].energy >= initial.skillSlots[1].energy);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   await advance(page, 50);
   await settleExperienceChoices(page);
@@ -677,7 +707,7 @@ async function touchControls(width, height) {
   await advance(page, 200);
   state = await snapshot(page);
   assert.equal(state.stats.skillCasts, 1, 'cancelled aiming gesture does not spend energy');
-  assert.equal(state.skillSlots[1].energy, 100);
+  assert.ok(state.skillSlots[1].energy >= initial.skillSlots[1].energy);
   assert.equal(
     await page.locator('body').getAttribute('data-armed'),
     'false',
@@ -710,6 +740,64 @@ async function touchControls(width, height) {
     `touch ${width}×${height}: prepare, charge, move + aim/release, cancel, pause, two skills, dash`,
     { skills, maximumConcurrentPointers: evidence.maximum },
   );
+  await context.close();
+}
+
+async function storedSkillCasts(width, height) {
+  const { context, page } = await setup({
+    viewport: { width, height },
+    hasTouch: true,
+    isMobile: true,
+  });
+  await prepare(page, ['laser', 'cart']);
+  const cdp = await context.newCDPSession(page);
+  const movement = await touchMovement(page, cdp);
+  let state = await snapshot(page);
+  while (state.skillSlots[0].energy < 300 && state.time < 65) {
+    state = await settleExperienceChoices(page, movement);
+    assert.equal(state.phase, 'playing', 'normal-health movement survives storing three skills');
+    const direction = steering(state);
+    await movement.move(direction.x, direction.y);
+    await advance(page, 200);
+    state = await snapshot(page);
+  }
+  await movement.release();
+  state = await settleExperienceChoices(page);
+  assert.equal(state.skillSlots[0].energy, 300, 'natural combat caps storage at three charges');
+  const initialCasts = state.stats.skillCasts;
+  await click(page, slotSelector(0));
+  for (let cast = 1; cast <= 3; cast++) {
+    state = await snapshot(page);
+    const point = await screenPoint(page, state, state.player.x - 60, state.player.y);
+    assert.equal(
+      await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, point),
+      'arena',
+    );
+    const before = state.skillSlots[0].energy;
+    await page.touchscreen.tap(point.x, point.y);
+    await advance(page, 350);
+    state = await snapshot(page);
+    assert.equal(
+      state.stats.skillCasts,
+      initialCasts + cast,
+      'each field gesture casts exactly once',
+    );
+    assert.ok(
+      state.skillSlots[0].energy >= before - 100 && state.skillSlots[0].energy < before - 70,
+    );
+    assert.equal(
+      state.controls.armed,
+      cast < 3,
+      'stored charges keep targeting ready for the next gesture',
+    );
+  }
+  await page.screenshot({ path: `${output}/three-casts-${width}x${height}.png` });
+  check('three naturally stored skills release consecutively with one slot selection', {
+    width,
+    height,
+    time: state.time,
+    casts: 3,
+  });
   await context.close();
 }
 
@@ -880,7 +968,12 @@ async function fullChallenge() {
   };
   await page.screenshot({ path: `${output}/desktop-result.png` });
   assert.equal(state.phase, 'won', `natural-health victory: ${JSON.stringify(report.challenge)}`);
-  assert.equal(Math.round(state.time), 300);
+  assert.ok(state.time >= state.duration);
+  assert.equal(
+    state.enemies.filter((enemy) => enemy.hp > 0).length,
+    0,
+    'victory clears all enemies',
+  );
   assert.ok(upgradeSelections.length >= 4, 'kills grant repeated experience upgrades');
   assert.ok(upgradeSelections.some((selection) => selection.choices.length === 3));
   assert.ok(upgradeSelections.some((selection) => selection.choices.length === 4));
@@ -911,8 +1004,21 @@ async function fullChallenge() {
     'five-minute victory, experience upgrades, manually targeted skills and acquired-only terrain',
     report.challenge,
   );
-  await click(page, '#play-again');
+  const overview = await page.locator('#result-stats').innerText();
+  await click(page, '#result-home');
   assert.equal((await snapshot(page)).phase, 'ready');
+  await click(page, '#ready-last-result');
+  assert.equal(
+    await page.locator('#result-stats').innerText(),
+    overview,
+    'home can revisit the last run overview',
+  );
+  assert.equal(
+    await page.locator('#ready-campaign').isVisible(),
+    false,
+    'overview does not expose other screens',
+  );
+  await click(page, '#result-home');
   await click(page, '#start');
   const replay = await snapshot(page);
   assert.equal(replay.phase, 'playing');
@@ -931,10 +1037,15 @@ try {
   if (!process.env.QA_ONLY || ['desktop', 'controls'].includes(process.env.QA_ONLY))
     await desktopControls();
   if (!process.env.QA_ONLY || ['touch', 'controls'].includes(process.env.QA_ONLY)) {
+    await touchControls(320, 568);
     await touchControls(390, 844);
     await touchControls(844, 390);
   }
   if (!process.env.QA_ONLY || process.env.QA_ONLY === 'challenge') await fullChallenge();
+  if (!process.env.QA_ONLY || process.env.QA_ONLY === 'charges') {
+    await storedSkillCasts(390, 844);
+    await storedSkillCasts(844, 390);
+  }
   assert.deepEqual(errors, [], 'no browser JavaScript or console errors');
   check('no browser JavaScript or console errors');
   report.passed = true;

@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-04T10:03:13.660Z",
+  "browser": "140.0.7339.186",
+  "url": "http://127.0.0.1:4413",
+  "selection": "controls",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "native 1/2/3/5× selector, proportional time, frozen pause/XP choices and clean 1× resume",
+      "measurements": [
+        {
+          "speed": 1,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.39999999999999997
+        },
+        {
+          "speed": 2,
+          "wallSeconds": 0.4,
+          "gameSeconds": 0.8000000000000005
+        },
+        {
+          "speed": 3,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.1833333333333291
+        },
+        {
+          "speed": 5,
+          "wallSeconds": 0.4,
+          "gameSeconds": 1.9999999999999933
+        }
+      ]
+    },
+    {
+      "name": "tactical panel and thumb controls occupy a separate area",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "arena": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 726
+      },
+      "dock": {
+        "x": 505,
+        "y": 739,
+        "width": 430,
+        "height": 147
+      }
+    },
+    {
+      "name": "pause/help freeze energy; synthetic canvas loss pauses combat until restored"
+    },
+    {
+      "name": "preparation, time/kill energy, ordinary fire, two skill slots, arm/confirm/cancel and pause release"
+    },
+    {
+      "name": "restart retains only active skill choices and clears boons, terrain, health and energy"
+    },
+    {
+      "name": "tactical panel and thumb controls occupy a separate area",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "arena": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 394
+      },
+      "dock": {
+        "x": 127,
+        "y": 395,
+        "width": 180,
+        "height": 161
+      }
+    },
+    {
+      "name": "touch 320×568: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "cart",
+        "horse"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "name": "tactical panel and thumb controls occupy a separate area",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "arena": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 670
+      },
+      "dock": {
+        "x": 127,
+        "y": 671,
+        "width": 250,
+        "height": 161
+      }
+    },
+    {
+      "name": "touch 390×844: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "cart",
+        "horse"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "name": "tactical panel and thumb controls occupy a separate area",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "arena": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 266
+      },
+      "dock": {
+        "x": 249,
+        "y": 266,
+        "width": 346,
+        "height": 116
+      }
+    },
+    {
+      "name": "touch 844×390: prepare, charge, move + aim/release, cancel, pause, two skills, dash",
+      "skills": [
+        "gale",
+        "laser"
+      ],
+      "maximumConcurrentPointers": 2
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "nativeBackgroundSuspension": {
+    "phase": "playing",
+    "hidden": false
+  },
+  "passed": true
+}

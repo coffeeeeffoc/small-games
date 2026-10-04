@@ -49,7 +49,7 @@ export const SEEDS = catalog({
     id: 'ice',
     name: '寒冰柱',
     subtitle: '阻挡 · 改变路线',
-    description: '激活祝福后自动生长冰柱。阻挡双方移动，怪物会绕行或击碎它。',
+    description: '激活祝福后自动生长冰柱。阻挡双方移动与子弹，怪物会绕行或击碎它。',
     color: '#67d4ff',
     damage: 38,
     radius: 28,
@@ -482,7 +482,7 @@ const campaign = [
     rewards: { coins: 120, xp: 150 },
     palette: { ground: '#728576', accent: '#b9c9b0', sky: '#617d86' },
     landmark: 'ponds',
-    lesson: '泥地减慢双方；吐籽花的蓄力弹可通过移动或障碍避开。',
+    lesson: '吐籽花的蓄力弹可通过移动或已解锁的寒冰柱避开。',
     composition: [
       { fromWave: 1, weights: { sprout: 0.45, runner: 0.2, sentinel: 0.2, spitter: 0.15 } },
       {
@@ -520,7 +520,7 @@ const campaign = [
     rewards: { coins: 145, xp: 175 },
     palette: { ground: '#8aab75', accent: '#e1d5a1', sky: '#a9c9d1' },
     landmark: 'wind-arch',
-    lesson: '逐风芽冲刺前会锁定方向；苔阶偶尔让角色滑回。',
+    lesson: '逐风芽冲刺前会锁定方向；看到预警后向侧面移动。',
     composition: [
       {
         fromWave: 1,
