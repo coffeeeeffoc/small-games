@@ -44,18 +44,18 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="topbar">
     <div class="brand"><span class="brand-mark">${icon('layers')}</span><h1>榫间<span>鲁班锁</span></h1><span class="edition">把玩 · 解构 · 复原</span></div>
-    <nav aria-label="游戏菜单"><button id="levels" class="soft">${icon('layers')}<span>机关匣</span><span class="count">${levels.length}</span></button><button id="help" class="icon-button" aria-label="操作说明">${icon('help')}</button></nav>
+    <nav aria-label="游戏菜单"><button id="levels" class="soft">${icon('layers')}<span>机关匣</span><span class="count">${levels.length}</span></button><button id="toggle-controls" class="soft" aria-label="辅助工具" aria-controls="controls" aria-expanded="false">辅助</button><button id="help" class="icon-button" aria-label="操作说明">${icon('help')}</button></nav>
   </header>
   <main class="workbench">
     <div class="level-heading"><div class="eyebrow"><span id="level-index"></span><span class="line"></span><span id="level-difficulty">初识榫卯</span></div><h2 id="level-title"></h2><p id="level-subtitle"></p></div>
     <div class="progress-heading"><span id="phase-label">拆解</span><strong id="progress">0 <small>/ 3</small></strong><span id="move-count">0 次移动</span></div>
-    <div id="stage" aria-label="3D 鲁班锁操作区：拖动零件移动，拖动空白旋转视角"><button id="axis-negative" class="axis-handle" data-axis-step="-1" aria-label="负方向手柄：点击微移或沿轨道拖动" hidden>−</button><button id="axis-positive" class="axis-handle" data-axis-step="1" aria-label="正方向手柄：点击微移或沿轨道拖动" hidden>+</button></div>
+    <div id="stage" aria-label="3D 鲁班锁操作区：轻点零件选中或取消，点空白清空选择，拖动选中件移动整组，拖动空白旋转视角"><button id="axis-negative" class="axis-handle" data-axis-step="-1" aria-label="负方向手柄：点击微移或沿轨道拖动" hidden>−</button><button id="axis-positive" class="axis-handle" data-axis-step="1" aria-label="正方向手柄：点击微移或沿轨道拖动" hidden>+</button></div>
     <div class="view-tools" aria-label="视角工具"><button id="camera-reset" class="icon-button" aria-label="看全机关" title="看全机关">${icon('focus')}</button><button id="zoom-in" class="icon-button" aria-label="放大">${icon('plus')}</button><button id="zoom-out" class="icon-button" aria-label="缩小">${icon('minus')}</button><button id="xray" class="icon-button" aria-label="透视观察" aria-pressed="false" title="透视观察">${icon('eye')}</button></div>
-    <div class="scene-caption" aria-hidden="true"><span>拖空白旋转</span><i></i><span>双指缩放</span></div>
+    <div class="scene-caption" aria-hidden="true"><span>轻点选 / 取消</span><i></i><span>拖空白旋转</span><i></i><span>双指缩放</span></div>
     <div id="completion" class="completion" hidden></div>
-    <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">拖动任意榫条试探方向，也可组合多件一起移动</p></div>
+    <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">直接拖动榫条试探 · 轻点多件可组合，再点取消</p></div>
   </main>
-  <footer class="controls">
+  <footer id="controls" class="controls" aria-label="可选辅助工具" hidden>
     <div class="pieces-section"><div class="section-label">零件<button id="group-select" class="group-select" aria-label="组合选择多个零件" aria-pressed="false">组合</button></div><div id="pieces" class="piece-list" aria-label="选择零件"></div></div>
     <div class="manipulation"><div class="selected-meta"><span id="selected-dot"></span><strong id="selected-name">选择一个零件</strong><span id="selected-axis">三个方向均可试探</span></div><div class="move-buttons"><button id="nudge-negative" aria-label="沿负方向微调" disabled>${icon('minus')}<span>微移</span></button><div class="axis-choices" role="group" aria-label="移动方向">${(['x', 'y', 'z'] as const).map((axis, i) => `<button id="axis-${axis}" data-axis-choice="${axis}" aria-label="${['X 横向', 'Y 上下', 'Z 纵深'][i]}移动" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}<small>${['横向', '上下', '纵深'][i]}</small></button>`).join('')}</div><button id="nudge-positive" aria-label="沿正方向微调" disabled>${icon('plus')}<span>微移</span></button></div></div>
     <div class="actions"><div class="history-buttons"><button id="undo" aria-label="撤销" title="撤销">${icon('undo')}</button><button id="redo" aria-label="重做" title="重做">${icon('redo')}</button><button id="restart" aria-label="重新开始" title="重新开始">${icon('reset')}</button></div><div class="hint-actions"><button id="clue" class="hint-button" aria-label="思路提示">思路</button><button id="hint" class="hint-button">${icon('bulb')}<span>下一步</span></button></div></div>
@@ -147,7 +147,7 @@ function render() {
       ? `${selectedIds.map(pieceLetter).join(' + ')} · 组合移动`
       : (piece?.name ?? '选择一个零件');
   $('selected-dot').style.background = piece?.color ?? '#526173';
-  $('selected-axis').textContent = piece ? '拖动试探，或选方向微移' : '点选场景或下方色块';
+  $('selected-axis').textContent = piece ? '再点移出，点空白清空' : '轻点场景中的榫条';
   $('group-select').setAttribute('aria-pressed', String(groupMode));
   for (const axis of ['x', 'y', 'z'] as const) {
     $(`axis-${axis}`).setAttribute('aria-pressed', String(activeAxis === axis));
@@ -230,6 +230,7 @@ function positionHandles() {
       `${activeAxis.toUpperCase()} ${direction === 'positive' ? '正' : '负'}方向手柄：点击微移或拖动`,
     );
     handle.hidden =
+      $('controls').hidden ||
       !endpoints ||
       !scene ||
       !selected ||
@@ -280,11 +281,10 @@ function pieceLetter(id: string) {
 
 function select(id: string, additive = false) {
   const alreadySelected = selectedIds.includes(id);
-  if (groupMode || additive) {
+  if (additive) {
     if (!alreadySelected) selectedIds = [...selectedIds, id];
-    if (additive) groupMode = true;
   } else if (!alreadySelected) selectedIds = [id];
-  if (!selectedIds.length) selectedIds = [id];
+  groupMode = additive || selectedIds.length > 1 || (alreadySelected && groupMode);
   selected = id;
   blockedIds = [];
   if (
@@ -297,8 +297,8 @@ function select(id: string, additive = false) {
   if (!alreadySelected && selectedIds.length === 1) activeAxis = piece.axis;
   status(
     selectedIds.length > 1
-      ? `已选中 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动任一选中件，组合一起移动`
-      : `已选中${piece.name} · 可向三个方向拖动，也可点“组合”一起移动`,
+      ? `已选 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动整组，再点移出，点空白清空`
+      : `已选${piece.name} · 再点取消，点其他件加入组合`,
   );
   render();
   const button = $('pieces').querySelector<HTMLElement>(`[data-piece="${id}"]`);
@@ -307,6 +307,24 @@ function select(id: string, additive = false) {
       left: button.offsetLeft - $('pieces').offsetLeft - 12,
       behavior: 'smooth',
     });
+}
+
+function tapSelection(id: string | null) {
+  if (id && !selectedIds.includes(id)) {
+    select(id, true);
+    return;
+  }
+  selectedIds = id ? selectedIds.filter((value) => value !== id) : [];
+  if (!selected || !selectedIds.includes(selected)) selected = selectedIds.at(-1) ?? null;
+  groupMode = selectedIds.length > 1;
+  blockedIds = [];
+  lastHint = null;
+  render();
+  status(
+    selected
+      ? `保留 ${selectedIds.map(pieceLetter).join(' + ')} · 拖动移动，再点移出，点空白清空`
+      : '已取消选择 · 直接拖动单件，或轻点多件组合',
+  );
 }
 
 function cancelActive() {
@@ -420,7 +438,7 @@ function mountPieces() {
             return;
           }
         } else selectedIds = [];
-        select(id, event.shiftKey);
+        select(id, groupMode || event.shiftKey);
       };
     });
 }
@@ -440,6 +458,7 @@ function connectInput() {
     },
     {
       select,
+      tap: tapSelection,
       begin(id, axis) {
         activeAxis = axis ?? activeAxis;
         transaction = beginTransaction(
@@ -491,7 +510,7 @@ function connectInput() {
         render();
       },
       edgeOn() {
-        status('这个角度不易拖动 · 转一下视角，或用下方 ± 微移');
+        status('这个角度不易拖动 · 拖空白转一下视角，再沿想要的方向拖动');
       },
       nudge(direction, axis) {
         if (axis) activeAxis = axis;
@@ -540,7 +559,7 @@ function loadLevel(index: number) {
   status(
     state.moves > 0
       ? '已接续上次的进度 · 随时可以撤销和继续尝试'
-      : '拖动任意榫条试探方向，也可组合多件一起移动',
+      : '直接拖动榫条试探 · 轻点多件可组合，再点取消',
   );
 }
 
@@ -604,13 +623,21 @@ function restartLevel() {
 
 function openHelp() {
   openDialog(
-    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">不用着急，每一次试探都算发现。</p><ol class="help-list"><li><b>01</b><div><strong>每根榫条，三个移动方向</strong><p>点场景或底部字母选中。直接拖动会沿最接近手势的方向移动，本次拖动保持该方向；松手后可换方向。也可选择 X 横向、Y 上下、Z 纵深，再拖动发光手柄或点 ± 微移半格。</p></div></li><li><b>02</b><div><strong>组合移动，再分别拆开</strong><p>点“组合”，再点字母选择多根榫条；再次点字母可移出组合。拖动其中任一选中件，整组一起移动。关闭“组合”即可回到单件操作，不必一次抽出一整根。</p></div></li><li><b>03</b><div><strong>看清接触，顺着空隙试探</strong><p>拖空白转动视角，双指缩放。受阻零件会变红；换方向，或把它选入组合一起移动。透视可看清遮挡，底部字母始终可选中。零件移出画面时，点“看全机关”找回。</p></div></li><li><b>04</b><div><strong>拆开以后，亲手装回</strong><p>各件彼此分离后点“开始复原”，把它们送回装配位置。整组平移不会算作拆解完成。撤销、重做和提示始终可以使用，一次组合拖动也只算一步。</p></div></li></ol><p class="dialog-footnote">电脑可按住 Shift 加选，方向键微移，Ctrl / ⌘ + Z 撤销，Ctrl / ⌘ + Shift + Z 重做。20 关分四章，可自由选关。「思路」解释观察要点，「下一步」指出零件、方向或组合；全程不用这两种提示完成拆装可获得独立印章。复原时选中件显示原位轮廓。零件可沿三个轴平移，自身不旋转。</p><button id="help-done" class="primary full">开始把玩</button>`,
+    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">不用着急，每一次试探都算发现。</p><ol class="help-list"><li><b>01</b><div><strong>每根榫条，三个移动方向</strong><p>直接拖动榫条，沿最接近手势的方向移动；松手后可换方向。轻点零件选中，再点同一件取消；轻点空白清空全部选择。</p></div></li><li><b>02</b><div><strong>组合移动，再分别拆开</strong><p>依次轻点要一起移动的零件，再拖动其中任一选中件，整组一起移动。轻点其中一件可移出组合；直接拖动未选中的零件则单独移动它，不必先取消整组。</p></div></li><li><b>03</b><div><strong>看清接触，顺着空隙试探</strong><p>拖空白转动视角，双指缩放，旋转和缩放都保留当前选择。受阻零件会变红；换方向，或将挡住的零件点入组合。看不清时转动视角或透视观察，散件离屏时可缩小画面或点“看全机关”。</p></div></li><li><b>04</b><div><strong>拆开以后，亲手装回</strong><p>各件彼此分离后点“开始复原”，把它们送回装配位置。整组平移不会算作拆解完成。辅助工具中可撤销、重做或查看提示，一次组合拖动也只算一步。</p></div></li></ol><p class="dialog-footnote">辅助工具默认收起，需要精确操作时可打开，使用零件字母、X / Y / Z 方向与半格微移。电脑可按 Esc 清空选择，按住 Shift 拖动加选，方向键微移，Ctrl / ⌘ + Z 撤销，Ctrl / ⌘ + Shift + Z 重做。20 关分四章，可自由选关。「思路」解释观察要点，「下一步」指出零件、方向或组合；全程不用这两种提示完成拆装可获得独立印章。复原时选中件显示原位轮廓。零件可沿三个轴平移，自身不旋转。</p><button id="help-done" class="primary full">开始把玩</button>`,
   );
   $('help-done').onclick = () => dialog.close();
 }
 
 $('levels').onclick = openLevels;
 $('help').onclick = openHelp;
+$('toggle-controls').onclick = () => {
+  cancelActive();
+  const controls = $('controls');
+  controls.hidden = !controls.hidden;
+  $('toggle-controls').setAttribute('aria-expanded', String(!controls.hidden));
+  // The stage changes size when the optional tools open or close.
+  requestAnimationFrame(positionHandles);
+};
 $('close-dialog').onclick = () => dialog.close();
 dialog.addEventListener('click', (event) => {
   if (event.target === dialog) {
@@ -714,7 +741,7 @@ $('hint').onclick = () => {
 $('xray').onclick = () => {
   xray = !xray;
   $('xray').setAttribute('aria-pressed', String(xray));
-  status(xray ? '透视已开启 · 点底部色块可选到被遮住的榫条' : '已恢复实体观察');
+  status(xray ? '透视已开启 · 转动视角观察，也可在辅助工具中选择被遮住的榫条' : '已恢复实体观察');
   render();
 };
 $('camera-reset').onclick = () => {
@@ -747,7 +774,10 @@ window.addEventListener('keydown', (event) => {
       (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)))
   )
     return;
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+  if (event.key === 'Escape') {
+    cancelActive();
+    tapSelection(null);
+  } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
     event.preventDefault();
     (event.shiftKey ? $('redo') : $('undo')).click();
   } else if (selected && ['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp'].includes(event.key)) {
@@ -807,6 +837,15 @@ Object.assign(window, {
         offset: state.offsets[piece.id],
         screen: scene ? scene.projectPiece(piece.id) : null,
         screenSamples: scene ? scene.projectedSurfacePoints(piece.id) : [],
+        pickableScreenSamples: scene
+          ? scene.projectedSurfacePoints(piece.id).filter((point) => {
+              const x = rect.x + point.x,
+                y = rect.y + point.y;
+              return (
+                document.elementFromPoint(x, y) === scene.canvas && scene.pick(x, y) === piece.id
+              );
+            })
+          : [],
         direction: scene ? scene.axisScreen(piece.id) : null,
         directions: scene
           ? Object.fromEntries(

@@ -266,7 +266,7 @@ export class PuzzleScene {
     this.canvas.style.touchAction = 'none';
     this.canvas.setAttribute(
       'aria-label',
-      '鲁班锁三维操作区，可点选构件并沿箭头拖动，空白处拖动旋转视角',
+      '鲁班锁三维操作区，轻点构件选中或取消，点空白清空选择，拖动选中件移动整组，空白处拖动旋转视角',
     );
     this.renderer.setClearColor(0x111d2b, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));

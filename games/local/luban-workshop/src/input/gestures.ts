@@ -9,6 +9,7 @@ export interface GestureView {
 }
 export interface GestureActions {
   select(id: string, additive?: boolean): void;
+  tap(id: string | null): void;
   begin(id: string, axis?: Axis): number;
   move(target: number): { actualOffset: number; blocked: boolean } | undefined;
   end(): void;
@@ -29,16 +30,17 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
   const options = { signal: controller.signal };
   const pointers = new Map<number, { x: number; y: number }>();
   let drag: {
-    id: string;
+    id: string | null;
     x: number;
     y: number;
+    additive: boolean;
     offset: number;
     axis: ReturnType<GestureView['axisScreen']> | null;
     explicitAxis?: Axis;
     started: boolean;
     moved: boolean;
     edgeOnShown: boolean;
-    handleDirection: number;
+    handleDirection: number | null;
   } | null = null;
   let pinching = false;
   let pinchDistance = 0;
@@ -83,26 +85,26 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
         return;
       }
       const id = view.pick(event.clientX, event.clientY);
-      if (id) {
-        const handle =
-          event.target instanceof Element
-            ? event.target.closest<HTMLElement>('[data-axis-step]')
-            : null;
-        const handleAxis = handle?.dataset.axis;
-        actions.select(id, event.shiftKey);
-        drag = {
-          id,
-          x: event.clientX,
-          y: event.clientY,
-          offset: 0,
-          axis: null,
-          explicitAxis: AXES.includes(handleAxis as Axis) ? (handleAxis as Axis) : undefined,
-          started: false,
-          moved: false,
-          edgeOnShown: false,
-          handleDirection: Number(handle?.dataset.axisStep ?? 0),
-        };
-      }
+      const handle =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>('[data-axis-step]')
+          : null;
+      const handleAxis = handle?.dataset.axis;
+      // Wait for the gesture's intent: a tap toggles selection, while a drag
+      // preserves the selected group and starts a movement transaction.
+      drag = {
+        id,
+        x: event.clientX,
+        y: event.clientY,
+        additive: event.shiftKey,
+        offset: 0,
+        axis: null,
+        explicitAxis: AXES.includes(handleAxis as Axis) ? (handleAxis as Axis) : undefined,
+        started: false,
+        moved: false,
+        edgeOnShown: false,
+        handleDirection: handle ? Number(handle.dataset.axisStep) : null,
+      };
     },
     options,
   );
@@ -128,12 +130,22 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
         const dx = event.clientX - drag.x,
           dy = event.clientY - drag.y;
         if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        const firstMove = !drag.moved;
         drag.moved = true;
+        if (drag.id === null) {
+          view.orbit(
+            firstMove ? dx : event.clientX - previous.x,
+            firstMove ? dy : event.clientY - previous.y,
+          );
+          actions.cameraChanged();
+          return;
+        }
+        const id = drag.id;
         if (!drag.axis) {
           // Keep the projection's current sign so the piece follows the pointer
           // even when orbiting has reversed an axis on screen.
           const candidates = (drag.explicitAxis ? [drag.explicitAxis] : AXES)
-            .map((axis) => ({ axis, screen: view.axisScreen(drag!.id, axis) }))
+            .map((axis) => ({ axis, screen: view.axisScreen(id, axis) }))
             .filter(({ screen }) => screen.pixelsPerUnit >= MIN_AXIS_PROJECTION)
             .sort(
               (a, b) =>
@@ -147,7 +159,8 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
             return;
           }
           drag.axis = choice.screen;
-          drag.offset = actions.begin(drag.id, choice.axis);
+          actions.select(id, drag.additive);
+          drag.offset = actions.begin(id, choice.axis);
           drag.started = true;
         }
         const result = actions.move(
@@ -159,27 +172,43 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
           drag.y = event.clientY;
           drag.offset = result.actualOffset;
         }
-      } else {
-        view.orbit(event.clientX - previous.x, event.clientY - previous.y);
-        actions.cameraChanged();
       }
     },
     options,
   );
   const finish = (event: PointerEvent, cancelled: boolean) => {
     if (!pointers.has(event.pointerId)) return;
-    if (drag) {
-      const tapDirection = drag.moved ? 0 : drag.handleDirection;
-      if (cancelled) {
-        if (drag.started) actions.cancel();
-      } else {
-        if (drag.started) actions.end();
-        if (tapDirection) actions.nudge(tapDirection, drag.explicitAxis);
-      }
-      drag = null;
-    }
+    const finished = drag;
+    drag = null;
+    // Clear ownership before releasing capture, which can emit a synchronous
+    // lostpointercapture event in some environments.
     pointers.delete(event.pointerId);
+    try {
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // Capture may already be released when the pointer leaves the document.
+    }
+    if (finished) {
+      const isTap =
+        !finished.moved &&
+        Math.hypot(event.clientX - finished.x, event.clientY - finished.y) < DRAG_THRESHOLD;
+      if (cancelled) {
+        if (finished.started) actions.cancel();
+      } else {
+        if (finished.started) actions.end();
+        if (isTap) {
+          if (finished.handleDirection === null) actions.tap(finished.id);
+          else if (Number.isFinite(finished.handleDirection) && finished.handleDirection !== 0)
+            actions.nudge(finished.handleDirection, finished.explicitAxis);
+        }
+      }
+    }
     if (pointers.size === 0) pinching = false;
+    else if (pinching && pointers.size >= 2) {
+      const p = pinch();
+      pinchDistance = p.distance;
+      pinchCenter = p.center;
+    }
   };
   canvas.addEventListener('pointerup', (e) => finish(e, false), options);
   canvas.addEventListener('pointercancel', (e) => finish(e, true), options);
@@ -188,12 +217,7 @@ export function bindGestures(view: GestureView, actions: GestureActions): () => 
     'wheel',
     (e) => {
       e.preventDefault();
-      if (drag) {
-        if (drag.started) actions.cancel();
-        drag = null;
-        releasePointers();
-        pinching = false;
-      }
+      cancel();
       view.zoom(Math.exp(Math.max(-100, Math.min(100, e.deltaY)) * 0.002));
       actions.cameraChanged();
     },

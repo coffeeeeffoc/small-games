@@ -33,10 +33,30 @@ export async function exerciseStandalone(
 ) {
   await scope.locator('#app[data-ready="true"]').waitFor();
   const snapshot = () => scope.evaluate(() => window.lubanSnapshot());
+  const settleLayout = () =>
+    scope.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+  const setControls = async (open) => {
+    if ((await scope.locator('#toggle-controls').getAttribute('aria-expanded')) === String(open))
+      return;
+    if (mobile) await scope.locator('#toggle-controls').tap();
+    else await scope.locator('#toggle-controls').click();
+    await settleLayout();
+    assert.equal(await scope.locator('#controls').isVisible(), open);
+  };
   const activate = async (selector) => {
     const button = scope.locator(selector);
+    if (await button.evaluate((element) => Boolean(element.closest('#controls'))))
+      await setControls(true);
     if (mobile) await button.tap();
     else await button.click();
+  };
+  const reloadGame = async () => {
+    if (scope === page) await page.reload();
+    else await scope.goto(scope.url());
+    await scope.locator('#app[data-ready="true"]').waitFor();
+    await setControls(true);
   };
   const cdp = mobile ? await page.context().newCDPSession(page) : null;
   const globalPoint = async (point) => {
@@ -95,6 +115,15 @@ export async function exerciseStandalone(
 
   const axes = ['x', 'y', 'z'];
   const component = (data, id, axis) => data.state.offsets[id][axes.indexOf(axis)];
+  const assertOffsetsNear = (actual, expected) => {
+    assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort());
+    for (const id of Object.keys(expected))
+      for (let coordinate = 0; coordinate < 3; coordinate++)
+        assert.ok(
+          Math.abs(actual[id][coordinate] - expected[id][coordinate]) < 0.000001,
+          `${id} ${axes[coordinate]} offset should be ${expected[id][coordinate]}, received ${actual[id][coordinate]}`,
+        );
+  };
   const selectSingle = async (id) => {
     if ((await scope.locator('#group-select').getAttribute('aria-pressed')) === 'true')
       await activate('#group-select');
@@ -115,16 +144,24 @@ export async function exerciseStandalone(
     return to;
   };
 
-  // These are projections of real mesh surfaces. Each candidate still has to
-  // be selected through the normal raycast, including after the camera moves.
-  const findPiece = async (id, { preserveSelection = false } = {}) => {
+  const blankPoint = async () => {
+    const { stage } = await snapshot();
+    const point = { x: stage.x + 25, y: stage.y + stage.height * 0.68 };
+    assert.equal(
+      await scope.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, point),
+      'CANVAS',
+      'Background gestures must start on the canvas',
+    );
+    return point;
+  };
+  // The snapshot only locates visible real mesh surfaces. Actual selection and
+  // movement always go through native input and the normal scene raycast.
+  const piecePoint = async (id) => {
     const data = await snapshot();
     const piece = data.pieces.find((item) => item.id === id);
     assert.ok(piece, `Missing piece ${id}`);
-    if (preserveSelection) assert.notEqual(data.selected, id);
-    else await selectSingle(data.pieces.find((item) => item.id !== id).id);
-    assert.ok(piece.screenSamples.length, `${id} must expose rendered surface samples`);
-    for (const sample of piece.screenSamples) {
+    assert.ok(piece.pickableScreenSamples.length, `${id} must have a visible, pickable surface`);
+    for (const sample of piece.pickableScreenSamples) {
       const point = {
         x: data.stage.x + sample.x,
         y: data.stage.y + sample.y,
@@ -141,10 +178,21 @@ export async function exerciseStandalone(
         return hit?.tagName === 'CANVAS';
       }, point);
       if (!hitsCanvas) continue;
-      await tap(point);
-      if ((await snapshot()).selected === id) return point;
+      return point;
     }
-    throw new Error(`Could not select visible ${id} directly from the scene`);
+    throw new Error(`Could not locate visible ${id} directly in the scene`);
+  };
+  const findPiece = async (id, { preserveSelection = false } = {}) => {
+    if (preserveSelection) assert.ok(!(await snapshot()).selectedIds.includes(id));
+    else {
+      await tap(await blankPoint());
+      assert.deepEqual((await snapshot()).selectedIds, []);
+    }
+    const point = await piecePoint(id);
+    await tap(point);
+    assert.equal((await snapshot()).selected, id);
+    if (!preserveSelection) assert.deepEqual((await snapshot()).selectedIds, [id]);
+    return point;
   };
 
   const layout = await scope.evaluate(() => ({
@@ -157,9 +205,164 @@ export async function exerciseStandalone(
     layout.canvas.width >= 300 && layout.canvas.height >= 180,
     '3D interaction area must stay usable',
   );
+  assert.equal(
+    await scope.locator('#controls').isVisible(),
+    false,
+    'The scene starts without a footer',
+  );
+  assert.equal(await scope.locator('#toggle-controls').getAttribute('aria-expanded'), 'false');
+  for (const selector of ['#levels', '#help', '#toggle-controls']) {
+    assert.ok(await scope.locator(selector).isVisible(), `${selector} must be discoverable`);
+  }
+  await screenshot('initial');
+
+  if (!skipInteractions) {
+    // Default play needs no tray, group-mode toggle, or axis buttons.
+    await tap(await blankPoint());
+    assert.deepEqual((await snapshot()).selectedIds, []);
+    const initialState = (await snapshot()).state;
+    await tap(await piecePoint('key'));
+    assert.deepEqual((await snapshot()).selectedIds, ['key']);
+    await tap(await piecePoint('cross'));
+    assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(['key', 'cross']));
+    await tap(await piecePoint('key'));
+    assert.deepEqual(
+      (await snapshot()).selectedIds,
+      ['cross'],
+      'Tapping a selected part removes only that part',
+    );
+    await tap(await piecePoint('cross'));
+    assert.deepEqual(
+      (await snapshot()).selectedIds,
+      [],
+      'The final selected part can be deselected',
+    );
+    await tap(await piecePoint('key'));
+    await tap(await piecePoint('cross'));
+    await tap(await blankPoint());
+    assert.deepEqual((await snapshot()).selectedIds, [], 'A background tap clears the selection');
+    assert.deepEqual(
+      (await snapshot()).state,
+      initialState,
+      'Selection must not move parts or add history',
+    );
+
+    await tap(await piecePoint('key'));
+    await tap(await piecePoint('cross'));
+    const beforeGroup = await snapshot();
+    await dragAlong(await piecePoint('key'), 'key', 'y', -1.2);
+    const movedGroup = await snapshot();
+    assert.deepEqual(new Set(movedGroup.selectedIds), new Set(['key', 'cross']));
+    assert.deepEqual(movedGroup.state.offsets.key, [0, -1, 0]);
+    assert.deepEqual(movedGroup.state.offsets.cross, [0, -1, 0]);
+    assert.deepEqual(movedGroup.state.offsets.upright, [0, 0, 0]);
+    assert.equal(movedGroup.state.moves, beforeGroup.state.moves + 1);
+    await screenshot('scene-group-move');
+    await dragAlong(await piecePoint('key'), 'key', 'y', 1.2);
+    assertOffsetsNear((await snapshot()).state.offsets, initialState.offsets);
+
+    // Dragging an unselected part begins a single-part gesture.
+    await dragAlong(await piecePoint('upright'), 'upright', 'y', 0.7);
+    const singleDrag = await snapshot();
+    assert.deepEqual(singleDrag.selectedIds, ['upright']);
+    assert.deepEqual(singleDrag.state.offsets.upright, [0, 0.5, 0]);
+    assertOffsetsNear(singleDrag.state.offsets, {
+      key: [0, 0, 0],
+      cross: [0, 0, 0],
+      upright: [0, 0.5, 0],
+    });
+    await dragAlong(await piecePoint('upright'), 'upright', 'y', -0.7);
+    assertOffsetsNear((await snapshot()).state.offsets, initialState.offsets);
+
+    await tap(await blankPoint());
+    await tap(await piecePoint('key'));
+    await tap(await piecePoint('cross'));
+    if (mobile) {
+      const beforeCancel = await snapshot();
+      for (const point of [
+        await piecePoint('key'),
+        await piecePoint('upright'),
+        await blankPoint(),
+      ]) {
+        await touch('touchStart', [point]);
+        await touch('touchCancel', []);
+        assert.deepEqual(
+          (await snapshot()).selectedIds,
+          beforeCancel.selectedIds,
+          'Cancelled taps must preserve selection',
+        );
+        assert.deepEqual((await snapshot()).state, beforeCancel.state);
+      }
+      for (const first of [
+        await piecePoint('key'),
+        await piecePoint('upright'),
+        await blankPoint(),
+      ]) {
+        const second = { x: first.x + 40, y: first.y + 20 };
+        await touch('touchStart', [first]);
+        await touch('touchStart', [first, second]);
+        await touch('touchEnd', [first]);
+        await touch('touchEnd', []);
+        assert.deepEqual(
+          (await snapshot()).selectedIds,
+          beforeCancel.selectedIds,
+          'Two-finger gestures must not toggle or clear selection',
+        );
+        assert.deepEqual((await snapshot()).state, beforeCancel.state);
+      }
+      const first = await piecePoint('key');
+      const second = { x: first.x - 90, y: first.y + 30 };
+      const beforePinch = await snapshot();
+      await touch('touchStart', [first]);
+      await touch('touchStart', [first, second]);
+      const movedFirst = { x: first.x + 20, y: first.y - 8 };
+      await touch('touchMove', [movedFirst, { x: second.x - 20, y: second.y + 8 }]);
+      await touch('touchEnd', [movedFirst]);
+      await touch('touchEnd', []);
+      const afterPinch = await snapshot();
+      assert.deepEqual(
+        afterPinch.selectedIds,
+        beforePinch.selectedIds,
+        'Pinching must keep the selected group',
+      );
+      assert.deepEqual(afterPinch.state, beforePinch.state);
+      assert.ok(
+        afterPinch.pieces[0].direction.pixelsPerUnit >
+          beforePinch.pieces[0].direction.pixelsPerUnit * 1.08,
+        'Two fingers must zoom the scene with the optional controls closed',
+      );
+    }
+    const beforeOrbit = await snapshot();
+    const blank = await blankPoint();
+    await drag(blank, { x: blank.x + 40, y: blank.y + 18 });
+    const afterOrbit = await snapshot();
+    assert.deepEqual(
+      afterOrbit.selectedIds,
+      beforeOrbit.selectedIds,
+      'Background orbit must preserve the selected group',
+    );
+    assert.deepEqual(afterOrbit.state, beforeOrbit.state);
+    assert.ok(
+      Math.hypot(
+        afterOrbit.pieces[0].direction.x - beforeOrbit.pieces[0].direction.x,
+        afterOrbit.pieces[0].direction.y - beforeOrbit.pieces[0].direction.y,
+      ) > 0.01,
+      'Background drag must rotate the camera',
+    );
+    assert.equal(
+      await scope.locator('#controls').isVisible(),
+      false,
+      'Scene gestures must not open the optional controls',
+    );
+    await screenshot('scene-selection');
+  }
+
+  await setControls(true);
+  assert.ok(
+    (await scope.locator('canvas').boundingBox()).height < layout.canvas.height,
+    'Collapsing the auxiliary panel must give more space to the scene',
+  );
   for (const selector of [
-    '#levels',
-    '#help',
     '#clue',
     '#hint',
     '#restart',
@@ -168,10 +371,15 @@ export async function exerciseStandalone(
     '#axis-y',
     '#axis-z',
     '[data-piece="key"]',
-  ]) {
-    assert.ok(await scope.locator(selector).isVisible(), `${selector} must be discoverable`);
+  ])
+    assert.ok(
+      await scope.locator(selector).isVisible(),
+      `${selector} remains available in the optional controls`,
+    );
+  if (!skipInteractions) {
+    await activate('#restart');
+    await activate('#confirm-restart');
   }
-  await screenshot('initial');
 
   await activate('#help');
   assert.equal(await scope.locator('#dialog').evaluate((element) => element.open), true);
@@ -301,9 +509,7 @@ export async function exerciseStandalone(
     assert.deepEqual((await snapshot()).state.offsets, afterDrag.offsets);
 
     // Reload is a real page/iframe navigation; persistence must restore history.
-    if (scope === page) await page.reload();
-    else await scope.goto(scope.url());
-    await scope.locator('#app[data-ready="true"]').waitFor();
+    await reloadGame();
     assert.deepEqual(
       (await snapshot()).state,
       afterDrag,
@@ -312,10 +518,22 @@ export async function exerciseStandalone(
     await activate('#undo');
     assert.deepEqual((await snapshot()).state.offsets.key, [0, 0, 0]);
 
+    // Explicit group mode must survive a drag before the second member is added.
+    await selectSingle('upright');
+    await activate('#group-select');
+    const beforeAddingMember = (await snapshot()).state;
+    await dragAlong(await piecePoint('upright'), 'upright', 'y', 0.7);
+    assert.equal(await scope.locator('#group-select').getAttribute('aria-pressed'), 'true');
+    await activate('[data-piece="cross"]');
+    assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(['upright', 'cross']));
+    await activate('#undo');
+    assert.deepEqual((await snapshot()).state.offsets, beforeAddingMember.offsets);
+
     // A and B stay engaged with each other while translating as a subassembly.
     // Pressing an already selected body must preserve the entire selected set.
     const groupFrom = await findPiece('key');
-    await activate('#group-select');
+    if ((await scope.locator('#group-select').getAttribute('aria-pressed')) !== 'true')
+      await activate('#group-select');
     await activate('[data-piece="cross"]');
     await chooseAxis('y');
     assert.deepEqual(new Set((await snapshot()).selectedIds), new Set(['key', 'cross']));
@@ -338,9 +556,7 @@ export async function exerciseStandalone(
     assert.deepEqual((await snapshot()).state.offsets, beforeGroup.offsets);
     await activate('#redo');
     assert.deepEqual((await snapshot()).state.offsets, afterGroup.offsets);
-    if (scope === page) await page.reload();
-    else await scope.goto(scope.url());
-    await scope.locator('#app[data-ready="true"]').waitFor();
+    await reloadGame();
     assert.deepEqual(
       (await snapshot()).state,
       afterGroup,
@@ -518,9 +734,7 @@ export async function exerciseStandalone(
     const reframedAssembly = await snapshot();
     assert.deepEqual(reframedAssembly.state, translatedAssembly.state);
     assertFraming(reframedAssembly, originFraming, 'Camera reset after translation');
-    if (scope === page) await page.reload();
-    else await scope.goto(scope.url());
-    await scope.locator('#app[data-ready="true"]').waitFor();
+    await reloadGame();
     const restoredAssembly = await snapshot();
     assert.deepEqual(restoredAssembly.state, translatedAssembly.state);
     assertFraming(restoredAssembly, originFraming, 'Reload of a translated assembly');
@@ -753,9 +967,7 @@ export async function exerciseStandalone(
       value.every((coordinate) => coordinate === 0),
     ),
   );
-  if (scope === page) await page.reload();
-  else await scope.goto(scope.url());
-  await scope.locator('#app[data-ready="true"]').waitFor();
+  await reloadGame();
   assert.deepEqual((await snapshot()).state, replayed.state, 'Replay must survive a reload');
   await activate('#levels');
   assert.deepEqual(
@@ -782,35 +994,15 @@ export async function exerciseStandalone(
  * intentionally scrollable piece tray. All selections use real touch input.
  */
 export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir } = {}) {
-  for (const viewport of [
-    { width: 320, height: 568 },
-    { width: 360, height: 740 },
-    { width: 390, height: 844 },
-    { width: 568, height: 320 },
-    { width: 740, height: 360 },
-    { width: 844, height: 390 },
-  ]) {
-    await page.setViewportSize(viewport);
-    if ((await page.locator('#group-select').getAttribute('aria-pressed')) === 'true')
-      await page.locator('#group-select').tap();
-    const pieces = page.locator('button[data-piece]');
-    for (let index = 0; index < (await pieces.count()); index++) {
-      const piece = pieces.nth(index);
-      await piece.tap();
-      const id = await piece.getAttribute('data-piece');
-      assert.equal(await page.evaluate(() => window.lubanSnapshot().selected), id);
-      const size = await piece.boundingBox();
-      assert.ok(size.width >= 44 && size.height >= 44, 'Each part needs a 44px touch target');
-    }
-    await pieces.first().tap();
-    await mkdir(screenshotDir, { recursive: true });
-    await page.screenshot({
-      path: resolve(screenshotDir, `mobile-layout-${viewport.width}x${viewport.height}.png`),
-      fullPage: true,
-    });
+  const settleLayout = () =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+  const checkLayout = async (viewport, mode) => {
     const layout = await page.evaluate(() => ({
       overflowX: document.documentElement.scrollWidth > innerWidth + 1,
       overflowY: document.documentElement.scrollHeight > innerHeight + 1,
+      canvas: document.querySelector('canvas').getBoundingClientRect().toJSON(),
       controls: [
         ...document.querySelectorAll(
           '.controls button, .topbar button, .view-tools button, .axis-handle',
@@ -837,16 +1029,65 @@ export async function exerciseMobileLayouts(page, { screenshotDir = evidenceDir 
     assert.equal(
       layout.overflowX || layout.overflowY,
       false,
-      `No page scrolling at ${viewport.width}×${viewport.height}`,
+      `No page scrolling at ${viewport.width}×${viewport.height} with controls ${mode}`,
     );
     assert.deepEqual(
       layout.controls.filter(
         (control) => !control.onScreen || !control.unobstructed || !control.touchSized,
       ),
       [],
-      `Controls must stay visible, unobstructed and touch-sized at ${viewport.width}×${viewport.height}`,
+      `Controls must stay visible, unobstructed and touch-sized at ${viewport.width}×${viewport.height} (${mode})`,
     );
-    console.log(`mobile layout: ${viewport.width}×${viewport.height} passed`);
+    await mkdir(screenshotDir, { recursive: true });
+    await page.screenshot({
+      path: resolve(
+        screenshotDir,
+        `mobile-layout-${viewport.width}x${viewport.height}-${mode}.png`,
+      ),
+      fullPage: true,
+    });
+    return layout;
+  };
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 740 },
+    { width: 390, height: 844 },
+    { width: 568, height: 320 },
+    { width: 740, height: 360 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    if ((await page.locator('#toggle-controls').getAttribute('aria-expanded')) === 'true')
+      await page.locator('#toggle-controls').tap();
+    await settleLayout();
+    assert.equal(await page.locator('#controls').isVisible(), false);
+    const defaultLayout = await checkLayout(viewport, 'closed');
+    assert.ok(defaultLayout.canvas.width >= 300 && defaultLayout.canvas.height >= 180);
+    await page.locator('#toggle-controls').tap();
+    await settleLayout();
+    assert.equal(await page.locator('#controls').isVisible(), true);
+    const expandedCanvas = await page.locator('canvas').boundingBox();
+    assert.ok(
+      expandedCanvas.width * expandedCanvas.height <
+        defaultLayout.canvas.width * defaultLayout.canvas.height,
+      'The default scene gains the space occupied by the optional panel',
+    );
+    if ((await page.locator('#group-select').getAttribute('aria-pressed')) === 'true')
+      await page.locator('#group-select').tap();
+    const pieces = page.locator('button[data-piece]');
+    for (let index = 0; index < (await pieces.count()); index++) {
+      const piece = pieces.nth(index);
+      await piece.tap();
+      const id = await piece.getAttribute('data-piece');
+      assert.equal(await page.evaluate(() => window.lubanSnapshot().selected), id);
+      const size = await piece.boundingBox();
+      assert.ok(size.width >= 44 && size.height >= 44, 'Each part needs a 44px touch target');
+    }
+    await pieces.first().tap();
+    await checkLayout(viewport, 'open');
+    console.log(
+      `mobile layout: ${viewport.width}×${viewport.height}, optional controls closed and open passed`,
+    );
   }
 }
 
@@ -917,6 +1158,7 @@ async function runBrowserChecks() {
         await page.goto(url);
         await exerciseStandalone(page, {
           mobile,
+          interactionsOnly: process.env.BROWSER_INTERACTIONS_ONLY === '1',
           levelIndices: mobile ? undefined : [0, 4, 9, 14, 19],
         });
         if (mobile) await exerciseMobileLayouts(page);
