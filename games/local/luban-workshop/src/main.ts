@@ -2,6 +2,9 @@ import './style.css';
 import {
   createGame,
   tryMove,
+  tryRotate,
+  switchPhase,
+  isPieceAssembled,
   beginTransaction,
   updateTransaction,
   commitTransaction,
@@ -48,13 +51,15 @@ app.innerHTML = `
   </header>
   <main class="workbench">
     <div class="level-heading"><div class="eyebrow"><span id="level-index"></span><span class="line"></span><span id="level-difficulty">初识榫卯</span></div><h2 id="level-title"></h2><p id="level-subtitle"></p></div>
-    <div class="progress-heading"><span id="phase-label">拆解</span><strong id="progress">0 <small>/ 3</small></strong><span id="move-count">0 次移动</span></div>
+    <div class="progress-heading"><span id="phase-label">拆解</span><strong id="progress">0 <small>/ 3</small></strong><span id="move-count">0 次操作</span><button id="phase-toggle" class="soft">尝试复原</button></div>
+    <aside class="assembly-reference" aria-label="完整形态参考"><div class="reference-title">完整形态 <span>视角同步</span></div><div id="assembly-preview" aria-label="完整鲁班锁三维参考，拖动可同步旋转视角"></div></aside>
     <div id="stage" aria-label="3D 鲁班锁操作区：轻点零件选中或取消，点空白清空选择，拖动选中件移动整组，拖动空白旋转视角"><button id="axis-negative" class="axis-handle" data-axis-step="-1" aria-label="负方向手柄：点击微移或沿轨道拖动" hidden>−</button><button id="axis-positive" class="axis-handle" data-axis-step="1" aria-label="正方向手柄：点击微移或沿轨道拖动" hidden>+</button></div>
     <div class="view-tools" aria-label="视角工具"><button id="camera-reset" class="icon-button" aria-label="看全机关" title="看全机关">${icon('focus')}</button><button id="zoom-in" class="icon-button" aria-label="放大">${icon('plus')}</button><button id="zoom-out" class="icon-button" aria-label="缩小">${icon('minus')}</button><button id="xray" class="icon-button" aria-label="透视观察" aria-pressed="false" title="透视观察">${icon('eye')}</button></div>
     <div class="scene-caption" aria-hidden="true"><span>轻点选 / 取消</span><i></i><span>拖空白旋转</span><i></i><span>双指缩放</span></div>
     <div id="completion" class="completion" hidden></div>
     <div class="feedback"><span id="status-symbol">${icon('layers')}</span><p id="status" role="status" aria-live="polite">直接拖动榫条试探 · 轻点多件可组合，再点取消</p></div>
   </main>
+  <div id="rotation-tools" class="rotation-tools" aria-label="旋转选中零件或组合" hidden><span id="rotation-selection">旋转零件</span><div class="turn-axes" role="group" aria-label="旋转轴">${(['x', 'y', 'z'] as const).map((axis) => `<button id="turn-axis-${axis}" aria-label="绕 ${axis.toUpperCase()} 轴旋转" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}</button>`).join('')}</div><button id="rotate-negative" aria-label="绕选定轴旋转负90度">−90°</button><button id="rotate-positive" aria-label="绕选定轴旋转正90度">+90°</button></div>
   <footer id="controls" class="controls" aria-label="可选辅助工具" hidden>
     <div class="pieces-section"><div class="section-label">零件<button id="group-select" class="group-select" aria-label="组合选择多个零件" aria-pressed="false">组合</button></div><div id="pieces" class="piece-list" aria-label="选择零件"></div></div>
     <div class="manipulation"><div class="selected-meta"><span id="selected-dot"></span><strong id="selected-name">选择一个零件</strong><span id="selected-axis">三个方向均可试探</span></div><div class="move-buttons"><button id="nudge-negative" aria-label="沿负方向微调" disabled>${icon('minus')}<span>微移</span></button><div class="axis-choices" role="group" aria-label="移动方向">${(['x', 'y', 'z'] as const).map((axis, i) => `<button id="axis-${axis}" data-axis-choice="${axis}" aria-label="${['X 横向', 'Y 上下', 'Z 纵深'][i]}移动" aria-pressed="${axis === 'x'}">${axis.toUpperCase()}<small>${['横向', '上下', '纵深'][i]}</small></button>`).join('')}</div><button id="nudge-positive" aria-label="沿正方向微调" disabled>${icon('plus')}<span>微移</span></button></div></div>
@@ -88,6 +93,13 @@ let lastFeedback = '';
 let cancelGesture: (() => void) | undefined;
 const dialog = $<HTMLDialogElement>('dialog');
 const detachTouchButtons = bindTouchButtons(app);
+const compactTools = window.matchMedia('(max-width: 900px)');
+const viewTools = app.querySelector<HTMLElement>('.view-tools')!;
+function placeViewTools() {
+  app.querySelector(compactTools.matches ? '.pieces-section' : '.workbench')!.append(viewTools);
+}
+placeViewTools();
+compactTools.addEventListener('change', placeViewTools);
 
 function status(message: string, blocked = false) {
   if (lastFeedback !== message) {
@@ -108,7 +120,9 @@ function save() {
 
 function render() {
   const progress = getProgress(level, state);
-  const bounds = level.pieces.map((piece) => pieceBounds(piece, state.offsets[piece.id]!));
+  const bounds = level.pieces.map((piece) =>
+    pieceBounds(piece, state.offsets[piece.id]!, state.orientations[piece.id]),
+  );
   const done = state.phase === 'disassemble' ? progress.removed : progress.assembled;
   $('level-index').textContent =
     `${String(levels.indexOf(level) + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`;
@@ -117,7 +131,15 @@ function render() {
   $('level-subtitle').textContent = level.subtitle;
   $('phase-label').textContent = state.phase === 'disassemble' ? '拆解进度' : '复原进度';
   $('progress').innerHTML = `${done} <small>/ ${progress.total}</small>`;
-  $('move-count').textContent = `${state.moves} 次移动 · ${run.hints ? '借助提示' : '自主探索'}`;
+  $('move-count').textContent = `${state.moves} 次操作 · ${run.hints ? '借助提示' : '自主探索'}`;
+  $('phase-toggle').textContent = state.phase === 'disassemble' ? '尝试复原' : '继续拆解';
+  $('rotation-tools').hidden = !selected;
+  $('rotation-selection').textContent =
+    selectedIds.length > 1
+      ? `旋转 ${selectedIds.map(pieceLetter).join('+')}`
+      : `旋转 ${selected ? pieceLetter(selected) : '零件'}`;
+  $('rotate-positive').toggleAttribute('disabled', !selected || transaction !== null);
+  $('rotate-negative').toggleAttribute('disabled', !selected || transaction !== null);
   app.dataset.moves = String(state.moves);
   app.dataset.phase = state.phase;
   app.dataset.complete = String(progress.complete);
@@ -137,7 +159,7 @@ function render() {
     );
     button.classList.toggle(
       'placed',
-      state.phase === 'reassemble' && state.offsets[id]!.every((value) => Math.abs(value) < 0.001),
+      isPieceAssembled(level.pieces[index]!, state.offsets[id]!, state.orientations[id]),
     );
     button.classList.toggle('blocked', blockedIds.includes(id));
   }
@@ -151,7 +173,13 @@ function render() {
   $('group-select').setAttribute('aria-pressed', String(groupMode));
   for (const axis of ['x', 'y', 'z'] as const) {
     $(`axis-${axis}`).setAttribute('aria-pressed', String(activeAxis === axis));
+    $(`turn-axis-${axis}`).setAttribute('aria-pressed', String(activeAxis === axis));
     $(`axis-${axis}`).toggleAttribute('disabled', transaction !== null);
+  }
+  if (progress.removed === progress.total && !transaction && run.disassemblyMoves === null) {
+    run.disassemblyMoves = state.moves;
+    storage.markDismantled(level.id);
+    storage.saveRun(level.id, run);
   }
   const completion = $('completion');
   completion.hidden = !progress.complete || transaction !== null;
@@ -165,7 +193,7 @@ function render() {
       $('browse-levels').onclick = openLevels;
       $('reassemble').onclick = () => {
         cancelActive();
-        run.disassemblyMoves = state.moves;
+        run.disassemblyMoves ??= state.moves;
         state = switchToReassembly(level, state);
         selected = null;
         selectedIds = [];
@@ -178,13 +206,18 @@ function render() {
     } else {
       const recordKey = `${level.id}:${run.hints}:${run.disassemblyMoves}:${state.moves}`;
       if (recordKey !== recordedCompletion) {
-        const result = storage.recordCompletion(level.id, run, state.moves);
+        const knownRun = run.disassemblyMoves !== null && run.disassemblyMoves <= state.moves;
+        const result = storage.recordCompletion(
+          level.id,
+          knownRun ? run : { ...run, disassemblyMoves: null },
+          knownRun ? state.moves - run.disassemblyMoves! : state.moves,
+        );
         recordedCompletion = recordKey;
         if (!result.saved) status('本次已完成；浏览器暂时无法保存纪录');
       }
       const record = storage.record(level.id);
-      const total = run.disassemblyMoves === null ? null : run.disassemblyMoves + state.moves;
-      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>严丝合缝，复原完成。</h3><p>${run.hints === 0 && run.disassemblyMoves !== null ? '全程自主探索，收获独立印章。' : '已收获复原印章，下次试试独立解开。'}</p></div>${seals(level.id)}<p class="completion-record">${total === null ? `复原 ${state.moves} 次移动` : `拆解 ${run.disassemblyMoves} + 复原 ${state.moves} = ${total} 次移动`}${record.bestMoves === null ? '' : ` · 最佳 ${record.bestMoves} 次`}<br>移动次数仅作个人记录，不影响印章。</p><button id="next-level" class="primary">${levels.indexOf(level) < levels.length - 1 ? '下一件机关' : '回到机关匣'}</button><button id="replay-level" class="soft full">重玩本关</button>`;
+      const total = run.disassemblyMoves === null ? null : state.moves;
+      completion.innerHTML = `<span class="success-icon">${icon('check')}</span><div><h3>严丝合缝，复原完成。</h3><p>${run.hints === 0 && run.disassemblyMoves !== null && run.disassemblyMoves <= state.moves ? '全程自主探索，收获独立印章。' : '已收获复原印章，下次试试独立解开。'}</p></div>${seals(level.id)}<p class="completion-record">${total === null ? `复原 ${state.moves} 次移动` : `拆装共 ${total} 次操作`}${record.bestMoves === null ? '' : ` · 最佳 ${record.bestMoves} 次`}<br>移动次数仅作个人记录，不影响印章。</p><button id="next-level" class="primary">${levels.indexOf(level) < levels.length - 1 ? '下一件机关' : '回到机关匣'}</button><button id="replay-level" class="soft full">重玩本关</button>`;
       $('next-level').onclick = () =>
         levels.indexOf(level) < levels.length - 1
           ? loadLevel(levels.indexOf(level) + 1)
@@ -202,13 +235,23 @@ function render() {
     xray,
     selectedIds,
     activeAxis,
-    lastHint?.direction ?? null,
+    lastHint?.kind === 'rotate' ? null : (lastHint?.direction ?? null),
     state.phase,
+    state.orientations,
   );
   for (const direction of ['negative', 'positive']) {
-    const highlighted = !!lastHint && lastHint.direction > 0 === (direction === 'positive');
+    const highlighted =
+      !!lastHint &&
+      lastHint.kind !== 'rotate' &&
+      lastHint.direction > 0 === (direction === 'positive');
     $(`nudge-${direction}`).classList.toggle('hint-direction', highlighted);
     $(`axis-${direction}`).classList.toggle('hint-direction', highlighted);
+  }
+  for (const direction of ['negative', 'positive']) {
+    $(`rotate-${direction}`).classList.toggle(
+      'hint-direction',
+      lastHint?.kind === 'rotate' && lastHint.direction > 0 === (direction === 'positive'),
+    );
   }
   positionHandles();
 }
@@ -216,9 +259,13 @@ function render() {
 function positionHandles() {
   const stage = $('stage');
   const rect = stage.getBoundingClientRect();
-  const exclusions = ['.view-tools', '.level-heading', '.progress-heading', '.feedback'].map(
-    (selector) => app.querySelector(selector)!.getBoundingClientRect(),
-  );
+  const exclusions = [
+    '.view-tools',
+    '.level-heading',
+    '.progress-heading',
+    '.feedback',
+    '.assembly-reference',
+  ].map((selector) => app.querySelector(selector)!.getBoundingClientRect());
   const endpoints = selected && scene ? scene.projectAxisEnds(selected, activeAxis) : null;
   const edgeOn =
     selected && scene ? scene.axisScreen(selected, activeAxis).pixelsPerUnit < 12 : false;
@@ -376,6 +423,10 @@ function moveBy(delta: number) {
 
 function updateHintProgress() {
   if (!lastHint) return;
+  if (lastHint.kind === 'rotate') {
+    lastHint = null;
+    return;
+  }
   const remaining =
     lastHint.targetOffset - state.offsets[lastHint.pieceId]![axisIndex(lastHint.axis)];
   if (
@@ -392,16 +443,17 @@ function describeDiscovery(previous: typeof state) {
   if (previous === state || !selected || state.phase !== 'disassemble') return;
   for (const piece of level.pieces.filter((item) => !selectedIds.includes(item.id))) {
     for (const axis of ['x', 'y', 'z'] as const) {
-      const free = (offsets: typeof state.offsets) =>
+      const free = (pose: typeof state) =>
         [-1, 1].some((direction) => {
-          const current = offsets[piece.id]![axisIndex(axis)];
+          const current = pose.offsets[piece.id]![axisIndex(axis)];
           return (
             Math.abs(
-              sweepMove(level, offsets, piece.id, current + direction, axis).actualOffset - current,
+              sweepMove(level, pose.offsets, piece.id, current + direction, axis, pose.orientations)
+                .actualOffset - current,
             ) > 0.001
           );
         });
-      if (!free(previous.offsets) && free(state.offsets)) {
+      if (!free(previous) && free(state)) {
         status(`让出空间了 · ${piece.name.split(' · ')[0]}现在可沿 ${axis.toUpperCase()} 方向移动`);
         return;
       }
@@ -488,7 +540,11 @@ function connectInput() {
         render();
         if (!blockedIds.length && selected) {
           const atOrigin = selectedIds.every((id) =>
-            state.offsets[id]!.every((value) => Math.abs(value) < 0.001),
+            isPieceAssembled(
+              level.pieces.find((piece) => piece.id === id)!,
+              state.offsets[id]!,
+              state.orientations[id],
+            ),
           );
           status(
             atOrigin
@@ -550,7 +606,17 @@ function loadLevel(index: number) {
   lastHint = null;
   $('xray').setAttribute('aria-pressed', 'false');
   scene.setLevel(level);
-  scene.update(state.offsets, selected, [], false, selectedIds, activeAxis, null, state.phase);
+  scene.update(
+    state.offsets,
+    selected,
+    [],
+    false,
+    selectedIds,
+    activeAxis,
+    null,
+    state.phase,
+    state.orientations,
+  );
   scene.resetCamera();
   mountPieces();
   render();
@@ -572,7 +638,7 @@ function openLevels() {
   const chapters = [...new Set(levels.map((item) => item.chapter ?? '初识榫卯'))];
   const finished = levels.filter((item) => storage.completed(item.id)).length;
   openDialog(
-    `<h2 id="dialog-title">打开机关匣</h2><p class="dialog-intro">${levels.length} 关 · 已复原 ${finished} / ${levels.length}<br>从识榫到让位，按章节挑战，也可自由挑选。</p>${chapters
+    `<h2 id="dialog-title">打开机关匣</h2><p class="dialog-intro">${levels.length} 关 · 已复原 ${finished} / ${levels.length}<br>从完整机关开始，按结构挑选；随时拆解、复原或交替尝试。</p>${chapters
       .map((chapter) => {
         const entries = levels.filter((item) => (item.chapter ?? '初识榫卯') === chapter);
         return `<section class="chapter-section"><div class="chapter-heading"><h3>${chapter}</h3><span class="chapter-progress">${entries.filter((item) => storage.completed(item.id)).length} / ${entries.length}</span></div><div class="level-grid">${entries
@@ -584,7 +650,13 @@ function openLevels() {
       })
       .join(
         '',
-      )}<p class="dialog-footnote">每关收集「解开」「复原」「独立」三枚印章。独立印章需从开局到复原不使用思路或下一步提示，撤销与透视不影响。进度自动保存在当前浏览器。</p>`,
+      )}<p class="dialog-footnote">每关收集「解开」「复原」「独立」三枚印章。独立印章需完整拆解后复原且不使用思路或下一步提示，撤销与透视不影响。进度自动保存在当前浏览器。</p><div class="source-links" aria-label="结构资料来源">${levels
+      .filter((item) => item.source)
+      .map(
+        (item) =>
+          `<a href="${item.source!.url}" target="_blank" rel="noopener noreferrer">${item.title} · ${item.source!.title} ↗</a>`,
+      )
+      .join('')}</div>`,
   );
   $('dialog-content')
     .querySelectorAll<HTMLButtonElement>('[data-level]')
@@ -595,7 +667,7 @@ function openLevels() {
 
 function seals(id: string) {
   const record = storage.record(id);
-  return `<span class="level-seals"><span class="seal ${storage.dismantled(id) || record.completed ? 'earned' : ''}">解开</span><span class="seal ${record.completed ? 'earned' : ''}">复原</span><span class="seal ${record.independent ? 'earned' : ''}">独立</span></span>`;
+  return `<span class="level-seals"><span class="seal ${storage.dismantled(id) ? 'earned' : ''}">解开</span><span class="seal ${record.completed ? 'earned' : ''}">复原</span><span class="seal ${record.independent ? 'earned' : ''}">独立</span></span>`;
 }
 
 function restartLevel() {
@@ -613,7 +685,17 @@ function restartLevel() {
   lastHint = null;
   xray = false;
   $('xray').setAttribute('aria-pressed', 'false');
-  scene.update(state.offsets, selected, [], false, selectedIds, activeAxis, null, state.phase);
+  scene.update(
+    state.offsets,
+    selected,
+    [],
+    false,
+    selectedIds,
+    activeAxis,
+    null,
+    state.phase,
+    state.orientations,
+  );
   scene.resetCamera();
   save();
   render();
@@ -623,7 +705,7 @@ function restartLevel() {
 
 function openHelp() {
   openDialog(
-    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">不用着急，每一次试探都算发现。</p><ol class="help-list"><li><b>01</b><div><strong>每根榫条，三个移动方向</strong><p>直接拖动榫条，沿最接近手势的方向移动；松手后可换方向。轻点零件选中，再点同一件取消；轻点空白清空全部选择。</p></div></li><li><b>02</b><div><strong>组合移动，再分别拆开</strong><p>依次轻点要一起移动的零件，再拖动其中任一选中件，整组一起移动。轻点其中一件可移出组合；直接拖动未选中的零件则单独移动它，不必先取消整组。</p></div></li><li><b>03</b><div><strong>看清接触，顺着空隙试探</strong><p>拖空白转动视角，双指缩放，旋转和缩放都保留当前选择。受阻零件会变红；换方向，或将挡住的零件点入组合。看不清时转动视角或透视观察，散件离屏时可缩小画面或点“看全机关”。</p></div></li><li><b>04</b><div><strong>拆开以后，亲手装回</strong><p>各件彼此分离后点“开始复原”，把它们送回装配位置。整组平移不会算作拆解完成。辅助工具中可撤销、重做或查看提示，一次组合拖动也只算一步。</p></div></li></ol><p class="dialog-footnote">辅助工具默认收起，需要精确操作时可打开，使用零件字母、X / Y / Z 方向与半格微移。电脑可按 Esc 清空选择，按住 Shift 拖动加选，方向键微移，Ctrl / ⌘ + Z 撤销，Ctrl / ⌘ + Shift + Z 重做。20 关分四章，可自由选关。「思路」解释观察要点，「下一步」指出零件、方向或组合；全程不用这两种提示完成拆装可获得独立印章。复原时选中件显示原位轮廓。零件可沿三个轴平移，自身不旋转。</p><button id="help-done" class="primary full">开始把玩</button>`,
+    `<h2 id="dialog-title">让指尖读懂榫卯</h2><p class="dialog-intro">每件机关以完整形态开始，边拆边观察，也可以随时装回。</p><ol class="help-list"><li><b>01</b><div><strong>直接拖动，轻点组合</strong><p>直接拖动榫条，沿最接近手势的轴移动。轻点多件可组成一组，拖动其中任一件移动整组；再点同一件取消，轻点空白清空选择。</p></div></li><li><b>02</b><div><strong>给旋转留出空间</strong><p>选中单件或组合后，在下方选择 X / Y / Z 轴，点 −90° 或 +90°。绕所选件中心整体旋转，正向遵循右手定则。转动途中碰到其他零件会阻止本次操作，先拆出空隙再试。</p></div></li><li><b>03</b><div><strong>对照完整形态</strong><p>右上角始终显示完整机关，与主画面保持相同观察方向；拖动小窗或主画面空白都能同步旋转视角。双指缩放主画面，观察动作保留选择。</p></div></li><li><b>04</b><div><strong>随时拆解，随时复原</strong><p>点“尝试复原”或“继续拆解”切换观察目标，保留零件位置和撤销记录；两种状态都可自由拆装。选中件的虚线轮廓标示原位，归位需位置和形状朝向吻合。整件搬走不会算拆解完成。</p></div></li></ol><p class="dialog-footnote">辅助工具提供半格微移、透视、看全机关、撤销和提示。电脑可按 Esc 清空选择、方向键微移、Ctrl / ⌘ + Z 撤销。每次移动或90°旋转记一次操作。完整拆解后再复原且全程未用提示可获独立印章。机关匣中可查看每种结构的公开资料。</p><button id="help-done" class="primary full">开始把玩</button>`,
   );
   $('help-done').onclick = () => dialog.close();
 }
@@ -651,6 +733,47 @@ dialog.addEventListener('click', (event) => {
       dialog.close();
   }
 });
+function rotateSelection(direction: -1 | 1) {
+  if (!selected || transaction) return;
+  cancelActive();
+  const result = tryRotate(level, state, selectedIds, activeAxis, direction);
+  state = result.state;
+  blockedIds = result.blockedBy;
+  lastHint = null;
+  status(
+    result.blocked
+      ? '旋转途中会碰到其他零件 · 先移出更多空间再转动'
+      : `${selectedIds.map(pieceLetter).join(' + ')} 已绕 ${activeAxis.toUpperCase()} 轴旋转 ${direction > 0 ? '+' : '−'}90°`,
+    result.blocked,
+  );
+  save();
+  render();
+}
+$('rotate-negative').onclick = () => rotateSelection(-1);
+$('rotate-positive').onclick = () => rotateSelection(1);
+for (const axis of ['x', 'y', 'z'] as const) {
+  $(`turn-axis-${axis}`).onclick = () => {
+    cancelActive();
+    activeAxis = axis;
+    blockedIds = [];
+    lastHint = null;
+    render();
+    status(`绕 ${axis.toUpperCase()} 轴旋转 · 点 −90° 或 +90°，先留出转动空间`);
+  };
+}
+$('phase-toggle').onclick = () => {
+  cancelActive();
+  state = switchPhase(level, state, state.phase === 'disassemble' ? 'reassemble' : 'disassemble');
+  blockedIds = [];
+  lastHint = null;
+  save();
+  render();
+  status(
+    state.phase === 'reassemble'
+      ? '对照完整形态尝试装回 · 随时可以继续拆开'
+      : '继续拆解 · 零件位置和撤销记录已保留',
+  );
+};
 $('nudge-positive').onclick = () => moveBy(0.5);
 $('nudge-negative').onclick = () => moveBy(-0.5);
 $('group-select').onclick = () => {
@@ -714,7 +837,7 @@ $('clue').onclick = () => {
   render();
   status(
     state.phase === 'reassemble'
-      ? '先观察选中零件的原位轮廓；通常先放回外层套榫，再把钥匙送回槽口。卡住时也可以先退让。'
+      ? '对照右上角完整形态和选中件原位轮廓，先将散件旋回原来的朝向，再送回槽口；卡住时可先退让。'
       : (level.clue ?? '看一看接触处：先找到有移动余量的榫条，挪出一点空间，再试相扣的另一根。'),
   );
 };
@@ -728,12 +851,15 @@ $('hint').onclick = () => {
     groupMode = selectedIds.length > 1;
     activeAxis = lastHint.axis;
     blockedIds = [];
-    status(`${lastHint.message} 试试 ${lastHint.direction > 0 ? '＋' : '−'} 方向。`);
+    status(lastHint.message);
   } else
     status(
       getProgress(level, state).complete
         ? '已经完成了，继续下一步吧'
-        : '试着撤销一步，换一个方向观察',
+        : getProgress(level, state).assembled === level.pieces.length &&
+            state.phase === 'reassemble'
+          ? '当前已是完整形态 · 可以先拆开一些，再尝试装回'
+          : '试着撤销一步，换一个方向观察',
     );
   render();
   save();
@@ -797,7 +923,21 @@ window.addEventListener('keydown', (event) => {
 
 try {
   scene = new PuzzleScene($('stage'), level);
-  scene.update(state.offsets, selected, [], false, selectedIds, activeAxis, null, state.phase);
+  scene.setAssemblyPreview($('assembly-preview'), () => {
+    cancelActive();
+    render();
+  });
+  scene.update(
+    state.offsets,
+    selected,
+    [],
+    false,
+    selectedIds,
+    activeAxis,
+    null,
+    state.phase,
+    state.orientations,
+  );
   scene.resetCamera();
   mountPieces();
   render();
@@ -830,6 +970,7 @@ Object.assign(window, {
       levelCount: levels.length,
       progress: getProgress(level, state),
       xray,
+      viewOrientation: scene?.getViewOrientation(),
       pieces: level.pieces.map((piece) => ({
         id: piece.id,
         axis: piece.axis,
@@ -864,6 +1005,7 @@ window.addEventListener('pagehide', () => {
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     detachTouchButtons();
+    compactTools.removeEventListener('change', placeViewTools);
     handleObserver.disconnect();
     detachGestures?.();
     scene?.dispose();

@@ -1,6 +1,7 @@
 import { axes, axisIndex, EPSILON, pieceBounds, piecesSeparated, sweepMove } from './collision.ts';
-import { createGame, getProgress } from './game.ts';
+import { createGame, getProgress, tryRotate } from './game.ts';
 import { routePiece } from './routing.ts';
+import { IDENTITY_ORIENTATION, isIdentityOrientation } from './rotation.ts';
 import { createSearchSweep } from './search-sweep.ts';
 import type { Axis, GameState, Hint, Level, Offsets, Vec3 } from './types.ts';
 
@@ -86,17 +87,16 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
       return level.pieces.reduce(
         (sum, piece) =>
           sum +
-          offsets[piece.id]!.reduce(
-            (subtotal, value, index) => {
-              const distance = Math.abs(value - (reverseTarget?.[piece.id]?.[index] ?? 0));
-              return subtotal + (distance < EPSILON ? 0 : 8 + Math.min(distance, 30) * 0.02);
-            },
-            0,
-          ),
+          offsets[piece.id]!.reduce((subtotal, value, index) => {
+            const distance = Math.abs(value - (reverseTarget?.[piece.id]?.[index] ?? 0));
+            return subtotal + (distance < EPSILON ? 0 : 8 + Math.min(distance, 30) * 0.02);
+          }, 0),
         0,
       );
     }
-    const bounds = level.pieces.map((piece) => pieceBounds(piece, offsets[piece.id]!));
+    const bounds = level.pieces.map((piece) =>
+      pieceBounds(piece, offsets[piece.id]!, state.orientations[piece.id]),
+    );
     let contacts = 0;
     for (let i = 0; i < bounds.length; i++)
       for (let j = i + 1; j < bounds.length; j++)
@@ -106,7 +106,14 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
   const initialScore = score(state.offsets);
   const selections = groups(level);
   const frontier = new Frontier();
-  frontier.push({ offsets: state.offsets, first: null, parent: null, action: null, depth: 0, priority: initialScore });
+  frontier.push({
+    offsets: state.offsets,
+    first: null,
+    parent: null,
+    action: null,
+    depth: 0,
+    priority: initialScore,
+  });
   const visited = new Set([key(state.offsets)]);
   let fallback: { hint: Hint; score: number } | null = null;
   // Keep both memory and work bounded. A fallback must improve the current
@@ -114,7 +121,10 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
   for (let cursor = 0; cursor < 80 && frontier.length && visited.size < 2200; cursor++) {
     const node = frontier.pop();
     const bounds = Object.fromEntries(
-      level.pieces.map((piece) => [piece.id, pieceBounds(piece, node.offsets[piece.id]!)]),
+      level.pieces.map((piece) => [
+        piece.id,
+        pieceBounds(piece, node.offsets[piece.id]!, state.orientations[piece.id]),
+      ]),
     );
     for (const ids of selections) {
       const leader = level.pieces.find((piece) => piece.id === ids[0])!;
@@ -130,9 +140,15 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
           // A group can return one shared displacement to zero atomically.
           // Unequal offsets still have individual candidates below.
           const goal = reverseTarget?.[leader.id]?.[index] ?? 0;
-          if (ids.every((id) => Math.abs(
-            (reverseTarget?.[id]?.[index] ?? 0) - node.offsets[id]![index] - (goal - current),
-          ) < EPSILON)) targets.push(goal);
+          if (
+            ids.every(
+              (id) =>
+                Math.abs(
+                  (reverseTarget?.[id]?.[index] ?? 0) - node.offsets[id]![index] - (goal - current),
+                ) < EPSILON,
+            )
+          )
+            targets.push(goal);
         } else targets.push(0);
         if (outsiders.length) {
           const movingMin = Math.min(...ids.map((id) => bounds[id]!.min[index]));
@@ -146,7 +162,7 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
           targets.push(current + Math.min(...fixed.map((box) => box.min[index])) - movingMax - 1);
         }
         for (const target of targets) {
-          const actualOffset = sweep(node.offsets, ids, target, axis);
+          const actualOffset = sweep(node.offsets, ids, target, axis, state.orientations);
           const delta = actualOffset - current;
           if (Math.abs(delta) < EPSILON) continue;
           const offsets = { ...node.offsets };
@@ -175,21 +191,62 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
           const nextScore = score(offsets);
           if (nextScore < EPSILON) {
             if (!reverseTarget) return hint;
+            // Reaching the target is a tolerance comparison, not equality of
+            // rounded cache keys: e.g. -0.7 * EPSILON and 0 are the same seated
+            // coordinate but fall into different rounding buckets. Keep the
+            // first reverse step directly and prove it from the actual pose.
+            const reverseTargetOffset = node.offsets[action.pieceId]![axisIndex(action.axis)];
+            const live = sweepMove(
+              level,
+              reverseTarget,
+              action.pieceIds,
+              reverseTargetOffset,
+              action.axis,
+              state.orientations,
+            );
+            if (
+              Math.abs(live.actualOffset - reverseTargetOffset) > EPSILON ||
+              Math.abs(
+                live.actualOffset - reverseTarget[action.pieceId]![axisIndex(action.axis)],
+              ) <= EPSILON
+            )
+              continue;
+            const firstReverse = plannedHint(
+              level,
+              { ...state, offsets: reverseTarget },
+              action.pieceIds,
+              action.axis,
+              live.actualOffset,
+            );
             let cursor: SearchNode = {
-              offsets, first: hint, parent: node, action, depth: node.depth + 1, priority: 0,
+              offsets,
+              first: hint,
+              parent: node,
+              action,
+              depth: node.depth + 1,
+              priority: 0,
             };
             let cache = routeCache.get(level);
-            if (!cache) { cache = new Map(); routeCache.set(level, cache); }
+            if (!cache) {
+              cache = new Map();
+              routeCache.set(level, cache);
+            }
             if (cache.size > 2000) cache.clear();
             while (cursor.parent && cursor.action) {
               const before = { ...state, offsets: cursor.offsets, phase: 'reassemble' as const };
               const move = cursor.action;
-              const reverse = plannedHint(level, before, move.pieceIds, move.axis,
-                cursor.parent.offsets[move.pieceId]![axisIndex(move.axis)]);
+              const reverse = plannedHint(
+                level,
+                before,
+                move.pieceIds,
+                move.axis,
+                cursor.parent.offsets[move.pieceId]![axisIndex(move.axis)],
+              );
               cache.set(exactKey(level, before), reverse);
               cursor = cursor.parent;
             }
-            return cache.get(exactKey(level, { ...state, offsets: reverseTarget })) ?? null;
+            cache.set(exactKey(level, { ...state, offsets: reverseTarget }), firstReverse);
+            return firstReverse;
           }
           if (
             !node.first &&
@@ -209,13 +266,16 @@ function directHint(level: Level, state: GameState, reverseTarget?: Offsets): Hi
       }
     }
   }
-  return reverseTarget ? null : fallback?.hint ?? null;
+  return reverseTarget ? null : (fallback?.hint ?? null);
 }
 
 const routeCache = new WeakMap<Level, Map<string, Hint>>();
 const exactKey = (level: Level, state: GameState): string =>
   `${state.phase}:${level.pieces
-    .flatMap((piece) => state.offsets[piece.id]!.map((value) => Math.round(value / EPSILON)))
+    .flatMap((piece) => [
+      ...state.offsets[piece.id]!.map((value) => Math.round(value / EPSILON)),
+      ...(state.orientations[piece.id] ?? IDENTITY_ORIENTATION),
+    ])
     .join(',')}`;
 
 function plannedHint(
@@ -240,6 +300,41 @@ function plannedHint(
   };
 }
 
+/** There are only 24 quarter-turn orientations. Search actual legal rotations
+ * about the piece's center, preserving the first step only after a complete
+ * collision-checked route back to its original orientation has been found. */
+function orientationRoute(level: Level, initial: GameState, pieceId: string): Hint[] | null {
+  if (isIdentityOrientation(initial.orientations[pieceId])) return [];
+  const queue: { state: GameState; hints: Hint[] }[] = [{ state: initial, hints: [] }];
+  const visited = new Set([initial.orientations[pieceId]!.join(',')]);
+  const label = String.fromCharCode(65 + level.pieces.findIndex((piece) => piece.id === pieceId));
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const node = queue[cursor]!;
+    for (const axis of axes)
+      for (const direction of [1, -1] as const) {
+        const rotated = tryRotate(level, node.state, [pieceId], axis, direction);
+        if (rotated.blocked || rotated.state === node.state) continue;
+        const orientation = rotated.state.orientations[pieceId]!;
+        const key = orientation.join(',');
+        if (visited.has(key)) continue;
+        visited.add(key);
+        const hint: Hint = {
+          kind: 'rotate',
+          pieceId,
+          pieceIds: [pieceId],
+          axis,
+          direction,
+          targetOffset: 0,
+          message: `选择${label}，绕${axis.toUpperCase()}轴${direction > 0 ? '正向' : '负向'}旋转90°，调整回原来的朝向。`,
+        };
+        const hints = [...node.hints, hint];
+        if (isIdentityOrientation(orientation)) return hints;
+        queue.push({ state: rotated.state, hints });
+      }
+  }
+  return null;
+}
+
 /** A constructive fallback for unusual reassembly poses: separate the current
  * geometry, park the pieces in open space, route to a freshly solved separated
  * arrangement, then reverse its legal extraction sweeps. The parking paths use
@@ -251,8 +346,22 @@ function planReassembly(level: Level, initial: GameState): Hint | null {
   const route: { state: GameState; hint: Hint }[] = [];
   let state = initial;
   const append = (hint: Hint): boolean => {
+    if (hint.kind === 'rotate') {
+      const rotated = tryRotate(level, state, hint.pieceIds, hint.axis, hint.direction);
+      if (rotated.blocked) return false;
+      route.push({ state, hint });
+      state = rotated.state;
+      return true;
+    }
     const index = axisIndex(hint.axis);
-    const result = sweepMove(level, state.offsets, hint.pieceIds, hint.targetOffset, hint.axis);
+    const result = sweepMove(
+      level,
+      state.offsets,
+      hint.pieceIds,
+      hint.targetOffset,
+      hint.axis,
+      state.orientations,
+    );
     if (Math.abs(result.actualOffset - hint.targetOffset) > EPSILON) return false;
     const delta = result.actualOffset - state.offsets[hint.pieceId]![index];
     if (Math.abs(delta) < EPSILON) return true;
@@ -288,13 +397,17 @@ function planReassembly(level: Level, initial: GameState): Hint | null {
   route.length = 0;
   state = initial;
   if (!separate()) return null;
-  const currentBounds = level.pieces.map((piece) => pieceBounds(piece, state.offsets[piece.id]!));
+  const currentBounds = level.pieces.map((piece) =>
+    pieceBounds(piece, state.offsets[piece.id]!, state.orientations[piece.id]),
+  );
   const originalBounds = level.pieces.map((piece) => pieceBounds(piece, [0, 0, 0]));
   const canonicalBounds = level.pieces.map((piece) => pieceBounds(piece, canonical[piece.id]!));
   const spacing =
     Math.ceil(
       (Math.max(
-        ...originalBounds.flatMap((box) => box.max.map((value, i) => value - box.min[i]!)),
+        ...originalBounds.map((box) =>
+          Math.hypot(...box.max.map((value, i) => value - box.min[i]!)),
+        ),
       ) +
         4) *
         2,
@@ -310,7 +423,7 @@ function planReassembly(level: Level, initial: GameState): Hint | null {
         2,
     ) / 2;
   const routeTo = (pieceId: string, target: Vec3): boolean => {
-    const steps = routePiece(level, state.offsets, pieceId, target);
+    const steps = routePiece(level, state.offsets, pieceId, target, state.orientations);
     if (!steps) return false;
     for (const step of steps)
       if (!append(plannedHint(level, state, [pieceId], step.axis, step.targetOffset))) return false;
@@ -318,6 +431,11 @@ function planReassembly(level: Level, initial: GameState): Hint | null {
   };
   for (let i = 0; i < level.pieces.length; i++)
     if (!routeTo(level.pieces[i]!.id, [outside + i * spacing, outside, outside])) return null;
+  for (const piece of level.pieces) {
+    const rotations = orientationRoute(level, state, piece.id);
+    if (!rotations) return null;
+    for (const hint of rotations) if (!append(hint)) return null;
+  }
   for (const piece of level.pieces) if (!routeTo(piece.id, canonical[piece.id]!)) return null;
   for (const step of reverse)
     if (!append(plannedHint(level, state, step.pieceIds, step.axis, step.targetOffset)))
@@ -334,17 +452,39 @@ function planReassembly(level: Level, initial: GameState): Hint | null {
 }
 
 export function getHint(level: Level, state: GameState): Hint | null {
-  if (getProgress(level, state).complete) return null;
+  const progress = getProgress(level, state);
+  // The untouched assembly needs no restoration hint, even though switching
+  // modes alone deliberately does not award a completion.
+  if (progress.complete || (state.phase === 'reassemble' && progress.assembled === progress.total))
+    return null;
   const cached = routeCache.get(level)?.get(exactKey(level, state));
   if (cached) {
-    const check = sweepMove(
-      level,
-      state.offsets,
-      cached.pieceIds,
-      cached.targetOffset,
-      cached.axis,
-    );
-    if (Math.abs(check.actualOffset - cached.targetOffset) < EPSILON) return cached;
+    if (cached.kind === 'rotate') {
+      if (!tryRotate(level, state, cached.pieceIds, cached.axis, cached.direction).blocked)
+        return cached;
+    } else {
+      const check = sweepMove(
+        level,
+        state.offsets,
+        cached.pieceIds,
+        cached.targetOffset,
+        cached.axis,
+        state.orientations,
+      );
+      if (Math.abs(check.actualOffset - cached.targetOffset) < EPSILON) return cached;
+    }
+  }
+  if (
+    state.phase === 'reassemble' &&
+    level.pieces.some((piece) => !isIdentityOrientation(state.orientations[piece.id]))
+  ) {
+    for (const piece of level.pieces) {
+      const rotations = orientationRoute(level, state, piece.id);
+      if (rotations?.length) return rotations[0]!;
+    }
+    // Returning translations to zero while a piece still has another
+    // orientation does not restore the puzzle. Make room and turn it first.
+    return planReassembly(level, state);
   }
   // Searching from the seated assembly preserves temporary contact stops even
   // after their frames have moved away. Reverse the discovered group sweeps to

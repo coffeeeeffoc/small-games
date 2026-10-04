@@ -3,16 +3,21 @@ import {
   axisIndex,
   EPSILON,
   pieceBounds,
+  isPieceAssembled,
   piecesSeparated,
   selectionIds,
   sweepMove,
+  sweepRotation,
 } from './collision.ts';
+import { cloneOrientations, IDENTITY_ORIENTATION } from './rotation.ts';
 import type {
   Axis,
   GameState,
   Level,
   MoveResult,
   Offsets,
+  Phase,
+  RotationResult,
   Progress,
   Snapshot,
   Transaction,
@@ -25,11 +30,14 @@ export const cloneOffsets = (offsets: Offsets): Offsets =>
   );
 const snapshot = (state: GameState): Snapshot => ({
   offsets: cloneOffsets(state.offsets),
+  orientations: cloneOrientations(state.orientations),
   moves: state.moves,
 });
 const changed = (a: GameState, b: GameState) =>
-  Object.keys(a.offsets).some((id) =>
-    a.offsets[id]!.some((value, index) => Math.abs(value - b.offsets[id]![index]!) > EPSILON),
+  Object.keys(a.offsets).some(
+    (id) =>
+      a.offsets[id]!.some((value, index) => Math.abs(value - b.offsets[id]![index]!) > EPSILON) ||
+      a.orientations[id]!.some((value, index) => value !== b.orientations[id]![index]),
   );
 const record = (before: GameState, after: GameState): GameState =>
   changed(before, after)
@@ -45,6 +53,9 @@ export function createGame(level: Level): GameState {
   return {
     levelId: level.id,
     offsets: Object.fromEntries(level.pieces.map((piece) => [piece.id, [0, 0, 0]])),
+    orientations: Object.fromEntries(
+      level.pieces.map((piece) => [piece.id, [...IDENTITY_ORIENTATION]]),
+    ),
     phase: 'disassemble',
     moves: 0,
     history: [],
@@ -63,7 +74,7 @@ function moveWithoutHistory(
   const ids = selectionIds(pieceIds);
   const leader = level.pieces.find((piece) => piece.id === ids[0]);
   const axis = requestedAxis ?? leader?.axis ?? 'x';
-  const result = sweepMove(level, state.offsets, ids, targetOffset, axis);
+  const result = sweepMove(level, state.offsets, ids, targetOffset, axis, state.orientations);
   if (!leader || !axes.includes(axis) || ids.some((id) => !state.offsets[id]))
     return { ...result, state };
   const index = axisIndex(axis);
@@ -142,6 +153,7 @@ export function undo(state: GameState): GameState {
     ...state,
     ...previous,
     offsets: cloneOffsets(previous.offsets),
+    orientations: cloneOrientations(previous.orientations),
     history: state.history.slice(0, -1),
     future: [...state.future, snapshot(state)],
   };
@@ -153,26 +165,53 @@ export function redo(state: GameState): GameState {
     ...state,
     ...next,
     offsets: cloneOffsets(next.offsets),
+    orientations: cloneOrientations(next.orientations),
     history: [...state.history, snapshot(state)],
     future: state.future.slice(0, -1),
   };
 }
 export function getProgress(level: Level, state: GameState): Progress {
-  const bounds = level.pieces.map((piece) => pieceBounds(piece, state.offsets[piece.id]!));
+  const bounds = level.pieces.map((piece) =>
+    pieceBounds(piece, state.offsets[piece.id]!, state.orientations[piece.id]),
+  );
   const removed = bounds.filter((box, i) =>
     bounds.every((other, j) => i === j || piecesSeparated(box, other)),
   ).length;
   const assembled = level.pieces.filter((piece) =>
-    state.offsets[piece.id]!.every((coordinate) => Math.abs(coordinate) < EPSILON),
+    isPieceAssembled(piece, state.offsets[piece.id]!, state.orientations[piece.id]),
   ).length;
   return {
     removed,
     assembled,
     total: level.pieces.length,
-    complete: (state.phase === 'disassemble' ? removed : assembled) === level.pieces.length,
+    complete:
+      state.phase === 'disassemble'
+        ? removed === level.pieces.length
+        : assembled === level.pieces.length && state.moves > 0,
   };
 }
+export function switchPhase(_level: Level, state: GameState, phase: Phase): GameState {
+  return state.phase === phase ? state : { ...state, phase };
+}
 export function switchToReassembly(level: Level, state: GameState): GameState {
-  if (state.phase !== 'disassemble' || !getProgress(level, state).complete) return state;
-  return { ...state, phase: 'reassemble', moves: 0, history: [], future: [] };
+  return switchPhase(level, state, 'reassemble');
+}
+
+/** Rotation is one undoable action, including a selected rigid group. */
+export function tryRotate(
+  level: Level,
+  state: GameState,
+  pieceIds: string | readonly string[],
+  axis: Axis,
+  direction: -1 | 1,
+): RotationResult {
+  const result = sweepRotation(level, state.offsets, state.orientations, pieceIds, axis, direction);
+  return {
+    state: result.blocked
+      ? state
+      : record(state, { ...state, offsets: result.offsets, orientations: result.orientations }),
+    blocked: result.blocked,
+    blockedBy: result.blockedBy,
+    pivot: result.pivot,
+  };
 }

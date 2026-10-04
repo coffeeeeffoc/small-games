@@ -1401,3 +1401,329 @@ dialog h2 {
     0 0 0 5px #f4d08b20,
     0 4px 22px #0005;
 }
+
+/* The reference remains assembled while the workbench is taken apart. */
+.assembly-reference {
+  position: absolute;
+  right: 32px;
+  top: 168px;
+  width: 164px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111e2dec;
+  box-shadow: 0 8px 24px #0002;
+}
+.reference-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px 0;
+  font-size: 12px;
+  color: #e7d0a8;
+  pointer-events: none;
+}
+.reference-title span {
+  font-size: 10px;
+  color: var(--muted);
+}
+#assembly-preview {
+  width: 100%;
+  height: 136px;
+  touch-action: none;
+  cursor: grab;
+}
+#assembly-preview:active {
+  cursor: grabbing;
+}
+.progress-heading #phase-toggle {
+  pointer-events: auto;
+  margin-top: 2px;
+  min-height: 44px;
+  font-size: 12px;
+  background: #142232e8;
+}
+.rotation-tools {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 60px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  background: #142232;
+}
+#rotation-selection {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 60px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-axes {
+  display: flex;
+  gap: 4px;
+}
+.turn-axes button {
+  min-width: 44px;
+  min-height: 44px;
+}
+#rotate-negative,
+#rotate-positive {
+  min-width: 70px;
+  color: #f0d09d;
+}
+.rotation-tools button.hint-direction {
+  color: #172435;
+  background: #f4d08b;
+}
+.source-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.source-links a {
+  color: #d8bf98;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 700px) {
+  .assembly-reference {
+    width: 120px;
+    right: 14px;
+    top: 18px;
+  }
+  #assembly-preview {
+    height: 102px;
+  }
+  .reference-title {
+    padding: 7px 7px 0;
+    font-size: 11px;
+  }
+  .reference-title span {
+    font-size: 9px;
+  }
+  .level-heading {
+    max-width: calc(100% - 155px);
+    top: 18px;
+  }
+  .level-heading h2 {
+    font-size: 21px;
+    letter-spacing: 1px;
+  }
+  .level-heading p {
+    line-height: 1.5;
+    max-width: 200px;
+  }
+  .progress-heading {
+    left: 20px;
+    right: auto;
+    top: 112px;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 4px 8px;
+    align-items: center;
+    font-size: 11px;
+  }
+  .progress-heading strong {
+    font-size: 19px;
+  }
+  .progress-heading small {
+    font-size: 13px;
+  }
+  #move-count {
+    grid-column: 1 / -1;
+    font-size: 10px;
+  }
+  .progress-heading #phase-toggle {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding: 0 10px;
+    margin: 0;
+  }
+  .rotation-tools {
+    gap: 5px;
+    min-height: 56px;
+    padding: 5px 8px;
+  }
+  #rotation-selection {
+    min-width: 45px;
+    max-width: 70px;
+    font-size: 11px;
+  }
+  #rotate-negative,
+  #rotate-positive {
+    min-width: 62px;
+    font-size: 14px;
+  }
+  .turn-axes {
+    gap: 3px;
+  }
+}
+@media (max-width: 370px) {
+  #rotation-selection {
+    min-width: 35px;
+    max-width: 35px;
+  }
+  .rotation-tools {
+    gap: 4px;
+    padding-inline: 4px;
+  }
+  #rotate-negative,
+  #rotate-positive {
+    min-width: 55px;
+  }
+}
+@media (max-height: 540px) and (min-width: 480px) and (orientation: landscape) {
+  #app {
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
+  .workbench {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .controls {
+    grid-column: 2;
+    grid-row: 2 / 4;
+  }
+  .rotation-tools {
+    grid-column: 1;
+    grid-row: 3;
+    min-height: 54px;
+    gap: 4px;
+  }
+  #rotation-selection {
+    max-width: 55px;
+    min-width: 35px;
+  }
+  .assembly-reference {
+    right: 8px;
+    top: 8px;
+    width: 104px;
+  }
+  #assembly-preview {
+    height: 78px;
+  }
+  .reference-title {
+    font-size: 10px;
+    padding: 6px 6px 0;
+  }
+  .reference-title span {
+    display: none;
+  }
+  .level-heading {
+    top: 12px;
+    max-width: calc(100% - 128px);
+  }
+  .level-heading h2 {
+    font-size: 18px;
+  }
+  .level-heading .eyebrow {
+    font-size: 10px;
+  }
+  .progress-heading {
+    left: 16px;
+    right: auto;
+    top: 62px;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+    font-size: 10px;
+  }
+  .progress-heading strong {
+    font-size: 18px;
+  }
+  .progress-heading small {
+    font-size: 12px;
+  }
+  .progress-heading #phase-toggle {
+    font-size: 11px;
+    padding: 0 8px;
+  }
+  #move-count {
+    display: none;
+  }
+  #rotate-negative,
+  #rotate-positive {
+    min-width: 55px;
+  }
+}
+/* On compact screens, camera tools share the parts row instead of covering the reference. */
+@media (max-width: 900px) {
+  .pieces-section .view-tools {
+    position: static;
+    transform: none;
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+    padding: 0;
+    gap: 0;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+  }
+  .pieces-section #zoom-in,
+  .pieces-section #zoom-out {
+    display: none;
+  }
+}
+@media (max-width: 700px) and (max-height: 700px) and (orientation: portrait) {
+  .workbench {
+    min-height: 0;
+  }
+  .selected-meta {
+    display: none;
+  }
+  .controls {
+    gap: 8px;
+    padding-top: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .level-heading p {
+    display: none;
+  }
+  .progress-heading {
+    top: 75px;
+  }
+  .scene-caption {
+    display: none;
+  }
+  .feedback {
+    bottom: 8px;
+  }
+  .pieces-section {
+    gap: 8px;
+  }
+}
+@media (max-height: 540px) and (min-width: 480px) and (orientation: landscape) {
+  .pieces-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
+  }
+  .pieces-section .section-label {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+  .pieces-section .view-tools {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .pieces-section .piece-list {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+@media (min-width: 901px) {
+  .view-tools {
+    right: 212px;
+  }
+}

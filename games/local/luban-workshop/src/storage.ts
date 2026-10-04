@@ -76,10 +76,11 @@ export const storage = {
     const result = finishRun(record(id), run, reassemblyMoves);
     const recordSaved = write('record:' + id, JSON.stringify(result));
     const legacySaved = write('complete:' + id, '1');
-    return { ...result, saved: recordSaved && legacySaved };
+    const dismantledSaved = run.disassemblyMoves === null || write('dismantled:' + id, '1');
+    return { ...result, saved: recordSaved && legacySaved && dismantledSaved };
   },
   dismantled(id: string): boolean {
-    return read('dismantled:' + id) === '1' || record(id).completed;
+    return read('dismantled:' + id) === '1';
   },
   markDismantled(id: string): boolean {
     return write('dismantled:' + id, '1');

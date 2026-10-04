@@ -1,12 +1,23 @@
-import { axisIndex, EPSILON, isCollisionFree, sweepMove } from './collision.ts';
-import type { Axis, GameState, Level, Offsets, Snapshot, Vec3 } from './types.ts';
+import { axisIndex, EPSILON, isCollisionFree, sweepMove, sweepRotation } from './collision.ts';
+import type {
+  Axis,
+  GameState,
+  Level,
+  Offsets,
+  Orientation,
+  Orientations,
+  Snapshot,
+  Vec3,
+} from './types.ts';
+
+import { IDENTITY_ORIENTATION, validOrientation } from './rotation.ts';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
 const axes: readonly Axis[] = ['x', 'y', 'z'];
 
 export function serializeGame(state: GameState): string {
-  return JSON.stringify({ version: 2, state });
+  return JSON.stringify({ version: 3, state });
 }
 
 /** Local storage is untrusted. Validate both endpoint geometry and the complete
@@ -14,11 +25,18 @@ export function serializeGame(state: GameState): string {
  * retain their original axis and range restrictions while being migrated.
  */
 export function restoreGame(level: Level, raw: string): GameState | null {
-  if (typeof raw !== 'string' || raw.length > 400000) return null;
+  // A v3 snapshot includes six orientation matrices as well as positions.
+  // Keep enough room for the existing 2,000-step timeline allowance.
+  if (typeof raw !== 'string' || raw.length > 2_000_000) return null;
   try {
     const data: unknown = JSON.parse(raw);
-    if (!isObject(data) || (data.version !== 1 && data.version !== 2) || !isObject(data.state))
+    if (
+      !isObject(data) ||
+      (data.version !== 1 && data.version !== 2 && data.version !== 3) ||
+      !isObject(data.state)
+    )
       return null;
+    if (data.version !== 3 && raw.length > 400_000) return null;
     const legacy = data.version === 1;
     const state = data.state;
     if (
@@ -61,13 +79,32 @@ export function restoreGame(level: Level, raw: string): GameState | null {
         }
         offsets[piece.id] = vector;
       }
-      return isCollisionFree(level, offsets) ? offsets : null;
+      return offsets;
+    };
+    const readOrientations = (input: unknown): Orientations | null => {
+      if (data.version !== 3)
+        return Object.fromEntries(
+          level.pieces.map((piece) => [
+            piece.id,
+            [...IDENTITY_ORIENTATION] as unknown as Orientation,
+          ]),
+        );
+      if (!isObject(input) || Object.keys(input).length !== level.pieces.length) return null;
+      const orientations: Orientations = {};
+      for (const piece of level.pieces) {
+        if (!Object.hasOwn(input, piece.id) || !validOrientation(input[piece.id])) return null;
+        orientations[piece.id] = [...(input[piece.id] as Orientation)] as unknown as Orientation;
+      }
+      return orientations;
     };
     const readSnapshot = (input: unknown): Snapshot | null => {
       if (!isObject(input) || !Number.isSafeInteger(input.moves) || Number(input.moves) < 0)
         return null;
       const offsets = readOffsets(input.offsets);
-      return offsets ? { offsets, moves: Number(input.moves) } : null;
+      const orientations = readOrientations(input.orientations);
+      return offsets && orientations && isCollisionFree(level, offsets, orientations)
+        ? { offsets, orientations, moves: Number(input.moves) }
+        : null;
     };
     const current = readSnapshot(state);
     if (!current) return null;
@@ -88,6 +125,42 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       const before = timeline[i - 1]!;
       const after = timeline[i]!;
       if (after.moves !== before.moves + 1) return null;
+      const rotating = level.pieces
+        .filter((piece) =>
+          before.orientations[piece.id]!.some(
+            (entry, j) => entry !== after.orientations[piece.id]![j],
+          ),
+        )
+        .map((piece) => piece.id);
+      if (rotating.length) {
+        if (data.version !== 3) return null;
+        const matches = axes.some((axis) =>
+          ([-1, 1] as const).some((direction) => {
+            const result = sweepRotation(
+              level,
+              before.offsets,
+              before.orientations,
+              rotating,
+              axis,
+              direction,
+            );
+            return (
+              !result.blocked &&
+              level.pieces.every(
+                (piece) =>
+                  result.offsets[piece.id]!.every(
+                    (value, j) => Math.abs(value - after.offsets[piece.id]![j]!) <= EPSILON,
+                  ) &&
+                  result.orientations[piece.id]!.every(
+                    (value, j) => value === after.orientations[piece.id]![j],
+                  ),
+              )
+            );
+          }),
+        );
+        if (!matches) return null;
+        continue;
+      }
       const changed: string[] = [];
       let moveAxis: Axis | undefined;
       let moveDelta: number | undefined;
@@ -115,7 +188,14 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       if (!changed.length || (legacy && changed.length !== 1) || moveAxis === undefined)
         return null;
       const target = after.offsets[changed[0]!]![axisIndex(moveAxis)];
-      const result = sweepMove(level, before.offsets, changed, target, moveAxis);
+      const result = sweepMove(
+        level,
+        before.offsets,
+        changed,
+        target,
+        moveAxis,
+        before.orientations,
+      );
       if (!Number.isFinite(result.actualOffset) || Math.abs(result.actualOffset - target) > EPSILON)
         return null;
     }
@@ -123,6 +203,7 @@ export function restoreGame(level: Level, raw: string): GameState | null {
       levelId: level.id,
       phase: state.phase,
       offsets: current.offsets,
+      orientations: current.orientations,
       moves: current.moves,
       history,
       future,

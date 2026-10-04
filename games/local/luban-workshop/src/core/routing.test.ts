@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { axisIndex, isCollisionFree, sweepMove } from './collision.ts';
 import { routePiece } from './routing.ts';
-import type { Box, Level, Offsets, PieceDefinition, Vec3 } from './types.ts';
+import { IDENTITY_ORIENTATION, quarterTurnOrientation } from './rotation.ts';
+import { createSearchSweep } from './search-sweep.ts';
+import type { Box, Level, Offsets, Orientations, PieceDefinition, Vec3 } from './types.ts';
 
 const block = (id: string, min: Vec3, max: Vec3): PieceDefinition => ({
   id,
@@ -30,20 +32,20 @@ const offsetsFor = (level: Level, start: Vec3 = [0, 0, 0]): Offsets =>
     level.pieces.map((piece) => [piece.id, piece.id === 'moving' ? start : [0, 0, 0]]),
   );
 
-function assertRoute(level: Level, offsets: Offsets, target: Vec3) {
+function assertRoute(level: Level, offsets: Offsets, target: Vec3, orientations?: Orientations) {
   const before = structuredClone(offsets);
-  const route = routePiece(level, offsets, 'moving', target);
+  const route = routePiece(level, offsets, 'moving', target, orientations);
   assert.ok(route, `route exists from ${offsets.moving} to ${target}`);
   const current = { ...offsets };
   for (const [index, step] of route.entries()) {
     if (index > 0) assert.notEqual(step.axis, route[index - 1]!.axis, 'adjacent steps are merged');
-    const result = sweepMove(level, current, 'moving', step.targetOffset, step.axis);
+    const result = sweepMove(level, current, 'moving', step.targetOffset, step.axis, orientations);
     assert.ok(Math.abs(result.actualOffset - step.targetOffset) <= 1e-6);
     const dimension = axisIndex(step.axis);
     current.moving = current.moving!.map((value, i) =>
       i === dimension ? result.actualOffset : value,
     ) as unknown as Vec3;
-    assert.ok(isCollisionFree(level, current));
+    assert.ok(isCollisionFree(level, current, orientations));
   }
   assert.deepEqual(current.moving, target);
   assert.deepEqual(offsets, before, 'routing does not mutate the game pose');
@@ -60,6 +62,30 @@ test('a rectilinear route goes around a blocker instead of crossing its endpoint
   assert.ok(
     route.every((step) => step.targetOffset * 2 === Math.round(step.targetOffset * 2)),
     'clearance detours remain reachable by half-unit nudges and drag snapping',
+  );
+});
+
+test('routes and cached sweeps account for the current orientation at unchanged offsets', () => {
+  const level = createLevel({ min: [5, 1.5, 0], max: [6, 2.5, 1] });
+  level.pieces = [block('moving', [0, 0, 0], [4, 1, 1]), ...level.pieces.slice(1)];
+  const offsets = offsetsFor(level);
+  const orientations = {
+    moving: quarterTurnOrientation('z', 1),
+    'obstacle-0': IDENTITY_ORIENTATION,
+  };
+  const sweep = createSearchSweep(level);
+  assert.equal(sweep(offsets, 'moving', 8, 'x'), 8, 'the unrotated piece passes below the blocker');
+  const expected = sweepMove(level, offsets, 'moving', 8, 'x', orientations);
+  assert.equal(expected.blocked, true);
+  assert.equal(
+    sweep(offsets, 'moving', 8, 'x', orientations),
+    expected.actualOffset,
+    'rotation invalidates pair intervals even when offsets are unchanged',
+  );
+  const route = assertRoute(level, offsets, [8, 0, 0], orientations);
+  assert.ok(
+    route.some((step) => step.axis !== 'x'),
+    'the taller rotated piece needs a detour',
   );
 });
 

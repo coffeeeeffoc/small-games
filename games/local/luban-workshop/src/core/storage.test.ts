@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { storage } from '../storage.ts';
-import { levels } from '../levels/index.ts';
+import { levels } from './fixtures/legacy-levels.ts';
 import { createGame, tryMove, type Level } from './index.ts';
 
 test('disabled browser storage preserves puzzle state, attempt stats, and records when switching levels', () => {

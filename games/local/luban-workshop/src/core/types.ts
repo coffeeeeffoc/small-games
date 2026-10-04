@@ -1,5 +1,18 @@
 export type Axis = 'x' | 'y' | 'z';
 export type Vec3 = readonly [number, number, number];
+/** Row-major proper signed permutation matrix: the 24 cube orientations. */
+export type Orientation = readonly [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
+export type Orientations = Record<string, Orientation>;
 export interface Box {
   min: Vec3;
   max: Vec3;
@@ -23,21 +36,24 @@ export interface Level {
   description: string;
   difficulty: string;
   estimatedMinutes: string;
-  /** A chapter groups five puzzles around a shared spatial skill. */
+  /** A chapter groups puzzles around a shared structure or spatial skill. */
   chapter?: string;
   mechanic?: string;
   clue?: string;
+  source?: { title: string; url: string; note?: string };
   pieces: readonly PieceDefinition[];
 }
 export type Phase = 'disassemble' | 'reassemble';
 export type Offsets = Record<string, Vec3>;
 export interface Snapshot {
   offsets: Offsets;
+  orientations: Orientations;
   moves: number;
 }
 export interface GameState {
   levelId: string;
   offsets: Offsets;
+  orientations: Orientations;
   phase: Phase;
   moves: number;
   history: Snapshot[];
@@ -49,6 +65,12 @@ export interface MoveResult {
   actualOffset: number;
   blocked: boolean;
   blockedBy: string[];
+}
+export interface RotationResult {
+  state: GameState;
+  blocked: boolean;
+  blockedBy: string[];
+  pivot: Vec3;
 }
 export interface Transaction {
   pieceId: string;
@@ -66,6 +88,7 @@ export interface Progress {
   complete: boolean;
 }
 export interface Hint {
+  kind?: 'move' | 'rotate';
   pieceId: string;
   pieceIds: string[];
   axis: Axis;

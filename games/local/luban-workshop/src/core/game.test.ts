@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levels } from '../levels/index.ts';
+import { levels } from './fixtures/legacy-levels.ts';
 import {
   axes,
   axisIndex,
@@ -93,7 +93,7 @@ for (const level of levels) {
     const removed = solve(level, createGame(level));
     const reassembling = switchToReassembly(level, removed);
     assert.deepEqual(reassembling.offsets, removed.offsets);
-    assert.equal(reassembling.moves, 0);
+    assert.equal(reassembling.moves, removed.moves);
     const assembled = solve(level, reassembling);
     assert.deepEqual(assembled.offsets, createGame(level).offsets);
   });
@@ -283,7 +283,8 @@ test('a new action clears redo history', () => {
 
 test('reassembly requires all coordinates to return to exact original seats', () => {
   const initial = createGame(level);
-  assert.equal(switchToReassembly(level, initial), initial);
+  assert.equal(switchToReassembly(level, initial).phase, 'reassemble');
+  assert.equal(getProgress(level, switchToReassembly(level, initial)).complete, false);
   const moved = tryMove(level, { ...initial, phase: 'reassemble' }, 'key', -6, 'z').state;
   assert.equal(getProgress(level, moved).assembled, 2);
   assert.equal(getProgress(level, moved).complete, false);

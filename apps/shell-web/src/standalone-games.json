@@ -325,7 +325,7 @@
     "id": "luban-workshop",
     "source": "games/local/luban-workshop",
     "title": "榫间 · 鲁班锁",
-    "description": "二十关榫卯机关，从辨认钥匙到分支与让位，亲手拆解复原，收集独立完成印章。",
+    "description": "按真实结构重建的鲁班锁与互锁木构，从完整形态拆解或复原，旋转单件与组合，对照同步三维参考探索榫卯。",
     "output": "dist"
   },
   {

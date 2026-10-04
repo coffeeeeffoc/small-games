@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levels } from '../levels/index.ts';
+import { levels } from './fixtures/legacy-levels.ts';
 import { axisIndex, isCollisionFree } from './collision.ts';
 import { createGame, switchToReassembly, tryMove, undo } from './game.ts';
 import { restoreGame, serializeGame } from './persistence.ts';
@@ -43,7 +43,12 @@ function removedState(): GameState {
 
 function step(offsets: Offsets): GameState {
   const initial = createGame(barrierLevel);
-  return { ...initial, offsets, moves: 1, history: [{ offsets: initial.offsets, moves: 0 }] };
+  return {
+    ...initial,
+    offsets,
+    moves: 1,
+    history: [{ offsets: initial.offsets, orientations: initial.orientations, moves: 0 }],
+  };
 }
 
 test('version 1 saves migrate each scalar to its original piece axis, including undo and redo', () => {
@@ -60,7 +65,7 @@ test('version 1 reassembly saves retain their phase and reverse movement timelin
   for (const saved of [state, undo(state)]) {
     const restored = restoreGame(level, legacySave(saved));
     assert.deepEqual(restored, saved);
-    assert.equal(JSON.parse(serializeGame(restored!)).version, 2);
+    assert.equal(JSON.parse(serializeGame(restored!)).version, 3);
   }
 });
 
@@ -171,7 +176,9 @@ test('finite coordinates cannot conceal an overflowing movement delta', () => {
     ...initial,
     offsets: { a: [Number.MAX_VALUE, 0, 0] },
     moves: 1,
-    history: [{ offsets: { a: [-Number.MAX_VALUE, 0, 0] }, moves: 0 }],
+    history: [
+      { offsets: { a: [-Number.MAX_VALUE, 0, 0] }, orientations: initial.orientations, moves: 0 },
+    ],
   };
   assert.equal(restoreGame(solo, serializeGame(state)), null);
 });
@@ -180,7 +187,7 @@ test('malformed versions, metadata, oversized payloads and broken move counts ar
   const initial = createGame(level);
   for (const raw of ['not json', '{}', ' '.repeat(400001)])
     assert.equal(restoreGame(level, raw), null);
-  for (const version of [0, 3, '2', null]) {
+  for (const version of [0, 4, '2', null]) {
     assert.equal(restoreGame(level, JSON.stringify({ version, state: initial })), null);
   }
   for (const metadata of [
@@ -192,7 +199,13 @@ test('malformed versions, metadata, oversized payloads and broken move counts ar
     { moves: Number.MAX_SAFE_INTEGER + 1 },
     { history: {} },
     { future: null },
-    { history: Array.from({ length: 2001 }, () => ({ offsets: initial.offsets, moves: 0 })) },
+    {
+      history: Array.from({ length: 2001 }, () => ({
+        offsets: initial.offsets,
+        orientations: initial.orientations,
+        moves: 0,
+      })),
+    },
   ]) {
     assert.equal(
       restoreGame(level, JSON.stringify({ version: 2, state: { ...initial, ...metadata } })),
@@ -201,6 +214,9 @@ test('malformed versions, metadata, oversized payloads and broken move counts ar
   }
   const moved = tryMove(level, initial, 'key', -2).state;
   assert.equal(restoreGame(level, serializeGame({ ...moved, moves: 3 })), null);
-  const badFuture = { ...initial, future: [{ offsets: moved.offsets, moves: 4 }] };
+  const badFuture = {
+    ...initial,
+    future: [{ offsets: moved.offsets, orientations: moved.orientations, moves: 4 }],
+  };
   assert.equal(restoreGame(level, serializeGame(badFuture)), null);
 });

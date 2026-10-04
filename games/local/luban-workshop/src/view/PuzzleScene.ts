@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Axis, Box, Level, Offsets, PieceDefinition } from '../core/types';
+import type { Axis, Box, Level, Offsets, Orientations, PieceDefinition } from '../core/types';
 
 interface PieceView {
   definition: PieceDefinition;
@@ -248,11 +248,14 @@ export class PuzzleScene {
   private xray = false;
   private hintDirection: -1 | 1 | null = null;
   private phase: 'disassemble' | 'reassemble' = 'disassemble';
+  private level: Level;
+  private assemblyPreview: AssemblyPreview | null = null;
 
   constructor(
     private readonly container: HTMLElement,
     level: Level,
   ) {
+    this.level = level;
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -303,6 +306,7 @@ export class PuzzleScene {
   }
 
   setLevel(level: Level): void {
+    this.level = level;
     this.piecesGroup.children.forEach(disposeObject);
     this.piecesGroup.clear();
     this.pieces.clear();
@@ -372,6 +376,7 @@ export class PuzzleScene {
     this.baseSpan = Math.max(size.x, size.y, size.z) * 1.55 + 2;
     this.buildStage(bounds);
     this.buildAxisGuide();
+    this.assemblyPreview?.setLevel(level);
     this.resetCamera();
   }
 
@@ -384,6 +389,7 @@ export class PuzzleScene {
     axis?: Axis,
     hintDirection: -1 | 1 | null = null,
     phase: 'disassemble' | 'reassemble' = 'disassemble',
+    orientations: Orientations = {},
   ): void {
     this.selectedId = selectedId;
     this.selectedIds = new Set(selectedIds);
@@ -393,15 +399,42 @@ export class PuzzleScene {
     this.phase = phase;
     let lowestY = this.assemblyMinY;
     for (const [id, view] of this.pieces) {
-      view.group.position.set(...(offsets[id] ?? [0, 0, 0]));
-      lowestY = Math.min(lowestY, view.mesh.geometry.boundingBox!.min.y + view.group.position.y);
+      const orientation = orientations[id];
+      const rotation = orientation
+        ? new THREE.Matrix4().set(
+            orientation[0],
+            orientation[1],
+            orientation[2],
+            0,
+            orientation[3],
+            orientation[4],
+            orientation[5],
+            0,
+            orientation[6],
+            orientation[7],
+            orientation[8],
+            0,
+            0,
+            0,
+            0,
+            1,
+          )
+        : new THREE.Matrix4();
+      view.group.quaternion.setFromRotationMatrix(rotation);
+      // Core offsets locate each original bounds center; rotation is around
+      // that center rather than the assembly's origin.
+      view.group.position
+        .copy(view.center)
+        .add(new THREE.Vector3(...(offsets[id] ?? [0, 0, 0])))
+        .sub(view.center.clone().applyMatrix4(rotation));
+      lowestY = Math.min(lowestY, this.worldBounds(view).min.y);
       const selected = this.selectedIds.has(id);
       const blocked = blockedIds.includes(id);
       // The dashed silhouette stays at the assembled position while its part moves.
       view.seat.visible =
-        phase === 'reassemble' &&
         selected &&
-        (offsets[id] ?? [0, 0, 0]).some((value) => Math.abs(value) > 0.001);
+        ((offsets[id] ?? [0, 0, 0]).some((value) => Math.abs(value) > 0.001) ||
+          Boolean(orientation?.some((value, index) => value !== (index % 4 === 0 ? 1 : 0))));
       const material = view.mesh.material;
       material.emissive.set(blocked ? 0xff3454 : selected ? view.definition.color : 0x000000);
       material.emissiveIntensity = blocked ? 0.55 : selected ? 0.24 : 0;
@@ -448,7 +481,7 @@ export class PuzzleScene {
   projectPiece(pieceId: string): ScreenPoint {
     const view = this.pieces.get(pieceId);
     if (!view) return { x: this.width / 2, y: this.height / 2 };
-    return this.project(view.center.clone().add(view.group.position));
+    return this.project(this.worldCenter(view));
   }
 
   projectAxisEnds(pieceId: string, axis?: Axis): { negative: ScreenPoint; positive: ScreenPoint } {
@@ -456,7 +489,7 @@ export class PuzzleScene {
     if (!view)
       return { negative: this.projectPiece(pieceId), positive: this.projectPiece(pieceId) };
     const movementAxis = axis ?? view.definition.axis;
-    const center = view.center.clone().add(view.group.position);
+    const center = this.worldCenter(view);
     const extension = AXES[movementAxis]
       .clone()
       .multiplyScalar(this.guideHalfLength(view, movementAxis));
@@ -469,7 +502,7 @@ export class PuzzleScene {
   axisScreen(pieceId: string, axis?: Axis): { x: number; y: number; pixelsPerUnit: number } {
     const view = this.pieces.get(pieceId);
     if (!view) return { x: 1, y: 0, pixelsPerUnit: 1 };
-    const start = view.center.clone().add(view.group.position);
+    const start = this.worldCenter(view);
     const a = this.project(start);
     const b = this.project(start.add(AXES[axis ?? view.definition.axis]));
     const dx = b.x - a.x;
@@ -488,6 +521,7 @@ export class PuzzleScene {
   projectedSurfacePoints(pieceId: string): ScreenPoint[] {
     const view = this.pieces.get(pieceId);
     if (!view) return [];
+    view.group.updateWorldMatrix(true, false);
     const positions = view.mesh.geometry.getAttribute('position');
     const center = new THREE.Vector3();
     const corner = new THREE.Vector3();
@@ -496,7 +530,7 @@ export class PuzzleScene {
     for (let i = 0; i < positions.count; i += 4) {
       center.set(0, 0, 0);
       for (let j = 0; j < 4; j++) center.add(corner.fromBufferAttribute(positions, i + j));
-      center.multiplyScalar(0.25).add(view.group.position);
+      center.multiplyScalar(0.25).applyMatrix4(view.group.matrixWorld);
       points.push(this.project(center));
     }
     return points;
@@ -528,10 +562,12 @@ export class PuzzleScene {
     // Reassembly also includes the original seats so its ghost outlines stay visible.
     const bounds = this.phase === 'reassemble' ? this.assemblyBounds.clone() : new THREE.Box3();
     for (const [id, view] of this.pieces) {
-      const position = offsets
-        ? new THREE.Vector3(...(offsets[id] ?? [0, 0, 0]))
-        : view.group.position;
-      bounds.union(view.mesh.geometry.boundingBox!.clone().translate(position));
+      const pieceBounds = this.worldBounds(view);
+      if (offsets) {
+        const currentOffset = this.worldCenter(view).sub(view.center);
+        pieceBounds.translate(new THREE.Vector3(...(offsets[id] ?? [0, 0, 0])).sub(currentOffset));
+      }
+      bounds.union(pieceBounds);
     }
     if (bounds.isEmpty()) bounds.copy(this.assemblyBounds);
     bounds.getCenter(this.target);
@@ -549,6 +585,8 @@ export class PuzzleScene {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.frame);
+    this.assemblyPreview?.dispose();
+    this.assemblyPreview = null;
     this.resizeObserver.disconnect();
     this.canvas.removeEventListener('webglcontextrestored', this.invalidate);
     disposeObject(this.scene);
@@ -673,7 +711,7 @@ export class PuzzleScene {
     if (!view) return;
     const axis = this.activeAxis ?? view.definition.axis;
     const halfLength = this.guideHalfLength(view, axis);
-    this.axisGuide.position.copy(view.center).add(view.group.position);
+    this.axisGuide.position.copy(this.worldCenter(view));
     this.axisGuide.quaternion.setFromUnitVectors(AXES.y, AXES[axis]);
     const line = this.axisGuide.children[0];
     line.scale.y = halfLength;
@@ -695,8 +733,42 @@ export class PuzzleScene {
   }
 
   private guideHalfLength(view: PieceView, axis: Axis): number {
-    const box = view.mesh.geometry.boundingBox!;
+    const box = this.worldBounds(view);
     return Math.max(1, (box.max[axis] - box.min[axis]) / 2 + 0.85);
+  }
+
+  private worldCenter(view: PieceView): THREE.Vector3 {
+    view.group.updateWorldMatrix(true, false);
+    return view.center.clone().applyMatrix4(view.group.matrixWorld);
+  }
+
+  private worldBounds(view: PieceView): THREE.Box3 {
+    view.group.updateWorldMatrix(true, false);
+    return view.mesh.geometry.boundingBox!.clone().applyMatrix4(view.group.matrixWorld);
+  }
+
+  /** The reference remains assembled and shares only the camera's direction. */
+  setAssemblyPreview(container: HTMLElement | null, onOrbit?: () => void): void {
+    this.assemblyPreview?.dispose();
+    this.assemblyPreview = container
+      ? new AssemblyPreview(container, this.level, (dx, dy) => {
+          this.orbit(dx, dy);
+          onOrbit?.();
+        })
+      : null;
+    this.assemblyPreview?.setView(this.yaw, this.pitch);
+  }
+
+  getViewOrientation(): {
+    yaw: number;
+    pitch: number;
+    preview: { yaw: number; pitch: number } | null;
+  } {
+    return {
+      yaw: this.yaw,
+      pitch: this.pitch,
+      preview: this.assemblyPreview?.getViewOrientation() ?? null,
+    };
   }
 
   private project(point: THREE.Vector3): ScreenPoint {
@@ -717,6 +789,7 @@ export class PuzzleScene {
     );
     this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld(true);
+    this.assemblyPreview?.setView(this.yaw, this.pitch);
   }
 
   private readonly resize = (): void => {
@@ -732,6 +805,258 @@ export class PuzzleScene {
     this.camera.bottom = -halfHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.width, this.height, false);
+    this.invalidate();
+  };
+
+  private readonly invalidate = (): void => {
+    if (this.disposed || this.frame) return;
+    this.frame = requestAnimationFrame(() => {
+      this.frame = 0;
+      if (!this.disposed) this.renderer.render(this.scene, this.camera);
+    });
+  };
+}
+
+/** A small, independently framed assembly reference. It renders only when
+ * changed and forwards orbit gestures to the main scene's camera. */
+class AssemblyPreview {
+  private readonly scene = new THREE.Scene();
+  private readonly camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 160);
+  private readonly renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: 'low-power',
+  });
+  private readonly pieces = new THREE.Group();
+  private readonly target = new THREE.Vector3();
+  private readonly controller = new AbortController();
+  private readonly resizeObserver: ResizeObserver;
+  private readonly pointers = new Map<number, ScreenPoint>();
+  private yaw = 0.72;
+  private pitch = 0.5;
+  private span = 10;
+  private distance = 35;
+  private frame = 0;
+  private disposed = false;
+
+  constructor(
+    private readonly container: HTMLElement,
+    level: Level,
+    orbit: (dx: number, dy: number) => void,
+  ) {
+    const canvas = this.renderer.domElement;
+    canvas.className = 'assembly-preview-canvas';
+    canvas.style.display = 'block';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.touchAction = 'none';
+    canvas.style.cursor = 'grab';
+    canvas.tabIndex = 0;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', '完整鲁班锁参考模型，拖动或按方向键可同步旋转两个视图');
+    this.renderer.setClearColor(0x111d2b, 0);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.25;
+    this.container.append(canvas);
+    this.scene.add(new THREE.HemisphereLight(0xc9e2ff, 0x1f2634, 2.5));
+    const light = new THREE.DirectionalLight(0xfff2db, 3.7);
+    light.position.set(-9, 16, 11);
+    const rim = new THREE.DirectionalLight(0xa8c7ff, 2.3);
+    rim.position.set(8, 5, -9);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.65);
+    fill.position.set(2, -3, 10);
+    this.scene.add(light, rim, fill, this.pieces);
+
+    const options = { signal: this.controller.signal };
+    const centroid = (): ScreenPoint => {
+      const values = [...this.pointers.values()];
+      return {
+        x: values.reduce((sum, point) => sum + point.x, 0) / values.length,
+        y: values.reduce((sum, point) => sum + point.y, 0) / values.length,
+      };
+    };
+    canvas.addEventListener(
+      'pointerdown',
+      (event) => {
+        event.stopPropagation();
+        if (event.button !== 0 && event.pointerType !== 'touch') return;
+        event.preventDefault();
+        this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        canvas.style.cursor = 'grabbing';
+        try {
+          canvas.setPointerCapture(event.pointerId);
+        } catch {
+          // A touch can be cancelled while a containing panel is resized.
+        }
+      },
+      options,
+    );
+    canvas.addEventListener(
+      'pointermove',
+      (event) => {
+        event.stopPropagation();
+        if (!this.pointers.has(event.pointerId)) return;
+        event.preventDefault();
+        const before = centroid();
+        this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        const after = centroid();
+        orbit(after.x - before.x, after.y - before.y);
+      },
+      options,
+    );
+    const finish = (event: PointerEvent) => {
+      event.stopPropagation();
+      // Clear before release: lostpointercapture can fire synchronously.
+      if (!this.pointers.delete(event.pointerId)) return;
+      this.releasePointer(event.pointerId);
+      if (!this.pointers.size) canvas.style.cursor = 'grab';
+    };
+    canvas.addEventListener('pointerup', finish, options);
+    canvas.addEventListener('pointercancel', finish, options);
+    canvas.addEventListener('lostpointercapture', finish, options);
+    canvas.addEventListener('click', (event) => event.stopPropagation(), options);
+    canvas.addEventListener(
+      'keydown',
+      (event) => {
+        const directions: Record<string, readonly [number, number]> = {
+          ArrowLeft: [-16, 0],
+          ArrowRight: [16, 0],
+          ArrowUp: [0, -16],
+          ArrowDown: [0, 16],
+        };
+        const delta = directions[event.key];
+        if (!delta) return;
+        event.preventDefault();
+        event.stopPropagation();
+        orbit(...delta);
+      },
+      options,
+    );
+    canvas.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      { ...options, passive: false },
+    );
+    canvas.addEventListener(
+      'contextmenu',
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      options,
+    );
+    canvas.addEventListener('webglcontextrestored', this.invalidate, options);
+    window.addEventListener('blur', this.cancelPointers, options);
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (document.hidden) this.cancelPointers();
+      },
+      options,
+    );
+    this.resizeObserver = new ResizeObserver(this.resize);
+    this.resizeObserver.observe(container);
+    this.setLevel(level);
+  }
+
+  setLevel(level: Level): void {
+    this.cancelPointers();
+    this.pieces.children.forEach(disposeObject);
+    this.pieces.clear();
+    const bounds = new THREE.Box3();
+    level.pieces.forEach((definition, index) => {
+      const geometry = unionGeometry(definition.boxes);
+      const group = new THREE.Group();
+      group.add(
+        new THREE.Mesh(
+          geometry,
+          new THREE.MeshStandardMaterial({
+            color: definition.color,
+            roughness: 0.34,
+            metalness: 0.1,
+          }),
+        ),
+        new THREE.LineSegments(
+          new THREE.EdgesGeometry(geometry, 25),
+          new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }),
+        ),
+      );
+      addLetterStamps(group, definition, String.fromCharCode(65 + index));
+      this.pieces.add(group);
+      bounds.union(geometry.boundingBox!);
+    });
+    if (bounds.isEmpty()) bounds.set(new THREE.Vector3(-3, -3, -3), new THREE.Vector3(3, 3, 3));
+    bounds.getCenter(this.target);
+    const diagonal = bounds.getSize(new THREE.Vector3()).length();
+    this.span = Math.max(1, diagonal * 1.12);
+    this.distance = Math.max(35, diagonal * 1.2);
+    this.camera.far = Math.max(160, this.distance + diagonal + 35);
+    this.setView(this.yaw, this.pitch);
+    this.resize();
+  }
+
+  setView(yaw: number, pitch: number): void {
+    this.yaw = yaw;
+    this.pitch = pitch;
+    this.camera.position.set(
+      this.target.x + Math.sin(yaw) * Math.cos(pitch) * this.distance,
+      this.target.y + Math.sin(pitch) * this.distance,
+      this.target.z + Math.cos(yaw) * Math.cos(pitch) * this.distance,
+    );
+    this.camera.lookAt(this.target);
+    this.camera.updateMatrixWorld(true);
+    this.invalidate();
+  }
+
+  getViewOrientation(): { yaw: number; pitch: number } {
+    return { yaw: this.yaw, pitch: this.pitch };
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    cancelAnimationFrame(this.frame);
+    this.cancelPointers();
+    this.controller.abort();
+    this.resizeObserver.disconnect();
+    disposeObject(this.scene);
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+  }
+
+  private releasePointer(id: number): void {
+    const canvas = this.renderer.domElement;
+    try {
+      if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+    } catch {
+      // The canvas may have detached while the pointer was held.
+    }
+  }
+
+  private readonly cancelPointers = (): void => {
+    const ids = [...this.pointers.keys()];
+    this.pointers.clear();
+    ids.forEach((id) => this.releasePointer(id));
+    this.renderer.domElement.style.cursor = 'grab';
+  };
+
+  private readonly resize = (): void => {
+    if (this.disposed) return;
+    const width = Math.max(1, this.container.clientWidth);
+    const height = Math.max(1, this.container.clientHeight);
+    const aspect = width / height;
+    const halfHeight = this.span / (2 * Math.min(1, aspect));
+    this.camera.left = -halfHeight * aspect;
+    this.camera.right = halfHeight * aspect;
+    this.camera.top = halfHeight;
+    this.camera.bottom = -halfHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(width, height, false);
     this.invalidate();
   };
 

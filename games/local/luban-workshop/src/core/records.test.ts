@@ -111,3 +111,13 @@ test('storage failures retain achievements in memory and return a failed-save si
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
+
+test('restoring a partially dismantled puzzle does not claim complete disassembly', () => {
+  const id = 'partial-reassembly-test';
+  storage.recordCompletion(id, { hints: 0, disassemblyMoves: null }, 2);
+  assert.equal(storage.completed(id), true);
+  assert.equal(storage.dismantled(id), false);
+  assert.equal(storage.record(id).independent, false);
+  storage.markDismantled(id);
+  assert.equal(storage.dismantled(id), true);
+});

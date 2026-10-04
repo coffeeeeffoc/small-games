@@ -129,8 +129,17 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#toggle-controls'));
     await expect(frame.locator('#controls')).toBeVisible();
     await expect(frame.locator('#toggle-controls')).toHaveAttribute('aria-expanded', 'true');
-    await click(frame.locator('[data-piece]').first());
-    await click(frame.locator('#nudge-positive'));
+    // Real interlocking structures need the currently movable piece/group.
+    await click(frame.locator('#hint'));
+    const hint = await frame.locator('#app').evaluate(() => globalThis.lubanSnapshot().hint);
+    expect(hint).toBeTruthy();
+    await click(
+      frame.locator(
+        hint.kind === 'rotate'
+          ? `#rotate-${hint.direction > 0 ? 'positive' : 'negative'}`
+          : `#nudge-${hint.direction > 0 ? 'positive' : 'negative'}`,
+      ),
+    );
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
     await expect(frame.locator('#status')).toBeVisible();
     await click(frame.locator('#undo'));

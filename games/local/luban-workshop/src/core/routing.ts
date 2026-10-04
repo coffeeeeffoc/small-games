@@ -1,5 +1,5 @@
 import { axes, axisIndex, EPSILON, finiteVector, pieceBounds, sweepMove } from './collision.ts';
-import type { Axis, Box, Level, Offsets, Vec3 } from './types.ts';
+import type { Axis, Box, Level, Offsets, Orientations, Vec3 } from './types.ts';
 
 interface RouteStep {
   axis: Axis;
@@ -21,6 +21,7 @@ export function routePiece(
   offsets: Offsets,
   pieceId: string,
   target: Vec3,
+  orientations?: Orientations,
 ): RouteStep[] | null {
   const piece = level.pieces.find((candidate) => candidate.id === pieceId);
   if (
@@ -30,10 +31,10 @@ export function routePiece(
   )
     return null;
   const start = offsets[pieceId]!;
-  const original = pieceBounds(piece, [0, 0, 0]);
+  const original = pieceBounds(piece, [0, 0, 0], orientations?.[pieceId]);
   const stationary = level.pieces
     .filter((item) => item.id !== pieceId)
-    .map((item) => pieceBounds(item, offsets[item.id]!));
+    .map((item) => pieceBounds(item, offsets[item.id]!, orientations?.[item.id]));
   if ([original, ...stationary].some((box) => !finiteVector(box.min) || !finiteVector(box.max)))
     return null;
 
@@ -156,7 +157,7 @@ export function routePiece(
   if (!route) return null;
   const current: Offsets = { ...offsets, [pieceId]: [...start] as unknown as Vec3 };
   for (const step of route) {
-    const result = sweepMove(level, current, pieceId, step.targetOffset, step.axis);
+    const result = sweepMove(level, current, pieceId, step.targetOffset, step.axis, orientations);
     if (
       !Number.isFinite(result.actualOffset) ||
       Math.abs(result.actualOffset - step.targetOffset) > EPSILON
