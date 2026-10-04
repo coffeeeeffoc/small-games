@@ -233,7 +233,7 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     expect(
       await arena.evaluate((element, { x, y }) => {
         const rect = element.getBoundingClientRect();
-        return document.elementFromPoint(rect.left + x, rect.top + y) === element;
+        return globalThis.document.elementFromPoint(rect.left + x, rect.top + y) === element;
       }, target.position),
     ).toBe(true);
     if (mobile) await arena.tap(target);
