@@ -956,6 +956,7 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       .toBe(false);
     const bounds = await canvas.boundingBox();
     const rotated = await canvas.evaluate(() => {
+      const { DOMMatrix, getComputedStyle, document } = globalThis;
       const transform = new DOMMatrix(
         getComputedStyle(document.getElementById('GameDiv')).transform,
       );
