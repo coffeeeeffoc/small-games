@@ -1,6 +1,7 @@
 import { EventKeyboard, EventTouch, input, Input, KeyCode, sys, view } from 'cc';
 import { clamp, type KartInput } from './KartConfig';
 import { selectionRows, type Selection } from './Selection';
+import { readyLayout, settingsLayout, contains } from './HUDLayout';
 import type { RaceManager } from './RaceManager';
 export class KartController {
   keys = new Set<number>();
@@ -18,6 +19,9 @@ export class KartController {
     private help: () => void = () => {},
     private share: () => void = () => {},
     private toggleMode: () => void = () => {},
+    private settings: () => void = () => {},
+    private settingsOpen: () => boolean = () => false,
+    private fullscreen: () => void = () => {},
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -37,6 +41,13 @@ export class KartController {
   keyDown(e: EventKeyboard) {
     if (this.blocked()) return;
     if (this.keys.has(e.keyCode)) return;
+    if (this.settingsOpen()) {
+      this.keys.add(e.keyCode);
+      if (e.keyCode === KeyCode.ESCAPE || e.keyCode === KeyCode.ENTER) this.settings();
+      if (e.keyCode === KeyCode.KEY_M) this.sound();
+      if (e.keyCode === KeyCode.KEY_H) this.help();
+      return;
+    }
     if ([KeyCode.KEY_W, KeyCode.KEY_A, KeyCode.KEY_S, KeyCode.KEY_D,
       KeyCode.ARROW_UP, KeyCode.ARROW_LEFT, KeyCode.ARROW_DOWN, KeyCode.ARROW_RIGHT,
       KeyCode.SPACE].includes(e.keyCode) && this.touchInput) {
@@ -134,34 +145,40 @@ export class KartController {
       r = this.race(),
       id = e.getID();
     if (id === null) return;
-    if (Math.abs(p.x * 960 - 70) <= 48 && Math.abs(p.y * 540 - 240) <= 24) {
-      this.help();
+    const x = p.x * 960 - 480, y = p.y * 540 - 270;
+    if (this.settingsOpen()) {
+      if (contains(settingsLayout.close, x, y)) this.settings();
+      else if (contains(settingsLayout.sound, x, y)) this.sound();
+      else if (contains(settingsLayout.help, x, y)) this.help();
+      else if (contains(settingsLayout.fullscreen, x, y)) this.fullscreen();
       return;
     }
-    if (Math.abs(p.x * 960 - 70) <= 48 && Math.abs(p.y * 540 - 360) <= 24) {
-      this.sound();
-      return;
+    if (contains(settingsLayout.open, x, y)) {
+      this.clear(); this.settings(); return;
     }
-    if (Math.abs(p.x * 960 - 70) <= 36 && Math.abs(p.y * 540 - 300) <= 24) {
-      r.networked ? this.garage() : r.phase === 'paused' ? r.resume() : r.pause();
-      this.clear();
-      return;
+    if (contains(settingsLayout.pause, x, y) && (r.phase === 'racing' || r.phase === 'countdown')) {
+      r.networked ? this.garage() : r.pause();
+      this.clear(); return;
     }
-    if (r.phase === 'ready' || r.phase === 'finished' || r.phase === 'paused') {
-      if (r.phase === 'ready' && !r.networked && p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
-        this.clear();
-        this.toggleMode();
-        return;
+    if (r.phase === 'ready') {
+      if (!r.networked && contains(readyLayout.mode, x, y)) {
+        this.clear(); this.toggleMode(); return;
       }
-      if (r.phase === 'ready' && p.x > 0.17 && p.x < 0.83) {
-        const row = selectionRows.find(({ y }) => Math.abs(p.y * 540 - 270 - y) <= 19)?.field;
+      if (Math.abs(x - readyLayout.x) <= readyLayout.width / 2) {
+        const row = selectionRows.find(({ y: rowY }) => Math.abs(y - rowY) <= 21)?.field;
         if (row) {
-          this.clear();
-          this.choose(row, p.x < 0.5 ? -1 : 1);
-          return;
+          this.clear(); this.choose(row, x < readyLayout.x ? -1 : 1); return;
         }
       }
-      if (r.phase !== 'ready' && p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
+      if (contains(readyLayout.start, x, y)) {
+        this.clear();
+        if (r.loadError) this.garage();
+        else if (r.loaded) this.start();
+      }
+      return;
+    }
+    if (r.phase === 'finished' || r.phase === 'paused') {
+      if (p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
         this.garage();
         return;
@@ -177,9 +194,7 @@ export class KartController {
       }
       if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
-        if (r.phase === 'ready' && r.loadError) this.garage();
-        else if (r.phase === 'ready' && r.loaded) this.start();
-        else if (r.phase === 'paused') r.resume();
+        if (r.phase === 'paused') r.resume();
         else if (r.phase === 'finished') this.restart();
       }
       return;
@@ -211,7 +226,7 @@ export class KartController {
     if (id !== null) this.touches.delete(id);
   }
   read(): KartInput {
-    if (this.blocked())
+    if (this.blocked() || this.settingsOpen())
       return { steer: 0, throttle: 0, brake: true, drift: false, reverse: false, nitro: false };
     const phase = this.race().phase;
     if (phase !== 'racing' && phase !== 'countdown')

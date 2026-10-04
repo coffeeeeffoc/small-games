@@ -955,8 +955,18 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().loading), { timeout: 120000 })
       .toBe(false);
     const bounds = await canvas.boundingBox();
-    const scale = Math.min(bounds.width / 960, bounds.height / 540);
-    const position = { x: bounds.width / 2, y: bounds.height / 2 + 125 * scale };
+    const rotated = await canvas.evaluate(() => {
+      const transform = new DOMMatrix(
+        getComputedStyle(document.getElementById('GameDiv')).transform,
+      );
+      return transform.b > 0.5 && Math.abs(transform.a) < 0.01;
+    });
+    const width = rotated ? bounds.height : bounds.width;
+    const height = rotated ? bounds.width : bounds.height;
+    const scale = Math.min(width / 960, height / 540);
+    const x = width / 2 - 282 * scale;
+    const y = height / 2 + 163 * scale;
+    const position = rotated ? { x: bounds.width - y, y: x } : { x, y };
     await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase), { timeout: 30000 })

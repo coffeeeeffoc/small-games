@@ -109,14 +109,14 @@ test('ready HUD presents both race formats with separate reachable buttons and t
     const hud = new HUD(new SceneNode()), race = new RaceManager({}, 12, 4, mode);
     hud.update(race, idle, false);
     assert.equal(hud.garageButton.active, true);
-    assert.match(hud.button.string, mode === 'sprint' ? /一圈冲刺开跑/ : /3 圈竞速开跑/);
-    assert.match(hud.garageLabel.string, mode === 'sprint' ? /3 圈竞速/ : /一圈冲刺/);
+    assert.match(hud.button.string, /开跑/);
+    assert.match(hud.garageLabel.string, mode === 'sprint' ? /一圈冲刺/ : /三圈竞速/);
     const main = hud.button.node.position, other = hud.garageLabel.node.position;
     const mainWidth = hud.button.node.getComponent(Transform).contentSize.width;
     const otherWidth = hud.garageLabel.node.getComponent(Transform).contentSize.width;
-    assert(other.x + otherWidth / 2 < main.x - mainWidth / 2);
-    assert(Math.abs((other.x + 480) / 960 - .225) < .005);
-    assert(Math.abs((other.y + 270) / 540 - .27) < .005);
+    assert(other.y - 22 > main.y + 26, 'format and start touch targets have a gap');
+    assert(main.x + mainWidth / 2 < 0 && other.x + otherWidth / 2 < 0, 'ready controls leave the centre of the road visible');
+    assert.equal(hud.racingHUD.active, false, 'ready view has no overlapping race HUD or driving controls');
     assert.match(hud.top.string, mode === 'sprint' ? /\/ 1 圈/ : /\/ 3 圈/);
     race.networked = true; hud.update(race, idle, false);
     assert.equal(hud.garageButton.active, false, 'the solo format selector is not an option in a room');
@@ -134,5 +134,26 @@ test('short results show their own score, live driving goals and an actual next 
   assert.doesNotMatch(hud.leaderboard.string, /路线印章/);
   assert.match(hud.footer.string, /刷新本机纪录/);
   assert.match(hud.footer.string, /少碰一次/);
-  assert.match(hud.timer.string, /漂移加速 2 次/);
+  assert.match(hud.detail.string, /漂移加速 2 次/);
+  assert.equal(hud.racingHUD.active, false, 'race status is hidden behind results');
+});
+
+
+test('settings replaces the menu and race view restores only essential state', () => {
+  const hud = new HUD(new SceneNode()), race = new RaceManager();
+  hud.settingsVisible = true;
+  hud.update(race, idle, true);
+  assert.equal(hud.settings.active, true);
+  assert.equal(hud.panel.active, false);
+  assert.match(hud.sound.string, /关/);
+  hud.settingsVisible = false;
+  race.phase = 'racing'; race.time = 3;
+  hud.coach.enabled = false;
+  hud.update(race, idle, false);
+  assert.equal(hud.racingHUD.active, true);
+  assert.equal(hud.panel.active, false);
+  assert.equal(hud.coaching.node.parent.active, false);
+  assert.equal(hud.pause.string, '', 'pause uses geometry, never a font glyph');
+  assert.equal(hud.pauseIcon.node.active, true);
+  assert.equal(hud.noticeBackground.node.active, false, 'no empty message bar');
 });

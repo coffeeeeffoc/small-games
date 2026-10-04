@@ -12,25 +12,13 @@ import {
 import { buildTrack, ribbon } from './Track';
 import { loadArt, MeshBatch, placeModel } from './SceneArt';
 import { pointAt, projectOnTrack, type TrackData } from './TrackGenerator';
-import type { ThemeDefinition } from './ThemeDefinition';
+import type { ThemeDefinition, ThemeScenery } from './ThemeDefinition';
 import { buildGlacier } from './GlacierSample';
 import { sceneryFits } from './ThemeScenery';
 
 export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDefinition) {
   if (theme.id === 'seaside') return buildTrack(parent, track);
   const scenery = theme.scenery(track);
-  const [expansion, seaside] = await Promise.all([
-    loadArt('expansion/manifest', JsonAsset),
-    loadArt('manifest', JsonAsset),
-  ]);
-  if (!isValid(parent)) return;
-  const bounds = new Map<string, number[][]>();
-  for (const entry of expansion.json!.models)
-    bounds.set('expansion/' + entry.file.replace(/\.glb$/, ''), entry.bounds);
-  for (const entry of seaside.json!.models) {
-    const name = entry.file.replace(/\.glb$/, '');
-    bounds.set(`${name}/${name}`, entry.bounds);
-  }
   const b = new MeshBatch(),
     c = theme.colors;
   const groundY =
@@ -109,10 +97,23 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
     b.box('#fff7dd', p.x, p.y + 0.025, p.z, 0.18, 0.04, 3, p.heading);
   }
   b.build(parent, theme.name);
+  // Independent selected-theme resources share the same network window.
+  await Promise.all([
+    buildSurface(parent, track, theme),
+    buildModels(parent, track, scenery),
+  ]);
+}
+
+async function buildSurface(parent: Node, track: TrackData, theme: ThemeDefinition) {
   // A narrow textured shoulder keeps each authored terrain texture visible without hiding asphalt.
   if (theme.id === 'glacier') await buildGlacier(parent, track);
   else {
-    const texture = await loadArt(theme.roadTexture ?? 'asphalt/texture', Texture2D);
+    const [texture, terrain] = await Promise.all([
+      loadArt(theme.roadTexture ?? 'asphalt/texture', Texture2D),
+      theme.shoulderTexture === false
+        ? undefined
+        : loadArt(theme.shoulderTexture ?? `expansion/textures/${theme.id}/texture`, Texture2D),
+    ]);
     if (!isValid(parent)) return;
     texture.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
     const mat = new Material();
@@ -133,12 +134,7 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
       node.once(Node.EventType.NODE_DESTROYED, () => mesh.destroy());
       renderer.setMaterial(mat, 0);
     }
-    if (theme.shoulderTexture !== false) {
-      const terrain = await loadArt(
-        theme.shoulderTexture ?? `expansion/textures/${theme.id}/texture`,
-        Texture2D,
-      );
-      if (!isValid(parent)) return;
+    if (terrain) {
       terrain.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
       const shoulderMat = new Material();
       parent.once(Node.EventType.NODE_DESTROYED, () => shoulderMat.destroy());
@@ -169,6 +165,9 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
       }
     }
   }
+}
+
+async function buildModels(parent: Node, track: TrackData, scenery: ThemeScenery) {
   const placements = [...(scenery.models ?? [])];
   for (const row of scenery.roadside ?? [])
     for (let i = 0; i < row.count; i++) {
@@ -179,6 +178,18 @@ export async function buildTheme(parent: Node, track: TrackData, theme: ThemeDef
       if (projectOnTrack(track, x, z).distance < track.width / 2 + 5) continue;
       placements.push({ asset: row.asset, x, y: p.y, z, scale: row.scale, yaw: p.heading });
     }
+  const catalogs = Array.from(new Set(placements.map((p) =>
+    p.asset.startsWith('expansion/') ? 'expansion/manifest' : 'manifest',
+  )));
+  const bounds = new Map<string, number[][]>();
+  await Promise.all(catalogs.map(async (path) => {
+    const manifest = await loadArt(path, JsonAsset);
+    for (const entry of manifest.json!.models) {
+      const name = entry.file.replace(/\.glb$/, '');
+      bounds.set(path === 'expansion/manifest' ? 'expansion/' + name : `${name}/${name}`, entry.bounds);
+    }
+  }));
+  if (!isValid(parent)) return;
   const safePlacements = placements.filter((p) => {
     const box = bounds.get(p.asset);
     if (!box) throw new Error(`Missing scenery bounds: ${p.asset}`);

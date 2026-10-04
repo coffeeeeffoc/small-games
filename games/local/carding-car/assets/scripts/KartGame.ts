@@ -101,6 +101,42 @@ export class KartGame extends Component {
     this.hud.records = this.records;
     this.hud.previousBest = this.records[0]?.time;
   }
+  settingsPausedRace = false;
+  toggleSettings = () => {
+    this.controller?.clear();
+    if (!this.hud.settingsVisible) {
+      this.settingsPausedRace = !this.race.networked && ['racing', 'countdown'].includes(this.race.phase);
+      if (this.settingsPausedRace) this.race.pause();
+      this.hud.settingsVisible = true;
+    } else {
+      this.hud.settingsVisible = false;
+      if (this.settingsPausedRace) this.race.resume();
+      this.settingsPausedRace = false;
+    }
+  };
+  toggleSound = () => {
+    this.muted = !this.muted;
+    this.audio.activate(this.muted);
+    this.saveSettings();
+  };
+  toggleHelp = () => {
+    if (this.race.networked) {
+      this.hud.rulesVisible = !this.hud.rulesVisible;
+      return;
+    }
+    this.hud.coach.enabled = !this.hud.coach.enabled;
+    if (this.hud.coach.enabled) this.hud.coach.step = 0;
+    this.saveSettings();
+  };
+  saveSettings() {
+    try {
+      sys.localStorage.setItem('kart-settings-v1', JSON.stringify({ muted: this.muted, coaching: this.hud.coach.enabled }));
+    } catch { /* Storage is optional in private browsing and native previews. */ }
+  }
+  toggleFullscreen = () => {
+    const display = (globalThis as typeof globalThis & { KartDisplay?: { toggleFullscreen(): unknown } }).KartDisplay;
+    if (sys.isBrowser) display?.toggleFullscreen();
+  };
   choose = (field: keyof Selection, delta: number) => {
     if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
     this.selection = cycleSelection(this.selection, field, delta);
@@ -281,15 +317,17 @@ export class KartGame extends Component {
     this.camera.camera.visibility = Layers.Enum.DEFAULT;
     this.hud = new HUD(this.node);
     this.audio = new AudioFeedback(this.node);
+    this.hud.coach.enabled = false;
     try {
-      this.selection = readSelection(sys.localStorage.getItem('kart-selection-v1'));
       this.passport = readPassport(sys.localStorage.getItem('kart-route-passport-v1'));
-      if (sys.localStorage.getItem('kart-driving-coach-v1') === 'done')
-        this.hud.coach.enabled = false;
+      const settings = JSON.parse(sys.localStorage.getItem('kart-settings-v1') || '{}');
+      this.muted = settings?.muted === true;
+      this.hud.coach.enabled = settings?.coaching === true;
     } catch {}
     const launch = sys.isBrowser
         ? Object.fromEntries(new URLSearchParams(location.search))
         : platformSharing()?.query || {};
+    this.selection = readSelection(JSON.stringify(launch));
     const invitation = readInvitation(launch);
     if (invitation) { this.selection = invitation.selection; this.mode = 'standard'; }
     else if ((this.activeChallenge = sys.isBrowser ? readKartChallengeSearch(location.search) : readKartChallenge(launch))) {
@@ -301,28 +339,31 @@ export class KartGame extends Component {
     this.controller = new KartController(
       () => this.race,
       () => this.restart(),
-      () => {
-        this.muted = !this.muted;
-        this.audio.activate(this.muted);
-      },
+      this.toggleSound,
       () => this.audio.activate(this.muted),
       this.choose,
       this.enterGarage,
       () =>
         !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
       () => this.loadSelection(true),
-      () => {
-        if (this.race.networked) {
-          this.hud.rulesVisible = !this.hud.rulesVisible;
-          return;
-        }
-        const coach = this.hud.coach;
-        coach.enabled = !coach.enabled;
-        if (coach.enabled) coach.step = 0;
-      },
+      this.toggleHelp,
       this.shareChallenge,
       this.toggleMode,
+      this.toggleSettings,
+      () => this.hud.settingsVisible,
+      this.toggleFullscreen,
     );
+    const display = (globalThis as typeof globalThis & { KartDisplay?: { setControls(controls: Record<string, () => void>): void } }).KartDisplay;
+    if (sys.isBrowser) display?.setControls({
+      pause: () => {
+        if (this.hud.settingsVisible) return;
+        this.controller.clear();
+        if (this.race.networked) this.enterGarage();
+        else if (this.race.phase === 'paused') this.race.resume();
+        else this.race.pause();
+      },
+      settings: () => { if (!this.roomPanel?.root.active) this.toggleSettings(); },
+    });
     this.loadSelection();
     this.setupMultiplayer();
     game.on(Game.EVENT_HIDE, this.hide, this);
@@ -387,6 +428,7 @@ export class KartGame extends Component {
           records: this.records.map((record) => ({ ...record })),
           hud: {
             menuVisible: this.hud.panel.active,
+            settingsVisible: this.hud.settingsVisible,
             rulesVisible: this.hud.rulesVisible,
             coachingVisible: this.hud.coaching.node.parent!.active,
             help: this.hud.help.string,
@@ -701,9 +743,11 @@ export class KartGame extends Component {
     this.uiTime += dt;
     if (this.uiTime > 0.08) {
       this.hud.update(this.race, input, this.muted);
+      if (this.roomPanel) this.roomPanel.openButton.node.parent!.active =
+        !!this.multiplayer?.endpoint && this.race.phase === 'ready' && !this.hud.settingsVisible;
       if (online) {
         this.syncRankedResult(online);
-        this.hud.panel.active = this.race.phase === 'finished' && !this.roomPanel?.root.active;
+        this.hud.panel.active = this.race.phase === 'finished' && !this.roomPanel?.root.active && !this.hud.settingsVisible;
         this.hud.standings.fontSize = this.race.drivers.length > 4 ? 15 : 18;
         this.hud.standings.lineHeight = this.race.drivers.length > 4 ? 18 : 24;
         if (this.race.phase === 'finished') {
@@ -734,6 +778,9 @@ export class KartGame extends Component {
     this.loadVersion++;
     game.off(Game.EVENT_HIDE, this.hide, this);
     this.controller?.destroy();
-    if (sys.isBrowser) window.removeEventListener('blur', this.hide);
+    if (sys.isBrowser) {
+      window.removeEventListener('blur', this.hide);
+      (globalThis as typeof globalThis & { KartDisplay?: { setControls(controls: Record<string, () => void>): void } }).KartDisplay?.setControls({});
+    }
   }
 }

@@ -59,6 +59,10 @@ function loadingScreen() {
         engine.game.onPostBaseInitDelegate.add(() => {
           engine.settings.overrideSettings('splashScreen', 'totalTime', 0);
           engine.settings.overrideSettings('splashScreen', 'logo', { type: 'none' });
+          // Set before screen.init(): Creator handles both canvas rotation and
+          // touch coordinates, even when the browser refuses orientation.lock.
+          engine.settings.overrideSettings('screen', 'orientation', 'landscape');
+          engine.settings.overrideSettings('screen', 'exactFitScreen', true);
         });
         engine.game.once('kart:loaded', loaded);
         engine.game.once('kart:load-error', fail);
@@ -95,21 +99,18 @@ export async function installLoading(directory) {
         font-family:system-ui,"Microsoft YaHei",sans-serif; }
       #kart-loading::before { content:""; position:absolute; inset:0; background:linear-gradient(0deg,#102f49 0%,#173c55e0 22%,#173c5500 75%); }
       #kart-loading .intro { position:relative; width:min(540px,100%); }
-      #kart-loading .eyebrow { color:#69dfc0; font-size:14px; letter-spacing:.18em; }
-      #kart-loading h1 { margin:8px 0; color:#fff6dc; font-size:clamp(32px,5vw,58px); font-weight:800; }
-      #kart-loading .tip { margin:0 0 22px; color:#d1e9e4; font-size:clamp(14px,2vw,18px); }
+      #kart-loading h1 { margin:8px 0 18px; color:#fff6dc; font-size:clamp(28px,4vmax,42px); font-weight:800; }
       #kart-loading progress { display:block; width:min(360px,100%); height:8px; accent-color:#ffd15a; }
       /* Creator's generic div display rule must respect hidden controls. */
       [hidden] { display:none !important; }
-      #kart-loading-status { font-size:14px; line-height:1.6; margin:12px 0 0; }
+      #kart-loading-status { font-size:12px; line-height:1.6; margin:10px 0 0; }
       #kart-loading-retry { margin-top:12px; min-height:44px; padding:8px 22px; border:0;
         border-radius:12px; background:#ffd15a; color:#173c55; font:700 16px system-ui; cursor:pointer; }
-      @media (max-height:440px) { #kart-loading { padding-top:16px; padding-bottom:16px; } #kart-loading .tip { margin-bottom:12px; } }
+      @media (max-height:440px) { #kart-loading { padding-top:16px; padding-bottom:16px; } }
       @media (prefers-reduced-motion:reduce) { #kart-loading progress { visibility:hidden; } }
     </style></head>`)
     .replace('<body>', `<body><section id="kart-loading" aria-label="浪湾卡丁车加载中" aria-busy="true">
-      <div class="intro"><div class="eyebrow">海湾赛道 · 漂移出发</div><h1>浪湾卡丁车</h1>
-      <p class="tip">按住漂移，松手加速。下一个弯，漂亮超车。</p>
+      <div class="intro"><h1>浪湾卡丁车</h1>
       <progress aria-label="正在加载游戏"></progress><p id="kart-loading-status" role="status">正在准备出发…</p>
       <button id="kart-loading-retry" type="button" hidden>重新加载</button></div>
     </section><script>(${loadingScreen.toString()})();</script>`)
