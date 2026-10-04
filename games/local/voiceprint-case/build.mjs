@@ -6,7 +6,14 @@ const manifest = validateManifest(
   JSON.parse(await readFile(new URL('assets/audio/manifest.json', root), 'utf8')),
 );
 await mkdir(new URL('dist/', root), { recursive: true });
-for (const file of ['index.html', 'style.css', 'main.mjs', 'audio.mjs', 'levels.mjs'])
+for (const file of [
+  'index.html',
+  'style.css',
+  'main.mjs',
+  'audio.mjs',
+  'levels.mjs',
+  'recording.mjs',
+])
   await cp(new URL(file, root), new URL('dist/' + file, root));
 await mkdir(new URL('dist/assets/audio/', root), { recursive: true });
 await cp(

@@ -431,7 +431,7 @@ p {
 }
 
 .game {
-  max-width: 640px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 31px 0;
 }
@@ -490,6 +490,8 @@ progress::-moz-progress-bar {
   background: var(--amber);
 }
 .scene-card {
+  max-width: 640px;
+  margin-inline: auto;
   padding: 22px 24px 15px;
   background: var(--paper);
   border-radius: 14px;
@@ -563,12 +565,13 @@ progress::-moz-progress-bar {
   line-height: 1.8;
 }
 .scene-play {
-  display: flex;
+  display: block;
   width: 100%;
   min-height: 81px;
   align-items: center;
   gap: 15px;
-  padding: 14px 19px;
+  padding: 0;
+  overflow: hidden;
   background: #e5e8dc;
   border: 1px solid #d2d8c8;
   border-radius: 10px;
@@ -667,6 +670,70 @@ progress::-moz-progress-bar {
 .comparison {
   margin-top: 25px;
 }
+.comparison-hint {
+  margin: -4px 0 16px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.swipe-hint {
+  display: none;
+}
+.recording-frame {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  background: #172422;
+}
+.recording-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.recording-badge,
+.recording-caption {
+  position: absolute;
+  color: #e0e5d8;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+.recording-badge {
+  right: 12px;
+  top: 12px;
+  padding: 4px 8px;
+  background: rgb(7 16 17 / 78%);
+  border: 1px solid rgb(217 229 216 / 28%);
+  border-radius: 4px;
+}
+.recording-caption {
+  left: 14px;
+  bottom: 22px;
+  padding: 3px 6px;
+  background: rgb(7 16 17 / 72%);
+}
+.recording-control {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px;
+}
+.scene-play .recording-control {
+  justify-content: flex-start;
+  padding: 12px 15px;
+}
+.recording-play-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
 .comparison-heading {
   display: flex;
   gap: 8px;
@@ -690,7 +757,7 @@ progress::-moz-progress-bar {
 .candidate {
   border: 1px solid #48604b;
   border-radius: 11px;
-  padding: 17px 13px 10px;
+  padding: 10px 8px 5px;
   background: #20392d;
   transition:
     border-color 150ms,
@@ -698,35 +765,45 @@ progress::-moz-progress-bar {
 }
 .candidate-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin: 0 5px 10px;
 }
 .candidate-letter {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: #314b3a;
   color: #e3e6d7;
   font-family: Georgia, serif;
-  font-size: 24px;
+  font-size: 21px;
 }
 .candidate-caption {
   color: var(--muted);
   font-size: 10px;
   letter-spacing: 1px;
 }
+.candidate-caption small {
+  display: block;
+  font-size: 9px;
+  opacity: 0.75;
+  letter-spacing: 0;
+  margin-top: 3px;
+}
 .listen-button {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   width: 100%;
   background: #e8ebde;
   color: #284233;
   font-size: 13px;
   min-height: 46px;
-  padding: 10px 5px;
-  gap: 6px;
+  padding: 0;
+  gap: 0;
   border-radius: 7px;
 }
 .listen-button svg {
@@ -742,7 +819,7 @@ progress::-moz-progress-bar {
 .listen-button[aria-pressed='true'] svg {
   display: none;
 }
-.listen-button[aria-pressed='true']::before {
+.listen-button[aria-pressed='true'] .recording-play-icon::before {
   content: '';
   width: 11px;
   height: 11px;
@@ -1180,6 +1257,26 @@ progress::-moz-progress-bar {
   .field-note {
     gap: 8px;
   }
+  .candidates {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 2px;
+    overscroll-behavior-x: contain;
+    padding: 5px 3px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #9aa783 #20392d;
+  }
+  .candidate {
+    flex: 0 0 86%;
+    min-width: 0;
+    scroll-snap-align: center;
+  }
+  .swipe-hint {
+    display: block;
+    color: var(--amber);
+    margin-top: 4px;
+  }
 }
 @media (max-width: 600px) {
   .app-shell {
@@ -1320,8 +1417,7 @@ progress::-moz-progress-bar {
     font-size: 11px;
   }
   .scene-play {
-    gap: 12px;
-    padding: 12px 13px;
+    padding: 0;
     min-height: 75px;
   }
   .play-disc {
@@ -1357,12 +1453,12 @@ progress::-moz-progress-bar {
     gap: 9px;
   }
   .candidate {
-    padding: 14px 8px 7px;
+    padding: 10px 7px 5px;
     border-radius: 9px;
   }
   .candidate-header {
-    gap: 6px;
-    margin-bottom: 13px;
+    gap: 9px;
+    margin-bottom: 10px;
   }
   .candidate-letter {
     width: 37px;
@@ -1370,12 +1466,12 @@ progress::-moz-progress-bar {
     font-size: 22px;
   }
   .candidate-caption {
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 0.5px;
   }
   .listen-button {
     font-size: 12px;
-    gap: 4px;
+    gap: 0;
   }
   .select-button {
     font-size: 11px;
@@ -1469,8 +1565,7 @@ progress::-moz-progress-bar {
     padding-inline: 14px;
   }
   .scene-play {
-    gap: 9px;
-    padding-inline: 10px;
+    padding: 0;
   }
   .scene-play-text > .button-label {
     font-size: 12px;

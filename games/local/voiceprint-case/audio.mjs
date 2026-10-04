@@ -153,7 +153,7 @@ export class AudioPlayer {
       noise.start(startAt);
     }
     this.active = label;
-    this.onChange(label);
+    this.onChange(label, { context: this.context, startAt, buffer });
     voice.onended = () => {
       if (token !== this.token) return;
       this.stop();
