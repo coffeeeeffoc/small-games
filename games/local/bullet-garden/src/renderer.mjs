@@ -1,4 +1,6 @@
-import { ENEMIES, LEVELS, SEEDS } from './config.mjs';
+import { ENEMIES, SEEDS } from './config.mjs';
+import { clientToElement } from './display.mjs';
+import { getRunLevel } from './simulation.mjs';
 import * as CONTENT from './config.mjs';
 import {
   tint,
@@ -1771,9 +1773,9 @@ export class GardenRenderer {
     return this[key].getContext('2d').isContextLost?.() ? null : this[key];
   }
   resize() {
-    const rect = this.canvas.getBoundingClientRect();
-    this.width = Math.max(1, rect.width || window.innerWidth);
-    this.height = Math.max(1, rect.height || window.innerHeight);
+    // CSS rotation swaps the visual bounding box; retain the logical canvas axes.
+    this.width = Math.max(1, this.canvas.clientWidth || window.innerWidth);
+    this.height = Math.max(1, this.canvas.clientHeight || window.innerHeight);
     // Bound backing-store memory on high-DPR / large displays. Camera and input
     // remain in CSS pixels, so rendering resolution never changes hit targets.
     const dpr = Math.min(
@@ -1824,10 +1826,10 @@ export class GardenRenderer {
     }
   }
   screenToWorld(clientX, clientY) {
-    const rect = this.canvas.getBoundingClientRect();
+    const point = clientToElement(this.canvas, clientX, clientY);
     return {
-      x: (clientX - rect.left - this.offsetX) / this.scale,
-      y: (clientY - rect.top - this.offsetY) / this.scale,
+      x: (point.x - this.offsetX) / this.scale,
+      y: (point.y - this.offsetY) / this.scale,
     };
   }
   worldToScreen(x, y) {
@@ -1952,7 +1954,7 @@ export class GardenRenderer {
     this.updateCamera(state);
     const c = this.ctx,
       t = Number.isFinite(state.time) ? state.time : time || performance.now() / 1000;
-    const level = LEVELS[state.levelId] || LEVELS.ruins;
+    const level = getRunLevel(state);
     if (this.backdropDefinition !== level) {
       this.releaseArtwork();
       this.backdropDefinition = level;
@@ -2158,7 +2160,7 @@ export class GardenRenderer {
       const distance = Math.hypot(x - px, y - py);
       const dx = distance > 0.01 ? (x - px) / distance : Math.cos(state.player.angle || 0);
       const dy = distance > 0.01 ? (y - py) / distance : Math.sin(state.player.angle || 0);
-      const bounds = (LEVELS[state.levelId] || LEVELS.ruins).bounds;
+      const bounds = getRunLevel(state).bounds;
       let travel =
         definition.shape === 'line' ? definition.range : Math.min(distance, definition.range);
       {
@@ -2230,9 +2232,8 @@ export class GardenRenderer {
 
 function iconContext(canvas, width, height) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const rect = canvas.getBoundingClientRect();
-  const w = rect.width || width,
-    h = rect.height || height;
+  const w = canvas.clientWidth || width,
+    h = canvas.clientHeight || height;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   const c = canvas.getContext('2d');

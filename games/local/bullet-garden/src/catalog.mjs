@@ -4,6 +4,7 @@
 export const BOONS = {
   shrub: Object.freeze({
     id: 'shrub',
+    unlockPlayerLevel: 1,
     kind: 'thorn',
     name: '花叶灌木',
     color: '#81da65',
@@ -16,6 +17,7 @@ export const BOONS = {
   }),
   trench: Object.freeze({
     id: 'trench',
+    unlockPlayerLevel: 2,
     kind: 'trench',
     name: '缓行沟渠',
     color: '#c2a878',
@@ -27,6 +29,7 @@ export const BOONS = {
   }),
   frost: Object.freeze({
     id: 'frost',
+    unlockPlayerLevel: 3,
     kind: 'frost',
     name: '霜冻花圃',
     color: '#a0e5fa',
@@ -39,6 +42,7 @@ export const BOONS = {
   }),
   poison: Object.freeze({
     id: 'poison',
+    unlockPlayerLevel: 4,
     kind: 'poison',
     name: '毒雾花丛',
     color: '#b1cd6c',
@@ -51,6 +55,7 @@ export const BOONS = {
   }),
   ice: Object.freeze({
     id: 'ice',
+    unlockPlayerLevel: 3,
     kind: 'ice',
     name: '寒冰柱',
     color: '#67d4ff',
@@ -59,11 +64,11 @@ export const BOONS = {
     life: 12,
     radius: 28,
     health: 105,
-    unlockPlayerLevel: 1,
     art: 'docs/design/concepts/growth-weapons-plants.png',
   }),
   mushroom: Object.freeze({
     id: 'mushroom',
+    unlockPlayerLevel: 4,
     kind: 'mushroom',
     name: '爆炸蘑菇',
     color: '#ffb34b',
@@ -72,11 +77,11 @@ export const BOONS = {
     life: 2.4,
     radius: 23,
     health: 1,
-    unlockPlayerLevel: 1,
     art: 'docs/design/concepts/growth-weapons-plants.png',
   }),
   sunflower: Object.freeze({
     id: 'sunflower',
+    unlockPlayerLevel: 2,
     kind: 'sunflower',
     name: '暖阳花',
     color: '#f5d467',
@@ -85,11 +90,11 @@ export const BOONS = {
     life: 12,
     radius: 24,
     health: 45,
-    unlockPlayerLevel: 2,
     art: 'docs/design/concepts/growth-weapons-plants.png',
   }),
   stormreed: Object.freeze({
     id: 'stormreed',
+    unlockPlayerLevel: 5,
     kind: 'stormreed',
     name: '引雷芦',
     color: '#79dfef',
@@ -98,11 +103,11 @@ export const BOONS = {
     life: 12,
     radius: 23,
     health: 55,
-    unlockPlayerLevel: 4,
     art: 'docs/design/concepts/growth-weapons-plants.png',
   }),
   bloomturret: Object.freeze({
     id: 'bloomturret',
+    unlockPlayerLevel: 6,
     kind: 'bloomturret',
     name: '花瓣炮',
     color: '#f193d4',
@@ -111,7 +116,6 @@ export const BOONS = {
     life: 13,
     radius: 26,
     health: 65,
-    unlockPlayerLevel: 6,
     art: 'docs/design/concepts/growth-weapons-plants.png',
   }),
 };
@@ -120,6 +124,7 @@ export const BOONS = {
 export const SKILLS = Object.freeze({
   blast: Object.freeze({
     id: 'blast',
+    unlockPlayerLevel: 2,
     name: '花火爆破',
     color: '#ffbc68',
     shape: 'circle',
@@ -135,6 +140,7 @@ export const SKILLS = Object.freeze({
   }),
   gale: Object.freeze({
     id: 'gale',
+    unlockPlayerLevel: 2,
     name: '回旋大风',
     color: '#b7edda',
     shape: 'circle',
@@ -151,6 +157,7 @@ export const SKILLS = Object.freeze({
   }),
   cart: Object.freeze({
     id: 'cart',
+    unlockPlayerLevel: 3,
     name: '冲锋花车',
     color: '#e6b76b',
     shape: 'line',
@@ -166,6 +173,7 @@ export const SKILLS = Object.freeze({
   }),
   horse: Object.freeze({
     id: 'horse',
+    unlockPlayerLevel: 4,
     name: '踏风战马',
     color: '#d1b4f7',
     shape: 'line',
@@ -181,6 +189,7 @@ export const SKILLS = Object.freeze({
   }),
   laser: Object.freeze({
     id: 'laser',
+    unlockPlayerLevel: 5,
     name: '日光射线',
     color: '#ffee97',
     shape: 'line',
@@ -198,6 +207,7 @@ export const SKILLS = Object.freeze({
 export const UPGRADES = [
   {
     id: 'attack-power',
+    unlockPlayerLevel: 1,
     name: '饱满弹芯',
     description: '普通子弹伤害 +25%。',
     category: 'weapon',
@@ -209,6 +219,7 @@ export const UPGRADES = [
   },
   {
     id: 'attack-speed',
+    unlockPlayerLevel: 1,
     name: '疾风扳机',
     description: '自动射击频率 +18%。',
     category: 'weapon',
@@ -220,6 +231,7 @@ export const UPGRADES = [
   },
   {
     id: 'multishot',
+    unlockPlayerLevel: 2,
     name: '花瓣散射',
     description: '每次射击多 1 发扇形子弹，单发伤害小幅降低。',
     category: 'weapon',
@@ -231,6 +243,7 @@ export const UPGRADES = [
   },
   {
     id: 'burst',
+    unlockPlayerLevel: 3,
     name: '回声连击',
     description: '每轮射击追加 1 次短促连射，连射伤害为 65%。',
     category: 'weapon',
@@ -242,6 +255,7 @@ export const UPGRADES = [
   },
   {
     id: 'ricochet',
+    unlockPlayerLevel: 4,
     name: '回旋弹道',
     description: '子弹碰到边界可多反弹 1 次并延长射程。反弹过的子弹不计打空。',
     category: 'weapon',
@@ -253,6 +267,7 @@ export const UPGRADES = [
   },
   {
     id: 'ice-shot',
+    unlockPlayerLevel: 3,
     name: '寒霜弹',
     description: '子弹使敌人减速 25%，持续 1.5 秒；每级再增强 10%。',
     category: 'weapon',
@@ -264,6 +279,7 @@ export const UPGRADES = [
   },
   {
     id: 'fire-shot',
+    unlockPlayerLevel: 4,
     name: '灼热弹',
     description: '子弹附加燃烧，每秒造成 6 点伤害，持续 2 秒。',
     category: 'weapon',
@@ -275,6 +291,7 @@ export const UPGRADES = [
   },
   {
     id: 'explosive-shot',
+    unlockPlayerLevel: 5,
     name: '爆裂弹',
     description: '主弹命中引发小范围爆炸，造成子弹伤害的 35%。',
     category: 'weapon',
@@ -286,6 +303,7 @@ export const UPGRADES = [
   },
   {
     id: 'split-shot',
+    unlockPlayerLevel: 5,
     name: '枝杈分裂',
     description: '主弹结束时分裂出 2 发短程碎片，伤害为主弹的 40%；每级多 1 发。',
     category: 'weapon',
@@ -297,6 +315,7 @@ export const UPGRADES = [
   },
   {
     id: 'split-explosion',
+    unlockPlayerLevel: 6,
     name: '碎星花火',
     description: '分裂碎片命中时爆炸，造成碎片伤害的 40%，不会再次分裂。',
     category: 'weapon',
@@ -309,6 +328,7 @@ export const UPGRADES = [
   },
   {
     id: 'wild-heart',
+    unlockPlayerLevel: 1,
     name: '荒野之心',
     description: '生命上限 +25，恢复 40 生命，冲刺冷却缩短 0.3 秒。',
     category: 'survival',
@@ -332,6 +352,7 @@ export const UPGRADES = [
   })),
   {
     id: 'terrain-heart',
+    unlockPlayerLevel: 2,
     name: '繁茂花园',
     description: '强化 · 已解锁地形伤害 +25%，新地形范围 +10%。',
     category: 'terrain',
@@ -343,6 +364,7 @@ export const UPGRADES = [
   },
   {
     id: 'terrain-duration',
+    unlockPlayerLevel: 2,
     name: '四季常青',
     description: '强化 · 已解锁地形持续时间 +25%。',
     category: 'terrain',
@@ -354,6 +376,7 @@ export const UPGRADES = [
   },
   {
     id: 'sunflower-heart',
+    unlockPlayerLevel: 2,
     name: '向阳花盘',
     description: '暖阳花治疗 +40%，治疗范围 +10%。',
     category: 'terrain',
@@ -361,12 +384,12 @@ export const UPGRADES = [
     weight: 1,
     kind: 'sunflower',
     icon: 'sunflower',
-    unlockPlayerLevel: 2,
     requires: ['boon-sunflower'],
     effects: { sunflowerHeal: 0.4, sunflowerRange: 0.1 },
   },
   {
     id: 'storm-heart',
+    unlockPlayerLevel: 5,
     name: '雷枝交织',
     description: '引雷芦伤害 +35%，连锁范围 +15%。',
     category: 'terrain',
@@ -374,12 +397,12 @@ export const UPGRADES = [
     weight: 1,
     kind: 'stormreed',
     icon: 'stormreed',
-    unlockPlayerLevel: 4,
     requires: ['boon-stormreed'],
     effects: { stormDamage: 0.35, stormChainRange: 0.15 },
   },
   {
     id: 'turret-heart',
+    unlockPlayerLevel: 6,
     name: '花瓣火线',
     description: '花瓣炮伤害 +30%，射击频率 +20%。',
     category: 'terrain',
@@ -387,12 +410,12 @@ export const UPGRADES = [
     weight: 1,
     kind: 'bloomturret',
     icon: 'bloomturret',
-    unlockPlayerLevel: 6,
     requires: ['boon-bloomturret'],
     effects: { turretDamage: 0.3, turretFireRate: 0.2 },
   },
   {
     id: 'energy-cycle',
+    unlockPlayerLevel: 2,
     name: '能量涌动',
     description: '强化 · 时间与击杀获得的能量 +25%，两槽各补充 25 能量。',
     category: 'skill',

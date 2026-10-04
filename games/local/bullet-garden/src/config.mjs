@@ -57,7 +57,7 @@ export const SEEDS = catalog({
     health: 105,
     capacity: 4,
     regenSeconds: 7,
-    unlockLevel: 1,
+    unlockLevel: 3,
     weatherTags: ['ice'],
     designReference: ECOLOGY_ART,
     effects: [{ type: 'block' }],
@@ -76,7 +76,7 @@ export const SEEDS = catalog({
     regenSeconds: 6,
     blastRadius: 124,
     blastDamage: 105,
-    unlockLevel: 1,
+    unlockLevel: 4,
     weatherTags: ['fungus'],
     designReference: ECOLOGY_ART,
     effects: [{ type: 'explode', range: 124, damage: 105, delay: 2.4, armorPierce: 6 }],
@@ -101,7 +101,7 @@ export const SEEDS = catalog({
   stormreed: {
     id: 'stormreed',
     name: '引雷芦',
-    subtitle: '等级 4 · 对空连锁',
+    subtitle: '等级 5 · 对空连锁',
     description: '每 1.1 秒释放 24 点电伤，能攻击升空怪物，并连锁一个邻近目标。',
     color: '#79dfef',
     damage: 32,
@@ -110,7 +110,7 @@ export const SEEDS = catalog({
     health: 55,
     capacity: 3,
     regenSeconds: 10,
-    unlockLevel: 4,
+    unlockLevel: 5,
     weatherTags: ['electric'],
     designReference: ECOLOGY_ART,
     effects: [
@@ -182,28 +182,37 @@ function enemy(id, name, hp, radius, speed, damage, coins, bite, options = {}) {
 
 export const ENEMIES = catalog({
   sprout: enemy('sprout', '芽怪', 50, 19, 61, 8, 2, 16, {
+    unlockStage: 1,
+    unlockLevel: 1,
     visual: { color: '#344f45', accent: '#a3cf59' },
   }),
   runner: enemy('runner', '疾行芽', 34, 14, 114, 6, 3, 11, {
+    unlockStage: 2,
+    unlockLevel: 2,
     visual: { color: '#4ba889', accent: '#83f2c5', eye: '#75eaff' },
   }),
   brute: enemy('brute', '岩壳巨芽', 178, 33, 43, 16, 8, 39, {
+    unlockStage: 3,
+    unlockLevel: 2,
     armor: 6,
     visual: { color: '#8c8972', accent: '#a5b77a' },
   }),
   sentinel: enemy('sentinel', '坚根卫', 110, 24, 60, 10, 5, 22, {
-    unlockStage: 2,
+    unlockStage: 5,
+    unlockLevel: 4,
     controlResistance: 0.65,
     abilities: [{ type: 'controlResist', resistance: 0.65 }],
     visual: { color: '#9853b4', accent: '#d996ff', eye: '#dfa1ff' },
   }),
   spitter: enemy('spitter', '吐籽花', 70, 21, 47, 7, 5, 15, {
-    unlockStage: 3,
+    unlockStage: 6,
+    unlockLevel: 5,
     abilities: [{ type: 'spitter', cooldown: 2.6, windup: 0.6, speed: 220, range: 340 }],
     visual: { color: '#85439e', accent: '#e09eff', eye: '#eaa9ff' },
   }),
   warden: enemy('warden', '岩根首领', 800, 48, 44, 20, 35, 55, {
     unlockStage: 4,
+    unlockLevel: 3,
     rank: 'leader',
     armor: 8,
     controlResistance: 0.5,
@@ -211,33 +220,39 @@ export const ENEMIES = catalog({
     visual: { color: '#9b9270', accent: '#f5d66f' },
   }),
   charger: enemy('charger', '逐风芽', 90, 22, 80, 12, 6, 23, {
-    unlockStage: 5,
+    unlockStage: 7,
+    unlockLevel: 6,
     abilities: [{ type: 'charger', cooldown: 4.8, windup: 0.65, duration: 0.45, speed: 320 }],
     visual: { color: '#aa3849', accent: '#fa7379', eye: '#ff8d8d' },
   }),
   brood: enemy('brood', '裂荚母株', 155, 28, 45, 12, 8, 28, {
-    unlockStage: 6,
+    unlockStage: 10,
+    unlockLevel: 8,
     abilities: [{ type: 'brood', thresholds: [0.7, 0.35], count: 2, kind: 'minion', cap: 4 }],
     visual: { color: '#ca7f3c', accent: '#ffce67' },
   }),
   minion: enemy('minion', '荚芽小兵', 20, 10, 96, 4, 0, 6, {
-    unlockStage: 6,
+    unlockStage: 9,
+    unlockLevel: 7,
     summoned: true,
     visual: { color: '#a99546', accent: '#ffe46e' },
   }),
   burrower: enemy('burrower', '钻根兽', 115, 24, 72, 11, 7, 25, {
-    unlockStage: 7,
+    unlockStage: 12,
+    unlockLevel: 10,
     abilities: [{ type: 'burrower', groundTime: 3.5, windup: 0.55, duration: 1.8, emerge: 0.65 }],
     visual: { color: '#8b674d', accent: '#d7ad77' },
   }),
   shield: enemy('shield', '盾苔卫', 165, 27, 45, 13, 9, 30, {
-    unlockStage: 8,
+    unlockStage: 13,
+    unlockLevel: 11,
     shield: 70,
     abilities: [{ type: 'shield', cooldown: 6, quietTime: 3, restore: 35 }],
     visual: { color: '#487f9e', accent: '#8de1fb', eye: '#75eaff' },
   }),
   bastionlord: enemy('bastionlord', '苔堡统领', 1200, 50, 42, 22, 50, 60, {
     unlockStage: 8,
+    unlockLevel: 6,
     rank: 'leader',
     shield: 150,
     controlResistance: 0.5,
@@ -256,12 +271,14 @@ export const ENEMIES = catalog({
     visual: { color: '#3c6b87', accent: '#f1ce74', eye: '#84e2ff' },
   }),
   glider: enemy('glider', '翼叶精', 78, 20, 80, 8, 7, 12, {
-    unlockStage: 9,
+    unlockStage: 14,
+    unlockLevel: 12,
     abilities: [{ type: 'glider', groundTime: 2.7, duration: 2.4, height: 32 }],
     visual: { color: '#448786', accent: '#93ebee', eye: '#75eaff' },
   }),
   overgrowth: enemy('overgrowth', '花园之心', 2000, 62, 38, 24, 90, 75, {
     unlockStage: 11,
+    unlockLevel: 9,
     rank: 'boss',
     armor: 10,
     controlResistance: 0.5,
@@ -293,6 +310,7 @@ export const ENEMIES = catalog({
 export const WEATHER = catalog({
   sunny: {
     id: 'sunny',
+    unlockLevel: 1,
     art: 'docs/design/concepts/map-ruins.png',
     name: '晴天',
     description: '花系植物伤害和治疗 +10%。',
@@ -300,6 +318,7 @@ export const WEATHER = catalog({
   },
   overcast: {
     id: 'overcast',
+    unlockLevel: 2,
     art: 'docs/design/concepts/map-quarry.png',
     name: '阴天',
     description: '植物耐久和持续时间 +10%。',
@@ -307,6 +326,7 @@ export const WEATHER = catalog({
   },
   rain: {
     id: 'rain',
+    unlockLevel: 3,
     art: 'docs/design/concepts/map-wetland.png',
     name: '雨天',
     description: '种子恢复 +10%，荆棘控制增强，苔阶更滑。',
@@ -316,6 +336,7 @@ export const WEATHER = catalog({
   },
   fog: {
     id: 'fog',
+    unlockLevel: 5,
     art: 'docs/design/concepts/map-mistwood.png',
     name: '大雾',
     description: '有效射程 -15%，怪物远程攻击稍慢。',
@@ -323,6 +344,7 @@ export const WEATHER = catalog({
   },
   hail: {
     id: 'hail',
+    unlockLevel: 6,
     art: 'docs/design/concepts/map-hailfield.png',
     name: '冰雹',
     description: '地面怪物移速 -10%，冰柱耐久 +25%，注意落冰。',
@@ -333,12 +355,14 @@ export const WEATHER = catalog({
 export const WEATHER_MODIFIERS = freeze({
   wind: {
     id: 'wind',
+    unlockLevel: 4,
     name: '大风',
     description: '地面敌人稍快，飞行更快，花瓣弹速提高。',
     perPower: { enemySpeed: 0.08, airSpeed: 0.18, projectileSpeed: 0.15 },
   },
   thunder: {
     id: 'thunder',
+    unlockLevel: 7,
     name: '雷暴',
     description: '引雷芦电伤 +20%，注意雷击预警。',
     modifiers: { electricDamage: 1.2 },
@@ -446,7 +470,7 @@ const campaign = [
     duration: 300,
     waves: 10,
     weather: { kind: 'sunny', wind: 0, thunder: false },
-    rewards: { coins: 90, xp: 110 },
+    rewards: { coins: 90, xp: 115 },
     palette: { ground: '#98ab74', accent: '#efda96', sky: '#abc9c6' },
     landmark: 'sun-dial',
     lesson: '先以自动射击熟悉庭院；选择祝福后植物会自动生长。',
@@ -749,45 +773,132 @@ const campaign = [
   },
 ];
 
+// Keep every original encounter and ecology; late chapters give each remaining
+// species its own introduction instead of introducing several at once.
+for (const [id, name, lesson, introduced, xp] of [
+  ['deepsoil', '深根秘境', '新增钻根兽：观察土丘轨迹，躲开出土预警。', 'burrower', 430],
+  ['stonebloom', '坚盾花环', '新增盾苔卫：集中火力破盾，再用范围伤害清场。', 'shield', 465],
+  ['skyreach', '云上花庭', '新增翼叶精：升空时用枪械、技能或引雷芦对空。', 'glider', 510],
+]) {
+  const previous = campaign.at(-1);
+  layouts[id] = evolve(layouts[previous.id], []);
+  campaign.push({
+    id,
+    name,
+    lesson,
+    duration: id === 'skyreach' ? 240 : 210,
+    waves: 6,
+    weather: { kind: 'sunny', wind: 0.25, thunder: false },
+    rewards: { coins: xp - 100, xp },
+    palette: { ...previous.palette },
+    landmark: previous.landmark,
+    art: 'docs/design/concepts/map-heartgarden.png',
+    composition: [{ fromWave: 1, weights: { sprout: 0.4, runner: 0.2, [introduced]: 0.4 } }],
+  });
+}
+
+export const ENEMY_INTRODUCTIONS = freeze([
+  'sprout',
+  'runner',
+  'brute',
+  'warden',
+  'sentinel',
+  'spitter',
+  'charger',
+  'bastionlord',
+  'minion',
+  'brood',
+  'overgrowth',
+  'burrower',
+  'shield',
+  'glider',
+]);
+export const LEVEL_ORDER = freeze(campaign.map((entry) => entry.id));
+const chapterDurations = [60, 90, 120, 150, 150, 150, 150, 180, 180, 180, 210, 210, 210, 240];
+const chapterUnlocks = [1, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12];
+const chapterLessons = [
+  '先学习移动与自动射击；第一关只会出现芽怪，升级后可激活灌木祝福。',
+  '新增疾行芽；留出转向空间，Lv.2 开始随机携带能量技能。',
+  '新增岩壳巨芽；慢速厚甲敌人适合边移动边集中射击。',
+  '新增岩根首领；避开定向冲撞，抓住结束后的僵直。',
+  '新增坚根卫；它能抵抗大部分控制，要保持移动。',
+  '新增吐籽花；观察蓄力预警，横向避开远程弹。',
+  '新增逐风芽；冲刺锁定方向后，及时向侧面移动。',
+  '新增苔堡统领；破盾产生僵直，避开扇形远程弹。',
+  '新增荚芽小兵；熟悉快速小目标，为下一关母株召唤做准备。',
+  '新增裂荚母株；受伤会召唤已见过的荚芽小兵，用范围攻击清理。',
+  '新增花园之心；三阶段切换，利用之前掌握的能力挑战章节首领。',
+];
+
 export const LEVELS = catalog(
   Object.fromEntries(
     campaign.map((entry, index) => {
       const { palette, landmark, composition, ...definition } = entry;
       const order = index + 1;
+      const duration = chapterDurations[index];
+      const waves = order === 1 ? 3 : entry.waves;
+      const enemyKinds = ENEMY_INTRODUCTIONS.slice(0, order);
+      const introduced = ENEMY_INTRODUCTIONS[index];
+      const ordinary = enemyKinds.filter((kind) => ENEMIES[kind].rank === 'normal');
+      const spawnComposition = composition
+        .map((tier) => ({
+          fromWave: Math.min(waves, tier.fromWave),
+          weights: Object.fromEntries(
+            ordinary.map((kind) => [
+              kind,
+              tier.weights[kind] ?? (kind === introduced ? 0.24 : kind === 'sprout' ? 0.4 : 0.055),
+            ]),
+          ),
+        }))
+        .filter(
+          (tier, tierIndex, all) =>
+            all.findIndex((other) => other.fromWave === tier.fromWave) === tierIndex,
+        );
+      if (order === 1)
+        spawnComposition.splice(0, spawnComposition.length, {
+          fromWave: 1,
+          weights: { sprout: 1 },
+        });
+      const art = entry.art ?? `docs/design/concepts/map-${entry.id}.png`;
       return [
         entry.id,
         {
           ...definition,
           order,
-          unlockLevel: 1,
+          unlockLevel: chapterUnlocks[index],
+          enemyKinds,
+          introducedEnemy: introduced,
+          duration,
+          waves,
+          lesson: chapterLessons[index] ?? entry.lesson,
           chapter: 'garden-awakening',
-          subtitle: `第一章 · 第 ${order} 关 / 11`,
+          subtitle: `花园远征 · 第 ${order} 关 / ${campaign.length}`,
           world: WORLD,
           bounds: BOUNDS,
           playerStart: PLAYER_START,
-          waveDuration: entry.duration / entry.waves,
+          waveDuration: duration / waves,
           plantCap: 18,
           progression: { firstXp: 12, xpStep: 10, fourChoicesAt: 5 },
           difficulty: {
-            healthScale: 1 + index * 0.045,
-            damageScale: 1 + index * 0.018,
-            speedScale: 1 + index * 0.009,
+            healthScale: order === 1 ? 0.8 : 1 + index * 0.045,
+            damageScale: order === 1 ? 0.75 : 1 + index * 0.018,
+            speedScale: order === 1 ? 0.85 : 1 + index * 0.009,
           },
           terrain: layouts[entry.id],
-          art: `docs/design/concepts/map-${entry.id}.png`,
+          art,
           visual: {
             palette,
             landmark,
             variation: order - 1,
-            designReference: `docs/design/concepts/map-${entry.id}.png`,
+            designReference: art,
           },
           spawn: {
-            initialDelay: order === 1 ? 1.4 : 1.2,
-            interval: 1.8,
-            acceleration: order === 1 ? 0.14 : 0.13,
-            minimumInterval: order === 1 ? 0.54 : 0.68,
-            maxEnemies: order === 1 ? 48 : order === 11 ? 40 : 32,
-            composition,
+            initialDelay: order === 1 ? 2.5 : 1.5,
+            interval: order === 1 ? 3.2 : Math.max(1.4, 2.4 - index * 0.08),
+            acceleration: order === 1 ? 0.15 : 0.13,
+            minimumInterval: order === 1 ? 2.7 : 0.68,
+            maxEnemies: order === 1 ? 12 : order >= 11 ? 40 : 32,
+            composition: spawnComposition,
           },
         },
       ];

@@ -27,8 +27,15 @@ const frame = 1 / 60;
 // Isolated rule scenarios deliberately remove unrelated spawns/terrain. These
 // are not balance replays and do not count as evidence of natural victories.
 function isolated(levelId = 'ruins', profile = null, seed = 1729) {
-  const state = createGame(levelId, seed, profile);
+  const state = createGame(levelId, seed, profile, {
+    dev: true,
+    weather: LEVELS[levelId].weather,
+    map: levelId,
+    skills: ['blast', 'gale'],
+  });
   startGame(state);
+  // Isolated ability fixtures exercise summons independently of campaign species unlocks.
+  state.availableEnemies = Object.keys(ENEMIES);
   state.enemies = [];
   state.plants = [];
   state.bullets = [];

@@ -151,13 +151,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
-    await frame.locator('#loadout-skill-0').selectOption('blast');
-    await frame.locator('#loadout-skill-1').selectOption('gale');
+    // Normal play draws the stage setup automatically from unlocked content.
     await click(frame.locator('#start'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    // Isolate the time-based skill charge from an XP modal opening between taps.
-    await click(frame.locator('#auto-fire'));
     expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
+    // Energy skills are introduced after the first clear, keeping onboarding focused.
+    expect((await snapshot()).skillSlots).toEqual([]);
+    await expect(frame.locator('[data-skill-slot="0"]')).toBeHidden();
+    await expect(frame.locator('[data-skill-slot="1"]')).toBeHidden();
     // Keep the middle of the battlefield available for direct touch targeting.
     if (mobile) {
       await expect
@@ -182,13 +183,16 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       if (touch) {
         const bounds = await frame.locator('#joystick').boundingBox();
         const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        const rotated = (await frame.locator('#game').getAttribute('data-rotated')) === 'true';
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
           touchPoints: [{ id: 1, ...start }],
         });
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
-          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+          touchPoints: [
+            { id: 1, x: start.x + (rotated ? 0 : 32), y: start.y + (rotated ? 32 : 0) },
+          ],
         });
       } else {
         await page.keyboard.down('d');
@@ -212,31 +216,11 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
-    const finishUpgrade = async () => {
-      let current = await snapshot();
-      while (current.phase === 'upgrade') {
-        const choice = current.upgradeChoices.find((id) => !id.startsWith('boon-'));
-        expect(choice).toBeTruthy();
-        await click(frame.locator(`[data-upgrade="${choice}"]`));
-        current = await snapshot();
-      }
-      return current;
-    };
-    await expect
-      .poll(async () => (await finishUpgrade()).skillSlots[0].energy, { timeout: 20000 })
-      .toBeGreaterThanOrEqual(100);
-    const charged = await finishUpgrade();
-    // One charge is ready at 100; energy keeps accumulating up to three stored casts.
-    for (const slot of charged.skillSlots) {
-      expect(slot.energy).toBeGreaterThanOrEqual(100);
-      expect(slot.energy).toBeLessThanOrEqual(300);
-    }
-    // Charged slots wait for the player's target; they never release automatically.
-    expect(charged.stats.skillCasts).toBe(0);
-    await click(frame.locator('[data-skill-slot="0"]'));
+    await click(frame.locator('#dash'));
+    await expect.poll(async () => (await snapshot()).player.dashCooldown).toBeGreaterThan(0);
     const arena = frame.locator('#arena');
     const bounds = await arena.boundingBox();
-    // Aim below the targeting banner, including its cancel button on narrow screens.
+    // Native battlefield targeting remains available before energy skills unlock.
     const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.6 } };
     expect(
       await arena.evaluate((element, { x, y }) => {
@@ -246,10 +230,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     ).toBe(true);
     if (mobile) await arena.tap(target);
     else await arena.click(target);
-    await expect.poll(async () => (await snapshot()).stats.skillCasts).toBe(1);
-    // Neither time, ordinary shots nor active skills unlock passive terrain.
-    expect((await snapshot()).boons).toEqual([]);
-    expect((await snapshot()).plants).toEqual([]);
+    expect((await snapshot()).stats.skillCasts).toBe(0);
+    await expect
+      .poll(async () => (await snapshot()).stats.shots, { timeout: 10000 })
+      .toBeGreaterThan(0);
   } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));

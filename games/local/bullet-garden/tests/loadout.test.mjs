@@ -17,6 +17,7 @@ import {
 
 const state = (level = 1) => ({
   ...createRunLoadout(),
+  dev: true,
   levelId: 'ruins',
   phase: 'ready',
   permanent: { level },
@@ -67,6 +68,14 @@ test('preparation keeps two distinct skill slots and rejects changes atomically 
   assert.equal(selectSkill(game, 0.5), false);
 });
 
+test('normal preparation keeps its automatic skills and rejects manual overrides', () => {
+  const game = state(6);
+  game.dev = false;
+  const before = structuredClone(game);
+  assert.equal(configureLoadout(game, { skills: ['horse', 'laser'] }), false);
+  assert.deepEqual(game, before);
+});
+
 test('fresh run loadouts preserve chosen skills while clearing terrain, energy and run XP', () => {
   const fresh = createRunLoadout(['cart', 'laser'], 12);
   assert.deepEqual(fresh.loadout.skills, ['cart', 'laser']);
@@ -77,6 +86,11 @@ test('fresh run loadouts preserve chosen skills while clearing terrain, energy a
   assert.deepEqual(fresh.burstQueue, []);
   assert.ok(fresh.skillSlots.every((slot) => slot.energy === 0));
   assert.deepEqual(createRunLoadout(['missing', 'blast']).loadout.skills, ['blast', 'gale']);
+  const beginner = createRunLoadout([]);
+  assert.deepEqual(beginner.loadout.skills, []);
+  assert.deepEqual(beginner.skillSlots, []);
+  assert.equal(selectSkill(beginner, 0), false);
+  assert.deepEqual(createRunLoadout(['blast']).skillSlots, [{ kind: 'blast', energy: 0 }]);
 });
 
 test('kill XP carries overflow and queued upgrade levels without touching permanent XP or coins', () => {
@@ -103,18 +117,49 @@ test('XP upgrade eligibility enforces terrain ownership, prerequisites, rank and
   assert.equal(acquireBoon(game, 'shrub'), false);
   game.upgrades.push('boon-shrub', 'split-shot', ...Array(5).fill('attack-power'));
   ids = eligibleUpgrades(game).map((entry) => entry.id);
-  assert.ok(ids.includes('terrain-heart'));
-  assert.ok(ids.includes('split-explosion'));
+  assert.equal(ids.includes('terrain-heart'), false);
+  assert.equal(ids.includes('split-explosion'), false);
   assert.equal(ids.includes('boon-shrub'), false);
   assert.equal(ids.includes('attack-power'), false);
+  game.permanent.level = 2;
+  ids = eligibleUpgrades(game).map((entry) => entry.id);
+  assert.ok(ids.includes('terrain-heart'));
+  assert.ok(ids.includes('boon-sunflower'));
+  assert.equal(ids.includes('split-explosion'), false);
   game.permanent.level = 6;
   ids = eligibleUpgrades(game).map((entry) => entry.id);
+  assert.ok(ids.includes('split-explosion'));
   for (const plant of ['sunflower', 'stormreed', 'bloomturret'])
     assert.ok(ids.includes(`boon-${plant}`));
   assert.equal(ids.includes('turret-heart'), false);
   assert.equal(acquireBoon(game, 'bloomturret'), true);
   game.upgrades.push('boon-bloomturret');
   assert.ok(eligibleUpgrades(game).some((entry) => entry.id === 'turret-heart'));
+});
+
+test('first-time players only see basic growth and combat XP cannot unlock later mechanisms', () => {
+  const game = state();
+  game.progression.level = 12;
+  assert.deepEqual(
+    eligibleUpgrades(game).map((entry) => entry.id),
+    ['attack-power', 'attack-speed', 'wild-heart', 'boon-shrub'],
+  );
+  for (const boon of ['trench', 'frost', 'poison', 'ice', 'mushroom', 'stormreed'])
+    assert.equal(acquireBoon(game, boon), false);
+
+  game.permanent.level = 2;
+  let ids = eligibleUpgrades(game).map((entry) => entry.id);
+  for (const id of ['multishot', 'boon-sunflower', 'boon-trench', 'energy-cycle'])
+    assert.ok(ids.includes(id));
+  for (const id of ['burst', 'ice-shot', 'boon-ice', 'boon-mushroom', 'split-shot'])
+    assert.equal(ids.includes(id), false);
+
+  game.permanent.level = 5;
+  ids = eligibleUpgrades(game).map((entry) => entry.id);
+  assert.ok(ids.includes('split-shot'));
+  assert.ok(ids.includes('boon-stormreed'));
+  assert.equal(ids.includes('boon-bloomturret'), false);
+  assert.equal(ids.includes('split-explosion'), false);
 });
 
 test('weighted chooser guarantees weapon and terrain categories and grows from 3 to 4 choices at run level 5', () => {

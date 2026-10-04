@@ -208,6 +208,94 @@ test('unfinished, malformed, unknown, or locked runs cannot mutate progress', ()
   }
 });
 
+test('developer wins and losses cannot change the saved economy or consume settlement IDs', () => {
+  for (const phase of ['won', 'lost']) {
+    for (const flags of [{ developerRun: true }, { dev: true }, { runOptions: { dev: true } }]) {
+      const profile = createProfile({
+        xp: 115,
+        coins: 80,
+        completed: ['ruins'],
+        settledRuns: ['previous-normal-run'],
+        upgrades: { attack: 1, health: 1 },
+      });
+      const before = structuredClone(profile);
+      const run = terminal({ phase, ...flags });
+      assert.deepEqual(settleLevel(profile, run), { ok: false, reason: 'developer-run' });
+      assert.deepEqual(
+        profile,
+        before,
+        'XP, coins, upgrades, clears and history must be unchanged',
+      );
+      assert.equal(profile.settledRuns.includes(run.runId), false);
+    }
+  }
+});
+
+test('ordinary runs retain first-clear rewards and permanent purchases after developer preview', () => {
+  const profile = createProfile({ coins: 35 });
+  assert.equal(purchaseUpgrade(profile, 'attack').ok, true);
+  const run = terminal({ developerRun: true });
+  assert.equal(settleLevel(profile, run).reason, 'developer-run');
+  const result = settleLevel(profile, {
+    ...run,
+    developerRun: false,
+    dev: false,
+    runOptions: { dev: false },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.reward.firstClear, true);
+  assert.equal(profile.xp, LEVELS.ruins.rewards?.xp ?? 115);
+  assert.equal(profile.coins, (LEVELS.ruins.rewards?.coins ?? 57) + 20);
+  assert.equal(profile.upgrades.attack, 1);
+  assert.ok(profileStats(profile).damage > 19);
+  assert.deepEqual(profile.completed, ['ruins']);
+  assert.deepEqual(profile.settledRuns, [run.runId]);
+});
+
+test('campaign first-clear XP unlocks each following stage without required replay farming', () => {
+  const levels = Object.values(LEVELS).sort((a, b) => a.order - b.order);
+  const profile = createProfile();
+  for (const [index, level] of levels.entries()) {
+    assert.equal(isLevelUnlocked(profile, level.id), true, `${level.id} must be reachable`);
+    assert.ok(levelFromXp(profile.xp).level >= level.unlockLevel);
+    const result = settleLevel(
+      profile,
+      terminal({
+        levelId: level.id,
+        runId: `campaign-first-${level.id}`,
+        time: level.duration,
+        duration: level.duration,
+        coins: 0,
+      }),
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.reward.firstClear, true);
+    assert.equal(result.unlockedLevelId, levels[index + 1]?.id ?? null);
+    if (index === 0) assert.equal(levelFromXp(profile.xp).level, 2);
+  }
+  assert.deepEqual(
+    profile.completed,
+    levels.map((level) => level.id),
+  );
+});
+
+test('campaign gates require both a previous clear and the configured permanent level', () => {
+  const levels = Object.values(LEVELS).sort((a, b) => a.order - b.order);
+  const experienced = createProfile({ xp: 100000 });
+  for (const [index, level] of levels.entries()) {
+    if (index === 0) continue;
+    assert.equal(isLevelUnlocked(experienced, level.id), false, 'XP alone cannot skip a stage');
+    if (level.unlockLevel > 1) {
+      const noXp = createProfile({ completed: levels.slice(0, index).map((entry) => entry.id) });
+      assert.equal(
+        isLevelUnlocked(noXp, level.id),
+        false,
+        'a clear alone cannot bypass level gates',
+      );
+    }
+  }
+});
+
 test('new runs remain settleable while recent transaction history is bounded', () => {
   const profile = createProfile();
   for (let run = 0; run < 140; run += 1)

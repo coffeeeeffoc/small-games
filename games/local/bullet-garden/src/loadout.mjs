@@ -20,7 +20,12 @@ const rulesOf = (state) => ({
 
 /** Fresh run state never inherits terrain ownership, energy or run XP. */
 export function createRunLoadout(skills = ['blast', 'gale'], firstXp = 12) {
-  const pair = validPair(skills) ? [...skills] : ['blast', 'gale'];
+  const valid =
+    Array.isArray(skills) &&
+    skills.length <= 2 &&
+    new Set(skills).size === skills.length &&
+    skills.every((kind) => Object.hasOwn(SKILLS, kind));
+  const pair = valid ? [...skills] : ['blast', 'gale'];
   return {
     loadout: { skills: pair },
     boons: [],
@@ -42,8 +47,11 @@ export function createRunLoadout(skills = ['blast', 'gale'], firstXp = 12) {
 
 /** Match dev's two distinct skill slots, with atomic validation before updates. */
 export function configureLoadout(state, { skills } = {}) {
-  if (!state || !['ready', 'won', 'lost'].includes(state.phase) || !validPair(skills)) return false;
+  if (!state?.dev || !['ready', 'won', 'lost'].includes(state.phase) || !validPair(skills))
+    return false;
   state.loadout = { skills: [...skills] };
+  if (state.runConfig) state.runConfig.skills = [...skills];
+  if (state.runOptions) state.runOptions.skills = [...skills];
   state.skillSlots = skills.map((kind) => ({ kind, energy: 0 }));
   state.selectedSkill = 0;
   return true;

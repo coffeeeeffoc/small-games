@@ -14,14 +14,7 @@ import {
   settleLevel,
   isLevelUnlocked,
 } from '../src/progression.mjs';
-import {
-  createGame,
-  startGame,
-  step,
-  configureLoadout,
-  castSkill,
-  chooseUpgrade,
-} from '../src/simulation.mjs';
+import { createGame, startGame, step, castSkill, chooseUpgrade } from '../src/simulation.mjs';
 import { terrainPointBlocked } from '../src/world.mjs';
 
 const campaign = Object.values(LEVELS).sort((a, b) => a.order - b.order);
@@ -149,7 +142,6 @@ function challenge(seed, spendCoins) {
     const purchases = spendCoins ? shop(profile) : [];
     const stats = profileStats(profile);
     const state = createGame(level.id, seed, profile);
-    configureLoadout(state, { skills: ['blast', 'laser'] });
     state.runId = `campaign-${seed}-${spendCoins ? 'growth' : 'base'}-${level.id}`;
     startGame(state);
     let frames = 0,

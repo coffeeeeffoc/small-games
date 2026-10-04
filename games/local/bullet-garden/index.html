@@ -6,11 +6,13 @@
     <meta name="theme-color" content="#19261e" />
     <meta
       name="description"
-      content="升级解锁庭院增益，亲手释放能量技能。探索十一关花园战役，在营地培养成长与枪械。"
+      content="升级解锁庭院增益，亲手释放能量技能。探索十四关花园战役，在营地培养成长与枪械。"
     />
     <title>子弹花园 · Bullet Garden</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./home.css" />
+    <link rel="stylesheet" href="./display.css" />
   </head>
   <body data-phase="ready" data-screen="ready">
     <main id="game" aria-label="子弹花园">
@@ -63,6 +65,11 @@
           <div id="hud-weather" class="weather-caption">晴天</div>
         </div>
         <div class="tools">
+          <button id="battle-home" class="icon-button" aria-label="返回首页">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m3 11 9-8 9 8M6 10v11h12V10M10 21v-7h4v7" />
+            </svg>
+          </button>
           <div class="coins">
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <path d="m16 2 10 5 4 10-6 10-12 3L3 22 2 11 8 4Z" fill="#bf771c" />
@@ -192,64 +199,122 @@
       </footer>
 
       <div id="overlay" class="overlay">
-        <section id="ready-panel" class="modal ready-panel" aria-labelledby="ready-title">
-          <div class="ready-overview">
-            <div class="ready-heading">
+        <section
+          id="ready-panel"
+          class="modal ready-panel home-panel"
+          aria-labelledby="ready-title"
+        >
+          <header class="home-header">
+            <div class="home-brand">
               <canvas id="title-seed" width="160" height="130" aria-hidden="true"></canvas>
               <div>
-                <div class="modal-kicker">BULLET GARDEN · 花园战役</div>
+                <div class="home-kicker">BULLET GARDEN</div>
                 <h1 id="ready-title" tabindex="-1">子弹<span>花园</span></h1>
               </div>
             </div>
-            <p class="intro">携带两个能量技能，选择下一座庭院。</p>
-            <p class="profile-summary" data-profile></p>
-            <p class="developer-note" hidden>开发者模式 · 全部关卡开放试玩</p>
-            <div class="level-badge">
-              <span id="ready-level-order">01</span>
-              <div>
-                <strong id="ready-level-name">失落庭院</strong
-                ><small id="ready-level-details">10 波敌人 · 5 分钟守卫战</small>
+            <div class="profile-badge">
+              <strong id="home-player-level"></strong><span id="home-progress"></span>
+            </div>
+          </header>
+          <div class="home-columns">
+            <section class="campaign-section" aria-label="关卡选择">
+              <div class="section-heading">
+                <h2>向花园深处出发</h2>
+                <button id="ready-campaign" class="text-button">全部关卡 →</button>
               </div>
-              <svg viewBox="0 0 32 32" aria-hidden="true">
-                <path d="m7 25 9-20 9 20M10 19h12M4 27h24" />
-              </svg>
-            </div>
-            <p id="ready-weather" class="ready-weather"></p>
-            <div class="camp-actions">
-              <button id="ready-campaign" class="outline-button">选择关卡</button>
-              <button id="ready-shop" class="outline-button">营地 · 成长与枪械</button>
-              <button id="ready-last-result" class="outline-button" hidden>上一局概览</button>
-            </div>
-
-            <aside class="terrain-unlock-note">
-              <strong>植物与地形增益 · 在战斗中解锁</strong>
-              <p>
-                开局没有自动增益。击退敌人获得本局经验，在升级的三 /
-                四选一中选中对应增益后，才会自动生成植物与地形。永久等级会解锁暖阳花、引雷芦和花瓣炮。
-              </p>
+              <div id="home-level-list" class="level-list"></div>
+              <div class="departure">
+                <p id="ready-level-details"></p>
+                <button id="start" class="primary-button">进入花园 →</button>
+              </div>
+              <p class="random-note">天气、地图、能量技能自动随机 · 随等级逐步解锁</p>
+              <details id="dev-controls" hidden>
+                <summary>开发调试 · 手动配置（不计入成长）</summary>
+                <div id="dev-options">
+                  <label
+                    >天气<select id="dev-weather">
+                      <option value="">自动随机</option>
+                    </select></label
+                  ><label
+                    >地图<select id="dev-map">
+                      <option value="">自动随机</option>
+                    </select></label
+                  >
+                </div>
+                <fieldset class="loadout-section skill-loadout">
+                  <legend>能量技能</legend>
+                  <div class="loadout-skills">
+                    <label
+                      ><span>技能槽 1</span
+                      ><select id="loadout-skill-0" aria-label="技能槽一"></select
+                      ><small id="loadout-description-0"></small></label
+                    ><label
+                      ><span>技能槽 2</span
+                      ><select id="loadout-skill-1" aria-label="技能槽二"></select
+                      ><small id="loadout-description-1"></small
+                    ></label>
+                  </div>
+                </fieldset>
+              </details>
+            </section>
+            <aside class="growth-section" aria-label="成长入口">
+              <div class="section-heading">
+                <h2>守望者手册</h2>
+                <button id="ready-shop" class="text-button">营地升级 →</button>
+              </div>
+              <div class="catalog-entries">
+                <button data-catalog="monsters">
+                  <span class="entry-symbol">♧</span><strong>怪物图鉴</strong
+                  ><small>习性与解锁条件</small>
+                </button>
+                <button data-catalog="boons">
+                  <span class="entry-symbol">✦</span><strong>成长增益</strong
+                  ><small>局内强化与地形</small>
+                </button>
+                <button data-catalog="weapons">
+                  <span class="entry-symbol">⌁</span><strong>枪械工坊</strong
+                  ><small>枪械路线与永久强化</small>
+                </button>
+                <button data-catalog="skills">
+                  <span class="entry-symbol">ϟ</span><strong>能量技能</strong
+                  ><small>蓄能 · 手动释放</small>
+                </button>
+                <button data-catalog="plants">
+                  <span class="entry-symbol">❧</span><strong>植物图鉴</strong
+                  ><small>庭院生态与天气配合</small>
+                </button>
+                <button data-catalog="journey">
+                  <span class="entry-symbol">↗</span><strong>成长路线</strong
+                  ><small>等级、助手与新机制</small>
+                </button>
+              </div>
+              <div class="next-unlock">
+                <span class="home-kicker">下一步成长</span>
+                <p id="next-unlock"></p>
+              </div>
+              <div class="home-footer">
+                <button id="ready-help" class="text-button">战术手册</button
+                ><button id="ready-last-result" class="text-button" hidden>上一局概览</button>
+              </div>
             </aside>
           </div>
-          <div class="ready-launch">
-            <fieldset class="loadout-section skill-loadout">
-              <legend>携带两个能量技能 <small>自由选择落点与时机</small></legend>
-              <div class="loadout-skills">
-                <label
-                  ><span>技能槽 1</span
-                  ><select id="loadout-skill-0" aria-label="技能槽一"></select
-                  ><small id="loadout-description-0"></small
-                ></label>
-                <label
-                  ><span>技能槽 2</span
-                  ><select id="loadout-skill-1" aria-label="技能槽二"></select
-                  ><small id="loadout-description-1"></small
-                ></label>
-              </div>
-            </fieldset>
-            <button id="start" class="primary-button">进入花园 <span>→</span></button>
-            <p class="ready-tip">到时停止刷怪 · 清空敌人通关 · 每个技能最多储存 3 次</p>
-            <p id="ready-unlocks" class="unlock-tip"></p>
-            <button id="ready-help" class="text-button">查看战术手册</button>
-          </div>
+        </section>
+        <section
+          id="catalog-panel"
+          class="modal catalog-panel"
+          hidden
+          aria-labelledby="catalog-title"
+        >
+          <header class="catalog-header">
+            <div>
+              <div class="home-kicker">GARDENER'S ARCHIVE</div>
+              <h2 id="catalog-title"></h2>
+            </div>
+            <button id="close-catalog" class="outline-button">返回首页</button>
+          </header>
+          <p id="catalog-description"></p>
+          <div id="catalog-content" class="catalog-content"></div>
+          <button id="catalog-shop" class="outline-button" hidden>前往营地升级枪械 →</button>
         </section>
         <section id="pause-panel" class="modal compact-panel" hidden aria-labelledby="pause-title">
           <div class="modal-kicker">TAKE A BREATH</div>
@@ -258,13 +323,14 @@
           <button id="resume" class="primary-button">继续守卫 <span>→</span></button
           ><button id="pause-help" class="outline-button">战术手册</button
           ><button id="pause-sound" class="text-button" aria-pressed="false">音效：关闭</button
-          ><button id="restart" class="text-button">重新搭配战术</button>
+          ><button id="restart" class="text-button">重新开始本关</button
+          ><button id="pause-home" class="text-button">返回首页</button>
         </section>
         <section id="help-panel" class="modal help-panel" hidden aria-labelledby="help-title">
           <div class="modal-kicker">THE GARDENER'S HANDBOOK</div>
           <h2 id="help-title">让花园，听你的。</h2>
           <p>
-            普通花瓣弹自动攻击附近敌人。准备时携带两个能量技能，开局没有增益植物。击退获得本局经验，升级时选择枪械、植物与地形或生存强化，组合出自己的战术。营地的永久等级与成长在下局保留。
+            普通花瓣弹自动攻击附近敌人。出发时从已解锁内容中随机分配能量技能；第一关先练习移动与射击，开局没有增益植物。击退获得本局经验，升级时选择枪械、植物与地形或生存强化，组合出自己的战术。营地的永久等级与成长在下局保留。
           </p>
           <div class="handbook-seeds">
             <p>

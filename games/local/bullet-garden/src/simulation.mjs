@@ -47,17 +47,100 @@ const terrainDefinition = (kind) => Object.values(BOONS).find((boon) => boon.kin
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const finite = (value, fallback = 0) => (Number.isFinite(value) ? value : fallback);
-const levelOf = (state) => LEVELS[state.levelId];
+const levelOf = (state) => getRunLevel(state);
+const runLevelCache = new WeakMap();
 const id = (state) => ++state.nextId;
-const playerLevel = (state) => state.permanent.level;
 const enemyCapacity = (state, reserve = true) =>
   Math.max(
     1,
     levelOf(state).spawn.maxEnemies -
-      (reserve && levelOf(state).encounter?.required && !state.encounter.spawned ? 1 : 0),
+      (reserve &&
+      state.encounter.kind &&
+      levelOf(state).encounter?.required &&
+      !state.encounter.spawned
+        ? 1
+        : 0),
   );
 const aliveEnemies = (state) => state.enemies.filter((enemy) => enemy.hp > 0).length;
 const weatherOf = (state) => weatherStats(state);
+
+/** Stable definitions preserve the renderer's cached artwork between frames. */
+export function getRunLevel(state) {
+  const cached = runLevelCache.get(state);
+  if (
+    cached &&
+    cached.levelId === state.levelId &&
+    cached.mapId === state.mapId &&
+    cached.weather === state.weather
+  )
+    return cached.definition;
+  const campaign = LEVELS[state.levelId];
+  const map = LEVELS[state.mapId] ?? campaign;
+  const definition = {
+    ...campaign,
+    visual: map.visual,
+    art: map.art,
+    terrain: map.terrain,
+    bounds: map.bounds,
+    playerStart: map.playerStart,
+    weather: state.weather ?? campaign.weather,
+  };
+  runLevelCache.set(state, {
+    levelId: state.levelId,
+    mapId: state.mapId,
+    weather: state.weather,
+    definition,
+  });
+  return definition;
+}
+
+export function getAvailableEnemies(levelId, permanentLevel = 1, dev = false) {
+  const level = LEVELS[levelId];
+  if (!level) return [];
+  return Object.values(ENEMIES)
+    .filter(
+      (enemy) =>
+        (enemy.unlockStage ?? 1) <= level.order &&
+        (dev || (enemy.unlockLevel ?? 1) <= permanentLevel),
+    )
+    .map((enemy) => enemy.id);
+}
+
+function rollRunConfiguration(state, options) {
+  const allowed = (entry) =>
+    state.dev || (entry.unlockPlayerLevel ?? entry.unlockLevel ?? 1) <= state.permanent.level;
+  const draw = (pool) => pool[Math.floor(random(state) * pool.length)];
+  const weatherPool = Object.values(WEATHER).filter(allowed);
+  const requestedWeather =
+    typeof options.weather === 'string' ? { kind: options.weather } : options.weather;
+  const weather = { kind: draw(weatherPool).id, wind: 0, thunder: false };
+  if (allowed(WEATHER_MODIFIERS.wind)) weather.wind = draw([0, 0.25, 0.5]);
+  if (allowed(WEATHER_MODIFIERS.thunder)) weather.thunder = random(state) < 0.25;
+  if (state.dev && Object.hasOwn(WEATHER, requestedWeather?.kind)) {
+    weather.kind = requestedWeather.kind;
+    weather.wind = clamp(finite(requestedWeather.wind), 0, 1);
+    weather.thunder = requestedWeather.thunder === true;
+  }
+  const maps = Object.values(LEVELS).filter(
+    (entry) => allowed(entry) && (state.dev || entry.order <= LEVELS[state.levelId].order),
+  );
+  const map = state.dev && Object.hasOwn(LEVELS, options.map) ? options.map : draw(maps).id;
+  const skills = [];
+  const skillPool = Object.values(SKILLS)
+    .filter(allowed)
+    .map((entry) => entry.id);
+  while (skills.length < 2 && skillPool.length)
+    skills.push(skillPool.splice(Math.floor(random(state) * skillPool.length), 1)[0]);
+  if (
+    state.dev &&
+    Array.isArray(options.skills) &&
+    options.skills.length === 2 &&
+    new Set(options.skills).size === 2 &&
+    options.skills.every((kind) => Object.hasOwn(SKILLS, kind))
+  )
+    skills.splice(0, skills.length, ...options.skills);
+  return { weather, map, skills };
+}
 
 function buffStat(state, stat, base, fallbackId, fallbackValue) {
   const effects = [];
@@ -206,7 +289,7 @@ function newPlant(state, kind, x, y) {
 }
 
 /** A fresh serializable simulation; the ready scene is an inert visual preview. */
-export function createGame(levelId = 'ruins', seed = 42, profile = null) {
+export function createGame(levelId = 'ruins', seed = 42, profile = null, options = {}) {
   const level = LEVELS[levelId];
   if (!level) throw new RangeError(`Unknown Bullet Garden level: ${levelId}`);
   const initialSeed = finite(seed, 42) >>> 0 || 42;
@@ -216,6 +299,40 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null) {
     levelId,
     profile: cleanProfile,
     permanent,
+    dev: options.dev === true,
+    runOptions: {
+      dev: options.dev === true,
+      ...(typeof options.map === 'string' && Object.hasOwn(LEVELS, options.map)
+        ? { map: options.map }
+        : {}),
+      ...(typeof options.weather === 'string' && Object.hasOwn(WEATHER, options.weather)
+        ? { weather: options.weather }
+        : Object.hasOwn(WEATHER, options.weather?.kind)
+          ? {
+              weather: {
+                kind: options.weather.kind,
+                wind: clamp(finite(options.weather.wind), 0, 1),
+                thunder: options.weather.thunder === true,
+              },
+            }
+          : {}),
+      ...(Array.isArray(options.skills) &&
+      options.skills.length === 2 &&
+      new Set(options.skills).size === 2 &&
+      options.skills.every((kind) => Object.hasOwn(SKILLS, kind))
+        ? { skills: [...options.skills] }
+        : {}),
+    },
+    availableEnemies: getAvailableEnemies(levelId, permanent.level, options.dev === true),
+    availableSkills: Object.values(SKILLS)
+      .filter((entry) => options.dev === true || permanent.level >= (entry.unlockPlayerLevel ?? 1))
+      .map((entry) => entry.id),
+    availableBoons: Object.values(BOONS)
+      .filter((entry) => permanent.level >= (entry.unlockPlayerLevel ?? 1))
+      .map((entry) => entry.id),
+    availableUpgrades: UPGRADES.filter(
+      (entry) => permanent.level >= (entry.unlockPlayerLevel ?? 1),
+    ).map((entry) => entry.id),
     weather: { kind: 'sunny', wind: 0, thunder: false, ...level.weather },
     weatherTimers: {
       hail: WEATHER.hail.hazard.interval,
@@ -297,6 +414,12 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null) {
     shotCooldown: 0,
     cameraShake: 0,
   };
+  state.runConfig = rollRunConfiguration(state, state.runOptions);
+  state.weather = state.runConfig.weather;
+  state.mapId = state.runConfig.map;
+  Object.assign(state, createRunLoadout(state.runConfig.skills, level.progression?.firstXp ?? 12));
+  Object.assign(state.player, getRunLevel(state).playerStart);
+  if (!state.availableEnemies.includes(state.encounter.kind)) state.encounter.kind = null;
   for (const [kind, x, y] of [
     ['sprout', 340, 300],
     ['sprout', 565, 355],
@@ -306,19 +429,19 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null) {
     ['runner', 800, 645],
     ['brute', 1050, 385],
   ])
-    state.enemies.push(newEnemy(state, kind, x, y, true));
+    if (state.availableEnemies.includes(kind))
+      state.enemies.push(newEnemy(state, kind, x, y, true));
   return state;
 }
 
 export function startGame(state) {
-  const fresh = createGame(state.levelId, state.initialSeed, state.profile);
+  const fresh = createGame(state.levelId, state.initialSeed, state.profile, state.runOptions);
   fresh.runId = state.runId ?? null;
-  configureLoadout(fresh, { skills: [...(state.loadout?.skills ?? ['blast', 'gale'])] });
+  if (state.dev) configureLoadout(fresh, { skills: [...(state.loadout?.skills ?? [])] });
   fresh.phase = 'playing';
   fresh.enemies = [];
   fresh.plants = [];
   fresh.nextId = 0;
-  fresh.randomState = fresh.initialSeed;
   Object.assign(state, fresh);
   event(state, 'start');
   return state;
@@ -361,7 +484,8 @@ export function castSkill(state, target, index = state.selectedSkill) {
   if (
     state.phase !== 'playing' ||
     !Number.isInteger(index) ||
-    !definition ||
+    !Object.hasOwn(SKILLS, slot?.kind) ||
+    (!state.dev && state.permanent.level < (definition.unlockPlayerLevel ?? 1)) ||
     slot.energy < definition.energyMax ||
     state.skillCooldown > 0 ||
     state.skillEffects.length >= MAX_SKILL_EFFECTS ||
@@ -506,7 +630,7 @@ export function chooseUpgrade(state, upgradeId) {
 function summon(state, parent, kind, count) {
   let created = 0;
   for (let index = 0; index < count && aliveEnemies(state) < enemyCapacity(state); index += 1) {
-    if (!ENEMIES[kind]) break;
+    if (!state.availableEnemies.includes(kind)) break;
     const angle = parent.angle + (index * TAU) / Math.max(count, 1);
     const radius = parent.radius + ENEMIES[kind].radius + 12;
     const point = constrainPoint(
@@ -621,13 +745,9 @@ function spawnEnemy(state, forcedKind = null) {
   const bounds = level.bounds;
   const tier = level.spawn.composition.filter((entry) => entry.fromWave <= state.wave).at(-1);
   const weights = Object.entries(tier.weights).filter(
-    ([kind, weight]) =>
-      weight > 0 &&
-      ENEMIES[kind] &&
-      (forcedKind ||
-        ((ENEMIES[kind].unlockStage ?? 1) <= (level.order ?? 1) &&
-          (ENEMIES[kind].unlockLevel ?? 1) <= playerLevel(state))),
+    ([kind, weight]) => weight > 0 && state.availableEnemies.includes(kind),
   );
+  if (forcedKind && !state.availableEnemies.includes(forcedKind)) return null;
   if (!forcedKind && !weights.length) return null;
   let roll = random(state) * weights.reduce((sum, [, weight]) => sum + weight, 0);
   let kind = forcedKind ?? weights.at(-1)?.[0];
@@ -1952,6 +2072,7 @@ function updateEncounter(state) {
   const encounter = levelOf(state).encounter;
   if (
     !encounter ||
+    !state.encounter.kind ||
     state.encounter.spawned ||
     state.wave < encounter.atWave ||
     finite(state.encounter.retryIn) > 0
@@ -2027,8 +2148,7 @@ function tick(state, dt, input) {
   const level = levelOf(state);
   const previousTime = state.time;
   state.time += dt;
-  if (previousTime < state.duration && state.time >= state.duration)
-    event(state, 'clear-ready');
+  if (previousTime < state.duration && state.time >= state.duration) event(state, 'clear-ready');
   const player = state.player;
   state.encounter.retryIn = Math.max(0, finite(state.encounter.retryIn) - dt);
   player.invulnerable = Math.max(0, player.invulnerable - dt);
@@ -2119,7 +2239,7 @@ function tick(state, dt, input) {
     state.time >= state.duration &&
     aliveEnemies(state) === 0 &&
     state.player.hp > 0 &&
-    (!level.encounter?.required || state.encounter.defeated)
+    (!level.encounter?.required || !state.encounter.kind || state.encounter.defeated)
   ) {
     state.phase = 'won';
     state.waveProgress = 1;

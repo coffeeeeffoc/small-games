@@ -1,9 +1,9 @@
-import { LEVELS, SEEDS, BOONS, SKILLS, UPGRADES } from './config.mjs';
+import { LEVELS, SEEDS, BOONS, SKILLS, UPGRADES, WEATHER } from './config.mjs';
 import {
   createGame,
+  getRunLevel,
   startGame,
   step,
-  configureLoadout,
   selectSkill,
   chooseUpgrade,
   pauseGame,
@@ -14,6 +14,8 @@ import {
 import { GardenRenderer, drawSeedIcon, drawPortrait } from './renderer.mjs';
 import { GardenAudio } from './audio.mjs';
 import { SKILL_CHARGE_CAP } from './loadout.mjs';
+import { setupDisplay, clientToElement } from './display.mjs';
+import { renderHome, renderCatalog } from './home.mjs';
 
 import {
   createProfile,
@@ -28,6 +30,14 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('arena');
+setupDisplay({
+  game: $('game'),
+  onChange: () => {
+    resetInput();
+    renderer.resize();
+  },
+  onMessage: (text) => announce(text),
+});
 const renderer = new GardenRenderer(canvas);
 const audio = new GardenAudio();
 const PROFILE_KEY = 'bullet-garden.profile.v1';
@@ -37,7 +47,7 @@ let storageWarning = '';
 let profile = loadProfile();
 const campaign = () => Object.values(LEVELS).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
 if (!canSelectLevel(profile.selectedLevelId)) profile.selectedLevelId = campaign()[0].id;
-let state = createGame(profile.selectedLevelId, 42, profile);
+let state = createGame(profile.selectedLevelId, 42, profile, { dev: developerMode });
 const input = {
   moveX: 0,
   moveY: 0,
@@ -48,9 +58,9 @@ const input = {
   aimActive: false,
 };
 const keys = new Set();
-const panels = ['ready', 'pause', 'help', 'upgrade', 'result', 'campaign', 'shop'];
+const panels = ['ready', 'pause', 'help', 'upgrade', 'result', 'campaign', 'shop', 'catalog'];
 const skillButtons = [...document.querySelectorAll('[data-skill-slot]')];
-const prepSkills = ['blast', 'gale'];
+const prepSkills = ['', ''];
 let armed = false,
   fieldArmed = false;
 let helpOpen = false,
@@ -102,12 +112,8 @@ function loadProfile() {
 
 function readDeveloperMode() {
   const flag = new URLSearchParams(location.search).get('dev');
-  if (flag !== null) return flag === '1' || flag === 'true';
-  try {
-    return ['1', 'true'].includes(localStorage.getItem('bullet-garden.dev'));
-  } catch {
-    return false;
-  }
+  if (flag !== null) return ['', '1', 'true'].includes(flag);
+  return false;
 }
 
 function saveProfile() {
@@ -174,25 +180,30 @@ function refreshProfile() {
 }
 
 function refreshReady() {
-  const level = LEVELS[state.levelId];
-  const weather = weatherDetails(level);
-  $('ready-level-order').textContent = String(level.order ?? 1).padStart(2, '0');
-  $('ready-level-name').textContent = level.name;
-  $('ready-level-details').textContent =
-    `${level.waves} 波 · ${Math.round((level.duration / 60) * 10) / 10} 分钟 · ${level.encounter ? (level.encounter.rank === 'boss' || level.encounter.kind === 'overgrowth' ? '击败 BOSS' : '击败首领') : '生存守卫'}`;
-  const terrainHints = { wall: '石块阻挡地面移动', mud: '泥地减速双方', slope: '苔阶有概率滑落' };
-  const terrain = [
-    ...new Set((level.terrain ?? []).map((entry) => terrainHints[entry.kind]).filter(Boolean)),
-  ];
-  $('ready-weather').textContent =
-    `${weather.name}：${weather.effect}${terrain.length ? `。${terrain.join(' · ')}` : ''}`;
-  const locked = Object.values(SEEDS).filter(
-    (seed) => !availableSeeds().some((entry) => entry.id === seed.id),
-  );
-  $('ready-unlocks').textContent = locked.length
-    ? locked.map((seed) => `${seed.name} Lv.${seed.unlockLevel}`).join(' · ')
-    : '全部植物已解锁 · 局内升级可选对应增益';
+  renderHome(profile, state.levelId, developerMode, selectLevel);
   refreshProfile();
+}
+function openCatalog(kind) {
+  if (state.phase !== 'ready' || activePanel !== 'ready') return;
+  renderCatalog(kind, profile);
+  showPanel('catalog');
+}
+function runOptions() {
+  if (!developerMode) return { dev: false };
+  // A manually chosen slot stays chosen even when its partner remains automatic.
+  let skills;
+  if (prepSkills.some(Boolean)) {
+    const remaining = Object.keys(SKILLS).filter((id) => !prepSkills.includes(id));
+    skills = prepSkills.map(
+      (id) => id || remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0],
+    );
+  }
+  return {
+    dev: true,
+    weather: $('dev-weather').value || undefined,
+    map: $('dev-map').value || undefined,
+    skills,
+  };
 }
 
 function openCamp(name) {
@@ -214,16 +225,20 @@ function closeCamp() {
 }
 
 function selectLevel(levelId) {
-  if (state.phase !== 'ready' || activePanel !== 'campaign' || !canSelectLevel(levelId)) return;
+  if (
+    state.phase !== 'ready' ||
+    !['ready', 'campaign'].includes(activePanel) ||
+    !canSelectLevel(levelId)
+  )
+    return;
   resetInput();
   profile.selectedLevelId = levelId;
   saveProfile();
-  state = createGame(levelId, 42, profile);
+  state = createGame(levelId, 42, profile, runOptions());
   helpOpen = false;
   previousPhase = '';
   savedResult = false;
   settlement = null;
-  configureLoadout(state, { skills: prepSkills });
   refreshPreparation();
   refreshReady();
   syncPhase();
@@ -364,8 +379,7 @@ function populateShop() {
       if (!result.ok) return;
       saveProfile();
       if (state.phase === 'ready') {
-        state = createGame(state.levelId, state.initialSeed ?? 42, profile);
-        configureLoadout(state, { skills: prepSkills });
+        state = createGame(state.levelId, state.initialSeed ?? 42, profile, runOptions());
         refreshPreparation();
       }
       populateShop();
@@ -438,8 +452,13 @@ function resetInput() {
 }
 
 function begin() {
-  state = createGame(state.levelId, state.initialSeed ?? 42, profile);
-  if (!configureLoadout(state, { skills: prepSkills })) return;
+  if (!canSelectLevel(state.levelId)) return;
+  state = createGame(
+    state.levelId,
+    crypto.getRandomValues(new Uint32Array(1))[0],
+    profile,
+    runOptions(),
+  );
   resetInput();
   helpOpen = false;
   savedResult = false;
@@ -461,8 +480,12 @@ function begin() {
   refreshHUD();
   announce(
     matchMedia('(pointer:coarse)').matches
-      ? '摇杆移动 · 满能后点技能，再点战场释放'
-      : 'WASD 移动 · 1 / 2 选满能技能 · 点击战场释放',
+      ? state.skillSlots.length
+        ? '摇杆移动 · 满能后点技能，再点战场释放'
+        : '摇杆移动 · 自动射击 · 冲刺躲开敌人'
+      : state.skillSlots.length
+        ? 'WASD 移动 · 1 / 2 选满能技能 · 点击战场释放'
+        : 'WASD 移动 · 自动射击 · 空格冲刺',
     5,
   );
 }
@@ -472,7 +495,7 @@ function togglePause() {
     prepare();
     return;
   }
-  if (activePanel === 'campaign' || activePanel === 'shop') {
+  if (['campaign', 'shop', 'catalog'].includes(activePanel)) {
     closeCamp();
     return;
   }
@@ -502,11 +525,10 @@ function closeHelp() {
 
 function prepare() {
   resetInput();
-  state = createGame(profile.selectedLevelId, state.initialSeed ?? 42, profile);
+  state = createGame(profile.selectedLevelId, state.initialSeed ?? 42, profile, runOptions());
   helpOpen = false;
   previousPhase = '';
   savedResult = false;
-  configureLoadout(state, { skills: prepSkills });
   refreshPreparation();
   syncPhase();
   refreshHUD();
@@ -516,13 +538,15 @@ function refreshPreparation() {
   refreshReady();
   for (let index = 0; index < 2; index++) {
     $(`loadout-skill-${index}`).value = prepSkills[index];
-    $(`loadout-description-${index}`).textContent = SKILLS[prepSkills[index]].description;
+    $(`loadout-description-${index}`).textContent =
+      SKILLS[prepSkills[index]]?.description ?? '从已解锁技能中自动随机';
   }
 }
 
 const skillLabels = { blast: '爆破', gale: '大风', cart: '冲锋车', horse: '战马', laser: '激光' };
 for (let index = 0; index < 2; index++) {
   const select = $(`loadout-skill-${index}`);
+  select.append(new Option('自动随机', ''));
   for (const definition of Object.values(SKILLS)) {
     const option = document.createElement('option');
     option.value = definition.id;
@@ -535,10 +559,13 @@ for (let index = 0; index < 2; index++) {
     const previous = prepSkills[index];
     prepSkills[index] = select.value;
     // Swapping a duplicate keeps both native controls usable and the pair distinct.
-    if (prepSkills[1 - index] === select.value) prepSkills[1 - index] = previous;
+    if (select.value && prepSkills[1 - index] === select.value) prepSkills[1 - index] = previous;
     refreshPreparation();
   });
 }
+for (const [id, definition] of Object.entries(WEATHER))
+  $('dev-weather').append(new Option(definition.name || id, id));
+for (const level of campaign()) $('dev-map').append(new Option(level.name, level.id));
 function cancelSkill(message = false) {
   armed = false;
   fieldArmed = false;
@@ -590,7 +617,7 @@ function doDash() {
 }
 
 function constrainAim(world) {
-  const bounds = LEVELS[state.levelId].bounds;
+  const bounds = getRunLevel(state).bounds;
   aim = {
     x: Math.max(bounds.left, Math.min(bounds.right, world.x)),
     y: Math.max(bounds.top, Math.min(bounds.bottom, world.y)),
@@ -616,10 +643,11 @@ function updateAim(event) {
 }
 
 function updateStick(event) {
-  const rect = $('joystick').getBoundingClientRect(),
-    reach = rect.width * 0.32;
-  let x = event.clientX - rect.left - rect.width / 2,
-    y = event.clientY - rect.top - rect.height / 2;
+  const joystick = $('joystick');
+  const point = clientToElement(joystick, event.clientX, event.clientY);
+  const reach = joystick.clientWidth * 0.32;
+  let x = point.x - joystick.clientWidth / 2,
+    y = point.y - joystick.clientHeight / 2;
   const distance = Math.hypot(x, y);
   if (distance > reach) {
     x *= reach / distance;
@@ -739,6 +767,7 @@ window.addEventListener('keydown', (event) => {
         'section:not([hidden]) button, section:not([hidden]) select',
       ),
     ].filter((button) => !button.disabled);
+    if ($('fullscreen')) focusable.push($('fullscreen'));
     const first = focusable[0],
       last = focusable.at(-1);
     if (
@@ -788,7 +817,16 @@ window.addEventListener('resize', () => {
 });
 
 $('start').addEventListener('click', begin);
-$('restart').addEventListener('click', prepare);
+$('restart').addEventListener('click', begin);
+$('pause-home').addEventListener('click', prepare);
+$('battle-home').addEventListener('click', prepare);
+$('close-catalog').addEventListener('click', closeCamp);
+$('catalog-shop').addEventListener('click', () => {
+  closeCamp();
+  openCamp('shop');
+});
+for (const button of document.querySelectorAll('[data-catalog]'))
+  button.addEventListener('click', () => openCatalog(button.dataset.catalog));
 $('result-home').addEventListener('click', prepare);
 $('ready-last-result').addEventListener('click', () => {
   if (!lastResult || activePanel !== 'ready') return;
@@ -1002,11 +1040,15 @@ function syncPhase() {
 }
 
 function refreshHUD() {
-  const currentLevel = LEVELS[state.levelId];
+  $('game').dataset.skillCount = String(state.skillSlots.length);
+  document.querySelector('.skill-dock').hidden = state.skillSlots.length === 0;
+  $('cast').hidden = state.skillSlots.length === 0;
+  const currentLevel = getRunLevel(state);
   $('wave-total').textContent = ` / ${currentLevel.waves}`;
   $('hud-level-name').textContent =
     `${String(currentLevel.order ?? 1).padStart(2, '0')} · ${currentLevel.name}`;
-  $('hud-weather').textContent = weatherDetails(currentLevel).name;
+  $('hud-weather').textContent =
+    `${weatherDetails(currentLevel).name} · ${LEVELS[state.mapId]?.name ?? currentLevel.name}`;
   $('permanent-level').textContent = `永久 Lv.${levelFromXp(profile.xp).level}`;
   $('health').textContent = `${Math.ceil(state.player.hp)} / ${state.player.maxHp}`;
   $('health-fill').style.width = `${(100 * state.player.hp) / state.player.maxHp}%`;
@@ -1033,6 +1075,8 @@ function refreshHUD() {
   for (const button of skillButtons) {
     const index = Number(button.dataset.skillSlot),
       slot = state.skillSlots[index];
+    button.hidden = !slot;
+    if (!slot) continue;
     const definition = SKILLS[slot.kind],
       ready = slot.energy >= definition.energyMax;
     const charges = Math.floor(slot.energy / definition.energyMax);
@@ -1067,11 +1111,11 @@ function refreshHUD() {
     meter.setAttribute('aria-valuenow', String(Math.floor(slot.energy)));
     meter.querySelector('i').style.transform = `scaleX(${slot.energy / capacity})`;
   }
-  const definition = SKILLS[state.skillSlots[state.selectedSkill].kind];
+  const definition = SKILLS[state.skillSlots[state.selectedSkill]?.kind];
   $('targeting').hidden = !armed;
   document.body.dataset.armed = String(armed);
   $('targeting-text').textContent =
-    `${definition.name} · ${definition.shape === 'line' ? '选择方向' : '选择落点'}，松手释放`;
+    `${definition?.name ?? ''} · ${definition?.shape === 'line' ? '选择方向' : '选择落点'}，松手释放`;
   $('skill-instruction').textContent = armed
     ? '松手释放 1 次 · 有储存可继续释放 · 取消保留能量'
     : `每槽最多储存 ${SKILL_CHARGE_CAP} 次 · 点技能后在战场释放`;
@@ -1142,6 +1186,7 @@ function frame(now) {
 // Read-only observability for browser acceptance; never expose mutable state or time controls.
 Object.defineProperty(window, '__bulletGarden', {
   value: Object.freeze({
+    profile: () => structuredClone(profile),
     snapshot: () =>
       structuredClone({
         ...state,

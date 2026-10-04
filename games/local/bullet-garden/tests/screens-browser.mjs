@@ -29,16 +29,45 @@ async function screen(page, name) {
     'other pages have no battlefield backdrop',
   );
   const rect = await page.locator(`#${name}-panel`).boundingBox();
-  assert.deepEqual(
-    { width: rect.width, height: rect.height, x: rect.x, y: rect.y },
-    { ...page.viewportSize(), x: 0, y: 0 },
-  );
+  for (const [key, expected] of Object.entries({ ...page.viewportSize(), x: 0, y: 0 }))
+    assert.ok(Math.abs(rect[key] - expected) < 1, `${name} fills physical viewport ${key}`);
+  const layout = await page.locator('#game').evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+    rotated: element.dataset.rotated === 'true',
+  }));
+  const viewport = page.viewportSize();
+  assert.equal(layout.rotated, viewport.height > viewport.width);
+  assert.ok(layout.width >= layout.height, 'touch screens use a logical landscape layout');
   assert.equal(
     await page
       .locator(`#${name}-panel`)
       .evaluate((element) => element.scrollWidth <= element.clientWidth),
     true,
   );
+}
+async function inspectCampaignPages(page, developerMode) {
+  const ids = [];
+  let enabled = 0;
+  for (const [pageNumber, count] of [
+    [1, 12],
+    [2, 2],
+  ]) {
+    assert.equal(await page.locator('#campaign-page').innerText(), `${pageNumber} / 2`);
+    assert.equal(await page.locator('#campaign-list [data-level]').count(), count);
+    ids.push(
+      ...(await page
+        .locator('#campaign-list [data-level]')
+        .evaluateAll((elements) => elements.map((element) => element.dataset.level))),
+    );
+    enabled += await page.locator('#campaign-list [data-level]:enabled').count();
+    if (pageNumber === 1) await click(page, '#campaign-next');
+  }
+  assert.equal(new Set(ids).size, 14, 'pagination exposes the complete campaign once');
+  assert.equal(enabled, developerMode ? 14 : 1, 'only query developer mode bypasses stage locks');
+  assert.equal(await page.locator('#campaign-next').isDisabled(), true);
+  await click(page, '#campaign-previous');
+  assert.equal(await page.locator('#campaign-previous').isDisabled(), true);
 }
 async function setup(viewport, stored = null, query = '') {
   const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
@@ -68,11 +97,7 @@ try {
     await page.screenshot({ path: `${output}/home-${width}x${height}.png` });
     await click(page, '#ready-campaign');
     await screen(page, 'campaign');
-    assert.equal(
-      await page.locator('[data-level]:enabled').count(),
-      1,
-      'normal mode keeps progression locks',
-    );
+    await inspectCampaignPages(page, false);
     await page.screenshot({ path: `${output}/campaign-${width}x${height}.png` });
     await click(page, '#close-campaign');
     await screen(page, 'ready');
@@ -88,6 +113,9 @@ try {
     await click(page, '#start');
     assert.equal(await page.locator('body').getAttribute('data-screen'), 'battle');
     assert.equal(await page.locator('#overlay').isVisible(), false);
+    assert.deepEqual((await snapshot(page)).skillSlots, [], 'first stage introduces no skills');
+    assert.equal(await page.locator('.skill-dock').isVisible(), false);
+    assert.equal(await page.locator('#cast').isVisible(), false);
     await click(page, '#auto-fire');
     let state = await snapshot(page);
     for (let turn = 0; ['playing', 'upgrade'].includes(state.phase) && turn < 100; turn++) {
@@ -126,13 +154,13 @@ try {
   }
   for (const [stored, query, enabled] of [
     [null, '?dev=1', true],
-    ['true', '', true],
+    ['true', '', false],
     ['true', '?dev=0', false],
   ]) {
     const { context, page } = await setup({ width: 844, height: 390 }, stored, query);
     assert.equal((await snapshot(page)).controls.developerMode, enabled);
     await click(page, '#ready-campaign');
-    assert.equal(await page.locator('[data-level]:enabled').count(), enabled ? 11 : 1);
+    await inspectCampaignPages(page, enabled);
     if (enabled) {
       await click(page, '[data-level="heartgarden"]');
       assert.equal((await snapshot(page)).levelId, 'heartgarden');

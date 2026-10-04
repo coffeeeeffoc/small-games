@@ -370,6 +370,10 @@ export function settleLevel(profile, state) {
     return { ok: false, reason: 'invalid-profile' };
   if (!state || !['won', 'lost'].includes(state.phase))
     return { ok: false, reason: 'unfinished-run' };
+  // Enforce the preview boundary here as well as in the UI: developer runs must
+  // not award currency, XP, stage clears or consume a settlement transaction ID.
+  if (state.developerRun || state.dev || state.runOptions?.dev)
+    return { ok: false, reason: 'developer-run' };
   if (typeof state.runId !== 'string' || state.runId.length === 0 || state.runId.length > 128)
     return { ok: false, reason: 'missing-run-id' };
   if (!Object.hasOwn(LEVELS, state.levelId)) return { ok: false, reason: 'unknown-level' };

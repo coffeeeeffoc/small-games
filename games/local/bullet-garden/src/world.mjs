@@ -32,7 +32,7 @@ export function terrainSolids(state) {
 /** Air/underground bypass walls, but all layers must remain within the arena. */
 export function terrainPointBlocked(state, x, y, radius = 0, movement = 'ground') {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return true;
-  const bounds = levelOf(state).bounds;
+  const bounds = LEVELS[state.mapId]?.bounds ?? levelOf(state).bounds;
   const bodyRadius = Math.max(0, finite(radius));
   if (
     x < bounds.left + bodyRadius ||

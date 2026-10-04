@@ -1,3 +1,5 @@
+// Historical manual-preparation UI regression. Current campaign/home acceptance
+// is tests/home-browser.mjs (npm test:browser / test:campaign-browser).
 /** Campaign browser acceptance with native controls and a read-only snapshot.
  * Saved-profile fixtures cover unlocked menus/maps and storage denial only.
  * The separate natural scenario starts without a save, wins the original level,

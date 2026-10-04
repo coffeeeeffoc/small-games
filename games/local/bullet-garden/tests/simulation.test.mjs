@@ -20,7 +20,13 @@ import {
 const idle = { moveX: 0, moveY: 0, firing: false, autoFire: false };
 
 function isolatedGame(seed = 42, skills = ['blast', 'gale'], profile = null) {
-  const state = createGame('ruins', seed, profile);
+  // Mechanical fixtures use explicit development loadouts; campaign gating is tested separately.
+  const state = createGame('ruins', seed, profile, {
+    dev: true,
+    weather: 'sunny',
+    map: 'ruins',
+    skills,
+  });
   configureLoadout(state, { skills });
   startGame(state);
   state.enemies = [];
@@ -190,6 +196,7 @@ test('the upgrade draw excludes capped upgrades and eventually offers unlocked s
   let sawSynergy = false;
   for (let seed = 1; seed <= 30; seed += 1) {
     const state = isolatedGame(seed);
+    state.permanent.level = 6;
     const capped = UPGRADES.find((upgrade) => upgrade.id === 'attack-power');
     assert.ok(Number.isInteger(capped.maxRank) && capped.maxRank > 0);
     state.upgrades.push(...Array(capped.maxRank).fill(capped.id), 'split-shot');
@@ -216,14 +223,14 @@ test('pause freezes all timers, bullets, terrain and energy, then resumes the sa
   assert.ok(state.time > paused.time);
 });
 
-test('wave transitions alone do not grant upgrades, and an empty field wins after five minutes', () => {
+test('wave transitions alone do not grant upgrades, and an empty field wins after the introductory minute', () => {
   const state = isolatedGame();
   for (let iterations = 0; state.phase !== 'won' && iterations < 4000; iterations += 1) {
     step(state, 0.1, idle);
     assert.notEqual(state.phase, 'upgrade', 'upgrades must depend on experience rather than waves');
   }
   assert.equal(state.phase, 'won');
-  assert.equal(state.wave, 10);
+  assert.equal(state.wave, LEVELS.ruins.waves);
   assert.ok(Math.abs(state.time - state.duration) < 0.11);
   assert.equal(state.upgrades.length, 0);
   const won = structuredClone(state);
@@ -266,7 +273,7 @@ test('restarting clears experience, upgrades, skill energy and combat entities',
   plant(state, 'thorn');
   state.stats.misses = 2;
   startGame(state);
-  const fresh = createGame('ruins', state.initialSeed);
+  const fresh = createGame('ruins', state.initialSeed, state.profile, state.runOptions);
   startGame(fresh);
   assert.deepEqual(state, fresh);
 });
@@ -462,7 +469,7 @@ function readySkill(state, kind) {
 }
 
 test('loadout choices are atomic, unique, and locked during combat', () => {
-  const state = createGame();
+  const state = createGame('ruins', 42, null, { dev: true });
   const original = structuredClone(state.loadout);
   for (const value of [
     { skills: ['blast', 'blast'] },
@@ -564,7 +571,7 @@ test('passing on an offered boon leaves terrain locked until a later upgrade is 
 
 for (const boonId of Object.keys(BOONS)) {
   test(`legacy loadout.boon=${boonId} cannot grant terrain in a fresh or restarted run`, () => {
-    const state = createGame();
+    const state = createGame('ruins', 42, null, { dev: true });
     assert.equal(configureLoadout(state, { boon: boonId, skills: ['horse', 'laser'] }), true);
     assert.deepEqual(state.loadout, { skills: ['horse', 'laser'] });
     // Also cover old persisted state that bypasses the new loadout setter.
@@ -777,7 +784,7 @@ test('restarting preserves chosen loadout while clearing energy, acquired boons,
   castSkill(state, { x: 1100, y: 470 });
   advance(state, 1);
   startGame(state);
-  const fresh = createGame('ruins', state.initialSeed);
+  const fresh = createGame('ruins', state.initialSeed, state.profile, state.runOptions);
   configureLoadout(fresh, { skills: ['horse', 'laser'] });
   startGame(fresh);
   assert.deepEqual(state, fresh);

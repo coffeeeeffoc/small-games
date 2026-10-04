@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LEVELS, SKILLS } from '../src/config.mjs';
+import { createProfile } from '../src/progression.mjs';
 import {
   createGame,
   startGame,
@@ -17,7 +18,14 @@ const advance = (state, seconds) => {
     step(state, Math.min(0.1, seconds - elapsed), idle);
 };
 const battle = (levelId = 'ruins') => {
-  const state = startGame(createGame(levelId));
+  const state = startGame(
+    createGame(levelId, 42, createProfile({ xp: 115 }), {
+      dev: true,
+      weather: LEVELS[levelId].weather,
+      map: levelId,
+      skills: ['blast', 'gale'],
+    }),
+  );
   state.spawnTimer = 1e6;
   return state;
 };
@@ -125,13 +133,19 @@ for (const [energy, remainder, charges] of [
     assert.deepEqual(state.skillSlots[1], otherSlot);
     assert.equal(state.stats.skillCasts, 1);
     const after = structuredClone(state);
-    assert.equal(castSkill(state, target, 0), false, 'an immediate repeat cannot spend another charge');
+    assert.equal(
+      castSkill(state, target, 0),
+      false,
+      'an immediate repeat cannot spend another charge',
+    );
     assert.deepEqual(state, after);
   });
 }
 
 test('three stored casts consume one charge each and retain partial energy and the other slot', () => {
   const state = battle();
+  // Charge regeneration is independent of the introductory stage's shorter deadline.
+  state.duration = 600;
   advance(state, 55);
   assert.deepEqual(
     state.skillSlots.map((slot) => slot.energy),

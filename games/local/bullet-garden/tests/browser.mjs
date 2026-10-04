@@ -1,3 +1,5 @@
+// Historical manual-preparation UI regression. Current campaign/home acceptance
+// is tests/home-browser.mjs (npm test:browser / test:campaign-browser).
 /**
  * Native-input acceptance for XP-unlocked passive boons and manually released skills.
  * Virtual time accelerates the five-minute run, with normal health, energy,

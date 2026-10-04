@@ -1,0 +1,303 @@
+{
+  "baseCommit": "b61f53c7b480366754009b9e2b679ffe4c1eca7c",
+  "verification": "Current dev campaign onboarding and display integration. Browser groups run separately; touch group also ran against dist.",
+  "unitTests": {
+    "passed": 154
+  },
+  "balance": {
+    "naturalCampaignWins": 42,
+    "campaignStages": 14,
+    "seeds": [7, 42, 81],
+    "devBuildWins": 12
+  },
+  "physicalDeviceTested": false,
+  "browserGroups": {
+    "desktop": {
+      "date": "2026-10-04T17:37:45.116Z",
+      "browser": "151.0.7922.173",
+      "url": "http://127.0.0.1:4420",
+      "checks": [
+        {
+          "name": "six homepage catalogs, complete campaign locks, progressive growth, fullscreen, native movement and home controls",
+          "stages": 14,
+          "pauseIcon": {
+            "label": "暂停",
+            "bars": [
+              {
+                "x": 5,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 5.208251953125
+              },
+              {
+                "x": 14,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 5.208251953125
+              }
+            ]
+          }
+        }
+      ],
+      "errors": [],
+      "passed": true
+    },
+    "naturalCampaign": {
+      "date": "2026-10-04T17:37:45.084Z",
+      "browser": "151.0.7922.173",
+      "url": "http://127.0.0.1:4420",
+      "checks": [
+        {
+          "name": "natural one-monster 60-second clear, bounded basic choices, real rewards, next unlock and reload persistence",
+          "result": "won",
+          "duration": 60,
+          "time": 60.01666666666454,
+          "hp": 100,
+          "kills": 19,
+          "monsters": ["sprout"],
+          "stats": {
+            "shots": 241,
+            "plantsGrown": 0,
+            "plantKills": 0,
+            "terrainDamage": 0,
+            "damageTaken": 0,
+            "misses": 195,
+            "reflections": 0,
+            "splitShots": 0,
+            "autoPlants": 0,
+            "skillCasts": 0,
+            "skillDamage": 0,
+            "skillKills": 0,
+            "petShots": 0,
+            "petKills": 0,
+            "hostileShots": 0,
+            "shieldDamage": 0
+          },
+          "selections": [
+            {
+              "id": "attack-power",
+              "choices": ["wild-heart", "boon-shrub", "attack-power"],
+              "time": 21.18333333333341
+            },
+            {
+              "id": "attack-power",
+              "choices": ["boon-shrub", "attack-power", "attack-speed"],
+              "time": 54.199999999998205
+            }
+          ],
+          "earnedXp": 115,
+          "earnedCoins": 128
+        }
+      ],
+      "errors": [],
+      "passed": true
+    },
+    "developer": {
+      "date": "2026-10-04T17:39:10.110Z",
+      "browser": "151.0.7922.173",
+      "url": "http://127.0.0.1:4420",
+      "checks": [
+        {
+          "name": "dev-only manual weather/map/skill settings, all-stage access, no clear rewards, and no mini-game fullscreen",
+          "outcome": {
+            "result": "won",
+            "duration": 60,
+            "time": 60.01666666666454,
+            "hp": 100,
+            "kills": 19,
+            "monsters": ["sprout"],
+            "stats": {
+              "shots": 265,
+              "plantsGrown": 0,
+              "plantKills": 0,
+              "terrainDamage": 0,
+              "damageTaken": 0,
+              "misses": 207,
+              "reflections": 0,
+              "splitShots": 0,
+              "autoPlants": 0,
+              "skillCasts": 0,
+              "skillDamage": 0,
+              "skillKills": 0,
+              "petShots": 0,
+              "petKills": 0,
+              "hostileShots": 0,
+              "shieldDamage": 0
+            },
+            "selections": [
+              {
+                "id": "attack-speed",
+                "choices": ["wild-heart", "boon-shrub", "attack-speed"],
+                "time": 20.91666666666676
+              },
+              {
+                "id": "attack-power",
+                "choices": ["boon-shrub", "attack-speed", "attack-power"],
+                "time": 54.199999999998205
+              }
+            ]
+          },
+          "map": "ruins"
+        }
+      ],
+      "errors": [],
+      "passed": true
+    },
+    "builtTouch": {
+      "date": "2026-10-04T17:43:52.804Z",
+      "browser": "151.0.7922.173",
+      "url": "http://127.0.0.1:4421",
+      "selection": "touch",
+      "checks": [
+        {
+          "name": "native touch onboarding 390×844: rotated axes, dual touch, cancellation, dash and home",
+          "dimensions": {
+            "width": 844,
+            "height": 390,
+            "rotated": true
+          },
+          "evidence": {
+            "active": [],
+            "maximum": 2,
+            "cancellations": 1
+          },
+          "pauseIcon": {
+            "label": "暂停",
+            "bars": [
+              {
+                "x": 5,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 15.33331298828125
+              },
+              {
+                "x": 14,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 15.33331298828125
+              }
+            ]
+          }
+        },
+        {
+          "name": "native touch onboarding 844×390: rotated axes, dual touch, cancellation, dash and home",
+          "dimensions": {
+            "width": 844,
+            "height": 390,
+            "rotated": false
+          },
+          "evidence": {
+            "active": [],
+            "maximum": 2,
+            "cancellations": 1
+          },
+          "pauseIcon": {
+            "label": "暂停",
+            "bars": [
+              {
+                "x": 5,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 4.7916259765625
+              },
+              {
+                "x": 14,
+                "y": 4,
+                "width": 5,
+                "height": 16,
+                "fill": "rgb(247, 243, 232)",
+                "renderedWidth": 4.7916259765625
+              }
+            ]
+          }
+        },
+        {
+          "name": "advanced-save fixture: real energy charging, native skill arming, cancel without spend and concurrent move/cast",
+          "fixture": true,
+          "skill": "laser",
+          "chargedAt": 13.200000000000236
+        }
+      ],
+      "errors": [],
+      "passed": true
+    },
+    "screens": {
+      "browser": "151.0.7922.173",
+      "url": "http://127.0.0.1:4420",
+      "errors": [],
+      "checks": [
+        {
+          "viewport": {
+            "width": 320,
+            "height": 568
+          },
+          "screens": ["ready", "campaign", "shop", "battle", "result", "ready", "result"],
+          "termination": "natural loss",
+          "overviewPreserved": true
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "screens": ["ready", "campaign", "shop", "battle", "result", "ready", "result"],
+          "termination": "natural loss",
+          "overviewPreserved": true
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "screens": ["ready", "campaign", "shop", "battle", "result", "ready", "result"],
+          "termination": "natural loss",
+          "overviewPreserved": true
+        },
+        {
+          "viewport": {
+            "width": 1680,
+            "height": 900
+          },
+          "screens": ["ready", "campaign", "shop", "battle", "result", "ready", "result"],
+          "termination": "natural loss",
+          "overviewPreserved": true
+        },
+        {
+          "developerMode": {
+            "stored": null,
+            "query": "?dev=1",
+            "enabled": true
+          },
+          "allLevelsSelectable": true
+        },
+        {
+          "developerMode": {
+            "stored": "true",
+            "query": "",
+            "enabled": false
+          },
+          "allLevelsSelectable": false
+        },
+        {
+          "developerMode": {
+            "stored": "true",
+            "query": "?dev=0",
+            "enabled": false
+          },
+          "allLevelsSelectable": false
+        }
+      ],
+      "passed": true
+    }
+  }
+}

@@ -113,28 +113,34 @@ test('dynamic buffs reject unsupported operator semantics and preserve repeated 
 });
 
 test('hundreds of map definitions load atomically and use unchanged simulation and progression', () => {
+  const baseCount = Object.values(LEVELS).length;
+  const firstOrder = Math.max(...Object.values(LEVELS).map((level) => level.order)) + 1;
+  const lastOrder = firstOrder + 299;
   const levels = Array.from({ length: 300 }, (_, index) =>
-    extraLevel(`garden-${index + 12}`, index + 12),
+    extraLevel(`garden-${index + firstOrder}`, index + firstOrder),
   );
   const source = { version: 1, levels };
   const levelsIdentity = LEVELS;
   assert.equal(registerContentPack(source).ok, true);
   assert.equal(LEVELS, levelsIdentity);
-  assert.equal(Object.values(LEVELS).length, 311);
+  assert.equal(Object.values(LEVELS).length, baseCount + 300);
   source.levels[0].name = 'mutated input';
-  assert.equal(LEVELS['garden-12'].name, '扩展庭院');
-  assert.ok(Object.isFrozen(LEVELS['garden-12']));
+  assert.equal(LEVELS[`garden-${firstOrder}`].name, '扩展庭院');
+  assert.ok(Object.isFrozen(LEVELS[`garden-${firstOrder}`]));
   const profile = createProfile({
     completed: Object.values(LEVELS)
-      .filter((level) => level.order < 311)
+      .filter((level) => level.order < lastOrder)
       .map((level) => level.id),
   });
-  assert.equal(isLevelUnlocked(profile, 'garden-311'), true);
-  const game = createGame('garden-311', 7, profile);
+  assert.equal(isLevelUnlocked(profile, `garden-${lastOrder}`), true);
+  const game = createGame(`garden-${lastOrder}`, 7, profile);
   startGame(game);
-  assert.equal(game.levelId, 'garden-311');
+  assert.equal(game.levelId, `garden-${lastOrder}`);
   assert.equal(game.phase, 'playing');
-  assert.equal(game.duration, LEVELS['garden-311'].duration);
-  const duplicate = registerContentPack({ version: 1, levels: [extraLevel('garden-12', 312)] });
+  assert.equal(game.duration, LEVELS[`garden-${lastOrder}`].duration);
+  const duplicate = registerContentPack({
+    version: 1,
+    levels: [extraLevel(`garden-${firstOrder}`, lastOrder + 1)],
+  });
   assert.equal(duplicate.ok, false);
 });

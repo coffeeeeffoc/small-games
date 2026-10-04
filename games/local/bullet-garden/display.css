@@ -1,0 +1,189 @@
+/* Use logical game dimensions: portrait phones turn the whole UI and its touch targets. */
+#game {
+  --display-safe-top: env(safe-area-inset-top);
+  --display-safe-right: env(safe-area-inset-right);
+  --display-safe-bottom: env(safe-area-inset-bottom);
+  --display-safe-left: env(safe-area-inset-left);
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--game-width, 100vw);
+  height: var(--game-height, 100dvh);
+  min-height: 0;
+  transform-origin: top left;
+  container: garden-view / size;
+}
+#game[data-rotated='true'] {
+  --display-safe-top: env(safe-area-inset-left);
+  --display-safe-right: env(safe-area-inset-bottom);
+  --display-safe-bottom: env(safe-area-inset-right);
+  --display-safe-left: env(safe-area-inset-top);
+  transform: translateX(var(--game-height)) rotate(90deg);
+}
+.fullscreen-control {
+  position: absolute;
+  top: max(14px, var(--display-safe-top));
+  right: max(14px, var(--display-safe-right));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 76px;
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid #a3b98e77;
+  border-radius: 11px;
+  background: #20392eef;
+  color: #e4efcd;
+  font-size: 12px;
+  box-shadow: 0 3px 10px #091b1980;
+}
+.fullscreen-control::before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  flex: none;
+  background:
+    linear-gradient(currentColor, currentColor) left top / 6px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) left top / 2px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 6px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 2px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 6px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 2px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 6px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 2px 6px no-repeat;
+}
+#game[data-runtime='web'] .tools {
+  margin-right: 86px;
+}
+#display-notice {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #12261df2;
+  color: #f2f3df;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* These controls belong to every screen, including full-page camp/archive screens. */
+#game > #fullscreen { visibility: visible !important; pointer-events: auto !important; }
+#game > #display-notice { visibility: visible !important; }
+#game[data-runtime='web'] :is(.catalog-header, .panel-heading) { padding-right: 92px; }
+
+/* A physical portrait media query cannot describe a rotated landscape UI. */
+#game[data-compact-landscape='true'] { --control-height: calc(124px + var(--display-safe-bottom)); }
+#game[data-compact-landscape='true'] .hud { inset: max(10px, var(--display-safe-top)) max(14px, var(--display-safe-right)) auto max(14px, var(--display-safe-left)); gap: 10px; }
+#game[data-compact-landscape='true'] .health-group { width: 205px; gap: 8px; }
+#game[data-compact-landscape='true'] #portrait { width: 45px; height: 45px; }
+#game[data-compact-landscape='true'] .health-track { height: 23px; }
+#game[data-compact-landscape='true'] .health-track svg { width: 28px; height: 28px; top: -5px; }
+#game[data-compact-landscape='true'] #health { font-size: 12px; line-height: 17px; }
+#game[data-compact-landscape='true'] .health-caption { margin-top: 4px; font-size: 8px; }
+#game[data-compact-landscape='true'] .eyebrow { margin-bottom: 4px; font-size: 7px; }
+#game[data-compact-landscape='true'] .eyebrow span { display: none; }
+#game[data-compact-landscape='true'] .wave-group { top: 0; width: 148px; }
+#game[data-compact-landscape='true'] .wave-title { font-size: 14px; padding: 2px 13px; }
+#game[data-compact-landscape='true'] .wave-title strong { font-size: 18px; }
+#game[data-compact-landscape='true'] .wave-title span { font-size: 13px; }
+#game[data-compact-landscape='true'] .wave-track { height: 10px; margin-top: 3px; }
+#game[data-compact-landscape='true'] .wave-caption { font-size: 8px; margin-top: 4px; }
+#game[data-compact-landscape='true'] .weather-caption { font-size: 8px; }
+#game[data-compact-landscape='true'] .tools { gap: 7px; }
+#game[data-compact-landscape='true'] .icon-button { width: 44px; height: 44px; border-radius: 9px; }
+#game[data-compact-landscape='true'] .icon-button svg { width: 23px; height: 23px; }
+#game[data-compact-landscape='true'] .coins { min-width: 54px; padding: 3px 7px 3px 4px; gap: 5px; }
+#game[data-compact-landscape='true'] .coins svg { width: 23px; height: 23px; }
+#game[data-compact-landscape='true'] .coins strong { font-size: 15px; min-width: 14px; }
+#game[data-compact-landscape='true'] .fullscreen-control { top: max(10px, var(--display-safe-top)); min-width: 76px; }
+#game[data-compact-landscape='true'] .secondary-tool { display: none; }
+#game[data-compact-landscape='true'] .touch-controls { bottom: max(22px, var(--display-safe-bottom)); left: max(17px, var(--display-safe-left)); right: max(17px, var(--display-safe-right)); width: auto; align-items: flex-end; }
+#game[data-compact-landscape='true'] #joystick { width: 90px; height: 90px; }
+#game[data-compact-landscape='true'] #joystick-knob { left: 23px; top: 23px; width: 42px; height: 42px; }
+#game[data-compact-landscape='true'] .action-controls { position: static; gap: 9px; padding: 0; }
+#game[data-compact-landscape='true'] #dash { width: 50px; height: 50px; }
+#game[data-compact-landscape='true'] #cast { width: 67px; height: 67px; }
+#game[data-compact-landscape='true'] #cast svg { width: 23px; height: 23px; }
+#game[data-compact-landscape='true'] #dash svg { width: 18px; height: 18px; }
+#game[data-compact-landscape='true'] #cast span,
+#game[data-compact-landscape='true'] #dash span { font-size: 10px; }
+#game[data-compact-landscape='true'] #cast small,
+#game[data-compact-landscape='true'] #dash small { font-size: 7px; }
+#game[data-compact-landscape='true'] .skill-dock { bottom: calc(8px + var(--display-safe-bottom)); left: 50%; right: auto; transform: translateX(-50%); width: 346px; max-width: none; padding: 7px; }
+#game[data-compact-landscape='true'] .skill-dock-heading { margin-bottom: 5px; justify-content: space-between; }
+#game[data-compact-landscape='true'] .skill-dock-heading strong { font-size: 10px; }
+#game[data-compact-landscape='true'] .skill-dock-heading > span { display: inline; font-size: 8px; }
+#game[data-compact-landscape='true'] .skill-cards { gap: 8px; }
+#game[data-compact-landscape='true'] .skill-card { display: grid; min-height: 66px; grid-template-columns: 45px 1fr; padding: 3px 7px 11px 0; text-align: left; }
+#game[data-compact-landscape='true'] .skill-card canvas { width: 48px; height: 42px; }
+#game[data-compact-landscape='true'] .skill-copy strong { font-size: 11px; }
+#game[data-compact-landscape='true'] .skill-copy small { font-size: 8px; min-height: 0; }
+#game[data-compact-landscape='true'] .skill-energy { font-size: 9px; margin-top: 3px; }
+#game[data-compact-landscape='true'] .skill-instruction { font-size: 8px; margin-top: 5px; }
+#game[data-compact-landscape='true'] .field-status { flex-wrap: wrap; justify-content: center; max-width: 174px; bottom: 84px; right: 16px; padding: 0 6px; font-size: 8px; column-gap: 5px; row-gap: 1px; }
+#game[data-compact-landscape='true'] .field-status > .green-dot,
+#game[data-compact-landscape='true'] .field-status > .field-divider { display: none; }
+#game[data-compact-landscape='true'] #plant-count { display: inline; }
+#game[data-compact-landscape='true'] .field-status button,
+#game[data-compact-landscape='true'] .speed-control { font-size: 8px; }
+#game[data-compact-landscape='true'] .boon-status { top: 97px; left: 16px; max-width: 204px; padding: 4px 7px; gap: 1px; }
+#game[data-compact-landscape='true'] .boon-status > span { display: none; }
+#game[data-compact-landscape='true'] .boon-status strong { font-size: 8px; }
+#game[data-compact-landscape='true'] .experience-caption { font-size: 7px; margin-top: 4px; }
+#game[data-compact-landscape='true'] .experience-caption strong { font-size: 8px; }
+#game[data-compact-landscape='true'] .experience-track { height: 4px; }
+#game[data-compact-landscape='true'] .announcement { top: 103px; padding: 7px 15px; font-size: 10px; max-width: 90%; width: max-content; }
+#game[data-compact-landscape='true'] .targeting { top: 95px; padding: 3px 3px 3px 12px; }
+#game[data-compact-landscape='true'] .targeting > span { font-size: 10px; }
+#game[data-compact-landscape='true'] #cancel-cast { min-height: 40px; }
+body[data-armed='true'] #game[data-compact-landscape='true'] .announcement { opacity: 0; }
+#game[data-compact-landscape='true'] .control-hint { bottom: 1px; }
+
+/* Preserve the current full-screen menu architecture, with scrolling inside each screen. */
+#game[data-compact-landscape='true'] .overlay { padding: 0; }
+#game[data-compact-landscape='true'] .overlay > .modal { width: 100%; height: 100%; max-height: none; padding: 20px; border-radius: 0; }
+#game[data-compact-landscape='true'] .overlay > .ready-panel:not(.home-panel) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: safe center; gap: 20px; }
+#game[data-compact-landscape='true'] .overlay > .home-panel { display: flex; flex-direction: column; padding: 14px 22px; }
+#game[data-compact-landscape='true'] .overlay > .catalog-panel { display: block; padding: 20px; }
+#game[data-compact-landscape='true'] .ready-heading { justify-content: flex-start; }
+#game[data-compact-landscape='true'] .ready-heading > canvas { width: 42px; height: 40px; }
+#game[data-compact-landscape='true'] .ready-panel h1 { font-size: 24px; letter-spacing: 3px; }
+#game[data-compact-landscape='true'] .ready-heading .modal-kicker { font-size: 6px; margin-bottom: 2px; }
+#game[data-compact-landscape='true'] .ready-panel .intro { margin: 8px 0; font-size: 10px; }
+#game[data-compact-landscape='true'] .ready-weather { font-size: 9px; margin-bottom: 8px; padding: 7px 9px; }
+#game[data-compact-landscape='true'] .profile-summary { font-size: 10px; margin: 8px 0; }
+#game[data-compact-landscape='true'] .loadout-section { margin: 0 0 13px; }
+#game[data-compact-landscape='true'] .loadout-section legend { font-size: 10px; margin-bottom: 6px; }
+#game[data-compact-landscape='true'] .loadout-section legend small { font-size: 8px; }
+#game[data-compact-landscape='true'] .loadout-skills { gap: 8px; }
+#game[data-compact-landscape='true'] .loadout-skills select { min-height: 44px; font-size: 10px; padding: 4px; }
+#game[data-compact-landscape='true'] .loadout-skills small { font-size: 8px; }
+#game[data-compact-landscape='true'] .ready-panel .primary-button { min-height: 44px; width: 100%; font-size: 12px; }
+#game[data-compact-landscape='true'] .ready-panel .ready-tip,
+#game[data-compact-landscape='true'] .ready-panel .unlock-tip { font-size: 8px; margin-top: 9px; line-height: 1.5; text-align: center; }
+#game[data-compact-landscape='true'] .ready-panel .text-button { min-height: 40px; font-size: 10px; padding: 3px; }
+#game[data-compact-landscape='true'] .terrain-unlock-note { margin: 0; padding: 8px 10px; }
+#game[data-compact-landscape='true'] .terrain-unlock-note strong { font-size: 10px; }
+#game[data-compact-landscape='true'] .terrain-unlock-note p { font-size: 9px; margin-top: 4px; line-height: 1.6; }
+#game[data-compact-landscape='true'] .camp-actions { margin: 7px 0; }
+#game[data-compact-landscape='true'] .shop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#game[data-compact-landscape='true'] .shop-card { padding: 11px; }
+#game[data-compact-landscape='true'] #upgrade-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#game[data-compact-landscape='true'] #upgrade-options[data-count='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#game[data-compact-landscape='true'] .upgrade-option { display: block; padding: 8px 12px; text-align: center; }
+#game[data-compact-landscape='true'] .upgrade-option canvas { height: 40px; width: 70px; }
+#game[data-compact-landscape='true'] .upgrade-option strong { font-size: 13px; margin: 4px 0; }
+#game[data-compact-landscape='true'] .upgrade-option p { font-size: 10px; margin: 5px 0; }
+#game[data-compact-landscape='true'] .upgrade-option small { margin-top: 8px; font-size: 9px; }
+#game[data-compact-landscape='true'] .result-rewards { padding: 7px 0; }
+#game[data-compact-landscape='true'] .result-rewards strong { font-size: 21px; }
+  max-height: calc(var(--game-height, 100dvh) - 32px);
+  overflow: auto;
+}

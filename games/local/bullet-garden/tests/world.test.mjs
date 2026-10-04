@@ -22,8 +22,8 @@ import { eligibleUpgrades } from '../src/loadout.mjs';
 
 const idle = { moveX: 0, moveY: 0, autoFire: false };
 
-test('all eleven authored maps are connected, referenced and safe around player spawn', () => {
-  assert.equal(Object.keys(LEVELS).length, 11);
+test('all fourteen authored maps are connected, referenced and safe around player spawn', () => {
+  assert.equal(Object.keys(LEVELS).length, 14);
   const result = validateContentPack(
     {
       version: 1,

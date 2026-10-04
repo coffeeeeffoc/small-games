@@ -8,12 +8,13 @@
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:balance": "node tests/balance.mjs",
-    "test:browser": "node tests/browser.mjs",
+    "test:browser": "node tests/home-browser.mjs",
     "build": "node build.mjs",
     "test:rendering": "node tests/rendering.mjs",
     "test:campaign-balance": "node tests/campaign-balance.mjs",
-    "test:campaign-browser": "node tests/campaign-browser.mjs",
-    "test:screens": "node tests/screens-browser.mjs"
+    "test:campaign-browser": "node tests/home-browser.mjs",
+    "test:screens": "node tests/screens-browser.mjs",
+    "test:home-browser": "node tests/home-browser.mjs"
   },
   "engines": {
     "node": ">=20"

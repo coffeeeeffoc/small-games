@@ -61,7 +61,7 @@ const server = http.createServer(async (request, response) => {
     }
     if (urlPath === '/') urlPath = '/index.html';
     // Serve runtime assets only, never development files, tests or repository metadata.
-    if (!/^\/(?:index\.html|style\.css|favicon\.svg|src\/[^?#]+)$/.test(urlPath)) {
+    if (!/^\/(?:index\.html|(?:style|home|display)\.css|favicon\.svg|src\/[^?#]+)$/.test(urlPath)) {
       send(404, 'Not found');
       return;
     }
