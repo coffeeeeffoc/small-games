@@ -1,5 +1,3 @@
-import '../../../../platforms/competition/client.js';
-import { startNativeCompetition } from '../../../../platforms/competition/native.js';
 import { getLevels, MODES } from './levels.js';
 import {
   createGame,
@@ -17,7 +15,7 @@ import { drawRoleAvatar } from './role-appearance.js';
 import { runConfig, formatRecord, readRecords, submitRun } from './records.js';
 
 // Native Canvas shell: the same engine, replay protocol and field-only orders as H5.
-export function startNativeStreetGame(sdk, config) {
+export function startNativeStreetGame(sdk, config, startNativeCompetition) {
   if (!sdk) throw new Error('缺少小游戏 SDK');
   globalThis.__CLASSIC_CHASE_ROLES__ = true;
   globalThis.__chaseRoleStorage = {

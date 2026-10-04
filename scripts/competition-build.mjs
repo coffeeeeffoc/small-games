@@ -88,8 +88,11 @@ export async function buildCompetition({
         )
         .replaceAll('\\', '/');
       const configValue = { ...platformConfig, game, platform, title: selected.title, apiUrl };
+      const nativeHost = path.join(root, 'platforms/competition/native.js').replaceAll('\\', '/');
       const source = native
-        ? `import {${streetNative ? 'startNativeStreetGame as startNativeCompetition' : 'startNativeCompetition'}} from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
+        ? streetNative
+          ? `import{startNativeStreetGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeStreetGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
+          : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
         : `globalThis.__COMPETITION_CONFIG__=Object.assign(${JSON.stringify(configValue)},globalThis.__COMPETITION_CONFIG__||{});import{mountCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};mountCompetition(${JSON.stringify(game)},createRenderer);`;
       const entry = path.join(root, '.scratch/competition', `${platform}-${game}.js`);
       await mkdir(path.dirname(entry), { recursive: true });
