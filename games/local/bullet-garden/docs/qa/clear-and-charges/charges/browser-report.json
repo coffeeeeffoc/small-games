@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-04T10:03:14.288Z",
+  "browser": "140.0.7339.186",
+  "url": "http://127.0.0.1:4413",
+  "selection": "charges",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "three naturally stored skills release consecutively with one slot selection",
+      "width": 390,
+      "height": 844,
+      "time": 31.183333333332843,
+      "casts": 3
+    },
+    {
+      "name": "three naturally stored skills release consecutively with one slot selection",
+      "width": 844,
+      "height": 390,
+      "time": 31.08333333333285,
+      "casts": 3
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

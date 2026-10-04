@@ -1,0 +1,23 @@
+no-permanent-purchases seed=7 ruins: won, 309s, hp=125, kills=295
+no-permanent-purchases seed=7 meadow: won, 128s, hp=100, kills=82
+no-permanent-purchases seed=7 wetland: won, 127s, hp=93, kills=82
+no-permanent-purchases seed=7 quarry: won, 162s, hp=100, kills=106
+no-permanent-purchases seed=7 windpass: won, 127s, hp=125, kills=83
+no-permanent-purchases seed=7 hollow: won, 156s, hp=100, kills=220
+no-permanent-purchases seed=7 terraces: won, 155s, hp=100, kills=180
+no-permanent-purchases seed=7 bastion: won, 186s, hp=93, kills=126
+no-permanent-purchases seed=7 mistwood: won, 154s, hp=100, kills=104
+no-permanent-purchases seed=7 hailfield: won, 153s, hp=100, kills=103
+no-permanent-purchases seed=7 heartgarden: won, 187s, hp=86, kills=184
+earned-growth seed=7 ruins: won, 309s, hp=125, kills=295
+earned-growth seed=7 meadow: won, 127s, hp=175, kills=84
+earned-growth seed=7 wetland: won, 130s, hp=190, kills=83
+earned-growth seed=7 quarry: won, 161s, hp=215, kills=104
+earned-growth seed=7 windpass: won, 127s, hp=190, kills=82
+earned-growth seed=7 hollow: won, 153s, hp=190, kills=179
+earned-growth seed=7 terraces: won, 151s, hp=190, kills=215
+earned-growth seed=7 bastion: won, 186s, hp=190, kills=128
+earned-growth seed=7 mistwood: won, 152s, hp=190, kills=104
+earned-growth seed=7 hailfield: won, 152s, hp=190, kills=103
+earned-growth seed=7 heartgarden: won, 184s, hp=240, kills=178
+Evidence: F:/playground/playground-ai/small-games/games/local/bullet-garden/docs/qa/clear-and-charges/campaign-balance/balance-report.json

@@ -115,6 +115,7 @@ h1 {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 3px;
+  white-space: nowrap;
 }
 h1 span {
   font-family: system-ui;
@@ -141,6 +142,7 @@ nav {
   background: transparent;
   padding: 0 16px;
   font-size: 14px;
+  white-space: nowrap;
 }
 .count {
   font-size: 12px;
@@ -249,6 +251,9 @@ nav {
 }
 .view-tools .icon-button {
   border: none;
+}
+#app:has(#controls[hidden]) .view-tools {
+  display: none;
 }
 .scene-caption {
   position: absolute;
@@ -1132,6 +1137,9 @@ dialog h2 {
   }
 }
 @media (max-width: 370px) {
+  .brand-mark {
+    display: none;
+  }
   .controls {
     padding-left: 12px;
     padding-right: 12px;
@@ -1350,6 +1358,11 @@ dialog h2 {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+}
+@media (max-height: 540px) and (min-width: 480px) and (orientation: landscape) {
+  #app:has(#controls[hidden]) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 #stage {

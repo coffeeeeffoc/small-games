@@ -1,0 +1,100 @@
+{
+  "browser": "140.0.7339.186",
+  "url": "http://127.0.0.1:4413",
+  "errors": [],
+  "checks": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "screens": [
+        "ready",
+        "campaign",
+        "shop",
+        "battle",
+        "result",
+        "ready",
+        "result"
+      ],
+      "termination": "natural loss",
+      "overviewPreserved": true
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screens": [
+        "ready",
+        "campaign",
+        "shop",
+        "battle",
+        "result",
+        "ready",
+        "result"
+      ],
+      "termination": "natural loss",
+      "overviewPreserved": true
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "screens": [
+        "ready",
+        "campaign",
+        "shop",
+        "battle",
+        "result",
+        "ready",
+        "result"
+      ],
+      "termination": "natural loss",
+      "overviewPreserved": true
+    },
+    {
+      "viewport": {
+        "width": 1680,
+        "height": 900
+      },
+      "screens": [
+        "ready",
+        "campaign",
+        "shop",
+        "battle",
+        "result",
+        "ready",
+        "result"
+      ],
+      "termination": "natural loss",
+      "overviewPreserved": true
+    },
+    {
+      "developerMode": {
+        "stored": null,
+        "query": "?dev=1",
+        "enabled": true
+      },
+      "allLevelsSelectable": true
+    },
+    {
+      "developerMode": {
+        "stored": "true",
+        "query": "",
+        "enabled": true
+      },
+      "allLevelsSelectable": true
+    },
+    {
+      "developerMode": {
+        "stored": "true",
+        "query": "?dev=0",
+        "enabled": false
+      },
+      "allLevelsSelectable": false
+    }
+  ],
+  "passed": true
+}

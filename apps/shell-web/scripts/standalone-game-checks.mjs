@@ -121,9 +121,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
   } else if (id === 'luban-workshop') {
+    await expect(frame.locator('#controls')).toBeHidden();
+    await expect(frame.locator('#toggle-controls')).toHaveAttribute('aria-expanded', 'false');
     await click(frame.locator('#levels'));
     await click(frame.locator('[data-level="0"]'));
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
+    await click(frame.locator('#toggle-controls'));
+    await expect(frame.locator('#controls')).toBeVisible();
+    await expect(frame.locator('#toggle-controls')).toHaveAttribute('aria-expanded', 'true');
     await click(frame.locator('[data-piece]').first());
     await click(frame.locator('#nudge-positive'));
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
@@ -132,6 +137,8 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '0');
     await click(frame.locator('#redo'));
     await expect(frame.locator('#app')).toHaveAttribute('data-moves', '1');
+    await click(frame.locator('#toggle-controls'));
+    await expect(frame.locator('#controls')).toBeHidden();
   } else if (id === 'bullet-garden') {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());

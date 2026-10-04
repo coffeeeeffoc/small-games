@@ -1,0 +1,414 @@
+{
+  "date": "2026-10-04T10:03:13.953Z",
+  "browser": "140.0.7339.186",
+  "url": "http://127.0.0.1:4413",
+  "selection": "challenge",
+  "timing": "Playwright virtual clock; native keyboard/mouse/touch; read-only game snapshot",
+  "checks": [
+    {
+      "name": "first natural XP upgrade chooses a non-boon card and still grants no terrain",
+      "selected": "split-shot",
+      "time": 14.050000000000278,
+      "boons": [],
+      "plantsGrown": 0
+    },
+    {
+      "name": "four-choice experience upgrade fits portrait and landscape viewports"
+    },
+    {
+      "name": "five-minute victory, experience upgrades, manually targeted skills and acquired-only terrain",
+      "result": "won",
+      "seconds": 307.500000000049,
+      "hp": 100,
+      "wave": 10,
+      "kills": 296,
+      "stats": {
+        "shots": 1460,
+        "plantsGrown": 98,
+        "plantKills": 11,
+        "terrainDamage": 1370.633333333518,
+        "damageTaken": 0,
+        "misses": 948,
+        "reflections": 0,
+        "splitShots": 3643,
+        "autoPlants": 98,
+        "skillCasts": 102,
+        "skillDamage": 4238.085,
+        "skillKills": 56,
+        "petShots": 0,
+        "petKills": 0,
+        "hostileShots": 0,
+        "shieldDamage": 0
+      },
+      "maxPlants": 11,
+      "maxEnemies": 11,
+      "boons": [
+        "poison",
+        "shrub",
+        "frost"
+      ],
+      "seenTerrain": [
+        "poison",
+        "thorn",
+        "frost"
+      ],
+      "latestUnownedTime": 105.46666666666196,
+      "upgradeSelections": [
+        {
+          "time": 14.03333333333361,
+          "beforeWave": 1,
+          "level": 2,
+          "choices": [
+            "boon-poison",
+            "boon-ice",
+            "split-shot"
+          ],
+          "selected": "split-shot"
+        },
+        {
+          "time": 32.83333333333275,
+          "beforeWave": 2,
+          "level": 3,
+          "choices": [
+            "boon-mushroom",
+            "energy-cycle",
+            "ricochet"
+          ],
+          "selected": "energy-cycle"
+        },
+        {
+          "time": 53.39999999999825,
+          "beforeWave": 2,
+          "level": 4,
+          "choices": [
+            "boon-mushroom",
+            "attack-power",
+            "ice-shot"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 78.26666666666351,
+          "beforeWave": 3,
+          "level": 5,
+          "choices": [
+            "boon-ice",
+            "ice-shot",
+            "explosive-shot",
+            "fire-shot"
+          ],
+          "selected": "fire-shot"
+        },
+        {
+          "time": 105.46666666666196,
+          "beforeWave": 4,
+          "level": 6,
+          "choices": [
+            "ice-shot",
+            "boon-mushroom",
+            "boon-poison",
+            "fire-shot"
+          ],
+          "selected": "boon-poison"
+        },
+        {
+          "time": 128.14999999999412,
+          "beforeWave": 5,
+          "level": 7,
+          "choices": [
+            "attack-power",
+            "attack-speed",
+            "terrain-heart",
+            "wild-heart"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 153.31666666668082,
+          "beforeWave": 6,
+          "level": 8,
+          "choices": [
+            "split-shot",
+            "boon-mushroom",
+            "ricochet",
+            "boon-ice"
+          ],
+          "selected": "split-shot"
+        },
+        {
+          "time": 173.65000000003033,
+          "beforeWave": 6,
+          "level": 9,
+          "choices": [
+            "boon-mushroom",
+            "wild-heart",
+            "attack-power",
+            "boon-ice"
+          ],
+          "selected": "attack-power"
+        },
+        {
+          "time": 197.15000000004903,
+          "beforeWave": 7,
+          "level": 10,
+          "choices": [
+            "attack-power",
+            "boon-shrub",
+            "boon-ice",
+            "attack-speed"
+          ],
+          "selected": "boon-shrub"
+        },
+        {
+          "time": 218.73333333339954,
+          "beforeWave": 8,
+          "level": 11,
+          "choices": [
+            "boon-trench",
+            "attack-speed",
+            "boon-frost",
+            "attack-power"
+          ],
+          "selected": "boon-frost"
+        },
+        {
+          "time": 249.95000000009105,
+          "beforeWave": 9,
+          "level": 12,
+          "choices": [
+            "multishot",
+            "split-explosion",
+            "terrain-duration",
+            "boon-trench"
+          ],
+          "selected": "multishot"
+        },
+        {
+          "time": 268.4833333334178,
+          "beforeWave": 9,
+          "level": 13,
+          "choices": [
+            "boon-mushroom",
+            "fire-shot",
+            "ice-shot",
+            "explosive-shot"
+          ],
+          "selected": "fire-shot"
+        },
+        {
+          "time": 292.5500000000626,
+          "beforeWave": 10,
+          "level": 14,
+          "choices": [
+            "boon-ice",
+            "multishot",
+            "attack-power",
+            "wild-heart"
+          ],
+          "selected": "attack-power"
+        }
+      ]
+    },
+    {
+      "name": "result replay returns to preparation and resets run-only unlocks and energy"
+    },
+    {
+      "name": "no browser JavaScript or console errors"
+    }
+  ],
+  "errors": [],
+  "challenge": {
+    "result": "won",
+    "seconds": 307.500000000049,
+    "hp": 100,
+    "wave": 10,
+    "kills": 296,
+    "stats": {
+      "shots": 1460,
+      "plantsGrown": 98,
+      "plantKills": 11,
+      "terrainDamage": 1370.633333333518,
+      "damageTaken": 0,
+      "misses": 948,
+      "reflections": 0,
+      "splitShots": 3643,
+      "autoPlants": 98,
+      "skillCasts": 102,
+      "skillDamage": 4238.085,
+      "skillKills": 56,
+      "petShots": 0,
+      "petKills": 0,
+      "hostileShots": 0,
+      "shieldDamage": 0
+    },
+    "maxPlants": 11,
+    "maxEnemies": 11,
+    "boons": [
+      "poison",
+      "shrub",
+      "frost"
+    ],
+    "seenTerrain": [
+      "poison",
+      "thorn",
+      "frost"
+    ],
+    "latestUnownedTime": 105.46666666666196,
+    "upgradeSelections": [
+      {
+        "time": 14.03333333333361,
+        "beforeWave": 1,
+        "level": 2,
+        "choices": [
+          "boon-poison",
+          "boon-ice",
+          "split-shot"
+        ],
+        "selected": "split-shot"
+      },
+      {
+        "time": 32.83333333333275,
+        "beforeWave": 2,
+        "level": 3,
+        "choices": [
+          "boon-mushroom",
+          "energy-cycle",
+          "ricochet"
+        ],
+        "selected": "energy-cycle"
+      },
+      {
+        "time": 53.39999999999825,
+        "beforeWave": 2,
+        "level": 4,
+        "choices": [
+          "boon-mushroom",
+          "attack-power",
+          "ice-shot"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 78.26666666666351,
+        "beforeWave": 3,
+        "level": 5,
+        "choices": [
+          "boon-ice",
+          "ice-shot",
+          "explosive-shot",
+          "fire-shot"
+        ],
+        "selected": "fire-shot"
+      },
+      {
+        "time": 105.46666666666196,
+        "beforeWave": 4,
+        "level": 6,
+        "choices": [
+          "ice-shot",
+          "boon-mushroom",
+          "boon-poison",
+          "fire-shot"
+        ],
+        "selected": "boon-poison"
+      },
+      {
+        "time": 128.14999999999412,
+        "beforeWave": 5,
+        "level": 7,
+        "choices": [
+          "attack-power",
+          "attack-speed",
+          "terrain-heart",
+          "wild-heart"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 153.31666666668082,
+        "beforeWave": 6,
+        "level": 8,
+        "choices": [
+          "split-shot",
+          "boon-mushroom",
+          "ricochet",
+          "boon-ice"
+        ],
+        "selected": "split-shot"
+      },
+      {
+        "time": 173.65000000003033,
+        "beforeWave": 6,
+        "level": 9,
+        "choices": [
+          "boon-mushroom",
+          "wild-heart",
+          "attack-power",
+          "boon-ice"
+        ],
+        "selected": "attack-power"
+      },
+      {
+        "time": 197.15000000004903,
+        "beforeWave": 7,
+        "level": 10,
+        "choices": [
+          "attack-power",
+          "boon-shrub",
+          "boon-ice",
+          "attack-speed"
+        ],
+        "selected": "boon-shrub"
+      },
+      {
+        "time": 218.73333333339954,
+        "beforeWave": 8,
+        "level": 11,
+        "choices": [
+          "boon-trench",
+          "attack-speed",
+          "boon-frost",
+          "attack-power"
+        ],
+        "selected": "boon-frost"
+      },
+      {
+        "time": 249.95000000009105,
+        "beforeWave": 9,
+        "level": 12,
+        "choices": [
+          "multishot",
+          "split-explosion",
+          "terrain-duration",
+          "boon-trench"
+        ],
+        "selected": "multishot"
+      },
+      {
+        "time": 268.4833333334178,
+        "beforeWave": 9,
+        "level": 13,
+        "choices": [
+          "boon-mushroom",
+          "fire-shot",
+          "ice-shot",
+          "explosive-shot"
+        ],
+        "selected": "fire-shot"
+      },
+      {
+        "time": 292.5500000000626,
+        "beforeWave": 10,
+        "level": 14,
+        "choices": [
+          "boon-ice",
+          "multishot",
+          "attack-power",
+          "wild-heart"
+        ],
+        "selected": "attack-power"
+      }
+    ]
+  },
+  "passed": true
+}

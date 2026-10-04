@@ -109,7 +109,7 @@ function replay(seed, preferredBoon) {
     assert.ok(state.bullets.length <= 120);
     assert.ok(state.skillEffects.length <= 12);
     assert.ok(state.telegraphs.length <= 40);
-    assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 100));
+    assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 300));
     assert.ok(Number.isFinite(state.player.hp));
     frame += 1;
   }

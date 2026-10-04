@@ -74,8 +74,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "ae213ea8ff0c3e5c66ab5b775b2dbebd642df0f6",
-        "time": "2026-10-03T15:12:44+08:00"
+        "commit": "3cd736456e62623e2f5f5b910628a5daa1f6e0ae",
+        "time": "2026-10-03T18:43:03+08:00"
       }
     },
     "cops-robbers-realtime": {
@@ -239,8 +239,8 @@
         "time": "2026-10-03T17:01:55Z"
       },
       "updated": {
-        "commit": "617334f7634c7500362ca60f7df23762e568fb08",
-        "time": "2026-10-03T23:41:19Z"
+        "commit": "660fe3bf209bc1ed7a5ef5fb94680bb6c65e1308",
+        "time": "2026-10-04T10:07:51Z"
       }
     },
     "maze-wander": {
@@ -536,8 +536,8 @@
         "time": "2026-10-04T00:29:19+08:00"
       },
       "updated": {
-        "commit": "4d9d09cacfaef59f7a4beb8b26da99bac363596d",
-        "time": "2026-10-04T00:29:19+08:00"
+        "commit": "ddaba51118179eb998461be0427fc5eaf60c9d16",
+        "time": "2026-10-04T11:54:31Z"
       }
     },
     "waterline-station": {

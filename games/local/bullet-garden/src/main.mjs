@@ -13,6 +13,7 @@ import {
 } from './simulation.mjs';
 import { GardenRenderer, drawSeedIcon, drawPortrait } from './renderer.mjs';
 import { GardenAudio } from './audio.mjs';
+import { SKILL_CHARGE_CAP } from './loadout.mjs';
 
 import {
   createProfile,
@@ -30,10 +31,12 @@ const canvas = $('arena');
 const renderer = new GardenRenderer(canvas);
 const audio = new GardenAudio();
 const PROFILE_KEY = 'bullet-garden.profile.v1';
+const developerMode = readDeveloperMode();
+const canSelectLevel = (levelId) => developerMode || isLevelUnlocked(profile, levelId);
 let storageWarning = '';
 let profile = loadProfile();
 const campaign = () => Object.values(LEVELS).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
-if (!isLevelUnlocked(profile, profile.selectedLevelId)) profile.selectedLevelId = campaign()[0].id;
+if (!canSelectLevel(profile.selectedLevelId)) profile.selectedLevelId = campaign()[0].id;
 let state = createGame(profile.selectedLevelId, 42, profile);
 const input = {
   moveX: 0,
@@ -53,8 +56,8 @@ let armed = false,
 let helpOpen = false,
   previousPhase = '',
   savedResult = false;
-let campReturn = 'ready',
-  settlement = null,
+let settlement = null,
+  lastResult = null,
   activePanel = 'ready';
 let campaignPage = 0;
 const LEVELS_PER_PAGE = 12;
@@ -97,6 +100,16 @@ function loadProfile() {
   }
 }
 
+function readDeveloperMode() {
+  const flag = new URLSearchParams(location.search).get('dev');
+  if (flag !== null) return flag === '1' || flag === 'true';
+  try {
+    return ['1', 'true'].includes(localStorage.getItem('bullet-garden.dev'));
+  } catch {
+    return false;
+  }
+}
+
 function saveProfile() {
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
@@ -131,7 +144,7 @@ function weatherDetails(level) {
     sunny: '暖阳花治疗、花瓣炮伤害 +10%',
     cloudy: '植物耐久和持续时间 +10%',
     overcast: '植物耐久和持续时间 +10%',
-    rain: '植物生成频率 +10%，灌木缠绕更强；泥地、坡地更湿滑',
+    rain: '植物生成频率 +10%，灌木缠绕更强',
     fog: '自动射击射程 −15%；吐籽花攻击更慢',
     hail: '地面怪速度 −10%，冰柱耐久 +25%；躲开落冰警示圈',
   };
@@ -183,8 +196,7 @@ function refreshReady() {
 }
 
 function openCamp(name) {
-  if (!['ready', 'won', 'lost'].includes(state.phase) || helpOpen) return;
-  campReturn = state.phase === 'ready' ? 'ready' : 'result';
+  if (state.phase !== 'ready' || activePanel !== 'ready' || helpOpen) return;
   if (name === 'campaign') {
     campaignPage = Math.floor(
       campaign().findIndex((level) => level.id === state.levelId) / LEVELS_PER_PAGE,
@@ -198,12 +210,11 @@ function openCamp(name) {
 
 function closeCamp() {
   refreshReady();
-  if (campReturn === 'result') populateResult();
-  showPanel(campReturn);
+  showPanel('ready');
 }
 
 function selectLevel(levelId) {
-  if (!['ready', 'won', 'lost'].includes(state.phase) || !isLevelUnlocked(profile, levelId)) return;
+  if (state.phase !== 'ready' || activePanel !== 'campaign' || !canSelectLevel(levelId)) return;
   resetInput();
   profile.selectedLevelId = levelId;
   saveProfile();
@@ -212,7 +223,6 @@ function selectLevel(levelId) {
   previousPhase = '';
   savedResult = false;
   settlement = null;
-  campReturn = 'ready';
   configureLoadout(state, { skills: prepSkills });
   refreshPreparation();
   refreshReady();
@@ -233,7 +243,7 @@ function populateCampaign() {
     campaignPage * LEVELS_PER_PAGE,
     (campaignPage + 1) * LEVELS_PER_PAGE,
   )) {
-    const unlocked = isLevelUnlocked(profile, level.id);
+    const unlocked = canSelectLevel(level.id);
     const cleared = profile.completed.includes(level.id);
     const button = document.createElement('button');
     button.className = `campaign-level${state.levelId === level.id ? ' current' : ''}`;
@@ -387,9 +397,11 @@ function announce(text, duration = 3) {
 
 function showPanel(name) {
   activePanel = name;
+  document.body.dataset.screen = name ?? 'battle';
   $('overlay').hidden = !name;
   for (const panel of panels) $(`${panel}-panel`).hidden = panel !== name;
   if (name) {
+    $(`${name}-panel`).scrollTop = 0;
     resetInput();
     requestAnimationFrame(() => {
       const focus =
@@ -434,6 +446,7 @@ function begin() {
   settlement = null;
   state.runId = crypto.randomUUID();
   startGame(state);
+  state.developerRun = developerMode;
   profile.selectedLevelId = state.levelId;
   saveProfile();
   previousPhase = '';
@@ -455,6 +468,10 @@ function begin() {
 }
 
 function togglePause() {
+  if (activePanel === 'result') {
+    prepare();
+    return;
+  }
   if (activePanel === 'campaign' || activePanel === 'shop') {
     closeCamp();
     return;
@@ -485,7 +502,7 @@ function closeHelp() {
 
 function prepare() {
   resetInput();
-  state = createGame(state.levelId, state.initialSeed ?? 42, profile);
+  state = createGame(profile.selectedLevelId, state.initialSeed ?? 42, profile);
   helpOpen = false;
   previousPhase = '';
   savedResult = false;
@@ -553,7 +570,8 @@ function releaseSkill() {
   if (!armed || state.phase !== 'playing' || helpOpen) return;
   audio.unlock();
   if (castSkill(state, aim)) {
-    armed = false;
+    const slot = state.skillSlots[state.selectedSkill];
+    armed = slot.energy >= SKILLS[slot.kind].energyMax;
     fieldArmed = false;
   } else announce('技能暂未就绪 · 能量已保留', 2);
   refreshHUD();
@@ -771,17 +789,14 @@ window.addEventListener('resize', () => {
 
 $('start').addEventListener('click', begin);
 $('restart').addEventListener('click', prepare);
-$('play-again').addEventListener('click', prepare);
-$('next-level').addEventListener('click', () => {
-  const nextId =
-    settlement?.unlockedLevelId ??
-    campaign()[campaign().findIndex((level) => level.id === state.levelId) + 1]?.id;
-  if (nextId && state.phase === 'won') selectLevel(nextId);
+$('result-home').addEventListener('click', prepare);
+$('ready-last-result').addEventListener('click', () => {
+  if (!lastResult || activePanel !== 'ready') return;
+  populateResult(lastResult.run, lastResult.settlement);
+  showPanel('result');
 });
-for (const id of ['ready-campaign', 'result-campaign'])
-  $(id).addEventListener('click', () => openCamp('campaign'));
-for (const id of ['ready-shop', 'result-shop'])
-  $(id).addEventListener('click', () => openCamp('shop'));
+$('ready-campaign').addEventListener('click', () => openCamp('campaign'));
+$('ready-shop').addEventListener('click', () => openCamp('shop'));
 $('close-campaign').addEventListener('click', closeCamp);
 $('close-shop').addEventListener('click', closeCamp);
 for (const [id, direction] of [
@@ -877,22 +892,56 @@ function populateUpgrades() {
   }
 }
 
-function populateResult() {
-  const won = state.phase === 'won';
-  const level = LEVELS[state.levelId];
+function finishRun() {
+  if (!savedResult) {
+    settlement = state.developerRun
+      ? { ok: true, developer: true, reward: { coins: 0, xp: 0, firstClear: false } }
+      : settleLevel(profile, state);
+    if (settlement.ok && !state.developerRun) saveProfile();
+    const seconds = Math.floor(state.time);
+    if (!state.developerRun) {
+      best = Math.max(best, seconds);
+      try {
+        localStorage.setItem('bullet-garden.best', String(best));
+      } catch {
+        /* Optional best score. */
+      }
+    }
+    savedResult = true;
+    lastResult = {
+      run: structuredClone({
+        phase: state.phase,
+        levelId: state.levelId,
+        time: state.time,
+        wave: state.wave,
+        kills: state.kills,
+        stats: state.stats,
+        progression: state.progression,
+        upgrades: state.upgrades,
+      }),
+      settlement: structuredClone(settlement),
+    };
+    $('ready-last-result').hidden = false;
+  }
+  populateResult(lastResult.run, lastResult.settlement);
+}
+
+function populateResult(run, reward) {
+  const won = run.phase === 'won';
+  const level = LEVELS[run.levelId];
   $('result-kicker').textContent = won ? 'GARDEN PROTECTED' : 'EVERY GARDEN GROWS AGAIN';
   $('result-title').textContent = won ? '花园，生生不息。' : '下一次，会开花。';
   $('result-description').textContent = won
     ? `${level.name}守卫完成。带上新的成长，继续深入花园。`
-    : `坚持到第 ${state.wave} 波。让地形拖慢追兵，把充满的能量留给最需要的时刻。`;
-  const seconds = Math.floor(state.time);
+    : `坚持到第 ${run.wave} 波。让地形拖慢追兵，把充满的能量留给最需要的时刻。`;
+  const seconds = Math.floor(run.time);
   const values = [
     [`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, '守卫时间'],
-    [state.kills, '击退怪物'],
-    [state.stats.skillCasts, '手动释放'],
-    [state.progression.level, '本局等级'],
-    [state.upgrades.length, '获得强化'],
-    [state.stats.plantKills + state.stats.skillKills, '战术击退'],
+    [run.kills, '击退怪物'],
+    [run.stats.skillCasts, '手动释放'],
+    [run.progression.level, '本局等级'],
+    [run.upgrades.length, '获得强化'],
+    [run.stats.plantKills + run.stats.skillKills, '战术击退'],
   ];
   $('result-stats').replaceChildren();
   for (const [value, label] of values) {
@@ -904,38 +953,26 @@ function populateResult() {
     box.append(number, caption);
     $('result-stats').append(box);
   }
-  if (!savedResult) {
-    settlement = settleLevel(profile, state);
-    if (settlement.ok) saveProfile();
-    best = Math.max(best, seconds);
-    savedResult = true;
-    try {
-      localStorage.setItem('bullet-garden.best', String(best));
-    } catch {
-      /* Optional best score. */
-    }
-  }
   $('best-record').textContent =
-    `最佳守卫 ${Math.floor(best / 60)}:${String(best % 60).padStart(2, '0')} · 地形与技能造成 ${Math.round(state.stats.terrainDamage + state.stats.skillDamage)} 伤害`;
-  $('reward-coins').textContent = settlement?.reward?.coins ?? 0;
-  $('reward-xp').textContent = settlement?.reward?.xp ?? 0;
-  $('reward-note').textContent = !settlement?.ok
+    `最佳守卫 ${Math.floor(best / 60)}:${String(best % 60).padStart(2, '0')} · 地形与技能造成 ${Math.round(run.stats.terrainDamage + run.stats.skillDamage)} 伤害`;
+  $('reward-coins').textContent = reward?.reward?.coins ?? 0;
+  $('reward-xp').textContent = reward?.reward?.xp ?? 0;
+  $('reward-note').textContent = !reward?.ok
     ? '本局奖励未到账，请保留当前页面。'
     : won
-      ? settlement.reward.firstClear
-        ? `首次通关奖励已到账。${settlement.unlockedLevelId ? '下一关已解锁。' : ''}`
+      ? reward.reward.firstClear
+        ? `首次通关奖励已到账。${reward.unlockedLevelId ? '下一关已解锁。' : ''}`
         : '重玩奖励：地图奖励、击杀金币和经验的 35%。'
       : '保留 25% 击杀金币；经验按生存时间折算，未解锁下一关。';
+  if (reward?.developer)
+    $('reward-note').textContent = '开发者试玩 · 不发放金币、经验或正式通关奖励。';
   if (
     won &&
-    settlement?.ok &&
+    reward?.ok &&
+    !reward.developer &&
     !campaign()[campaign().findIndex((entry) => entry.id === level.id) + 1]
   )
     $('reward-note').textContent = '本章全部通关！可以重玩花园，继续培养成长。';
-  const next = campaign()[campaign().findIndex((entry) => entry.id === state.levelId) + 1];
-  $('next-level').hidden = !won || !next || !isLevelUnlocked(profile, next.id);
-  $('next-level').textContent = next ? `下一关 · ${next.name} →` : '本章已完成';
-  $('play-again').textContent = won ? '重玩本关 · 重新搭配 ↻' : '重新搭配 · 再挑战 ↻';
   refreshProfile();
 }
 
@@ -956,7 +993,7 @@ function syncPhase() {
     populateUpgrades();
     showPanel('upgrade');
   } else if (state.phase === 'won' || state.phase === 'lost') {
-    populateResult();
+    finishRun();
     showPanel('result');
   } else {
     showPanel(null);
@@ -978,7 +1015,9 @@ function refreshHUD() {
   $('wave-fill').style.width = `${Math.max(0, Math.min(100, state.waveProgress * 100))}%`;
   const remaining = Math.max(0, Math.ceil(state.duration - state.time));
   $('timer').textContent =
-    `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+    state.time >= state.duration
+      ? `清场 · 剩 ${state.enemies.filter((enemy) => enemy.hp > 0).length}`
+      : `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
   $('kill-count').textContent = `击退 ${state.kills}`;
   $('plant-count').textContent = `生长中 ${state.plants.length} / ${state.plantCap}`;
   const { level, xp, nextXp } = state.progression;
@@ -996,6 +1035,10 @@ function refreshHUD() {
       slot = state.skillSlots[index];
     const definition = SKILLS[slot.kind],
       ready = slot.energy >= definition.energyMax;
+    const charges = Math.floor(slot.energy / definition.energyMax);
+    const capacity = definition.energyMax * SKILL_CHARGE_CAP;
+    const progress =
+      charges === SKILL_CHARGE_CAP ? definition.energyMax : slot.energy % definition.energyMax;
     const selected = armed && state.selectedSkill === index;
     if (button.dataset.kind !== slot.kind) {
       button.dataset.kind = slot.kind;
@@ -1008,18 +1051,21 @@ function refreshHUD() {
     button.setAttribute('aria-pressed', String(selected));
     button.setAttribute(
       'aria-label',
-      `${definition.name}，能量 ${Math.floor(slot.energy)} / ${definition.energyMax}，${selected ? '正在瞄准，再点取消' : ready ? '已就绪，点击选择落点' : '充能中'}`,
+      `${definition.name}，储存 ${charges} / ${SKILL_CHARGE_CAP} 次，${selected ? '正在瞄准，再点取消' : ready ? '已就绪，点击选择落点' : '充能中'}`,
     );
-    $(`skill-energy-${index}`).textContent = `${Math.floor(slot.energy)} / ${definition.energyMax}`;
+    $(`skill-energy-${index}`).textContent =
+      `${charges} / ${SKILL_CHARGE_CAP} 次 · ${Math.floor(progress)}%`;
     $(`skill-status-${index}`).textContent = selected
       ? '瞄准中 · 再点取消'
       : ready
-        ? '已就绪 · 点此瞄准'
+        ? charges === SKILL_CHARGE_CAP
+          ? '储存已满 · 点此瞄准'
+          : '可释放 · 继续充能'
         : '充能中';
     const meter = button.querySelector('.skill-meter');
+    meter.setAttribute('aria-valuemax', String(capacity));
     meter.setAttribute('aria-valuenow', String(Math.floor(slot.energy)));
-    meter.querySelector('i').style.transform =
-      `scaleX(${Math.min(1, slot.energy / definition.energyMax)})`;
+    meter.querySelector('i').style.transform = `scaleX(${slot.energy / capacity})`;
   }
   const definition = SKILLS[state.skillSlots[state.selectedSkill].kind];
   $('targeting').hidden = !armed;
@@ -1027,8 +1073,8 @@ function refreshHUD() {
   $('targeting-text').textContent =
     `${definition.name} · ${definition.shape === 'line' ? '选择方向' : '选择落点'}，松手释放`;
   $('skill-instruction').textContent = armed
-    ? '在战场拖动瞄准 · 松手释放 · 取消保留能量'
-    : '点亮已充满的技能，再选择战场落点';
+    ? '松手释放 1 次 · 有储存可继续释放 · 取消保留能量'
+    : `每槽最多储存 ${SKILL_CHARGE_CAP} 次 · 点技能后在战场释放`;
   $('cast').disabled = !armed;
   const coarse = matchMedia('(pointer:coarse)').matches;
   $('cast-cooldown').textContent = armed ? (coarse ? '松手释放' : '右键 / E') : '先选技能';
@@ -1071,17 +1117,19 @@ function frame(now) {
   }
   for (const event of state.events.splice(0)) {
     audio.play(event.type);
+    if (event.type === 'clear-ready') announce('敌潮已结束 · 消灭剩余敌人即可通关', 5);
     if (event.type === 'wave' && state.wave > 1)
       announce(
         `第 ${state.wave} 波 · ${state.wave >= 7 ? '黑潮涌入，守住花园' : '新的敌人正在靠近'}`,
         3,
       );
   }
-  renderer.render(state, {
-    aim,
-    planting: state.phase === 'playing' && armed,
-    time: uiTime,
-  });
+  if (!activePanel)
+    renderer.render(state, {
+      aim,
+      planting: state.phase === 'playing' && armed,
+      time: uiTime,
+    });
   syncPhase();
   if (now - lastUI > 80) {
     refreshHUD();
@@ -1098,6 +1146,7 @@ Object.defineProperty(window, '__bulletGarden', {
       structuredClone({
         ...state,
         controls: {
+          developerMode,
           manualAim: input.aimActive,
           moveX: input.moveX,
           moveY: input.moveY,
@@ -1110,6 +1159,7 @@ Object.defineProperty(window, '__bulletGarden', {
   configurable: false,
 });
 refreshPreparation();
+for (const note of document.querySelectorAll('.developer-note')) note.hidden = !developerMode;
 syncSound();
 syncPhase();
 refreshHUD();

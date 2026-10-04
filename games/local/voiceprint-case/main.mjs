@@ -1,5 +1,6 @@
 import { createRun, judge, validateManifest } from './levels.mjs';
 import { AudioPlayer } from './audio.mjs';
+import { createRecordingViews } from './recording.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -14,17 +15,38 @@ let results = [];
 let generation = 0;
 let controller;
 let lastPlayback = '';
+const recordings = createRecordingViews({
+  scene: $('#scene-recording'),
+  candidates: $$('[data-recording-slot]'),
+});
 
-const player = new AudioPlayer((label) => {
+const player = new AudioPlayer((label, playback) => {
+  recordings.stop();
+  if (label && playback) {
+    const view =
+      label === '现场录音'
+        ? 'scene'
+        : label === '现场人声 · 去除背景'
+          ? rounds[index].correctIndex
+          : letters.findIndex((letter) => label === `录音 ${letter}`);
+    if (view === 'scene' || view >= 0) recordings.play(view, playback);
+  }
   lastPlayback = label || '';
-  $('#playback-status').textContent = label ? `正在播放 · ${label}` : '声音已停止';
+  $('#playback-status').textContent = label ? `正在播放 · ${label}` : '画面与声音已停止';
   $('#scene-play').setAttribute('aria-pressed', String(label === '现场录音'));
   $('#scene-play .button-label').textContent =
-    label === '现场录音' ? '停止现场录音' : '播放 / 重听现场';
+    label === '现场录音' ? '停止现场回放' : '播放 / 重看现场';
   $$('[data-listen]').forEach((button) => {
-    const playing = label === `录音 ${letters[Number(button.dataset.listen)]}`;
+    const slot = Number(button.dataset.listen);
+    const playing =
+      label === `录音 ${letters[slot]}` ||
+      (label === '现场人声 · 去除背景' && slot === rounds[index].correctIndex);
     button.setAttribute('aria-pressed', String(playing));
-    button.querySelector('.button-label').textContent = playing ? '停止' : '试听';
+    button.querySelector('.button-label').textContent = playing ? '停止回放' : '播放人物录像';
+    button.setAttribute(
+      'aria-label',
+      `${playing ? '停止' : '播放'}候选 ${letters[slot]} 的人物录像`,
+    );
   });
   $('#stop').disabled = !label;
 });
@@ -66,7 +88,7 @@ function updateControls() {
       : !sceneHeard
         ? '先完整听一遍现场录音，再试听与选择。'
         : selected === null
-          ? '试听后选一位，再点击「确认答案」。'
+          ? '听声音、看动作，选一位后再确认。'
           : `已选录音 ${letters[selected]}，确认前仍可更改。`;
 }
 
@@ -82,6 +104,8 @@ function showError(error) {
 
 function drawRound() {
   const round = rounds[index];
+  recordings.setRound(round);
+  $('#candidates').scrollLeft = 0;
   $('#round-label').textContent = `${String(index + 1).padStart(2, '0')} / 12`;
   $('#stage-label').textContent = round.stage;
   $('#scene-title').textContent = round.title;
@@ -186,7 +210,10 @@ $$('[data-listen]').forEach((button) =>
   button.addEventListener('click', () => {
     const slot = Number(button.dataset.listen);
     const label = `录音 ${letters[slot]}`;
-    if (lastPlayback === label) {
+    if (
+      lastPlayback === label ||
+      (lastPlayback === '现场人声 · 去除背景' && slot === rounds[index].correctIndex)
+    ) {
       player.stop();
       return;
     }
@@ -210,7 +237,7 @@ $('#confirm').addEventListener('click', () => {
   setPhase('feedback');
   $('#feedback-title').textContent = result.correct ? '声线吻合' : '这次听岔了';
   $('#feedback-copy').textContent =
-    `${result.correct ? '你找到了同一位说话人。' : '正确答案是录音 ' + letters[result.correctIndex] + '。'}可以重听现场，再用干净原声复核。`;
+    `${result.correct ? '你找到了同一位说话人。' : '正确答案是录音 ' + letters[result.correctIndex] + '。'}可以重看现场，对照说话时的动作，再听干净原声复核。`;
   $(`.candidate[data-slot="${result.correctIndex}"]`).classList.add('is-correct');
   if (!result.correct) $(`.candidate[data-slot="${selected}"]`).classList.add('is-wrong');
   $('#score').textContent = String(results.filter(Boolean).length);
@@ -223,6 +250,11 @@ $('#confirm').addEventListener('click', () => {
 
 $('#review-correct').addEventListener('click', () => {
   if (phase !== 'feedback') return;
+  $(`.candidate[data-slot="${rounds[index].correctIndex}"]`).scrollIntoView({
+    block: 'nearest',
+    inline: 'center',
+    behavior: 'instant',
+  });
   player.play(rounds[index].target, { label: '现场人声 · 去除背景' }).catch(showError);
 });
 
@@ -256,10 +288,12 @@ $('#volume').addEventListener('input', (event) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) player.suspend();
 });
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', (event) => {
   generation++;
   controller?.abort();
   player.dispose();
+  if (event.persisted) recordings.stop();
+  else recordings.dispose();
 });
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) home();

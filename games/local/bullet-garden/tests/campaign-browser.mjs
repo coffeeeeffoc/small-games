@@ -430,7 +430,7 @@ async function playNativeBattle(session, { tickMs = 250, captureEncounter = fals
     assert.ok(
       state.plants.every((plant) => state.boons.some((id) => BOONS[id].kind === plant.kind)),
     );
-    assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 100));
+    assert.ok(state.skillSlots.every((slot) => slot.energy >= 0 && slot.energy <= 300));
     if (
       captureEncounter &&
       !encounterCapture &&
@@ -479,7 +479,8 @@ async function naturalVictoryAndProgression() {
   };
   await page.screenshot({ path: `${output}/natural-result.png` });
   assert.equal(state.phase, 'won', 'normal-health native-input first-level victory');
-  assert.equal(Math.round(state.time), 300);
+  assert.ok(state.time >= state.duration);
+  assert.equal(state.enemies.filter((enemy) => enemy.hp > 0).length, 0);
   assert.ok(selections.length >= 4, 'combat XP causes repeated real upgrade choices');
   assert.ok(selections.some((selection) => selection.choices.length === 3));
   assert.ok(selections.some((selection) => selection.choices.length === 4));
@@ -491,14 +492,16 @@ async function naturalVictoryAndProgression() {
   assert.equal(saved.coins, LEVELS.ruins.rewards.coins + state.coins);
   assert.equal(saved.xp, LEVELS.ruins.rewards.xp);
   const beforePurchase = saved.coins;
-  await click(session, '#result-shop');
+  await click(session, '#result-home');
+  await click(session, '#ready-shop');
   await click(session, '[data-purchase="attack"]');
   saved = await savedProfile(page);
   assert.equal(saved.coins, beforePurchase - 35);
   assert.equal(saved.upgrades.attack, 1);
   await page.screenshot({ path: `${output}/natural-earned-upgrade.png` });
   await click(session, '#close-shop');
-  await click(session, '#next-level');
+  await click(session, '#ready-campaign');
+  await click(session, '[data-level="meadow"]');
   state = await snapshot(page);
   assert.equal(state.levelId, 'meadow');
   assert.equal(state.phase, 'ready');
