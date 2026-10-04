@@ -97,6 +97,39 @@ test('death during clear phase loses instead of awarding a time-only victory', (
   assert.equal(state.phase, 'lost');
 });
 
+test('energy just below one charge cannot cast or change either slot', () => {
+  const state = battle();
+  state.skillSlots[0].energy = 99.9;
+  state.skillSlots[1].energy = 173.2;
+  const before = structuredClone(state);
+  assert.equal(castSkill(state, { x: state.player.x + 100, y: state.player.y }, 0), false);
+  assert.deepEqual(state, before);
+});
+
+for (const [energy, remainder, charges] of [
+  [100, 0, 0],
+  [118.4, 18.4, 0],
+  [199.9, 99.9, 0],
+  [200, 100, 1],
+  [300, 200, 2],
+]) {
+  test(`casting from ${energy} energy spends one charge and preserves the remainder`, () => {
+    const state = battle();
+    state.skillSlots[0].energy = energy;
+    state.skillSlots[1].energy = 173.2;
+    const otherSlot = structuredClone(state.skillSlots[1]);
+    const target = { x: state.player.x + 100, y: state.player.y };
+    assert.equal(castSkill(state, target, 0), true);
+    assert.ok(Math.abs(state.skillSlots[0].energy - remainder) < 1e-9);
+    assert.equal(Math.floor(state.skillSlots[0].energy / 100), charges);
+    assert.deepEqual(state.skillSlots[1], otherSlot);
+    assert.equal(state.stats.skillCasts, 1);
+    const after = structuredClone(state);
+    assert.equal(castSkill(state, target, 0), false, 'an immediate repeat cannot spend another charge');
+    assert.deepEqual(state, after);
+  });
+}
+
 test('three stored casts consume one charge each and retain partial energy and the other slot', () => {
   const state = battle();
   advance(state, 55);

@@ -216,14 +216,26 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     };
     await expect
       .poll(async () => (await finishUpgrade()).skillSlots[0].energy, { timeout: 20000 })
-      .toBe(100);
-    await finishUpgrade();
-    // Full slots wait for the player's target; they never release automatically.
-    expect((await snapshot()).stats.skillCasts).toBe(0);
+      .toBeGreaterThanOrEqual(100);
+    const charged = await finishUpgrade();
+    // One charge is ready at 100; energy keeps accumulating up to three stored casts.
+    for (const slot of charged.skillSlots) {
+      expect(slot.energy).toBeGreaterThanOrEqual(100);
+      expect(slot.energy).toBeLessThanOrEqual(300);
+    }
+    // Charged slots wait for the player's target; they never release automatically.
+    expect(charged.stats.skillCasts).toBe(0);
     await click(frame.locator('[data-skill-slot="0"]'));
     const arena = frame.locator('#arena');
     const bounds = await arena.boundingBox();
-    const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.4 } };
+    // Aim below the targeting banner, including its cancel button on narrow screens.
+    const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.6 } };
+    expect(
+      await arena.evaluate((element, { x, y }) => {
+        const rect = element.getBoundingClientRect();
+        return document.elementFromPoint(rect.left + x, rect.top + y) === element;
+      }, target.position),
+    ).toBe(true);
     if (mobile) await arena.tap(target);
     else await arena.click(target);
     await expect.poll(async () => (await snapshot()).stats.skillCasts).toBe(1);
