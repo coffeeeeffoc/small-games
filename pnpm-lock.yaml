@@ -440,6 +440,9 @@ importers:
       '@coffeeeeffoc/rule-thief':
         specifier: workspace:*
         version: link:../../games/local/rule-thief
+      '@coffeeeeffoc/surprise-kept':
+        specifier: workspace:*
+        version: link:../../games/local/surprise-kept
       '@coffeeeeffoc/tiny-signals':
         specifier: workspace:*
         version: link:../../games/local/tiny-signals
@@ -1224,6 +1227,8 @@ importers:
   games/local/rescue-team: {}
 
   games/local/rule-thief: {}
+
+  games/local/surprise-kept: {}
 
   games/local/tiny-signals: {}
 

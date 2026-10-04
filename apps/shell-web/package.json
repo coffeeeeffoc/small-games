@@ -85,7 +85,8 @@
     "@coffeeeeffoc/out-of-frame": "workspace:*",
     "@coffeeeeffoc/echo-weaver": "workspace:*",
     "@coffeeeeffoc/two-sided-box": "workspace:*",
-    "@coffeeeeffoc/luban-workshop": "workspace:*"
+    "@coffeeeeffoc/luban-workshop": "workspace:*",
+    "@coffeeeeffoc/surprise-kept": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

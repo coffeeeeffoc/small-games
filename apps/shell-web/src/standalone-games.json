@@ -327,5 +327,12 @@
     "title": "榫间 · 鲁班锁",
     "description": "二十关榫卯机关，从辨认钥匙到分支与让位，亲手拆解复原，收集独立完成印章。",
     "output": "dist"
+  },
+  {
+    "id": "surprise-kept",
+    "source": "games/local/surprise-kept",
+    "title": "惊喜别穿帮",
+    "description": "安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。",
+    "output": "dist"
   }
 ]

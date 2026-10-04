@@ -22,6 +22,7 @@ export const markers = {
   'out-of-frame': '#board[data-level="1"]',
   'two-sided-box': '#board[data-level]',
   'luban-workshop': '#stage canvas',
+  'surprise-kept': '#game[data-ready="true"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -105,6 +106,20 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'surprise-kept') {
+    await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
+    await click(frame.locator('#box-blue'));
+    await expect(frame.locator('#game')).toHaveAttribute('data-steps', '1');
+    await click(frame.locator('#undo'));
+    await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
+    await click(frame.locator('#box-blue'));
+    await click(frame.locator('#reveal'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'success', {
+      timeout: 20_000,
+    });
+    await click(frame.locator('#next-level'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
   } else if (id === 'luban-workshop') {
     await click(frame.locator('#levels'));
     await click(frame.locator('[data-level="0"]'));

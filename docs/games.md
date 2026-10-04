@@ -49,6 +49,7 @@
 | 一滴墨，决定一切      | `ink-is-everything`            | [games/local/ink-is-everything](../games/local/ink-is-everything/)                       | 墨汁即生命：射墨、近战命中吸墨，走位回收技能墨滴；拾取装备、三选一成长，夺回钥印挑战墨之门。           |
 | 双面机关盒            | `two-sided-box`                | [games/local/two-sided-box](../games/local/two-sided-box/)                               | 从随机两个角度观察六面机关，逐面揭示线索、对齐孔板，让小球穿过五十个谜盒，通关后旋转查看完整三维结构。 |
 | 榫间 · 鲁班锁         | `luban-workshop`               | [games/local/luban-workshop](../games/local/luban-workshop/)                             | 二十关榫卯机关，从辨认钥匙到分支与让位，亲手拆解复原，收集独立完成印章。                               |
+| 惊喜别穿帮            | `surprise-kept`                | [games/local/surprise-kept](../games/local/surprise-kept/)                               | 安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。                                     |
 
 ## 子模块游戏（4 款）
 
