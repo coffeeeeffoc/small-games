@@ -1,0 +1,261 @@
+{
+  "environment": "Desktop Chromium with mobile viewport and touch emulation; not physical-device verification",
+  "source": "Production dist served by game server",
+  "checks": [
+    {
+      "name": "Default player entry, locked campaign and primary mobile screens",
+      "passed": true,
+      "durationMs": 1599,
+      "route": {
+        "before": "westbank",
+        "after": "southbank",
+        "size": {
+          "width": 44,
+          "height": 44
+        }
+      },
+      "screenshots": [
+        "home-390x844.png",
+        "levels-390x844.png",
+        "battle-390x844.png",
+        "pause-390x844.png"
+      ]
+    },
+    {
+      "name": "Pause freezes time; canceled touch and resize preserve the match and coordinate mapping",
+      "passed": true,
+      "durationMs": 5911,
+      "pausedSeconds": 3.1,
+      "virtualPauseSeconds": 15,
+      "sizes": [
+        {
+          "viewport": {
+            "width": 320,
+            "height": 568
+          },
+          "time": 4.6,
+          "route": {
+            "before": "southbank",
+            "after": "westbank",
+            "size": {
+              "width": 44,
+              "height": 44
+            }
+          },
+          "layout": {
+            "width": 320,
+            "documentWidth": 320,
+            "board": {
+              "x": 41.8125,
+              "y": 123.5,
+              "width": 236.359375,
+              "height": 399.984375
+            }
+          }
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "time": 4.9,
+          "route": {
+            "before": "westbank",
+            "after": "southbank",
+            "size": {
+              "width": 44,
+              "height": 44
+            }
+          },
+          "layout": {
+            "width": 844,
+            "documentWidth": 844,
+            "board": {
+              "x": 312.5,
+              "y": 9,
+              "width": 219,
+              "height": 372
+            }
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "time": 5.2,
+          "route": {
+            "before": "southbank",
+            "after": "westbank",
+            "size": {
+              "width": 44,
+              "height": 44
+            }
+          },
+          "layout": {
+            "width": 390,
+            "documentWidth": 390,
+            "board": {
+              "x": 13,
+              "y": 153.5,
+              "width": 364,
+              "height": 616
+            }
+          }
+        }
+      ],
+      "canceledTouch": "No route changed; subsequent touch succeeds"
+    },
+    {
+      "name": "Normal campaign victory through eight real route taps unlocks and persists the next level",
+      "passed": true,
+      "durationMs": 11054,
+      "seed": 1,
+      "difficulty": "normal",
+      "actions": [
+        [
+          9,
+          "redgate-switch"
+        ],
+        [
+          9.3,
+          "westford-switch"
+        ],
+        [
+          9.6,
+          "westford-switch"
+        ],
+        [
+          15.9,
+          "redgate-switch"
+        ],
+        [
+          16.2,
+          "westford-switch"
+        ],
+        [
+          16.5,
+          "westford-switch"
+        ],
+        [
+          16.8,
+          "eastford-switch"
+        ],
+        [
+          17.1,
+          "eastford-switch"
+        ]
+      ],
+      "result": {
+        "levelId": "crossroads",
+        "outcome": "victory",
+        "winnerId": 0,
+        "reason": "elimination",
+        "elapsed": 31.1,
+        "score": 4059,
+        "stars": 3,
+        "rankings": [
+          {
+            "factionId": 0,
+            "cities": 4,
+            "troops": 59,
+            "score": 4059
+          },
+          {
+            "factionId": 1,
+            "cities": 0,
+            "troops": 0,
+            "score": 0
+          }
+        ]
+      },
+      "savedCompleted": [
+        "crossroads"
+      ]
+    },
+    {
+      "name": "Registered developer victory and fast finish cannot award campaign progress",
+      "passed": true,
+      "durationMs": 680,
+      "progressBefore": [],
+      "progressAfter": []
+    },
+    {
+      "name": "Unassisted four-faction match reaches an ordinary 180-second result and retries",
+      "passed": true,
+      "durationMs": 51731,
+      "seed": 8,
+      "result": {
+        "levelId": "four-kingdoms",
+        "outcome": "defeat",
+        "winnerId": 3,
+        "reason": "timeout",
+        "elapsed": 180,
+        "score": 2153,
+        "stars": 0,
+        "rankings": [
+          {
+            "factionId": 3,
+            "cities": 6,
+            "troops": 113,
+            "score": 6113
+          },
+          {
+            "factionId": 0,
+            "cities": 2,
+            "troops": 153,
+            "score": 2153
+          },
+          {
+            "factionId": 1,
+            "cities": 1,
+            "troops": 4,
+            "score": 1004
+          },
+          {
+            "factionId": 2,
+            "cities": 0,
+            "troops": 0,
+            "score": 0
+          }
+        ]
+      },
+      "virtualElapsedSeconds": 181
+    },
+    {
+      "name": "Fullscreen entry/exit preserves paused game; refusal and unsupported API keep touch gameplay available",
+      "passed": true,
+      "durationMs": 1752,
+      "nativeBrowserFullscreen": "entered and exited",
+      "fallbacks": [
+        {
+          "mode": "rejected",
+          "notice": "浏览器未允许全屏，仍可在当前页面正常游玩。"
+        },
+        {
+          "mode": "unsupported",
+          "notice": "此浏览器不支持网页全屏，仍可在当前页面正常游玩。"
+        }
+      ]
+    },
+    {
+      "name": "Blocked localStorage getter retains playable local fallback and save warning",
+      "passed": true,
+      "durationMs": 315,
+      "storageFailure": "SecurityError getter",
+      "result": "Home, battle, route, pause and resume all usable"
+    },
+    {
+      "name": "320×568 home and levels retain visible touch targets and no horizontal overflow",
+      "passed": true,
+      "durationMs": 479
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "concept": {
+    "reference": "concept.png",
+    "review": "Ink landscape, parchment battlefield, red primary actions and gold routing controls follow the concept. Runtime cities use legible vector symbols and the level map uses three progression cards. Portrait is primary; landscape keeps the vertical board and moves status to its sides."
+  },
+  "browser": "140.0.7339.186"
+}
