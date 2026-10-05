@@ -33,6 +33,7 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
   const calls = [];
   const plan = { full: false, browser: true, cocos: false, diff_base: 'base', diff_head: 'head' };
   await ciValidation({
+    env: {},
     selectPlan: async () => plan,
     treeValidator: async () => {},
     execute: (command, args) => calls.push({ command, args }),
@@ -113,6 +114,7 @@ test('Linux and Windows independently exercise production hooks and gate quality
 test('full CI retains original dialog and dependency checker gates', async () => {
   const calls = [];
   await ciValidation({
+    env: {},
     selectPlan: async () => ({ full: true, browser: true, cocos: true }),
     treeValidator: async () => {},
     execute: (command, args) => calls.push(args),
