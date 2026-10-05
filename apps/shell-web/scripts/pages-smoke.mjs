@@ -79,14 +79,20 @@ try {
     await page.goBack();
     await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
     await page.goForward();
-    await expect(page.locator('nav strong')).toHaveText(title);
+    if (id === 'ink-is-everything')
+      await expect(page.locator('iframe')).toHaveAttribute('title', title);
+    else await expect(page.locator('nav strong')).toHaveText(title);
     await page.reload();
-    await expect(page.locator('nav strong')).toHaveText(title);
+    if (id === 'ink-is-everything')
+      await expect(page.locator('iframe')).toHaveAttribute('title', title);
+    else await expect(page.locator('nav strong')).toHaveText(title);
     const shared = await browser.newPage();
     monitorPagesPage(shared, url, failures, `share/${id}`);
     try {
       assert.equal((await shared.goto(sharedUrl)).status(), 200);
-      await expect(shared.locator('nav strong')).toHaveText(title);
+      if (id === 'ink-is-everything')
+        await expect(shared.locator('iframe')).toHaveAttribute('title', title);
+      else await expect(shared.locator('nav strong')).toHaveText(title);
       await expect(shared.locator('.game-slot, .standalone-page iframe')).toHaveCount(1);
     } finally {
       await shared.close();
@@ -180,10 +186,17 @@ try {
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
     await phase(result, 'embedded-return', async () => {
       assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
-      assert.equal(
-        await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
-        standaloneUrl,
-      );
+      if (game.id === 'ink-is-everything') {
+        await frame.locator('#pause').click();
+        await frame.locator('#modal [data-home]').click();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else {
+        assert.equal(
+          await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
+          standaloneUrl,
+        );
+      }
       // Release the desktop WebGL context before starting the mobile instance.
       const back = page.getByRole('button', { name: '返回目录', exact: true });
       if (game.id === 'travel-bund') {

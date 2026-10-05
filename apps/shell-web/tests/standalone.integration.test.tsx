@@ -44,7 +44,12 @@ it('opens each standalone Game and removes its frame on exit', async () => {
       expect(frame?.getAttribute('src')).toBe(`/games/${id}/index.html`);
       expect(frame?.title).toBe(title);
       expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
-      expect(container.querySelector('a')?.getAttribute('href')).toBe(frame?.getAttribute('src'));
+      if (id === 'ink-is-everything') {
+        expect(container.querySelector('nav a')).toBeNull();
+        expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
+      } else {
+        expect(container.querySelector('a')?.getAttribute('href')).toBe(frame?.getAttribute('src'));
+      }
       await act(async () =>
         container
           .querySelector('nav button')

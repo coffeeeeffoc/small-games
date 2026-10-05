@@ -26,7 +26,20 @@ export function createInput(options) {
     dashQueued: false,
     fireQueued: false,
     meleeQueued: false,
+    dryNotice: false,
   };
+  // Capture is optional on older mobile browsers and can reject a pointer that
+  // the browser has already cancelled. Gesture cleanup must still complete.
+  function capturePointer(element, id) {
+    try {
+      element.setPointerCapture?.(id);
+    } catch {}
+  }
+  function releasePointer(element, id) {
+    try {
+      if (id !== null && element.hasPointerCapture?.(id)) element.releasePointerCapture(id);
+    } catch {}
+  }
   function toggleDraw() {
     if (!options.active()) return;
     const bridge = getRoom(getState()).bridges.find((b) => !b.drawn);
@@ -47,7 +60,7 @@ export function createInput(options) {
       );
     }
   }
-  const deps = { ...options, controls: c, toggleDraw };
+  const deps = { ...options, controls: c, toggleDraw, capturePointer, releasePointer };
   bindCanvasInput(deps);
   bindTouchInput(deps);
   bindKeyboardInput(deps);
@@ -83,6 +96,7 @@ export function createInput(options) {
         'dashQueued',
         'fireQueued',
         'meleeQueued',
+        'dryNotice',
       ])
         c[key] = false;
       navigation.reset();
@@ -91,8 +105,7 @@ export function createInput(options) {
       document
         .querySelectorAll('.held,.aiming')
         .forEach((el) => el.classList.remove('held', 'aiming'));
-      for (const [element, id] of captured)
-        if (id !== null && element.hasPointerCapture(id)) element.releasePointerCapture(id);
+      for (const [element, id] of captured) releasePointer(element, id);
     },
     roomChanged() {
       this.cancel();
@@ -129,10 +142,18 @@ export function createInput(options) {
           alive.find((e) => e.id === c.lockedEnemy) ||
           alive.sort((a, b) => dist(p, a) - dist(p, b))[0];
       if (c.fireAim) aim = { x: p.x + c.fireAim.x * 400, y: p.y + c.fireAim.y * 400 };
-      else if ((c.fireHeld || c.fireQueued || !aim) && target) aim = { x: target.x, y: target.y };
+      else if (
+        (c.fireHeld || c.fireQueued || c.meleeHeld || c.meleeQueued || c.keys.has('f') || !aim) &&
+        target
+      )
+        aim = { x: target.x, y: target.y };
       else if (!aim) aim = { x: p.x + p.aimX * 200, y: p.y + p.aimY * 200 };
       const shooting = c.fireHeld || c.canvasFire || c.fireQueued,
         canShoot = p.ink >= stats.attackCost + stats.minInkAfterSpend;
+      if (shooting && !canShoot && !c.dryNotice) {
+        feedback('墨汁不足，靠近敌人用干笔吸墨。');
+        c.dryNotice = true;
+      } else if (!shooting || canShoot) c.dryNotice = false;
       const frame = {
         moveX,
         moveY,
@@ -143,8 +164,7 @@ export function createInput(options) {
           c.meleeHeld ||
           c.canvasMelee ||
           c.meleeQueued ||
-          c.keys.has('f') ||
-          (shooting && !canShoot),
+          c.keys.has('f'),
         dash: c.dashQueued,
       };
       c.dashQueued = false;
@@ -153,7 +173,12 @@ export function createInput(options) {
       return frame;
     },
     renderContext() {
-      return { drawStroke: c.drawStroke, aimPoint: c.aimPoint };
+      return {
+        drawStroke: c.drawStroke,
+        drawMode: c.drawMode,
+        drawBridgeId: c.drawBridge?.id,
+        aimPoint: c.aimPoint,
+      };
     },
     snapshot() {
       return {

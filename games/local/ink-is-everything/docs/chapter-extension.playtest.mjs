@@ -54,11 +54,10 @@ try {
     await route.fulfill({ response, body: original.replace(registry, fixture) });
   });
   await page.goto(url, { waitUntil: 'networkidle' });
-  const selector = page.locator('#chapter-select');
-  await selector.waitFor({ state: 'visible' });
-  assert.equal(await selector.locator('option').count(), 2);
-  await selector.selectOption(fixtureId);
-  await page.locator('#start-game').click();
+  await page.locator('#choose-chapter').click();
+  assert.equal(await page.locator('[data-chapter]').count(), 2);
+  await page.locator(`[data-chapter="${fixtureId}"]`).click();
+  await page.locator(`[data-play-chapter="${fixtureId}"]`).click();
   await page.waitForFunction((id) => window.__inkGame.snapshot().levelId === id, fixtureId);
   const snapshot = () => page.evaluate(() => window.__inkGame.snapshot());
   let state = await snapshot();
@@ -71,16 +70,23 @@ try {
   assert.equal(await page.locator('#objective').textContent(), '来自新关卡的目标');
   const geometry = await page.evaluate(() => {
     const canvas = document.querySelector('#game-canvas').getBoundingClientRect();
+    const state = window.__inkGame.snapshot(), p = state.player;
     return {
       canvas: { x: canvas.x, y: canvas.y, right: canvas.right, bottom: canvas.bottom },
-      first: window.__inkGame.worldToScreen(0, 0),
-      last: window.__inkGame.worldToScreen(1200, 720),
+      room: { width: state.rooms[state.roomId].width, height: state.rooms[state.roomId].height },
+      player: window.__inkGame.worldToScreen(p.x, p.y),
+      right: window.__inkGame.worldToScreen(p.x + 40, p.y),
+      lower: window.__inkGame.worldToScreen(p.x, p.y + 40),
     };
   });
-  assert.ok(geometry.first.x >= geometry.canvas.x - 1 && geometry.first.y >= geometry.canvas.y - 1);
+  assert.deepEqual(geometry.room, { width: 1200, height: 720 });
   assert.ok(
-    geometry.last.x <= geometry.canvas.right + 1 && geometry.last.y <= geometry.canvas.bottom + 1,
+    geometry.player.x >= geometry.canvas.x && geometry.player.x <= geometry.canvas.right &&
+    geometry.player.y >= geometry.canvas.y && geometry.player.y <= geometry.canvas.bottom,
   );
+  assert.ok(geometry.right.x > geometry.player.x && geometry.lower.y > geometry.player.y);
+  assert.ok(Math.abs((geometry.right.x - geometry.player.x) -
+    (geometry.lower.y - geometry.player.y)) < 1e-6, 'The camera preserves the chapter coordinate scale');
   report.cases.push({
     name: 'Registering chapter data automatically supplies selection, metadata, objectives, resources, seal count and 1200×720 rendering',
     status: 'passed',

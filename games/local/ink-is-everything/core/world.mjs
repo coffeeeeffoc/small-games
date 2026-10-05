@@ -3,6 +3,8 @@ import { getRoom } from './definition.mjs';
 import { effect, notice } from './events.mjs';
 import { spawnEnemy } from './enemies.mjs';
 import { reward } from './resources.mjs';
+import { lineOfSight } from './geometry.mjs';
+import { pickUpGear } from './pickups.mjs';
 
 export function loadRoom(state, id, spawn) {
   const room = getRoom(state, id);
@@ -83,7 +85,6 @@ export function getObjective(state) {
     messages = state.definition.messages ?? {};
   if (state.status === 'won') return messages.won ?? '章节完成';
   if (state.status === 'lost') return messages.lost ?? '墨汁耗尽，重新出发';
-  if (state.pendingRewards.length) return state.pendingRewards[0].title;
   if (room.isFinal) return room.objective ?? room.subtitle;
   if (
     state.seals >= state.definition.requiredSeals &&
@@ -100,9 +101,23 @@ export function getObjective(state) {
 export function getNearbyInteractable(state) {
   const room = getRoom(state);
   return (
-    [...room.objects.filter((object) => !object.used), ...room.portals]
-      .map((object) => ({ ...object, type: object.kind, distance: distance(state.player, object) }))
-      .filter((object) => object.distance <= 106)
+    [
+      ...room.objects.filter((object) => !object.used),
+      ...room.portals,
+      ...state.pickups.filter((pickup) => pickup.kind === 'gear'),
+    ]
+      .map((object) => ({
+        ...object,
+        type: object.kind,
+        distance: distance(state.player, object),
+        ...(object.kind === 'gear' ? { name: '拾取装备' } : {}),
+      }))
+      .filter(
+        (object) =>
+          object.distance <= 106 &&
+          (object.kind !== 'gear' ||
+            lineOfSight(room, state.player, object, { includePits: true })),
+      )
       .sort((a, b) => a.distance - b.distance)[0] ?? null
   );
 }
@@ -118,6 +133,7 @@ export function portalReason(state, portal) {
 export function interactWith(state, object) {
   if (!object) return { ok: false, message: '走近场景物体后互动' };
   if (distance(state.player, object) > 106) return { ok: false, message: '再靠近一些' };
+  if (object.kind === 'gear') return pickUpGear(state, object);
   if (object.kind === 'portal') {
     const reason = portalReason(state, object);
     if (reason) return { ok: false, message: reason };
@@ -147,12 +163,7 @@ export function advanceWorld(state, dt) {
       distance(state.player, object) < 72
     )
       interactWith(state, object);
-  if (
-    state.transitionCd <= 0 &&
-    state.status === 'playing' &&
-    room.cleared &&
-    !state.pendingRewards.length
-  ) {
+  if (state.transitionCd <= 0 && state.status === 'playing' && room.cleared) {
     const portal = room.portals.find(
       (item) => distance(state.player, item) < item.r * 0.63 && !portalReason(state, item),
     );
