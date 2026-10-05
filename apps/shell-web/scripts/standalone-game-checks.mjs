@@ -1117,10 +1117,20 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
+      // Pointer lock is asynchronous; Escape must follow acquisition, not race it.
+      await expect
+        .poll(
+          () => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element),
+          { timeout: 30000 },
+        )
+        .toBe(true);
       // start() already focuses the canvas; send native input without refocusing WebGL.
       await canvas.page().keyboard.press('Escape');
       await expect
-        .poll(() => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null))
+        .poll(
+          () => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null),
+          { timeout: 30000 },
+        )
         .toBe(true);
       await expect(frame.getByRole('dialog')).toBeHidden();
       await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
