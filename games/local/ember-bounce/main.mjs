@@ -45,6 +45,9 @@ const screens = {
   result: 'result',
 };
 const listeners = [];
+let pressedControl = null;
+let lastTouchActionAt = -Infinity;
+let lastTouchControl = null;
 function fitArena() {
   const box = canvas.parentElement.getBoundingClientRect();
   if (box.width <= 0 || box.height <= 0) return;
@@ -57,6 +60,52 @@ function listen(target, name, callback, options) {
   target.addEventListener(name, callback, options);
   listeners.push(() => target.removeEventListener(name, callback, options));
 }
+// Touch controls consume the native pointer gesture directly. Some Android
+// browsers omit the compatibility click after a captured Canvas drag.
+listen($('app'), 'pointerdown', (event) => {
+  if (event.pointerType !== 'touch' || !event.isPrimary) return;
+  const button = event.target.closest('button');
+  pressedControl =
+    button && !button.disabled && typeof button.onclick === 'function'
+      ? { button, id: event.pointerId, x: event.clientX, y: event.clientY }
+      : null;
+});
+listen($('app'), 'pointerup', (event) => {
+  if (event.pointerId !== pressedControl?.id) return;
+  const { button, x, y } = pressedControl;
+  pressedControl = null;
+  const hit = document.elementFromPoint(event.clientX, event.clientY);
+  if (
+    button.disabled ||
+    !hit ||
+    !button.contains(hit) ||
+    Math.hypot(event.clientX - x, event.clientY - y) > 14
+  )
+    return;
+  lastTouchActionAt = performance.now();
+  lastTouchControl = button;
+  button.onclick.call(button, event);
+});
+listen($('app'), 'pointercancel', () => {
+  pressedControl = null;
+});
+listen(
+  document,
+  'click',
+  (event) => {
+    // Keyboard/assistive clicks have detail=0; mouse clicks remain unchanged.
+    if (
+      event.detail > 0 &&
+      event.target.closest('button') === lastTouchControl &&
+      event.pointerType !== 'mouse' &&
+      performance.now() - lastTouchActionAt < 650
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  },
+  true,
+);
 function toast(message) {
   clearTimeout(toastTimer);
   $('toast').textContent = message;
@@ -66,6 +115,7 @@ function toast(message) {
   }, 2600);
 }
 function cancelAim() {
+  pressedControl = null;
   const id = pointerId;
   pointerId = null;
   aim = null;
@@ -363,7 +413,10 @@ listen(document, 'keydown', (event) => {
     else if (phase === 'levels' || phase === 'help') home();
   }
 });
-listen(window, 'blur', pause);
+listen(window, 'blur', () => {
+  pressedControl = null;
+  pause();
+});
 listen(document, 'visibilitychange', () => {
   if (document.hidden) {
     pause();
