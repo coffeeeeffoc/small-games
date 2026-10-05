@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
-// Serve the real shared dialog module; only the service client and Vite CSS loader are fixtures.
+// Serve the real shared UI; only the service client and Vite CSS loader are fixtures.
 const css = await readFile(new URL('../platforms/competition/h5.css', import.meta.url), 'utf8');
 const source = (await readFile(new URL('../platforms/competition/h5.js', import.meta.url), 'utf8'))
   .replace("import './client.js';", '')
@@ -49,13 +49,14 @@ const server = createServer((request, response) => {
         ? format
         : request.url === '/fixture.js'
           ? fixture
-          : '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body><button data-game-fullscreen>全屏</button><script type="module" src="/fixture.js"></script></body></html>',
+          : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${new URL(request.url, 'http://localhost').searchParams.get('game') === 'xiangqi-five' ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${new URL(request.url, 'http://localhost').searchParams.get('game') === 'xiangqi-five' ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
   browser = await chromium.launch({
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
     channel: process.env.BROWSER_CHANNEL || undefined,
     headless: true,
   });
@@ -81,18 +82,44 @@ try {
       const launch = page.locator('[data-competition-launch]');
       const details = dialog.locator('[data-details]');
       const exit = dialog.locator('[data-close]');
+      const xiangqi = game === 'xiangqi-five';
+      if (xiangqi) {
+        assert.deepEqual(
+          await page.evaluate(() => fixture.calls),
+          [],
+          'mode card does not eagerly call the service',
+        );
+        await expect(page.locator('#mode-online[data-competition-launch]')).toHaveCount(1);
+        assert.equal(
+          await launch.evaluate((element) => getComputedStyle(element).position),
+          'static',
+        );
+      }
       await press(launch);
       await expect(dialog).toBeVisible();
       await expect(dialog.locator('[data-game-fullscreen]')).toHaveCount(0);
       await expect(dialog.getByRole('button', { name: '×', exact: true })).toHaveCount(0);
-      await expect(dialog.locator('.pk-header [data-close]')).toHaveCount(0);
+      await expect(dialog.locator('.pk-header [data-close]')).toHaveCount(xiangqi ? 1 : 0);
+      if (xiangqi) {
+        await expect(page.locator('dialog')).toHaveCount(0);
+        await expect(page.locator('body')).toHaveClass(/competition-active/);
+        await expect(page.locator('.page')).toBeHidden();
+        await expect(page.locator('section[data-screen]')).toHaveJSProperty('inert', true);
+      }
       await expect(page.locator('body > [data-game-fullscreen]')).toHaveCount(1);
       await expect(exit).toBeInViewport();
       for (const selector of ['[data-rules]', '[data-profile]', '[data-board]']) {
         await press(dialog.locator(selector));
         await expect(details).toBeVisible();
         await expect(details.locator('.pk-sheet-head button')).toHaveCount(0);
-        await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', true);
+        if (xiangqi) {
+          await expect(dialog.locator('.pk-shell')).toBeHidden();
+          assert.equal(
+            await details.evaluate((element) => getComputedStyle(element).position),
+            'static',
+            'details are a page',
+          );
+        } else await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', true);
         const back = details.locator('[data-dismiss]');
         await expect(back).toHaveText('返回游戏');
         await back.scrollIntoViewIfNeeded();
@@ -107,14 +134,15 @@ try {
         );
         await press(back);
         await expect(details).toBeHidden();
-        await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', false);
+        if (xiangqi) await expect(dialog.locator('.pk-shell')).toBeVisible();
+        else await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', false);
       }
       await press(dialog.locator('[data-profile]'));
       await details.getByRole('textbox', { name: '你的昵称' }).fill('玩家乙');
       await press(details.getByRole('button', { name: '保存昵称' }));
       await expect(details).toBeHidden();
       await expect(dialog.locator('[data-profile-name]')).toHaveText('玩家乙');
-      // Start a match, return from a nested sheet, and leave through the persistent bottom action.
+      // Start a match, return from details, and leave through the persistent return action.
       await page.evaluate(() => {
         fixture.status = 'playing';
       });
@@ -125,6 +153,11 @@ try {
       await press(details.locator('[data-dismiss]'));
       await press(exit);
       await expect(dialog).toBeHidden();
+      if (xiangqi) {
+        await expect(page.locator('.page')).toBeVisible();
+        await expect(page.locator('section[data-screen]')).toHaveJSProperty('inert', false);
+        await expect(page.locator('#mode-online strong')).toHaveText('好友对弈');
+      }
       await expect
         .poll(() =>
           page.evaluate(() => fixture.calls.filter((url) => url.endsWith('/leave')).length),

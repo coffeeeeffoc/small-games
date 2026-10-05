@@ -9,8 +9,79 @@ const titles = {
   'vibeJam-myself-history-guess': '此时·此地',
   'xiangqi-five': '象五子棋',
 };
+// Xiangqi shares the service protocol, but uses the game's mobile page navigation.
+const xiangqiCompetitionStyles = `
+body.competition-active { background:#fff8e8; overflow:hidden; }
+body.competition-active [data-screen], body.competition-active > .page, body.competition-active > .app-shell { display:none!important; }
+body.competition-active #mode-online { position:static; }
+[data-xiangqi-competition][hidden] { display:none!important; }
+[data-xiangqi-competition].competition-dialog {
+  --pk-ink:#573626; --pk-muted:#94785d; --pk-line:#ddc8a9; --pk-accent:#ef795f;
+  position:relative; inset:auto; width:100%; max-width:600px; height:100dvh;
+  margin:0 auto; border:0; border-radius:0; background:#fff8e8; box-shadow:none;
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-xiangqi-competition] .pk-shell { padding: max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition] .pk-header { border:0; padding-bottom:8px; }
+[data-xiangqi-competition] .pk-back { padding:0; width:44px; min-width:44px; border:0; background:transparent; font-size:28px; }
+[data-xiangqi-competition] .pk-brand { justify-content:center; }
+[data-xiangqi-competition] .pk-brand strong { font-size:23px; font-weight:900; }
+[data-xiangqi-competition] .pk-brand-mark,
+[data-xiangqi-competition] .pk-brand small,
+[data-xiangqi-competition] .pk-profile-copy small,
+[data-xiangqi-competition] .pk-room-note,
+[data-xiangqi-competition] .pk-footer p,
+[data-xiangqi-competition] .pk-hero .pk-eyebrow,
+[data-xiangqi-competition] .pk-hero p { display:none; }
+[data-xiangqi-competition] .pk-status { font-size:12px; justify-content:center; min-height:20px; margin:3px 0 12px!important; }
+[data-xiangqi-competition] .pk-hero { padding:10px 0 18px; background:none; border:0; }
+[data-xiangqi-competition] .pk-hero h2 { font-size:27px; font-weight:900; }
+[data-xiangqi-competition] .pk-profile { padding:12px 14px; border:2px solid #d6c29e; border-radius:20px; background:#edf3dc; margin-bottom:18px; }
+[data-xiangqi-competition] .pk-avatar { background:#b8d0a9; color:#365f45; border:2px solid #668360; box-shadow:0 3px 0 #7fa578; }
+[data-xiangqi-competition] .pk-options { grid-template-columns:1fr; gap:16px; }
+[data-xiangqi-competition] .pk-option { padding:18px; border:2px solid #d6b38c; border-radius:24px; background:#fff0da; box-shadow:0 4px 0 #ead5b8; }
+[data-xiangqi-competition] .pk-option h3 { font-size:20px; font-weight:900; }
+[data-xiangqi-competition] .pk-option p { margin:5px 0 14px!important; font-size:13px; }
+[data-xiangqi-competition] button { border:2px solid #ba9b77; border-radius:16px; background:#fff5df; min-height:48px; font-size:15px; font-weight:800; box-shadow:0 3px 0 #dfc7a9; }
+[data-xiangqi-competition] button:active { transform:translateY(2px); }
+[data-xiangqi-competition] button.pk-primary { border-color:#b25843; background:#ef795f; color:#fffaf0; box-shadow:0 4px 0 #be5c42; }
+[data-xiangqi-competition] button.pk-quiet { border-color:transparent; background:transparent; box-shadow:none; padding:8px; min-height:44px; }
+[data-xiangqi-competition] input { min-width:0; border:2px solid #d6b38c; border-radius:14px; background:#fffcf2; color:#573626; min-height:48px; }
+[data-xiangqi-competition] .pk-join { gap:10px; }
+[data-xiangqi-competition] .pk-footer { border:0; padding-top:18px; justify-content:center; }
+[data-xiangqi-competition] .pk-footer button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-room-code { background:#fff0d5; border:2px dashed #d3ad78; color:#715137; border-radius:15px; }
+[data-xiangqi-competition] .pk-room-intro { padding:14px 0; }
+[data-xiangqi-competition] .pk-player { border-radius:20px; border:2px solid #d6c29e; background:#f0f4df; }
+[data-xiangqi-competition] .pk-room-actions { gap:12px; flex-wrap:wrap; }
+[data-xiangqi-competition] .pk-room-actions > button { flex:1; min-width:120px; }
+[data-xiangqi-competition][data-playing] .pk-shell { padding: max(8px,env(safe-area-inset-top)) 10px max(6px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition][data-playing] .pk-header { min-height:44px; padding:0; }
+[data-xiangqi-competition][data-playing] .pk-brand strong { font-size:18px; }
+[data-xiangqi-competition][data-playing] .pk-status { display:none; }
+[data-xiangqi-competition] canvas[data-play] { background:#fff8e8; border-radius:0; }
+[data-xiangqi-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-xiangqi-competition] .pk-detail-page {
+  position:static; inset:auto; display:block; height:100%; background:#fff8e8;
+  backdrop-filter:none; padding:max(20px,env(safe-area-inset-top)) 18px max(20px,env(safe-area-inset-bottom));
+}
+[data-xiangqi-competition] .pk-sheet { height:100%; max-width:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; }
+[data-xiangqi-competition] .pk-sheet-head { flex:none; }
+[data-xiangqi-competition] .pk-sheet-head h2 { font-size:26px; font-weight:900; }
+[data-xiangqi-competition] .pk-sheet-content { flex:1; overflow:auto; padding:2px 0 14px; }
+[data-xiangqi-competition] .pk-sheet-actions { flex:none; padding-top:14px; }
+[data-xiangqi-competition] .pk-sheet-actions button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-result { border:2px solid #d6c29e; border-radius:22px; background:#edf3dc; }
+@media (orientation:landscape) and (max-height:500px) {
+  [data-xiangqi-competition].competition-dialog { max-width:none; }
+  [data-xiangqi-competition] .pk-options { grid-template-columns:1fr 1fr; }
+  [data-xiangqi-competition] .pk-shell { padding:8px 18px; }
+  [data-xiangqi-competition][data-playing] .pk-header { min-height:44px; }
+}
+`;
 export function mountCompetition(game, createRenderer) {
   const street = game === 'cops-robbers-realtime';
+  const xiangqi = game === 'xiangqi-five';
   const roleNames = street
     ? { pursuer: '警察', runner: '小偷' }
     : { pursuer: '追逐队', runner: '突围队' };
@@ -21,14 +92,25 @@ export function mountCompetition(game, createRenderer) {
       createImage: () => new Image(),
       assetBase: new URL('./', location.href).href,
     });
-  const launch = document.createElement('button');
-  launch.textContent = '好友 PK · 全站榜';
+  const modeEntry = xiangqi && document.getElementById('mode-online');
+  const launch = modeEntry || document.createElement('button');
+  if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
+  if (modeEntry) modeEntry.hidden = false;
   launch.dataset.competitionLaunch = '';
   const style = document.createElement('style');
-  style.textContent = styles;
+  style.textContent = xiangqi
+    ? styles.replaceAll(
+        '[data-competition-launch]',
+        '[data-competition-launch]:not(#mode-online)',
+      ) + xiangqiCompetitionStyles
+    : styles;
   document.head.append(style);
-  const dialog = document.createElement('dialog');
+  const dialog = document.createElement(xiangqi ? 'section' : 'dialog');
   dialog.className = 'competition-dialog';
+  if (xiangqi) {
+    dialog.dataset.xiangqiCompetition = '';
+    dialog.hidden = true;
+  }
   dialog.setAttribute('aria-label', `${titles[game]} · 好友对决`);
   dialog.innerHTML = `<div class="pk-shell">
     <header class="pk-header"><div class="pk-brand"><span class="pk-brand-mark" aria-hidden="true">PK</span><div><strong>${titles[game]}</strong><small>好友对决 · 同场较量</small></div></div>
@@ -47,7 +129,22 @@ export function mountCompetition(game, createRenderer) {
     <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。游客身份保存在当前浏览器。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
     <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
-  document.body.append(launch, dialog);
+  if (!modeEntry) document.body.append(launch);
+  document.body.append(dialog);
+  if (xiangqi) {
+    const back = dialog.querySelector('[data-close]');
+    back.textContent = '←';
+    back.setAttribute('aria-label', '返回玩法选择');
+    back.className = 'pk-back';
+    dialog.querySelector('.pk-header').prepend(back);
+    dialog.querySelector('.pk-exit').remove();
+    dialog.querySelector('.pk-brand strong').textContent = '好友对弈';
+    dialog.querySelector('.pk-brand-mark').textContent = '五';
+    dialog.querySelector('.pk-hero h2').textContent = '叫上好友，下一局！';
+    dialog.querySelector('[data-create]').textContent = '创建房间';
+    dialog.querySelector('[data-board]').textContent = '看看排行榜 →';
+    dialog.querySelector('.pk-overlay').classList.add('pk-detail-page');
+  }
   if (street) {
     globalThis.__CLASSIC_CHASE_ROLES__ = true;
     dialog.dataset.streetCompetition = '';
@@ -73,6 +170,27 @@ export function mountCompetition(game, createRenderer) {
     resultShown = null,
     returnFocus = null,
     modes = [];
+  const isOpen = () => (xiangqi ? !dialog.hidden : dialog.open);
+  let screenStates = [];
+  function closeCompetition() {
+    if (!xiangqi) {
+      dialog.close();
+      return;
+    }
+    dialog.hidden = true;
+    dialog.removeAttribute('open');
+    document.body.classList.remove('competition-active');
+    for (const [screen, inert] of screenStates) screen.inert = inert;
+    screenStates = [];
+    if (history.state?.xqOnline) {
+      const nextState = { ...history.state };
+      delete nextState.xqOnline;
+      history.replaceState(nextState, '', location.href);
+    }
+    dialog.dispatchEvent(new Event('close'));
+    window.dispatchEvent(new CustomEvent('xiangqi-online-close', { detail: { open: false } }));
+    if (launch.isConnected && !launch.closest('[hidden]')) launch.focus();
+  }
   function text(tag, value, className = '') {
     const node = document.createElement(tag);
     node.textContent = value;
@@ -89,7 +207,7 @@ export function mountCompetition(game, createRenderer) {
     details.hidden = true;
     select('.pk-content').inert = false;
     select('.pk-footer').inert = false;
-    select('.pk-exit').inert = false;
+    if (!xiangqi) select('.pk-exit').inert = false;
     if (returnFocus?.isConnected && !returnFocus.closest('[hidden]')) returnFocus.focus();
     else select('[data-rules]').focus();
   }
@@ -99,7 +217,7 @@ export function mountCompetition(game, createRenderer) {
     details.replaceChildren();
     select('.pk-content').inert = true;
     select('.pk-footer').inert = true;
-    select('.pk-exit').inert = true;
+    if (!xiangqi) select('.pk-exit').inert = true;
     const sheet = text('div', '', 'pk-sheet');
     sheet.dataset.kind = kind;
     const head = text('div', '', 'pk-sheet-head'),
@@ -219,7 +337,7 @@ export function mountCompetition(game, createRenderer) {
     }
   }
   function accept(value) {
-    if (!dialog.open) return;
+    if (!isOpen()) return;
     if (room?.code !== value.code) pending = null;
     room = value;
     const playing = room.status === 'playing',
@@ -297,7 +415,7 @@ export function mountCompetition(game, createRenderer) {
     }
   }
   async function refresh() {
-    if (!room || busy || !dialog.open || Date.now() - lastPoll < (room.pollMs || 1200)) return;
+    if (!room || busy || !isOpen() || Date.now() - lastPoll < (room.pollMs || 1200)) return;
     lastPoll = Date.now();
     try {
       accept(await client.request(`/rooms/${room.code}`));
@@ -432,8 +550,8 @@ export function mountCompetition(game, createRenderer) {
     }
   }
   function draw() {
-    if (!dialog.open) return;
-    if (!canvas.hidden) {
+    if (!isOpen()) return;
+    if (!canvas.hidden && (!xiangqi || details.hidden)) {
       const rect = street
           ? { width: canvas.clientWidth, height: canvas.clientHeight }
           : canvas.getBoundingClientRect(),
@@ -451,9 +569,25 @@ export function mountCompetition(game, createRenderer) {
     frame = requestAnimationFrame(draw);
   }
   async function open() {
-    if (dialog.open || exiting) return;
+    if (isOpen() || exiting) return;
     window.dispatchEvent(new CustomEvent('competition-visibility', { detail: { open: true } }));
-    dialog.showModal();
+    if (xiangqi) {
+      history.pushState(
+        { ...history.state, xqScreen: document.body.dataset.screen || 'modes', xqOnline: true },
+        '',
+        location.href,
+      );
+      window.dispatchEvent(new CustomEvent('xiangqi-online-open', { detail: { open: true } }));
+      screenStates = [...document.querySelectorAll('[data-screen]:not(body)')].map((screen) => [
+        screen,
+        screen.inert,
+      ]);
+      for (const [screen] of screenStates) screen.inert = true;
+      document.body.classList.add('competition-active');
+      dialog.hidden = false;
+      dialog.setAttribute('open', '');
+      select('[data-close]').focus();
+    } else dialog.showModal();
     draw();
     poll = setInterval(refresh, 250);
     const invite = new URL(location.href).searchParams.get('pk');
@@ -556,7 +690,7 @@ export function mountCompetition(game, createRenderer) {
     if (exiting) return;
     exiting = true;
     launch.disabled = true;
-    dialog.close();
+    closeCompetition();
     try {
       if (room && ['waiting', 'playing'].includes(room.status))
         await client.request(`/rooms/${room.code}/leave`, { body: '{}' });
@@ -571,11 +705,11 @@ export function mountCompetition(game, createRenderer) {
       try {
         localStorage.removeItem(`competition-room:${game}`);
       } catch {}
-      launch.textContent = '好友 PK · 全站榜';
+      if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
       launch.removeAttribute('title');
       feedback('同一规则，和好友认真比一局。');
     } catch {
-      launch.textContent = '已退出 · 房间待确认';
+      if (!modeEntry) launch.textContent = '已退出 · 房间待确认';
       launch.title = '网络不可用，服务端尚未确认退出。重连可查看原房间，否则按时限结束。';
     } finally {
       exiting = false;
@@ -587,8 +721,19 @@ export function mountCompetition(game, createRenderer) {
     if (!details.hidden) dismiss();
     else select('[data-close]').click();
   });
+  if (xiangqi) {
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !isOpen()) return;
+      event.preventDefault();
+      if (!details.hidden) dismiss();
+      else select('[data-close]').click();
+    });
+    window.addEventListener('xiangqi-online-exit', () => {
+      if (isOpen()) select('[data-close]').click();
+    });
+  }
   details.addEventListener('click', (event) => {
-    if (event.target === details) dismiss();
+    if (!xiangqi && event.target === details) dismiss();
   });
   dialog.addEventListener('close', () => {
     clearInterval(poll);
