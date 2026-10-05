@@ -145,7 +145,7 @@ export default {
   verifyRun: verifyStreetRun,
   id: 'cops-robbers-realtime',
   title: '街区追捕 · 警察与小偷',
-  version: 'street-roles-initiative-v2',
+  version: 'street-roles-initiative-v3',
   durationMs,
   description,
   duel: true,

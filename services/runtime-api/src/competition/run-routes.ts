@@ -10,7 +10,7 @@ export function registerRunRoutes(
   const config = (query: unknown) =>
     z
       .object({
-        version: z.literal('street-solo-v1'),
+        version: z.literal('street-solo-v2'),
         mode: z.enum(['challenge', 'classic', 'escape', 'quick']),
         role: z.enum(['cop', 'robber']),
         level: z.coerce.number().int().min(1).max(100),

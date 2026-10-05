@@ -70,15 +70,15 @@ function tree(ctx, x, y, size, variant) {
   ctx.scale(size, size);
   ellipse(ctx, 5, 12, 20, 8, '#8aaa862b');
   round(ctx, -3, -2, 6, 16, 2, '#a58162');
-  ellipse(ctx, 0, -9, 20, 23, variant ? '#70a580' : '#83b68a', '#689278', 1.5);
-  ellipse(ctx, -7, -18, 11, 11, variant ? '#91bd96' : '#acd09f');
+  ellipse(ctx, 0, -9, 20, 23, variant ? '#46ad87' : '#73c78a', '#429676', 1.5);
+  ellipse(ctx, -7, -18, 11, 11, variant ? '#8add9b' : '#b2e8a0');
   line(
     ctx,
     [
       [0, 6],
       [0, -12],
     ],
-    '#5f8e6c',
+    '#448c64',
     1.4,
   );
   line(
@@ -87,7 +87,7 @@ function tree(ctx, x, y, size, variant) {
       [0, -2],
       [8, -10],
     ],
-    '#5f8e6c',
+    '#448c64',
     1.4,
   );
   ctx.restore();
@@ -97,10 +97,10 @@ function house(ctx, x, y, variant) {
   ctx.save();
   ctx.translate(x, y);
   ellipse(ctx, 7, 27, 44, 13, '#8aaa862b');
-  round(ctx, -39, -20, 78, 50, 7, '#edf1ce', '#7c9980', 1.5);
-  round(ctx, -39, -19, 78, 12, 4, '#ccd9b4');
-  round(ctx, -43, -42, 86, 37, 7, variant % 2 ? '#d68e6c' : '#9aada0', '#5c7768', 2);
-  round(ctx, -38, -38, 76, 23, 4, variant % 2 ? '#e9ac83' : '#b9c8b6');
+  round(ctx, -39, -20, 78, 50, 7, '#fff4d9', '#b6a580', 1.5);
+  round(ctx, -39, -19, 78, 12, 4, '#ffe1b1');
+  round(ctx, -43, -42, 86, 37, 7, variant % 2 ? '#ee936d' : '#6eaada', '#5b87a6', 2);
+  round(ctx, -38, -38, 76, 23, 4, variant % 2 ? '#ffba90' : '#a5d5f4');
   for (let i = 0; i < 3; i++)
     line(
       ctx,
@@ -108,10 +108,10 @@ function house(ctx, x, y, variant) {
         [-30 + i * 26, -36],
         [-30 + i * 26, -17],
       ],
-      variant % 2 ? '#cc8e69' : '#9bad9c',
+      variant % 2 ? '#da845f' : '#78b3db',
       1,
     );
-  round(ctx, -29, 1, 17, 16, 3, '#7faaa1', '#6d9186', 1);
+  round(ctx, -29, 1, 17, 16, 3, '#89d5e4', '#58a4ba', 1);
   line(
     ctx,
     [
@@ -130,7 +130,7 @@ function house(ctx, x, y, variant) {
     '#d9e9c9',
     2,
   );
-  round(ctx, 10, 0, 16, 29, 3, '#a4846b', '#7e8162', 1);
+  round(ctx, 10, 0, 16, 29, 3, '#c49a6b', '#7e8162', 1);
   ellipse(ctx, 21, 16, 1.5, 1.5, '#f8e5b1');
   round(ctx, 6, 27, 24, 5, 2, '#c5c5a5');
   round(ctx, 17, -52, 12, 19, 2, '#d9c1a0', '#8c9c7d', 1.5);
@@ -167,12 +167,12 @@ function bench(ctx, x, y, angle = 0) {
 }
 
 function flowers(ctx, x, y, variant) {
-  ellipse(ctx, x, y, 29, 17, '#94b991');
-  ellipse(ctx, x, y - 2, 25, 13, '#acc49b');
+  ellipse(ctx, x, y, 29, 17, '#76bc87');
+  ellipse(ctx, x, y - 2, 25, 13, '#a4d79b');
   for (let i = 0; i < 7; i++) {
     const px = x + Math.cos(i * 2.4) * (8 + i * 2),
       py = y + Math.sin(i * 2.4) * 8 - 4;
-    ellipse(ctx, px, py, 3.2, 3.2, i % 3 === 0 ? '#f6de92' : variant ? '#f0ac91' : '#f6efe0');
+    ellipse(ctx, px, py, 3.2, 3.2, i % 3 === 0 ? '#f6de92' : variant ? '#ff9bab' : '#f6efe0');
     ellipse(ctx, px, py, 1, 1, '#bb8d64');
   }
 }
@@ -187,10 +187,10 @@ function buildMap(level, rotation = 0) {
   ctx.scale(2, 2);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.fillStyle = '#bdd3ab';
+  ctx.fillStyle = '#a7d6b6';
   ctx.fillRect(0, 0, W, H);
-  round(ctx, 14, 14, W - 28, H - 28, 29, '#ccdec0', '#adc6a4', 1.5);
-  round(ctx, 24, 24, W - 48, H - 48, 23, '#ccdec0', '#e5edce', 1);
+  round(ctx, 14, 14, W - 28, H - 28, 29, '#cce9cf', '#83bb9d', 1.5);
+  round(ctx, 24, 24, W - 48, H - 48, 23, '#cce9cf', '#e5edce', 1);
   const distance = (x, y) =>
     Math.min(...level.edges.map(([a, b]) => segmentDistance(x, y, level.nodes[a], level.nodes[b])));
   // ponytail: a fixed decoration lattice is enough for 48 small maps; author landmarks if a future map needs them.
@@ -245,10 +245,10 @@ function buildMap(level, rotation = 0) {
     ctx.stroke();
   };
   road('#839c8040', 62, 5);
-  road('#b9b89a', 60);
+  road('#9db6a3', 60);
   road('#f5ecd6', 56);
   road('#fffae9', 46);
-  road('#efe4cb', 42);
+  road('#f5e9cf', 42);
   ctx.setLineDash([3, 8]);
   road('#fdf9eccc', 1.8);
   ctx.setLineDash([]);
@@ -708,13 +708,15 @@ export function createRenderer(canvas) {
     const previousRotation = rotation;
     rotation = height > width ? Math.PI / 2 : 0;
     const dock = canvas.parentElement?.querySelector('.squad-dock');
-    const bottomSpace = rotation ? (dock?.offsetHeight || 0) + 24 : 10;
-    const availableWidth = rotation ? width : Math.max(1, width - (dock?.offsetWidth || 0) - 32);
+    // Short landscape screens use a side dock; other sizes use a bottom dock.
+    const sideDock = width > height && height <= 560;
+    const bottomSpace = sideDock ? 10 : (dock?.offsetHeight || 0) + 24;
+    const availableWidth = Math.max(1, width - 24 - (sideDock ? (dock?.offsetWidth || 0) + 20 : 0));
     const mapWidth = rotation ? H : W,
       mapHeight = rotation ? W : H,
       availableHeight = Math.max(1, height - 72 - bottomSpace);
     scale = Math.min(availableWidth / mapWidth, availableHeight / mapHeight);
-    ox = (availableWidth - mapWidth * scale) / 2 + (rotation ? 0 : 12);
+    ox = 12 + (availableWidth - mapWidth * scale) / 2;
     oy = 62 + (availableHeight - mapHeight * scale) / 2;
     const hud = canvas.parentElement?.querySelector('.board-top');
     labelTop = Math.max(34, ((hud ? hud.offsetTop + hud.offsetHeight : 0) + 8 - oy) / scale);
@@ -767,7 +769,7 @@ export function createRenderer(canvas) {
     lastTime = game.time;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#ccdec0';
+    ctx.fillStyle = '#cce9cf';
     ctx.fillRect(0, 0, width, height);
     ctx.translate(ox + (rotation ? (game.level.worldHeight || H) * scale : 0), oy);
     ctx.scale(scale, scale);

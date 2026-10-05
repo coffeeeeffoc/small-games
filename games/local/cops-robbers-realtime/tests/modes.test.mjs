@@ -40,10 +40,11 @@ test('solo runner is human controlled, opponent AI moves, first-side lead cannot
  for(const firstRole of ['cop','robber']){
   const level=getLevels('classic')[0],game=createGame(level,{playerRole:'robber',firstRole});startGame(game);
   const runner=game.robbers[0],origin={x:runner.x,y:runner.y};
-  assert.equal(commandRobber(game,0,level.nodes[8]),firstRole==='robber');
+  const destination=level.nodes[game.graph.adjacent[level.robbers[0]][0].node];
+  assert.equal(commandRobber(game,0,destination),firstRole==='robber');
   assert.equal(commandCop(game,0,level.nodes[6]),firstRole==='cop');
   stepGame(game,1);if(firstRole==='cop')assert.deepEqual({x:runner.x,y:runner.y},origin);
-  stepGame(game,1);stepGame(game,.1);assert.equal(commandRobber(game,0,level.nodes[8]),true);
+  stepGame(game,1);stepGame(game,.1);assert.equal(commandRobber(game,0,destination),true);
   stepGame(game,1);const cop=game.cops[0];assert.ok(Math.hypot(cop.x-level.nodes[0].x,cop.y-level.nodes[0].y)>0,'AI pursuers actually move');
   assert.equal(commandRobber(game,99,level.nodes[8]),false);
  }

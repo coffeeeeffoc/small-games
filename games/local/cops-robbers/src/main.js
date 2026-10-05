@@ -166,6 +166,7 @@ function updateExits() {
   for (const node of level.exits) {
     const blocked = state.cops.includes(node), marker = $(`escape-${node}`);
     marker?.classList.toggle('guarded', blocked);
+    $('exit-sign-layer')?.children[level.exits.indexOf(node)]?.classList.toggle('guarded', blocked);
     if (marker) marker.setAttribute('aria-label', `${node + 1}号逃生出口，${blocked ? '追逐队员守住' : '开放'}`);
   }
 }
@@ -175,13 +176,14 @@ function drawBase() {
   const roads = level.edges.map(([a, b]) => `M${level.nodes[a].x} ${level.nodes[a].y}L${level.nodes[b].x} ${level.nodes[b].y}`).join('');
   const exits = level.exits.map(node => {
     const p = level.nodes[node], end = exitEndpoint(node), horizontal = end.y === p.y;
-    const x = horizontal ? (p.x + end.x) / 2 : p.x, y = horizontal ? p.y - 21 : (p.y + end.y) / 2;
-    return `<g id="escape-${node}" class="escape-gate" data-testid="exit-${node}" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${p.x} ${p.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${p.x} ${p.y}L${end.x} ${end.y}" marker-end="url(#escape-arrow)"/><circle cx="${p.x}" cy="${p.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
+    const x = horizontal ? (end.x < p.x ? 40 : 560) : p.x, y = horizontal ? p.y - 38 : (end.y < p.y ? 30 : level.height - 30);
+    return `<g id="escape-${node}" class="escape-gate" data-testid="exit-${node}" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${p.x} ${p.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${p.x} ${p.y}L${end.x} ${end.y}" marker-end="url(#escape-arrow)"/><circle cx="${p.x}" cy="${p.y}" r="28" class="escape-ring"/><g class="escape-sign" transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
   }).join('');
   const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="26"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="31"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle class="node-hit" cy="-26" r="34" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
-  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs>${sceneDefinitions()}<marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
+  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs>${sceneDefinitions()}<marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g><g id="exit-sign-layer" aria-hidden="true"></g>`;
   // Road-number controls stay above portraits on dense later maps.
   $('board').querySelectorAll('.node-label').forEach(label => $('label-layer').append(label));
+  $('board').querySelectorAll('.escape-sign').forEach(sign => $('exit-sign-layer').append(sign));
   $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号追逐队员" aria-pressed="false" data-cop="${i}"><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${gamePortrait('cop', 0, 0, 100)}</svg><span class="squad-number">${i + 1}</span></button>`).join('');
 }
 function updateActors(view = state, moving = '', catches = []) {
@@ -213,7 +215,14 @@ function updateActors(view = state, moving = '', catches = []) {
     });
   }
   // Paint lower characters last so crossing paths retain a natural depth order.
-  [...layer.children].sort((a, b) => level.nodes[+a.dataset.node].y - level.nodes[+b.dataset.node].y).forEach(actor => layer.append(actor));
+  // Reparenting an SVG actor cancels its CSS movement transition in Chromium.
+  // Keep actors attached during movement, and only change depth order when settled.
+  if (!moving) {
+    const ordered = [...layer.children].sort((a, b) => level.nodes[+a.dataset.node].y - level.nodes[+b.dataset.node].y);
+    ordered.forEach((actor, index) => {
+      if (layer.children[index] !== actor) layer.insertBefore(actor, layer.children[index]);
+    });
+  }
 }
 function route(from, to, className, marker, offset = 0) {
   const a = level.nodes[from], b = level.nodes[to];
@@ -226,10 +235,9 @@ function updatePlanning() {
   const reachable = phase === 'planning' ? targetsFor(selected) : [];
   const occupied = new Set([...state.cops, ...state.robbers]);
   level.nodes.forEach((_, i) => {
-    let type = reachable.includes(i) ? 'reachable' : '';
-    if (hovered === i && reachable.includes(i)) type = 'chosen';
+    let type = reachable.includes(i) && i !== state.cops[selected] ? 'reachable' : '';
+    if (hovered === i && reachable.includes(i) && i !== state.cops[selected]) type = 'chosen';
     if (inspected >= 0 && state.robbers[inspected] >= 0 && level.adj[state.robbers[inspected]].includes(i)) type = state.cops.includes(i) ? 'blocked' : 'exit';
-    if (phase === 'planning' && state.cops[selected] === i) type += ' selected';
     $(`target-${i}`).setAttribute('class', `node-target ${type}`);
     const label = $('board').querySelector(`[data-testid="node-${i}"]`);
     label.classList.toggle('reachable', reachable.includes(i));

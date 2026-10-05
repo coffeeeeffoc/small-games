@@ -24,7 +24,7 @@ export async function verifyStreetRunHttp(base) {
   const player = await request('/sessions/guest', null, {});
   const other = await request('/sessions/guest', null, {});
   const config = {
-    version: 'street-solo-v1',
+    version: 'street-solo-v2',
     mode: 'quick',
     role: 'cop',
     level: 1,

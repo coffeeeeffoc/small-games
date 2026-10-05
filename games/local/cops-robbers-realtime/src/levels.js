@@ -1,5 +1,7 @@
 import { FINAL_CHALLENGES } from "./challenge-finals.js";
 import { QUICK_TRIALS } from './quick-trials.js';
+import { escapeCore } from './level-safety.js';
+import { LAYOUT_VARIANTS } from './layout-variants.js';
 export const CHAPTERS = [
   {
     id: 0,
@@ -656,12 +658,13 @@ export const MODES = [
   { id: "classic", name: "自由追逐", description: "无出口 · 警察须限时合围全部成员，小偷坚持到计时结束获胜" },
   { id: "escape", name: "出口竞速", description: "开放出口 · 突围任意一人或坚持到计时结束获胜，警察须全部合围" },
 ];
-const LAYOUT_VARIANTS = {"classic:4":1,"classic:7":1,"classic:13":1,"classic:14":11,"classic:15":11,"classic:16":4,"classic:18":7,"classic:19":2,"classic:35":1,"escape:5":2,"escape:7":2,"escape:12":4,"escape:13":2,"escape:14":2,"escape:15":1,"escape:16":6,"escape:17":11,"escape:18":13,"escape:19":13,"escape:20":4,"escape:36":1,"escape:38":1,"escape:39":1};
-function generatedLevel(id, mode, variant = LAYOUT_VARIANTS[`${mode}:${id}`] || 0) {
+function generatedLevel(id, mode) {
+  const variant = LAYOUT_VARIANTS[`${mode}:${id}`];
+  if (!Number.isInteger(variant)) throw new Error(`缺少已验证地图 ${mode}/${id}`);
   let seed = id * 104729 + variant * 65537 + (mode === "classic" ? 1907 : mode === "escape" ? 3793 : 9011);
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
   const tier = Math.floor((id - 1) / 20);
-  const cols = 4 + tier, rows = 3 + Math.floor(tier / 2);
+  const cols = 5 + tier, rows = 4 + Math.floor(tier / 2);
   const nodes = Array.from({length: cols * rows}, (_, i) => ({x:80 + i % cols * 840 / (cols - 1), y:80 + Math.floor(i / cols) * 440 / (rows - 1)}));
   const candidates = [];
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
@@ -673,7 +676,7 @@ function generatedLevel(id, mode, variant = LAYOUT_VARIANTS[`${mode}:${id}`] || 
   const parent = nodes.map((_,i)=>i), root = i => parent[i] === i ? i : (parent[i] = root(parent[i]));
   const edges = [], spare = [];
   for (const [a,b] of candidates) { if(root(a)!==root(b)){ parent[root(a)] = root(b); edges.push([a,b]); } else spare.push([a,b]); }
-  edges.push(...spare.slice(0, 1 + tier * 2));
+  edges.push(...spare.slice(0, 3 + tier * 2));
   const copCount = 3 + Math.floor(tier / 2), robberCount = 1 + Math.floor(tier / 2);
   let cops = Array.from({length:copCount}, (_,i)=>i);
   let robbers = Array.from({length:robberCount}, (_,i)=>nodes.length-1-i);
@@ -685,12 +688,13 @@ function generatedLevel(id, mode, variant = LAYOUT_VARIANTS[`${mode}:${id}`] || 
     return visited.size===nodes.length-blocked.length;
   };
   if (mode === "classic") {
+    const core = escapeCore({ nodes, edges, cops });
     robbers=[];
     for(const node of nodes.map((_,i)=>i).reverse()) {
-      if(!cops.includes(node)&&!robbers.some(other=>adjacency[node].includes(other))&&openAround([...robbers,node]))robbers.push(node);
+      if(core.has(node)&&!robbers.some(other=>adjacency[node].includes(other))&&openAround([...robbers,node]))robbers.push(node);
       if(robbers.length===robberCount)break;
     }
-    if(robbers.length!==robberCount)throw new Error(`无法配置可绕行的小偷出生点 ${id}`);
+    if(robbers.length!==robberCount)throw new Error(`小偷出生点没有可用环路 ${mode}/${id}`);
   }
   if (mode === "escape") {
     const distances = nodes.map((_,i)=>nodes.map((__,j)=>i===j?0:Infinity));
@@ -700,20 +704,21 @@ function generatedLevel(id, mode, variant = LAYOUT_VARIANTS[`${mode}:${id}`] || 
     cops = [];
     for(const exit of exits) cops.push(free.filter(i=>!cops.includes(i)).sort((a,b)=>distances[a][exit]-distances[b][exit])[0]);
     while(cops.length<copCount) cops.push(free.filter(i=>!cops.includes(i)).sort((a,b)=>Math.min(...cops.map(c=>distances[b][c]))-Math.min(...cops.map(c=>distances[a][c])))[0]);
-    const margin = node => Math.min(...exits.map(exit=>distances[node][exit]/(108+tier*3)+1.2-2-Math.min(...cops.map(c=>distances[c][exit]/(102+tier*4)))));
+    const margin = node => Math.min(...exits.map(exit=>distances[node][exit]/(108+tier*4)+1.2-2-Math.min(...cops.map(c=>distances[c][exit]/(102+tier*4)))));
+    const core = escapeCore({ nodes, edges, cops });
     robbers=[];
-    for(const node of free.filter(i=>!cops.includes(i)).sort((a,b)=>margin(b)-margin(a))) {
+    for(const node of free.filter(i=>core.has(i) && margin(i) >= 0).sort((a,b)=>margin(b)-margin(a))) {
       if(!robbers.some(other=>adjacency[node].includes(other))&&openAround([...robbers,node]))robbers.push(node);
       if(robbers.length===robberCount)break;
     }
-    if(robbers.length!==robberCount)throw new Error(`无法配置可绕行出口地图 ${id}`);
+    if(robbers.length!==robberCount)throw new Error(`小偷出生点没有可用环路 ${mode}/${id}`);
   }
-  return {id, mode, name:`${mode === "classic" ? "环路追逐" : mode === "escape" ? "多口突围" : "深巷挑战"} ${id}`,
+  return {id, mode, variant, name:`${mode === "classic" ? "环路追逐" : mode === "escape" ? "多口突围" : "深巷挑战"} ${id}`,
     chapter:Math.min(7,Math.floor((id-1)/13)), nodes,edges,cops,robbers,exits,
-    policeSpeed:102 + tier * 4, robberSpeed:108 + tier * 3,
+    policeSpeed:102 + tier * 4, robberSpeed:108 + tier * 4,
     timeLimit:120, par:Math.max(35,85-tier*10),
     hint:`${edges.length-nodes.length+1} 条环路，${nodes.length} 个路口。${mode === "classic" ? "利用岔路换向，合围方要分头截击。" : "出口牵制与内圈包抄需要同时兼顾。"}`,
-    guarantee:"未证明任一方必胜", solution:[], redeploy:[]};
+    guarantee:"已验证双方获胜操作，非全策略必胜证明", solution:[], redeploy:[]};
 }
 const CHALLENGE_EXTENSIONS = [{"base":29,"nodes":[{"x":920,"y":168}],"edges":[[11,30]]},{"base":32,"nodes":[],"edges":[[8,2]],"robbers":[1,14,25,24,5,0]},{"base":34,"nodes":[{"x":920,"y":344}],"edges":[[21,29]],"robbers":[22,13,18,27,23,19]},{"base":35,"nodes":[{"x":680,"y":520},{"x":200,"y":520},{"x":320,"y":256},{"x":920,"y":168}],"edges":[[29,31],[26,32],[14,33],[12,34]],"robbers":[4,3,9,24,5,7]},{"base":36,"nodes":[{"x":920,"y":168},{"x":440,"y":256}],"edges":[[12,26],[15,27],[20,27]],"robbers":[9,17,3,22,2,4]},{"base":39,"nodes":[{"x":560,"y":344},{"x":200,"y":520}],"edges":[[24,31],[27,32]],"robbers":[4,11,13,12,6,19]},{"base":42,"nodes":[{"x":560,"y":520}],"edges":[[25,27]],"robbers":[2,14,3,6,5,9]},{"base":47,"nodes":[{"x":680,"y":520}],"edges":[[29,31]]},{"base":35,"nodes":[{"x":200,"y":520},{"x":680,"y":520},{"x":320,"y":256}],"edges":[[26,31],[29,32],[14,33]],"robbers":[4,3,9,24,5,17]},{"base":30,"nodes":[{"x":680,"y":520}],"edges":[[22,24]],"robbers":[10,2,8,12,6,7]},{"base":36,"nodes":[{"x":440,"y":256}],"edges":[[15,26]],"robbers":[9,17,3,22,1,2]},{"base":35,"nodes":[{"x":920,"y":168},{"x":200,"y":520},{"x":320,"y":256}],"edges":[[12,31],[26,32],[14,33]],"robbers":[4,3,9,24,16,1]},{"base":36,"nodes":[{"x":440,"y":256}],"edges":[[20,26]],"robbers":[9,17,3,22,1,2]},{"base":36,"nodes":[{"x":440,"y":256}],"edges":[[20,26],[15,26]],"robbers":[9,17,3,22,1,23]},{"base":39,"nodes":[{"x":200,"y":520}],"edges":[[27,31]],"robbers":[4,11,13,12,6,5]},{"base":36,"nodes":[{"x":920,"y":168},{"x":440,"y":256}],"edges":[[12,26],[20,27]],"robbers":[9,17,3,22,24,2]},{"base":35,"nodes":[{"x":680,"y":520}],"edges":[[29,31]],"robbers":[4,3,9,24,7,17]},{"base":36,"nodes":[{"x":440,"y":256},{"x":920,"y":168}],"edges":[[15,26],[12,27]],"robbers":[9,17,3,22,10,24]},{"base":35,"nodes":[{"x":200,"y":520},{"x":920,"y":168},{"x":920,"y":256},{"x":920,"y":344},{"x":920,"y":432},{"x":920,"y":520},{"x":800,"y":520},{"x":680,"y":520}],"edges":[[26,31],[12,32],[32,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,29]],"robbers":[4,3,9,24,2,7]},{"base":39,"nodes":[{"x":560,"y":344}],"edges":[[24,31]],"robbers":[4,11,13,12,6,10]},{"base":35,"nodes":[{"x":920,"y":168},{"x":200,"y":520}],"edges":[[12,31],[26,32]],"robbers":[4,3,9,24,0,5]},{"base":36,"nodes":[{"x":920,"y":168}],"edges":[[12,26]],"robbers":[9,17,3,22,10,4]},{"base":32,"nodes":[{"x":920,"y":344}],"edges":[[21,28],[8,2]],"robbers":[1,14,25,24,6,10]},{"base":35,"nodes":[{"x":920,"y":168},{"x":200,"y":520},{"x":320,"y":520},{"x":440,"y":520},{"x":560,"y":520},{"x":680,"y":520}],"edges":[[12,31],[26,32],[32,33],[33,34],[34,35],[35,36],[36,29]],"robbers":[4,3,9,24,16,1]},{"base":35,"nodes":[{"x":920,"y":168},{"x":680,"y":520}],"edges":[[12,31],[29,32]],"robbers":[4,3,9,24,16,2]},{"base":35,"nodes":[{"x":320,"y":256},{"x":200,"y":520},{"x":320,"y":520},{"x":440,"y":520},{"x":560,"y":520},{"x":680,"y":520}],"edges":[[14,31],[26,32],[32,33],[33,34],[34,35],[35,36],[36,29]],"robbers":[4,3,9,24,1,17]},{"base":32,"nodes":[{"x":920,"y":344}],"edges":[[21,28]],"robbers":[1,14,25,24,16,11]},{"base":35,"nodes":[{"x":680,"y":520},{"x":320,"y":256}],"edges":[[29,31],[14,32]],"robbers":[4,3,9,24,22,21]},{"base":35,"nodes":[{"x":680,"y":520},{"x":200,"y":520},{"x":920,"y":168}],"edges":[[29,31],[26,32],[12,33]],"robbers":[4,3,9,24,2,19]},{"base":35,"nodes":[{"x":200,"y":520},{"x":320,"y":256},{"x":920,"y":168},{"x":920,"y":256},{"x":920,"y":344},{"x":920,"y":432},{"x":920,"y":520},{"x":800,"y":520},{"x":680,"y":520}],"edges":[[26,31],[14,32],[12,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,29]],"robbers":[4,3,9,24,19,17]},{"base":35,"nodes":[{"x":200,"y":520},{"x":680,"y":520}],"edges":[[26,31],[29,32]],"robbers":[4,3,9,24,21,1]},{"base":35,"nodes":[{"x":920,"y":168},{"x":320,"y":256},{"x":200,"y":520},{"x":320,"y":520},{"x":440,"y":520},{"x":560,"y":520},{"x":680,"y":520}],"edges":[[12,31],[14,32],[26,33],[33,34],[34,35],[35,36],[36,37],[37,29]],"robbers":[4,3,9,24,16,15]}];
 export const LEVELS = [...AUTHORED_LEVELS, ...CHALLENGE_EXTENSIONS.map((spec,index)=>{

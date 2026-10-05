@@ -9,7 +9,7 @@ import { createGame, startGame, stepGame, commandCop } from '../src/engine.js';
 import { formatRecord } from '../src/records.js';
 
 const config = {
-  version: 'street-solo-v1',
+  version: 'street-solo-v2',
   mode: 'quick',
   role: 'cop',
   level: 1,
@@ -61,6 +61,7 @@ test('fabricated time, wrong result, illegal actor, unsorted ticks, rules and ex
     assert.throws(() => verifyStreetRun(config, input), /INVALID_RUN/);
   for (const update of [
     { version: 'old' },
+    { version: 'street-solo-v1' },
     { level: 4 },
     { role: 'robber' },
     { first: 'cop' },
