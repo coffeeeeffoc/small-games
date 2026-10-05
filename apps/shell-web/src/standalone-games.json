@@ -334,5 +334,12 @@
     "title": "惊喜别穿帮",
     "description": "安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。",
     "output": "dist"
+  },
+  {
+    "id": "flick-arena",
+    "source": "games/local/flick-arena",
+    "title": "弹指擂台",
+    "description": "向后拉，松手弹！和两位系统对手轮流出招，把圆盘撞出木质擂台，守住最后的落点。",
+    "output": "dist"
   }
 ]

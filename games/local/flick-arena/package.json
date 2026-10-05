@@ -1,0 +1,20 @@
+{
+  "name": "@coffeeeeffoc/flick-arena",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./canvas": "./src/native.mjs"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node build.mjs",
+    "preview": "node server.mjs --dist",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "test:shell": "node tests/shell.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

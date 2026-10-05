@@ -33,7 +33,14 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'voiceprint-case') {
+  if (id === 'flick-arena') {
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game')).toHaveAttribute('data-shots', '0');
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+  } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
     });

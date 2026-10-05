@@ -87,7 +87,8 @@
     "@coffeeeeffoc/echo-weaver": "workspace:*",
     "@coffeeeeffoc/two-sided-box": "workspace:*",
     "@coffeeeeffoc/luban-workshop": "workspace:*",
-    "@coffeeeeffoc/surprise-kept": "workspace:*"
+    "@coffeeeeffoc/surprise-kept": "workspace:*",
+    "@coffeeeeffoc/flick-arena": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

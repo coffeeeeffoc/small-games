@@ -4,6 +4,14 @@ import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 export const games = {
+  'flick-arena': {
+    title: '弹指擂台',
+    source: 'games/local/flick-arena',
+    module: '@coffeeeeffoc/flick-arena/canvas',
+    definition: 'flickCanvasDefinition',
+    content: 'defaultFlickEnvelope',
+    assets: [{ source: 'public/audio', target: 'audio' }],
+  },
   'building-power': {
     title: '忙碌的电工',
     definition: 'buildingPowerCanvasDefinition',
