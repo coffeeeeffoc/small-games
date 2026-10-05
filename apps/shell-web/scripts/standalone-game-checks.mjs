@@ -1112,7 +1112,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       ? await (await frame.owner().elementHandle()).contentFrame()
       : frame;
     expect(gameDocument).not.toBeNull();
-    const pressHudControl = async (control, selector) => {
+    const pressGameControl = async (control, selector) => {
       await expect(control).toBeVisible();
       await expect(control).toBeEnabled();
       const point = await gameDocument.evaluate((selector) => {
@@ -1166,7 +1166,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     };
     // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
-      await pressHudControl(pause, 'button[aria-label="暂停"]');
+      await pressGameControl(pause, 'button[aria-label="暂停"]');
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
@@ -1190,7 +1190,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       const initialLock = await pointerLockState();
       expect(initialLock.canvasCount).toBe(1);
       if (!initialLock.locked)
-        await pressHudControl(
+        await pressGameControl(
           frame.getByRole('button', { name: '鼠标环顾', exact: true }),
           '.look-mode',
         );
@@ -1203,11 +1203,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       expect(await pointerLockState()).toEqual({ canvasCount: 1, locked: false, released: true });
       await expect(frame.getByRole('dialog')).toBeHidden();
       await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
-      await pressHudControl(pause, 'button[aria-label="暂停"]');
+      await pressGameControl(pause, 'button[aria-label="暂停"]');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'paused');
-    await click(frame.getByRole('button', { name: '继续漫游', exact: true }));
+    // Resume starts rendering immediately; use native input without Locator's
+    // post-click navigation waiter, then verify the actual dialog and phase.
+    await pressGameControl(
+      frame.getByRole('button', { name: '继续漫游', exact: true }),
+      'dialog .settings-footer button.primary',
+    );
     await expect(frame.getByRole('dialog')).toBeHidden();
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'travel-bund-25d') {
