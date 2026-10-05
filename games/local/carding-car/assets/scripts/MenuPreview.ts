@@ -1,13 +1,15 @@
 import { Camera, Color, Layers, Material, MeshRenderer, Node, Rect, Texture2D, Vec3, isValid, primitives, resources, screen, utils, view } from 'cc';
 import type { ChaseCamera } from './ChaseCamera';
 import type { KartState } from './KartPhysics';
+import { menuLayout, sceneryArea } from './MenuLayout';
 
 const PLAYER = 1 << 18, BACKDROP = 1 << 19;
 const rect = (x: number, y: number, width: number, height: number) =>
   new Rect(x / 960, (540 - y - height) / 540, width / 960, height / 540);
 const full = new Rect(0, 0, 1, 1);
-const garage = rect(520, 155, 380, 225), postcard = rect(52, 142, 396, 208);
-const shop = rect(474, 128, 444, 250);
+const viewport = (area: typeof menuLayout.garage) => rect(area.x, area.y, area.width, area.height);
+const garage = viewport(menuLayout.garage), postcard = viewport(sceneryArea());
+const shop = viewport(menuLayout.shop);
 // Preview rectangles follow the UI viewport, including phone letterboxing and DPR.
 const inView = (area: Rect) => {
   const viewport = view.getViewportRect(), size = screen.windowSize;
@@ -83,7 +85,7 @@ export class MenuPreview {
     for (const child of root.children) this.layer(child, layer);
   }
 
-  update(page: string | undefined, camera: ChaseCamera, player: Node, kart: KartState) {
+  update(page: string | undefined, camera: ChaseCamera, player: Node, kart: KartState, advanced = false) {
     const menu = !!page && ['home', 'setup', 'shop'].includes(page);
     if (this.player !== player || this.menu !== menu || this.childCount !== player.children.length) {
       if (this.player && isValid(this.player)) this.layer(this.player, Layers.Enum.DEFAULT);
@@ -121,7 +123,7 @@ export class MenuPreview {
     const height = 70 * Math.tan(Math.PI / 8);
     this.backdrop.setScale(height * (960 * area.width / (540 * area.height)), height, 1);
     if (page === 'setup') {
-      this.themeCamera.rect = inView(postcard);
+      this.themeCamera.rect = inView(viewport(sceneryArea(advanced)));
       const scene = this.themeCamera.node;
       scene.setPosition(kart.x - Math.sin(kart.heading) * 8, kart.y + 4.3, kart.z - Math.cos(kart.heading) * 8);
       scene.lookAt(new Vec3(kart.x + Math.sin(kart.heading) * 12, kart.y + 0.3, kart.z + Math.cos(kart.heading) * 12));
