@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign } from './browser-utils.mjs';
+import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign, startRace } from './browser-utils.mjs';
 import { fileURLToPath } from 'node:url';
 const url = gameURL();
 await verifyBuild(url);
@@ -20,11 +20,8 @@ try {
       await page.goto(url);
       await waitForReady(page);
       const cdp = touch ? await page.context().newCDPSession(page) : null;
-      if (touch) await tapDesign(page, 198, 433);
-      else {
-        await page.keyboard.press('Enter');
-        await page.keyboard.down('ArrowUp');
-      }
+      await startRace(page, touch);
+      if (!touch) await page.keyboard.down('ArrowUp');
       await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
       // Let the starting pack pull away through real braking, so kart-to-kart separation
       // cannot be mistaken for an opposite steering force during the first 0.2 seconds.
@@ -101,8 +98,11 @@ try {
         await tapDesign(page, 56, 126);
         await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
         await tapDesign(page, 743, 395);
-        await page.waitForFunction(() => __kart.snapshot().phase === 'countdown');
+        await waitForReady(page);
+        assert.equal((await page.evaluate(() => __kart.snapshot())).phase, 'ready');
+        assert.equal((await page.evaluate(() => __kart.snapshot())).staged, true);
         assert.equal((await page.evaluate(() => __kart.snapshot())).time, 0);
+        await startRace(page);
       }
       console.log(
         `${touch ? 'touch drift' : 'keyboard'} ${side < 0 ? 'left' : 'right'}: correct (${rightTravel.toFixed(2)}m)`,

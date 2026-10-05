@@ -23,7 +23,8 @@
     "build:bilibili": "node scripts/build.mjs bilibili",
     "build:douyin": "node scripts/build.mjs douyin",
     "dev": "node scripts/serve.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:career": "node tests/career-home.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

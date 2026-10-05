@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { isSupply } from '../assets/scripts/RoadItems.ts';
 import {
   designPoint, displayGeometry, gameURL, mobileOptions, reportsURL,
-  startBrowser, tapDesign, verifyBuild, waitForReady,
+  startBrowser, tapDesign, verifyBuild, waitForReady, startRace,
 } from './browser-utils.mjs';
 
 const url = gameURL();
@@ -37,28 +37,39 @@ try {
       const cc = await System.import('cc');
       const game = cc.director.getScene().getComponentsInChildren(cc.Component).find((c) => c.hud && c.race);
       const hud = game.hud;
-      const paths = hud.menuBackground.impl.paths.slice(0, hud.menuBackground.impl.pathLength);
-      const points = paths.flatMap((path) => path.points);
+      const camera = game.camera.camera;
+      const screen = camera.worldToScreen(game.views[0].root.worldPosition);
+      const visible = cc.view.getVisibleSize(), viewport = cc.view.getViewportRect();
       return {
         racingHUD: hud.racingHUD.activeInHierarchy,
         controls: hud.drivingControls.activeInHierarchy,
-        menuRight: Math.max(...points.map((p) => p.x)) + hud.root.position.x,
-        menuWidth: Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x)),
-        labels: hud.root.getComponentsInChildren(cc.Label).filter((l) => l.node.activeInHierarchy)
+        home: __kart.snapshot().home,
+        car: { x: (screen.x - viewport.x) / cc.view.getScaleX() / visible.width * 960 - 480,
+          y: (screen.y - viewport.y) / cc.view.getScaleY() / visible.height * 540 - 270 },
+        labels: game.home.root.getComponentsInChildren(cc.Label).filter((l) => l.node.activeInHierarchy)
           .map((l) => ({ text: l.string, size: l.fontSize })),
       };
     });
     assert.equal((await state(page)).phase, 'ready');
     assert.equal(ready.racingHUD, false);
     assert.equal(ready.controls, false, 'race controls must not cover the garage');
-    assert.ok(ready.menuRight < 400 && ready.menuWidth < 350, 'compact garage leaves the centre road visible');
+    assert.equal(ready.home.visible, true);
+    assert.equal(ready.home.page, 'home');
+    const preview = ready.home.preview;
+    assert.ok(preview.width >= 400 && preview.height >= 200, 'home reserves a substantial live preview');
+    assert.ok(Math.abs(preview.x) + preview.width / 2 <= 480 && Math.abs(preview.y) + preview.height / 2 <= 270);
+    assert.ok(Math.abs(ready.car.x - preview.x) < preview.width / 2 && Math.abs(ready.car.y - preview.y) < preview.height / 2,
+      'the loaded kart is actually projected inside the home preview region');
+    assert.ok(ready.home.buttons.every(button =>
+      Math.abs(button.x - preview.x) >= (button.width + preview.width) / 2 ||
+      Math.abs(button.y - preview.y) >= (button.height + preview.height) / 2), 'home controls leave the preview unobstructed');
     assert.ok(ready.labels.every((l) => l.size <= 30));
     assert.doesNotMatch(ready.labels.map((l) => l.text).join('\n'), /Enter|Shift|W\s*\/|驾驶教学|好友赛待开放/);
     assert.equal(await page.locator('#kart-accessible-pause').getAttribute('aria-label'), '暂停');
     await screenshot(page, `${name}-ready`);
 
     // Every action below is an actual browser touch. No race/player state is changed by the test.
-    await tapDesign(page, 198, 433);
+    await startRace(page);
     await page.waitForFunction(() => __kart.snapshot().phase === 'racing' && __kart.snapshot().player.speed > 12, null, { timeout: 120000 });
     const cdp = await context.newCDPSession(page);
     const touches = async (type, positions) => cdp.send('Input.dispatchTouchEvent', {
@@ -150,5 +161,5 @@ try {
   }
   assert.deepEqual(evidence.errors, []);
   await writeFile(new URL('compact-hud.json', reportsURL), JSON.stringify(evidence, null, 2));
-  console.log('PASS: landscape and portrait-held compact garage, real touch driving/drift/release/cancel, settings pause, preferences, drawn pause bars and pickup polarity');
+  console.log('PASS: landscape and portrait-held home preview, real touch setup/start/driving/drift/release/cancel, settings pause, preferences, drawn pause bars and pickup polarity');
 } finally { await browser.close(); }

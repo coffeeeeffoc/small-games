@@ -74,6 +74,9 @@ export class HUD {
   noticeBackground: Graphics;
   pauseIcon: Graphics;
   settingsIcon: Graphics;
+  staged = false;
+  rewardText = '';
+  private lastStaged = false;
   constructor(parent: Node) {
     view.setDesignResolutionSize(960, 540, ResolutionPolicy.SHOW_ALL);
     this.root = new Node('HUD');
@@ -236,6 +239,8 @@ export class HUD {
     return l;
   }
   layoutMenu(ready: boolean) {
+    const staged = ready && this.staged;
+    const start = readyLayout.start;
     const draw = (g: Graphics, rect: HitRect, hex: string) => {
       g.clear(); g.fillColor = color(hex);
       g.roundRect(rect.x - rect.width / 2, rect.y - rect.height / 2, rect.width, rect.height, 14); g.fill();
@@ -246,13 +251,15 @@ export class HUD {
       label.fontSize = size; label.lineHeight = size * 1.35;
     };
     draw(this.menuBackground, ready ? { x: -282, y: 2, width: 332, height: 456 } : { x: 0, y: -6, width: 710, height: 390 }, '#163b55e8');
-    draw(this.startBackground, ready ? readyLayout.start : { x: 0, y: -125, width: 286, height: 52 }, '#ffd15a');
-    draw(this.garageBackground, ready ? readyLayout.mode : { x: -263, y: -125, width: 170, height: 52 }, '#295870');
+    if (staged) this.menuBackground.clear();
+    draw(this.startBackground, ready ? start : { x: 0, y: -125, width: 286, height: 52 }, '#ffd15a');
+    draw(this.garageBackground, ready ? staged ? readyLayout.home : readyLayout.mode : { x: -263, y: -125, width: 170, height: 52 }, '#295870');
     place(this.title, ready ? -282 : 0, ready ? 180 : 127, ready ? 300 : 650, 44, 28);
     place(this.tagline, ready ? -282 : 0, ready ? 216 : 168, ready ? 300 : 600, 25, 12);
-    place(this.detail, ready ? -282 : 0, ready ? 139 : 76, ready ? 292 : 650, ready ? 32 : 52, ready ? 14 : 17);
-    place(this.button, ready ? readyLayout.start.x : 0, ready ? readyLayout.start.y : -125, ready ? 280 : 280, 52, 22);
-    place(this.garageLabel, ready ? readyLayout.mode.x : -263, ready ? readyLayout.mode.y : -125, ready ? 280 : 170, 44, 16);
+    place(this.detail, ready ? -282 : 0, ready ? staged ? -99 : 139 : 76, ready ? 292 : 650, ready ? 44 : 52, ready ? 14 : 17);
+    place(this.button, ready ? start.x : 0, ready ? start.y : -125, ready ? start.width : 280, 52, 22);
+    const home = staged ? readyLayout.home : readyLayout.mode;
+    place(this.garageLabel, ready ? home.x : -263, ready ? home.y : -125, ready ? home.width : 170, 44, 16);
     place(this.footer, ready ? -282 : 0, ready ? -206 : -176, ready ? 296 : 660, 32, ready ? 11 : 13);
   }
   update(r: RaceManager, input: KartInput, muted: boolean) {
@@ -285,16 +292,21 @@ export class HUD {
       : '圆形 ＋ 补给 · 三角 ! 危险';
     this.panel.active =
       ['ready', 'paused', 'finished'].includes(r.phase) &&
-      !this.root.getChildByName('MultiplayerRoom')?.active && !this.settingsVisible;
-    this.picker.active = r.phase === 'ready';
+      !this.root.getChildByName('MultiplayerRoom')?.active &&
+      !this.root.getChildByName('HomePanel')?.active && !this.settingsVisible;
+    this.picker.active = r.phase === 'ready' && !this.staged;
+    this.title.node.active = this.tagline.node.active = this.footer.node.active = !(r.phase === 'ready' && this.staged);
     this.garageButton.active = !r.networked && r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished';
     this.garageLabel.string = r.phase === 'ready'
       ? r.mode === 'sprint' ? '选 3 圈竞速' : '选一圈冲刺'
-      : r.phase === 'finished' && !r.networked ? '退出本局' : '更换配置';
+      : !r.networked && this.staged ? '返回主页' : r.phase === 'finished' && !r.networked ? '退出本局' : '更换配置';
     this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
-    if (r.phase !== this.lastPhase || r.phase === 'finished') {
+    this.standings.fontSize = r.drivers.length > 4 ? 14 : 18;
+    this.standings.lineHeight = r.drivers.length > 4 ? 16 : 24;
+    if (r.phase !== this.lastPhase || r.phase === 'finished' || this.lastStaged !== this.staged) {
       this.layoutMenu(r.phase === 'ready');
       this.lastPhase = r.phase;
+      this.lastStaged = this.staged;
       this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
       this.restartLabel.string = r.phase === 'finished' ? '分享挑战' : '重新开跑';
       this.leaderboard.string = `${r.mode === 'sprint' ? '一圈冲刺' : '本路线'}最快 5 场\n${
@@ -371,8 +383,8 @@ export class HUD {
       this.title.string = '浪湾卡丁车';
       this.detail.string = r.loadError ? '加载失败 · 点击重试' : r.loaded
         ? `${theme.name} · ${Math.round(r.track.length)} m` : '装配中…';
-      this.button.string = r.loadError ? '重试' : r.loaded ? '开跑 →' : '装配中…';
-      this.garageLabel.string = r.mode === 'sprint' ? '‹   一圈冲刺   ›' : '‹   三圈竞速   ›';
+      this.button.string = r.loadError ? '重试' : r.loaded ? this.staged ? '开始比赛' : '开跑 →' : '装配中…';
+      this.garageLabel.string = this.staged && !r.networked ? '返回主页' : r.mode === 'sprint' ? '‹   一圈冲刺   ›' : '‹   三圈竞速   ›';
       this.choices[0].string = theme.name;
       this.choices[1].string = selectedRoute.name;
       this.choices[2].string = vehicles.find((v) => v[0] === this.selection.vehicle)?.[1] || '';
@@ -385,6 +397,8 @@ export class HUD {
         : `同道具挑战差 ${delta.toFixed(2)} 秒 · 再跑一次布局不变`;
     }
     if (this.challengeNotice && ['ready', 'paused', 'finished'].includes(r.phase)) this.footer.string = this.challengeNotice;
+    if (r.phase === 'finished' && !r.networked && this.rewardText)
+      this.footer.string = `${this.rewardText}\n${this.footer.string}`;
     this.count.string =
       r.phase === 'countdown'
         ? String(Math.ceil(r.countdown))

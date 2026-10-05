@@ -25,7 +25,7 @@ function validRecord(value: unknown): value is RaceRecord {
     r.bestLap <= r.time &&
     Number.isInteger(r.place) &&
     r.place >= 0 &&
-    r.place <= 4
+    r.place <= 8
   );
 }
 

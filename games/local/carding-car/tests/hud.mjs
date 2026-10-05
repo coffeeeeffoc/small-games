@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { mobileOptions, reportsURL, startBrowser, tapDesign, verifyBuild, waitForReady } from './browser-utils.mjs';
+import { mobileOptions, reportsURL, startBrowser, tapDesign, verifyBuild, waitForReady, startRace, tapHome } from './browser-utils.mjs';
 
 const url = process.env.KART_URL || 'http://127.0.0.1:4198';
 await verifyBuild(url);
@@ -36,7 +36,7 @@ try {
         .filter((l) => l.node.activeInHierarchy).map((l) => l.string).join('\n');
     });
     assert.doesNotMatch(await labels(), /Enter|Shift|W\s*\/|驾驶小贴士|自动加速/);
-    await tapDesign(page, 910, 46);
+    await tapHome(page, '设置');
     await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
     assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false);
     await tapDesign(page, 480, 304);
@@ -52,7 +52,7 @@ try {
     await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible);
     for (const phase of ['ready', 'paused', 'finished']) {
       if (phase === 'paused') {
-        await tapDesign(page, 198, 433);
+        await startRace(page);
         await page.waitForFunction(() => __kart.snapshot().time > 0);
         assert.equal(await page.evaluate(() => __kart.snapshot().phase), 'racing');
         assert.doesNotMatch(await labels(), /Enter|Shift|W\s*\/|驾驶小贴士|自动加速/);
@@ -91,10 +91,11 @@ try {
     }
     if (!mobile) {
       await page.keyboard.press('KeyG');
-      await page.waitForFunction(() => !__kart.snapshot().loading);
+      await waitForReady(page);
+      await tapHome(page, '选择比赛');
       for (let i = 0; i < 9; i++) {
         const before = await page.evaluate(() => __kart.snapshot().selection.theme);
-        await page.keyboard.press('Digit1');
+        await tapHome(page, '›', 0);
         await page.waitForFunction((theme) => __kart.snapshot().selection.theme !== theme && !__kart.snapshot().loading, before);
         const state = await page.evaluate(async () => {
           const cc = await System.import('cc');

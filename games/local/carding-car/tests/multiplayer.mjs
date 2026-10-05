@@ -67,7 +67,7 @@ try {
   const host = await open(false, 'classic-kart');
   await host.goto(url.href);
   await loaded(host);
-  const entry = await designPoint(host, 796, 46);
+  const entry = await designPoint(host, 807, 142);
   await host.mouse.click(entry.x, entry.y);
   for (const [width, height] of [[844, 390], [1280, 585]]) {
     await host.setViewportSize({ width, height });
@@ -77,19 +77,36 @@ try {
       await host.mouse.click(point.x, point.y);
     };
     await host.screenshot({ path: fileURLToPath(new URL(`entry-${width}.png`, reports)) });
-    await click(316, 224);
+    await click(327, 128);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'modal shields the entry behind it');
     await click(256, 150);
     assert.equal((await snap(host)).multiplayer.panelOpen, false, 'compact close button works');
-    await click(316, 224);
+    await click(327, 128);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'entry reopens after closing');
   }
   await host.setViewportSize({ width: 960, height: 540 });
   await host.waitForTimeout(350);
   await host.mouse.click(480, 218);
   await host.locator('input:visible, textarea:visible').fill('房主');
-  await host.mouse.click(365, 348);
+  // Identity outages block ranked play, but never block creating a practice room.
+  await host.evaluate(() => {
+    globalThis.savedCompetition = globalThis.__competition;
+    globalThis.identityCalls = 0;
+    globalThis.__competition = {
+      async session() { globalThis.identityCalls++; throw new Error('测试：玩家身份暂不可用'); },
+      async request() { throw new Error('测试：玩家身份暂不可用'); },
+    };
+  });
+  await host.mouse.click(480, 348);
+  await host.waitForFunction(() => __kart.snapshot().multiplayer.panelStatus.includes('玩家身份暂不可用'));
+  assert.ok(!(await snap(host)).multiplayer.room);
+  await host.mouse.click(297, 348);
   await host.waitForFunction(() => __kart.snapshot().multiplayer.room?.members.length === 1);
+  assert.equal(await host.evaluate(() => globalThis.identityCalls), 1);
+  await host.evaluate(() => {
+    globalThis.__competition = globalThis.savedCompetition;
+    delete globalThis.savedCompetition; delete globalThis.identityCalls;
+  });
   const room = (await snap(host)).multiplayer.room;
   const friend = await open(true, 'formula');
   const invite = new URL(url);

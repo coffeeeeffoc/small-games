@@ -1018,10 +1018,32 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const width = rotated ? bounds.height : bounds.width;
     const height = rotated ? bounds.width : bounds.height;
     const scale = Math.min(width / 960, height / 540);
-    const x = width / 2 - 282 * scale;
-    const y = height / 2 + 163 * scale;
-    const position = rotated ? { x: bounds.width - y, y: x } : { x, y };
-    await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    const action = async (x, y) => {
+      const px = width / 2 + x * scale,
+        py = height / 2 - y * scale;
+      const position = rotated ? { x: bounds.width - py, y: px } : { x: px, y: py };
+      await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    };
+    const homeAction = async (prefix) => {
+      const button = await canvas.evaluate(
+        (_canvas, prefix) =>
+          globalThis.__kart
+            .snapshot()
+            .home.buttons.find((button) => button.label.startsWith(prefix)),
+        prefix,
+      );
+      expect(button?.enabled).toBe(true);
+      await action(button.x, button.y);
+    };
+    await homeAction('选择比赛');
+    await homeAction('进入赛道');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__kart.snapshot().loading), { timeout: 120000 })
+      .toBe(false);
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__kart.snapshot().phase))
+      .toBe('ready');
+    await action(-282, -163);
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__kart?.snapshot().phase), { timeout: 30000 })
       .toBe('racing');

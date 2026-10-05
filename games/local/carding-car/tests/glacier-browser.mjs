@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
+import { designPoint, gameURL, startBrowser, tapHome, verifyBuild, prepareRace, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 await verifyBuild(url);
@@ -21,8 +21,15 @@ const loaded = (page) =>
     { timeout: 60000 },
   );
 async function nextWorld(page) {
+  if (!(await snapshot(page)).home.visible) {
+    const point = await designPoint(page, 870, 472);
+    if (await page.evaluate(() => navigator.maxTouchPoints > 0)) await page.touchscreen.tap(point.x, point.y);
+    else await page.mouse.click(point.x, point.y);
+    await page.waitForFunction(() => __kart.snapshot().home.visible);
+  }
+  if ((await snapshot(page)).home.page !== 'setup') await tapHome(page, '选择比赛');
   const before = (await snapshot(page)).selection.theme;
-  await page.keyboard.press('Digit1');
+  await tapHome(page, '›', 0);
   await page.waitForFunction((before) => __kart.snapshot().selection.theme !== before, before);
   await loaded(page);
 }
@@ -84,8 +91,8 @@ try {
     while ((await snapshot(page)).selection.theme !== 'glacier') {
       await nextWorld(page);
     }
-    while ((await snapshot(page)).selection.route !== 'glacier') await page.keyboard.press('Digit2');
-    await loaded(page);
+    assert.equal((await snapshot(page)).selection.route, 'glacier');
+    await prepareRace(page);
     const info = await sceneInfo(page);
     assert.ok(
       info.glacier && info.sun && info.lit && info.sky && info.reflection && info.shadows,
@@ -99,12 +106,8 @@ try {
     await page.screenshot({ path: fileURLToPath(new URL(`${prefix}-menu.png`, reports)) });
     const cdp = mobile ? await page.context().newCDPSession(page) : null;
     const touch = (x, y) => designPoint(page, x, y);
-    if (mobile) {
-      await tapDesign(page, 198, 433);
-    } else {
-      await page.keyboard.press('Enter');
-      await page.keyboard.down('ArrowUp');
-    }
+    await startRace(page, mobile);
+    if (!mobile) await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
     let held = '',
       braking = false,
@@ -221,6 +224,7 @@ try {
     // Repeated selection must dispose the glacier and restore other worlds' render state.
     for (let i = 0; i < 3; i++) {
       await nextWorld(page);
+      await prepareRace(page);
       const other = await sceneInfo(page);
       assert.ok(
         !other.sun &&
@@ -232,6 +236,7 @@ try {
           other.itemsEnlarged && other.itemsMarked,
       );
       while ((await snapshot(page)).selection.theme !== 'glacier') await nextWorld(page);
+      await prepareRace(page);
       assert.ok((await sceneInfo(page)).glacier);
     }
     if (mobile) {

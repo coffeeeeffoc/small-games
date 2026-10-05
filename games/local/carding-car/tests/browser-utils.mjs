@@ -69,6 +69,35 @@ export async function tapDesign(page, x, y) {
   const point = await designPoint(page, x, y);
   await page.touchscreen.tap(point.x, point.y);
 }
+export async function tapHome(page, label, index = 0) {
+  const buttons = await page.evaluate(() => __kart.snapshot().home.buttons);
+  const button = buttons.filter(button => button.label.startsWith(label))[index];
+  assert.ok(button?.enabled, `home button ${label} must be available`);
+  const point = await designPoint(page, button.x + 480, 270 - button.y);
+  try { await page.touchscreen.tap(point.x, point.y); }
+  catch (error) {
+    if (!String(error).includes('hasTouch')) throw error;
+    await page.mouse.click(point.x, point.y);
+  }
+}
+export async function prepareRace(page) {
+  await waitForReady(page);
+  const state = await page.evaluate(() => __kart.snapshot());
+  if (!state.home.visible) return;
+  if (state.home.page !== 'setup') {
+    if (state.home.page !== 'home') await tapHome(page, '主页');
+    await tapHome(page, '选择比赛');
+  }
+  await tapHome(page, '进入赛道');
+  await page.waitForFunction(() => !__kart.snapshot().home.visible && __kart.snapshot().staged);
+  await waitForReady(page);
+}
+export async function startRace(page, touch = true) {
+  await prepareRace(page);
+  if (touch) await tapDesign(page, 198, 433);
+  else await page.keyboard.press('Enter');
+  await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
+}
 export async function displayGeometry(page) {
   return page.evaluate(async () => {
     const cc = await System.import('cc');

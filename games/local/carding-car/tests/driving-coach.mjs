@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { gameURL, verifyBuild, startBrowser, waitForReady, designPoint, displayGeometry } from './browser-utils.mjs';
+import { gameURL, verifyBuild, startBrowser, waitForReady, designPoint, displayGeometry, tapHome, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 const build = await verifyBuild(url);
@@ -17,15 +17,14 @@ try {
   assert.equal(await page.title(), '浪湾卡丁车');
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false, 'teaching is opt-in');
   const click = async (x, y) => { const p = await designPoint(page, x, y); await page.mouse.click(p.x, p.y); };
-  await click(910, 46);
+  await tapHome(page, '设置');
   await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
   await click(480, 304);
   await page.waitForFunction(() => __kart.snapshot().hud.coachingEnabled);
   await click(640, 114);
   await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible);
   await page.screenshot({ path: fileURLToPath(new URL('coach-menu.png', reports)) });
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
+  await startRace(page, false);
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingStep), 0);
   await page.keyboard.down('w');
   await page.waitForFunction(() => __kart.snapshot().hud.coachingStep === 1);
@@ -44,26 +43,20 @@ try {
     () => __kart.snapshot().hud.coachingStep === 2 && /蓄出蓝色火花/.test(__kart.snapshot().hud.coaching),
   );
   evidence.interrupted = await page.evaluate(() => __kart.snapshot().hud);
+  assert.equal(evidence.interrupted.coachingStep, 2, 'pause cancels charge without teaching a release');
   assert.match(evidence.interrupted.coaching, /蓄出蓝色火花/);
-  await page.keyboard.press('p');
+  // Retry from the grid through the real staged/start flow, without mixing mouse and keyboard driving.
+  await page.keyboard.press('r');
+  await page.waitForFunction(() => __kart.snapshot().phase === 'ready' && __kart.snapshot().staged);
+  await startRace(page, false);
   await page.keyboard.down('w');
-  await page.mouse.move(154, 440);
-  await page.mouse.down();
-  // Follow the read-only racing line through real controls to reach the next bend.
-  const retryDeadline = Date.now() + 30000;
-  while (Date.now() < retryDeadline) {
-    const state = await page.evaluate(() => __kart.snapshot());
-    if (state.hud.coachingStep === 3) break;
-    const input = state.suggestedInput;
-    await page.mouse.move(960 * (0.16 + input.steer * 0.095), 440);
-    await page.keyboard[input.drift ? 'down' : 'up']('Space');
-    await page.keyboard[input.brake ? 'down' : 'up']('s');
-    await page.waitForTimeout(45);
-  }
+  await page.waitForFunction(() => __kart.snapshot().player.speed >= 9);
+  await page.keyboard.down('ArrowLeft');
+  await page.keyboard.down('Space');
+  await page.waitForFunction(() => __kart.snapshot().hud.coachingStep === 3, null, { timeout: 6000 });
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingStep), 3);
-  await page.mouse.up();
   await page.keyboard.up('Space');
-  await page.keyboard.up('s');
+  await page.keyboard.up('ArrowLeft');
   await page.waitForFunction(() => __kart.snapshot().hud.coachingStep === 4);
   await page.keyboard.down('ShiftLeft');
   await page.waitForFunction(
@@ -76,11 +69,19 @@ try {
   await page.reload();
   await waitForReady(page);
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), true, 'the explicit global teaching preference survives reload');
-  await page.keyboard.press('h');
+  await tapHome(page, '设置');
+  await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
+  await click(480, 304);
+  await click(640, 114);
+  await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible && !__kart.snapshot().hud.coachingEnabled);
   await page.reload();
   await waitForReady(page);
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingEnabled), false, 'turning teaching off also persists');
-  await page.keyboard.press('h');
+  await tapHome(page, '设置');
+  await page.waitForFunction(() => __kart.snapshot().hud.settingsVisible);
+  await click(480, 304);
+  await click(640, 114);
+  await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible);
   await page.waitForFunction(() => __kart.snapshot().hud.coachingEnabled);
   assert.equal(await page.evaluate(() => __kart.snapshot().hud.coachingStep), 0);
   await page.setViewportSize({ width: 390, height: 844 });

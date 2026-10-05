@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { vehicles } from '../assets/scripts/Selection.ts';
-import { gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
+import { gameURL, startBrowser, tapHome, verifyBuild, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 await verifyBuild(url);
 const browser = await startBrowser(url);
 const snapshot = (page) => page.evaluate(() => __kart.snapshot());
+const botVehicles = page => page.evaluate(async () => {
+  const cc = await System.import('cc');
+  const game = cc.director.getScene().getComponentsInChildren(cc.Component).find(c => c.home && c.race);
+  return [...game.botVehicles];
+});
 const loaded = (page) =>
   page.waitForFunction(
     () => globalThis.__kart && !__kart.snapshot().loading && __kart.snapshot().modelsLoaded,
@@ -36,22 +41,32 @@ try {
     });
     await page.goto(url);
     await loaded(page);
+    // Exercise the stock user flow before the synthetic unlocked selection fixture.
+    await startRace(page, mobile);
+    assert.equal((await snapshot(page)).renderedVehicles.length, 4);
+    assert.equal((await snapshot(page)).renderedVehicles[0], vehicles[0][0]);
+    await page.keyboard.press('KeyP'); await page.keyboard.press('KeyG');
+    await loaded(page);
+    await page.evaluate(owned => localStorage.setItem('kart-career-v1', JSON.stringify({ owned })),
+      vehicles.map(([id]) => 'vehicle:' + id));
+    await page.reload(); await loaded(page);
     const initial = await snapshot(page);
+    const initialBots = await botVehicles(page);
+    assert.equal(initial.renderedVehicles.length, 1, 'home only loads the selected player car');
     assert.ok(initial.renderedVehicles.every((id) => vehicles.some((v) => v[0] === id)));
+    await tapHome(page, '选择比赛');
     for (let i = 0; i < 3; i++) {
-      if (mobile) await tapDesign(page, 320, 274);
-      else await page.keyboard.press('Digit3');
+      await tapHome(page, '›', 2);
       await loaded(page);
       const selected = await snapshot(page);
       assert.equal(selected.renderedVehicles[0], selected.selection.vehicle);
       assert.deepEqual(
-        selected.renderedVehicles.slice(1),
-        initial.renderedVehicles.slice(1),
+        await botVehicles(page),
+        initialBots,
         'choosing the player car must leave every bot car unchanged',
       );
     }
-    if (mobile) await tapDesign(page, 198, 433);
-    else await page.keyboard.press('Enter');
+    await startRace(page, mobile);
     // Hold the mobile brake so real AI inputs can pass the player.
     if (mobile) await page.keyboard.down('ArrowDown');
     await page.waitForFunction(() => __kart.snapshot().time > 2);
@@ -85,11 +100,13 @@ try {
       });
       await loaded(page);
       const restarted = await snapshot(page);
-      assert.equal(restarted.phase, 'countdown');
+      assert.equal(restarted.phase, 'ready');
+      assert.equal(restarted.staged, true);
       assert.equal(restarted.time, 0);
       assert.equal(restarted.renderedVehicles[0], paused.selection.vehicle);
       assert.deepEqual(restarted.renderedVehicles.slice(1), [expected, expected, expected]);
       assert.notEqual(restarted.seed, paused.seed);
+      await startRace(page, mobile);
       await page.keyboard.press('KeyP');
     }
     assert.deepEqual(errors, []);

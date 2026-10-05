@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { themes } from '../assets/scripts/ThemeCatalog.ts';
 import { routes } from '../assets/scripts/RouteCatalog.ts';
 import { defaultSelection, vehicles, drivers } from '../assets/scripts/Selection.ts';
-import { gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
+import { gameURL, startBrowser, tapHome, verifyBuild, prepareRace, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 await verifyBuild(url);
@@ -23,12 +23,27 @@ async function open(options) {
   await loaded(page);
   return page;
 }
+async function setup(page) {
+  const state = await snapshot(page);
+  assert.equal(state.home.visible, true, 'selection only changes from the home/setup flow');
+  if (state.home.page !== 'setup') await tapHome(page, '选择比赛');
+}
+async function select(page, field, id) {
+  await setup(page);
+  const index = ['theme', 'route', 'vehicle', 'driver'].indexOf(field);
+  const choices = field === 'theme' ? themes : field === 'route' ? routes : field === 'vehicle' ? vehicles : drivers;
+  for (let i = 0; (await snapshot(page)).selection[field] !== id; i++) {
+    assert.ok(i < choices.length, `cannot select ${field}=${id} within one catalog cycle`);
+    await tapHome(page, '›', index);
+  }
+  await loaded(page);
+}
 try {
   const page = await open({ viewport: { width: 960, height: 540 } });
   for (const world of themes) {
-    while ((await snapshot(page)).selection.theme !== world.id) await page.keyboard.press('Digit1');
-    while ((await snapshot(page)).selection.route !== world.id) await page.keyboard.press('Digit2');
-    await loaded(page);
+    await select(page, 'theme', world.id);
+    await select(page, 'route', world.id);
+    await prepareRace(page);
     const menu = await snapshot(page);
     assert.equal(menu.items.length, 24);
     assert.equal(new Set(menu.items.map(i => i.kind)).size, 12);
@@ -47,7 +62,7 @@ try {
       });
       assert.ok(color && color.every((v, i) => Math.abs(v - [0.69, 0.37, 0.18, 1][i]) < 1e-5), 'untextured GLB keeps its imported color');
     }
-    await page.keyboard.press('Enter');
+    await startRace(page, false);
     await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => __kart.snapshot().time > 2);
     await page.keyboard.up('ArrowUp');
@@ -60,28 +75,36 @@ try {
     await page.waitForTimeout(180);
     assert.equal((await snapshot(page)).time, paused.time);
     await page.keyboard.press('KeyR');
+    await loaded(page);
     await page.waitForFunction(() => {
       const s = __kart.snapshot();
       return s.renderedItems.every((name, i) => name === `Item-${s.items[i].kind}`);
     });
     const restarted = await snapshot(page);
+    assert.equal(restarted.phase, 'ready');
+    assert.equal(restarted.staged, true);
     assert.equal(restarted.time, 0);
     assert.deepEqual(restarted.renderedItems, restarted.items.map(i => `Item-${i.kind}`));
     assert.notEqual(restarted.seed, paused.seed);
+    await startRace(page, false);
     await page.keyboard.press('KeyP');
     await page.keyboard.press('KeyG');
     await loaded(page);
   }
   assert.equal(new Set(evidence.worlds.map(w => w.length)).size, themes.length, 'worlds must have distinct routes');
+  // Synthetic ownership fixture for catalog rendering/configuration, never an economy check.
+  await page.evaluate(owned => localStorage.setItem('kart-career-v1', JSON.stringify({ owned })),
+    [...vehicles.map(([id]) => 'vehicle:' + id), ...drivers.map(([id]) => 'driver:' + id)]);
+  await page.reload(); await loaded(page);
   for (let i = 0; i < vehicles.length; i++) {
-    while ((await snapshot(page)).selection.vehicle !== vehicles[i][0]) await page.keyboard.press('Digit3');
-    while ((await snapshot(page)).selection.driver !== drivers[i][0]) await page.keyboard.press('Digit4');
-    await loaded(page);
+    await select(page, 'vehicle', vehicles[i][0]);
+    await select(page, 'driver', drivers[i][0]);
     const state = await snapshot(page);
     assert.equal(state.loadError || '', '');
     assert.equal(state.renderedVehicles[0], vehicles[i][0]);
     assert.equal(state.renderedDrivers[0], drivers[i][0]);
     evidence.choices.push(state.selection);
+    await prepareRace(page);
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => __kart.snapshot().phase === 'countdown');
     await page.waitForTimeout(150);
@@ -93,7 +116,8 @@ try {
   await page.reload(); await loaded(page);
   assert.deepEqual((await snapshot(page)).selection, defaultSelection, 'a plain URL reload restores the default selection');
   // Real input during overlapping loads must leave only the final selected world active.
-  for (let i = 0; i < 5; i++) { await page.keyboard.press('Digit1'); await page.keyboard.press('Digit2'); }
+  await setup(page);
+  for (let i = 0; i < 5; i++) { await tapHome(page, '›', 0); await tapHome(page, '›', 1); }
   const finalChoice = (await snapshot(page)).selection;
   await loaded(page);
   assert.deepEqual((await snapshot(page)).selection, finalChoice);
@@ -101,16 +125,22 @@ try {
 
   for (const viewport of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
     const mobile = await open({ viewport, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' });
-    const tap = (x, y) => tapDesign(mobile, x, y);
+    await startRace(mobile);
+    await mobile.keyboard.press('KeyP'); await mobile.keyboard.press('KeyG');
+    await loaded(mobile);
+    // This second pass tests unlocked candidate configuration with a synthetic owned catalog.
+    await mobile.evaluate(owned => localStorage.setItem('kart-career-v1', JSON.stringify({ owned })),
+      [...vehicles.map(([id]) => 'vehicle:' + id), ...drivers.map(([id]) => 'driver:' + id)]);
+    await mobile.reload(); await loaded(mobile); await setup(mobile);
     const before = (await snapshot(mobile)).selection;
-    await tap(320, 182); await loaded(mobile);
+    await tapHome(mobile, '›', 0); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.theme, before.theme);
-    await tap(320, 274); await loaded(mobile);
+    await tapHome(mobile, '›', 2); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.vehicle, before.vehicle);
-    await tap(320, 320); await loaded(mobile);
+    await tapHome(mobile, '›', 3); await loaded(mobile);
     assert.notEqual((await snapshot(mobile)).selection.driver, before.driver);
     await mobile.screenshot({ path: fileURLToPath(new URL(`mobile-${viewport.width}-menu.png`, reports)) });
-    await tap(198, 433);
+    await startRace(mobile);
     await mobile.waitForFunction(() => __kart.snapshot().time > 1);
     assert.ok((await snapshot(mobile)).player.speed > 0, 'touch starts automatic driving');
     assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

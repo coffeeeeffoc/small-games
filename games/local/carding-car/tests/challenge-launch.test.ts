@@ -4,10 +4,11 @@ import { registerHooks, stripTypeScriptTypes } from 'node:module';
 import { defaultSelection } from '../assets/scripts/Selection.ts';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { kartChallengeQuery, readKartChallenge } from '../assets/scripts/RouteChallenges.ts';
+import { Career } from '../assets/scripts/Career.ts';
 class SceneNode { active = true; addChild() {} destroy() {} }
 class Color { fromHEX() { return this; } }
 const cc = { _decorator: { ccclass: () => (type: any) => type },
-  Node: SceneNode, Color, Component: class { node = new SceneNode(); isValid = true; },
+  Node: SceneNode, Rect: class {}, Vec3: class {}, Color, Component: class { node = new SceneNode(); isValid = true; },
   Camera: { ClearFlag: { SKYBOX: 1 } }, Layers: {}, game: { emit() {} }, Game: {}, JsonAsset: class {}, profiler: {}, resources: {},
   sys: { isBrowser: false, localStorage: { getItem: () => null, setItem() {} } } };
 const folder = new URL('../assets/scripts/', import.meta.url), sourceURL = new URL('KartGame.ts', folder);
@@ -15,7 +16,8 @@ const visual = new Map([
   ['./ThemeView', 'export const buildTheme = async () => {};'],
   ['./SceneArt', 'export const palette = {red: "#f00", blue: "#00f", yellow: "#ff0", mint: "#0ff"}; export const requestedArt = () => [];'],
   ['./GlacierSample', 'export const setThemeLighting = () => {};'],
-  ...['ItemsView', 'KartView', 'ChaseCamera', 'HUD', 'KartController', 'AudioFeedback', 'MultiplayerPanel'].map((name) =>
+  ['./KartView', 'export class KartView { ready = Promise.resolve(); constructor(parent, color, selection, equipment) { this.selection = selection; this.equipment = equipment; } }'],
+  ...['ItemsView', 'ChaseCamera', 'HUD', 'HomePanel', 'KartController', 'AudioFeedback', 'MultiplayerPanel'].map((name) =>
     ['./' + name, `export class ${name} { ready = Promise.resolve(); }`] as [string, string]),
 ]);
 (globalThis as any).__kartChallengeCC = cc;
@@ -45,8 +47,48 @@ function garage() {
   const g = new KartGame();
   g.hud = { challengeNotice: '' };
   g.camera = { camera: {} };
+  g.career = new Career(cc.sys.localStorage);
+  g.home = { root: { active: false }, show() {}, hide() {} };
+  g.raceRewardId = 'test-race';
   return g;
 }
+
+test('all eight grid slots copy player equipment or sample the full random bot catalog before start', async () => {
+  const g = garage(); g.botCount = 7;
+  const original = Math.random;
+  Math.random = () => 0.999;
+  try {
+    g.loadSelection(true); await Promise.resolve();
+    assert.equal(g.race.phase, 'ready');
+    assert.equal(g.views.length, 8);
+    assert.ok(g.views.slice(1).every((v: any) => v.selection.vehicle === 'supercar' && v.selection.driver === 'street-racer'));
+    assert.ok(g.views.slice(1).every((v: any) => v.equipment.decoration === 'comet' && v.equipment.pet === 'mini-dragon'));
+    g.sameBots = true;
+    g.loadSelection(true); await Promise.resolve();
+    assert.ok(g.views.every((v: any) => v.selection.vehicle === g.selection.vehicle && v.selection.driver === g.selection.driver));
+    g.botCount = 0; g.loadSelection(true); await Promise.resolve();
+    assert.equal(g.views.length, 1);
+  } finally { Math.random = original; }
+});
+
+test('failed finish rewards retain the same ID and settle once after storage recovers', () => {
+  const values = new Map<string, string>(); let failed = true;
+  const g = garage();
+  g.career = new Career({ getItem: key => values.get(key) ?? null, setItem(key, value) { if (failed) throw new Error('quota'); values.set(key, value); } });
+  g.mode = 'sprint'; g.race = new RaceManager({}, 12, 4, 'sprint');
+  g.race.phase = 'finished';
+  Object.assign(g.race.drivers[0].progress, { laps: 1, finishedAt: 30, lapTimes: [30] });
+  g.saveFinishedRace();
+  assert.equal(g.pendingRewards.length, 1);
+  assert.equal(g.career.profile.races, 0);
+  assert.match(g.hud.rewardText, /自动重试/);
+  failed = false; g.settleRewards();
+  assert.equal(g.pendingRewards.length, 0);
+  assert.equal(g.career.profile.races, 1);
+  const profile = JSON.stringify(g.career.profile);
+  g.settleRewards();
+  assert.equal(JSON.stringify(g.career.profile), profile);
+});
 
 test('native warm challenges wait until the player opens the garage and never reset a live race or room', () => {
   const g = garage();
@@ -198,12 +240,14 @@ test('short finish saving cannot overwrite three-lap records, passport or legacy
     g.race.phase = 'finished'; g.race.time = 35;
     Object.assign(g.race.drivers[0].progress, { laps: 1, finishedAt: 30, lapTimes: [30] });
     g.saveFinishedRace();
-    assert.deepEqual(writes, ['kart-sprint-records-v1-seaside']);
+    assert.deepEqual(writes, ['kart-career-v1', 'kart-sprint-records-v1-seaside']);
+    assert.equal(g.career.profile.races, 1);
+    assert.ok(g.career.profile.coins > 0);
     for (const [key, value] of originals) assert.equal(saved.get(key), value);
     assert.deepEqual(g.passport, { seaside: 1 });
     assert.equal(JSON.parse(saved.get(g.recordKey)!)[0].time, 30);
     g.race.networked = true; g.saveFinishedRace();
-    assert.equal(writes.length, 1);
+    assert.equal(writes.length, 2);
     g.mode = 'standard'; g.readRouteRecords();
     assert.equal(g.records[0].time, 120);
   } finally { cc.sys.localStorage = originalStore; }

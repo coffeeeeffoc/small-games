@@ -1,23 +1,20 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { gameURL, startBrowser, startRace, verifyBuild } from './browser-utils.mjs';
 import { createTrack } from '../assets/scripts/TrackGenerator.ts';
 import { barrierOverlap } from '../assets/scripts/KartPhysics.ts';
 import { fileURLToPath } from 'node:url';
 const track = createTrack();
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-});
+const url = gameURL();
+await verifyBuild(url);
+const browser = await startBrowser(url);
 try {
   for (const side of ['Left', 'Right']) {
     const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(process.env.KART_URL || 'http://127.0.0.1:4198');
+    await page.goto(url);
     await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
-    await page.keyboard.press('Enter');
+    await startRace(page, false);
     await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => __kart.snapshot().time > 1.8);
     await page.keyboard.down('Arrow' + side);

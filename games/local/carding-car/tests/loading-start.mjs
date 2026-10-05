@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { gameURL, verifyBuild, startBrowser, tapDesign } from './browser-utils.mjs';
+import { gameURL, verifyBuild, startBrowser, tapDesign, prepareRace, startRace, tapHome, waitForReady } from './browser-utils.mjs';
 
 const url = gameURL();
 const build = await verifyBuild(url);
@@ -47,8 +47,16 @@ try {
   await page.waitForFunction(() => !__kart.snapshot().loading);
   await loading.waitFor({ state: 'detached' });
   assert.equal(await page.evaluate(() => __kart.snapshot().phase), 'ready');
-  await tapDesign(page, 198, 433);
-  await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
+  assert.equal(await page.evaluate(() => __kart.snapshot().home.visible), true);
+  await prepareRace(page);
+  const staged = await page.evaluate(() => __kart.snapshot());
+  assert.equal(staged.phase, 'ready', 'loading all racers never starts the countdown');
+  assert.equal(staged.staged, true);
+  assert.equal(staged.home.visible, false);
+  assert.equal(staged.countdown, 3);
+  assert.equal(staged.time, 0);
+  assert.equal(staged.renderedVehicles.length, 4, 'all racers are assembled before the explicit start');
+  await startRace(page);
   await page.waitForFunction(() => __kart.snapshot().player.speed > 5);
   const failure = await browser.newPage({ viewport: { width: 960, height: 540 } });
   failure.on('pageerror', (e) => errors.push(e.message));
@@ -61,8 +69,23 @@ try {
   await failure.locator('#kart-loading').waitFor({ state: 'detached' });
   await failure.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
   await failure.close();
+  const assetFailure = await browser.newPage({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  await assetFailure.goto(url);
+  await waitForReady(assetFailure);
+  await assetFailure.route('**/assets/art-vehicle-dune-buggy/**', route => route.abort());
+  await tapHome(assetFailure, '选择比赛');
+  await tapHome(assetFailure, '›', 2);
+  await assetFailure.waitForFunction(() => !!__kart.snapshot().loadError, null, { timeout: 60000 });
+  assert.equal(await assetFailure.evaluate(() => __kart.snapshot().phase), 'ready');
+  await assetFailure.unroute('**/assets/art-vehicle-dune-buggy/**');
+  await tapHome(assetFailure, '重新加载');
+  await waitForReady(assetFailure);
+  assert.equal(await assetFailure.evaluate(() => __kart.snapshot().loadError), '');
+  assert.equal(await assetFailure.evaluate(() => __kart.snapshot().selection.vehicle), 'dune-buggy');
+  assert.equal(await assetFailure.evaluate(() => __kart.snapshot().staged), false, 'retry only restores the selected preview');
+  await assetFailure.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: branded loading, portrait layout, delayed assets, input blocking, explicit race start and failed-engine retry');
+  console.log('PASS: branded loading, portrait layout, delayed assets, input blocking, explicit race start and failed-engine/selected-asset retry');
 } finally {
   release();
   await browser.close();

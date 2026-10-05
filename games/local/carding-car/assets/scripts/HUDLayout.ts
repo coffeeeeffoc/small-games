@@ -4,6 +4,7 @@ export const readyLayout = {
   x: -282,
   width: 284,
   start: { x: -282, y: -163, width: 284, height: 52 },
+  home: { x: 390, y: -202, width: 120, height: 48 },
   mode: { x: -282, y: -103, width: 284, height: 44 },
 };
 export const settingsLayout = {

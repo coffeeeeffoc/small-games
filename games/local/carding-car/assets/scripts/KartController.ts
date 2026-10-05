@@ -22,6 +22,7 @@ export class KartController {
     private settings: () => void = () => {},
     private settingsOpen: () => boolean = () => false,
     private fullscreen: () => void = () => {},
+    private home?: () => void,
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
@@ -58,7 +59,7 @@ export class KartController {
     this.activateAudio();
     this.keys.add(e.keyCode);
     const r = this.race();
-    if (e.keyCode === KeyCode.KEY_T && r.phase === 'ready' && !r.networked) {
+    if (e.keyCode === KeyCode.KEY_T && r.phase === 'ready' && !r.networked && !this.home) {
       this.clear();
       this.toggleMode();
       return;
@@ -67,7 +68,7 @@ export class KartController {
       this.share();
       return;
     }
-    if (r.phase === 'ready') {
+    if (r.phase === 'ready' && !this.home) {
       const field =
         e.keyCode === KeyCode.DIGIT_1
           ? 'theme'
@@ -90,7 +91,8 @@ export class KartController {
     }
     if (e.keyCode === KeyCode.KEY_G && (r.phase === 'paused' || r.phase === 'finished')) {
       this.clear();
-      this.garage();
+      if (!r.networked && this.home) this.home();
+      else this.garage();
       return;
     }
     if (
@@ -162,10 +164,13 @@ export class KartController {
       this.clear(); return;
     }
     if (r.phase === 'ready') {
-      if (!r.networked && contains(readyLayout.mode, x, y)) {
+      if (!r.networked && this.home && contains(readyLayout.home, x, y)) {
+        this.clear(); this.home(); return;
+      }
+      if (!this.home && !r.networked && contains(readyLayout.mode, x, y)) {
         this.clear(); this.toggleMode(); return;
       }
-      if (Math.abs(x - readyLayout.x) <= readyLayout.width / 2) {
+      if (!this.home && Math.abs(x - readyLayout.x) <= readyLayout.width / 2) {
         const row = selectionRows.find(({ y: rowY }) => Math.abs(y - rowY) <= 21)?.field;
         if (row) {
           this.clear(); this.choose(row, x < readyLayout.x ? -1 : 1); return;
@@ -181,7 +186,8 @@ export class KartController {
     if (r.phase === 'finished' || r.phase === 'paused') {
       if (p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
-        this.garage();
+        if (!r.networked && this.home) this.home();
+        else this.garage();
         return;
       }
       if (r.phase === 'paused' && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {

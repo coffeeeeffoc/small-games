@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
+import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 await verifyBuild(url);
@@ -45,10 +45,8 @@ try {
     });
     await page.goto(url);
     await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
-    await page.keyboard.press('Shift');
+    await startRace(page, touch);
     await page.waitForFunction(() => __kart.snapshot().audioClips === 7);
-    if (touch) await tapDesign(page, 198, 433);
-    else await page.keyboard.press('Enter');
     await page.waitForFunction(() => audioLevel() > 0.01);
     await page.waitForFunction(() => __kart.snapshot().time > 1);
     await page.waitForFunction(() => __kart.snapshot().audioPlaying && audioLevel() > 0.01);

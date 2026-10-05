@@ -8,6 +8,21 @@ import { readRecords } from '../assets/scripts/RankingSystem.ts';
 import { readPassport, awardPassport, earnedStamps, passportCount,
   readKartChallenge, readKartChallengeSearch, kartChallengeQuery } from '../assets/scripts/RouteChallenges.ts';
 
+test('shared upgraded runs lend the same parts without accepting invalid or duplicate levels', () => {
+  const parts = { engine: 3, grip: 1, nitro: 5 };
+  const query = kartChallengeQuery(defaultSelection, 123, 95, 'sprint', parts);
+  assert.equal(new URLSearchParams(query).get('kartChallenge'), 'v3');
+  assert.deepEqual(readKartChallengeSearch('?' + query)?.parts, parts);
+  assert.equal(readKartChallengeSearch('?' + query + '&parts=0,0,0'), undefined);
+  for (const value of ['6,0,0', '-1,0,0', 'NaN,0,0', '1.5,0,0', '0,0']) {
+    const params = new URLSearchParams(query); params.set('parts', value);
+    assert.equal(readKartChallengeSearch('?' + params), undefined);
+  }
+  const stock = kartChallengeQuery(defaultSelection, 123, 95, 'sprint', { engine: 0, grip: 0, nitro: 0 });
+  assert.equal(new URLSearchParams(stock).get('kartChallenge'), 'v2');
+  assert.equal(readKartChallengeSearch('?' + stock)?.parts, undefined);
+});
+
 test('route stamps require a real completed solo race, accumulate across runs and preserve old records', () => {
   const race = new RaceManager();
   race.driftBoosts = 4; race.suppliesCollected = 6;

@@ -10,6 +10,29 @@ import { clamp, type KartInput } from '../assets/scripts/KartConfig.ts';
 
 const idle = { steer: 0, throttle: 0, brake: false, drift: false };
 
+test('countdown uses actual elapsed seconds even when a frame stalls, without moving karts', () => {
+  const race = new RaceManager();
+  race.loaded = false;
+  race.start();
+  assert.equal(race.phase, 'ready');
+  race.loaded = true;
+  race.start();
+  const poses = race.drivers.map(driver => ({ ...driver.kart }));
+  race.step(idle, 1.2);
+  assert.equal(race.countdown, 1.8);
+  race.pause();
+  race.step(idle, 20);
+  assert.equal(race.countdown, 1.8);
+  race.resume();
+  race.step(idle, 1);
+  assert.ok(Math.abs(race.countdown - 0.8) < 1e-9);
+  race.step(idle, 0.9);
+  assert.equal(race.countdown, 0);
+  assert.equal(race.phase, 'racing');
+  assert.equal(race.time, 0);
+  assert.deepEqual(race.drivers.map(driver => driver.kart), poses);
+});
+
 test('all rivals finish after either a player or AI wins, while each finish time stays fixed', () => {
   for (const mode of ['standard', 'sprint'] as const) for (const winner of [0, 1]) {
     const race = new RaceManager({}, undefined, 4, mode);
@@ -284,7 +307,7 @@ test('local records retain the five fastest results and reject damaged stored va
     JSON.stringify([
       { time: -1, bestLap: 1, place: 1 },
       { time: 100, bestLap: 101, place: 1 },
-      { time: 100, bestLap: 30, place: 5 },
+      { time: 100, bestLap: 30, place: 9 },
       { time: '100', bestLap: 30, place: 1 },
       ...[140, 110, 130, 120, 150, 100].map((time) => ({ time, bestLap: 30, place: 2 })),
     ]),
@@ -299,4 +322,5 @@ test('local records retain the five fastest results and reject damaged stored va
   );
   assert.deepEqual(addRecord(records, { time: NaN, bestLap: 30, place: 1 }), records);
   assert.deepEqual(readRecords(JSON.stringify(records)), records);
+  assert.equal(addRecord([], { time: 100, bestLap: 30, place: 8 })[0].place, 8);
 });

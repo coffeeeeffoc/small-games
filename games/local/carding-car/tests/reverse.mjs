@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { designPoint, gameURL, startBrowser, tapDesign, verifyBuild } from './browser-utils.mjs';
+import { designPoint, gameURL, startBrowser, verifyBuild, startRace } from './browser-utils.mjs';
 import { angleDelta } from '../assets/scripts/KartConfig.ts';
 
 const url = gameURL();
@@ -19,11 +19,8 @@ try {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(url);
     await page.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded && !__kart.snapshot().loading);
-    if (touch) await tapDesign(page, 198, 433);
-    else {
-      await page.keyboard.press('Enter');
-      await page.keyboard.down('ArrowUp');
-    }
+    await startRace(page, touch);
+    if (!touch) await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => __kart.snapshot().time > 2);
     const snapshot = () => page.evaluate(() => __kart.snapshot());
     const before = await snapshot();

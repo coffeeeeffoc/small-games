@@ -1,7 +1,7 @@
 import type { TrackOptions } from './RouteCatalog.ts';
 import { createItems, collectItems, isSupply, type RoadItem } from './RoadItems.ts';
 import { KartConfig as C, angleDelta, type KartInput } from './KartConfig.ts';
-import { createKart, driveKart, resolveKartBarriers } from './KartPhysics.ts';
+import { createKart, driveKart, resolveKartBarriers, type KartUpgrades } from './KartPhysics.ts';
 import { createTrack, pointAt, projectOnTrack, wrapDistance } from './TrackGenerator.ts';
 import { createProgress, advanceCheckpoint } from './CheckpointSystem.ts';
 import { updateLap } from './LapSystem.ts';
@@ -20,6 +20,7 @@ export class RaceManager {
   networked = false;
   names: string[] = [];
   networkOrder?: number[];
+  upgrades: KartUpgrades = { engine: 0, grip: 0, nitro: 0 };
   readonly mode: RaceMode;
   readonly laps: number;
   constructor(options: TrackOptions = {}, seed?: number, count = 4, mode: RaceMode = 'standard') {
@@ -109,12 +110,12 @@ export class RaceManager {
   step(input: KartInput, dt: number, humanInputs?: readonly KartInput[]) {
     if (this.networked) return;
     if (!this.loaded || this.loadError || !Number.isFinite(dt) || dt <= 0) return;
-    dt = Math.min(dt, 1 / 30);
     if (this.phase === 'countdown') {
-      this.countdown -= dt;
+      this.countdown = Math.max(0, this.countdown - dt);
       if (this.countdown <= 0) this.phase = 'racing';
       return;
     }
+    dt = Math.min(dt, 1 / 30);
     // Solo results open at the player's finish; rivals keep racing behind the panel.
     if (this.phase !== 'racing' && (this.phase !== 'finished' || humanInputs ||
       !this.drivers[0].progress.finishedAt || this.drivers.every(d => d.progress.finishedAt > 0))) return;
@@ -170,7 +171,7 @@ export class RaceManager {
       // Physical road contact must not be constrained by checkpoint progress at a fork.
       const oldRoad = projectOnTrack(this.track, k.x, k.z);
       const previousPosition = { x: k.x, z: k.z };
-      driveKart(k, controls, dt);
+      driveKart(k, controls, dt, i === 0 && !humanInputs ? this.upgrades : undefined);
       if (i === 0 && oldDrifting && oldDriftTier > 0 && !controls.drift && !controls.brake && k.boost > oldBoost)
         this.driftBoosts++;
       const hit = resolveKartBarriers(k, this.track.barriers);

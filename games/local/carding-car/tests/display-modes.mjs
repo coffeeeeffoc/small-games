@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { designPoint, displayGeometry, gameURL, mobileOptions, reportsURL, startBrowser, tapDesign, verifyBuild, waitForReady } from './browser-utils.mjs';
+import { designPoint, displayGeometry, gameURL, mobileOptions, reportsURL, startBrowser, tapDesign, verifyBuild, waitForReady, startRace } from './browser-utils.mjs';
 
 const url = gameURL();
 const build = await verifyBuild(url);
@@ -27,7 +27,7 @@ try {
     await tap(640, 114);
     await page.waitForFunction(() => !__kart.snapshot().hud.settingsVisible);
   };
-  await tap(198, 433);
+  await startRace(page);
   await page.waitForFunction(() => __kart.snapshot().time > 2, null, { timeout: 120000 });
   const before = await state();
   await openSettings();
@@ -78,8 +78,11 @@ try {
   await page.waitForFunction(() => !!document.fullscreenElement);
   await closeSettings();
   await tap(743, 395);
-  await page.waitForFunction(() => __kart.snapshot().phase === 'countdown');
+  await waitForReady(page);
+  assert.equal((await state()).phase, 'ready');
+  assert.equal((await state()).staged, true);
   assert.equal((await state()).time, 0);
+  await startRace(page);
   await page.waitForFunction(() => __kart.snapshot().time > 1);
   await tap(56, 126);
   await page.waitForFunction(() => __kart.snapshot().phase === 'paused');

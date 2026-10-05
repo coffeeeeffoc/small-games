@@ -6,6 +6,7 @@ import { chromium } from '@playwright/test';
 import { createTrack, pointAt } from '../assets/scripts/TrackGenerator.ts';
 import { createKart } from '../assets/scripts/KartPhysics.ts';
 import { sourceHash } from '../scripts/artifact.mjs';
+import { startRace, waitForReady } from './browser-utils.mjs';
 
 const url = process.env.KART_URL || 'http://127.0.0.1:4198';
 const build = await fetch(new URL('build-info.json', url)).then(r => r.json());
@@ -48,7 +49,7 @@ try {
   await page.waitForFunction(() => globalThis.__kart && !__kart.snapshot().loading);
   await page.locator('#kart-loading').waitFor({ state: 'detached' });
   assert.equal((await snapshot()).route.id, 'seaside');
-  await page.keyboard.press('Enter');
+  await startRace(page);
   const waiting = await finalApproach();
   assert.equal(waiting.hud.menuVisible, true);
   assert.match(waiting.hud.standings, /比赛中/);
@@ -64,15 +65,23 @@ try {
   assert.doesNotMatch(complete.hud.standings, /比赛中|未完赛/);
   await page.screenshot({ path: fileURLToPath(new URL('finish-complete.png', reports)) });
   await page.keyboard.press('Enter');
+  await waitForReady(page);
+  assert.equal((await snapshot()).phase, 'ready');
+  assert.equal((await snapshot()).staged, true);
+  await startRace(page);
   const retryFrom = await finalApproach();
   await page.keyboard.press('Enter');
   await page.waitForFunction(seed => __kart.snapshot().seed !== seed && !__kart.snapshot().loading, retryFrom.seed);
-  assert.equal((await snapshot()).progress.finishedAt, 0, 'retry starts immediately while rivals are unfinished');
+  assert.equal((await snapshot()).progress.finishedAt, 0, 'retry resets immediately while rivals are unfinished');
+  assert.equal((await snapshot()).phase, 'ready');
+  assert.equal((await snapshot()).staged, true);
+  await startRace(page);
   await finalApproach();
   const oldSeed = (await snapshot()).seed;
   await page.touchscreen.tap(216, 395); // 退出本局
   await page.waitForFunction(() => __kart.snapshot().phase === 'ready' && !__kart.snapshot().loading);
   const exited = await snapshot();
+  assert.equal(exited.home.visible, true);
   assert.notEqual(exited.seed, oldSeed);
   assert.equal(exited.progress.finishedAt, 0);
   assert.deepEqual(errors, []);

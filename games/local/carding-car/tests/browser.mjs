@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createTrack } from '../assets/scripts/TrackGenerator.ts';
 import { barrierOverlap } from '../assets/scripts/KartPhysics.ts';
-import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign, designPoint } from './browser-utils.mjs';
+import { gameURL, verifyBuild, startBrowser, waitForReady, tapDesign, designPoint, startRace } from './browser-utils.mjs';
 const track = createTrack();
 const url = gameURL();
 const build = await verifyBuild(url);
@@ -36,10 +36,13 @@ async function open(options) {
 }
 try {
   const desktop = await open({ viewport: { width: 960, height: 540 } });
+  const stock = await snapshot(desktop);
+  assert.ok(stock.career.owned.includes('vehicle:classic-kart') && stock.career.owned.includes('driver:rookie'),
+    'a fresh career must own the stock kart and rookie before the first race');
   await desktop.screenshot({
     path: new URL('menu.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
-  await desktop.keyboard.press('Enter');
+  await startRace(desktop, false);
   await desktop.waitForFunction(() => __kart.snapshot().time > 1);
   assert.equal((await snapshot(desktop)).input.throttle, 0, 'desktop waits for forward input');
   assert.ok((await snapshot(desktop)).player.speed < 0.1, 'desktop does not auto-accelerate');
@@ -83,6 +86,10 @@ try {
   await desktop.keyboard.up('d');
   await desktop.keyboard.press('p');
   await desktop.keyboard.press('r');
+  await waitForReady(desktop);
+  assert.equal((await snapshot(desktop)).phase, 'ready');
+  assert.equal((await snapshot(desktop)).staged, true);
+  await startRace(desktop, false);
   await desktop.keyboard.down('ArrowUp');
   await desktop.waitForFunction(() => __kart.snapshot().time > 5.2);
   await desktop.keyboard.down('ArrowLeft');
@@ -118,9 +125,13 @@ try {
   await desktop.keyboard.up('Space');
   await desktop.keyboard.press('p');
   await desktop.keyboard.press('r');
-  assert.equal((await snapshot(desktop)).phase, 'countdown');
+  await waitForReady(desktop);
+  assert.equal((await snapshot(desktop)).phase, 'ready');
+  assert.equal((await snapshot(desktop)).staged, true);
   assert.equal((await snapshot(desktop)).time, 0);
   assert.equal((await snapshot(desktop)).currentLapTime, 0);
+  await desktop.keyboard.press('Enter');
+  await desktop.waitForFunction(() => __kart.snapshot().phase === 'countdown');
   await desktop.keyboard.press('p');
   const countdown = await snapshot(desktop);
   await desktop.waitForTimeout(250);
@@ -156,7 +167,7 @@ try {
   const ui = async (x, y, id = 1) => ({ ...(await designPoint(wide, x, y)), id });
   const tap = (x, y) => tapDesign(wide, x, y);
   const wideCdp = await wide.context().newCDPSession(wide);
-  await tap(198, 433);
+  await startRace(wide);
   await wide.waitForFunction(() => __kart.snapshot().time > 2);
   await wideCdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
@@ -228,8 +239,7 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
     previous = points;
   }
-  await tapDesign(mobile, 198, 433);
-  await mobile.waitForFunction(() => __kart.snapshot().phase === 'racing');
+  await startRace(mobile);
   await touches([
     { x: 185, y: 440, id: 1 },
     { x: 844, y: 440, id: 2 },
@@ -331,15 +341,19 @@ try {
     path: new URL('finish.png', reports).pathname.replace(/^\/(?=[A-Za-z]:)/, ''),
   });
   await tapDesign(mobile, 480, 395);
-  await mobile.waitForFunction(() => __kart.snapshot().phase === 'countdown');
+  await waitForReady(mobile);
+  assert.equal((await snapshot(mobile)).phase, 'ready');
+  assert.equal((await snapshot(mobile)).staged, true);
   assert.equal((await snapshot(mobile)).progress.laps, 0);
   assert.equal(
     (await snapshot(mobile)).records.length,
     1,
     'restarting does not duplicate a result',
   );
+  await tapDesign(mobile, 198, 433);
+  await mobile.waitForFunction(() => __kart.snapshot().phase === 'countdown');
   await mobile.reload();
-  await mobile.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+  await waitForReady(mobile);
   const reloaded = await snapshot(mobile);
   assert.equal(reloaded.phase, 'ready');
   assert.deepEqual(reloaded.records, finish.records, 'the leaderboard survives a page reload');
@@ -349,7 +363,7 @@ try {
   });
   await mobile.evaluate(() => localStorage.setItem('coastline-records-v1', '{broken'));
   await mobile.reload();
-  await mobile.waitForFunction(() => globalThis.__kart?.snapshot().modelsLoaded);
+  await waitForReady(mobile);
   assert.deepEqual(
     (await snapshot(mobile)).records,
     [],

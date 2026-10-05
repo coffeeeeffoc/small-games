@@ -34,6 +34,7 @@ export function createKart(x: number, z: number, heading: number) {
   };
 }
 export type KartState = ReturnType<typeof createKart>;
+export type KartUpgrades = { engine: number; grip: number; nitro: number };
 
 /** Separating-axis test for the kart cuboid footprint and an actual visible guardrail box. */
 export function barrierOverlap(k: KartState, b: Barrier) {
@@ -114,7 +115,7 @@ export function collideKart(k: KartState) {
 }
 
 /** Advances only driving forces; track constraints are applied by RaceManager. */
-export function driveKart(k: KartState, input: KartInput, dt: number) {
+export function driveKart(k: KartState, input: KartInput, dt: number, upgrades?: Readonly<KartUpgrades>) {
   dt = clamp(dt, 0, 1 / 30);
   for (const key of [
     'slow',
@@ -136,8 +137,8 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
   k.collision = Math.max(0, k.collision - dt);
   k.nitroCooldown = Math.max(0, k.nitroCooldown - dt);
   if (input.nitro && !k.nitroHeld && k.nitroCooldown === 0 && !input.brake && k.collision === 0) {
-    k.boost = Math.max(k.boost, C.nitroDuration);
-    k.nitroCooldown = C.nitroCooldown;
+    k.boost = Math.max(k.boost, C.nitroDuration * (1 + (upgrades?.nitro ?? 0) * 0.04));
+    k.nitroCooldown = C.nitroCooldown * (1 - (upgrades?.nitro ?? 0) * 0.025);
   }
   k.nitroHeld = !!input.nitro;
   k.drifting =
@@ -176,11 +177,11 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
     const retained = clamp(lateral * k.driftSide, 0, driftLimit) * k.driftSide;
     lateral =
       retained +
-      (lateral - retained) * Math.exp(-(k.slip > 0 ? 0.7 : k.drifting ? C.driftGrip : C.grip) * dt);
+      (lateral - retained) * Math.exp(-(k.slip > 0 ? 0.7 : k.drifting ? C.driftGrip : C.grip * (1 + (upgrades?.grip ?? 0) * 0.04)) * dt);
     forward +=
       (reversing
         ? -C.reverseAcceleration
-        : throttle * C.acceleration + (boosted ? C.boostAcceleration : 0)) * dt;
+        : throttle * C.acceleration * (1 + (upgrades?.engine ?? 0) * 0.03) + (boosted ? C.boostAcceleration : 0)) * dt;
   }
   const speed = Math.hypot(forward, lateral);
   const resistance =
@@ -202,7 +203,7 @@ export function driveKart(k: KartState, input: KartInput, dt: number) {
   }
   const cap = reversing
     ? C.reverseMaxSpeed
-    : C.maxSpeed * (k.slow > 0 ? 0.4 : boosted ? C.boostSpeed : 1);
+    : C.maxSpeed * (1 + (upgrades?.engine ?? 0) * 0.015) * (k.slow > 0 ? 0.4 : boosted ? C.boostSpeed : 1);
   if (k.speed > cap) k.speed += (cap - k.speed) * Math.min(1, 4 * dt);
   k.x += Math.sin(k.velocityHeading) * k.speed * dt;
   k.z += Math.cos(k.velocityHeading) * k.speed * dt;

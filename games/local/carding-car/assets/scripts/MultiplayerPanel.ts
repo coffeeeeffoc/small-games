@@ -129,6 +129,7 @@ export class MultiplayerPanel {
         .catch((error: Error) => { client.status=error.message; client.changed(); });
     });
     this.code = edit(this.entry, '输入 8 位房间码', 0, -10, 420, 8);
+    let joiningWithoutIdentity = false;
     const join = async (create: boolean, ranked = false) => {
       if (this.authenticating || client.connecting || client.connected) return;
       const attempt = ++this.authAttempt;
@@ -148,7 +149,7 @@ export class MultiplayerPanel {
       let competitionToken: string | undefined;
       try {
         const bridge = competition();
-        if (bridge) {
+        if (bridge && ranked) {
           client.status = '正在验证玩家身份…';
           client.changed();
           competitionToken = (await bridge.session()).token;
@@ -164,6 +165,7 @@ export class MultiplayerPanel {
       }
       if (attempt !== this.authAttempt) return;
       this.authenticating = false;
+      joiningWithoutIdentity = !create && !ranked;
       client.connect(
         create
           ? { type: 'create', ...appearance, theme: selected.theme, route: selected.route, bots: ranked ? 0 : 3, ranked, competitionToken }
@@ -282,7 +284,15 @@ export class MultiplayerPanel {
     this.openButton.node.parent!.active = false;
     this.root.setSiblingIndex(hud.root.children.length - 1);
     this.root.active = false;
-    client.changed = () => this.refresh();
+    client.changed = () => {
+      this.refresh();
+      // A room code can refer to practice or ranked play; let the server require identity.
+      if (joiningWithoutIdentity && this.root.active && !client.connected && !client.connecting &&
+          client.status === '排位赛需要有效玩家身份') {
+        joiningWithoutIdentity = false;
+        void join(false, true);
+      }
+    };
     this.refresh();
   }
   showInvite(invite: Invitation) {
@@ -294,7 +304,11 @@ export class MultiplayerPanel {
   }
   private loadName() {
     const bridge=competition(),unchanged=this.name.string;
-    if(!bridge)return;
+    const apiUrl = (globalThis as typeof globalThis & {
+      __COMPETITION_CONFIG__?: { apiUrl?: string };
+    }).__COMPETITION_CONFIG__?.apiUrl;
+    // Standalone builds install the bridge even without a configured identity API.
+    if(!bridge || !apiUrl)return;
     this.profileLoad=bridge.request('/me').then((value)=>{
       const profile=value as {name:string};
       if(this.name.string===unchanged&&profile.name!=='新玩家')this.name.string=profile.name;

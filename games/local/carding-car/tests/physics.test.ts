@@ -5,6 +5,25 @@ import { createKart, driveKart, collideKart } from '../assets/scripts/KartPhysic
 import { aiInput } from '../assets/scripts/KartAI.ts';
 import { createTrack, pointAt } from '../assets/scripts/TrackGenerator.ts';
 
+test('parts improve acceleration, tire grip and nitro while stock driving stays unchanged', () => {
+  const input = { steer: 0, throttle: 1, brake: false, drift: false };
+  const stock = createKart(0, 0, 0), engine = createKart(0, 0, 0);
+  for (let frame = 0; frame < 120; frame++) {
+    driveKart(stock, input, 1 / 60);
+    driveKart(engine, input, 1 / 60, { engine: 5, grip: 0, nitro: 0 });
+  }
+  assert.ok(engine.speed > stock.speed * 1.05);
+  const tire = createKart(0, 0, 0), slide = createKart(0, 0, 0);
+  for (const kart of [tire, slide]) Object.assign(kart, { speed: 20, velocityHeading: 0.3 });
+  driveKart(slide, { ...input, throttle: 0 }, 1 / 60);
+  driveKart(tire, { ...input, throttle: 0 }, 1 / 60, { engine: 0, grip: 5, nitro: 0 });
+  assert.ok(Math.abs(tire.velocityHeading) < Math.abs(slide.velocityHeading));
+  const nitro = createKart(0, 0, 0);
+  driveKart(nitro, { ...input, nitro: true }, 1 / 60, { engine: 0, grip: 0, nitro: 5 });
+  assert.ok(nitro.boost > C.nitroDuration);
+  assert.ok(nitro.nitroCooldown < C.nitroCooldown);
+});
+
 test('nitro accelerates, expires, respects cooldown and requires a fresh press', () => {
   const kart = createKart(0, 0, 0),
     normal = createKart(0, 0, 0);

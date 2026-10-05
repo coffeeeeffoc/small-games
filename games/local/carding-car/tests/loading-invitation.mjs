@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { gameURL, verifyBuild, startBrowser, designPoint } from './browser-utils.mjs';
+import { gameURL, verifyBuild, startBrowser, designPoint, tapHome } from './browser-utils.mjs';
 import { invitationQuery } from '../assets/scripts/Invitation.ts';
 
 const url = gameURL(process.env.KART_URL || 'http://127.0.0.1:43003/play/');
@@ -77,17 +77,18 @@ try {
     headers: { 'If-None-Match': response.headers.get('etag') },
   });
   assert.equal(cached.status, 304);
-  const entry = await designPoint(page, 796, 46);
+  const entry = await designPoint(page, 807, 142);
   await page.mouse.click(entry.x, entry.y);
   await page.setViewportSize({ width: 1593, height: 726 });
+  await page.waitForTimeout(350); // Creator debounces canvas resizing before positioning EditBox.
   const click = async (x, y) => {
     const point = await designPoint(page, x, y);
     await page.mouse.click(point.x, point.y);
   };
   await click(480, 218);
-  await page.locator('input:visible').fill('房主测试');
+  await page.locator('input:visible, textarea:visible').fill('房主测试');
   await click(480, 280);
-  await page.locator('input:visible').fill('ABCD1234');
+  await page.locator('input:visible, textarea:visible').fill('ABCD1234');
   await click(200, 330);
   await page.screenshot({ path: fileURLToPath(new URL('inputs-1593.png', report)) });
   await page.setViewportSize({ width: 960, height: 540 });
@@ -146,6 +147,11 @@ try {
   assert.equal((await snapshot(expired.page)).multiplayer.entryVisible, false);
   await expired.page.mouse.click(350, 335);
   assert.equal((await snapshot(expired.page)).multiplayer.panelOpen, false);
+  await expired.page.waitForFunction(() => __kart.snapshot().home.visible);
+  await tapHome(expired.page, '选择比赛');
+  await expired.page.waitForFunction(() => __kart.snapshot().home.page === 'setup');
+  await tapHome(expired.page, '主页');
+  await expired.page.waitForFunction(() => __kart.snapshot().home.page === 'home');
   evidence.inviteLoadMs = guest.milliseconds;
   evidence.errors = errors;
   assert.deepEqual(errors, []);
