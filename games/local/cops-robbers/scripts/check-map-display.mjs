@@ -1,81 +1,89 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
-const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'msedge' });
+const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+const browser = await chromium.launch(executablePath ? { executablePath } : process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
 const base = process.env.BASE_URL || 'http://127.0.0.1:43441';
 await mkdir('outputs', { recursive: true });
 try {
-  const page = await browser.newPage({ hasTouch: true });
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
   for (const [width, height] of [[1920, 1080], [1440, 900], [390, 844], [320, 568], [844, 390]]) {
-    await page.setViewportSize({ width, height });
-    await page.goto(`${base}/?level=1&motion=reduce`);
+    const context = await browser.newContext({ viewport: { width, height }, hasTouch: true });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    await page.goto(`${base}/?motion=reduce`);
+    const fullscreen = page.locator('[data-game-fullscreen]:visible');
+    assert.equal(await fullscreen.count(), 1, 'Web home has one fullscreen entry');
+    const bounds = await fullscreen.boundingBox();
+    assert.ok(bounds.width >= 44 && bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= width + 1,
+      `Home fullscreen touch target outside ${width}x${height}: ${JSON.stringify(bounds)}`);
+    await fullscreen.tap();
+    await page.waitForFunction(() => document.fullscreenElement === document.documentElement);
+    assert.equal(await fullscreen.getAttribute('aria-pressed'), 'true');
+    await page.locator('#home-start').tap();
+    await page.getByTestId('level-button-1').tap();
     await page.waitForSelector('#cop-actor-0');
-    const before = await page.locator('#board').boundingBox();
-    await page.getByRole('button', { name: '放大地图', exact: true }).first().click();
-    await page.waitForFunction(() => !!document.fullscreenElement);
-    const board = await page.locator('#board').boundingBox();
-    for (const selector of ['#board', '.challenge-game .action-bar', '.challenge-game .squad-row']) {
-      const bounds = await page.locator(selector).boundingBox();
-      assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= width + 1 && bounds.y + bounds.height <= height + 1,
-        `${selector} outside ${width}x${height}: ${JSON.stringify(bounds)}`);
-    }
-    if (width >= 1440) assert.ok(board.width > before.width * 1.5, 'Desktop map must grow substantially');
-    assert.ok(board.width >= Math.min(width - 30, height - 170), 'Map uses available viewport');
-    await page.getByTestId('cop-0').click();
-    await page.getByTestId('node-1').click();
+    assert.equal(await page.locator('[data-game-fullscreen]:visible, .map-expand-button:visible').count(), 0,
+      'A level never shows fullscreen or map expansion controls');
+    await page.getByTestId('cop-0').tap();
+    await page.getByTestId('node-1').tap();
     await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
-    if (width === 1920 || width === 390) await page.screenshot({ path: `outputs/map-expanded-${width}.png` });
-    await page.getByRole('button', { name: '收起地图', exact: true }).first().click();
-    await page.waitForFunction(() => !document.fullscreenElement && !document.body.classList.contains('map-expanded'));
-    assert.equal(await page.locator('body').getAttribute('data-turn'), '1');
-    await page.getByTestId('undo').click();
+    if (width === 1920 || width === 390) await page.screenshot({ path: `outputs/fullscreen-play-${width}.png` });
+    await page.locator('#focus-toggle').tap();
+    assert.equal(await fullscreen.getAttribute('aria-pressed'), 'true', 'Returning home retains the browser fullscreen state');
+    await fullscreen.tap();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.locator('#resume-patrol').tap();
+    assert.equal(await page.locator('body').getAttribute('data-turn'), '1', 'Fullscreen changes preserve gameplay');
+    await page.getByTestId('undo').tap();
     assert.equal(await page.locator('body').getAttribute('data-turn'), '0');
+    assert.deepEqual(errors, []);
+    await context.close();
   }
-  // Expanding while already fullscreen must still enlarge the map, and collapsing retains that fullscreen.
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${base}/?level=1&motion=reduce`);
-  await page.locator('.topbar [data-game-fullscreen]').click();
-  await page.waitForFunction(() => !!document.fullscreenElement);
-  await page.getByRole('button', { name: '放大地图', exact: true }).first().click();
-  await page.getByRole('button', { name: '收起地图', exact: true }).first().click();
-  assert.ok(await page.evaluate(() => !!document.fullscreenElement));
-  await page.locator('.topbar [data-game-fullscreen]').click();
-  await page.waitForFunction(() => !document.fullscreenElement);
-  // Denied fullscreen still provides a usable expanded map.
+  // Refusing fullscreen leaves the home and its level entry usable.
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  await page.goto(`${base}/?motion=reduce`);
   await page.evaluate(() => { document.documentElement.requestFullscreen = () => Promise.reject(new Error('denied')); });
-  await page.getByRole('button', { name: '放大地图', exact: true }).first().click();
-  await page.waitForSelector('#game-display-notice:not([hidden])');
-  assert.ok(await page.locator('body').evaluate(body => body.classList.contains('map-expanded')));
-  await page.keyboard.press('Escape');
-  assert.ok(!await page.locator('body').evaluate(body => body.classList.contains('map-expanded')));
-  // Result dialogs remain above the expanded board and can exit native fullscreen.
-  await page.goto(`${base}/?level=1&motion=reduce`);
-  await page.getByRole('button', { name: '放大地图', exact: true }).first().click();
-  await page.waitForFunction(() => !!document.fullscreenElement);
-  await page.getByTestId('node-1').click();
-  await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
-  await page.getByTestId('node-1').click();
-  await page.getByTestId('defeat').waitFor();
-  await page.locator('#loss-dialog [data-game-fullscreen]').click();
-  await page.waitForFunction(() => !document.fullscreenElement && !document.body.classList.contains('map-expanded'));
-  await page.getByTestId('undo-loss').click();
-  assert.equal(await page.locator('body').getAttribute('data-turn'), '1');
-  // The duel board shares expansion controls and preserves its live game.
-  await page.goto(base);
-  await page.locator('#solo-mode').selectOption('escape');
-  await page.locator('#start-mode').click();
-  await page.locator('#duel-board [data-actor]').first().waitFor();
-  await page.locator('.duel-game .map-expand-button').click();
-  await page.waitForFunction(() => !!document.fullscreenElement);
-  const duelBoard = await page.locator('#duel-board').boundingBox();
-  assert.ok(duelBoard.width > 800);
-  await page.locator('.duel-game .map-expand-button').click();
-  await page.waitForFunction(() => !document.fullscreenElement);
-  assert.deepEqual(errors, []);
-  console.log('PASS expanded map: 5 viewports, native fullscreen, live movement, undo, retained progress, existing fullscreen, denial fallback, Escape and duel board');
-} finally {
-  await browser.close();
-}
+  await page.locator('[data-game-fullscreen]:visible').tap();
+  await page.locator('#game-display-notice:not([hidden])').waitFor();
+  assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
+  await page.locator('#home-start').tap();
+  await page.getByTestId('level-button-1').tap();
+  await page.waitForSelector('#cop-actor-0');
+  await page.close();
+
+  for (const platform of ['web', 'h5']) {
+    for (const source of ['query', 'config']) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+      if (source === 'config') await context.addInitScript(platform => { window.__COMPETITION_CONFIG__ = { platform }; }, platform);
+      const page = await context.newPage();
+      await page.goto(`${base}/?motion=reduce${source === 'query' ? `&platform=${platform}` : ''}`);
+      await page.locator('#home-start').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('[data-game-fullscreen]:visible').count(), 1, `${source} ${platform} retains web fullscreen`);
+      await context.close();
+    }
+  }
+
+  // Embedded mini-game and native hosts identify themselves with either supported platform input.
+  for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'ios', 'android']) {
+    for (const source of ['query', 'config']) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+      if (source === 'config') await context.addInitScript(platform => { window.__COMPETITION_CONFIG__ = { platform }; }, platform);
+      const page = await context.newPage();
+      await page.goto(`${base}/?motion=reduce${source === 'query' ? `&platform=${platform}` : ''}`);
+      await page.locator('#home-start').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('[data-game-fullscreen]:visible').count(), 0, `${source} ${platform} must suppress fullscreen`);
+      await page.locator('#home-start').tap();
+      await page.getByTestId('level-button-1').tap();
+      await page.waitForSelector('#cop-actor-0');
+      assert.equal(await page.locator('[data-game-fullscreen]:visible, .map-expand-button:visible').count(), 0);
+      await page.locator('#focus-toggle').tap();
+      assert.equal(await page.locator('[data-game-fullscreen]:visible').count(), 0, 'Returning home retains platform gating');
+      await context.close();
+    }
+  }
+  console.log('PASS home fullscreen: 5 viewports, enter/exit, touch movement, retained progress, denial fallback, 4 web/h5 inputs and 12 native platform inputs');
+} finally { await browser.close(); }

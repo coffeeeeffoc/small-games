@@ -50,6 +50,43 @@ function facePaths(role) {
   const animal = style === 'animals';
   const paths = [];
   const add = (d, fill, stroke = '', width = 3) => paths.push({ d, fill, stroke, width });
+  if (classicRoles() && style === 'team') {
+    const ink = '#133a55',
+      skin = '#ffcf9d';
+    add(
+      'M10 58a10 12 0 1 0 20 0a10 12 0 1 0-20 0M70 58a10 12 0 1 0 20 0a10 12 0 1 0-20 0',
+      skin,
+      ink,
+      2.8,
+    );
+    add('M15 47Q15 20 50 20T85 47V62Q85 95 50 96 15 95 15 62Z', skin, ink, 3.2);
+    add('M22 53Q22 24 50 26T79 54L74 39 63 42 55 34 41 41 29 38Z', '#513329');
+    if (chaser) {
+      add('M8 28 15 13Q50-2 85 13L92 28 80 39H20Z', '#146aa9', ink, 3.2);
+      add('M15 24Q50 10 85 24L82 30Q50 20 18 30Z', '#3199d4');
+      add('M14 31Q50 21 86 31L85 39Q50 53 15 39Z', '#163f63', ink, 2.5);
+      add('M17 32Q50 24 83 32L80 35Q50 29 20 36Z', '#bbecff');
+      add('M50 9 61 15 58 28 50 34 42 28 39 15Z', '#ffdc60', ink, 2.2);
+      add('M50 15 52 20 58 20 54 24 55 29 50 26 45 29 46 24 42 20 48 20Z', '#fff3b1');
+      add('M25 47Q32 43 39 47M61 47Q68 43 75 47', 'none', '#513329', 3.2);
+    } else {
+      add('M10 36Q10 4 50 4T90 36Z', '#f89927', ink, 3.2);
+      add('M14 29Q50 16 86 29L89 39Q50 28 11 39Z', '#ffb844', ink, 2.5);
+      add('M23 15 21 27M38 9 37 22M53 8 54 21M68 11 71 24M80 18 82 27', 'none', '#ffcd73', 3);
+      add('M17 39 26 37 31 46 46 44 55 38 68 44 79 41 82 51H17Z', '#513329');
+      add('M10 54Q23 43 49 51 77 43 90 54L85 69Q69 77 50 67 31 77 15 69Z', '#203440', ink, 2.7);
+      add('M22 58Q31 49 41 58L39 66H25ZM59 58Q69 49 78 58L75 66H61Z', '#fff8e8');
+    }
+    add('M28 59a5 7 0 1 0 10 0a5 7 0 1 0-10 0M62 59a5 7 0 1 0 10 0a5 7 0 1 0-10 0', '#172f42');
+    add(
+      'M30 55a1.7 2 0 1 0 3.4 0a1.7 2 0 1 0-3.4 0M64 55a1.7 2 0 1 0 3.4 0a1.7 2 0 1 0-3.4 0',
+      '#fff',
+    );
+    add('M19 75a7 4 0 1 0 14 0a7 4 0 1 0-14 0M67 75a7 4 0 1 0 14 0a7 4 0 1 0-14 0', '#f8947b');
+    add('M46 70Q50 74 54 70', 'none', '#cc8462', 2.2);
+    add('M39 80Q50 90 61 80', 'none', ink, 3.2);
+    return paths;
+  }
   if (animal) {
     add(
       chaser
@@ -82,17 +119,6 @@ function facePaths(role) {
     );
     if (style === 'cosmic')
       add('M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z', '#ffe075');
-  }
-  if (classicRoles() && style === 'team') {
-    if (chaser) {
-      add('M8 29 14 12Q50-5 86 12L92 29 76 39H24Z', '#1677bf', '#155681');
-      add('M20 32H80L86 39Q50 50 14 39Z', '#183e59');
-      add('M50 9 59 14 57 26 50 31 43 26 41 14Z', '#ffd671');
-    } else {
-      add('M9 38Q8 4 50 4T91 38Z', '#243b40');
-      add('M12 48Q27 43 50 50 73 43 88 48L85 67Q70 75 51 65 30 75 15 67Z', '#243b40');
-      add('M24 57Q32 48 41 57L39 64H26ZM59 57Q68 48 77 57L75 64H61Z', '#fff8e9');
-    }
   }
   add('M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0', '#243d49');
   add('M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0', '#fff');
@@ -140,6 +166,165 @@ function drawNativeFace(ctx, role) {
     ctx.fillStyle = fill;
     ctx.fill();
   };
+  if (classicRoles() && style === 'team') {
+    const ink = '#133a55',
+      skin = '#ffcf9d';
+    circle(17, 57, 10, skin);
+    circle(83, 57, 10, skin);
+    circle(50, 56, 39, ink);
+    circle(50, 56, 36, skin);
+    polygon(
+      [
+        [18, 47],
+        [26, 24],
+        [50, 19],
+        [76, 26],
+        [82, 47],
+        [70, 37],
+        [58, 40],
+        [48, 32],
+        [32, 40],
+      ],
+      '#513329',
+    );
+    if (cop) {
+      polygon(
+        [
+          [8, 28],
+          [15, 13],
+          [50, 2],
+          [85, 13],
+          [92, 28],
+          [80, 39],
+          [20, 39],
+        ],
+        ink,
+      );
+      polygon(
+        [
+          [12, 27],
+          [19, 16],
+          [50, 7],
+          [81, 16],
+          [88, 27],
+          [78, 35],
+          [22, 35],
+        ],
+        '#146aa9',
+      );
+      polygon(
+        [
+          [15, 24],
+          [50, 14],
+          [85, 24],
+          [82, 29],
+          [50, 22],
+          [18, 29],
+        ],
+        '#3199d4',
+      );
+      polygon(
+        [
+          [14, 31],
+          [50, 24],
+          [86, 31],
+          [85, 39],
+          [50, 46],
+          [15, 39],
+        ],
+        '#163f63',
+      );
+      polygon(
+        [
+          [18, 32],
+          [50, 28],
+          [82, 32],
+          [79, 35],
+          [50, 32],
+          [21, 36],
+        ],
+        '#bbecff',
+      );
+      polygon(
+        [
+          [50, 9],
+          [61, 15],
+          [58, 28],
+          [50, 34],
+          [42, 28],
+          [39, 15],
+        ],
+        '#ffdc60',
+      );
+      circle(50, 21, 4, '#fff3b1');
+    } else {
+      polygon(
+        [
+          [10, 36],
+          [13, 17],
+          [30, 6],
+          [50, 3],
+          [70, 6],
+          [87, 17],
+          [90, 36],
+        ],
+        ink,
+      );
+      polygon(
+        [
+          [14, 34],
+          [17, 19],
+          [32, 10],
+          [50, 7],
+          [68, 10],
+          [83, 19],
+          [86, 34],
+        ],
+        '#f89927',
+      );
+      polygon(
+        [
+          [13, 29],
+          [50, 21],
+          [87, 29],
+          [89, 39],
+          [50, 32],
+          [11, 39],
+        ],
+        '#ffb844',
+      );
+      polygon(
+        [
+          [10, 54],
+          [25, 47],
+          [50, 52],
+          [75, 47],
+          [90, 54],
+          [85, 69],
+          [69, 74],
+          [50, 67],
+          [31, 74],
+          [15, 69],
+        ],
+        '#203440',
+      );
+      circle(32, 59, 10, '#fff8e8');
+      circle(68, 59, 10, '#fff8e8');
+    }
+    circle(33, 59, 5.5, '#172f42');
+    circle(67, 59, 5.5, '#172f42');
+    circle(31, 56, 1.8, '#fff');
+    circle(65, 56, 1.8, '#fff');
+    circle(26, 75, 5, '#f8947b');
+    circle(74, 75, 5, '#f8947b');
+    ctx.beginPath();
+    ctx.moveTo(39, 80);
+    ctx.quadraticCurveTo(50, 90, 61, 80);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+    return;
+  }
   if (style === 'animals') {
     polygon(
       [
@@ -160,48 +345,7 @@ function drawNativeFace(ctx, role) {
   }
   circle(50, 55, 41, style === 'animals' ? color : accent);
   if (style === 'animals') circle(50, 68, 26, '#fff4df');
-  if (classicRoles() && style === 'team') {
-    if (cop) {
-      polygon(
-        [
-          [8, 32],
-          [14, 12],
-          [50, 4],
-          [86, 12],
-          [92, 32],
-        ],
-        color,
-      );
-      ctx.fillStyle = '#183e59';
-      ctx.fillRect(14, 31, 72, 9);
-      polygon(
-        [
-          [50, 10],
-          [59, 15],
-          [57, 26],
-          [50, 31],
-          [43, 26],
-          [41, 15],
-        ],
-        '#ffd671',
-      );
-    } else {
-      polygon(
-        [
-          [9, 35],
-          [17, 9],
-          [50, 3],
-          [83, 9],
-          [91, 35],
-        ],
-        '#243b40',
-      );
-      ctx.fillStyle = '#243b40';
-      ctx.fillRect(12, 45, 76, 22);
-      circle(32, 56, 9, '#fff8e9');
-      circle(68, 56, 9, '#fff8e9');
-    }
-  } else if (style === 'cosmic') {
+  if (style === 'cosmic') {
     polygon(
       [
         [50, 12],
@@ -327,20 +471,25 @@ export function openAppearanceSettings(onChange = () => {}) {
   dialog.dataset.roleAppearance = '';
   dialog.setAttribute('aria-label', '双方角色装扮');
   dialog.innerHTML = `<style>
-    [data-role-appearance]{box-sizing:border-box;width:min(560px,calc(100% - 24px));max-height:85dvh;overflow:auto;border:2px solid #2b544b;border-radius:20px;background:#fff9ed;color:#203f38;padding:20px;font:16px/1.5 system-ui,sans-serif}
-    [data-role-appearance]::backdrop{background:#102820aa}[data-role-appearance] h2{margin:0;font-size:23px}[data-role-appearance] p{margin:8px 0 14px}
-    [data-role-appearance] .role-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}[data-role-appearance] fieldset{min-width:0;margin:0;padding:12px;border:1px solid #a9b8a7;border-radius:12px}
-    [data-role-appearance] label{display:block;margin:10px 0}[data-role-appearance] select,[data-role-appearance] button{min-height:44px;font:inherit;border:1px solid #8b9f93;border-radius:8px;background:#fffdf5;color:#203f38;padding:7px 10px}
-    [data-role-appearance] select,[data-role-appearance] input{box-sizing:border-box;max-width:100%;width:100%}[data-role-appearance] input{font:inherit;font-size:12px}[data-role-appearance] input::file-selector-button{min-height:44px}
-    [data-role-appearance] svg{display:block;margin:auto;width:88px;height:88px}[data-role-appearance] footer{display:flex;justify-content:flex-end;margin-top:12px}[data-role-appearance] [role=status]{min-height:24px;font-size:14px}
-    @media(max-width:370px){[data-role-appearance]{padding:14px}[data-role-appearance] .role-options{grid-template-columns:1fr}}
-  </style><h2>双方角色装扮</h2><p>给自己和好友配一套形象。头像只保存在当前设备，不会发送给好友或服务器；蓝橙队色和身体队标帮助区分双方。</p><div class="role-options"></div><p role="status" aria-live="polite"></p><footer><button type="button" data-close-appearance>完成</button></footer>`;
+    [data-role-appearance]{box-sizing:border-box;width:min(560px,calc(100% - 24px));max-height:85dvh;overflow:auto;border:3px solid #17435a;border-radius:28px;background:#fff9e9;color:#143c50;padding:22px;font:16px/1.5 system-ui,sans-serif;box-shadow:0 7px 0 #17435a22,0 20px 55px #102c3940}
+    [data-role-appearance]::backdrop{background:#103e4e99;backdrop-filter:blur(5px)}[data-role-appearance] h2{margin:0;font-size:25px;font-weight:900}[data-role-appearance] p{margin:8px 0 16px;font-size:13px;color:#58716b}
+    [data-role-appearance] .role-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}[data-role-appearance] fieldset{min-width:0;margin:0;padding:14px 12px;border:2px solid #badaca;border-radius:20px;background:#e7f5e8}
+    [data-role-appearance] fieldset:last-child{background:#fff1d9;border-color:#f1d1a0}[data-role-appearance] legend{padding:0 8px;font-size:17px;font-weight:900}[data-role-appearance] label{display:block;margin:12px 0;font-size:13px;font-weight:700}
+    [data-role-appearance] select,[data-role-appearance] button{min-height:44px;font:inherit;border:2px solid #bdd7c6;border-radius:13px;background:#fffdf1;color:#143c50;padding:8px 10px;font-size:13px;font-weight:700}
+    [data-role-appearance] button{cursor:pointer;box-shadow:0 3px 0 #b4cbbb}[data-role-appearance] button:active{transform:translateY(2px);box-shadow:0 1px 0 #b4cbbb}[data-role-appearance] :focus-visible{outline:3px solid #0fa3b5;outline-offset:3px}
+    [data-role-appearance] select,[data-role-appearance] input{box-sizing:border-box;max-width:100%;width:100%}[data-role-appearance] input{font:inherit;font-size:12px}[data-role-appearance] input::file-selector-button{min-height:44px;padding:8px;border:1px solid #a9cbb9;border-radius:10px;background:#fffdf1;color:#143c50;font:inherit}
+    [data-role-appearance] .avatar-upload{position:relative;min-height:44px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:2px dashed #b8cdb8;border-radius:13px;background:#fffdf1;font-weight:700;overflow:hidden}[data-role-appearance] .avatar-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}[data-role-appearance] .avatar-upload:focus-within{outline:3px solid #0fa3b5;outline-offset:3px}[data-role-appearance] svg{display:block;margin:5px auto 14px;width:96px;height:96px;border-radius:22px;background:#fffef1;box-shadow:0 4px 0 #a8ccb650}[data-role-appearance] footer{display:flex;justify-content:flex-end;margin-top:12px}[data-role-appearance] [data-close-appearance]{min-width:116px;background:#ffdc58;border-color:#dba942;box-shadow:0 4px 0 #dba942;font-size:16px;font-weight:900}[data-role-appearance] [role=status]{min-height:20px;font-size:12px;margin-bottom:0}
+    @media(max-width:370px){[data-role-appearance]{padding:16px}[data-role-appearance] .role-options{gap:8px}[data-role-appearance] fieldset{padding:10px 7px}[data-role-appearance] select,[data-role-appearance] button{padding:7px 5px;font-size:12px}[data-role-appearance] input{font-size:11px}}
+  </style><h2>小队换装间</h2><p>换个形象，一起出发！装扮用于所有关卡，头像仅保存在本机。</p><div class="role-options"></div><p role="status" aria-live="polite"></p><footer><button type="button" data-close-appearance>完成</button></footer>`;
   const status = dialog.querySelector('[role=status]');
   const save = (key, update) => {
     const previous = read(),
       next = { ...previous, [key]: { ...previous[key], ...update } };
     try {
-      globalThis.localStorage.setItem(storageKey, JSON.stringify(next));
+      (globalThis.__chaseRoleStorage || globalThis.localStorage).setItem(
+        storageKey,
+        JSON.stringify(next),
+      );
       settings = next;
       stored = JSON.stringify(next);
       images.clear();
@@ -350,12 +499,13 @@ export function openAppearanceSettings(onChange = () => {}) {
       return false;
     }
     onChange();
+    globalThis.document?.dispatchEvent(new Event('chase-appearancechange'));
     return true;
   };
   for (const key of ['cop', 'robber']) {
     const field = document.createElement('fieldset'),
       appearance = getRoleAppearance(key);
-    field.innerHTML = `<legend>${appearance.label}</legend><svg viewBox="0 0 96 96" aria-label="${appearance.label}头像预览"></svg><label>角色样式<select aria-label="${appearance.label}样式"><option value="team">卡通小队</option><option value="animals">猫狐追逐</option><option value="cosmic">星际追逐</option></select></label><label>本地头像<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="${appearance.label}本地头像"></label><button type="button">恢复默认形象</button>`;
+    field.innerHTML = `<legend>${appearance.label}</legend><svg viewBox="0 0 96 96" aria-label="${appearance.label}头像预览"></svg><label>角色样式<select aria-label="${appearance.label}样式"><option value="team">${classicRoles() ? '警察与小偷' : '卡通小队'}</option><option value="animals">猫狐追逐</option><option value="cosmic">星际追逐</option></select></label><label class="avatar-upload">上传本地头像<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="${appearance.label}本地头像"></label><button type="button">恢复默认形象</button>`;
     const preview = () => {
       field.querySelector('svg').innerHTML = roleAvatarSvg(key, 7, 7, 76);
     };

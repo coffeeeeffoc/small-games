@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import { getDuelLevel } from '../src/duel-levels.js';
 import { initialDuel, legalDuelTargets } from '../src/duel.js';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:43441';
-const browser = await chromium.launch(process.env.BROWSER_EXECUTABLE
-  ? { executablePath: process.env.BROWSER_EXECUTABLE }
-  : { channel: process.env.BROWSER_CHANNEL || 'chrome' });
+const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+const browser = await chromium.launch(executablePath ? { executablePath } : { channel: process.env.BROWSER_CHANNEL || 'msedge' });
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const errors = [];
@@ -22,6 +22,7 @@ try {
   assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current), challenge, 'Lobby shortcuts must preserve the paused challenge');
 
   for (const role of ['pursuer', 'runner']) {
+    await page.locator('#mode-settings').click();
     await page.selectOption('#solo-mode', 'survival');
     await page.selectOption('#solo-role', role);
     await page.selectOption('#solo-initiative', 'first');
@@ -58,9 +59,13 @@ try {
     }
     await page.keyboard.press('Tab');
     assert.notEqual(await page.evaluate(() => document.activeElement.tagName), 'BODY', 'Tab must continue from the current map control');
-    await page.locator('#duel-back').click();
+    await page.locator('#focus-toggle').click();
   }
-  await page.locator('#resume-patrol').click();
+  await page.locator('#home-start').click();
+  await page.selectOption('#solo-mode', 'challenge');
+  await page.locator('#start-mode').click();
+  await page.getByTestId(`level-button-${challenge.levelId}`).click();
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current), challenge, 'Selecting the paused challenge preserves its state after a duel');
   assert.equal(await page.locator('body').getAttribute('data-turn'), '1');
   await page.keyboard.press('Control+z');
   assert.equal(await page.locator('body').getAttribute('data-turn'), '0', 'Undo remains available in the active challenge');

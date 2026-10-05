@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,12 +67,15 @@ async function verifyLayout(page, width) {
   const dimensions = await page.evaluate(() => ({ viewport: innerWidth, body: document.body.scrollWidth, page: document.documentElement.scrollWidth }));
   assert.ok(dimensions.body <= dimensions.viewport + 1 && dimensions.page <= dimensions.viewport + 1, `${width}px 横向溢出：${JSON.stringify(dimensions)}`);
   assert.equal(await page.getByTestId('execute').count(), 0);
-  for (const id of ['board', 'undo', 'restart', 'hint', 'level-select', 'sound']) {
+  for (const id of ['board', 'undo', 'restart', 'hint']) {
     const element = page.getByTestId(id), rect = await element.boundingBox(), height = page.viewportSize().height;
     assert.equal(await element.isVisible(), true, `${width}px ${id} 不可见`);
     assert.ok(rect && rect.x >= -1 && rect.x + rect.width <= width + 1 && rect.y >= -1 && rect.y + rect.height <= height + 1,
       `${width}px ${id} 不在首屏内：${JSON.stringify(rect)}`);
   }
+  assert.equal(await page.locator('#level-select:visible, #mobile-level-select:visible, #sound:visible, [data-game-fullscreen]:visible').count(), 0,
+    '选关、音效和全屏入口仅在首页展示');
+  assert.ok(await page.locator('#focus-toggle').isVisible(), '游玩界面保留返回首页');
 }
 
 try {
@@ -83,12 +87,8 @@ try {
   }
   assert.equal((await fetch(base, { method: 'POST' })).status, 405);
   report.checks.push('静态服务 HTML/JS MIME、私有路径和越界请求隔离');
-  let launchError;
-  for (const channel of process.env.BROWSER_CHANNEL ? [process.env.BROWSER_CHANNEL] : ['msedge', 'chrome']) {
-    try { browser = await chromium.launch({ channel, headless: true }); report.channel = channel; break; }
-    catch (error) { launchError = error; }
-  }
-  if (!browser) throw launchError;
+  const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+  browser = await chromium.launch(executablePath ? { executablePath } : process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
   const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 } }), page = await desktop.newPage();
   observe(page);
   await load(page, 1, false); await win(page, 1);
@@ -98,6 +98,7 @@ try {
   report.checks.push('首关正常动画、点击立即行动、突围队员自动响应、胜利和下一关');
 
   await page.reload({ waitUntil: 'networkidle' });
+  if (await page.locator('#focus-toggle').isVisible()) await page.locator('#focus-toggle').click();
   await page.locator('#level-select').click();
   const tabs = page.locator('#chapter-tabs button'), reachable = new Set();
   assert.equal(await tabs.count(), chapters.length);
@@ -129,9 +130,11 @@ try {
   await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
   assert.deepEqual((await snapshot(page, 2)).cops, solutions[2][0]);
   await page.getByTestId('restart').click();
+  await page.locator('#focus-toggle').click();
   const sound = page.getByTestId('sound'), beforeSound = await sound.getAttribute('aria-pressed');
   await sound.click(); assert.notEqual(await sound.getAttribute('aria-pressed'), beforeSound);
   await sound.click(); assert.equal(await sound.getAttribute('aria-pressed'), beforeSound);
+  await page.locator('#resume-patrol').click();
   report.checks.push('撤销整步、重开、提示不走棋且高亮不挡点击、音效开关');
 
   await load(page, 28);

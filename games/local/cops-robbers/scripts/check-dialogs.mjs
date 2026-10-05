@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { chromium, expect } from '@playwright/test';
@@ -10,9 +11,9 @@ import { initialState, step } from '../src/engine.js';
 const server = process.env.BASE_URL ? null : createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   const file = pathname === '/' ? 'index.html' : pathname.slice(1);
-  if (!/^(index\.html|favicon\.svg|src\/[a-z0-9-]+\.(js|css))$/.test(file)) { response.writeHead(404).end(); return; }
+  if (!/^(index\.html|favicon\.svg|dev-mode\.js|src\/[a-z0-9-]+\.(js|css)|assets\/[a-z0-9-]+\.webp)$/.test(file)) { response.writeHead(404).end(); return; }
   try {
-    response.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.svg') ? 'image/svg+xml' : 'text/html; charset=utf-8');
+    response.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.svg') ? 'image/svg+xml' : file.endsWith('.webp') ? 'image/webp' : 'text/html; charset=utf-8');
     response.end(await readFile(new URL(`../${file}`, import.meta.url)));
   } catch { response.writeHead(404).end(); }
 });
@@ -33,7 +34,8 @@ for (const map of levels) {
 }
 assert.ok(loss);
 try {
-  browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || undefined });
+  const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+  browser = await chromium.launch(executablePath ? { executablePath } : { channel: process.env.BROWSER_CHANNEL || 'msedge' });
   await mkdir('outputs', { recursive: true });
   for (const [width, height, touch] of [[1440, 900, false], [390, 844, true], [320, 568, true], [844, 390, true]]) {
     const context = await browser.newContext({ viewport: { width, height }, hasTouch: touch });
@@ -63,8 +65,12 @@ try {
       }
     }
     await load(100);
+    await expect(page.locator('#help')).not.toBeVisible();
+    await expect(page.locator('#settings')).not.toBeVisible();
+    await expect(page.locator('[data-game-fullscreen]')).not.toBeVisible();
+    await activate(page.locator('#focus-toggle'));
     for (let repeat = 0; repeat < 3; repeat++) {
-      for (const [trigger, dialog, close] of [['#help','#help-dialog','明白，开始拦截！'], ['#settings','#settings-dialog','完成'], ['#mobile-level-select','#level-dialog','返回游戏'], ['#share-challenge','#share-dialog','返回游戏']]) {
+      for (const [trigger, dialog, close] of [['#help','#help-dialog','明白，开始拦截！'], ['#settings','#settings-dialog','完成'], ['#home-start','#level-dialog','返回首页'], ['#share-challenge','#share-dialog','返回游戏']]) {
         await activate(page.locator(trigger));
         await cleanDialog(dialog);
         await activate(page.locator(dialog).getByRole('button', { name: close, exact: true }));
@@ -78,20 +84,23 @@ try {
     await activate(page.locator('#help-dialog').getByRole('button', { name: '明白，开始拦截！' }));
     await expect(page.locator('#settings-dialog')).toBeVisible();
     await activate(page.locator('#settings-dialog').getByRole('button', { name: '完成', exact: true }));
-    await activate(page.locator('#focus-toggle'));
     for (let repeat = 0; repeat < 2; repeat++) {
       await activate(page.locator('#appearance-settings'));
       await cleanDialog('[data-role-appearance]');
       await activate(page.locator('[data-close-appearance]'));
       await expect(page.locator('[data-role-appearance]')).toHaveCount(0);
     }
-    await activate(page.locator('#resume-patrol'));
     await activate(page.locator('[data-game-fullscreen]'));
     await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
     await activate(page.locator('#settings'));
     await cleanDialog('#settings-dialog');
     await page.screenshot({ path: `outputs/dialogs-${width}.png` });
     await activate(page.locator('#settings-dialog').getByRole('button', { name: '完成', exact: true }));
+    await activate(page.locator('#resume-patrol'));
+    await expect(page.getByTestId('board')).toBeVisible();
+    await expect(page.locator('[data-game-fullscreen]')).not.toBeVisible();
+    assert.equal(await page.evaluate(() => !!document.fullscreenElement), true, 'The patrol keeps the fullscreen selected from home');
+    await activate(page.locator('#focus-toggle'));
     await activate(page.locator('[data-game-fullscreen]'));
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
     await replay(1, solutions[1]);

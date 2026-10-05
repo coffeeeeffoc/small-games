@@ -5,8 +5,8 @@ import { playSound, unlockSound } from './sound.js';
 import { relayLevelIds } from './relay.js';
 import { showPuzzleShare } from './share.js';
 
-export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
-  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '追逐队' : '突围队';
+export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
+  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '警察' : '小偷';
   let level, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const saveKey = 'cops-robbers-duel-v1'; let saved = {};
   try { const data = JSON.parse(localStorage.getItem(saveKey) || '{}'); if (data && typeof data === 'object' && !Array.isArray(data)) saved = data; } catch { /* A damaged local preference never blocks play. */ }
@@ -28,7 +28,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     for (const id of ['solo-role-row', 'solo-initiative-row']) $(id).hidden = challenge;
     $('solo-level-row').hidden = challenge && !relay && !quick;
     $('mode-description').textContent = quick ? '2–4 步一个收网瞬间：两侧夹击、先封后追、双巷分工。三张专门编排的小地图，走错可立即撤销。' : relay ? '两次实际移动必须换队员；留守不重置。六个精选街区已在接力规则下完整复演获胜路线。' : challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
-    $('start-mode').textContent = quick ? '开始短场，马上收网' : relay ? '开始换防接力' : challenge ? '开始围堵挑战' : '开始人机对抗';
+    $('start-mode').textContent = quick ? '开始短场，马上收网' : relay ? '开始换防接力' : challenge ? '选择街区' : '开始人机对抗';
     const patrol = quick || relay ? savedPatrol(quick ? 'quick' : 'challenge',relay ? 'relay' : 'standard') : null;
     if (patrol?.levelId === Number($('solo-level').value)) $('start-mode').textContent = `继续第 ${patrol.levelId} 关${quick ? '短场试炼' : '换防接力'}`;
   }
@@ -51,7 +51,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     $('duel-status').textContent = state.winner ? `${label(state.winner)}获胜 · ${state.winner === role ? '挑战成功' : '再试一种走法'}` : `${label(state.side)}行动${myTurn ? ' · 轮到你' : ' · 电脑思考中'}`;
     $('duel-round').textContent = `${Math.floor(state.turn / 2)} / ${level.roundLimit} 回合`;
     $('duel-rules').textContent = `${label(firstSide)}先手 · ${level.mode === 'escape' ? '突围队到任一出口即胜；追逐队走到对手位置完成拦截。' : `无出口；突围队坚持 ${level.roundLimit} 回合即胜，追逐队需在限步内拦截。`}`;
-    $('duel-note').textContent = state.winner ? '本局已结束。可重新挑战、下一关或返回大厅。' : myTurn ? '先选队员，再点亮起的相邻路口。点脚下数字可以留守。' : '电脑行动中；可随时重新挑战或返回大厅。';
+    $('duel-note').textContent = state.winner ? '再来一局，还是下一关？' : myTurn ? '点亮起的路口 · 点脚下可留守' : '对手行动中…';
     $('duel-wait').disabled = !myTurn;
     $('duel-next').disabled = level.id === 100;
     document.body.dataset.duelTurn = state.turn; document.body.dataset.duelSide = state.side; document.body.dataset.duelWinner = state.winner || ''; document.body.dataset.duelRole = role;
@@ -79,8 +79,9 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     role = $('solo-role').value;
     if (!retry) firstSide = $('solo-initiative').value === 'random' ? (Math.random() < .5 ? 'pursuer' : 'runner') : $('solo-initiative').value === 'first' ? role : role === 'pursuer' ? 'runner' : 'pursuer';
     state = initialDuel(level, firstSide); selected = 0;
+    document.body.dataset.lastGame = 'duel'; document.body.dataset.duelLevel = String(level.id);
     $('solo-level').value = String(id); persistOptions(); $('duel-game').hidden = false;
-    document.body.classList.add('duel-active', 'focus-play'); $('focus-toggle').textContent = '返回大厅';
+    document.body.classList.add('duel-active', 'focus-play'); $('focus-toggle').setAttribute('aria-label', '返回大厅');
     unlockSound(); render(); window.scrollTo(0, 0); scheduleAI();
   }
   function move(target) {
@@ -92,7 +93,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
   $('friend-duel').addEventListener('click', () => { const entry = document.querySelector('[data-competition-launch]'); if (entry) entry.click(); else $('friend-note').textContent = '当前是单机预览。好友房间请从游戏大厅的联机入口进入。'; });
   $('solo-mode').addEventListener('change', () => { renderOptions(); const mode = $('solo-mode').value, patrol = savedPatrol(mode === 'quick' ? 'quick' : 'challenge',mode === 'relay' ? 'relay' : 'standard'); if (['quick','relay'].includes(mode) && patrol && [...$('solo-level').options].some(option=>Number(option.value)===patrol.levelId)) $('solo-level').value=String(patrol.levelId); updateMode(); persistOptions(); });
   for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); updateMode(); persistOptions(); });
-  $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) startChallenge({ mode:$('solo-mode').value === 'quick' ? 'quick' : 'challenge', rule: $('solo-mode').value === 'relay' ? 'relay' : 'standard', id: ['quick','relay'].includes($('solo-mode').value) ? Number($('solo-level').value) : undefined }); else start(); });
+  $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) selectLevels(); else start(); });
   $('quick-start').addEventListener('click',()=>{stop();$('solo-mode').value='quick';renderOptions();updateMode();persistOptions();startChallenge({mode:'quick',rule:'standard',id:1,fresh:true});});
   $('duel-back').addEventListener('click', () => { stop(); document.body.classList.remove('duel-active'); $('duel-game').hidden = true; returnLobby(); });
   $('focus-toggle').addEventListener('click', () => { if (document.body.classList.contains('duel-active')) $('duel-back').click(); });
@@ -109,6 +110,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
   });
   $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); if (!event.repeat) event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('visibilitychange', () => { stop(); if (!document.hidden) scheduleAI(); });
+  document.addEventListener('chase-appearancechange', () => { if (state) render(); });
   updateMode();
   if (sharedPuzzle) {
     $('solo-mode').value = sharedPuzzle.mode === 'challenge' && sharedPuzzle.rule === 'relay' ? 'relay' : sharedPuzzle.mode;
@@ -117,4 +119,18 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     renderOptions(); $('solo-level').value = String(sharedPuzzle.level); updateMode();
     if (!['challenge','quick'].includes(sharedPuzzle.mode)) start(sharedPuzzle.level);
   }
+  return {
+    resume() {
+      if (!state) return false;
+      $('duel-game').hidden = false;
+      document.body.classList.add('duel-active', 'focus-play');
+      render(); scheduleAI(); window.scrollTo(0, 0);
+      return true;
+    },
+    sharePuzzle() {
+      if (!state) return false;
+      $('duel-share').click(); return true;
+    },
+  };
+
 }

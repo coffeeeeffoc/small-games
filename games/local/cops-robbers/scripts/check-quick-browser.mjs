@@ -8,6 +8,8 @@ const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTAB
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('cops-robbers-v3')));
+ const openModes=async()=>{await page.locator('#mode-settings').tap();assert.ok(await page.locator('#mode-dialog').isVisible());};
+ const choosePatrol=async id=>{await page.locator('#start-mode').tap();assert.ok(await page.locator('#level-dialog').isVisible());await page.getByTestId(`level-button-${id}`).tap();};
  await page.goto(base);await page.locator('#quick-start').tap();assert.equal(await page.locator('body').getAttribute('data-mode'),'quick');
  for(const id of [1,2,3]){
   if(id>1)await page.locator('#next-level').tap();
@@ -28,19 +30,19 @@ try{
   await page.setViewportSize(viewport);await page.goto(`${base}/?mode=quick&level=3&motion=reduce`);
   for(const selector of ['#board','.action-bar','#squad']){const r=await page.locator(selector).boundingBox();assert.ok(r.x>=0&&r.y>=0&&r.x+r.width<=viewport.width&&r.y+r.height<=viewport.height,`${selector} outside ${JSON.stringify(viewport)}: ${JSON.stringify(r)}`);}
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  await page.locator('#share-challenge').click();assert.match(await page.locator('#share-url').inputValue(),/mode=quick&level=3&rule=standard/);
+  await page.locator('#focus-toggle').tap();await page.locator('#share-challenge').tap();assert.match(await page.locator('#share-url').inputValue(),/mode=quick&level=3&rule=standard/);
  }
  // A quick link must leave an existing standard patrol available when switching back.
  await page.goto(`${base}/?mode=challenge&level=1&motion=reduce`);await page.getByTestId('cop-0').tap();await page.getByTestId('node-1').tap();await page.waitForFunction(()=>document.body.dataset.turn==='1'&&document.body.dataset.phase==='planning');
  const original=(await saved()).current;await page.goto(`${base}/?mode=quick&level=2&motion=reduce`);
  assert.deepEqual((await saved()).patrols['challenge:standard'],original);
- await page.locator('#focus-toggle').click();await page.locator('#solo-mode').selectOption('challenge');await page.locator('#start-mode').click();assert.deepEqual((await saved()).current,original);
+ await page.locator('#focus-toggle').tap();await openModes();await page.locator('#solo-mode').selectOption('challenge');await choosePatrol(original.levelId);assert.deepEqual((await saved()).current,original);
  await page.goto(`${base}/?mode=quick&level=3&motion=reduce`);
  const opening=(await saved()).current.state,first=quickSolutions[3][0],actor=movedOfficer(opening,first);await page.getByTestId(`cop-${actor}`).tap();await page.getByTestId(`node-${first[actor]}`).tap();await page.waitForFunction(()=>document.body.dataset.turn==='1'&&document.body.dataset.phase==='planning');
  const unfinishedQuick=(await saved()).current;
- await page.locator('#focus-toggle').click();await page.locator('#solo-mode').selectOption('challenge');await page.locator('#start-mode').click();await page.locator('#focus-toggle').click();await page.locator('#solo-mode').selectOption('quick');assert.equal(await page.locator('#solo-level').inputValue(),'3');await page.locator('#start-mode').click();assert.deepEqual((await saved()).current,unfinishedQuick);
+ await page.locator('#focus-toggle').tap();await openModes();await page.locator('#solo-mode').selectOption('challenge');await choosePatrol(original.levelId);await page.locator('#focus-toggle').tap();await openModes();await page.locator('#solo-mode').selectOption('quick');assert.equal(await page.locator('#solo-level').inputValue(),'3');await choosePatrol(unfinishedQuick.levelId);assert.deepEqual((await saved()).current,unfinishedQuick);
  await page.goto(`${base}/?mode=challenge&level=4&rule=relay&motion=reduce`);const relayState=(await saved()).current.state,relayPlan=solutions[4][0],relayActor=movedOfficer(relayState,relayPlan);await page.getByTestId(`cop-${relayActor}`).tap();await page.getByTestId(`node-${relayPlan[relayActor]}`).tap();await page.waitForFunction(()=>document.body.dataset.turn==='1'&&document.body.dataset.phase==='planning');const unfinishedRelay=(await saved()).current;
- await page.goto(`${base}/?mode=quick&level=2&motion=reduce`);await page.locator('#focus-toggle').click();await page.locator('#solo-mode').selectOption('relay');assert.equal(await page.locator('#solo-level').inputValue(),'4');await page.locator('#start-mode').click();assert.deepEqual((await saved()).current,unfinishedRelay);
- await page.addInitScript(()=>{const save=JSON.parse(localStorage.getItem('cops-robbers-v3'));save.patrols['quick:standard']={levelId:1,state:{robbers:{bad:true}}};localStorage.setItem('cops-robbers-v3',JSON.stringify(save));});await page.reload();await page.locator('#solo-mode').selectOption('quick');await page.locator('#start-mode').click();assert.equal(await page.locator('body').getAttribute('data-mode'),'quick');assert.equal((await saved()).current.state.turn,0);
+ await page.goto(`${base}/?mode=quick&level=2&motion=reduce`);await page.locator('#focus-toggle').tap();await openModes();await page.locator('#solo-mode').selectOption('relay');assert.equal(await page.locator('#solo-level').inputValue(),'4');await choosePatrol(unfinishedRelay.levelId);assert.deepEqual((await saved()).current,unfinishedRelay);
+ await page.addInitScript(()=>{const save=JSON.parse(localStorage.getItem('cops-robbers-v3'));save.patrols['quick:standard']={levelId:1,state:{robbers:{bad:true}}};localStorage.setItem('cops-robbers-v3',JSON.stringify(save));});await page.reload();await openModes();await page.locator('#solo-mode').selectOption('quick');await choosePatrol(1);assert.equal(await page.locator('body').getAttribute('data-mode'),'quick');assert.equal((await saved()).current.state.turn,0);
  assert.deepEqual(errors,[]);console.log('PASS fresh quick entry, 3 touch wins and separate records, limit loss/undo, 2 mobile layouts, share, standard/quick/relay resume and damaged backup rejection');
 }finally{await browser.close();}

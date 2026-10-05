@@ -37,6 +37,7 @@ try {
     assert.ok((await saved()).relayCompleted[id]);
     assert.deepEqual((await saved()).completed[id],id === 1 ? {turns:7,stars:3} : undefined,'relay preserves legacy standard stars');
     await page.locator('#win-dialog .dialog-close').click();
+    await page.locator('#focus-toggle').tap();
     await page.locator('#share-challenge').click();
     const url = await page.locator('#share-url').inputValue();
     assert.ok(url.includes(`level=${id}`) && url.includes('rule=relay'));
@@ -47,7 +48,7 @@ try {
   }
   for (const viewport of [{width:320,height:568},{width:844,height:390},{width:667,height:375}]) {
     await page.setViewportSize(viewport); await page.goto(`${base}/?level=1&rule=relay&motion=reduce`);
-    const bounds = await page.evaluate(() => ['#board','.action-bar','#relay-note'].map(selector => {
+    const bounds = await page.evaluate(() => ['#board','.action-bar','#play-prompt'].map(selector => {
       const r = document.querySelector(selector).getBoundingClientRect(); return {selector,x:r.x,y:r.y,right:r.right,bottom:r.bottom};
     }));
     for (const rect of bounds) assert.ok(rect.x >= 0 && rect.y >= 0 && rect.right <= viewport.width && rect.bottom <= viewport.height, `${JSON.stringify(viewport)}: ${JSON.stringify(rect)}`);
@@ -62,7 +63,8 @@ try {
   await page.goto(`${base}/?mode=escape&level=100&role=runner&first=pursuer&rule=standard`);
   assert.ok(await page.locator('#duel-game').isVisible());
   assert.deepEqual((await saved()).current,patrol,'a shared duel preserves the unfinished patrol save');
-  await page.locator('#duel-share').click();
+  await page.locator('#focus-toggle').tap();
+  await page.locator('#share-challenge').tap();
   assert.match(await page.locator('#share-url').inputValue(), /role=runner&first=pursuer/);
   assert.deepEqual(errors,[]);
   console.log('PASS 6 touch relay wins, separate records, illegal repeated move, undo, clean same-puzzle/native cancel, 3 mobile layouts and shared duel role/opening');

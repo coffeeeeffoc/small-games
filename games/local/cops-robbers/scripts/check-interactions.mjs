@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -137,12 +138,8 @@ async function check(name, run, { init, reducedMotion = 'no-preference' } = {}) 
 }
 
 try {
-  let launchError;
-  for (const channel of process.env.BROWSER_CHANNEL ? [process.env.BROWSER_CHANNEL] : ['chrome', 'msedge']) {
-    try { browser = await chromium.launch({ channel, headless: true }); report.channel = channel; break; }
-    catch (error) { launchError = error; }
-  }
-  if (!browser) throw launchError;
+  const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+  browser = await chromium.launch(executablePath ? { executablePath } : process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
   await check('narrow layout fits the usable width with or without a classic scrollbar', async page => {
     for (const width of [320, 305]) {
       await page.setViewportSize({ width, height: 740 });
@@ -152,29 +149,36 @@ try {
         content: document.documentElement.scrollWidth,
       }));
       assert.ok(size.content <= size.available, `${size.content}px content overflows ${size.available}px usable width`);
-      const fullscreen = await page.locator('.topbar [data-game-fullscreen]').boundingBox();
-      assert.ok(fullscreen.width >= 44 && fullscreen.height >= 44 && fullscreen.x + fullscreen.width <= size.available,
-        'The fullscreen entry must remain a visible touch target at the narrowest width');
+      const back = await page.locator('#focus-toggle').boundingBox();
+      assert.ok(back.width >= 44 && back.height >= 44 && back.x + back.width <= size.available,
+        'The home return remains a visible touch target at the narrowest width');
+      assert.equal(await page.locator('[data-game-fullscreen]:visible').count(), 0, 'Fullscreen stays on home');
     }
   });
 
-  await check('native fullscreen preserves patrol and stays accessible in result dialogs', async page => {
+  await check('home fullscreen preserves patrol and result recovery', async page => {
     await page.setViewportSize({ width: 390, height: 844 });
     await load(page, 1);
     const current = await move(page, 1, initialState(levels[0]), solutions[1][0]);
-    await page.locator('.topbar [data-game-fullscreen]').click();
+    await page.locator('#focus-toggle').click();
+    await page.locator('[data-game-fullscreen]:visible').click();
     await page.waitForFunction(() => document.fullscreenElement === document.documentElement);
+    await page.locator('#resume-patrol').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(current));
     await move(page, 1, current, current.cops); // The unguarded other exit is a genuine loss.
     assert.equal(await page.getByTestId('defeat').isVisible(), true);
-    await page.locator('#loss-dialog [data-game-fullscreen]').click();
+    assert.equal(await page.locator('#loss-dialog [data-game-fullscreen]').count(), 0, 'Results contain no fullscreen tool');
+    await page.locator('#loss-dialog .dialog-close').click();
+    await page.locator('#focus-toggle').click();
+    await page.locator('[data-game-fullscreen]:visible').click();
     await page.waitForFunction(() => !document.fullscreenElement);
-    await page.getByTestId('undo-loss').click();
+    await page.locator('#resume-patrol').click();
+    await page.getByTestId('undo').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(current));
     await page.getByRole('button', { name: '选择3号追逐队员', exact: true }).click();
     await page.getByTestId('node-4').click(); await finished(page, 2);
     await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 2);
-    assert.equal(await page.locator('.topbar [data-game-fullscreen]').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.locator('[data-game-fullscreen]').getAttribute('aria-pressed'), 'false');
   });
   const moving = recordedCase((before, after) => after.robbers.some((n, i) => n >= 0 && before.robbers[i] !== n));
   const partial = recordedCase((_, after) => after.robbers.includes(-1) && after.robbers.some(n => n >= 0));
@@ -214,10 +218,13 @@ try {
     assert.match(await page.locator('#reference-turns').textContent(), /三星 ≤ 7 步.*最佳 7 步/);
     await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 0);
     assert.equal(await page.locator('.lesson-ring').count(), 0);
+    await page.locator('#focus-toggle').click();
     await page.locator('#settings').click(); await page.locator('#teaching-setting').check();
     await page.locator('#settings-dialog .dialog-close').click();
+    await page.locator('#resume-patrol').click();
     assert.equal(await page.locator('.lesson-ring').count(), 1);
-    await page.getByTestId('level-select').click();
+    await page.locator('#focus-toggle').click();
+    await page.locator('#level-select').click();
     assert.match(await page.getByTestId('level-button-1').getAttribute('aria-label'), /最佳7步/);
     assert.match(await page.locator('#chapter-description').textContent(), /三星 1\/12/);
   });
@@ -373,7 +380,7 @@ try {
       await (await select(page, initialState(levels[0]), solutions[1][0])).click();
       assert.ok(['police', 'caught', 'robbers'].includes(await page.locator('body').getAttribute('data-phase')));
       if (action === 'restart') await page.getByTestId('restart').click();
-      else { await page.getByTestId('level-select').click(); await page.getByTestId('level-button-2').click(); }
+      else { await page.locator('#focus-toggle').click(); await page.locator('#level-select').click(); await page.getByTestId('level-button-2').click(); }
       const id = action === 'restart' ? 1 : 2;
       await page.waitForTimeout(1500);
       assert.equal(await page.locator('body').getAttribute('data-level'), String(id));
@@ -390,7 +397,8 @@ try {
     assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*100$/);
     assert.equal(await page.getByTestId('sound').getAttribute('aria-pressed'), 'false', 'old sound preferences survive the map revision');
     assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v2')), 'the old save remains intact');
-    await page.getByTestId('level-select').click();
+    await page.locator('#focus-toggle').click();
+    await page.locator('#level-select').click();
     assert.equal(await page.getByTestId('level-button-1').getAttribute('data-completed'), 'false');
   }, { init: () => localStorage.setItem('cops-robbers-v2', JSON.stringify({ version: 2,
     completed: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [i + 1, { turns: 1, stars: 3 }])),
@@ -417,14 +425,17 @@ try {
 
   await check('real WebAudio sounds on movement and capture and remains silent after muting', async page => {
     await load(page, 1);
+    await page.locator('#focus-toggle').click();
     if (await page.getByTestId('sound').getAttribute('aria-pressed') !== 'true') await page.getByTestId('sound').click();
+    await page.locator('#resume-patrol').click();
     await replay(page, 1, solutions[1]);
     await page.waitForFunction(() => window.testAudioStates.some(context => context.state === 'running'));
     const sounded = await page.evaluate(() => window.testOscillatorStarts);
     assert.ok(sounded >= 7, 'Movement, capture and victory must start real oscillator notes');
-    await page.keyboard.press('Escape'); await page.getByTestId('sound').click();
+    await page.keyboard.press('Escape'); await page.locator('#focus-toggle').click(); await page.getByTestId('sound').click();
     assert.equal(await page.getByTestId('sound').getAttribute('aria-pressed'), 'false');
     const muted = await page.evaluate(() => window.testOscillatorStarts);
+    await page.locator('#resume-patrol').click();
     await page.getByTestId('restart').click(); await replay(page, 1, solutions[1]);
     assert.equal(await page.evaluate(() => window.testOscillatorStarts), muted);
     return { soundedNotes: sounded, mutedNewNotes: 0 };
@@ -459,6 +470,7 @@ try {
     await load(page, 2, false);
     assert.equal(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), true);
     assert.equal(await page.locator('body').evaluate(body => body.classList.contains('reduced')), false);
+    await page.locator('#focus-toggle').click();
     await page.locator('#settings').click(); await page.locator('#motion-setting').check();
     assert.equal(await page.locator('body').evaluate(body => body.classList.contains('reduced')), true);
     await page.locator('#motion-setting').uncheck();

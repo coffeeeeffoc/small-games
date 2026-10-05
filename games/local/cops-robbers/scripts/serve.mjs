@@ -31,7 +31,7 @@ const server = createServer(async (request, response) => {
   try {
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const name = path === '/' ? 'index.html' : path.slice(1);
-    const allowed = name === 'index.html' || /^favicon\.(svg|ico|png)$/.test(name)
+    const allowed = name === 'index.html' || name === 'dev-mode.js' || /^favicon\.(svg|ico|png)$/.test(name)
       || /^(src|assets)\//.test(name);
     if (!allowed || /[\\\0]/.test(name) || name.split('/').some(part => part.startsWith('.'))
       || !mime[extname(name).toLowerCase()]) return send(404, 'Not found');

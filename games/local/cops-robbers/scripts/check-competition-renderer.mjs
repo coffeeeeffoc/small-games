@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import rules from '../../../../services/runtime-api/rules/cops.mjs';
 import { getDuelLevel } from '../src/duel-levels.js';
 import { duelActions } from '../src/duel.js';
-const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge'});
+const executablePath=process.env.BROWSER_EXECUTABLE||(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined);
+const browser=await chromium.launch(executablePath?{executablePath}:{channel:process.env.BROWSER_CHANNEL||'msedge'});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
- await page.goto(process.env.BASE_URL||'http://127.0.0.1:43441');await page.waitForSelector('#start-mode');
+ await page.goto(process.env.BASE_URL||'http://127.0.0.1:43441');await page.waitForSelector('#home-start');
  for(const mode of ['escape','survival'])for(const side of ['pursuer','runner']){
   const seat=side==='pursuer'?0:1, authoritative=rules.initial(99,mode,side), state=rules.view(authoritative,seat), level=getDuelLevel(mode,100);
   const action=duelActions(level,state.board).find(action=>action.target!==(side==='pursuer'?state.board.cops:state.board.robbers)[action.actor]);
