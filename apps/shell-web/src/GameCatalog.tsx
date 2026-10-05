@@ -2,6 +2,7 @@ import standaloneGames from './standalone-games.json';
 import gameMeta from './game-meta.json';
 import type { BuiltInGame, LazyBuiltInGame } from './registry.js';
 import { featuredPlay } from './featured-play.js';
+import { standaloneGameEntry } from './standalone-entry.js';
 
 const featuredGameOrder: Record<string, number> = {
   'carding-car': 0,
@@ -138,9 +139,31 @@ export function GameCatalog({
             {!featuredPlay[game.id] && <code>{sourceOf(game)}</code>}
             <p>{featuredPlay[game.id]?.hook ?? game.description}</p>
             {view === 'cards' && <GameHistory id={game.id} />}
-            <button disabled={!('source' in game) && disabled} onClick={() => onLaunch(game.id)}>
-              进入游戏
-            </button>
+            {'source' in game ? (
+              <a
+                className="game-launch"
+                href={standaloneGameEntry(game.id)}
+                onClick={(event) => {
+                  if (
+                    event.defaultPrevented ||
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  onLaunch(game.id);
+                }}
+              >
+                进入游戏
+              </a>
+            ) : (
+              <button className="game-launch" disabled={disabled} onClick={() => onLaunch(game.id)}>
+                进入游戏
+              </button>
+            )}
             {featuredPlay[game.id] && (
               <div className="play-choices" role="group" aria-label={`${game.title}玩法`}>
                 {featuredPlay[game.id].choices.map((choice) => (

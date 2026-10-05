@@ -14,6 +14,8 @@ import {
 } from './render-settings';
 import type { LifeEvent, LifeTarget } from './life';
 import { readSettings, SETTINGS_KEY } from './settings';
+import { clampZoom, wheelZoom } from './camera-controls';
+import { HudActions } from './HudActions';
 import './style.css';
 import panelArt from './assets/panels-art.webp';
 
@@ -186,8 +188,7 @@ function App() {
     [night, setNight] = useState(settings.night),
     [sound, setSound] = useState(settings.sound),
     [sitting, setSitting] = useState(false),
-    [fast, setFast] = useState(false),
-    [boost, setBoost] = useState(false),
+    [zoom, setZoom] = useState(1),
     [quality, setQuality] = useState(settings.quality),
     [sensitivity, setSensitivity] = useState(settings.sensitivity),
     [crowd, setCrowd] = useState(settings.crowd),
@@ -300,6 +301,7 @@ function App() {
   const stop = useCallback(() => {
     input.active = false;
     clearInput();
+    resetGestures();
     setActive(false);
     audioActivity(false);
     if (document.pointerLockElement) document.exitPointerLock();
@@ -311,6 +313,20 @@ function App() {
     },
     [stop],
   );
+  const requestMouseLook = useCallback(() => {
+    const canvas = renderer.current?.domElement;
+    if (!input.active || !canvas || document.pointerLockElement) return;
+    canvas.focus({ preventScroll: true });
+    try {
+      Promise.resolve(canvas.requestPointerLock())
+        .then(() => {
+          if (!input.active && document.pointerLockElement === canvas) document.exitPointerLock();
+        })
+        .catch(() => notify('鼠标锁定未开启，可按住画面拖动转头；再次点击画面可重试。'));
+    } catch {
+      notify('鼠标锁定未开启，可按住画面拖动转头。');
+    }
+  }, [notify]);
   const start = useCallback(
     (lockMouse = true) => {
       if (error) return;
@@ -339,15 +355,10 @@ function App() {
       if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
         void document.documentElement.requestFullscreen().catch(() => {});
       if (!touch && lockMouse) {
-        const promise = renderer.current?.domElement.requestPointerLock();
-        promise
-          ?.then(() => {
-            if (!input.active) document.exitPointerLock();
-          })
-          .catch(() => notify('鼠标锁定未开启，可按住画面拖动转头。'));
+        requestMouseLook();
       }
     },
-    [ready, error, touch, notify, started, sound],
+    [ready, error, touch, requestMouseLook, started, sound],
   );
   useEffect(() => {
     if (ready && launching.current) {
@@ -373,6 +384,7 @@ function App() {
     setStarted(false);
     launching.current = false;
     setSitting(false);
+    setZoom(1);
     setLifeTarget(null);
   }
   function keepMoment(id: string) {
@@ -419,10 +431,8 @@ function App() {
   }, [data]);
   useEffect(() => {
     input.sitting = sitting;
-    input.fast = fast;
-    input.boost = boost;
     input.sensitivity = sensitivity;
-  }, [sitting, fast, boost, sensitivity]);
+  }, [sitting, sensitivity]);
   useEffect(() => {
     if (panel) {
       dialog.current?.showModal();
@@ -438,6 +448,7 @@ function App() {
     };
     const lock = () => {
       setMouseLocked(Boolean(document.pointerLockElement));
+      resetGestures();
       if (!document.pointerLockElement) clearInput();
     };
     const key = (e: KeyboardEvent) => {
@@ -445,6 +456,7 @@ function App() {
         if (input.active) {
           e.preventDefault();
           clearInput();
+          resetGestures();
           if (document.pointerLockElement) document.exitPointerLock();
         }
         return;
@@ -461,9 +473,6 @@ function App() {
           'ArrowDown',
           'ArrowLeft',
           'ArrowRight',
-          'ShiftLeft',
-          'ShiftRight',
-          'KeyR',
           'Space',
         ].includes(e.code)
       ) {
@@ -551,7 +560,7 @@ function App() {
       const image = renderer.current.domElement.toDataURL('image/png');
       setPhoto(image);
       chime();
-      notify('已取景，打开手记可以保存照片。');
+      notify('已拍照，打开手记可以保存照片。');
     } catch {
       notify('暂时无法生成照片，请稍后重试。');
     }
@@ -723,21 +732,65 @@ function App() {
     }, 'image/png');
   }
   const lifePress = useRef<{ target: LifeTarget; id: number; x: number; y: number } | null>(null);
-  const drag = useRef<{ id: number; x: number; y: number } | null>(null),
+  const lookTouches = useRef(new Map<number, { x: number; y: number }>()),
+    pinch = useRef<{ ids: [number, number]; distance: number } | null>(null);
+  const drag = useRef<{ id: number; x: number; y: number; touch: boolean } | null>(null),
     stick = useRef<{ id: number; x: number; y: number } | null>(null);
   function pointerDown(e: React.PointerEvent) {
-    if (!input.active || document.pointerLockElement || drag.current || e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    if (!input.active || document.pointerLockElement || e.button !== 0) return;
+    if (e.pointerType === 'touch') {
+      if (lookTouches.current.size >= 2 || lookTouches.current.has(e.pointerId)) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      lookTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (lookTouches.current.size === 2) {
+        const [a, b] = [...lookTouches.current.entries()];
+        pinch.current = { ids: [a[0], b[0]], distance: Math.hypot(a[1].x - b[1].x, a[1].y - b[1].y) };
+        drag.current = null;
+        lifePress.current = null;
+        input.look = [0, 0];
+        return;
+      }
+    } else {
+      if (drag.current) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      // The canvas itself is the discoverable way back to mouse look after Esc.
+      if (e.currentTarget.classList.contains('world')) requestMouseLook();
+    }
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
   }
   function releaseLook(e: React.PointerEvent) {
+    lookTouches.current.delete(e.pointerId);
+    if (pinch.current?.ids.includes(e.pointerId)) {
+      pinch.current = null;
+      drag.current = null;
+    }
     if (drag.current?.id === e.pointerId) drag.current = null;
   }
   function pointerMove(e: React.PointerEvent) {
+    if (!input.active || document.pointerLockElement) return;
+    const point = lookTouches.current.get(e.pointerId);
+    if (point) {
+      point.x = e.clientX;
+      point.y = e.clientY;
+    }
+    const gesture = pinch.current;
+    if (gesture) {
+      const [a, b] = gesture.ids.map((id) => lookTouches.current.get(id));
+      if (a && b) {
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        if (gesture.distance > 5 && distance > 5) {
+          const ratio = distance / gesture.distance;
+          setZoom((value) => clampZoom(value * ratio));
+        }
+        gesture.distance = distance;
+      }
+      return;
+    }
     const p = drag.current;
     if (!p || p.id !== e.pointerId || !input.active) return;
-    input.look[0] += e.clientX - p.x;
-    input.look[1] += e.clientY - p.y;
+    const direction = p.touch ? -1 : 1;
+    input.look[0] += (e.clientX - p.x) * direction;
+    input.look[1] += (e.clientY - p.y) * direction;
     p.x = e.clientX;
     p.y = e.clientY;
   }
@@ -757,12 +810,26 @@ function App() {
     input.stick = [0, 0];
     setThumb([0, 0]);
   }
+  function resetGestures() {
+    drag.current = null;
+    lookTouches.current.clear();
+    pinch.current = null;
+    lifePress.current = null;
+    releaseStick();
+  }
   useEffect(() => {
-    if (!active) {
-      drag.current = null;
-      releaseStick();
-    }
+    if (!active) resetGestures();
   }, [active]);
+  useEffect(() => {
+    const wheel = (event: WheelEvent) => {
+      if (!input.active || !(event.target instanceof Element) ||
+        !event.target.closest('.world, .look-pad, .life-target')) return;
+      event.preventDefault();
+      setZoom((value) => wheelZoom(value, event.deltaY, event.deltaMode, window.innerHeight));
+    };
+    document.addEventListener('wheel', wheel, { passive: false });
+    return () => document.removeEventListener('wheel', wheel);
+  }, []);
   return (
     <main
       className={`${started ? 'entered' : ''} ${night ? 'night' : ''}`}
@@ -777,6 +844,7 @@ function App() {
       data-speed={stats.speed.toFixed(2)}
       data-grounded={stats.grounded}
       data-quality={quality}
+      data-zoom={zoom.toFixed(3)}
       data-yaw={stats.yaw.toFixed(3)}
       data-fps={stats.fps.toFixed(2)}
       data-calls={stats.calls}
@@ -809,7 +877,8 @@ function App() {
                 quality={quality}
                 renderDetail={renderDetail}
                 crowd={crowd}
-                motion={motion}
+                  motion={motion}
+                  zoom={zoom}
                 lifeEvent={lifeEvent}
                 onLifeTarget={setLifeTarget}
                 onRenderer={receiveRenderer}
@@ -849,8 +918,8 @@ function App() {
             )}
             <p className="intro-hint">
               {touch
-                ? '左手行走 · 右手转头 · 横屏看得更远'
-                : 'W A S D 行走　·　鼠标环顾　·　Esc 释放鼠标'}
+                ? '摇杆快速移动 · 拖动环顾 · 双指缩放'
+                : 'W A S D 快速移动　·　鼠标环顾　·　滚轮缩放'}
             </p>
             {!ready && !error && (
               <p className="intro-hint" role="status">
@@ -936,10 +1005,10 @@ function App() {
                   className="life-target"
                   style={{ left: `${lifeTarget.screen[0]}%`, top: `${lifeTarget.screen[1]}%` }}
                   onPointerDown={(event) => {
-                    if (event.button !== 0 || lifePress.current) return;
+                    if (event.button !== 0 || (lifePress.current && event.pointerType !== 'touch')) return;
                     event.currentTarget.setPointerCapture(event.pointerId);
                     pointerDown(event);
-                    lifePress.current = {
+                    lifePress.current = pinch.current ? null : {
                       target: lifeTarget,
                       id: event.pointerId,
                       x: event.clientX,
@@ -1019,43 +1088,35 @@ function App() {
                       ? '在长椅上坐一会儿'
                       : target === 'landmark'
                         ? `认识 ${nearest?.name.split('（')[0]}`
-                        : '沿着江边，慢慢走'}
+                        : '沿着江边，自由探索'}
                 </button>
               </div>
               {!touch && (
                 <div className="keyboard-hint">
-                  WASD / 方向键 <span>行走</span>　Shift <span>快走</span>　R <span>疾行</span>
+                  WASD / 方向键 <span>快速移动</span>　滚轮 <span>缩放</span>
                   　空格 <span>跳跃</span>　P <span>拍照</span>
                   <button
                     className="look-mode"
                     onClick={() => {
                       if (document.pointerLockElement) document.exitPointerLock();
-                      else start();
+                      else requestMouseLook();
                     }}
                   >
                     {mouseLocked ? 'Esc 释放鼠标' : '鼠标环顾'}
                   </button>
+                  {!mouseLocked && <span>　点击画面也可恢复</span>}
                 </div>
               )}
-              <button
-                className="jump"
-                disabled={sitting || !stats.grounded}
-                onPointerDown={(e) => e.preventDefault()}
-                onClick={() => {
+              <HudActions
+                onCapture={() => capture.current()}
+                onJournal={() => open('journal')}
+                onJump={() => {
                   input.jump = true;
                   renderer.current?.domElement.focus({ preventScroll: true });
                 }}
-              >
-                <span>↑</span> {stats.grounded ? '跳上 / 跳下' : '空中'}
-              </button>
-              <div className="bottom-actions">
-                <button onClick={() => capture.current()} aria-label="拍照">
-                  ◎
-                </button>
-                <button onClick={() => open('journal')} aria-label="打开旅行手记">
-                  ▤<span>{visits.length.toString().padStart(2, '0')}</span>
-                </button>
-              </div>
+                jumpDisabled={sitting || !stats.grounded}
+                visitsCount={visits.length}
+              />
               {touch && (
                 <>
                   <div
@@ -1083,19 +1144,6 @@ function App() {
                   >
                     <span style={{ transform: `translate(${thumb[0]}px,${thumb[1]}px)` }} />
                   </div>
-                  <button
-                    className={`run ${fast ? 'selected' : ''}`}
-                    aria-pressed={fast}
-                    onClick={() => {
-                      if (boost) {
-                        setBoost(false);
-                        setFast(false);
-                      } else if (fast) setBoost(true);
-                      else setFast(true);
-                    }}
-                  >
-                    {boost ? '疾行 ×6' : fast ? '快走 ×2' : '漫步 ×1'}
-                  </button>
                 </>
               )}
             </>
@@ -1264,8 +1312,8 @@ function App() {
                 <summary>操作小贴士</summary>
                 <p className="muted small">
                   {touch
-                    ? '左侧摇杆行走，右侧转头；点击速度按钮切换漫步 / 快走 / 疾行，↑ 跳上或跳下台阶。'
-                    : 'WASD / 方向键行走 · Shift 快走 · 按住 R 疾行 · 空格跳上/跳下 · E 交互 · P 拍照 · Esc 释放鼠标；按住画面拖动也能转头。'}
+                    ? '左侧摇杆快速移动，拖动画面环顾；双指张开放大、捏合缩小，点击“跳跃”越过台阶。'
+                    : 'WASD / 方向键快速移动 · 空格跳跃 · E 交互 · P 拍照 · 滚轮缩放；Esc 释放鼠标，点击画面或“鼠标环顾”恢复控制。锁定不可用时按住画面拖动转头。'}
                   <br />
                   室外自由漫游，建筑内部暂未开放。
                 </p>
@@ -1513,7 +1561,7 @@ function App() {
                   </a>
                 </figure>
               ) : (
-                <p className="empty">还没有照片。回到江边，按 P 或轻点取景按钮。</p>
+                <p className="empty">还没有照片。回到江边，按 P 或轻点“拍照”。</p>
               )}
               <ul className="journal-list">
                 {visits.map((id) => (

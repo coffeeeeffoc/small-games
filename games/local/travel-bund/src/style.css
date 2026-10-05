@@ -346,6 +346,7 @@ h1 em {
   font: 22px sans-serif;
 }
 .life-target {
+  touch-action: none;
   position: absolute;
   z-index: 6;
   transform: translate(-50%, -100%);
@@ -381,8 +382,8 @@ h1 em {
 }
 .interaction {
   position: absolute;
-  bottom: 190px;
-  right: 18px;
+  bottom: max(182px, calc(env(safe-area-inset-bottom) + 174px));
+  right: max(18px, calc(env(safe-area-inset-right) + 12px));
   max-width: min(290px, 56vw);
   z-index: 4;
 }
@@ -415,24 +416,72 @@ h1 em {
 .keyboard-hint span {
   opacity: 0.8;
 }
-.bottom-actions {
+.hud-actions {
+  --action-size: 62px;
   position: absolute;
-  right: max(18px, env(safe-area-inset-right));
+  right: max(18px, calc(env(safe-area-inset-right) + 12px));
   bottom: max(30px, calc(env(safe-area-inset-bottom) + 20px));
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, var(--action-size));
+  grid-template-rows: repeat(2, var(--action-size));
+  gap: 8px;
   z-index: 4;
+  pointer-events: none;
 }
-.bottom-actions button {
-  font-size: 23px;
-  min-width: 48px;
-  height: 48px;
-  padding: 9px 12px;
-  background: #fff1d7d9;
+.hud-action {
+  position: relative;
+  width: var(--action-size);
+  height: var(--action-size);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 5px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 18px;
+  border: 1px solid #fff7e8;
+  background: #fff1d7ef;
+  box-shadow: 0 3px 12px #224d5526;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  user-select: none;
 }
-.bottom-actions span {
-  font: 10px monospace;
-  padding-left: 6px;
+.hud-action svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.hud-action-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.hud-action-count {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  min-width: 17px;
+  padding: 2px 3px;
+  border-radius: 9px;
+  background: #294d5512;
+  font-size: 9px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hud-action.jump {
+  grid-column: 2;
+  grid-row: 1;
+}
+.hud-action.capture {
+  grid-column: 1;
+  grid-row: 2;
+}
+.hud-action.journal {
+  grid-column: 2;
+  grid-row: 2;
 }
 .attribution {
   position: absolute;
@@ -483,7 +532,7 @@ h1 em {
 .joystick {
   position: absolute;
   bottom: max(45px, calc(env(safe-area-inset-bottom) + 30px));
-  left: max(25px, env(safe-area-inset-left));
+  left: max(25px, calc(env(safe-area-inset-left) + 12px));
   width: 112px;
   height: 112px;
   border: 2px solid #fff9;
@@ -502,36 +551,6 @@ h1 em {
   background: #fff1d77a;
   border: 1px solid #fff9;
   pointer-events: none;
-}
-.run {
-  position: absolute;
-  bottom: max(168px, calc(env(safe-area-inset-bottom) + 153px));
-  left: max(37px, env(safe-area-inset-left));
-  border-radius: 25px;
-  font-size: 10px;
-  padding: 8px 12px;
-  z-index: 4;
-  min-height: 44px;
-}
-.run.selected {
-  background: #d87559;
-  color: #fff1d7;
-}
-.jump {
-  position: absolute;
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(95px, calc(env(safe-area-inset-bottom) + 85px));
-  z-index: 4;
-  width: 48px;
-  height: 48px;
-  padding: 7px;
-  font-size: 0;
-}
-.jump span {
-  font-size: 25px;
-}
-.jump:disabled {
-  opacity: 0.65;
 }
 dialog {
   background: #fffaf0;
@@ -1299,7 +1318,7 @@ figure .primary {
     display: none;
   }
   .interaction {
-    bottom: 225px;
+    bottom: max(182px, calc(env(safe-area-inset-bottom) + 174px));
   }
   .keyboard-hint {
     display: none;
@@ -1378,15 +1397,24 @@ figure .primary {
   .joystick {
     width: 95px;
     height: 95px;
-    bottom: 28px;
+    bottom: max(28px, calc(env(safe-area-inset-bottom) + 18px));
   }
-  .run {
-    bottom: 135px;
-    left: 29px;
+  .hud-actions {
+    --action-size: 56px;
+    bottom: max(25px, calc(env(safe-area-inset-bottom) + 18px));
+    gap: 7px;
+  }
+  .hud-action {
+    border-radius: 16px;
+    padding: 6px 4px;
+  }
+  .hud-action svg {
+    width: 25px;
+    height: 25px;
   }
   .interaction {
-    bottom: 151px;
-    right: 18px;
+    bottom: max(162px, calc(env(safe-area-inset-bottom) + 151px));
+    right: max(18px, calc(env(safe-area-inset-right) + 12px));
     max-width: 36%;
   }
   .toast {
@@ -1397,6 +1425,18 @@ figure .primary {
   }
   .keyboard-hint {
     display: none;
+  }
+}
+@media (max-width: 350px) {
+  .hud-actions {
+    --action-size: 58px;
+    right: max(12px, calc(env(safe-area-inset-right) + 8px));
+    gap: 7px;
+  }
+  .joystick {
+    left: max(16px, calc(env(safe-area-inset-left) + 8px));
+    width: 104px;
+    height: 104px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

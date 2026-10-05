@@ -15,6 +15,7 @@
     "test:performance": "node tests/performance.mjs",
     "test:life": "node tests/life-browser.mjs",
     "test:settings": "node tests/settings-browser.mjs",
+    "test:sky": "node tests/clouds-browser.mjs && node tests/clouds-scene-browser.mjs",
     "test:preview": "node tests/preview-browser.mjs"
   },
   "dependencies": {
