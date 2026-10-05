@@ -107,8 +107,8 @@ try {
       const yaw = Math.atan2(x - p[0], z - p[2]),
         pitch = Math.atan2(p[1] + height - y, Math.hypot(x - p[0], z - p[2]));
       const delta = Math.atan2(Math.sin(scene.camera.yaw - yaw), Math.cos(scene.camera.yaw - yaw));
-      const dx = delta / 0.002,
-        dy = (scene.camera.pitch - pitch) / 0.002;
+      const dx = -delta / 0.002,
+        dy = -(scene.camera.pitch - pitch) / 0.002;
       const n =
         Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.min(70, viewport.height * 0.18)) || 1;
       for (let i = 0; i < n; i++) await swipe(dx / n, dy / n);

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
@@ -14,7 +15,8 @@ const appModule = await server.transformRequest('/src/main.tsx');
 const reactUrl = appModule.code.match(/from ["']([^"']*deps\/react\.js[^"']*)["']/)[1];
 const base = `http://127.0.0.1:${server.httpServer.address().port}/`;
 const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
+    (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),
   headless: true,
 });
 const output = new URL('../../../../.scratch/travel-bund-settings/', import.meta.url);
@@ -32,10 +34,10 @@ try {
         body: `
       import React from '${reactUrl}';
       const {useEffect,useRef}=React;
-      export function Tour({onReady,onRenderer}) {
+      export function Tour({onReady,onRenderer,zoom}) {
         const canvas=useRef(null);
         useEffect(()=>{onRenderer({domElement:canvas.current});onReady();},[]);
-        return React.createElement('canvas',{ref:canvas,style:{width:'100%',height:'100%'}});
+        return React.createElement('canvas',{ref:canvas,'data-scene-zoom':zoom,style:{width:'100%',height:'100%'}});
       }`,
       }),
     );
@@ -50,10 +52,14 @@ try {
     } else await page.goto(base);
     const app = embedded ? page.frames().find((frame) => frame.parentFrame()) : page;
     await expect(app.locator('main')).toHaveAttribute('data-ready', 'true');
+    const readZoom = async () => Number(await app.locator('main').getAttribute('data-zoom'));
+    await page.mouse.move(550, 300);
+    await page.mouse.wheel(0, -350);
+    assert.equal(await readZoom(), 1, 'The home preview ignores the wheel');
     await app.locator('#enter-world').click();
     await expect(app.locator('main')).toHaveAttribute('data-phase', 'playing');
     if (!(await app.evaluate(() => Boolean(document.pointerLockElement))))
-      await app.getByRole('button', { name: '鼠标环顾', exact: true }).click();
+      await app.locator('.look-mode').click();
     await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(true);
     await page.keyboard.down('KeyW');
     await page.keyboard.press('Escape');
@@ -61,10 +67,41 @@ try {
     await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(false);
     await expect(app.getByRole('dialog')).not.toBeVisible();
     await expect(app.locator('main')).toHaveAttribute('data-phase', 'playing');
+    await expect(app.getByRole('button', { name: '鼠标环顾', exact: true })).toBeVisible();
+    await expect(app.locator('.keyboard-hint')).toContainText('点击画面也可恢复');
     assert.equal(
       await app.evaluate(async () => [...(await import('/src/world.ts')).input.keys].length),
       0,
     );
+    // A click on the world restores actual Pointer Lock after Esc.
+    await app.locator('.world canvas').click({ position: { x: 520, y: 310 } });
+    await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(true);
+    await page.mouse.wheel(0, -350);
+    await expect.poll(readZoom).toBeGreaterThan(1);
+    const enlarged = await readZoom();
+    await page.mouse.wheel(0, 150);
+    await expect.poll(readZoom).toBeLessThan(enlarged);
+    for (let i = 0; i < 4; i++) await page.mouse.wheel(0, -100000);
+    await expect.poll(readZoom).toBe(2.5);
+    for (let i = 0; i < 4; i++) await page.mouse.wheel(0, 100000);
+    await expect.poll(readZoom).toBe(0.75);
+    assert(Math.abs(Number(await app.locator('canvas').getAttribute('data-scene-zoom')) - 0.75) < 0.001,
+      'The renderer receives the clamped zoom');
+    assert.deepEqual(await app.evaluate(() => [scrollX, scrollY]), [0, 0], 'Wheel zoom does not scroll the page');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(false);
+    await app.locator('.look-mode').click();
+    await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => app.evaluate(() => Boolean(document.pointerLockElement))).toBe(false);
+    // The free cursor also supports zoom over the world, while HUD controls ignore it.
+    await page.mouse.move(520, 310);
+    await page.mouse.wheel(0, -200);
+    await expect.poll(readZoom).toBeGreaterThan(0.75);
+    const unlockedZoom = await readZoom();
+    await app.getByRole('button', { name: '拍照', exact: true }).hover();
+    await page.mouse.wheel(0, -350);
+    assert.equal(await readZoom(), unlockedZoom, 'Scrolling over HUD buttons does not change zoom');
     await app.getByRole('button', { name: '拍照', exact: true }).click();
     await expect(app.getByRole('status')).toContainText('已取景');
     await app.getByRole('button', { name: '打开旅行手记' }).click();
@@ -76,6 +113,13 @@ try {
       'Closing a panel keeps the cursor free',
     );
     await app.getByRole('button', { name: '暂停', exact: true }).click();
+    const pausedZoom = await readZoom();
+    const content = app.locator('.panel-content');
+    const contentBox = await content.boundingBox();
+    await page.mouse.move(contentBox.x + contentBox.width / 2, contentBox.y + contentBox.height / 2);
+    await page.mouse.wheel(0, 400);
+    assert.equal(await readZoom(), pausedZoom, 'Wheel in settings keeps camera zoom unchanged');
+    await content.evaluate((element) => { element.scrollTop = 0; });
     const detail = app.getByRole('combobox', { name: '模型细节' });
     await detail.click();
     for (const value of ['balanced', 'light', 'original']) {
@@ -97,7 +141,7 @@ try {
     await app.getByRole('button', { name: '继续漫游' }).click();
     await expect(app.locator('main')).toHaveAttribute('data-phase', 'playing');
     checks.push(
-      `${embedded ? 'iframe' : 'standalone'}: real pointer lock / Esc, camera and journal clicks after unlocking, manual settings only, retained model choices, blur clears input with explicit resume`,
+      `${embedded ? 'iframe' : 'standalone'}: real pointer lock / Esc, world and button restore mouse look, wheel zoom direction and bounds, HUD/home/settings ignore wheel, renderer receives zoom, no page scroll, camera/journal actions and settings, blur clears input with explicit resume`,
     );
     await context.close();
   }
@@ -109,6 +153,7 @@ try {
   ]) {
     const context = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
     const page = await context.newPage();
+    page.on('pageerror', (error) => errors.push(error.message));
     await page.route('**/src/Scene.tsx*', (r) =>
       r.fulfill({
         contentType: 'text/javascript',
@@ -126,8 +171,12 @@ try {
     await expect(page.locator('main')).toHaveClass(/night/);
     const detail = page.getByRole('combobox', { name: '模型细节' });
     await detail.tap();
-    await page.locator('[role="option"][value="balanced"]').tap();
-    await expect(detail).toHaveAttribute('aria-expanded', 'true');
+    for (const value of ['original', 'light', 'balanced']) {
+      await page.locator(`[role="option"][value="${value}"]`).tap();
+      await expect(detail).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('main')).toHaveAttribute('data-render-detail', value);
+      assert.equal(await page.evaluate(() => localStorage.getItem('travel-bund.render-detail.v1')), value);
+    }
     await page.locator('.panel-content').evaluate((el) => (el.scrollTop = el.scrollHeight));
     for (const name of ['返回首页', '完成']) {
       const box = await page.getByRole('button', { name, exact: true }).boundingBox();

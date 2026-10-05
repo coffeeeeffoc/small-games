@@ -5,6 +5,7 @@ import { useRapier, useBeforePhysicsStep } from '@react-three/rapier';
 import { createVisitor } from './physics';
 import * as THREE from 'three';
 import { smoothTreeInstances } from './render-budget';
+import { CLOUD_ATLAS_SIZE, CLOUD_COUNT, createClouds } from './clouds';
 import { input, type V3, type WorldData } from './world';
 import {
   kioskPoint,
@@ -25,6 +26,19 @@ type Props = {
   onTarget: (target: LifeTarget | null) => void;
 };
 const colour = new THREE.Color();
+// The shared dev API has one snapshot callback. Merge weather and nearby life
+// without either component replacing the other's diagnostics when it mounts.
+const snapshots = new Map<symbol, () => Record<string, unknown>>();
+const readSnapshot = () => Object.assign({}, ...[...snapshots.values()].map(read => read()));
+function registerSnapshot(read: () => Record<string, unknown>) {
+  const key = Symbol();
+  snapshots.set(key, read);
+  const unregister = window.SmallGamesDev.registerSnapshot(readSnapshot);
+  return () => {
+    snapshots.delete(key);
+    if (!snapshots.size) unregister();
+  };
+}
 
 function LifeInstances({
   blocks,
@@ -201,7 +215,7 @@ function LifeInstances({
   useEffect(() => () => onTarget(null), [onTarget]);
   useEffect(() => {
     if (!window.SmallGamesDev.isEnabled()) return;
-    return window.SmallGamesDev.registerSnapshot(() => {
+    return registerSnapshot(() => {
       const parts = (name: string) => {
         const mesh = instances.get(name)!;
         return Array.from({ length: mesh.count }, (_, i) => ({
@@ -424,31 +438,46 @@ export function StreetLife(props: Props) {
 }
 
 export function RiverWeather({ night, motion }: { night: boolean; motion: boolean }) {
-  const clouds = useRef<THREE.InstancedMesh>(null),
-    birds = useRef<THREE.InstancedMesh>(null),
+  const { camera } = useThree();
+  const clouds = useMemo(createClouds, []);
+  const birds = useRef<THREE.InstancedMesh>(null),
     time = useRef(0);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  useEffect(() => () => clouds.dispose(), [clouds]);
+  useEffect(() => {
+    clouds.material.color.set(night ? '#627b96' : '#ffffff');
+    clouds.material.opacity = night ? 0.55 : 0.94;
+  }, [clouds, night]);
+  useEffect(() => {
+    if (!window.SmallGamesDev.isEnabled()) return;
+    return registerSnapshot(() => ({
+      weather: {
+        time: time.current, cloudCount: CLOUD_COUNT, cloudTriangles: CLOUD_COUNT * 2,
+        cloudDrawCalls: 1, atlasSize: CLOUD_ATLAS_SIZE, night, motion,
+        cloudColour: clouds.material.color.getHexString(), opacity: clouds.material.opacity,
+        projection: camera instanceof THREE.PerspectiveCamera ? {
+          fov: camera.fov, aspect: camera.aspect,
+          matrix: camera.projectionMatrix.toArray(),
+        } : null,
+      },
+    }));
+  }, [clouds, camera, night, motion]);
   useFrame(({ camera }, dt) => {
     if (input.active && motion) time.current += Math.min(dt, 0.1);
-    if (clouds.current)
-      for (let i = 0; i < 32; i++) {
-        const cluster = Math.floor(i / 4),
-          p = i % 4,
-          a = (cluster * Math.PI) / 4;
-        dummy.position.set(
-          camera.position.x + Math.cos(a) * 900 + Math.sin(time.current * 0.012) * 35 + p * 55,
-          190 + (cluster % 3) * 35 + (p % 2) * 12,
-          camera.position.z + Math.sin(a) * 900,
-        );
-        dummy.scale.set(70 + p * 12, 40 + p * 8, 45 + p * 4);
-        dummy.rotation.set(0, 0, 0);
-        dummy.updateMatrix();
-        clouds.current.setMatrixAt(i, dummy.matrix);
-      }
-    if (clouds.current) {
-      clouds.current.instanceMatrix.needsUpdate = true;
-      clouds.current.computeBoundingSphere();
+    for (let i = 0; i < CLOUD_COUNT; i++) {
+      const angle = (i * Math.PI * 2) / CLOUD_COUNT + 0.23;
+      const radius = 820 + (i % 3) * 110;
+      dummy.position.set(
+        camera.position.x + Math.cos(angle) * radius + Math.sin(time.current * 0.008 + i) * 24,
+        210 + (i % 4) * 80,
+        camera.position.z + Math.sin(angle) * radius,
+      );
+      dummy.scale.set(290 + (i % 3) * 45, 155 + (i % 3) * 24, 1);
+      dummy.lookAt(camera.position);
+      dummy.updateMatrix();
+      clouds.mesh.setMatrixAt(i, dummy.matrix);
     }
+    clouds.mesh.instanceMatrix.needsUpdate = true;
     if (birds.current)
       for (let i = 0; i < 12; i++) {
         const a = time.current * 0.06 + Math.floor(i / 2) * 0.32;
@@ -469,10 +498,7 @@ export function RiverWeather({ night, motion }: { night: boolean; motion: boolea
   });
   return (
     <>
-      <instancedMesh ref={clouds} args={[undefined, undefined, 32]} frustumCulled={false}>
-        <sphereGeometry args={[1, 14, 10]} />
-        <meshBasicMaterial color={night ? '#617589' : '#f4fcff'} fog={false} />
-      </instancedMesh>
+      <primitive object={clouds.mesh} />
       <instancedMesh ref={birds} args={[undefined, undefined, 12]} frustumCulled={false}>
         <boxGeometry />
         <meshBasicMaterial color={night ? '#99abb0' : '#527477'} />

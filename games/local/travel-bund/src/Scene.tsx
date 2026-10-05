@@ -8,6 +8,7 @@ import { Sky as EnvironmentSky } from 'three/addons/objects/Sky.js';
 import {
   input,
   movement,
+  TRAVEL_SPEED,
   placementBatches,
   onRiver,
   quayWater,
@@ -29,6 +30,7 @@ import {
 import { RENDER_DETAILS, type RenderDetail } from './render-settings';
 import { StreetLife, RiverWeather } from './StreetLife';
 import type { LifeEvent, LifeTarget } from './life';
+import { DEFAULT_FOV, zoomFov } from './camera-controls';
 
 const url = (name: string) => `${import.meta.env.BASE_URL}world/${name}.glb`;
 const decoder = `${import.meta.env.BASE_URL}draco/`;
@@ -54,6 +56,7 @@ export type Props = {
   renderDetail: RenderDetail;
   crowd: boolean;
   motion: boolean;
+  zoom: number;
   lifeEvent: LifeEvent | null;
   onLifeTarget: (target: LifeTarget | null) => void;
 };
@@ -607,14 +610,22 @@ function Controller({
   teleport,
   onReady,
   onTelemetry,
+  zoom,
 }: {
   data: WorldData;
   teleport: Teleport;
   onReady: () => void;
   onTelemetry: Props['onTelemetry'];
+  zoom: number;
 }) {
   const { world, rapier } = useRapier();
   const { camera, gl } = useThree();
+  useLayoutEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = zoomFov(zoom);
+      camera.updateProjectionMatrix();
+    }
+  }, [camera, zoom]);
   const runtime = useRef<ReturnType<typeof createWalker> | null>(null);
   const lastSafe = useRef<V3>(destinations[0].position);
   const serial = useRef(-1);
@@ -721,17 +732,11 @@ function Controller({
       Number(input.keys.has('KeyS') || input.keys.has('ArrowDown')) -
       Number(input.keys.has('KeyW') || input.keys.has('ArrowUp')) +
       input.stick[1];
-    const speed =
-      input.boost || input.keys.has('KeyR')
-        ? 12
-        : input.fast || input.keys.has('ShiftLeft') || input.keys.has('ShiftRight')
-          ? 4
-          : 1.9;
     const move = movement(
       input.sitting ? 0 : x,
       input.sitting ? 0 : z,
       camera.rotation.y,
-      speed,
+      TRAVEL_SPEED,
       dt,
     );
     const p = r.body.translation();
@@ -831,6 +836,7 @@ export function Scene(props: Props) {
           teleport={props.teleport}
           onReady={props.onReady}
           onTelemetry={props.onTelemetry}
+          zoom={props.zoom}
         />
       </Physics>
     </>
@@ -842,7 +848,7 @@ export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => vo
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     shadows
     dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
-    camera={{position: [-393,2.6,37],fov:68,near:.25,far:12000}}
+    camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
       powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
     onCreated={({gl})=>props.onRenderer(gl)}>

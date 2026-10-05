@@ -1,25 +1,27 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { createServer } from 'vite';
 
-// Exercise the real App and shared input with real touch events. The scene is isolated
-// so software WebGL performance cannot turn control ownership into a timing test.
+// Real App, shared input, browser pointer capture and CDP touch. Isolating only
+// the renderer keeps gesture ownership assertions independent of software WebGL.
 const server = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
   server: { host: '127.0.0.1', port: 0 },
 });
 await server.listen();
+const appModule = await server.transformRequest('/src/main.tsx');
+const reactUrl = appModule.code.match(/from ["']([^"']*deps\/react\.js[^"']*)["']/)[1];
 const url = `http://127.0.0.1:${server.httpServer.address().port}/`;
 const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
+    (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),
   headless: true,
-  args: ['--enable-webgl', '--ignore-gpu-blocklist'],
 });
 const output = new URL('../../../../.scratch/travel-bund-controls/', import.meta.url);
-const results = [],
-  errors = [];
+const results = [], errors = [];
 await mkdir(output, { recursive: true });
 try {
   for (const viewport of [
@@ -29,89 +31,129 @@ try {
     const context = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
     const page = await context.newPage();
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.route('**/src/Scene.tsx*', (route) =>
-      route.fulfill({
-        contentType: 'text/javascript',
-        body: 'export function Tour({onReady}) { queueMicrotask(onReady); return null; }',
-      }),
-    );
+    await page.route('**/src/Scene.tsx*', (route) => route.fulfill({
+      contentType: 'text/javascript',
+      body: `
+        import React from '${reactUrl}';
+        const {useEffect,useRef}=React;
+        export function Tour({onReady,onRenderer,onTelemetry,onLifeTarget,zoom}) {
+          const canvas=useRef(null);
+          useEffect(()=>{
+            onRenderer({domElement:canvas.current});
+            onTelemetry({position:[-377,2,37],yaw:-2.9,speed:0,grounded:true,calls:0,triangles:0,fps:60});
+            onLifeTarget({id:'test-visitor',kind:'visitor',name:'打招呼',position:[-377,0,37],screen:[20,35]});
+            onReady();
+          },[]);
+          return React.createElement('canvas',{ref:canvas,'data-scene-zoom':zoom,style:{width:'100%',height:'100%'}});
+        }`,
+    }));
     await page.goto(url);
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
     await expect(page.locator('main')).toHaveAttribute('data-quality', '0');
     await page.locator('#enter-world').tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+    await expect(page.getByRole('button', { name: '跳跃', exact: true })).toContainText('跳跃');
+    await expect(page.getByRole('button', { name: '拍照', exact: true })).toContainText('拍照');
+    await expect(page.getByRole('button', { name: '打开旅行手记' })).toContainText('手记');
+    assert.equal(await page.locator('.run').count(), 0, 'Fast travel needs no speed switch');
+    await page.getByRole('button', { name: '跳跃', exact: true }).tap();
+    assert.equal(await page.evaluate(async () => (await import('/src/world.ts')).input.jump), true);
     const stick = page.getByRole('group', { name: '移动摇杆' });
     const box = await stick.boundingBox();
-    await stick.evaluate((element) => {
-      element.addEventListener('pointerdown', (event) => {
-        window.stickOwner ??= event.pointerId;
-      });
-    });
+    await stick.evaluate((element) => element.addEventListener('pointerdown', (event) => {
+      window.stickOwner ??= event.pointerId;
+    }));
+    await page.locator('.look-pad').evaluate((element) => element.addEventListener('pointerdown', (event) => {
+      window.lookOwner = event.pointerId;
+    }));
     const cdp = await context.newCDPSession(page);
-    const readInput = () =>
-      page.evaluate(async () => {
-        const { input } = await import('/src/world.ts');
-        return {
-          stick: input.stick,
-          look: input.look,
-          active: input.active,
-          keys: [...input.keys],
-        };
-      });
-    const walking = { id: 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    const looking = { id: 2, x: viewport.width * 0.6, y: viewport.height * 0.4 };
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [walking] });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [walking, looking],
+    const dispatch = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+    const readInput = () => page.evaluate(async () => {
+      const { input } = await import('/src/world.ts');
+      return { stick: input.stick, look: input.look, active: input.active, keys: [...input.keys] };
     });
+    const readZoom = async () => Number(await page.locator('main').getAttribute('data-zoom'));
+    const zeroLook = () => page.evaluate(async () => { (await import('/src/world.ts')).input.look = [0, 0]; });
+    const walking = { id: 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const looking = { id: 2, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    await dispatch('touchStart', [walking]);
+    await dispatch('touchStart', [walking, looking]);
     walking.y -= 30;
     looking.x += 35;
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [walking, looking],
-    });
+    looking.y += 20;
+    await dispatch('touchMove', [walking, looking]);
     assert((await readInput()).stick[1] < -0.5);
-    assert((await readInput()).look[0] > 30);
+    assert((await readInput()).look[0] < -30, 'Dragging right moves the visible scene right');
+    assert((await readInput()).look[1] < -15, 'Dragging down moves the visible scene down');
+    assert.equal(await readZoom(), 1, 'A joystick finger and one look finger do not pinch');
 
     const extraStick = { id: 3, x: box.x + box.width / 2 - 15, y: box.y + box.height / 2 + 10 };
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [walking, looking, extraStick],
-    });
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [extraStick] });
-    assert(
-      (await readInput()).stick[1] < -0.5,
-      'Releasing an extra finger must preserve joystick movement',
-    );
-    const extraLook = { id: 4, x: viewport.width * 0.7, y: viewport.height * 0.5 };
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [walking, looking, extraLook],
-    });
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [extraLook] });
-    const beforeLook = (await readInput()).look[0];
-    looking.x += 20;
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [walking, looking],
-    });
-    await expect
-      .poll(async () => (await readInput()).look[0], {
-        message: 'The original look finger keeps controlling the camera',
-      })
-      .toBeGreaterThan(beforeLook + 15);
+    await dispatch('touchStart', [walking, looking, extraStick]);
+    await dispatch('touchEnd', [extraStick]);
+    assert((await readInput()).stick[1] < -0.5, 'Releasing an extra finger preserves joystick movement');
+    await zeroLook();
+    const secondLook = { id: 4, x: viewport.width * 0.78, y: looking.y };
+    await dispatch('touchStart', [walking, looking, secondLook]);
+    looking.x -= 15;
+    secondLook.x += 20;
+    await dispatch('touchMove', [walking, looking, secondLook]);
+    await expect.poll(readZoom, { message: `${viewport.width}: spreading two scene fingers magnifies the view` }).toBeGreaterThan(1.15);
+    const enlarged = await readZoom();
+    assert((await readInput()).stick[1] < -0.5, 'Pinching preserves the independent joystick');
+    assert.deepEqual((await readInput()).look, [0, 0], 'Pinching does not also rotate the camera');
+    assert(Math.abs(Number(await page.locator('canvas').getAttribute('data-scene-zoom')) - enlarged) < 0.001,
+      'The renderer receives the gesture zoom');
+    looking.x += 10;
+    secondLook.x -= 15;
+    await dispatch('touchMove', [walking, looking, secondLook]);
+    await expect.poll(readZoom, { message: 'Bringing two scene fingers together widens the view' }).toBeLessThan(enlarged);
+    await dispatch('touchEnd', [secondLook]);
+    const afterPinch = await readZoom();
+    looking.x += 25;
+    await dispatch('touchMove', [walking, looking]);
+    assert.deepEqual((await readInput()).look, [0, 0], 'The finger left after a pinch cannot unexpectedly turn');
+    assert.equal(await readZoom(), afterPinch, 'One remaining finger cannot continue pinching');
+    await dispatch('touchCancel', []);
+    assert.deepEqual((await readInput()).stick, [0, 0], 'Touch cancellation stops joystick movement');
 
+    const freshLook = { id: 5, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    await dispatch('touchStart', [freshLook]);
+    freshLook.x += 20;
+    await dispatch('touchMove', [freshLook]);
+    assert((await readInput()).look[0] < -15, 'A fresh gesture can turn after pinch cancellation');
+    await page.locator('.look-pad').evaluate((element) => element.releasePointerCapture(window.lookOwner));
+    await zeroLook();
+    freshLook.x += 15;
+    await dispatch('touchMove', [freshLook]);
+    assert.deepEqual((await readInput()).look, [0, 0], 'Losing look capture stops that gesture');
+    await dispatch('touchCancel', []);
+
+    // Lost capture must release the owner even while its physical finger stays down.
+    const heldStick = { id: 6, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await stick.evaluate((element) => element.addEventListener('pointerdown', (event) => {
+      window.stickOwner = event.pointerId;
+    }, { once: true }));
+    await dispatch('touchStart', [heldStick]);
+    heldStick.y -= 25;
+    await dispatch('touchMove', [heldStick]);
+    assert((await readInput()).stick[1] < -0.5);
     await stick.evaluate((element) => element.releasePointerCapture(window.stickOwner));
-    walking.y += 1;
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [walking, looking],
-    });
+    heldStick.y += 1;
+    await dispatch('touchMove', [heldStick]);
     await expect.poll(async () => (await readInput()).stick).toEqual([0, 0]);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-    await page.getByRole('button', { name: '暂停' }).tap();
+    await dispatch('touchCancel', []);
+
+    const pauseLeft = { id: 7, x: viewport.width * 0.53, y: viewport.height * 0.4 };
+    const pauseRight = { id: 8, x: viewport.width * 0.73, y: viewport.height * 0.4 };
+    await dispatch('touchStart', [pauseLeft, pauseRight]);
+    await page.getByRole('button', { name: '暂停', exact: true }).evaluate((element) => element.click());
     assert.deepEqual(await readInput(), { stick: [0, 0], look: [0, 0], active: false, keys: [] });
+    pauseLeft.x -= 10;
+    pauseRight.x += 10;
+    const pausedZoom = await readZoom();
+    await dispatch('touchMove', [pauseLeft, pauseRight]);
+    assert.equal(await readZoom(), pausedZoom, 'Touches held through pause cannot change zoom');
+    await dispatch('touchCancel', []);
     assert.equal(await page.locator('select').count(), 0, 'Settings use the designed choice panel');
     const precision = page.getByRole('combobox', { name: '画面精度' });
     await precision.tap();
@@ -129,46 +171,97 @@ try {
     await page.keyboard.press('Enter');
     await expect(page.locator('main')).toHaveAttribute('data-quality', '2');
     await expect(precision).toHaveAttribute('aria-expanded', 'true');
-    await page.locator('[role="option"][value="' + '1' + '"]').tap();
+    await page.locator('[role="option"][value="1"]').tap();
     await expect(page.locator('main')).toHaveAttribute('data-quality', '1');
-    await page.locator('[role="option"][value="' + '0' + '"]').tap();
+    await page.locator('[role="option"][value="0"]').tap();
     await precision.tap();
-    await page.getByRole('combobox', { name: '模型细节' }).tap();
-    for (const detail of ['original', 'balanced', 'light']) {
-      await expect(page.getByRole('combobox', { name: '模型细节' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      );
-      await page.locator('[role="option"][value="' + detail + '"]').tap();
-      await expect(page.locator('main')).toHaveAttribute('data-render-detail', detail);
-      assert.equal(
-        await page.evaluate(() => localStorage.getItem('travel-bund.render-detail.v1')),
-        detail,
-      );
-      await expect(page.getByRole('listbox', { name: '模型细节选项' })).toBeVisible();
-    }
-    await page.getByRole('button', { name: '继续漫游' }).tap();
+    await page.getByRole('button', { name: '继续漫游', exact: true }).tap();
     assert((await readInput()).active);
-    results.push({
-      viewport,
-      checks: [
-        'mobile defaults to smooth quality and allows switching',
-        'original joystick/look ownership survives extra fingers',
-        'lost joystick capture releases movement',
-        'pause clears controls and resume works',
-      ],
+    await zeroLook();
+    const resumedLook = { id: 9, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    await dispatch('touchStart', [resumedLook]);
+    resumedLook.x += 20;
+    await dispatch('touchMove', [resumedLook]);
+    assert((await readInput()).look[0] < -15, 'Resume accepts a fresh single-finger gesture');
+    await dispatch('touchCancel', []);
+
+    // Interaction markers remain part of the scene for pinch gestures. A pinch
+    // or its cancellation must never greet the visitor as though it were a tap.
+    const marker = page.locator('.life-target');
+    const markerBox = await marker.boundingBox();
+    const markerCenter = { x: markerBox.x + markerBox.width / 2, y: markerBox.y + markerBox.height / 2 };
+    await marker.evaluate((element) => {
+      window.markerCanceled = 0;
+      element.addEventListener('pointercancel', () => { window.markerCanceled += 1; });
     });
+    const idleFrames = () => page.evaluate(() => new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    }));
+    await zeroLook();
+    const markerLeft = { id: 10, x: markerCenter.x - 15, y: markerCenter.y };
+    const markerRight = { id: 11, x: markerCenter.x + 15, y: markerCenter.y };
+    const beforeMarkerPinch = await readZoom();
+    await dispatch('touchStart', [markerLeft]);
+    await dispatch('touchStart', [markerLeft, markerRight]);
+    // Sustained movement crosses the browser's native pinch threshold. A short
+    // move alone would miss pointer cancellation from touch-action: manipulation.
+    for (let frame = 0; frame < 8; frame++) {
+      markerLeft.x -= 5;
+      markerRight.x += 5;
+      await dispatch('touchMove', [markerLeft, markerRight]);
+      await idleFrames();
+    }
+    await expect.poll(readZoom, { message: 'Two fingers on one interaction marker can pinch' })
+      .toBeGreaterThan(beforeMarkerPinch + 0.05);
+    const spreadMarkerZoom = await readZoom();
+    for (let frame = 0; frame < 8; frame++) {
+      markerLeft.x += 2.5;
+      markerRight.x -= 2.5;
+      await dispatch('touchMove', [markerLeft, markerRight]);
+      await idleFrames();
+    }
+    await expect.poll(readZoom, { message: 'The same continuous marker gesture can contract after spreading' })
+      .toBeLessThan(spreadMarkerZoom - 0.1);
+    assert.equal(await page.evaluate(() => window.markerCanceled), 0,
+      'The browser must not take over and cancel a pinch on an interaction marker');
+    assert.deepEqual((await readInput()).look, [0, 0], 'Pinching on an interaction marker does not turn');
+    await dispatch('touchEnd', [markerLeft, markerRight]);
+    await idleFrames();
+    await expect(page.locator('main')).toHaveAttribute('data-life-event', '');
+    for (const markerFirst of [true, false]) {
+      const markerTouch = { id: 12, ...markerCenter };
+      const sceneTouch = { id: 13, x: viewport.width * 0.72, y: markerCenter.y };
+      await dispatch('touchStart', [markerFirst ? markerTouch : sceneTouch]);
+      await dispatch('touchStart', [markerTouch, sceneTouch]);
+      const beforeMixedPinch = await readZoom();
+      markerTouch.x += 18;
+      sceneTouch.x -= 18;
+      await dispatch('touchMove', [markerTouch, sceneTouch]);
+      await expect.poll(readZoom, { message: `Marker plus scene pinch works with marker ${markerFirst ? 'first' : 'second'}` })
+        .toBeLessThan(beforeMixedPinch);
+      assert.deepEqual((await readInput()).look, [0, 0]);
+      await dispatch('touchEnd', [markerTouch, sceneTouch]);
+      await idleFrames();
+      await expect(page.locator('main')).toHaveAttribute('data-life-event', '');
+    }
+    results.push({ viewport, checks: [
+      'clear jump/photo/journal labels and no speed switch',
+      'right/down drag follows the visible scene',
+      'joystick plus one look finger does not pinch',
+      'pinch zoom in/out while joystick continues; camera does not rotate',
+      'remaining pinch finger stays idle until a fresh gesture',
+      'cancellation and lost capture release controls',
+      'pause clears contacts; resume accepts fresh controls',
+      'sustained same-marker spread/contract avoids native cancellation and tap interaction',
+      'marker/scene pinch works in both orders without interaction',
+      'accessible settings choice keyboard navigation',
+    ] });
     await context.close();
   }
   assert.deepEqual(errors, []);
-  await writeFile(
-    new URL('report.json', output),
-    JSON.stringify(
-      { results, errors, scene: 'isolated; no visual or performance assertion' },
-      null,
-      2,
-    ),
-  );
+  await writeFile(new URL('report.json', output), JSON.stringify({
+    results, errors, scene: 'isolated renderer; real App, pointer capture and CDP touch',
+  }, null, 2));
   console.log(JSON.stringify({ results, errors }, null, 2));
 } finally {
   await browser.close();
