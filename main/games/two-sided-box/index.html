@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+  <script src="./dev-mode.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#172d2d" />
-    <title>双面机关盒 · 正面打不开，问题可能在背面</title>
+    <title>双面机关盒 · 六面工坊</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23172d2d'/%3E%3Cpath d='M10 10h20v20H10zM20 10v20' fill='none' stroke='%23e6ba72' stroke-width='3'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23172d2d'/%3E%3Cpath d='m8 12 12-6 12 6v16l-12 6-12-6Zm0 0 12 6 12-6M20 18v16' fill='none' stroke='%23e6ba72' stroke-width='2'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./style.css" />
     <script type="module" src="./game.mjs"></script>
@@ -15,202 +16,263 @@
   <body>
     <main class="workshop">
       <header class="masthead">
-        <a class="brand" href="#" aria-label="双面机关盒"
-          ><svg viewBox="0 0 40 40" aria-hidden="true">
+        <div class="brand">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
             <path
-              d="M6 10 20 4l14 6v20l-14 6-14-6Zm0 0 14 7 14-7M20 17v19M13 7l14 7"
+              d="m6 11 14-7 14 7v19l-14 6-14-6Zm0 0 14 7 14-7M20 18v18M13 7l14 7"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
             />
           </svg>
           <div>
             <h1>双面机关盒</h1>
-            <span>TWO SIDES, ONE MACHINE</span>
-          </div></a
-        >
+            <p>六面工坊 <span aria-hidden="true">/</span> SIX-FACE WORKSHOP</p>
+          </div>
+        </div>
         <div class="header-actions">
-          <button id="sound" class="icon-button" aria-label="关闭音效">
+          <button id="sound" class="icon-button" aria-label="关闭音效" aria-pressed="true">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
-                d="M4 9h4l5-4v14l-5-4H4Zm12-2q5 5 0 10M17 4q8 8 0 16"
+                d="M4 9h4l5-4v14l-5-4H4Zm12-2q5 5 0 10M18 4q8 8 0 16"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="1.8"
+                stroke-width="1.6"
               />
-            </svg></button
-          ><button id="help" class="icon-button" aria-label="玩法说明">?</button
-          ><button id="levels" class="chapter-button">
-            盒子收藏 <span id="collection-count">0/6</span>
+            </svg>
+          </button>
+          <button id="help" class="icon-button" aria-label="玩法说明" aria-haspopup="dialog">
+            ?
+          </button>
+          <button id="levels" class="chapter-button" aria-haspopup="dialog">
+            盒子收藏 <span id="collection-count">0 / 50</span>
           </button>
         </div>
       </header>
-      <section class="game-layout">
+
+      <section class="game-layout" aria-label="机关工坊">
         <aside class="notebook">
-          <p class="eyebrow">第一辑 · 黄铜工坊</p>
-          <span id="level-number" class="large-number">01</span>
-          <h2 id="level-title">背面的答案</h2>
-          <p id="level-subtitle" class="level-subtitle">从另一个角度，找到答案。</p>
+          <p id="chapter-name" class="eyebrow">第一章 · 初识六面</p>
+          <div class="level-heading">
+            <span id="level-number" class="large-number">01</span>
+            <div>
+              <p id="difficulty" class="difficulty">入门</p>
+              <h2 id="level-title">从另一个角度</h2>
+            </div>
+          </div>
           <div class="mission">
-            <span class="eyebrow">本盒目标</span>
-            <p><i class="ball-key"></i>让小球进入<span class="green-text">绿色终点</span></p>
+            <span class="ball-key" aria-hidden="true"></span>
+            <p>让小球穿过孔板，<br class="desktop-break" />进入绿色终点。</p>
           </div>
-          <div class="note">
-            <span class="note-mark" aria-hidden="true">↗</span>
-            <p id="intro">正面打不开，试着看看背面。</p>
-          </div>
-          <div id="mechanism-list" class="mechanism-list" aria-label="共享机关状态"></div>
+          <p id="intro" class="level-intro">先观察已揭示的两面，找到连着同一根滑轴的机关。</p>
           <div class="notebook-bottom">
-            <p class="eyebrow">观察 · 翻面 · 联动</p>
-            <p>同一根轴，在两面有不同的作用。</p>
+            <span class="eyebrow">观察 · 联动 · 对齐</span>
+            <p>六个角度，同一个盒子。<br />每一次换挡，都在改变内部结构。</p>
           </div>
         </aside>
+
         <div class="play-panel">
           <div class="scene-header">
-            <span class="side-tag"><i></i><span id="side-name">正面</span></span>
-            <div class="view-tabs" aria-label="当前视图">
-              <span id="front-tab" class="active">FRONT</span
-              ><span class="tab-link" aria-hidden="true">↔</span><span id="back-tab">BACK</span>
-            </div>
-            <span class="move-counter"><strong id="move-count">0</strong> 次操作</span>
+            <span class="side-tag"><i aria-hidden="true"></i><span id="side-name">前面</span></span
+            ><span class="move-counter"><strong id="move-count">0</strong> 次操作</span>
           </div>
-          <div id="scene" class="scene">
-            <svg
-              id="board"
-              viewBox="0 0 720 600"
-              role="group"
-              aria-label="可操作机关盒"
-              xmlns="http://www.w3.org/2000/svg"
-            ></svg>
-            <div class="flip-shadow" aria-hidden="true"></div>
-          </div>
+          <div id="face-nav" class="face-nav" aria-label="六面展开状态与提示入口"></div>
+          <div id="board" class="face-grid" role="group" aria-label="机关盒多面观察台"></div>
           <div class="scene-caption">
-            <span><i class="legend-brass"></i>拖动滑轴 / 点选档位</span
-            ><span><i class="legend-lock"></i>点按锁扣</span><span id="ball-state">小球待出发</span>
+            <span id="board-gesture">拖动滑轴 · 点按锁扣</span
+            ><span id="ball-state">小球待出发</span>
           </div>
           <div class="message-box">
             <span class="status-light" aria-hidden="true"></span>
-            <p id="status" role="status" aria-live="polite"></p>
+            <p id="status" role="status" aria-live="polite">
+              观察已揭示的两面，试着让孔口对齐球道。
+            </p>
           </div>
           <div class="primary-controls">
-            <button id="release" class="release-button">
+            <button id="release" class="primary-button">
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="8" cy="12" r="5" />
+                <circle cx="7" cy="12" r="5" fill="currentColor" />
                 <path d="m16 7 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" /></svg
-              ><span>放出小球</span></button
-            ><button id="flip" class="flip-button">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M20 9a8 8 0 1 0 0 7M20 3v6h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                /></svg
-              ><span>转到背面</span>
+              ><span data-label>放出小球</span>
+            </button>
+            <button id="hint" class="secondary-button" aria-haspopup="dialog">
+              <span data-label>提示 · 展开一面</span
+              ><span id="view-count" class="count-badge">2 / 6</span>
             </button>
           </div>
           <div class="utility-controls">
             <button id="undo" disabled><span aria-hidden="true">↶</span> 撤销</button
-            ><button id="restart"><span aria-hidden="true">↻</span> 重来</button
-            ><button id="hint">
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path
-                  d="M6 13c0-3-3-3-3-7a7 7 0 0 1 14 0c0 4-3 4-3 7M6 13h8M7 17h6"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                />
-              </svg>
-              关联提示
-            </button>
+            ><button id="restart"><span aria-hidden="true">↻</span> 重来</button>
           </div>
         </div>
       </section>
       <footer class="page-footer">
-        <span>正面打不开，问题可能在背面。</span><span>六个原创盒子 · 无时间限制</span>
+        <span>看见联系，解开机关。</span><span>50 个盒子 · 没有倒计时</span>
       </footer>
     </main>
+
     <dialog id="welcome" class="welcome-dialog" aria-labelledby="welcome-title">
       <div class="welcome-art" aria-hidden="true">
-        <svg viewBox="0 0 300 200">
+        <svg viewBox="0 0 320 210">
           <defs>
-            <linearGradient id="mini-brass">
-              <stop stop-color="#f5d29b" />
-              <stop offset="1" stop-color="#96713d" />
+            <linearGradient id="welcome-brass" x2="1" y2="1">
+              <stop stop-color="#f2d49e" />
+              <stop offset="1" stop-color="#b18d56" />
             </linearGradient>
           </defs>
-          <path d="m48 57 135-22 68 36-137 25Z" fill="#e8dcc2" />
-          <path d="M48 57v102l66 35V96Z" fill="#c3b798" />
-          <path d="m114 96 137-25v102l-137 21Z" fill="#e8d6b0" />
-          <path d="m134 116 96-17v56l-96 17Z" fill="#284e4a" />
-          <path d="m179 110v54" stroke="url(#mini-brass)" stroke-width="9" />
-          <path d="m161 136 37-6v15l-37 6Z" fill="#d8b47b" />
-          <circle cx="146" cy="131" r="10" fill="#ed9e52" />
-          <path d="m213 151 22-4v14l-22 4Z" fill="#7dbda2" />
-          <path d="m59 94 40 21v20l-40-21Z" fill="#a95045" />
-          <circle cx="78" cy="114" r="4" fill="#f2d099" />
+          <ellipse cx="160" cy="185" rx="112" ry="15" fill="#0b211e" opacity=".45" />
+          <path d="m52 66 131-36 81 45-133 37Z" fill="#e4ceaa" />
+          <path d="m52 66 79 46v85l-79-47Z" fill="#a9916e" />
+          <path d="m131 112 133-37v85l-133 37Z" fill="url(#welcome-brass)" />
+          <path d="m144 123 106-30v57l-106 29Z" fill="#25443d" />
+          <path d="m179 113 0 55m36-65v55" stroke="#bca16d" stroke-width="6" />
+          <path d="m163 133 31-9v18l-31 9Zm36-2 31-9v18l-31 9Z" fill="#d9b77d" />
+          <path d="m166 137 11-3v7l-11 3Zm36-2 11-3v7l-11 3Z" fill="#27463e" />
+          <circle cx="154" cy="150" r="7" fill="#ef9c51" />
+          <path d="m237 136 9-3v13l-9 3Z" fill="#8ac2a0" />
+          <path d="m64 87 47 27v39l-47-27Z" fill="#43574a" />
+          <path d="m75 103 23 13v11l-23-13Z" fill="#d99b7c" />
+          <circle cx="86" cy="116" r="3" fill="#f2d49e" />
+          <path d="m95 68 61-17 34 19-61 17Z" fill="#36564b" />
+          <path d="m114 69 39-11 12 7-39 11Z" fill="#bd9d65" />
           <path
-            d="M27 69q-22 35 3 61m-1-16 1 16-16-1M264 138q22-35-3-61m1 16-1-16 16 1"
+            d="M31 105q-12 24 5 44m-12-3 12 3 2-12M283 126q13-24-5-45m12 2-12-2-1 12"
             fill="none"
-            stroke="#dda861"
-            stroke-width="3"
+            stroke="#c9a975"
+            stroke-width="2"
           />
         </svg>
       </div>
-      <p class="eyebrow">黄铜工坊 / VOL. 01</p>
-      <h2 id="welcome-title">每个盒子<br />都有另一面。</h2>
-      <p class="welcome-copy">拖动滑轴，解开锁扣。<br />翻到背面，看看是什么卡住了它。</p>
-      <button id="start" class="flip-button">
-        打开第一个盒子 <span aria-hidden="true">→</span>
+      <p class="eyebrow">五章 · 五十盒 · 六个角度</p>
+      <h2 id="welcome-title">每个盒子，<br />都藏着新的联系。</h2>
+      <p class="welcome-copy">
+        随机两面同时展开，用提示看见更多。<br />移动滑轴、对齐孔口，让小球找到出口。
+      </p>
+      <button id="start" class="primary-button">
+        进入六面工坊 <span aria-hidden="true">→</span>
       </button>
-      <p class="welcome-footnote">6 个机关谜题 · 触屏即可游玩 · 进度自动保存</p>
+      <p class="welcome-footnote">触屏即可游玩 · 提示当前免费 · 进度自动保存</p>
     </dialog>
+
     <dialog id="help-dialog" aria-labelledby="help-title">
       <p class="eyebrow">工坊手册</p>
-      <h2 id="help-title">看见联系，才能解开机关。</h2>
-      <ol>
+      <h2 id="help-title">换个角度，看见联系。</h2>
+      <ol class="help-steps">
         <li>
-          <strong>直接操作盒子</strong>
-          <p>拖动黄铜把手到低、中、高三档，也可以点选轨道上的空档位。红色锁扣用点击开合。</p>
-        </li>
-        <li>
-          <strong>翻面只换视角</strong>
-          <p>同名滑轴在两面共享位置。正面抬门时，背面的挡板可能下降。虚线轮廓代表另一面的挡板。</p>
-        </li>
-        <li>
-          <strong>小球可以等待</strong>
+          <strong>六个面，同一个空间</strong>
           <p>
-            小球遇到挡板会停靠。继续调轴，它会自动前进；不用抢时间。后面的盒子需要途中改变档位。
+            前面、后面、上面、下面、左面、右面是真实观察方向。后面与前面相对，从相反方向看，左右关系也会改变。每关默认随机揭示两面。
+          </p>
+        </li>
+        <li>
+          <strong>直接操作看见的机关</strong>
+          <p>
+            拖动滑轴，或点本面下方的低、中、高档位；点按锁扣开合。各个观察窗共用同一套机关，可以同时对照变化。
+          </p>
+        </li>
+        <li>
+          <strong>对齐孔口，让球通过</strong>
+          <p>
+            滑轴带动孔板移动。孔口对齐球道，小球才能经过；球被挡住会安静等待。后续关卡需要在途中再次换挡，也可能需要观察更多面。
+          </p>
+        </li>
+        <li>
+          <strong>按需逐面揭示</strong>
+          <p>
+            点「提示 ·
+            展开一面」免费选择一个新方向，已展开的面一直留在同一个观察台。有可用视频时也可通过完整观看来展开。看完六面后，最终提示可以打开完整
+            3D 结构，自由旋转并选择是否透视。
+          </p>
+        </li>
+        <li>
+          <strong>通关后看懂整个盒子</strong>
+          <p>
+            如果没有使用最终 3D
+            提示，通关时会先展示完整结构，再进入结算。可以透视外壳、展开结构，对照每根轴和每块孔板。
           </p>
         </li>
       </ol>
-      <p class="help-tip">所有机关都有字母标记，不需要寻找隐藏像素。没有倒计时，也没有失败惩罚。</p>
-      <button id="help-sound" class="secondary-button" aria-pressed="true">关闭音效</button>
-      <button class="flip-button" data-close="help-dialog">回到盒子</button>
+      <p class="help-tip">没有倒计时，也没有失败惩罚。撤销或重来，慢慢试出机关之间的关系。</p>
+      <button class="primary-button" data-close="help-dialog">回到盒子</button>
     </dialog>
-    <dialog id="level-dialog" aria-labelledby="level-dialog-title">
-      <p class="eyebrow">黄铜工坊 / 盒子收藏</p>
-      <h2 id="level-dialog-title">六面因果，十二个视角。</h2>
-      <p class="dialog-copy">所有盒子均可体验。推荐按顺序发现新的联动。</p>
-      <nav id="level-nav" aria-label="选择盒子"></nav>
+
+    <dialog id="level-dialog" class="collection-dialog" aria-labelledby="level-dialog-title">
+      <p class="eyebrow">六面工坊 / 盒子收藏</p>
+      <h2 id="level-dialog-title">五十个盒子，慢慢打开。</h2>
+      <p class="dialog-copy">从简单联动到途中换挡。所有关卡均可体验，推荐按顺序游玩。</p>
+      <nav id="level-nav" aria-label="选择章节与关卡"></nav>
       <button class="secondary-button" data-close="level-dialog">继续当前盒子</button>
     </dialog>
+
     <dialog id="hint-dialog" aria-labelledby="hint-title">
-      <p class="eyebrow">关联提示 / 免费</p>
-      <h2 id="hint-title">沿着同一根轴观察。</h2>
-      <p id="hint-copy" class="dialog-copy"></p>
-      <div class="hint-actions">
-        <button id="hint-more" class="secondary-button">再给一点线索</button
-        ><button class="flip-button" data-close="hint-dialog">回去试试</button>
+      <p class="eyebrow">多一个视角，多一条线索</p>
+      <h2 id="hint-title">揭示另一面</h2>
+      <p id="hint-copy" class="dialog-copy">选择你想观察的方向，看看另一面连接着什么。</p>
+      <div id="reveal-options" class="reveal-options"></div>
+      <button id="reward-reveal" class="secondary-button" disabled>看视频 · 展开一面</button>
+      <p id="reward-note" class="reward-note">当前暂无可用视频，可使用上方的免费提示展开。</p>
+      <p id="reveal-feedback" class="reveal-feedback" role="status" aria-live="polite"></p>
+      <button class="secondary-button" data-close="hint-dialog">先自己试试</button>
+    </dialog>
+
+    <dialog id="structure-dialog" class="structure-dialog" aria-labelledby="structure-title">
+      <header class="structure-heading">
+        <div>
+          <p class="eyebrow">同一个盒子 · 完整空间</p>
+          <h2 id="structure-title">3D 机关结构</h2>
+        </div>
+        <button id="structure-close" class="secondary-button" autofocus>返回盒子</button>
+      </header>
+      <p id="structure-purpose" class="dialog-copy">旋转盒子，看看各个面的机关如何连接。</p>
+      <div class="structure-layout">
+        <section class="structure-stage" aria-label="三维结构查看器">
+          <div class="structure-toolbar" aria-label="结构显示选项">
+            <button id="structure-xray" aria-pressed="true">外壳透视</button
+            ><button id="structure-explode" aria-pressed="false">展开结构</button
+            ><span class="structure-badge">原理示意</span>
+          </div>
+          <canvas
+            id="structure-canvas"
+            tabindex="0"
+            role="img"
+            aria-label="可旋转与缩放的完整机关盒结构"
+            aria-describedby="structure-gesture structure-note"
+            >三维画面不可用。当前机关状态列在下方。</canvas
+          >
+          <nav id="structure-views" class="structure-views" aria-label="六面观察角度"></nav>
+          <div class="structure-camera-controls">
+            <button data-structure-view="angled">立体视角</button
+            ><button id="structure-zoom-out" aria-label="缩小结构图">−</button
+            ><button id="structure-zoom-in" aria-label="放大结构图">＋</button>
+          </div>
+          <p id="structure-gesture">拖动旋转 · 双指或滚轮缩放 · 方向键旋转</p>
+        </section>
+        <aside class="structure-explanation">
+          <p id="structure-level" class="eyebrow"></p>
+          <h3>六个面，共用一套机关。</h3>
+          <p>滑轴改变孔板的位置。沿着球道观察，找到孔口与小球对齐的时刻。</p>
+          <div id="structure-state" aria-label="当前机关状态"></div>
+          <p id="structure-note" class="structure-note">
+            操作视图与 3D
+            视图使用统一的几何孔板与球道。虚线表示理想联锁关系；结构用于理解游戏空间，尚未进行实体制造验证。
+          </p>
+          <p class="structure-note">观察不会改变机关状态，也不计操作次数。</p>
+        </aside>
       </div>
     </dialog>
+
     <dialog id="result" class="result-dialog" aria-labelledby="result-title">
-      <span class="success-mark" aria-hidden="true">✓</span>
+      <div class="success-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path d="m7 16 6 6L25 10" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+      </div>
       <p class="eyebrow">机关已解开</p>
-      <h2 id="result-title">另一面，原来如此。</h2>
+      <h2 id="result-title">看见联系，找到出口。</h2>
       <p id="result-copy" class="dialog-copy"></p>
-      <button id="next" class="flip-button">打开下一个盒子 →</button
-      ><button id="replay" class="secondary-button">再玩一次</button>
+      <button id="next" class="primary-button">打开下一个盒子</button
+      ><button id="result-structure" class="secondary-button">再看完整 3D 结构</button
+      ><button id="replay" class="text-button">再试一次</button>
     </dialog>
   </body>
 </html>

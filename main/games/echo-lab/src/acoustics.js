@@ -1,20 +1,27 @@
 /**
- * Deterministic 2-D image-source model: direct sound and every valid finite
- * first/second-order specular reflection. Panels are opaque on both sides.
- * Floor, ceiling, diffraction, scattering, frequency response and late diffuse
- * reverb are deliberately omitted. Material values are AMPLITUDE coefficients.
+ * Deterministic 2-D model: an omnidirectional source, every valid finite first/
+ * second-order specular reflection, and first-order surface-sampled scattering.
+ * Panels are opaque on both sides. Floor, ceiling, diffraction, frequency
+ * response and late reverberation are omitted. Reflection values are AMPLITUDE
+ * coefficients; scatter is the reflected lobe's angular half-width in degrees.
  * Exactly coincident full panel segments share one acoustic surface. Its first
  * panel ID is retained and the smallest reflection coefficient wins, treating
  * an absorbing layer as covering a reflective one; editor objects stay separate.
  *
  * Gain policy is fixed, never normalized per room:
- *   sqrt(12 / (12 + distance)) * 0.68 ** order * product(reflection)
+ *   sqrt(12 / (12 + distance)) * 0.68 ** order * product(reflection) * branch
+ * At each bounce, 0.6 * scatter / 90 of the energy budget goes to diffusion.
+ * The specular amplitude receives sqrt(1 - fraction); each of nine fixed
+ * diffuse samples receives sqrt(fraction / 9) times a cosine angular window.
+ * Occluded/out-of-lobe samples stay silent; surviving samples are never scaled
+ * up. With zero scatter the original image-source model is recovered exactly.
  * The square-root loss is a 2-D spreading-inspired, softened demonstration
- * model, not calibrated acoustic prediction. There are at most 145 paths, each
- * no louder than the geometric direct path. Their summed absolute gains have
- * a finite bound < 65 for the permitted inputs; an audio output limiter is
- * still appropriate when simultaneous impulses overlap. No absorption change
- * can turn up another path through a room-dependent normalization factor.
+ * model, not calibrated acoustic prediction. There are at most 253 arrivals
+ * and 288 illustration rays. Square-root energy splitting bounds each surface
+ * budget but coherent arrivals can still add together; audio uses a fixed
+ * output limiter. No absorption change turns up another path through a room-
+ * dependent normalization factor. Illustration rays are distinct from the
+ * listener arrivals used by audio and show propagation clipped by obstacles.
  */
 
 const SPEED_OF_SOUND = 343;
@@ -22,6 +29,10 @@ const EPS = 1e-7;
 const MARGIN = 0.2;
 const BOUNCE_GAIN = 0.68;
 const MAX_PANELS = 8;
+const DIFFUSE_SAMPLES = 9;
+const EMISSION_RAYS = 48;
+export const MAX_SOUND_PATHS = 253;
+export const MAX_PROPAGATION_RAYS = 288;
 export const WALL_IDS = ['wall-top', 'wall-right', 'wall-bottom', 'wall-left'];
 export const WALL_NAMES = {
   'wall-top': '上墙',
@@ -29,13 +40,26 @@ export const WALL_NAMES = {
   'wall-bottom': '下墙',
   'wall-left': '左墙',
 };
-const RESERVED_IDS = [...WALL_IDS, 'source', 'listener', 'direct'];
+const RESERVED_IDS = [...WALL_IDS, 'source', 'listener', 'room', 'direct'];
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y });
 const cross = (a, b) => a.x * b.y - a.y * b.x;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const copyPoint = ({ x, y }) => ({ x, y });
+const spreadLoss = (length) => Math.sqrt(12 / (12 + length));
+const diffuseFraction = (surface) => (0.6 * surface.scatter) / 90;
+
+function reflectedDirection(incoming, surface) {
+  const edge = sub(surface.b, surface.a);
+  const length = Math.hypot(edge.x, edge.y);
+  const normal = { x: -edge.y / length, y: edge.x / length };
+  const projection = incoming.x * normal.x + incoming.y * normal.y;
+  return {
+    x: incoming.x - 2 * projection * normal.x,
+    y: incoming.y - 2 * projection * normal.y,
+  };
+}
 
 export function cloneScene(scene) {
   return JSON.parse(JSON.stringify(scene));
@@ -85,6 +109,7 @@ export function validateScene(input) {
   const width = within(input.width, 8, 120, '房间宽度');
   const height = within(input.height, 8, 100, '房间深度');
   const wallReflection = within(input.wallReflection ?? 0.12, 0, 0.95, '墙面反射');
+  const wallScatter = within(input.wallScatter ?? 25, 0, 90, '墙面扩散角度');
   const overrides = object(input.wallReflections ?? {}, '独立墙面反射');
   const wallReflections = {};
   for (const id of WALL_IDS) {
@@ -147,9 +172,20 @@ export function validateScene(input) {
       length,
       angle,
       reflection,
+      scatter: within(raw.scatter ?? 35, 0, 90, '装置扩散角度'),
     };
   });
-  return { width, height, source, listener, wallReflection, wallReflections, delayScale, panels };
+  return {
+    width,
+    height,
+    source,
+    listener,
+    wallReflection,
+    wallReflections,
+    wallScatter,
+    delayScale,
+    panels,
+  };
 }
 
 export function wallReflectionFor(scene, id) {
@@ -168,6 +204,7 @@ function surfacesFor(scene) {
     a,
     b: corners[(index + 1) % 4],
     reflection: wallReflectionFor(scene, WALL_IDS[index]),
+    scatter: scene.wallScatter,
     isPanel: false,
   }));
   const panels = [];
@@ -182,9 +219,17 @@ function surfacesFor(scene) {
       // One physical sheet cannot emit the same reflection once per editor
       // object. Keep its identity stable and let a coincident absorbing layer
       // determine the resulting surface coefficient.
+      if (panel.reflection < existing.reflection) existing.scatter = panel.scatter;
       existing.reflection = Math.min(existing.reflection, panel.reflection);
     } else {
-      panels.push({ id: panel.id, a, b, reflection: panel.reflection, isPanel: true });
+      panels.push({
+        id: panel.id,
+        a,
+        b,
+        reflection: panel.reflection,
+        scatter: panel.scatter,
+        isPanel: true,
+      });
     }
   }
   return [...walls, ...panels];
@@ -268,6 +313,115 @@ function reflectedPoints(source, listener, sequence) {
   return points;
 }
 
+/** A finite ray's nearest impact; panel/wall edges remain opaque here. */
+function firstImpact(origin, direction, surfaces, maxDistance) {
+  const end = {
+    x: origin.x + direction.x * maxDistance,
+    y: origin.y + direction.y * maxDistance,
+  };
+  let closest = null;
+  for (const surface of surfaces) {
+    let hit = intersection(origin, end, surface.a, surface.b);
+    if (!hit && Math.abs(cross(sub(surface.a, origin), direction)) <= EPS) {
+      // An emitted grazing ray still stops at an opaque panel's nearest edge.
+      // Parallel-line intersection alone would incorrectly pass through it.
+      const projection = (point) => {
+        const offset = sub(point, origin);
+        return offset.x * direction.x + offset.y * direction.y;
+      };
+      const first = projection(surface.a);
+      const second = projection(surface.b);
+      if (Math.max(first, second) <= EPS) continue;
+      const along = Math.max(0, Math.min(first, second));
+      const t = along / maxDistance;
+      if (t <= 1 && (!closest || t < closest.t)) {
+        closest = {
+          t,
+          u: 0,
+          point: { x: origin.x + direction.x * along, y: origin.y + direction.y * along },
+          surface,
+        };
+      }
+      continue;
+    }
+    if (
+      hit &&
+      hit.t > EPS &&
+      hit.t <= 1 + EPS &&
+      hit.u >= -EPS &&
+      hit.u <= 1 + EPS &&
+      (!closest || hit.t < closest.t)
+    ) {
+      closest = { ...hit, surface };
+    }
+  }
+  return closest;
+}
+
+function propagationRaysFor(scene, surfaces) {
+  const rays = [];
+  const maxDistance = Math.hypot(scene.width, scene.height) * 2;
+  const secondsPerMeter = scene.delayScale / SPEED_OF_SOUND;
+
+  function addRay(id, points, gain, kind, surface = null) {
+    const totalDistance = points
+      .slice(1)
+      .reduce((sum, point, index) => sum + distance(points[index], point), 0);
+    rays.push({
+      id,
+      points: points.map(copyPoint),
+      distance: totalDistance,
+      delay: totalDistance * secondsPerMeter,
+      gain: gain * spreadLoss(totalDistance),
+      kind,
+      order: surface ? 1 : 0,
+      surfaces: surface ? [surface.id] : [],
+    });
+  }
+
+  for (let index = 0; index < EMISSION_RAYS; index += 1) {
+    const angle = (index * 2 * Math.PI) / EMISSION_RAYS;
+    const incoming = { x: Math.cos(angle), y: Math.sin(angle) };
+    const hit = firstImpact(scene.source, incoming, surfaces, maxDistance);
+    if (!hit) continue;
+    const id = `emission-${index}`;
+    const sourceGain = 1 / Math.sqrt(EMISSION_RAYS);
+    addRay(id, [scene.source, hit.point], sourceGain, 'emission');
+    if (hit.surface.reflection <= 0) continue;
+    const ideal = reflectedDirection(incoming, hit.surface);
+    const fraction = diffuseFraction(hit.surface);
+    const branches = [{ offset: 0, weight: Math.sqrt(1 - fraction), kind: 'specular' }];
+    if (fraction > 0) {
+      for (const offset of [-0.8, -0.4, 0.4, 0.8]) {
+        branches.push({
+          offset: (offset * hit.surface.scatter * Math.PI) / 180,
+          weight: Math.sqrt(fraction / 4) * Math.cos((offset * Math.PI) / 2),
+          kind: 'diffuse',
+        });
+      }
+    }
+    for (const [branchIndex, branch] of branches.entries()) {
+      const cos = Math.cos(branch.offset);
+      const sin = Math.sin(branch.offset);
+      const outgoing = { x: ideal.x * cos - ideal.y * sin, y: ideal.x * sin + ideal.y * cos };
+      const edge = sub(hit.surface.b, hit.surface.a);
+      // A broad lobe at a grazing incidence may point through the surface;
+      // reject those branches rather than depicting panel transmission.
+      if (cross(edge, sub(scene.source, hit.point)) * cross(edge, outgoing) <= EPS) continue;
+      const next = firstImpact(hit.point, outgoing, surfaces, maxDistance);
+      if (!next) continue;
+      addRay(
+        `${id}:${branchIndex}`,
+        [scene.source, hit.point, next.point],
+        sourceGain * BOUNCE_GAIN * hit.surface.reflection * branch.weight,
+        branch.kind,
+        hit.surface,
+      );
+    }
+  }
+  return rays;
+}
+
 export function computePaths(input) {
   const scene = validateScene(input);
   const surfaces = surfacesFor(scene);
@@ -278,7 +432,7 @@ export function computePaths(input) {
   const blocked = blockedSegment(scene.source, scene.listener, panels);
   const paths = [];
 
-  function addPath(points, sequence) {
+  function addPath(points, sequence, sample = null) {
     if (!points) return;
     for (let i = 1; i < points.length; i += 1) {
       if (blockedSegment(points[i - 1], points[i], panels)) return;
@@ -287,11 +441,20 @@ export function computePaths(input) {
       .slice(1)
       .reduce((sum, point, index) => sum + distance(points[index], point), 0);
     const reflection = sequence.reduce((gain, surface) => gain * surface.reflection, 1);
-    const gain = Math.sqrt(12 / (12 + totalDistance)) * BOUNCE_GAIN ** sequence.length * reflection;
+    const branch = sample
+      ? sample.weight
+      : sequence.reduce((weight, surface) => weight * Math.sqrt(1 - diffuseFraction(surface)), 1);
+    const gain = spreadLoss(totalDistance) * BOUNCE_GAIN ** sequence.length * reflection * branch;
     const arrival = sub(points.at(-2), scene.listener);
     const arrivalLength = Math.hypot(arrival.x, arrival.y);
     paths.push({
-      id: sequence.length ? sequence.map((surface) => surface.id).join('>') : 'direct',
+      id: sample
+        ? `${sequence[0].id}:diffuse:${sample.index}`
+        : sequence.length
+          ? sequence.map((surface) => surface.id).join('>')
+          : 'direct',
+      kind: sample ? 'diffuse' : sequence.length ? 'specular' : 'direct',
+      ...(sample ? { angleDeviation: sample.angleDeviation } : {}),
       points: points.map(copyPoint),
       distance: totalDistance,
       delay: totalDistance * secondsPerMeter,
@@ -308,13 +471,50 @@ export function computePaths(input) {
     // Zero-reflection surfaces still block propagation but contribute no sound.
     if (first.reflection <= 0) continue;
     addPath(reflectedPoints(scene.source, scene.listener, [first]), [first]);
+    const fraction = diffuseFraction(first);
+    if (fraction > 0) {
+      const edge = sub(first.b, first.a);
+      const sourceSide = cross(edge, sub(scene.source, first.a));
+      const listenerSide = cross(edge, sub(scene.listener, first.a));
+      if (sourceSide * listenerSide > EPS) {
+        for (let index = 0; index < DIFFUSE_SAMPLES; index += 1) {
+          // Fixed surface quadrature avoids scene-dependent gain normalization.
+          // Midpoints stay away from edges, which would need diffraction.
+          const position = (index + 0.5) / DIFFUSE_SAMPLES;
+          const point = { x: first.a.x + edge.x * position, y: first.a.y + edge.y * position };
+          const incoming = sub(point, scene.source);
+          const outgoing = sub(scene.listener, point);
+          const denominator =
+            Math.hypot(incoming.x, incoming.y) * Math.hypot(outgoing.x, outgoing.y);
+          if (denominator <= EPS) continue;
+          const ideal = reflectedDirection(incoming, first);
+          const cosine = clamp((ideal.x * outgoing.x + ideal.y * outgoing.y) / denominator, -1, 1);
+          const angleDeviation = (Math.acos(cosine) * 180) / Math.PI;
+          if (angleDeviation >= first.scatter) continue;
+          const weight =
+            Math.sqrt(fraction / DIFFUSE_SAMPLES) *
+            Math.cos((angleDeviation / first.scatter) * (Math.PI / 2));
+          addPath([scene.source, point, scene.listener], [first], {
+            index,
+            weight,
+            angleDeviation,
+          });
+        }
+      }
+    }
     for (const second of surfaces) {
       if (second.id === first.id || second.reflection <= 0) continue;
       addPath(reflectedPoints(scene.source, scene.listener, [first, second]), [first, second]);
     }
   }
   paths.sort((a, b) => a.delay - b.delay || a.order - b.order || a.id.localeCompare(b.id));
-  return { paths, directDistance, directDelay, blocked };
+  return {
+    paths,
+    propagationRays: propagationRaysFor(scene, surfaces),
+    directDistance,
+    directDelay,
+    blocked,
+  };
 }
 
 /** Ready-to-edit scenes; always clone before modifying a preset. */

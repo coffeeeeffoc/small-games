@@ -1,13 +1,14 @@
 import { getDuelLevel } from './duel-levels.js';
 import { initialDuel, legalDuelTargets, stepDuel, chooseDuelAction } from './duel.js';
-import { character, scenery } from './art.js';
+import { character, gamePortrait, scenery, sceneDefinitions } from './art.js';
+import { boardHeight, presentationLevel, actorScale, applyBoardLayout, boardExitEndpoint } from './board-layout.js';
 import { playSound, unlockSound } from './sound.js';
 import { relayLevelIds } from './relay.js';
 import { showPuzzleShare } from './share.js';
 
-export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
-  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '追逐队' : '突围队';
-  let level, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
+export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
+  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '警察' : '小偷';
+  let level, sourceLevel, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const saveKey = 'cops-robbers-duel-v1'; let saved = {};
   try { const data = JSON.parse(localStorage.getItem(saveKey) || '{}'); if (data && typeof data === 'object' && !Array.isArray(data)) saved = data; } catch { /* A damaged local preference never blocks play. */ }
   const wins = Object.fromEntries(Object.entries(saved.wins || {}).filter(([key, value]) => /^(escape|survival):(pursuer|runner):([1-9][0-9]?|100)$/.test(key) && value === true));
@@ -28,13 +29,16 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     for (const id of ['solo-role-row', 'solo-initiative-row']) $(id).hidden = challenge;
     $('solo-level-row').hidden = challenge && !relay && !quick;
     $('mode-description').textContent = quick ? '2–4 步一个收网瞬间：两侧夹击、先封后追、双巷分工。三张专门编排的小地图，走错可立即撤销。' : relay ? '两次实际移动必须换队员；留守不重置。六个精选街区已在接力规则下完整复演获胜路线。' : challenge ? '固定对手 · 追逐队先手 · 100 关已验证有解，试着找出最佳路线。' : '双方可选，胜负取决于走位与应对。后段街区更大、岔路更多，电脑也会更难缠。';
-    $('start-mode').textContent = quick ? '开始短场，马上收网' : relay ? '开始换防接力' : challenge ? '开始围堵挑战' : '开始人机对抗';
+    $('start-mode').textContent = quick ? '开始短场，马上收网' : relay ? '开始换防接力' : challenge ? '选择街区' : '开始人机对抗';
     const patrol = quick || relay ? savedPatrol(quick ? 'quick' : 'challenge',relay ? 'relay' : 'standard') : null;
     if (patrol?.levelId === Number($('solo-level').value)) $('start-mode').textContent = `继续第 ${patrol.levelId} 关${quick ? '短场试炼' : '换防接力'}`;
   }
   function stop() { clearTimeout(timer); serial++; }
   function render() {
     if (!state) return;
+    if (level.height !== boardHeight()) level = presentationLevel(sourceLevel);
+    applyBoardLayout($('duel-board'), level);
+    if (document.body.classList.contains('duel-active')) document.body.dataset.boardHeight = String(level.height);
     // Repainting the board must not send keyboard players back to the page's first control.
     const focused = document.activeElement;
     const focusSelector = focused?.matches('#duel-board [data-actor]')
@@ -51,15 +55,24 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     $('duel-status').textContent = state.winner ? `${label(state.winner)}获胜 · ${state.winner === role ? '挑战成功' : '再试一种走法'}` : `${label(state.side)}行动${myTurn ? ' · 轮到你' : ' · 电脑思考中'}`;
     $('duel-round').textContent = `${Math.floor(state.turn / 2)} / ${level.roundLimit} 回合`;
     $('duel-rules').textContent = `${label(firstSide)}先手 · ${level.mode === 'escape' ? '突围队到任一出口即胜；追逐队走到对手位置完成拦截。' : `无出口；突围队坚持 ${level.roundLimit} 回合即胜，追逐队需在限步内拦截。`}`;
-    $('duel-note').textContent = state.winner ? '本局已结束。可重新挑战、下一关或返回大厅。' : myTurn ? '先选队员，再点亮起的相邻路口。点脚下数字可以留守。' : '电脑行动中；可随时重新挑战或返回大厅。';
+    $('duel-note').textContent = state.winner ? '再来一局，还是下一关？' : myTurn ? '点亮起的路口 · 点脚下可留守' : '对手行动中…';
     $('duel-wait').disabled = !myTurn;
     $('duel-next').disabled = level.id === 100;
     document.body.dataset.duelTurn = state.turn; document.body.dataset.duelSide = state.side; document.body.dataset.duelWinner = state.winner || ''; document.body.dataset.duelRole = role;
     const roads = level.edges.map(([a, b]) => `M${level.nodes[a].x} ${level.nodes[a].y}L${level.nodes[b].x} ${level.nodes[b].y}`).join('');
-    const nodes = level.nodes.map((point, index) => `<g role="button" tabindex="0" data-target="${index}" aria-label="${index + 1} 号路口${targets.includes(index) ? '，可移动' : ''}" transform="translate(${point.x} ${point.y})"><circle r="36" fill="transparent"/><circle r="${targets.includes(index) ? 24 : 17}" fill="${level.exits.includes(index) ? '#ffdaa7' : '#fffcf0'}" stroke="${targets.includes(index) ? '#1258c2' : '#c4c8ae'}" stroke-width="3"/><text y="30" text-anchor="middle" font-size="17" font-weight="bold" fill="#2c4844">${index + 1}</text>${level.exits.includes(index) ? '<text y="-27" text-anchor="middle" fill="#9d4b0a" font-size="17">出口</text>' : ''}</g>`).join('');
-    const actors = ['pursuer', 'runner'].flatMap(side => (side === 'pursuer' ? state.cops : state.robbers).map((node, index) => node < 0 ? '' : `<g role="button" tabindex="0" data-side="${side}" data-actor="${index}" aria-label="${label(side)} ${index + 1} 号，${node + 1} 号路口" transform="translate(${level.nodes[node].x} ${level.nodes[node].y + 13})"><rect x="-30" y="-69" width="60" height="77" fill="transparent"/>${side === role && selected === index ? '<ellipse cy="1" rx="29" ry="12" fill="#83bbef" opacity=".6"/>' : ''}<g transform="scale(.64)">${character(side === 'pursuer' ? 'cop' : 'robber', side === role && selected === index ? 'selected' : 'idle', index)}</g></g>`)).join('');
-    $('duel-board').innerHTML = `${scenery(level, Math.min(4, level.difficulty - 1))}<path d="${roads}" fill="none" stroke="#faf6e4" stroke-width="22" stroke-linecap="round"/><path d="${roads}" fill="none" stroke="#d9d2ae" stroke-width="2" stroke-dasharray="5 7"/>${nodes}${actors}`;
-    $('duel-squad').innerHTML = positions.map((node, index) => `<button data-select="${index}" class="secondary-action" aria-pressed="${index === selected}" ${node < 0 || !myTurn ? 'disabled' : ''}>${label(role)} ${index + 1}${node < 0 ? ' 已拦截' : ''}</button>`).join('');
+    const exits = level.exits.map(node => {
+      const point = level.nodes[node], end = boardExitEndpoint(level, node), horizontal = end.y === point.y;
+      const x = horizontal ? (point.x + end.x) / 2 : point.x, y = horizontal ? point.y - 21 : (point.y + end.y) / 2;
+      return `<g class="escape-gate" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${point.x} ${point.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${point.x} ${point.y}L${end.x} ${end.y}" marker-end="url(#duel-escape-arrow)"/><circle cx="${point.x}" cy="${point.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
+    }).join('');
+    const stones = level.nodes.map((point, index) => `<circle class="node-ground" cx="${point.x}" cy="${point.y}" r="26"/><circle class="node-target ${targets.includes(index) ? 'reachable' : ''} ${positions[selected] === index ? 'selected' : ''}" cx="${point.x}" cy="${point.y}" r="31"/>`).join('');
+    const occupied = new Set([...state.cops, ...state.robbers]);
+    const nodes = level.nodes.map((point, index) => `<g class="node-label ${targets.includes(index) ? 'reachable' : ''}" role="button" tabindex="0" data-target="${index}" aria-label="${index + 1} 号路口${targets.includes(index) ? '，可移动' : ''}" transform="translate(${point.x} ${point.y + 26})"><circle class="node-hit" cy="-26" r="${occupied.has(index) ? 0 : 34}" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${index + 1}</text></g>`).join('');
+    const scale = actorScale(level);
+    const actors = ['pursuer', 'runner'].flatMap(side => (side === 'pursuer' ? state.cops : state.robbers).map((node, index) => ({ side, node, index })))
+      .filter(({ node }) => node >= 0).sort((a, b) => level.nodes[a.node].y - level.nodes[b.node].y).map(({ side, node, index }) => `<g class="actor ${side === 'pursuer' ? 'cop' : 'robber'} ${side === role && selected === index ? 'selected' : ''}" role="button" tabindex="0" data-side="${side}" data-actor="${index}" aria-label="${label(side)} ${index + 1} 号，${node + 1} 号路口" transform="translate(${level.nodes[node].x} ${level.nodes[node].y + 13})"><rect x="${-42 * scale}" y="${-110 * scale}" width="${84 * scale}" height="${116 * scale}" fill="transparent" pointer-events="all"/><ellipse cy="-1" rx="29" ry="10" fill="#3f584c" opacity=".2"/><ellipse class="selection-ring" cy="-1" rx="38" ry="16"/><g transform="scale(${scale})"><g class="figure">${character(side === 'pursuer' ? 'cop' : 'robber', side === role && selected === index ? 'selected' : 'idle', index)}</g></g></g>`).join('');
+    $('duel-board').innerHTML = `<defs>${sceneDefinitions()}<marker id="duel-escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, Math.min(4, level.difficulty - 1))}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g aria-hidden="true">${stones}</g>${actors}${nodes}`;
+    $('duel-squad').innerHTML = positions.map((node, index) => `<button data-select="${index}" class="secondary-action" aria-label="选择${label(role)} ${index + 1}${node < 0 ? '，已拦截' : ''}" aria-pressed="${index === selected}" ${node < 0 || !myTurn ? 'disabled' : ''}><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${gamePortrait(role === 'pursuer' ? 'cop' : 'robber', 0, 0, 100)}</svg><span>${label(role)} ${index + 1}${node < 0 ? ' 已拦截' : ''}</span></button>`).join('');
     if (focusSelector) {
       const replacement = document.querySelector(focusSelector);
       (replacement && !replacement.disabled ? replacement : $('duel-board').querySelector(`[data-side="${role}"][data-actor="${selected}"]`) || $('duel-retry')).focus({ preventScroll: true });
@@ -75,12 +88,14 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     }, 320);
   }
   function start(id = Number($('solo-level').value), retry = false) {
-    stop(); stopChallenge?.(); level = getDuelLevel($('solo-mode').value, id); if (!level) return;
+    stop(); stopChallenge?.(); sourceLevel = getDuelLevel($('solo-mode').value, id); if (!sourceLevel) return;
+    level = presentationLevel(sourceLevel);
     role = $('solo-role').value;
     if (!retry) firstSide = $('solo-initiative').value === 'random' ? (Math.random() < .5 ? 'pursuer' : 'runner') : $('solo-initiative').value === 'first' ? role : role === 'pursuer' ? 'runner' : 'pursuer';
     state = initialDuel(level, firstSide); selected = 0;
+    document.body.dataset.lastGame = 'duel'; document.body.dataset.duelLevel = String(level.id);
     $('solo-level').value = String(id); persistOptions(); $('duel-game').hidden = false;
-    document.body.classList.add('duel-active', 'focus-play'); $('focus-toggle').textContent = '返回大厅';
+    document.body.classList.add('duel-active', 'focus-play'); $('focus-toggle').setAttribute('aria-label', '返回大厅');
     unlockSound(); render(); window.scrollTo(0, 0); scheduleAI();
   }
   function move(target) {
@@ -92,7 +107,7 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
   $('friend-duel').addEventListener('click', () => { const entry = document.querySelector('[data-competition-launch]'); if (entry) entry.click(); else $('friend-note').textContent = '当前是单机预览。好友房间请从游戏大厅的联机入口进入。'; });
   $('solo-mode').addEventListener('change', () => { renderOptions(); const mode = $('solo-mode').value, patrol = savedPatrol(mode === 'quick' ? 'quick' : 'challenge',mode === 'relay' ? 'relay' : 'standard'); if (['quick','relay'].includes(mode) && patrol && [...$('solo-level').options].some(option=>Number(option.value)===patrol.levelId)) $('solo-level').value=String(patrol.levelId); updateMode(); persistOptions(); });
   for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); updateMode(); persistOptions(); });
-  $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) startChallenge({ mode:$('solo-mode').value === 'quick' ? 'quick' : 'challenge', rule: $('solo-mode').value === 'relay' ? 'relay' : 'standard', id: ['quick','relay'].includes($('solo-mode').value) ? Number($('solo-level').value) : undefined }); else start(); });
+  $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) selectLevels(); else start(); });
   $('quick-start').addEventListener('click',()=>{stop();$('solo-mode').value='quick';renderOptions();updateMode();persistOptions();startChallenge({mode:'quick',rule:'standard',id:1,fresh:true});});
   $('duel-back').addEventListener('click', () => { stop(); document.body.classList.remove('duel-active'); $('duel-game').hidden = true; returnLobby(); });
   $('focus-toggle').addEventListener('click', () => { if (document.body.classList.contains('duel-active')) $('duel-back').click(); });
@@ -109,6 +124,9 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
   });
   $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); if (!event.repeat) event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('visibilitychange', () => { stop(); if (!document.hidden) scheduleAI(); });
+  document.addEventListener('chase-appearancechange', () => { if (state) render(); });
+  window.addEventListener('resize', () => { if (state && document.body.classList.contains('duel-active')) render(); });
+  document.addEventListener('game-displaychange', () => { if (state && document.body.classList.contains('duel-active')) render(); });
   updateMode();
   if (sharedPuzzle) {
     $('solo-mode').value = sharedPuzzle.mode === 'challenge' && sharedPuzzle.rule === 'relay' ? 'relay' : sharedPuzzle.mode;
@@ -117,4 +135,18 @@ export function setupDuelLobby({ startChallenge, returnLobby, stopChallenge, sha
     renderOptions(); $('solo-level').value = String(sharedPuzzle.level); updateMode();
     if (!['challenge','quick'].includes(sharedPuzzle.mode)) start(sharedPuzzle.level);
   }
+  return {
+    resume() {
+      if (!state) return false;
+      $('duel-game').hidden = false;
+      document.body.classList.add('duel-active', 'focus-play');
+      render(); scheduleAI(); window.scrollTo(0, 0);
+      return true;
+    },
+    sharePuzzle() {
+      if (!state) return false;
+      $('duel-share').click(); return true;
+    },
+  };
+
 }

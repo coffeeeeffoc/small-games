@@ -1,6 +1,7 @@
 /**
  * Browser-only audio at the point of use; importing this module is safe in Node.
- * The visible geometry and the sound share exactly the same sparse reflections.
+ * Listener arrivals, including diffuse reflections, feed the same impulse
+ * response for playback and export. Illustration rays do not add audio taps.
  */
 export const MAX_AUDIO_SECONDS = 15;
 export const MAX_AUDIO_BYTES = 20 * 1024 * 1024;

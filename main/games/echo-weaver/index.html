@@ -1,12 +1,13 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+  <script src="./dev-mode.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#101b21" />
     <meta
       name="description"
-      content="Echo Weaver — one sound, three echoes. Shape a rhythm with routes, delays and a little ingenuity. A silent-friendly original puzzle game."
+      content="Build a circuit for sound. Place mirrors, split a single pulse, and share delays to weave three precisely timed echoes."
     />
     <title>Echo Weaver · 回声编织</title>
     <link
@@ -18,149 +19,126 @@
   <body>
     <div id="app">
       <header class="masthead">
-        <a class="brand" href="./" aria-label="Echo Weaver"
-          ><span class="brand-icon" aria-hidden="true"
-            ><svg viewBox="0 0 32 32"><path d="M4 16h5l4-10 6 20 4-10h5" /></svg></span
+        <a class="brand" href="./"
+          ><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16h6l4-10 6 20 4-10h6" /></svg
           ><span
-            >ECHO <b>WEAVER</b><small data-i18n="brandSub">回声编织 / 声音实验室</small></span
+            >ECHO <b>WEAVER</b><small data-i18n="brandSub">回声编织 / 空间节拍实验</small></span
           ></a
         >
         <div class="header-actions">
-          <button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false"></button
-          ><button id="language" class="text-button" aria-label="Switch to English">EN</button
+          <button id="sound" class="icon-button" aria-label="开启音效"></button
+          ><button id="language" class="text-button">EN</button
           ><button id="help" class="icon-button" aria-label="玩法说明">?</button>
         </div>
       </header>
       <main>
-        <section class="intro">
+        <nav id="level-nav" aria-label="选择实验"></nav>
+        <section class="lesson-heading">
           <div>
-            <p class="eyebrow">A LITTLE DISTANCE. A LITTLE RHYTHM.</p>
-            <h1 data-i18n="headline">把声音，织成节奏<span>。</span></h1>
-            <p class="intro-copy" data-i18n="tagline">
-              一次发声，三次回响。让每一条声路，恰好赶上它的节拍。
-            </p>
+            <p id="level-subtitle" class="eyebrow"></p>
+            <h1><span id="level-number">01</span><span id="level-title"></span></h1>
           </div>
-          <div class="chapter-stamp">
-            <span>VOL. 01</span><span data-i18n="chapter">初始共鸣</span
-            ><small id="completion"></small>
-          </div>
+          <p id="lesson"></p>
         </section>
-        <nav id="level-nav" aria-label="选择关卡"></nav>
         <div class="workspace">
-          <section class="studio-card">
-            <div class="stage-heading">
-              <div class="level-heading">
-                <span id="level-number">01</span>
-                <div>
-                  <p id="level-subtitle" class="eyebrow"></p>
-                  <h2 id="level-title"></h2>
-                </div>
+          <section class="workbench">
+            <div class="score-strip">
+              <div class="score-heading">
+                <span data-i18n="target">目标到达时刻</span><span id="clock">0.0</span>
               </div>
-              <span id="phase" class="phase-badge"></span>
+              <div id="rhythm"></div>
+              <div class="score-caption">
+                <span data-i18n="unit">每走一格 = ¼ 拍</span><span id="phase-label"></span>
+              </div>
             </div>
-            <div class="board-wrap">
-              <div class="board-topline">
-                <span data-i18n="boardLabel">声路编织台</span
-                ><span class="live-dot" data-i18n="boardNote">点击发光机关调整</span>
+            <div class="board-shell">
+              <div class="board-corners">
+                <span data-i18n="boardLabel">构建你的声路</span><span id="piece-count"></span>
               </div>
-              <div id="board" role="group" aria-label="声路编织台">
-                <svg id="scene" viewBox="0 0 640 590" aria-hidden="true"></svg>
-                <p id="board-tip"></p>
-                <div id="scene-controls"></div>
+              <div id="board" role="group" aria-label="声路棋盘"></div>
+              <div class="board-key">
+                <span><i class="legend-mirror"></i><span data-i18n="mirror">反射板</span></span
+                ><span><i class="legend-splitter"></i><span data-i18n="splitter">分声器</span></span
+                ><span><i class="legend-delay"></i><span data-i18n="delay">延迟器</span></span>
               </div>
-              <div class="board-legend">
-                <span
-                  ><i class="legend-line"></i
-                  ><span data-i18n="routeLegend">声路 / 标注时长</span></span
-                ><span
-                  ><i class="legend-reflector"></i
-                  ><span data-i18n="reflectorLegend">反射板</span></span
-                ><span
-                  ><i class="legend-delay">＋</i><span data-i18n="delayLegend">延迟段</span></span
-                >
+            </div>
+            <div class="inventory-panel">
+              <div class="inventory-heading">
+                <span data-i18n="inventory">器件架 · 拖入棋盘</span
+                ><span id="selection-hint"></span>
+              </div>
+              <div id="inventory" role="group" aria-label="可用器件"></div>
+              <div class="edit-controls">
+                <span id="selected-label"></span
+                ><button id="rotate" class="small-button" data-i18n="rotate">旋转</button
+                ><button id="return-piece" class="small-button" data-i18n="returnPiece">
+                  收回器件
+                </button>
               </div>
             </div>
             <div class="transport">
               <button id="emit" class="primary-button"></button
-              ><button id="pause" class="secondary-button" aria-label="暂停" hidden>
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <rect x="3" y="2" width="3" height="12" />
-                  <rect x="10" y="2" width="3" height="12" />
-                </svg>
-              </button>
-              <div class="transport-tools">
-                <button id="undo" class="secondary-button"></button
-                ><button id="restart" class="secondary-button"></button>
-              </div>
-              <span class="keyboard-note" data-i18n="keyboard">SPACE / 试奏</span>
+              ><button id="pause" class="icon-button" aria-label="暂停" hidden></button
+              ><button id="undo" class="small-button" data-i18n="undo">撤销</button
+              ><button id="restart" class="small-button" data-i18n="restart">重置</button
+              ><button id="slow" class="small-button" aria-pressed="false">½×</button>
             </div>
           </section>
-          <aside class="score-panel">
-            <section class="rhythm-card">
-              <div class="panel-kicker">
-                <span data-i18n="scoreKicker">THE SCORE / 目标节奏</span
-                ><span class="tiny-wave" aria-hidden="true">∿</span>
+          <aside class="notebook">
+            <section class="notes-card">
+              <div class="section-heading">
+                <h2 data-i18n="notes">实验记录</h2>
+                <span id="attempts"></span>
               </div>
-              <h2 data-i18n="scoreTitle">恰好，在这一拍。</h2>
-              <p class="muted" data-i18n="scoreCopy">三条回声分别在目标拍抵达，且有足够能量。</p>
-              <div id="beat-lights"></div>
-              <div class="timeline">
-                <div class="timeline-caption">
-                  <span data-i18n="playhead">内部节拍</span><b id="time-readout">0.0</b>
-                </div>
-                <div class="timeline-rail">
-                  <div id="playhead"></div>
-                  <div id="timeline-ticks"></div>
-                </div>
-              </div>
-              <div class="rule-note">
-                <span aria-hidden="true"
-                  ><svg viewBox="0 0 20 20"><path d="M4 3v10h12m-4-4 4 4-4 4" /></svg></span
-                ><span data-i18n="ruleNote">更长的声路，换来更晚的回声。</span>
-              </div>
+              <div id="trial-state"></div>
+              <div id="arrival-log"></div>
+              <button id="replay" class="secondary-button" data-i18n="replay">重放上次试奏</button>
             </section>
-            <section class="readout-card">
-              <div class="section-label">
-                <h3 data-i18n="routeReadout">声路读数</h3>
-                <span data-i18n="prediction">实时预测</span>
+            <section class="idea-card">
+              <p class="eyebrow">DISTANCE · ORDER · SHARED TIME</p>
+              <h2 data-i18n="ideaTitle">一个机关，影响几次回声？</h2>
+              <p data-i18n="ideaCopy">
+                延迟器放在分声前，会让后面的回声一起晚到。放在支路，只影响其中一道。
+              </p>
+              <svg class="shared-diagram" viewBox="0 0 230 82" aria-hidden="true">
+                <path d="M10 41h36m30 0h39m0 0 37-24h65M115 41l37 24h65" />
+                <rect x="46" y="26" width="30" height="30" rx="6" />
+                <text x="61" y="46">+2</text>
+                <circle cx="115" cy="41" r="5" />
+                <circle cx="215" cy="17" r="4" />
+                <circle cx="215" cy="65" r="4" />
+              </svg>
+              <div class="hint-controls">
+                <button id="hint" class="text-button" data-i18n="hint">给一点线索 ↗</button>
               </div>
-              <div id="route-readouts"></div>
-              <div class="energy-note" id="energy-note"></div>
+              <p id="hint-copy" role="status" aria-live="polite"></p>
             </section>
-            <section class="hint-card">
-              <div class="section-label">
-                <h3 id="message-label"></h3>
-                <button id="hint" class="text-button"></button>
-              </div>
-              <p id="message" role="status" aria-live="polite"></p>
+            <section class="rules-card">
+              <h2 data-i18n="rulesTitle">工作台规则</h2>
+              <ul id="quick-rules"></ul>
+              <div id="energy-rule"></div>
             </section>
           </aside>
         </div>
         <footer>
-          <span
-            >ECHO WEAVER <i>—</i> <span data-i18n="footer">原创节拍谜题 · 8 个声音实验</span></span
-          ><span class="footer-right"
-            ><span class="status-dot"></span><span data-i18n="silent">静音也能完整游玩</span></span
-          >
+          <span id="completion"></span><span data-i18n="silent">不用麦克风 · 静音同样可玩</span>
         </footer>
       </main>
     </div>
+    <div id="drag-ghost" hidden aria-hidden="true"></div>
     <dialog id="help-dialog" aria-labelledby="help-title">
-      <div class="dialog-kicker">FIELD NOTES / 01</div>
-      <h2 id="help-title" data-i18n="helpTitle">声音需要时间。</h2>
+      <p class="eyebrow">THE WEAVER'S FIELD NOTES</p>
+      <h2 id="help-title" data-i18n="helpTitle">自己搭路，再让声音出发。</h2>
       <div id="help-content"></div>
-      <button id="close-help" class="primary-button" data-i18n="understood">开始编织 →</button>
+      <button id="close-help" class="primary-button" data-i18n="closeHelp">回到工作台 →</button>
     </dialog>
     <dialog id="result" aria-labelledby="result-title">
-      <div class="result-symbol" aria-hidden="true">✳</div>
-      <p class="eyebrow" id="result-kicker"></p>
+      <p id="result-kicker" class="eyebrow"></p>
       <h2 id="result-title"></h2>
       <p id="result-copy"></p>
-      <div id="result-echoes"></div>
-      <div class="result-actions">
-        <button id="continue" class="primary-button"></button
-        ><button id="result-close" class="text-button" data-i18n="backBoard">返回编织台</button>
-      </div>
+      <div id="result-arrivals"></div>
+      <button id="continue" class="primary-button"></button
+      ><button id="result-close" class="text-button" data-i18n="backBoard">留在棋盘查看轨迹</button>
     </dialog>
     <script type="module" src="./main.mjs"></script>
   </body>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+  <script src="./dev-mode.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#ead0a7" />
+    <meta
+      name="description"
+      content="安排倒茶与屏风，让每个人记住不同的位置。八关暖心生日惊喜谜题，支持触屏拖拽与免费撤销。"
+    />
+    <title>惊喜别穿帮</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='23' width='44' height='35' rx='5' fill='%23e96554' stroke='%23513430' stroke-width='3'/%3E%3Cpath d='M29 21C4 19 20-2 32 20C43-1 61 19 35 21M32 23V58M9 27H55' fill='none' stroke='%23ffd575' stroke-width='7'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body data-phase="loading">
+    <main id="game" class="game" aria-label="惊喜别穿帮游戏" data-ready="false">
+      <section class="scene" aria-label="生日客厅">
+        <div id="room-art" class="room-art" aria-hidden="true"></div>
+        <header class="masthead">
+          <div class="confetti-title" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <h1><span>惊喜</span><span>别穿帮</span></h1>
+          <p class="rule-ribbon">没看到的人，不会更新记忆</p>
+        </header>
+        <nav class="scene-nav" aria-label="游戏设置">
+          <button id="level-menu" class="tiny-button level-chip" aria-label="选择关卡">
+            01 / 08
+          </button>
+          <button id="sound" class="tiny-button" aria-label="关闭声音"></button>
+          <button id="fullscreen" class="tiny-button" aria-label="进入全屏"></button>
+          <button id="pause" class="tiny-button" aria-label="暂停"></button>
+        </nav>
+        <div class="chapter-label">
+          <span id="chapter-number">第一幕</span><b id="level-title">正在准备惊喜…</b>
+        </div>
+        <div id="item-picker" class="item-picker" aria-label="选择搬运物品"></div>
+        <div class="boxes" aria-label="放置物品的箱子">
+          <button id="box-red" class="box box-red" data-box="red" aria-label="搬到红箱"></button>
+          <button id="box-blue" class="box box-blue" data-box="blue" aria-label="搬到蓝箱"></button>
+          <button
+            id="box-green"
+            class="box box-green"
+            data-box="green"
+            aria-label="搬到绿箱"
+          ></button>
+        </div>
+        <div id="item-layer" class="item-layer"></div>
+        <p id="truth" class="truth-badge"></p>
+        <button
+          id="memory-blue"
+          class="memory memory-blue"
+          aria-label="查看小蓝的目击记录"
+        ></button>
+        <button
+          id="memory-orange"
+          class="memory memory-orange"
+          aria-label="查看小橙的目击记录"
+        ></button>
+        <button
+          id="character-blue"
+          data-character="blue"
+          class="character character-blue"
+          aria-label="请小蓝去倒茶"
+        ></button>
+        <button
+          id="character-orange"
+          data-character="orange"
+          class="character character-orange"
+          aria-label="请小橙去倒茶"
+        ></button>
+        <button id="tea-zone" class="tea-zone" aria-label="叫倒茶的伙伴回来">
+          <span>请人倒茶<br />暂时离开</span>
+        </button>
+        <button
+          id="screen-prop"
+          class="screen-prop"
+          data-drag="screen"
+          aria-label="选择屏风遮挡人物"
+        ></button>
+        <div id="move-token" class="move-token" hidden aria-hidden="true"></div>
+        <p id="scene-feedback" class="scene-feedback" aria-live="polite"></p>
+        <div id="celebration" class="celebration" aria-hidden="true"></div>
+      </section>
+      <section class="control-dock" aria-label="安排惊喜">
+        <div class="action-row">
+          <button id="move" class="action-button action-move">
+            <span class="action-icon"></span><span><b>搬礼物</b><small>拖到另一个箱子</small></span>
+          </button>
+          <button id="tea" class="action-button action-tea">
+            <span class="action-icon"></span
+            ><span><b>请人倒茶</b><small>再点伙伴叫回来</small></span>
+          </button>
+          <button id="screen" class="action-button action-screen">
+            <span class="action-icon"></span
+            ><span><b>遮挡一次</b><small id="screen-count">下一次搬运</small></span>
+          </button>
+        </div>
+        <button id="objective" class="objective-strip">
+          <span class="goal-flag"></span
+          ><span><small id="goal-label">这一关的小心愿</small><b id="goal-summary"></b></span
+          ><span class="detail-arrow">›</span>
+        </button>
+        <div class="bottom-row">
+          <button id="undo" class="utility-button" aria-label="免费撤销上一步">
+            <span></span><small>撤销</small>
+          </button>
+          <button id="timeline" class="utility-button" aria-label="查看时间轴与回放">
+            <span></span><small>时间轴</small>
+          </button>
+          <button id="hint" class="utility-button" aria-label="查看免费线索">
+            <span>?</span><small>线索</small>
+          </button>
+          <button id="reveal" class="reveal-button"><span>揭开惊喜</span><i>→</i></button>
+        </div>
+        <div class="footnote">
+          <span id="steps">0 步安排 · 随时撤销</span><span>你知道，他们未必知道</span>
+        </div>
+      </section>
+    </main>
+    <dialog id="modal" class="modal" aria-labelledby="modal-title">
+      <div class="modal-paper">
+        <header>
+          <h2 id="modal-title"></h2>
+          <button id="modal-close" class="tiny-button" aria-label="关闭">×</button>
+        </header>
+        <div id="modal-body"></div>
+      </div>
+    </dialog>
+    <div id="drag-ghost" class="drag-ghost" hidden aria-hidden="true"></div>
+    <noscript>请启用 JavaScript 来安排生日惊喜。</noscript>
+  </body>
+</html>

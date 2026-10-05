@@ -1,0 +1,20 @@
+[
+  {
+    "id": "birthday",
+    "name": "生日客厅",
+    "banner": "HAPPY BIRTHDAY",
+    "palette": { "wall": "#f4ccb2", "floor": "#d8a276", "accent": "#e78e87", "curtain": "#e8a29c" }
+  },
+  {
+    "id": "afternoon",
+    "name": "午后茶会",
+    "banner": "A LITTLE SURPRISE",
+    "palette": { "wall": "#ead7ad", "floor": "#d2a578", "accent": "#a4b785", "curtain": "#bdc798" }
+  },
+  {
+    "id": "twilight",
+    "name": "烛光派对",
+    "banner": "MAKE A WISH",
+    "palette": { "wall": "#e4c8d2", "floor": "#c99983", "accent": "#b7a4d6", "curtain": "#c3a0b8" }
+  }
+]

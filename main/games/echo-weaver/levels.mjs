@@ -1,361 +1,208 @@
 /**
- * Add a level by adding data here: no rendering or simulation changes needed.
- * Targets and path lengths use ticks, four ticks per displayed beat. A splitter
- * distributes one pulse's 300 energy; distance costs 4/unit and reflections 6.
+ * Hand-authored spatial puzzles. A cell of travel costs one simulation tick;
+ * four ticks make one displayed beat. Pieces can occupy any legal empty cell.
+ * `solution` is a regression fixture, never an input to the simulation or UI.
+ * Alternative constructions are accepted when their actual arrivals match.
  */
-const path = (label, labelZh, length, reflections = 0, loss = 0, blocked = false) => ({
-  label,
-  labelZh,
-  length,
-  reflections,
-  loss,
-  delay: 0,
-  ...(blocked ? { blocked: true } : {}),
-});
-const hold = (delay, loss = delay * 2) => ({
-  label: delay ? `Hold +${delay / 4} beat` : 'Pass through',
-  labelZh: delay ? `停留 +${delay / 4} 拍` : '直接通过',
-  length: 0,
-  reflections: 0,
-  loss,
-  delay,
-});
-const reflector = (id, options, initial = 0) => ({ id, kind: 'reflector', initial, options });
-const chamber = (id, delays, initial = 0) => ({
-  id,
-  kind: 'delay',
-  initial,
-  options: delays.map((value) => hold(value)),
-});
-const route = (id, stages) => ({
-  id,
-  name: { a: 'First echo', b: 'Second echo', c: 'Third echo' }[id],
-  nameZh: { a: '第一道回声', b: '第二道回声', c: '第三道回声' }[id],
-  baseLength: 0,
-  baseLoss: 0,
-  stages,
-});
-const fixed = (id, length, reflections = 0) =>
-  reflector(`${id}-mirror`, [path('Fixed path', '固定声路', length, reflections)]);
-const balanced = { label: 'Even split', labelZh: '均分', energy: [100, 100, 100] };
-const far = { label: 'Favor the third', labelZh: '偏向第三路', energy: [65, 90, 145] };
-const near = { label: 'Favor the first', labelZh: '偏向第一路', energy: [145, 90, 65] };
 const defaults = {
+  cols: 8,
+  rows: 8,
   ticksPerBeat: 4,
-  beatMs: 850,
-  targets: [4, 8, 12],
-  minEnergy: 18,
-  lossPerUnit: 4,
-  reflectionLoss: 6,
+  beatMs: 800,
+  sourceEnergy: 240,
+  minEnergy: 12,
+  travelLoss: 1,
+  reflectionLoss: 2,
+  splitterLoss: 2,
+  delayLoss: 1,
+  maxTicks: 100,
+  walls: [],
+  absorbers: [],
+  fixed: [],
 };
-const level = (data) => ({ ...defaults, splitter: { modes: [balanced], initial: 0 }, ...data });
+const cell = (x, y) => ({ x, y });
+const piece = (id, type, orientation = '/', x = null, y = null, delayTicks) => ({
+  id,
+  type,
+  orientation,
+  x,
+  y,
+  ...(delayTicks === undefined ? {} : { delayTicks }),
+});
+const mirror = (id, orientation = '/', x = null, y = null) =>
+  piece(id, 'mirror', orientation, x, y);
+const fork = (id, orientation = '/', x = null, y = null) =>
+  piece(id, 'splitter', orientation, x, y);
+const delay = (id, ticks, x = null, y = null) => piece(id, 'delay', '/', x, y, ticks);
+const pose = (id, x, y, orientation = '/') => ({ id, x, y, orientation });
+const level = (data) => ({ ...defaults, ...data });
 
 export const LEVELS = [
   level({
-    id: 'the-long-way',
-    tip: 'Tap the amber reflector. Take the long way to beat 2.',
-    tipZh: '点黄色反射板。绕远一点，在第 2 拍抵达。',
-    title: 'The long way',
-    titleZh: '绕远一点',
-    subtitle: 'Distance makes a rhythm',
-    subtitleZh: '路程，就是节拍',
+    id: 'grid-detour',
+    title: 'Take the long way',
+    titleZh: '绕远才准时',
+    subtitle: 'A connection is only the beginning',
+    subtitleZh: '接通声路，只是开始',
     intro:
-      'One pulse becomes three echoes. Tap the amber reflector to make its path longer, then strike. The second echo belongs on beat 2.',
+      'The direct echo arrives too early. Place mirrors to make a real detour. Drag a piece onto the board; select a placed mirror, then tap it again to rotate.',
+    introZh: '直达会早到。把反射板放进棋盘，让声波真正绕远。拖放元件，点选反射板，再点一次可旋转。',
+    hint: 'The direct path is 6 cells; the target is 12 ticks. A detour adds both the outward and return distance. The wall leaves a gap above it.',
+    hintZh: '直达是 6 格，目标是 12 格时间。绕出去和绕回来都计入路程；墙的上方留着通道。',
+    source: { x: 0, y: 4, dir: 'E' },
+    receiver: cell(6, 4),
+    targets: [12],
+    walls: [cell(3, 2), cell(3, 3), cell(3, 5), cell(3, 6), cell(3, 7)],
+    inventory: [mirror('turn-out'), mirror('turn-across'), mirror('turn-back'), mirror('turn-in')],
+    solution: [
+      pose('turn-out', 1, 4),
+      pose('turn-across', 1, 1),
+      pose('turn-back', 5, 1, '\\'),
+      pose('turn-in', 5, 4, '\\'),
+    ],
+  }),
+  level({
+    id: 'grid-two-echoes',
+    title: 'One voice, two ways',
+    titleZh: '两条路，一声响',
+    subtitle: 'Build a fork, then bring both echoes home',
+    subtitleZh: '分出去，还要接回来',
+    intro:
+      'The splitter sends half the pulse straight on and half around its corner. Route both echoes around the wall, arriving at different times. Every emitted echo must return.',
     introZh:
-      '一次敲击会分出三道回声。点击黄色反射板让声路绕远，再发声；第二道回声应在第 2 拍到达。',
-    hint: 'The amber path needs 8 units. Four units take one beat; a longer route arrives later.',
-    hintZh: '黄色声路需要 8 格。每 4 格走一拍；绕远是为了晚到。',
-    routes: [
-      route('a', [fixed('a', 4)]),
-      route('b', [
-        reflector('b-mirror', [
-          path('Shortcut', '近路', 4),
-          path('Around the wall', '绕过墙角', 8, 1),
-          path('Outer loop', '外圈绕行', 12, 2),
-        ]),
-      ]),
-      route('c', [fixed('c', 12, 2)]),
+      '分声器让一半声音直行、一半转弯。把两路绕过墙接回终点，还要错开到达时间。每一道分出的回声都必须回来。',
+    hint: 'You have five mirrors and one movable splitter. The 13-tick route needs two more cells than the 11-tick route; try opposite sides of the wall.',
+    hintZh: '你有五块反射板和一个可移动分声器。13 格路线比 11 格路线多走两格；试着从墙的两侧绕行。',
+    source: { x: 0, y: 4, dir: 'E' },
+    receiver: cell(7, 4),
+    targets: [11, 13],
+    walls: [cell(5, 2), cell(5, 3), cell(5, 4), cell(5, 5)],
+    inventory: [
+      fork('fork', '/', 2, 4),
+      mirror('upper-in'),
+      mirror('upper-out'),
+      mirror('lower-in'),
+      mirror('lower-across'),
+      mirror('lower-out'),
     ],
-    solution: { splitter: 0, choices: { 'a-mirror': 0, 'b-mirror': 1, 'c-mirror': 0 } },
+    solution: [
+      pose('fork', 2, 4),
+      pose('upper-in', 2, 1),
+      pose('upper-out', 7, 1, '\\'),
+      pose('lower-in', 4, 4, '\\'),
+      pose('lower-across', 4, 6, '\\'),
+      pose('lower-out', 7, 6),
+    ],
   }),
   level({
-    id: 'room-for-three',
-    tip: 'The rose echo needs a longer route to reach beat 3.',
-    tipZh: '点粉色反射板。第三声，需要更远的路。',
-    title: 'Room for three',
-    titleZh: '留给第三拍',
-    subtitle: 'The latest echo travels farthest',
-    subtitleZh: '最后一声，走最远的路',
+    id: 'grid-three-echoes',
+    title: 'Weave three returns',
+    titleZh: '三声织成节奏',
+    subtitle: 'Two forks, three journeys',
+    subtitleZh: '两次分声，三种路程',
     intro:
-      'The first two echoes already know their beats. Turn the rose reflector until the third echo has enough distance to arrive on beat 3.',
-    introZh: '前两道回声已对准节拍。转动粉色反射板，为第三道回声留足路程，让它在第 3 拍到达。',
-    hint: 'The rose echo needs 12 units, not the shortest route. A 10-unit path still arrives half a beat early.',
-    hintZh: '粉色声路需要 12 格。10 格仍会早到半拍，最短路线并非答案。',
-    routes: [
-      route('a', [fixed('a', 4)]),
-      route('b', [fixed('b', 8, 1)]),
-      route('c', [
-        reflector('c-mirror', [
-          path('Shortcut', '近路', 6),
-          path('Middle loop', '中圈绕行', 10, 1),
-          path('Full loop', '完整绕行', 12, 2),
-        ]),
-      ]),
-    ],
-    solution: { splitter: 0, choices: { 'a-mirror': 0, 'b-mirror': 0, 'c-mirror': 2 } },
-  }),
-  level({
-    id: 'three-voices',
-    tip: 'Three reflectors, three journeys. Aim for beats 1, 2 and 3.',
-    tipZh: '三块反射板，三道回声。对准 1、2、3 拍。',
-    title: 'Three voices',
-    titleZh: '三声合奏',
-    subtitle: 'Weave every arrival',
-    subtitleZh: '编排每一次抵达',
-    intro:
-      'All three reflectors are yours now. Build three different path lengths so a single strike returns on beats 1, 2 and 3.',
-    introZh: '现在三块反射板都由你调整。编出三种不同长度，让一次发声在第 1、2、3 拍依次返回。',
-    hint: 'Look for 4 / 8 / 12 units. If an echo is late, shorten only its own route.',
-    hintZh: '寻找 4 / 8 / 12 格的组合。某一道回声晚了，就只缩短它的路线。',
-    routes: [
-      route('a', [
-        reflector('a-mirror', [
-          path('Inner path', '内侧声路', 2),
-          path('Corner path', '转角声路', 4, 1),
-          path('Outer path', '外侧声路', 6, 1),
-        ]),
-      ]),
-      route('b', [
-        reflector(
-          'b-mirror',
-          [
-            path('Shortcut', '近路', 4),
-            path('Wide turn', '宽弯', 8, 1),
-            path('Outer turn', '外弯', 10, 2),
-          ],
-          2,
-        ),
-      ]),
-      route('c', [
-        reflector(
-          'c-mirror',
-          [
-            path('Near loop', '近圈', 8, 1),
-            path('Full loop', '整圈', 12, 2),
-            path('Long loop', '长圈', 16, 2),
-          ],
-          2,
-        ),
-      ]),
-    ],
-    solution: { splitter: 0, choices: { 'a-mirror': 1, 'b-mirror': 1, 'c-mirror': 1 } },
-  }),
-  level({
-    id: 'hold-the-echo',
-    tip: 'Tap + to hold an echo. A little waiting completes the rhythm.',
-    tipZh: '点「＋」调整延迟。等一等，补齐节拍。',
-    title: 'Hold the echo',
-    titleZh: '让回声等一等',
-    subtitle: 'A delay adds time, not distance',
-    subtitleZh: '延迟增加时间，不增加路程',
-    intro:
-      'Delay chambers hold an echo before releasing it. Tap a chamber to add the missing time; every hold also uses a little energy.',
-    introZh: '延迟段会先留住回声，再放它通过。点击延迟段补上缺少的时间；停留也会消耗少量能量。',
-    hint: 'Amber: 6 units + 2 ticks of hold. Rose: 9 units + 3 ticks. Four ticks equal one beat.',
-    hintZh: '黄色：6 格 + 停留 2 格时间。粉色：9 格 + 停留 3 格时间。4 格时间等于 1 拍。',
-    routes: [
-      route('a', [fixed('a', 4)]),
-      route('b', [
-        reflector(
-          'b-mirror',
-          [path('Short turn', '短弯', 6, 1), path('Long turn', '长弯', 10, 2)],
-          1,
-        ),
-        chamber('b-delay', [0, 2, 4]),
-      ]),
-      route('c', [fixed('c', 9, 1), chamber('c-delay', [0, 3, 5])]),
-    ],
-    solution: {
-      splitter: 0,
-      choices: { 'a-mirror': 0, 'b-mirror': 0, 'b-delay': 1, 'c-mirror': 0, 'c-delay': 1 },
-    },
-  }),
-  level({
-    id: 'keep-it-alive',
-    tip: 'Same arrival, different energy. Avoid too many reflections.',
-    tipZh: '同样准时，不同损耗。减少反射，留住余音。',
-    title: 'Keep it alive',
-    titleZh: '留住余音',
-    subtitle: 'On time is only half the story',
-    subtitleZh: '准时，也要听得见',
-    intro:
-      'These paths can arrive on time and still fail. Each reflection spends 6 energy; an echo needs at least 18 energy to light the receiver.',
+      'Build the whole circuit from six pieces. One echo takes the direct route; the other two need different detours. A splitter is part of a route, so its position affects everything after it.',
     introZh:
-      '即使准时抵达，声音太弱也会失败。每次反射损耗 6 点能量；到达时至少剩 18 点才能点亮接收器。',
-    hint: 'Choose the smooth amber and rose routes. They have the same length as the zigzags, but far fewer reflections.',
-    hintZh: '选黄色和粉色的平缓路线。它们与折返路线等长，但反射次数更少。',
-    routes: [
-      route('a', [fixed('a', 4)]),
-      route('b', [
-        reflector(
-          'b-mirror',
-          [path('Smooth bend', '平缓弯道', 8, 1), path('Nine reflections', '九次折返', 8, 9)],
-          1,
-        ),
-      ]),
-      route('c', [
-        reflector(
-          'c-mirror',
-          [path('Smooth loop', '平缓绕行', 12, 2), path('Six reflections', '六次折返', 12, 6)],
-          1,
-        ),
-      ]),
+      '用六个元件搭出完整声路。第一声可以直达，另外两声需要不同的绕路。分声点也是路线的一部分，位置会影响后续所有回声。',
+    hint: 'Split once, then split only one of those two branches again. The three paths need 7, 11 and 15 cells. Use the openings above and below the walls.',
+    hintZh: '先分成两路，只让其中一路再次分声。三条声路需要 7、11、15 格；利用墙的上、下方空隙。',
+    source: { x: 0, y: 4, dir: 'E' },
+    receiver: cell(7, 4),
+    targets: [7, 11, 15],
+    walls: [cell(3, 1), cell(3, 2), cell(3, 3), cell(5, 5)],
+    inventory: [
+      fork('first-fork'),
+      fork('second-fork'),
+      mirror('upper-in'),
+      mirror('upper-out'),
+      mirror('lower-in'),
+      mirror('lower-out'),
     ],
-    solution: { splitter: 0, choices: { 'a-mirror': 0, 'b-mirror': 0, 'c-mirror': 0 } },
+    solution: [
+      pose('first-fork', 2, 4),
+      pose('second-fork', 4, 4, '\\'),
+      pose('upper-in', 2, 0),
+      pose('upper-out', 7, 0, '\\'),
+      pose('lower-in', 4, 6, '\\'),
+      pose('lower-out', 7, 6),
+    ],
   }),
   level({
-    id: 'share-the-breath',
-    tip: 'Tap the splitter. Give the longest route more energy.',
-    tipZh: '点中央分声器。给最远的路线更多能量。',
-    title: 'Share the breath',
-    titleZh: '分配一口气',
-    subtitle: 'The long route needs a stronger start',
-    subtitleZh: '远路，需要更响的起点',
+    id: 'grid-shared-wait',
+    title: 'One shared wait',
+    titleZh: '同一段等待',
+    subtitle: 'Change two echoes with one placement',
+    subtitleZh: '一次放置，影响两道回声',
     intro:
-      'Tap the central splitter to redistribute the same 300 energy. The third route loses more along the way, so an even split may not be enough.',
-    introZh: '点击中央分声器，重新分配同一束声音的 300 点能量。第三路损耗更大，平均分配可能不够。',
-    hint: 'Favor the third echo (65 / 90 / 145), then set the amber and rose paths to 8 and 12 units.',
-    hintZh: '让分声器偏向第三路（65 / 90 / 145），再把黄色和粉色路线设为 8 格与 12 格。',
-    splitter: { modes: [balanced, far, near], initial: 0 },
-    routes: [
-      route('a', [fixed('a', 4)]),
-      route('b', [
-        reflector(
-          'b-mirror',
-          [path('Wide bend', '宽弯', 8, 2), path('Near bend', '近弯', 6, 1)],
-          1,
-        ),
-      ]),
-      route('c', [
-        reflector(
-          'c-mirror',
-          [
-            path('Damped loop', '吸音长圈', 12, 5, 8),
-            path('Short loop', '短圈', 10, 1),
-            path('Outer loop', '外圈', 14, 2),
-          ],
-          1,
-        ),
-      ]),
-    ],
-    solution: { splitter: 1, choices: { 'a-mirror': 0, 'b-mirror': 0, 'c-mirror': 0 } },
-  }),
-  level({
-    id: 'silence-in-the-walls',
-    tip: 'Route around dark absorbers. Delays can restore the beat.',
-    tipZh: '绕开深色吸音块，再用延迟补齐节拍。',
-    title: 'Silence in the walls',
-    titleZh: '墙里的寂静',
-    subtitle: 'An absorber ends a route',
-    subtitleZh: '吸音块，让声路归零',
-    intro:
-      'Dark absorbers swallow a pulse completely. Find a clear detour, then use a delay chamber to restore the missing beat.',
-    introZh: '深色吸音块会完全吞掉声波。先绕开它，再用延迟段补齐节拍。',
-    hint: 'Amber needs the clear 8-unit bend. Rose can take 9 units + 3 ticks, or 7 units + 5 ticks.',
-    hintZh: '黄色走畅通的 8 格弯道；粉色可选 9 格 + 停留 3 格时间，或 7 格 + 停留 5 格时间。',
-    routes: [
-      route('a', [
-        reflector(
-          'a-mirror',
-          [path('Clear path', '畅通声路', 4), path('Long corner', '长转角', 6, 1)],
-          1,
-        ),
-      ]),
-      route('b', [
-        reflector('b-mirror', [
-          path('Absorber ahead', '吸音块阻挡', 4, 0, 0, true),
-          path('Clear bend', '绕开吸音块', 8, 2),
-          path('Outer bend', '外侧绕行', 10, 2),
-        ]),
-      ]),
-      route('c', [
-        reflector('c-mirror', [
-          path('Absorber ahead', '吸音块阻挡', 12, 1, 0, true),
-          path('Clear loop', '畅通长圈', 9, 1),
-          path('Inner loop', '畅通内圈', 7, 2),
-        ]),
-        chamber('c-delay', [0, 3, 5]),
-      ]),
-    ],
-    solution: {
-      splitter: 0,
-      choices: { 'a-mirror': 0, 'b-mirror': 1, 'c-mirror': 1, 'c-delay': 1 },
-    },
-  }),
-  level({
-    id: 'the-weaver',
-    tip: 'Routes, delays, energy. Weave everything together.',
-    tipZh: '路线、延迟、能量。把所有技巧编在一起。',
-    title: 'The weaver',
-    titleZh: '回声编织者',
-    subtitle: 'One strike. Three perfect returns.',
-    subtitleZh: '一次发声，三次完美归来',
-    intro:
-      'Combine everything: choose clean paths, hold each echo, and feed the longest route. Timing, reflection loss and absorption all matter.',
+      'All three echoes already return, but two are early. Rebuild their detours and place the one +2 delay. Where you put the delay decides whether one, two or all three echoes wait.',
     introZh:
-      '把所有技巧编在一起：选好路线，让回声停留，并给远路更多能量。时间、反射损耗与吸音缺一不可。',
-    hint: 'Favor the third. Use path lengths 2 / 6 / 8 and holds 2 / 2 / 4 ticks. The routes that look ready-made waste too much energy.',
+      '三道回声已经接通，但后两声都早了。重排绕路，再放好唯一的 +2 延迟段。位置不同，会让一道、两道或全部回声一起等待。',
+    hint: 'Keep the first return at 8 ticks. Extend both outer routes, then put the delay on the shared segment between the two splitters. Waiting before the first fork would also delay the first echo.',
     hintZh:
-      '偏向第三路。路程选 2 / 6 / 8 格，停留选 2 / 2 / 4 格时间。看似现成的路线会损失过多能量。',
-    splitter: { modes: [balanced, far, near], initial: 0 },
-    routes: [
-      route('a', [
-        reflector(
-          'a-mirror',
-          [
-            path('Inner path', '内侧声路', 2),
-            path('Tight zigzag', '密集折返', 4, 6),
-            path('Outer path', '外侧声路', 6, 1),
-          ],
-          2,
-        ),
-        chamber('a-delay', [0, 2, 4]),
-      ]),
-      route('b', [
-        reflector(
-          'b-mirror',
-          [
-            path('Clean detour', '通畅绕行', 6, 3),
-            path('Tight zigzag', '密集折返', 8, 9),
-            path('Outer detour', '外围绕行', 10, 1),
-          ],
-          2,
-        ),
-        chamber('b-delay', [0, 2, 4]),
-      ]),
-      route('c', [
-        reflector(
-          'c-mirror',
-          [
-            path('Damped detour', '吸音绕行', 8, 7, 8),
-            path('Deep zigzag', '深处折返', 10, 12, 16),
-            path('Absorber ahead', '吸音块阻挡', 12, 1, 0, true),
-          ],
-          2,
-        ),
-        chamber('c-delay', [0, 2, 4]),
-      ]),
+      '保住第 8 格的第一声。把上、下绕路各延长，再让延迟段落在两个分声器之间。放在第一次分声之前，会把第一声也拖晚。',
+    source: { x: 1, y: 4, dir: 'E' },
+    receiver: cell(7, 4),
+    targets: [8, 16, 24],
+    walls: [cell(2, 3), cell(3, 3), cell(5, 2), cell(5, 3)],
+    fixed: [delay('fixed-first-hold', 2, 6, 4)],
+    inventory: [
+      fork('first-fork', '/', 4, 4),
+      fork('second-fork', '\\', 4, 2),
+      mirror('upper-in', '/', 4, 1),
+      mirror('upper-out', '\\', 7, 1),
+      mirror('lower-in', '/', 0, 2),
+      mirror('lower-across', '\\', 0, 5),
+      mirror('lower-out', '/', 7, 5),
+      delay('shared-delay', 2),
     ],
-    solution: {
-      splitter: 1,
-      choices: {
-        'a-mirror': 0,
-        'a-delay': 1,
-        'b-mirror': 0,
-        'b-delay': 1,
-        'c-mirror': 0,
-        'c-delay': 2,
-      },
-    },
+    solution: [
+      pose('first-fork', 4, 4),
+      pose('second-fork', 4, 2, '\\'),
+      pose('upper-in', 4, 0),
+      pose('upper-out', 7, 0, '\\'),
+      pose('lower-in', 0, 2),
+      pose('lower-across', 0, 6, '\\'),
+      pose('lower-out', 7, 6),
+      pose('shared-delay', 4, 3),
+    ],
+  }),
+  level({
+    id: 'grid-first-share',
+    title: 'The fading third echo',
+    titleZh: '微弱的第三声',
+    subtitle: 'The rhythm is right. One voice is missing.',
+    subtitleZh: '节拍正确，却少了一道回声',
+    intro:
+      'The three routes have the right timing, but one echo fades in the absorber. Keep the rhythm and rebuild the circuit so all three voices return with enough energy.',
+    introZh:
+      '三条声路的节拍已经对上，却有一道回声消失在吸音地格。保持目标节奏，重新安排器件，让三道回声都带着足够的能量回来。',
+    hint: 'The long upper route needs half the pulse, rather than a quarter. Send it out at the first splitter. Move the lower turn and the +4 delay with their routes; extra distance still changes the rhythm.',
+    hintZh:
+      '上方长路需要第一次分声的一半能量，不能等到第二次只剩四分之一。调整两个分声器，并随路线移动转角和 +4 延迟；多走的格子仍会影响节拍。',
+    cols: 9,
+    rows: 9,
+    source: { x: 0, y: 4, dir: 'E' },
+    receiver: cell(8, 4),
+    targets: [8, 12, 20],
+    walls: [cell(4, 1), cell(4, 2), cell(4, 3), cell(4, 5)],
+    absorbers: [{ x: 8, y: 1, loss: 30 }],
+    inventory: [
+      fork('first-fork', '\\', 2, 4),
+      fork('second-fork', '/', 5, 4),
+      mirror('upper-in', '/', 5, 0),
+      mirror('upper-out', '\\', 8, 0),
+      mirror('lower-in', '\\', 2, 6),
+      mirror('lower-out', '/', 8, 6),
+      delay('long-delay', 4, 5, 2),
+    ],
+    solution: [
+      pose('first-fork', 2, 4),
+      pose('second-fork', 5, 4, '\\'),
+      pose('upper-in', 2, 0),
+      pose('upper-out', 8, 0, '\\'),
+      pose('lower-in', 5, 6, '\\'),
+      pose('lower-out', 8, 6),
+      pose('long-delay', 2, 2),
+    ],
   }),
 ];

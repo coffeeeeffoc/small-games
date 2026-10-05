@@ -1,9 +1,43 @@
+import { ENEMIES, SEEDS } from './config.mjs';
+import { clientToElement } from './display.mjs';
+import { getRunLevel } from './simulation.mjs';
+import * as CONTENT from './config.mjs';
+import {
+  tint,
+  drawMapGround,
+  drawMapWall,
+  drawMapLandmark,
+  drawWeatherGround,
+  drawWeatherParticles,
+} from './scenery-renderer.mjs';
+import {
+  drawEnemy,
+  drawAdditionalPlant,
+  drawPet,
+  drawHeartIcon,
+  drawShieldIcon,
+  drawCombatTelegraph,
+} from './ecology-renderer.mjs';
+
 /* Bullet Garden's illustrated world. All artwork is generated locally; there are no
  * remote textures or runtime art dependencies. Simulation coordinates are ground
  * contacts, which lets new plants and enemies share the same depth ordering. */
 
 const TAU = Math.PI * 2;
-const COLORS = { thorn: '#a2e866', ice: '#75ddff', mushroom: '#ffc26c', normal: '#ff83dc' };
+const COLORS = {
+  thorn: '#a2e866',
+  ice: '#75ddff',
+  mushroom: '#ffc26c',
+  normal: '#ff83dc',
+  fire: '#ff9a61',
+  explosive: '#ffca73',
+  split: '#e2bbff',
+  enemy: '#ff906d',
+  sunflower: '#f5d467',
+  stormreed: '#79dfef',
+  bloomturret: '#f193d4',
+  hostile: '#ff906d',
+};
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const noise = (n) => {
   const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
@@ -253,20 +287,26 @@ function fire(c, x, y, t, scale = 1) {
   c.restore();
 }
 
-function createBackdrop() {
+function createBackdrop(level = {}) {
+  const palette = {
+    ground: '#a49773',
+    accent: '#ffe3ac',
+    sky: '#182e29',
+    ...level.visual?.palette,
+  };
   const canvas = document.createElement('canvas');
   canvas.width = 1680;
   canvas.height = 1120;
   const c = canvas.getContext('2d');
   c.translate(120, 110);
-  c.fillStyle = '#182e29';
+  c.fillStyle = palette.sky;
   c.fillRect(-120, -110, 1680, 1120);
   const garden = gradient(c, 0, 50, 1350, 860, [
-    [0, '#596653'],
-    [0.23, '#8a8666'],
-    [0.5, '#a49773'],
-    [0.82, '#7f8466'],
-    [1, '#324f40'],
+    [0, tint(palette.ground, -40)],
+    [0.23, tint(palette.ground, -12)],
+    [0.5, tint(palette.ground, 5)],
+    [0.82, tint(palette.ground, -20)],
+    [1, tint(palette.ground, -58)],
   ]);
   c.fillStyle = garden;
   c.fillRect(15, 65, 1425, 805);
@@ -287,7 +327,7 @@ function createBackdrop() {
         [x, y + 29],
         [x - 43, y],
       ]);
-      c.fillStyle = `rgb(${tone + 43},${tone + 14},${tone - 9})`;
+      c.fillStyle = tint(palette.ground, tone - 123);
       c.fill();
       c.strokeStyle = 'rgba(69,65,47,.29)';
       c.lineWidth = 1.3;
@@ -409,7 +449,493 @@ function createBackdrop() {
     c.restore();
   }
   c.restore();
+  drawMapLandmark(c, level);
   return canvas;
+}
+
+// Fixed rounded leaf clusters keep the control plant friendly and cheap to draw.
+const SHRUB_CLUSTERS = [
+  [-28, -28, 23, 20, '#548d53'],
+  [0, -37, 25, 23, '#65a15b'],
+  [29, -26, 23, 21, '#578f50'],
+  [-40, -12, 18, 14, '#699f55'],
+  [-15, -13, 25, 21, '#77ac5e'],
+  [18, -12, 26, 22, '#6fa75a'],
+  [42, -9, 17, 13, '#5d944e'],
+];
+const SHRUB_LEAVES = [
+  [-30, -31, -0.5],
+  [-4, -46, 0.4],
+  [24, -29, 0.65],
+  [-14, -17, -0.45],
+  [19, -8, 0.5],
+];
+const SHRUB_FLOWERS = [
+  [-23, -19],
+  [15, -35],
+];
+function shrub(c, x, y, size = 1, age = 5, t = 0) {
+  c.save();
+  c.translate(x, y);
+  const grow = clamp(age / 0.65, 0.05, 1);
+  c.scale(size * grow, size * grow);
+  ellipse(c, 3, 6, 58, 17, 'rgba(22,46,30,.22)');
+  ellipse(c, 0, 2, 52, 15, 'rgba(135,194,99,.2)');
+  c.rotate(Math.sin(t * 1.6 + x) * 0.015);
+  for (const [cx, cy, rx, ry, color] of SHRUB_CLUSTERS) {
+    ellipse(c, cx, cy, rx, ry, color);
+    ellipse(c, cx - rx * 0.16, cy - ry * 0.4, rx * 0.64, ry * 0.43, 'rgba(179,216,131,.22)');
+  }
+  for (const [lx, ly, angle] of SHRUB_LEAVES) {
+    c.save();
+    c.translate(lx, ly);
+    c.rotate(angle);
+    ellipse(c, 0, 0, 7, 3.8, '#b2d582');
+    c.restore();
+  }
+  for (const [fx, fy] of SHRUB_FLOWERS) {
+    ellipse(c, fx - 3, fy, 3.5, 2.8, '#fff3ce');
+    ellipse(c, fx + 3, fy, 3.5, 2.8, '#fff3ce');
+    ellipse(c, fx, fy - 3, 2.8, 3.5, '#fff7dd');
+    ellipse(c, fx, fy + 3, 2.8, 3.5, '#ffeabe');
+    ellipse(c, fx, fy, 2.5, 2.5, '#edc36b');
+  }
+  c.restore();
+}
+function snowflake(c, x, y, radius, color = '#d7f8ff') {
+  c.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const angle = (i * Math.PI) / 3;
+    const dx = Math.cos(angle) * radius,
+      dy = Math.sin(angle) * radius;
+    c.moveTo(x - dx, y - dy);
+    c.lineTo(x + dx, y + dy);
+  }
+  c.strokeStyle = color;
+  c.lineWidth = 2;
+  c.stroke();
+}
+function droplet(c, x, y, radius, color) {
+  c.beginPath();
+  c.moveTo(x, y - radius);
+  c.bezierCurveTo(x - radius * 1.6, y + radius * 0.5, x - radius * 0.7, y + radius, x, y + radius);
+  c.bezierCurveTo(x + radius * 0.7, y + radius, x + radius * 1.6, y + radius * 0.5, x, y - radius);
+  c.fillStyle = color;
+  c.fill();
+}
+function terrain(c, plant, t = 0) {
+  const radius = plant.radius || 60;
+  const grow = clamp((plant.age ?? 5) / 0.55, 0.05, 1);
+  c.save();
+  c.globalAlpha *= clamp(((plant.life ?? 99) - (plant.age ?? 5)) / 1.5, 0, 1);
+  c.translate(plant.x, plant.y);
+  c.scale(grow, grow);
+  if (plant.kind === 'trench') {
+    // The rim follows the same 0.45 ellipse as the simulation's ditch.
+    ellipse(c, 0, 0, radius, radius * 0.45, '#a8875e', '#d6b585', 3);
+    ellipse(c, 0, 2, radius * 0.9, radius * 0.35, '#635443');
+    ellipse(c, 0, 7, radius * 0.75, radius * 0.23, '#7c6850');
+    for (let i = 0; i < 6; i++) {
+      const x = (i - 2.5) * radius * 0.26;
+      ellipse(c, x, Math.sin(i * 2) * radius * 0.14, 6, 3, '#a58b62');
+    }
+    c.strokeStyle = '#d1b082';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(-radius * 0.6, -radius * 0.19);
+    c.lineTo(-radius * 0.54, -radius * 0.33);
+    c.moveTo(radius * 0.3, -radius * 0.25);
+    c.lineTo(radius * 0.33, -radius * 0.4);
+    c.stroke();
+  } else if (plant.kind === 'frost') {
+    ellipse(c, 0, 0, radius, radius, 'rgba(123,215,247,.24)', '#9bdfef', 2);
+    ellipse(c, 0, 0, radius * 0.73, radius * 0.73, 'rgba(179,239,250,.18)');
+    c.beginPath();
+    c.moveTo(-radius * 0.82, radius * 0.12);
+    c.lineTo(-radius * 0.15, -radius * 0.23);
+    c.lineTo(radius * 0.65, radius * 0.37);
+    c.moveTo(-radius * 0.15, -radius * 0.23);
+    c.lineTo(radius * 0.2, -radius * 0.79);
+    c.strokeStyle = 'rgba(225,251,255,.65)';
+    c.lineWidth = 2;
+    c.stroke();
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * TAU) / 4 + 0.4;
+      snowflake(c, Math.cos(angle) * radius * 0.56, Math.sin(angle) * radius * 0.54, 5, '#d9f8ff');
+    }
+  } else if (plant.kind === 'poison') {
+    ellipse(c, 0, 0, radius, radius, 'rgba(141,106,171,.25)', '#bbaa87', 2);
+    ellipse(c, -radius * 0.18, radius * 0.08, radius * 0.72, radius * 0.67, 'rgba(181,152,196,.2)');
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * TAU) / 6 + 0.4;
+      const pulse = Math.sin(t * 2 + i) * 1.3;
+      ellipse(
+        c,
+        Math.cos(angle) * radius * 0.6,
+        Math.sin(angle) * radius * 0.55,
+        4 + pulse,
+        4 + pulse,
+        'rgba(229,214,163,.55)',
+      );
+    }
+    for (const side of [-1, 1]) {
+      const x = side * radius * 0.4,
+        y = side * radius * 0.25;
+      ellipse(c, x - 5, y + 4, 7, 3, '#90ad73');
+      ellipse(c, x + 5, y + 4, 7, 3, '#a9c17f');
+      ellipse(c, x - 3, y - 2, 4, 3, '#ddcae5');
+      ellipse(c, x + 3, y - 2, 4, 3, '#ddcae5');
+      ellipse(c, x, y - 5, 3, 4, '#e8d7ee');
+      ellipse(c, x, y - 1, 2.5, 2.5, '#e9df9b');
+    }
+    droplet(c, 0, -2, Math.min(10, radius * 0.15), '#c6dfa0');
+  }
+  c.restore();
+}
+function wagon(c, x, y, angle = 0, progress = 0, size = 1) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.scale(size, size);
+  ellipse(c, 0, 4, 47, 16, 'rgba(26,39,31,.23)');
+  // A timber cart: slatted box, two spoked wheels, and a leading drawbar.
+  c.strokeStyle = '#e4c58c';
+  c.lineWidth = 5;
+  c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(26, -7);
+  c.lineTo(49, -5);
+  c.stroke();
+  path(c, [
+    [-31, -36],
+    [27, -36],
+    [23, -3],
+    [-27, -3],
+  ]);
+  c.fillStyle = '#b9824d';
+  c.fill();
+  c.strokeStyle = '#e6bc79';
+  c.lineWidth = 3;
+  c.stroke();
+  c.fillStyle = '#dfb16d';
+  c.fillRect(-29, -29, 55, 6);
+  c.fillRect(-27, -14, 51, 5);
+  c.strokeStyle = '#785737';
+  c.lineWidth = 3;
+  for (let i = 0; i < 3; i++) {
+    c.beginPath();
+    c.moveTo(-18 + i * 17, -35);
+    c.lineTo(-16 + i * 16, -4);
+    c.stroke();
+  }
+  for (const wx of [-19, 19]) {
+    ellipse(c, wx, 1, 12, 12, '#5a4d3d', '#e3c08b', 3);
+    c.beginPath();
+    for (let j = 0; j < 3; j++) {
+      const a = progress * 17 + (j * Math.PI) / 3;
+      c.moveTo(wx - Math.cos(a) * 9, 1 - Math.sin(a) * 9);
+      c.lineTo(wx + Math.cos(a) * 9, 1 + Math.sin(a) * 9);
+    }
+    c.strokeStyle = '#e4be7b';
+    c.lineWidth = 2;
+    c.stroke();
+    ellipse(c, wx, 1, 3, 3, '#f5d795');
+  }
+  c.strokeStyle = '#83be91';
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(5, -36);
+  c.lineTo(5, -59);
+  c.stroke();
+  path(c, [
+    [5, -59],
+    [28, -52],
+    [5, -45],
+  ]);
+  c.fillStyle = '#b7db98';
+  c.fill();
+  c.restore();
+}
+function warhorse(c, x, y, angle = 0, progress = 0, size = 1) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.scale(size, size);
+  ellipse(c, -2, 5, 46, 14, 'rgba(26,39,31,.23)');
+  const stride = Math.sin(progress * 20) * 12;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  c.strokeStyle = '#704b36';
+  c.lineWidth = 8;
+  c.beginPath();
+  c.moveTo(-24, -22);
+  c.quadraticCurveTo(-41, -34, -44, -13);
+  c.stroke();
+  for (let i = 0; i < 4; i++) {
+    const back = i < 2,
+      baseX = back ? -20 : 18,
+      swing = (i % 2 ? -1 : 1) * stride;
+    c.strokeStyle = i % 2 ? '#855a3b' : '#b68557';
+    c.lineWidth = 7;
+    c.beginPath();
+    c.moveTo(baseX, -16);
+    c.lineTo(baseX + swing * 0.55, -4);
+    c.lineTo(baseX + swing, 8);
+    c.stroke();
+    c.strokeStyle = '#f2d8a2';
+    c.lineWidth = 5;
+    c.beginPath();
+    c.moveTo(baseX + swing - 3, 8);
+    c.lineTo(baseX + swing + 3, 8);
+    c.stroke();
+  }
+  ellipse(c, -3, -28, 31, 17, '#bc8a59');
+  path(c, [
+    [12, -35],
+    [19, -63],
+    [34, -66],
+    [36, -45],
+    [23, -20],
+  ]);
+  c.fillStyle = '#c39463';
+  c.fill();
+  path(c, [
+    [14, -39],
+    [18, -65],
+    [27, -70],
+    [22, -50],
+  ]);
+  c.fillStyle = '#684b36';
+  c.fill();
+  ellipse(c, 34, -62, 15, 10, '#d2a576');
+  ellipse(c, 44, -59, 9, 7, '#ead1a0');
+  path(c, [
+    [23, -69],
+    [25, -83],
+    [32, -71],
+    [36, -78],
+    [37, -67],
+  ]);
+  c.fillStyle = '#bd925e';
+  c.fill();
+  ellipse(c, 36, -65, 2, 2, '#303932');
+  c.fillStyle = '#658e7a';
+  c.fillRect(-13, -44, 27, 16);
+  c.strokeStyle = '#d9dcb0';
+  c.lineWidth = 3;
+  c.strokeRect(-13, -44, 27, 16);
+  c.restore();
+}
+function directionArrow(c, x, y, angle, color, size = 10) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.beginPath();
+  c.moveTo(-size, -size * 0.65);
+  c.lineTo(0, 0);
+  c.lineTo(-size, size * 0.65);
+  c.strokeStyle = color;
+  c.lineWidth = 3;
+  c.stroke();
+  c.restore();
+}
+function skillEffect(c, effect, t) {
+  const definition = CONTENT.SKILLS?.[effect.kind] || {};
+  const duration = Math.max(0.01, effect.life || definition.duration || 1);
+  const progress = clamp((effect.age || 0) / duration, 0, 1);
+  const radius = effect.radius || definition.radius || 90;
+  const color = definition.color || '#ffe4a4';
+  const angle = Math.atan2(effect.dy || 0, effect.dx ?? 1);
+  c.save();
+  if (effect.kind === 'blast') {
+    const delay = effect.delay ?? definition.delay ?? duration * 0.4;
+    const detonated = effect.triggered === true || (effect.age || 0) >= delay;
+    if (!detonated) {
+      ellipse(c, effect.x, effect.y, radius, radius, 'rgba(255,191,96,.1)', '#f4c67c', 2);
+      c.setLineDash([8, 7]);
+      ellipse(c, effect.x, effect.y, radius * 0.8, radius * 0.8, null, '#ffe8b2', 2);
+      c.setLineDash([]);
+      const countdown = clamp((effect.age || 0) / Math.max(delay, 0.01), 0, 1);
+      c.beginPath();
+      c.arc(effect.x, effect.y, 17, -Math.PI / 2, -Math.PI / 2 + TAU * countdown);
+      c.strokeStyle = '#fff4c7';
+      c.lineWidth = 4;
+      c.stroke();
+      ellipse(c, effect.x, effect.y, 6, 6, '#ffe4a5');
+    } else {
+      const burst = clamp(((effect.age || 0) - delay) / Math.max(0.01, duration - delay), 0, 1);
+      c.globalAlpha *= 1 - burst;
+      ellipse(c, effect.x, effect.y, radius, radius, 'rgba(255,197,98,.24)', '#ffe7a7', 3);
+      ellipse(
+        c,
+        effect.x,
+        effect.y,
+        radius * (0.25 + burst * 0.65),
+        radius * (0.25 + burst * 0.65),
+        'rgba(255,237,176,.26)',
+        '#fff1b5',
+        4,
+      );
+      for (let i = 0; i < 10; i++) {
+        const a = (i * TAU) / 10,
+          inner = radius * (0.3 + burst * 0.3),
+          outer = radius * (0.7 + burst * 0.3);
+        c.beginPath();
+        c.moveTo(effect.x + Math.cos(a) * inner, effect.y + Math.sin(a) * inner);
+        c.lineTo(effect.x + Math.cos(a) * outer, effect.y + Math.sin(a) * outer);
+        c.strokeStyle = '#ffe9ab';
+        c.lineWidth = 4;
+        c.stroke();
+      }
+    }
+  } else if (effect.kind === 'gale') {
+    c.globalAlpha *= Math.min(1, (1 - progress) * 5);
+    ellipse(c, effect.x, effect.y, radius, radius, 'rgba(144,221,194,.1)', '#acd7bb', 1.5);
+    for (let i = 0; i < 4; i++) {
+      const a = t * 3 + (i * TAU) / 4,
+        r = radius * (0.36 + i * 0.16);
+      c.beginPath();
+      c.arc(effect.x, effect.y, r, a, a + 1.35);
+      c.strokeStyle = i % 2 ? '#e2f5c7' : '#a8dfd2';
+      c.lineWidth = 3;
+      c.stroke();
+      directionArrow(
+        c,
+        effect.x + Math.cos(a + 1.35) * r,
+        effect.y + Math.sin(a + 1.35) * r,
+        a + 1.35 + Math.PI / 2,
+        '#e2f5c7',
+        7,
+      );
+    }
+  } else if (effect.kind === 'cart' || effect.kind === 'horse') {
+    c.globalAlpha *= Math.min(1, (1 - progress) * 6);
+    c.save();
+    c.translate(effect.x, effect.y);
+    c.rotate(angle);
+    c.strokeStyle = color;
+    c.lineWidth = 3;
+    for (let i = 0; i < 3; i++) {
+      c.beginPath();
+      c.moveTo(-54 - i * 8, -22 + i * 16);
+      c.lineTo(-80 - i * 8, -22 + i * 16);
+      c.stroke();
+    }
+    c.restore();
+    if (effect.kind === 'cart') wagon(c, effect.x, effect.y, angle, effect.age || 0);
+    else warhorse(c, effect.x, effect.y, angle, effect.age || 0);
+  } else if (effect.kind === 'laser') {
+    const startX = effect.startX ?? effect.x,
+      startY = effect.startY ?? effect.y;
+    const length = effect.length || definition.range || 500;
+    const endX = effect.targetX ?? startX + Math.cos(angle) * length;
+    const endY = effect.targetY ?? startY + Math.sin(angle) * length;
+    const width = effect.width || definition.width || 30;
+    c.globalAlpha *= Math.min(1, (1 - progress) * 5);
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(startX, startY);
+    c.lineTo(endX, endY);
+    c.strokeStyle = 'rgba(255,228,142,.2)';
+    c.lineWidth = width;
+    c.stroke();
+    c.strokeStyle = '#ffe997';
+    c.lineWidth = Math.max(5, width * 0.28);
+    c.stroke();
+    c.strokeStyle = '#fff2da';
+    c.lineWidth = 3;
+    c.stroke();
+    const pulse = ((effect.age || 0) * 3) % 1;
+    ellipse(c, startX + (endX - startX) * pulse, startY + (endY - startY) * pulse, 6, 6, '#fff6d2');
+    ellipse(c, startX, startY, 11, 11, '#fff0cf', '#e9d47c', 3);
+    directionArrow(c, endX, endY, angle, '#fff5d6', 11);
+  }
+  c.restore();
+}
+const STATUS_MARKERS = [
+  ['frozen', '#a2e5f6'],
+  ['poison', '#c3dc90'],
+  ['stunned', '#f5d27a'],
+  ['feared', '#ddc4ed'],
+  ['vulnerable', '#f5b5ca'],
+];
+function enemyStatus(c, enemy, size, t) {
+  // Gun elements are independent of boon/skill debuffs and never enter the atlas key.
+  if (enemy.chillTime > 0)
+    ellipse(
+      c,
+      enemy.x,
+      enemy.y,
+      32 * size,
+      11 * size,
+      'rgba(99,206,255,.16)',
+      'rgba(147,231,255,.6)',
+      1.5,
+    );
+  if (enemy.burnTime > 0) {
+    for (let i = 0; i < 3; i++) {
+      const x = enemy.x + (i - 1) * 17 * size;
+      const y = enemy.y + (-7 + Math.sin(t * 12 + i * 2) * 3) * size;
+      ellipse(c, x, y, 5 * size, 12 * size, '#f49445');
+      ellipse(c, x, y + 3 * size, 2.5 * size, 6 * size, '#ffdf8e');
+    }
+  }
+  if (enemy.frozen > 0) {
+    ellipse(
+      c,
+      enemy.x,
+      enemy.y - 23 * size,
+      28 * size,
+      32 * size,
+      'rgba(137,219,247,.22)',
+      '#b2e8f5',
+      1.5,
+    );
+  }
+  let count = 0;
+  for (const [key] of STATUS_MARKERS) if (enemy[key] > 0) count++;
+  if (!count) return;
+  let index = 0;
+  for (const [key, color] of STATUS_MARKERS) {
+    if (!(enemy[key] > 0)) continue;
+    const x = enemy.x + (index++ - (count - 1) / 2) * 16,
+      y = enemy.y - 91 * size;
+    ellipse(c, x, y, 7, 7, '#354d42', color, 1);
+    if (key === 'frozen') snowflake(c, x, y, 4.5, color);
+    else if (key === 'poison') droplet(c, x, y - 1, 3.5, color);
+    else if (key === 'stunned') {
+      c.save();
+      c.translate(x, y);
+      c.rotate(t * 2);
+      path(c, [
+        [0, -5],
+        [2, -2],
+        [5, 0],
+        [2, 2],
+        [0, 5],
+        [-2, 2],
+        [-5, 0],
+        [-2, -2],
+      ]);
+      c.fillStyle = color;
+      c.fill();
+      c.restore();
+    } else if (key === 'feared') {
+      c.fillStyle = color;
+      c.fillRect(x - 1, y - 4, 2, 5);
+      ellipse(c, x, y + 3, 1.2, 1.2, color);
+    } else {
+      path(c, [
+        [x, y - 4],
+        [x + 4, y],
+        [x, y + 4],
+        [x - 4, y],
+      ]);
+      c.strokeStyle = color;
+      c.lineWidth = 1.5;
+      c.stroke();
+    }
+  }
 }
 
 function thorn(c, x, y, size = 1, age = 5, t = 0) {
@@ -700,113 +1226,8 @@ function star(c, x, y, r, color) {
   c.stroke();
 }
 
-function monster(c, enemy, t) {
-  const brute = enemy.kind === 'brute',
-    runner = enemy.kind === 'runner';
-  const phase = Number(enemy.id) || enemy.x * 0.1;
-  const size = brute ? 1.75 : runner ? 0.8 : 1;
-  const bob = Math.sin(t * (runner ? 13 : 6) + phase * 1.8) * 2;
-  c.save();
-  c.translate(enemy.x, enemy.y);
-  c.scale(size, size);
-  shadow(c, 0, 0, 29, 10, 0.45);
-  const flash = enemy.hit > 0;
-  // Tail, grounded feet, then a soft, round charcoal body.
-  c.strokeStyle = flash ? '#929278' : '#293034';
-  c.lineWidth = 6;
-  c.lineCap = 'round';
-  c.beginPath();
-  c.moveTo(-19, -12);
-  c.bezierCurveTo(-35, -9, -36, -22, -29, -26);
-  c.stroke();
-  path(c, [
-    [-32, -29],
-    [-23, -25],
-    [-33, -21],
-  ]);
-  c.fillStyle = flash ? '#d4cdaa' : '#303435';
-  c.fill();
-  ellipse(c, -13, 0 + Math.sin(t * 8 + phase) * 2, 9, 6, '#252b2c');
-  ellipse(c, 13, -Math.sin(t * 8 + phase) * 2, 9, 6, '#252b2c');
-  c.translate(0, bob);
-  ellipse(c, -23, -20, 7, 11, flash ? '#b9bba2' : '#31363a');
-  ellipse(c, 23, -20, 7, 11, flash ? '#b9bba2' : '#31363a');
-  ellipse(
-    c,
-    0,
-    -25,
-    25,
-    27,
-    gradient(c, -15, -49, 14, 1, [
-      [0, flash ? '#e4e1c2' : '#48504b'],
-      [0.35, flash ? '#b7b597' : '#333a3c'],
-      [0.75, flash ? '#919577' : '#252d32'],
-      [1, '#202a2c'],
-    ]),
-  );
-  c.beginPath();
-  c.moveTo(-19, -40);
-  c.quadraticCurveTo(-30, -48, -20, -61);
-  c.quadraticCurveTo(-18, -50, -11, -45);
-  c.fillStyle = flash ? '#b9bba2' : '#33393c';
-  c.fill();
-  c.beginPath();
-  c.moveTo(14, -46);
-  c.quadraticCurveTo(25, -62, 26, -47);
-  c.quadraticCurveTo(30, -36, 21, -35);
-  c.fillStyle = flash ? '#b9bba2' : '#2a3235';
-  c.fill();
-  if (brute) {
-    leaf(c, -3, -46, 26, -1.1, '#3c6438', '#7c994c');
-    leaf(c, 0, -46, 33, 0.1, '#38623b', '#6e9750');
-    leaf(c, 4, -48, 28, 0.9, '#3b6840', '#84a354');
-    ellipse(c, -15, -18, 8, 5, '#3a463a');
-    ellipse(c, 13, -6, 7, 4, '#3b453b');
-  } else {
-    leaf(c, 0, -48, 15, -0.8, '#497143', '#8caf56');
-    leaf(c, 0, -49, 12, 0.65, '#496e3a', '#93b755');
-  }
-  const lookingLeft = Math.cos(enemy.angle || 0) < 0;
-  const look = lookingLeft ? -2 : 2;
-  c.save();
-  c.translate(look, 0);
-  c.shadowColor = '#ffc74b';
-  c.shadowBlur = 11;
-  c.beginPath();
-  c.moveTo(-16, -29);
-  c.quadraticCurveTo(-6, -26, -5, -17);
-  c.quadraticCurveTo(-16, -14, -16, -29);
-  c.fillStyle = '#ffe378';
-  c.fill();
-  c.beginPath();
-  c.moveTo(15, -29);
-  c.quadraticCurveTo(5, -26, 5, -17);
-  c.quadraticCurveTo(16, -14, 15, -29);
-  c.fill();
-  c.shadowBlur = 0;
-  ellipse(c, -11, -23, 2, 3, '#fff5b5');
-  ellipse(c, 10, -23, 2, 3, '#fff5b5');
-  c.restore();
-  if (runner) {
-    c.beginPath();
-    c.moveTo(-24, -15);
-    c.lineTo(-34, -11);
-    c.moveTo(-22, -10);
-    c.lineTo(-29, -5);
-    c.strokeStyle = '#b3c776';
-    c.lineWidth = 2;
-    c.stroke();
-  }
-  c.restore();
-  if (enemy.hp < enemy.maxHp)
-    healthbar(
-      c,
-      enemy.x,
-      enemy.y - (brute ? 110 : 68),
-      brute ? 62 : 40,
-      enemy.hp / enemy.maxHp,
-      '#f57a64',
-    );
+function monster(c, enemy, t, sprite = false, healthbarBounds = null) {
+  drawEnemy(c, enemy, t, ENEMIES[enemy.kind], sprite, healthbarBounds);
 }
 function healthbar(c, x, y, width, fraction, color) {
   c.fillStyle = 'rgba(19,31,28,.85)';
@@ -1022,12 +1443,20 @@ function player(c, p, t, portrait = false) {
 }
 
 function seedProjectile(c, b, t) {
-  const kind = b.kind || 'normal';
+  const kind = b.element || b.kind || 'normal';
   const angle = Math.atan2(b.vy || 0, b.vx || 1);
   c.save();
   c.translate(b.x, b.y - 10);
   c.rotate(angle);
-  const color = COLORS[kind] || '#ff9b72';
+  if (b.generation > 0 || b.kind === 'split') c.scale(0.68, 0.68);
+  const hostile = kind === 'hostile' || kind === 'enemy' || b.source === 'enemy';
+  const color = hostile
+    ? '#ff785a'
+    : b.source === 'pet'
+      ? '#ffdb79'
+      : b.source === 'plant'
+        ? '#ffb0e5'
+        : COLORS[kind] || '#ff9b72';
   c.globalAlpha = 0.7;
   c.fillStyle = gradient(c, -30, 0, 5, 0, [
     [0, 'rgba(255,155,224,0)'],
@@ -1044,7 +1473,26 @@ function seedProjectile(c, b, t) {
   c.globalAlpha = 1;
   c.shadowColor = color;
   c.shadowBlur = kind === 'normal' ? 11 : 16;
-  if (kind === 'ice') {
+  if (hostile) {
+    ellipse(c, 0, 0, 8, 8, '#752742', '#ffac73', 2);
+    ellipse(c, 1, 0, 4, 4, '#ffc36e');
+    path(c, [
+      [-3, -11],
+      [3, -10],
+      [0, -6],
+    ]);
+    c.fillStyle = '#ff7863';
+    c.fill();
+  } else if (b.source === 'pet') {
+    path(c, [
+      [10, 0],
+      [0, -5],
+      [-7, 0],
+      [0, 5],
+    ]);
+    c.fillStyle = '#ffeaa9';
+    c.fill();
+  } else if (kind === 'ice' || kind === 'stormreed') {
     path(c, [
       [12, 0],
       [-3, -6],
@@ -1056,8 +1504,9 @@ function seedProjectile(c, b, t) {
     c.strokeStyle = '#4dccff';
     c.lineWidth = 2;
     c.stroke();
-  } else if (kind === 'mushroom') {
-    ellipse(c, 0, 0, 7, 6, '#ffc263');
+  } else if (kind === 'mushroom' || kind === 'explosive') {
+    ellipse(c, 0, 0, 8, 7, '#71462b', '#ffd081', 1.5);
+    ellipse(c, 0, 0, 5, 5, '#ffc263');
     ellipse(c, 2, -2, 2, 2, '#fff1a2');
   } else {
     c.beginPath();
@@ -1073,83 +1522,46 @@ function seedProjectile(c, b, t) {
     c.lineWidth = 1.5;
     c.stroke();
   }
+  if (kind === 'fire') {
+    path(c, [
+      [-3, -4],
+      [-15 - Math.sin(t * 22) * 4, 0],
+      [-3, 4],
+    ]);
+    c.fillStyle = '#ffc46e';
+    c.fill();
+  }
+  if (b.reflected) ellipse(c, 0, 0, 11, 9, null, '#f6df99', 1.2);
   c.restore();
 }
 function explosion(c, p, t) {
-  const progress = clamp(1 - p.life / 0.38, 0, 1),
-    size = 0.35 + progress * 0.85;
+  const progress = clamp(1 - p.life / 0.38, 0, 1);
+  const size = (0.35 + progress * 0.85) * clamp((p.radius || 124) / 124, 0.3, 1.25);
   c.save();
   c.translate(p.x, p.y - 12);
   c.scale(size, size);
   c.globalAlpha = 1 - progress * 0.9;
-  ellipse(
-    c,
-    0,
-    -24,
-    125,
-    102,
-    radial(c, 0, -24, 125, 'rgba(255,224,115,.75)', 'rgba(255,123,34,0)'),
-  );
-  for (let i = 0; i < 7; i++) {
-    const a = (i * TAU) / 7,
-      xx = Math.cos(a) * 55,
-      yy = -24 + Math.sin(a) * 38;
-    ellipse(
-      c,
-      xx,
-      yy,
-      29,
-      32,
-      gradient(c, xx, yy - 30, xx, yy + 30, [
-        [0, '#ac713f'],
-        [0.45, '#a85220'],
-        [1, '#6c4c33'],
-      ]),
-    );
+  // Explosive/split gun builds create many bursts: flat layers avoid rebuilding
+  // gradients or allocating a blurred surface for every smoke puff every frame.
+  ellipse(c, 0, -20, 116, 86, 'rgba(255,205,112,.13)');
+  ellipse(c, 0, -20, 92, 66, 'rgba(255,200,98,.15)');
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * TAU) / 6;
+    ellipse(c, Math.cos(angle) * 53, -24 + Math.sin(angle) * 35, 30, 29, '#ae7e4c');
+    ellipse(c, Math.cos(angle) * 37, -25 + Math.sin(angle) * 26, 25, 25, '#ffc467');
   }
-  for (let i = 0; i < 8; i++) {
-    const a = (i * TAU) / 8 + 0.25,
-      xx = Math.cos(a) * 36,
-      yy = -25 + Math.sin(a) * 28;
-    ellipse(
-      c,
-      xx,
-      yy,
-      25,
-      30,
-      gradient(c, xx, yy - 30, xx, yy + 30, [
-        [0, '#fff0ac'],
-        [0.4, '#ffc74c'],
-        [1, '#f38b22'],
-      ]),
-    );
-  }
+  ellipse(c, 0, -23, 36, 33, '#ffe6a0');
+  ellipse(c, -6, -28, 22, 21, '#fff3c6');
   c.beginPath();
-  c.moveTo(-31, 2);
-  c.lineTo(-40, -29);
-  c.lineTo(-16, -15);
-  c.lineTo(-17, -60);
-  c.lineTo(0, -41);
-  c.lineTo(18, -78);
-  c.lineTo(23, -36);
-  c.lineTo(44, -51);
-  c.lineTo(31, -14);
-  c.lineTo(52, -5);
-  c.lineTo(16, 13);
-  c.closePath();
-  c.fillStyle = '#fff1af';
-  c.fill();
-  ellipse(c, 0, -12, 28, 27, '#fff7c7');
-  for (let i = 0; i < 7; i++) {
-    const a = (i * TAU) / 7 + t;
-    const r = 73 + progress * 40;
-    c.beginPath();
-    c.moveTo(Math.cos(a) * r, Math.sin(a) * r * 0.67 - 20);
-    c.lineTo(Math.cos(a) * (r + 27), Math.sin(a) * (r + 27) * 0.67 - 20);
-    c.strokeStyle = '#ffe4a3';
-    c.lineWidth = 3;
-    c.stroke();
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * TAU) / 6 + t,
+      radius = 75 + progress * 24;
+    c.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.67 - 20);
+    c.lineTo(Math.cos(angle) * (radius + 23), Math.sin(angle) * (radius + 23) * 0.67 - 20);
   }
+  c.strokeStyle = '#ffe4a3';
+  c.lineWidth = 3;
+  c.stroke();
   c.restore();
 }
 function drawPlant(c, p, t) {
@@ -1159,8 +1571,34 @@ function drawPlant(c, p, t) {
   const size = p.radius
     ? clamp(p.radius / (p.kind === 'thorn' ? 43 : p.kind === 'ice' ? 29 : 30), 0.7, 1.25)
     : 1;
-  if (p.kind === 'thorn') thorn(c, p.x, p.y, size, p.age, t);
-  if (p.kind === 'ice') ice(c, p.x, p.y, size, p.age, t);
+  if (p.kind === 'thorn') {
+    ellipse(
+      c,
+      p.x,
+      p.y,
+      p.radius || 58,
+      p.radius || 58,
+      'rgba(109,176,75,.04)',
+      'rgba(122,192,89,.23)',
+      1,
+    );
+    thorn(c, p.x, p.y, size, p.age, t);
+  }
+  if (p.kind === 'ice') {
+    ellipse(c, p.x, p.y, p.radius || 28, p.radius || 28, 'rgba(100,206,245,.08)', '#74c6db', 1.4);
+    ice(c, p.x, p.y, size, p.age, t);
+    if (p.hp < p.maxHp * 0.6) {
+      c.beginPath();
+      c.moveTo(p.x - 4, p.y - 70);
+      c.lineTo(p.x + 5, p.y - 49);
+      c.lineTo(p.x - 6, p.y - 31);
+      c.strokeStyle = '#247fa1';
+      c.lineWidth = 2.5;
+      c.stroke();
+    }
+  }
+  if (!['thorn', 'ice', 'mushroom', 'trench', 'frost', 'poison'].includes(p.kind))
+    drawAdditionalPlant(c, p, t, false, SEEDS[p.kind]);
   if (p.kind === 'mushroom') {
     mushroom(c, p.x, p.y, size, p.age, t);
     const remaining = p.life - p.age;
@@ -1181,29 +1619,10 @@ function drawPlant(c, p, t) {
     const r = p.age * 70;
     ellipse(c, p.x, p.y, r, r * 0.4, null, `rgba(223,253,169,${1 - p.age / 0.7})`, 2);
   }
-  if (p.kind === 'ice' && p.hp < p.maxHp)
-    healthbar(c, p.x, p.y + 13, 28, p.hp / p.maxHp, '#9ce8ff');
+  if (p.maxHp > 1 && p.hp < p.maxHp) healthbar(c, p.x, p.y + 13, 28, p.hp / p.maxHp, '#9ce8ff');
   c.restore();
 }
 
-const PREVIEW_PLANTS = [
-  { kind: 'thorn', x: 386, y: 330 },
-  { kind: 'thorn', x: 580, y: 239 },
-  { kind: 'thorn', x: 785, y: 272 },
-  { kind: 'thorn', x: 1120, y: 329 },
-  { kind: 'thorn', x: 936, y: 517 },
-  { kind: 'thorn', x: 414, y: 614 },
-  { kind: 'thorn', x: 1208, y: 622 },
-  { kind: 'thorn', x: 1038, y: 688 },
-  { kind: 'ice', x: 664, y: 274 },
-  { kind: 'ice', x: 1078, y: 425 },
-  { kind: 'ice', x: 475, y: 666 },
-  { kind: 'ice', x: 1184, y: 657 },
-  { kind: 'mushroom', x: 768, y: 352 },
-  { kind: 'mushroom', x: 1002, y: 391 },
-  { kind: 'mushroom', x: 851, y: 620 },
-  { kind: 'mushroom', x: 311, y: 514 },
-];
 const PREVIEW_ENEMIES = [
   { kind: 'sprout', x: 262, y: 295 },
   { kind: 'runner', x: 348, y: 424 },
@@ -1215,11 +1634,106 @@ const PREVIEW_ENEMIES = [
   { kind: 'sprout', x: 552, y: 364 },
 ];
 
+// Fixed-size atlases share the expensive paths, gradients and blurred glows.
+// Their size depends on artwork variants, never on enemy IDs or wave number.
+const MONSTER_KINDS = ['sprout', 'runner', 'brute'];
+const MONSTER_FRAMES = 6;
+const SPRITE_SCALE = 1.5;
+const MONSTER_WIDTH = 96;
+const MONSTER_HEIGHT = 112;
+const PROJECTILE_KINDS = [
+  'hostile',
+  'pet',
+  'plant',
+  'sunflower',
+  'stormreed',
+  'bloomturret',
+  'normal',
+  'thorn',
+  'ice',
+  'mushroom',
+  'enemy',
+  'fire',
+  'explosive',
+  'split',
+];
+
+function createMonsterAtlas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 12 * MONSTER_WIDTH * SPRITE_SCALE;
+  canvas.height = 6 * MONSTER_HEIGHT * SPRITE_SCALE;
+  const c = canvas.getContext('2d');
+  for (let kind = 0; kind < MONSTER_KINDS.length; kind++)
+    for (let hit = 0; hit < 2; hit++)
+      for (let facing = 0; facing < 2; facing++)
+        for (let frame = 0; frame < MONSTER_FRAMES; frame++) {
+          const index = ((kind * 2 + hit) * 2 + facing) * MONSTER_FRAMES + frame;
+          c.setTransform(
+            SPRITE_SCALE,
+            0,
+            0,
+            SPRITE_SCALE,
+            ((index % 12) * MONSTER_WIDTH + 48) * SPRITE_SCALE,
+            (Math.floor(index / 12) * MONSTER_HEIGHT + 90) * SPRITE_SCALE,
+          );
+          monster(
+            c,
+            {
+              kind: MONSTER_KINDS[kind],
+              id: 1,
+              x: 0,
+              y: 0,
+              hit,
+              hp: 1,
+              maxHp: 1,
+              angle: facing ? Math.PI : 0,
+            },
+            ((frame / MONSTER_FRAMES) * TAU) / (kind === 1 ? 13 : 6),
+            true,
+          );
+        }
+  return canvas;
+}
+
+function createProjectileAtlas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = PROJECTILE_KINDS.length * 96 * SPRITE_SCALE;
+  canvas.height = 80 * SPRITE_SCALE;
+  const c = canvas.getContext('2d');
+  PROJECTILE_KINDS.forEach((kind, index) => {
+    c.setTransform(
+      SPRITE_SCALE,
+      0,
+      0,
+      SPRITE_SCALE,
+      (index * 96 + 48) * SPRITE_SCALE,
+      40 * SPRITE_SCALE,
+    );
+    seedProjectile(
+      c,
+      {
+        kind: ['split', 'pet', 'plant'].includes(kind) ? 'normal' : kind,
+        element: ['pet', 'plant'].includes(kind) ? undefined : kind,
+        source: ['pet', 'plant'].includes(kind) ? kind : undefined,
+        x: 0,
+        y: 10,
+        vx: 1,
+        vy: 0,
+      },
+      0,
+    );
+  });
+  return canvas;
+}
+
 export class GardenRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: false });
-    this.backdrop = createBackdrop();
+    this.contextLost = false;
+    this.backdrop = null;
+    this.monsterAtlas = null;
+    this.projectileAtlas = null;
     this.width = 1;
     this.height = 1;
     this.scale = 1;
@@ -1227,35 +1741,74 @@ export class GardenRenderer {
     this.offsetY = 0;
     this.camera = { x: 720, y: 450 };
     this.lastState = null;
+    canvas.addEventListener('contextlost', () => {
+      this.contextLost = true;
+    });
+    canvas.addEventListener('contextrestored', () => {
+      this.contextLost = false;
+      // Restored canvas backing stores are empty, including any cached artwork.
+      this.releaseArtwork();
+      this.resize();
+    });
     this.resize();
   }
+  releaseArtwork() {
+    for (const key of ['backdrop', 'monsterAtlas', 'projectileAtlas']) {
+      if (this[key]) this[key].width = this[key].height = 0;
+      this[key] = null;
+    }
+  }
+  artwork(key, create) {
+    if (!this[key]) {
+      const canvas = create();
+      this[key] = canvas;
+      // Offscreen 2D canvases can lose their contents independently of the arena.
+      canvas.addEventListener('contextrestored', () => {
+        if (this[key] === canvas) {
+          canvas.width = canvas.height = 0;
+          this[key] = null;
+        }
+      });
+    }
+    return this[key].getContext('2d').isContextLost?.() ? null : this[key];
+  }
   resize() {
-    const rect = this.canvas.getBoundingClientRect();
-    this.width = Math.max(1, rect.width || window.innerWidth);
-    this.height = Math.max(1, rect.height || window.innerHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // CSS rotation swaps the visual bounding box; retain the logical canvas axes.
+    this.width = Math.max(1, this.canvas.clientWidth || window.innerWidth);
+    this.height = Math.max(1, this.canvas.clientHeight || window.innerHeight);
+    // Bound backing-store memory on high-DPR / large displays. Camera and input
+    // remain in CSS pixels, so rendering resolution never changes hit targets.
+    const dpr = Math.min(
+      window.devicePixelRatio || 1,
+      2,
+      Math.sqrt(4_000_000 / (this.width * this.height)),
+      4096 / this.width,
+      4096 / this.height,
+    );
     this.dpr = dpr;
-    this.canvas.width = Math.round(this.width * dpr);
-    this.canvas.height = Math.round(this.height * dpr);
+    const width = Math.max(1, Math.floor(this.width * dpr));
+    const height = Math.max(1, Math.floor(this.height * dpr));
+    if (this.canvas.width !== width) this.canvas.width = width;
+    if (this.canvas.height !== height) this.canvas.height = height;
+    this.vignette = null;
     this.updateCamera(this.lastState);
   }
   updateCamera(state) {
     const portrait = this.height > this.width * 1.15;
     if (portrait) {
-      this.scale = Math.max(this.width / 780, (this.height - 200) / 860);
+      this.scale = Math.max(this.width / 780, (this.height - 150) / 860);
       const px = state?.player?.x ?? 720,
         py = state?.player?.y ?? 450;
       const halfWidth = this.width / this.scale / 2;
       this.camera.x = clamp(px, Math.min(halfWidth + 15, 720), Math.max(1425 - halfWidth, 720));
       this.camera.y = py;
       this.offsetX = this.width / 2 - this.camera.x * this.scale;
-      // Keep the gardener above the thumb controls and seed dock.
-      const fieldCenter =
-        (Math.min(150, this.height * 0.28) + Math.max(190, this.height - 315)) / 2;
+      // The canvas ends above the controls; only the upper HUD needs camera clearance.
+      const fieldCenter = (Math.min(240, this.height * 0.42) + this.height - 30) / 2;
       this.offsetY = fieldCenter - this.camera.y * this.scale;
     } else {
       const top = this.height < 540 ? 61 : 87,
-        bottom = this.height < 540 ? 92 : 166;
+        bottom = 28;
       this.scale = Math.min(this.width / 1440, (this.height - top - bottom) / 600);
       this.scale = Math.max(this.scale, Math.min(this.width / 1600, this.height / 1060));
       this.camera = { x: 720, y: 450 };
@@ -1263,7 +1816,7 @@ export class GardenRenderer {
       this.offsetY = top - 150 * this.scale;
       // Preserve the opening composition, then pan only when the gardener would
       // enter the HUD or seed dock. Include the sprite's height above its feet.
-      const maxPlayerY = this.height < 540 ? this.height - 155 : this.height - 273;
+      const maxPlayerY = this.height - 35;
       const minPlayerY = Math.min(
         maxPlayerY,
         Math.max(this.height < 540 ? 90 : 145, top + 83 * this.scale + 24),
@@ -1273,27 +1826,162 @@ export class GardenRenderer {
     }
   }
   screenToWorld(clientX, clientY) {
-    const rect = this.canvas.getBoundingClientRect();
+    const point = clientToElement(this.canvas, clientX, clientY);
     return {
-      x: (clientX - rect.left - this.offsetX) / this.scale,
-      y: (clientY - rect.top - this.offsetY) / this.scale,
+      x: (point.x - this.offsetX) / this.scale,
+      y: (point.y - this.offsetY) / this.scale,
     };
   }
   worldToScreen(x, y) {
     return { x: x * this.scale + this.offsetX, y: y * this.scale + this.offsetY };
   }
+  visible(x, y, radius = 100) {
+    const left = (x - radius) * this.scale + this.offsetX;
+    const top = (y - radius) * this.scale + this.offsetY;
+    const diameter = radius * 2 * this.scale;
+    return left < this.width && top < this.height && left + diameter > 0 && top + diameter > 0;
+  }
+  drawMonster(enemy, t, atlas) {
+    if (
+      !MONSTER_KINDS.includes(enemy.kind) ||
+      enemy.layer === 'underground' ||
+      enemy.layer === 'air' ||
+      enemy.shield > 0 ||
+      ['leader', 'boss'].includes(enemy.rank)
+    ) {
+      if (!this.visible(enemy.x, enemy.y, 230)) return;
+      const animationTime = enemy.frozen > 0 || enemy.stunned > 0 ? 0 : t;
+      const healthbarBounds = ['leader', 'boss'].includes(enemy.rank)
+        ? {
+            top: ((this.height < 540 ? 151 : 245) - this.offsetY) / this.scale,
+            bottom: (this.height - 24 - this.offsetY) / this.scale,
+          }
+        : null;
+      monster(this.ctx, enemy, animationTime, false, healthbarBounds);
+      enemyStatus(this.ctx, enemy, Math.max(0.5, (enemy.radius || 19) / 19), t);
+      return;
+    }
+    const kind = Math.max(0, MONSTER_KINDS.indexOf(enemy.kind));
+    const size = kind === 2 ? 1.6 : kind === 1 ? 0.78 : 1;
+    if (!this.visible(enemy.x, enemy.y, 110 * size)) return;
+    const animationTime = enemy.frozen > 0 || enemy.stunned > 0 ? 0 : t;
+    if (!atlas) {
+      monster(this.ctx, enemy, animationTime);
+      enemyStatus(this.ctx, enemy, size, t);
+      return;
+    }
+    const phase = (Number(enemy.id) || enemy.x * 0.1) - 1;
+    const frame =
+      ((Math.floor(((animationTime * (kind === 1 ? 13 : 6) + phase * 1.8) / TAU) * MONSTER_FRAMES) %
+        MONSTER_FRAMES) +
+        MONSTER_FRAMES) %
+      MONSTER_FRAMES;
+    const facing = Math.cos(enemy.angle || 0) < 0 ? 1 : 0;
+    const index = ((kind * 2 + Number(enemy.hit > 0)) * 2 + facing) * MONSTER_FRAMES + frame;
+    this.ctx.drawImage(
+      atlas,
+      (index % 12) * MONSTER_WIDTH * SPRITE_SCALE,
+      Math.floor(index / 12) * MONSTER_HEIGHT * SPRITE_SCALE,
+      MONSTER_WIDTH * SPRITE_SCALE,
+      MONSTER_HEIGHT * SPRITE_SCALE,
+      enemy.x - 48 * size,
+      enemy.y - 90 * size,
+      MONSTER_WIDTH * size,
+      MONSTER_HEIGHT * size,
+    );
+    if (enemy.hp < enemy.maxHp)
+      healthbar(
+        this.ctx,
+        enemy.x,
+        enemy.y - (kind === 2 ? 110 : 68),
+        kind === 2 ? 62 : 40,
+        enemy.hp / enemy.maxHp,
+        '#f57a64',
+      );
+    enemyStatus(this.ctx, enemy, size, t);
+  }
+  drawProjectile(bullet, atlas) {
+    if (!this.visible(bullet.x, bullet.y, 65)) return;
+    if (!atlas) {
+      seedProjectile(this.ctx, bullet, 0);
+      return;
+    }
+    const visualKind =
+      bullet.source === 'enemy'
+        ? 'hostile'
+        : bullet.source === 'pet' || bullet.source === 'plant'
+          ? bullet.source
+          : bullet.element || bullet.kind;
+    const index = PROJECTILE_KINDS.indexOf(visualKind);
+    if (index < 0) {
+      seedProjectile(this.ctx, bullet, 0);
+      return;
+    }
+    const c = this.ctx;
+    c.save();
+    c.translate(bullet.x, bullet.y - 10);
+    c.rotate(Math.atan2(bullet.vy || 0, bullet.vx || 1));
+    if (bullet.source === 'normal')
+      c.scale(clamp(Math.sqrt((bullet.damage || 19) / 19), 1, 1.35), 1);
+    if (bullet.generation > 0 || bullet.kind === 'split') c.scale(0.68, 0.68);
+    c.drawImage(
+      atlas,
+      index * 96 * SPRITE_SCALE,
+      0,
+      96 * SPRITE_SCALE,
+      80 * SPRITE_SCALE,
+      -48,
+      -40,
+      96,
+      80,
+    );
+    if (bullet.remainingPierce > 0) {
+      c.strokeStyle = '#ffe2f6';
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(-42, -4);
+      c.lineTo(-15, -4);
+      c.moveTo(-42, 4);
+      c.lineTo(-15, 4);
+      c.stroke();
+    }
+    if (bullet.reflected) ellipse(c, 0, 0, 11, 9, null, '#f6df99', 1.2);
+    c.restore();
+  }
   render(state, { aim = null, planting = false, time = 0 } = {}) {
     this.lastState = state;
+    if (this.contextLost || this.ctx.isContextLost?.()) return;
     this.updateCamera(state);
     const c = this.ctx,
-      t = time || performance.now() / 1000;
+      t = Number.isFinite(state.time) ? state.time : time || performance.now() / 1000;
+    const level = getRunLevel(state);
+    if (this.backdropDefinition !== level) {
+      this.releaseArtwork();
+      this.backdropDefinition = level;
+    }
+    const backdrop = this.artwork('backdrop', () => createBackdrop(level));
+    const mapTerrain = (state.terrain || level.terrain || []).filter((region) =>
+      this.visible(region.x, region.y, region.radius + 100),
+    );
+    const monsterAtlas = this.artwork('monsterAtlas', createMonsterAtlas);
+    const projectileAtlas = this.artwork('projectileAtlas', createProjectileAtlas);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = 'source-over';
+    c.shadowBlur = 0;
     c.fillStyle = '#152c27';
     c.fillRect(0, 0, this.width, this.height);
     c.save();
     c.translate(this.offsetX, this.offsetY);
     c.scale(this.scale, this.scale);
-    c.drawImage(this.backdrop, -120, -110);
+    if (backdrop) c.drawImage(backdrop, -120, -110);
+    else {
+      // Keep a readable floor while the background's backing store is restored.
+      c.fillStyle = '#8a8666';
+      c.fillRect(15, 65, 1425, 805);
+    }
+    drawMapGround(c, mapTerrain, level.visual?.palette);
+    drawWeatherGround(c, state, t, level);
     // Floating motes, torchlight and edge blossoms enliven an otherwise stable field.
     [
       [89, 260],
@@ -1302,7 +1990,9 @@ export class GardenRenderer {
       [1324, 737],
       [353, 123],
       [1091, 123],
-    ].forEach(([x, y]) => fire(c, x, y, t));
+    ].forEach(([x, y]) => {
+      if (this.visible(x, y, 160)) fire(c, x, y, t);
+    });
     [
       [159, 227, 0.85],
       [1287, 362, 0.85],
@@ -1311,7 +2001,9 @@ export class GardenRenderer {
       [527, 159, 0.7],
       [876, 160, 0.7],
       [318, 754, 0.8],
-    ].forEach(([x, y, s]) => flower(c, x, y, s, t));
+    ].forEach(([x, y, s]) => {
+      if (this.visible(x, y, 60)) flower(c, x, y, s, t);
+    });
     for (let i = 0; i < 20; i++) {
       const x = 100 + noise(i * 33) * 1235 + Math.sin(t * 0.4 + i) * 12,
         y = 140 + noise(i * 49) * 617 + Math.cos(t * 0.3 + i) * 9;
@@ -1319,56 +2011,100 @@ export class GardenRenderer {
       ellipse(c, x, y, 1.2, 1.2, `rgba(246,232,137,${opacity})`);
     }
     const preview = state.phase === 'ready';
-    const plants =
-      preview && !state.plants?.length
-        ? PREVIEW_PLANTS.map((p, i) => ({ ...p, id: i, age: 8, life: 99, hp: 100, maxHp: 100 }))
-        : state.plants || [];
+    // Preparation has no acquired terrain; decorative border plants stay in the backdrop.
+    const plants = state.plants || [];
     const enemies =
       preview && !state.enemies?.length
         ? PREVIEW_ENEMIES.map((e, i) => ({ ...e, id: i, hp: 100, maxHp: 100, angle: Math.PI }))
         : state.enemies || [];
     // Ground-only telegraphs are rendered beneath all solid objects.
-    (state.telegraphs || []).forEach((p) => {
-      const alpha = clamp(p.life, 0.15, 0.7);
-      const danger = p.kind !== 'ice';
-      ellipse(
-        c,
-        p.x,
-        p.y,
-        p.radius,
-        p.radius * 0.55,
-        danger ? `rgba(248,133,63,${alpha * 0.17})` : `rgba(77,199,245,${alpha * 0.16})`,
-        danger ? `rgba(255,154,93,${alpha})` : `rgba(122,227,255,${alpha})`,
-        2,
-      );
-      if (p.kind === 'spawn') {
-        c.setLineDash([4, 7]);
-        ellipse(c, p.x, p.y, p.radius * 0.7, p.radius * 0.38, null, 'rgba(255,189,124,.7)', 1);
-        c.setLineDash([]);
-      }
-    });
+    (state.telegraphs || [])
+      .filter((p) => p.kind !== 'lightning' || p.dangerous)
+      .forEach((p) => {
+        if (this.visible(p.x, p.y, (p.length || p.radius || 24) + 80)) drawCombatTelegraph(c, p, t);
+      });
+    // Passive ground patches and area skills stay beneath feet and characters.
+    for (const plant of plants) {
+      if (
+        ['trench', 'frost', 'poison'].includes(plant.kind) &&
+        this.visible(plant.x, plant.y, (plant.radius || 90) + 8)
+      )
+        terrain(c, plant, t);
+    }
+    for (const effect of state.skillEffects || []) {
+      if (
+        (effect.kind === 'blast' || effect.kind === 'gale') &&
+        this.visible(effect.x, effect.y, (effect.radius || 150) + 10)
+      )
+        skillEffect(c, effect, t);
+    }
     if (aim && state.phase === 'playing') this.drawAim(state, aim, planting, t);
     const objects = [];
-    plants.forEach((p) => objects.push({ y: p.y, draw: () => drawPlant(c, p, t) }));
-    enemies.forEach((e) => objects.push({ y: e.y, draw: () => monster(c, e, t) }));
+    mapTerrain
+      .filter((region) => region.kind === 'wall')
+      .forEach((region) =>
+        objects.push({
+          y: region.y + region.radius * 0.4,
+          draw: () => drawMapWall(c, region, level.visual?.palette),
+        }),
+      );
+    plants.forEach((p) => {
+      if (!['trench', 'frost', 'poison'].includes(p.kind) && this.visible(p.x, p.y, 130))
+        objects.push({ y: p.y, draw: () => drawPlant(c, p, t) });
+    });
+    enemies.forEach((e) =>
+      objects.push({ y: e.y, draw: () => this.drawMonster(e, t, monsterAtlas) }),
+    );
     if (state.player) objects.push({ y: state.player.y, draw: () => player(c, state.player, t) });
+    if (state.pet && this.visible(state.pet.x, state.pet.y, 100))
+      objects.push({ y: state.pet.y, draw: () => drawPet(c, state.pet, t) });
     (state.telegraphs || [])
-      .filter((p) => p.kind === 'explosion')
+      .filter((p) => p.kind === 'explosion' && this.visible(p.x, p.y, 190))
       .forEach((p) => objects.push({ y: p.y + 5, draw: () => explosion(c, p, t) }));
+    for (const effect of state.skillEffects || []) {
+      if (
+        (effect.kind === 'cart' || effect.kind === 'horse') &&
+        this.visible(effect.x, effect.y, 120)
+      )
+        objects.push({ y: effect.y, draw: () => skillEffect(c, effect, t) });
+    }
     objects.sort((a, b) => a.y - b.y).forEach((obj) => obj.draw());
-    (state.bullets || []).forEach((b) => seedProjectile(c, b, t));
+    for (const effect of state.skillEffects || []) {
+      if (effect.kind !== 'laser') continue;
+      const startX = effect.startX ?? effect.x,
+        startY = effect.startY ?? effect.y;
+      const endX = effect.targetX ?? startX + (effect.dx ?? 1) * (effect.length || 640);
+      const endY = effect.targetY ?? startY + (effect.dy || 0) * (effect.length || 640);
+      if (
+        this.visible(
+          (startX + endX) / 2,
+          (startY + endY) / 2,
+          Math.hypot(endX - startX, endY - startY) / 2 + 40,
+        )
+      )
+        skillEffect(c, effect, t);
+    }
+    (state.bullets || []).forEach((b) => this.drawProjectile(b, projectileAtlas));
+    (state.telegraphs || [])
+      .filter((p) => p.kind === 'lightning' && !p.dangerous)
+      .forEach((p) => drawCombatTelegraph(c, p, t));
     for (const p of state.particles || []) {
+      if (!this.visible(p.x, p.y, (p.size || 3) + 8)) continue;
       c.save();
       c.globalAlpha = clamp(p.life / (p.maxLife || 1), 0, 1);
       c.fillStyle = p.color || '#ffd086';
+      // Soft flat halos avoid a separate blur surface for every large particle.
       if ((p.size || 3) > 5) {
-        c.shadowColor = p.color || '#ffd086';
-        c.shadowBlur = 7;
+        c.globalAlpha *= 0.2;
+        ellipse(c, p.x, p.y, p.size + 4, p.size * 0.8 + 4, p.color || '#ffd086');
+        c.globalAlpha = clamp(p.life / (p.maxLife || 1), 0, 1);
       }
       ellipse(c, p.x, p.y, p.size || 3, (p.size || 3) * 0.8, p.color || '#ffd086');
       c.restore();
     }
+    drawWeatherParticles(c, state, t, level);
     for (const f of state.floaters || []) {
+      if (!this.visible(f.x, f.y, 120)) continue;
       c.save();
       c.globalAlpha = clamp(f.life * 2, 0, 1);
       c.font = '800 24px "Arial", sans-serif';
@@ -1393,82 +2129,111 @@ export class GardenRenderer {
       );
     c.restore();
     // Soft photographic vignette leaves the combat area bright and the HUD legible.
-    const vignette = c.createRadialGradient(
-      this.width * 0.5,
-      this.height * 0.46,
-      this.width * 0.21,
-      this.width * 0.5,
-      this.height * 0.48,
-      Math.max(this.width, this.height) * 0.72,
-    );
-    vignette.addColorStop(0, 'rgba(8,23,25,0)');
-    vignette.addColorStop(0.7, 'rgba(9,27,26,.08)');
-    vignette.addColorStop(1, 'rgba(4,18,21,.53)');
-    c.fillStyle = vignette;
+    if (!this.vignette) {
+      const vignette = c.createRadialGradient(
+        this.width * 0.5,
+        this.height * 0.46,
+        this.width * 0.21,
+        this.width * 0.5,
+        this.height * 0.48,
+        Math.max(this.width, this.height) * 0.72,
+      );
+      vignette.addColorStop(0, 'rgba(8,23,25,0)');
+      vignette.addColorStop(0.7, 'rgba(9,27,26,.08)');
+      vignette.addColorStop(1, 'rgba(4,18,21,.53)');
+      this.vignette = vignette;
+    }
+    c.fillStyle = this.vignette;
     c.fillRect(0, 0, this.width, this.height);
   }
   drawAim(state, aim, planting, t) {
     const c = this.ctx;
-    const kind = state.selectedSeed || 'thorn',
-      color = COLORS[kind];
-    if (planting) {
-      c.save();
-      const r = kind === 'thorn' ? 47 : kind === 'ice' ? 35 : 68;
-      ellipse(
-        c,
-        aim.x,
-        aim.y,
-        r,
-        r * 0.52,
-        kind === 'ice'
-          ? 'rgba(85,201,255,.08)'
-          : kind === 'mushroom'
-            ? 'rgba(255,185,70,.08)'
-            : 'rgba(149,218,98,.08)',
-      );
-      c.setLineDash([7, 6]);
-      c.lineDashOffset = -t * 12;
-      ellipse(c, aim.x, aim.y, r, r * 0.52, null, color, 2);
-      c.setLineDash([]);
-      c.globalAlpha = 0.12;
-      if (kind === 'thorn') thorn(c, aim.x, aim.y, 0.7, 5, t);
-      if (kind === 'ice') ice(c, aim.x, aim.y, 0.7, 5, t);
-      if (kind === 'mushroom') mushroom(c, aim.x, aim.y, 0.7, 5, t);
-      c.globalAlpha = 0.38;
-      c.beginPath();
-      c.moveTo(state.player.x, state.player.y - 24);
-      c.lineTo(aim.x, aim.y);
-      c.setLineDash([3, 8]);
-      c.strokeStyle = color;
-      c.lineWidth = 1;
-      c.stroke();
-      c.restore();
-    }
+    const slot = state.skillSlots?.[state.selectedSkill ?? 0];
+    const definition = CONTENT.SKILLS?.[slot?.kind];
+    const color = definition?.color || '#ffe3a1';
+    let x = aim.x,
+      y = aim.y;
     c.save();
+    if (planting && definition && state.player) {
+      const px = state.player.x,
+        py = state.player.y;
+      const distance = Math.hypot(x - px, y - py);
+      const dx = distance > 0.01 ? (x - px) / distance : Math.cos(state.player.angle || 0);
+      const dy = distance > 0.01 ? (y - py) / distance : Math.sin(state.player.angle || 0);
+      const bounds = getRunLevel(state).bounds;
+      let travel =
+        definition.shape === 'line' ? definition.range : Math.min(distance, definition.range);
+      {
+        // Both area targets and line endpoints are clipped along the aim ray.
+        if (dx > 0) travel = Math.min(travel, (bounds.right - px) / dx);
+        if (dx < 0) travel = Math.min(travel, (bounds.left - px) / dx);
+        if (dy > 0) travel = Math.min(travel, (bounds.bottom - py) / dy);
+        if (dy < 0) travel = Math.min(travel, (bounds.top - py) / dy);
+      }
+      x = clamp(px + dx * travel, bounds.left, bounds.right);
+      y = clamp(py + dy * travel, bounds.top, bounds.bottom);
+      c.strokeStyle = color;
+      c.lineWidth = 2;
+      if (definition.shape === 'line') {
+        const half = definition.width / 2;
+        path(c, [
+          [px - dy * half, py + dx * half],
+          [x - dy * half, y + dx * half],
+          [x + dy * half, y - dx * half],
+          [px + dy * half, py - dx * half],
+        ]);
+        c.globalAlpha = 0.13;
+        c.fillStyle = color;
+        c.fill();
+        c.globalAlpha = 0.8;
+        c.setLineDash([8, 6]);
+        c.lineDashOffset = -t * 16;
+        c.stroke();
+        c.setLineDash([]);
+        const angle = Math.atan2(dy, dx);
+        for (let i = 1; i <= 3; i++)
+          directionArrow(c, px + ((x - px) * i) / 4, py + ((y - py) * i) / 4, angle, color, 9);
+        directionArrow(c, x, y, angle, color, 15);
+      } else {
+        c.globalAlpha = 0.12;
+        ellipse(c, x, y, definition.radius, definition.radius, color);
+        c.globalAlpha = 0.9;
+        c.setLineDash([8, 6]);
+        c.lineDashOffset = -t * 12;
+        ellipse(c, x, y, definition.radius, definition.radius, null, color, 2.5);
+        c.setLineDash([3, 8]);
+        c.globalAlpha = 0.4;
+        c.beginPath();
+        c.moveTo(px, py);
+        c.lineTo(x, y);
+        c.stroke();
+        c.setLineDash([]);
+      }
+      c.globalAlpha = 1;
+    }
     c.strokeStyle = planting ? color : 'rgba(255,240,205,.65)';
     c.lineWidth = 1.8;
-    const r = planting ? 9 : 7;
-    ellipse(c, aim.x, aim.y, r, r * 0.58, null, c.strokeStyle, 1.4);
-    [
+    const radius = planting ? 10 : 7;
+    ellipse(c, x, y, radius, radius, null, c.strokeStyle, 1.4);
+    for (const [dx, dy] of [
       [-1, 0],
       [1, 0],
-      [0, -0.6],
-      [0, 0.6],
-    ].forEach(([dx, dy]) => {
+      [0, -1],
+      [0, 1],
+    ]) {
       c.beginPath();
-      c.moveTo(aim.x + dx * (r + 4), aim.y + dy * (r + 4));
-      c.lineTo(aim.x + dx * (r + 9), aim.y + dy * (r + 9));
+      c.moveTo(x + dx * (radius + 4), y + dy * (radius + 4));
+      c.lineTo(x + dx * (radius + 9), y + dy * (radius + 9));
       c.stroke();
-    });
+    }
     c.restore();
   }
 }
 
 function iconContext(canvas, width, height) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const rect = canvas.getBoundingClientRect();
-  const w = rect.width || width,
-    h = rect.height || height;
+  const w = canvas.clientWidth || width,
+    h = canvas.clientHeight || height;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   const c = canvas.getContext('2d');
@@ -1482,12 +2247,57 @@ export function drawSeedIcon(canvas, kind) {
   c.save();
   c.translate(w * 0.5, h * 0.84);
   c.scale(scale, scale);
-  if (kind === 'thorn') thorn(c, 0, 0, 0.96, 5, 0);
-  else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
+  if (kind === 'shrub' || kind === 'thorn') shrub(c, 0, 0, 0.96, 5, 0);
+  else if (kind === 'trench' || kind === 'frost' || kind === 'poison')
+    terrain(c, { kind, x: 0, y: -35, radius: kind === 'trench' ? 56 : 40, age: 5, life: 99 }, 1);
+  else if (kind === 'cart') wagon(c, 0, -21, 0, 0.15, 0.9);
+  else if (kind === 'horse') warhorse(c, 0, -8, 0, 0.15, 0.88);
+  else if (kind === 'blast' || kind === 'gale')
+    skillEffect(
+      c,
+      {
+        kind,
+        x: 0,
+        y: -36,
+        radius: 42,
+        age: kind === 'blast' ? 0.65 : 0.4,
+        life: 1,
+        delay: 0.5,
+        triggered: kind === 'blast',
+      },
+      1,
+    );
+  else if (kind === 'laser') {
+    skillEffect(
+      c,
+      {
+        kind,
+        x: -47,
+        y: -8,
+        startX: -47,
+        startY: -8,
+        targetX: 45,
+        targetY: -68,
+        dx: 0.838,
+        dy: -0.547,
+        width: 22,
+        length: 110,
+        age: 0.1,
+        life: 1,
+      },
+      1,
+    );
+  } else if (kind === 'ice') ice(c, 0, 0, 1, 5, 0);
   else if (kind === 'mushroom') mushroom(c, 0, 0, 1, 5, 0);
+  else if (SEEDS[kind]) drawAdditionalPlant(c, { kind, x: 0, y: 0, age: 5 }, 0, true, SEEDS[kind]);
+  else if (kind === 'heart' || kind === 'health') drawHeartIcon(c);
+  else if (kind === 'pet') {
+    c.translate(0, -32);
+    drawPet(c, { x: 0, y: 0 }, 0, true);
+  } else if (kind === 'shield' || kind === 'armor') drawShieldIcon(c);
   else if (kind === 'leaf') leaf(c, 0, 7, 57, 0.65, '#4f842b', '#a3d75f');
   else if (kind === 'flower') flower(c, 0, 0, 1.55, 0);
-  else if (kind === 'normal') {
+  else {
     c.rotate(-0.4);
     c.shadowColor = '#ff96da';
     c.shadowBlur = 16;
