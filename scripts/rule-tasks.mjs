@@ -16,6 +16,26 @@ export function ruleTask(pkg) {
   return { command: pkg.scripts?.test, args: ['--filter', pkg.name, 'test'] };
 }
 
+// Only this unfiltered aggregate command proves that every workspace test task runs.
+// Unknown/custom commands keep the separate rules check instead of guessing coverage.
+export function aggregateRunsAllTests(manifest) {
+  return (
+    (manifest.scripts?.test ?? '').trim().replace(/\s+/g, ' ') ===
+    'node --test scripts/platform-process.test.mjs && turbo run test'
+  );
+}
+
+export function rulesCoveredByAggregate(pkg, manifest, tasks = new Map()) {
+  const task = tasks.get(pkg.name);
+  return (
+    aggregateRunsAllTests(manifest) &&
+    !!pkg.scripts?.test &&
+    ruleTask(pkg).command === pkg.scripts.test &&
+    task?.command === pkg.scripts.test &&
+    task.directory.replaceAll('\\', '/') === pkg.dir
+  );
+}
+
 // The imported browser game's ESLint globals omit this standard browser API.
 // Declare it read-only for its validator invocation without changing upstream files or rules.
 export function staticTaskArgs(pkg, task) {

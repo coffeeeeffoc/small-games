@@ -28,7 +28,13 @@ export async function ciValidation({
   );
   if (env.TURBO_SCM_HEAD)
     assert.equal(plan.diff_head, env.TURBO_SCM_HEAD, 'CI plan target SHA mismatch');
-  await treeValidator({ root, base: plan.full ? '' : plan.diff_base, head: plan.diff_head, env });
+  await treeValidator({
+    root,
+    base: plan.full ? '' : plan.diff_base,
+    head: plan.diff_head,
+    env,
+    deferIdenticalRulesToAggregate: plan.full && plan.browser,
+  });
   if (plan.browser) {
     execute('pnpm', ['exec', 'playwright', 'install', '--with-deps', 'chromium'], root, env);
     if (plan.full) {

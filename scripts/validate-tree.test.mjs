@@ -77,3 +77,70 @@ test('lint follows explicit tracked repository scope; absent or unknown exclusio
     false,
   );
 });
+
+test('aggregate coverage requires the exact same rule command and an unfiltered root task', async () => {
+  const { rulesCoveredByAggregate } = await import('./rule-tasks.mjs');
+  const manifest = {
+    scripts: { test: 'node --test scripts/platform-process.test.mjs && turbo run test' },
+  };
+  const pkg = {
+    name: 'a',
+    dir: 'games/local/a',
+    scripts: { test: 'node --test tests/*.test.mjs' },
+  };
+  const tasks = new Map([['a', { command: pkg.scripts.test, directory: pkg.dir }]]);
+  assert.equal(rulesCoveredByAggregate(pkg, manifest, tasks), true);
+  assert.equal(rulesCoveredByAggregate(pkg, manifest), false);
+  assert.equal(rulesCoveredByAggregate(pkg, manifest, new Map()), false);
+  assert.equal(
+    rulesCoveredByAggregate(
+      pkg,
+      manifest,
+      new Map([['a', { command: pkg.scripts.test, directory: 'games/local/other' }]]),
+    ),
+    false,
+  );
+  assert.equal(
+    rulesCoveredByAggregate(
+      pkg,
+      manifest,
+      new Map([['a', { command: 'node other.test.mjs', directory: pkg.dir }]]),
+    ),
+    false,
+  );
+  assert.equal(
+    rulesCoveredByAggregate(
+      pkg,
+      manifest,
+      new Map([['a', { command: pkg.scripts.test, directory: 'games\\local\\a' }]]),
+    ),
+    true,
+  );
+  assert.equal(
+    rulesCoveredByAggregate(
+      { ...pkg, scripts: { ...pkg.scripts, 'test:rules': 'node rules.mjs' } },
+      manifest,
+      tasks,
+    ),
+    false,
+  );
+  for (const command of [
+    'turbo run test --filter=a',
+    manifest.scripts.test + ' --affected',
+    manifest.scripts.test + ' --filter=!a',
+    'node custom-tests.mjs',
+  ])
+    assert.equal(rulesCoveredByAggregate(pkg, { scripts: { test: command } }, tasks), false);
+  assert.equal(
+    rulesCoveredByAggregate({ name: 'a', dir: 'games/local/a', scripts: {} }, manifest, tasks),
+    false,
+  );
+  assert.equal(
+    rulesCoveredByAggregate(
+      { dir: 'games/local/carding-car', scripts: { test: 'node --test tests/*.test.ts' } },
+      manifest,
+      tasks,
+    ),
+    false,
+  );
+});

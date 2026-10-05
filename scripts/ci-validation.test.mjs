@@ -35,7 +35,7 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
   await ciValidation({
     env: {},
     selectPlan: async () => plan,
-    treeValidator: async () => {},
+    treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, false),
     execute: (command, args) => calls.push({ command, args }),
   });
   assert.equal(calls.length, 2);
@@ -116,7 +116,7 @@ test('full CI retains original dialog and dependency checker gates', async () =>
   await ciValidation({
     env: {},
     selectPlan: async () => ({ full: true, browser: true, cocos: true }),
-    treeValidator: async () => {},
+    treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
     execute: (command, args) => calls.push(args),
   });
   assert(calls.some((args) => args[0] === 'test:dialogs'));
@@ -124,4 +124,22 @@ test('full CI retains original dialog and dependency checker gates', async () =>
     await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'),
   );
   assert(ci.jobs.quality.steps.some((step) => step.run === 'pnpm test:boundaries'));
+});
+
+test('deferred full rules require aggregate success before contract, interaction or smoke gates', async () => {
+  const calls = [];
+  await assert.rejects(
+    ciValidation({
+      env: {},
+      selectPlan: async () => ({ full: true, browser: true, cocos: true }),
+      treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
+      execute: (command, args) => {
+        calls.push(args);
+        if (args[0] === 'test') throw new Error('aggregate rules failure');
+      },
+    }),
+    /aggregate rules failure/,
+  );
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1][0], 'test');
 });
