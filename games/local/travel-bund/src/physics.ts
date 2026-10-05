@@ -1,10 +1,11 @@
 import type { useRapier } from '@react-three/rapier';
 import { onWater, type WorldData, type V3, type Placement } from './world.ts';
+import { lifeBlocks, streetColliders } from './life.ts';
 
 type Physics = Pick<ReturnType<typeof useRapier>, 'world' | 'rapier'>;
 export function createGround({ world, rapier }: Physics, data: WorldData) {
   const fixed = world.createRigidBody(rapier.RigidBodyDesc.fixed());
-  for (const b of [...data.colliders, ...data.surfaces]) {
+  for (const b of [...data.colliders, ...data.surfaces, ...streetColliders(lifeBlocks(data))]) {
     world.createCollider(
       rapier.ColliderDesc.cuboid(...b.half)
         .setTranslation(...b.position)

@@ -150,7 +150,7 @@ export function smoothRiverMaterial() {
   return new THREE.ShaderMaterial({
     fog: true,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      time: { value: 0 }, waterColor: { value: new THREE.Color('#315b61') },
+      time: { value: 0 }, waterColor: { value: new THREE.Color('#397c83') },
       sunColor: { value: new THREE.Color('#ffd4a0') },
     }]),
     vertexShader: `

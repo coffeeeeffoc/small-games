@@ -56,7 +56,7 @@ try{
     await expect(page.getByRole('button',{name:/钟楼与旧石墙/})).toBeVisible();
     const choice=page.getByRole('button',{name:/三种摩天轮廓/}),box=await choice.boundingBox();assert(box.y>=0&&box.y+box.height<=viewport.height,'First-screen routes stay inside the viewport');
     await page.screenshot({path:fileURLToPath(new URL(`intro-${viewport.width}.png`,output))});await choice.tap();
-    await expect(page.locator('main')).toHaveAttribute('data-phase','playing');await page.getByRole('button',{name:'暂停漫游'}).tap();
+    await expect(page.locator('main')).toHaveAttribute('data-phase','playing');await page.getByRole('button',{name:'暂停'}).tap();
     await page.getByRole('combobox',{name:'模型细节'}).selectOption('balanced');await expect(page.locator('main')).toHaveAttribute('data-render-detail','balanced');
     assert.equal(await page.evaluate(()=>localStorage.getItem('travel-bund.render-detail.v1')),'balanced');
     assert.equal(new URL(page.url()).searchParams.get('renderDetail'),'balanced');await page.reload();
@@ -66,7 +66,7 @@ try{
   checks.push('320px portrait and landscape first-screen routes remain clickable; original URL reaches Scene unchanged, and model-detail selection is saved independently of pixel quality');
   ({context,page}=await open({search:'?renderDetail=original&renderDetail=light'}));await expect(page.locator('main')).toHaveAttribute('data-render-detail','light');await context.close();
   ({context,page}=await open({search:'?route=architecture&renderDetail=light&account=private#room=secret'}));
-  await page.getByRole('button',{name:'暂停漫游'}).tap();await page.getByRole('combobox',{name:'模型细节'}).selectOption('original');
+  await page.getByRole('button',{name:'暂停'}).tap();await page.getByRole('combobox',{name:'模型细节'}).selectOption('original');
   assert.equal(page.url(),base+'?route=architecture&renderDetail=original');await page.reload();await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');
   await expect.poll(()=>page.evaluate(()=>window.modelDetail)).toBe('original');await context.close();
   checks.push('Selecting original from a public light URL updates that selector, strips private data, preserves the route and stays original after refresh; duplicate detail values fall back');
@@ -82,7 +82,7 @@ try{
     await expect.poll(()=>page.evaluate(()=>window.shareRequests+window.copyRequests)).toBe(1);
     await page.getByRole('button',{name:'返回漫游'}).tap();
     if(change==='detail') {
-      await page.getByRole('button',{name:'暂停漫游'}).tap();await page.getByRole('combobox',{name:'模型细节'}).selectOption('original');
+      await page.getByRole('button',{name:'暂停'}).tap();await page.getByRole('combobox',{name:'模型细节'}).selectOption('original');
       await page.getByRole('button',{name:'返回漫游'}).tap();
     } else {
       await page.getByRole('button',{name:'打开地图'}).tap();await page.getByRole('button',{name:/三种摩天轮廓/}).tap();

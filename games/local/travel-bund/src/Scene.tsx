@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Sky } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, useAfterPhysicsStep, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import { Water } from 'three/addons/objects/Water.js';
@@ -17,8 +17,15 @@ import {
 } from './world';
 import { footstep, spatialAudio } from './audio';
 import { createGround, createWalker, createCar, walk, canOccupy } from './physics';
-import { compactCityScene, disposeCityRender, smoothRiverMaterial, smoothTreeInstances } from './render-budget';
+import {
+  compactCityScene,
+  disposeCityRender,
+  smoothRiverMaterial,
+  smoothTreeInstances,
+} from './render-budget';
 import { RENDER_DETAILS, type RenderDetail } from './render-settings';
+import { StreetLife, RiverWeather } from './StreetLife';
+import type { LifeEvent, LifeTarget } from './life';
 
 const url = (name: string) => `${import.meta.env.BASE_URL}world/${name}.glb`;
 const decoder = `${import.meta.env.BASE_URL}draco/`;
@@ -42,12 +49,17 @@ type Props = {
   onTelemetry: (t: Telemetry) => void;
   quality: number;
   renderDetail: RenderDetail;
+  crowd: boolean;
+  motion: boolean;
+  lifeEvent: LifeEvent | null;
+  onLifeTarget: (target: LifeTarget | null) => void;
 };
 
 function surfaceMaterial(material: THREE.Material) {
   const m = material as THREE.MeshStandardMaterial;
   if (!m.isMeshStandardMaterial) return;
   m.envMapIntensity = 0.65;
+  if (/Promenade paving/i.test(m.name)) m.color.set('#c3ad88');
   if (/pav|stone|trim|brick/i.test(m.name)) m.roughness = 0.85;
   if (!/glass|window/i.test(m.name) || /lamp/i.test(m.name)) return;
   // Facade panes share glass materials. Light individual rooms, never the entire glass shell.
@@ -89,9 +101,13 @@ function CityTile({
   renderDetail: RenderDetail;
 }) {
   const asset = useGLTF(url(name), decoder);
-  const render = useMemo(() => name.startsWith('city_')
-    ? compactCityScene(asset.scene, RENDER_DETAILS[renderDetail].buildingCellMetres)
-    : { scene: asset.scene, owned: [], ownedMaterials: [] }, [asset.scene, renderDetail, name]);
+  const render = useMemo(
+    () =>
+      name.startsWith('city_')
+        ? compactCityScene(asset.scene, RENDER_DETAILS[renderDetail].buildingCellMetres)
+        : { scene: asset.scene, owned: [], ownedMaterials: [] },
+    [asset.scene, renderDetail, name],
+  );
   const scene = render.scene;
   useEffect(() => () => disposeCityRender(render), [render]);
   const materials = useMemo(() => {
@@ -123,7 +139,15 @@ function CityTile({
   });
   return <primitive object={scene} />;
 }
-function StaticCity({ data, night, renderDetail }: { data: WorldData; night: boolean; renderDetail: RenderDetail }) {
+function StaticCity({
+  data,
+  night,
+  renderDetail,
+}: {
+  data: WorldData;
+  night: boolean;
+  renderDetail: RenderDetail;
+}) {
   const [requested, setRequested] = useState<string[]>([]);
   const loading = useRef(new Set<string>()),
     resident = useRef(new Set<string>());
@@ -147,8 +171,10 @@ function StaticCity({ data, night, renderDetail }: { data: WorldData; night: boo
         if (resident.current.has(tile.name)) return false;
         const sphere = new THREE.Sphere(new THREE.Vector3(...tile.center), tile.radius);
         // Ground detail needs nearby tiles; distant buildings still form the skyline.
-        return sphere.distanceToPoint(camera.position) < 180 ||
-          (!tile.name.startsWith('sidewalk_') && frustum.intersectsSphere(sphere));
+        return (
+          sphere.distanceToPoint(camera.position) < 180 ||
+          (!tile.name.startsWith('sidewalk_') && frustum.intersectsSphere(sphere))
+        );
       })
       .sort(
         (a, b) =>
@@ -325,16 +351,31 @@ function Traffic({ placements, night }: { placements: Placement[]; night: boolea
   }, -1);
   return <Furniture name="city-car" placements={placements} night={night} live={live} />;
 }
-function SmoothTrees({ placements, detail }: { placements: Placement[]; detail: Exclude<RenderDetail,'original'> }) {
+function SmoothTrees({
+  placements,
+  detail,
+}: {
+  placements: Placement[];
+  detail: Exclude<RenderDetail, 'original'>;
+}) {
   const objects = useMemo(() => smoothTreeInstances(placements, detail), [placements, detail]);
-  useEffect(() => () => {
-    const geometries = new Set(objects.map(object => object.geometry));
-    const materials = new Set(objects.map(object => object.material as THREE.Material));
-    objects.forEach(object => object.dispose());
-    geometries.forEach(geometry => geometry.dispose());
-    materials.forEach(material => material.dispose());
-  }, [objects]);
-  return <group>{objects.map((object, index) => <primitive key={index} object={object} />)}</group>;
+  useEffect(
+    () => () => {
+      const geometries = new Set(objects.map((object) => object.geometry));
+      const materials = new Set(objects.map((object) => object.material as THREE.Material));
+      objects.forEach((object) => object.dispose());
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+    },
+    [objects],
+  );
+  return (
+    <group>
+      {objects.map((object, index) => (
+        <primitive key={index} object={object} />
+      ))}
+    </group>
+  );
 }
 function River({ night, quality }: { night: boolean; quality: number }) {
   const { scene } = useGLTF(url('water'), decoder);
@@ -352,7 +393,7 @@ function River({ night, quality }: { night: boolean; quality: number }) {
     if (quality === 0) {
       const object = new THREE.Mesh(geometry!, smoothRiverMaterial());
       object.rotation.x = -Math.PI / 2;
-      object.position.y = .25;
+      object.position.y = 0.25;
       return { object };
     }
     const object = new Water(geometry!, {
@@ -407,9 +448,9 @@ function Atmosphere({ night }: { night: boolean }) {
     const environment = new THREE.Scene(),
       sky = new EnvironmentSky();
     sky.scale.setScalar(10000);
-    sky.material.uniforms.sunPosition.value.set(300, 65, -500);
-    sky.material.uniforms.turbidity.value = 5;
-    sky.material.uniforms.rayleigh.value = 1.3;
+    sky.material.uniforms.sunPosition.value.set(300, 300, -500);
+    sky.material.uniforms.turbidity.value = 2.2;
+    sky.material.uniforms.rayleigh.value = 1.6;
     if (night) environment.background = new THREE.Color('#35465b');
     else environment.add(sky);
     const generator = new THREE.PMREMGenerator(gl),
@@ -427,12 +468,12 @@ function Atmosphere({ night }: { night: boolean }) {
     mix.current = input.active
       ? THREE.MathUtils.damp(mix.current, night ? 1 : 0, 1.5, dt)
       : Number(night);
-    const c = new THREE.Color('#a4afb0').lerp(new THREE.Color('#26394e'), mix.current);
+    const c = new THREE.Color('#b6d9dc').lerp(new THREE.Color('#26394e'), mix.current);
     if (!scene.fog) scene.fog = new THREE.Fog(c, 750, 4500);
     else scene.fog.color.copy(c);
     if (veil.current) veil.current.opacity = mix.current;
     if (sun.current) {
-      sun.current.intensity = THREE.MathUtils.lerp(2.4, 0.65, mix.current);
+      sun.current.intensity = THREE.MathUtils.lerp(2.1, 0.65, mix.current);
       sun.current.position.set(camera.position.x + 70, 100, camera.position.z - 60);
       sun.current.target.position.copy(camera.position);
       sun.current.target.updateMatrixWorld();
@@ -440,14 +481,24 @@ function Atmosphere({ night }: { night: boolean }) {
   });
   return (
     <>
-      <Sky
-        distance={9000}
-        sunPosition={[300, 65, -500]}
-        turbidity={5}
-        rayleigh={1.3}
-        mieCoefficient={0.008}
-        mieDirectionalG={0.8}
-      />
+      <mesh renderOrder={-2}>
+        <sphereGeometry args={[8800, 24, 12]} />
+        <shaderMaterial
+          side={THREE.BackSide}
+          depthWrite={false}
+          depthTest={false}
+          uniforms={{
+            horizon: { value: new THREE.Color('#bce1e7') },
+            zenith: { value: new THREE.Color('#5baddb') },
+          }}
+          vertexShader="varying float height; void main(){height=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }"
+          fragmentShader={`varying float height; uniform vec3 horizon; uniform vec3 zenith;
+            void main(){
+              gl_FragColor=vec4(mix(horizon,zenith,smoothstep(-.08,.6,height)),1.);
+              #include <colorspace_fragment>
+            }`}
+        />
+      </mesh>
       <mesh renderOrder={-1}>
         <sphereGeometry args={[8500, 32, 16]} />
         <meshBasicMaterial
@@ -461,7 +512,7 @@ function Atmosphere({ night }: { night: boolean }) {
         />
       </mesh>
       <hemisphereLight
-        args={[night ? '#7594b9' : '#c9e1ec', night ? '#18212b' : '#c6b297', night ? 1.1 : 1.7]}
+        args={[night ? '#7594b9' : '#c2e5ed', night ? '#18212b' : '#bca77c', night ? 1.1 : 1.35]}
       />
       <directionalLight
         ref={sun}
@@ -545,7 +596,9 @@ function Controller({
     const previous = gl.info.autoReset;
     // Include all passes, including the water reflection, in each rendered-frame sample.
     gl.info.autoReset = false;
-    return () => { gl.info.autoReset = previous; };
+    return () => {
+      gl.info.autoReset = previous;
+    };
   }, [gl]);
   useEffect(() => {
     const fixed = createGround({ world, rapier }, data);
@@ -725,20 +778,37 @@ export function Scene(props: Props) {
   return (
     <>
       <Atmosphere night={props.night} />
+      <RiverWeather night={props.night} motion={props.motion} />
       <StaticCity data={props.data} night={props.night} renderDetail={props.renderDetail} />
       <Ground data={props.data} />
       <River night={props.night} quality={props.quality} />
+      <Suspense fallback={null}>
+        <StreetLife
+          data={props.data}
+          crowd={props.crowd}
+          motion={props.motion}
+          event={props.lifeEvent}
+          onTarget={props.onLifeTarget}
+        />
+      </Suspense>
       {Object.entries(props.data.props).map(
         ([name, placements]) =>
           name !== 'city-car' && (
             <Suspense key={name} fallback={null}>
-              {name === 'plane-tree-planter' && props.renderDetail !== 'original'
-                ? <SmoothTrees placements={placements} detail={props.renderDetail} />
-                : <Furniture name={name} placements={placements} night={props.night} />}
+              {name === 'plane-tree-planter' && props.renderDetail !== 'original' ? (
+                <SmoothTrees placements={placements} detail={props.renderDetail} />
+              ) : (
+                <Furniture name={name} placements={placements} night={props.night} />
+              )}
             </Suspense>
           ),
       )}
-      <Physics timeStep={1 / 60} gravity={[0, -9.81, 0]} paused={props.ready && !props.active} interpolate>
+      <Physics
+        timeStep={1 / 60}
+        gravity={[0, -9.81, 0]}
+        paused={props.ready && !props.active}
+        interpolate
+      >
         <Suspense fallback={null}>
           <Traffic placements={props.data.props['city-car'] || []} night={props.night} />
         </Suspense>

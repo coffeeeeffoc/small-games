@@ -54,7 +54,7 @@ try {
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
   await page.waitForTimeout(1000);
   assert(
-    Math.abs(Number(await page.locator('main').getAttribute('data-yaw')) + 1.5) < 0.01,
+    Math.abs(Number(await page.locator('main').getAttribute('data-yaw')) + 2.9) < 0.01,
     'Initial spawn must set the first-person camera after physics initializes',
   );
   const standingY = Number(await page.locator('main').getAttribute('data-y'));
@@ -78,6 +78,9 @@ try {
     Math.hypot(Number(position.x) + 377, Number(position.z) - 37) > 1,
     'WASD must move the player',
   );
+  const facingRiver=Number(await page.locator('main').getAttribute('data-yaw'));
+  await page.evaluate(dx=>document.dispatchEvent(new MouseEvent('mousemove',{movementX:dx})),(facingRiver+1.5)/.002);
+  await page.waitForTimeout(150);
   // Walk into the riverside railing and keep pushing: it must stop the capsule.
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(4000);
@@ -116,7 +119,7 @@ try {
   await page.getByRole('button', { name: '返回漫游' }).click();
   await page.waitForTimeout(400);
   await page.keyboard.press('Escape');
-  await page.getByRole('dialog').getByText('暮色', { exact: true }).click();
+  await page.getByRole('dialog').getByText('暖阳', { exact: true }).click();
   await page.getByRole('button', { name: '继续漫游' }).click();
   await page.waitForTimeout(1500);
   await page.screenshot({ path: fileURLToPath(new URL('desktop-night.png', output)) });
@@ -324,7 +327,7 @@ try {
       await p.getByRole('button', { name: '疾行 ×6' }).tap();
       assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await p.screenshot({ path: fileURLToPath(new URL(`mobile-${viewport.width}.png`, output)) });
-      await p.getByRole('button', { name: '暂停漫游' }).tap();
+      await p.getByRole('button', { name: '暂停' }).tap();
       await expect(p.getByRole('dialog')).toBeVisible();
       results.push({
         viewport,

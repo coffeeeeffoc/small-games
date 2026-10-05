@@ -72,7 +72,7 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [walking, looking] });
     await expect.poll(async () => (await readInput()).stick).toEqual([0, 0]);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-    await page.getByRole('button', { name: '暂停漫游' }).tap();
+    await page.getByRole('button', { name: '暂停' }).tap();
     assert.deepEqual(await readInput(), { stick: [0, 0], look: [0, 0], active: false, keys: [] });
     await page.getByRole('combobox',{name:'画面精度'}).selectOption('1');
     await expect(page.locator('main')).toHaveAttribute('data-quality', '1');

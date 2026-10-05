@@ -24,7 +24,7 @@ export type WorldData = {
   bounds: [number, number, number, number];
 };
 export const destinations = [
-  { name: '外滩 · 江畔', subtitle: '江风与万国建筑', position: [-377, 2, 37] as V3, yaw: -1.5 },
+  { name: '外滩 · 江畔', subtitle: '江风与万国建筑', position: [-377, 2, 37] as V3, yaw: -2.9 },
   { name: '和平饭店', subtitle: '石墙里的旧时光', position: [-413, 2, -213] as V3, yaw: 1.5 },
   { name: '外白渡桥', subtitle: '走过苏州河', position: [-425, 2, -630] as V3, yaw: -0.267 },
   { name: '陆家嘴 · 滨江', subtitle: '隔江回望外滩', position: [385, 2, -95] as V3, yaw: 1.5 },

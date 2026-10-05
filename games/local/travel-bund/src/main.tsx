@@ -6,9 +6,16 @@ import { useProgress } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Telemetry, Teleport } from './Scene';
 import { clearInput, destinations, input, readVisits, stories, type WorldData } from './world';
-import { audioActivity, chime, setAudio } from './audio';
+import { audioActivity, chime, setAudio, lifeSound } from './audio';
 import { explorationRoutes, readRoute, routeProgress, routeShareUrl, type RouteId } from './routes';
-import { isRenderDetail, readRenderDetail, RENDER_DETAIL_KEY, type RenderDetail } from './render-settings';
+import {
+  isRenderDetail,
+  readRenderDetail,
+  RENDER_DETAIL_KEY,
+  type RenderDetail,
+} from './render-settings';
+import type { LifeEvent, LifeTarget } from './life';
+import { readSettings, SETTINGS_KEY } from './settings';
 import './style.css';
 
 const KEY = 'travel-bund.visits.v1';
@@ -39,19 +46,45 @@ function Loading() {
 
 function App() {
   const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  const [settings] = useState(() => {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(SETTINGS_KEY);
+    } catch {}
+    return readSettings(raw, touch, matchMedia('(prefers-reduced-motion: reduce)').matches);
+  });
   const [data, setData] = useState<WorldData | null>(null),
     [error, setError] = useState(''),
     [ready, setReady] = useState(false),
     [started, setStarted] = useState(false);
-  const [panel, setPanel] = useState<'map' | 'pause' | 'story' | 'journal' | null>(null),
+  const [panel, setPanel] = useState<'map' | 'pause' | 'story' | 'journal' | 'stall' | null>(null),
     [active, setActive] = useState(false),
-    [night, setNight] = useState(false),
-    [sound, setSound] = useState(false),
+    [night, setNight] = useState(settings.night),
+    [sound, setSound] = useState(settings.sound),
     [sitting, setSitting] = useState(false),
     [fast, setFast] = useState(false),
     [boost, setBoost] = useState(false),
-    [quality, setQuality] = useState(touch ? 0 : 1),
-    [sensitivity, setSensitivity] = useState(1);
+    [quality, setQuality] = useState(settings.quality),
+    [sensitivity, setSensitivity] = useState(settings.sensitivity),
+    [crowd, setCrowd] = useState(settings.crowd),
+    [motion, setMotion] = useState(settings.motion);
+  const [lifeTarget, setLifeTarget] = useState<LifeTarget | null>(null),
+    [lifeEvent, setLifeEvent] = useState<LifeEvent | null>(null);
+  const [moments, setMoments] = useState<string[]>(() => {
+    try {
+      return readVisits(localStorage.getItem('travel-bund.moments.v1'));
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({ night, sound, quality, sensitivity, crowd, motion }),
+      );
+    } catch {}
+  }, [night, sound, quality, sensitivity, crowd, motion]);
   const [visits, setVisits] = useState<string[]>(() => {
     try {
       return readVisits(localStorage.getItem(KEY));
@@ -59,32 +92,46 @@ function App() {
       return [];
     }
   });
-  const [selectedRoute, setSelectedRoute] = useState<RouteId | null>(() => readRoute(location.search)),
+  const [selectedRoute, setSelectedRoute] = useState<RouteId | null>(() =>
+      readRoute(location.search),
+    ),
     [shareBusy, setShareBusy] = useState(false),
     [shareLink, setShareLink] = useState('');
-  const shareFlight = useRef(false), shareVersion = useRef(0), mounted = useRef(true);
+  const shareFlight = useRef(false),
+    shareVersion = useRef(0),
+    mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; shareVersion.current++; };
+    return () => {
+      mounted.current = false;
+      shareVersion.current++;
+    };
   }, []);
   const [renderDetail, setRenderDetail] = useState<RenderDetail>(() => {
     let stored: string | null = null;
-    try { stored = localStorage.getItem(RENDER_DETAIL_KEY); } catch {}
+    try {
+      stored = localStorage.getItem(RENDER_DETAIL_KEY);
+    } catch {}
     return readRenderDetail(location.search, stored, touch ? 'light' : 'original');
   });
   useEffect(() => {
-    try { localStorage.setItem(RENDER_DETAIL_KEY, renderDetail); } catch {}
+    try {
+      localStorage.setItem(RENDER_DETAIL_KEY, renderDetail);
+    } catch {}
   }, [renderDetail]);
   const [story, setStory] = useState<WorldData['landmarks'][number] | null>(null),
     [notice, setNotice] = useState(''),
     [photo, setPhoto] = useState<string | null>(null);
   const [teleport, setTeleport] = useState<Teleport>(() => {
     const invited = routeProgress(selectedRoute, visits);
-    return { ...destinations[(invited?.next || invited?.route.stops[0])?.destination ?? 0], serial: 0 };
+    return {
+      ...destinations[(invited?.next || invited?.route.stops[0])?.destination ?? 0],
+      serial: 0,
+    };
   });
   const [stats, setStats] = useState<Telemetry>({
     position: teleport.position,
-    yaw: -1.5,
+    yaw: teleport.yaw,
     speed: 0,
     grounded: false,
     calls: 0,
@@ -94,12 +141,25 @@ function App() {
   useEffect(() => {
     if (started || !data || !selectedRoute) return;
     const invited = routeProgress(selectedRoute, visits)!;
-    const stop = invited.next || invited.route.stops[0], landing = destinations[stop.destination];
-    const landmark = data.landmarks.find(item => item.id === stop.landmark);
+    const stop = invited.next || invited.route.stops[0],
+      landing = destinations[stop.destination];
+    const landmark = data.landmarks.find((item) => item.id === stop.landmark);
     if (!landmark) return;
-    const yaw = Math.atan2(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]);
-    const pitch = Math.min(1.1, Math.atan2(stop.viewHeight,Math.hypot(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2])));
-    setTeleport(previous => ({...landing,yaw,pitch,serial:previous.serial+1}));
+    const yaw = Math.atan2(
+      landing.position[0] - landmark.position[0],
+      landing.position[2] - landmark.position[2],
+    );
+    const pitch = Math.min(
+      1.1,
+      Math.atan2(
+        stop.viewHeight,
+        Math.hypot(
+          landing.position[0] - landmark.position[0],
+          landing.position[2] - landmark.position[2],
+        ),
+      ),
+    );
+    setTeleport((previous) => ({ ...landing, yaw, pitch, serial: previous.serial + 1 }));
   }, [data, selectedRoute, started]);
   const renderer = useRef<THREE.WebGLRenderer | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
@@ -142,12 +202,16 @@ function App() {
       canvas.focus({ preventScroll: true });
     }
     if (!started)
-      void setAudio(true)
+      void setAudio(sound)
         .then(() => {
-          setSound(true);
           audioActivity(input.active);
         })
-        .catch(() => notify('可在右上角手动开启声音。'));
+        .catch(() => {
+          setSound(false);
+          notify('可在游览设置中开启声音。');
+        });
+    if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
+      void document.documentElement.requestFullscreen().catch(() => {});
     if (!touch) {
       const promise = renderer.current?.domElement.requestPointerLock();
       promise
@@ -156,7 +220,41 @@ function App() {
         })
         .catch(() => notify('鼠标锁定未开启，可按住画面拖动转头。'));
     }
-  }, [ready, error, touch, notify, started]);
+  }, [ready, error, touch, notify, started, sound]);
+  function home() {
+    stop();
+    setPanel(null);
+    setStarted(false);
+    setSitting(false);
+    setLifeTarget(null);
+  }
+  function keepMoment(id: string) {
+    setMoments((previous) => {
+      const next = [...new Set([...previous, id])];
+      try {
+        localStorage.setItem('travel-bund.moments.v1', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+  function meet(target: LifeTarget) {
+    if (!input.active) return;
+    setLifeEvent((previous) => ({
+      id: target.id,
+      kind: target.kind,
+      serial: (previous?.serial || 0) + 1,
+    }));
+    if (target.kind === 'kiosk') open('stall');
+    else {
+      keepMoment(target.kind);
+      lifeSound(target.kind);
+      notify(
+        target.kind === 'visitor'
+          ? '你好呀！今天的江风很舒服。'
+          : '扑棱棱，小鸽子绕了一圈又落回江边。',
+      );
+    }
+  }
   useEffect(() => {
     const abort = new AbortController();
     fetch(`${import.meta.env.BASE_URL}world/world.json`, { signal: abort.signal })
@@ -271,9 +369,21 @@ function App() {
   const target =
     nearestBench && nearestBench.d < 4 ? 'bench' : nearest && nearest.d < 140 ? 'landmark' : null;
   const progress = routeProgress(selectedRoute, visits);
-  const nextLandmark = progress?.next && data?.landmarks.find(landmark=>landmark.id===progress.next!.landmark);
-  const routeDistance = nextLandmark ? Math.hypot(stats.position[0]-nextLandmark.position[0],stats.position[2]-nextLandmark.position[2]) : undefined;
-  const routeBearing = nextLandmark ? stats.yaw-Math.atan2(stats.position[0]-nextLandmark.position[0],stats.position[2]-nextLandmark.position[2]) : 0;
+  const nextLandmark =
+    progress?.next && data?.landmarks.find((landmark) => landmark.id === progress.next!.landmark);
+  const routeDistance = nextLandmark
+    ? Math.hypot(
+        stats.position[0] - nextLandmark.position[0],
+        stats.position[2] - nextLandmark.position[2],
+      )
+    : undefined;
+  const routeBearing = nextLandmark
+    ? stats.yaw -
+      Math.atan2(
+        stats.position[0] - nextLandmark.position[0],
+        stats.position[2] - nextLandmark.position[2],
+      )
+    : 0;
   action.current = () => {
     if (sitting) {
       setSitting(false);
@@ -308,7 +418,7 @@ function App() {
       notify('声音暂时无法启动，请再次点击。');
     }
   }
-  function travel(index: number, yaw?: number, pitch = [0,.3,.35,0,1.05][index]) {
+  function travel(index: number, yaw?: number, pitch = [0, 0.3, 0.35, 0, 1.05][index]) {
     const d = destinations[index];
     setSitting(false);
     setTeleport({ ...d, yaw: yaw ?? d.yaw, pitch, serial: teleport.serial + 1 });
@@ -322,7 +432,11 @@ function App() {
     try {
       localStorage.setItem(KEY, JSON.stringify(next));
       const updated = routeProgress(selectedRoute, next);
-      notify(updated && !updated.next ? `「${updated.route.title}」三处打卡完成，去手记留一张纪念卡吧。` : '这一处风景，已收入手记。');
+      notify(
+        updated && !updated.next
+          ? `「${updated.route.title}」三处打卡完成，去手记留一张纪念卡吧。`
+          : '这一处风景，已收入手记。',
+      );
     } catch {
       notify('已收入本次手记，浏览器暂时无法保存。');
     }
@@ -333,10 +447,30 @@ function App() {
     const selected = routeProgress(id, visits)!;
     setSelectedRoute(id);
     setShareLink('');
-    const stop = selected.next || selected.route.stops[0], landing=destinations[stop.destination];
-    const landmark=data?.landmarks.find(item=>item.id===stop.landmark);
-    travel(stop.destination,landmark?Math.atan2(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]):landing.yaw,
-      landmark?Math.min(1.1,Math.atan2(stop.viewHeight,Math.hypot(landing.position[0]-landmark.position[0],landing.position[2]-landmark.position[2]))):0);
+    const stop = selected.next || selected.route.stops[0],
+      landing = destinations[stop.destination];
+    const landmark = data?.landmarks.find((item) => item.id === stop.landmark);
+    travel(
+      stop.destination,
+      landmark
+        ? Math.atan2(
+            landing.position[0] - landmark.position[0],
+            landing.position[2] - landmark.position[2],
+          )
+        : landing.yaw,
+      landmark
+        ? Math.min(
+            1.1,
+            Math.atan2(
+              stop.viewHeight,
+              Math.hypot(
+                landing.position[0] - landmark.position[0],
+                landing.position[2] - landmark.position[2],
+              ),
+            ),
+          )
+        : 0,
+    );
     notify(`已选「${selected.route.title}」。走近目标并收入手记，完成三处打卡。`);
   }
   function changeRenderDetail(detail: RenderDetail) {
@@ -344,7 +478,7 @@ function App() {
     setShareLink('');
     setRenderDetail(detail);
     if (new URLSearchParams(location.search).has('renderDetail'))
-      history.replaceState(null,'',routeShareUrl(location.href,selectedRoute,detail));
+      history.replaceState(null, '', routeShareUrl(location.href, selectedRoute, detail));
   }
   async function shareWalk() {
     if (shareFlight.current) return;
@@ -367,7 +501,8 @@ function App() {
           return;
         } catch (error) {
           if (!current()) return;
-          if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') return;
+          if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError')
+            return;
         }
       }
       if (!current()) return;
@@ -388,27 +523,54 @@ function App() {
   function downloadPassport() {
     if (!progress) return;
     const canvas = document.createElement('canvas');
-    canvas.width = 1080; canvas.height = 1350;
+    canvas.width = 1080;
+    canvas.height = 1350;
     const context = canvas.getContext('2d');
-    if (!context) { notify('暂时无法生成纪念卡，请稍后重试。'); return; }
-    context.fillStyle = '#f3ecdc'; context.fillRect(0, 0, 1080, 1350);
-    context.fillStyle = '#142f35'; context.fillRect(0, 0, 1080, 330);
-    context.fillStyle = '#dfbd84'; context.font = '36px sans-serif'; context.fillText('SHANGHAI / THE BUND', 90, 100);
-    context.fillStyle = '#f3ecdc'; context.font = 'bold 70px serif'; context.fillText('江风入境。', 90, 215);
-    context.fillStyle = '#142f35'; context.font = 'bold 48px sans-serif'; context.fillText(progress.route.title, 90, 450);
-    context.font = '34px sans-serif'; context.fillText(`我的漫游打卡  ${progress.completed} / 3`, 90, 535);
+    if (!context) {
+      notify('暂时无法生成纪念卡，请稍后重试。');
+      return;
+    }
+    context.fillStyle = '#f3ecdc';
+    context.fillRect(0, 0, 1080, 1350);
+    context.fillStyle = '#142f35';
+    context.fillRect(0, 0, 1080, 330);
+    context.fillStyle = '#dfbd84';
+    context.font = '36px sans-serif';
+    context.fillText('SHANGHAI / THE BUND', 90, 100);
+    context.fillStyle = '#f3ecdc';
+    context.font = 'bold 70px serif';
+    context.fillText('江风入境。', 90, 215);
+    context.fillStyle = '#142f35';
+    context.font = 'bold 48px sans-serif';
+    context.fillText(progress.route.title, 90, 450);
+    context.font = '34px sans-serif';
+    context.fillText(`我的漫游打卡  ${progress.completed} / 3`, 90, 535);
     progress.route.stops.forEach((stop, index) => {
       context.fillStyle = visits.includes(stop.landmark) ? '#315b61' : '#88897e';
-      context.font = '38px sans-serif'; context.fillText(`${visits.includes(stop.landmark) ? '✓' : '○'}  ${stop.name}`, 90, 655 + index * 105);
+      context.font = '38px sans-serif';
+      context.fillText(
+        `${visits.includes(stop.landmark) ? '✓' : '○'}  ${stop.name}`,
+        90,
+        655 + index * 105,
+      );
     });
     context.fillStyle = '#315b61';
-    for (let index = 0; index < 11; index++) context.fillRect(90 + index * 82, 1110 - (index % 4) * 28, 58, 80 + (index % 4) * 28);
-    context.fillStyle = '#142f35'; context.font = '30px sans-serif'; context.fillText('把时间留在江边。把风景留给朋友。', 90, 1250);
+    for (let index = 0; index < 11; index++)
+      context.fillRect(90 + index * 82, 1110 - (index % 4) * 28, 58, 80 + (index % 4) * 28);
+    context.fillStyle = '#142f35';
+    context.font = '30px sans-serif';
+    context.fillText('把时间留在江边。把风景留给朋友。', 90, 1250);
     canvas.toBlob((blob) => {
-      if (!blob) { notify('纪念卡没有生成，请稍后重试。'); return; }
-      const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `江风入境-${progress.route.title}-${progress.completed}处打卡.png`;
-      link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (!blob) {
+        notify('纪念卡没有生成，请稍后重试。');
+        return;
+      }
+      const url = URL.createObjectURL(blob),
+        link = document.createElement('a');
+      link.href = url;
+      link.download = `江风入境-${progress.route.title}-${progress.completed}处打卡.png`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       notify('纪念卡已生成，可保存后分享。');
     }, 'image/png');
   }
@@ -469,6 +631,10 @@ function App() {
       data-calls={stats.calls}
       data-triangles={stats.triangles}
       data-render-detail={renderDetail}
+      data-crowd={crowd}
+      data-motion={motion}
+      data-life-target={lifeTarget?.kind || ''}
+      data-life-event={lifeEvent?.kind || ''}
     >
       <div
         className="world"
@@ -483,7 +649,7 @@ function App() {
             <Canvas
               frameloop={active || !ready ? 'always' : 'demand'}
               shadows={quality > 0}
-              dpr={[quality === 0 ? .75 : 1, quality === 0 ? .75 : quality === 1 ? 1.25 : 2]}
+              dpr={[quality === 0 ? 0.75 : 1, quality === 0 ? 0.75 : quality === 1 ? 1.25 : 2]}
               camera={{ position: [-393, 2.6, 37], fov: 68, near: 0.25, far: 12000 }}
               gl={{
                 antialias: true,
@@ -512,6 +678,10 @@ function App() {
                   onTelemetry={setStats}
                   quality={quality}
                   renderDetail={renderDetail}
+                  crowd={crowd}
+                  motion={motion}
+                  lifeEvent={lifeEvent}
+                  onLifeTarget={setLifeTarget}
                 />
               </Suspense>
             </Canvas>
@@ -523,19 +693,21 @@ function App() {
         <section className="intro" aria-label="漫游入口">
           <header className="intro-top">
             <span>SHANGHAI / THE BUND</span>
-            <span>31°14′ N &nbsp; 121°29′ E</span>
+            <button className="home-settings" onClick={() => open('pause')} aria-label="游览设置">
+              ☼ 游览设置
+            </button>
           </header>
           <div className="intro-copy">
-            <p className="eyebrow">不赶时间，收下三处风景</p>
+            <p className="eyebrow">今天，去江边浪费一点时间</p>
             <h1>
               江风
               <br />
               <em>入境。</em>
             </h1>
             <p className="intro-description">
-              把时间留在江边。
+              一杯清凉，一声招呼，一阵江风。
               <br />
-              走进外滩两岸，在暮色与建筑之间，自由漫游。
+              沿着外滩走走，遇见城市的小日常。
             </p>
             {error ? (
               <>
@@ -546,7 +718,7 @@ function App() {
               </>
             ) : (
               <button className="primary" id="enter-world" disabled={!ready} onClick={start}>
-                {ready ? '走进风景　↗' : <Loading />}
+                {ready ? '进入游览　↗' : <Loading />}
               </button>
             )}
             <p className="intro-hint">
@@ -554,11 +726,23 @@ function App() {
                 ? '左手行走 · 右手转头 · 横屏看得更远'
                 : 'W A S D 行走　·　鼠标环顾　·　Esc 暂停'}
             </p>
-            {progress && <p className="intro-hint">收到一张漫游邀请：{progress.route.title} · 三处打卡</p>}
+            {progress && (
+              <p className="intro-hint">收到一张漫游邀请：{progress.route.title} · 三处打卡</p>
+            )}
+            <button className="home-journal" onClick={() => open('journal')}>
+              我的旅行手记　↗
+            </button>
             <div className="intro-routes" aria-label="挑一条漫游路线">
-              {explorationRoutes.map(route=><button key={route.id} aria-pressed={selectedRoute===route.id} onClick={()=>chooseRoute(route.id)}>
-                <b>{route.title}</b><small>三处风景 · 点这里出发 ↗</small>
-              </button>)}
+              {explorationRoutes.map((route) => (
+                <button
+                  key={route.id}
+                  aria-pressed={selectedRoute === route.id}
+                  onClick={() => chooseRoute(route.id)}
+                >
+                  <b>{route.title}</b>
+                  <small>三处风景 · 点这里出发 ↗</small>
+                </button>
+              ))}
             </div>
           </div>
           <div className="intro-index">
@@ -571,42 +755,80 @@ function App() {
       {started && (
         <>
           <header className="hud">
-            <div className="wordmark">
-              <span>江风入境</span>
-              <small>{sitting ? '江畔小坐' : nearest?.name.split('（')[0] || '两岸漫游'}</small>
-            </div>
+            <button className="home-button" onClick={home} aria-label="返回首页">
+              <svg
+                viewBox="0 0 24 24"
+                width="21"
+                height="21"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M3 10 12 2l9 8v11h-6v-7H9v7H3z" />
+              </svg>
+            </button>
             <nav aria-label="漫游工具">
-              <button onClick={() => setNight(!night)} aria-label={night ? '切换日景' : '切换夜景'}>
-                {night ? '☾ 夜色' : '◒ 暮色'}
-              </button>
-              <button onClick={toggleSound} aria-pressed={sound} aria-label="环境声音">
-                {sound ? '♫' : '♪'}
-                <span className="desktop-only"> 声音</span>
-              </button>
               <button onClick={() => open('map')} aria-label="打开地图">
                 ⌖<span className="desktop-only"> 地图</span>
               </button>
-              <button onClick={() => open('pause')} aria-label="暂停漫游">
-                Ⅱ
+              <button onClick={() => open('pause')} aria-label="暂停">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="4" width="5" height="16" rx=".5" />
+                  <rect x="14" y="4" width="5" height="16" rx=".5" />
+                </svg>
               </button>
             </nav>
           </header>
           {active && (
             <>
               <div className="crosshair" />
-              <div className="compass">
-                <span>西</span>
-                <i style={{ transform: `rotate(${stats.yaw}rad)` }}>↑</i>
-                <span>东</span>
-              </div>
-              <div className="location-chip">
-                <i /> 黄浦江畔 <span>{night ? '21:00' : '17:40'}</span>
-              </div>
+              {lifeTarget && (
+                <button
+                  className="life-target"
+                  style={{ left: `${lifeTarget.screen[0]}%`, top: `${lifeTarget.screen[1]}%` }}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    event.preventDefault();
+                    meet(lifeTarget);
+                  }}
+                  onClick={(event) => {
+                    if (event.detail === 0) meet(lifeTarget);
+                  }}
+                  aria-label={lifeTarget.name}
+                >
+                  <span className="target-dot" />
+                  {lifeTarget.name}
+                  <small>轻点互动</small>
+                </button>
+              )}
               {progress && (
-                <button className="route-task" onClick={() => open('map')} aria-label="查看探索路线">
-                  <b>{progress.route.title} · {progress.completed} / 3</b>
-                  <span>{progress.next ? `下一处：${progress.next.name}${routeDistance!==undefined?` · ${Math.round(routeDistance)} 米`:''} · 走近后收入手记` : '三处风景已收齐 · 去手记留念 ↗'}</span>
-                  {progress.next && <i className="route-bearing" aria-label="下一处风景的方向" style={{transform:`rotate(${routeBearing}rad)`}}>↑</i>}
+                <button
+                  className="route-task"
+                  onClick={() => open('map')}
+                  aria-label="查看探索路线"
+                >
+                  <b>
+                    {progress.route.title} · {progress.completed} / 3
+                  </b>
+                  <span>
+                    {progress.next
+                      ? `下一处：${progress.next.name}${routeDistance !== undefined ? ` · ${Math.round(routeDistance)} 米` : ''} · 走近后收入手记`
+                      : '三处风景已收齐 · 去手记留念 ↗'}
+                  </span>
+                  {progress.next && (
+                    <i
+                      className="route-bearing"
+                      aria-label="下一处风景的方向"
+                      style={{ transform: `rotate(${routeBearing}rad)` }}
+                    >
+                      ↑
+                    </i>
+                  )}
                 </button>
               )}
               <div className="interaction">
@@ -641,7 +863,6 @@ function App() {
                 }}
               >
                 <span>↑</span> {stats.grounded ? '跳上 / 跳下' : '空中'}
-                <small>{touch ? '轻点跳跃' : '空格跳跃'}</small>
               </button>
               <div className="bottom-actions">
                 <button onClick={() => capture.current()} aria-label="拍照">
@@ -734,30 +955,48 @@ function App() {
               ? '地标介绍'
               : panel === 'journal'
                 ? '旅行手记'
-                : '漫游设置'
+                : panel === 'stall'
+                  ? '江风小站'
+                  : '漫游设置'
         }
       >
-        <button className="close" onClick={start} aria-label="返回漫游">
-          ↗
+        <button
+          className="close"
+          onClick={() => (started ? start() : setPanel(null))}
+          aria-label={started ? '返回漫游' : '返回首页'}
+        >
+          ×
         </button>
         {panel === 'pause' && (
           <>
             <p className="eyebrow">TAKE YOUR TIME</p>
-            <h2>风景会等你。</h2>
-            <p className="muted">暂停一下，或者换一种方式看这座城市。</p>
-            <button className="primary" onClick={start}>
-              继续漫游　↗
-            </button>
+            <h2>{started ? '风景会等你。' : '今天，怎样逛外滩？'}</h2>
+            <p className="muted">挑一个时刻，调好声音，然后慢慢走。</p>
+            {started && (
+              <button className="primary" onClick={start}>
+                继续漫游　↗
+              </button>
+            )}
             <div className="settings">
               <label>
-                环境声音<button onClick={toggleSound}>{sound ? '已开启' : '已关闭'}</button>
+                环境声音
+                <button aria-label="环境声音" aria-pressed={sound} onClick={toggleSound}>
+                  {sound ? '已开启' : '已关闭'}
+                </button>
               </label>
               <label>
-                光影时刻<button onClick={() => setNight(!night)}>{night ? '夜色' : '暮色'}</button>
+                光影时刻
+                <button aria-label="光影时刻" onClick={() => setNight(!night)}>
+                  {night ? '夜色' : '暖阳'}
+                </button>
               </label>
               <label>
                 画面精度
-                <select aria-label="画面精度" value={quality} onChange={(e) => setQuality(Number(e.target.value))}>
+                <select
+                  aria-label="画面精度"
+                  value={quality}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                >
                   <option value={0}>流畅</option>
                   <option value={1}>清晰</option>
                   <option value={2}>精细</option>
@@ -765,15 +1004,38 @@ function App() {
               </label>
               <label>
                 模型细节
-                <select aria-label="模型细节" value={renderDetail} onChange={event=>{
-                  if(isRenderDetail(event.target.value))changeRenderDetail(event.target.value);
-                }}>
-                  <option value="original">原始 · 0 米，关闭几何简化</option>
-                  <option value="balanced">轻度 · 0.12 米，保留更多细部</option>
-                  <option value="light">轻量 · 0.35 米，优先降低绘制成本</option>
+                <select
+                  aria-label="模型细节"
+                  value={renderDetail}
+                  onChange={(event) => {
+                    if (isRenderDetail(event.target.value)) changeRenderDetail(event.target.value);
+                  }}
+                >
+                  <option value="original">完整建筑细节</option>
+                  <option value="balanced">均衡</option>
+                  <option value="light">轻量 · 推荐手机</option>
                 </select>
               </label>
-              <p className="muted">模型细节只影响看见的装饰与树冠。行走碰撞、地标位置和打卡条件始终使用原始数据。</p>
+              <label>
+                行人与鸽子
+                <button
+                  aria-label="行人与鸽子"
+                  aria-pressed={crowd}
+                  onClick={() => setCrowd(!crowd)}
+                >
+                  {crowd ? '热闹一点' : '安静一点'}
+                </button>
+              </label>
+              <label>
+                生活动画
+                <button
+                  aria-label="生活动画"
+                  aria-pressed={motion}
+                  onClick={() => setMotion(!motion)}
+                >
+                  {motion ? '轻轻动起来' : '减少动态'}
+                </button>
+              </label>
               <label>
                 转头灵敏度
                 <input
@@ -790,7 +1052,12 @@ function App() {
             <div className="dialog-links">
               <button onClick={() => setPanel('map')}>两岸地图 ↗</button>
               <button onClick={() => setPanel('journal')}>旅行手记 ↗</button>
-              <button onClick={() => travel(0)}>回到江畔 ↗</button>
+              {started && (
+                <>
+                  <button onClick={() => travel(0)}>回到江畔 ↗</button>
+                  <button onClick={home}>返回首页 ↗</button>
+                </>
+              )}
             </div>
             <p className="muted small">
               {touch
@@ -801,6 +1068,41 @@ function App() {
             </p>
           </>
         )}
+        {panel === 'stall' && (
+          <>
+            <p className="eyebrow">A LITTLE RIVERSIDE BREAK</p>
+            <h2>江风小站</h2>
+            <p className="muted">走累了就歇歇脚。挑一份小心意，把今天的江风留在手记里。</p>
+            <div className="stall-choices">
+              <button
+                onClick={() => {
+                  keepMoment('drink');
+                  start();
+                  lifeSound('drink');
+                  notify('摊主递来一杯清凉，冰块叮当作响。已收入生活手记。');
+                }}
+              >
+                <span aria-hidden="true">🥤</span>
+                <b>一杯江边清凉</b>
+                <small>听一声冰块碰杯</small>
+              </button>
+              <button
+                onClick={() => {
+                  keepMoment('postcard');
+                  chime();
+                  capture.current();
+                  start();
+                  notify('收下一张外滩明信片。刚才的风景也留在了手记里。');
+                }}
+              >
+                <span aria-hidden="true">✉</span>
+                <b>一张外滩明信片</b>
+                <small>把眼前的风景留下</small>
+              </button>
+            </div>
+            <p className="muted small">漫游中的小礼物，可以重复领取。</p>
+          </>
+        )}
         {panel === 'map' && (
           <>
             <p className="eyebrow">ACROSS THE RIVER</p>
@@ -809,12 +1111,27 @@ function App() {
             <section className="route-list" aria-label="探索路线">
               <h3>给漫游一个小目标</h3>
               {explorationRoutes.map((route) => (
-                <button key={route.id} aria-pressed={selectedRoute === route.id} onClick={() => chooseRoute(route.id)}>
-                  <b>{route.title}</b><span>{route.description}</span>
-                  <small>{routeProgress(route.id, visits)!.completed} / 3 已打卡 · 开始路线 ↗</small>
+                <button
+                  key={route.id}
+                  aria-pressed={selectedRoute === route.id}
+                  onClick={() => chooseRoute(route.id)}
+                >
+                  <b>{route.title}</b>
+                  <span>{route.description}</span>
+                  <small>
+                    {routeProgress(route.id, visits)!.completed} / 3 已打卡 · 开始路线 ↗
+                  </small>
                 </button>
               ))}
-              {progress && <ol>{progress.route.stops.map((stop) => <li key={stop.landmark}>{visits.includes(stop.landmark) ? '✓ 已收入手记' : '○ 待探索'} · {stop.name}</li>)}</ol>}
+              {progress && (
+                <ol>
+                  {progress.route.stops.map((stop) => (
+                    <li key={stop.landmark}>
+                      {visits.includes(stop.landmark) ? '✓ 已收入手记' : '○ 待探索'} · {stop.name}
+                    </li>
+                  ))}
+                </ol>
+              )}
             </section>
             <div className="map-art">
               <svg viewBox="-950 -1630 3500 3470" role="img" aria-label="外滩两岸位置图">
@@ -881,9 +1198,51 @@ function App() {
             <p className="eyebrow">LITTLE THINGS, KEPT</p>
             <h2>把江风留下。</h2>
             <p className="muted">已收藏 {visits.length} 处风景</p>
-            {progress && <div className="route-journal"><h3>{progress.route.title} · {progress.completed} / 3</h3><p>{progress.next ? `下一处：${progress.next.name}。从地图落脚点出发，走近地标并收入手记。` : '三处打卡完成。可以保存纪念卡，邀请朋友走同一条路线。'}</p><button className="primary" onClick={downloadPassport}>保存我的漫游纪念卡</button></div>}
-            <button className="share-walk" disabled={shareBusy} onClick={shareWalk}>{shareBusy ? '正在准备…' : '邀请朋友沿江走走'}</button>
-            {shareLink && <label className="share-link">漫游邀请链接<input value={shareLink} readOnly onFocus={(event) => event.currentTarget.select()} /></label>}
+            {moments.length > 0 && (
+              <div className="life-journal">
+                <h3>江边的小日常</h3>
+                {moments.map((id) => (
+                  <span key={id}>
+                    {(
+                      {
+                        visitor: '和游客打过招呼',
+                        pigeon: '看小鸽子起飞',
+                        drink: '一杯江边清凉',
+                        postcard: '一张外滩明信片',
+                      } as Record<string, string>
+                    )[id] || id}
+                  </span>
+                ))}
+              </div>
+            )}
+            {progress && (
+              <div className="route-journal">
+                <h3>
+                  {progress.route.title} · {progress.completed} / 3
+                </h3>
+                <p>
+                  {progress.next
+                    ? `下一处：${progress.next.name}。从地图落脚点出发，走近地标并收入手记。`
+                    : '三处打卡完成。可以保存纪念卡，邀请朋友走同一条路线。'}
+                </p>
+                <button className="primary" onClick={downloadPassport}>
+                  保存我的漫游纪念卡
+                </button>
+              </div>
+            )}
+            <button className="share-walk" disabled={shareBusy} onClick={shareWalk}>
+              {shareBusy ? '正在准备…' : '邀请朋友沿江走走'}
+            </button>
+            {shareLink && (
+              <label className="share-link">
+                漫游邀请链接
+                <input
+                  value={shareLink}
+                  readOnly
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+              </label>
+            )}
             {photo ? (
               <figure>
                 <img src={photo} alt="刚刚拍下的外滩风景" />

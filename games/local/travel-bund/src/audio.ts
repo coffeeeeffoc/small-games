@@ -132,3 +132,30 @@ export function chime() {
     osc.stop(t + 0.7 + i * 0.08);
   }
 }
+export function lifeSound(kind: 'drink' | 'pigeon' | 'visitor') {
+  if (!context || !master || !enabled) return;
+  const now = context.currentTime;
+  for (let i = 0; i < 3; i++) {
+    const osc = context.createOscillator(),
+      gain = context.createGain(),
+      t = now + i * 0.11;
+    osc.type = kind === 'drink' ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(
+      kind === 'drink' ? 1600 + i * 310 : kind === 'pigeon' ? 650 + i * 160 : 380 + i * 85,
+      t,
+    );
+    osc.frequency.exponentialRampToValueAtTime(
+      kind === 'pigeon' ? 420 : kind === 'drink' ? 1200 : 460,
+      t + 0.09,
+    );
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    osc.connect(gain).connect(master);
+    osc.start(t);
+    osc.stop(t + 0.14);
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+  }
+}
