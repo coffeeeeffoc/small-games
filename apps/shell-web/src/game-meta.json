@@ -419,6 +419,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "tianxia-chalu": {
+      "source": "games/local/tianxia-chalu",
+      "created": {
+        "commit": "4bc10b2d20b6101e4c47f4455bb849b3bf006deb",
+        "time": "2026-10-05T20:08:16Z"
+      },
+      "updated": {
+        "commit": "4bc10b2d20b6101e4c47f4455bb849b3bf006deb",
+        "time": "2026-10-05T20:08:16Z"
+      }
+    },
     "tiny-signals": {
       "source": "games/local/tiny-signals",
       "created": {
@@ -459,8 +470,8 @@
         "time": "2026-09-16T02:32:15+08:00"
       },
       "updated": {
-        "commit": "8847c17206d71ee8a879c7f0071382a6e12ae2c1",
-        "time": "2026-10-05T19:03:57Z"
+        "commit": "f480402d359b2d76fd32a4fa2afda1fe4d4a43b2",
+        "time": "2026-10-06T03:46:41+08:00"
       }
     },
     "travel-bund-25d": {
