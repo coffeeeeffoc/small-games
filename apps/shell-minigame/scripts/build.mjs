@@ -80,14 +80,19 @@ for (const { game, platform, appId, adUnitId } of checked) {
           return `import { ${adapter.start} } from ${JSON.stringify(adapter.module)};
           import { ${selected.definition} as original, ${selected.content} as content } from '@coffeeeeffoc/game-${game}/canvas';
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
-          export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
+          const reviewedContent = ${selected.configureAdvertising ? `{...content,payload:{...content.payload,advertisingConfigured:${Boolean(adUnitId)}}}` : 'content'};
+          export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content: reviewedContent }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
           ready.catch(error => { console.error('小游戏启动失败', error); });`;
         },
         async generateBundle() {
           for (const [fileName, config] of Object.entries(
             adapter.files({ game, appId, version }),
           )) {
-            this.emitFile({ type: 'asset', fileName, source: JSON.stringify(config, null, 2) });
+            const gameConfig =
+              fileName === 'game.json' && selected.orientation
+                ? { ...config, deviceOrientation: selected.orientation }
+                : config;
+            this.emitFile({ type: 'asset', fileName, source: JSON.stringify(gameConfig, null, 2) });
           }
           for (const asset of selected.assets) {
             const directory = path.join(gameRoot, asset.source);

@@ -1,0 +1,30 @@
+{
+  "environment": "Linux Chromium desktop / CDP simulated touch; not WeChat device",
+  "records": [
+    {
+      "name": "desktop",
+      "touch": false,
+      "iframe": false,
+      "resizeCancelsDrag": true,
+      "rotationPreservesBattle": true,
+      "retry": true
+    },
+    {
+      "name": "touch-portrait",
+      "touch": true,
+      "iframe": false,
+      "resizeCancelsDrag": true,
+      "rotationPreservesBattle": true,
+      "retry": true
+    },
+    {
+      "name": "iframe",
+      "touch": true,
+      "iframe": true,
+      "resizeCancelsDrag": true,
+      "rotationPreservesBattle": true,
+      "retry": true
+    }
+  ],
+  "errors": []
+}

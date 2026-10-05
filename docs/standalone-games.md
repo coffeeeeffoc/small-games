@@ -205,3 +205,5 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 手机回归使用 390×844 竖屏；捕鱼、橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
+
+《一炮拆城》位于 `games/local/game-castle-cannon`，访问 ID 为 `castle-cannon`，workspace 包名为 `@coffeeeeffoc/game-castle-cannon`。独立 H5 通过同源 iframe 装载，Canvas 规则和绘制同时经既有 Native Game Shell 生成微信横屏预览工程。三关以破门通路、箭塔减损、两种炮弹与自动士兵占领为核心；基础弹种不受广告限制，材料仅用于外观。构建、规则和桌面/模拟触屏、模拟 wx SDK 验收记录见 [游戏 README](../games/local/game-castle-cannon/README.md)。未验证微信开发者工具、微信真机或真实广告位，预览不是微信上线。

@@ -348,5 +348,12 @@
     "title": "惊喜别穿帮",
     "description": "安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。",
     "output": "dist"
+  },
+  {
+    "id": "castle-cannon",
+    "source": "games/local/game-castle-cannon",
+    "title": "一炮拆城",
+    "description": "拖动瞄准，松手开炮！先破门抢推进，先拆箭塔保兵力，用两种炮弹护送小队攻下三座小城。",
+    "output": "dist"
   }
 ]

@@ -4,6 +4,14 @@ import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 export const games = {
+  'castle-cannon': {
+    title: '一炮拆城',
+    definition: 'castleCannonCanvasDefinition',
+    content: 'defaultCastleCannonEnvelope',
+    orientation: 'landscape',
+    configureAdvertising: true,
+    assets: [{ source: 'public/castle-cannon-audio', target: 'castle-cannon-audio' }],
+  },
   'building-power': {
     title: '忙碌的电工',
     definition: 'buildingPowerCanvasDefinition',

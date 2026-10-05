@@ -1,0 +1,13 @@
+{
+  "environment": "Node VM with mocked wx SDK; not WeChat developer tools or real device",
+  "orientation": "landscape",
+  "nativeBundleLoaded": true,
+  "dragCancel": true,
+  "gateAndTower": true,
+  "hideShow": true,
+  "pauseResume": true,
+  "victory": true,
+  "storage": true,
+  "advertisingConfigured": false,
+  "cleanup": true
+}

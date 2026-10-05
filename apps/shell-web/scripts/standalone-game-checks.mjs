@@ -33,7 +33,14 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'ember-bounce') {
+  if (id === 'castle-cannon') {
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('[data-action="blast"]'));
+    await click(frame.locator('[data-action="pause"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'paused');
+    await click(frame.locator('[data-action="resume"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+  } else if (id === 'ember-bounce') {
     const arena = frame.locator('#arena');
     const snapshot = () => arena.evaluate((canvas) => canvas.getEmberSnapshot?.());
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');

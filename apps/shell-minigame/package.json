@@ -28,7 +28,8 @@
     "@coffeeeeffoc/game-arena": "workspace:*",
     "@coffeeeeffoc/game-building-power": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*",
-    "@coffeeeeffoc/platform-kuaishou": "workspace:*"
+    "@coffeeeeffoc/platform-kuaishou": "workspace:*",
+    "@coffeeeeffoc/game-castle-cannon": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

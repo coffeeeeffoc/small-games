@@ -89,7 +89,8 @@
     "@coffeeeeffoc/echo-weaver": "workspace:*",
     "@coffeeeeffoc/two-sided-box": "workspace:*",
     "@coffeeeeffoc/luban-workshop": "workspace:*",
-    "@coffeeeeffoc/surprise-kept": "workspace:*"
+    "@coffeeeeffoc/surprise-kept": "workspace:*",
+    "@coffeeeeffoc/game-castle-cannon": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

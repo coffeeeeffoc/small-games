@@ -289,6 +289,9 @@ importers:
       '@coffeeeeffoc/game-building-power':
         specifier: workspace:*
         version: link:../../games/local/game-building-power
+      '@coffeeeeffoc/game-castle-cannon':
+        specifier: workspace:*
+        version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -380,6 +383,9 @@ importers:
       '@coffeeeeffoc/game-building-power':
         specifier: workspace:*
         version: link:../../games/local/game-building-power
+      '@coffeeeeffoc/game-castle-cannon':
+        specifier: workspace:*
+        version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -798,6 +804,46 @@ importers:
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
   games/local/game-building-power:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../../../packages/game-host
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../../packages/config-typescript
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      jsdom:
+        specifier: 26.1.0
+        version: 26.1.0(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  games/local/game-castle-cannon:
     dependencies:
       '@coffeeeeffoc/canvas-game-adapter':
         specifier: workspace:*

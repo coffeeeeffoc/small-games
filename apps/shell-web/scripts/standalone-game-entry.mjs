@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'castle-cannon': '.castle-root[data-screen="playing"]',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
@@ -56,6 +57,7 @@ export const markers = {
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
+  'castle-cannon': '[data-action="start"]',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
