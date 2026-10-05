@@ -25,7 +25,7 @@ import {
   roleAvatarSvg,
   roleCharacterMarkup,
 } from './role-appearance.js';
-import { runConfig, formatRecord, readRecords, submitRun } from './records.js';
+import { RUN_VERSION, runConfig, formatRecord, readRecords, submitRun } from './records.js';
 import { readPuzzleLink, fillPuzzleShare } from './share.js';
 
 const $ = (id) => document.getElementById(id);
@@ -66,10 +66,10 @@ function readProgress() {
     const modeBest = {};
     for (const [key, seconds] of Object.entries(value?.modeBest || {}))
       if (
-        (/^(challenge|classic|escape)-(cop|robber)-(100|[1-9]\d?)(:relay)?(:(cop|robber|simultaneous))?$/.test(
+        (/^(challenge|classic|escape)-(cop|robber)-(100|[1-9]\d?)(:relay)?(:(cop|robber|simultaneous))?(:street-solo-v2)?$/.test(
           key,
         ) ||
-          /^quick-cop-[1-3](:simultaneous)?$/.test(key)) &&
+          /^quick-cop-[1-3](:simultaneous)?(:street-solo-v2)?$/.test(key)) &&
         Number.isFinite(seconds) &&
         seconds > 0 &&
         seconds < 86400
@@ -104,10 +104,12 @@ function readProgress() {
 }
 let progress = readProgress();
 const legacyKey = (id) => `${mode}-${playerRole}-${id}${rule === 'relay' ? ':relay' : ''}`;
-const recordKey = (id) => `${legacyKey(id)}:${game.firstRole || 'simultaneous'}`;
+const recordKey = (id) => `${legacyKey(id)}:${game.firstRole || 'simultaneous'}:${RUN_VERSION}`;
 const bestTime = (id) =>
   progress.modeBest[recordKey(id)] ||
-  (['challenge', 'quick'].includes(mode) ? progress.modeBest[legacyKey(id)] : null) ||
+  (mode === 'quick' || (mode === 'challenge' && playerRole === 'cop')
+    ? progress.modeBest[`${legacyKey(id)}:${game.firstRole || 'simultaneous'}`] || progress.modeBest[legacyKey(id)]
+    : null) ||
   (rule === 'standard' && mode === 'challenge' && playerRole === 'cop'
     ? progress.streetBest[id]
     : null);

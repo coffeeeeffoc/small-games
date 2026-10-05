@@ -1,4 +1,4 @@
-export const RUN_VERSION = 'street-solo-v1';
+export const RUN_VERSION = 'street-solo-v2';
 
 export function runConfig(game) {
   return {
