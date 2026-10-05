@@ -386,6 +386,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "retreat-rally": {
+      "source": "games/local/retreat-rally",
+      "created": {
+        "commit": "8d90679798bff1031a911586d3214df78d5af8cc",
+        "time": "2026-10-05T20:48:51Z"
+      },
+      "updated": {
+        "commit": "f6e571e55fa0fab283516e7a793b09ddbbc35d59",
+        "time": "2026-10-05T20:55:36Z"
+      }
+    },
     "rule-thief": {
       "source": "games/local/rule-thief",
       "created": {
