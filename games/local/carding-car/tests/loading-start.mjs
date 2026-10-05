@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { gameURL, verifyBuild, startBrowser, tapDesign, prepareRace, startRace, tapHome, waitForReady } from './browser-utils.mjs';
 
 const url = gameURL();
@@ -84,8 +84,24 @@ try {
   assert.equal(await assetFailure.evaluate(() => __kart.snapshot().selection.vehicle), 'dune-buggy');
   assert.equal(await assetFailure.evaluate(() => __kart.snapshot().staged), false, 'retry only restores the selected preview');
   await assetFailure.close();
+  const garageFailure = await browser.newPage({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  garageFailure.on('pageerror', error => errors.push(error.message));
+  const garage = JSON.parse(await readFile(new URL('../assets/resources/menu/garage.jpg.meta', import.meta.url), 'utf8'));
+  const garageImage = `**/${garage.uuid}*.jpg`;
+  await garageFailure.goto(url); await waitForReady(garageFailure);
+  await garageFailure.route(garageImage, route => route.abort());
+  await tapHome(garageFailure, '选择比赛');
+  await garageFailure.waitForFunction(() => !!__kart.snapshot().menuArtwork.error, null, { timeout: 60000 });
+  await garageFailure.waitForFunction(() => __kart.snapshot().home.buttons.some(button => button.label === '重新加载' && button.enabled));
+  assert.equal(await garageFailure.evaluate(() => __kart.snapshot().phase), 'ready');
+  await garageFailure.unroute(garageImage);
+  await tapHome(garageFailure, '重新加载');
+  await garageFailure.waitForFunction(() => __kart.snapshot().menuArtwork.background === 'garage' && !__kart.snapshot().menuArtwork.error);
+  assert.equal(await garageFailure.evaluate(() => __kart.snapshot().home.page), 'setup');
+  assert.equal(await garageFailure.evaluate(() => __kart.snapshot().staged), false, 'background retry keeps the player in configuration');
+  await garageFailure.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: branded loading, portrait layout, delayed assets, input blocking, explicit race start and failed-engine/selected-asset retry');
+  console.log('PASS: branded loading, portrait layout, delayed assets, input blocking, explicit race start and failed-engine/selected-asset/menu-art retry');
 } finally {
   release();
   await browser.close();

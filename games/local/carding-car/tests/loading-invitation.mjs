@@ -77,7 +77,7 @@ try {
     headers: { 'If-None-Match': response.headers.get('etag') },
   });
   assert.equal(cached.status, 304);
-  const entry = await designPoint(page, 807, 142);
+  const entry = await designPoint(page, 320, 450);
   await page.mouse.click(entry.x, entry.y);
   await page.setViewportSize({ width: 1593, height: 726 });
   await page.waitForTimeout(350); // Creator debounces canvas resizing before positioning EditBox.

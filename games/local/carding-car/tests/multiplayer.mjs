@@ -67,7 +67,7 @@ try {
   const host = await open(false, 'classic-kart');
   await host.goto(url.href);
   await loaded(host);
-  const entry = await designPoint(host, 807, 142);
+  const entry = await designPoint(host, 320, 450);
   await host.mouse.click(entry.x, entry.y);
   for (const [width, height] of [[844, 390], [1280, 585]]) {
     await host.setViewportSize({ width, height });
@@ -77,11 +77,11 @@ try {
       await host.mouse.click(point.x, point.y);
     };
     await host.screenshot({ path: fileURLToPath(new URL(`entry-${width}.png`, reports)) });
-    await click(327, 128);
+    await click(-160, -180);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'modal shields the entry behind it');
     await click(256, 150);
     assert.equal((await snap(host)).multiplayer.panelOpen, false, 'compact close button works');
-    await click(327, 128);
+    await click(-160, -180);
     assert.equal((await snap(host)).multiplayer.panelOpen, true, 'entry reopens after closing');
   }
   await host.setViewportSize({ width: 960, height: 540 });

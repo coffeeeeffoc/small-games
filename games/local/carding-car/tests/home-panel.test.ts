@@ -30,8 +30,9 @@ class Transform {
     return Math.abs(point.x - x) <= this.contentSize.width / 2 && Math.abs(point.y - y) <= this.contentSize.height / 2;
   }
 }
-class Graphics { clear() {} }
-for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'stroke', 'fill']) Graphics.prototype[op] = () => {};
+class Graphics { operations: { op: string; args: number[] }[] = []; clear() { this.operations = []; } }
+for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'close', 'stroke', 'fill'])
+  Graphics.prototype[op] = function (...args: number[]) { this.operations.push({ op, args }); };
 class Color { fromHEX() { return this; } }
 const cc = { Node: SceneNode, UITransform: Transform, Graphics, Color, EventTouch: class {}, BlockInputEvents: class {},
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; }, Canvas: class {},
@@ -110,13 +111,19 @@ function setup() {
 
 test('home/setup touches are independent of driving input, cancel safely, and only prepare explicitly', () => {
   const { panel, calls, button, event, tap } = setup();
-  const start = button('选择比赛  →'), e = event(-240, -193);
+  const start = button('选择比赛  →'), e = event(start.position.x, start.position.y);
+  panel.tick(0.1);
+  assert.notEqual(start.scale.x, 1, 'primary action breathes without rebuilding the panel');
   start.emit('start', e); start.emit('cancel', e); start.emit('end', e);
   assert.equal(panel.page, 'home', 'cancel must not navigate');
-  start.emit('start', e); start.emit('move', event(-200, -193)); start.emit('end', e);
+  assert.deepEqual(start.scale, { x: 1, y: 1 }, 'cancel restores the whole button including its text and icon');
+  start.emit('start', e); panel.tick(0.1);
+  assert.deepEqual(start.scale, { x: 0.94, y: 0.94 }, 'ambient animation cannot override a held button');
+  start.emit('move', event(start.position.x + 40, start.position.y)); start.emit('end', e);
   assert.equal(panel.page, 'home', 'dragging away must not navigate');
+  assert.deepEqual(start.scale, { x: 1, y: 1 });
   tap('选择比赛  →');
-  tap('›', 136); tap('‹', 60);
+  tap('›', 158); tap('‹', -115);
   assert.deepEqual(calls.choices, [['theme', 1], ['route', -1]]);
   assert.equal(calls.prepare, 0);
   tap('展开高级选项');
@@ -131,6 +138,41 @@ test('home/setup touches are independent of driving input, cancel safely, and on
   assert.equal(panel.snapshot().visible, false);
   panel.root.active = true;
   assert.equal(panel.page, 'setup'); assert.equal(panel.advanced, true, 'settings preserves the configuration page');
+});
+
+test('home is a sparse plaza while setup keeps both native scene windows uncovered', () => {
+  const { panel, state, button, tap } = setup();
+  const content = panel.root.getChildByName('HomeContent');
+  const labels = (node: SceneNode): string[] => [node.getComponent(cc.Label)?.string || '', ...node.children.flatMap(labels)].filter(Boolean);
+  assert.equal(content.getChildByName('CreamBackdrop'), undefined, 'plaza and live kart fill the home scene');
+  assert.equal(content.getChildByName('ThemePostcard'), undefined);
+  assert.deepEqual(panel.snapshot().preview, { x: -80, y: -15, width: 300, height: 230 });
+  assert.deepEqual(panel.snapshot().buttons.map(button => button.label), ['设置', '选择比赛  →', '生涯 / 领奖', '商店 / 升级']);
+  assert.ok(labels(content).includes('开赛'));
+  assert.ok(!labels(content).some(text => /已完赛|当前装备|成长|金币|下一站/.test(text)), 'details live on the career page');
+  assert.deepEqual(button('选择比赛  →').position, { x: 280, y: -160, z: 0 });
+  assert.deepEqual(button('生涯 / 领奖').position, { x: -390, y: -180, z: 0 });
+  const start = button('选择比赛  →'); panel.update(state);
+  assert.equal(button('选择比赛  →'), start, 'unchanged state keeps native UI nodes and motion intact');
+  tap('选择比赛  →');
+  assert.ok(content.getChildByName('ThemePostcard'));
+  assert.ok(labels(content).includes('出发！'));
+  assert.ok(!labels(content).includes('开赛'));
+  assert.deepEqual(panel.snapshot().preview, { x: 230, y: 2.5, width: 380, height: 225 });
+  assert.deepEqual(panel.snapshot().sceneryPreview, { x: -230, y: 24, width: 396, height: 208 });
+  assert.deepEqual(panel.snapshot().buttons.filter(button => button.label === '›').map(button => [button.designX, button.designY]),
+    [[430, 112], [430, 385], [892, 255], [852, 405]], 'theme/map/car/driver keep semantic arrow order');
+  const holes = [{ x: 52, y: 142, width: 396, height: 208 }, { x: 520, y: 155, width: 380, height: 225 }];
+  const backdrop = content.getChildByName('CreamBackdrop').getComponent(Graphics);
+  const rectangles = backdrop.operations.filter(operation => operation.op === 'rect');
+  assert.ok(rectangles.length > 0);
+  for (const { args: [x, y, width, height] } of rectangles) {
+    const left = x + 480, top = 270 - y - height;
+    assert.ok(!holes.some(hole => left < hole.x + hole.width && left + width > hole.x && top < hole.y + hole.height && top + height > hole.y),
+      'cream paint must never cover either live preview');
+  }
+  panel.show('shop');
+  assert.deepEqual(panel.snapshot().preview, { x: 216, y: 17, width: 444, height: 250 });
 });
 
 test('shop candidate preview never buys implicitly, and leaving restores actual equipment', () => {

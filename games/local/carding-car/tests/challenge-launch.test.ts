@@ -8,7 +8,7 @@ import { Career } from '../assets/scripts/Career.ts';
 class SceneNode { active = true; addChild() {} destroy() {} }
 class Color { fromHEX() { return this; } }
 const cc = { _decorator: { ccclass: () => (type: any) => type },
-  Node: SceneNode, Rect: class {}, Vec3: class {}, Color, Component: class { node = new SceneNode(); isValid = true; },
+  Node: SceneNode, Rect: class {}, Vec3: class {}, UITransform: class {}, Color, Component: class { node = new SceneNode(); isValid = true; },
   Camera: { ClearFlag: { SKYBOX: 1 } }, Layers: {}, game: { emit() {} }, Game: {}, JsonAsset: class {}, profiler: {}, resources: {},
   sys: { isBrowser: false, localStorage: { getItem: () => null, setItem() {} } } };
 const folder = new URL('../assets/scripts/', import.meta.url), sourceURL = new URL('KartGame.ts', folder);
@@ -17,7 +17,7 @@ const visual = new Map([
   ['./SceneArt', 'export const palette = {red: "#f00", blue: "#00f", yellow: "#ff0", mint: "#0ff"}; export const requestedArt = () => [];'],
   ['./GlacierSample', 'export const setThemeLighting = () => {};'],
   ['./KartView', 'export class KartView { ready = Promise.resolve(); constructor(parent, color, selection, equipment) { this.selection = selection; this.equipment = equipment; } }'],
-  ...['ItemsView', 'ChaseCamera', 'HUD', 'HomePanel', 'KartController', 'AudioFeedback', 'MultiplayerPanel'].map((name) =>
+  ...['ItemsView', 'ChaseCamera', 'HUD', 'HomePanel', 'MenuPreview', 'KartController', 'AudioFeedback', 'MultiplayerPanel'].map((name) =>
     ['./' + name, `export class ${name} { ready = Promise.resolve(); }`] as [string, string]),
 ]);
 (globalThis as any).__kartChallengeCC = cc;

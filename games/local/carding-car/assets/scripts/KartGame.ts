@@ -8,11 +8,10 @@ import {
   JsonAsset,
   Layers,
   Node,
-  Rect,
   profiler,
   resources,
   sys,
-  Vec3,
+  UITransform,
 } from 'cc';
 import { RaceManager, type RaceMode } from './RaceManager';
 import { buildTheme } from './ThemeView';
@@ -43,12 +42,12 @@ import { readInvitation, platformSharing } from './Invitation';
 import { angleDelta } from './KartConfig';
 import { Career, shopItems, type CareerFinish } from './Career';
 import { HomePanel } from './HomePanel';
+import { MenuPreview } from './MenuPreview';
 import { competition, rankedResultText, type CompetitionBoard, type BoardEntry } from './CompetitionClient';
 import { readPassport, awardPassport, readKartChallenge, readKartChallengeSearch, readRaceMode, readRaceModeSearch,
   raceRecordKey, kartChallengeQuery, kartChallengeTitle,
   type RoutePassport, type KartChallenge } from './RouteChallenges';
 const { ccclass } = _decorator;
-const previewRect = new Rect(0.494, 0.306, 0.462, 0.463), raceRect = new Rect(0, 0, 1, 1);
 
 @ccclass('KartGame')
 export class KartGame extends Component {
@@ -82,6 +81,7 @@ export class KartGame extends Component {
   sameBots = false;
   career!: Career;
   home!: HomePanel;
+  menuPreview?: MenuPreview;
   setupNotice = '';
   raceRewardId = '';
   countdownLastTime?: number;
@@ -91,9 +91,10 @@ export class KartGame extends Component {
   pendingRewards: CareerFinish[] = [];
   nextRewardAttempt = 0;
   refreshHome() {
+    const loadError = this.race.loadError || this.menuPreview?.snapshot().error;
     this.home?.update?.({ selection: this.selection, mode: this.mode, loading: !this.race.loaded && !this.race.loadError,
-      loadError: this.race.loadError,
-      error: this.race.loadError || this.setupNotice || this.career.saveError,
+      loadError,
+      error: loadError || this.setupNotice || this.career.saveError,
       botCount: this.botCount, sameBots: this.sameBots });
   }
   multiplayer?: MultiplayerClient;
@@ -257,6 +258,7 @@ export class KartGame extends Component {
   prepareRace = () => {
     if (this.multiplayer?.room) return;
     if (this.race.loadError) { this.loadSelection(false, false); return; }
+    if (this.menuPreview?.snapshot().error) { void this.menuPreview.load(this.home.page).catch(() => {}); return; }
     if (!this.race.loaded) return;
     if (!this.activeChallenge) {
       for (const field of ['vehicle', 'driver'] as const) {
@@ -390,6 +392,7 @@ export class KartGame extends Component {
       buildTheme(this.themeRoot, this.race.track, theme),
       ...this.views.map((v) => v.ready),
       this.itemsView?.ready,
+      this.home.root.active ? this.menuPreview?.load(this.home.page) : undefined,
     ])
       .then(() => {
         if (version !== this.loadVersion) return;
@@ -452,6 +455,7 @@ export class KartGame extends Component {
       settings: this.toggleSettings,
     });
     this.home.show(this.activeChallenge ? 'setup' : 'home');
+    this.menuPreview = new MenuPreview(this.node);
     this.controller = new KartController(
       () => this.race,
       () => this.restart(),
@@ -515,6 +519,7 @@ export class KartGame extends Component {
           loading: !this.race.loaded,
           countdown: this.race.countdown,
           home: this.home.snapshot(),
+          menuArtwork: this.menuPreview?.snapshot(),
           staged: this.hud.staged,
           botOptions: { count: this.botCount, same: this.sameBots },
           career: JSON.parse(JSON.stringify(this.career.profile)),
@@ -891,17 +896,16 @@ export class KartGame extends Component {
       pose.y += (kart.y - pose.y) * blend;
       pose.z += (kart.z - pose.z) * blend;
       pose.heading += angleDelta(kart.heading, pose.heading) * blend;
-      v.update({ ...kart, ...pose }, this.home.root.active ? this.previewTime : this.race.time);
+      const showingHome = this.home.root.active && this.home.page === 'home';
+      v.update({ ...kart, ...pose, heading: showingHome ? pose.heading + Math.sin(this.previewTime * 0.7) * 0.13 : pose.heading },
+        this.home.root.active ? this.previewTime : this.race.time);
     });
     this.itemsView?.update(this.race.items, this.race.time);
-    this.camera.camera.rect = this.home.root.active && this.home.page !== 'career'
-      ? previewRect : raceRect;
-    if (this.home.root.active) {
-      const kart = this.race.drivers[0].kart, angle = kart.heading - 0.55;
-      this.camera.node.setPosition(kart.x - Math.sin(angle) * 5, kart.y + 3, kart.z - Math.cos(angle) * 5);
-      this.camera.node.lookAt(new Vec3(kart.x, kart.y + 1, kart.z));
-      this.camera.initialized = false;
-    } else this.camera.update({ ...this.race.drivers[0].kart, ...this.renderPoses[0] }, Math.min(dt, 0.1));
+    const menuPage = this.home.root.active || this.settingsFromHome && this.hud.settingsVisible ? this.home.page : undefined;
+    this.menuPreview?.update(menuPage,
+      this.camera, this.views[0].root, this.race.drivers[0].kart);
+    if (!menuPage) this.camera.update({ ...this.race.drivers[0].kart, ...this.renderPoses[0] }, Math.min(dt, 0.1));
+    this.home.tick?.(dt);
     this.audio.update(this.race, this.muted);
     this.uiTime += dt;
     if (this.uiTime > 0.08) {
@@ -917,8 +921,16 @@ export class KartGame extends Component {
         !!this.multiplayer?.endpoint && this.race.phase === 'ready' && !this.hud.settingsVisible &&
         (!this.home.root.active || this.home.page === 'home');
       if (this.roomPanel) this.roomPanel.openButton.node.parent!.setPosition(
-        this.home.root.active ? 327 : 316, this.home.root.active ? 128 : 224,
+        this.home.root.active ? -160 : 316, this.home.root.active ? -180 : 224,
       );
+      if (this.roomPanel) {
+        const home = this.home.root.active, label = this.roomPanel.openButton, button = label.node.parent!;
+        button.getComponent(UITransform)!.setContentSize(home ? 92 : 152, home ? 92 : 42);
+        button.getChildByName('Panel')!.active = !home;
+        label.node.setPosition(0, home ? -35 : 0);
+        label.string = home ? '好友' : '好友联机';
+        label.color = new Color().fromHEX(home ? '#31556a' : '#173b53');
+      }
       if (online) {
         this.syncRankedResult(online);
         this.hud.panel.active = this.race.phase === 'finished' && !this.roomPanel?.root.active && !this.hud.settingsVisible;
@@ -953,6 +965,7 @@ export class KartGame extends Component {
     game.off(Game.EVENT_HIDE, this.hide, this);
     this.controller?.destroy();
     this.home?.dispose();
+    this.menuPreview?.dispose();
     if (sys.isBrowser) {
       window.removeEventListener('blur', this.hide);
       (globalThis as typeof globalThis & { KartDisplay?: { setControls(controls: Record<string, () => void>): void } }).KartDisplay?.setControls({});

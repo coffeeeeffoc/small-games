@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { isSupply } from '../assets/scripts/RoadItems.ts';
 import {
   designPoint, displayGeometry, gameURL, mobileOptions, reportsURL,
-  startBrowser, tapDesign, verifyBuild, waitForReady, startRace,
+  startBrowser, tapDesign, tapHome, verifyBuild, waitForReady, startRace,
 } from './browser-utils.mjs';
 
 const url = gameURL();
@@ -56,17 +56,51 @@ try {
     assert.equal(ready.home.visible, true);
     assert.equal(ready.home.page, 'home');
     const preview = ready.home.preview;
-    assert.ok(preview.width >= 400 && preview.height >= 200, 'home reserves a substantial live preview');
+    assert.ok(preview.width >= 300 && preview.height >= 200, 'the live kart has its own central podium');
     assert.ok(Math.abs(preview.x) + preview.width / 2 <= 480 && Math.abs(preview.y) + preview.height / 2 <= 270);
     assert.ok(Math.abs(ready.car.x - preview.x) < preview.width / 2 && Math.abs(ready.car.y - preview.y) < preview.height / 2,
       'the loaded kart is actually projected inside the home preview region');
     assert.ok(ready.home.buttons.every(button =>
       Math.abs(button.x - preview.x) >= (button.width + preview.width) / 2 ||
       Math.abs(button.y - preview.y) >= (button.height + preview.height) / 2), 'home controls leave the preview unobstructed');
-    assert.ok(ready.labels.every((l) => l.size <= 30));
+    assert.ok(ready.labels.length <= 12, 'home uses short labels and keeps career details behind its shortcut');
+    assert.deepEqual((await state(page)).menuArtwork.loaded, ['plaza'], 'home only loads its own background');
     assert.doesNotMatch(ready.labels.map((l) => l.text).join('\n'), /Enter|Shift|W\s*\/|驾驶教学|好友赛待开放/);
     assert.equal(await page.locator('#kart-accessible-pause').getAttribute('aria-label'), '暂停');
     await screenshot(page, `${name}-ready`);
+
+    const goMotion = async () => page.evaluate(async () => {
+      const cc = await System.import('cc'), game = cc.director.getScene().getComponentsInChildren(cc.Component).find(c => c.home && c.race);
+      return game.home.root.getChildByName('HomeContent').getChildByName('选择比赛  →').scale.x;
+    });
+    const scale = await goMotion(); await page.waitForTimeout(250);
+    assert.notEqual(await goMotion(), scale, 'the start button breathes while waiting');
+    const cancel = await context.newCDPSession(page), point = await designPoint(page, 760, 430);
+    await cancel.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 9 }] });
+    await cancel.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    assert.equal((await state(page)).home.page, 'home', 'a cancelled menu touch cannot choose a race');
+    const requestedBeforeSetup = (await state(page)).requestedArt;
+    await tapHome(page, '选择比赛');
+    await page.waitForFunction(() => __kart.snapshot().menuArtwork.background === 'garage');
+    const setup = await state(page);
+    assert.equal(setup.home.page, 'setup');
+    assert.ok(setup.home.sceneryPreview && setup.home.preview.x > 0);
+    assert.deepEqual(setup.menuArtwork.loaded, ['plaza', 'garage']);
+    assert.deepEqual(setup.requestedArt, requestedBeforeSetup, 'opening setup does not preload unused cars or themes');
+    const windows = await page.evaluate(async () => {
+      const cc = await System.import('cc'), game = cc.director.getScene().getComponentsInChildren(cc.Component).find(c => c.home && c.race);
+      const viewport = cc.view.getViewportRect(), size = cc.screen.windowSize;
+      return [game.camera.camera, game.node.getChildByName('DestinationPostcard').getComponent(cc.Camera)].map(camera => ({
+        x: (camera.rect.x * size.width - viewport.x) / viewport.width * 960,
+        y: 540 - ((camera.rect.y + camera.rect.height) * size.height - viewport.y) / viewport.height * 540,
+        width: camera.rect.width * size.width / viewport.width * 960,
+        height: camera.rect.height * size.height / viewport.height * 540,
+      }));
+    });
+    for (const [i, expected] of [{ x: 520, y: 155, width: 380, height: 225 }, { x: 52, y: 142, width: 396, height: 208 }].entries())
+      for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(windows[i][key] - expected[key]) < 1,
+        `preview ${i} ${key} follows the actual phone UI viewport`);
+    await screenshot(page, `${name}-setup`);
 
     // Every action below is an actual browser touch. No race/player state is changed by the test.
     await startRace(page);
@@ -98,6 +132,11 @@ try {
         return { left: Math.min(...x), right: Math.max(...x), bottom: Math.min(...y), top: Math.max(...y), closed: path.closed };
       });
       return { pauseVisible: graphics.node.activeInHierarchy, pauseText: game.hud.pause.string, bars,
+        previewActive: __kart.snapshot().menuArtwork.active,
+        carVisible: game.views[0].root.layer === cc.Layers.Enum.DEFAULT &&
+          game.camera.camera.visibility === cc.Layers.Enum.DEFAULT && game.views[0].root.getChildByName('DriverColor').active,
+        cameraRect: { x: game.camera.camera.rect.x, y: game.camera.camera.rect.y,
+          width: game.camera.camera.rect.width, height: game.camera.camera.rect.height },
         pickups: game.itemsView.nodes.map((node, i) => {
           const marker = node.children.find((child) => /^(Supply|Hazard)-/.test(child.name));
           const renderer = marker?.getComponent(cc.MeshRenderer);
@@ -109,6 +148,9 @@ try {
         }) };
     });
     assert.equal(rendered.pauseVisible, true);
+    assert.equal(rendered.previewActive, false);
+    assert.equal(rendered.carVisible, true, 'race restores the kart layer and driver marker');
+    assert.deepEqual(rendered.cameraRect, { x: 0, y: 0, width: 1, height: 1 });
     assert.equal(rendered.pauseText, '', 'pause is drawn geometry, never a fallback font glyph');
     assert.equal(rendered.bars.length, 2);
     const [left, right] = rendered.bars.sort((a, b) => a.left - b.left);
