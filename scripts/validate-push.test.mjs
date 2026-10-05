@@ -1,10 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, rm, mkdir, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { parsePushRefs, cleanGitEnv, validatePush, run } from './validate-push.mjs';
+import {
+  parsePushRefs,
+  cleanGitEnv,
+  validatePush,
+  run,
+  repositoryIdentity,
+} from './validate-push.mjs';
 const zero = '0'.repeat(40);
+test('repository identity resolves filesystem aliases without guessing missing paths', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'push-path-alias-'));
+  try {
+    const target = path.join(temp, 'repository');
+    const alias = path.join(temp, 'alias');
+    await mkdir(target);
+    await symlink(target, alias, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.equal(await repositoryIdentity(alias), await repositoryIdentity(target));
+    await assert.rejects(repositoryIdentity(path.join(temp, 'missing')), { code: 'ENOENT' });
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
 test('stdin matrix: multiple refs, deletion, CRLF, malformed input', () => {
   const records = parsePushRefs(
     `refs/heads/a ${'a'.repeat(40)} refs/heads/b ${zero}\r\n(delete) ${zero} refs/heads/c ${'b'.repeat(40)}\n`,

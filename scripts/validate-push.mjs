@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, writeSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, readFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, mkdir, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -16,6 +16,12 @@ export function cleanGitEnv(env = process.env) {
         ),
     ),
   );
+}
+// Git expands Windows short names; Node's temporary directory may retain them.
+// Resolve filesystem aliases before comparing repository identity or hashing it.
+export async function repositoryIdentity(file) {
+  const canonical = await realpath(file);
+  return process.platform === 'win32' ? canonical.toLowerCase() : canonical;
 }
 export function parsePushRefs(input) {
   return input
@@ -102,7 +108,9 @@ export async function initializeSnapshotSubmodules(sourceRoot, snapshot, env) {
     const destination = path.resolve(snapshot, relative);
     let reusable = false;
     try {
-      reusable = path.resolve(git(source, ['rev-parse', '--show-toplevel'])) === source;
+      reusable =
+        (await repositoryIdentity(git(source, ['rev-parse', '--show-toplevel']))) ===
+        (await repositoryIdentity(source));
       if (reusable) git(source, ['cat-file', '-e', `${sha}^{commit}`]);
     } catch {
       reusable = false;
@@ -143,7 +151,9 @@ export async function validatePush(
   const git = (args, cwd = root) => run('git', args, cwd, clean, true);
   // Keep source/toolchain-keyed Turbo artifacts outside dirty caller directories.
   if (!clean.TURBO_CACHE_DIR) {
-    const common = path.resolve(root, git(['rev-parse', '--git-common-dir']));
+    const common = await repositoryIdentity(
+      path.resolve(root, git(['rev-parse', '--git-common-dir'])),
+    );
     clean.TURBO_CACHE_DIR = path.join(
       os.tmpdir(),
       'small-games-validation-cache',
