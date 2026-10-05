@@ -67,6 +67,17 @@
         "time": "2026-10-05T14:19:41Z"
       }
     },
+    "castle-cannon": {
+      "source": "games/local/game-castle-cannon",
+      "created": {
+        "commit": "771994d38ec5410bac6facd6416df825493149c6",
+        "time": "2026-10-05T21:29:55Z"
+      },
+      "updated": {
+        "commit": "771994d38ec5410bac6facd6416df825493149c6",
+        "time": "2026-10-05T21:29:55Z"
+      }
+    },
     "cops-robbers": {
       "source": "games/local/cops-robbers",
       "created": {
