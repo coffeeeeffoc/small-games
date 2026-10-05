@@ -1,5 +1,5 @@
 import type { useRapier } from '@react-three/rapier';
-import { onWater, type WorldData, type V3, type Placement } from './world.ts';
+import { onRiver, type WorldData, type V3, type Placement } from './world.ts';
 import { lifeBlocks, streetColliders } from './life.ts';
 
 type Physics = Pick<ReturnType<typeof useRapier>, 'world' | 'rapier'>;
@@ -112,6 +112,13 @@ export function createCar({ world, rapier }: Physics, p: Placement) {
   return body;
 }
 
+export function createVisitor({ world, rapier }: Physics, position: V3, scale = 1) {
+  const body = world.createRigidBody(rapier.RigidBodyDesc.kinematicPositionBased()
+    .setTranslation(position[0], position[1] + .83 * scale, position[2]));
+  world.createCollider(rapier.ColliderDesc.capsule(.53 * scale, .28 * scale), body);
+  return body;
+}
+
 // Check the landing surface while airborne too: jumping over a rail must not strand the player in water.
 export function canOccupy(
   r: ReturnType<typeof createWalker>,
@@ -125,7 +132,7 @@ export function canOccupy(
     p.z > data.bounds[3] - 1
   )
     return false;
-  if (!onWater(p.x, p.z, data.water)) return true;
+  if (!onRiver(p.x, p.z, data)) return true;
   const top = p.y + 0.83;
   const hit = r.world.castRay(
     new r.rapier.Ray({ x: p.x, y: top, z: p.z }, { x: 0, y: -1, z: 0 }),

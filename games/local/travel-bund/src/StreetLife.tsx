@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useRapier, useBeforePhysicsStep } from '@react-three/rapier';
+import { createVisitor } from './physics';
 import * as THREE from 'three';
 import { smoothTreeInstances } from './render-budget';
 import { input, type V3, type WorldData } from './world';
@@ -33,6 +35,31 @@ function LifeInstances({
 }: Omit<Props, 'data'> & { blocks: LifeBlock[] }) {
   const { scene } = useGLTF(`${import.meta.env.BASE_URL}life/street-life.glb`);
   const { camera } = useThree();
+  const { world, rapier } = useRapier();
+  const bodies = useRef(new Map<string, ReturnType<typeof createVisitor>>());
+  const poses = useRef(new Map<string, V3>());
+  // Dispose our bodies before Physics frees the WASM world in its passive cleanup.
+  useLayoutEffect(() => {
+    if (!crowd) return;
+    const created = new Map<string, ReturnType<typeof createVisitor>>();
+    for (const block of blocks) for (let i = 0; i < 3; i++) {
+      const id = `${block.id}/visitor/${i}`;
+      const p = visitorPose(block, i, clocks.current.get(id) || 0).position;
+      poses.current.set(id, p);
+      created.set(id, createVisitor({world, rapier}, p, i === 1 ? .93 : 1));
+    }
+    bodies.current = created;
+    return () => {
+      bodies.current = new Map();
+      for (const body of created.values()) world.removeRigidBody(body);
+    };
+  }, [world, rapier, blocks, crowd]);
+  useBeforePhysicsStep(() => {
+    for (const [id, body] of bodies.current) {
+      const p = poses.current.get(id)!;
+      body.setNextKinematicTranslation({x:p[0],y:p[1]+.83*(id.endsWith('/1') ? .93 : 1),z:p[2]});
+    }
+  });
   const trees = useMemo(
     () =>
       smoothTreeInstances(
@@ -194,6 +221,7 @@ function LifeInstances({
           visitors: parts('visitor-body'),
           arms: parts('visitor-arm-right'),
           pigeons: parts('pigeon-body'),
+          colliders: [...bodies.current].map(([id,body]) => ({id, position: body.translation()})),
         },
       };
     });
@@ -265,6 +293,7 @@ function LifeInstances({
         clocks.current.set(id, clock);
         const p = visitorPose(block, i, clock),
           stride = motion && !near && !waving ? p.stride : 0;
+        poses.current.set(id, p.position);
         const yaw =
           waving || i === 2
             ? Math.atan2(camera.position.x - p.position[0], camera.position.z - p.position[2])

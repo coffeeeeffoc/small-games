@@ -1,0 +1,75 @@
+{
+  "checks": [
+    "Actual CDP touch walking contacts solid visitors at 0.605 m; 65 samples never overlap, including sliding around them.",
+    "390: home settings, cart gifts/photo, actual bird flight and arm wave, touch walking/cancel, pause, reduced motion, night and saved preferences",
+    "844: home settings, cart gifts/photo, actual bird flight and arm wave, touch walking/cancel, pause, reduced motion, night and saved preferences",
+    "standalone dev URL=none storage=none enabled=false",
+    "standalone dev URL=?dev=1 storage=none enabled=true",
+    "standalone dev URL=none storage=1 enabled=true",
+    "standalone dev URL=?dev=0 storage=1 enabled=false",
+    "iframe dev URL=none storage=none enabled=false",
+    "iframe dev URL=?dev=1 storage=none enabled=true",
+    "iframe dev URL=none storage=1 enabled=true",
+    "iframe dev URL=?dev=0 storage=1 enabled=false"
+  ],
+  "samples": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "frames": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-376.57",
+        "z": "38.08",
+        "y": "1.78",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "0",
+        "yaw": "-2.759",
+        "fps": "60.01",
+        "calls": "133",
+        "triangles": "549495",
+        "renderDetail": "light",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "pigeon",
+        "lifeEvent": "visitor"
+      },
+      "requested": 59,
+      "lifeBytes": 602788
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "frames": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-376.57",
+        "z": "38.08",
+        "y": "1.78",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "0",
+        "yaw": "-2.759",
+        "fps": "59.99",
+        "calls": "225",
+        "triangles": "747451",
+        "renderDetail": "light",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": "visitor"
+      },
+      "requested": 122,
+      "lifeBytes": 602788
+    }
+  ],
+  "errors": [],
+  "environment": "Windows Chrome hardware WebGL with emulated mobile touch; physical phone and Safari not verified"
+}

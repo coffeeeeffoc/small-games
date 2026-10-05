@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, useAfterPhysicsStep, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -9,7 +9,8 @@ import {
   input,
   movement,
   placementBatches,
-  onWater,
+  onRiver,
+  quayWater,
   destinations,
   type V3,
   type WorldData,
@@ -22,6 +23,7 @@ import {
   disposeCityRender,
   smoothRiverMaterial,
   smoothTreeInstances,
+  granularSurface,
 } from './render-budget';
 import { RENDER_DETAILS, type RenderDetail } from './render-settings';
 import { StreetLife, RiverWeather } from './StreetLife';
@@ -39,7 +41,7 @@ export type Telemetry = {
   triangles: number;
   fps: number;
 };
-type Props = {
+export type Props = {
   data: WorldData;
   night: boolean;
   active: boolean;
@@ -57,10 +59,14 @@ type Props = {
 
 function surfaceMaterial(material: THREE.Material) {
   const m = material as THREE.MeshStandardMaterial;
+  if (m.isMeshStandardMaterial || (material as THREE.MeshLambertMaterial).isMeshLambertMaterial) {
+    if (/Promenade paving/i.test(m.name)) granularSurface(m, 'granite');
+    else if (/Road asphalt/i.test(m.name)) granularSurface(m, 'asphalt');
+    else if (/Limestone|Carved stone|Sandstone|Bund window and stone/i.test(m.name)) granularSurface(m, 'stone');
+  }
   if (!m.isMeshStandardMaterial) return;
-  m.envMapIntensity = 0.65;
-  if (/Promenade paving/i.test(m.name)) m.color.set('#c3ad88');
-  if (/pav|stone|trim|brick/i.test(m.name)) m.roughness = 0.85;
+  if (!m.userData.bundGrain) m.envMapIntensity = 0.65;
+  if (!m.userData.bundGrain && /pav|stone|trim|brick/i.test(m.name)) m.roughness = 0.85;
   if (!/glass|window/i.test(m.name) || /lamp/i.test(m.name)) return;
   // Facade panes share glass materials. Light individual rooms, never the entire glass shell.
   m.onBeforeCompile = (shader) => {
@@ -225,6 +231,18 @@ function Furniture({
           m.clone(),
         );
         materials.forEach(surfaceMaterial);
+        if (name === 'promenade-section' || name === 'promenade-open') {
+          for (const m of materials as THREE.MeshStandardMaterial[]) if (/Carved stone/i.test(m.name)) {
+            const previous = m.onBeforeCompile;
+            m.onBeforeCompile = (shader,renderer) => {
+              previous.call(m,shader,renderer);
+              // Remove the old oversized painted grid; the granite now has fine real joints.
+              shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+                '#include <color_fragment>\nif(vBundSurface.y < .934) discard;');
+            };
+            const key=m.customProgramCacheKey();m.customProgramCacheKey=()=>key+':deck-joints';
+          }
+        }
         const mesh = new THREE.InstancedMesh(
           o.geometry,
           Array.isArray(o.material) ? materials : materials[0],
@@ -311,7 +329,7 @@ function Traffic({ placements, night }: { placements: Placement[]; night: boolea
   const live = useRef(placements.map((p) => ({ ...p })));
   const bodies = useRef<ReturnType<typeof world.createRigidBody>[]>([]);
   const clocks = useRef(placements.map(() => 0));
-  useEffect(() => {
+  useLayoutEffect(() => {
     bodies.current = placements.map((p) => createCar({ world, rapier }, p));
     return () => {
       bodies.current.forEach((body) => world.removeRigidBody(body));
@@ -377,19 +395,16 @@ function SmoothTrees({
     </group>
   );
 }
-function River({ night, quality }: { night: boolean; quality: number }) {
-  const { scene } = useGLTF(url('water'), decoder);
+function River({ data, night, quality }: { data: WorldData; night: boolean; quality: number }) {
   const river = useMemo(() => {
-    let geometry: THREE.BufferGeometry | undefined;
-    scene.updateMatrixWorld(true);
-    scene.traverse((o) => {
-      if (o instanceof THREE.Mesh)
-        geometry = o.geometry
-          .clone()
-          .applyMatrix4(o.matrixWorld)
-          .translate(0, -0.25, 0)
-          .rotateX(Math.PI / 2);
+    const points = [...data.water,...quayWater(data)].flatMap(t => {
+      const [a,b,c]=t;
+      const up=(b[1]-a[1])*(c[0]-a[0])-(b[0]-a[0])*(c[1]-a[1]);
+      return (up>=0 ? t : [a,c,b]).flatMap(([x,z])=>[x,0,z]);
     });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+    geometry.computeVertexNormals(); geometry.rotateX(Math.PI/2);
     if (quality === 0) {
       const object = new THREE.Mesh(geometry!, smoothRiverMaterial());
       object.rotation.x = -Math.PI / 2;
@@ -401,7 +416,7 @@ function River({ night, quality }: { night: boolean; quality: number }) {
       textureHeight: quality === 0 ? 256 : quality === 1 ? 1024 : 2048,
       sunDirection: new THREE.Vector3(0.6, 0.18, -0.5).normalize(),
       sunColor: 0xffd4a0,
-      waterColor: 0x315b61,
+      waterColor: 0x397c83,
       distortionScale: 0.7,
       fog: true,
     });
@@ -424,7 +439,7 @@ function River({ night, quality }: { night: boolean; quality: number }) {
         'vec3 outgoingLight = mix(waterColor*.65+diffuseLight*.12, reflectionSample*.72+waterColor*.16, min(reflectance,.65))+specularLight*.045;',
       );
     return { object };
-  }, [scene, quality]);
+  }, [data, quality]);
   useFrame((_, dt) => {
     const u = river.object.material.uniforms;
     if (input.active) u.time.value += Math.min(dt, 0.1) * 0.5;
@@ -473,7 +488,7 @@ function Atmosphere({ night }: { night: boolean }) {
     else scene.fog.color.copy(c);
     if (veil.current) veil.current.opacity = mix.current;
     if (sun.current) {
-      sun.current.intensity = THREE.MathUtils.lerp(2.1, 0.65, mix.current);
+      sun.current.intensity = THREE.MathUtils.lerp(1.65, 0.65, mix.current);
       sun.current.position.set(camera.position.x + 70, 100, camera.position.z - 60);
       sun.current.target.position.copy(camera.position);
       sun.current.target.updateMatrixWorld();
@@ -512,7 +527,7 @@ function Atmosphere({ night }: { night: boolean }) {
         />
       </mesh>
       <hemisphereLight
-        args={[night ? '#7594b9' : '#c2e5ed', night ? '#18212b' : '#bca77c', night ? 1.1 : 1.35]}
+        args={[night ? '#7594b9' : '#c2e5ed', night ? '#18212b' : '#bca77c', night ? 1.1 : 1.05]}
       />
       <directionalLight
         ref={sun}
@@ -600,7 +615,7 @@ function Controller({
       gl.info.autoReset = previous;
     };
   }, [gl]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fixed = createGround({ world, rapier }, data);
     for (const r of bridgeRamps(data)) {
       const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r.yaw, r.slope, 'YXZ'));
@@ -642,7 +657,7 @@ function Controller({
       );
       if (!hit) continue;
       const y = 25 - hit.timeOfImpact;
-      if (y > 6 || y < -0.1 || (y < 0.7 && onWater(x, z, data.water))) continue;
+      if (y > 6 || y < -0.1 || (y < 0.7 && onRiver(x, z, data))) continue;
       const pos = { x, y: y + 0.88, z };
       let blocked = false;
       world.intersectionsWithShape(
@@ -724,7 +739,7 @@ function Controller({
     }
     r.speed = Math.hypot(next.x - p.x, next.z - p.z) / dt;
     r.body.setNextKinematicTranslation(next);
-    if (r.ground && !onWater(next.x, next.z, data.water))
+    if (r.ground && !onRiver(next.x, next.z, data))
       lastSafe.current = [next.x, next.y, next.z];
     if (r.ground && r.speed > 0.2) footstep(r.speed);
   });
@@ -781,16 +796,7 @@ export function Scene(props: Props) {
       <RiverWeather night={props.night} motion={props.motion} />
       <StaticCity data={props.data} night={props.night} renderDetail={props.renderDetail} />
       <Ground data={props.data} />
-      <River night={props.night} quality={props.quality} />
-      <Suspense fallback={null}>
-        <StreetLife
-          data={props.data}
-          crowd={props.crowd}
-          motion={props.motion}
-          event={props.lifeEvent}
-          onTarget={props.onLifeTarget}
-        />
-      </Suspense>
+      <River data={props.data} night={props.night} quality={props.quality} />
       {Object.entries(props.data.props).map(
         ([name, placements]) =>
           name !== 'city-car' && (
@@ -810,6 +816,10 @@ export function Scene(props: Props) {
         interpolate
       >
         <Suspense fallback={null}>
+          <StreetLife data={props.data} crowd={props.crowd} motion={props.motion}
+            event={props.lifeEvent} onTarget={props.onLifeTarget} />
+        </Suspense>
+        <Suspense fallback={null}>
           <Traffic placements={props.data.props['city-car'] || []} night={props.night} />
         </Suspense>
         <Controller
@@ -821,4 +831,17 @@ export function Scene(props: Props) {
       </Physics>
     </>
   );
+}
+
+// The whole WebGL runtime is imported only after entering a tour.
+export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
+  return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
+    shadows={props.quality > 0}
+    dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
+    camera={{position: [-393,2.6,37],fov:68,near:.25,far:12000}}
+    gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
+      powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping}}
+    onCreated={({gl})=>props.onRenderer(gl)}>
+    <Suspense fallback={null}><Scene {...props}/></Suspense>
+  </Canvas>;
 }

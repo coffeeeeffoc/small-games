@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { createGround, createWalker, createCar, walk, canOccupy } from '../src/physics.ts';
+import { createGround, createWalker, createCar, createVisitor, walk, canOccupy } from '../src/physics.ts';
+import { localPoint, onWater, onRiver } from '../src/world.ts';
 
 const require = createRequire(import.meta.url);
 const rapier = createRequire(require.resolve('@react-three/rapier'))('@dimforge/rapier3d-compat');
@@ -19,6 +20,41 @@ function step(world, r, move = [0, 0, 0], jump = false) {
   world.step();
   return next;
 }
+
+test('solid visitors stop walking and sprinting; moving/removing them moves/releases the obstacle', () => {
+  for (const speed of [1.9, 12]) {
+    const world = new rapier.World({ x: 0, y: -9.81, z: 0 });
+    try {
+      createGround({world, rapier}, {...data, colliders:[], surfaces:[], props:{}, parkHulls:[], sidewalkHulls:[]});
+      const visitor = createVisitor({world, rapier}, [2, 0, 0]);
+      const r = createWalker({world, rapier});
+      r.body.setTranslation({x:0,y:.88,z:0},true);
+      r.body.setNextKinematicTranslation({x:0,y:.88,z:0});
+      world.step();
+      for (let i=0;i<180;i++) step(world,r,[speed/60,0,0]);
+      assert(r.body.translation().x > 1 && r.body.translation().x < 1.43, 'Capsules must stop before overlap');
+      visitor.setNextKinematicTranslation({x:3,y:.83,z:0}); world.step();
+      for (let i=0;i<180;i++) step(world,r,[speed/60,0,0]);
+      assert(r.body.translation().x > 2 && r.body.translation().x < 2.43, 'The obstacle follows its visible visitor');
+      world.removeRigidBody(visitor);
+      for (let i=0;i<60;i++) step(world,r,[speed/60,0,0]);
+      assert(r.body.translation().x > 3.5, 'Hidden/unloaded crowds must leave no ghost obstacle');
+    } finally {world.free();}
+  }
+});
+
+test('the former land strip immediately outside the Bund railing is water and cannot be walked on', () => {
+  const section = data.props['promenade-section'].reduce((a,b) => Math.hypot(a.position[0]+375,a.position[2]-37)<Math.hypot(b.position[0]+375,b.position[2]-37)?a:b);
+  const outside=localPoint(section,0,-5), inside=localPoint(section,0,0);
+  assert.equal(onWater(outside[0],outside[2],data.water),false, 'Exercise the original shoreline gap');
+  assert.equal(onRiver(outside[0],outside[2],data),true);
+  assert.equal(onRiver(inside[0],inside[2],data),false);
+  const world = new rapier.World({x:0,y:-9.81,z:0});
+  try {
+    createGround({world,rapier},data); const r=createWalker({world,rapier}); world.step();
+    assert.equal(canOccupy(r,data,{x:outside[0],y:4,z:outside[2]}),false,'Jumping cannot enter the water below the railing');
+  } finally {world.free();}
+});
 
 test('the Bund asphalt is below the adjacent building-side sidewalk', () => {
   const world = new rapier.World({ x: 0, y: -9.81, z: 0 });

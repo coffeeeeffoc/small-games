@@ -1,9 +1,7 @@
 import '../dev-mode.js';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Canvas } from '@react-three/fiber';
-import { useProgress } from '@react-three/drei';
-import * as THREE from 'three';
+import type { WebGLRenderer } from 'three';
 import type { Telemetry, Teleport } from './Scene';
 import { clearInput, destinations, input, readVisits, stories, type WorldData } from './world';
 import { audioActivity, chime, setAudio, lifeSound } from './audio';
@@ -17,9 +15,11 @@ import {
 import type { LifeEvent, LifeTarget } from './life';
 import { readSettings, SETTINGS_KEY } from './settings';
 import './style.css';
+import homeArt from './assets/home-river.webp';
+import panelArt from './assets/panels-art.webp';
 
 const KEY = 'travel-bund.visits.v1';
-const Scene = React.lazy(() => import('./Scene').then((module) => ({ default: module.Scene })));
+const Tour = React.lazy(() => import('./Scene').then((module) => ({ default: module.Tour })));
 class SceneBoundary extends React.Component<
   { children: React.ReactNode; onError: () => void },
   { error: boolean }
@@ -35,15 +35,6 @@ class SceneBoundary extends React.Component<
     return this.state.error ? null : this.props.children;
   }
 }
-function Loading() {
-  const { progress } = useProgress();
-  return (
-    <span>
-      正在铺开两岸风景 <b>{Math.round(progress)}%</b>
-    </span>
-  );
-}
-
 function App() {
   const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   const [settings] = useState(() => {
@@ -57,6 +48,7 @@ function App() {
     [error, setError] = useState(''),
     [ready, setReady] = useState(false),
     [started, setStarted] = useState(false);
+  const launching = useRef(false);
   const [panel, setPanel] = useState<'map' | 'pause' | 'story' | 'journal' | 'stall' | null>(null),
     [active, setActive] = useState(false),
     [night, setNight] = useState(settings.night),
@@ -139,7 +131,7 @@ function App() {
     fps: 0,
   });
   useEffect(() => {
-    if (started || !data || !selectedRoute) return;
+    if (!launching.current || !data || !selectedRoute) return;
     const invited = routeProgress(selectedRoute, visits)!;
     const stop = invited.next || invited.route.stops[0],
       landing = destinations[stop.destination];
@@ -161,7 +153,7 @@ function App() {
     );
     setTeleport((previous) => ({ ...landing, yaw, pitch, serial: previous.serial + 1 }));
   }, [data, selectedRoute, started]);
-  const renderer = useRef<THREE.WebGLRenderer | null>(null),
+  const renderer = useRef<WebGLRenderer | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
     noticeTimer = useRef<number>(0),
     action = useRef(() => {}),
@@ -188,7 +180,17 @@ function App() {
     [stop],
   );
   const start = useCallback(() => {
-    if (!ready || error) return;
+    if (error) return;
+    if (!started) {
+      launching.current = true;
+      setPanel(null);
+      setStarted(true);
+      if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
+        void document.documentElement.requestFullscreen().catch(() => {});
+      void setAudio(sound).catch(() => setSound(false));
+      return;
+    }
+    if (!ready) return;
     dialog.current?.close();
     setPanel(null);
     setStarted(true);
@@ -201,15 +203,6 @@ function App() {
       canvas.tabIndex = 0;
       canvas.focus({ preventScroll: true });
     }
-    if (!started)
-      void setAudio(sound)
-        .then(() => {
-          audioActivity(input.active);
-        })
-        .catch(() => {
-          setSound(false);
-          notify('可在游览设置中开启声音。');
-        });
     if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
       void document.documentElement.requestFullscreen().catch(() => {});
     if (!touch) {
@@ -221,10 +214,26 @@ function App() {
         .catch(() => notify('鼠标锁定未开启，可按住画面拖动转头。'));
     }
   }, [ready, error, touch, notify, started, sound]);
+  useEffect(() => {
+    if (ready && launching.current) {
+      launching.current = false;
+      start();
+    }
+  }, [ready,start]);
+  const receiveRenderer = useCallback((gl: WebGLRenderer) => {
+    renderer.current = gl;
+    gl.domElement.addEventListener('webglcontextlost', e => {
+      if (renderer.current !== gl) return;
+      e.preventDefault(); stop(); setError('画面连接已中断，请重新载入场景。');
+    });
+  }, [stop]);
   function home() {
     stop();
     setPanel(null);
     setStarted(false);
+    launching.current = false;
+    setReady(false);
+    renderer.current = null;
     setSitting(false);
     setLifeTarget(null);
   }
@@ -246,6 +255,7 @@ function App() {
     }));
     if (target.kind === 'kiosk') open('stall');
     else {
+      renderer.current?.domElement.focus({ preventScroll: true });
       keepMoment(target.kind);
       lifeSound(target.kind);
       notify(
@@ -256,6 +266,7 @@ function App() {
     }
   }
   useEffect(() => {
+    if (!started || data) return;
     const abort = new AbortController();
     fetch(`${import.meta.env.BASE_URL}world/world.json`, { signal: abort.signal })
       .then((r) => {
@@ -267,7 +278,7 @@ function App() {
         if (e.name !== 'AbortError') setError('场景资料没有加载成功，请重试。');
       });
     return () => abort.abort();
-  }, []);
+  }, [started,data]);
   useEffect(() => {
     input.sitting = sitting;
     input.fast = fast;
@@ -574,6 +585,7 @@ function App() {
       notify('纪念卡已生成，可保存后分享。');
     }, 'image/png');
   }
+  const lifePress = useRef<{target:LifeTarget;id:number;x:number;y:number} | null>(null);
   const drag = useRef<{ id: number; x: number; y: number } | null>(null),
     stick = useRef<{ id: number; x: number; y: number } | null>(null);
   function pointerDown(e: React.PointerEvent) {
@@ -617,7 +629,7 @@ function App() {
   return (
     <main
       className={`${started ? 'entered' : ''} ${night ? 'night' : ''}`}
-      data-phase={error ? 'error' : !started ? 'intro' : active ? 'playing' : 'paused'}
+      data-phase={error ? 'error' : !started ? 'intro' : !ready ? 'loading' : active ? 'playing' : 'paused'}
       data-ready={ready}
       data-sitting={sitting}
       data-x={stats.position[0].toFixed(2)}
@@ -635,7 +647,12 @@ function App() {
       data-motion={motion}
       data-life-target={lifeTarget?.kind || ''}
       data-life-event={lifeEvent?.kind || ''}
+      style={{'--home-art': `url(${homeArt})`} as React.CSSProperties}
     >
+      {!started && <div className={`home-art ${motion ? 'moving' : ''}`} aria-hidden="true">
+        <img src={homeArt} alt="" fetchPriority="high" />
+        <div className="home-river-glint" /><div className="home-breeze" />
+      </div>}
       <div
         className="world"
         onPointerDown={pointerDown}
@@ -644,31 +661,10 @@ function App() {
         onPointerCancel={releaseLook}
         onLostPointerCapture={releaseLook}
       >
-        {data && !error && (
+        {started && data && !error && (
           <SceneBoundary onError={sceneError}>
-            <Canvas
-              frameloop={active || !ready ? 'always' : 'demand'}
-              shadows={quality > 0}
-              dpr={[quality === 0 ? 0.75 : 1, quality === 0 ? 0.75 : quality === 1 ? 1.25 : 2]}
-              camera={{ position: [-393, 2.6, 37], fov: 68, near: 0.25, far: 12000 }}
-              gl={{
-                antialias: true,
-                logarithmicDepthBuffer: true,
-                preserveDrawingBuffer: true,
-                powerPreference: 'high-performance',
-                toneMapping: THREE.ACESFilmicToneMapping,
-              }}
-              onCreated={({ gl }) => {
-                renderer.current = gl;
-                gl.domElement.addEventListener('webglcontextlost', (e) => {
-                  e.preventDefault();
-                  stop();
-                  setError('画面连接已中断，请重新载入场景。');
-                });
-              }}
-            >
               <Suspense fallback={null}>
-                <Scene
+                <Tour
                   data={data}
                   night={night}
                   active={active}
@@ -682,9 +678,9 @@ function App() {
                   motion={motion}
                   lifeEvent={lifeEvent}
                   onLifeTarget={setLifeTarget}
+                  onRenderer={receiveRenderer}
                 />
               </Suspense>
-            </Canvas>
           </SceneBoundary>
         )}
       </div>
@@ -705,8 +701,6 @@ function App() {
               <em>入境。</em>
             </h1>
             <p className="intro-description">
-              一杯清凉，一声招呼，一阵江风。
-              <br />
               沿着外滩走走，遇见城市的小日常。
             </p>
             {error ? (
@@ -717,8 +711,8 @@ function App() {
                 </button>
               </>
             ) : (
-              <button className="primary" id="enter-world" disabled={!ready} onClick={start}>
-                {ready ? '进入游览　↗' : <Loading />}
+              <button className="primary" id="enter-world" onClick={start}>
+                进入游览　↗
               </button>
             )}
             <p className="intro-hint">
@@ -754,6 +748,11 @@ function App() {
       )}
       {started && (
         <>
+          {!ready && !error && <div className="tour-loading" role="status">
+            <span className="loading-mark" aria-hidden="true" />
+            <h2>江风正在靠近。</h2><p>正在铺开附近的石板路与两岸风景</p>
+            <button onClick={home}>返回首页</button>
+          </div>}
           <header className="hud">
             <button className="home-button" onClick={home} aria-label="返回首页">
               <svg
@@ -792,9 +791,24 @@ function App() {
                   className="life-target"
                   style={{ left: `${lifeTarget.screen[0]}%`, top: `${lifeTarget.screen[1]}%` }}
                   onPointerDown={(event) => {
-                    if (event.button !== 0) return;
-                    event.preventDefault();
-                    meet(lifeTarget);
+                    if (event.button !== 0 || lifePress.current) return;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    pointerDown(event);
+                    lifePress.current = {target:lifeTarget,id:event.pointerId,x:event.clientX,y:event.clientY};
+                  }}
+                  onPointerMove={(event) => {
+                    const press = lifePress.current;
+                    if (press?.id === event.pointerId && Math.hypot(event.clientX-press.x,event.clientY-press.y)>12) lifePress.current=null;
+                    pointerMove(event);
+                  }}
+                  onPointerCancel={(event) => {lifePress.current=null;releaseLook(event);}}
+                  onLostPointerCapture={(event) => {lifePress.current=null;releaseLook(event);}}
+                  onPointerUp={(event) => {
+                    const target = lifePress.current?.id === event.pointerId ? lifePress.current.target : null;
+                    lifePress.current = null;
+                    releaseLook(event);
+                    // Finish the release/click before a popup can replace the tapped scene object.
+                    if (target) requestAnimationFrame(() => meet(target));
                   }}
                   onClick={(event) => {
                     if (event.detail === 0) meet(lifeTarget);
@@ -945,6 +959,7 @@ function App() {
       )}
       <dialog
         ref={dialog}
+        className={`panel panel-${panel || 'closed'}`}
         onCancel={(e) => {
           e.preventDefault();
         }}
@@ -960,6 +975,14 @@ function App() {
                   : '漫游设置'
         }
       >
+        <div className="dialog-banner" aria-hidden="true">
+          <span>{panel === 'pause' ? '江边歇一会' : panel === 'map' ? '两岸漫游' : panel === 'stall' ? '一份江边的小心意' : '把上海留在心里'}</span>
+        </div>
+        <div className="panel-content">
+          <svg className="panel-fan" viewBox="0 0 120 36" aria-hidden="true">
+            <path d="M0 34H120M34 34A26 26 0 0 1 86 34"/>
+            {Array.from({length:9},(_,i)=>{const a=Math.PI+i*Math.PI/8;return <path key={i} d={`M60 34L${60+Math.cos(a)*26} ${34+Math.sin(a)*26}`}/>})}
+          </svg>
         <button
           className="close"
           onClick={() => (started ? start() : setPanel(null))}
@@ -971,12 +994,7 @@ function App() {
           <>
             <p className="eyebrow">TAKE YOUR TIME</p>
             <h2>{started ? '风景会等你。' : '今天，怎样逛外滩？'}</h2>
-            <p className="muted">挑一个时刻，调好声音，然后慢慢走。</p>
-            {started && (
-              <button className="primary" onClick={start}>
-                继续漫游　↗
-              </button>
-            )}
+            <p className="muted panel-subtitle">调好步调，再沿江走走。</p>
             <div className="settings">
               <label>
                 环境声音
@@ -1059,13 +1077,14 @@ function App() {
                 </>
               )}
             </div>
-            <p className="muted small">
+            <details className="control-help"><summary>操作小贴士</summary><p className="muted small">
               {touch
                 ? '左侧摇杆行走，右侧转头；点击速度按钮切换漫步 / 快走 / 疾行，↑ 跳上或跳下台阶。'
                 : 'WASD / 方向键行走 · Shift 快走 · 按住 R 疾行 · 空格跳上/跳下 · E 交互 · P 拍照 · Esc 暂停'}
               <br />
               室外自由漫游，建筑内部暂未开放。
-            </p>
+            </p></details>
+            {started && <button className="primary panel-primary" onClick={start}>继续漫游</button>}
           </>
         )}
         {panel === 'stall' && (
@@ -1082,7 +1101,7 @@ function App() {
                   notify('摊主递来一杯清凉，冰块叮当作响。已收入生活手记。');
                 }}
               >
-                <span aria-hidden="true">🥤</span>
+                <svg className="gift-art" viewBox="1031 372 403 213" aria-hidden="true" preserveAspectRatio="xMidYMid slice"><image href={panelArt} width="1476" height="1066"/></svg>
                 <b>一杯江边清凉</b>
                 <small>听一声冰块碰杯</small>
               </button>
@@ -1095,12 +1114,13 @@ function App() {
                   notify('收下一张外滩明信片。刚才的风景也留在了手记里。');
                 }}
               >
-                <span aria-hidden="true">✉</span>
+                <svg className="gift-art" viewBox="1034 682 400 153" aria-hidden="true" preserveAspectRatio="xMidYMid slice"><image href={panelArt} width="1476" height="1066"/></svg>
                 <b>一张外滩明信片</b>
                 <small>把眼前的风景留下</small>
               </button>
             </div>
             <p className="muted small">漫游中的小礼物，可以重复领取。</p>
+            <button className="primary panel-primary" onClick={start}>返回漫游</button>
           </>
         )}
         {panel === 'map' && (
@@ -1108,48 +1128,26 @@ function App() {
             <p className="eyebrow">ACROSS THE RIVER</p>
             <h2>沿江，去走走。</h2>
             <p className="muted">选择一处落脚点，接下来的路由你决定。</p>
-            <section className="route-list" aria-label="探索路线">
-              <h3>给漫游一个小目标</h3>
-              {explorationRoutes.map((route) => (
-                <button
-                  key={route.id}
-                  aria-pressed={selectedRoute === route.id}
-                  onClick={() => chooseRoute(route.id)}
-                >
-                  <b>{route.title}</b>
-                  <span>{route.description}</span>
-                  <small>
-                    {routeProgress(route.id, visits)!.completed} / 3 已打卡 · 开始路线 ↗
-                  </small>
-                </button>
-              ))}
-              {progress && (
-                <ol>
-                  {progress.route.stops.map((stop) => (
-                    <li key={stop.landmark}>
-                      {visits.includes(stop.landmark) ? '✓ 已收入手记' : '○ 待探索'} · {stop.name}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
             <div className="map-art">
               <svg viewBox="-950 -1630 3500 3470" role="img" aria-label="外滩两岸位置图">
+                <defs><pattern id="street-grid" width="280" height="240" patternUnits="userSpaceOnUse"><path d="M0 0H280V240" fill="none" stroke="#fdfaf0" strokeWidth="20"/><path d="M140 0V240" fill="none" stroke="#c9d6bf" strokeWidth="8"/></pattern></defs>
+                <rect x="-950" y="-1630" width="3500" height="3470" fill="url(#street-grid)"/>
+                {!data && <path d="M-330 -1630C-480 -800 -310 -190 -220 320S200 1200 370 1840H1250C890 750 900 100 380 -420S130 -1180 280 -1630Z" fill="#85b9b6"/>}
                 {data?.water.map((t, i) => (
                   <polygon key={i} points={t.map((p) => p.join(',')).join(' ')} fill="#65918c" />
                 ))}
                 {data?.landmarks.map((l) => (
-                  <circle key={l.id} cx={l.position[0]} cy={l.position[2]} r="17" fill="#d5bd91" />
+                  <circle key={l.id} cx={l.position[0]} cy={l.position[2]} r="17" fill="#b99263" />
                 ))}
                 {destinations.map((d, i) => (
                   <g key={d.name}>
-                    <circle cx={d.position[0]} cy={d.position[2]} r="55" fill="#f4dfb1" />
+                    <circle cx={d.position[0]} cy={d.position[2]} r="64" fill="#294d55" stroke="#fffaf0" strokeWidth="12"/>
                     <text
                       x={d.position[0]}
                       y={d.position[2] + 19}
                       textAnchor="middle"
                       fontSize="65"
-                      fill="#1a3439"
+                      fill="#fffaf0"
                     >
                       {i + 1}
                     </text>
@@ -1161,7 +1159,8 @@ function App() {
             </div>
             <div className="destinations">
               {destinations.map((d, i) => (
-                <button key={d.name} onClick={() => travel(i)}>
+                <button key={d.name} onClick={() => travel(i)} aria-label={`0${i+1} ${d.name} · ${d.subtitle}`}>
+                  <svg viewBox={`${524+i*88} 732 78 99`} aria-hidden="true" preserveAspectRatio="xMidYMid slice"><image href={panelArt} width="1476" height="1066"/></svg>
                   <b>0{i + 1}</b>
                   <span>
                     {d.name}
@@ -1171,6 +1170,18 @@ function App() {
                 </button>
               ))}
             </div>
+            <section className="route-list" aria-label="探索路线">
+              <h3>给漫游一个小目标</h3>
+              {explorationRoutes.map((route) => (
+                <button key={route.id} aria-pressed={selectedRoute === route.id} onClick={() => chooseRoute(route.id)}>
+                  <b>{route.title}</b>
+                  <small>{routeProgress(route.id, visits)!.completed} / 3 已打卡 · 开始路线 ↗</small>
+                </button>
+              ))}
+              {progress && <ol>{progress.route.stops.map(stop => <li key={stop.landmark}>
+                {visits.includes(stop.landmark) ? '✓ 已收入手记' : '○ 待探索'} · {stop.name}
+              </li>)}</ol>}
+            </section>
           </>
         )}
         {panel === 'story' && story && (
@@ -1261,6 +1272,7 @@ function App() {
             <p className="muted small">地标手记保存在本机；照片请下载保存。</p>
           </>
         )}
+        </div>
       </dialog>
       {window.SmallGamesDev.isEnabled() && (
         <output className="debug">

@@ -18,8 +18,8 @@ async function open({search='?route=architecture',visits=[],share='copy',viewpor
     Object.defineProperty(navigator,'clipboard',{configurable:true,value:share==='manual'?undefined:{writeText:async text=>{window.copyRequests++;if(share==='copy-pending')await deferred();window.copied.push(text);}}});
   },{visits,share});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-  await page.route('**/src/Scene.tsx*',route=>route.fulfill({contentType:'text/javascript',body:'export function Scene({onReady,teleport,renderDetail}) { window.routeLanding = teleport.position; window.routeView = teleport; window.modelDetail = renderDetail; queueMicrotask(onReady); return null; }'}));
-  await page.goto(base+search);await expect(page.locator('main')).toHaveAttribute('data-ready','true');if(enter)await page.locator('#enter-world').tap();
+  await page.route('**/src/Scene.tsx*',route=>route.fulfill({contentType:'text/javascript',body:'export function Tour({onReady,teleport,renderDetail}) { window.routeLanding = teleport.position; window.routeView = teleport; window.modelDetail = renderDetail; queueMicrotask(onReady); return null; }'}));
+  await page.goto(base+search);await expect(page.locator('main')).toHaveAttribute('data-phase','intro');if(enter){await page.locator('#enter-world').tap();await expect(page.locator('main')).toHaveAttribute('data-phase','playing');}
   return {context,page};
 }
 try{
@@ -52,11 +52,11 @@ try{
   checks.push('Duplicate route selectors are ignored; route selection through the real map works without horizontal overflow');await context.close();
   for(const viewport of [{width:320,height:568},{width:844,height:390}]) {
     ({context,page}=await open({search:'?renderDetail=original',viewport,enter:false}));
-    await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');assert.equal(await page.evaluate(()=>window.modelDetail),'original');
+    await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');assert.equal(await page.evaluate(()=>window.modelDetail),undefined,'Home does not mount Tour');
     await expect(page.getByRole('button',{name:/钟楼与旧石墙/})).toBeVisible();
     const choice=page.getByRole('button',{name:/三种摩天轮廓/}),box=await choice.boundingBox();assert(box.y>=0&&box.y+box.height<=viewport.height,'First-screen routes stay inside the viewport');
     await page.screenshot({path:fileURLToPath(new URL(`intro-${viewport.width}.png`,output))});await choice.tap();
-    await expect(page.locator('main')).toHaveAttribute('data-phase','playing');await page.getByRole('button',{name:'暂停'}).tap();
+    await expect(page.locator('main')).toHaveAttribute('data-phase','playing');assert.equal(await page.evaluate(()=>window.modelDetail),'original');await page.getByRole('button',{name:'暂停'}).tap();
     await page.getByRole('combobox',{name:'模型细节'}).selectOption('balanced');await expect(page.locator('main')).toHaveAttribute('data-render-detail','balanced');
     assert.equal(await page.evaluate(()=>localStorage.getItem('travel-bund.render-detail.v1')),'balanced');
     assert.equal(new URL(page.url()).searchParams.get('renderDetail'),'balanced');await page.reload();
@@ -68,7 +68,7 @@ try{
   ({context,page}=await open({search:'?route=architecture&renderDetail=light&account=private#room=secret'}));
   await page.getByRole('button',{name:'暂停'}).tap();await page.getByRole('combobox',{name:'模型细节'}).selectOption('original');
   assert.equal(page.url(),base+'?route=architecture&renderDetail=original');await page.reload();await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');
-  await expect.poll(()=>page.evaluate(()=>window.modelDetail)).toBe('original');await context.close();
+  await page.locator('#enter-world').tap();await expect.poll(()=>page.evaluate(()=>window.modelDetail)).toBe('original');await context.close();
   checks.push('Selecting original from a public light URL updates that selector, strips private data, preserves the route and stays original after refresh; duplicate detail values fall back');
   for(const {share,change,settle} of [
     {share:'share-pending',change:'detail',settle:'reject'},

@@ -1,5 +1,9 @@
 export type V3 = [number, number, number];
 export type Placement = { position: V3; yaw: number; scale: V3 };
+export function localPoint(block: Placement, x: number, z: number): V3 {
+  return [block.position[0] + x * Math.cos(block.yaw) + z * Math.sin(block.yaw), block.position[1],
+    block.position[2] - x * Math.sin(block.yaw) + z * Math.cos(block.yaw)];
+}
 // Keep static instances close enough that Three can cull them as a local street block.
 export function placementBatches(placements: readonly Placement[], cellSize = 128): Placement[][] {
   const cells = new Map<string, Placement[]>();
@@ -23,6 +27,22 @@ export type WorldData = {
   water: [number, number][][];
   bounds: [number, number, number, number];
 };
+const quayCache = new WeakMap<WorldData, WorldData['water']>();
+// The map shoreline leaves land between the authored quay and river. Use the quay's
+// outer edge for both the visible water and the no-walking boundary.
+export function quayWater(data: WorldData): WorldData['water'] {
+  let water = quayCache.get(data);
+  if (!water) {
+    water = (data.props['promenade-section'] || []).flatMap(p => {
+      const points = [[-6.2, -4], [6.2, -4], [6.2, -82], [-6.2, -82]].map(([x,z]) => {
+        const point = localPoint(p, x, z); return [point[0], point[2]] as [number,number];
+      });
+      return [[points[0], points[1], points[2]], [points[0], points[2], points[3]]];
+    });
+    quayCache.set(data, water);
+  }
+  return water;
+}
 export const destinations = [
   { name: '外滩 · 江畔', subtitle: '江风与万国建筑', position: [-377, 2, 37] as V3, yaw: -2.9 },
   { name: '和平饭店', subtitle: '石墙里的旧时光', position: [-413, 2, -213] as V3, yaw: 1.5 },
@@ -57,6 +77,9 @@ export function inTriangle(x: number, z: number, t: number[][]) {
 }
 export function onWater(x: number, z: number, water: WorldData['water']) {
   return water.some((t) => inTriangle(x, z, t));
+}
+export function onRiver(x: number, z: number, data: WorldData) {
+  return onWater(x, z, data.water) || onWater(x, z, quayWater(data));
 }
 export function movement(x: number, z: number, yaw: number, speed: number, dt: number): V3 {
   const length = Math.max(1, Math.hypot(x, z));

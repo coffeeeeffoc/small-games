@@ -27,12 +27,13 @@ try {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.route('**/src/Scene.tsx*', (route) => route.fulfill({
       contentType: 'text/javascript',
-      body: 'export function Scene({onReady}) { queueMicrotask(onReady); return null; }',
+      body: 'export function Tour({onReady}) { queueMicrotask(onReady); return null; }',
     }));
     await page.goto(url);
-    await expect(page.locator('main')).toHaveAttribute('data-ready', 'true');
+    await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
     await expect(page.locator('main')).toHaveAttribute('data-quality', '0');
     await page.locator('#enter-world').tap();
+    await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
     const stick = page.getByRole('group', { name: '移动摇杆' });
     const box = await stick.boundingBox();
     await stick.evaluate((element) => {

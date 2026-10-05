@@ -15,8 +15,8 @@ try {
   const page=await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(/\/world\/.*\.glb/.test(request.url()))requests.add(request.url().split('/').at(-1));});
-  await page.goto(url+'?debug=1'+(process.env.PROFILE_DETAIL?'&renderDetail='+encodeURIComponent(process.env.PROFILE_DETAIL):''));await expect(page.locator('main')).toHaveAttribute('data-ready','true',{timeout:120000});
-  await page.locator('#enter-world').tap();await expect(page.locator('main')).toHaveAttribute('data-quality','0');
+  await page.goto(url+'?debug=1'+(process.env.PROFILE_DETAIL?'&renderDetail='+encodeURIComponent(process.env.PROFILE_DETAIL):''));
+  await page.locator('#enter-world').tap();await expect(page.locator('main')).toHaveAttribute('data-ready','true',{timeout:120000});await expect(page.locator('main')).toHaveAttribute('data-quality','0');
   if(process.env.PROFILE_DETAIL)await expect(page.locator('main')).toHaveAttribute('data-render-detail',process.env.PROFILE_DETAIL);
   for(let index=0;index<(process.env.SMOKE_ONLY==='1'?0:6);index++) {
     await page.waitForTimeout(8000);

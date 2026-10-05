@@ -44,14 +44,14 @@ try {
   });
   const worldResponse = page.waitForResponse((response) => response.url().endsWith('/world/world.json'));
   await page.goto(`${url}?debug=1`);
-  const totalTiles = (await (await worldResponse).json()).tiles.length;
   await expect(page).toHaveTitle('江风入境 · 外滩漫游');
-  await expect(page.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
-  assert(tiles.size < 40, 'Entry must not wait for the entire city');
-  results.push({ startupTileRequests: tiles.size });
+  assert.equal(tiles.size, 0, 'The home illustration must not load city tiles');
   await page.screenshot({ path: fileURLToPath(new URL('desktop-intro.png', output)) });
   await page.locator('#enter-world').click();
-  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+  const totalTiles = (await (await worldResponse).json()).tiles.length;
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
+  assert(tiles.size < 40, 'Entry must not wait for the entire city');
+  results.push({ startupTileRequests: tiles.size });
   await page.waitForTimeout(1000);
   assert(
     Math.abs(Number(await page.locator('main').getAttribute('data-yaw')) + 2.9) < 0.01,
@@ -171,12 +171,12 @@ try {
   assert(tiles.size < totalTiles, 'Unseen city and sidewalk tiles should remain unloaded');
   results.push({ visitedTileRequests: tiles.size, totalTiles });
   await page.reload();
-  await expect(page.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
   assert.equal(
     await page.evaluate(() => JSON.parse(localStorage.getItem('travel-bund.visits.v1')).length),
     1,
   );
   await page.locator('#enter-world').click();
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
   await page.waitForTimeout(300);
   await page.keyboard.down('KeyW');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
@@ -204,8 +204,8 @@ try {
     await route.fulfill({ response, json: data });
   });
   await traffic.goto(url);
-  await expect(traffic.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
   await traffic.locator('#enter-world').click();
+  await expect(traffic.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
   await traffic.waitForTimeout(1500);
   const facing = Number(await traffic.locator('main').getAttribute('data-yaw'));
   await traffic.evaluate(
@@ -243,9 +243,15 @@ try {
       currentPage = p;
       p.on('pageerror', (e) => errors.push(e.message));
       await p.goto(url);
-      await expect(p.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
       await p.locator('#enter-world').tap();
+      await expect(p.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
       await expect(p.getByRole('group', { name: '移动摇杆' })).toBeVisible();
+      await p.waitForTimeout(1500);
+      await expect(p.locator('main')).toHaveAttribute('data-grounded','true');
+      const groundY = Number(await p.locator('main').getAttribute('data-y'));
+      await p.getByRole('button', { name: /跳上 \/ 跳下/ }).tap();
+      await expect.poll(async()=>Number(await p.locator('main').getAttribute('data-y')),{timeout:2500,message:'Touch jump in the clear spawn area lifts the player'}).toBeGreaterThan(groundY+.6);
+      await expect(p.locator('main')).toHaveAttribute('data-grounded','true');
       const pos = await p.locator('main').getAttribute('data-x');
       const box = await p.getByRole('group', { name: '移动摇杆' }).boundingBox();
       const cdp = await mobile.newCDPSession(p);
@@ -312,15 +318,6 @@ try {
         Math.abs(Number(await p.locator('main').getAttribute('data-yaw')) - yaw) > 0.05,
         'Second finger must turn the camera while walking',
       );
-      const groundY = Number(await p.locator('main').getAttribute('data-y'));
-      await p.getByRole('button', { name: /跳上 \/ 跳下/ }).tap();
-      await expect
-        .poll(async () => Number(await p.locator('main').getAttribute('data-y')), {
-          message: 'Touch jump must lift the player',
-          timeout: 2500,
-        })
-        .toBeGreaterThan(groundY + 0.6);
-      await p.waitForTimeout(900);
       await p.getByRole('button', { name: '漫步 ×1' }).tap();
       await p.getByRole('button', { name: '快走 ×2' }).tap();
       await expect(p.getByRole('button', { name: '疾行 ×6' })).toBeVisible();
@@ -343,9 +340,11 @@ try {
     route.fulfill({ status: 503, body: 'offline' }),
   );
   await recovery.goto(url);
+  await recovery.locator('#enter-world').click();
   await expect(recovery.getByRole('alert')).toBeVisible();
   await recovery.unroute('**/world/world.json');
-  await recovery.getByRole('button', { name: '重新载入 ↻' }).click();
+  await recovery.getByRole('button', { name: /^重新载入/ }).click();
+  await recovery.locator('#enter-world').click();
   await expect(recovery.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
   await recoveryContext.close();
   assert.deepEqual(errors, []);

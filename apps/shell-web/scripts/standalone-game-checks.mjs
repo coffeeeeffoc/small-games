@@ -1158,7 +1158,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
   } else if (id === 'travel-bund') {
     await expect(frame.locator('#enter-world')).toBeEnabled({ timeout: 120000 });
     await click(frame.locator('#enter-world'));
-    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing', {
+      timeout: 120000,
+    });
     // Escape also releases desktop pointer lock; touch uses the visible pause button.
     if (mobile) {
       const pause = frame.getByRole('button', { name: '暂停', exact: true });

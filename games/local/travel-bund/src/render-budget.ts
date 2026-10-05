@@ -3,6 +3,42 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { placementBatches, type Placement } from './world.ts';
 import { RENDER_DETAILS, type RenderDetail } from './render-settings.ts';
 
+// World-space grains need no texture download and remain fixed while walking.
+export function granularSurface(material: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial, kind: 'granite' | 'asphalt' | 'stone') {
+  if (material.userData.bundGrain) return;
+  material.userData.bundGrain = kind;
+  if (kind !== 'stone') material.color.set(kind === 'asphalt' ? '#343b3c' : '#a7ada8');
+  if (material instanceof THREE.MeshStandardMaterial) {
+    material.roughness = .93; material.metalness = 0; material.envMapIntensity = .3;
+  }
+  const previous = material.onBeforeCompile, key = material.customProgramCacheKey();
+  material.onBeforeCompile = (shader, renderer) => {
+    previous.call(material, shader, renderer);
+    shader.uniforms.bundPaving = {value: kind === 'granite' ? 1 : kind === 'asphalt' ? 0 : 2};
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBundSurface;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec4 bundSurfacePosition = vec4(transformed, 1.);
+        #ifdef USE_INSTANCING
+          bundSurfacePosition = instanceMatrix * bundSurfacePosition;
+        #endif
+        vBundSurface = (modelMatrix * bundSurfacePosition).xyz;`);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vBundSurface; uniform float bundPaving;
+      float bundGrainHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float grainFade = 1.-smoothstep(.008,.08,max(length(dFdx(vBundSurface.xz)),length(dFdy(vBundSurface.xz))));
+        float grain = (bundGrainHash(floor(vBundSurface.xz * 140.))-.5)*grainFade;
+        float stoneVariation = .96 + bundGrainHash(floor(vBundSurface.xz / vec2(1.2,.8))) * .08;
+        diffuseColor.rgb *= stoneVariation + grain * (bundPaving < .5 ? .3 : .17);
+        if(bundPaving > .5 && bundPaving < 1.5){
+          vec2 slab=vBundSurface.xz/vec2(1.2,.8), f=fract(slab);
+          vec2 seam=1.-smoothstep(vec2(.002),vec2(.006)+fwidth(slab)*.85,min(f,1.-f));
+          diffuseColor.rgb *= 1.-max(seam.x,seam.y)*.42;
+        }`);
+  };
+  material.customProgramCacheKey = () => key + ':bund-grain-v1';
+}
+
 // Collapse sub-metre decoration within the same approximate surface direction.
 // Averaging keeps every survivor inside its original grid cell; material groups
 // stay separate, and the original scene/collision assets are never mutated.

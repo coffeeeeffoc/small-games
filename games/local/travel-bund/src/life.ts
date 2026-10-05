@@ -1,4 +1,5 @@
-import { type Placement, type V3, type WorldData } from './world.ts';
+import { localPoint, type Placement, type V3, type WorldData } from './world.ts';
+export { localPoint } from './world.ts';
 
 export type LifeBlock = Placement & { id: string; kiosk: boolean };
 export type LifeTarget = {
@@ -11,14 +12,6 @@ export type LifeTarget = {
 export type LifeEvent = { id: string; kind: LifeTarget['kind']; serial: number };
 export const LIFE_RADIUS = 75;
 export const MAX_LIFE_BLOCKS = 5;
-
-export function localPoint(block: Placement, x: number, z: number): V3 {
-  return [
-    block.position[0] + x * Math.cos(block.yaw) + z * Math.sin(block.yaw),
-    block.position[1],
-    block.position[2] - x * Math.sin(block.yaw) + z * Math.cos(block.yaw),
-  ];
-}
 
 export function lifeBlocks(data: WorldData): LifeBlock[] {
   const blocks: LifeBlock[] = [];
@@ -66,11 +59,11 @@ export function visitorPose(block: LifeBlock, index: number, time: number) {
   const walking = index < 2;
   const p =
     !walking && block.kiosk
-      ? localPoint({ ...block, position: kioskPoint(block) }, 0, -0.8)
+      ? localPoint({ ...block, position: kioskPoint(block) }, 0, -1.0)
       : localPoint(
           block,
           walking ? Math.sin(t) * 3.4 : -2.4,
-          index === 0 ? 0.65 : index === 1 ? -0.55 : 1.6,
+          index === 0 ? 1.2 : index === 1 ? 2.2 : 1.6,
         );
   return {
     position: p,

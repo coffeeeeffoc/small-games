@@ -1,0 +1,209 @@
+{
+  "url": "http://127.0.0.1:62382/",
+  "results": [
+    {
+      "startupTileRequests": 6
+    },
+    {
+      "desktop": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-376.18",
+        "z": "40.32",
+        "y": "1.77",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "-2.900",
+        "fps": "34.83",
+        "calls": "819",
+        "triangles": "3132836",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": ""
+      },
+      "before": "37.00",
+      "after": "39.83"
+    },
+    {
+      "destination": "01 外滩",
+      "at": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-377.00",
+        "z": "37.00",
+        "y": "1.77",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "-2.900",
+        "fps": "34.50",
+        "calls": "954",
+        "triangles": "3189690",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "destination": "03 外白渡桥",
+      "at": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-425.00",
+        "z": "-630.00",
+        "y": "0.88",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "-0.267",
+        "fps": "59.99",
+        "calls": "309",
+        "triangles": "1308474",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "bridge": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-414.14",
+        "z": "-669.72",
+        "y": "4.26",
+        "speed": "4.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "-0.267",
+        "fps": "59.97",
+        "calls": "374",
+        "triangles": "1079332",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "destination": "04 陆家嘴",
+      "at": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "357.00",
+        "z": "-95.00",
+        "y": "0.86",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "1.500",
+        "fps": "32.81",
+        "calls": "788",
+        "triangles": "3382006",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "destination": "05 上海中心",
+      "at": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "1147.00",
+        "z": "405.00",
+        "y": "0.86",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "1",
+        "yaw": "1.400",
+        "fps": "60.01",
+        "calls": "81",
+        "triangles": "315812",
+        "renderDetail": "original",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "visitedTileRequests": 225,
+      "totalTiles": 383
+    },
+    {
+      "carCollision": {
+        "stoppedX": -388.08,
+        "heldX": -388.08
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "position": {
+        "phase": "paused",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-376.50",
+        "z": "40.40",
+        "y": "1.78",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "0",
+        "yaw": "-3.110",
+        "fps": "60.00",
+        "calls": "122",
+        "triangles": "549933",
+        "renderDetail": "light",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": ""
+      }
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "position": {
+        "phase": "paused",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-376.61",
+        "z": "40.28",
+        "y": "1.78",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "0",
+        "yaw": "-3.110",
+        "fps": "60.01",
+        "calls": "191",
+        "triangles": "629929",
+        "renderDetail": "light",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": ""
+      }
+    }
+  ],
+  "errors": []
+}
