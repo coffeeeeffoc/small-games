@@ -49,11 +49,11 @@
       "source": "games/local/bullet-garden",
       "created": {
         "commit": "7a0e0cb13490d1a79c3887d471410b8ce4e4cc69",
-        "time": "2026-10-03T07:12:45+00:00"
+        "time": "2026-10-03T07:12:45Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "f426b68447ca5de942f086cbc2c3417bd7891358",
+        "time": "2026-10-05T03:19:51Z"
       }
     },
     "carding-car": {
@@ -126,7 +126,7 @@
       "source": "games/local/echo-weaver",
       "created": {
         "commit": "a7632c50c0f002c2f239aaa5574241c0c456f980",
-        "time": "2026-10-03T07:35:13+00:00"
+        "time": "2026-10-03T07:35:13Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -203,7 +203,7 @@
       "source": "games/local/ink-is-everything",
       "created": {
         "commit": "52dd86dd096fb3d8ccfcf71fd3c86ad50a658bab",
-        "time": "2026-10-03T07:19:45+00:00"
+        "time": "2026-10-03T07:19:45Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -236,7 +236,7 @@
       "source": "games/local/luban-workshop",
       "created": {
         "commit": "a7879b549b5cddd7275770d42d20cd02a2efd000",
-        "time": "2026-10-03T17:01:55+00:00"
+        "time": "2026-10-03T17:01:55Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -346,7 +346,7 @@
       "source": "games/local/out-of-frame",
       "created": {
         "commit": "6441bfc9340bc53e054bf124b293906f34db57cc",
-        "time": "2026-10-03T07:30:43+00:00"
+        "time": "2026-10-03T07:30:43Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -412,7 +412,7 @@
       "source": "games/local/tiny-signals",
       "created": {
         "commit": "0179087551576f33a7be97adeb717735c9e00e0d",
-        "time": "2026-10-02T13:18:30+00:00"
+        "time": "2026-10-02T13:18:30Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -478,7 +478,7 @@
       "source": "games/local/two-sided-box",
       "created": {
         "commit": "1004b90fcc79cbf1bcb690760d24a25361df3a94",
-        "time": "2026-10-03T09:08:53+00:00"
+        "time": "2026-10-03T09:08:53Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
@@ -544,7 +544,7 @@
       "source": "games/local/waterline-station",
       "created": {
         "commit": "03c3e0c06fbae2bc343e83e512facf2b5aba0f95",
-        "time": "2026-10-02T12:57:38+00:00"
+        "time": "2026-10-02T12:57:38Z"
       },
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
