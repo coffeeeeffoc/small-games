@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
@@ -18,6 +18,25 @@ test('unrelated ordinary game needs no Creator; required Cocos inputs are checke
     await assert.rejects(
       verifyCocosBuildInputs(root, [pkg], {}),
       /Required Cocos target.*requires Creator/,
+    );
+    const editor = path.join(root, 'Creator', 'CocosCreator.exe');
+    await mkdir(path.dirname(editor), { recursive: true });
+    await writeFile(editor, 'fixture');
+    await assert.rejects(
+      verifyCocosBuildInputs(root, [pkg], { COCOS_CREATOR: editor }),
+      /missing Creator declarations/,
+    );
+    const declarations = path.join(
+      path.dirname(editor),
+      'resources/resources/3d/engine/bin/.declarations/cc.d.ts',
+    );
+    await mkdir(path.dirname(declarations), { recursive: true });
+    await writeFile(declarations, 'engine types');
+    await verifyCocosBuildInputs(root, [pkg], { COCOS_CREATOR: editor });
+    assert(
+      (await readFile(path.join(root, pkg.dir, 'reports/engine.d.ts'), 'utf8')).includes(
+        declarations.replaceAll('\\', '/'),
+      ),
     );
     await writeFile(
       path.join(scripts, 'artifact.mjs'),

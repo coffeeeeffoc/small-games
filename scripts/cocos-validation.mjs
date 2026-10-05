@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { stat } from 'node:fs/promises';
+import { stat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 const prebuiltVariables = {
@@ -33,6 +33,21 @@ export async function verifyCocosBuildInputs(root, targets, env) {
         assert(
           (await stat(executable).catch(() => null))?.isFile(),
           `${pkg.name} requires Creator 3.8.8 or a source-matching ${variable}. No automatic Creator installation.`,
+        );
+        // Independent snapshots also need the verified SDK's declarations for typecheck.
+        const declarations = path.join(
+          path.dirname(executable),
+          'resources/resources/3d/engine/bin/.declarations/cc.d.ts',
+        );
+        assert(
+          (await stat(declarations).catch(() => null))?.isFile(),
+          `${pkg.name}: missing Creator declarations`,
+        );
+        const reports = path.join(root, pkg.dir, 'reports');
+        await mkdir(reports, { recursive: true });
+        await writeFile(
+          path.join(reports, 'engine.d.ts'),
+          `/// <reference path="${declarations.replaceAll('\\', '/')}" />\n`,
         );
       }
     } catch (error) {
