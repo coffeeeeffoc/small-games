@@ -1,0 +1,12 @@
+{
+  "base": "http://127.0.0.1:43691",
+  "checks": [
+    "320×740: settings navigation/history, persisted audio, fullscreen enter/exit, centered unobstructed map, 44px controls, touch movement/cancellation, pause/resume/home",
+    "390×844: settings navigation/history, persisted audio, fullscreen enter/exit, centered unobstructed map, 44px controls, touch movement/cancellation, pause/resume/home",
+    "844×390: settings navigation/history, persisted audio, fullscreen enter/exit, centered unobstructed map, 44px controls, touch movement/cancellation, pause/resume/home",
+    "1680×893: settings navigation/history, persisted audio, fullscreen enter/exit, centered unobstructed map, 44px controls, touch movement/cancellation, pause/resume/home",
+    "Mobile independent and iframe: developer mode default/URL/storage/explicit-off; iframe touch movement and gesture cancellation"
+  ],
+  "errors": [],
+  "device": "Chromium touch emulation; physical devices not tested"
+}
