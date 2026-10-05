@@ -1,13 +1,14 @@
 import { getDuelLevel } from './duel-levels.js';
 import { initialDuel, legalDuelTargets, stepDuel, chooseDuelAction } from './duel.js';
-import { character, scenery } from './art.js';
+import { character, gamePortrait, scenery, sceneDefinitions } from './art.js';
+import { boardHeight, presentationLevel, actorScale, applyBoardLayout, boardExitEndpoint } from './board-layout.js';
 import { playSound, unlockSound } from './sound.js';
 import { relayLevelIds } from './relay.js';
 import { showPuzzleShare } from './share.js';
 
 export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol }) {
   const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '警察' : '小偷';
-  let level, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
+  let level, sourceLevel, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const saveKey = 'cops-robbers-duel-v1'; let saved = {};
   try { const data = JSON.parse(localStorage.getItem(saveKey) || '{}'); if (data && typeof data === 'object' && !Array.isArray(data)) saved = data; } catch { /* A damaged local preference never blocks play. */ }
   const wins = Object.fromEntries(Object.entries(saved.wins || {}).filter(([key, value]) => /^(escape|survival):(pursuer|runner):([1-9][0-9]?|100)$/.test(key) && value === true));
@@ -35,6 +36,9 @@ export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stop
   function stop() { clearTimeout(timer); serial++; }
   function render() {
     if (!state) return;
+    if (level.height !== boardHeight()) level = presentationLevel(sourceLevel);
+    applyBoardLayout($('duel-board'), level);
+    if (document.body.classList.contains('duel-active')) document.body.dataset.boardHeight = String(level.height);
     // Repainting the board must not send keyboard players back to the page's first control.
     const focused = document.activeElement;
     const focusSelector = focused?.matches('#duel-board [data-actor]')
@@ -56,10 +60,19 @@ export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stop
     $('duel-next').disabled = level.id === 100;
     document.body.dataset.duelTurn = state.turn; document.body.dataset.duelSide = state.side; document.body.dataset.duelWinner = state.winner || ''; document.body.dataset.duelRole = role;
     const roads = level.edges.map(([a, b]) => `M${level.nodes[a].x} ${level.nodes[a].y}L${level.nodes[b].x} ${level.nodes[b].y}`).join('');
-    const nodes = level.nodes.map((point, index) => `<g role="button" tabindex="0" data-target="${index}" aria-label="${index + 1} 号路口${targets.includes(index) ? '，可移动' : ''}" transform="translate(${point.x} ${point.y})"><circle r="36" fill="transparent"/><circle r="${targets.includes(index) ? 24 : 17}" fill="${level.exits.includes(index) ? '#ffdaa7' : '#fffcf0'}" stroke="${targets.includes(index) ? '#1258c2' : '#c4c8ae'}" stroke-width="3"/><text y="30" text-anchor="middle" font-size="17" font-weight="bold" fill="#2c4844">${index + 1}</text>${level.exits.includes(index) ? '<text y="-27" text-anchor="middle" fill="#9d4b0a" font-size="17">出口</text>' : ''}</g>`).join('');
-    const actors = ['pursuer', 'runner'].flatMap(side => (side === 'pursuer' ? state.cops : state.robbers).map((node, index) => node < 0 ? '' : `<g role="button" tabindex="0" data-side="${side}" data-actor="${index}" aria-label="${label(side)} ${index + 1} 号，${node + 1} 号路口" transform="translate(${level.nodes[node].x} ${level.nodes[node].y + 13})"><rect x="-30" y="-69" width="60" height="77" fill="transparent"/>${side === role && selected === index ? '<ellipse cy="1" rx="29" ry="12" fill="#83bbef" opacity=".6"/>' : ''}<g transform="scale(.64)">${character(side === 'pursuer' ? 'cop' : 'robber', side === role && selected === index ? 'selected' : 'idle', index)}</g></g>`)).join('');
-    $('duel-board').innerHTML = `${scenery(level, Math.min(4, level.difficulty - 1))}<path d="${roads}" fill="none" stroke="#faf6e4" stroke-width="22" stroke-linecap="round"/><path d="${roads}" fill="none" stroke="#d9d2ae" stroke-width="2" stroke-dasharray="5 7"/>${nodes}${actors}`;
-    $('duel-squad').innerHTML = positions.map((node, index) => `<button data-select="${index}" class="secondary-action" aria-pressed="${index === selected}" ${node < 0 || !myTurn ? 'disabled' : ''}>${label(role)} ${index + 1}${node < 0 ? ' 已拦截' : ''}</button>`).join('');
+    const exits = level.exits.map(node => {
+      const point = level.nodes[node], end = boardExitEndpoint(level, node), horizontal = end.y === point.y;
+      const x = horizontal ? (point.x + end.x) / 2 : point.x, y = horizontal ? point.y - 21 : (point.y + end.y) / 2;
+      return `<g class="escape-gate" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${point.x} ${point.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${point.x} ${point.y}L${end.x} ${end.y}" marker-end="url(#duel-escape-arrow)"/><circle cx="${point.x}" cy="${point.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
+    }).join('');
+    const stones = level.nodes.map((point, index) => `<circle class="node-ground" cx="${point.x}" cy="${point.y}" r="26"/><circle class="node-target ${targets.includes(index) ? 'reachable' : ''} ${positions[selected] === index ? 'selected' : ''}" cx="${point.x}" cy="${point.y}" r="31"/>`).join('');
+    const occupied = new Set([...state.cops, ...state.robbers]);
+    const nodes = level.nodes.map((point, index) => `<g class="node-label ${targets.includes(index) ? 'reachable' : ''}" role="button" tabindex="0" data-target="${index}" aria-label="${index + 1} 号路口${targets.includes(index) ? '，可移动' : ''}" transform="translate(${point.x} ${point.y + 26})"><circle class="node-hit" cy="-26" r="${occupied.has(index) ? 0 : 34}" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${index + 1}</text></g>`).join('');
+    const scale = actorScale(level);
+    const actors = ['pursuer', 'runner'].flatMap(side => (side === 'pursuer' ? state.cops : state.robbers).map((node, index) => ({ side, node, index })))
+      .filter(({ node }) => node >= 0).sort((a, b) => level.nodes[a.node].y - level.nodes[b.node].y).map(({ side, node, index }) => `<g class="actor ${side === 'pursuer' ? 'cop' : 'robber'} ${side === role && selected === index ? 'selected' : ''}" role="button" tabindex="0" data-side="${side}" data-actor="${index}" aria-label="${label(side)} ${index + 1} 号，${node + 1} 号路口" transform="translate(${level.nodes[node].x} ${level.nodes[node].y + 13})"><rect x="${-42 * scale}" y="${-110 * scale}" width="${84 * scale}" height="${116 * scale}" fill="transparent" pointer-events="all"/><ellipse cy="-1" rx="29" ry="10" fill="#3f584c" opacity=".2"/><ellipse class="selection-ring" cy="-1" rx="38" ry="16"/><g transform="scale(${scale})"><g class="figure">${character(side === 'pursuer' ? 'cop' : 'robber', side === role && selected === index ? 'selected' : 'idle', index)}</g></g></g>`).join('');
+    $('duel-board').innerHTML = `<defs>${sceneDefinitions()}<marker id="duel-escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, Math.min(4, level.difficulty - 1))}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g aria-hidden="true">${stones}</g>${actors}${nodes}`;
+    $('duel-squad').innerHTML = positions.map((node, index) => `<button data-select="${index}" class="secondary-action" aria-label="选择${label(role)} ${index + 1}${node < 0 ? '，已拦截' : ''}" aria-pressed="${index === selected}" ${node < 0 || !myTurn ? 'disabled' : ''}><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${gamePortrait(role === 'pursuer' ? 'cop' : 'robber', 0, 0, 100)}</svg><span>${label(role)} ${index + 1}${node < 0 ? ' 已拦截' : ''}</span></button>`).join('');
     if (focusSelector) {
       const replacement = document.querySelector(focusSelector);
       (replacement && !replacement.disabled ? replacement : $('duel-board').querySelector(`[data-side="${role}"][data-actor="${selected}"]`) || $('duel-retry')).focus({ preventScroll: true });
@@ -75,7 +88,8 @@ export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stop
     }, 320);
   }
   function start(id = Number($('solo-level').value), retry = false) {
-    stop(); stopChallenge?.(); level = getDuelLevel($('solo-mode').value, id); if (!level) return;
+    stop(); stopChallenge?.(); sourceLevel = getDuelLevel($('solo-mode').value, id); if (!sourceLevel) return;
+    level = presentationLevel(sourceLevel);
     role = $('solo-role').value;
     if (!retry) firstSide = $('solo-initiative').value === 'random' ? (Math.random() < .5 ? 'pursuer' : 'runner') : $('solo-initiative').value === 'first' ? role : role === 'pursuer' ? 'runner' : 'pursuer';
     state = initialDuel(level, firstSide); selected = 0;
@@ -111,6 +125,8 @@ export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stop
   $('duel-board').addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && event.target.closest('[role="button"]')) { event.preventDefault(); if (!event.repeat) event.target.closest('[role="button"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   document.addEventListener('visibilitychange', () => { stop(); if (!document.hidden) scheduleAI(); });
   document.addEventListener('chase-appearancechange', () => { if (state) render(); });
+  window.addEventListener('resize', () => { if (state && document.body.classList.contains('duel-active')) render(); });
+  document.addEventListener('game-displaychange', () => { if (state && document.body.classList.contains('duel-active')) render(); });
   updateMode();
   if (sharedPuzzle) {
     $('solo-mode').value = sharedPuzzle.mode === 'challenge' && sharedPuzzle.rule === 'relay' ? 'relay' : sharedPuzzle.mode;

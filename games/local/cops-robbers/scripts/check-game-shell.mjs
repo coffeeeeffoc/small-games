@@ -53,6 +53,12 @@ async function point(page, x, y) {
     return { x: p.x, y: p.y };
   }, { x, y });
 }
+async function nodePoint(page, node) {
+  return page.locator(`#target-${node}`).evaluate(target => {
+    const p = new DOMPoint(target.cx.baseVal.value, target.cy.baseVal.value).matrixTransform(target.getScreenCTM());
+    return { x: p.x, y: p.y };
+  });
+}
 try {
   await mkdir('outputs', { recursive: true });
   await check('home owns all levels and global game entries', async page => {
@@ -148,10 +154,10 @@ try {
     const start = async destination => {
       const bounds = await page.getByTestId(`cop-${cop}`).boundingBox();
       await touch('touchStart', { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 });
-      await touch('touchMove', await point(page, destination.x, destination.y));
+      await touch('touchMove', Number.isInteger(destination) ? await nodePoint(page, destination) : await point(page, destination.x, destination.y));
       assert.equal(await page.locator('.drag-line').count(), 1, 'Touch drag gives immediate visual feedback');
     };
-    await start(map.nodes[targets[cop]]);
+    await start(targets[cop]);
     assert.deepEqual(await snapshot(page), stateView(before), 'Dragging only previews a move');
     await touch('touchCancel');
     assert.equal(await page.locator('.drag-line').count(), 0, 'Cancellation clears the drag feedback');
@@ -160,7 +166,7 @@ try {
     await touch('touchEnd');
     assert.equal(await page.locator('.drag-line').count(), 0);
     assert.deepEqual(await snapshot(page), stateView(before), 'Dropping outside a target preserves the patrol');
-    await start(map.nodes[targets[cop]]);
+    await start(targets[cop]);
     await touch('touchEnd');
     await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
     assert.deepEqual(await snapshot(page), stateView(step(map, before, targets).state), 'A legal touch drop performs one complete turn');

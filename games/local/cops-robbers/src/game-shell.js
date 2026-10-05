@@ -1,4 +1,5 @@
-import { roleAvatarSvg, getRoleAppearance } from './role-appearance.js';
+import { getRoleAppearance } from './role-appearance.js';
+import { gamePortrait } from './art.js';
 
 export function setupGameShell({ openLevels }) {
   const $ = (id) => document.getElementById(id);
@@ -16,12 +17,13 @@ export function setupGameShell({ openLevels }) {
   if (native) fullscreen.removeAttribute('data-game-fullscreen');
 
   function portraits() {
+    $('target-portrait').innerHTML = gamePortrait('robber', 0, 0, 100);
     $('appearance-art').innerHTML =
-      `${roleAvatarSvg('cop', 0, 8, 58)}${roleAvatarSvg('robber', 44, 20, 52)}`;
+      `${gamePortrait('cop', 0, 8, 58)}${gamePortrait('robber', 44, 20, 52)}`;
     $('home-roster').innerHTML = ['cop', 'robber']
       .map(
         (role) =>
-          `<button type="button" aria-label="设置${getRoleAppearance(role).label}形象"><svg viewBox="0 0 100 100" aria-hidden="true">${roleAvatarSvg(role, 3, 3, 94)}</svg></button>`,
+          `<button type="button" aria-label="设置${getRoleAppearance(role).label}形象"><svg viewBox="0 0 100 100" aria-hidden="true">${gamePortrait(role, 3, 3, 94)}</svg></button>`,
       )
       .join('<span aria-hidden="true">×</span>');
   }

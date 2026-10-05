@@ -1,4 +1,4 @@
-/* Implemented from docs/design/cartoon-ui-concept.png. */
+/* Home follows cartoon-ui-concept.png; play follows gameplay-refined-concept.png. */
 body.game-shell {
   min-height: 100dvh;
   --ink: #153c53;
@@ -323,7 +323,8 @@ body.game-shell {
   pointer-events: none;
 }
 .game-shell.focus-play .game-heading h2 {
-  font-size: 17px;
+  font-size: 21px;
+  font-weight: 900;
   gap: 9px;
   margin: 0;
 }
@@ -336,7 +337,7 @@ body.game-shell {
   grid-column: 1/3;
   grid-row: 2;
   position: static;
-  height: 33px;
+  height: 35px;
   margin: 0 3px 3px;
   pointer-events: auto;
 }
@@ -356,7 +357,13 @@ body.game-shell {
 .game-shell.focus-play[data-rule='relay'] .board-frame {
   grid-column: 1/3;
   grid-row: 3;
-  width: min(100%, calc(100dvh - 226px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  width: min(
+    100%,
+    calc(
+      (100dvh - 232px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) /
+        var(--board-aspect, 1)
+    )
+  );
   max-width: 570px;
   align-self: center;
   margin: 0 auto;
@@ -371,54 +378,66 @@ body.game-shell {
   box-shadow: inset 0 0 0 2px #69a78b33;
   border-radius: 23px;
 }
-.game-shell .board-frame svg {
+.game-shell .board-frame > svg {
   display: block;
   width: 100%;
-  aspect-ratio: 1;
+  height: auto;
+  aspect-ratio: 1 / var(--board-aspect, 1);
 }
 .game-shell .road-shadow {
-  stroke: #81b092;
-  stroke-width: 29;
-  opacity: 0.6;
+  stroke: #85a777;
+  stroke-width: 36;
+  opacity: 0.65;
+  transform: translateY(5px);
 }
 .game-shell .road-base {
-  stroke: #fff4d4;
-  stroke-width: 26;
+  stroke: url(#road-cream);
+  stroke-width: 31;
 }
 .game-shell .road-center {
-  stroke: #dfd0ad;
-  stroke-width: 1.7;
+  stroke: #cfbd93;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 10;
+  opacity: 0.5;
 }
 .game-shell .node-ground {
-  fill: #fff9e3;
-  stroke: #b2b993;
-  stroke-width: 2.5;
+  fill: url(#stone-cream);
+  stroke: #fffef1;
+  stroke-width: 4;
+  filter: url(#stone-shadow);
 }
 .game-shell .node-label rect {
-  fill: #fff5d4;
-  stroke: #b4c196;
+  fill: url(#stone-cream);
+  stroke: #fffdf0;
   stroke-width: 1.5;
+  filter: url(#stone-shadow);
 }
 .game-shell .node-label text {
-  fill: #3e777b;
-  font-size: 16px;
+  fill: #28545d;
+  font-size: 17px;
   font-weight: 900;
 }
 .game-shell .node-target.reachable {
-  fill: #83eee5bb;
-  stroke: #0d8dac;
+  fill: url(#stone-mint);
+  stroke: #ecfff5;
   stroke-width: 3.5;
   stroke-dasharray: none;
+  filter: url(#stone-shadow);
 }
-.game-shell .node-target.chosen {
-  fill: #ffe58e;
-  stroke: #d8992b;
+.game-shell .node-target.chosen,
+.game-shell .node-target.selected {
+  fill: url(#stone-gold);
+  stroke: #fff5c2;
   stroke-width: 4;
+  opacity: 1;
+  stroke-dasharray: none;
+  filter: url(#stone-shadow);
 }
 .game-shell .selection-ring {
-  fill: #ffe6746b;
-  stroke: #ecb830;
+  fill: url(#stone-gold);
+  stroke: #fff5c2;
   stroke-width: 4;
+  filter: url(#stone-shadow);
 }
 .game-shell .escape-road {
   stroke: #f4af72;
@@ -438,8 +457,9 @@ body.game-shell {
   grid-column: 1/3;
   grid-row: 4;
   min-height: 31px;
-  background: #faffeecc;
-  border: 1px solid #c2dcbc;
+  background: #faffeeee;
+  border: 2px solid #fffdf2;
+  box-shadow: 0 2px 0 #b0ceb7;
   border-radius: 18px;
   display: flex;
   align-items: center;
@@ -468,8 +488,8 @@ body.game-shell {
 .game-shell .squad-row {
   grid-column: 1;
   grid-row: 5;
-  min-height: 54px;
-  margin: 3px 0 0;
+  min-height: 62px;
+  margin: 4px 0 0;
   justify-content: center;
 }
 .game-shell #squad {
@@ -479,25 +499,29 @@ body.game-shell {
 }
 .game-shell #squad button {
   position: relative;
-  width: 48px;
+  width: 51px;
   min-width: 44px;
-  height: 52px;
+  height: 62px;
   border: 2px solid #8fbac0;
   border-radius: 16px;
-  background: #f8ffec;
-  box-shadow: 0 3px 0 #91bcb6;
+  background: linear-gradient(#fffef5, #e4f4f0);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    0 4px 0 #91bcb6;
   color: #153c53;
   padding: 2px;
 }
 .game-shell #squad button.selected {
   border-color: #f2bc37;
-  background: #fff0b0;
-  box-shadow: 0 3px 0 #dba42b;
+  background: linear-gradient(#fff6bf, #ffe58b);
+  box-shadow:
+    inset 0 2px 0 #fffbd4,
+    0 4px 0 #dba42b;
   transform: translateY(-2px);
 }
 .game-shell .squad-avatar {
-  width: 36px;
-  height: 36px;
+  width: 43px;
+  height: 43px;
   display: block;
   margin: auto;
 }
@@ -523,10 +547,10 @@ body.game-shell {
 .game-shell .action-bar button {
   flex: 1;
   min-width: 44px;
-  min-height: 52px;
+  min-height: 62px;
   border: 2px solid #e5b24b;
   border-radius: 16px;
-  background: #ffd97b;
+  background: linear-gradient(#ffedb5, #ffd97b);
   box-shadow: 0 3px 0 #dda247;
   font-size: 10px;
   display: flex;
@@ -535,10 +559,10 @@ body.game-shell {
   padding: 4px 3px;
 }
 .game-shell .action-bar #hint {
-  background: #ffe163;
+  background: linear-gradient(#fff39c, #ffda55);
 }
 .game-shell .action-bar #undo {
-  background: #f49b64;
+  background: linear-gradient(#ffd0a8, #f9a76c);
   border-color: #dc8650;
   box-shadow: 0 3px 0 #c77844;
 }
@@ -548,7 +572,8 @@ body.game-shell {
   box-shadow: 0 3px 0 #93b69c;
 }
 .game-shell .action-bar button:disabled {
-  opacity: 0.45;
+  opacity: 0.6;
+  filter: saturate(0.45);
 }
 .game-shell .game-footnote:has(.save-error) {
   position: static !important;
@@ -740,7 +765,7 @@ body.game-shell {
   text-align: center;
 }
 .game-shell.focus-play .duel-game .board-frame {
-  width: min(100%, calc(100dvh - 255px));
+  width: min(100%, calc((100dvh - 270px) / var(--board-aspect, 1)));
 }
 .game-shell .duel-game .instruction {
   font-size: 12px;
@@ -773,7 +798,11 @@ body.game-shell {
     height: 37px;
   }
   .game-shell #squad button {
-    width: 42px;
+    width: 44px;
+  }
+  .game-shell .squad-avatar {
+    width: 36px;
+    height: 36px;
   }
   .game-shell .action-bar {
     gap: 4px;
@@ -867,5 +896,70 @@ body.game-shell {
   }
   .game-shell.focus-play .duel-game .duel-controls:last-of-type {
     grid-row: 5;
+  }
+}
+
+.game-shell .board-hud .hud-stat {
+  min-width: 102px;
+  height: 35px;
+  gap: 7px;
+  padding: 3px 13px 3px 8px;
+  border: 2px solid #fffdf1;
+  box-shadow: 0 2px 0 #bad1b5;
+  background: linear-gradient(#fffdf1, #fff4da);
+  font-weight: 900;
+  font-size: 12px;
+}
+.game-shell .hud-stat > svg {
+  width: 27px;
+  height: 27px;
+  flex: none;
+}
+.game-shell #board #label-layer .node-label .node-hit,
+.game-shell #duel-board .node-label .node-hit {
+  pointer-events: all;
+}
+.game-shell .node-ground,
+.game-shell .node-target,
+.game-shell .selection-ring {
+  pointer-events: none;
+}
+.game-shell .character-sprite,
+.game-shell .illustrated-portrait {
+  pointer-events: none;
+  overflow: hidden;
+}
+.game-shell .scenery {
+  pointer-events: none;
+}
+.game-shell .node-label.reachable rect {
+  fill: #defcf0;
+  stroke: #f7fff3;
+}
+.game-shell #duel-squad .squad-avatar {
+  width: 34px;
+  height: 34px;
+  margin: 0;
+}
+.game-shell #duel-squad button[aria-pressed='true'] {
+  background: linear-gradient(#fff6bf, #ffe58b);
+  border-color: #e6b03c;
+}
+@media (orientation: portrait) {
+  .game-shell.focus-play .game:has(#squad button:nth-child(4)) .board-frame {
+    width: min(
+      100%,
+      calc(
+        (100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) /
+          var(--board-aspect, 1)
+      )
+    );
+  }
+  .game-shell .game:has(#squad button:nth-child(4)) .squad-row {
+    grid-column: 1/3;
+  }
+  .game-shell .game:has(#squad button:nth-child(4)) .action-bar {
+    grid-column: 1/3;
+    grid-row: 6;
   }
 }

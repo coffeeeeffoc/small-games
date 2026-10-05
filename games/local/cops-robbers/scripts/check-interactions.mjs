@@ -101,6 +101,12 @@ async function point(page, x, y) {
     const p = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()); return { x: p.x, y: p.y };
   }, { x, y });
 }
+async function nodePoint(page, node) {
+  return page.locator(`#target-${node}`).evaluate(target => {
+    const p = new DOMPoint(target.cx.baseVal.value, target.cy.baseVal.value).matrixTransform(target.getScreenCTM());
+    return { x: p.x, y: p.y };
+  });
+}
 async function drag(page, cop, destination, cancel = false, hold = 0) {
   const box = await page.getByTestId(`cop-${cop}`).boundingBox();
   await page.evaluate(() => document.getElementById('board').addEventListener('pointerdown', event => { window.testPointerId = event.pointerId; }, { once: true }));
@@ -292,8 +298,7 @@ try {
     assert.deepEqual(await snapshot(page, 6), expectedView(before), 'Manual selection must not consume a move');
 
     await load(page, 6); await page.getByTestId('hint').click();
-    const destination = map.nodes[targets[cop]];
-    await drag(page, cop, await point(page, destination.x, destination.y), false, 1300);
+    await drag(page, cop, await nodePoint(page, targets[cop]), false, 1300);
     await finished(page, 1);
     assert.deepEqual(await snapshot(page, 6), expectedView(step(map, before, targets).state), 'The held drag must move the manually selected officer');
     return { intendedCops: targets, suggestedOfficer: suggested, selectedOfficer: cop, delayedWorkerMs: 900, heldDragMs: 1300 };
@@ -310,13 +315,13 @@ try {
   });
 
   await check('real drag moves immediately; empty drop and pointercancel do not move', async page => {
-    const id = moving.id, map = levels[id - 1], before = initialState(map), targets = solutions[id][0], cop = movedCop(before, targets), destination = map.nodes[targets[cop]];
+    const id = moving.id, map = levels[id - 1], before = initialState(map), targets = solutions[id][0], cop = movedCop(before, targets);
     await load(page, id); const initial = await snapshot(page, id);
     await drag(page, cop, await point(page, 25, 25));
     assert.deepEqual(await snapshot(page, id), initial);
-    await drag(page, cop, await point(page, destination.x, destination.y), true);
+    await drag(page, cop, await nodePoint(page, targets[cop]), true);
     assert.deepEqual(await snapshot(page, id), initial);
-    await drag(page, cop, await point(page, destination.x, destination.y));
+    await drag(page, cop, await nodePoint(page, targets[cop]));
     await finished(page, 1);
     assert.deepEqual(await snapshot(page, id), expectedView(step(map, before, targets).state));
   });
@@ -332,7 +337,7 @@ try {
       const box = await page.getByTestId(`cop-${cop}`).boundingBox();
       const origin = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
       await touch('touchStart', origin);
-      await touch('touchMove', await point(page, map.nodes[node].x, map.nodes[node].y));
+      await touch('touchMove', await nodePoint(page, node));
       return origin;
     };
     await startDrag(targets[cop]);
@@ -370,7 +375,8 @@ try {
       assert.ok(hint.y + hint.height <= 740, 'Mission briefing must leave actions within the first screen');
       await move(page, id, initialState(map), solutions[id][0]);
       await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 1);
-      assert.match(await page.locator('#instruction').textContent(), /已选中 1 号追逐队员/);
+      assert.equal(await page.getByTestId('cop-0').getAttribute('aria-pressed'), 'true', 'Resume restores the first selected officer');
+      assert.match(await page.locator('#instruction').textContent(), /亮起的相邻路口/, 'The compact prompt still explains the direct next action');
     }
   });
 

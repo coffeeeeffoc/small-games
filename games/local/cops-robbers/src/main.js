@@ -2,8 +2,9 @@ import { levels, chapters } from './levels.js';
 import { initialState, legalTargets, validatePlan, step, stateKey } from './engine.js';
 import { solutions } from './solutions.js';
 import { optimalRelaySolutions } from './optimal-solutions.js';
-import { character, scenery } from './art.js';
-import { roleAvatarSvg, openAppearanceSettings } from './role-appearance.js';
+import { character, gamePortrait, scenery, sceneDefinitions } from './art.js';
+import { openAppearanceSettings } from './role-appearance.js';
+import { boardHeight, presentationLevel, actorScale, applyBoardLayout, boardExitEndpoint } from './board-layout.js';
 import { setupDuelLobby } from './duel-ui.js';
 import { setSound, unlockSound, playSound } from './sound.js';
 import { relayLevelIds, movedOfficer, lastOfficer, relayTargets, relayError } from './relay.js';
@@ -58,7 +59,7 @@ for (const map of levels) {
 let soundOn = typeof saved.settings?.sound === 'boolean' ? saved.settings.sound : true;
 let teaching = typeof saved.settings?.teaching === 'boolean' ? saved.settings.teaching : !completed[1];
 let reduced = query.get('motion') === 'reduce' || (typeof saved.settings?.reduced === 'boolean' ? saved.settings.reduced : matchMedia('(prefers-reduced-motion: reduce)').matches);
-let level, state, history = [], selected = 0, inspected = -1, hovered = -1, phase = 'planning';
+let level, sourceLevel, state, history = [], selected = 0, inspected = -1, hovered = -1, phase = 'planning';
 let rule = 'standard';
 let playMode = 'challenge';
 const records = () => playMode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed;
@@ -159,9 +160,7 @@ function updateChrome() {
   $('reference-turns').textContent = `三星 ≤ ${parTurns()} 步${best ? ` · 最佳 ${best} 步` : ` · ${level.cops.length} 人协作`}`;
 }
 function exitEndpoint(node, outside = false) {
-  const p = level.nodes[node];
-  const sides = [{ d: p.x, x: outside ? -28 : 18, y: p.y }, { d: 600 - p.x, x: outside ? 628 : 582, y: p.y }, { d: p.y, x: p.x, y: outside ? -28 : 18 }, { d: 600 - p.y, x: p.x, y: outside ? 628 : 582 }];
-  return sides.sort((a, b) => a.d - b.d)[0];
+  return boardExitEndpoint(level, node, outside);
 }
 function updateExits() {
   for (const node of level.exits) {
@@ -171,20 +170,22 @@ function updateExits() {
   }
 }
 function drawBase() {
+  applyBoardLayout($('board'), level);
+  if (!document.body.classList.contains('duel-active')) document.body.dataset.boardHeight = String(level.height);
   const roads = level.edges.map(([a, b]) => `M${level.nodes[a].x} ${level.nodes[a].y}L${level.nodes[b].x} ${level.nodes[b].y}`).join('');
   const exits = level.exits.map(node => {
     const p = level.nodes[node], end = exitEndpoint(node), horizontal = end.y === p.y;
     const x = horizontal ? (p.x + end.x) / 2 : p.x, y = horizontal ? p.y - 21 : (p.y + end.y) / 2;
     return `<g id="escape-${node}" class="escape-gate" data-testid="exit-${node}" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${p.x} ${p.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${p.x} ${p.y}L${end.x} ${end.y}" marker-end="url(#escape-arrow)"/><circle cx="${p.x}" cy="${p.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
   }).join('');
-  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="18"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="25"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle r="46" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
-  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs><marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
+  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="26"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="31"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle class="node-hit" cy="-26" r="34" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
+  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs>${sceneDefinitions()}<marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
   // Road-number controls stay above portraits on dense later maps.
   $('board').querySelectorAll('.node-label').forEach(label => $('label-layer').append(label));
-  $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号追逐队员" aria-pressed="false" data-cop="${i}"><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${roleAvatarSvg('cop', 0, 0, 100)}</svg><span class="squad-number">${i + 1}</span></button>`).join('');
+  $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号追逐队员" aria-pressed="false" data-cop="${i}"><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${gamePortrait('cop', 0, 0, 100)}</svg><span class="squad-number">${i + 1}</span></button>`).join('');
 }
 function updateActors(view = state, moving = '', catches = []) {
-  const layer = $('actor-layer'), occupied = new Set(view.cops);
+  const layer = $('actor-layer'), occupied = new Set(view.cops), scale = actorScale(level);
   for (const kind of ['cop', 'robber']) {
     const positions = kind === 'cop' ? view.cops : view.robbers;
     positions.forEach((node, i) => {
@@ -207,8 +208,8 @@ function updateActors(view = state, moving = '', catches = []) {
       if (kind === 'cop') actor.setAttribute('aria-pressed', String(selected === i));
       actor.setAttribute('class', `actor ${kind} ${mood === 'run' ? 'running' : mood}`);
       actor.style.transform = `translate(${point.x + offset}px, ${point.y + 12}px)`;
-      actor.innerHTML = `<rect x="-30" y="-70" width="60" height="82" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="23" ry="8" fill="#3f584c" opacity=".12"/><ellipse class="selection-ring" cx="0" cy="-1" rx="29" ry="12"/><g transform="scale(.64)"><g class="figure">${character(kind, mood, i)}</g></g>${mood === 'caught' ? '<text class="capture-label" y="-82">抓到啦！</text>' : ''}`;
-      if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="20" cy="-66" r="12" fill="#c76649"/><text class="group-count" x="20" y="-61">×${same.length}</text>`;
+      actor.innerHTML = `<rect x="${-42 * scale}" y="${-110 * scale}" width="${84 * scale}" height="${116 * scale}" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="29" ry="10" fill="#3f584c" opacity=".2"/><ellipse class="selection-ring" cx="0" cy="-1" rx="38" ry="16"/><g transform="scale(${scale})"><g class="figure">${character(kind, mood, i)}</g></g>${mood === 'caught' ? `<text class="capture-label" y="${-110 * scale - 12}">抓到啦！</text>` : ''}`;
+      if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="26" cy="${-94 * scale}" r="12" fill="#c76649"/><text class="group-count" x="26" y="${-94 * scale + 5}">×${same.length}</text>`;
     });
   }
   // Paint lower characters last so crossing paths retain a natural depth order.
@@ -223,15 +224,17 @@ function route(from, to, className, marker, offset = 0) {
 }
 function updatePlanning() {
   const reachable = phase === 'planning' ? targetsFor(selected) : [];
+  const occupied = new Set([...state.cops, ...state.robbers]);
   level.nodes.forEach((_, i) => {
     let type = reachable.includes(i) ? 'reachable' : '';
     if (hovered === i && reachable.includes(i)) type = 'chosen';
     if (inspected >= 0 && state.robbers[inspected] >= 0 && level.adj[state.robbers[inspected]].includes(i)) type = state.cops.includes(i) ? 'blocked' : 'exit';
+    if (phase === 'planning' && state.cops[selected] === i) type += ' selected';
     $(`target-${i}`).setAttribute('class', `node-target ${type}`);
     const label = $('board').querySelector(`[data-testid="node-${i}"]`);
     label.classList.toggle('reachable', reachable.includes(i));
     label.classList.toggle('hinted', hintTarget?.node === i);
-    label.querySelector('circle').setAttribute('r', hintTarget?.node === i ? '32' : '46');
+    label.querySelector('.node-hit').setAttribute('r', occupied.has(i) ? '0' : hintTarget?.node === i ? '32' : '34');
     label.setAttribute('aria-label', `${i + 1}号路口${level.exits.includes(i) ? '，逃生出口' : ''}${reachable.includes(i) ? '，点击立即移动' : ''}`);
   });
   let markup = '';
@@ -274,7 +277,8 @@ function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
   runToken++; pending = null; drag = null; clearHint();
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
   const catalog = playMode === 'quick' ? quickTrials : levels;
-  level = catalog.find(item => item.id === id) || catalog[0];
+  sourceLevel = catalog.find(item => item.id === id) || catalog[0];
+  level = presentationLevel(sourceLevel);
   state = restore && validState(restore.state, level) ? copy(restore.state) : initialState(level);
   history = restore && Array.isArray(restore.history) ? restore.history.filter(s => validState(s, level)).slice(-100).map(copy) : [];
   if (rule === 'relay') state.relayLast = lastOfficer(state, history);
@@ -292,6 +296,23 @@ function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
   updatePlanning(); syncSettings(); persist(); focusPatrol(true);
   if (phase === 'won') { updateActors(); showWin(false); }
   if (phase === 'lost') showLoss(false);
+}
+function resizeBoard() {
+  cancelDrag();
+  if (!sourceLevel || document.body.classList.contains('duel-active') || level.height === boardHeight()) return;
+  // A resize may finish the current animation; it never starts a new turn.
+  if (pending) { finishTurn(runToken); runToken++; }
+  const focused = document.activeElement;
+  const focusSelector = focused?.matches('#board .actor') ? `#${focused.id}`
+    : focused?.matches('#board .node-label') ? `#board [data-node="${focused.dataset.node}"]`
+      : focused?.matches('#squad button') ? `#squad [data-cop="${focused.dataset.cop}"]` : null;
+  level = presentationLevel(sourceLevel);
+  drawBase(); updatePlanning();
+  if (hintTarget) {
+    const point = level.nodes[hintTarget.node];
+    $('hint-layer').innerHTML = `<circle class="hint-circle" data-hint-node="${hintTarget.node}" cx="${point.x}" cy="${point.y + 26}" r="32"/>`;
+  }
+  if (focusSelector && !document.querySelector('dialog[open]')) document.querySelector(focusSelector)?.focus({ preventScroll: true });
 }
 function pickCop(index) {
   if (phase !== 'planning') return;
@@ -549,8 +570,8 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Space' && !event.target.closest('button, input, a, [role="button"]')) { event.preventDefault(); if (phase === 'planning') execute([...state.cops]); }
 });
 window.addEventListener('blur', cancelDrag);
-window.addEventListener('resize', cancelDrag);
-document.addEventListener('game-displaychange', cancelDrag);
+window.addEventListener('resize', resizeBoard);
+document.addEventListener('game-displaychange', resizeBoard);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelDrag(); if (pending) { const token = runToken; finishTurn(token); runToken++; } }
 });
