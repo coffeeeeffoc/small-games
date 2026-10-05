@@ -21,6 +21,7 @@
     "test:map-display": "node scripts/check-map-display.mjs",
     "test:game-shell": "node scripts/check-game-shell.mjs",
     "test:art-layout": "node scripts/check-art-layout.mjs",
+    "test:movement-presentation": "node scripts/check-movement-presentation.mjs",
     "test:input": "node scripts/check-input-scope.mjs",
     "test:relay": "node scripts/check-relay.mjs",
     "test:relay-browser": "node scripts/check-relay-browser.mjs",
