@@ -26,6 +26,8 @@ export function granularSurface(material: THREE.MeshStandardMaterial | THREE.Mes
       varying vec3 vBundSurface; uniform float bundPaving;
       float bundGrainHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
+        // Authored linear ivory factors otherwise wash out under the runtime sky.
+        diffuseColor.rgb *= bundPaving > 1.5 ? .5 : 1.;
         float grainFade = 1.-smoothstep(.008,.08,max(length(dFdx(vBundSurface.xz)),length(dFdy(vBundSurface.xz))));
         float grain = (bundGrainHash(floor(vBundSurface.xz * 140.))-.5)*grainFade;
         float stoneVariation = .96 + bundGrainHash(floor(vBundSurface.xz / vec2(1.2,.8))) * .08;
@@ -119,12 +121,15 @@ export function compactCityScene(original: THREE.Object3D, cell: number) {
     if(compact!==object.geometry)compact.dispose();
   });
   const merged = mergeGeometries(pieces)!;pieces.forEach(geometry=>geometry.dispose());
-  const material = new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide,emissive:'#ffca85',emissiveIntensity:.025});
+  const material = new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,
+    roughness:.9,envMapIntensity:.45,emissive:'#ffca85',emissiveIntensity:.025});
   material.name = 'Bund window and stone · smooth';
+  material.userData.bundFacade = true;
   material.onBeforeCompile = shader => {
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float bundWindow;\nvarying float vBundWindow;\nvarying vec3 vBundPosition;')
       .replace('#include <begin_vertex>','#include <begin_vertex>\nvBundWindow=bundWindow;\nvBundPosition=(modelMatrix*vec4(position,1.)).xyz;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vBundWindow;\nvarying vec3 vBundPosition;')
+      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(.9,.28,vBundWindow);')
       .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
         vec2 pane=vec2((vBundPosition.x+vBundPosition.z)/2.8,vBundPosition.y/3.6);
         vec2 cell=floor(pane),edge=abs(fract(pane)-.5),aa=max(fwidth(pane),vec2(.001));
@@ -170,6 +175,7 @@ export function smoothTreeInstances(placements: readonly Placement[], detail: Ex
   const batches = placementBatches(placements);
   return batches.map(batch => {
       const mesh = new THREE.InstancedMesh(geometry, material, batch.length);
+      mesh.castShadow = true; mesh.receiveShadow = true;
       batch.forEach((placement, index) => mesh.setMatrixAt(index, new THREE.Matrix4().compose(
         new THREE.Vector3(...placement.position),
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), placement.yaw),

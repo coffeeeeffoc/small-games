@@ -59,7 +59,9 @@ try {
     await page.addStyleTag({ content: '.debug{display:none}' });
     await page.getByRole('button', { name: '游览设置' }).tap();
     await expect(page.getByRole('dialog')).toBeVisible();
-    await page.getByRole('combobox', { name: '画面精度' }).selectOption('0');
+    await page.getByRole('combobox', {name:'画面精度'}).tap();
+    await page.screenshot({path:fileURLToPath(new URL(`settings-options-${viewport.width}.png`,output))});
+    await page.locator('[role="option"][value="' + '0' + '"]').tap();
     await page.getByRole('button', { name: '返回首页', exact: true }).tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
     await page.screenshot({ path: fileURLToPath(new URL(`home-${viewport.width}.png`, output)) });

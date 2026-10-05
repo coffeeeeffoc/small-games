@@ -1,5 +1,5 @@
 import '../dev-mode.js';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { WebGLRenderer } from 'three';
 import type { Telemetry, Teleport } from './Scene';
@@ -34,6 +34,46 @@ class SceneBoundary extends React.Component<
   render() {
     return this.state.error ? null : this.props.children;
   }
+}
+function PresetChoice({title,value,options,onChange}: {
+  title:string; value:string; options:readonly (readonly [string,string,string])[];
+  onChange:(value:string)=>void;
+}) {
+  const [expanded,setExpanded]=useState(false), id=useId();
+  const root=useRef<HTMLDivElement>(null), trigger=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{
+    if(!expanded)return;
+    const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setExpanded(false);};
+    document.addEventListener('pointerdown',outside);
+    return ()=>document.removeEventListener('pointerdown',outside);
+  },[expanded]);
+  return <div className="settings-choice" ref={root} onKeyDown={event=>{
+    if(event.key==='Escape'&&expanded){event.preventDefault();event.stopPropagation();setExpanded(false);trigger.current?.focus();}
+    if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)) {
+      event.preventDefault();setExpanded(true);
+      const current=Array.from(root.current?.querySelectorAll('[role="option"]')||[]).indexOf(document.activeElement!);
+      const next=event.key==='Home'?0:event.key==='End'?options.length-1:
+        !expanded?Math.max(0,options.findIndex(option=>option[0]===value)):
+        (current+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+      const focus=()=>root.current?.querySelectorAll<HTMLButtonElement>('[role="option"]')[next]?.focus();
+      if(expanded)focus();else requestAnimationFrame(focus);
+    }
+  }}>
+    <span>{title}</span>
+    <button ref={trigger} className="choice-trigger" role="combobox" aria-label={title}
+      aria-controls={id} aria-haspopup="listbox" aria-expanded={expanded}
+      onClick={()=>setExpanded(!expanded)}>
+      {options.find(option=>option[0]===value)?.[1]}<i aria-hidden="true"/>
+    </button>
+    {expanded&&<div className="choice-options" id={id} role="listbox" aria-label={`${title}选项`}>
+      {options.map(([option,label,description])=><button key={option} role="option"
+        aria-label={label} aria-selected={option===value} value={option}
+        onClick={()=>{onChange(option);setExpanded(false);trigger.current?.focus();}}>
+        <span><strong>{label}</strong><small>{description}</small></span>
+        <span className="choice-check" aria-hidden="true">{option===value?'✓':''}</span>
+      </button>)}
+    </div>}
+  </div>;
 }
 function App() {
   const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
@@ -1008,32 +1048,19 @@ function App() {
                   {night ? '夜色' : '暖阳'}
                 </button>
               </label>
-              <label>
-                画面精度
-                <select
-                  aria-label="画面精度"
-                  value={quality}
-                  onChange={(e) => setQuality(Number(e.target.value))}
-                >
-                  <option value={0}>流畅</option>
-                  <option value={1}>清晰</option>
-                  <option value={2}>精细</option>
-                </select>
-              </label>
-              <label>
-                模型细节
-                <select
-                  aria-label="模型细节"
-                  value={renderDetail}
-                  onChange={(event) => {
-                    if (isRenderDetail(event.target.value)) changeRenderDetail(event.target.value);
-                  }}
-                >
-                  <option value="original">完整建筑细节</option>
-                  <option value="balanced">均衡</option>
-                  <option value="light">轻量 · 推荐手机</option>
-                </select>
-              </label>
+              <PresetChoice title="画面精度" value={String(quality)} onChange={value=>setQuality(Number(value))}
+                options={[
+                  ['0','流畅','适合手机，保留近景光影'],
+                  ['1','清晰','更清楚的阴影与江面倒影'],
+                  ['2','精细','适合性能充足的设备'],
+                ]}/>
+              <PresetChoice title="模型细节" value={renderDetail}
+                onChange={value=>{if(isRenderDetail(value))changeRenderDetail(value);}}
+                options={[
+                  ['original','完整建筑细节','保留模型全部装饰与轮廓'],
+                  ['balanced','均衡','兼顾建筑细节与运行速度'],
+                  ['light','轻量 · 推荐手机','保留楼位与外形，简化小装饰'],
+                ]}/>
               <label>
                 行人与鸽子
                 <button

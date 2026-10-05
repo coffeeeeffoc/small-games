@@ -1,5 +1,5 @@
 import type { useRapier } from '@react-three/rapier';
-import { onRiver, type WorldData, type V3, type Placement } from './world.ts';
+import { onRiver, bridgeRamps, type WorldData, type V3, type Placement } from './world.ts';
 import { lifeBlocks, streetColliders } from './life.ts';
 
 type Physics = Pick<ReturnType<typeof useRapier>, 'world' | 'rapier'>;
@@ -21,6 +21,11 @@ export function createGround({ world, rapier }: Physics, data: WorldData) {
     );
     hull?.setTranslation(...center);
     if (hull) world.createCollider(hull, fixed);
+  }
+  for (const ramp of bridgeRamps(data)) {
+    const hull = rapier.ColliderDesc.convexHull(new Float32Array(ramp.hull.flat()))!;
+    world.createCollider(hull.setTranslation(...ramp.position)
+      .setRotation({x:0,y:Math.sin(ramp.yaw/2),z:0,w:Math.cos(ramp.yaw/2)}), fixed);
   }
   // An analytic plane avoids convex sweep precision loss on a kilometer-wide cuboid.
   world.createCollider(new rapier.ColliderDesc(new rapier.HalfSpace({ x: 0, y: 1, z: 0 })), fixed);

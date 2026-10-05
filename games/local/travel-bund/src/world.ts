@@ -27,6 +27,21 @@ export type WorldData = {
   water: [number, number][][];
   bounds: [number, number, number, number];
 };
+// Solid approaches share their actual vertices between rendering and Rapier.
+export function bridgeRamps(data: WorldData) {
+  const bridge = data.props['garden-bridge']?.[0];
+  if (!bridge) return [];
+  const top = bridge.position[1] + 1.3 * bridge.scale[1], run = 26;
+  return [-1, 1].map(side => {
+    const distance = 14 * bridge.scale[0] + run / 2;
+    const position = localPoint(bridge, side * distance, 0); position[1] = 0;
+    const corners = [[-run/2,-3*bridge.scale[2]], [run/2,-3*bridge.scale[2]],
+      [run/2,3*bridge.scale[2]], [-run/2,3*bridge.scale[2]]];
+    const hull = [0,1].flatMap(upper => corners.map(([x,z]) =>
+      [x, upper ? ((x*side < 0) ? top : .17) : 0, z] as V3));
+    return {position, yaw: bridge.yaw, hull};
+  });
+}
 const quayCache = new WeakMap<WorldData, WorldData['water']>();
 // The map shoreline leaves land between the authored quay and river. Use the quay's
 // outer edge for both the visible water and the no-walking boundary.

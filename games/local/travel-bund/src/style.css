@@ -573,7 +573,7 @@ dialog > .primary {
 .settings {
   margin-top: 15px;
 }
-.settings label {
+.settings label, .settings-choice {
   border: 1px solid #e1ddcf;
   border-radius:14px;
   background:linear-gradient(110deg,#faf8ef,#f1efe3);
@@ -586,14 +586,14 @@ dialog > .primary {
   font-size: 12px;
   gap: 9px;
 }
-.settings label::before {content:'♪';font:22px Georgia,serif;color:#244943;text-align:center;}
-.settings label:nth-child(2)::before {content:'☼';}
-.settings label:nth-child(3)::before {content:'▱';}
-.settings label:nth-child(4)::before {content:'▰';}
-.settings label:nth-child(5)::before {content:'♧';}
-.settings label:nth-child(6)::before {content:'❧';}
-.settings label:nth-child(7)::before {content:'◎';}
-.settings label button {
+.settings > *::before {content:'♪';font:22px Georgia,serif;color:#244943;text-align:center;}
+.settings > :nth-child(2)::before {content:'☼';}
+.settings > :nth-child(3)::before {content:'▱';}
+.settings > :nth-child(4)::before {content:'▰';}
+.settings > :nth-child(5)::before {content:'♧';}
+.settings > :nth-child(6)::before {content:'❧';}
+.settings > :nth-child(7)::before {content:'◎';}
+.settings label button, .choice-trigger {
   padding: 8px 12px;
   font-size: 11px;
   background: #fffaf0;
@@ -603,15 +603,16 @@ dialog > .primary {
 .settings button[aria-pressed='true'] {background:#2b5752;border-color:#2b5752;}
 .settings button[aria-pressed]::after {content:'';position:absolute;width:24px;height:24px;left:3px;top:9px;border-radius:50%;background:#fffef8;box-shadow:0 2px 4px #17372a30;transition:left .18s;}
 .settings button[aria-pressed='true']::after {left:25px;}
-.settings select {
-  padding: 7px;
-  max-width: 145px;
-  min-height: 44px;
-  border-radius: 10px;
-  background: #fffaf0;
-  color: var(--ink);
-  border: 1px solid #294d552a;
-}
+.choice-trigger {display:flex;align-items:center;gap:9px;border-radius:10px;border:1px solid #294d552a;color:var(--ink);}
+.choice-trigger i {width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-4px;}
+.choice-trigger[aria-expanded='true'] i {transform:rotate(225deg);margin-top:3px;}
+.choice-options {grid-column:1/-1;display:grid;gap:5px;padding:8px 0 10px;animation:panel-rise .15s ease-out;}
+.choice-options button {display:flex;align-items:center;justify-content:space-between;text-align:left;background:#fffdf6;border:1px solid #ded8c8;border-radius:10px;min-height:58px;padding:8px 12px;color:var(--ink);}
+.choice-options button[aria-selected='true'] {background:#e4eee6;border-color:#759a89;}
+.choice-options strong {display:block;font-size:12px;font-weight:600;}
+.choice-options small {display:block;color:#65756d;margin-top:4px;font-size:10px;}
+.choice-check {flex:0 0 22px;width:22px;height:22px;border:1px solid #bacabc;border-radius:50%;text-align:center;line-height:20px;}
+.choice-options [aria-selected='true'] .choice-check {background:#2b5752;color:#fffdf6;border-color:#2b5752;}
 .settings input {
   width: clamp(85px,27vw,130px);
   min-height: 44px;

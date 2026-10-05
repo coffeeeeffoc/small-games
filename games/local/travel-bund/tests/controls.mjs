@@ -75,11 +75,28 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
     await page.getByRole('button', { name: '暂停' }).tap();
     assert.deepEqual(await readInput(), { stick: [0, 0], look: [0, 0], active: false, keys: [] });
-    await page.getByRole('combobox',{name:'画面精度'}).selectOption('1');
+    assert.equal(await page.locator('select').count(),0,'Settings use the designed choice panel');
+    const precision=page.getByRole('combobox',{name:'画面精度'});
+    await precision.tap();
+    await expect(precision).toHaveAttribute('aria-expanded','true');
+    await page.keyboard.press('Escape');
+    await expect(precision).toHaveAttribute('aria-expanded','false');
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await precision.tap();
+    await page.getByRole('heading',{name:'风景会等你。'}).tap();
+    await expect(precision).toHaveAttribute('aria-expanded','false');
+    await precision.focus();await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('option',{name:'流畅',exact:true})).toBeFocused();
+    await page.keyboard.press('End');await page.keyboard.press('Enter');
+    await expect(page.locator('main')).toHaveAttribute('data-quality','2');
+    await page.getByRole('combobox', {name:'画面精度'}).tap();
+    await page.locator('[role="option"][value="' + '1' + '"]').tap();
     await expect(page.locator('main')).toHaveAttribute('data-quality', '1');
-    await page.getByRole('combobox',{name:'画面精度'}).selectOption('0');
+    await page.getByRole('combobox', {name:'画面精度'}).tap();
+    await page.locator('[role="option"][value="' + '0' + '"]').tap();
     for(const detail of ['original','balanced','light']) {
-      await page.getByRole('combobox',{name:'模型细节'}).selectOption(detail);
+      await page.getByRole('combobox', {name:'模型细节'}).tap();
+    await page.locator('[role="option"][value="' + detail + '"]').tap();
       await expect(page.locator('main')).toHaveAttribute('data-render-detail',detail);
       assert.equal(await page.evaluate(()=>localStorage.getItem('travel-bund.render-detail.v1')),detail);
     }

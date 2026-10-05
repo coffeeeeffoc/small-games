@@ -1,0 +1,24 @@
+{
+  "environment": "Windows Chrome mobile landscape, CDP touch gestures, actual production Scene",
+  "bridge": {
+    "phase": "playing",
+    "ready": "true",
+    "sitting": "false",
+    "x": "-432.58",
+    "z": "-632.66",
+    "y": "2.21",
+    "speed": "0.00",
+    "grounded": "true",
+    "quality": "0",
+    "yaw": "-0.442",
+    "fps": "50.97",
+    "calls": "152",
+    "triangles": "514952",
+    "renderDetail": "light",
+    "crowd": "true",
+    "motion": "true",
+    "lifeTarget": "",
+    "lifeEvent": ""
+  },
+  "errors": []
+}

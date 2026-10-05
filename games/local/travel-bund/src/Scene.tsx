@@ -11,6 +11,7 @@ import {
   placementBatches,
   onRiver,
   quayWater,
+  bridgeRamps,
   destinations,
   type V3,
   type WorldData,
@@ -67,7 +68,7 @@ function surfaceMaterial(material: THREE.Material) {
   if (!m.isMeshStandardMaterial) return;
   if (!m.userData.bundGrain) m.envMapIntensity = 0.65;
   if (!m.userData.bundGrain && /pav|stone|trim|brick/i.test(m.name)) m.roughness = 0.85;
-  if (!/glass|window/i.test(m.name) || /lamp/i.test(m.name)) return;
+  if (m.userData.bundFacade || !/glass|window/i.test(m.name) || /lamp/i.test(m.name)) return;
   // Facade panes share glass materials. Light individual rooms, never the entire glass shell.
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
@@ -120,6 +121,7 @@ function CityTile({
     const set = new Set<THREE.MeshStandardMaterial>();
     scene.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
+      o.castShadow = name.startsWith('city_');
       o.receiveShadow = true;
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         surfaceMaterial(m);
@@ -454,7 +456,7 @@ function River({ data, night, quality }: { data: WorldData; night: boolean; qual
   );
   return <primitive object={river.object} />;
 }
-function Atmosphere({ night }: { night: boolean }) {
+function Atmosphere({ night, quality }: { night: boolean; quality: number }) {
   const { scene, camera, gl } = useThree();
   const sun = useRef<THREE.DirectionalLight>(null),
     veil = useRef<THREE.MeshBasicMaterial>(null);
@@ -463,7 +465,7 @@ function Atmosphere({ night }: { night: boolean }) {
     const environment = new THREE.Scene(),
       sky = new EnvironmentSky();
     sky.scale.setScalar(10000);
-    sky.material.uniforms.sunPosition.value.set(300, 300, -500);
+    sky.material.uniforms.sunPosition.value.set(325, 240, -350);
     sky.material.uniforms.turbidity.value = 2.2;
     sky.material.uniforms.rayleigh.value = 1.6;
     if (night) environment.background = new THREE.Color('#35465b');
@@ -471,8 +473,11 @@ function Atmosphere({ night }: { night: boolean }) {
     const generator = new THREE.PMREMGenerator(gl),
       target = generator.fromScene(environment, 0.04, 0.1, 20000);
     scene.environment = target.texture;
+    const previousIntensity=scene.environmentIntensity;
+    scene.environmentIntensity=.35;
     return () => {
       scene.environment = null;
+      scene.environmentIntensity=previousIntensity;
       target.dispose();
       generator.dispose();
       sky.geometry.dispose();
@@ -483,13 +488,13 @@ function Atmosphere({ night }: { night: boolean }) {
     mix.current = input.active
       ? THREE.MathUtils.damp(mix.current, night ? 1 : 0, 1.5, dt)
       : Number(night);
-    const c = new THREE.Color('#b6d9dc').lerp(new THREE.Color('#26394e'), mix.current);
+    const c = new THREE.Color('#dfccb0').lerp(new THREE.Color('#26394e'), mix.current);
     if (!scene.fog) scene.fog = new THREE.Fog(c, 750, 4500);
     else scene.fog.color.copy(c);
     if (veil.current) veil.current.opacity = mix.current;
     if (sun.current) {
-      sun.current.intensity = THREE.MathUtils.lerp(1.65, 0.65, mix.current);
-      sun.current.position.set(camera.position.x + 70, 100, camera.position.z - 60);
+      sun.current.intensity = THREE.MathUtils.lerp(1.6, 0.65, mix.current);
+      sun.current.position.set(camera.position.x + 65, 48, camera.position.z - 70);
       sun.current.target.position.copy(camera.position);
       sun.current.target.updateMatrixWorld();
     }
@@ -503,8 +508,8 @@ function Atmosphere({ night }: { night: boolean }) {
           depthWrite={false}
           depthTest={false}
           uniforms={{
-            horizon: { value: new THREE.Color('#bce1e7') },
-            zenith: { value: new THREE.Color('#5baddb') },
+            horizon: { value: new THREE.Color('#e2cbaa') },
+            zenith: { value: new THREE.Color('#779dad') },
           }}
           vertexShader="varying float height; void main(){height=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }"
           fragmentShader={`varying float height; uniform vec3 horizon; uniform vec3 zenith;
@@ -527,17 +532,17 @@ function Atmosphere({ night }: { night: boolean }) {
         />
       </mesh>
       <hemisphereLight
-        args={[night ? '#7594b9' : '#c2e5ed', night ? '#18212b' : '#bca77c', night ? 1.1 : 1.05]}
+        args={[night ? '#7594b9' : '#bbc9d4', night ? '#18212b' : '#766c54', night ? 1.1 : .55]}
       />
       <directionalLight
         ref={sun}
-        color={night ? '#adc8ee' : '#ffe1b3'}
+        color={night ? '#adc8ee' : '#ffd2a0'}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-55}
-        shadow-camera-right={55}
-        shadow-camera-top={55}
-        shadow-camera-bottom={-55}
+        shadow-mapSize={quality === 0 ? [512,512] : [2048, 2048]}
+        shadow-camera-left={quality === 0 ? -35 : -55}
+        shadow-camera-right={quality === 0 ? 35 : 55}
+        shadow-camera-top={quality === 0 ? 35 : 55}
+        shadow-camera-bottom={quality === 0 ? -35 : -55}
         shadow-camera-near={1}
         shadow-camera-far={240}
         shadow-bias={-0.0003}
@@ -547,26 +552,37 @@ function Atmosphere({ night }: { night: boolean }) {
   );
 }
 
-// Both the visible and physical approach ramps use these same transforms.
-function bridgeRamps(data: WorldData) {
-  const bridge = data.props['garden-bridge']?.[0];
-  if (!bridge) return [];
-  return [-1, 1].map((side) => {
-    const distance = 14 * bridge.scale[0] + 10;
-    return {
-      position: [
-        bridge.position[0] + Math.cos(bridge.yaw) * side * distance,
-        1.45,
-        bridge.position[2] - Math.sin(bridge.yaw) * side * distance,
-      ] as V3,
-      yaw: bridge.yaw,
-      slope: -side * Math.atan2(2.9, 20),
-      width: 18,
-    };
-  });
-}
 function Ground({ data }: { data: WorldData }) {
   const { scene } = useGLTF(url('terrain'), decoder);
+  const ramps=useMemo(()=>bridgeRamps(data).map(r=>{
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(r.hull.flat(),3));
+    geometry.setIndex([4,6,5,4,7,6, 0,1,2,0,2,3, 0,4,5,0,5,1,
+      1,5,6,1,6,2, 2,6,7,2,7,3, 3,7,4,3,4,0]);
+    const flat=geometry.toNonIndexed();geometry.dispose();flat.computeVertexNormals();
+    flat.addGroup(0,6,0);flat.addGroup(6,30,1);
+    const asphalt=new THREE.MeshStandardMaterial({color:'#343b3c',roughness:.93});
+    granularSurface(asphalt,'asphalt');
+    const grain=asphalt.onBeforeCompile;
+    asphalt.onBeforeCompile=(shader,renderer)=>{
+      grain.call(asphalt,shader,renderer);
+      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vBridgeRoad;')
+        .replace('#include <begin_vertex>','#include <begin_vertex>\nvBridgeRoad=position.xz;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vBridgeRoad;')
+        .replace('#include <color_fragment>',`#include <color_fragment>
+          vec2 slab=fract(vBridgeRoad/vec2(1.2,.8));
+          float seam=step(.008,min(min(slab.x,1.-slab.x),min(slab.y,1.-slab.y)));
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.38,.4,.37)*mix(.65,1.,seam),step(6.,abs(vBridgeRoad.y)));
+          float edge=1.-smoothstep(.04,.08,abs(abs(vBridgeRoad.y)-5.85));
+          float dash=(1.-smoothstep(.055,.085,abs(vBridgeRoad.y)))*step(mod(vBridgeRoad.x+13.,6.),3.);
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.65),max(edge,dash));`);
+    };
+    asphalt.customProgramCacheKey=()=> 'bund-bridge-road-v1';
+    const stone=new THREE.MeshStandardMaterial({color:'#8b8b7f',roughness:.95});
+    granularSurface(stone,'stone');
+    return {...r,geometry:flat,materials:[asphalt,stone]};
+  }),[data]);
+  useEffect(()=>()=>ramps.forEach(r=>{r.geometry.dispose();r.materials.forEach(m=>m.dispose());}),[ramps]);
   useMemo(() => {
     scene.traverse((o) => {
       if (o instanceof THREE.Mesh) {
@@ -578,12 +594,9 @@ function Ground({ data }: { data: WorldData }) {
   return (
     <>
       <primitive object={scene} />
-      {bridgeRamps(data).map((r, i) => (
+      {ramps.map((r, i) => (
         <group key={i} position={r.position} rotation={[0, r.yaw, 0]}>
-          <mesh rotation={[0, 0, r.slope]} receiveShadow>
-            <boxGeometry args={[20.22, 0.25, r.width]} />
-            <meshStandardMaterial color="#a1a195" roughness={0.9} />
-          </mesh>
+          <mesh geometry={r.geometry} material={r.materials} castShadow receiveShadow/>
         </group>
       ))}
     </>
@@ -617,15 +630,6 @@ function Controller({
   }, [gl]);
   useLayoutEffect(() => {
     const fixed = createGround({ world, rapier }, data);
-    for (const r of bridgeRamps(data)) {
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r.yaw, r.slope, 'YXZ'));
-      world.createCollider(
-        rapier.ColliderDesc.cuboid(10.11, 0.125, r.width / 2)
-          .setTranslation(...r.position)
-          .setRotation(q),
-        fixed,
-      );
-    }
     const walker = createWalker({ world, rapier });
     const { body, collider, controller } = walker;
     runtime.current = walker;
@@ -792,7 +796,7 @@ function Controller({
 export function Scene(props: Props) {
   return (
     <>
-      <Atmosphere night={props.night} />
+      <Atmosphere night={props.night} quality={props.quality}/>
       <RiverWeather night={props.night} motion={props.motion} />
       <StaticCity data={props.data} night={props.night} renderDetail={props.renderDetail} />
       <Ground data={props.data} />
@@ -836,11 +840,11 @@ export function Scene(props: Props) {
 // The whole WebGL runtime is imported only after entering a tour.
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
-    shadows={props.quality > 0}
+    shadows
     dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
     camera={{position: [-393,2.6,37],fov:68,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
-      powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping}}
+      powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
     onCreated={({gl})=>props.onRenderer(gl)}>
     <Suspense fallback={null}><Scene {...props}/></Suspense>
   </Canvas>;

@@ -3,7 +3,9 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createGround, createWalker, createCar, createVisitor, walk, canOccupy } from '../src/physics.ts';
-import { localPoint, onWater, onRiver } from '../src/world.ts';
+import { localPoint, onWater, onRiver, bridgeRamps } from '../src/world.ts';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Raycaster, Vector3 } from 'three';
 
 const require = createRequire(import.meta.url);
 const rapier = createRequire(require.resolve('@react-three/rapier'))('@dimforge/rapier3d-compat');
@@ -14,6 +16,32 @@ const data = JSON.parse(
     'utf8',
   ),
 );
+test('the actual bridge deck, collider and solid approaches join at the same height',async()=>{
+  const bridge=data.props['garden-bridge'][0];
+  const bytes=readFileSync(new URL('../../../../assets/bund/runtime/world/garden-bridge.glb',import.meta.url));
+  const {scene}=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+  scene.position.set(...bridge.position);scene.rotation.y=bridge.yaw;scene.scale.set(...bridge.scale);scene.updateMatrixWorld(true);
+  const hit=new Raycaster(new Vector3(bridge.position[0],20,bridge.position[2]),new Vector3(0,-1,0)).intersectObject(scene,true)[0];
+  assert(hit);const deck=hit.point.y;
+  const world=new rapier.World({x:0,y:-9.81,z:0});
+  try {
+    createGround({world,rapier},data);world.step();
+    const physical=world.castRay(new rapier.Ray({x:bridge.position[0],y:20,z:bridge.position[2]},{x:0,y:-1,z:0}),30,true);
+    assert(physical&&Math.abs(20-physical.timeOfImpact-deck)<.005);
+    for(const ramp of bridgeRamps(data))assert(Math.abs(Math.max(...ramp.hull.map(p=>p[1]))-deck)<.005);
+    const r=createWalker({world,rapier});
+    for(const side of [-1,1]) {
+      const start=localPoint(bridge,side*(14*bridge.scale[0]+25),0);
+      const y=deck-(deck-.17)*25/26;
+      r.body.setTranslation({x:start[0],y:y+.88,z:start[2]},true);
+      r.body.setNextKinematicTranslation({x:start[0],y:y+.88,z:start[2]});r.velocity=0;world.step();
+      for(let i=0;i<20;i++)step(world,r);
+      for(let i=0;i<450;i++)step(world,r,[-side*Math.cos(bridge.yaw)*4/60,0,side*Math.sin(bridge.yaw)*4/60]);
+      assert(Math.abs(r.body.translation().y-deck-.855)<.06,`Approach ${side} cannot reach the visible bridge deck`);
+      assert(canOccupy(r,data,r.body.translation()),'The supported deck above the river remains traversable');
+    }
+  } finally {world.free();}
+});
 function step(world, r, move = [0, 0, 0], jump = false) {
   const next = walk(r, move, jump);
   r.body.setNextKinematicTranslation(next);
