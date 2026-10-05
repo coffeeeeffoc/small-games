@@ -26,6 +26,7 @@
     "test:pages:artifacts": "node scripts/pages-artifacts.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/ember-bounce": "workspace:*",
     "@coffeeeeffoc/voiceprint-case": "workspace:*",
     "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",

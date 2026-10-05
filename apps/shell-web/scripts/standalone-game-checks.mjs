@@ -33,7 +33,50 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'voiceprint-case') {
+  if (id === 'ember-bounce') {
+    const arena = frame.locator('#arena');
+    const snapshot = () => arena.evaluate((canvas) => canvas.getEmberSnapshot?.());
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect.poll(async () => !!(await snapshot())).toBe(true);
+    const initial = await snapshot();
+    const bounds = await arena.boundingBox();
+    const page = arena.page();
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * (64 / 600) };
+    const aim = {
+      x: bounds.x + bounds.width * (130 / 390),
+      y: bounds.y + bounds.height * (492 / 600),
+    };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [start],
+        });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [aim] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(aim.x, aim.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    await expect.poll(async () => (await snapshot())?.shots ?? 0).toBeGreaterThan(initial.shots);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    const paused = await snapshot();
+    await page.waitForTimeout(150);
+    expect((await snapshot()).score).toBe(paused.score);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#back-home'));
+    await expect(frame.locator('#start')).toBeVisible();
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
+  } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
     });

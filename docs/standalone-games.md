@@ -36,6 +36,8 @@
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
+《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。
+
 《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。六面工坊提供五章 50 关，初始随机显示两个可用观察角度，随后免费逐面揭示；最后一级提示可查看支持透视的完整 3D，未使用该提示时通关先展示结构再结算。六面投影与孔板通行判断共用空间几何，核心规则、绘图和每个编号关卡独立维护。第 21–50 关经过所有双面组合的受限搜索，至少需要补充观察面才能完成。构建、规则验证和浏览器验收见游戏目录 README。
 
 《榫间 · 鲁班锁》位于 `games/local/luban-workshop`，workspace 包名为 `@coffeeeeffoc/luban-workshop`，通过 iframe 装载，独立地址为 `/games/luban-workshop/index.html`。玩家选中彩色零件后沿轨道拖动，观察受阻反馈，逐步拆解再复原机关；空白区域用于转动观察视角。关卡数据、运动与碰撞规则、三维渲染及触屏交互分别维护。开发运行 `pnpm --filter @coffeeeeffoc/luban-workshop dev`，构建和规则验证分别使用 `build`、`test`；交互与架构说明见 [游戏 README](../games/local/luban-workshop/README.md)。

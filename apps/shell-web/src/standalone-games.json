@@ -1,5 +1,12 @@
 [
   {
+    "id": "ember-bounce",
+    "source": "games/local/ember-bounce",
+    "title": "熔光弹珠",
+    "description": "拖动瞄准一束熔光弹珠，借墙面连锁反弹击碎熔晶，收集更多弹珠与祝福，挑战逐步解锁的熔炉关卡。",
+    "output": "dist"
+  },
+  {
     "id": "voiceprint-case",
     "source": "games/local/voiceprint-case",
     "title": "声纹疑案",

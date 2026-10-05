@@ -368,6 +368,9 @@ importers:
       '@coffeeeeffoc/echo-weaver':
         specifier: workspace:*
         version: link:../../games/local/echo-weaver
+      '@coffeeeeffoc/ember-bounce':
+        specifier: workspace:*
+        version: link:../../games/local/ember-bounce
       '@coffeeeeffoc/fold-the-world':
         specifier: workspace:*
         version: link:../../games/local/fold-the-world
@@ -702,6 +705,8 @@ importers:
   games/local/echo-lab: {}
 
   games/local/echo-weaver: {}
+
+  games/local/ember-bounce: {}
 
   games/local/fold-the-world:
     dependencies:
