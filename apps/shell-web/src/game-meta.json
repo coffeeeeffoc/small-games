@@ -19,8 +19,8 @@
         "time": "2026-09-05T06:11:52+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "balloon-movers": {
@@ -41,8 +41,8 @@
         "time": "2026-09-26T20:46:24+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "bullet-garden": {
@@ -63,8 +63,8 @@
         "time": "2026-09-18T03:33:11+08:00"
       },
       "updated": {
-        "commit": "dc36270d62381b0a671eee93ebbcbcaa6734cfb5",
-        "time": "2026-10-05T13:58:26Z"
+        "commit": "e6f0216c19a2b029c0dd0cbf9536d4ccad3ece87",
+        "time": "2026-10-05T14:19:41Z"
       }
     },
     "cops-robbers": {
@@ -74,8 +74,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "15f547205fc1775fef19207d8bd154f6a4063fb2",
-        "time": "2026-10-05T05:34:15Z"
+        "commit": "dc89d1fc2f4f7946aaefa439015b765d71b61603",
+        "time": "2026-10-05T09:55:28Z"
       }
     },
     "cops-robbers-realtime": {
@@ -85,8 +85,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "a8277c45b5f4a9e2533d99a953973b7d49499c3b",
-        "time": "2026-10-05T06:22:32Z"
+        "commit": "163ad60502315467b0e517e401ba365d471457a1",
+        "time": "2026-10-05T10:15:32Z"
       }
     },
     "cricket": {
@@ -96,8 +96,8 @@
         "time": "2026-09-11T00:06:13+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "cultivation": {
@@ -107,8 +107,8 @@
         "time": "2026-09-05T05:22:37+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "echo-lab": {
@@ -131,6 +131,17 @@
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
         "time": "2026-10-05T03:18:51+08:00"
+      }
+    },
+    "ember-bounce": {
+      "source": "games/local/ember-bounce",
+      "created": {
+        "commit": "bca20a8eea7e6efbe322c6c2dfbfa6bcee9fa212",
+        "time": "2026-10-05T19:03:26Z"
+      },
+      "updated": {
+        "commit": "bca20a8eea7e6efbe322c6c2dfbfa6bcee9fa212",
+        "time": "2026-10-05T19:03:26Z"
       }
     },
     "fishing": {
@@ -316,8 +327,8 @@
         "time": "2026-09-05T05:59:00+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "office-slacking": {
@@ -448,8 +459,8 @@
         "time": "2026-09-16T02:32:15+08:00"
       },
       "updated": {
-        "commit": "f3da73b743ef6b4542bd8af9f355ba541db70401",
-        "time": "2026-10-05T19:54:01+08:00"
+        "commit": "d1e7f34233725b5524f16b3a20b7af612e265ef3",
+        "time": "2026-10-05T13:41:26Z"
       }
     },
     "travel-bund-25d": {
