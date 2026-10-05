@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, writeSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, readFile, mkdir, realpath } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, mkdir, realpath, readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -225,8 +225,15 @@ export async function validatePush(
       }
       checked.add(key);
     } finally {
-      if (added) git(['worktree', 'remove', '--force', snapshot]);
-      await rm(temp, { recursive: true, force: true });
+      // Node removes pnpm junctions and long paths before Git unregisters the worktree.
+      if (added) {
+        for (const name of await readdir(snapshot)) {
+          if (name !== '.git')
+            await rm(path.join(snapshot, name), { recursive: true, force: true, maxRetries: 3 });
+        }
+        git(['worktree', 'remove', '--force', snapshot]);
+      }
+      await rm(temp, { recursive: true, force: true, maxRetries: 3 });
     }
   }
   return checked.size;

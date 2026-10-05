@@ -73,8 +73,23 @@ test('real Git: dirty/non-HEAD/multi-ref/new branch/deletion/missing base/remote
     const before = git('status', '--porcelain');
     let calls = 0;
     const cachePaths = new Set();
+    const snapshots = [];
     const validate = async ({ snapshot, base: actualBase, head: actualHead, env: actualEnv }) => {
       calls++;
+      snapshots.push(snapshot);
+      const dependencies = path.join(
+        snapshot,
+        'node_modules',
+        '.pnpm',
+        `fixture_${'x'.repeat(160)}`,
+        'node_modules',
+      );
+      await mkdir(dependencies, { recursive: true });
+      await symlink(
+        root,
+        path.join(dependencies, 'workspace'),
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
       assert.equal(actualHead, head);
       assert.ok(actualBase === base || actualBase === '');
       assert.equal(await readFile(path.join(snapshot, 'file'), 'utf8'), 'target');
@@ -85,6 +100,9 @@ test('real Git: dirty/non-HEAD/multi-ref/new branch/deletion/missing base/remote
     const input = `refs/heads/other ${head} refs/heads/dev ${base}\nrefs/heads/other ${head} refs/heads/copy ${base}\nrefs/heads/other ${head} refs/heads/new ${zero}\n(delete) ${zero} refs/heads/deleted ${base}\n`;
     await validatePush(input, { root, env: { ...env, GIT_DIR: 'bogus' }, validate });
     assert.equal(calls, 2);
+    for (const snapshot of snapshots) {
+      await assert.rejects(readFile(path.join(snapshot, 'file')), { code: 'ENOENT' });
+    }
     assert.equal(git('status', '--porcelain'), before);
     await assert.rejects(
       validatePush(`refs/heads/x ${head} refs/heads/dev ${'e'.repeat(40)}\n`, {
