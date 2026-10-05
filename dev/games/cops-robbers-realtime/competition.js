@@ -192,16 +192,20 @@
 	//#region ../../platforms/competition/h5.js
 	var titles = {
 		"cops-robbers": "围捕小队",
-		"cops-robbers-realtime": "别跑！街区围捕",
+		"cops-robbers-realtime": "街区追捕",
 		"letters-words2": "词屿 · 字母叠叠乐",
 		"vibeJam-myself-history-guess": "此时·此地",
 		"xiangqi-five": "象五子棋"
 	};
-	var roleNames = {
-		pursuer: "追逐队",
-		runner: "突围队"
-	};
 	function mountCompetition(game, createRenderer) {
+		const street = game === "cops-robbers-realtime";
+		const roleNames = street ? {
+			pursuer: "警察",
+			runner: "小偷"
+		} : {
+			pursuer: "追逐队",
+			runner: "突围队"
+		};
 		if (document.querySelector("[data-competition-launch]")) return;
 		globalThis.__installCompetition();
 		const client = globalThis.__competition, renderer = createRenderer({
@@ -235,6 +239,12 @@
     <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
 		document.body.append(launch, dialog);
+		if (street) {
+			globalThis.__CLASSIC_CHASE_ROLES__ = true;
+			dialog.dataset.streetCompetition = "";
+			const walker = document.createTreeWalker(dialog, NodeFilter.SHOW_TEXT);
+			while (walker.nextNode()) walker.currentNode.textContent = walker.currentNode.textContent.replaceAll("追逐队", "警察").replaceAll("突围队", "小偷");
+		}
 		const select = (q) => dialog.querySelector(q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
 		let room = null, profile = null, poll = null, busy = false, exiting = false, pending = null, frame = 0, lastPoll = 0, resultShown = null, returnFocus = null, modes = [];
 		function text(tag, value, className = "") {
@@ -473,7 +483,10 @@
 		function draw() {
 			if (!dialog.open) return;
 			if (!canvas.hidden) {
-				const rect = canvas.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2), width = Math.floor(rect.width * ratio), height = Math.floor(rect.height * ratio);
+				const rect = street ? {
+					width: canvas.clientWidth,
+					height: canvas.clientHeight
+				} : canvas.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2), width = Math.floor(rect.width * ratio), height = Math.floor(rect.height * ratio);
 				if (canvas.width !== width || canvas.height !== height) {
 					canvas.width = width;
 					canvas.height = height;
@@ -512,6 +525,10 @@
 			});
 		}
 		launch.onclick = () => void open();
+		if (street) globalThis.__openStreetCompetition = async (entry) => {
+			await open();
+			if (entry === "board") await run(showBoard);
+		};
 		select("[data-create]").onclick = () => void run(async () => accept(await client.request("/rooms", { body: JSON.stringify({
 			game,
 			...modes.length ? {
@@ -591,7 +608,9 @@
 		});
 		canvas.addEventListener("pointerup", (event) => {
 			if (!room || room.status !== "playing" || !details.hidden) return;
-			const rect = canvas.getBoundingClientRect(), command = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, room.state);
+			const rect = canvas.getBoundingClientRect();
+			const rotated = street && matchMedia("(orientation: portrait)").matches;
+			const command = renderer.tap(rotated ? event.clientY - rect.top : event.clientX - rect.left, rotated ? rect.right - event.clientX : event.clientY - rect.top, room.state);
 			if (!command) return;
 			run(async () => {
 				pending ??= {
@@ -647,6 +666,7 @@
 		}
 	};
 	var images = /* @__PURE__ */ new Map();
+	var classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
 	var settings;
 	var stored;
 	var side = (role) => [
@@ -657,7 +677,7 @@
 	var validAvatar = (value) => typeof value === "string" && value.length <= 12e4 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
 	function read() {
 		try {
-			const value = globalThis.localStorage?.getItem(storageKey) || "{}";
+			const value = (globalThis.__chaseRoleStorage || globalThis.localStorage)?.getItem(storageKey) || "{}";
 			if (settings && value === stored) return settings;
 			stored = value;
 			settings = JSON.parse(value);
@@ -672,7 +692,7 @@
 		const style = Object.hasOwn(presets, value?.style) ? value.style : "team";
 		const [color, accent, badge] = presets[style][key];
 		return {
-			label: key === "cop" ? "追逐队" : "突围队",
+			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
 			style,
 			color,
 			accent,
@@ -701,6 +721,17 @@
 			add(chaser ? "M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z" : "M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z", color);
 			if (style === "cosmic") add("M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z", "#ffe075");
 		}
+		if (classicRoles() && style === "team") {
+			if (chaser) {
+				add("M8 29 14 12Q50-5 86 12L92 29 76 39H24Z", "#1677bf", "#155681");
+				add("M20 32H80L86 39Q50 50 14 39Z", "#183e59");
+				add("M50 9 59 14 57 26 50 31 43 26 41 14Z", "#ffd671");
+			} else {
+				add("M9 38Q8 4 50 4T91 38Z", "#243b40");
+				add("M12 48Q27 43 50 50 73 43 88 48L85 67Q70 75 51 65 30 75 15 67Z", "#243b40");
+				add("M24 57Q32 48 41 57L39 64H26ZM59 57Q68 48 77 57L75 64H61Z", "#fff8e9");
+			}
+		}
 		add("M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0", "#243d49");
 		add("M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0", "#fff");
 		add("M17 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0M69 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0", "#f49d92");
@@ -709,11 +740,102 @@
 		return paths;
 	}
 	var portraitOutline = (role) => side(role) === "cop" ? "M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z" : "M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0";
+	function drawNativeFace(ctx, role) {
+		const { color, accent, style } = getRoleAppearance(role);
+		const cop = side(role) === "cop";
+		const circle = (x, y, radius, fill) => {
+			ctx.beginPath();
+			ctx.arc(x, y, radius, 0, Math.PI * 2);
+			ctx.fillStyle = fill;
+			ctx.fill();
+		};
+		const polygon = (points, fill) => {
+			ctx.beginPath();
+			ctx.moveTo(...points[0]);
+			for (const point of points.slice(1)) ctx.lineTo(...point);
+			ctx.closePath();
+			ctx.fillStyle = fill;
+			ctx.fill();
+		};
+		if (style === "animals") {
+			polygon([
+				[10, 43],
+				[13, 4],
+				[42, 30]
+			], color);
+			polygon([
+				[58, 30],
+				[87, 4],
+				[90, 43]
+			], color);
+		}
+		circle(50, 55, 41, style === "animals" ? color : accent);
+		if (style === "animals") circle(50, 68, 26, "#fff4df");
+		if (classicRoles() && style === "team") {
+			if (cop) {
+				polygon([
+					[8, 32],
+					[14, 12],
+					[50, 4],
+					[86, 12],
+					[92, 32]
+				], color);
+				ctx.fillStyle = "#183e59";
+				ctx.fillRect(14, 31, 72, 9);
+				polygon([
+					[50, 10],
+					[59, 15],
+					[57, 26],
+					[50, 31],
+					[43, 26],
+					[41, 15]
+				], "#ffd671");
+			} else {
+				polygon([
+					[9, 35],
+					[17, 9],
+					[50, 3],
+					[83, 9],
+					[91, 35]
+				], "#243b40");
+				ctx.fillStyle = "#243b40";
+				ctx.fillRect(12, 45, 76, 22);
+				circle(32, 56, 9, "#fff8e9");
+				circle(68, 56, 9, "#fff8e9");
+			}
+		} else if (style === "cosmic") polygon([
+			[50, 12],
+			[56, 28],
+			[73, 29],
+			[60, 40],
+			[65, 56],
+			[50, 46],
+			[35, 56],
+			[40, 40],
+			[27, 29],
+			[44, 28]
+		], "#ffd671");
+		circle(32, 57, 5, "#243d49");
+		circle(68, 57, 5, "#243d49");
+		circle(30, 55, 1.7, "#fff");
+		circle(66, 55, 1.7, "#fff");
+		circle(22, 72, 5, "#f49d92");
+		circle(78, 72, 5, "#f49d92");
+		ctx.beginPath();
+		ctx.moveTo(39, 76);
+		ctx.quadraticCurveTo(50, 90, 61, 76);
+		ctx.strokeStyle = "#9e5149";
+		ctx.lineWidth = 3.5;
+		ctx.stroke();
+	}
 	function drawRoleAvatar(ctx, role, x, y, size) {
 		const { avatar } = getRoleAppearance(role);
 		let img = images.get(avatar);
-		if (avatar && !img && typeof Image !== "undefined") {
-			img = new Image();
+		if (avatar && !img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
+			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
+			img.onload = () => {
+				img.roleLoaded = true;
+			};
 			img.src = avatar;
 			images.set(avatar, img);
 		}
@@ -721,11 +843,18 @@
 		ctx.translate(x, y);
 		ctx.scale(size / 100, size / 100);
 		ctx.lineCap = ctx.lineJoin = "round";
-		if (img?.complete && img.naturalWidth) {
-			ctx.clip(new Path2D(portraitOutline(role)));
-			const edge = Math.min(img.naturalWidth, img.naturalHeight);
-			ctx.drawImage(img, (img.naturalWidth - edge) / 2, (img.naturalHeight - edge) / 2, edge, edge, 0, 0, 100, 100);
-		} else for (const { d, fill, stroke, width } of facePaths(role)) {
+		if ((img?.complete || img?.roleLoaded) && (img.naturalWidth || img.width)) {
+			if (typeof Path2D !== "undefined") ctx.clip(new Path2D(portraitOutline(role)));
+			else {
+				ctx.beginPath();
+				if (side(role) === "cop") ctx.rect(0, 0, 100, 100);
+				else ctx.arc(50, 50, 50, 0, Math.PI * 2);
+				ctx.clip();
+			}
+			const edge = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
+			ctx.drawImage(img, ((img.naturalWidth || img.width) - edge) / 2, ((img.naturalHeight || img.height) - edge) / 2, edge, edge, 0, 0, 100, 100);
+		} else if (typeof Path2D === "undefined") drawNativeFace(ctx, role);
+		else for (const { d, fill, stroke, width } of facePaths(role)) {
 			const path = new Path2D(d);
 			if (fill !== "none") {
 				ctx.fillStyle = fill;
@@ -914,11 +1043,11 @@
 				if (own[selected]?.caught || own[selected]?.escaped) selected = Math.max(0, own.findIndex((a) => !a.caught && !a.escaped));
 				text(`${state.name} · 抓获 ${state.caught}/${state.total}`, 12, 20, 15);
 				ctx.textAlign = "right";
-				text(`${(state.elapsedMs / 1e3).toFixed(1)} / 120 秒`, width - 12, 20, 13);
+				text(`${(state.elapsedMs / 1e3).toFixed(1)} 秒`, width - 12, 20, 13);
 				const nodes = state.map.nodes;
 				const minX = Math.min(...nodes.map((p) => p.x)) - 55, minY = Math.min(...nodes.map((p) => p.y)) - 65;
 				const mapW = Math.max(...nodes.map((p) => p.x)) + 55 - minX, mapH = Math.max(...nodes.map((p) => p.y)) + 55 - minY;
-				const mapBottom = Math.max(150, height - 106);
+				const mapBottom = Math.max(150, height - 14);
 				const scale = Math.max(.05, Math.min((width - 16) / mapW, (mapBottom - 40) / mapH));
 				const left = (width - mapW * scale) / 2, top = 40 + (mapBottom - 40 - mapH * scale) / 2;
 				transform = {
@@ -983,7 +1112,7 @@
 						ctx.stroke();
 					}
 					actorBody(ctx, robber, false, runner && robber.id === selected, state.elapsedMs / 1e3, false, 0, false, 0);
-					if (runner && !robber.caught && !robber.escaped) hit(`选择 ${robber.id + 1} 号突围队员`, transform.x + robber.x * scale - 22, transform.y + (robber.y - 20) * scale - 22, 44, 44, { local: robber.id });
+					if (runner && !robber.caught && !robber.escaped) hit(`选择 ${robber.id + 1} 号小偷`, transform.x + robber.x * scale - 22, transform.y + (robber.y - 20) * scale - 22, 44, 44, { local: robber.id });
 					if (robber.capture > 0 && !robber.caught) {
 						ctx.beginPath();
 						ctx.arc(robber.x, robber.y, 31, -Math.PI / 2, -Math.PI / 2 + robber.capture * Math.PI * 2);
@@ -995,27 +1124,12 @@
 				for (const cop of state.cops) {
 					actorBody(ctx, cop, true, !runner && cop.id === selected, state.elapsedMs / 1e3, false, 0, state.phase === "won", 0);
 					const x = transform.x + cop.x * scale, y = transform.y + (cop.y - 20) * scale;
-					if (!runner) hit(`选择 ${cop.id + 1} 号追逐队员`, x - 22, y - 22, 44, 44, { local: cop.id });
+					if (!runner) hit(`选择 ${cop.id + 1} 号警察`, x - 22, y - 22, 44, 44, { local: cop.id });
 				}
 				ctx.restore();
 				ctx.textAlign = "center";
 				ctx.textBaseline = "middle";
-				const liveRobber = state.robbers.find((r) => !r.caught && !r.escaped);
-				const opening = state.openingRemainingMs > 0 ? `${state.firstRole === "pursuer" ? "追逐队" : "突围队"}先动 · ${(state.openingRemainingMs / 1e3).toFixed(1)}秒` : "";
-				text(state.finished ? `${state.phase === "won" ? "追逐队" : "突围队"}获胜 · 服务端确认` : opening || note || (runner ? `你是突围队 · 已选 ${selected + 1} 号 · 点道路换向突围` : liveRobber?.escapeProgress > 0 ? "对方正在越过出口！马上拦截" : liveRobber?.enclosed ? `双人合围 ${Math.round(liveRobber.capture * 100)}% · 保持位置` : `你是追逐队 · 已选 ${selected + 1} 号 · 点道路下令`), width / 2, mapBottom + 17, 12);
-				const gap = 6, buttonWidth = Math.min(84, (width - 24 - gap * own.length) / (own.length + 1));
-				const buttonsLeft = (width - (buttonWidth * (own.length + 1) + gap * own.length)) / 2, buttonY = mapBottom + 34;
-				for (let index = 0; index <= own.length; index++) {
-					const hold = index === own.length, x = buttonsLeft + index * (buttonWidth + gap);
-					ctx.fillStyle = state.finished ? "#bdc9b1" : hold ? "#29493f" : index === selected ? "#337fbc" : "#dbe5d4";
-					ctx.fillRect(x, buttonY, buttonWidth, 44);
-					text(hold ? "留守" : `${index + 1} 号`, x + buttonWidth / 2, buttonY + 22, 14, !state.finished && (hold || index === selected) ? "#fff9e9" : "#29493f");
-					if (!state.finished) hit(hold ? "原地留守" : `选择 ${index + 1} 号${runner ? "突围队员" : "追逐队员"}`, x, buttonY, buttonWidth, 44, hold ? {
-						type: "hold",
-						actor: selected
-					} : { local: index });
-				}
-				text("比赛无法暂停 · 断线时已有命令继续", width / 2, buttonY + 59, 11, "#62705b");
+				if (note) text(note, width / 2, height - 14, 12);
 				return hits;
 			},
 			tap(x, y, state) {
@@ -1028,6 +1142,11 @@
 				if (item) {
 					note = "";
 					if ("local" in item.action) {
+						const own = state.role === "runner" ? state.robbers : state.cops;
+						if (selected === item.action.local && own[selected]?.moving) return {
+							type: "hold",
+							actor: selected
+						};
 						selected = item.action.local;
 						return null;
 					}
@@ -1067,7 +1186,7 @@
 	globalThis.__COMPETITION_CONFIG__ = Object.assign({
 		"game": "cops-robbers-realtime",
 		"platform": "h5",
-		"title": "别跑！街区围捕",
+		"title": "街区追捕",
 		"apiUrl": ""
 	}, globalThis.__COMPETITION_CONFIG__ || {});
 	mountCompetition("cops-robbers-realtime", createRenderer);

@@ -192,16 +192,20 @@
 	//#region ../../platforms/competition/h5.js
 	var titles = {
 		"cops-robbers": "围捕小队",
-		"cops-robbers-realtime": "别跑！街区围捕",
+		"cops-robbers-realtime": "街区追捕",
 		"letters-words2": "词屿 · 字母叠叠乐",
 		"vibeJam-myself-history-guess": "此时·此地",
 		"xiangqi-five": "象五子棋"
 	};
-	var roleNames = {
-		pursuer: "追逐队",
-		runner: "突围队"
-	};
 	function mountCompetition(game, createRenderer) {
+		const street = game === "cops-robbers-realtime";
+		const roleNames = street ? {
+			pursuer: "警察",
+			runner: "小偷"
+		} : {
+			pursuer: "追逐队",
+			runner: "突围队"
+		};
 		if (document.querySelector("[data-competition-launch]")) return;
 		globalThis.__installCompetition();
 		const client = globalThis.__competition, renderer = createRenderer({
@@ -235,6 +239,12 @@
     <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
 		document.body.append(launch, dialog);
+		if (street) {
+			globalThis.__CLASSIC_CHASE_ROLES__ = true;
+			dialog.dataset.streetCompetition = "";
+			const walker = document.createTreeWalker(dialog, NodeFilter.SHOW_TEXT);
+			while (walker.nextNode()) walker.currentNode.textContent = walker.currentNode.textContent.replaceAll("追逐队", "警察").replaceAll("突围队", "小偷");
+		}
 		const select = (q) => dialog.querySelector(q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
 		let room = null, profile = null, poll = null, busy = false, exiting = false, pending = null, frame = 0, lastPoll = 0, resultShown = null, returnFocus = null, modes = [];
 		function text(tag, value, className = "") {
@@ -473,7 +483,10 @@
 		function draw() {
 			if (!dialog.open) return;
 			if (!canvas.hidden) {
-				const rect = canvas.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2), width = Math.floor(rect.width * ratio), height = Math.floor(rect.height * ratio);
+				const rect = street ? {
+					width: canvas.clientWidth,
+					height: canvas.clientHeight
+				} : canvas.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2), width = Math.floor(rect.width * ratio), height = Math.floor(rect.height * ratio);
 				if (canvas.width !== width || canvas.height !== height) {
 					canvas.width = width;
 					canvas.height = height;
@@ -512,6 +525,10 @@
 			});
 		}
 		launch.onclick = () => void open();
+		if (street) globalThis.__openStreetCompetition = async (entry) => {
+			await open();
+			if (entry === "board") await run(showBoard);
+		};
 		select("[data-create]").onclick = () => void run(async () => accept(await client.request("/rooms", { body: JSON.stringify({
 			game,
 			...modes.length ? {
@@ -591,7 +608,9 @@
 		});
 		canvas.addEventListener("pointerup", (event) => {
 			if (!room || room.status !== "playing" || !details.hidden) return;
-			const rect = canvas.getBoundingClientRect(), command = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, room.state);
+			const rect = canvas.getBoundingClientRect();
+			const rotated = street && matchMedia("(orientation: portrait)").matches;
+			const command = renderer.tap(rotated ? event.clientY - rect.top : event.clientX - rect.left, rotated ? rect.right - event.clientX : event.clientY - rect.top, room.state);
 			if (!command) return;
 			run(async () => {
 				pending ??= {
