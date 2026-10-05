@@ -13,7 +13,7 @@ import {
 export function streetRunBoard(config) {
   const { version, mode, role, level, rule, first } = config;
   if (
-    version !== 'street-solo-v1' ||
+    version !== 'street-solo-v2' ||
     !['challenge', 'classic', 'escape', 'quick'].includes(mode) ||
     !['cop', 'robber'].includes(role) ||
     !['standard', 'relay'].includes(rule) ||

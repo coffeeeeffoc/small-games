@@ -3,6 +3,9 @@ export const BODY_GAP = 23;
 export const CAPTURE_RADIUS = 68;
 export const CAPTURE_SECONDS = 0.8;
 export const ESCAPE_SECONDS = 1.2;
+// Give a human time to redirect at a junction. Level IDs must not silently
+// accelerate the computer to six coordinated replans per second.
+export const PURSUIT_REPLAN_SECONDS = 1.2;
 // Movement stops a few floating-point steps before body contact.
 const EXIT_GUARD_GAP = BODY_GAP + 1e-4;
 
@@ -716,7 +719,7 @@ export function stepGame(game, dt) {
     );
     if (game.ai && game.playerRole === "robber") {
       game.aiRethink -= slice;
-      if (game.aiRethink <= 0) { pursue(game); game.aiRethink = Math.max(.16, .7 - game.level.id * .005); }
+      if (game.aiRethink <= 0) { pursue(game); game.aiRethink = PURSUIT_REPLAN_SECONDS; }
     }
     for (const robber of active) {
       robber.rethink -= slice;
@@ -772,6 +775,9 @@ export function stepGame(game, dt) {
       } else if (robber.escapeProgress >= 1 - EPS) {
         robber.escapeProgress = 1;
         robber.escaped = true;
+        // Human orders do not set the AI's exitTarget. The renderer needs the
+        // actual crossed exit for the escape animation and result screen.
+        robber.exitTarget = exit.node;
         robber.emotion = "escaped";
         robber.routePoints = [];
         robber.destination = null;

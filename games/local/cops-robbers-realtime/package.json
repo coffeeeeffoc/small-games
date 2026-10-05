@@ -11,7 +11,8 @@
     "build": "node scripts/build.mjs",
     "test:browser": "node scripts/mobile-pages-playtest.mjs",
     "test:mobile-pages": "node scripts/mobile-pages-playtest.mjs",
-    "test:native": "node ../../../scripts/street-native-smoke.mjs"
+    "test:native": "node ../../../scripts/street-native-smoke.mjs",
+    "test:runner-browser": "node scripts/runner-playtest.mjs"
   },
   "engines": {
     "node": ">=20"
