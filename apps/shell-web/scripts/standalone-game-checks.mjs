@@ -1104,9 +1104,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing', {
       timeout: 120000,
     });
-    // Escape also releases desktop pointer lock; touch uses the visible pause button.
+    const pause = frame.getByRole('button', { name: '暂停', exact: true });
+    // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
-      const pause = frame.getByRole('button', { name: '暂停', exact: true });
       await expect(pause).toBeVisible();
       const bounds = await pause.evaluate((button) => {
         const { x, y, width, height } = button.getBoundingClientRect();
@@ -1119,8 +1119,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       await expect(canvas).toBeFocused();
       // start() already focuses the canvas; send native input without refocusing WebGL.
       await canvas.page().keyboard.press('Escape');
+      await expect
+        .poll(() => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null))
+        .toBe(true);
+      await expect(frame.getByRole('dialog')).toBeHidden();
+      await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
+      await click(pause);
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.getByRole('button', { name: '继续漫游', exact: true }));
+    await expect(frame.getByRole('dialog')).toBeHidden();
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'travel-bund-25d') {
     await expect(frame.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
     const scene = frame.locator('.scene');
