@@ -2,6 +2,7 @@ import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { riskPlan, requiresCocos, workspacePackages } from './validation-plan.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -275,6 +276,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
   let changedPaths = [];
   let diffAvailable = true;
   let fileScopes = new Map();
+  let headCommitForRisk;
+  let diffBaseForRisk;
   if (!['schedule', 'workflow_dispatch'].includes(eventName)) {
     try {
       // A newer dev push can cancel earlier validation. Diff from the last successful
@@ -295,6 +298,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         head: env.PAGES_DIFF_HEAD || 'HEAD',
         eventName,
       });
+      headCommitForRisk = headCommit;
+      diffBaseForRisk = diffBase;
       console.log(`Pages comparison: ${diffBase}..${headCommit}`);
       const removed = git(root, [
         'diff',
@@ -328,7 +333,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       console.warn(`Pages scope: falling back to full regression (${error.message})`);
     }
   }
-  const result = selectPagesScope({
+  const scope = selectPagesScope({
     ...catalog,
     eventName,
     refName: env.GITHUB_REF_NAME,
@@ -336,10 +341,38 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
     diffAvailable,
     fileScopes,
   });
+  let result = riskPlan({
+    changedPaths,
+    scope,
+    diffAvailable,
+    readSource: (file) => git(root, ['show', `${headCommitForRisk}:${file}`]),
+  });
+  if (result.full && !scope.full) {
+    result = {
+      ...result,
+      game_ids: catalog.standaloneGames.map((game) => game.id).sort(),
+      game_sources: catalog.gameSources,
+      browser_ids: catalog.standaloneGames.map((game) => game.id).sort(),
+    };
+  }
+  // Preserve the existing scope API for callers that only need logical test selection.
+  if (env.VALIDATION_RISK_PLAN !== 'true') result = scope;
+  else
+    result = {
+      ...result,
+      cocos: requiresCocos(await workspacePackages(root), changedPaths, result),
+      browser: result.full || result.risk === 'interaction' || result.browser_ids.length > 0,
+      diff_base: diffBaseForRisk || '',
+      diff_head: headCommitForRisk || env.PAGES_DIFF_HEAD || 'HEAD',
+    };
   const output = Object.entries(result)
     .map(([key, value]) => `${key}=${JSON.stringify(value)}\n`)
     .join('');
-  if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, output);
+  if (env.GITHUB_OUTPUT)
+    await appendFile(
+      env.GITHUB_OUTPUT,
+      output + (env.VALIDATION_RISK_PLAN === 'true' ? `plan=${JSON.stringify(result)}\n` : ''),
+    );
   console.log(`Pages scope: ${JSON.stringify(result)}`);
   return result;
 }

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium, devices, expect } from '@playwright/test';
 import { preview } from 'vite';
 import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
+import { entryMode } from './standalone-game-entry.mjs';
 import { selectPagesGames } from './pages-validation.mjs';
 import { monitorPagesPage } from './pages-browser-monitor.mjs';
 
@@ -133,7 +134,13 @@ try {
     await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   }
   for (const game of selectedGames) {
-    const result = { id: game.id, status: 'running', phase: 'embedded-load', timings: {} };
+    const result = {
+      id: game.id,
+      entryMode: entryMode(game.id),
+      status: 'running',
+      phase: 'embedded-load',
+      timings: {},
+    };
     activeGame = result;
     results.push(result);
     console.log(`Started game: ${game.id}`);

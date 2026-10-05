@@ -14,7 +14,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "node scripts/browser-check.mjs"
+    "smoke": "node scripts/browser-check.mjs",
+    "test:rules": "vitest run src/simulation.test.ts"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",

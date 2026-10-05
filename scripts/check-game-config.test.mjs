@@ -35,8 +35,10 @@ test('Pages publishes three branches through one queued publisher with read-only
   assert.equal(pages.jobs.validate.concurrency['cancel-in-progress'], true);
   assert.equal(pages.jobs.validate.uses, './.github/workflows/pages-validate.yml');
   assert.deepEqual(pages.jobs.validate.with, {
+    cocos: "${{ needs.changes.outputs.cocos == 'true' }}",
+    browser: "${{ needs.changes.outputs.browser == 'true' }}",
     full: "${{ needs.changes.outputs.full == 'true' }}",
-    game_ids: '${{ needs.changes.outputs.game_ids }}',
+    game_ids: '${{ needs.changes.outputs.browser_ids }}',
     game_sources: '${{ needs.changes.outputs.game_sources }}',
   });
   assert.equal(pages.jobs.deploy.concurrency.group, 'pages-publish');
@@ -195,6 +197,9 @@ async function fixture(t) {
     '.github/workflows/pages-validate.yml',
     '.github/workflows/carding-car.yml',
     '.github/workflows/mobile.yml',
+    'scripts/ci-validation.mjs',
+    'scripts/validate-tree.mjs',
+    'scripts/cocos-validation.mjs',
     'apps/shell-web/scripts/prepare-standalone-games.mjs',
     'apps/shell-android/app/build.gradle',
     'apps/shell-ios/scripts/build-ios.mjs',
@@ -348,7 +353,7 @@ test('finds an omitted game and an incomplete directory instead of only followin
   );
 });
 
-test('the real pre-push hook blocks missing registration or metadata after formatting', async (t) => {
+test('tree validation blocks missing registration or metadata after formatting', async (t) => {
   const f = await fixture(t);
   // Formatting is covered with real Prettier in check-staged-format.test.mjs.
   const fixturePackage = await f.json('package.json');
@@ -396,6 +401,7 @@ test('the real pre-push hook blocks missing registration or metadata after forma
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
+  let comparisonBase;
   const hook = () => {
     // The real hook also checks formatting; keep fixture edits formatted before testing registration.
     const formatted = spawnSync(
@@ -404,7 +410,33 @@ test('the real pre-push hook blocks missing registration or metadata after forma
       { cwd: f.root, encoding: 'utf8', timeout: 20000 },
     );
     assert.equal(formatted.status, 0, formatted.stdout + formatted.stderr);
-    return git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+    if (!comparisonBase) {
+      git('add', '.');
+      git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture');
+      comparisonBase = git('rev-parse', 'HEAD').stdout.trim();
+    }
+    return spawnSync(
+      process.execPath,
+      [
+        path.join(repo, 'scripts/validate-tree.mjs'),
+        '--root',
+        f.root,
+        '--base',
+        comparisonBase,
+        '--head',
+        comparisonBase,
+      ],
+      {
+        cwd: f.root,
+        encoding: 'utf8',
+        timeout: 20000,
+        env: {
+          ...process.env,
+          PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+          PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+        },
+      },
+    );
   };
   const registered = hook();
   assert.equal(registered.status, 0, registered.stdout + registered.stderr);
@@ -443,7 +475,7 @@ test('blocks missing metadata for both standalone and builtin games', async (t) 
   }
 });
 
-test('the real pre-push hook rejects bad formatting before running the game checker', async (t) => {
+test('tree validation rejects bad formatting before running the game checker', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'small-games-push-format-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const write = async (relative, content) => {
@@ -461,6 +493,7 @@ test('the real pre-push hook rejects bad formatting before running the game chec
       {
         private: true,
         packageManager: 'pnpm@12.6.0',
+        volta: { node: '24.21.0' },
         scripts: {
           'format:check': `node "${prettierCli.replaceAll('\\', '/')}" --check .`,
           'check:games': 'node -e "console.log(\'game-check-ran\')"',
@@ -485,7 +518,32 @@ test('the real pre-push hook rejects bad formatting before running the game chec
     });
   const init = git('init', '--quiet');
   assert.equal(init.status, 0, init.stderr);
-  const hook = () => git('-c', 'core.hooksPath=.githooks', 'hook', 'run', 'pre-push');
+  git('add', '.');
+  git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture');
+  const comparisonBase = git('rev-parse', 'HEAD').stdout.trim();
+  const hook = () =>
+    spawnSync(
+      process.execPath,
+      [
+        path.join(repo, 'scripts/validate-tree.mjs'),
+        '--root',
+        root,
+        '--base',
+        comparisonBase,
+        '--head',
+        comparisonBase,
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 20000,
+        env: {
+          ...process.env,
+          PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false',
+          PNPM_CONFIG_PM_ON_FAIL: 'ignore',
+        },
+      },
+    );
   const source = 'apps/shell-web/src/format-regression.js';
   const bad = 'const message="hello"\n';
   await write(source, bad);

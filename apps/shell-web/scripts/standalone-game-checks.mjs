@@ -1,57 +1,13 @@
 import { expect } from '@playwright/test';
-
-export const markers = {
-  'voiceprint-case': '#start',
-  'echo-lab': '#scene [data-object="reflector-1"]',
-  'bullet-garden': '#start',
-  'maze-wander': '#start',
-  'urban-breakout': '#start',
-  'homebound-station': '[data-level="0"]',
-  'balloon-movers': '#launch',
-  'weather-command': '#board[data-level="1"]',
-  'off-camera': '#bank [data-card]',
-  'rescue-team': '#fleet-1',
-  'precision-demolition': '#primary',
-  'afterimage-arena': '#continue',
-  'ghost-shift-manager': '#start',
-  'rule-thief': '#actors .actor',
-  'waterline-station': '#board[data-level="1"]',
-  'tiny-signals': '#game-root[data-status="playing"]',
-  'echo-weaver': '#emit',
-  'ink-is-everything': '#start-game',
-  'out-of-frame': '#board[data-level="1"]',
-  'two-sided-box': '#board[data-level]',
-  'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
-  'surprise-kept': '#game[data-ready="true"]',
-  'one-stroke-course': 'body[data-phase="drawing"]',
-  'hold-tight-acrobats': '#start',
-  'wulong-city': '[data-zone="shy-door"]',
-  'fold-the-world': '[data-action="start"]',
-  'carding-car': 'body[data-kart-ready="true"]',
-  'night-overwatch': '#GameCanvas',
-  'merge-front': '#start-defense',
-  'night-merge': '#start-night',
-  fishing: '.overlay.start .primary',
-  'tower-defense-game': '[aria-label="塔防战场"]',
-  'xiangqi-five': '#home-start',
-  'office-slacking': '#start',
-  'cops-robbers': '#home-start',
-  'cops-robbers-realtime': '#levels-button',
-  'h5-security': '[data-action="start"]',
-  'letters-words': '#board button',
-  'letters-words2': '#board button',
-  'multi-battle': '[data-action="new"]',
-  puzzle: '.cover',
-  travel: '#travel-button',
-  travel2: '[data-testid="begin-journey"]',
-  'travel-bund': '#enter-world',
-  'travel-bund-25d': 'main[data-ready="true"]',
-  'vibeJam-myself-delivery': '#start',
-  'vibeJam-myself-history-guess': '#start',
-  'vibeJam-myself-nullrange': '#deploy',
-};
+import { enterStandalone } from './standalone-game-entry.mjs';
+export { markers } from './standalone-game-entry.mjs';
 
 export async function exerciseStandalone(frame, id, mobile = false) {
+  await enterStandalone(frame, id, mobile);
+  await assertStandaloneGameplay(frame, id, mobile);
+}
+
+export async function assertStandaloneGameplay(frame, id, mobile = false) {
   const click = (locator) => (mobile ? locator.tap() : locator.click());
   // Keep input native in both the embedded desktop and direct touch checks.
   const holdControl = async (selector, key, check) => {
@@ -78,7 +34,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     }
   };
   if (id === 'voiceprint-case') {
-    await click(frame.locator('#start'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
     });
@@ -288,8 +243,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'maze-wander') {
-    await click(frame.locator('#start'));
-    await click(frame.locator('#enter'));
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
     if (mobile) {
       await click(frame.locator('#pause'));
@@ -314,7 +267,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         .toBe(true);
     }
   } else if (id === 'urban-breakout') {
-    await click(frame.locator('#start'));
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
     await expect
       .poll(() => frame.locator('body').evaluate(() => globalThis.urbanSnapshot().tick))
@@ -324,7 +276,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
   } else if (id === 'homebound-station') {
-    await click(frame.locator('[data-level="0"]'));
     await click(frame.locator('[data-vehicle="巡01"]'));
     await expect
       .poll(() =>
@@ -931,7 +882,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('.hint-step')).toHaveText('提示 2 / 3');
     await click(frame.locator('[data-close-hint]'));
   } else if (id === 'fold-the-world') {
-    await click(frame.locator('[data-action="start"]'));
     await expect(frame.locator('#fold')).toBeEnabled();
     await click(frame.locator('#show-hint'));
     await expect(frame.locator('#hint-text')).toContainText('缺口太宽');
@@ -1058,7 +1008,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
       if (!mobile) await canvas.page().keyboard.up('ArrowUp');
     }
   } else if (id === 'merge-front') {
-    await click(frame.locator('#start-defense'));
     await expect(frame.locator('#board [data-zone="board"][data-index]')).toHaveCount(12);
     await expect(frame.locator('#launch')).toBeVisible();
     const reserve = frame.locator('[data-zone="reserve"].occupied');
@@ -1075,7 +1024,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '切换速度，当前1倍' }));
     await expect(frame.getByRole('button', { name: '切换速度，当前2倍' })).toBeVisible();
   } else if (id === 'xiangqi-five') {
-    await click(frame.locator('#home-start'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'modes');
     await click(frame.locator('#mode-local'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'setup');
@@ -1090,11 +1038,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
     await expect(frame.getByRole('button', { name: '继续航行' })).toBeVisible();
   } else if (id === 'office-slacking') {
-    await click(frame.locator('#start'));
     await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
-    await click(frame.locator('#home-start'));
     await expect(frame.locator('#level-dialog')).toBeVisible();
     await click(frame.getByTestId('level-button-1'));
     await expect(frame.getByTestId('board')).toBeVisible();
@@ -1108,7 +1054,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByTestId('undo'));
     await expect(frame.locator('body')).toHaveAttribute('data-turn', '0');
   } else if (id === 'cops-robbers-realtime') {
-    await click(frame.locator('#levels-button'));
     await click(frame.locator('#start-button'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     const member = frame.locator('#cop-roster [data-member="0"]');
@@ -1118,7 +1063,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('#resume-button')).toBeVisible();
     await click(frame.locator('#resume-button'));
   } else if (id === 'h5-security') {
-    await click(frame.locator('[data-action="start"]'));
     await expect(frame.locator('.home-screen')).toBeVisible();
     const notice = frame.locator('[data-action="dismiss-notification"]');
     if (await notice.isVisible()) await click(notice);
@@ -1131,7 +1075,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#undo-button'));
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(0);
   } else if (id === 'multi-battle') {
-    await click(frame.locator('[data-action="new"]').first());
     await frame.locator('[name="seed"]').fill('shell-integration');
     await click(frame.locator('[data-action="start-game"]'));
     await expect(frame.locator('.map-stage')).toBeVisible();
@@ -1216,7 +1159,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '继续配送' }));
     await expect(frame.locator('#large-map')).toBeHidden();
   } else if (id === 'vibeJam-myself-history-guess') {
-    await click(frame.locator('#start'));
     await expect(frame.locator('#load-cover')).toBeHidden({ timeout: 20000 });
     const mapTab = frame.locator('#map-tab');
     if (await mapTab.isVisible()) await click(mapTab);
@@ -1226,7 +1168,6 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#submit'));
     await expect(frame.locator('#result-overlay')).toBeVisible();
   } else if (id === 'vibeJam-myself-nullrange') {
-    await click(frame.locator('#deploy'));
     await expect(frame.locator('#hud')).toBeVisible();
     await click(frame.locator('#missile'));
     await expect(frame.locator('#missile-status')).not.toHaveText('× 6');

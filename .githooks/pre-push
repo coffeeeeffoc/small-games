@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
-
-pnpm format:check
-pnpm check:games
+set -eu
+# Resolve the active worktree before the validator removes Git's hook-location variables.
+root=$(git rev-parse --show-toplevel)
+exec node "$root/scripts/validate-push.mjs" "${1:-origin}"

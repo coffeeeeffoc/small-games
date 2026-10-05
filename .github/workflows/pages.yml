@@ -22,6 +22,9 @@ jobs:
       full: ${{ steps.scope.outputs.full }}
       game_ids: ${{ steps.scope.outputs.game_ids }}
       game_sources: ${{ steps.scope.outputs.game_sources }}
+      browser_ids: ${{ steps.scope.outputs.browser_ids }}
+      browser: ${{ steps.scope.outputs.browser }}
+      cocos: ${{ steps.scope.outputs.cocos }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,6 +38,7 @@ jobs:
         id: scope
         env:
           GH_TOKEN: ${{ github.token }}
+          VALIDATION_RISK_PLAN: true
           PAGES_DIFF_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           PAGES_DIFF_HEAD: ${{ github.sha }}
         run: node scripts/pages-test-scope.mjs
@@ -44,8 +48,10 @@ jobs:
     if: needs.changes.outputs.required == 'true'
     uses: ./.github/workflows/pages-validate.yml
     with:
+      cocos: ${{ needs.changes.outputs.cocos == 'true' }}
+      browser: ${{ needs.changes.outputs.browser == 'true' }}
       full: ${{ needs.changes.outputs.full == 'true' }}
-      game_ids: ${{ needs.changes.outputs.game_ids }}
+      game_ids: ${{ needs.changes.outputs.browser_ids }}
       game_sources: ${{ needs.changes.outputs.game_sources }}
     concurrency:
       # Nightly checks must not cancel validation needed by a branch publication.

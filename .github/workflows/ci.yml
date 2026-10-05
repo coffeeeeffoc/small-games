@@ -13,10 +13,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      cocos: ${{ steps.scope.outputs.cocos }}
+      plan: ${{ steps.scope.outputs.plan }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+      - name: Select shared validation risk
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATION_RISK_PLAN: true
+          PAGES_DIFF_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          PAGES_DIFF_HEAD: ${{ github.sha }}
+        run: node scripts/pages-test-scope.mjs
   kart:
+    needs: plan
+    if: needs.plan.outputs.cocos == 'true'
     uses: ./.github/workflows/carding-car.yml
+  validation-tools:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Install dependencies without changing shared hooks
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm check:games
+      - name: Test actual hooks, references, snapshots and strict missing inputs
+        run: node --test scripts/check-staged-format.test.mjs scripts/validate-push.test.mjs scripts/validate-push-hook.test.mjs scripts/validate-tree.test.mjs scripts/validation-plan.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs
+        env:
+          PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: false
   quality:
-    needs: kart
+    needs: [plan, kart, validation-tools]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' && needs.validation-tools.result == 'success' &&
+      ((needs.plan.outputs.cocos == 'true' && needs.kart.result == 'success') ||
+       (needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -24,6 +74,7 @@ jobs:
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
+      CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -56,10 +107,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
         with:
           name: carding-car-${{ github.sha }}
           path: games/local/carding-car/.prebuilt
       - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
@@ -71,7 +124,7 @@ jobs:
         run: pnpm test:game-config
 
       - name: Test CI optimization gates
-        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/validate-push.test.mjs scripts/validation-plan.test.mjs scripts/validate-tree.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs
 
       - name: Test local format hooks
         run: pnpm test:hooks
@@ -79,45 +132,15 @@ jobs:
       - name: Test Pages environment assembly
         run: python3 scripts/test-pages-deploy.py
 
-      - name: Check formatting
-        run: pnpm format:check
-
-      - name: Lint platform packages
-        run: pnpm lint:affected
-
-      - name: Typecheck affected packages
-        run: pnpm typecheck:affected
-
-      - name: Check package boundaries and cycles
-        run: pnpm check:dependencies
-
       - name: Test dependency checker
         run: pnpm test:boundaries
 
-      - name: Install browser for smoke tests
-        run: |
-          pnpm exec playwright install --with-deps chromium
-          pnpm --filter cops-robbers exec playwright install --with-deps chromium
+      - name: Validate shared change risk and affected packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATION_RISK_PLAN: true
+        run: node scripts/ci-validation.mjs
 
-      - name: Test affected packages
-        run: pnpm test:affected --concurrency=1
-
-      - name: Run affected contract tests
-        run: pnpm test:contract:affected --concurrency=1
-
-      - name: Run affected integration tests
-        run: pnpm test:integration:affected --concurrency=1
-
-      - name: Build affected packages
-        run: pnpm build:affected
-
-      - name: Test game dialog controls
-        run: |
-          pnpm exec turbo run build --filter=./games/submodules/* --concurrency=1
-          pnpm test:dialogs
-
-      - name: Smoke-test affected applications
-        run: pnpm smoke:affected
       - name: Bound local Turborepo task cache
         run: node scripts/prune-turbo-cache.mjs
       - name: Save bounded Turborepo cache

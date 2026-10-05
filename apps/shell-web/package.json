@@ -22,7 +22,8 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:remote": "node scripts/remote-smoke.mjs"
+    "smoke:remote": "node scripts/remote-smoke.mjs",
+    "test:pages:artifacts": "node scripts/pages-artifacts.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/voiceprint-case": "workspace:*",

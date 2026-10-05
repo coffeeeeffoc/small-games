@@ -192,17 +192,30 @@ test('the real pre-commit hook rejects bad staged content and succeeds after res
   assert.equal(await readFile(path.join(f.root, 'partially staged.js'), 'utf8'), good);
 });
 
-test('the real pre-push hook fails on formatting before a successful game checker can run', async (t) => {
+test('the real pre-push hook forwards Git stdin rather than checking a dirty worktree', async (t) => {
   const f = await fixture(t);
-  const hook = await installRealHooks(f);
+  await installRealHooks(f);
+  await f.write(
+    'scripts/validate-push.mjs',
+    `let input = ''; for await (const chunk of process.stdin) input += chunk;
+console.log(JSON.stringify({ remote: process.argv[2], input }));`,
+  );
   await f.write('bad.js', bad);
-  const rejected = hook('pre-push');
-  assert.equal(rejected.status, 1, rejected.stdout + rejected.stderr);
-  assert.match(rejected.stderr, /bad\.js/);
-  assert.doesNotMatch(rejected.stdout + rejected.stderr, /game-check-ran/);
+  const sha = 'a'.repeat(40),
+    zero = '0'.repeat(40);
+  const input = `refs/heads/feature ${sha} refs/heads/dev ${zero}\n`;
+  await f.write('push-input', input);
+  const result = spawnSync(
+    'git',
+    ['hook', 'run', '--to-stdin=push-input', 'pre-push', '--', 'origin', 'unused-url'],
+    {
+      cwd: f.root,
+      input,
+      encoding: 'utf8',
+      env: process.env,
+    },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout + result.stderr), { remote: 'origin', input });
   assert.equal(await readFile(path.join(f.root, 'bad.js'), 'utf8'), bad);
-  await f.write('bad.js', good);
-  const accepted = hook('pre-push');
-  assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr);
-  assert.match(accepted.stdout + accepted.stderr, /game-check-ran/);
 });
