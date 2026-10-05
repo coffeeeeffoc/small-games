@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { createServer } from 'vite';
-const server=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),server:{host:'127.0.0.1',port:0}});
+const server=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),server:{host:'127.0.0.1',port:0,hmr:false}});
 await server.listen();
 const base=`http://127.0.0.1:${server.httpServer.address().port}/`;
-const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH||undefined,headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
+const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH||(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
 const output=new URL('../../../../.scratch/travel-bund-routes/',import.meta.url);await mkdir(output,{recursive:true});
 const checks=[],errors=[];
 async function open({search='?route=architecture',visits=[],share='copy',viewport={width:390,height:844},enter=true}={}){
@@ -54,7 +55,7 @@ try{
     ({context,page}=await open({search:'?renderDetail=original',viewport,enter:false}));
     await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');await expect.poll(()=>page.evaluate(()=>window.modelDetail)).toBe('original');
     await expect(page.getByRole('button',{name:/钟楼与旧石墙/})).toBeVisible();
-    const choice=page.getByRole('button',{name:/三种摩天轮廓/}),box=await choice.boundingBox();assert(box.y>=0&&box.y+box.height<=viewport.height,'First-screen routes stay inside the viewport');
+    const choice=page.getByRole('button',{name:/三种摩天轮廓/}),box=await choice.boundingBox();assert(box.x>=0&&box.x+box.width<=viewport.width&&box.y>=0&&box.y+box.height<=viewport.height,'First-screen routes stay inside the physical viewport in both axes');
     await page.screenshot({path:fileURLToPath(new URL(`intro-${viewport.width}.png`,output))});await choice.tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase','playing');assert.equal(await page.evaluate(()=>window.modelDetail),'original');await page.getByRole('button',{name:'暂停'}).tap();
     await page.getByRole('combobox', {name:'模型细节'}).tap();

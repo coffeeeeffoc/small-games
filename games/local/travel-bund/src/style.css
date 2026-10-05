@@ -7,6 +7,16 @@
   --gold: #d7885c;
   --ink: #294d55;
   --coral: #d87559;
+  --game-width: 100vw;
+  --game-height: 100dvh;
+  --viewport-width: 100vw;
+  --viewport-height: 100dvh;
+  --viewport-left: 0px;
+  --viewport-top: 0px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 * {
   box-sizing: border-box;
@@ -21,7 +31,16 @@ main {
   overflow: hidden;
 }
 main {
-  height: 100dvh;
+  position: fixed;
+  left: var(--viewport-left);
+  top: var(--viewport-top);
+  width: var(--game-width);
+  height: var(--game-height);
+  transform-origin: top left;
+  container: bund-view / size;
+}
+main[data-rotated='true'] {
+  transform: translateX(var(--game-height)) rotate(90deg);
 }
 body {
   overscroll-behavior: none;
@@ -146,7 +165,8 @@ button.primary:hover {
 .intro {
   position: absolute;
   inset: 0;
-  padding: max(24px, env(safe-area-inset-top)) 4%;
+  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 4%)
+    calc(var(--safe-bottom) + 16px) calc(var(--safe-left) + 4%);
   pointer-events: none;
 }
 .intro button,
@@ -172,9 +192,9 @@ button.primary:hover {
 }
 .intro-copy {
   position: absolute;
-  left: 5%;
-  bottom: 7%;
-  width: min(440px, 90%);
+  left: calc(var(--safe-left) + 5%);
+  bottom: calc(var(--safe-bottom) + 7%);
+  width: min(440px, calc(90% - var(--safe-left) - var(--safe-right)));
   padding: 27px;
   background: #fff1d7f0;
   border-radius: 26px;
@@ -193,7 +213,7 @@ h2 {
   font-weight: 500;
 }
 h1 {
-  font-size: clamp(44px, 6vw, 68px);
+  font-size: clamp(44px, 6cqw, 68px);
   line-height: 1.04;
   letter-spacing: 0.08em;
   margin: 0 0 17px;
@@ -274,9 +294,9 @@ h1 em {
 .hud {
   position: absolute;
   z-index: 5;
-  top: max(16px, env(safe-area-inset-top));
-  left: max(18px, env(safe-area-inset-left));
-  right: max(18px, env(safe-area-inset-right));
+  top: calc(var(--safe-top) + 12px);
+  left: calc(var(--safe-left) + 16px);
+  right: calc(var(--safe-right) + 16px);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -318,8 +338,8 @@ h1 em {
 }
 .route-task {
   position: absolute;
-  top: 80px;
-  left: 18px;
+  top: calc(var(--safe-top) + 70px);
+  left: calc(var(--safe-left) + 16px);
   z-index: 3;
   max-width: min(320px, calc(100% - 36px));
   padding: 9px 38px 9px 13px;
@@ -382,9 +402,9 @@ h1 em {
 }
 .interaction {
   position: absolute;
-  bottom: max(182px, calc(env(safe-area-inset-bottom) + 174px));
-  right: max(18px, calc(env(safe-area-inset-right) + 12px));
-  max-width: min(290px, 56vw);
+  bottom: calc(var(--safe-bottom) + 170px);
+  right: calc(var(--safe-right) + 16px);
+  max-width: min(290px, 40cqw);
   z-index: 4;
 }
 .interact {
@@ -419,8 +439,8 @@ h1 em {
 .hud-actions {
   --action-size: 62px;
   position: absolute;
-  right: max(18px, calc(env(safe-area-inset-right) + 12px));
-  bottom: max(30px, calc(env(safe-area-inset-bottom) + 20px));
+  right: calc(var(--safe-right) + 16px);
+  bottom: calc(var(--safe-bottom) + 24px);
   display: grid;
   grid-template-columns: repeat(2, var(--action-size));
   grid-template-rows: repeat(2, var(--action-size));
@@ -485,8 +505,8 @@ h1 em {
 }
 .attribution {
   position: absolute;
-  bottom: max(5px, env(safe-area-inset-bottom));
-  left: max(12px, env(safe-area-inset-left));
+  bottom: calc(var(--safe-bottom) + 4px);
+  left: calc(var(--safe-left) + 10px);
   font-size: 7px;
   color: #183c44b8;
   z-index: 5;
@@ -525,14 +545,15 @@ h1 em {
 }
 .look-pad {
   position: absolute;
-  inset: 75px 0 80px 40%;
+  inset: calc(var(--safe-top) + 64px) var(--safe-right)
+    calc(var(--safe-bottom) + 16px) 35%;
   touch-action: none;
   z-index: 1;
 }
 .joystick {
   position: absolute;
-  bottom: max(45px, calc(env(safe-area-inset-bottom) + 30px));
-  left: max(25px, calc(env(safe-area-inset-left) + 12px));
+  bottom: calc(var(--safe-bottom) + 26px);
+  left: calc(var(--safe-left) + 24px);
   width: 112px;
   height: 112px;
   border: 2px solid #fff9;
@@ -553,15 +574,35 @@ h1 em {
   pointer-events: none;
 }
 dialog {
+  container: bund-panel / inline-size;
+  --panel-available-width: calc(
+    var(--game-width) - max(var(--safe-left), var(--safe-right)) -
+      max(var(--safe-left), var(--safe-right)) - 24px
+  );
+  --panel-available-height: calc(
+    var(--game-height) - max(var(--safe-top), var(--safe-bottom)) -
+      max(var(--safe-top), var(--safe-bottom)) - 24px
+  );
+  position: fixed;
+  inset: auto;
+  left: calc(var(--viewport-left) + var(--viewport-width) / 2);
+  top: calc(var(--viewport-top) + var(--viewport-height) / 2);
+  margin: 0;
+  transform: translate(-50%, -50%);
   background: #fffaf0;
   color: var(--ink);
   border: 1px solid #e7dcc8;
   border-radius: 26px;
   padding: 0;
-  width: min(460px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(460px, var(--panel-available-width));
+  max-width: none;
+  max-height: var(--panel-available-height);
   box-shadow: 0 24px 80px #15343d55;
   overflow: hidden;
+}
+/* A modal lives in the top layer, so it needs its own orientation transform. */
+dialog[data-rotated='true'] {
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 dialog::backdrop {
   background: #163f4780;
@@ -571,7 +612,7 @@ dialog::backdrop {
   height: 112px;
   background:
     linear-gradient(transparent, #24494322),
-    url(./assets/panels-art.webp) center 64% / cover;
+    url(./assets/home-river.webp) center 64% / cover;
   display: flex;
   align-items: flex-start;
   padding: 15px 18px;
@@ -586,6 +627,7 @@ dialog::backdrop {
     serif;
 }
 .panel-content {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -642,7 +684,9 @@ dialog::backdrop {
 }
 .control-help summary {
   cursor: pointer;
-  padding: 4px 0;
+  min-height: 44px;
+  padding: 12px 0;
+  touch-action: manipulation;
 }
 dialog .close {
   position: absolute;
@@ -694,7 +738,7 @@ dialog[open] {
   z-index: 2;
 }
 .panel-pause {
-  height: min(760px, calc(100dvh - 32px));
+  height: min(760px, var(--panel-available-height));
 }
 .panel-pause .panel-fan {
   display: none;
@@ -718,16 +762,41 @@ dialog[open] {
   margin: 0;
 }
 .settings-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
-  padding: 14px 24px max(18px, env(safe-area-inset-bottom));
+  padding: 14px 24px 18px;
   border-top: 1px solid #e7dcc8;
   background: #fffaf0;
 }
 .settings-footer .primary {
-  width: 100%;
+  flex: 1;
   padding: 13px;
   box-shadow: none;
   border-radius: 16px;
+}
+.fullscreen-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 104px;
+  min-height: 44px;
+  padding: 11px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fullscreen-control svg {
+  flex: 0 0 18px;
+}
+.display-message {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 20px 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
 }
 .settings {
   margin: 0;
@@ -979,6 +1048,9 @@ dialog[open] {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 8;
+}
+.resume-tour:active {
+  transform: translate(-50%, -50%) scale(0.96);
 }
 .look-mode {
   margin-left: 16px;
@@ -1283,48 +1355,30 @@ figure .primary {
   pointer-events: none;
   z-index: 9;
 }
-@media (max-width: 700px) {
-  .desktop-only {
-    display: none;
-  }
-  .intro-copy {
-    left: 5%;
-    bottom: max(30px, calc(env(safe-area-inset-bottom) + 20px));
-    padding: 22px;
-  }
-  h1 {
-    font-size: clamp(40px, 12vw, 50px);
-  }
-  .intro-description {
-    font-size: 11px;
-    margin-bottom: 14px;
-  }
-  .intro .primary {
-    width: 100%;
-    text-align: center;
-    padding: 16px;
-  }
-  .intro-index {
+/* Layout follows the game container, including a portrait viewport rotated to landscape. */
+main[data-touch='true'] .desktop-only,
+main[data-touch='true'] .keyboard-hint,
+main[data-touch='true'] .interact kbd {
+  display: none;
+}
+main[data-touch='true'] .world,
+main[data-touch='true'] .look-pad,
+main[data-touch='true'] .joystick,
+main[data-touch='true'] .life-target {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@container bund-view (max-width: 700px) {
+  .desktop-only,
+  .intro-index,
+  .keyboard-hint {
     display: none;
   }
   .intro-top {
     letter-spacing: 0.1em;
     font-size: 8px;
-  }
-  .intro-routes {
-    margin-top: 7px;
-  }
-  .interact kbd {
-    display: none;
-  }
-  .interaction {
-    bottom: max(182px, calc(env(safe-area-inset-bottom) + 174px));
-  }
-  .keyboard-hint {
-    display: none;
-  }
-  dialog {
-    padding: 0;
   }
   .intro-copy {
     padding: 18px 22px;
@@ -1339,70 +1393,97 @@ figure .primary {
     margin-bottom: 12px;
   }
   .intro-description {
+    font-size: 11px;
     line-height: 1.7;
+    margin-bottom: 14px;
   }
   .intro .primary {
-    padding: 14px;
-  }
-  h2 {
-    font-size: 27px;
+    text-align: center;
   }
   .route-task span {
-    max-width: 240px;
+    max-width: 220px;
   }
 }
-@media (max-height: 600px) and (max-width: 500px) {
+
+@container bund-view (max-height: 540px) and (min-width: 400px) {
+  .intro {
+    padding-top: calc(var(--safe-top) + 12px);
+  }
   .intro-copy {
-    padding: 17px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 10px;
+    left: calc(var(--safe-left) + 24px);
+    bottom: calc(var(--safe-bottom) + 24px);
+    width: min(440px, calc(100% - var(--safe-left) - var(--safe-right) - 48px));
+    max-height: calc(100% - var(--safe-top) - var(--safe-bottom) - 92px);
+    padding: 18px 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    background: #fffaf0ed;
+    backdrop-filter: blur(9px);
+    pointer-events: auto;
+    touch-action: pan-y;
   }
-  h1 {
-    font-size: 45px;
-    margin-bottom: 10px;
+  .intro-copy h1,
+  .intro-description,
+  .intro-routes,
+  .intro-copy > [role='alert'] {
+    grid-column: 1 / -1;
   }
-  .eyebrow {
-    margin-bottom: 10px;
+  .intro-copy h1 {
+    font-size: 43px;
+    line-height: 1.06;
+    margin: 0;
   }
-  .intro-hint {
-    margin-top: 9px;
-  }
-  .intro-routes small {
-    font-size: 8px;
-  }
-}
-@media (max-height: 500px) and (min-width: 501px) {
-  .intro-copy {
-    left: 3%;
-    bottom: 30px;
-    width: 435px;
-    padding: 16px 20px;
-  }
-  h1 {
-    font-size: 48px;
-    margin-bottom: 9px;
+  .intro-description {
+    font-size: 11px;
+    line-height: 1.6;
+    margin: -2px 0 0;
   }
   .intro .eyebrow,
   .intro-hint,
-  .intro-description {
+  .intro-index {
     display: none;
   }
   .intro .primary {
-    padding: 12px 24px;
+    width: 100%;
+    padding: 12px 10px;
+    min-height: 46px;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-align: center;
+    border-radius: 19px;
   }
   .home-journal {
-    margin: 0 0 0 10px;
+    margin: 0;
+    padding: 10px 8px;
+    min-height: 46px;
+    border: 1px solid #294d5526;
+    border-radius: 16px;
+    background: #fff5e2;
+    font-size: 11px;
   }
   .intro-routes {
-    margin-top: 12px;
+    gap: 7px;
+    margin: 0;
+  }
+  .intro-routes button {
+    padding: 10px 8px;
+    min-height: 62px;
+  }
+  .intro-routes small {
+    line-height: 1.5;
+    margin-top: 5px;
   }
   .joystick {
-    width: 95px;
-    height: 95px;
-    bottom: max(28px, calc(env(safe-area-inset-bottom) + 18px));
+    width: 100px;
+    height: 100px;
+    bottom: calc(var(--safe-bottom) + 24px);
   }
   .hud-actions {
     --action-size: 56px;
-    bottom: max(25px, calc(env(safe-area-inset-bottom) + 18px));
-    gap: 7px;
+    gap: 8px;
   }
   .hud-action {
     border-radius: 16px;
@@ -1413,32 +1494,215 @@ figure .primary {
     height: 25px;
   }
   .interaction {
-    bottom: max(162px, calc(env(safe-area-inset-bottom) + 151px));
-    right: max(18px, calc(env(safe-area-inset-right) + 12px));
-    max-width: 36%;
+    bottom: calc(var(--safe-bottom) + 156px);
+    max-width: min(290px, 36cqw);
   }
   .toast {
-    bottom: 130px;
+    bottom: calc(var(--safe-bottom) + 134px);
+    max-width: 54%;
+    font-size: 11px;
+    padding: 10px 15px;
   }
   .route-task {
-    max-width: 250px;
+    max-width: min(280px, 43cqw);
   }
   .keyboard-hint {
     display: none;
   }
 }
-@media (max-width: 350px) {
+
+@container bund-view (max-height: 350px) and (min-width: 400px) {
+  .intro-copy {
+    left: calc(var(--safe-left) + 16px);
+    bottom: calc(var(--safe-bottom) + 18px);
+    padding: 12px 16px;
+    gap: 8px;
+    width: min(420px, calc(100% - var(--safe-left) - var(--safe-right) - 32px));
+    max-height: calc(100% - var(--safe-top) - var(--safe-bottom) - 80px);
+  }
+  .intro-copy h1 {
+    font-size: 36px;
+  }
+  .intro-description {
+    display: none;
+  }
+  .intro-routes button {
+    min-height: 58px;
+    padding: 8px 7px;
+  }
+  .intro-routes b {
+    font-size: 10px;
+  }
+  .intro-routes small {
+    font-size: 8px;
+  }
   .hud-actions {
-    --action-size: 58px;
-    right: max(12px, calc(env(safe-area-inset-right) + 8px));
+    --action-size: 52px;
     gap: 7px;
   }
+  .hud-action-label {
+    font-size: 11px;
+  }
   .joystick {
-    left: max(16px, calc(env(safe-area-inset-left) + 8px));
-    width: 104px;
-    height: 104px;
+    width: 92px;
+    height: 92px;
+  }
+  .interaction {
+    bottom: calc(var(--safe-bottom) + 143px);
+  }
+  .route-task {
+    top: calc(var(--safe-top) + 66px);
+    max-width: min(260px, 44cqw);
+    padding: 7px 34px 7px 11px;
+  }
+  .route-task span {
+    font-size: 9px;
+    line-height: 1.4;
   }
 }
+
+/* The display adapter sets this from logical dimensions, also on top-layer dialogs. */
+dialog[data-compact-landscape='true'] {
+  width: min(760px, var(--panel-available-width));
+  height: min(440px, var(--panel-available-height));
+  border-radius: 22px;
+}
+dialog[data-compact-landscape='true'] .dialog-banner {
+  height: 56px;
+  padding: 12px 18px;
+}
+dialog[data-compact-landscape='true'] .dialog-banner span {
+  max-width: calc(100% - 54px);
+}
+dialog[data-compact-landscape='true'] .panel-content {
+  padding: 18px 20px;
+  border-radius: 19px 19px 0 0;
+}
+dialog[data-compact-landscape='true'] .panel-fan {
+  display: none;
+}
+dialog[data-compact-landscape='true'] h2 {
+  font-size: 25px;
+  margin: 0 0 5px;
+}
+dialog[data-compact-landscape='true'] .settings-header {
+  padding: 16px 66px 10px 20px;
+}
+dialog[data-compact-landscape='true'] .settings-header h2 {
+  font-size: 25px;
+}
+dialog[data-compact-landscape='true'] .settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+dialog[data-compact-landscape='true'] .settings-group {
+  margin: 8px 0;
+}
+dialog[data-compact-landscape='true'] .panel-content:has(.settings) {
+  padding: 0 20px 12px;
+  border-radius: 0;
+}
+dialog[data-compact-landscape='true'] .setting-row,
+dialog[data-compact-landscape='true'] .settings-choice {
+  gap: 8px;
+  padding: 5px 0;
+  min-height: 54px;
+}
+dialog[data-compact-landscape='true'] .choice-trigger {
+  max-width: 170px;
+  padding: 8px;
+}
+dialog[data-compact-landscape='true'] .setting-time {
+  padding: 6px 0;
+}
+dialog[data-compact-landscape='true'] .time-options {
+  margin-top: 6px;
+}
+dialog[data-compact-landscape='true'] .settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 20px;
+}
+dialog[data-compact-landscape='true'] .settings-footer .primary {
+  flex: 0 1 280px;
+  width: min(280px, 100%);
+  min-height: 44px;
+  padding: 12px;
+}
+dialog[data-compact-landscape='true'] .fullscreen-control {
+  min-width: 106px;
+  min-height: 44px;
+}
+dialog.panel-map[data-compact-landscape='true'] .panel-content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px 12px;
+  align-content: start;
+}
+dialog.panel-map[data-compact-landscape='true'] h2,
+dialog.panel-map[data-compact-landscape='true'] .panel-content > .muted,
+dialog.panel-map[data-compact-landscape='true'] .route-list {
+  grid-column: 1 / -1;
+}
+dialog.panel-map[data-compact-landscape='true'] .panel-content > .muted {
+  text-align: center;
+  margin: 0;
+}
+dialog.panel-map[data-compact-landscape='true'] .map-art {
+  height: 168px;
+  margin: 8px 0 0;
+}
+dialog.panel-map[data-compact-landscape='true'] .destinations {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: stretch;
+  margin-top: 8px;
+  gap: 6px;
+}
+dialog.panel-map[data-compact-landscape='true'] .destinations button {
+  min-width: 44px;
+  min-height: 72px;
+  gap: 4px;
+  padding: 5px;
+}
+dialog.panel-map[data-compact-landscape='true'] .destinations svg {
+  height: 42px;
+}
+dialog.panel-map[data-compact-landscape='true'] .destinations span {
+  font-size: 10px;
+}
+dialog.panel-map[data-compact-landscape='true'] .route-list {
+  margin: 8px 0 0;
+}
+dialog.panel-map[data-compact-landscape='true'] .route-list h3 {
+  margin: 8px 0;
+  font-size: 14px;
+}
+dialog.panel-stall[data-compact-landscape='true'] .stall-choices {
+  grid-template-columns: 1fr 1fr;
+  margin: 14px 0;
+}
+dialog.panel-stall[data-compact-landscape='true'] .gift-art {
+  height: 96px;
+}
+dialog.panel-story[data-compact-landscape='true'] .story-number {
+  font-size: 40px;
+}
+dialog.panel-story[data-compact-landscape='true'] .story-text {
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 12px 0;
+}
+
+@container bund-panel (max-width: 440px) {
+  dialog[data-compact-landscape='true'] .settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

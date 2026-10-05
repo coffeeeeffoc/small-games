@@ -9,7 +9,7 @@ import { createServer } from 'vite';
 // the renderer keeps gesture ownership assertions independent of software WebGL.
 const server = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
-  server: { host: '127.0.0.1', port: 0 },
+  server: { host: '127.0.0.1', port: 0, hmr: false },
 });
 await server.listen();
 const appModule = await server.transformRequest('/src/main.tsx');
@@ -52,6 +52,17 @@ try {
     await expect(page.locator('main')).toHaveAttribute('data-quality', '0');
     await page.locator('#enter-world').tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+    const rotated = await page.locator('main').getAttribute('data-rotated') === 'true';
+    const scenePoint = (x, y) => page.locator('main').evaluate((element, [x, y]) => {
+      const rect = element.getBoundingClientRect();
+      return element.dataset.rotated === 'true'
+        ? { x: rect.right - rect.width * y, y: rect.top + rect.height * x }
+        : { x: rect.left + rect.width * x, y: rect.top + rect.height * y };
+    }, [x, y]);
+    const move = (point, dx, dy = 0) => {
+      point.x += rotated ? -dy : dx;
+      point.y += rotated ? dx : dy;
+    };
     await expect(page.getByRole('button', { name: '跳跃', exact: true })).toContainText('跳跃');
     await expect(page.getByRole('button', { name: '拍照', exact: true })).toContainText('拍照');
     await expect(page.getByRole('button', { name: '打开旅行手记' })).toContainText('手记');
@@ -75,12 +86,11 @@ try {
     const readZoom = async () => Number(await page.locator('main').getAttribute('data-zoom'));
     const zeroLook = () => page.evaluate(async () => { (await import('/src/world.ts')).input.look = [0, 0]; });
     const walking = { id: 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    const looking = { id: 2, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    const looking = { id: 2, ...await scenePoint(0.55, 0.4) };
     await dispatch('touchStart', [walking]);
     await dispatch('touchStart', [walking, looking]);
-    walking.y -= 30;
-    looking.x += 35;
-    looking.y += 20;
+    move(walking, 0, -30);
+    move(looking, 35, 20);
     await dispatch('touchMove', [walking, looking]);
     assert((await readInput()).stick[1] < -0.5);
     assert((await readInput()).look[0] < -30, 'Dragging right moves the visible scene right');
@@ -92,10 +102,11 @@ try {
     await dispatch('touchEnd', [extraStick]);
     assert((await readInput()).stick[1] < -0.5, 'Releasing an extra finger preserves joystick movement');
     await zeroLook();
-    const secondLook = { id: 4, x: viewport.width * 0.78, y: looking.y };
+    const secondLook = { id: 4, ...await scenePoint(0.78, 0.4) };
+    move(secondLook, 0, 20);
     await dispatch('touchStart', [walking, looking, secondLook]);
-    looking.x -= 15;
-    secondLook.x += 20;
+    move(looking, -15);
+    move(secondLook, 20);
     await dispatch('touchMove', [walking, looking, secondLook]);
     await expect.poll(readZoom, { message: `${viewport.width}: spreading two scene fingers magnifies the view` }).toBeGreaterThan(1.15);
     const enlarged = await readZoom();
@@ -103,27 +114,34 @@ try {
     assert.deepEqual((await readInput()).look, [0, 0], 'Pinching does not also rotate the camera');
     assert(Math.abs(Number(await page.locator('canvas').getAttribute('data-scene-zoom')) - enlarged) < 0.001,
       'The renderer receives the gesture zoom');
-    looking.x += 10;
-    secondLook.x -= 15;
+    const extraLook = { id: 14, ...await scenePoint(0.63, 0.65) };
+    await dispatch('touchStart', [walking, looking, secondLook, extraLook]);
+    move(extraLook, 20, -10);
+    await dispatch('touchMove', [walking, looking, secondLook, extraLook]);
+    assert.equal(await readZoom(), enlarged, 'A third scene finger cannot take over a pinch');
+    assert.deepEqual((await readInput()).look, [0, 0]);
+    await dispatch('touchEnd', [extraLook]);
+    move(looking, 10);
+    move(secondLook, -15);
     await dispatch('touchMove', [walking, looking, secondLook]);
     await expect.poll(readZoom, { message: 'Bringing two scene fingers together widens the view' }).toBeLessThan(enlarged);
     await dispatch('touchEnd', [secondLook]);
     const afterPinch = await readZoom();
-    looking.x += 25;
+    move(looking, 25);
     await dispatch('touchMove', [walking, looking]);
     assert.deepEqual((await readInput()).look, [0, 0], 'The finger left after a pinch cannot unexpectedly turn');
     assert.equal(await readZoom(), afterPinch, 'One remaining finger cannot continue pinching');
     await dispatch('touchCancel', []);
     assert.deepEqual((await readInput()).stick, [0, 0], 'Touch cancellation stops joystick movement');
 
-    const freshLook = { id: 5, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    const freshLook = { id: 5, ...await scenePoint(0.55, 0.4) };
     await dispatch('touchStart', [freshLook]);
-    freshLook.x += 20;
+    move(freshLook, 20);
     await dispatch('touchMove', [freshLook]);
     assert((await readInput()).look[0] < -15, 'A fresh gesture can turn after pinch cancellation');
     await page.locator('.look-pad').evaluate((element) => element.releasePointerCapture(window.lookOwner));
     await zeroLook();
-    freshLook.x += 15;
+    move(freshLook, 15);
     await dispatch('touchMove', [freshLook]);
     assert.deepEqual((await readInput()).look, [0, 0], 'Losing look capture stops that gesture');
     await dispatch('touchCancel', []);
@@ -134,22 +152,22 @@ try {
       window.stickOwner = event.pointerId;
     }, { once: true }));
     await dispatch('touchStart', [heldStick]);
-    heldStick.y -= 25;
+    move(heldStick, 0, -25);
     await dispatch('touchMove', [heldStick]);
     assert((await readInput()).stick[1] < -0.5);
     await stick.evaluate((element) => element.releasePointerCapture(window.stickOwner));
-    heldStick.y += 1;
+    move(heldStick, 0, 1);
     await dispatch('touchMove', [heldStick]);
     await expect.poll(async () => (await readInput()).stick).toEqual([0, 0]);
     await dispatch('touchCancel', []);
 
-    const pauseLeft = { id: 7, x: viewport.width * 0.53, y: viewport.height * 0.4 };
-    const pauseRight = { id: 8, x: viewport.width * 0.73, y: viewport.height * 0.4 };
+    const pauseLeft = { id: 7, ...await scenePoint(0.53, 0.4) };
+    const pauseRight = { id: 8, ...await scenePoint(0.73, 0.4) };
     await dispatch('touchStart', [pauseLeft, pauseRight]);
     await page.getByRole('button', { name: '暂停', exact: true }).evaluate((element) => element.click());
     assert.deepEqual(await readInput(), { stick: [0, 0], look: [0, 0], active: false, keys: [] });
-    pauseLeft.x -= 10;
-    pauseRight.x += 10;
+    move(pauseLeft, -10);
+    move(pauseRight, 10);
     const pausedZoom = await readZoom();
     await dispatch('touchMove', [pauseLeft, pauseRight]);
     assert.equal(await readZoom(), pausedZoom, 'Touches held through pause cannot change zoom');
@@ -178,9 +196,9 @@ try {
     await page.getByRole('button', { name: '继续漫游', exact: true }).tap();
     assert((await readInput()).active);
     await zeroLook();
-    const resumedLook = { id: 9, x: viewport.width * 0.55, y: viewport.height * 0.4 };
+    const resumedLook = { id: 9, ...await scenePoint(0.55, 0.4) };
     await dispatch('touchStart', [resumedLook]);
-    resumedLook.x += 20;
+    move(resumedLook, 20);
     await dispatch('touchMove', [resumedLook]);
     assert((await readInput()).look[0] < -15, 'Resume accepts a fresh single-finger gesture');
     await dispatch('touchCancel', []);
@@ -198,16 +216,18 @@ try {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
     }));
     await zeroLook();
-    const markerLeft = { id: 10, x: markerCenter.x - 15, y: markerCenter.y };
-    const markerRight = { id: 11, x: markerCenter.x + 15, y: markerCenter.y };
+    const markerLeft = { id: 10, ...markerCenter };
+    const markerRight = { id: 11, ...markerCenter };
+    move(markerLeft, -15);
+    move(markerRight, 15);
     const beforeMarkerPinch = await readZoom();
     await dispatch('touchStart', [markerLeft]);
     await dispatch('touchStart', [markerLeft, markerRight]);
     // Sustained movement crosses the browser's native pinch threshold. A short
     // move alone would miss pointer cancellation from touch-action: manipulation.
     for (let frame = 0; frame < 8; frame++) {
-      markerLeft.x -= 5;
-      markerRight.x += 5;
+      move(markerLeft, -5);
+      move(markerRight, 5);
       await dispatch('touchMove', [markerLeft, markerRight]);
       await idleFrames();
     }
@@ -215,8 +235,8 @@ try {
       .toBeGreaterThan(beforeMarkerPinch + 0.05);
     const spreadMarkerZoom = await readZoom();
     for (let frame = 0; frame < 8; frame++) {
-      markerLeft.x += 2.5;
-      markerRight.x -= 2.5;
+      move(markerLeft, 2.5);
+      move(markerRight, -2.5);
       await dispatch('touchMove', [markerLeft, markerRight]);
       await idleFrames();
     }
@@ -230,12 +250,13 @@ try {
     await expect(page.locator('main')).toHaveAttribute('data-life-event', '');
     for (const markerFirst of [true, false]) {
       const markerTouch = { id: 12, ...markerCenter };
-      const sceneTouch = { id: 13, x: viewport.width * 0.72, y: markerCenter.y };
+      const sceneTouch = { id: 13, ...markerCenter };
+      move(sceneTouch, viewport.width > viewport.height ? viewport.width * 0.52 : viewport.height * 0.52);
       await dispatch('touchStart', [markerFirst ? markerTouch : sceneTouch]);
       await dispatch('touchStart', [markerTouch, sceneTouch]);
       const beforeMixedPinch = await readZoom();
-      markerTouch.x += 18;
-      sceneTouch.x -= 18;
+      move(markerTouch, 18);
+      move(sceneTouch, -18);
       await dispatch('touchMove', [markerTouch, sceneTouch]);
       await expect.poll(readZoom, { message: `Marker plus scene pinch works with marker ${markerFirst ? 'first' : 'second'}` })
         .toBeLessThan(beforeMixedPinch);
@@ -249,6 +270,7 @@ try {
       'right/down drag follows the visible scene',
       'joystick plus one look finger does not pinch',
       'pinch zoom in/out while joystick continues; camera does not rotate',
+      'an extra third scene finger cannot take over or cancel the active pinch',
       'remaining pinch finger stays idle until a fresh gesture',
       'cancellation and lost capture release controls',
       'pause clears contacts; resume accepts fresh controls',

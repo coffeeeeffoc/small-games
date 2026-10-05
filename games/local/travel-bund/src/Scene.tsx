@@ -846,6 +846,8 @@ export function Scene(props: Props) {
 // The homepage and tour share one runtime and viewpoint; inactive views render on demand.
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
+    // Measure the logical layout, not the swapped bounding box of CSS rotation.
+    resize={{ offsetSize: true }}
     shadows
     dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
     camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}

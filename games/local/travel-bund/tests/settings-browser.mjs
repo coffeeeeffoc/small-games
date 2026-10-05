@@ -103,7 +103,7 @@ try {
     await page.mouse.wheel(0, -350);
     assert.equal(await readZoom(), unlockedZoom, 'Scrolling over HUD buttons does not change zoom');
     await app.getByRole('button', { name: '拍照', exact: true }).click();
-    await expect(app.getByRole('status')).toContainText('已取景');
+    await expect(app.getByRole('status')).toContainText('已拍照');
     await app.getByRole('button', { name: '打开旅行手记' }).click();
     await expect(app.getByRole('dialog')).toBeVisible();
     await app.getByRole('button', { name: '返回漫游', exact: true }).click();
@@ -137,7 +137,7 @@ try {
     await app.getByRole('button', { name: '返回漫游', exact: true }).click();
     await app.evaluate(() => window.dispatchEvent(new Event('blur')));
     await expect(app.locator('main')).toHaveAttribute('data-phase', 'paused');
-    await expect(app.getByRole('dialog')).not.toBeVisible();
+    await expect(app.getByRole('dialog')).toBeVisible();
     await app.getByRole('button', { name: '继续漫游' }).click();
     await expect(app.locator('main')).toHaveAttribute('data-phase', 'playing');
     checks.push(

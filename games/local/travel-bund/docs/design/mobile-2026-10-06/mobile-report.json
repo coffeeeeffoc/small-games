@@ -1,0 +1,70 @@
+{
+  "browser": "151.0.7922.173",
+  "physicalMobile": false,
+  "scene": "isolated renderer; actual App, touch layout and browser fullscreen",
+  "checks": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 480
+      },
+      "checks": "home, entry fullscreen, touch targets, pause/settings, fullscreen exit, physical rotation with held-finger cancellation, map, landmark collection, journal and home return"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "checks": "home, entry fullscreen, touch targets, pause/settings, fullscreen exit, physical rotation with held-finger cancellation, map, landmark collection, journal and home return"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "checks": "home, entry fullscreen, touch targets, pause/settings, fullscreen exit, physical rotation with held-finger cancellation, map, landmark collection, journal and home return"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "checks": "home, entry fullscreen, touch targets, pause/settings, fullscreen exit, physical rotation with held-finger cancellation, map, landmark collection, journal and home return"
+    },
+    {
+      "fullscreen": "reject",
+      "checks": "orientation denial and fullscreen failure keep full landscape game, touch controls and pause/resume playable"
+    },
+    {
+      "fullscreen": "unsupported",
+      "checks": "orientation denial and fullscreen failure keep full landscape game, touch controls and pause/resume playable"
+    },
+    {
+      "embedding": "same-origin",
+      "permissions": {
+        "allow": "autoplay; fullscreen",
+        "sandbox": "allow-scripts allow-same-origin allow-downloads"
+      },
+      "checks": "real browser fullscreen includes game UI and modal; owning same-origin Shell navigation hides in fullscreen and returns on exit; cross-origin host remains untouched; exit retains progress and permissions"
+    },
+    {
+      "embedding": "cross-origin",
+      "permissions": {
+        "allow": "autoplay; fullscreen",
+        "sandbox": "allow-scripts allow-same-origin allow-downloads"
+      },
+      "checks": "real browser fullscreen includes game UI and modal; owning same-origin Shell navigation hides in fullscreen and returns on exit; cross-origin host remains untouched; exit retains progress and permissions"
+    },
+    {
+      "hostCleanup": "Real iframe navigation and direct removal restore its marker, remove the immersion stylesheet and detach both surviving parent fullscreen listeners"
+    },
+    {
+      "modalFullscreen": "Real entry/exit from an already-open modal retains top-layer hit testing and tappable footer/close controls"
+    },
+    {
+      "desktop": "Tall mouse viewport stays upright; entry respects desktop fullscreen choice"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

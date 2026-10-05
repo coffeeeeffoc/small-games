@@ -11,6 +11,7 @@
     "test": "node --test tests/*.test.ts",
     "test:browser": "node tests/browser.mjs",
     "test:controls": "node tests/controls.mjs",
+    "test:mobile": "node tests/mobile-browser.mjs",
     "test:routes": "node tests/routes-browser.mjs",
     "test:performance": "node tests/performance.mjs",
     "test:life": "node tests/life-browser.mjs",

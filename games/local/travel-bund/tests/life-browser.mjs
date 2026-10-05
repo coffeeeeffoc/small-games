@@ -87,16 +87,33 @@ try {
       'A real visitor walks, beyond a changing toast',
     );
     const cdp = await context.newCDPSession(page);
+    const logicalPoint = (x, y) =>
+      page.locator('main').evaluate(
+        (el, [x, y]) => {
+          const rect = el.getBoundingClientRect();
+          return el.dataset.rotated === 'true'
+            ? { x: rect.right - y * el.clientHeight, y: rect.top + x * el.clientWidth }
+            : { x: rect.left + x * el.clientWidth, y: rect.top + y * el.clientHeight };
+        },
+        [x, y],
+      );
+    const logicalDelta = (dx, dy) =>
+      page
+        .locator('main')
+        .evaluate(
+          (el, [dx, dy]) => (el.dataset.rotated === 'true' ? { x: -dy, y: dx } : { x: dx, y: dy }),
+          [dx, dy],
+        );
     async function swipe(dx, dy = 0) {
-      const x = viewport.width * 0.62,
-        y = viewport.height * 0.3;
+      const { x, y } = await logicalPoint(0.62, 0.3);
+      const delta = await logicalDelta(dx, dy);
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
         touchPoints: [{ id: 7, x, y }],
       });
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchMove',
-        touchPoints: [{ id: 7, x: x + dx, y: y + dy }],
+        touchPoints: [{ id: 7, x: x + delta.x, y: y + delta.y }],
       });
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await page.waitForTimeout(80);
@@ -109,8 +126,9 @@ try {
       const delta = Math.atan2(Math.sin(scene.camera.yaw - yaw), Math.cos(scene.camera.yaw - yaw));
       const dx = -delta / 0.002,
         dy = -(scene.camera.pitch - pitch) / 0.002;
+      const logicalHeight = await page.locator('main').evaluate((el) => el.clientHeight);
       const n =
-        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.min(70, viewport.height * 0.18)) || 1;
+        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.min(70, logicalHeight * 0.18)) || 1;
       for (let i = 0; i < n; i++) await swipe(dx / n, dy / n);
       await page.waitForTimeout(400);
     }
@@ -178,9 +196,22 @@ try {
       finger = { id: 1, x: stick.x + stick.width / 2, y: stick.y + stick.height / 2 };
     const before = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger] });
-    finger.y -= 35;
+    const forward = await logicalDelta(0, -35);
+    finger.x += forward.x;
+    finger.y += forward.y;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [finger] });
-    await page.waitForTimeout(650);
+    await expect
+      .poll(
+        async () => {
+          const position = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
+          return Math.hypot(
+            Number(position.x) - Number(before.x),
+            Number(position.z) - Number(before.z),
+          );
+        },
+        { timeout: 45000 },
+      )
+      .toBeGreaterThan(0.3);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
     await expect(page.locator('main')).toHaveAttribute('data-speed', '0.00');
     const after = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
@@ -221,7 +252,9 @@ try {
       await aim(destination, 0.82);
       const finger = { id: 1, x: stick.x + stick.width / 2, y: stick.y + stick.height / 2 };
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger] });
-      finger.y -= 35;
+      const forward = await logicalDelta(0, -35);
+      finger.x += forward.x;
+      finger.y += forward.y;
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [finger] });
       let closest = Infinity,
         captured = false;
@@ -338,7 +371,7 @@ try {
         samples,
         errors,
         environment:
-          'Windows Chrome hardware WebGL with emulated mobile touch; physical phone and Safari not verified',
+          'Full production scene in headless Chromium with emulated mobile touch; physical phone and Safari not verified, software rendering cannot establish mobile GPU performance',
       },
       null,
       2,

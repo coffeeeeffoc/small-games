@@ -1,5 +1,13 @@
 import '../dev-mode.js';
-import React, { Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createRoot } from 'react-dom/client';
 import type { WebGLRenderer } from 'three';
 import type { Telemetry, Teleport } from './Scene';
@@ -17,6 +25,7 @@ import { readSettings, SETTINGS_KEY } from './settings';
 import { clampZoom, wheelZoom } from './camera-controls';
 import { HudActions } from './HudActions';
 import './style.css';
+import { clientDelta, setupDisplay } from './display';
 import panelArt from './assets/panels-art.webp';
 
 const KEY = 'travel-bund.visits.v1';
@@ -169,7 +178,14 @@ function SettingSwitch({
   );
 }
 function App() {
-  const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  const touchCapability = useRef(false);
+  touchCapability.current ||=
+    matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  const touch = touchCapability.current;
+  const game = useRef<HTMLElement>(null);
+  const display = useRef<ReturnType<typeof setupDisplay> | null>(null);
+  const [fullscreen, setFullscreen] = useState(false),
+    [displayPending, setDisplayPending] = useState(false);
   const [settings] = useState(() => {
     let raw = null;
     try {
@@ -328,14 +344,13 @@ function App() {
     }
   }, [notify]);
   const start = useCallback(
-    (lockMouse = true) => {
+    (lockMouse = true, enterFullscreen = touch && !started) => {
       if (error) return;
+      if (enterFullscreen) display.current?.enterFullscreen();
       if (!started) {
         launching.current = true;
         setPanel(null);
         setStarted(true);
-        if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
-          void document.documentElement.requestFullscreen().catch(() => {});
         void setAudio(sound).catch(() => setSound(false));
         return;
       }
@@ -352,8 +367,6 @@ function App() {
         canvas.tabIndex = 0;
         canvas.focus({ preventScroll: true });
       }
-      if (touch && !document.fullscreenElement && document.documentElement.requestFullscreen)
-        void document.documentElement.requestFullscreen().catch(() => {});
       if (!touch && lockMouse) {
         requestMouseLook();
       }
@@ -363,7 +376,7 @@ function App() {
   useEffect(() => {
     if (ready && launching.current) {
       launching.current = false;
-      start();
+      start(false, false);
     }
   }, [ready, start]);
   const receiveRenderer = useCallback(
@@ -441,7 +454,8 @@ function App() {
   }, [panel]);
   useEffect(() => {
     const blur = () => {
-      if (input.active) stop();
+      if (input.active) open('pause');
+      launching.current = false;
     };
     const hidden = () => {
       if (document.hidden) blur();
@@ -458,6 +472,7 @@ function App() {
           clearInput();
           resetGestures();
           if (document.pointerLockElement) document.exitPointerLock();
+          else open('pause');
         }
         return;
       }
@@ -744,7 +759,10 @@ function App() {
       lookTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (lookTouches.current.size === 2) {
         const [a, b] = [...lookTouches.current.entries()];
-        pinch.current = { ids: [a[0], b[0]], distance: Math.hypot(a[1].x - b[1].x, a[1].y - b[1].y) };
+        pinch.current = {
+          ids: [a[0], b[0]],
+          distance: Math.hypot(a[1].x - b[1].x, a[1].y - b[1].y),
+        };
         drag.current = null;
         lifePress.current = null;
         input.look = [0, 0];
@@ -756,7 +774,12 @@ function App() {
       // The canvas itself is the discoverable way back to mouse look after Esc.
       if (e.currentTarget.classList.contains('world')) requestMouseLook();
     }
-    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
+    drag.current = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      touch: e.pointerType === 'touch',
+    };
   }
   function releaseLook(e: React.PointerEvent) {
     lookTouches.current.delete(e.pointerId);
@@ -789,8 +812,13 @@ function App() {
     const p = drag.current;
     if (!p || p.id !== e.pointerId || !input.active) return;
     const direction = p.touch ? -1 : 1;
-    input.look[0] += (e.clientX - p.x) * direction;
-    input.look[1] += (e.clientY - p.y) * direction;
+    const [dx, dy] = clientDelta(
+      e.clientX - p.x,
+      e.clientY - p.y,
+      game.current?.dataset.rotated === 'true',
+    );
+    input.look[0] += dx * direction;
+    input.look[1] += dy * direction;
     p.x = e.clientX;
     p.y = e.clientY;
   }
@@ -798,8 +826,13 @@ function App() {
   function stickMove(e: React.PointerEvent) {
     const p = stick.current;
     if (!p || e.pointerId !== p.id || !input.active) return;
-    const x = (e.clientX - p.x) / 40,
-      y = (e.clientY - p.y) / 40,
+    const [dx, dy] = clientDelta(
+      e.clientX - p.x,
+      e.clientY - p.y,
+      game.current?.dataset.rotated === 'true',
+    );
+    const x = dx / 40,
+      y = dy / 40,
       length = Math.max(1, Math.hypot(x, y));
     input.stick = [x / length, y / length];
     setThumb([(x / length) * 30, (y / length) * 30]);
@@ -817,21 +850,52 @@ function App() {
     lifePress.current = null;
     releaseStick();
   }
+  useLayoutEffect(() => {
+    if (!game.current || !dialog.current) return;
+    const controller = setupDisplay(game.current, dialog.current, {
+      onChange: () => {
+        clearInput();
+        resetGestures();
+      },
+      onMessage: notify,
+      onFullscreenChange: (value, pending) => {
+        setFullscreen(value);
+        setDisplayPending(pending);
+      },
+    });
+    display.current = controller;
+    return () => {
+      controller.dispose();
+      display.current = null;
+    };
+  }, [notify]);
   useEffect(() => {
     if (!active) resetGestures();
   }, [active]);
   useEffect(() => {
     const wheel = (event: WheelEvent) => {
-      if (!input.active || !(event.target instanceof Element) ||
-        !event.target.closest('.world, .look-pad, .life-target')) return;
+      if (
+        !input.active ||
+        !(event.target instanceof Element) ||
+        !event.target.closest('.world, .look-pad, .life-target')
+      )
+        return;
       event.preventDefault();
-      setZoom((value) => wheelZoom(value, event.deltaY, event.deltaMode, window.innerHeight));
+      setZoom((value) =>
+        wheelZoom(
+          value,
+          event.deltaY,
+          event.deltaMode,
+          game.current?.clientHeight || window.innerHeight,
+        ),
+      );
     };
     document.addEventListener('wheel', wheel, { passive: false });
     return () => document.removeEventListener('wheel', wheel);
   }, []);
   return (
     <main
+      ref={game}
       className={`${started ? 'entered' : ''} ${night ? 'night' : ''}`}
       data-phase={
         error ? 'error' : !started ? 'intro' : !ready ? 'loading' : active ? 'playing' : 'paused'
@@ -877,8 +941,8 @@ function App() {
                 quality={quality}
                 renderDetail={renderDetail}
                 crowd={crowd}
-                  motion={motion}
-                  zoom={zoom}
+                motion={motion}
+                zoom={zoom}
                 lifeEvent={lifeEvent}
                 onLifeTarget={setLifeTarget}
                 onRenderer={receiveRenderer}
@@ -1005,15 +1069,18 @@ function App() {
                   className="life-target"
                   style={{ left: `${lifeTarget.screen[0]}%`, top: `${lifeTarget.screen[1]}%` }}
                   onPointerDown={(event) => {
-                    if (event.button !== 0 || (lifePress.current && event.pointerType !== 'touch')) return;
+                    if (event.button !== 0 || (lifePress.current && event.pointerType !== 'touch'))
+                      return;
                     event.currentTarget.setPointerCapture(event.pointerId);
                     pointerDown(event);
-                    lifePress.current = pinch.current ? null : {
-                      target: lifeTarget,
-                      id: event.pointerId,
-                      x: event.clientX,
-                      y: event.clientY,
-                    };
+                    lifePress.current = pinch.current
+                      ? null
+                      : {
+                          target: lifeTarget,
+                          id: event.pointerId,
+                          x: event.clientX,
+                          y: event.clientY,
+                        };
                   }}
                   onPointerMove={(event) => {
                     const press = lifePress.current;
@@ -1170,7 +1237,7 @@ function App() {
           来源
         </a>
       </footer>
-      {notice && (
+      {notice && !panel && (
         <div className="toast" role="status">
           {notice}
         </div>
@@ -1574,10 +1641,35 @@ function App() {
         </div>
         {panel === 'pause' && (
           <footer className="settings-footer">
+            <button
+              className="fullscreen-control"
+              aria-label={fullscreen ? '退出全屏' : '全屏'}
+              aria-pressed={fullscreen}
+              disabled={displayPending}
+              onClick={() => display.current?.toggleFullscreen()}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
+              </svg>
+              {displayPending ? '切换中…' : fullscreen ? '退出全屏' : '全屏'}
+            </button>
             <button className="primary" onClick={() => (started ? start(false) : setPanel(null))}>
               {started ? '继续漫游' : '完成'}
             </button>
           </footer>
+        )}
+        {notice && panel && (
+          <p className="display-message" role="status">
+            {notice}
+          </p>
         )}
       </dialog>
       {window.SmallGamesDev.isEnabled() && (

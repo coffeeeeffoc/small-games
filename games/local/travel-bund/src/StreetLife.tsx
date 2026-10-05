@@ -231,6 +231,7 @@ function LifeInstances({
             position: camera.position.toArray(),
             yaw: camera.rotation.y,
             pitch: camera.rotation.x,
+            aspect: camera instanceof THREE.PerspectiveCamera ? camera.aspect : null,
           },
           visitors: parts('visitor-body'),
           arms: parts('visitor-arm-right'),
