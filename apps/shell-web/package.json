@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/ember-bounce": "workspace:*",
+    "@coffeeeeffoc/tianxia-chalu": "workspace:*",
     "@coffeeeeffoc/voiceprint-case": "workspace:*",
     "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",

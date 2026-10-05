@@ -76,6 +76,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#back-home'));
     await expect(frame.locator('#start')).toBeVisible();
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
+  } else if (id === 'tianxia-chalu') {
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
+    const junction = frame.locator('button[data-junction]:enabled').first();
+    await expect(junction).toBeVisible();
+    const route = await junction.getAttribute('data-route');
+    expect(route).not.toBeNull();
+    await click(junction);
+    await expect(junction).not.toHaveAttribute('data-route', route);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
   } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,

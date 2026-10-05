@@ -5,6 +5,7 @@
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
 - `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
+- `services/*`：独立运行的后端子应用，包括游戏对局服务。
 - `platforms/*`：各渠道 SDK 适配入口与工程配置；由 Shell 选择并组装。
 
 目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
@@ -17,6 +18,7 @@
 | game-cricket                 | 秋声斗蟋              | @coffeeeeffoc/game-cricket     | Game Host |
 | game-cultivation             | 三分钟修仙            | @coffeeeeffoc/game-cultivation | Game Host |
 | game-office                  | 打工人摸鱼记          | @coffeeeeffoc/game-office      | Game Host |
+| tianxia-chalu                | 天下岔路              | @coffeeeeffoc/tianxia-chalu    | iframe    |
 | cops-robbers                 | 围捕小队              | cops-robbers                   | iframe    |
 | cops-robbers-realtime        | 别跑！街区围捕        | cops-robbers-realtime          | iframe    |
 | h5-security                  | 来电之间              | between-calls                  | iframe    |
@@ -33,6 +35,8 @@
 | vibeJam-myself-delivery      | 橘风速递              | tangerine-express              | iframe    |
 | vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
+
+《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 

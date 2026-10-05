@@ -446,6 +446,9 @@ importers:
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
+      '@coffeeeeffoc/tianxia-chalu':
+        specifier: workspace:*
+        version: link:../../games/local/tianxia-chalu
       '@coffeeeeffoc/tiny-signals':
         specifier: workspace:*
         version: link:../../games/local/tiny-signals
@@ -1234,6 +1237,8 @@ importers:
   games/local/rule-thief: {}
 
   games/local/surprise-kept: {}
+
+  games/local/tianxia-chalu: {}
 
   games/local/tiny-signals: {}
 
@@ -2283,6 +2288,12 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  services/tianxia-server:
+    dependencies:
+      '@coffeeeeffoc/tianxia-chalu':
+        specifier: workspace:*
+        version: link:../../games/local/tianxia-chalu
 
 packages:
 
