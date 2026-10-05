@@ -588,7 +588,7 @@ export function createRenderer(canvas) {
           color: '#ffdfa4',
           remaining: 0.9,
           duration: 0.9,
-          text: `+${event.value || 1}`,
+          text: `+${event.value ?? 1}`,
         });
         addEffect({
           type: 'ring',
