@@ -72,7 +72,11 @@
     "sync:dev-mode": "node scripts/sync-game-dev-mode.mjs",
     "check:dev-mode": "node scripts/sync-game-dev-mode.mjs --check",
     "test:dev-mode": "node --test scripts/game-dev-mode.test.mjs",
-    "test:dev-mode:browser": "node scripts/test-game-dev-mode.mjs"
+    "test:dev-mode:browser": "node scripts/test-game-dev-mode.mjs",
+    "validate:push": "node scripts/validate-push.mjs",
+    "hooks:diagnose": "node scripts/hook-diagnostics.mjs",
+    "test:validation:integration": "node scripts/validate-push.integration.mjs",
+    "test:validation": "node --test scripts/validate-push.test.mjs scripts/validate-push-hook.test.mjs scripts/validate-tree.test.mjs scripts/validation-plan.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

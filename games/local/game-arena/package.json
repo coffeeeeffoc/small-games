@@ -18,7 +18,8 @@
     "test:contract": "vitest run tests/game.contract.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "test:rules": "vitest run tests/domain.test.ts tests/content.test.ts"
   },
   "dependencies": {
     "@coffeeeeffoc/content-schema": "workspace:*",

@@ -106,7 +106,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
     pages = await read('pages-validate.yml'),
     producer = await read('carding-car.yml');
   assert.equal(ci.jobs.kart.with?.reuse_ci, undefined);
-  assert.equal(pages.jobs.kart.with.reuse_ci, "${{ github.event_name == 'push' }}");
+  assert.equal(pages.jobs.kart.with.reuse_ci, "${{ github.event_name == 'push' && inputs.cocos }}");
   assert.equal(producer.jobs.reuse.if, 'inputs.reuse_ci');
   assert.equal(producer.jobs.reuse['continue-on-error'], undefined);
   assert(producer.jobs.creator.if.includes("needs.reuse.result == 'success'"));

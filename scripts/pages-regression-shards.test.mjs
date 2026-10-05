@@ -45,6 +45,6 @@ test('each browser matrix shard is a required gate using its explicit game selec
   );
   const upload = job.steps.find((step) => step.name === 'Upload browser regression diagnostics');
   assert(upload.with.name.includes('matrix.shard'));
-  assert.equal(workflow.jobs.smoke.if, undefined);
+  assert.equal(workflow.jobs.smoke.if, 'inputs.browser');
   assert.equal(workflow.jobs.smoke['continue-on-error'], undefined);
 });

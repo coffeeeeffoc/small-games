@@ -146,8 +146,13 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
     if (match[1].split(',').some((name) => registeredDefinitions.has(name.trim())))
       builtins.add(match[2]);
   }
+  const markerSource =
+    /export\s*\{\s*markers\s*\}\s*from\s*['"]\.\/standalone-game-entry\.mjs['"]/.test(smoke)
+      ? await read('apps/shell-web/scripts/standalone-game-entry.mjs')
+      : smoke;
   const markerBlock =
-    withoutComments(smoke).match(/export\s+const\s+markers\s*=\s*\{([\s\S]*?)\n?\};/)?.[1] || '';
+    withoutComments(markerSource).match(/export\s+const\s+markers\s*=\s*\{([\s\S]*?)\n?\};/)?.[1] ||
+    '';
   const markers = new Set(
     [...markerBlock.matchAll(/(?:['"]([^'"]+)['"]|([\w-]+))\s*:/g)].map(
       (match) => match[1] || match[2],
@@ -327,6 +332,7 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
         executed(jobRun, 'node scripts/run-pages-game-tests.mjs');
       // Scheduling and source-verified artifact transfer do not compile games.
       const coordinatesOnly =
+        (executed(jobRun, 'node scripts/pages-test-scope.mjs') && !buildsSources) ||
         (jobLocation === '.github/workflows/pages-validate.yml' &&
           id === 'plan' &&
           executed(jobRun, 'node scripts/pages-regression-shards.mjs')) ||
@@ -362,8 +368,14 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
         : name === 'pages'
           ? ['build:pages', 'check:games --artifacts']
           : ['android:apk', 'ios:simulator'];
+    const layeredCi =
+      name === 'ci' &&
+      executed(run, 'node scripts/ci-validation.mjs') &&
+      (await read('scripts/ci-validation.mjs')).includes('treeValidator = validateTree') &&
+      (await read('scripts/ci-validation.mjs')).includes('await treeValidator(') &&
+      (await read('scripts/validate-tree.mjs')).includes('affectedPackages(');
     for (const command of required)
-      if (!executed(run, `pnpm ${command}`))
+      if (!executed(run, `pnpm ${command}`) && !(layeredCi && command !== 'test:game-config'))
         fail('workflow-gate', location, `缺少 pnpm ${command}`);
     if (name === 'pages') {
       const scopedGameTests = effectiveJobs.some(({ job }) =>

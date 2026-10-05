@@ -1,13 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "scripts/validation-plan.mjs",
+    "scripts/validate-tree.mjs",
+    "scripts/validate-push.mjs",
     "assets/**",
-    "games/local/carding-car/scripts/toolchain.mjs",
-    "games/local/carding-car/scripts/native-targets.mjs",
-    "games/local/carding-car/scripts/clear-output.mjs",
-    "platforms/**",
-    "scripts/**",
-    "services/runtime-api/rules/**"
+    "platforms/h5/**",
+    "games/local/carding-car/scripts/**",
+    "scripts/cocos-validation.mjs",
+    "scripts/workspace-bootstrap.mjs",
+    "scripts/rule-tasks.mjs"
   ],
   "globalPassThroughEnv": ["COCOS_CREATOR", "KART_PREBUILT_DIR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
   "tasks": {
@@ -94,13 +98,22 @@
       "dependsOn": ["^build"],
       "cache": false,
       "outputs": ["dist/**"],
-      "env": ["COCOS_CREATOR", "KART_PREBUILT_DIR"]
+      "env": ["COCOS_CREATOR", "KART_PREBUILT_DIR"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/carding-car/.prebuilt/**",
+        "$TURBO_ROOT$/platforms/kart-sharing.js"
+      ]
     },
     "@coffeeeeffoc/night-overwatch#build": {
       "dependsOn": ["^build"],
-      "cache": false,
       "outputs": ["dist/**"],
-      "env": ["COCOS_CREATOR", "NIGHT_OVERWATCH_PREBUILT_DIR"]
+      "env": ["COCOS_CREATOR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**"]
+    },
+    "test:rules": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

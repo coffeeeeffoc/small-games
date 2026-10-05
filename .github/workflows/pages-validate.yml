@@ -3,6 +3,14 @@ name: Validate GitHub Pages artifacts
 on:
   workflow_call:
     inputs:
+      cocos:
+        description: Whether this scope has a same-SHA CI Creator producer to reuse.
+        required: true
+        type: boolean
+      browser:
+        description: Run actual browser checks when the shared risk plan requires them.
+        required: true
+        type: boolean
       full:
         description: Run the full game regression suite.
         required: true
@@ -23,7 +31,7 @@ jobs:
   kart:
     uses: ./.github/workflows/carding-car.yml
     with:
-      reuse_ci: ${{ github.event_name == 'push' }}
+      reuse_ci: ${{ github.event_name == 'push' && inputs.cocos }}
     permissions:
       contents: read
       actions: read
@@ -87,6 +95,7 @@ jobs:
       - run: pnpm check:games
       - run: pnpm build:pages
       - run: pnpm check:games --artifacts
+      - run: pnpm --filter @coffeeeeffoc/shell-web test:pages:artifacts
       - uses: actions/upload-artifact@v7
         with:
           name: pages-build
@@ -168,6 +177,7 @@ jobs:
           key: ${{ steps.turbo.outputs.cache-primary-key }}
 
   smoke:
+    if: inputs.browser
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -200,7 +210,7 @@ jobs:
   regression:
     name: regression (shard ${{ matrix.shard }})
     needs: [build, plan]
-    if: inputs.full || inputs.game_sources != '[]'
+    if: inputs.full || inputs.game_ids != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
