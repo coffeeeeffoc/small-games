@@ -52,7 +52,7 @@ const checked = targets.map(({ game, platform }) => {
 for (const { game, platform, appId, adUnitId } of checked) {
   const selected = games[game],
     adapter = platforms[platform];
-  const gameRoot = path.join(repo, 'games/local', `game-${game}`);
+  const gameRoot = path.join(repo, selected.source ?? `games/local/game-${game}`);
   const manifest = JSON.parse(await readFile(path.join(gameRoot, 'src/manifest.json'), 'utf8'));
   const version = manifest.version;
   const outDir = path.join(root, 'dist', platform, game);
@@ -78,14 +78,14 @@ for (const { game, platform, appId, adUnitId } of checked) {
         load(id) {
           if (id !== virtual) return;
           return `import { ${adapter.start} } from ${JSON.stringify(adapter.module)};
-          import { ${selected.definition} as original, ${selected.content} as content } from '@coffeeeeffoc/game-${game}/canvas';
+          import { ${selected.definition} as original, ${selected.content} as content } from '${selected.package ?? `@coffeeeeffoc/game-${game}`}/canvas';
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
           export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
           ready.catch(error => { console.error('小游戏启动失败', error); });`;
         },
         async generateBundle() {
           for (const [fileName, config] of Object.entries(
-            adapter.files({ game, appId, version }),
+            adapter.files({ game, appId, version, orientation: selected.orientation }),
           )) {
             this.emitFile({ type: 'asset', fileName, source: JSON.stringify(config, null, 2) });
           }

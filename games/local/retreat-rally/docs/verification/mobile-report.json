@@ -1,0 +1,12 @@
+{
+  "browser": "140.0.7339.186",
+  "environment": "Chromium desktop/mobile emulation, not physical devices",
+  "checks": [
+    "844×390: rotated layout, two simultaneous touches, independent release/cancel, orientation persistence",
+    "390×844: rotated layout, two simultaneous touches, independent release/cancel, orientation persistence",
+    "360×800: rotated layout, two simultaneous touches, independent release/cancel, orientation persistence",
+    "Actual Shell production route, immersive battle, restored navigation and exit"
+  ],
+  "errors": [],
+  "passed": true
+}

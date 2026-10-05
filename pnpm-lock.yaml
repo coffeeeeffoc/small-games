@@ -316,6 +316,9 @@ importers:
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
+      '@coffeeeeffoc/retreat-rally':
+        specifier: workspace:*
+        version: link:../../games/local/retreat-rally
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -437,6 +440,9 @@ importers:
       '@coffeeeeffoc/rescue-team':
         specifier: workspace:*
         version: link:../../games/local/rescue-team
+      '@coffeeeeffoc/retreat-rally':
+        specifier: workspace:*
+        version: link:../../games/local/retreat-rally
       '@coffeeeeffoc/rule-thief':
         specifier: workspace:*
         version: link:../../games/local/rule-thief
@@ -1225,6 +1231,8 @@ importers:
         version: 8.3.0(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
 
   games/local/rescue-team: {}
+
+  games/local/retreat-rally: {}
 
   games/local/rule-thief: {}
 

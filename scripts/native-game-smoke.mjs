@@ -29,7 +29,10 @@ export async function verifyNativeArtifact({
     ['arena', '电子斗蛐蛐'],
   ];
   if (standalone) {
-    assert.equal(config.deviceOrientation, 'portrait');
+    assert.equal(
+      config.deviceOrientation,
+      game === 'retreat-rally' && platform === 'wechat' ? 'landscape' : 'portrait',
+    );
     assert.equal(config.subpackages, undefined);
     const release = JSON.parse(readFileSync(path.join(root, 'release.json'), 'utf8'));
     assert.equal(release.platform, platform);
@@ -37,6 +40,7 @@ export async function verifyNativeArtifact({
     const project = JSON.parse(readFileSync(path.join(root, 'project.config.json'), 'utf8'));
     assert.equal(project.compileType, 'game');
     const assets = {
+      'retreat-rally': 'rally-assets',
       cricket: 'cricket-audio',
       cultivation: 'trial-audio',
       arena: 'arena-audio',
@@ -166,9 +170,16 @@ export async function verifyNativeArtifact({
             src = value;
             const filename = localPath(value);
             const bytes = readFileSync(filename);
-            assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-            image.width = bytes.readUInt32BE(16);
-            image.height = bytes.readUInt32BE(20);
+            if (value.endsWith('.webp')) {
+              assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+              assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+              image.width = 1672;
+              image.height = 941;
+            } else {
+              assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+              image.width = bytes.readUInt32BE(16);
+              image.height = bytes.readUInt32BE(20);
+            }
             queueMicrotask(() => image.onload?.());
           },
         });
@@ -198,7 +209,10 @@ export async function verifyNativeArtifact({
         audio.push(sound);
         return sound;
       },
-      getSystemInfoSync: () => ({ windowWidth: 390, windowHeight: 844 }),
+      getSystemInfoSync: () =>
+        config.deviceOrientation === 'landscape'
+          ? { windowWidth: 844, windowHeight: 390 }
+          : { windowWidth: 390, windowHeight: 844 },
       onTouchStart(listener) {
         presses.add(listener);
       },
@@ -344,6 +358,60 @@ export async function verifyNativeArtifact({
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
+    if (gameId === 'retreat-rally') {
+      const physical = (x, y) =>
+        config.deviceOrientation === 'landscape'
+          ? [(x * 844) / 1200, (y * 390) / 675]
+          : [390 - (y * 390) / 675, (x * 844) / 1200];
+      const click = (x, y) => {
+        tap(...physical(x, y));
+        advance(50);
+      };
+      const pointer = (listeners, id, x, y) => {
+        const [clientX, clientY] = physical(x, y);
+        for (const fn of [...listeners])
+          fn({ changedTouches: [{ identifier: id, clientX, clientY }] });
+        advance(50);
+      };
+      click(225, 510);
+      assert.ok(rendered.includes('山河三关'));
+      assert.ok(rendered.includes('未解锁'));
+      click(90, 65);
+      click(300, 410);
+      assert.ok(rendered.includes('山谷初战'));
+      pointer(presses, 1, 950, 600);
+      assert.ok(rendered.includes('青岚 · 收兵中'));
+      pointer(cancels, 1, 950, 600);
+      assert.ok(rendered.includes('按住收兵 · 松手进攻'));
+      for (const hide of hidden) hide();
+      const paused = JSON.stringify(rendered);
+      advance(30000);
+      assert.equal(JSON.stringify(rendered), paused);
+      for (const show of shown) show();
+      assert.ok(rendered.includes('整军，再出发'));
+      click(600, 520);
+      click(1030, 600);
+      click(600, 510);
+      assert.ok(rendered.includes('好友同屏'));
+      pointer(presses, 1, 210, 600);
+      pointer(presses, 2, 1000, 600);
+      assert.ok(rendered.includes('青岚 · 收兵中'));
+      assert.ok(rendered.includes('赤焰 · 收兵中'));
+      pointer(touches, 1, 210, 600);
+      assert.ok(!rendered.includes('青岚 · 收兵中'));
+      assert.ok(rendered.includes('赤焰 · 收兵中'));
+      pointer(cancels, 2, 1000, 600);
+      assert.ok(!rendered.includes('赤焰 · 收兵中'));
+      assert.ok(!rendered.some((t) => t.includes('全屏')));
+      await (await entry.ready).dispose();
+      assert.equal(intervals.size, 0);
+      assert.equal(
+        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
+        0,
+      );
+      assert.deepEqual(logs, []);
+      return;
+    }
     if (gameId === 'building-power') {
       assert.ok(standalone);
       const click = (label, x = 195) => {
@@ -584,7 +652,9 @@ export async function verifyNativeArtifact({
   }
 
   const selected = standalone
-    ? [...games, ['building-power', '忙碌的电工']].filter(([id]) => id === game)
+    ? [...games, ['building-power', '忙碌的电工'], ['retreat-rally', '收兵再冲']].filter(
+        ([id]) => id === game,
+      )
     : games;
   assert.ok(selected.length, 'Unknown game');
   for (const item of selected) {
@@ -619,10 +689,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
     const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
     assert.ok(
-      !values.game || [...originalGames, 'building-power'].includes(values.game),
+      !values.game || [...originalGames, 'building-power', 'retreat-rally'].includes(values.game),
       'Unknown game',
     );
-    for (const game of values.game ? [values.game] : [...originalGames, 'building-power']) {
+    for (const game of values.game
+      ? [values.game]
+      : [...originalGames, 'building-power', 'retreat-rally']) {
       for (const platform of values.platform ? [values.platform] : platforms) {
         await verifyNativeArtifact({
           root: fileURLToPath(

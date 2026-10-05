@@ -214,7 +214,9 @@ function updateHud() {
     s.time < 4 && mode === 'campaign'
       ? '士兵自动进攻 · 试着按住右下方收兵'
       : s.retreat.blue && averageStamina(s, 'blue') > 98
-        ? '体力已满，可以反攻！'
+        ? danger
+          ? '体力已满 · 等最后一箭落地'
+          : '体力已满，可以反攻！'
         : '';
   $('#command-state b').textContent = s.retreat.blue ? '全军收兵' : '全军进攻';
   $('#command-state small').textContent = s.retreat.blue

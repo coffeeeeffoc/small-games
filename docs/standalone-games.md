@@ -199,3 +199,5 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 手机回归使用 390×844 竖屏；捕鱼、橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
+
+《收兵再冲》位于 `games/local/retreat-rally`，包名 `@coffeeeeffoc/retreat-rally`，Shell 入口 `#/games/retreat-rally`，独立入口 `/games/retreat-rally/index.html`。三关单线战役、明确标注的本地模拟匹配及同屏双人；本轮没有后端。微信 Canvas 预览通过 `pnpm minigame:build --platform wechat --game retreat-rally --preview` 构建，与 H5 共用模拟规则和渲染。详见[游戏说明](../games/local/retreat-rally/README.md)。

@@ -334,5 +334,12 @@
     "title": "惊喜别穿帮",
     "description": "安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。",
     "output": "dist"
+  },
+  {
+    "id": "retreat-rally",
+    "source": "games/local/retreat-rally",
+    "title": "收兵再冲",
+    "description": "按住收兵，松手进攻。带六名士兵躲过箭雨，再趁装填夺下敌旗；三关战役、模拟匹配与同屏好友对战。",
+    "output": "dist"
   }
 ]

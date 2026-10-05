@@ -4,6 +4,15 @@ import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 export const games = {
+  'retreat-rally': {
+    title: '收兵再冲',
+    source: 'games/local/retreat-rally',
+    orientation: 'landscape',
+    package: '@coffeeeeffoc/retreat-rally',
+    definition: 'rallyCanvasDefinition',
+    content: 'defaultRallyEnvelope',
+    assets: [{ source: 'assets', target: 'rally-assets' }],
+  },
   'building-power': {
     title: '忙碌的电工',
     definition: 'buildingPowerCanvasDefinition',

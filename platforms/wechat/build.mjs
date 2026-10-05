@@ -4,9 +4,9 @@ export const wechatPlatform = {
   start: 'startWechatGame',
   appId: /^wx[0-9a-f]{16}$/,
   entryArguments: ({ adUnitId }) => JSON.stringify(adUnitId),
-  files({ game, appId }) {
+  files({ game, appId, orientation = 'portrait' }) {
     return {
-      'game.json': { deviceOrientation: 'portrait' },
+      'game.json': { deviceOrientation: orientation },
       'project.config.json': {
         appid: appId || 'touristappid',
         projectname: `${game}-wechat`,

@@ -1,0 +1,62 @@
+{
+  "games": 1,
+  "checks": [
+    {
+      "game": "retreat-rally",
+      "entry": "independent",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "shell",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "independent",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "shell",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "independent",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "shell",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "independent",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "game": "retreat-rally",
+      "entry": "shell",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "mobile": "drag, resize, game modal, performance, touchcancel, persistence, exit"
+    },
+    {
+      "iframe": "same-origin inheritance and cross-origin URL opt-in"
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "browser": "151.0.7922.173"
+}

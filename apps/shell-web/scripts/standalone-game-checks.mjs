@@ -33,7 +33,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'voiceprint-case') {
+  if (id === 'retreat-rally') {
+    await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'battle');
+    await holdControl('#retreat-blue', 'Space', async () => {
+      await expect(frame.locator('#retreat-blue')).toHaveAttribute('aria-pressed', 'true');
+      await expect(frame.locator('#game')).toHaveAttribute('data-retreat', 'true');
+    });
+    await expect(frame.locator('#retreat-blue')).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#paused')).toBeVisible();
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('#battle')).toBeVisible();
+  } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
     });

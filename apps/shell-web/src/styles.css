@@ -396,3 +396,8 @@ select {
   background: transparent;
   color: #f4f6fb;
 }
+
+/* Games opt in during active play and restore navigation in menus. */
+.standalone-page[data-game-immersive='true'] > nav {
+  display: none;
+}
