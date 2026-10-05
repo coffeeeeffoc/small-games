@@ -19,7 +19,12 @@ import {
 } from './engine.js';
 import { createRenderer } from './renderer.js';
 import { createAudio } from './audio.js';
-import { openAppearanceSettings, roleAvatarSvg } from './role-appearance.js';
+import {
+  openAppearanceSettings,
+  closeAppearanceSettings,
+  roleAvatarSvg,
+  roleCharacterMarkup,
+} from './role-appearance.js';
 import { runConfig, formatRecord, readRecords, submitRun } from './records.js';
 import { readPuzzleLink, fillPuzzleShare } from './share.js';
 
@@ -29,6 +34,9 @@ const sharedPuzzle = readPuzzleLink(location.href);
 const formatTime = (seconds) =>
   `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const ordinal = ['一', '二', '三', '四', '五', '六', '七', '八'];
+let navigationReady = false,
+  pageReturnScreen = 'home',
+  externalReturnScreen = 'home';
 let screen = 'home',
   runTicks = 0,
   runOrders = [],
@@ -198,23 +206,82 @@ function renderAvatars() {
       '<svg viewBox="0 0 100 100" aria-hidden="true">' +
       roleAvatarSvg(node.dataset.homeAvatar, 0, 0, 100) +
       '</svg>';
+  for (const node of document.querySelectorAll('[data-character]'))
+    node.innerHTML = roleCharacterMarkup(node.dataset.character);
+  buildRoster();
 }
-function showScreen(next) {
+function buildRoster() {
+  $('cop-roster').setAttribute('aria-label', `选择${roleLabel()}队员`);
+  $('squad-hint').textContent = `点${roleLabel()}，再点道路`;
+  $('cop-roster').replaceChildren(
+    ...controlled().map((actor, i) => {
+      const button = document.createElement('button');
+      button.className = 'squad-avatar';
+      button.dataset.member = i;
+      button.setAttribute('aria-label', `选择 ${i + 1} 号${roleLabel()}`);
+      button.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">${roleAvatarSvg(game.playerRole, 0, 0, 100)}</svg><b>${i + 1}</b>`;
+      button.onclick = () => selectCop(i);
+      return button;
+    }),
+  );
+}
+const pageIds = [
+  'map-page',
+  'pause-dialog',
+  'win-dialog',
+  'lose-dialog',
+  'help-dialog',
+  'records-dialog',
+  'service-dialog',
+  'share-dialog',
+];
+function closePages() {
+  for (const id of pageIds) {
+    const page = $(id);
+    page.open = false;
+    page.removeAttribute('open');
+    page.hidden = true;
+  }
+}
+function showScreen(next, { history: remember = true } = {}) {
   clearGesture();
+  const previous = screen;
   screen = next;
   document.body.dataset.screen = next;
   for (const name of ['home', 'level', 'game'])
     $(name + '-screen').hidden = name !== (next === 'levels' ? 'level' : next);
+  for (const id of pageIds) $(id).hidden = id !== next;
+  if (navigationReady && remember && previous !== next)
+    history.pushState({ patrolScreen: next, patrolReturn: pageReturnScreen }, '', location.href);
   renderer.resize();
+  if (!['game', 'appearance', 'competition'].includes(next)) {
+    const page =
+      next === 'levels' ? $('level-screen') : next === 'home' ? $('home-screen') : $(next);
+    page?.scrollTo({ top: 0, left: 0 });
+    const heading = page?.querySelector('h1,h2');
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }
 }
 function goHome() {
   clearTimeout(winTimer);
   pauseGame(game);
-  document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+  closePages();
   dialogResume = false;
-  document.body.classList.remove('modal-open');
   showScreen('home');
   renderAvatars();
+  updateCampaign();
+}
+function syncChoices() {
+  for (const button of document.querySelectorAll('[data-choice-for]')) {
+    const select = $(button.dataset.choiceFor);
+    button.setAttribute('aria-pressed', String(select.value === button.dataset.value));
+    button.disabled = select.disabled;
+  }
+  $('initiative-note').textContent =
+    mode === 'challenge' ? '街区挑战：双方同时出发' : '先行动的一队提前 2 秒起步';
 }
 function recordDescription() {
   return (
@@ -243,11 +310,27 @@ async function refreshRecords() {
   }
 }
 let boardRequest = 0;
+function prepareBoard(selectedLevel = game.level.id || 1) {
+  const catalog = getLevels(mode);
+  $('records-level').replaceChildren(
+    ...catalog.map((level) => {
+      const option = document.createElement('option');
+      option.value = level.id;
+      option.textContent = level.id + ' · ' + level.name;
+      return option;
+    }),
+  );
+  $('records-level').value = Math.max(1, Math.min(catalog.length, selectedLevel));
+}
 async function refreshBoard() {
   const serial = ++boardRequest,
-    id = Number($('records-level').value);
+    id = Math.max(1, Math.min(getLevels(mode).length, Number($('records-level').value) || 1));
+  $('records-level').value = id;
   const config = { ...runConfig(game), level: id };
   $('records-context').textContent = recordDescription();
+  $('records-level-name').textContent = `${id} · ${getLevels(mode)[id - 1].name}`;
+  $('records-prev').disabled = id <= 1;
+  $('records-next').disabled = id >= getLevels(mode).length;
   $('records-local').textContent = formatRecord(bestTime(id));
   $('records-world').textContent = '正在读取';
   $('records-list').replaceChildren();
@@ -304,6 +387,13 @@ function updateHud() {
   $('caught-count').textContent = game.robbers.filter((r) => r.caught).length;
   $('timer').textContent = formatTime(game.time);
   $('pause-button').disabled = game.phase !== 'playing';
+  $('hold-button').disabled = game.phase !== 'playing';
+  for (const button of $('cop-roster').children) {
+    const actor = controlled()[Number(button.dataset.member)];
+    button.setAttribute('aria-pressed', String(Number(button.dataset.member) === selected));
+    button.disabled = !!(actor?.caught || actor?.escaped);
+    button.classList.toggle('moving', !!actor?.moving);
+  }
   $('phase-badge').lastElementChild.textContent =
     game.phase === 'playing' && game.time < game.openingSeconds
       ? (game.firstRole === 'cop' ? '警察' : '小偷') + '先动'
@@ -393,6 +483,7 @@ function updateCampaign() {
   const catalog = getLevels(mode),
     count = catalog.filter((level) => bestTime(level.id)).length;
   $('campaign-count').textContent = `${count} / ${catalog.length}`;
+  $('home-progress').textContent = `${Object.keys(progress.streetBest).length} 个街区已完成`;
 }
 function loadLevel(id, saved = null, opening = {}) {
   if (mode === 'quick') {
@@ -407,7 +498,7 @@ function loadLevel(id, saved = null, opening = {}) {
   clearGesture();
   $('board-toast').classList.remove('visible');
   $('board-toast').textContent = '';
-  document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+  closePages();
   document.body.classList.remove('modal-open');
   dialogResume = false;
   const samePuzzle =
@@ -469,8 +560,10 @@ function loadLevel(id, saved = null, opening = {}) {
   $('guide-hint').textContent = game.level.hint;
   $('ready-hint').textContent = game.level.briefing || '';
   $('start-button').firstChild.textContent = '开始行动';
+  syncChoices();
+  buildRoster();
   canvas.setAttribute('aria-label', game.level.name + '。点击' + roleLabel() + '再点击道路。');
-  showScreen('levels');
+  showScreen('levels', { history: opening.history !== false });
   updateHud();
   updateCampaign();
   renderLevelGrid();
@@ -548,27 +641,31 @@ function hold() {
     updateHud();
   }
 }
-function openDialog(id) {
+function openDialog(id, remember = true) {
   if ($(id).open) return;
   clearTimeout(winTimer);
   clearGesture();
+  pageReturnScreen =
+    screen === 'game' ? 'game' : screen === 'levels' || screen === 'map-page' ? 'levels' : 'home';
   dialogResume = game.phase === 'playing';
   if (dialogResume) pauseGame(game);
-  $(id).showModal();
-  document.body.classList.add('modal-open');
+  closePages();
+  $(id).open = true;
+  $(id).setAttribute('open', '');
+  showScreen(id, { history: remember });
   updateHud();
 }
-function closeDialog(dialog, resume = true) {
-  dialog.close();
-  if (!document.querySelector('dialog[open]')) {
-    document.body.classList.remove('modal-open');
-    if (resume && dialogResume && game.phase === 'paused' && !document.hidden) {
-      resumeGame(game);
-      lastFrame = performance.now();
-      accumulator = 0;
-    }
-    dialogResume = false;
+function closeDialog(page, resume = true, remember = true) {
+  page.open = false;
+  page.removeAttribute('open');
+  page.hidden = true;
+  if (resume && dialogResume && game.phase === 'paused' && !document.hidden) {
+    resumeGame(game);
+    lastFrame = performance.now();
+    accumulator = 0;
   }
+  dialogResume = false;
+  showScreen(pageReturnScreen, { history: remember });
   updateHud();
 }
 function pause(reason = '警察和小偷都在等你回来。') {
@@ -734,8 +831,11 @@ function hitActor(clientX, clientY) {
       .map((actor) => ({ actor, cop: false })),
   ];
   for (const { actor, cop } of actors) {
-    const screen = renderer.toScreen({ x: actor.x, y: actor.y - 28 });
     const foot = renderer.toScreen(actor);
+    const screen = {
+      x: foot.x,
+      y: foot.y - (28 * Math.hypot(edge.x - origin.x, edge.y - origin.y)) / 26,
+    };
     const distance = Math.min(
       Math.hypot(clientX - screen.x, clientY - screen.y),
       Math.hypot(clientX - foot.x, clientY - foot.y),
@@ -867,7 +967,7 @@ function keyboardTarget(key) {
 document.addEventListener('keydown', (event) => {
   if (
     screen !== 'game' ||
-    document.querySelector('dialog[open]') ||
+    document.querySelector('[data-game-page][open]') ||
     event.ctrlKey ||
     event.metaKey ||
     event.altKey
@@ -916,6 +1016,17 @@ function leavePractice() {
 $('practice-button').addEventListener('click', practice);
 $('practice-exit').addEventListener('click', leavePractice);
 $('pause-button').addEventListener('click', () => pause());
+$('hold-button').addEventListener('click', hold);
+$('map-button').addEventListener('click', () => openDialog('map-page'));
+for (const button of document.querySelectorAll('[data-choice-for]'))
+  button.addEventListener('click', () => {
+    const select = $(button.dataset.choiceFor);
+    if (select.disabled) return;
+    audio.unlock();
+    audio.play('select');
+    select.value = button.dataset.value;
+    select.dispatchEvent(new Event('change'));
+  });
 $('resume-button').addEventListener('click', () => closeDialog($('pause-dialog')));
 $('pause-restart').addEventListener('click', () => {
   loadLevel(game.level.id);
@@ -1020,9 +1131,9 @@ document.addEventListener('game-displaychange', displayChanged);
 document
   .querySelectorAll('[data-close]')
   .forEach((button) =>
-    button.addEventListener('click', () => closeDialog(button.closest('dialog'))),
+    button.addEventListener('click', () => closeDialog(button.closest('[data-game-page]'))),
   );
-document.querySelectorAll('dialog').forEach((dialog) =>
+document.querySelectorAll('[data-game-page]').forEach((dialog) =>
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     closeDialog(dialog);
@@ -1033,7 +1144,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) pause('你刚刚离开了页面。准备好后，再继续行动。');
 });
 window.addEventListener('blur', () => {
-  if (!document.querySelector('dialog[open]')) pause('窗口暂时失去焦点，行动已为你暂停。');
+  if (!document.querySelector('[data-game-page][open]'))
+    pause('窗口暂时失去焦点，行动已为你暂停。');
   clearGesture();
 });
 window.addEventListener('resize', () => {
@@ -1043,15 +1155,32 @@ window.addEventListener('resize', () => {
 let competitionPaused = false;
 window.addEventListener('competition-visibility', ({ detail }) => {
   if (detail?.open) {
+    externalReturnScreen = screen;
     clearGesture();
     competitionPaused = pauseGame(game) || competitionPaused;
+    showScreen('competition', { history: false });
     updateHud();
-  } else if (competitionPaused) {
-    competitionPaused = false;
-    if (game.phase !== 'paused') return;
-    $('pause-reason').textContent = '好友赛已关闭，单人行动仍保留在离开时的局面。';
-    openDialog('pause-dialog');
-    dialogResume = true;
+  } else {
+    const back = externalReturnScreen;
+    showScreen(back, { history: false });
+    if (competitionPaused && game.phase === 'paused') {
+      competitionPaused = false;
+      $('pause-reason').textContent = '单人行动已保留，准备好后继续。';
+      openDialog('pause-dialog');
+      dialogResume = true;
+      pageReturnScreen = 'game';
+    }
+  }
+});
+document.addEventListener('appearance-visibility', ({ detail }) => {
+  if (detail.open) {
+    externalReturnScreen = screen;
+    pauseGame(game);
+    showScreen('appearance');
+  } else if (screen === 'appearance') {
+    showScreen(externalReturnScreen, { history: false });
+    history.replaceState({ patrolScreen: externalReturnScreen }, '', location.href);
+    renderAvatars();
   }
 });
 
@@ -1157,6 +1286,54 @@ if (sharedPuzzle) {
 updateSound();
 renderAvatars();
 showScreen(sharedPuzzle ? 'levels' : 'home');
+navigationReady = true;
+history.replaceState({ patrolScreen: screen }, '', location.href);
+window.addEventListener('popstate', (event) => {
+  if (screen === 'competition') return;
+  if (screen === 'appearance') {
+    closeAppearanceSettings();
+    return;
+  }
+  const requested = event.state?.patrolScreen;
+  let next = ['home', 'levels', 'game', ...pageIds].includes(requested) ? requested : 'home';
+  if ((next === 'game' || next === 'pause-dialog') && game.phase === 'ready') next = 'levels';
+  if (['game', 'pause-dialog'].includes(next) && ['won', 'lost'].includes(game.phase))
+    next = playerWon() ? 'win-dialog' : 'lose-dialog';
+  if (next === 'pause-dialog' && game.phase === 'review') next = 'game';
+  if (next === 'win-dialog' && !playerWon()) next = 'levels';
+  if (next === 'lose-dialog' && !['won', 'lost'].includes(game.phase)) next = 'levels';
+  if (screen === 'pause-dialog' && next === 'game') {
+    closeDialog($('pause-dialog'), true, false);
+    history.replaceState({ patrolScreen: 'game' }, '', location.href);
+    return;
+  }
+  if (next !== 'game') pauseGame(game);
+  closePages();
+  if (next === 'levels' && game.phase !== 'ready') {
+    loadLevel(game.level.id || returnLevel, null, { history: false });
+    return;
+  }
+  if (pageIds.includes(next)) {
+    $(next).open = true;
+    $(next).setAttribute('open', '');
+    pageReturnScreen = ['home', 'levels', 'game'].includes(event.state?.patrolReturn)
+      ? event.state.patrolReturn
+      : next === 'pause-dialog'
+        ? 'game'
+        : 'home';
+    dialogResume = pageReturnScreen === 'game' && game.phase === 'paused';
+  }
+  if (next === 'game' && game.phase === 'paused') {
+    showScreen('game', { history: false });
+    openDialog('pause-dialog', false);
+    pageReturnScreen = 'game';
+    dialogResume = true;
+  } else showScreen(next, { history: false });
+  if (next === 'records-dialog') {
+    prepareBoard(Number($('records-level').value) || game.level.id || 1);
+    void refreshBoard();
+  }
+});
 document
   .querySelectorAll('[data-home]')
   .forEach((button) => button.addEventListener('click', goHome));
@@ -1164,25 +1341,24 @@ document
   .querySelectorAll('[data-levels]')
   .forEach((button) => button.addEventListener('click', openLevels));
 $('records-button').onclick = () => {
-  $('records-level').replaceChildren(
-    ...getLevels(mode).map((level) => {
-      const option = document.createElement('option');
-      option.value = level.id;
-      option.textContent = level.id + ' · ' + level.name;
-      return option;
-    }),
-  );
-  $('records-level').value = game.level.id || 1;
+  prepareBoard();
   openDialog('records-dialog');
   void refreshBoard();
 };
 $('records-level').onchange = refreshBoard;
+for (const [id, direction] of [
+  ['records-prev', -1],
+  ['records-next', 1],
+])
+  $(id).onclick = () => {
+    $('records-level').value = Number($('records-level').value) + direction;
+    void refreshBoard();
+  };
 $('records-refresh').onclick = refreshBoard;
 $('retry-record').onclick = () => uploadRecord();
 document.querySelectorAll('[data-competition-entry]').forEach((button) =>
   button.addEventListener('click', () => {
     if (globalThis.__openStreetCompetition) {
-      document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
       void globalThis.__openStreetCompetition(button.dataset.competitionEntry);
     } else openDialog('service-dialog');
   }),
@@ -1198,10 +1374,15 @@ window.addEventListener('pagehide', (event) => {
   }
 });
 window.addEventListener('pageshow', (event) => {
-  if (event.persisted && game.phase === 'paused' && !document.querySelector('dialog[open]')) {
+  if (
+    event.persisted &&
+    game.phase === 'paused' &&
+    !document.querySelector('[data-game-page][open]')
+  ) {
     dialogResume = true;
-    $('pause-dialog').showModal();
-    document.body.classList.add('modal-open');
+    openDialog('pause-dialog');
+    dialogResume = true;
+    pageReturnScreen = 'game';
     updateHud();
   }
 });

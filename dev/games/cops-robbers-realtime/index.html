@@ -1,16 +1,17 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-  <script src="./dev-mode.js"></script>
+    <script src="./dev-mode.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f6f1df" />
+    <meta name="theme-color" content="#fff8eb" />
     <meta
       name="description"
-      content="指挥警察封住街区路口，合作抓住小偷。100 个街区、好友 PK 与通关纪录。"
+      content="指挥可爱的警察与小偷，封路、包抄、实时收网。100 个街区，叫上好友一起玩！"
     />
-    <title>街区追捕 · 警察与小偷</title>
+    <title>别跑！街区围捕 · 警察与小偷</title>
     <link rel="stylesheet" href="./src/style.css" />
+    <link rel="stylesheet" href="./src/appearance.css" />
     <script>
       globalThis.__CLASSIC_CHASE_ROLES__ = true;
     </script>
@@ -44,99 +45,222 @@
         <symbol id="i-shield" viewBox="0 0 24 24">
           <path d="m12 2 8 3v7c0 5-8 10-8 10S4 17 4 12V5zM8 12l3 3 5-6" />
         </symbol>
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7" /></symbol>
+        <symbol id="i-map" viewBox="0 0 24 24">
+          <path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2zM9 3v16M15 5v16" />
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 6v6l4 2" />
+        </symbol>
+        <symbol id="i-star" viewBox="0 0 24 24">
+          <path d="m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" />
+        </symbol>
+        <symbol id="i-flag" viewBox="0 0 24 24">
+          <path d="M5 22V3c5-4 9 4 14 0v10c-5 4-9-4-14 0" />
+        </symbol>
       </defs>
     </svg>
     <main class="app-shell">
-      <section id="home-screen" class="screen home-screen" aria-label="街区追捕首页">
-        <div class="home-tools">
-          <button id="sound-button" class="icon-button" aria-label="关闭声音" aria-pressed="true">
-            <svg><use href="#i-sound" /></svg></button
-          ><button id="fullscreen-button" data-game-fullscreen aria-label="全屏">全屏</button>
-        </div>
-        <img class="home-city" src="./src/assets/home-city.png" alt="警察与小偷在小小街区中追逐" />
-        <div class="home-copy">
-          <div class="role-pill">
-            <span class="home-avatar" data-home-avatar="cop"></span><b>警察</b><i>×</i
-            ><span class="home-avatar" data-home-avatar="robber"></span><b>小偷</b>
+      <section id="home-screen" class="screen home-screen" aria-label="街区围捕首页">
+        <header class="home-top">
+          <div class="home-greeting">
+            <span class="profile-portrait" data-home-avatar="cop"></span>
+            <div><small>今天，也来一场追逐吧</small><strong>你好，小指挥官！</strong></div>
           </div>
-          <h1>街区<br />追捕<span>!</span></h1>
-          <p>封住路口，合作抓住小偷。</p>
+          <div class="home-tools">
+            <button id="sound-button" class="icon-button" aria-label="关闭声音" aria-pressed="true">
+              <svg><use href="#i-sound" /></svg>
+            </button>
+          </div>
+        </header>
+        <div class="home-hero">
+          <img class="home-city" src="./src/assets/home-city.png" alt="阳光下的小小街区" />
+          <div class="home-title">
+            <span class="hero-sparkle" aria-hidden="true">✦</span>
+            <h1>别跑<span>！</span></h1>
+            <span class="title-ribbon">街 区 围 捕</span>
+            <p>小小街区，一场机灵的追逐。</p>
+          </div>
+          <div class="hero-characters" aria-hidden="true">
+            <div class="hero-cop" data-character="cop"></div>
+            <div class="hero-robber" data-character="robber"></div>
+            <span class="hero-dash">✦</span>
+          </div>
+          <span class="home-progress"
+            ><svg><use href="#i-shield" /></svg><span id="home-progress">0 个街区已完成</span></span
+          >
+        </div>
+        <div class="home-actions">
           <button id="levels-button" class="button primary home-start">
-            开始游戏<svg><use href="#i-arrow" /></svg></button
-          ><small>100 个街区 · 实时指挥</small>
+            <svg><use href="#i-play" /></svg>开始游戏<span class="button-star" aria-hidden="true"
+              >✦</span
+            >
+          </button>
+          <div class="home-shortcuts">
+            <button
+              id="friends-button"
+              class="shortcut-card friends-card"
+              data-competition-entry="friends"
+            >
+              <span class="shortcut-icon"
+                ><svg><use href="#i-friends" /></svg
+              ></span>
+              <div><strong>好友 PK</strong><small>叫上搭档，比一局</small></div>
+              <svg class="shortcut-arrow"><use href="#i-arrow" /></svg></button
+            ><button id="records-button" class="shortcut-card records-card">
+              <span class="shortcut-icon"
+                ><svg><use href="#i-trophy" /></svg
+              ></span>
+              <div><strong>全站榜</strong><small>看看谁是围捕高手</small></div>
+              <svg class="shortcut-arrow"><use href="#i-arrow" /></svg>
+            </button>
+          </div>
         </div>
         <nav class="home-nav" aria-label="首页功能">
-          <button id="friends-button" data-competition-entry="friends">
-            <svg><use href="#i-friends" /></svg>好友 PK</button
-          ><button id="records-button">
-            <svg><use href="#i-trophy" /></svg>全站榜</button
-          ><button id="appearance-button"><span data-home-avatar="cop"></span>角色头像</button
+          <button id="appearance-button">
+            <span data-home-avatar="cop"></span><strong>角色装扮</strong></button
           ><button id="help-button">
-            <svg><use href="#i-help" /></svg>玩法说明
+            <svg><use href="#i-help" /></svg><strong>行动手册</strong></button
+          ><button id="fullscreen-button" data-game-fullscreen aria-label="全屏">
+            <svg><use href="#i-map" /></svg><strong>全屏玩</strong>
           </button>
         </nav>
       </section>
-
-      <section id="level-screen" class="screen level-screen" aria-label="关卡选择" hidden>
+      <section id="level-screen" class="screen level-screen" aria-label="出发准备" hidden>
         <header class="page-head">
-          <button class="button quiet" data-home>
-            <svg><use href="#i-home" /></svg>首页
+          <button class="icon-button" data-home aria-label="返回首页">
+            <svg><use href="#i-back" /></svg>
           </button>
-          <h2>选一处街区，出发。</h2>
+          <div>
+            <h2>出发去收网</h2>
+            <p>选好阵营，开始你的街区行动</p>
+          </div>
           <span id="campaign-count">0 / 100</span>
         </header>
         <div class="selection-body">
-          <div class="level-browser">
-            <div id="chapter-tabs" class="chapter-tabs" role="group" aria-label="选择街区"></div>
-            <div id="level-grid" class="level-grid"></div>
-          </div>
-          <aside id="game-setup" class="game-setup" aria-label="开局设置">
-            <span class="eyebrow" id="chapter-name"></span>
-            <h3 id="mission-title"></h3>
-            <p id="mission-subtitle" class="muted"></p>
-            <label
-              >玩法<select id="mode-select">
-                <option value="challenge">街区挑战 · 100 关</option>
-                <option value="quick">战术试炼 · 3 关</option>
-                <option value="classic">自由追逐 · 100 关</option>
-                <option value="escape">出口竞速 · 100 关</option>
-              </select></label
+          <div id="game-setup" class="game-setup" aria-label="开局设置">
+            <label class="choice-field role-field"
+              ><span>这次，你是哪一队？</span
+              ><select id="role-select" hidden aria-hidden="true" tabindex="-1">
+                <option value="cop">警察</option>
+                <option value="robber">小偷</option></select
+              ><span class="role-choices"
+                ><button
+                  type="button"
+                  class="role-choice cop-choice"
+                  data-choice-for="role-select"
+                  data-value="cop"
+                >
+                  <span data-character="cop"></span><strong>我是警察</strong
+                  ><small>封住退路，合作收网</small
+                  ><i class="choice-check" aria-hidden="true">✓</i></button
+                ><button
+                  type="button"
+                  class="role-choice robber-choice"
+                  data-choice-for="role-select"
+                  data-value="robber"
+                >
+                  <span data-character="robber"></span><strong>我是小偷</strong
+                  ><small>抓住空档，机灵突围</small><i class="choice-check" aria-hidden="true">✓</i>
+                </button></span
+              ></label
             >
-            <div class="setting-pair">
-              <label
-                >我的角色<select id="role-select">
-                  <option value="cop">警察</option>
-                  <option value="robber">小偷</option>
-                </select></label
-              ><label
-                >开局顺序<select id="initiative-select">
-                  <option value="random">系统分配</option>
-                  <option value="first">我方先动</option>
-                  <option value="second">对方先动</option>
-                </select></label
-              >
-            </div>
-            <label
-              >指挥规则<select id="rule-select">
+            <label class="choice-field mode-field"
+              ><span>想怎么玩？</span
+              ><select id="mode-select" hidden aria-hidden="true" tabindex="-1">
+                <option value="challenge">街区挑战</option>
+                <option value="quick">战术试炼</option>
+                <option value="classic">自由追逐</option>
+                <option value="escape">出口竞速</option></select
+              ><span class="mode-choices"
+                ><button type="button" data-choice-for="mode-select" data-value="challenge">
+                  <svg><use href="#i-map" /></svg><strong>街区挑战</strong
+                  ><small>100 关 · 慢慢成为高手</small></button
+                ><button type="button" data-choice-for="mode-select" data-value="quick">
+                  <svg><use href="#i-star" /></svg><strong>战术试炼</strong
+                  ><small>3 张小图 · 轻松上手</small></button
+                ><button type="button" data-choice-for="mode-select" data-value="classic">
+                  <svg><use href="#i-shield" /></svg><strong>自由追逐</strong
+                  ><small>两分钟 · 斗智斗勇</small></button
+                ><button type="button" data-choice-for="mode-select" data-value="escape">
+                  <svg><use href="#i-flag" /></svg><strong>出口竞速</strong
+                  ><small>抢先封口 · 别让他跑了</small>
+                </button></span
+              ></label
+            >
+            <label class="choice-field"
+              ><span>谁先出发？<small id="initiative-note">先行动的一队提前 2 秒起步</small></span
+              ><select id="initiative-select" hidden aria-hidden="true" tabindex="-1">
+                <option value="random">系统分配</option>
+                <option value="first">我方先动</option>
+                <option value="second">对方先动</option></select
+              ><span class="segmented"
+                ><button type="button" data-choice-for="initiative-select" data-value="random">
+                  随机分配</button
+                ><button type="button" data-choice-for="initiative-select" data-value="first">
+                  我方先动</button
+                ><button type="button" data-choice-for="initiative-select" data-value="second">
+                  对方先动
+                </button></span
+              ></label
+            >
+            <label class="choice-field"
+              ><span>指挥小队的方式</span
+              ><select id="rule-select" hidden aria-hidden="true" tabindex="-1">
                 <option value="standard">自由调动</option>
-                <option value="relay">轮换指挥</option>
-              </select></label
+                <option value="relay">轮换指挥</option></select
+              ><span class="segmented"
+                ><button type="button" data-choice-for="rule-select" data-value="standard">
+                  自由调动<small>随时给队员下令</small></button
+                ><button type="button" data-choice-for="rule-select" data-value="relay">
+                  轮换指挥<small>每次调动换一位队员</small>
+                </button></span
+              ></label
             >
+          </div>
+          <div class="selected-mission">
+            <button id="map-button" class="mission-card">
+              <span class="mission-map-icon"
+                ><svg><use href="#i-map" /></svg></span
+              ><span
+                ><small id="chapter-name"></small><strong id="mission-title"></strong
+                ><span id="mission-subtitle" class="muted"></span></span
+              ><svg><use href="#i-arrow" /></svg>
+            </button>
             <div class="record-pair">
               <div><span>我的最佳</span><strong id="selection-best">暂无</strong></div>
-              <div><span>服务器最快</span><strong id="selection-world">正在读取</strong></div>
+              <div><span>全站最快</span><strong id="selection-world">正在读取</strong></div>
             </div>
             <small id="record-context" class="muted"></small>
-            <div class="selection-actions">
-              <button id="share-puzzle" class="button quiet" aria-label="分享同题">分享</button
-              ><button id="start-button" class="button primary">
-                开始行动<svg><use href="#i-arrow" /></svg>
-              </button>
-            </div>
-          </aside>
+          </div>
+        </div>
+        <div class="selection-actions">
+          <button id="share-puzzle" class="button quiet" aria-label="分享同题">分享同题</button
+          ><button id="start-button" class="button primary">
+            开始行动<svg><use href="#i-play" /></svg>
+          </button>
         </div>
       </section>
-
+      <section id="map-page" class="screen game-page map-page" data-game-page hidden tabindex="-1">
+        <header class="page-head">
+          <button class="icon-button" data-close aria-label="返回准备">
+            <svg><use href="#i-back" /></svg>
+          </button>
+          <div>
+            <h2>下一站，哪个街区？</h2>
+            <p>每条退路，都需要一位好搭档</p>
+          </div>
+        </header>
+        <div class="map-banner">
+          <img src="./src/assets/home-city.png" alt="温暖的卡通街区" /><strong
+            >100 个街区，等你来挑战</strong
+          >
+        </div>
+        <div id="chapter-tabs" class="chapter-tabs" role="group" aria-label="选择街区"></div>
+        <div id="level-grid" class="level-grid"></div>
+        <p class="map-note">全部关卡开放 · 点选街区，返回准备</p>
+      </section>
       <section id="game-screen" class="screen game-screen" aria-label="街区游戏" hidden>
         <div id="board-wrap" class="board-wrap">
           <canvas
@@ -159,8 +283,8 @@
             </div>
             <div class="board-actions">
               <button class="map-button" id="pause-button" aria-label="暂停">
-                <svg><use href="#i-pause" /></svg></button
-              ><button data-game-fullscreen aria-label="全屏">全屏</button>
+                <svg><use href="#i-pause" /></svg>
+              </button>
             </div>
           </div>
           <div id="capture-coach" class="capture-coach" hidden>
@@ -172,129 +296,199 @@
             ><button id="review-retry" class="button primary">重新挑战</button>
           </div>
           <div id="board-toast" class="board-toast" role="status" aria-live="polite"></div>
+          <div class="squad-dock">
+            <div>
+              <small id="squad-hint">点队员，再点道路</small>
+              <div id="cop-roster" class="cop-roster" role="group" aria-label="选择警察队员"></div>
+            </div>
+            <button id="hold-button" class="button hold-button" aria-label="原地守住">
+              <svg><use href="#i-shield" /></svg><span>守住</span>
+            </button>
+          </div>
         </div>
       </section>
+      <section
+        id="pause-dialog"
+        class="screen game-page small-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="result-art" data-character="cop"></div>
+        <svg class="dialog-emblem"><use href="#i-pause" /></svg>
+        <h2>休息一下，马上回来</h2>
+        <p id="pause-reason">准备好后，继续追捕。</p>
+        <button class="button primary wide" id="resume-button">继续行动</button>
+        <div class="dialog-actions">
+          <button class="button quiet" id="pause-restart">重新挑战</button
+          ><button class="button quiet" data-levels>返回选关</button
+          ><button class="button quiet" data-home>首页</button>
+        </div>
+      </section>
+      <section
+        id="win-dialog"
+        class="screen game-page small-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="result-art win-art" data-character="cop"></div>
+        <span class="celebration-stars" aria-hidden="true">✦ ★ ✦</span
+        ><span class="eyebrow">挑战成功</span>
+        <h2 id="win-title">一个也没跑掉。</h2>
+        <p id="win-description"></p>
+        <div class="win-stats">
+          <div><span>本次用时</span><b id="win-time"></b></div>
+          <div><span>我的最佳</span><b id="win-best"></b></div>
+          <div><span>服务器最快</span><b id="win-world">正在读取</b></div>
+        </div>
+        <p id="record-status" role="status"></p>
+        <button id="retry-record" class="button quiet" hidden>重试上传</button
+        ><button class="button primary wide" id="next-button">下一关</button>
+        <div class="dialog-actions">
+          <button class="button quiet" id="win-retry">再来一次</button
+          ><button class="button quiet" id="win-levels">选关</button
+          ><button class="button quiet" data-home>首页</button>
+        </div>
+      </section>
+      <section
+        id="lose-dialog"
+        class="screen game-page small-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="result-art" data-character="robber"></div>
+        <span class="eyebrow">再试一次，你一定可以</span>
+        <h2 id="lose-title">小偷逃走了。</h2>
+        <p id="lose-description"></p>
+        <div class="win-stats">
+          <div><span>已抓获</span><b id="lose-caught"></b></div>
+          <div><span>用时</span><b id="lose-time"></b></div>
+        </div>
+        <button id="lose-retry" class="button primary wide">重新挑战</button>
+        <div class="dialog-actions">
+          <button id="lose-review" class="button quiet">查看局面</button
+          ><button class="button quiet" data-levels>选关</button
+          ><button class="button quiet" data-home>首页</button>
+        </div>
+      </section>
+      <section
+        id="help-dialog"
+        class="screen game-page help-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="dialog-top">
+          <div>
+            <span class="eyebrow">行动手册</span>
+            <h2>点选角色，指挥街区。</h2>
+          </div>
+          <button class="button quiet page-back" data-close>
+            <svg><use href="#i-back" /></svg>返回
+          </button>
+        </div>
+        <ol>
+          <li><b>选人：</b>在街区内点击警察或你控制的小偷。</li>
+          <li><b>下令：</b>再点道路设置目的地，也可以从角色拖到道路。再次点已选角色可停下。</li>
+          <li>
+            <b>合作：</b>警察封住所有退路，至少两人持续合围 0.8
+            秒才能抓获；小偷利用空档逃走或撑到时间结束。
+          </li>
+        </ol>
+        <details>
+          <summary>当前关卡提示</summary>
+          <h3 id="guide-title"></h3>
+          <p id="guide-hint"></p>
+          <p id="ready-hint"></p>
+        </details>
+        <details>
+          <summary>玩法与开局规则</summary>
+          <p id="mode-description"></p>
+          <p>
+            街区挑战固定同时开始；其他模式先手提前 2
+            秒。轮换指挥要求每次有效调动换人。头像设置对所有关卡生效，只存在当前设备。
+          </p>
+          <p>
+            通关纪录按关卡、玩法、角色、先手和指挥规则分别比较。服务器验证操作后才计入通关榜。练习不计纪录。
+          </p>
+        </details>
+        <details>
+          <summary>键盘快捷键</summary>
+          <p>数字键选人，方向键选路口，回车下令，H 停下，Esc 暂停。</p>
+        </details>
+        <button id="practice-button" class="button primary wide">练一次合作夹击</button>
+      </section>
+      <section
+        id="records-dialog"
+        class="screen game-page records-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="dialog-top">
+          <div>
+            <span class="eyebrow">全站榜</span>
+            <h2>街区通关纪录</h2>
+          </div>
+          <button class="button quiet page-back" data-close>
+            <svg><use href="#i-back" /></svg>返回
+          </button>
+        </div>
+        <div class="trophy-art" aria-hidden="true">
+          <svg><use href="#i-trophy" /></svg><span>✦</span>
+        </div>
+        <p id="records-context"></p>
+        <p class="muted">同一玩法、角色与开局规则，比比谁收网更快。</p>
+        <div class="record-selector">
+          <button id="records-prev" class="icon-button" aria-label="上一关纪录">
+            <svg><use href="#i-back" /></svg>
+          </button>
+          <div><small>选择街区</small><strong id="records-level-name"></strong></div>
+          <button id="records-next" class="icon-button" aria-label="下一关纪录">
+            <svg><use href="#i-arrow" /></svg></button
+          ><label hidden>关卡<select id="records-level"></select></label>
+        </div>
+        <div class="record-pair">
+          <div><span>我的最佳 · 本机</span><strong id="records-local">暂无</strong></div>
+          <div><span>服务器最快</span><strong id="records-world">正在读取</strong></div>
+        </div>
+        <p id="records-state" role="status"></p>
+        <ol id="records-list" class="records-list"></ol>
+        <div class="dialog-actions">
+          <button id="records-refresh" class="button quiet">刷新纪录</button
+          ><button class="button quiet" data-competition-entry="board">好友对战积分榜</button
+          ><button class="button primary" data-levels>去选关</button>
+        </div>
+      </section>
+      <section
+        id="service-dialog"
+        class="screen game-page small-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <div class="result-art" data-character="robber"></div>
+        <h2>好友 PK</h2>
+        <p>好友服务尚未载入，请稍后重试。你仍可进入单人关卡。</p>
+        <button class="button primary wide" data-close>返回首页</button>
+      </section>
+      <section
+        id="share-dialog"
+        class="screen game-page small-dialog"
+        data-game-page
+        hidden
+        tabindex="-1"
+      >
+        <h2 id="share-title">分享同题</h2>
+        <label for="share-url">同题链接</label><input id="share-url" readonly />
+        <p id="share-note" role="status"></p>
+        <button id="copy-share" class="button primary wide">复制链接</button
+        ><button id="native-share" class="button quiet wide" hidden>打开分享面板</button
+        ><button class="button quiet wide" data-close>返回选关</button>
+      </section>
     </main>
-
-    <dialog id="pause-dialog" class="small-dialog">
-      <svg class="dialog-emblem"><use href="#i-pause" /></svg>
-      <h2>暂停</h2>
-      <p id="pause-reason">准备好后，继续追捕。</p>
-      <button class="button primary wide" id="resume-button">继续行动</button>
-      <div class="dialog-actions">
-        <button class="button quiet" id="pause-restart">重新挑战</button
-        ><button class="button quiet" data-levels>返回选关</button
-        ><button class="button quiet" data-home>首页</button>
-      </div>
-    </dialog>
-    <dialog id="win-dialog" class="small-dialog">
-      <span class="eyebrow">挑战成功</span>
-      <h2 id="win-title">一个也没跑掉。</h2>
-      <p id="win-description"></p>
-      <div class="win-stats">
-        <div><span>本次用时</span><b id="win-time"></b></div>
-        <div><span>我的最佳</span><b id="win-best"></b></div>
-        <div><span>服务器最快</span><b id="win-world">正在读取</b></div>
-      </div>
-      <p id="record-status" role="status"></p>
-      <button id="retry-record" class="button quiet" hidden>重试上传</button
-      ><button class="button primary wide" id="next-button">下一关</button>
-      <div class="dialog-actions">
-        <button class="button quiet" id="win-retry">再来一次</button
-        ><button class="button quiet" id="win-levels">选关</button
-        ><button class="button quiet" data-home>首页</button>
-      </div>
-    </dialog>
-    <dialog id="lose-dialog" class="small-dialog">
-      <span class="eyebrow">本局结束</span>
-      <h2 id="lose-title">小偷逃走了。</h2>
-      <p id="lose-description"></p>
-      <div class="win-stats">
-        <div><span>已抓获</span><b id="lose-caught"></b></div>
-        <div><span>用时</span><b id="lose-time"></b></div>
-      </div>
-      <button id="lose-retry" class="button primary wide">重新挑战</button>
-      <div class="dialog-actions">
-        <button id="lose-review" class="button quiet">查看局面</button
-        ><button class="button quiet" data-levels>选关</button
-        ><button class="button quiet" data-home>首页</button>
-      </div>
-    </dialog>
-    <dialog id="help-dialog" class="help-dialog">
-      <div class="dialog-top">
-        <div>
-          <span class="eyebrow">行动手册</span>
-          <h2>点选角色，指挥街区。</h2>
-        </div>
-        <button class="button quiet" data-close>返回首页</button>
-      </div>
-      <ol>
-        <li><b>选人：</b>在街区内点击警察或你控制的小偷。</li>
-        <li><b>下令：</b>再点道路设置目的地，也可以从角色拖到道路。再次点已选角色可停下。</li>
-        <li>
-          <b>合作：</b>警察封住所有退路，至少两人持续合围 0.8
-          秒才能抓获；小偷利用空档逃走或撑到时间结束。
-        </li>
-      </ol>
-      <details>
-        <summary>当前关卡提示</summary>
-        <h3 id="guide-title"></h3>
-        <p id="guide-hint"></p>
-        <p id="ready-hint"></p>
-      </details>
-      <details>
-        <summary>玩法与开局规则</summary>
-        <p id="mode-description"></p>
-        <p>
-          街区挑战固定同时开始；其他模式先手提前 2
-          秒。轮换指挥要求每次有效调动换人。头像设置对所有关卡生效，只存在当前设备。
-        </p>
-        <p>
-          通关纪录按关卡、玩法、角色、先手和指挥规则分别比较。服务器验证操作后才计入通关榜。练习不计纪录。
-        </p>
-      </details>
-      <details>
-        <summary>键盘快捷键</summary>
-        <p>数字键选人，方向键选路口，回车下令，H 停下，Esc 暂停。</p>
-      </details>
-      <button id="practice-button" class="button primary wide">练一次合作夹击</button>
-    </dialog>
-    <dialog id="records-dialog" class="records-dialog">
-      <div class="dialog-top">
-        <div>
-          <span class="eyebrow">全站榜</span>
-          <h2>街区通关纪录</h2>
-        </div>
-        <button class="button quiet" data-close>返回首页</button>
-      </div>
-      <p id="records-context"></p>
-      <p class="muted">按当前选关设置比较，可在选关页切换玩法与角色。</p>
-      <label>关卡<select id="records-level"></select></label>
-      <div class="record-pair">
-        <div><span>我的最佳 · 本机</span><strong id="records-local">暂无</strong></div>
-        <div><span>服务器最快</span><strong id="records-world">正在读取</strong></div>
-      </div>
-      <p id="records-state" role="status"></p>
-      <ol id="records-list" class="records-list"></ol>
-      <div class="dialog-actions">
-        <button id="records-refresh" class="button quiet">刷新纪录</button
-        ><button class="button quiet" data-competition-entry="board">好友对战积分榜</button
-        ><button class="button primary" data-levels>去选关</button>
-      </div>
-    </dialog>
-    <dialog id="service-dialog" class="small-dialog">
-      <h2>好友 PK</h2>
-      <p>好友服务尚未载入，请稍后重试。你仍可进入单人关卡。</p>
-      <button class="button primary wide" data-close>返回首页</button>
-    </dialog>
-    <dialog id="share-dialog" class="small-dialog">
-      <h2 id="share-title">分享同题</h2>
-      <label for="share-url">同题链接</label><input id="share-url" readonly />
-      <p id="share-note" role="status"></p>
-      <button id="copy-share" class="button primary wide">复制链接</button
-      ><button id="native-share" class="button quiet wide" hidden>打开分享面板</button
-      ><button class="button quiet wide" data-close>返回选关</button>
-    </dialog>
     <script type="module" src="./src/main.js"></script>
     <script defer src="./src/fullscreen.js"></script>
   <script defer src="./competition.js"></script></body>

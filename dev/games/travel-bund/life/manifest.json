@@ -1,0 +1,19 @@
+{
+  "generator": "Blender",
+  "models": [
+    "banner",
+    "flowers",
+    "kiosk",
+    "pigeon-body",
+    "pigeon-wing-left",
+    "pigeon-wing-right",
+    "visitor-arm-left",
+    "visitor-arm-right",
+    "visitor-body",
+    "visitor-leg-left",
+    "visitor-leg-right"
+  ],
+  "triangles": 15006,
+  "bytes": 602788,
+  "verified": "GLB reimport, finite vertices and animation parts"
+}

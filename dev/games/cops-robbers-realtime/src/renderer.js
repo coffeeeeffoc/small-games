@@ -177,7 +177,7 @@ function flowers(ctx, x, y, variant) {
   }
 }
 
-function buildMap(level) {
+function buildMap(level, rotation = 0) {
   const W = level.worldWidth || 1000,
     H = level.worldHeight || 600;
   const bg = document.createElement('canvas');
@@ -211,6 +211,13 @@ function buildMap(level) {
           1,
         );
     }
+  const decoration = (draw, x, y, ...args) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-rotation);
+    draw(ctx, 0, 0, ...args);
+    ctx.restore();
+  };
   const occupied = [];
   for (let gy = 0; gy < 5; gy++)
     for (let gx = 0; gx < 8; gx++) {
@@ -219,12 +226,12 @@ function buildMap(level) {
         y = 84 + gy * 105 + (seed % 17) - 8;
       const d = distance(x, y);
       if (d > 100 && seed % 4 === 0 && x < 910 && y > 83 && y < 507) {
-        house(ctx, x, y, Math.floor(seed / 4));
+        decoration(house, x, y, Math.floor(seed / 4));
         occupied.push({ x, y, r: 83 });
       } else if (d > 65 && !occupied.some((p) => Math.hypot(x - p.x, y - p.y) < p.r + 27)) {
-        if (seed % 5 < 2) tree(ctx, x, y, 0.8 + (seed % 4) * 0.08, seed % 2);
-        else if (seed % 5 === 2) flowers(ctx, x, y, seed % 2);
-        else if (d > 75 && seed % 5 === 3) bench(ctx, x, y, seed % 2 ? 0.08 : -0.08);
+        if (seed % 5 < 2) decoration(tree, x, y, 0.8 + (seed % 4) * 0.08, seed % 2);
+        else if (seed % 5 === 2) decoration(flowers, x, y, seed % 2);
+        else if (d > 75 && seed % 5 === 3) decoration(bench, x, y, seed % 2 ? 0.08 : -0.08);
       }
     }
   const road = (color, width, offset = 0) => {
@@ -277,16 +284,21 @@ function buildMap(level) {
   ctx.font = `bold 9px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#6f8e78';
-  ctx.fillText('N', 0, -19);
+  ctx.rotate(-rotation);
+  ctx.fillText('N', rotation ? 19 : 0, rotation ? 0 : -19);
   ctx.restore();
+  ctx.save();
+  ctx.translate(rotation ? 930 : 39, rotation ? 545 : 559);
+  ctx.rotate(-rotation);
   ctx.font = `bold 9px ${FONT}`;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#7d997d';
-  ctx.fillText('NEIGHBORHOOD PATROL', 39, 559);
+  ctx.fillText('NEIGHBORHOOD PATROL', 0, 0);
+  ctx.restore();
   return bg;
 }
 
-export function route(ctx, actor, selected) {
+export function route(ctx, actor, selected, rotation = 0) {
   if (!actor.destination) return;
   const points = [{ x: actor.x, y: actor.y }, ...(actor.routePoints || [])];
   if (points.length < 2) points.push(actor.destination);
@@ -301,7 +313,10 @@ export function route(ctx, actor, selected) {
     selected ? 3.5 : 2,
   );
   ctx.setLineDash([]);
-  const { x, y } = actor.destination;
+  ctx.translate(actor.destination.x, actor.destination.y);
+  ctx.rotate(-rotation);
+  const x = 0,
+    y = 0;
   ellipse(ctx, x, y, 11, 4, selected ? '#448bc942' : '#448bc922');
   line(
     ctx,
@@ -327,9 +342,11 @@ export function route(ctx, actor, selected) {
   ctx.restore();
 }
 
-function bubble(ctx, x, y, text, color = INK, scale = 1) {
+function bubble(ctx, x, y, text, color = INK, scale = 1, rotation = 0, offsetY = 0) {
   ctx.save();
   ctx.translate(x, y);
+  ctx.rotate(-rotation);
+  ctx.translate(0, offsetY);
   ctx.scale(scale, scale);
   ctx.font = `bold ${text.length > 3 ? 11 : 15}px ${FONT}`;
   const w = Math.max(25, ctx.measureText(text).width + 17);
@@ -411,8 +428,10 @@ function exitAngle(level, node) {
   return [Math.PI, 0, -Math.PI / 2, Math.PI / 2][sides.indexOf(Math.min(...sides))];
 }
 
-function exitLabels(level, top) {
+function exitLabels(level, top, rotation = 0) {
   const placed = [];
+  const halfWidth = rotation ? 22 : 75,
+    halfHeight = rotation ? 75 : 22;
   // ponytail: eight nearby positions fit these grid maps; author sign offsets if future exits overlap.
   return (level.exits || []).map((node) => {
     const point = level.nodes[node];
@@ -426,8 +445,20 @@ function exitLabels(level, top) {
       [112, -75],
       [-112, -75],
     ].map(([dx, dy]) => ({
-      x: Math.max(82, Math.min((level.worldWidth || W) - 82, point.x + dx)),
-      y: Math.max(top + 23, Math.min((level.worldHeight || H) - 48, point.y + dy)),
+      x: Math.max(
+        halfWidth + 12,
+        Math.min(
+          (level.worldWidth || W) - halfWidth - 12,
+          point.x + dx * Math.cos(rotation) + dy * Math.sin(rotation),
+        ),
+      ),
+      y: Math.max(
+        rotation ? halfHeight + 12 : top + 23,
+        Math.min(
+          (level.worldHeight || H) - halfHeight - 26,
+          point.y - dx * Math.sin(rotation) + dy * Math.cos(rotation),
+        ),
+      ),
     }));
     const score = (candidate) => {
       const roadClearance = Math.min(
@@ -438,12 +469,14 @@ function exitLabels(level, top) {
             dy = end.y - start.y;
           return (
             segmentDistance(candidate.x, candidate.y, start, end) -
-            (Math.abs(dy) * 75 + Math.abs(dx) * 22) / Math.hypot(dx, dy)
+            (Math.abs(dy) * halfWidth + Math.abs(dx) * halfHeight) / Math.hypot(dx, dy)
           );
         }),
       );
       const overlap = placed.some(
-        (other) => Math.abs(other.x - candidate.x) < 158 && Math.abs(other.y - candidate.y) < 51,
+        (other) =>
+          Math.abs(other.x - candidate.x) < halfWidth * 2 + 8 &&
+          Math.abs(other.y - candidate.y) < halfHeight * 2 + 7,
       );
       return (
         Math.min(roadClearance, 70) -
@@ -457,7 +490,7 @@ function exitLabels(level, top) {
   });
 }
 
-function exitMarker(ctx, game, exit, index, label, t) {
+function exitMarker(ctx, game, exit, index, label, t, rotation = 0) {
   const blocked = isExitBlocked(game, exit);
   const nearby = game.robbers.filter(
     (robber) => !robber.caught && !robber.escaped && roadDistance(game, robber, exit) < 180,
@@ -566,10 +599,12 @@ function exitMarker(ctx, game, exit, index, label, t) {
         : danger
           ? '小偷逼近！'
           : '出口开放';
+  ctx.translate(label.x, label.y);
+  ctx.rotate(-rotation);
   round(
     ctx,
-    label.x - 75,
-    label.y - 22,
+    -75,
+    -22,
     150,
     44,
     9,
@@ -581,9 +616,9 @@ function exitMarker(ctx, game, exit, index, label, t) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
   ctx.font = `bold 17px ${FONT}`;
-  ctx.fillText(`逃脱口 ${String.fromCharCode(65 + index)}`, label.x, label.y - 8);
+  ctx.fillText(`逃脱口 ${String.fromCharCode(65 + index)}`, 0, -8);
   ctx.font = `bold 14px ${FONT}`;
-  ctx.fillText(status, label.x, label.y + 10);
+  ctx.fillText(status, 0, 10);
   ctx.restore();
 }
 
@@ -597,12 +632,14 @@ export function actorBody(
   caughtAge,
   celebrating,
   escapedAge,
+  rotation = 0,
 ) {
   const role = cop ? 'cop' : 'robber',
     { color } = getRoleAppearance(role);
   const stride = actor.moving ? Math.sin(t * 16 + actor.id * 2) * 5 : 0;
   ctx.save();
   ctx.translate(actor.x, actor.y);
+  ctx.rotate(-rotation);
   if (actor.caught) ctx.globalAlpha = Math.max(0, 1 - Math.max(0, caughtAge - 0.65) / 0.7);
   else if (actor.escaped) ctx.globalAlpha = Math.max(0, 1 - escapedAge / 0.9);
   ellipse(ctx, 0, 6, 19, 7, '#43594735');
@@ -647,6 +684,7 @@ export function createRenderer(canvas) {
     scale = 1,
     ox = 0,
     oy = 0,
+    rotation = 0,
     labelTop = 34;
   let cachedLevel = null,
     background = null,
@@ -656,7 +694,6 @@ export function createRenderer(canvas) {
     captures = new Map(),
     escapes = new Map();
   function resize() {
-    const rect = canvas.getBoundingClientRect();
     width = Math.max(1, canvas.clientWidth);
     height = Math.max(1, canvas.clientHeight);
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -668,31 +705,41 @@ export function createRenderer(canvas) {
     }
     const W = cachedLevel?.worldWidth || 1000,
       H = cachedLevel?.worldHeight || 600;
-    scale = Math.min(width / W, Math.max(1, height - 72) / H);
-    ox = (width - W * scale) / 2;
-    oy = 62 + (height - 72 - H * scale) / 2;
+    const previousRotation = rotation;
+    rotation = height > width ? Math.PI / 2 : 0;
+    const dock = canvas.parentElement?.querySelector('.squad-dock');
+    const bottomSpace = rotation ? (dock?.offsetHeight || 0) + 24 : 10;
+    const availableWidth = rotation ? width : Math.max(1, width - (dock?.offsetWidth || 0) - 32);
+    const mapWidth = rotation ? H : W,
+      mapHeight = rotation ? W : H,
+      availableHeight = Math.max(1, height - 72 - bottomSpace);
+    scale = Math.min(availableWidth / mapWidth, availableHeight / mapHeight);
+    ox = (availableWidth - mapWidth * scale) / 2 + (rotation ? 0 : 12);
+    oy = 62 + (availableHeight - mapHeight * scale) / 2;
     const hud = canvas.parentElement?.querySelector('.board-top');
     labelTop = Math.max(34, ((hud ? hud.offsetTop + hud.offsetHeight : 0) + 8 - oy) / scale);
-    if (cachedLevel) labels = exitLabels(cachedLevel, labelTop);
+    if (cachedLevel) {
+      labels = exitLabels(cachedLevel, labelTop, rotation);
+      if (background && previousRotation !== rotation) background = buildMap(cachedLevel, rotation);
+    }
   }
   resize();
   const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
   observer?.observe(canvas);
   function toWorld(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const rotated = matchMedia('(orientation: portrait)').matches;
-    const localX = rotated ? clientY - rect.top : clientX - rect.left;
-    const localY = rotated ? rect.right - clientX : clientY - rect.top;
-    return {
-      x: (localX - ox) / scale,
-      y: (localY - oy) / scale,
-    };
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+    const x = (localX - ox) / scale,
+      y = (localY - oy) / scale;
+    return rotation ? { x: y, y: (cachedLevel?.worldHeight || H) - x } : { x, y };
   }
   function toScreen({ x, y }) {
     const rect = canvas.getBoundingClientRect();
-    return matchMedia('(orientation: portrait)').matches
-      ? { x: rect.right - oy - y * scale, y: rect.top + ox + x * scale }
-      : { x: rect.left + ox + x * scale, y: rect.top + oy + y * scale };
+    return {
+      x: rect.left + ox + (rotation ? (cachedLevel?.worldHeight || H) - y : x) * scale,
+      y: rect.top + oy + (rotation ? x : y) * scale,
+    };
   }
   function draw(
     game,
@@ -711,8 +758,8 @@ export function createRenderer(canvas) {
     if (cachedLevel !== game.level || game.time < lastTime) {
       cachedLevel = game.level;
       resize();
-      background = buildMap(game.level);
-      labels = exitLabels(game.level, labelTop);
+      background = buildMap(game.level, rotation);
+      labels = exitLabels(game.level, labelTop, rotation);
       orders.clear();
       captures.clear();
       escapes.clear();
@@ -722,15 +769,16 @@ export function createRenderer(canvas) {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = '#ccdec0';
     ctx.fillRect(0, 0, width, height);
-    ctx.translate(ox, oy);
+    ctx.translate(ox + (rotation ? (game.level.worldHeight || H) * scale : 0), oy);
     ctx.scale(scale, scale);
+    ctx.rotate(rotation);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.drawImage(background, 0, 0, game.level.worldWidth || W, game.level.worldHeight || H);
     const seconds = now / 1000,
       t = reducedMotion ? 0 : game.time || 0;
     (game.exits || []).forEach((exit, index) =>
-      exitMarker(ctx, game, exit, index, labels[index], t),
+      exitMarker(ctx, game, exit, index, labels[index], t, rotation),
     );
     for (const cop of game.cops) {
       const key = cop.destination
@@ -738,10 +786,10 @@ export function createRenderer(canvas) {
         : '';
       if (orders.get(cop.id)?.key !== key) orders.set(cop.id, { key, at: key ? seconds : -99 });
       guardRange(ctx, game, cop, cop.id === selected);
-      route(ctx, cop, game.playerRole !== 'robber' && cop.id === selected);
+      route(ctx, cop, game.playerRole !== 'robber' && cop.id === selected, rotation);
     }
     if (game.playerRole === 'robber')
-      for (const robber of game.robbers) route(ctx, robber, robber.id === selected);
+      for (const robber of game.robbers) route(ctx, robber, robber.id === selected, rotation);
     if (captureHint && game.phase !== 'ready' && game.phase !== 'won') {
       const { robber, gap } = captureHint;
       ellipse(ctx, robber.x, robber.y, 31, 23, null, '#bd6c37', 2);
@@ -762,7 +810,7 @@ export function createRenderer(canvas) {
     }
     if (practiceTarget) {
       ellipse(ctx, 500, 300, 36, 36, '#d5ecff88', BLUE, 3);
-      bubble(ctx, 500, 235, '点这里推进', BLUE, 1);
+      bubble(ctx, 500, 300, '点这里推进', BLUE, 1, rotation, -65);
     }
     if (preview?.length) {
       ctx.save();
@@ -789,10 +837,12 @@ export function createRenderer(canvas) {
       bubble(
         ctx,
         actor.x,
-        actor.y < 150 ? actor.y + 65 : actor.y - 70,
+        actor.y,
         cop ? `${actor.id + 1} 号 · 点击选中 / 拖动` : '对方队员 · 点击道路包抄',
         color,
         0.8,
+        rotation,
+        (rotation ? actor.x : actor.y) < 150 ? 65 : -70,
       );
     }
     for (const robber of game.robbers) {
@@ -817,7 +867,7 @@ export function createRenderer(canvas) {
       ...game.cops.map((actor) => ({ actor, cop: true })),
       ...game.robbers.map((actor) => ({ actor, cop: false })),
     ];
-    actors.sort((a, b) => a.actor.y - b.actor.y);
+    actors.sort((a, b) => (rotation ? a.actor.x - b.actor.x : a.actor.y - b.actor.y));
     for (const { actor, cop } of actors) {
       const caughtAge = actor.caught ? seconds - captures.get(actor.id) : 0;
       const escapedAge = actor.escaped ? seconds - escapes.get(actor.id) : 0;
@@ -842,8 +892,8 @@ export function createRenderer(canvas) {
       let displayed = offset
         ? {
             ...actor,
-            x: actor.x + offset,
-            y: actor.y + Math.abs(offset) * 0.18,
+            x: actor.x + offset * Math.cos(rotation) + Math.abs(offset) * 0.18 * Math.sin(rotation),
+            y: actor.y - offset * Math.sin(rotation) + Math.abs(offset) * 0.18 * Math.cos(rotation),
           }
         : actor;
       if (actor.escaped) {
@@ -870,6 +920,7 @@ export function createRenderer(canvas) {
         caughtAge,
         cop && game.phase === 'won',
         escapedAge,
+        rotation,
       );
     }
   }

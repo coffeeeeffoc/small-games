@@ -2,15 +2,20 @@ import { levels, chapters } from './levels.js';
 import { initialState, legalTargets, validatePlan, step, stateKey } from './engine.js';
 import { solutions } from './solutions.js';
 import { optimalRelaySolutions } from './optimal-solutions.js';
-import { character, scenery } from './art.js';
+import { character, gamePortrait, scenery, sceneDefinitions } from './art.js';
 import { openAppearanceSettings } from './role-appearance.js';
+import { boardHeight, presentationLevel, actorScale, applyBoardLayout, boardExitEndpoint } from './board-layout.js';
 import { setupDuelLobby } from './duel-ui.js';
 import { setSound, unlockSound, playSound } from './sound.js';
 import { relayLevelIds, movedOfficer, lastOfficer, relayTargets, relayError } from './relay.js';
 import { readPuzzleLink, showPuzzleShare } from './share.js';
 import { quickTrials, quickSolutions, quickOutcome } from './quick-trials.js';
 
+import { setupGameShell, drawLevelPath } from './game-shell.js';
+
+globalThis.__CLASSIC_CHASE_ROLES__ = true;
 const $ = id => document.getElementById(id);
+let duelLobby;
 const svgNS = 'http://www.w3.org/2000/svg';
 const storageKey = 'cops-robbers-v3';
 const query = new URLSearchParams(location.search);
@@ -19,13 +24,13 @@ const copy = value => structuredClone(value);
 const icons = {
   sound: '<path d="m4 9 5 0 5-4v14l-5-4H4Z"/><path d="M17 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/>',
   muted: '<path d="m4 9 5 0 5-4v14l-5-4H4Z"/><path d="m18 9 5 6m0-6-5 6"/>',
-  settings: '<path d="M5 4v16M12 4v16M19 4v16"/><path d="M2 9h6m1 6h6m1-7h6"/>',
+  settings: '<path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 0 1 6 1c0 2-3 2-3 4m0 3v.2"/>',
   undo: '<path d="M8 5 3 10l5 5M3 10h11a6 6 0 0 1 0 12" transform="translate(1 -2)"/>',
   hint: '<path d="M8 16c0-4-3-4-3-8a7 7 0 0 1 14 0c0 4-3 4-3 8Z" transform="translate(0 2)"/><path d="M9 21h6M9 17h6"/>',
 };
 const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
-$('settings').innerHTML = icon('settings'); $('help').innerHTML = icon('help'); $('undo-icon').innerHTML = icon('undo'); $('hint-icon').innerHTML = icon('hint');
+$('settings').innerHTML = icon('settings'); $('undo-icon').innerHTML = icon('undo'); $('hint-icon').innerHTML = icon('hint');
 
 function validState(candidate, map) {
   const node = n => Number.isInteger(n) && n >= 0 && n < map.nodes.length;
@@ -54,7 +59,7 @@ for (const map of levels) {
 let soundOn = typeof saved.settings?.sound === 'boolean' ? saved.settings.sound : true;
 let teaching = typeof saved.settings?.teaching === 'boolean' ? saved.settings.teaching : !completed[1];
 let reduced = query.get('motion') === 'reduce' || (typeof saved.settings?.reduced === 'boolean' ? saved.settings.reduced : matchMedia('(prefers-reduced-motion: reduce)').matches);
-let level, state, history = [], selected = 0, inspected = -1, hovered = -1, phase = 'planning';
+let level, sourceLevel, state, history = [], selected = 0, inspected = -1, hovered = -1, phase = 'planning';
 let rule = 'standard';
 let playMode = 'challenge';
 const records = () => playMode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed;
@@ -111,15 +116,22 @@ function syncSettings() {
   $('sound-setting').checked = soundOn; $('motion-setting').checked = reduced;
   $('teaching-setting').checked = teaching;
 }
-function notify(message, tone = '') { $('instruction').textContent = message; $('instruction').className = `instruction ${tone}`; }
+function notify(message, tone = '') { $('instruction').textContent = message; $('instruction').className = `sr-only instruction ${tone}`; }
 function stopHint() {
   hintWorker?.terminate(); hintWorker = null; clearTimeout(hintTimer); hintTimer = null; hintBusy = false;
 }
 function clearHint() { stopHint(); hintTarget = null; $('hint-layer')?.replaceChildren(); }
 function focusPatrol(active) {
   cancelDrag();
+  if (!active) {
+    if (pending) { finishTurn(runToken); runToken++; }
+    clearHint();
+    updatePlanning();
+    if (phase === 'planning') notify(turnInstruction('点亮起的相邻路口，继续包抄。'));
+    document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+  }
   document.body.classList.toggle('focus-play', active);
-  $('focus-toggle').textContent = active ? '返回大厅' : '继续围捕';
+  $('focus-toggle').setAttribute('aria-label', '返回大厅');
   window.scrollTo(0, 0);
   document.dispatchEvent(new Event('game-displaychange'));
 }
@@ -148,9 +160,7 @@ function updateChrome() {
   $('reference-turns').textContent = `三星 ≤ ${parTurns()} 步${best ? ` · 最佳 ${best} 步` : ` · ${level.cops.length} 人协作`}`;
 }
 function exitEndpoint(node, outside = false) {
-  const p = level.nodes[node];
-  const sides = [{ d: p.x, x: outside ? -28 : 18, y: p.y }, { d: 600 - p.x, x: outside ? 628 : 582, y: p.y }, { d: p.y, x: p.x, y: outside ? -28 : 18 }, { d: 600 - p.y, x: p.x, y: outside ? 628 : 582 }];
-  return sides.sort((a, b) => a.d - b.d)[0];
+  return boardExitEndpoint(level, node, outside);
 }
 function updateExits() {
   for (const node of level.exits) {
@@ -160,20 +170,22 @@ function updateExits() {
   }
 }
 function drawBase() {
+  applyBoardLayout($('board'), level);
+  if (!document.body.classList.contains('duel-active')) document.body.dataset.boardHeight = String(level.height);
   const roads = level.edges.map(([a, b]) => `M${level.nodes[a].x} ${level.nodes[a].y}L${level.nodes[b].x} ${level.nodes[b].y}`).join('');
   const exits = level.exits.map(node => {
     const p = level.nodes[node], end = exitEndpoint(node), horizontal = end.y === p.y;
     const x = horizontal ? (p.x + end.x) / 2 : p.x, y = horizontal ? p.y - 21 : (p.y + end.y) / 2;
     return `<g id="escape-${node}" class="escape-gate" data-testid="exit-${node}" role="img" aria-label="${node + 1}号逃生出口"><path class="escape-road" d="M${p.x} ${p.y}L${end.x} ${end.y}"/><path class="escape-direction" d="M${p.x} ${p.y}L${end.x} ${end.y}" marker-end="url(#escape-arrow)"/><circle cx="${p.x}" cy="${p.y}" r="28" class="escape-ring"/><g transform="translate(${x} ${y})"><rect x="-29" y="-10" width="58" height="20" rx="5"/><text y="5">逃生口</text></g></g>`;
   }).join('');
-  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="18"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="25"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle r="46" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
-  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs><marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
+  const nodes = level.nodes.map((p, i) => `<g><circle class="node-ground" cx="${p.x}" cy="${p.y}" r="26"/><circle id="target-${i}" class="node-target" cx="${p.x}" cy="${p.y}" r="31"/><g class="node-label" data-testid="node-${i}" data-node="${i}" role="button" tabindex="0" aria-label="${i + 1}号路口" transform="translate(${p.x} ${p.y + 26})"><circle class="node-hit" cy="-26" r="34" fill="transparent"/><rect x="-17" y="-12" width="34" height="24" rx="8"/><text y="7">${i + 1}</text></g></g>`).join('');
+  $('board').innerHTML = `<title>${level.name}：${level.cops.length}名追逐队员，${level.robbers.length}名突围队员，${level.exits.length}个逃生出口</title><defs>${sceneDefinitions()}<marker id="cop-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#177c91"/></marker><marker id="robber-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#cb6c49"/></marker><marker id="escape-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto"><path d="M0 0 5 2.5 0 5Z" fill="#c45836"/></marker></defs>${scenery(level, level.chapter)}<g aria-hidden="true"><path class="road-shadow" d="${roads}"/><path class="road-base" d="${roads}"/><path class="road-center" d="${roads}"/></g>${exits}<g id="preview-layer" aria-hidden="true"></g><g id="node-layer">${nodes}</g><g id="hint-layer" aria-hidden="true"></g><g id="actor-layer"></g><g id="label-layer"></g><g id="drag-layer" aria-hidden="true"></g>`;
   // Road-number controls stay above portraits on dense later maps.
   $('board').querySelectorAll('.node-label').forEach(label => $('label-layer').append(label));
-  $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号追逐队员" aria-pressed="false" data-cop="${i}">${i + 1}</button>`).join('');
+  $('squad').innerHTML = state.cops.map((_, i) => `<button aria-label="选择${i + 1}号追逐队员" aria-pressed="false" data-cop="${i}"><svg class="squad-avatar" viewBox="0 0 100 100" aria-hidden="true">${gamePortrait('cop', 0, 0, 100)}</svg><span class="squad-number">${i + 1}</span></button>`).join('');
 }
 function updateActors(view = state, moving = '', catches = []) {
-  const layer = $('actor-layer'), occupied = new Set(view.cops);
+  const layer = $('actor-layer'), occupied = new Set(view.cops), scale = actorScale(level);
   for (const kind of ['cop', 'robber']) {
     const positions = kind === 'cop' ? view.cops : view.robbers;
     positions.forEach((node, i) => {
@@ -196,8 +208,8 @@ function updateActors(view = state, moving = '', catches = []) {
       if (kind === 'cop') actor.setAttribute('aria-pressed', String(selected === i));
       actor.setAttribute('class', `actor ${kind} ${mood === 'run' ? 'running' : mood}`);
       actor.style.transform = `translate(${point.x + offset}px, ${point.y + 12}px)`;
-      actor.innerHTML = `<rect x="-30" y="-70" width="60" height="82" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="23" ry="8" fill="#3f584c" opacity=".12"/><ellipse class="selection-ring" cx="0" cy="-1" rx="29" ry="12"/><g transform="scale(.64)"><g class="figure">${character(kind, mood, i)}</g></g>${mood === 'caught' ? '<text class="capture-label" y="-82">抓到啦！</text>' : ''}`;
-      if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="20" cy="-66" r="12" fill="#c76649"/><text class="group-count" x="20" y="-61">×${same.length}</text>`;
+      actor.innerHTML = `<rect x="${-42 * scale}" y="${-110 * scale}" width="${84 * scale}" height="${116 * scale}" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="29" ry="10" fill="#3f584c" opacity=".2"/><ellipse class="selection-ring" cx="0" cy="-1" rx="38" ry="16"/><g transform="scale(${scale})"><g class="figure">${character(kind, mood, i)}</g></g>${mood === 'caught' ? `<text class="capture-label" y="${-110 * scale - 12}">抓到啦！</text>` : ''}`;
+      if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="26" cy="${-94 * scale}" r="12" fill="#c76649"/><text class="group-count" x="26" y="${-94 * scale + 5}">×${same.length}</text>`;
     });
   }
   // Paint lower characters last so crossing paths retain a natural depth order.
@@ -212,15 +224,17 @@ function route(from, to, className, marker, offset = 0) {
 }
 function updatePlanning() {
   const reachable = phase === 'planning' ? targetsFor(selected) : [];
+  const occupied = new Set([...state.cops, ...state.robbers]);
   level.nodes.forEach((_, i) => {
     let type = reachable.includes(i) ? 'reachable' : '';
     if (hovered === i && reachable.includes(i)) type = 'chosen';
     if (inspected >= 0 && state.robbers[inspected] >= 0 && level.adj[state.robbers[inspected]].includes(i)) type = state.cops.includes(i) ? 'blocked' : 'exit';
+    if (phase === 'planning' && state.cops[selected] === i) type += ' selected';
     $(`target-${i}`).setAttribute('class', `node-target ${type}`);
     const label = $('board').querySelector(`[data-testid="node-${i}"]`);
     label.classList.toggle('reachable', reachable.includes(i));
     label.classList.toggle('hinted', hintTarget?.node === i);
-    label.querySelector('circle').setAttribute('r', hintTarget?.node === i ? '32' : '46');
+    label.querySelector('.node-hit').setAttribute('r', occupied.has(i) ? '0' : hintTarget?.node === i ? '32' : '34');
     label.setAttribute('aria-label', `${i + 1}号路口${level.exits.includes(i) ? '，逃生出口' : ''}${reachable.includes(i) ? '，点击立即移动' : ''}`);
   });
   let markup = '';
@@ -252,16 +266,19 @@ function updatePlanning() {
   $('preview-layer').innerHTML = markup; updateActors(); updateExits(); updateChrome();
 }
 function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
+  document.body.dataset.lastGame = 'challenge';
   playMode = nextMode === 'quick' ? 'quick' : 'challenge';
   rule = nextRule === 'relay' ? 'relay' : 'standard';
   if (playMode === 'quick') rule = 'standard';
+  $('solo-mode').value = playMode === 'quick' ? 'quick' : rule === 'relay' ? 'relay' : 'challenge';
   if (rule === 'relay' && !relayLevelIds.includes(id)) id = relayLevelIds[0];
   document.body.classList.remove('duel-active');
   $('duel-game').hidden = true;
   runToken++; pending = null; drag = null; clearHint();
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
   const catalog = playMode === 'quick' ? quickTrials : levels;
-  level = catalog.find(item => item.id === id) || catalog[0];
+  sourceLevel = catalog.find(item => item.id === id) || catalog[0];
+  level = presentationLevel(sourceLevel);
   state = restore && validState(restore.state, level) ? copy(restore.state) : initialState(level);
   history = restore && Array.isArray(restore.history) ? restore.history.filter(s => validState(s, level)).slice(-100).map(copy) : [];
   if (rule === 'relay') state.relayLast = lastOfficer(state, history);
@@ -279,6 +296,23 @@ function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
   updatePlanning(); syncSettings(); persist(); focusPatrol(true);
   if (phase === 'won') { updateActors(); showWin(false); }
   if (phase === 'lost') showLoss(false);
+}
+function resizeBoard() {
+  cancelDrag();
+  if (!sourceLevel || document.body.classList.contains('duel-active') || level.height === boardHeight()) return;
+  // A resize may finish the current animation; it never starts a new turn.
+  if (pending) { finishTurn(runToken); runToken++; }
+  const focused = document.activeElement;
+  const focusSelector = focused?.matches('#board .actor') ? `#${focused.id}`
+    : focused?.matches('#board .node-label') ? `#board [data-node="${focused.dataset.node}"]`
+      : focused?.matches('#squad button') ? `#squad [data-cop="${focused.dataset.cop}"]` : null;
+  level = presentationLevel(sourceLevel);
+  drawBase(); updatePlanning();
+  if (hintTarget) {
+    const point = level.nodes[hintTarget.node];
+    $('hint-layer').innerHTML = `<circle class="hint-circle" data-hint-node="${hintTarget.node}" cx="${point.x}" cy="${point.y + 26}" r="32"/>`;
+  }
+  if (focusSelector && !document.querySelector('dialog[open]')) document.querySelector(focusSelector)?.focus({ preventScroll: true });
 }
 function pickCop(index) {
   if (phase !== 'planning') return;
@@ -396,18 +430,32 @@ function undo() {
   state = history.pop(); inspected = -1; hovered = -1; phase = 'planning';
   notify(turnInstruction('回到上一步。换一位追逐队员，试试提前拦截。')); updatePlanning(); persist(); playSound('undo');
 }
+let selectingMode = 'challenge', selectingRule = 'standard';
 function renderLevelDialog() {
+  const selectionRecords = selectingMode === 'quick' ? quickCompleted : selectingRule === 'relay' ? relayCompleted : completed;
+  const small = selectingMode === 'quick' || selectingRule === 'relay';
   $('chapter-tabs').innerHTML = chapters.map((chapter, i) => `<button role="tab" aria-selected="${i === chapterTab}" aria-controls="level-grid" id="chapter-tab-${i}" data-chapter="${i}">${chapter.name}</button>`).join('');
-  $('chapter-tabs').hidden = playMode === 'quick' || rule === 'relay';
-  const chapterLevels = playMode === 'quick' || rule === 'relay' ? availableLevels() : levels.filter(map => map.chapter === chapterTab), threeStars = chapterLevels.filter(map => records()[map.id]?.stars === 3).length;
-  $('chapter-description').textContent = `${playMode === 'quick' ? '三种短场战术：两侧夹击、先封后追、双巷分工。每图有独立步数上限。' : rule === 'relay' ? '换防接力：每次移动换一位队员，六图均有完整获胜路线。' : chapters[chapterTab].subtitle} · 三星 ${threeStars}/${chapterLevels.length}`;
-  $('level-grid').setAttribute('role', 'tabpanel'); $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
-  $('level-grid').innerHTML = chapterLevels.map(map => {
-    const par = rule === 'relay' ? optimalRelaySolutions[map.id].length : map.par;
-    return `<button class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!records()[map.id]}" aria-label="第${map.id}关 ${map.name}${records()[map.id] ? `，已完成，${records()[map.id].stars}颗星，最佳${records()[map.id].turns}步` : ''}，三星${par}步以内"><span class="level-id">${String(map.id).padStart(2, '0')}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(records()[map.id]?.stars || 0)}${'☆'.repeat(3 - (records()[map.id]?.stars || 0))}</span><span class="level-record">${records()[map.id] ? `最佳 ${records()[map.id].turns} 步` : `三星 ≤ ${par} 步`}</span></button>`;
+  $('chapter-tabs').hidden = small;
+  const chapterLevels = selectingMode === 'quick' ? quickTrials : selectingRule === 'relay' ? levels.filter(map => relayLevelIds.includes(map.id)) : levels.filter(map => map.chapter === chapterTab);
+  const threeStars = chapterLevels.filter(map => selectionRecords[map.id]?.stars === 3).length;
+  $('chapter-description').textContent = `${selectingMode === 'quick' ? '两步试炼' : selectingRule === 'relay' ? '换防接力' : chapters[chapterTab].name} · 三星 ${threeStars}/${chapterLevels.length}`;
+  $('level-grid').setAttribute('role', small ? 'group' : 'tabpanel');
+  if (small) $('level-grid').removeAttribute('aria-labelledby');
+  else $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
+  $('level-grid').innerHTML = chapterLevels.map((map, index) => {
+    const row = Math.floor(index / 3), col = row % 2 ? 3 - index % 3 : index % 3 + 1;
+    const par = selectingRule === 'relay' ? optimalRelaySolutions[map.id].length : map.par;
+    return `<button style="grid-column:${col};grid-row:${row + 1}" class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!selectionRecords[map.id]}" aria-label="第${map.id}关 ${map.name}${selectionRecords[map.id] ? `，已完成，${selectionRecords[map.id].stars}颗星，最佳${selectionRecords[map.id].turns}步` : ''}，三星${par}步以内"><span class="level-id">${map.id}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(selectionRecords[map.id]?.stars || 0)}${'☆'.repeat(3 - (selectionRecords[map.id]?.stars || 0))}</span></button>`;
   }).join('');
+  drawLevelPath(chapterLevels.length);
 }
-function openLevels() { chapterTab = level.chapter; renderLevelDialog(); $('level-dialog').showModal(); }
+function openLevels() {
+  const mode = $('solo-mode').value;
+  if (['escape', 'survival'].includes(mode)) { $('mode-dialog').showModal(); return; }
+  focusPatrol(false);
+  selectingMode = mode === 'quick' ? 'quick' : 'challenge'; selectingRule = mode === 'relay' ? 'relay' : 'standard';
+  chapterTab = level.chapter; renderLevelDialog(); $('level-dialog').showModal();
+}
 function showHint() {
   if (phase !== 'planning') return;
   const hintKey = () => `${playMode}:${level.id}:${rule}:${stateKey(state)}:${playMode === 'quick' ? state.turn : ''}:${rule === 'relay' ? lastOfficer(state, history) : -1}`;
@@ -496,15 +544,15 @@ function cancelDrag() {
 $('board').addEventListener('pointercancel', cancelDrag); $('board').addEventListener('lostpointercapture', cancelDrag);
 $('squad').addEventListener('click', event => { const button = event.target.closest('[data-cop]'); if (button) pickCop(+button.dataset.cop); });
 $('focus-toggle').addEventListener('click', () => focusPatrol(!document.body.classList.contains('focus-play')));
-$('resume-patrol').addEventListener('click', () => focusPatrol(true));
+$('resume-patrol').addEventListener('click', () => { if (document.body.dataset.lastGame !== 'duel' || !duelLobby?.resume()) focusPatrol(true); });
 $('undo').addEventListener('click', undo); $('hint').addEventListener('click', showHint);
 $('retry').addEventListener('click', () => loadLevel(level.id)); $('undo-loss').addEventListener('click', undo);
 $('restart').addEventListener('click', () => { playSound('undo'); loadLevel(level.id); });
 $('level-select').addEventListener('click', openLevels); $('mobile-level-select').addEventListener('click', openLevels);
 $('chapter-tabs').addEventListener('click', event => { const button = event.target.closest('[data-chapter]'); if (button) { chapterTab = +button.dataset.chapter; renderLevelDialog(); $(`chapter-tab-${chapterTab}`).focus(); } });
 $('chapter-tabs').addEventListener('keydown', event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); chapterTab = event.key === 'Home' ? 0 : event.key === 'End' ? chapters.length - 1 : (chapterTab + (event.key === 'ArrowRight' ? 1 : chapters.length - 1)) % chapters.length; renderLevelDialog(); $(`chapter-tab-${chapterTab}`).focus(); });
-$('level-grid').addEventListener('click', event => { const button = event.target.closest('[data-level]'); if (button) { playSound('select'); loadLevel(+button.dataset.level); } });
-$('next-level').addEventListener('click', () => { const next = availableLevels()[availableLevels().findIndex(map => map.id === level.id) + 1]; if (!next && playMode === 'quick') loadLevel(1,null,'relay','challenge'); else if (!next) { $('win-dialog').close(); openLevels(); } else loadLevel(next.id); });
+$('level-grid').addEventListener('click', event => { const button = event.target.closest('[data-level]'); if (button) { playSound('select'); const restore = savedPatrol(selectingMode, selectingRule); loadLevel(+button.dataset.level, restore?.levelId === +button.dataset.level ? restore : null, selectingRule, selectingMode); } });
+$('next-level').addEventListener('click', () => { const next = availableLevels()[availableLevels().findIndex(map => map.id === level.id) + 1]; if (!next && playMode === 'quick') loadLevel(1,null,'relay','challenge'); else if (!next) { $('win-dialog').close(); $('solo-mode').value = playMode === 'quick' ? 'quick' : rule === 'relay' ? 'relay' : 'challenge'; openLevels(); } else loadLevel(next.id); });
 $('replay').addEventListener('click', () => loadLevel(level.id));
 $('help').addEventListener('click', () => $('help-dialog').showModal()); $('settings').addEventListener('click', () => $('settings-dialog').showModal());
 $('sound').addEventListener('click', () => { soundOn = !soundOn; syncSettings(); unlockSound(); playSound('select'); persist(); });
@@ -522,8 +570,8 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Space' && !event.target.closest('button, input, a, [role="button"]')) { event.preventDefault(); if (phase === 'planning') execute([...state.cops]); }
 });
 window.addEventListener('blur', cancelDrag);
-window.addEventListener('resize', cancelDrag);
-document.addEventListener('game-displaychange', cancelDrag);
+window.addEventListener('resize', resizeBoard);
+document.addEventListener('game-displaychange', resizeBoard);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelDrag(); if (pending) { const token = runToken; finishTurn(token); runToken++; } }
 });
@@ -540,7 +588,11 @@ if (query.has('level')) {
 }
 
 const savedPatrol = (mode,rule) => { const snapshot = patrols[`${mode}:${rule}`], map = (mode === 'quick' ? quickTrials : levels).find(item=>item.id===snapshot?.levelId); return map && validState(snapshot.state,map) && snapshot.state.robbers.some(node=>node>=0) && !snapshot.state.robbers.includes(-2) && (mode !== 'quick' || snapshot.state.turn < map.turnLimit) ? snapshot : null; };
-setupDuelLobby({ sharedPuzzle, savedPatrol, stopChallenge: () => { if (pending) finishTurn(runToken); runToken++; pending = null; clearHint(); document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }, startChallenge: (options = {}) => { const targetMode = options.mode || 'challenge', targetRule = options.rule || 'standard', saved = savedPatrol(targetMode,targetRule), resume = !options.fresh && (targetMode !== playMode || targetRule !== rule || targetMode === 'quick' || targetRule === 'relay') && (!options.id || options.id === saved?.levelId) ? saved : null; loadLevel(options.id || resume?.levelId || level.id,resume,targetRule,targetMode); }, returnLobby: () => focusPatrol(false) });
-$('share-challenge').addEventListener('click', () => showPuzzleShare({ mode: playMode, level: level.id, rule }, `围捕小队 · ${playMode === 'quick' ? '快速战术试炼' : rule === 'relay' ? '换防接力' : '围堵挑战'} · 第 ${level.id} 关`));
-$('appearance-settings').addEventListener('click', () => openAppearanceSettings(() => { updateActors(); }));
+duelLobby = setupDuelLobby({ selectLevels: openLevels, sharedPuzzle, savedPatrol, stopChallenge: () => { if (pending) finishTurn(runToken); runToken++; pending = null; clearHint(); document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }, startChallenge: (options = {}) => { const targetMode = options.mode || 'challenge', targetRule = options.rule || 'standard', saved = savedPatrol(targetMode,targetRule), resume = !options.fresh && (targetMode !== playMode || targetRule !== rule || targetMode === 'quick' || targetRule === 'relay') && (!options.id || options.id === saved?.levelId) ? saved : null; loadLevel(options.id || resume?.levelId || level.id,resume,targetRule,targetMode); }, returnLobby: () => focusPatrol(false) });
+$('share-challenge').addEventListener('click', () => {
+  if (document.body.dataset.lastGame === 'duel' && duelLobby.sharePuzzle()) return;
+  showPuzzleShare({ mode: playMode, level: level.id, rule }, `围捕小队 · ${playMode === 'quick' ? '快速战术试炼' : rule === 'relay' ? '换防接力' : '围堵挑战'} · 第 ${level.id} 关`);
+});
+$('appearance-settings').addEventListener('click', () => openAppearanceSettings(() => { drawBase(); updatePlanning(); }));
+setupGameShell({ openLevels });
 if (!query.has('level')) { document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); focusPatrol(false); }

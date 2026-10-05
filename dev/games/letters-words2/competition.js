@@ -189,6 +189,947 @@
 		return `距上一名 ${score} 分`;
 	}
 	//#endregion
+	//#region ../../platforms/competition/street.css?inline
+	var street_default = ".street-competition {\n  --sp-ink: #182c55;\n  --sp-muted: #788092;\n  --sp-blue: #0789ff;\n  --sp-coral: #ff934b;\n  position: fixed;\n  inset: 0;\n  z-index: 1200;\n  overflow: hidden;\n  color: var(--sp-ink);\n  background: #f2e7d5;\n  font:\n    15px/1.5 'PingFang SC',\n    'Microsoft YaHei',\n    system-ui,\n    sans-serif;\n  text-align: left;\n  isolation: isolate;\n}\n.street-competition[hidden],\n.street-competition [hidden] {\n  display: none !important;\n}\n.street-competition *,\n.street-competition *::before,\n.street-competition *::after {\n  box-sizing: border-box;\n}\n.street-competition h1,\n.street-competition h2,\n.street-competition h3,\n.street-competition p {\n  margin: 0;\n  font-family: inherit;\n  color: inherit;\n  letter-spacing: 0;\n}\n.street-competition button,\n.street-competition input {\n  font: inherit;\n  color: inherit;\n  letter-spacing: 0;\n}\n.street-competition button {\n  min-height: 46px;\n  border: 0;\n  border-radius: 17px;\n  padding: 10px 16px;\n  background: #fffaf0;\n  color: var(--sp-ink);\n  cursor: pointer;\n  font-weight: 850;\n  touch-action: manipulation;\n  -webkit-tap-highlight-color: transparent;\n  transition:\n    transform 160ms ease,\n    filter 160ms ease,\n    box-shadow 160ms ease;\n}\n.street-competition button:active {\n  transform: translateY(3px) scale(0.98);\n}\n.street-competition button:disabled {\n  opacity: 0.58;\n  cursor: default;\n}\n.street-competition button:focus-visible,\n.street-competition input:focus-visible {\n  outline: 3px solid #ffc849;\n  outline-offset: 3px;\n}\n.street-competition svg {\n  width: 24px;\n  height: 24px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2.6;\n  stroke-linecap: round;\n  stroke-linejoin: round;\n  flex: none;\n}\n.sp-shell {\n  width: min(100%, 520px);\n  height: 100dvh;\n  margin: auto;\n  display: flex;\n  flex-direction: column;\n  background: radial-gradient(ellipse at 50% 18%, #fffef7 0, #fff6e8 66%, #f8ecd9 100%);\n  box-shadow: 0 0 80px #8973531a;\n  padding-top: env(safe-area-inset-top);\n}\n.sp-header {\n  display: grid;\n  grid-template-columns: 46px 1fr 46px;\n  gap: 6px;\n  align-items: center;\n  min-height: 76px;\n  padding: 10px 16px 5px;\n  flex: none;\n  text-align: center;\n}\n.sp-header h1 {\n  font-size: clamp(23px, 7vw, 30px);\n  font-weight: 950;\n  line-height: 1.2;\n}\n.sp-header p {\n  font-size: 11px;\n  color: #65738c;\n  margin-top: 3px;\n}\n.street-competition button.sp-back,\n.street-competition button.sp-help {\n  padding: 0;\n  width: 43px;\n  height: 43px;\n  min-height: 43px;\n  display: grid;\n  place-items: center;\n  border-radius: 50%;\n  background: #fffaf0;\n  border: 1px solid #ead9bd;\n  box-shadow:\n    0 3px 0 #deccb056,\n    inset 0 1px 0 white;\n}\n.street-competition button.sp-help {\n  width: 34px;\n  height: 34px;\n  min-height: 34px;\n  justify-self: end;\n  font-size: 19px;\n  color: #7c8b9c;\n  border-color: transparent;\n  box-shadow: none;\n}\n.sp-status {\n  margin: 0 18px 7px !important;\n  min-height: 25px;\n  flex: none;\n  font-size: 11px;\n  color: #62818a !important;\n  text-align: center;\n  padding: 3px 6px;\n}\n.sp-status[data-error] {\n  background: #ffebe1;\n  border-radius: 10px;\n  color: #aa4730 !important;\n}\n.sp-pages {\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n.sp-page {\n  height: 100%;\n  overflow-y: auto;\n  overflow-x: hidden;\n  overscroll-behavior: contain;\n  padding: 0 18px 18px;\n  scrollbar-width: thin;\n}\n.sp-vs-hero {\n  position: relative;\n  height: 230px;\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  overflow: hidden;\n  margin: 0 -8px 16px;\n  background:\n    radial-gradient(ellipse at 30% 90%, #cbe9ff99 0, transparent 55%),\n    radial-gradient(ellipse at 80% 90%, #ffe0c099 0, transparent 55%);\n  border-radius: 28px;\n}\n.sp-figure {\n  display: block;\n  aspect-ratio: 2 / 3;\n  width: 145px;\n  flex: none;\n  background-image: var(--sp-sprites);\n  background-size: 300% 200%;\n  background-repeat: no-repeat;\n  background-position: 0 0;\n}\n.sp-figure[data-figure='runner'] {\n  background-position: 0 100%;\n}\n.sp-vs-hero .sp-figure:first-child {\n  transform: rotate(-5deg);\n}\n.sp-vs-hero .sp-figure:nth-of-type(2) {\n  transform: rotate(5deg);\n}\n.sp-vs {\n  position: absolute;\n  left: 50%;\n  top: 42%;\n  transform: translate(-50%, -50%) rotate(-9deg);\n  font-size: 61px;\n  line-height: 1;\n  font-weight: 1000;\n  font-style: italic;\n  color: #ffd651;\n  -webkit-text-stroke: 2px #ffae39;\n  text-shadow:\n    0 5px 0 #e4792d,\n    0 7px 10px #ae551634;\n  z-index: 1;\n}\n.sp-spark {\n  position: absolute;\n  color: #ffcd47;\n  font-size: 32px;\n  font-style: normal;\n}\n.sp-spark-one {\n  top: 6px;\n  left: 4px;\n  transform: rotate(-20deg);\n}\n.sp-spark-two {\n  top: 14px;\n  right: 8px;\n  transform: rotate(14deg);\n}\n.sp-entry-grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 12px;\n}\n.street-competition .sp-entry {\n  position: relative;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 17px 10px 15px;\n  min-height: 147px;\n  border: 2px solid #ffffffbb;\n  box-shadow:\n    0 4px 0 #0e73d13b,\n    0 6px 10px #466fa21a,\n    inset 0 2px 0 #ffffff77;\n  border-radius: 22px;\n  color: white;\n}\n.street-competition .sp-entry-blue {\n  background: linear-gradient(150deg, #4fc3ff 0, #078bff 68%, #0870ed);\n}\n.street-competition .sp-entry-coral {\n  background: linear-gradient(150deg, #ffc293 0, #ff8f45 70%, #ff7843);\n  box-shadow:\n    0 4px 0 #e5753345,\n    0 6px 10px #bc80431a,\n    inset 0 2px 0 #ffffff77;\n}\n.sp-entry > svg {\n  width: 40px;\n  height: 40px;\n  stroke-width: 2.8;\n  margin-bottom: 5px;\n  filter: drop-shadow(0 2px 0 #2257a321);\n}\n.sp-entry strong {\n  font-size: clamp(21px, 6vw, 27px);\n  line-height: 1.3;\n  text-shadow: 0 2px 0 #2167b62c;\n}\n.sp-entry small {\n  font-size: 11px;\n  opacity: 0.95;\n  margin-top: 4px;\n}\n.sp-entry-arrow {\n  position: absolute;\n  right: 4px;\n  top: 59%;\n}\n.sp-entry-arrow svg {\n  width: 18px;\n  height: 18px;\n}\n.sp-profile-card,\n.sp-wide-link {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  border: 1px solid #ebd9bf;\n  border-radius: 21px;\n  background: #fffbf3;\n  padding: 11px;\n  margin-top: 14px;\n  box-shadow: 0 3px 0 #e1cda426;\n}\n.sp-profile-card > div {\n  min-width: 0;\n  flex: 1;\n}\n.sp-profile-card strong {\n  display: block;\n  font-size: 15px;\n  overflow-wrap: anywhere;\n}\n.sp-profile-card small {\n  display: block;\n  font-size: 11px;\n  color: #7d8392;\n}\n.street-competition .sp-profile-card button {\n  padding: 6px;\n  min-height: 44px;\n  width: 44px;\n  background: #e9f4ff;\n  color: #168bff;\n}\n.sp-portrait {\n  display: block;\n  width: 52px;\n  height: 52px;\n  border: 2px solid white;\n  border-radius: 50%;\n  background-color: #d9f0ff;\n  background-image: var(--sp-sprites);\n  background-size: 300% 300%;\n  background-repeat: no-repeat;\n  background-position: 0 0;\n  box-shadow: 0 2px 5px #44719821;\n  flex: none;\n}\n.sp-portrait[data-portrait-role='runner'] {\n  background-color: #ffe4cf;\n  background-position-y: 75%;\n}\n.sp-portrait[data-preset='1'] {\n  background-position-x: 50%;\n}\n.sp-portrait[data-preset='2'] {\n  background-position-x: 100%;\n}\n.sp-portrait[data-custom] {\n  background-size: cover;\n  background-position: center;\n}\n.street-competition .sp-wide-link {\n  width: 100%;\n  margin-top: 10px;\n  min-height: 68px;\n  padding: 12px 14px;\n  text-align: left;\n}\n.sp-wide-link > svg:first-child {\n  color: #eea22b;\n  width: 36px;\n  height: 36px;\n}\n.sp-wide-link > span {\n  flex: 1;\n}\n.sp-wide-link strong,\n.sp-wide-link small {\n  display: block;\n}\n.sp-wide-link strong {\n  font-size: 19px;\n}\n.sp-wide-link small {\n  font-size: 11px;\n  color: #94806c;\n  font-weight: 500;\n}\n.sp-note {\n  font-size: 11px;\n  color: #8a8790 !important;\n  margin: 13px 4px 5px !important;\n  text-align: center;\n  line-height: 1.7;\n  overflow-wrap: anywhere;\n}\n.sp-bottom-nav {\n  min-height: 72px;\n  padding: 5px 15px max(8px, env(safe-area-inset-bottom));\n  flex: none;\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 8px;\n  border-top: 1px solid #ecddc3;\n  background: #fff9ee;\n}\n.street-competition .sp-bottom-nav button {\n  display: flex;\n  align-items: center;\n  flex-direction: column;\n  gap: 2px;\n  padding: 5px 8px;\n  color: #979294;\n  font-size: 11px;\n  background: transparent;\n  border-radius: 16px;\n}\n.sp-bottom-nav button svg {\n  width: 26px;\n  height: 26px;\n}\n.street-competition .sp-bottom-nav button[aria-pressed='true'] {\n  background: #e8f3ff;\n  color: #008bff;\n}\n.sp-section-heading {\n  font-size: 15px;\n  line-height: 1.5;\n  font-weight: 900;\n  margin: 16px 0 8px !important;\n  display: flex;\n  align-items: center;\n  gap: 7px;\n}\n.sp-section-heading::before {\n  content: '';\n  width: 4px;\n  height: 15px;\n  background: #088eff;\n  border-radius: 5px;\n}\n.sp-choice-roles {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 11px;\n}\n.street-competition .sp-choice-roles button {\n  padding: 6px 5px 9px;\n  position: relative;\n  overflow: hidden;\n  border: 2px solid #f7d0af;\n  background: linear-gradient(145deg, #ffdfbb, #ffb891);\n  box-shadow: 0 3px 0 #dac4ac33;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n}\n.street-competition .sp-choice-roles button:first-child {\n  border-color: #acdfff;\n  background: linear-gradient(145deg, #d4f5ff, #a5dcff);\n}\n.street-competition .sp-choice-roles button[aria-pressed='true'] {\n  border-color: #058fff;\n  box-shadow:\n    0 0 0 2px #fff,\n    0 3px 0 #2896e840;\n}\n.sp-choice-roles .sp-figure {\n  width: 115px;\n  height: 173px;\n  margin-bottom: -7px;\n}\n.sp-choice-roles strong {\n  font-size: 18px;\n  position: relative;\n  padding-top: 5px;\n  z-index: 1;\n}\n.sp-choice-roles small {\n  font-size: 10px;\n  color: #5c779a;\n  position: relative;\n  z-index: 1;\n  font-weight: 600;\n}\n.sp-choice-roles i {\n  display: none;\n  position: absolute;\n  right: 6px;\n  top: 6px;\n  width: 23px;\n  height: 23px;\n  border: 2px solid white;\n  border-radius: 50%;\n  background: #078aff;\n  color: white;\n}\n.sp-choice-roles i svg {\n  width: 16px;\n  height: 16px;\n}\n.sp-choice-roles [aria-pressed='true'] i {\n  display: grid;\n  place-items: center;\n}\n.sp-mode-grid {\n  display: grid;\n  grid-template-columns: repeat(2, 1fr);\n  gap: 10px;\n}\n.street-competition .sp-mode-card {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 10px 7px;\n  border: 2px solid #e9d9c3;\n  background: #fffcf5;\n  box-shadow: 0 3px 0 #c8b28d1a;\n  border-radius: 19px;\n}\n.street-competition .sp-mode-card[aria-pressed='true'] {\n  border-color: #098fff;\n  background: #eef8ff;\n}\n.sp-mode-symbol {\n  display: grid;\n  place-items: center;\n  width: 100%;\n  height: 62px;\n  margin-bottom: 4px;\n  font-size: 36px;\n  color: #ffe157;\n  text-shadow: 0 2px 0 #e09b22;\n  border-radius: 11px;\n  background:\n    linear-gradient(#a4d9f578, #61b6ed16),\n    var(--sp-city) center 46% / cover;\n}\n.sp-mode-card strong {\n  font-size: 14px;\n}\n.sp-mode-card small {\n  font-size: 10px;\n  font-weight: 500;\n  color: #708298;\n  margin-top: 3px;\n}\n.sp-segments {\n  display: flex;\n  gap: 5px;\n  padding: 4px;\n  border-radius: 999px;\n  background: #eee8df;\n  box-shadow: inset 0 1px 2px #77645615;\n}\n.street-competition .sp-segments button {\n  flex: 1;\n  min-width: 0;\n  min-height: 44px;\n  padding: 7px 5px;\n  border-radius: 999px;\n  background: transparent;\n  font-size: 12px;\n  color: #6c7181;\n}\n.street-competition .sp-segments button[aria-pressed='true'] {\n  color: white;\n  background: linear-gradient(#37b6ff, #0589ff);\n  box-shadow:\n    inset 0 2px 0 #ffffff6b,\n    0 3px 0 #1b7ee02e;\n}\n.street-competition .sp-segments button[aria-pressed='true']:disabled {\n  opacity: 1;\n}\n.sp-info-pills {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 10px;\n  margin: 14px 0 18px;\n}\n.sp-info-pills > span {\n  display: grid;\n  grid-template-columns: 30px 1fr;\n  align-items: center;\n  padding: 10px;\n  background: #fffbf5;\n  border: 1px solid #ebdcc7;\n  border-radius: 16px;\n}\n.sp-info-pills svg {\n  grid-row: span 2;\n  color: #239dff;\n}\n.sp-info-pills strong {\n  font-size: 12px;\n}\n.sp-info-pills small {\n  font-size: 10px;\n  color: #8e8d98;\n}\n.street-competition .sp-primary,\n.street-competition .sp-secondary,\n.street-competition .sp-invite-link {\n  width: 100%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  margin-top: 12px;\n}\n.street-competition .sp-primary {\n  min-height: 56px;\n  color: white;\n  font-weight: 950;\n  font-size: 21px;\n  border: 2px solid #f8feff;\n  border-radius: 999px;\n  background: linear-gradient(#47c5ff 0, #1097ff 38%, #057dff 100%);\n  box-shadow:\n    0 4px 0 #1c69bc48,\n    inset 0 2px 0 #ffffff61,\n    0 6px 10px #266eac19;\n  text-shadow: 0 2px 0 #206ab633;\n}\n.street-competition .sp-primary svg {\n  width: 25px;\n  height: 25px;\n}\n.street-competition .sp-secondary {\n  min-height: 51px;\n  border: 1px solid #e4d1b5;\n  background: #fff9ed;\n  box-shadow:\n    inset 0 2px 0 #fff,\n    0 3px 0 #cbb18b32;\n  font-size: 16px;\n  border-radius: 999px;\n}\n.sp-card {\n  padding: 19px 16px;\n  border: 1px solid #ead9bf;\n  border-radius: 24px;\n  background: #fffbf3;\n  box-shadow: 0 4px 0 #d9c29d1a;\n}\n.sp-vs-hero-small {\n  height: 200px;\n  margin-top: 7px;\n}\n.sp-vs-hero-small .sp-figure {\n  width: 126px;\n}\n.sp-join-form label {\n  display: block;\n  text-align: center;\n  font-size: 17px;\n  font-weight: 900;\n}\n.street-competition input {\n  width: 100%;\n  min-width: 0;\n  min-height: 48px;\n  padding: 10px 13px;\n  border: 2px solid #e9dcc6;\n  border-radius: 15px;\n  background: #fffaf3;\n  outline-offset: 3px;\n  box-shadow: inset 0 2px 0 #9b7d4b0a;\n}\n.street-competition .sp-join-form input {\n  margin-top: 16px;\n  text-align: center;\n  font-size: clamp(18px, 6vw, 24px);\n  font-weight: 900;\n  letter-spacing: 2px;\n  color: #127bea;\n  text-transform: uppercase;\n}\n.sp-join-form > small {\n  display: block;\n  font-size: 11px;\n  color: #8b8995;\n  text-align: center;\n  margin-top: 10px;\n}\n.sp-room-hero {\n  height: 190px;\n  margin-bottom: 0;\n  background:\n    linear-gradient(#bbdef573, #fff6e700),\n    var(--sp-city) center 55% / cover;\n}\n.sp-room-hero .sp-figure {\n  width: 126px;\n}\n.sp-room-code-card {\n  padding: 10px 10px 8px;\n  text-align: center;\n  margin: -6px 15px 12px;\n  border: 1px solid #e5d5ba;\n  border-radius: 18px;\n  background: #fffdf5;\n  position: relative;\n  box-shadow: 0 4px 0 #c3a17321;\n}\n.sp-room-code-card > small {\n  font-size: 10px;\n  color: #9a8990;\n}\n.street-competition .sp-room-code-card button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  width: 100%;\n  background: transparent;\n  padding: 2px 4px;\n  min-height: 34px;\n}\n.sp-room-code-card strong {\n  font-size: 19px;\n  letter-spacing: 2px;\n  overflow-wrap: anywhere;\n}\n.sp-room-code-card svg {\n  width: 19px;\n  height: 19px;\n  color: #1693ff;\n}\n.sp-players {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 9px;\n}\n.sp-player {\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 10px 7px;\n  border: 2px solid #afdfff;\n  border-radius: 18px;\n  background: #f8fcff;\n}\n.sp-player[data-role='runner'] {\n  background: #fff8f0;\n  border-color: #f7c7a4;\n}\n.sp-player .sp-portrait {\n  width: 43px;\n  height: 43px;\n}\n.sp-player-copy {\n  flex: 1;\n  min-width: 0;\n  white-space: pre-line;\n}\n.sp-player-copy strong {\n  font-size: 11px;\n  display: block;\n  overflow-wrap: anywhere;\n}\n.sp-player-copy small {\n  display: block;\n  font-size: 10px;\n  color: #7b8b9b;\n  margin-top: 3px;\n}\n.sp-player[data-ready] .sp-player-copy small {\n  color: #35a051;\n}\n.sp-player[data-empty] {\n  border-style: dashed;\n  background: #fffaf2;\n  border-color: #e3d4bc;\n  color: #989198;\n  font-size: 10px;\n}\n.sp-wait-avatar {\n  width: 35px;\n  height: 35px;\n  display: grid;\n  place-items: center;\n  background: #f0e8dc;\n  border-radius: 50%;\n  font-size: 24px;\n  flex: none;\n}\n.sp-room-hint {\n  font-size: 11px;\n  color: #738294 !important;\n  text-align: center;\n  margin-top: 10px !important;\n}\n.sp-room-settings .sp-section-heading {\n  margin: 10px 0 6px !important;\n  font-size: 12px;\n}\n.sp-room-settings > small {\n  display: block;\n  font-size: 10px;\n  color: #998c91;\n  text-align: center;\n  margin-top: 7px;\n}\n.street-competition .sp-invite-link {\n  min-height: 44px;\n  font-size: 12px;\n  border: 1px solid #bcdafa;\n  border-radius: 13px;\n  background: #e9f4ff;\n  color: #1384e7;\n}\n.street-competition .sp-text-button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 7px;\n  width: 100%;\n  background: transparent;\n  min-height: 48px;\n  font-size: 13px;\n  color: #827578;\n  margin-top: 6px;\n}\n.sp-play-page {\n  display: flex;\n  flex-direction: column;\n  padding: 0 8px max(7px, env(safe-area-inset-bottom));\n}\n.sp-play-info {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 5px;\n  padding: 3px 8px 8px;\n  flex: none;\n}\n.sp-play-info strong {\n  font-size: 13px;\n  color: #1684ed;\n}\n.sp-play-info span {\n  font-size: 10px;\n  color: #7c8d9e;\n}\n.sp-play-page canvas {\n  width: 100%;\n  height: 100%;\n  flex: 1;\n  min-height: 0;\n  display: block;\n  border-radius: 17px;\n  touch-action: none;\n}\n.sp-play-actions {\n  display: flex;\n  gap: 6px;\n  flex: none;\n  padding-top: 8px;\n}\n.street-competition .sp-play-actions button {\n  flex: 1;\n  padding: 7px 5px;\n  font-size: 11px;\n  background: #eaf4ff;\n  color: #5783a6;\n}\n.street-competition[data-playing] .sp-header {\n  min-height: 50px;\n  padding-top: 3px;\n  padding-bottom: 0;\n}\n.street-competition[data-playing] .sp-header h1 {\n  font-size: 19px;\n}\n.street-competition[data-playing] .sp-header p {\n  display: none;\n}\n.street-competition[data-playing] .sp-status {\n  margin-bottom: 3px !important;\n  min-height: 22px;\n}\n.sp-board-intro,\n.sp-rules-hero,\n.sp-invite-hero {\n  text-align: center;\n  padding: 14px 6px 20px;\n}\n.sp-board-intro > svg,\n.sp-rules-hero > svg,\n.sp-invite-hero > svg {\n  display: block;\n  margin: auto auto 6px;\n  width: 53px;\n  height: 53px;\n  color: #ffbc33;\n  filter: drop-shadow(0 3px 0 #f4a32b22);\n}\n.sp-board-intro h2,\n.sp-rules-hero h2,\n.sp-invite-hero h2 {\n  font-size: 20px;\n  font-weight: 950;\n}\n.sp-board-intro p,\n.sp-rules-hero p,\n.sp-invite-hero p {\n  margin-top: 5px;\n  color: #7d8a99;\n  font-size: 11px;\n}\n.sp-podium {\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  gap: 5px;\n  padding: 9px 3px 0;\n  min-height: 217px;\n  background:\n    linear-gradient(#fffbf500, #e4f2fb99),\n    var(--sp-city) center 65% / cover;\n  border-radius: 24px 24px 0 0;\n}\n.sp-podium-place {\n  flex: 1;\n  min-width: 0;\n  text-align: center;\n  padding: 10px 6px 12px;\n  border: 1px solid #e9d9bf;\n  border-radius: 16px 16px 0 0;\n  background: #fff7e9;\n  position: relative;\n}\n.sp-podium-place[data-rank='1'] {\n  background: linear-gradient(#fff0b4, #ffe1a1);\n  padding-bottom: 30px;\n}\n.sp-podium-place .sp-portrait {\n  margin: -61px auto 11px;\n  width: 65px;\n  height: 65px;\n  background-color: #fff9df;\n  box-shadow: 0 0 0 3px #fff7e980;\n}\n.sp-podium-place[data-rank='1'] .sp-portrait {\n  width: 80px;\n  height: 80px;\n  margin-top: -80px;\n}\n.sp-podium-number {\n  position: absolute;\n  top: -14px;\n  right: 8px;\n  width: 25px;\n  height: 25px;\n  border-radius: 50%;\n  background: #ecc88a;\n  color: #fff;\n  font-weight: 950;\n  display: grid;\n  place-items: center;\n  box-shadow: 0 2px 0 #bd8b452b;\n}\n.sp-podium-place[data-rank='1'] .sp-podium-number {\n  background: #ffc132;\n  color: #a25c15;\n  width: 31px;\n  height: 31px;\n}\n.sp-podium-place strong {\n  display: block;\n  font-size: 11px;\n  overflow-wrap: anywhere;\n  line-height: 1.4;\n}\n.sp-podium-place small {\n  display: block;\n  color: #b68134;\n  font-size: 11px;\n  margin-top: 6px;\n  font-weight: 900;\n}\n.sp-rank-list {\n  list-style: none;\n  padding: 5px 12px;\n  margin: 0;\n  border: 1px solid #ead9bf;\n  border-radius: 0 0 20px 20px;\n  background: #fffaf0;\n}\n.sp-rank-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 59px;\n  border-bottom: 1px solid #ece0ce;\n  font-size: 12px;\n}\n.sp-rank-row:last-child {\n  border: 0;\n}\n.sp-rank-row .sp-portrait {\n  width: 32px;\n  height: 32px;\n}\n.sp-rank-row strong {\n  flex: 1;\n  min-width: 0;\n  overflow-wrap: anywhere;\n  font-size: 11px;\n}\n.sp-rank-row > span:last-child {\n  font-weight: 800;\n  font-size: 11px;\n}\n.sp-rank-number {\n  width: 18px;\n  text-align: center;\n  font-weight: 950;\n}\n.sp-empty {\n  text-align: center;\n  padding: 28px 12px;\n  color: #95879b;\n  font-size: 12px;\n}\n.sp-my-record {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-top: 13px;\n  padding: 12px;\n  border: 2px solid #0e99ff;\n  border-radius: 20px;\n  background: linear-gradient(120deg, #f0fbff, #dcefff);\n  box-shadow: 0 3px 0 #008dff1a;\n}\n.sp-my-record-copy {\n  flex: 1;\n  min-width: 0;\n}\n.sp-my-record strong,\n.sp-my-record span,\n.sp-my-record small {\n  display: block;\n}\n.sp-my-record strong {\n  font-size: 13px;\n  overflow-wrap: anywhere;\n}\n.sp-my-record-copy > span {\n  font-weight: 900;\n  color: #147bea;\n  font-size: 16px;\n}\n.sp-my-record small {\n  font-size: 10px;\n  color: #6e839a;\n}\n.sp-name-hero {\n  position: relative;\n  display: flex;\n  justify-content: center;\n  padding: 22px 0 24px;\n}\n.sp-name-hero .sp-portrait {\n  width: 135px;\n  height: 135px;\n  border: 5px solid white;\n  box-shadow:\n    0 4px 0 #e3cba533,\n    0 0 0 2px #bee7fd;\n}\n.sp-name-hero i {\n  position: absolute;\n  color: #ffc94e;\n  font-size: 39px;\n  top: 43px;\n  font-style: normal;\n}\n.sp-name-hero i:nth-of-type(1) {\n  left: 18px;\n}\n.sp-name-hero i:nth-of-type(2) {\n  right: 18px;\n  top: 87px;\n  font-size: 23px;\n}\n.sp-name-form > label {\n  display: block;\n  font-size: 13px;\n  font-weight: 850;\n  margin-bottom: 7px;\n}\n.sp-name-input {\n  position: relative;\n}\n.street-competition .sp-name-input input {\n  padding-right: 39px;\n  font-weight: 850;\n}\n.sp-name-input svg {\n  position: absolute;\n  right: 12px;\n  top: 12px;\n  color: #008dff;\n  width: 21px;\n  height: 21px;\n}\n.sp-name-form > small {\n  display: block;\n  font-size: 10px;\n  margin-top: 8px;\n  color: #9b8992;\n  text-align: center;\n}\n.sp-form-message {\n  min-height: 20px;\n  font-size: 11px;\n  text-align: center;\n  color: #ba704c !important;\n  margin-top: 8px !important;\n}\n.sp-player-id {\n  padding: 20px 4px;\n  text-align: center;\n  color: #a7a0a3;\n}\n.sp-player-id small {\n  display: block;\n  font-size: 10px;\n}\n.sp-player-id code {\n  display: block;\n  margin-top: 4px;\n  font-size: 10px;\n  overflow-wrap: anywhere;\n}\n.sp-rule-list {\n  padding-left: 22px;\n  margin: 0;\n  font-size: 13px;\n  color: #607493;\n}\n.sp-rule-list li {\n  padding: 9px 0 9px 5px;\n}\n.sp-rule-list li::marker {\n  color: #168dff;\n  font-weight: 950;\n}\n.sp-result-hero {\n  position: relative;\n  min-height: 264px;\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  padding-bottom: 59px;\n}\n.sp-result-hero .sp-figure {\n  width: 123px;\n}\n.sp-result-trophy {\n  position: absolute;\n  z-index: 1;\n  color: #ffbf32;\n  top: 100px;\n  left: 50%;\n  transform: translateX(-50%) rotate(-8deg);\n  filter: drop-shadow(0 3px 0 #b97d2833);\n}\n.sp-result-trophy svg {\n  width: 80px;\n  height: 80px;\n  fill: #ffeaaa;\n  stroke-width: 2;\n}\n.sp-result-hero h2 {\n  position: absolute;\n  bottom: 32px;\n  left: 0;\n  width: 100%;\n  text-align: center;\n  color: #f3832d;\n  font-size: 24px;\n  font-weight: 950;\n}\n.sp-result-hero > p {\n  position: absolute;\n  bottom: 8px;\n  left: 0;\n  width: 100%;\n  text-align: center;\n  font-size: 11px;\n  color: #8c8493;\n}\n.sp-results {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 9px;\n}\n.sp-result-card {\n  padding: 12px 9px;\n  border: 1px solid #ead4b6;\n  border-radius: 18px;\n  background: #fff9ee;\n  text-align: center;\n  min-width: 0;\n}\n.sp-result-card:first-child {\n  border-color: #8dcfff;\n  background: #ecf8ff;\n}\n.sp-result-player {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 6px;\n}\n.sp-result-player .sp-portrait {\n  width: 48px;\n  height: 48px;\n}\n.sp-result-player h3 {\n  font-size: 11px;\n  overflow-wrap: anywhere;\n}\n.sp-result-score {\n  display: block;\n  font-size: 20px;\n  font-weight: 950;\n  color: #168bff;\n  margin: 9px 0 5px;\n}\n.sp-result-card p {\n  font-size: 10px;\n  color: #8a8190;\n}\n.sp-result-card > small {\n  display: block;\n  font-size: 10px;\n  color: #967e64;\n  margin-top: 7px;\n}\n.sp-invite-hero {\n  padding-top: 26px;\n}\n.sp-invite-hero > svg {\n  color: #1b9dff;\n}\n.sp-invite-card {\n  text-align: center;\n}\n.sp-invite-card > small {\n  display: block;\n  color: #9a8991;\n  font-size: 11px;\n}\n.sp-invite-card > strong {\n  font-size: 24px;\n  letter-spacing: 2px;\n  display: block;\n  margin: 13px 0;\n  user-select: all;\n  overflow-wrap: anywhere;\n}\n.sp-invite-card .sp-primary {\n  font-size: 18px;\n  margin-bottom: 20px;\n}\n.street-competition .sp-invite-card input {\n  min-height: 44px;\n  font-size: 11px;\n  margin-top: 10px;\n  color: #8b8095;\n}\n@media (max-width: 350px) {\n  .sp-page {\n    padding-left: 13px;\n    padding-right: 13px;\n  }\n  .sp-header {\n    padding-left: 12px;\n    padding-right: 12px;\n  }\n  .sp-header h1 {\n    font-size: 24px;\n  }\n  .sp-header p {\n    font-size: 10px;\n  }\n  .sp-vs-hero {\n    height: 198px;\n  }\n  .sp-vs-hero .sp-figure {\n    width: 126px;\n  }\n  .sp-entry-grid {\n    gap: 9px;\n  }\n  .street-competition .sp-entry {\n    min-height: 133px;\n  }\n  .sp-choice-roles .sp-figure {\n    width: 95px;\n    height: 143px;\n  }\n  .sp-choice-roles strong {\n    font-size: 16px;\n  }\n  .sp-choice-roles small {\n    font-size: 9px;\n  }\n  .sp-room-code-card strong {\n    font-size: 16px;\n  }\n  .sp-room-hero {\n    height: 174px;\n  }\n  .sp-room-hero .sp-figure {\n    width: 112px;\n  }\n  .sp-player .sp-portrait {\n    width: 35px;\n    height: 35px;\n  }\n  .sp-player-copy strong {\n    font-size: 10px;\n  }\n  .sp-result-hero .sp-figure {\n    width: 105px;\n  }\n  .sp-result-hero {\n    min-height: 237px;\n  }\n  .sp-result-trophy {\n    top: 82px;\n  }\n  .sp-result-score {\n    font-size: 17px;\n  }\n}\n@media (orientation: landscape) and (max-height: 540px) {\n  .sp-shell {\n    width: min(100%, 760px);\n  }\n  .sp-header {\n    min-height: 55px;\n    padding-top: 5px;\n  }\n  .sp-header h1 {\n    font-size: 22px;\n  }\n  .sp-header p {\n    font-size: 10px;\n  }\n  .sp-status {\n    min-height: 20px;\n    margin-bottom: 3px !important;\n  }\n  .sp-bottom-nav {\n    min-height: 56px;\n  }\n  .street-competition .sp-bottom-nav button {\n    flex-direction: row;\n    justify-content: center;\n    gap: 8px;\n  }\n  .sp-page {\n    padding-left: 24px;\n    padding-right: 24px;\n  }\n  [data-page='lobby'] .sp-vs-hero {\n    float: left;\n    width: 41%;\n    height: 220px;\n    margin: 0 18px 0 0;\n  }\n  [data-page='lobby'] .sp-vs-hero .sp-figure {\n    width: 129px;\n  }\n  [data-page='lobby'] .sp-entry-grid {\n    padding-top: 4px;\n  }\n  .street-competition [data-page='lobby'] .sp-entry {\n    min-height: 118px;\n    padding-top: 9px;\n  }\n  [data-page='lobby'] .sp-entry > svg {\n    width: 29px;\n    height: 29px;\n  }\n  [data-page='lobby'] .sp-entry strong {\n    font-size: 20px;\n  }\n  [data-page='lobby'] .sp-profile-card {\n    margin-top: 8px;\n    padding: 7px 10px;\n  }\n  [data-page='lobby'] .sp-wide-link {\n    margin-top: 8px;\n    min-height: 57px;\n    width: auto;\n  }\n  [data-page='lobby'] .sp-note {\n    clear: both;\n  }\n  .sp-play-page {\n    padding-left: 10px;\n    padding-right: 10px;\n  }\n  .sp-play-actions {\n    padding-top: 4px;\n  }\n  .street-competition .sp-play-actions button {\n    min-height: 44px;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .street-competition button {\n    transition: none;\n  }\n}\n";
+	//#endregion
+	//#region ../../games/local/cops-robbers-realtime/src/role-appearance.js
+	var storageKey = "chase-role-appearance-v1";
+	var presets = {
+		team: {
+			cop: [
+				"#1677bf",
+				"#d9f3ff",
+				"◆"
+			],
+			robber: [
+				"#d65b19",
+				"#fff0b8",
+				"ϟ"
+			]
+		},
+		animals: {
+			cop: [
+				"#176cb0",
+				"#d9f3ff",
+				"🐱"
+			],
+			robber: [
+				"#bc4c17",
+				"#ffe3be",
+				"🦊"
+			]
+		},
+		cosmic: {
+			cop: [
+				"#4d51b8",
+				"#e4e4ff",
+				"✦"
+			],
+			robber: [
+				"#b54920",
+				"#ffdfb4",
+				"☄"
+			]
+		}
+	};
+	var characterSheet = "./src/assets/characters.png";
+	var characters = {
+		cop: [
+			{
+				name: "阳光巡警",
+				description: "正义、勇敢，守护街区的每一天。",
+				crop: [
+					104,
+					12,
+					282
+				]
+			},
+			{
+				name: "机灵警花",
+				description: "眼疾手快，任何小线索都逃不过她。",
+				crop: [
+					486,
+					18,
+					306
+				]
+			},
+			{
+				name: "暖心警长",
+				description: "经验满满，总能找到最佳围捕路线。",
+				crop: [
+					904,
+					8,
+					314
+				]
+			}
+		],
+		robber: [
+			{
+				name: "街头小机灵",
+				description: "一顶橘色帽子，藏着满脑子的鬼点子。",
+				crop: [
+					92,
+					637,
+					322
+				]
+			},
+			{
+				name: "橘子少女",
+				description: "轻快又灵巧，转个弯就有新惊喜。",
+				crop: [
+					507,
+					640,
+					315
+				]
+			},
+			{
+				name: "眼镜智多星",
+				description: "观察街区，发现每一条突围小路。",
+				crop: [
+					967,
+					638,
+					311
+				]
+			}
+		]
+	};
+	var images = /* @__PURE__ */ new Map();
+	var classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
+	var settings;
+	var stored;
+	var side = (role) => [
+		"cop",
+		"pursuer",
+		"chaser"
+	].includes(role) ? "cop" : "robber";
+	var validAvatar = (value) => typeof value === "string" && value.length <= 12e4 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
+	function read() {
+		try {
+			const value = (globalThis.__chaseRoleStorage || globalThis.localStorage)?.getItem(storageKey) || "{}";
+			if (settings && value === stored) return settings;
+			stored = value;
+			settings = JSON.parse(value);
+		} catch {
+			settings = {};
+		}
+		if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
+		return settings;
+	}
+	function getRoleAppearance(role, selectedPreset) {
+		const key = side(role), value = read()[key];
+		const style = Object.hasOwn(presets, value?.style) ? value.style : "team";
+		const [color, accent, badge] = presets[style][key];
+		const preset = Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3 ? selectedPreset : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3 ? value.preset : 0;
+		return {
+			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			style,
+			color,
+			accent,
+			badge,
+			preset,
+			character: characters[key][preset],
+			sprite: characterSheet,
+			avatar: selectedPreset === void 0 && validAvatar(value?.avatar) ? value.avatar : ""
+		};
+	}
+	function loadPortraitImage(source) {
+		if (!source) return null;
+		let img = images.get(source);
+		if (!img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
+			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
+			img.onload = () => {
+				img.roleLoaded = true;
+			};
+			img.src = source;
+			images.set(source, img);
+		}
+		return img;
+	}
+	if (classicRoles() && typeof Image !== "undefined" && !globalThis.__chaseRoleImage) loadPortraitImage(characterSheet);
+	//#endregion
+	//#region ../../platforms/competition/street-pages.js
+	var roleNames = {
+		pursuer: "警察",
+		runner: "小偷",
+		random: "随机先行"
+	};
+	var spriteUrl = new URL("./src/assets/characters.png", document.baseURI).href;
+	var cityUrl = new URL("./src/assets/home-city.png", document.baseURI).href;
+	var icons = {
+		back: "<path d=\"m14 5-7 7 7 7\"/>",
+		arrow: "<path d=\"m9 5 7 7-7 7\"/>",
+		home: "<path d=\"m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10\"/>",
+		friends: "<circle cx=\"8\" cy=\"7\" r=\"3\"/><circle cx=\"17\" cy=\"8\" r=\"3\"/><path d=\"M2 21v-3a6 6 0 0 1 12 0v3M16 15a5 5 0 0 1 6 5\"/>",
+		trophy: "<path d=\"M7 3h10v7a5 5 0 0 1-10 0ZM7 5H3v3a4 4 0 0 0 4 4M17 5h4v3a4 4 0 0 1-4 4M12 15v6M8 21h8\"/>",
+		link: "<path d=\"m9 15 6-6M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0\"/>",
+		check: "<path d=\"m5 12 4 4L20 5\"/>",
+		play: "<path d=\"m8 4 12 8-12 8Z\"/>",
+		shield: "<path d=\"m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6Z\"/><path d=\"m8 12 3 3 5-6\"/>",
+		star: "<path d=\"m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z\"/>",
+		refresh: "<path d=\"M20 7v5h-5M4 17v-5h5M19 12a7 7 0 0 0-12-5M5 12a7 7 0 0 0 12 5\"/>",
+		pen: "<path d=\"m15 3 6 6-11 11-7 1 1-7ZM12 6l6 6\"/>"
+	};
+	var icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.star}</svg>`;
+	function mountStreetCompetition(game, createRenderer) {
+		if (document.querySelector("[data-competition-launch]")) return;
+		globalThis.__CLASSIC_CHASE_ROLES__ = true;
+		globalThis.__installCompetition();
+		const client = globalThis.__competition;
+		const renderer = createRenderer({
+			createImage: () => new Image(),
+			assetBase: new URL("./", location.href).href
+		});
+		const style = document.createElement("style");
+		style.textContent = street_default;
+		document.head.append(style);
+		const launch = document.createElement("button");
+		launch.dataset.competitionLaunch = "";
+		launch.className = "street-pk-launch";
+		launch.textContent = "好友 PK · 全站榜";
+		launch.hidden = !!document.querySelector("[data-competition-entry]");
+		const surface = document.createElement("div");
+		surface.className = "street-competition";
+		surface.dataset.streetCompetition = "";
+		surface.hidden = true;
+		surface.open = false;
+		surface.setAttribute("aria-label", "街区追捕 · 好友 PK");
+		surface.style.setProperty("--sp-sprites", `url("${spriteUrl}")`);
+		surface.style.setProperty("--sp-city", `url("${cityUrl}")`);
+		surface.innerHTML = `<div class="sp-shell">
+    <header class="sp-header"><button class="sp-back" data-page-back aria-label="返回">${icon("back")}</button><div><h1 data-page-title>好友 PK</h1><p data-page-subtitle>叫上好友，一起追逐！</p></div><button class="sp-help" data-rules aria-label="查看玩法">?</button></header>
+    <p class="sp-status" role="status" aria-live="polite" data-status>邀请一位好友，一起玩一局。</p>
+    <main class="sp-pages">
+      <section class="sp-page" data-page="lobby" data-lobby>
+        <div class="sp-vs-hero"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span><i class="sp-spark sp-spark-one">✦</i><i class="sp-spark sp-spark-two">✦</i></div>
+        <div class="sp-entry-grid"><button class="sp-entry sp-entry-blue" data-go="create">${icon("home")}<strong>创建房间</strong><small>邀请好友一起玩</small><span class="sp-entry-arrow">${icon("arrow")}</span></button><button class="sp-entry sp-entry-coral" data-go="join">${icon("friends")}<strong>加入房间</strong><small>好友正在等你</small><span class="sp-entry-arrow">${icon("arrow")}</span></button></div>
+        <div class="sp-profile-card"><span class="sp-portrait" data-avatar></span><div><strong data-profile-name>街区新伙伴</strong><small>用你的昵称和好友见面</small></div><button data-profile aria-label="设置昵称">${icon("pen")}</button></div>
+        <button class="sp-wide-link" data-board>${icon("trophy")}<span><strong>全站榜</strong><small>看看谁是街区追捕高手</small></span>${icon("arrow")}</button>
+        <p class="sp-note">游客身份保存在当前浏览器，昵称可以重名。</p>
+      </section>
+      <section class="sp-page" data-page="create" hidden>
+        <h2 class="sp-section-heading">选择你的阵营</h2><div class="sp-choice-roles"><button data-match-role="pursuer" aria-pressed="true"><span class="sp-figure" data-figure="pursuer"></span><strong>我是警察</strong><small>协作包围，抓住小偷！</small><i>${icon("check")}</i></button><button data-match-role="runner" aria-pressed="false"><span class="sp-figure" data-figure="runner"></span><strong>我是小偷</strong><small>灵活躲避，坚持到最后！</small><i>${icon("check")}</i></button></div>
+        <h2 class="sp-section-heading">选择对战模式</h2><div class="sp-mode-grid" data-match-modes></div>
+        <h2 class="sp-section-heading">谁先行动？</h2><div class="sp-segments" data-match-initiative><button data-initiative="pursuer" aria-pressed="false">警察先行</button><button data-initiative="runner" aria-pressed="false">小偷先行</button><button data-initiative="random" aria-pressed="true">随机</button></div>
+        <div class="sp-info-pills"><span>${icon("friends")}<strong>2 人 PK</strong><small>各自操控一方</small></span><span>${icon("shield")}<strong>2 秒先行</strong><small>随后同时行动</small></span></div>
+        <button class="sp-primary" data-create>${icon("play")}创建房间</button><p class="sp-note">地图从对应模式的 100 关中抽取。</p>
+      </section>
+      <section class="sp-page" data-page="join" hidden>
+        <div class="sp-vs-hero sp-vs-hero-small"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span></div>
+        <form class="sp-card sp-join-form" data-join-form><label for="street-room-code">输入好友的房间码</label><input id="street-room-code" data-code minlength="12" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="12 位房间码" required><small>让好友把房间码或邀请链接发给你</small><button class="sp-primary" data-join type="submit">加入房间 ${icon("arrow")}</button></form>
+      </section>
+      <section class="sp-page" data-page="room" data-room hidden>
+        <div class="sp-vs-hero sp-room-hero"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span></div>
+        <div class="sp-room-code-card"><small>房间码 · 分享给好友</small><button data-share aria-label="查看邀请和复制房间码"><strong data-room-code></strong>${icon("link")}</button></div>
+        <div class="sp-players" data-players></div>
+        <p class="sp-room-hint" data-room-hint></p>
+        <div class="sp-room-settings" data-role-options><h2 class="sp-section-heading">我的阵营</h2><div class="sp-segments"><button data-role="pursuer">警察</button><button data-role="runner">小偷</button></div><h2 class="sp-section-heading">谁先行动？</h2><div class="sp-segments" data-room-initiative><button data-room-lead="pursuer">警察先行</button><button data-room-lead="runner">小偷先行</button><button data-room-lead="random">随机</button></div><small data-initiative-note></small></div>
+        <button class="sp-invite-link" data-invite>${icon("link")}邀请好友，一起来玩</button><button class="sp-primary" data-ready>准备好了 ${icon("play")}</button><button class="sp-primary" data-rematch hidden>${icon("refresh")}再来一局</button><button class="sp-secondary" data-result hidden>查看对战结果</button><button class="sp-text-button" data-close>离开房间，回到首页</button>
+      </section>
+      <section class="sp-page sp-play-page" data-page="play" hidden><div class="sp-play-info"><strong data-play-role></strong><span>点击角色，再点道路移动</span></div><canvas data-play aria-label="好友挑战操作区"></canvas><div class="sp-play-actions"><button data-rules>玩法说明</button><button data-invite>邀请信息</button><button data-close>离开对局</button></div></section>
+      <section class="sp-page" data-page="board" hidden><div class="sp-board-intro">${icon("trophy")}<h2>街区高手榜</h2><p data-board-summary>正在读取全站成绩…</p></div><div data-board-content></div><button class="sp-secondary" data-refresh-board>${icon("refresh")}刷新榜单</button></section>
+      <section class="sp-page" data-page="nickname" hidden><div class="sp-name-hero"><span class="sp-portrait" data-name-avatar></span><i>✦</i><i>✦</i></div><form class="sp-card sp-name-form" data-name-form><label for="street-nickname">你的昵称</label><div class="sp-name-input"><input id="street-nickname" name="name" maxlength="32" autocomplete="off" spellcheck="false" required aria-label="你的昵称">${icon("pen")}</div><small>2–16 个中英文字、数字、空格或 · _ -</small><p class="sp-form-message" role="status" data-name-message></p><button class="sp-primary" type="submit" data-save-name>${icon("check")}保存昵称</button></form><p class="sp-note">成绩会跟随你的账号，修改昵称后仍然保留。</p><div class="sp-player-id"><small>我的玩家 ID</small><code data-player-id></code></div></section>
+      <section class="sp-page" data-page="rules" hidden><div class="sp-rules-hero">${icon("shield")}<h2>街区追捕，开局指南</h2><p>选中角色，点击道路，开始追逐！</p></div><div class="sp-card" data-rules-content></div><button class="sp-primary" data-page-return>知道啦，返回 ${icon("arrow")}</button></section>
+      <section class="sp-page" data-page="results" hidden><div class="sp-result-hero"><span class="sp-figure" data-figure="pursuer"></span><span class="sp-result-trophy">${icon("trophy")}</span><span class="sp-figure" data-figure="runner"></span><h2 data-result-title>这局打得漂亮！</h2><p>好友对战 · 本局积分已确认</p></div><div class="sp-results" data-results></div><button class="sp-primary" data-result-rematch>${icon("refresh")}再来一局</button><button class="sp-secondary" data-board>${icon("trophy")}查看全站榜</button><button class="sp-text-button" data-close>${icon("home")}回到首页</button></section>
+      <section class="sp-page" data-page="invite" hidden><div class="sp-invite-hero">${icon("friends")}<h2>叫上好友，一起追逐！</h2><p>一人当警察，一人当小偷</p></div><div class="sp-card sp-invite-card"><small>你的房间码</small><strong data-invite-code></strong><button class="sp-primary" data-copy-code>${icon("link")}复制房间码</button><small>或把邀请链接发给好友</small><input data-invite-url readonly aria-label="邀请链接"><button class="sp-secondary" data-copy-link>${icon("link")}复制邀请链接</button><p class="sp-form-message" role="status" data-invite-message></p></div><button class="sp-text-button" data-page-return>返回房间 ${icon("arrow")}</button></section>
+    </main>
+    <nav class="sp-bottom-nav" aria-label="好友对战导航"><button data-home>${icon("home")}首页</button><button data-go="lobby" aria-pressed="true">${icon("friends")}好友 PK</button><button data-board>${icon("trophy")}全站榜</button></nav>
+  </div>`;
+		document.body.append(launch, surface);
+		const select = (query) => surface.querySelector(query);
+		const all = (query) => [...surface.querySelectorAll(query)];
+		const status = select("[data-status]");
+		const canvas = select("canvas");
+		const ctx = canvas.getContext("2d");
+		let room = null, profile = null, modes = [], metadata = null;
+		let poll = null, frame = 0, lastPoll = 0, busy = false, exiting = false, pending = null, resultShown = null;
+		let current = "lobby", trail = [], returnFocus = null;
+		let viewSource = null, viewState = null, viewTurned = false;
+		let sessionGeneration = 0, busyGeneration = 0;
+		let historyDepth = 0, historySession = null;
+		const preferences = {
+			mode: "classic",
+			role: "pursuer",
+			initiative: "random"
+		};
+		const pageTitles = {
+			lobby: ["好友 PK", "叫上好友，一起来一场街区追逐！"],
+			create: ["创建房间", "选好阵营，等好友一起出发"],
+			join: ["加入房间", "好友在等你，快来集合！"],
+			room: ["等好友就位", "邀请好友，准备好就出发"],
+			play: ["好友追逐中", ""],
+			board: ["全站榜", "每一局，都离高手更近一点"],
+			nickname: ["设置昵称", "取个有趣的名字，让好友认出你"],
+			rules: ["这局怎么玩", ""],
+			results: ["对战结果", ""],
+			invite: ["邀请好友", "把房间码分享给你的伙伴"]
+		};
+		function node(tag, value, className = "") {
+			const element = document.createElement(tag);
+			element.textContent = value;
+			if (className) element.className = className;
+			return element;
+		}
+		function feedback(value) {
+			status.textContent = value instanceof Error ? value.message : String(value);
+			status.toggleAttribute("data-error", value instanceof Error);
+		}
+		const isCurrent = (generation) => surface.open && generation === sessionGeneration;
+		const detachedKey = `competition-detached-rooms:${game}`;
+		function detachedRooms() {
+			try {
+				return JSON.parse(localStorage.getItem(detachedKey) || "[]").filter((code) => /^[A-F0-9]{12}$/.test(code));
+			} catch {
+				return [];
+			}
+		}
+		function rememberDetached(code) {
+			try {
+				localStorage.setItem(detachedKey, JSON.stringify([.../* @__PURE__ */ new Set([...detachedRooms(), code])]));
+			} catch {}
+		}
+		function forgetDetached(code) {
+			try {
+				localStorage.setItem(detachedKey, JSON.stringify(detachedRooms().filter((item) => item !== code)));
+			} catch {}
+		}
+		async function leaveDetached(value) {
+			if (!value?.code || !["waiting", "playing"].includes(value.status)) return;
+			if (surface.open && room?.code === value.code) return;
+			rememberDetached(value.code);
+			try {
+				await client.request(`/rooms/${value.code}/leave`, { body: "{}" });
+				forgetDetached(value.code);
+			} catch {}
+		}
+		async function receiveRoom(value, generation) {
+			if (!isCurrent(generation)) {
+				await leaveDetached(value);
+				return;
+			}
+			accept(value, generation);
+		}
+		function portrait(role = "pursuer") {
+			const element = node("span", "", "sp-portrait");
+			decoratePortrait(element, role);
+			return element;
+		}
+		function decoratePortrait(element, role = "pursuer") {
+			const appearance = getRoleAppearance(role);
+			element.style.removeProperty("background-image");
+			element.dataset.portraitRole = role;
+			element.dataset.preset = String(Number(appearance.preset) || 0);
+			if (appearance.avatar) {
+				element.style.backgroundImage = `url("${appearance.avatar}")`;
+				element.dataset.custom = "";
+			} else element.removeAttribute("data-custom");
+		}
+		function updateProfile(value) {
+			profile = value;
+			select("[data-profile-name]").textContent = value.name;
+			select("[data-player-id]").textContent = value.playerId;
+			decoratePortrait(select("[data-avatar]"));
+			decoratePortrait(select("[data-name-avatar]"));
+			for (const figure of all("[data-figure]")) figure.style.backgroundPositionX = `${getRoleAppearance(figure.dataset.figure).preset * 50}%`;
+		}
+		function navigate(page, { remember = true, animate = true, syncHistory = true } = {}) {
+			if (!select(`[data-page="${page}"]`)) return;
+			const changed = current !== page;
+			if (remember && changed) trail.push(current);
+			current = page;
+			if (surface.open && syncHistory && historySession) {
+				if (remember && changed) {
+					historyDepth++;
+					history.pushState({
+						...history.state,
+						streetPage: page,
+						streetSession: historySession,
+						streetDepth: historyDepth
+					}, "", location.href);
+				} else history.replaceState({
+					...history.state,
+					streetPage: page,
+					streetSession: historySession,
+					streetDepth: historyDepth
+				}, "", location.href);
+			}
+			for (const section of all("[data-page]")) section.hidden = section.dataset.page !== page;
+			surface.dataset.page = page;
+			surface.toggleAttribute("data-playing", page === "play");
+			select("[data-page-title]").textContent = page === "room" && room?.players.length === 2 ? "好友已就位" : pageTitles[page][0];
+			select("[data-page-subtitle]").textContent = pageTitles[page][1];
+			select(".sp-bottom-nav").hidden = !["lobby", "board"].includes(page);
+			for (const button of all(".sp-bottom-nav button")) button.setAttribute("aria-pressed", String(page === "board" ? button.hasAttribute("data-board") : button.dataset.go === "lobby"));
+			const target = select(`[data-page="${page}"]`);
+			target.scrollTop = 0;
+			if (animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) target.animate([{
+				opacity: 0,
+				transform: "translateX(26px)"
+			}, {
+				opacity: 1,
+				transform: "translateX(0)"
+			}], {
+				duration: 230,
+				easing: "cubic-bezier(.2,.7,.2,1)"
+			});
+		}
+		function back() {
+			if (["room", "play"].includes(current)) {
+				close();
+				return;
+			}
+			if (historyDepth > 0) history.back();
+			else if (trail.length) navigate(trail.pop(), { remember: false });
+			else close();
+		}
+		async function run(task) {
+			const generation = sessionGeneration;
+			if (busy && busyGeneration === generation || exiting || !surface.open) return;
+			busy = true;
+			busyGeneration = generation;
+			surface.setAttribute("aria-busy", "true");
+			try {
+				await task(generation);
+			} catch (error) {
+				if (isCurrent(generation)) {
+					if (error.code && error.code !== "SERVICE_UNAVAILABLE") pending = null;
+					feedback(error);
+				}
+			} finally {
+				if (busyGeneration === generation) {
+					busy = false;
+					surface.removeAttribute("aria-busy");
+				}
+			}
+		}
+		function renderModes() {
+			const target = select("[data-match-modes]");
+			target.replaceChildren();
+			if (!modes.length) {
+				target.append(node("p", "对战服务暂未连接，请返回后重试。", "sp-empty"));
+				select("[data-create]").disabled = true;
+				return;
+			}
+			select("[data-create]").disabled = false;
+			if (!modes.some((mode) => mode.id === preferences.mode)) preferences.mode = modes[0].id;
+			for (const mode of modes) {
+				const button = node("button", "", "sp-mode-card");
+				button.dataset.matchMode = mode.id;
+				button.setAttribute("aria-pressed", String(mode.id === preferences.mode));
+				const symbol = node("span", mode.id === "escape" ? "↗" : "★", "sp-mode-symbol");
+				button.append(symbol, node("strong", mode.id === "classic" ? "经典围捕" : mode.id === "escape" ? "出口竞速" : mode.title), node("small", mode.id === "escape" ? "抢先到达出口，突破包围" : "合作追捕，守住整条街区"));
+				button.onclick = () => {
+					preferences.mode = mode.id;
+					for (const item of target.children) item.setAttribute("aria-pressed", String(item === button));
+				};
+				target.append(button);
+			}
+		}
+		function renderPlayers() {
+			const target = select("[data-players]");
+			target.replaceChildren();
+			for (let seat = 0; seat < 2; seat++) {
+				const player = room.players[seat];
+				const card = node("div", "", "sp-player");
+				if (player) {
+					card.dataset.role = player.role || (seat === 0 ? "pursuer" : "runner");
+					card.toggleAttribute("data-ready", !!player.ready);
+					const copy = node("div", "", "sp-player-copy");
+					copy.append(node("strong", playerName(player, room.players) + (seat === room.you ? " · 你" : "")), node("small", `${roleNames[player.role] || "好友"} · ${room.status === "waiting" ? player.ready ? "已准备 ✓" : "等待准备" : room.status === "finished" ? "对局结束" : "对局中断"}`));
+					card.append(portrait(player.role), copy);
+				} else {
+					card.dataset.empty = "";
+					card.append(node("span", "＋", "sp-wait-avatar"), node("div", "等一位好友\n分享邀请给 TA", "sp-player-copy"));
+				}
+				target.append(card);
+			}
+		}
+		function accept(value, generation = sessionGeneration) {
+			if (!isCurrent(generation)) return;
+			const oldStatus = room?.status;
+			if (room?.code !== value.code) pending = null;
+			room = value;
+			const playing = room.status === "playing";
+			const ended = [
+				"finished",
+				"abandoned",
+				"expired"
+			].includes(room.status);
+			select("[data-room-code]").textContent = room.code;
+			select("[data-room-hint]").textContent = ended ? room.status === "finished" ? "本局已结束，再来一局继续较量！" : "这局暂告一段落，可以重新邀请好友。" : `${modes.find((mode) => mode.id === room.mode)?.title || "好友对战"} · 双方准备后自动开始`;
+			select("[data-role-options]").hidden = room.status !== "waiting" || !room.roles;
+			select("[data-initiative-note]").textContent = room.you === 0 ? "由你设置先行阵营，修改后双方重新准备。" : "由房主设置先行阵营，先行方有 2 秒行动时间。";
+			for (const button of all("[data-room-lead]")) {
+				button.setAttribute("aria-pressed", String(button.dataset.roomLead === (room.initiative || "random")));
+				button.disabled = room.you !== 0;
+			}
+			for (const button of all("button[data-role]")) {
+				const selected = button.dataset.role === room.players[room.you]?.role;
+				button.setAttribute("aria-pressed", String(selected));
+				button.disabled = selected;
+			}
+			select("[data-ready]").hidden = room.status !== "waiting";
+			select("[data-ready]").disabled = !!room.players[room.you]?.ready;
+			select("[data-ready]").textContent = room.players[room.you]?.ready ? "已准备，等好友 ✓" : "准备好了！ ▸";
+			select("[data-rematch]").hidden = !ended;
+			select("[data-result]").hidden = room.status !== "finished";
+			select("[data-invite]").hidden = ended;
+			select("[data-play-role]").textContent = `你是${roleNames[room.players[room.you]?.role] || "街区伙伴"}`;
+			renderPlayers();
+			feedback({
+				waiting: room.players.length === 2 ? "好友已就位，双方准备就能开始" : "房间已创建，邀请好友来集合",
+				playing: "追逐进行中",
+				finished: "对战结束，本局积分已确认",
+				abandoned: "玩家已退出，可以再来一局",
+				expired: "房间已过期，可以重新邀请好友"
+			}[room.status] + (playing ? ` · 剩余 ${Math.max(0, Math.ceil((room.deadline - room.serverNow) / 1e3))} 秒` : ""));
+			if (playing && (oldStatus !== "playing" || [
+				"lobby",
+				"create",
+				"join",
+				"room",
+				"results"
+			].includes(current))) {
+				trail = [];
+				navigate("play", { remember: false });
+			} else if (!playing && [
+				"lobby",
+				"create",
+				"join",
+				"play"
+			].includes(current)) {
+				trail = [];
+				navigate("room", { remember: false });
+			}
+			if (room.status === "finished" && resultShown !== room.code) {
+				resultShown = room.code;
+				showResults();
+			}
+			try {
+				localStorage.setItem(`competition-room:${game}`, room.code);
+			} catch {}
+		}
+		async function refresh() {
+			const generation = sessionGeneration;
+			if (!room || busy && busyGeneration === generation || exiting || !surface.open || Date.now() - lastPoll < (room.pollMs || 1200)) return;
+			lastPoll = Date.now();
+			try {
+				accept(await client.request(`/rooms/${room.code}`), generation);
+			} catch (error) {
+				if (isCurrent(generation)) feedback(error);
+			}
+		}
+		function showResults() {
+			if (!room) return;
+			const target = select("[data-results]");
+			target.replaceChildren();
+			const me = room.players[room.you];
+			const ownResult = room.results?.find((entry) => entry.playerId === me.id);
+			const opponent = room.results?.find((entry) => entry.playerId !== me.id);
+			select("[data-result-title]").textContent = ownResult?.result.eligible && ownResult.result.score > (opponent?.result.score ?? ownResult.result.score) ? "这局赢得漂亮！" : ownResult?.result.eligible && ownResult.result.score < (opponent?.result.score ?? ownResult.result.score) ? "差一点，再来一局！" : "这局打得漂亮！";
+			for (const entry of room.results || []) {
+				const player = room.players.find((item) => item.id === entry.playerId) || { playerId: entry.playerId };
+				const card = node("section", "", "sp-result-card");
+				const head = node("div", "", "sp-result-player");
+				head.append(portrait(player.role), node("h3", `${entry.playerId === me.id ? "你 · " : ""}${playerName(player, room.players)}`));
+				const record = entry.after.me;
+				card.append(head, node("strong", entry.result.eligible ? `${scoreText(game, entry.result.score, entry.result.secondary)} · 本局` : "本局无有效成绩", "sp-result-score"), node("p", record ? `总积分 ${scoreText(game, record.score, record.secondary)} · 全站第 ${record.rank} 名` : "完成有效对战，就能登上全站榜"), node("small", gapText(game, entry.after)));
+				if (entry.reason) card.append(node("p", entry.reason));
+				target.append(card);
+			}
+			navigate("results");
+		}
+		async function showBoard(generation = sessionGeneration, { remember = true } = {}) {
+			navigate("board", { remember });
+			select("[data-board-summary]").textContent = "正在读取全站成绩…";
+			const board = await client.request(`/boards/${game}`);
+			if (!isCurrent(generation)) return;
+			select("[data-board-summary]").textContent = `${board.eligiblePlayers} 位玩家 · 好友对战累计积分`;
+			const target = select("[data-board-content]");
+			target.replaceChildren();
+			if (board.top.length) {
+				const podium = node("div", "", "sp-podium");
+				for (const index of [
+					1,
+					0,
+					2
+				]) {
+					const row = board.top[index];
+					if (!row) continue;
+					const card = node("div", "", "sp-podium-place");
+					card.dataset.rank = String(row.rank);
+					card.append(portrait(index === 1 ? "runner" : "pursuer"), node("span", String(row.rank), "sp-podium-number"), node("strong", playerName(row, board.top)), node("small", scoreText(game, row.score, row.secondary)));
+					podium.append(card);
+				}
+				target.append(podium);
+			}
+			const list = node("ol", "", "sp-rank-list");
+			for (const row of board.top.slice(3)) {
+				const item = node("li", "", "sp-rank-row");
+				item.toggleAttribute("data-self", row.playerId === board.me?.playerId);
+				item.append(node("span", String(row.rank), "sp-rank-number"), portrait(row.rank % 2 ? "runner" : "pursuer"), node("strong", playerName(row, board.top)), node("span", scoreText(game, row.score, row.secondary)));
+				list.append(item);
+			}
+			if (!board.top.length) list.append(node("li", "全站榜还空着，邀请好友完成一局，留下你的名字！", "sp-empty"));
+			const own = node("section", "", "sp-my-record");
+			const ownCopy = node("div", "", "sp-my-record-copy");
+			ownCopy.append(node("strong", `${profile?.name || "我"} · ${board.me ? "第 " + board.me.rank + " 名" : "尚未上榜"}`), node("span", board.me ? scoreText(game, board.me.score, board.me.secondary) : "等你完成第一局"), node("small", gapText(game, board)));
+			own.append(portrait(), ownCopy);
+			target.append(list, own, node("p", "好友对战累计积分，练习成绩不计入全站榜。", "sp-note"));
+		}
+		async function showProfile(generation = sessionGeneration) {
+			navigate("nickname");
+			select("[data-save-name]").disabled = false;
+			if (!profile) {
+				const value = await client.request("/me");
+				if (!isCurrent(generation)) return;
+				updateProfile(value);
+			}
+			select("[name=\"name\"]").value = profile.name;
+			select("[data-name-message]").textContent = "";
+		}
+		async function showRules(generation = sessionGeneration) {
+			navigate("rules");
+			const target = select("[data-rules-content]");
+			target.replaceChildren(node("p", "正在读取玩法说明…"));
+			const rules = room?.state?.rules || metadata?.description || (await client.request(`/boards/${game}`)).description || "双方准备后开始，点击角色，再点击道路移动。";
+			if (!isCurrent(generation)) return;
+			const list = node("ol", "", "sp-rule-list");
+			for (const part of rules.split(/[；。]+/).map((part) => part.trim()).filter(Boolean)) list.append(node("li", `${part}。`));
+			target.replaceChildren(list, node("p", room?.status === "playing" ? "查看说明时对局仍在计时，返回即可继续行动。" : "警察和小偷独立操作，比赛积分由服务端确认。", "sp-note"));
+		}
+		function showInvite() {
+			if (!room) return;
+			const url = new URL(location.href);
+			url.searchParams.set("pk", room.code);
+			select("[data-invite-code]").textContent = room.code;
+			select("[data-invite-url]").value = url.href;
+			select("[data-invite-message]").textContent = "";
+			navigate("invite");
+		}
+		async function copyInvite(link, generation = sessionGeneration) {
+			const value = link ? select("[data-invite-url]").value : room.code;
+			try {
+				await navigator.clipboard.writeText(value);
+				if (!isCurrent(generation)) return;
+				select("[data-invite-message]").textContent = link ? "邀请链接已复制，发给好友吧！" : "房间码已复制，发给好友吧！";
+			} catch {
+				if (!isCurrent(generation)) return;
+				select("[data-invite-message]").textContent = "可以长按选择上方内容，再复制给好友。";
+			}
+		}
+		function renderedView(state, width, height) {
+			const nodes = state?.map?.nodes || [];
+			const extentX = nodes.length ? Math.max(...nodes.map((point) => point.x)) - Math.min(...nodes.map((point) => point.x)) : 0;
+			const extentY = nodes.length ? Math.max(...nodes.map((point) => point.y)) - Math.min(...nodes.map((point) => point.y)) : 0;
+			const turned = width < height && extentX > extentY;
+			if (viewSource === state && viewTurned === turned) return {
+				state: viewState,
+				turned
+			};
+			viewSource = state;
+			viewTurned = turned;
+			if (!turned) viewState = state;
+			else {
+				const point = (value) => value ? {
+					...value,
+					x: -value.y,
+					y: value.x
+				} : value;
+				const actor = (value) => ({
+					...point(value),
+					...value.routePoints ? { routePoints: value.routePoints.map(point) } : {},
+					...value.destination ? { destination: point(value.destination) } : {},
+					...value.gap ? { gap: {
+						...value.gap,
+						from: point(value.gap.from),
+						to: point(value.gap.to)
+					} } : {}
+				});
+				viewState = {
+					...state,
+					map: {
+						...state.map,
+						nodes: nodes.map(point)
+					},
+					cops: state.cops.map(actor),
+					robbers: state.robbers.map(actor),
+					exits: state.exits.map(point)
+				};
+			}
+			surface.dataset.mapProjection = turned ? "quarter-turn" : "normal";
+			return {
+				state: viewState,
+				turned
+			};
+		}
+		function draw() {
+			if (!surface.open) return;
+			if (current === "play" && room?.state) {
+				const width = canvas.clientWidth, height = canvas.clientHeight;
+				const ratio = Math.min(devicePixelRatio || 1, 2);
+				if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
+					canvas.width = Math.floor(width * ratio);
+					canvas.height = Math.floor(height * ratio);
+				}
+				ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+				ctx.clearRect(0, 0, width, height);
+				renderer.draw(ctx, width, height, renderedView(room.state, width, height).state);
+			}
+			frame = requestAnimationFrame(draw);
+		}
+		async function open(entry) {
+			if (exiting) return;
+			let generation = sessionGeneration;
+			const opening = !surface.open;
+			if (!surface.open) {
+				sessionGeneration++;
+				generation = sessionGeneration;
+				returnFocus = document.activeElement;
+				window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: true } }));
+				surface.open = true;
+				surface.setAttribute("open", "");
+				surface.hidden = false;
+				historySession = `street-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+				historyDepth = 1;
+				history.pushState({
+					...history.state,
+					streetPage: "lobby",
+					streetSession: historySession,
+					streetDepth: historyDepth
+				}, "", location.href);
+				trail = [];
+				navigate("lobby", { remember: false });
+				draw();
+				poll = setInterval(refresh, 250);
+				await run(async (generation) => {
+					const me = await client.request("/me");
+					if (!isCurrent(generation)) return;
+					updateProfile(me);
+					const board = await client.request(`/boards/${game}`);
+					if (!isCurrent(generation)) return;
+					metadata = board;
+					modes = metadata.modes || [];
+					renderModes();
+					for (const code of detachedRooms()) {
+						if (!isCurrent(generation)) return;
+						await leaveDetached({
+							code,
+							status: "waiting"
+						});
+					}
+					if (!isCurrent(generation)) return;
+					const invite = new URL(location.href).searchParams.get("pk");
+					let saved;
+					try {
+						saved = localStorage.getItem(`competition-room:${game}`);
+					} catch {}
+					if (invite && /^[A-F0-9]{12}$/.test(invite)) {
+						select("[data-code]").value = invite;
+						navigate("join");
+						feedback("邀请已就位，点击加入房间吧！");
+					} else if (saved) accept(await client.request(`/rooms/${saved}`), generation);
+				});
+			}
+			if (entry === "board" && isCurrent(generation)) await run((generation) => showBoard(generation, { remember: !opening }));
+		}
+		async function close({ restoreHistory = true } = {}) {
+			if (exiting || !surface.open) return;
+			exiting = true;
+			launch.disabled = true;
+			surface.open = false;
+			sessionGeneration++;
+			surface.hidden = true;
+			surface.removeAttribute("open");
+			const depth = historyDepth;
+			historyDepth = 0;
+			historySession = null;
+			clearInterval(poll);
+			cancelAnimationFrame(frame);
+			if (restoreHistory && depth > 0) await new Promise((resolve) => {
+				const done = () => {
+					clearTimeout(timeout);
+					window.removeEventListener("popstate", done);
+					resolve();
+				};
+				const timeout = setTimeout(done, 500);
+				window.addEventListener("popstate", done, { once: true });
+				history.go(-depth);
+			});
+			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: false } }));
+			if (returnFocus?.isConnected && !returnFocus.closest("[hidden]")) returnFocus.focus();
+			try {
+				if (room && ["waiting", "playing"].includes(room.status)) await client.request(`/rooms/${room.code}/leave`, { body: "{}" });
+				room = null;
+				pending = null;
+				resultShown = null;
+				try {
+					localStorage.removeItem(`competition-room:${game}`);
+				} catch {}
+				feedback("邀请一位好友，一起玩一局。");
+			} catch {
+				launch.title = "退出尚未得到确认，重新进入可以恢复房间。";
+			} finally {
+				exiting = false;
+				launch.disabled = false;
+			}
+		}
+		async function rematch(generation = sessionGeneration) {
+			const result = await client.request(`/rooms/${room.code}/rematch`, { body: "{}" });
+			if (!isCurrent(generation)) {
+				await leaveDetached({
+					code: result.rematch,
+					status: "waiting"
+				});
+				return;
+			}
+			resultShown = null;
+			trail = [];
+			navigate("room", { remember: false });
+			await receiveRoom(await client.request("/rooms/join", { body: JSON.stringify({ code: result.rematch }) }), generation);
+		}
+		launch.onclick = () => void open();
+		globalThis.__openStreetCompetition = open;
+		globalThis.__openCompetition = open;
+		window.addEventListener("competition-navigation", (event) => void open(event.detail?.page || event.detail?.entry));
+		all("[data-go]").forEach((button) => {
+			button.onclick = () => navigate(button.dataset.go);
+		});
+		all("[data-home], [data-close]").forEach((button) => {
+			button.onclick = () => void close();
+		});
+		select("[data-page-back]").onclick = back;
+		all("[data-page-return]").forEach((button) => {
+			button.onclick = back;
+		});
+		all("[data-board]").forEach((button) => {
+			button.onclick = () => void run(showBoard);
+		});
+		select("[data-refresh-board]").onclick = () => void run(showBoard);
+		select("[data-profile]").onclick = () => void run(showProfile);
+		all("[data-rules]").forEach((button) => {
+			button.onclick = () => void run(showRules);
+		});
+		all("[data-invite], [data-share]").forEach((button) => {
+			button.onclick = showInvite;
+		});
+		select("[data-copy-code]").onclick = () => void run((generation) => copyInvite(false, generation));
+		select("[data-copy-link]").onclick = () => void run((generation) => copyInvite(true, generation));
+		all("[data-match-role]").forEach((button) => {
+			button.onclick = () => {
+				preferences.role = button.dataset.matchRole;
+				all("[data-match-role]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			};
+		});
+		all("[data-initiative]").forEach((button) => {
+			button.onclick = () => {
+				preferences.initiative = button.dataset.initiative;
+				all("[data-initiative]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			};
+		});
+		select("[data-create]").onclick = () => void run(async (generation) => {
+			await receiveRoom(await client.request("/rooms", { body: JSON.stringify({
+				game,
+				...preferences
+			}) }), generation);
+		});
+		select("[data-join-form]").onsubmit = (event) => {
+			event.preventDefault();
+			run(async (generation) => {
+				await receiveRoom(await client.request("/rooms/join", { body: JSON.stringify({
+					code: select("[data-code]").value.trim().toUpperCase(),
+					game
+				}) }), generation);
+			});
+		};
+		select("[data-code]").addEventListener("input", (event) => {
+			event.target.value = event.target.value.replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+		});
+		all("button[data-role]").forEach((button) => {
+			button.onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/role`, { body: JSON.stringify({ role: button.dataset.role }) }), generation));
+		});
+		all("[data-room-lead]").forEach((button) => {
+			button.onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/initiative`, { body: JSON.stringify({ initiative: button.dataset.roomLead }) }), generation));
+		});
+		select("[data-ready]").onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/ready`, { body: "{}" }), generation));
+		select("[data-rematch]").onclick = () => void run(rematch);
+		select("[data-result-rematch]").onclick = () => void run(rematch);
+		select("[data-result]").onclick = showResults;
+		select("[data-name-form]").onsubmit = (event) => {
+			event.preventDefault();
+			run(async (generation) => {
+				const save = select("[data-save-name]");
+				save.disabled = true;
+				select("[data-name-message]").textContent = "正在保存昵称…";
+				try {
+					const value = await client.request("/me", { body: JSON.stringify({ name: select("[name=\"name\"]").value }) });
+					if (!isCurrent(generation)) return;
+					updateProfile(value);
+					if (room) accept(await client.request(`/rooms/${room.code}`), generation);
+					if (!isCurrent(generation)) return;
+					back();
+					feedback("昵称保存好啦，好友会看到你的新名字！");
+				} catch (error) {
+					if (isCurrent(generation)) select("[data-name-message]").textContent = error.message;
+				} finally {
+					if (isCurrent(generation)) save.disabled = false;
+				}
+			});
+		};
+		canvas.addEventListener("pointerup", (event) => {
+			if (!room || room.status !== "playing" || current !== "play") return;
+			const rect = canvas.getBoundingClientRect();
+			const view = renderedView(room.state, canvas.clientWidth, canvas.clientHeight);
+			const tapped = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, view.state);
+			const command = view.turned && tapped?.type === "move" ? {
+				...tapped,
+				x: tapped.y,
+				y: -tapped.x
+			} : tapped;
+			if (!command) return;
+			run(async (generation) => {
+				pending ??= {
+					seq: room.seq + 1,
+					action: command
+				};
+				const next = await client.request(`/rooms/${room.code}/actions`, { body: JSON.stringify(pending) });
+				if (!isCurrent(generation)) return;
+				pending = null;
+				accept(next, generation);
+			});
+		});
+		document.addEventListener("keydown", (event) => {
+			if (event.key === "Escape" && surface.open) {
+				event.preventDefault();
+				back();
+			}
+		});
+		window.addEventListener("popstate", (event) => {
+			if (!surface.open) return;
+			if (event.state?.streetSession !== historySession) {
+				close({ restoreHistory: false });
+				return;
+			}
+			historyDepth = event.state.streetDepth || 1;
+			trail.length = Math.max(0, historyDepth - 1);
+			let page = event.state.streetPage || "lobby";
+			if (room && ["room", "play"].includes(current) && page === "lobby") {
+				close();
+				return;
+			}
+			if (room?.status === "playing" && page === "room") page = "play";
+			else if (room && room.status !== "playing" && page === "play") page = "room";
+			navigate(page, {
+				remember: false,
+				syncHistory: false
+			});
+		});
+		document.addEventListener("chase-appearancechange", () => {
+			if (profile) updateProfile(profile);
+			if (room && surface.open) renderPlayers();
+		});
+		if (new URL(location.href).searchParams.has("pk")) open();
+	}
+	//#endregion
 	//#region ../../platforms/competition/h5.js
 	var titles = {
 		"cops-robbers": "围捕小队",
@@ -197,8 +1138,79 @@
 		"vibeJam-myself-history-guess": "此时·此地",
 		"xiangqi-five": "象五子棋"
 	};
+	var xiangqiCompetitionStyles = `
+body.competition-active { background:#fff8e8; overflow:hidden; }
+body.competition-active [data-screen], body.competition-active > .page, body.competition-active > .app-shell { display:none!important; }
+body.competition-active #mode-online { position:static; }
+[data-xiangqi-competition][hidden] { display:none!important; }
+[data-xiangqi-competition].competition-dialog {
+  --pk-ink:#573626; --pk-muted:#94785d; --pk-line:#ddc8a9; --pk-accent:#ef795f;
+  position:relative; inset:auto; width:100%; max-width:600px; height:100dvh;
+  margin:0 auto; border:0; border-radius:0; background:#fff8e8; box-shadow:none;
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-xiangqi-competition] .pk-shell { padding: max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition] .pk-header { border:0; padding-bottom:8px; }
+[data-xiangqi-competition] .pk-back { padding:0; width:44px; min-width:44px; border:0; background:transparent; font-size:28px; }
+[data-xiangqi-competition] .pk-brand { justify-content:center; }
+[data-xiangqi-competition] .pk-brand strong { font-size:23px; font-weight:900; }
+[data-xiangqi-competition] .pk-brand-mark,
+[data-xiangqi-competition] .pk-brand small,
+[data-xiangqi-competition] .pk-profile-copy small,
+[data-xiangqi-competition] .pk-room-note,
+[data-xiangqi-competition] .pk-footer p,
+[data-xiangqi-competition] .pk-hero .pk-eyebrow,
+[data-xiangqi-competition] .pk-hero p { display:none; }
+[data-xiangqi-competition] .pk-status { font-size:12px; justify-content:center; min-height:20px; margin:3px 0 12px!important; }
+[data-xiangqi-competition] .pk-hero { padding:10px 0 18px; background:none; border:0; }
+[data-xiangqi-competition] .pk-hero h2 { font-size:27px; font-weight:900; }
+[data-xiangqi-competition] .pk-profile { padding:12px 14px; border:2px solid #d6c29e; border-radius:20px; background:#edf3dc; margin-bottom:18px; }
+[data-xiangqi-competition] .pk-avatar { background:#b8d0a9; color:#365f45; border:2px solid #668360; box-shadow:0 3px 0 #7fa578; }
+[data-xiangqi-competition] .pk-options { grid-template-columns:1fr; gap:16px; }
+[data-xiangqi-competition] .pk-option { padding:18px; border:2px solid #d6b38c; border-radius:24px; background:#fff0da; box-shadow:0 4px 0 #ead5b8; }
+[data-xiangqi-competition] .pk-option h3 { font-size:20px; font-weight:900; }
+[data-xiangqi-competition] .pk-option p { margin:5px 0 14px!important; font-size:13px; }
+[data-xiangqi-competition] button { border:2px solid #ba9b77; border-radius:16px; background:#fff5df; min-height:48px; font-size:15px; font-weight:800; box-shadow:0 3px 0 #dfc7a9; }
+[data-xiangqi-competition] button:active { transform:translateY(2px); }
+[data-xiangqi-competition] button.pk-primary { border-color:#b25843; background:#ef795f; color:#fffaf0; box-shadow:0 4px 0 #be5c42; }
+[data-xiangqi-competition] button.pk-quiet { border-color:transparent; background:transparent; box-shadow:none; padding:8px; min-height:44px; }
+[data-xiangqi-competition] input { min-width:0; border:2px solid #d6b38c; border-radius:14px; background:#fffcf2; color:#573626; min-height:48px; }
+[data-xiangqi-competition] .pk-join { gap:10px; }
+[data-xiangqi-competition] .pk-footer { border:0; padding-top:18px; justify-content:center; }
+[data-xiangqi-competition] .pk-footer button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-room-code { background:#fff0d5; border:2px dashed #d3ad78; color:#715137; border-radius:15px; }
+[data-xiangqi-competition] .pk-room-intro { padding:14px 0; }
+[data-xiangqi-competition] .pk-player { border-radius:20px; border:2px solid #d6c29e; background:#f0f4df; }
+[data-xiangqi-competition] .pk-room-actions { gap:12px; flex-wrap:wrap; }
+[data-xiangqi-competition] .pk-room-actions > button { flex:1; min-width:120px; }
+[data-xiangqi-competition][data-playing] .pk-shell { padding: max(8px,env(safe-area-inset-top)) 10px max(6px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition][data-playing] .pk-header { min-height:44px; padding:0; }
+[data-xiangqi-competition][data-playing] .pk-brand strong { font-size:18px; }
+[data-xiangqi-competition][data-playing] .pk-status { display:none; }
+[data-xiangqi-competition] canvas[data-play] { background:#fff8e8; border-radius:0; }
+[data-xiangqi-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-xiangqi-competition] .pk-detail-page {
+  position:static; inset:auto; display:block; height:100%; background:#fff8e8;
+  backdrop-filter:none; padding:max(20px,env(safe-area-inset-top)) 18px max(20px,env(safe-area-inset-bottom));
+}
+[data-xiangqi-competition] .pk-sheet { height:100%; max-width:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; }
+[data-xiangqi-competition] .pk-sheet-head { flex:none; }
+[data-xiangqi-competition] .pk-sheet-head h2 { font-size:26px; font-weight:900; }
+[data-xiangqi-competition] .pk-sheet-content { flex:1; overflow:auto; padding:2px 0 14px; }
+[data-xiangqi-competition] .pk-sheet-actions { flex:none; padding-top:14px; }
+[data-xiangqi-competition] .pk-sheet-actions button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-result { border:2px solid #d6c29e; border-radius:22px; background:#edf3dc; }
+@media (orientation:landscape) and (max-height:500px) {
+  [data-xiangqi-competition].competition-dialog { max-width:none; }
+  [data-xiangqi-competition] .pk-options { grid-template-columns:1fr 1fr; }
+  [data-xiangqi-competition] .pk-shell { padding:8px 18px; }
+  [data-xiangqi-competition][data-playing] .pk-header { min-height:44px; }
+}
+`;
 	function mountCompetition(game, createRenderer) {
+		if (game === "cops-robbers-realtime") return mountStreetCompetition(game, createRenderer);
 		const street = game === "cops-robbers-realtime";
+		const xiangqi = game === "xiangqi-five";
 		const roleNames = street ? {
 			pursuer: "警察",
 			runner: "小偷"
@@ -212,14 +1224,20 @@
 			createImage: () => new Image(),
 			assetBase: new URL("./", location.href).href
 		});
-		const launch = document.createElement("button");
-		launch.textContent = "好友 PK · 全站榜";
+		const modeEntry = xiangqi && document.getElementById("mode-online");
+		const launch = modeEntry || document.createElement("button");
+		if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
+		if (modeEntry) modeEntry.hidden = false;
 		launch.dataset.competitionLaunch = "";
 		const style = document.createElement("style");
-		style.textContent = h5_default;
+		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : h5_default;
 		document.head.append(style);
-		const dialog = document.createElement("dialog");
+		const dialog = document.createElement(xiangqi ? "section" : "dialog");
 		dialog.className = "competition-dialog";
+		if (xiangqi) {
+			dialog.dataset.xiangqiCompetition = "";
+			dialog.hidden = true;
+		}
 		dialog.setAttribute("aria-label", `${titles[game]} · 好友对决`);
 		dialog.innerHTML = `<div class="pk-shell">
     <header class="pk-header"><div class="pk-brand"><span class="pk-brand-mark" aria-hidden="true">PK</span><div><strong>${titles[game]}</strong><small>好友对决 · 同场较量</small></div></div>
@@ -238,7 +1256,22 @@
     <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。游客身份保存在当前浏览器。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
     <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
-		document.body.append(launch, dialog);
+		if (!modeEntry) document.body.append(launch);
+		document.body.append(dialog);
+		if (xiangqi) {
+			const back = dialog.querySelector("[data-close]");
+			back.textContent = "←";
+			back.setAttribute("aria-label", "返回玩法选择");
+			back.className = "pk-back";
+			dialog.querySelector(".pk-header").prepend(back);
+			dialog.querySelector(".pk-exit").remove();
+			dialog.querySelector(".pk-brand strong").textContent = "好友对弈";
+			dialog.querySelector(".pk-brand-mark").textContent = "五";
+			dialog.querySelector(".pk-hero h2").textContent = "叫上好友，下一局！";
+			dialog.querySelector("[data-create]").textContent = "创建房间";
+			dialog.querySelector("[data-board]").textContent = "看看排行榜 →";
+			dialog.querySelector(".pk-overlay").classList.add("pk-detail-page");
+		}
 		if (street) {
 			globalThis.__CLASSIC_CHASE_ROLES__ = true;
 			dialog.dataset.streetCompetition = "";
@@ -247,6 +1280,27 @@
 		}
 		const select = (q) => dialog.querySelector(q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
 		let room = null, profile = null, poll = null, busy = false, exiting = false, pending = null, frame = 0, lastPoll = 0, resultShown = null, returnFocus = null, modes = [];
+		const isOpen = () => xiangqi ? !dialog.hidden : dialog.open;
+		let screenStates = [];
+		function closeCompetition() {
+			if (!xiangqi) {
+				dialog.close();
+				return;
+			}
+			dialog.hidden = true;
+			dialog.removeAttribute("open");
+			document.body.classList.remove("competition-active");
+			for (const [screen, inert] of screenStates) screen.inert = inert;
+			screenStates = [];
+			if (history.state?.xqOnline) {
+				const nextState = { ...history.state };
+				delete nextState.xqOnline;
+				history.replaceState(nextState, "", location.href);
+			}
+			dialog.dispatchEvent(new Event("close"));
+			window.dispatchEvent(new CustomEvent("xiangqi-online-close", { detail: { open: false } }));
+			if (launch.isConnected && !launch.closest("[hidden]")) launch.focus();
+		}
 		function text(tag, value, className = "") {
 			const node = document.createElement(tag);
 			node.textContent = value;
@@ -263,7 +1317,7 @@
 			details.hidden = true;
 			select(".pk-content").inert = false;
 			select(".pk-footer").inert = false;
-			select(".pk-exit").inert = false;
+			if (!xiangqi) select(".pk-exit").inert = false;
 			if (returnFocus?.isConnected && !returnFocus.closest("[hidden]")) returnFocus.focus();
 			else select("[data-rules]").focus();
 		}
@@ -273,7 +1327,7 @@
 			details.replaceChildren();
 			select(".pk-content").inert = true;
 			select(".pk-footer").inert = true;
-			select(".pk-exit").inert = true;
+			if (!xiangqi) select(".pk-exit").inert = true;
 			const sheet = text("div", "", "pk-sheet");
 			sheet.dataset.kind = kind;
 			const head = text("div", "", "pk-sheet-head"), label = document.createElement("div");
@@ -361,7 +1415,7 @@
 			}
 		}
 		function accept(value) {
-			if (!dialog.open) return;
+			if (!isOpen()) return;
 			if (room?.code !== value.code) pending = null;
 			room = value;
 			const playing = room.status === "playing", ended = [
@@ -423,7 +1477,7 @@
 			}
 		}
 		async function refresh() {
-			if (!room || busy || !dialog.open || Date.now() - lastPoll < (room.pollMs || 1200)) return;
+			if (!room || busy || !isOpen() || Date.now() - lastPoll < (room.pollMs || 1200)) return;
 			lastPoll = Date.now();
 			try {
 				accept(await client.request(`/rooms/${room.code}`));
@@ -481,8 +1535,8 @@
 			}
 		}
 		function draw() {
-			if (!dialog.open) return;
-			if (!canvas.hidden) {
+			if (!isOpen()) return;
+			if (!canvas.hidden && (!xiangqi || details.hidden)) {
 				const rect = street ? {
 					width: canvas.clientWidth,
 					height: canvas.clientHeight
@@ -498,9 +1552,22 @@
 			frame = requestAnimationFrame(draw);
 		}
 		async function open() {
-			if (dialog.open || exiting) return;
+			if (isOpen() || exiting) return;
 			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: true } }));
-			dialog.showModal();
+			if (xiangqi) {
+				history.pushState({
+					...history.state,
+					xqScreen: document.body.dataset.screen || "modes",
+					xqOnline: true
+				}, "", location.href);
+				window.dispatchEvent(new CustomEvent("xiangqi-online-open", { detail: { open: true } }));
+				screenStates = [...document.querySelectorAll("[data-screen]:not(body)")].map((screen) => [screen, screen.inert]);
+				for (const [screen] of screenStates) screen.inert = true;
+				document.body.classList.add("competition-active");
+				dialog.hidden = false;
+				dialog.setAttribute("open", "");
+				select("[data-close]").focus();
+			} else dialog.showModal();
 			draw();
 			poll = setInterval(refresh, 250);
 			const invite = new URL(location.href).searchParams.get("pk");
@@ -567,7 +1634,7 @@
 			if (exiting) return;
 			exiting = true;
 			launch.disabled = true;
-			dialog.close();
+			closeCompetition();
 			try {
 				if (room && ["waiting", "playing"].includes(room.status)) await client.request(`/rooms/${room.code}/leave`, { body: "{}" });
 				room = null;
@@ -581,11 +1648,11 @@
 				try {
 					localStorage.removeItem(`competition-room:${game}`);
 				} catch {}
-				launch.textContent = "好友 PK · 全站榜";
+				if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
 				launch.removeAttribute("title");
 				feedback("同一规则，和好友认真比一局。");
 			} catch {
-				launch.textContent = "已退出 · 房间待确认";
+				if (!modeEntry) launch.textContent = "已退出 · 房间待确认";
 				launch.title = "网络不可用，服务端尚未确认退出。重连可查看原房间，否则按时限结束。";
 			} finally {
 				exiting = false;
@@ -597,8 +1664,19 @@
 			if (!details.hidden) dismiss();
 			else select("[data-close]").click();
 		});
+		if (xiangqi) {
+			document.addEventListener("keydown", (event) => {
+				if (event.key !== "Escape" || !isOpen()) return;
+				event.preventDefault();
+				if (!details.hidden) dismiss();
+				else select("[data-close]").click();
+			});
+			window.addEventListener("xiangqi-online-exit", () => {
+				if (isOpen()) select("[data-close]").click();
+			});
+		}
 		details.addEventListener("click", (event) => {
-			if (event.target === details) dismiss();
+			if (!xiangqi && event.target === details) dismiss();
 		});
 		dialog.addEventListener("close", () => {
 			clearInterval(poll);

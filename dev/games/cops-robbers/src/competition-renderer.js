@@ -6,6 +6,7 @@ import { drawRoleAvatar } from './role-appearance.js';
 
 /** Local selection only; authoritative moves and turn ownership come from the server. */
 export function createRenderer() {
+  globalThis.__CLASSIC_CHASE_ROLES__ = true;
   let selected = 0, hits = [], note = '', previousRole;
   const contains = (hit, x, y) => x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h;
   const mapFor = state => state?.kind === 'cops-duel' ? getDuelLevel(state.mode, state.levelId) : levels.find(item => item.id === state?.levelId);
