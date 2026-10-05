@@ -130,10 +130,16 @@ try {
           src.searchParams.get('dev'),
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
-        assert.equal(
-          await page.getByRole('link', { name: '独立打开' }).getAttribute('href'),
-          await page.locator('iframe').getAttribute('src'),
-        );
+        if (game.id === 'ink-is-everything') {
+          await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
+          await expect(page.getByRole('button', { name: '返回目录', exact: true })).toBeVisible();
+          await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+        } else {
+          assert.equal(
+            await page.getByRole('link', { name: '独立打开' }).getAttribute('href'),
+            await page.locator('iframe').getAttribute('src'),
+          );
+        }
       }
       await surface.waitForFunction(
         (enabled) =>

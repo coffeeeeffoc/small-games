@@ -1,0 +1,293 @@
+{
+  "date": "2026-10-05T19:32:03.586Z",
+  "url": "http://127.0.0.1:4413/games/ink-is-everything/",
+  "environment": "Headless desktop Chromium with mobile viewport + touch emulation; not a physical phone",
+  "input": "DOM taps, keyboard and CDP Input.dispatchTouchEvent; read-only snapshot/projection",
+  "fixtures": "Custom chapter configurations and Engine.createGame/command/step/serializeGame; normal storage restore",
+  "build": "Final production build: Shell immersive + safe bridge camera",
+  "shellUrl": "http://127.0.0.1:4413/",
+  "cases": [
+    {
+      "name": "Landscape homepage → stage picker → help → gameplay → pause/equipment → home",
+      "status": "passed",
+      "viewport": "844×390"
+    },
+    {
+      "name": "landscape: move, aim opposite direction, ranged + melee, gesture cancel and blur",
+      "status": "passed",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "logicalDimensions": {
+        "width": 844,
+        "height": 390,
+        "rotated": "false"
+      },
+      "shots": 2,
+      "melee": 1,
+      "rotated": false,
+      "findLastRemoved": true
+    },
+    {
+      "name": "portrait-rotation: move, aim opposite direction, ranged + melee, gesture cancel and blur",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "logicalDimensions": {
+        "width": 844,
+        "height": 390,
+        "rotated": "true"
+      },
+      "shots": 2,
+      "melee": 1,
+      "rotated": true,
+      "findLastRemoved": true
+    },
+    {
+      "name": "small-screen: move, aim opposite direction, ranged + melee, gesture cancel and blur",
+      "status": "passed",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "logicalDimensions": {
+        "width": 568,
+        "height": 320,
+        "rotated": "false"
+      },
+      "shots": 2,
+      "melee": 1,
+      "rotated": false,
+      "findLastRemoved": true
+    },
+    {
+      "name": "landscape: both bridge anchors visible, native stroke cancellation then successful drawing",
+      "status": "passed",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "from": {
+        "x": 422,
+        "y": 266.63139013452917
+      },
+      "to": {
+        "x": 422,
+        "y": 136.80717488789236
+      },
+      "fixture": "Original chapter encounter cleared and walked to bridge through Engine public inputs",
+      "cost": 8
+    },
+    {
+      "name": "portrait: both bridge anchors visible, native stroke cancellation then successful drawing",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "from": {
+        "x": 123.36860986547083,
+        "y": 422
+      },
+      "to": {
+        "x": 253.19282511210764,
+        "y": 422
+      },
+      "fixture": "Original chapter encounter cleared and walked to bridge through Engine public inputs",
+      "cost": 8
+    },
+    {
+      "name": "small: both bridge anchors visible, native stroke cancellation then successful drawing",
+      "status": "passed",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "from": {
+        "x": 284,
+        "y": 222.01973094170404
+      },
+      "to": {
+        "x": 284,
+        "y": 129.65022421524665
+      },
+      "fixture": "Original chapter encounter cleared and walked to bridge through Engine public inputs",
+      "cost": 8
+    },
+    {
+      "name": "Rewards continue simulation, ground gear requires deliberate pickup, later choice and save restore",
+      "status": "passed",
+      "generatedBy": "Enemy defeated by native dry-melee input; normal level + clear reward",
+      "reloads": 3
+    },
+    {
+      "name": "Low ink enemy damage → result → retry → result → home remains responsive without findLast",
+      "status": "passed",
+      "viewport": "390×844",
+      "resultRetry": true,
+      "homeInteractive": true,
+      "findLastRemoved": true
+    },
+    {
+      "name": "Final encounter victory result provides replay and home navigation",
+      "status": "passed",
+      "viewport": "568×320"
+    },
+    {
+      "name": "Resize and fullscreen/orientation rejection preserve run and landscape fallback",
+      "status": "passed",
+      "fullscreen": "request explicitly rejected",
+      "sizes": [
+        "844×390",
+        "390×844",
+        "844×390"
+      ]
+    },
+    {
+      "name": "Fullscreen entry and exit preserve normal portrait landscape fallback",
+      "status": "passed",
+      "fullscreen": "Actual browser Fullscreen API entry and exit",
+      "viewport": "390×844"
+    },
+    {
+      "name": "Storage unavailable still permits touch gameplay and pause/resume",
+      "status": "passed",
+      "storage": "getItem/setItem/removeItem throw SecurityError"
+    },
+    {
+      "name": "Sandbox iframe landscape/portrait entry and touch remain playable",
+      "status": "passed",
+      "host": "Local sandbox fixture iframe",
+      "viewport": "390×844",
+      "permissions": "allow-scripts allow-same-origin; fullscreen"
+    },
+    {
+      "name": "Real production Shell iframe entry, fullscreen boundary, landscape fallback and touch pause",
+      "status": "passed",
+      "url": "http://127.0.0.1:4413/#/games/ink-is-everything?dev=0",
+      "viewport": "390×844",
+      "fullscreenTarget": "[data-game-display-host]",
+      "source": "Production Shell with registered bundled game"
+    },
+    {
+      "name": "Actual first chapter completed through native touch, deliberate rewards, bridge and two-phase boss",
+      "status": "passed",
+      "viewport": "844×390",
+      "time": 66.09999999999754,
+      "finalInk": 164,
+      "stats": {
+        "spent": {
+          "attack": 270,
+          "nova": 56,
+          "explore": 8,
+          "trade": 0
+        },
+        "shots": 45,
+        "hits": 66,
+        "projectileHits": 39,
+        "damageDealt": 669,
+        "freeAttacks": 78,
+        "dashes": 12,
+        "enemiesDefeated": 20,
+        "inkRecovered": 39.06,
+        "damageTaken": 0,
+        "roomsVisited": 6,
+        "trades": 0,
+        "bridgesDrawn": 1,
+        "drawn": 1,
+        "kills": 20,
+        "inkSpent": 334,
+        "lifeStolen": 195.5500000000001,
+        "killRestored": 79.75000000000001,
+        "reclaimed": 29.64,
+        "spilled": 163,
+        "expiredInk": 40.5,
+        "skillsUsed": 49,
+        "novas": 4,
+        "equipmentFound": 10,
+        "levelsGained": 6,
+        "rewardsOffered": 10,
+        "rewardsChosen": 10
+      },
+      "equipment": {
+        "fine-nib": 3,
+        "splash-sigil": 3,
+        "backflow-amber": 3,
+        "ink-sac": 1
+      },
+      "rewards": [
+        {
+          "source": "level",
+          "itemId": "fine-nib"
+        },
+        {
+          "source": "drop-98",
+          "itemId": "fine-nib"
+        },
+        {
+          "source": "level",
+          "itemId": "splash-sigil"
+        },
+        {
+          "source": "drop-167",
+          "itemId": "backflow-amber"
+        },
+        {
+          "source": "level",
+          "itemId": "fine-nib"
+        },
+        {
+          "source": "drop-321",
+          "itemId": "splash-sigil"
+        },
+        {
+          "source": "level",
+          "itemId": "splash-sigil"
+        },
+        {
+          "source": "level",
+          "itemId": "backflow-amber"
+        },
+        {
+          "source": "drop-516",
+          "itemId": "backflow-amber"
+        },
+        {
+          "source": "level",
+          "itemId": "ink-sac"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "resourceNotes": [
+    "shell: Optional Shell favicon.ico unavailable"
+  ],
+  "screenshots": [
+    "actual-home-landscape.png",
+    "actual-chapters-landscape.png",
+    "actual-help-landscape.png",
+    "actual-gameplay-landscape.png",
+    "actual-pause-landscape.png",
+    "actual-equipment-landscape.png",
+    "actual-bridge-landscape.png",
+    "actual-bridge-portrait.png",
+    "actual-bridge-small.png",
+    "actual-reward-waits-on-ground.png",
+    "actual-reward-pending-notice.png",
+    "actual-reward-player-opens-choice.png",
+    "actual-ink-exhausted-result-portrait.png",
+    "actual-victory-result-small.png",
+    "actual-iframe-portrait-pause.png",
+    "actual-shell-portrait-fullscreen-pause.png",
+    "actual-shell-portrait-playing.png",
+    "actual-chapter-bridge.png",
+    "actual-chapter-growth.png",
+    "actual-chapter-boss.png",
+    "actual-chapter-victory.png"
+  ],
+  "status": "passed"
+}

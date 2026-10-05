@@ -182,16 +182,7 @@ export function createEntityPainter(painter, getState, getWalking) {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // The traveller's life is the same ink that powers attacks and exploration.
-    ctx.fillStyle = '#eee0bd';
-    ctx.fillRect(player.x - 28, player.y + 12, 56, 7);
-    ctx.strokeStyle = '#384d3b';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(player.x - 28, player.y + 12, 56, 7);
-    ctx.fillStyle = danger ? RED : RECLAIM;
-    ctx.fillRect(player.x - 26, player.y + 14, 52 * inkRatio, 3);
-    ctx.fillStyle = RECLAIM_LIGHT;
-    ctx.fillRect(player.x - 25, player.y + 14, 2, 1);
+    // The single survival-ink bar lives in the top HUD, away from the action.
   }
 
   function drawProjectile(p) {
@@ -204,15 +195,25 @@ export function createEntityPainter(painter, getState, getWalking) {
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineCap = 'round';
-    ctx.globalAlpha = 0.2;
-    ctx.lineWidth = enemy ? 9 : 13;
+    ctx.globalAlpha = enemy ? 0.2 : 0.42;
+    ctx.lineWidth = enemy ? 9 : 11;
     ctx.beginPath();
-    ctx.moveTo(-27, 0);
+    ctx.moveTo(enemy ? -27 : -62, 0);
     ctx.lineTo(0, 0);
     ctx.stroke();
+    if (!enemy) {
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = '#eee0bc';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-54, -1);
+      ctx.lineTo(-8, -1);
+      ctx.stroke();
+      ctx.strokeStyle = color;
+    }
     ctx.globalAlpha = 1;
     ctx.beginPath();
-    ctx.ellipse(0, 0, p.radius || p.r || (enemy ? 6 : 8), enemy ? 4 : 5, 0, 0, TAU);
+    ctx.ellipse(0, 0, Math.max(1, p.radius || p.r || (enemy ? 6 : 8)), enemy ? 4 : 5, 0, 0, TAU);
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.beginPath();

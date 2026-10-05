@@ -512,9 +512,12 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           type: 'touchStart',
           touchPoints: [{ id: 1, ...start }],
         });
+        const rotated = (await frame.locator('#game-root').getAttribute('data-rotated')) === 'true';
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
-          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+          touchPoints: [
+            { id: 1, x: start.x + (rotated ? 0 : 32), y: start.y + (rotated ? 32 : 0) },
+          ],
         });
       } else {
         await page.keyboard.down('d');
@@ -560,12 +563,14 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         await page.mouse.up();
       }
     }
-    await click(frame.locator('#equipment'));
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#modal [data-menu="equipment"]'));
     await expect.poll(async () => (await snapshot()).paused).toBe(true);
     const summary = frame.locator('#modal .skill-summary');
     await expect(summary).toContainText('8 伤害 / 6 墨');
-    await expect(summary).toContainText('25% 实际伤害');
-    await expect(summary).toContainText('50% 技能消耗');
+    await click(frame.locator('#modal .equipment-detail summary'));
+    await expect(frame.locator('#modal .equipment-detail')).toContainText('25% 实际伤害');
+    await expect(frame.locator('#modal .equipment-detail')).toContainText('50% 技能消耗');
     await click(frame.locator('#modal [data-close]'));
     await expect.poll(async () => (await snapshot()).paused).toBe(false);
 

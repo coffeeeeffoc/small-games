@@ -12,6 +12,7 @@ import {
   getEquipmentSummary,
   getLevelDefinition,
   getNearbyInteractable,
+  getObjective,
   serializeGame,
   restoreGame,
 } from './engine.mjs';
@@ -353,9 +354,11 @@ const fixtureEquipment = {
 function openChest(game, id) {
   assert.equal(command(game, { type: 'interact', objectId: id }).ok, true);
   tick(game, {}, 4);
+  const gear = game.pickups.find((pickup) => pickup.kind === 'gear');
+  if (gear) assert.equal(command(game, { type: 'interact', objectId: gear.id }).ok, true);
 }
 
-test('physical gear pickups offer one stable choice and freeze danger while choosing', () => {
+test('picked-up equipment keeps stable choices while the player continues moving and attacking', () => {
   const pool = Object.keys(fixtureEquipment);
   const game = fixture({
     objects: [gearChest('test-chest', pool)],
@@ -366,13 +369,13 @@ test('physical gear pickups offer one stable choice and freeze danger while choo
   assert.equal(choices.length, 3);
   assert.deepEqual(new Set(choices.map((item) => item.id)), new Set(pool));
   assert.ok(choices.every((item) => item.nextRank === 1 && item.name && item.description));
-  const before = serializeGame(game);
-  tick(game, { moveX: 1, shoot: true, nova: true, melee: true }, 20);
-  assert.equal(
-    serializeGame(game),
-    before,
-    'time, enemies and drops must all freeze for the reward decision',
-  );
+  const before = { time: game.time, x: game.player.x, shots: game.stats.shots };
+  tick(game, { moveX: 1, shoot: true, melee: true }, 5);
+  assert.ok(game.time > before.time && game.player.x > before.x);
+  assert.ok(game.stats.shots > before.shots && game.stats.freeAttacks > 0);
+  assert.deepEqual(getRewardChoices(game), choices, 'waiting must not reroll a pending reward');
+  assert.notEqual(getObjective(game), game.pendingRewards[0].title);
+  assert.equal(command(game, { type: 'nova' }).ok, true, 'pending equipment must not block actions');
   assert.equal(command(game, { type: 'chooseReward', itemId: 'unknown-item' }).ok, false);
   assert.equal(game.pendingRewards.length, 1);
   const damage = getPlayerStats(game).attackDamage;
@@ -714,6 +717,8 @@ function collectRoomRewards(game, preference) {
   )) {
     walk(game, pickup, 35);
     tick(game, {}, 10);
+    if (pickup.kind === 'gear')
+      assert.equal(command(game, { type: 'interact', objectId: pickup.id }).ok, true);
     takeRewards(game, preference);
   }
 }
