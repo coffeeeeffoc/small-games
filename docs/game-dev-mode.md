@@ -36,7 +36,7 @@ if (window.SmallGamesDev.isEnabled()) {
 
 普通脚本直接使用 `window.SmallGamesDev`。浏览器入口在场景创建前加载它；共享规则、原生 Canvas 控制器及服务端代码保持平台独立。Web 的模式开关不代表微信/B站等原生平台调试或发布验收。
 
-已有的选关、物理视图、平衡参数、状态快照等开发功能使用 `SmallGamesDev.isEnabled()` 统一判断，避免只依赖 `import.meta.env.DEV`、`NODE_ENV` 或单款游戏私有存储键。改变关卡解锁、战斗参数或胜负的开发操作应明确标记为试玩，沿用游戏自己的奖励/排行隔离规则。
+开发用跳关、全关解锁、物理视图、平衡参数、状态快照等功能使用 `SmallGamesDev.isEnabled()` 统一判断，避免只依赖 `import.meta.env.DEV`、`NODE_ENV` 或单款游戏私有存储键。面向玩家的主页选关、正常关卡解锁与成长功能不受 dev 开关限制。改变关卡解锁、战斗参数或胜负的开发操作应明确标记为试玩，沿用游戏自己的奖励/排行隔离规则。
 
 ## 新游戏接入与验证
 
