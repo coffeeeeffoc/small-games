@@ -1117,21 +1117,23 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
-      // Pointer lock is asynchronous; Escape must follow acquisition, not race it.
-      await expect
-        .poll(
-          () => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element),
-          { timeout: 30000 },
-        )
-        .toBe(true);
+      const look = frame.locator('.look-mode');
+      // Async scene readiness can outlive the entry gesture. Acquire through the real HUD control.
+      if (
+        !(await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element))
+      )
+        await click(frame.getByRole('button', { name: '鼠标环顾', exact: true }));
+      // Wait inside the browser; Node-side polling can expire while software WebGL is busy.
+      await expect(look).toHaveText('Esc 释放鼠标', { timeout: 120000 });
+      expect(
+        await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element),
+      ).toBe(true);
       // start() already focuses the canvas; send native input without refocusing WebGL.
       await canvas.page().keyboard.press('Escape');
-      await expect
-        .poll(
-          () => canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null),
-          { timeout: 30000 },
-        )
-        .toBe(true);
+      await expect(look).toHaveText('鼠标环顾', { timeout: 120000 });
+      expect(
+        await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null),
+      ).toBe(true);
       await expect(frame.getByRole('dialog')).toBeHidden();
       await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
       await click(pause);
