@@ -36,11 +36,14 @@ it('opens each standalone Game and removes its frame on exit', async () => {
         item.textContent?.includes(title),
       );
       expect(card).toBeDefined();
-      await act(async () => card?.querySelector('button')?.click());
+      const launch = card!.querySelector<HTMLAnchorElement>('a.game-launch');
+      expect(launch?.getAttribute('href')).toBe(`/games/${id}/index.html`);
+      await act(async () => launch!.click());
       expect(window.location.hash).toBe(`#/games/${id}`);
       const frame = container.querySelector('iframe');
       expect(frame?.getAttribute('src')).toBe(`/games/${id}/index.html`);
       expect(frame?.title).toBe(title);
+      expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
       expect(container.querySelector('a')?.getAttribute('href')).toBe(frame?.getAttribute('src'));
       await act(async () =>
         container

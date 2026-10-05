@@ -171,7 +171,8 @@ select {
   text-overflow: ellipsis;
   font-size: 13px;
 }
-.catalog-list button {
+.catalog-list button,
+.catalog-list .game-launch {
   grid-column: 2;
   grid-row: 1 / 4;
   align-self: center;
@@ -233,11 +234,13 @@ select {
     column-gap: 8px;
     padding: 14px 12px;
   }
-  .catalog-list article > button {
+  .catalog-list article > button,
+  .catalog-list article > .game-launch {
     padding: 12px;
   }
 }
 .catalog-grid button,
+.catalog-grid .game-launch,
 .game-page > nav button {
   border: 0;
   border-radius: 999px;
@@ -245,6 +248,13 @@ select {
   background: #79e7bb;
   color: #102019;
   font-weight: 700;
+}
+.catalog-grid a.game-launch {
+  display: inline-block;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
 }
 .game-page > nav {
   display: flex;

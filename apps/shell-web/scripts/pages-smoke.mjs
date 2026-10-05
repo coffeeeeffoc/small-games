@@ -152,7 +152,7 @@ try {
       await page
         .locator('article')
         .filter({ hasText: game.title })
-        .getByRole('button', { name: '进入游戏', exact: true })
+        .getByRole('link', { name: '进入游戏', exact: true })
         .click();
       await expect(page).toHaveURL(`${url}#/games/${game.id}`);
       if (game === selectedGames[0]) await verifySharedRoute(game.id, game.title);
