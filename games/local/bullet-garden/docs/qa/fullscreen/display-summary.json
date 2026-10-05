@@ -1,0 +1,586 @@
+{
+  "recordedAt": "2026-10-05T03:17:51.445Z",
+  "test": "tests/display-browser.mjs",
+  "physicalMobile": false,
+  "environment": "Linux headless Chromium; real locator tap/click and native browser fullscreen",
+  "fixtures": [
+    "Mini-game SDK capability",
+    "Primary-pointer capability change via CDP Emulation.setTouchEmulationEnabled"
+  ],
+  "rectangleOrder": ["x", "y", "width", "height"],
+  "rectangleCoordinates": "Game document viewport, CSS pixels; iframe starts at 12px parent inset and fills the parent fullscreen host on entry.",
+  "browserExit": "document.exitFullscreen() exercises the browser fullscreenchange exit path",
+  "baseline": {
+    "browser": "151.0.7922.173",
+    "passed": false,
+    "failure": "AssertionError [ERR_ASSERTION]: pause accepts center and edge touches: [{\"hit\":\"pause\",\"accepted\":true},{\"hit\":\"pause\",\"accepted\":true},{\"hit\":\"pause\",\"accepted\":true},{\"hit\":\"pause\",\"accepted\":true},{\"hit\":\"fullscreen\",\"accepted\":false}]"
+  },
+  "source": [
+    {
+      "browser": "140.0.7339.0",
+      "date": "2026-10-05T03:12:32.210Z",
+      "passed": true,
+      "scenarios": 11,
+      "errors": []
+    },
+    {
+      "browser": "151.0.7922.173",
+      "date": "2026-10-05T03:11:44.644Z",
+      "passed": true,
+      "scenarios": 11,
+      "errors": []
+    }
+  ],
+  "dist": [
+    {
+      "browser": "140.0.7339.0",
+      "date": "2026-10-05T03:15:32.672Z",
+      "passed": true,
+      "errors": [],
+      "scenarios": [
+        {
+          "entry": "standalone",
+          "pageViewport": [390, 844],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [336, 587, 44, 44],
+            "pause": [336, 700, 44, 44],
+            "fullscreen": [336, 754, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [336, 587, 44, 44],
+            "pause": [336, 700, 44, 44],
+            "fullscreen": [336, 754, 44, 76]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [844, 390],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [587, 10, 44, 44],
+            "pause": [700, 10, 44, 44],
+            "fullscreen": [754, 10, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [587, 10, 44, 44],
+            "pause": [700, 10, 44, 44],
+            "fullscreen": [754, 10, 76, 44]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [320, 568],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [266, 311, 44, 44],
+            "pause": [266, 424, 44, 44],
+            "fullscreen": [266, 478, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [266, 311, 44, 44],
+            "pause": [266, 424, 44, 44],
+            "fullscreen": [266, 478, 44, 76]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [1440, 900],
+          "input": "native click",
+          "initialBounds": {
+            "battle-home": [1061, 20, 45, 45],
+            "sound": [1228, 20, 45, 45],
+            "pause": [1283, 20, 45, 45],
+            "fullscreen": [1350, 14, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [1061, 20, 45, 45],
+            "sound": [1228, 20, 45, 45],
+            "pause": [1283, 20, 45, 45],
+            "fullscreen": [1350, 14, 76, 44]
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [390, 844],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [312, 563, 44, 44],
+            "pause": [312, 676, 44, 44],
+            "fullscreen": [312, 730, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [336, 587, 44, 44],
+            "pause": [336, 700, 44, 44],
+            "fullscreen": [336, 754, 44, 76]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [844, 390],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [563, 10, 44, 44],
+            "pause": [676, 10, 44, 44],
+            "fullscreen": [730, 10, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [587, 10, 44, 44],
+            "pause": [700, 10, 44, 44],
+            "fullscreen": [754, 10, 76, 44]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [320, 568],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [242, 287, 44, 44],
+            "pause": [242, 400, 44, 44],
+            "fullscreen": [242, 454, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [266, 311, 44, 44],
+            "pause": [266, 424, 44, 44],
+            "fullscreen": [266, 478, 44, 76]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [1440, 900],
+          "input": "native click",
+          "initialBounds": {
+            "battle-home": [1037, 20, 45, 45],
+            "sound": [1204, 20, 45, 45],
+            "pause": [1259, 20, 45, 45],
+            "fullscreen": [1326, 14, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [1061, 20, 45, 45],
+            "sound": [1228, 20, 45, 45],
+            "pause": [1283, 20, 45, 45],
+            "fullscreen": [1350, 14, 76, 44]
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "miniGame": {
+            "query": "?runtime=minigame"
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        },
+        {
+          "miniGame": {
+            "query": "?platform=wechatgame",
+            "embedded": true
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        },
+        {
+          "miniGame": {
+            "sdk": true
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        }
+      ]
+    },
+    {
+      "browser": "151.0.7922.173",
+      "date": "2026-10-05T03:15:31.652Z",
+      "passed": true,
+      "errors": [],
+      "scenarios": [
+        {
+          "entry": "standalone",
+          "pageViewport": [390, 844],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [336, 587, 44, 44],
+            "pause": [336, 700, 44, 44],
+            "fullscreen": [336, 754, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [336, 569, 44, 44],
+            "pause": [336, 682, 44, 44],
+            "fullscreen": [336, 735.984375, 44, 94.015625]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [844, 390],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [587, 10, 44, 44],
+            "pause": [700, 10, 44, 44],
+            "fullscreen": [754, 10, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [569, 10, 44, 44],
+            "pause": [682, 10, 44, 44],
+            "fullscreen": [735.984375, 10, 94.015625, 44]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [320, 568],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [266, 311, 44, 44],
+            "pause": [266, 424, 44, 44],
+            "fullscreen": [266, 478, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [266, 293, 44, 44],
+            "pause": [266, 406, 44, 44],
+            "fullscreen": [266, 459.984375, 44, 94.015625]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "standalone",
+          "pageViewport": [1440, 900],
+          "input": "native click",
+          "initialBounds": {
+            "battle-home": [1061, 20, 45, 45],
+            "sound": [1228, 20, 45, 45],
+            "pause": [1283, 20, 45, 45],
+            "fullscreen": [1350, 14, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [1043, 20, 45, 45],
+            "sound": [1210, 20, 45, 45],
+            "pause": [1265, 20, 45, 45],
+            "fullscreen": [1331.984375, 14, 94.015625, 44]
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [390, 844],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [312, 563, 44, 44],
+            "pause": [312, 676, 44, 44],
+            "fullscreen": [312, 730, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [336, 569, 44, 44],
+            "pause": [336, 682, 44, 44],
+            "fullscreen": [336, 735.984375, 44, 94.015625]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [844, 390],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [563, 10, 44, 44],
+            "pause": [676, 10, 44, 44],
+            "fullscreen": [730, 10, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [569, 10, 44, 44],
+            "pause": [682, 10, 44, 44],
+            "fullscreen": [735.984375, 10, 94.015625, 44]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "false"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "false"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [320, 568],
+          "input": "native tap",
+          "initialBounds": {
+            "battle-home": [242, 287, 44, 44],
+            "pause": [242, 400, 44, 44],
+            "fullscreen": [242, 454, 44, 76]
+          },
+          "fullscreenBounds": {
+            "battle-home": [266, 293, 44, 44],
+            "pause": [266, 406, 44, 44],
+            "fullscreen": [266, 459.984375, 44, 94.015625]
+          },
+          "pointerChange": {
+            "before": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "afterDetach": {
+              "coarse": true,
+              "touchPoints": 1,
+              "rotated": "true"
+            },
+            "finePointer": {
+              "coarse": false,
+              "touchPoints": 0,
+              "rotated": "true"
+            }
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "entry": "iframe",
+          "pageViewport": [1440, 900],
+          "input": "native click",
+          "initialBounds": {
+            "battle-home": [1037, 20, 45, 45],
+            "sound": [1204, 20, 45, 45],
+            "pause": [1259, 20, 45, 45],
+            "fullscreen": [1326, 14, 76, 44]
+          },
+          "fullscreenBounds": {
+            "battle-home": [1043, 20, 45, 45],
+            "sound": [1210, 20, 45, 45],
+            "pause": [1265, 20, 45, 45],
+            "fullscreen": [1331.984375, 14, 94.015625, 44]
+          },
+          "browserExit": true,
+          "restartAndHome": true
+        },
+        {
+          "miniGame": {
+            "query": "?runtime=minigame"
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        },
+        {
+          "miniGame": {
+            "query": "?platform=wechatgame",
+            "embedded": true
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        },
+        {
+          "miniGame": {
+            "sdk": true
+          },
+          "pageViewport": [390, 844],
+          "webFullscreenControl": false,
+          "nativePause": true
+        }
+      ]
+    }
+  ]
+}

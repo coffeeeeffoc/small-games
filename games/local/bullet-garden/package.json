@@ -14,7 +14,8 @@
     "test:campaign-balance": "node tests/campaign-balance.mjs",
     "test:campaign-browser": "node tests/home-browser.mjs",
     "test:screens": "node tests/screens-browser.mjs",
-    "test:home-browser": "node tests/home-browser.mjs"
+    "test:home-browser": "node tests/home-browser.mjs",
+    "test:display-browser": "node tests/display-browser.mjs"
   },
   "engines": {
     "node": ">=20"

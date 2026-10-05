@@ -72,6 +72,9 @@ export function setupDisplay({ game, onChange = () => {}, onMessage = () => {} }
   const document = game.ownerDocument;
   const mobile = scope.matchMedia('(pointer: coarse)');
   const miniGame = isMiniGameRuntime(scope);
+  // A mouse/trackpad (or a detached browser touch session) can change the primary
+  // pointer mid-run. Once touch is available, retain the landscape touch layout.
+  let touchLayout = mobile.matches || scope.navigator.maxTouchPoints > 0;
   game.dataset.runtime = miniGame ? 'minigame' : 'web';
   let previous = '',
     pending = false,
@@ -98,7 +101,8 @@ export function setupDisplay({ game, onChange = () => {}, onMessage = () => {} }
     const viewport = scope.visualViewport;
     const width = Math.max(1, Math.round(viewport?.width || scope.innerWidth));
     const height = Math.max(1, Math.round(viewport?.height || scope.innerHeight));
-    const layout = landscapeViewport(width, height, mobile.matches || miniGame);
+    touchLayout ||= mobile.matches || scope.navigator.maxTouchPoints > 0;
+    const layout = landscapeViewport(width, height, touchLayout || miniGame);
     const key = `${width}:${height}:${layout.rotated}`;
     game.style.setProperty('--game-width', `${layout.width}px`);
     game.style.setProperty('--game-height', `${layout.height}px`);
@@ -112,7 +116,7 @@ export function setupDisplay({ game, onChange = () => {}, onMessage = () => {} }
   }
 
   async function lockLandscape() {
-    if (!mobile.matches && !miniGame) return;
+    if (!touchLayout && !miniGame) return;
     try {
       await scope.screen?.orientation?.lock?.('landscape');
     } catch {
@@ -144,6 +148,12 @@ export function setupDisplay({ game, onChange = () => {}, onMessage = () => {} }
     game.append(button);
   }
 
+  function reserveFullscreenSpace() {
+    // offsetWidth is in the logical game axes; a rotated bounding box swaps them.
+    game.style.setProperty('--fullscreen-space', `${button ? button.offsetWidth + 10 : 0}px`);
+  }
+  if (button) new scope.ResizeObserver(reserveFullscreenSpace).observe(button);
+
   function syncFullscreen() {
     if (button) {
       const label = active() ? '退出全屏' : '全屏';
@@ -152,6 +162,7 @@ export function setupDisplay({ game, onChange = () => {}, onMessage = () => {} }
       button.setAttribute('aria-pressed', String(Boolean(active())));
       button.disabled = pending;
     }
+    reserveFullscreenSpace();
     fit();
   }
 

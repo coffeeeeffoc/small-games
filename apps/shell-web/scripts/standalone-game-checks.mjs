@@ -151,6 +151,35 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     const snapshot = () =>
       frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
     const page = frame.locator('#arena').page();
+    const clearHudTargets = () =>
+      expect
+        .poll(() =>
+          frame.locator('#game').evaluate((game) => {
+            const pause = game.querySelector('#pause');
+            const fullscreen = game.querySelector('#fullscreen');
+            const a = pause.getBoundingClientRect();
+            const b = fullscreen.getBoundingClientRect();
+            const separated =
+              a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+            return (
+              separated &&
+              [pause, fullscreen].every((button) => {
+                const rect = button.getBoundingClientRect();
+                return (
+                  rect.width >= 44 &&
+                  rect.height >= 44 &&
+                  button.contains(
+                    globalThis.document.elementFromPoint(
+                      rect.left + rect.width / 2,
+                      rect.top + rect.height / 2,
+                    ),
+                  )
+                );
+              })
+            );
+          }),
+        )
+        .toBe(true);
     // Normal play draws the stage setup automatically from unlocked content.
     await click(frame.locator('#start'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
@@ -208,6 +237,14 @@ export async function exerciseStandalone(frame, id, mobile = false) {
         await page.keyboard.up('d');
       }
     }
+    // Chromium can change the primary pointer when the touch CDP session ends.
+    // A phone must retain its logical landscape layout and both complete hit areas.
+    if (mobile)
+      await expect(frame.locator('#game')).toHaveAttribute(
+        'data-rotated',
+        String(page.viewportSize().height > page.viewportSize().width),
+      );
+    await clearHudTargets();
     await click(frame.locator('#pause'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
     const pausedTime = (await snapshot()).time;
@@ -234,6 +271,22 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect
       .poll(async () => (await snapshot()).stats.shots, { timeout: 10000 })
       .toBeGreaterThan(0);
+    // Longer exit text, host fullscreen resize, pause recovery and a second run.
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#fullscreen'));
+    await expect(frame.locator('#fullscreen')).toHaveAttribute('aria-pressed', 'true');
+    await click(frame.locator('#resume'));
+    await clearHudTargets();
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#fullscreen'));
+    await expect(frame.locator('#fullscreen')).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.locator('#pause-home'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'ready');
+    await click(frame.locator('#start'));
+    await clearHudTargets();
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'maze-wander') {
     await click(frame.locator('#start'));
     await click(frame.locator('#enter'));
