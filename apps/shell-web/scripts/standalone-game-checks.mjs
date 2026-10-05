@@ -33,9 +33,9 @@ export const markers = {
   'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
   'tower-defense-game': '[aria-label="塔防战场"]',
-  'xiangqi-five': '#draw-button',
+  'xiangqi-five': '#home-start',
   'office-slacking': '#start',
-  'cops-robbers': '#start-mode',
+  'cops-robbers': '#home-start',
   'cops-robbers-realtime': '#levels-button',
   'h5-security': '[data-action="start"]',
   'letters-words': '#board button',
@@ -1075,6 +1075,12 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '切换速度，当前1倍' }));
     await expect(frame.getByRole('button', { name: '切换速度，当前2倍' })).toBeVisible();
   } else if (id === 'xiangqi-five') {
+    await click(frame.locator('#home-start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'modes');
+    await click(frame.locator('#mode-local'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'setup');
+    await click(frame.locator('#setup-start'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'game');
     await click(frame.locator('#draw-button'));
     await click(frame.locator('.cell').first());
     await expect(frame.locator('.cell.last-play')).toHaveCount(1);
@@ -1088,8 +1094,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
-    await frame.locator('#solo-mode').selectOption('challenge');
-    await click(frame.locator('#start-mode'));
+    await click(frame.locator('#home-start'));
+    await expect(frame.locator('#level-dialog')).toBeVisible();
+    await click(frame.getByTestId('level-button-1'));
     await expect(frame.getByTestId('board')).toBeVisible();
     await click(frame.getByTestId('hint'));
     const destination = frame.locator('.node-target.chosen');
@@ -1104,7 +1111,9 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await click(frame.locator('#levels-button'));
     await click(frame.locator('#start-button'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#cop-roster')).toHaveCount(0);
+    const member = frame.locator('#cop-roster [data-member="0"]');
+    await click(member);
+    await expect(member).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#pause-button'));
     await expect(frame.locator('#resume-button')).toBeVisible();
     await click(frame.locator('#resume-button'));
