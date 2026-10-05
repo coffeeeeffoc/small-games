@@ -12,6 +12,7 @@
     <title>别跑！街区围捕 · 警察与小偷</title>
     <link rel="stylesheet" href="./src/style.css" />
     <link rel="stylesheet" href="./src/appearance.css" />
+    <link rel="stylesheet" href="./src/cartoon.css" />
     <script>
       globalThis.__CLASSIC_CHASE_ROLES__ = true;
     </script>
@@ -19,6 +20,10 @@
   <body data-screen="home">
     <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="m9 3-1 3-3 1-2 3 2 2v3l3 2 1 4h6l1-4 3-2v-3l2-2-2-3-3-1-1-3z" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
         <symbol id="i-home" viewBox="0 0 24 24">
           <path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10" />
         </symbol>
@@ -69,8 +74,8 @@
             <div><small>今天，也来一场追逐吧</small><strong>你好，小指挥官！</strong></div>
           </div>
           <div class="home-tools">
-            <button id="sound-button" class="icon-button" aria-label="关闭声音" aria-pressed="true">
-              <svg><use href="#i-sound" /></svg>
+            <button id="settings-button" class="icon-button" aria-label="设置">
+              <svg><use href="#i-settings" /></svg>
             </button>
           </div>
         </header>
@@ -83,6 +88,8 @@
             <p>小小街区，一场机灵的追逐。</p>
           </div>
           <div class="hero-characters" aria-hidden="true">
+            <span class="hero-bubble cop-bubble">站住！一起收网！</span
+            ><span class="hero-bubble robber-bubble">来追我呀～</span>
             <div class="hero-cop" data-character="cop"></div>
             <div class="hero-robber" data-character="robber"></div>
             <span class="hero-dash">✦</span>
@@ -121,11 +128,52 @@
           <button id="appearance-button">
             <span data-home-avatar="cop"></span><strong>角色装扮</strong></button
           ><button id="help-button">
-            <svg><use href="#i-help" /></svg><strong>行动手册</strong></button
-          ><button id="fullscreen-button" data-game-fullscreen aria-label="全屏">
-            <svg><use href="#i-map" /></svg><strong>全屏玩</strong>
+            <svg><use href="#i-help" /></svg><strong>行动手册</strong>
           </button>
         </nav>
+      </section>
+      <section
+        id="settings-page"
+        class="screen game-page settings-page"
+        data-game-page
+        aria-labelledby="settings-title"
+        hidden
+        tabindex="-1"
+      >
+        <header class="page-head">
+          <button class="icon-button" data-close aria-label="返回首页">
+            <svg><use href="#i-back" /></svg>
+          </button>
+          <div>
+            <h2 id="settings-title">小小设置站</h2>
+            <p>调到你喜欢的样子，再出发！</p>
+          </div>
+        </header>
+        <div class="settings-mascot" data-character="cop" aria-hidden="true"></div>
+        <div class="settings-card">
+          <span class="settings-icon"
+            ><svg><use href="#i-sound" /></svg
+          ></span>
+          <div>
+            <strong>游戏声音</strong>
+            <p>让追逐更热闹一点</p>
+          </div>
+          <button id="sound-button" class="button quiet" aria-label="关闭声音" aria-pressed="true">
+            已开启
+          </button>
+        </div>
+        <div class="settings-card">
+          <span class="settings-icon display-icon"
+            ><svg><use href="#i-map" /></svg
+          ></span>
+          <div>
+            <strong>全屏游玩</strong>
+            <p>把整个屏幕变成你的街区</p>
+          </div>
+          <button id="fullscreen-button" data-game-fullscreen aria-label="全屏">全屏</button>
+        </div>
+        <p class="settings-note">声音偏好会自动保存，下一次出发也记得。</p>
+        <button class="button primary wide" data-close>准备好啦，返回首页</button>
       </section>
       <section id="level-screen" class="screen level-screen" aria-label="出发准备" hidden>
         <header class="page-head">
@@ -139,6 +187,10 @@
           <span id="campaign-count">0 / 100</span>
         </header>
         <div class="selection-body">
+          <div class="setup-cheer">
+            <span aria-hidden="true">✦</span><strong>选好搭档，出发咯！</strong
+            ><small>今天的街区，等你来守护</small>
+          </div>
           <div id="game-setup" class="game-setup" aria-label="开局设置">
             <label class="choice-field role-field"
               ><span>这次，你是哪一队？</span

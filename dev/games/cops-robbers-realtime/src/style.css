@@ -1921,36 +1921,7 @@ select[hidden] {
   padding: 16px 0 5px;
   background: var(--paper);
 }
-.home-nav #fullscreen-button {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  min-height: 58px;
-  color: #738299;
-  font-size: 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-  padding: 3px;
-}
-.home-nav #fullscreen-button::before {
-  content: '⛶';
-  font-size: 27px;
-  line-height: 29px;
-  font-weight: 400;
-}
 @media (orientation: landscape) and (max-height: 560px) {
-  .home-nav #fullscreen-button {
-    flex-direction: row;
-    font-size: 11px;
-    min-height: 44px;
-  }
-  .home-nav #fullscreen-button::before {
-    font-size: 22px;
-    line-height: 23px;
-  }
   .level-screen .selection-body {
     align-items: start;
   }

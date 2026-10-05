@@ -426,18 +426,19 @@ body.game-shell {
 }
 .game-shell .node-target.chosen,
 .game-shell .node-target.selected {
-  fill: url(#stone-gold);
-  stroke: #fff5c2;
+  fill: none;
+  stroke: #177c91;
   stroke-width: 4;
   opacity: 1;
   stroke-dasharray: none;
   filter: url(#stone-shadow);
 }
 .game-shell .selection-ring {
-  fill: url(#stone-gold);
-  stroke: #fff5c2;
+  fill: none;
+  stroke: #177c91;
   stroke-width: 4;
-  filter: url(#stone-shadow);
+  stroke-dasharray: none;
+  filter: none;
 }
 .game-shell .escape-road {
   stroke: #f4af72;
@@ -963,3 +964,9 @@ body.game-shell {
     grid-row: 6;
   }
 }
+
+/* Exit signs stay above junctions, portraits and road numbers. */
+#exit-sign-layer { pointer-events: none; }
+.game-shell .escape-sign rect { fill: #cc6232; stroke: #fff3df; stroke-width: 2; }
+.game-shell .escape-sign text { fill: #fff8ea; font-size: 14px; font-weight: bold; text-anchor: middle; letter-spacing: 1px; }
+.game-shell .escape-sign.guarded rect { fill: #177c91; }

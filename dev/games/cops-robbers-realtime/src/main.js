@@ -185,6 +185,7 @@ function clearGesture() {
   canvas.dataset.cursor = 'default';
 }
 function updateSound() {
+  $('sound-button').textContent = progress.sound ? '已开启' : '已关闭';
   $('sound-button').setAttribute('aria-pressed', String(progress.sound));
   $('sound-button').setAttribute('aria-label', progress.sound ? '关闭声音' : '打开声音');
 }
@@ -226,6 +227,7 @@ function buildRoster() {
   );
 }
 const pageIds = [
+  'settings-page',
   'map-page',
   'pause-dialog',
   'win-dialog',
@@ -1114,6 +1116,7 @@ $('win-levels').addEventListener('click', () => {
   openLevels();
 });
 $('levels-button').addEventListener('click', openLevels);
+$('settings-button').addEventListener('click', () => openDialog('settings-page'));
 $('help-button').addEventListener('click', () => openDialog('help-dialog'));
 $('sound-button').addEventListener('click', () => {
   progress.sound = !progress.sound;
