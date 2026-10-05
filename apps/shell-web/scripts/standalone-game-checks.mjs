@@ -1152,7 +1152,7 @@ export async function exerciseStandalone(frame, id, mobile = false) {
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
     // Escape also releases desktop pointer lock; touch uses the visible pause button.
     if (mobile) {
-      const pause = frame.getByRole('button', { name: '暂停漫游' });
+      const pause = frame.getByRole('button', { name: '暂停', exact: true });
       await expect(pause).toBeVisible();
       const bounds = await pause.evaluate((button) => {
         const { x, y, width, height } = button.getBoundingClientRect();
