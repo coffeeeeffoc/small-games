@@ -33,7 +33,7 @@ function LifeInstances({
   event,
   onTarget,
 }: Omit<Props, 'data'> & { blocks: LifeBlock[] }) {
-  const { scene } = useGLTF(`${import.meta.env.BASE_URL}life/street-life.glb`);
+  const { scene } = useGLTF(`${import.meta.env.BASE_URL}life/street-life.glb`, `${import.meta.env.BASE_URL}draco/`);
   const { camera } = useThree();
   const { world, rapier } = useRapier();
   const bodies = useRef(new Map<string, ReturnType<typeof createVisitor>>());

@@ -45,7 +45,8 @@ try {
   const worldResponse = page.waitForResponse((response) => response.url().endsWith('/world/world.json'));
   await page.goto(`${url}?debug=1`);
   await expect(page).toHaveTitle('江风入境 · 外滩漫游');
-  assert.equal(tiles.size, 0, 'The home illustration must not load city tiles');
+  await expect(page.locator('main')).toHaveAttribute('data-ready','true',{timeout:120000});
+  assert.equal(await page.locator('canvas').count(),1,'Home previews the same city');
   await page.screenshot({ path: fileURLToPath(new URL('desktop-intro.png', output)) });
   await page.locator('#enter-world').click();
   const totalTiles = (await (await worldResponse).json()).tiles.length;

@@ -837,7 +837,7 @@ export function Scene(props: Props) {
   );
 }
 
-// The whole WebGL runtime is imported only after entering a tour.
+// The homepage and tour share one runtime and viewpoint; inactive views render on demand.
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     shadows

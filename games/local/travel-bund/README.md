@@ -4,7 +4,9 @@
 
 2026-10-05 生活场景改版：新增手机首页设置入口、沉浸式游览、生活小摊、游客挥手、鸽子起飞、花箱、近处绿植、白云、飘带、接触阴影与生活手记。效果图、修正过程、Blender 模型和实景见 [设计与实现记录](docs/design/README.md)。新增完整场景验收命令：`pnpm --filter @coffeeeeffoc/travel-bund test:life`。
 
-后续修正：图片动画首页延迟加载整个 3D 场景，增加柏油/花岗岩颗粒与接缝、游客实体碰撞、栏杆外连续水面；统一精修各类弹窗。进一步移除路面凸条、修复桥墩/引桥与桥面碰撞，使用自定义触摸选项，调整建筑石材、暖色侧光与近景阴影，见 [新效果图与实景](docs/design/revision-2026-10-05/README.md)。
+先前修正：图片动画首页曾延迟加载整个 3D 场景，增加柏油/花岗岩颗粒与接缝、游客实体碰撞、栏杆外连续水面；统一精修各类弹窗。进一步移除路面凸条、修复桥墩/引桥与桥面碰撞，使用自定义触摸选项，调整建筑石材、暖色侧光与近景阴影，见 [新效果图与实景](docs/design/revision-2026-10-05/README.md)。
+
+最新交互修正：设置仅由按钮手动打开；内层滚动、固定关闭/完成入口、紧凑开关、分组选择与保留展开的模型说明。首页直接预览同一个实际 3D 场景，进入和返回复用镜头与资源，暂停预览按需渲染；初次打开会加载附近场景，不能再按“首页零 3D 请求”验收。见 [效果图与实景对照](docs/design/settings-2026-10-05/README.md)。
 
 ## 运行
 
@@ -17,6 +19,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test
 pnpm --filter @coffeeeeffoc/travel-bund build
 pnpm --filter @coffeeeeffoc/travel-bund test:browser
 pnpm --filter @coffeeeeffoc/travel-bund test:controls
+pnpm --filter @coffeeeeffoc/travel-bund test:settings
+pnpm --filter @coffeeeeffoc/travel-bund test:preview
 pnpm --filter @coffeeeeffoc/travel-bund test:routes
 pnpm --filter @coffeeeeffoc/travel-bund test:performance
 ```
@@ -25,12 +29,12 @@ pnpm --filter @coffeeeeffoc/travel-bund test:performance
 
 ## 操作
 
-- 电脑：WASD / 方向键行走，鼠标环顾，Shift 快走（4 m/s），按住 R 疾行（12 m/s），空格跳上或跳下台阶，E 与附近地标或长椅交互，P 拍照，M 地图，Esc 暂停。鼠标锁定不可用时支持按住画面拖动转头。
+- 电脑：WASD / 方向键行走，鼠标环顾，Shift 快走（4 m/s），按住 R 疾行（12 m/s），空格跳上或跳下台阶，E 与附近地标或长椅交互，P 拍照，M 地图，Esc 释放鼠标，页面控件保持可点击。鼠标锁定不可用时支持按住画面拖动转头。
 - 手机：左侧摇杆行走，右侧拖动转头，可同时操作；漫步 / 快走 / 疾行三档速度按钮、跳跃、交互和拍照按钮。支持横屏和竖屏。
 - 地图提供外滩、和平饭店、外白渡桥、陆家嘴滨江、上海中心五个落脚点。
 - 日夜切换、空间化的车辆声与船笛、江风、脚步声、游船与车辆动画。
 - 地标手记使用 `travel-bund.visits.v1` 本地保存。照片仅保留本次取景，需从手记下载到设备。
-- 页面隐藏、失焦、鼠标解锁会暂停并清除输入；触摸取消不会持续行走。
+- 页面隐藏、失焦会暂停并清除输入，点击“继续漫游”恢复，不自动打开设置。鼠标解锁只清除当前输入，仍可点击场景工具、按住画面拖动转头或点击“鼠标环顾”重新锁定。触摸取消不会持续行走。
 - 摇杆和转头区域各由首次按下的手指控制。额外手指不会抢走控制，松开额外手指也不会停止仍在继续的移动或转头。
 - 手机默认选择“流畅”与“轻量模型”：0.85 像素比例、单次绘制的波纹水面、低面树和合批简化建筑、一张 512 像素近景阴影图。暂停设置的画面精度控制像素比例、水面反射和阴影；独立的“模型细节”控制建筑/树几何，任何画面精度下都可以回到原模型。桌面默认“清晰”与“原始模型”。
 - 地图新增三条轻量探索路线：“钟楼与旧石墙”“桥边的三段故事”“三种摩天轮廓”。每条三处，走近真实地标并收入手记后才计为打卡，界面显示下一处目标；原有收藏继续计入，无时间限制。分享邀请从下一处目标附近的既有安全落脚点开始。
@@ -84,6 +88,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test:browser
 浏览器回归支持 `PLAYWRIGHT_EXECUTABLE_PATH` 指定 Chromium，并检查三指接触时摇杆与转头仍由原手指控制。
 
 `test:controls` 用真实 App 与 CDP 触摸事件检查横竖屏多指控制、指针捕获丢失、暂停恢复和画质设置，隔离 3D Scene，适合软件 WebGL 的云环境；它不代替完整场景的视效与性能验收。报告位于 `.scratch/travel-bund-controls/`。规则测试加载真实树 GLB，验证街区剔除保留全部位置，并使初始竖屏/桌面视锥的树三角面分别减少约 69% / 34%。
+
+`test:settings` 隔离 3D，在真实 App 与 Chromium 原生 Pointer Lock 检查独立/iframe 的 Esc 释放、释放后的工具点击、手动设置、选项保持展开、失焦恢复，以及三种触屏尺寸下固定关闭/完成按钮。`test:preview` 使用完整生产场景，检查首页/进入的实际镜头一致、同一个 Canvas、横竖屏触摸行走/转头/取消、设置、拍照、手记和返回后暂停。报告分别在 `.scratch/travel-bund-settings/` 与 `.scratch/travel-bund-preview/`。
 
 `test:routes` 同样隔离 3D Scene，在真实 App 检查附近地标收藏、路线进度、手机交互按钮可点击、实际 PNG 纪念卡下载、公开链接复制/取消/手动回退与重复参数，也检查模型设置与地址同步、刷新保留及分享等待期间的切档/换路线。分享请求单次执行，旧请求结束前保持锁定，迟到结果不写回旧链接或反馈。三条路线的九个目标另外与真实 `world.json` 校验；探索 UI 和纪念卡仅用 DOM/2D Canvas，没有新增模型或场景绘制。本轮未完整实走三条 3D 路线，实体机帧率和完整场景限制继续适用。
 

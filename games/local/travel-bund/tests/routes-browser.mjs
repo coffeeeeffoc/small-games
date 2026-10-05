@@ -52,7 +52,7 @@ try{
   checks.push('Duplicate route selectors are ignored; route selection through the real map works without horizontal overflow');await context.close();
   for(const viewport of [{width:320,height:568},{width:844,height:390}]) {
     ({context,page}=await open({search:'?renderDetail=original',viewport,enter:false}));
-    await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');assert.equal(await page.evaluate(()=>window.modelDetail),undefined,'Home does not mount Tour');
+    await expect(page.locator('main')).toHaveAttribute('data-render-detail','original');await expect.poll(()=>page.evaluate(()=>window.modelDetail)).toBe('original');
     await expect(page.getByRole('button',{name:/钟楼与旧石墙/})).toBeVisible();
     const choice=page.getByRole('button',{name:/三种摩天轮廓/}),box=await choice.boundingBox();assert(box.y>=0&&box.y+box.height<=viewport.height,'First-screen routes stay inside the viewport');
     await page.screenshot({path:fileURLToPath(new URL(`intro-${viewport.width}.png`,output))});await choice.tap();
