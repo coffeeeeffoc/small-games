@@ -185,7 +185,32 @@ try {
         standaloneUrl,
       );
       // Release the desktop WebGL context before starting the mobile instance.
-      await page.getByRole('button', { name: '返回目录', exact: true }).click();
+      const back = page.getByRole('button', { name: '返回目录', exact: true });
+      if (game.id === 'travel-bund') {
+        // The resumed default WebGL scene is still running. Read the fixed
+        // Shell control once rather than adopting handles across several frames.
+        await expect(back).toBeVisible();
+        await expect(back).toBeEnabled();
+        const point = await page.evaluate(() => {
+          const document = globalThis.document;
+          const controls = [...document.querySelectorAll('.standalone-page nav > button')].filter(
+            (control) => control.textContent.trim() === '返回目录',
+          );
+          const control = controls[0];
+          const bounds = control?.getBoundingClientRect();
+          const x = bounds ? bounds.x + bounds.width / 2 : -1;
+          const y = bounds ? bounds.y + bounds.height / 2 : -1;
+          return {
+            count: controls.length,
+            x,
+            y,
+            hit: Boolean(control?.contains(document.elementFromPoint(x, y))),
+          };
+        });
+        assert.equal(point.count, 1);
+        assert.equal(point.hit, true);
+        await page.mouse.click(point.x, point.y);
+      } else await back.click();
       await expect(page).toHaveURL(url);
       await expect(page.locator('iframe')).toHaveCount(0);
     });

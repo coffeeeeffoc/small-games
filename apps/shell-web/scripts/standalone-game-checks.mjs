@@ -1105,44 +1105,105 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       timeout: 120000,
     });
     const pause = frame.getByRole('button', { name: '暂停', exact: true });
-    const pressHudControl = async (control) => {
+    // Reuse the real document instead of repeatedly adopting element handles
+    // between Playwright worlds while the default software WebGL frame is busy.
+    const embedded = Boolean(frame.owner);
+    const gameDocument = embedded
+      ? await (await frame.owner().elementHandle()).contentFrame()
+      : frame;
+    expect(gameDocument).not.toBeNull();
+    const pressHudControl = async (control, selector) => {
       await expect(control).toBeVisible();
       await expect(control).toBeEnabled();
-      // Page-relative bounds include the desktop iframe offset. Native input avoids
-      // scrolling a fixed HUD while software WebGL monopolizes the renderer.
-      const bounds = await control.boundingBox();
-      expect(bounds).not.toBeNull();
-      const x = bounds.x + bounds.width / 2;
-      const y = bounds.y + bounds.height / 2;
+      const point = await gameDocument.evaluate((selector) => {
+        const document = globalThis.document;
+        const controls = document.querySelectorAll(selector);
+        const control = controls[0];
+        const bounds = control?.getBoundingClientRect();
+        const x = bounds ? bounds.x + bounds.width / 2 : -1;
+        const y = bounds ? bounds.y + bounds.height / 2 : -1;
+        return {
+          count: controls.length,
+          x,
+          y,
+          inViewport:
+            bounds?.width > 0 &&
+            bounds?.height > 0 &&
+            x >= 0 &&
+            x < globalThis.innerWidth &&
+            y >= 0 &&
+            y < globalThis.innerHeight,
+          hit: Boolean(control?.contains(document.elementFromPoint(x, y))),
+        };
+      }, selector);
+      expect(point.count).toBe(1);
+      expect(point.inViewport).toBe(true);
+      expect(point.hit).toBe(true);
+      let { x, y } = point;
+      if (embedded) {
+        const host = await control.page().evaluate(({ x, y }) => {
+          const document = globalThis.document;
+          const frames = document.querySelectorAll('iframe');
+          const owner = frames[0];
+          const bounds = owner?.getBoundingClientRect();
+          const scaleX = bounds ? bounds.width / owner.offsetWidth : 1;
+          const scaleY = bounds ? bounds.height / owner.offsetHeight : 1;
+          const pageX = bounds ? bounds.x + (owner.clientLeft + x) * scaleX : -1;
+          const pageY = bounds ? bounds.y + (owner.clientTop + y) * scaleY : -1;
+          return {
+            count: frames.length,
+            x: pageX,
+            y: pageY,
+            hit: Boolean(owner && document.elementFromPoint(pageX, pageY) === owner),
+          };
+        }, point);
+        expect(host.count).toBe(1);
+        expect(host.hit).toBe(true);
+        ({ x, y } = host);
+      }
       if (mobile) await control.page().touchscreen.tap(x, y);
       else await control.page().mouse.click(x, y);
     };
     // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
-      await pressHudControl(pause);
+      await pressHudControl(pause, 'button[aria-label="暂停"]');
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
       const look = frame.locator('.look-mode');
+      // Keep the native Pointer Lock assertion in the actual game document.
+      // Locator.evaluate waits for an element handle, adopts it into the main
+      // world, then evaluates it. Each round trip can wait for another software
+      // WebGL frame. One document evaluation preserves the assertion without
+      // changing the default scene, input or operation timeout.
+      const pointerLockState = () =>
+        gameDocument.evaluate(() => {
+          const document = globalThis.document;
+          const canvases = document.querySelectorAll('canvas');
+          return {
+            canvasCount: canvases.length,
+            locked: canvases.length === 1 && document.pointerLockElement === canvases[0],
+            released: document.pointerLockElement === null,
+          };
+        });
       // Async scene readiness can outlive the entry gesture. Acquire through the real HUD control.
-      if (
-        !(await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element))
-      )
-        await pressHudControl(frame.getByRole('button', { name: '鼠标环顾', exact: true }));
+      const initialLock = await pointerLockState();
+      expect(initialLock.canvasCount).toBe(1);
+      if (!initialLock.locked)
+        await pressHudControl(
+          frame.getByRole('button', { name: '鼠标环顾', exact: true }),
+          '.look-mode',
+        );
       // Wait inside the browser; Node-side polling can expire while software WebGL is busy.
       await expect(look).toHaveText('Esc 释放鼠标', { timeout: 120000 });
-      expect(
-        await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element),
-      ).toBe(true);
+      expect(await pointerLockState()).toEqual({ canvasCount: 1, locked: true, released: false });
       // start() already focuses the canvas; send native input without refocusing WebGL.
       await canvas.page().keyboard.press('Escape');
       await expect(look).toHaveText('鼠标环顾', { timeout: 120000 });
-      expect(
-        await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === null),
-      ).toBe(true);
+      expect(await pointerLockState()).toEqual({ canvasCount: 1, locked: false, released: true });
       await expect(frame.getByRole('dialog')).toBeHidden();
       await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
-      await pressHudControl(pause);
+      await pressHudControl(pause, 'button[aria-label="暂停"]');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'paused');
