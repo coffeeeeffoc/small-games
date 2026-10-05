@@ -5,7 +5,9 @@ const source = await readFile(
   new URL('../platforms/h5/role-appearance.js', import.meta.url),
   'utf8',
 );
-for (const game of ['cops-robbers', 'cops-robbers-realtime']) {
+// Realtime owns its illustrated character gallery and page navigation. Its
+// module deliberately shares the API contract, rather than this source file.
+for (const game of ['cops-robbers']) {
   const file = new URL(`../games/local/${game}/src/role-appearance.js`, import.meta.url);
   if (process.argv.includes('--check'))
     assert.equal(
@@ -15,4 +17,4 @@ for (const game of ['cops-robbers', 'cops-robbers-realtime']) {
     );
   else await writeFile(file, source);
 }
-console.log('Both local role appearance modules are synchronized.');
+console.log('Shared role appearance modules are synchronized.');

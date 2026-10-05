@@ -1,0 +1,8 @@
+{
+  "checks": [
+    "PK waiting-room UI Back and playing-room browser Back complete real leave, abandon server rooms and clear saved codes; direct friend board Back restores source local records"
+  ],
+  "errors": [],
+  "server": "http://127.0.0.1:43705",
+  "device": "Chromium touch emulation; physical device not verified"
+}

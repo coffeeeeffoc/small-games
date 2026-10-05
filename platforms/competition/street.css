@@ -1,0 +1,1408 @@
+.street-competition {
+  --sp-ink: #182c55;
+  --sp-muted: #788092;
+  --sp-blue: #0789ff;
+  --sp-coral: #ff934b;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  overflow: hidden;
+  color: var(--sp-ink);
+  background: #f2e7d5;
+  font:
+    15px/1.5 'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    sans-serif;
+  text-align: left;
+  isolation: isolate;
+}
+.street-competition[hidden],
+.street-competition [hidden] {
+  display: none !important;
+}
+.street-competition *,
+.street-competition *::before,
+.street-competition *::after {
+  box-sizing: border-box;
+}
+.street-competition h1,
+.street-competition h2,
+.street-competition h3,
+.street-competition p {
+  margin: 0;
+  font-family: inherit;
+  color: inherit;
+  letter-spacing: 0;
+}
+.street-competition button,
+.street-competition input {
+  font: inherit;
+  color: inherit;
+  letter-spacing: 0;
+}
+.street-competition button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 17px;
+  padding: 10px 16px;
+  background: #fffaf0;
+  color: var(--sp-ink);
+  cursor: pointer;
+  font-weight: 850;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+.street-competition button:active {
+  transform: translateY(3px) scale(0.98);
+}
+.street-competition button:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
+.street-competition button:focus-visible,
+.street-competition input:focus-visible {
+  outline: 3px solid #ffc849;
+  outline-offset: 3px;
+}
+.street-competition svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.sp-shell {
+  width: min(100%, 520px);
+  height: 100dvh;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 18%, #fffef7 0, #fff6e8 66%, #f8ecd9 100%);
+  box-shadow: 0 0 80px #8973531a;
+  padding-top: env(safe-area-inset-top);
+}
+.sp-header {
+  display: grid;
+  grid-template-columns: 46px 1fr 46px;
+  gap: 6px;
+  align-items: center;
+  min-height: 76px;
+  padding: 10px 16px 5px;
+  flex: none;
+  text-align: center;
+}
+.sp-header h1 {
+  font-size: clamp(23px, 7vw, 30px);
+  font-weight: 950;
+  line-height: 1.2;
+}
+.sp-header p {
+  font-size: 11px;
+  color: #65738c;
+  margin-top: 3px;
+}
+.street-competition button.sp-back,
+.street-competition button.sp-help {
+  padding: 0;
+  width: 43px;
+  height: 43px;
+  min-height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fffaf0;
+  border: 1px solid #ead9bd;
+  box-shadow:
+    0 3px 0 #deccb056,
+    inset 0 1px 0 white;
+}
+.street-competition button.sp-help {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  justify-self: end;
+  font-size: 19px;
+  color: #7c8b9c;
+  border-color: transparent;
+  box-shadow: none;
+}
+.sp-status {
+  margin: 0 18px 7px !important;
+  min-height: 25px;
+  flex: none;
+  font-size: 11px;
+  color: #62818a !important;
+  text-align: center;
+  padding: 3px 6px;
+}
+.sp-status[data-error] {
+  background: #ffebe1;
+  border-radius: 10px;
+  color: #aa4730 !important;
+}
+.sp-pages {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.sp-page {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 18px 18px;
+  scrollbar-width: thin;
+}
+.sp-vs-hero {
+  position: relative;
+  height: 230px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0 -8px 16px;
+  background:
+    radial-gradient(ellipse at 30% 90%, #cbe9ff99 0, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, #ffe0c099 0, transparent 55%);
+  border-radius: 28px;
+}
+.sp-figure {
+  display: block;
+  aspect-ratio: 2 / 3;
+  width: 145px;
+  flex: none;
+  background-image: var(--sp-sprites);
+  background-size: 300% 200%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+.sp-figure[data-figure='runner'] {
+  background-position: 0 100%;
+}
+.sp-vs-hero .sp-figure:first-child {
+  transform: rotate(-5deg);
+}
+.sp-vs-hero .sp-figure:nth-of-type(2) {
+  transform: rotate(5deg);
+}
+.sp-vs {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%) rotate(-9deg);
+  font-size: 61px;
+  line-height: 1;
+  font-weight: 1000;
+  font-style: italic;
+  color: #ffd651;
+  -webkit-text-stroke: 2px #ffae39;
+  text-shadow:
+    0 5px 0 #e4792d,
+    0 7px 10px #ae551634;
+  z-index: 1;
+}
+.sp-spark {
+  position: absolute;
+  color: #ffcd47;
+  font-size: 32px;
+  font-style: normal;
+}
+.sp-spark-one {
+  top: 6px;
+  left: 4px;
+  transform: rotate(-20deg);
+}
+.sp-spark-two {
+  top: 14px;
+  right: 8px;
+  transform: rotate(14deg);
+}
+.sp-entry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.street-competition .sp-entry {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 17px 10px 15px;
+  min-height: 147px;
+  border: 2px solid #ffffffbb;
+  box-shadow:
+    0 4px 0 #0e73d13b,
+    0 6px 10px #466fa21a,
+    inset 0 2px 0 #ffffff77;
+  border-radius: 22px;
+  color: white;
+}
+.street-competition .sp-entry-blue {
+  background: linear-gradient(150deg, #4fc3ff 0, #078bff 68%, #0870ed);
+}
+.street-competition .sp-entry-coral {
+  background: linear-gradient(150deg, #ffc293 0, #ff8f45 70%, #ff7843);
+  box-shadow:
+    0 4px 0 #e5753345,
+    0 6px 10px #bc80431a,
+    inset 0 2px 0 #ffffff77;
+}
+.sp-entry > svg {
+  width: 40px;
+  height: 40px;
+  stroke-width: 2.8;
+  margin-bottom: 5px;
+  filter: drop-shadow(0 2px 0 #2257a321);
+}
+.sp-entry strong {
+  font-size: clamp(21px, 6vw, 27px);
+  line-height: 1.3;
+  text-shadow: 0 2px 0 #2167b62c;
+}
+.sp-entry small {
+  font-size: 11px;
+  opacity: 0.95;
+  margin-top: 4px;
+}
+.sp-entry-arrow {
+  position: absolute;
+  right: 4px;
+  top: 59%;
+}
+.sp-entry-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+.sp-profile-card,
+.sp-wide-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ebd9bf;
+  border-radius: 21px;
+  background: #fffbf3;
+  padding: 11px;
+  margin-top: 14px;
+  box-shadow: 0 3px 0 #e1cda426;
+}
+.sp-profile-card > div {
+  min-width: 0;
+  flex: 1;
+}
+.sp-profile-card strong {
+  display: block;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.sp-profile-card small {
+  display: block;
+  font-size: 11px;
+  color: #7d8392;
+}
+.street-competition .sp-profile-card button {
+  padding: 6px;
+  min-height: 44px;
+  width: 44px;
+  background: #e9f4ff;
+  color: #168bff;
+}
+.sp-portrait {
+  display: block;
+  width: 52px;
+  height: 52px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background-color: #d9f0ff;
+  background-image: var(--sp-sprites);
+  background-size: 300% 300%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  box-shadow: 0 2px 5px #44719821;
+  flex: none;
+}
+.sp-portrait[data-portrait-role='runner'] {
+  background-color: #ffe4cf;
+  background-position-y: 75%;
+}
+.sp-portrait[data-preset='1'] {
+  background-position-x: 50%;
+}
+.sp-portrait[data-preset='2'] {
+  background-position-x: 100%;
+}
+.sp-portrait[data-custom] {
+  background-size: cover;
+  background-position: center;
+}
+.street-competition .sp-wide-link {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 68px;
+  padding: 12px 14px;
+  text-align: left;
+}
+.sp-wide-link > svg:first-child {
+  color: #eea22b;
+  width: 36px;
+  height: 36px;
+}
+.sp-wide-link > span {
+  flex: 1;
+}
+.sp-wide-link strong,
+.sp-wide-link small {
+  display: block;
+}
+.sp-wide-link strong {
+  font-size: 19px;
+}
+.sp-wide-link small {
+  font-size: 11px;
+  color: #94806c;
+  font-weight: 500;
+}
+.sp-note {
+  font-size: 11px;
+  color: #8a8790 !important;
+  margin: 13px 4px 5px !important;
+  text-align: center;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.sp-bottom-nav {
+  min-height: 72px;
+  padding: 5px 15px max(8px, env(safe-area-inset-bottom));
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border-top: 1px solid #ecddc3;
+  background: #fff9ee;
+}
+.street-competition .sp-bottom-nav button {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px;
+  color: #979294;
+  font-size: 11px;
+  background: transparent;
+  border-radius: 16px;
+}
+.sp-bottom-nav button svg {
+  width: 26px;
+  height: 26px;
+}
+.street-competition .sp-bottom-nav button[aria-pressed='true'] {
+  background: #e8f3ff;
+  color: #008bff;
+}
+.sp-section-heading {
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 900;
+  margin: 16px 0 8px !important;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sp-section-heading::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  background: #088eff;
+  border-radius: 5px;
+}
+.sp-choice-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+.street-competition .sp-choice-roles button {
+  padding: 6px 5px 9px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #f7d0af;
+  background: linear-gradient(145deg, #ffdfbb, #ffb891);
+  box-shadow: 0 3px 0 #dac4ac33;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.street-competition .sp-choice-roles button:first-child {
+  border-color: #acdfff;
+  background: linear-gradient(145deg, #d4f5ff, #a5dcff);
+}
+.street-competition .sp-choice-roles button[aria-pressed='true'] {
+  border-color: #058fff;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 3px 0 #2896e840;
+}
+.sp-choice-roles .sp-figure {
+  width: 115px;
+  height: 173px;
+  margin-bottom: -7px;
+}
+.sp-choice-roles strong {
+  font-size: 18px;
+  position: relative;
+  padding-top: 5px;
+  z-index: 1;
+}
+.sp-choice-roles small {
+  font-size: 10px;
+  color: #5c779a;
+  position: relative;
+  z-index: 1;
+  font-weight: 600;
+}
+.sp-choice-roles i {
+  display: none;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 23px;
+  height: 23px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #078aff;
+  color: white;
+}
+.sp-choice-roles i svg {
+  width: 16px;
+  height: 16px;
+}
+.sp-choice-roles [aria-pressed='true'] i {
+  display: grid;
+  place-items: center;
+}
+.sp-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.street-competition .sp-mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 7px;
+  border: 2px solid #e9d9c3;
+  background: #fffcf5;
+  box-shadow: 0 3px 0 #c8b28d1a;
+  border-radius: 19px;
+}
+.street-competition .sp-mode-card[aria-pressed='true'] {
+  border-color: #098fff;
+  background: #eef8ff;
+}
+.sp-mode-symbol {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 62px;
+  margin-bottom: 4px;
+  font-size: 36px;
+  color: #ffe157;
+  text-shadow: 0 2px 0 #e09b22;
+  border-radius: 11px;
+  background:
+    linear-gradient(#a4d9f578, #61b6ed16),
+    var(--sp-city) center 46% / cover;
+}
+.sp-mode-card strong {
+  font-size: 14px;
+}
+.sp-mode-card small {
+  font-size: 10px;
+  font-weight: 500;
+  color: #708298;
+  margin-top: 3px;
+}
+.sp-segments {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #eee8df;
+  box-shadow: inset 0 1px 2px #77645615;
+}
+.street-competition .sp-segments button {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 5px;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  color: #6c7181;
+}
+.street-competition .sp-segments button[aria-pressed='true'] {
+  color: white;
+  background: linear-gradient(#37b6ff, #0589ff);
+  box-shadow:
+    inset 0 2px 0 #ffffff6b,
+    0 3px 0 #1b7ee02e;
+}
+.street-competition .sp-segments button[aria-pressed='true']:disabled {
+  opacity: 1;
+}
+.sp-info-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+.sp-info-pills > span {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  padding: 10px;
+  background: #fffbf5;
+  border: 1px solid #ebdcc7;
+  border-radius: 16px;
+}
+.sp-info-pills svg {
+  grid-row: span 2;
+  color: #239dff;
+}
+.sp-info-pills strong {
+  font-size: 12px;
+}
+.sp-info-pills small {
+  font-size: 10px;
+  color: #8e8d98;
+}
+.street-competition .sp-primary,
+.street-competition .sp-secondary,
+.street-competition .sp-invite-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.street-competition .sp-primary {
+  min-height: 56px;
+  color: white;
+  font-weight: 950;
+  font-size: 21px;
+  border: 2px solid #f8feff;
+  border-radius: 999px;
+  background: linear-gradient(#47c5ff 0, #1097ff 38%, #057dff 100%);
+  box-shadow:
+    0 4px 0 #1c69bc48,
+    inset 0 2px 0 #ffffff61,
+    0 6px 10px #266eac19;
+  text-shadow: 0 2px 0 #206ab633;
+}
+.street-competition .sp-primary svg {
+  width: 25px;
+  height: 25px;
+}
+.street-competition .sp-secondary {
+  min-height: 51px;
+  border: 1px solid #e4d1b5;
+  background: #fff9ed;
+  box-shadow:
+    inset 0 2px 0 #fff,
+    0 3px 0 #cbb18b32;
+  font-size: 16px;
+  border-radius: 999px;
+}
+.sp-card {
+  padding: 19px 16px;
+  border: 1px solid #ead9bf;
+  border-radius: 24px;
+  background: #fffbf3;
+  box-shadow: 0 4px 0 #d9c29d1a;
+}
+.sp-vs-hero-small {
+  height: 200px;
+  margin-top: 7px;
+}
+.sp-vs-hero-small .sp-figure {
+  width: 126px;
+}
+.sp-join-form label {
+  display: block;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 900;
+}
+.street-competition input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 13px;
+  border: 2px solid #e9dcc6;
+  border-radius: 15px;
+  background: #fffaf3;
+  outline-offset: 3px;
+  box-shadow: inset 0 2px 0 #9b7d4b0a;
+}
+.street-competition .sp-join-form input {
+  margin-top: 16px;
+  text-align: center;
+  font-size: clamp(18px, 6vw, 24px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #127bea;
+  text-transform: uppercase;
+}
+.sp-join-form > small {
+  display: block;
+  font-size: 11px;
+  color: #8b8995;
+  text-align: center;
+  margin-top: 10px;
+}
+.sp-room-hero {
+  height: 190px;
+  margin-bottom: 0;
+  background:
+    linear-gradient(#bbdef573, #fff6e700),
+    var(--sp-city) center 55% / cover;
+}
+.sp-room-hero .sp-figure {
+  width: 126px;
+}
+.sp-room-code-card {
+  padding: 10px 10px 8px;
+  text-align: center;
+  margin: -6px 15px 12px;
+  border: 1px solid #e5d5ba;
+  border-radius: 18px;
+  background: #fffdf5;
+  position: relative;
+  box-shadow: 0 4px 0 #c3a17321;
+}
+.sp-room-code-card > small {
+  font-size: 10px;
+  color: #9a8990;
+}
+.street-competition .sp-room-code-card button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  padding: 2px 4px;
+  min-height: 34px;
+}
+.sp-room-code-card strong {
+  font-size: 19px;
+  letter-spacing: 2px;
+  overflow-wrap: anywhere;
+}
+.sp-room-code-card svg {
+  width: 19px;
+  height: 19px;
+  color: #1693ff;
+}
+.sp-players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.sp-player {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 7px;
+  border: 2px solid #afdfff;
+  border-radius: 18px;
+  background: #f8fcff;
+}
+.sp-player[data-role='runner'] {
+  background: #fff8f0;
+  border-color: #f7c7a4;
+}
+.sp-player .sp-portrait {
+  width: 43px;
+  height: 43px;
+}
+.sp-player-copy {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-line;
+}
+.sp-player-copy strong {
+  font-size: 11px;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.sp-player-copy small {
+  display: block;
+  font-size: 10px;
+  color: #7b8b9b;
+  margin-top: 3px;
+}
+.sp-player[data-ready] .sp-player-copy small {
+  color: #35a051;
+}
+.sp-player[data-empty] {
+  border-style: dashed;
+  background: #fffaf2;
+  border-color: #e3d4bc;
+  color: #989198;
+  font-size: 10px;
+}
+.sp-wait-avatar {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  background: #f0e8dc;
+  border-radius: 50%;
+  font-size: 24px;
+  flex: none;
+}
+.sp-room-hint {
+  font-size: 11px;
+  color: #738294 !important;
+  text-align: center;
+  margin-top: 10px !important;
+}
+.sp-room-settings .sp-section-heading {
+  margin: 10px 0 6px !important;
+  font-size: 12px;
+}
+.sp-room-settings > small {
+  display: block;
+  font-size: 10px;
+  color: #998c91;
+  text-align: center;
+  margin-top: 7px;
+}
+.street-competition .sp-invite-link {
+  min-height: 44px;
+  font-size: 12px;
+  border: 1px solid #bcdafa;
+  border-radius: 13px;
+  background: #e9f4ff;
+  color: #1384e7;
+}
+.street-competition .sp-text-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  background: transparent;
+  min-height: 48px;
+  font-size: 13px;
+  color: #827578;
+  margin-top: 6px;
+}
+.sp-play-page {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px max(7px, env(safe-area-inset-bottom));
+}
+.sp-play-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 3px 8px 8px;
+  flex: none;
+}
+.sp-play-info strong {
+  font-size: 13px;
+  color: #1684ed;
+}
+.sp-play-info span {
+  font-size: 10px;
+  color: #7c8d9e;
+}
+.sp-play-page canvas {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: block;
+  border-radius: 17px;
+  touch-action: none;
+}
+.sp-play-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+  padding-top: 8px;
+}
+.street-competition .sp-play-actions button {
+  flex: 1;
+  padding: 7px 5px;
+  font-size: 11px;
+  background: #eaf4ff;
+  color: #5783a6;
+}
+.street-competition[data-playing] .sp-header {
+  min-height: 50px;
+  padding-top: 3px;
+  padding-bottom: 0;
+}
+.street-competition[data-playing] .sp-header h1 {
+  font-size: 19px;
+}
+.street-competition[data-playing] .sp-header p {
+  display: none;
+}
+.street-competition[data-playing] .sp-status {
+  margin-bottom: 3px !important;
+  min-height: 22px;
+}
+.sp-board-intro,
+.sp-rules-hero,
+.sp-invite-hero {
+  text-align: center;
+  padding: 14px 6px 20px;
+}
+.sp-board-intro > svg,
+.sp-rules-hero > svg,
+.sp-invite-hero > svg {
+  display: block;
+  margin: auto auto 6px;
+  width: 53px;
+  height: 53px;
+  color: #ffbc33;
+  filter: drop-shadow(0 3px 0 #f4a32b22);
+}
+.sp-board-intro h2,
+.sp-rules-hero h2,
+.sp-invite-hero h2 {
+  font-size: 20px;
+  font-weight: 950;
+}
+.sp-board-intro p,
+.sp-rules-hero p,
+.sp-invite-hero p {
+  margin-top: 5px;
+  color: #7d8a99;
+  font-size: 11px;
+}
+.sp-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 3px 0;
+  min-height: 217px;
+  background:
+    linear-gradient(#fffbf500, #e4f2fb99),
+    var(--sp-city) center 65% / cover;
+  border-radius: 24px 24px 0 0;
+}
+.sp-podium-place {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 10px 6px 12px;
+  border: 1px solid #e9d9bf;
+  border-radius: 16px 16px 0 0;
+  background: #fff7e9;
+  position: relative;
+}
+.sp-podium-place[data-rank='1'] {
+  background: linear-gradient(#fff0b4, #ffe1a1);
+  padding-bottom: 30px;
+}
+.sp-podium-place .sp-portrait {
+  margin: -61px auto 11px;
+  width: 65px;
+  height: 65px;
+  background-color: #fff9df;
+  box-shadow: 0 0 0 3px #fff7e980;
+}
+.sp-podium-place[data-rank='1'] .sp-portrait {
+  width: 80px;
+  height: 80px;
+  margin-top: -80px;
+}
+.sp-podium-number {
+  position: absolute;
+  top: -14px;
+  right: 8px;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #ecc88a;
+  color: #fff;
+  font-weight: 950;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 0 #bd8b452b;
+}
+.sp-podium-place[data-rank='1'] .sp-podium-number {
+  background: #ffc132;
+  color: #a25c15;
+  width: 31px;
+  height: 31px;
+}
+.sp-podium-place strong {
+  display: block;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.sp-podium-place small {
+  display: block;
+  color: #b68134;
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: 900;
+}
+.sp-rank-list {
+  list-style: none;
+  padding: 5px 12px;
+  margin: 0;
+  border: 1px solid #ead9bf;
+  border-radius: 0 0 20px 20px;
+  background: #fffaf0;
+}
+.sp-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 59px;
+  border-bottom: 1px solid #ece0ce;
+  font-size: 12px;
+}
+.sp-rank-row:last-child {
+  border: 0;
+}
+.sp-rank-row .sp-portrait {
+  width: 32px;
+  height: 32px;
+}
+.sp-rank-row strong {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.sp-rank-row > span:last-child {
+  font-weight: 800;
+  font-size: 11px;
+}
+.sp-rank-number {
+  width: 18px;
+  text-align: center;
+  font-weight: 950;
+}
+.sp-empty {
+  text-align: center;
+  padding: 28px 12px;
+  color: #95879b;
+  font-size: 12px;
+}
+.sp-my-record {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 12px;
+  border: 2px solid #0e99ff;
+  border-radius: 20px;
+  background: linear-gradient(120deg, #f0fbff, #dcefff);
+  box-shadow: 0 3px 0 #008dff1a;
+}
+.sp-my-record-copy {
+  flex: 1;
+  min-width: 0;
+}
+.sp-my-record strong,
+.sp-my-record span,
+.sp-my-record small {
+  display: block;
+}
+.sp-my-record strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.sp-my-record-copy > span {
+  font-weight: 900;
+  color: #147bea;
+  font-size: 16px;
+}
+.sp-my-record small {
+  font-size: 10px;
+  color: #6e839a;
+}
+.sp-name-hero {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 22px 0 24px;
+}
+.sp-name-hero .sp-portrait {
+  width: 135px;
+  height: 135px;
+  border: 5px solid white;
+  box-shadow:
+    0 4px 0 #e3cba533,
+    0 0 0 2px #bee7fd;
+}
+.sp-name-hero i {
+  position: absolute;
+  color: #ffc94e;
+  font-size: 39px;
+  top: 43px;
+  font-style: normal;
+}
+.sp-name-hero i:nth-of-type(1) {
+  left: 18px;
+}
+.sp-name-hero i:nth-of-type(2) {
+  right: 18px;
+  top: 87px;
+  font-size: 23px;
+}
+.sp-name-form > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 850;
+  margin-bottom: 7px;
+}
+.sp-name-input {
+  position: relative;
+}
+.street-competition .sp-name-input input {
+  padding-right: 39px;
+  font-weight: 850;
+}
+.sp-name-input svg {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  color: #008dff;
+  width: 21px;
+  height: 21px;
+}
+.sp-name-form > small {
+  display: block;
+  font-size: 10px;
+  margin-top: 8px;
+  color: #9b8992;
+  text-align: center;
+}
+.sp-form-message {
+  min-height: 20px;
+  font-size: 11px;
+  text-align: center;
+  color: #ba704c !important;
+  margin-top: 8px !important;
+}
+.sp-player-id {
+  padding: 20px 4px;
+  text-align: center;
+  color: #a7a0a3;
+}
+.sp-player-id small {
+  display: block;
+  font-size: 10px;
+}
+.sp-player-id code {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.sp-rule-list {
+  padding-left: 22px;
+  margin: 0;
+  font-size: 13px;
+  color: #607493;
+}
+.sp-rule-list li {
+  padding: 9px 0 9px 5px;
+}
+.sp-rule-list li::marker {
+  color: #168dff;
+  font-weight: 950;
+}
+.sp-result-hero {
+  position: relative;
+  min-height: 264px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 59px;
+}
+.sp-result-hero .sp-figure {
+  width: 123px;
+}
+.sp-result-trophy {
+  position: absolute;
+  z-index: 1;
+  color: #ffbf32;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-8deg);
+  filter: drop-shadow(0 3px 0 #b97d2833);
+}
+.sp-result-trophy svg {
+  width: 80px;
+  height: 80px;
+  fill: #ffeaaa;
+  stroke-width: 2;
+}
+.sp-result-hero h2 {
+  position: absolute;
+  bottom: 32px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #f3832d;
+  font-size: 24px;
+  font-weight: 950;
+}
+.sp-result-hero > p {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  color: #8c8493;
+}
+.sp-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.sp-result-card {
+  padding: 12px 9px;
+  border: 1px solid #ead4b6;
+  border-radius: 18px;
+  background: #fff9ee;
+  text-align: center;
+  min-width: 0;
+}
+.sp-result-card:first-child {
+  border-color: #8dcfff;
+  background: #ecf8ff;
+}
+.sp-result-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.sp-result-player .sp-portrait {
+  width: 48px;
+  height: 48px;
+}
+.sp-result-player h3 {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.sp-result-score {
+  display: block;
+  font-size: 20px;
+  font-weight: 950;
+  color: #168bff;
+  margin: 9px 0 5px;
+}
+.sp-result-card p {
+  font-size: 10px;
+  color: #8a8190;
+}
+.sp-result-card > small {
+  display: block;
+  font-size: 10px;
+  color: #967e64;
+  margin-top: 7px;
+}
+.sp-invite-hero {
+  padding-top: 26px;
+}
+.sp-invite-hero > svg {
+  color: #1b9dff;
+}
+.sp-invite-card {
+  text-align: center;
+}
+.sp-invite-card > small {
+  display: block;
+  color: #9a8991;
+  font-size: 11px;
+}
+.sp-invite-card > strong {
+  font-size: 24px;
+  letter-spacing: 2px;
+  display: block;
+  margin: 13px 0;
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+.sp-invite-card .sp-primary {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+.street-competition .sp-invite-card input {
+  min-height: 44px;
+  font-size: 11px;
+  margin-top: 10px;
+  color: #8b8095;
+}
+@media (max-width: 350px) {
+  .sp-page {
+    padding-left: 13px;
+    padding-right: 13px;
+  }
+  .sp-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .sp-header h1 {
+    font-size: 24px;
+  }
+  .sp-header p {
+    font-size: 10px;
+  }
+  .sp-vs-hero {
+    height: 198px;
+  }
+  .sp-vs-hero .sp-figure {
+    width: 126px;
+  }
+  .sp-entry-grid {
+    gap: 9px;
+  }
+  .street-competition .sp-entry {
+    min-height: 133px;
+  }
+  .sp-choice-roles .sp-figure {
+    width: 95px;
+    height: 143px;
+  }
+  .sp-choice-roles strong {
+    font-size: 16px;
+  }
+  .sp-choice-roles small {
+    font-size: 9px;
+  }
+  .sp-room-code-card strong {
+    font-size: 16px;
+  }
+  .sp-room-hero {
+    height: 174px;
+  }
+  .sp-room-hero .sp-figure {
+    width: 112px;
+  }
+  .sp-player .sp-portrait {
+    width: 35px;
+    height: 35px;
+  }
+  .sp-player-copy strong {
+    font-size: 10px;
+  }
+  .sp-result-hero .sp-figure {
+    width: 105px;
+  }
+  .sp-result-hero {
+    min-height: 237px;
+  }
+  .sp-result-trophy {
+    top: 82px;
+  }
+  .sp-result-score {
+    font-size: 17px;
+  }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .sp-shell {
+    width: min(100%, 760px);
+  }
+  .sp-header {
+    min-height: 55px;
+    padding-top: 5px;
+  }
+  .sp-header h1 {
+    font-size: 22px;
+  }
+  .sp-header p {
+    font-size: 10px;
+  }
+  .sp-status {
+    min-height: 20px;
+    margin-bottom: 3px !important;
+  }
+  .sp-bottom-nav {
+    min-height: 56px;
+  }
+  .street-competition .sp-bottom-nav button {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+  }
+  .sp-page {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  [data-page='lobby'] .sp-vs-hero {
+    float: left;
+    width: 41%;
+    height: 220px;
+    margin: 0 18px 0 0;
+  }
+  [data-page='lobby'] .sp-vs-hero .sp-figure {
+    width: 129px;
+  }
+  [data-page='lobby'] .sp-entry-grid {
+    padding-top: 4px;
+  }
+  .street-competition [data-page='lobby'] .sp-entry {
+    min-height: 118px;
+    padding-top: 9px;
+  }
+  [data-page='lobby'] .sp-entry > svg {
+    width: 29px;
+    height: 29px;
+  }
+  [data-page='lobby'] .sp-entry strong {
+    font-size: 20px;
+  }
+  [data-page='lobby'] .sp-profile-card {
+    margin-top: 8px;
+    padding: 7px 10px;
+  }
+  [data-page='lobby'] .sp-wide-link {
+    margin-top: 8px;
+    min-height: 57px;
+    width: auto;
+  }
+  [data-page='lobby'] .sp-note {
+    clear: both;
+  }
+  .sp-play-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .sp-play-actions {
+    padding-top: 4px;
+  }
+  .street-competition .sp-play-actions button {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .street-competition button {
+    transition: none;
+  }
+}

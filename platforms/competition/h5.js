@@ -1,6 +1,7 @@
 import './client.js';
 import styles from './h5.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
+import { mountStreetCompetition } from './street-pages.js';
 
 const titles = {
   'cops-robbers': '围捕小队',
@@ -80,6 +81,7 @@ body.competition-active #mode-online { position:static; }
 }
 `;
 export function mountCompetition(game, createRenderer) {
+  if (game === 'cops-robbers-realtime') return mountStreetCompetition(game, createRenderer);
   const street = game === 'cops-robbers-realtime';
   const xiangqi = game === 'xiangqi-five';
   const roleNames = street

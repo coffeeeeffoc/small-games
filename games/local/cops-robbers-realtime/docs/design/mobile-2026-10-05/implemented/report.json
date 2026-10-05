@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "320x740: upright home, card setup, six avatars, upload/persistence, real touch quick win/server replay/ranking, touch cancel, pause/resume and historical avatar/pause/ready-game browser Back regressions",
+    "390x844: upright home, card setup, six avatars, upload/persistence, real touch quick win/server replay/ranking, touch cancel, pause/resume and historical avatar/pause/ready-game browser Back regressions",
+    "844x390: upright home, card setup, six avatars, upload/persistence, real touch quick win/server replay/ranking, touch cancel, pause/resume and historical avatar/pause/ready-game browser Back regressions",
+    "Two independent touch clients: nickname server persistence, custom role/mode/opening choices, create/join/invite/exchange/ready, police and thief canvas actions accepted by real server, return home and server ranking refresh",
+    "Delayed actual room-create responses after exit and immediate reopen: stale rooms abandoned on server, new session page/room/storage retained",
+    "Mobile independent and iframe developer mode: default off, URL on, storage on, explicit URL off; iframe real canvas touch and gesture cancellation"
+  ],
+  "errors": [],
+  "server": "http://127.0.0.1:43705",
+  "device": "Chromium touch emulation; physical device not verified"
+}

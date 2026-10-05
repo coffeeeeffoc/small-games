@@ -5,6 +5,19 @@ const presets = {
   animals: { cop: ['#176cb0', '#d9f3ff', '🐱'], robber: ['#bc4c17', '#ffe3be', '🦊'] },
   cosmic: { cop: ['#4d51b8', '#e4e4ff', '✦'], robber: ['#b54920', '#ffdfb4', '☄'] },
 };
+const characterSheet = './src/assets/characters.png';
+const characters = {
+  cop: [
+    { name: '阳光巡警', description: '正义、勇敢，守护街区的每一天。', crop: [104, 12, 282] },
+    { name: '机灵警花', description: '眼疾手快，任何小线索都逃不过她。', crop: [486, 18, 306] },
+    { name: '暖心警长', description: '经验满满，总能找到最佳围捕路线。', crop: [904, 8, 314] },
+  ],
+  robber: [
+    { name: '街头小机灵', description: '一顶橘色帽子，藏着满脑子的鬼点子。', crop: [92, 637, 322] },
+    { name: '橘子少女', description: '轻快又灵巧，转个弯就有新惊喜。', crop: [507, 640, 315] },
+    { name: '眼镜智多星', description: '观察街区，发现每一条突围小路。', crop: [967, 638, 311] },
+  ],
+};
 const images = new Map();
 const classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
 let settings, stored;
@@ -28,19 +41,39 @@ function read() {
   return settings;
 }
 
-export function getRoleAppearance(role) {
+export function getRoleAppearance(role, selectedPreset) {
   const key = side(role),
     value = read()[key];
   const style = Object.hasOwn(presets, value?.style) ? value.style : 'team';
   const [color, accent, badge] = presets[style][key];
+  const preset =
+    Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3
+      ? selectedPreset
+      : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3
+        ? value.preset
+        : 0;
   return {
     label: classicRoles() ? (key === 'cop' ? '警察' : '小偷') : key === 'cop' ? '追逐队' : '突围队',
     style,
     color,
     accent,
     badge,
-    avatar: validAvatar(value?.avatar) ? value.avatar : '',
+    preset,
+    character: characters[key][preset],
+    sprite: characterSheet,
+    avatar: selectedPreset === undefined && validAvatar(value?.avatar) ? value.avatar : '',
   };
+}
+
+// Slice the original transparent sheet in SVG; Canvas uses the very same source rectangles.
+export function roleCharacterMarkup(role, selectedPreset) {
+  const key = side(role),
+    { preset, character } = getRoleAppearance(key, selectedPreset);
+  const width = 1280 / 3,
+    left = preset * width,
+    top = key === 'cop' ? 0 : 640;
+  const id = `character-body-${++clipSequence}`;
+  return `<svg class="role-character-art" style="overflow:hidden;pointer-events:none" viewBox="${left + 24} ${top} ${width - 48} 640" role="img" aria-label="${character.name}" focusable="false"><defs><clipPath id="${id}"><rect x="${left}" y="${top}" width="${width}" height="640"/></clipPath></defs><image href="${characterSheet}" x="0" y="0" width="1280" height="1280" clip-path="url(#${id})"/></svg>`;
 }
 
 // The same vector face is used by SVG scenes and Canvas competition views.
@@ -134,17 +167,20 @@ const portraitOutline = (role) =>
     : 'M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0';
 let clipSequence = 0;
 
-export function roleAvatarSvg(role, x, y, size) {
-  const { avatar } = getRoleAppearance(role);
+export function roleAvatarSvg(role, x, y, size, selectedPreset) {
+  const { avatar, character, style } = getRoleAppearance(role, selectedPreset);
   const id = `role-portrait-${++clipSequence}`;
+  const [cropX, cropY, edge] = character.crop;
   const content = avatar
     ? `<defs><clipPath id="${id}"><path d="${portraitOutline(role)}"/></clipPath></defs><image href="${avatar}" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`
-    : facePaths(role)
-        .map(
-          ({ d, fill, stroke, width }) =>
-            `<path d="${d}" fill="${fill}" stroke="${stroke || 'none'}" stroke-width="${width}"/>`,
-        )
-        .join('');
+    : style === 'team' || selectedPreset !== undefined
+      ? `<defs><clipPath id="${id}"><path d="${portraitOutline(role)}"/></clipPath></defs><g clip-path="url(#${id})"><svg width="100" height="100" viewBox="${cropX} ${cropY} ${edge} ${edge}" preserveAspectRatio="xMidYMid slice"><image href="${characterSheet}" width="1280" height="1280"/></svg></g>`
+      : facePaths(role)
+          .map(
+            ({ d, fill, stroke, width }) =>
+              `<path d="${d}" fill="${fill}" stroke="${stroke || 'none'}" stroke-width="${width}"/>`,
+          )
+          .join('');
   return `<g class="role-avatar" pointer-events="none" transform="translate(${x} ${y}) scale(${size / 100})" stroke-linecap="round" stroke-linejoin="round">${content}</g>`;
 }
 
@@ -376,17 +412,28 @@ function drawNativeFace(ctx, role) {
   ctx.stroke();
 }
 
-export function drawRoleAvatar(ctx, role, x, y, size) {
-  const { avatar } = getRoleAppearance(role);
-  let img = images.get(avatar);
-  if (avatar && !img && (globalThis.__chaseRoleImage || typeof Image !== 'undefined')) {
+function loadPortraitImage(source) {
+  if (!source) return null;
+  let img = images.get(source);
+  if (!img && (globalThis.__chaseRoleImage || typeof Image !== 'undefined')) {
     img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
     img.onload = () => {
       img.roleLoaded = true;
     };
-    img.src = avatar;
-    images.set(avatar, img);
+    img.src = source;
+    images.set(source, img);
   }
+  return img;
+}
+
+// Browser art is preloaded once. Native SDKs keep their DOM-free vector fallback.
+if (classicRoles() && typeof Image !== 'undefined' && !globalThis.__chaseRoleImage)
+  loadPortraitImage(characterSheet);
+
+export function drawRoleAvatar(ctx, role, x, y, size) {
+  const { avatar, character, style } = getRoleAppearance(role);
+  const useSheet = !avatar && style === 'team' && !globalThis.__chaseRoleImage;
+  const img = loadPortraitImage(avatar || (useSheet ? characterSheet : ''));
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(size / 100, size / 100);
@@ -399,18 +446,25 @@ export function drawRoleAvatar(ctx, role, x, y, size) {
       else ctx.arc(50, 50, 50, 0, Math.PI * 2);
       ctx.clip();
     }
-    const edge = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
-    ctx.drawImage(
-      img,
-      ((img.naturalWidth || img.width) - edge) / 2,
-      ((img.naturalHeight || img.height) - edge) / 2,
-      edge,
-      edge,
-      0,
-      0,
-      100,
-      100,
-    );
+    const width = img.naturalWidth || img.width,
+      height = img.naturalHeight || img.height;
+    if (useSheet) {
+      const [cropX, cropY, edge] = character.crop;
+      ctx.drawImage(
+        img,
+        (cropX * width) / 1280,
+        (cropY * height) / 1280,
+        (edge * width) / 1280,
+        (edge * height) / 1280,
+        0,
+        0,
+        100,
+        100,
+      );
+    } else {
+      const edge = Math.min(width, height);
+      ctx.drawImage(img, (width - edge) / 2, (height - edge) / 2, edge, edge, 0, 0, 100, 100);
+    }
   } else if (typeof Path2D === 'undefined') {
     drawNativeFace(ctx, role);
   } else {
@@ -465,92 +519,181 @@ async function avatarFromFile(file) {
   }
 }
 
+const appearanceIcons = {
+  back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  shirt:
+    '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m10 4-7 5 4 7 4-2v14h10V14l4 2 4-7-7-5c-1 4-11 4-12 0Z" fill="#299bf3" stroke="#1386da" stroke-width="2" stroke-linejoin="round"/></svg>',
+  camera:
+    '<svg viewBox="0 0 40 36" aria-hidden="true"><path d="M4 9h8l3-5h10l3 5h8v23H4Z" fill="#299bf3" stroke="#1483d6" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="20" r="8" fill="#fff"/><circle cx="20" cy="20" r="5" fill="#8dd8ff"/><circle cx="32" cy="14" r="2" fill="#fff"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L20 6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+let appearanceView = null;
+
+export function closeAppearanceSettings() {
+  appearanceView?.close();
+}
+
 export function openAppearanceSettings(onChange = () => {}) {
   if (typeof document === 'undefined' || document.querySelector('[data-role-appearance]')) return;
-  const dialog = document.createElement('dialog');
-  dialog.dataset.roleAppearance = '';
-  dialog.setAttribute('aria-label', '双方角色装扮');
-  dialog.innerHTML = `<style>
-    [data-role-appearance]{box-sizing:border-box;width:min(560px,calc(100% - 24px));max-height:85dvh;overflow:auto;border:3px solid #17435a;border-radius:28px;background:#fff9e9;color:#143c50;padding:22px;font:16px/1.5 system-ui,sans-serif;box-shadow:0 7px 0 #17435a22,0 20px 55px #102c3940}
-    [data-role-appearance]::backdrop{background:#103e4e99;backdrop-filter:blur(5px)}[data-role-appearance] h2{margin:0;font-size:25px;font-weight:900}[data-role-appearance] p{margin:8px 0 16px;font-size:13px;color:#58716b}
-    [data-role-appearance] .role-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}[data-role-appearance] fieldset{min-width:0;margin:0;padding:14px 12px;border:2px solid #badaca;border-radius:20px;background:#e7f5e8}
-    [data-role-appearance] fieldset:last-child{background:#fff1d9;border-color:#f1d1a0}[data-role-appearance] legend{padding:0 8px;font-size:17px;font-weight:900}[data-role-appearance] label{display:block;margin:12px 0;font-size:13px;font-weight:700}
-    [data-role-appearance] select,[data-role-appearance] button{min-height:44px;font:inherit;border:2px solid #bdd7c6;border-radius:13px;background:#fffdf1;color:#143c50;padding:8px 10px;font-size:13px;font-weight:700}
-    [data-role-appearance] button{cursor:pointer;box-shadow:0 3px 0 #b4cbbb}[data-role-appearance] button:active{transform:translateY(2px);box-shadow:0 1px 0 #b4cbbb}[data-role-appearance] :focus-visible{outline:3px solid #0fa3b5;outline-offset:3px}
-    [data-role-appearance] select,[data-role-appearance] input{box-sizing:border-box;max-width:100%;width:100%}[data-role-appearance] input{font:inherit;font-size:12px}[data-role-appearance] input::file-selector-button{min-height:44px;padding:8px;border:1px solid #a9cbb9;border-radius:10px;background:#fffdf1;color:#143c50;font:inherit}
-    [data-role-appearance] .avatar-upload{position:relative;min-height:44px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:2px dashed #b8cdb8;border-radius:13px;background:#fffdf1;font-weight:700;overflow:hidden}[data-role-appearance] .avatar-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}[data-role-appearance] .avatar-upload:focus-within{outline:3px solid #0fa3b5;outline-offset:3px}[data-role-appearance] svg{display:block;margin:5px auto 14px;width:96px;height:96px;border-radius:22px;background:#fffef1;box-shadow:0 4px 0 #a8ccb650}[data-role-appearance] footer{display:flex;justify-content:flex-end;margin-top:12px}[data-role-appearance] [data-close-appearance]{min-width:116px;background:#ffdc58;border-color:#dba942;box-shadow:0 4px 0 #dba942;font-size:16px;font-weight:900}[data-role-appearance] [role=status]{min-height:20px;font-size:12px;margin-bottom:0}
-    @media(max-width:370px){[data-role-appearance]{padding:16px}[data-role-appearance] .role-options{gap:8px}[data-role-appearance] fieldset{padding:10px 7px}[data-role-appearance] select,[data-role-appearance] button{padding:7px 5px;font-size:12px}[data-role-appearance] input{font-size:11px}}
-  </style><h2>小队换装间</h2><p>换个形象，一起出发！装扮用于所有关卡，头像仅保存在本机。</p><div class="role-options"></div><p role="status" aria-live="polite"></p><footer><button type="button" data-close-appearance>完成</button></footer>`;
-  const status = dialog.querySelector('[role=status]');
+  const panel = document.createElement('section');
+  panel.id = 'appearance-page';
+  panel.className = 'appearance-page game-page';
+  panel.dataset.roleAppearance = '';
+  panel.setAttribute('aria-labelledby', 'appearance-page-title');
+  panel.innerHTML = `<header class="appearance-header"><button type="button" class="appearance-back" data-close-appearance aria-label="返回上一页">${appearanceIcons.back}</button><div><h1 id="appearance-page-title">${appearanceIcons.shirt}角色装扮</h1><p>选个搭档，今天也要帅气出发！</p></div></header>
+    <div class="appearance-team-tabs" role="group" aria-label="选择装扮阵营"><button type="button" data-appearance-role="cop">警察阵营</button><button type="button" data-appearance-role="robber">小偷阵营</button></div>
+    <div class="appearance-showcase"><div class="appearance-preview" data-appearance-preview></div><div class="appearance-gallery" role="group" aria-label="六款角色形象"></div></div>
+    <div class="appearance-details"><div class="appearance-description"><h2 data-character-name></h2><p data-character-description></p><span class="appearance-local-badge">本机装扮 · 即选即保存</span></div><button type="button" class="appearance-camera-tile" data-upload-avatar>${appearanceIcons.camera}<span>自定义头像</span></button><input class="appearance-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="选择本地头像图片" data-avatar-upload></div>
+    <div class="appearance-tools"><span>你的两队形象，都会在游戏中出现</span><button type="button" data-reset-avatar>恢复默认</button></div>
+    <p class="appearance-status" role="status" aria-live="polite" data-appearance-status>点击角色即可保存装扮</p><footer class="appearance-footer"><button type="button" class="appearance-done" data-close-appearance>${appearanceIcons.check}<span>穿好啦，出发！</span></button><p>头像仅保存在这台设备</p></footer>`;
+  let activeRole = 'cop',
+    closing = false,
+    uploading = false;
+  const status = panel.querySelector('[data-appearance-status]');
+  const previousFocus = document.activeElement;
+  const label = (key) => (key === 'cop' ? '警察' : '小偷');
   const save = (key, update) => {
-    const previous = read(),
-      next = { ...previous, [key]: { ...previous[key], ...update } };
+    const previous = read();
+    const next = { ...previous, [key]: { ...previous[key], ...update } };
     try {
-      (globalThis.__chaseRoleStorage || globalThis.localStorage).setItem(
-        storageKey,
-        JSON.stringify(next),
-      );
+      const serialized = JSON.stringify(next);
+      (globalThis.__chaseRoleStorage || globalThis.localStorage).setItem(storageKey, serialized);
       settings = next;
-      stored = JSON.stringify(next);
-      images.clear();
-      status.textContent = '已保存在当前设备。';
+      stored = serialized;
+      if (previous[key]?.avatar) images.delete(previous[key].avatar);
+      status.textContent = `${label(key)}装扮已自动保存！`;
+      status.dataset.state = 'saved';
     } catch {
-      status.textContent = '当前设备无法保存，请释放浏览器存储空间或允许本地存储。原设置未改动。';
+      status.textContent = '暂时无法保存，请检查浏览器的本地存储空间。';
+      status.dataset.state = 'error';
       return false;
     }
     onChange();
-    globalThis.document?.dispatchEvent(new Event('chase-appearancechange'));
+    document.dispatchEvent(new Event('chase-appearancechange'));
     return true;
   };
+  const render = () => {
+    const appearance = getRoleAppearance(activeRole);
+    panel.dataset.activeRole = activeRole;
+    panel
+      .querySelector('[data-upload-avatar]')
+      .setAttribute('aria-label', `为${label(activeRole)}选择自定义头像`);
+    for (const button of panel.querySelectorAll('[data-appearance-role]')) {
+      const selected = button.dataset.appearanceRole === activeRole;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    }
+    panel.querySelector('[data-appearance-preview]').innerHTML = appearance.avatar
+      ? `<div class="appearance-custom-portrait"><svg viewBox="0 0 100 100" role="img" aria-label="${label(activeRole)}自定义头像">${roleAvatarSvg(activeRole, 0, 0, 100)}</svg><span>我的专属头像</span></div>`
+      : `${roleCharacterMarkup(activeRole)}<span class="appearance-spark appearance-spark-one" aria-hidden="true">✦</span><span class="appearance-spark appearance-spark-two" aria-hidden="true">✦</span>`;
+    panel.querySelector('[data-character-name]').textContent = appearance.avatar
+      ? '我的专属形象'
+      : appearance.character.name;
+    panel.querySelector('[data-character-description]').textContent = appearance.avatar
+      ? '用喜欢的照片，成为街区里独一无二的你。'
+      : appearance.character.description;
+    for (const button of panel.querySelectorAll('[data-avatar-preset]')) {
+      const key = button.dataset.avatarRole,
+        preset = Number(button.dataset.avatarPreset);
+      const value = getRoleAppearance(key);
+      const selected = value.style === 'team' && !value.avatar && value.preset === preset;
+      button.classList.toggle('is-selected', selected);
+      button.classList.toggle('is-active-team', key === activeRole);
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute(
+        'aria-label',
+        `${label(key)}：${characters[key][preset].name}${selected ? '，已选中' : ''}`,
+      );
+    }
+  };
+  const gallery = panel.querySelector('.appearance-gallery');
   for (const key of ['cop', 'robber']) {
-    const field = document.createElement('fieldset'),
-      appearance = getRoleAppearance(key);
-    field.innerHTML = `<legend>${appearance.label}</legend><svg viewBox="0 0 96 96" aria-label="${appearance.label}头像预览"></svg><label>角色样式<select aria-label="${appearance.label}样式"><option value="team">${classicRoles() ? '警察与小偷' : '卡通小队'}</option><option value="animals">猫狐追逐</option><option value="cosmic">星际追逐</option></select></label><label class="avatar-upload">上传本地头像<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="${appearance.label}本地头像"></label><button type="button">恢复默认形象</button>`;
-    const preview = () => {
-      field.querySelector('svg').innerHTML = roleAvatarSvg(key, 7, 7, 76);
-    };
-    const select = field.querySelector('select');
-    select.value = appearance.style;
-    select.onchange = () => {
-      if (!save(key, { style: select.value })) select.value = getRoleAppearance(key).style;
-      preview();
-    };
-    field.querySelector('input').onchange = async (event) => {
-      const input = event.target,
-        file = input.files?.[0];
-      if (!file) return;
-      input.disabled = true;
-      status.textContent = '正在处理本地头像…';
-      try {
-        const avatar = await avatarFromFile(file);
-        if (dialog.isConnected) {
-          save(key, { avatar });
-          preview();
-        }
-      } catch (error) {
-        status.textContent = error.message;
-      } finally {
-        input.disabled = false;
-        input.value = '';
-      }
-    };
-    field.querySelector('button').onclick = () => {
-      if (save(key, { style: 'team', avatar: '' })) select.value = 'team';
-      preview();
-    };
-    preview();
-    dialog.querySelector('.role-options').append(field);
+    for (let preset = 0; preset < 3; preset++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'appearance-character-card';
+      button.dataset.avatarRole = key;
+      button.dataset.avatarPreset = String(preset);
+      button.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">${roleAvatarSvg(key, 0, 0, 100, preset)}</svg><span class="appearance-card-name">${characters[key][preset].name}</span><span class="appearance-card-check" aria-hidden="true">${appearanceIcons.check}</span>`;
+      button.addEventListener('click', () => {
+        activeRole = key;
+        save(key, { style: 'team', preset, avatar: '' });
+        render();
+      });
+      gallery.append(button);
+    }
   }
-  const previousFocus = document.activeElement;
-  dialog.querySelector('[data-close-appearance]').onclick = () => dialog.close();
-  dialog.addEventListener(
-    'close',
-    () => {
-      dialog.remove();
-      if (previousFocus?.isConnected) previousFocus.focus();
-    },
-    { once: true },
-  );
-  (document.fullscreenElement || document.body).append(dialog);
-  dialog.showModal();
+  for (const button of panel.querySelectorAll('[data-appearance-role]')) {
+    button.addEventListener('click', () => {
+      activeRole = button.dataset.appearanceRole;
+      render();
+    });
+  }
+  const input = panel.querySelector('[data-avatar-upload]');
+  const camera = panel.querySelector('[data-upload-avatar]');
+  camera.addEventListener('click', () => {
+    if (!uploading) input.click();
+  });
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0],
+      key = activeRole;
+    if (!file || uploading) return;
+    uploading = true;
+    input.disabled = camera.disabled = true;
+    camera.setAttribute('aria-busy', 'true');
+    status.textContent = `正在制作${label(key)}头像…`;
+    status.dataset.state = 'loading';
+    try {
+      const avatar = await avatarFromFile(file);
+      if (panel.isConnected && !closing) {
+        save(key, { style: 'team', avatar });
+        render();
+      }
+    } catch (error) {
+      if (panel.isConnected && !closing) {
+        status.textContent = error.message;
+        status.dataset.state = 'error';
+      }
+    } finally {
+      uploading = false;
+      input.disabled = camera.disabled = false;
+      camera.removeAttribute('aria-busy');
+      input.value = '';
+    }
+  });
+  panel.querySelector('[data-reset-avatar]').addEventListener('click', () => {
+    save(activeRole, { style: 'team', preset: 0, avatar: '' });
+    render();
+  });
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    panel.classList.add('is-leaving');
+    panel.inert = true;
+    document.removeEventListener('keydown', onKey);
+    setTimeout(
+      () => {
+        panel.remove();
+        appearanceView = null;
+        document.dispatchEvent(
+          new CustomEvent('appearance-visibility', { detail: { open: false } }),
+        );
+        if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      },
+      globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 180,
+    );
+  };
+  const onKey = (event) => {
+    if (event.key === 'Escape') close();
+  };
+  for (const button of panel.querySelectorAll('[data-close-appearance]'))
+    button.addEventListener('click', close);
+  appearanceView = { close };
+  document.dispatchEvent(new CustomEvent('appearance-visibility', { detail: { open: true } }));
+  (document.querySelector('.app-shell') || document.body).append(panel);
+  document.addEventListener('keydown', onKey);
+  render();
+  panel.querySelector('.appearance-back').focus({ preventScroll: true });
+  return appearanceView;
 }
