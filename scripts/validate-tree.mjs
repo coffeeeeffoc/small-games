@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ruleTask, staticTaskArgs, lintExcludedByRepository } from './rule-tasks.mjs';
+import {
+  ruleTask,
+  staticTaskArgs,
+  lintExcludedByRepository,
+  rulesCoveredByAggregate,
+  aggregateRunsAllTests,
+} from './rule-tasks.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
@@ -163,6 +169,7 @@ export async function validateTree({
   head = 'HEAD',
   env = process.env,
   execute = run,
+  deferIdenticalRulesToAggregate = false,
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -214,6 +221,16 @@ export async function validateTree({
     assert(command, `${pkg.name}: missing rules tests`);
     await assertNodeOnly(command, path.join(root, pkg.dir));
   }
+  const aggregateTasks = new Map();
+  if (deferIdenticalRulesToAggregate && aggregateRunsAllTests(manifest)) {
+    const graph = JSON.parse(
+      execute(pnpm, ['exec', 'turbo', 'run', 'test', '--dry=json'], root, clean, true),
+    );
+    assert(Array.isArray(graph.tasks), 'Cannot prove full aggregate test coverage');
+    for (const task of graph.tasks)
+      if (task.task === 'test' && typeof task.directory === 'string')
+        aggregateTasks.set(task.package, task);
+  }
   // Build the changed package's dependency chain. Do not build every game merely because
   // Shell consumes this game; check consumers directly without Turbo's ^build expansion.
   const buildTargets = staticBuildTargets(packages, direct, affected);
@@ -253,6 +270,12 @@ export async function validateTree({
       `${pkg.name}: missing reviewed test:rules task; add explicit pure rule test files`,
     );
     await assertNodeOnly(command, path.join(root, pkg.dir));
+    if (deferIdenticalRulesToAggregate && rulesCoveredByAggregate(pkg, manifest, aggregateTasks)) {
+      console.log(
+        `${pkg.name}: identical rules command required in subsequent full aggregate test.`,
+      );
+      continue;
+    }
     execute(pnpm, args, root, clean, 'logged');
   }
   execute(pnpm, ['check:dependencies'], root, clean);
