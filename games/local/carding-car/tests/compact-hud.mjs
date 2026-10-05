@@ -9,7 +9,8 @@ import {
 
 const url = gameURL();
 const build = await verifyBuild(url);
-const browser = await startBrowser(url);
+const local = ['localhost', '127.0.0.1'].includes(new URL(url).hostname);
+const browser = await startBrowser(url, { args: local ? ['--host-resolver-rules=MAP kart-offline.test 127.0.0.1', '--no-proxy-server'] : [] });
 const evidence = { build, environment: 'Chromium with Android UA and CDP touch; physical Android/iOS unverified', cases: [], errors: [], engineWarnings: [] };
 const state = (page) => page.evaluate(() => __kart.snapshot());
 const screenshot = (page, name) => page.screenshot({ path: fileURLToPath(new URL(`compact-${name}.png`, reportsURL)) });
@@ -199,6 +200,19 @@ try {
     assert.equal(restored.hud.settingsVisible, false);
     assert.equal(restored.hud.coachingVisible, false, 'persisted teaching does not cover garage scenery');
     evidence.cases.push({ name, viewport, geometry, ready, drive, rendered, paused, restored });
+    await context.close();
+  }
+  if (local && !new URL(url).pathname.startsWith('/play/')) {
+    const context = await browser.newContext({ ...mobileOptions, viewport: { width: 844, height: 390 } });
+    const page = await context.newPage(), offline = new URL(url); offline.hostname = 'kart-offline.test';
+    page.on('pageerror', error => evidence.errors.push(error.message));
+    await page.goto(offline.href); await waitForReady(page);
+    await page.waitForFunction(() => !!__kart.snapshot().multiplayer);
+    await tapDesign(page, 320, 450);
+    await page.waitForFunction(() => __kart.snapshot().multiplayer.panelOpen);
+    assert.match((await state(page)).multiplayer.panelStatus, /暂未开放/);
+    assert.equal((await state(page)).phase, 'ready');
+    await screenshot(page, 'friends-unconfigured');
     await context.close();
   }
   assert.deepEqual(evidence.errors, []);

@@ -918,8 +918,8 @@ export class KartGame extends Component {
       this.refreshHome();
       if (this.home.root.active) this.hud.panel.active = false;
       if (this.roomPanel) this.roomPanel.openButton.node.parent!.active =
-        !!this.multiplayer?.endpoint && this.race.phase === 'ready' && !this.hud.settingsVisible &&
-        (!this.home.root.active || this.home.page === 'home');
+        this.race.phase === 'ready' && !this.hud.settingsVisible &&
+        (this.home.root.active ? this.home.page === 'home' : !!this.multiplayer?.endpoint);
       if (this.roomPanel) this.roomPanel.openButton.node.parent!.setPosition(
         this.home.root.active ? -160 : 316, this.home.root.active ? -180 : 224,
       );
