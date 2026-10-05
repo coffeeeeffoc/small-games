@@ -1105,15 +1105,21 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       timeout: 120000,
     });
     const pause = frame.getByRole('button', { name: '暂停', exact: true });
+    const pressHudControl = async (control) => {
+      await expect(control).toBeVisible();
+      await expect(control).toBeEnabled();
+      // Page-relative bounds include the desktop iframe offset. Native input avoids
+      // scrolling a fixed HUD while software WebGL monopolizes the renderer.
+      const bounds = await control.boundingBox();
+      expect(bounds).not.toBeNull();
+      const x = bounds.x + bounds.width / 2;
+      const y = bounds.y + bounds.height / 2;
+      if (mobile) await control.page().touchscreen.tap(x, y);
+      else await control.page().mouse.click(x, y);
+    };
     // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
-      await expect(pause).toBeVisible();
-      const bounds = await pause.evaluate((button) => {
-        const { x, y, width, height } = button.getBoundingClientRect();
-        return { x, y, width, height };
-      });
-      // Send real touch input without waiting for stable WebGL frames during play.
-      await pause.page().touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await pressHudControl(pause);
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
@@ -1122,7 +1128,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       if (
         !(await canvas.evaluate((element) => element.ownerDocument.pointerLockElement === element))
       )
-        await click(frame.getByRole('button', { name: '鼠标环顾', exact: true }));
+        await pressHudControl(frame.getByRole('button', { name: '鼠标环顾', exact: true }));
       // Wait inside the browser; Node-side polling can expire while software WebGL is busy.
       await expect(look).toHaveText('Esc 释放鼠标', { timeout: 120000 });
       expect(
@@ -1136,7 +1142,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       ).toBe(true);
       await expect(frame.getByRole('dialog')).toBeHidden();
       await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
-      await click(pause);
+      await pressHudControl(pause);
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'paused');
