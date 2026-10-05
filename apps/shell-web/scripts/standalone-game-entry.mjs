@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
 export const markers = {
-  'castle-cannon': '.castle-root[data-screen="playing"]',
+  'castle-cannon': '.castle-root[data-ready="true"]',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
