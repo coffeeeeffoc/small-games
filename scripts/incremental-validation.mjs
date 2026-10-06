@@ -7,7 +7,7 @@ import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.m
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -38,12 +38,26 @@ export function incrementalPlan({
     (file) =>
       !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')) &&
       !validationTool.test(file) &&
+      file !== 'scripts/pages-regression-timings.json' &&
       file !== nativeSmoke &&
       !fileScopes.has(file),
   );
   assert(
     !unknown.length,
     `Incremental scope undefined for: ${unknown.join(', ')}. Define affected consumers before publishing; no automatic full regression.`,
+  );
+  const registrationFiles = new Set([
+    'apps/shell-web/src/standalone-games.json',
+    'apps/shell-web/src/game-meta.json',
+    'apps/shell-web/package.json',
+    'pnpm-lock.yaml',
+  ]);
+  const unclassifiedRegistration = paths.filter(
+    (file) => registrationFiles.has(file) && !fileScopes.has(file),
+  );
+  assert(
+    !unclassifiedRegistration.length,
+    `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
   const affected = affectedPackages(packages, paths);
   const directGames = games.filter((game) =>
@@ -72,7 +86,12 @@ export function incrementalPlan({
   const shellChanged = paths.some(
     (file) => file.startsWith('apps/shell-web/') && !fileScopes.has(file),
   );
-  if (shellChanged || paths.some((file) => validationTool.test(file)))
+  if (
+    shellChanged ||
+    paths.some(
+      (file) => validationTool.test(file) && !/^scripts\/pages-regression-shards/.test(file),
+    )
+  )
     for (const id of navigationSamples) if (games.some((game) => game.id === id)) ids.add(id);
   const devModeIds = paths.includes(developerMode)
     ? games
@@ -86,7 +105,9 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
-    validation_tools: paths.some((file) => validationTool.test(file)),
+    validation_tools: paths.some(
+      (file) => validationTool.test(file) || file === 'scripts/pages-regression-timings.json',
+    ),
     consumer_sources: [
       ...nativeConsumers.map((consumer) => consumer.dir),
       ...(devModeIds.length ? ['apps/shell-web'] : []),

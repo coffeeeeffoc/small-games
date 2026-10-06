@@ -21,3 +21,5 @@ git push origin <已验证候选SHA>:refs/heads/dev
 GitHub API 修改分支不会触发本地 hook。云端、worktree、API 发布也必须在更新 ref **之前**用上述命令验证最终候选 SHA；如果 ref 已变化，重新合并、生成候选并重新验证。当前未启用远端分支保护，因此 API/忽略 hook 的发布只能由流程要求约束，不能声称本地 hook 强制保护所有写入方式。最终交付必须核对 CI/Pages 对应 head SHA、状态和部署 URL；本地通过不等于线上发布完成。
 
 Cocos 输入仍严格要求 Creator 3.8.8，或 source hash 匹配且包含 `dist/index.html`、`dist/build-info.json` 和 `cc.d.ts` 的产物，通过既有验证后才查 Turbo 缓存。`KART_PREBUILT_DIR` / `NIGHT_OVERWATCH_PREBUILT_DIR` 可指向匹配制品。源码/运行素材变化需要 Creator 环境重建；源码未改可复用 Windows 缓存并由 Linux 验证。缺递归 gitlinks/素材、缺匹配制品及编辑器、工具链不符均属于明确环境/输入阻塞，区别于规则/导航断言失败；禁止伪造编辑器、声明或制品来通过。
+
+Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 ms 的估算预算自动增加排队分片；工作流仍最多四片并发。目录增长超过四片容量时不能压低耗时、丢游戏或删除预算断言。未测量游戏暂用 30000 ms，并在计划日志列出；这只是调度估算，不是实际运行时限或实测通过证明。`scripts/pages-regression-timings.json` 的耗时只能根据相同生产浏览器流程的完整成功诊断更新，同时保留来源 run/SHA；失败或跳过阶段不能作为更短的替代记录。单款估算超过预算时阻塞并核查实测与运行成本，不拆散或跳过该款断言。分片/耗时文件变化在本地增量门禁只运行有限的规划测试，线上仍执行所选全部游戏。

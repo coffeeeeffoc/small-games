@@ -1,6 +1,7 @@
 import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
 import type { CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
 import { createMossGame } from './controller.ts';
+import { isAccessibleActionClick } from './web-input.ts';
 import { defaultMossGardenEnvelope, mossGardenManifest, validateMossContent } from './canvas.ts';
 import type { View, HitArea } from './render.ts';
 import './style.css';
@@ -101,7 +102,7 @@ root.addEventListener(
   'click',
   (event) => {
     // Pointer gestures already dispatch once; keyboard and screen-reader clicks use actions.
-    if (event.detail !== 0) return;
+    if (!isAccessibleActionClick(event)) return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-hit-id]');
     if (button && !button.hasAttribute('data-game-fullscreen'))
       actionListener?.(button.dataset.hitId!);

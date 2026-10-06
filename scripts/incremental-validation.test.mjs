@@ -73,6 +73,24 @@ test('generic logic in the same Shell directory still exercises reviewed navigat
 test('unknown shared paths block with a classification gap, never silently expand to all games', () => {
   assert.throws(() => plan(['platforms/new-shared.js']), /scope undefined.*no automatic full/);
 });
+test('shard planning and measured timing changes select tool checks without any game browser', () => {
+  const sampleGames = [
+    ...games,
+    { id: 'letters-words2', source: 'games/local/letters-words2' },
+    { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+  ];
+  for (const file of [
+    'scripts/pages-regression-shards.mjs',
+    'scripts/pages-regression-shards.test.mjs',
+    'scripts/pages-regression-timings.json',
+  ]) {
+    const selected = plan([file], { games: sampleGames });
+    assert.equal(selected.validation_tools, true);
+    assert.equal(selected.full, false);
+    assert.deepEqual(selected.browser_ids, []);
+    assert.deepEqual(selected.game_sources, []);
+  }
+});
 
 test('registration classifier changes validate tooling and reviewed navigation, unknown tools block', () => {
   const sampleGames = [
@@ -122,6 +140,15 @@ test('per-game literal adapters are narrow, executable changes in the same file 
     readHead: () => source('#home', 'return id + 1;'),
   });
   assert.equal(shared.has(file), false);
+});
+
+test('unrecognized Shell registry or task graph edits cannot silently become generic navigation samples', () => {
+  for (const file of [
+    'apps/shell-web/src/standalone-games.json',
+    'apps/shell-web/src/game-meta.json',
+    'apps/shell-web/package.json',
+  ])
+    assert.throws(() => plan([file]), /registration scope undefined/);
 });
 
 const nativeEvidenceProducer = {

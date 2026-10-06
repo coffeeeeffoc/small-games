@@ -10,24 +10,34 @@ import { breachedTowerRing, brokenTowerStump } from './scene-damage.js';
 
 export function castleShell(k: MeshKit) {
   const g = new T.Group();
-  // Front has a real ten-metre opening. Side wings enclose a traversable courtyard.
-  stoneWall(k, g, -8, 14, 5, 6.8, 2.6);
-  stoneWall(k, g, -0.6, 14, 16.1, 9.4, 2.6);
-  stoneWall(k, g, 26.3, 14, 12.6, 10.2, 2.6);
-  for (const x of [3.8, 19.2]) gateLookout(k, g, x);
-  const lintel = new T.Group();
-  stoneWall(k, lintel, 11.5, 14, 10.5, 2.1, 2.6);
-  lintel.position.y = 14.9;
-  g.add(lintel);
-  const arch = new T.Group();
-  gatehouseDetail(k, arch, 'arch');
-  arch.position.set(11.5, 9.7, 15.48);
-  arch.scale.set(1.45, 1.45, 1);
-  g.add(arch);
+  // One breached curtain wall. The opening reaches the skyline instead of hiding below a gatehouse.
+  stoneWall(k, g, -2.1, 14, 16.8, 10.5, 3.0);
+  stoneWall(k, g, 25.85, 14, 18.3, 10.5, 3.0);
+  for (const x of [-8.6, 31.8]) gateLookout(k, g, x);
+  // Broken ends reveal the complete wall thickness and keep the actual doorway unmistakable.
+  for (const [x, side] of [
+    [6.3, -1],
+    [16.7, 1],
+  ]) {
+    for (let row = 0; row < 11; row++) {
+      const stone = k.box(
+        g,
+        x! + side! * (0.25 + Math.sin(row * 7) * 0.13),
+        0.48 + row * 0.94,
+        14.35,
+        0.65,
+        0.88,
+        2.7,
+        stones[row % 5]!,
+        0.15,
+      );
+      stone.rotation.z = Math.sin(row * 13) * 0.055;
+    }
+  }
   // The valley-side curtain is a low, short terrace. It does not seal the canyon.
   for (const [x, length, height, z] of [
-    [-9, 17, 4.8, 5.5],
-    [30, 43, 10, -7.5],
+    [-10.5, 17, 9.6, 5.5],
+    [35, 43, 9.6, -7.5],
   ]) {
     const side = new T.Group();
     k.box(side, 0, height! / 2, 0, length!, height!, 2.6, '#b7a583', 0.08);
@@ -46,7 +56,7 @@ export function castleShell(k: MeshKit) {
   g.add(city);
   for (const x of [-7, -3, 1, 22, 25, 28]) {
     const guard = k.person(false);
-    guard.position.set(x, x < -5 ? 6.9 : x < 5 ? 9.5 : 10.3, 14.8);
+    guard.position.set(x, 10.6, 14.8);
     guard.rotation.y = Math.PI;
     g.add(guard);
   }
@@ -150,17 +160,27 @@ export function moduleModel(k: MeshKit, m: Module, b: Battle) {
 
 function gateLookout(k: MeshKit, g: T.Group, x: number) {
   const tower = new T.Group();
-  stoneWall(k, tower, 0, 0, 5.2, 14.5, 4.6);
-  masonry(k, tower, -2.7, 0, 4.6, 14.5, true);
-  // Wide, open battlements keep the foreground low; the inner keep owns the high skyline.
-  for (const z of [-1.8, 1.8]) {
-    k.box(tower, 0, 15.7, z, 5.7, 0.25, 0.3, '#946835');
-    for (const dx of [-2.5, 0, 2.5]) k.box(tower, dx, 15.0, z, 0.25, 1.6, 0.25, '#725034');
+  stoneWall(k, tower, 0, 0, 6.4, 10.5, 5.1);
+  masonry(k, tower, -3.3, 0, 5.1, 10.5, true);
+  const lookout = new T.Group();
+  gatehouseDetail(k, lookout, 'lookout', false);
+  lookout.position.y = -2.5;
+  lookout.scale.set(1.28, 1, 1.28);
+  tower.add(lookout);
+  k.banner(tower, -0.1, 9.8, 2.94, 2.8, 6.2, true);
+  // Open timber fighting deck: cross-braced below, with archers above the parapet.
+  for (let plank = 0; plank < 9; plank++)
+    k.box(tower, -3.4 + plank * 0.85, 13.45, 0, 0.81, 0.28, 6.4, '#b17d43', 0.06);
+  for (const side of [-1, 1]) {
+    k.box(tower, 0, 14.25, side * 3.0, 7.6, 0.3, 0.28, '#946835', 0.07);
+    for (const post of [-3.4, 0, 3.4])
+      k.box(tower, post, 14.0, side * 3.0, 0.25, 1.1, 0.3, '#725034', 0.06);
   }
-  k.banner(tower, -0.1, 12.8, 2.64, 2.5, 5.8, true);
-  const guard = k.person(false);
-  guard.position.set(0, 14.6, 0);
-  tower.add(guard);
+  for (const x of [-1.8, 1.6]) {
+    const guard = k.person(false, 'aim');
+    guard.position.set(x, 13.64, 1.9);
+    tower.add(guard);
+  }
   k.compact(tower);
   const post = new T.Group();
   post.add(tower);

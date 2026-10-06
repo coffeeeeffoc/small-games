@@ -293,6 +293,21 @@ export async function validateTree({
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
   if (incrementalScope?.validation_tools) {
     execute(pnpm, ['test:validation'], root, clean, 'logged');
+    execute(
+      process.execPath,
+      ['--test', 'scripts/incremental-validation.test.mjs'],
+      root,
+      clean,
+      'logged',
+    );
+    if (sourcePaths.some((file) => /^scripts\/pages-regression-(shards|timings)/.test(file)))
+      execute(
+        process.execPath,
+        ['--test', 'scripts/pages-regression-shards.test.mjs'],
+        root,
+        clean,
+        'logged',
+      );
   }
   const full =
     !incremental &&
