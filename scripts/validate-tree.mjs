@@ -16,6 +16,7 @@ import {
   developerModeFileScopes,
   nativeWorkspaceFileScopes,
   nativeToolConsumers,
+  h5AdapterFileScopes,
 } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
@@ -253,14 +254,6 @@ export async function validateTree({
         readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
       })
     : new Map();
-  if (incremental)
-    for (const [file, sources] of entryAdapterFileScopes({
-      changedPaths: sourcePaths,
-      games: catalog,
-      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
-    }))
-      fileScopes.set(file, sources);
   if (incremental) {
     const context = {
       changedPaths: sourcePaths,
@@ -269,7 +262,12 @@ export async function validateTree({
       readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
       readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
     };
-    for (const classify of [developerModeFileScopes, nativeWorkspaceFileScopes])
+    for (const classify of [
+      entryAdapterFileScopes,
+      h5AdapterFileScopes,
+      developerModeFileScopes,
+      nativeWorkspaceFileScopes,
+    ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
   const incrementalScope = incremental

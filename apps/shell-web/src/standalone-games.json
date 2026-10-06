@@ -1,5 +1,12 @@
 [
   {
+    "id": "orbit-atelier",
+    "source": "games/local/orbit-atelier",
+    "title": "星扣工坊",
+    "description": "转动星轨缺口，按顺序解开交织圆环，破解星栓与分岔星图，点亮二十四张原创星盘。",
+    "output": "dist"
+  },
+  {
     "id": "moss-garden",
     "source": "games/local/game-moss-garden",
     "title": "苔光花园",

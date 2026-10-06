@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
 
+const loadFormatter = createRequire(import.meta.url);
+
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -100,10 +103,10 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
   try {
     const parse = (source) => {
       const ids = new Set(['wulong-city']); // The existing mobile and external-frame fixture.
+      const guardIds = [];
       let guards = 0;
       let fixtures = 0;
       const rest = source
-        .replaceAll('\r\n', '\n')
         .replace(
           /        if \(\n([\s\S]*?)        \) \{\n([\s\S]*?)        \} else \{/g,
           (whole, condition, body) => {
@@ -111,6 +114,8 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
             for (const expression of condition.replace(/\s/g, '').split('||')) {
               const match = expression.match(/^game\.id==='([A-Za-z0-9._-]+)'$/);
               assert(match, 'Unreviewed developer-mode game guard');
+              assert(!guardIds.includes(match[1]), 'Duplicate developer-mode game guard');
+              guardIds.push(match[1]);
               ids.add(match[1]);
             }
             const assertion = body.replace(/\s/g, '');
@@ -134,11 +139,18 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
           },
         );
       assert(guards === 1 && fixtures === 1);
-      return { rest, ids };
+      return { rest, ids, guardIds };
     };
     const before = parse(readBase(developerMode));
     const after = parse(readHead(developerMode));
     if (before.rest !== after.rest) return scopes;
+    if (
+      !isDeepStrictEqual(
+        before.guardIds,
+        after.guardIds.filter((id) => before.guardIds.includes(id)),
+      )
+    )
+      return scopes;
     const ids = new Set([...before.ids, ...after.ids]);
     if ([...ids].some((id) => !games.some((game) => game.id === id))) return scopes;
     scopes.set(
@@ -277,6 +289,156 @@ export function entryAdapterFileScopes({ changedPaths, readBase, readHead, games
     );
   } catch {
     // Unknown literal grammar stays a shared contract change.
+  }
+  return scopes;
+}
+
+// Use the existing formatter's parser for source ranges, never candidate execution.
+// Raw literal grammars below deliberately exclude comments, escapes and expressions.
+function adapterSyntax(text) {
+  const { parsers } = loadFormatter('prettier/plugins/babel');
+  const ast = parsers.babel.parse(text, {});
+  const nodes = [];
+  function visit(node, parent) {
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child, parent);
+    } else if (node && typeof node === 'object' && typeof node.type === 'string') {
+      nodes.push({ node, parent });
+      for (const [key, value] of Object.entries(node))
+        if (
+          ![
+            'loc',
+            'extra',
+            'comments',
+            'leadingComments',
+            'trailingComments',
+            'innerComments',
+            'tokens',
+          ].includes(key)
+        )
+          visit(value, node);
+    }
+  }
+  visit(ast, null);
+  return { ast, nodes };
+}
+
+function literalRange(text, node, items) {
+  assert(new Set(items).size === items.length, 'Duplicate adapter literal');
+  return { items, prefix: text.slice(0, node.start), suffix: text.slice(node.end) };
+}
+
+function fullscreenCopies(text) {
+  const { ast, nodes } = adapterSyntax(text);
+  const matches = nodes.filter(
+    ({ node }) =>
+      node.type === 'VariableDeclarator' &&
+      node.id.type === 'Identifier' &&
+      node.id.name === 'copies',
+  );
+  assert(matches.length === 1, 'Expected one copies declaration');
+  const { node, parent } = matches[0];
+  assert(
+    parent.kind === 'const' &&
+      parent.declarations.length === 1 &&
+      ast.program.body.includes(parent),
+  );
+  const list = node.init;
+  assert(list?.type === 'ArrayExpression');
+  const string = `(?:'[A-Za-z0-9._/-]+'|"[A-Za-z0-9._/-]+")`;
+  assert(
+    new RegExp(`^\\[\\s*(?:${string}\\s*(?:,\\s*${string}\\s*)*,?\\s*)?\\]$`).test(
+      text.slice(list.start, list.end),
+    ),
+  );
+  assert(list.elements.every((item) => item?.type === 'StringLiteral'));
+  return literalRange(
+    text,
+    list,
+    list.elements.map((item) => item.value),
+  );
+}
+
+function developerGameIds(text) {
+  const { nodes } = adapterSyntax(text);
+  const term = `game\\.id\\s*===\\s*(?:'[A-Za-z0-9][A-Za-z0-9._-]*'|"[A-Za-z0-9][A-Za-z0-9._-]*")`;
+  const grammar = new RegExp(`^${term}(?:\\s*\\|\\|\\s*${term})+$`);
+  const matches = nodes.filter(
+    ({ node }) =>
+      node.type === 'IfStatement' &&
+      !node.test.extra?.parenthesized &&
+      grammar.test(text.slice(node.test.start, node.test.end)),
+  );
+  assert(matches.length === 1, 'Expected one developer game OR-list');
+  const condition = matches[0].node.test;
+  const ids = [
+    ...text.slice(condition.start, condition.end).matchAll(/['"]([A-Za-z0-9][A-Za-z0-9._-]*)['"]/g),
+  ].map((match) => match[1]);
+  return literalRange(text, condition, ids);
+}
+
+function adapterAdditions(before, after) {
+  assert(
+    before.prefix === after.prefix && before.suffix === after.suffix,
+    'Adapter executable source changed',
+  );
+  const old = new Set(before.items);
+  assert(
+    isDeepStrictEqual(
+      before.items,
+      after.items.filter((item) => old.has(item)),
+    ),
+    'Removed or reordered adapter literals',
+  );
+  const added = after.items.filter((item) => !old.has(item));
+  assert(added.length > 0, 'No adapter additions');
+  return added;
+}
+
+/** Narrow only reviewed additive H5 wiring; unrecognized source stays an unknown gate. */
+export function h5AdapterFileScopes({ changedPaths, readBase, readHead, games }) {
+  const fullscreen = 'scripts/sync-h5-fullscreen.mjs';
+  const developer = 'scripts/test-game-dev-mode.mjs';
+  const scopes = new Map();
+  for (const file of [fullscreen, developer].filter((path) => changedPaths.includes(path))) {
+    try {
+      assert(
+        games.every(
+          (game) =>
+            /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(game.id) &&
+            /^games\/(?:local|submodules)\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(game.source),
+        ),
+      );
+      assert(
+        new Set(games.map((game) => game.id)).size === games.length &&
+          new Set(games.map((game) => game.source)).size === games.length,
+      );
+      const parse = file === fullscreen ? fullscreenCopies : developerGameIds;
+      const before = parse(readBase(file)),
+        after = parse(readHead(file));
+      const added = adapterAdditions(before, after);
+      const sources = new Set();
+      if (file === fullscreen) {
+        for (const copy of added) {
+          assert(copy.split('/').every((part) => part && part !== '.' && part !== '..'));
+          assert(copy.endsWith('/fullscreen.js'));
+          const game = games.find((entry) => copy.startsWith(entry.source + '/'));
+          assert(game, 'Unregistered fullscreen copy');
+          sources.add(game.source);
+        }
+      } else {
+        assert(
+          [...before.items, ...after.items].every((id) => games.some((game) => game.id === id)),
+        );
+        for (const id of added) sources.add(games.find((game) => game.id === id).source);
+      }
+      scopes.set(
+        file,
+        games.filter((game) => sources.has(game.source)).map((game) => game.source),
+      );
+    } catch {
+      // Unknown grammar, identities or executable edits remain unclassified and block.
+    }
   }
   return scopes;
 }

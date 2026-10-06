@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
 export const markers = {
+  'orbit-atelier': '#orbit-app[data-ready="true"]',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '.castle-root[data-ready="true"]',
@@ -60,6 +61,7 @@ export const markers = {
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
   'wulong-city': '#start-game',
+  'orbit-atelier': '[data-action="start"]',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '[data-action="start"]',

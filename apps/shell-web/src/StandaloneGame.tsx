@@ -20,6 +20,7 @@ export function StandaloneGame({
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
   const immersive =
+    id === 'orbit-atelier' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'xiangqi-five' ||
