@@ -1,3 +1,4 @@
+import './incremental-validation.test.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { riskPlan, affectedPackages } from './validation-plan.mjs';

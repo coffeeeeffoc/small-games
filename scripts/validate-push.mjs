@@ -178,6 +178,10 @@ export async function validatePush(
         git(['cat-file', '-e', `${base}^{commit}`]);
       }
     } else base = ''; // New branch checks the entire tree; no guessed upstream.
+    assert(
+      base || validate,
+      'Incremental publication requires an explicit existing comparison base; define scope for a new branch.',
+    );
     const key = `${base}:${head}`;
     if (checked.has(key)) continue;
     const temp = await mkdtemp(path.join(os.tmpdir(), 'small-games-push-'));
@@ -210,13 +214,14 @@ export async function validatePush(
         run(
           process.execPath,
           [
-            path.join(root, 'scripts/validate-tree.mjs'),
+            path.join(snapshot, 'scripts/validate-tree.mjs'),
             '--root',
             snapshot,
             '--base',
             base,
             '--head',
             head,
+            '--incremental',
           ],
           snapshot,
           clean,

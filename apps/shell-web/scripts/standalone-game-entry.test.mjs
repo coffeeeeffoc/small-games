@@ -41,3 +41,9 @@ test('entry adapters never force clicks and have only stable semantic selectors'
     for (const selector of Array.isArray(control) ? control : [control])
       assert(/^#|^\[data-/.test(selector));
 });
+
+test('word island readiness is home, with an explicit start adapter before board assertions', () => {
+  assert.equal(markers['letters-words2'], '#focus-button');
+  assert.equal(homeControls['letters-words2'], '#focus-button');
+  assert.equal(entryMode('letters-words2'), 'adapter');
+});
