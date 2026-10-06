@@ -55,5 +55,33 @@
     "reviewedAt": "2026-10-06T18:25:24.885Z",
     "screens": ["home", "levels", "play", "boost", "win", "loss"],
     "result": "Layouts, obstacle visibility, jump clearance, boost feedback, pause icon, and result controls visually checked. Gameplay demonstrations marked as practice show their actual developer overlay."
-  }
+  },
+  "followUpChecks": [
+    {
+      "status": "passed",
+      "verifiedAt": "2026-10-06T18:35:31.377Z",
+      "browser": "Chromium 151.0.7922.173",
+      "viewport": "320 × 568, mobile touch emulation",
+      "build": "Latest dist after menu touch-action CSS change",
+      "input": "Native CDP touch swipes; no synthetic scrollTop writes or developer simulation",
+      "help": {
+        "before": {
+          "scrollHeight": 628,
+          "clientHeight": 568,
+          "scrollTop": 0
+        },
+        "after": {
+          "scrollHeight": 628,
+          "clientHeight": 568,
+          "scrollTop": 60
+        }
+      },
+      "checks": [
+        "Overflowing help text scrolls through a real upward touch swipe.",
+        "Return to home and start work after scrolling.",
+        "Canvas left/right/jump/slide still respond with root manipulation and menu pan-y."
+      ],
+      "errors": []
+    }
+  ]
 }

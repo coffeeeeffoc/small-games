@@ -63,7 +63,7 @@ svg {
   overflow: hidden;
   background: #e8d5ab;
   box-shadow: 0 0 100px #061e3d70;
-  touch-action: none;
+  touch-action: manipulation;
 }
 #scene {
   width: 100%;
@@ -283,6 +283,7 @@ body[data-phase='lost'] #shade {
 }
 .menu-screen {
   overflow-y: auto;
+  touch-action: pan-y;
   pointer-events: auto;
 }
 .page-heading {
