@@ -67,6 +67,19 @@ test('generic logic in the same Shell directory still exercises reviewed navigat
 test('unknown shared paths block with a classification gap, never silently expand to all games', () => {
   assert.throws(() => plan(['platforms/new-shared.js']), /scope undefined.*no automatic full/);
 });
+test('shard planning and measured timing changes select tool checks without any game browser', () => {
+  for (const file of [
+    'scripts/pages-regression-shards.mjs',
+    'scripts/pages-regression-shards.test.mjs',
+    'scripts/pages-regression-timings.json',
+  ]) {
+    const selected = plan([file]);
+    assert.equal(selected.validation_tools, true);
+    assert.equal(selected.full, false);
+    assert.deepEqual(selected.browser_ids, []);
+    assert.deepEqual(selected.game_sources, []);
+  }
+});
 
 test('real registration parser feeds narrow single/multiple-game browser selection', async () => {
   const { registrationFileScopes } = await import('./pages-registration-scope.mjs');

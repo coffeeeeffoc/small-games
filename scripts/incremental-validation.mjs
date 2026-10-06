@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 export function incrementalPlan({
@@ -18,6 +18,7 @@ export function incrementalPlan({
     (file) =>
       !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')) &&
       !validationTool.test(file) &&
+      file !== 'scripts/pages-regression-timings.json' &&
       !fileScopes.has(file),
   );
   assert(
@@ -71,7 +72,9 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
-    validation_tools: paths.some((file) => validationTool.test(file)),
+    validation_tools: paths.some(
+      (file) => validationTool.test(file) || file === 'scripts/pages-regression-timings.json',
+    ),
   };
 }
 
