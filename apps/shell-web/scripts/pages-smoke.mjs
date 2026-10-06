@@ -309,8 +309,8 @@ try {
           globalThis.addEventListener(
             type,
             (event) => {
-              const root = document.querySelector('#garden');
-              const canvas = document.querySelector('canvas');
+              const root = globalThis.document.querySelector('#garden');
+              const canvas = globalThis.document.querySelector('canvas');
               const events = globalThis.__pagesMossInputEvents;
               events.push({
                 type,
@@ -322,10 +322,10 @@ try {
                 y: event.clientY,
                 detail: event.detail,
                 page: root?.dataset.page,
-                hidden: document.hidden,
-                focused: document.hasFocus(),
+                hidden: globalThis.document.hidden,
+                focused: globalThis.document.hasFocus(),
                 captured: event.pointerId !== undefined && root?.hasPointerCapture(event.pointerId),
-                firstCellPressed: document
+                firstCellPressed: globalThis.document
                   .querySelector('[data-hit-id="cell:0"]')
                   ?.getAttribute('aria-pressed'),
                 canvasBounds: canvas?.getBoundingClientRect().toJSON(),
