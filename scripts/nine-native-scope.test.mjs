@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import {
   nineNativeFileScopes,
@@ -516,7 +517,7 @@ test('real publication diff with all classifiers keeps navigation H5 and all 35 
     nativeWorkspaceFileScopes,
     reviewedSharedFileScopes,
   } = await import('./incremental-validation.mjs');
-  const actualPackages = await workspacePackages(new URL('../', import.meta.url).pathname);
+  const actualPackages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
   const cache = new Map();
   const read = (sha, file) => {
     const key = sha + ':' + file;

@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import {
   incrementalPlan,
   developerModeFileScopes,
@@ -775,7 +777,7 @@ test('shared competition protocol modules select all actual H5 consumers and nat
   const actual = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
   );
-  const pkgs = await workspacePackages(new URL('../', import.meta.url).pathname);
+  const pkgs = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of ['platforms/competition/client.js', 'platforms/competition/format.js']) {
     const context = {
@@ -816,7 +818,7 @@ test('developer helper follows actual sync producer copy list or fails closed in
   const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
   const { workspacePackages } = await import('./validation-plan.mjs');
   const { devModeTargets } = await import('./sync-game-dev-mode.mjs');
-  const root = new URL('../', import.meta.url).pathname;
+  const root = fileURLToPath(new URL('../', import.meta.url));
   const actual = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
   );
@@ -846,4 +848,25 @@ test('developer helper follows actual sync producer copy list or fails closed in
   });
   assert.equal(missing.size, 0);
   assert.throws(() => incrementalPlan({ ...context, fileScopes: missing }), /scope undefined/);
+});
+
+test('file URL workspace roots retain Windows drive identity and decode path segments', () => {
+  const moduleURL = new URL(
+    'file:///D:/a/small-games/clone%20with%20spaces/%E5%B7%A5%E4%BD%9C/scripts/incremental-validation.test.mjs',
+  );
+  const rootURL = new URL('../', moduleURL);
+  const windowsRoot = fileURLToPath(rootURL, { windows: true });
+  assert.equal(windowsRoot, 'D:\\a\\small-games\\clone with spaces\\工作\\');
+  assert.equal(
+    path.win32.resolve(windowsRoot, 'games', 'local'),
+    'D:\\a\\small-games\\clone with spaces\\工作\\games\\local',
+  );
+  assert.notEqual(
+    path.win32.resolve(rootURL.pathname, 'games', 'local'),
+    path.win32.resolve(windowsRoot, 'games', 'local'),
+  );
+  assert.equal(
+    fileURLToPath(rootURL, { windows: false }),
+    '/D:/a/small-games/clone with spaces/工作/',
+  );
 });

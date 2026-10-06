@@ -366,5 +366,5 @@
   "testedImplementationCommit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
   "recordNote": "Build executed with only game-meta/document edits uncommitted; exact final-candidate rebuild is recorded in ignored dist manifests and delivery logs.",
   "historical": true,
-  "supersededBy": "docs/deployment/nine-games-verification-dcf7787.json"
+  "supersededBy": "docs/deployment/nine-games-verification-e48a4c8.json"
 }

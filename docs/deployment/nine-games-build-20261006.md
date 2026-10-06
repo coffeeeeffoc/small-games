@@ -105,7 +105,7 @@ node games/local/carding-car/platforms/build.mjs kuaishou
 
 ## 可审计构建与后续门禁记录
 
-[dcf7787 完整验证记录](nine-games-verification-dcf7787.json)绑定实际35份preview产物的manifest、来源及载荷哈希、生成时间和真实生产提交；10份Cocos原生包仍明确阻塞。旧capabilities/build-status文件保留为历史记录，不能作为当前提交验证结论。报告生成时后续Windows路径测试修复仅改变测试，未重建原生载荷，也没有把报告自身提交伪造为生产提交。准确后续提交及运行终态保存在交付证据与Library源代码备份。
+[e48a4c8 完整生产验证记录](nine-games-verification-e48a4c8.json)绑定实际35份preview产物的manifest、来源及载荷哈希、生成时间和真实生产提交；10份Cocos原生包仍明确阻塞。旧capabilities/build-status文件保留为历史记录，不能作为当前提交验证结论。e48a4c8 重新验证35份真实包与193项实际来源文件；后续Windows路径修复仅改变测试，报告自身提交不作为产物生产提交。准确后续提交及运行终态保存在交付证据与Library源代码备份。
 
 原生增量门禁从受审阅源码与实际平台依赖选出game/platform目标。原生专属源文件变化执行对应最终CJS包；H5专属变化不触发原生构建。外滩执行实际五渠道game.js，使用真实WebGL2、WASM、模型、触控与存储流程；浏览器SDK夹具只用于契约验证，不进入产物，不代表官方工具验收。平台专属变动只测试受影响平台。Cocos目标调用真实Creator构建，缺工具直接阻止验证，不以配置、H5或旧包替代。CI保留准确diff基线，使用与本地相同的增量计划；无基线的全量流程仍单独处理。
 
