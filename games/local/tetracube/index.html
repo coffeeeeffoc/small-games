@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07151e" />
+    <meta name="description" content="在三维方舱中旋转、堆叠、消除。改变重力，重新整理整个空间。" />
+    <title>重力方舱 · Tetracube</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+  </head>
+  <body data-phase="home">
+    <main id="app" data-game-display-host>
+      <section id="home" class="screen home-screen" aria-label="游戏主页">
+        <div class="home-top">
+          <span class="eyebrow">空间堆叠 · 经典无尽</span
+          ><button class="icon-button sound-toggle" aria-label="开启音效">音效 关</button>
+        </div>
+        <header class="home-title">
+          <span class="small-mark">◇</span>
+          <h1>重力方舱</h1>
+          <p>T E T R A C U B E</p>
+        </header>
+        <div class="home-art">
+          <canvas id="home-canvas" aria-label="三维方舱预览"></canvas>
+          <div class="home-art-caption">旋转一块方体<br /><strong>重构整个空间</strong></div>
+        </div>
+        <div class="home-bottom">
+          <div class="record"><span>本机最高分</span><strong id="home-best">000000</strong></div>
+          <button id="continue-game" class="primary" hidden>继续上次对局</button>
+          <button id="start-game" class="primary">开始游戏 <span>经典无尽</span></button>
+          <div class="home-actions">
+            <button id="help-home">玩法说明</button><button data-game-fullscreen>全屏</button>
+          </div>
+          <p class="home-note">5 × 5 × 10 <span>·</span> 改变重力，创造连锁</p>
+        </div>
+      </section>
+
+      <section id="play" class="screen play-screen" hidden aria-label="经典无尽游戏">
+        <header class="game-hud">
+          <div class="score-block"><span>得分</span><strong id="score">000000</strong></div>
+          <div class="line-block"><span>消除层数</span><strong id="lines">00</strong></div>
+          <button id="pause-game" class="icon-button" aria-label="暂停">
+            <span class="pause-icon" aria-hidden="true"></span>
+          </button>
+        </header>
+        <div class="stage">
+          <div class="stage-top">
+            <span id="gravity-badge">重力 Z−</span>
+            <div class="next-piece">
+              <span>下一块</span
+              ><canvas id="next-canvas" width="86" height="68" aria-label="下一个方块"></canvas>
+            </div>
+          </div>
+          <canvas id="game-canvas" aria-label="三维方舱，拖动可转动观察视角"></canvas>
+          <div id="combo-flash" aria-live="polite"></div>
+          <div id="tutorial" hidden>
+            <span id="tutorial-text"></span
+            ><button id="skip-tutorial" aria-label="关闭操作提示">知道了</button>
+          </div>
+          <div class="stage-bottom">
+            <span id="stage-hint">拖动画面 · 转动视角</span><span id="occupancy">0 / 250</span>
+          </div>
+        </div>
+        <div class="control-deck">
+          <div class="view-row">
+            <div class="view-buttons" aria-label="观察视角">
+              <button data-view="iso" aria-pressed="true">立体</button
+              ><button data-view="top" aria-pressed="false">俯视</button
+              ><button data-view="front" aria-pressed="false">正视</button
+              ><button data-view="side" aria-pressed="false">侧视</button>
+            </div>
+            <button id="gravity-open" class="gravity-button">重力翻转</button>
+          </div>
+          <div class="main-controls">
+            <div class="dpad" aria-label="移动方块">
+              <button data-move="up" aria-label="向 Y 正方向移动">↑<small>Y+</small></button
+              ><button data-move="left" aria-label="向 X 负方向移动">←<small>X−</small></button
+              ><span class="dpad-center">移动</span
+              ><button data-move="right" aria-label="向 X 正方向移动">→<small>X+</small></button
+              ><button data-move="down" aria-label="向 Y 负方向移动">↓<small>Y−</small></button>
+            </div>
+            <div class="piece-controls">
+              <div class="rotation-buttons">
+                <button data-rotate="XY" aria-label="XY 平面旋转 90 度"><span>↻</span>XY</button
+                ><button data-rotate="XZ" aria-label="XZ 平面旋转 90 度"><span>↻</span>XZ</button
+                ><button data-rotate="YZ" aria-label="YZ 平面旋转 90 度"><span>↻</span>YZ</button>
+              </div>
+              <button id="hard-drop" class="primary">直接落下 <kbd>SPACE</kbd></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pause" class="screen menu-screen" hidden aria-label="暂停菜单">
+        <span class="eyebrow">TAKE A BREATH</span>
+        <h2>空间，为你停留</h2>
+        <p>准备好后，继续下一步。</p>
+        <div class="menu-buttons">
+          <button id="resume-game" class="primary">继续游戏</button
+          ><button id="help-pause">玩法说明</button><button class="sound-toggle">音效 关</button
+          ><button data-game-fullscreen>全屏</button
+          ><button id="home-game" class="text-button">保存并返回主页</button>
+        </div>
+      </section>
+
+      <section id="help" class="screen help-screen" hidden aria-label="玩法说明">
+        <span class="eyebrow">HOW TO PLAY</span>
+        <h2>把空间，填得刚刚好</h2>
+        <div class="help-list">
+          <article>
+            <b>01</b>
+            <div>
+              <h3>移动，找到落点</h3>
+              <p>用方向区移动方块。虚线方块就是最终落点，拖动方舱可以换个角度观察。</p>
+            </div>
+          </article>
+          <article>
+            <b>02</b>
+            <div>
+              <h3>三个平面，三种旋转</h3>
+              <p>XY、XZ、YZ 每次旋转 90°。姿态合适后，点击「直接落下」。</p>
+            </div>
+          </article>
+          <article>
+            <b>03</b>
+            <div>
+              <h3>填满一层，消除一层</h3>
+              <p>填满垂直于重力的平面即可消除。消除后的方块压实，再消除就会叠加 Combo。</p>
+            </div>
+          </article>
+          <article>
+            <b>04</b>
+            <div>
+              <h3>换个方向，重构局面</h3>
+              <p>
+                「重力翻转」让所有小方块向新底面滑落。出生面和移动轴会一起改变，本原型可不限次数使用。
+              </p>
+            </div>
+          </article>
+        </div>
+        <p class="keyboard-help">
+          键盘：方向键 / WASD 移动 · Q / E / R 旋转<br />空格落下 · P / Esc 暂停 · G 重力
+        </p>
+        <button id="help-back" class="primary">明白了</button>
+      </section>
+
+      <section id="gravity" class="screen menu-screen" hidden aria-label="选择重力方向">
+        <span class="eyebrow">SHIFT GRAVITY</span>
+        <h2>给空间，一个新方向</h2>
+        <p>方块将向新底面压实。<br />填满的平面会触发连锁消除。</p>
+        <div class="gravity-choices">
+          <button data-gravity="2,-1"><b>Z−</b><span>向下</span></button
+          ><button data-gravity="2,1"><b>Z+</b><span>向上</span></button
+          ><button data-gravity="0,-1"><b>X−</b><span>向左侧</span></button
+          ><button data-gravity="0,1"><b>X+</b><span>向右侧</span></button
+          ><button data-gravity="1,-1"><b>Y−</b><span>向前侧</span></button
+          ><button data-gravity="1,1"><b>Y+</b><span>向后侧</span></button>
+        </div>
+        <button id="gravity-cancel" class="text-button">返回对局</button>
+      </section>
+
+      <section id="danger" class="screen menu-screen" hidden aria-label="出生区域被堵住">
+        <span class="eyebrow amber">SPACE INTERVENTION</span>
+        <h2>还差一点空间</h2>
+        <p>出生区域被堵住了。<br />换一次重力，试着让方舱重新呼吸。</p>
+        <div class="menu-buttons">
+          <button id="rescue-game" class="primary">最后一次重力干预</button
+          ><button id="end-game">结束本局</button>
+        </div>
+      </section>
+
+      <section id="result" class="screen menu-screen" hidden aria-label="游戏结算">
+        <span class="eyebrow">UNTIL THE NEXT SHIFT</span>
+        <h2>每一块，都有新可能</h2>
+        <div class="result-score"><span>本局得分</span><strong id="final-score">0</strong></div>
+        <div class="result-stats">
+          <div><strong id="final-lines">0</strong><span>消除层数</span></div>
+          <div><strong id="final-combo">×0</strong><span>最大连锁</span></div>
+        </div>
+        <div class="menu-buttons">
+          <button id="retry-game" class="primary">再来一局</button
+          ><button id="result-home">返回主页</button>
+        </div>
+      </section>
+      <div id="toast" role="status" aria-live="polite" hidden></div>
+      <noscript>请启用 JavaScript 以游玩重力方舱。</noscript>
+    </main>
+    <script type="module" src="./src/app.mjs"></script>
+  </body>
+</html>

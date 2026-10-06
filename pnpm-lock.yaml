@@ -470,6 +470,9 @@ importers:
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
+      '@coffeeeeffoc/tetracube':
+        specifier: workspace:*
+        version: link:../../games/local/tetracube
       '@coffeeeeffoc/tianxia-chalu':
         specifier: workspace:*
         version: link:../../games/local/tianxia-chalu
@@ -1348,6 +1351,8 @@ importers:
   games/local/rule-thief: {}
 
   games/local/surprise-kept: {}
+
+  games/local/tetracube: {}
 
   games/local/tianxia-chalu: {}
 

@@ -272,6 +272,23 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'tetracube') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.tetracubeSnapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game-canvas')).toBeVisible();
+    const placed = (await snapshot()).game.placed;
+    await click(frame.locator('#hard-drop'));
+    await expect.poll(async () => (await snapshot()).game.placed).toBe(placed + 1);
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause-game'));
+    await click(frame.locator('#home-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
+    await expect(frame.locator('#start-game')).toBeVisible();
+    expect((await snapshot()).game.placed).toBe(placed + 1);
   } else if (id === 'surprise-kept') {
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
     await click(frame.locator('#box-blue'));
