@@ -416,8 +416,13 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           'the scene reveals scored feedback',
         );
       } else {
-        tap('先抽子查看');
+        tap('抽一枚');
         await flush();
+        assert.equal(
+          requests.at(-1).data.action.type,
+          'draw',
+          'visible draw button submits the draw action',
+        );
         assert.ok(state.pending);
         touchPoint(39, 180 + 36 + 20);
         await flush();
