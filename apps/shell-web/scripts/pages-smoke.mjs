@@ -15,7 +15,7 @@ const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
-  id === 'ink-is-everything' || id === 'ball-roguelite' || id === 'xiangqi-five';
+  ['ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'].includes(id);
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: basePath,
@@ -97,7 +97,9 @@ try {
       await shared.close();
     }
   }
-  for (const title of ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
+  for (const title of process.env.PAGES_SKIP_BUILTINS === '1'
+    ? []
+    : ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
     await page
       .locator('article')
       .filter({ hasText: title })
@@ -191,6 +193,22 @@ try {
       if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();
         await frame.locator('#modal [data-home]').click();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'letters-words2') {
+        await frame.locator('#board button:enabled:not([aria-disabled="true"])').first().click();
+        await expect(frame.locator('#answer-slots .filled')).toHaveCount(1);
+        await page.reload();
+        await expect(frame.locator('#focus-button')).toBeVisible();
+        await expect(frame.locator('#board')).toBeHidden();
+        await frame.locator('#focus-button').click();
+        await expect(frame.locator('#answer-slots .filled')).toHaveCount(1);
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.locator('#pause-button').click();
+        await expect(frame.locator('#pause-dialog')).toBeVisible();
+        await frame.locator('#home-button').click();
+        await expect(frame.locator('#focus-button')).toBeVisible();
+        await expect(frame.locator('#board')).toBeHidden();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'ball-roguelite') {

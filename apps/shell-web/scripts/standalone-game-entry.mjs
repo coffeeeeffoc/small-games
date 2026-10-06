@@ -45,7 +45,7 @@ export const markers = {
   'cops-robbers-realtime': '#levels-button',
   'h5-security': '[data-action="start"]',
   'letters-words': '#board button',
-  'letters-words2': '#board button',
+  'letters-words2': '#focus-button',
   'multi-battle': '[data-action="new"]',
   puzzle: '.cover',
   travel: '#travel-button',

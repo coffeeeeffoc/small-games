@@ -9,6 +9,8 @@ import {
   rulesCoveredByAggregate,
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
+import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { incrementalPlan } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
@@ -16,6 +18,8 @@ import {
   affectedPackages,
   staticBuildTargets,
   isDocumentation,
+  shellContractTargets,
+  shellContractFiles,
 } from './validation-plan.mjs';
 import { main as selectScope, collectChangedPaths } from './pages-test-scope.mjs';
 
@@ -170,6 +174,7 @@ export async function validateTree({
   env = process.env,
   execute = run,
   deferIdenticalRulesToAggregate = false,
+  incremental = false,
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -185,7 +190,13 @@ export async function validateTree({
         .split('\0')
         .filter(Boolean);
   // Formatting has no browser/build dependencies and is checked even for docs.
-  execute(pnpm, ['format:check'], root, clean);
+  if (incremental) {
+    const files = [];
+    for (const file of paths)
+      if ((await stat(path.join(root, file)).catch(() => null))?.isFile()) files.push(file);
+    if (files.length)
+      execute(pnpm, ['exec', 'prettier', '--check', '--ignore-unknown', ...files], root, clean);
+  } else execute(pnpm, ['format:check'], root, clean);
   execute(pnpm, ['check:games'], root, clean);
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
   if (!sourcePaths.length) return;
@@ -201,18 +212,44 @@ export async function validateTree({
     },
     root,
   );
-  if (plan.required && plan.risk === 'metadata') {
-    execute(pnpm, ['check:dependencies'], root, clean);
-    execute(pnpm, ['test:game-config'], root, clean);
-    return;
-  }
   const packages = await workspacePackages(root);
+  const catalog = incremental
+    ? JSON.parse(
+        await readFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), 'utf8'),
+      )
+    : [];
+  const fileScopes = incremental
+    ? registrationFileScopes({
+        changedPaths: sourcePaths,
+        gameSources: packages.filter((pkg) => pkg.dir.startsWith('games/')).map((pkg) => pkg.dir),
+        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
+        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+      })
+    : new Map();
+  const incrementalScope = incremental
+    ? incrementalPlan({
+        packages,
+        games: catalog,
+        fileScopes,
+        changedPaths: sourcePaths,
+        readSource: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+      })
+    : null;
+  if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
+  if (incrementalScope?.validation_tools) {
+    execute(pnpm, ['test:validation'], root, clean, 'logged');
+  }
   const full =
-    !base ||
-    sourcePaths.some(
-      (file) => !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
-    );
+    !incremental &&
+    (!base ||
+      sourcePaths.some(
+        (file) => !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
+      ));
   const affected = affectedPackages(packages, sourcePaths, full);
+  if (incrementalScope?.browser) {
+    const shell = packages.find((pkg) => pkg.dir === 'apps/shell-web');
+    if (shell && !affected.includes(shell)) affected.push(shell);
+  }
   const direct = packages.filter(
     (pkg) => full || sourcePaths.some((file) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
   );
@@ -233,7 +270,19 @@ export async function validateTree({
   }
   // Build the changed package's dependency chain. Do not build every game merely because
   // Shell consumes this game; check consumers directly without Turbo's ^build expansion.
-  const buildTargets = staticBuildTargets(packages, direct, affected);
+  const browserGames = incrementalScope?.browser_ids || [];
+  const browserDirect = packages.filter((pkg) =>
+    catalog.some((game) => browserGames.includes(game.id) && game.source === pkg.dir),
+  );
+  // Shell's ordinary build intentionally prepares the whole deployment. Incremental
+  // gates build its emitted prerequisites and selected game artifacts separately.
+  const metadataOnly = plan.required && plan.risk === 'metadata' && !incrementalScope?.browser;
+  const buildDirect = metadataOnly
+    ? []
+    : incremental
+      ? [...new Set([...direct.filter((pkg) => pkg.dir !== 'apps/shell-web'), ...browserDirect])]
+      : direct;
+  const buildTargets = staticBuildTargets(packages, buildDirect, affected);
   await verifyCocosBuildInputs(root, buildTargets, clean);
   if (buildTargets.length)
     execute(
@@ -249,6 +298,19 @@ export async function validateTree({
       root,
       clean,
     );
+  for (const pkg of shellContractTargets(packages, sourcePaths, full))
+    execute(
+      pnpm,
+      ['--filter', pkg.name, 'exec', 'vitest', 'run', ...shellContractFiles],
+      root,
+      clean,
+      'logged',
+    );
+  if (metadataOnly) {
+    execute(pnpm, ['check:dependencies'], root, clean);
+    execute(pnpm, ['test:game-config'], root, clean);
+    return;
+  }
   for (const task of ['typecheck', 'lint']) {
     for (const pkg of affected.filter((pkg) => pkg.scripts?.[task])) {
       if (task === 'lint' && lintExcludedByRepository(pkg, manifest)) {
@@ -279,6 +341,14 @@ export async function validateTree({
     execute(pnpm, args, root, clean, 'logged');
   }
   execute(pnpm, ['check:dependencies'], root, clean);
+  if (incrementalScope?.browser)
+    execute(
+      process.execPath,
+      ['scripts/run-selected-shell.mjs', JSON.stringify(incrementalScope)],
+      root,
+      clean,
+      'logged',
+    );
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];
@@ -286,6 +356,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     root: value('--root') || process.cwd(),
     base: value('--base'),
     head: value('--head') || 'HEAD',
+    incremental: process.argv.includes('--incremental'),
   }).catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

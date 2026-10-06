@@ -32,6 +32,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
       'workspace-bootstrap.mjs',
       'cocos-validation.mjs',
       'validation-plan.mjs',
+      'incremental-validation.mjs',
       'pages-test-scope.mjs',
       'pages-registration-scope.mjs',
       'rule-tasks.mjs',
