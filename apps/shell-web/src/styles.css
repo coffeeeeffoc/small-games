@@ -373,6 +373,40 @@ select {
     transform: translateX(44px) rotate(90deg);
   }
 }
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] > nav {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  transform: none;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] > nav button {
+  border: 1px solid #c9b69a;
+  border-radius: 14px;
+  background: #fffaf0;
+  color: #4b3525;
+  font:
+    600 13px/1.4 'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  box-shadow: 0 2px 6px #4b352510;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share button:before {
+  content: none;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share-panel {
+  left: 0;
+  right: auto;
+  width: min(
+    360px,
+    calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  border-color: #c9b69a;
+  background: #fffaf0;
+  color: #4b3525;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share-panel input {
+  border-color: #c9b69a;
+  background: #fffdf6;
+}
 .game-share-panel {
   position: absolute;
   top: 100%;

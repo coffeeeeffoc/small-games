@@ -31,17 +31,21 @@ async function mounted(id = ink) {
   return { container, root, frame, send, exit, dispose, origin };
 }
 
-it.each(['ink-is-everything', 'ball-roguelite'])(
+it.each(['ink-is-everything', 'ball-roguelite', 'xiangqi-five'])(
   'lets the %s frame hide its navigation during play, restore home exit, and exit normally',
   async (id) => {
     const { container, send, exit, dispose } = await mounted(id);
     try {
       const nav = container.querySelector('nav')!;
       expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
+      expect(container.querySelector('main')?.getAttribute('data-game-id')).toBe(id);
       expect(nav.hidden).toBe(false);
-      expect(nav.querySelectorAll('button')).toHaveLength(1);
+      expect(nav.querySelectorAll('button')).toHaveLength(id === 'xiangqi-five' ? 2 : 1);
       expect(nav.querySelector('a,strong,[data-game-fullscreen]')).toBeNull();
-      expect(nav.textContent).toBe('返回目录');
+      expect(nav.querySelector('button')?.textContent).toBe('返回目录');
+      expect(nav.querySelector('.game-share button')?.textContent ?? null).toBe(
+        id === 'xiangqi-five' ? '分享游戏' : null,
+      );
       await send({ ...displayState(), gameId: id });
       expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('playing');
       expect(nav.hidden).toBe(true);

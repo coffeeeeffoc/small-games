@@ -19,7 +19,7 @@ export function StandaloneGame({
   const entry = standaloneGameEntry(id, search);
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
-  const immersive = id === 'ink-is-everything' || id === 'ball-roguelite';
+  const immersive = id === 'ink-is-everything' || id === 'ball-roguelite' || id === 'xiangqi-five';
   useEffect(() => {
     window.SmallGamesDev.setPanelHidden(true);
     return () => window.SmallGamesDev.setPanelHidden(false);
@@ -48,6 +48,7 @@ export function StandaloneGame({
     <main
       className="game-page standalone-page"
       data-game-display-host
+      data-game-id={id}
       data-immersive={immersive ? 'true' : undefined}
       data-screen={immersive ? (playing ? 'playing' : 'home') : undefined}
     >
@@ -55,21 +56,23 @@ export function StandaloneGame({
         <button onClick={onExit} aria-label="返回目录">
           返回目录
         </button>
+        {!immersive && <strong>{title}</strong>}
+        {(!immersive || id === 'xiangqi-five') && (
+          <GameShare
+            gameId={id}
+            title={title}
+            entryUrl={new URL(entry, window.location.href).href}
+            currentUrl={() => {
+              try {
+                return frame.current?.contentWindow?.location.href;
+              } catch {
+                return undefined;
+              }
+            }}
+          />
+        )}
         {!immersive && (
           <>
-            <strong>{title}</strong>
-            <GameShare
-              gameId={id}
-              title={title}
-              entryUrl={new URL(entry, window.location.href).href}
-              currentUrl={() => {
-                try {
-                  return frame.current?.contentWindow?.location.href;
-                } catch {
-                  return undefined;
-                }
-              }}
-            />
             <button type="button" data-game-fullscreen>
               全屏
             </button>

@@ -14,7 +14,8 @@ const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 // The registry now also includes building-power; its own suite covers that game.
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
-const immersiveGame = (id) => id === 'ink-is-everything' || id === 'ball-roguelite';
+const immersiveGame = (id) =>
+  id === 'ink-is-everything' || id === 'ball-roguelite' || id === 'xiangqi-five';
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: basePath,
@@ -193,6 +194,10 @@ try {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'ball-roguelite') {
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'xiangqi-five') {
+        await frame.locator('#game-back').click();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else {
