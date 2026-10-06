@@ -4,11 +4,13 @@ import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
 import { nineNativeScopePaths, nineNativeChecks } from './nine-native-scope.mjs';
+import { competitionToolPlan } from './publication-scopes.mjs';
+export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -60,11 +62,22 @@ export function incrementalPlan({
     !unclassifiedRegistration.length,
     `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
+  const competition = competitionToolPlan({ paths, games, packages, fileScopes });
+  // The general competition proof and the stricter nine-game proof share one
+  // path. Only a scope carrying the native hosts came from the nine proof.
+  const nineScopes = new Map(fileScopes);
+  const nativeCompetition = 'platforms/competition/native.js';
+  if (
+    nineScopes.has(nativeCompetition) &&
+    !nineScopes.get(nativeCompetition).includes('apps/shell-bilibili')
+  )
+    nineScopes.delete(nativeCompetition);
   const scopedConsumers = [...new Set([...fileScopes.values()].flat())].filter((dir) =>
     packages.some((pkg) => pkg.dir === dir),
   );
   const affected = affectedPackages(packages, [
     ...paths,
+    ...competition.consumer_sources.map((dir) => dir + '/package.json'),
     ...scopedConsumers.map((dir) => dir + '/package.json'),
   ]);
   const directGames = games.filter((game) =>
@@ -75,12 +88,18 @@ export function incrementalPlan({
   // flows; they do not change the H5 entry and do not select its browser regression.
   const registrations = new Set(
     [...fileScopes]
-      .filter(([file]) => !nineNativeScopePaths.includes(file))
+      .filter(
+        ([file]) =>
+          !nineNativeScopePaths.includes(file) || file === 'platforms/competition/native.js',
+      )
       .flatMap(([, dirs]) => dirs),
   );
-  const selected = shared
-    ? games.filter((game) => affected.some((pkg) => pkg.dir === game.source))
-    : games.filter((game) => directGames.includes(game) || registrations.has(game.source));
+  const selected = games.filter(
+    (game) =>
+      directGames.includes(game) ||
+      registrations.has(game.source) ||
+      (shared && affected.some((pkg) => pkg.dir === game.source)),
+  );
   const ids = new Set();
   for (const game of selected) {
     const scope = { required: true, full: false, game_ids: [game.id], game_sources: [game.source] };
@@ -119,17 +138,29 @@ export function incrementalPlan({
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
     validation_tools: paths.some(
-      (file) => validationTool.test(file) || file === 'scripts/pages-regression-timings.json',
+      (file) =>
+        validationTool.test(file) ||
+        file === 'scripts/pages-regression-timings.json' ||
+        [
+          '.github/workflows/ci.yml',
+          '.gitignore',
+          '.prettierignore',
+          'scripts/check-game-config.test.mjs',
+        ].includes(file),
     ),
+    competition,
     consumer_sources: [
-      ...nativeConsumers.map((consumer) => consumer.dir),
-      ...scopedConsumers,
-      ...(devModeIds.length ? ['apps/shell-web'] : []),
+      ...new Set([
+        ...competition.consumer_sources,
+        ...scopedConsumers,
+        ...nativeConsumers.map((consumer) => consumer.dir),
+        ...(devModeIds.length ? ['apps/shell-web'] : []),
+      ]),
     ],
     nine_native_paths: paths.filter(
-      (file) => nineNativeScopePaths.includes(file) && fileScopes.has(file),
+      (file) => nineNativeScopePaths.includes(file) && nineScopes.has(file),
     ),
-    nine_native_checks: nineNativeChecks(paths, fileScopes),
+    nine_native_checks: nineNativeChecks(paths, nineScopes),
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
   };
@@ -145,6 +176,10 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
       const guardIds = [];
       let guards = 0;
       let fixtures = 0;
+      const legacyLink =
+        /        assert\.equal\(\n          await page\.getByRole\('link', \{ name: '独立打开' \}\)\.getAttribute\('href'\),\n          await page\.locator\('iframe'\)\.getAttribute\('src'\),\n        \);/;
+      const legacyWrapper =
+        /IMMERSIVE_ENTRY_ASSERTIONS\n          assert\.equal\(\n            await page\.getByRole\('link', \{ name: '独立打开' \}\)\.getAttribute\('href'\),\n            await page\.locator\('iframe'\)\.getAttribute\('src'\),\n          \);\n        \}/;
       const rest = source
         .replace(
           /        if \(\n([\s\S]*?)        \) \{\n([\s\S]*?)        \} else \{/g,
@@ -170,6 +205,11 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
             return 'IMMERSIVE_ENTRY_ASSERTIONS';
           },
         )
+        .replace(legacyWrapper, 'REVIEWED_LINK_ENTRY')
+        .replace(legacyLink, () => {
+          guards++;
+          return 'REVIEWED_LINK_ENTRY';
+        })
         .replace(
           /  await page\.goto\(`\$\{origin\}\/independent\/wulong-city\/\?dev`\);\n(?:  await page\.locator\('#start-game'\)\.tap\(\);\n)?/g,
           () => {

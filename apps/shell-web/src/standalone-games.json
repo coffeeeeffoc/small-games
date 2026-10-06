@@ -388,7 +388,7 @@
     "id": "tetracube",
     "source": "games/local/tetracube",
     "title": "重力方舱",
-    "description": "三轴旋转四连立方体，填满空间平面；改变重力，让整座方块舱压实重构，制造连锁消除。",
+    "description": "拖动并三轴旋转四连立方体，填满水平层；颠倒 6×6×12 容器，让方块向下落定，制造连锁消除。",
     "output": "dist"
   }
 ]

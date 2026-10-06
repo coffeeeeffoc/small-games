@@ -177,3 +177,45 @@ test('reviewed CJS subset guard retains exact four slugs and rejects whitelist e
     assert.equal(nineNativeFileScopes(c).size, 0);
   }
 });
+
+test('overlapping competition proof retains both native runners and all actual host consumers', async () => {
+  const { incrementalPlan, reviewedSharedFileScopes } = await import(
+    './incremental-validation.mjs'
+  );
+  const dirs = [
+    'apps/shell-web',
+    'services/runtime-api',
+    'platforms/wechat',
+    'platforms/douyin',
+    'platforms/kuaishou',
+    'platforms/alipay',
+  ];
+  const c = context([competition]);
+  c.packages = [...packages, ...dirs.map((dir) => ({ dir }))];
+  const scopes = reviewedSharedFileScopes(c);
+  for (const [file, sources] of nineNativeFileScopes(c)) scopes.set(file, sources);
+  const plan = incrementalPlan({ ...c, fileScopes: scopes, readSource: snapshot });
+  assert.equal(plan.competition.native, true);
+  assert.equal(plan.competition.letters, true);
+  assert.equal(plan.nine_native_checks.length, 1);
+  assert.deepEqual(plan.nine_native_checks[0].games, [
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'letters-words2',
+    'vibeJam-myself-history-guess',
+    'xiangqi-five',
+  ]);
+  assert(plan.consumer_sources.includes('apps/shell-bilibili'));
+  assert(plan.consumer_sources.includes('services/runtime-api'));
+  assert(plan.consumer_sources.includes('platforms/wechat'));
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...c,
+        fileScopes: scopes,
+        changedPaths: [competition, 'scripts/nine-unreviewed-smoke.mjs'],
+        readSource: snapshot,
+      }),
+    /scope undefined/,
+  );
+});

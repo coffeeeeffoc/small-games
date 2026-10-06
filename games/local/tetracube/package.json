@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "重力方舱：三轴旋转、空间堆叠与重力重构消除",
+  "description": "重力方舱：三轴旋转、空间堆叠与容器颠倒连锁消除",
   "coffeeeeffoc": {
     "role": "game"
   },

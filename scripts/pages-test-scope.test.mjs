@@ -130,6 +130,261 @@ function developmentWiringFixture() {
   return { before, after, tuples };
 }
 
+function combinedWiringFixture() {
+  const { before, after, tuples } = developmentWiringFixture();
+  const native = 'apps/shell-minigame/package.json';
+  const game = 'games/local/new-game/package.json';
+  const existing = 'games/local/echo-lab/package.json';
+  const service = 'services/game-server/package.json';
+  const contract = '@coffeeeeffoc/game-contract';
+  const nativeManifest = {
+    name: '@games/native-shell',
+    scripts: { build: 'build-native' },
+    dependencies: { [contract]: 'workspace:*' },
+  };
+  const link = (name, target) =>
+    `      '${name}':\n        specifier: workspace:*\n        version: link:${target}\n`;
+  const contractLink = link(contract, '../../../packages/game-contract');
+  const nativeBefore =
+    '  apps/shell-minigame:\n    dependencies:\n' +
+    link(contract, '../../packages/game-contract') +
+    '\n';
+  const nativeAfter = nativeBefore.replace(
+    '    dependencies:\n',
+    '    dependencies:\n' +
+      link('@games/new-game', '../../games/local/new-game') +
+      link('@games/echo-lab', '../../games/local/echo-lab'),
+  );
+  for (const files of [before, after]) {
+    files[native] = JSON.stringify(nativeManifest);
+    files[existing] = JSON.stringify({
+      name: '@games/echo-lab',
+      devDependencies: { vite: '8.2.2' },
+    });
+    files['packages/game-contract/package.json'] = JSON.stringify({ name: contract });
+    files[LOCK] = files[LOCK].replace('  apps/shell-web:', nativeBefore + '  apps/shell-web:')
+      .replace(
+        '  games/local/echo-lab: {}\n',
+        '  games/local/echo-lab:\n    devDependencies:\n' +
+          tuples.slice(tuples.indexOf('      vite:')),
+      )
+      .replace('packages:\n', '  packages/game-contract: {}\n\npackages:\n');
+  }
+  after[native] = JSON.stringify({
+    ...nativeManifest,
+    dependencies: {
+      ...nativeManifest.dependencies,
+      '@games/new-game': 'workspace:*',
+      '@games/echo-lab': 'workspace:*',
+    },
+  });
+  after[existing] = JSON.stringify({
+    ...JSON.parse(after[existing]),
+    exports: { './canvas': './native/canvas.js' },
+    dependencies: { [contract]: 'workspace:*' },
+  });
+  after[game] = JSON.stringify({
+    ...JSON.parse(after[game]),
+    exports: { './canvas': './src/canvas.ts' },
+    dependencies: { [contract]: 'workspace:*', react: '19.2.8' },
+  });
+  after[service] = JSON.stringify({
+    name: '@games/game-server',
+    coffeeeeffoc: { role: 'service' },
+    dependencies: { '@games/new-game': 'workspace:*' },
+  });
+  const newGameDeps =
+    '    dependencies:\n' +
+    contractLink +
+    '      react:\n        specifier: 19.2.8\n        version: 19.2.8\n';
+  const serviceImporter =
+    '  services/game-server:\n    dependencies:\n' +
+    link('@games/new-game', '../../games/local/new-game') +
+    '\n';
+  after[LOCK] = after[LOCK].replace(nativeBefore, nativeAfter)
+    .replace(
+      '  games/local/echo-lab:\n',
+      '  games/local/echo-lab:\n    dependencies:\n' + contractLink,
+    )
+    .replace('  games/local/new-game:\n', '  games/local/new-game:\n' + newGameDeps)
+    .replace('packages:\n', serviceImporter + 'packages:\n');
+  const read = (files) => (file) => {
+    if (!Object.hasOwn(files, file)) throw new Error(`Missing ${file}`);
+    return files[file];
+  };
+  const classify = (candidate = after, base = before, changedPaths) =>
+    registrationFileScopes({
+      changedPaths:
+        changedPaths || Object.keys(candidate).filter((file) => base[file] !== candidate[file]),
+      readBase: read(base),
+      readHead: read(candidate),
+      gameSources: ['games/local/echo-lab', 'games/local/new-game'],
+    });
+  return {
+    before,
+    after,
+    native,
+    game,
+    existing,
+    service,
+    contractLink,
+    newGameDeps,
+    serviceImporter,
+    classify,
+  };
+}
+
+test('combined new-game runtime, native and source-service wiring proves one additive lock delta', () => {
+  const fixture = combinedWiringFixture();
+  for (const crlf of [false, true]) {
+    const before = { ...fixture.before },
+      after = { ...fixture.after };
+    if (crlf) {
+      before[LOCK] = before[LOCK].replaceAll('\n', '\r\n');
+      after[LOCK] = after[LOCK].replaceAll('\n', '\r\n');
+    }
+    const scopes = fixture.classify(after, before);
+    assert.deepEqual(scopes.get(SHELL), ['games/local/new-game']);
+    assert.deepEqual(scopes.get(LOCK), ['games/local/new-game', 'games/local/echo-lab']);
+  }
+  const missingService = fixture.classify(
+    fixture.after,
+    fixture.before,
+    Object.keys(fixture.after).filter((file) => file !== fixture.service),
+  );
+  assert.equal(missingService.has(LOCK), false);
+});
+
+test('combined wiring rejects external resolution, importer syntax and remaining-byte drift', () => {
+  const fixture = combinedWiringFixture();
+  const { before, after, newGameDeps, serviceImporter } = fixture;
+  const candidates = [
+    after[LOCK].replace(newGameDeps, newGameDeps.replace('version: 19.2.8', 'version: 19.2.9')),
+    after[LOCK].replace(
+      newGameDeps,
+      newGameDeps.replace('specifier: 19.2.8', 'specifier: ^19.2.8'),
+    ),
+    after[LOCK].replace(
+      newGameDeps,
+      newGameDeps.replace('version: 19.2.8', 'version: 19.2.8(extra@1.0.0)'),
+    ),
+    after[LOCK].replace(newGameDeps, newGameDeps + '    dependenciesMeta: {}\n'),
+    after[LOCK].replace(newGameDeps, newGameDeps + newGameDeps),
+    after[LOCK].replace(
+      '  games/local/new-game:',
+      '  games/local/new-game: {}\n\n  games/local/new-game:',
+    ),
+    after[LOCK].replace(
+      '  apps/shell-minigame:',
+      '  apps/shell-minigame: {}\n\n  apps/shell-minigame:',
+    ),
+    after[LOCK].replace(serviceImporter, serviceImporter + serviceImporter),
+    after[LOCK].replace(
+      serviceImporter,
+      serviceImporter.replace('../../games/local/new-game', '../../games/local/echo-lab'),
+    ),
+    after[LOCK].replace(
+      serviceImporter,
+      serviceImporter.replace('    dependencies:', '    devDependencies:'),
+    ),
+    after[LOCK].replace('link:../../../packages/game-contract', 'link:../../../packages/wrong'),
+    after[LOCK].replace('  react@19.2.8: {}', '  react@19.2.8: {resolution: changed}'),
+    after[LOCK].replace('snapshots:\n', 'snapshots:\n  unexpected: {}\n'),
+    after[LOCK].replace('  .: {}', '  .: {unexpected: true}'),
+    after[LOCK] + '\nsettings: {unexpected: true}\n',
+  ];
+  for (const lock of candidates) {
+    const scopes = fixture.classify({ ...after, [LOCK]: lock });
+    assert.equal(scopes.has(LOCK), false, lock);
+    assert.equal(scopes.has(SHELL), false);
+  }
+  const runtimeDeps = newGameDeps.replace('      react:', '      unknown-runtime:');
+  const unknown = {
+    ...after,
+    [LOCK]: after[LOCK].replace(newGameDeps, runtimeDeps),
+    [fixture.game]: JSON.stringify({
+      ...JSON.parse(after[fixture.game]),
+      dependencies: {
+        '@coffeeeeffoc/game-contract': 'workspace:*',
+        'unknown-runtime': '19.2.8',
+      },
+    }),
+  };
+  assert.equal(fixture.classify(unknown).has(LOCK), false);
+  // A tuple in snapshots is not a baseline resolution proof.
+  const runtimeTuple = '      react:\n        specifier: 19.2.8\n        version: 19.2.8\n';
+  const relocate = (text) =>
+    text.replace(runtimeTuple, '').replace('snapshots:\n', 'snapshots:\n' + runtimeTuple);
+  assert.equal(
+    fixture
+      .classify(
+        { ...after, [LOCK]: relocate(after[LOCK]) },
+        { ...before, [LOCK]: relocate(before[LOCK]) },
+      )
+      .has(LOCK),
+    false,
+  );
+});
+
+test('combined wiring rejects mismatched manifests, native changes and unrelated source services', () => {
+  const fixture = combinedWiringFixture();
+  const { before, after, native, game, existing, service } = fixture;
+  const mutate = (file, update) => ({
+    ...after,
+    [file]: JSON.stringify(update(JSON.parse(after[file]))),
+  });
+  const candidates = [
+    mutate(native, (value) => ({ ...value, scripts: { build: 'changed' } })),
+    mutate(native, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, '@games/new-game': '^1.0.0' },
+    })),
+    mutate(game, (value) => ({ ...value, exports: { './canvas': '../shared.js' } })),
+    mutate(game, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, react: '19.2.9' },
+    })),
+    mutate(game, (value) => ({ ...value, optionalDependencies: { react: '19.2.8' } })),
+    mutate(existing, (value) => ({ ...value, exports: { './canvas': './src/shared.ts' } })),
+    mutate(existing, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, unexpected: 'workspace:*' },
+    })),
+    mutate(existing, (value) => ({ ...value, devDependencies: { vite: '8.2.3' } })),
+    mutate(existing, (value) => ({ ...value, name: '@games/renamed' })),
+    mutate(service, (value) => ({ ...value, coffeeeeffoc: { role: 'game' } })),
+    mutate(service, (value) => ({ ...value, dependencies: { '@games/echo-lab': 'workspace:*' } })),
+    mutate(service, (value) => ({ ...value, dependencies: { '@games/new-game': '^1.0.0' } })),
+    mutate(service, (value) => ({ ...value, devDependencies: { vite: '8.2.2' } })),
+    mutate('packages/game-contract/package.json', (value) => ({
+      ...value,
+      name: '@games/wrong-contract',
+    })),
+  ];
+  for (const candidate of candidates) {
+    assert.equal(fixture.classify(candidate).has(LOCK), false, JSON.stringify(candidate));
+    assert.equal(fixture.classify(candidate).has(SHELL), false);
+  }
+  for (const [name, specifier, version] of [
+    ['@games/echo-lab', 'workspace:*', 'link:../../games/local/echo-lab'],
+    ['react', '19.2.8', '19.2.8'],
+  ]) {
+    const candidate = mutate(service, (value) => ({
+      ...value,
+      dependencies: { [name]: specifier },
+    }));
+    candidate[LOCK] = after[LOCK].replace(
+      fixture.serviceImporter,
+      `  services/game-server:\n    dependencies:\n      ${name.startsWith('@') ? `'${name}'` : name}:\n        specifier: ${specifier}\n        version: ${version}\n\n`,
+    );
+    assert.equal(fixture.classify(candidate).has(LOCK), false);
+  }
+  assert.equal(fixture.classify(after, { ...before, [service]: after[service] }).has(LOCK), false);
+  const removedBase = { ...before };
+  delete removedBase[existing];
+  assert.equal(fixture.classify(after, removedBase).has(LOCK), false);
+});
+
 test('registration-only manifest and multi-document lock wiring select the new game', () => {
   const { before, after } = wiringFixture();
   assert.deepEqual(semanticScope(before, after), {

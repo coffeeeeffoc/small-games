@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#07151e" />
-    <meta name="description" content="在三维方舱中旋转、堆叠、消除。改变重力，重新整理整个空间。" />
+    <meta
+      name="description"
+      content="在三维方舱中旋转、堆叠、消除。颠倒容器，让方块下落重组整个空间。"
+    />
     <title>重力方舱 · Tetracube</title>
     <link rel="stylesheet" href="./style.css" />
     <script src="./dev-mode.js"></script>
@@ -33,7 +36,7 @@
           <div class="home-actions">
             <button id="help-home">玩法说明</button><button data-game-fullscreen>全屏</button>
           </div>
-          <p class="home-note">5 × 5 × 10 <span>·</span> 改变重力，创造连锁</p>
+          <p class="home-note">6 × 6 × 12 <span>·</span> 颠倒容器，创造连锁</p>
         </div>
       </section>
 
@@ -47,49 +50,58 @@
         </header>
         <div class="stage">
           <div class="stage-top">
-            <span id="gravity-badge">重力 Z−</span>
+            <span id="gravity-badge">6 × 6 × 12</span>
             <div class="next-piece">
               <span>下一块</span
               ><canvas id="next-canvas" width="86" height="68" aria-label="下一个方块"></canvas>
             </div>
           </div>
-          <canvas id="game-canvas" aria-label="三维方舱，拖动可转动观察视角"></canvas>
+          <div id="view-tools" hidden aria-label="观察与侧翻工具">
+            <div class="view-buttons" aria-label="观察视角">
+              <button data-view="iso" aria-pressed="true">立体</button>
+              <button data-view="top" aria-pressed="false">俯视</button>
+              <button data-view="front" aria-pressed="false">正视</button>
+              <button data-view="side" aria-pressed="false">侧视</button>
+            </div>
+            <div class="side-flips">
+              <button data-flip="left" aria-label="容器向左侧翻 90 度">↶ 左翻 90°</button>
+              <button data-flip="right" aria-label="容器向右侧翻 90 度">右翻 90° ↷</button>
+            </div>
+          </div>
+          <canvas
+            id="game-canvas"
+            aria-label="三维方舱，拖动移动方块，切换观察后可转动视角"
+          ></canvas>
           <div id="combo-flash" aria-live="polite"></div>
           <div id="tutorial" hidden>
             <span id="tutorial-text"></span
             ><button id="skip-tutorial" aria-label="关闭操作提示">知道了</button>
           </div>
           <div class="stage-bottom">
-            <span id="stage-hint">拖动画面 · 转动视角</span><span id="occupancy">0 / 250</span>
+            <span id="stage-hint">拖动方块 · 虚线是落点</span><span id="occupancy">0 / 432</span>
           </div>
         </div>
         <div class="control-deck">
-          <div class="view-row">
-            <div class="view-buttons" aria-label="观察视角">
-              <button data-view="iso" aria-pressed="true">立体</button
-              ><button data-view="top" aria-pressed="false">俯视</button
-              ><button data-view="front" aria-pressed="false">正视</button
-              ><button data-view="side" aria-pressed="false">侧视</button>
+          <div class="gesture-row">
+            <div class="input-modes" aria-label="画面拖动模式">
+              <button data-input="move" aria-pressed="true">移动</button>
+              <button data-input="observe" aria-pressed="false">观察</button>
             </div>
-            <button id="gravity-open" class="gravity-button">重力翻转</button>
-          </div>
-          <div class="main-controls">
-            <div class="dpad" aria-label="移动方块">
-              <button data-move="up" aria-label="向 Y 正方向移动">↑<small>Y+</small></button
-              ><button data-move="left" aria-label="向 X 负方向移动">←<small>X−</small></button
-              ><span class="dpad-center">移动</span
-              ><button data-move="right" aria-label="向 X 正方向移动">→<small>X+</small></button
-              ><button data-move="down" aria-label="向 Y 负方向移动">↓<small>Y−</small></button>
-            </div>
-            <div class="piece-controls">
-              <div class="rotation-buttons">
-                <button data-rotate="XY" aria-label="XY 平面旋转 90 度"><span>↻</span>XY</button
-                ><button data-rotate="XZ" aria-label="XZ 平面旋转 90 度"><span>↻</span>XZ</button
-                ><button data-rotate="YZ" aria-label="YZ 平面旋转 90 度"><span>↻</span>YZ</button>
-              </div>
-              <button id="hard-drop" class="primary">直接落下 <kbd>SPACE</kbd></button>
+            <div class="rotation-buttons" aria-label="旋转方块">
+              <button data-rotate="XY" aria-label="XY 平面旋转 90 度"><span>↻</span> XY</button>
+              <button data-rotate="XZ" aria-label="XZ 平面旋转 90 度"><span>↻</span> XZ</button>
+              <button data-rotate="YZ" aria-label="YZ 平面旋转 90 度"><span>↻</span> YZ</button>
             </div>
           </div>
+          <div class="primary-controls">
+            <button id="flip-container" class="flip-button">
+              <span aria-hidden="true">⤾</span> 颠倒容器 <small>180°</small>
+            </button>
+            <button id="hard-drop" class="primary">
+              <span aria-hidden="true">↓</span> 直接落下
+            </button>
+          </div>
+          <p class="control-caption">转动方块，找到属于它的位置</p>
         </div>
       </section>
 
@@ -113,7 +125,7 @@
             <b>01</b>
             <div>
               <h3>移动，找到落点</h3>
-              <p>用方向区移动方块。虚线方块就是最终落点，拖动方舱可以换个角度观察。</p>
+              <p>直接在画面上拖动方块，虚线就是最终落点。切换「观察」后，拖动只转动视角。</p>
             </div>
           </article>
           <article>
@@ -127,46 +139,36 @@
             <b>03</b>
             <div>
               <h3>填满一层，消除一层</h3>
-              <p>填满垂直于重力的平面即可消除。消除后的方块压实，再消除就会叠加 Combo。</p>
+              <p>
+                填满一个水平层即可消除。上方小方块会向下落到底或被其他方块挡住，再次消除会叠加
+                Combo。
+              </p>
             </div>
           </article>
           <article>
             <b>04</b>
             <div>
-              <h3>换个方向，重构局面</h3>
+              <h3>颠倒容器，重构局面</h3>
               <p>
-                「重力翻转」让所有小方块向新底面滑落。出生面和移动轴会一起改变，本原型可不限次数使用。
+                「颠倒容器」将整个方舱转动
+                180°，所有方块随后向下落；当前方块也会一起落定。观察模式还可向左右侧翻
+                90°。本原型可不限次使用。
               </p>
             </div>
           </article>
         </div>
         <p class="keyboard-help">
-          键盘：方向键 / WASD 移动 · Q / E / R 旋转<br />空格落下 · P / Esc 暂停 · G 重力
+          键盘：方向键 / WASD 移动 · Q / E / R 旋转<br />空格落下 · P / Esc 暂停 · G 颠倒容器
         </p>
         <button id="help-back" class="primary">明白了</button>
-      </section>
-
-      <section id="gravity" class="screen menu-screen" hidden aria-label="选择重力方向">
-        <span class="eyebrow">SHIFT GRAVITY</span>
-        <h2>给空间，一个新方向</h2>
-        <p>方块将向新底面压实。<br />填满的平面会触发连锁消除。</p>
-        <div class="gravity-choices">
-          <button data-gravity="2,-1"><b>Z−</b><span>向下</span></button
-          ><button data-gravity="2,1"><b>Z+</b><span>向上</span></button
-          ><button data-gravity="0,-1"><b>X−</b><span>向左侧</span></button
-          ><button data-gravity="0,1"><b>X+</b><span>向右侧</span></button
-          ><button data-gravity="1,-1"><b>Y−</b><span>向前侧</span></button
-          ><button data-gravity="1,1"><b>Y+</b><span>向后侧</span></button>
-        </div>
-        <button id="gravity-cancel" class="text-button">返回对局</button>
       </section>
 
       <section id="danger" class="screen menu-screen" hidden aria-label="出生区域被堵住">
         <span class="eyebrow amber">SPACE INTERVENTION</span>
         <h2>还差一点空间</h2>
-        <p>出生区域被堵住了。<br />换一次重力，试着让方舱重新呼吸。</p>
+        <p>出生区域被堵住了。<br />颠倒一次容器，让方块落到新的底部。</p>
         <div class="menu-buttons">
-          <button id="rescue-game" class="primary">最后一次重力干预</button
+          <button id="rescue-game" class="primary">颠倒容器 · 最后一次机会</button
           ><button id="end-game">结束本局</button>
         </div>
       </section>

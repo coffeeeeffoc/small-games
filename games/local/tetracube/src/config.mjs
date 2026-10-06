@@ -103,7 +103,7 @@ export const DEFAULT_CONFIG = {
   version: 1,
   id: 'classic',
   name: '经典无尽',
-  dims: [5, 5, 10],
+  dims: [6, 6, 12],
   shapes: SHAPES,
   previewCount: 3,
   initialGravity: { axis: 2, sign: -1 },
@@ -125,11 +125,8 @@ export function validateConfig(config) {
     errors.push('Container dimensions must be three integers between 4 and 20.');
   if (!Number.isInteger(config.previewCount) || config.previewCount < 1 || config.previewCount > 5)
     errors.push('previewCount must be between 1 and 5.');
-  if (
-    ![0, 1, 2].includes(config.initialGravity?.axis) ||
-    ![-1, 1].includes(config.initialGravity?.sign)
-  )
-    errors.push('Invalid initial gravity.');
+  if (config.initialGravity?.axis !== 2 || config.initialGravity?.sign !== -1)
+    errors.push('Gameplay gravity must point world-down; rotate the container instead.');
   for (const field of ['fallInterval', 'minFallInterval', 'speedEvery', 'speedStep']) {
     if (!Number.isFinite(config[field]) || config[field] <= 0) errors.push(`Invalid ${field}.`);
   }
