@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
-import { parsers } from 'prettier/plugins/babel';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
+
+const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
   /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
@@ -113,6 +115,7 @@ export function entryAdapterFileScopes({ changedPaths, readBase, readHead, games
 // Use the existing formatter's parser for source ranges, never candidate execution.
 // Raw literal grammars below deliberately exclude comments, escapes and expressions.
 function adapterSyntax(text) {
+  const { parsers } = loadFormatter('prettier/plugins/babel');
   const ast = parsers.babel.parse(text, {});
   const nodes = [];
   function visit(node, parent) {
