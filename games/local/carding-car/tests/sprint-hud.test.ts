@@ -4,6 +4,7 @@ import { registerHooks } from 'node:module';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { createKart } from '../assets/scripts/KartPhysics.ts';
 import { pointAt } from '../assets/scripts/TrackGenerator.ts';
+import { settingsLayout, contains } from '../assets/scripts/HUDLayout.ts';
 
 // Exercise actual HUD content and UI geometry; this does not simulate Creator rendering.
 class Transform {
@@ -156,4 +157,57 @@ test('settings replaces the menu and race view restores only essential state', (
   assert.equal(hud.pause.string, '', 'pause uses geometry, never a font glyph');
   assert.equal(hud.pauseIcon.node.active, true);
   assert.equal(hud.noticeBackground.node.active, false, 'no empty message bar');
+});
+
+test('settings keeps preference feedback separate from row labels and omits browser fullscreen on native hosts', () => {
+  const hud = new HUD(new SceneNode()), race = new RaceManager();
+  hud.settingsVisible = true;
+  hud.coach.enabled = false;
+  hud.update(race, idle, false);
+  assert.equal(hud.sound.string, '开');
+  assert.equal(hud.help.string, '驾驶教学');
+  assert.equal(hud.helpState.string, '关');
+  assert.doesNotMatch(hud.settingsHelp.string, /Shift|W\s*\/|自动加速/, 'driving help is opt-in');
+  hud.coach.enabled = true;
+  hud.update(race, idle, true);
+  assert.equal(hud.sound.string, '关');
+  assert.equal(hud.helpState.string, '开');
+  assert.match(hud.settingsHelp.string, /Shift/);
+  race.networked = true;
+  hud.rulesVisible = false;
+  hud.update(race, idle, false);
+  assert.equal(hud.help.string, '竞赛规则');
+  assert.equal(hud.helpState.string, '关', 'network rules and solo teaching have independent state');
+  hud.rulesVisible = true;
+  hud.update(race, idle, false);
+  assert.equal(hud.helpState.string, '开');
+  assert.match(hud.settingsHelp.string, /不会暂停/);
+
+  const previousDisplay = (globalThis as any).KartDisplay;
+  try {
+    (globalThis as any).KartDisplay = { getFullscreen: () => true };
+    hud.update(race, idle, false);
+    assert.equal(hud.fullscreen.string, '退出');
+    assert.equal(hud.fullscreen.node.parent.active, true);
+    cc.sys.isBrowser = false;
+    hud.update(race, idle, false);
+    assert.equal(hud.fullscreen.node.parent.active, false, 'native hosts never show a browser-only action');
+    assert.equal(hud.sound.node.parent.active, true);
+    assert.equal(hud.help.node.parent.active, true);
+  } finally {
+    cc.sys.isBrowser = true;
+    (globalThis as any).KartDisplay = previousDisplay;
+  }
+});
+
+test('compact settings switches retain full-row touch targets and separate close action', () => {
+  const actions = ['sound', 'fullscreen', 'help', 'close'] as const;
+  for (const action of actions) {
+    const rect = settingsLayout[action];
+    assert.ok(rect.width >= 60 && rect.height >= 60, `${action} keeps a generous touch target`);
+    assert.ok(contains(rect, rect.x, rect.y));
+    assert.ok(contains(rect, rect.x + rect.width / 2 - 1, rect.y + rect.height / 2 - 1));
+    for (const other of actions.filter(other => other !== action))
+      assert.equal(contains(settingsLayout[other], rect.x, rect.y), false, `${action} does not trigger ${other}`);
+  }
 });

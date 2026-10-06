@@ -42,6 +42,8 @@ export async function verifyNativeArtifact({
       arena: 'arena-audio',
       office: 'office-scene',
       'building-power': 'building-power-audio',
+      'moss-garden': 'moss-garden-audio',
+      'wulong-city': 'assets',
     };
     assert.deepEqual(
       readdirSync(root).filter((name) => !name.endsWith('.json') && name !== 'game.js'),
@@ -63,6 +65,7 @@ export async function verifyNativeArtifact({
     let packageLoaded;
     const rendered = [];
     const labels = new Map();
+    const labelPositions = new Map();
     const rectangles = [];
     const records = new Map();
     const logs = [];
@@ -116,11 +119,13 @@ export async function verifyNativeArtifact({
       scale() {},
       translate() {},
       transform() {},
+      setTransform() {},
       drawImage(image, ...coordinates) {
         assert.ok(image.width > 0 && image.height > 0, 'drawImage requires a loaded local image');
         drawnImages.push({ src: image.src, coordinates });
       },
       clearRect() {
+        labelPositions.clear();
         paths.length = 0;
         rendered.length = 0;
         rectangles.length = 0;
@@ -130,14 +135,16 @@ export async function verifyNativeArtifact({
         if (y === 0 && drawingDepth <= 1) {
           if (gameId === 'building-power') paths.length = 0;
           labels.clear();
+          labelPositions.clear();
           rendered.length = 0;
           rectangles.length = 0;
           drawnImages.length = 0;
         } else if (height > 1) rectangles.push({ y, height });
       },
-      fillText(text, _x, y) {
+      fillText(text, x, y) {
         rendered.push(text);
         labels.set(text, y);
+        labelPositions.set(text, { x, y });
       },
       measureText(text) {
         const width =
@@ -166,9 +173,26 @@ export async function verifyNativeArtifact({
             src = value;
             const filename = localPath(value);
             const bytes = readFileSync(filename);
-            assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-            image.width = bytes.readUInt32BE(16);
-            image.height = bytes.readUInt32BE(20);
+            if (bytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a') {
+              image.width = bytes.readUInt32BE(16);
+              image.height = bytes.readUInt32BE(20);
+            } else {
+              assert.equal(bytes.toString('ascii', 0, 4), 'RIFF', 'Expected a local PNG or WebP');
+              assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+              const format = bytes.toString('ascii', 12, 16);
+              if (format === 'VP8X') {
+                image.width = 1 + bytes.readUIntLE(24, 3);
+                image.height = 1 + bytes.readUIntLE(27, 3);
+              } else if (format === 'VP8 ') {
+                image.width = bytes.readUInt16LE(26) & 0x3fff;
+                image.height = bytes.readUInt16LE(28) & 0x3fff;
+              } else {
+                assert.equal(format, 'VP8L');
+                const size = bytes.readUInt32LE(21);
+                image.width = 1 + (size & 0x3fff);
+                image.height = 1 + ((size >>> 14) & 0x3fff);
+              }
+            }
             queueMicrotask(() => image.onload?.());
           },
         });
@@ -344,6 +368,135 @@ export async function verifyNativeArtifact({
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
+    if (gameId === 'wulong-city') {
+      assert.ok(standalone);
+      const click = (label) => {
+        const position =
+          labelPositions.get(label) ?? (label === '返回' ? { x: 43, y: 74 } : undefined);
+        assert.ok(position, 'Missing Wulong control: ' + label);
+        tap(position.x, position.y);
+      };
+      const touch = (listeners, x, y, identifier = 1) => {
+        for (const listener of [...listeners])
+          listener({ changedTouches: [{ identifier, clientX: x, clientY: y }] });
+      };
+      assert.ok(rendered.includes('开始奇遇'), 'Native game must open its own home');
+      assert.ok(!rendered.some((text) => text.includes('全屏')), 'Native host owns full screen');
+      click('选择关卡');
+      assert.ok(rendered.includes('选择关卡'));
+      click('下一章');
+      assert.ok(rendered.includes('第 2 章'));
+      // Locked levels must never become reachable through the ordinary map.
+      tap(105, 275);
+      assert.ok(rendered.includes('选择关卡'));
+      click('返回');
+      click('开始奇遇');
+      assert.ok(rendered.some((text) => text.includes('奇遇 01 / 100')));
+      assert.ok(
+        rendered.some((text) => text.includes('跳跃')),
+        'The native game must provide touch controls',
+      );
+      assert.ok(
+        audio.some((sound) => sound.playing),
+        'Native input must play packaged feedback',
+      );
+      click('提示');
+      assert.ok(rendered.includes('提示 1 / 3'));
+      click('再明确一点');
+      assert.ok(rendered.includes('提示 2 / 3'));
+      click('回去试试');
+      touch(presses, 124, 770, 11);
+      touch(presses, 335, 770, 12);
+      advance(250);
+      touch(cancels, 335, 770, 12);
+      touch(touches, 124, 770, 11);
+      // Native visibility changes must cancel touches and pause simulation.
+      for (const hide of hidden) hide();
+      assert.ok(rendered.includes('继续探索'));
+      const paused = JSON.stringify(rendered);
+      advance(120000);
+      assert.equal(JSON.stringify(rendered), paused);
+      assert.ok(audio.every((sound) => !sound.playing));
+      for (const show of shown) show();
+      assert.ok(rendered.includes('继续探索'));
+      click('继续探索');
+      // Solve the actual shared shy-door rule using touch movement only.
+      touch(presses, 44, 770, 21);
+      advance(180);
+      touch(touches, 44, 770, 21);
+      advance(8000);
+      touch(presses, 124, 770, 22);
+      advance(550);
+      touch(touches, 124, 770, 22);
+      advance(2200);
+      assert.ok(
+        rendered.includes('乌龙解决啦！'),
+        'Native touch controls must complete a real level',
+      );
+      await new Promise(setImmediate);
+      const stored = [...records.entries()].find(([key]) => key.includes('wulong-city-v1'));
+      assert.ok(stored);
+      const progress = JSON.parse(stored[1]).value;
+      assert.ok(progress.records['1']);
+      assert.ok(progress.unlockedLevels.includes(2), 'A real clear must unlock the next level');
+      click('再玩一次');
+      tap(352, 46);
+      click('返回主页');
+      click('奇遇手记');
+      assert.ok(rendered.includes('奇遇手记'));
+      assert.ok(rendered.includes('已归档 1 / 100'));
+      await new Promise(setImmediate);
+      assert.ok(
+        [...records.keys()].some((key) => key.includes('wulong-city-v1')),
+        'Native progress must use Host storage',
+      );
+      assert.ok(
+        drawnImages.length > 0 || images.some((image) => image.width > 0),
+        'Native game must load shared packaged artwork',
+      );
+      await (await entry.ready).dispose();
+      assert.equal(
+        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
+        0,
+      );
+      assert.equal(intervals.size, 0);
+      assert.ok(audio.every((sound) => !sound.playing));
+      return;
+    }
+    if (gameId === 'moss-garden') {
+      assert.ok(standalone);
+      const click = (label) => {
+        const position = labelPositions.get(label);
+        assert.ok(position, 'Missing control: ' + label);
+        tap(position.x, position.y);
+      };
+      const expectSeeds = (count) =>
+        assert.ok(rendered.includes(`光种 ${count} / 4`), 'Expected seed count: ' + count);
+      click('开始播种');
+      expectSeeds(0);
+      // The native SDK and Canvas share the same 390 × 844 portrait coordinates.
+      tap(72, 261);
+      expectSeeds(1);
+      assert.ok(
+        audio.some((sound) => sound.playing),
+        'Seed placement must play packaged audio',
+      );
+      tap(72, 261);
+      expectSeeds(0);
+      click('玩法手册');
+      assert.ok(rendered.includes('返回花园'), 'Help must have a return path');
+      click('返回花园');
+      expectSeeds(0);
+      for (const hide of hidden) hide();
+      assert.ok(
+        audio.every((sound) => !sound.playing),
+        'Background transition must stop puzzle audio',
+      );
+      const paused = JSON.stringify(rendered);
+      advance(2000);
+      assert.equal(JSON.stringify(rendered), paused, 'Background time must not advance the puzzle');
+      for (const show of shown) show();
+    }
     if (gameId === 'building-power') {
       assert.ok(standalone);
       const click = (label, x = 195) => {
@@ -584,7 +737,12 @@ export async function verifyNativeArtifact({
   }
 
   const selected = standalone
-    ? [...games, ['building-power', '忙碌的电工']].filter(([id]) => id === game)
+    ? [
+        ...games,
+        ['building-power', '忙碌的电工'],
+        ['moss-garden', '苔光花园'],
+        ['wulong-city', '乌龙城'],
+      ].filter(([id]) => id === game)
     : games;
   assert.ok(selected.length, 'Unknown game');
   for (const item of selected) {
@@ -618,11 +776,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
     assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
     const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
-    assert.ok(
-      !values.game || [...originalGames, 'building-power'].includes(values.game),
-      'Unknown game',
-    );
-    for (const game of values.game ? [values.game] : [...originalGames, 'building-power']) {
+    const standaloneGames = [...originalGames, 'building-power', 'moss-garden', 'wulong-city'];
+    assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
+    for (const game of values.game ? [values.game] : standaloneGames) {
       for (const platform of values.platform ? [values.platform] : platforms) {
         await verifyNativeArtifact({
           root: fileURLToPath(

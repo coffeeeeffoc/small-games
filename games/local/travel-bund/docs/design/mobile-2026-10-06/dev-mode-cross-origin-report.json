@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "name": "same-origin-inherit",
+      "enabled": true,
+      "childUrl": "http://127.0.0.1:44133/"
+    },
+    {
+      "name": "same-origin-explicit-off",
+      "enabled": false,
+      "childUrl": "http://127.0.0.1:44133/?dev=0"
+    },
+    {
+      "name": "cross-origin-opt-in",
+      "enabled": true,
+      "childUrl": "http://127.0.0.1:44133/?dev=1"
+    },
+    {
+      "name": "cross-origin-no-inheritance",
+      "enabled": false,
+      "childUrl": "http://127.0.0.1:44133/"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

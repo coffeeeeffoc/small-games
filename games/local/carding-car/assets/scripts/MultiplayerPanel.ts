@@ -49,6 +49,7 @@ export class MultiplayerPanel {
     selection: () => Selection,
     clearInput: () => void,
     leave: () => void,
+    private canUse: (selection: Selection) => boolean = () => true,
   ) {
     this.client = client;
     this.root = new Node('MultiplayerRoom');
@@ -137,6 +138,11 @@ export class MultiplayerPanel {
       clearInput();
       const selected = selection(),
         name = this.name.string.trim() || '车手';
+      if (!this.canUse(selected)) {
+        this.authenticating = false;
+        this.showLockedSelection();
+        return;
+      }
       try {
         sys.localStorage.setItem('kart-player-name', name);
       } catch {}
@@ -201,8 +207,20 @@ export class MultiplayerPanel {
         const arrow = button(this.lobby, delta < 0 ? '‹' : '›', -205 + delta * 174, y, 38, () => {
           if (!client.room || client.room.hostId !== client.selfId || client.room.phase !== 'lobby')
             return;
-          const { theme, route, vehicle, driver } = cycleSelection(client.room, field, delta);
-          client.send({ type: 'selection', theme, route, vehicle, driver });
+          let selected: Selection = client.room;
+          const limit = field === 'vehicle' ? vehicles.length : field === 'driver' ? drivers.length : 1;
+          for (let attempt = 0; attempt < limit; attempt++) {
+            selected = cycleSelection(selected, field, delta);
+            // Check the edited cosmetic against an owned baseline so two locked
+            // room options can still be repaired one at a time by the host.
+            if (field === 'vehicle' || field === 'driver') {
+              if (!this.canUse({ ...selection(), [field]: selected[field] })) continue;
+            }
+            const { theme, route, vehicle, driver } = selected;
+            client.send({ type: 'selection', theme, route, vehicle, driver });
+            return;
+          }
+          this.showLockedSelection();
         });
         this.arrows.push(arrow.node.parent!);
       }
@@ -219,6 +237,7 @@ export class MultiplayerPanel {
       client.send({ type: 'bots', count: Math.min(7, (client.room?.bots ?? 0) + 1) }),
     );
     this.ready = button(this.lobby, '准备', -125, -160, 170, () => {
+      if (!this.roomSelectionAllowed()) return;
       const self = client.room?.members.find((m) => m.id === client.selfId);
       if (self?.loadedRevision !== client.room?.revision) {
         client.status = '请等待素材加载完成';
@@ -227,9 +246,10 @@ export class MultiplayerPanel {
       }
       client.send({ type: 'ready', ready: !self?.ready });
     });
-    this.start = button(this.lobby, '开始比赛', 70, -160, 170, () =>
-      client.send({ type: client.room?.phase === 'finished' ? 'rematch' : 'start' }),
-    );
+    this.start = button(this.lobby, '开始比赛', 70, -160, 170, () => {
+      if (!this.roomSelectionAllowed()) return;
+      client.send({ type: client.room?.phase === 'finished' ? 'rematch' : 'start' });
+    });
     button(this.lobby, '退出房间', 270, -160, 170, leave);
     button(this.lobby, '邀请好友', -325, -160, 170, () => {
       if (!client.room) return;
@@ -294,6 +314,16 @@ export class MultiplayerPanel {
       }
     };
     this.refresh();
+  }
+  private showLockedSelection() {
+    this.client.status = '房间赛车或车手未解锁，请房主换车或退出后解锁';
+    this.client.changed();
+  }
+  private roomSelectionAllowed() {
+    if (!this.client.room) return false;
+    if (this.canUse(this.client.room)) return true;
+    this.showLockedSelection();
+    return false;
   }
   showInvite(invite: Invitation) {
     if (this.client.room?.code === invite.code) return;
@@ -367,7 +397,7 @@ export class MultiplayerPanel {
     }
     platformSharing()?.setQuery(room ? invitationQuery(room.code, room) : '');
     this.status.string = client.endpoint
-      ? client.status
+      ? room && !this.canUse(room) ? '房间赛车或车手未解锁，请房主换车或退出后解锁' : client.status
       : '好友赛暂未开放\n关闭此页即可进行单机竞速';
     this.status.node.setPosition(0, client.endpoint ? -height / 2 + 33 : 0);
     this.openButton.string = room

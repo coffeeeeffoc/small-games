@@ -1,0 +1,18 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "environment": "Chromium with touch support",
+  "pages": [
+    "home",
+    "levels",
+    "play",
+    "pause",
+    "hint",
+    "records",
+    "result"
+  ],
+  "result": "Actual L01 completed with normal controls",
+  "errors": []
+}

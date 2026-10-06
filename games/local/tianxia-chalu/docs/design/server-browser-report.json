@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "browser": "Chromium 140.0.7339.186",
+  "viewport": "390 × 844, mobile touch emulation",
+  "backend": "Real HTTP service, isolated temporary result directory, injected service clock",
+  "limitations": "Visibility and pagehide events are deterministic simulations; no physical device or operating-system suspension tested.",
+  "checks": [
+    "Production /play/ defaults to the real service; settings health protocol succeeds.",
+    "A touch route command reaches the authoritative API and its changed route/time render.",
+    "Pause/resume freezes authoritative time without catch-up; pagehide also pauses.",
+    "Backgrounding during deferred match creation pauses the late-created match before play.",
+    "Backgrounding during deferred resume returns to a paused authoritative match.",
+    "After an outage, a completed service match reconnects directly to its persisted result.",
+    "A paused session expiring on the service explains expiry instead of a false three-minute defeat."
+  ],
+  "pageErrors": []
+}

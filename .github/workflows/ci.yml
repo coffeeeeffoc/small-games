@@ -68,7 +68,8 @@ jobs:
       ((needs.plan.outputs.cocos == 'true' && needs.kart.result == 'success') ||
        (needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'))
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Full validation includes serial browser smoke tests after builds and rule tests.
+    timeout-minutes: 40
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt

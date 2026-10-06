@@ -8,6 +8,7 @@ import { Sky as EnvironmentSky } from 'three/addons/objects/Sky.js';
 import {
   input,
   movement,
+  TRAVEL_SPEED,
   placementBatches,
   onRiver,
   quayWater,
@@ -29,6 +30,9 @@ import {
 import { RENDER_DETAILS, type RenderDetail } from './render-settings';
 import { StreetLife, RiverWeather } from './StreetLife';
 import type { LifeEvent, LifeTarget } from './life';
+import { DEFAULT_FOV, zoomFov } from './camera-controls';
+import { decorateFacade, facadeKind } from './facade-detail';
+import type { PhotoPose } from './photo-hunts';
 
 const url = (name: string) => `${import.meta.env.BASE_URL}world/${name}.glb`;
 const decoder = `${import.meta.env.BASE_URL}draco/`;
@@ -36,6 +40,7 @@ export type Teleport = { position: V3; yaw: number; pitch?: number; serial: numb
 export type Telemetry = {
   position: V3;
   yaw: number;
+  pitch: number;
   speed: number;
   grounded: boolean;
   calls: number;
@@ -50,10 +55,12 @@ export type Props = {
   teleport: Teleport;
   onReady: () => void;
   onTelemetry: (t: Telemetry) => void;
+  onPhotoView?: (read: ((target?: V3) => PhotoPose) | null) => void;
   quality: number;
   renderDetail: RenderDetail;
   crowd: boolean;
   motion: boolean;
+  zoom: number;
   lifeEvent: LifeEvent | null;
   onLifeTarget: (target: LifeTarget | null) => void;
 };
@@ -63,12 +70,13 @@ function surfaceMaterial(material: THREE.Material) {
   if (m.isMeshStandardMaterial || (material as THREE.MeshLambertMaterial).isMeshLambertMaterial) {
     if (/Promenade paving/i.test(m.name)) granularSurface(m, 'granite');
     else if (/Road asphalt/i.test(m.name)) granularSurface(m, 'asphalt');
-    else if (/Limestone|Carved stone|Sandstone|Bund window and stone/i.test(m.name)) granularSurface(m, 'stone');
+    else if (/Limestone|Carved stone|Sandstone|Bund window and stone/i.test(m.name))
+      granularSurface(m, 'stone');
   }
   if (!m.isMeshStandardMaterial) return;
   if (!m.userData.bundGrain) m.envMapIntensity = 0.65;
   if (!m.userData.bundGrain && /pav|stone|trim|brick/i.test(m.name)) m.roughness = 0.85;
-  if (m.userData.bundFacade || !/glass|window/i.test(m.name) || /lamp/i.test(m.name)) return;
+  if (m.userData.bundFacade || facadeKind(m) !== 2) return;
   // Facade panes share glass materials. Light individual rooms, never the entire glass shell.
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
@@ -119,23 +127,29 @@ function CityTile({
   useEffect(() => () => disposeCityRender(render), [render]);
   const materials = useMemo(() => {
     const set = new Set<THREE.MeshStandardMaterial>();
+    if (name.startsWith('city_')) {
+      scene.userData.bundCityTile = name;
+      scene.userData.bundCityBounds = new THREE.Box3().setFromObject(scene);
+    }
     scene.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
       o.castShadow = name.startsWith('city_');
       o.receiveShadow = true;
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-        surfaceMaterial(m);
+        // Cached source materials retain their composed shader when presets change.
+        if (!m.userData.bundFacadeDetail) surfaceMaterial(m);
+        if (name.startsWith('city_')) decorateFacade(m);
         set.add(m);
       }
     });
     return [...set];
-  }, [scene]);
+  }, [scene, name]);
   useEffect(() => {
     loaded(name);
   }, [name, loaded]);
   useFrame((_, dt) => {
     for (const m of materials)
-      if (/glass|gold|window/i.test(m.name)) {
+      if (m.userData.bundFacade || facadeKind(m) === 2 || /gold/i.test(m.name)) {
         m.emissive.set('#ffca85');
         m.emissiveIntensity = THREE.MathUtils.damp(
           m.emissiveIntensity,
@@ -607,19 +621,59 @@ function Controller({
   teleport,
   onReady,
   onTelemetry,
+  onPhotoView,
+  zoom,
 }: {
   data: WorldData;
   teleport: Teleport;
   onReady: () => void;
   onTelemetry: Props['onTelemetry'];
+  onPhotoView: Props['onPhotoView'];
+  zoom: number;
 }) {
   const { world, rapier } = useRapier();
-  const { camera, gl } = useThree();
+  const { camera, gl, scene } = useThree();
+  useLayoutEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = zoomFov(zoom);
+      camera.updateProjectionMatrix();
+    }
+  }, [camera, zoom]);
   const runtime = useRef<ReturnType<typeof createWalker> | null>(null);
   const lastSafe = useRef<V3>(destinations[0].position);
   const serial = useRef(-1);
   const initialized = useRef(false);
   const stats = useRef({ time: 0, frames: 0 });
+  const framePhotoPose = useRef<PhotoPose | null>(null);
+  useEffect(() => {
+    onPhotoView?.((target) => {
+      const pose = framePhotoPose.current ?? {
+        position: [camera.position.x, camera.position.y, camera.position.z] as V3,
+        yaw: camera.rotation.y,
+        pitch: camera.rotation.x,
+        grounded: false,
+        verticalFov:
+          camera instanceof THREE.PerspectiveCamera
+            ? THREE.MathUtils.degToRad(camera.getEffectiveFOV())
+            : undefined,
+        aspect: camera instanceof THREE.PerspectiveCamera ? camera.aspect : undefined,
+      };
+      if (!target) return pose;
+      const point = new THREE.Vector3(...target),
+        roots = [...scene.children];
+      let landmarkLoaded = false;
+      // City roots already own cached world bounds. Prune their large mesh trees;
+      // the photograph action is the only time this loading check runs.
+      while (roots.length && !landmarkLoaded) {
+        const root = roots.pop()!;
+        if (root.userData.bundCityTile) {
+          landmarkLoaded = root.userData.bundCityBounds?.containsPoint(point) === true;
+        } else roots.push(...root.children);
+      }
+      return { ...pose, landmarkLoaded };
+    });
+    return () => onPhotoView?.(null);
+  }, [camera, scene, onPhotoView]);
   useEffect(() => {
     const previous = gl.info.autoReset;
     // Include all passes, including the water reflection, in each rendered-frame sample.
@@ -633,10 +687,12 @@ function Controller({
     const walker = createWalker({ world, rapier });
     const { body, collider, controller } = walker;
     runtime.current = walker;
+    framePhotoPose.current = null;
     camera.rotation.order = 'YXZ';
     initialized.current = false;
     return () => {
       runtime.current = null;
+      framePhotoPose.current = null;
       world.removeCharacterController(controller);
       world.removeRigidBody(body);
       world.removeRigidBody(fixed);
@@ -721,17 +777,11 @@ function Controller({
       Number(input.keys.has('KeyS') || input.keys.has('ArrowDown')) -
       Number(input.keys.has('KeyW') || input.keys.has('ArrowUp')) +
       input.stick[1];
-    const speed =
-      input.boost || input.keys.has('KeyR')
-        ? 12
-        : input.fast || input.keys.has('ShiftLeft') || input.keys.has('ShiftRight')
-          ? 4
-          : 1.9;
     const move = movement(
       input.sitting ? 0 : x,
       input.sitting ? 0 : z,
       camera.rotation.y,
-      speed,
+      TRAVEL_SPEED,
       dt,
     );
     const p = r.body.translation();
@@ -743,8 +793,7 @@ function Controller({
     }
     r.speed = Math.hypot(next.x - p.x, next.z - p.z) / dt;
     r.body.setNextKinematicTranslation(next);
-    if (r.ground && !onRiver(next.x, next.z, data))
-      lastSafe.current = [next.x, next.y, next.z];
+    if (r.ground && !onRiver(next.x, next.z, data)) lastSafe.current = [next.x, next.y, next.z];
     if (r.ground && r.speed > 0.2) footstep(r.speed);
   });
   useFrame((_, dt) => {
@@ -768,6 +817,19 @@ function Controller({
       15,
       Math.min(dt, 0.1),
     );
+    // The event handler reads this rendered view rather than a new projection
+    // changed by a layout effect while the preserved drawing buffer is still old.
+    framePhotoPose.current = {
+      position: [p.x, p.y, p.z],
+      yaw: camera.rotation.y,
+      pitch: camera.rotation.x,
+      grounded: r.ground,
+      verticalFov:
+        camera instanceof THREE.PerspectiveCamera
+          ? THREE.MathUtils.degToRad(camera.getEffectiveFOV())
+          : undefined,
+      aspect: camera instanceof THREE.PerspectiveCamera ? camera.aspect : undefined,
+    };
     stats.current.time += dt;
     stats.current.frames++;
     if (input.active && stats.current.time > 0.3) {
@@ -781,6 +843,7 @@ function Controller({
       onTelemetry({
         position: [p.x, p.y, p.z],
         yaw: camera.rotation.y,
+        pitch: camera.rotation.x,
         speed: r.speed,
         grounded: r.ground,
         calls: gl.info.render.calls,
@@ -831,18 +894,22 @@ export function Scene(props: Props) {
           teleport={props.teleport}
           onReady={props.onReady}
           onTelemetry={props.onTelemetry}
+          onPhotoView={props.onPhotoView}
+          zoom={props.zoom}
         />
       </Physics>
     </>
   );
 }
 
-// The whole WebGL runtime is imported only after entering a tour.
+// The homepage and tour share one runtime and viewpoint; inactive views render on demand.
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
+    // Measure the logical layout, not the swapped bounding box of CSS rotation.
+    resize={{ offsetSize: true }}
     shadows
     dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
-    camera={{position: [-393,2.6,37],fov:68,near:.25,far:12000}}
+    camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
       powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
     onCreated={({gl})=>props.onRenderer(gl)}>

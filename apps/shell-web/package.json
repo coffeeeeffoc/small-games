@@ -26,6 +26,12 @@
     "test:pages:artifacts": "node scripts/pages-artifacts.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/chase-thief": "workspace:*",
+    "@coffeeeeffoc/orbit-atelier": "workspace:*",
+    "@coffeeeeffoc/game-moss-garden": "workspace:*",
+    "@coffeeeeffoc/ball-roguelite": "workspace:*",
+    "@coffeeeeffoc/ember-bounce": "workspace:*",
+    "@coffeeeeffoc/tianxia-chalu": "workspace:*",
     "@coffeeeeffoc/voiceprint-case": "workspace:*",
     "@coffeeeeffoc/echo-lab": "workspace:*",
     "@coffeeeeffoc/maze-wander": "workspace:*",
@@ -88,6 +94,7 @@
     "@coffeeeeffoc/two-sided-box": "workspace:*",
     "@coffeeeeffoc/luban-workshop": "workspace:*",
     "@coffeeeeffoc/surprise-kept": "workspace:*",
+    "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/tetracube": "workspace:*"
   },
   "devDependencies": {

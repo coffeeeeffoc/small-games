@@ -46,9 +46,9 @@ function buyEquipment(state, action) {
   return { ok: true, message: state.message };
 }
 export function runCommand(state, action = {}) {
+  if (action.type === 'chooseReward' && ['playing', 'won'].includes(state.status))
+    return chooseReward(state, action.itemId);
   if (state.status !== 'playing') return { ok: false, message: '先开始一局冒险' };
-  if (action.type === 'chooseReward') return chooseReward(state, action.itemId);
-  if (state.pendingRewards.length) return { ok: false, message: '先选择本次成长奖励' };
   let result;
   if (action.type === 'nova') result = useNova(state);
   else if (action.type === 'draw') result = drawBridge(state, action.bridgeId);
@@ -58,7 +58,11 @@ export function runCommand(state, action = {}) {
       objectId = action.objectId ?? action.target ?? getNearbyInteractable(state)?.id;
     result = interactWith(
       state,
-      [...room.objects, ...room.portals].find((object) => object.id === objectId),
+      [
+        ...room.objects,
+        ...room.portals,
+        ...state.pickups.filter((pickup) => pickup.kind === 'gear'),
+      ].find((object) => object.id === objectId),
     );
   } else result = { ok: false, message: '未知动作' };
   notice(state, result.message);

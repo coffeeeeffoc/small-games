@@ -1,15 +1,16 @@
 import { $ } from './dom.mjs';
+import { clientToElement } from './display.mjs';
 
 /** Each thumb owns its pointer ID. Cancelling one gesture cannot release another. */
-export function bindTouchInput({ controls: c, active, navigation, sound }) {
+export function bindTouchInput({ controls: c, active, navigation, sound, capturePointer, releasePointer }) {
   const stick = $('#joystick'),
     fire = $('#fire'),
     melee = $('#melee');
   function updateStick(event) {
-    const rect = stick.getBoundingClientRect(),
-      max = rect.width * 0.3;
-    let x = event.clientX - rect.left - rect.width / 2,
-      y = event.clientY - rect.top - rect.height / 2,
+    const point = clientToElement(stick, event.clientX, event.clientY),
+      max = stick.clientWidth * 0.3;
+    let x = point.x - stick.clientWidth / 2,
+      y = point.y - stick.clientHeight / 2,
       d = Math.hypot(x, y);
     if (d > max) {
       x = (x / d) * max;
@@ -20,11 +21,11 @@ export function bindTouchInput({ controls: c, active, navigation, sound }) {
     $('#stick-thumb').style.transform = `translate(${x}px,${y}px)`;
   }
   stick.addEventListener('pointerdown', (event) => {
-    if (!active() || c.movePointer !== null) return;
+    if (!active() || c.movePointer !== null || event.button !== 0) return;
     event.preventDefault();
     c.movePointer = event.pointerId;
     navigation.reset();
-    stick.setPointerCapture(event.pointerId);
+    capturePointer(stick, event.pointerId);
     updateStick(event);
   });
   stick.addEventListener('pointermove', (event) => {
@@ -34,9 +35,9 @@ export function bindTouchInput({ controls: c, active, navigation, sound }) {
     }
   });
   function updateFireAim(event) {
-    const rect = fire.getBoundingClientRect(),
-      x = event.clientX - rect.left - rect.width / 2,
-      y = event.clientY - rect.top - rect.height / 2,
+    const point = clientToElement(fire, event.clientX, event.clientY),
+      x = point.x - fire.clientWidth / 2,
+      y = point.y - fire.clientHeight / 2,
       d = Math.hypot(x, y);
     c.fireAim = d > 15 ? { x: x / d, y: y / d } : null;
     fire.classList.toggle('aiming', Boolean(c.fireAim));
@@ -45,13 +46,13 @@ export function bindTouchInput({ controls: c, active, navigation, sound }) {
       : '';
   }
   fire.addEventListener('pointerdown', (event) => {
-    if (!active() || c.firePointer !== null) return;
+    if (!active() || c.firePointer !== null || event.button !== 0) return;
     event.preventDefault();
     c.firePointer = event.pointerId;
     c.fireHeld = true;
     c.fireQueued = true;
     fire.classList.add('held');
-    fire.setPointerCapture(event.pointerId);
+    capturePointer(fire, event.pointerId);
     updateFireAim(event);
   });
   fire.addEventListener('pointermove', (event) => {
@@ -61,13 +62,13 @@ export function bindTouchInput({ controls: c, active, navigation, sound }) {
     }
   });
   melee.addEventListener('pointerdown', (event) => {
-    if (!active() || c.meleePointer !== null) return;
+    if (!active() || c.meleePointer !== null || event.button !== 0) return;
     event.preventDefault();
     c.meleePointer = event.pointerId;
     c.meleeHeld = true;
     c.meleeQueued = true;
     melee.classList.add('held');
-    melee.setPointerCapture(event.pointerId);
+    capturePointer(melee, event.pointerId);
   });
   function release(event, kind, element) {
     const key = `${kind}Pointer`;
@@ -85,9 +86,15 @@ export function bindTouchInput({ controls: c, active, navigation, sound }) {
         $('#fire .aim-thumb').style.transform = '';
       }
     }
-    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    releasePointer(element, event.pointerId);
   }
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+  for (const type of ['pointerup', 'pointercancel']) {
+    // Window listeners also release a finger when pointer capture is unsupported.
+    window.addEventListener(type, (event) => release(event, 'move', stick));
+    window.addEventListener(type, (event) => release(event, 'fire', fire));
+    window.addEventListener(type, (event) => release(event, 'melee', melee));
+  }
+  for (const type of ['lostpointercapture']) {
     stick.addEventListener(type, (event) => release(event, 'move', stick));
     fire.addEventListener(type, (event) => release(event, 'fire', fire));
     melee.addEventListener(type, (event) => release(event, 'melee', melee));

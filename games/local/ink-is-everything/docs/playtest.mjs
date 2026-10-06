@@ -239,6 +239,11 @@ async function journey(player, { reserve = 38, lowInkPressure = false } = {}) {
   await player.handleRewards();
   assert.equal((await snapshot(page)).seals, 1);
   await player.moveTo({ x: 905, y: 300 }, { expectedRoom: 'market' });
+  await player.tap('#pause');
+  await player.tap('[data-menu="equipment"]');
+  assert.equal(await page.locator('#modal').getAttribute('data-kind'), 'equipment');
+  await capture(page, player.mobile ? 'mobile-equipment' : 'desktop-equipment');
+  await player.tap('#modal-close');
   // In a cleared safe room, the actual next projectile exposes the equipped damage.
   const changedShot = await pulseShot(player);
   const equippedProjectile = changedShot.after.projectiles.find(

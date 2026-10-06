@@ -14,6 +14,26 @@ try {
   await waitForReady(page);
   const state = () => page.evaluate(() => __kart.snapshot());
   const tap = (x, y) => tapDesign(page, x, y);
+  const displayProbe = await page.evaluateHandle(async () => ({ cc: await System.import('cc'), matches: 0 }));
+  const waitForDisplay = async (width, height, rotated) => {
+    await displayProbe.evaluate(probe => { probe.matches = 0; });
+    // waitForFunction polls synchronous truthiness: an async predicate returns
+    // a truthy Promise even when it resolves to false. Import the engine once,
+    // then require complete geometry to match on three animation-frame polls.
+    await page.waitForFunction(({ probe, width, height, rotated }) => {
+      const frame = document.getElementById('GameDiv');
+      const matrix = new DOMMatrix(getComputedStyle(frame).transform);
+      const bounds = frame.getBoundingClientRect(), visible = probe.cc.view.getVisibleSize();
+      const orientation = rotated
+        ? matrix.b > 0.5 && Math.abs(matrix.a) < 0.01
+        : Math.abs(matrix.b) < 0.01 && matrix.a > 0.5;
+      const settled = orientation && visible.width > visible.height &&
+        innerWidth === width && innerHeight === height &&
+        Math.abs(bounds.width - width) < 1 && Math.abs(bounds.height - height) < 1;
+      probe.matches = settled ? probe.matches + 1 : 0;
+      return probe.matches >= 3;
+    }, { probe: displayProbe, width, height, rotated });
+  };
   const fullscreen = page.locator('[data-game-fullscreen]');
   // Fullscreen is a global setting. Its shared DOM controller is deliberately hidden.
   assert.equal(await fullscreen.isVisible(), false);
@@ -52,11 +72,7 @@ try {
   const resizeBefore = await state();
   for (const width of [305, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.waitForFunction(async () => {
-      const cc = await System.import('cc');
-      const matrix = new DOMMatrix(getComputedStyle(document.getElementById('GameDiv')).transform);
-      return matrix.b > 0.5 && cc.view.getVisibleSize().width > cc.view.getVisibleSize().height;
-    });
+    await waitForDisplay(width, 844, true);
     const geometry = await displayGeometry(page);
     assert.equal(geometry.rotated, true);
     assert.ok(geometry.visible.width > geometry.visible.height);
@@ -72,7 +88,7 @@ try {
   }
   await page.screenshot({ path: fileURLToPath(new URL('display-portrait-held.png', reportsURL)) });
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.waitForFunction(() => Math.abs(new DOMMatrix(getComputedStyle(document.getElementById('GameDiv')).transform).b) < 0.01);
+  await waitForDisplay(844, 390, false);
   await openSettings();
   await tap(480, 244);
   await page.waitForFunction(() => !!document.fullscreenElement);

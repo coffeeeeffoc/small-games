@@ -233,6 +233,17 @@ export class Career {
       xp: this.profile.xp + milestone.xp, claimed: [...this.profile.claimed, id] });
   }
 
+  claimAll(): boolean {
+    const available = milestones.filter((milestone) => !this.profile.claimed.includes(milestone.id) &&
+      this.milestoneProgress(milestone.id) >= milestone.target);
+    if (!available.length) return false;
+    // Commit the rewards and claim ledger together so a storage failure is safe to retry.
+    return this.save({ ...this.profile,
+      coins: bounded(this.profile.coins + available.reduce((sum, milestone) => sum + milestone.coins, 0)),
+      xp: bounded(this.profile.xp + available.reduce((sum, milestone) => sum + milestone.xp, 0)),
+      claimed: [...this.profile.claimed, ...available.map((milestone) => milestone.id)] });
+  }
+
   finish(result: CareerFinish): CareerReward | undefined {
     // The caller supplies the player's final finish time; zero means unfinished.
     if (!result || !validRaceId(result.id) || this.rewarded.includes(result.id) ||

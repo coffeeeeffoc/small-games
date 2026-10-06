@@ -7,10 +7,10 @@ import { createEntityPainter } from './entities.mjs';
 import { createPickupPainter } from './pickups.mjs';
 import { createEffectPainter } from './effects.mjs';
 
-const PHONE_VIEW_WIDTH = 540;
+const PHONE_VIEW_WIDTH = 640;
 
 /** Render supplied state. Room geometry and chapter identity come from its definition. */
-export function createRenderer(canvas) {
+export function createRenderer(canvas, coordinates = {}) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const sprites = Object.fromEntries(
     Object.entries(SPRITES).map(([name, spec]) => [name, makeSprite(spec)]),
@@ -43,6 +43,10 @@ export function createRenderer(canvas) {
   let cameraX = 0,
     cameraY = 0,
     lastState = null,
+    lastContext = {},
+    bridgeCamera = false,
+    returningCamera = false,
+    lastCameraTime = null,
     destroyed = false;
   let lastPlayerX = null,
     lastPlayerY = null,
@@ -54,59 +58,110 @@ export function createRenderer(canvas) {
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
-    width = Math.max(1, rect.width || canvas.clientWidth || 960);
-    height = Math.max(1, rect.height || canvas.clientHeight || 600);
+    // client dimensions describe the logical canvas before the mobile
+    // landscape container is rotated; its bounding box swaps these axes.
+    width = Math.max(1, canvas.clientWidth || rect.width || 960);
+    height = Math.max(1, canvas.clientHeight || rect.height || 600);
     pixelRatio = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(width * pixelRatio);
     canvas.height = Math.round(height * pixelRatio);
-    updateCamera(lastState?.player);
+    updateCamera(lastState?.player, lastContext, true);
   }
 
-  function updateCamera(player) {
-    const portrait = width / height < 1.12;
-    if (portrait) {
-      // A fixed horizontal field of view keeps enemies and bridge anchors in
-      // sight on tall phones. Follow vertically inside the space between the
-      // heading and thumb controls instead of letting feet disappear below UI.
-      const viewW = Math.min(PHONE_VIEW_WIDTH, worldWidth);
-      scale = width / viewW;
-      const safeTop = Math.min(95, height * 0.22);
-      const safeBottom = Math.min(135, height * 0.25);
-      const safeHeight = Math.max(100, height - safeTop - safeBottom);
-      const viewH = safeHeight / scale;
-      cameraX = CLAMP(
-        (player?.x ?? worldWidth / 2) - viewW / 2,
-        0,
-        Math.max(0, worldWidth - viewW),
-      );
-      cameraY =
-        viewH < worldHeight
-          ? CLAMP((player?.y ?? worldHeight / 2) - viewH * 0.52, 0, worldHeight - viewH)
-          : 0;
-      offsetX = 0;
-      offsetY = safeTop + Math.max(0, (safeHeight - worldHeight * scale) / 2);
+  function updateCamera(player, context = {}, snap = false) {
+    // Fill the landscape screen. A closer phone camera makes the traveller,
+    // nearby opponents and pickup silhouettes readable under the thumb HUD.
+    const phone = height <= 500,
+      viewW = Math.min(phone ? PHONE_VIEW_WIDTH : worldWidth, worldWidth);
+    const normalScale = Math.max(width / viewW, height / worldHeight),
+      visibleW = width / normalScale,
+      visibleH = height / normalScale,
+      safeTop = Math.min(56, height * 0.13),
+      safeBottom = Math.min(105, height * 0.24),
+      playerScreenY = safeTop + (height - safeTop - safeBottom) * 0.5;
+    const normalX = CLAMP(
+      (player?.x ?? worldWidth / 2) - visibleW / 2,
+      0,
+      Math.max(0, worldWidth - visibleW),
+    );
+    const normalY = CLAMP(
+      (player?.y ?? worldHeight / 2) - playerScreenY / normalScale,
+      0,
+      Math.max(0, worldHeight - visibleH),
+    );
+    offsetX = 0;
+    offsetY = 0;
+    const room = lastState?.rooms[lastState.roomId],
+      undrawn = (room?.bridges || []).filter((bridge) => !bridge.drawn),
+      start = context.drawStroke?.[0] || player;
+    const nearby = undrawn
+      .filter((bridge) =>
+        context.drawBridgeId === bridge.id || context.drawMode ||
+        (start && Math.hypot(start.x - bridge.from.x, start.y - bridge.from.y) <= 150))
+      .sort((a, b) =>
+        Math.hypot((start?.x || 0) - a.from.x, (start?.y || 0) - a.from.y) -
+        Math.hypot((start?.x || 0) - b.from.x, (start?.y || 0) - b.from.y));
+    const bridge = nearby.find((item) => item.id === context.drawBridgeId) || nearby[0];
+    const now = context.time ?? 0,
+      dt = lastCameraTime === null ? 0 : CLAMP(now - lastCameraTime, 0, 0.06);
+    lastCameraTime = now;
+    if (bridge && player) {
+      const padding = 30,
+        points = [player, bridge.from, bridge.to],
+        minX = Math.min(...points.map((point) => point.x)) - padding,
+        maxX = Math.max(...points.map((point) => point.x)) + padding,
+        minY = Math.min(...points.map((point) => point.y)) - padding,
+        maxY = Math.max(...points.map((point) => point.y)) + padding,
+        // Also clear the brief first-run/continue toast beneath the top HUD.
+        top = Math.min(112, height * 0.35),
+        bottom = Math.min(105, Math.max(70, height * 0.24)),
+        usableHeight = Math.max(80, height - top - bottom);
+      scale = Math.min(normalScale, (width - 56) / (maxX - minX), usableHeight / (maxY - minY));
+      cameraX = (minX + maxX) / 2 - width / (2 * scale);
+      // The bridge endpoints take priority over keeping the room's outer edge
+      // flush with the viewport. Any extra paper sits beneath the HUD.
+      cameraY = (minY + maxY) / 2 - (top + usableHeight / 2) / scale;
+      bridgeCamera = true;
+      returningCamera = false;
       return;
     }
-    scale = Math.min(width / worldWidth, height / worldHeight);
-    cameraX = 0;
-    cameraY = 0;
-    offsetX = Math.max(0, (width - worldWidth * scale) / 2);
-    offsetY = Math.max(0, (height - worldHeight * scale) / 2);
+    if (bridgeCamera) returningCamera = true;
+    bridgeCamera = false;
+    if (returningCamera && !snap) {
+      const ease = 1 - Math.exp(-dt * 12);
+      scale += (normalScale - scale) * ease;
+      cameraX += (normalX - cameraX) * ease;
+      cameraY += (normalY - cameraY) * ease;
+      if (Math.abs(normalScale - scale) < 0.001 && Math.hypot(normalX - cameraX, normalY - cameraY) < 0.5)
+        returningCamera = false;
+    } else {
+      scale = normalScale;
+      cameraX = normalX;
+      cameraY = normalY;
+      returningCamera = false;
+    }
   }
 
   function screenToWorld(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
+    const point = coordinates.clientToElement
+      ? coordinates.clientToElement(canvas, clientX, clientY)
+      : { x: clientX - rect.left, y: clientY - rect.top };
     return {
-      x: (clientX - rect.left - offsetX) / scale + cameraX,
-      y: (clientY - rect.top - offsetY) / scale + cameraY,
+      x: (point.x - offsetX) / scale + cameraX,
+      y: (point.y - offsetY) / scale + cameraY,
     };
   }
 
   function worldToScreen(x, y) {
+    const localX = offsetX + (x - cameraX) * scale,
+      localY = offsetY + (y - cameraY) * scale;
+    if (coordinates.elementToClient)
+      return coordinates.elementToClient(canvas, localX, localY);
     const rect = canvas.getBoundingClientRect();
     return {
-      x: rect.left + offsetX + (x - cameraX) * scale,
-      y: rect.top + offsetY + (y - cameraY) * scale,
+      x: rect.left + localX,
+      y: rect.top + localY,
     };
   }
 
@@ -121,31 +176,41 @@ export function createRenderer(canvas) {
   const { drawPickup } = createPickupPainter(painter, () => lastState);
   const { drawEffect } = createEffectPainter(painter, () => lastState);
 
-  function render(state, { time = 0, drawStroke = null, aimPoint = null, paused = false } = {}) {
+  function render(state, { time = 0, drawStroke = null, drawMode = false, drawBridgeId = null, aimPoint = null, paused = false } = {}) {
     if (destroyed || !state) return;
     if (lastState !== state) {
       lastDamageId = null;
       hurtUntil = 0;
       lastPlayerX = null;
       lastPlayerY = null;
+      bridgeCamera = false;
+      returningCamera = false;
+      lastCameraTime = null;
     }
     lastState = state;
+    lastContext = { time, drawStroke, drawMode, drawBridgeId };
     const player = state.player;
     const room = state.rooms[state.roomId];
     worldWidth = room.width || 960;
     worldHeight = room.height || 600;
     walking =
       lastPlayerX !== null && Math.hypot(player.x - lastPlayerX, player.y - lastPlayerY) > 0.1;
-    const damage = state.effects?.findLast(
-      (effect) => effect.type === 'hit' && effect.source === 'damage',
-    );
+    // Array.findLast is absent from older iOS Safari and Android WebViews.
+    let damage;
+    const effects = state.effects || [];
+    for (let index = effects.length - 1; index >= 0; index--) {
+      if (effects[index].type === 'hit' && effects[index].source === 'damage') {
+        damage = effects[index];
+        break;
+      }
+    }
     if (damage && damage.id !== lastDamageId) {
       hurtUntil = time + 0.22;
       lastDamageId = damage.id;
     }
     lastPlayerX = player.x;
     lastPlayerY = player.y;
-    updateCamera(player);
+    updateCamera(player, lastContext);
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.fillStyle = pagePaper || '#ded0b0';
     ctx.fillRect(0, 0, width, height);
