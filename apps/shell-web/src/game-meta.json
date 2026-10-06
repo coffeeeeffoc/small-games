@@ -408,6 +408,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "tetracube": {
+      "source": "games/local/tetracube",
+      "created": {
+        "commit": "eed49ae91d167250e3ded57e08fcb15ac58df4a1",
+        "time": "2026-10-06T19:20:40Z"
+      },
+      "updated": {
+        "commit": "eed49ae91d167250e3ded57e08fcb15ac58df4a1",
+        "time": "2026-10-06T19:20:40Z"
+      }
+    },
     "tiny-signals": {
       "source": "games/local/tiny-signals",
       "created": {
