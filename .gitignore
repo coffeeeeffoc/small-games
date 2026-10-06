@@ -35,7 +35,7 @@ outputs/
 /test-results/surprise-kept/
 /test-results/dev-mode/
 
-# AOCI agent host integration (machine-bound; do not commit)
+# Machine-specific agent configuration and backups (do not commit)
 .codex/config.toml
 .codex/config.toml.backup.*
 .mcp.json
