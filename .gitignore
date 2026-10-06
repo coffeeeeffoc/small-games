@@ -34,3 +34,16 @@ outputs/
 /test-results/game-meta/
 /test-results/surprise-kept/
 /test-results/dev-mode/
+
+# AOCI agent host integration (machine-bound; do not commit)
+.codex/config.toml
+.codex/config.toml.backup.*
+.mcp.json
+.mcp.json.backup.*
+.claude/settings.json
+.claude/settings.json.backup.*
+.cursor/mcp.json
+.cursor/mcp.json.backup.*
+opencode.json
+opencode.json.backup.*
+AGENTS.md.backup.*
