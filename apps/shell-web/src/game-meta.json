@@ -298,6 +298,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "moss-garden": {
+      "source": "games/local/game-moss-garden",
+      "created": {
+        "commit": "410b512b748dd3279bc75e823810f2d8e967688e",
+        "time": "2026-10-06T15:32:41Z"
+      },
+      "updated": {
+        "commit": "410b512b748dd3279bc75e823810f2d8e967688e",
+        "time": "2026-10-06T15:32:41Z"
+      }
+    },
     "multi-battle": {
       "source": "games/local/multi-battle",
       "created": {
