@@ -183,10 +183,43 @@ test('first-nine native checks build only mapped games across five platforms, th
   assert(
     calls.every(
       (call) =>
-        call[3].NATIVE_OUTPUT_ROOT === '/candidate/apps/shell-minigame/dist/nine-games' &&
-        call[3].NATIVE_SCREENSHOT_ROOT === '/candidate/.scratch/nine-native-validation/screenshots',
+        call[3].NATIVE_OUTPUT_ROOT ===
+          path.join('/candidate', 'apps/shell-minigame/dist/nine-games') &&
+        call[3].NATIVE_SCREENSHOT_ROOT ===
+          path.join('/candidate', '.scratch/nine-native-validation/screenshots'),
     ),
   );
+  // On Windows this exercises an actual drive-qualified native path, including
+  // spaces and Unicode. Preserve the relationship between cwd and both outputs.
+  const nativeRoot = path.join(os.tmpdir(), 'native candidate 游戏');
+  const nativeCalls = [];
+  runNineNativeChecks({
+    plan,
+    packages: [host],
+    root: nativeRoot,
+    env: {},
+    execute: (...args) => nativeCalls.push(args),
+  });
+  assert.equal(nativeCalls.length, calls.length);
+  for (const call of nativeCalls) {
+    assert.equal(call[2], nativeRoot);
+    assert.equal(
+      call[3].NATIVE_OUTPUT_ROOT,
+      path.join(nativeRoot, 'apps', 'shell-minigame', 'dist', 'nine-games'),
+    );
+    assert.equal(
+      call[3].NATIVE_SCREENSHOT_ROOT,
+      path.join(nativeRoot, '.scratch', 'nine-native-validation', 'screenshots'),
+    );
+    assert.equal(
+      path.relative(nativeRoot, call[3].NATIVE_OUTPUT_ROOT),
+      path.join('apps', 'shell-minigame', 'dist', 'nine-games'),
+    );
+    assert.equal(
+      path.relative(nativeRoot, call[3].NATIVE_SCREENSHOT_ROOT),
+      path.join('.scratch', 'nine-native-validation', 'screenshots'),
+    );
+  }
   for (const key of ['test', 'build:nine']) {
     const rejected = [];
     assert.throws(
