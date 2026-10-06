@@ -48,6 +48,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
         private: true,
         packageManager: 'pnpm@12.6.0',
         volta: { node: '24.21.0' },
+        devDependencies: { prettier: '3.6.2' },
         scripts: {
           'format:check': 'node -e "console.log(\'fixture formatting ran\')"',
           'check:games': 'node -e "console.log(\'fixture registration ran\')"',
