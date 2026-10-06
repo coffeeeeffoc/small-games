@@ -33,7 +33,6 @@ outputs/
 /test-results/building-power/
 /test-results/game-meta/
 /test-results/surprise-kept/
-/test-results/tetracube/
 /test-results/dev-mode/
 
 # Machine-specific agent configuration and backups (do not commit)
