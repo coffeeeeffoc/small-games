@@ -57,9 +57,9 @@ async function loadChromium() {
   const candidates = [
     process.env.PLAYWRIGHT_EXECUTABLE_PATH,
     process.env.CHASE_CHROMIUM,
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
   ].filter(Boolean);
+  // Use the project-pinned Playwright browser unless a local override is explicit.
+  // A system Chromium may drift from the version installed by CI.
   let executablePath;
   for (const candidate of candidates) {
     try {
@@ -89,17 +89,13 @@ async function makePage(viewport = { width: 390, height: 844 }, init) {
       document.addEventListener(
         type,
         (event) => {
+          if (!event.target.closest?.('#game')) return;
           const button = event.target.closest?.('button');
-          if (
-            !button ||
-            !['start', 'pause', 'resume', 'left', 'right'].includes(
-              button.id || button.dataset.action,
-            )
-          )
-            return;
           window.chaseInputEvents.push({
             type,
-            target: button.id || button.dataset.action,
+            target: button
+              ? button.id || button.dataset.action
+              : event.target.id || event.target.tagName,
             detail: event.detail,
             pointerType: event.pointerType,
             trusted: event.isTrusted,
