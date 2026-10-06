@@ -3,7 +3,10 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "exports": { "./canvas": "./native/canvas.js" },
+  "exports": {
+    "./canvas": "./native/canvas.js",
+    "./build-plugin": "./native/shared-source.mjs"
+  },
   "coffeeeeffoc": { "role": "game" },
   "scripts": {
     "dev": "node server.mjs",

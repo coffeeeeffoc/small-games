@@ -3,7 +3,7 @@ import { wechatPlatform } from '@coffeeeeffoc/platform-wechat/build';
 import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
-import { wulongSharedSourcePlugin } from '../../../games/local/wulong-city/native/shared-source.mjs';
+import { wulongSharedSourcePlugin } from '@coffeeeeffoc/wulong-city/build-plugin';
 export const games = {
   'wulong-city': {
     title: '乌龙城',
