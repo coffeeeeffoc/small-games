@@ -12,6 +12,8 @@
 
 外滩已迁移至原生 WebGL2 Canvas + R3F createRoot，复用原 Scene、398 个原 GLB、真实 Rapier WASM 和官方 Draco JS 解码器；不依赖 React DOM、WebView 或假物理。原生 Canvas HUD 提供主页、路线、寻景、设置、帮助、暂停返回与照片手记。宿主没有 TextDecoder 时使用经过契约比对的 UTF-8 解码实现。完整远程原场景 38,142,217 字节逐文件固定 SHA256；复用现有 H5 Pages 资源，未向 Pages 复制原生包或新增重复模型。主包含 WASM、参考图、音频和许可，构建器将 wrapper/config/完整性 manifest 全计入 4,000,000 字节预算。
 
+外滩 H5 的软件 GPU 降级限定于浏览器渲染入口：先读取真实 WebGL 渲染器，再挂载场景；明确识别 SwiftShader/llvmpipe/lavapipe 时使用现有流畅画质，并将绘制像素限制到 250,000。连续绘制提交返回后留出至少 50ms 间隔，物理仍按原 RAF 更新；首次及静止页面绘制不跳过，摄影在读取真实画布前同步绘制当前场景。玩家的画质存档不改，硬件或未能识别的 GPU 使用原策略。此入口在原生生成截断标记之后，五个原生包 payload 保持不变。软件 GPU 能力检测通过不等于完整玩法、真机或平台验收通过。
+
 ## 命令与环境变量
 
 要求 Node `24.21.0` / pnpm `12.6.0`。本云环境工具链位于 `/tmp/small-games-toolchain/node_modules/.bin`；依赖使用冻结锁安装。
