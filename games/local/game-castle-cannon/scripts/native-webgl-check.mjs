@@ -25,6 +25,10 @@ for(const event of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Sh
 const server = createServer(async (req, res) => {
   try {
     const p = new URL(req.url, 'http://local').pathname;
+    if (p === '/favicon.ico') {
+      res.writeHead(204).end();
+      return;
+    }
     if (p === '/') {
       res.setHeader('Content-Type', 'text/html');
       return res.end(fixture);
@@ -61,7 +65,10 @@ try {
     console.error('Page error:', String(e));
   });
   page.on('console', (m) => {
-    if (m.type() === 'error') console.error('Browser error:', m.text());
+    if (m.type() === 'error') {
+      errors.push(m.text());
+      console.error('Browser error:', m.text());
+    }
   });
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await expect.poll(() => page.evaluate(() => window.nativeReady), { timeout: 30000 }).toBe(true);

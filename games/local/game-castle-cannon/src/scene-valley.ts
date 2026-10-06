@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { MeshKit } from './scene-mesh.js';
 import { grassTuft } from './scene-foliage.js';
+import { routeCenter } from './scene-space.js';
 export const riverCenter = (z: number) => -31 + (15 - z) * 0.19;
 export const riverSurface = (z: number) => (z < -42 ? -1.2 : -5.6);
 /** Stratified banks and tufts are original geometry, with a clear flat troop route. */
@@ -31,10 +32,7 @@ export function valleyDetails(k: MeshKit, g: T.Group, height: (x: number, z: num
   for (let i = 0; i < 650; i++) {
     const x = -47 + ((i * 13.731) % 76),
       z = -36 + ((i * 19.319) % 86);
-    if (
-      (Math.abs(x - (11.5 + Math.min(8.5, Math.max(0, 14 - z)))) < 4.4 && z > -17) ||
-      Math.abs(x - riverCenter(z)) < 7
-    )
+    if ((Math.abs(x - routeCenter(z)) < 4.4 && z > -17) || Math.abs(x - riverCenter(z)) < 7)
       continue;
     if (x > -11 && z < 15) continue;
     const key = `tuft:${i % 4}`;

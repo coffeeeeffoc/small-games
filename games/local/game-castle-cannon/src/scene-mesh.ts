@@ -4,6 +4,8 @@ import { spruceCrown } from './scene-foliage.js';
 import { chamferedBox } from './scene-geometry.js';
 import { sculptedGeometry } from './scene-sculpture.js';
 import masonryModel from './models/masonry.json';
+import { drapedBanner } from './scene-banner.js';
+import { bedrockGeometry } from './scene-rock.js';
 import { compactMeshes } from './scene-compact.js';
 const woodColors = new Set([
   '#8d6236',
@@ -67,7 +69,7 @@ export class MeshKit {
       const color = key.split(':')[0]!;
       if (stone && stoneColors.has(color)) {
         material.map = stone;
-        material.color.lerp(new T.Color('#ffffff'), 0.55);
+        material.color.set(color).lerp(new T.Color('#ffffff'), 0.68);
       }
       if (wood && woodColors.has(color)) {
         material.map = wood;
@@ -98,7 +100,7 @@ export class MeshKit {
   }
   material(color: string, metal = 0, roughness = 0.85) {
     const key = `${color}:${metal}:${roughness}`;
-    if (!this.materials.has(key))
+    if (!this.materials.has(key)) {
       this.materials.set(
         key,
         new T.MeshStandardMaterial({
@@ -118,6 +120,10 @@ export class MeshKit {
           bumpScale: stoneColors.has(color) ? 0.06 : 0.045,
         }),
       );
+      // Targets created after asynchronous textures load share the static architecture's grading.
+      if (this.stoneImage && stoneColors.has(color))
+        this.materials.get(key)!.color.set(color).lerp(new T.Color('#ffffff'), 0.68);
+    }
     return this.materials.get(key)!;
   }
   mesh(
@@ -198,18 +204,7 @@ export class MeshKit {
   }
   rock(parent: T.Object3D, x: number, y: number, z: number, scale: number, color = '#938b73') {
     const key = 'rock';
-    if (!this.geometries.has(key)) {
-      const geometry = new T.IcosahedronGeometry(1, 1),
-        v = geometry.getAttribute('position');
-      for (let i = 0; i < v.count; i++) {
-        const x = v.getX(i),
-          y = v.getY(i),
-          z = v.getZ(i),
-          n = 1 + Math.sin(x * 19 + y * 13 + z * 11) * 0.09;
-        v.setXYZ(i, x * n, y * n, z * n);
-      }
-      this.geometries.set(key, geometry);
-    }
+    if (!this.geometries.has(key)) this.geometries.set(key, bedrockGeometry());
     const m = this.mesh(parent, this.geometries.get(key)!, color, x, y, z);
     m.scale.set(scale, scale * 0.65, scale * 0.85);
     m.rotation.set(x * 1.7, z * 2.1, x + z);
@@ -252,6 +247,9 @@ export class MeshKit {
       '#edd59b',
     );
     crest.scale.z = 0.1;
+  }
+  banner(parent: T.Object3D, x: number, y: number, z: number, w: number, h: number, blue = false) {
+    drapedBanner(this, parent, x, y, z, w, h, blue);
   }
   person(blue = true, pose: PersonPose = 'march') {
     return createPerson(this, blue, pose);

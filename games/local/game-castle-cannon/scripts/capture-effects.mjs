@@ -8,6 +8,10 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const server = createServer(async (req, res) => {
   try {
     const p = new URL(req.url, 'http://local').pathname;
+    if (p === '/favicon.ico') {
+      res.writeHead(204).end();
+      return;
+    }
     res.setHeader(
       'Content-Type',
       p.endsWith('.js')
@@ -49,6 +53,14 @@ const names = process.env.SIEGE_CAPTURE_NAMES
 try {
   for (const name of names) {
     const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(String(error)));
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        console.error(message.text());
+        errors.push(message.text());
+      }
+    });
     // Only artifact inspection controls time. This runs real rule timers without changing battle state.
     // Browser compositor and native input stay available; full gameplay checks use real time.
     const epoch = new Date('2026-10-06T08:00:00Z');
@@ -191,6 +203,7 @@ try {
       metrics: JSON.parse(await attr('data-renderer')),
       status: await attr('aria-label'),
     });
+    if (errors.length) throw new Error(`Runtime errors during capture: ${errors.join('\n')}`);
     const png = await cdp.send('Page.captureScreenshot', {
       format: 'png',
       captureBeyondViewport: false,

@@ -1,0 +1,56 @@
+[
+  {
+    "name": "actual-composition",
+    "snapshotClock": "Playwright controlled timers in <=250ms chunks; genuine CDP mouse; actual rule substeps, no battle state edits",
+    "metrics": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 18,
+      "frameBattleTime": 3.131999999999997,
+      "impact": {
+        "x": 590,
+        "y": 280,
+        "ammo": "solid",
+        "age": 0.57,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "lowPower": false,
+      "triangles": 95228,
+      "calls": 83,
+      "cachedWorldTriangles": 489416,
+      "cachedWorldCalls": 187,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 174
+    },
+    "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 1；装填 0.00；"
+  },
+  {
+    "name": "actual-battle",
+    "snapshotClock": "Playwright controlled timers in <=250ms chunks; genuine CDP mouse; actual rule substeps, no battle state edits",
+    "metrics": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 20,
+      "frameBattleTime": 3.5159999999999956,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 0.13599999999999995,
+        "core": true,
+        "halo": true,
+        "flyingStone": 18,
+        "smoke": 9
+      },
+      "lowPower": false,
+      "triangles": 99446,
+      "calls": 115,
+      "cachedWorldTriangles": 490106,
+      "cachedWorldCalls": 222,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 176
+    },
+    "status": "playing；兵力 11；损失 1；占领 0%；箭塔开裂，再来一炮；发射 2；装填 2.28；炮弹出膛"
+  }
+]
