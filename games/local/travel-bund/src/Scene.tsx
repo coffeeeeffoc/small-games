@@ -903,16 +903,26 @@ export function Scene(props: Props) {
 }
 
 // The homepage and tour share one runtime and viewpoint; inactive views render on demand.
+// This browser-only import stays below the native Scene generation boundary.
+import { isSoftwareRenderer, effectiveRendererQuality } from './renderer-capabilities';
+
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
+  const [softwareRenderer, setSoftwareRenderer] = useState(false);
+  const quality = effectiveRendererQuality(props.quality, softwareRenderer);
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     // Measure the logical layout, not the swapped bounding box of CSS rotation.
     resize={{ offsetSize: true }}
     shadows
-    dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
+    dpr={[quality === 0 ? .85 : 1, quality === 0 ? .85 : quality === 1 ? 1.25 : 2]}
     camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
       powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
-    onCreated={({gl})=>props.onRenderer(gl)}>
-    <Suspense fallback={null}><Scene {...props}/></Suspense>
+    onCreated={({gl, setDpr})=>{
+      const software = isSoftwareRenderer(gl.getContext());
+      if (software) setDpr(.85);
+      setSoftwareRenderer(software);
+      props.onRenderer(gl);
+    }}>
+    <Suspense fallback={null}><Scene {...props} quality={quality}/></Suspense>
   </Canvas>;
 }
