@@ -322,6 +322,9 @@ importers:
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
+      '@coffeeeeffoc/wulong-city':
+        specifier: workspace:*
+        version: link:../../games/local/wulong-city
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -1550,6 +1553,10 @@ importers:
   games/local/weather-command: {}
 
   games/local/wulong-city:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
     devDependencies:
       '@playwright/test':
         specifier: 1.55.1

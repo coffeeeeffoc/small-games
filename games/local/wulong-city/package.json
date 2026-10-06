@@ -1,8 +1,12 @@
 {
   "name": "@coffeeeeffoc/wulong-city",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./canvas": "./native/canvas.js",
+    "./build-plugin": "./native/shared-source.mjs"
+  },
   "coffeeeeffoc": { "role": "game" },
   "scripts": {
     "dev": "node server.mjs",
@@ -13,7 +17,14 @@
     "test:browser": "node tests/playtest.mjs",
     "test:keyboard": "node tests/keyboard.mjs",
     "test:lifecycle": "node tests/lifecycle.mjs",
-    "test:progression": "node tests/progression.mjs"
+    "test:progression": "node tests/progression.mjs",
+    "test:mobile": "node tests/mobile.mjs",
+    "build:native": "node ../../../apps/shell-minigame/scripts/build.mjs --game wulong-city",
+    "test:native": "node ../../../scripts/native-game-smoke.mjs --standalone --game wulong-city",
+    "test:native:browser": "node native/browser-check.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/game-contract": "workspace:*"
   },
   "devDependencies": { "@playwright/test": "1.55.1" }
 }

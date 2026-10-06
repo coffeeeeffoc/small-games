@@ -16,6 +16,8 @@ git push origin <已验证候选SHA>:refs/heads/dev
 
 入口测试使用语义选择器与实际页面状态，不依赖皮肤、坐标或自动接受截图。主页必须可见，开始后棋盘可操作，暂停/主页/返回目录路径及未完成拼写恢复须保持。入口和导航行为变更必须同步更新测试契约，行为回归仍应失败。增量门禁不能保证大改零失败，线上 CI/Pages 是独立验收；保留其全量兜底和部署检查。
 
+原生冒烟工具的明确消费者为 `shell-minigame` 与 `shell-bilibili`，改动时执行两个宿主的构建、类型、lint、规则测试和实际 smoke。开发模式浏览器工具仅对可证明的游戏 ID 条件与已有乌龙城手机入口断言变化进行定向分类，检查相关注册游戏并保留公共导航样本；共通执行代码变化仍需定义范围。已有注册游戏新增原生 Canvas 接线时，锁文件必须逐块证明新增 workspace 链接及对应 manifest，并要求其余字节与基线一致；外部依赖、resolution、重复块或不能证明的变化继续阻断。
+
 GitHub API 修改分支不会触发本地 hook。云端、worktree、API 发布也必须在更新 ref **之前**用上述命令验证最终候选 SHA；如果 ref 已变化，重新合并、生成候选并重新验证。当前未启用远端分支保护，因此 API/忽略 hook 的发布只能由流程要求约束，不能声称本地 hook 强制保护所有写入方式。最终交付必须核对 CI/Pages 对应 head SHA、状态和部署 URL；本地通过不等于线上发布完成。
 
 Cocos 输入仍严格要求 Creator 3.8.8，或 source hash 匹配且包含 `dist/index.html`、`dist/build-info.json` 和 `cc.d.ts` 的产物，通过既有验证后才查 Turbo 缓存。`KART_PREBUILT_DIR` / `NIGHT_OVERWATCH_PREBUILT_DIR` 可指向匹配制品。源码/运行素材变化需要 Creator 环境重建；源码未改可复用 Windows 缓存并由 Linux 验证。缺递归 gitlinks/素材、缺匹配制品及编辑器、工具链不符均属于明确环境/输入阻塞，区别于规则/导航断言失败；禁止伪造编辑器、声明或制品来通过。

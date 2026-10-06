@@ -32,7 +32,7 @@ export const markers = {
   'surprise-kept': '#game[data-ready="true"]',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
-  'wulong-city': '[data-zone="shy-door"]',
+  'wulong-city': '#start-game',
   'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
   'night-overwatch': '#GameCanvas',
@@ -60,6 +60,7 @@ export const markers = {
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
+  'wulong-city': '#start-game',
   'orbit-atelier': '[data-action="start"]',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
@@ -105,7 +106,6 @@ export const legacyEntryIds = [
   'surprise-kept',
   'one-stroke-course',
   'hold-tight-acrobats',
-  'wulong-city',
   'carding-car',
   'night-overwatch',
   'night-merge',

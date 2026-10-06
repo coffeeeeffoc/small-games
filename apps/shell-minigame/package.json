@@ -20,6 +20,7 @@
     "test:competition": "node ../../scripts/competition-native-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/wulong-city": "workspace:*",
     "@coffeeeeffoc/game-moss-garden": "workspace:*",
     "@coffeeeeffoc/platform-wechat": "workspace:*",
     "@coffeeeeffoc/platform-douyin": "workspace:*",

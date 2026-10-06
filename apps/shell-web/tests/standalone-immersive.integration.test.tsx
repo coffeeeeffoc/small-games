@@ -31,7 +31,14 @@ async function mounted(id = ink) {
   return { container, root, frame, send, exit, dispose, origin };
 }
 
-it.each(['orbit-atelier', 'ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'])(
+it.each([
+  'orbit-atelier',
+  'ink-is-everything',
+  'ball-roguelite',
+  'xiangqi-five',
+  'letters-words2',
+  'wulong-city',
+])(
   'lets the %s frame hide its navigation during play, restore home exit, and exit normally',
   async (id) => {
     const { container, send, exit, dispose } = await mounted(id);
@@ -133,12 +140,12 @@ it('keeps other games navigation and sharing controls after an ink display messa
   try {
     await send(displayState());
     await act(async () =>
-      root.render(<StandaloneGame id="wulong-city" title="乌龙城" onExit={exit} />),
+      root.render(<StandaloneGame id="weather-command" title="天气指挥所" onExit={exit} />),
     );
     expect(container.querySelector('main')?.hasAttribute('data-immersive')).toBe(false);
     const nav = container.querySelector('nav')!;
     expect(nav.hidden).toBe(false);
-    expect(nav.querySelector('strong')?.textContent).toBe('乌龙城');
+    expect(nav.querySelector('strong')?.textContent).toBe('天气指挥所');
     expect(nav.querySelector('[data-game-fullscreen]')).not.toBeNull();
     expect(nav.querySelector('a')?.textContent).toBe('独立打开');
     expect(
