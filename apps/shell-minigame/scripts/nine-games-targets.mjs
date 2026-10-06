@@ -42,7 +42,7 @@ export const nineGames = [
   {
     id: 'xiangqi-five',
     title: '象五子棋',
-    directory: 'games/local/xiangqi-five-native',
+    directory: 'platforms/competition/xiangqi-five',
     entry: 'native.js',
     start: 'startNativeXiangqiGame',
     orientation: 'portrait',

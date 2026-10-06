@@ -10,7 +10,7 @@ import { startNativeCopsGame } from '../games/local/cops-robbers/src/native.js';
 import { startNativeStreetGame } from '../games/local/cops-robbers-realtime/src/native.js';
 import { startNativeLettersGame } from '../games/local/letters-words2/native.js';
 import { startNativeHistoryGame } from '../games/local/vibeJam-myself-history-guess/native.js';
-import { startNativeXiangqiGame } from '../games/local/xiangqi-five-native/native.js';
+import { startNativeXiangqiGame } from '../platforms/competition/xiangqi-five/native.js';
 
 for (const [id, start, entry] of [
   ['cops-robbers', startNativeCopsGame, '学习 / 帮助 / 设置'],
@@ -123,10 +123,10 @@ if (process.env.BILIBILI_BROWSER === '1') {
     ],
     [
       'xiangqi-five',
-      'games/local/xiangqi-five-native/native.js',
+      'platforms/competition/xiangqi-five/native.js',
       'startNativeXiangqiGame',
       '玩法与设置',
-      'games/local/xiangqi-five-native/docs/design',
+      'platforms/competition/xiangqi-five/docs/design',
     ],
   ];
   const html = (
