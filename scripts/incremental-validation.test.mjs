@@ -124,7 +124,12 @@ test('per-game literal adapters are narrow, executable changes in the same file 
   assert.equal(shared.has(file), false);
 });
 
-test('native smoke selects both actual native hosts, with static tasks and finite test/smoke gates', async () => {
+const nativeEvidenceProducer = {
+  name: '@coffeeeeffoc/game-building-power',
+  dir: 'games/local/game-building-power',
+  scripts: { 'test:rules': 'vitest run src/simulation.test.ts' },
+};
+test('native smoke selects both actual native hosts and generates candidate replay evidence once before host smoke', async () => {
   const nativePackages = nativeToolConsumers.map(({ dir, smoke }) => ({
     name: dir.split('/').at(-1),
     dir,
@@ -139,7 +144,7 @@ test('native smoke selects both actual native hosts, with static tasks and finit
   const calls = [];
   runIncrementalToolChecks({
     plan: result,
-    packages: nativePackages,
+    packages: [...nativePackages, nativeEvidenceProducer],
     root: '/snapshot',
     env: {},
     execute: (...args) => calls.push(args),
@@ -147,6 +152,7 @@ test('native smoke selects both actual native hosts, with static tasks and finit
   assert.deepEqual(
     calls.map((call) => call[1]),
     [
+      ['--filter', '@coffeeeeffoc/game-building-power', 'test:rules'],
       ['--filter', 'shell-minigame', 'test'],
       ['--filter', 'shell-minigame', 'smoke'],
       ['--filter', 'shell-bilibili', 'test'],
@@ -155,6 +161,44 @@ test('native smoke selects both actual native hosts, with static tasks and finit
   );
   assert.throws(() => plan(['scripts/native-game-smoke.mjs']), /Unreviewed native tool consumer/);
   assert.throws(() => plan(['scripts/new-game-smoke.mjs']), /scope undefined/);
+  for (const evidencePackages of [
+    nativePackages,
+    [...nativePackages, { ...nativeEvidenceProducer, scripts: { 'test:rules': 'vitest run' } }],
+    [...nativePackages, { ...nativeEvidenceProducer, name: 'unreviewed-producer' }],
+  ]) {
+    const rejectedCalls = [];
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          plan: result,
+          packages: evidencePackages,
+          root: '/snapshot',
+          env: {},
+          execute: (...args) => rejectedCalls.push(args),
+        }),
+      /Unreviewed native replay evidence producer/,
+    );
+    assert.deepEqual(rejectedCalls, []);
+  }
+  const failedCalls = [];
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        plan: result,
+        packages: [...nativePackages, nativeEvidenceProducer],
+        root: '/snapshot',
+        env: {},
+        execute: (...args) => {
+          failedCalls.push(args);
+          throw new Error('Rule witness generation failed');
+        },
+      }),
+    /Rule witness generation failed/,
+  );
+  assert.deepEqual(
+    failedCalls.map((call) => call[1]),
+    [['--filter', '@coffeeeeffoc/game-building-power', 'test:rules']],
+  );
 });
 
 const devModeFile = 'scripts/test-game-dev-mode.mjs';

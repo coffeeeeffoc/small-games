@@ -175,6 +175,17 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.native_consumers.length) {
+    // The native replay consumes this rule suite's generated action witness.
+    // Generate it inside the exact candidate snapshot before either host smoke.
+    const producer = packages.find((pkg) => pkg.dir === 'games/local/game-building-power');
+    assert(
+      producer?.name === '@coffeeeeffoc/game-building-power' &&
+        producer.scripts?.['test:rules'] === 'vitest run src/simulation.test.ts',
+      'Unreviewed native replay evidence producer: game-building-power test:rules',
+    );
+    execute('pnpm', ['--filter', producer.name, 'test:rules'], root, env, 'logged');
+  }
   for (const dir of plan.native_consumers) {
     const pkg = packages.find((item) => item.dir === dir);
     const consumer = nativeToolConsumers.find((item) => item.dir === dir);
