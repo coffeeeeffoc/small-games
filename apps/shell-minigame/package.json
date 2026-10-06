@@ -15,7 +15,7 @@
     "test:nine:native": "node ../../scripts/nine-canvas-games-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run tests && node --test scripts/nine-games-build.test.mjs scripts/cocos-platform.test.mjs",
     "smoke": "node ../../scripts/native-game-smoke.mjs --standalone",
     "test:competition": "node ../../scripts/competition-native-smoke.mjs",
     "test:nine:resources": "node --test ../../platforms/wechat/tests/native-resources.test.mjs ../../platforms/bilibili/tests/native-resources.test.mjs ../../platforms/douyin/tests/native-resources.test.mjs ../../platforms/kuaishou/tests/native-resources.test.mjs ../../platforms/alipay/tests/native-resources.test.mjs"
