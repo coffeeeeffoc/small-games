@@ -2,7 +2,6 @@
 const TAU = Math.PI * 2;
 const MINT = '#6df7d6';
 const CYAN = '#68dcff';
-const AXES = ['x', 'y', 'z'];
 const PALETTE = {
   cyan: CYAN,
   mint: MINT,
@@ -97,9 +96,9 @@ const EDGES = [
 function dimensions(value) {
   if (Array.isArray(value)) return value;
   return [
-    value?.x || value?.width || 5,
-    value?.y || value?.depth || 5,
-    value?.z || value?.height || 10,
+    value?.x || value?.width || 6,
+    value?.y || value?.depth || 6,
+    value?.z || value?.height || 12,
   ];
 }
 
@@ -125,27 +124,6 @@ function polygon(ctx, vertices) {
   ctx.closePath();
 }
 
-function gravityAxis(gravity) {
-  if (Array.isArray(gravity)) {
-    const axis = gravity.findIndex((v) => v !== 0);
-    return { axis: axis < 0 ? 2 : axis, sign: gravity[axis] < 0 ? -1 : 1 };
-  }
-  if (gravity && typeof gravity === 'object') {
-    if (gravity.axis !== undefined)
-      return {
-        axis:
-          typeof gravity.axis === 'number' ? gravity.axis : Math.max(0, AXES.indexOf(gravity.axis)),
-        sign: gravity.sign ?? gravity.direction ?? -1,
-      };
-    return gravityAxis([gravity.x || 0, gravity.y || 0, gravity.z || 0]);
-  }
-  if (typeof gravity === 'string') {
-    const axis = AXES.indexOf(gravity.toLowerCase().replace(/[^xyz]/g, ''));
-    return { axis: axis < 0 ? 2 : axis, sign: gravity.includes('+') ? 1 : -1 };
-  }
-  return { axis: 2, sign: -1 };
-}
-
 function resize(canvas) {
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(1, rect.width || canvas.clientWidth || 320);
@@ -164,8 +142,14 @@ export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: true });
-    this.camera = { yaw: Math.PI / 4, pitch: 0.36 };
-    this.dims = [5, 5, 10];
+    this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
+    this.dims = [6, 6, 12];
+    this.flip = null;
+    this.orientation = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ];
     this.width = 320;
     this.height = 400;
     this.scale = 25;
@@ -176,18 +160,52 @@ export class Renderer {
 
   setView(view) {
     if (view === 'top') this.camera = { yaw: 0, pitch: Math.PI / 2 };
-    else if (view === 'front') this.camera = { yaw: 0, pitch: 0.035 };
-    else if (view === 'side') this.camera = { yaw: Math.PI / 2, pitch: 0.035 };
-    else this.camera = { yaw: Math.PI / 4, pitch: 0.36 };
+    else if (view === 'front') this.camera = { yaw: 0, pitch: 0.16 };
+    else if (view === 'side') this.camera = { yaw: Math.PI / 2, pitch: 0.16 };
+    else this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
   }
 
   orbit(dx, dy) {
     this.camera.yaw = (this.camera.yaw + dx * 0.008) % TAU;
-    this.camera.pitch = Math.max(0.04, Math.min(Math.PI / 2, this.camera.pitch + dy * 0.006));
+    this.camera.pitch = Math.max(0.16, Math.min(Math.PI / 2, this.camera.pitch + dy * 0.006));
+  }
+
+  // Screen-space dragging maps to the current horizontal plane, independently of camera yaw.
+  planeDelta(dx, dy) {
+    const sx = (Number.isFinite(dx) ? dx : 0) / Math.max(1, this.scale);
+    const sy = (Number.isFinite(dy) ? dy : 0) / Math.max(1, this.scale);
+    const depth = sy / Math.max(0.12, Math.sin(this.camera.pitch));
+    const c = Math.cos(this.camera.yaw);
+    const s = Math.sin(this.camera.yaw);
+    return { x: c * sx + s * depth, y: -s * sx + c * depth };
+  }
+
+  _rotate([x, y, z]) {
+    if (!this.flip) return [x, y, z];
+    const c = Math.cos(this.flip.angle);
+    const s = Math.sin(this.flip.angle);
+    if (this.flip.axis === 0) return [x, y * c - z * s, y * s + z * c];
+    if (this.flip.axis === 1) return [x * c + z * s, y, -x * s + z * c];
+    return [x * c - y * s, x * s + y * c, z];
+  }
+
+  _normal(axis, sign) {
+    const vector = [0, 0, 0];
+    vector[axis] = sign;
+    return this._rotate(vector);
+  }
+
+  _direction() {
+    return [
+      Math.sin(this.camera.yaw) * Math.cos(this.camera.pitch),
+      Math.cos(this.camera.yaw) * Math.cos(this.camera.pitch),
+      Math.sin(this.camera.pitch),
+    ];
   }
 
   _raw(point) {
-    const [x, y, z] = point.map((v, axis) => v - this.dims[axis] / 2);
+    // Rotate the physical geometry about its center. The camera never follows a container flip.
+    const [x, y, z] = this._rotate(point.map((v, axis) => v - this.dims[axis] / 2));
     const { yaw, pitch } = this.camera;
     const depth = x * Math.sin(yaw) + y * Math.cos(yaw);
     return {
@@ -220,10 +238,11 @@ export class Renderer {
     const maxX = Math.max(...corners.map((p) => p.x));
     const minY = Math.min(...corners.map((p) => p.y));
     const maxY = Math.max(...corners.map((p) => p.y));
-    const margin = this.width < 300 ? 19 : 28;
+    // Fitting the transformed corners is continuous, including the remapped endpoint dimensions.
+    const margin = 10;
     this.scale = Math.min(
       (this.width - margin * 2) / (maxX - minX),
-      (this.height - 38) / (maxY - minY),
+      (this.height - 24) / (maxY - minY),
     );
     this.scale = Math.max(1, this.scale);
     this.centerX = this.width / 2 - ((maxX + minX) * this.scale) / 2;
@@ -259,19 +278,24 @@ export class Renderer {
     });
   }
 
-  _container(gravity, front = false) {
+  _container(front = false) {
     const ctx = this.ctx;
-    const direction = [
-      Math.sin(this.camera.yaw) * Math.cos(this.camera.pitch),
-      Math.cos(this.camera.yaw) * Math.cos(this.camera.pitch),
-      Math.sin(this.camera.pitch),
-    ];
-    const landing = gravityAxis(gravity);
+    const camera = this._direction();
+    const direction = [0, 1, 2].map((axis) =>
+      this._normal(axis, 1).reduce((dot, value, i) => dot + value * camera[i], 0),
+    );
+    const originalUp = this.orientation?.[2] || [0, 0, 1];
+    const markerAxis = originalUp.reduce(
+      (best, value, i) => (Math.abs(value) > Math.abs(originalUp[best]) ? i : best),
+      0,
+    );
+    const markerCoordinate = originalUp[markerAxis] >= 0 ? 0 : this.dims[markerAxis];
     for (let axis = 0; axis < 3; axis++) {
       const near = direction[axis] >= 0 ? this.dims[axis] : 0;
       const coordinate = front ? near : this.dims[axis] - near;
-      const isLanding =
-        axis === landing.axis && coordinate === (landing.sign < 0 ? 0 : this.dims[axis]);
+      const normal = this._normal(axis, coordinate === 0 ? -1 : 1);
+      // Mint marks the actual world-bottom face, even when the container has been inverted.
+      const isLanding = normal[2] < -0.999;
       const plane = this._plane(axis, coordinate);
       if (!front) {
         polygon(ctx, plane);
@@ -289,23 +313,34 @@ export class Renderer {
             from[axis] = to[axis] = coordinate;
             from[a] = to[a] = n;
             to[b] = this.dims[b];
-            this._line(
-              from,
-              to,
-              isLanding ? 'rgba(98,222,197,.19)' : 'rgba(104,161,187,.15)',
-              0.65,
-            );
+            this._line(from, to, isLanding ? 'rgba(98,222,197,.25)' : 'rgba(117,175,194,.22)', 0.7);
           }
         }
       }
       if (isLanding) {
         polygon(ctx, plane);
-        ctx.strokeStyle = 'rgba(111,246,216,.59)';
+        ctx.strokeStyle = 'rgba(111,246,216,.76)';
         ctx.lineWidth = 1.2;
         ctx.shadowColor = MINT;
         ctx.shadowBlur = 7;
         ctx.stroke();
         ctx.shadowBlur = 0;
+      }
+      // Amber corner brackets remain attached to the original floor. They visibly travel to
+      // the roof or side wall during a flip, making the container's orientation unambiguous.
+      if (axis === markerAxis && coordinate === markerCoordinate) {
+        ctx.strokeStyle = 'rgba(255,195,99,.93)';
+        ctx.lineWidth = 2.1;
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const p = plane[i];
+          for (const q of [plane[(i + 1) % 4], plane[(i + 3) % 4]]) {
+            const t = Math.min(0.2, 11 / Math.max(1, Math.hypot(q.x - p.x, q.y - p.y)));
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t);
+          }
+        }
+        ctx.stroke();
       }
     }
     const corners = this._corners();
@@ -316,34 +351,31 @@ export class Renderer {
       ctx.beginPath();
       ctx.moveTo(corners[a].x, corners[a].y);
       ctx.lineTo(corners[b].x, corners[b].y);
-      ctx.strokeStyle = front ? 'rgba(164,215,227,.46)' : 'rgba(129,186,207,.33)';
+      ctx.strokeStyle = front ? 'rgba(170,228,240,.64)' : 'rgba(141,199,216,.46)';
       ctx.stroke();
     });
   }
 
   _cubeFaces(cells, type, faces) {
-    const direction = [
-      Math.sin(this.camera.yaw) * Math.cos(this.camera.pitch),
-      Math.cos(this.camera.yaw) * Math.cos(this.camera.pitch),
-      Math.sin(this.camera.pitch),
-    ];
+    const direction = this._direction();
     for (const cell of cells || []) {
       const pos = position(cell);
       if (pos.some((v) => !Number.isFinite(v))) continue;
-      const opacity = Number.isFinite(cell.opacity) ? Math.max(0, Math.min(1, cell.opacity)) : 1;
-      if (opacity === 0) continue;
-      const rgb = color(type === 'active' ? CYAN : cell.color || MINT);
-      const gap = type === 'ghost' ? 0.026 : 0.035;
+      const rawSize = cell.scale ?? cell.opacity ?? 1;
+      const size = Number.isFinite(rawSize) ? Math.max(0, Math.min(1, rawSize)) : 1;
+      if (size === 0) continue;
+      const rgb = color(cell.color || (type === 'active' ? MINT : CYAN));
+      const side = (type === 'ghost' ? 0.95 : 0.972) * size;
       for (const face of FACES) {
-        if (direction[face.axis] * face.sign < 0.001) continue;
+        const normal = this._normal(face.axis, face.sign);
+        if (normal.reduce((dot, value, i) => dot + value * direction[i], 0) < 0.001) continue;
         const vertices = face.vertices.map((vertex) =>
-          this.project(pos.map((v, a) => v + gap + vertex[a] * (1 - gap * 2))),
+          this.project(pos.map((v, a) => v + 0.5 + (vertex[a] - 0.5) * side)),
         );
         faces.push({
           vertices,
           rgb,
-          opacity,
-          shade: face.shade,
+          shade: 0.75 + normal[2] * 0.25 + normal[0] * 0.07 - normal[1] * 0.04,
           type,
           depth: vertices.reduce((sum, v) => sum + v.depth, 0) / 4,
         });
@@ -353,15 +385,14 @@ export class Renderer {
 
   _drawFaces(faces, time) {
     const ctx = this.ctx;
+    ctx.globalAlpha = 1;
     faces.sort((a, b) => a.depth - b.depth);
     for (const face of faces) {
-      ctx.globalAlpha = face.opacity;
       polygon(ctx, face.vertices);
       if (face.type === 'ghost') {
-        ctx.fillStyle = 'rgba(102,247,211,.045)';
-        ctx.fill();
-        ctx.strokeStyle = `rgba(135,255,225,${0.58 + Math.sin(time * 0.003) * 0.12})`;
-        ctx.lineWidth = 1;
+        // The landing preview is outline-only; solid cubes fully occlude it when in front.
+        ctx.strokeStyle = `rgba(135,255,225,${0.77 + Math.sin(time * 0.003) * 0.12})`;
+        ctx.lineWidth = 1.25;
         ctx.setLineDash([Math.max(2, this.scale * 0.13), Math.max(2, this.scale * 0.085)]);
         ctx.lineDashOffset = -time * 0.004;
         ctx.stroke();
@@ -372,20 +403,17 @@ export class Renderer {
       const active = face.type === 'active';
       const y = face.vertices.map((p) => p.y);
       const gradient = ctx.createLinearGradient(0, Math.min(...y), 0, Math.max(...y) + 1);
-      gradient.addColorStop(
-        0,
-        rgba(face.rgb, active ? 0.88 : 0.88, face.shade * (active ? 1.1 : 0.86)),
-      );
-      gradient.addColorStop(1, rgba(face.rgb, active ? 0.78 : 0.94, face.shade * 0.59));
+      gradient.addColorStop(0, rgba(face.rgb, 1, face.shade * (active ? 1.12 : 1.04)));
+      gradient.addColorStop(1, rgba(face.rgb, 1, face.shade * 0.88));
       ctx.fillStyle = gradient;
       ctx.fill();
-      ctx.strokeStyle = active ? 'rgba(184,247,255,.96)' : rgba(face.rgb, 0.78, 1.22);
-      ctx.lineWidth = active ? 1.05 : 0.85;
-      ctx.shadowColor = active ? CYAN : rgba(face.rgb, 0.5);
-      ctx.shadowBlur = active ? 7 : 0;
+      ctx.strokeStyle = rgba(face.rgb, 1, active ? 1.3 : 1.16);
+      ctx.lineWidth = active ? 1.05 : 0.8;
+      ctx.shadowColor = rgba(face.rgb, 1);
+      ctx.shadowBlur = active ? 2.5 : 0;
       ctx.stroke();
       ctx.shadowBlur = 0;
-      // A slim glass bevel keeps adjacent cells readable, even in a dense stack.
+      // A small solid bevel distinguishes adjacent cells without showing the grid through them.
       if (this.scale > 17) {
         const center = face.vertices.reduce((p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4 }), {
           x: 0,
@@ -394,12 +422,12 @@ export class Renderer {
         polygon(
           ctx,
           face.vertices.map((v) => ({
-            x: v.x + (center.x - v.x) * 0.095,
-            y: v.y + (center.y - v.y) * 0.095,
+            x: v.x + (center.x - v.x) * 0.045,
+            y: v.y + (center.y - v.y) * 0.045,
           })),
         );
         ctx.lineWidth = 0.55;
-        ctx.strokeStyle = active ? 'rgba(218,255,255,.25)' : 'rgba(231,255,255,.12)';
+        ctx.strokeStyle = active ? 'rgba(238,255,250,.23)' : 'rgba(240,255,255,.13)';
         ctx.stroke();
       }
     }
@@ -427,8 +455,13 @@ export class Renderer {
     board = [],
     active = [],
     ghost = [],
-    gravity = [0, 0, -1],
-    dims = [5, 5, 10],
+    dims = [6, 6, 12],
+    flip = null,
+    orientation = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ],
     time = 0,
     particles = [],
   } = {}) {
@@ -437,6 +470,8 @@ export class Renderer {
     this.width = width;
     this.height = height;
     this.dims = dimensions(dims);
+    this.flip = flip && Number.isFinite(flip.angle) ? flip : null;
+    this.orientation = orientation;
     this._fit();
     const ctx = this.ctx;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -453,13 +488,13 @@ export class Renderer {
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
-    this._container(gravity);
+    this._container();
     const faces = [];
     this._cubeFaces(board, 'board', faces);
     this._cubeFaces(ghost, 'ghost', faces);
     this._cubeFaces(active, 'active', faces);
     this._drawFaces(faces, time);
-    this._container(gravity, true);
+    this._container(true);
     this._particles(particles);
   }
 
@@ -516,9 +551,9 @@ export function drawMini(canvas, cells = [], fill = CYAN) {
     .sort((a, b) => a.depth - b.depth)
     .forEach((face) => {
       polygon(ctx, face.vertices);
-      ctx.fillStyle = rgba(face.rgb, 0.85, face.shade * 0.86);
+      ctx.fillStyle = rgba(face.rgb, 1, face.shade);
       ctx.fill();
-      ctx.strokeStyle = rgba(face.rgb, 0.88, 1.24);
+      ctx.strokeStyle = rgba(face.rgb, 1, 1.24);
       ctx.lineWidth = 0.75;
       ctx.stroke();
     });

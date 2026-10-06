@@ -3,7 +3,6 @@ import { Renderer, drawMini } from './render.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-const AXES = ['X', 'Y', 'Z'];
 const SAVE = 'tetracube.save.v1';
 const BEST = 'tetracube.best.v1';
 const SETTINGS = 'tetracube.settings.v1';
@@ -39,8 +38,7 @@ let rescueUsed = false,
   debugRun = false,
   runStarted = false,
   tutorialStep = 0,
-  helpOrigin = 'home',
-  gravityOrigin = 'playing';
+  helpOrigin = 'home';
 let elapsed = 0,
   lastTime = 0,
   raf = 0,
@@ -50,6 +48,8 @@ let animations = [],
   animation = null;
 let audioContext;
 let drag = null;
+let inputMode = 'move';
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const held = new Map();
 const renderer = new Renderer($('#game-canvas'));
 const homeRenderer = new Renderer($('#home-canvas'));
@@ -91,7 +91,7 @@ function sound(kind = 'move') {
     const t = audioContext.currentTime;
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(
-      { move: 280, rotate: 380, drop: 140, clear: 620, gravity: 220 }[kind] || 300,
+      { move: 280, rotate: 380, drop: 140, clear: 620, flip: 220 }[kind] || 300,
       t,
     );
     oscillator.frequency.exponentialRampToValueAtTime(kind === 'clear' ? 1120 : 90, t + 0.16);
@@ -154,37 +154,25 @@ function updateSound() {
   });
 }
 
-function freeAxes() {
-  return [0, 1, 2].filter((axis) => axis !== game.gravity.axis);
-}
 function updateHUD() {
   $('#score').textContent = String(game.score).padStart(6, '0');
   $('#lines').textContent = String(game.lines).padStart(2, '0');
-  $('#occupancy').textContent = `${game.board.length} / 250`;
-  $('#gravity-badge').textContent =
-    `重力 ${AXES[game.gravity.axis]}${game.gravity.sign < 0 ? '−' : '+'}`;
-  const [a, b] = freeAxes();
-  for (const button of $$('[data-move]')) {
-    const direction = button.dataset.move;
-    const axis = ['left', 'right'].includes(direction) ? a : b;
-    const positive = ['up', 'right'].includes(direction);
-    button.querySelector('small').textContent = `${AXES[axis]}${positive ? '+' : '−'}`;
-    button.setAttribute('aria-label', `向 ${AXES[axis]} ${positive ? '正' : '负'}方向移动`);
-  }
+  $('#occupancy').textContent = `${game.board.length} / ${game.dims.reduce((n, d) => n * d, 1)}`;
+  $('#gravity-badge').textContent = game.dims.join(' × ');
   const next = game.next[0];
   if (next) drawMini($('#next-canvas'), next.cells, next.color);
   const tutorial = [
-    '用左下方向区移动，虚线就是落点。',
+    '在画面中拖动方块，虚线就是落点。',
     '点击 XY、XZ 或 YZ，试着旋转方块。',
     '点击「直接落下」，将方块放到虚线处。',
-    '局面拥挤时，试试「重力翻转」。',
+    '点击「颠倒容器」，让所有方块重新下落。',
   ];
   $('#tutorial').hidden = !!settings.tutorialDone || tutorialStep >= tutorial.length;
   $('#tutorial-text').textContent = tutorial[tutorialStep] || '';
 }
 
 function advanceTutorial(action) {
-  if (['move', 'rotate', 'drop', 'gravity'][tutorialStep] === action) tutorialStep++;
+  if (['move', 'rotate', 'drop', 'flip'][tutorialStep] === action) tutorialStep++;
   if (tutorialStep === 4) {
     settings.tutorialDone = true;
     write(SETTINGS, settings);
@@ -239,8 +227,8 @@ function consumeEvents() {
       });
     } else if (event.type === 'compact' || event.type === 'clear') {
       animations.push({ ...event, duration: event.type === 'clear' ? 340 : 480 });
-    } else if (event.type === 'gravity') {
-      animations.push({ ...event, after: event.before, duration: 150 });
+    } else if (event.type === 'flip') {
+      animations.push({ ...event, duration: reducedMotion ? 180 : 720 });
     }
   }
   if (!animations.length) settle();
@@ -254,20 +242,21 @@ function command(action, ...args) {
     if (action === 'rotate') feedback('这里放不下，先移动一点');
     return false;
   }
-  const kind = { move: 'move', rotate: 'rotate', hardDrop: 'drop', changeGravity: 'gravity' }[
-    action
-  ];
+  const kind = { move: 'move', rotate: 'rotate', hardDrop: 'drop', flipContainer: 'flip' }[action];
   if (kind) {
     sound(kind);
     advanceTutorial(kind);
   }
-  if (action === 'hardDrop') elapsed = 0;
+  if (action === 'hardDrop' || action === 'flipContainer') {
+    elapsed = 0;
+    stopInput();
+  }
   consumeEvents();
   return true;
 }
 
 function move(direction) {
-  const [a, b] = freeAxes();
+  const [a, b] = [0, 1];
   command(
     'move',
     ['left', 'right'].includes(direction) ? a : b,
@@ -286,25 +275,26 @@ function start({ debug = false } = {}) {
   tutorialStep = settings.tutorialDone ? 4 : 0;
   renderer.setView('iso');
   updateViews('iso');
+  setInputMode('move');
   show('playing');
   persist();
 }
 
-function openGravity(origin = 'playing') {
-  if (animation || animations.length) {
-    feedback('等待方块压实后再改变重力');
-    return;
-  }
-  gravityOrigin = origin;
-  $$('[data-gravity]').forEach((button) => {
-    const [axis, sign] = button.dataset.gravity.split(',').map(Number);
-    const selected = axis === game.gravity.axis && sign === game.gravity.sign;
-    button.disabled = selected;
-    button.classList.toggle('selected', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  });
-  $('#gravity-cancel').textContent = origin === 'danger' ? '返回空间干预' : '返回对局';
-  show('gravity');
+function setInputMode(mode) {
+  stopInput();
+  inputMode = mode;
+  $('#view-tools').hidden = mode !== 'observe';
+  $$('[data-input]').forEach((button) =>
+    button.setAttribute('aria-pressed', String(button.dataset.input === mode)),
+  );
+  $('#game-canvas').setAttribute(
+    'aria-label',
+    mode === 'observe' ? '观察模式，拖动转动视角' : '移动模式，拖动移动方块',
+  );
+}
+
+function flip(turn = 'invert') {
+  command('flipContainer', turn);
 }
 
 function updateViews(view) {
@@ -347,9 +337,12 @@ for (const origin of ['home', 'pause'])
   });
 $('#help-back').addEventListener('click', () => show(helpOrigin));
 $('#hard-drop').addEventListener('click', () => command('hardDrop'));
-$('#gravity-open').addEventListener('click', () => openGravity());
-$('#gravity-cancel').addEventListener('click', () => show(gravityOrigin));
-$('#rescue-game').addEventListener('click', () => openGravity('danger'));
+$('#flip-container').addEventListener('click', () => flip());
+$('#rescue-game').addEventListener('click', () => {
+  rescueUsed = true;
+  show('playing');
+  flip();
+});
 $('#end-game').addEventListener('click', finish);
 $('#skip-tutorial').addEventListener('click', () => {
   settings.tutorialDone = true;
@@ -367,13 +360,11 @@ $$('.sound-toggle').forEach((button) =>
 $$('[data-rotate]').forEach((button) =>
   button.addEventListener('click', () => command('rotate', button.dataset.rotate)),
 );
-$$('[data-gravity]').forEach((button) =>
-  button.addEventListener('click', () => {
-    const [axis, sign] = button.dataset.gravity.split(',').map(Number);
-    if (gravityOrigin === 'danger') rescueUsed = true;
-    show('playing');
-    command('changeGravity', axis, sign);
-  }),
+$$('[data-flip]').forEach((button) =>
+  button.addEventListener('click', () => flip(button.dataset.flip)),
+);
+$$('[data-input]').forEach((button) =>
+  button.addEventListener('click', () => setInputMode(button.dataset.input)),
 );
 $$('[data-view]').forEach((button) =>
   button.addEventListener('click', () => {
@@ -382,49 +373,42 @@ $$('[data-view]').forEach((button) =>
   }),
 );
 
-$$('[data-move]').forEach((button) => {
-  button.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    button.setPointerCapture(event.pointerId);
-    move(button.dataset.move);
-    const item = {};
-    item.timer = setTimeout(() => {
-      item.repeat = setInterval(() => move(button.dataset.move), 130);
-    }, 300);
-    held.set(event.pointerId, item);
-  });
-  const release = (event) => {
-    const item = held.get(event.pointerId);
-    if (item) {
-      clearTimeout(item.timer);
-      clearInterval(item.repeat);
-      held.delete(event.pointerId);
-    }
-  };
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
-    button.addEventListener(type, release);
-  button.addEventListener('click', (event) => {
-    if (event.detail === 0) move(button.dataset.move);
-  });
-});
-
 const canvas = $('#game-canvas');
 canvas.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || drag || phase !== 'playing') return;
-  drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  if (event.button !== 0 || drag || phase !== 'playing' || animation || animations.length) return;
+  event.preventDefault();
+  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, remainder: [0, 0] };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', (event) => {
   if (!drag || drag.id !== event.pointerId) return;
-  renderer.orbit(event.clientX - drag.x, event.clientY - drag.y);
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
   drag.x = event.clientX;
   drag.y = event.clientY;
-  updateViews('');
+  if (inputMode === 'observe') {
+    renderer.orbit(dx, dy);
+    updateViews('');
+    return;
+  }
+  const delta = renderer.planeDelta(dx, dy);
+  drag.remainder[0] += delta.x;
+  drag.remainder[1] += delta.y;
+  // Keep the grab relative to the finger; blocked movement is consumed, so reversing
+  // at a wall responds immediately instead of unwinding an invisible backlog.
+  for (const axis of [0, 1]) {
+    const steps = Math.trunc(drag.remainder[axis]);
+    drag.remainder[axis] -= steps;
+    for (let i = 0; i < Math.min(Math.abs(steps), game.dims[axis]); i++)
+      if (!command('move', axis, Math.sign(steps))) break;
+  }
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
   canvas.addEventListener(type, (event) => {
-    if (drag?.id === event.pointerId) drag = null;
+    if (drag?.id === event.pointerId) {
+      drag = null;
+      elapsed = 0;
+    }
   });
 
 function keydown(event) {
@@ -439,7 +423,6 @@ function keydown(event) {
   if (key === 'p' || key === 'escape') {
     if (phase === 'playing') show('paused');
     else if (phase === 'paused') show('playing');
-    else if (phase === 'gravity') show(gravityOrigin);
     event.preventDefault();
     return;
   }
@@ -461,7 +444,7 @@ function keydown(event) {
     event.preventDefault();
     if (event.repeat) return;
     if (key === ' ') command('hardDrop');
-    else if (key === 'g') openGravity();
+    else if (key === 'g') flip();
     else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key]);
   }
 }
@@ -492,12 +475,18 @@ function animatedBoard(dt) {
       flashTimer = setTimeout(() => $('#combo-flash').classList.remove('visible'), 900);
     }
   }
-  if (!animation) return game.board;
+  if (!animation) return { board: game.board };
   animation.elapsed += dt;
   const t = Math.min(1, animation.elapsed / animation.duration);
   const eased = 1 - Math.pow(1 - t, 3);
   let board = animation.after;
-  if (animation.type === 'compact') {
+  const geometry = {};
+  if (animation.type === 'flip') {
+    board = animation.before;
+    geometry.dims = animation.beforeDims;
+    geometry.orientation = animation.beforeOrientation;
+    geometry.flip = { axis: animation.axis, angle: animation.angle * (t * t * (3 - 2 * t)) };
+  } else if (animation.type === 'compact') {
     const start = new Map(animation.before.map((cell) => [cell.id, cell]));
     board = animation.after.map((cell) => {
       const from = start.get(cell.id) || cell;
@@ -505,13 +494,13 @@ function animatedBoard(dt) {
         ...cell,
         x: from.x + (cell.x - from.x) * eased,
         y: from.y + (cell.y - from.y) * eased,
-        z: from.z + (cell.z - from.z) * eased,
+        z: from.z + (cell.z - from.z) * (t * t),
       };
     });
   } else if (animation.type === 'clear') {
     board = animation.before.map((cell) =>
       animation.removed.some((removed) => removed.id === cell.id)
-        ? { ...cell, color: t < 0.45 ? '#e3fff4' : '#437e79', opacity: 1 - t }
+        ? { ...cell, color: t < 0.35 ? '#e3fff4' : cell.color, scale: 1 - t }
         : cell,
     );
   }
@@ -519,7 +508,7 @@ function animatedBoard(dt) {
     animation = null;
     if (!animations.length) settle();
   }
-  return board;
+  return { board, ...geometry };
 }
 
 function frame(now) {
@@ -532,30 +521,40 @@ function frame(now) {
       active: homeActive,
       ghost: [],
       gravity: { axis: 2, sign: -1 },
-      dims: [5, 5, 10],
+      dims: [6, 6, 12],
       time: now,
     });
   } else if (phase === 'playing') {
-    if (!animation && !animations.length) {
+    if (!animation && !animations.length && !drag) {
       elapsed += dt;
       if (elapsed >= game.fallInterval) {
         elapsed = 0;
         command('tick');
       }
     }
-    const board = animatedBoard(dt);
-    const busy = !!animation || animations.length > 0;
+    const wasBusy = !!animation || animations.length > 0;
+    const visual = animatedBoard(dt);
+    const busy = wasBusy || !!animation || animations.length > 0;
     const color = game.active?.color || '#78f4d3';
     renderer.draw({
-      board,
+      ...visual,
       active: busy ? [] : game.cells().map(([x, y, z]) => ({ x, y, z, color })),
       ghost: busy ? [] : game.ghost().map(([x, y, z]) => ({ x, y, z, color })),
       gravity: game.gravity,
-      dims: game.dims,
+      dims: visual.dims || game.dims,
+      orientation: visual.orientation || game.orientation,
       time: now,
     });
-    $('#stage-hint').textContent = busy ? '空间重构中…' : '拖动画面 · 转动视角';
-    $('#hard-drop').disabled = busy;
+    $('#stage-hint').textContent = busy
+      ? animation?.type === 'flip'
+        ? '容器翻转中…'
+        : '方块向下落定…'
+      : inputMode === 'observe'
+        ? '观察模式 · 拖动转视角'
+        : '拖动方块 · 虚线是落点';
+    $$('[data-rotate], [data-flip], #flip-container, #hard-drop').forEach((button) => {
+      button.disabled = busy;
+    });
   }
   raf = requestAnimationFrame(frame);
 }
@@ -567,6 +566,8 @@ window.tetracubeSnapshot = () => ({
   rescueUsed,
   debugRun,
   animating: !!animation || !!animations.length,
+  animationKind: animation?.type || animations[0]?.type || null,
+  inputMode,
   input: { held: held.size, dragging: !!drag },
 });
 const dev = window.SmallGamesDev;
@@ -582,8 +583,8 @@ if (dev?.isEnabled()) {
         start({ debug: true });
         game.board = [];
         game.serial = 0;
-        for (let x = 0; x < 5; x++)
-          for (let y = 0; y < 5; y++)
+        for (let x = 0; x < game.dims[0]; x++)
+          for (let y = 0; y < game.dims[1]; y++)
             for (let layer = 0; layer < 2; layer++)
               game.board.push({
                 id: ++game.serial,
@@ -592,12 +593,11 @@ if (dev?.isEnabled()) {
                 z: ((x + y) % 4) + layer * 4,
                 color: ['#7cf0bf', '#92b5ff'][layer],
               });
-        game.gravity = { axis: 0, sign: -1 };
         game.active = null;
         game.spawn();
         game.drainEvents();
         updateHUD();
-        feedback('选择 Z− 重力，观察连续消层');
+        feedback('点击颠倒容器，观察下落与连续消层');
       },
     },
     {
@@ -607,9 +607,9 @@ if (dev?.isEnabled()) {
         start({ debug: true });
         game.board = [];
         game.serial = 0;
-        for (let x = 0; x < 5; x++)
-          for (let y = 0; y < 5; y++)
-            game.board.push({ id: ++game.serial, x, y, z: 9, color: '#ffae7a' });
+        for (let x = 0; x < game.dims[0]; x++)
+          for (let y = 0; y < game.dims[1]; y++)
+            game.board.push({ id: ++game.serial, x, y, z: game.dims[2] - 1, color: '#ffae7a' });
         const piece = game.active;
         game.active = null;
         game.spawn(piece);
