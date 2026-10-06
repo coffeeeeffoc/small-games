@@ -230,10 +230,6 @@ try {
         await frame.locator('#menu').click();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'letters-words2') {
-        await frame.locator('#play-home').click();
-        await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else {
         assert.equal(
           await page.evaluate(
