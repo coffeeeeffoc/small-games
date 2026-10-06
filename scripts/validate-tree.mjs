@@ -344,8 +344,8 @@ export async function validateTree({
     ? registrationFileScopes({
         changedPaths: sourcePaths,
         gameSources: packages.filter((pkg) => pkg.dir.startsWith('games/')).map((pkg) => pkg.dir),
-        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, 'raw'),
+        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
       })
     : new Map();
   if (incremental) {
@@ -353,8 +353,8 @@ export async function validateTree({
       changedPaths: sourcePaths,
       games: catalog,
       packages,
-      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, 'raw'),
+      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
     };
     for (const classify of [
       entryAdapterFileScopes,
@@ -372,7 +372,7 @@ export async function validateTree({
         games: catalog,
         fileScopes,
         changedPaths: sourcePaths,
-        readSource: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+        readSource: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
