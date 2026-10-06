@@ -11,8 +11,12 @@ import letters from '../services/runtime-api/rules/letters.mjs';
 import history from '../services/runtime-api/rules/history.mjs';
 import chess from '../services/runtime-api/rules/chess.mjs';
 import { findSpelling } from '../games/local/letters-words2/engine.js';
+import { createRenderer as createLettersRenderer } from '../games/local/letters-words2/competition-renderer.js';
 
 const rules = new Map([cops, realtime, letters, history, chess].map((rule) => [rule.id, rule]));
+const selectedGame = process.argv.find((argument) => argument.startsWith('--game='))?.slice(7);
+if (selectedGame && !Object.hasOwn(competitionGames, selectedGame))
+  throw new Error(`Unknown game: ${selectedGame}`);
 const root = fileURLToPath(new URL('../apps/shell-minigame/dist/', import.meta.url));
 const flush = async () => {
   for (let i = 0; i < 12; i++) await Promise.resolve();
@@ -20,8 +24,9 @@ const flush = async () => {
 
 // Execute the actual reviewed bundles without document/window/fetch, against the real game rules.
 // This SDK fixture verifies contracts and build isolation, not official SDK/device compatibility.
-await runStreetNativeSmoke();
+if (!selectedGame || selectedGame === 'cops-robbers-realtime') await runStreetNativeSmoke();
 for (const [game, selected] of Object.entries(competitionGames)) {
+  if (selectedGame && game !== selectedGame) continue;
   if (game === 'cops-robbers-realtime') continue; // Campaign shell tested above using real replay-verified field input.
   for (const [platform, adapter] of Object.entries(competitionPlatforms)) {
     for (const audioMode of ['normal', 'create-failure', 'initialize-failure', 'play-failure']) {
@@ -30,7 +35,12 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       const release = JSON.parse(readFileSync(path.join(directory, 'release.json'), 'utf8'));
       assert.equal(release.platform, platform);
       assert.equal(release.game, game);
-      assert.equal(release.gameplayScope, 'server-authoritative friend competition only');
+      assert.equal(
+        release.gameplayScope,
+        game === 'letters-words2'
+          ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
+          : 'server-authoritative friend competition only',
+      );
       assert.equal(release.nativeRuntimeVerified, false);
       assert.doesNotMatch(source, /document\.|window\.|createElement\(|iframe|XMLHttpRequest/);
       const listeners = new Map();
@@ -282,6 +292,17 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       const module = { exports: {} };
       vm.runInContext(`(function(module,exports){${source}\n})`, context)(module, module.exports);
       await flush();
+      if (game === 'letters-words2' && module.exports.instance.state.page !== 'pk') {
+        const entry = module.exports.instance
+          .getLayout()
+          .targets.find((target) => target.id === '好友同题');
+        assert.ok(entry, 'native vocabulary home exposes the friend competition entry');
+        for (const listener of listeners.get('TouchEnd'))
+          listener({
+            changedTouches: [{ clientX: entry.x + entry.w / 2, clientY: entry.y + entry.h / 2 }],
+          });
+        await flush();
+      }
       assert.equal(stack.length, 0, 'renderer balances Canvas save/restore');
       assert.ok(
         labels.some(({ text }) => text === selected.title),
@@ -327,16 +348,43 @@ for (const [game, selected] of Object.entries(competitionGames)) {
         await flush();
         assert.equal(requests.at(-1).data.action.type, 'move', 'tapping a street issues a move');
       } else if (game === 'letters-words2') {
+        const reference = createLettersRenderer();
+        const referenceContext = new Proxy(
+          { measureText: (text) => ({ width: String(text).length * 8 }) },
+          {
+            get: (object, key) => (key in object ? object[key] : () => {}),
+          },
+        );
         const spelling = findSpelling(state.game, state.game.activeWordId);
         assert.ok(spelling?.length, 'fixture has an available spelling');
         for (const id of spelling) {
-          const view = rule.view(state, 0),
-            tile = view.tiles.find((entry) => entry.id === id);
-          const scale = Math.min(370 / view.board.width, (664 - 226) / view.board.height);
-          touchPoint(
-            (390 - view.board.width * scale) / 2 + (tile.x + tile.size / 2) * scale,
-            180 + 95 + (tile.y + tile.size / 2) * scale,
+          const view = rule.view(state, 0);
+          reference.draw(referenceContext, 390, 664, view);
+          let layout = reference.getLayout();
+          let target = layout.targets.find(
+            (target) => target.tileId === id && target.action?.type === 'select',
           );
+          for (let turns = 0; !target && turns < 12; turns++) {
+            const tile = view.tiles.find((tile) => tile.id === id);
+            const direction =
+              tile.y * (layout.tileSize / tile.size) < layout.boardOffset
+                ? 'board-up'
+                : 'board-down';
+            const control = layout.targets.find((target) => target.action?.local === direction);
+            assert.ok(control, 'offscreen cards have a reachable board paging control');
+            const x = control.x + control.w / 2,
+              y = control.y + control.h / 2;
+            reference.tap(x, y);
+            touchPoint(x, y + 180);
+            await flush();
+            reference.draw(referenceContext, 390, 664, view);
+            layout = reference.getLayout();
+            target = layout.targets.find(
+              (target) => target.tileId === id && target.action?.type === 'select',
+            );
+          }
+          assert.ok(target, 'letter paging exposes a complete touch target');
+          touchPoint(target.x + target.w / 2, 180 + target.y + target.h / 2);
           await flush();
           assert.ok(
             state.game.selected.includes(id),

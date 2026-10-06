@@ -1177,6 +1177,17 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     const answer = id === 'letters-words' ? '#answer' : '#answer-slots';
     await click(frame.locator('#board button:enabled:not([aria-disabled="true"])').first());
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+    if (id === 'letters-words2') {
+      await click(frame.locator('#pause-button'));
+      await expect(frame.locator('#pause-dialog')).toBeVisible();
+      await click(frame.locator('#resume-button'));
+      await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+      await click(frame.locator('#pause-button'));
+      await click(frame.locator('#home-button'));
+      await expect(frame.locator('#learn-button')).toBeVisible();
+      await click(frame.locator('#focus-button'));
+      await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+    }
     await click(frame.locator('#undo-button'));
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(0);
   } else if (id === 'multi-battle') {

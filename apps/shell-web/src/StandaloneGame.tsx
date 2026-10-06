@@ -19,7 +19,11 @@ export function StandaloneGame({
   const entry = standaloneGameEntry(id, search);
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
-  const immersive = id === 'ink-is-everything' || id === 'ball-roguelite' || id === 'xiangqi-five';
+  const immersive =
+    id === 'ink-is-everything' ||
+    id === 'ball-roguelite' ||
+    id === 'xiangqi-five' ||
+    id === 'letters-words2';
   useEffect(() => {
     window.SmallGamesDev.setPanelHidden(true);
     return () => window.SmallGamesDev.setPanelHidden(false);

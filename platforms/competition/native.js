@@ -491,7 +491,11 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       }
       return;
     }
-    ctx.fillText(config.title, 12, top - 12);
+    if (config.onExit && !room) {
+      button(config.homeLabel || '返回游戏', 12, top - 36, 88, () => config.onExit());
+      ctx.font = '12px sans-serif';
+      ctx.fillText(config.title, 108, top - 12, Math.max(40, width - 208));
+    } else ctx.fillText(config.title, 12, top - 12);
     button(muted ? '声音：关' : '声音：开', width - 90, top - 36, 78, () => {
       muted = !muted;
       try {

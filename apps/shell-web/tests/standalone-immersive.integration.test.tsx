@@ -31,7 +31,7 @@ async function mounted(id = ink) {
   return { container, root, frame, send, exit, dispose, origin };
 }
 
-it.each(['ink-is-everything', 'ball-roguelite', 'xiangqi-five'])(
+it.each(['ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'])(
   'lets the %s frame hide its navigation during play, restore home exit, and exit normally',
   async (id) => {
     const { container, send, exit, dispose } = await mounted(id);
@@ -100,6 +100,28 @@ it('restores the ink home exit when the iframe reloads', async () => {
     expect(container.querySelector('nav')!.hidden).toBe(true);
     await act(async () => frame.dispatchEvent(new Event('load')));
     expect(container.querySelector('nav')!.hidden).toBe(false);
+    expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
+  } finally {
+    await dispose();
+  }
+});
+
+it('uses only the word island frame to hide navigation and restores its home on reload', async () => {
+  const { container, frame, send, dispose, origin } = await mounted('letters-words2');
+  const state = { type: 'small-games:display-state', gameId: 'letters-words2', screen: 'playing' };
+  try {
+    const nav = container.querySelector('nav')!;
+    expect(container.querySelector('main')?.getAttribute('data-game-id')).toBe('letters-words2');
+    await send(state, window, origin);
+    expect(nav.hidden).toBe(false);
+    await send(state, frame.contentWindow, 'https://untrusted.example');
+    expect(nav.hidden).toBe(false);
+    await send({ ...state, extra: true });
+    expect(nav.hidden).toBe(false);
+    await send(state);
+    expect(nav.hidden).toBe(true);
+    await act(async () => frame.dispatchEvent(new Event('load')));
+    expect(nav.hidden).toBe(false);
     expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
   } finally {
     await dispose();

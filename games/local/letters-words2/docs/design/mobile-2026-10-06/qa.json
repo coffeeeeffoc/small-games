@@ -1,0 +1,222 @@
+{
+  "date": "2026-10-06",
+  "environment": {
+    "os": "Debian GNU/Linux 13",
+    "browser": "Chromium 151.0.7922.173",
+    "input": "Playwright tap and CDP touch cancel/pan; mobile viewport emulation",
+    "physicalMobileDevice": false
+  },
+  "standalone": {
+    "url": "http://127.0.0.1:4175/",
+    "passedSuites": [
+      "tests/browser.test.mjs",
+      "tests/focus.browser.test.mjs",
+      "tests/challenge.browser.test.mjs",
+      "tests/mini.browser.test.mjs",
+      "tests/library.browser.test.mjs",
+      "tests/mobile.browser.test.mjs"
+    ],
+    "portraitViewports": [
+      [
+        305,
+        740
+      ],
+      [
+        320,
+        568
+      ],
+      [
+        320,
+        740
+      ],
+      [
+        360,
+        640
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "landscapeViewports": [
+      [
+        844,
+        390
+      ]
+    ],
+    "desktopViewports": [
+      [
+        1280,
+        960
+      ]
+    ],
+    "checks": [
+      "44 CSS px letter and primary control targets",
+      "actual exposed blocked-card corner feedback",
+      "touch cancellation",
+      "home/islands/learning/library/custom/settings/help/play/pause/results/share navigation",
+      "exact partial board reload and pause/home resume",
+      "daily/mini/ordinary save isolation",
+      "complete word and symbol spelling",
+      "31 textbook words in 6 batches, one-word tail and cached offline unit",
+      "79-character word scrolling with fixed answer/tools",
+      "long Chinese meaning and full definition",
+      "delayed result does not replace pause",
+      "fullscreen success/exit/denial/unavailable",
+      "disabled localStorage local play"
+    ]
+  },
+  "minimalIframe": {
+    "passed": true,
+    "suite": "tests/iframe.browser.test.mjs",
+    "viewports": [
+      [
+        320,
+        568
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "permissions": "allow=autoplay; fullscreen, allowfullscreen; no sandbox, matching StandaloneGame",
+    "scope": "Minimal host uses real Shell CSS, actual game and exerciseStandalone adapter; separate from built Shell verification",
+    "checks": [
+      "touch entry/pause/resume/home",
+      "home help top return remains clickable",
+      "strict display message controls host navigation",
+      "fullscreen targets whole parent host",
+      "selected tile survives navigation and fullscreen"
+    ]
+  },
+  "builtShell": {
+    "passed": true,
+    "suite": "tests/shell.browser.test.mjs",
+    "url": "http://127.0.0.1:4196/#/games/letters-words2",
+    "artifact": "apps/shell-web/dist, refreshed public/games/letters-words2 from successful prepare-standalone-games; current app.js bytes match source",
+    "viewports": [
+      [
+        320,
+        568
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "checks": [
+      "home help and settings top return are unobstructed",
+      "real packaged friend-button opens PK lobby without fixture messages or room creation",
+      "PK top return restores outer catalog exit",
+      "outer navigation hides during child pages and gameplay",
+      "full viewport core controls",
+      "pause/resume and home retain selected tile",
+      "catalog exit removes iframe"
+    ]
+  },
+  "shellIntegration": {
+    "passed": true,
+    "files": 4,
+    "tests": 71,
+    "mergeRegression": "After rebasing onto dev 0388650, preserved xiangqi-five immersive sharing and navigation styles alongside letters-words2 navigation and strict source/origin/three-key display-message validation; all four suites rerun successfully",
+    "suites": [
+      "standalone-immersive.integration.test.tsx",
+      "standalone.integration.test.tsx",
+      "play-entry.integration.test.tsx",
+      "game-sharing.test.tsx"
+    ],
+    "entryAdapterUnitTests": 3
+  },
+  "competition": {
+    "passed": true,
+    "evidence": "evidence/competition-mobile-report.json",
+    "environment": "Chromium touch emulation; real game CSS, shared H5 pages, Canvas renderer and shared letters rules; fixture network/identity",
+    "checks": [
+      {
+        "width": 320,
+        "height": 568,
+        "completedWords": 1,
+        "checks": [
+          "home entry",
+          "create/ready",
+          "public invitation/copy feedback",
+          "44px paginated Canvas",
+          "cancel/drag/multitouch",
+          "meaning page",
+          "real spelling",
+          "return home/focus"
+        ]
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "completedWords": 18,
+        "checks": [
+          "home entry",
+          "create/ready",
+          "public invitation/copy feedback",
+          "44px paginated Canvas",
+          "cancel/drag/multitouch",
+          "meaning page",
+          "real spelling",
+          "return home/focus"
+        ]
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "completedWords": 1,
+        "checks": [
+          "home entry",
+          "create/ready",
+          "public invitation/copy feedback",
+          "44px paginated Canvas",
+          "cancel/drag/multitouch",
+          "meaning page",
+          "real spelling",
+          "return home/focus"
+        ]
+      }
+    ],
+    "realMultiplayerBackendVerifiedByThisReport": false
+  },
+  "fixedDefects": [
+    "Short-phone homepage theme/learning entries below viewport",
+    "Global button active translation moved letters outside pressed touch corners",
+    "Landscape minimum 520px page pushed answer and tools outside 390px viewport",
+    "Shell home navigation covered child settings/PK top return buttons"
+  ],
+  "screenshots": [
+    "implemented/h5-book-390x844.png",
+    "implemented/h5-custom-390x844.png",
+    "implemented/h5-help-390x844.png",
+    "implemented/h5-home-320x568.png",
+    "implemented/h5-home-390x844.png",
+    "implemented/h5-iframe-home-320x568.png",
+    "implemented/h5-iframe-home-390x844.png",
+    "implemented/h5-iframe-play-320x568.png",
+    "implemented/h5-iframe-play-390x844.png",
+    "implemented/h5-islands-390x844.png",
+    "implemented/h5-learning-390x844.png",
+    "implemented/h5-long-word-390x844.png",
+    "implemented/h5-pause-390x844.png",
+    "implemented/h5-play-320x568.png",
+    "implemented/h5-play-390x844.png",
+    "implemented/h5-play-844x390.png",
+    "implemented/h5-result-390x844.png",
+    "implemented/h5-settings-390x844.png",
+    "implemented/h5-share-390x844.png",
+    "implemented/h5-shell-friend-320x568.png",
+    "implemented/h5-shell-friend-390x844.png",
+    "implemented/h5-shell-home-320x568.png",
+    "implemented/h5-shell-home-390x844.png",
+    "implemented/h5-shell-play-320x568.png",
+    "implemented/h5-shell-play-390x844.png"
+  ],
+  "limits": [
+    "Desktop Chromium touch emulation does not verify a physical phone or native mini-game host",
+    "Fullscreen rejection and unavailable capabilities are simulated branches",
+    "Competition identity and network are fixtures in competition-mobile browser test; built Shell verifies lobby entry/return only",
+    "Native SDK and device scope is described separately in NATIVE-QA.md"
+  ]
+}

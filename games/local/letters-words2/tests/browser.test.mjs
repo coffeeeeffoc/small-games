@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { pathToFileURL } from 'node:url';
-
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : '@playwright/test');
+import { chromium, browserOptions, continueGame, goHome, openImport, openSettings, openHelp } from './browser-helpers.mjs';
 
 const baseURL = process.env.GAME_URL || 'http://127.0.0.1:4175';
 const entries = [
@@ -11,10 +9,7 @@ const entries = [
   { word: 'tea', meaning: '茶' },
 ];
 
-const browser = await chromium.launch({
-  ...(process.env.PLAYWRIGHT_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE } : { channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' }),
-  headless: true,
-});
+const browser = await chromium.launch(browserOptions);
 try {
   for (const viewport of [{ width: 1280, height: 960 }, { width: 390, height: 844 }, { width: 320, height: 740 }, { width: 305, height: 740 }]) {
     const context = await browser.newContext({ viewport, isMobile: viewport.width < 600, hasTouch: viewport.width < 600, reducedMotion: viewport.width < 600 ? 'no-preference' : 'reduce' });
@@ -44,8 +39,7 @@ try {
     const activeWord = async () => entries[Number((await page.locator('.word-row.active').getAttribute('data-word-id')).slice(5))].word;
     const openWords = async () => { if (await page.locator('#switch-word').isVisible()) await page.locator('#switch-word').click(); };
     const importWords = async text => {
-      await openWords();
-      await page.locator('#import-button').click();
+      await openImport(page);
       await page.locator('#word-input').fill(text);
       await page.locator('#import-form button[type="submit"]').click();
     };
@@ -75,10 +69,10 @@ try {
     assert.match(await page.title(), /词屿/);
     assert.equal(await page.locator('.word-row').count(), 6);
     assert.ok(await tileCount() > 0);
+    assert.equal(await page.locator('#board').isVisible(), false, 'homepage has a separate start entrance');
+    await continueGame(page);
     await assertLayout();
-    await page.locator('#focus-button').click();
-    assert.equal(await page.locator('.intro').isVisible(), false);
-    assert.equal(await page.locator('.study-bar').isVisible(), false);
+    assert.equal(await page.locator('#learn-button').isVisible(), false);
     assert.equal(await page.locator('#word-list').isVisible(), false);
     if (viewport.width < 600) {
       const operations = await page.locator('.board-tools').boundingBox();
@@ -112,35 +106,44 @@ try {
     const partialBoard = await tileSnapshot();
     await page.reload({ waitUntil: 'networkidle' });
     assert.deepEqual(await tileSnapshot(), partialBoard, 'reload preserves unfinished spelling and exact board positions');
-    await page.locator('#focus-button').click();
+    await continueGame(page);
     await page.locator('#pause-button').click();
-    assert.equal(await page.locator('.study-bar').isVisible(), true);
-    await page.locator('#focus-button').click();
+    assert.equal(await page.locator('#pause-dialog').isVisible(), true);
+    await page.locator('#resume-button').click();
     assert.deepEqual(await tileSnapshot(), partialBoard, 'pause and resume preserve partial answer and tile positions');
-    const fullscreen = page.locator('.site-header [data-game-fullscreen]');
+    await openSettings(page);
+    const fullscreen = page.locator('#settings-dialog [data-game-fullscreen]');
     await fullscreen.click();
     await page.waitForFunction(() => !!document.fullscreenElement);
     assert.equal(await fullscreen.textContent(), '退出全屏');
+    await page.locator('#settings-dialog [data-close]').last().click();
+    await continueGame(page);
     assert.deepEqual(await tileSnapshot(), partialBoard);
     await page.setViewportSize({ width: 844, height: 390 });
     await assertLayout();
     assert.deepEqual(await tileSnapshot(), partialBoard, 'rotation never rearranges or clears the board');
-    await page.locator('#help-button').click();
+    await openHelp(page);
     assert.equal(await page.locator('#help-dialog [data-game-fullscreen]').count(), 0);
     await page.locator('#help-dialog [data-close]').last().click();
+    await openSettings(page);
     await fullscreen.click();
     await page.waitForFunction(() => !document.fullscreenElement);
+    await page.locator('#settings-dialog [data-close]').last().click();
+    await continueGame(page);
     assert.deepEqual(await tileSnapshot(), partialBoard);
     await page.setViewportSize(viewport);
     await page.locator('#clear-button').click();
     await assertLayout();
-    await page.locator('#help-button').click();
+    await openHelp(page);
     assert.equal(await page.locator('#help-dialog').evaluate(dialog => dialog.open), true);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#help-dialog').evaluate(dialog => dialog.open), false);
+    await openSettings(page);
     await page.locator('#sound-button').click();
     assert.equal(await page.locator('#sound-button').getAttribute('aria-pressed'), 'true');
     await page.locator('#sound-button').click();
+    await page.locator('#settings-dialog [data-close]').last().click();
+    await continueGame(page);
 
     const original = await tileSnapshot();
     await importWords('apple 苹果\napple 重复');
@@ -165,7 +168,7 @@ try {
       await openWords();
       await page.locator(`[data-word-id="${originalWordId}"]`).click();
     } else if (await page.locator('#word-list-dialog').evaluate(dialog => dialog.open)) {
-      await page.locator('#word-list-dialog [data-close]').click();
+      await page.locator('#word-list-dialog [data-close]').last().click();
     }
 
     // Click an actually exposed corner of a blocked card, through the browser's real pointer path.
@@ -263,6 +266,7 @@ try {
         await page.reload({ waitUntil: 'networkidle' });
         assert.equal(await page.locator('.word-row.done').count(), 1, 'reload restores completed words');
         assert.match(await page.locator('#feedback').textContent(), /恢复/);
+        await continueGame(page);
       }
       if (solved < entries.length) {
         // Exercise a midgame shuffle and verify that already consumed words stay consumed.
@@ -279,7 +283,7 @@ try {
     const completedProgress = await page.evaluate(() => JSON.stringify(localStorage));
     for (const size of [viewport, { width: 844, height: 390 }]) {
       await page.setViewportSize(size);
-      const close = page.locator('#win-dialog [data-close]');
+      const close = page.locator('#win-dialog [data-close]').last();
       await (viewport.width < 600 ? close.tap() : close.click());
       assert.equal(await page.locator('#win-dialog').evaluate(dialog => dialog.open), false, 'result decoration must not intercept the close button');
       await page.locator('#result-button').click();
@@ -304,7 +308,7 @@ try {
     assert.ok(await tileCount() > 0);
     const theme = await page.locator('#theme-name').textContent();
     await page.locator('#pause-button').click();
-    await page.locator('#new-button').click();
+    await page.locator('#pause-new').click();
     assert.notEqual(await page.locator('#theme-name').textContent(), theme);
 
     await importWords('abcdefghijklmnop 十六个字符的测试单词\ntea 茶');
@@ -339,6 +343,7 @@ try {
       await page.waitForFunction(count => document.querySelectorAll('.word-row.done').length === count, completed + 1);
     }
     await page.reload({ waitUntil: 'networkidle' });
+    await continueGame(page);
     assert.deepEqual(await page.locator('.word-row.done small').allTextContents(), ['I', 'Ms']);
     assert.deepEqual(await page.locator('#win-words span').allTextContents(), ['I · 我', 'Ms · 女士']);
     await page.locator('#review-button').click();
@@ -355,10 +360,13 @@ try {
     }, failure);
     const page = await context.newPage();
     await page.goto(baseURL);
-    await page.locator('.site-header [data-game-fullscreen]').tap();
+    await openSettings(page);
+    await page.locator('#settings-dialog [data-game-fullscreen]').tap();
     await page.waitForFunction(() => !document.querySelector('#game-display-notice').hidden);
     assert.match(await page.locator('#game-display-notice').textContent(), failure === 'unsupported' ? /不支持.*仍可/ : /未允许.*仍可/);
     assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
+    await page.locator('#settings-dialog [data-close]').last().tap();
+    await continueGame(page);
     await page.locator('.tile[aria-disabled="false"]').first().tap();
     assert.equal(await page.locator('.answer-slot.filled').count(), 1, `${failure}: ordinary play remains available`);
     await context.close();
