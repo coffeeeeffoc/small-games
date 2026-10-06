@@ -4,6 +4,13 @@ import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 export const games = {
+  'moss-garden': {
+    title: '苔光花园',
+    definition: 'mossGardenCanvasDefinition',
+    content: 'defaultMossGardenEnvelope',
+    orientation: 'portrait',
+    assets: [{ source: 'public/moss-garden-audio', target: 'moss-garden-audio' }],
+  },
   'castle-cannon': {
     title: '一炮拆城',
     definition: 'castleCannonCanvasDefinition',

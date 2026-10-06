@@ -17,6 +17,7 @@
     "test:competition": "node ../../scripts/competition-native-smoke.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/game-moss-garden": "workspace:*",
     "@coffeeeeffoc/platform-wechat": "workspace:*",
     "@coffeeeeffoc/platform-douyin": "workspace:*",
     "@coffeeeeffoc/platform-bilibili": "workspace:*",

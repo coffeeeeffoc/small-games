@@ -1,5 +1,12 @@
 [
   {
+    "id": "moss-garden",
+    "source": "games/local/game-moss-garden",
+    "title": "苔光花园",
+    "description": "在彩色花圃中安放光种，每行、每列和每片花圃各一颗，彼此不能相邻。三十关原创竖屏逻辑谜题。",
+    "output": "dist"
+  },
+  {
     "id": "ball-roguelite",
     "source": "games/local/ball-roguelite",
     "title": "星轨弹珠",

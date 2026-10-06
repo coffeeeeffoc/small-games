@@ -42,6 +42,7 @@ export async function verifyNativeArtifact({
       arena: 'arena-audio',
       office: 'office-scene',
       'building-power': 'building-power-audio',
+      'moss-garden': 'moss-garden-audio',
     };
     assert.deepEqual(
       readdirSync(root).filter((name) => !name.endsWith('.json') && name !== 'game.js'),
@@ -63,6 +64,7 @@ export async function verifyNativeArtifact({
     let packageLoaded;
     const rendered = [];
     const labels = new Map();
+    const labelPositions = new Map();
     const rectangles = [];
     const records = new Map();
     const logs = [];
@@ -116,11 +118,13 @@ export async function verifyNativeArtifact({
       scale() {},
       translate() {},
       transform() {},
+      setTransform() {},
       drawImage(image, ...coordinates) {
         assert.ok(image.width > 0 && image.height > 0, 'drawImage requires a loaded local image');
         drawnImages.push({ src: image.src, coordinates });
       },
       clearRect() {
+        labelPositions.clear();
         paths.length = 0;
         rendered.length = 0;
         rectangles.length = 0;
@@ -130,14 +134,16 @@ export async function verifyNativeArtifact({
         if (y === 0 && drawingDepth <= 1) {
           if (gameId === 'building-power') paths.length = 0;
           labels.clear();
+          labelPositions.clear();
           rendered.length = 0;
           rectangles.length = 0;
           drawnImages.length = 0;
         } else if (height > 1) rectangles.push({ y, height });
       },
-      fillText(text, _x, y) {
+      fillText(text, x, y) {
         rendered.push(text);
         labels.set(text, y);
+        labelPositions.set(text, { x, y });
       },
       measureText(text) {
         const width =
@@ -344,6 +350,40 @@ export async function verifyNativeArtifact({
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
+    if (gameId === 'moss-garden') {
+      assert.ok(standalone);
+      const click = (label) => {
+        const position = labelPositions.get(label);
+        assert.ok(position, 'Missing control: ' + label);
+        tap(position.x, position.y);
+      };
+      const expectSeeds = (count) =>
+        assert.ok(rendered.includes(`光种 ${count} / 4`), 'Expected seed count: ' + count);
+      click('开始播种');
+      expectSeeds(0);
+      // The native SDK and Canvas share the same 390 × 844 portrait coordinates.
+      tap(72, 261);
+      expectSeeds(1);
+      assert.ok(
+        audio.some((sound) => sound.playing),
+        'Seed placement must play packaged audio',
+      );
+      tap(72, 261);
+      expectSeeds(0);
+      click('玩法手册');
+      assert.ok(rendered.includes('返回花园'), 'Help must have a return path');
+      click('返回花园');
+      expectSeeds(0);
+      for (const hide of hidden) hide();
+      assert.ok(
+        audio.every((sound) => !sound.playing),
+        'Background transition must stop puzzle audio',
+      );
+      const paused = JSON.stringify(rendered);
+      advance(2000);
+      assert.equal(JSON.stringify(rendered), paused, 'Background time must not advance the puzzle');
+      for (const show of shown) show();
+    }
     if (gameId === 'building-power') {
       assert.ok(standalone);
       const click = (label, x = 195) => {
@@ -584,7 +624,9 @@ export async function verifyNativeArtifact({
   }
 
   const selected = standalone
-    ? [...games, ['building-power', '忙碌的电工']].filter(([id]) => id === game)
+    ? [...games, ['building-power', '忙碌的电工'], ['moss-garden', '苔光花园']].filter(
+        ([id]) => id === game,
+      )
     : games;
   assert.ok(selected.length, 'Unknown game');
   for (const item of selected) {
@@ -618,11 +660,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
     assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
     const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
-    assert.ok(
-      !values.game || [...originalGames, 'building-power'].includes(values.game),
-      'Unknown game',
-    );
-    for (const game of values.game ? [values.game] : [...originalGames, 'building-power']) {
+    const standaloneGames = [...originalGames, 'building-power', 'moss-garden'];
+    assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
+    for (const game of values.game ? [values.game] : standaloneGames) {
       for (const platform of values.platform ? [values.platform] : platforms) {
         await verifyNativeArtifact({
           root: fileURLToPath(
