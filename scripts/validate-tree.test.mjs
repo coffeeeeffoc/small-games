@@ -264,6 +264,8 @@ test('explicit source targets select only their actual platform and include comp
     },
   };
   const calls = [];
+  const env = {};
+  let browserPreparations = 0;
   const plan = {
     nine_native_targets: [
       { game: 'travel-bund', platform: 'alipay' },
@@ -276,9 +278,16 @@ test('explicit source targets select only their actual platform and include comp
     plan,
     packages: [host],
     root: os.tmpdir(),
-    env: {},
+    env,
+    prepareBrowser: () => {
+      browserPreparations++;
+      env.PLAYWRIGHT_EXECUTABLE_PATH = path.join(os.tmpdir(), 'real-installed-chromium');
+    },
     execute: (...args) => calls.push(args),
   });
+  assert.equal(browserPreparations, 1);
+  const travelCall = calls.find((call) => call[1][0] === 'scripts/nine-travel-native-smoke.mjs');
+  assert.equal(travelCall[3].PLAYWRIGHT_EXECUTABLE_PATH, env.PLAYWRIGHT_EXECUTABLE_PATH);
   const builds = calls.filter((call) => call[1][0].endsWith('nine-games-build.mjs'));
   assert.deepEqual(
     builds.map((call) => [call[1][2], call[1][4]]),

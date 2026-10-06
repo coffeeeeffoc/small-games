@@ -451,3 +451,146 @@ test('native source discovery honors actual generated Scene boundary and audio p
     );
   }
 });
+
+test('real dcf publication base to candidate preserves both reviewed channel-selection scope mappings', () => {
+  const files = ['scripts/nine-canvas-games-smoke.mjs', 'scripts/nine-wulong-smoke.mjs'];
+  const readBase = (file) =>
+    execFileSync('git', ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`], {
+      encoding: 'utf8',
+    });
+  const readHead = (file) =>
+    execFileSync('git', ['show', `6e356b17cf69502052ea8a694f6ea9bc308a54bd:${file}`], {
+      encoding: 'utf8',
+    });
+  const c = { ...context(files), readBase, readHead };
+  const scopes = nineNativeFileScopes(c);
+  assert.equal(scopes.size, 2);
+  assert.deepEqual(
+    nineNativeChecks(files, scopes).map((check) => check.games),
+    [
+      ['cops-robbers', 'cops-robbers-realtime', 'vibeJam-myself-history-guess', 'xiangqi-five'],
+      ['wulong-city'],
+    ],
+  );
+  for (const file of files) {
+    const one = { ...c, changedPaths: [file] };
+    assert.equal(nineNativeFileScopes({ ...one, readBase: () => readBase(file) + '\n' }).size, 0);
+    assert.equal(nineNativeFileScopes({ ...one, readHead: () => readHead(file) + '\n' }).size, 0);
+    assert.equal(
+      nineNativeFileScopes({ ...one, readBase: () => readBase(file).replace('alipay', 'unknown') })
+        .size,
+      0,
+    );
+    assert.equal(
+      nineNativeFileScopes({
+        ...one,
+        readHead: () => readHead(file).replace('NATIVE_PLATFORMS', 'UNREVIEWED_PLATFORMS'),
+      }).size,
+      0,
+    );
+    assert.equal(
+      nineNativeFileScopes({
+        ...one,
+        readBase: () => readHead(file),
+        readHead: () => readBase(file),
+      }).size,
+      0,
+    );
+  }
+});
+
+test('real publication diff with all classifiers keeps navigation H5 and all 35 native pairs including Travel', async () => {
+  const base = 'dcf778794c36562634a969b8b8975889c4001d0c',
+    head = '6e356b17cf69502052ea8a694f6ea9bc308a54bd';
+  const paths = execFileSync('git', ['diff', '--name-only', base, head], { encoding: 'utf8' })
+    .trim()
+    .split('\n');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { registrationFileScopes } = await import('./pages-registration-scope.mjs');
+  const { nineLockFileScopes } = await import('./nine-lock-scope.mjs');
+  const {
+    incrementalPlan,
+    entryAdapterFileScopes,
+    h5AdapterFileScopes,
+    developerModeFileScopes,
+    nativeWorkspaceFileScopes,
+    reviewedSharedFileScopes,
+  } = await import('./incremental-validation.mjs');
+  const actualPackages = await workspacePackages(new URL('../', import.meta.url).pathname);
+  const cache = new Map();
+  const read = (sha, file) => {
+    const key = sha + ':' + file;
+    if (!cache.has(key)) {
+      try {
+        cache.set(
+          key,
+          execFileSync('git', ['show', key], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+          }),
+        );
+      } catch {
+        cache.set(key, undefined);
+      }
+    }
+    if (cache.get(key) === undefined) throw Error('Missing source: ' + key);
+    return cache.get(key);
+  };
+  const c = {
+    changedPaths: paths,
+    games: catalog,
+    packages: actualPackages,
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+  };
+  const fileScopes = registrationFileScopes({
+    ...c,
+    gameSources: actualPackages.filter((pkg) => pkg.dir.startsWith('games/')).map((pkg) => pkg.dir),
+  });
+  for (const classify of [
+    entryAdapterFileScopes,
+    h5AdapterFileScopes,
+    developerModeFileScopes,
+    nativeWorkspaceFileScopes,
+    reviewedSharedFileScopes,
+    nineNativeFileScopes,
+    nineLockFileScopes,
+  ]) {
+    for (const [file, sources] of classify(c)) fileScopes.set(file, sources);
+  }
+  const result = incrementalPlan({ ...c, fileScopes, readSource: c.readHead });
+  assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
+  const effective = new Set(
+    result.nine_native_targets.map((target) => target.game + ':' + target.platform),
+  );
+  for (const check of result.nine_native_checks)
+    for (const game of check.games)
+      for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'])
+        effective.add(game + ':' + platform);
+  assert.equal(effective.size, 35);
+  assert.equal([...effective].filter((pair) => pair.startsWith('travel-bund:')).length, 5);
+  assert(![...effective].some((pair) => /^(carding-car|night-overwatch):/.test(pair)));
+  assert.deepEqual(result.nine_native_blocked, []);
+  if (process.env.NINE_NATIVE_SCOPE_REPORT) {
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(
+      process.env.NINE_NATIVE_SCOPE_REPORT,
+      JSON.stringify(
+        {
+          base,
+          head,
+          changedPaths: paths,
+          fileScopes: [...fileScopes],
+          browser_ids: result.browser_ids,
+          dependency_native_targets: result.nine_native_targets,
+          effective_native_targets: [...effective].sort(),
+          native_blocked: result.nine_native_blocked,
+          scope:
+            'Actual git diff/base/head and workspace/catalog through all production classifiers and incrementalPlan; effective targets use the same legacy-check union as runNineNativeChecks.',
+        },
+        null,
+        2,
+      ),
+    );
+  }
+});

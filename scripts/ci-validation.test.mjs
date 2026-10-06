@@ -296,3 +296,174 @@ test('a full or nightly plan without a usable base retains the original aggregat
     );
   }
 });
+
+test('native-only Travel validation prepares Chromium once before its actual browser contract', async () => {
+  const events = [];
+  const originalEnv = {};
+  let resolutions = 0;
+  await ciValidation({
+    env: originalEnv,
+    selectPlan: async () => ({
+      full: true,
+      browser: true,
+      cocos: false,
+      diff_base: 'base',
+      diff_head: 'head',
+    }),
+    browserExecutable: () => {
+      events.push('resolve-installed-path');
+      resolutions++;
+      return '/fixture/installed/chromium';
+    },
+    treeValidator: async ({ prepareBrowser, env }) => {
+      events.push('native-integrity');
+      prepareBrowser();
+      assert.equal(env.CHROMIUM_PATH, '/fixture/installed/chromium');
+      assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/fixture/installed/chromium');
+      events.push('travel-browser-contract');
+      prepareBrowser();
+      return { browser: false, browser_ids: [], nine_native_travel_contract: true };
+    },
+    execute: (command, args) => {
+      assert.equal(command, 'pnpm');
+      assert.deepEqual(args, ['exec', 'playwright', 'install', '--with-deps', 'chromium']);
+      events.push('install');
+    },
+  });
+  assert.deepEqual(events, [
+    'native-integrity',
+    'install',
+    'resolve-installed-path',
+    'travel-browser-contract',
+  ]);
+  assert.equal(resolutions, 1);
+  assert.deepEqual(originalEnv, {});
+});
+
+test('tree H5 preparation and later selected browsers share one installation and environment', async () => {
+  let installations = 0;
+  let resolutions = 0;
+  let treeEnv;
+  const executed = [];
+  await ciValidation({
+    env: {},
+    selectPlan: async () => ({
+      full: true,
+      browser: true,
+      cocos: false,
+      diff_base: 'base',
+      diff_head: 'head',
+    }),
+    browserExecutable: () => {
+      resolutions++;
+      return '/fixture/installed/chromium';
+    },
+    treeValidator: async ({ prepareBrowser, env }) => {
+      treeEnv = env;
+      prepareBrowser();
+      prepareBrowser();
+      return { browser: true, browser_ids: ['travel-bund'], game_sources: [] };
+    },
+    execute: (command, args, root, env) => {
+      if (args[0] === 'exec') installations++;
+      else {
+        assert.equal(installations, 1);
+        assert.equal(env, treeEnv);
+        assert.equal(env.CHROMIUM_PATH, '/fixture/installed/chromium');
+        assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/fixture/installed/chromium');
+        executed.push(args[0]);
+      }
+    },
+  });
+  assert.equal(installations, 1);
+  assert.equal(resolutions, 1);
+  assert.deepEqual(executed, ['scripts/run-selected-browser.mjs']);
+});
+
+test('explicit browser paths survive preparation and only missing paths use the installed resolver', async () => {
+  for (const originalEnv of [
+    { CHROMIUM_PATH: '/configured/chromium', PLAYWRIGHT_EXECUTABLE_PATH: '/configured/playwright' },
+    { CHROMIUM_PATH: '/configured/chromium' },
+    { PLAYWRIGHT_EXECUTABLE_PATH: '/configured/playwright' },
+  ]) {
+    const before = { ...originalEnv };
+    let resolutions = 0;
+    await ciValidation({
+      env: originalEnv,
+      selectPlan: async () => ({
+        full: true,
+        browser: true,
+        cocos: false,
+        diff_base: 'base',
+        diff_head: 'head',
+      }),
+      browserExecutable: () => {
+        resolutions++;
+        return '/fixture/installed/chromium';
+      },
+      treeValidator: async ({ prepareBrowser, env }) => {
+        prepareBrowser();
+        for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+          assert.equal(env[key], before[key] || '/fixture/installed/chromium');
+        return { browser: false, browser_ids: [] };
+      },
+      execute: () => {},
+    });
+    assert.equal(resolutions, Object.keys(before).length === 2 ? 0 : 1);
+    assert.deepEqual(originalEnv, before);
+  }
+});
+
+test('an installation failure stops native browser validation and later browser execution', async () => {
+  let installations = 0;
+  await assert.rejects(
+    ciValidation({
+      env: {},
+      selectPlan: async () => ({
+        full: true,
+        browser: true,
+        cocos: false,
+        diff_base: 'base',
+        diff_head: 'head',
+      }),
+      browserExecutable: () => assert.fail('Failed installation cannot resolve a browser'),
+      treeValidator: async ({ prepareBrowser }) => {
+        prepareBrowser();
+        assert.fail('Failed preparation cannot launch the native browser contract');
+      },
+      execute: (command, args) => {
+        assert.deepEqual(args, ['exec', 'playwright', 'install', '--with-deps', 'chromium']);
+        installations++;
+        throw new Error('Chromium download failed');
+      },
+    }),
+    /Chromium download failed/,
+  );
+  assert.equal(installations, 1);
+});
+
+test('full validation without a base prepares browsers after the tree phase', async () => {
+  const events = [];
+  await ciValidation({
+    env: {},
+    selectPlan: async () => ({ full: true, browser: true, cocos: true }),
+    browserExecutable: () => '/fixture/installed/chromium',
+    treeValidator: async () => events.push('tree-complete'),
+    execute: (command, args, root, env) => {
+      events.push(args[0]);
+      if (args[0] !== 'exec') {
+        assert.equal(env.CHROMIUM_PATH, '/fixture/installed/chromium');
+        assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/fixture/installed/chromium');
+      }
+    },
+  });
+  assert.deepEqual(events, [
+    'tree-complete',
+    'exec',
+    'test',
+    'test:contract',
+    'test:integration',
+    'test:dialogs',
+    'smoke',
+  ]);
+});

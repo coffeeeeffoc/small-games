@@ -177,7 +177,14 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
   for (const entry of entries) await visit(path.resolve(dir, entry));
 }
 
-export function runNineNativeChecks({ plan, packages, root, env, execute = run }) {
+export function runNineNativeChecks({
+  plan,
+  packages,
+  root,
+  env,
+  execute = run,
+  prepareBrowser = () => {},
+}) {
   const checks = plan.nine_native_checks || [];
   const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
   const games = [
@@ -264,10 +271,15 @@ export function runNineNativeChecks({ plan, packages, root, env, execute = run }
         NATIVE_GAME_IDS: ids.join(','),
       });
   }
-  if (selectedFor('travel-bund').length)
+  if (selectedFor('travel-bund').length) {
+    prepareBrowser();
+    // CI resolves the installed real browser before the child process inherits env.
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) nativeEnv[key] = env[key];
     executeScript(['scripts/nine-travel-native-smoke.mjs'], {
       NATIVE_PLATFORMS: selectedFor('travel-bund').join(','),
     });
+  }
   const executed = new Set([
     'scripts/nine-wulong-smoke.mjs',
     'scripts/nine-canvas-games-smoke.mjs',
@@ -344,6 +356,7 @@ export async function validateTree({
   execute = run,
   deferIdenticalRulesToAggregate = false,
   incremental = false,
+  prepareBrowser = () => {},
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -576,7 +589,10 @@ export async function validateTree({
     execute(pnpm, args, root, clean, 'logged');
   }
   execute(pnpm, ['check:dependencies'], root, clean);
-  if (incrementalScope?.browser)
+  if (incrementalScope?.browser) {
+    prepareBrowser();
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) clean[key] = env[key];
     execute(
       process.execPath,
       ['scripts/run-selected-shell.mjs', JSON.stringify(incrementalScope)],
@@ -584,8 +600,20 @@ export async function validateTree({
       clean,
       'logged',
     );
+  }
   if (incrementalScope)
-    runNineNativeChecks({ plan: incrementalScope, packages, root, env: clean, execute });
+    runNineNativeChecks({
+      plan: incrementalScope,
+      packages,
+      root,
+      env: clean,
+      execute,
+      prepareBrowser: () => {
+        prepareBrowser();
+        for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+          if (env[key]) clean[key] = env[key];
+      },
+    });
   if (incrementalScope)
     runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
   return incrementalScope || plan;

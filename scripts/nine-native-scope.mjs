@@ -149,6 +149,15 @@ const reviewed = {
   ],
 };
 const digest = (text) => createHash('sha256').update(text).digest('hex');
+// Explicitly reviewed dcf7787 -> 6e356b1 channel-selection additions. These
+// full-file hash pairs preserve all existing game flows/assertions and lock the
+// NATIVE_PLATFORMS guards (including Wulong's conditional Alipay block).
+const reviewedChannelSelectionBases = {
+  'scripts/nine-canvas-games-smoke.mjs':
+    '7f6550910297dc9870655c78923b791efa90aacd80ba9616488eefa30dccfe1e',
+  'scripts/nine-wulong-smoke.mjs':
+    'f2f1bdecd836acc9a1420d60c9bffddba563e8c4adbc85a0ccd7807df3d7472d',
+};
 const equal = (actual, expected) => assert.deepEqual(actual, expected);
 const imports = (text) =>
   [...text.matchAll(/(?:^|[;\n])import\s+(?:[^;]*?\bfrom\s*)?(['"])([^'"]+)\1\s*;/g)].map(
@@ -279,7 +288,12 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
           /* This exact digest was explicitly reviewed as a new file. */
         }
         assert(
-          base === undefined || base === null || base === head,
+          base === undefined ||
+            base === null ||
+            base === head ||
+            (typeof base === 'string' &&
+              reviewedChannelSelectionBases[file] !== undefined &&
+              digest(base) === reviewedChannelSelectionBases[file]),
           'Unreviewed pre-existing native baseline',
         );
       }
