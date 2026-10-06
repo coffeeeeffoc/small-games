@@ -144,3 +144,76 @@ test('aggregate coverage requires the exact same rule command and an unfiltered 
     false,
   );
 });
+
+test('first-nine native checks build only mapped games across five platforms, then execute real CJS checks', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+    },
+  };
+  const command = { file: 'scripts/nine-wulong-smoke.mjs', args: [] };
+  const plan = {
+    nine_native_checks: [
+      { games: ['wulong-city'], command },
+      { games: ['wulong-city'], command },
+    ],
+  };
+  const calls = [];
+  runNineNativeChecks({
+    plan,
+    packages: [host],
+    root: '/candidate',
+    env: {},
+    execute: (...args) => calls.push(args),
+  });
+  const builds = calls.filter(
+    (call) => call[1][0] === 'apps/shell-minigame/scripts/nine-games-build.mjs',
+  );
+  assert.equal(builds.length, 5);
+  assert.deepEqual(
+    builds.map((call) => call[1][4]),
+    ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'],
+  );
+  assert(builds.every((call) => call[1][2] === 'wulong-city'));
+  assert.equal(calls.filter((call) => call[1][0] === command.file).length, 1);
+  assert(
+    calls.every(
+      (call) => call[3].NATIVE_OUTPUT_ROOT === '/candidate/apps/shell-minigame/dist/nine-games',
+    ),
+  );
+  for (const key of ['test', 'build:nine']) {
+    const rejected = [];
+    assert.throws(
+      () =>
+        runNineNativeChecks({
+          plan,
+          packages: [{ ...host, scripts: { ...host.scripts, [key]: 'unknown' } }],
+          root: '/candidate',
+          env: {},
+          execute: (...args) => rejected.push(args),
+        }),
+      /Unreviewed/,
+    );
+    assert.deepEqual(rejected, []);
+  }
+  const rejected = [];
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan,
+        packages: [host],
+        root: '/candidate',
+        env: {},
+        execute: (...args) => {
+          rejected.push(args);
+          throw Error('build failed');
+        },
+      }),
+    /build failed/,
+  );
+  assert.equal(rejected.length, 1);
+});

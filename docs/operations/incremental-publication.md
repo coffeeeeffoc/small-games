@@ -23,3 +23,7 @@ GitHub API 修改分支不会触发本地 hook。云端、worktree、API 发布�
 Cocos 输入仍严格要求 Creator 3.8.8，或 source hash 匹配且包含 `dist/index.html`、`dist/build-info.json` 和 `cc.d.ts` 的产物，通过既有验证后才查 Turbo 缓存。`KART_PREBUILT_DIR` / `NIGHT_OVERWATCH_PREBUILT_DIR` 可指向匹配制品。源码/运行素材变化需要 Creator 环境重建；源码未改可复用 Windows 缓存并由 Linux 验证。缺递归 gitlinks/素材、缺匹配制品及编辑器、工具链不符均属于明确环境/输入阻塞，区别于规则/导航断言失败；禁止伪造编辑器、声明或制品来通过。
 
 Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 ms 的估算预算自动增加排队分片；工作流仍最多四片并发。目录增长超过四片容量时不能压低耗时、丢游戏或删除预算断言。未测量游戏暂用 30000 ms，并在计划日志列出；这只是调度估算，不是实际运行时限或实测通过证明。`scripts/pages-regression-timings.json` 的耗时只能根据相同生产浏览器流程的完整成功诊断更新，同时保留来源 run/SHA；失败或跳过阶段不能作为更短的替代记录。单款估算超过预算时阻塞并核查实测与运行成本，不拆散或跳过该款断言。分片/耗时文件变化在本地增量门禁只运行有限的规划测试，线上仍执行所选全部游戏。
+
+本次前九款新增工具使用 `scripts/nine-native-scope.mjs` 的七个精确路径：共享 competition guard 仅接受原四渠道后增加支付宝且其他字节完全不变；六个新入口或测试文件必须符合人工审阅源码摘要、固定 import 和游戏名单，未知兄弟文件与其他执行代码继续阻塞。范围含真实游戏包与原生宿主，按 workspace 依赖图计算类型和 lint 消费者。原生工具变更运行对应五渠道 preview 构建与实际 CJS 流程，不因原生专属接线自动选择无变化的 H5 浏览器页面；B站入口触屏流程显式启用 `BILIBILI_BROWSER=1`。
+
+`nine-lock-scope.mjs` 单独证明支付宝新 importer、宿主 workspace link 与外滩两项固定直接工具依赖。支付宝工具完全复用基线 importer tuple；外滩 draco3d 1.5.7、esbuild 0.28.2 已在基线唯一 package/snapshot 中锁定，新增直接 tuple 必须匹配 manifest，不得产生新 resolution。移除这些已证明增量后，整个锁文件必须与基线逐字一致；错误 link、重复 importer、额外依赖、外部版本/integrity 更新、manifest 不符或缺基线均不分类。该证明不能覆盖注册结构破坏或同次推送混入的其他未知路径。

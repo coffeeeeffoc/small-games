@@ -641,3 +641,54 @@ test('H5 changes outside literal ranges remain unknown and block incremental pub
     assert.throws(() => plan([file], { games: h5Games, fileScopes }), /scope undefined/);
   }
 });
+
+test('scoped platform consumers traverse actual intermediate package dependencies and exclude unrelated games', async () => {
+  const { affectedPackages } = await import('./validation-plan.mjs');
+  const graph = [
+    { name: 'platform', dir: 'platforms/alipay' },
+    { name: 'middle', dir: 'packages/middle', dependencies: { platform: 'workspace:*' } },
+    { name: 'host', dir: 'apps/shell-minigame', dependencies: { middle: 'workspace:*' } },
+    { name: 'unrelated', dir: 'games/local/unrelated' },
+  ];
+  const selected = plan(['pnpm-lock.yaml'], {
+    packages: graph,
+    games: [],
+    fileScopes: new Map([['pnpm-lock.yaml', ['platforms/alipay']]]),
+  });
+  assert.deepEqual(selected.consumer_sources, ['platforms/alipay']);
+  assert.deepEqual(
+    affectedPackages(
+      graph,
+      selected.consumer_sources.map((dir) => dir + '/package.json'),
+    ).map((pkg) => pkg.name),
+    ['platform', 'middle', 'host'],
+  );
+  assert.deepEqual(selected.game_sources, []);
+  assert.throws(
+    () =>
+      plan(['pnpm-lock.yaml', 'platforms/competition/unknown.js'], {
+        packages: graph,
+        games: [],
+        fileScopes: new Map([['pnpm-lock.yaml', ['platforms/alipay']]]),
+      }),
+    /scope undefined.*unknown/,
+  );
+});
+
+test('first-nine classifier tooling recognizes only exact source/test files; adjacent names remain unknown', () => {
+  for (const file of [
+    'scripts/nine-native-scope.mjs',
+    'scripts/nine-native-scope.test.mjs',
+    'scripts/nine-lock-scope.mjs',
+    'scripts/nine-lock-scope.test.mjs',
+  ]) {
+    assert.equal(plan([file]).validation_tools, true);
+  }
+  for (const file of [
+    'scripts/nine-native-scope.extra.mjs',
+    'scripts/nine-lock-scope-new.mjs',
+    'scripts/nine-native-scope.test.other.mjs',
+  ]) {
+    assert.throws(() => plan(['scripts/nine-native-scope.mjs', file]), /scope undefined/);
+  }
+});

@@ -3,11 +3,12 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
+import { nineNativeScopePaths, nineNativeChecks } from './nine-native-scope.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -59,12 +60,24 @@ export function incrementalPlan({
     !unclassifiedRegistration.length,
     `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
-  const affected = affectedPackages(packages, paths);
+  const scopedConsumers = [...new Set([...fileScopes.values()].flat())].filter((dir) =>
+    packages.some((pkg) => pkg.dir === dir),
+  );
+  const affected = affectedPackages(packages, [
+    ...paths,
+    ...scopedConsumers.map((dir) => dir + '/package.json'),
+  ]);
   const directGames = games.filter((game) =>
     paths.some((file) => file === game.source || file.startsWith(game.source + '/')),
   );
   const shared = paths.some((file) => file.startsWith('packages/'));
-  const registrations = new Set([...fileScopes.values()].flat());
+  // Native-only tool consumers require their package checks and actual native CJS
+  // flows; they do not change the H5 entry and do not select its browser regression.
+  const registrations = new Set(
+    [...fileScopes]
+      .filter(([file]) => !nineNativeScopePaths.includes(file))
+      .flatMap(([, dirs]) => dirs),
+  );
   const selected = shared
     ? games.filter((game) => affected.some((pkg) => pkg.dir === game.source))
     : games.filter((game) => directGames.includes(game) || registrations.has(game.source));
@@ -110,8 +123,13 @@ export function incrementalPlan({
     ),
     consumer_sources: [
       ...nativeConsumers.map((consumer) => consumer.dir),
+      ...scopedConsumers,
       ...(devModeIds.length ? ['apps/shell-web'] : []),
     ],
+    nine_native_paths: paths.filter(
+      (file) => nineNativeScopePaths.includes(file) && fileScopes.has(file),
+    ),
+    nine_native_checks: nineNativeChecks(paths, fileScopes),
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
   };

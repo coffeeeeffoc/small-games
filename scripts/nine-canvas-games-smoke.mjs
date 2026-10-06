@@ -18,12 +18,28 @@ const channels = [
   ['kuaishou', 'ks'],
   ['alipay', 'my'],
 ];
+const selectedGames = process.env.NATIVE_GAME_IDS?.split(',').filter(Boolean);
+if (selectedGames) {
+  assert(selectedGames.length > 0 && new Set(selectedGames).size === selectedGames.length);
+  assert(
+    selectedGames.every((id) =>
+      [
+        'cops-robbers',
+        'cops-robbers-realtime',
+        'vibeJam-myself-history-guess',
+        'xiangqi-five',
+      ].includes(id),
+    ),
+    'Unknown native Canvas CJS game selection',
+  );
+}
 for (const game of [
   'cops-robbers',
   'cops-robbers-realtime',
   'vibeJam-myself-history-guess',
   'xiangqi-five',
 ]) {
+  if (selectedGames && !selectedGames.includes(game)) continue;
   for (const [platform, sdkName] of channels) {
     const directory = path.join(output, platform, game),
       source = readFileSync(path.join(directory, 'game.js'), 'utf8');

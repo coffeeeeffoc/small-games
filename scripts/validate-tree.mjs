@@ -10,6 +10,8 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { nineNativeFileScopes } from './nine-native-scope.mjs';
+import { nineLockFileScopes } from './nine-lock-scope.mjs';
 import {
   incrementalPlan,
   entryAdapterFileScopes,
@@ -174,6 +176,86 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
   for (const entry of entries) await visit(path.resolve(dir, entry));
 }
 
+export function runNineNativeChecks({ plan, packages, root, env, execute = run }) {
+  const checks = plan.nine_native_checks || [];
+  if (!checks.length) return;
+  const host = packages.find((pkg) => pkg.dir === 'apps/shell-minigame');
+  assert(
+    host?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs' &&
+      host.scripts['build:nine'] === 'node scripts/nine-games-build.mjs',
+    'Unreviewed first-nine native host commands',
+  );
+  const gameIds = [...new Set(checks.flatMap((check) => check.games))].sort();
+  const nativeEnv = {
+    ...env,
+    NATIVE_GAME_IDS: gameIds
+      .filter((id) =>
+        [
+          'cops-robbers',
+          'cops-robbers-realtime',
+          'vibeJam-myself-history-guess',
+          'xiangqi-five',
+        ].includes(id),
+      )
+      .join(','),
+    NATIVE_OUTPUT_ROOT: path.join(root, 'apps/shell-minigame/dist/nine-games'),
+  };
+  for (const id of gameIds)
+    for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'])
+      execute(
+        process.execPath,
+        [
+          'apps/shell-minigame/scripts/nine-games-build.mjs',
+          '--game',
+          id,
+          '--platform',
+          platform,
+          '--preview',
+        ],
+        root,
+        nativeEnv,
+        'logged',
+      );
+  execute('pnpm', ['--filter', host.name, 'test'], root, nativeEnv, 'logged');
+  execute('pnpm', ['--filter', host.name, 'test:nine:resources'], root, nativeEnv, 'logged');
+  if (gameIds.includes('xiangqi-five'))
+    execute(
+      process.execPath,
+      ['--test', 'platforms/competition/xiangqi-five/tests/native.test.mjs'],
+      root,
+      nativeEnv,
+      'logged',
+    );
+  if (gameIds.includes('letters-words2'))
+    execute(
+      process.execPath,
+      ['--test', 'games/local/letters-words2/tests/native-bundle.test.mjs'],
+      root,
+      nativeEnv,
+      'logged',
+    );
+  const executed = new Set();
+  if (nativeEnv.NATIVE_GAME_IDS) {
+    const args = ['scripts/nine-canvas-games-smoke.mjs'];
+    execute(process.execPath, args, root, nativeEnv, 'logged');
+    executed.add(JSON.stringify(args));
+  }
+  for (const check of checks) {
+    if (!check.command) continue;
+    const args = check.command.args?.length ? check.command.args : [check.command.file];
+    const key = JSON.stringify(args);
+    if (executed.has(key)) continue;
+    executed.add(key);
+    execute(
+      process.execPath,
+      args,
+      root,
+      check.type === 'entry' ? { ...nativeEnv, BILIBILI_BROWSER: '1' } : nativeEnv,
+      'logged',
+    );
+  }
+}
+
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
   if (plan.native_consumers.length) {
     // The native replay consumes this rule suite's generated action witness.
@@ -278,6 +360,8 @@ export async function validateTree({
       h5AdapterFileScopes,
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
+      nineNativeFileScopes,
+      nineLockFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -295,7 +379,12 @@ export async function validateTree({
     execute(pnpm, ['test:validation'], root, clean, 'logged');
     execute(
       process.execPath,
-      ['--test', 'scripts/incremental-validation.test.mjs'],
+      [
+        '--test',
+        'scripts/incremental-validation.test.mjs',
+        'scripts/nine-native-scope.test.mjs',
+        'scripts/nine-lock-scope.test.mjs',
+      ],
       root,
       clean,
       'logged',
@@ -432,6 +521,8 @@ export async function validateTree({
       clean,
       'logged',
     );
+  if (incrementalScope)
+    runNineNativeChecks({ plan: incrementalScope, packages, root, env: clean, execute });
   if (incrementalScope)
     runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
 }
