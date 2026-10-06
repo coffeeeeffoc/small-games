@@ -352,6 +352,15 @@ export async function buildTarget(selected, config, outputRoot) {
     JSON.stringify(manifest, null, 2) + '\n',
   );
   await verifyArtifact(outDir);
+  if (config.platform === 'alipay') {
+    const completeBytes =
+      manifest.files.reduce((total, file) => total + file.bytes, 0) +
+      (await stat(path.join(outDir, 'artifact-manifest.json'))).size;
+    if (completeBytes > 4 * 1024 * 1024)
+      throw new Error(
+        `Complete Alipay package including all manifests exceeds 4 MiB: ${completeBytes}`,
+      );
+  }
   if (selected.id === 'travel-bund') {
     const completeBytes =
       manifest.files.reduce((total, file) => total + file.bytes, 0) +

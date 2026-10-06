@@ -131,3 +131,33 @@ test('Night native configurations compile adapted project inputs while canonical
     assert.equal('directory' in result, false);
   }
 });
+
+test('complete native byte budget includes the provenance manifest itself', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'cocos-complete-budget-'));
+  try {
+    const entry = Buffer.from('small entry');
+    await writeFile(path.join(temp, 'game.js'), entry);
+    const manifest = JSON.stringify({
+      files: [
+        {
+          path: 'game.js',
+          bytes: entry.length,
+          sha256: createHash('sha256').update(entry).digest('hex'),
+        },
+      ],
+    });
+    await writeFile(path.join(temp, 'platform-manifest.json'), manifest);
+    const complete = entry.length + Buffer.byteLength(manifest);
+    await verifyManifest(temp, { maxBytes: complete });
+    await assert.rejects(
+      verifyManifest(temp, { maxBytes: complete - 1 }),
+      /including provenance manifest exceeds/,
+    );
+    await assert.rejects(
+      verifyManifest(temp, { maxBytes: entry.length }),
+      /including provenance manifest exceeds/,
+    );
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});

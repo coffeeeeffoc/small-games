@@ -83,12 +83,13 @@ async function files(directory) {
   }
   return output.sort((a, b) => a.path.localeCompare(b.path));
 }
-export async function verifyManifest(directory) {
-  const manifest = JSON.parse(
-    await readFile(path.join(directory, 'platform-manifest.json'), 'utf8'),
-  );
+export async function verifyManifest(directory, { maxBytes = Infinity } = {}) {
+  const manifestBytes = await readFile(path.join(directory, 'platform-manifest.json'));
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
   if (JSON.stringify(manifest.files) !== JSON.stringify(await files(directory)))
     throw Error('Native artifact integrity mismatch.');
+  if (manifest.files.reduce((sum, file) => sum + file.bytes, 0) + manifestBytes.length > maxBytes)
+    throw Error('Native complete package including provenance manifest exceeds byte budget.');
   return manifest;
 }
 export function alipayConfig(gameName) {
@@ -363,7 +364,7 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     path.join(directory, 'platform-manifest.json'),
     JSON.stringify(manifest, null, 2),
   );
-  await verifyManifest(directory);
+  await verifyManifest(directory, { maxBytes: channel === 'alipay' ? 4 * 1024 * 1024 : Infinity });
   if (convertedEvidence) {
     const { verifyConvertedPackage } = await import('./kuaishou-cocos-import.mjs');
     const staged = JSON.parse(
