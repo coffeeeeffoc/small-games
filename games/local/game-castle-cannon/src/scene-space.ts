@@ -24,14 +24,13 @@ export function modulePosition(m: Module, b: Battle) {
     ? new Vector3(-2, 23, 8)
     : new Vector3(-2 + (m.x - first.x) * 0.1, 28, 8 - (m.y - first.y) * 0.02);
 }
+export function routeCenter(z: number) {
+  return 11.5 + Math.min(8.5, Math.max(0, 14 - z)) - Math.max(0, z - 17) * 0.72;
+}
 export function soldierPosition(x: number, id: number) {
-  const progress = (x - 590) * 0.075 - Math.floor(id / 3) * 2.5;
+  const progress = (x - 590) * 0.13 - Math.floor(id / 3) * 4.6;
   // Each row passes through the gap before turning along the visible inner approach.
-  return new Vector3(
-    11.5 + Math.min(8.5, Math.max(0, progress)) + ((id % 3) - 1) * 1.15,
-    0,
-    14 - progress,
-  );
+  return new Vector3(routeCenter(14 - progress) + ((id % 3) - 1) * 1.15, 0, 14 - progress);
 }
 export function moduleAimPoint(m: Module, b: Battle) {
   const p = modulePosition(m, b);

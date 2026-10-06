@@ -9,7 +9,7 @@
         "width": 1120,
         "height": 620
       },
-      "gateFirstLosses": 5,
+      "gateFirstLosses": 4,
       "towerFirstLosses": 1,
       "threeCastles": true,
       "storage": true,
