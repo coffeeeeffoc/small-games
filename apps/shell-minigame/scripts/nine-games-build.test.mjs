@@ -170,3 +170,21 @@ test('integrity detects altered, missing and additional files instead of checkin
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('public competition URL cannot serialize credentials or query tokens into the client', () => {
+  for (const apiUrl of [
+    'http://example.com/',
+    'https://user:secret@example.com/',
+    'https://example.com/?key=server-secret',
+    'https://example.com/#secret',
+  ]) {
+    assert.throws(
+      () =>
+        targetOptions('letters-words2', 'wechat', {
+          preview: true,
+          env: { MINIGAME_COMPETITION_API_URL: apiUrl },
+        }),
+      /HTTPS/,
+    );
+  }
+});

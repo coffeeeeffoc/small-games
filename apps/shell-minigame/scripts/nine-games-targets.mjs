@@ -107,8 +107,18 @@ export function targetOptions(game, platform, { preview = false, env = process.e
       `Release requires ${key}; explicitly use --preview for unconfigured local builds.`,
     );
   const apiUrl = env.MINIGAME_COMPETITION_API_URL || '';
-  if (apiUrl && !/^https:\/\/[^\s/@]+(?:\/|$)/.test(apiUrl))
-    throw new Error('MINIGAME_COMPETITION_API_URL must be a public HTTPS URL without credentials.');
+  if (apiUrl) {
+    let url;
+    try {
+      url = new URL(apiUrl);
+    } catch {
+      throw new Error('MINIGAME_COMPETITION_API_URL must be a public HTTPS URL.');
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
+      throw new Error(
+        'MINIGAME_COMPETITION_API_URL must be public HTTPS without credentials, query tokens or fragments.',
+      );
+  }
   let assetBase;
   if (game === 'travel-bund') {
     assetBase =
