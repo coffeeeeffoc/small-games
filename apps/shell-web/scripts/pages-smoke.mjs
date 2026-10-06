@@ -185,7 +185,10 @@ try {
     result.embedded = 'passed';
     const standaloneUrl = new URL(`games/${game.id}/index.html`, url).href;
     await phase(result, 'embedded-return', async () => {
-      assert.equal(await page.locator('iframe').evaluate((element) => element.src), standaloneUrl);
+      assert.equal(
+        await page.evaluate(() => globalThis.document.querySelector('iframe')?.src),
+        standaloneUrl,
+      );
       if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();
         await frame.locator('#modal [data-home]').click();
@@ -193,7 +196,9 @@ try {
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else {
         assert.equal(
-          await page.getByRole('link', { name: '独立打开' }).evaluate((a) => a.href),
+          await page.evaluate(
+            () => globalThis.document.querySelector('.standalone-page nav a')?.href,
+          ),
           standaloneUrl,
         );
       }

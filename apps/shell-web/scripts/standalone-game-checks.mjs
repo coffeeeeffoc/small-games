@@ -1179,58 +1179,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       ? await (await frame.owner().elementHandle()).contentFrame()
       : frame;
     expect(gameDocument).not.toBeNull();
-    const pressGameControl = async (control, selector) => {
-      await expect(control).toBeVisible();
-      await expect(control).toBeEnabled();
-      const point = await gameDocument.evaluate((selector) => {
-        const document = globalThis.document;
-        const controls = document.querySelectorAll(selector);
-        const control = controls[0];
-        const bounds = control?.getBoundingClientRect();
-        const x = bounds ? bounds.x + bounds.width / 2 : -1;
-        const y = bounds ? bounds.y + bounds.height / 2 : -1;
-        return {
-          count: controls.length,
-          x,
-          y,
-          inViewport:
-            bounds?.width > 0 &&
-            bounds?.height > 0 &&
-            x >= 0 &&
-            x < globalThis.innerWidth &&
-            y >= 0 &&
-            y < globalThis.innerHeight,
-          hit: Boolean(control?.contains(document.elementFromPoint(x, y))),
-        };
-      }, selector);
-      expect(point.count).toBe(1);
-      expect(point.inViewport).toBe(true);
-      expect(point.hit).toBe(true);
-      let { x, y } = point;
-      if (embedded) {
-        const host = await control.page().evaluate(({ x, y }) => {
-          const document = globalThis.document;
-          const frames = document.querySelectorAll('iframe');
-          const owner = frames[0];
-          const bounds = owner?.getBoundingClientRect();
-          const scaleX = bounds ? bounds.width / owner.offsetWidth : 1;
-          const scaleY = bounds ? bounds.height / owner.offsetHeight : 1;
-          const pageX = bounds ? bounds.x + (owner.clientLeft + x) * scaleX : -1;
-          const pageY = bounds ? bounds.y + (owner.clientTop + y) * scaleY : -1;
-          return {
-            count: frames.length,
-            x: pageX,
-            y: pageY,
-            hit: Boolean(owner && document.elementFromPoint(pageX, pageY) === owner),
-          };
-        }, point);
-        expect(host.count).toBe(1);
-        expect(host.hit).toBe(true);
-        ({ x, y } = host);
-      }
-      if (mobile) await control.page().touchscreen.tap(x, y);
-      else await control.page().mouse.click(x, y);
-    };
+    const pressGameControl = (control, selector) =>
+      pressWebGLControl(frame, control, selector, mobile, gameDocument);
     // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
       await pressGameControl(pause, 'button[aria-label="暂停"]');
@@ -1291,7 +1241,12 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect
       .poll(async () => Number(await scene.getAttribute('data-progress')))
       .toBeGreaterThan(initial);
-    await click(frame.getByRole('button', { name: '暂停飞行', exact: true }));
+    await pressWebGLControl(
+      frame,
+      frame.getByRole('button', { name: '暂停飞行', exact: true }),
+      '.control-row > button:first-child',
+      mobile,
+    );
     await expect(frame.locator('main')).toHaveAttribute('data-playing', 'false');
     await expect(frame.getByRole('button', { name: '开始飞行', exact: true })).toBeVisible();
   } else if (id === 'travel2') {
@@ -1340,4 +1295,66 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
   } else {
     throw new Error(`Missing interaction check for ${id}`);
   }
+}
+
+// Native input with visibility, enabled and hit-target checks, without adopting
+// element handles across worlds between expensive software WebGL frames.
+async function pressWebGLControl(frame, control, selector, mobile = false, document = null) {
+  // Reuse the real document instead of repeatedly adopting element handles
+  // between Playwright worlds while the default software WebGL frame is busy.
+  const embedded = Boolean(frame.owner);
+  const gameDocument =
+    document ?? (embedded ? await (await frame.owner().elementHandle()).contentFrame() : frame);
+  expect(gameDocument).not.toBeNull();
+
+  await expect(control).toBeVisible();
+  await expect(control).toBeEnabled();
+  const point = await gameDocument.evaluate((selector) => {
+    const document = globalThis.document;
+    const controls = document.querySelectorAll(selector);
+    const control = controls[0];
+    const bounds = control?.getBoundingClientRect();
+    const x = bounds ? bounds.x + bounds.width / 2 : -1;
+    const y = bounds ? bounds.y + bounds.height / 2 : -1;
+    return {
+      count: controls.length,
+      x,
+      y,
+      inViewport:
+        bounds?.width > 0 &&
+        bounds?.height > 0 &&
+        x >= 0 &&
+        x < globalThis.innerWidth &&
+        y >= 0 &&
+        y < globalThis.innerHeight,
+      hit: Boolean(control?.contains(document.elementFromPoint(x, y))),
+    };
+  }, selector);
+  expect(point.count).toBe(1);
+  expect(point.inViewport).toBe(true);
+  expect(point.hit).toBe(true);
+  let { x, y } = point;
+  if (embedded) {
+    const host = await control.page().evaluate(({ x, y }) => {
+      const document = globalThis.document;
+      const frames = document.querySelectorAll('iframe');
+      const owner = frames[0];
+      const bounds = owner?.getBoundingClientRect();
+      const scaleX = bounds ? bounds.width / owner.offsetWidth : 1;
+      const scaleY = bounds ? bounds.height / owner.offsetHeight : 1;
+      const pageX = bounds ? bounds.x + (owner.clientLeft + x) * scaleX : -1;
+      const pageY = bounds ? bounds.y + (owner.clientTop + y) * scaleY : -1;
+      return {
+        count: frames.length,
+        x: pageX,
+        y: pageY,
+        hit: Boolean(owner && document.elementFromPoint(pageX, pageY) === owner),
+      };
+    }, point);
+    expect(host.count).toBe(1);
+    expect(host.hit).toBe(true);
+    ({ x, y } = host);
+  }
+  if (mobile) await control.page().touchscreen.tap(x, y);
+  else await control.page().mouse.click(x, y);
 }
