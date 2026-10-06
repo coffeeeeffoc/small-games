@@ -1,0 +1,46 @@
+{
+  "environment": "Linux Chromium desktop / CDP simulated touch; not WeChat device",
+  "renderer": "Real Three.js WebGL2 with public power-saving setting; unchanged rules",
+  "records": [
+    {
+      "name": "desktop",
+      "touch": false,
+      "viewport": {
+        "width": 1120,
+        "height": 620
+      },
+      "gateFirstLosses": 2,
+      "towerFirstLosses": 0,
+      "threeCastles": true,
+      "storage": true,
+      "unattendedFailure": true,
+      "resizeCancelsDrag": true
+    },
+    {
+      "name": "touch-portrait",
+      "touch": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "gateFirstLosses": 2,
+      "towerFirstLosses": 0,
+      "threeCastles": true,
+      "storage": true,
+      "unattendedFailure": true,
+      "resizeCancelsDrag": true
+    },
+    {
+      "name": "iframe",
+      "touch": true,
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "iframe": true,
+      "firstCastle": true,
+      "resizeCancelsDrag": true
+    }
+  ],
+  "errors": []
+}

@@ -14,6 +14,42 @@ const host = () =>
     content: defaultCastleCannonEnvelope,
   });
 describe('session input, storage and rewards', () => {
+  it('switching ammunition preserves a held aim until release', async () => {
+    const s = await createSession(host(), () => {});
+    s.action('start');
+    s.input('down', 1, 590, 280, null);
+    s.action('blast');
+    s.input('up', 1, 590, 280, null);
+    expect(s.v.b.shots[0].ammo).toBe('blast');
+    await s.dispose();
+  });
+  it('release during reload gives explicit feedback; cancel recovers without firing', async () => {
+    const s = await createSession(host(), () => {});
+    s.action('start');
+    const release = () => {
+      s.input('down', 1, 200, 350, null);
+      s.input('move', 1, 590, 280, null);
+      s.input('up', 1, 590, 280, null);
+    };
+    release();
+    expect(s.v.b.events.filter((e) => e.type === 'solid')).toHaveLength(1);
+    release();
+    expect(s.v.feedback).toMatch(/正在装填/);
+    expect(s.v.b.events.filter((e) => e.type === 'solid')).toHaveLength(1);
+    s.tick(3);
+    s.input('down', 1, 680, 160, null);
+    s.input('cancel', 1, 680, 160, null);
+    expect(s.v.feedback).toMatch(/取消/);
+    s.input('up', 1, 680, 160, null);
+    expect(s.v.b.events.filter((e) => e.type === 'solid')).toHaveLength(1);
+    s.input('down', 1, 680, 160, null);
+    s.input('up', 1, 680, 160, null);
+    expect(s.v.b.events.filter((e) => e.type === 'solid')).toHaveLength(2);
+    s.action('retry');
+    expect(s.v.feedback).toBe('');
+    await s.dispose();
+  });
+
   it('cancel, multitouch, pause and repeated retry do not shoot or advance', async () => {
     const s = await createSession(host(), () => {});
     s.action('start');

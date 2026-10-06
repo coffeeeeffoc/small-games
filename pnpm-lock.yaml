@@ -868,6 +868,9 @@ importers:
       '@coffeeeeffoc/game-host':
         specifier: workspace:*
         version: link:../../../packages/game-host
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -878,6 +881,9 @@ importers:
       '@playwright/test':
         specifier: 1.55.1
         version: 1.55.1
+      '@types/three':
+        specifier: 0.180.0
+        version: 0.180.0
       eslint:
         specifier: 9.35.0
         version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)

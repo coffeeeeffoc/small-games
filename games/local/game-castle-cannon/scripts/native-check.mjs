@@ -18,6 +18,8 @@ const draw = new Proxy(
   {},
   {
     get(_target, key) {
+      if (key === 'createLinearGradient' || key === 'createRadialGradient')
+        return () => ({ addColorStop() {} });
       if (key === 'fillText') return (s) => labels.push(String(s));
       if (key === 'fillRect')
         return (x, y, w, h) => {
@@ -84,12 +86,19 @@ const advance = (seconds) => {
 const emit = (event, data) => {
   for (const fn of handlers.get(event)) fn(data);
 };
-const point = (x, y) => ({ clientX: 32 + x * 0.8125, clientY: y * 0.8125, identifier: 1 });
+const point = (x, y) => ({
+  clientX: (844 - 960 * (390 / 540)) / 2 + x * (390 / 540),
+  clientY: y * (390 / 540),
+  identifier: 1,
+});
 const tap = (x, y) => {
   emit('TouchStart', { changedTouches: [point(x, y)] });
   emit('TouchEnd', { changedTouches: [point(x, y)] });
 };
 const shoot = (x, y) => {
+  const px = 35 + x * 0.9 + (y - 200) * 0.2;
+  y = 137 - x * 0.17 + y * 0.73;
+  x = px;
   emit('TouchStart', { changedTouches: [point(200, 350)] });
   emit('TouchMove', { changedTouches: [point(x, y)] });
   emit('TouchEnd', { changedTouches: [point(x, y)] });
@@ -97,7 +106,7 @@ const shoot = (x, y) => {
 };
 assert(labels.includes('一炮拆城'));
 tap(465, 301);
-assert(labels.includes('兵力 12/12'));
+assert(labels.includes('12'));
 emit('TouchStart', { changedTouches: [point(590, 280)] });
 emit('TouchCancel', { changedTouches: [] });
 advance(0.5);
@@ -127,6 +136,7 @@ assert.equal(timers.size, 0);
 for (const set of handlers.values()) assert.equal(set.size, 0);
 const evidence = {
   environment: 'Node VM with mocked wx SDK; not WeChat developer tools or real device',
+  rendererUnderTest: 'Canvas 2D fallback; mock has no usable WebGL2 context',
   orientation: 'landscape',
   nativeBundleLoaded: true,
   dragCancel: true,

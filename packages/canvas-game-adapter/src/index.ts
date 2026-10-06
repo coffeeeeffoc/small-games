@@ -13,6 +13,18 @@ export type CanvasSound = Readonly<{
   setVolume?(volume: number): void;
   dispose(): void;
 }>;
+/** Host-owned WebGL drawing surface; image is its Canvas 2D-compatible drawing source. */
+export type CanvasRenderSurface = {
+  canvas: {
+    width: number;
+    height: number;
+    getContext(kind: 'webgl2', options?: WebGLContextAttributes): WebGL2RenderingContext | null;
+    addEventListener(type: string, listener: EventListener): void;
+    removeEventListener(type: string, listener: EventListener): void;
+  };
+  image: CanvasImageSource;
+  dispose(): void;
+};
 
 export type CanvasGameTarget = Readonly<{
   canvas: {
@@ -25,6 +37,7 @@ export type CanvasGameTarget = Readonly<{
   onPointer?(listener: (event: CanvasPointerEvent) => void): () => void;
   loadImage?(src: string): Promise<CanvasImageSource>;
   createSound?(src: string, options?: { loop?: boolean; volume?: number }): CanvasSound;
+  createRenderSurface?(width: number, height: number): CanvasRenderSurface | null;
 }>;
 export type CanvasScreen = Readonly<{
   title: string;

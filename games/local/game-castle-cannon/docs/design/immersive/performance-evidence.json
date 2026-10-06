@@ -1,0 +1,203 @@
+{
+  "records": [
+    {
+      "cacheWorld": false,
+      "driver": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": false
+      },
+      "viewport": [960, 540],
+      "renderSize": [768, 432],
+      "shadows": {
+        "size": 1024,
+        "type": "PCFSoftShadowMap"
+      },
+      "sourceScene": "Identical model, camera, lighting, material, troop instancing and quality setting; only real static-world color/depth cache is toggled",
+      "lowPower": false,
+      "wallSeconds": 15.739,
+      "submittedFrames": 7,
+      "measuredFps": 0.4447550670309422,
+      "pageEvaluationP95Ms": 1904,
+      "initial": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 5,
+          "frameBattleTime": 2.999999999999997,
+          "lowPower": false,
+          "triangles": 435001,
+          "calls": 193,
+          "cachedWorldTriangles": 0,
+          "cachedWorldCalls": 0,
+          "renderMs": 6,
+          "meanFrameIntervalMs": 2614
+        },
+        "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 12,
+          "frameBattleTime": 10.000000000000004,
+          "lowPower": false,
+          "triangles": 424273,
+          "calls": 192,
+          "cachedWorldTriangles": 0,
+          "cachedWorldCalls": 0,
+          "renderMs": 5,
+          "meanFrameIntervalMs": 2223
+        },
+        "status": "playing；兵力 8；损失 4；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+      },
+      "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+    },
+    {
+      "cacheWorld": false,
+      "driver": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": false
+      },
+      "viewport": [960, 540],
+      "renderSize": [384, 216],
+      "shadows": false,
+      "sourceScene": "Identical model, camera, lighting, material, troop instancing and quality setting; only real static-world color/depth cache is toggled",
+      "lowPower": true,
+      "wallSeconds": 15.526,
+      "submittedFrames": 43,
+      "measuredFps": 2.7695478552106145,
+      "pageEvaluationP95Ms": 433,
+      "initial": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 7,
+          "frameBattleTime": 0.6190000000000001,
+          "lowPower": true,
+          "triangles": 232459,
+          "calls": 192,
+          "cachedWorldTriangles": 0,
+          "cachedWorldCalls": 0,
+          "renderMs": 5,
+          "meanFrameIntervalMs": 1360
+        },
+        "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 50,
+          "frameBattleTime": 16.11100000000009,
+          "lowPower": true,
+          "triangles": 218067,
+          "calls": 193,
+          "cachedWorldTriangles": 0,
+          "cachedWorldCalls": 0,
+          "renderMs": 52,
+          "meanFrameIntervalMs": 386
+        },
+        "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+      },
+      "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+    },
+    {
+      "cacheWorld": true,
+      "driver": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": false
+      },
+      "viewport": [960, 540],
+      "renderSize": [768, 432],
+      "shadows": {
+        "size": 1024,
+        "type": "PCFSoftShadowMap"
+      },
+      "sourceScene": "Identical model, camera, lighting, material, troop instancing and quality setting; only real static-world color/depth cache is toggled",
+      "lowPower": false,
+      "wallSeconds": 15.004,
+      "submittedFrames": 34,
+      "measuredFps": 2.2660623833644364,
+      "pageEvaluationP95Ms": 393,
+      "initial": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 5,
+          "frameBattleTime": 1.879000000000001,
+          "lowPower": false,
+          "triangles": 98512,
+          "calls": 79,
+          "cachedWorldTriangles": 438577,
+          "cachedWorldCalls": 192,
+          "renderMs": 16,
+          "meanFrameIntervalMs": 3825
+        },
+        "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 39,
+          "frameBattleTime": 17.619000000000106,
+          "lowPower": false,
+          "triangles": 73480,
+          "calls": 80,
+          "cachedWorldTriangles": 438577,
+          "cachedWorldCalls": 192,
+          "renderMs": 6,
+          "meanFrameIntervalMs": 446
+        },
+        "status": "playing；兵力 4；损失 8；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+      },
+      "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+    },
+    {
+      "cacheWorld": true,
+      "driver": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": false
+      },
+      "viewport": [960, 540],
+      "renderSize": [384, 216],
+      "shadows": false,
+      "sourceScene": "Identical model, camera, lighting, material, troop instancing and quality setting; only real static-world color/depth cache is toggled",
+      "lowPower": true,
+      "wallSeconds": 15.05,
+      "submittedFrames": 159,
+      "measuredFps": 10.564784053156146,
+      "pageEvaluationP95Ms": 187,
+      "initial": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 8,
+          "frameBattleTime": 0.6820000000000002,
+          "lowPower": true,
+          "triangles": 57728,
+          "calls": 79,
+          "cachedWorldTriangles": 232459,
+          "cachedWorldCalls": 193,
+          "renderMs": 2,
+          "meanFrameIntervalMs": 1609
+        },
+        "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-webgl2",
+          "submittedFrames": 167,
+          "frameBattleTime": 15.42300000000005,
+          "lowPower": true,
+          "triangles": 45392,
+          "calls": 80,
+          "cachedWorldTriangles": 232459,
+          "cachedWorldCalls": 193,
+          "renderMs": 5,
+          "meanFrameIntervalMs": 111
+        },
+        "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+      },
+      "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+    }
+  ],
+  "errors": []
+}

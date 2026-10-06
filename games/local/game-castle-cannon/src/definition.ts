@@ -1,4 +1,5 @@
 import type { GameDefinition, GameInstance } from '@coffeeeeffoc/game-contract';
+import { browserMedia } from './browser-media.js';
 import type { CanvasPointerEvent, CanvasSound } from '@coffeeeeffoc/canvas-game-adapter';
 import { castleCannonCanvasDefinition, castleCannonManifest } from './index.js';
 import type { Hit } from './view.js';
@@ -17,6 +18,7 @@ export const castleCannonGameDefinition: GameDefinition = {
     canvas.width = W;
     canvas.height = H;
     canvas.id = 'battle';
+    canvas.tabIndex = 0;
     const controls = document.createElement('div');
     controls.className = 'castle-controls';
     const full = document.createElement('button');
@@ -32,7 +34,8 @@ export const castleCannonGameDefinition: GameDefinition = {
     let pointerListener: ((e: CanvasPointerEvent) => void) | null = null,
       actionListener: ((id: string) => void) | null = null,
       redraw: (() => void) | null = null,
-      instance: GameInstance | null = null;
+      instance: GameInstance | null = null,
+      layoutViewport = '';
     const buttons = new Map<string, HTMLButtonElement>(),
       active = new Set<number>(),
       abort = new AbortController(),
@@ -46,20 +49,30 @@ export const castleCannonGameDefinition: GameDefinition = {
       const width = window.innerWidth,
         height = window.innerHeight,
         portrait = height > width;
+      layoutViewport = `${width}:${height}`;
       root.dataset.rotated = String(portrait);
       root.style.width = `${portrait ? height : width}px`;
       root.style.height = `${portrait ? width : height}px`;
       const rw = portrait ? height : width,
         rh = portrait ? width : height;
-      const scale = Math.min((rw - 20) / W, (rh - 16) / H);
+      const scale = Math.min(rw / W, rh / H);
       stage.style.width = `${W * scale}px`;
       stage.style.height = `${H * scale}px`;
       redraw?.();
     }
     function point(e: PointerEvent, phase: CanvasPointerEvent['phase']) {
+      if (layoutViewport !== `${window.innerWidth}:${window.innerHeight}`) {
+        resize();
+        if (phase !== 'down') return;
+      }
       if (phase === 'down') {
         active.add(e.pointerId);
-        canvas.setPointerCapture?.(e.pointerId);
+        canvas.focus({ preventScroll: true });
+        try {
+          canvas.setPointerCapture?.(e.pointerId);
+        } catch {
+          /* Window fallback retains this gesture. */
+        }
       } else if (!active.has(e.pointerId)) return;
       const rect = canvas.getBoundingClientRect(),
         rotated = root.dataset.rotated === 'true';
@@ -83,6 +96,27 @@ export const castleCannonGameDefinition: GameDefinition = {
       ['lostpointercapture', 'cancel'],
     ] as const)
       canvas.addEventListener(name, (e) => point(e, phase), options);
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        if (e.target !== canvas) point(e, 'move');
+      },
+      { ...options, capture: true },
+    );
+    window.addEventListener(
+      'pointerup',
+      (e) => {
+        if (active.has(e.pointerId)) {
+          point(e, 'up');
+          e.stopPropagation();
+        }
+      },
+      { ...options, capture: true },
+    );
+    window.addEventListener('pointercancel', (e) => point(e, 'cancel'), {
+      ...options,
+      capture: true,
+    });
     window.addEventListener('resize', resize, options);
     document.addEventListener('fullscreenchange', resize, options);
     document.addEventListener('game-displaychange', resize, options);
@@ -184,8 +218,31 @@ export const castleCannonGameDefinition: GameDefinition = {
             };
           },
           present,
+          ...browserMedia(target),
+          installScene(sceneCanvas) {
+            sceneCanvas.className = 'castle-scene';
+            sceneCanvas.setAttribute('aria-hidden', 'true');
+            stage.prepend(sceneCanvas);
+            return true;
+          },
+          presentTargets(points, metrics) {
+            canvas.dataset.targets = JSON.stringify(points);
+            canvas.dataset.renderer = JSON.stringify(metrics);
+          },
           createSound(src, settings): CanvasSound {
-            const audio = new Audio(new URL(`../${src}`, document.baseURI).href);
+            const audio = new Audio(
+              new URL(
+                src,
+                new URL(
+                  document.baseURI.includes('/games/castle-cannon/')
+                    ? './'
+                    : target.closest('.game-page')
+                      ? './games/castle-cannon/'
+                      : './',
+                  document.baseURI,
+                ),
+              ).href,
+            );
             audio.volume = settings?.volume ?? 0.35;
             return {
               play() {
