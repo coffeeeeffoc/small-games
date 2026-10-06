@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
-import yaml from 'js-yaml';
 
-const loadFormatter = createRequire(import.meta.url);
+const loadDependency = createRequire(import.meta.url);
+
 function literalDeclaration(source, name) {
-  const { parsers } = loadFormatter('prettier/plugins/babel');
+  const { parsers } = loadDependency('prettier/plugins/babel');
   const ast = parsers.babel.parse(source, {});
   const declarations = ast.program.body
     .map((node) => (node.type === 'ExportNamedDeclaration' ? node.declaration : node))
@@ -115,6 +115,7 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   for (const file of changedPaths) {
     try {
       if (file === '.github/workflows/ci.yml') {
+        const yaml = loadDependency('js-yaml');
         const before = yaml.load(readBase(file)),
           after = yaml.load(readHead(file));
         const old = before.jobs?.quality?.['timeout-minutes'];
