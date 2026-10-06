@@ -1,5 +1,12 @@
 [
   {
+    "id": "ball-roguelite",
+    "source": "games/local/ball-roguelite",
+    "title": "星轨弹珠",
+    "description": "拖动瞄准，松手弹射。组合穿透、爆裂、闪电与暴击，击穿六片星域的砖阵，或挑战无尽星空。",
+    "output": "dist"
+  },
+  {
     "id": "ember-bounce",
     "source": "games/local/ember-bounce",
     "title": "熔光弹珠",

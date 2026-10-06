@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#090f24" />
+    <title>星轨弹珠 · Orbit Breaker</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./main.mjs"></script>
+  </head>
+  <body data-screen="home">
+    <main id="app" data-game-display-host>
+      <section id="home" class="screen home">
+        <nav class="utilities" aria-label="游戏选项">
+          <button data-action="help" class="icon" aria-label="玩法帮助">?</button>
+          <span></span>
+          <button data-action="sound" class="icon" aria-label="音效" aria-pressed="true">♫</button>
+          <button data-game-fullscreen>全屏</button>
+        </nav>
+        <div class="brand"><p class="eyebrow">跟着星光，打出你的轨道</p><h1>星轨弹珠</h1><p class="english">ORBIT <span>✦</span> BREAKER</p></div>
+        <canvas id="hero" aria-hidden="true"></canvas>
+        <div class="home-actions">
+          <p id="home-progress" class="muted"></p>
+          <button id="start" class="primary">开始弹射 <span>↗</span></button>
+          <button id="levels-button" class="secondary">选择星域 <span>→</span></button>
+          <button id="endless-button" class="secondary">无尽挑战 <span>∞</span></button>
+        </div>
+        <p class="home-foot">每一次反弹，都是新的可能</p>
+      </section>
+      <section id="levels" class="screen" hidden>
+        <nav class="page-nav"><button data-action="home" aria-label="返回主页">← 返回</button><span class="eyebrow">星域图鉴</span></nav>
+        <h2>选择星域</h2><p class="muted">击穿砖阵，点亮下一片星空</p>
+        <div id="level-list" class="level-grid"></div>
+      </section>
+      <section id="playing" class="screen playing" hidden>
+        <header class="battle-hud"><div><strong id="level-name"></strong><p><span id="wave-progress"></span><span id="practice-tag" hidden> · 试玩</span></p></div><span id="score">0</span><button id="pause" class="icon" aria-label="暂停"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button></header>
+        <div id="arena-wrap"><canvas id="arena" aria-label="弹珠场地：按住拖动瞄准，松手向上发射" tabindex="0"></canvas></div>
+        <footer class="battle-controls"><div><strong id="ball-count">5</strong><span> 颗弹珠</span><p id="shot-hint" role="status">按住场地瞄准 · 松手发射</p></div><button id="recall" class="secondary" disabled>回收</button></footer>
+      </section>
+      <section id="upgrade" class="screen choice-screen" hidden>
+        <p class="eyebrow">星光汇聚</p><h2>选择强化</h2><p class="muted">三选一 · 本次航行内持续生效</p>
+        <div id="upgrade-list" class="upgrade-list"></div>
+        <p id="build-summary" class="muted"></p>
+        <button id="upgrade-home" class="text-button">保存并返回主页</button>
+      </section>
+      <section id="paused" class="screen center-screen" hidden>
+        <div class="orb-emblem" aria-hidden="true">✦</div><p class="eyebrow">星光暂歇</p><h2>已暂停</h2><p class="muted">你的弹珠会在这里等你</p>
+        <button id="resume" class="primary">继续弹射</button>
+        <div class="settings"><button data-action="sound" class="secondary">音效</button><button id="haptics" class="secondary">震动</button><button data-game-fullscreen>全屏</button></div>
+        <button id="pause-help" class="secondary">玩法帮助</button>
+        <button id="back-home" class="text-button">保存并返回主页</button>
+      </section>
+      <section id="result" class="screen center-screen" hidden>
+        <div id="result-emblem" class="orb-emblem" aria-hidden="true">✦</div><p id="result-kicker" class="eyebrow"></p><h2 id="result-title"></h2><p id="result-detail" class="muted"></p>
+        <div class="result-stats"><div><strong id="result-score"></strong><span>击碎砖块</span></div><div><strong id="result-turns"></strong><span>弹射轮次</span></div><div><strong id="result-combo"></strong><span>最佳连击</span></div></div>
+        <button id="next" class="primary" hidden>前往下一星域 →</button><button id="retry" class="secondary">再来一局</button><button data-action="home" class="text-button">返回主页</button>
+      </section>
+      <section id="help" class="screen help" hidden>
+        <nav class="page-nav"><button id="help-back">← 返回</button></nav><h2>让弹珠飞起来</h2>
+        <div class="help-orbit" aria-hidden="true">↗ ✦ ↘</div>
+        <ol><li><strong>拖动瞄准，松手发射</strong><p>在场地按住并拖向上方。利用墙壁反弹，让一颗弹珠多撞几块砖。</p></li><li><strong>先拆靠近底部的砖</strong><p>所有弹珠落回后，砖块下降一行。砖块越过底部警戒线，本局结束。</p></li><li><strong>收集与组合</strong><p>青色「＋」从下一轮增加弹珠。琥珀色爆裂砖击碎后伤害周围。每三轮从三种随机强化中选择一个，可叠加。</p></li><li><strong>点亮星域</strong><p>清空关卡全部波次，解锁下一星域；无尽挑战会不断产生新砖块。回收会放弃本轮剩余弹珠并让砖块下降。</p></li></ol>
+        <p class="muted">回合开始自动存档。中途离开，再打开时回到这一轮的发射前。</p><p id="storage-notice" class="muted"></p>
+      </section>
+    </main>
+  </body>
+</html>

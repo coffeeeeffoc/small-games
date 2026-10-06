@@ -14,6 +14,7 @@ const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 // The registry now also includes building-power; its own suite covers that game.
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
+const immersiveGame = (id) => id === 'ink-is-everything' || id === 'ball-roguelite';
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: basePath,
@@ -79,19 +80,16 @@ try {
     await page.goBack();
     await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
     await page.goForward();
-    if (id === 'ink-is-everything')
-      await expect(page.locator('iframe')).toHaveAttribute('title', title);
+    if (immersiveGame(id)) await expect(page.locator('iframe')).toHaveAttribute('title', title);
     else await expect(page.locator('nav strong')).toHaveText(title);
     await page.reload();
-    if (id === 'ink-is-everything')
-      await expect(page.locator('iframe')).toHaveAttribute('title', title);
+    if (immersiveGame(id)) await expect(page.locator('iframe')).toHaveAttribute('title', title);
     else await expect(page.locator('nav strong')).toHaveText(title);
     const shared = await browser.newPage();
     monitorPagesPage(shared, url, failures, `share/${id}`);
     try {
       assert.equal((await shared.goto(sharedUrl)).status(), 200);
-      if (id === 'ink-is-everything')
-        await expect(shared.locator('iframe')).toHaveAttribute('title', title);
+      if (immersiveGame(id)) await expect(shared.locator('iframe')).toHaveAttribute('title', title);
       else await expect(shared.locator('nav strong')).toHaveText(title);
       await expect(shared.locator('.game-slot, .standalone-page iframe')).toHaveCount(1);
     } finally {
@@ -192,6 +190,9 @@ try {
       if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();
         await frame.locator('#modal [data-home]').click();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'ball-roguelite') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else {

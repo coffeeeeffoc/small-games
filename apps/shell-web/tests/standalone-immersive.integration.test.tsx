@@ -31,27 +31,30 @@ async function mounted(id = ink) {
   return { container, root, frame, send, exit, dispose, origin };
 }
 
-it('lets the ink frame hide its navigation during play, restore home exit, and exit normally', async () => {
-  const { container, send, exit, dispose } = await mounted();
-  try {
-    const nav = container.querySelector('nav')!;
-    expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
-    expect(nav.hidden).toBe(false);
-    expect(nav.querySelectorAll('button')).toHaveLength(1);
-    expect(nav.querySelector('a,strong,[data-game-fullscreen]')).toBeNull();
-    expect(nav.textContent).toBe('返回目录');
-    await send(displayState());
-    expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('playing');
-    expect(nav.hidden).toBe(true);
-    await send(displayState('home'));
-    expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
-    expect(nav.hidden).toBe(false);
-    await act(async () => nav.querySelector('button')!.click());
-    expect(exit).toHaveBeenCalledOnce();
-  } finally {
-    await dispose();
-  }
-});
+it.each(['ink-is-everything', 'ball-roguelite'])(
+  'lets the %s frame hide its navigation during play, restore home exit, and exit normally',
+  async (id) => {
+    const { container, send, exit, dispose } = await mounted(id);
+    try {
+      const nav = container.querySelector('nav')!;
+      expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
+      expect(nav.hidden).toBe(false);
+      expect(nav.querySelectorAll('button')).toHaveLength(1);
+      expect(nav.querySelector('a,strong,[data-game-fullscreen]')).toBeNull();
+      expect(nav.textContent).toBe('返回目录');
+      await send({ ...displayState(), gameId: id });
+      expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('playing');
+      expect(nav.hidden).toBe(true);
+      await send({ ...displayState('home'), gameId: id });
+      expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
+      expect(nav.hidden).toBe(false);
+      await act(async () => nav.querySelector('button')!.click());
+      expect(exit).toHaveBeenCalledOnce();
+    } finally {
+      await dispose();
+    }
+  },
+);
 
 it('rejects forged source, origin, game ID and malformed display messages', async () => {
   const { container, frame, send, dispose, origin } = await mounted();

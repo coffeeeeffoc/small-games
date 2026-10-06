@@ -54,6 +54,8 @@
 
 ## 独立 Git 子模块
 
+《星轨弹珠》位于 `games/local/ball-roguelite`，workspace 包名为 `@coffeeeeffoc/ball-roguelite`，通过 iframe 装载，独立地址为 `/games/ball-roguelite/index.html`。基于上传的弹珠肉鸽原型，提供六个依次解锁星域、无尽挑战与六种组合强化；竖屏触控瞄准、回合存档及运行边界见 [游戏 README](../games/local/ball-roguelite/README.md)。
+
 | 源码目录                            | Game                | workspace 包名                   | 静态输出    |
 | ----------------------------------- | ------------------- | -------------------------------- | ----------- |
 | games/submodules/fishing            | 潮汐猎手            | tidebreak                        | dist/       |

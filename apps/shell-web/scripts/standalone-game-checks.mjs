@@ -33,7 +33,42 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'castle-cannon') {
+  if (id === 'ball-roguelite') {
+    const arena = frame.locator('#arena');
+    const snapshot = () => arena.evaluate((canvas) => canvas.getOrbitSnapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    const initial = await snapshot();
+    const bounds = await arena.boundingBox();
+    const page = arena.page();
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.92 };
+    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.25 };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [target] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    await expect.poll(async () => (await snapshot()).shots).toBe(initial.shots + 1);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'paused');
+    const paused = await snapshot();
+    await page.waitForTimeout(120);
+    expect((await snapshot()).balls).toEqual(paused.balls);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#back-home'));
+    await expect(frame.locator('#start')).toBeVisible();
+  } else if (id === 'castle-cannon') {
     await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
     await click(frame.locator('[data-action="blast"]'));
     await click(frame.locator('[data-action="pause"]'));

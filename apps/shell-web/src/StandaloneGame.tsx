@@ -19,7 +19,7 @@ export function StandaloneGame({
   const entry = standaloneGameEntry(id, search);
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
-  const immersive = id === 'ink-is-everything';
+  const immersive = id === 'ink-is-everything' || id === 'ball-roguelite';
   useEffect(() => {
     window.SmallGamesDev.setPanelHidden(true);
     return () => window.SmallGamesDev.setPanelHidden(false);
@@ -35,7 +35,7 @@ export function StandaloneGame({
       if (
         Object.keys(message).length !== 3 ||
         message.type !== 'small-games:display-state' ||
-        message.gameId !== 'ink-is-everything' ||
+        message.gameId !== id ||
         (message.screen !== 'home' && message.screen !== 'playing')
       )
         return;
@@ -43,7 +43,7 @@ export function StandaloneGame({
     }
     window.addEventListener('message', displayState);
     return () => window.removeEventListener('message', displayState);
-  }, [entry, immersive]);
+  }, [entry, immersive, id]);
   return (
     <main
       className="game-page standalone-page"

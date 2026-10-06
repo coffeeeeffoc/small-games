@@ -130,7 +130,7 @@ try {
           src.searchParams.get('dev'),
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
-        if (game.id === 'ink-is-everything') {
+        if (game.id === 'ink-is-everything' || game.id === 'ball-roguelite') {
           await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
           await expect(page.getByRole('button', { name: '返回目录', exact: true })).toBeVisible();
           await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);

@@ -26,6 +26,7 @@
     "test:pages:artifacts": "node scripts/pages-artifacts.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/ball-roguelite": "workspace:*",
     "@coffeeeeffoc/ember-bounce": "workspace:*",
     "@coffeeeeffoc/tianxia-chalu": "workspace:*",
     "@coffeeeeffoc/voiceprint-case": "workspace:*",
