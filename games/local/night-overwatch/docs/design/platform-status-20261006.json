@@ -93,7 +93,13 @@
         "reason": "Release requires KUAISHOU_APP_ID; no preview identity is accepted."
       },
       "developerTools": false,
-      "realDevice": false
+      "realDevice": false,
+      "followupAudit": {
+        "officialPath": "Creator WeChat-format source -> official Kuaishou DevTools auto-adapter -> kwaiadapter.js",
+        "officialDevToolsVersion": "2.0.6",
+        "officialDevToolsRun": false,
+        "reason": "No local Creator or official Windows/macOS DevTools; native source and generated adapter are unavailable."
+      }
     },
     {
       "channel": "alipay",

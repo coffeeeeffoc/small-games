@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-06",
+  "localHead": "42e1578c33f4733afe0daa9ce05afd8ce9ba506e",
+  "creator": "3.8.8",
+  "assets": "66a0b5c190957f73645fcca92446db964c5557ff",
+  "cardingAssets": "8b9aae2d9b73ae41b3da568efa7f6bd6b450a848",
+  "producer": {
+    "repository": "coffeeeeffoc/small-games",
+    "sha": "1e99fc74e055f78638322f2b9df1602736561af9",
+    "runId": 37499861990,
+    "runAttempt": 1,
+    "runner": "Windows",
+    "overallCI": "failure",
+    "creatorJobs": "success"
+  },
+  "games": [
+    {
+      "game": "carding-car",
+      "artifactId": 11429526707,
+      "archiveSha256": "cad43ac35d2672fbfa736ed2149ac37af916af5f718b18d8204bff0559d11814",
+      "archiveBytes": 15041353,
+      "currentSourceHash": "9ec15686064d037f70f00b59a0c42ed96dba540c5b0386e668ecb5c703c9cede",
+      "artifactSourceHash": "9ec15686064d037f70f00b59a0c42ed96dba540c5b0386e668ecb5c703c9cede",
+      "directory": "/tmp/cocos-verified-20261006/carding-car",
+      "webRestored": "games/local/carding-car/dist",
+      "archiveDigestVerified": true,
+      "sourceHashVerified": true,
+      "producerProvenanceVerified": true,
+      "webReuse": "accepted",
+      "nativePackagesPresent": false,
+      "ccTypesBytes": 3365341,
+      "restoredContentExactMatch": true,
+      "distFiles": 836,
+      "distBytes": 21195693
+    }
+  ]
+}
