@@ -17,6 +17,7 @@ import {
   nativeWorkspaceFileScopes,
   nativeToolConsumers,
   h5AdapterFileScopes,
+  reviewedSharedFileScopes,
 } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
@@ -175,6 +176,22 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.competition?.config_tests)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/check-game-config.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.competition && ['h5', 'native', 'letters'].some((key) => plan.competition[key]))
+    execute(
+      process.execPath,
+      ['scripts/run-selected-competition.mjs', JSON.stringify(plan.competition)],
+      root,
+      env,
+      'logged',
+    );
   if (plan.native_consumers.length) {
     // The native replay consumes this rule suite's generated action witness.
     // Generate it inside the exact candidate snapshot before either host smoke.
@@ -278,6 +295,7 @@ export async function validateTree({
       h5AdapterFileScopes,
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
+      reviewedSharedFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -295,7 +313,7 @@ export async function validateTree({
     execute(pnpm, ['test:validation'], root, clean, 'logged');
     execute(
       process.execPath,
-      ['--test', 'scripts/incremental-validation.test.mjs'],
+      ['--test', 'scripts/incremental-validation.test.mjs', 'scripts/publication-scopes.test.mjs'],
       root,
       clean,
       'logged',

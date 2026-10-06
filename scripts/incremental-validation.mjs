@@ -3,11 +3,13 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
+import { competitionToolPlan } from './publication-scopes.mjs';
+export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|\.githooks\/[^/]+)$/;
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -59,15 +61,22 @@ export function incrementalPlan({
     !unclassifiedRegistration.length,
     `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
-  const affected = affectedPackages(packages, paths);
+  const competition = competitionToolPlan({ paths, games, packages, fileScopes });
+  const affected = affectedPackages(packages, [
+    ...paths,
+    ...competition.consumer_sources.map((dir) => dir + '/package.json'),
+  ]);
   const directGames = games.filter((game) =>
     paths.some((file) => file === game.source || file.startsWith(game.source + '/')),
   );
   const shared = paths.some((file) => file.startsWith('packages/'));
   const registrations = new Set([...fileScopes.values()].flat());
-  const selected = shared
-    ? games.filter((game) => affected.some((pkg) => pkg.dir === game.source))
-    : games.filter((game) => directGames.includes(game) || registrations.has(game.source));
+  const selected = games.filter(
+    (game) =>
+      directGames.includes(game) ||
+      registrations.has(game.source) ||
+      (shared && affected.some((pkg) => pkg.dir === game.source)),
+  );
   const ids = new Set();
   for (const game of selected) {
     const scope = { required: true, full: false, game_ids: [game.id], game_sources: [game.source] };
@@ -106,11 +115,23 @@ export function incrementalPlan({
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
     validation_tools: paths.some(
-      (file) => validationTool.test(file) || file === 'scripts/pages-regression-timings.json',
+      (file) =>
+        validationTool.test(file) ||
+        file === 'scripts/pages-regression-timings.json' ||
+        [
+          '.github/workflows/ci.yml',
+          '.gitignore',
+          '.prettierignore',
+          'scripts/check-game-config.test.mjs',
+        ].includes(file),
     ),
+    competition,
     consumer_sources: [
-      ...nativeConsumers.map((consumer) => consumer.dir),
-      ...(devModeIds.length ? ['apps/shell-web'] : []),
+      ...new Set([
+        ...competition.consumer_sources,
+        ...nativeConsumers.map((consumer) => consumer.dir),
+        ...(devModeIds.length ? ['apps/shell-web'] : []),
+      ]),
     ],
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
@@ -127,6 +148,10 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
       const guardIds = [];
       let guards = 0;
       let fixtures = 0;
+      const legacyLink =
+        /        assert\.equal\(\n          await page\.getByRole\('link', \{ name: '独立打开' \}\)\.getAttribute\('href'\),\n          await page\.locator\('iframe'\)\.getAttribute\('src'\),\n        \);/;
+      const legacyWrapper =
+        /IMMERSIVE_ENTRY_ASSERTIONS\n          assert\.equal\(\n            await page\.getByRole\('link', \{ name: '独立打开' \}\)\.getAttribute\('href'\),\n            await page\.locator\('iframe'\)\.getAttribute\('src'\),\n          \);\n        \}/;
       const rest = source
         .replace(
           /        if \(\n([\s\S]*?)        \) \{\n([\s\S]*?)        \} else \{/g,
@@ -152,6 +177,11 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
             return 'IMMERSIVE_ENTRY_ASSERTIONS';
           },
         )
+        .replace(legacyWrapper, 'REVIEWED_LINK_ENTRY')
+        .replace(legacyLink, () => {
+          guards++;
+          return 'REVIEWED_LINK_ENTRY';
+        })
         .replace(
           /  await page\.goto\(`\$\{origin\}\/independent\/wulong-city\/\?dev`\);\n(?:  await page\.locator\('#start-game'\)\.tap\(\);\n)?/g,
           () => {
