@@ -47,7 +47,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       const angle = Number(node.getAttribute('data-angle')) + Math.PI;
       if (!(radius > 0) || !Number.isFinite(angle)) throw new Error('Invalid ring geometry');
       const point = (theta) => {
-        const transformed = new DOMPoint(
+        const transformed = new globalThis.DOMPoint(
           radius * Math.cos(theta),
           radius * Math.sin(theta),
         ).matrixTransform(matrix);
@@ -98,7 +98,10 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(ring).not.toHaveAttribute('data-angle', initialAngle);
     await expect(frame.locator('[data-action="undo"]')).toBeEnabled();
     await page.evaluate(
-      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      () =>
+        new Promise((resolve) =>
+          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+        ),
     );
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
     await expect(app).toHaveAttribute('data-screen', 'paused');
