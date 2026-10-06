@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 
 export const markers = {
   'orbit-atelier': '#orbit-app[data-ready="true"]',
+  'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '.castle-root[data-ready="true"]',
   'ember-bounce': '#start',
@@ -60,6 +61,7 @@ export const markers = {
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
   'orbit-atelier': '[data-action="start"]',
+  'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '[data-action="start"]',
   'ember-bounce': '#start',

@@ -301,6 +301,9 @@ importers:
       '@coffeeeeffoc/game-cultivation':
         specifier: workspace:*
         version: link:../../games/local/game-cultivation
+      '@coffeeeeffoc/game-moss-garden':
+        specifier: workspace:*
+        version: link:../../games/local/game-moss-garden
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
@@ -404,6 +407,9 @@ importers:
       '@coffeeeeffoc/game-loader':
         specifier: workspace:*
         version: link:../../packages/game-loader
+      '@coffeeeeffoc/game-moss-garden':
+        specifier: workspace:*
+        version: link:../../games/local/game-moss-garden
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
@@ -1030,6 +1036,31 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  games/local/game-moss-garden:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
+    devDependencies:
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../../packages/config-typescript
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
 
   games/local/game-office:
     dependencies:

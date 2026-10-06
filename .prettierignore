@@ -25,3 +25,4 @@ games/local/game-office/art/render-progress.json
 /reports/polish-review/
 # Canonical shared H5 fullscreen copy; checked by sync-h5-fullscreen.
 games/local/game-castle-cannon/public/fullscreen.js
+games/local/game-moss-garden/public/fullscreen.js

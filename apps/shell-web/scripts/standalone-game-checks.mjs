@@ -111,6 +111,19 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '返回工坊', exact: true }));
     await expect(app).toHaveAttribute('data-screen', 'home');
     await expect(frame.locator('[data-action="start"]')).toBeVisible();
+  } else if (id === 'moss-garden') {
+    const seed = frame.getByRole('button', { name: '花圃 第1行 第1列', exact: true });
+    await expect(seed).toBeVisible();
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
+    await click(seed);
+    await expect(seed).toHaveAttribute('aria-pressed', 'true');
+    await click(seed);
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.getByRole('button', { name: '玩法手册', exact: true }));
+    await expect(frame.getByRole('button', { name: '返回花园', exact: true })).toBeVisible();
+    await click(frame.getByRole('button', { name: '返回花园', exact: true }));
+    await expect(seed).toBeVisible();
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'ball-roguelite') {
     const arena = frame.locator('#arena');
     const snapshot = () => arena.evaluate((canvas) => canvas.getOrbitSnapshot());

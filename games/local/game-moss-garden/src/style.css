@@ -1,0 +1,81 @@
+:root {
+  font-family: Georgia, 'Songti SC', serif;
+  background: #e6e9de;
+  color: #264a3d;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#garden {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+}
+#scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#controls button {
+  position: absolute;
+  pointer-events: auto;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#controls button:focus-visible {
+  outline: 3px solid #b37b27;
+  outline-offset: -3px;
+  border-radius: 10px;
+  background: #fff5b333;
+}
+#status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+#load-error {
+  position: absolute;
+  inset: 20%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+#load-error button {
+  padding: 15px;
+  font: inherit;
+  color: #fff;
+  background: #264a3d;
+  border: none;
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+  }
+}

@@ -1,4 +1,18 @@
 {
+  "moss-garden": {
+    "wechat": {
+      "appId": ""
+    },
+    "bilibili": {
+      "appId": ""
+    },
+    "douyin": {
+      "appId": ""
+    },
+    "kuaishou": {
+      "appId": ""
+    }
+  },
   "cricket": {
     "wechat": {
       "appId": "",

@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@coffeeeeffoc/orbit-atelier": "workspace:*",
+    "@coffeeeeffoc/game-moss-garden": "workspace:*",
     "@coffeeeeffoc/ball-roguelite": "workspace:*",
     "@coffeeeeffoc/ember-bounce": "workspace:*",
     "@coffeeeeffoc/tianxia-chalu": "workspace:*",
