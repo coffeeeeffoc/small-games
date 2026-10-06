@@ -130,7 +130,12 @@ test('competition shared paths select exactly five registry consumers, while let
     );
     assert.deepEqual(scopes.get(file), Object.values(competitionConsumers));
     const result = plan([file], scopes);
-    assert.deepEqual(result.browser_ids, games.map((game) => game.id).sort());
+    // competition-build imports native.js only for native entries; the H5 branch
+    // imports h5.js. Native contracts remain selected without H5 browser targets.
+    assert.deepEqual(
+      result.browser_ids,
+      file === 'platforms/competition/native.js' ? [] : games.map((game) => game.id).sort(),
+    );
     assert.equal(result.full, false);
     assert.equal(result.competition.letters, true);
     const native = [
