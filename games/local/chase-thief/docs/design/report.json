@@ -1,0 +1,59 @@
+{
+  "status": "passed",
+  "generatedAt": "2026-10-06T18:23:06.286Z",
+  "browser": "Chromium 151.0.7922.173",
+  "viewports": ["390 × 844", "360 × 640", "844 × 390"],
+  "input": "Mobile touch emulation; canvas swipes use CDP touch events, controls use touch taps.",
+  "build": "Production dist artifact served by server.mjs --dist on an ephemeral local port.",
+  "limitations": "Desktop Chromium emulation; visibility events are simulated. No physical device or native mini-game platform tested.",
+  "checks": [
+    "Production home, levels, help, settings, play, pause, and home navigation work through touch.",
+    "Sound and haptics preferences persist across reload.",
+    "All four canvas swipes and four touch controls work; cancellation and canceled multi-touch do not leave a stuck action.",
+    "Pause, hidden-document, pagehide, and viewport rotation freeze the run without timer catch-up or resetting its position.",
+    "Jump, slide, and lane change clear the opening three waves, trigger a visible burst, and end in automatic capture.",
+    "Developer/manual-clock victories remain practice and never unlock a level or modify campaign storage.",
+    "Three real obstacle collisions slow the player, increase distance, clear the streak, and lose; free retry resets the same level.",
+    "After two collisions and otherwise safe play, the sixty-second deadline produces a timeout loss.",
+    "Two opening collisions can be recovered through fifteen clean waves and capture before the deadline.",
+    "The normal animation loop freezes during pause and background simulation, then resumes without accumulated time.",
+    "All three sixty-second levels can be captured through normal RAF play; victories unlock the next street and campaign progress survives reload.",
+    "Blocked localStorage and rejected fullscreen degrade to playable 360 × 640 and 844 × 390 touch layouts."
+  ],
+  "screenshots": [
+    {
+      "file": "actual-home.png",
+      "bytes": 250207
+    },
+    {
+      "file": "actual-levels.png",
+      "bytes": 190124
+    },
+    {
+      "file": "actual-play.png",
+      "bytes": 199550
+    },
+    {
+      "file": "actual-boost.png",
+      "bytes": 198702,
+      "phase": "running",
+      "developerOverlay": true,
+      "practice": true,
+      "capture": "Real developer-practice run after three authored waves; rendered touch controls; CSS entry animation settled for screenshot."
+    },
+    {
+      "file": "actual-loss.png",
+      "bytes": 163358
+    },
+    {
+      "file": "actual-win.png",
+      "bytes": 121830
+    }
+  ],
+  "errors": [],
+  "visualReview": {
+    "reviewedAt": "2026-10-06T18:25:24.885Z",
+    "screens": ["home", "levels", "play", "boost", "win", "loss"],
+    "result": "Layouts, obstacle visibility, jump clearance, boost feedback, pause icon, and result controls visually checked. Gameplay demonstrations marked as practice show their actual developer overlay."
+  }
+}
