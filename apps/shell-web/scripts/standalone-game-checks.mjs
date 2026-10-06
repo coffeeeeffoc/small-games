@@ -273,7 +273,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'tetracube') {
-    const snapshot = () => frame.locator('body').evaluate(() => window.tetracubeSnapshot());
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.tetracubeSnapshot());
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#game-canvas')).toBeVisible();
     const placed = (await snapshot()).game.placed;
