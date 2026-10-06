@@ -993,7 +993,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       expect(frame.locator('#next')).toBeVisible({ timeout: 15000 }),
     );
     await click(frame.locator('#next'));
-    await expect(frame.locator('#counter')).toHaveText('02 / 26');
+    await expect(frame.locator('#counter')).toHaveText('02 / 100');
     await click(frame.locator('#hint'));
     await expect(frame.locator('.hint-step')).toHaveText('提示 1 / 3');
     await click(frame.locator('[data-more]'));

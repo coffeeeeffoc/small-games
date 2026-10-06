@@ -33,7 +33,7 @@ it('opens nine concrete play entries, retaining modes in frames, independent lin
       const path = `/games/${id}/index.html?${query}`;
       expect(window.location.hash).toBe(`#/games/${id}?${query}`);
       expect(container.querySelector('iframe')?.getAttribute('src')).toBe(path);
-      if (id === 'letters-words2' || id === 'xiangqi-five') {
+      if (id === 'letters-words2' || id === 'xiangqi-five' || id === 'wulong-city') {
         expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
         expect(container.querySelector('nav a')).toBeNull();
       } else {

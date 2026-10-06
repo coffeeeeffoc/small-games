@@ -52,8 +52,10 @@ const checked = targets.map(({ game, platform }) => {
 for (const { game, platform, appId, adUnitId } of checked) {
   const selected = games[game],
     adapter = platforms[platform];
-  const gameRoot = path.join(repo, 'games/local', `game-${game}`);
-  const manifest = JSON.parse(await readFile(path.join(gameRoot, 'src/manifest.json'), 'utf8'));
+  const gameRoot = path.join(repo, 'games/local', selected.root ?? `game-${game}`);
+  const manifest = JSON.parse(
+    await readFile(path.join(gameRoot, selected.manifest ?? 'src/manifest.json'), 'utf8'),
+  );
   const version = manifest.version;
   const outDir = path.join(root, 'dist', platform, game);
   const virtual = '\0standalone-game';
@@ -69,6 +71,7 @@ for (const { game, platform, appId, adUnitId } of checked) {
       lib: { entry, formats: ['cjs'], fileName: () => 'game.js' },
     },
     plugins: [
+      ...(selected.plugins ?? []).map((createPlugin) => createPlugin(gameRoot)),
       {
         name: 'single-reviewed-game',
         enforce: 'pre',
@@ -78,7 +81,7 @@ for (const { game, platform, appId, adUnitId } of checked) {
         load(id) {
           if (id !== virtual) return;
           return `import { ${adapter.start} } from ${JSON.stringify(adapter.module)};
-          import { ${selected.definition} as original, ${selected.content} as content } from '@coffeeeeffoc/game-${game}/canvas';
+          import { ${selected.definition} as original, ${selected.content} as content } from ${JSON.stringify(selected.module ?? `@coffeeeeffoc/game-${game}/canvas`)};
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
           const reviewedContent = ${selected.configureAdvertising ? `{...content,payload:{...content.payload,advertisingConfigured:${Boolean(adUnitId)}}}` : 'content'};
           export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content: reviewedContent }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});

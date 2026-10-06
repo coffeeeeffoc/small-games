@@ -41,19 +41,19 @@ try {
         },
       });
     });
-    await page.route('**/games/letters-words2/index.html', (route) =>
+    await page.route('**/games/vibeJam-myself-history-guess/index.html', (route) =>
       route.fulfill({
         contentType: 'text/html',
         body: '<!doctype html><meta charset="UTF-8"><p>同题导航测试</p><script>history.replaceState(null,"","?daily=2026-10-01&v=1&token=private#secret")</script>',
       }),
     );
-    await page.goto(`${base}?playerToken=private#/games/letters-words2`);
+    await page.goto(`${base}?playerToken=private#/games/vibeJam-myself-history-guess`);
     await expect(page.frameLocator('iframe').getByText('同题导航测试')).toBeVisible();
     await page.getByRole('button', { name: '分享游戏', exact: true }).click();
     const panel = page.getByRole('region', { name: '分享游戏链接' });
     await expect(panel).toBeVisible();
     const input = panel.getByRole('textbox', { name: '游戏链接' });
-    const link = `${base}games/letters-words2/index.html?daily=2026-10-01&v=1`;
+    const link = `${base}games/vibeJam-myself-history-guess/index.html?daily=2026-10-01&v=1`;
     await expect(input).toHaveValue(link);
     await panel.getByRole('button', { name: '复制链接' }).click();
     await expect(panel.getByRole('status')).toContainText('手动复制');
@@ -109,9 +109,14 @@ try {
         await page.locator('iframe').getAttribute('src'),
         `/small-games/games/${id}/index.html?${query}`,
       );
-      await page.getByRole('button', { name: '分享游戏', exact: true }).click();
-      await expect(page.getByRole('textbox', { name: '游戏链接' })).toHaveValue(entryUrl);
-      await page.getByRole('button', { name: '关闭', exact: true }).click();
+      if (id === 'letters-words2' || id === 'wulong-city') {
+        await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
+        await expect(page.getByRole('button', { name: '分享游戏', exact: true })).toHaveCount(0);
+      } else {
+        await page.getByRole('button', { name: '分享游戏', exact: true }).click();
+        await expect(page.getByRole('textbox', { name: '游戏链接' })).toHaveValue(entryUrl);
+        await page.getByRole('button', { name: '关闭', exact: true }).click();
+      }
       await page.getByRole('button', { name: '返回目录', exact: true }).click();
     }
     assert.equal(await page.evaluate(() => globalThis.document.documentElement.scrollWidth), width);

@@ -23,7 +23,8 @@ export function StandaloneGame({
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'xiangqi-five' ||
-    id === 'letters-words2';
+    id === 'letters-words2' ||
+    id === 'wulong-city';
   useEffect(() => {
     window.SmallGamesDev.setPanelHidden(true);
     return () => window.SmallGamesDev.setPanelHidden(false);

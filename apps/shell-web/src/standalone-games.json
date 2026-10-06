@@ -233,7 +233,7 @@
   {
     "id": "wulong-city",
     "title": "乌龙城",
-    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十六个喜剧机关谜题，也能先试玩新关、分享单关邀请朋友解题。",
+    "description": "走进青瓦小城，用点按、拖放和转身解开100个喜剧机关；独立主页与十章选关，支持移动触屏和原生小游戏。",
     "source": "games/local/wulong-city",
     "output": "dist"
   },
