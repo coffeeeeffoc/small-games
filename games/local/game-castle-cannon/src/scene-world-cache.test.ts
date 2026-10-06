@@ -113,6 +113,43 @@ it('reuses only static color/depth while dynamic objects remain live and damage 
   expect(f.target()).toBeNull();
   f.dispose();
 });
+it('keeps impact sprites and transient point lights out of the permanent landscape capture', () => {
+  const f = fixture(),
+    sprite = new T.Sprite(),
+    light = new T.PointLight('#ffb34e', 42);
+  f.scene.add(sprite, light);
+  f.cache.registerDynamic(sprite);
+  const render = f.renderer.render;
+  f.renderer.render = (value) => {
+    if (value === f.scene && f.target()) {
+      expect(light.intensity).toBe(0);
+      sprite.onBeforeRender(
+        f.renderer as unknown as T.WebGLRenderer,
+        f.scene,
+        f.camera,
+        f.geometry,
+        sprite.material,
+        f.root,
+      );
+      expect(sprite.material.colorWrite).toBe(false);
+      expect(sprite.material.depthWrite).toBe(false);
+      sprite.onAfterRender(
+        f.renderer as unknown as T.WebGLRenderer,
+        f.scene,
+        f.camera,
+        f.geometry,
+        sprite.material,
+        f.root,
+      );
+    } else expect(light.intensity).toBe(42);
+    render(value);
+  };
+  f.cache.draw(f.scene, f.camera, 'impact');
+  expect(sprite.material.colorWrite).toBe(true);
+  expect(light.intensity).toBe(42);
+  sprite.material.dispose();
+  f.dispose();
+});
 it('restores shared material writes and render target if the static pass fails', () => {
   const f = fixture();
   f.failCapture();
