@@ -15,7 +15,10 @@ const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
-  id === 'ink-is-everything' || id === 'ball-roguelite' || id === 'xiangqi-five';
+  id === 'orbit-atelier' ||
+  id === 'ink-is-everything' ||
+  id === 'ball-roguelite' ||
+  id === 'xiangqi-five';
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: basePath,
