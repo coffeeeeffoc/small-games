@@ -7,6 +7,259 @@ const cellKey = (cell) => cell.join(',');
 const validGravity = (gravity) =>
   [0, 1, 2].includes(gravity?.axis) && [-1, 1].includes(gravity?.sign);
 const coord = (cell) => [cell.x, cell.y, cell.z];
+const WORLD_DOWN = Object.freeze({ axis: 2, sign: -1 });
+const IDENTITY = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+const TURNS = {
+  invert: { axis: 0, angle: Math.PI },
+  left: { axis: 1, angle: -Math.PI / 2 },
+  right: { axis: 1, angle: Math.PI / 2 },
+  forward: { axis: 0, angle: Math.PI / 2 },
+  back: { axis: 0, angle: -Math.PI / 2 },
+};
+
+/** Integer cell origins after a rigid rotation about the container's center. */
+export function transformPoint([x, y, z], [width, depth, height], turn = 'invert') {
+  switch (turn) {
+    case 'invert':
+      return [x, depth - 1 - y, height - 1 - z];
+    case 'left':
+      return [height - 1 - z, y, x];
+    case 'right':
+      return [z, y, width - 1 - x];
+    case 'forward':
+      return [x, height - 1 - z, y];
+    case 'back':
+      return [x, z, depth - 1 - y];
+    default:
+      throw new Error(`Unknown container turn: ${turn}`);
+  }
+}
+
+function transformVector(vector, turn) {
+  // Unit dimensions remove the affine offset, leaving the proper rotation matrix.
+  return transformPoint(vector, [1, 1, 1], turn).map((value) => value || 0);
+}
+
+export function transformContainer(board, dims, turn = 'invert') {
+  if (!Object.hasOwn(TURNS, turn)) throw new Error(`Unknown container turn: ${turn}`);
+  const afterDims =
+    turn === 'invert'
+      ? [...dims]
+      : turn === 'left' || turn === 'right'
+        ? [dims[2], dims[1], dims[0]]
+        : [dims[0], dims[2], dims[1]];
+  return {
+    board: board.map((cell) => {
+      const [x, y, z] = transformPoint(coord(cell), dims, turn);
+      return { ...cell, x, y, z };
+    }),
+    dims: afterDims,
+    ...TURNS[turn],
+  };
+}
+
+function transformPiece(piece, dims, turn) {
+  if (!piece) return null;
+  return {
+    ...copy(piece),
+    cells: piece.cells.map((cell) => transformVector(cell, turn)),
+    ...(piece.pos ? { pos: transformPoint(piece.pos, dims, turn) } : {}),
+  };
+}
+
+function orientedDimensions(orientation, baseDims) {
+  return [0, 1, 2].map((axis) =>
+    orientation.reduce((size, vector, local) => size + Math.abs(vector[axis]) * baseDims[local], 0),
+  );
+}
+
+function validOrientation(orientation) {
+  if (
+    !Array.isArray(orientation) ||
+    orientation.length !== 3 ||
+    orientation.some(
+      (v) =>
+        !Array.isArray(v) ||
+        v.length !== 3 ||
+        !v.every((n) => [-1, 0, 1].includes(n)) ||
+        v.reduce((sum, n) => sum + Math.abs(n), 0) !== 1,
+    )
+  )
+    return false;
+  const [a, b, c] = orientation;
+  const cross = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  return cross.every((n, axis) => n === c[axis]);
+}
+
+function shapeKey(cells) {
+  const min = [0, 1, 2].map((axis) => Math.min(...cells.map((cell) => cell[axis])));
+  return cells
+    .map((cell) => cell.map((v, axis) => v - min[axis]).join(','))
+    .sort()
+    .join(';');
+}
+
+function shapeOrientations(cells) {
+  const queue = [cells],
+    seen = new Set();
+  for (let i = 0; i < queue.length; i++) {
+    const current = queue[i],
+      key = shapeKey(current);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    for (const plane of ['XY', 'XZ', 'YZ']) queue.push(rotateCells(current, plane));
+  }
+  return seen;
+}
+
+function validateSnapshot(value, config) {
+  const legacy = value?.version === 1;
+  if (
+    (!legacy && value?.version !== 2) ||
+    value.configId !== config.id ||
+    !validGravity(value.gravity) ||
+    !['playing', 'danger', 'over'].includes(value.status)
+  )
+    throw new Error('Incompatible tetracube save.');
+  if (legacy) {
+    if (JSON.stringify(value.dims) !== '[5,5,10]') throw new Error('Invalid legacy container.');
+  } else if (
+    value.gravity.axis !== 2 ||
+    value.gravity.sign !== -1 ||
+    !validOrientation(value.orientation) ||
+    JSON.stringify(value.dims) !==
+      JSON.stringify(orientedDimensions(value.orientation, config.dims))
+  ) {
+    throw new Error('Invalid saved container orientation.');
+  }
+  const { dims } = value;
+  if (
+    !Array.isArray(value.board) ||
+    value.board.length > dims.reduce((a, b) => a * b, 1) ||
+    value.board.some(
+      (cell) =>
+        !cell ||
+        !Number.isSafeInteger(cell.id) ||
+        cell.id < 1 ||
+        !/^#[a-f0-9]{6}$/i.test(cell.color ?? '') ||
+        coord(cell).some((v, axis) => !Number.isInteger(v) || v < 0 || v >= dims[axis]),
+    ) ||
+    new Set(value.board.map((cell) => cellKey(coord(cell)))).size !== value.board.length ||
+    new Set(value.board.map((cell) => cell.id)).size !== value.board.length
+  )
+    throw new Error('Invalid saved board.');
+  const orientations = new Map(
+    config.shapes.map((shape) => [shape.id, shapeOrientations(shape.cells)]),
+  );
+  const validPiece = (piece) =>
+    piece &&
+    orientations.has(piece.id) &&
+    typeof piece.name === 'string' &&
+    /^#[a-f0-9]{6}$/i.test(piece.color ?? '') &&
+    Array.isArray(piece.cells) &&
+    piece.cells.length === 4 &&
+    piece.cells.every(
+      (cell) =>
+        Array.isArray(cell) &&
+        cell.length === 3 &&
+        cell.every((v) => Number.isInteger(v) && Math.abs(v) <= 3),
+    ) &&
+    new Set(piece.cells.map(cellKey)).size === 4 &&
+    orientations.get(piece.id).has(shapeKey(piece.cells));
+  if (
+    !Array.isArray(value.next) ||
+    value.next.length !== config.previewCount ||
+    !value.next.every(validPiece) ||
+    !Array.isArray(value.bag) ||
+    new Set(value.bag).size !== value.bag.length ||
+    value.bag.some((id) => !orientations.has(id))
+  )
+    throw new Error('Invalid saved piece queue.');
+  for (const field of [
+    'score',
+    'lines',
+    'combo',
+    'bestCombo',
+    'placed',
+    'serial',
+    'rngState',
+    'initialSeed',
+    legacy ? 'gravityChanges' : 'flipCount',
+  ]) {
+    if (!Number.isSafeInteger(value[field]) || value[field] < 0)
+      throw new Error(`Invalid saved ${field}.`);
+  }
+  if (
+    value.rngState > 0xffffffff ||
+    value.initialSeed > 0xffffffff ||
+    value.combo > value.bestCombo ||
+    value.bestCombo > value.lines ||
+    value.board.some((cell) => cell.id > value.serial) ||
+    (value.active &&
+      (!validPiece(value.active) ||
+        !Array.isArray(value.active.pos) ||
+        value.active.pos.length !== 3 ||
+        !value.active.pos.every(Number.isInteger))) ||
+    (value.pending && !validPiece(value.pending)) ||
+    (value.active && value.pending) ||
+    (value.status === 'playing' && !value.active) ||
+    (value.status === 'danger' && (!value.pending || value.active))
+  )
+    throw new Error('Invalid saved active piece or counters.');
+  if (value.active) {
+    const occupied = new Set(value.board.map((cell) => cellKey(coord(cell))));
+    const cells = value.active.cells.map((cell) =>
+      cell.map((v, axis) => v + value.active.pos[axis]),
+    );
+    if (
+      cells.some(
+        (cell) => cell.some((v, axis) => v < 0 || v >= dims[axis]) || occupied.has(cellKey(cell)),
+      )
+    )
+      throw new Error('Saved active piece collides with the board.');
+  }
+}
+
+function migrateSnapshot(snapshot, config) {
+  const value = copy(snapshot);
+  validateSnapshot(value, config);
+  if (value.version === 1) {
+    const { axis, sign } = value.gravity;
+    const turn =
+      axis === 2
+        ? sign > 0
+          ? 'invert'
+          : null
+        : axis === 0
+          ? sign < 0
+            ? 'left'
+            : 'right'
+          : sign < 0
+            ? 'forward'
+            : 'back';
+    value.orientation = copy(IDENTITY);
+    if (turn) {
+      const beforeDims = value.dims;
+      value.board = transformContainer(value.board, beforeDims, turn).board;
+      value.active = transformPiece(value.active, beforeDims, turn);
+      value.pending = transformPiece(value.pending, beforeDims, turn);
+      value.orientation = value.orientation.map((vector) => transformVector(vector, turn));
+    }
+    // Add room at each positive face. Existing cubes and the airborne piece retain
+    // their exact normalized positions; migration cannot score or discard a cube.
+    value.dims = orientedDimensions(value.orientation, config.dims);
+    value.gravity = { ...WORLD_DOWN };
+    value.flipCount = value.gravityChanges;
+    delete value.gravityChanges;
+    value.version = 2;
+    validateSnapshot(value, config);
+  }
+  return value;
+}
 
 export function rotateCells(cells, plane) {
   const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[String(plane).toUpperCase()];
@@ -130,15 +383,17 @@ export class Game {
   }
 
   reset() {
+    this.dims = [...this.config.dims];
+    this.orientation = copy(IDENTITY);
     this.board = [];
     this.active = null;
     this.pending = null;
     this.next = [];
     this.bag = [];
-    this.gravity = { ...this.config.initialGravity };
+    this.gravity = WORLD_DOWN;
     this.rngState = this.initialSeed;
     this.score = this.lines = this.combo = this.bestCombo = this.placed = 0;
-    this.gravityChanges = 0;
+    this.flipCount = 0;
     this.serial = 0;
     this.status = 'playing';
     this.events = [];
@@ -345,33 +600,55 @@ export class Game {
     this.board = result.board;
     this.score += result.points;
     this.lines += result.lines;
-    // Consecutive successful placements or gravity interventions continue a combo.
+    // Consecutive successful placements or container turns continue a combo.
     this.combo = result.lines ? result.combo : 0;
     this.bestCombo = Math.max(this.bestCombo, this.combo);
     this.events.push(...result.events);
     return result;
   }
 
-  changeGravity(axis, sign) {
-    if (
-      this.status === 'over' ||
-      !validGravity({ axis, sign }) ||
-      (axis === this.gravity.axis && sign === this.gravity.sign)
-    )
-      return false;
-    const retained = copy(this.active ?? this.pending);
-    const previous = { ...this.gravity };
-    this.active = null;
-    this.gravity = { axis, sign };
-    this.gravityChanges++;
+  flipContainer(turn = 'invert') {
+    if (this.status === 'over' || !Object.hasOwn(TURNS, turn)) return false;
+    if (this.active) {
+      if (!this.fits(this.active)) return false;
+      // The airborne tetracube is inside the box too. Commit its current pose,
+      // then rotate it with every settled cube before world-down settling starts.
+      const added = this.cells().map(([x, y, z]) => ({
+        id: ++this.serial,
+        x,
+        y,
+        z,
+        color: this.active.color,
+      }));
+      this.board.push(...added);
+      this.active = null;
+      this.placed++;
+      this.score += added.length * this.config.points.cell;
+    }
+    const before = boardCopy(this.board);
+    const beforeDims = [...this.dims];
+    const beforeOrientation = copy(this.orientation);
+    const transformed = transformContainer(before, beforeDims, turn);
+    this.board = transformed.board;
+    this.dims = transformed.dims;
+    this.orientation = this.orientation.map((vector) => transformVector(vector, turn));
+    this.gravity = WORLD_DOWN;
+    this.flipCount++;
     this.events.push({
-      type: 'gravity',
-      from: previous,
-      to: { ...this.gravity },
-      before: boardCopy(this.board),
+      type: 'flip',
+      turn,
+      axis: transformed.axis,
+      angle: transformed.angle,
+      before,
+      after: boardCopy(this.board),
+      beforeDims,
+      beforeOrientation,
+      afterDims: [...this.dims],
+      orientation: copy(this.orientation),
     });
     this.resolve({ compactFirst: true });
-    this.spawn(retained);
+    // spawn() reuses a blocked pending piece; otherwise it consumes the next one.
+    this.spawn();
     return true;
   }
 
@@ -391,7 +668,7 @@ export class Game {
 
   getSnapshot() {
     return copy({
-      version: 1,
+      version: 2,
       configId: this.config.id,
       dims: this.dims,
       board: this.board,
@@ -405,7 +682,8 @@ export class Game {
       combo: this.combo,
       bestCombo: this.bestCombo,
       placed: this.placed,
-      gravityChanges: this.gravityChanges,
+      flipCount: this.flipCount,
+      orientation: this.orientation,
       serial: this.serial,
       rngState: this.rngState,
       initialSeed: this.initialSeed,
@@ -414,105 +692,28 @@ export class Game {
   }
 
   restore(snapshot) {
-    const value = copy(snapshot);
-    if (
-      value?.version !== 1 ||
-      value.configId !== this.config.id ||
-      JSON.stringify(value.dims) !== JSON.stringify(this.dims) ||
-      !validGravity(value.gravity) ||
-      !['playing', 'danger', 'over'].includes(value.status)
-    )
-      throw new Error('Incompatible tetracube save.');
-    if (
-      !Array.isArray(value.board) ||
-      value.board.length > this.dims.reduce((a, b) => a * b, 1) ||
-      new Set(value.board.map((cell) => cellKey(coord(cell)))).size !== value.board.length ||
-      new Set(value.board.map((cell) => cell.id)).size !== value.board.length ||
-      value.board.some(
-        (cell) =>
-          !Number.isInteger(cell.id) ||
-          cell.id < 1 ||
-          typeof cell.color !== 'string' ||
-          coord(cell).some((v, axis) => !Number.isInteger(v) || v < 0 || v >= this.dims[axis]),
-      )
-    )
-      throw new Error('Invalid saved board.');
-    const validPiece = (piece) =>
-      piece &&
-      typeof piece.name === 'string' &&
-      typeof piece.color === 'string' &&
-      Array.isArray(piece.cells) &&
-      piece.cells.length === 4 &&
-      piece.cells.every(
-        (cell) =>
-          Array.isArray(cell) &&
-          cell.length === 3 &&
-          cell.every((v) => Number.isInteger(v) && Math.abs(v) <= 3),
-      ) &&
-      new Set(piece.cells.map(cellKey)).size === 4;
-    if (
-      !Array.isArray(value.next) ||
-      value.next.length !== this.config.previewCount ||
-      !value.next.every(validPiece) ||
-      !Array.isArray(value.bag) ||
-      value.bag.some((id) => !this.config.shapes.some((shape) => shape.id === id))
-    )
-      throw new Error('Invalid saved piece queue.');
+    const value = migrateSnapshot(snapshot, this.config);
     for (const field of [
-      'score',
-      'lines',
-      'combo',
-      'bestCombo',
-      'placed',
-      'gravityChanges',
-      'serial',
-      'rngState',
-      'initialSeed',
-    ]) {
-      if (!Number.isSafeInteger(value[field]) || value[field] < 0)
-        throw new Error(`Invalid saved ${field}.`);
-    }
-    if (
-      value.board.some((cell) => cell.id > value.serial) ||
-      (value.active &&
-        (!validPiece(value.active) ||
-          !Array.isArray(value.active.pos) ||
-          value.active.pos.length !== 3 ||
-          !value.active.pos.every(Number.isInteger))) ||
-      (value.pending && !validPiece(value.pending)) ||
-      (value.status === 'playing' && !value.active) ||
-      (value.status === 'danger' && (!value.pending || value.active))
-    )
-      throw new Error('Invalid saved active piece.');
-    if (value.active) {
-      const occupied = new Set(value.board.map((cell) => cellKey(coord(cell))));
-      if (
-        this.cells(value.active).some(
-          (cell) =>
-            cell.some((v, axis) => v < 0 || v >= this.dims[axis]) || occupied.has(cellKey(cell)),
-        )
-      )
-        throw new Error('Saved active piece collides with the board.');
-    }
-    for (const field of [
+      'dims',
+      'orientation',
       'board',
       'active',
       'pending',
       'next',
       'bag',
-      'gravity',
       'score',
       'lines',
       'combo',
       'bestCombo',
       'placed',
-      'gravityChanges',
+      'flipCount',
       'serial',
       'rngState',
       'initialSeed',
       'status',
     ])
       this[field] = value[field];
+    this.gravity = WORLD_DOWN;
     this.events = [];
     return this;
   }

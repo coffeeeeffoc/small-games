@@ -50,7 +50,7 @@
 
 《榫间 · 鲁班锁》位于 `games/local/luban-workshop`，workspace 包名为 `@coffeeeeffoc/luban-workshop`，通过 iframe 装载，独立地址为 `/games/luban-workshop/index.html`。玩家选中彩色零件后沿轨道拖动，观察受阻反馈，逐步拆解再复原机关；空白区域用于转动观察视角。关卡数据、运动与碰撞规则、三维渲染及触屏交互分别维护。开发运行 `pnpm --filter @coffeeeeffoc/luban-workshop dev`，构建和规则验证分别使用 `build`、`test`；交互与架构说明见 [游戏 README](../games/local/luban-workshop/README.md)。
 
-《重力方舱》位于 `games/local/tetracube`，workspace 包名为 `@coffeeeeffoc/tetracube`，通过 iframe 装载，独立地址为 `/games/tetracube/index.html`。玩家移动并三轴旋转四连立方体，观察落点填满平面，再通过重力干预让已有结构压实重构并形成连锁。开发运行 `pnpm --filter @coffeeeeffoc/tetracube dev`（端口 4178），规则验证、构建和触屏验收见 [游戏 README](../games/local/tetracube/README.md)。
+《重力方舱》位于 `games/local/tetracube`，workspace 包名为 `@coffeeeeffoc/tetracube`，通过 iframe 装载，独立地址为 `/games/tetracube/index.html`。玩家移动并三轴旋转四连立方体，观察落点填满平面，再颠倒 6×6×12 容器，让所有小方块统一向下落定并形成连锁。开发运行 `pnpm --filter @coffeeeeffoc/tetracube dev`（端口 4178），规则验证、构建和触屏验收见 [游戏 README](../games/local/tetracube/README.md)。
 
 原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
