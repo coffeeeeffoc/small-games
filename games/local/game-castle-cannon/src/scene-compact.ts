@@ -12,7 +12,7 @@ export function compactMeshes(group: T.Group) {
   const inverse = group.matrixWorld.clone().invert(),
     children: T.Mesh[] = [];
   group.traverse((child) => {
-    if (child instanceof T.Mesh) children.push(child);
+    if (child instanceof T.Mesh && !(child instanceof T.InstancedMesh)) children.push(child);
   });
   const batches = new Map<T.Material, { high: T.BufferGeometry[]; low: T.BufferGeometry[] }>();
   for (const child of children) {
