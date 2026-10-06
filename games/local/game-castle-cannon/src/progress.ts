@@ -10,6 +10,7 @@ export interface Progress {
   owned: number[];
   sound: boolean;
   motion: boolean;
+  lowPower: boolean;
 }
 export const newProgress = (): Progress => ({
   version: 1,
@@ -21,6 +22,7 @@ export const newProgress = (): Progress => ({
   owned: [0],
   sound: true,
   motion: true,
+  lowPower: false,
 });
 export function readProgress(raw: JsonValue): Progress {
   const p = newProgress();
@@ -46,6 +48,7 @@ export function readProgress(raw: JsonValue): Progress {
   p.skin = raw.skin === 1 || raw.skin === 2 ? (p.owned.includes(raw.skin) ? raw.skin : 0) : 0;
   p.sound = typeof raw.sound === 'boolean' ? raw.sound : true;
   p.motion = typeof raw.motion === 'boolean' ? raw.motion : true;
+  p.lowPower = typeof raw.lowPower === 'boolean' ? raw.lowPower : false;
   return p;
 }
 export function settle(p: Progress, index: number, practice = false) {

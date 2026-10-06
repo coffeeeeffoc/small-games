@@ -1,5 +1,6 @@
 import { C, W, H, box, text, scenery, castle, cannon, flag, projectiles } from './art.js';
-import { alive, RELOAD, type Battle, type Ammo } from './rules.js';
+import { alive, type Battle, type Ammo } from './rules.js';
+import { battleHud } from './battle-hud.js';
 import { LEVELS } from './levels.js';
 import type { Progress } from './progress.js';
 export interface Hit {
@@ -28,14 +29,21 @@ export interface View {
   ammo: Ammo;
   aim: { x: number; y: number } | null;
   message: string;
+  feedback: string;
+  feedbackUntil: number;
   practice: boolean;
   ads: boolean;
   adRetry: boolean;
   busy: boolean;
 }
-export function draw(c: CanvasRenderingContext2D, v: View): Hit[] {
+export function draw(
+  c: CanvasRenderingContext2D,
+  v: View,
+  scene?: CanvasImageSource | true,
+): Hit[] {
   const hits: Hit[] = [];
-  scenery(c);
+  if (scene && scene !== true) c.drawImage(scene, 0, 0, W, H);
+  else if (!scene) scenery(c);
   const button = (
     id: string,
     label: string,
@@ -55,45 +63,22 @@ export function draw(c: CanvasRenderingContext2D, v: View): Hit[] {
   };
   const back = () => button('home', '返回首页', 28, 24, 155);
   if (v.screen === 'playing') {
-    castle(c, v.b, v.p.motion, v.p.skin);
-    cannon(
-      c,
-      v.aim ?? v.b.shots.at(-1) ?? null,
-      v.b.shots.some((s) => s.remaining > 0.25),
-      v.p.skin,
-    );
-    projectiles(c, v.b, v.aim, v.p.motion);
-    box(c, 24, 20, 175, 48, C.cream);
-    text(c, `兵力 ${alive(v.b).length}/${v.b.units.length}`, 42, 52, 23);
-    box(c, 215, 20, 202, 48, C.cream);
-    text(c, `占领 ${Math.round(v.b.capture * 100)}%`, 233, 52, 22);
-    text(c, `${v.level + 1} · ${LEVELS[v.level].name}`, 440, 51, 20);
-    text(c, `${Math.ceil(v.b.level.duration - v.b.time)}s`, 802, 51, 22);
-    box(c, 876, 16, 60, 60, C.ink);
-    c.fillStyle = C.cream;
-    c.fillRect(894, 29, 7, 27);
-    c.fillRect(909, 29, 7, 27);
-    hits.push({ id: 'pause', label: '暂停', x: 876, y: 16, w: 60, h: 60 });
-    button('solid', '实心弹', 300, 405, 148, false, v.ammo === 'solid');
-    button('blast', '爆破弹', 465, 405, 148, false, v.ammo === 'blast');
-    box(c, 643, 405, 241, 52, C.cream);
-    text(
-      c,
-      v.b.reload > 0 ? `装填 ${v.b.reload.toFixed(1)}s` : '拖动瞄准 · 松手开炮',
-      763,
-      437,
-      19,
-      C.ink,
-      'center',
-    );
-    c.fillStyle = C.orange;
-    c.fillRect(652, 448, 222 * (1 - v.b.reload / RELOAD), 4);
-    if (v.b.time < 4 || v.b.time - v.b.lastArrow < 1.4 || v.b.shots.length)
-      text(c, v.b.notice, 480, 389, 19, C.ink, 'center');
-    if (v.practice) text(c, '开发试玩 · 不记录奖励', 480, 89, 17, C.ink, 'center');
+    if (!scene) {
+      castle(c, v.b, v.p.motion, v.p.skin);
+      cannon(
+        c,
+        v.aim ?? v.b.shots.at(-1) ?? null,
+        v.b.shots.some((s) => s.remaining > 0.25),
+        v.p.skin,
+      );
+      projectiles(c, v.b, v.aim, v.p.motion);
+    }
+    battleHud(c, v, hits);
   } else if (v.screen === 'home') {
-    castle(c, v.b, false, v.p.skin);
-    cannon(c, null, false, v.p.skin);
+    if (!scene) {
+      castle(c, v.b, false, v.p.skin);
+      cannon(c, null, false, v.p.skin);
+    }
     box(c, 40, 36, 400, 155, C.cream, 24);
     text(c, '一炮拆城', 70, 101, 56);
     text(c, '拆开通路，护送小队夺旗', 73, 150, 22);
@@ -133,6 +118,7 @@ export function draw(c: CanvasRenderingContext2D, v: View): Hit[] {
     button('home', '返回首页', 350, 370, 260);
   } else if (v.screen === 'result') {
     heading(v.b.result === 'won' ? '城堡占领！' : '小队撤离');
+    box(c, 160, 108, 640, 135, '#fff0cee8', 16);
     text(c, v.b.notice, 480, 140, 24, C.ink, 'center');
     text(
       c,
@@ -168,13 +154,16 @@ export function draw(c: CanvasRenderingContext2D, v: View): Hit[] {
   } else if (v.screen === 'settings') {
     heading('设置');
     back();
+    box(c, 245, 118, 470, 330, '#fff0cee8', 16);
     button('sound', `音效 ${v.p.sound ? '开' : '关'}`, 300, 137, 360);
     button('motion', `碎片动画 ${v.p.motion ? '开' : '简化'}`, 300, 210, 360);
-    text(c, '基础瞄准与两种炮弹始终免费', 480, 311, 22, C.ink, 'center');
-    text(c, '存档自动保存在当前设备', 480, 350, 20, C.ink, 'center');
+    button('quality', `省电画质 ${v.p.lowPower ? '开' : '关'}`, 300, 283, 360);
+    text(c, '基础瞄准与两种炮弹始终免费', 480, 383, 22, C.ink, 'center');
+    text(c, '存档自动保存在当前设备', 480, 416, 20, C.ink, 'center');
   } else if (v.screen === 'help') {
     heading('攻城小册');
     button('back', '返回', 28, 24, 150);
+    box(c, 40, 111, 880, 302, '#fff0ceef', 16);
     const lines = [
       '拖动战场瞄准建筑，松手开炮；装填时观察战局。',
       '实心弹：穿透单个目标，伤害 3。爆破弹：附近 84 范围，伤害 2。',
@@ -186,6 +175,7 @@ export function draw(c: CanvasRenderingContext2D, v: View): Hit[] {
     lines.forEach((s, i) => text(c, s, 65, 145 + i * 45, 20));
   } else {
     heading('旗帜工坊');
+    box(c, 80, 106, 800, 195, '#fff0cee8', 16);
     back();
     text(c, `材料 ${v.p.materials} · 仅改变旗帜与头盔`, 480, 128, 23, C.ink, 'center');
     ['蓝天旗', '麦穗旗', '珊瑚旗'].forEach((s, i) => {

@@ -1,6 +1,6 @@
 import { ORIGIN } from './rules.js';
 export const W = 960,
-  H = 480;
+  H = 540;
 export const C = {
   ink: '#263d42',
   cream: '#fff0ce',

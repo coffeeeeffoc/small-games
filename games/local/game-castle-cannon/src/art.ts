@@ -1,206 +1,218 @@
 import type { Battle, Module } from './rules.js';
-import { ORIGIN, alive } from './rules.js';
-import { C, box, text, ellipse, soldier, flag } from './art-primitives.js';
-export { W, H, C, box, text, scenery, cannon, flag } from './art-primitives.js';
-function roof(c: CanvasRenderingContext2D, x: number, y: number, w: number) {
-  c.beginPath();
-  c.moveTo(x - w / 2 - 8, y);
-  c.lineTo(x, y - 40);
-  c.lineTo(x + w / 2 + 8, y);
-  c.closePath();
-  c.fillStyle = C.coral;
-  c.fill();
-  c.strokeStyle = C.ink;
-  c.lineWidth = 3;
-  c.stroke();
-  c.strokeStyle = '#ffc592';
-  c.beginPath();
-  c.moveTo(x, y - 31);
-  c.lineTo(x + 20, y - 4);
-  c.stroke();
-}
-function cracks(c: CanvasRenderingContext2D, m: Module) {
-  if (m.hp >= m.maxHp) return;
-  c.strokeStyle = '#765343';
+import { alive } from './rules.js';
+import { C, W, H, box, text, ellipse, flag } from './art-primitives.js';
+import { project } from './projection.js';
+import { poly, prism, shadow, wall, roof } from './diorama.js';
+export { W, H, C, box, text, flag };
+export { scenery } from './diorama.js';
+export { cannon, projectiles } from './effects.js';
+function unit(c: CanvasRenderingContext2D, x: number, y: number, phase: number, skin: number) {
+  const p = project(x, y),
+    s = 1.2 - x * 0.0006;
+  shadow(c, x, y, 11 * s, 4 * s);
+  c.save();
+  c.translate(p.x, p.y);
+  c.scale(s, s);
+  c.strokeStyle = '#343e3c';
   c.lineWidth = 4;
   c.beginPath();
-  c.moveTo(m.x - 15, m.y - 28);
-  c.lineTo(m.x - 3, m.y - 13);
-  c.lineTo(m.x - 13, m.y);
-  c.lineTo(m.x + 6, m.y + 16);
-  c.lineTo(m.x - 3, m.y + 35);
+  c.moveTo(-4, -6);
+  c.lineTo(-5 - Math.sin(phase) * 3, 2);
+  c.moveTo(4, -6);
+  c.lineTo(5 + Math.sin(phase) * 3, 2);
   c.stroke();
+  const body = c.createLinearGradient(-9, 0, 10, 0);
+  body.addColorStop(0, '#5998b2');
+  body.addColorStop(1, '#23516e');
+  c.fillStyle = body;
+  c.fillRect(-8, -23, 16, 18);
+  ellipse(c, 1, -28, 7, 8, '#eec494');
+  const helm = c.createRadialGradient(-4, -37, 1, 0, -32, 14);
+  helm.addColorStop(0, ['#dce9e7', '#ffe4a0', '#f0b59c'][skin]);
+  helm.addColorStop(1, ['#657f8a', '#ad8753', '#a16c61'][skin]);
+  c.beginPath();
+  c.arc(0, -32, 10, Math.PI, 0);
+  c.lineTo(11, -27);
+  c.lineTo(-10, -27);
+  c.closePath();
+  c.fillStyle = helm;
+  c.fill();
+  c.fillStyle = '#354847';
+  c.fillRect(5, -29, 2, 2);
+  c.strokeStyle = '#dedfc5';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(9, -13);
+  c.lineTo(17, -37);
+  c.stroke();
+  c.restore();
 }
-export function castle(c: CanvasRenderingContext2D, b: Battle, motion = true, skin = 0) {
-  box(c, 538, 235, 306, 100, C.stone, 8);
-  for (let x = 540; x < 840; x += 36) box(c, x, 220, 24, 29, C.stone, 3);
-  for (let y = 258; y < 328; y += 25)
-    for (let x = 555 + (y % 2) * 13; x < 835; x += 48) {
-      c.strokeStyle = '#c6b58d';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(x, y);
-      c.lineTo(x + 26, y);
-      c.stroke();
-    }
-  box(c, 792, 176, 54, 157, C.stone, 9);
-  roof(c, 819, 177, 58);
-  flag(c, 819, 107, b.result === 'won' ? C.blue : C.coral);
-  c.fillStyle = '#655f53';
-  c.fillRect(810, 198, 14, 26);
-  for (const m of b.modules) {
-    if (m.kind === 'gate') {
-      c.beginPath();
-      c.moveTo(m.x - 43, 334);
-      c.lineTo(m.x - 43, 278);
-      c.arc(m.x, 278, 43, Math.PI, 0);
-      c.lineTo(m.x + 43, 334);
-      c.closePath();
-      c.fillStyle = m.hp > 0 ? '#a7774d' : '#5a7264';
-      c.fill();
-      c.strokeStyle = C.ink;
-      c.lineWidth = 5;
-      c.stroke();
-      if (m.hp > 0) {
-        for (let x = m.x - 30; x < m.x + 42; x += 15) {
-          c.strokeStyle = '#734f3d';
-          c.lineWidth = 3;
-          c.beginPath();
-          c.moveTo(x, 254);
-          c.lineTo(x, 333);
-          c.stroke();
-        }
-        box(c, m.x - 39, 289, 78, 9, '#6f5c48', 2);
-        cracks(c, m);
-      } else {
-        for (let i = 0; i < 8; i++)
-          box(c, m.x - 55 + i * 15, 334 + (i % 2) * 6, 15, 10, i % 2 ? C.shadow : C.stone, 3);
-      }
-    } else if (m.kind === 'tower' && m.hp > 0) {
-      box(c, m.x - 30, m.y - 22, 60, 122, C.stone, 9);
-      roof(c, m.x, m.y - 23, 65);
-      c.fillStyle = '#6d6858';
-      c.fillRect(m.x - 10, m.y - 5, 20, 29);
-      box(c, m.x - 34, m.y + 20, 68, 13, C.shadow, 3);
-      flag(c, m.x - 16, m.y + 39, C.coral);
-      cracks(c, m);
-    } else if (m.kind === 'tower') {
-      for (let i = 0; i < 5; i++) box(c, m.x - 38 + i * 16, 256 + (i % 2) * 7, 21, 17, C.shadow, 4);
-    } else if (m.hp > 0) {
-      for (let i = 0; i < 3; i++)
-        box(c, m.x - 30 + i * 20, m.y - 15 - (i % 2) * 7, 19, 33, '#ad8b61', 3);
-      cracks(c, m);
-    } else {
-      for (let i = 0; i < 4; i++) box(c, m.x - 25 + i * 14, 342, 16, 8, '#ad8b61', 2);
-    }
-    if (m.hp > 0) {
-      c.fillStyle = C.ink;
-      c.fillRect(m.x - 28, m.y - (m.kind === 'tower' ? 73 : 61), 56, 6);
-      c.fillStyle = C.coral;
-      c.fillRect(m.x - 28, m.y - (m.kind === 'tower' ? 73 : 61), (56 * m.hp) / m.maxHp, 6);
-    }
-    if (m.destroyedAt !== null && motion) {
-      const t = b.time - m.destroyedAt;
-      if (t < 0.85)
-        for (let i = 0; i < 8; i++) {
-          const a = i * 0.78;
-          const x = m.x + Math.cos(a) * t * 95,
-            y = m.y - 20 - Math.sin(a) * t * 85 + t * t * 95;
-          c.save();
-          c.translate(x, y);
-          c.rotate(t * (i - 4));
-          c.globalAlpha = 1 - t / 0.85;
-          box(c, -7, -5, 14, 10, C.shadow, 2);
-          c.restore();
-        }
-    }
-  }
-  for (const u of alive(b)) soldier(c, u.x, 347 + (u.id % 3) * 8, b.time * 8 + u.id, skin);
-  for (const e of b.events.filter((e) => e.type === 'casualty' && b.time - e.time < 0.8)) {
-    const unit = b.units.find((u) => String(u.id) === e.target);
-    if (!unit) continue;
-    const age = b.time - e.time;
-    c.save();
-    c.globalAlpha = 1 - age / 0.8;
-    soldier(c, unit.x - age * 40, 347 + (unit.id % 3) * 8, 0, skin);
-    text(c, '−1', unit.x, 321 - age * 36, 23, C.coral);
-    c.restore();
-  }
-  if (b.arrows && b.time - b.lastArrow < 0.45) {
-    const victim = alive(b).sort((a, d) => d.x - a.x)[0];
-    if (victim)
-      for (const m of b.modules.filter((m) => m.kind === 'tower' && m.hp > 0)) {
-        const t = (b.time - b.lastArrow) / 0.45,
-          x = m.x + (victim.x - m.x) * t,
-          y = m.y + (343 - m.y) * t;
-        c.strokeStyle = C.coral;
-        c.lineWidth = 3;
-        c.beginPath();
-        c.moveTo(x + 14, y - 9);
-        c.lineTo(x, y);
-        c.stroke();
-        c.beginPath();
-        c.moveTo(x + 1, y - 7);
-        c.lineTo(x, y);
-        c.lineTo(x + 8, y);
-        c.stroke();
-      }
-  }
-}
-export function projectiles(
-  c: CanvasRenderingContext2D,
-  b: Battle,
-  aim: { x: number; y: number } | null,
-  motion: boolean,
-) {
-  if (aim) {
-    c.strokeStyle = '#fff7df';
-    c.lineWidth = 3;
-    c.setLineDash([7, 11]);
-    c.beginPath();
-    c.moveTo(ORIGIN.x, ORIGIN.y);
-    c.lineTo(aim.x, aim.y);
-    c.stroke();
-    c.setLineDash([]);
-    c.strokeStyle = C.orange;
-    c.lineWidth = 4;
-    c.beginPath();
-    c.arc(aim.x, aim.y, 24, 0, Math.PI * 2);
-    c.moveTo(aim.x - 33, aim.y);
-    c.lineTo(aim.x + 33, aim.y);
-    c.moveTo(aim.x, aim.y - 33);
-    c.lineTo(aim.x, aim.y + 33);
-    c.stroke();
-  }
-  for (const s of b.shots) {
-    if (s.remaining > 0) {
-      const t = 1 - s.remaining / 0.38;
-      ellipse(
+function moduleDraw(c: CanvasRenderingContext2D, b: Battle, m: Module, motion: boolean) {
+  const height = m.kind === 'tower' ? 0.73 * (350 - m.y) + 25 : m.kind === 'gate' ? 102 : 31,
+    base = project(m.x, 350),
+    p = project(m.x, m.y);
+  if (m.hp > 0) {
+    if (m.kind === 'tower') {
+      shadow(c, m.x, 364, 43, 12);
+      wall(c, m.x - 29, 320, 58, height);
+      prism(c, m.x - 39, 316, 78, 49, 15, height - 17, ['#a8794e', '#70543e', '#d1a572']);
+      roof(c, m.x - 35, 313, 70, 52, height + 9);
+      c.fillStyle = '#514d43';
+      c.fillRect(p.x - 7, p.y - 4, 14, 18);
+      c.fillStyle = '#7d4735';
+      c.fillRect(p.x - 23, p.y + 20, 18, 32);
+    } else if (m.kind === 'gate') {
+      poly(
         c,
-        ORIGIN.x + (s.x - ORIGIN.x) * t,
-        ORIGIN.y + (s.y - ORIGIN.y) * t - 35 * Math.sin(t * Math.PI),
-        9,
-        9,
-        s.ammo === 'solid' ? C.ink : C.coral,
+        [
+          project(m.x - 44, 337),
+          project(m.x + 44, 337),
+          project(m.x + 44, 337, 102),
+          project(m.x - 44, 337, 102),
+        ],
+        '#514a37',
       );
-    } else if (s.remaining > -0.6) {
-      const t = -s.remaining / 0.6;
+      for (let i = 0; i < 8; i++)
+        prism(c, m.x - 39 + i * 10, 337, 9, 6, 87, 0, [
+          i % 2 ? '#ad7848' : '#ba8956',
+          '#624b34',
+          '#d6ac72',
+        ]);
+      for (const z of [20, 65])
+        prism(c, m.x - 41, 344, 84, 3, 7, z, ['#665640', '#443e32', '#b7a17a']);
+    } else
+      for (let i = 0; i < 3; i++)
+        prism(c, m.x - 24 + i * 17, 340, 16, 20, 28 + (i % 2) * 10, 0, [
+          '#a88152',
+          '#755d40',
+          '#d4b078',
+        ]);
+    if (m.hp < m.maxHp) {
+      c.strokeStyle = '#694b36';
+      c.lineWidth = 2.5;
+      c.beginPath();
+      c.moveTo(p.x - 13, p.y - 15);
+      c.lineTo(p.x + 3, p.y + 1);
+      c.lineTo(p.x - 5, p.y + 15);
+      c.lineTo(p.x + 9, p.y + 28);
+      c.stroke();
+    }
+    c.fillStyle = '#394638';
+    c.fillRect(p.x - 25, p.y - (m.kind === 'tower' ? 65 : 67), 50, 5);
+    c.fillStyle = '#edb062';
+    c.fillRect(p.x - 25, p.y - (m.kind === 'tower' ? 65 : 67), (50 * m.hp) / m.maxHp, 5);
+  } else
+    for (let i = 0; i < 9; i++)
+      prism(
+        c,
+        m.x - 45 + i * 10,
+        335 + (i % 3) * 12,
+        13,
+        13,
+        6 + (i % 3) * 5,
+        0,
+        m.kind === 'gate' ? ['#ae8053', '#72563e', '#d1a374'] : undefined,
+      );
+  if (m.destroyedAt !== null && motion) {
+    const age = b.time - m.destroyedAt;
+    if (age < 1.1) {
+      const t = age / 1.1;
       c.save();
       c.globalAlpha = 1 - t;
-      ellipse(c, s.x, s.y, 20 + t * (s.ammo === 'blast' ? 84 : 24), 18 + t * 25, C.orange);
-      for (let i = 0; i < 8; i++) {
-        const a = (i * Math.PI) / 4;
-        c.strokeStyle = C.cream;
-        c.lineWidth = 5;
-        c.beginPath();
-        c.moveTo(s.x + Math.cos(a) * 24, s.y + Math.sin(a) * 24);
-        c.lineTo(
-          s.x + Math.cos(a) * (38 + (motion ? t * 24 : 0)),
-          s.y + Math.sin(a) * (38 + (motion ? t * 24 : 0)),
-        );
-        c.stroke();
+      if (m.kind === 'tower' && t < 0.65) {
+        c.save();
+        c.translate(base.x, base.y);
+        c.rotate(t * 0.55);
+        c.translate(-base.x, -base.y);
+        prism(c, m.x - 25, 325, 50, 30, height * (1 - t));
+        roof(c, m.x - 28, 322, 56, 36, height * (1 - t));
+        c.restore();
       }
+      for (let i = 0; i < 10; i++) {
+        const a = i * 2.4,
+          q = project(
+            m.x + Math.cos(a) * age * 65,
+            350 + Math.sin(a) * age * 40,
+            Math.sin(t * Math.PI) * 45 + (i % 3) * 8,
+          );
+        c.save();
+        c.translate(q.x, q.y);
+        c.rotate(age * (i - 5));
+        c.fillStyle = m.kind === 'gate' ? '#b58755' : '#d3be98';
+        const w = m.kind === 'gate' ? 20 : 10;
+        poly(
+          c,
+          [
+            { x: -5, y: -4 },
+            { x: w - 5, y: -4 },
+            { x: w - 5, y: 4 },
+            { x: -5, y: 4 },
+          ],
+          m.kind === 'gate' ? '#b58755' : '#cbb796',
+        );
+        poly(
+          c,
+          [
+            { x: -5, y: -4 },
+            { x: -1, y: -8 },
+            { x: w - 1, y: -8 },
+            { x: w - 5, y: -4 },
+          ],
+          m.kind === 'gate' ? '#dfb67c' : '#f0debc',
+        );
+        poly(
+          c,
+          [
+            { x: w - 5, y: -4 },
+            { x: w - 1, y: -8 },
+            { x: w - 1, y: 0 },
+            { x: w - 5, y: 4 },
+          ],
+          m.kind === 'gate' ? '#70543e' : '#9a896e',
+        );
+        c.restore();
+      }
+      for (let i = 0; i < 6; i++)
+        ellipse(c, base.x + (i - 3) * 10, base.y - 8 - t * 22, 12 + t * 18, 8 + t * 10, '#c9b893');
       c.restore();
     }
+  }
+}
+export function castle(c: CanvasRenderingContext2D, b: Battle, motion = true, skin = 0) {
+  wall(c, 755, 280, 110, 65);
+  wall(c, 805, 280, 58, 120);
+  roof(c, 803, 280, 58, 48, 120);
+  const f = project(823, 305, 160);
+  flag(c, f.x, f.y, b.result === 'won' ? C.blue : C.coral);
+  const gate = b.modules.find((m) => m.kind === 'gate')!;
+  wall(c, gate.x - 109, 307, 63, 92);
+  wall(c, gate.x + 46, 307, 185, 92);
+  for (const m of [...b.modules].sort((a, d) => a.y - d.y || d.x - a.x))
+    moduleDraw(c, b, m, motion);
+  for (const u of alive(b).sort((a, d) => d.x - a.x))
+    unit(c, u.x, 355 + ((u.id % 3) - 1) * 11, b.time * 8 + u.id, skin);
+  for (const e of b.events.filter((e) => e.type === 'casualty' && b.time - e.time < 0.8)) {
+    const u = b.units.find((u) => String(u.id) === e.target);
+    if (u) {
+      const p = project(u.x, 350);
+      text(c, '−1', p.x, p.y - 35 - (b.time - e.time) * 20, 18, C.coral);
+    }
+  }
+  if (b.arrows && b.time - b.lastArrow < 0.45) {
+    const v = alive(b).sort((a, d) => d.x - a.x)[0];
+    if (v)
+      for (const m of b.modules.filter((m) => m.kind === 'tower' && m.hp > 0)) {
+        const a = project(m.x, m.y),
+          d = project(v.x, 350),
+          t = (b.time - b.lastArrow) / 0.45,
+          x = a.x + (d.x - a.x) * t,
+          y = a.y + (d.y - a.y) * t;
+        c.strokeStyle = '#f7dda8';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(x + 11, y - 8);
+        c.lineTo(x, y);
+        c.stroke();
+      }
   }
 }
