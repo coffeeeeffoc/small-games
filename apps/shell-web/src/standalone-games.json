@@ -1,5 +1,12 @@
 [
   {
+    "id": "chase-thief",
+    "source": "games/local/chase-thief",
+    "title": "追贼别撞墙",
+    "description": "穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。",
+    "output": "dist"
+  },
+  {
     "id": "orbit-atelier",
     "source": "games/local/orbit-atelier",
     "title": "星扣工坊",

@@ -32,6 +32,7 @@ async function mounted(id = ink) {
 }
 
 it.each([
+  'chase-thief',
   'orbit-atelier',
   'ink-is-everything',
   'ball-roguelite',
@@ -107,6 +108,27 @@ it('restores the ink home exit when the iframe reloads', async () => {
     expect(container.querySelector('nav')!.hidden).toBe(true);
     await act(async () => frame.dispatchEvent(new Event('load')));
     expect(container.querySelector('nav')!.hidden).toBe(false);
+    expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
+  } finally {
+    await dispose();
+  }
+});
+
+it('restores the street chase home exit after play and iframe reload', async () => {
+  const { container, frame, send, dispose, origin } = await mounted('chase-thief');
+  const state = { type: 'small-games:display-state', gameId: 'chase-thief', screen: 'playing' };
+  try {
+    const nav = container.querySelector('nav')!;
+    await send(state, window, origin);
+    expect(nav.hidden).toBe(false);
+    await send(state, frame.contentWindow, 'https://untrusted.example');
+    expect(nav.hidden).toBe(false);
+    await send({ ...state, extra: true });
+    expect(nav.hidden).toBe(false);
+    await send(state);
+    expect(nav.hidden).toBe(true);
+    await act(async () => frame.dispatchEvent(new Event('load')));
+    expect(nav.hidden).toBe(false);
     expect(container.querySelector('main')?.getAttribute('data-screen')).toBe('home');
   } finally {
     await dispose();

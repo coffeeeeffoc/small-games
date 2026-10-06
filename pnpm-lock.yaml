@@ -374,6 +374,9 @@ importers:
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
+      '@coffeeeeffoc/chase-thief':
+        specifier: workspace:*
+        version: link:../../games/local/chase-thief
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema
@@ -718,6 +721,8 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+
+  games/local/chase-thief: {}
 
   games/local/cops-robbers:
     devDependencies:

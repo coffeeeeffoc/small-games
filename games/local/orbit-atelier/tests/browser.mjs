@@ -10,7 +10,9 @@ import { chromium, expect } from '@playwright/test';
 // Run the production build. Gameplay is driven only through native browser
 // gestures and visible player controls; the developer snapshot is read-only.
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = path.join(root, 'docs/design');
+const evidence = process.env.ORBIT_EVIDENCE_DIR
+  ? path.resolve(process.env.ORBIT_EVIDENCE_DIR)
+  : path.join(root, 'docs/design');
 const runFile = promisify(execFile);
 const checks = [];
 const failures = [];
@@ -97,6 +99,29 @@ async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
           requestAnimationFrame(() => requestAnimationFrame(resolve));
         }),
     );
+  } finally {
+    await session.detach();
+  }
+}
+async function touchControl(page, name, { cancel = false, moveAway = false } = {}) {
+  const bounds = await action(page, name).boundingBox();
+  assert(bounds, `${name} control is visible`);
+  const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [point],
+    });
+    if (moveAway)
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: point.x - bounds.width, y: point.y + bounds.height }],
+      });
+    await session.send('Input.dispatchTouchEvent', {
+      type: cancel ? 'touchCancel' : 'touchEnd',
+      touchPoints: [],
+    });
   } finally {
     await session.detach();
   }
@@ -322,7 +347,28 @@ try {
     .toBe(liveRings(initial).length);
   const undone = stateOf(await inspect(page));
   assertSavedRings(undone.rings, initial.rings);
-  await action(page, 'pause').tap();
+  // Some browsers omit the compatibility click after SVG pointer capture.
+  // Keep native touch input and model that omission deterministically.
+  await page.evaluate(() => {
+    window.suppressCompatibilityClick = (event) => {
+      if (event instanceof PointerEvent && event.pointerType === 'touch')
+        event.stopImmediatePropagation();
+    };
+    document.addEventListener('click', window.suppressCompatibilityClick, true);
+  });
+  try {
+    await touchControl(page, 'pause', { cancel: true });
+    await screen(page, 'playing');
+    await touchControl(page, 'pause', { moveAway: true });
+    await screen(page, 'playing');
+    await touchControl(page, 'pause');
+    await screen(page, 'paused');
+  } finally {
+    await page.evaluate(() => {
+      document.removeEventListener('click', window.suppressCompatibilityClick, true);
+      delete window.suppressCompatibilityClick;
+    });
+  }
   await screen(page, 'paused');
   await screenshot(page, 'mobile-paused');
   const paused = stateOf(await inspect(page));

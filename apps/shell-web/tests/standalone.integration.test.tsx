@@ -45,6 +45,7 @@ it('opens each standalone Game and removes its frame on exit', async () => {
       expect(frame?.title).toBe(title);
       expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
       if (
+        id === 'chase-thief' ||
         id === 'orbit-atelier' ||
         id === 'ink-is-everything' ||
         id === 'ball-roguelite' ||

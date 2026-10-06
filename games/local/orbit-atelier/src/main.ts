@@ -35,6 +35,8 @@ let selectedRingId: string | null = null;
 let hint: { ringId: string; angle: number } | null = null;
 let drag: { id: number; ringId: string; pointerAngle: number; before: Run; moved: boolean } | null =
   null;
+let controlPress: { id: number; target: HTMLButtonElement; x: number; y: number } | null = null;
+let suppressTouchClick = false;
 let toastTimer: ReturnType<typeof setTimeout>;
 let animationTimer: ReturnType<typeof setTimeout>;
 let ghost: { state: State; ringId: string } | null = null;
@@ -386,9 +388,7 @@ function keyInput(event: KeyboardEvent) {
     finishGesture(ring.id, before, moved);
   }
 }
-app.addEventListener('click', (event) => {
-  const target = (event.target as Element).closest<HTMLElement>('[data-action],[data-level]');
-  if (!target) return;
+function activateControl(target: HTMLButtonElement) {
   if (target.dataset.level) {
     const index = LEVELS.findIndex((level) => level.id === target.dataset.level);
     start(index);
@@ -440,6 +440,59 @@ app.addEventListener('click', (event) => {
       notify('转动高亮圆环，让缺口朝向星标');
     } else notify('先解开外围圆环，让星栓开启');
   }
+}
+function controlTarget(event: Event) {
+  const target = (event.target as Element).closest<HTMLButtonElement>(
+    'button[data-action],button[data-level]',
+  );
+  return target && !target.disabled ? target : null;
+}
+app.addEventListener('pointerdown', (event) => {
+  suppressTouchClick = false;
+  if (event.pointerType === 'mouse' || !event.isPrimary || event.button !== 0) return;
+  const target = controlTarget(event);
+  controlPress = target
+    ? { id: event.pointerId, target, x: event.clientX, y: event.clientY }
+    : null;
+});
+app.addEventListener('pointermove', (event) => {
+  if (
+    controlPress?.id === event.pointerId &&
+    Math.hypot(event.clientX - controlPress.x, event.clientY - controlPress.y) > 12
+  )
+    controlPress = null;
+});
+app.addEventListener('pointercancel', (event) => {
+  if (controlPress?.id === event.pointerId) controlPress = null;
+});
+app.addEventListener('pointerup', (event) => {
+  const press = controlPress;
+  if (!press || press.id !== event.pointerId) return;
+  controlPress = null;
+  if (
+    !press.target.isConnected ||
+    controlTarget(event) !== press.target ||
+    Math.hypot(event.clientX - press.x, event.clientY - press.y) > 12
+  )
+    return;
+  // Touch gestures can omit the compatibility click after an SVG drag.
+  // Activate from their own release and ignore any later compatibility click.
+  suppressTouchClick = true;
+  event.preventDefault();
+  activateControl(press.target);
+});
+app.addEventListener('click', (event) => {
+  if (
+    event.detail > 0 &&
+    (suppressTouchClick ||
+      (event instanceof PointerEvent && ['touch', 'pen'].includes(event.pointerType)))
+  ) {
+    suppressTouchClick = false;
+    return;
+  }
+  suppressTouchClick = false;
+  const target = controlTarget(event);
+  if (target) activateControl(target);
 });
 app.addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement;
@@ -451,6 +504,7 @@ app.addEventListener('change', (event) => {
   }
 });
 function suspend() {
+  controlPress = null;
   if (screen === 'playing') navigate('paused');
   else cancelDrag();
   void audio?.suspend();
