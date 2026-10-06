@@ -28,13 +28,13 @@
     "src": "../../games/local/game-arena/public/arena-audio/win.wav"
   },
   "../../games/local/game-arena/src/definition.ts": {
-    "file": "assets/definition-rD9Ud3Wj.js",
+    "file": "assets/definition-DMGB8h3j.js",
     "name": "definition",
     "src": "../../games/local/game-arena/src/definition.ts",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_src-DY_ki1_D.js"
+      "_src-CoXqs-gY.js"
     ],
     "css": [
       "assets/definition-iDV9JJ3H.css"
@@ -74,7 +74,7 @@
     "src": "../../games/local/game-building-power/public/building-power-audio/win.wav"
   },
   "../../games/local/game-building-power/src/definition.ts": {
-    "file": "assets/definition-65NiuOFH.js",
+    "file": "assets/definition-CL2hnA3o.js",
     "name": "definition",
     "src": "../../games/local/game-building-power/src/definition.ts",
     "isDynamicEntry": true,
@@ -102,13 +102,13 @@
     "src": "../../games/local/game-cricket/src/assets/teahouse.png"
   },
   "../../games/local/game-cricket/src/definition.ts": {
-    "file": "assets/definition-icZH1A06.js",
+    "file": "assets/definition-cOWSVzdb.js",
     "name": "definition",
     "src": "../../games/local/game-cricket/src/definition.ts",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_src-DY_ki1_D.js"
+      "_src-CoXqs-gY.js"
     ],
     "assets": [
       "assets/teahouse-B3dnPLfc.png",
@@ -184,13 +184,13 @@
     "src": "../../games/local/game-cultivation/src/assets/audio/win.wav"
   },
   "../../games/local/game-cultivation/src/definition.ts": {
-    "file": "assets/definition-78S51W6F.js",
+    "file": "assets/definition-B8xF4085.js",
     "name": "definition",
     "src": "../../games/local/game-cultivation/src/definition.ts",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_src-DY_ki1_D.js"
+      "_src-CoXqs-gY.js"
     ],
     "assets": [
       "assets/bell-CVWsceD9.wav",
@@ -237,13 +237,13 @@
     "src": "../../games/local/game-office/public/office-scene/audio/steps.wav"
   },
   "../../games/local/game-office/src/definition.ts": {
-    "file": "assets/definition-DLwZR3Va.js",
+    "file": "assets/definition-5ImtjV9p.js",
     "name": "definition",
     "src": "../../games/local/game-office/src/definition.ts",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_src-DY_ki1_D.js"
+      "_src-CoXqs-gY.js"
     ],
     "css": [
       "assets/definition-0cQQVhq6.css"
@@ -257,15 +257,15 @@
       "assets/steps-BZMTcd__.wav"
     ]
   },
-  "_src-DY_ki1_D.js": {
-    "file": "assets/src-DY_ki1_D.js",
+  "_src-CoXqs-gY.js": {
+    "file": "assets/src-CoXqs-gY.js",
     "name": "src",
     "imports": [
       "index.html"
     ]
   },
   "index.html": {
-    "file": "assets/index-dt53wiEZ.js",
+    "file": "assets/index-DBzyNq3g.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -277,7 +277,7 @@
       "../../games/local/game-building-power/src/definition.ts"
     ],
     "css": [
-      "assets/index-b0VuJyzB.css"
+      "assets/index-COBbwwn_.css"
     ]
   }
 }

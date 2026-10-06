@@ -109,7 +109,7 @@ export function command(state, action = {}) {
   return runCommand(state, action);
 }
 export function step(state, input = {}, duration = 1 / 60) {
-  if (state.status !== 'playing' || state.pendingRewards.length) return state;
+  if (state.status !== 'playing') return state;
   if (state.player.ink <= 0) {
     state.status = 'lost';
     return state;
@@ -119,13 +119,11 @@ export function step(state, input = {}, duration = 1 / 60) {
   state.time += dt;
   advanceEffects(state, dt);
   playerActions(state, input, dt);
-  if (state.pendingRewards.length) return state;
   for (const enemy of state.enemies) advanceEnemy(state, enemy, dt);
   advanceProjectiles(state, dt);
-  if (state.status !== 'playing' || state.pendingRewards.length) return state;
+  if (state.status !== 'playing') return state;
   // Collect first so remaining-room references cannot be mixed by a portal transition.
   collectPickups(state, dt);
-  if (state.pendingRewards.length) return state;
   advanceWorld(state, dt);
   return state;
 }
