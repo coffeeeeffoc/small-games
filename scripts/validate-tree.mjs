@@ -10,7 +10,11 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
-import { incrementalPlan, entryAdapterFileScopes } from './incremental-validation.mjs';
+import {
+  incrementalPlan,
+  entryAdapterFileScopes,
+  h5AdapterFileScopes,
+} from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
@@ -227,13 +231,14 @@ export async function validateTree({
       })
     : new Map();
   if (incremental)
-    for (const [file, sources] of entryAdapterFileScopes({
-      changedPaths: sourcePaths,
-      games: catalog,
-      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
-    }))
-      fileScopes.set(file, sources);
+    for (const classify of [entryAdapterFileScopes, h5AdapterFileScopes])
+      for (const [file, sources] of classify({
+        changedPaths: sourcePaths,
+        games: catalog,
+        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
+        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+      }))
+        fileScopes.set(file, sources);
   const incrementalScope = incremental
     ? incrementalPlan({
         packages,

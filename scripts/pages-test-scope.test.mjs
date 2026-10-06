@@ -104,6 +104,32 @@ function wiringFixture() {
   return { before, after };
 }
 
+function developmentWiringFixture() {
+  const { before, after } = wiringFixture();
+  const tuples =
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n" +
+    '      typescript:\n        specifier: 7.0.2\n        version: 7.0.2\n' +
+    '      vite:\n        specifier: 8.2.2\n        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)\n';
+  for (const files of [before, after]) {
+    files[LOCK] = files[LOCK].replace(
+      '  games/local/echo-lab: {}\n',
+      `  tools/game-build:\n    devDependencies:\n${tuples}\n  games/local/echo-lab: {}\n`,
+    ).replace(
+      '  react@19.2.8: {}\n',
+      "  '@playwright/test@1.55.1': {}\n  typescript@7.0.2: {}\n  vite@8.2.2: {}\n  react@19.2.8: {}\n",
+    );
+  }
+  after[LOCK] = after[LOCK].replace(
+    '  games/local/new-game: {}\n',
+    `  games/local/new-game:\n    devDependencies:\n${tuples}`,
+  );
+  after['games/local/new-game/package.json'] = JSON.stringify({
+    name: '@games/new-game',
+    devDependencies: { '@playwright/test': '1.55.1', typescript: '7.0.2', vite: '8.2.2' },
+  });
+  return { before, after, tuples };
+}
+
 test('registration-only manifest and multi-document lock wiring select the new game', () => {
   const { before, after } = wiringFixture();
   assert.deepEqual(semanticScope(before, after), {
@@ -112,6 +138,110 @@ test('registration-only manifest and multi-document lock wiring select the new g
     game_ids: ['new-game'],
     game_sources: ['games/local/new-game'],
   });
+  assert.equal(
+    semanticScope(before, {
+      ...after,
+      'games/local/new-game/package.json': JSON.stringify({
+        name: '@games/new-game',
+        devDependencies: {},
+      }),
+    }).full,
+    false,
+  );
+});
+
+test('new game development tools reuse exact base importer tuples without expanding scope', () => {
+  const { before, after } = developmentWiringFixture();
+  for (const windowsNewlines of [false, true]) {
+    const oldFiles = { ...before },
+      newFiles = { ...after };
+    if (windowsNewlines) {
+      oldFiles[LOCK] = oldFiles[LOCK].replaceAll('\n', '\r\n');
+      newFiles[LOCK] = newFiles[LOCK].replaceAll('\n', '\r\n');
+    }
+    assert.deepEqual(semanticScope(oldFiles, newFiles), {
+      required: true,
+      full: false,
+      game_ids: ['new-game'],
+      game_sources: ['games/local/new-game'],
+    });
+  }
+});
+
+test('development wiring rejects undeclared fields, duplicate entries and unproven tool resolutions', () => {
+  const { before, after, tuples } = developmentWiringFixture();
+  const prefix = '  games/local/new-game:\n    devDependencies:\n';
+  const replaceNew = (next) => after[LOCK].replace(prefix + tuples, prefix + next);
+  const playwright =
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n";
+  for (const next of [
+    replaceNew(tuples.replace('specifier: 1.55.1', 'specifier: 1.55.2')),
+    replaceNew(tuples.replace('version: 1.55.1', 'version: 1.55.2')),
+    replaceNew(tuples.replace('@types/node@24.10.4', '@types/node@24.3.1')),
+    replaceNew(tuples.replace('      typescript:\n', "      typescript: {specifier: '7.0.2'}\n")),
+    replaceNew(tuples + playwright),
+    replaceNew(tuples + '    dependenciesMeta: {}\n'),
+    replaceNew(tuples + '    optionalDependencies: {}\n'),
+    after[LOCK].replace('  vite@8.2.2: {}', '  vite@8.2.2: {resolution: changed}'),
+    after[LOCK] + '\n  games/local/unregistered: {}\n',
+  ])
+    assert.equal(semanticScope(before, { ...after, [LOCK]: next }).full, true);
+  const pkg = JSON.parse(after['games/local/new-game/package.json']);
+  for (const update of [
+    { devDependencies: { ...pkg.devDependencies, vite: '8.2.3' } },
+    { devDependencies: { typescript: '7.0.2', vite: '8.2.2' } },
+    { devDependencies: { ...pkg.devDependencies, unknown: '1.0.0' } },
+    { devDependencies: [] },
+    { dependencies: { react: '19.2.8' } },
+    { optionalDependencies: { react: '19.2.8' } },
+    { peerDependencies: { react: '19.2.8' } },
+  ])
+    assert.equal(
+      semanticScope(before, {
+        ...after,
+        'games/local/new-game/package.json': JSON.stringify({ ...pkg, ...update }),
+      }).full,
+      true,
+    );
+  const externalTool =
+    "      'new-external-tool':\n        specifier: 1.0.0\n        version: 1.0.0\n";
+  assert.equal(
+    semanticScope(before, {
+      ...after,
+      [LOCK]: replaceNew(tuples.replace(playwright, externalTool)),
+      'games/local/new-game/package.json': JSON.stringify({
+        ...pkg,
+        devDependencies: { 'new-external-tool': '1.0.0', typescript: '7.0.2', vite: '8.2.2' },
+      }),
+    }).full,
+    true,
+  );
+});
+
+test('tool tuples outside real baseline dependency sections cannot prove reuse', () => {
+  const { before, after, tuples } = developmentWiringFixture();
+  for (const section of ['packages:', 'snapshots:']) {
+    const move = (text) =>
+      text
+        .replace('  tools/game-build:\n    devDependencies:\n' + tuples + '\n', '')
+        .replace(section + '\n', section + '\n' + tuples);
+    assert.equal(
+      semanticScope(
+        { ...before, [LOCK]: move(before[LOCK]) },
+        { ...after, [LOCK]: move(after[LOCK]) },
+      ).full,
+      true,
+    );
+  }
+  const renamed = (text) =>
+    text.replace('    devDependencies:\n' + tuples, '    resolutions:\n' + tuples);
+  assert.equal(
+    semanticScope(
+      { ...before, [LOCK]: renamed(before[LOCK]) },
+      { ...after, [LOCK]: renamed(after[LOCK]) },
+    ).full,
+    true,
+  );
 });
 
 test('one registration presentation or output change selects only its game', () => {
