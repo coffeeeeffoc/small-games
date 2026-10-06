@@ -24,6 +24,19 @@ export function incrementalPlan({
     !unknown.length,
     `Incremental scope undefined for: ${unknown.join(', ')}. Define affected consumers before publishing; no automatic full regression.`,
   );
+  const registrationFiles = new Set([
+    'apps/shell-web/src/standalone-games.json',
+    'apps/shell-web/src/game-meta.json',
+    'apps/shell-web/package.json',
+    'pnpm-lock.yaml',
+  ]);
+  const unclassifiedRegistration = paths.filter(
+    (file) => registrationFiles.has(file) && !fileScopes.has(file),
+  );
+  assert(
+    !unclassifiedRegistration.length,
+    `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
+  );
   const affected = affectedPackages(packages, paths);
   const directGames = games.filter((game) =>
     paths.some((file) => file === game.source || file.startsWith(game.source + '/')),

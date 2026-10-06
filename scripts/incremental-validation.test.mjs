@@ -104,3 +104,12 @@ test('per-game literal adapters are narrow, executable changes in the same file 
   });
   assert.equal(shared.has(file), false);
 });
+
+test('unrecognized Shell registry or task graph edits cannot silently become generic navigation samples', () => {
+  for (const file of [
+    'apps/shell-web/src/standalone-games.json',
+    'apps/shell-web/src/game-meta.json',
+    'apps/shell-web/package.json',
+  ])
+    assert.throws(() => plan([file]), /registration scope undefined/);
+});
