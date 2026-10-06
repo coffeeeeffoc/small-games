@@ -770,7 +770,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "actual CJS Chromium phone screenshots, safe-area/capsule/rotation/resize/touch mapping/disposal"
+          "localExecution": "actual CJS no-DOM local native shell: home/levels/hints, touch-only first level clear, saved unlock, touch cancel/multitouch/background pause/disposal; SDK fixture; WeChat also real Chromium safe-area/rotation/resize screenshots"
         },
         {
           "platform": "bilibili",
@@ -787,7 +787,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
+          "localExecution": "actual CJS no-DOM local native shell: home/levels/hints, touch-only first level clear, saved unlock, touch cancel/multitouch/background pause/disposal; SDK fixture; WeChat also real Chromium safe-area/rotation/resize screenshots"
         },
         {
           "platform": "douyin",
@@ -804,7 +804,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
+          "localExecution": "actual CJS no-DOM local native shell: home/levels/hints, touch-only first level clear, saved unlock, touch cancel/multitouch/background pause/disposal; SDK fixture; WeChat also real Chromium safe-area/rotation/resize screenshots"
         },
         {
           "platform": "kuaishou",
@@ -821,7 +821,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
+          "localExecution": "actual CJS no-DOM local native shell: home/levels/hints, touch-only first level clear, saved unlock, touch cancel/multitouch/background pause/disposal; SDK fixture; WeChat also real Chromium safe-area/rotation/resize screenshots"
         },
         {
           "platform": "alipay",
@@ -838,7 +838,7 @@
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "actual CJS touch-only first level clear, saved unlock, home/help/hints/background/disposal"
+          "localExecution": "actual CJS no-DOM local native shell: home/levels/hints, touch-only first level clear, saved unlock, touch cancel/multitouch/background pause/disposal; SDK fixture; WeChat also real Chromium safe-area/rotation/resize screenshots"
         }
       ],
       "nativeIntegration": "existing owner implementation merged at 1e99fc74e055f78638322f2b9df1602736561af9; nativeHost consumes pinned implementation; safe-area/capsule/resize remain known host gap"
