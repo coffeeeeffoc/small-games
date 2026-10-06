@@ -6,9 +6,29 @@ import {
   nineNativeFileScopes,
   nineNativeChecks,
   nineNativeScopePaths,
+  nightProtocolFileScopes,
 } from './nine-native-scope.mjs';
 const baseline = '748f0b15be225ecb03807b4a7b1a3cd737298bda';
 const competition = 'platforms/competition/native.js';
+const nightHelper = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const nightSource = 'games/local/night-overwatch';
+const nightBase = execFileSync(
+  'git',
+  ['show', `d3874c73bd75128b45082c4815afef8f9918169a:${nightHelper}`],
+  { encoding: 'utf8' },
+);
+const nightHead = snapshotNight();
+function snapshotNight() {
+  return readFileSync(new URL('../' + nightHelper, import.meta.url), 'utf8');
+}
+function nightContext() {
+  return {
+    changedPaths: [nightHelper],
+    readBase: () => nightBase,
+    readHead: () => nightHead,
+    gameSources: [nightSource],
+  };
+}
 const catalog = JSON.parse(
   readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
 );
@@ -217,5 +237,92 @@ test('overlapping competition proof retains both native runners and all actual h
         readSource: snapshot,
       }),
     /scope undefined/,
+  );
+});
+
+test('reviewed Night protocol body maps only its unique canonical game source', () => {
+  assert.deepEqual([...nightProtocolFileScopes(nightContext())], [[nightHelper, [nightSource]]]);
+  const c = { ...context([nightHelper]), readBase: () => nightBase };
+  assert.deepEqual([...nineNativeFileScopes(c)], [[nightHelper, [nightSource]]]);
+  assert.equal(nineNativeScopePaths.length, 7);
+  assert.deepEqual(nineNativeChecks([nightHelper], nineNativeFileScopes(c)), []);
+});
+
+test('Night classification fails closed for unavailable or unreviewed bodies and boundaries', () => {
+  const start = "  } else if (id === 'night-overwatch') {";
+  const end = "  } else if (id === 'carding-car') {";
+  const variants = [
+    {
+      readBase: () => {
+        throw new Error('missing base');
+      },
+    },
+    {
+      readHead: () => {
+        throw new Error('missing head');
+      },
+    },
+    { readBase: () => undefined },
+    { readHead: () => undefined },
+    { readBase: () => nightHead },
+    { readHead: () => nightBase },
+    { readBase: () => nightBase.replace(start, start + '\n// unknown baseline') },
+    { readHead: () => nightHead.replace(start, start + '\n// unknown proposal') },
+    { readHead: () => nightHead + '\n// outside word' },
+    { readHead: () => '// global timeout change\n' + nightHead },
+    { readHead: () => nightHead.replace('60000', '60001') },
+    { readHead: () => nightHead + start },
+    { readHead: () => nightHead + end },
+    { readHead: () => nightHead.replace(start, '') },
+    { readHead: () => nightHead.replace(end, '') },
+    { readHead: () => end + nightHead.replace(end, '') },
+    { changedPaths: [nightHelper + '.unknown'] },
+    { gameSources: [] },
+    { gameSources: [nightSource, nightSource] },
+    { gameSources: ['games/local/night-overwatch-alias'] },
+    { gameSources: undefined },
+    { gameSources: [nightSource, null] },
+  ];
+  for (const variant of variants) {
+    assert.equal(nightProtocolFileScopes({ ...nightContext(), ...variant }).size, 0);
+  }
+});
+
+test('integrated Night scope requires exact catalog identity and actual workspace', () => {
+  const c = { ...context([nightHelper]), readBase: () => nightBase };
+  const other = catalog.filter((game) => game.id !== 'night-overwatch');
+  for (const games of [
+    other,
+    [...catalog, catalog.find((game) => game.id === 'night-overwatch')],
+    [...other, { id: 'night-overwatch', source: 'games/local/unknown' }],
+    [...catalog, { id: 'alias', source: nightSource }],
+    catalog.map((game) => (game.id === 'night-overwatch' ? { ...game, id: 'alias' } : game)),
+  ])
+    assert.equal(nineNativeFileScopes({ ...c, games }).size, 0);
+  assert.equal(
+    nineNativeFileScopes({ ...c, packages: packages.filter((pkg) => pkg.dir !== nightSource) })
+      .size,
+    0,
+  );
+});
+
+test('Pages consumer selects Night only with explicit mapping; unknown and unmapped helper remain full', async () => {
+  const { selectPagesScope } = await import('./pages-test-scope.mjs');
+  const c = {
+    eventName: 'push',
+    refName: 'dev',
+    standaloneGames: catalog,
+    gameSources: catalog.map((game) => game.source),
+    changedPaths: [nightHelper],
+    fileScopes: nightProtocolFileScopes(nightContext()),
+  };
+  const selected = selectPagesScope(c);
+  assert.equal(selected.full, false);
+  assert.deepEqual(selected.game_ids, ['night-overwatch']);
+  assert.deepEqual(selected.game_sources, [nightSource]);
+  assert.equal(selectPagesScope({ ...c, fileScopes: new Map() }).full, true);
+  assert.equal(
+    selectPagesScope({ ...c, changedPaths: [nightHelper, 'scripts/unknown.mjs'] }).full,
+    true,
   );
 });

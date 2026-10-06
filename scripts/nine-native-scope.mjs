@@ -223,6 +223,44 @@ function additiveAlipay(before, after) {
   assert.equal(before.replace(oldGuard, newGuard), after);
 }
 
+const NIGHT_HELPER = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const NIGHT_SOURCE = 'games/local/night-overwatch';
+const NIGHT_START = "  } else if (id === 'night-overwatch') {";
+const NIGHT_END = "  } else if (id === 'carding-car') {";
+const NIGHT_BASE_SHA = '59265bb06b3a6d4df0b56e912d0cfc83399dc6abd0980f476bffb6d2c83e8a4e';
+const NIGHT_HEAD_SHA = '2405714061b6e1bb21dd0c9d6b69084c351021139c67f3afbba1f7c9ca7ea059';
+
+function nightParts(text) {
+  assert.equal(typeof text, 'string');
+  assert.equal(text.split(NIGHT_START).length, 2, 'Unique Night branch required');
+  assert.equal(text.split(NIGHT_END).length, 2, 'Unique next branch required');
+  const start = text.indexOf(NIGHT_START),
+    end = text.indexOf(NIGHT_END);
+  assert(end > start, 'Ordered branch boundaries required');
+  return [text.slice(0, start), text.slice(start, end), text.slice(end)];
+}
+
+/** Only the reviewed protocol-query substitution may narrow this shared helper. */
+export function nightProtocolFileScopes({ changedPaths, readBase, readHead, gameSources }) {
+  const scopes = new Map();
+  if (!Array.isArray(changedPaths) || !changedPaths.includes(NIGHT_HELPER)) return scopes;
+  try {
+    assert(Array.isArray(gameSources));
+    assert(gameSources.every((source) => typeof source === 'string'));
+    assert.equal(gameSources.filter((source) => source === NIGHT_SOURCE).length, 1);
+    const before = nightParts(readBase(NIGHT_HELPER));
+    const after = nightParts(readHead(NIGHT_HELPER));
+    assert.equal(digest(before[1]), NIGHT_BASE_SHA, 'Reviewed original Night body required');
+    assert.equal(digest(after[1]), NIGHT_HEAD_SHA, 'Reviewed protocol-query Night body required');
+    assert.equal(before[0], after[0], 'Every byte before Night must remain unchanged');
+    assert.equal(before[2], after[2], 'Every byte after Night must remain unchanged');
+    scopes.set(NIGHT_HELPER, [NIGHT_SOURCE]);
+  } catch {
+    // Missing inputs, unknown bodies and any shared-helper change remain unclassified.
+  }
+  return scopes;
+}
+
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
 export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
   const scopes = new Map();
@@ -278,6 +316,20 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
       // Missing HEAD/baseline, different executable bytes, dynamic/import changes,
       // identities and similar paths receive no narrow mapping and must block.
     }
+  }
+  const nightGames = games.filter((game) => game.id === 'night-overwatch');
+  if (
+    nightGames.length === 1 &&
+    nightGames[0].source === NIGHT_SOURCE &&
+    packages.some((pkg) => pkg.dir === NIGHT_SOURCE)
+  ) {
+    for (const [file, affected] of nightProtocolFileScopes({
+      changedPaths,
+      readBase,
+      readHead,
+      gameSources: games.map((game) => game.source),
+    }))
+      scopes.set(file, affected);
   }
   return scopes;
 }

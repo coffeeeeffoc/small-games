@@ -56,7 +56,7 @@ B站的 `game.json` 使用其必填 `appId`、`version`，并核对侧边栏/桌
 
 当前逐目标状态和能力矩阵见同目录 `nine-games-build-status-20261006.json` 与 `nine-games-capabilities-20261006.json`。各游戏实际浏览器/触屏截图与测试报告在游戏设计目录。外滩后续验收已运行真实 WebGL2、原 GLB 和 Rapier WASM，覆盖横竖屏菜单、移动、取消、照片、后台恢复与清理；无 DOM/无 TextDecoder 的 Worker 专项通过。浏览器宿主桥接仍是本地验证，不能当作实体手机或官方 SDK 验收。
 
-35 个 Canvas/WebGL 原生 preview 目标完成构建和资源完整性复核；卡丁车及夜航的 10 个 Cocos 目标仍因 Creator 3.8.8/官方快手转换工具缺失而阻塞。卡丁车仅复用了严格匹配的已有 H5 引擎产物，不把它当小游戏包；夜航旧产物源指纹不匹配，已拒绝复用。乌龙城共享宿主已完成安全区/胶囊映射、横竖屏与 resize 重绘，实际 CJS 包触屏验证保留关卡与存档。本轮未注册账户、购买服务、改平台权限、上传、提审或发布。
+35 个 Canvas/WebGL 原生 preview 目标完成构建和资源完整性复核；卡丁车及夜航的 10 个 Cocos 目标仍因 Creator 3.8.8/官方快手转换工具缺失而阻塞。卡丁车仅复用了严格匹配的已有 H5 引擎产物，不把它当小游戏包；夜航已恢复并严格匹配真实 canonical H5 归档（source hash `0a526904ba89cf3376ba7bf46a1a7fce4a98bc0d2fb94bdcc6abad0a963cfbb0`），原生浏览器按钮差异在独立 Creator 输入 staging 中处理；该 H5 归档不能替代五平台原生包。乌龙城共享宿主已完成安全区/胶囊映射、横竖屏与 resize 重绘，实际 CJS 包触屏验证保留关卡与存档。本轮未注册账户、购买服务、改平台权限、上传、提审或发布。
 
 官方核对依据（2026-10-06）：[B站配置](https://miniapp.bilibili.com/small-game-doc/framework/config)、[快手流程](https://open.kuaishou.com/miniGameDocs/gameDev/start/start.html)、[快手 API](https://open.kuaishou.com/miniGameDocs/gameDev/api/api.html)、[抖音配置](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/framework/mini-game-configuration)、[支付宝配置](https://opendocs.alipay.com/mini-game/0fx941)、[支付宝文件读取](https://opendocs.alipay.com/mini-game/08urvh)。微信官网当前抓取失败，沿用仓库已核对适配层并明确保留外部验证缺口；不使用第三方资料替代官方 SDK 协议。
 
@@ -94,3 +94,11 @@ node games/local/carding-car/platforms/build.mjs kuaishou
 外滩其余四平台后续已补实际最终CJS无DOM场景执行：使用各自FS/request/storage签名、真实OffscreenCanvas/WebGL2/原模型/物理/参考图，包含保存设置、后台暂停恢复和清理。具体测试artifact SHA在交付报告中；不冒充官方SDK接受结果。
 
 支付宝完整包体校验按[官方分包指南](https://opendocs.alipay.com/mini-game/08uo7z)分别计算主包与总包：保守使用主包 4,000,000 字节、主包加所有普通分包 20,000,000 字节；普通单分包没有另加假上限。现场遍历实际全部文件，包含来源与完整性 manifests，按 game.json 的 subpackages.root 分组；照片维持本地原字节分包。配置重复、重叠、非法路径、缺分包 game.js 或符号链接均拒绝。SDK 门槛与宿主限制仍须官方工具/真机验收，不能把分包配置通过当作真实加载通过。
+
+## 夜航检查协议查询优化
+
+正常推送的 Chromium 151 流程中，前八款完整嵌入、返回及触屏流程通过；夜航第二次返回后的暂停状态查询未在原五秒期限内完成，推送被正常 hook 阻止。补充诊断记录了真实按钮仍存在及协议查询未返回的证据，不能据此认定游戏丢按钮。
+
+本轮仅将夜航 snapshot 查询从每次解析/销毁元素句柄的 Locator.evaluate 改为实际 iframe 的 Frame.evaluate；直开页面继续使用真实 Page。真实 Canvas 点击/触屏、两帧提交等待、原状态断言、原超时、画质及视口均保留。临时草案完整桌面与844×390触屏流程通过，耗时分别58,682ms及51,673ms；这不是整合后候选正常 hook 的通过记录。正常推送结果另以准确 SHA 和终态日志为准。
+
+范围证明锁定原/新 Night 分支摘要，且要求所有其他分支及公共代码逐字一致、Night 目录唯一。缺基线、未知 Night 改动、词屿/公共限时变化均不获得定向范围。通用 validate-tree/validate-push 与词屿检查没有因本优化改动；Pages 对准确提交的实际选择和运行状态独立记录。

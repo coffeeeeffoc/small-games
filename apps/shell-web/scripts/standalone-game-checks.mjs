@@ -1135,31 +1135,37 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.getByRole('heading', { name: '道路接通了！' })).toBeVisible();
   } else if (id === 'night-overwatch') {
     const canvas = frame.locator('#GameCanvas');
+    // Read the real document directly: Locator.evaluate also resolves and disposes
+    // an element handle on every poll, consuming the same five-second deadline.
+    const gameDocument = frame.owner
+      ? await (await frame.owner().elementHandle()).contentFrame()
+      : frame;
+    expect(gameDocument).not.toBeNull();
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night?.snapshot().modelImport), {
+      .poll(() => gameDocument.evaluate(() => globalThis.__night?.snapshot().modelImport), {
         timeout: 60000,
       })
       .toBe('loaded');
     const press = async (id) => {
-      const buttons = await canvas.evaluate(() => globalThis.__night.snapshot().buttons);
+      const buttons = await gameDocument.evaluate(() => globalThis.__night.snapshot().buttons);
       if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'flightControls'))
         await press('flightControls');
       await expect
         .poll(() =>
-          canvas.evaluate(
-            (_, id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
+          gameDocument.evaluate(
+            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
             id,
           ),
         )
         .toBe(true);
-      const b = await canvas.evaluate(
-        (_, id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
+      const b = await gameDocument.evaluate(
+        (id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
         id,
       );
       const position = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
       await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
       // Cocos commits input and then rebuilds the visible HUD on its next frame.
-      await canvas.evaluate(
+      await gameDocument.evaluate(
         () =>
           new Promise((resolve) =>
             globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
@@ -1168,26 +1174,32 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     };
     await press('start');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().time))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().time))
       .toBeGreaterThan(0);
     await press('settings');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('settings')))
+      .poll(() =>
+        gameDocument.evaluate(() => globalThis.__night.snapshot().pauses.includes('settings')),
+      )
       .toBe(true);
     await press('help');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')))
+      .poll(() =>
+        gameDocument.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')),
+      )
       .toBe(true);
     await press('close');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().pauses))
       .toEqual(['settings']);
     await press('close');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().pauses))
       .toEqual([]);
     await press('weapon2');
-    await expect.poll(() => canvas.evaluate(() => globalThis.__night.snapshot().selected)).toBe(2);
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().selected))
+      .toBe(2);
   } else if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
     await expect
