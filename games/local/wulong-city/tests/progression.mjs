@@ -346,6 +346,29 @@ try {
     'Completing shared L01 and choosing result → levels → continue returns to the original main L01; it cannot enter or save locked L02',
   );
   await context.close();
+  ({ context, page } = await open(lockedMain));
+  await holdUntil(page, 'right', () =>
+    expect(page.locator('#feedback')).toContainText('小碎步', { timeout: 15000 }),
+  );
+  await holdTouch(page, 'left', 160);
+  await expect(page.locator('#feedback')).toContainText('把自己打开了', { timeout: 15000 });
+  await walkToResult(page);
+  const completedMain = await page.evaluate(() => localStorage.getItem('wulong-city-v1'));
+  await page.locator('[data-home]').tap();
+  await page.locator('#home-records').tap();
+  await page.locator('[data-try="25"]').tap();
+  await page.locator('#tryout-back').tap();
+  await expect(page.locator('#game')).toHaveAttribute('data-page', 'result');
+  await expect(page.locator('#next')).toBeEnabled();
+  await expect(page.locator('#again')).toBeEnabled();
+  assert.equal(await page.evaluate(() => localStorage.getItem('wulong-city-v1')), completedMain);
+  await page.locator('#next').tap();
+  await expect(page.locator('#game')).toHaveAttribute('data-page', 'play');
+  await expect(page.locator('#counter')).toHaveText('02 / 100');
+  checks.push(
+    'A completed main L01 returns from journal preview to its usable result page without changing progress; next continues the unlocked L02',
+  );
+  await context.close();
   const main = {
     unlocked: 3,
     records: { 1: '门已主动来接', 2: '电梯已有墨镜' },
