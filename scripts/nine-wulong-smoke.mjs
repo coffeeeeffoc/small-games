@@ -61,10 +61,21 @@ try {
   await flushNative();
   assert(fixture.findLabel('开始奇遇'));
   assert(!fixture.findLabel('全屏'));
+  // Match the reviewed 390:844 content viewport after the native capsule inset.
+  const screenPoint = (x, y) => {
+    const info = raw.getSystemInfoSync();
+    const top = Math.max(
+      info.safeArea?.top ?? 0,
+      raw.getMenuButtonBoundingClientRect?.().bottom ?? 0,
+    );
+    const height = (info.safeArea?.bottom ?? info.windowHeight) - top;
+    const width = (height * 390) / 844;
+    return { x: (info.windowWidth - width) / 2 + (x * width) / 390, y: top + (y * width) / 390 };
+  };
   const tap = async (label) => {
     const position =
       fixture.findLabel(label) ??
-      (label === '返回' ? { x: 43, y: 74, align: 'center' } : undefined);
+      (label === '返回' ? { ...screenPoint(43, 74), align: 'center' } : undefined);
     assert(position, 'Missing current native control ' + label);
     fixture.labels.length = 0;
     fixture.tap(position.x + (position.align === 'center' ? 0 : 3), position.y);
@@ -96,13 +107,15 @@ try {
     for (let elapsed = 0; elapsed < ms; elapsed += 34)
       await fixture.tick(Math.min(34, ms - elapsed));
   };
-  fixture.touchStart(44, 770, 21);
+  const left = screenPoint(44, 770),
+    right = screenPoint(124, 770);
+  fixture.touchStart(left.x, left.y, 21);
   await advance(180);
-  fixture.touchEnd(44, 770, 21);
+  fixture.touchEnd(left.x, left.y, 21);
   await advance(8000);
-  fixture.touchStart(124, 770, 22);
+  fixture.touchStart(right.x, right.y, 22);
   await advance(550);
-  fixture.touchEnd(124, 770, 22);
+  fixture.touchEnd(right.x, right.y, 22);
   await advance(2200);
   await flushNative();
   assert(fixture.findLabel('乌龙解决啦！'));

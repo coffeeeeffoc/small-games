@@ -37,7 +37,9 @@ export const nineGames = [
     entry: 'native.js',
     start: 'startNativeHistoryGame',
     orientation: 'portrait',
-    assets: [['public/assets', 'assets']],
+    assets: [],
+    resources: true,
+    subpackageImages: true,
   },
   {
     id: 'xiangqi-five',
@@ -52,8 +54,15 @@ export const nineGames = [
     id: 'travel-bund',
     title: '江风入境 · 外滩漫游',
     directory: 'games/local/travel-bund',
-    blocked:
-      'React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.',
+    entry: 'native/index.tsx',
+    start: 'startNativeTravelBundGame',
+    orientation: 'landscape',
+    resources: true,
+    async: true,
+    competition: false,
+    minify: true,
+    prepare: 'native/build-native.mjs',
+    assets: [],
   },
   {
     id: 'night-overwatch',
@@ -93,20 +102,44 @@ export function targetOptions(game, platform, { preview = false, env = process.e
   };
   if (typeof appId !== 'string' || (appId && !formats[platform]?.test(appId)))
     throw new Error(`Invalid public AppID in ${key}`);
-  if (!preview && !appId)
+  if (!preview && (appId === 'kwai_game_test_appid' || !appId))
     throw new Error(
       `Release requires ${key}; explicitly use --preview for unconfigured local builds.`,
     );
   const apiUrl = env.MINIGAME_COMPETITION_API_URL || '';
   if (apiUrl && !/^https:\/\/[^\s/@]+(?:\/|$)/.test(apiUrl))
     throw new Error('MINIGAME_COMPETITION_API_URL must be a public HTTPS URL without credentials.');
+  let assetBase;
+  if (game === 'travel-bund') {
+    assetBase =
+      env.MINIGAME_TRAVEL_BUND_ASSET_BASE ||
+      (preview ? 'https://coffeeeeffoc.github.io/small-games/games/travel-bund/' : '');
+    if (!assetBase)
+      throw new Error(
+        'Release requires MINIGAME_TRAVEL_BUND_ASSET_BASE and platform request-domain configuration.',
+      );
+    let url;
+    try {
+      url = new URL(assetBase);
+    } catch {
+      throw new Error('MINIGAME_TRAVEL_BUND_ASSET_BASE must be a public HTTPS directory URL.');
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
+      throw new Error(
+        'MINIGAME_TRAVEL_BUND_ASSET_BASE must be HTTPS without credentials, query tokens or fragments.',
+      );
+    assetBase = url.href.replace(/\/?$/, '/');
+  }
   // Never spread process.env into client configuration: secrets remain server-side.
   return {
     game,
     platform,
     appId,
     apiUrl,
+    ...(assetBase ? { assetBase } : {}),
     preview,
-    competitionConfigured: Boolean(appId && apiUrl && platform !== 'alipay'),
+    competitionConfigured: Boolean(
+      appId && apiUrl && platform !== 'alipay' && !['travel-bund', 'wulong-city'].includes(game),
+    ),
   };
 }

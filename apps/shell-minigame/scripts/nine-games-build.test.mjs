@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { nineGames, fivePlatforms, appIdVariable, targetOptions } from './nine-games-targets.mjs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import {
+  nineGames,
+  fivePlatforms,
+  scopeCommit,
+  appIdVariable,
+  targetOptions,
+} from './nine-games-targets.mjs';
 import { inventory, verifyArtifact, runBuild } from './nine-games-build.mjs';
 import { withCompetitionAvailability } from '../src/competition-availability.mjs';
 
@@ -37,9 +45,13 @@ test('unconfigured competition ignores old credentials and never performs real l
 });
 
 test('batch is the catalog first nine at the frozen dev commit, across five distinct SDKs', async () => {
-  const catalog = await readFile(
-    new URL('../../../apps/shell-web/src/GameCatalog.tsx', import.meta.url),
-    'utf8',
+  const catalog = execFileSync(
+    'git',
+    ['show', `${scopeCommit}:apps/shell-web/src/GameCatalog.tsx`],
+    {
+      cwd: fileURLToPath(new URL('../../../', import.meta.url)),
+      encoding: 'utf8',
+    },
   );
   for (const [index, game] of nineGames.entries())
     assert.match(catalog, new RegExp(`'${game.id}': ${index}`));
@@ -95,6 +107,46 @@ test('only public fields are serialized; secret env is never copied into client 
         env: { MINIGAME_LETTERS_WORDS2_WECHAT_APP_ID: 'touristappid' },
       }),
     /Invalid/,
+  );
+});
+test('Bund assets use only explicit public HTTPS directories and require release configuration', () => {
+  const key = appIdVariable('travel-bund', 'wechat');
+  const appId = 'wx0123456789abcdef';
+  assert.throws(
+    () => targetOptions('travel-bund', 'wechat', { env: { [key]: appId } }),
+    /MINIGAME_TRAVEL_BUND_ASSET_BASE/,
+  );
+  for (const assetBase of [
+    'http://example.com/',
+    'https://user:secret@example.com/',
+    'https://example.com/?token=secret',
+    'https://example.com/#secret',
+  ]) {
+    assert.throws(
+      () =>
+        targetOptions('travel-bund', 'wechat', {
+          env: { [key]: appId, MINIGAME_TRAVEL_BUND_ASSET_BASE: assetBase },
+        }),
+      /HTTPS/,
+    );
+  }
+  const config = targetOptions('travel-bund', 'wechat', {
+    env: {
+      [key]: appId,
+      MINIGAME_TRAVEL_BUND_ASSET_BASE: 'https://assets.example.com/fixed-version',
+      MINIGAME_COMPETITION_API_URL: 'https://api.example.com/',
+    },
+  });
+  assert.equal(config.assetBase, 'https://assets.example.com/fixed-version/');
+  assert.equal(config.competitionConfigured, false);
+});
+test('release rejects the official Kuaishou preview identifier', () => {
+  assert.throws(
+    () =>
+      targetOptions('wulong-city', 'kuaishou', {
+        env: { MINIGAME_WULONG_CITY_KUAISHOU_APP_ID: 'kwai_game_test_appid' },
+      }),
+    /Release requires/,
   );
 });
 test('integrity detects altered, missing and additional files instead of checking names alone', async () => {

@@ -50,3 +50,34 @@ test('multiple touches and sliding release do not activate native buttons; stora
     h.tap('开始五幕旅途'); assert.ok(h.labels().includes('暂停'));
   } finally { game.stop(); }
 });
+
+test('solo and friend renderer both use declared native image packages and actual SDK images', async () => {
+  const h = host(), packages = [], images = [], imagePaths = [];
+  h.sdk.loadSubpackage = name => { packages.push(name); return Promise.resolve(); };
+  h.sdk.createImage = () => {
+    const image = { width: 1000, height: 500, set src(path) { imagePaths.push(path); this.onload?.(); } };
+    images.push(image); return image;
+  };
+  const first = nativeScenes[0].image, opaque = 'assets/competition/57ea76ec39a9758f.webp';
+  const assetPackages = Object.fromEntries([first, opaque].map(source => [source, { name: 'history-images-0', path: `history-images-0/${source}` }]));
+  const config = { assetPackages, apiUrl: 'https://example.com', competitionConfigured: true };
+  let friendRenderer, friendStopped = false;
+  const game = startNativeHistoryGame(h.sdk, config, (_sdk, passed, renderer) => {
+    assert.equal(passed.assetPackages, assetPackages);
+    friendRenderer = renderer({ createImage: () => { throw new Error('Wrong shared image factory'); }, assetBase: '' });
+    return { stop() { friendStopped = true; } };
+  });
+  const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
+  try {
+    h.tap('选择一幕练习'); h.tap(nativeScenes[0].title); await flush();
+    assert.deepEqual(imagePaths, [`history-images-0/${first}`]);
+    h.tap('暂停'); h.tap('保存并返回主页'); h.tap('好友挑战');
+    const drawn = [], ctx = new Proxy({ measureText: () => ({ width: 0 }), drawImage: image => drawn.push(image) }, { get: (o, key) => key in o ? o[key] : () => {} });
+    const state = { roundKey: 'friend', round: 1, total: 5, score: 0, phase: 'guessing', image: opaque, clue: '线索' };
+    friendRenderer.draw(ctx, 390, 700, state); await flush(); friendRenderer.draw(ctx, 390, 700, state);
+    assert.equal(drawn[0], images[1]);
+    assert.deepEqual(imagePaths, [`history-images-0/${first}`, `history-images-0/${opaque}`]);
+    assert.deepEqual(packages, ['history-images-0']);
+  } finally { game.stop(); }
+  assert.ok(friendStopped);
+});

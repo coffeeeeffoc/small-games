@@ -47,7 +47,7 @@ export const channels = Object.freeze({
     variable: 'KUAISHOU_APP_ID',
     pattern: /^[A-Za-z0-9_-]+$/,
     blocked:
-      'No compatible official Creator 3.8.8 Kuaishou adapter has been verified in this repository.',
+      'Kuaishou requires a Creator WeChat source export converted by official Kuaishou DevTools (kwaiadapter.js); no verified converted native artifact is available.',
   },
   alipay: {
     target: 'alipay-mini-game',
@@ -63,7 +63,7 @@ export function descriptor(channel, { mode = 'preview', env = process.env } = {}
   const appId = env[target.variable] || '';
   if (appId && !target.pattern.test(appId))
     throw Error(`${target.variable} must contain a public ${channel} AppID.`);
-  if (mode === 'release' && !appId)
+  if (mode === 'release' && (!appId || appId === 'kwai_game_test_appid'))
     throw Error(`Release requires ${target.variable}; no preview identity is accepted.`);
   return { ...target, channel, mode, appId, configured: !!appId };
 }

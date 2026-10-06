@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { prepareHistoryPackages } from './nine-history-assets.mjs';
 import { nineGames, fivePlatforms, scopeCommit, targetOptions } from './nine-games-targets.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -36,6 +37,43 @@ export async function verifyArtifact(directory) {
     !files.some((file) => file.path === 'game.json')
   )
     throw new Error('Native package entry/config is missing.');
+  if (manifest.game === 'vibeJam-myself-history-guess') {
+    const resources = JSON.parse(
+      await readFile(path.join(directory, 'history-assets-manifest.json'), 'utf8'),
+    );
+    const release = JSON.parse(await readFile(path.join(directory, 'release.json'), 'utf8'));
+    if (resources.files.length !== 33)
+      throw new Error('History image inventory must preserve all 33 original resources.');
+    for (const expected of resources.files) {
+      const packaged = files.find((file) => file.path === expected.path);
+      if (
+        !packaged ||
+        packaged.bytes !== expected.bytes ||
+        packaged.sha256 !== expected.sha256 ||
+        release.assetPackages?.[expected.source]?.path !== expected.path
+      )
+        throw new Error('History native image resource or package mapping is missing or altered.');
+    }
+    for (const pack of resources.packages) {
+      if (!files.some((file) => file.path === `${pack.root}/game.js`))
+        throw new Error('History subpackage entry is missing.');
+      const bytes = files
+        .filter((file) => file.path.startsWith(`${pack.root}/`))
+        .reduce((total, file) => total + file.bytes, 0);
+      if (bytes > resources.budget)
+        throw new Error('History subpackage exceeds the reviewed native budget.');
+    }
+  }
+  if (manifest.game === 'travel-bund') {
+    const resources = JSON.parse(
+      await readFile(path.join(directory, 'assets/native-assets-manifest.json'), 'utf8'),
+    );
+    for (const expected of resources.files.filter((file) => file.delivery !== 'remote-pinned')) {
+      const packaged = files.find((file) => file.path === `assets/${expected.path}`);
+      if (!packaged || packaged.bytes !== expected.bytes || packaged.sha256 !== expected.sha256)
+        throw new Error('Bund native package resource is missing or altered.');
+    }
+  }
   return manifest;
 }
 export async function buildTarget(selected, config, outputRoot) {
@@ -63,20 +101,55 @@ export async function buildTarget(selected, config, outputRoot) {
     const module = await import(pathToFileURL(descriptorPath));
     const adapter = module[`${config.platform}Platform`];
     if (!adapter) throw new Error(`Missing reviewed ${config.platform} build descriptor.`);
-    const entry = path.join(root, selected.directory, selected.entry);
+    let entry = path.join(root, selected.directory, selected.entry);
+    let prepared;
+    if (selected.prepare) {
+      const preparePath = path.join(root, selected.directory, selected.prepare);
+      const preparation = await import(pathToFileURL(preparePath));
+      prepared = await preparation.prepareNativeBuild(
+        path.join(root, '.scratch/nine-games/prepared', selected.id),
+      );
+      entry = prepared.entry;
+      inputs.push(
+        preparePath,
+        ...prepared.sourceInputs
+          .map((file) => path.resolve(root, file))
+          .filter((file) => file.startsWith(root) && !file.includes('/node_modules/')),
+      );
+      for (const file of [
+        'native/generate-sources.mjs',
+        'native/prepare-assets.mjs',
+        'src/Scene.tsx',
+        'src/StreetLife.tsx',
+        'src/clouds.ts',
+      ])
+        inputs.push(path.join(root, selected.directory, file));
+    }
+    let imagePackages;
+    if (selected.subpackageImages) {
+      imagePackages = await prepareHistoryPackages(path.join(root, selected.directory), outDir);
+      config = { ...config, assetPackages: imagePackages.assetPackages };
+      inputs.push(
+        ...imagePackages.sourceInputs,
+        path.join(root, 'apps/shell-minigame/scripts/nine-history-assets.mjs'),
+      );
+    }
     await stat(entry);
     const host = path.join(root, 'platforms/competition/native.js');
     const normalize = path.join(root, 'platforms/alipay/normalize.mjs');
     const channelEntry = path.join(root, 'platforms/bilibili/native-entry.mjs');
     const availability = path.join(root, 'apps/shell-minigame/src/competition-availability.mjs');
-    let source = `${config.platform === 'alipay' ? `import {normalizeAlipaySdk} from ${JSON.stringify(normalize)};` : ''}
+    const resourceBridge = path.join(root, 'platforms', config.platform, 'native-resources.mjs');
+    let source = `${selected.resources ? `import {attachNativeResources} from ${JSON.stringify(resourceBridge)};` : ''}
+      ${config.platform === 'alipay' ? `import {normalizeAlipaySdk} from ${JSON.stringify(normalize)};` : ''}
       ${config.platform === 'bilibili' ? `import {attachBilibiliEntry} from ${JSON.stringify(channelEntry)};` : ''}
       import {${selected.start}} from ${JSON.stringify(entry)};
-      import {startNativeCompetition} from ${JSON.stringify(host)};
+      ${selected.competition === false ? '' : `import {startNativeCompetition} from ${JSON.stringify(host)};`}
       import {withCompetitionAvailability} from ${JSON.stringify(availability)};
       const raw=typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk};
       const config=${JSON.stringify({ ...config, title: selected.title })};
-      const sdk=withCompetitionAvailability(${config.platform === 'alipay' ? 'normalizeAlipaySdk(raw)' : 'raw'},config);
+      const baseSdk=${config.platform === 'alipay' ? 'normalizeAlipaySdk(raw)' : 'raw'};
+      const sdk=withCompetitionAvailability(${selected.resources ? `attachNativeResources(baseSdk,{allowedAssetHosts:${JSON.stringify(config.assetBase ? [new URL(config.assetBase).hostname] : [])}})` : 'baseSdk'},config);
       ${
         config.platform === 'bilibili'
           ? `const channelEntry=attachBilibiliEntry(sdk,{gameId:config.game});
@@ -84,10 +157,18 @@ export async function buildTarget(selected, config, outputRoot) {
           : 'const gameSdk=sdk;'
       }
       let mounted;
-      try {mounted=${selected.start}(gameSdk,config,startNativeCompetition);} catch(error) {${config.platform === 'bilibili' ? 'channelEntry.dispose();' : ''}throw error;}
-      ${config.platform === 'bilibili' ? `for(const method of ['stop','dispose']){if(typeof mounted?.[method]==='function'){const original=mounted[method];mounted[method]=function(...args){try{return original.apply(this,args);}finally{channelEntry.dispose();}};}}` : ''}
-      export const instance=mounted;
-      ${config.platform === 'bilibili' ? "if(sdk&&typeof sdk.launchSuccess==='function')sdk.launchSuccess();" : ''}`;
+      try {mounted=${selected.start}(gameSdk,config${selected.competition === false ? '' : ',startNativeCompetition'});} catch(error) {${config.platform === 'bilibili' ? 'channelEntry.dispose();' : ''}throw error;}
+      function finish(value){
+        ${
+          config.platform === 'bilibili'
+            ? `for(const method of ['stop','dispose']){if(typeof value?.[method]==='function'){const original=value[method];value[method]=function(...args){try{return original.apply(this,args);}finally{channelEntry.dispose();}};}}
+        if(sdk&&typeof sdk.launchSuccess==='function')sdk.launchSuccess();`
+            : ''
+        }
+        return value;
+      }
+      export const instance=${selected.async ? 'undefined' : 'finish(mounted)'};
+      export const ready=${selected.async ? `Promise.resolve(mounted).then(async value=>{try{await value?.whenReady;return finish(value);}catch(error){await value?.dispose?.();throw error;}}).catch(error=>{${config.platform === 'bilibili' ? 'channelEntry.dispose();' : ''}throw error;})` : 'Promise.resolve(instance)'};`;
     const sourcePlugins = [];
     if (selected.nativeHost) {
       const platformEntry = path.join(root, 'platforms', config.platform, 'src/index.ts');
@@ -95,7 +176,7 @@ export async function buildTarget(selected, config, outputRoot) {
         import {${selected.definition} as original, ${selected.content} as content} from ${JSON.stringify(entry)};
         const raw=typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk};
         const definition={...original,manifest:{...original.manifest,entry:'game.js',loadModes:['native-package']}};
-        export const ready=${adapter.start}(raw,{definition,content}${adapter.entryArguments({ title: selected.title, adUnitId: '' }) ? ',' + adapter.entryArguments({ title: selected.title, adUnitId: '' }) : ''});`;
+        export const ready=${adapter.start}(raw,{definition,content,viewport:{aspectRatio:390/844,rotateToFit:true,refreshOnResize:"resume"}}${adapter.entryArguments({ title: selected.title, adUnitId: '' }) ? ',' + adapter.entryArguments({ title: selected.title, adUnitId: '' }) : ''});`;
       const pluginPath = path.join(root, selected.directory, selected.sourcePlugin);
       const pluginModule = await import(pathToFileURL(pluginPath));
       sourcePlugins.push(
@@ -117,8 +198,8 @@ export async function buildTarget(selected, config, outputRoot) {
       logLevel: 'warn',
       build: {
         outDir,
-        emptyOutDir: true,
-        minify: false,
+        emptyOutDir: false,
+        minify: selected.minify ?? false,
         lib: { entry: generatedEntry, formats: ['cjs'], fileName: () => 'game.js' },
       },
       plugins: [
@@ -141,6 +222,8 @@ export async function buildTarget(selected, config, outputRoot) {
         },
       ],
     });
+    if (prepared)
+      await cp(prepared.assetDirectory, path.join(outDir, 'assets'), { recursive: true });
     for (const [sourcePath, targetPath] of selected.assets)
       await cp(path.join(root, selected.directory, sourcePath), path.join(outDir, targetPath), {
         recursive: true,
@@ -156,13 +239,27 @@ export async function buildTarget(selected, config, outputRoot) {
       await writeFile(
         path.join(outDir, name),
         JSON.stringify(
-          name === 'game.json' ? { ...value, deviceOrientation: selected.orientation } : value,
+          name === 'game.json'
+            ? {
+                ...value,
+                deviceOrientation: selected.orientation,
+                ...(imagePackages
+                  ? {
+                      [config.platform === 'douyin' ? 'subPackages' : 'subpackages']:
+                        imagePackages.packages,
+                    }
+                  : {}),
+              }
+            : name === 'project.config.json' && config.platform === 'wechat'
+              ? { ...value, appid: config.appId }
+              : value,
           null,
           2,
         ) + '\n',
       );
     inputs.push(
       descriptorPath,
+      path.join(root, 'pnpm-lock.yaml'),
       path.join(root, 'apps/shell-minigame/scripts/nine-games-targets.mjs'),
       fileURLToPath(import.meta.url),
     );
@@ -174,12 +271,37 @@ export async function buildTarget(selected, config, outputRoot) {
           title: selected.title,
           ...(selected.nativeHost ? { gameId: selected.id } : {}),
           mode: config.preview ? 'preview' : 'release',
-          gameplayScope: 'native local solo; optional server-authoritative friend competition',
+          gameplayScope:
+            selected.id === 'travel-bund'
+              ? 'original native WebGL city tour and photography; pinned remote world resources'
+              : selected.nativeHost
+                ? 'native local solo puzzle; original progress and records'
+                : 'native local solo; optional server-authoritative friend competition',
           nativeRuntimeVerified: false,
           platformLoginVerified: false,
           advertisingConfigured: false,
           officialToolsVerified: false,
           deviceVerified: false,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+  }
+  if (selected.id === 'travel-bund') {
+    const packagedFiles = await inventory(outDir);
+    const bytes = packagedFiles.reduce((total, file) => total + file.bytes, 0);
+    if (bytes > 4_000_000)
+      throw new Error(
+        `Travel main package exceeds the conservative 4,000,000-byte budget: ${bytes}; official tool validation is still required.`,
+      );
+    await writeFile(
+      path.join(outDir, 'package-budget.json'),
+      JSON.stringify(
+        {
+          payloadBytesBeforeBudgetAndIntegrityManifests: bytes,
+          budgetBytes: 4_000_000,
+          officialToolValidated: false,
         },
         null,
         2,
@@ -218,6 +340,15 @@ export async function buildTarget(selected, config, outputRoot) {
     JSON.stringify(manifest, null, 2) + '\n',
   );
   await verifyArtifact(outDir);
+  if (selected.id === 'travel-bund') {
+    const completeBytes =
+      manifest.files.reduce((total, file) => total + file.bytes, 0) +
+      (await stat(path.join(outDir, 'artifact-manifest.json'))).size;
+    if (completeBytes > 4_000_000)
+      throw new Error(
+        `Complete Travel package exceeds the conservative 4,000,000-byte budget: ${completeBytes}`,
+      );
+  }
   return outDir;
 }
 export async function runBuild({
@@ -252,6 +383,10 @@ export async function runBuild({
         device: 'unrun',
       });
     } catch (error) {
+      await rm(path.join(outputRoot, config.platform, selected.id), {
+        recursive: true,
+        force: true,
+      });
       results.push({
         game: selected.id,
         platform: config.platform,

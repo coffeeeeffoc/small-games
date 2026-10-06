@@ -17,7 +17,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "smoke": "node ../../scripts/native-game-smoke.mjs --standalone",
-    "test:competition": "node ../../scripts/competition-native-smoke.mjs"
+    "test:competition": "node ../../scripts/competition-native-smoke.mjs",
+    "test:nine:resources": "node --test ../../platforms/wechat/tests/native-resources.test.mjs ../../platforms/bilibili/tests/native-resources.test.mjs ../../platforms/douyin/tests/native-resources.test.mjs ../../platforms/kuaishou/tests/native-resources.test.mjs ../../platforms/alipay/tests/native-resources.test.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/wulong-city": "workspace:*",
@@ -34,7 +35,8 @@
     "@coffeeeeffoc/game-building-power": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/platform-kuaishou": "workspace:*",
-    "@coffeeeeffoc/game-castle-cannon": "workspace:*"
+    "@coffeeeeffoc/game-castle-cannon": "workspace:*",
+    "@coffeeeeffoc/platform-alipay": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

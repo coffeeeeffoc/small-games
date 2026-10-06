@@ -36,15 +36,39 @@ for (const game of [
       width: game === 'cops-robbers-realtime' ? 844 : 390,
       height: game === 'cops-robbers-realtime' ? 390 : 844,
     });
+    const loadedPackages = new Set(),
+      decodedImagePaths = new Set();
+    if (game === 'vibeJam-myself-history-guess') {
+      const configuration = JSON.parse(readFileSync(path.join(directory, 'game.json'), 'utf8'));
+      const packages = configuration[platform === 'douyin' ? 'subPackages' : 'subpackages'];
+      assert(packages?.length > 1, 'real image subpackage configuration');
+      fixture.sdk.loadSubpackage = (options) => {
+        const selected = packages.find((item) => item.name === options.name);
+        assert(selected, 'configured native subpackage ' + options.name);
+        const entry = path.join(directory, selected.root, 'game.js');
+        assert(existsSync(entry), 'subpackage contains its real entry');
+        vm.runInNewContext(readFileSync(entry, 'utf8'), {});
+        loadedPackages.add(selected.name);
+        options.success?.({});
+        return { abort() {} };
+      };
+    }
     const image = fixture.sdk.createImage;
     fixture.sdk.createImage = () =>
       new Proxy(image(), {
         set(target, key, value) {
-          if (key === 'src' && typeof value === 'string' && !value.startsWith('data:'))
+          if (key === 'src' && typeof value === 'string' && !value.startsWith('data:')) {
+            if (game === 'vibeJam-myself-history-guess')
+              assert(
+                loadedPackages.has(value.split('/')[0]),
+                'native subpackage finishes before image decode',
+              );
             assert(
               existsSync(path.join(directory, value.replace(/^\.\//, ''))),
               `${platform}/${game} missing image ${value}`,
             );
+          }
+          if (key === 'src') decodedImagePaths.add(value);
           return Reflect.set(target, key, value);
         },
       });
@@ -142,6 +166,8 @@ for (const game of [
         assert.equal(instance.state.game.result, 'red');
         assert.equal(instance.state.page, 'result');
       }
+      if (game === 'vibeJam-myself-history-guess')
+        assert(decodedImagePaths.size > 0, 'real packaged history imagery loaded');
       fixture.hide();
       await fixture.tick(60000);
       fixture.show();

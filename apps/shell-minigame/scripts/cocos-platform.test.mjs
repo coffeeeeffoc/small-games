@@ -21,12 +21,17 @@ test('all five channels reject missing release IDs before tools or adapters', as
       /Release requires/,
     );
   }
+  assert.throws(
+    () =>
+      descriptor('kuaishou', { mode: 'release', env: { KUAISHOU_APP_ID: 'kwai_game_test_appid' } }),
+    /Release requires/,
+  );
   assert.throws(() => descriptor('wechat', { env: { WECHAT_APP_ID: 'touristappid' } }), /public/);
   assert.throws(() => descriptor('bilibili', { env: { BILIBILI_APP_ID: 'wxWrong' } }), /public/);
   assert.throws(() => descriptor('alipay', { env: { ALIPAY_APP_ID: 'wxWrong' } }), /public/);
   await assert.rejects(
     buildPlatform('/does-not-exist', 'kuaishou', { env: {} }),
-    /No compatible official/,
+    /Kuaishou requires/,
   );
 });
 test('Alipay uses its own documented target and deviceOrientation field', () => {

@@ -5,10 +5,10 @@ const yearLabel = year => `${Number(year) < 0 ? '公元前' : '公元'} ${Math.a
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 // Pure Canvas input/rendering. The host supplies browser/platform image creation.
-export function createRenderer({ createImage, assetBase = '' } = {}) {
+export function createRenderer({ createImage, assetBase = '', loadImage } = {}) {
   let buttons = [], rect, currentRound, mode = 'scene', previousMode = 'scene';
   let guess = null, digits = '', bce = false, yaw = 0.5, zoom = 1, mapZoom = 1, center = { lat: 15, lng: 20 };
-  let imagePath, picture, imageReady = false, imageError = false, message = '';
+  let imagePath, picture, imageReady = false, imageError = false, message = '', imageToken = 0;
   const reset = state => {
     if (currentRound === state.roundKey) return;
     currentRound = state.roundKey; mode = 'scene'; guess = null; digits = ''; bce = false;
@@ -80,13 +80,22 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
       const imageRect = { ...rect, w: wide ? Math.floor(w*.6)-20 : rect.w, h: wide ? rect.h : Math.max(50, rect.h - (state.hint ? 132 : 80)) };
       if (state.image !== imagePath) {
         imagePath = state.image; imageReady = false; imageError = false;
-        picture = createImage?.();
-        if (picture) {
-          const loading = picture;
-          picture.onload = () => { if (picture === loading) imageReady = true; };
-          picture.onerror = () => { if (picture === loading) imageError = true; };
-          picture.src = `${assetBase}${assetBase && !assetBase.endsWith('/') ? '/' : ''}${imagePath}`;
-        } else imageError = true;
+        const token = ++imageToken, source = imagePath;
+        picture = null;
+        if (loadImage) {
+          Promise.resolve().then(() => loadImage(source)).then(image => {
+            if (token !== imageToken) return;
+            if (!image) { imageError = true; return; }
+            picture = image; imageReady = true;
+          }, () => { if (token === imageToken) imageError = true; });
+        } else {
+          picture = createImage?.();
+          if (picture) {
+            picture.onload = () => { if (token === imageToken) imageReady = true; };
+            picture.onerror = () => { if (token === imageToken) imageError = true; };
+            picture.src = `${assetBase}${assetBase && !assetBase.endsWith('/') ? '/' : ''}${imagePath}`;
+          } else imageError = true;
+        }
       }
       ctx.fillStyle = '#203e36'; ctx.fillRect(imageRect.x, imageRect.y, imageRect.w, imageRect.h);
       if (imageReady) {

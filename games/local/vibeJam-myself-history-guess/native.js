@@ -1,5 +1,6 @@
 import { nativeScenes as scenes } from './native-scenes.js';
 import { createRenderer } from './competition-renderer.js';
+import { createNativeHistoryImageLoader } from './native-assets.mjs';
 import { scoreGuess, chooseRounds, validPoint, MIN_YEAR, MAX_YEAR } from './src/game.js';
 import { routes, routeDeck } from './src/routes.js';
 
@@ -18,7 +19,9 @@ export function restoreNativeHistory(value) {
 export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition) {
   for (const key of ['createCanvas', 'getSystemInfoSync', 'onTouchStart', 'offTouchStart', 'onTouchMove', 'offTouchMove', 'onTouchEnd', 'offTouchEnd', 'onTouchCancel', 'offTouchCancel', 'onHide', 'offHide', 'onShow', 'offShow']) if (typeof sdk?.[key] !== 'function') throw new Error(`此时此地原生宿主缺少 ${key}`);
   const canvas = config.canvas || sdk.createCanvas(), ctx = canvas.getContext('2d');
-  const renderer = createRenderer({ createImage: () => sdk.createImage(), assetBase: config.assetBase || '' });
+  const loadImage = createNativeHistoryImageLoader(sdk, config.assetPackages);
+  const nativeRenderer = options => createRenderer({ ...options, loadImage });
+  const renderer = nativeRenderer();
   let saved; try { saved = sdk.getStorageSync?.(SAVE); if (typeof saved === 'string') saved = JSON.parse(saved); } catch { /* Storage denial keeps local play available. */ }
   let data = restoreNativeHistory(saved), page = 'home', previous = 'home', listPage = 0, learnPage = 0, hits = [], stopped = false, visible = true, touch = null, session = 0, info, w, h, ratio, top, bottom, child, message = '', last = Date.now();
   const subscriptions = [];
@@ -73,7 +76,7 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
       if (data.journey) add('继续存档', () => go('play'));
       add('选择一幕练习', () => go('levels')); add('主题旅途', () => go('routes'));
       if (h < 650) { const half = (w - 56) / 2; button('帮助', y, () => { previous = 'home'; go('help'); }, false, 24, half); button('设置', y, () => go('settings'), false, 32 + half, half); y += 60; } else { add('帮助', () => { previous = 'home'; go('help'); }); add('设置', () => go('settings')); }
-      if (config.apiUrl && config.competitionConfigured && typeof startNativeCompetition === 'function') add('好友挑战', () => { stop(); child = startNativeCompetition(sdk, { ...config, canvas, onExit: () => { child?.stop?.(); child = startNativeHistoryGame(sdk, config, startNativeCompetition); } }, createRenderer); });
+      if (config.apiUrl && config.competitionConfigured && typeof startNativeCompetition === 'function') add('好友挑战', () => { stop(); child = startNativeCompetition(sdk, { ...config, canvas, onExit: () => { child?.stop?.(); child = startNativeHistoryGame(sdk, config, startNativeCompetition); } }, nativeRenderer); });
     } else if (page === 'levels') {
       const count = Math.max(1, Math.floor((h - bottom - y - 125) / 60));
       scenes.slice(listPage * count, (listPage + 1) * count).forEach(s => add(`${data.visited.includes(s.id) ? '✓ ' : ''}${s.title}`, () => begin([s], false)));
