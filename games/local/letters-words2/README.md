@@ -130,6 +130,8 @@ npm run test:native
 npm run test:native:browser
 ```
 
+`test:iframe:browser` 执行根目录的 [scripts/letters-words2-iframe.browser.mjs](../../../scripts/letters-words2-iframe.browser.mjs)，验证真实 Shell 样式、入口适配与完整宿主全屏。也可在仓库根目录直接运行该脚本。
+
 本次核验使用 Chromium 触屏模拟覆盖 320 × 568、390 × 844、430 × 932 和 844 × 390 等视口：页面返回、真实拼词、暂停/结算、长词/长释义、44 px 热区、滚动、触摸取消/多点触控、存档恢复和尺寸切换。原生浏览器适配把触屏事件转成宿主 SDK 事件，使用真实 Canvas 生产渲染和本地教材文件；好友赛测试使用真实比赛规则配合网络/身份 fixture。这些证据属于浏览器/SDK 模拟验证，尚未完成四个平台官方开发者工具及真实手机登录、分享、音频、震动和发布验证。
 
 ## 静态部署

@@ -12,10 +12,10 @@
 | `tests/mini.browser.test.mjs` | 320×568 三个主题真实触控通关，主题选择、三份收获、相同棋盘重玩及下一岛；普通/每日/三词存档隔离，部分拼写刷新、邀请参数校验、分享取消及异步过期保护。最终主操作为下一座三词小岛，同题重玩为次操作。 |
 | `tests/library.browser.test.mjs` | 全部 42 册教材选项；真实触控完成新版 Welcome 的 31 词、6 批含单词尾批；刷新续练、教材原大小写、提示词复习、同册缓存断网练习。 |
 | `tests/mobile.browser.test.mjs` | 320×568、360×640、390×844：首页/主题/学习/教材/设置/游玩/暂停/结果往返，44 px 控件、触摸取消、状态保存、844×390 横屏、79 字符长词独立滚动、暂停时延迟结算不抢页面、存储禁用仍可本地游玩。 |
-| `tests/iframe.browser.test.mjs` | 320×568、390×844 最小宿主；使用真实 Shell 样式和 `exerciseStandalone` 入口适配，复用实际 iframe `allow="autoplay; fullscreen"` / `allowfullscreen`，未额外设置 sandbox。子页顶部返回可点、宿主导航随页面隐藏/恢复，完整宿主全屏及退出保持未完成拼写。此项与完整 Shell 检查分开记录。 |
+| 根目录 `scripts/letters-words2-iframe.browser.mjs` | 320×568、390×844 最小宿主；使用真实 Shell 样式和 `exerciseStandalone` 入口适配，复用实际 iframe `allow="autoplay; fullscreen"` / `allowfullscreen`，未额外设置 sandbox。子页顶部返回可点、宿主导航随页面隐藏/恢复，完整宿主全屏及退出保持未完成拼写。此项与完整 Shell 检查分开记录。 |
 | `tests/shell.browser.test.mjs` | 对实际 `apps/shell-web/dist` 在 320×568、390×844 触控核验：首页帮助/设置顶部返回未被目录按钮遮挡；真实打包的好友入口打开 PK 大厅、隐藏外层导航、顶部返回恢复目录入口；游玩/暂停/继续/首页保留选择，回目录移除 iframe。未创建房间或模拟消息补齐入口。 |
 | Shell integration | `standalone-immersive`、`standalone`、`play-entry`、`game-sharing` 四文件 **71 测试通过**；入口适配 `node:test` **3 测试通过**。合并 dev 的象五子棋沉浸界面后复跑，保留其分享及导航样式和词屿导航行为，来源窗口、origin、游戏 ID 和严格三字段消息校验保持有效。 |
-| 好友赛界面 | 独立负责者运行 `tests/competition-mobile.browser.test.mjs`：320×568 / 844×390 完成一词，390×844 完成全部 18 词；房间准备、公开邀请、44 px Canvas 分页、取消/拖动/多触点、词义页和回首页通过，记录见 [competition-mobile-report.json](evidence/competition-mobile-report.json)。该测试身份与网络使用 fixture。 |
+| 好友赛界面 | 独立负责者从仓库根运行 `node scripts/letters-words2-competition-mobile.browser.mjs`：320×568 / 844×390 完成一词，390×844 完成全部 18 词；房间准备、公开邀请、44 px Canvas 分页、取消/拖动/多触点、词义页和回首页通过，记录见 [competition-mobile-report.json](evidence/competition-mobile-report.json)。该测试身份与网络使用 fixture。 |
 
 主要玩法、教材和页面流程从可见入口完成，没有强点隐藏 DOM。通用浏览器用例保留原有规则与存档断言，按新首页/学习/暂停路径调整导航。独立竞态与跨端存档测试使用明确的存档 fixture，其中末词暂停检查预置已完成一词的有效存档，再真实点击最后一词与暂停按钮。
 
@@ -44,6 +44,8 @@
 ## 复跑与边界
 
 独立入口使用 `GAME_URL=http://127.0.0.1:4175`。脚本接受 `PLAYWRIGHT_MODULE`、`PLAYWRIGHT_EXECUTABLE`；本轮使用 `/opt/codex/runtimes/cua/lib/node_modules/playwright/index.mjs` 与 `/usr/bin/chromium`。在游戏目录执行对应 `node tests/*.mjs`。`tests/capture-mobile.mjs` 可重新保存上述十一页 390×844 运行截图。
+
+最小 iframe 回归位于仓库根目录 `scripts/letters-words2-iframe.browser.mjs`，在根目录执行 `node scripts/letters-words2-iframe.browser.mjs`，或在游戏目录执行 `npm run test:iframe:browser`。
 
 真实 Shell 检查需要先生成 `apps/shell-web/dist`，静态服务后设置 `SHELL_URL` 执行 `tests/shell.browser.test.mjs`。本轮使用 `http://127.0.0.1:4196/`，词屿文件通过成功的 `prepare-standalone-games` 更新，核对服务中 `app.js` 与当前源码字节一致。
 

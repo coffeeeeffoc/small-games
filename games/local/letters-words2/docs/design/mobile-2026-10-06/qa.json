@@ -68,7 +68,7 @@
   },
   "minimalIframe": {
     "passed": true,
-    "suite": "tests/iframe.browser.test.mjs",
+    "suite": "scripts/letters-words2-iframe.browser.mjs",
     "viewports": [
       [
         320,
