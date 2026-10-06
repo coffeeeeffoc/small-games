@@ -1,10 +1,19 @@
 import * as T from 'three';
 import { MeshKit } from './scene-mesh.js';
 import { valleyDetails, distantRidges, riverCenter, riverSurface } from './scene-valley.js';
+import { approachDetails, approachRoad, landscapeMaterial } from './scene-approach.js';
+import { routeCenter } from './scene-space.js';
 const noise = (x: number, z: number) =>
   Math.sin(x * 0.41 + z * 0.12) * Math.cos(z * 0.27 - x * 0.2);
 export function groundHeight(x: number, z: number) {
-  if (x > -11 && x < 35 && z > -20 && z < 48) return -0.12;
+  if (z > -20 && z < 48 && Math.abs(x - routeCenter(z)) < 4.2) return -0.12;
+  if (x > -11 && x < 35 && z > -20 && z < 48) {
+    if (x < 6.4 && z > 16) {
+      const shelf = Math.max(0, Math.min(1, (x + 10) / 13));
+      return -0.12 - 5.8 * (1 - shelf) ** 1.4 + noise(x, z) * 0.36 * (1 - shelf);
+    }
+    return -0.12;
+  }
   if (x > -29 && x < -11 && z > 10 && z < 28) return -1.5 + noise(x, z) * 0.35;
   const river = Math.exp(-(((x - riverCenter(z)) / 11) ** 2));
   const hill = Math.max(0, -x - 42) * 0.19 + Math.max(0, -z - 34) * 0.16;
@@ -29,7 +38,7 @@ export function terrain(k: MeshKit) {
   }
   geo.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const mat = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: false });
+  const mat = landscapeMaterial(false);
   const earth = new T.Mesh(geo, mat);
   earth.receiveShadow = true;
   g.add(earth);
@@ -59,13 +68,10 @@ export function terrain(k: MeshKit) {
     );
   }
   // Road to the gate and through its opening. Foreground stones create visible scale falloff.
-  k.box(g, 11.5, -0.035, 28, 7.2, 0.06, 29, '#baa478', 0);
-  const bend = k.box(g, 15.75, -0.035, 9.75, 7.2, 0.06, 12.7, '#baa478', 0);
-  bend.rotation.y = -Math.PI / 4;
-  k.box(g, 20, -0.035, -8, 7.2, 0.06, 27, '#baa478', 0);
+  approachRoad(g);
   for (let i = 0; i < 130; i++) {
     const z = -12 + i * 0.42,
-      x = 11.5 + Math.min(8.5, Math.max(0, 14 - z)) + Math.sin(i * 13.7) * 3.1;
+      x = routeCenter(z) + Math.sin(i * 13.7) * 3.1;
     k.rock(g, x, 0.03, z, 0.06 + (i % 5) * 0.03, i % 2 ? '#aa946e' : '#d0b98d');
   }
   for (let i = 0; i < 130; i++) {
@@ -109,11 +115,15 @@ export function terrain(k: MeshKit) {
   }
   // Mossy foreground parapet and outcrops, leaving the path clear for the advancing squad.
   for (let i = 0; i < 9; i++) {
-    k.rock(g, 0 + Math.sin(i) * 2, 0.3, 24 + i * 2, 1.4 + (i % 3) * 0.5);
-    k.tree(g, -2 + Math.cos(i) * 2, 0, 23 + i * 2, 0.6);
+    const z = 24 + i * 2,
+      x = routeCenter(z) - 6.5 + Math.sin(i) * 0.5;
+    k.rock(g, x, groundHeight(x, z) - 0.15, z, 1.1 + (i % 3) * 0.3);
+    const treeX = x - 1.8;
+    k.tree(g, treeX, groundHeight(treeX, z), z, 0.6);
   }
   for (let i = 0; i < 18; i++)
     k.rock(g, 18 + Math.sin(i * 2) * 2, 0.25, 20 + i * 1.5, 0.55, '#b1a27f');
+  approachDetails(k, g, groundHeight);
   k.compact(g);
   return g;
 }

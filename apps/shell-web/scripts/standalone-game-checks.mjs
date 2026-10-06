@@ -33,7 +33,85 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'moss-garden') {
+  if (id === 'orbit-atelier') {
+    const app = frame.locator('#orbit-app');
+    await expect(app).toHaveAttribute('data-screen', 'playing');
+    const board = frame.locator('#ring-board');
+    const ring = board.locator('[data-ring-id]').first();
+    await expect(ring).toBeVisible();
+    const initialAngle = await ring.getAttribute('data-angle');
+    const points = await ring.evaluate((node) => {
+      const matrix = node.getScreenCTM();
+      if (!matrix) throw new Error('Ring has no SVG screen transform');
+      const radius = Number(node.getAttribute('data-radius'));
+      const angle = Number(node.getAttribute('data-angle')) + Math.PI;
+      if (!(radius > 0) || !Number.isFinite(angle)) throw new Error('Invalid ring geometry');
+      const point = (theta) => {
+        const transformed = new globalThis.DOMPoint(
+          radius * Math.cos(theta),
+          radius * Math.sin(theta),
+        ).matrixTransform(matrix);
+        return { x: transformed.x, y: transformed.y };
+      };
+      const bounds = node.getBoundingClientRect();
+      return {
+        start: point(angle),
+        middle: point(angle + 0.3),
+        end: point(angle + 0.65),
+        bounds: { x: bounds.x, y: bounds.y },
+      };
+    });
+    // SVG screen coordinates are local to the child document; native input is page-wide.
+    const bounds = await ring.boundingBox();
+    const offset = { x: bounds.x - points.bounds.x, y: bounds.y - points.bounds.y };
+    const absolute = (point) => ({ x: point.x + offset.x, y: point.y + offset.y });
+    const page = board.page();
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [absolute(points.start)],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [absolute(points.middle)],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [absolute(points.end)],
+        });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      const start = absolute(points.start);
+      const middle = absolute(points.middle);
+      const end = absolute(points.end);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(middle.x, middle.y, { steps: 3 });
+      await page.mouse.move(end.x, end.y, { steps: 3 });
+      await page.mouse.up();
+    }
+    await expect(ring).not.toHaveAttribute('data-angle', initialAngle);
+    await expect(frame.locator('[data-action="undo"]')).toBeEnabled();
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+        ),
+    );
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'paused');
+    await click(frame.getByRole('button', { name: '继续解扣', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'playing');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await click(frame.getByRole('button', { name: '返回工坊', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'home');
+    await expect(frame.locator('[data-action="start"]')).toBeVisible();
+  } else if (id === 'moss-garden') {
     const seed = frame.getByRole('button', { name: '花圃 第1行 第1列', exact: true });
     await expect(seed).toBeVisible();
     await expect(seed).toHaveAttribute('aria-pressed', 'false');
@@ -993,7 +1071,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       expect(frame.locator('#next')).toBeVisible({ timeout: 15000 }),
     );
     await click(frame.locator('#next'));
-    await expect(frame.locator('#counter')).toHaveText('02 / 26');
+    await expect(frame.locator('#counter')).toHaveText('02 / 100');
     await click(frame.locator('#hint'));
     await expect(frame.locator('.hint-step')).toHaveText('提示 1 / 3');
     await click(frame.locator('[data-more]'));

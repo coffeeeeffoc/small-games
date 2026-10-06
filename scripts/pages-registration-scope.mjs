@@ -119,28 +119,74 @@ function shellAdditions(before, after, addedGames, readHead) {
   return added;
 }
 
+const dependencyTuple = () =>
+  /^      ('(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+'|[a-z0-9._-]+):\n        specifier: ([^\n]+)\n        version: ([^\n]+)\n/gm;
+
+/** Reuse an identical existing importer tuple, including its peer resolution. */
+function existingDependencyTuples(base) {
+  const tuples = new Set();
+  for (const importer of base.matchAll(/^importers:\n((?:[ \t][^\n]*\n|\n)*)/gm)) {
+    for (const section of importer[1].matchAll(
+      /^    (?:dependencies|devDependencies|optionalDependencies):\n((?: {6,}[^\n]*\n)*)/gm,
+    )) {
+      for (const tuple of section[1].matchAll(dependencyTuple())) tuples.add(tuple[0]);
+    }
+  }
+  return tuples;
+}
+
+function newImporterIsWiring(importer, pkg, source, existingTuples) {
+  for (const key of ['dependencies', 'optionalDependencies', 'peerDependencies'])
+    if (pkg[key] !== undefined && (!object(pkg[key]) || Object.keys(pkg[key]).length)) return false;
+  if (pkg.devDependencies !== undefined && !object(pkg.devDependencies)) return false;
+  const declarations = Object.entries(pkg.devDependencies || {});
+  if (!declarations.length) return importer === `\n  ${source}: {}\n\n`;
+  const prefix = `\n  ${source}:\n    devDependencies:\n`;
+  if (!importer.startsWith(prefix)) return false;
+  const body = importer.slice(prefix.length, -1);
+  const tuples = [...body.matchAll(dependencyTuple())];
+  if (tuples.length !== declarations.length || body.replace(dependencyTuple(), '') !== '')
+    return false;
+  const seen = new Set();
+  for (const [text, rawName, specifier, version] of tuples) {
+    const name = rawName.replace(/^'|'$/g, '');
+    if (
+      seen.has(name) ||
+      !Object.hasOwn(pkg.devDependencies, name) ||
+      pkg.devDependencies[name] !== specifier ||
+      !/^[~^]?\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/.test(specifier) ||
+      !/^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?(?:\([A-Za-z0-9@/_.:+-]+\))*$/.test(version) ||
+      !existingTuples.has(text)
+    )
+      return false;
+    seen.add(name);
+  }
+  return true;
+}
+
 /**
- * Accept only pnpm's exact additive workspace wiring, not arbitrary YAML.
- * Strip the proven new links/empty importers from HEAD and require every other
- * byte (including all documents, resolutions, settings and snapshots) to match.
- * No dependency install is needed in the lightweight changes job. Unknown pnpm
- * formats deliberately retain full regression.
+ * Accept only exact additive workspace wiring and already resolved development
+ * tools. New importers must match their manifests and existing dependency tuples.
+ * Strip the proven links/importers and require every remaining byte (including
+ * all documents, resolutions, settings and snapshots) to match the base.
+ * Unknown pnpm syntax and new external dependency resolutions fail closed.
  */
 function lockIsWiring(before, after, additions) {
   const normalize = (text) => text.replaceAll('\r\n', '\n');
   const base = normalize(before);
   let current = normalize(after);
+  const existingTuples = existingDependencyTuples(base);
   for (const game of additions) {
     const { pkg, name, source } = game;
-    if (
-      ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'].some(
-        (key) => pkg[key] !== undefined && (!object(pkg[key]) || Object.keys(pkg[key]).length > 0),
-      )
-    )
+    const escapedSource = source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const header = new RegExp(`\\n  ${escapedSource}:[^\\n]*\\n`, 'g');
+    if ([...base.matchAll(header)].length || [...current.matchAll(header)].length !== 1)
       return false;
-    const importer = `\n  ${source}: {}\n`;
-    if (base.includes(importer) || current.split(importer).length !== 2) return false;
-    current = current.replace(`${importer}\n`, '\n');
+    const importer = current.match(
+      new RegExp(`\\n  ${escapedSource}:[^\\n]*\\n(?:[^\\n]+\\n)*\\n`),
+    )?.[0];
+    if (!importer || !newImporterIsWiring(importer, pkg, source, existingTuples)) return false;
+    current = current.replace(importer, '\n');
     const shellStart = current.indexOf('\n  apps/shell-web:\n');
     if (shellStart < 0 || current.indexOf('\n  apps/shell-web:\n', shellStart + 1) >= 0)
       return false;

@@ -1,7 +1,7 @@
 import type { Group } from 'three';
 import type { Battle } from './rules.js';
 import type { View } from './view.js';
-import { soldierPosition } from './scene-space.js';
+import { soldierPosition, routeCenter } from './scene-space.js';
 /** Visual losses follow actual casualty events; no decorative troop deaths. */
 export function animateTroops(groups: Group[], b: Battle, v: View) {
   for (const u of b.units) {
@@ -12,7 +12,7 @@ export function animateTroops(groups: Group[], b: Battle, v: View) {
     g.rotation.z = u.hp > 0 ? 0 : Math.min(1, fall / 0.5) * 1.35;
     g.position.copy(soldierPosition(u.x, u.id));
     g.position.y += Math.abs(Math.sin(b.time * 7 + u.id)) * 0.08;
-    g.rotation.y = Math.PI;
+    g.rotation.y = Math.atan2(routeCenter(g.position.z - 0.1) - routeCenter(g.position.z), -0.1);
   }
 }
 export function arrowVictim(b: Battle) {

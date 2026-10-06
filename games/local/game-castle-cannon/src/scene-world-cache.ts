@@ -47,7 +47,11 @@ export class WorldCache {
   }
   registerDynamic(object: T.Object3D) {
     object.traverse((child) => {
-      if (!(child instanceof T.Mesh || child instanceof T.Line) || child.userData.cacheHook) return;
+      if (
+        !(child instanceof T.Mesh || child instanceof T.Line || child instanceof T.Sprite) ||
+        child.userData.cacheHook
+      )
+        return;
       child.userData.cacheHook = true;
       const before = child.onBeforeRender,
         after = child.onAfterRender;
@@ -92,11 +96,20 @@ export class WorldCache {
       (this.renderer.shadowMap.enabled && this.renderer.shadowMap.needsUpdate)
     ) {
       this.capturing = true;
+      // Transient impact lighting belongs to the current dynamic pass, not a lasting landscape cache.
+      const transient: [T.PointLight, number][] = [];
+      scene.traverse((object) => {
+        if (object instanceof T.PointLight) {
+          transient.push([object, object.intensity]);
+          object.intensity = 0;
+        }
+      });
       this.renderer.shadowMap.needsUpdate = this.renderer.shadowMap.enabled;
       this.renderer.setRenderTarget(this.target);
       try {
         this.renderer.render(scene, camera);
       } finally {
+        for (const [light, intensity] of transient) light.intensity = intensity;
         this.capturing = false;
         for (const [material, state] of this.modified)
           [material.colorWrite, material.depthWrite] = state;

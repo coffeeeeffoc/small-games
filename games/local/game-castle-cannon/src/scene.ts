@@ -237,6 +237,7 @@ export class SiegeScene {
       renderer: 'three-webgl2',
       submittedFrames: this.submittedFrames,
       frameBattleTime: this.frameBattleTime,
+      impact: this.effects.metrics(),
       lowPower: this.lowPower,
       triangles: this.renderer.info.render.triangles,
       calls: this.renderer.info.render.calls,
@@ -263,6 +264,7 @@ export class SiegeScene {
     this.frame.dispose();
     this.quality.dispose();
     this.world.dispose();
+    this.effects.dispose();
     this.environment();
     this.renderer.dispose();
     this.renderer.forceContextLoss();

@@ -131,12 +131,15 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'orbit-atelier' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
-          game.id === 'xiangqi-five'
+          game.id === 'xiangqi-five' ||
+          game.id === 'letters-words2' ||
+          game.id === 'wulong-city'
         ) {
           await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
-          await expect(page.getByRole('button', { name: '返回目录', exact: true })).toBeVisible();
+          await expect(page.getByRole('button', { name: '返回目录', exact: true })).toHaveCount(1);
           await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
         } else {
           assert.equal(
@@ -225,6 +228,7 @@ try {
   });
   const page = await context.newPage();
   await page.goto(`${origin}/independent/wulong-city/?dev`);
+  await page.locator('#start-game').tap();
   const tools = page.locator('small-games-devtools');
   const button = tools.getByRole('button', { name: '开发者调试', exact: true });
   await button.tap();

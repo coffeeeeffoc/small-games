@@ -1,57 +1,329 @@
 import assert from 'node:assert/strict';
-import {chromium} from '@playwright/test';
-import {mkdir,writeFile} from 'node:fs/promises';
-const baseURL=process.env.BASE_URL || 'http://127.0.0.1:4174/';
-await mkdir(new URL('evidence/',import.meta.url),{recursive:true});
-const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined});
-const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
-const page=await context.newPage(),errors=[],checks=[];
-page.on('pageerror',e=>errors.push(e.message));
-const snap=()=>page.evaluate(()=>window.__wulong.snapshot());
-const go=async id=>{const url=new URL(baseURL);url.searchParams.set('dev','1');url.searchParams.set('level',id);await page.goto(url.href);await page.waitForFunction(()=>!!window.__wulong);};
-const click=id=>page.locator(`[data-zone="${id}"]`).click();
-const frame=()=>page.evaluate(()=>new Promise(requestAnimationFrame));
-const defaults={1:{opened:false},2:{curtain:0,liftY:436,liftMode:'idle'},3:{dogCarry:false,grab:false},4:{hidden:false,fear:0},5:{offset:0,stopped:false},6:{aligned:false,carsStop:false},7:{lift:0},8:{wall:238,meal:false,delivered:false},9:{flight:false,landed:false},10:{installed:false,donutX:124,donutY:244},11:{facing:[1,1],echoes:[],light:0},12:{back:false,delivered:false},13:{time:0,open:false,keyAway:false},14:{growth:1,long:false},15:{mapDrag:false,mapPreview:null},16:{flash:true,failedPhoto:false,goodPhoto:false},17:{brake:true,entered:false,stamped:[false,false,false]},18:{inPainting:false,transferred:false},19:{facing:[1,-1],curtain:0},20:{fold:0,fallen:0},21:{fanDir:1,powered:false,dry:0},22:{wordIn:false,washing:false,clean:false,collected:false},23:{phrase:0,anchored:false,fallen:0},24:{cabinetOpen:false,awarded:false,trophyY:325},25:{cloudParked:false,cloudDrag:false,weighed:false,overloaded:false},26:{remoteHeld:false,channel:0,tooClose:false}};
-async function beginDrag(zone,wx,wy){let z=(await snap()).zones.find(z=>z.id===zone),b=await page.locator('canvas').boundingBox();await page.mouse.move(b.x+(z.x+z.w/2)*b.width/480,b.y+(z.y+z.h/2)*b.height/520);await page.mouse.down();await page.mouse.move(b.x+wx*b.width/480,b.y+wy*b.height/520,{steps:6});}
-try{
- await go(2);assert.equal(await page.locator('#pause').innerText(),'暂停');assert.match(await page.locator('#menu').innerText(),/返回选关/);await page.locator('#menu').click();assert(await page.locator('[data-level="2"]').isVisible());let menuTime=(await snap()).state.t;await page.waitForTimeout(100);assert.equal((await snap()).state.t,menuTime);await page.locator('[data-level="2"]').click();assert.equal((await snap()).modal,false);checks.push('Visible Chinese pause and return-to-level-selection controls work');
- for(let id=1;id<=26;id++){
-  await go(id);await page.locator('#hint').click();assert.match(await page.locator('.hint-step').textContent(),/1 \/ 3/);for(let i=2;i<=3;i++){await page.locator('[data-more]').click();assert.match(await page.locator('.hint-step').textContent(),new RegExp(i+' / 3'));}
-  let frozen=(await snap()).state.t;await page.waitForTimeout(150);assert.equal((await snap()).state.t,frozen);await page.locator('[data-close-hint]').click();await page.locator('#pause').click();frozen=(await snap()).state.t;await page.waitForTimeout(150);assert.equal((await snap()).state.t,frozen);await page.locator('[data-resume]').click();
-  for(let n=0;n<2;n++){await page.locator('#retry').click();let st=(await snap()).state;assert.equal(st.won,false);for(const [k,v] of Object.entries(defaults[id]))assert.deepEqual(st[k],v,`L${id} reset ${k}`);}
- }
- checks.push('26 levels: all three hints, pause freezes time, resume, two retries restore puzzle defaults');
- for(const [id,zone,x,y] of [[3,'grab-person',121,351],[15,'map-person',334,215],[10,'donut',234,320]]){
-  await go(id);await beginDrag(zone,x,y);await page.keyboard.press('Escape');await page.mouse.up();assert((await snap()).modal);await page.locator('[data-resume]').click();let st=(await snap()).state;assert(!st.manual&&!st.locked&&!st.won);await page.keyboard.down('ArrowRight');await page.waitForFunction(()=>window.__wulong.snapshot().state.p.x>80);await page.keyboard.up('ArrowRight');
- }
- checks.push('Escape during player/map/donut drag cancels safely and movement resumes without a stale win');
- await go(12);await beginDrag('house-flip',300,210);await page.waitForTimeout(600);let hb=await page.locator('canvas').boundingBox();await page.mouse.move(hb.x+220*hb.width/480,hb.y+210*hb.height/520,{steps:5});await page.mouse.up();assert.equal((await snap()).state.back,true);checks.push('A slow continuous house drag flips once, not once per animation completion');
- await go(13);await click('memory-prev');await click('memory-open');await beginDrag('past-key',175,345);await page.keyboard.press('Escape');await page.mouse.up();await page.locator('[data-resume]').click();assert.equal((await snap()).state.keyAway,false);assert.equal((await snap()).state.keyX,318);checks.push('Paused past-key drag returns to yesterday without awarding completion');
- await go(18);await page.keyboard.down('ArrowRight');await page.waitForFunction(()=>window.__wulong.snapshot().state.p.x>235);await page.keyboard.up('ArrowRight');await page.waitForFunction(()=>window.__wulong.snapshot().state.inPainting);await page.locator('#retry').click();assert.equal((await snap()).state.inPainting,false);assert.equal((await snap()).state.p.y,436);checks.push('Retry inside a painting restores the outer camera scene');
- await go(10);await page.locator('[data-zone=donut]').focus();await page.keyboard.press('Enter');for(let i=0;i<7;i++)await page.keyboard.press('ArrowRight');for(let i=0;i<4;i++)await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await page.waitForFunction(()=>window.__wulong.snapshot().state.won);checks.push('Keyboard-only grab, arrows and release install the donut wheel and finish L10');
- await go(11);await page.locator('#sound').click();assert.equal((await snap()).sound,false);await click('bird1');await click('clap');await page.waitForFunction(()=>window.__wulong.snapshot().state.heard>3);await page.locator('#menu').click();await page.locator('[data-level="2"]').click();await page.waitForTimeout(1000);let st=(await snap()).state;assert.equal(st.id,2);assert.equal(st.won,false);assert.equal(st.liftY,436);assert.equal((await snap()).sound,false);checks.push('Muted echo loop runs; switching to L02 removes echo activity and preserves mute');
- await page.locator('#fullscreen').click();assert(await page.evaluate(()=>!!document.fullscreenElement));await page.keyboard.down('ArrowRight');await page.waitForFunction(()=>window.__wulong.snapshot().state.p.x>115);await page.keyboard.up('ArrowRight');await page.locator('#fullscreen').click();assert.equal(await page.evaluate(()=>!!document.fullscreenElement),false);checks.push('Browser fullscreen enters/exits and character movement works while fullscreen');
- const cd=await context.newCDPSession(page);let b=await page.locator('#right').boundingBox();await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:b.x+b.width/2,y:b.y+b.height/2}]});await page.waitForTimeout(120);await cd.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});await frame();let pos=(await snap()).state.p.x;await page.waitForTimeout(160);assert.equal((await snap()).state.p.x,pos);checks.push('Touch cancellation releases held movement');
- await go(2);b=await page.locator('#right').boundingBox();
- const first={id:1,x:b.x+b.width/2-8,y:b.y+b.height/2},second={id:2,x:b.x+b.width/2+8,y:b.y+b.height/2};
- await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[first]});
- await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[first,second]});
- await page.waitForTimeout(100);
- await cd.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[second]});
- pos=(await snap()).state.p.x;await page.waitForTimeout(150);assert((await snap()).state.p.x>pos+5,'Releasing one finger must preserve the other movement finger');
- await cd.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await frame();pos=(await snap()).state.p.x;await page.waitForTimeout(100);assert.equal((await snap()).state.p.x,pos);
- await page.keyboard.down('ArrowRight');await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[first]});
- await cd.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});pos=(await snap()).state.p.x;await page.waitForTimeout(150);assert((await snap()).state.p.x>pos+5,'A released touch must preserve held keyboard movement');
- await page.keyboard.down('KeyD');await page.keyboard.up('ArrowRight');pos=(await snap()).state.p.x;await page.waitForTimeout(150);assert((await snap()).state.p.x>pos+5,'Overlapping direction keys must release independently');await page.keyboard.up('KeyD');
- checks.push('Movement ownership: two fingers on one direction, mixed keyboard/touch, and overlapping direction keys release independently');
- await go(15);await beginDrag('map-person',334,215);assert((await snap()).state.manual);
- await page.evaluate(()=>document.getElementById('stage').dispatchEvent(new PointerEvent('pointercancel',{pointerId:99,bubbles:true})));
- assert((await snap()).state.manual,'An unrelated cancelled pointer must not cancel the active map drag');
- assert(await page.evaluate(()=>document.getElementById('stage').hasPointerCapture(1)));
- await page.evaluate(()=>document.getElementById('stage').releasePointerCapture(1));await frame();await page.mouse.up();
- assert(!(await snap()).state.manual);assert.equal((await snap()).state.p.x,65);assert.equal((await snap()).state.p.y,436);
- checks.push('Map drag ignores unrelated cancellation; losing its own capture cancels the preview and restores the actor');
- for(const width of [320,360,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));for(const id of ['left','right','jump','hint','pause'])assert(await page.locator('#'+id).isVisible());}checks.push('320, 360, 390, 768 and 1440 pixel layouts: no horizontal overflow, controls visible');
- const fresh=await browser.newContext({viewport:{width:390,height:844}}),n=await fresh.newPage();const normalURL=new URL(baseURL);normalURL.searchParams.delete('dev');normalURL.searchParams.delete('level');await n.goto(normalURL.href);assert.equal(await n.evaluate(()=>typeof window.__wulong),'undefined');await n.locator('#menu').click();assert(await n.locator('[data-level="2"]').isDisabled());await n.locator('[data-close]').click();await n.locator('canvas').focus();await n.keyboard.down('ArrowRight');await n.waitForTimeout(1220);await n.keyboard.up('ArrowRight');await n.keyboard.down('ArrowLeft');await n.waitForTimeout(160);await n.keyboard.up('ArrowLeft');await n.waitForTimeout(3300);await n.keyboard.down('ArrowRight');await n.locator('#next').waitFor({state:'visible',timeout:5000});await n.keyboard.up('ArrowRight');await n.locator('#next').click();assert.equal(await n.locator('#title').textContent(),'电梯不肯上二楼');await n.reload();assert.equal(await n.locator('#title').textContent(),'电梯不肯上二楼');await n.locator('#menu').click();assert(!(await n.locator('[data-level="2"]').isDisabled()));assert(await n.locator('[data-level="3"]').isDisabled());assert.match(await n.locator('.records').textContent(),/门主动来接/);await fresh.close();checks.push('Fresh normal mode: L02 locked, L01 solved through UI, L02 unlocks, reload restores L02 and record; L03 remains locked');
- assert.deepEqual(errors,[]);await writeFile(new URL('evidence/lifecycle.json',import.meta.url),JSON.stringify({date:new Date().toISOString(),checks,errors},null,2));console.log(checks.join('\n'));
-}catch(e){console.error(JSON.stringify(await snap()));console.error('focus',await page.evaluate(()=>document.activeElement.outerHTML));throw e;}finally{await browser.close();}
+import { chromium } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { enterGame, openLevels, findLevel, scenePoint, retryGame } from './helpers.mjs';
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:4174/';
+await mkdir(new URL('evidence/', import.meta.url), { recursive: true });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
+});
+const context = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: true,
+});
+const page = await context.newPage(),
+  errors = [],
+  checks = [];
+page.on('pageerror', (e) => errors.push(e.message));
+const snap = () => page.evaluate(() => window.__wulong.snapshot());
+const go = async (id) => {
+  const url = new URL(baseURL);
+  url.searchParams.set('dev', '1');
+  url.searchParams.set('level', id);
+  await page.goto(url.href);
+  await page.waitForFunction(() => !!window.__wulong);
+  await enterGame(page);
+};
+const click = (id) => page.locator(`[data-zone="${id}"]`).click();
+const frame = () => page.evaluate(() => new Promise(requestAnimationFrame));
+const defaults = {
+  1: { opened: false },
+  2: { curtain: 0, liftY: 436, liftMode: 'idle' },
+  3: { dogCarry: false, grab: false },
+  4: { hidden: false, fear: 0 },
+  5: { offset: 0, stopped: false },
+  6: { aligned: false, carsStop: false },
+  7: { lift: 0 },
+  8: { wall: 238, meal: false, delivered: false },
+  9: { flight: false, landed: false },
+  10: { installed: false, donutX: 124, donutY: 244 },
+  11: { facing: [1, 1], echoes: [], light: 0 },
+  12: { back: false, delivered: false },
+  13: { time: 0, open: false, keyAway: false },
+  14: { growth: 1, long: false },
+  15: { mapDrag: false, mapPreview: null },
+  16: { flash: true, failedPhoto: false, goodPhoto: false },
+  17: { brake: true, entered: false, stamped: [false, false, false] },
+  18: { inPainting: false, transferred: false },
+  19: { facing: [1, -1], curtain: 0 },
+  20: { fold: 0, fallen: 0 },
+  21: { fanDir: 1, powered: false, dry: 0 },
+  22: { wordIn: false, washing: false, clean: false, collected: false },
+  23: { phrase: 0, anchored: false, fallen: 0 },
+  24: { cabinetOpen: false, awarded: false, trophyY: 325 },
+  25: { cloudParked: false, cloudDrag: false, weighed: false, overloaded: false },
+  26: { remoteHeld: false, channel: 0, tooClose: false },
+};
+async function beginDrag(zone, wx, wy) {
+  const z = (await snap()).zones.find((z) => z.id === zone),
+    start = await scenePoint(page, z.x + z.w / 2, z.y + z.h / 2),
+    end = await scenePoint(page, wx, wy);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 6 });
+}
+try {
+  await go(2);
+  assert.equal(await page.locator('#pause').getAttribute('aria-label'), '暂停');
+  await openLevels(page);
+  assert(await page.locator('[data-level="2"]').isVisible());
+  let menuTime = (await snap()).state.t;
+  await page.waitForTimeout(100);
+  assert.equal((await snap()).state.t, menuTime);
+  await page.locator('[data-level="2"]').click();
+  assert.equal((await snap()).modal, false);
+  checks.push(
+    'Pause is accessible; returning through home to level selection freezes the puzzle clock',
+  );
+  for (let id = 1; id <= 100; id++) {
+    await go(id);
+    await page.locator('#hint').click();
+    assert.match(await page.locator('.hint-step').textContent(), /1 \/ 3/);
+    for (let i = 2; i <= 3; i++) {
+      await page.locator('[data-more]').click();
+      assert.match(await page.locator('.hint-step').textContent(), new RegExp(i + ' / 3'));
+    }
+    let frozen = (await snap()).state.t;
+    await page.waitForTimeout(150);
+    assert.equal((await snap()).state.t, frozen);
+    await page.locator('[data-close-hint]').click();
+    await page.locator('#pause').click();
+    frozen = (await snap()).state.t;
+    await page.waitForTimeout(150);
+    assert.equal((await snap()).state.t, frozen);
+    await page.locator('[data-resume]').click();
+    for (let n = 0; n < 2; n++) {
+      await retryGame(page);
+      let st = (await snap()).state;
+      assert.equal(st.id, id);
+      assert.equal(st.won, false);
+      for (const [k, v] of Object.entries(defaults[id] || {}))
+        assert.deepEqual(st[k], v, `L${id} reset ${k}`);
+    }
+  }
+  checks.push(
+    '100 levels: all three hints, pause freezes time, resume, two retries retain the correct puzzle and restore existing puzzle defaults',
+  );
+  for (const [id, zone, x, y] of [
+    [3, 'grab-person', 121, 351],
+    [15, 'map-person', 334, 215],
+    [10, 'donut', 234, 320],
+  ]) {
+    await go(id);
+    await beginDrag(zone, x, y);
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    assert((await snap()).modal);
+    await page.locator('[data-resume]').click();
+    let st = (await snap()).state;
+    assert(!st.manual && !st.locked && !st.won);
+    await page.keyboard.down('ArrowRight');
+    await page.waitForFunction(() => window.__wulong.snapshot().state.p.x > 80);
+    await page.keyboard.up('ArrowRight');
+  }
+  checks.push(
+    'Escape during player/map/donut drag cancels safely and movement resumes without a stale win',
+  );
+  await go(12);
+  await beginDrag('house-flip', 300, 210);
+  await page.waitForTimeout(600);
+  const houseEnd = await scenePoint(page, 220, 210);
+  await page.mouse.move(houseEnd.x, houseEnd.y, { steps: 5 });
+  await page.mouse.up();
+  assert.equal((await snap()).state.back, true);
+  checks.push('A slow continuous house drag flips once, not once per animation completion');
+  await go(13);
+  await click('memory-prev');
+  await click('memory-open');
+  await beginDrag('past-key', 175, 345);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await page.locator('[data-resume]').click();
+  assert.equal((await snap()).state.keyAway, false);
+  assert.equal((await snap()).state.keyX, 318);
+  checks.push('Paused past-key drag returns to yesterday without awarding completion');
+  await go(18);
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__wulong.snapshot().state.p.x > 235);
+  await page.keyboard.up('ArrowRight');
+  await page.waitForFunction(() => window.__wulong.snapshot().state.inPainting);
+  await retryGame(page);
+  assert.equal((await snap()).state.inPainting, false);
+  assert.equal((await snap()).state.p.y, 436);
+  checks.push('Retry inside a painting restores the outer camera scene');
+  await go(10);
+  await page.locator('[data-zone=donut]').focus();
+  await page.keyboard.press('Enter');
+  for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowRight');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__wulong.snapshot().state.won);
+  checks.push('Keyboard-only grab, arrows and release install the donut wheel and finish L10');
+  await go(11);
+  await page.locator('#pause').click();
+  await page.locator('#sound').click();
+  assert.equal((await snap()).sound, false);
+  await page.locator('[data-resume]').click();
+  await click('bird1');
+  await click('clap');
+  await page.waitForFunction(() => window.__wulong.snapshot().state.heard > 3);
+  await openLevels(page);
+  await (await findLevel(page, 2)).click();
+  await page.waitForTimeout(1000);
+  let st = (await snap()).state;
+  assert.equal(st.id, 2);
+  assert.equal(st.won, false);
+  assert.equal(st.liftY, 436);
+  assert.equal((await snap()).sound, false);
+  checks.push('Muted echo loop runs; switching to L02 removes echo activity and preserves mute');
+  await page.locator('#pause').click();
+  await page.locator('#fullscreen').click();
+  assert(await page.evaluate(() => !!document.fullscreenElement));
+  await page.locator('[data-resume]').click();
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__wulong.snapshot().state.p.x > 115);
+  await page.keyboard.up('ArrowRight');
+  await page.locator('#pause').click();
+  await page.locator('#fullscreen').click();
+  assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
+  await page.locator('[data-resume]').click();
+  checks.push(
+    'Fullscreen controls on the pause page enter/exit; movement works during fullscreen play',
+  );
+  const cd = await context.newCDPSession(page);
+  let b = await page.locator('#right').boundingBox();
+  await cd.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ id: 1, x: b.x + b.width / 2, y: b.y + b.height / 2 }],
+  });
+  await page.waitForTimeout(120);
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await frame();
+  let pos = (await snap()).state.p.x;
+  await page.waitForTimeout(160);
+  assert.equal((await snap()).state.p.x, pos);
+  checks.push('Touch cancellation releases held movement');
+  await go(2);
+  b = await page.locator('#right').boundingBox();
+  const first = { id: 1, x: b.x + b.width / 2 - 8, y: b.y + b.height / 2 },
+    second = { id: 2, x: b.x + b.width / 2 + 8, y: b.y + b.height / 2 };
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [first] });
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [first, second] });
+  await page.waitForTimeout(100);
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [second] });
+  pos = (await snap()).state.p.x;
+  await page.waitForTimeout(150);
+  assert(
+    (await snap()).state.p.x > pos + 5,
+    'Releasing one finger must preserve the other movement finger',
+  );
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await frame();
+  pos = (await snap()).state.p.x;
+  await page.waitForTimeout(100);
+  assert.equal((await snap()).state.p.x, pos);
+  await page.keyboard.down('ArrowRight');
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [first] });
+  await cd.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  pos = (await snap()).state.p.x;
+  await page.waitForTimeout(150);
+  assert(
+    (await snap()).state.p.x > pos + 5,
+    'A released touch must preserve held keyboard movement',
+  );
+  await page.keyboard.down('KeyD');
+  await page.keyboard.up('ArrowRight');
+  pos = (await snap()).state.p.x;
+  await page.waitForTimeout(150);
+  assert(
+    (await snap()).state.p.x > pos + 5,
+    'Overlapping direction keys must release independently',
+  );
+  await page.keyboard.up('KeyD');
+  checks.push(
+    'Movement ownership: two fingers on one direction, mixed keyboard/touch, and overlapping direction keys release independently',
+  );
+  await go(15);
+  await beginDrag('map-person', 334, 215);
+  assert((await snap()).state.manual);
+  await page.evaluate(() =>
+    document
+      .getElementById('stage')
+      .dispatchEvent(new PointerEvent('pointercancel', { pointerId: 99, bubbles: true })),
+  );
+  assert(
+    (await snap()).state.manual,
+    'An unrelated cancelled pointer must not cancel the active map drag',
+  );
+  assert(await page.evaluate(() => document.getElementById('stage').hasPointerCapture(1)));
+  await page.evaluate(() => document.getElementById('stage').releasePointerCapture(1));
+  await frame();
+  await page.mouse.up();
+  assert(!(await snap()).state.manual);
+  assert.equal((await snap()).state.p.x, 65);
+  assert.equal((await snap()).state.p.y, 436);
+  checks.push(
+    'Map drag ignores unrelated cancellation; losing its own capture cancels the preview and restores the actor',
+  );
+  for (const width of [320, 360, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    for (const id of ['left', 'right', 'jump', 'hint', 'pause'])
+      assert(await page.locator('#' + id).isVisible());
+  }
+  checks.push(
+    '320, 360, 390, 768 and 1440 pixel layouts: no horizontal overflow, controls visible',
+  );
+  const fresh = await browser.newContext({ viewport: { width: 390, height: 844 } }),
+    n = await fresh.newPage();
+  const normalURL = new URL(baseURL);
+  normalURL.searchParams.delete('dev');
+  normalURL.searchParams.delete('level');
+  await n.goto(normalURL.href);
+  assert.equal(await n.evaluate(() => typeof window.__wulong), 'undefined');
+  await n.locator('#home-levels').click();
+  assert(await n.locator('[data-level="2"]').isDisabled());
+  await n.locator('#levels-back').click();
+  await enterGame(n);
+  await n.locator('canvas').focus();
+  await n.keyboard.down('ArrowRight');
+  await n.waitForTimeout(1220);
+  await n.keyboard.up('ArrowRight');
+  await n.keyboard.down('ArrowLeft');
+  await n.waitForTimeout(160);
+  await n.keyboard.up('ArrowLeft');
+  await n.waitForTimeout(3300);
+  await n.keyboard.down('ArrowRight');
+  await n.locator('#next').waitFor({ state: 'visible', timeout: 5000 });
+  await n.keyboard.up('ArrowRight');
+  await n.locator('#next').click();
+  assert.equal(await n.locator('#title').textContent(), '电梯不肯上二楼');
+  await n.reload();
+  await n.locator('#game[data-page="home"]').waitFor();
+  await enterGame(n);
+  assert.equal(await n.locator('#title').textContent(), '电梯不肯上二楼');
+  await openLevels(n);
+  assert(!(await n.locator('[data-level="2"]').isDisabled()));
+  assert(await n.locator('[data-level="4"]').isDisabled());
+  await n.locator('#levels-back').click();
+  await n.locator('#home-records').click();
+  assert.match(await n.locator('.records').textContent(), /门主动来接/);
+  await fresh.close();
+  checks.push(
+    'Fresh normal mode starts home; L02 locks until L01 is solved, reload returns home and continues L02, records are on their own page, and the next route encounter remains locked',
+  );
+  assert.deepEqual(errors, []);
+  await writeFile(
+    new URL('evidence/lifecycle.json', import.meta.url),
+    JSON.stringify({ date: new Date().toISOString(), checks, errors }, null, 2),
+  );
+  console.log(checks.join('\n'));
+} catch (e) {
+  console.error(JSON.stringify(await snap()));
+  console.error('focus', await page.evaluate(() => document.activeElement.outerHTML));
+  throw e;
+} finally {
+  await browser.close();
+}

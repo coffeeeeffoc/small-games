@@ -12,9 +12,9 @@ export function castleShell(k: MeshKit) {
   const g = new T.Group();
   // Front has a real ten-metre opening. Side wings enclose a traversable courtyard.
   stoneWall(k, g, -8, 14, 5, 6.8, 2.6);
-  stoneWall(k, g, 0.7, 14, 13.5, 10.5, 2.6);
-  stoneWall(k, g, 25, 14, 10, 11.7, 2.6);
-  for (const x of [4.8, 18.2]) gateLookout(k, g, x);
+  stoneWall(k, g, -0.6, 14, 16.1, 9.4, 2.6);
+  stoneWall(k, g, 26.3, 14, 12.6, 10.2, 2.6);
+  for (const x of [3.8, 19.2]) gateLookout(k, g, x);
   const lintel = new T.Group();
   stoneWall(k, lintel, 11.5, 14, 10.5, 2.1, 2.6);
   lintel.position.y = 14.9;
@@ -42,11 +42,11 @@ export function castleShell(k: MeshKit) {
   stoneWall(k, g, 29, -40, 31, 7, 2.8);
   const city = new T.Group();
   innerCastle(k, city);
-  city.position.set(80, 0, -14);
+  city.position.set(74, 0, -14);
   g.add(city);
   for (const x of [-7, -3, 1, 22, 25, 28]) {
     const guard = k.person(false);
-    guard.position.set(x, x < -5 ? 6.9 : x < 5 ? 10.6 : 11.8, 14.8);
+    guard.position.set(x, x < -5 ? 6.9 : x < 5 ? 9.5 : 10.3, 14.8);
     guard.rotation.y = Math.PI;
     g.add(guard);
   }
@@ -150,15 +150,20 @@ export function moduleModel(k: MeshKit, m: Module, b: Battle) {
 
 function gateLookout(k: MeshKit, g: T.Group, x: number) {
   const tower = new T.Group();
-  stoneWall(k, tower, 0, 0, 3.6, 12.5, 3.8);
-  masonry(k, tower, -1.9, 0, 3.8, 12.5, true);
-  tower.scale.y = 16 / 12.5;
-  const lookout = new T.Group();
-  gatehouseDetail(k, lookout, 'lookout');
-  lookout.position.y = 3.5;
+  stoneWall(k, tower, 0, 0, 5.2, 14.5, 4.6);
+  masonry(k, tower, -2.7, 0, 4.6, 14.5, true);
+  // Wide, open battlements keep the foreground low; the inner keep owns the high skyline.
+  for (const z of [-1.8, 1.8]) {
+    k.box(tower, 0, 15.7, z, 5.7, 0.25, 0.3, '#946835');
+    for (const dx of [-2.5, 0, 2.5]) k.box(tower, dx, 15.0, z, 0.25, 1.6, 0.25, '#725034');
+  }
+  k.banner(tower, -0.1, 12.8, 2.64, 2.5, 5.8, true);
+  const guard = k.person(false);
+  guard.position.set(0, 14.6, 0);
+  tower.add(guard);
   k.compact(tower);
   const post = new T.Group();
-  post.add(tower, lookout);
+  post.add(tower);
   post.position.set(x, 0, 15.5);
   g.add(post);
 }

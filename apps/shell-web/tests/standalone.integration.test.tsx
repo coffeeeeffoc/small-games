@@ -45,10 +45,12 @@ it('opens each standalone Game and removes its frame on exit', async () => {
       expect(frame?.title).toBe(title);
       expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
       if (
+        id === 'orbit-atelier' ||
         id === 'ink-is-everything' ||
         id === 'ball-roguelite' ||
         id === 'xiangqi-five' ||
-        id === 'letters-words2'
+        id === 'letters-words2' ||
+        id === 'wulong-city'
       ) {
         expect(container.querySelector('nav a')).toBeNull();
         expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
@@ -99,7 +101,7 @@ it.each([
   ['/small-games/?dev=0#/games/wulong-city?challenge=26', 'true', 'challenge=26&dev=0'],
   ['/small-games/?dev=1#/games/wulong-city?challenge=26&dev=0', 'true', 'challenge=26&dev=0'],
 ])(
-  'propagates effective developer mode to the frame and independent link: %s',
+  'propagates effective developer mode to the immersive frame: %s',
   async (url, stored, expected) => {
     window.history.replaceState(null, '', url!);
     if (stored) localStorage.setItem('dev', stored);
@@ -109,7 +111,7 @@ it.each([
       await act(async () => root.render(<ShellApp runtimeClient={false} />));
       const entry = `/games/wulong-city/index.html?${expected}`;
       expect(container.querySelector('iframe')?.getAttribute('src')).toBe(entry);
-      expect(container.querySelector('a')?.getAttribute('href')).toBe(entry);
+      expect(container.querySelector('nav a')).toBeNull();
       expect(window.location.href).toContain('challenge=26');
     } finally {
       await act(async () => root.unmount());

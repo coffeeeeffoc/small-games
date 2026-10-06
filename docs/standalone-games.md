@@ -38,6 +38,8 @@
 
 《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
+《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供三个章节共 24 关，拖动圆环调整缺口，覆盖连接处的两处交点后松手解开交织星轨；星栓与分岔星图逐章引入。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
+
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
 《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。

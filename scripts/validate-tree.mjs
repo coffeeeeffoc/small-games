@@ -10,7 +10,14 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
-import { incrementalPlan, entryAdapterFileScopes } from './incremental-validation.mjs';
+import {
+  incrementalPlan,
+  entryAdapterFileScopes,
+  developerModeFileScopes,
+  nativeWorkspaceFileScopes,
+  nativeToolConsumers,
+  h5AdapterFileScopes,
+} from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
@@ -167,6 +174,38 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
   for (const entry of entries) await visit(path.resolve(dir, entry));
 }
 
+export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.native_consumers.length) {
+    // The native replay consumes this rule suite's generated action witness.
+    // Generate it inside the exact candidate snapshot before either host smoke.
+    const producer = packages.find((pkg) => pkg.dir === 'games/local/game-building-power');
+    assert(
+      producer?.name === '@coffeeeeffoc/game-building-power' &&
+        producer.scripts?.['test:rules'] === 'vitest run src/simulation.test.ts',
+      'Unreviewed native replay evidence producer: game-building-power test:rules',
+    );
+    execute('pnpm', ['--filter', producer.name, 'test:rules'], root, env, 'logged');
+  }
+  for (const dir of plan.native_consumers) {
+    const pkg = packages.find((item) => item.dir === dir);
+    const consumer = nativeToolConsumers.find((item) => item.dir === dir);
+    assert(consumer && pkg?.scripts?.test === 'vitest run' && pkg.scripts.smoke === consumer.smoke);
+    execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+    execute('pnpm', ['--filter', pkg.name, 'smoke'], root, env, 'logged');
+  }
+  if (plan.developer_mode_ids.length)
+    execute(
+      process.execPath,
+      ['scripts/test-game-dev-mode.mjs'],
+      root,
+      {
+        ...env,
+        DEV_MODE_GAME_IDS: plan.developer_mode_ids.join(','),
+      },
+      'logged',
+    );
+}
+
 export async function validateTree({
   root,
   base,
@@ -226,14 +265,22 @@ export async function validateTree({
         readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
       })
     : new Map();
-  if (incremental)
-    for (const [file, sources] of entryAdapterFileScopes({
+  if (incremental) {
+    const context = {
       changedPaths: sourcePaths,
       games: catalog,
+      packages,
       readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
       readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
-    }))
-      fileScopes.set(file, sources);
+    };
+    for (const classify of [
+      entryAdapterFileScopes,
+      h5AdapterFileScopes,
+      developerModeFileScopes,
+      nativeWorkspaceFileScopes,
+    ])
+      for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
+  }
   const incrementalScope = incremental
     ? incrementalPlan({
         packages,
@@ -268,13 +315,18 @@ export async function validateTree({
       sourcePaths.some(
         (file) => !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
       ));
-  const affected = affectedPackages(packages, sourcePaths, full);
+  const consumerPaths = [
+    ...sourcePaths,
+    ...(incrementalScope?.consumer_sources || []).map((dir) => dir + '/package.json'),
+  ];
+  const affected = affectedPackages(packages, consumerPaths, full);
   if (incrementalScope?.browser) {
     const shell = packages.find((pkg) => pkg.dir === 'apps/shell-web');
     if (shell && !affected.includes(shell)) affected.push(shell);
   }
   const direct = packages.filter(
-    (pkg) => full || sourcePaths.some((file) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
+    (pkg) =>
+      full || consumerPaths.some((file) => file === pkg.dir || file.startsWith(pkg.dir + '/')),
   );
   for (const pkg of direct.filter((pkg) => pkg.dir.startsWith('games/'))) {
     const { command } = ruleTask(pkg);
@@ -321,7 +373,7 @@ export async function validateTree({
       root,
       clean,
     );
-  for (const pkg of shellContractTargets(packages, sourcePaths, full)) {
+  for (const pkg of shellContractTargets(packages, consumerPaths, full)) {
     execute(
       process.execPath,
       ['--test', 'apps/shell-web/scripts/standalone-game-entry.test.mjs'],
@@ -380,6 +432,8 @@ export async function validateTree({
       clean,
       'logged',
     );
+  if (incrementalScope)
+    runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];

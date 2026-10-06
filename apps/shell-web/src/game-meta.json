@@ -85,8 +85,8 @@
         "time": "2026-10-05T21:29:55Z"
       },
       "updated": {
-        "commit": "b5ddabea3bbc8ee784cbb3248121c1f0cc72b038",
-        "time": "2026-10-06T15:25:04Z"
+        "commit": "6d2520cc192590bcd2907373bea6c2efa2360a64",
+        "time": "2026-10-06T16:28:06Z"
       }
     },
     "cops-robbers": {
@@ -386,6 +386,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "orbit-atelier": {
+      "source": "games/local/orbit-atelier",
+      "created": {
+        "commit": "e63faad94cebb0c08a739ea90d8a8ee7e2278c62",
+        "time": "2026-10-06T15:42:56Z"
+      },
+      "updated": {
+        "commit": "e63faad94cebb0c08a739ea90d8a8ee7e2278c62",
+        "time": "2026-10-06T15:42:56Z"
+      }
+    },
     "out-of-frame": {
       "source": "games/local/out-of-frame",
       "created": {
@@ -624,8 +635,8 @@
         "time": "2026-09-27T00:07:35+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "1536f14570b82c2d98eb0553c16ede3d5d812565",
+        "time": "2026-10-06T16:46:56Z"
       }
     },
     "xiangqi-five": {

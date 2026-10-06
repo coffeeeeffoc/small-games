@@ -15,7 +15,14 @@ const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
 const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
-  ['ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'].includes(id);
+  [
+    'orbit-atelier',
+    'ink-is-everything',
+    'ball-roguelite',
+    'xiangqi-five',
+    'letters-words2',
+    'wulong-city',
+  ].includes(id);
 const server = await preview({
   root: fileURLToPath(new URL('../', import.meta.url)),
   base: basePath,
@@ -211,11 +218,16 @@ try {
         await expect(frame.locator('#board')).toBeHidden();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'ball-roguelite') {
+      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'xiangqi-five') {
         await frame.locator('#game-back').click();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'wulong-city') {
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.locator('#menu').click();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else {
