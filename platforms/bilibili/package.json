@@ -5,12 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./build": "./build.mjs"
+    "./build": "./build.mjs",
+    "./native-entry": "./native-entry.mjs"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "test": "node --test tests/native-entry.test.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/native-game-shell": "workspace:*",

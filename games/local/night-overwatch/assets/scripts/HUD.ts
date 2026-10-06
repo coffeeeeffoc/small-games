@@ -222,7 +222,7 @@ export class HUD {
     const small = this.mouseDesktop;
     this.live('status', right - (small ? 214 : 260), top + 26, 11, 60, 40, C.dim);
     this.button('settings', this.t('设置', 'SETTINGS'), right - (small ? 124 : 162), top + (small ? 12 : 6), small ? 54 : 68, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;
-    this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - (small ? 64 : 88), top + (small ? 12 : 6), small ? 64 : 88, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;
+    if (sys.isBrowser) this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - (small ? 64 : 88), top + (small ? 12 : 6), small ? 64 : 88, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;
     const pause = this.button('pause', this.t('暂停', 'PAUSE'), right - (small ? 184 : 224), top + (small ? 12 : 6), small ? 54 : 56, small ? 32 : 44);
     pause.fontSize = 12;
     pause.lineHeight = 16;

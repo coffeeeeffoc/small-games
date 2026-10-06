@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-06",
+  "creator": "3.8.8",
+  "enginePresent": false,
+  "statuses": [
+    {
+      "channel": "wechat",
+      "configuration": {
+        "target": "wechatgame",
+        "output": "wechatgame",
+        "variable": "WECHAT_APP_ID",
+        "pattern": {},
+        "channel": "wechat",
+        "mode": "preview",
+        "appId": "",
+        "configured": false,
+        "status": "configuration-only",
+        "configuration": "/workspace/small-games/games/local/night-overwatch/reports/build-wechatgame.json"
+      },
+      "build": {
+        "status": "blocked",
+        "reason": "Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built."
+      },
+      "release": {
+        "status": "rejected-as-required",
+        "reason": "Release requires WECHAT_APP_ID; no preview identity is accepted."
+      },
+      "developerTools": false,
+      "realDevice": false
+    },
+    {
+      "channel": "bilibili",
+      "configuration": {
+        "target": "bilibili",
+        "output": "biligame",
+        "variable": "BILIBILI_APP_ID",
+        "pattern": {},
+        "channel": "bilibili",
+        "mode": "preview",
+        "appId": "",
+        "configured": false,
+        "status": "configuration-only",
+        "configuration": "/workspace/small-games/games/local/night-overwatch/reports/build-bilibili.json"
+      },
+      "build": {
+        "status": "blocked",
+        "reason": "Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built."
+      },
+      "release": {
+        "status": "rejected-as-required",
+        "reason": "Release requires BILIBILI_APP_ID; no preview identity is accepted."
+      },
+      "developerTools": false,
+      "realDevice": false
+    },
+    {
+      "channel": "douyin",
+      "configuration": {
+        "target": "douyin",
+        "output": "bytedance-mini-game",
+        "variable": "DOUYIN_APP_ID",
+        "pattern": {},
+        "channel": "douyin",
+        "mode": "preview",
+        "appId": "",
+        "configured": false,
+        "status": "configuration-only",
+        "configuration": "/workspace/small-games/games/local/night-overwatch/reports/build-douyin.json"
+      },
+      "build": {
+        "status": "blocked",
+        "reason": "Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built."
+      },
+      "release": {
+        "status": "rejected-as-required",
+        "reason": "Release requires DOUYIN_APP_ID; no preview identity is accepted."
+      },
+      "developerTools": false,
+      "realDevice": false
+    },
+    {
+      "channel": "kuaishou",
+      "configuration": {
+        "status": "blocked",
+        "reason": "No compatible official Creator 3.8.8 Kuaishou adapter has been verified in this repository."
+      },
+      "build": {
+        "status": "blocked",
+        "reason": "No compatible official Creator 3.8.8 Kuaishou adapter has been verified in this repository."
+      },
+      "release": {
+        "status": "rejected-as-required",
+        "reason": "Release requires KUAISHOU_APP_ID; no preview identity is accepted."
+      },
+      "developerTools": false,
+      "realDevice": false
+    },
+    {
+      "channel": "alipay",
+      "configuration": {
+        "target": "alipay-mini-game",
+        "output": "alipay-mini-game",
+        "variable": "ALIPAY_APP_ID",
+        "pattern": {},
+        "channel": "alipay",
+        "mode": "preview",
+        "appId": "",
+        "configured": false,
+        "status": "configuration-only",
+        "configuration": "/workspace/small-games/games/local/night-overwatch/reports/build-alipay.json"
+      },
+      "build": {
+        "status": "blocked",
+        "reason": "Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built."
+      },
+      "release": {
+        "status": "rejected-as-required",
+        "reason": "Release requires ALIPAY_APP_ID; no preview identity is accepted."
+      },
+      "developerTools": false,
+      "realDevice": false
+    }
+  ]
+}

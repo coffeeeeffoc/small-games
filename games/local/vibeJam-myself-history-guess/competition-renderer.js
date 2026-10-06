@@ -13,6 +13,7 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
     if (currentRound === state.roundKey) return;
     currentRound = state.roundKey; mode = 'scene'; guess = null; digits = ''; bce = false;
     yaw = 0.5; zoom = 1; mapZoom = 1; center = { lat: 15, lng: 20 }; message = '';
+    if (state.input) { guess = state.input.guess || null; digits = state.input.digits || ''; bce = state.input.bce === true; }
   };
   function draw(ctx, w, h, state) {
     reset(state); buttons = []; ctx.save();
@@ -41,19 +42,19 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
     };
     text(`第 ${state.round}/${state.total} 幕 · ${state.score} 分`, 10, 17);
     const wide = w > 600 && h < 460;
-    const top = 80, bottom = h - (wide ? 58 : 125);
+    const top = 88, bottom = h - (wide ? 58 : 125);
     rect = { x: 10, y: top, w: w - 20, h: Math.max(80, bottom - top) };
     if (state.phase === 'revealed') {
       const answer = state.answer;
       if (mode === 'answer-map') {
         drawMap();
-        button('返回解说', 10, 36, w - 20, 36, () => { mode = 'scene'; });
+        button('返回解说', 10, 36, w - 20, 44, () => { mode = 'scene'; });
       } else {
-        button('对照地图', 10, 36, w - 20, 36, () => { mode = 'answer-map'; mapZoom = 1; });
+        button('对照地图', 10, 36, w - 20, 44, () => { mode = 'answer-map'; mapZoom = 1; });
         text(answer.place, 12, 100, 18);
         text(`${yearLabel(answer.year)} · 满分宽容 ±${answer.tolerance} 年`, 12, 131);
         text(`本幕 ${answer.score}/5000 · 提示扣 ${answer.penalty}`, 12, 158);
-        text(`地点误差 ${Math.round(answer.distance)} 公里 · 年代误差 ${answer.years} 年`, 12, 186);
+        text(`地点：${answer.distance === null ? '未作答' : Math.round(answer.distance) + ' 公里误差'} · 年代：${answer.years === null ? '未作答' : answer.years + ' 年误差'}`, 12, 186);
         wrap(answer.story, wide ? w/2 : 12, wide ? 100 : 218, wide ? w/2-16 : w - 24, wide ? 5 : Math.max(2, Math.floor((bottom - 225) / 20)));
       }
       if (!wide) wrap('AI 历史想象复原；年份为游戏设定。', 12, h - 89, w - 24, 1, 12);
@@ -61,15 +62,15 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
       else wrap('五幕已完成，本局答题结束。', 12, h - 39, w - 24, 2);
       ctx.restore(); return;
     }
-    button(mode === 'scene' ? '地图选点' : '观察场景', 10, 36, (w - 28) / 2, 36, () => { mode = mode === 'scene' ? 'map' : 'scene'; });
-    button(state.hint ? '提示已扣 500' : '提示 −500', 18 + (w - 28) / 2, 36, (w - 28) / 2, 36,
+    button(mode === 'scene' ? '地图选点' : '观察场景', 10, 36, (w - 28) / 2, 44, () => { mode = mode === 'scene' ? 'map' : 'scene'; });
+    button(state.hint ? '提示已扣 500' : '提示 −500', 18 + (w - 28) / 2, 36, (w - 28) / 2, 44,
       () => state.hint ? null : { type: 'hint' });
     if (mode === 'year') {
       const columns = rect.h < 255 ? 6 : 3, rows = 12 / columns;
       const keyW = (w - 20 - (columns - 1) * 6) / columns;
-      const keyH = Math.max(28, Math.min(48, (rect.h - 55) / rows - 5));
+      const keyH = Math.max(wide ? 28 : 44, Math.min(48, (rect.h - 55) / rows - 5));
       text(yearLabel((bce ? -1 : 1) * Number(digits)), 16, 101, 20);
-      button(bce ? '改为公元' : '改为公元前', w - 142, 82, 130, 38, () => { bce = !bce; });
+      button(bce ? '改为公元' : '改为公元前', w - 142, 82, 130, 44, () => { bce = !bce; });
       ['1','2','3','4','5','6','7','8','9','清空','0','退格'].forEach((key, i) =>
         button(key, 10 + i % columns * (keyW + 6), 130 + Math.floor(i / columns) * (keyH + 5), keyW, keyH, () => {
           digits = key === '清空' ? '' : key === '退格' ? digits.slice(0, -1) : (digits + key).slice(0, 4);
@@ -94,10 +95,10 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
         ctx.drawImage(picture, sx, (picture.height - sh) / 2, sw, sh, imageRect.x, imageRect.y, imageRect.w, imageRect.h);
       } else text(imageError ? '场景加载失败，点击画面重试' : '正在载入历史全景…', 18, top + 35, 14, '#fff9ec');
       buttons.push({ ...imageRect, run: () => { if (imageError) imagePath = null; else yaw = (yaw + 0.2) % 1; } });
-      const controlsY = imageRect.y + imageRect.h - 38;
+      const controlsY = imageRect.y + imageRect.h - 48;
       [['向左', () => { yaw = clamp(yaw - 0.2, 0, 1); }], ['向右', () => { yaw = clamp(yaw + 0.2, 0, 1); }],
         [zoom === 1 ? '放大' : '还原', () => { zoom = zoom === 1 ? 2 : 1; }]].forEach(([label, run], i) =>
-        button(label, 14 + i * 72, controlsY, 66, 34, run));
+        button(label, 14 + i * 72, controlsY, 66, 44, run));
       const clueX=wide?Math.floor(w*.6):12, clueW=wide?w-clueX-12:w-24;
       wrap(state.clue, clueX, wide?96:imageRect.y + imageRect.h + 16, clueW, 3, 13);
       if (state.hint) wrap(state.hint, clueX, wide?164:imageRect.y + imageRect.h + 75, clueW, 3, 13);
@@ -150,12 +151,12 @@ export function createRenderer({ createImage, assetBase = '' } = {}) {
       };
       marker(state.answer?.point || guess, '猜', '#ad422f'); marker(state.answer, '真', '#147052');
       ctx.restore();
-      button('＋ 放大', 14, bottom - 39, 83, 34, () => { if (guess) center = { ...guess }; mapZoom = Math.min(16, mapZoom * 2); });
-      button('− 缩小', 102, bottom - 39, 83, 34, () => { mapZoom = Math.max(1, mapZoom / 2); if (mapZoom === 1) center = { lat: 15, lng: 20 }; });
+      button('＋ 放大', 14, bottom - 49, 83, 44, () => { if (guess) center = { ...guess }; mapZoom = Math.min(16, mapZoom * 2); });
+      button('− 缩小', 102, bottom - 49, 83, 44, () => { mapZoom = Math.max(1, mapZoom / 2); if (mapZoom === 1) center = { lat: 15, lng: 20 }; });
       text('Natural Earth', Math.max(192, w - 100), bottom - 20, 10);
     }
   }
-  return { draw, tap(x, y, state) {
+  return { draw, snapshot() { return { guess, digits, bce }; }, tap(x, y, state) {
     reset(state);
     const hit = [...buttons].reverse().find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
     return hit?.run(x, y) || null;

@@ -135,9 +135,10 @@ export class Platform {
     } else if (this.engine.playing) this.engine.stop();
   }
   get isFullscreen() {
-    return screen.fullScreen();
+    return sys.isBrowser && screen.fullScreen();
   }
   async fullscreen() {
+    if (!sys.isBrowser) return false;
     try {
       const target = !screen.fullScreen();
       if (!target) await screen.exitFullScreen();

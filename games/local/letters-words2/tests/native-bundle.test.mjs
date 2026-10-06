@@ -9,23 +9,25 @@ import { practiceBatches } from '../library.js';
 
 const outputRoot = process.env.NATIVE_OUTPUT_ROOT || fileURLToPath(new URL('../../../../apps/shell-minigame/dist/', import.meta.url));
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
-for (const [platform, sdkName] of [['wechat', 'wx'], ['bilibili', 'bl'], ['douyin', 'tt'], ['kuaishou', 'ks']]) {
+for (const [platform, sdkName] of [['wechat', 'wx'], ['bilibili', 'bl'], ['douyin', 'tt'], ['kuaishou', 'ks'], ...(process.env.NATIVE_OUTPUT_ROOT ? [['alipay', 'my']] : [])]) {
   const directory = path.join(outputRoot, platform, 'letters-words2');
   const source = readFileSync(path.join(directory, 'game.js'), 'utf8');
   const release = JSON.parse(readFileSync(path.join(directory, 'release.json'), 'utf8'));
   const project = JSON.parse(readFileSync(path.join(directory, 'game.json'), 'utf8'));
   assert.equal(project.deviceOrientation, 'portrait');
   assert.equal(release.platform, platform); assert.equal(release.game, 'letters-words2');
-  assert.match(release.gameplayScope, /solo vocabulary islands, textbooks/);
+  assert.match(release.gameplayScope, /solo vocabulary islands, textbooks|native local solo/);
   assert.equal(release.nativeRuntimeVerified, false, 'SDK fixture evidence does not claim official device verification');
   assert.doesNotMatch(source, /document\.|window\.|createElement\(|iframe|XMLHttpRequest|\bIntl\.|new URL\(/);
   const packagedReads = [];
   const fixture = createNativeSDKFixture({ width: 320, height: 568, pixelRatio: 3, safeArea: { top: 30, bottom: 534 },
     launchQuery: { game: 'letters-words2', mini: 'dawn', v: '1', token: 'private', dev: '1' },
     readFile(filePath, encoding) {
-      const resolved = path.resolve(directory, filePath);
+      if (platform === 'alipay') assert.match(filePath, /^\/assets\//, 'Alipay raw SDK receives its documented package-rooted path');
+      const localPath = platform === 'alipay' ? filePath.slice(1) : filePath;
+      const resolved = path.resolve(directory, localPath);
       assert.ok(resolved.startsWith(directory + path.sep));
-      assert.equal(encoding, 'utf8'); packagedReads.push(filePath);
+      assert.equal(encoding, 'utf8'); packagedReads.push(localPath);
       return readFileSync(resolved, 'utf8');
     },
   });
@@ -38,9 +40,14 @@ for (const [platform, sdkName] of [['wechat', 'wx'], ['bilibili', 'bl'], ['douyi
     } });
   };
   const restoreGlobals = fixture.installGlobals();
+  const rawSdk = platform === 'alipay' ? { ...fixture.sdk,
+    getStorageSync: ({ key }) => ({ data: fixture.sdk.getStorageSync(key) }),
+    setStorageSync: ({ key, data }) => fixture.sdk.setStorageSync(key, data),
+    removeStorageSync: ({ key }) => fixture.sdk.removeStorageSync(key),
+  } : fixture.sdk;
   const module = { exports: {} };
   const context = vm.createContext({
-    [sdkName]: fixture.sdk, console, exports: module.exports, module,
+    [sdkName]: rawSdk, console, exports: module.exports, module,
     Date: globalThis.Date, queueMicrotask,
     setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout,
     setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval,
