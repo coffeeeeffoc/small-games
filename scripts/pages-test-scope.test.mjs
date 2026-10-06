@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   collectChangedPaths,
@@ -10,10 +12,14 @@ import {
   main,
   parseChangedPaths,
   readSavedDevBaseline,
+  requiresIncrementalCocos,
   selectPagesScope,
 } from './pages-test-scope.mjs';
 import { gameTestCommand } from './run-pages-game-tests.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { incrementalPlan } from './incremental-validation.mjs';
+import { workspacePackages } from './validation-plan.mjs';
+import { nineNativeFileScopes } from './nine-native-scope.mjs';
 
 const catalog = {
   standaloneGames: [
@@ -1218,4 +1224,148 @@ test('affected logical test command uses exact filters and safely rejects invali
   ]) {
     assert.throws(() => gameTestCommand({ PAGES_GAME_SOURCES: value }), value);
   }
+});
+
+test('actual e48 to c68 CI changes select two H5 navigation games without native or Creator builds', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
+  const head = 'c68deaeaea48c138f9a4613dbb719b2031ec1207';
+  const result = await main(
+    { VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: head },
+    root,
+  );
+  const catalog = await loadGameCatalog(root);
+  const local = incrementalPlan({
+    packages: await workspacePackages(root),
+    games: catalog.standaloneGames,
+    changedPaths: collectChangedPaths({ root, base, head }),
+    readSource: (file) =>
+      execFileSync('git', ['show', `${head}:${file}`], { cwd: root, encoding: 'utf8' }),
+  });
+  assert.equal(result.diff_base, base);
+  assert.equal(result.diff_head, head);
+  assert.equal(result.full, false);
+  assert.equal(result.cocos, false);
+  assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.deepEqual(result.browser_ids, local.browser_ids);
+  assert.deepEqual(result.nine_native_targets, []);
+  assert.deepEqual(result.nine_native_targets, local.nine_native_targets);
+});
+
+test('actual dcf to e48 preserves thirty-five native targets and only two H5 navigation samples', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = 'dcf778794c36562634a969b8b8975889c4001d0c';
+  const head = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
+  const result = await main(
+    { VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: head },
+    root,
+  );
+  assert.equal(result.diff_base, base);
+  assert.equal(result.diff_head, head);
+  assert.equal(result.full, false);
+  assert.equal(result.cocos, false);
+  assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.equal(result.nine_native_targets.length, 35);
+  assert.equal(new Set(result.nine_native_targets.map(({ game }) => game)).size, 7);
+  assert.equal(new Set(result.nine_native_targets.map(({ platform }) => platform)).size, 5);
+  assert(result.nine_native_travel_contract);
+  assert(
+    !result.nine_native_targets.some(({ game }) =>
+      ['carding-car', 'night-overwatch'].includes(game),
+    ),
+  );
+});
+
+test('a valid risk comparison rejects unknown inputs and missing registration proof instead of broadening', async (t) => {
+  for (const changed of ['unexpected/root-config.json', 'pnpm-lock.yaml']) {
+    const fixture = await temporaryRepository(t);
+    const { root, git } = fixture;
+    await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+    await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+    await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+    await writeFile(
+      path.join(root, 'games/local/echo-lab/package.json'),
+      JSON.stringify({ name: '@games/echo-lab' }),
+    );
+    git('add', '.');
+    git('commit', '-m', 'baseline');
+    const base = git('rev-parse', 'HEAD');
+    await mkdir(path.dirname(path.join(root, changed)), { recursive: true });
+    await writeFile(
+      path.join(root, changed),
+      changed.endsWith('.yaml') ? "lockfileVersion: '9.0'\nimporters: {}\n" : '{}',
+    );
+    git('add', '.');
+    git('commit', '-m', 'unknown or unproved change');
+    await assert.rejects(
+      main({ VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base }, root),
+      /scope undefined|scope.*undefined|Missing|does not exist|full regression/,
+    );
+  }
+});
+
+test('risk plans without a usable baseline keep full coverage including Creator', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+  await writeFile(
+    path.join(root, 'games/local/echo-lab/package.json'),
+    JSON.stringify({ name: '@games/echo-lab' }),
+  );
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  for (const options of [
+    { PAGES_DIFF_BASE: '' },
+    { GITHUB_EVENT_NAME: 'schedule' },
+    { GITHUB_EVENT_NAME: 'workflow_dispatch' },
+  ]) {
+    const result = await main({ VALIDATION_RISK_PLAN: 'true', ...options }, root);
+    assert.equal(result.full, true);
+    assert.equal(result.cocos, true);
+    assert.deepEqual(result.browser_ids, ['echo-lab']);
+    assert.equal(result.diff_base, '');
+  }
+});
+
+test('shared competition files keep actual Creator H5 consumers and native Creator requirements', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const { standaloneGames: games } = await loadGameCatalog(root);
+  const packages = await workspacePackages(root);
+  const read = (file) => readFileSync(path.join(root, file), 'utf8');
+  for (const [file, expectedCreator] of [
+    ['platforms/competition/client.js', true],
+    ['platforms/competition/format.js', false],
+  ]) {
+    const context = { packages, games, changedPaths: [file], readBase: read, readHead: read };
+    const scope = incrementalPlan({
+      ...context,
+      fileScopes: nineNativeFileScopes(context),
+      readSource: read,
+    });
+    assert.equal(scope.game_sources.includes('games/local/carding-car'), expectedCreator);
+    assert.equal(
+      requiresIncrementalCocos({ packages, games, changedPaths: [file], scope }),
+      expectedCreator,
+    );
+  }
+  const native = incrementalPlan({
+    packages,
+    games,
+    changedPaths: ['games/local/carding-car/native/input.ts'],
+    readSource: read,
+  });
+  assert.deepEqual(native.browser_ids, []);
+  assert.deepEqual(native.game_sources, []);
+  assert.equal(native.nine_native_targets.length, 5);
+  assert(native.nine_native_targets.every((target) => target.requiresCreator === '3.8.8'));
+  assert.equal(
+    requiresIncrementalCocos({ packages, games, changedPaths: [], scope: native }),
+    true,
+  );
+  const blockedOnly = { ...native, nine_native_targets: [] };
+  assert.equal(
+    requiresIncrementalCocos({ packages, games, changedPaths: [], scope: blockedOnly }),
+    true,
+  );
 });

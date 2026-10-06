@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import {
   incrementalPlan,
   developerModeFileScopes,
@@ -813,7 +814,7 @@ test('shared competition protocol modules select all actual H5 consumers and nat
   }
 });
 
-test('developer helper follows actual sync producer copy list or fails closed instead of losing H5 checks', async () => {
+test('developer helper proves actual Git producer bytes and rejects CRLF producer fixtures', async () => {
   const { readFileSync } = await import('node:fs');
   const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
   const { workspacePackages } = await import('./validation-plan.mjs');
@@ -823,7 +824,13 @@ test('developer helper follows actual sync producer copy list or fails closed in
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
   );
   const pkgs = await workspacePackages(root);
-  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const producer = 'scripts/sync-game-dev-mode.mjs';
+  const producerBlob = execFileSync('git', ['show', `HEAD:${producer}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  const readSource = (file) =>
+    file === producer ? producerBlob : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const file = 'platforms/h5/dev-mode.js';
   const context = {
     games: actual,
@@ -839,6 +846,17 @@ test('developer helper follows actual sync producer copy list or fails closed in
   assert.deepEqual(result.browser_ids, actual.map((game) => game.id).sort());
   assert.equal(result.nine_native_targets.length, 10);
   assert.equal(result.nine_native_blocked.length, 2);
+  const crlfProducer = producerBlob.replace(/\r?\n/g, '\r\n');
+  assert(crlfProducer.includes('\r\n'));
+  assert.notEqual(crlfProducer, producerBlob);
+  for (const reader of ['readBase', 'readHead']) {
+    const crlfScopes = nineNativeFileScopes({
+      ...context,
+      [reader]: (file) => (file === producer ? crlfProducer : readSource(file)),
+    });
+    assert.equal(crlfScopes.size, 0);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes: crlfScopes }), /scope undefined/);
+  }
   const missing = nineNativeFileScopes({
     ...context,
     readHead: (path) => {

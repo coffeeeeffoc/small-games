@@ -2,8 +2,23 @@ import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { riskPlan, requiresCocos, workspacePackages } from './validation-plan.mjs';
+import {
+  riskPlan,
+  requiresCocos,
+  workspacePackages,
+  isDocumentation as isValidationDocumentation,
+} from './validation-plan.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { nineNativeFileScopes } from './nine-native-scope.mjs';
+import { nineLockFileScopes } from './nine-lock-scope.mjs';
+import {
+  incrementalPlan,
+  entryAdapterFileScopes,
+  developerModeFileScopes,
+  nativeWorkspaceFileScopes,
+  h5AdapterFileScopes,
+  reviewedSharedFileScopes,
+} from './incremental-validation.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const GAME_SOURCE = /^games\/(?:local|submodules)\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -233,6 +248,19 @@ export function collectChangedPaths(options) {
   );
 }
 
+/** Reviewed shared files can reach Creator games without changing their package paths. */
+export function requiresIncrementalCocos({ packages, games, changedPaths, scope, risk }) {
+  const creatorSources = new Set(packages.filter((pkg) => pkg.creator).map((pkg) => pkg.dir));
+  return (
+    requiresCocos(packages, changedPaths, { ...scope, risk }) ||
+    scope.game_sources.some((source) => creatorSources.has(source)) ||
+    scope.nine_native_targets.some((target) => Boolean(target.requiresCreator)) ||
+    scope.nine_native_blocked.some((blocked) =>
+      games.some((game) => game.id === blocked.game && creatorSources.has(game.source)),
+    )
+  );
+}
+
 /** Saved dev artifacts have already passed every selected release check. */
 export async function readSavedDevBaseline(env = process.env, fetchFn = fetch) {
   const override = env.PAGES_VALIDATED_BASE;
@@ -329,6 +357,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         );
       }
     } catch (error) {
+      if (env.VALIDATION_RISK_PLAN === 'true' && diffBaseForRisk) throw error;
       diffAvailable = false;
       console.warn(`Pages scope: falling back to full regression (${error.message})`);
     }
@@ -357,7 +386,54 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
   }
   // Preserve the existing scope API for callers that only need logical test selection.
   if (env.VALIDATION_RISK_PLAN !== 'true') result = scope;
-  else
+  else if (diffAvailable && diffBaseForRisk) {
+    const packages = await workspacePackages(root);
+    const sourcePaths = changedPaths.filter((file) => !isValidationDocumentation(file));
+    const context = {
+      changedPaths: sourcePaths,
+      games: catalog.standaloneGames,
+      packages,
+      readBase: (file) => git(root, ['show', `${diffBaseForRisk}:${file}`]),
+      readHead: (file) => git(root, ['show', `${headCommitForRisk}:${file}`]),
+    };
+    for (const classify of [
+      entryAdapterFileScopes,
+      h5AdapterFileScopes,
+      developerModeFileScopes,
+      nativeWorkspaceFileScopes,
+      reviewedSharedFileScopes,
+      nineNativeFileScopes,
+      nineLockFileScopes,
+    ])
+      for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
+    const incremental = incrementalPlan({
+      packages,
+      games: catalog.standaloneGames,
+      fileScopes,
+      changedPaths: sourcePaths,
+      readSource: (file) => git(root, ['show', `${headCommitForRisk}:${file}`]),
+    });
+    result = {
+      ...result,
+      ...incremental,
+      risk: result.full ? 'incremental' : result.risk,
+      reason: result.full ? 'Reviewed source graph from an exact comparison' : result.reason,
+      required: scope.required || sourcePaths.length > 0,
+      game_ids: incremental.game_sources
+        .flatMap((source) => catalog.standaloneGames.filter((game) => game.source === source))
+        .map((game) => game.id)
+        .sort(),
+      cocos: requiresIncrementalCocos({
+        packages,
+        games: catalog.standaloneGames,
+        changedPaths: sourcePaths,
+        scope: incremental,
+        risk: result.risk,
+      }),
+      diff_base: diffBaseForRisk,
+      diff_head: headCommitForRisk,
+    };
+  } else
     result = {
       ...result,
       cocos: requiresCocos(await workspacePackages(root), changedPaths, result),
