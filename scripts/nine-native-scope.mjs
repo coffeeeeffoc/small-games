@@ -158,6 +158,50 @@ const reviewedChannelSelectionBases = {
   'scripts/nine-wulong-smoke.mjs':
     'f2f1bdecd836acc9a1420d60c9bffddba563e8c4adbc85a0ccd7807df3d7472d',
 };
+const INVENTORY_BUILDER = 'apps/shell-minigame/scripts/nine-games-build.mjs';
+const INVENTORY_BASE_SHA = '6f19a3c8a5e9abcc77c07bd4c0b0182e8ff0129776ca5c6d5716ab475b28f7c8';
+const INVENTORY_HEAD_SHA = '7e71113977277fb08ffbd6368e3d345675f8a1ee7ed40fee6daad23ed393f0bb';
+const inventoryProofValues = new WeakSet();
+
+/** Only repair the package-root-relative source inventory filter, not the builder. */
+export function nativeSourceInventoryFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  games,
+  packages,
+}) {
+  const scopes = new Map();
+  if (!changedPaths.includes(INVENTORY_BUILDER)) return scopes;
+  try {
+    const before = readBase(INVENTORY_BUILDER),
+      after = readHead(INVENTORY_BUILDER);
+    assert.equal(digest(before), INVENTORY_BASE_SHA);
+    assert.equal(digest(after), INVENTORY_HEAD_SHA);
+    const oldExpression = "!file.includes('/.scratch/')";
+    const newExpression =
+      "!path.relative(root, file).replaceAll('\\\\', '/').startsWith('.scratch/')";
+    assert.equal(before.split(oldExpression).length, 2);
+    assert.equal(after.split(newExpression).length, 2);
+    assert.equal(before.replace(oldExpression, newExpression), after);
+    const ids = [...competitionGames, 'travel-bund', 'wulong-city'];
+    const affected = ids.map((id) => nativeGameSources[id]);
+    for (const [index, id] of ids.entries()) {
+      assert.equal(games.filter((game) => game.id === id).length, 1);
+      assert.equal(games.filter((game) => game.source === affected[index]).length, 1);
+      assert.equal(
+        games.filter((game) => game.id === id && game.source === affected[index]).length,
+        1,
+      );
+      assert(packages.some((pkg) => pkg.dir === affected[index]));
+    }
+    inventoryProofValues.add(affected);
+    scopes.set(INVENTORY_BUILDER, affected);
+  } catch {
+    /* Missing base, altered bytes or identities never waive Creator builds. */
+  }
+  return scopes;
+}
 const equal = (actual, expected) => assert.deepEqual(actual, expected);
 const imports = (text) =>
   [...text.matchAll(/(?:^|[;\n])import\s+(?:[^;]*?\bfrom\s*)?(['"])([^'"]+)\1\s*;/g)].map(
@@ -375,6 +419,104 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
       /* Unknown tool bytes or identity remain undefined. */
     }
   }
+  for (const file of ['platforms/competition/client.js', 'platforms/competition/format.js']) {
+    if (!changedPaths.includes(file)) continue;
+    try {
+      for (const text of [readBase(file), readHead(file)]) {
+        assert.equal(typeof text, 'string');
+        assert(text.trim());
+        assert(
+          !/\bimport\b|\brequire\s*\(|\bexport\s*[^;\n]*\bfrom\s*['"]/m.test(text),
+          'New shared module dependencies require ownership review',
+        );
+      }
+      const consumers = file.endsWith('client.js')
+        ? [...competitionGames, 'carding-car']
+        : competitionGames;
+      for (const id of consumers) {
+        const source = id === 'carding-car' ? 'games/local/carding-car' : sources[id];
+        assert.equal(games.filter((game) => game.id === id).length, 1);
+        assert.equal(games.filter((game) => game.source === source).length, 1);
+        assert.equal(games.filter((game) => game.id === id && game.source === source).length, 1);
+        assert(packages.some((pkg) => pkg.dir === source));
+      }
+      scopes.set(
+        file,
+        consumers.map((id) => (id === 'carding-car' ? 'games/local/carding-car' : sources[id])),
+      );
+    } catch {
+      /* Existing shared consumers are proven only without new module imports. */
+    }
+  }
+  for (const file of ['platforms/h5/dev-mode.js', 'platforms/h5/dev-mode.d.ts']) {
+    if (!changedPaths.includes(file)) continue;
+    try {
+      // Mirrors the locked devModeTargets producer's actual copy destinations.
+      for (const reader of [readBase, readHead]) {
+        assert.equal(
+          digest(reader('scripts/sync-game-dev-mode.mjs')),
+          '0456683f14b20bbad0664907a9b00e1bd7825732345f637a4f67156cb94f107d',
+        );
+        assert.equal(typeof reader(file), 'string');
+      }
+      const consumers = ['apps/shell-web'];
+      assert(packages.some((pkg) => pkg.dir === consumers[0]));
+      assert(
+        /<script\b[^>]*\bsrc=["']\.\/dev-mode\.js["'][^>]*><\/script>/.test(
+          readHead('apps/shell-web/index.html'),
+        ),
+      );
+      for (const pkg of packages.filter((pkg) =>
+        /^games\/(?:local|submodules)\/[^/]+$/.test(pkg.dir),
+      )) {
+        const metadata = JSON.parse(readHead(pkg.dir + '/package.json'));
+        const build = metadata.scripts?.build || '';
+        const generated = /\bnode scripts\/build\.mjs web-mobile\b/.test(build);
+        let entry;
+        if (!generated) {
+          try {
+            entry = readHead(pkg.dir + '/index.html');
+          } catch {
+            entry = readHead(pkg.dir + '/static-site/index.html');
+          }
+          assert(/<script\b[^>]*\bsrc=["']\.\/dev-mode\.js["'][^>]*><\/script>/.test(entry));
+        }
+        const runtime = generated
+          ? 'scripts/dev-mode.js'
+          : (() => {
+              try {
+                readHead(pkg.dir + '/index.html');
+                return 'dev-mode.js';
+              } catch {
+                return 'static-site/dev-mode.js';
+              }
+            })();
+        assert.equal(
+          typeof readHead(
+            pkg.dir + '/' + runtime.replace(/\.js$/, file.endsWith('.d.ts') ? '.d.ts' : '.js'),
+          ),
+          'string',
+        );
+        if (!/\bvite\s+build\b/.test(build) && build) {
+          const producer = build.match(/\bnode\s+(\S+)/)?.[1];
+          assert(producer && readHead(pkg.dir + '/' + producer).includes('dev-mode.js'));
+        }
+        consumers.push(pkg.dir);
+      }
+      assert.equal(new Set(consumers).size, consumers.length);
+      scopes.set(file, consumers);
+    } catch {
+      /* Missing copy destination/import/reference or changed producer stays blocked. */
+    }
+  }
+  for (const [file, affected] of nativeSourceInventoryFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+  }))
+    scopes.set(file, affected);
   return scopes;
 }
 
@@ -885,6 +1027,8 @@ export function nineNativeDependencySources() {
 }
 
 export function isNineNativeOnlyPath(file) {
+  if (['platforms/competition/client.js', 'platforms/competition/format.js'].includes(file))
+    return false;
   if (file.startsWith('platforms/') && nativeGraph.has(file)) return true;
   if (
     file === 'scripts/nine-travel-native-smoke.mjs' ||
@@ -897,19 +1041,26 @@ export function isNineNativeOnlyPath(file) {
     Object.values(nativeGameSources).some((source) => {
       if (!file.startsWith(source + '/')) return false;
       const relative = file.slice(source.length + 1);
-      return (
-        relative.startsWith('native/') ||
-        ((relative.endsWith('/competition-renderer.js') ||
-          relative === 'competition-renderer.js') &&
-          nativeGraph.has(file)) ||
-        /^(?:src\/)?native(?:[-.][^/]*)?$/.test(relative)
-      );
+      return relative.startsWith('native/') || /^(?:src\/)?native(?:[-.][^/]*)?$/.test(relative);
     }) || nineNativeScopePaths.includes(file)
   );
 }
 
 /** Same explicit game/channel plan is consumed by hooks and CI. No SDK is executed here. */
-export function nineNativeDependencyPlan({ changedPaths, games, readSource }) {
+export function nineNativeDependencyPlan({
+  changedPaths,
+  games,
+  readSource,
+  fileScopes = new Map(),
+}) {
+  let inventoryOnly = false;
+  if (inventoryProofValues.has(fileScopes.get(INVENTORY_BUILDER)) && readSource) {
+    try {
+      inventoryOnly = digest(readSource(INVENTORY_BUILDER)) === INVENTORY_HEAD_SHA;
+    } catch {
+      /* A stale proof or unreadable current source cannot exempt Cocos. */
+    }
+  }
   const graph = new Map([...nativeGraph].map(([file, targets]) => [file, new Set(targets)]));
   // Discover new literal relative imports/requires without evaluating candidate code.
   // Unresolved imports are left to the real build, which must fail rather than skip them.
@@ -1039,6 +1190,7 @@ export function nineNativeDependencyPlan({ changedPaths, games, readSource }) {
     )
       blocked.add('night-overwatch');
     if (
+      !(file === INVENTORY_BUILDER && inventoryOnly) &&
       /^apps\/shell-minigame\/scripts\/(?:cocos-platform|night-native-project|kuaishou-cocos-import|nine-games-build|nine-games-targets)\.mjs$/.test(
         file,
       )

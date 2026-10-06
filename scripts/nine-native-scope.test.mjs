@@ -594,3 +594,64 @@ test('real publication diff with all classifiers keeps navigation H5 and all 35 
     );
   }
 });
+
+test('only exact reviewed source-inventory filter repair exempts unchanged Cocos builders', async () => {
+  const { nativeSourceInventoryFileScopes, nineNativeDependencyPlan } = await import(
+    './nine-native-scope.mjs'
+  );
+  const file = 'apps/shell-minigame/scripts/nine-games-build.mjs';
+  const original = execFileSync(
+    'git',
+    ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`],
+    { encoding: 'utf8' },
+  );
+  const repaired = snapshot(file);
+  const c = { ...context([file]), readBase: () => original, readHead: () => repaired };
+  const fileScopes = nativeSourceInventoryFileScopes(c);
+  assert.equal(fileScopes.size, 1);
+  assert.equal(fileScopes.get(file).length, 7);
+  assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
+  const plan = (overrides = {}) =>
+    nineNativeDependencyPlan({
+      changedPaths: [file],
+      games: catalog,
+      fileScopes,
+      readSource: () => repaired,
+      ...overrides,
+    });
+  const exact = plan();
+  assert.equal(exact.targets.length, 35);
+  assert.deepEqual(exact.blocked, []);
+  assert(!exact.targets.some((target) => ['carding-car', 'night-overwatch'].includes(target.game)));
+  const { incrementalPlan } = await import('./incremental-validation.mjs');
+  const integrated = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+  assert.equal(integrated.nine_native_targets.length, 35);
+  assert.deepEqual(integrated.nine_native_blocked, []);
+  assert.deepEqual(integrated.browser_ids, []);
+  for (const override of [
+    { fileScopes: new Map() },
+    { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
+    { readSource: undefined },
+    { readSource: () => repaired + '\n// unrelated builder change' },
+    { readSource: () => original },
+  ]) {
+    const result = plan(override);
+    assert.equal(result.targets.length, 45);
+    assert.equal(result.blocked.length, 2);
+  }
+  for (const override of [
+    {
+      readBase: () => {
+        throw Error('missing base');
+      },
+    },
+    { readBase: () => repaired },
+    { readBase: () => original + '\n' },
+    { readHead: () => repaired + '\n' },
+    { readHead: () => original },
+    { readHead: () => repaired.replace('sourceFiles,', 'sourceFiles: [],') },
+    { games: catalog.filter((game) => game.id !== 'travel-bund') },
+    { changedPaths: [file + '.unknown'] },
+  ])
+    assert.equal(nativeSourceInventoryFileScopes({ ...c, ...override }).size, 0);
+});

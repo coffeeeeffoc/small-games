@@ -32,7 +32,12 @@ export function incrementalPlan({
   fileScopes = new Map(),
 }) {
   const paths = changedPaths.filter((file) => !isDocumentation(file));
-  const nineNative = nineNativeDependencyPlan({ changedPaths: paths, games, readSource });
+  const nineNative = nineNativeDependencyPlan({
+    changedPaths: paths,
+    games,
+    readSource,
+    fileScopes,
+  });
   const h5Paths = paths.filter((file) => !isNineNativeOnlyPath(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {

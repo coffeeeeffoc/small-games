@@ -228,7 +228,7 @@ export async function buildTarget(selected, config, outputRoot) {
                   (file) =>
                     file.startsWith(root) &&
                     !file.includes('/node_modules/') &&
-                    !file.includes('/.scratch/'),
+                    !path.relative(root, file).replaceAll('\\', '/').startsWith('.scratch/'),
                 ),
             );
           },

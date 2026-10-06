@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import { createNativeSDKFixture, flushNative } from './native-sdk-fixture.mjs';
 import { snapshotNative, tapNativeTarget, finishNativeIsland, finishNativeWord } from './native-test-actions.mjs';
 import { practiceBatches } from '../library.js';
@@ -18,6 +19,17 @@ if (selectedPlatforms) {
 for (const [platform, sdkName] of channels) {
   if (selectedPlatforms && !selectedPlatforms.includes(platform)) continue;
   const directory = path.join(outputRoot, platform, 'letters-words2');
+  if (process.env.NATIVE_OUTPUT_ROOT) {
+    const provenance = JSON.parse(readFileSync(path.join(directory, 'artifact-manifest.json'), 'utf8'));
+    const sources = new Map(provenance.sourceFiles.map((file) => [file.path, file.sha256]));
+    assert.equal(sources.size, provenance.sourceFiles.length, 'Native input provenance must have unique paths');
+    const required = ['games/local/letters-words2/native.js', 'games/local/letters-words2/native-platform.js', 'games/local/letters-words2/native-session.js', 'games/local/letters-words2/engine.js', 'games/local/letters-words2/library.js', 'games/local/letters-words2/competition-renderer.js', 'platforms/competition/native.js', 'platforms/competition/client.js', 'platforms/competition/format.js', 'apps/shell-minigame/src/competition-availability.mjs', ...(platform === 'alipay' ? ['platforms/alipay/normalize.mjs'] : [])];
+    for (const file of required) {
+      assert(sources.has(file), `${platform} missing actual native input ${file}`);
+      const actual = createHash('sha256').update(readFileSync(path.resolve(sourceRoot, '../../..', file))).digest('hex');
+      assert.equal(sources.get(file), actual, `${platform} actual native input digest ${file}`);
+    }
+  }
   const source = readFileSync(path.join(directory, 'game.js'), 'utf8');
   const release = JSON.parse(readFileSync(path.join(directory, 'release.json'), 'utf8'));
   const project = JSON.parse(readFileSync(path.join(directory, 'game.json'), 'utf8'));

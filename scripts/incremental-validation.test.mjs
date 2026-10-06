@@ -719,7 +719,7 @@ test('actual native changes select channel builds without unrelated H5; H5-only 
   assert(platform.nine_native_targets.every((target) => target.platform === 'alipay'));
 });
 
-test('Word native bundle contract and native-only renderers select native without H5', async () => {
+test('Word native bundle contract and native entry select native without H5', async () => {
   const { readFileSync } = await import('node:fs');
   const actual = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
@@ -727,11 +727,123 @@ test('Word native bundle contract and native-only renderers select native withou
   const pkgs = actual.map((game) => ({ dir: game.source }));
   for (const file of [
     'games/local/letters-words2/tests/native-bundle.test.mjs',
-    'games/local/letters-words2/competition-renderer.js',
+    'games/local/letters-words2/native.js',
   ]) {
     const result = incrementalPlan({ games: actual, packages: pkgs, changedPaths: [file] });
     assert.deepEqual(result.browser_ids, []);
     assert.equal(result.nine_native_targets.length, 5);
     assert(result.nine_native_targets.every((target) => target.game === 'letters-words2'));
   }
+});
+
+test('all five competition renderers select their actual H5 consumer and all five native channels', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  const entries = [
+    ['cops-robbers', 'src/competition-renderer.js'],
+    ['cops-robbers-realtime', 'src/competition-renderer.js'],
+    ['letters-words2', 'competition-renderer.js'],
+    ['vibeJam-myself-history-guess', 'competition-renderer.js'],
+    ['xiangqi-five', 'competition-renderer.js'],
+  ];
+  for (const [id, relative] of entries) {
+    const game = actual.find((game) => game.id === id);
+    const result = incrementalPlan({
+      games: actual,
+      packages: pkgs,
+      changedPaths: [game.source + '/' + relative],
+    });
+    assert.deepEqual(result.browser_ids, [id]);
+    assert.deepEqual(result.nine_native_targets.map((target) => target.platform).sort(), [
+      'alipay',
+      'bilibili',
+      'douyin',
+      'kuaishou',
+      'wechat',
+    ]);
+    assert(result.nine_native_targets.every((target) => target.game === id));
+  }
+});
+
+test('shared competition protocol modules select all actual H5 consumers and native dependencies', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = await workspacePackages(new URL('../', import.meta.url).pathname);
+  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of ['platforms/competition/client.js', 'platforms/competition/format.js']) {
+    const context = {
+      games: actual,
+      packages: pkgs,
+      changedPaths: [file],
+      readBase: readSource,
+      readHead: readSource,
+    };
+    const fileScopes = nineNativeFileScopes(context);
+    const result = incrementalPlan({ ...context, fileScopes, readSource });
+    assert.deepEqual(result.browser_ids, [
+      ...(file.endsWith('client.js') ? ['carding-car'] : []),
+      'cops-robbers',
+      'cops-robbers-realtime',
+      'letters-words2',
+      'vibeJam-myself-history-guess',
+      'xiangqi-five',
+    ]);
+    assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 30 : 25);
+    assert.equal(result.nine_native_blocked.length, file.endsWith('client.js') ? 1 : 0);
+    for (const variant of [
+      {
+        readBase: () => {
+          throw Error('missing');
+        },
+      },
+      { readHead: () => readSource(file) + "\nimport './unknown-shared.js';" },
+      { readHead: () => readSource(file) + '\nrequire(dynamicPath);' },
+      { readHead: () => readSource(file) + "\nimport unknown from './unknown-shared.js';" },
+    ])
+      assert.equal(nineNativeFileScopes({ ...context, ...variant }).size, 0);
+  }
+});
+
+test('developer helper follows actual sync producer copy list or fails closed instead of losing H5 checks', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { devModeTargets } = await import('./sync-game-dev-mode.mjs');
+  const root = new URL('../', import.meta.url).pathname;
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = await workspacePackages(root);
+  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const file = 'platforms/h5/dev-mode.js';
+  const context = {
+    games: actual,
+    packages: pkgs,
+    changedPaths: [file],
+    readBase: readSource,
+    readHead: readSource,
+  };
+  const fileScopes = nineNativeFileScopes(context);
+  const expected = (await devModeTargets(root)).map((target) => target.source);
+  assert.deepEqual(fileScopes.get(file)?.sort(), expected.sort());
+  const result = incrementalPlan({ ...context, fileScopes, readSource });
+  assert.deepEqual(result.browser_ids, actual.map((game) => game.id).sort());
+  assert.equal(result.nine_native_targets.length, 10);
+  assert.equal(result.nine_native_blocked.length, 2);
+  const missing = nineNativeFileScopes({
+    ...context,
+    readHead: (path) => {
+      if (path.endsWith('/index.html')) throw Error('missing references');
+      return readSource(path);
+    },
+  });
+  assert.equal(missing.size, 0);
+  assert.throws(() => incrementalPlan({ ...context, fileScopes: missing }), /scope undefined/);
 });
