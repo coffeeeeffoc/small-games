@@ -23,7 +23,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "bilibili",
@@ -39,7 +40,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "douyin",
@@ -55,7 +57,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "kuaishou",
@@ -71,7 +74,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "alipay",
@@ -87,7 +91,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         }
       ]
     },
@@ -105,12 +110,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "bilibili",
@@ -121,12 +127,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "douyin",
@@ -137,12 +144,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "kuaishou",
@@ -153,12 +161,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "alipay",
@@ -169,12 +178,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         }
       ]
     },
@@ -192,12 +202,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_REALTIME_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "bilibili",
@@ -208,12 +219,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_REALTIME_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "douyin",
@@ -224,12 +236,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_REALTIME_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "kuaishou",
@@ -240,12 +253,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_REALTIME_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "alipay",
@@ -256,12 +270,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_COPS_ROBBERS_REALTIME_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         }
       ]
     },
@@ -279,12 +294,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_LETTERS_WORDS2_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "bilibili",
@@ -295,12 +311,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_LETTERS_WORDS2_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "douyin",
@@ -311,12 +328,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_LETTERS_WORDS2_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "kuaishou",
@@ -327,12 +345,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_LETTERS_WORDS2_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "alipay",
@@ -343,12 +362,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_LETTERS_WORDS2_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         }
       ]
     },
@@ -366,12 +386,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_VIBEJAM_MYSELF_HISTORY_GUESS_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "bilibili",
@@ -382,12 +403,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_VIBEJAM_MYSELF_HISTORY_GUESS_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "douyin",
@@ -398,12 +420,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_VIBEJAM_MYSELF_HISTORY_GUESS_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "kuaishou",
@@ -414,12 +437,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_VIBEJAM_MYSELF_HISTORY_GUESS_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "alipay",
@@ -430,12 +454,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_VIBEJAM_MYSELF_HISTORY_GUESS_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         }
       ]
     },
@@ -453,12 +478,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_XIANGQI_FIVE_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "bilibili",
@@ -469,12 +495,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_XIANGQI_FIVE_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "douyin",
@@ -485,12 +512,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_XIANGQI_FIVE_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "kuaishou",
@@ -501,12 +529,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_XIANGQI_FIVE_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         },
         {
           "platform": "alipay",
@@ -517,12 +546,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_XIANGQI_FIVE_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final CJS no-DOM local gameplay, touch/lifecycle/save/disposal; SDK fixture, not official runtime"
         }
       ]
     },
@@ -540,12 +570,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_TRAVEL_BUND_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual final WeChat CJS: no-DOM/no-TextDecoder Worker + original models/WebGL2/Rapier WASM/lifecycle"
         },
         {
           "platform": "bilibili",
@@ -556,12 +587,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_TRAVEL_BUND_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
         },
         {
           "platform": "douyin",
@@ -572,12 +604,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_TRAVEL_BUND_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
         },
         {
           "platform": "kuaishou",
@@ -588,12 +621,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_TRAVEL_BUND_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
         },
         {
           "platform": "alipay",
@@ -604,12 +638,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_TRAVEL_BUND_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
         }
       ]
     },
@@ -632,7 +667,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "bilibili",
@@ -648,7 +684,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "douyin",
@@ -664,7 +701,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "kuaishou",
@@ -680,7 +718,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         },
         {
           "platform": "alipay",
@@ -696,7 +735,8 @@
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "not-built; no current native execution"
         }
       ]
     },
@@ -714,12 +754,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_WULONG_CITY_WECHAT_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual CJS Chromium phone screenshots, safe-area/capsule/rotation/resize/touch mapping/disposal"
         },
         {
           "platform": "bilibili",
@@ -730,12 +771,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_WULONG_CITY_BILIBILI_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
         },
         {
           "platform": "douyin",
@@ -746,12 +788,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_WULONG_CITY_DOUYIN_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
         },
         {
           "platform": "kuaishou",
@@ -762,12 +805,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_WULONG_CITY_KUAISHOU_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "built + file/resource integrity + native shell/platform contracts; full game touch-clear execution unrun"
         },
         {
           "platform": "alipay",
@@ -778,12 +822,13 @@
           "blocker": null,
           "appIdEnvironment": "MINIGAME_WULONG_CITY_ALIPAY_APP_ID",
           "mode": "preview",
-          "localContract": "actual native CJS/resource integrity + local SDK contracts",
+          "localContract": "built package integrity and SDK fixture contracts only; see localExecution",
           "officialTools": "unrun",
           "realDevice": "unrun",
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
-          "reviewAndPublication": "unrun"
+          "reviewAndPublication": "unrun",
+          "localExecution": "actual CJS touch-only first level clear, saved unlock, home/help/hints/background/disposal"
         }
       ],
       "nativeIntegration": "existing owner implementation merged at 1e99fc74e055f78638322f2b9df1602736561af9; nativeHost consumes pinned implementation; safe-area/capsule/resize remain known host gap"
@@ -795,5 +840,6 @@
     "blocked": 15,
     "officialAccepted": 0
   },
-  "testedImplementationCommit": "3bfca0a2aa10ec957568409d1a804131103a75f8"
+  "testedImplementationCommit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
+  "currentCandidateNote": "Build/source provenance for the final clean candidate is captured per artifact in dist/nine-games/*/*/artifact-manifest.json. This matrix never upgrades local SDK fixtures to official tool/device validation."
 }
