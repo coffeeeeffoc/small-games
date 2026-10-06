@@ -919,9 +919,11 @@ function SoftwareRendererBudget({enabled, onDpr}: {enabled: boolean; onDpr: (dpr
 }
 
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
-  const [softwareRenderer, setSoftwareRenderer] = useState(false);
+  // R3F onCreated runs after its first scene graph commit. Keep that graph empty
+  // until the real GPU is known, so a software renderer never mounts Water first.
+  const [softwareRenderer, setSoftwareRenderer] = useState<boolean | null>(null);
   const [softwareDpr, setSoftwareDpr] = useState(.85);
-  const quality = effectiveRendererQuality(props.quality, softwareRenderer);
+  const quality = effectiveRendererQuality(props.quality, softwareRenderer === true);
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     // Measure the logical layout, not the swapped bounding box of CSS rotation.
     resize={{ offsetSize: true }}
@@ -940,7 +942,7 @@ export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => vo
       setSoftwareRenderer(software);
       props.onRenderer(gl);
     }}>
-    <SoftwareRendererBudget enabled={softwareRenderer} onDpr={setSoftwareDpr}/>
-    <Suspense fallback={null}><Scene {...props} quality={quality}/></Suspense>
+    <SoftwareRendererBudget enabled={softwareRenderer === true} onDpr={setSoftwareDpr}/>
+    {softwareRenderer !== null && <Suspense fallback={null}><Scene {...props} quality={quality}/></Suspense>}
   </Canvas>;
 }
