@@ -24,6 +24,7 @@ export const markers = {
   'two-sided-box': '#board[data-level]',
   'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
   'surprise-kept': '#game[data-ready="true"]',
+  tetracube: '#start-game',
   'one-stroke-course': 'body[data-phase="drawing"]',
   'hold-tight-acrobats': '#start',
   'wulong-city': '[data-zone="shy-door"]',
@@ -54,6 +55,7 @@ export const markers = {
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
+  tetracube: '#start-game',
   'voiceprint-case': '#start',
   'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',

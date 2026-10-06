@@ -443,6 +443,9 @@ importers:
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
+      '@coffeeeeffoc/tetracube':
+        specifier: workspace:*
+        version: link:../../games/local/tetracube
       '@coffeeeeffoc/tiny-signals':
         specifier: workspace:*
         version: link:../../games/local/tiny-signals
@@ -1229,6 +1232,8 @@ importers:
   games/local/rule-thief: {}
 
   games/local/surprise-kept: {}
+
+  games/local/tetracube: {}
 
   games/local/tiny-signals: {}
 

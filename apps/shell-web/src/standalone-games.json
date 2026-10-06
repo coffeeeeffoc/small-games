@@ -334,5 +334,12 @@
     "title": "惊喜别穿帮",
     "description": "安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。",
     "output": "dist"
+  },
+  {
+    "id": "tetracube",
+    "source": "games/local/tetracube",
+    "title": "重力方舱",
+    "description": "三轴旋转四连立方体，填满空间平面；改变重力，让整座方块舱压实重构，制造连锁消除。",
+    "output": "dist"
   }
 ]
