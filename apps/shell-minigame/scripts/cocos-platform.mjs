@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { prepareNativeProject } from './night-native-project.mjs';
+import { verifyAlipayPackageBudget } from './alipay-package-budget.mjs';
 const editor =
   process.env.COCOS_CREATOR ||
   (existsSync('D:/tools/cocos/CocosCreator.exe')
@@ -319,14 +320,6 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
       throw Error('Native artifact source provenance mismatch.');
   }
   const outputFiles = await files(directory);
-  // Alipay documentation gives a 4 MiB limit; do not apply the WeChat 20 MiB allowance.
-  if (
-    channel === 'alipay' &&
-    outputFiles.reduce((sum, file) => sum + file.bytes, 0) > 4 * 1024 * 1024
-  )
-    throw Error(
-      'Alipay package exceeds 4 MiB; configure and verify official remote resource hosting before delivery.',
-    );
   const manifest = {
     schema: 1,
     game: path.basename(gameRoot),
@@ -364,7 +357,9 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     path.join(directory, 'platform-manifest.json'),
     JSON.stringify(manifest, null, 2),
   );
-  await verifyManifest(directory, { maxBytes: channel === 'alipay' ? 4 * 1024 * 1024 : Infinity });
+  await verifyManifest(directory);
+  const packageBudget =
+    channel === 'alipay' ? await verifyAlipayPackageBudget(directory) : undefined;
   if (convertedEvidence) {
     const { verifyConvertedPackage } = await import('./kuaishou-cocos-import.mjs');
     const staged = JSON.parse(
@@ -394,7 +389,7 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     });
   }
   await verifySourceIdentity();
-  return { ...info, status: 'built-unverified-on-host', directory, manifest };
+  return { ...info, status: 'built-unverified-on-host', directory, manifest, packageBudget };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { verifyAlipayPackageBudget } from './alipay-package-budget.mjs';
 import { prepareHistoryPackages } from './nine-history-assets.mjs';
 import { nineGames, fivePlatforms, scopeCommit, targetOptions } from './nine-games-targets.mjs';
 
@@ -352,15 +353,7 @@ export async function buildTarget(selected, config, outputRoot) {
     JSON.stringify(manifest, null, 2) + '\n',
   );
   await verifyArtifact(outDir);
-  if (config.platform === 'alipay') {
-    const completeBytes =
-      manifest.files.reduce((total, file) => total + file.bytes, 0) +
-      (await stat(path.join(outDir, 'artifact-manifest.json'))).size;
-    if (completeBytes > 4 * 1024 * 1024)
-      throw new Error(
-        `Complete Alipay package including all manifests exceeds 4 MiB: ${completeBytes}`,
-      );
-  }
+  if (config.platform === 'alipay') await verifyAlipayPackageBudget(outDir);
   if (selected.id === 'travel-bund') {
     const completeBytes =
       manifest.files.reduce((total, file) => total + file.bytes, 0) +

@@ -90,3 +90,5 @@ node games/local/carding-car/platforms/build.mjs kuaishou
 现有 `.github/workflows/carding-car.yml` 只有 workflow_call/reuse_ci，Windows任务固定构建web-mobile，未设置原生渠道或B站插件；因此当前不能直接生成十份原生包。此轮仅调查，未修改工作流、权限、付费或触发Pages发布。
 
 外滩其余四平台后续已补实际最终CJS无DOM场景执行：使用各自FS/request/storage签名、真实OffscreenCanvas/WebGL2/原模型/物理/参考图，包含保存设置、后台暂停恢复和清理。具体测试artifact SHA在交付报告中；不冒充官方SDK接受结果。
+
+支付宝完整包体校验按[官方分包指南](https://opendocs.alipay.com/mini-game/08uo7z)分别计算主包与总包：保守使用主包 4,000,000 字节、主包加所有普通分包 20,000,000 字节；普通单分包没有另加假上限。现场遍历实际全部文件，包含来源与完整性 manifests，按 game.json 的 subpackages.root 分组；照片维持本地原字节分包。配置重复、重叠、非法路径、缺分包 game.js 或符号链接均拒绝。SDK 门槛与宿主限制仍须官方工具/真机验收，不能把分包配置通过当作真实加载通过。
