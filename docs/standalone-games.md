@@ -36,6 +36,8 @@
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
+《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
+
 《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。六面工坊提供五章 50 关，初始随机显示两个可用观察角度，随后免费逐面揭示；最后一级提示可查看支持透视的完整 3D，未使用该提示时通关先展示结构再结算。六面投影与孔板通行判断共用空间几何，核心规则、绘图和每个编号关卡独立维护。第 21–50 关经过所有双面组合的受限搜索，至少需要补充观察面才能完成。构建、规则验证和浏览器验收见游戏目录 README。
 
 《榫间 · 鲁班锁》位于 `games/local/luban-workshop`，workspace 包名为 `@coffeeeeffoc/luban-workshop`，通过 iframe 装载，独立地址为 `/games/luban-workshop/index.html`。玩家选中彩色零件后沿轨道拖动，观察受阻反馈，逐步拆解再复原机关；空白区域用于转动观察视角。关卡数据、运动与碰撞规则、三维渲染及触屏交互分别维护。开发运行 `pnpm --filter @coffeeeeffoc/luban-workshop dev`，构建和规则验证分别使用 `build`、`test`；交互与架构说明见 [游戏 README](../games/local/luban-workshop/README.md)。

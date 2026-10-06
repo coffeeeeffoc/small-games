@@ -1,5 +1,12 @@
 [
   {
+    "id": "tower-brake",
+    "source": "games/local/tower-brake",
+    "title": "转塔留一脚刹车",
+    "description": "转动圆塔穿过十二层缺口，连续落三层补回一次 0.8 秒刹车，在危险落点前转出一条生路。八座短塔逐步解锁。",
+    "output": "dist"
+  },
+  {
     "id": "voiceprint-case",
     "source": "games/local/voiceprint-case",
     "title": "声纹疑案",

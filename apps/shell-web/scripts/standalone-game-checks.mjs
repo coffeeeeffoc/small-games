@@ -33,7 +33,49 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'voiceprint-case') {
+  if (id === 'tower-brake') {
+    const play = frame.locator('#play-screen');
+    const scene = frame.locator('#scene');
+    await expect(play).toBeVisible();
+    await expect(play).toHaveAttribute('data-phase', 'playing');
+    await expect(scene).toBeVisible();
+    const initialAngle = await play.getAttribute('data-angle');
+    await click(frame.locator('#brake-button'));
+    await expect(frame.locator('#brake-button')).toHaveAttribute('data-charges', '0');
+    const page = scene.page();
+    const bounds = await scene.boundingBox();
+    const start = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.5 };
+    const end = { x: bounds.x + bounds.width * 0.7, y: start.y };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(end.x, end.y, { steps: 3 });
+      await page.mouse.up();
+    }
+    await click(frame.locator('#pause-button'));
+    await expect(play).toHaveAttribute('data-phase', 'paused');
+    expect(await play.getAttribute('data-angle')).not.toBe(initialAngle);
+    await expect(frame.locator('#pause-screen')).toBeVisible();
+    await click(frame.locator('#resume-game'));
+    await expect(play).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause-button'));
+    await click(frame.locator('#pause-home'));
+    await expect(frame.locator('#home')).toBeVisible();
+    await click(frame.locator('#choose-level'));
+    await expect(frame.locator('#levels-screen')).toBeVisible();
+    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);
+    await click(frame.locator('#levels-home'));
+    await expect(frame.locator('#start-game')).toBeVisible();
+  } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
     });
