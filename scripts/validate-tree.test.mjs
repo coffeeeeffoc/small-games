@@ -182,7 +182,9 @@ test('first-nine native checks build only mapped games across five platforms, th
   assert.equal(calls.filter((call) => call[1][0] === command.file).length, 1);
   assert(
     calls.every(
-      (call) => call[3].NATIVE_OUTPUT_ROOT === '/candidate/apps/shell-minigame/dist/nine-games',
+      (call) =>
+        call[3].NATIVE_OUTPUT_ROOT === '/candidate/apps/shell-minigame/dist/nine-games' &&
+        call[3].NATIVE_SCREENSHOT_ROOT === '/candidate/.scratch/nine-native-validation/screenshots',
     ),
   );
   for (const key of ['test', 'build:nine']) {

@@ -199,6 +199,7 @@ export function runNineNativeChecks({ plan, packages, root, env, execute = run }
       )
       .join(','),
     NATIVE_OUTPUT_ROOT: path.join(root, 'apps/shell-minigame/dist/nine-games'),
+    NATIVE_SCREENSHOT_ROOT: path.join(root, '.scratch/nine-native-validation/screenshots'),
   };
   for (const id of gameIds)
     for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'])

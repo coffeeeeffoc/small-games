@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
-const output = fileURLToPath(new URL('../docs/design/', import.meta.url));
+const design = fileURLToPath(new URL('../docs/design/', import.meta.url));
+const output = process.env.NATIVE_SCREENSHOT_ROOT
+  ? process.env.NATIVE_SCREENSHOT_ROOT + '/xiangqi-five/'
+  : design;
 await mkdir(output, { recursive: true });
 const html = `<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;overflow:hidden}canvas{width:100vw;height:100vh;touch-action:none}</style><canvas></canvas><script type="module">
 import {startNativeXiangqiGame}from '/platforms/competition/xiangqi-five/native.js';
@@ -37,7 +40,7 @@ const browser = await chromium.launch({
 });
 try {
   const concept = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await concept.setContent(await readFile(output + 'concept.html', 'utf8'));
+  await concept.setContent(await readFile(design + 'concept.html', 'utf8'));
   await concept.screenshot({ path: output + 'concept-home.png' });
   await concept.evaluate(() => {
     document.querySelector('.home').style.display = 'none';

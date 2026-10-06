@@ -98,7 +98,7 @@ const reviewed = {
     ['node:test', 'node:assert/strict', '../native.js'],
   ],
   [XIANGQI + 'tests/browser.mjs']: [
-    'c7bff5384e989a5699dfec44dc22314ca7b2ff60e9add79ef7c4a09046aa7763',
+    '089ddfc4ac2340b9c096f172a5a7a32ddd2163b65724d86fc1269109bc992c27',
     [
       'node:http',
       'node:fs/promises',
@@ -119,7 +119,7 @@ const reviewed = {
     ],
   ],
   'scripts/nine-channel-entry-smoke.mjs': [
-    'f25351dd626b59d9f078c73c51d962a3358e42348d83a2cb6da604a229ddf6ec',
+    'd1a42f2b6f427601bad573416d7b3b5357521139511a251d2bbcfb9d3ef6e91a',
     [
       'node:assert/strict',
       '../games/local/letters-words2/tests/native-sdk-fixture.mjs',

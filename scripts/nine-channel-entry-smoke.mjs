@@ -89,7 +89,7 @@ for (const [id, start, entry] of [
 if (process.env.BILIBILI_BROWSER === '1') {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
   const { createServer } = await import('node:http');
-  const { readFile } = await import('node:fs/promises');
+  const { readFile, mkdir } = await import('node:fs/promises');
   const { fileURLToPath } = await import('node:url');
   const root = fileURLToPath(new URL('../', import.meta.url));
   const descriptors = [
@@ -207,7 +207,11 @@ if (process.env.BILIBILI_BROWSER === '1') {
       assert.equal(await page.evaluate(() => channel.getSnapshot().count), 0);
       await page.evaluate(() => showScene('021036'));
       assert.equal(await page.evaluate(() => channel.getSnapshot().count), 1);
-      await page.screenshot({ path: root + item[4] + '/bilibili-entry-actual.png' });
+      const screenshotDirectory = process.env.NATIVE_SCREENSHOT_ROOT
+        ? process.env.NATIVE_SCREENSHOT_ROOT + '/' + item[0] + '/'
+        : root + item[4] + '/';
+      await mkdir(screenshotDirectory, { recursive: true });
+      await page.screenshot({ path: screenshotDirectory + 'bilibili-entry-actual.png' });
       assert.deepEqual(errors, []);
       await page.close();
     }
