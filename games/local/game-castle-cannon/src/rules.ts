@@ -84,7 +84,14 @@ export function shoot(b: Battle, ammo: Ammo, x: number, y: number): boolean {
       (v) => v.projection > 0 && v.projection <= length + v.m.radius && v.distance <= v.m.radius,
     )
     .sort((a, c) => a.projection - c.projection);
-  const direct = targets[0]?.m;
+  // Coordinates supplied by scene picking identify the visible aimed module. Content-space
+  // approach rays must not redirect that aim into a gate that is elsewhere in the 3D view.
+  const aimed = b.modules
+    .filter((m) => m.hp > 0)
+    .map((m) => ({ m, distance: Math.hypot(m.x - x, m.y - y) }))
+    .filter((t) => t.distance <= t.m.radius)
+    .sort((a, c) => a.distance - c.distance)[0]?.m;
+  const direct = aimed ?? targets[0]?.m;
   const impact = direct ?? { x, y };
   const hits =
     ammo === 'solid'

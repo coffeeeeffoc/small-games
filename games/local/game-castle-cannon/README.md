@@ -22,4 +22,4 @@ pnpm --filter @coffeeeeffoc/game-castle-cannon test:native
 
 微信预览目录为 `apps/shell-minigame/dist/wechat/castle-cannon`，含横屏 game.json、game.js、原创音效和 touristappid 项目配置；这是预览工程，不是已上线微信小游戏。未验证微信开发者工具与微信真机，未配置真实 AppID/广告位。广告入口仅通过项目既有 Host Ad 抽象，普通重试与基础弹种不受广告限制。
 
-画面设计与截图对照见 `docs/design/README.md`。完整 Pages 构建依赖仓库其他 Cocos 游戏，在未安装 Creator 3.8.8、未取得有效现有 Cocos 制品的云环境会被它们阻塞，不能把单游戏构建成功称为 Pages 发布成功。
+初始页面设计见 `docs/design/README.md`；最新三维目标与实际整幅对照、性能及验证边界见 `docs/design/immersive/README.md`。完整 Pages 构建依赖仓库其他 Cocos 游戏，在未安装 Creator 3.8.8、未取得有效现有 Cocos 制品的云环境会被它们阻塞，不能把单游戏构建成功称为 Pages 发布成功。

@@ -83,6 +83,14 @@ describe('deterministic siege rules', () => {
       expect(b.capture).toBe(1);
     }
   });
+  it('aiming the ridge rear tower cannot redirect into the intact gate', () => {
+    const b = createBattle(LEVELS[2]);
+    expect(shoot(b, 'solid', 748, 210)).toBe(true);
+    step(b, 0.4);
+    expect(b.modules.find((m) => m.id === 'tower-b')?.hp).toBe(0);
+    expect(b.modules.find((m) => m.id === 'gate')?.hp).toBe(6);
+    expect(b.modules.find((m) => m.id === 'tower-a')?.hp).toBe(6);
+  });
   it('configuration rejects duplicates and missing gate', () => {
     expect(() => validateLevels([...LEVELS, LEVELS[0]])).toThrow();
     expect(() => validateLevels([{ ...LEVELS[0], modules: [] }])).toThrow();

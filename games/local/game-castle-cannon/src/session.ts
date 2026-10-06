@@ -17,6 +17,8 @@ export async function createSession(
     ammo: 'solid',
     aim: null,
     message: '',
+    feedback: '',
+    feedbackUntil: 0,
     practice: false,
     ads:
       advertisingConfigured &&
@@ -60,10 +62,16 @@ export async function createSession(
     v.aim = null;
     pointer = null;
     v.message = '';
+    v.feedback = '';
+    v.feedbackUntil = 0;
     if (!keepAd) v.adRetry = false;
   }
   function action(id: string) {
     if (disposed || v.busy) return;
+    if (id === 'solid' || id === 'blast') {
+      v.ammo = id;
+      return;
+    }
     v.aim = null;
     pointer = null;
     if (id === 'start') start(v.p.unlocked);
@@ -77,7 +85,6 @@ export async function createSession(
     else if (id === 'retry') start(v.level, 0, v.practice);
     else if (id === 'pause' && v.screen === 'playing') v.screen = 'paused';
     else if (id === 'resume' && v.screen === 'paused') v.screen = 'playing';
-    else if (id === 'solid' || id === 'blast') v.ammo = id;
     else if (id === 'settings' || id === 'wardrobe') v.screen = id;
     else if (id === 'help') {
       returnTo = v.screen === 'paused' ? 'paused' : 'home';
@@ -85,6 +92,9 @@ export async function createSession(
     } else if (id === 'back') v.screen = returnTo;
     else if (id === 'sound') {
       v.p.sound = !v.p.sound;
+      save();
+    } else if (id === 'quality') {
+      v.p.lowPower = !v.p.lowPower;
       save();
     } else if (id === 'motion') {
       v.p.motion = !v.p.motion;
@@ -172,16 +182,31 @@ export async function createSession(
       pointer = { id, hit };
       if (!hit && v.screen === 'playing') v.aim = { x, y };
     } else if (pointer?.id === id) {
-      if (phase === 'move' && !pointer.hit && v.screen === 'playing') v.aim = { x, y };
+      if (phase === 'move' && !pointer.hit && !hit && v.screen === 'playing') v.aim = { x, y };
       if (phase === 'up') {
         const from = pointer.hit;
         pointer = null;
+        const aim = hit && v.aim ? v.aim : { x, y };
         v.aim = null;
         if (from) {
           if (from === hit) action(from);
-        } else if (v.screen === 'playing' && shoot(v.b, v.ammo, x, y)) playSound('fire');
+        } else if (v.screen === 'playing') {
+          if (shoot(v.b, v.ammo, aim.x, aim.y)) {
+            playSound('fire');
+            v.feedback = '炮弹出膛';
+          } else
+            v.feedback =
+              v.b.reload > 0
+                ? `正在装填 · ${v.b.reload.toFixed(1)} 秒后可开炮`
+                : '请瞄准战场内的目标';
+          v.feedbackUntil = v.b.time + 1.5;
+        }
       }
       if (phase === 'cancel') {
+        if (!pointer?.hit && v.screen === 'playing') {
+          v.feedback = '瞄准已取消 · 重新拖动';
+          v.feedbackUntil = v.b.time + 1.5;
+        }
         pointer = null;
         v.aim = null;
       }

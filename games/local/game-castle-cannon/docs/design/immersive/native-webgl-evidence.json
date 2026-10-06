@@ -1,0 +1,14 @@
+{
+  "environment": "Compiled WeChat entry with DOM-backed SDK bridge and real Chromium WebGL2; NOT WeChat tools or device",
+  "contexts": ["2d", "webgl2", "webgl2", "webgl2"],
+  "images": [
+    "http://127.0.0.1:38583/castle-cannon-art/limestone.jpg",
+    "http://127.0.0.1:38583/castle-cannon-art/oak.jpg"
+  ],
+  "canvasCount": 2,
+  "gpuProgram": true,
+  "nativeTouchDrag": true,
+  "firstCastleVictory": true,
+  "advertisingConfigured": false,
+  "errors": []
+}

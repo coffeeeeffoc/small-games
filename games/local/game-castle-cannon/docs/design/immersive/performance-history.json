@@ -1,0 +1,399 @@
+{
+  "environment": "Linux headless Chromium, software WebGL; no Playwright Clock; not mobile hardware or touch latency",
+  "stages": [
+    {
+      "stage": "Before LOD/cache/instancing",
+      "caveat": "Same viewport/camera and normal render resolution; historical source and geometry differ.",
+      "records": [
+        {
+          "lowPower": false,
+          "wallSeconds": 17.372,
+          "submittedFrames": 5,
+          "measuredFps": 0.28781947962238086,
+          "pageEvaluationP95Ms": 3356,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 5,
+              "frameBattleTime": 2.999999999999997,
+              "lowPower": false,
+              "triangles": 425362,
+              "calls": 320,
+              "renderMs": 20,
+              "meanFrameIntervalMs": 3130
+            },
+            "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 10,
+              "frameBattleTime": 8.015999999999979,
+              "lowPower": false,
+              "triangles": 418210,
+              "calls": 293,
+              "renderMs": 18,
+              "meanFrameIntervalMs": 3026
+            },
+            "status": "playing；兵力 9；损失 3；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        },
+        {
+          "lowPower": true,
+          "wallSeconds": 15.476,
+          "submittedFrames": 16,
+          "measuredFps": 1.033858878263117,
+          "pageEvaluationP95Ms": 1456,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 7,
+              "frameBattleTime": 2.0000000000000004,
+              "lowPower": true,
+              "triangles": 428938,
+              "calls": 332,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 2084
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 23,
+              "frameBattleTime": 15.481000000000076,
+              "lowPower": true,
+              "triangles": 407482,
+              "calls": 255,
+              "renderMs": 12,
+              "meanFrameIntervalMs": 1295
+            },
+            "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        }
+      ]
+    },
+    {
+      "stage": "Battery geometry LOD",
+      "caveat": "Historical source differs.",
+      "records": [
+        {
+          "lowPower": false,
+          "wallSeconds": 17.263,
+          "submittedFrames": 5,
+          "measuredFps": 0.289636795458495,
+          "pageEvaluationP95Ms": 6507,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 3,
+              "frameBattleTime": 1,
+              "lowPower": false,
+              "triangles": 428938,
+              "calls": 333,
+              "renderMs": 9,
+              "meanFrameIntervalMs": 2868
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 8,
+              "frameBattleTime": 6.033999999999986,
+              "lowPower": false,
+              "triangles": 421786,
+              "calls": 307,
+              "renderMs": 12,
+              "meanFrameIntervalMs": 2606
+            },
+            "status": "playing；兵力 10；损失 2；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        },
+        {
+          "lowPower": true,
+          "wallSeconds": 15.311,
+          "submittedFrames": 29,
+          "measuredFps": 1.8940630918947163,
+          "pageEvaluationP95Ms": 753,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 8,
+              "frameBattleTime": 1.5630000000000006,
+              "lowPower": true,
+              "triangles": 230746,
+              "calls": 333,
+              "renderMs": 8,
+              "meanFrameIntervalMs": 1565
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 37,
+              "frameBattleTime": 16.562000000000097,
+              "lowPower": true,
+              "triangles": 216354,
+              "calls": 241,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 514
+            },
+            "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        }
+      ]
+    },
+    {
+      "stage": "First world cache",
+      "caveat": "Offscreen MSAA had not yet been restored; not a strict equal-quality comparison.",
+      "records": [
+        {
+          "lowPower": false,
+          "wallSeconds": 15.383,
+          "submittedFrames": 32,
+          "measuredFps": 2.0802184229344083,
+          "pageEvaluationP95Ms": 422,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 5,
+              "frameBattleTime": 2.5309999999999993,
+              "lowPower": false,
+              "triangles": 98512,
+              "calls": 223,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 333,
+              "renderMs": 3,
+              "meanFrameIntervalMs": 2657
+            },
+            "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 37,
+              "frameBattleTime": 17.69300000000012,
+              "lowPower": false,
+              "triangles": 73480,
+              "calls": 132,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 333,
+              "renderMs": 3,
+              "meanFrameIntervalMs": 473
+            },
+            "status": "playing；兵力 4；损失 8；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        },
+        {
+          "lowPower": true,
+          "wallSeconds": 15.018,
+          "submittedFrames": 87,
+          "measuredFps": 5.793048341989612,
+          "pageEvaluationP95Ms": 213,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 7,
+              "frameBattleTime": 0.46499999999999997,
+              "lowPower": true,
+              "triangles": 57728,
+              "calls": 222,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 333,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 1283
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 94,
+              "frameBattleTime": 15.08300000000006,
+              "lowPower": true,
+              "triangles": 45392,
+              "calls": 144,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 333,
+              "renderMs": 2,
+              "meanFrameIntervalMs": 170
+            },
+            "status": "playing；兵力 6；损失 6；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        }
+      ]
+    },
+    {
+      "stage": "Troop instancing",
+      "caveat": "Concurrent full Pages build created CPU contention; not a clean performance baseline.",
+      "records": [
+        {
+          "lowPower": false,
+          "wallSeconds": 16.567,
+          "submittedFrames": 16,
+          "measuredFps": 0.9657753365123438,
+          "pageEvaluationP95Ms": 3101,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 5,
+              "frameBattleTime": 2.529999999999999,
+              "lowPower": false,
+              "triangles": 98512,
+              "calls": 80,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 190,
+              "renderMs": 5,
+              "meanFrameIntervalMs": 3071
+            },
+            "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 21,
+              "frameBattleTime": 14.14500000000006,
+              "lowPower": false,
+              "triangles": 98512,
+              "calls": 79,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 190,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 1452
+            },
+            "status": "playing；兵力 6；损失 6；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        },
+        {
+          "lowPower": true,
+          "wallSeconds": 15.197,
+          "submittedFrames": 97,
+          "measuredFps": 6.38283871816806,
+          "pageEvaluationP95Ms": 186,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 6,
+              "frameBattleTime": 0.23700000000000002,
+              "lowPower": true,
+              "triangles": 57728,
+              "calls": 80,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 190,
+              "renderMs": 3,
+              "meanFrameIntervalMs": 3142
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 103,
+              "frameBattleTime": 15.16100000000006,
+              "lowPower": true,
+              "triangles": 57728,
+              "calls": 80,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 190,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 162
+            },
+            "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        }
+      ]
+    },
+    {
+      "stage": "Packed surviving troops, isolated measurement",
+      "caveat": "4x world-cache MSAA normal; no concurrent builds; source before enlarged gate composition.",
+      "records": [
+        {
+          "lowPower": false,
+          "wallSeconds": 15.037,
+          "submittedFrames": 28,
+          "measuredFps": 1.8620735519053002,
+          "pageEvaluationP95Ms": 504,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 5,
+              "frameBattleTime": 2.999999999999997,
+              "lowPower": false,
+              "triangles": 94936,
+              "calls": 80,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 189,
+              "renderMs": 3,
+              "meanFrameIntervalMs": 6225
+            },
+            "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 33,
+              "frameBattleTime": 18.307000000000116,
+              "lowPower": false,
+              "triangles": 69904,
+              "calls": 80,
+              "cachedWorldTriangles": 428938,
+              "cachedWorldCalls": 189,
+              "renderMs": 3,
+              "meanFrameIntervalMs": 684
+            },
+            "status": "playing；兵力 4；损失 8；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        },
+        {
+          "lowPower": true,
+          "wallSeconds": 15.22,
+          "submittedFrames": 126,
+          "measuredFps": 8.278580814717477,
+          "pageEvaluationP95Ms": 220,
+          "initial": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 7,
+              "frameBattleTime": 0.6820000000000002,
+              "lowPower": true,
+              "triangles": 57728,
+              "calls": 79,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 190,
+              "renderMs": 4,
+              "meanFrameIntervalMs": 2319
+            },
+            "status": "playing；兵力 12；损失 0；占领 0%；破门！让小队冲进去；发射 0；装填 0.00；"
+          },
+          "final": {
+            "renderer": {
+              "renderer": "three-webgl2",
+              "submittedFrames": 133,
+              "frameBattleTime": 15.640000000000061,
+              "lowPower": true,
+              "triangles": 45392,
+              "calls": 79,
+              "cachedWorldTriangles": 230746,
+              "cachedWorldCalls": 190,
+              "renderMs": 6,
+              "meanFrameIntervalMs": 120
+            },
+            "status": "playing；兵力 5；损失 7；占领 0%；箭塔压制！小队正在减员；发射 0；装填 0.00；"
+          },
+          "scope": "Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS"
+        }
+      ]
+    }
+  ]
+}

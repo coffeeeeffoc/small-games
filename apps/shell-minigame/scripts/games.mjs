@@ -10,7 +10,10 @@ export const games = {
     content: 'defaultCastleCannonEnvelope',
     orientation: 'landscape',
     configureAdvertising: true,
-    assets: [{ source: 'public/castle-cannon-audio', target: 'castle-cannon-audio' }],
+    assets: [
+      { source: 'public/castle-cannon-audio', target: 'castle-cannon-audio' },
+      { source: 'public/castle-cannon-art', target: 'castle-cannon-art' },
+    ],
   },
   'building-power': {
     title: '忙碌的电工',
