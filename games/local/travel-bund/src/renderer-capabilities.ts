@@ -22,3 +22,13 @@ export function isSoftwareRenderer(context: RendererContext): boolean {
 export function effectiveRendererQuality(preferred: number, software: boolean): number {
   return software ? 0 : preferred;
 }
+
+export const SOFTWARE_RENDERER_PIXEL_BUDGET = 250_000;
+
+export function softwareRendererDpr(width: number, height: number): number {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return 0.85;
+  return Math.min(
+    0.85,
+    Math.sqrt(SOFTWARE_RENDERER_PIXEL_BUDGET) / Math.sqrt(width) / Math.sqrt(height),
+  );
+}

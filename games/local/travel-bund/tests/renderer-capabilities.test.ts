@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isSoftwareRenderer, effectiveRendererQuality } from '../src/renderer-capabilities.ts';
+import {
+  isSoftwareRenderer,
+  effectiveRendererQuality,
+  softwareRendererDpr,
+  SOFTWARE_RENDERER_PIXEL_BUDGET,
+} from '../src/renderer-capabilities.ts';
 
 function context(renderer: unknown) {
   return {
@@ -72,4 +77,34 @@ test('missing, restricted, or throwing renderer capability preserves quality', (
     }),
     false,
   );
+});
+
+test('desktop software GPU pixels stay within the mobile-sized budget after resizing', () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1920, 1080],
+    [3840, 2160],
+    [900, 1440],
+    [32768, 32768],
+  ]) {
+    const dpr = softwareRendererDpr(width, height);
+    assert(dpr > 0 && dpr <= 0.85);
+    assert(width * height * dpr * dpr <= SOFTWARE_RENDERER_PIXEL_BUDGET + 1e-8);
+  }
+  assert.equal(softwareRendererDpr(1440, 900), softwareRendererDpr(900, 1440));
+  assert(softwareRendererDpr(1920, 1080) < softwareRendererDpr(1440, 900));
+});
+
+test('small mobile views keep existing .85 DPR and invalid layout measurements are safe', () => {
+  assert.equal(softwareRendererDpr(667, 375), 0.85);
+  assert.equal(softwareRendererDpr(844, 390), 0.85);
+  for (const [width, height] of [
+    [0, 900],
+    [1440, 0],
+    [-1, 900],
+    [NaN, 900],
+    [Infinity, 900],
+  ]) {
+    assert.equal(softwareRendererDpr(width, height), 0.85);
+  }
 });

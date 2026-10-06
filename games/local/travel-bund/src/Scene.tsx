@@ -904,25 +904,43 @@ export function Scene(props: Props) {
 
 // The homepage and tour share one runtime and viewpoint; inactive views render on demand.
 // This browser-only import stays below the native Scene generation boundary.
-import { isSoftwareRenderer, effectiveRendererQuality } from './renderer-capabilities';
+import { isSoftwareRenderer, effectiveRendererQuality, softwareRendererDpr } from './renderer-capabilities';
+
+function SoftwareRendererBudget({enabled, onDpr}: {enabled: boolean; onDpr: (dpr: number) => void}) {
+  const size = useThree((state) => state.size);
+  const setDpr = useThree((state) => state.setDpr);
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const dpr = softwareRendererDpr(size.width, size.height);
+    setDpr(dpr);
+    onDpr(dpr);
+  }, [enabled, size.width, size.height, setDpr, onDpr]);
+  return null;
+}
 
 export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
   const [softwareRenderer, setSoftwareRenderer] = useState(false);
+  const [softwareDpr, setSoftwareDpr] = useState(.85);
   const quality = effectiveRendererQuality(props.quality, softwareRenderer);
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     // Measure the logical layout, not the swapped bounding box of CSS rotation.
     resize={{ offsetSize: true }}
     shadows
-    dpr={[quality === 0 ? .85 : 1, quality === 0 ? .85 : quality === 1 ? 1.25 : 2]}
+    dpr={softwareRenderer ? softwareDpr : [quality === 0 ? .85 : 1, quality === 0 ? .85 : quality === 1 ? 1.25 : 2]}
     camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
       powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
-    onCreated={({gl, setDpr})=>{
+    onCreated={({gl, setDpr, size})=>{
       const software = isSoftwareRenderer(gl.getContext());
-      if (software) setDpr(.85);
+      if (software) {
+        const dpr = softwareRendererDpr(size.width, size.height);
+        setDpr(dpr);
+        setSoftwareDpr(dpr);
+      }
       setSoftwareRenderer(software);
       props.onRenderer(gl);
     }}>
+    <SoftwareRendererBudget enabled={softwareRenderer} onDpr={setSoftwareDpr}/>
     <Suspense fallback={null}><Scene {...props} quality={quality}/></Suspense>
   </Canvas>;
 }
