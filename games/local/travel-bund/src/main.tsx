@@ -11,7 +11,15 @@ import React, {
 import { createRoot } from 'react-dom/client';
 import type { WebGLRenderer } from 'three';
 import type { Telemetry, Teleport } from './Scene';
-import { clearInput, destinations, input, readVisits, stories, type WorldData } from './world';
+import {
+  clearInput,
+  destinations,
+  input,
+  readVisits,
+  stories,
+  type WorldData,
+  type V3,
+} from './world';
 import { audioActivity, chime, setAudio, lifeSound } from './audio';
 import { explorationRoutes, readRoute, routeProgress, routeShareUrl, type RouteId } from './routes';
 import {
@@ -24,6 +32,22 @@ import type { LifeEvent, LifeTarget } from './life';
 import { readSettings, SETTINGS_KEY } from './settings';
 import { clampZoom, wheelZoom } from './camera-controls';
 import { HudActions } from './HudActions';
+import {
+  photoHunts,
+  PHOTO_HUNT_SAVE_KEY,
+  emptyPhotoHuntSave,
+  readPhotoHuntSave,
+  persistPhotoHuntSave,
+  isPhotoHuntUnlocked,
+  settlePhotoHunt,
+  validatePhotoHunt,
+  photoHuntTarget,
+  cameraAim,
+  type PhotoHunt,
+  type PhotoPose,
+} from './photo-hunts';
+import { HuntMenu, HuntBrief, HuntTask, HuntResult } from './PhotoHuntUI';
+import { registerSnapshot } from './debug-snapshots';
 import './style.css';
 import { clientDelta, setupDisplay } from './display';
 import panelArt from './assets/panels-art.webp';
@@ -198,7 +222,17 @@ function App() {
     [ready, setReady] = useState(false),
     [started, setStarted] = useState(false);
   const launching = useRef(false);
-  const [panel, setPanel] = useState<'map' | 'pause' | 'story' | 'journal' | 'stall' | null>(null),
+  const [panel, setPanel] = useState<
+      | 'map'
+      | 'pause'
+      | 'story'
+      | 'journal'
+      | 'stall'
+      | 'hunts'
+      | 'hunt-preview'
+      | 'hunt-result'
+      | null
+    >(null),
     [active, setActive] = useState(false),
     [mouseLocked, setMouseLocked] = useState(false),
     [night, setNight] = useState(settings.night),
@@ -233,6 +267,25 @@ function App() {
       return [];
     }
   });
+  const [huntSave, setHuntSave] = useState(() => {
+    try {
+      return readPhotoHuntSave(localStorage.getItem(PHOTO_HUNT_SAVE_KEY));
+    } catch {
+      return emptyPhotoHuntSave();
+    }
+  });
+  const [huntId, setHuntId] = useState<string | null>(null),
+    [previewId, setPreviewId] = useState(photoHunts[0].id),
+    [huntPractice, setHuntPractice] = useState(false),
+    [huntPhoto, setHuntPhoto] = useState(''),
+    [huntStored, setHuntStored] = useState(true);
+  const hunt = photoHunts.find((item) => item.id === huntId),
+    previewHunt = photoHunts.find((item) => item.id === previewId)!,
+    nextHunt = hunt && photoHunts[photoHunts.indexOf(hunt) + 1];
+  const photoView = useRef<((target?: V3) => PhotoPose) | null>(null);
+  const receivePhotoView = useCallback((read: ((target?: V3) => PhotoPose) | null) => {
+    photoView.current = read;
+  }, []);
   const [selectedRoute, setSelectedRoute] = useState<RouteId | null>(() =>
       readRoute(location.search),
     ),
@@ -273,6 +326,7 @@ function App() {
   const [stats, setStats] = useState<Telemetry>({
     position: teleport.position,
     yaw: teleport.yaw,
+    pitch: teleport.pitch || 0,
     speed: 0,
     grounded: false,
     calls: 0,
@@ -280,7 +334,7 @@ function App() {
     fps: 0,
   });
   useEffect(() => {
-    if (!launching.current || !data || !selectedRoute) return;
+    if (!launching.current || !data || !selectedRoute || huntId) return;
     const invited = routeProgress(selectedRoute, visits)!;
     const stop = invited.next || invited.route.stops[0],
       landing = destinations[stop.destination];
@@ -301,7 +355,7 @@ function App() {
       ),
     );
     setTeleport((previous) => ({ ...landing, yaw, pitch, serial: previous.serial + 1 }));
-  }, [data, selectedRoute, started]);
+  }, [data, selectedRoute, started, huntId]);
   const renderer = useRef<WebGLRenderer | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
     noticeTimer = useRef<number>(0),
@@ -399,6 +453,8 @@ function App() {
     setSitting(false);
     setZoom(1);
     setLifeTarget(null);
+    setHuntId(null);
+    setHuntPractice(false);
   }
   function keepMoment(id: string) {
     setMoments((previous) => {
@@ -573,7 +629,37 @@ function App() {
     if (!renderer.current || !ready) return;
     try {
       const image = renderer.current.domElement.toDataURL('image/png');
+      if (!image.startsWith('data:image/png') || renderer.current.domElement.width === 0)
+        throw Error('empty photo');
       setPhoto(image);
+      if (hunt && input.active && data) {
+        const pose = photoView.current?.(photoHuntTarget(hunt, data) ?? undefined);
+        if (!pose) {
+          notify('镜头还未准备好，请稍后再拍。');
+          return;
+        }
+        const result = huntPractice
+          ? { ...validatePhotoHunt(hunt, pose, data), save: huntSave, newlyCompleted: false }
+          : settlePhotoHunt(huntSave, hunt.id, pose, data);
+        if (!result.ok) {
+          notify(result.reason);
+          return;
+        }
+        if (result.newlyCompleted) {
+          setHuntSave(result.save);
+          let stored = false;
+          try {
+            stored = persistPhotoHuntSave(localStorage, result.save);
+          } catch {}
+          setHuntStored(stored);
+        }
+        setHuntPhoto(image);
+        setNotice('');
+        window.clearTimeout(noticeTimer.current);
+        chime();
+        open('hunt-result');
+        return;
+      }
       chime();
       notify('已拍照，打开手记可以保存照片。');
     } catch {
@@ -615,6 +701,8 @@ function App() {
     chime();
   }
   function chooseRoute(id: RouteId) {
+    setHuntId(null);
+    setHuntPractice(false);
     shareVersion.current++;
     const selected = routeProgress(id, visits)!;
     setSelectedRoute(id);
@@ -645,6 +733,80 @@ function App() {
     );
     notify(`已选「${selected.route.title}」。走近目标并收入手记，完成三处打卡。`);
   }
+  function previewPhotoHunt(selected: PhotoHunt) {
+    if (!isPhotoHuntUnlocked(huntSave, selected.id)) return;
+    setPreviewId(selected.id);
+    open('hunt-preview');
+  }
+  function endPhotoHunt(resume = false) {
+    setHuntId(null);
+    setHuntPractice(false);
+    setHuntPhoto('');
+    if (resume) start(false);
+    else setPanel('hunts');
+  }
+  function closePanel() {
+    if (panel === 'hunt-preview' && started && huntId !== previewId) setPanel('hunts');
+    else if (started) start(false);
+    else setPanel(null);
+  }
+  function beginPhotoHunt(selected: PhotoHunt, practice = false) {
+    if (!practice && !isPhotoHuntUnlocked(huntSave, selected.id)) return;
+    setHuntId(selected.id);
+    setPreviewId(selected.id);
+    setHuntPractice(practice);
+    setHuntPhoto('');
+    setSitting(false);
+    setZoom(1);
+    setTeleport((previous) => ({ ...selected.start, serial: previous.serial + 1 }));
+    start(false);
+    notify('沿步道找回照片的视角，再按拍照确认。');
+  }
+  useEffect(() => {
+    if (!window.SmallGamesDev.isEnabled() || !data) return;
+    return window.SmallGamesDev.registerActions(
+      photoHunts.map((selected) => ({
+        id: `photo-reference-${selected.id}`,
+        label: `寻景试玩：${selected.title}`,
+        run: () => {
+          const target = photoHuntTarget(selected, data);
+          if (!target) return;
+          beginPhotoHunt(selected, true);
+          setTeleport((previous) => ({
+            position: selected.station.position,
+            ...cameraAim(selected.station.position, target),
+            serial: previous.serial + 1,
+          }));
+        },
+      })),
+    );
+  }, [data, ready, started, huntSave, start]);
+  const huntTarget = hunt && data ? photoHuntTarget(hunt, data) : null;
+  const huntSnapshot = useRef({
+    selected: huntId,
+    preview: previewId,
+    save: huntSave,
+    practice: huntPractice,
+    stats,
+    target: huntTarget,
+  });
+  huntSnapshot.current = {
+    selected: huntId,
+    preview: previewId,
+    save: huntSave,
+    practice: huntPractice,
+    stats,
+    target: huntTarget,
+  };
+  useEffect(() => {
+    if (!window.SmallGamesDev.isEnabled()) return;
+    return registerSnapshot(() => ({
+      photoHunts: {
+        ...huntSnapshot.current,
+        pose: photoView.current?.(huntSnapshot.current.target ?? undefined),
+      },
+    }));
+  }, []);
   function changeRenderDetail(detail: RenderDetail) {
     shareVersion.current++;
     setShareLink('');
@@ -910,6 +1072,9 @@ function App() {
       data-quality={quality}
       data-zoom={zoom.toFixed(3)}
       data-yaw={stats.yaw.toFixed(3)}
+      data-pitch={(stats.pitch ?? 0).toFixed(3)}
+      data-photo-hunt={huntId || ''}
+      data-photo-completed={huntSave.completed.length}
       data-fps={stats.fps.toFixed(2)}
       data-calls={stats.calls}
       data-triangles={stats.triangles}
@@ -938,6 +1103,7 @@ function App() {
                 teleport={teleport}
                 onReady={readyScene}
                 onTelemetry={setStats}
+                onPhotoView={receivePhotoView}
                 quality={quality}
                 renderDetail={renderDetail}
                 crowd={crowd}
@@ -995,6 +1161,12 @@ function App() {
             )}
             <button className="home-journal" onClick={() => open('journal')}>
               我的旅行手记　↗
+            </button>
+            <button className="home-hunts" aria-label="照片寻景关卡" onClick={() => open('hunts')}>
+              <span>照片寻景　↗</span>
+              <small>
+                {huntSave.completed.length} / {photoHunts.length} · 看照片找地点
+              </small>
             </button>
             <div className="intro-routes" aria-label="挑一条漫游路线">
               {explorationRoutes.map((route) => (
@@ -1117,7 +1289,17 @@ function App() {
                   <small>轻点互动</small>
                 </button>
               )}
-              {progress && (
+              {hunt && (
+                <HuntTask
+                  hunt={hunt}
+                  practice={huntPractice}
+                  onOpen={() => {
+                    setPreviewId(hunt.id);
+                    open('hunt-preview');
+                  }}
+                />
+              )}
+              {progress && !hunt && (
                 <button
                   className="route-task"
                   onClick={() => open('map')}
@@ -1247,19 +1429,24 @@ function App() {
         className={`panel panel-${panel || 'closed'}`}
         onCancel={(e) => {
           e.preventDefault();
-          if (started) start(false);
-          else setPanel(null);
+          closePanel();
         }}
         aria-label={
-          panel === 'map'
-            ? '两岸地图'
-            : panel === 'story'
-              ? '地标介绍'
-              : panel === 'journal'
-                ? '旅行手记'
-                : panel === 'stall'
-                  ? '江风小站'
-                  : '漫游设置'
+          panel === 'hunts'
+            ? '照片寻景'
+            : panel === 'hunt-preview'
+              ? '寻景照片'
+              : panel === 'hunt-result'
+                ? '寻景通关'
+                : panel === 'map'
+                  ? '两岸地图'
+                  : panel === 'story'
+                    ? '地标介绍'
+                    : panel === 'journal'
+                      ? '旅行手记'
+                      : panel === 'stall'
+                        ? '江风小站'
+                        : '漫游设置'
         }
       >
         {panel !== 'pause' && (
@@ -1275,7 +1462,7 @@ function App() {
         )}
         <button
           className="close"
-          onClick={() => (started ? start(false) : setPanel(null))}
+          onClick={closePanel}
           aria-label={started ? '返回漫游' : '返回首页'}
         >
           ×
@@ -1296,6 +1483,47 @@ function App() {
               );
             })}
           </svg>
+          {panel === 'hunts' && (
+            <>
+              <HuntMenu save={huntSave} onChoose={previewPhotoHunt} />
+              {hunt && (
+                <button className="hunt-menu-link" onClick={() => endPhotoHunt(true)}>
+                  结束寻找，继续漫游
+                </button>
+              )}
+            </>
+          )}
+          {panel === 'hunt-preview' && (
+            <HuntBrief
+              key={previewHunt.id}
+              hunt={previewHunt}
+              playing={started && huntId === previewHunt.id}
+              onStart={() =>
+                started && huntId === previewHunt.id ? start(false) : beginPhotoHunt(previewHunt)
+              }
+              onMenu={() => setPanel('hunts')}
+            />
+          )}
+          {panel === 'hunt-result' && hunt && huntPhoto && (
+            <>
+              <HuntResult
+                hunt={hunt}
+                photo={huntPhoto}
+                practice={huntPractice}
+                next={nextHunt}
+                onNext={() =>
+                  nextHunt && !huntPractice ? previewPhotoHunt(nextHunt) : endPhotoHunt()
+                }
+                onRetry={() => beginPhotoHunt(hunt, huntPractice)}
+                onMenu={() => setPanel('hunts')}
+              />
+              {!huntStored && (
+                <p className="muted" role="status">
+                  本次进度已保留；浏览器暂时无法存档，关闭页面后会丢失。
+                </p>
+              )}
+            </>
+          )}
           {panel === 'pause' && (
             <>
               <div className="settings">
@@ -1444,6 +1672,9 @@ function App() {
               <p className="eyebrow">ACROSS THE RIVER</p>
               <h2>沿江，去走走。</h2>
               <p className="muted">选择一处落脚点，接下来的路由你决定。</p>
+              <button className="map-hunts" onClick={() => setPanel('hunts')}>
+                照片寻景　{huntSave.completed.length} / {photoHunts.length}　↗
+              </button>
               <div className="map-art">
                 <svg viewBox="-950 -1630 3500 3470" role="img" aria-label="外滩两岸位置图">
                   <defs>
@@ -1575,6 +1806,9 @@ function App() {
               <p className="eyebrow">LITTLE THINGS, KEPT</p>
               <h2>把江风留下。</h2>
               <p className="muted">已收藏 {visits.length} 处风景</p>
+              <button className="map-hunts" onClick={() => setPanel('hunts')}>
+                照片寻景　{huntSave.completed.length} / {photoHunts.length}　↗
+              </button>
               {moments.length > 0 && (
                 <div className="life-journal">
                   <h3>江边的小日常</h3>

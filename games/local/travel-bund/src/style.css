@@ -165,8 +165,8 @@ button.primary:hover {
 .intro {
   position: absolute;
   inset: 0;
-  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 4%)
-    calc(var(--safe-bottom) + 16px) calc(var(--safe-left) + 4%);
+  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 4%) calc(var(--safe-bottom) + 16px)
+    calc(var(--safe-left) + 4%);
   pointer-events: none;
 }
 .intro button,
@@ -545,8 +545,7 @@ h1 em {
 }
 .look-pad {
   position: absolute;
-  inset: calc(var(--safe-top) + 64px) var(--safe-right)
-    calc(var(--safe-bottom) + 16px) 35%;
+  inset: calc(var(--safe-top) + 64px) var(--safe-right) calc(var(--safe-bottom) + 16px) 35%;
   touch-action: none;
   z-index: 1;
 }
@@ -1700,6 +1699,255 @@ dialog.panel-story[data-compact-landscape='true'] .story-text {
 @container bund-panel (max-width: 440px) {
   dialog[data-compact-landscape='true'] .settings {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.home-hunts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 13px;
+  background: #294d55;
+  color: #fffaf0;
+  text-align: left;
+}
+.home-hunts:hover {
+  background: #356069;
+}
+.home-hunts small {
+  font-size: 10px;
+  font-weight: normal;
+}
+.hunt-task {
+  position: absolute;
+  top: calc(var(--safe-top) + 74px);
+  left: calc(var(--safe-left) + 18px);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(330px, 48cqw);
+  padding: 6px 10px 6px 6px;
+  background: #fffaf0ed;
+  box-shadow: 0 4px 14px #163f4724;
+  text-align: left;
+}
+.hunt-task img {
+  width: 75px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+.hunt-task strong,
+.hunt-task small {
+  display: block;
+}
+.hunt-task strong {
+  font-size: 12px;
+}
+.hunt-task small {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.hunt-task > svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.hunt-subtitle {
+  text-align: center;
+  margin: 4px 0 15px;
+}
+.hunt-levels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.hunt-levels button {
+  position: relative;
+  padding: 7px 7px 12px;
+  text-align: left;
+  background: #fffef9;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.hunt-levels img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 9px;
+  margin-bottom: 9px;
+}
+.hunt-levels button:disabled img {
+  filter: grayscale(0.75);
+}
+.hunt-levels strong,
+.hunt-levels small {
+  display: block;
+  margin: 0 5px;
+}
+.hunt-levels strong {
+  font-size: 13px;
+}
+.hunt-levels small {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.hunt-number {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  padding: 4px 7px;
+  background: #fffaf0ed;
+  border-radius: 7px;
+  font:
+    13px Georgia,
+    serif;
+}
+.hunt-levels .hunt-complete {
+  border-color: #426d5e;
+}
+.hunt-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 14px;
+}
+.hunt-brief figure,
+.hunt-comparison figure {
+  margin: 0;
+}
+.hunt-reference img,
+.hunt-comparison img {
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 5px solid #fffef9;
+  border-radius: 9px;
+}
+.hunt-reference figcaption,
+.hunt-comparison figcaption {
+  font-size: 11px;
+  text-align: center;
+  margin-top: 7px;
+}
+.hunt-instructions > p {
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 0 0 9px;
+}
+.hunt-hint {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.hunt-hint summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+}
+.hunt-hint p {
+  background: #e3e9d9;
+  padding: 10px;
+  margin: 0 0 10px;
+  border-radius: 10px;
+}
+.hunt-menu-link {
+  width: 100%;
+  margin-top: 9px;
+  padding: 10px;
+}
+.hunt-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.hunt-result-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 15px;
+}
+.hunt-result-actions button {
+  padding: 12px 10px;
+  font-size: 12px;
+}
+.hunt-result-actions a {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.map-hunts {
+  width: 100%;
+  margin-bottom: 10px;
+  background: #e3e9d9;
+}
+@container bund-view (max-height: 540px) and (min-width: 400px) {
+  .home-hunts {
+    grid-column: 1 / -1;
+    margin: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .hunt-task {
+    top: calc(var(--safe-top) + 68px);
+    max-width: min(300px, 46cqw);
+  }
+  .hunt-task img {
+    width: 63px;
+    height: 42px;
+  }
+  .hunt-task small {
+    font-size: 9px;
+  }
+}
+dialog.panel-hunts[data-compact-landscape='true'] .hunt-levels {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+dialog.panel-hunts[data-compact-landscape='true'] .hunt-levels img {
+  aspect-ratio: 4 / 3;
+}
+dialog.panel-hunt-preview[data-compact-landscape='true'] .hunt-brief {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+dialog.panel-hunt-preview[data-compact-landscape='true'] .hunt-reference img {
+  max-height: 220px;
+}
+dialog.panel-hunt-preview[data-compact-landscape='true'] .hunt-instructions > p {
+  font-size: 12px;
+}
+dialog.panel-hunt-result[data-compact-landscape='true'] .hunt-comparison img {
+  max-height: clamp(60px, calc(var(--game-height) - 265px), 125px);
+  object-fit: contain;
+  background: #e4e7dc;
+}
+dialog.panel-hunt-result[data-compact-landscape='true'] .hunt-result-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+dialog:is(.panel-hunts, .panel-hunt-preview, .panel-hunt-result)[data-compact-landscape='true']
+  .dialog-banner {
+  height: 44px;
+}
+@container bund-panel (max-width: 520px) {
+  dialog.panel-hunts[data-compact-landscape='true'] .hunt-levels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  dialog.panel-hunt-preview[data-compact-landscape='true'] .hunt-brief {
+    gap: 12px;
+  }
+  dialog.panel-hunt-result[data-compact-landscape='true'] .hunt-result-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

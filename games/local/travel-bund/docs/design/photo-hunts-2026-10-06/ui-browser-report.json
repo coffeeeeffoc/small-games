@@ -1,0 +1,36 @@
+{
+  "browser": "151.0.7922.173",
+  "physicalMobile": false,
+  "scene": "isolated PNG renderer and live pose; actual App and touch input",
+  "checks": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "checks": "touch selection/lock, reference decode, hint, wrong station/yaw/pitch/airborne rejection, unavailable live camera and failed PNG, pause/resume, live shutter pose, reference + PNG result, immediate visible next/retry buttons, stale capture failure cleared, idempotent retake, next-brief cancellation, all four levels, saved unlock restoration, completion and explicit exit clear the task"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "checks": "touch selection/lock, reference decode, hint, wrong station/yaw/pitch/airborne rejection, unavailable live camera and failed PNG, pause/resume, live shutter pose, reference + PNG result, immediate visible next/retry buttons, stale capture failure cleared, idempotent retake, next-brief cancellation, all four levels, saved unlock restoration, completion and explicit exit clear the task"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "checks": "one-level touch completion, result reference/photo with visible next/retry controls without scrolling, capture failure cleared, next-level brief"
+    },
+    {
+      "storageUnavailable": "Denied browser storage still permits local completion and the next unlocked level in this session"
+    },
+    {
+      "developerPractice": "Explicit shared dev action can preview a locked photo; successful photography does not award normal progress or unlocks, and finish clears practice"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

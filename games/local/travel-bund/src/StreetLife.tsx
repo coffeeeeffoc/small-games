@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { smoothTreeInstances } from './render-budget';
 import { CLOUD_ATLAS_SIZE, CLOUD_COUNT, createClouds } from './clouds';
 import { input, type V3, type WorldData } from './world';
+import { registerSnapshot } from './debug-snapshots';
 import {
   kioskPoint,
   lifeBlocks,
@@ -26,20 +27,6 @@ type Props = {
   onTarget: (target: LifeTarget | null) => void;
 };
 const colour = new THREE.Color();
-// The shared dev API has one snapshot callback. Merge weather and nearby life
-// without either component replacing the other's diagnostics when it mounts.
-const snapshots = new Map<symbol, () => Record<string, unknown>>();
-const readSnapshot = () => Object.assign({}, ...[...snapshots.values()].map(read => read()));
-function registerSnapshot(read: () => Record<string, unknown>) {
-  const key = Symbol();
-  snapshots.set(key, read);
-  const unregister = window.SmallGamesDev.registerSnapshot(readSnapshot);
-  return () => {
-    snapshots.delete(key);
-    if (!snapshots.size) unregister();
-  };
-}
-
 function LifeInstances({
   blocks,
   crowd,

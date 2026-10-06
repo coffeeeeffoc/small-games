@@ -4,6 +4,8 @@
 
 基于根目录 `assets/bund` 的第一视角室外漫游。React 19 + React Three Fiber 9 + Three.js + Drei + Rapier，独立 Vite Game，通过 Shell 的同源 iframe 接入。
 
+2026-10-06 照片寻景：增加四个逐关解锁的找景关卡，先看参考照片，再在城市中找到相同的江边视角并拍照确认。历史建筑增加石材错缝、檐口饰线、菱形与扇纹、砖缝、窗框和窗棂；原始、均衡、轻量模型共用装饰规则，无新增模型或纹理下载。效果图、参考照片来源与实景验证见 [照片寻景设计记录](docs/design/photo-hunts-2026-10-06/README.md)。
+
 2026-10-06 操作修正：默认 18 m/s 高速移动、Esc 后点击场景恢复鼠标、触摸跟手环顾、滚轮和双指缩放、中文动作按钮与柔边白云。设计与验收见 [操作与天空调整](docs/design/controls-2026-10-06/README.md)。
 
 2026-10-05 生活场景改版：新增手机首页设置入口、沉浸式游览、生活小摊、游客挥手、鸽子起飞、花箱、近处绿植、白云、飘带、接触阴影与生活手记。效果图、修正过程、Blender 模型和实景见 [设计与实现记录](docs/design/README.md)。新增完整场景验收命令：`pnpm --filter @coffeeeeffoc/travel-bund test:life`。
@@ -26,6 +28,8 @@ pnpm --filter @coffeeeeffoc/travel-bund test:controls
 pnpm --filter @coffeeeeffoc/travel-bund test:settings
 pnpm --filter @coffeeeeffoc/travel-bund test:preview
 pnpm --filter @coffeeeeffoc/travel-bund test:routes
+pnpm --filter @coffeeeeffoc/travel-bund test:photo-hunts
+pnpm --filter @coffeeeeffoc/travel-bund test:photo-hunts:scene
 pnpm --filter @coffeeeeffoc/travel-bund test:performance
 ```
 
@@ -44,6 +48,16 @@ pnpm --filter @coffeeeeffoc/travel-bund test:performance
 - 地图新增三条轻量探索路线：“钟楼与旧石墙”“桥边的三段故事”“三种摩天轮廓”。每条三处，走近真实地标并收入手记后才计为打卡，界面显示下一处目标；原有收藏继续计入，无时间限制。分享邀请从下一处目标附近的既有安全落脚点开始。
 - 首屏可直接挑路线出发，初始镜头朝向首个目标；漫游提示显示下一处距离和方向箭头，帮助第一次来的玩家找到风景。
 - 手记可保存 1080×1350 的个人漫游纪念卡，并邀请朋友走同一条路线。系统分享取消会直接结束；不支持时复制公开链接，剪贴板也不可用时显示可选中的链接。链接只保留自身 origin/path、合法 `route=architecture|bridges|skyline` 和所选 `renderDetail=original|balanced|light`，不会携带进度或其它页面参数；重复/非法路线参数会忽略。
+
+## 照片寻景关卡
+
+从首页、地图或手记打开“照片寻景”，依次挑战“钟声入镜”“石墙与柱廊”“绿色屋顶”“隔江的明珠”。已通过的关卡可以重拍，尚未解锁的关卡需先完成上一关。每关从附近的安全步道出发，左上角的小照片卡可打开大图；“找景提示”按需说明地标和拍摄区域。
+
+按快门时必须站在对应拍摄区域、地标模型已加载、人物已站稳，并让目标进入当前镜头的取景范围。地点、距离、朝向、仰角或缩放不合适时显示原因，继续寻找；正确照片进入参考图与本次照片的对比页，解锁下一关。地标收藏和小摊明信片不会代替拍照通关。
+
+关卡配置与规则位于 `src/photo-hunts.ts`，照片由真实游戏城市场景捕获，位于 `src/assets/photo-hunts/`。这是游戏内的拍摄位置判断。四张图片总量约数百 KB，只有照片和界面资源新增；城市模型继续分块加载。进度独立保存在 `travel-bund.photo-hunts.v1`，兼容既有旅行手记；照片请下载到设备。浏览器无法存档时仍可在本次会话继续解锁。
+
+开发模式增加四个“寻景试玩”站位动作，仅供检查镜头和参考照片；试玩照片不授予正式进度。`test:photo-hunts` 隔离 3D Scene 验证真实 App 的选关、失败反馈、四关解锁、结算、存档与旋转触屏流程；`test:photo-hunts:scene` 使用完整场景验证真实参考照片、建筑着色与物理触屏拍摄。软件 WebGL 和触屏模拟不代表真机性能或 Safari 验收。
 
 ## 资产管线
 
