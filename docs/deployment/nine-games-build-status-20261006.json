@@ -30,7 +30,7 @@
       "game": "carding-car",
       "platform": "kuaishou",
       "status": "blocked",
-      "reason": "file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124\n  if (info.blocked) throw Error(info.blocked);\n                          ^\n\nError: No compatible official Creator 3.8.8 Kuaishou adapter has been verified in this repository.\n    at buildPlatform (file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124:27)\n    at file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:233:24\n    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.21.0\n",
+      "reason": "file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124\n  if (info.blocked) throw Error(info.blocked);\n                          ^\n\nError: Kuaishou requires a Creator WeChat source export converted by official Kuaishou DevTools (kwaiadapter.js); no verified converted native artifact is available.\n    at buildPlatform (file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124:27)\n    at file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:233:24\n    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.21.0\n",
       "officialTools": "unrun",
       "device": "unrun"
     },
@@ -245,40 +245,40 @@
     {
       "game": "travel-bund",
       "platform": "wechat",
-      "status": "blocked",
-      "reason": "React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.",
+      "status": "built-integrity-checked",
+      "directory": "apps/shell-minigame/dist/nine-games/wechat/travel-bund",
       "officialTools": "unrun",
       "device": "unrun"
     },
     {
       "game": "travel-bund",
       "platform": "bilibili",
-      "status": "blocked",
-      "reason": "React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.",
+      "status": "built-integrity-checked",
+      "directory": "apps/shell-minigame/dist/nine-games/bilibili/travel-bund",
       "officialTools": "unrun",
       "device": "unrun"
     },
     {
       "game": "travel-bund",
       "platform": "douyin",
-      "status": "blocked",
-      "reason": "React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.",
+      "status": "built-integrity-checked",
+      "directory": "apps/shell-minigame/dist/nine-games/douyin/travel-bund",
       "officialTools": "unrun",
       "device": "unrun"
     },
     {
       "game": "travel-bund",
       "platform": "kuaishou",
-      "status": "blocked",
-      "reason": "React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.",
+      "status": "built-integrity-checked",
+      "directory": "apps/shell-minigame/dist/nine-games/kuaishou/travel-bund",
       "officialTools": "unrun",
       "device": "unrun"
     },
     {
       "game": "travel-bund",
       "platform": "alipay",
-      "status": "blocked",
-      "reason": "React DOM / R3F / HTML UI require a real native WebGL scene and UI port; H5 export is not a mini-game package.",
+      "status": "built-integrity-checked",
+      "directory": "apps/shell-minigame/dist/nine-games/alipay/travel-bund",
       "officialTools": "unrun",
       "device": "unrun"
     },
@@ -310,7 +310,7 @@
       "game": "night-overwatch",
       "platform": "kuaishou",
       "status": "blocked",
-      "reason": "file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124\n  if (info.blocked) throw Error(info.blocked);\n                          ^\n\nError: No compatible official Creator 3.8.8 Kuaishou adapter has been verified in this repository.\n    at buildPlatform (file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124:27)\n    at file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:233:24\n    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.21.0\n",
+      "reason": "file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124\n  if (info.blocked) throw Error(info.blocked);\n                          ^\n\nError: Kuaishou requires a Creator WeChat source export converted by official Kuaishou DevTools (kwaiadapter.js); no verified converted native artifact is available.\n    at buildPlatform (file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:124:27)\n    at file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:233:24\n    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.21.0\n",
       "officialTools": "unrun",
       "device": "unrun"
     },
@@ -362,5 +362,7 @@
       "officialTools": "unrun",
       "device": "unrun"
     }
-  ]
+  ],
+  "testedImplementationCommit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
+  "recordNote": "Build executed with only game-meta/document edits uncommitted; exact final-candidate rebuild is recorded in ignored dist manifests and delivery logs."
 }

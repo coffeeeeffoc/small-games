@@ -10,7 +10,7 @@
 
 夜航仅修复原生宿主误显示/调用浏览器全屏。它的源指纹已经变化，必须由 Creator 重新构建。卡丁车引擎源码未改，不能用不匹配的缓存冒充已验证产物。
 
-外滩仍依赖 React DOM/R3F、GLTF/Draco、Rapier、Web Audio 与浏览器拍照导出。五平台均明确阻塞真实原生迁移；生成 H5 或改包名不算接入。
+外滩已迁移至原生 WebGL2 Canvas + R3F createRoot，复用原 Scene、398 个原 GLB、真实 Rapier WASM 和官方 Draco JS 解码器；不依赖 React DOM、WebView 或假物理。原生 Canvas HUD 提供主页、路线、寻景、设置、帮助、暂停返回与照片手记。宿主没有 TextDecoder 时使用经过契约比对的 UTF-8 解码实现。完整远程原场景 38,142,217 字节逐文件固定 SHA256；复用现有 H5 Pages 资源，未向 Pages 复制原生包或新增重复模型。主包含 WASM、参考图、音频和许可，构建器将 wrapper/config/完整性 manifest 全计入 4,000,000 字节预算。
 
 ## 命令与环境变量
 
@@ -46,14 +46,22 @@ AppID 是公开客户端配置；AppSecret、支付宝私钥、换码服务凭�
 
 输出为 `apps/shell-minigame/dist/nine-games/<platform>/<slug>/`，包括真实 `game.js`、本平台配置、本地资源、`release.json` 与 `artifact-manifest.json`。manifest 记录固定范围提交、实际构建源码文件 SHA-256、`sourceTreeDirty`（有未提交改动时明确标记，不能把基准 HEAD 当作准确候选）、包文件字节数/SHA-256、preview/release 及外部验证状态。`build-status.json` 记录每个目标成功或具体失败原因；失败目标先清理旧输出，不能遗留旧包伪装成功。
 
-B站的 `game.json` 使用其必填 `appId`、`version`，并核对侧边栏/桌面入口能力；支付宝使用现行 `deviceOrientation`、自己的工程配置和代码包文件白名单，显式保留词屿教材 JSON、本批 WAV 音效及乌龙真实音效。支付宝教材读取按其官方要求使用根路径和 UTF-8，不采用微信存储/文件签名假定。Cocos 支付宝目标为官方 `alipay-mini-game`，快手 Creator 适配插件缺失时明确拒绝构建。
+B站的 `game.json` 使用其必填 `appId`、`version`，并核对侧边栏/桌面入口能力；支付宝使用现行 `deviceOrientation`、自己的工程配置和代码包文件白名单，显式保留词屿教材 JSON、本批 WAV 音效及乌龙真实音效。支付宝教材读取按其官方要求使用根路径和 UTF-8，不采用微信存储/文件签名假定。Cocos 支付宝目标为官方 `alipay-mini-game`，快手要求 Creator 微信源工程经官方快手开发者工具转换并产生 kwaiadapter.js；本环境没有可验证转换产物，因此明确拒绝，不改名微信包。
 
 45 个构建目标不是 45 次平台验收。本轮的 Node/Chromium/无 DOM VM 契约均为本地证据：真实 SDK 图片解码、音频、官方包体/基础库限制、登录绑定、广告、真实手机性能与审核仍须平台工具/设备逐款验证。产物中的 `officialToolsVerified`、`deviceVerified`、`platformLoginVerified` 不会因填写 AppID 自动变为 true。
 
 ## 证据与剩余事项
 
-当前逐目标状态和能力矩阵见同目录 `nine-games-build-status-20261006.json` 与 `nine-games-capabilities-20261006.json`。各游戏实际浏览器/触屏截图与测试报告在游戏设计目录。外滩的本轮移动 UI 复测隔离了 3D Renderer，不能当作真实手机性能验收。
+当前逐目标状态和能力矩阵见同目录 `nine-games-build-status-20261006.json` 与 `nine-games-capabilities-20261006.json`。各游戏实际浏览器/触屏截图与测试报告在游戏设计目录。外滩后续验收已运行真实 WebGL2、原 GLB 和 Rapier WASM，覆盖横竖屏菜单、移动、取消、照片、后台恢复与清理；无 DOM/无 TextDecoder 的 Worker 专项通过。浏览器宿主桥接仍是本地验证，不能当作实体手机或官方 SDK 验收。
 
-仍需 Creator 3.8.8 和严格匹配的 Cocos 产物、可信快手引擎适配、外滩真实原生移植，乌龙城共享宿主安全区/胶囊与窗口变化处理仍有源码缺口，不能仅凭正常尺寸截图判为已验。本轮未注册账户、购买服务、改平台权限、上传、提审或发布。
+35 个 Canvas/WebGL 原生 preview 目标完成构建和资源完整性复核；卡丁车及夜航的 10 个 Cocos 目标仍因 Creator 3.8.8/官方快手转换工具缺失而阻塞。卡丁车仅复用了严格匹配的已有 H5 引擎产物，不把它当小游戏包；夜航旧产物源指纹不匹配，已拒绝复用。乌龙城共享宿主已完成安全区/胶囊映射、横竖屏与 resize 重绘，实际 CJS 包触屏验证保留关卡与存档。本轮未注册账户、购买服务、改平台权限、上传、提审或发布。
 
 官方核对依据（2026-10-06）：[B站配置](https://miniapp.bilibili.com/small-game-doc/framework/config)、[快手流程](https://open.kuaishou.com/miniGameDocs/gameDev/start/start.html)、[快手 API](https://open.kuaishou.com/miniGameDocs/gameDev/api/api.html)、[抖音配置](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/framework/mini-game-configuration)、[支付宝配置](https://opendocs.alipay.com/mini-game/0fx941)、[支付宝文件读取](https://opendocs.alipay.com/mini-game/08urvh)。微信官网当前抓取失败，沿用仓库已核对适配层并明确保留外部验证缺口；不使用第三方资料替代官方 SDK 协议。
+
+## 照片分包与外滩资源配置
+
+此时·此地的 33 张原照片（包括服务端好友挑战使用的 5 张）均保留原字节，打成 5 个资源分包，每包小于 2,500,000 字节。主包使用真实 loadSubpackage 成功后才设置 SDK Image.src；失败可重试，并防止迟到回调覆盖新场景。抖音 game.json 使用 subPackages，其余平台使用各自核对的 subpackages；支付宝请求使用 dataType/status，文件/存储签名分别转换，不借用微信协议。完整性检查同时验证照片映射、实际分包入口和 SHA256。
+
+外滩 release 另须明确提供 `MINIGAME_TRAVEL_BUND_ASSET_BASE`，为无凭据、无查询参数的公开 HTTPS 目录，并在对应平台登记合法资源域名；preview 才默认使用现有 Pages 地址。B站域名备案等要求不能因 URL 可访问而算已满足。没有登记域名、真实 SDK WASM/WebGL2/离屏图像能力验收时不能标记正式接入完成。许可文本随包保留。
+
+受影响 H5 构建只验证此时·此地的可选照片 loader 和外滩原项目；原生包、原生源文件、设计证据均不进入 Pages 输出。部署容量仍以实际 Pages 全输出为准；本任务没有清理历史或更改托管策略。
