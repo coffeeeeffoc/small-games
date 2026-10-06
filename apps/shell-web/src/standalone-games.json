@@ -383,5 +383,12 @@
     "title": "一炮拆城",
     "description": "拖动瞄准，松手开炮！先破门抢推进，先拆箭塔保兵力，用两种炮弹护送小队攻下三座小城。",
     "output": "dist"
+  },
+  {
+    "id": "tetracube",
+    "source": "games/local/tetracube",
+    "title": "重力方舱",
+    "description": "三轴旋转四连立方体，填满空间平面；改变重力，让整座方块舱压实重构，制造连锁消除。",
+    "output": "dist"
   }
 ]
