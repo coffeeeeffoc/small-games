@@ -10,7 +10,7 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
-import { nineNativeFileScopes } from './nine-native-scope.mjs';
+import { nineNativeFileScopes, isNineNativeOnlyPath } from './nine-native-scope.mjs';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
 import {
   incrementalPlan,
@@ -179,81 +179,111 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
 
 export function runNineNativeChecks({ plan, packages, root, env, execute = run }) {
   const checks = plan.nine_native_checks || [];
-  if (!checks.length) return;
+  const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
+  const games = [
+    'carding-car',
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'letters-words2',
+    'vibeJam-myself-history-guess',
+    'xiangqi-five',
+    'travel-bund',
+    'night-overwatch',
+    'wulong-city',
+  ];
+  const targets = new Map();
+  for (const target of plan.nine_native_targets || []) {
+    assert(
+      games.includes(target.game) && platforms.includes(target.platform),
+      'Unknown first-nine native target',
+    );
+    targets.set(`${target.game}/${target.platform}`, target);
+  }
+  for (const check of checks)
+    for (const game of check.games)
+      for (const platform of platforms) {
+        assert(games.includes(game), 'Unknown first-nine native game');
+        targets.set(`${game}/${platform}`, { game, platform });
+      }
+  if (!targets.size) return;
   const host = packages.find((pkg) => pkg.dir === 'apps/shell-minigame');
   assert(
     host?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs' &&
       host.scripts['build:nine'] === 'node scripts/nine-games-build.mjs',
     'Unreviewed first-nine native host commands',
   );
-  const gameIds = [...new Set(checks.flatMap((check) => check.games))].sort();
   const nativeEnv = {
     ...env,
-    NATIVE_GAME_IDS: gameIds
-      .filter((id) =>
-        [
-          'cops-robbers',
-          'cops-robbers-realtime',
-          'vibeJam-myself-history-guess',
-          'xiangqi-five',
-        ].includes(id),
-      )
-      .join(','),
     NATIVE_OUTPUT_ROOT: path.join(root, 'apps/shell-minigame/dist/nine-games'),
     NATIVE_SCREENSHOT_ROOT: path.join(root, '.scratch/nine-native-validation/screenshots'),
+    TRAVEL_NATIVE_EVIDENCE_ROOT: path.join(root, '.scratch/nine-native-validation/travel'),
   };
-  for (const id of gameIds)
-    for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'])
-      execute(
-        process.execPath,
-        [
-          'apps/shell-minigame/scripts/nine-games-build.mjs',
-          '--game',
-          id,
-          '--platform',
-          platform,
-          '--preview',
-        ],
-        root,
-        nativeEnv,
-        'logged',
-      );
+  for (const { game, platform } of targets.values())
+    execute(
+      process.execPath,
+      [
+        'apps/shell-minigame/scripts/nine-games-build.mjs',
+        '--game',
+        game,
+        '--platform',
+        platform,
+        '--preview',
+      ],
+      root,
+      nativeEnv,
+      'logged',
+    );
+  // Creator targets use the genuine builder above. Missing tools fail this gate;
+  // configured output or H5 artifacts cannot replace a native compilation.
   execute('pnpm', ['--filter', host.name, 'test'], root, nativeEnv, 'logged');
   execute('pnpm', ['--filter', host.name, 'test:nine:resources'], root, nativeEnv, 'logged');
-  if (gameIds.includes('xiangqi-five'))
-    execute(
-      process.execPath,
-      ['--test', 'platforms/competition/xiangqi-five/tests/native.test.mjs'],
-      root,
-      nativeEnv,
-      'logged',
-    );
-  if (gameIds.includes('letters-words2'))
-    execute(
-      process.execPath,
-      ['--test', 'games/local/letters-words2/tests/native-bundle.test.mjs'],
-      root,
-      nativeEnv,
-      'logged',
-    );
-  const executed = new Set();
-  if (nativeEnv.NATIVE_GAME_IDS) {
-    const args = ['scripts/nine-canvas-games-smoke.mjs'];
-    execute(process.execPath, args, root, nativeEnv, 'logged');
-    executed.add(JSON.stringify(args));
+  const selectedFor = (game) => platforms.filter((platform) => targets.has(`${game}/${platform}`));
+  const executeScript = (args, extra = {}) =>
+    execute(process.execPath, args, root, { ...nativeEnv, ...extra }, 'logged');
+  if (selectedFor('xiangqi-five').length)
+    executeScript(['--test', 'platforms/competition/xiangqi-five/tests/native.test.mjs']);
+  if (selectedFor('letters-words2').length)
+    executeScript(['--test', 'games/local/letters-words2/tests/native-bundle.test.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('letters-words2').join(','),
+    });
+  if (selectedFor('wulong-city').length)
+    executeScript(['scripts/nine-wulong-smoke.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('wulong-city').join(','),
+    });
+  const canvasGames = [
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'vibeJam-myself-history-guess',
+    'xiangqi-five',
+  ];
+  for (const platform of platforms) {
+    const ids = canvasGames.filter((game) => targets.has(`${game}/${platform}`));
+    if (ids.length)
+      executeScript(['scripts/nine-canvas-games-smoke.mjs'], {
+        NATIVE_PLATFORMS: platform,
+        NATIVE_GAME_IDS: ids.join(','),
+      });
   }
+  if (selectedFor('travel-bund').length)
+    executeScript(['scripts/nine-travel-native-smoke.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('travel-bund').join(','),
+    });
+  const executed = new Set([
+    'scripts/nine-wulong-smoke.mjs',
+    'scripts/nine-canvas-games-smoke.mjs',
+    'scripts/nine-travel-native-smoke.mjs',
+  ]);
   for (const check of checks) {
-    if (!check.command) continue;
-    const args = check.command.args?.length ? check.command.args : [check.command.file];
-    const key = JSON.stringify(args);
-    if (executed.has(key)) continue;
-    executed.add(key);
-    execute(
-      process.execPath,
-      args,
-      root,
-      check.type === 'entry' ? { ...nativeEnv, BILIBILI_BROWSER: '1' } : nativeEnv,
-      'logged',
+    if (!check.command || executed.has(check.command.file)) continue;
+    if (
+      check.type === 'entry' &&
+      ![...targets.values()].some((target) => target.platform === 'bilibili')
+    )
+      continue;
+    executed.add(check.command.file);
+    executeScript(
+      check.command.args?.length ? check.command.args : [check.command.file],
+      check.type === 'entry' ? { BILIBILI_BROWSER: '1' } : {},
     );
   }
 }
@@ -338,7 +368,8 @@ export async function validateTree({
   } else execute(pnpm, ['format:check'], root, clean);
   execute(pnpm, ['check:games'], root, clean);
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
-  if (!sourcePaths.length) return;
+  if (!sourcePaths.length)
+    return { browser: false, cocos: false, browser_ids: [], nine_native_targets: [] };
   const plan = await selectScope(
     {
       ...clean,
@@ -464,7 +495,19 @@ export async function validateTree({
   const buildDirect = metadataOnly
     ? []
     : incremental
-      ? [...new Set([...direct.filter((pkg) => pkg.dir !== 'apps/shell-web'), ...browserDirect])]
+      ? [
+          ...new Set([
+            ...direct.filter(
+              (pkg) =>
+                pkg.dir !== 'apps/shell-web' &&
+                (!pkg.dir.startsWith('games/') ||
+                  sourcePaths.some(
+                    (file) => !isNineNativeOnlyPath(file) && file.startsWith(pkg.dir + '/'),
+                  )),
+            ),
+            ...browserDirect,
+          ]),
+        ]
       : direct;
   const buildTargets = staticBuildTargets(packages, buildDirect, affected);
   await verifyCocosBuildInputs(root, buildTargets, clean);
@@ -501,7 +544,7 @@ export async function validateTree({
   if (metadataOnly) {
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);
-    return;
+    return incrementalScope || plan;
   }
   for (const task of ['typecheck', 'lint']) {
     for (const pkg of affected.filter((pkg) => pkg.scripts?.[task])) {
@@ -545,6 +588,7 @@ export async function validateTree({
     runNineNativeChecks({ plan: incrementalScope, packages, root, env: clean, execute });
   if (incrementalScope)
     runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
+  return incrementalScope || plan;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];

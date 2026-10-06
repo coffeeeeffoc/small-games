@@ -18,6 +18,16 @@ const channels = [
   ['kuaishou', 'ks'],
   ['alipay', 'my'],
 ];
+const selectedPlatforms = process.env.NATIVE_PLATFORMS?.split(',');
+if (selectedPlatforms) {
+  assert(
+    selectedPlatforms.length > 0 && new Set(selectedPlatforms).size === selectedPlatforms.length,
+  );
+  assert(
+    selectedPlatforms.every((platform) => channels.some(([id]) => id === platform)),
+    'Unknown native platform selection',
+  );
+}
 const selectedGames = process.env.NATIVE_GAME_IDS?.split(',').filter(Boolean);
 if (selectedGames) {
   assert(selectedGames.length > 0 && new Set(selectedGames).size === selectedGames.length);
@@ -41,6 +51,7 @@ for (const game of [
 ]) {
   if (selectedGames && !selectedGames.includes(game)) continue;
   for (const [platform, sdkName] of channels) {
+    if (selectedPlatforms && !selectedPlatforms.includes(platform)) continue;
     const directory = path.join(output, platform, game),
       source = readFileSync(path.join(directory, 'game.js'), 'utf8');
     const release = JSON.parse(readFileSync(path.join(directory, 'release.json'), 'utf8'));

@@ -102,3 +102,9 @@ node games/local/carding-car/platforms/build.mjs kuaishou
 本轮仅将夜航 snapshot 查询从每次解析/销毁元素句柄的 Locator.evaluate 改为实际 iframe 的 Frame.evaluate；直开页面继续使用真实 Page。真实 Canvas 点击/触屏、两帧提交等待、原状态断言、原超时、画质及视口均保留。临时草案完整桌面与844×390触屏流程通过，耗时分别58,682ms及51,673ms；这不是整合后候选正常 hook 的通过记录。正常推送结果另以准确 SHA 和终态日志为准。
 
 范围证明锁定原/新 Night 分支摘要，且要求所有其他分支及公共代码逐字一致、Night 目录唯一。缺基线、未知 Night 改动、词屿/公共限时变化均不获得定向范围。通用 validate-tree/validate-push 与词屿检查没有因本优化改动；Pages 对准确提交的实际选择和运行状态独立记录。
+
+## 可审计构建与后续门禁记录
+
+[dcf7787 完整验证记录](nine-games-verification-dcf7787.json)绑定实际35份preview产物的manifest、来源及载荷哈希、生成时间和真实生产提交；10份Cocos原生包仍明确阻塞。旧capabilities/build-status文件保留为历史记录，不能作为当前提交验证结论。报告生成时后续Windows路径测试修复仅改变测试，未重建原生载荷，也没有把报告自身提交伪造为生产提交。准确后续提交及运行终态保存在交付证据与Library源代码备份。
+
+原生增量门禁从受审阅源码与实际平台依赖选出game/platform目标。原生专属源文件变化执行对应最终CJS包；H5专属变化不触发原生构建。外滩执行实际五渠道game.js，使用真实WebGL2、WASM、模型、触控与存储流程；浏览器SDK夹具只用于契约验证，不进入产物，不代表官方工具验收。平台专属变动只测试受影响平台。Cocos目标调用真实Creator构建，缺工具直接阻止验证，不以配置、H5或旧包替代。CI保留准确diff基线，使用与本地相同的增量计划；无基线的全量流程仍单独处理。

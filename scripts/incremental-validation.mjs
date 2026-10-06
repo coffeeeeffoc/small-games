@@ -3,7 +3,12 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
-import { nineNativeScopePaths, nineNativeChecks } from './nine-native-scope.mjs';
+import {
+  nineNativeScopePaths,
+  nineNativeChecks,
+  nineNativeDependencyPlan,
+  isNineNativeOnlyPath,
+} from './nine-native-scope.mjs';
 import { competitionToolPlan } from './publication-scopes.mjs';
 export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
@@ -27,6 +32,8 @@ export function incrementalPlan({
   fileScopes = new Map(),
 }) {
   const paths = changedPaths.filter((file) => !isDocumentation(file));
+  const nineNative = nineNativeDependencyPlan({ changedPaths: paths, games, readSource });
+  const h5Paths = paths.filter((file) => !isNineNativeOnlyPath(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {
     const pkg = packages.find((item) => item.dir === consumer.dir);
@@ -81,18 +88,13 @@ export function incrementalPlan({
     ...scopedConsumers.map((dir) => dir + '/package.json'),
   ]);
   const directGames = games.filter((game) =>
-    paths.some((file) => file === game.source || file.startsWith(game.source + '/')),
+    h5Paths.some((file) => file === game.source || file.startsWith(game.source + '/')),
   );
   const shared = paths.some((file) => file.startsWith('packages/'));
   // Native-only tool consumers require their package checks and actual native CJS
   // flows; they do not change the H5 entry and do not select its browser regression.
   const registrations = new Set(
-    [...fileScopes]
-      .filter(
-        ([file]) =>
-          !nineNativeScopePaths.includes(file) || file === 'platforms/competition/native.js',
-      )
-      .flatMap(([, dirs]) => dirs),
+    [...fileScopes].filter(([file]) => !isNineNativeOnlyPath(file)).flatMap(([, dirs]) => dirs),
   );
   const selected = games.filter(
     (game) =>
@@ -104,7 +106,7 @@ export function incrementalPlan({
   for (const game of selected) {
     const scope = { required: true, full: false, game_ids: [game.id], game_sources: [game.source] };
     const result = riskPlan({
-      changedPaths: paths.filter((file) => file.startsWith(game.source + '/')),
+      changedPaths: h5Paths.filter((file) => file.startsWith(game.source + '/')),
       scope,
       readSource,
     });
@@ -161,6 +163,9 @@ export function incrementalPlan({
       (file) => nineNativeScopePaths.includes(file) && nineScopes.has(file),
     ),
     nine_native_checks: nineNativeChecks(paths, nineScopes),
+    nine_native_targets: nineNative.targets,
+    nine_native_blocked: nineNative.blocked,
+    nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
   };

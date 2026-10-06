@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import yaml from 'js-yaml';
 import { ciValidation } from './ci-validation.mjs';
+import { incrementalPlan } from './incremental-validation.mjs';
 test('CI consumes the same comparison SHAs and never installs/launches browsers for docs or pure metadata', async () => {
   for (const risk of ['metadata', 'rules']) {
     const plan = {
@@ -20,6 +21,7 @@ test('CI consumes the same comparison SHAs and never installs/launches browsers 
       selectPlan: async () => plan,
       treeValidator: async (value) => {
         tree = value;
+        return { browser: false, browser_ids: [] };
       },
       execute: () => {
         throw new Error('unexpected browser command');
@@ -27,6 +29,7 @@ test('CI consumes the same comparison SHAs and never installs/launches browsers 
     });
     assert.equal(tree.base, 'saved-validated-base');
     assert.equal(tree.head, 'actual-target');
+    assert.equal(tree.incremental, true);
   }
 });
 test('selective CI does not call aggregate Shell smoke or ^build game test tasks', async () => {
@@ -35,7 +38,10 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
   await ciValidation({
     env: {},
     selectPlan: async () => plan,
-    treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, false),
+    treeValidator: async (value) => {
+      assert.equal(value.deferIdenticalRulesToAggregate, false);
+      return { browser: true, browser_ids: ['actual-game'], game_sources: ['games/actual'] };
+    },
     execute: (command, args) => calls.push({ command, args }),
   });
   assert.equal(calls.length, 2);
@@ -84,7 +90,10 @@ test('CI freezes the plan before conditional Creator jobs and rejects a substitu
     selectPlan: async () => {
       throw new Error('Do not recompute a moving deployment baseline');
     },
-    treeValidator: async (value) => assert.equal(value.base, 'saved'),
+    treeValidator: async (value) => {
+      assert.equal(value.base, 'saved');
+      return { browser: false, browser_ids: [] };
+    },
     execute: () => {
       throw new Error('No browser');
     },
@@ -142,4 +151,148 @@ test('deferred full rules require aggregate success before contract, interaction
   );
   assert.equal(calls.length, 2);
   assert.equal(calls[1][0], 'test');
+});
+
+test('a valid comparison base uses the returned browser IDs even when the risk flag is full', async () => {
+  const frozen = {
+    full: true,
+    browser: true,
+    cocos: true,
+    browser_ids: ['unrelated-old-full-game'],
+    diff_base: 'exact-base',
+    diff_head: 'exact-head',
+  };
+  const scope = {
+    full: false,
+    browser: true,
+    browser_ids: ['travel-bund'],
+    game_sources: ['games/local/travel-bund'],
+    nine_native_targets: [{ game: 'travel-bund', platform: 'alipay' }],
+  };
+  const calls = [];
+  const result = await ciValidation({
+    root: '/fixture',
+    env: { CI_VALIDATION_PLAN: JSON.stringify(frozen), TURBO_SCM_HEAD: 'exact-head' },
+    treeValidator: async (options) => {
+      assert.equal(options.base, 'exact-base');
+      assert.equal(options.head, 'exact-head');
+      assert.equal(options.incremental, true);
+      assert.equal(options.deferIdenticalRulesToAggregate, false);
+      return scope;
+    },
+    execute: (command, args) => calls.push({ command, args }),
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].args[0], 'scripts/run-selected-browser.mjs');
+  const executed = JSON.parse(calls[1].args[1]);
+  assert.deepEqual(executed.browser_ids, ['travel-bund']);
+  assert.deepEqual(executed.game_sources, scope.game_sources);
+  assert.deepEqual(executed.nine_native_targets, scope.nine_native_targets);
+  assert.equal(executed.full, false);
+  assert.equal(executed.diff_base, frozen.diff_base);
+  assert.equal(executed.diff_head, frozen.diff_head);
+  assert.deepEqual(result, executed);
+  assert.equal(frozen.full, true);
+});
+
+test('CI consumes the actual local native-only dependency plan without installing browsers', async () => {
+  const games = JSON.parse(
+    await readFile(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const scope = incrementalPlan({
+    games,
+    packages: [...games.map((game) => ({ dir: game.source })), { dir: 'apps/shell-minigame' }],
+    changedPaths: ['games/local/travel-bund/native/input.ts'],
+  });
+  assert.equal(scope.browser, false);
+  assert.deepEqual(scope.browser_ids, []);
+  assert.equal(scope.nine_native_targets.length, 5);
+  const result = await ciValidation({
+    env: {},
+    selectPlan: async () => ({
+      full: true,
+      browser: true,
+      cocos: true,
+      diff_base: 'validated-base',
+      diff_head: 'native-head',
+    }),
+    treeValidator: async (options) => {
+      assert.equal(options.incremental, true);
+      return scope;
+    },
+    execute: () => assert.fail('Native-only changes must not execute browser commands'),
+  });
+  assert.equal(result.browser, false);
+  assert.deepEqual(result.nine_native_targets, scope.nine_native_targets);
+  assert.equal(result.nine_native_travel_contract, scope.nine_native_travel_contract);
+});
+
+test('a native validation failure stops CI before any browser install or execution', async () => {
+  await assert.rejects(
+    ciValidation({
+      env: {},
+      selectPlan: async () => ({
+        full: true,
+        browser: true,
+        cocos: true,
+        diff_base: 'validated-base',
+        diff_head: 'native-head',
+      }),
+      treeValidator: async (options) => {
+        assert.equal(options.incremental, true);
+        assert.equal(options.deferIdenticalRulesToAggregate, false);
+        throw new Error('Native CJS integrity failure');
+      },
+      execute: () => assert.fail('Native validation must finish before browsers'),
+    }),
+    /Native CJS integrity failure/,
+  );
+});
+
+test('a missing or inconsistent incremental scope fails closed instead of restoring full browsers', async () => {
+  for (const scope of [
+    undefined,
+    { browser: true, browser_ids: [], game_sources: [] },
+    { browser: false, browser_ids: ['unexpected-game'] },
+    { browser: true, browser_ids: ['repeat', 'repeat'], game_sources: [] },
+  ]) {
+    await assert.rejects(
+      ciValidation({
+        env: {},
+        selectPlan: async () => ({
+          full: true,
+          browser: true,
+          cocos: false,
+          diff_base: 'base',
+          diff_head: 'head',
+        }),
+        treeValidator: async () => scope,
+        execute: () => assert.fail('No fallback to an unrelated browser suite'),
+      }),
+      /Missing validated incremental browser scope/,
+    );
+  }
+});
+
+test('a full or nightly plan without a usable base retains the original aggregate gates', async () => {
+  for (const base of [undefined, '', '   ', '0'.repeat(40)]) {
+    const calls = [];
+    await ciValidation({
+      env: {},
+      selectPlan: async () => ({ full: true, browser: true, cocos: true, diff_base: base }),
+      treeValidator: async (options) => {
+        assert.equal(options.base, '');
+        assert.equal(options.incremental, false);
+        assert.equal(options.deferIdenticalRulesToAggregate, true);
+      },
+      execute: (command, args) => calls.push(args),
+    });
+    assert.deepEqual(
+      calls.slice(1),
+      ['test', 'test:contract', 'test:integration', 'test:dialogs', 'smoke'].map((task) => [
+        task,
+        '--concurrency=1',
+      ]),
+    );
+  }
 });

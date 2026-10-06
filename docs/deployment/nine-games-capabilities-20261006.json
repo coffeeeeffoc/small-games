@@ -851,5 +851,7 @@
     "officialAccepted": 0
   },
   "testedImplementationCommit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
-  "currentCandidateNote": "Build/source provenance for the final clean candidate is captured per artifact in dist/nine-games/*/*/artifact-manifest.json. This matrix never upgrades local SDK fixtures to official tool/device validation."
+  "currentCandidateNote": "Build/source provenance for the final clean candidate is captured per artifact in dist/nine-games/*/*/artifact-manifest.json. This matrix never upgrades local SDK fixtures to official tool/device validation.",
+  "historical": true,
+  "supersededBy": "docs/deployment/nine-games-verification-dcf7787.json"
 }

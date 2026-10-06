@@ -326,3 +326,128 @@ test('Pages consumer selects Night only with explicit mapping; unknown and unmap
     true,
   );
 });
+
+test('native dependency graph is source-controlled and includes real game/channel ownership', async () => {
+  const { nineNativeDependencyPlan, nineNativeDependencySources } = await import(
+    './nine-native-scope.mjs'
+  );
+  const select = (paths, readSource) =>
+    nineNativeDependencyPlan({ changedPaths: paths, games: catalog, readSource });
+  assert(
+    nineNativeDependencySources().some(
+      (entry) => entry.file === 'games/local/travel-bund/src/physics.ts',
+    ),
+  );
+  for (const file of [
+    'games/local/travel-bund/native/index.tsx',
+    'games/local/travel-bund/src/physics.ts',
+    'assets/bund/runtime/world/world.json',
+  ]) {
+    assert.equal(select([file]).targets.length, 5);
+    assert(select([file]).targets.every((target) => target.game === 'travel-bund'));
+  }
+  assert.deepEqual(select(['games/local/travel-bund/src/main.tsx']).targets, []);
+  assert.deepEqual(select(['games/local/travel-bund/src/styles.css']).targets, []);
+  const resource = select(['platforms/alipay/native-resources.mjs']);
+  assert.deepEqual(
+    resource.targets.map(({ game, platform }) => game + ':' + platform),
+    ['travel-bund:alipay', 'vibeJam-myself-history-guess:alipay'],
+  );
+  assert(
+    select(['platforms/douyin/new-native-runtime.ts']).targets.every(
+      (target) => target.platform === 'douyin',
+    ),
+  );
+  const files = new Map([
+    ['games/local/travel-bund/src/physics.ts', "import './new-shared-physics';"],
+    ['games/local/travel-bund/src/new-shared-physics.ts', 'export const actual = 1;'],
+  ]);
+  const dynamic = select(['games/local/travel-bund/src/new-shared-physics.ts'], (file) => {
+    if (!files.has(file)) throw new Error('not a file');
+    return files.get(file);
+  });
+  assert.equal(dynamic.targets.length, 5);
+  assert(dynamic.targets.every((target) => target.game === 'travel-bund'));
+  assert.throws(
+    () =>
+      nineNativeDependencyPlan({
+        changedPaths: ['games/local/travel-bund/native/input.ts'],
+        games: catalog.filter((game) => game.id !== 'travel-bund'),
+      }),
+    /identity/,
+  );
+});
+
+test('Cocos canonical and shared tool changes require real five-channel Creator artifacts', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  for (const file of [
+    'games/local/night-overwatch/assets/Bootstrap.ts',
+    'games/local/night-overwatch/scripts/build-native.mjs',
+  ]) {
+    const result = nineNativeDependencyPlan({ changedPaths: [file], games: catalog });
+    assert.deepEqual(
+      result.blocked.map((item) => item.game),
+      ['night-overwatch'],
+    );
+    assert.equal(result.targets.length, 5);
+    assert(result.targets.every((target) => target.requiresCreator === '3.8.8'));
+  }
+  const result = nineNativeDependencyPlan({
+    changedPaths: ['games/local/carding-car/scripts/toolchain.mjs'],
+    games: catalog,
+  });
+  assert.equal(result.targets.length, 10);
+  assert.equal(result.blocked.length, 2);
+});
+
+test('controlled Travel tool classifies only exact reviewed bytes and canonical consumer', () => {
+  const file = 'scripts/nine-travel-native-smoke.mjs';
+  const c = context([file]);
+  assert.deepEqual([...nineNativeFileScopes(c)], [[file, ['games/local/travel-bund']]]);
+  assert.deepEqual(nineNativeChecks([file], nineNativeFileScopes(c)), []);
+  assert.equal(nineNativeFileScopes({ ...c, readHead: () => snapshot(file) + '\n' }).size, 0);
+  assert.equal(nineNativeFileScopes({ ...c, readBase: () => 'unknown old tool' }).size, 0);
+  assert.equal(nineNativeFileScopes({ ...c, changedPaths: [file + '.unknown'] }).size, 0);
+  assert.equal(
+    nineNativeFileScopes({ ...c, games: catalog.filter((game) => game.id !== 'travel-bund') }).size,
+    0,
+  );
+});
+
+test('root developer helper producers cannot silently skip matching Creator verification', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  for (const file of ['platforms/h5/dev-mode.js', 'scripts/sync-game-dev-mode.mjs']) {
+    const result = nineNativeDependencyPlan({ changedPaths: [file], games: catalog });
+    assert.deepEqual(
+      result.blocked.map((item) => item.game),
+      ['carding-car', 'night-overwatch'],
+    );
+    assert.equal(result.targets.length, 10);
+  }
+});
+
+test('native source discovery honors actual generated Scene boundary and audio port replacement', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const files = new Map([
+    [
+      'games/local/travel-bund/src/Scene.tsx',
+      "import {audio} from './audio';\n// The homepage and tour share one runtime and viewpoint;\nimport './renderer-capabilities';",
+    ],
+    ['games/local/travel-bund/src/audio.ts', 'export const audio = 1;'],
+    ['games/local/travel-bund/src/renderer-capabilities.ts', 'export const gpu = 1;'],
+    ['games/local/travel-bund/native/audio.ts', 'export const audio = 1;'],
+  ]);
+  const readSource = (file) => {
+    if (!files.has(file)) throw Error('missing');
+    return files.get(file);
+  };
+  for (const file of [
+    'games/local/travel-bund/src/audio.ts',
+    'games/local/travel-bund/src/renderer-capabilities.ts',
+  ]) {
+    assert.deepEqual(
+      nineNativeDependencyPlan({ changedPaths: [file], games: catalog, readSource }).targets,
+      [],
+    );
+  }
+});

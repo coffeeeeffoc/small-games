@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import path from 'node:path';
 
 const COMPETITION = 'platforms/competition/native.js';
 const XIANGQI = 'platforms/competition/xiangqi-five/';
@@ -108,7 +109,7 @@ const reviewed = {
     ],
   ],
   'scripts/nine-canvas-games-smoke.mjs': [
-    '7f6550910297dc9870655c78923b791efa90aacd80ba9616488eefa30dccfe1e',
+    '9dd613d33cad07cca9ea9998778b67e7a3fe7860bd1198cde2e623325a85fec2',
     [
       'node:assert/strict',
       'node:fs',
@@ -135,7 +136,7 @@ const reviewed = {
     ],
   ],
   'scripts/nine-wulong-smoke.mjs': [
-    'f2f1bdecd836acc9a1420d60c9bffddba563e8c4adbc85a0ccd7807df3d7472d',
+    '13625aca661242dc2229b48311a5c1eb7f5792bbb2f150e97f254aacf7302f71',
     [
       'node:assert/strict',
       'node:fs',
@@ -331,6 +332,35 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
     }))
       scopes.set(file, affected);
   }
+  const travelTool = 'scripts/nine-travel-native-smoke.mjs';
+  if (changedPaths.includes(travelTool)) {
+    try {
+      const head = readHead(travelTool);
+      assert.equal(
+        digest(head),
+        '16a6a0a4834fd4d48c1f8a3cd8321403f6c5855a2acd655472d55caa6dc3d719',
+      );
+      let base;
+      try {
+        base = readBase(travelTool);
+      } catch {
+        /* Explicit reviewed new tool. */
+      }
+      assert(base === undefined || base === null || base === head);
+      assert.equal(games.filter((game) => game.id === 'travel-bund').length, 1);
+      assert.equal(games.filter((game) => game.source === 'games/local/travel-bund').length, 1);
+      assert.equal(
+        games.filter(
+          (game) => game.id === 'travel-bund' && game.source === 'games/local/travel-bund',
+        ).length,
+        1,
+      );
+      assert(packages.some((pkg) => pkg.dir === 'games/local/travel-bund'));
+      scopes.set(travelTool, ['games/local/travel-bund']);
+    } catch {
+      /* Unknown tool bytes or identity remain undefined. */
+    }
+  }
   return scopes;
 }
 
@@ -354,4 +384,700 @@ export function nineNativeChecks(changedPaths, fileScopes) {
           : {}),
       };
     });
+}
+
+// Reviewed sourceFiles ownership from the final 35 CJS manifests. Kept in source,
+// never loaded from ignored dist during incremental planning (producer dcf7787). Package dist inputs
+// map to their canonical TypeScript sources; native/generated inputs are regenerated.
+const nativeSourceGroups = [
+  {
+    paths: [
+      'games/local/cops-robbers-realtime/src/challenge-finals.js',
+      'games/local/cops-robbers-realtime/src/competition-renderer.js',
+      'games/local/cops-robbers-realtime/src/engine.js',
+      'games/local/cops-robbers-realtime/src/layout-variants.js',
+      'games/local/cops-robbers-realtime/src/level-safety.js',
+      'games/local/cops-robbers-realtime/src/levels.js',
+      'games/local/cops-robbers-realtime/src/native.js',
+      'games/local/cops-robbers-realtime/src/quick-trials.js',
+      'games/local/cops-robbers-realtime/src/records.js',
+      'games/local/cops-robbers-realtime/src/renderer.js',
+      'games/local/cops-robbers-realtime/src/role-appearance.js',
+    ],
+    targets: [
+      'cops-robbers-realtime:alipay',
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers-realtime:douyin',
+      'cops-robbers-realtime:kuaishou',
+      'cops-robbers-realtime:wechat',
+    ],
+  },
+  {
+    paths: [
+      'apps/shell-minigame/scripts/nine-games-build.mjs',
+      'apps/shell-minigame/scripts/nine-games-targets.mjs',
+    ],
+    targets: [
+      'cops-robbers-realtime:alipay',
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers-realtime:douyin',
+      'cops-robbers-realtime:kuaishou',
+      'cops-robbers-realtime:wechat',
+      'cops-robbers:alipay',
+      'cops-robbers:bilibili',
+      'cops-robbers:douyin',
+      'cops-robbers:kuaishou',
+      'cops-robbers:wechat',
+      'letters-words2:alipay',
+      'letters-words2:bilibili',
+      'letters-words2:douyin',
+      'letters-words2:kuaishou',
+      'letters-words2:wechat',
+      'travel-bund:alipay',
+      'travel-bund:bilibili',
+      'travel-bund:douyin',
+      'travel-bund:kuaishou',
+      'travel-bund:wechat',
+      'vibeJam-myself-history-guess:alipay',
+      'vibeJam-myself-history-guess:bilibili',
+      'vibeJam-myself-history-guess:douyin',
+      'vibeJam-myself-history-guess:kuaishou',
+      'vibeJam-myself-history-guess:wechat',
+      'wulong-city:alipay',
+      'wulong-city:bilibili',
+      'wulong-city:douyin',
+      'wulong-city:kuaishou',
+      'wulong-city:wechat',
+      'xiangqi-five:alipay',
+      'xiangqi-five:bilibili',
+      'xiangqi-five:douyin',
+      'xiangqi-five:kuaishou',
+      'xiangqi-five:wechat',
+    ],
+  },
+  {
+    paths: ['apps/shell-minigame/src/competition-availability.mjs'],
+    targets: [
+      'cops-robbers-realtime:alipay',
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers-realtime:douyin',
+      'cops-robbers-realtime:kuaishou',
+      'cops-robbers-realtime:wechat',
+      'cops-robbers:alipay',
+      'cops-robbers:bilibili',
+      'cops-robbers:douyin',
+      'cops-robbers:kuaishou',
+      'cops-robbers:wechat',
+      'letters-words2:alipay',
+      'letters-words2:bilibili',
+      'letters-words2:douyin',
+      'letters-words2:kuaishou',
+      'letters-words2:wechat',
+      'travel-bund:alipay',
+      'travel-bund:bilibili',
+      'travel-bund:douyin',
+      'travel-bund:kuaishou',
+      'travel-bund:wechat',
+      'vibeJam-myself-history-guess:alipay',
+      'vibeJam-myself-history-guess:bilibili',
+      'vibeJam-myself-history-guess:douyin',
+      'vibeJam-myself-history-guess:kuaishou',
+      'vibeJam-myself-history-guess:wechat',
+      'xiangqi-five:alipay',
+      'xiangqi-five:bilibili',
+      'xiangqi-five:douyin',
+      'xiangqi-five:kuaishou',
+      'xiangqi-five:wechat',
+    ],
+  },
+  {
+    paths: [
+      'platforms/competition/client.js',
+      'platforms/competition/format.js',
+      'platforms/competition/native.js',
+    ],
+    targets: [
+      'cops-robbers-realtime:alipay',
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers-realtime:douyin',
+      'cops-robbers-realtime:kuaishou',
+      'cops-robbers-realtime:wechat',
+      'cops-robbers:alipay',
+      'cops-robbers:bilibili',
+      'cops-robbers:douyin',
+      'cops-robbers:kuaishou',
+      'cops-robbers:wechat',
+      'letters-words2:alipay',
+      'letters-words2:bilibili',
+      'letters-words2:douyin',
+      'letters-words2:kuaishou',
+      'letters-words2:wechat',
+      'vibeJam-myself-history-guess:alipay',
+      'vibeJam-myself-history-guess:bilibili',
+      'vibeJam-myself-history-guess:douyin',
+      'vibeJam-myself-history-guess:kuaishou',
+      'vibeJam-myself-history-guess:wechat',
+      'xiangqi-five:alipay',
+      'xiangqi-five:bilibili',
+      'xiangqi-five:douyin',
+      'xiangqi-five:kuaishou',
+      'xiangqi-five:wechat',
+    ],
+  },
+  {
+    paths: ['platforms/alipay/build.mjs', 'platforms/alipay/normalize.mjs'],
+    targets: [
+      'cops-robbers-realtime:alipay',
+      'cops-robbers:alipay',
+      'letters-words2:alipay',
+      'travel-bund:alipay',
+      'vibeJam-myself-history-guess:alipay',
+      'wulong-city:alipay',
+      'xiangqi-five:alipay',
+    ],
+  },
+  {
+    paths: ['platforms/bilibili/build.mjs'],
+    targets: [
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers:bilibili',
+      'letters-words2:bilibili',
+      'travel-bund:bilibili',
+      'vibeJam-myself-history-guess:bilibili',
+      'wulong-city:bilibili',
+      'xiangqi-five:bilibili',
+    ],
+  },
+  {
+    paths: ['platforms/bilibili/native-entry.mjs'],
+    targets: [
+      'cops-robbers-realtime:bilibili',
+      'cops-robbers:bilibili',
+      'letters-words2:bilibili',
+      'travel-bund:bilibili',
+      'vibeJam-myself-history-guess:bilibili',
+      'xiangqi-five:bilibili',
+    ],
+  },
+  {
+    paths: ['platforms/douyin/build.mjs'],
+    targets: [
+      'cops-robbers-realtime:douyin',
+      'cops-robbers:douyin',
+      'letters-words2:douyin',
+      'travel-bund:douyin',
+      'vibeJam-myself-history-guess:douyin',
+      'wulong-city:douyin',
+      'xiangqi-five:douyin',
+    ],
+  },
+  {
+    paths: ['platforms/kuaishou/build.mjs'],
+    targets: [
+      'cops-robbers-realtime:kuaishou',
+      'cops-robbers:kuaishou',
+      'letters-words2:kuaishou',
+      'travel-bund:kuaishou',
+      'vibeJam-myself-history-guess:kuaishou',
+      'wulong-city:kuaishou',
+      'xiangqi-five:kuaishou',
+    ],
+  },
+  {
+    paths: ['platforms/wechat/build.mjs'],
+    targets: [
+      'cops-robbers-realtime:wechat',
+      'cops-robbers:wechat',
+      'letters-words2:wechat',
+      'travel-bund:wechat',
+      'vibeJam-myself-history-guess:wechat',
+      'wulong-city:wechat',
+      'xiangqi-five:wechat',
+    ],
+  },
+  {
+    paths: [
+      'games/local/cops-robbers/src/competition-renderer.js',
+      'games/local/cops-robbers/src/duel-levels.js',
+      'games/local/cops-robbers/src/duel.js',
+      'games/local/cops-robbers/src/engine.js',
+      'games/local/cops-robbers/src/levels.js',
+      'games/local/cops-robbers/src/native.js',
+      'games/local/cops-robbers/src/quick-trials.js',
+      'games/local/cops-robbers/src/relay.js',
+      'games/local/cops-robbers/src/role-appearance.js',
+    ],
+    targets: [
+      'cops-robbers:alipay',
+      'cops-robbers:bilibili',
+      'cops-robbers:douyin',
+      'cops-robbers:kuaishou',
+      'cops-robbers:wechat',
+    ],
+  },
+  {
+    paths: [
+      'games/local/letters-words2/challenge.js',
+      'games/local/letters-words2/competition-renderer.js',
+      'games/local/letters-words2/engine.js',
+      'games/local/letters-words2/library.js',
+      'games/local/letters-words2/native-platform.js',
+      'games/local/letters-words2/native-session.js',
+      'games/local/letters-words2/native.js',
+    ],
+    targets: [
+      'letters-words2:alipay',
+      'letters-words2:bilibili',
+      'letters-words2:douyin',
+      'letters-words2:kuaishou',
+      'letters-words2:wechat',
+    ],
+  },
+  {
+    paths: [
+      'games/local/travel-bund/native/audio.ts',
+      'games/local/travel-bund/native/build-native.mjs',
+      'games/local/travel-bund/native/diagnostics.ts',
+      'games/local/travel-bund/native/draco.ts',
+      'games/local/travel-bund/native/generate-sources.mjs',
+      'games/local/travel-bund/native/hud.ts',
+      'games/local/travel-bund/native/index.tsx',
+      'games/local/travel-bund/native/input.ts',
+      'games/local/travel-bund/native/prepare-assets.mjs',
+      'games/local/travel-bund/native/resources.ts',
+      'games/local/travel-bund/native/sha256.ts',
+      'games/local/travel-bund/native/state.ts',
+      'games/local/travel-bund/native/suspend.ts',
+      'games/local/travel-bund/native/utf8.ts',
+      'games/local/travel-bund/native/wasm.ts',
+      'games/local/travel-bund/src/Scene.tsx',
+      'games/local/travel-bund/src/StreetLife.tsx',
+      'games/local/travel-bund/src/camera-controls.ts',
+      'games/local/travel-bund/src/clouds.ts',
+      'games/local/travel-bund/src/facade-detail.ts',
+      'games/local/travel-bund/src/life.ts',
+      'games/local/travel-bund/src/photo-hunts.ts',
+      'games/local/travel-bund/src/physics.ts',
+      'games/local/travel-bund/src/render-budget.ts',
+      'games/local/travel-bund/src/render-settings.ts',
+      'games/local/travel-bund/src/routes.ts',
+      'games/local/travel-bund/src/settings.ts',
+      'games/local/travel-bund/src/world.ts',
+    ],
+    targets: [
+      'travel-bund:alipay',
+      'travel-bund:bilibili',
+      'travel-bund:douyin',
+      'travel-bund:kuaishou',
+      'travel-bund:wechat',
+    ],
+  },
+  {
+    paths: ['platforms/alipay/native-resources.mjs'],
+    targets: ['travel-bund:alipay', 'vibeJam-myself-history-guess:alipay'],
+  },
+  {
+    paths: ['platforms/bilibili/native-resources.mjs'],
+    targets: ['travel-bund:bilibili', 'vibeJam-myself-history-guess:bilibili'],
+  },
+  {
+    paths: ['platforms/douyin/native-resources.mjs'],
+    targets: ['travel-bund:douyin', 'vibeJam-myself-history-guess:douyin'],
+  },
+  {
+    paths: ['platforms/kuaishou/native-resources.mjs'],
+    targets: ['travel-bund:kuaishou', 'vibeJam-myself-history-guess:kuaishou'],
+  },
+  {
+    paths: ['platforms/wechat/native-resources.mjs'],
+    targets: ['travel-bund:wechat', 'vibeJam-myself-history-guess:wechat'],
+  },
+  {
+    paths: [
+      'apps/shell-minigame/scripts/nine-history-assets.mjs',
+      'games/local/vibeJam-myself-history-guess/competition-renderer.js',
+      'games/local/vibeJam-myself-history-guess/native-assets.mjs',
+      'games/local/vibeJam-myself-history-guess/native-scenes.js',
+      'games/local/vibeJam-myself-history-guess/native.js',
+      'games/local/vibeJam-myself-history-guess/public/assets/angkor.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/athens.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/babylon.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/beijing.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/changan.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/competition/57ea76ec39a9758f.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/competition/864ea525e77b9d47.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/competition/977b70a72c57b5bf.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/competition/baeb7a17ce9ee29f.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/competition/d555a6d18aca817a.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/dujiangyan.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/dunhuang.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/florence.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/giza.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/hangzhou-song.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/istanbul.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/kaifeng.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/kyoto-heian.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/lhasa-potala.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/longmen.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/macau.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/machu-picchu.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/new-york.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/paris.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/petra.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/pingyao.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/qin-mausoleum.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/quanzhou.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/rome.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/shanghai.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/suzhou-garden.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/venice.webp',
+      'games/local/vibeJam-myself-history-guess/public/assets/yinxu.webp',
+      'games/local/vibeJam-myself-history-guess/public/data/world.json',
+      'games/local/vibeJam-myself-history-guess/src/catalog.js',
+      'games/local/vibeJam-myself-history-guess/src/cities.js',
+      'games/local/vibeJam-myself-history-guess/src/game.js',
+      'games/local/vibeJam-myself-history-guess/src/routes.js',
+      'games/local/vibeJam-myself-history-guess/src/scenes/angkor.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/athens.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/babylon.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/beijing.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/changan.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/dujiangyan.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/dunhuang.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/florence.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/giza.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/hangzhou-song.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/istanbul.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/kaifeng.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/kyoto-heian.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/lhasa-potala.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/longmen.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/macau.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/machu-picchu.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/new-york.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/paris.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/petra.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/pingyao.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/qin-mausoleum.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/quanzhou.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/rome.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/shanghai.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/suzhou-garden.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/venice.json',
+      'games/local/vibeJam-myself-history-guess/src/scenes/yinxu.json',
+    ],
+    targets: [
+      'vibeJam-myself-history-guess:alipay',
+      'vibeJam-myself-history-guess:bilibili',
+      'vibeJam-myself-history-guess:douyin',
+      'vibeJam-myself-history-guess:kuaishou',
+      'vibeJam-myself-history-guess:wechat',
+    ],
+  },
+  {
+    paths: ['platforms/alipay/src/index.ts'],
+    targets: ['wulong-city:alipay'],
+  },
+  {
+    paths: [
+      'games/local/wulong-city/level-order.js',
+      'games/local/wulong-city/levels-data.js',
+      'games/local/wulong-city/levels.js',
+      'games/local/wulong-city/native/canvas.js',
+      'games/local/wulong-city/native/manifest.json',
+      'games/local/wulong-city/native/shared-source.mjs',
+      'games/local/wulong-city/render.js',
+      'packages/ad-config/src/index.ts',
+      'packages/ad-config/src/managed.ts',
+      'packages/ad-config/src/policy.ts',
+      'packages/ad-runtime/src/index.ts',
+      'packages/ad-runtime/src/runtime.ts',
+      'packages/game-contract/src/capabilities.ts',
+      'packages/game-contract/src/errors.ts',
+      'packages/game-contract/src/index.ts',
+      'packages/game-contract/src/schemas.ts',
+      'packages/game-host/src/browser.ts',
+      'packages/game-host/src/in-memory.ts',
+      'packages/game-host/src/index.ts',
+      'packages/game-host/src/ports.ts',
+      'packages/game-host/src/session.ts',
+      'packages/game-host/src/storage.ts',
+      'packages/game-host/src/test.ts',
+      'packages/native-game-shell/src/ads.ts',
+      'packages/native-game-shell/src/host.ts',
+      'packages/native-game-shell/src/index.ts',
+      'packages/native-game-shell/src/media.ts',
+      'packages/native-game-shell/src/render-surface.ts',
+      'packages/native-game-shell/src/shell.ts',
+      'packages/native-game-shell/src/viewport.ts',
+    ],
+    targets: [
+      'wulong-city:alipay',
+      'wulong-city:bilibili',
+      'wulong-city:douyin',
+      'wulong-city:kuaishou',
+      'wulong-city:wechat',
+    ],
+  },
+  {
+    paths: ['packages/canvas-game-adapter/src/index.ts', 'platforms/bilibili/src/index.ts'],
+    targets: ['wulong-city:bilibili'],
+  },
+  {
+    paths: ['platforms/douyin/src/index.ts'],
+    targets: ['wulong-city:douyin'],
+  },
+  {
+    paths: ['platforms/kuaishou/src/index.ts'],
+    targets: ['wulong-city:kuaishou'],
+  },
+  {
+    paths: ['platforms/wechat/src/index.ts'],
+    targets: ['wulong-city:wechat'],
+  },
+  {
+    paths: [
+      'games/submodules/xiangqi-five/challenges.js',
+      'games/submodules/xiangqi-five/competition-renderer.js',
+      'games/submodules/xiangqi-five/computer.js',
+      'games/submodules/xiangqi-five/game.js',
+      'games/submodules/xiangqi-five/local-game.js',
+      'platforms/competition/xiangqi-five/native.js',
+    ],
+    targets: [
+      'xiangqi-five:alipay',
+      'xiangqi-five:bilibili',
+      'xiangqi-five:douyin',
+      'xiangqi-five:kuaishou',
+      'xiangqi-five:wechat',
+    ],
+  },
+];
+
+const nativePlatforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
+const nativeGameSources = {
+  ...sources,
+  'travel-bund': 'games/local/travel-bund',
+  'carding-car': 'games/local/carding-car',
+  'night-overwatch': 'games/local/night-overwatch',
+};
+const nativeGraph = new Map(
+  nativeSourceGroups.flatMap((group) => group.paths.map((file) => [file, group.targets])),
+);
+
+/** Reviewed provenance graph, independent of generated/ignored build artifacts. */
+export function nineNativeDependencySources() {
+  return [...nativeGraph].map(([file, targets]) => ({ file, targets: [...targets] }));
+}
+
+export function isNineNativeOnlyPath(file) {
+  if (file.startsWith('platforms/') && nativeGraph.has(file)) return true;
+  if (
+    file === 'scripts/nine-travel-native-smoke.mjs' ||
+    file === 'games/local/letters-words2/tests/native-bundle.test.mjs'
+  )
+    return true;
+  if (file.startsWith('apps/shell-minigame/scripts/nine-')) return true;
+  if (file === 'apps/shell-minigame/src/competition-availability.mjs') return true;
+  return (
+    Object.values(nativeGameSources).some((source) => {
+      if (!file.startsWith(source + '/')) return false;
+      const relative = file.slice(source.length + 1);
+      return (
+        relative.startsWith('native/') ||
+        ((relative.endsWith('/competition-renderer.js') ||
+          relative === 'competition-renderer.js') &&
+          nativeGraph.has(file)) ||
+        /^(?:src\/)?native(?:[-.][^/]*)?$/.test(relative)
+      );
+    }) || nineNativeScopePaths.includes(file)
+  );
+}
+
+/** Same explicit game/channel plan is consumed by hooks and CI. No SDK is executed here. */
+export function nineNativeDependencyPlan({ changedPaths, games, readSource }) {
+  const graph = new Map([...nativeGraph].map(([file, targets]) => [file, new Set(targets)]));
+  // Discover new literal relative imports/requires without evaluating candidate code.
+  // Unresolved imports are left to the real build, which must fail rather than skip them.
+  if (readSource) {
+    const queue = [...graph.keys()].filter((file) => /\.[cm]?[jt]sx?$/.test(file));
+    const visited = new Map();
+    while (queue.length) {
+      const file = queue.shift(),
+        owners = graph.get(file);
+      const signature = [...owners].sort().join(',');
+      if (visited.get(file) === signature) continue;
+      visited.set(file, signature);
+      let text;
+      try {
+        text = readSource(file);
+      } catch {
+        continue;
+      }
+      if (typeof text !== 'string') continue;
+      // Match the reviewed generator's native boundary: Tour imports are H5-only,
+      // and original scene audio/debug imports are replaced with native ports.
+      if (file === 'games/local/travel-bund/src/Scene.tsx')
+        text = text.split('// The homepage and tour share one runtime and viewpoint;')[0];
+      if (/^games\/local\/travel-bund\/src\/(?:Scene|StreetLife|clouds)\.(?:tsx|ts)$/.test(file))
+        text = text.replace(
+          /from (['"])\.\/(audio|debug-snapshots)\1/g,
+          (_, quote, id) =>
+            'from ' + quote + '../native/' + (id === 'audio' ? 'audio' : 'diagnostics') + quote,
+        );
+      const specifiers = [
+        ...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g),
+      ].map((match) => match[1]);
+      for (const specifier of specifiers.filter((id) => id.startsWith('.'))) {
+        const base = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+        if (base.startsWith('../') || base.includes('/native/generated/')) continue;
+        const candidates = path.posix.extname(base)
+          ? [
+              base,
+              ...(base.endsWith('.js')
+                ? [base.slice(0, -3) + '.ts', base.slice(0, -3) + '.tsx']
+                : []),
+            ]
+          : [
+              base,
+              ...['.ts', '.tsx', '.js', '.mjs', '.json', '/index.ts', '/index.js'].map(
+                (suffix) => base + suffix,
+              ),
+            ];
+        const dependency = candidates.find((candidate) => {
+          try {
+            return typeof readSource(candidate) === 'string';
+          } catch {
+            return false;
+          }
+        });
+        if (!dependency) continue;
+        const previous = graph.get(dependency) || new Set();
+        const size = previous.size;
+        for (const owner of owners) previous.add(owner);
+        graph.set(dependency, previous);
+        if (previous.size !== size && /\.[cm]?[jt]sx?$/.test(dependency)) queue.push(dependency);
+      }
+    }
+  }
+  const selected = new Set(),
+    blocked = new Set();
+  for (const file of changedPaths) {
+    const platformDirectory = file.match(
+      /^platforms\/(wechat|bilibili|douyin|kuaishou|alipay)\//,
+    )?.[1];
+    if (
+      platformDirectory &&
+      !nativeGraph.has(file) &&
+      !/\.(?:test|spec)\.[cm]?[jt]s$/.test(file) &&
+      !/\.(?:md|html|css)$/.test(file) &&
+      !file.includes('/tests/')
+    ) {
+      for (const targets of nativeGraph.values())
+        for (const target of targets) {
+          const [game, platform] = target.split(':');
+          if (platform === platformDirectory) selected.add(game + ':' + platform);
+        }
+    }
+    for (const target of graph.get(file) || []) {
+      const [game, platform] = target.split(':');
+      // Builder provenance includes configuration inputs for every channel. Only
+      // the selected channel's wrapper/normalizer/resource bridge executes them.
+      const channel = file.match(
+        /^platforms\/(wechat|bilibili|douyin|kuaishou|alipay)\/(?:build\.mjs|normalize\.mjs|native-entry\.mjs|native-resources\.mjs)$/,
+      )?.[1];
+      if (!channel || channel === platform) selected.add(target);
+    }
+    for (const [id, source] of Object.entries(nativeGameSources)) {
+      if (
+        !['carding-car', 'night-overwatch'].includes(id) &&
+        (file.startsWith(source + '/native/') ||
+          (id === 'letters-words2' && file === source + '/tests/native-bundle.test.mjs') ||
+          file === source + '/package.json' ||
+          (id === 'letters-words2' && file.startsWith(source + '/assets/')) ||
+          (id === 'wulong-city' &&
+            /^(?:assets\/art\/|assets\/audio\/)/.test(file.slice(source.length + 1)) &&
+            file.startsWith(source + '/')))
+      )
+        for (const platform of nativePlatforms) selected.add(id + ':' + platform);
+    }
+    if (
+      file === 'scripts/nine-travel-native-smoke.mjs' ||
+      file === 'assets/bund' ||
+      file.startsWith('assets/bund/')
+    )
+      for (const platform of nativePlatforms) selected.add('travel-bund:' + platform);
+    for (const id of ['carding-car', 'night-overwatch']) {
+      const source = 'games/local/' + id;
+      if (
+        file === source + '/package.json' ||
+        (/^(?:assets|scripts|settings|startup|native)\//.test(file.slice(source.length + 1)) &&
+          file.startsWith(source + '/'))
+      )
+        blocked.add(id);
+    }
+    if (['platforms/competition/client.js', 'platforms/kart-sharing.js'].includes(file))
+      blocked.add('carding-car');
+    if (
+      /^games\/local\/carding-car\/scripts\/(?:toolchain|native-targets|clear-output)\.mjs$/.test(
+        file,
+      )
+    )
+      blocked.add('night-overwatch');
+    if (
+      /^apps\/shell-minigame\/scripts\/(?:cocos-platform|night-native-project|kuaishou-cocos-import|nine-games-build|nine-games-targets)\.mjs$/.test(
+        file,
+      )
+    )
+      for (const id of ['carding-car', 'night-overwatch']) blocked.add(id);
+  }
+  if (
+    changedPaths.some((file) =>
+      [
+        'platforms/h5/dev-mode.js',
+        'platforms/h5/dev-mode.d.ts',
+        'scripts/sync-game-dev-mode.mjs',
+      ].includes(file),
+    )
+  ) {
+    blocked.add('carding-car');
+    blocked.add('night-overwatch');
+  }
+  for (const game of blocked)
+    for (const platform of nativePlatforms) selected.add(game + ':' + platform);
+  const targets = [...selected].sort().map((target) => {
+    const [game, platform] = target.split(':');
+    const source = nativeGameSources[game];
+    assert.equal(
+      games.filter((item) => item.id === game && item.source === source).length,
+      1,
+      'Unique native dependency identity required',
+    );
+    assert.equal(
+      games.filter((item) => item.id === game).length,
+      1,
+      'Unique native dependency game required',
+    );
+    assert.equal(
+      games.filter((item) => item.source === source).length,
+      1,
+      'Unique native dependency source required',
+    );
+    return { game, platform, source, ...(blocked.has(game) ? { requiresCreator: '3.8.8' } : {}) };
+  });
+  return {
+    targets,
+    native_only_paths: changedPaths.filter(isNineNativeOnlyPath),
+    blocked: [...blocked].sort().map((game) => ({
+      game,
+      reason:
+        'Requires real Creator 3.8.8 native build and exact matching artifact; no H5 substitute or silent skip.',
+    })),
+    travel_contract: targets.some((target) => target.game === 'travel-bund')
+      ? {
+          file: 'games/local/travel-bund/native/tests/contracts.mjs',
+          args: ['games/local/travel-bund/native/tests/contracts.mjs'],
+        }
+      : null,
+  };
 }

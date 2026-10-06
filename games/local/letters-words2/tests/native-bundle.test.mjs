@@ -9,7 +9,14 @@ import { practiceBatches } from '../library.js';
 
 const outputRoot = process.env.NATIVE_OUTPUT_ROOT || fileURLToPath(new URL('../../../../apps/shell-minigame/dist/', import.meta.url));
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
-for (const [platform, sdkName] of [['wechat', 'wx'], ['bilibili', 'bl'], ['douyin', 'tt'], ['kuaishou', 'ks'], ...(process.env.NATIVE_OUTPUT_ROOT ? [['alipay', 'my']] : [])]) {
+const channels = [['wechat', 'wx'], ['bilibili', 'bl'], ['douyin', 'tt'], ['kuaishou', 'ks'], ...(process.env.NATIVE_OUTPUT_ROOT ? [['alipay', 'my']] : [])];
+const selectedPlatforms = process.env.NATIVE_PLATFORMS?.split(',');
+if (selectedPlatforms) {
+  assert(selectedPlatforms.length > 0 && new Set(selectedPlatforms).size === selectedPlatforms.length);
+  assert(selectedPlatforms.every((platform) => channels.some(([id]) => id === platform)), 'Unknown native platform selection');
+}
+for (const [platform, sdkName] of channels) {
+  if (selectedPlatforms && !selectedPlatforms.includes(platform)) continue;
   const directory = path.join(outputRoot, platform, 'letters-words2');
   const source = readFileSync(path.join(directory, 'game.js'), 'utf8');
   const release = JSON.parse(readFileSync(path.join(directory, 'release.json'), 'utf8'));

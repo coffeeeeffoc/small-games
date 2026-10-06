@@ -692,3 +692,46 @@ test('first-nine classifier tooling recognizes only exact source/test files; adj
     assert.throws(() => plan(['scripts/nine-native-scope.mjs', file]), /scope undefined/);
   }
 });
+
+test('actual native changes select channel builds without unrelated H5; H5-only does not select native', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  pkgs.push(...['apps/shell-minigame', 'platforms/alipay'].map((dir) => ({ dir })));
+  const run = (changedPaths) => incrementalPlan({ games: actual, packages: pkgs, changedPaths });
+  const native = run(['games/local/travel-bund/native/input.ts']);
+  assert.deepEqual(native.browser_ids, []);
+  assert.equal(native.nine_native_targets.length, 5);
+  assert(native.nine_native_travel_contract);
+  const shared = run(['games/local/travel-bund/src/physics.ts']);
+  assert.deepEqual(shared.browser_ids, ['travel-bund']);
+  assert.equal(shared.nine_native_targets.length, 5);
+  for (const file of ['src/main.tsx', 'src/styles.css', 'index.html']) {
+    const h5 = run(['games/local/travel-bund/' + file]);
+    assert.deepEqual(h5.nine_native_targets, []);
+    assert.deepEqual(h5.browser_ids, ['travel-bund']);
+  }
+  const platform = run(['platforms/alipay/native-resources.mjs']);
+  assert.deepEqual(platform.browser_ids, []);
+  assert.equal(platform.nine_native_targets.length, 2);
+  assert(platform.nine_native_targets.every((target) => target.platform === 'alipay'));
+});
+
+test('Word native bundle contract and native-only renderers select native without H5', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  for (const file of [
+    'games/local/letters-words2/tests/native-bundle.test.mjs',
+    'games/local/letters-words2/competition-renderer.js',
+  ]) {
+    const result = incrementalPlan({ games: actual, packages: pkgs, changedPaths: [file] });
+    assert.deepEqual(result.browser_ids, []);
+    assert.equal(result.nine_native_targets.length, 5);
+    assert(result.nine_native_targets.every((target) => target.game === 'letters-words2'));
+  }
+});

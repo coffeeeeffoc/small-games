@@ -252,3 +252,107 @@ test('first-nine native checks build only mapped games across five platforms, th
   );
   assert.equal(rejected.length, 1);
 });
+
+test('explicit source targets select only their actual platform and include compiled Travel contracts', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+    },
+  };
+  const calls = [];
+  const plan = {
+    nine_native_targets: [
+      { game: 'travel-bund', platform: 'alipay' },
+      { game: 'travel-bund', platform: 'alipay' },
+      { game: 'cops-robbers', platform: 'bilibili' },
+      { game: 'letters-words2', platform: 'wechat' },
+    ],
+  };
+  runNineNativeChecks({
+    plan,
+    packages: [host],
+    root: os.tmpdir(),
+    env: {},
+    execute: (...args) => calls.push(args),
+  });
+  const builds = calls.filter((call) => call[1][0].endsWith('nine-games-build.mjs'));
+  assert.deepEqual(
+    builds.map((call) => [call[1][2], call[1][4]]),
+    [
+      ['travel-bund', 'alipay'],
+      ['cops-robbers', 'bilibili'],
+      ['letters-words2', 'wechat'],
+    ],
+  );
+  assert.equal(
+    calls.find((call) => call[1][0] === 'scripts/nine-travel-native-smoke.mjs')[3].NATIVE_PLATFORMS,
+    'alipay',
+  );
+  const canvas = calls.filter((call) => call[1][0] === 'scripts/nine-canvas-games-smoke.mjs');
+  assert.equal(canvas.length, 1);
+  assert.equal(canvas[0][3].NATIVE_PLATFORMS, 'bilibili');
+  assert.equal(canvas[0][3].NATIVE_GAME_IDS, 'cops-robbers');
+  assert.equal(
+    calls.find(
+      (call) => call[1][1] === 'games/local/letters-words2/tests/native-bundle.test.mjs',
+    )[3].NATIVE_PLATFORMS,
+    'wechat',
+  );
+  assert(!calls.some((call) => call[1][0] === 'scripts/nine-wulong-smoke.mjs'));
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: { nine_native_targets: [{ game: 'travel-bund', platform: 'unknown' }] },
+        packages: [host],
+        root: os.tmpdir(),
+        env: {},
+        execute: () => assert.fail('invalid selection must not execute'),
+      }),
+    /Unknown/,
+  );
+});
+
+test('selected Cocos targets attempt the genuine native builder and missing tools block', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+    },
+  };
+  const calls = [];
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: {
+          nine_native_targets: [
+            { game: 'night-overwatch', platform: 'wechat', requiresCreator: '3.8.8' },
+          ],
+          nine_native_blocked: [{ game: 'night-overwatch', reason: 'requires actual Creator' }],
+        },
+        packages: [host],
+        root: os.tmpdir(),
+        env: {},
+        execute: (...args) => {
+          calls.push(args);
+          throw Error('Creator 3.8.8 missing');
+        },
+      }),
+    /Creator 3.8.8 missing/,
+  );
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0][1], [
+    'apps/shell-minigame/scripts/nine-games-build.mjs',
+    '--game',
+    'night-overwatch',
+    '--platform',
+    'wechat',
+    '--preview',
+  ]);
+});
