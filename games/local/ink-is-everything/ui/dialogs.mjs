@@ -1,4 +1,4 @@
-import { $, esc, amount, bindPress } from './dom.mjs';
+import { $, esc, amount, bindPress, isKeyboardClick } from './dom.mjs';
 import { icon } from '../art.mjs';
 import { equipmentView, rewardView, shopView } from './equipment-view.mjs';
 
@@ -273,7 +273,7 @@ export function createDialogs({
     if (event.button === 0) handle(event);
   });
   dialog.addEventListener('click', (event) => {
-    if (event.detail === 0) handle(event);
+    if (isKeyboardClick(event)) handle(event);
   });
   return {
     showPause,

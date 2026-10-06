@@ -583,6 +583,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
     await click(frame.locator('#pause'));
+    await expect(frame.locator('#modal')).toBeVisible();
+    await expect(frame.locator('#modal')).toHaveAttribute('data-kind', 'pause');
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
     await click(frame.locator('#modal [data-menu="equipment"]'));
     await expect.poll(async () => (await snapshot()).paused).toBe(true);
     const summary = frame.locator('#modal .skill-summary');
