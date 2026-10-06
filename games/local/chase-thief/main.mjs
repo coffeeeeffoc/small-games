@@ -424,7 +424,11 @@ on(game, 'pointercancel', (event) => buttonPointers.delete(event.pointerId));
 on(game, 'lostpointercapture', (event) => buttonPointers.delete(event.pointerId));
 on(document, 'click', (event) => {
   const button = event.target.closest('button');
-  if (event.detail === 0 && button && game.contains(button)) activateButton(button);
+  // A physical pointer click can have detail=0 and can target a newly shown
+  // control. Pointer activation was already handled above; only pointer-free
+  // keyboard/accessibility clicks enter here.
+  if (event.detail === 0 && !event.pointerType && button && game.contains(button))
+    activateButton(button);
 });
 function activateButton(button) {
   if (button.disabled || button.hasAttribute('data-game-fullscreen')) return;

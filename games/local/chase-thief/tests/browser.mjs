@@ -12,6 +12,7 @@ const artifacts = path.join(root, 'docs/design');
 const checks = [];
 const errors = [];
 const screenshots = [];
+const inputEvents = [];
 let browser;
 let server;
 let failure;
@@ -82,6 +83,32 @@ async function makePage(viewport = { width: 390, height: 844 }, init) {
     deviceScaleFactor: 1,
   });
   if (init) await context.addInitScript(init);
+  await context.addInitScript(() => {
+    window.chaseInputEvents = [];
+    for (const type of ['pointerdown', 'pointerup', 'click'])
+      document.addEventListener(
+        type,
+        (event) => {
+          const button = event.target.closest?.('button');
+          if (
+            !button ||
+            !['start', 'pause', 'resume', 'left', 'right'].includes(
+              button.id || button.dataset.action,
+            )
+          )
+            return;
+          window.chaseInputEvents.push({
+            type,
+            target: button.id || button.dataset.action,
+            detail: event.detail,
+            pointerType: event.pointerType,
+            trusted: event.isTrusted,
+            lane: document.querySelector('#game')?.dataset.lane,
+          });
+        },
+        true,
+      );
+  });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('requestfailed', (request) =>
@@ -315,12 +342,66 @@ async function verifyTouchAndLifecycle(base) {
   await phase(page, 'running');
   await page.locator('#game[data-ready="true"]').waitFor();
   // Root's deterministic hook is filled in alongside the UI contract.
-  await verifyCore(page);
-  await context.close();
+  try {
+    await verifyCore(page);
+  } finally {
+    inputEvents.push(...(await page.evaluate(() => window.chaseInputEvents)));
+    await context.close();
+  }
 }
 
 async function verifyCore(page) {
   await page.evaluate(() => window.__chaseDev.manual(true));
+  await tap(page, 'button[data-action="left"]');
+  assert.equal((await snapshot(page)).lane, 0, 'One touch moves from the middle to the left lane.');
+  await tap(page, 'button[data-action="right"]');
+  assert.equal((await snapshot(page)).lane, 1, 'One touch returns exactly to the middle lane.');
+  for (const pointerType of ['touch', 'mouse', 'pen']) {
+    for (const detail of [0, 1]) {
+      await page.locator('button[data-action="right"]').evaluate(
+        (button, init) => {
+          button.dispatchEvent(new PointerEvent('click', { ...init, bubbles: true }));
+        },
+        { pointerType, detail },
+      );
+      assert.equal(
+        (await snapshot(page)).lane,
+        1,
+        `${pointerType} compatibility click must not repeat a handled pointer action (detail=${detail}).`,
+      );
+    }
+  }
+  await tap(page, '#pause');
+  await phase(page, 'paused');
+  // A menu transition can retarget a pointer's compatibility click to a new control.
+  await page
+    .locator('#resume')
+    .evaluate((button) =>
+      button.dispatchEvent(
+        new PointerEvent('click', { pointerType: 'touch', detail: 0, bubbles: true }),
+      ),
+    );
+  await phase(page, 'paused');
+  await page.locator('#resume').focus();
+  await page.keyboard.press('Enter');
+  await phase(page, 'running');
+  await page.locator('button[data-action="left"]').focus();
+  await page.keyboard.press('Space');
+  assert.equal((await snapshot(page)).lane, 0, 'Space activates a focused button once.');
+  await page.locator('button[data-action="right"]').focus();
+  await page.keyboard.press('Enter');
+  assert.equal((await snapshot(page)).lane, 1, 'Enter activates a focused button once.');
+  await page.locator('button[data-action="left"]').evaluate((button) => button.click());
+  assert.equal(
+    (await snapshot(page)).lane,
+    0,
+    'Pointer-free accessible click still activates the button.',
+  );
+  await page.keyboard.press('ArrowRight');
+  assert.equal((await snapshot(page)).lane, 1, 'The movement keyboard shortcut remains available.');
+  checks.push(
+    'Handled pointer clicks do not repeat lane changes or activate a replacement menu control; Space, Enter, accessible click, and arrow keys remain functional.',
+  );
   await swipe(page, 'left');
   assert.equal((await snapshot(page)).lane, 0);
   await swipe(page, 'right');
@@ -722,6 +803,7 @@ try {
       'Desktop Chromium emulation; visibility events are simulated. No physical device or native mini-game platform tested.',
     checks,
     screenshots,
+    inputEvents,
     errors,
     ...(failure ? { failure: failure.stack } : {}),
   };
