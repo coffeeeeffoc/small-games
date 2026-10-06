@@ -65,3 +65,28 @@ B站的 `game.json` 使用其必填 `appId`、`version`，并核对侧边栏/桌
 外滩 release 另须明确提供 `MINIGAME_TRAVEL_BUND_ASSET_BASE`，为无凭据、无查询参数的公开 HTTPS 目录，并在对应平台登记合法资源域名；preview 才默认使用现有 Pages 地址。B站域名备案等要求不能因 URL 可访问而算已满足。没有登记域名、真实 SDK WASM/WebGL2/离屏图像能力验收时不能标记正式接入完成。许可文本随包保留。
 
 受影响 H5 构建只验证此时·此地的可选照片 loader 和外滩原项目；原生包、原生源文件、设计证据均不进入 Pages 输出。部署容量仍以实际 Pages 全输出为准；本任务没有清理历史或更改托管策略。
+
+## Cocos 打包逻辑与官方工具边界（后续整合）
+
+两款各五渠道的 config-only 路径已实现。微信、B站、抖音调用原有真实 Creator 构建；B站须安装官方 biligame-builder（夜航核验版本1.0.3），不改名微信包。抖音无 AppID 可生成配置，但原 Creator脚本实际编译要求公开AppID，此限制不以假ID绕过。支付宝独立目标现已补上卡丁车真实素材准备，准备前后引擎 fingerprint 不变。
+
+快手已实现微信格式源导出 staging、可信源 inventory 捕获和官方转换包接收/校验：
+
+```sh
+node games/local/carding-car/platforms/build.mjs kuaishou --config-only
+# 有真实 Creator 3.8.8 后，导出中间源与可信 inventory，尚不是快手成品：
+node games/local/carding-car/platforms/build.mjs kuaishou --prepare-source
+# 用户在官方快手 DevTools 打开自动适配，生成真实 kwaiadapter.js 后：
+# KUAISHOU_CONVERTED_DIR=/absolute/path/to/actual-converted-package
+# KUAISHOU_PROJECT_CONFIG_FILE=<实际工具配置文件相对路径>
+# KUAISHOU_PROJECT_APP_ID_FIELD=<实际appid或appId字段>
+node games/local/carding-car/platforms/build.mjs kuaishou
+```
+
+夜航使用相同命令替换slug。中间微信源的游客模式标记仅用于Creator源导出，不是快手AppID或正式包。缺少转换产物时返回明确阻塞。校验要求源 Creator3.8.8/当前fingerprint/转换前可信inventory、场景/模型/声音/WASM/engine字节保留、真实adapter文件与入口引用、横屏、实际项目配置AppID、主6MiB/总30MiB预算及所有资源分包入口。转换入口若发生超出插入adapter的变化则拒绝并要求针对实际工具产物审阅。公开文档未证明配置落盘schema，不编造微信schema；文件/字段由实际工具产物显式指定，工具出处与schema验收仍为false。
+
+批量构建使用 `.env.example` 的 `MINIGAME_<GAME>_KUAISHOU_{CONVERTED_DIR,SOURCE_DIR,SOURCE_INVENTORY,PROJECT_CONFIG_FILE,PROJECT_APP_ID_FIELD}`；这些仅为本地构建输入，不进客户端。单款CLI对应不带MINIGAME前缀的KUAISHOU变量；公开AppID仍用各渠道APP_ID。源 inventory 默认在游戏 reports/kuaishou-source-inventory.json。release先拒绝缺ID/官方测试ID。没有真实转换包、Creator或需配置的资源托管时，不能将逻辑检查说成产物生成。
+
+现有 `.github/workflows/carding-car.yml` 只有 workflow_call/reuse_ci，Windows任务固定构建web-mobile，未设置原生渠道或B站插件；因此当前不能直接生成十份原生包。此轮仅调查，未修改工作流、权限、付费或触发Pages发布。
+
+外滩其余四平台后续已补实际最终CJS无DOM场景执行：使用各自FS/request/storage签名、真实OffscreenCanvas/WebGL2/原模型/物理/参考图，包含保存设置、后台暂停恢复和清理。具体测试artifact SHA在交付报告中；不冒充官方SDK接受结果。

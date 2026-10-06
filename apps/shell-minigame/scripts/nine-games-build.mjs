@@ -87,6 +87,18 @@ export async function buildTarget(selected, config, outputRoot) {
       pathToFileURL(path.join(root, selected.directory, 'platforms/build.mjs'))
     );
     const publicEnv = { ...process.env, [`${config.platform.toUpperCase()}_APP_ID`]: config.appId };
+    if (config.platform === 'kuaishou') {
+      for (const suffix of [
+        'CONVERTED_DIR',
+        'SOURCE_DIR',
+        'SOURCE_INVENTORY',
+        'PROJECT_CONFIG_FILE',
+        'PROJECT_APP_ID_FIELD',
+      ]) {
+        const scoped = `MINIGAME_${selected.id.toUpperCase().replaceAll('-', '_')}_KUAISHOU_${suffix}`;
+        publicEnv[`KUAISHOU_${suffix}`] = process.env[scoped] || '';
+      }
+    }
     const result = await wrapper.buildPlatform(config.platform, {
       mode: config.preview ? 'preview' : 'release',
       env: publicEnv,

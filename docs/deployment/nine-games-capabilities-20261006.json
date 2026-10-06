@@ -24,7 +24,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator wechatgame export and provenance checks"
         },
         {
           "platform": "bilibili",
@@ -41,7 +42,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "official biligame-builder WeChat-source conversion; plugin installation required"
         },
         {
           "platform": "douyin",
@@ -58,7 +60,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator bytedance-mini-game export; missing AppID permits configuration-only, original tool requires AppID for compilation"
         },
         {
           "platform": "kuaishou",
@@ -75,7 +78,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator source staging and trusted inventory + supplied official DevTools conversion import verification; GUI conversion remains external; no invented CLI/adapter"
         },
         {
           "platform": "alipay",
@@ -92,7 +96,8 @@
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "independent Creator alipay-mini-game configuration/export; pinned kart art preparation implemented"
         }
       ]
     },
@@ -576,7 +581,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "actual final WeChat CJS: no-DOM/no-TextDecoder Worker + original models/WebGL2/Rapier WASM/lifecycle"
+          "localExecution": "actual final platform CJS in no-DOM/no-TextDecoder Worker: original models/WebGL2/Rapier WASM, real reference images, storage/lifecycle/disposal; independent native API shape fixture, not official tools/device"
         },
         {
           "platform": "bilibili",
@@ -593,7 +598,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
+          "localExecution": "actual final platform CJS in no-DOM/no-TextDecoder Worker: original models/WebGL2/Rapier WASM, real reference images, storage/lifecycle/disposal; independent native API shape fixture, not official tools/device"
         },
         {
           "platform": "douyin",
@@ -610,7 +615,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
+          "localExecution": "actual final platform CJS in no-DOM/no-TextDecoder Worker: original models/WebGL2/Rapier WASM, real reference images, storage/lifecycle/disposal; independent native API shape fixture, not official tools/device"
         },
         {
           "platform": "kuaishou",
@@ -627,7 +632,7 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
+          "localExecution": "actual final platform CJS in no-DOM/no-TextDecoder Worker: original models/WebGL2/Rapier WASM, real reference images, storage/lifecycle/disposal; independent native API shape fixture, not official tools/device"
         },
         {
           "platform": "alipay",
@@ -644,7 +649,7 @@
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "built + file/resource integrity + independent SDK IO/WASM/request contracts; full native scene execution unrun"
+          "localExecution": "actual final platform CJS in no-DOM/no-TextDecoder Worker: original models/WebGL2/Rapier WASM, real reference images, storage/lifecycle/disposal; independent native API shape fixture, not official tools/device"
         }
       ]
     },
@@ -668,7 +673,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator wechatgame export and provenance checks"
         },
         {
           "platform": "bilibili",
@@ -685,7 +691,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "official biligame-builder WeChat-source conversion; plugin installation required"
         },
         {
           "platform": "douyin",
@@ -702,7 +709,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator bytedance-mini-game export; missing AppID permits configuration-only, original tool requires AppID for compilation"
         },
         {
           "platform": "kuaishou",
@@ -719,7 +727,8 @@
           "login": "unconfigured/unverified",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "Creator source staging and trusted inventory + supplied official DevTools conversion import verification; GUI conversion remains external; no invented CLI/adapter"
         },
         {
           "platform": "alipay",
@@ -736,7 +745,8 @@
           "login": "unconfigured/unverified; Alipay unavailable",
           "advertising": "unavailable/unverified",
           "reviewAndPublication": "unrun",
-          "localExecution": "not-built; no current native execution"
+          "localExecution": "not-built; no current native execution",
+          "packagingLogic": "independent Creator alipay-mini-game configuration/export; pinned kart art preparation implemented"
         }
       ]
     },

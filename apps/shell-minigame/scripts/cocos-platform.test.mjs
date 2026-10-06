@@ -4,12 +4,14 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   descriptor,
   channels,
   buildPlatform,
   alipayConfig,
   verifyManifest,
+  prepareNativeInputs,
 } from './cocos-platform.mjs';
 
 test('all five channels reject missing release IDs before tools or adapters', async () => {
@@ -68,4 +70,40 @@ test('native manifest detects tampered or added package files', async () => {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+});
+
+test('Alipay prepares real pinned kart art without changing engine source provenance', async () => {
+  const gameRoot = new URL('../../../games/local/carding-car/', import.meta.url);
+  const { sourceHash } = await import(new URL('scripts/artifact.mjs', gameRoot));
+  const { artLocation } = await import(new URL('assets/scripts/ArtLocation.ts', gameRoot));
+  const before = await sourceHash();
+  await prepareNativeInputs(fileURLToPath(gameRoot), 'alipay');
+  const { readFile } = await import('node:fs/promises');
+  for (const [name, source] of [
+    ['seaside/kart.glb', 'runtime/kart.glb'],
+    ['expansion/manifest.json', 'runtime-expansion/manifest.json'],
+    ['glacier-sample/road.jpg', 'glacier-sample/road.jpg'],
+  ]) {
+    const ext = name.slice(name.lastIndexOf('.'));
+    const location = artLocation(name.slice(0, -ext.length));
+    const actual = await readFile(
+      new URL(`assets/art/${location.bundle}/${location.path}${ext}`, gameRoot),
+    );
+    const expected = await readFile(new URL(`../../../assets/carding-car/${source}`, gameRoot));
+    assert.deepEqual(actual, expected);
+  }
+  assert.equal(await sourceHash(), before);
+});
+
+test('Kuaishou config-only generates actual Creator source configuration without a fabricated converted artifact', async () => {
+  const gameRoot = fileURLToPath(new URL('../../../games/local/night-overwatch/', import.meta.url));
+  const report = await buildPlatform(gameRoot, 'kuaishou', { configOnly: true, env: {} });
+  assert.equal(report.status, 'source-configuration-only');
+  assert.equal(report.officialConversionVerified, false);
+  assert.equal(report.deviceVerified, false);
+  const { readFile } = await import('node:fs/promises');
+  const config = JSON.parse(await readFile(report.configuration, 'utf8'));
+  assert.equal(config.platform, 'wechatgame');
+  assert.equal(report.destinationPlatform, 'kuaishou');
+  assert.equal('directory' in report, false);
 });
