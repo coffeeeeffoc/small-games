@@ -89,3 +89,18 @@ test('real registration parser feeds narrow single/multiple-game browser selecti
     assert.deepEqual(plan([registry], { fileScopes }).browser_ids, ids);
   }
 });
+
+test('per-game literal adapters are narrow, executable changes in the same file remain shared', async () => {
+  const { entryAdapterFileScopes } = await import('./incremental-validation.mjs');
+  const file = 'apps/shell-web/scripts/standalone-game-entry.mjs';
+  const source = (marker, body = 'return id;') =>
+    `export const markers = { a: '${marker}', b: '#home' };\nexport const homeControls = { a: '#start' };\nexport const legacyEntryIds = ['b'];\nexport function entry(id) { ${body} }`;
+  const context = { games, changedPaths: [file], readBase: () => source('#board') };
+  const narrowed = entryAdapterFileScopes({ ...context, readHead: () => source('#home') });
+  assert.deepEqual(plan([file], { fileScopes: narrowed }).browser_ids, ['a']);
+  const shared = entryAdapterFileScopes({
+    ...context,
+    readHead: () => source('#home', 'return id + 1;'),
+  });
+  assert.equal(shared.has(file), false);
+});

@@ -10,7 +10,7 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
-import { incrementalPlan } from './incremental-validation.mjs';
+import { incrementalPlan, entryAdapterFileScopes } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
@@ -226,6 +226,14 @@ export async function validateTree({
         readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
       })
     : new Map();
+  if (incremental)
+    for (const [file, sources] of entryAdapterFileScopes({
+      changedPaths: sourcePaths,
+      games: catalog,
+      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
+      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+    }))
+      fileScopes.set(file, sources);
   const incrementalScope = incremental
     ? incrementalPlan({
         packages,
@@ -298,7 +306,14 @@ export async function validateTree({
       root,
       clean,
     );
-  for (const pkg of shellContractTargets(packages, sourcePaths, full))
+  for (const pkg of shellContractTargets(packages, sourcePaths, full)) {
+    execute(
+      process.execPath,
+      ['--test', 'apps/shell-web/scripts/standalone-game-entry.test.mjs'],
+      root,
+      clean,
+      'logged',
+    );
     execute(
       pnpm,
       ['--filter', pkg.name, 'exec', 'vitest', 'run', ...shellContractFiles],
@@ -306,6 +321,7 @@ export async function validateTree({
       clean,
       'logged',
     );
+  }
   if (metadataOnly) {
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);

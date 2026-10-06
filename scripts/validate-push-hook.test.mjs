@@ -65,6 +65,8 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     git(root, ['commit', '-qam', 'fixture docs']);
     const target = git(root, ['rev-parse', 'HEAD']);
     await writeFile(path.join(root, 'README.md'), 'later HEAD\n');
+    await writeFile(path.join(root, 'bad.json'), '{"bad":1}');
+    git(root, ['add', 'bad.json']);
     git(root, ['commit', '-qam', 'fixture later HEAD']);
     await mkdir(path.join(root, '.githooks'));
     const hook = path.join(root, '.githooks/pre-push');
@@ -74,10 +76,20 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     await writeFile(path.join(root, 'README.md'), 'dirty caller\n');
     const before = git(root, ['status', '--porcelain']);
     const output = git(root, ['push', 'origin', `${target}:refs/heads/dev`]);
-    assert.match(output, /fixture formatting ran/);
+    assert.match(output, /Checking formatting/);
+    assert.match(output, /All matched files use Prettier/);
     assert.match(output, /fixture registration ran/);
     assert.match(output, new RegExp(`Validate .*${target}`));
     assert.equal(git(remote, ['rev-parse', 'refs/heads/dev']), target);
+    assert.throws(
+      () => git(root, ['push', 'origin', 'HEAD:refs/heads/dev']),
+      /prettier|formatting/i,
+    );
+    assert.equal(
+      git(remote, ['rev-parse', 'refs/heads/dev']),
+      target,
+      'format failure must not update remote',
+    );
     assert.equal(git(root, ['status', '--porcelain']), before);
     assert.equal(await readFile(path.join(root, 'README.md'), 'utf8'), 'dirty caller\n');
     assert.equal(git(root, ['worktree', 'list', '--porcelain']).match(/^worktree /gm).length, 1);
