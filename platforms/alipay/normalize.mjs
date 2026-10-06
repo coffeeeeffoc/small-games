@@ -24,6 +24,8 @@ export function normalizeAlipaySdk(sdk) {
       return canvas;
     },
     createImage: optional('createImage'),
+    request: optional('request'),
+    loadSubpackage: optional('loadSubpackage'),
     createInnerAudioContext: optional('createInnerAudioContext'),
     getLaunchOptionsSync: optional('getLaunchOptionsSync'),
     getMenuButtonBoundingClientRect: optional('getMenuButtonBoundingClientRect'),

@@ -6,11 +6,23 @@ type KeyboardCallbacks = {
   complete?(result?: unknown): void;
 };
 export interface AlipayContentSdk {
+  loadSubpackage?(options: {
+    name: string;
+    success?(result?: { success?: boolean }): void;
+    fail?(error: unknown): void;
+  }): void;
+  request?(options: {
+    url: string;
+    method: 'GET';
+    dataType: 'arraybuffer' | 'text';
+    success(result: { data: string | ArrayBuffer; status: number }): void;
+    fail(error: { error?: number; errorMessage?: string }): void;
+  }): { abort?(): void } | void;
   getFileSystemManager?():
     | {
         readFile?(options: {
           filePath: string;
-          encoding: string;
+          encoding?: string;
           success(result: { data: string | ArrayBuffer }): void;
           fail(error: unknown): void;
         }): void;

@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./build": "./build.mjs",
-    "./native-entry": "./native-entry.mjs"
+    "./native-entry": "./native-entry.mjs",
+    "./native-resources": "./native-resources.mjs"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

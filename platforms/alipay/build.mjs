@@ -16,6 +16,9 @@ export const alipayPlatform = {
         assetsInclude: [
           ...(game === 'wulong-city' ? ['assets/audio/*.wav'] : ['competition-action.wav']),
           ...(game === 'letters-words2' ? ['assets/english-dict/**/*.json'] : []),
+          ...(game === 'travel-bund'
+            ? ['assets/**/*.wasm', 'assets/**/*.glb', 'assets/**/*.json']
+            : []),
         ],
       },
       'alipay-preview.json': {
