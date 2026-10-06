@@ -1,6 +1,9 @@
 import { BOARD, letters, validateEntries, createGame, restoreProgress, parseWordList, isBlocked, getAvailableTiles, findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle } from './engine.js';
 import { practiceBatches, setupLibrary } from './library.js';
 import { collections, dailyIsland, seededRandom, validDay, today, parseChallenge, challengeUrl, miniIslands, miniIsland, miniUrl } from './challenge.js';
+import { openScreen, closeScreen, closeScreens, setupScreens, screenVersion } from './mobile-ui.js';
+
+document.body.classList.toggle('is-embedded', window.parent !== window);
 
 const $ = id => document.getElementById(id);
 let game;
@@ -10,11 +13,13 @@ let busy = false;
 let audioContext;
 let soundEnabled = false;
 let hintId = null;
-let roundStarted = 0;
+let activeSince = null;
+let activeDuration = 0;
 let practice = null;
 let review = [];
 let roundName = '';
 let focused = false;
+let competitionOpen = false;
 let challenge = null;
 let mini = null;
 let sharePending = false;
@@ -45,8 +50,8 @@ function clearIslandInvitation() {
 function renderChallenge() {
   $('daily-note').textContent = challenge
     ? `${challenge} · 提示 ${dailyStats.hints} 次 / 重排 ${dailyStats.shuffles} 次 / 拼错 ${dailyStats.mistakes} 次`
-    : '每天一座主题词岛 · 试试零提示、零重排清空 · 北京时间换新';
-  $('daily-start').textContent = challenge ? '继续每日词岛' : `每日词岛 · ${invitedDay || today()}`;
+    : `${invitedDay || today()} · 每天一座新词岛`;
+  $('daily-start').textContent = challenge ? '继续每日词岛' : '每日词岛';
   $('daily-exit').hidden = !challenge;
   $('new-button').textContent = challenge || mini ? '回到自由拾词' : '↻ 换一组';
   $('mini-progress').hidden = !mini;
@@ -65,15 +70,50 @@ function renderChallenge() {
 }
 
 function setFocus(enabled) {
+  closeScreens();
   focused = enabled;
   document.body.classList.toggle('is-playing', enabled);
+  document.querySelector('.play-header').hidden = !enabled;
   $('pause-button').hidden = !enabled;
   $('focus-progress').hidden = !enabled;
   $('switch-word').hidden = !enabled;
   $('meaning-details').hidden = !enabled || (getActiveWord()?.meaning.length || 0) <= 26;
   (enabled ? $('word-list-panel') : $('word-list-home')).append(document.querySelector('.word-list-card'));
-  if (enabled) $('focus-button').textContent = '继续拾词 →';
+  updateHome();
+  updateClock();
   window.scrollTo(0, 0);
+  if (enabled) requestAnimationFrame(fitBoard);
+  if (enabled && game.completed === game.words.length) showWin();
+  notifyHost();
+}
+
+function notifyHost() {
+  if (window.parent === window) return;
+  try {
+    const origin = document.referrer ? new URL(document.referrer).origin : location.origin;
+    const immersive = focused || competitionOpen || Boolean(document.querySelector('dialog[open]'));
+    window.parent.postMessage({ type: 'small-games:display-state', gameId: 'letters-words2', screen: immersive ? 'playing' : 'home' }, origin);
+  } catch { /* An unavailable host never blocks local play. */ }
+}
+
+function updateClock() {
+  const now = performance.now();
+  if (activeSince !== null) activeDuration += now - activeSince;
+  activeSince = focused && !competitionOpen && !document.hidden && !document.querySelector('dialog[open]') ? now : null;
+}
+
+function updateHome() {
+  const progress = `${(practice?.learned || 0) + game.completed} / ${practice ? practice.batches.flat().length : game.words.length} 词`;
+  const complete = game.completed === game.words.length;
+  $('focus-button').textContent = complete ? '查看小岛收获 →' : game.completed || game.selected.length || practice || challenge || mini ? '继续拾词 →' : '开始拾词 →';
+  $('home-progress').textContent = `${roundName} · ${progress}`;
+  $('pause-theme').textContent = roundName;
+  $('pause-progress').textContent = progress;
+  $('learn-resume').hidden = !practice;
+  $('learn-resume-note').textContent = practice ? `${practice.name} · ${progress}` : '';
+  $('pause-share').hidden = true;
+  $('daily-share').hidden = Boolean(mini);
+  $('pause-new').textContent = challenge || mini ? '回到自由拾词' : '换一组单词';
 }
 
 function saveProgress() {
@@ -130,6 +170,8 @@ function renderSound() {
 function feedback(message, kind = '') {
   $('feedback').textContent = message;
   $('feedback').className = `feedback ${kind}`;
+  $('home-status').textContent = kind === 'error' ? message : '';
+  $('home-status').hidden = kind !== 'error';
 }
 
 function getActiveWord() { return game.words.find(word => word.id === game.activeWordId); }
@@ -169,10 +211,20 @@ function renderBoard() {
   $('board').replaceChildren(fragment);
   $('board').style.aspectRatio = `${BOARD.width}/${game.boardHeight}`;
   $('board').style.setProperty('--board-ratio', BOARD.width / game.boardHeight);
+  requestAnimationFrame(fitBoard);
   $('board').classList.toggle('is-complete', game.completed === game.words.length);
   if (focusedTile) $('board').querySelector(`[data-tile-id="${focusedTile}"]`)?.focus({ preventScroll: true });
   const remaining = game.tiles.filter(tile => !tile.removed).length;
   $('board-summary').textContent = `${remaining} 片字母 · ${getAvailableTiles(game).length} 片已露出`;
+}
+
+function fitBoard() {
+  if (!focused || !game) return;
+  const scene = document.querySelector('.board-scene');
+  if (!scene.clientWidth || !scene.clientHeight) return;
+  const minimum = BOARD.width * 44 / BOARD.tileSize;
+  const width = Math.min(360, scene.clientWidth - 16, Math.max(minimum, (scene.clientHeight - 28) * BOARD.width / game.boardHeight));
+  $('board').style.width = `${width}px`;
 }
 
 function renderAnswer() {
@@ -193,6 +245,10 @@ function renderAnswer() {
   }
   $('answer-slots').replaceChildren(fragment);
   $('answer-slots').classList.toggle('long', answer.length > 8);
+  requestAnimationFrame(() => {
+    const cursor = $('answer-slots').querySelector('.next') || $('answer-slots').lastElementChild;
+    if (cursor) $('answer-slots').scrollTop = Math.max(0, cursor.offsetTop - $('answer-slots').offsetTop - 44);
+  });
   $('letter-count').textContent = `${chars.length} / ${answer.length}`;
   $('submit-button').disabled = busy || !word || !chars.length;
   $('undo-button').disabled = busy || !chars.length;
@@ -247,6 +303,8 @@ function renderWords() {
   $('word-list').replaceChildren(fragment);
   $('study-progress').textContent = practice ? `教材进度 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词 · 第 ${practice.index + 1} / ${practice.batches.length} 岛` : '已完成的词会自动保存 · 提示过和拼错的词可在结算复习';
   $('focus-progress').textContent = `${(practice?.learned || 0) + game.completed} / ${practice ? practice.batches.flat().length : game.words.length} 词`;
+  $('play-progress-fill').style.width = `${game.completed / game.words.length * 100}%`;
+  updateHome();
 }
 
 function render() { renderBoard(); renderWords(); renderAnswer(); renderChallenge(); }
@@ -256,7 +314,8 @@ function startGame(entries, name, focus = true, random = Math.random) {
   busy = false;
   hintId = null;
   game = createGame(entries, random);
-  roundStarted = performance.now();
+  activeDuration = 0;
+  activeSince = null;
   roundName = name;
   $('theme-name').textContent = name;
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
@@ -277,12 +336,15 @@ function randomGame(focus = true) {
 }
 
 function showWin() {
-  const minutes = Math.max(1, Math.ceil((performance.now() - roundStarted) / 60000));
+  updateClock();
+  const minutes = Math.max(1, Math.ceil(activeDuration / 60000));
   $('win-summary').textContent = `${game.words.length} 个单词，${game.tiles.length} 片字母。${minutes} 分钟的小小收获。`;
   if (practice) $('win-summary').textContent += ` 教材已完成 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词。`;
   if (challenge) $('win-summary').textContent = `${challenge} 每日词岛已清空！提示 ${dailyStats.hints} 次，重排 ${dailyStats.shuffles} 次，拼错 ${dailyStats.mistakes} 次。${dailyStats.hints + dailyStats.shuffles + dailyStats.mistakes === 0 ? '达成「独立拾词」！' : '同题再练一次，试试减少求助。'}`;
   if (mini) $('win-summary').textContent = `${miniIsland(mini).name}，三份收获都找到了！提示 ${dailyStats.hints} 次，重排 ${dailyStats.shuffles} 次，拼错 ${dailyStats.mistakes} 次。${dailyStats.hints + dailyStats.shuffles + dailyStats.mistakes === 0 ? '达成「独立拾词」！' : '再走一次，把这三个词记牢。'}`;
   $('play-again-button').textContent = mini ? '同题重玩 · 三词再出发 →' : challenge ? '同题重玩 · 挑战独立拾词 →' : practice && practice.index + 1 < practice.batches.length ? '继续本单元 · 下一座词岛 →' : practice ? '本次教材练习完成 · 再练一遍' : '再去下一座词岛 →';
+  $('play-again-button').className = mini ? 'secondary-button' : 'primary-button';
+  $('play-again-button').parentElement.prepend(mini ? $('next-mini') : $('play-again-button'));
   $('win-share').hidden = !challenge && !mini;
   $('win-share').textContent = mini ? '邀请朋友 · 同一座三词小岛' : '分享每日战绩 · 邀请同题';
   $('next-mini').hidden = !mini;
@@ -290,11 +352,15 @@ function showWin() {
   $('review-button').textContent = `再练 ${review.length} 个提示 / 易错词`;
   $('win-words').replaceChildren(...game.words.map(word => {
     const span = document.createElement('span');
-    span.textContent = `${word.displayWord || word.word} · ${word.meaning}`;
+    const english = document.createElement('strong');
+    english.textContent = word.displayWord || word.word;
+    const meaning = document.createElement('small');
+    meaning.textContent = ` · ${word.meaning}`;
+    span.append(english, meaning);
     return span;
   }));
   // A modal opened by the player takes precedence over the delayed celebration.
-  if (!document.querySelector('dialog[open]')) $('win-dialog').showModal();
+  if (focused && !document.hidden && !document.querySelector('dialog[open]')) openScreen('win-dialog');
 }
 
 function checkSpelling() {
@@ -332,7 +398,7 @@ function checkSpelling() {
     render();
     if (result.won) {
       feedback('所有单词都拼对了，棋盘已清空。', 'success');
-      showWin();
+      if (focused && !document.hidden) showWin();
     } else if (mini) feedback(`${miniIsland(mini).finds[Number(result.word.id.slice(5))]}！收获 ${game.completed} / 3 · 下一词：${getActiveWord().meaning}${result.rescued ? ' · 已免费整理余牌' : ''}`, 'success');
     else if (result.rescued) feedback('拼对了！同字母自由取用让余牌互相遮挡，已自动免费整理；已完成的词保留。', 'success');
     else feedback(`${result.word.displayWord || result.word.word} ✓ 已消除。下一词：${getActiveWord().meaning}`, 'success');
@@ -441,18 +507,32 @@ $('review-button').addEventListener('click', () => {
   review = [];
   startGame(practice.batches[0], practice.name);
 });
-$('help-button').addEventListener('click', () => $('help-dialog').showModal());
+$('help-button').addEventListener('click', () => openScreen('help-dialog'));
+$('home-help-button').addEventListener('click', () => openScreen('help-dialog'));
+$('settings-button').addEventListener('click', () => openScreen('settings-dialog'));
+$('pause-settings').addEventListener('click', () => openScreen('settings-dialog'));
+$('islands-button').addEventListener('click', () => openScreen('islands-dialog'));
+$('learn-button').addEventListener('click', () => openScreen('learn-dialog'));
+$('resume-button').addEventListener('click', () => { closeScreens(); updateClock(); if (game.completed === game.words.length) showWin(); });
+$('home-button').addEventListener('click', () => setFocus(false));
+$('play-home').addEventListener('click', () => setFocus(false));
+$('win-home').addEventListener('click', () => setFocus(false));
+$('learn-resume').addEventListener('click', () => setFocus(true));
+$('free-start').addEventListener('click', () => randomGame());
+$('pause-new').addEventListener('click', () => challenge || mini ? leaveDaily() : randomGame());
+$('pause-share').addEventListener('click', () => shareDaily());
 $('focus-button').addEventListener('click', () => setFocus(true));
-$('pause-button').addEventListener('click', () => setFocus(false));
-$('switch-word').addEventListener('click', () => $('word-list-dialog').showModal());
-$('meaning-details').addEventListener('click', () => $('meaning-dialog').showModal());
+$('pause-button').addEventListener('click', () => openScreen('pause-dialog'));
+$('switch-word').addEventListener('click', () => openScreen('word-list-dialog'));
+$('meaning-details').addEventListener('click', () => openScreen('meaning-dialog'));
 $('result-button').addEventListener('click', showWin);
-$('import-button').addEventListener('click', () => {
-  $('word-list-dialog').close();
+function openImport() {
   $('word-input').value = readPreference('ciyu-word-list') || game.words.map(word => `${word.displayWord || word.word} ${word.meaning}`).join('\n');
   $('import-error').textContent = '';
-  $('import-dialog').showModal();
-});
+  openScreen('import-dialog');
+}
+$('import-button').addEventListener('click', openImport);
+$('my-words-button').addEventListener('click', openImport);
 $('import-form').addEventListener('submit', event => {
   event.preventDefault();
   try {
@@ -466,7 +546,17 @@ $('import-form').addEventListener('submit', event => {
     $('import-error').textContent = error.message;
   }
 });
-document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
+document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => closeScreen(button.closest('dialog'))));
+setupScreens();
+document.addEventListener('ciyu-screenchange', updateClock);
+document.addEventListener('ciyu-screenchange', notifyHost);
+window.addEventListener('competition-visibility', event => {
+  competitionOpen = Boolean(event.detail?.open);
+  updateClock();
+  notifyHost();
+});
+if (window.ResizeObserver) new ResizeObserver(fitBoard).observe(document.querySelector('.board-scene'));
+else window.addEventListener('resize', fitBoard);
 $('sound-button').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
   savePreference('ciyu-sound', String(soundEnabled));
@@ -474,7 +564,7 @@ $('sound-button').addEventListener('click', () => {
   playSound();
 });
 document.addEventListener('keydown', event => {
-  if (document.querySelector('dialog[open]') || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (!focused || document.hidden || document.querySelector('dialog[open]') || event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === 'Backspace') { event.preventDefault(); $('undo-button').click(); }
   // Enter on focused buttons keeps native keyboard activation.
   if (event.key === 'Enter' && !event.target.closest('button,a,input,textarea')) { event.preventDefault(); checkSpelling(); }
@@ -482,8 +572,10 @@ document.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     saveProgress();
+    if (focused && !document.querySelector('dialog[open]')) openScreen('pause-dialog');
     if (audioContext?.state === 'running') void audioContext.suspend().catch(() => {});
   }
+  updateClock();
 });
 window.addEventListener('pagehide', saveProgress);
 
@@ -510,11 +602,11 @@ function restoreRecord(saved) {
   if (review.length) practiceBatches(review);
   roundName = typeof saved.name === 'string' ? saved.name.slice(0, 300) : '继续练习';
   $('theme-name').textContent = roundName;
-  roundStarted = performance.now();
   render();
   feedback(saved.board && JSON.stringify(game.tiles) === JSON.stringify(saved.board.tiles)
     ? '已恢复上次的棋盘和拼写，接着拾词吧。' : '已恢复上次完成进度，剩余字母重新摆好了。');
-  if (game.completed === game.words.length) showWin();
+  activeDuration = 0;
+  activeSince = null;
 }
 function startDaily(day, replay = false, focus = true) {
   const island = dailyIsland(day);
@@ -570,7 +662,8 @@ function leaveDaily() {
 async function shareDaily(useMini = true) {
   if (sharePending) return;
   const sequence = ++shareSequence, requestedGame = game, requestedMini = mini, requestedDay = challenge;
-  const current = () => sequence === shareSequence && game === requestedGame && mini === requestedMini && challenge === requestedDay;
+  let requestedScreenVersion = screenVersion();
+  const current = () => sequence === shareSequence && screenVersion() === requestedScreenVersion && game === requestedGame && mini === requestedMini && challenge === requestedDay;
   const day = challenge || invitedDay || today();
   const sharedMini = useMini && mini;
   const link = sharedMini ? miniUrl(location, mini) : challengeUrl(location, day);
@@ -586,7 +679,8 @@ async function shareDaily(useMini = true) {
   if (!current()) return;
   $('challenge-link').value = link;
   $('share-status').textContent = sharedMini ? '链接只包含小岛主题，不包含英文答案。可复制给朋友。' : '链接只包含每日日期，不包含词单答案。可复制给朋友。';
-  $('share-dialog').showModal();
+  openScreen('share-dialog');
+  requestedScreenVersion = screenVersion();
   $('challenge-link').select();
   const dialog = $('share-dialog'), field = $('challenge-link');
   $('copy-challenge').onclick = async () => {
@@ -612,11 +706,18 @@ else {
   catch { randomGame(false); }
 }
 if (invitation.error) feedback('同题链接的主题、日期或版本无效，已保留自由拾词进度。', 'error');
+notifyHost();
+window.addEventListener('load', notifyHost, { once: true });
 for (const island of miniIslands) {
   const button = document.createElement('button');
   button.className = 'mini-choice'; button.dataset.mini = island.id;
-  const title = document.createElement('strong'); title.textContent = `${island.icon} ${island.name}`;
-  const detail = document.createElement('span'); detail.textContent = `${island.description} · 3 词`;
-  button.append(title, detail); button.addEventListener('click', () => startMini(island.id));
+  const art = document.createElement('span'); art.className = 'mini-icon'; art.textContent = island.icon; art.setAttribute('aria-hidden', 'true');
+  const copy = document.createElement('span'); copy.className = 'mini-copy';
+  const title = document.createElement('strong'); title.textContent = island.name;
+  const detail = document.createElement('small'); detail.textContent = island.description;
+  const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = '3 个词 · 随时出发';
+  copy.append(title, detail, pill);
+  const arrow = document.createElement('span'); arrow.className = 'chevron'; arrow.textContent = '›'; arrow.setAttribute('aria-hidden', 'true');
+  button.append(art, copy, arrow); button.addEventListener('click', () => startMini(island.id));
   $('mini-choices').append(button);
 }

@@ -6,12 +6,27 @@ import { effect, notice } from './events.mjs';
 import { restoreInk } from './resources.mjs';
 import { queueReward } from './growth.mjs';
 
+/** Equipment waits on the floor until the player deliberately picks it up. */
+export function pickUpGear(state, pickup) {
+  const index = state.pickups.indexOf(pickup);
+  if (index < 0 || pickup.kind !== 'gear') return { ok: false, message: '这件装备已经拾取了' };
+  if (distance(state.player, pickup) > 106) return { ok: false, message: '再靠近装备一些' };
+  if (!lineOfSight(getRoom(state), state.player, pickup, { includePits: true }))
+    return { ok: false, message: '先走到装备旁边' };
+  state.pickups.splice(index, 1);
+  const queued = queueReward(state, { ...pickup.gear, source: pickup.id });
+  const message = queued ? '装备已拾取，可随时选择' : '装备已满，转为墨汁补给';
+  effect(state, 'gear', pickup.x, pickup.y, { text: '拾取装备', life: 0.8 });
+  return { ok: true, message, gear: true, rewardQueued: Boolean(queued) };
+}
+
 export function collectPickups(state, dt) {
   const player = state.player,
     room = getRoom(state),
     stats = getPlayerStats(state);
   for (const pickup of state.pickups) {
     pickup.age += dt;
+    if (pickup.kind === 'gear') continue;
     if (pickup.kind === 'reclaim') {
       pickup.ttl = Math.max(0, pickup.ttl - dt);
       pickup.travel += Math.hypot(player.x - pickup.lastPlayerX, player.y - pickup.lastPlayerY);
@@ -55,13 +70,6 @@ export function collectPickups(state, dt) {
       continue;
     pickup.collected = true;
     if (pickup.kind === 'ink') restoreInk(state, pickup.value, 'pickup');
-    if (pickup.kind === 'gear') {
-      queueReward(state, { ...pickup.gear, source: pickup.id });
-      effect(state, 'gear', player.x, player.y, {
-        text: pickup.gear?.title ?? '发现装备',
-        life: 1,
-      });
-    }
     if (pickup.kind === 'seal') {
       state.seals += pickup.value;
       effect(state, 'pickup', player.x, player.y - 25, {

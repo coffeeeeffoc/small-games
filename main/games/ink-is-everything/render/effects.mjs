@@ -130,17 +130,60 @@ export function createEffectPainter(painter, getState) {
     } else if (kind === 'slash') {
       ctx.translate(effect.x, effect.y);
       ctx.rotate(effect.angle || 0);
-      ctx.strokeStyle = effect.color || '#323829';
-      ctx.lineWidth = 12 * (1 - t) + 2;
+      const radius = Math.max(1, effect.radius || 64),
+        halfAngle = Math.acos(-0.15),
+        sweep = -halfAngle + t * halfAngle * 2;
+      // Show the same forward reach used by the dry-brush hit test. The broad
+      // stroke stays close to the traveller, unlike a travelling ink bullet.
+      ctx.fillStyle = effect.hit ? 'rgba(53,111,104,.2)' : 'rgba(32,34,29,.1)';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radius, -halfAngle, halfAngle);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = effect.color || INK;
+      ctx.lineWidth = 16 * (1 - t) + 3;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(0, 0, effect.radius || 64, -0.95 + t * 0.45, 0.85 + t * 0.45);
+      ctx.arc(0, 0, radius, Math.max(-halfAngle, sweep - 1.35), sweep);
       ctx.stroke();
-      ctx.strokeStyle = '#eee0bc';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = effect.hit ? RECLAIM_LIGHT : '#eee0bc';
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.arc(0, 0, (effect.radius || 64) + 4, -0.8, 0.75);
+      ctx.arc(0, 0, radius + 4, -halfAngle, halfAngle);
       ctx.stroke();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 8 - i * 3, Math.max(-halfAngle, sweep - 1.0), sweep);
+        ctx.stroke();
+      }
+      // A visible brush tip tracks the arc instead of an anonymous ring.
+      ctx.save();
+      ctx.rotate(sweep);
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.moveTo(radius - 13, -4);
+      ctx.lineTo(radius + 8, 0);
+      ctx.lineTo(radius - 13, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else if (kind === 'shot') {
+      ctx.translate(effect.x, effect.y);
+      ctx.rotate(effect.angle || 0);
+      ctx.strokeStyle = '#eee0bc';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-14, -8 * (1 - t));
+      ctx.lineTo(14 + t * 12, 0);
+      ctx.lineTo(-14, 8 * (1 - t));
+      ctx.stroke();
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.ellipse(7 + t * 10, 0, Math.max(1, 6 * (1 - t)), Math.max(1, 3 * (1 - t)), 0, 0, TAU);
+      ctx.fill();
     } else if (kind === 'lifesteal' || kind === 'reclaim') {
       recovery(effect, t, time);
     } else if (kind === 'nova') {

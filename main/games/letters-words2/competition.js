@@ -1138,6 +1138,91 @@
 		"vibeJam-myself-history-guess": "此时·此地",
 		"xiangqi-five": "象五子棋"
 	};
+	var lettersCompetitionStyles = `
+[data-letters-competition].competition-dialog {
+  --pk-ink:#244e48; --pk-muted:#77877b; --pk-line:#d5dfc7; --pk-accent:#f28d58;
+  width:min(430px,100vw); height:100dvh; max-height:none; margin:0 auto;
+  border:0; border-radius:0; background:#f6f3e9; box-shadow:none;
+  font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-letters-competition]::backdrop { background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-shell { padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); }
+[data-letters-competition] .pk-header { min-height:44px; padding:0; border:0; gap:0; }
+[data-letters-competition] .pk-brand { justify-content:center; }
+[data-letters-competition] .pk-brand strong { font-size:15px; font-weight:750; letter-spacing:1px; }
+[data-letters-competition] .pk-brand-mark,
+[data-letters-competition] .pk-brand small,
+[data-letters-competition] .pk-profile-copy small,
+[data-letters-competition] .pk-profile > .pk-avatar,
+[data-letters-competition] .pk-room-note,
+[data-letters-competition] .pk-footer > p,
+[data-letters-competition] .pk-hero .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-tools { width:44px; }
+[data-letters-competition] .pk-tools button { width:44px; min-width:44px; padding:0; font-size:12px; }
+[data-letters-competition] button { min-height:52px; border:1px solid #c5d1be; border-radius:17px; background:#e4ecd8; font-size:15px; font-weight:750; box-shadow:0 3px #becbb6; }
+[data-letters-competition] button:hover { background:#e4ecd8; }
+[data-letters-competition] button:active { transform:translateY(3px); box-shadow:none; }
+[data-letters-competition] button.pk-primary { min-height:58px; border:0; background:#f28d58; color:#244e48; font-size:18px; box-shadow:0 5px #cd7043; }
+[data-letters-competition] button.pk-primary:hover { background:#f28d58; }
+[data-letters-competition] button.pk-quiet,
+[data-letters-competition] button.pk-back { min-height:44px; border:0; border-radius:14px; background:transparent; box-shadow:none; color:#244e48; }
+[data-letters-competition] button.pk-back { width:44px; min-width:44px; padding:0; font-size:28px; }
+[data-letters-competition] .pk-status { display:none; }
+[data-letters-competition] .pk-status[data-error] { display:block; min-height:24px; margin:6px 0!important; color:#a65d3b!important; }
+[data-letters-competition] .pk-status[data-feedback]:not([data-error]) { display:block; min-height:24px; margin:6px 0!important; }
+[data-letters-competition] .pk-content { padding-bottom:5px; }
+[data-letters-competition] .pk-hero { padding:22px 0 17px; }
+[data-letters-competition] .pk-hero h2 { font-size:28px; font-weight:800; letter-spacing:0; line-height:1.4; }
+[data-letters-competition] .pk-hero p { margin-top:8px; font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-letter-hero { min-height:150px; border-radius:24px; background:#e8eddc; position:relative; overflow:hidden; margin:0 0 22px; padding:24px; display:flex; align-items:center; }
+[data-letters-competition] .pk-letter-hero strong { position:relative; z-index:1; font-size:22px; line-height:1.6; }
+[data-letters-competition] .pk-letter-hero img { position:absolute; width:220px; right:-42px; bottom:-2px; }
+[data-letters-competition] .pk-options { grid-template-columns:1fr; gap:17px; }
+[data-letters-competition] .pk-option { padding:21px; border:1px solid #e2e3d5; border-radius:22px; background:#fffdf7; }
+[data-letters-competition] .pk-option h3 { font-size:18px; margin:0 0 8px; font-weight:800; }
+[data-letters-competition] .pk-option p { min-height:0; margin:0 0 20px; font-size:12px; line-height:1.6; }
+[data-letters-competition] .pk-join { display:grid; gap:14px; }
+[data-letters-competition] .pk-join label { font-size:0; }
+[data-letters-competition] input { min-height:53px; border:1px solid #d6dfcc; border-radius:15px; background:#fffdf7; color:#244e48; padding:0 15px; }
+[data-letters-competition] .pk-join input { margin:0; font:14px system-ui,sans-serif; letter-spacing:1px; }
+[data-letters-competition] .pk-footer { flex:none; padding:6px 0 0; margin-top:6px; gap:10px; flex-direction:row; }
+[data-letters-competition] .pk-footer > button { width:auto; min-height:44px; border:0; background:transparent; box-shadow:none; color:#77877b; font-size:12px; padding:0 4px; }
+[data-letters-competition] .pk-profile { width:auto; flex:1; min-width:0; padding:0; margin:0; border-radius:0; background:transparent; gap:4px; min-height:44px; }
+[data-letters-competition] .pk-profile-copy strong { font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-profile button { padding:0 6px; font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-room-intro { padding:24px 0 14px; }
+[data-letters-competition] .pk-room-intro h2 { font-size:27px; font-weight:800; }
+[data-letters-competition] .pk-room-intro .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-room-code { margin:20px 0 12px; padding:14px 5px; border:1px dashed #bdcbae; border-radius:16px; background:#e8eddc; color:#244e48; font-size:19px; letter-spacing:2px; }
+[data-letters-competition] .pk-room-intro p { font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-matchup { grid-template-columns:1fr 28px 1fr; gap:5px; margin:18px 0 26px; }
+[data-letters-competition] .pk-player { border:1px solid #d5dfc7; border-radius:22px; background:#fffdf7; padding:22px 7px; }
+[data-letters-competition] .pk-player[data-ready] { background:#e8efd9; }
+[data-letters-competition] .pk-player[data-empty] { border-style:dashed; background:transparent; }
+[data-letters-competition] .pk-avatar { background:#cde4c4; color:#315c4d; border-radius:16px; box-shadow:0 3px #acc49c; }
+[data-letters-competition] .pk-room-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-room-actions > button { min-width:0; width:100%; }
+[data-letters-competition][data-playing] .pk-shell { padding:max(8px,env(safe-area-inset-top)) 0 max(6px,env(safe-area-inset-bottom)); }
+[data-letters-competition][data-playing] .pk-header { margin:0 12px; padding:0; }
+[data-letters-competition][data-playing] .pk-brand strong { font-size:13px; }
+[data-letters-competition] canvas[data-play] { border-radius:0; background:#f6f3e9; }
+[data-letters-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-letters-competition] .pk-detail-page { position:absolute; inset:0; display:block; height:100%; padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-sheet { max-width:none; height:100%; max-height:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; overflow:hidden; }
+[data-letters-competition] .pk-sheet-head { flex:none; margin:0 0 24px; min-height:44px; }
+[data-letters-competition] .pk-sheet-head h2 { font-size:26px; font-weight:800; }
+[data-letters-competition] .pk-sheet-head small { font-size:12px; }
+[data-letters-competition] .pk-sheet-content { flex:1; overflow:auto; min-height:0; padding:0 0 5px; }
+[data-letters-competition] .pk-sheet-actions { flex:none; padding-top:14px; margin-top:0; }
+[data-letters-competition] .pk-sheet-actions button { width:100%; }
+[data-letters-competition] .pk-result { border:1px solid #d5dfc7; border-radius:22px; background:#e8efd9; padding:20px; }
+[data-letters-competition] .pk-result strong { font-size:23px; }
+[data-letters-competition] .pk-result-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-my-record { background:#244e48; border-radius:22px; }
+[data-letters-competition] .pk-rule-list li { padding:16px; margin-top:12px; border:1px solid #e2e3d5; border-radius:18px; background:#fffdf7; line-height:1.7; }
+@media (max-height:650px) { [data-letters-competition] .pk-letter-hero { min-height:106px; margin-bottom:16px; padding:18px; } [data-letters-competition] .pk-letter-hero strong { font-size:19px; } [data-letters-competition] .pk-hero { padding-top:14px; } }
+@media (orientation:landscape) and (max-height:500px) { [data-letters-competition].competition-dialog { width:100vw; } [data-letters-competition] .pk-shell { padding:8px 18px; } [data-letters-competition] .pk-letter-hero { display:none; } [data-letters-competition] .pk-options { grid-template-columns:1fr 1fr; } [data-letters-competition] .pk-footer { flex-direction:row; gap:18px; } [data-letters-competition] .pk-footer > button { width:auto; } [data-letters-competition] .pk-profile { width:auto; flex:1; } [data-letters-competition] .pk-hero { padding:5px 0 12px; } [data-letters-competition] .pk-room-actions { flex-direction:row; } }
+`;
 	var xiangqiCompetitionStyles = `
 body.competition-active { background:#fff8e8; overflow:hidden; }
 body.competition-active [data-screen], body.competition-active > .page, body.competition-active > .app-shell { display:none!important; }
@@ -1211,6 +1296,7 @@ body.competition-active #mode-online { position:static; }
 		if (game === "cops-robbers-realtime") return mountStreetCompetition(game, createRenderer);
 		const street = game === "cops-robbers-realtime";
 		const xiangqi = game === "xiangqi-five";
+		const letters = game === "letters-words2";
 		const roleNames = street ? {
 			pursuer: "警察",
 			runner: "小偷"
@@ -1224,13 +1310,13 @@ body.competition-active #mode-online { position:static; }
 			createImage: () => new Image(),
 			assetBase: new URL("./", location.href).href
 		});
-		const modeEntry = xiangqi && document.getElementById("mode-online");
+		const modeEntry = xiangqi ? document.getElementById("mode-online") : letters ? document.getElementById("friend-button") : null;
 		const launch = modeEntry || document.createElement("button");
 		if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
 		if (modeEntry) modeEntry.hidden = false;
 		launch.dataset.competitionLaunch = "";
 		const style = document.createElement("style");
-		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : h5_default;
+		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : letters ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-button)") + lettersCompetitionStyles : h5_default;
 		document.head.append(style);
 		const dialog = document.createElement(xiangqi ? "section" : "dialog");
 		dialog.className = "competition-dialog";
@@ -1258,6 +1344,34 @@ body.competition-active #mode-online { position:static; }
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
 		if (!modeEntry) document.body.append(launch);
 		document.body.append(dialog);
+		if (letters) {
+			dialog.dataset.lettersCompetition = "";
+			const back = dialog.querySelector("[data-close]");
+			back.textContent = "←";
+			back.setAttribute("aria-label", "返回词屿首页");
+			back.className = "pk-back";
+			dialog.querySelector(".pk-header").prepend(back);
+			dialog.querySelector(".pk-exit").remove();
+			dialog.querySelector(".pk-brand strong").textContent = "好友同题";
+			dialog.querySelector(".pk-hero h2").textContent = "一起，开一座词岛。";
+			dialog.querySelector(".pk-hero p").textContent = "同一组 18 词，和朋友来一场 120 秒拼词。";
+			const art = document.createElement("div");
+			art.className = "pk-letter-hero";
+			art.innerHTML = "<strong>叫上朋友<br>看看谁先点亮</strong><img src=\"./assets/ui/island.svg\" alt=\"\">";
+			dialog.querySelector(".pk-options").before(art);
+			const options = dialog.querySelectorAll(".pk-option");
+			options[0].querySelector("h3").textContent = "创建好友房间";
+			options[0].querySelector("p").textContent = "把邀请发给好友，准备好就出发。";
+			dialog.querySelector("[data-create]").textContent = "创建房间 →";
+			options[1].querySelector("h3").textContent = "加入朋友的房间";
+			options[1].querySelector("p").hidden = true;
+			dialog.querySelector("[data-code]").placeholder = "输入 12 位房间码";
+			dialog.querySelector("[data-code]").setAttribute("aria-label", "12 位房间码");
+			dialog.querySelector("[data-join]").textContent = "加入房间 →";
+			dialog.querySelector(".pk-footer").prepend(dialog.querySelector(".pk-profile"));
+			dialog.querySelector("[data-board]").textContent = "看看全站榜 →";
+			dialog.querySelector(".pk-overlay").classList.add("pk-detail-page");
+		}
 		if (xiangqi) {
 			const back = dialog.querySelector("[data-close]");
 			back.textContent = "←";
@@ -1278,7 +1392,7 @@ body.competition-active #mode-online { position:static; }
 			const walker = document.createTreeWalker(dialog, NodeFilter.SHOW_TEXT);
 			while (walker.nextNode()) walker.currentNode.textContent = walker.currentNode.textContent.replaceAll("追逐队", "警察").replaceAll("突围队", "小偷");
 		}
-		const select = (q) => dialog.querySelector(q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
+		const select = (q) => dialog.querySelector(letters && q === "[data-ready]" ? "button[data-ready]" : q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
 		let room = null, profile = null, poll = null, busy = false, exiting = false, pending = null, frame = 0, lastPoll = 0, resultShown = null, returnFocus = null, modes = [];
 		const isOpen = () => xiangqi ? !dialog.hidden : dialog.open;
 		let screenStates = [];
@@ -1317,7 +1431,7 @@ body.competition-active #mode-online { position:static; }
 			details.hidden = true;
 			select(".pk-content").inert = false;
 			select(".pk-footer").inert = false;
-			if (!xiangqi) select(".pk-exit").inert = false;
+			if (!xiangqi && !letters) select(".pk-exit").inert = false;
 			if (returnFocus?.isConnected && !returnFocus.closest("[hidden]")) returnFocus.focus();
 			else select("[data-rules]").focus();
 		}
@@ -1327,7 +1441,7 @@ body.competition-active #mode-online { position:static; }
 			details.replaceChildren();
 			select(".pk-content").inert = true;
 			select(".pk-footer").inert = true;
-			if (!xiangqi) select(".pk-exit").inert = true;
+			if (!xiangqi && !letters) select(".pk-exit").inert = true;
 			const sheet = text("div", "", "pk-sheet");
 			sheet.dataset.kind = kind;
 			const head = text("div", "", "pk-sheet-head"), label = document.createElement("div");
@@ -1348,6 +1462,7 @@ body.competition-active #mode-online { position:static; }
 		function feedback(error) {
 			status.textContent = error instanceof Error ? error.message : String(error);
 			status.toggleAttribute("data-error", error instanceof Error);
+			if (letters) status.toggleAttribute("data-feedback", /复制|发送房间码|已读取邀请|昵称已保存/.test(status.textContent));
 		}
 		function updateProfile(value) {
 			profile = value;
@@ -1486,7 +1601,7 @@ body.competition-active #mode-online { position:static; }
 			}
 		}
 		function showResults() {
-			const sheet = detailPanel("这一局，打得漂亮", "比赛结果已由服务端确认。", "result");
+			const sheet = detailPanel(letters ? "这一岛，拾得漂亮！" : "这一局，打得漂亮", letters ? "同题较量，看看这一局的收获。" : "比赛结果已由服务端确认。", "result");
 			for (const entry of room.results || []) {
 				const me = entry.playerId === room.players[room.you].id, player = room.players.find((p) => p.id === entry.playerId), card = text("section", "", "pk-result");
 				card.append(text("h3", (me ? "你 · " : "") + playerName(player || { playerId: entry.playerId }, room.players)), text("strong", entry.result.eligible ? scoreText(game, entry.result.score, entry.result.secondary) : "本局无有效成绩"));
@@ -1618,6 +1733,10 @@ body.competition-active #mode-online { position:static; }
 		});
 		select("[data-share]").onclick = () => void run(async () => {
 			const url = new URL(location.href);
+			if (letters) {
+				url.search = "";
+				url.hash = "";
+			}
 			url.searchParams.set("pk", room.code);
 			try {
 				await navigator.clipboard.writeText(url.href);
@@ -1657,6 +1776,7 @@ body.competition-active #mode-online { position:static; }
 			} finally {
 				exiting = false;
 				launch.disabled = false;
+				if (letters && launch.isConnected && launch.getClientRects().length) launch.focus();
 			}
 		};
 		dialog.addEventListener("cancel", (event) => {
@@ -1684,8 +1804,47 @@ body.competition-active #mode-online { position:static; }
 			dismiss();
 			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: false } }));
 		});
+		let lettersPointer = null;
+		if (letters) {
+			canvas.addEventListener("pointerdown", (event) => {
+				if (!room || room.status !== "playing" || !details.hidden) return;
+				if (lettersPointer) {
+					lettersPointer.cancelled = true;
+					return;
+				}
+				lettersPointer = {
+					id: event.pointerId,
+					x: event.clientX,
+					y: event.clientY,
+					cancelled: false
+				};
+				canvas.setPointerCapture?.(event.pointerId);
+			});
+			canvas.addEventListener("pointermove", (event) => {
+				if (lettersPointer?.id === event.pointerId && Math.hypot(event.clientX - lettersPointer.x, event.clientY - lettersPointer.y) > 10) lettersPointer.cancelled = true;
+			});
+			const cancel = () => {
+				lettersPointer = null;
+			};
+			canvas.addEventListener("pointercancel", cancel);
+			canvas.addEventListener("lostpointercapture", cancel);
+			dialog.addEventListener("close", cancel);
+			window.addEventListener("blur", cancel);
+			window.addEventListener("resize", cancel);
+			document.addEventListener("visibilitychange", () => {
+				if (document.hidden) cancel();
+			});
+		}
 		canvas.addEventListener("pointerup", (event) => {
-			if (!room || room.status !== "playing" || !details.hidden) return;
+			if (!room || room.status !== "playing" || !details.hidden) {
+				if (letters) lettersPointer = null;
+				return;
+			}
+			if (letters) {
+				const pointer = lettersPointer;
+				lettersPointer = null;
+				if (!pointer || pointer.id !== event.pointerId || pointer.cancelled) return;
+			}
 			const rect = canvas.getBoundingClientRect();
 			const rotated = street && matchMedia("(orientation: portrait)").matches;
 			const command = renderer.tap(rotated ? event.clientY - rect.top : event.clientX - rect.left, rotated ? rect.right - event.clientX : event.clientY - rect.top, room.state);
@@ -1704,157 +1863,308 @@ body.competition-active #mode-online { position:static; }
 	}
 	//#endregion
 	//#region ../../games/local/letters-words2/competition-renderer.js
-	function createRenderer() {
-		let targets = [], choosing = false, choicePage = 0;
-		const wrap = (ctx, text, x, y, width, maxLines = 2) => {
-			let line = "", row = 0;
-			for (const char of text) {
-				if (ctx.measureText(line + char).width > width && line) {
-					ctx.fillText(line, x, y + row * 22);
-					line = "";
-					row++;
-					if (row === maxLines) return;
+	var COLORS = {
+		background: "#f6f3e9",
+		ink: "#244e48",
+		muted: "#77877b",
+		paper: "#fffdf7",
+		line: "#d5dfc7",
+		board: "#e3ead6",
+		tile: "#edf2d9",
+		tileBottom: "#acc49c",
+		blocked: "#a9bbab",
+		blockedBottom: "#91a68f",
+		selected: "#f7d58b",
+		selectedBottom: "#d8b06a",
+		coral: "#f28d58",
+		coralBottom: "#cd7043"
+	};
+	function rounded(ctx, x, y, w, h, radius, fill, stroke = null) {
+		const r = Math.max(0, Math.min(radius, w / 2, h / 2));
+		ctx.beginPath();
+		ctx.moveTo(x + r, y);
+		ctx.arcTo(x + w, y, x + w, y + h, r);
+		ctx.arcTo(x + w, y + h, x, y + h, r);
+		ctx.arcTo(x, y + h, x, y, r);
+		ctx.arcTo(x, y, x + w, y, r);
+		ctx.closePath();
+		if (fill) {
+			ctx.fillStyle = fill;
+			ctx.fill();
+		}
+		if (stroke) {
+			ctx.strokeStyle = stroke;
+			ctx.stroke();
+		}
+	}
+	function wrap(ctx, value, x, y, width, maxLines = 2, lineHeight = 21) {
+		const chars = [...String(value || "")];
+		let line = "", row = 0;
+		for (const char of chars) {
+			if (ctx.measureText(line + char).width > width && line) {
+				if (row === maxLines - 1) {
+					while (line && ctx.measureText(line + "…").width > width) line = line.slice(0, -1);
+					ctx.fillText(line + "…", x, y + row * lineHeight);
+					return;
 				}
-				line += char;
+				ctx.fillText(line, x, y + row * lineHeight);
+				line = "";
+				row++;
 			}
-			ctx.fillText(line, x, y + row * 22);
-		};
+			line += char;
+		}
+		ctx.fillText(line, x, y + row * lineHeight);
+	}
+	function createRenderer() {
+		let targets = [], choosing = false, choicePage = 0, boardOffset = 0;
+		let boardSignature = "", lastHint = null, layout = null;
+		const clamp = (value, maximum) => Math.max(0, Math.min(maximum, value));
 		return {
 			draw(ctx, width, height, state) {
 				targets = [];
-				ctx.fillStyle = "#f5f3eb";
+				ctx.fillStyle = COLORS.background;
 				ctx.fillRect(0, 0, width, height);
 				ctx.textAlign = "left";
 				ctx.textBaseline = "middle";
+				ctx.lineWidth = 1;
 				ctx.font = "14px sans-serif";
 				if (!state?.tiles) {
-					ctx.fillStyle = "#375640";
-					ctx.fillText("等待比赛开始…", 16, 30);
+					layout = null;
+					ctx.fillStyle = COLORS.ink;
+					ctx.fillText("小岛准备中…", 18, 30);
 					return;
 				}
-				const button = (label, x, y, w, h, action, enabled = true) => {
-					ctx.fillStyle = enabled ? "#dfe8c5" : "#e4e6dc";
-					ctx.fillRect(x, y, w, h);
-					ctx.fillStyle = enabled ? "#284b35" : "#7b8573";
-					ctx.font = "14px sans-serif";
+				const button = (label, x, y, w, h, action, enabled = true, primary = false) => {
+					const fill = enabled ? primary ? COLORS.coral : "#eaf0df" : "#e5e8dd";
+					const bottom = enabled ? primary ? COLORS.coralBottom : "#c6d3b9" : "#d2d7ca";
+					rounded(ctx, x, y + 3, w, h, 14, bottom);
+					rounded(ctx, x, y, w, h, 14, fill);
+					ctx.fillStyle = enabled ? COLORS.ink : "#8b9884";
+					ctx.font = "600 14px sans-serif";
 					ctx.textAlign = "center";
 					ctx.fillText(label, x + w / 2, y + h / 2);
-					ctx.textAlign = "left";
-					if (enabled) targets.push({
-						x,
-						y,
-						w,
-						h,
-						action
-					});
-				};
-				ctx.fillStyle = "#284b35";
-				ctx.font = "14px sans-serif";
-				ctx.fillText(`有效 ${state.cleanCorrect}/${state.total} · 提交 ${state.attempts} · ${Math.max(0, Math.ceil((state.durationMs - state.elapsedMs) / 1e3))}秒`, 12, 20);
-				button("换词义", width - 84, 37, 72, 44, { local: "choose" });
-				ctx.font = "bold 20px sans-serif";
-				ctx.fillStyle = "#284b35";
-				wrap(ctx, state.meaning, 12, 51, width - 108, 2);
-				const landscape = width > 620 && height < 540;
-				const boardWidth = landscape ? width * .52 : width;
-				const boardTop = landscape ? 12 : 95;
-				const scale = Math.min((boardWidth - 20) / state.board.width, (height - (landscape ? 24 : 226)) / state.board.height);
-				const boardX = (boardWidth - state.board.width * scale) / 2;
-				const hudX = landscape ? boardWidth + 10 : 12;
-				const hudWidth = landscape ? width - boardWidth - 22 : width - 24;
-				if (landscape) {
-					ctx.fillStyle = "#f5f3eb";
-					ctx.fillRect(0, 0, width, 94);
-					ctx.fillStyle = "#284b35";
-					ctx.font = "bold 20px sans-serif";
-					wrap(ctx, state.meaning, hudX, 28, hudWidth, 2);
-					button("换词义", hudX, 68, hudWidth, 44, { local: "choose" });
-					targets.shift();
-					ctx.font = "12px sans-serif";
-					ctx.fillStyle = "#284b35";
-					ctx.fillText(`有效 ${state.cleanCorrect}/${state.total} · 提交 ${state.attempts}`, hudX, height - 12);
-				}
-				ctx.fillStyle = "#e8ecd9";
-				ctx.fillRect(boardX, boardTop, state.board.width * scale, state.board.height * scale);
-				for (const tile of [...state.tiles].sort((a, b) => a.z - b.z)) {
-					const x = boardX + tile.x * scale, y = boardTop + tile.y * scale, size = tile.size * scale;
-					const selected = state.selected.includes(tile.id);
-					ctx.fillStyle = tile.blocked ? "#b9c4a4" : selected ? "#32664f" : "#fffcdf";
-					ctx.fillRect(x, y, size, size);
-					ctx.strokeStyle = tile.id === state.hint ? "#c58c26" : "#899475";
-					ctx.lineWidth = tile.id === state.hint ? 3 : 1;
-					ctx.strokeRect(x, y, size, size);
-					ctx.fillStyle = selected ? "#fffdec" : tile.blocked ? "#69765b" : "#294b34";
-					ctx.font = `bold ${Math.max(18, size * .48)}px serif`;
-					ctx.textAlign = "center";
-					ctx.fillText(tile.char, x + size / 2, y + size / 2);
 					ctx.textAlign = "left";
 					targets.push({
 						x,
 						y,
-						w: size,
-						h: size,
-						action: tile.blocked ? null : {
+						w,
+						h,
+						action: enabled ? action : null,
+						label
+					});
+				};
+				const landscape = width >= 540 && width > height * 1.35;
+				const compact = landscape || height < 520, margin = width < 350 ? 12 : 18;
+				const hudX = landscape ? Math.round(width * .56) + 10 : margin;
+				const hudWidth = landscape ? width - hudX - margin : width - margin * 2;
+				const leftWidth = landscape ? hudX - 10 - margin : hudWidth;
+				const headerY = compact ? 16 : 20, goalY = compact ? 36 : 48;
+				const goalHeight = landscape ? Math.min(64, Math.max(50, height - 178)) : compact ? 64 : 84;
+				const boardY = landscape ? 12 : goalY + goalHeight + 10;
+				const boardHeight = landscape ? height - 24 : Math.max(128, height - boardY - (compact ? 126 : 164));
+				const boardArea = {
+					x: margin,
+					y: boardY,
+					w: leftWidth,
+					h: boardHeight
+				};
+				const scale = Math.max(44 / 64, Math.min(1.08, (leftWidth - 16) / state.board.width, (boardHeight - 60) / 128));
+				const boardNeedsPages = state.board.height * scale > boardHeight - 16;
+				const viewport = {
+					x: boardArea.x + 8,
+					y: boardArea.y + (boardNeedsPages ? 52 : 8),
+					w: boardArea.w - 16,
+					h: boardArea.h - (boardNeedsPages ? 60 : 16)
+				};
+				const maximumOffset = Math.max(0, state.board.height * scale - viewport.h);
+				const pageStep = Math.max(1, viewport.h - 64 * scale - 8);
+				const signature = `${state.board.width}:${state.board.height}:` + state.tiles.map((tile) => `${tile.id}:${tile.x}:${tile.y}`).join("|");
+				if (signature !== boardSignature) {
+					boardOffset = 0;
+					boardSignature = signature;
+				}
+				boardOffset = clamp(boardOffset, maximumOffset);
+				if (state.hint && state.hint !== lastHint) {
+					const hinted = state.tiles.find((tile) => tile.id === state.hint);
+					if (hinted) boardOffset = clamp((hinted.y + hinted.size / 2) * scale - viewport.h / 2, maximumOffset);
+				}
+				lastHint = state.hint;
+				if (state.finished) choosing = false;
+				layout = {
+					boardViewport: viewport,
+					boardOffset,
+					maximumOffset,
+					pageStep,
+					tileSize: 64 * scale,
+					landscape
+				};
+				ctx.fillStyle = COLORS.ink;
+				ctx.font = "600 13px sans-serif";
+				ctx.fillText(`独立 ${state.cleanCorrect} / ${state.total}`, hudX + 2, headerY);
+				const remaining = Math.max(0, Math.ceil((state.durationMs - state.elapsedMs) / 1e3));
+				rounded(ctx, hudX + hudWidth - 70, headerY - 14, 70, 28, 14, remaining <= 20 ? "#fae3ce" : "#e9eddd");
+				ctx.textAlign = "center";
+				ctx.fillStyle = remaining <= 20 ? "#965832" : COLORS.ink;
+				ctx.fillText(`${remaining} 秒`, hudX + hudWidth - 35, headerY);
+				ctx.textAlign = "left";
+				rounded(ctx, hudX, goalY, hudWidth, goalHeight, 20, COLORS.paper, "#e0e2d3");
+				ctx.font = "12px sans-serif";
+				ctx.fillStyle = COLORS.muted;
+				const compactFeedback = compact && /不正确|已使用提示|时间到|已确认/.test(state.feedback || "");
+				wrap(ctx, state.finished ? "本局已完成" : compactFeedback ? state.feedback : "这一词，怎么拼？", hudX + 16, goalY + 16, hudWidth - 32, 1);
+				ctx.font = "800 23px sans-serif";
+				ctx.fillStyle = COLORS.ink;
+				wrap(ctx, state.meaning, hudX + 16, goalY + (compact ? 42 : 46), hudWidth - 112, compact ? 1 : 2, 23);
+				button("换词义", hudX + hudWidth - 82, goalY + (compact ? 10 : 22), 70, 44, { local: "choose" }, !state.finished);
+				rounded(ctx, boardArea.x, boardArea.y, boardArea.w, boardArea.h, 24, COLORS.board, COLORS.line);
+				if (boardNeedsPages) {
+					ctx.fillStyle = COLORS.muted;
+					ctx.font = "12px sans-serif";
+					ctx.fillText("字母小岛", boardArea.x + 14, boardArea.y + 25);
+					button("往上", boardArea.x + boardArea.w - 108, boardArea.y + 3, 44, 44, { local: "board-up" }, boardOffset > 0);
+					button("往下", boardArea.x + boardArea.w - 56, boardArea.y + 3, 44, 44, { local: "board-down" }, boardOffset < maximumOffset);
+				}
+				ctx.save();
+				ctx.beginPath();
+				ctx.rect(viewport.x, viewport.y, viewport.w, viewport.h);
+				ctx.clip();
+				const boardX = viewport.x + (viewport.w - state.board.width * scale) / 2;
+				for (const tile of [...state.tiles].sort((a, b) => a.z - b.z)) {
+					const x = boardX + tile.x * scale, y = viewport.y + tile.y * scale - boardOffset;
+					const size = tile.size * scale, selected = state.selected.includes(tile.id);
+					if (y + size < viewport.y || y > viewport.y + viewport.h) continue;
+					const bottom = tile.blocked ? COLORS.blockedBottom : selected ? COLORS.selectedBottom : COLORS.tileBottom;
+					const face = tile.blocked ? COLORS.blocked : selected ? COLORS.selected : COLORS.tile;
+					rounded(ctx, x, y + 4, size, size, 12, bottom);
+					ctx.lineWidth = tile.id === state.hint ? 3 : 2;
+					rounded(ctx, x, y, size, size, 12, face, tile.id === state.hint ? COLORS.coral : tile.blocked ? "#b6c7b4" : selected ? "#ffe5b1" : "#fbfcef");
+					ctx.fillStyle = tile.blocked ? "#698270" : selected ? "#84652e" : "#315c4d";
+					ctx.font = `800 ${Math.max(23, size * .5)}px sans-serif`;
+					ctx.textAlign = "center";
+					ctx.fillText(tile.char, x + size / 2, y + size / 2);
+					ctx.textAlign = "left";
+					ctx.lineWidth = 1;
+					const clipped = {
+						x: Math.max(x, viewport.x),
+						y: Math.max(y, viewport.y),
+						w: Math.min(x + size, viewport.x + viewport.w) - Math.max(x, viewport.x),
+						h: Math.min(y + size, viewport.y + viewport.h) - Math.max(y, viewport.y)
+					};
+					const fullyVisible = clipped.w >= size - .01 && clipped.h >= size - .01;
+					targets.push({
+						...clipped,
+						kind: "tile",
+						tileId: tile.id,
+						action: tile.blocked || !fullyVisible || state.finished ? null : {
 							type: "select",
 							tileId: tile.id
 						}
 					});
 				}
-				const answerY = landscape ? 138 : boardTop + state.board.height * scale + 20;
+				ctx.restore();
+				const answerY = landscape ? goalY + goalHeight + 12 : boardArea.y + boardArea.h + (compact ? 13 : 18);
+				ctx.fillStyle = COLORS.muted;
+				ctx.font = "12px sans-serif";
+				ctx.fillText("把答案拼在这里", hudX + 2, answerY);
+				ctx.textAlign = "right";
+				ctx.fillText(`${state.selected.length} / ${state.length}`, hudX + hudWidth - 2, answerY);
+				ctx.textAlign = "left";
 				const answer = state.selected.map((id) => state.tiles.find((tile) => tile.id === id)?.char || "").join("");
-				ctx.fillStyle = "#284b35";
-				ctx.font = "bold 21px sans-serif";
-				wrap(ctx, `${answer || "点字母拼写"}  ${state.selected.length}/${state.length}`, hudX, answerY, hudWidth, 2);
-				const gap = 4, size = (hudWidth - 12) / 4, controlsY = answerY + 28;
+				const answerHeight = compact ? 40 : 47;
+				if (state.length > 0 && state.length <= 12) {
+					const slotGap = 5, slotWidth = (hudWidth - (state.length - 1) * slotGap) / state.length;
+					for (let index = 0; index < state.length; index++) {
+						const x = hudX + index * (slotWidth + slotGap), char = answer[index];
+						rounded(ctx, x, answerY + 14, slotWidth, answerHeight, 10, char ? "#f8e3b3" : COLORS.paper, char ? "#e9d0a2" : "#ced7bd");
+						ctx.font = "750 23px sans-serif";
+						ctx.fillStyle = COLORS.ink;
+						ctx.textAlign = "center";
+						ctx.fillText(char || "", x + slotWidth / 2, answerY + 14 + answerHeight / 2);
+						ctx.textAlign = "left";
+					}
+				} else {
+					rounded(ctx, hudX, answerY + 14, hudWidth, answerHeight, 13, COLORS.paper, "#ced7bd");
+					ctx.font = "750 23px sans-serif";
+					ctx.fillStyle = COLORS.ink;
+					wrap(ctx, answer || "·  ·  ·", hudX + 14, answerY + 34, hudWidth - 28, 1);
+				}
+				const controlsY = answerY + (compact ? 60 : 74), controlGap = 7, controlWidth = (hudWidth - 21) / 4;
 				[
 					"检查",
 					"撤回",
 					"重排",
 					"提示"
-				].forEach((label, index) => button(label, hudX + index * (size + gap), controlsY, size, 44, { type: [
+				].forEach((label, index) => button(label, hudX + index * (controlWidth + controlGap), controlsY, controlWidth, 44, { type: [
 					"submit",
 					"undo",
 					"shuffle",
 					"hint"
-				][index] }, !state.finished && (index === 0 ? state.selected.length === state.length : index === 1 ? state.selected.length > 0 : true)));
-				ctx.font = "12px sans-serif";
-				ctx.fillStyle = "#486043";
-				wrap(ctx, state.feedback || "提示词不计排位正确量；拼出不等于掌握。", hudX, controlsY + 62, hudWidth, 2);
+				][index] }, !state.finished && (index === 0 ? state.selected.length === state.length && state.length > 0 : index === 1 ? state.selected.length > 0 : true), index === 0));
+				if (controlsY + 62 < height) {
+					ctx.font = "12px sans-serif";
+					ctx.fillStyle = COLORS.muted;
+					wrap(ctx, (/同一基础词库/.test(state.feedback || "") ? "只拾取完全露出的字母牌。" : state.feedback) || "只拾取完全露出的字母牌。", hudX + 2, controlsY + 62, hudWidth - 4, height - controlsY > 90 ? 2 : 1, 18);
+				}
 				if (choosing) {
-					ctx.fillStyle = "#183024ee";
+					ctx.fillStyle = COLORS.background;
 					ctx.fillRect(0, 0, width, height);
 					targets = [];
-					ctx.fillStyle = "#fff";
-					ctx.font = "18px sans-serif";
-					ctx.fillText("选择中文词义", 16, 26);
+					ctx.fillStyle = COLORS.ink;
+					ctx.font = "800 23px sans-serif";
+					ctx.fillText("换一个词义", margin, 29);
+					ctx.font = "13px sans-serif";
+					ctx.fillStyle = COLORS.muted;
+					ctx.fillText("亮色词义，字母都已露出。", margin, 59);
 					const columns = width >= 600 ? 2 : 1;
-					const pageSize = Math.max(1, Math.floor((height - 110) / 56)) * columns, lastPage = Math.max(0, Math.ceil(state.words.length / pageSize) - 1);
-					choicePage = Math.min(choicePage, lastPage);
-					const columnWidth = (width - 24 - (columns - 1) * 8) / columns;
-					state.words.slice(choicePage * pageSize, (choicePage + 1) * pageSize).forEach((word, index) => button(`${word.meaning} · ${word.done ? "完成" : word.available ? "可拼" : "待解锁"}`, 12 + index % columns * (columnWidth + 8), 48 + Math.floor(index / columns) * 56, columnWidth, 48, {
-						type: "choose",
-						wordId: word.id
-					}, !word.done));
-					const footer = height - 50, third = (width - 32) / 3;
-					button("上一页", 12, footer, third, 44, { local: "previous" }, choicePage > 0);
-					button("返回拼写", 16 + third, footer, third, 44, { local: "close" });
-					button("下一页", 20 + third * 2, footer, third, 44, { local: "next" }, choicePage < lastPage);
+					const pageSize = Math.max(1, Math.floor((height - 160) / 66)) * columns, lastPage = Math.max(0, Math.ceil(state.words.length / pageSize) - 1);
+					choicePage = clamp(choicePage, lastPage);
+					const columnWidth = (width - margin * 2 - (columns - 1) * 10) / columns;
+					state.words.slice(choicePage * pageSize, (choicePage + 1) * pageSize).forEach((word, index) => {
+						const x = margin + index % columns * (columnWidth + 10), y = 86 + Math.floor(index / columns) * 66;
+						button("", x, y, columnWidth, 56, {
+							type: "choose",
+							wordId: word.id
+						}, !word.done);
+						ctx.font = "650 16px sans-serif";
+						ctx.fillStyle = word.done ? "#8b9884" : COLORS.ink;
+						wrap(ctx, word.meaning, x + 14, y + 18, columnWidth - 28, 1);
+						ctx.font = "12px sans-serif";
+						ctx.fillStyle = COLORS.muted;
+						ctx.fillText(word.done ? "已拾取 ✓" : word.available ? "可以拼写" : "先拾取上层字母", x + 14, y + 40);
+					});
+					const footer = height - 58, third = (width - margin * 2 - 16) / 3;
+					button("上一页", margin, footer, third, 44, { local: "previous" }, choicePage > 0);
+					button("返回拼写", margin + third + 8, footer, third, 44, { local: "close" }, true, true);
+					button("下一页", margin + (third + 8) * 2, footer, third, 44, { local: "next" }, choicePage < lastPage);
 				}
 			},
 			tap(x, y) {
 				const target = [...targets].reverse().find((box) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h);
 				if (!target) return null;
 				if (target.action?.local) {
-					if (target.action.local === "previous") choicePage--;
-					else if (target.action.local === "next") choicePage++;
+					const local = target.action.local;
+					if (local === "previous") choicePage--;
+					else if (local === "next") choicePage++;
+					else if (local === "board-up") boardOffset = clamp(boardOffset - layout.pageStep, layout.maximumOffset);
+					else if (local === "board-down") boardOffset = clamp(boardOffset + layout.pageStep, layout.maximumOffset);
 					else {
-						choosing = target.action.local === "choose";
+						choosing = local === "choose";
 						choicePage = 0;
 					}
 					return null;
 				}
 				if (target.action?.type === "choose") choosing = false;
 				return target.action;
+			},
+			getLayout() {
+				return layout ? {
+					...layout,
+					boardViewport: { ...layout.boardViewport },
+					targets: targets.map((target) => ({
+						...target,
+						action: target.action ? { ...target.action } : null
+					}))
+				} : null;
 			}
 		};
 	}
