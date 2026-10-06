@@ -65,10 +65,16 @@ export const nineGames = [
     id: 'wulong-city',
     title: '乌龙城',
     directory: 'games/local/wulong-city',
-    entry: 'native.js',
-    start: 'startNativeWulongGame',
-    orientation: 'landscape',
-    assets: [],
+    entry: 'native/canvas.js',
+    definition: 'wulongCityCanvasDefinition',
+    content: 'defaultWulongCityEnvelope',
+    nativeHost: true,
+    sourcePlugin: 'native/shared-source.mjs',
+    orientation: 'portrait',
+    assets: [
+      ['assets/art', 'assets/art'],
+      ['assets/audio', 'assets/audio'],
+    ],
   },
 ];
 export const fivePlatforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];

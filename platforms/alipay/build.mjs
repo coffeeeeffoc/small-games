@@ -13,7 +13,10 @@ export const alipayPlatform = {
         format: 2,
         miniprogramRoot: './',
         // JSON textbooks are runtime assets, not application configuration files.
-        ...(game === 'letters-words2' ? { assetsInclude: ['assets/english-dict/**/*.json'] } : {}),
+        assetsInclude: [
+          ...(game === 'wulong-city' ? ['assets/audio/*.wav'] : ['competition-action.wav']),
+          ...(game === 'letters-words2' ? ['assets/english-dict/**/*.json'] : []),
+        ],
       },
       'alipay-preview.json': {
         game,

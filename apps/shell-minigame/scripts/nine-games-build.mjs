@@ -69,7 +69,7 @@ export async function buildTarget(selected, config, outputRoot) {
     const normalize = path.join(root, 'platforms/alipay/normalize.mjs');
     const channelEntry = path.join(root, 'platforms/bilibili/native-entry.mjs');
     const availability = path.join(root, 'apps/shell-minigame/src/competition-availability.mjs');
-    const source = `${config.platform === 'alipay' ? `import {normalizeAlipaySdk} from ${JSON.stringify(normalize)};` : ''}
+    let source = `${config.platform === 'alipay' ? `import {normalizeAlipaySdk} from ${JSON.stringify(normalize)};` : ''}
       ${config.platform === 'bilibili' ? `import {attachBilibiliEntry} from ${JSON.stringify(channelEntry)};` : ''}
       import {${selected.start}} from ${JSON.stringify(entry)};
       import {startNativeCompetition} from ${JSON.stringify(host)};
@@ -88,6 +88,21 @@ export async function buildTarget(selected, config, outputRoot) {
       ${config.platform === 'bilibili' ? `for(const method of ['stop','dispose']){if(typeof mounted?.[method]==='function'){const original=mounted[method];mounted[method]=function(...args){try{return original.apply(this,args);}finally{channelEntry.dispose();}};}}` : ''}
       export const instance=mounted;
       ${config.platform === 'bilibili' ? "if(sdk&&typeof sdk.launchSuccess==='function')sdk.launchSuccess();" : ''}`;
+    const sourcePlugins = [];
+    if (selected.nativeHost) {
+      const platformEntry = path.join(root, 'platforms', config.platform, 'src/index.ts');
+      source = `import {${adapter.start}} from ${JSON.stringify(platformEntry)};
+        import {${selected.definition} as original, ${selected.content} as content} from ${JSON.stringify(entry)};
+        const raw=typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk};
+        const definition={...original,manifest:{...original.manifest,entry:'game.js',loadModes:['native-package']}};
+        export const ready=${adapter.start}(raw,{definition,content}${adapter.entryArguments({ title: selected.title, adUnitId: '' }) ? ',' + adapter.entryArguments({ title: selected.title, adUnitId: '' }) : ''});`;
+      const pluginPath = path.join(root, selected.directory, selected.sourcePlugin);
+      const pluginModule = await import(pathToFileURL(pluginPath));
+      sourcePlugins.push(
+        pluginModule.wulongSharedSourcePlugin(path.join(root, selected.directory)),
+      );
+      inputs.push(pluginPath);
+    }
     const generatedEntry = path.join(
       root,
       '.scratch/nine-games',
@@ -107,18 +122,21 @@ export async function buildTarget(selected, config, outputRoot) {
         lib: { entry: generatedEntry, formats: ['cjs'], fileName: () => 'game.js' },
       },
       plugins: [
+        ...sourcePlugins,
         {
           name: 'frozen-nine-native-entry',
           generateBundle(_, bundle) {
-            inputs = Object.values(bundle)
-              .filter((item) => item.type === 'chunk')
-              .flatMap((item) => Object.keys(item.modules))
-              .filter(
-                (file) =>
-                  file.startsWith(root) &&
-                  !file.includes('/node_modules/') &&
-                  !file.includes('/.scratch/'),
-              );
+            inputs.push(
+              ...Object.values(bundle)
+                .filter((item) => item.type === 'chunk')
+                .flatMap((item) => Object.keys(item.modules))
+                .filter(
+                  (file) =>
+                    file.startsWith(root) &&
+                    !file.includes('/node_modules/') &&
+                    !file.includes('/.scratch/'),
+                ),
+            );
           },
         },
       ],
@@ -127,10 +145,11 @@ export async function buildTarget(selected, config, outputRoot) {
       await cp(path.join(root, selected.directory, sourcePath), path.join(outDir, targetPath), {
         recursive: true,
       });
-    await cp(
-      path.join(root, 'games/local/game-cricket/public/cricket-audio/perfect.wav'),
-      path.join(outDir, 'competition-action.wav'),
-    );
+    if (!selected.nativeHost)
+      await cp(
+        path.join(root, 'games/local/game-cricket/public/cricket-audio/perfect.wav'),
+        path.join(outDir, 'competition-action.wav'),
+      );
     for (const [name, value] of Object.entries(
       adapter.files({ game: selected.id, appId: config.appId, version: '1.0.0' }),
     ))
@@ -153,6 +172,7 @@ export async function buildTarget(selected, config, outputRoot) {
         {
           ...config,
           title: selected.title,
+          ...(selected.nativeHost ? { gameId: selected.id } : {}),
           mode: config.preview ? 'preview' : 'release',
           gameplayScope: 'native local solo; optional server-authoritative friend competition',
           nativeRuntimeVerified: false,
@@ -182,6 +202,12 @@ export async function buildTarget(selected, config, outputRoot) {
       cwd: root,
       encoding: 'utf8',
     }).trim(),
+    sourceTreeDirty: Boolean(
+      execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=normal'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim(),
+    ),
     sourceFiles,
     files: await inventory(outDir),
     officialToolsVerified: false,

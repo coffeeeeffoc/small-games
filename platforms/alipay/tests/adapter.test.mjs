@@ -160,7 +160,14 @@ test('Alipay descriptor uses native game configuration and never invents preview
   assert.equal(alipayPlatform.appId.test('touristappid'), false);
   const textbook = alipayPlatform.files({ game: 'letters-words2', appId: '' });
   assert.equal(textbook['mini.project.json'].format, 2);
-  assert.deepEqual(textbook['mini.project.json'].assetsInclude, ['assets/english-dict/**/*.json']);
+  assert.deepEqual(textbook['mini.project.json'].assetsInclude, [
+    'competition-action.wav',
+    'assets/english-dict/**/*.json',
+  ]);
+  assert.deepEqual(
+    alipayPlatform.files({ game: 'wulong-city', appId: '' })['mini.project.json'].assetsInclude,
+    ['assets/audio/*.wav'],
+  );
 });
 
 test('native file manager preserves receiver, utf8 data and read errors for the textbook loader', async () => {
