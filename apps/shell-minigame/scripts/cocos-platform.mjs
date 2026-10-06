@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { prepareNativeProject } from './night-native-project.mjs';
 const editor =
   process.env.COCOS_CREATOR ||
   (existsSync('D:/tools/cocos/CocosCreator.exe')
@@ -138,7 +139,11 @@ export async function prepareKuaishouSource(gameRoot, options = {}) {
     status: options.configOnly
       ? 'source-configuration-only'
       : 'creator-source-staged-not-converted',
-    sourceDirectory: source.directory || path.join(gameRoot, 'build/wechatgame'),
+    ...(source.directory ? { sourceDirectory: source.directory } : {}),
+    sourceHash: source.sourceHash || source.manifest?.sourceHash,
+    canonicalSourceHash: source.canonicalSourceHash || source.manifest?.canonicalSourceHash,
+    adaptationRecipeSha256:
+      source.adaptationRecipeSha256 || source.manifest?.adaptationRecipeSha256,
     configuration: source.configuration || path.join(reports, 'build-wechatgame.json'),
     conversion:
       'Import this source in official Kuaishou DevTools with automatic adaptation; do not rename or author kwaiadapter.js.',
@@ -147,14 +152,16 @@ export async function prepareKuaishouSource(gameRoot, options = {}) {
   };
   if (!options.configOnly) {
     const { inventory } = await import('./kuaishou-cocos-import.mjs');
-    const { sourceHash } = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
     await writeFile(
       path.join(reports, 'kuaishou-source-inventory.json'),
       JSON.stringify(
         {
           game: path.basename(gameRoot),
           creator: '3.8.8',
-          sourceHash: await sourceHash(),
+          sourceHash: source.manifest.sourceHash,
+          canonicalSourceHash: source.manifest.canonicalSourceHash,
+          adaptationRecipeSha256: source.manifest.adaptationRecipeSha256,
+          sourceDirectory: source.directory,
           files: await inventory(source.directory),
         },
         null,
@@ -181,16 +188,29 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     );
   const reports = path.join(gameRoot, 'reports');
   await mkdir(reports, { recursive: true });
-  let producedDirectory, convertedEvidence;
+  if (channel === 'kuaishou' && (configOnly || options.prepareSource))
+    return { ...info, ...(await prepareKuaishouSource(gameRoot, { ...options, configOnly })) };
+  const provenance = await prepareNativeProject(gameRoot);
+  const projectRoot = provenance.projectRoot;
+  const buildReports = path.join(projectRoot, 'reports');
+  await mkdir(buildReports, { recursive: true });
+  const sourceIdentity = {
+    sourceHash: provenance.sourceHash,
+    canonicalSourceHash: provenance.canonicalSourceHash,
+    ...(provenance.adaptationRecipeSha256
+      ? {
+          adaptationRecipeSha256: provenance.adaptationRecipeSha256,
+          adaptation: provenance.adaptation,
+        }
+      : {}),
+  };
+  let producedDirectory, convertedEvidence, conversionSourceDirectory, conversionSourceReceipt;
   if (channel === 'kuaishou') {
-    if (configOnly || options.prepareSource)
-      return { ...info, ...(await prepareKuaishouSource(gameRoot, { ...options, configOnly })) };
     if (!environment.KUAISHOU_CONVERTED_DIR)
       throw Error(
         'Kuaishou requires an official DevTools converted package: first run --prepare-source, then configure KUAISHOU_CONVERTED_DIR and the actual project AppID field.',
       );
     const { verifyConvertedPackage } = await import('./kuaishou-cocos-import.mjs');
-    const { sourceHash } = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
     const staged = JSON.parse(
       await readFile(
         environment.KUAISHOU_SOURCE_INVENTORY ||
@@ -198,17 +218,23 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
         'utf8',
       ),
     );
+    conversionSourceReceipt = JSON.stringify(staged);
     if (
       staged.game !== path.basename(gameRoot) ||
       staged.creator !== '3.8.8' ||
-      staged.sourceHash !== (await sourceHash())
+      staged.sourceHash !== provenance.sourceHash ||
+      staged.canonicalSourceHash !== provenance.canonicalSourceHash ||
+      staged.adaptationRecipeSha256 !== provenance.adaptationRecipeSha256
     )
       throw Error('Kuaishou staged source inventory belongs to a different game or source.');
+    conversionSourceDirectory = environment.KUAISHOU_SOURCE_DIR || staged.sourceDirectory;
+    if (!conversionSourceDirectory)
+      throw Error('Kuaishou source inventory is missing its verified source directory.');
     convertedEvidence = await verifyConvertedPackage({
-      sourceDirectory: environment.KUAISHOU_SOURCE_DIR || path.join(gameRoot, 'build/wechatgame'),
+      sourceDirectory: conversionSourceDirectory,
       convertedDirectory: path.resolve(environment.KUAISHOU_CONVERTED_DIR),
       gameRoot,
-      currentSourceHash: await sourceHash(),
+      currentSourceHash: provenance.sourceHash,
       verifiedSourceInventory: staged.files,
       appId: info.appId,
       mode: info.mode,
@@ -217,21 +243,27 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     });
     producedDirectory = convertedEvidence.directory;
   } else if (channel === 'alipay') {
-    const configPath = path.join(reports, 'build-alipay.json');
+    const configPath = path.join(buildReports, 'build-alipay.json');
     await writeFile(configPath, JSON.stringify(alipayConfig(path.basename(gameRoot)), null, 2));
-    if (configOnly) return { ...info, status: 'configuration-only', configuration: configPath };
+    if (configOnly)
+      return {
+        ...info,
+        ...sourceIdentity,
+        status: 'configuration-only',
+        configuration: configPath,
+      };
     if (!existsSync(editor))
       throw Error('Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built.');
-    await prepareNativeInputs(gameRoot, channel);
-    const outputDirectory = path.resolve(gameRoot, 'build', info.output);
-    if (path.dirname(outputDirectory) !== path.resolve(gameRoot, 'build'))
+    await prepareNativeInputs(projectRoot, channel);
+    const outputDirectory = path.resolve(projectRoot, 'build', info.output);
+    if (path.dirname(outputDirectory) !== path.resolve(projectRoot, 'build'))
       throw Error('Build output escaped project.');
     await mkdir(outputDirectory, { recursive: true });
     for (const name of await readdir(outputDirectory))
       await rm(path.join(outputDirectory, name), { recursive: true, force: true, maxRetries: 3 });
     const result = await runCreator(
-      ['--project', gameRoot, '--build', `configPath=${configPath}`],
-      path.join(reports, 'build-alipay.log'),
+      ['--project', projectRoot, '--build', `configPath=${configPath}`],
+      path.join(buildReports, 'build-alipay.log'),
     );
     if (![0, 36].includes(result.code) || /Missing class:|Build failed/i.test(result.output))
       throw Error('Alipay Creator build failed.');
@@ -242,7 +274,7 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
       process.execPath,
       ['scripts/build.mjs', info.target, ...(configOnly ? ['--config-only'] : [])],
       {
-        cwd: gameRoot,
+        cwd: projectRoot,
         encoding: 'utf8',
         maxBuffer: 64 * 1024 * 1024,
         env: { ...process.env, ...(options.env || {}) },
@@ -253,11 +285,21 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     if (configOnly)
       return {
         ...info,
+        ...sourceIdentity,
         status: 'configuration-only',
-        configuration: path.join(reports, `build-${info.target}.json`),
+        configuration: path.join(buildReports, `build-${info.target}.json`),
       };
   }
-  const directory = producedDirectory || path.join(gameRoot, 'build', info.output);
+  const artifact = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
+  async function verifySourceIdentity() {
+    if (
+      (await artifact.sourceHash(gameRoot)) !== provenance.canonicalSourceHash ||
+      (await artifact.sourceHash(projectRoot)) !== provenance.sourceHash
+    )
+      throw Error('Creator project inputs changed during native build or verification.');
+  }
+  await verifySourceIdentity();
+  const directory = producedDirectory || path.join(projectRoot, 'build', info.output);
   await readFile(path.join(directory, 'game.js'));
   const game = JSON.parse(await readFile(path.join(directory, 'game.json'), 'utf8'));
   if (game.deviceOrientation !== 'landscape')
@@ -270,10 +312,9 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     if (project.appid !== expected)
       throw Error('Native output public AppID differs from wrapper environment.');
   }
-  const { sourceHash } = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
   if (channel !== 'alipay' && channel !== 'kuaishou') {
-    const provenance = JSON.parse(await readFile(path.join(directory, 'build-info.json'), 'utf8'));
-    if (provenance.creator !== '3.8.8' || provenance.sourceHash !== (await sourceHash()))
+    const compiled = JSON.parse(await readFile(path.join(directory, 'build-info.json'), 'utf8'));
+    if (compiled.creator !== '3.8.8' || compiled.sourceHash !== provenance.sourceHash)
       throw Error('Native artifact source provenance mismatch.');
   }
   const outputFiles = await files(directory);
@@ -293,7 +334,7 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     appId: info.appId,
     previewOnly: info.mode === 'preview',
     creator: '3.8.8',
-    sourceHash: await sourceHash(),
+    ...sourceIdentity,
     ...(convertedEvidence
       ? {
           sourceInventorySha256: convertedEvidence.sourceInventorySha256,
@@ -332,11 +373,18 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
         'utf8',
       ),
     );
+    if (
+      JSON.stringify(staged) !== conversionSourceReceipt ||
+      staged.sourceHash !== provenance.sourceHash ||
+      staged.canonicalSourceHash !== provenance.canonicalSourceHash ||
+      staged.adaptationRecipeSha256 !== provenance.adaptationRecipeSha256
+    )
+      throw Error('Kuaishou source inventory changed during validation.');
     await verifyConvertedPackage({
-      sourceDirectory: environment.KUAISHOU_SOURCE_DIR || path.join(gameRoot, 'build/wechatgame'),
+      sourceDirectory: conversionSourceDirectory,
       convertedDirectory: directory,
       gameRoot,
-      currentSourceHash: await sourceHash(),
+      currentSourceHash: provenance.sourceHash,
       verifiedSourceInventory: staged.files,
       appId: info.appId,
       mode: info.mode,
@@ -344,6 +392,7 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
       appIdField: environment.KUAISHOU_PROJECT_APP_ID_FIELD,
     });
   }
+  await verifySourceIdentity();
   return { ...info, status: 'built-unverified-on-host', directory, manifest };
 }
 

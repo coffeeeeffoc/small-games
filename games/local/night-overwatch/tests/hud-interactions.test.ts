@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { buildPlatform } from '../platforms/build.mjs';
 import * as actions from '../assets/scripts/core/Actions.ts';
 import * as data from '../assets/scripts/core/Data.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
@@ -65,7 +68,9 @@ const cc = {
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
   view: { getFrameSize: () => frame, setDesignResolutionSize() {}, getScaleX: () => 1, getScaleY: () => 1 },
 };
-const hudURL = new URL('../assets/scripts/HUD.ts', import.meta.url);
+// Exercise the same adapted inputs supplied to the real native Creator build.
+const nativeConfiguration = await buildPlatform('wechat', { configOnly: true, env: {} });
+const hudURL = pathToFileURL(path.join(path.dirname(path.dirname(nativeConfiguration.configuration)), 'assets/scripts/HUD.ts'));
 (globalThis as any).__nightHudTestCC = cc;
 const hooks = registerHooks({
   resolve(id, context, next) {

@@ -8,7 +8,7 @@
 
 围捕小队新增原生标准巡逻、接力与快练；此时·此地新增完整本地场景旅途与解说；象五采用主仓适配入口，直接复用已锁定子模块规则、电脑与战术题，未修改子模块指针。词屿复用已有原生拾词、教材、词单与存档。街区围捕修复手势取消、多指、滑出和安全区坐标映射。新页面的方案/效果图及实际 Canvas 手机截图保存在各游戏设计目录；象五适配器与证据在 `platforms/competition/xiangqi-five/`，不注册第二个游戏。
 
-夜航仅修复原生宿主误显示/调用浏览器全屏。它的源指纹已经变化，必须由 Creator 重新构建。卡丁车引擎源码未改，不能用不匹配的缓存冒充已验证产物。
+夜航的原生全屏差异在平台构建边界处理：公共构建器复制真实项目输入到独立 staging，严格核对两文件摘要后加入 HUD 浏览器按钮条件及 Platform 浏览器 API guard；实际 Creator 编译 staging，不修改编译产物。canonical H5 源码保持浏览器行为，H5 仅复用严格匹配的实际归档。manifest 分列 canonicalSourceHash、真实原生 sourceHash 与 adaptationRecipeSha256，并记录输入/输出摘要；快手源制品 inventory 同时绑定这三者及真实源目录。每次新建 staging，排除旧产物、缓存、私密配置；十项 Cocos 原生制品仍须真实 Creator 和官方适配，不能用 H5 替代。卡丁车引擎源码未改，不能用不匹配的缓存冒充已验证产物。
 
 外滩已迁移至原生 WebGL2 Canvas + R3F createRoot，复用原 Scene、398 个原 GLB、真实 Rapier WASM 和官方 Draco JS 解码器；不依赖 React DOM、WebView 或假物理。原生 Canvas HUD 提供主页、路线、寻景、设置、帮助、暂停返回与照片手记。宿主没有 TextDecoder 时使用经过契约比对的 UTF-8 解码实现。完整远程原场景 38,142,217 字节逐文件固定 SHA256；复用现有 H5 Pages 资源，未向 Pages 复制原生包或新增重复模型。主包含 WASM、参考图、音频和许可，构建器将 wrapper/config/完整性 manifest 全计入 4,000,000 字节预算。
 

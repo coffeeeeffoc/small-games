@@ -107,3 +107,27 @@ test('Kuaishou config-only generates actual Creator source configuration without
   assert.equal(report.destinationPlatform, 'kuaishou');
   assert.equal('directory' in report, false);
 });
+
+test('Night native configurations compile adapted project inputs while canonical H5 stays identical', async () => {
+  const gameRoot = fileURLToPath(new URL('../../../games/local/night-overwatch/', import.meta.url));
+  const { readFile } = await import('node:fs/promises');
+  const { sourceHash } = await import(
+    new URL('../../../games/local/night-overwatch/scripts/artifact.mjs', import.meta.url)
+  );
+  const before = await sourceHash();
+  for (const channel of ['wechat', 'bilibili', 'douyin', 'alipay', 'kuaishou']) {
+    const result = await buildPlatform(gameRoot, channel, { configOnly: true, env: {} });
+    assert.equal(result.canonicalSourceHash, before);
+    assert.notEqual(result.sourceHash, before);
+    assert.match(result.adaptationRecipeSha256, /^[a-f0-9]{64}$/);
+    const projectRoot = path.dirname(path.dirname(result.configuration));
+    assert.notEqual(projectRoot, gameRoot);
+    assert.equal(await sourceHash(projectRoot), result.sourceHash);
+    assert.match(
+      await readFile(path.join(projectRoot, 'assets/scripts/HUD.ts'), 'utf8'),
+      /if \(sys\.isBrowser\) this\.button\('fullscreen'/,
+    );
+    assert.equal(await sourceHash(), before);
+    assert.equal('directory' in result, false);
+  }
+});
