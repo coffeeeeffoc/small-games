@@ -87,3 +87,10 @@ Domain documentation uses a single-context layout. See `docs/agents/domain.md`.
 - 开关语义以详细约定为准：游戏自身 URL、同源祖先 URL、当前 origin 的 `localStorage.dev`、默认关闭依次回退；显式 `dev=0` 等关闭值优先于存储，URL 启用不自动写入存储。Shell 路由参数优先于页面查询参数，存储被禁用或父页面跨域时不能导致游戏启动失败。
 - Shell 启动 iframe 及独立打开链接通过 `SmallGamesDev.withMode` 传递有效的 `dev=1/0`，不依赖跨域读取父页面存储；公开分享链接不携带开发开关。唯一公共源为 `platforms/h5/dev-mode.js` 及其类型文件，使用 `pnpm sync:dev-mode` 同步副本，禁止各游戏自行修改副本造成语义分叉。
 - 新增游戏或修改相关入口、调试功能及构建流程时，运行 `pnpm check:dev-mode`、`pnpm test:dev-mode`，并执行相应的生产构建浏览器检查（`pnpm test:dev-mode:browser`）。覆盖独立、Shell 内置及 iframe 入口，URL/存储开关、默认关闭、显式关闭、存储不可用、跨域传递、触屏操作和手势取消；Web 开关不替代原生小游戏平台自身的调试与验收。
+
+## 推送与 API 发布验证
+
+- 发布前遵循 [准确候选版本的增量发布验证](docs/operations/incremental-publication.md)。本地、云端、worktree 与 GitHub API 更新分支均须验证最终合并候选准确 SHA；记录准确 base/head，远端推进后重新合并复测，不以合并前结果替代。
+- 保留正常 hooks，不 force push。推送检查只运行改动项目及真实依赖消费者的相关内容，Shell 单款注册/专属接入不按目录当作共享组件。未知范围要报告并补充确定性分类，不静默全量或跳过。
+- 入口/导航行为变化同步更新语义行为测试；皮肤变化不自动接受新截图，真实行为回归仍须拦截。不能承诺大改零失败，也不能把本地通过当 CI/Pages 发布成功。
+- API 不触发本地 hook；未启用远端规则时只能由此流程约束，不声称 hook 可强制拦 API。

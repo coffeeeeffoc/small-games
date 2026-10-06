@@ -1266,6 +1266,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('.thread-list')).toBeVisible();
   } else if (id === 'letters-words' || id === 'letters-words2') {
     const answer = id === 'letters-words' ? '#answer' : '#answer-slots';
+    await expect(frame.locator('#board')).toBeVisible();
     await click(frame.locator('#board button:enabled:not([aria-disabled="true"])').first());
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
     if (id === 'letters-words2') {
