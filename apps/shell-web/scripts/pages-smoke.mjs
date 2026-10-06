@@ -42,6 +42,7 @@ const report = () =>
     JSON.stringify(
       {
         status,
+        browserVersion: browser?.version(),
         builtIn: builtInCount,
         selected: selectedGames.map((game) => game.id),
         standalone: results,
@@ -289,6 +290,52 @@ try {
     const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();
     monitorPagesPage(direct, url, failures, `${game.id}/mobile`);
+    if (game.id === 'moss-garden')
+      await direct.addInitScript(() => {
+        // Passive evidence for the CI-only seed regression; never replace native input.
+        globalThis.__pagesMossInputEvents = [];
+        for (const type of [
+          'pointerdown',
+          'pointermove',
+          'pointerup',
+          'pointercancel',
+          'lostpointercapture',
+          'click',
+          'blur',
+          'focus',
+          'resize',
+          'visibilitychange',
+        ])
+          globalThis.addEventListener(
+            type,
+            (event) => {
+              const root = document.querySelector('#garden');
+              const canvas = document.querySelector('canvas');
+              const events = globalThis.__pagesMossInputEvents;
+              events.push({
+                type,
+                time: performance.now(),
+                pointerId: event.pointerId,
+                pointerType: event.pointerType,
+                target: event.target?.dataset?.hitId ?? event.target?.id,
+                x: event.clientX,
+                y: event.clientY,
+                detail: event.detail,
+                page: root?.dataset.page,
+                hidden: document.hidden,
+                focused: document.hasFocus(),
+                captured: event.pointerId !== undefined && root?.hasPointerCapture(event.pointerId),
+                firstCellPressed: document
+                  .querySelector('[data-hit-id="cell:0"]')
+                  ?.getAttribute('aria-pressed'),
+                canvasBounds: canvas?.getBoundingClientRect().toJSON(),
+                canvasSize: canvas ? [canvas.width, canvas.height] : undefined,
+              });
+              if (events.length > 80) events.shift();
+            },
+            { capture: true, passive: true },
+          );
+      });
     try {
       await phase(result, 'mobile-load', async () => {
         const response = await direct.goto(standaloneUrl);
@@ -317,6 +364,10 @@ try {
         `Passed: ${game.id} (embedded and ${viewport.width}x${viewport.height} touch, ${result.durationMs} ms)`,
       );
     } catch (error) {
+      if (game.id === 'moss-garden')
+        result.nativeInputDiagnostics = await direct
+          .evaluate(() => globalThis.__pagesMossInputEvents)
+          .catch(() => undefined);
       await direct
         .screenshot({
           path: fileURLToPath(new URL(`${game.id}-failure.png`, output)),
