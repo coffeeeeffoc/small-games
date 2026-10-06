@@ -30,7 +30,9 @@ let browser;
 const results = [];
 try {
   browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || undefined,
+    ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : { channel: process.env.BROWSER_CHANNEL || undefined }),
     headless: true,
   });
   for (const embedded of [false, true]) {

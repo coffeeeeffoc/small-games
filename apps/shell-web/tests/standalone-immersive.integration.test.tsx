@@ -31,7 +31,7 @@ async function mounted(id = ink) {
   return { container, root, frame, send, exit, dispose, origin };
 }
 
-it.each(['ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'])(
+it.each(['orbit-atelier', 'ink-is-everything', 'ball-roguelite', 'xiangqi-five', 'letters-words2'])(
   'lets the %s frame hide its navigation during play, restore home exit, and exit normally',
   async (id) => {
     const { container, send, exit, dispose } = await mounted(id);

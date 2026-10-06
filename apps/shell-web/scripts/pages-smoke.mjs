@@ -193,7 +193,7 @@ try {
         await frame.locator('#modal [data-home]').click();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'ball-roguelite') {
+      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'xiangqi-five') {

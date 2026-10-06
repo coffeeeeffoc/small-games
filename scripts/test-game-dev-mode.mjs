@@ -131,6 +131,7 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'orbit-atelier' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
           game.id === 'xiangqi-five'
