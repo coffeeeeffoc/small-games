@@ -23,6 +23,17 @@
         "time": "2026-10-05T10:25:40Z"
       }
     },
+    "ball-roguelite": {
+      "source": "games/local/ball-roguelite",
+      "created": {
+        "commit": "0865d5f9376442a0fbaad918123a8b1893c45a86",
+        "time": "2026-10-06T10:01:31Z"
+      },
+      "updated": {
+        "commit": "0865d5f9376442a0fbaad918123a8b1893c45a86",
+        "time": "2026-10-06T10:01:31Z"
+      }
+    },
     "balloon-movers": {
       "source": "games/local/balloon-movers",
       "created": {
@@ -228,8 +239,8 @@
         "time": "2026-10-03T07:19:45Z"
       },
       "updated": {
-        "commit": "2718b15787947e8d5cfd117eec0ac35884b7f9f8",
-        "time": "2026-10-06T03:54:48+08:00"
+        "commit": "f452174ee273bf684ec417ffe9efce9429bbcf0b",
+        "time": "2026-10-06T05:26:46Z"
       }
     },
     "letters-words": {
