@@ -1370,7 +1370,7 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   );
 });
 
-test('plan checkouts provide recursive submodule identities while retaining complete comparison history', async () => {
+test('planning checks out only the locked Xiangqi workspace and retains complete comparison history', async () => {
   for (const [file, job] of [
     ['.github/workflows/ci.yml', 'plan'],
     ['.github/workflows/pages.yml', 'changes'],
@@ -1385,7 +1385,21 @@ test('plan checkouts provide recursive submodule identities while retaining comp
     )?.[1];
     assert(checkout, `Missing actual ${job} checkout inputs`);
     assert.match(checkout, /^          fetch-depth: 0$/m);
-    assert.match(checkout, /^          submodules: recursive$/m);
+    assert.doesNotMatch(checkout, /submodules:/);
+    assert.doesNotMatch(block, /submodules:\s*recursive|--recursive|--remote/);
+    const commands = [...block.matchAll(/^          (git[^\n]+)$/gm)].map((match) => match[1]);
+    assert.deepEqual(commands, [
+      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five',
+    ]);
+    assert.equal(block.split('Read locked Xiangqi workspace for planning').length, 2);
+    assert.match(
+      block,
+      /- name: Read locked Xiangqi workspace for planning\n        run: \|\n          git[^\n]+\n      - uses: actions\/setup-node@v6/,
+    );
+    assert(
+      block.indexOf('Read locked Xiangqi workspace for planning') <
+        block.indexOf('actions/setup-node@v6'),
+    );
   }
 });
 

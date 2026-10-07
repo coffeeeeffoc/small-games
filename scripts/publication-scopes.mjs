@@ -8,33 +8,46 @@ const loadDependency = createRequire(import.meta.url);
 // Exact dependency-checkout repairs for the two bare planning jobs. Commands,
 // permissions, conditions and all other workflow bytes remain producer-bound.
 const planningCheckoutHashes = {
-  '.github/workflows/ci.yml': [
-    '7bf17695b0e6a9062ed81dd0d0b4febbfbb8318da4ef469aacbd411e64b29411',
-    'bf277f8e20d7991a89a3c6f4bd203a8d2f093eb1177c2d88025b92e42d11e87f',
-  ],
-  '.github/workflows/pages.yml': [
-    '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
-    'dfe0f60b9f1a3f30806960dc98ccfaeb17f51c09f57f30a9d57c10129ca31d97',
-  ],
+  '.github/workflows/ci.yml': {
+    original: '7bf17695b0e6a9062ed81dd0d0b4febbfbb8318da4ef469aacbd411e64b29411',
+    recursive: 'bf277f8e20d7991a89a3c6f4bd203a8d2f093eb1177c2d88025b92e42d11e87f',
+    locked: 'fdc0f51bc350921e31064da3ef56acbe01ee9ec4d0865cc03c56ba82ab619fe3',
+  },
+  '.github/workflows/pages.yml': {
+    original: '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
+    recursive: 'dfe0f60b9f1a3f30806960dc98ccfaeb17f51c09f57f30a9d57c10129ca31d97',
+    locked: '5ce491178ca6d928b02d3c74843aee8115f1b507763b377ba6a5033904ca151f',
+  },
 };
 const planningCheckoutAnchor =
   '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+const recursivePlanningAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n          submodules: recursive\n      - uses: actions/setup-node@v6\n';
+const lockedPlanningAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - name: Read locked Xiangqi workspace for planning\n        run: |\n          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five\n      - uses: actions/setup-node@v6\n';
 function exactPlanningCheckout(file, before, after) {
   const hashes = planningCheckoutHashes[file];
   if (!hashes) return false;
   const digest = (text) => createHash('sha256').update(text).digest('hex');
+  const oldHash = digest(before),
+    newHash = digest(after);
+  const anchor =
+    oldHash === hashes.original
+      ? planningCheckoutAnchor
+      : oldHash === hashes.recursive
+        ? recursivePlanningAnchor
+        : null;
+  const replacement =
+    oldHash === hashes.original && newHash === hashes.recursive
+      ? recursivePlanningAnchor
+      : newHash === hashes.locked
+        ? lockedPlanningAnchor
+        : null;
   return (
-    digest(before) === hashes[0] &&
-    digest(after) === hashes[1] &&
-    before.split(planningCheckoutAnchor).length === 2 &&
-    after ===
-      before.replace(
-        planningCheckoutAnchor,
-        planningCheckoutAnchor.replace(
-          '          fetch-depth: 0\n',
-          '          fetch-depth: 0\n          submodules: recursive\n',
-        ),
-      )
+    !!anchor &&
+    !!replacement &&
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, replacement)
   );
 }
 

@@ -333,3 +333,41 @@ test('planning checkout scope accepts only both exact reviewed producer byte cha
     assert.equal(classify(file, after, before).has(file), false);
   }
 });
+
+test('planning checkout narrows both real producers to one locked gitlink without changing other execution', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const original =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+  const recursive =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n          submodules: recursive\n      - uses: actions/setup-node@v6\n';
+  const locked =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - name: Read locked Xiangqi workspace for planning\n        run: |\n          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five\n      - uses: actions/setup-node@v6\n';
+  for (const [base, anchor] of [
+    ['9180c805c77c15634f47f0aeee1092a5b1043a73', original],
+    ['d75a26ff456d088745d05b499f86872169ae8bc2', recursive],
+  ]) {
+    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+      const before = execFileSync('git', ['show', `${base}:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(before.split(anchor).length, 2);
+      const after = before.replace(anchor, locked);
+      const scopes = classify(file, before, after);
+      assert.deepEqual(scopes.get(file), []);
+      assert.equal(plan([file], scopes).validation_tools, true);
+      assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+      for (const bad of [
+        after + '\n',
+        after.replace('--init --', '--init --remote --'),
+        after.replace(' -- games/submodules/xiangqi-five', ''),
+        after.replace('games/submodules/xiangqi-five', 'games/submodules/office-slacking'),
+        after.replace('node-version: 24.21.0', 'node-version: 22'),
+      ])
+        assert.equal(classify(file, before, bad).has(file), false);
+      assert.equal(classify(file, before + '\n', after).has(file), false);
+    }
+  }
+});
