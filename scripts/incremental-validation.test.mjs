@@ -925,11 +925,28 @@ test('native smoke accepts the current platform test aggregate and rejects incom
       dir,
     })),
   );
+  const result = plan(['scripts/native-game-smoke.mjs'], {
+    packages: [...packages, ...nativePackages],
+  });
   assert.deepEqual(
-    plan(['scripts/native-game-smoke.mjs'], {
-      packages: [...packages, ...nativePackages],
-    }).native_consumers,
+    result.native_consumers,
     nativeToolConsumers.map(({ dir }) => dir),
+  );
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const calls = [];
+  runIncrementalToolChecks({
+    plan: result,
+    packages: [...nativePackages, nativeEvidenceProducer],
+    root: '/snapshot',
+    env: {},
+    execute: (...args) => calls.push(args),
+  });
+  assert.deepEqual(
+    calls.slice(1).map((call) => call[1]),
+    nativePackages.flatMap((pkg) => [
+      ['--filter', pkg.name, 'test'],
+      ['--filter', pkg.name, 'smoke'],
+    ]),
   );
   for (const command of [
     'vitest run tests',

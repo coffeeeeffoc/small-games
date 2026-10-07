@@ -27,6 +27,14 @@ export const nativeToolConsumers = [
   { dir: 'apps/shell-minigame', smoke: 'node ../../scripts/native-game-smoke.mjs --standalone' },
   { dir: 'apps/shell-bilibili', smoke: 'node ../../scripts/native-game-smoke.mjs --catalog' },
 ];
+export function reviewedNativeTest(pkg, consumer) {
+  return (
+    !!consumer &&
+    (pkg?.scripts?.test === 'vitest run' ||
+      (consumer.dir === 'apps/shell-minigame' &&
+        pkg?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs'))
+  );
+}
 export function incrementalPlan({
   packages,
   games,
@@ -49,9 +57,7 @@ export function incrementalPlan({
     const pkg = packages.find((item) => item.dir === consumer.dir);
     assert(
       pkg?.scripts?.smoke === consumer.smoke &&
-        (pkg.scripts.test === 'vitest run' ||
-          (consumer.dir === 'apps/shell-minigame' &&
-            pkg.scripts.test === 'vitest run tests && node --test scripts/*.test.mjs')) &&
+        reviewedNativeTest(pkg, consumer) &&
         ['build', 'typecheck', 'lint'].every((task) => pkg.scripts[task]),
       `Unreviewed native tool consumer: ${consumer.dir}`,
     );
