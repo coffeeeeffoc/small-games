@@ -1,6 +1,6 @@
 import { SHAPE_BY_ID } from './shapes.mjs';
 
-export const CONTENT_VERSION = 1;
+export const CONTENT_VERSION = 2;
 export const CHAPTERS = Object.freeze([
   { id: 'foundation', title: '初识积木', start: 1, end: 10 },
   { id: 'choices', title: '留与舍', start: 11, end: 20 },
@@ -15,61 +15,16 @@ const hfill = (y, lengths = [3, 5]) => {
   let x = 0;
   return lengths.map((length) => { const result = move(length === 1 ? 'dot' : `h${length}`, x, y); x += length; return result; });
 };
-const vfill = (x, lengths = [4, 4]) => {
-  let y = 0;
-  return lengths.map((length) => { const result = move(length === 1 ? 'dot' : `v${length}`, x, y); y += length; return result; });
-};
-const pairFill = (y, rectangular = false) => rectangular
-  ? [move('rect3x2', 0, y), move('rect3x2', 3, y), move('square2', 6, y)]
-  : [0, 2, 4, 6].map((x) => move('square2', x, y));
-
-// Each entry owns geometry, its fixed stock and its verified route. Adding a
-// level changes content here; the engine has no level-specific branches.
-const recipes = [
+// Keep the five short introductions compatible with earlier saves and help.
+const tutorialRecipes = [
   { title: '第一条线', max: 2, lines: 1, patches: [patch('dot', 3, 4)], hint: '把单格补进缺口。' },
   { title: '放两块，留一块', max: 3, lines: 2, patches: [patch('h3', 2, 2)], fill: hfill(4, [5, 3]), hint: '先完成一组，再铺满下一行。' },
   { title: '小块先行', max: 4, lines: 2, opening: true, hint: '先清掉顶行，大方块才有空间。' },
   { title: '大块也能破局', max: 5, lines: 3, patches: [patch('h4', 2, 2), patch('square2', 3, 5)], hint: '小方块可以一次补满两行。' },
   { title: '十字时刻', max: 5, lines: 3, cross: { row: 3, col: 2, rows: [0] }, goals: { cross: 1 }, hint: '交点补满时，行和列一起消除。' },
-  { title: '拐角留白', max: 6, lines: 3, patches: [patch('l3-nw', 2, 1)], fill: hfill(5), hint: '拐角缺口适合固定朝向的L。' },
-  { title: '成双成对', max: 6, lines: 4, patches: [patch('rect3x2', 4, 0), patch('h3', 1, 4)], fill: hfill(6, [4, 4]), goals: { multi: 1 }, hint: '长方块能补满两行。' },
-  { title: '向下看', max: 7, lines: 4, vertical: true, patches: [patch('h2', 4, 1), patch('h5', 2, 4)], fill: hfill(6, [2, 3, 3]).concat(hfill(0)), hint: '这次沿着列规划。' },
-  { title: '三行齐发', max: 7, lines: 4, patches: [patch('l5-ne', 3, 2)], fill: hfill(6, [2, 2, 4]), goals: { multi: 1 }, hint: '大L留住三行的最后几格。' },
-  { title: '第一章试炼', max: 8, lines: 5, patches: [patch('t4-down', 2, 0), patch('h4', 4, 4)], fill: pairFill(6), goals: { multi: 1 }, hint: '别把能补缺口的块提前舍掉。' },
-  { title: '长短之间', max: 8, lines: 5, patches: [patch('h5', 0, 1), patch('l3-se', 4, 4)], fill: pairFill(0, true), hint: '大块铺路，小块收尾。' },
-  { title: 'T形缺口', max: 8, lines: 5, patches: [patch('t4-up', 4, 2), patch('h3', 3, 6)], fill: hfill(0).concat(hfill(7, [2, 3, 3])), goals: { multi: 1 }, hint: '候选的朝向固定，先看轮廓。' },
-  { title: '竖向取舍', max: 8, lines: 5, vertical: true, patches: [patch('rect3x2', 1, 1), patch('h2', 5, 5)], fill: pairFill(6, true), hint: '把空间留给长方块。' },
-  { title: '第二个交点', max: 9, lines: 6, cross: { row: 2, col: 6, rows: [0, 3, 5, 7] }, goals: { cross: 1 }, hint: '十字清除之后，缺口会改变。' },
-  { title: '三个小方块', max: 9, lines: 6, patches: [patch('square3', 2, 1), patch('h2', 6, 5)], fill: pairFill(6), goals: { multi: 1 }, hint: '九格块也有它的位置。' },
-  { title: '折线接力', max: 9, lines: 6, patches: [patch('l4-east', 4, 0), patch('l3-sw', 1, 5)], fill: hfill(7), hint: '先后顺序和取舍同样重要。' },
-  { title: '一行多用', max: 9, lines: 6, patches: [patch('l5-nw', 0, 3)], fill: hfill(0, [4, 4]).concat(hfill(1, [2, 3, 3]), hfill(2, [5, 3])), hint: '清空的行能继续承接下一组。' },
-  { title: '横竖相接', max: 10, lines: 6, cross: { row: 5, col: 0, rows: [1, 2, 4] }, fill: vfill(7), goals: { cross: 1 }, hint: '清掉一列后，要重新观察余下缺口。' },
-  { title: '窄边大块', max: 10, lines: 7, vertical: true, patches: [patch('square3', 5, 0), patch('l3-ne', 2, 4)], fill: pairFill(6), goals: { multi: 2 }, hint: '狭窄余地里也有大块的落点。' },
-  { title: '取舍终章', max: 10, lines: 7, patches: [patch('l5-se', 4, 1), patch('t4-up', 1, 5)], fill: pairFill(0, true), goals: { multi: 2 }, hint: '连续保留能铺满整行的组合。' },
-  { title: '轻装上阵', max: 8, lines: 6, patches: [patch('l5-sw', 2, 0)], fill: pairFill(4, true).concat(hfill(7)), budget: true, hint: '每组丢弃的面积都计入预算。' },
-  { title: '拐角预算', max: 9, lines: 6, patches: [patch('l4-east', 0, 4)], fill: hfill(0).concat(pairFill(1)), budget: true, hint: '小弃块给后续组留下余量。' },
-  { title: '十字留余量', max: 9, lines: 7, cross: { row: 4, col: 3, rows: [0, 1, 2, 6, 7] }, budget: true, hint: '胜利落子会立即结束，不补算未完成组的弃块。' },
-  { title: '两列一组', max: 10, lines: 7, vertical: true, patches: [patch('rect3x2', 2, 2), patch('l3-nw', 0, 5)], fill: pairFill(0, true).concat(hfill(7)), budget: true, hint: '让大块铺满两列，丢掉更小的备选。' },
-  { title: '四段拼接', max: 10, lines: 7, patches: [patch('square3', 5, 0)], fill: pairFill(3).concat(pairFill(6, true)), budget: true, hint: '半成的行要为下一组保留落点。' },
-  { title: '长线考验', max: 10, lines: 8, patches: [patch('l5-nw', 5, 1), patch('t4-down', 2, 5)], fill: hfill(0, [2, 3, 3]).concat(pairFill(3)), goals: { multi: 2 }, hint: '三段和两行拼接交替进行。' },
-  { title: '交叉之后', max: 11, lines: 8, cross: { row: 6, col: 7, rows: [0, 1, 2, 3, 5, 7] }, budget: true, hint: '交叉消除打开边缘，短条负责后续。' },
-  { title: '大块回归', max: 11, lines: 8, vertical: true, patches: [patch('l5-ne', 1, 0), patch('square3', 5, 4)], fill: pairFill(0), goals: { multi: 3 }, hint: '保留大块，换取更多同时消除。' },
-  { title: '最后的空隙', max: 12, lines: 9, patches: [patch('l5-se', 0, 0), patch('l5-sw', 5, 4)], fill: pairFill(0, true).concat(hfill(7, [2, 3, 3])), budget: true, hint: '预算和空间一起规划。' },
-  { title: '三选二大师', max: 12, lines: 9, cross: { row: 0, col: 4, rows: [1, 2, 3, 4, 5, 6] }, fill: hfill(7, [2, 2, 4]), budget: true, hint: '交点、补缺和弃格的最后一场考验。' },
 ];
 
-function transpose(board) {
-  return board.map((_, i) => board[index(Math.floor(i / 8), i % 8)]);
-}
-function transposedShape(shapeId) {
-  const shape = SHAPE_BY_ID[shapeId];
-  const wanted = shape.cells.map(([x, y]) => `${y},${x}`).sort().join(';');
-  const match = Object.values(SHAPE_BY_ID).find((candidate) => candidate.cells.map(([x, y]) => `${x},${y}`).sort().join(';') === wanted);
-  if (!match) throw new Error(`No fixed transpose for ${shapeId}`);
-  return match.id;
-}
-
-function makeLevel(recipe, number) {
+function makeTutorialLevel(recipe, number) {
   let board = Array(64).fill(0);
   let plan = [];
   const fillCell = (x, y) => { board[index(x, y)] = 1 + ((x * 2 + y + number) % 5); };
@@ -94,10 +49,6 @@ function makeLevel(recipe, number) {
     }
   }
   plan.push(...(recipe.fill ?? []));
-  if (recipe.vertical) {
-    board = transpose(board);
-    plan = plan.map(({ shapeId, x, y }) => move(transposedShape(shapeId), y, x));
-  }
   const candidates = [];
   const solution = [];
   const distractors = ['h5', 'square2', 'l3-ne', 'rect2x3', 't4-down', 'l5-sw', 'square3', 'v3'];
@@ -108,8 +59,6 @@ function makeLevel(recipe, number) {
     const slots = [piece(distractors[(number + i) % distractors.length], 1 + (number % 5)), piece('dot', 3), piece('h2', 4)];
     slots[offset] = piece(first.shapeId, 1 + ((number + i) % 5));
     if (second) slots[(offset + 1) % 3] = piece(second.shapeId, 1 + ((number + i + 1) % 5));
-    // Budget levels retain large useful blocks and leave a small optional block.
-    if (recipe.budget && second) slots[(offset + 2) % 3] = piece(i % 4 === 0 ? 'dot' : 'h2', 5);
     candidates.push(slots);
     solution.push({ slot: offset, x: first.x, y: first.y });
     if (second) solution.push({ slot: (offset + 1) % 3, x: second.x, y: second.y });
@@ -119,17 +68,224 @@ function makeLevel(recipe, number) {
     candidates.push([piece(i % 2 ? 'h3' : 'h5', 2), piece(i % 3 ? 'v2' : 'square2', 3), piece(i % 2 ? 'l3-se' : 'dot', 4)]);
   }
   const three = Math.ceil(plan.length / 2);
-  const budget = recipe.budget ? Array.from({ length: Math.floor((plan.length - 1) / 2) }, (_, i) => i % 2 === 0 ? 1 : 2).reduce((a, b) => a + b, 0) + 1 : undefined;
   return {
     id: number, number, title: recipe.title, chapter: CHAPTERS[Math.floor((number - 1) / 10)].id,
     maxGroups: recipe.max, goal: { lines: recipe.lines, ...(recipe.goals ?? {}) },
-    ...(budget === undefined ? {} : { discardBudget: budget }),
     initialBoard: board, candidates, starThresholds: { two: Math.min(recipe.max, three + 1), three },
     solution, hint: recipe.hint, continuationGroups: 2,
   };
 }
 
-export const LEVELS = recipes.map((recipe, i) => makeLevel(recipe, i + 1));
+// Fixed planning puzzles start after the five introductory levels. Boards and
+// stock are authored together with a legal route; no runtime RNG or engine
+// exception is involved. Empty cells are deliberately spread across lines,
+// so a matching piece cannot simply close a pre-cut single-shape hole.
+const planningPuzzles = [
+  {
+    title: '先铺再清', max: 6, goal: { lines: 4 },
+    rows: '00010000/10001000/10100000/01010000/00001000/01011111/00000000/00000000',
+    stock: ['h3,h2,v4', 'l3-se,l3-se,v2', 'l3-ne,l3-sw,h3', 'v2,l3-sw,l3-se', 'l3-sw,v2,l3-sw', 'h2,l3-sw,h3', 'l3-se,v2,l3-nw', 'l3-ne,l3-sw,square2'],
+    route: [[2, 0, 3], [0, 0, 0], [0, 1, 4], [1, 0, 5], [2, 0, 7], [1, 1, 1], [0, 2, 5], [1, 1, 3]],
+    hint: '先拼出可延续的边，不必每手都消除。',
+  },
+  {
+    title: '拐角留白', max: 6, goal: { lines: 4 },
+    rows: '10001001/00000100/01010001/10000100/00110100/01100000/00000000/00000000',
+    stock: ['square2,h3,l3-se', 'h2,v3,v4', 'l3-nw,v2,h4', 'h3,square2,l3-sw', 'square2,h4,l3-ne', 'l3-ne,h4,h3', 'v4,l3-ne,l3-sw', 'h4,l3-se,h4'],
+    route: [[0, 1, 0], [1, 1, 3], [2, 4, 1], [1, 4, 5], [2, 3, 0], [1, 4, 3], [1, 6, 3], [2, 0, 4]],
+    hint: '底部空行是缓冲区，别把拐角散放。',
+  },
+  {
+    title: '两线布局', max: 7, goal: { lines: 5, multi: 1 },
+    rows: '00101100/10011000/10110011/00000000/11011001/11011110/00000000/00000000',
+    stock: ['v3,l3-ne,square2', 'h2,v3,v4', 'l3-se,l3-sw,l3-ne', 'h3,v2,h2', 'l3-se,h4,l3-sw', 'l3-nw,h2,h3', 'l3-ne,h4,square2', 'l3-ne,v3,square2', 'h4,l3-se,l3-se'],
+    route: [[1, 4, 1], [2, 1, 6], [2, 1, 0], [1, 2, 3], [2, 6, 0], [0, 1, 1], [2, 1, 5], [1, 7, 5]],
+    hint: '留住能连成两线的组合，再一起收尾。',
+  },
+  {
+    title: '留一条通路', max: 7, goal: { lines: 4, multi: 1 },
+    rows: '10000010/01100110/10000010/11000101/11000100/00111100/00000000/00000000',
+    stock: ['v3,l3-nw,v3', 'l3-nw,h2,l3-sw', 'l3-nw,l3-ne,h2', 'v2,square2,v2', 'l3-sw,l3-se,l3-nw', 'v3,l3-ne,v3', 'square2,h2,l3-ne', 'v3,h3,h2', 'l3-ne,v4,l3-sw'],
+    route: [[0, 6, 3], [2, 7, 4], [1, 0, 5], [2, 2, 3], [1, 3, 3], [0, 5, 2], [1, 5, 6], [0, 6, 4]],
+    hint: '给下一组保留连续的落点。',
+  },
+  {
+    title: '第一章试炼', max: 8, goal: { lines: 5 },
+    rows: '00101000/10010010/01100000/01010101/10001001/01000011/00000000/00000000',
+    stock: ['l3-ne,v3,v4', 'v4,v3,v4', 'l3-ne,v4,h3', 'v4,h4,v4', 'v2,h2,l3-se', 'v4,h2,l3-se', 'v2,l3-se,h3', 'v2,h3,h2', 'l3-sw,square2,l3-ne', 'l3-nw,h3,l3-sw'],
+    route: [[2, 5, 4], [1, 5, 0], [1, 6, 2], [0, 5, 1], [2, 1, 4], [0, 3, 1], [1, 2, 5], [0, 0, 2], [0, 7, 1], [1, 1, 1]],
+    hint: '先考虑第二块还能放在哪里，再落第一块。',
+  },
+  {
+    title: '隔组接力', max: 8, goal: { lines: 5, multi: 2 },
+    rows: '01001100/10000001/00011000/10000010/00001101/10101101/00001011/01010111',
+    stock: ['l3-nw,square2,l5-nw', 'l3-ne,l4-east,h5', 'l3-se,h4,h2', 'l3-nw,rect2x3,l5-ne', 'l5-sw,l5-ne,l5-nw', 'l4-west,h5,l5-nw', 'l3-ne,t4-up,l5-ne', 'h2,l3-nw,v2', 'l4-east,l3-sw,v2', 'l5-sw,h3,l5-sw'],
+    route: [[2, 1, 4], [1, 1, 2], [0, 5, 1], [2, 1, 1], [1, 2, 1], [0, 6, 1], [1, 0, 0], [2, 1, 0], [0, 3, 3]],
+    hint: '这一组铺的边，要由下一组接上。',
+  },
+  {
+    title: '朝向的代价', max: 8, goal: { lines: 6, cross: 1 },
+    rows: '00100111/10010001/00110101/10010001/11100001/01000000/00010000/10100001',
+    stock: ['rect2x3,l5-ne,l4-west', 'v3,rect2x3,rect3x2', 'rect3x2,l3-sw,h2', 'h5,rect3x2,square2', 'h5,h3,h3', 'v5,l5-se,l5-nw', 'v3,l5-se,h4', 'l5-se,square2,h2', 'l4-east,l5-ne,v2', 'h5,v3,rect2x3'],
+    route: [[2, 0, 0], [0, 4, 5], [2, 4, 3], [0, 4, 0], [1, 4, 1], [0, 5, 5], [0, 3, 7], [1, 5, 1], [0, 3, 4]],
+    hint: '朝向固定，先留出长条能通过的空间。',
+  },
+  {
+    title: '成双成对', max: 8, goal: { lines: 6, multi: 2 },
+    rows: '00110010/11000000/10010101/01000010/01000100/00000001/01001001/01010000',
+    stock: ['h4,h4,v4', 'l5-se,v4,v2', 'h5,h5,v3', 'v5,h4,v2', 'h4,l5-nw,t4-down', 'v2,h2,l4-east', 'v4,l3-nw,l4-west', 'l5-ne,l3-se,rect3x2', 'h5,l4-east,l5-nw', 'h5,v5,v3'],
+    route: [[2, 2, 1], [0, 3, 5], [0, 0, 5], [1, 3, 3], [2, 2, 1], [0, 3, 1], [0, 3, 0], [1, 0, 5], [0, 4, 5], [1, 3, 5]],
+    hint: '同时完成两线，比见缝就补更省空间。',
+  },
+  {
+    title: '纵横换位', max: 9, goal: { lines: 8 },
+    rows: '01111001/00010111/01010011/10110010/01110101/01001010/10000001/00000000',
+    stock: ['l3-sw,t4-down,h2', 'v4,h2,rect3x2', 'l3-nw,h4,l5-sw', 'l5-nw,rect2x3,h5', 'h5,h4,l5-se', 'rect3x2,l3-sw,l4-east', 'l5-se,rect2x3,v3', 'v3,l3-nw,t4-down', 'l4-west,v4,t4-down', 't4-down,v2,rect2x3', 'l5-nw,v4,h5'],
+    route: [[0, 0, 1], [2, 2, 5], [2, 2, 6], [0, 4, 1], [0, 2, 1], [2, 2, 1], [1, 4, 0], [0, 5, 5], [0, 0, 7], [1, 4, 7], [0, 3, 2], [2, 4, 4]],
+    hint: '清除之后，重新安排横向和竖向的落点。',
+  },
+  {
+    title: '收拢边角', max: 9, goal: { lines: 7, multi: 1 },
+    rows: '11100001/01001100/01101011/10111100/11010100/11010011/00000100/00110000',
+    stock: ['l5-ne,rect2x3,l3-ne', 'rect3x2,l5-se,h2', 'l5-ne,l3-se,l5-ne', 't4-up,h3,l3-ne', 'l3-sw,l5-ne,h3', 'l3-se,v2,v3', 'l5-sw,t4-down,l3-se', 'v3,rect3x2,v2', 't4-down,l3-nw,t4-down', 'v5,l4-east,v2', 'l4-west,h4,l4-east'],
+    route: [[0, 0, 4], [2, 6, 3], [2, 4, 5], [1, 2, 5], [0, 5, 5], [1, 5, 5], [1, 4, 0], [2, 2, 0], [1, 0, 3], [2, 0, 7], [0, 2, 6], [2, 4, 4]],
+    hint: '零散空格装不下大块，先把空地连起来。',
+  },
+  {
+    title: '腾挪长条', max: 9, goal: { lines: 9, cross: 1 },
+    rows: '01111010/00111111/10101101/00011000/00000100/01010000/11011001/11111100',
+    stock: ['l4-west,rect2x3,v4', 'l3-sw,l3-se,v3', 'h3,h5,h3', 'rect2x3,square2,h5', 't4-up,rect2x3,l5-se', 'l5-ne,v4,l3-sw', 'l5-se,l5-se,t4-up', 'l3-sw,h4,l3-sw', 'h3,h5,t4-up', 'l5-se,t4-up,v4', 'l3-sw,rect2x3,l4-east'],
+    route: [[2, 2, 3], [0, 0, 2], [1, 3, 4], [0, 2, 2], [1, 0, 1], [0, 0, 1], [2, 3, 1], [0, 3, 2], [1, 3, 5], [0, 3, 0], [2, 2, 0], [1, 2, 4]],
+    hint: '短条可以先接边，给长条腾出位置。',
+  },
+  {
+    title: '保留主干', max: 9, goal: { lines: 7, multi: 2 },
+    rows: '11001000/01100000/00111101/01010000/10100001/00110101/10111000/00001010',
+    stock: ['t4-up,v5,l4-east', 'l5-nw,l3-nw,v3', 'l4-east,l5-sw,l4-east', 'h2,h4,square2', 'h4,rect2x3,h4', 'l4-west,l4-west,rect3x2', 'l4-east,v4,t4-up', 't4-down,v3,l3-nw', 'l3-se,h2,t4-down', 'l4-east,t4-down,l4-east', 'l5-se,h4,t4-down'],
+    route: [[1, 6, 2], [0, 0, 6], [1, 0, 1], [0, 3, 0], [0, 6, 0], [1, 4, 3], [1, 4, 1], [2, 0, 1], [0, 4, 6], [2, 3, 4], [0, 0, 4]],
+    hint: '留住跨组可接的主干，不急着填零散缺口。',
+  },
+  {
+    title: '拐角接力', max: 10, goal: { lines: 7, multi: 2 },
+    rows: '01010100/00100001/00000011/01001100/00010000/11100000/10000010/00010010',
+    stock: ['h3,l3-nw,l4-west', 'l5-nw,v2,rect2x3', 'h4,l3-sw,l5-se', 'l3-nw,rect3x2,h5', 'l5-se,l5-ne,h2', 'v2,l5-nw,l5-nw', 'rect2x3,v3,l5-nw', 'l3-sw,l5-sw,v2', 'rect2x3,v5,h3', 'l4-west,l5-ne,t4-up', 'v4,l5-sw,h4', 'l5-se,l4-west,l5-se'],
+    route: [[2, 2, 1], [1, 3, 5], [2, 6, 3], [0, 3, 3], [2, 5, 5], [1, 6, 0], [1, 1, 5], [0, 6, 2], [1, 5, 4], [0, 4, 4], [1, 0, 2]],
+    hint: '先看拐角的后续连接，再选要丢的块。',
+  },
+  {
+    title: '一格之外', max: 10, goal: { lines: 9 },
+    rows: '00010111/00011100/00000110/11111001/00000110/11110111/01110010/10100100',
+    stock: ['h5,t4-down,l5-se', 'rect2x3,l5-se,l5-se', 'rect2x3,l5-nw,l5-sw', 'v4,square2,l4-east', 'l4-east,l3-ne,v5', 'h4,h3,t4-up', 'l3-se,v3,l5-nw', 'v5,l3-se,v2', 'v2,square2,l5-ne', 'rect3x2,l3-ne,rect2x3', 'h4,l5-ne,v4', 'v5,l4-east,v3'],
+    route: [[2, 2, 4], [0, 0, 5], [1, 0, 0], [2, 5, 5], [1, 2, 5], [2, 0, 4], [1, 0, 1], [2, 0, 5], [1, 6, 4], [2, 0, 0], [1, 3, 5], [2, 0, 4], [2, 2, 0], [1, 2, 3]],
+    hint: '一格的偏移会改变下一组的落点。',
+  },
+  {
+    title: '取舍终章', max: 10, goal: { lines: 9, multi: 2 },
+    rows: '00000000/01000000/00011110/11110010/00100100/01001111/01100000/00100010',
+    stock: ['l3-sw,h2,rect2x3', 'h3,h4,t4-up', 'l3-se,v2,rect2x3', 'h2,l3-sw,l5-nw', 'rect2x3,h3,rect3x2', 'v3,h4,v5', 't4-down,h3,l3-se', 'l5-nw,l5-sw,h4', 'rect2x3,l3-ne,v2', 'rect2x3,l4-west,l3-se', 'l5-ne,l3-nw,l4-west', 'v3,v2,l3-se'],
+    route: [[1, 2, 5], [0, 0, 4], [0, 0, 2], [2, 2, 4], [1, 7, 2], [2, 6, 4], [1, 4, 3], [2, 0, 0], [0, 6, 0], [2, 3, 1], [2, 2, 0], [0, 6, 1], [1, 0, 5], [0, 4, 4]],
+    hint: '目标不只是清线，还要组合同时消除。',
+  },
+  {
+    title: '预算初试', max: 8, goal: { lines: 7 },
+    rows: '00110001/10001000/01010100/11000001/01000011/10100100/10111001/01101000',
+    stock: ['square2,l5-ne,l5-ne', 'l3-se,l5-nw,rect3x2', 'h5,v3,l5-sw', 't4-down,square2,l3-ne', 'l4-west,rect3x2,l4-west', 'h3,l5-sw,l3-sw', 'h4,v5,l5-se', 'rect2x3,l4-west,l5-nw', 'v5,l5-nw,t4-up', 'l5-nw,l5-nw,l5-nw'],
+    route: [[0, 2, 3], [1, 4, 1], [1, 2, 1], [0, 1, 3], [2, 2, 5], [1, 2, 0], [1, 1, 5], [2, 5, 5], [0, 6, 1], [2, 6, 5], [1, 3, 5], [0, 1, 1]],
+    budget: 32,
+    hint: '预算允许试探，先比较放两块后丢的是哪块。',
+  },
+  {
+    title: '小弃块，大空间', max: 9, goal: { lines: 9, cross: 1 },
+    rows: '00010011/11110001/00100001/11100111/11000011/10110101/10001010/00010000',
+    stock: ['square2,rect2x3,l5-sw', 'v3,l3-nw,l3-nw', 'rect3x2,h4,v3', 'v5,square2,v2', 'l4-west,h2,l5-se', 'l4-east,rect2x3,h5', 'square2,l5-nw,t4-down', 'square2,l5-nw,t4-up', 'v3,rect2x3,square3', 'l5-ne,h2,h4', 'v3,t4-up,v2'],
+    route: [[2, 4, 1], [1, 0, 0], [1, 5, 1], [0, 3, 1], [1, 2, 4], [0, 3, 2], [0, 1, 2], [1, 6, 2], [1, 0, 7], [2, 0, 2], [1, 0, 2], [2, 3, 4], [1, 0, 4]],
+    budget: 26,
+    hint: '小块也能铺路，但丢大块会迅速耗掉预算。',
+  },
+  {
+    title: '舍小留大', max: 9, goal: { lines: 9, multi: 2 },
+    rows: '00010110/00001101/00001000/00010011/11001101/01001000/01100001/00001100',
+    stock: ['l3-se,l3-ne,h5', 'h3,l5-se,t4-up', 'l3-se,t4-down,square3', 'h4,t4-down,t4-down', 'h3,rect2x3,l3-se', 'l3-nw,l5-sw,h5', 'h5,v2,square3', 'l3-nw,v4,l5-sw', 'l3-nw,l5-se,l5-ne', 'l3-ne,l3-nw,rect2x3', 'l3-ne,l5-se,h2'],
+    route: [[1, 4, 2], [0, 2, 4], [0, 0, 3], [2, 4, 5], [1, 5, 3], [2, 0, 1], [1, 3, 3], [0, 4, 3], [2, 4, 0], [1, 3, 1], [1, 0, 3], [2, 0, 3], [2, 5, 2], [1, 6, 1]],
+    budget: 29,
+    hint: '先为大块预留位置，再让小块接边。',
+  },
+  {
+    title: '窄路接力', max: 10, goal: { lines: 8 },
+    rows: '00000010/00010110/11001011/11101010/11000100/00011000/10100010/10001000',
+    stock: ['h4,l3-nw,v4', 'square2,l3-sw,v3', 'rect2x3,square2,h2', 'rect2x3,l3-se,l3-ne', 'l4-east,h5,h5', 'rect2x3,h5,l4-east', 'l3-nw,square3,v5', 'h2,l3-sw,rect3x2', 'l5-sw,v3,rect3x2', 'l5-nw,v2,h4', 'l4-west,v4,square2', 'l3-se,h3,t4-up'],
+    route: [[2, 7, 3], [1, 1, 6], [1, 3, 6], [2, 5, 5], [2, 6, 7], [0, 0, 5], [2, 0, 0], [0, 1, 5], [1, 3, 6], [2, 3, 7], [1, 3, 7], [2, 6, 4], [1, 0, 5], [2, 1, 0]],
+    budget: 29,
+    hint: '保留连续空间，预算只够有限的调整。',
+  },
+  {
+    title: '多线预算', max: 10, goal: { lines: 11, multi: 3 },
+    rows: '10110110/10100101/10110110/10001111/01001000/01010000/00001010/00010111',
+    stock: ['t4-down,v5,v3', 'l5-ne,v5,l3-se', 'square3,l3-se,rect3x2', 'square3,l5-nw,l4-west', 'square2,t4-down,h3', 'h3,l3-sw,h5', 'h5,v5,square3', 'l3-se,square3,rect3x2', 'h4,l3-nw,l3-nw', 'h5,l5-nw,rect3x2', 'h4,h5,square3', 'v2,h3,square2'],
+    route: [[2, 2, 5], [0, 1, 3], [1, 0, 3], [2, 1, 3], [0, 0, 0], [2, 0, 6], [1, 0, 3], [0, 0, 2], [0, 5, 3], [1, 4, 5], [2, 0, 1], [1, 5, 1], [1, 7, 2], [0, 0, 1], [2, 5, 0]],
+    budget: 36,
+    hint: '把两线同时完成，减少占地和弃块成本。',
+  },
+  {
+    title: '半成的行', max: 10, goal: { lines: 11, multi: 3 },
+    rows: '01000001/10001000/00001000/00000111/00111111/10000110/00010111/00100000',
+    stock: ['t4-down,h3,h3', 't4-down,l5-nw,square3', 'l5-sw,l5-nw,v3', 't4-down,h4,v4', 't4-up,l5-sw,l5-se', 't4-up,rect3x2,l5-ne', 't4-down,l3-se,l4-west', 'square3,square2,l5-sw', 'h5,l3-se,h5', 'h4,v4,h4', 'square3,l3-ne,l3-nw', 'square2,l4-west,l3-nw'],
+    route: [[0, 5, 1], [1, 4, 0], [2, 1, 1], [0, 4, 1], [1, 4, 5], [0, 0, 1], [0, 4, 3], [1, 4, 2], [2, 5, 1], [1, 0, 2], [2, 1, 1], [1, 4, 2], [0, 3, 0], [2, 4, 5], [0, 3, 1], [2, 4, 4]],
+    budget: 30,
+    hint: '半成的行要留到下一组，别填断长边。',
+  },
+  {
+    title: '交叉预留', max: 11, goal: { lines: 12, cross: 2 },
+    rows: '11110011/10110001/11101111/00011100/11010000/10010110/10111011/10010011',
+    stock: ['l4-east,l3-sw,t4-up', 'v2,l5-se,l5-nw', 't4-up,l3-ne,v2', 'l3-nw,l4-east,h4', 'rect2x3,v5,rect2x3', 'l3-ne,square3,v4', 'l5-sw,h2,l5-se', 'l5-ne,l5-se,l5-ne', 'rect2x3,l3-ne,rect3x2', 'l5-sw,l5-sw,l4-east', 'l5-se,rect2x3,rect2x3', 'square3,square2,l3-sw', 'rect2x3,v3,l5-ne'],
+    route: [[0, 1, 5], [1, 6, 3], [1, 0, 3], [0, 3, 2], [0, 4, 0], [1, 1, 2], [2, 0, 1], [1, 3, 1], [0, 0, 1], [1, 7, 1], [1, 5, 1], [2, 2, 1], [2, 2, 0], [0, 2, 5], [0, 0, 0], [2, 4, 1]],
+    budget: 27,
+    hint: '大块入场前，先安排能接成多线的空隙。',
+  },
+  {
+    title: '成组腾挪', max: 11, goal: { lines: 12, multi: 3 },
+    rows: '10101101/10000010/00100110/11110110/10010011/01011101/00000101/11000101',
+    stock: ['h2,h5,h5', 't4-down,v3,t4-up', 'h2,h5,l3-sw', 'h3,h3,l4-east', 'h3,l3-ne,l3-ne', 't4-up,v4,t4-up', 'l5-nw,t4-up,t4-down', 'rect3x2,square3,l3-sw', 't4-down,v4,l5-nw', 'l5-sw,h3,square2', 'v3,l3-nw,l4-east', 't4-down,h5,rect3x2', 'l3-se,l5-nw,square2'],
+    route: [[1, 1, 1], [2, 0, 6], [1, 7, 1], [0, 0, 1], [0, 4, 4], [1, 3, 1], [2, 3, 0], [0, 5, 7], [0, 2, 7], [1, 4, 2], [1, 5, 4], [0, 4, 0], [1, 5, 5], [0, 3, 5], [1, 3, 2], [0, 3, 0], [0, 3, 6], [2, 3, 3]],
+    budget: 28,
+    hint: '每组丢弃面积有限，连续规划两到三组。',
+  },
+  {
+    title: '最后的空隙', max: 12, goal: { lines: 12, multi: 3 },
+    rows: '00111100/00100110/00011001/00111010/01110000/10000011/10001001/10100111',
+    stock: ['l5-sw,v3,l3-nw', 'h3,rect3x2,h5', 'l3-ne,v3,t4-down', 'l5-sw,l5-nw,rect2x3', 'l5-se,t4-down,rect2x3', 'l5-sw,t4-down,l3-sw', 'l3-se,l3-nw,square2', 'rect3x2,l4-west,l3-ne', 't4-down,square2,v4', 'v2,h4,v2', 'l3-se,l3-nw,t4-up', 'square3,l5-sw,rect2x3', 'h4,h5,t4-down', 'l3-ne,h5,rect2x3'],
+    route: [[0, 0, 2], [2, 4, 4], [1, 1, 5], [2, 0, 5], [2, 5, 5], [1, 2, 4], [1, 5, 2], [0, 2, 1], [0, 3, 4], [2, 3, 5], [1, 4, 2], [0, 3, 1], [2, 0, 0], [0, 6, 0], [0, 5, 5], [1, 6, 2], [0, 5, 1]],
+    budget: 30,
+    hint: '只剩少量预算余量，留好下一块的朝向。',
+  },
+  {
+    title: '三选二大师', max: 12, goal: { lines: 12, multi: 3 },
+    rows: '00000011/00011000/10100000/01111000/00000010/11100000/00100101/10110001',
+    stock: ['l3-nw,l3-ne,l3-nw', 'h2,v4,rect2x3', 'h5,h4,rect3x2', 'l3-se,rect2x3,t4-up', 'l5-ne,l5-ne,l3-sw', 'v3,h2,l4-west', 'rect3x2,t4-down,v3', 'l5-se,v4,l5-ne', 'h3,l4-east,t4-down', 'h4,l5-nw,t4-down', 'v2,t4-up,square3', 'h3,rect2x3,square2', 'l5-se,v3,v5', 'l3-ne,l3-ne,l5-se'],
+    route: [[1, 5, 6], [0, 5, 4], [2, 5, 1], [1, 7, 1], [1, 3, 0], [0, 3, 5], [1, 3, 4], [2, 4, 6], [0, 3, 0], [1, 1, 2], [0, 5, 3], [2, 5, 1], [2, 6, 4], [0, 1, 0], [0, 1, 5], [2, 3, 4], [2, 0, 6], [1, 6, 4], [1, 5, 0], [0, 1, 2]],
+    budget: 32,
+    hint: '空间、组合与弃格一起算，先铺再收。',
+  },
+];
+
+function makePlanningLevel(puzzle, number) {
+  const cells = puzzle.rows.replaceAll('/', '').split('');
+  const three = Math.ceil(puzzle.route.length / 2);
+  return {
+    id: number, number, title: puzzle.title, chapter: CHAPTERS[Math.floor((number - 1) / 10)].id,
+    maxGroups: puzzle.max, goal: puzzle.goal,
+    ...(puzzle.budget === undefined ? {} : { discardBudget: puzzle.budget }),
+    initialBoard: cells.map((cell, i) => cell === '0' ? 0 : 1 + ((i * 3 + number) % 5)),
+    candidates: puzzle.stock.map((group, i) => group.split(',').map((shapeId, slot) => piece(shapeId, 1 + ((number + i + slot) % 5)))),
+    starThresholds: { two: Math.min(puzzle.max, three + 1), three },
+    solution: puzzle.route.map(([slot, x, y]) => ({ slot, x, y })), hint: puzzle.hint, continuationGroups: 2,
+  };
+}
+
+export const LEVELS = [
+  ...tutorialRecipes.map((recipe, i) => makeTutorialLevel(recipe, i + 1)),
+  ...planningPuzzles.map((puzzle, i) => makePlanningLevel(puzzle, i + 6)),
+];
 export function getLevel(id) { return LEVELS.find((level) => level.id === Number(id)); }
 
 export function validateLevels(levels = LEVELS) {
