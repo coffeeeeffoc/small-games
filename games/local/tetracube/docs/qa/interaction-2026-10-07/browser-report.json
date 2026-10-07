@@ -1,0 +1,20 @@
+{
+  "environment": "Linux Chromium; mobile viewports and CDP touch simulation, not physical device QA",
+  "browserVersion": "151.0.7922.173",
+  "nodeVersion": "v24.19.0",
+  "checks": [
+    "Home/help/start, 6×6×12 container, direct canvas movement, three rotations and hard drop",
+    "Explicit observe/move modes, camera presets, cancelled drags and multitouch isolation",
+    "One-tap 180° physical flip, fixed world-down gravity/camera, disabled controls, airborne commitment, next spawn and animation pause/resume",
+    "Left/right physical quarter-turns update container dimensions without changing gravity or camera",
+    "Pause freezes simulation; home/reload/help/continue restores full v2 game including physical orientation",
+    "Responsive 320×640, 390×844, 844×390 and 1440×1000 layouts with visible usable primary touch controls",
+    "Visible cascade fixture + real flip control: two sequential planes clear, Combo ×2, four airborne cubes conserved",
+    "Danger → one-tap physical flip rescue → playing; danger → result → retry",
+    "Six spatial rotation controls, inverse turns on XY/XZ/YZ, perspective layer separation, continuous orbit across top view and exact landing after rotation",
+    "Authentic v1 sideways-gravity save migrates to v2 world-down coordinates without losing cubes or changing score, remains playable and reloads",
+    "Unavailable storage still allows starting, dropping and physically flipping"
+  ],
+  "errors": [],
+  "passed": true
+}
