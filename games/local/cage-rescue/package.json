@@ -1,0 +1,18 @@
+{
+  "name": "@coffeeeeffoc/cage-rescue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "打破笼子接住人：单球、双用途挡板与六关救援挑战",
+  "coffeeeeffoc": {
+    "role": "game"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "preview": "node server.mjs --dist",
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs && node tests/reward-browser.mjs"
+  }
+}

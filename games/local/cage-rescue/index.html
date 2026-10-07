@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07182a" />
+    <meta
+      name="description"
+      content="拖动挡板反弹球、打破笼子，再接住缓缓下落的队友。六关救援挑战，六人救到四人即可通关。"
+    />
+    <title>打破笼子接住人 · 夜间救援行动</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307182a'/%3E%3Ccircle cx='21' cy='9' r='4' fill='%23ffcf58'/%3E%3Crect x='5' y='23' width='22' height='5' rx='2' fill='%23ffae36'/%3E%3Cpath d='M8 5v13m5-13v13M6 5h10M6 18h10' stroke='%235dddd0' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./src/main.mjs"></script>
+  </head>
+  <body data-screen="home">
+    <main id="game" data-game-display-host aria-label="打破笼子接住人">
+      <canvas
+        id="scene"
+        width="390"
+        height="700"
+        tabindex="0"
+        aria-label="救援场地，左右拖动控制挡板；键盘左右键移动，空格发球"
+      ></canvas>
+
+      <section id="home-screen" class="screen home-screen" aria-labelledby="game-title">
+        <div class="topline">
+          <span class="wordmark">NIGHT RESCUE<span>夜间救援行动</span></span
+          ><button id="settings" class="icon-button" aria-label="设置">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 17h16" />
+              <circle cx="9" cy="7" r="3" fill="#0e263b" />
+              <circle cx="16" cy="17" r="3" fill="#0e263b" />
+            </svg>
+          </button>
+        </div>
+        <div class="home-title">
+          <span class="eyebrow">打破束缚，一起回家</span>
+          <h1 id="game-title">
+            打破笼子<br /><em>接住人</em><span class="title-star" aria-hidden="true">✦</span>
+          </h1>
+          <p>球在右边，队友在左边。<br />这一次，先接谁？</p>
+        </div>
+        <div class="home-actions">
+          <div id="home-progress" class="home-progress">第 01 / 06 关 · 初次救援</div>
+          <button id="start" class="primary">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M5 3.5a1 1 0 0 1 1.5-.86l10 5.65a2 2 0 0 1 0 3.42l-10 5.65A1 1 0 0 1 5 16.5z"
+              /></svg
+            ><span>开始救援</span></button
+          ><button id="levels" class="secondary">
+            <span class="grid-icon" aria-hidden="true"></span>关卡选择
+          </button>
+          <div class="home-links">
+            <button id="outfits">小队装扮</button><span aria-hidden="true">·</span
+            ><button id="help">怎么玩</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="levels-screen" class="screen menu-screen" aria-labelledby="levels-title" hidden>
+        <header class="page-heading">
+          <button class="back icon-button" data-back aria-label="返回主页">‹</button>
+          <div>
+            <span class="eyebrow">RESCUE MISSIONS</span>
+            <h2 id="levels-title">选择关卡</h2>
+          </div>
+          <span id="level-progress" class="muted">0 / 6</span>
+        </header>
+        <p class="menu-intro">每关救回 4 位队友，开启下一次行动。</p>
+        <div id="level-list" class="level-list"></div>
+        <p class="small-note">通关后解锁下一关 · 进度保存在本机</p>
+      </section>
+
+      <section id="play-screen" class="screen play-screen" aria-label="救援行动" hidden>
+        <header class="hud">
+          <div class="level-hud">
+            <strong id="level-number">01</strong><span id="level-name">初次救援</span>
+          </div>
+          <div class="rescue-hud">
+            <b id="rescue-count">0<span>/4</span></b
+            ><span>已救援</span>
+          </div>
+          <div id="lives" class="lives" aria-label="剩余3次球机会"><i></i><i></i><i></i></div>
+          <button id="pause" class="icon-button" aria-label="暂停">
+            <span class="pause-icon" aria-hidden="true"></span>
+          </button>
+        </header>
+        <div id="trial-badge" class="trial-badge" hidden>开发试玩 · 不保存进度</div>
+        <div id="slow-badge" class="slow-badge" hidden>救援缓降</div>
+        <div id="launch-area" class="launch-area">
+          <p id="launch-hint">左右拖动挡板，接球也接人</p>
+          <button id="launch" class="primary compact">点击发球</button>
+        </div>
+        <div id="play-tip" class="play-tip">拖动挡板 · 救回 4 位队友</div>
+      </section>
+
+      <section id="pause-screen" class="screen center-screen" aria-labelledby="pause-title" hidden>
+        <span class="eyebrow">TAKE A BREATH</span>
+        <h2 id="pause-title">行动暂停</h2>
+        <p>队友和球都在等你。</p>
+        <div class="stack">
+          <button id="resume" class="primary">继续救援</button
+          ><button id="restart" class="secondary">重新开始本关</button
+          ><button id="home" class="text-button">返回主页</button>
+        </div>
+      </section>
+
+      <section
+        id="result-screen"
+        class="screen center-screen result-screen"
+        aria-labelledby="result-title"
+        hidden
+      >
+        <span id="result-eyebrow" class="eyebrow">MISSION COMPLETE</span>
+        <div id="result-symbol" class="result-symbol" aria-hidden="true">✦</div>
+        <h2 id="result-title">接得漂亮！</h2>
+        <p id="result-message"></p>
+        <div class="result-stats">
+          <div><strong id="result-rescued">4</strong><span>成功接住</span></div>
+          <div><strong id="result-lives">3</strong><span>剩余球机会</span></div>
+        </div>
+        <p id="result-unlock" class="unlock-note"></p>
+        <div class="stack">
+          <button id="next" class="primary">下一关</button
+          ><button id="retry" class="secondary">免费重试</button
+          ><button id="revive" class="secondary" hidden>看广告 · 补一次球机会</button
+          ><button id="result-home" class="text-button">返回主页</button>
+        </div>
+        <p id="reward-message" class="small-note" role="status"></p>
+      </section>
+
+      <section id="help-screen" class="screen menu-screen" aria-labelledby="help-title" hidden>
+        <header class="page-heading">
+          <button data-back class="back icon-button" aria-label="返回主页">‹</button>
+          <div>
+            <span class="eyebrow">FIELD MANUAL</span>
+            <h2 id="help-title">怎么玩</h2>
+          </div>
+        </header>
+        <div class="instructions">
+          <article>
+            <b>01</b>
+            <div>
+              <h3>一块挡板，两项任务</h3>
+              <p>左右拖动挡板反弹球，击碎砖块和笼子。击中挡板边缘，球会斜着弹走。</p>
+            </div>
+          </article>
+          <article>
+            <b>02</b>
+            <div>
+              <h3>破笼之后，还要接住</h3>
+              <p>队友会沿笼子所在位置缓慢落下。用挡板接住，才算救援成功。双锁笼需要击中两次。</p>
+            </div>
+          </article>
+          <article>
+            <b>03</b>
+            <div>
+              <h3>六人之中，救到四人</h3>
+              <p>
+                漏接队友会落进安全网并离场；漏球扣一次机会。三次球机会耗尽，或已经无法救到四人，行动结束。
+              </p>
+            </div>
+          </article>
+        </div>
+        <div class="field-note">
+          <strong>先接球，再接人？</strong>
+          <p>球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
+        </div>
+        <p class="small-note">电脑也可用 ← → 移动、空格发球、Esc 暂停</p>
+      </section>
+
+      <section
+        id="settings-screen"
+        class="screen menu-screen"
+        aria-labelledby="settings-title"
+        hidden
+      >
+        <header class="page-heading">
+          <button data-back class="back icon-button" aria-label="返回主页">‹</button>
+          <div>
+            <span class="eyebrow">BEFORE THE MISSION</span>
+            <h2 id="settings-title">行动设置</h2>
+          </div>
+        </header>
+        <div class="setting-row">
+          <div>
+            <h3>游戏音效</h3>
+            <p>弹球、破笼与成功救援</p>
+          </div>
+          <button id="sound" class="toggle" role="switch" aria-checked="true" aria-label="游戏音效">
+            <span></span>
+          </button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <h3>沉浸游玩</h3>
+            <p>全屏显示完整游戏</p>
+          </div>
+          <button data-game-fullscreen>全屏</button>
+        </div>
+        <p class="small-note">无需全屏也能正常游玩。关闭声音后立即静音。</p>
+      </section>
+
+      <section
+        id="outfits-screen"
+        class="screen menu-screen"
+        aria-labelledby="outfits-title"
+        hidden
+      >
+        <header class="page-heading">
+          <button data-back class="back icon-button" aria-label="返回主页">‹</button>
+          <div>
+            <span class="eyebrow">YOUR RESCUE CREW</span>
+            <h2 id="outfits-title">小队装扮</h2>
+          </div>
+        </header>
+        <p class="menu-intro">同一支小队，换一种出场方式。</p>
+        <div id="theme-list" class="theme-list"></div>
+        <p class="small-note">通关即可解锁 · 装扮不改变游戏能力</p>
+      </section>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+      <div id="loading-error" class="screen center-screen" hidden>
+        <h2>游戏加载失败</h2>
+        <p>请刷新页面后重试。</p>
+        <button onclick="location.reload()" class="primary">重新加载</button>
+      </div>
+    </main>
+  </body>
+</html>
