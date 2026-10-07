@@ -82,11 +82,11 @@ const TURNS = {
   back: { point: [1, 3, 3], dims: [6, 12, 6], axis: 0, angle: -Math.PI / 2 },
 };
 
-test('content schema adds 50% headroom without increasing the 36-cell floor', () => {
-  assert.deepEqual(DEFAULT_CONFIG.dims, [6, 6, 18]);
+test('content schema expands the movement floor to 8×8 with eighteen layers of headroom', () => {
+  assert.deepEqual(DEFAULT_CONFIG.dims, [8, 8, 18]);
   assert.equal(
     DEFAULT_CONFIG.dims.reduce((volume, size) => volume * size),
-    648,
+    1152,
   );
   assert.deepEqual(validateConfig(DEFAULT_CONFIG), []);
   assert.notEqual(migrateConfig(DEFAULT_CONFIG), DEFAULT_CONFIG);
@@ -159,6 +159,45 @@ test('world-down spawn, lateral moves, obstacle ghost and hard drop agree', () =
   assert.equal(game.status, 'playing');
   assert.equal(new Set(game.board.map((cell) => key(coordinates(cell)))).size, game.board.length);
   assert.equal(game.fits(game.active), true);
+});
+
+test('8×8 floor allows movement to both new outer edges and rejects crossing either wall', () => {
+  const game = new Game({ config: configFor([SHAPES[1]]), seed: 8 });
+  for (const axis of [0, 1]) {
+    while (game.move(axis, -1)) {}
+    assert.equal(Math.min(...game.cells().map((cell) => cell[axis])), 0);
+    const atNearWall = game.getSnapshot();
+    assert.equal(game.move(axis, -1), false);
+    assert.deepEqual(game.getSnapshot(), atNearWall);
+    while (game.move(axis, 1)) {}
+    const positions = game.cells().map((cell) => cell[axis]);
+    assert.equal(Math.max(...positions), 7);
+    assert.ok(positions.includes(6), 'both extra columns can contain the active shape');
+    const atFarWall = game.getSnapshot();
+    assert.equal(game.move(axis, 1), false);
+    assert.deepEqual(game.getSnapshot(), atFarWall);
+    assert.equal(game.fits(game.active), true);
+  }
+});
+
+test('36 occupied floor cells stay in play and only a complete 64-cell layer clears', () => {
+  const game = new Game({ seed: 8 });
+  const previousFloor = plane([6, 6, 18], 2, 0);
+  assert.equal(previousFloor.length, 36);
+  assert.deepEqual(fullPlanes(previousFloor, game.dims, DOWN), []);
+  const incomplete = resolveBoard(previousFloor, game.dims, DOWN);
+  assert.deepEqual(incomplete.board, previousFloor);
+  assert.equal(incomplete.lines, 0);
+  assert.equal(incomplete.points, 0);
+  assert.deepEqual(incomplete.events, []);
+  const completeFloor = plane(game.dims, 2, 0);
+  assert.equal(completeFloor.length, 64);
+  assert.deepEqual(fullPlanes(completeFloor, game.dims, DOWN), [0]);
+  const complete = resolveBoard(completeFloor, game.dims, DOWN);
+  assert.equal(complete.lines, 1);
+  assert.equal(complete.points, 250);
+  assert.equal(complete.events[0].removed.length, 64);
+  assert.deepEqual(complete.board, []);
 });
 
 test('hold grants one exchange per placement, resets orientation and preserves score', () => {
@@ -559,10 +598,10 @@ test('blocked spawn enters danger and inversion recovers the pending piece witho
   assertSupported(game.board);
 });
 
-test('a full 6×6×18 container clears in eighteen waves after physical inversion', () => {
+test('a full 8×8×18 container clears all 1152 cubes in eighteen waves after inversion', () => {
   const game = new Game({ seed: 33 });
-  game.board = Array.from({ length: 18 }, (_, z) => plane(game.dims, 2, z, 1 + z * 36)).flat();
-  game.serial = 648;
+  game.board = Array.from({ length: 18 }, (_, z) => plane(game.dims, 2, z, 1 + z * 64)).flat();
+  game.serial = 1152;
   assert.equal(game.spawn(game.active), false);
   assert.equal(game.status, 'danger');
   assert.equal(game.flipContainer('invert'), true);
@@ -580,23 +619,23 @@ test('a full 6×6×18 container clears in eighteen waves after physical inversio
   );
 });
 
-test('quarter turn changes vertical walls into 18×6 floor planes before a two-wave cascade', () => {
+test('quarter turn changes vertical walls into 144-cell 18×8 planes before a two-wave cascade', () => {
   const game = new Game({ seed: 33 });
-  game.board = [...plane(game.dims, 0, 0), ...plane(game.dims, 0, 2, 109)];
-  game.serial = 216;
+  game.board = [...plane(game.dims, 0, 0), ...plane(game.dims, 0, 2, 145)];
+  game.serial = 288;
   game.active = { ...structuredClone(SHAPES[1]), pos: [3, 2, 9] };
   assert.deepEqual(fullPlanes(game.board, game.dims, DOWN), []);
   assert.equal(game.fits(game.active), true);
   game.drainEvents();
   assert.equal(game.flipContainer('left'), true);
-  assert.deepEqual(game.dims, [18, 6, 6]);
+  assert.deepEqual(game.dims, [18, 8, 8]);
   assert.equal(game.lines, 2);
   assert.equal(game.combo, 2);
   assert.equal(game.score, 750 + 4 * game.config.points.cell);
   assert.equal(game.board.length, 4);
   assert.deepEqual(
     game.board.map((cell) => cell.id),
-    [217, 218, 219, 220],
+    [289, 290, 291, 292],
   );
   assertSupported(game.board);
   const events = game.drainEvents();
@@ -610,8 +649,8 @@ test('quarter turn changes vertical walls into 18×6 floor planes before a two-w
         combo: event.combo,
       })),
     [
-      { axis: 2, area: 108, combo: 1 },
-      { axis: 2, area: 108, combo: 2 },
+      { axis: 2, area: 144, combo: 1 },
+      { axis: 2, area: 144, combo: 2 },
     ],
   );
 });
@@ -656,7 +695,7 @@ for (const gravity of DIRECTIONS) {
     assert.deepEqual(restored.board, geometry.board);
     assert.deepEqual(
       restored.dims,
-      geometry.dims.map((d) => (d === 5 ? 6 : 18)),
+      geometry.dims.map((d) => (d === 5 ? 8 : 18)),
     );
     assert.deepEqual(
       sorted(restored.cells()),
@@ -665,7 +704,7 @@ for (const gravity of DIRECTIONS) {
     assert.deepEqual(restored.gravity, DOWN);
     assert.equal(restored.fits(restored.active), true);
     assert.equal(restored.flipCount, 3);
-    assert.equal(restored.getSnapshot().version, 3);
+    assert.equal(restored.getSnapshot().version, 4);
     assert.equal(restored.events.length, 0);
     for (const field of [
       'score',
@@ -728,7 +767,7 @@ for (const turn of [null, ...Object.keys(TURNS)]) {
     assert.deepEqual(restored.dims, expectedDims);
     assert.equal(
       restored.dims.reduce((volume, size) => volume * size),
-      648,
+      1152,
     );
     for (const field of [
       'board',
@@ -751,7 +790,7 @@ for (const turn of [null, ...Object.keys(TURNS)]) {
       assert.deepEqual(restored[field], snapshot[field], `${field} survives expansion unchanged`);
     assert.equal(restored.held, null);
     assert.equal(restored.holdUsed, false);
-    assert.equal(restored.getSnapshot().version, 3);
+    assert.equal(restored.getSnapshot().version, 4);
     assert.equal(restored.fits(restored.active), true);
     assert.deepEqual(snapshot, before, 'migration does not mutate the supplied save');
     for (let i = 0; i < 30; i++) assert.deepEqual(restored.drawShape(), game.drawShape());
@@ -774,13 +813,126 @@ test('v2 danger migration retains its blocked piece and resumes after inversion'
   assert.deepEqual(restored.pending, snapshot.pending);
   assert.deepEqual(restored.board, snapshot.board);
   assert.deepEqual(restored.next, snapshot.next);
-  assert.deepEqual(restored.dims, [6, 6, 18]);
+  assert.deepEqual(restored.dims, [8, 8, 18]);
   assert.equal(restored.flipContainer('invert'), true);
   assert.equal(restored.status, 'playing');
   assert.equal(restored.active.id, snapshot.pending.id);
 });
 
-test('v3 save persists held shape and exchange cooldown through deterministic continuation', () => {
+for (const turn of [null, ...Object.keys(TURNS)]) {
+  test(`v3 ${turn ?? 'upright'} save widens while preserving held piece, cooldown and all state`, () => {
+    const game = new Game({ config: { ...DEFAULT_CONFIG, dims: [6, 6, 18] }, seed: 448 });
+    game.hold();
+    game.hardDrop();
+    game.move(1, 1);
+    game.rotate('XZ');
+    if (turn) game.flipContainer(turn);
+    assert.equal(game.hold(), true);
+    const snapshot = game.getSnapshot();
+    snapshot.version = 3;
+    const before = structuredClone(snapshot);
+    const restored = new Game().restore(snapshot);
+    const expectedDims = turn
+      ? transformContainer([], DEFAULT_CONFIG.dims, turn).dims
+      : DEFAULT_CONFIG.dims;
+    assert.deepEqual(restored.dims, expectedDims);
+    assert.equal(
+      restored.dims.reduce((volume, size) => volume * size),
+      1152,
+    );
+    for (const [field, expected] of Object.entries(snapshot)) {
+      if (['version', 'configId', 'dims'].includes(field)) continue;
+      assert.deepEqual(restored[field], expected, `${field} survives widening unchanged`);
+    }
+    assert.equal(restored.holdUsed, true);
+    assert.equal(restored.hold(), false, 'migration does not grant an extra exchange');
+    assert.equal(restored.getSnapshot().version, 4);
+    assert.equal(restored.fits(restored.active), true);
+    assert.deepEqual(snapshot, before, 'migration leaves the supplied save untouched');
+    assert.deepEqual(restored.events, []);
+    for (let i = 0; i < 30; i++) assert.deepEqual(restored.drawShape(), game.drawShape());
+    const roundtrip = new Game().restore(restored.getSnapshot());
+    assert.deepEqual(roundtrip.getSnapshot(), restored.getSnapshot());
+  });
+}
+
+test('v3 danger save preserves held shape and pending queue when widening', () => {
+  const game = new Game({ config: { ...DEFAULT_CONFIG, dims: [6, 6, 18] }, seed: 4 });
+  game.hold();
+  game.board = plane(game.dims, 2, 17);
+  game.serial = 36;
+  game.spawn(game.active);
+  const snapshot = game.getSnapshot();
+  snapshot.version = 3;
+  const restored = new Game().restore(snapshot);
+  assert.equal(restored.status, 'danger');
+  assert.equal(restored.active, null);
+  for (const field of ['held', 'holdUsed', 'pending', 'next', 'board', 'bag', 'rngState', 'score'])
+    assert.deepEqual(restored[field], snapshot[field]);
+  assert.deepEqual(restored.dims, [8, 8, 18]);
+  assert.equal(restored.flipContainer('invert'), true);
+  assert.equal(restored.status, 'playing');
+  assert.equal(restored.active.id, snapshot.pending.id);
+  assert.deepEqual(restored.held, snapshot.held);
+});
+
+for (const version of [2, 3]) {
+  for (const turn of [null, ...Object.keys(TURNS)]) {
+    test(`v${version} ${turn ?? 'upright'} malformed saves cannot use expanded dimensions to evade validation`, () => {
+      const game = new Game({
+        config: { ...DEFAULT_CONFIG, dims: version === 2 ? [6, 6, 12] : [6, 6, 18] },
+        seed: 4,
+      });
+      if (turn) game.flipContainer(turn);
+      const snapshot = game.getSnapshot();
+      snapshot.version = version;
+      if (version === 2) {
+        delete snapshot.held;
+        delete snapshot.holdUsed;
+      }
+      const target = new Game({ seed: 27 });
+      const before = target.getSnapshot();
+      const expandedDims = turn
+        ? transformContainer([], DEFAULT_CONFIG.dims, turn).dims
+        : DEFAULT_CONFIG.dims;
+      const grownAxis = snapshot.dims.findIndex((size, axis) => size < expandedDims[axis]);
+      const mutations = [
+        (value) => {
+          value.dims = expandedDims;
+        },
+        (value) => {
+          const point = [0, 0, 0];
+          point[grownAxis] = value.dims[grownAxis];
+          value.board.push(cube(++value.serial, point));
+        },
+        (value) => {
+          value.active.pos[grownAxis] = value.dims[grownAxis] + 3;
+        },
+        (value) => {
+          value.next = [];
+        },
+        (value) => {
+          value.score = -1;
+        },
+        ...(version === 3
+          ? [
+              (value) => {
+                value.held = { ...structuredClone(SHAPES[0]), id: 'unknown' };
+              },
+            ]
+          : []),
+      ];
+      for (const mutate of mutations) {
+        const malformed = structuredClone(snapshot);
+        mutate(malformed);
+        assert.throws(() => target.restore(malformed));
+        assert.deepEqual(target.getSnapshot(), before, 'rejected migration is atomic');
+      }
+    });
+  }
+}
+
+test('v4 save persists held shape and exchange cooldown through deterministic continuation', () => {
   const game = new Game({ seed: 448 });
   game.hold();
   const restored = new Game().restore(game.getSnapshot());
@@ -796,13 +948,13 @@ test('v3 save persists held shape and exchange cooldown through deterministic co
   assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
 });
 
-test('v3 save/restore preserves rotated dimensions, orientation, queue, RNG and future commands', () => {
+test('v4 save/restore preserves rotated dimensions, orientation, queue, RNG and future commands', () => {
   const game = new Game({ seed: 448 });
   game.hardDrop();
   game.move(1, 1);
   game.rotate('XZ');
   game.flipContainer('right');
-  assert.deepEqual(game.dims, [18, 6, 6]);
+  assert.deepEqual(game.dims, [18, 8, 8]);
   assert.notDeepEqual(game.orientation, IDENTITY);
   const restored = new Game({ seed: 0 }).restore(game.getSnapshot());
   assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
@@ -825,7 +977,7 @@ test('reset restores original container geometry, orientation, flip count and se
   game.flipContainer('back');
   game.hardDrop();
   game.reset();
-  assert.deepEqual(game.dims, [6, 6, 18]);
+  assert.deepEqual(game.dims, [8, 8, 18]);
   assert.deepEqual(game.orientation, IDENTITY);
   assert.equal(game.flipCount, 0);
   assert.deepEqual(game.getSnapshot(), fresh);
@@ -914,7 +1066,7 @@ test('malformed saves reject invalid dimensions, orientation, pieces and numeric
   assert.throws(() => game.restore(badLegacy));
 });
 
-test('danger state survives v3 save and final game over disables all gameplay commands', () => {
+test('danger state survives v4 save and final game over disables all gameplay commands', () => {
   const game = new Game({ seed: 4 });
   game.board = plane(game.dims, 2, game.dims[2] - 1);
   game.serial = game.dims[0] * game.dims[1];

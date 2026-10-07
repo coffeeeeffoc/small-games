@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/qa/v3/', import.meta.url);
+const evidence = new URL('../docs/qa/v4/', import.meta.url);
 await mkdir(evidence, { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
   cwd: root,
@@ -140,7 +140,8 @@ try {
   assert.equal(await stored(page), null, 'Opening help must not manufacture a saved run');
   await page.locator('#start-game').tap();
   await phase(page, 'playing');
-  assert.deepEqual((await snapshot(page)).game.dims, [6, 6, 18]);
+  assert.deepEqual((await snapshot(page)).game.dims, [8, 8, 18]);
+  assert.equal(await page.locator('#occupancy').textContent(), '0 / 1152');
   await capture(page, 'mobile-tutorial.png');
   await page.locator('#skip-tutorial').tap();
   assert.equal(await page.locator('[data-move]').count(), 0, 'Movement is directly on the board');
@@ -250,7 +251,7 @@ try {
   worldDown(await snapshot(page));
   await capture(page, 'mobile-play.png');
   report.checks.push(
-    'Touch home/help/start, 6×6×18 container, permanent three physical turns, direct movement/three rotations/natural fall with motion, hard-drop trail and impact',
+    'Touch home/help/start, 8×8×18 container, permanent three physical turns, direct movement/three rotations/natural fall with motion, hard-drop trail and impact',
   );
   report.checks.push(
     'One hold per airborne piece, disabled repeat tap, reset after landing, held-piece swap with queue and score conservation',
@@ -349,7 +350,7 @@ try {
   await idle(page);
   const afterFlip = await snapshot(page);
   worldDown(afterFlip);
-  assert.deepEqual(afterFlip.game.dims, [6, 6, 18]);
+  assert.deepEqual(afterFlip.game.dims, [8, 8, 18]);
   assert.equal(afterFlip.game.flipCount, beforeFlip.game.flipCount + 1);
   assert.equal(
     afterFlip.game.placed,
@@ -368,8 +369,8 @@ try {
   );
 
   for (const [turn, dims] of [
-    ['left', [18, 6, 6]],
-    ['right', [6, 6, 18]],
+    ['left', [18, 8, 8]],
+    ['right', [8, 8, 18]],
   ]) {
     const before = await snapshot(page);
     await page.locator(`[data-flip="${turn}"]`).tap();
@@ -420,7 +421,7 @@ try {
   );
   await page.locator('#resume-game').tap();
   report.checks.push(
-    'Touch pause/help/back/resume; pause freezes simulation; home/reload/help/continue restores full v3 game including physical orientation, hold and queue',
+    'Touch pause/help/back/resume; pause freezes simulation; home/reload/help/continue restores full v4 game including physical orientation, hold and queue',
   );
 
   for (const viewport of [
@@ -460,7 +461,7 @@ try {
     'Developer fixture never overwrites normal save',
   );
   const cascadeBefore = await snapshot(page);
-  assert.equal(cascadeBefore.game.board.length, 72);
+  assert.equal(cascadeBefore.game.board.length, 128);
   await page.locator('#flip-container').tap();
   await idle(page);
   const result = await snapshot(page);
@@ -470,7 +471,7 @@ try {
   assert.equal(
     result.game.board.length,
     4,
-    '72 fixture cubes clear; four committed airborne cubes remain',
+    '128 fixture cubes clear; four committed airborne cubes remain',
   );
   assert.equal(result.game.placed, cascadeBefore.game.placed + 1);
   await capture(page, 'mobile-combo.png');
@@ -562,8 +563,8 @@ try {
   await legacyPage.locator('#pause-game').tap();
   const migrated = await snapshot(legacyPage);
   worldDown(migrated);
-  assert.equal(migrated.game.version, 3);
-  assert.deepEqual(migrated.game.dims, [18, 6, 6]);
+  assert.equal(migrated.game.version, 4);
+  assert.deepEqual(migrated.game.dims, [18, 8, 8]);
   assert.equal(migrated.game.held, null);
   assert.equal(migrated.game.holdUsed, false);
   assert.equal(migrated.game.flipCount, 3);
@@ -584,14 +585,14 @@ try {
   assert.equal((await snapshot(legacyPage)).game.placed, 4);
   await legacyPage.locator('#pause-game').tap();
   await legacyPage.locator('#home-game').tap();
-  assert.equal(JSON.parse(await stored(legacyPage)).game.version, 3);
+  assert.equal(JSON.parse(await stored(legacyPage)).game.version, 4);
   await legacyPage.reload();
   await ready(legacyPage);
   await legacyPage.locator('#continue-game').tap();
   await phase(legacyPage, 'playing');
-  assert.deepEqual((await snapshot(legacyPage)).game.dims, [18, 6, 6]);
+  assert.deepEqual((await snapshot(legacyPage)).game.dims, [18, 8, 8]);
   report.checks.push(
-    'Authentic v1 sideways-gravity save migrates to v3 world-down 18×6×6 coordinates with empty hold, preserving cubes/score, remains playable and reloads',
+    'Authentic v1 sideways-gravity save migrates to v4 world-down 18×8×8 coordinates with empty hold, preserving cubes/score, remains playable and reloads',
   );
   await legacyContext.close();
 
@@ -628,8 +629,8 @@ try {
   await previousPage.locator('#continue-game').tap();
   await previousPage.locator('#pause-game').tap();
   const fromV2 = (await snapshot(previousPage)).game;
-  assert.equal(fromV2.version, 3);
-  assert.deepEqual(fromV2.dims, [6, 6, 18]);
+  assert.equal(fromV2.version, 4);
+  assert.deepEqual(fromV2.dims, [8, 8, 18]);
   assert.deepEqual(fromV2.board, previous.game.board);
   assert.deepEqual(fromV2.active, previous.game.active);
   assert.deepEqual(fromV2.next, previous.game.next);
@@ -641,9 +642,159 @@ try {
   await previousPage.locator('#hold-piece').tap();
   assert.equal((await snapshot(previousPage)).game.held.id, previous.game.active.id);
   report.checks.push(
-    'Authentic v2 6×6×12 save grows to 6×6×18 without moving board/active/queue or changing progression/RNG; new hold works',
+    'Authentic v2 6×6×12 save grows to 8×8×18 without moving board/active/queue or changing progression/RNG; new hold works',
   );
   await previousContext.close();
+
+  const v3Context = await browser.newContext(mobile);
+  // Piece/queue/RNG fields come from the released v3 Game({ seed: 448 })
+  // after one real hold; the 36-cell floor is a migration regression fixture.
+  const heldShape = {
+    id: 'elbow',
+    name: '折角',
+    color: '#ffae7a',
+    cells: [
+      [-1, 0, 0],
+      [0, 0, 0],
+      [1, 0, 0],
+      [1, 1, 0],
+    ],
+  };
+  const oldFloor = [];
+  for (let x = 0; x < 6; x++)
+    for (let y = 0; y < 6; y++)
+      oldFloor.push({ id: oldFloor.length + 1, x, y, z: 0, color: '#63e7ff' });
+  const v3 = {
+    ...previous,
+    game: {
+      ...previous.game,
+      version: 3,
+      dims: [6, 6, 18],
+      board: oldFloor,
+      active: { ...legacyShape, pos: [2, 2, 17] },
+      held: heldShape,
+      holdUsed: true,
+      next: [
+        {
+          id: 'square',
+          name: '方庭',
+          color: '#ffe08a',
+          cells: [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+          ],
+        },
+        {
+          id: 'step',
+          name: '阶梯',
+          color: '#7cf0bf',
+          cells: [
+            [-1, 0, 0],
+            [0, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+          ],
+        },
+        {
+          id: 'helix',
+          name: '回旋',
+          color: '#f9a1e3',
+          cells: [
+            [-1, 0, 1],
+            [0, 0, 1],
+            [0, 1, 1],
+            [0, 1, 0],
+          ],
+        },
+      ],
+      bag: ['tee', 'twist', 'tripod'],
+      rngState: 4231026547,
+      initialSeed: 448,
+      serial: oldFloor.length,
+    },
+  };
+  await v3Context.addInitScript(
+    ({ key, value }) => {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
+    },
+    { key: saveKey, value: v3 },
+  );
+  const v3Page = await v3Context.newPage();
+  watch(v3Page);
+  await v3Page.goto(origin);
+  await ready(v3Page);
+  await v3Page.locator('#continue-game').tap();
+  await phase(v3Page, 'playing');
+  await v3Page.locator('#pause-game').tap();
+  const fromV3 = (await snapshot(v3Page)).game;
+  assert.equal(fromV3.version, 4);
+  assert.deepEqual(fromV3.dims, [8, 8, 18]);
+  for (const key of [
+    'board',
+    'active',
+    'held',
+    'holdUsed',
+    'next',
+    'bag',
+    'orientation',
+    'score',
+    'lines',
+    'placed',
+    'flipCount',
+    'rngState',
+  ])
+    assert.deepEqual(fromV3[key], v3.game[key], `v3 widening preserves ${key}`);
+  await v3Page.locator('#resume-game').tap();
+  assert.equal(await v3Page.locator('#hold-piece').isDisabled(), true);
+  assert.equal(await v3Page.locator('#occupancy').textContent(), '36 / 1152');
+  await capture(v3Page, 'mobile-v3-save-migrated.png');
+  await v3Page.locator('#hard-drop').tap();
+  await idle(v3Page);
+  const afterV3Drop = (await snapshot(v3Page)).game;
+  assert.equal(
+    afterV3Drop.lines,
+    v3.game.lines,
+    'The old 36-cell floor is not a complete 64-cell layer',
+  );
+  assert.equal(
+    afterV3Drop.board.length,
+    40,
+    'The widened floor keeps all 36 old cubes and four newly landed cubes',
+  );
+  assert.deepEqual(
+    afterV3Drop.board.filter((cube) => cube.id <= oldFloor.length),
+    oldFloor,
+  );
+  assert.equal(afterV3Drop.placed, v3.game.placed + 1);
+  assert.deepEqual(afterV3Drop.held, heldShape);
+  assert.equal(afterV3Drop.holdUsed, false);
+  const beforeV3Swap = afterV3Drop;
+  await v3Page.locator('#hold-piece').tap();
+  const afterV3Swap = (await snapshot(v3Page)).game;
+  assert.equal(afterV3Swap.active.id, heldShape.id);
+  assert.equal(afterV3Swap.held.id, beforeV3Swap.active.id);
+  assert.deepEqual(afterV3Swap.next, beforeV3Swap.next);
+  await capture(v3Page, 'mobile-v3-save-play.png');
+  await v3Page.locator('#pause-game').tap();
+  const v4Save = (await snapshot(v3Page)).game;
+  await v3Page.locator('#home-game').tap();
+  assert.equal(JSON.parse(await stored(v3Page)).game.version, 4);
+  await v3Page.reload();
+  await ready(v3Page);
+  await v3Page.locator('#continue-game').tap();
+  await v3Page.locator('#pause-game').tap();
+  assert.deepEqual(
+    (await snapshot(v3Page)).game,
+    v4Save,
+    'Migrated v3 progression survives v4 save and reload',
+  );
+  report.checks.push(
+    'Authentic v3 6×6×18 save widens to 8×8×18 while preserving 36 cube IDs/coordinates, airborne/held pieces, hold cooldown, queue, RNG and score; 36 old floor cubes do not clear as a 64-cell layer; touch drop/swap and v4 reload work',
+  );
+  await v3Context.close();
 
   const reduced = await browser.newContext({ ...mobile, reducedMotion: 'reduce' });
   await reduced.addInitScript(() =>
@@ -667,7 +818,7 @@ try {
   assert.equal((await snapshot(reducedPage)).game.placed, 1);
   await reducedPage.locator('[data-flip="left"]').tap();
   await idle(reducedPage);
-  assert.deepEqual((await snapshot(reducedPage)).game.dims, [18, 6, 6]);
+  assert.deepEqual((await snapshot(reducedPage)).game.dims, [18, 8, 8]);
   const reducedEffects = await recordedEffects(reducedPage);
   assert(reducedEffects.length > 0);
   assert(
@@ -733,7 +884,7 @@ try {
   assert.equal((await snapshot(frame)).game.holdUsed, true);
   await frame.locator('[data-flip="left"]').tap();
   await idle(frame);
-  assert.deepEqual((await snapshot(frame)).game.dims, [18, 6, 6]);
+  assert.deepEqual((await snapshot(frame)).game.dims, [18, 8, 8]);
   for (const viewport of [
     { width: 320, height: 640 },
     mobile.viewport,
@@ -760,7 +911,7 @@ try {
   await phase(frame, 'home');
   await frame.locator('#continue-game').tap();
   await phase(frame, 'playing');
-  assert.deepEqual((await snapshot(frame)).game.dims, [18, 6, 6]);
+  assert.deepEqual((await snapshot(frame)).game.dims, [18, 8, 8]);
   report.checks.push(
     'Production iframe touch start/hold/direct left turn/pause/home/continue; 320×640, 390×844 and 844×390 iframe/host fit without overflow and explicit dev=0 stays off',
   );

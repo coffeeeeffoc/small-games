@@ -118,9 +118,10 @@ function shapeOrientations(cells) {
 
 function validateSnapshot(value, config) {
   const legacy = value?.version === 1;
-  const previous = value?.version === 2;
+  const beforeHold = value?.version === 2;
+  const previous = value?.version === 3;
   if (
-    (!legacy && !previous && value?.version !== 3) ||
+    (!legacy && !beforeHold && !previous && value?.version !== 4) ||
     value.configId !== config.id ||
     !validGravity(value.gravity) ||
     !['playing', 'danger', 'over'].includes(value.status)
@@ -128,21 +129,28 @@ function validateSnapshot(value, config) {
     throw new Error('Incompatible tetracube save.');
   if (legacy) {
     if (JSON.stringify(value.dims) !== '[5,5,10]') throw new Error('Invalid legacy container.');
-  } else if (
-    value.gravity.axis !== 2 ||
-    value.gravity.sign !== -1 ||
-    !validOrientation(value.orientation) ||
-    (JSON.stringify(value.dims) !==
-      JSON.stringify(orientedDimensions(value.orientation, config.dims)) &&
-      !(
-        previous &&
-        config.id === DEFAULT_CONFIG.id &&
-        JSON.stringify(config.dims) === JSON.stringify(DEFAULT_CONFIG.dims) &&
-        JSON.stringify(value.dims) ===
-          JSON.stringify(orientedDimensions(value.orientation, [6, 6, 12]))
-      ))
-  ) {
-    throw new Error('Invalid saved container orientation.');
+  } else {
+    // Published classic saves have one exact geometry per version. Validate
+    // their original boundaries before adding space, so malformed cells cannot
+    // become valid just because the current container has larger dimensions.
+    const classic =
+      config.id === DEFAULT_CONFIG.id &&
+      JSON.stringify(config.dims) === JSON.stringify(DEFAULT_CONFIG.dims);
+    const sourceDims = classic
+      ? beforeHold
+        ? [6, 6, 12]
+        : previous
+          ? [6, 6, 18]
+          : config.dims
+      : config.dims;
+    if (
+      value.gravity.axis !== 2 ||
+      value.gravity.sign !== -1 ||
+      !validOrientation(value.orientation) ||
+      JSON.stringify(value.dims) !==
+        JSON.stringify(orientedDimensions(value.orientation, sourceDims))
+    )
+      throw new Error('Invalid saved container orientation.');
   }
   const { dims } = value;
   if (
@@ -189,7 +197,7 @@ function validateSnapshot(value, config) {
     throw new Error('Invalid saved piece queue.');
   if (
     !legacy &&
-    !previous &&
+    !beforeHold &&
     (typeof value.holdUsed !== 'boolean' ||
       (value.held !== null && (!validPiece(value.held) || Object.hasOwn(value.held, 'pos'))))
   )
@@ -266,19 +274,19 @@ function migrateSnapshot(snapshot, config) {
     }
     // Add room at each positive face. Existing cubes and the airborne piece retain
     // their exact normalized positions; migration cannot score or discard a cube.
-    value.dims = orientedDimensions(value.orientation, config.dims);
     value.gravity = { ...WORLD_DOWN };
     value.flipCount = value.gravityChanges;
     delete value.gravityChanges;
-    value.version = 2;
   }
-  if (value.version === 2) {
+  if (value.version <= 2) {
+    value.held = null;
+    value.holdUsed = false;
+  }
+  if (value.version < 4) {
     // Grow only the positive faces of the correctly oriented box. No occupied
     // cell, airborne piece, score or random-generator state changes in a save.
     value.dims = orientedDimensions(value.orientation, config.dims);
-    value.held = null;
-    value.holdUsed = false;
-    value.version = 3;
+    value.version = 4;
     validateSnapshot(value, config);
   }
   return value;
@@ -757,7 +765,7 @@ export class Game {
 
   getSnapshot() {
     return copy({
-      version: 3,
+      version: 4,
       configId: this.config.id,
       dims: this.dims,
       board: this.board,

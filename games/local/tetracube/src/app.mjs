@@ -694,7 +694,7 @@ function frame(now) {
       active: homeActive,
       ghost: [],
       gravity: { axis: 2, sign: -1 },
-      dims: [6, 6, 18],
+      dims: game.config.dims,
       time: reducedMotion ? 0 : now,
     });
   } else if (phase === 'playing') {

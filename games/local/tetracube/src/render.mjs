@@ -1,4 +1,5 @@
 // Dependency-free, orthographic 3D renderer. All game coordinates use Z as up.
+import { DEFAULT_CONFIG } from './config.mjs';
 const TAU = Math.PI * 2;
 const MINT = '#67f6da';
 const CYAN = '#65d9ff';
@@ -96,9 +97,9 @@ const EDGES = [
 function dimensions(value) {
   if (Array.isArray(value)) return value;
   return [
-    value?.x || value?.width || 6,
-    value?.y || value?.depth || 6,
-    value?.z || value?.height || 18,
+    value?.x || value?.width || DEFAULT_CONFIG.dims[0],
+    value?.y || value?.depth || DEFAULT_CONFIG.dims[1],
+    value?.z || value?.height || DEFAULT_CONFIG.dims[2],
   ];
 }
 
@@ -143,7 +144,7 @@ export class Renderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: true });
     this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
-    this.dims = [6, 6, 18];
+    this.dims = [...DEFAULT_CONFIG.dims];
     this.flip = null;
     this.orientation = [
       [1, 0, 0],
@@ -603,7 +604,7 @@ export class Renderer {
     board = [],
     active = [],
     ghost = [],
-    dims = [6, 6, 18],
+    dims = DEFAULT_CONFIG.dims,
     flip = null,
     orientation = [
       [1, 0, 0],
