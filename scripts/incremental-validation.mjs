@@ -150,6 +150,7 @@ export function incrementalPlan({
         file === 'scripts/pages-regression-timings.json' ||
         [
           '.github/workflows/ci.yml',
+          '.github/workflows/pages.yml',
           '.gitignore',
           '.prettierignore',
           'scripts/check-game-config.test.mjs',

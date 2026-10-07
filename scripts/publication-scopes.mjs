@@ -1,8 +1,42 @@
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 
 const loadDependency = createRequire(import.meta.url);
+
+// Exact dependency-checkout repairs for the two bare planning jobs. Commands,
+// permissions, conditions and all other workflow bytes remain producer-bound.
+const planningCheckoutHashes = {
+  '.github/workflows/ci.yml': [
+    '7bf17695b0e6a9062ed81dd0d0b4febbfbb8318da4ef469aacbd411e64b29411',
+    'bf277f8e20d7991a89a3c6f4bd203a8d2f093eb1177c2d88025b92e42d11e87f',
+  ],
+  '.github/workflows/pages.yml': [
+    '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
+    'dfe0f60b9f1a3f30806960dc98ccfaeb17f51c09f57f30a9d57c10129ca31d97',
+  ],
+};
+const planningCheckoutAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+function exactPlanningCheckout(file, before, after) {
+  const hashes = planningCheckoutHashes[file];
+  if (!hashes) return false;
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  return (
+    digest(before) === hashes[0] &&
+    digest(after) === hashes[1] &&
+    before.split(planningCheckoutAnchor).length === 2 &&
+    after ===
+      before.replace(
+        planningCheckoutAnchor,
+        planningCheckoutAnchor.replace(
+          '          fetch-depth: 0\n',
+          '          fetch-depth: 0\n          submodules: recursive\n',
+        ),
+      )
+  );
+}
 
 function literalDeclaration(source, name) {
   const { parsers } = loadDependency('prettier/plugins/babel');
@@ -114,7 +148,12 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (file === '.github/workflows/ci.yml') {
+      if (
+        planningCheckoutHashes[file] &&
+        exactPlanningCheckout(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, []);
+      } else if (file === '.github/workflows/ci.yml') {
         const yaml = loadDependency('js-yaml');
         const before = yaml.load(readBase(file)),
           after = yaml.load(readHead(file));

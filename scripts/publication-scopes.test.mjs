@@ -296,3 +296,40 @@ test('developer-mode exact legacy-to-immersive migration selects new guarded ent
   ])
     assert.equal(developerModeFileScopes({ ...context, readHead: () => changed }).has(file), false);
 });
+
+test('planning checkout scope accepts only both exact reviewed producer byte changes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = '9180c805c77c15634f47f0aeee1092a5b1043a73';
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+  for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+    const before = execFileSync('git', ['show', `${base}:${file}`], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    const after = before.replace(
+      anchor,
+      anchor.replace(
+        '          fetch-depth: 0\n',
+        '          fetch-depth: 0\n          submodules: recursive\n',
+      ),
+    );
+    const scopes = classify(file, before, after);
+    assert.deepEqual(scopes.get(file), []);
+    assert.equal(plan([file], scopes).validation_tools, true);
+    assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+    for (const bad of [
+      after + '\n',
+      after.replace('recursive', 'false'),
+      after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+      after + '\npermissions:\n  contents: write\n',
+      after.replace('node-version: 24.21.0', 'node-version: 22'),
+    ]) {
+      assert.equal(classify(file, before, bad).has(file), false);
+    }
+    assert.equal(classify(file, before + '\n', after).has(file), false);
+    assert.equal(classify(file, after, before).has(file), false);
+  }
+});

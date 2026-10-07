@@ -1369,3 +1369,55 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
     true,
   );
 });
+
+test('plan checkouts provide recursive submodule identities while retaining complete comparison history', async () => {
+  for (const [file, job] of [
+    ['.github/workflows/ci.yml', 'plan'],
+    ['.github/workflows/pages.yml', 'changes'],
+  ]) {
+    const source = await readFile(new URL('../' + file, import.meta.url), 'utf8');
+    const block = source.match(
+      new RegExp(`^  ${job}:\\n([\\s\\S]*?)(?=^  [A-Za-z0-9_-]+:|$(?![\\s\\S]))`, 'm'),
+    )?.[1];
+    assert(block, `Missing actual ${job} job`);
+    const checkout = block.match(
+      /- uses: actions\/checkout@v5\n        with:\n((?:          [^\n]+\n)+)/,
+    )?.[1];
+    assert(checkout, `Missing actual ${job} checkout inputs`);
+    assert.match(checkout, /^          fetch-depth: 0$/m);
+    assert.match(checkout, /^          submodules: recursive$/m);
+  }
+});
+
+test('actual dcf to 9180 canvas proof rejects a missing Xiangqi workspace identity', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const { standaloneGames: games } = await loadGameCatalog(root);
+  const packages = await workspacePackages(root);
+  const context = {
+    changedPaths: ['scripts/nine-canvas-games-smoke.mjs'],
+    games,
+    packages,
+    readBase: (file) =>
+      execFileSync('git', ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+    readHead: (file) =>
+      execFileSync('git', ['show', `9180c805c77c15634f47f0aeee1092a5b1043a73:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+  };
+  assert(packages.some((pkg) => pkg.dir === 'games/submodules/xiangqi-five'));
+  assert(nineNativeFileScopes(context).has(context.changedPaths[0]));
+  const missing = {
+    ...context,
+    packages: packages.filter((pkg) => pkg.dir !== 'games/submodules/xiangqi-five'),
+  };
+  const failedProof = nineNativeFileScopes(missing);
+  assert.equal(failedProof.has(context.changedPaths[0]), false);
+  assert.throws(
+    () => incrementalPlan({ ...missing, fileScopes: failedProof }),
+    /scope undefined.*nine-canvas-games-smoke/,
+  );
+});
