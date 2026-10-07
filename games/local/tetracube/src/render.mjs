@@ -1,14 +1,14 @@
 // Dependency-free, orthographic 3D renderer. All game coordinates use Z as up.
 const TAU = Math.PI * 2;
-const MINT = '#6df7d6';
-const CYAN = '#68dcff';
+const MINT = '#67f6da';
+const CYAN = '#65d9ff';
 const PALETTE = {
   cyan: CYAN,
   mint: MINT,
-  amber: '#ffc96b',
-  violet: '#bca5f6',
-  blue: '#81acdf',
-  coral: '#ff998d',
+  amber: '#ffbc6a',
+  violet: '#ab92ff',
+  blue: '#67a9ff',
+  coral: '#ff8d9b',
 };
 const FACES = [
   {
@@ -98,7 +98,7 @@ function dimensions(value) {
   return [
     value?.x || value?.width || 6,
     value?.y || value?.depth || 6,
-    value?.z || value?.height || 12,
+    value?.z || value?.height || 18,
   ];
 }
 
@@ -143,7 +143,7 @@ export class Renderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: true });
     this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
-    this.dims = [6, 6, 12];
+    this.dims = [6, 6, 18];
     this.flip = null;
     this.orientation = [
       [1, 0, 0],
@@ -239,10 +239,10 @@ export class Renderer {
     const minY = Math.min(...corners.map((p) => p.y));
     const maxY = Math.max(...corners.map((p) => p.y));
     // Fitting the transformed corners is continuous, including the remapped endpoint dimensions.
-    const margin = 10;
+    const margin = 16;
     this.scale = Math.min(
       (this.width - margin * 2) / (maxX - minX),
-      (this.height - 24) / (maxY - minY),
+      (this.height - 38) / (maxY - minY),
     );
     this.scale = Math.max(1, this.scale);
     this.centerX = this.width / 2 - ((maxX + minX) * this.scale) / 2;
@@ -278,6 +278,69 @@ export class Renderer {
     });
   }
 
+  _background() {
+    const ctx = this.ctx;
+    const glow = ctx.createRadialGradient(
+      this.width * 0.5,
+      this.height * 0.67,
+      0,
+      this.width * 0.5,
+      this.height * 0.67,
+      Math.max(this.width, this.height) * 0.66,
+    );
+    glow.addColorStop(0, 'rgba(53,81,145,.19)');
+    glow.addColorStop(0.52, 'rgba(39,38,103,.08)');
+    glow.addColorStop(1, 'rgba(8,13,35,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, this.width, this.height);
+    // Fixed, sparse stars keep the chamber in a game world without a particle field to update.
+    for (let i = 0; i < 29; i++) {
+      const x = (((i * 61 + 17) % 101) / 101) * this.width;
+      const y = (((i * 37 + 23) % 103) / 103) * this.height;
+      const size = i % 9 === 0 ? 1.6 : 0.9;
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(130,203,255,.4)' : 'rgba(173,181,255,.2)';
+      ctx.fillRect(x, y, size, size);
+    }
+  }
+
+  _reactor(plane, isLanding) {
+    const ctx = this.ctx;
+    const center = plane.reduce((p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4 }), {
+      x: 0,
+      y: 0,
+    });
+    const ring = (size) =>
+      plane.map((v) => ({
+        x: center.x + (v.x - center.x) * size,
+        y: center.y + (v.y - center.y) * size,
+      }));
+    polygon(ctx, ring(0.94));
+    ctx.fillStyle = isLanding ? 'rgba(35,83,117,.16)' : 'rgba(62,62,137,.03)';
+    ctx.fill();
+    for (const [size, opacity] of [
+      [0.96, 0.5],
+      [0.84, 0.17],
+      [0.31, 0.39],
+    ]) {
+      polygon(ctx, ring(size));
+      ctx.lineWidth = size < 0.4 ? 1.5 : 1;
+      ctx.strokeStyle = `rgba(91,238,215,${isLanding ? opacity : opacity * 0.35})`;
+      ctx.stroke();
+    }
+    polygon(ctx, ring(0.18));
+    ctx.fillStyle = isLanding ? 'rgba(93,253,218,.12)' : 'rgba(157,138,248,.03)';
+    ctx.fill();
+    // Four short power conduits leave the central reactor readable under an empty chamber.
+    ctx.beginPath();
+    plane.forEach((v) => {
+      ctx.moveTo(center.x + (v.x - center.x) * 0.36, center.y + (v.y - center.y) * 0.36);
+      ctx.lineTo(center.x + (v.x - center.x) * 0.67, center.y + (v.y - center.y) * 0.67);
+    });
+    ctx.strokeStyle = isLanding ? 'rgba(131,255,225,.42)' : 'rgba(165,148,255,.1)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
   _container(front = false) {
     const ctx = this.ctx;
     const camera = this._direction();
@@ -299,7 +362,7 @@ export class Renderer {
       const plane = this._plane(axis, coordinate);
       if (!front) {
         polygon(ctx, plane);
-        ctx.fillStyle = isLanding ? 'rgba(55,177,158,.055)' : 'rgba(41,94,119,.035)';
+        ctx.fillStyle = isLanding ? 'rgba(38,145,145,.07)' : 'rgba(41,62,127,.055)';
         ctx.fill();
       }
       // Front walls remain open: only rear walls and the current landing face have a full grid.
@@ -313,14 +376,15 @@ export class Renderer {
             from[axis] = to[axis] = coordinate;
             from[a] = to[a] = n;
             to[b] = this.dims[b];
-            this._line(from, to, isLanding ? 'rgba(98,222,197,.25)' : 'rgba(117,175,194,.22)', 0.7);
+            this._line(from, to, isLanding ? 'rgba(99,229,213,.21)' : 'rgba(112,145,216,.17)', 0.7);
           }
         }
       }
       if (isLanding) {
+        this._reactor(plane, true);
         polygon(ctx, plane);
-        ctx.strokeStyle = 'rgba(111,246,216,.76)';
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(110,251,223,.8)';
+        ctx.lineWidth = 1.5;
         ctx.shadowColor = MINT;
         ctx.shadowBlur = 7;
         ctx.stroke();
@@ -329,6 +393,7 @@ export class Renderer {
       // Amber corner brackets remain attached to the original floor. They visibly travel to
       // the roof or side wall during a flip, making the container's orientation unambiguous.
       if (axis === markerAxis && coordinate === markerCoordinate) {
+        if (!isLanding) this._reactor(plane, false);
         ctx.strokeStyle = 'rgba(255,195,99,.93)';
         ctx.lineWidth = 2.1;
         ctx.beginPath();
@@ -344,15 +409,23 @@ export class Renderer {
       }
     }
     const corners = this._corners();
-    ctx.lineWidth = 0.8;
     EDGES.forEach(([a, b]) => {
       const isNear = (corners[a].depth + corners[b].depth) / 2 > 0;
       if (isNear !== front) return;
       ctx.beginPath();
       ctx.moveTo(corners[a].x, corners[a].y);
       ctx.lineTo(corners[b].x, corners[b].y);
-      ctx.strokeStyle = front ? 'rgba(170,228,240,.64)' : 'rgba(141,199,216,.46)';
+      const upright = Math.abs(corners[a].y - corners[b].y) > this.scale * 2;
+      ctx.lineWidth = upright ? (front ? 1.3 : 1.1) : 1;
+      ctx.strokeStyle = front ? 'rgba(126,240,229,.58)' : 'rgba(107,187,220,.37)';
       ctx.stroke();
+    });
+    corners.forEach((p) => {
+      if (p.depth > 0 !== front) return;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, front ? 2 : 1.5, 0, TAU);
+      ctx.fillStyle = front ? 'rgba(162,255,235,.8)' : 'rgba(130,191,241,.48)';
+      ctx.fill();
     });
   }
 
@@ -361,7 +434,7 @@ export class Renderer {
     for (const cell of cells || []) {
       const pos = position(cell);
       if (pos.some((v) => !Number.isFinite(v))) continue;
-      const rawSize = cell.scale ?? cell.opacity ?? 1;
+      const rawSize = cell.scale ?? 1;
       const size = Number.isFinite(rawSize) ? Math.max(0, Math.min(1, rawSize)) : 1;
       if (size === 0) continue;
       const rgb = color(cell.color || (type === 'active' ? MINT : CYAN));
@@ -377,6 +450,7 @@ export class Renderer {
           rgb,
           shade: 0.75 + normal[2] * 0.25 + normal[0] * 0.07 - normal[1] * 0.04,
           type,
+          alpha: Math.max(0, Math.min(0.34, cell.alpha ?? cell.opacity ?? 0.15)),
           depth: vertices.reduce((sum, v) => sum + v.depth, 0) / 4,
         });
       }
@@ -400,21 +474,30 @@ export class Renderer {
         ctx.lineDashOffset = 0;
         continue;
       }
+      if (face.type === 'trail') {
+        ctx.fillStyle = rgba(face.rgb, face.alpha * 0.45, 1.05);
+        ctx.fill();
+        ctx.strokeStyle = rgba(face.rgb, face.alpha, 1.3);
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        continue;
+      }
       const active = face.type === 'active';
       const y = face.vertices.map((p) => p.y);
       const gradient = ctx.createLinearGradient(0, Math.min(...y), 0, Math.max(...y) + 1);
-      gradient.addColorStop(0, rgba(face.rgb, 1, face.shade * (active ? 1.12 : 1.04)));
-      gradient.addColorStop(1, rgba(face.rgb, 1, face.shade * 0.88));
+      gradient.addColorStop(0, rgba(face.rgb, 1, face.shade * (active ? 1.12 : 1.03)));
+      gradient.addColorStop(0.44, rgba(face.rgb, 1, face.shade * 0.97));
+      gradient.addColorStop(1, rgba(face.rgb, 1, face.shade * 0.66));
       ctx.fillStyle = gradient;
       ctx.fill();
       ctx.strokeStyle = rgba(face.rgb, 1, active ? 1.3 : 1.16);
-      ctx.lineWidth = active ? 1.05 : 0.8;
+      ctx.lineWidth = active ? 1.2 : 0.9;
       ctx.shadowColor = rgba(face.rgb, 1);
-      ctx.shadowBlur = active ? 2.5 : 0;
+      ctx.shadowBlur = active ? 3 : 0;
       ctx.stroke();
       ctx.shadowBlur = 0;
       // A small solid bevel distinguishes adjacent cells without showing the grid through them.
-      if (this.scale > 17) {
+      if (this.scale > 11) {
         const center = face.vertices.reduce((p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4 }), {
           x: 0,
           y: 0,
@@ -422,12 +505,20 @@ export class Renderer {
         polygon(
           ctx,
           face.vertices.map((v) => ({
-            x: v.x + (center.x - v.x) * 0.045,
-            y: v.y + (center.y - v.y) * 0.045,
+            x: v.x + (center.x - v.x) * 0.13,
+            y: v.y + (center.y - v.y) * 0.13,
           })),
         );
-        ctx.lineWidth = 0.55;
-        ctx.strokeStyle = active ? 'rgba(238,255,250,.23)' : 'rgba(240,255,255,.13)';
+        ctx.lineWidth = 0.65;
+        ctx.strokeStyle = active ? 'rgba(238,255,250,.34)' : 'rgba(240,255,255,.21)';
+        ctx.stroke();
+        const [a, b, , d] = face.vertices;
+        ctx.beginPath();
+        ctx.moveTo(a.x + (center.x - a.x) * 0.16, a.y + (center.y - a.y) * 0.16);
+        ctx.lineTo(b.x + (center.x - b.x) * 0.16, b.y + (center.y - b.y) * 0.16);
+        ctx.moveTo(a.x + (center.x - a.x) * 0.16, a.y + (center.y - a.y) * 0.16);
+        ctx.lineTo(d.x + (center.x - d.x) * 0.16, d.y + (center.y - d.y) * 0.16);
+        ctx.strokeStyle = active ? 'rgba(249,255,253,.55)' : 'rgba(249,255,253,.3)';
         ctx.stroke();
       }
     }
@@ -451,11 +542,68 @@ export class Renderer {
     ctx.shadowBlur = 0;
   }
 
+  _impact(impact) {
+    const cells = (impact?.cells || []).map(position).filter((p) => p.every(Number.isFinite));
+    if (!cells.length) return;
+    const t = Math.max(0, Math.min(1, Number(impact.t) || 0));
+    if (t >= 1) return;
+    const strength = Math.max(0, Math.min(2, impact.strength ?? 1));
+    const opacity = (1 - t) * strength;
+    const center = [
+      cells.reduce((sum, p) => sum + p[0] + 0.5, 0) / cells.length,
+      cells.reduce((sum, p) => sum + p[1] + 0.5, 0) / cells.length,
+      Math.min(...cells.map((p) => p[2])) + 0.025,
+    ];
+    const rgb = color(impact.color || MINT);
+    const ctx = this.ctx;
+    // The pulse follows the landing cells; a weaker second ring reaches the reactor below.
+    for (const [z, alpha, factor] of [
+      [center[2], 0.66, 1],
+      [0.015, 0.17, 1.3],
+    ]) {
+      const radius = (0.6 + t * (2.3 + strength)) * factor;
+      const points = Array.from({ length: 33 }, (_, i) => {
+        const angle = (i / 32) * TAU;
+        return this.project([
+          center[0] + Math.cos(angle) * radius,
+          center[1] + Math.sin(angle) * radius,
+          z,
+        ]);
+      });
+      polygon(ctx, points);
+      ctx.strokeStyle = rgba(rgb, Math.min(0.9, opacity * alpha), 1.3);
+      ctx.lineWidth = Math.max(0.5, (1 - t) * 2.5);
+      ctx.stroke();
+    }
+    if (t < 0.7) {
+      ctx.strokeStyle = rgba(rgb, Math.min(0.8, opacity * 0.65), 1.6);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * TAU;
+        const radius = 0.6 + t * 3.5;
+        const a = this.project([
+          center[0] + Math.cos(angle) * radius,
+          center[1] + Math.sin(angle) * radius,
+          center[2] + Math.sin(t * Math.PI) * 0.6,
+        ]);
+        const b = this.project([
+          center[0] + Math.cos(angle) * (radius + 0.2),
+          center[1] + Math.sin(angle) * (radius + 0.2),
+          center[2] + Math.sin(t * Math.PI) * 0.75,
+        ]);
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+      }
+      ctx.stroke();
+    }
+  }
+
   draw({
     board = [],
     active = [],
     ghost = [],
-    dims = [6, 6, 12],
+    dims = [6, 6, 18],
     flip = null,
     orientation = [
       [1, 0, 0],
@@ -464,6 +612,9 @@ export class Renderer {
     ],
     time = 0,
     particles = [],
+    trail = [],
+    impact = null,
+    shake = 0,
   } = {}) {
     if (this.disposed || !this.ctx) return;
     const { width, height, ratio } = resize(this.canvas);
@@ -476,20 +627,14 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    const glow = ctx.createRadialGradient(
-      width * 0.5,
-      height * 0.66,
-      0,
-      width * 0.5,
-      height * 0.66,
-      Math.max(width, height) * 0.56,
-    );
-    glow.addColorStop(0, 'rgba(27,117,133,.085)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
+    this._background();
+    const shakePixels = Number.isFinite(shake) ? Math.min(8, Math.abs(shake)) : 0;
+    this.centerX += Math.sin(time * 0.13) * shakePixels;
+    this.centerY += Math.cos(time * 0.17) * shakePixels * 0.6;
     this._container();
+    this._impact(impact);
     const faces = [];
+    this._cubeFaces(trail.slice(0, 80), 'trail', faces);
     this._cubeFaces(board, 'board', faces);
     this._cubeFaces(ghost, 'ghost', faces);
     this._cubeFaces(active, 'active', faces);
@@ -551,10 +696,28 @@ export function drawMini(canvas, cells = [], fill = CYAN) {
     .sort((a, b) => a.depth - b.depth)
     .forEach((face) => {
       polygon(ctx, face.vertices);
-      ctx.fillStyle = rgba(face.rgb, 1, face.shade);
+      const y = face.vertices.map((p) => p.y);
+      const gradient = ctx.createLinearGradient(0, Math.min(...y), 0, Math.max(...y) + 1);
+      gradient.addColorStop(0, rgba(face.rgb, 1, face.shade * 1.07));
+      gradient.addColorStop(1, rgba(face.rgb, 1, face.shade * 0.7));
+      ctx.fillStyle = gradient;
       ctx.fill();
       ctx.strokeStyle = rgba(face.rgb, 1, 1.24);
       ctx.lineWidth = 0.75;
+      ctx.stroke();
+      const center = face.vertices.reduce((p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4 }), {
+        x: 0,
+        y: 0,
+      });
+      polygon(
+        ctx,
+        face.vertices.map((v) => ({
+          x: v.x + (center.x - v.x) * 0.15,
+          y: v.y + (center.y - v.y) * 0.15,
+        })),
+      );
+      ctx.strokeStyle = 'rgba(244,255,255,.3)';
+      ctx.lineWidth = 0.5;
       ctx.stroke();
     });
 }
