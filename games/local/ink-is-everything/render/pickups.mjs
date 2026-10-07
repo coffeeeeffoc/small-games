@@ -76,6 +76,7 @@ export function createPickupPainter(painter, getState) {
 
   function drawGear(pickup, time) {
     const bob = Math.sin(time * 2.4) * 4;
+    const nearby = Math.hypot(getState().player.x - pickup.x, getState().player.y - pickup.y) <= 106;
     ctx.save();
     glow(pickup.x, pickup.y - 4, 53, 'rgba(208,160,61,.36)');
     ring(pickup.x, pickup.y + 4, 33, GEAR, 0.75, 2);
@@ -87,6 +88,15 @@ export function createPickupPainter(painter, getState) {
       ctx.moveTo(pickup.x + Math.cos(angle) * 25, pickup.y - 15 + bob + Math.sin(angle) * 25);
       ctx.lineTo(pickup.x + Math.cos(angle) * 33, pickup.y - 15 + bob + Math.sin(angle) * 33);
     }
+    ctx.stroke();
+    // The gold marker is a persistent invitation; reaching it never opens a
+    // menu until the player taps the folio or the nearby interact control.
+    ctx.strokeStyle = '#f6df8b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pickup.x - 7, pickup.y - 68 + bob);
+    ctx.lineTo(pickup.x, pickup.y - 61 + bob);
+    ctx.lineTo(pickup.x + 7, pickup.y - 68 + bob);
     ctx.stroke();
     ctx.translate(pickup.x, pickup.y - 21 + bob);
     // A bound, rune-stamped folio differs from the ink bottle and key seal.
@@ -117,12 +127,13 @@ export function createPickupPainter(painter, getState) {
     ctx.restore();
     label(
       ctx,
-      pickup.gear?.title ? `${pickup.gear.title} · 拾取` : '装备刻印 · 靠近拾取',
+      nearby ? '点击拾取装备' : '装备',
       pickup.x,
       pickup.y + 33,
       {
         size: 14,
         color: '#80602c',
+        background: nearby,
         accent: true,
       },
     );

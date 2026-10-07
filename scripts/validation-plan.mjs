@@ -205,3 +205,19 @@ export function staticBuildTargets(packages, direct, affected) {
       (direct.includes(pkg) || (selected.has(pkg.name) && emittedExport(pkg.exports))),
   );
 }
+
+// Fast DOM contracts are shared by hook, candidate validation and CI. Their finite
+// jsdom suite covers entry, registry, route parameters and immersive navigation.
+export const shellContractFiles = [
+  'tests/catalog-links.test.tsx',
+  'tests/catalog.integration.test.tsx',
+  'tests/play-entry.integration.test.tsx',
+  'tests/routes.integration.test.tsx',
+  'tests/standalone.integration.test.tsx',
+  'tests/standalone-immersive.integration.test.tsx',
+];
+export function shellContractTargets(packages, changedPaths, full = false) {
+  return affectedPackages(packages, changedPaths, full).filter(
+    (pkg) => pkg.dir === 'apps/shell-web' && pkg.coffeeeeffoc?.role === 'shell',
+  );
+}

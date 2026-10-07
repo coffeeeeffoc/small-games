@@ -1,6 +1,7 @@
 import { HostError } from '@coffeeeeffoc/game-contract';
 import type { CanvasGameTarget, CanvasSound } from '@coffeeeeffoc/canvas-game-adapter';
 import type { NativeSdk } from './sdk.js';
+import { nativeRenderSurface } from './render-surface.js';
 
 /** Shell-owned package resources; Games never access native SDK objects directly. */
 export function createNativeMedia(
@@ -12,6 +13,7 @@ export function createNativeMedia(
   let disposed = false;
   const pendingImages = new Set<() => void>();
   const sounds = new Set<CanvasSound>();
+  const surfaces = new Set<ReturnType<typeof nativeRenderSurface>>();
   const safely = (run: () => void) => {
     try {
       run();
@@ -30,7 +32,13 @@ export function createNativeMedia(
       });
     return resourceRoot ? `${resourceRoot}/${src}` : src;
   };
-  const target: Pick<CanvasGameTarget, 'loadImage' | 'createSound'> = {
+  const target: Pick<CanvasGameTarget, 'loadImage' | 'createSound' | 'createRenderSurface'> = {
+    createRenderSurface(width, height) {
+      if (disposed) return null;
+      const surface = nativeRenderSurface(sdk, width, height);
+      if (surface) surfaces.add(surface);
+      return surface;
+    },
     loadImage: sdk.createImage
       ? (src) =>
           new Promise<CanvasImageSource>((resolve, reject) => {
@@ -112,6 +120,8 @@ export function createNativeMedia(
       disposed = true;
       for (const cancel of pendingImages) cancel();
       for (const sound of sounds) sound.dispose();
+      for (const surface of surfaces) surface?.dispose();
+      surfaces.clear();
     },
   };
 }

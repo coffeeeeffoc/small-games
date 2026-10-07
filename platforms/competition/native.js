@@ -101,7 +101,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   const roleNames = street
     ? { pursuer: '警察', runner: '小偷', random: '系统分配' }
     : { pursuer: '追逐队', runner: '突围队', random: '系统分配' };
-  if (!['wechat', 'bilibili', 'douyin', 'kuaishou'].includes(config?.platform))
+  if (!['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay', 'taptap'].includes(config?.platform))
     throw new Error('原生好友挑战需要明确的平台配置。');
   if (!sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动游戏。`);
   for (const name of [
@@ -491,7 +491,11 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       }
       return;
     }
-    ctx.fillText(config.title, 12, top - 12);
+    if (config.onExit && !room) {
+      button(config.homeLabel || '返回游戏', 12, top - 36, 88, () => config.onExit());
+      ctx.font = '12px sans-serif';
+      ctx.fillText(config.title, 108, top - 12, Math.max(40, width - 208));
+    } else ctx.fillText(config.title, 12, top - 12);
     button(muted ? '声音：关' : '声音：开', width - 90, top - 36, 78, () => {
       muted = !muted;
       try {

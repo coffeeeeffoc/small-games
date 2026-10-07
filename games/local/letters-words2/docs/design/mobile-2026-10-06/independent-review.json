@@ -1,0 +1,131 @@
+{
+  "environment": {
+    "url": "http://127.0.0.1:4175/",
+    "browser": "Chromium",
+    "viewport": [
+      390,
+      844
+    ],
+    "touch": true,
+    "date": "2026-10-06T14:28:46.207Z"
+  },
+  "checks": [
+    {
+      "name": "home → learn → import",
+      "actual": [
+        "import-dialog"
+      ]
+    },
+    {
+      "name": "import back restores learn",
+      "actual": [
+        "learn-dialog"
+      ]
+    },
+    {
+      "name": "learn back restores home",
+      "actual": []
+    },
+    {
+      "name": "pause → settings → back restores pause",
+      "actual": [
+        "pause-dialog"
+      ]
+    },
+    {
+      "name": "pause → help → back restores pause",
+      "actual": [
+        "pause-dialog"
+      ]
+    },
+    {
+      "name": "cancel textbook download returns learn and clears busy",
+      "dialog": [
+        "learn-dialog"
+      ],
+      "startDisabled": false,
+      "bookRequests": 1
+    },
+    {
+      "name": "reopen textbook after canceled download starts successfully",
+      "dialog": [],
+      "bookRequests": 2,
+      "theme": "外研版·孙有中 小学3年级上册（2022课标） · Welcome"
+    },
+    {
+      "name": "late failed share after returning home",
+      "dialog": [],
+      "playing": false
+    },
+    {
+      "name": "pause within final-word 280ms keeps pause screen",
+      "dialog": [
+        "pause-dialog"
+      ],
+      "times": [
+        {
+          "id": "tile-0",
+          "time": 151.80000000004657
+        },
+        {
+          "id": "tile-1",
+          "time": 201.80000000004657
+        },
+        {
+          "id": "tile-2",
+          "time": 251.89999999990687
+        },
+        {
+          "id": "pause-button",
+          "time": 302.5
+        }
+      ],
+      "completed": "2"
+    },
+    {
+      "name": "resume completed round opens result",
+      "actual": [
+        "win-dialog"
+      ]
+    },
+    {
+      "name": "native selected punctuation save restores in H5",
+      "selected": 1,
+      "nativeSelected": [
+        "tile-9"
+      ],
+      "h5Selected": [
+        "tile-9"
+      ],
+      "tilesEqual": true
+    },
+    {
+      "name": "H5 save restores in native",
+      "selected": [
+        "tile-9",
+        "tile-12"
+      ],
+      "h5Selected": [
+        "tile-9",
+        "tile-12"
+      ],
+      "tilesEqual": true
+    }
+  ],
+  "findings": [],
+  "errors": [],
+  "resolvedFindings": [
+    {
+      "issue": "迟到的 navigator.share 非 AbortError rejection 在返回首页后弹出分享页。",
+      "fix": "mobile-ui screenVersion 与 shareDaily 捕获版本使后续导航失效。",
+      "verification": "相同复现和 tests/navigation.browser.test.mjs 的迟到 resolve/reject 均通过。",
+      "beforeScreenshot": "review-late-share-home.png",
+      "afterScreenshot": "review-late-share-home-fixed.png"
+    }
+  ],
+  "regressionTest": {
+    "path": "tests/navigation.browser.test.mjs",
+    "command": "PLAYWRIGHT_EXECUTABLE=/usr/bin/chromium node tests/navigation.browser.test.mjs",
+    "result": "passed"
+  }
+}

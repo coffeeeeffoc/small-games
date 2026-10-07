@@ -1,0 +1,30 @@
+{
+  "environment": "Chromium mouse and CDP touch, public power-saving graphics; no DOM event dispatch",
+  "records": [
+    {
+      "touch": false,
+      "insideRelease": true,
+      "outsideRelease": true,
+      "reloadFeedback": true,
+      "continuousShots": true,
+      "captureLossCancels": true,
+      "cancelRecovery": true,
+      "rotation": true,
+      "pauseResume": true,
+      "nativeEvents": 54
+    },
+    {
+      "touch": true,
+      "insideRelease": true,
+      "outsideRelease": true,
+      "reloadFeedback": true,
+      "continuousShots": true,
+      "captureLossCancels": true,
+      "cancelRecovery": true,
+      "rotation": true,
+      "pauseResume": true,
+      "nativeEvents": 45
+    }
+  ],
+  "errors": []
+}

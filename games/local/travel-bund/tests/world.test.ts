@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { Frustum, InstancedMesh, Matrix4, Mesh, PerspectiveCamera, Quaternion, Raycaster, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { inTriangle, movement, onWater, readVisits, clearInput, input, placementBatches, destinations } from '../src/world.ts';
+import { inTriangle, movement, TRAVEL_SPEED, onWater, readVisits, clearInput, input, placementBatches, destinations } from '../src/world.ts';
 
-test('movement is frame-rate independent, diagonal-normalized and camera-relative', () => {
-  assert(Math.abs(Math.hypot(...movement(1, 1, 0, 2, 1)) - 2) < 1e-9);
-  const a = movement(0, -1, -Math.PI / 2, 2, 1);
-  assert(Math.abs(a[0] - 2) < 1e-9);
+test('default fast movement is frame-rate independent, diagonal-normalized and camera-relative', () => {
+  assert(Math.abs(Math.hypot(...movement(1, 1, 0, TRAVEL_SPEED, 1)) - TRAVEL_SPEED) < 1e-9);
+  const a = movement(0, -1, -Math.PI / 2, TRAVEL_SPEED, 1);
+  assert(Math.abs(a[0] - TRAVEL_SPEED) < 1e-9);
   assert(Math.abs(a[2]) < 1e-9);
   for (const fps of [15, 30, 60, 144])
-    assert(Math.abs(movement(0, -1, 0, 2, 1 / fps)[2] * fps + 2) < 1e-9);
+    assert(Math.abs(movement(0, -1, 0, TRAVEL_SPEED, 1 / fps)[2] * fps + TRAVEL_SPEED) < 1e-9);
 });
 test('shore exclusion handles both triangle winding directions and edges', () => {
   const tri = [

@@ -1,0 +1,93 @@
+{
+  "shot": {
+    "ammo": "blast",
+    "ruleX": 680,
+    "ruleY": 160,
+    "firedAt": 2.9999999999999973
+  },
+  "clock": "Artifact-only Playwright Clock; fixed Date freezes rule time while real GPU drains. Native CDP mouse, no state edits. Not a performance benchmark.",
+  "sameCamera": true,
+  "peak": {
+    "name": "approach-impact-peak",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 26,
+      "frameBattleTime": 3.4799999999999955,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 0.09999999999999995,
+        "core": true,
+        "halo": true,
+        "flyingStone": 18,
+        "smoke": 9
+      },
+      "lowPower": false,
+      "triangles": 99446,
+      "calls": 115,
+      "cachedWorldTriangles": 490106,
+      "cachedWorldCalls": 222,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 134
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "end": {
+    "name": "approach-impact-end",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 35,
+      "frameBattleTime": 4.779999999999991,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 1.3999999999999977,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "lowPower": false,
+      "triangles": 94424,
+      "calls": 77,
+      "cachedWorldTriangles": 485084,
+      "cachedWorldCalls": 183,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 159
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "errors": []
+}

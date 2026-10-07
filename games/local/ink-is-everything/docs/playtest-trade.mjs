@@ -60,10 +60,16 @@ try {
   assert.equal(after.equipment[itemId], (before.equipment[itemId] || 0) + 1);
   assert.equal(after.stats.spent.trade - before.stats.spent.trade, offer.price);
   assert.equal(after.stats.trades, before.stats.trades + 1);
+  await player.tap('#modal-close');
+  await player.tap('#pause');
+  await player.tap('[data-menu="equipment"]');
+  assert.equal(await page.locator('#modal').getAttribute('data-kind'), 'equipment');
   await page.screenshot({
     path: new URL('./screenshots/v3-mobile-trade.png', import.meta.url).pathname,
   });
   await player.release();
+  await player.touch?.close();
+  player.touch = null;
   await page.reload({ waitUntil: 'networkidle' });
   await player.init();
   assert.match(await page.locator('#start-game').textContent(), /继续/);

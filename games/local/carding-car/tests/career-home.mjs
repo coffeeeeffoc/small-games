@@ -24,7 +24,7 @@ try {
   await tapHome(page, '三圈竞速'); await waitForReady(page);
   await tapHome(page, '展开高级');
   for (let i = 0; i < 4; i++) await tapHome(page, '+');
-  await tapHome(page, '□');
+  await tapHome(page, '切换小伙伴外观');
   await tapHome(page, '进入赛道'); await waitForReady(page);
   let prepared = await state(page);
   assert.equal(prepared.phase, 'ready');
@@ -36,7 +36,7 @@ try {
   await tapDesign(page, 870, 472);
   await waitForReady(page); await tapHome(page, '选择比赛');
   for (let i = 0; i < 4; i++) await tapHome(page, '−');
-  await tapHome(page, '☑');
+  await tapHome(page, '切换小伙伴外观');
   await shot(page, 'setup');
 
   const held = new Promise(resolve => { release = resolve; });
@@ -125,10 +125,11 @@ try {
   const shopPage = await shopContext.newPage(); observe(shopPage);
   await shopPage.goto(url); await waitForReady(shopPage);
   await tapHome(shopPage, '商店 /');
-  for (const [category, forward] of [['赛车', 1], ['装饰', 1], ['宠物', 1], ['车手服', 0]]) {
+  for (const [category, forward] of [['赛车', 1], ['装饰', 1], ['宠物', 1], ['车手服', 3]]) {
     await tapHome(shopPage, category);
-    for (let i = 0; i < forward; i++) { await tapHome(shopPage, '›'); await waitForReady(shopPage); }
+    for (let i = 0; i < forward; i++) { await tapHome(shopPage, '下一个商品'); await waitForReady(shopPage); }
     await tapHome(shopPage, '购买'); await waitForReady(shopPage);
+    await tapHome(shopPage, '装备'); await waitForReady(shopPage);
   }
   await shot(shopPage, 'shop-portrait');
   await tapHome(shopPage, '零部件');

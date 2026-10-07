@@ -1,0 +1,10 @@
+{
+  "gameId": "wulong-city",
+  "version": "2.0.0",
+  "gameContractVersion": 1,
+  "contentSchemaVersion": 1,
+  "capabilities": ["content", "storage"],
+  "loadModes": ["native-package"],
+  "entry": "game.js",
+  "integrity": "builtin:wulong-city@2.0.0"
+}

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   collectChangedPaths,
@@ -10,10 +12,14 @@ import {
   main,
   parseChangedPaths,
   readSavedDevBaseline,
+  requiresIncrementalCocos,
   selectPagesScope,
 } from './pages-test-scope.mjs';
 import { gameTestCommand } from './run-pages-game-tests.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { incrementalPlan } from './incremental-validation.mjs';
+import { workspacePackages } from './validation-plan.mjs';
+import { nineNativeFileScopes } from './nine-native-scope.mjs';
 
 const catalog = {
   standaloneGames: [
@@ -104,6 +110,287 @@ function wiringFixture() {
   return { before, after };
 }
 
+function developmentWiringFixture() {
+  const { before, after } = wiringFixture();
+  const tuples =
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n" +
+    '      typescript:\n        specifier: 7.0.2\n        version: 7.0.2\n' +
+    '      vite:\n        specifier: 8.2.2\n        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)\n';
+  for (const files of [before, after]) {
+    files[LOCK] = files[LOCK].replace(
+      '  games/local/echo-lab: {}\n',
+      `  tools/game-build:\n    devDependencies:\n${tuples}\n  games/local/echo-lab: {}\n`,
+    ).replace(
+      '  react@19.2.8: {}\n',
+      "  '@playwright/test@1.55.1': {}\n  typescript@7.0.2: {}\n  vite@8.2.2: {}\n  react@19.2.8: {}\n",
+    );
+  }
+  after[LOCK] = after[LOCK].replace(
+    '  games/local/new-game: {}\n',
+    `  games/local/new-game:\n    devDependencies:\n${tuples}`,
+  );
+  after['games/local/new-game/package.json'] = JSON.stringify({
+    name: '@games/new-game',
+    devDependencies: { '@playwright/test': '1.55.1', typescript: '7.0.2', vite: '8.2.2' },
+  });
+  return { before, after, tuples };
+}
+
+function combinedWiringFixture() {
+  const { before, after, tuples } = developmentWiringFixture();
+  const native = 'apps/shell-minigame/package.json';
+  const game = 'games/local/new-game/package.json';
+  const existing = 'games/local/echo-lab/package.json';
+  const service = 'services/game-server/package.json';
+  const contract = '@coffeeeeffoc/game-contract';
+  const nativeManifest = {
+    name: '@games/native-shell',
+    scripts: { build: 'build-native' },
+    dependencies: { [contract]: 'workspace:*' },
+  };
+  const link = (name, target) =>
+    `      '${name}':\n        specifier: workspace:*\n        version: link:${target}\n`;
+  const contractLink = link(contract, '../../../packages/game-contract');
+  const nativeBefore =
+    '  apps/shell-minigame:\n    dependencies:\n' +
+    link(contract, '../../packages/game-contract') +
+    '\n';
+  const nativeAfter = nativeBefore.replace(
+    '    dependencies:\n',
+    '    dependencies:\n' +
+      link('@games/new-game', '../../games/local/new-game') +
+      link('@games/echo-lab', '../../games/local/echo-lab'),
+  );
+  for (const files of [before, after]) {
+    files[native] = JSON.stringify(nativeManifest);
+    files[existing] = JSON.stringify({
+      name: '@games/echo-lab',
+      devDependencies: { vite: '8.2.2' },
+    });
+    files['packages/game-contract/package.json'] = JSON.stringify({ name: contract });
+    files[LOCK] = files[LOCK].replace('  apps/shell-web:', nativeBefore + '  apps/shell-web:')
+      .replace(
+        '  games/local/echo-lab: {}\n',
+        '  games/local/echo-lab:\n    devDependencies:\n' +
+          tuples.slice(tuples.indexOf('      vite:')),
+      )
+      .replace('packages:\n', '  packages/game-contract: {}\n\npackages:\n');
+  }
+  after[native] = JSON.stringify({
+    ...nativeManifest,
+    dependencies: {
+      ...nativeManifest.dependencies,
+      '@games/new-game': 'workspace:*',
+      '@games/echo-lab': 'workspace:*',
+    },
+  });
+  after[existing] = JSON.stringify({
+    ...JSON.parse(after[existing]),
+    exports: { './canvas': './native/canvas.js' },
+    dependencies: { [contract]: 'workspace:*' },
+  });
+  after[game] = JSON.stringify({
+    ...JSON.parse(after[game]),
+    exports: { './canvas': './src/canvas.ts' },
+    dependencies: { [contract]: 'workspace:*', react: '19.2.8' },
+  });
+  after[service] = JSON.stringify({
+    name: '@games/game-server',
+    coffeeeeffoc: { role: 'service' },
+    dependencies: { '@games/new-game': 'workspace:*' },
+  });
+  const newGameDeps =
+    '    dependencies:\n' +
+    contractLink +
+    '      react:\n        specifier: 19.2.8\n        version: 19.2.8\n';
+  const serviceImporter =
+    '  services/game-server:\n    dependencies:\n' +
+    link('@games/new-game', '../../games/local/new-game') +
+    '\n';
+  after[LOCK] = after[LOCK].replace(nativeBefore, nativeAfter)
+    .replace(
+      '  games/local/echo-lab:\n',
+      '  games/local/echo-lab:\n    dependencies:\n' + contractLink,
+    )
+    .replace('  games/local/new-game:\n', '  games/local/new-game:\n' + newGameDeps)
+    .replace('packages:\n', serviceImporter + 'packages:\n');
+  const read = (files) => (file) => {
+    if (!Object.hasOwn(files, file)) throw new Error(`Missing ${file}`);
+    return files[file];
+  };
+  const classify = (candidate = after, base = before, changedPaths) =>
+    registrationFileScopes({
+      changedPaths:
+        changedPaths || Object.keys(candidate).filter((file) => base[file] !== candidate[file]),
+      readBase: read(base),
+      readHead: read(candidate),
+      gameSources: ['games/local/echo-lab', 'games/local/new-game'],
+    });
+  return {
+    before,
+    after,
+    native,
+    game,
+    existing,
+    service,
+    contractLink,
+    newGameDeps,
+    serviceImporter,
+    classify,
+  };
+}
+
+test('combined new-game runtime, native and source-service wiring proves one additive lock delta', () => {
+  const fixture = combinedWiringFixture();
+  for (const crlf of [false, true]) {
+    const before = { ...fixture.before },
+      after = { ...fixture.after };
+    if (crlf) {
+      before[LOCK] = before[LOCK].replaceAll('\n', '\r\n');
+      after[LOCK] = after[LOCK].replaceAll('\n', '\r\n');
+    }
+    const scopes = fixture.classify(after, before);
+    assert.deepEqual(scopes.get(SHELL), ['games/local/new-game']);
+    assert.deepEqual(scopes.get(LOCK), ['games/local/new-game', 'games/local/echo-lab']);
+  }
+  const missingService = fixture.classify(
+    fixture.after,
+    fixture.before,
+    Object.keys(fixture.after).filter((file) => file !== fixture.service),
+  );
+  assert.equal(missingService.has(LOCK), false);
+});
+
+test('combined wiring rejects external resolution, importer syntax and remaining-byte drift', () => {
+  const fixture = combinedWiringFixture();
+  const { before, after, newGameDeps, serviceImporter } = fixture;
+  const candidates = [
+    after[LOCK].replace(newGameDeps, newGameDeps.replace('version: 19.2.8', 'version: 19.2.9')),
+    after[LOCK].replace(
+      newGameDeps,
+      newGameDeps.replace('specifier: 19.2.8', 'specifier: ^19.2.8'),
+    ),
+    after[LOCK].replace(
+      newGameDeps,
+      newGameDeps.replace('version: 19.2.8', 'version: 19.2.8(extra@1.0.0)'),
+    ),
+    after[LOCK].replace(newGameDeps, newGameDeps + '    dependenciesMeta: {}\n'),
+    after[LOCK].replace(newGameDeps, newGameDeps + newGameDeps),
+    after[LOCK].replace(
+      '  games/local/new-game:',
+      '  games/local/new-game: {}\n\n  games/local/new-game:',
+    ),
+    after[LOCK].replace(
+      '  apps/shell-minigame:',
+      '  apps/shell-minigame: {}\n\n  apps/shell-minigame:',
+    ),
+    after[LOCK].replace(serviceImporter, serviceImporter + serviceImporter),
+    after[LOCK].replace(
+      serviceImporter,
+      serviceImporter.replace('../../games/local/new-game', '../../games/local/echo-lab'),
+    ),
+    after[LOCK].replace(
+      serviceImporter,
+      serviceImporter.replace('    dependencies:', '    devDependencies:'),
+    ),
+    after[LOCK].replace('link:../../../packages/game-contract', 'link:../../../packages/wrong'),
+    after[LOCK].replace('  react@19.2.8: {}', '  react@19.2.8: {resolution: changed}'),
+    after[LOCK].replace('snapshots:\n', 'snapshots:\n  unexpected: {}\n'),
+    after[LOCK].replace('  .: {}', '  .: {unexpected: true}'),
+    after[LOCK] + '\nsettings: {unexpected: true}\n',
+  ];
+  for (const lock of candidates) {
+    const scopes = fixture.classify({ ...after, [LOCK]: lock });
+    assert.equal(scopes.has(LOCK), false, lock);
+    assert.equal(scopes.has(SHELL), false);
+  }
+  const runtimeDeps = newGameDeps.replace('      react:', '      unknown-runtime:');
+  const unknown = {
+    ...after,
+    [LOCK]: after[LOCK].replace(newGameDeps, runtimeDeps),
+    [fixture.game]: JSON.stringify({
+      ...JSON.parse(after[fixture.game]),
+      dependencies: {
+        '@coffeeeeffoc/game-contract': 'workspace:*',
+        'unknown-runtime': '19.2.8',
+      },
+    }),
+  };
+  assert.equal(fixture.classify(unknown).has(LOCK), false);
+  // A tuple in snapshots is not a baseline resolution proof.
+  const runtimeTuple = '      react:\n        specifier: 19.2.8\n        version: 19.2.8\n';
+  const relocate = (text) =>
+    text.replace(runtimeTuple, '').replace('snapshots:\n', 'snapshots:\n' + runtimeTuple);
+  assert.equal(
+    fixture
+      .classify(
+        { ...after, [LOCK]: relocate(after[LOCK]) },
+        { ...before, [LOCK]: relocate(before[LOCK]) },
+      )
+      .has(LOCK),
+    false,
+  );
+});
+
+test('combined wiring rejects mismatched manifests, native changes and unrelated source services', () => {
+  const fixture = combinedWiringFixture();
+  const { before, after, native, game, existing, service } = fixture;
+  const mutate = (file, update) => ({
+    ...after,
+    [file]: JSON.stringify(update(JSON.parse(after[file]))),
+  });
+  const candidates = [
+    mutate(native, (value) => ({ ...value, scripts: { build: 'changed' } })),
+    mutate(native, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, '@games/new-game': '^1.0.0' },
+    })),
+    mutate(game, (value) => ({ ...value, exports: { './canvas': '../shared.js' } })),
+    mutate(game, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, react: '19.2.9' },
+    })),
+    mutate(game, (value) => ({ ...value, optionalDependencies: { react: '19.2.8' } })),
+    mutate(existing, (value) => ({ ...value, exports: { './canvas': './src/shared.ts' } })),
+    mutate(existing, (value) => ({
+      ...value,
+      dependencies: { ...value.dependencies, unexpected: 'workspace:*' },
+    })),
+    mutate(existing, (value) => ({ ...value, devDependencies: { vite: '8.2.3' } })),
+    mutate(existing, (value) => ({ ...value, name: '@games/renamed' })),
+    mutate(service, (value) => ({ ...value, coffeeeeffoc: { role: 'game' } })),
+    mutate(service, (value) => ({ ...value, dependencies: { '@games/echo-lab': 'workspace:*' } })),
+    mutate(service, (value) => ({ ...value, dependencies: { '@games/new-game': '^1.0.0' } })),
+    mutate(service, (value) => ({ ...value, devDependencies: { vite: '8.2.2' } })),
+    mutate('packages/game-contract/package.json', (value) => ({
+      ...value,
+      name: '@games/wrong-contract',
+    })),
+  ];
+  for (const candidate of candidates) {
+    assert.equal(fixture.classify(candidate).has(LOCK), false, JSON.stringify(candidate));
+    assert.equal(fixture.classify(candidate).has(SHELL), false);
+  }
+  for (const [name, specifier, version] of [
+    ['@games/echo-lab', 'workspace:*', 'link:../../games/local/echo-lab'],
+    ['react', '19.2.8', '19.2.8'],
+  ]) {
+    const candidate = mutate(service, (value) => ({
+      ...value,
+      dependencies: { [name]: specifier },
+    }));
+    candidate[LOCK] = after[LOCK].replace(
+      fixture.serviceImporter,
+      `  services/game-server:\n    dependencies:\n      ${name.startsWith('@') ? `'${name}'` : name}:\n        specifier: ${specifier}\n        version: ${version}\n\n`,
+    );
+    assert.equal(fixture.classify(candidate).has(LOCK), false);
+  }
+  assert.equal(fixture.classify(after, { ...before, [service]: after[service] }).has(LOCK), false);
+  const removedBase = { ...before };
+  delete removedBase[existing];
+  assert.equal(fixture.classify(after, removedBase).has(LOCK), false);
+});
+
 test('registration-only manifest and multi-document lock wiring select the new game', () => {
   const { before, after } = wiringFixture();
   assert.deepEqual(semanticScope(before, after), {
@@ -112,6 +399,110 @@ test('registration-only manifest and multi-document lock wiring select the new g
     game_ids: ['new-game'],
     game_sources: ['games/local/new-game'],
   });
+  assert.equal(
+    semanticScope(before, {
+      ...after,
+      'games/local/new-game/package.json': JSON.stringify({
+        name: '@games/new-game',
+        devDependencies: {},
+      }),
+    }).full,
+    false,
+  );
+});
+
+test('new game development tools reuse exact base importer tuples without expanding scope', () => {
+  const { before, after } = developmentWiringFixture();
+  for (const windowsNewlines of [false, true]) {
+    const oldFiles = { ...before },
+      newFiles = { ...after };
+    if (windowsNewlines) {
+      oldFiles[LOCK] = oldFiles[LOCK].replaceAll('\n', '\r\n');
+      newFiles[LOCK] = newFiles[LOCK].replaceAll('\n', '\r\n');
+    }
+    assert.deepEqual(semanticScope(oldFiles, newFiles), {
+      required: true,
+      full: false,
+      game_ids: ['new-game'],
+      game_sources: ['games/local/new-game'],
+    });
+  }
+});
+
+test('development wiring rejects undeclared fields, duplicate entries and unproven tool resolutions', () => {
+  const { before, after, tuples } = developmentWiringFixture();
+  const prefix = '  games/local/new-game:\n    devDependencies:\n';
+  const replaceNew = (next) => after[LOCK].replace(prefix + tuples, prefix + next);
+  const playwright =
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n";
+  for (const next of [
+    replaceNew(tuples.replace('specifier: 1.55.1', 'specifier: 1.55.2')),
+    replaceNew(tuples.replace('version: 1.55.1', 'version: 1.55.2')),
+    replaceNew(tuples.replace('@types/node@24.10.4', '@types/node@24.3.1')),
+    replaceNew(tuples.replace('      typescript:\n', "      typescript: {specifier: '7.0.2'}\n")),
+    replaceNew(tuples + playwright),
+    replaceNew(tuples + '    dependenciesMeta: {}\n'),
+    replaceNew(tuples + '    optionalDependencies: {}\n'),
+    after[LOCK].replace('  vite@8.2.2: {}', '  vite@8.2.2: {resolution: changed}'),
+    after[LOCK] + '\n  games/local/unregistered: {}\n',
+  ])
+    assert.equal(semanticScope(before, { ...after, [LOCK]: next }).full, true);
+  const pkg = JSON.parse(after['games/local/new-game/package.json']);
+  for (const update of [
+    { devDependencies: { ...pkg.devDependencies, vite: '8.2.3' } },
+    { devDependencies: { typescript: '7.0.2', vite: '8.2.2' } },
+    { devDependencies: { ...pkg.devDependencies, unknown: '1.0.0' } },
+    { devDependencies: [] },
+    { dependencies: { react: '19.2.8' } },
+    { optionalDependencies: { react: '19.2.8' } },
+    { peerDependencies: { react: '19.2.8' } },
+  ])
+    assert.equal(
+      semanticScope(before, {
+        ...after,
+        'games/local/new-game/package.json': JSON.stringify({ ...pkg, ...update }),
+      }).full,
+      true,
+    );
+  const externalTool =
+    "      'new-external-tool':\n        specifier: 1.0.0\n        version: 1.0.0\n";
+  assert.equal(
+    semanticScope(before, {
+      ...after,
+      [LOCK]: replaceNew(tuples.replace(playwright, externalTool)),
+      'games/local/new-game/package.json': JSON.stringify({
+        ...pkg,
+        devDependencies: { 'new-external-tool': '1.0.0', typescript: '7.0.2', vite: '8.2.2' },
+      }),
+    }).full,
+    true,
+  );
+});
+
+test('tool tuples outside real baseline dependency sections cannot prove reuse', () => {
+  const { before, after, tuples } = developmentWiringFixture();
+  for (const section of ['packages:', 'snapshots:']) {
+    const move = (text) =>
+      text
+        .replace('  tools/game-build:\n    devDependencies:\n' + tuples + '\n', '')
+        .replace(section + '\n', section + '\n' + tuples);
+    assert.equal(
+      semanticScope(
+        { ...before, [LOCK]: move(before[LOCK]) },
+        { ...after, [LOCK]: move(after[LOCK]) },
+      ).full,
+      true,
+    );
+  }
+  const renamed = (text) =>
+    text.replace('    devDependencies:\n' + tuples, '    resolutions:\n' + tuples);
+  assert.equal(
+    semanticScope(
+      { ...before, [LOCK]: renamed(before[LOCK]) },
+      { ...after, [LOCK]: renamed(after[LOCK]) },
+    ).full,
+    true,
+  );
 });
 
 test('one registration presentation or output change selects only its game', () => {
@@ -833,4 +1224,242 @@ test('affected logical test command uses exact filters and safely rejects invali
   ]) {
     assert.throws(() => gameTestCommand({ PAGES_GAME_SOURCES: value }), value);
   }
+});
+
+test('actual e48 to c68 CI changes select two H5 navigation games without native or Creator builds', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
+  const head = 'c68deaeaea48c138f9a4613dbb719b2031ec1207';
+  const result = await main(
+    { VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: head },
+    root,
+  );
+  const catalog = await loadGameCatalog(root);
+  const local = incrementalPlan({
+    packages: await workspacePackages(root),
+    games: catalog.standaloneGames,
+    changedPaths: collectChangedPaths({ root, base, head }),
+    readSource: (file) =>
+      execFileSync('git', ['show', `${head}:${file}`], { cwd: root, encoding: 'utf8' }),
+  });
+  assert.equal(result.diff_base, base);
+  assert.equal(result.diff_head, head);
+  assert.equal(result.full, false);
+  assert.equal(result.cocos, false);
+  assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.deepEqual(result.browser_ids, local.browser_ids);
+  assert.deepEqual(result.nine_native_targets, []);
+  assert.deepEqual(result.nine_native_targets, local.nine_native_targets);
+});
+
+test('actual dcf to e48 preserves thirty-five native targets and only two H5 navigation samples', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = 'dcf778794c36562634a969b8b8975889c4001d0c';
+  const head = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
+  const result = await main(
+    { VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: head },
+    root,
+  );
+  assert.equal(result.diff_base, base);
+  assert.equal(result.diff_head, head);
+  assert.equal(result.full, false);
+  assert.equal(result.cocos, false);
+  assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.equal(result.nine_native_targets.length, 35);
+  assert.equal(new Set(result.nine_native_targets.map(({ game }) => game)).size, 7);
+  assert.equal(new Set(result.nine_native_targets.map(({ platform }) => platform)).size, 5);
+  assert(result.nine_native_travel_contract);
+  assert(
+    !result.nine_native_targets.some(({ game }) =>
+      ['carding-car', 'night-overwatch'].includes(game),
+    ),
+  );
+});
+
+test('a valid risk comparison rejects unknown inputs and missing registration proof instead of broadening', async (t) => {
+  for (const changed of ['unexpected/root-config.json', 'pnpm-lock.yaml']) {
+    const fixture = await temporaryRepository(t);
+    const { root, git } = fixture;
+    await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+    await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+    await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+    await writeFile(
+      path.join(root, 'games/local/echo-lab/package.json'),
+      JSON.stringify({ name: '@games/echo-lab' }),
+    );
+    git('add', '.');
+    git('commit', '-m', 'baseline');
+    const base = git('rev-parse', 'HEAD');
+    await mkdir(path.dirname(path.join(root, changed)), { recursive: true });
+    await writeFile(
+      path.join(root, changed),
+      changed.endsWith('.yaml') ? "lockfileVersion: '9.0'\nimporters: {}\n" : '{}',
+    );
+    git('add', '.');
+    git('commit', '-m', 'unknown or unproved change');
+    await assert.rejects(
+      main({ VALIDATION_RISK_PLAN: 'true', PAGES_DIFF_BASE: base }, root),
+      /scope undefined|scope.*undefined|Missing|does not exist|full regression/,
+    );
+  }
+});
+
+test('risk plans without a usable baseline keep full coverage including Creator', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify([registration('echo-lab')]));
+  await writeFile(
+    path.join(root, 'games/local/echo-lab/package.json'),
+    JSON.stringify({ name: '@games/echo-lab' }),
+  );
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  for (const options of [
+    { PAGES_DIFF_BASE: '' },
+    { GITHUB_EVENT_NAME: 'schedule' },
+    { GITHUB_EVENT_NAME: 'workflow_dispatch' },
+  ]) {
+    const result = await main({ VALIDATION_RISK_PLAN: 'true', ...options }, root);
+    assert.equal(result.full, true);
+    assert.equal(result.cocos, true);
+    assert.deepEqual(result.browser_ids, ['echo-lab']);
+    assert.equal(result.diff_base, '');
+  }
+});
+
+test('shared competition files keep actual Creator H5 consumers and native Creator requirements', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const { standaloneGames: games } = await loadGameCatalog(root);
+  const packages = await workspacePackages(root);
+  const read = (file) => readFileSync(path.join(root, file), 'utf8');
+  for (const [file, expectedCreator] of [
+    ['platforms/competition/client.js', true],
+    ['platforms/competition/format.js', false],
+  ]) {
+    const context = { packages, games, changedPaths: [file], readBase: read, readHead: read };
+    const scope = incrementalPlan({
+      ...context,
+      fileScopes: nineNativeFileScopes(context),
+      readSource: read,
+    });
+    assert.equal(scope.game_sources.includes('games/local/carding-car'), expectedCreator);
+    assert.equal(
+      requiresIncrementalCocos({ packages, games, changedPaths: [file], scope }),
+      expectedCreator,
+    );
+  }
+  const native = incrementalPlan({
+    packages,
+    games,
+    changedPaths: ['games/local/carding-car/native/input.ts'],
+    readSource: read,
+  });
+  assert.deepEqual(native.browser_ids, []);
+  assert.deepEqual(native.game_sources, []);
+  assert.equal(native.nine_native_targets.length, 6);
+  assert(native.nine_native_targets.some((target) => target.platform === 'taptap'));
+  const withoutTap = incrementalPlan({
+    packages: packages.filter((pkg) => pkg.dir !== 'platforms/taptap'),
+    games,
+    changedPaths: ['games/local/carding-car/native/input.ts'],
+    readSource: read,
+  });
+  assert.equal(withoutTap.nine_native_targets.length, 5);
+  assert(!withoutTap.nine_native_targets.some((target) => target.platform === 'taptap'));
+  assert(native.nine_native_targets.every((target) => target.requiresCreator === '3.8.8'));
+  assert.equal(
+    requiresIncrementalCocos({ packages, games, changedPaths: [], scope: native }),
+    true,
+  );
+  const blockedOnly = { ...native, nine_native_targets: [] };
+  assert.equal(
+    requiresIncrementalCocos({ packages, games, changedPaths: [], scope: blockedOnly }),
+    true,
+  );
+});
+
+test('planning checks out only the locked Xiangqi workspace and retains complete comparison history', async () => {
+  for (const [file, job] of [
+    ['.github/workflows/ci.yml', 'plan'],
+    ['.github/workflows/pages.yml', 'changes'],
+  ]) {
+    const source = await readFile(new URL('../' + file, import.meta.url), 'utf8');
+    const block = source.match(
+      new RegExp(`^  ${job}:\\n([\\s\\S]*?)(?=^  [A-Za-z0-9_-]+:|$(?![\\s\\S]))`, 'm'),
+    )?.[1];
+    assert(block, `Missing actual ${job} job`);
+    const checkout = block.match(
+      /- uses: actions\/checkout@v5\n        with:\n((?:          [^\n]+\n)+)/,
+    )?.[1];
+    assert(checkout, `Missing actual ${job} checkout inputs`);
+    assert.match(checkout, /^          fetch-depth: 0$/m);
+    assert.doesNotMatch(checkout, /submodules:/);
+    assert.doesNotMatch(block, /submodules:\s*recursive|--recursive|--remote/);
+    const commands = [...block.matchAll(/^          (git[^\n]+)$/gm)].map((match) => match[1]);
+    assert.deepEqual(commands, [
+      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five',
+    ]);
+    assert.equal(block.split('Read locked Xiangqi workspace for planning').length, 2);
+    assert.match(
+      block,
+      /- name: Read locked Xiangqi workspace for planning\n        run: \|\n          git[^\n]+\n      - uses: actions\/setup-node@v6/,
+    );
+    assert(
+      block.indexOf('Read locked Xiangqi workspace for planning') <
+        block.indexOf('actions/setup-node@v6'),
+    );
+  }
+});
+
+test('actual dcf to 9180 canvas proof rejects a missing Xiangqi workspace identity', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const { standaloneGames: games } = await loadGameCatalog(root);
+  const packages = await workspacePackages(root);
+  const context = {
+    changedPaths: ['scripts/nine-canvas-games-smoke.mjs'],
+    games,
+    packages,
+    readBase: (file) =>
+      execFileSync('git', ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+    readHead: (file) =>
+      execFileSync('git', ['show', `9180c805c77c15634f47f0aeee1092a5b1043a73:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+  };
+  assert(packages.some((pkg) => pkg.dir === 'games/submodules/xiangqi-five'));
+  assert(nineNativeFileScopes(context).has(context.changedPaths[0]));
+  const missing = {
+    ...context,
+    packages: packages.filter((pkg) => pkg.dir !== 'games/submodules/xiangqi-five'),
+  };
+  const failedProof = nineNativeFileScopes(missing);
+  assert.equal(failedProof.has(context.changedPaths[0]), false);
+  assert.throws(
+    () => incrementalPlan({ ...missing, fileScopes: failedProof }),
+    /scope undefined.*nine-canvas-games-smoke/,
+  );
+});
+
+test('TapTap platform files have no Pages consumer while an unknown platform remains full', () => {
+  const context = {
+    eventName: 'push',
+    changedPaths: ['platforms/taptap/build.mjs'],
+    standaloneGames: [{ id: 'sample', source: 'games/local/sample' }],
+    gameSources: ['games/local/sample'],
+  };
+  assert.deepEqual(selectPagesScope(context), {
+    required: false,
+    full: false,
+    game_ids: [],
+    game_sources: [],
+  });
+  assert.equal(
+    selectPagesScope({ ...context, changedPaths: ['platforms/unreviewed/build.mjs'] }).full,
+    true,
+  );
 });

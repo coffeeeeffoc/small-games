@@ -1,0 +1,21 @@
+{
+  "name": "@coffeeeeffoc/ember-bounce",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "熔光弹珠：瞄准发射，连锁反弹击碎熔晶",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "node build.mjs",
+    "preview": "node server.mjs --dist",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

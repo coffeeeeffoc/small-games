@@ -23,3 +23,6 @@ games/local/game-office/art/projection.json
 games/local/game-office/art/render-progress.json
 # Archived browser evidence retains its original bytes and recorded hashes.
 /reports/polish-review/
+# Canonical shared H5 fullscreen copy; checked by sync-h5-fullscreen.
+games/local/game-castle-cannon/public/fullscreen.js
+games/local/game-moss-garden/public/fullscreen.js

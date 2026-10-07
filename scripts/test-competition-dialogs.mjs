@@ -34,6 +34,9 @@ const characterImage = await readFile(
 const cityImage = await readFile(
   new URL('../games/local/cops-robbers-realtime/src/assets/home-city.png', import.meta.url),
 );
+const lettersIsland = await readFile(
+  new URL('../games/local/letters-words2/assets/ui/island.svg', import.meta.url),
+);
 const fixture = `
 import { mountCompetition } from '/h5.js';
 globalThis.__installCompetition = () => {};
@@ -61,6 +64,11 @@ globalThis.__competition = { request: async (url, options) => {
 mountCompetition(new URL(location.href).searchParams.get('game'), () => ({ draw() {}, tap() {} }));
 `;
 const server = createServer((request, response) => {
+  if (request.url === '/assets/ui/island.svg') {
+    response.setHeader('Content-Type', 'image/svg+xml');
+    response.end(lettersIsland);
+    return;
+  }
   if (request.url === '/src/assets/characters.png' || request.url === '/src/assets/home-city.png') {
     response.setHeader('Content-Type', 'image/png');
     response.end(request.url.endsWith('/characters.png') ? characterImage : cityImage);
@@ -72,6 +80,8 @@ const server = createServer((request, response) => {
   );
   const xiangqiPage =
     new URL(request.url, 'http://localhost').searchParams.get('game') === 'xiangqi-five';
+  const lettersPage =
+    new URL(request.url, 'http://localhost').searchParams.get('game') === 'letters-words2';
   response.end(
     request.url === '/h5.js'
       ? source
@@ -83,7 +93,7 @@ const server = createServer((request, response) => {
             ? format
             : request.url === '/fixture.js'
               ? fixture
-              : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
+              : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -215,6 +225,7 @@ try {
       const details = dialog.locator('[data-details]');
       const exit = dialog.locator('[data-close]');
       const xiangqi = game === 'xiangqi-five';
+      const letters = game === 'letters-words2';
       if (xiangqi) {
         assert.deepEqual(
           await page.evaluate(() => fixture.calls),
@@ -227,11 +238,21 @@ try {
           'static',
         );
       }
+      if (letters) {
+        await expect(page.locator('#friend-button[data-competition-launch]')).toHaveCount(1);
+        assert.notEqual(
+          await launch.evaluate((element) => getComputedStyle(element).position),
+          'fixed',
+          'letters friend play stays in its home entry',
+        );
+      }
       await press(launch);
       await expect(dialog).toBeVisible();
       await expect(dialog.locator('[data-game-fullscreen]')).toHaveCount(0);
       await expect(dialog.getByRole('button', { name: '×', exact: true })).toHaveCount(0);
-      await expect(dialog.locator('.pk-header [data-close]')).toHaveCount(xiangqi ? 1 : 0);
+      await expect(dialog.locator('.pk-header [data-close]')).toHaveCount(
+        xiangqi || letters ? 1 : 0,
+      );
       if (xiangqi) {
         await expect(page.locator('dialog')).toHaveCount(0);
         await expect(page.locator('body')).toHaveClass(/competition-active/);
@@ -244,11 +265,11 @@ try {
         await press(dialog.locator(selector));
         await expect(details).toBeVisible();
         await expect(details.locator('.pk-sheet-head button')).toHaveCount(0);
-        if (xiangqi) {
+        if (xiangqi || letters) {
           await expect(dialog.locator('.pk-shell')).toBeHidden();
           assert.equal(
             await details.evaluate((element) => getComputedStyle(element).position),
-            'static',
+            xiangqi ? 'static' : 'absolute',
             'details are a page',
           );
         } else await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', true);
@@ -266,7 +287,7 @@ try {
         );
         await press(back);
         await expect(details).toBeHidden();
-        if (xiangqi) await expect(dialog.locator('.pk-shell')).toBeVisible();
+        if (xiangqi || letters) await expect(dialog.locator('.pk-shell')).toBeVisible();
         else await expect(dialog.locator('.pk-exit')).toHaveJSProperty('inert', false);
       }
       await press(dialog.locator('[data-profile]'));

@@ -58,7 +58,9 @@ export function createHUD({ engine, icon, getState, getDefinition, isPaused, inp
         setText(
           '#interact-label',
           nearby.label ||
-            { merchant: '契约装备', spring: '恢复墨汁', chest: '开启墨匣' }[nearby.kind] ||
+            { merchant: '契约装备', spring: '恢复墨汁', chest: '开启墨匣', gear: '拾取装备' }[
+              nearby.kind
+            ] ||
             '交互',
         );
       setText(
@@ -73,7 +75,7 @@ export function createHUD({ engine, icon, getState, getDefinition, isPaused, inp
       setText('#nova b', definition.skills.nova.name);
       setText('#melee b', definition.skills.melee.name);
       setText('#dash b', definition.skills.dash.name);
-      setText('#nova small', `${amount(stats.novaCost)} 墨 · Q`);
+      setText('#nova small', `${amount(stats.novaCost)} 墨`);
       $('#nova').setAttribute(
         'aria-label',
         `${definition.skills.nova.name}，消耗 ${amount(stats.novaCost)} 点生命墨汁，周围落下可回收墨滴`,
@@ -86,14 +88,25 @@ export function createHUD({ engine, icon, getState, getDefinition, isPaused, inp
         $(`#${id} .cooldown-mask`).style.transform =
           `translateY(${100 - Math.min(1, cooldown / Math.max(0.01, total)) * 100}%)`;
       const canShoot = p.ink >= stats.attackCost + stats.minInkAfterSpend;
-      setText('#fire b', canShoot ? definition.skills.shot.name : definition.skills.melee.name);
-      setText('#fire small', canShoot ? `按住 · ${amount(stats.attackCost)} 墨` : '近身 · 吸取');
+      setText('#fire b', definition.skills.shot.name);
+      setText('#fire small', canShoot ? `远程 · ${amount(stats.attackCost)} 墨` : '墨不足');
+      setText('#melee small', '近战 · 吸墨');
+      $('#fire').classList.toggle('ink-empty', !canShoot);
       $('#fire').setAttribute(
         'aria-label',
         canShoot
           ? `按住发射墨弹，每发消耗 ${amount(stats.attackCost)} 点生命墨汁`
-          : '生命墨汁不足，按住使用免费汲墨近战',
+          : '墨弹远程攻击，墨汁不足；靠近敌人按干笔免费吸墨',
       );
+      const pendingCount = state.pendingRewards.length;
+      $('#reward').hidden = !pendingCount || paused || state.status !== 'playing';
+      setText('#reward-count', pendingCount);
+      $('#reward').setAttribute('aria-label', `${pendingCount} 次装备选择，可稍后打开`);
+      const bridge = engine.getRoom(state).bridges.find((item) => !item.drawn);
+      $('#draw-tool').hidden =
+        !bridge ||
+        paused ||
+        (Math.hypot(p.x - bridge.from.x, p.y - bridge.from.y) > 150 && !input.drawMode);
       const equipment = engine.getEquipmentSummary(state);
       setText(
         '#equipment-count',

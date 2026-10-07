@@ -1,0 +1,15 @@
+{
+  "environment": "Chromium desktop with mobile viewport + CDP touch simulation; not physical device QA",
+  "checks": [
+    "Touch home/help/start, three rotation buttons, movement and hard drop",
+    "CDP touch camera drag, camera presets and pointer-cancel cleanup",
+    "Six gravity directions remain playable and retain active tetracube",
+    "Pause stops simulation; return/reload/help/continue preserves saved game",
+    "320×640, 390×844, 844×390 and 1440×1000 responsive layouts; resize preserves game",
+    "Real gravity control resolves fixture into two sequential clears and Combo ×2",
+    "Danger → gravity rescue → playing and danger → result → retry",
+    "Storage unavailable: start and play continue normally"
+  ],
+  "errors": [],
+  "passed": true
+}

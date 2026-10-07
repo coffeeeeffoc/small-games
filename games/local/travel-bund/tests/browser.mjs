@@ -26,12 +26,14 @@ const browser = await chromium.launch({
 });
 const errors = [],
   results = [];
+const log = (stage) => console.log(`BROWSER_STAGE ${stage}`);
 let currentPage;
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     acceptDownloads: true,
   });
+  context.setDefaultTimeout(30000);
   const page = await context.newPage();
   currentPage = page;
   const tiles = new Set();
@@ -45,11 +47,15 @@ try {
   const worldResponse = page.waitForResponse((response) => response.url().endsWith('/world/world.json'));
   await page.goto(`${url}?debug=1`);
   await expect(page).toHaveTitle('江风入境 · 外滩漫游');
-  assert.equal(tiles.size, 0, 'The home illustration must not load city tiles');
+  await expect(page.locator('main')).toHaveAttribute('data-ready','true',{timeout:120000});
+  assert.equal(await page.locator('canvas').count(),1,'Home previews the same city');
   await page.screenshot({ path: fileURLToPath(new URL('desktop-intro.png', output)) });
+  log('desktop enter');
   await page.locator('#enter-world').click();
-  const totalTiles = (await (await worldResponse).json()).tiles.length;
+  const worldData = await (await worldResponse).json();
+  const totalTiles = worldData.tiles.length;
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
+  log('desktop ready');
   assert(tiles.size < 40, 'Entry must not wait for the entire city');
   results.push({ startupTileRequests: tiles.size });
   await page.waitForTimeout(1000);
@@ -57,15 +63,15 @@ try {
     Math.abs(Number(await page.locator('main').getAttribute('data-yaw')) + 2.9) < 0.01,
     'Initial spawn must set the first-person camera after physics initializes',
   );
+  log('desktop jump');
   const standingY = Number(await page.locator('main').getAttribute('data-y'));
   await page.keyboard.press('Space');
-  await page.waitForTimeout(400);
-  assert(
-    Number(await page.locator('main').getAttribute('data-y')) > standingY + 0.7,
-    'Space must jump',
-  );
+  await expect.poll(async () => Number(await page.locator('main').getAttribute('data-y')), {
+    timeout: 5000, message: 'Space must jump in the actual scene',
+  }).toBeGreaterThan(standingY + .7);
   await page.waitForTimeout(900);
   await expect(page.locator('main')).toHaveAttribute('data-grounded', 'true');
+  log('desktop move');
   const before = await page.locator('main').getAttribute('data-z');
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(1800);
@@ -78,6 +84,7 @@ try {
     Math.hypot(Number(position.x) + 377, Number(position.z) - 37) > 1,
     'WASD must move the player',
   );
+  log('desktop railing');
   const facingRiver=Number(await page.locator('main').getAttribute('data-yaw'));
   await page.evaluate(dx=>document.dispatchEvent(new MouseEvent('mousemove',{movementX:dx})),(facingRiver+1.5)/.002);
   await page.waitForTimeout(150);
@@ -91,15 +98,39 @@ try {
     Math.abs(Number(await page.locator('main').getAttribute('data-x')) - railing) < 0.2,
     'Railing must block movement',
   );
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(5600);
-  await page.keyboard.up('KeyD');
-  await page.waitForTimeout(350);
+  log('desktop bench');
+  const nearRail = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
+  const bench = worldData.benches.reduce((a, b) =>
+    Math.hypot(a.position[0] - Number(nearRail.x), a.position[2] - Number(nearRail.z)) <
+    Math.hypot(b.position[0] - Number(nearRail.x), b.position[2] - Number(nearRail.z)) ? a : b);
+  const benchYaw = Math.atan2(Number(nearRail.x) - bench.position[0], Number(nearRail.z) - bench.position[2]);
+  await page.evaluate((dx) => document.dispatchEvent(new MouseEvent('mousemove', { movementX: dx })),
+    (Number(nearRail.yaw) - benchYaw) / .002);
+  await expect.poll(async () => Math.abs(Number(await page.locator('main').getAttribute('data-yaw')) - benchYaw)).toBeLessThan(.01);
+  await page.keyboard.down('KeyW');
+  try {
+    await expect(page.getByRole('button', { name: /在长椅上坐一会儿/ })).toBeVisible({ timeout: 15000 });
+  } finally {
+    await page.keyboard.up('KeyW');
+  }
   await page.keyboard.press('KeyE');
   await expect(page.locator('main')).toHaveAttribute('data-sitting', 'true');
   await page.keyboard.press('KeyE');
   await expect(page.locator('main')).toHaveAttribute('data-sitting', 'false');
+  log('desktop Esc and resume');
   await page.keyboard.press('Escape');
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+  await expect.poll(() => page.evaluate(() => Boolean(document.pointerLockElement))).toBe(false);
+  await page.locator('canvas').click({ position: { x: 600, y: 350 } });
+  await expect.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('CANVAS');
+  await page.keyboard.press('Escape');
+  const desktopZoom = Number(await page.locator('main').getAttribute('data-zoom'));
+  await page.mouse.move(600, 350);
+  await page.mouse.wheel(0, -180);
+  await expect.poll(async () => Number(await page.locator('main').getAttribute('data-zoom'))).toBeGreaterThan(desktopZoom + .1);
+  await page.mouse.wheel(0, 180);
+  await expect.poll(async () => Math.abs(Number(await page.locator('main').getAttribute('data-zoom')) - desktopZoom)).toBeLessThan(.01);
+  await page.getByRole('button', { name: '暂停', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: '两岸地图 ↗' }).click();
   await page.getByRole('button', { name: /02 和平饭店/ }).click();
@@ -109,20 +140,20 @@ try {
   await page.getByRole('button', { name: '收入旅行手记' }).click();
   await expect(page.getByRole('button', { name: '已收入旅行手记 ✓' })).toBeDisabled();
   await page.getByRole('button', { name: '返回漫游' }).click();
-  await page.keyboard.press('KeyP');
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: '旅行手记 ↗' }).click();
+  await page.getByRole('button', { name: '拍照', exact: true }).click();
+  await page.getByRole('button', { name: '打开旅行手记' }).click();
   await expect(page.locator('figure img')).toBeVisible();
   const downloaded = page.waitForEvent('download');
   await page.getByRole('link', { name: '保存这张照片' }).click();
   assert((await downloaded).suggestedFilename().endsWith('.png'));
   await page.getByRole('button', { name: '返回漫游' }).click();
   await page.waitForTimeout(400);
-  await page.keyboard.press('Escape');
-  await page.getByRole('dialog').getByText('暖阳', { exact: true }).click();
+  await page.getByRole('button', { name: '暂停', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '夜色', exact: true }).click();
   await page.getByRole('button', { name: '继续漫游' }).click();
   await page.waitForTimeout(1500);
   await page.screenshot({ path: fileURLToPath(new URL('desktop-night.png', output)) });
+  log('desktop destinations');
   for (const [index, name] of [
     [0, '01 外滩'],
     [2, '03 外白渡桥'],
@@ -144,11 +175,15 @@ try {
       await page.screenshot({ path: fileURLToPath(new URL('river-night.png', output)) });
     }
     if (index === 2) {
-      await page.keyboard.down('ShiftLeft');
       await page.keyboard.down('KeyW');
-      await page.waitForTimeout(10500);
-      await page.keyboard.up('KeyW');
-      await page.keyboard.up('ShiftLeft');
+      try {
+        await expect.poll(async () => {
+          const position = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
+          return Number(position.z) < Number(at.z) - 25 && Number(position.y) > 3.5;
+        }, { timeout: 15000, message: 'Default fast travel must climb onto the actual bridge deck' }).toBe(true);
+      } finally {
+        await page.keyboard.up('KeyW');
+      }
       const bridge = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
       assert(Number(bridge.z) < Number(at.z) - 25, 'Bridge approach must be walkable');
       assert(Number(bridge.y) > 3.5, 'Player must climb onto bridge deck');
@@ -159,15 +194,15 @@ try {
   await page.keyboard.press('KeyM');
   await page.getByRole('button', { name: /01 外滩/ }).click();
   await page.waitForTimeout(700);
-  await page.keyboard.down('KeyR');
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(500);
-  assert(
-    Number(await page.locator('main').getAttribute('data-speed')) > 8,
-    'R must move faster than Shift',
-  );
-  await page.keyboard.up('KeyD');
-  await page.keyboard.up('KeyR');
+  await page.keyboard.down('KeyW');
+  try {
+    await expect.poll(async () => Number(await page.locator('main').getAttribute('data-speed')), {
+      timeout: 5000, message: 'Movement starts at the default 18 m/s without a speed toggle',
+    }).toBeGreaterThan(17.5);
+  } finally {
+    await page.keyboard.up('KeyW');
+  }
+  assert.equal(await page.locator('.run').count(), 0, 'No speed mode switch remains');
   assert(tiles.size < totalTiles, 'Unseen city and sidewalk tiles should remain unloaded');
   results.push({ visitedTileRequests: tiles.size, totalTiles });
   await page.reload();
@@ -192,7 +227,9 @@ try {
   );
   await context.close();
   // Controlled road placement makes the moving car meet the player's path deterministically.
+  log('moving car collision');
   const trafficContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  trafficContext.setDefaultTimeout(30000);
   const traffic = await trafficContext.newPage();
   currentPage = traffic;
   traffic.on('pageerror', (e) => errors.push(e.message));
@@ -213,17 +250,15 @@ try {
     (facing - Math.PI / 2) / 0.002,
   );
   await traffic.waitForTimeout(50);
-  await traffic.keyboard.down('KeyR');
   await traffic.keyboard.down('KeyW');
   await traffic.waitForTimeout(2500);
   const stoppedX = Number(await traffic.locator('main').getAttribute('data-x'));
   await traffic.waitForTimeout(1500);
   await traffic.keyboard.up('KeyW');
-  await traffic.keyboard.up('KeyR');
   const heldX = Number(await traffic.locator('main').getAttribute('data-x'));
   assert(
     Math.abs(stoppedX - heldX) < 0.15 && heldX > -408 && heldX < -383,
-    'Visible moving car must stop a sprinting player',
+    'Visible moving car must stop a player traveling at the default fast speed',
   );
   await traffic.screenshot({ path: fileURLToPath(new URL('car-collision-fixture.png', output)) });
   results.push({ carCollision: { stoppedX, heldX } });
@@ -233,12 +268,14 @@ try {
       { width: 390, height: 844 },
       { width: 844, height: 390 },
     ]) {
+      log(`mobile ${viewport.width}x${viewport.height}`);
       const mobile = await browser.newContext({
         viewport,
         isMobile: true,
         hasTouch: true,
         deviceScaleFactor: 1,
       });
+      mobile.setDefaultTimeout(30000);
       const p = await mobile.newPage();
       currentPage = p;
       p.on('pageerror', (e) => errors.push(e.message));
@@ -249,7 +286,7 @@ try {
       await p.waitForTimeout(1500);
       await expect(p.locator('main')).toHaveAttribute('data-grounded','true');
       const groundY = Number(await p.locator('main').getAttribute('data-y'));
-      await p.getByRole('button', { name: /跳上 \/ 跳下/ }).tap();
+      await p.getByRole('button', { name: '跳跃', exact: true }).tap();
       await expect.poll(async()=>Number(await p.locator('main').getAttribute('data-y')),{timeout:2500,message:'Touch jump in the clear spawn area lifts the player'}).toBeGreaterThan(groundY+.6);
       await expect(p.locator('main')).toHaveAttribute('data-grounded','true');
       const pos = await p.locator('main').getAttribute('data-x');
@@ -274,7 +311,7 @@ try {
           { x: viewport.width * 0.6 + 60, y: viewport.height * 0.4, id: 2 },
         ],
       });
-      // Extra fingers must not replace either owner or release the original controls.
+      // An extra joystick finger must not replace the original movement owner.
       const walking = { x: box.x + 55, y: box.y + 15, id: 1 };
       const looking = { x: viewport.width * 0.6 + 60, y: viewport.height * 0.4, id: 2 };
       await cdp.send('Input.dispatchTouchEvent', {
@@ -288,23 +325,30 @@ try {
       await expect
         .poll(async () => Number(await p.locator('main').getAttribute('data-speed')))
         .toBeGreaterThan(0.5);
-      const beforeExtraLook = Number(await p.locator('main').getAttribute('data-yaw'));
+      const zoomBeforePinch = Number(await p.locator('main').getAttribute('data-zoom'));
+      await expect.poll(async () => Number(await p.locator('main').getAttribute('data-yaw')) - yaw).toBeGreaterThan(.05);
+      const beforePinchYaw = Number(await p.locator('main').getAttribute('data-yaw'));
+      const pinching = { x: viewport.width * .65, y: viewport.height * .5, id: 4 };
       await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [walking, looking, { x: viewport.width * 0.65, y: viewport.height * 0.5, id: 4 }],
+        type: 'touchStart', touchPoints: [walking, looking, pinching],
       });
+      pinching.x -= 50;
+      pinching.y += 50;
       await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchEnd',
-        touchPoints: [{ x: viewport.width * 0.65, y: viewport.height * 0.5, id: 4 }],
+        type: 'touchMove', touchPoints: [walking, looking, pinching],
       });
+      await expect.poll(async () => Number(await p.locator('main').getAttribute('data-zoom'))).toBeGreaterThan(zoomBeforePinch + .1);
+      assert.equal(Number(await p.locator('main').getAttribute('data-yaw')), beforePinchYaw, 'Two scene fingers zoom without turning the view');
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [pinching] });
       looking.x += 45;
-      await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchMove',
-        touchPoints: [walking, looking],
-      });
-      await expect
-        .poll(async () => Math.abs(Number(await p.locator('main').getAttribute('data-yaw')) - beforeExtraLook))
-        .toBeGreaterThan(0.03);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [walking, looking] });
+      await p.waitForTimeout(350);
+      assert.equal(Number(await p.locator('main').getAttribute('data-yaw')), beforePinchYaw, 'The remaining pinch finger must not turn the view');
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [looking] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [walking, looking] });
+      looking.x += 35;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [walking, looking] });
+      await expect.poll(async () => Number(await p.locator('main').getAttribute('data-yaw')) - beforePinchYaw).toBeGreaterThan(.03);
       await p.waitForTimeout(1500);
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
       await p.waitForTimeout(500);
@@ -315,13 +359,12 @@ try {
         'Touch movement must change position',
       );
       assert(
-        Math.abs(Number(await p.locator('main').getAttribute('data-yaw')) - yaw) > 0.05,
-        'Second finger must turn the camera while walking',
+        Number(await p.locator('main').getAttribute('data-yaw')) - yaw > 0.05,
+        'A rightward scene drag must move the image right while walking',
       );
-      await p.getByRole('button', { name: '漫步 ×1' }).tap();
-      await p.getByRole('button', { name: '快走 ×2' }).tap();
-      await expect(p.getByRole('button', { name: '疾行 ×6' })).toBeVisible();
-      await p.getByRole('button', { name: '疾行 ×6' }).tap();
+      assert.equal(await p.locator('.run').count(), 0, 'Touch movement uses the same default fast speed');
+      await expect(p.getByRole('button', { name: '拍照', exact: true })).toBeVisible();
+      await expect(p.getByRole('button', { name: '打开旅行手记' })).toBeVisible();
       assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await p.screenshot({ path: fileURLToPath(new URL(`mobile-${viewport.width}.png`, output)) });
       await p.getByRole('button', { name: '暂停' }).tap();
@@ -333,7 +376,9 @@ try {
       await mobile.close();
     }
   }
+  log('network recovery');
   const recoveryContext = await browser.newContext();
+  recoveryContext.setDefaultTimeout(30000);
   const recovery = await recoveryContext.newPage();
   currentPage = recovery;
   await recovery.route('**/world/world.json', (route) =>
@@ -354,16 +399,17 @@ try {
   );
   console.log(JSON.stringify({ results, errors }, null, 2));
 } catch (e) {
+  console.error('BROWSER_FAILURE', e);
   console.error('BROWSER_ERRORS', errors);
   if (currentPage && !currentPage.isClosed()) {
-    console.error(await currentPage.locator('body').innerText());
+    console.error(await currentPage.locator('body').innerText({ timeout: 5000 }).catch(() => '[Page text unavailable]'));
     console.error(
       await currentPage
         .locator('main')
-        .evaluate((e) => ({ ...e.dataset }))
+        .evaluate((e) => ({ ...e.dataset }), undefined, { timeout: 5000 })
         .catch(() => null),
     );
-    await currentPage.screenshot({ path: fileURLToPath(new URL('failure.png', output)) });
+    await currentPage.screenshot({ path: fileURLToPath(new URL('failure.png', output)), timeout: 5000 }).catch(() => {});
   }
   throw e;
 } finally {

@@ -338,3 +338,42 @@ test('read failures cannot overwrite an unseen save; reopening after recovery pr
   assert.equal(restored.buy('driver:aviator'), true);
   assert.equal(restored.saveError, '');
 });
+
+test('claiming every available milestone is a single durable, idempotent transaction', () => {
+  const s = storage(JSON.stringify({ races: 5, podiums: 5, wins: 5,
+    routes: ['seaside', 'city', 'desert'], claimed: ['first-finish'] }));
+  const career = new Career(s);
+  const available = milestones.filter(milestone => milestone.id !== 'first-finish' &&
+    career.milestoneProgress(milestone.id) >= milestone.target);
+  assert.equal(career.claimAll(), true);
+  assert.equal(s.writes, 1, 'all rewards and claim IDs are persisted together');
+  assert.equal(career.profile.coins, available.reduce((sum, milestone) => sum + milestone.coins, 0));
+  assert.equal(career.profile.xp, available.reduce((sum, milestone) => sum + milestone.xp, 0));
+  assert.deepEqual(career.profile.claimed, ['first-finish', ...available.map(milestone => milestone.id)]);
+  assert.equal(career.claimAll(), false);
+  assert.equal(new Career(s).claimAll(), false);
+  assert.equal(s.writes, 1, 'already claimed rewards cannot be collected after reopening');
+  assert.equal(new Career(storage()).claimAll(), false, 'unfinished goals never pay out');
+});
+
+test('bulk milestone rewards roll back entirely on storage failure and cap actual balances', () => {
+  const s = storage(JSON.stringify({ races: 20, podiums: 20, wins: 5, routes: routes.map(route => route.id),
+    coins: 999_999_999, xp: 999_999_998 }));
+  const career = new Career(s), before = JSON.stringify(career.profile), saved = s.values.get('kart-career-v1');
+  s.failWrite = true;
+  assert.equal(career.claimAll(), false);
+  assert.equal(JSON.stringify(career.profile), before);
+  assert.equal(s.values.get('kart-career-v1'), saved);
+  assert.ok(career.saveError);
+  s.failWrite = false;
+  assert.equal(career.claimAll(), true);
+  assert.equal(career.profile.coins, 1_000_000_000);
+  assert.equal(career.profile.xp, 1_000_000_000);
+  assert.deepEqual(career.profile.claimed, milestones.map(milestone => milestone.id));
+  assert.equal(career.saveError, '');
+  assert.equal(s.writes, 1);
+  assert.equal(new Career(s).claimAll(), false);
+  s.failRead = true;
+  assert.equal(new Career(s).claimAll(), false);
+  assert.equal(s.writes, 1);
+});

@@ -3,7 +3,40 @@ import { wechatPlatform } from '@coffeeeeffoc/platform-wechat/build';
 import { bilibiliPlatform } from '@coffeeeeffoc/platform-bilibili/build';
 import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
+import { wulongSharedSourcePlugin } from '@coffeeeeffoc/wulong-city/build-plugin';
 export const games = {
+  'wulong-city': {
+    title: '乌龙城',
+    root: 'wulong-city',
+    module: '@coffeeeeffoc/wulong-city/canvas',
+    manifest: 'native/manifest.json',
+    definition: 'wulongCityCanvasDefinition',
+    content: 'defaultWulongCityEnvelope',
+    orientation: 'portrait',
+    plugins: [wulongSharedSourcePlugin],
+    assets: [
+      { source: 'assets/art', target: 'assets/art' },
+      { source: 'assets/audio', target: 'assets/audio' },
+    ],
+  },
+  'moss-garden': {
+    title: '苔光花园',
+    definition: 'mossGardenCanvasDefinition',
+    content: 'defaultMossGardenEnvelope',
+    orientation: 'portrait',
+    assets: [{ source: 'public/moss-garden-audio', target: 'moss-garden-audio' }],
+  },
+  'castle-cannon': {
+    title: '一炮拆城',
+    definition: 'castleCannonCanvasDefinition',
+    content: 'defaultCastleCannonEnvelope',
+    orientation: 'landscape',
+    configureAdvertising: true,
+    assets: [
+      { source: 'public/castle-cannon-audio', target: 'castle-cannon-audio' },
+      { source: 'public/castle-cannon-art', target: 'castle-cannon-art' },
+    ],
+  },
   'building-power': {
     title: '忙碌的电工',
     definition: 'buildingPowerCanvasDefinition',

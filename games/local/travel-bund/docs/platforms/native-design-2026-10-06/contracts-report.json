@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "without TextDecoder: exact authored world JSON/Chinese/emoji/BOM/stream/invalid UTF8",
+    "SHA256 exact seven boundaries including 1MiB",
+    "old visits/settings/model keys and valid normal progression",
+    "locked photo route rejects unauthorized entry",
+    "collect is idempotent",
+    "real missing audio declared unavailable",
+    "touch slide-out cancels click",
+    "joystick owns first contact while independent scene pinch zooms",
+    "cancel/clear/dispose release touch and listeners"
+  ],
+  "passed": true,
+  "scope": "pure UI/input/storage contracts, not scene/host/device acceptance"
+}

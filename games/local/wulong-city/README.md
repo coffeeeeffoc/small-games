@@ -1,97 +1,76 @@
 # 乌龙城
 
-这座城市，总差一点才正常。26 个原创单屏喜剧解谜关卡，原四章主线加六段新奇遇、纸片 Canvas 场景、本机存档、三级提示、奇遇记录与结尾日报。
+竖屏触屏喜剧解谜小游戏。小岔走进青瓦小城，点按、拖放、转身和移动，处理 100 件不按常理的日常小事。主页、选关、游玩、暂停、三级提示、奇遇手记与结算分别成页；十章选关遵守实际解锁进度。
 
-源码由 `prototypes/games4` 复制到 `small-games/games/local/wulong-city`，原目录保留。保留原玩法，并修复了通关时仍按住方向、松手误触结算按钮的问题；没有迁入依赖或生成的截图、JSON 证据。Workspace 包名为 `@coffeeeeffoc/wulong-city`，`coffeeeeffoc.role` 为 `game`，已接入 Shell 游戏目录。
+美术先生成七页效果图，再实现并对照运行截图：[移动端视觉方案](docs/design/mobile-2026-10-06/README.md)。青绿瓦檐、奶油墙、暖金灯笼与黄色帽子小岔共用同一组素材；移动机关、碰撞和触控保持独立。
 
-## 安装与运行
+## 原生小游戏
 
-在 **small-games 根目录**执行：
-
-```sh
-pnpm install --frozen-lockfile
-pnpm --filter @coffeeeeffoc/wulong-city dev
-```
-
-打开 `http://127.0.0.1:4174/`，环境变量 `PORT` 可覆盖端口。Shell 中选择“乌龙城”，或访问 Shell 的 `#/games/wulong-city` 路由。
-
-- 电脑：A/D、←/→ 左右移动，W/↑/空格跳跃，S/↓ 加速下落；鼠标点、拖物件；Esc 暂停。
-- 手机：底部左右与跳跃按钮，场景点拖，移动与跳跃最多双指。
-- 同一方向上的多指、键盘与触摸输入独立释放；松开其中一次操作不会打断其它仍按住的操作。场景拖动只接受开始拖动的手指，失去其指针捕获会取消预览并恢复角色，避免角色卡在拖动状态。
-- 键盘解谜：Tab 找物件，Enter 操作；拖动点 Enter 抓取、方向键调整、Enter 松开，Esc 取消并暂停。
-- 顶栏提供选关、奇遇记录、音效、全屏和暂停；下方提供重试与三级提示。
-- 普通模式从第一关顺序解锁。原第三关「宠物通道」移到第八关，原第四至第八关依次前移；关卡菜单、章节、计数器、结算与下一关统一使用新顺序。
-- 存档键 `wulong-city-v1` 保持不变；`level`、`records` 键、`?challenge=` 和开发 `?level=` 仍使用稳定内部 ID，避免旧存档或链接指向另一谜题。新存档增加 `orderVersion: 2` 与内部 ID 数组 `unlockedLevels`，`unlocked` 表示新顺序中连续开放的关卡数。旧存档保留原有解锁、完成、当前关和音效，并按已完成关补开新顺序后继；例如已完成前两关的旧档同时保留第八关宠物关并开放新的第三关，不提前开放中间未玩关。换域名或端口不会自动迁移浏览器存储。
-- 已完成旧 L20 / L24 的存档保留当前关、奇遇记录和音效设置，并分别解锁 L21 / L25；仅到达旧末关的存档仍需先完成它。新增关卡依次解锁。
-- 主线首关直接显示“今日试演”两个入口：心事也上秤、遥控器嫌你太近。可立即试 L25 / L26，完成、重玩和分享都不写主线进度；随时返回会恢复原来的首关位置、谜题状态和提示级数。
-- 结算提供“分享这段奇遇”。公开 `?challenge=1` 至 `?challenge=26` 以稳定内部 ID 选择分享体验（例如 `?challenge=3` 仍是宠物通道，界面显示 `08 / 26`）运行，可试玩未解锁关卡，完成与重玩均不改主线存档。无效或重复参数明确退回主线；从选关进入已解锁关卡后恢复正常进度。
-- 开发入口 `?dev=1&level=18` 可选关，并提供只读快照，没有自动通关 API。
-
-## 构建与测试
+已接入仓库 Canvas GameDefinition 与 Game Host，微信、抖音、B 站和快手入口直接渲染 Canvas，使用宿主输入、音效、内容和存档，无 DOM 或 WebView 依赖。原生宿主配置竖屏和全屏承载，不显示浏览器全屏按钮。
 
 在仓库根目录执行：
 
 ```sh
-pnpm --filter @coffeeeeffoc/wulong-city test
+pnpm install --frozen-lockfile
+pnpm --filter @coffeeeeffoc/content-schema build
+pnpm --filter @coffeeeeffoc/game-contract build
+pnpm minigame:build --game wulong-city --platform wechat --preview
+pnpm minigame:build --game wulong-city --platform douyin --preview
+pnpm minigame:build --game wulong-city --platform bilibili --preview
+pnpm minigame:build --game wulong-city --platform kuaishou --preview
+node scripts/native-game-smoke.mjs --standalone --platform wechat --game wulong-city
+```
+
+产物在 `apps/shell-minigame/dist/<platform>/wulong-city/`，可导入对应开发者工具。正式发布按仓库平台工程传入真实 AppID；预览构建不代表渠道发布或真机验收。
+
+- `native/canvas.js`：七页原生界面、输入、物理、生命周期与 Game Host 适配。
+- `native/shared-source.mjs`：构建时将经典脚本静态转换为模块。原生与预览复用 `levels-data.js`、`level-order.js`、`levels.js` 和 `render.js`，没有运行时源码求值或重复关卡规则。
+- `assets/art/` 与 `assets/audio/`：实际入包美术和轻量音效；可选素材或存储失败仍能继续本地游玩。
+
+## 移动预览
+
+保留 H5/Shell 入口供浏览器试玩和自动回归，默认先进入游戏主页。390×844 为设计基准，320px 小屏保持控件可触达；横向浏览器视口将场景与控件分列，不重置对局。设置/暂停页提供浏览器全屏，原生入口由宿主处理。
+
+```sh
+pnpm --filter @coffeeeeffoc/wulong-city dev
 pnpm --filter @coffeeeeffoc/wulong-city build
 pnpm --filter @coffeeeeffoc/wulong-city preview
 ```
 
-`test` 使用 Node 内置测试，无需预先启动服务器、安装浏览器或加载第三方依赖，可直接供 CI 使用。检查覆盖全部 26 关内容与初始化独立性，以及原有谜题和新增六关的错误尝试、实际机关组合及完成条件；还覆盖新顺序、逐关解锁、旧档迁移和稳定记录 ID。实际分享函数检查覆盖 URL 用户信息、私有参数及子路径清理。
+打开 `http://127.0.0.1:4174/`，`PORT` 可覆盖端口。Shell 路由为 `#/games/wulong-city`。
 
-`build` 将 `index.html`、`style.css`、`levels-data.js`、`level-order.js`、`game.js`、`levels.js` 复制到静态 `dist/`，保留经典脚本顺序与相对资源地址，可部署到任意子目录。`preview` 服务构建结果。游戏本身零运行依赖；也可在游戏目录直接执行 `node --test tests/game.test.mjs tests/order.test.mjs`、`node build.mjs`、`node server.mjs --dist`。
+- 触屏：底部左右与跳跃按钮支持多指；直接点按、拖动物件。暂停、换页、后台和拖动取消均释放输入。
+- 键盘补充：A/D、方向键移动，W/↑/空格跳跃，S/↓ 加速下落；Tab 选物件，Enter 操作或抓取，方向键调位置，Enter 松手，Esc 取消并暂停。
+- 提示按需进入独立页；重试在暂停页。手记收录已完成关卡，也保留两项不改主线的今日试演。
+- 普通玩家顺序解锁；`?challenge=1` 至 `?challenge=100` 使用稳定内部 ID 试玩分享关，不写主线存档。分享取消不会复制链接，无剪贴板时显示可手动复制的公开链接。
+- `?dev=1&level=100` 与统一 `localStorage.dev` 开关支持开发检查。未解锁关开发试玩不写进度；正式默认关闭。`window.__wulong.snapshot()` 只读，没有自动通关 API。
 
-### 真实浏览器回归
+## 关卡、解锁与旧档
 
-保持 `preview` 运行，另一终端执行：
+保留原 1–26 关内部 ID、记录和分享链接。显示顺序仍为 `1,2,4,5,6,7,8,3,9…100`，例如旧 `challenge=3` 仍进入宠物通道，显示第 08 关。存档键 `wulong-city-v1` 和 `orderVersion: 2` 保持兼容，旧第三关的解锁及记录不会改指其他谜题。
+
+27–100 关由独立 `WULONG_SCENES` 配置组合拖放、转向、近身取物、近身操作、远程触发、顺序敲击、背对观察和等待稳定八种机制。通用规则校验 schema、依赖、位置与答案；全部机关就绪后仍需走到出口。新关只增加配置，不复制玩法循环。
+
+已完成旧 26 关的存档仅补开第 27 关；仅到达旧末关仍需完成它。主线逐关结算一次，分享与未解锁开发试玩不补开普通关卡。选关、下一关和存档使用同一份目录。
+
+## 验证
 
 ```sh
-pnpm --filter @coffeeeeffoc/wulong-city test:browser
-pnpm --filter @coffeeeeffoc/wulong-city test:lifecycle
+pnpm --filter @coffeeeeffoc/wulong-city test
+pnpm --filter @coffeeeeffoc/wulong-city test:mobile
 pnpm --filter @coffeeeeffoc/wulong-city test:keyboard
+pnpm --filter @coffeeeeffoc/wulong-city test:lifecycle
 pnpm --filter @coffeeeeffoc/wulong-city test:progression
+pnpm --filter @coffeeeeffoc/wulong-city test:browser
+INPUT=touch WIDTH=360 FLOW=1 pnpm --filter @coffeeeeffoc/wulong-city test:browser
+pnpm check:dev-mode
+pnpm test:dev-mode
 ```
 
-需要 Playwright Chromium；可在根目录执行 `pnpm exec playwright install chromium` 准备浏览器，或设置 `PLAYWRIGHT_EXECUTABLE_PATH` 指向本机兼容浏览器。测试包按正常 Node 包规则解析，不依赖固定机器路径。
+浏览器脚本需要先启动 dev 或 preview 和 Playwright Chromium。`BASE_URL` 支持生产子路径；`PLAYWRIGHT_EXECUTABLE_PATH` 可选择已安装 Chromium。指定内部 ID 可执行 `node tests/playtest.mjs 27 49 58 75 100`。
 
-| 环境变量 | 用途 |
-| --- | --- |
-| `BASE_URL` | 完整游戏入口，默认 `http://127.0.0.1:4174/`；支持生产子路径，例如 `http://127.0.0.1:4173/games/wulong-city/index.html` |
-| `INPUT=touch` | 通关测试改用 CDP 触摸和底部按钮，不借用键盘移动 |
-| `WIDTH=360` | 通关测试视口宽度，默认 390 |
-| `FLOW=1` | 检查下一关、菜单回访和连续重试 |
+规则测试覆盖 100 关初始化、全部新增关真实机关成功/失败/取消、闭门阻挡、步行出口、连续解锁及旧档。浏览器测试以当前页面行为和语义入口断言，已更新旧弹窗/顶栏/26关计数要求；覆盖七页流程、小屏、多指、键盘、暂停与重试、分享隔离和存档恢复。
 
-在游戏目录执行 `node tests/playtest.mjs 2 11 18` 可仅测指定内部 ID 的关卡（编号映射见 `level-order.js`）。生命周期测试可单独运行，会自行创建证据目录。截图路径使用 `fileURLToPath`，兼容 Windows、Linux 和空格路径；截图和报告保存在被忽略的 `tests/evidence/`。
+实际手机尺寸截图保存在 `docs/design/mobile-2026-10-06/implemented/`，原生 Canvas 截图与像素/生命周期核验保存在同目录 `native-actual/`。详细验证记录见 [本次回归报告](docs/design/mobile-2026-10-06/verification.md)。这些是 Chromium 触屏模拟与渠道工程冒烟验证，未替代实体手机或渠道开发者工具真机验收。
 
-生命周期回归覆盖同一方向双指、键盘与触摸混用、两个同向按键的独立释放，以及地图拖动的无关指针取消和指针捕获丢失。`test:keyboard` 覆盖 WASD、四方向键和空格、物件/按钮获得焦点后的角色操作、Enter 抓取和取消、暂停与重试时清理按键，以及手机触摸操作保留。
-
-`test:progression` 检查旧第三关存档在后移后的解锁/编号/章节/菜单/记录与刷新恢复、旧挑战链接仍指向相同谜题、旧 20 / 24 关存档兼容、未解锁分享体验通关与重玩不写主线、首屏两个试演的真实触摸完成与返回、分享 URL 清理、对象形式的取消错误、无剪贴板时的手动链接和非法参数回退。浏览器分享优先使用系统分享，取消不会再复制；缺少系统分享时复制公开挑战链接，再缺少剪贴板则显示可选中的链接。
-
-新增内容：L21 让风扇背对床单送风；L22 洗掉衣服名字中的“脏”字；L23 用长话与句号固定聊天桥；L24 将奖杯从展示柜递向画面外的玩家。可用 `INPUT=touch WIDTH=360 FLOW=1 node tests/playtest.mjs 20 21 22 23 24` 验证旧结尾到新尾声的衔接、逐关真实解题、下一关、回访和重试。
-
-第三轮新增：L25 的秤把头顶心事也计入体重，把心事挂到寄存钩后再称重；L26 的遥控器要求真正走远才能调台，切到出口频道后还得走进电视。两关分别组合拖放/称重/行走与取物/真实距离/调台/行走，没有操作时限。`INPUT=touch WIDTH=360 FLOW=1 node tests/playtest.mjs 24 25 26` 检查旧24关结尾到新两关的衔接。
-
-2026-10-01 第二轮云验证：12 项规则/分享函数检查、静态构建、24 关提示/暂停/重试生命周期与存档/分享隔离检查通过；L20–L24 的 360px CDP 触摸实玩与连续关卡检查通过，L21–L24 另由交叉审查独立复跑。没有把这些模拟器结果计为实体手机、Safari 或真人首次解谜验收。
-
-2026-10-01 第三轮云验证：14 项规则/分享函数检查、静态构建、26 关提示/暂停/重试和多指生命周期检查通过；L24→L25→L26 的 360px CDP触摸实玩与连续关卡检查通过。主线首屏两项试演另在普通模式用真实触摸与DOM反馈解完，未启用开发快照；旧20/24档、26关合法分享边界、试玩完成/重试/分享隔离，以及返回时恢复原角色位置、谜题时间和提示级数的专项检查通过。窄屏试演入口在320/360/390px未产生横向溢出；未做实体手机或真人笑点验收。
-
-### Shell 验证
-
-在仓库根目录执行 `pnpm test:pages`，验证已构建的 Pages 产物；更新游戏后可先运行 `pnpm build:pages`。
-
-乌龙城的桌面 iframe 与触屏分支在普通生产模式操作，不依赖开发快照：等待首关热点 `[data-zone="shy-door"]`，点击得到反馈；右移让门后退，左移背对让门打开，再右移完成首关；点击 `#next` 后确认 `#counter` 为 `02 / 26`，并检查两级提示。全新上下文的 `#title` 应为“出口很害羞”；已有存档可能恢复到其它关。
-
-发布回归使用 360×900 窄屏，覆盖按住方向跨越结算弹窗后松手，确认不会误触“再玩这关”；弹窗只接受在本次弹窗内开始的指针操作，键盘激活保留。
-
-这些自动化结果不替代实体手机、Safari 或真人首次解谜验收。
-
-## 设计记录
-
-- [产品方向](docs/PRODUCT.md)
-- [逐关规格](docs/LEVELS.md)
-- [迁移前完成状态](docs/PROGRESS.md)
-- [迁移前试玩记录与边界](docs/PLAYTEST.md)
-
-原文档中的 games4 和证据路径表示迁移前历史，当前命令以本 README 为准。原创程序图形与 Web Audio 合成音效；未接入账号、后台、广告或设备权限。
-
-当前交付支持 Web / H5 浏览器。26 关规则可在没有 DOM 的环境独立验证，但正式入口仍使用 DOM 热点、对话框、浏览器存储及 Web Audio；微信、B 站、抖音、快手原生小游戏需要独立的 Canvas UI、输入和 Game Host 入口后再逐渠道验收。
+原设计与试玩历史见 `docs/PRODUCT.md`、`docs/LEVELS.md`、`docs/PLAYTEST.md`、`docs/PROGRESS.md`；其中原 games4 路径和 26 关状态属于改造前记录。
