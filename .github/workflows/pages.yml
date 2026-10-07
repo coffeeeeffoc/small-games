@@ -35,6 +35,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24.21.0
+      - name: Install the pinned source parser for planning
+        run: |
+          parser_version=$(node -p "require('./package.json').devDependencies.prettier")
+          npm install --prefix "$RUNNER_TEMP/scope-parser" --ignore-scripts --no-audit --no-fund --package-lock=false "prettier@$parser_version"
+          echo "NODE_PATH=$RUNNER_TEMP/scope-parser/node_modules" >> "$GITHUB_ENV"
       - name: Test Pages validation selection
         run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
       - name: Select Pages validation scope
