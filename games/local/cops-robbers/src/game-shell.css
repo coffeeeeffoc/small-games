@@ -520,6 +520,22 @@ body.game-shell {
     0 4px 0 #dba42b;
   transform: translateY(-2px);
 }
+.game-shell #squad button.resting:after {
+  content: '留守';
+  position: absolute;
+  top: -5px;
+  left: -3px;
+  padding: 2px 4px;
+  border: 1px solid #8fbac0;
+  border-radius: 7px;
+  background: #fffdf0;
+  color: #28545d;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.game-shell .actor.resting .selection-ring {
+  stroke-dasharray: 6 4;
+}
 .game-shell .squad-avatar {
   width: 43px;
   height: 43px;
