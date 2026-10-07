@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
+import { chromium, browserOptions, openLibrary, continueGame } from './browser-helpers.mjs';
 import { practiceBatches } from '../library.js';
 
 const bookId = 'fltrp-sun-3-upper-2026';
@@ -8,14 +8,14 @@ const book = JSON.parse(await readFile(new URL(`../assets/english-dict/books/${b
 const catalog = JSON.parse(await readFile(new URL('../assets/english-dict/catalog.json', import.meta.url)));
 const batches = practiceBatches(book.entries.filter(entry => entry.unit === 'Welcome'));
 assert.equal(batches.at(-1).length, 1, 'exercise a real one-word final batch');
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch(browserOptions);
 try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4175');
-  await page.locator('#open-library').click();
+  await openLibrary(page);
   for (const publisher of catalog.publishers) {
     await page.locator('#textbook-publisher').selectOption(publisher.id);
     const books = catalog.books.filter(item => item.publisherId === publisher.id);
@@ -41,8 +41,7 @@ try {
   await page.locator('#library-start').tap();
   await page.waitForFunction(() => !document.querySelector('#library-dialog').open);
   assert.deepEqual(await page.locator('.word-text').allTextContents(), practiceBatches(legacy.entries.filter(entry => entry.unit === legacyUnit))[0].map(entry => entry.meaning));
-  await page.locator('#pause-button').tap();
-  await page.locator('#open-library').tap();
+  await openLibrary(page);
   await page.locator('#textbook-publisher').selectOption('fltrp');
   await page.locator('#textbook-grade').selectOption('3');
   await page.locator('#textbook-book').selectOption(bookId);
@@ -72,6 +71,7 @@ try {
         await page.reload();
         assert.equal(await page.locator('.word-row.done').count(), 1);
         assert.match(await page.locator('#feedback').textContent(), /恢复/);
+        await continueGame(page);
       }
     }
     await page.locator('#win-dialog [data-close]').last().tap();
@@ -90,8 +90,7 @@ try {
   assert.match(await page.locator('#theme-name').textContent(), /易错词复习/);
   // An already-open game can use a cached book even when the network goes away.
   await context.setOffline(true);
-  await page.locator('#pause-button').tap();
-  await page.locator('#open-library').tap();
+  await openLibrary(page);
   await page.locator('#textbook-publisher').selectOption('fltrp');
   await page.locator('#textbook-grade').selectOption('3');
   await page.locator('#textbook-book').selectOption(bookId);

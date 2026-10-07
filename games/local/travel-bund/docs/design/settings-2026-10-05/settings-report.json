@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "standalone: real pointer lock / Esc, camera and journal clicks after unlocking, manual settings only, retained model choices, blur clears input with explicit resume",
+    "iframe: real pointer lock / Esc, camera and journal clicks after unlocking, manual settings only, retained model choices, blur clears input with explicit resume",
+    "390x844: touch switches, time segment, retained choice, independent scrolling, fixed close/completion",
+    "844x390: touch switches, time segment, retained choice, independent scrolling, fixed close/completion",
+    "320x568: touch switches, time segment, retained choice, independent scrolling, fixed close/completion"
+  ],
+  "errors": [],
+  "scene": "isolated; real App, native Pointer Lock and real touch"
+}

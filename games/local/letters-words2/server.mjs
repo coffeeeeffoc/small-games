@@ -6,12 +6,15 @@ const assets = new Map([
   ['index.html', 'text/html; charset=utf-8'],
   ['styles.css', 'text/css; charset=utf-8'],
   ['app.js', 'text/javascript; charset=utf-8'],
+  ['mobile-ui.js', 'text/javascript; charset=utf-8'],
+  ['dev-mode.js', 'text/javascript; charset=utf-8'],
   ['engine.js', 'text/javascript; charset=utf-8'],
   ['challenge.js', 'text/javascript; charset=utf-8'],
   ['library.js', 'text/javascript; charset=utf-8'],
   ['competition-renderer.js', 'text/javascript; charset=utf-8'],
   ['fullscreen.js', 'text/javascript; charset=utf-8'],
   ['favicon.svg', 'image/svg+xml'],
+  ['assets/ui/island.svg', 'image/svg+xml'],
 ]);
 
 function assetFor(requestPath) {

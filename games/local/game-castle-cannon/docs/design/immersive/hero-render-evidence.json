@@ -1,0 +1,17 @@
+[
+  {
+    "name": "actual-composition",
+    "snapshotClock": "Playwright controlled timers in <=250ms chunks; genuine CDP mouse; actual rule substeps, no battle state edits",
+    "metrics": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 21,
+      "frameBattleTime": 3.065999999999997,
+      "lowPower": false,
+      "triangles": 425654,
+      "calls": 323,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 146
+    },
+    "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 1；装填 0.00；"
+  }
+]

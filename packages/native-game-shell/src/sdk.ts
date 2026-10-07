@@ -3,6 +3,7 @@ import type { CanvasGameTarget } from '@coffeeeeffoc/canvas-game-adapter';
 /** Native touch coordinates in the SDK's logical screen space. */
 export type TouchEvent = {
   changedTouches: Array<{ clientX: number; clientY: number; identifier?: number }>;
+  touches?: Array<{ clientX: number; clientY: number; identifier?: number }>;
 };
 /** Native Image supports Canvas 2D drawing without a DOM element. */
 export type NativeImage = {
@@ -37,7 +38,14 @@ export interface NativeSdk {
   createCanvas(): CanvasGameTarget['canvas'];
   createImage?(): NativeImage;
   createInnerAudioContext?(): InnerAudioContext;
-  getSystemInfoSync(): { windowWidth: number; windowHeight: number };
+  getSystemInfoSync(): {
+    windowWidth: number;
+    windowHeight: number;
+    safeArea?: { left: number; top: number; right: number; bottom: number };
+  };
+  getMenuButtonBoundingClientRect?(): { bottom: number };
+  onWindowResize?(listener: () => void): void;
+  offWindowResize?(listener: () => void): void;
   onTouchEnd(listener: (event: TouchEvent) => void): void;
   offTouchEnd(listener: (event: TouchEvent) => void): void;
   onTouchStart?(listener: (event: TouchEvent) => void): void;

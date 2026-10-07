@@ -265,3 +265,23 @@ test('logged child executor preserves failing task diagnostics and never accepts
   );
   assert.equal(output, 'complete success');
 });
+
+test('raw capture preserves complete Git source bytes while ordinary capture retains trimmed command values', async () => {
+  const { run, cleanGitEnv } = await import('./validate-push.mjs');
+  const source = '\n \tsource\n\n';
+  const args = ['-e', 'process.stdout.write(' + JSON.stringify(source) + ')'];
+  const env = cleanGitEnv(process.env);
+  assert.equal(run(process.execPath, args, process.cwd(), env, 'raw'), source);
+  assert.equal(run(process.execPath, args, process.cwd(), env, true), 'source');
+  assert.throws(
+    () =>
+      run(
+        process.execPath,
+        ['-e', 'process.stdout.write("partial");process.exit(17)'],
+        process.cwd(),
+        env,
+        'raw',
+      ),
+    /failed \(17\).*partial/s,
+  );
+});

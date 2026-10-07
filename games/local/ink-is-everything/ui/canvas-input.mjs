@@ -11,6 +11,8 @@ export function bindCanvasInput({
   navigation,
   perform,
   feedback,
+  capturePointer,
+  releasePointer,
 }) {
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   canvas.addEventListener('pointerdown', (event) => {
@@ -22,7 +24,7 @@ export function bindCanvasInput({
       room = getRoom(state);
     const capture = () => {
       c.canvasPointer = event.pointerId;
-      canvas.setPointerCapture(event.pointerId);
+      capturePointer(canvas, event.pointerId);
     };
     if (event.button === 2) {
       c.aimPoint = point;
@@ -53,7 +55,8 @@ export function bindCanvasInput({
       capture();
       return;
     }
-    const object = [...room.objects.filter((o) => !o.used), ...room.portals].find(
+    const gear = state.pickups.filter((pickup) => pickup.kind === 'gear' && !pickup.collected);
+    const object = [...gear, ...room.objects.filter((o) => !o.used), ...room.portals].find(
       (o) => dist(point, o) < o.r + 35,
     );
     if (object) {
@@ -66,7 +69,7 @@ export function bindCanvasInput({
   canvas.addEventListener('pointermove', (event) => {
     const point = renderer.screenToWorld(event.clientX, event.clientY);
     if (c.drawStroke && c.canvasPointer === event.pointerId) {
-      if (dist(c.drawStroke.at(-1), point) > 3) c.drawStroke.push(point);
+      if (dist(c.drawStroke[c.drawStroke.length - 1], point) > 3) c.drawStroke.push(point);
       return;
     }
     if (active() && (event.pointerType === 'mouse' || c.canvasPointer === event.pointerId))
@@ -93,9 +96,9 @@ export function bindCanvasInput({
       c.fireQueued = false;
       c.meleeQueued = false;
     }
-    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    releasePointer(canvas, event.pointerId);
   }
-  canvas.addEventListener('pointerup', (event) => release(event, false));
-  for (const type of ['pointercancel', 'lostpointercapture'])
-    canvas.addEventListener(type, (event) => release(event, true));
+  window.addEventListener('pointerup', (event) => release(event, !active()));
+  window.addEventListener('pointercancel', (event) => release(event, true));
+  canvas.addEventListener('lostpointercapture', (event) => release(event, true));
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@coffeeeeffoc/game-moss-garden",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/canvas.ts",
+    "./canvas": "./src/canvas.ts",
+    "./manifest": "./src/manifest.json"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4426",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4426",
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
+    "@coffeeeeffoc/content-schema": "workspace:*",
+    "@coffeeeeffoc/game-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

@@ -109,6 +109,7 @@ export class KartGame extends Component {
   preparedKey = '';
   networkRaceId = 0;
   networkTick = -1;
+  networkSelectionBlocked = false;
   networkIndexes: number[] = [];
   inputTime = 0;
   renderPoses: { x: number; y: number; z: number; heading: number }[] = [];
@@ -132,15 +133,16 @@ export class KartGame extends Component {
     this.controller?.clear();
     if (!this.hud.settingsVisible) {
       this.settingsFromHome = !!this.home?.root.active;
-      if (this.settingsFromHome) this.home.root.active = false;
+      if (this.settingsFromHome) this.home.setInputEnabled(false);
       this.settingsPausedRace = !this.race.networked && ['racing', 'countdown'].includes(this.race.phase);
       if (this.settingsPausedRace) this.race.pause();
       this.hud.settingsVisible = true;
+      this.hud.settings.setSiblingIndex(this.hud.root.children.length - 1);
     } else {
       this.hud.settingsVisible = false;
       if (this.settingsPausedRace) this.race.resume();
       this.settingsPausedRace = false;
-      if (this.settingsFromHome) this.home.root.active = true;
+      if (this.settingsFromHome) this.home.setInputEnabled(true);
       this.settingsFromHome = false;
     }
   };
@@ -168,23 +170,52 @@ export class KartGame extends Component {
     if (sys.isBrowser) display?.toggleFullscreen();
   };
   choose = (field: keyof Selection, delta: number) => {
-    if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
+    if (this.race.phase !== 'ready' || this.multiplayer?.room || this.hud.settingsVisible) return;
     this.selection = cycleSelection(this.selection, field, delta);
     this.setupNotice = '';
     if (field === 'route') this.activeChallenge = undefined;
     this.syncModeAddress();
-    try {
-      sys.localStorage.setItem('kart-selection-v1', JSON.stringify(this.selection));
-    } catch {}
+    this.saveSelection();
     this.loadSelection(false, false);
   };
   toggleMode = () => {
-    if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
+    if (this.race.phase !== 'ready' || this.multiplayer?.room || this.hud.settingsVisible) return;
     this.mode = this.mode === 'standard' ? 'sprint' : 'standard';
     this.activeChallenge = undefined;
     this.syncModeAddress();
     this.loadSelection(false, false);
   };
+  saveSelection() {
+    try {
+      sys.localStorage.setItem('kart-selection-v1', JSON.stringify({ ...this.selection,
+        vehicle: this.career.profile.equipped.vehicle, driver: this.career.profile.equipped.driver }));
+    } catch { /* Browsing does not require writable storage. */ }
+  }
+  ownedSelection(selection: Selection): Selection {
+    const safe = { ...selection };
+    for (const field of ['vehicle', 'driver'] as const) {
+      if (!this.career.profile.owned.includes(`${field}:${safe[field]}`))
+        safe[field] = this.career.profile.equipped[field];
+    }
+    return safe;
+  }
+  canUseSelection(): boolean {
+    if (this.ownsSelection(this.selection)) return true;
+    this.setupNotice = '所选赛车或车手服尚未解锁 · 在商店购买后即可参赛';
+    this.refreshHome();
+    return false;
+  }
+  ownsSelection(selection: Pick<Selection, 'vehicle' | 'driver'>): boolean {
+    return (['vehicle', 'driver'] as const).every((field) =>
+      this.career.profile.owned.includes(`${field}:${selection[field]}`));
+  }
+  private rejectRoomSelection(): false {
+    this.networkSelectionBlocked = true;
+    this.controller?.clear();
+    if (this.multiplayer) this.multiplayer.status = '房间赛车或车手未解锁，请房主换车或退出后解锁';
+    if (this.roomPanel) { this.roomPanel.root.active = true; this.roomPanel.refresh(); }
+    return false;
+  }
   syncModeAddress() {
     if (!sys.isBrowser) return;
     try {
@@ -198,9 +229,10 @@ export class KartGame extends Component {
     } catch { /* Optional address synchronization never blocks mode selection. */ }
   }
   receiveChallenge = (query: Record<string, unknown>) => {
-    const challenge = readKartChallenge(query);
-    if (!challenge) return;
-    if (this.race.phase === 'ready' && !this.multiplayer?.room && !this.roomPanel?.root.active) {
+    const received = readKartChallenge(query);
+    if (!received) return;
+    const challenge = { ...received, selection: this.ownedSelection(received.selection) };
+    if (this.race.phase === 'ready' && !this.multiplayer?.room && !this.roomPanel?.root.active && !this.hud.settingsVisible) {
       this.pendingChallenge = undefined;
       this.activeChallenge = challenge;
       this.selection = { ...challenge.selection };
@@ -226,13 +258,16 @@ export class KartGame extends Component {
     }
     this.hud.settingsVisible = false;
     this.settingsPausedRace = false;
+    this.settingsFromHome = false;
+    this.home.setInputEnabled(true);
+    this.previewEquipment = undefined;
     this.selection.vehicle = this.activeChallenge?.selection.vehicle ?? this.career.profile.equipped.vehicle;
     this.selection.driver = this.activeChallenge?.selection.driver ?? this.career.profile.equipped.driver;
     this.loadSelection();
     this.home.show('home');
   };
   preview = (selection: Partial<Selection> & { decoration?: string; pet?: string }) => {
-    if (this.race.phase !== 'ready' || this.multiplayer?.room) return;
+    if (this.race.phase !== 'ready' || this.multiplayer?.room || this.hud.settingsVisible) return;
     this.selection = readSelection(JSON.stringify({ ...this.selection, ...selection }));
     if (selection.decoration || selection.pet) {
       const equipment = { ...this.career.profile.equipped, ...this.previewEquipment };
@@ -249,36 +284,51 @@ export class KartGame extends Component {
     this.preview({ vehicle: this.career.profile.equipped.vehicle, driver: this.career.profile.equipped.driver });
   };
   setBots = (count: number, same: boolean) => {
-    if (!Number.isInteger(count) || count < 0 || count > 7) return;
+    if (this.hud.settingsVisible || !Number.isInteger(count) || count < 0 || count > 7) return;
     this.botCount = count;
     this.sameBots = same === true;
     this.refreshHome();
     try { sys.localStorage.setItem('kart-race-options-v1', JSON.stringify({ count, same: this.sameBots })); } catch {}
   };
-  prepareRace = () => {
-    if (this.multiplayer?.room) return;
-    if (this.race.loadError) { this.loadSelection(false, false); return; }
-    if (this.menuPreview?.snapshot().error) { void this.menuPreview.load(this.home.page).catch(() => {}); return; }
-    if (!this.race.loaded) return;
-    if (!this.activeChallenge) {
-      for (const field of ['vehicle', 'driver'] as const) {
-        const id = `${field}:${this.selection[field]}`;
-        if (!this.career.profile.owned.includes(id)) {
-          this.setupNotice = '所选赛车或车手服尚未解锁 · 在商店购买后即可参赛';
-          return;
-        }
-        if (!this.career.equip(id)) {
-          this.setupNotice = this.career.saveError || '装备保存失败，请重试';
-          return;
-        }
+  challenge = (stat: 'races' | 'wins' | 'routes') => {
+    if (this.race.phase !== 'ready' || this.multiplayer?.room || this.hud.settingsVisible) return;
+    this.activeChallenge = this.pendingChallenge = undefined;
+    this.previewEquipment = undefined;
+    this.selection = { ...this.selection, vehicle: this.career.profile.equipped.vehicle,
+      driver: this.career.profile.equipped.driver };
+    if (stat === 'routes') {
+      const next = routes.find((route) => !this.career.profile.routes.includes(route.id));
+      if (next) {
+        this.selection.route = next.id;
+        if (themes.some((theme) => theme.id === next.id)) this.selection.theme = next.id;
       }
     }
+    if (stat === 'wins' && this.botCount < 1) this.setBots(1, this.sameBots);
+    this.setupNotice = '';
+    this.syncModeAddress();
+    this.saveSelection();
+    this.loadSelection(false, false);
+    this.home.show('setup');
+  };
+  prepareRace = () => {
+    if (this.multiplayer?.room || this.hud.settingsVisible || this.home.page === 'shop' || this.race.phase !== 'ready') return;
+    if (this.race.loadError) { this.loadSelection(false, false); return; }
+    if (this.menuPreview?.snapshot().error) { void this.menuPreview.load(this.home.page).catch(() => {}); return; }
+    if (!this.race.loaded || !this.canUseSelection()) return;
+    for (const field of ['vehicle', 'driver'] as const) {
+      if (!this.career.equip(`${field}:${this.selection[field]}`)) {
+        this.setupNotice = this.career.saveError || '装备保存失败，请重试';
+        this.refreshHome();
+        return;
+      }
+    }
+    this.saveSelection();
     this.home.hide();
     this.previewEquipment = undefined;
     this.loadSelection(true);
   };
   startRace = () => {
-    if (this.home.root.active || !this.hud.staged || !this.race.loaded || this.race.loadError) return;
+    if (this.home.root.active || this.hud.settingsVisible || !this.hud.staged || !this.race.loaded || this.race.loadError || !this.canUseSelection()) return;
     this.controller.clear();
     this.audio.activate(this.muted);
     this.countdownLastTime = Date.now();
@@ -323,6 +373,12 @@ export class KartGame extends Component {
     } finally { this.sharing = false; }
   };
   loadSelection(fullRace = false, rerollBots = true, room?: RoomState) {
+    if (fullRace && !room && (this.hud.settingsVisible || !this.canUseSelection())) return false;
+    if (room) {
+      const self = room.roster[this.networkIndexes[0]];
+      if (!self || !this.ownsSelection(self)) return this.rejectRoomSelection();
+    }
+    this.networkSelectionBlocked = false;
     const version = ++this.loadVersion;
     this.controller?.clear();
     if (this.themeRoot) {
@@ -385,7 +441,7 @@ export class KartGame extends Component {
               ? this.selection.vehicle
               : this.botVehicles[i - 1],
           driver: room ? room.roster[this.networkIndexes[i]].driver : i === 0 ? this.selection.driver : this.botDrivers[i - 1],
-        }, i === 0 ? this.previewEquipment ?? this.career.profile.equipped : this.sameBots ? this.career.profile.equipped : randomEquipment()),
+        }, i === 0 ? (!fullRace && !room ? this.previewEquipment : undefined) ?? this.career.profile.equipped : this.sameBots ? this.career.profile.equipped : randomEquipment()),
     );
     this.itemsView = fullRace || room ? new ItemsView(this.themeRoot, this.race.items) : undefined;
     Promise.all([
@@ -396,6 +452,7 @@ export class KartGame extends Component {
     ])
       .then(() => {
         if (version !== this.loadVersion) return;
+        if (room && this.networkSelectionBlocked) return;
         this.race.loaded = true;
         this.sceneryLoaded = true;
         this.refreshHome();
@@ -416,6 +473,7 @@ export class KartGame extends Component {
         }
         console.error('[carding-car] selected assets failed', error);
       });
+    return true;
   }
   start() {
     profiler.hideStats();
@@ -444,6 +502,7 @@ export class KartGame extends Component {
     const invitation = readInvitation(launch);
     if (invitation) { this.selection = invitation.selection; this.mode = 'standard'; }
     else if ((this.activeChallenge = sys.isBrowser ? readKartChallengeSearch(location.search) : readKartChallenge(launch))) {
+      this.activeChallenge.selection = this.ownedSelection(this.activeChallenge.selection);
       this.selection = { ...this.activeChallenge.selection };
       this.mode = this.activeChallenge.mode;
     } else this.mode = (sys.isBrowser ? readRaceModeSearch(location.search) : readRaceMode(launch)) || 'standard';
@@ -453,6 +512,7 @@ export class KartGame extends Component {
       choose: this.choose, mode: this.toggleMode, prepare: this.prepareRace,
       preview: this.preview, equip: this.equip, bots: this.setBots,
       settings: this.toggleSettings,
+      challenge: this.challenge,
     });
     this.home.show(this.activeChallenge ? 'setup' : 'home');
     this.menuPreview = new MenuPreview(this.node);
@@ -464,7 +524,7 @@ export class KartGame extends Component {
       this.choose,
       this.enterGarage,
       () =>
-        !!this.home.root.active || !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
+        (!!this.home.root.active && !this.hud.settingsVisible) || !!this.roomPanel?.root.active || (!!this.multiplayer?.room && !this.multiplayer.connected),
       this.startRace,
       this.toggleHelp,
       this.shareChallenge,
@@ -614,18 +674,21 @@ export class KartGame extends Component {
     this.countdownLastTime = undefined;
   };
   restart() {
+    if (this.hud.settingsVisible) return;
     if (this.multiplayer?.room && this.roomPanel) {
       this.roomPanel.root.active = true;
       this.roomPanel.refresh();
       return;
     }
-    this.loadSelection(true);
+    if (!this.loadSelection(true)) return;
     this.home.hide();
   }
   markPrepared() {
     const client = this.multiplayer,
       room = client?.room;
     if (!room || room.phase !== 'lobby' || !this.race.loaded || this.race.loadError) return;
+    if (!this.ownsSelection(room)) { this.rejectRoomSelection(); return; }
+    this.networkSelectionBlocked = false;
     if (
       Object.entries(this.selection).some(([key, value]) => room[key as keyof Selection] !== value)
     )
@@ -655,7 +718,7 @@ export class KartGame extends Component {
       this.roomPanel = new MultiplayerPanel(
         this.hud,
         client,
-        () => this.selection,
+        () => this.ownedSelection(this.selection),
         () => {
           this.controller.clear();
           this.audio.activate(this.muted);
@@ -667,6 +730,7 @@ export class KartGame extends Component {
           this.roomPanel!.root.active = false;
           this.enterGarage();
         },
+        (selection) => this.ownsSelection(selection),
       );
       const storage = sys.isBrowser ? sessionStorage : sys.localStorage;
       client.onSession = () => {
@@ -700,16 +764,19 @@ export class KartGame extends Component {
           this.roomPanel!.root.active = true;
           this.race.networked = true;
           this.controller.clear();
+          if (!this.ownsSelection(room)) this.rejectRoomSelection();
           return;
         }
+        const self = room.roster.findIndex((r) => r.id === client.selfId);
+        if (self < 0) return;
+        if (!this.ownsSelection(room.roster[self])) { this.rejectRoomSelection(); return; }
+        this.networkSelectionBlocked = false;
         if (room.raceId === this.networkRaceId) {
           if (this.race.loaded) client.send({ type: 'loaded', raceId: room.raceId });
           return;
         }
         this.networkRaceId = room.raceId;
         this.networkTick = -1;
-        const self = room.roster.findIndex((r) => r.id === client.selfId);
-        if (self < 0) return;
         this.networkIndexes = [self, ...room.roster.map((_, i) => i).filter((i) => i !== self)];
         this.selection = readSelection(JSON.stringify(room));
         this.home.hide();
@@ -829,7 +896,7 @@ export class KartGame extends Component {
       this.accumulator = 0;
       const snapshot = this.multiplayer!.snapshot;
       if (
-        this.race.loaded &&
+        !this.networkSelectionBlocked && this.race.loaded &&
         snapshot &&
         snapshot.raceId === this.networkRaceId &&
         snapshot.tick >= this.networkTick
@@ -847,7 +914,7 @@ export class KartGame extends Component {
         this.race.countdown = snapshot.countdown;
       }
       this.inputTime += dt;
-      if (this.inputTime >= 0.05 && online.phase === 'racing') {
+      if (!this.networkSelectionBlocked && this.inputTime >= 0.05 && online.phase === 'racing') {
         this.inputTime = 0;
         this.multiplayer!.send({
           type: 'input',
@@ -903,7 +970,7 @@ export class KartGame extends Component {
     this.itemsView?.update(this.race.items, this.race.time);
     const menuPage = this.home.root.active || this.settingsFromHome && this.hud.settingsVisible ? this.home.page : undefined;
     this.menuPreview?.update(menuPage,
-      this.camera, this.views[0].root, this.race.drivers[0].kart);
+      this.camera, this.views[0].root, this.race.drivers[0].kart, this.home.advanced);
     if (!menuPage) this.camera.update({ ...this.race.drivers[0].kart, ...this.renderPoses[0] }, Math.min(dt, 0.1));
     this.home.tick?.(dt);
     this.audio.update(this.race, this.muted);

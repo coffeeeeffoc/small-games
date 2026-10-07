@@ -71,7 +71,10 @@ export async function tapDesign(page, x, y) {
 }
 export async function tapHome(page, label, index = 0) {
   const buttons = await page.evaluate(() => __kart.snapshot().home.buttons);
-  const button = buttons.filter(button => button.label.startsWith(label))[index];
+  // Catalog regression tests address arrow order; runtime controls now expose
+  // descriptive labels so car, driver and route buttons are distinguishable.
+  const prefix = label === '›' ? '下一' : label === '‹' ? '上一' : label;
+  const button = buttons.filter(button => button.label.startsWith(prefix))[index];
   assert.ok(button?.enabled, `home button ${label} must be available`);
   const point = await designPoint(page, button.x + 480, 270 - button.y);
   try { await page.touchscreen.tap(point.x, point.y); }

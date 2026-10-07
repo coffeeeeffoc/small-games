@@ -65,6 +65,16 @@ export function equipItem(state, id) {
   if (!item || (state.equipment[id] ?? 0) >= (item.maxRank ?? 1)) return false;
   state.equipment[id] = (state.equipment[id] ?? 0) + 1;
   synchronizeMaximum(state, true);
+  // Deferred rewards may coexist with purchases; maxed options must not strand the queue.
+  const retained = [];
+  for (const pending of state.pendingRewards) {
+    pending.choices = pending.choices.filter(
+      (choice) => (state.equipment[choice] ?? 0) < (state.definition.equipment[choice].maxRank ?? 1),
+    );
+    if (pending.choices.length) retained.push(pending);
+    else restoreInk(state, state.definition.progression.fallbackInk, 'pickup');
+  }
+  state.pendingRewards.splice(0, state.pendingRewards.length, ...retained);
   state.stats.equipmentFound++;
   effect(state, 'gear', state.player.x, state.player.y, {
     text: `${item.name} +${state.equipment[id]}`,
@@ -77,17 +87,10 @@ export function chooseReward(state, itemId) {
   const pending = state.pendingRewards[0];
   if (!pending || !pending.choices.includes(itemId))
     return { ok: false, message: '请选择当前奖励中的装备' };
-  if (!equipItem(state, itemId)) return { ok: false, message: '该装备已达上限' };
+  if ((state.equipment[itemId] ?? 0) >= (state.definition.equipment[itemId].maxRank ?? 1))
+    return { ok: false, message: '该装备已达上限' };
   state.pendingRewards.shift();
+  equipItem(state, itemId);
   state.stats.rewardsChosen++;
-  // Multiple level-ups may queue together. Remove newly maxed options, preserving other choices.
-  for (const reward of state.pendingRewards)
-    reward.choices = reward.choices.filter(
-      (id) => (state.equipment[id] ?? 0) < (state.definition.equipment[id].maxRank ?? 1),
-    );
-  while (state.pendingRewards[0] && !state.pendingRewards[0].choices.length) {
-    state.pendingRewards.shift();
-    restoreInk(state, state.definition.progression.fallbackInk, 'pickup');
-  }
   return { ok: true, message: state.message };
 }

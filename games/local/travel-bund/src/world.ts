@@ -96,6 +96,8 @@ export function onWater(x: number, z: number, water: WorldData['water']) {
 export function onRiver(x: number, z: number, data: WorldData) {
   return onWater(x, z, data.water) || onWater(x, z, quayWater(data));
 }
+// Cover the kilometer-scale riverfront quickly by default (about 65 km/h).
+export const TRAVEL_SPEED = 18;
 export function movement(x: number, z: number, yaw: number, speed: number, dt: number): V3 {
   const length = Math.max(1, Math.hypot(x, z));
   return [
@@ -123,8 +125,6 @@ export type Input = {
   look: [number, number];
   active: boolean;
   sitting: boolean;
-  fast: boolean;
-  boost: boolean;
   jump: boolean;
   sensitivity: number;
 };
@@ -134,8 +134,6 @@ export const input: Input = {
   look: [0, 0],
   active: false,
   sitting: false,
-  fast: false,
-  boost: false,
   jump: false,
   sensitivity: 1,
 };

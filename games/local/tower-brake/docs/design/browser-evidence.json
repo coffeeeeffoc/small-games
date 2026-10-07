@@ -1,0 +1,21 @@
+{
+  "browser": "151.0.7922.173",
+  "viewport": "390 × 844",
+  "touch": true,
+  "checks": [
+    "Phone home, eight-route locked selection, help, sound and skins",
+    "Two real touch contacts: brake freezes ball while the other thumb rotates",
+    "Three uninterrupted passes recharge once; active brake rescues the next dangerous layer",
+    "Pause stops physics and brake timer; real drag inputs reach floor 12 and unlock route 2",
+    "Danger collision identifies floor 4; continuation returns to the safe checkpoint only once",
+    "Touch cancellation clears drag; losing window focus pauses safely",
+    "Small phone, landscape and desktop preserve play state and reachable controls",
+    "Production dev URL/storage priority and isolated route-8 practice",
+    "Production iframe runs the registered Shell touch scenario; child dev=0 overrides parent dev=1",
+    "Complete game enters and exits fullscreen",
+    "Fullscreen rejection keeps the normal viewport playable",
+    "Storage denied: home, controls and local play still work"
+  ],
+  "errors": [],
+  "passed": true
+}

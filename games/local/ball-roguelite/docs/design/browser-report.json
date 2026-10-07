@@ -1,0 +1,16 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Linux Chromium mobile touch emulation",
+  "checks": [
+    "phone home / unlock-gated level selection / cancelled touch",
+    "in-flight pause freezes positions / help return / reload restores pre-shot checkpoint",
+    "natural first-level victory / genuine three-card upgrade / next level unlock and saved progression",
+    "enter / exit full screen / resize without reset / landscape touch mapping / 320x568 / blur pause",
+    "normal endless descent loss / retry",
+    "production same-origin iframe actual-touch play / pause / home",
+    "production URL / storage / explicit-off / default-off developer mode and practice isolation",
+    "blocked storage still starts normally"
+  ],
+  "errors": [],
+  "passed": true
+}

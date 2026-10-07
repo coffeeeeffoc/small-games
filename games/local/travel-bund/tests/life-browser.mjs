@@ -51,22 +51,28 @@ try {
     });
     await page.goto(base + '?dev=1');
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
-    await expect(page.locator('.home-art img')).toBeVisible();
-    await page.waitForTimeout(500);
-    assert.deepEqual(homeLoads, [], 'Home must load neither WebGL code nor world/models');
-    assert.equal(await page.locator('canvas').count(), 0);
+    await expect(page.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
+    assert.equal(await page.locator('canvas').count(), 1, 'Home previews the actual tour');
+    assert(
+      homeLoads.some((url) => /world\.json/.test(url)),
+      'Home uses real world data',
+    );
     await page.evaluate(() => window.SmallGamesDev.setPanelHidden(true));
     await page.addStyleTag({ content: '.debug{display:none}' });
     await page.getByRole('button', { name: '游览设置' }).tap();
     await expect(page.getByRole('dialog')).toBeVisible();
-    await page.getByRole('combobox', {name:'画面精度'}).tap();
-    await page.screenshot({path:fileURLToPath(new URL(`settings-options-${viewport.width}.png`,output))});
+    await page.getByRole('combobox', { name: '画面精度' }).tap();
+    await page.screenshot({
+      path: fileURLToPath(new URL(`settings-options-${viewport.width}.png`, output)),
+    });
     await page.locator('[role="option"][value="' + '0' + '"]').tap();
     await page.getByRole('button', { name: '返回首页', exact: true }).tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
     await page.screenshot({ path: fileURLToPath(new URL(`home-${viewport.width}.png`, output)) });
     await page.locator('#enter-world').tap();
-    await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
+    await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
+      timeout: 120000,
+    });
     const read = () => page.evaluate(() => window.SmallGamesDev.inspect().game?.streetLife);
     await expect.poll(async () => Boolean((await read())?.blocks.length)).toBe(true);
     const start = await read();
@@ -81,16 +87,33 @@ try {
       'A real visitor walks, beyond a changing toast',
     );
     const cdp = await context.newCDPSession(page);
+    const logicalPoint = (x, y) =>
+      page.locator('main').evaluate(
+        (el, [x, y]) => {
+          const rect = el.getBoundingClientRect();
+          return el.dataset.rotated === 'true'
+            ? { x: rect.right - y * el.clientHeight, y: rect.top + x * el.clientWidth }
+            : { x: rect.left + x * el.clientWidth, y: rect.top + y * el.clientHeight };
+        },
+        [x, y],
+      );
+    const logicalDelta = (dx, dy) =>
+      page
+        .locator('main')
+        .evaluate(
+          (el, [dx, dy]) => (el.dataset.rotated === 'true' ? { x: -dy, y: dx } : { x: dx, y: dy }),
+          [dx, dy],
+        );
     async function swipe(dx, dy = 0) {
-      const x = viewport.width * 0.62,
-        y = viewport.height * 0.3;
+      const { x, y } = await logicalPoint(0.62, 0.3);
+      const delta = await logicalDelta(dx, dy);
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
         touchPoints: [{ id: 7, x, y }],
       });
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchMove',
-        touchPoints: [{ id: 7, x: x + dx, y: y + dy }],
+        touchPoints: [{ id: 7, x: x + delta.x, y: y + delta.y }],
       });
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await page.waitForTimeout(80);
@@ -101,10 +124,11 @@ try {
       const yaw = Math.atan2(x - p[0], z - p[2]),
         pitch = Math.atan2(p[1] + height - y, Math.hypot(x - p[0], z - p[2]));
       const delta = Math.atan2(Math.sin(scene.camera.yaw - yaw), Math.cos(scene.camera.yaw - yaw));
-      const dx = delta / 0.002,
-        dy = (scene.camera.pitch - pitch) / 0.002;
+      const dx = -delta / 0.002,
+        dy = -(scene.camera.pitch - pitch) / 0.002;
+      const logicalHeight = await page.locator('main').evaluate((el) => el.clientHeight);
       const n =
-        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.min(70, viewport.height * 0.18)) || 1;
+        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.min(70, logicalHeight * 0.18)) || 1;
       for (let i = 0; i < n; i++) await swipe(dx / n, dy / n);
       await page.waitForTimeout(400);
     }
@@ -114,10 +138,17 @@ try {
     await page.screenshot({
       path: fileURLToPath(new URL(`playing-${viewport.width}.png`, output)),
     });
-    const marker = await page.getByRole('button', {name:'江风小站',exact:true}).boundingBox();
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:9,x:marker.x+marker.width/2,y:marker.y+marker.height/2}]});
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
-    assert.equal(await page.getByRole('dialog').count(),0,'Cancelling a marker gesture must not open a gift dialog');
+    const marker = await page.getByRole('button', { name: '江风小站', exact: true }).boundingBox();
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ id: 9, x: marker.x + marker.width / 2, y: marker.y + marker.height / 2 }],
+    });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    assert.equal(
+      await page.getByRole('dialog').count(),
+      0,
+      'Cancelling a marker gesture must not open a gift dialog',
+    );
     await page.getByRole('button', { name: '江风小站', exact: true }).tap();
     await expect(page.getByRole('dialog', { name: '江风小站' })).toBeVisible();
     await page.screenshot({ path: fileURLToPath(new URL(`stall-${viewport.width}.png`, output)) });
@@ -132,7 +163,9 @@ try {
     await page.getByRole('button', { name: /一张外滩明信片/ }).tap();
     await page.getByRole('button', { name: '打开旅行手记' }).tap();
     await expect(page.locator('figure img')).toBeVisible();
-    await page.screenshot({path:fileURLToPath(new URL(`journal-${viewport.width}.png`,output))});
+    await page.screenshot({
+      path: fileURLToPath(new URL(`journal-${viewport.width}.png`, output)),
+    });
     await expect(page.getByText('一张外滩明信片', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: '返回漫游' }).tap();
     // Aim at the actual visible pigeon's current transform, then check its actual height.
@@ -163,9 +196,22 @@ try {
       finger = { id: 1, x: stick.x + stick.width / 2, y: stick.y + stick.height / 2 };
     const before = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger] });
-    finger.y -= 35;
+    const forward = await logicalDelta(0, -35);
+    finger.x += forward.x;
+    finger.y += forward.y;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [finger] });
-    await page.waitForTimeout(650);
+    await expect
+      .poll(
+        async () => {
+          const position = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
+          return Math.hypot(
+            Number(position.x) - Number(before.x),
+            Number(position.z) - Number(before.z),
+          );
+        },
+        { timeout: 45000 },
+      )
+      .toBeGreaterThan(0.3);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
     await expect(page.locator('main')).toHaveAttribute('data-speed', '0.00');
     const after = await page.locator('main').evaluate((el) => ({ ...el.dataset }));
@@ -191,7 +237,7 @@ try {
     assert.equal(bars[0].w, bars[1].w);
     assert.equal(bars[0].h, bars[1].h);
     assert.notEqual(bars[0].x, bars[1].x);
-    await page.getByRole('button', { name: '生活动画' }).tap();
+    await page.getByRole('switch', { name: '生活动画' }).tap();
     await page.getByRole('button', { name: '继续漫游' }).tap();
     const reduced = await read();
     await page.waitForTimeout(300);
@@ -200,46 +246,70 @@ try {
       reduced.visitors,
       'Reduced-motion visitors stay still',
     );
-    if(viewport.width === 390) {
-      const npc=(await read()).visitors.find(v=>v.id==='welcome/visitor/0');
-      const destination=[npc.matrix[12],.92,npc.matrix[14]];
-      await aim(destination,.82);
-      const finger={id:1,x:stick.x+stick.width/2,y:stick.y+stick.height/2};
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});
-      finger.y-=35;
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[finger]});
-      let closest=Infinity, captured=false;
-      for(let i=0;i<65;i++) {
+    if (viewport.width === 390) {
+      const npc = (await read()).visitors.find((v) => v.id === 'welcome/visitor/0');
+      const destination = [npc.matrix[12], 0.92, npc.matrix[14]];
+      await aim(destination, 0.82);
+      const finger = { id: 1, x: stick.x + stick.width / 2, y: stick.y + stick.height / 2 };
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger] });
+      const forward = await logicalDelta(0, -35);
+      finger.x += forward.x;
+      finger.y += forward.y;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [finger] });
+      let closest = Infinity,
+        captured = false;
+      for (let i = 0; i < 65; i++) {
         await page.waitForTimeout(100);
-        const sample=await page.evaluate(()=>({player:document.querySelector('main').dataset,colliders:window.SmallGamesDev.inspect().game.streetLife.colliders}));
-        const player={x:Number(sample.player.x),z:Number(sample.player.z)};
-        for(const body of sample.colliders) {
-          const gap=Math.hypot(body.position.x-player.x,body.position.z-player.z);
-          assert(gap > .53,`A player must not penetrate the visible visitor ${body.id}: ${gap} m`);
-          closest=Math.min(closest,gap);
+        const sample = await page.evaluate(() => ({
+          player: document.querySelector('main').dataset,
+          colliders: window.SmallGamesDev.inspect().game.streetLife.colliders,
+        }));
+        const player = { x: Number(sample.player.x), z: Number(sample.player.z) };
+        for (const body of sample.colliders) {
+          const gap = Math.hypot(body.position.x - player.x, body.position.z - player.z);
+          assert(
+            gap > 0.53,
+            `A player must not penetrate the visible visitor ${body.id}: ${gap} m`,
+          );
+          closest = Math.min(closest, gap);
         }
-        if(closest < .67 && !captured) {captured=true;await page.screenshot({path:fileURLToPath(new URL('visitor-collision.png',output))});}
+        if (closest < 0.67 && !captured) {
+          captured = true;
+          await page.screenshot({ path: fileURLToPath(new URL('visitor-collision.png', output)) });
+        }
       }
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
-      assert(closest < .67,`Touch walking actually meets a visible visitor: ${closest} m`);
-      checks.push(`Actual CDP touch walking contacts solid visitors at ${closest.toFixed(3)} m; 65 samples never overlap, including sliding around them.`);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+      assert(closest < 0.67, `Touch walking actually meets a visible visitor: ${closest} m`);
+      checks.push(
+        `Actual CDP touch walking contacts solid visitors at ${closest.toFixed(3)} m; 65 samples never overlap, including sliding around them.`,
+      );
     }
     await page.getByRole('button', { name: '暂停', exact: true }).tap();
-    await page.getByRole('button', { name: '光影时刻', exact: true }).tap();
+    await page.getByRole('button', { name: '夜色', exact: true }).tap();
     await page.getByRole('button', { name: '继续漫游' }).tap();
     await page.waitForTimeout(500);
     await page.screenshot({ path: fileURLToPath(new URL(`night-${viewport.width}.png`, output)) });
-    await page.getByRole('button',{name:'打开地图'}).tap();
-    await page.screenshot({path:fileURLToPath(new URL(`map-${viewport.width}.png`,output))});
-    await page.getByRole('button',{name:'返回漫游',exact:true}).tap();
+    await page.getByRole('button', { name: '打开地图' }).tap();
+    await page.screenshot({ path: fileURLToPath(new URL(`map-${viewport.width}.png`, output)) });
+    await page.getByRole('button', { name: '返回漫游', exact: true }).tap();
     await page.getByRole('button', { name: '返回首页', exact: true }).tap();
     await expect(page.locator('main')).toHaveAttribute('data-phase', 'intro');
-    assert.equal(await page.locator('canvas').count(), 0, 'Returning home unmounts WebGL');
+    assert.equal(await page.locator('canvas').count(), 1, 'Returning home keeps the same scene');
+    await page.waitForTimeout(300);
+    const homeStill = await read();
+    await page.waitForTimeout(300);
+    assert.deepEqual(
+      (await read()).visitors,
+      homeStill.visitors,
+      'Home preview pauses street simulation',
+    );
     await page.locator('#enter-world').tap();
-    await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', { timeout: 120000 });
+    await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
+      timeout: 120000,
+    });
     await expect.poll(async () => (await read())?.colliders.length || 0).toBeGreaterThan(0);
     await page.getByRole('button', { name: '暂停', exact: true }).tap();
-    await page.getByRole('button', { name: '行人与鸽子' }).tap();
+    await page.getByRole('switch', { name: '行人与鸽子' }).tap();
     await page.getByRole('button', { name: '继续漫游' }).tap();
     await expect.poll(async () => (await read())?.colliders.length).toBe(0);
     await page.reload();
@@ -301,7 +371,7 @@ try {
         samples,
         errors,
         environment:
-          'Windows Chrome hardware WebGL with emulated mobile touch; physical phone and Safari not verified',
+          'Full production scene in headless Chromium with emulated mobile touch; physical phone and Safari not verified, software rendering cannot establish mobile GPU performance',
       },
       null,
       2,

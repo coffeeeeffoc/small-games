@@ -1,0 +1,70 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "productionShell": true,
+  "productionGame": true,
+  "realScene": true,
+  "immersionStyle": "game display adapter marks owning iframe and injects parent fullscreen styles",
+  "checks": [
+    {
+      "name": "entry-fullscreen-hides-shell-nav-and-fills-viewport",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844,
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "navDisplay": "none",
+      "fullscreenTag": "MAIN",
+      "owningIframeMarker": true
+    },
+    {
+      "name": "actual-3d-scene-ready-and-landscape",
+      "physicalWidth": 390,
+      "physicalHeight": 844,
+      "logicalWidth": 844,
+      "logicalHeight": 390,
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "rotated": "true"
+    },
+    {
+      "name": "real-map-and-settings-touch-exit-restores-nav-and-preserves-canvas-position",
+      "before": {
+        "position": [
+          "-377.00",
+          "1.77",
+          "37.00",
+          "-2.900"
+        ],
+        "zoom": "1.000",
+        "phase": "paused",
+        "visits": null
+      },
+      "after": {
+        "position": [
+          "-377.00",
+          "1.77",
+          "37.00",
+          "-2.900"
+        ],
+        "zoom": "1.000",
+        "phase": "paused",
+        "visits": null
+      },
+      "restoredLayout": {
+        "x": 0,
+        "y": 81,
+        "width": 390,
+        "height": 763,
+        "navHeight": 81,
+        "navDisplay": "flex"
+      }
+    }
+  ],
+  "errors": [],
+  "failedRequests": [],
+  "passed": true
+}

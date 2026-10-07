@@ -11,9 +11,11 @@ it('filters both catalog views and keeps the search when returning from a game',
   const root = createRoot(container);
   const titles = () => [...container.querySelectorAll('article h2')].map((el) => el.textContent);
   async function click(label: string) {
-    const button = [...container.querySelectorAll('button')].find((el) => el.textContent === label);
-    expect(button).toBeDefined();
-    await act(async () => button!.click());
+    const control = [
+      ...container.querySelectorAll<HTMLButtonElement | HTMLAnchorElement>('button, a'),
+    ].find((el) => el.textContent === label);
+    expect(control).toBeDefined();
+    await act(async () => control!.click());
   }
   async function search(value: string) {
     const input = container.querySelector<HTMLInputElement>('input[type="search"]')!;

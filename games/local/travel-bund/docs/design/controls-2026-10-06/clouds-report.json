@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "initial": {
+        "time": 0.30000000000000004,
+        "cloudCount": 12,
+        "cloudTriangles": 24,
+        "cloudDrawCalls": 1,
+        "atlasSize": [
+          512,
+          256
+        ],
+        "night": false,
+        "motion": true,
+        "cloudColour": "ffffff",
+        "opacity": 0.94,
+        "projection": {
+          "fov": 68,
+          "aspect": 2.164102564102564,
+          "matrix": [
+            0.6850696418483041,
+            0,
+            0,
+            0,
+            0,
+            1.48256096851274,
+            0,
+            0,
+            0,
+            0,
+            -1.0000416675347403,
+            -1,
+            0,
+            0,
+            -0.5000104168836851,
+            0
+          ]
+        }
+      },
+      "zoomed": {
+        "fov": 43.28335598689792,
+        "aspect": 2.164102564102564,
+        "matrix": [
+          1.1646184406839835,
+          0,
+          0,
+          0,
+          0,
+          2.5203537536853386,
+          0,
+          0,
+          0,
+          0,
+          -1.0000416675347403,
+          -1,
+          0,
+          0,
+          -0.5000104168836851,
+          0
+        ]
+      },
+      "checks": [
+        "full production cloud shader",
+        "touch pinch changes real FOV and projection matrix",
+        "pause freezes weather",
+        "reduced motion freezes weather",
+        "night tint and opacity"
+      ]
+    }
+  ],
+  "errors": [],
+  "environment": "Chromium ANGLE SwiftShader; desktop touch emulation; no physical-device acceptance"
+}

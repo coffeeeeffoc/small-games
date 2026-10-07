@@ -8,7 +8,7 @@
     "start": "node server.mjs",
     "build": "node build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node ../../../scripts/test-retreat-rally.mjs"
+    "test:browser": "node tests/browser.mjs"
   },
   "coffeeeeffoc": {
     "role": "game"

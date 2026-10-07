@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { pathToFileURL } from 'node:url';
+import { chromium, browserOptions, continueGame, pauseGame } from './browser-helpers.mjs';
 import { restoreProgress, findSpelling } from '../engine.js';
 
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : '@playwright/test');
-const base = process.env.GAME_URL || 'http://127.0.0.1:4319/';
+const base = process.env.GAME_URL || 'http://127.0.0.1:4175/';
 const invite = new URL(base); invite.search = '?daily=2026-10-01&v=1&token=private&answers=spoiler';
-const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/usr/bin/chromium', headless: true });
+const browser = await chromium.launch(browserOptions);
 const errors = [];
 const contexts = [];
 async function context(options = {}) {
@@ -23,6 +22,7 @@ try {
   const first = await context({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
   const page = await first.newPage();
   await page.goto(base);
+  await continueGame(page);
   await page.locator('.tile[aria-disabled="false"]').first().tap();
   const free = await page.evaluate(() => localStorage.getItem('ciyu-progress'));
   const freeBoard = await board(page);
@@ -34,6 +34,7 @@ try {
   const friend = await second.newPage();
   await friend.goto(invite.href);
   assert.deepEqual(await board(friend), initial, 'another browser starts the identical theme, tiles and active meaning');
+  await pauseGame(page);
   await page.locator('#daily-share').tap();
   const shared = new URL(await page.locator('#challenge-link').inputValue());
   assert.deepEqual([...shared.searchParams.keys()], ['daily', 'v']);
@@ -41,13 +42,13 @@ try {
   assert.ok(!/private|spoiler/.test(shared.href));
   await page.locator('#copy-challenge').tap();
   assert.match(await page.locator('#share-status').innerText(), /请长按/);
-  await page.locator('#share-dialog [data-close]').tap();
-  await page.locator('#daily-start').tap();
+  await page.locator('#share-dialog [data-close]').last().tap();
+  await continueGame(page);
   await page.locator('.tile[aria-disabled="false"]').first().tap();
   const partial = await board(page);
   await page.reload();
   assert.deepEqual(await board(page), partial, 'daily reload retains the unfinished answer and exact positions');
-  await page.locator('#daily-start').tap();
+  await continueGame(page);
   await page.locator('#clear-button').tap();
   while ((await daily(page)).completed.length < 6) {
     const record = await daily(page);
@@ -80,6 +81,7 @@ try {
   await canceled.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: () => Promise.reject(new DOMException('cancel', 'AbortError')) }));
   const cancelPage = await canceled.newPage();
   await cancelPage.goto(invite.href);
+  await pauseGame(cancelPage);
   await cancelPage.locator('#daily-share').click();
   assert.match(await cancelPage.locator('#feedback').innerText(), /取消分享/);
   assert.equal(await cancelPage.locator('#share-dialog').isVisible(), false, 'canceling native share never pretends a link was copied');

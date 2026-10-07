@@ -1,0 +1,62 @@
+{
+  "environment": "Chromium touch Canvas + wx callback SDK shim loading actual built CJS and resource-package entries; not official SDK/device",
+  "artifactSha256": "ea47d925d1858342cb6eebdbd4f175f0461279241a06d66f6014ddd010e47f85",
+  "viewport": [
+    390,
+    844
+  ],
+  "unchangedOriginalImagesVerified": 33,
+  "actualPhotosDrawn": [
+    "angkor",
+    "dunhuang",
+    "angkor",
+    "hangzhou-song",
+    "macau",
+    "quanzhou"
+  ],
+  "photoColors": [
+    17561,
+    15916,
+    16310,
+    17409,
+    18444
+  ],
+  "failureInjected": true,
+  "retrySucceeded": true,
+  "packageSuccessBeforeImageRead": true,
+  "actualNativeImageIdentity": true,
+  "listenersDisposed": true,
+  "pageErrors": [],
+  "physicalDeviceVerified": false,
+  "packageCalls": [
+    "history-images-0",
+    "history-images-0",
+    "history-images-1",
+    "history-images-2",
+    "history-images-3",
+    "history-images-4"
+  ],
+  "executed": [
+    "history-images-0",
+    "history-images-1",
+    "history-images-2",
+    "history-images-3",
+    "history-images-4"
+  ],
+  "sources": [
+    "history-images-0/assets/angkor.webp",
+    "history-images-1/assets/dunhuang.webp",
+    "history-images-0/assets/angkor.webp",
+    "history-images-2/assets/hangzhou-song.webp",
+    "history-images-3/assets/macau.webp",
+    "history-images-4/assets/quanzhou.webp"
+  ],
+  "decoded": [
+    "/history-images-0/assets/angkor.webp",
+    "/history-images-1/assets/dunhuang.webp",
+    "/history-images-0/assets/angkor.webp",
+    "/history-images-2/assets/hangzhou-song.webp",
+    "/history-images-3/assets/macau.webp",
+    "/history-images-4/assets/quanzhou.webp"
+  ]
+}

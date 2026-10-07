@@ -80,10 +80,15 @@ export async function buildCompetition({
           ? path.join(root, 'apps/shell-minigame/dist', platform, game)
           : path.join(root, selected.directory, 'dist');
       const streetNative = native && game === 'cops-robbers-realtime';
+      const lettersNative = native && game === 'letters-words2';
       const module = path
         .join(
           root,
-          streetNative ? 'games/local/cops-robbers-realtime/src' : 'platforms/competition',
+          streetNative
+            ? 'games/local/cops-robbers-realtime/src'
+            : lettersNative
+              ? selected.directory
+              : 'platforms/competition',
           native ? 'native.js' : 'h5.js',
         )
         .replaceAll('\\', '/');
@@ -92,7 +97,9 @@ export async function buildCompetition({
       const source = native
         ? streetNative
           ? `import{startNativeStreetGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeStreetGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
-          : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
+          : lettersNative
+            ? `import{startNativeLettersGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeLettersGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
+            : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
         : `globalThis.__COMPETITION_CONFIG__=Object.assign(${JSON.stringify(configValue)},globalThis.__COMPETITION_CONFIG__||{});import{mountCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};mountCompetition(${JSON.stringify(game)},createRenderer);`;
       const entry = path.join(root, '.scratch/competition', `${platform}-${game}.js`);
       await mkdir(path.dirname(entry), { recursive: true });
@@ -124,6 +131,10 @@ export async function buildCompetition({
             path.join(root, selected.directory, 'src/assets/home-city.png'),
             path.join(outDir, 'home-city.png'),
           );
+        if (lettersNative)
+          await cp(path.join(root, selected.directory, 'assets'), path.join(outDir, 'assets'), {
+            recursive: true,
+          });
         if (game === 'vibeJam-myself-history-guess')
           await cp(
             path.join(root, selected.directory, 'public/assets/competition'),
@@ -155,7 +166,9 @@ export async function buildCompetition({
               rendering: 'native Canvas 2D',
               gameplayScope: streetNative
                 ? 'solo campaign and server-authoritative friend competition'
-                : 'server-authoritative friend competition only',
+                : lettersNative
+                  ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
+                  : 'server-authoritative friend competition only',
               nativeRuntimeVerified: false,
               platformLoginVerified: false,
               builtAt: new Date().toISOString(),

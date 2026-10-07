@@ -1,0 +1,139 @@
+{
+  "passed": true,
+  "terminalExitCode": 0,
+  "artifactSourceCommits": ["dcf778794c36562634a969b8b8975889c4001d0c"],
+  "runnerExecutedSHA": "973eee86a497263f801a3f91ec3b724d1e5c2ed330cdc5ee412a4d6599bfe63f",
+  "runnerFinalSHA": "16a6a0a4834fd4d48c1f8a3cd8321403f6c5855a2acd655472d55caa6dc3d719",
+  "sourceHEADAtSummary": "97f73dfc1aee67aff35b3359ce2b0426d04c870c",
+  "platforms": [
+    {
+      "platform": "alipay",
+      "artifactSHA": "3b83bb26e6786691d6a0328f3b461c448f2af1fda247ab21850616f78849b204",
+      "triangles": 838182,
+      "passed": true
+    },
+    {
+      "platform": "bilibili",
+      "artifactSHA": "8146321d3a266d919a597f0806a70937c737b5212b8f37f1f085749d30faf819",
+      "triangles": 785774,
+      "passed": true
+    },
+    {
+      "platform": "douyin",
+      "artifactSHA": "50bc5e240e646caa569c5bfd36be113e96422997036c75433a975a33291e584e",
+      "triangles": 838182,
+      "passed": true
+    },
+    {
+      "platform": "kuaishou",
+      "artifactSHA": "d09032bf49c67ce12bc3da739a9bec6565abb66793c986785e5769edcf7900d1",
+      "triangles": 785774,
+      "passed": true
+    },
+    {
+      "platform": "wechat",
+      "artifactSHA": "4d5c1459b9e4640c9a17b4295df286f22b1f1afd871d0f4b0032b3bdf80d1a92",
+      "triangles": 837162,
+      "passed": true
+    }
+  ],
+  "scope": "actual CJS game.js, real production normalization/resources bridge and complete original Scene/real WASM/GL2 in local platform-shaped SDK fixture; not official platform/tool/device acceptance",
+  "browserClosed": true,
+  "serverClosed": true,
+  "finalWorkerASTEquivalentProof": "final-runner-worker-equivalence.json",
+  "tests": "41/41 node:test and Prettier check PASS",
+  "generatedAt": "2026-10-06T23:04:30.268942+00:00",
+  "notOfficialPlatformAcceptance": true,
+  "evidenceFiles": [
+    {
+      "path": "cjs/final-travel-alipay-cjs-worker.json",
+      "bytes": 17109,
+      "sha256": "223b0da48e9df71e9299c72a4a7f0b2bc50c4677f9fb05fe0e2b7f98689b48fe"
+    },
+    {
+      "path": "cjs/final-travel-alipay-cjs-worker.png",
+      "bytes": 230559,
+      "sha256": "5571d83cc3fcb9e3b439a594af74b579b9fb93d29f28bec7c99c526800b62262"
+    },
+    {
+      "path": "cjs/final-travel-bilibili-cjs-worker.json",
+      "bytes": 18963,
+      "sha256": "6be9d3ae9e5f0607c221b2783f95eaa27f9f4ffefae8d32d179a60affb730879"
+    },
+    {
+      "path": "cjs/final-travel-bilibili-cjs-worker.png",
+      "bytes": 230581,
+      "sha256": "2687dc3585e50ce50ce9ba77525491b1d67503e2b79697ad9125066d3cb5a71e"
+    },
+    {
+      "path": "cjs/final-travel-douyin-cjs-worker.json",
+      "bytes": 19597,
+      "sha256": "b5d4ae872486518e0e7a1d517f72d663ac2fb6e9675eb0a8e3c96038edebe875"
+    },
+    {
+      "path": "cjs/final-travel-douyin-cjs-worker.png",
+      "bytes": 230547,
+      "sha256": "f40bf8e7c16b45a1eb4d10ed7d6bc24d18589d31119db7e6e65d3c87ac6df52b"
+    },
+    {
+      "path": "cjs/final-travel-kuaishou-cjs-worker.json",
+      "bytes": 18249,
+      "sha256": "65a6ed9723c3caba87d9e7248d6aa019c116ee64249380d73f97421e89da207b"
+    },
+    {
+      "path": "cjs/final-travel-kuaishou-cjs-worker.png",
+      "bytes": 230512,
+      "sha256": "2aebd858dd1204070244d6a8849fca64eb9ee06c5deb4a748137551fd858731a"
+    },
+    {
+      "path": "cjs/final-travel-wechat-cjs-worker.json",
+      "bytes": 18665,
+      "sha256": "2f93c8a60603c0226e84b5f50161ea2f466cfe312c28bca6b0e6f10b752da064"
+    },
+    {
+      "path": "cjs/final-travel-wechat-cjs-worker.png",
+      "bytes": 230608,
+      "sha256": "ad9c8a4a8d3e4eabfb2bd4e42dc166ca9bf1dccb389137b08949c533420e241b"
+    },
+    {
+      "path": "evidence/worker-no-dom-playing.png",
+      "bytes": 187628,
+      "sha256": "474ef13a3f5c08902193c761cf8d8abcf265fe60e126d2ea58ccab58e7e08ca9"
+    },
+    {
+      "path": "evidence/worker-no-dom-report.json",
+      "bytes": 4150,
+      "sha256": "562dab9351151e9fb057e900c45c12f0296867216ff6ac367cfc31d8b91b750e"
+    },
+    {
+      "path": "final-contract/contracts-report.json",
+      "bytes": 622,
+      "sha256": "49613ab2114595eeafc292b14437adebb9dabdaf282e75fb56a4de6f26463939"
+    },
+    {
+      "path": "final-runner-worker-equivalence.json",
+      "bytes": 395,
+      "sha256": "17553f1c0af85dd1e8cfbbf19f80d7cbbdcb6fc4468498068ef738c3ba428c9f"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 1673,
+      "sha256": "bf1dd2adee26ce1823343bd12d99e523387947b7066c9798e2cb0830e9f5097c"
+    },
+    {
+      "path": "work/assets/life/manifest.json",
+      "bytes": 383,
+      "sha256": "7d86b44c001504dd2d3752c819c4b2a1f7144db1f7fdb16320f7bcd7773b7f7d"
+    },
+    {
+      "path": "work/assets/native-assets-manifest.json",
+      "bytes": 91615,
+      "sha256": "4610ec3b88a6d001512c19ec594fece405dcba85053890fdbd58f31f882fd7b3"
+    },
+    {
+      "path": "work/bundle-metafile.json",
+      "bytes": 38727,
+      "sha256": "53863a31c43c2ac21d70117e37aeaa0a872e0269bd00450e91d44121f7e53874"
+    }
+  ]
+}

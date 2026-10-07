@@ -28,6 +28,19 @@ async function center(page, selector) {
   assert.ok(bounds, `Missing visible control: ${selector}`);
   return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 }
+async function logicalPoint(page, selector, dx, dy) {
+  return page.locator(selector).evaluate(
+    (element, { dx, dy }) => {
+      const rect = element.getBoundingClientRect();
+      const rotated = document.querySelector('#game-root').dataset.rotated === 'true';
+      return {
+        x: rect.x + rect.width / 2 + (rotated ? -dy : dx),
+        y: rect.y + rect.height / 2 + (rotated ? dx : dy),
+      };
+    },
+    { dx, dy },
+  );
+}
 async function checkPauseIcon(page) {
   const bars = await page.locator('#pause svg rect').evaluateAll((nodes) =>
     nodes.map((node) => ({
@@ -205,8 +218,11 @@ class Player {
       my = length ? dy / length : 0;
     if (this.mobile) {
       if (length) {
-        if (!this.touch.points.has(1)) await this.touch.down(1, this.stick);
-        await this.touch.move(1, { x: this.stick.x + mx * 38, y: this.stick.y + my * 38 });
+        if (!this.touch.points.has(1)) {
+          this.stick = await center(this.page, '#joystick');
+          await this.touch.down(1, this.stick);
+        }
+        await this.touch.move(1, await logicalPoint(this.page, '#joystick', mx * 38, my * 38));
       } else if (this.touch.points.has(1)) await this.touch.up(1);
       if (shoot && !this.touch.points.has(2)) await this.touch.down(2, this.fire);
       if (!shoot && this.touch.points.has(2)) await this.touch.up(2);
@@ -390,8 +406,17 @@ class Player {
   async pickupAll() {
     const state = await snapshot(this.page);
     for (const pickup of state.pickups) {
-      if (pickup.source === 'self') continue;
+      if (!['gear', 'seal', 'ink'].includes(pickup.kind)) continue;
       await this.moveTo(pickup, { radius: 20 });
+      if (pickup.kind === 'gear') {
+        const point = await project(this.page, pickup.x, pickup.y);
+        if (this.mobile) await this.page.touchscreen.tap(point.x, point.y);
+        else await this.page.mouse.click(point.x, point.y);
+        await this.page.waitForFunction(
+          (id) => !window.__inkGame.snapshot().pickups.some((item) => item.id === id),
+          pickup.id,
+        );
+      }
       await this.handleRewards?.();
     }
     await sleep(this.page, 300);
@@ -408,6 +433,7 @@ export {
   sleep,
   fitsViewport,
   center,
+  logicalPoint,
   checkPauseIcon,
   clearSegment,
   waypoint,

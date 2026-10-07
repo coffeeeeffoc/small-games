@@ -5,7 +5,17 @@ import { defaultSelection } from '../assets/scripts/Selection.ts';
 import { RaceManager } from '../assets/scripts/RaceManager.ts';
 import { kartChallengeQuery, readKartChallenge } from '../assets/scripts/RouteChallenges.ts';
 import { Career } from '../assets/scripts/Career.ts';
-class SceneNode { active = true; addChild() {} destroy() {} }
+class SceneNode {
+  active = true; children: SceneNode[] = []; parent?: SceneNode;
+  addChild(node: SceneNode) { node.parent = this; this.children.push(node); }
+  setSiblingIndex(index: number) {
+    if (!this.parent) return;
+    const siblings = this.parent.children;
+    siblings.splice(siblings.indexOf(this), 1);
+    siblings.splice(index, 0, this);
+  }
+  destroy() {}
+}
 class Color { fromHEX() { return this; } }
 const cc = { _decorator: { ccclass: () => (type: any) => type },
   Node: SceneNode, Rect: class {}, Vec3: class {}, UITransform: class {}, Color, Component: class { node = new SceneNode(); isValid = true; },
@@ -20,6 +30,11 @@ const visual = new Map([
   ...['ItemsView', 'ChaseCamera', 'HUD', 'HomePanel', 'MenuPreview', 'KartController', 'AudioFeedback', 'MultiplayerPanel'].map((name) =>
     ['./' + name, `export class ${name} { ready = Promise.resolve(); }`] as [string, string]),
 ]);
+visual.set('./MultiplayerPanel', `export class MultiplayerPanel {
+  root = { active: false };
+  constructor(hud, client, selection, clear, leave, canUse) { this.selection = selection; this.canUse = canUse; }
+  refresh() {}
+}`);
 (globalThis as any).__kartChallengeCC = cc;
 const hooks = registerHooks({
   resolve(id, context, next) {
@@ -45,13 +60,191 @@ finally { hooks.deregister(); delete (globalThis as any).__kartChallengeCC; }
 const query = Object.fromEntries(new URLSearchParams(kartChallengeQuery({ ...defaultSelection, route: 'city' }, 12345, 150)));
 function garage() {
   const g = new KartGame();
-  g.hud = { challengeNotice: '' };
+  const root = new SceneNode(), settings = new SceneNode(); root.addChild(settings);
+  g.hud = { challengeNotice: '', root, settings };
   g.camera = { camera: {} };
   g.career = new Career(cc.sys.localStorage);
-  g.home = { root: { active: false }, show() {}, hide() {} };
+  const home = new SceneNode(); home.active = false; root.addChild(home);
+  g.home = { root: home, page: 'home', inputEnabled: true,
+    setInputEnabled(enabled: boolean) { this.inputEnabled = enabled; },
+    show(page = 'home') { this.page = page; this.root.active = true; }, hide() { this.root.active = false; } };
+  g.controller = { clear() {} };
+  g.audio = { activate() {} };
   g.raceRewardId = 'test-race';
   return g;
 }
+
+test('locked vehicles and drivers are preview-only at every solo race entry, including shared challenges', () => {
+  for (const field of ['vehicle', 'driver'] as const) {
+    const g = garage();
+    g.home.show('setup'); g.race.loaded = true;
+    g.selection[field] = field === 'vehicle' ? 'formula' : 'champion';
+    g.activeChallenge = readKartChallenge(query);
+    const original = g.race, version = g.loadVersion;
+    g.prepareRace();
+    assert.equal(g.home.root.active, true);
+    assert.equal(g.race, original);
+    assert.match(g.setupNotice, /尚未解锁/);
+    assert.equal(g.loadSelection(true), false);
+    assert.equal(g.loadVersion, version, 'reject before unloading the preview or replacing the race');
+    g.home.hide(); g.hud.staged = true;
+    g.startRace();
+    assert.equal(g.race.phase, 'ready', 'start/Enter cannot bypass ownership');
+    g.home.show('setup'); g.restart();
+    assert.equal(g.home.root.active, true, 'retry cannot hide the menu after rejected preparation');
+    assert.equal(g.race, original);
+  }
+});
+
+test('room preparation and direct network assembly cannot use locked local cosmetics', () => {
+  for (const field of ['vehicle', 'driver'] as const) {
+    const g = garage(), sent: unknown[] = [];
+    const locked = { ...defaultSelection, [field]: field === 'vehicle' ? 'formula' : 'champion' };
+    const room = { ...locked, code: 'ABCD1234', phase: 'lobby', revision: 3,
+      seed: 88, raceId: 1, roster: [{ id: 'you', name: 'YOU', ...locked }] };
+    g.selection = { ...locked }; g.race.loaded = true; g.networkIndexes = [0];
+    g.multiplayer = { room, send: message => sent.push(message) };
+    g.roomPanel = { root: { active: false }, refresh() {} };
+    g.markPrepared();
+    assert.deepEqual(sent, []); assert.equal(g.networkSelectionBlocked, true);
+    assert.equal(g.roomPanel.root.active, true); assert.match(g.multiplayer.status, /未解锁.*退出后解锁/);
+    const version = g.loadVersion, race = g.race;
+    assert.equal(g.loadSelection(false, false, room), false);
+    assert.equal(g.loadVersion, version); assert.equal(g.race, race, 'reject before replacing the local preview');
+    assert.deepEqual(sent, [], 'a refused room never announces loaded');
+
+    g.career.profile.owned.push(`${field}:${locked[field]}`);
+    g.markPrepared();
+    assert.equal(g.networkSelectionBlocked, false);
+    assert.deepEqual(sent, [{ type: 'prepared', revision: 3 }]);
+    g.markPrepared(); assert.equal(sent.length, 1);
+  }
+});
+
+test('room callbacks use owned entry cosmetics and reject locked self roster before loading or duplicate acknowledgements', () => {
+  const originalLoad = (cc.resources as any).load;
+  (cc.resources as any).load = (_name, _type, done) => done(null, { json: { serverUrl: 'wss://kart.test' } });
+  try {
+    const g = garage(); g.selection.vehicle = 'formula'; g.setupMultiplayer();
+    assert.equal(g.roomPanel.selection().vehicle, 'classic-kart', 'entry cannot inherit a locked setup preview');
+    assert.equal(g.roomPanel.canUse(g.selection), false);
+    const sent: unknown[] = [], loads: unknown[] = [];
+    const client = g.multiplayer; client.selfId = 'you'; client.send = message => sent.push(message);
+    g.race.loaded = true; g.networkRaceId = 7;
+    const room = { ...defaultSelection, code: 'ABCD1234', phase: 'loading', raceId: 7, seed: 88,
+      roster: [{ id: 'you', name: 'YOU', vehicle: 'formula', driver: 'rookie' }] };
+    client.room = room;
+    g.loadSelection = (...args) => { loads.push(args); return true; };
+    client.onRoom(room);
+    assert.deepEqual(loads, []); assert.deepEqual(sent, []);
+    assert.equal(g.roomPanel.root.active, true); assert.equal(g.networkSelectionBlocked, true);
+    assert.match(client.status, /房主换车/);
+    g.networkRaceId = 0;
+    room.roster[0].vehicle = 'classic-kart'; client.onRoom(room);
+    assert.equal(g.networkSelectionBlocked, false);
+    assert.equal(g.roomPanel.root.active, false);
+    assert.deepEqual(loads, [[false, false, room]], 'an owned roster follows the existing room assembly path');
+  } finally { (cc.resources as any).load = originalLoad; }
+});
+
+test('a late asset completion cannot acknowledge loading after a room ownership rejection', async () => {
+  const g = garage(), sent: unknown[] = [];
+  const room = { ...defaultSelection, code: 'ABCD1234', phase: 'loading', raceId: 7, seed: 88,
+    roster: [{ id: 'you', name: 'YOU', ...defaultSelection }] };
+  g.multiplayer = { room, send: message => sent.push(message) };
+  g.roomPanel = { root: { active: false }, refresh() {} };
+  g.networkIndexes = [0];
+  assert.equal(g.loadSelection(false, false, room), true);
+  g.rejectRoomSelection();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(g.race.loaded, false);
+  assert.deepEqual(sent, []);
+  assert.equal(g.roomPanel.root.active, true);
+});
+
+test('shared challenges fall back to equipped cosmetics but retain route, mode, seed and tuning', async () => {
+  for (const deferred of [false, true]) {
+    const g = garage();
+    g.career.profile.owned.push('vehicle:electric'); g.career.profile.equipped.vehicle = 'electric';
+    const parts = { engine: 2, grip: 3, nitro: 1 };
+    const locked = { ...defaultSelection, theme: 'glacier', route: 'city', vehicle: 'formula', driver: 'champion' };
+    const shared = Object.fromEntries(new URLSearchParams(kartChallengeQuery(locked, 100, 42, 'sprint', parts)));
+    if (deferred) g.race.phase = 'racing';
+    g.receiveChallenge(shared);
+    if (deferred) g.enterGarage();
+    await Promise.resolve();
+    assert.deepEqual(g.selection, { ...locked, vehicle: 'electric', driver: 'rookie' });
+    assert.deepEqual(g.activeChallenge.selection, g.selection);
+    assert.equal(g.seed, 100); assert.equal(g.mode, 'sprint');
+    assert.deepEqual(g.race.upgrades, parts);
+    assert.equal(g.loadSelection(true), true);
+    assert.equal(g.race.phase, 'ready');
+    assert.equal(g.career.profile.owned.includes('vehicle:formula'), false);
+  }
+});
+
+test('browsing persists route choices using equipped cosmetics and cannot equip a shop preview', () => {
+  const saved = new Map<string, string>(), originalStore = cc.sys.localStorage;
+  cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => { saved.set(key, value); } };
+  try {
+    const g = garage(); g.loadSelection = () => true;
+    g.home.show('shop'); g.race.loaded = true;
+    g.career.profile.owned.push('vehicle:electric');
+    g.preview({ vehicle: 'electric', decoration: 'halo', pet: 'star-bot' });
+    g.choose('route', 1);
+    assert.deepEqual(JSON.parse(saved.get('kart-selection-v1')!), { ...g.selection, vehicle: 'classic-kart', driver: 'rookie' });
+    g.prepareRace();
+    assert.equal(g.career.profile.equipped.vehicle, 'classic-kart');
+    assert.equal(saved.has('kart-career-v1'), false);
+    g.equip();
+    assert.equal(g.selection.vehicle, 'classic-kart');
+    assert.equal(g.previewEquipment, undefined);
+  } finally { cc.sys.localStorage = originalStore; }
+});
+
+test('full race assembly ignores temporary decoration and pet previews', () => {
+  const g = garage(); g.previewEquipment = { decoration: 'halo', pet: 'star-bot' };
+  g.loadSelection(true);
+  assert.equal(g.views[0].equipment.decoration, 'none');
+  assert.equal(g.views[0].equipment.pet, 'none');
+});
+
+test('career goals lead to safe setup with unvisited routes or at least one championship rival', () => {
+  for (const stat of ['races', 'wins', 'routes']) {
+    const g = garage(); let loads = 0;
+    g.loadSelection = (fullRace = false) => { loads++; assert.equal(fullRace, false); };
+    g.botCount = 0; g.home.show('career');
+    g.career.profile.routes = ['seaside', 'city'];
+    g.selection.vehicle = 'formula'; g.previewEquipment = { decoration: 'halo', pet: 'star-bot' };
+    g.activeChallenge = readKartChallenge(query);
+    g.challenge(stat);
+    assert.equal(g.home.page, 'setup'); assert.equal(g.home.root.active, true);
+    assert.equal(g.race.phase, 'ready'); assert.equal(loads, 1);
+    assert.equal(g.selection.vehicle, 'classic-kart'); assert.equal(g.previewEquipment, undefined);
+    assert.equal(g.activeChallenge, undefined);
+    if (stat === 'wins') assert.equal(g.botCount, 1);
+    if (stat === 'routes') { assert.equal(g.selection.route, 'desert'); assert.equal(g.selection.theme, 'desert'); }
+  }
+});
+
+test('settings retain the menu background, block actions and restore the same page, then resume a paused race', () => {
+  const g = garage(); g.home.show('setup'); g.home.advanced = true;
+  const selection = { ...g.selection }, bots = g.botCount;
+  g.toggleSettings();
+  assert.equal(g.home.root.active, true);
+  assert.equal(g.home.inputEnabled, false);
+  assert.equal(g.hud.root.children.at(-1), g.hud.settings);
+  g.choose('route', 1); g.preview({ vehicle: 'formula' }); g.setBots(0, true); g.challenge('routes');
+  g.race.loaded = true; g.prepareRace();
+  assert.deepEqual(g.selection, selection); assert.equal(g.botCount, bots);
+  assert.equal(g.race.phase, 'ready');
+  g.toggleSettings();
+  assert.equal(g.home.inputEnabled, true); assert.equal(g.home.page, 'setup'); assert.equal(g.home.advanced, true);
+  assert.equal(g.settingsFromHome, false);
+  g.home.hide(); g.race.phase = 'racing'; g.toggleSettings();
+  assert.equal(g.race.phase, 'paused'); g.toggleSettings(); assert.equal(g.race.phase, 'racing');
+  assert.equal(g.home.root.active, false);
+});
 
 test('all eight grid slots copy player equipment or sample the full random bot catalog before start', async () => {
   const g = garage(); g.botCount = 7;

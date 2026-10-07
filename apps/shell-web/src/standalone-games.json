@@ -1,5 +1,54 @@
 [
   {
+    "id": "tower-brake",
+    "source": "games/local/tower-brake",
+    "title": "转塔留一脚刹车",
+    "description": "转动圆塔穿过十二层缺口，连续落三层补回一次 0.8 秒刹车，在危险落点前转出一条生路。八座短塔逐步解锁。",
+    "output": "dist"
+  },
+  {
+    "id": "chase-thief",
+    "source": "games/local/chase-thief",
+    "title": "追贼别撞墙",
+    "description": "穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。",
+    "output": "dist"
+  },
+  {
+    "id": "orbit-atelier",
+    "source": "games/local/orbit-atelier",
+    "title": "星扣工坊",
+    "description": "转动星轨缺口，按顺序解开交织圆环，破解星栓与分岔星图，点亮二十四张原创星盘。",
+    "output": "dist"
+  },
+  {
+    "id": "moss-garden",
+    "source": "games/local/game-moss-garden",
+    "title": "苔光花园",
+    "description": "在彩色花圃中安放光种，每行、每列和每片花圃各一颗，彼此不能相邻。三十关原创竖屏逻辑谜题。",
+    "output": "dist"
+  },
+  {
+    "id": "ball-roguelite",
+    "source": "games/local/ball-roguelite",
+    "title": "星轨弹珠",
+    "description": "拖动瞄准，松手弹射。组合穿透、爆裂、闪电与暴击，击穿六片星域的砖阵，或挑战无尽星空。",
+    "output": "dist"
+  },
+  {
+    "id": "ember-bounce",
+    "source": "games/local/ember-bounce",
+    "title": "熔光弹珠",
+    "description": "拖动瞄准一束熔光弹珠，借墙面连锁反弹击碎熔晶，收集更多弹珠与祝福，挑战逐步解锁的熔炉关卡。",
+    "output": "dist"
+  },
+  {
+    "id": "tianxia-chalu",
+    "source": "games/local/tianxia-chalu",
+    "title": "天下岔路",
+    "description": "四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。",
+    "output": "dist"
+  },
+  {
     "id": "voiceprint-case",
     "source": "games/local/voiceprint-case",
     "title": "声纹疑案",
@@ -205,7 +254,7 @@
   {
     "id": "wulong-city",
     "title": "乌龙城",
-    "description": "探索总差一点才正常的城市，点按、拖动物件，解开二十六个喜剧机关谜题，也能先试玩新关、分享单关邀请朋友解题。",
+    "description": "走进青瓦小城，用点按、拖放和转身解开100个喜剧机关；独立主页与十章选关，支持移动触屏和原生小游戏。",
     "source": "games/local/wulong-city",
     "output": "dist"
   },
@@ -340,6 +389,20 @@
     "source": "games/local/retreat-rally",
     "title": "收兵再冲",
     "description": "按住收兵，松手进攻。带六名士兵躲过箭雨，再趁装填夺下敌旗；三关战役、模拟匹配与同屏好友对战。",
+    "output": "dist"
+  },
+  {
+    "id": "castle-cannon",
+    "source": "games/local/game-castle-cannon",
+    "title": "一炮拆城",
+    "description": "拖动瞄准，松手开炮！先破门抢推进，先拆箭塔保兵力，用两种炮弹护送小队攻下三座小城。",
+    "output": "dist"
+  },
+  {
+    "id": "tetracube",
+    "source": "games/local/tetracube",
+    "title": "重力方舱",
+    "description": "拖动并三轴旋转四连立方体，填满水平层；颠倒 6×6×12 容器，让方块向下落定，制造连锁消除。",
     "output": "dist"
   }
 ]

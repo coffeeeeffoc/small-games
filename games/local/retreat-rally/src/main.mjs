@@ -81,6 +81,15 @@ function cancelMatch() {
   matchTimer = null;
   matchTick = null;
 }
+function syncHost(playing) {
+  if (window.parent === window) return;
+  try {
+    window.parent.postMessage(
+      { type: 'small-games:display-state', gameId: 'retreat-rally', screen: playing ? 'playing' : 'home' },
+      new URL(document.referrer).origin,
+    );
+  } catch {}
+}
 function show(name) {
   release();
   if (name !== 'prepare') cancelMatch();
@@ -88,11 +97,7 @@ function show(name) {
   game.dataset.screen = name;
   document.body.dataset.phase = name === 'battle' ? 'playing' : name;
   for (const el of document.querySelectorAll('.screen')) el.hidden = el.id !== name;
-  // A scoped same-origin bridge hides Shell chrome only while this game's battle is visible.
-  try {
-    const host = parent !== window && parent.document.querySelector('[data-game-display-host]');
-    if (host) host.dataset.gameImmersive = String(name === 'battle');
-  } catch {}
+  syncHost(name === 'battle');
   if (name === 'home') {
     battle = null;
     $('#progress-count').textContent = `${Object.keys(progress.medals).length} / 三`;
@@ -418,10 +423,7 @@ function cleanup() {
   window.removeEventListener('keyup', keyup);
   window.removeEventListener('blur', loseFocus);
   document.removeEventListener('visibilitychange', visibility);
-  try {
-    const host = parent !== window && parent.document.querySelector('[data-game-display-host]');
-    if (host) delete host.dataset.gameImmersive;
-  } catch {}
+  syncHost(false);
 }
 window.addEventListener('pagehide', (e) => {
   if (e.persisted) loseFocus();

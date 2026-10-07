@@ -1,0 +1,36 @@
+[
+  {
+    "name": "actual-composition",
+    "snapshotClock": "Playwright controlled timers in <=250ms chunks; genuine CDP mouse; actual rule substeps, no battle state edits",
+    "metrics": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 18,
+      "frameBattleTime": 3.131999999999997,
+      "lowPower": false,
+      "triangles": 95228,
+      "calls": 83,
+      "cachedWorldTriangles": 437155,
+      "cachedWorldCalls": 191,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 174
+    },
+    "status": "playing；兵力 11；损失 1；占领 0%；箭塔压制！小队正在减员；发射 1；装填 0.00；"
+  },
+  {
+    "name": "actual-battle",
+    "snapshotClock": "Playwright controlled timers in <=250ms chunks; genuine CDP mouse; actual rule substeps, no battle state edits",
+    "metrics": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 20,
+      "frameBattleTime": 3.5159999999999956,
+      "lowPower": false,
+      "triangles": 97544,
+      "calls": 104,
+      "cachedWorldTriangles": 435943,
+      "cachedWorldCalls": 214,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 176
+    },
+    "status": "playing；兵力 11；损失 1；占领 0%；箭塔开裂，再来一炮；发射 2；装填 2.28；炮弹出膛"
+  }
+]

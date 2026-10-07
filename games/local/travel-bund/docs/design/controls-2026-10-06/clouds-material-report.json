@@ -1,0 +1,18 @@
+{
+  "calls": 1,
+  "triangles": 24,
+  "atlasSize": [
+    512,
+    256
+  ],
+  "translucent": 12299,
+  "opaque": 32334,
+  "empty": 86439,
+  "released": [
+    "mesh",
+    "geometry",
+    "material",
+    "texture"
+  ],
+  "errors": []
+}

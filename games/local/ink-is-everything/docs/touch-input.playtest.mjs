@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { Touches, snapshot, center, distance, fitsViewport } from './playtest-driver.mjs';
+import { Touches, snapshot, center, logicalPoint, distance, fitsViewport } from './playtest-driver.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const url = process.env.GAME_URL || 'http://127.0.0.1:4412/';
@@ -56,7 +56,7 @@ try {
   const touch = new Touches(await context.newCDPSession(page));
   const stick = await center(page, '#joystick');
   await touch.down(1, stick);
-  await touch.move(1, { x: stick.x + 37, y: stick.y });
+  await touch.move(1, await logicalPoint(page, '#joystick', 37, 0));
   await touch.down(2, await center(page, '#fire'));
   await touch.down(3, await center(page, '#melee'));
   await page.waitForTimeout(240);
@@ -108,7 +108,7 @@ try {
   });
 
   await touch.down(1, stick);
-  await touch.move(1, { x: stick.x - 36, y: stick.y });
+  await touch.move(1, await logicalPoint(page, '#joystick', -36, 0));
   await touch.down(2, await center(page, '#fire'));
   await touch.down(3, await center(page, '#melee'));
   await touch.down(4, await center(page, '#pause'));

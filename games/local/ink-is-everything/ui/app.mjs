@@ -8,17 +8,19 @@ import { createNavigation } from './navigation.mjs';
 import { createInput } from './input.mjs';
 import { createHUD } from './hud.mjs';
 import { createDialogs } from './dialogs.mjs';
+import { setupDisplay, clientToElement, elementToClient } from './display.mjs';
 
 /** Composition root: lifecycle and fixed-step loop. Rules, gestures and views stay separate. */
 export function startApplication() {
   const storage = createStorage(Engine),
     audio = createAudio(),
     canvas = $('#game-canvas'),
-    renderer = createRenderer(canvas);
+    renderer = createRenderer(canvas, { clientToElement, elementToClient });
   let saved = storage.load(),
     selectedChapter = saved?.levelId || DEFAULT_CHAPTER_ID;
   let state = Engine.createGame(selectedChapter),
     paused = false,
+    atHome = true,
     ended = false,
     lastRoom = state.roomId,
     lastStatus = state.status;
@@ -26,13 +28,13 @@ export function startApplication() {
     lastFrame = performance.now(),
     accumulator = 0,
     hudClock = 0,
-    saveClock = 0;
+    saveClock = 0,
+    lastRewardCount = 0;
   let seenStats = { shots: 0, hits: 0, damageTaken: 0, inkRecovered: 0 };
   let hud, input, dialogs;
   const getState = () => state,
     getDefinition = () => Engine.getLevelDefinition(state);
-  const active = () =>
-    state.status === 'playing' && !paused && !document.hidden && !state.pendingRewards.length;
+  const active = () => state.status === 'playing' && !atHome && !paused && !document.hidden;
   const save = () => storage.save(state),
     feedback = (...args) => hud?.feedback(...args),
     updateHUD = () => hud?.update();
@@ -49,7 +51,11 @@ export function startApplication() {
     updateHUD();
   }
   function perform(action, allowModal = false) {
-    if (state.status !== 'playing' || (paused && !allowModal)) return { ok: false };
+    if (
+      (state.status !== 'playing' && !(state.status === 'won' && action.type === 'chooseReward')) ||
+      (paused && !allowModal)
+    )
+      return { ok: false };
     const roomId = state.roomId,
       result = Engine.command(state, action);
     feedback(result.message, !result.ok);
@@ -62,6 +68,7 @@ export function startApplication() {
       if (action.type === 'nova') audio.play('nova');
       if (roomId !== state.roomId) onRoomChanged();
       if (result.shop) dialogs.showShop();
+      if (result.gear) audio.play('pickup');
       save();
       updateHUD();
     }
@@ -87,9 +94,18 @@ export function startApplication() {
     icon,
     getState,
     getDefinition,
-    isPaused: () => paused,
+    isPaused: () => paused || atHome,
     input,
     audio,
+  });
+  const display = setupDisplay({
+    game: $('#game-root'),
+    onChange: () => {
+      input.cancel();
+      renderer.resize();
+      lastFrame = performance.now();
+      accumulator = 0;
+    },
   });
   dialogs = createDialogs({
     engine: Engine,
@@ -104,7 +120,31 @@ export function startApplication() {
     storage,
     audio,
     onSoundChange: () => hud.soundButton(),
+    onHome: home,
+    getChapters: () => CHAPTER_LIST,
+    getSelectedChapter: () => selectedChapter,
+    selectChapter,
+    getChapterState: (id) =>
+      state.levelId === id && state.status !== 'ready'
+        ? state
+        : saved?.levelId === id
+          ? saved
+          : null,
+    onFullscreen: () => display.toggleFullscreen(),
+    isFullscreen: () => display.isFullscreen(),
+    isMiniGame: () => display.miniGame,
   });
+  function notifyHost(screen) {
+    if (window.parent === window) return;
+    try {
+      window.parent.postMessage(
+        { type: 'small-games:display-state', gameId: 'ink-is-everything', screen },
+        location.origin,
+      );
+    } catch {
+      /* Embedding is optional; the standalone game remains playable. */
+    }
+  }
   function start(fresh = false) {
     if (saved && !fresh && saved.levelId === selectedChapter) state = saved;
     else {
@@ -112,14 +152,18 @@ export function startApplication() {
       Engine.command(state, { type: 'start' });
     }
     saved = null;
+    atHome = false;
     paused = false;
     ended = false;
     input.roomChanged();
+    $('#game-root').dataset.screen = 'playing';
+    notifyHost('playing');
     $('#cover').hidden = true;
     dialogs.close();
     lastRoom = state.roomId;
     lastStatus = state.status;
     lastMessage = '';
+    lastRewardCount = state.pendingRewards.length;
     seenStats = {
       shots: state.stats.shots,
       hits: state.stats.hits,
@@ -131,11 +175,44 @@ export function startApplication() {
     save();
     updateHUD();
     renderer.render(state, { time: state.time });
-    if (state.pendingRewards.length) dialogs.showRewards();
-    else {
-      feedback('墨汁就是生命：施法后走位拾回墨滴，近身挥笔吸墨。红色预警出现时侧闪。', false, 4200);
-      canvas.focus({ preventScroll: true });
+    feedback(
+      state.pendingRewards.length
+        ? '装备可稍后选，点右上金色刻印。'
+        : '按干笔近战吸墨，按墨弹远程攻击。',
+      false,
+      2300,
+    );
+    canvas.focus({ preventScroll: true });
+  }
+  function home() {
+    input.cancel();
+    save();
+    if (state.status === 'playing') saved = state;
+    else if (state.status !== 'ready') saved = null;
+    dialogs.close();
+    if (['won', 'lost'].includes(state.status)) {
+      state = Engine.createGame(selectedChapter);
+      lastRoom = state.roomId;
+      lastStatus = state.status;
+      ended = false;
+      input.roomChanged();
     }
+    atHome = true;
+    setPaused(true);
+    $('#game-root').dataset.screen = 'home';
+    notifyHost('home');
+    $('#cover').hidden = false;
+    updateCover();
+    updateHUD();
+  }
+  function selectChapter(id) {
+    if (!CHAPTER_LIST.some((chapter) => chapter.id === id)) return;
+    selectedChapter = id;
+    if (state.levelId !== id || state.status !== 'playing') state = Engine.createGame(id);
+    lastRoom = state.roomId;
+    selector.value = id;
+    updateCover();
+    updateHUD();
   }
   function updateCover() {
     const definition = getDefinition(),
@@ -153,16 +230,16 @@ export function startApplication() {
     (chapter) => `<option value="${esc(chapter.id)}">${esc(chapter.title)}</option>`,
   ).join('');
   selector.value = selectedChapter;
-  $('#chapter-picker').hidden = CHAPTER_LIST.length < 2;
+  $('#chapter-picker').hidden = true;
   selector.addEventListener('change', () => {
-    selectedChapter = selector.value;
-    state = Engine.createGame(selectedChapter);
-    lastRoom = state.roomId;
-    updateCover();
-    updateHUD();
+    selectChapter(selector.value);
   });
   bindPress('#start-game', () => start());
   bindPress('#new-game', () => dialogs.askRestart());
+  bindPress('#choose-chapter', () => dialogs.showChapters());
+  bindPress('#home-help', () => dialogs.showHelp());
+  bindPress('#home-fullscreen', () => display.toggleFullscreen());
+  bindPress('#reward', () => dialogs.showRewards());
   bindPress('#pause', () => dialogs.showPause());
   bindPress('#help', () => dialogs.showHelp());
   bindPress('#equipment', () => dialogs.showEquipment());
@@ -178,19 +255,21 @@ export function startApplication() {
   });
   window.addEventListener('blur', () => {
     input.cancel();
-    if (state.status === 'playing' && !paused) dialogs.showPause();
+    if (state.status === 'playing' && !atHome && !paused) dialogs.showPause();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       input.cancel();
       save();
-      if (state.status === 'playing' && !paused) dialogs.showPause();
+      if (state.status === 'playing' && !atHome && !paused) dialogs.showPause();
     }
     lastFrame = performance.now();
     accumulator = 0;
   });
   window.addEventListener('pagehide', save);
   function tick(now) {
+    // Schedule first: a transient browser rendering failure cannot abandon the loop.
+    requestAnimationFrame(tick);
     const elapsed = Math.min(0.06, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
     if (active()) {
@@ -223,10 +302,11 @@ export function startApplication() {
         seenStats[key] = state.stats[key];
       }
     } else accumulator = 0;
-    if (state.status === 'playing' && state.pendingRewards.length && dialogs.kind !== 'reward') {
+    if (state.pendingRewards.length > lastRewardCount && !atHome && state.status === 'playing') {
       save();
-      dialogs.showRewards();
+      feedback('获得装备机会 · 点金色刻印，随时选择', false, 2400);
     }
+    lastRewardCount = state.pendingRewards.length;
     if (state.message !== lastMessage) {
       lastMessage = state.message;
       if (state.status !== 'ready') feedback(state.message);
@@ -250,14 +330,17 @@ export function startApplication() {
     renderer.render(state, {
       time: state.time,
       ...input.renderContext(),
-      paused: paused || state.status === 'ready',
+      paused: paused || atHome || state.status === 'ready',
     });
-    requestAnimationFrame(tick);
   }
   // Read-only browser QA surface; no mutation or gameplay-command hooks.
   Object.defineProperty(window, '__inkGame', {
     value: Object.freeze({
-      snapshot: () => ({ ...Engine.getSnapshot(state), paused, input: input.snapshot() }),
+      snapshot: () => ({
+        ...Engine.getSnapshot(state),
+        paused: paused || atHome,
+        input: input.snapshot(),
+      }),
       worldToScreen: (x, y) => renderer.worldToScreen(x, y),
     }),
     writable: false,
@@ -267,8 +350,10 @@ export function startApplication() {
     .forEach((element) => (element.innerHTML = icon(element.dataset.icon)));
   $('#cover-art').innerHTML = renderVignette('attack');
   updateCover();
+  display.syncFullscreen();
   hud.soundButton();
   updateHUD();
   renderer.render(state, { time: 0 });
+  notifyHost('home');
   requestAnimationFrame(tick);
 }

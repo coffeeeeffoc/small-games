@@ -5,13 +5,22 @@
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "test": "node tests/engine.test.mjs && node tests/library.test.mjs && node tests/competition.test.mjs && node tests/challenge.test.mjs",
+    "test": "node tests/engine.test.mjs && node tests/library.test.mjs && node tests/competition.test.mjs && node tests/challenge.test.mjs && node ../../../scripts/letters-words2-competition-renderer.test.mjs && node tests/native-session.test.mjs && node tests/native-platform.test.mjs && node tests/native.test.mjs && node tests/native-navigation.test.mjs",
+    "test:native": "node tests/native-session.test.mjs && node tests/native-platform.test.mjs && node tests/native.test.mjs && node tests/native-navigation.test.mjs",
     "test:browser": "node tests/browser.test.mjs",
     "test:challenge:browser": "node tests/challenge.browser.test.mjs",
     "test:mini:browser": "node tests/mini.browser.test.mjs",
     "test:library:browser": "node tests/library.browser.test.mjs",
+    "test:mobile:browser": "node tests/mobile.browser.test.mjs",
+    "test:focus:browser": "node tests/focus.browser.test.mjs",
+    "test:competition:browser": "node ../../../scripts/letters-words2-competition-mobile.browser.mjs",
+    "test:navigation:browser": "node tests/navigation.browser.test.mjs",
+    "test:iframe:browser": "node ../../../scripts/letters-words2-iframe.browser.mjs",
+    "test:shell:browser": "node tests/shell.browser.test.mjs",
+    "test:native:browser": "node tests/native.browser.test.mjs",
+    "test:native:bundle": "node tests/native-bundle.test.mjs",
     "vocabulary:sync": "python scripts/sync-vocabulary.py",
-    "check": "node --check app.js && node --check engine.js && node --check challenge.js && node --check library.js && node --check server.mjs && node server.mjs --check",
+    "check": "node --check app.js && node --check mobile-ui.js && node --check engine.js && node --check challenge.js && node --check library.js && node --check native.js && node --check native-session.js && node --check native-platform.js && node --check server.mjs && node server.mjs --check",
     "build": "node build.mjs"
   }
 }

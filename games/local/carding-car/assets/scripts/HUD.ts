@@ -66,6 +66,10 @@ export class HUD {
   settings: Node;
   settingsHelp: Label;
   fullscreen: Label;
+  private soundSwitch: Graphics;
+  private helpSwitch: Graphics;
+  private helpState: Label;
+  private lastSettingsState = '';
   racingHUD: Node;
   drivingControls: Node;
   menuBackground: Graphics;
@@ -183,21 +187,73 @@ export class HUD {
     this.footer = this.label(this.panel, '', 0, -176, 14, '#a9cdd0', 660, 32);
     this.settings = new Node('Settings');
     this.root.addChild(this.settings);
-    this.box(this.settings, 0, 0, 1920, 1080, '#081c3080');
-    this.box(this.settings, 0, 0, 384, 370, '#163b55fa');
-    this.label(this.settings, '设置', 0, 150, 24, '#fff6dc', 220, 40);
-    this.label(this.settings, '×', settingsLayout.close.x, settingsLayout.close.y, 30, '#fff6dc', 48, 48);
-    const option = (rect: HitRect) => {
-      const row = new Node('Setting');
+    this.box(this.settings, 0, 0, 1920, 1080, '#30281f78');
+    this.box(this.settings, 0, 20, 424, 328, '#704d3526');
+    const settingsCard = this.box(this.settings, 0, 24, 424, 328, '#fffaf0');
+    settingsCard.strokeColor = color('#ddc9aa'); settingsCard.lineWidth = 1;
+    settingsCard.roundRect(-212, -140, 424, 328, 14); settingsCard.stroke();
+    const settingsTitle = this.label(this.settings, '设置', -68, 152, 22, '#704d35', 216, 36);
+    settingsTitle.horizontalAlign = Label.HorizontalAlign.LEFT;
+    const close = this.graphics(this.settings, '关闭设置');
+    close.strokeColor = color('#704d35'); close.lineWidth = 2;
+    const { x: closeX, y: closeY } = settingsLayout.close;
+    close.moveTo(closeX - 5, closeY - 5); close.lineTo(closeX + 5, closeY + 5);
+    close.moveTo(closeX - 5, closeY + 5); close.lineTo(closeX + 5, closeY - 5); close.stroke();
+    const divider = this.graphics(this.settings, 'SettingsDivider');
+    divider.strokeColor = color('#e4d3b9'); divider.lineWidth = 1;
+    divider.moveTo(-178, 118); divider.lineTo(178, 118); divider.stroke();
+    const option = (rect: HitRect, title: string, icon: 'sound' | 'display' | 'wheel') => {
+      const row = new Node(title);
       this.settings.addChild(row);
-      this.box(row, rect.x, rect.y, rect.width, rect.height, '#295870');
-      return this.label(row, '', rect.x, rect.y, 18, '#fff6dc', rect.width, rect.height);
+      const rule = this.graphics(row, 'RowDivider');
+      rule.strokeColor = color('#eadcc6'); rule.lineWidth = 1;
+      rule.moveTo(-178, rect.y - 30); rule.lineTo(178, rect.y - 30); rule.stroke();
+      const caption = this.label(row, title, -51, rect.y, 17, '#704d35', 192, 36);
+      caption.horizontalAlign = Label.HorizontalAlign.LEFT; caption.isBold = false;
+      const symbol = this.graphics(row, `${title}图标`), x = -169, y = rect.y;
+      symbol.strokeColor = color('#856246'); symbol.lineWidth = 1.7;
+      if (icon === 'sound') {
+        symbol.moveTo(x - 8, y - 4); symbol.lineTo(x - 4, y - 4); symbol.lineTo(x + 1, y - 8);
+        symbol.lineTo(x + 1, y + 8); symbol.lineTo(x - 4, y + 4); symbol.lineTo(x - 8, y + 4);
+        symbol.close(); symbol.stroke();
+        symbol.moveTo(x + 5, y - 5); symbol.lineTo(x + 7, y); symbol.lineTo(x + 5, y + 5); symbol.stroke();
+      } else if (icon === 'wheel') {
+        symbol.circle(x, y, 9); symbol.stroke(); symbol.circle(x, y, 2.5); symbol.stroke();
+        symbol.moveTo(x - 8, y + 2); symbol.lineTo(x + 8, y + 2);
+        symbol.moveTo(x, y - 3); symbol.lineTo(x, y - 9); symbol.stroke();
+      } else {
+        symbol.roundRect(x - 9, y - 6, 18, 12, 2); symbol.stroke();
+        symbol.moveTo(x - 4, y - 9); symbol.lineTo(x + 4, y - 9); symbol.stroke();
+      }
+      return { row, caption };
     };
-    this.sound = option(settingsLayout.sound);
-    this.fullscreen = option(settingsLayout.fullscreen);
-    this.help = option(settingsLayout.help);
-    this.settingsHelp = this.label(this.settings, '', 0, -124, 13, '#b8dcda', 344, 80);
+    const soundRow = option(settingsLayout.sound, '游戏声音', 'sound');
+    this.sound = this.label(soundRow.row, '', 92, settingsLayout.sound.y, 13, '#947b61', 38, 30);
+    this.sound.isBold = false;
+    this.soundSwitch = this.graphics(soundRow.row, 'SoundSwitch');
+    const fullscreenRow = option(settingsLayout.fullscreen, '全屏显示', 'display');
+    const fullscreenAction = this.box(fullscreenRow.row, 136, settingsLayout.fullscreen.y, 76, 32, '#f6ebd8');
+    fullscreenAction.strokeColor = color('#ddc9aa'); fullscreenAction.lineWidth = 1;
+    fullscreenAction.roundRect(98, settingsLayout.fullscreen.y - 16, 76, 32, 14); fullscreenAction.stroke();
+    this.fullscreen = this.label(fullscreenRow.row, '', 136, settingsLayout.fullscreen.y, 14, '#704d35', 74, 32);
+    this.fullscreen.isBold = false;
+    const helpRow = option(settingsLayout.help, '驾驶教学', 'wheel');
+    this.help = helpRow.caption;
+    this.helpState = this.label(helpRow.row, '', 92, settingsLayout.help.y, 13, '#947b61', 38, 30);
+    this.helpState.isBold = false;
+    this.helpSwitch = this.graphics(helpRow.row, 'TeachingSwitch');
+    this.settingsHelp = this.label(this.settings, '', 0, -102, 12, '#947b61', 354, 56);
+    this.settingsHelp.isBold = false;
     this.settings.active = false;
+  }
+  private drawSettingsSwitch(graphics: Graphics, y: number, enabled: boolean) {
+    graphics.clear();
+    graphics.fillColor = color(enabled ? '#43cbb4' : '#d8d0c0');
+    graphics.roundRect(122, y - 14, 52, 28, 14); graphics.fill();
+    graphics.strokeColor = color(enabled ? '#31ae9a' : '#c5bba9'); graphics.lineWidth = 1;
+    graphics.roundRect(122, y - 14, 52, 28, 14); graphics.stroke();
+    graphics.fillColor = color('#fffdf7');
+    graphics.circle(enabled ? 160 : 136, y, 10); graphics.fill();
   }
   graphics(parent: Node, name: string) {
     const n = new Node(name);
@@ -270,12 +326,18 @@ export class HUD {
     this.top.string = `第 ${place} / ${r.drivers.length} 名  ·  ${Math.min(r.laps, p.laps + 1)} / ${r.laps} 圈`;
     this.timer.string = `${time(finishTime)}  ·  ${r.mode === 'sprint' ? '冲刺' : `本圈 ${time(r.currentLapTime)}`}`;
     this.speed.string = `${Math.round(k.speed * 3.6)} km/h`;
-    this.sound.string = muted ? '声音 关' : '声音 开';
+    this.sound.string = muted ? '关' : '开';
     this.pause.string = r.networked ? '房间' : '';
     this.pauseIcon.node.active = !r.networked;
-    this.help.string = r.networked
-      ? this.rulesVisible ? '收起规则' : '竞赛规则'
-      : this.coach.enabled ? '教学  开' : '教学  关';
+    this.help.string = r.networked ? '竞赛规则' : '驾驶教学';
+    const helpEnabled = r.networked ? this.rulesVisible : this.coach.enabled;
+    this.helpState.string = helpEnabled ? '开' : '关';
+    const settingsState = `${muted}:${helpEnabled}`;
+    if (settingsState !== this.lastSettingsState) {
+      this.drawSettingsSwitch(this.soundSwitch, settingsLayout.sound.y, !muted);
+      this.drawSettingsSwitch(this.helpSwitch, settingsLayout.help.y, helpEnabled);
+      this.lastSettingsState = settingsState;
+    }
     this.coaching.node.parent!.active =
       (r.networked ? this.rulesVisible : this.coach.enabled) && (r.phase === 'racing' || r.phase === 'countdown');
     this.coaching.string = r.networked
@@ -285,11 +347,14 @@ export class HUD {
     this.racingHUD.active = r.phase === 'racing' || r.phase === 'countdown';
     this.settings.active = this.settingsVisible;
     const display = (globalThis as typeof globalThis & { KartDisplay?: { getFullscreen(): boolean } }).KartDisplay;
-    this.fullscreen.string = display?.getFullscreen() ? '退出全屏' : '全屏';
+    this.fullscreen.string = display?.getFullscreen() ? '退出' : '开启';
     this.fullscreen.node.parent!.active = sys.isBrowser;
-    this.settingsHelp.string = this.coach.enabled
-      ? (keyboardHints ? 'W / ↑ 加速 · A D / ← → 转向\n空格漂移 · Shift 氮气 · S / ↓ 刹车' : '自动加速 · 左手滑动转向\n按住漂移过弯，松手加速') + '\n圆形 ＋ 补给 · 三角 ! 危险'
-      : '圆形 ＋ 补给 · 三角 ! 危险';
+    this.settingsHelp.string = r.networked
+      ? this.rulesVisible ? '完成 3 圈比用时 · 首车冲线后 60 秒截止\n好友房间中不会暂停比赛' : '设置已自动保存'
+      : this.coach.enabled
+        ? keyboardHints ? 'W / ↑ 加速 · A D / ← → 转向\n空格漂移 · Shift 氮气 · S / ↓ 刹车'
+          : '自动加速 · 左手滑动转向\n按住漂移过弯，松手加速'
+        : '设置已自动保存';
     this.panel.active =
       ['ready', 'paused', 'finished'].includes(r.phase) &&
       !this.root.getChildByName('MultiplayerRoom')?.active &&
