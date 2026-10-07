@@ -77,7 +77,7 @@ export async function verifyConvertedCocosPackage({
   const sourceBuildInfo = await readFile(path.join(source, 'build-info.json'), 'utf8'),
     info = JSON.parse(sourceBuildInfo);
   if (
-    !/^3\.8\.\d+$/.test(info.creator || '') ||
+    info.creator !== '3.8.8' ||
     info.sourceHash !== currentSourceHash ||
     ![info.target, info.platform].some((target) => target === 'wechatgame') ||
     [info.target, info.platform].some((target) => target && target !== 'wechatgame')
@@ -250,12 +250,6 @@ export async function prepareTapTapCocosLogin({
     );
   const sourceGame = await json(source, 'game.json'),
     sourceProject = await json(source, 'project.config.json');
-  await verifyTapProject({
-    directory: source,
-    appId: sourceGame.appId || sourceProject.appid || '',
-    mode: 'preview',
-    orientation: 'landscape',
-  });
   const sourceFiles = await inventory(source);
   if (!existingOutput) {
     await mkdir(path.dirname(output), { recursive: true });
@@ -285,6 +279,15 @@ export async function prepareTapTapCocosLogin({
       path.join(output, 'project.config.json'),
       JSON.stringify({ ...sourceProject, appid: publicConfig.appId }, null, 2) + '\n',
     );
+    // The actual v1.2.2 converter retains Creator's touristappid only in the
+    // project metadata. Validate the independently normalized copy before adding
+    // login, so the login helper cannot manufacture a Tap runtime boundary.
+    await verifyTapProject({
+      directory: output,
+      appId: publicConfig.appId,
+      mode: config.preview ? 'preview' : 'release',
+      orientation: 'landscape',
+    });
     const login = await installTapTapLogin(output, config);
     const project = await verifyTapProject({
       directory: output,

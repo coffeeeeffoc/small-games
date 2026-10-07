@@ -178,8 +178,9 @@ export async function verifyTapProject({
         runtimeBoundary = true;
       if (
         node.type === 'ConditionalExpression' &&
-        node.alternate?.type === 'Identifier' &&
-        node.alternate.name === 'tap'
+        [node.consequent, node.alternate].some(
+          (branch) => branch?.type === 'Identifier' && branch.name === 'tap',
+        )
       )
         visitAst(node.test, (test) => {
           if (

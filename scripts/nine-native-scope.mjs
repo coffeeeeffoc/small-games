@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 const formatter = createRequire(import.meta.url);
+const tapWorkflow = '.github/workflows/taptap-cocos.yml';
+const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
 
 const COMPETITION = 'platforms/competition/native.js';
 const XIANGQI = 'platforms/competition/xiangqi-five/';
@@ -441,6 +443,27 @@ export function nightProtocolFileScopes({ changedPaths, readBase, readHead, game
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
 export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
   const scopes = new Map();
+  if (changedPaths.includes(tapWorkflow)) {
+    try {
+      assert.equal(digest(readHead(tapWorkflow).replaceAll('\r\n', '\n')), tapWorkflowSha256);
+      const consumers = [
+        MINIGAME,
+        'platforms/taptap',
+        ...cocosGames.map((game) => nativeGameSources[game]),
+      ];
+      assert(consumers.every((dir) => packages.some((pkg) => pkg.dir === dir)));
+      assert(
+        cocosGames.every(
+          (id) =>
+            games.filter((game) => game.id === id && game.source === nativeGameSources[id])
+              .length === 1,
+        ),
+      );
+      scopes.set(tapWorkflow, consumers);
+    } catch {
+      // Changed commands, permissions, references or consumers need fresh review.
+    }
+  }
   for (const file of nineNativeScopePaths.filter((file) => changedPaths.includes(file))) {
     try {
       const definition = definitions[file],
@@ -1175,6 +1198,7 @@ const taptapScripts = [
   'apps/shell-minigame/scripts/taptap-targets.mjs',
   'apps/shell-minigame/scripts/taptap-package.mjs',
   'apps/shell-minigame/scripts/taptap-cocos.mjs',
+  'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'apps/shell-minigame/scripts/taptap-smoke.mjs',
   'apps/shell-minigame/scripts/taptap-travel-smoke.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-import.mjs',
@@ -1183,12 +1207,16 @@ const taptapScripts = [
 const cocosGames = ['carding-car', 'night-overwatch'];
 const taptapTargets = Object.keys(nativeGameSources).map((game) => `${game}:taptap`);
 const taptapGraph = new Map();
+taptapGraph.set(
+  tapWorkflow,
+  cocosGames.map((game) => game + ':taptap'),
+);
 for (const [file, targets] of nativeGraph) {
   if (/^platforms\/(?:wechat|bilibili|douyin|kuaishou|alipay)\//.test(file)) continue;
   taptapGraph.set(file, [...new Set(targets.map((target) => target.split(':')[0] + ':taptap'))]);
 }
 for (const file of taptapScripts) taptapGraph.set(file, taptapTargets);
-for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs'])
+for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs', 'taptap-cocos-inputs.mjs'])
   taptapGraph.set(
     'apps/shell-minigame/scripts/' + file,
     cocosGames.map((game) => game + ':taptap'),
@@ -1215,6 +1243,7 @@ export function nineNativeDependencySources() {
 }
 
 export function isNineNativeOnlyPath(file) {
+  if (file === tapWorkflow) return true;
   if (['platforms/competition/client.js', 'platforms/competition/format.js'].includes(file))
     return false;
   if (file.startsWith('platforms/') && (nativeGraph.has(file) || taptapGraph.has(file)))

@@ -39,7 +39,7 @@ test('three choose two migration wiring is exact and does not authorize other de
   const migration = readFileSync(
     new URL('../infra/migrations/012-three-choose-two.sql', import.meta.url),
     'utf8',
-  );
+  ).replaceAll('\r\n', '\n');
   assert.equal(
     threeChooseTwoBackendFileScope('infra/migrations/012-three-choose-two.sql', null, migration),
     true,
@@ -105,6 +105,26 @@ function plan(paths, fileScopes) {
     readSource: () => '',
   });
 }
+
+test('the native gate variable wiring is exact and cannot authorize other CI changes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const file = '.github/workflows/ci.yml';
+  const before = execFileSync('git', ['show', `695b8043cd2d8b5c35e161719830d5ce7d30d871:${file}`], {
+    encoding: 'utf8',
+  });
+  const anchor = '    env:\n      KART_PREBUILT_DIR:';
+  const after = before.replace(
+    anchor,
+    "    env:\n      MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}\n      KART_PREBUILT_DIR:",
+  );
+  assert.deepEqual(classify(file, before, after).get(file), []);
+  for (const bad of [
+    after + '\n',
+    after.replace("|| '0'", "|| '1'"),
+    after.replace('pnpm check:games', 'echo skipped'),
+  ])
+    assert.equal(classify(file, before, bad).has(file), false);
+});
 
 test('CI timeout growth is a bounded configuration change; commands, conditions and reduced budgets block', () => {
   const file = '.github/workflows/ci.yml';
@@ -465,7 +485,11 @@ test('bare planning jobs install only the reviewed pinned parser without changin
       ['show', `c83e51299219c969c934618ca76fe0ae77f0eaa3:${file}`],
       { encoding: 'utf8' },
     );
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const after = execFileSync(
+      'git',
+      ['show', `695b8043cd2d8b5c35e161719830d5ce7d30d871:${file}`],
+      { encoding: 'utf8' },
+    );
     assert.deepEqual(classify(file, before, after).get(file), []);
     for (const bad of [
       after.replace('--ignore-scripts ', ''),
@@ -481,7 +505,10 @@ const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
 const cageEntryFile = 'apps/shell-web/scripts/standalone-game-entry.mjs';
-const cageModule = readFileSync(new URL('../' + cageChecksFile, import.meta.url), 'utf8');
+const cageModule = readFileSync(
+  new URL('../' + cageChecksFile, import.meta.url),
+  'utf8',
+).replaceAll('\r\n', '\n');
 const cageHeader = 'export async function assertStandaloneGameplay(frame, id, mobile = false) {\n';
 const cageDelegate =
   "  if (id === 'cage-rescue') {\n" +

@@ -119,6 +119,7 @@ test('real source entry global guards survive CJS lowering and SDK arguments', (
     for (const entry of [
       'const raw=typeof tap==="undefined"?undefined:tap;',
       'var raw = typeof tap === "undefined" ? void 0 : tap;',
+      "var sdks = { taptap: typeof tap !== 'undefined' ? tap : undefined };",
       'startGame(typeof tap === "undefined" ? void 0 : tap, {});',
       'var raw = "undefined" === typeof tap ? void 0 : tap;',
       'var VO=typeof tap>`u`?void 0:tap,HO={platform:`taptap`};',
@@ -342,6 +343,10 @@ test('unsafe filesystem paths, identity mismatch and unsafe subpackages are reje
       /Unsafe TapTap package path/,
     );
     const linked = path.join(options.base, 'linked');
-    await symlink(options.projectDirectory, linked);
+    await symlink(
+      options.projectDirectory,
+      linked,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
     await assert.rejects(verifyTapProject({ directory: linked }), /symlink/);
   }));

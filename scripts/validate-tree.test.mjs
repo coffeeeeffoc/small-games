@@ -4,6 +4,55 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly } from './validate-tree.mjs';
+test('native publication gates default off, retain root rules and preserve Web checks', async () => {
+  const { nativeReleaseGatesEnabled, runNineNativeChecks, runIncrementalToolChecks } = await import(
+    './validate-tree.mjs'
+  );
+  for (const value of [undefined, '', '0']) {
+    const env = value === undefined ? {} : { MINIGAME_RELEASE_GATES: value };
+    assert.equal(nativeReleaseGatesEnabled(env), false);
+    const calls = [];
+    runNineNativeChecks({
+      plan: {
+        nine_native_targets: [{ game: 'carding-car', platform: 'taptap' }],
+        nine_native_root_checks: [
+          {
+            file: 'scripts/kart-sharing.test.mjs',
+            args: ['--test', 'scripts/kart-sharing.test.mjs'],
+          },
+        ],
+      },
+      packages: [],
+      root: '/fixture',
+      env,
+      execute: (command, args) => calls.push(args),
+      prepareBrowser: () => assert.fail('No native browser preparation'),
+    });
+    assert.deepEqual(calls, [['--test', 'scripts/kart-sharing.test.mjs']]);
+    const competition = { h5: true, native: true, letters: true, config_tests: false };
+    runIncrementalToolChecks({
+      plan: {
+        competition,
+        native_consumers: ['apps/shell-minigame'],
+        developer_mode_ids: ['letters-words2'],
+      },
+      packages: [],
+      root: '/fixture',
+      env,
+      execute: (command, args) => calls.push(args),
+    });
+    assert.equal(calls[1][0], 'scripts/run-selected-competition.mjs');
+    assert.deepEqual(JSON.parse(calls[1][1]), { ...competition, native: false });
+    assert.equal(calls[2][0], 'scripts/test-game-dev-mode.mjs');
+    assert.equal(competition.native, true);
+  }
+  assert.equal(nativeReleaseGatesEnabled({ MINIGAME_RELEASE_GATES: '1' }), true);
+  for (const value of ['true', 'yes', '2'])
+    assert.throws(
+      () => nativeReleaseGatesEnabled({ MINIGAME_RELEASE_GATES: value }),
+      /must be 0 or 1/,
+    );
+});
 test('pure test dependency traversal and glob expansion; browser, unknown and missing tests fail closed', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'pure-tests-'));
   try {
@@ -167,7 +216,7 @@ test('first-nine native checks build only mapped games across five platforms, th
     plan,
     packages: [host],
     root: '/candidate',
-    env: {},
+    env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => calls.push(args),
   });
   const builds = calls.filter(
@@ -197,7 +246,7 @@ test('first-nine native checks build only mapped games across five platforms, th
     plan,
     packages: [host],
     root: nativeRoot,
-    env: {},
+    env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => nativeCalls.push(args),
   });
   assert.equal(nativeCalls.length, calls.length);
@@ -228,7 +277,7 @@ test('first-nine native checks build only mapped games across five platforms, th
           plan,
           packages: [{ ...host, scripts: { ...host.scripts, [key]: 'unknown' } }],
           root: '/candidate',
-          env: {},
+          env: { MINIGAME_RELEASE_GATES: '1' },
           execute: (...args) => rejected.push(args),
         }),
       /Unreviewed/,
@@ -242,7 +291,7 @@ test('first-nine native checks build only mapped games across five platforms, th
         plan,
         packages: [host],
         root: '/candidate',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           rejected.push(args);
           throw Error('build failed');
@@ -264,7 +313,7 @@ test('explicit source targets select only their actual platform and include comp
     },
   };
   const calls = [];
-  const env = {};
+  const env = { MINIGAME_RELEASE_GATES: '1' };
   let browserPreparations = 0;
   const plan = {
     nine_native_targets: [
@@ -318,7 +367,7 @@ test('explicit source targets select only their actual platform and include comp
         plan: { nine_native_targets: [{ game: 'travel-bund', platform: 'unknown' }] },
         packages: [host],
         root: os.tmpdir(),
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: () => assert.fail('invalid selection must not execute'),
       }),
     /Unknown/,
@@ -347,7 +396,7 @@ test('selected Cocos targets attempt the genuine native builder and missing tool
         },
         packages: [host],
         root: os.tmpdir(),
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           calls.push(args);
           throw Error('Creator 3.8.8 missing');
@@ -380,7 +429,7 @@ test('TapTap targets execute their own builder, package tests and smoke without 
   };
   const packages = [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }];
   const calls = [],
-    env = {};
+    env = { MINIGAME_RELEASE_GATES: '1' };
   let preparations = 0;
   runNineNativeChecks({
     plan: {
@@ -442,7 +491,7 @@ test('TapTap targets execute their own builder, package tests and smoke without 
           packages[1],
         ],
         root: '/candidate',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: () => assert.fail('unreviewed command must not execute'),
       }),
     /Unreviewed TapTap/,
@@ -472,7 +521,7 @@ test('a TapTap Creator conversion failure blocks before an old platform package 
         },
         packages: [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }],
         root: '/candidate',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           calls.push(args);
           throw Error('Official TapTap conversion missing');
@@ -514,7 +563,7 @@ test('selected kart-sharing root contracts run before the TapTap Creator gate an
         },
         packages: [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }],
         root: '/candidate',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           calls.push(args);
           if (args[1][0].endsWith('taptap-build.mjs'))
@@ -541,7 +590,7 @@ test('selected kart-sharing root contracts run before the TapTap Creator gate an
         },
         packages: [],
         root: '/candidate',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: () => assert.fail('unknown test must not execute'),
       }),
     /Unreviewed native root check/,
@@ -558,6 +607,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
   const root = await mkdtemp(path.join(os.tmpdir(), 'native-cocos-preflight-'));
   const env = cleanGitEnv({
     ...process.env,
+    MINIGAME_RELEASE_GATES: '1',
     KART_PREBUILT_DIR: '',
     NIGHT_OVERWATCH_PREBUILT_DIR: '',
     COCOS_CREATOR: '',

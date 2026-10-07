@@ -1,6 +1,6 @@
 import {readFile,writeFile,readdir,mkdir,copyFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {dirname,join,relative} from 'node:path';
+import {dirname,join,relative,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -42,7 +42,7 @@ function wav(rate,seconds,sample){const n=Math.floor(rate*seconds),data=Buffer.a
 export async function prepareNativeAssets(out,options={}){
  const input=join(repoRoot,'assets/bund/runtime'),draco=await decoderModule(),manifest={source:'assets/bund/runtime (pinned assets submodule)',draco:options.decode?'1.5.7 build-time decode (package limit blocked)':'official 1.5.7 pure JS runtime decoder; original compressed assets',files:[]};await mkdir(out,{recursive:true});
  for(const path of await files(input)){
-  const name=relative(input,path);if(name.startsWith('draco/'))continue;const target=join(out,name);await mkdir(dirname(target),{recursive:true});let bytes=await readFile(path),decodedPrimitives=0;if(options.decode&&name.endsWith('.glb'))({buffer:bytes,decodedPrimitives}=decodeGlb(bytes,draco));if(!(options.remote&&(name.endsWith('.glb')||name==='world/world.json')))await writeFile(target,bytes);manifest.files.push({path:name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),decodedPrimitives,delivery:options.remote&&(name.endsWith('.glb')||name==='world/world.json')?'remote-pinned':'package'});
+  const name=relative(input,path).split(sep).join('/');if(name.startsWith('draco/'))continue;const target=join(out,name);await mkdir(dirname(target),{recursive:true});let bytes=await readFile(path),decodedPrimitives=0;if(options.decode&&name.endsWith('.glb'))({buffer:bytes,decodedPrimitives}=decodeGlb(bytes,draco));if(!(options.remote&&(name.endsWith('.glb')||name==='world/world.json')))await writeFile(target,bytes);manifest.files.push({path:name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),decodedPrimitives,delivery:options.remote&&(name.endsWith('.glb')||name==='world/world.json')?'remote-pinned':'package'});
  }
  await mkdir(join(out,'licenses'),{recursive:true});await copyFile(join(input,'draco/LICENSE'),join(out,'licenses/Apache-2.0.txt'));await copyFile(join(dirname(require.resolve('react')),'LICENSE'),join(out,'licenses/react-MIT.txt'));await copyFile(join(dirname(require.resolve('three')),'../LICENSE'),join(out,'licenses/three-MIT.txt'));await copyFile(join(gameRoot,'native/LICENSE-NOTICES.md'),join(out,'licenses/NOTICES.md'));
  const physicsPackage=createRequire(require.resolve('@react-three/rapier')).resolve('@dimforge/rapier3d-compat');await mkdir(join(out,'rapier'),{recursive:true});await copyFile(join(dirname(physicsPackage),'rapier_wasm3d_bg.wasm'),join(out,'rapier/rapier.wasm'));
@@ -51,7 +51,7 @@ export async function prepareNativeAssets(out,options={}){
  const audio={wind:wav(22050,4,()=>{smooth=(smooth+noise()*.03)/1.03;return smooth*.4;}),step:wav(22050,.13,t=>Math.sin(2*Math.PI*(90-55*t/.13)*t)*.1*Math.exp(-t*35)),chime:wav(22050,.9,t=>[523.25,659.25,783.99].reduce((sum,f,i)=>{const x=t-i*.08;return sum+(x>=0&&x<.7?Math.sin(2*Math.PI*f*x)*.1*Math.exp(-x*5):0)},0))};
  for(const name of ['drink','pigeon','visitor'])audio[name]=wav(22050,.5,t=>Math.sin(2*Math.PI*(name==='drink'?1600:name==='pigeon'?650:380)*t)*.08*Math.exp(-t*10));
  for(const[name,bytes]of Object.entries(audio))await writeFile(join(out,'audio',name+'.wav'),bytes);
- for(const path of await files(out)){const name=relative(out,path);if(manifest.files.some(f=>f.path===name)||name==='native-assets-manifest.json')continue;const bytes=await readFile(path);manifest.files.push({path:name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
+ for(const path of await files(out)){const name=relative(out,path).split(sep).join('/');if(manifest.files.some(f=>f.path===name)||name==='native-assets-manifest.json')continue;const bytes=await readFile(path);manifest.files.push({path:name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
  manifest.totalBytes=manifest.files.reduce((n,f)=>n+f.bytes,0);manifest.remoteBytes=manifest.files.filter(f=>f.delivery==='remote-pinned').reduce((n,f)=>n+f.bytes,0);manifest.mainPackageAssetBytes=manifest.totalBytes-manifest.remoteBytes;manifest.assetsSubmoduleSha=execFileSync('git',['rev-parse','HEAD:assets'],{cwd:repoRoot,encoding:'utf8'}).trim();await writeFile(join(out,'native-assets-manifest.json'),JSON.stringify(manifest,null,2)+'\n');return manifest;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){const out=process.argv[2]||join(repoRoot,'.scratch/travel-bund-native/assets');console.log(JSON.stringify({out,...await prepareNativeAssets(out)}));}

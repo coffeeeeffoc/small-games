@@ -202,7 +202,7 @@ test('native smoke selects both actual native hosts and generates candidate repl
     plan: result,
     packages: [...nativePackages, nativeEvidenceProducer],
     root: '/snapshot',
-    env: {},
+    env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => calls.push(args),
   });
   assert.deepEqual(
@@ -242,7 +242,7 @@ test('native smoke selects both actual native hosts and generates candidate repl
           plan: result,
           packages: evidencePackages,
           root: '/snapshot',
-          env: {},
+          env: { MINIGAME_RELEASE_GATES: '1' },
           execute: (...args) => rejectedCalls.push(args),
         }),
       /Unreviewed native replay evidence producer/,
@@ -256,7 +256,7 @@ test('native smoke selects both actual native hosts and generates candidate repl
         plan: result,
         packages: [...nativePackages, nativeEvidenceProducer],
         root: '/snapshot',
-        env: {},
+        env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           failedCalls.push(args);
           throw new Error('Rule witness generation failed');
@@ -951,7 +951,7 @@ test('native smoke accepts the current platform test aggregate and rejects incom
     plan: result,
     packages: [...nativePackages, nativeEvidenceProducer],
     root: '/snapshot',
-    env: {},
+    env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => calls.push(args),
   });
   assert.deepEqual(

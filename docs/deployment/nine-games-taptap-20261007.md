@@ -1,5 +1,7 @@
 # 前九款 TapTap 普通小游戏接入
 
+2026-10-07 本地续接已生成两款真实 Creator 构建及官方插件转换 ZIP，当前仍被运行/资源门禁拦截；来源清单、自动路径、Windows 修复和准确 SHA 的 CI 传递方案见 [本地续接记录](nine-games-taptap-local-20261007.md)。原交接中的“缺真实转换输入”是当时云环境状态，不能替代续接后的具体检查结果。
+
 实现起点为 dev `f96e90907910fb94d4f9a9bbaaace06b6a1668db`，收尾时已合并远端 `4a779da21146ce275be8e0bbd7e9f5e06eee21d0`，保留其独立 Tetracube 更新。使用此前五平台批次的固定九款名单（`e07dc064`），不随 Shell 目录新增游戏扩张。保留原五平台默认入口，新增独立 `build:taptap` / `test:taptap`。
 
 ## 产物与运行环境

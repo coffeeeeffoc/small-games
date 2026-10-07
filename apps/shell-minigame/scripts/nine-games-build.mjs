@@ -10,6 +10,17 @@ import { nineGames, fivePlatforms, scopeCommit, targetOptions } from './nine-gam
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const sha = (data) => createHash('sha256').update(data).digest('hex');
+export function workspaceSourceFile(file, directory = root) {
+  if (!path.isAbsolute(file)) return false;
+  const relative = path.relative(directory, file).replaceAll('\\', '/');
+  return (
+    relative &&
+    !relative.startsWith('../') &&
+    !path.isAbsolute(relative) &&
+    !relative.startsWith('.scratch/') &&
+    !/(?:^|\/)node_modules\//.test(relative)
+  );
+}
 export async function inventory(directory) {
   const files = [];
   async function visit(relative = '') {
@@ -127,7 +138,7 @@ export async function buildTarget(selected, config, outputRoot) {
         preparePath,
         ...prepared.sourceInputs
           .map((file) => path.resolve(root, file))
-          .filter((file) => file.startsWith(root) && !file.includes('/node_modules/')),
+          .filter((file) => workspaceSourceFile(file)),
       );
       for (const file of [
         'native/generate-sources.mjs',
@@ -226,12 +237,7 @@ export async function buildTarget(selected, config, outputRoot) {
               ...Object.values(bundle)
                 .filter((item) => item.type === 'chunk')
                 .flatMap((item) => Object.keys(item.modules))
-                .filter(
-                  (file) =>
-                    file.startsWith(root) &&
-                    !file.includes('/node_modules/') &&
-                    !path.relative(root, file).replaceAll('\\', '/').startsWith('.scratch/'),
-                ),
+                .filter((file) => workspaceSourceFile(file)),
             );
           },
         },

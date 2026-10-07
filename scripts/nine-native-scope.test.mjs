@@ -36,7 +36,9 @@ function nightContext() {
 const catalog = JSON.parse(
   readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
 );
-const snapshot = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+// Digest proofs use committed Git bytes, independent of Windows checkout EOLs.
+const snapshot = (file) =>
+  readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
 const beforeCompetition = execFileSync('git', ['show', `${baseline}:${competition}`], {
   encoding: 'utf8',
 });
@@ -708,7 +710,7 @@ test('TapTap tools select exactly nine sixth-channel consumers and retain real C
     );
     assert.deepEqual(result.native_only_paths, [file]);
   }
-  for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs']) {
+  for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs', 'taptap-cocos-inputs.mjs']) {
     const result = select(['apps/shell-minigame/scripts/' + file]);
     assert.deepEqual(
       result.targets.map((target) => target.game),
@@ -742,6 +744,25 @@ test('TapTap tools select exactly nine sixth-channel consumers and retain real C
     ),
     ['wulong-city:taptap'],
   );
+});
+
+test('the exact TapTap CI workflow selects two Cocos consumers and rejects changed execution', () => {
+  const file = '.github/workflows/taptap-cocos.yml';
+  const text = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = {
+    changedPaths: [file],
+    games: catalog,
+    packages: [...packages, { dir: 'platforms/taptap' }],
+    readBase: () => null,
+    readHead: () => text,
+  };
+  assert.equal(nineNativeFileScopes(context).size, 1);
+  for (const altered of [
+    text + '\n',
+    text.replace('contents: read', 'contents: write'),
+    text.replace('ref: ${{ github.sha }}', 'ref: dev'),
+  ])
+    assert.equal(nineNativeFileScopes({ ...context, readHead: () => altered }).size, 0);
 });
 
 test('shared game sources include TapTap only when its real workspace is available', async () => {
@@ -806,17 +827,18 @@ test('only the exact TapTap normalizer generator additions select seven TapTap f
   const { incrementalPlan } = await import('./incremental-validation.mjs');
   const file = 'apps/shell-minigame/scripts/nine-games-build.mjs';
   const original = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
-  const current = snapshot(file);
+  const current = execFileSync('git', ['show', `695b8043:${file}`], { encoding: 'utf8' });
+  const reviewedSource = (source) => (source === file ? current : snapshot(source));
   const c = {
     ...context([file]),
     packages: [...packages, { dir: 'platforms/taptap' }],
     readBase: () => original,
-    readHead: snapshot,
+    readHead: reviewedSource,
   };
   const fileScopes = tapNormalizerFileScopes(c);
   assert.equal(fileScopes.size, 1);
   assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
-  const result = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+  const result = incrementalPlan({ ...c, fileScopes, readSource: reviewedSource });
   assert.equal(result.nine_native_targets.length, 7);
   assert(
     result.nine_native_targets.every(
@@ -830,7 +852,12 @@ test('only the exact TapTap normalizer generator additions select seven TapTap f
     { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
     { readSource: (source) => (source === file ? current + '\n' : snapshot(source)) },
   ]) {
-    const plan = nineNativeDependencyPlan({ ...c, fileScopes, readSource: snapshot, ...override });
+    const plan = nineNativeDependencyPlan({
+      ...c,
+      fileScopes,
+      readSource: reviewedSource,
+      ...override,
+    });
     assert(plan.targets.some((target) => target.platform === 'wechat'));
     assert.deepEqual(
       plan.blocked.map((target) => target.game),

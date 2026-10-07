@@ -24,7 +24,8 @@ test('CommonJS companions use exact packaged bytes and preserve no-DOM errors an
     );
     await writeFile(path.join(artifact, 'foreign.js'), 'module.exports=wx;');
     await writeFile(path.join(directory, 'outside.js'), 'module.exports="outside";');
-    await symlink(path.join(directory, 'outside.js'), path.join(artifact, 'link.js'));
+    const linkedDirectory = path.join(artifact, 'linked');
+    await symlink(directory, linkedDirectory, process.platform === 'win32' ? 'junction' : 'dir');
     const tap = { platform: 'taptap' },
       context = vm.createContext({ tap });
     const require = createTapTapRequire(artifact, context);
@@ -34,7 +35,7 @@ test('CommonJS companions use exact packaged bytes and preserve no-DOM errors an
     assert.equal(context.loads, 1, 'Companion state is cached exactly once');
     assert.throws(() => require('node:fs'), /only loads relative/);
     assert.throws(() => require('../outside.js'), /stay inside/);
-    assert.throws(() => require('./link.js'), /symlinks/);
+    assert.throws(() => require('./linked/outside.js'), /symlinks/);
     assert.throws(() => require('./missing.js'), /ENOENT/);
     assert.throws(() => require('./foreign.js'), /wx is not defined/);
     assert.throws(
