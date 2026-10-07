@@ -82,8 +82,12 @@ const TURNS = {
   back: { point: [1, 3, 3], dims: [6, 12, 6], axis: 0, angle: -Math.PI / 2 },
 };
 
-test('content schema defaults to 6×6×12 and validates shapes, bounds and world-down gravity', () => {
-  assert.deepEqual(DEFAULT_CONFIG.dims, [6, 6, 12]);
+test('content schema adds 50% headroom without increasing the 36-cell floor', () => {
+  assert.deepEqual(DEFAULT_CONFIG.dims, [6, 6, 18]);
+  assert.equal(
+    DEFAULT_CONFIG.dims.reduce((volume, size) => volume * size),
+    648,
+  );
   assert.deepEqual(validateConfig(DEFAULT_CONFIG), []);
   assert.notEqual(migrateConfig(DEFAULT_CONFIG), DEFAULT_CONFIG);
   assert.ok(validateConfig({ ...DEFAULT_CONFIG, dims: [0, 6, 12] }).length);
@@ -155,6 +159,121 @@ test('world-down spawn, lateral moves, obstacle ghost and hard drop agree', () =
   assert.equal(game.status, 'playing');
   assert.equal(new Set(game.board.map((cell) => key(coordinates(cell)))).size, game.board.length);
   assert.equal(game.fits(game.active), true);
+});
+
+test('hold grants one exchange per placement, resets orientation and preserves score', () => {
+  const game = new Game({ seed: 448 });
+  const first = game.active.id;
+  const queued = structuredClone(game.next);
+  game.rotate('XZ');
+  game.move(0, 1);
+  const before = structuredClone(game.active);
+  const state = { score: game.score, placed: game.placed, serial: game.serial };
+  game.drainEvents();
+  assert.equal(game.hold(), true);
+  assert.deepEqual(
+    game.held,
+    SHAPES.find((shape) => shape.id === first),
+  );
+  assert.equal(game.active.id, queued[0].id);
+  assert.deepEqual(game.next.slice(0, 2), queued.slice(1));
+  assert.equal(game.next.length, DEFAULT_CONFIG.previewCount);
+  assert.equal(game.holdUsed, true);
+  assert.deepEqual({ score: game.score, placed: game.placed, serial: game.serial }, state);
+  const event = game.drainEvents().find((item) => item.type === 'hold');
+  assert.deepEqual(event.before, before);
+  assert.deepEqual(event.after, game.active);
+  assert.deepEqual(event.from, game.cells(before));
+  assert.deepEqual(event.to, game.cells());
+  const snapshot = game.getSnapshot();
+  assert.equal(game.hold(), false);
+  assert.deepEqual(
+    game.getSnapshot(),
+    snapshot,
+    'repeat hold cannot consume queue or replace shapes',
+  );
+  assert.deepEqual(game.drainEvents(), []);
+  game.hardDrop();
+  assert.equal(game.holdUsed, false);
+  const displaced = game.active.id;
+  const queue = structuredClone(game.next);
+  const bag = [...game.bag];
+  const rngState = game.rngState;
+  assert.equal(game.hold(), true);
+  assert.equal(game.active.id, first);
+  assert.deepEqual(game.active.cells, SHAPES.find((shape) => shape.id === first).cells);
+  assert.equal(game.held.id, displaced);
+  assert.deepEqual(game.next, queue, 'swapping an occupied slot leaves future pieces untouched');
+  assert.deepEqual(game.bag, bag);
+  assert.equal(game.rngState, rngState);
+  assert.equal(game.fits(game.active), true);
+});
+
+test('container turn restores hold permission and danger cannot exchange pending pieces', () => {
+  const game = new Game({ seed: 2 });
+  game.hold();
+  const held = structuredClone(game.held);
+  game.flipContainer('left');
+  assert.equal(game.holdUsed, false);
+  assert.deepEqual(game.held, held);
+  assert.equal(game.hold(), true);
+  game.board = plane(game.dims, 2, game.dims[2] - 1);
+  game.serial = game.board.length;
+  game.spawn(game.active);
+  const danger = game.getSnapshot();
+  assert.equal(game.status, 'danger');
+  assert.equal(game.hold(), false);
+  assert.deepEqual(game.getSnapshot(), danger);
+});
+
+test('motion events preserve ordered piece cells and hard-drop to lock continuity', () => {
+  const game = new Game({ config: configFor([SHAPES[0]]), seed: 8 });
+  game.drainEvents();
+  assert.equal(game.move(1, 1), true);
+  assert.equal(game.rotate('XZ'), true);
+  assert.equal(game.tick(), true);
+  assert.equal(game.hardDrop(), true);
+  const events = game.drainEvents();
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ['move', 'rotate', 'fall', 'drop', 'lock', 'spawn'],
+  );
+  for (const event of events.slice(0, 4)) {
+    assert.deepEqual(event.from, game.cells(event.before));
+    assert.deepEqual(event.to, game.cells(event.after));
+    assert.equal(event.from.length, 4);
+    assert.equal(event.to.length, 4);
+  }
+  const [move, rotate, fall, drop, lock] = events;
+  assert.deepEqual(move.to, rotate.from);
+  assert.deepEqual(rotate.to, fall.from);
+  assert.deepEqual(fall.to, drop.from);
+  assert.deepEqual(drop.to, lock.from);
+  assert.deepEqual(lock.from, lock.added.map(coordinates));
+  assert.deepEqual(lock.piece, drop.after);
+  assert.deepEqual(rotate.after.cells, rotateCells(rotate.before.cells, rotate.plane));
+  assert.equal(rotate.sign, 1);
+  assert.equal(fall.distance, 1);
+  assert.deepEqual(fall.gravity, DOWN);
+  const saved = structuredClone(events);
+  game.active.pos[0] = 0;
+  game.board[0].z = 7;
+  assert.deepEqual(events, saved, 'renderer snapshots do not alias the live simulation');
+});
+
+test('automatic collision locks the final airborne pose for the landing animation', () => {
+  const game = new Game({ config: configFor([SHAPES[1]]), seed: 8 });
+  game.active.pos[2] = 0;
+  const before = structuredClone(game.active);
+  game.drainEvents();
+  assert.equal(game.tick(), true);
+  const events = game.drainEvents();
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ['lock', 'spawn'],
+  );
+  assert.deepEqual(events[0].piece, before);
+  assert.deepEqual(events[0].from, game.cells(before));
 });
 
 for (const gravity of DIRECTIONS) {
@@ -270,16 +389,17 @@ for (const [turn, expected] of Object.entries(TURNS)) {
       [...before, ...committed],
       'active pose is committed before rotation',
     );
-    assert.deepEqual(flip.beforeDims, [6, 6, 12]);
-    assert.deepEqual(flip.afterDims, expected.dims);
+    const expectedDims = transformContainer([], DEFAULT_CONFIG.dims, turn).dims;
+    assert.deepEqual(flip.beforeDims, DEFAULT_CONFIG.dims);
+    assert.deepEqual(flip.afterDims, expectedDims);
     assert.equal(flip.turn, turn);
     assert.equal(flip.axis, expected.axis);
     assert.equal(flip.angle, expected.angle);
     assert.deepEqual(flip.orientation, game.orientation);
-    const transformed = transformContainer([...before, ...committed], [6, 6, 12], turn);
+    const transformed = transformContainer([...before, ...committed], DEFAULT_CONFIG.dims, turn);
     assert.deepEqual(flip.after, transformed.board);
     assert.deepEqual(game.board, compactBoard(transformed.board, transformed.dims, DOWN));
-    assert.deepEqual(game.dims, expected.dims);
+    assert.deepEqual(game.dims, expectedDims);
     assert.deepEqual(game.gravity, DOWN);
     assert.equal(game.placed, 1);
     assert.equal(game.flipCount, 1);
@@ -439,16 +559,16 @@ test('blocked spawn enters danger and inversion recovers the pending piece witho
   assertSupported(game.board);
 });
 
-test('a full 6×6×12 container clears in twelve waves after physical inversion', () => {
+test('a full 6×6×18 container clears in eighteen waves after physical inversion', () => {
   const game = new Game({ seed: 33 });
-  game.board = Array.from({ length: 12 }, (_, z) => plane(game.dims, 2, z, 1 + z * 36)).flat();
-  game.serial = 432;
+  game.board = Array.from({ length: 18 }, (_, z) => plane(game.dims, 2, z, 1 + z * 36)).flat();
+  game.serial = 648;
   assert.equal(game.spawn(game.active), false);
   assert.equal(game.status, 'danger');
   assert.equal(game.flipContainer('invert'), true);
-  assert.equal(game.lines, 12);
-  assert.equal(game.bestCombo, 12);
-  assert.equal(game.score, 250 * 78);
+  assert.equal(game.lines, 18);
+  assert.equal(game.bestCombo, 18);
+  assert.equal(game.score, 250 * 171);
   assert.equal(game.status, 'playing');
   assert.equal(game.board.length, 0);
   const events = game.drainEvents();
@@ -456,27 +576,27 @@ test('a full 6×6×12 container clears in twelve waves after physical inversion'
   assert.ok(events.findIndex((event) => event.type === 'clear') > flipIndex);
   assert.deepEqual(
     events.filter((event) => event.type === 'clear').map((event) => event.combo),
-    Array.from({ length: 12 }, (_, i) => i + 1),
+    Array.from({ length: 18 }, (_, i) => i + 1),
   );
 });
 
-test('quarter turn changes vertical walls into 12×6 floor planes before a two-wave cascade', () => {
+test('quarter turn changes vertical walls into 18×6 floor planes before a two-wave cascade', () => {
   const game = new Game({ seed: 33 });
-  game.board = [...plane(game.dims, 0, 0), ...plane(game.dims, 0, 2, 73)];
-  game.serial = 144;
+  game.board = [...plane(game.dims, 0, 0), ...plane(game.dims, 0, 2, 109)];
+  game.serial = 216;
   game.active = { ...structuredClone(SHAPES[1]), pos: [3, 2, 9] };
   assert.deepEqual(fullPlanes(game.board, game.dims, DOWN), []);
   assert.equal(game.fits(game.active), true);
   game.drainEvents();
   assert.equal(game.flipContainer('left'), true);
-  assert.deepEqual(game.dims, [12, 6, 6]);
+  assert.deepEqual(game.dims, [18, 6, 6]);
   assert.equal(game.lines, 2);
   assert.equal(game.combo, 2);
   assert.equal(game.score, 750 + 4 * game.config.points.cell);
   assert.equal(game.board.length, 4);
   assert.deepEqual(
     game.board.map((cell) => cell.id),
-    [145, 146, 147, 148],
+    [217, 218, 219, 220],
   );
   assertSupported(game.board);
   const events = game.drainEvents();
@@ -490,8 +610,8 @@ test('quarter turn changes vertical walls into 12×6 floor planes before a two-w
         combo: event.combo,
       })),
     [
-      { axis: 2, area: 72, combo: 1 },
-      { axis: 2, area: 72, combo: 2 },
+      { axis: 2, area: 108, combo: 1 },
+      { axis: 2, area: 108, combo: 2 },
     ],
   );
 });
@@ -536,7 +656,7 @@ for (const gravity of DIRECTIONS) {
     assert.deepEqual(restored.board, geometry.board);
     assert.deepEqual(
       restored.dims,
-      geometry.dims.map((d) => (d === 5 ? 6 : 12)),
+      geometry.dims.map((d) => (d === 5 ? 6 : 18)),
     );
     assert.deepEqual(
       sorted(restored.cells()),
@@ -545,7 +665,7 @@ for (const gravity of DIRECTIONS) {
     assert.deepEqual(restored.gravity, DOWN);
     assert.equal(restored.fits(restored.active), true);
     assert.equal(restored.flipCount, 3);
-    assert.equal(restored.getSnapshot().version, 2);
+    assert.equal(restored.getSnapshot().version, 3);
     assert.equal(restored.events.length, 0);
     for (const field of [
       'score',
@@ -589,13 +709,100 @@ test('legacy danger retains pending shape until a physical flip rescues it', () 
   assert.equal(restored.placed, legacy.placed);
 });
 
-test('v2 save/restore preserves rotated dimensions, orientation, queue, RNG and future commands', () => {
+for (const turn of [null, ...Object.keys(TURNS)]) {
+  test(`v2 ${turn ?? 'upright'} save expands without moving cubes or changing future pieces`, () => {
+    const game = new Game({ config: { ...DEFAULT_CONFIG, dims: [6, 6, 12] }, seed: 448 });
+    game.hardDrop();
+    game.move(1, 1);
+    game.rotate('XZ');
+    if (turn) game.flipContainer(turn);
+    const snapshot = game.getSnapshot();
+    snapshot.version = 2;
+    delete snapshot.held;
+    delete snapshot.holdUsed;
+    const before = structuredClone(snapshot);
+    const restored = new Game().restore(snapshot);
+    const expectedDims = turn
+      ? transformContainer([], DEFAULT_CONFIG.dims, turn).dims
+      : DEFAULT_CONFIG.dims;
+    assert.deepEqual(restored.dims, expectedDims);
+    assert.equal(
+      restored.dims.reduce((volume, size) => volume * size),
+      648,
+    );
+    for (const field of [
+      'board',
+      'active',
+      'pending',
+      'orientation',
+      'score',
+      'lines',
+      'combo',
+      'bestCombo',
+      'placed',
+      'serial',
+      'rngState',
+      'initialSeed',
+      'status',
+      'bag',
+      'next',
+      'flipCount',
+    ])
+      assert.deepEqual(restored[field], snapshot[field], `${field} survives expansion unchanged`);
+    assert.equal(restored.held, null);
+    assert.equal(restored.holdUsed, false);
+    assert.equal(restored.getSnapshot().version, 3);
+    assert.equal(restored.fits(restored.active), true);
+    assert.deepEqual(snapshot, before, 'migration does not mutate the supplied save');
+    for (let i = 0; i < 30; i++) assert.deepEqual(restored.drawShape(), game.drawShape());
+    const roundtrip = new Game().restore(restored.getSnapshot());
+    assert.deepEqual(roundtrip.getSnapshot(), restored.getSnapshot());
+  });
+}
+
+test('v2 danger migration retains its blocked piece and resumes after inversion', () => {
+  const game = new Game({ config: { ...DEFAULT_CONFIG, dims: [6, 6, 12] }, seed: 4 });
+  game.board = plane(game.dims, 2, 11);
+  game.serial = 36;
+  game.spawn(game.active);
+  const snapshot = game.getSnapshot();
+  snapshot.version = 2;
+  delete snapshot.held;
+  delete snapshot.holdUsed;
+  const restored = new Game().restore(snapshot);
+  assert.equal(restored.status, 'danger');
+  assert.deepEqual(restored.pending, snapshot.pending);
+  assert.deepEqual(restored.board, snapshot.board);
+  assert.deepEqual(restored.next, snapshot.next);
+  assert.deepEqual(restored.dims, [6, 6, 18]);
+  assert.equal(restored.flipContainer('invert'), true);
+  assert.equal(restored.status, 'playing');
+  assert.equal(restored.active.id, snapshot.pending.id);
+});
+
+test('v3 save persists held shape and exchange cooldown through deterministic continuation', () => {
+  const game = new Game({ seed: 448 });
+  game.hold();
+  const restored = new Game().restore(game.getSnapshot());
+  assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
+  assert.equal(restored.hold(), false);
+  for (const instance of [game, restored]) {
+    instance.hardDrop();
+    instance.hold();
+    instance.rotate('YZ');
+    instance.flipContainer('left');
+    instance.hold();
+  }
+  assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
+});
+
+test('v3 save/restore preserves rotated dimensions, orientation, queue, RNG and future commands', () => {
   const game = new Game({ seed: 448 });
   game.hardDrop();
   game.move(1, 1);
   game.rotate('XZ');
   game.flipContainer('right');
-  assert.deepEqual(game.dims, [12, 6, 6]);
+  assert.deepEqual(game.dims, [18, 6, 6]);
   assert.notDeepEqual(game.orientation, IDENTITY);
   const restored = new Game({ seed: 0 }).restore(game.getSnapshot());
   assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
@@ -618,7 +825,7 @@ test('reset restores original container geometry, orientation, flip count and se
   game.flipContainer('back');
   game.hardDrop();
   game.reset();
-  assert.deepEqual(game.dims, [6, 6, 12]);
+  assert.deepEqual(game.dims, [6, 6, 18]);
   assert.deepEqual(game.orientation, IDENTITY);
   assert.equal(game.flipCount, 0);
   assert.deepEqual(game.getSnapshot(), fresh);
@@ -686,6 +893,15 @@ test('malformed saves reject invalid dimensions, orientation, pieces and numeric
     (value) => {
       value.bag.push('nonexistent-shape');
     },
+    (value) => {
+      value.holdUsed = 'yes';
+    },
+    (value) => {
+      value.held = { ...structuredClone(SHAPES[1]), pos: [0, 0, 0] };
+    },
+    (value) => {
+      value.held = { ...structuredClone(SHAPES[1]), id: 'unknown' };
+    },
   ];
   for (const mutate of mutations) {
     const malformed = structuredClone(snapshot);
@@ -698,7 +914,7 @@ test('malformed saves reject invalid dimensions, orientation, pieces and numeric
   assert.throws(() => game.restore(badLegacy));
 });
 
-test('danger state survives v2 save and final game over disables all gameplay commands', () => {
+test('danger state survives v3 save and final game over disables all gameplay commands', () => {
   const game = new Game({ seed: 4 });
   game.board = plane(game.dims, 2, game.dims[2] - 1);
   game.serial = game.dims[0] * game.dims[1];
@@ -713,6 +929,7 @@ test('danger state survives v2 save and final game over disables all gameplay co
   assert.equal(restored.tick(), false);
   assert.equal(restored.move(0, 1), false);
   assert.equal(restored.hardDrop(), false);
+  assert.equal(restored.hold(), false);
   assert.ok(restored.drainEvents().some((event) => event.type === 'over'));
   assert.deepEqual(restored.drainEvents(), []);
 });

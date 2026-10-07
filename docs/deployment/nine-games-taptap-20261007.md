@@ -1,6 +1,6 @@
 # 前九款 TapTap 普通小游戏接入
 
-基于 dev `f96e90907910fb94d4f9a9bbaaace06b6a1668db`，使用此前五平台批次的固定九款名单（`e07dc064`），不随 Shell 目录新增游戏扩张。保留原五平台默认入口，新增独立 `build:taptap` / `test:taptap`。
+实现起点为 dev `f96e90907910fb94d4f9a9bbaaace06b6a1668db`，收尾时已合并远端 `4a779da21146ce275be8e0bbd7e9f5e06eee21d0`，保留其独立 Tetracube 更新。使用此前五平台批次的固定九款名单（`e07dc064`），不随 Shell 目录新增游戏扩张。保留原五平台默认入口，新增独立 `build:taptap` / `test:taptap`。
 
 ## 产物与运行环境
 
