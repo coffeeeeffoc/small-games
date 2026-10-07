@@ -401,3 +401,25 @@ test('Pages logic history repair preserves all other jobs and execution bytes', 
     assert.equal(classify(file, before, bad).has(file), false);
   assert.equal(classify(file, before + '\n', after).has(file), false);
 });
+
+test('bare planning jobs install only the reviewed pinned parser without changing gates', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
+  for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+    const before = execFileSync(
+      'git',
+      ['show', `c83e51299219c969c934618ca76fe0ae77f0eaa3:${file}`],
+      { encoding: 'utf8' },
+    );
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    assert.deepEqual(classify(file, before, after).get(file), []);
+    for (const bad of [
+      after.replace('--ignore-scripts ', ''),
+      after.replace('prettier@$parser_version', 'prettier@latest'),
+      after + '\n# unreviewed execution boundary\n',
+      after.replace('node scripts/pages-test-scope.mjs', 'echo skipped'),
+    ])
+      assert.equal(classify(file, before, bad).has(file), false);
+    assert.equal(classify(file, before + '\n# unknown baseline\n', after).has(file), false);
+  }
+});
