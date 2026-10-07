@@ -569,6 +569,13 @@ const immersiveFixtures = [
     before:
       "it.each([\n  'letters-words2',\n  'xiangqi-five',\n])('checks display state for %s', async (id) => {\n  expect(event.origin).toBe(origin);\n});\n",
   },
+  {
+    file: 'apps/shell-web/tests/standalone.integration.test.tsx',
+    anchor: '      if (\n',
+    addition: "        id === 'cage-rescue' ||\n",
+    before:
+      "it('opens all standalone games', async () => {\n  for (const { id } of games) {\n      if (\n        id === 'letters-words2' ||\n        id === 'xiangqi-five'\n      ) {\n        expect(event.origin).toBe(origin);\n      }\n  }\n});\n",
+  },
 ];
 
 test('exact cage rescue immersion allowlist additions stay game-scoped without dropping Shell contracts', () => {

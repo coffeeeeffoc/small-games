@@ -209,6 +209,11 @@ const cageRescueImmersiveFiles = {
     anchor: 'it.each([\n',
     addition: "  'cage-rescue',\n",
   },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    name: 'catalogCases',
+    anchor: '      if (\n',
+    addition: "        id === 'cage-rescue' ||\n",
+  },
 };
 
 function assertCageRescueCatalog(games) {
@@ -340,9 +345,29 @@ function assertCageRescueImmersive(file, before, after) {
     assert(ids[0] === 'cage-rescue' && new Set(ids).size === ids.length);
     return;
   }
-  const declaration = namedVariable(program, name);
-  assert(declaration.start === after.indexOf(anchor) + anchor.indexOf(name));
-  if (name === 'immersive') {
+  let declaration;
+  if (name === 'catalogCases') {
+    const cases = [];
+    function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (
+        node.type === 'IfStatement' &&
+        node.start === after.indexOf(anchor) + anchor.indexOf('if')
+      )
+        cases.push(node);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    }
+    visit(program);
+    assert(cases.length === 1, 'Expected the real standalone catalog immersion guard');
+    declaration = { init: cases[0].test };
+  } else {
+    declaration = namedVariable(program, name);
+    assert(declaration.start === after.indexOf(anchor) + anchor.indexOf(name));
+  }
+  if (name === 'immersive' || name === 'catalogCases') {
     const ids = [];
     const compare = (node) => {
       if (node.type === 'LogicalExpression' && node.operator === '||') {
