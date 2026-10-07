@@ -371,3 +371,33 @@ test('planning checkout narrows both real producers to one locked gitlink withou
     }
   }
 });
+
+test('Pages logic history repair preserves all other jobs and execution bytes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const file = '.github/workflows/pages-validate.yml';
+  const before = execFileSync('git', ['show', `654a0acf72cb76748c7bc8df82ba06916b2c303d:${file}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  const offset = before.indexOf('  logic:\n');
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          submodules: recursive\n';
+  const after =
+    before.slice(0, offset) +
+    before.slice(offset).replace(anchor, anchor + '          fetch-depth: 0\n');
+  const scopes = classify(file, before, after);
+  assert.deepEqual(scopes.get(file), []);
+  assert.equal(plan([file], scopes).validation_tools, true);
+  assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+  for (const bad of [
+    after + '\n',
+    after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+    after.replace('pnpm check:games', 'echo skipped'),
+    after.replace('timeout-minutes: 40', 'timeout-minutes: 1'),
+    before.replace(anchor, anchor + '          fetch-depth: 0\n'),
+  ])
+    assert.equal(classify(file, before, bad).has(file), false);
+  assert.equal(classify(file, before + '\n', after).has(file), false);
+});

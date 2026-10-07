@@ -151,6 +151,7 @@ export function incrementalPlan({
         [
           '.github/workflows/ci.yml',
           '.github/workflows/pages.yml',
+          '.github/workflows/pages-validate.yml',
           '.gitignore',
           '.prettierignore',
           'scripts/check-game-config.test.mjs',

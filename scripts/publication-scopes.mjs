@@ -51,6 +51,35 @@ function exactPlanningCheckout(file, before, after) {
   );
 }
 
+const validationHistoryFile = '.github/workflows/pages-validate.yml';
+function exactValidationHistory(file, before, after) {
+  if (file !== validationHistoryFile) return false;
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  if (
+    digest(before) !== 'd2f8f24d28033d97df0af0232d82580d5f2c97739424e48728a7d3c3c7f34543' ||
+    digest(after) !== '29c49bdf51d0ff0a5182c21912b035e158f3345e02ec5fd143b5fa947ef2cb92'
+  )
+    return false;
+  const marker = '  logic:\n';
+  if (before.split(marker).length !== 2) return false;
+  const offset = before.indexOf(marker);
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          submodules: recursive\n';
+  const tail = before.slice(offset);
+  return (
+    tail.includes(anchor) &&
+    after ===
+      before.slice(0, offset) +
+        tail.replace(
+          anchor,
+          anchor.replace(
+            '          submodules: recursive\n',
+            '          submodules: recursive\n          fetch-depth: 0\n',
+          ),
+        )
+  );
+}
+
 function literalDeclaration(source, name) {
   const { parsers } = loadDependency('prettier/plugins/babel');
   const ast = parsers.babel.parse(source, {});
@@ -162,6 +191,11 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   for (const file of changedPaths) {
     try {
       if (
+        file === validationHistoryFile &&
+        exactValidationHistory(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, []);
+      } else if (
         planningCheckoutHashes[file] &&
         exactPlanningCheckout(file, readBase(file), readHead(file))
       ) {
