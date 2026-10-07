@@ -132,7 +132,7 @@ export async function verifyNativeArtifact({
         rectangles.length = 0;
         drawnImages.length = 0;
       },
-      fillRect(_x, y, _width, height) {
+      fillRect(x, y, width, height) {
         if (y === 0 && drawingDepth <= 1) {
           if (gameId === 'building-power') paths.length = 0;
           labels.clear();
@@ -140,7 +140,7 @@ export async function verifyNativeArtifact({
           rendered.length = 0;
           rectangles.length = 0;
           drawnImages.length = 0;
-        } else if (height > 1) rectangles.push({ y, height });
+        } else if (height > 1) rectangles.push({ x, y, width, height });
       },
       fillText(text, x, y) {
         rendered.push(text);
@@ -357,7 +357,12 @@ export async function verifyNativeArtifact({
     const button = rectangles[standalone ? 0 : gameIndex];
     if (!standalone || platform === 'bilibili') {
       assert.ok(button, `Launch screen must render ${gameId}`);
-      tap(30, button.y + button.height / 2);
+      // The shared launch surface draws in 390 × 844 logical coordinates.
+      const size = sdk.getSystemInfoSync();
+      tap(
+        ((button.x + button.width / 2) * size.windowWidth) / 390,
+        ((button.y + button.height / 2) * size.windowHeight) / 844,
+      );
     }
     if (standalone) await entry.ready;
     const ready =
