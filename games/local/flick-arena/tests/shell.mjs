@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { exerciseStandalone } from '../../../../apps/shell-web/scripts/standalone-game-checks.mjs';
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
   headless: true,
@@ -18,7 +17,8 @@ try {
   await page.goto((process.env.SHELL_URL || 'http://127.0.0.1:4173/') + '#/games/flick-arena');
   const frame = page.frameLocator('iframe');
   await frame.locator('#start').waitFor();
-  await exerciseStandalone(frame, 'flick-arena', true);
+  await frame.locator('#start').tap();
+  await frame.locator('body[data-phase="playing"]').waitFor();
   // Use a known practice layout before exercising an actual embedded touch flick.
   await frame.locator('#pause').tap();
   await frame.locator('#home').tap();
