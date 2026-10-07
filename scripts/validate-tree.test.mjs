@@ -558,6 +558,9 @@ test('native-only Creator consumers are checked before types without rebuilding 
   const root = await mkdtemp(path.join(os.tmpdir(), 'native-cocos-preflight-'));
   const env = cleanGitEnv({
     ...process.env,
+    KART_PREBUILT_DIR: '',
+    NIGHT_OVERWATCH_PREBUILT_DIR: '',
+    COCOS_CREATOR: '',
     GIT_AUTHOR_NAME: 'fixture',
     GIT_AUTHOR_EMAIL: 'fixture@example.invalid',
     GIT_COMMITTER_NAME: 'fixture',
