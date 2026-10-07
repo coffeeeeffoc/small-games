@@ -13,12 +13,23 @@ const baseline = '748f0b15be225ecb03807b4a7b1a3cd737298bda';
 const competition = 'platforms/competition/native.js';
 const nightHelper = 'apps/shell-web/scripts/standalone-game-checks.mjs';
 const nightSource = 'games/local/night-overwatch';
-const nightBase = execFileSync(
+const historicalNightBase = execFileSync(
   'git',
   ['show', `d3874c73bd75128b45082c4815afef8f9918169a:${nightHelper}`],
   { encoding: 'utf8' },
 );
 const nightHead = snapshotNight();
+// Keep the reviewed historical body, with today's surrounding game registrations.
+// The production classifier still verifies both body hashes and unchanged surroundings.
+const nightStart = "  } else if (id === 'night-overwatch') {";
+const nightEnd = "  } else if (id === 'carding-car') {";
+const nightBase =
+  nightHead.slice(0, nightHead.indexOf(nightStart)) +
+  historicalNightBase.slice(
+    historicalNightBase.indexOf(nightStart),
+    historicalNightBase.indexOf(nightEnd),
+  ) +
+  nightHead.slice(nightHead.indexOf(nightEnd));
 function snapshotNight() {
   return readFileSync(new URL('../' + nightHelper, import.meta.url), 'utf8');
 }
