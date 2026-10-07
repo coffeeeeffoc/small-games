@@ -631,7 +631,11 @@ test('native-only Creator consumers are checked before types without rebuilding 
       readFileSync(new URL('./kart-sharing.test.mjs', import.meta.url), 'utf8'),
     );
     await put('scripts/check-workspace-dependencies.mjs', 'export const fixtureVersion = 0;\n');
-    const sharing = readFileSync(new URL('../platforms/kart-sharing.js', import.meta.url), 'utf8');
+    const sharing = execFileSync('git', ['show', 'HEAD:platforms/kart-sharing.js'], {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let sharingBaseline = sharing;
     for (const addition of [
       "    taptap: typeof tap !== 'undefined' ? tap : undefined,\n",
@@ -653,6 +657,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
     );
     await put('platforms/kart-sharing.js', sharingBaseline);
     git('init');
+    git('config', 'core.autocrlf', 'false');
     git('add', '.');
     git('commit', '-m', 'fixture baseline');
     const base = git('rev-parse', 'HEAD').trim();
