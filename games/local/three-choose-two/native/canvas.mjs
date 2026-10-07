@@ -30,7 +30,7 @@ export const threeChooseTwoCanvasDefinition = {
     const ctx = target.canvas.getContext('2d');
     if (!ctx) throw new HostError({ code: 'UNAVAILABLE', message: 'Canvas 2D is unavailable' });
 
-    let page = 'home', previousSettingsPage = 'home', state = null, disposed = false, suspended = false;
+    let page = 'home', previousSettingsPage = 'home', previousHelpPage = 'home', state = null, disposed = false, suspended = false;
     let buttons = [], slots = [], drag = null, held = null, selectedSlot = null;
     let levelChapter = 0, notice = '', noticeUntil = 0, flash = null, adBusy = false;
     let inputLockedUntil = 0;
@@ -112,8 +112,14 @@ export const threeChooseTwoCanvasDefinition = {
       if (options.pause) {
         ctx.fillStyle = ink; ctx.fillRect(x + 15, y + 12, 5, 19); ctx.fillRect(x + 26, y + 12, 5, 19);
         text(label, x + w / 2, y + h - 7, 9, ink);
-      } else text(label, x + w / 2, y + h / 2, options.size ?? 17,
-        options.disabled ? '#90988C' : primary ? '#FFFFFF' : ink);
+      } else {
+        const labelX = options.align === 'left' ? x + 22 : x + w / 2;
+        const align = options.align === 'left' ? 'left' : 'center';
+        text(label, labelX, y + h / 2 - (options.subtitle ? 12 : 0), options.size ?? 17,
+          options.disabled ? '#90988C' : primary ? '#FFFFFF' : ink, align);
+        if (options.subtitle) text(options.subtitle, labelX, y + h / 2 + 16, 12,
+          primary ? '#E0E9DB' : muted, align, 400);
+      }
       const minimum = 44 / view().scale;
       buttons.push({ label, x: x - Math.max(0, minimum - w) / 2,
         y: y - Math.max(0, minimum - h) / 2, w: Math.max(w, minimum), h: Math.max(h, minimum),
@@ -179,6 +185,15 @@ export const threeChooseTwoCanvasDefinition = {
       if (next === 'pause' || next === 'home') persist();
       render();
     }
+    function showHelp() { previousHelpPage = page; show('help'); }
+    function exitLocalGame() {
+      if (!state || onlineSession) return;
+      // Returning home keeps a resumable puzzle. Explicitly exiting abandons
+      // only this local run; ranked recovery and its pending queue stay intact.
+      state = null; nativeRunId = ''; pendingReward = null;
+      flash = null; inputLockedUntil = 0; notice = '';
+      show('home');
+    }
     function startLevel(id) {
       if (!getLevel(id) || !progression.isLevelUnlocked(progress, id)) return;
       state = createLevel(id); nativeRunId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -230,7 +245,8 @@ export const threeChooseTwoCanvasDefinition = {
       else if (!pendingActions.length) state = session.state;
       if (session.status === 'finished') { pendingActions = []; pendingFinish = false; state = session.state; }
       clearInput();
-      if (state.status !== 'playing' && ['game', 'pause', 'help', 'result'].includes(page)) page = suspended ? 'pause' : 'result';
+      if (state.status !== 'playing' && (['game', 'pause', 'result'].includes(page) || page === 'help' && previousHelpPage === 'game'))
+        page = suspended ? 'pause' : 'result';
       persist(); render();
     }
     async function startOnline() {
@@ -369,15 +385,17 @@ export const threeChooseTwoCanvasDefinition = {
     }
     async function rewardContinue() {
       if (adBusy || disposed || !state || state.reason !== 'groups-exhausted') return;
-      const rewardId = `three-choose-two:${nativeRunId}:continue`;
+      const epoch = gameEpoch, runId = nativeRunId;
+      const rewardId = `three-choose-two:${runId}:continue`;
+      const currentRun = () => !disposed && gameEpoch === epoch && nativeRunId === runId && state;
       adBusy = true; render();
       try {
         const outcome = await host.ads.offer({ id: rewardId, reward: { levelId: state.levelId, groups: 2 } });
-        if (disposed) return;
+        if (!currentRun()) return;
         if (outcome.status === 'completed') {
-          pendingReward = { id: rewardId, runId: nativeRunId, completed: true };
+          pendingReward = { id: rewardId, runId, completed: true };
           await persist();
-          if (disposed) return;
+          if (!currentRun()) return;
           const next = continueLevel(state, rewardId);
           if (next !== state) { state = next; page = suspended ? 'pause' : 'game'; notice = '已增加2组，继续试试'; noticeUntil = Date.now() + 2500; }
           pendingReward = null; await persist();
@@ -386,11 +404,12 @@ export const threeChooseTwoCanvasDefinition = {
       finally { adBusy = false; if (!disposed) render(); }
     }
     function drawHome(h) {
-      const lift = Math.max(0, 844 - h) * .42;
-      text('一场刚刚好的取舍', 195, 64, 12, muted, 'center', 400);
-      text('三块选两块', 195, 122, 38, ink, 'center', 800);
-      text('放下两块，给下一步留点空间', 195, 157, 14, muted, 'center', 400);
-      const top = 213 - lift * .4, pitch = Math.max(28, 44 - Math.max(0, 844 - h) * .105), cardW = pitch * 5 + 36;
+      const compressed = Math.max(0, 844 - h);
+      button('设置', 296, 26, 70, 44, () => { previousSettingsPage = 'home'; show('settings'); }, { size: 13, radius: 15 });
+      text('一场刚刚好的取舍', 195, 72, 12, muted, 'center', 400);
+      text('三块选两块', 195, 122 - compressed * .08, 38, ink, 'center', 800);
+      text('放下两块，给下一步留点空间', 195, 157 - compressed * .08, 14, muted, 'center', 400);
+      const top = 196 - compressed * .24, pitch = Math.max(28, 41 - compressed * .09), cardW = pitch * 5 + 36;
       round((390 - cardW) / 2, top, cardW, pitch * 4 + 34, 30, '#E8EBDC');
       const x = (390 - pitch * 5) / 2 + 2, y = top + 16;
       for (let row = 0; row < 4; row++) for (let col = 0; col < 5; col++)
@@ -400,16 +419,18 @@ export const threeChooseTwoCanvasDefinition = {
       piece({ shapeId: 'v3', color: 3 }, x + pitch * 4, y + pitch, pitch);
       round(290, top - 29, 62, 62, 31, paper, ink); text('2 / 3', 321, top + 2, 15);
       const current = Math.min(LEVELS.length, state?.status !== 'won' ? Number(state?.levelId) || progress.unlocked : progress.unlocked);
-      text('当前进度', 195, h - 354, 12, muted, 'center', 400);
-      text(`第 ${String(current).padStart(2, '0')} 关 · ${getLevel(current).title}`, 195, h - 324, 18);
-      button(state?.mode === 'endless' && state.status === 'playing' ? onlineSession ? '继续排位' : '继续练习' : '继续闯关', 30, h - 293, 330, 58, () => {
+      const currentTitle = (state?.mode === 'level' && state.levelId === current ? state.config?.title : null) ?? getLevel(current).title;
+      text('当前进度', 195, h - 371, 12, muted, 'center', 400);
+      text(`第 ${String(current).padStart(2, '0')} 关 · ${currentTitle}`, 195, h - 339, 18);
+      button(state?.mode === 'endless' && state.status === 'playing' ? onlineSession ? '继续排位' : '继续练习' : '继续闯关', 24, h - 300, 230, 64, () => {
         if (state?.status === 'playing') show('game'); else if (state?.status === 'lost' && state.mode === 'level') show('result'); else startLevel(current);
-      }, { primary: true, size: 19 });
-      button('无尽练习', 30, h - 219, 330, 58, () => show('endless'), { size: 19 });
-      text(`个人练习纪录  ${progress.practiceBest.toLocaleString()}`, 195, h - 128, 12, muted, 'center', 400);
-      button('选关', 22, h - 90, 105, 49, () => { levelChapter = Math.floor((progress.unlocked - 1) / 10); show('levels'); }, { size: 15 });
-      button('排行榜', 142, h - 90, 105, 49, () => { void loadRanking(); }, { size: 15 });
-      button('设置', 262, h - 90, 105, 49, () => { previousSettingsPage = 'home'; show('settings'); }, { size: 15 });
+      }, { primary: true, size: 20 });
+      button('选关', 268, h - 300, 98, 64, () => { levelChapter = Math.floor((progress.unlocked - 1) / 10); show('levels'); }, { size: 20, outline: true });
+      button('无尽练习', 24, h - 222, 342, 88, () => show('endless'),
+        { size: 20, align: 'left', subtitle: `个人练习纪录  ${progress.practiceBest.toLocaleString()}`, outline: true });
+      text('→', 335, h - 178, 25);
+      button('排行榜', 24, h - 115, 164, 48, () => { void loadRanking(); }, { size: 15 });
+      button('玩法提示', 202, h - 115, 164, 48, showHelp, { size: 15 });
     }
     function drawLevels(h) {
       title('选择关卡');
@@ -432,8 +453,8 @@ export const threeChooseTwoCanvasDefinition = {
       button('下一章', 257, h - 70, 108, 46, () => { levelChapter++; render(); }, { disabled: levelChapter === 2, size: 14 });
     }
     function drawGame(h) {
-      const b = layout(), level = state.mode === 'level' ? state.config : null;
-      button('返回', 20, 22, 52, 46, () => show('pause'), { size: 12, radius: 15 });
+      const b = layout(), level = state.mode === 'level' ? state.config ?? getLevel(state.levelId) : null;
+      button('首页', 20, 22, 52, 46, () => show('home'), { size: 12, radius: 15 });
       text(level ? `第 ${String(state.levelId).padStart(2, '0')} 关` : onlineSession ? '无尽排位' : '无尽练习', 195, 46, 18);
       button('暂停', 324, 22, 46, 46, () => show('pause'), { pause: true, radius: 15 });
       text(level ? '清线' : '练习积分', 25, 110, 12, muted, 'left', 400);
@@ -487,7 +508,7 @@ export const threeChooseTwoCanvasDefinition = {
         { disabled: !state.canUndo || !state.undoRemaining || Date.now() < inputLockedUntil, size: 14, radius: 13 });
       else if (onlineError) button('重新连接', 22, h - 77, 162, 48, () => { void reconnectOnline(); }, { size: 14, radius: 13 });
       else text(onlineSession ? pendingActions.length ? '待确认 · 成绩尚未结算' : '服务端确认计分' : '离线练习 · 不参与排位', 22, h - 53, 11, muted, 'left', 400);
-      button('提示', 274, h - 77, 94, 48, () => show('help'), { size: 14, radius: 13 });
+      button('提示', 274, h - 77, 94, 48, showHelp, { size: 14, radius: 13 });
       if ((onlineBusy || onlineError) && (state.waitingNextGroup || pendingFinish)) {
         round(34, b.y + b.size / 2 - 45, 322, 105, 18, '#F7F2E8F2', '#AABDA8');
         text(onlineBusy ? '正在确认落子…' : '本组已完成，等待连接下一组', 195, b.y + b.size / 2 - 18, 16);
@@ -505,7 +526,13 @@ export const threeChooseTwoCanvasDefinition = {
       button('继续游戏', 30, h - 289, 330, 58, () => show(state.status === 'playing' ? 'game' : 'result'), { primary: true, size: 19 });
       if (onlineSession) button('结束本局', 30, h - 216, 330, 58, () => { void endOnline(); }, { disabled: pendingFinish, size: 19 });
       else button('重新开始', 30, h - 216, 330, 58, () => state.mode === 'level' ? startLevel(state.levelId) : startPractice(), { size: 19 });
-      if (state.mode === 'endless' && !onlineSession) button('结束练习', 30, h - 143, 330, 48, () => { state = finishEndless(state); complete(); }, { size: 15 });
+      if (!onlineSession && state.mode === 'level')
+        button('退出关卡', 30, h - 143, 330, 48, exitLocalGame,
+          { size: 16, subtitle: '清除本局，保留闯关进度' });
+      else if (!onlineSession) {
+        button('结束练习', 30, h - 143, 159, 48, () => { state = finishEndless(state); complete(); }, { size: 15 });
+        button('退出练习', 201, h - 143, 159, 48, exitLocalGame, { size: 15 });
+      }
       if (onlineError) button('重新连接', 105, h - 143, 180, 48, () => { void reconnectOnline(); }, { size: 15 });
       button('返回首页', 105, h - 82, 180, 48, () => show('home'), { size: 15 });
     }
@@ -520,18 +547,20 @@ export const threeChooseTwoCanvasDefinition = {
       round(30, 139, 330, 377, 23, soft);
       toggle('音效', 'sound', 156); toggle('音乐', 'music', 225); toggle('振动', 'vibration', 294);
       toggle('高对比色', 'highContrast', 363); toggle('减少闪光', 'reducedFlash', 432);
-      button('玩法说明', 30, 544, 330, 51, () => show('help'), { size: 17 });
+      button('玩法说明', 30, 544, 330, 51, showHelp, { size: 17 });
       if (h > 780) paragraph(`设置自动保存。${onlineConfigured ? '在线排位使用平台真实登录与服务端确认计分。' : '原生排位尚未配置，练习纪录只保存在本机。'}`, 43, 636, 305, 13, muted, 3);
       button(previousSettingsPage === 'pause' ? '返回暂停' : '返回首页', 30, h - 95, 330, 54,
         () => show(previousSettingsPage), { primary: true });
     }
     function drawHelp(h) {
-      title('玩法提示', state && ['playing', 'lost'].includes(state.status) ? 'game' : 'home');
+      title('玩法提示', previousHelpPage);
       text('三块放两块，留点空间。', 195, 138, 24, ink, 'center', 800);
       round(30, 188, 330, 354, 23, soft);
       paragraph('拖动任意积木，观察手指上方的落点预览，松手便会落下。取消手势不会落子。\n\n填满一行或一列便会同时消除。每组放下两块，第三块自动丢弃。\n\n关卡有3次撤销，只恢复最近一步。无尽练习不提供成功落子撤销。', 51, 222, 288, 15, ink, 10);
-      if (state?.mode === 'level') paragraph(getLevel(state.levelId).hint ?? '先留出空间，再决定要舍弃哪一块。', 43, 582, 303, 14, muted, 3);
-      button(state ? '回去试试' : '开始闯关', 30, h - 117, 330, 58, () => state ? show(state.status === 'playing' ? 'game' : 'result') : startLevel(progress.unlocked), { primary: true });
+      if (previousHelpPage === 'game' && state?.mode === 'level')
+        paragraph(state.config?.hint ?? getLevel(state.levelId).hint ?? '先留出空间，再决定要舍弃哪一块。', 43, 582, 303, 14, muted, 3);
+      button(previousHelpPage === 'game' ? '回去试试' : previousHelpPage === 'settings' ? '返回设置' : '返回首页',
+        30, h - 117, 330, 58, () => show(previousHelpPage === 'game' && state?.status !== 'playing' ? 'result' : previousHelpPage), { primary: true });
     }
     function drawEndless(h) {
       title('无尽挑战');
@@ -609,6 +638,7 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function drawResult(h) {
       const won = state.status === 'won', level = state.mode === 'level';
+      const levelConfig = level ? state.config ?? getLevel(state.levelId) : null;
       text(level ? won ? '关卡完成' : '再试一次' : onlineSession ? '排位结束' : '练习结束', 195, 73, 14, muted);
       const metricsY = level ? h - (won ? 375 : 435) : Math.min(426, h - 390);
       const headingY = metricsY - 78, centerY = Math.max(143, metricsY - 221);
@@ -627,11 +657,11 @@ export const threeChooseTwoCanvasDefinition = {
         : settlement?.status === 'verified' ? `成绩已校验${settlement.rank ? ` · 全站第${settlement.rank}名` : ''}`
         : settlement?.status === 'pending-review' ? '成绩待复核，暂未计入榜单' : '本局成绩未进入公开榜'
         : '离线练习成绩不参与排位';
-      text(level ? won ? `第 ${String(state.levelId).padStart(2, '0')} 关 · ${getLevel(state.levelId).title}${state.continued ? ' · 续局完成' : ''}` : reasons[state.reason] ?? '再换一种取舍试试' : rankingStatus,
+      text(level ? won ? `第 ${String(state.levelId).padStart(2, '0')} 关 · ${levelConfig.title ?? getLevel(state.levelId).title}${state.continued ? ' · 续局完成' : ''}` : reasons[state.reason] ?? '再换一种取舍试试' : rankingStatus,
         195, metricsY - 38, 14, muted);
       round(30, metricsY, 330, level ? 98 : 154, 20, soft);
       text(level ? '使用组数' : '总清线数', 110, metricsY + 24, 12, muted);
-      text(level ? `${Math.ceil(state.stats.placements / 2)} / ${state.config.maxGroups + (state.continued ? 2 : 0)}` : state.stats.lines, 110, metricsY + 57, 24);
+      text(level ? `${Math.ceil(state.stats.placements / 2)} / ${(levelConfig.maxGroups ?? getLevel(state.levelId).maxGroups) + (state.continued ? 2 : 0)}` : state.stats.lines, 110, metricsY + 57, 24);
       text(level ? '消除线数' : '最高单步消线', 280, metricsY + 24, 12, muted);
       text(level ? state.stats.lines : state.stats.maxLines, 280, metricsY + 57, 24);
       if (!level) {
@@ -718,6 +748,7 @@ export const threeChooseTwoCanvasDefinition = {
       }
     }
     const stopInput = target.onPointer ? target.onPointer(pointer) : target.onTap((screenX, screenY) => {
+      if (disposed || suspended || adBusy) return;
       const v = view(), x = (screenX - v.left) / v.scale, y = (screenY - v.top) / v.scale;
       const buttonHit = [...buttons].reverse().find(item => !item.disabled && contains(item, x, y));
       if (buttonHit) { sound('tap'); buttonHit.action(); return; }
@@ -750,7 +781,7 @@ export const threeChooseTwoCanvasDefinition = {
       pause() {
         if (disposed) return;
         suspended = true; clearInput(); stopSounds();
-        if (page === 'game' || page === 'help') page = 'pause';
+        if (page === 'game' || page === 'help' && previousHelpPage === 'game' && state) page = 'pause';
         persist(); render();
       },
       resume() { if (!disposed) { suspended = false; clearInput(); render(); } },

@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-07",
+  "finalCatalogIncluded": true,
+  "sourceSha256": {
+    "games/local/three-choose-two/native/canvas.mjs": "f1686d205bea197b61a9169be7dfbde8dddb933273784d20a8fbd49157b6582c",
+    "games/local/three-choose-two/src/levels.mjs": "842f44d95e9abdf0be1329e1dc07497609d766dff93ac4ce5084852b0fe8109f"
+  },
+  "platforms": {
+    "wechat": {
+      "release": {
+        "platform": "wechat",
+        "gameId": "three-choose-two",
+        "title": "三块选两块",
+        "appId": "",
+        "version": "1.0.0",
+        "mode": "preview",
+        "advertisingConfigured": true,
+        "competitionConfigured": false
+      },
+      "bundleSha256": "3026ef23577734fd829340f3fad48fae234d8685e70b04e0db764c103aa83da5"
+    },
+    "bilibili": {
+      "release": {
+        "platform": "bilibili",
+        "gameId": "three-choose-two",
+        "title": "三块选两块",
+        "appId": "",
+        "version": "1.0.0",
+        "mode": "preview",
+        "advertisingConfigured": true,
+        "competitionConfigured": false
+      },
+      "bundleSha256": "4229a597dc3a8b9e27c75b39e07c9996f70acf1d9018579aa4ed28e4ac6d09c3"
+    }
+  },
+  "checks": {
+    "nativeBrowser": {
+      "status": "passed",
+      "count": 18,
+      "validatedCanvasSha256": "f1686d205bea197b61a9169be7dfbde8dddb933273784d20a8fbd49157b6582c",
+      "includesLegacySnapshotDisplayAssertions": true
+    },
+    "wechatRecovery": {
+      "status": "passed",
+      "count": 9,
+      "validatedCanvasSha256": "4887749405672d2f321c3e982d78503645b42bd1598b458e153385f370e54d7d",
+      "rerunAfterSnapshotDisplayFix": false
+    },
+    "bilibiliRecovery": {
+      "status": "passed",
+      "count": 9,
+      "validatedCanvasSha256": "4887749405672d2f321c3e982d78503645b42bd1598b458e153385f370e54d7d",
+      "rerunAfterSnapshotDisplayFix": false
+    },
+    "wechatSharedSmoke": "passed",
+    "bilibiliSharedSmoke": "passed",
+    "diffCheck": "passed"
+  },
+  "actualDevice": false,
+  "realOnlineApiRegression": false,
+  "lastChange": "Display-only legacy state.config title/hint/catalog fallback; goals and limits continue to display the saved snapshot.",
+  "incrementalValidation": "After the snapshot display fix: rebuild both platforms and rerun native browser (18 checks) plus both shared smoke checks. Reward recovery results are reused from the immediately preceding final-catalog version; ad behavior was unchanged."
+}

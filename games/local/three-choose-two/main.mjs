@@ -1,3 +1,5 @@
+import './dev-mode.js';
+import { createDeveloperAPI } from './src/developer.mjs';
 import { createLevel, createEndless, place, placeIssuedGroup, undo, hasPlacement, previewPlacement, finishEndless, continueLevel } from './src/engine.mjs';
 import { SHAPE_BY_ID } from './src/shapes.mjs';
 import { LEVELS, CHAPTERS, getLevel } from './src/levels.mjs';
@@ -11,11 +13,13 @@ const palette = ['#eb8968', '#57b7a4', '#e8be55', '#9aa9d0', '#a9bc84'];
 const storage = { getItem(key) { try { return localStorage.getItem(key); } catch { return null; } }, setItem(key, value) { try { localStorage.setItem(key, value); } catch { /* Continue in memory. */ } } };
 let progress = readProgress(storage);
 let state = null;
-let screen = 'home', previousScreen = 'home', briefLevel = 1;
+let screen = 'home', previousScreen = 'home', briefLevel = 1, briefPractice = false;
 let selectedSlot = null, drag = null, inputLockedUntil = 0, animationTimer, toastTimer;
 let onlineSession = null, onlineBusy = false, onlineError = '', pendingAction = null, pendingFinish = false;
 let ranking = null, rankingBusy = false, rankingError = '';
 let devPractice = false, recordedResult = null;
+let developerReturnScreen = 'home', devShowSolution = false;
+const devEnabled = () => globalThis.SmallGamesDev?.isEnabled() === true;
 let lastTouchMenu = null;
 let gameEpoch = 0;
 const online = createOnlineClient();
@@ -50,7 +54,11 @@ function hero() {
   const occupied = [[0,1,1],[0,2,1],[1,2,1],[2,0,2],[3,0,2],[2,1,2],[3,1,2],[4,1,3],[4,2,3],[4,3,3]];
   return `<div class="hero" aria-hidden="true"><svg viewBox="0 0 335 281"><rect x="40" y="23" width="255" height="226" rx="31" fill="#e8ebdc"/>${Array.from({length:20},(_,i)=>`<rect x="${60+i%5*44}" y="${43+Math.floor(i/5)*44}" width="39" height="39" rx="6" fill="#d8dfd0"/>`).join('')}${occupied.map(([x,y,c])=>block(60+x*44,43+y*44,39,color(c))).join('')}<path d="M22 207q-19 10-5 25M307 102q22-7 18-25" stroke="#e8be55" stroke-width="3" fill="none" stroke-linecap="round"/><path d="m28 65 3 6 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1Z" fill="#57b7a4"/><path d="m301 244 2 5 6 1-4 4 1 5-5-3-4 3 1-5-4-4 5-1Z" fill="#eb8968"/></svg><span class="hero-badge">2 / 3</span></div>`;
 }
-function header(title, back = 'home', right = '') { return `<header class="screen-header"><button class="icon-button" data-action="${back}" aria-label="${back === 'resume' ? '继续游戏' : back === 'leave-game' ? '返回并暂停游戏' : back === 'home' ? '返回首页' : '返回'}">${icon('back')}</button><h2>${title}</h2>${right || '<span class="header-spacer"></span>'}</header>`; }
+function header(title, back = 'home', right = '') {
+  const savedExit = back === 'home' && screen === 'playing';
+  const label = back === 'resume' ? '继续游戏' : back === 'home' ? '返回首页' : '返回';
+  return `<header class="screen-header"><button class="${savedExit ? 'return-home' : 'icon-button'}" data-action="${back}" aria-label="${label}">${icon(savedExit ? 'home' : 'back')}${savedExit ? '<span>首页</span>' : ''}</button><h2>${title}</h2>${right || '<span class="header-spacer"></span>'}</header>`;
+}
 function toast(message) { clearTimeout(toastTimer); toastNode.textContent = message; toastNode.hidden = false; toastTimer = setTimeout(() => { toastNode.hidden = true; }, 2600); }
 function persist() {
   if (state && !onlineSession && !devPractice && (state.status === 'playing' || state.mode === 'level' && state.status === 'lost')) progress=saveCurrentGame(progress, state);
@@ -61,6 +69,30 @@ function saveOnline() {
 }
 function currentLevel() { return state?.config || getLevel(state?.levelId || briefLevel); }
 function playableResume() { try { return resumeState(progress); } catch { return null; } }
+function onlineRecovery() {
+  try { const value = JSON.parse(storage.getItem('three-choose-two-online-v1') || 'null'); return typeof value?.id === 'string' && value.id ? value : null; }
+  catch { return null; }
+}
+function canResumeOnline() {
+  return onlineSession ? onlineSession.status !== 'finished' && !pendingFinish && state?.status === 'playing' : !!onlineRecovery() && !onlineRecovery().finish;
+}
+function isolateTrial() {
+  if (devPractice) return;
+  persist();
+  if (onlineSession) saveOnline();
+  gameEpoch++;clearTimeout(animationTimer);cancelDrag();selectedSlot=null;inputLockedUntil=0;
+  onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';devPractice=true;
+}
+function startTrial(id) {
+  if (!devEnabled() || !getLevel(id)) throw new RangeError('请选择有效试玩关卡');
+  isolateTrial();devPractice=true;beginLevel(id);
+}
+function exitLocalGame() {
+  if (!state || onlineSession) return;
+  gameEpoch++;clearTimeout(animationTimer);cancelDrag();
+  if (!devPractice) { progress={...progress,currentGame:null};saveProgress(storage,progress); }
+  state=null;devPractice=false;selectedSlot=null;inputLockedUntil=0;recordedResult=null;show('home');
+}
 function updateTheme() {
   document.body.classList.toggle('high-contrast', !!progress.settings.highContrast);
   document.body.classList.toggle('reduced-flash', !!progress.settings.reducedFlash);
@@ -85,21 +117,23 @@ function render() {
   app.dataset.lines = String(state?.stats?.lines || 0);
   app.dataset.score = String(state?.score || 0);
   app.dataset.status = state?.status || '';
-  const screens = { home: renderHome, levels: renderLevels, brief: renderBrief, playing: renderPlaying, pause: renderPause, settings: renderSettings, help: renderHelp, result: renderResult, endless: renderEndless, leaderboard: renderLeaderboard, 'dev-levels': () => renderLevels(true) };
+  const screens = { home: renderHome, levels: renderLevels, brief: renderBrief, playing: renderPlaying, pause: renderPause, settings: renderSettings, help: renderHelp, result: renderResult, endless: renderEndless, leaderboard: renderLeaderboard, 'dev-levels': () => renderLevels(true), 'dev-tools': renderDeveloperTools };
   app.innerHTML = (screens[screen] || renderHome)();
   try { if (window.parent !== window) window.parent.postMessage({ type:'small-games:display-state', gameId:'three-choose-two', screen:screen === 'home' ? 'home' : 'playing' }, location.origin); } catch { /* Standalone is fully playable. */ }
 }
 function renderHome() {
-  const saved = playableResume();
-  const id = saved?.levelId || Math.min(progress.unlocked || 1, LEVELS.length);
-  const level = getLevel(id);
-  return `<section class="home"><div class="home-intro"><p class="eyebrow">一场刚刚好的取舍</p><h1>三块选两块</h1><p class="home-tagline">放下两块，给下一步留点空间</p></div>${hero()}<div class="home-progress"><small>${saved ? '已保存的旅程' : '当前进度'}</small><strong>${saved?.mode === 'endless' ? '无尽练习 · 第 '+saved.group+' 组' : '第 '+pad(id)+' 关 · '+escape(level.title)}</strong></div><div class="button-stack"><button class="primary" data-action="start">${saved ? '继续游戏' : progress.unlocked > 1 ? '继续闯关' : '开始闯关'} <span aria-hidden="true">→</span></button><button class="secondary" data-action="endless">无尽挑战</button></div><p class="home-record">个人练习纪录 &nbsp; ${fmt(progress.practiceBest)}</p><nav class="home-nav" aria-label="游戏菜单"><button data-action="levels">选关</button><button data-action="leaderboard">排行榜</button><button data-action="settings">设置</button></nav></section>`;
+  const saved = playableResume(), resumeOnline = canResumeOnline(), recovery = onlineRecovery();
+  const id = saved?.levelId || Math.min(progress.unlocked || 1, LEVELS.length), level = getLevel(id);
+  const title = resumeOnline ? '无尽在线 · '+(onlineSession ? '第 '+state.group+' 组' : '已保存的对局') : saved?.mode === 'endless' ? '无尽练习 · 第 '+saved.group+' 组' : '第 '+pad(id)+' 关 · '+escape(level.title);
+  const startLabel = resumeOnline ? '继续在线对局' : saved ? '继续游戏' : progress.unlocked > 1 ? '继续闯关' : '开始闯关';
+  return `<section class="home"><div class="home-topline"><p class="eyebrow">三选二 · 留出下一步</p><div class="home-top-tools">${devEnabled() ? '<button class="dev-chip" data-action="dev-tools">开发</button>' : ''}<button class="home-settings" data-action="settings" aria-label="设置">设置</button></div></div><div class="home-intro"><h1>三块选两块</h1><p class="home-tagline">放下两块，给下一步留点空间</p></div>${hero()}<div class="home-progress"><div><small>${resumeOnline || saved ? '已保存的旅程' : '当前进度'}</small><strong>${title}</strong></div><span class="home-stars" aria-label="已收集 ${totalStars(progress)} 颗星">${star()}${totalStars(progress)}</span></div><button class="primary home-start" data-action="start">${startLabel}<span aria-hidden="true">→</span></button><div class="home-modes"><button class="home-mode-card" data-action="levels"><strong>选关</strong><small>${LEVELS.length} 关空间挑战</small><span aria-hidden="true">↗</span></button><button class="home-mode-card endless-card" data-action="endless"><strong>无尽挑战</strong><small>练习 / 在线排位</small><span aria-hidden="true">↗</span></button></div>${!resumeOnline && recovery ? '<button class="online-recovery" data-action="online-resume">在线成绩待确认 · 查看对局 →</button>' : ''}<p class="home-record">个人练习纪录 &nbsp; ${fmt(progress.practiceBest)}</p><nav class="home-nav" aria-label="游戏菜单"><button data-action="leaderboard">排行榜</button><button data-action="help">玩法帮助</button></nav></section>`;
 }
 function renderLevels(developer = false) {
+  developer = devEnabled();
   const chapters = ['初识积木', '取舍之间', '空间大师'];
-  return `${header(developer ? '开发试玩 · 任意关卡' : '选择关卡')}<h1 class="page-title">一步一步，留出余地。</h1><p class="page-subtitle">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<p class="dev-note">试玩不保存星级、解锁或练习纪录。</p>' : ''}${[0,1,2].map(chapter => `<section class="chapter"><p class="chapter-label">${pad(chapter*10+1)} — ${pad(chapter*10+10)}</p><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
+  return `${header('选择关卡')}<h1 class="page-title">一步一步，留出余地。</h1><p class="page-subtitle">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<div class="dev-level-banner"><div><strong>开发模式 · 全关可试玩</strong><p>独立试玩，不计入真实进度与纪录</p></div><button data-action="dev-tools">调试工具</button></div>' : ''}${[0,1,2].map(chapter => `<section class="chapter"><p class="chapter-label">${pad(chapter*10+1)} — ${pad(chapter*10+10)}</p><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
     const id = Number(level.id), unlocked = developer || isLevelUnlocked(progress,id), record = progress.records[id];
-    return `<button class="level-button ${!unlocked ? 'locked' : id === progress.unlocked ? 'current' : ''}" data-level="${id}" ${unlocked ? '' : 'disabled'} aria-label="第${id}关 ${escape(level.title)}${!unlocked ? ' 尚未解锁' : record ? ' '+record.stars+'星' : ''}"><strong>${pad(id)}</strong>${record ? stars(record.stars) : !unlocked ? '<svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>' : '<small>挑战</small>'}</button>`;
+    return `<button class="level-button ${!unlocked ? 'locked' : id === progress.unlocked ? 'current' : ''}" data-level="${id}" ${unlocked ? '' : 'disabled'} aria-label="第${id}关 ${escape(level.title)}${!unlocked ? ' 尚未解锁' : developer ? ' 开发试玩' : record ? ' '+record.stars+'星' : ''}"><strong>${pad(id)}</strong>${developer ? '<small>试玩</small>' : record ? stars(record.stars) : !unlocked ? '<svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>' : '<small>挑战</small>'}</button>`;
   }).join('')}</div></section>`).join('')}<p class="level-end-note">每次好选择，都会成为下一步的余地。</p>`;
 }
 function goalLines(config) {
@@ -108,7 +142,7 @@ function goalLines(config) {
 }
 function renderBrief() {
   const config = getLevel(briefLevel);
-  return `${header('第 '+pad(briefLevel)+' 关','levels')}<div class="brief-art">${mini(config.candidates[0][0],35)}</div><p class="brief-kicker">${escape(CHAPTERS.find(chapter=>chapter.id === config.chapter)?.title || '初识积木')}</p><h1 class="brief-title">${escape(config.title)}</h1><div class="brief-target"><strong>${goalLines(config)[0]}</strong><p>${goalLines(config).slice(1).map(escape).join('<br>')}${goalLines(config).length > 1 ? '<br>' : ''}最多 ${config.maxGroups} 组积木${config.discardBudget !== undefined ? '<br>舍弃积木不超过 '+config.discardBudget+' 格' : ''}</p></div><p class="brief-note">三块里放下两块，剩下的一块自动丢弃。<br>填满一整行或一整列，就能消除。</p>${devPractice ? '<p class="dev-note">开发试玩 · 本局不计入成长</p>' : ''}<div class="button-stack bottom-space"><button class="primary" data-action="begin">开始这一关 <span aria-hidden="true">→</span></button><button class="quiet-button" data-action="help">查看玩法</button></div>`;
+  return `${header('第 '+pad(briefLevel)+' 关','levels')}<div class="brief-art">${mini(config.candidates[0][0],35)}</div><p class="brief-kicker">${escape(CHAPTERS.find(chapter=>chapter.id === config.chapter)?.title || '初识积木')}</p><h1 class="brief-title">${escape(config.title)}</h1><div class="brief-target"><strong>${goalLines(config)[0]}</strong><p>${goalLines(config).slice(1).map(escape).join('<br>')}${goalLines(config).length > 1 ? '<br>' : ''}最多 ${config.maxGroups} 组积木${config.discardBudget !== undefined ? '<br>舍弃积木不超过 '+config.discardBudget+' 格' : ''}</p></div><p class="brief-note">三块里放下两块，剩下的一块自动丢弃。<br>填满一整行或一整列，就能消除。</p>${briefPractice ? '<p class="dev-note">开发试玩 · 本局不计入成长</p>' : ''}<div class="button-stack bottom-space"><button class="primary" data-action="begin">开始这一关 <span aria-hidden="true">→</span></button><button class="quiet-button" data-action="help">查看玩法</button></div>`;
 }
 function renderBoard(clearFrom = null) {
   const cells = Array.from({length:64}, (_, index) => {
@@ -127,7 +161,7 @@ function renderPlaying() {
   let note = state.placedInGroup === 1 ? '再放 1 块，剩下的自动丢弃' : '放下两块，剩下的自动丢弃';
   if (state.waitingNextGroup) note='已完成本组，联网确认后获取下一组';
   if (state.levelId <= 3 && stats.placements === 0) note = ['','拖动积木，填满一行或一列','每组三块，放完两块后自动舍弃一块','先用小块清线，给大块留出位置'][state.levelId];
-  return `${header(devPractice ? '开发试玩 · 第 '+pad(state.levelId)+' 关' : level ? '第 '+pad(state.levelId)+' 关' : onlineSession ? onlineSession.eligible ? '无尽排位' : '在线试用 · 不入榜' : '无尽 · 离线练习','leave-game',`<button class="icon-button" data-action="pause" aria-label="暂停">${icon('pause')}</button>`)}<div class="metrics"><div><p class="metric-label">${level ? '清线' : '当前积分'}</p><p class="metric-main">${level ? stats.lines+' <small>/ '+goal.lines+'</small>' : fmt(state.score)}</p>${level ? `<div class="progress-track"><i style="width:${Math.min(100,stats.lines/goal.lines*100)}%"></i></div>` : `<p class="page-subtitle">${onlineSession ? '服务端校验计分' : '练习纪录 '+fmt(progress.practiceBest)}</p>`}</div><div class="metric-group"><p class="metric-label">当前组数</p><p class="metric-main">${state.group}${level ? ' <small>/ '+groupLimit+'</small>' : ''}</p>${state.combo > 1 ? '<p class="page-subtitle">连续消除 '+state.combo+' 次</p>' : ''}</div></div>${extra.length ? `<div class="extra-goals">${extra.map(item=>`<span>${item}</span>`).join('')}</div>` : ''}${renderBoard()}<p class="group-note" role="status" aria-live="polite">${onlineBusy ? '正在确认落子…' : note}</p><div class="tray" aria-label="三块候选积木">${state.candidates.map((candidate,slot) => {
+  return `${header(devPractice ? '试玩 · 第 '+pad(state.levelId)+' 关' : level ? '第 '+pad(state.levelId)+' 关' : onlineSession ? onlineSession.eligible ? '无尽排位' : '在线试用 · 不入榜' : '无尽 · 离线练习','home',`<button class="icon-button" data-action="pause" aria-label="暂停">${icon('pause')}</button>`)}<div class="metrics"><div><p class="metric-label">${level ? '清线' : '当前积分'}</p><p class="metric-main">${level ? stats.lines+' <small>/ '+goal.lines+'</small>' : fmt(state.score)}</p>${level ? `<div class="progress-track"><i style="width:${Math.min(100,stats.lines/goal.lines*100)}%"></i></div>` : `<p class="page-subtitle">${onlineSession ? '服务端校验计分' : '练习纪录 '+fmt(progress.practiceBest)}</p>`}</div><div class="metric-group"><p class="metric-label">当前组数</p><p class="metric-main">${state.group}${level ? ' <small>/ '+groupLimit+'</small>' : ''}</p>${state.combo > 1 ? '<p class="page-subtitle">连续消除 '+state.combo+' 次</p>' : ''}</div></div>${extra.length ? `<div class="extra-goals">${extra.map(item=>`<span>${item}</span>`).join('')}</div>` : ''}${renderBoard()}<p class="group-note" role="status" aria-live="polite">${onlineSession && onlineBusy ? '正在确认落子…' : note}</p><div class="tray" aria-label="三块候选积木">${state.candidates.map((candidate,slot) => {
     const used = state.used.includes(slot), available = !used && hasPlacement(state,slot), shape = SHAPE_BY_ID[candidate.shapeId];
     return `<button class="candidate ${used ? 'used' : !available ? 'unavailable' : ''} ${selectedSlot === slot ? 'selected' : ''}" data-slot="${slot}" data-slot-index="${slot}" data-shape="${escape(candidate.shapeId)}" data-width="${shape.width}" data-height="${shape.height}" data-used="${used}" aria-label="候选${slot+1} ${escape(shape.name)} ${used ? '已放下' : !available ? '当前不可放' : '按住拖动，或点击选中'}" ${used ? 'disabled' : ''}>${mini(candidate)}<span>${used ? '已放下' : !available ? '当前不可放' : selectedSlot === slot ? '点棋盘选择落点' : '按住拖动'}</span></button>`;
   }).join('')}</div>${onlineError ? `<div class="network-banner" role="status">${escape(onlineError)}<br><button data-action="online-retry">重新连接</button><button data-action="pause">稍后继续</button></div>` : ''}<footer class="play-footer">${level ? `<button data-action="undo" aria-label="撤销上一步，剩余${state.undoRemaining}次" ${state.canUndo && state.undoRemaining > 0 && !isLocked() ? '' : 'disabled'}>${icon('undo')}撤销 · ${state.undoRemaining}</button>` : '<span class="muted" style="font-size:11px">三选二 · 不可旋转</span>'}<button data-action="help" aria-label="玩法提示">${icon('help')}提示</button></footer>`;
@@ -136,7 +170,12 @@ function settingsRows() {
   return `<div class="settings-list">${[['sound','音效'],['music','音乐'],['vibration','振动'],['highContrast','高对比色'],['reducedFlash','关闭强闪光']].map(([key,label])=>`<button class="setting" data-setting="${key}" role="switch" aria-checked="${!!progress.settings[key]}" aria-label="${label}"><span>${label}</span><i class="switch" aria-hidden="true"></i></button>`).join('')}</div>`;
 }
 function renderPause() {
-  return `<section class="pause">${header('暂停','resume')}<h1 class="pause-title">慢慢想，不着急。</h1><p class="pause-copy">${state.mode === 'level' ? '第 '+pad(state.levelId)+' 关' : onlineSession ? '在线对局' : '无尽练习'} · 当前棋盘已保存${onlineSession ? '<br>以最后已确认状态恢复' : ''}</p>${settingsRows()}<div class="button-stack"><button class="primary" data-action="resume">继续游戏</button>${state.mode === 'level' ? '<button class="secondary" data-action="retry">重新开始</button>' : '<button class="secondary" data-action="end-run">结束本局</button>'}<button class="quiet-button" data-action="home">返回首页</button></div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div></section>`;
+  return `<section class="pause">${header('暂停','resume')}<h1 class="pause-title">慢慢想，不着急。</h1><p class="pause-copy">${state.mode === 'level' ? '第 '+pad(state.levelId)+' 关' : onlineSession ? '在线对局' : '无尽练习'} · ${devPractice ? '独立试玩，不计入成长' : '当前棋盘已保存'}${onlineSession ? '<br>保留未确认落子，联网后继续同步' : ''}</p>${settingsRows()}<div class="button-stack"><button class="primary" data-action="resume">继续游戏</button>${state.mode === 'level' ? '<button class="secondary" data-action="retry">重新开始</button>' : '<button class="secondary" data-action="end-run">结束本局</button>'}<button class="secondary" data-action="home">返回首页${devPractice ? '' : ' · 保留本局'}</button>${!onlineSession ? '<button class="quiet-button exit-button" data-action="exit-level">'+(devPractice ? '退出试玩' : state.mode === 'level' ? '退出关卡 · 放弃本局' : '退出练习 · 放弃本局')+'</button>' : ''}${devEnabled() ? '<button class="quiet-button dev-tool-link" data-action="dev-tools">开发调试工具</button>' : ''}</div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div></section>`;
+}
+function renderDeveloperTools() {
+  if (!devEnabled()) return renderHome();
+  const level = state?.mode === 'level', solution = level ? currentLevel().solution || [] : [];
+  return `${header('开发试玩', 'dev-back')}<h1 class="page-title">关卡与调试工具</h1><p class="page-subtitle">独立试玩，不改真实进度、纪录或排行榜。</p><section class="dev-status">${level ? `<strong>${devPractice ? '当前试玩' : '当前关卡'} · 第 ${pad(state.levelId)} 关</strong><p>已放 ${state.stats.placements} 块 · 第 ${state.group} 组 · 撤销 ${state.undoRemaining} 次</p>${!devPractice ? '<p>修改参数或棋盘时，将自动转入独立试玩。</p>' : ''}` : '<strong>先选一关，开始独立试玩</strong><p>在线对局与离线无尽的棋盘保持正常规则。</p>'}</section><div class="button-stack dev-actions"><button class="primary" data-action="dev-levels">选择任意关卡</button><button class="secondary" data-action="dev-solution" ${level ? '' : 'disabled'}>查看参考落点</button><button class="secondary" data-action="dev-refill-undo" ${level ? '' : 'disabled'}>补充撤销 · 9 次</button><button class="secondary" data-action="dev-restart" ${level ? '' : 'disabled'}>重置当前试玩</button><button class="secondary" data-action="dev-clear-board" ${level ? '' : 'disabled'}>清空试玩棋盘</button></div>${devShowSolution && level ? `<section class="dev-solution"><h3>从初始棋盘开始的参考解</h3><ol>${solution.map(move => `<li>候选 ${move.slot+1} → 第 ${move.y+1} 行，第 ${move.x+1} 列</li>`).join('')}</ol><p>落点为积木左上角。中途改变布局后，可重置再对照。</p></section>` : ''}<p class="dev-api-note">完整试玩权限已开放。参数与后续扩展可通过 ThreeChooseTwoDev 使用。</p><button class="quiet-button" data-action="dev-back">${developerReturnScreen === 'playing' || developerReturnScreen === 'pause' ? '返回游戏' : '返回'}</button>`;
 }
 function renderSettings() { return `${header('设置')}<h1 class="pause-title">找到舒服的节奏。</h1><p class="pause-copy">声音与振动分别控制，随时可调整。</p>${settingsRows()}<div class="button-stack"><button class="secondary" data-action="help">玩法与计分</button><button class="primary" data-action="home">返回首页</button></div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div>`; }
 function renderHelp() {
@@ -150,7 +189,7 @@ function renderResult() {
   if (state.mode !== 'level') return renderEndlessResult();
   const config = currentLevel(), won=state.status === 'won';
   const groupLimit=config.maxGroups+(state.continued ? config.continuationGroups ?? 2 : 0);
-  return `<section class="result"><p class="eyebrow">${devPractice ? '开发试玩' : won ? '关卡完成' : '再试一种选择'}</p>${resultArt(won)}<h1>${won ? '好选择，漂亮！' : state.reason === 'no-placement' ? '给下一步，多留一点。' : '还差一点点。'}</h1><p class="result-subtitle">第 ${pad(state.levelId)} 关 · ${escape(config.title)}${won ? state.continued ? '<br>续局完成' : '' : '<br>'+failureText()}</p>${won ? stars(state.stars || 1,true) : ''}<div class="result-statistics"><div><small>使用组数</small><strong>${state.group} / ${groupLimit}</strong></div><div><small>消除线数</small><strong>${state.stats.lines} / ${config.goal.lines}</strong></div></div>${!won && state.reason === 'groups-exhausted' && !state.continued ? '<p class="result-status">'+(rewardAvailable() ? '自愿观看激励广告，可保持棋盘增加 2 组。' : '激励广告尚未接入，可免费重开。')+'</p>' : ''}<div class="button-stack">${won && state.levelId < LEVELS.length ? '<button class="primary" data-action="next">下一关 <span aria-hidden="true">→</span></button>' : '<button class="primary" data-action="retry">再玩一次</button>'}${!won && state.canUndo && state.undoRemaining > 0 ? '<button class="secondary" data-action="undo">撤销上一步 · '+state.undoRemaining+'</button>' : won ? '<button class="secondary" data-action="retry">再玩一次</button>' : ''}${!won && state.reason === 'groups-exhausted' && !state.continued && rewardAvailable() ? '<button class="secondary" data-action="continue">看广告 · 增加 2 组</button>' : ''}<button class="quiet-button" data-action="home">返回首页</button></div></section>`;
+  return `<section class="result"><p class="eyebrow">${devPractice ? '开发试玩' : won ? '关卡完成' : '再试一种选择'}</p>${resultArt(won)}<h1>${won ? '好选择，漂亮！' : state.reason === 'no-placement' ? '给下一步，多留一点。' : '还差一点点。'}</h1><p class="result-subtitle">第 ${pad(state.levelId)} 关 · ${escape(config.title)}${won ? state.continued ? '<br>续局完成' : '' : '<br>'+failureText()}</p>${won ? stars(state.stars || 1,true) : ''}<div class="result-statistics"><div><small>使用组数</small><strong>${state.group} / ${groupLimit}</strong></div><div><small>消除线数</small><strong>${state.stats.lines} / ${config.goal.lines}</strong></div></div>${!won && state.reason === 'groups-exhausted' && !state.continued ? '<p class="result-status">'+(devPractice ? '开发试玩可通过调试参数增加组数。' : rewardAvailable() ? '自愿观看激励广告，可保持棋盘增加 2 组。' : '激励广告尚未接入，可免费重开。')+'</p>' : ''}<div class="button-stack">${won && state.levelId < LEVELS.length ? '<button class="primary" data-action="next">下一关 <span aria-hidden="true">→</span></button>' : '<button class="primary" data-action="retry">再玩一次</button>'}${!won && state.canUndo && state.undoRemaining > 0 ? '<button class="secondary" data-action="undo">撤销上一步 · '+state.undoRemaining+'</button>' : won ? '<button class="secondary" data-action="retry">再玩一次</button>' : ''}${!won && state.reason === 'groups-exhausted' && !state.continued && !devPractice && rewardAvailable() ? '<button class="secondary" data-action="continue">看广告 · 增加 2 组</button>' : ''}<button class="quiet-button" data-action="home">返回首页</button></div></section>`;
 }
 function renderEndlessResult() {
   const settlement = onlineSession?.settlement;
@@ -239,8 +278,8 @@ function handleMenu(event) {
   const levelNode=event.target.closest('[data-level]');
   if (levelNode && !levelNode.disabled) {
     const id=Number(levelNode.dataset.level);
-    if (screen !== 'dev-levels' && !isLevelUnlocked(progress,id)) return;
-    devPractice=screen === 'dev-levels'; briefLevel=id; show('brief'); return;
+    if (!devEnabled() && !isLevelUnlocked(progress,id)) return;
+    persist();briefPractice=devEnabled();briefLevel=id;show('brief');return;
   }
   const action=event.target.closest('[data-action]')?.dataset.action;
   if (action) { audio.unlock(); void dispatch(action); return; }
@@ -298,7 +337,9 @@ function doPlace(slot,x,y) {
   audio.play(state.lastEvent?.lines ? 'clear' : 'place',state.lastEvent?.lines);audio.vibrate(state.lastEvent?.lines ? 'clear' : 'place');
   render();flash(before);
   clearTimeout(animationTimer);
+  const placedState=state, epoch=gameEpoch;
   animationTimer=setTimeout(()=>{
+    if (state !== placedState || gameEpoch !== epoch) return;
     inputLockedUntil=0;
     if (state.status !== 'playing' && !onlineSession) finishLocal();
     else if (state.status !== 'playing' && onlineSession && screen === 'playing') show('result');
@@ -361,12 +402,15 @@ function finishLocal() {
   if (screen === 'playing' || screen === 'pause') show('result');
 }
 function beginLevel(id) {
+  if (onlineSession) saveOnline();
+  clearTimeout(animationTimer);
   gameEpoch++;
   onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';
   state=createLevel(id);selectedSlot=null;recordedResult=null;inputLockedUntil=0;
   persist();show('playing');
 }
 function beginPractice() {
+  persist();clearTimeout(animationTimer);
   gameEpoch++;
   onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';devPractice=false;
   state=createEndless(crypto.getRandomValues(new Uint32Array(1))[0],{ranked:false});
@@ -374,6 +418,7 @@ function beginPractice() {
 }
 async function beginOnline() {
   if (onlineBusy) return;
+  persist();clearTimeout(animationTimer);
   const epoch=++gameEpoch;
   onlineBusy=true;onlineError='';render();
   try {
@@ -402,7 +447,7 @@ async function openLeaderboard() {
 }
 function rewardAvailable() { return typeof globalThis.__THREE_CHOOSE_TWO_HOST__?.rewardedAd === 'function'; }
 async function rewardContinue() {
-  if (!rewardAvailable() || isLocked()) return;
+  if (devPractice || !rewardAvailable() || isLocked()) return;
   const original=state;
   inputLockedUntil=Infinity;
   try {
@@ -423,17 +468,42 @@ async function shareScore() {
   catch(error) { if(error.name !== 'AbortError') toast('无法直接分享，可复制地址栏中的游戏链接。'); }
 }
 async function dispatch(action) {
+  if (action.startsWith('dev-')) {
+    if (!devEnabled() || !developer) return;
+    try {
+      switch (action) {
+        case 'dev-tools': persist();if(screen !== 'dev-tools')developerReturnScreen=screen;devShowSolution=false;show('dev-tools');break;
+        case 'dev-back': show(developerReturnScreen);break;
+        case 'dev-levels': persist();show('levels');break;
+        case 'dev-solution': devShowSolution=true;show('dev-tools');break;
+        case 'dev-refill-undo': developer.refillUndo();toast('试玩撤销已补充到 9 次。');break;
+        case 'dev-restart': developer.restart();break;
+        case 'dev-clear-board': developer.clearBoard();toast('试玩棋盘已清空。');break;
+      }
+    } catch (error) { toast(error.message); }
+    return;
+  }
   switch(action) {
     case 'start': {
-      const saved=playableResume();gameEpoch++;devPractice=false;onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';selectedSlot=null;inputLockedUntil=0;
+      if (canResumeOnline()) {
+        if (onlineSession) { devPractice=false;briefPractice=false;selectedSlot=null;inputLockedUntil=0;show('playing');if(pendingAction?.length)void flushOnline(); }
+        else { show('endless');await beginOnline(); }
+        break;
+      }
+      const saved=playableResume();gameEpoch++;clearTimeout(animationTimer);devPractice=false;briefPractice=false;onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';selectedSlot=null;inputLockedUntil=0;
       if (saved) { state=saved;show(saved.status === 'playing' ? 'playing' : 'result'); }
-      else { briefLevel=Math.min(progress.unlocked || 1,LEVELS.length);show('brief'); }
+      else { state=null;briefLevel=Math.min(progress.unlocked || 1,LEVELS.length);show('brief'); }
       break;
     }
-    case 'begin': beginLevel(briefLevel);break;
+    case 'begin':
+      if(briefPractice && devEnabled())startTrial(briefLevel);
+      else if(isLevelUnlocked(progress,briefLevel)) {devPractice=false;beginLevel(briefLevel);}
+      break;
     case 'levels': show('levels');break;
     case 'settings': persist();show('settings');break;
-    case 'home': if(screen === 'endless' && onlineBusy)gameEpoch++;persist();show('home');break;
+    case 'home': if(screen === 'endless' && onlineBusy)gameEpoch++;persist();if(onlineSession)saveOnline();show('home');break;
+    case 'exit-level': exitLocalGame();break;
+    case 'online-resume': if(onlineSession) {show(pendingFinish || state.status !== 'playing' ? 'result' : 'playing');void flushOnline();}else {show('endless');await beginOnline();}break;
     case 'pause': case 'leave-game': if(state) {persist();show('pause');}break;
     case 'resume': if(state)show(state.status === 'playing' ? 'playing' : 'result');break;
     case 'help': persist();show('help');break;
@@ -443,7 +513,7 @@ async function dispatch(action) {
       const next=undo(state);if(next !== state) {state=next;audio.play('undo');persist();show('playing');}
     }break;
     case 'next': if(state.status === 'won' && state.levelId < LEVELS.length) {
-      briefLevel=state.levelId+1;show('brief');
+      briefPractice=devPractice;briefLevel=state.levelId+1;show('brief');
     }break;
     case 'endless': onlineError='';show('endless');break;
     case 'practice': beginPractice();break;
@@ -464,13 +534,19 @@ window.addEventListener('blur',()=>{cancelDrag();selectedSlot=null;if(screen ===
 document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();selectedSlot=null;if(screen === 'playing'){persist();show('pause');}audio.stop();}});
 window.addEventListener('pagehide',()=>{cancelDrag();persist();audio.stop();});
 window.addEventListener('resize',()=>{cancelDrag();});
-window.getThreeChooseTwoSnapshot=()=>state ? structuredClone({state,screen,devPractice,online:onlineSession ? {id:onlineSession.id,seq:onlineSession.seq,status:onlineSession.status,eligible:onlineSession.eligible} : null}) : {state:null,screen};
-if (globalThis.SmallGamesDev?.isEnabled()) {
-  globalThis.SmallGamesDev.registerActions([
-    {id:'three-choose-two-levels',label:'试玩任意关卡（不记录）',run:()=>{persist();show('dev-levels');}},
-    {id:'three-choose-two-solution',label:'查看当前关卡解法',run:()=>{if(state?.mode === 'level')toast(currentLevel().hint || '按解法配置检查候选和落点。');}},
-  ]);
-  globalThis.SmallGamesDev.registerSnapshot(()=>({screen,level:state?.levelId,group:state?.group,score:state?.score,placements:state?.stats?.placements,practice:devPractice}));
+window.getThreeChooseTwoSnapshot=()=>state ? structuredClone({state,screen,devPractice,online:onlineSession ? {id:onlineSession.id,seq:onlineSession.seq,status:onlineSession.status,eligible:onlineSession.eligible} : null}) : {state:null,screen,devPractice};
+const developer = devEnabled() ? createDeveloperAPI({
+  isEnabled: devEnabled, getSnapshot: window.getThreeChooseTwoSnapshot, getState: () => state,
+  isolate: isolateTrial, beginLevel: startTrial, restart: () => beginLevel(state.levelId),
+  update: next => { clearTimeout(animationTimer);cancelDrag();state=next;selectedSlot=null;inputLockedUntil=0;show(screen === 'dev-tools' ? 'dev-tools' : state.status === 'playing' ? 'playing' : 'result'); },
+  openLevels: () => {persist();show('levels');},
+  openSolution: () => {persist();if(screen !== 'dev-tools')developerReturnScreen=screen;devShowSolution=true;show('dev-tools');},
+  registerActions: actions => globalThis.SmallGamesDev.registerActions(actions),
+}) : null;
+if (developer) {
+  window.ThreeChooseTwoDev = developer;
+  globalThis.SmallGamesDev.registerActions([{ id:'three-choose-two-tools',label:'关卡与开发调试工具',run:()=>dispatch('dev-tools') }]);
+  globalThis.SmallGamesDev.registerSnapshot(()=>({screen,level:state?.levelId,group:state?.group,score:state?.score,placements:state?.stats?.placements,practice:devPractice,permissions:Object.keys(developer.permissions)}));
 }
 // Confirmed rewards survive a process restart between receipt and state write.
 try {

@@ -20,7 +20,7 @@ const release = JSON.parse(await readFile(path.join(artifact, 'release.json')));
 assert.equal(release.platform, platform);
 assert.equal(release.mode, 'preview');
 assert.equal(release.advertisingConfigured, true, 'Build the preview with --ad-unit-id native-recovery-fixture');
-const output = path.join(gameRoot, 'docs/design/native-actual');
+const output = path.join(gameRoot, 'docs/design/refresh-2026-10-07');
 const report = { environment: 'Production native CJS preview; Chromium touch with mock platform ad outcomes',
   platform, actualDevice: false, realAdvertisingVerified: false, checks: [], screenshots: [], errors: [] };
 
@@ -82,7 +82,7 @@ const tap = async label => {
 };
 const record = name => { report.checks.push(name); console.log(`PASS ${platform}: ${name}`); };
 const capture = async name => {
-  const filename = `recovery-${platform}-${name}.png`;
+  const filename = `native-recovery-${platform}-${name}.png`;
   await page.screenshot({ path: path.join(output, filename) });
   report.screenshots.push({ filename, viewport: page.viewportSize() });
 };
@@ -177,6 +177,6 @@ try {
   assert.deepEqual(report.errors, []); report.status = 'passed';
 } catch (error) { report.status = 'failed'; report.failure = error.stack; throw error; }
 finally {
-  await writeFile(path.join(output, `recovery-${platform}-verification.json`), JSON.stringify(report, null, 2) + '\n');
+  await writeFile(path.join(output, `native-recovery-${platform}-verification.json`), JSON.stringify(report, null, 2) + '\n');
   await browser.close(); await new Promise(resolve => server.close(resolve));
 }

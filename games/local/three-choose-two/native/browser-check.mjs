@@ -6,11 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { getLevel } from '../src/levels.mjs';
+import { STORAGE_KEY } from '../src/progress.mjs';
 import { nativeHarnessHtml } from './browser-harness.mjs';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const artifact = path.resolve(gameRoot, '../../../apps/shell-minigame/dist/wechat/three-choose-two');
-const output = path.join(gameRoot, 'docs/design/native-actual');
+const output = path.join(gameRoot, 'docs/design/refresh-2026-10-07');
 const report = { environment: 'Built native Canvas bundle; Chromium touch emulation with a mock wx SDK',
   actualDevice: false, platformLoginVerified: false, screenshots: [], checks: [], errors: [] };
 const harness = nativeHarnessHtml();
@@ -42,7 +43,7 @@ const tap = async label => {
 };
 const saved = () => page.evaluate(() => nativeHarness.saved());
 const record = name => { report.checks.push(name); console.log(`PASS ${name}`); };
-const capture = async name => { await page.screenshot({ path: path.join(output, `${name}.png`) }); report.screenshots.push({ filename: `${name}.png`, viewport: page.viewportSize() }); };
+const capture = async name => { const filename = `native-${name}.png`; await page.screenshot({ path: path.join(output, filename) }); report.screenshots.push({ filename, viewport: page.viewportSize() }); };
 const touch = async (phase, x, y, id = 1) => {
   if (phase === 'start' || phase === 'move') activeTouches.set(id, { x, y, id, radiusX: 3, radiusY: 3, force: 1 });
   else if (phase === 'cancel') activeTouches.clear();
@@ -72,6 +73,13 @@ async function dragMove(move, phase = 'end', previewName) {
 try {
   await page.goto(url); await page.evaluate(() => exports.ready);
   assert.ok((await labels()).includes('继续闯关')); await capture('home');
+  const homeStart = await page.evaluate(() => nativeHarness.position('继续闯关'));
+  const homeLevels = await page.evaluate(() => nativeHarness.position('选关'));
+  assert.equal(homeStart.y, homeLevels.y); assert.ok(homeStart.x < homeLevels.x);
+  record('home places the main action and level selection together with visible settings and endless entry');
+  await tap('玩法提示'); await page.evaluate(() => nativeHarness.hide()); await page.evaluate(() => nativeHarness.show());
+  assert.ok((await labels()).includes('玩法提示')); await tap('返回首页');
+  record('home help survives backgrounding without an active game and returns to its source page');
   await tap('选关'); await capture('levels');
   await tap('02'); assert.ok((await labels()).includes('选择关卡')); record('normal player locked levels remain locked');
   await tap('01'); await capture('game');
@@ -102,14 +110,52 @@ try {
   await page.reload(); await page.evaluate(() => exports.ready); await tap('继续闯关');
   assert.deepEqual((await saved()).currentGame.board, undone.board); assert.equal((await saved()).currentGame.undoRemaining, 2);
   record('host storage restores the exact active puzzle across a new mount');
+  const beforeHome = await saved(); await tap('首页');
+  assert.ok((await labels()).includes('选关')); assert.deepEqual((await saved()).currentGame, beforeHome.currentGame);
+  await tap('玩法提示'); await tap('返回首页');
+  assert.ok((await labels()).includes('选关')); assert.deepEqual((await saved()).currentGame, beforeHome.currentGame);
+  await tap('继续闯关'); assert.deepEqual((await saved()).currentGame, beforeHome.currentGame);
+  record('the game header directly returns home and retains the exact resumable puzzle');
+  const queuedOnline = { id: 'native-navigation-recovery-fixture', seq: 2,
+    pendingActions: [{ seq: 3, group: 2, slot: 0, x: 0, y: 0 }], pendingFinish: true };
+  await page.evaluate(({ key, value }) => {
+    const entries = JSON.parse(localStorage.getItem('native-check-storage'));
+    const entry = entries.find(([name]) => name.endsWith(key));
+    const record = JSON.parse(entry[1]); record.value.native.online = value;
+    record.value.currentGame.config = { ...record.value.currentGame.config,
+      title: '旧局快照', hint: '旧局提示，优先留空。', goal: { lines: 7 }, maxGroups: 9, discardBudget: 13 };
+    entry[1] = JSON.stringify(record); localStorage.setItem('native-check-storage', JSON.stringify(entries));
+  }, { key: STORAGE_KEY, value: queuedOnline });
+  await page.reload(); await page.evaluate(() => exports.ready);
+  assert.ok((await labels()).includes('第 02 关 · 旧局快照')); await tap('继续闯关');
+  const snapshotLabels = await labels(); assert.ok(['/ 7', '1 / 9', '弃格 0 / 13'].every(value => snapshotLabels.includes(value)));
+  await tap('提示'); assert.ok((await labels()).includes('旧局提示，优先留空。')); await tap('回去试试');
+  await tap('暂停'); await tap('退出关卡');
+  const afterExit = await saved();
+  assert.equal(afterExit.currentGame, null); assert.equal(afterExit.native.runId, ''); assert.equal(afterExit.native.pendingReward, null);
+  assert.deepEqual(afterExit.records, beforeHome.records); assert.equal(afterExit.unlocked, beforeHome.unlocked);
+  assert.deepEqual(afterExit.native.online, queuedOnline);
+  await page.reload(); await page.evaluate(() => exports.ready);
+  assert.equal((await saved()).currentGame, null); await tap('继续闯关');
+  assert.equal((await saved()).currentGame.levelId, 2); assert.equal((await saved()).currentGame.stats.placements, 0);
+  assert.equal((await saved()).currentGame.undoRemaining, 3);
+  assert.equal((await saved()).currentGame.config.title, getLevel(2).title);
+  record('old snapshot titles, goals, limits and hints stay consistent; explicit exit preserves progress and starts the current catalog afresh');
+  record('local level exit preserves an independent online recovery sequence, queued moves and finish intent');
   await tap('提示'); await capture('help'); await tap('回去试试'); await tap('暂停'); await tap('返回首页');
   await tap('设置');
   const settingsLabels = await labels();
   assert.ok(['音效', '音乐', '振动', '高对比色', '减少闪光'].every(label => settingsLabels.includes(label)));
-  await capture('settings'); await tap('返回首页');
+  await capture('settings'); await tap('玩法说明'); await tap('返回设置');
+  assert.ok((await labels()).includes('音乐')); await tap('返回首页');
   await tap('排行榜'); assert.ok((await labels()).includes('原生排位未配置')); await capture('ranking-unconfigured'); await tap('返回首页');
   await tap('无尽练习'); await capture('endless'); await tap('开始无尽练习');
   assert.equal((await saved()).currentGame.score, 0); assert.equal((await saved()).currentGame.ranked, false);
+  const beforePracticeExit = await saved(); await tap('暂停'); await tap('退出练习');
+  assert.equal((await saved()).currentGame, null); assert.equal((await saved()).practiceBest, beforePracticeExit.practiceBest);
+  assert.deepEqual((await saved()).records, beforePracticeExit.records);
+  await tap('无尽练习'); await tap('开始无尽练习');
+  record('explicit practice exit discards only the local run while normal practice settlement remains available');
   await tap('暂停'); await tap('结束练习'); await capture('practice-result');
   assert.ok((await labels()).includes('离线练习成绩不参与排位')); record('offline endless starts at zero and cannot enter the public leaderboard');
   await tap('分享成绩');
@@ -128,6 +174,6 @@ try {
   assert.deepEqual(report.errors, []); report.status = 'passed';
 } catch (error) { report.status = 'failed'; report.failure = error.stack; throw error; }
 finally {
-  await writeFile(path.join(output, 'verification.json'), JSON.stringify(report, null, 2) + '\n');
+  await writeFile(path.join(output, 'native-verification.json'), JSON.stringify(report, null, 2) + '\n');
   await browser.close(); await new Promise(resolve => server.close(resolve));
 }

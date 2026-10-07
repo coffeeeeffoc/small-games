@@ -1,0 +1,35 @@
+{
+  "environment": "Production native CJS preview; Chromium touch with mock platform ad outcomes",
+  "platform": "wechat",
+  "actualDevice": false,
+  "realAdvertisingVerified": false,
+  "checks": [
+    "a legal final touch creates a missed-target loss with undo and configured continuation",
+    "home and a fresh native mount restore loss to its result screen",
+    "touch undo from loss restores board and candidates with one use consumed",
+    "dismissed platform ad outcome preserves the loss and unused continuation",
+    "failed platform ad outcome preserves the loss and unused continuation",
+    "a confirmed ad result received in the background preserves pause until explicit resume",
+    "only explicit SDK completion applies exactly two supplemental groups and clears prior undo",
+    "a completed continuation survives remount without a second grant",
+    "an already confirmed persisted SDK receipt recovers once across interruption"
+  ],
+  "screenshots": [
+    {
+      "filename": "native-recovery-wechat-lost.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-recovery-wechat-continued.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

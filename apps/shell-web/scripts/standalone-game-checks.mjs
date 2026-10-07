@@ -95,9 +95,24 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(game).toHaveAttribute('data-lines', '1');
     await click(frame.locator('[data-action="retry"]'));
     await expect(game).toHaveAttribute('data-screen', 'playing');
-    await click(frame.locator('[data-action="pause"]').last());
-    await click(frame.locator('[data-action="home"]'));
+    const savedBoard = await game.evaluate(
+      () => globalThis.getThreeChooseTwoSnapshot().state.board,
+    );
+    await click(frame.getByRole('button', { name: '返回首页', exact: true }));
     await expect(game).toHaveAttribute('data-screen', 'home');
+    await click(frame.locator('[data-action="start"]'));
+    await expect(game).toHaveAttribute('data-screen', 'playing');
+    expect(await game.evaluate(() => globalThis.getThreeChooseTwoSnapshot().state.board)).toEqual(
+      savedBoard,
+    );
+    await click(frame.locator('[data-action="pause"]').last());
+    await click(frame.getByRole('button', { name: /^退出关卡/ }));
+    await expect(game).toHaveAttribute('data-screen', 'home');
+    expect(
+      await game.evaluate(
+        () => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).currentGame,
+      ),
+    ).toBeNull();
     await expect(frame.locator('[data-action="start"]')).toBeVisible();
     await click(frame.locator('[data-action="levels"]'));
     await expect(frame.locator('[data-level="1"]')).toBeEnabled();

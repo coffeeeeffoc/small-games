@@ -210,10 +210,16 @@ try {
           await frame.locator('[data-action="begin"]').click();
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'playing');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.getByRole('button', { name: '返回首页', exact: true }).click();
+        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await frame.locator('[data-action="start"]').click();
+        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'playing');
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
         await frame.locator('[data-action="pause"]').last().click();
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'pause');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('[data-action="home"]').click();
+        await frame.getByRole('button', { name: /^退出关卡/ }).click();
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);

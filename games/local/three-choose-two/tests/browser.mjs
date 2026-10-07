@@ -4,13 +4,13 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { getLevel } from '../src/levels.mjs';
-import { canPlace, previewPlacement } from '../src/engine.mjs';
+import { canPlace, previewPlacement, createEndless } from '../src/engine.mjs';
 
 // Exercise the production artifact using real Chromium touch events. Read-only
 // snapshots and level solutions may describe expected state; they never place a
 // piece, unlock content, or manufacture a normal-player victory.
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
-const outputRoot = fileURLToPath(new URL('../docs/design/actual/', import.meta.url));
+const outputRoot = fileURLToPath(new URL('../docs/design/refresh-2026-10-07/actual/', import.meta.url));
 const port = Number(process.env.THREE_CHOOSE_TWO_BROWSER_PORT || 4423);
 let baseURL = process.env.THREE_CHOOSE_TWO_URL;
 let server;
@@ -253,6 +253,12 @@ async function mainFlow() {
   record('Two placements discard once; fixed slots and cross-group undo restore a deterministic group');
 
   const beforePause = await state(page);
+  await page.getByRole('button', { name: '返回首页', exact: true }).tap();
+  await screen(page, 'home');
+  await action(page, 'start', '继续游戏');
+  await screen(page, 'playing');
+  for (const key of ['board', 'candidates', 'group', 'score', 'stats']) assert.deepEqual((await state(page))[key], beforePause[key]);
+  record('The visible in-game home button saves the unfinished board and resumes it directly');
   await action(page, 'pause', '暂停');
   await screen(page, 'pause');
   await capture(page, 'pause-390x844');
@@ -277,6 +283,23 @@ async function mainFlow() {
   await expect(page.locator('button[data-level="4"]')).toBeDisabled();
   await action(page, 'home', '返回首页');
   record('Pause, reload, normal continue, next-level unlock, and return paths preserve real progress');
+
+  await action(page, 'start', '继续闯关');
+  await action(page, 'begin', '开始');
+  assert.equal((await state(page)).levelId, 3);
+  await action(page, 'pause', '暂停');
+  await action(page, 'exit-level', '退出关卡');
+  await screen(page, 'home');
+  const abandoned = await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')));
+  assert.equal(abandoned.currentGame, null);
+  assert.equal(abandoned.unlocked, 3);
+  assert.equal(Object.keys(abandoned.records).length, 2);
+  await page.reload();
+  await action(page, 'start', '继续闯关');
+  await screen(page, 'brief');
+  await action(page, 'levels', '返回');
+  await action(page, 'home', '返回首页');
+  record('Exit level clears the unfinished board across reload while preserving earned stars and unlocks');
 
   await action(page, 'endless', '无尽挑战');
   await screen(page, 'endless');
@@ -450,6 +473,148 @@ async function smallViewports() {
   await context.close();
 }
 
+async function developerFlow() {
+  const context = await phoneContext();
+  const page = await context.newPage();
+  const session = await context.newCDPSession(page);
+  monitor(page);
+  await page.goto(baseURL);
+  assert.equal(await page.evaluate(() => typeof window.ThreeChooseTwoDev), 'undefined');
+  await action(page, 'start');
+  await action(page, 'begin');
+  for (const move of getLevel(1).solution) await drag(page, session, move.slot, move.x, move.y);
+  await screen(page, 'result');
+  await action(page, 'next');
+  await action(page, 'begin');
+  const first = getLevel(2).solution[0];
+  await drag(page, session, first.slot, first.x, first.y);
+  await waitPlacements(page, 1);
+  await action(page, 'home');
+  const realSave = await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')));
+
+  await page.goto(new URL('?dev=1', baseURL).href);
+  await action(page, 'levels');
+  await expect(page.locator('[data-level="30"]')).toBeEnabled();
+  await page.locator('[data-level="30"]').tap();
+  await action(page, 'begin');
+  await screen(page, 'playing');
+  assert.equal((await state(page)).levelId, 30);
+  assert.equal((await page.evaluate(() => window.getThreeChooseTwoSnapshot())).devPractice, true);
+  const configuredSolution = await page.evaluate(() => window.ThreeChooseTwoDev.solution());
+  assert.deepEqual(configuredSolution, getLevel(30).solution);
+  await capture(page, 'developer-level-30');
+  for (const [i, move] of configuredSolution.entries()) {
+    await drag(page, session, move.slot, move.x, move.y);
+    await waitPlacements(page, i + 1);
+  }
+  await screen(page, 'result');
+  assert.equal((await state(page)).status, 'won');
+  assert.equal((await state(page)).stars, 3);
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1'))), realSave);
+  await capture(page, 'developer-result');
+  record('Developer selection opens all 30 levels and a real touch solution earns no normal progress or record');
+
+  await page.evaluate(() => window.ThreeChooseTwoDev.level(12));
+  await screen(page, 'playing');
+  await action(page, 'pause');
+  await action(page, 'dev-tools');
+  await screen(page, 'dev-tools');
+  await action(page, 'dev-solution');
+  await expect(page.locator('.dev-solution li')).toHaveCount(getLevel(12).solution.length);
+  await capture(page, 'developer-tools');
+  await action(page, 'dev-back');
+  await screen(page, 'pause');
+  await action(page, 'resume');
+  await screen(page, 'playing');
+  record('Touch developer tools expose the reference route and return to the originating pause screen');
+  await page.evaluate(() => window.ThreeChooseTwoDev.refillUndo(12));
+  assert.equal((await state(page)).undoRemaining, 12);
+  await page.evaluate(() => window.ThreeChooseTwoDev.setParameters({ groupLimit: 20, discardBudget: 30, goalLines: 12 }));
+  assert.equal((await state(page)).config.maxGroups, 20);
+  assert.equal((await state(page)).config.discardBudget, 30);
+  assert.equal((await state(page)).config.goal.lines, 12);
+  await page.evaluate(() => window.ThreeChooseTwoDev.clearBoard());
+  assert.equal((await state(page)).board.filter(Boolean).length, 0);
+  await page.evaluate(() => window.ThreeChooseTwoDev.restart());
+  assert.deepEqual((await state(page)).board, getLevel(12).initialBoard);
+  await action(page, 'pause');
+  await action(page, 'exit-level');
+  await screen(page, 'home');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1'))), realSave);
+  await action(page, 'start');
+  await screen(page, 'playing');
+  assert.equal((await state(page)).levelId, 2);
+  assert.equal((await page.evaluate(() => window.getThreeChooseTwoSnapshot())).devPractice, false);
+  assert.deepEqual((await state(page)).board, realSave.currentGame.board);
+  record('Full developer controls operate on isolated trials; leaving a trial restores the existing normal save');
+
+  await page.evaluate(() => localStorage.setItem('dev', '1'));
+  await page.goto(new URL('?dev=0', baseURL).href);
+  await action(page, 'levels');
+  await expect(page.locator('[data-level="30"]')).toBeDisabled();
+  assert.equal(await page.evaluate(() => typeof window.ThreeChooseTwoDev), 'undefined');
+  await expect(page.locator('small-games-devtools')).toHaveCount(0);
+  record('Explicit dev=0 hides debugging and restores normal unlock restrictions despite stored dev=1');
+  await context.close();
+}
+
+async function onlineHomeFixture() {
+  const context = await phoneContext();
+  const page = await context.newPage();
+  const session = await context.newCDPSession(page);
+  monitor(page);
+  await page.goto(new URL('?dev=1', baseURL).href);
+  // A transport fixture checks navigation while an issued move is offline. It
+  // does not represent a real service, identity, settlement or ranking check.
+  const issued = createEndless('home-navigation-fixture', { ranked: true });
+  await page.evaluate((initial) => {
+    window.__navigationFixtureCalls = [];
+    window.__competition = {
+      async request(path) {
+        window.__navigationFixtureCalls.push(path);
+        if (path.endsWith('/actions')) throw new Error('Navigation fixture is offline');
+        if (path.endsWith('/session')) return { id: 'navigation-fixture', seq: 0, status: 'active', eligible: false, state: initial };
+        throw new Error('Unexpected navigation fixture request: ' + path);
+      },
+    };
+  }, issued);
+  await action(page, 'endless');
+  await action(page, 'online-start');
+  await screen(page, 'playing');
+  const move = (() => {
+    for (let slot = 0; slot < 3; slot++) for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (canPlace(issued, slot, x, y)) return { slot, x, y };
+    throw new Error('Issued fixture group must have a legal first move');
+  })();
+  await drag(page, session, move.slot, move.x, move.y);
+  await waitPlacements(page, 1);
+  const before = await state(page);
+  const journal = await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-online-v1')));
+  assert.equal(journal.pending.length, 1);
+  assert.equal(await page.evaluate(() => {
+    try { window.ThreeChooseTwoDev.refillUndo(12); return false; }
+    catch { return true; }
+  }), true, 'Developer mutation must reject an online board');
+  assert.deepEqual((await state(page)).board, before.board);
+  await page.getByRole('button', { name: '返回首页', exact: true }).tap();
+  await screen(page, 'home');
+  await action(page, 'levels');
+  await page.locator('[data-level="30"]').tap();
+  await screen(page, 'brief');
+  await action(page, 'levels');
+  await action(page, 'home');
+  await action(page, 'start');
+  await screen(page, 'playing');
+  assert.deepEqual((await state(page)).board, before.board);
+  const after = await page.evaluate(() => window.getThreeChooseTwoSnapshot());
+  assert.equal(after.online.id, 'navigation-fixture');
+  assert.equal(after.online.seq, 0);
+  assert.equal(after.devPractice, false, 'An abandoned trial selection must not relabel online play as a trial');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-online-v1'))), journal);
+  assert.equal(await page.evaluate(() => window.__navigationFixtureCalls.filter(path => path.endsWith('/session')).length), 1);
+  record('Transport fixture: direct home and continue retain the same online session and unconfirmed move', { realService: false });
+  await context.close();
+}
+
 async function run() {
   await startServer();
   browser = await chromium.launch({
@@ -461,6 +626,8 @@ async function run() {
   await mainFlow();
   await failureFlow();
   await smallViewports();
+  await developerFlow();
+  await onlineHomeFixture();
 }
 
 try {

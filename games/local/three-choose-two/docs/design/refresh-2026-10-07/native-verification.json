@@ -1,0 +1,127 @@
+{
+  "environment": "Built native Canvas bundle; Chromium touch emulation with a mock wx SDK",
+  "actualDevice": false,
+  "platformLoginVerified": false,
+  "screenshots": [
+    {
+      "filename": "native-home.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-levels.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-game.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-game-preview.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-pause.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-help.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-settings.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-ranking-unconfigured.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-endless.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-practice-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "native-home-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    },
+    {
+      "filename": "native-game-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    },
+    {
+      "filename": "native-pause-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    }
+  ],
+  "checks": [
+    "home places the main action and level selection together with visible settings and endless entry",
+    "home help survives backgrounding without an active game and returns to its source page",
+    "normal player locked levels remain locked",
+    "drag preview and pointer cancel do not place a piece",
+    "second pointer cannot consume or replace the held piece",
+    "real touch solution wins first level and saves three stars plus next unlock",
+    "undo restores board, candidates and bounded single-step history",
+    "hide and show cancel input and retain the paused puzzle",
+    "home and resume retain the active puzzle",
+    "host storage restores the exact active puzzle across a new mount",
+    "the game header directly returns home and retains the exact resumable puzzle",
+    "old snapshot titles, goals, limits and hints stay consistent; explicit exit preserves progress and starts the current catalog afresh",
+    "local level exit preserves an independent online recovery sequence, queued moves and finish intent",
+    "explicit practice exit discards only the local run while normal practice settlement remains available",
+    "offline endless starts at zero and cannot enter the public leaderboard",
+    "native sharing includes honest practice metrics and no private session data",
+    "320 by 640 portrait viewport keeps full controls and uniform touch scaling",
+    "dispose releases every listener, timer and local sound"
+  ],
+  "errors": [],
+  "status": "passed"
+}

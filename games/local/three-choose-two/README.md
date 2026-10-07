@@ -23,6 +23,7 @@ pnpm --filter @coffeeeeffoc/three-choose-two test:browser
 - `src/engine.mjs`：纯规则、行列同步消除、计分、三选二、胜负、单步撤销、奖励幂等及重放。
 - `src/shapes.mjs`：冻结朝向的形状库及统一的分段随机权重。
 - `src/levels.mjs`：30 关独立配置、固定候选序列、目标、星级阈值和可验证路径。
+- 前 5 关用于教学；第 6–10 关开始跨组铺垫，第 11–20 关加入更多多线和交叉组合，第 21–30 关同时考验空间规划与弃块预算。所有关卡都有可达到三星的合法参考路径，旧局继续按已保存配置恢复。
 - `src/progress.mjs`：关卡解锁、最高星级、最好组数、本地练习纪录、当前局及设置。
 - `native/canvas.mjs`：使用同一规则和内容的原生 Canvas GameDefinition。
 
@@ -50,5 +51,11 @@ pnpm minigame:build --game three-choose-two --platform bilibili --preview
 配置后的原生在线模式复用正式平台登录。通过 `--config` 指定 `apps/shell-minigame/release-config.example.json` 格式的配置，每个平台填写自己的 `appId` 与 HTTPS `apiUrl`（包含 `/api/competition/v1`）；服务端同时配置官方 AppID/secret 和允许来源。也可通过 `THREE_CHOOSE_TWO_API_URL` 提供公开 API 地址。缺少身份或 API 配置时保持离线练习。开发预览只允许回环 HTTP 地址，发行模式要求 HTTPS。微信激励广告使用该平台真实广告单元；B站广告能力依已有适配器验收状态，不假设已可上线。
 
 H5 使用共享 `dev-mode.js`、`fullscreen.js`、`competition.js`。`?dev=1` 或 `localStorage.dev` 可启用按需调试；默认关闭，`?dev=0` 显式关闭。调试成绩与正常进度/排位隔离，公开分享不带开发参数。
+
+首页突出开始/继续、选关和无尽入口。游玩左上角“首页”保存当前局，回首页后可继续；暂停页“退出关卡”放弃当前局并保留已有星级与解锁进度。原生 Canvas 使用相同返回和退出规则。
+
+开发模式下普通选关页也可选择全部 30 关，选关进入独立试玩。开发工具提供参考解、撤销补充、重置、清空棋盘和参数调整；`window.ThreeChooseTwoDev` 的统一权限及扩展动作接口供后续调试功能复用。主页开始/继续仍可正常推进正式关卡，退出试玩会保留原有真实存档。修改试玩状态的权限不用于修改在线排位。
+
+本次难度依据、先行效果图和手机触屏模拟验证见 [2026-10-07 调整记录](docs/design/refresh-2026-10-07/h5-layout.md)。
 
 原始产品说明、先行手机效果图、布局参数和验收记录见 [设计目录](docs/design/README.md)。
