@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 
 export const markers = {
   'retreat-rally': '#start',
+  'cage-rescue': '#start',
   'tower-brake': '#start-game',
   'chase-thief': '#game[data-ready="true"]',
   'orbit-atelier': '#orbit-app[data-ready="true"]',
@@ -65,6 +66,7 @@ export const markers = {
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
   'retreat-rally': '#start',
+  'cage-rescue': '#start',
   'tower-brake': '#start-game',
   tetracube: '#start-game',
   'chase-thief': '#start',

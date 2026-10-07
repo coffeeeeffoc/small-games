@@ -21,6 +21,7 @@ export function StandaloneGame({
   const playing = display.entry === entry && display.playing;
   const immersive =
     id === 'retreat-rally' ||
+    id === 'cage-rescue' ||
     id === 'chase-thief' ||
     id === 'orbit-atelier' ||
     id === 'ink-is-everything' ||

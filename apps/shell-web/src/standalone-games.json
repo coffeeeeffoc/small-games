@@ -404,5 +404,12 @@
     "title": "重力方舱",
     "description": "拖动并三轴旋转四连立方体，填满水平层；颠倒 6×6×12 容器，让方块向下落定，制造连锁消除。",
     "output": "dist"
+  },
+  {
+    "id": "cage-rescue",
+    "source": "games/local/cage-rescue",
+    "title": "打破笼子接住人",
+    "description": "拖动挡板反弹小球、击碎笼子，安排接球与接人的顺序，在六种阵形中救出至少四名队友。",
+    "output": "dist"
   }
 ]

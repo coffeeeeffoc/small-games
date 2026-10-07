@@ -187,6 +187,278 @@ function assertCompetitionRegistry(readHead, games) {
   }
 }
 
+const cageRescueSource = 'games/local/cage-rescue';
+const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
+const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const cageRescueDelegate =
+  "  if (id === 'cage-rescue') {\n" +
+  "    const { assertCageRescueGameplay } = await import('./game-checks/cage-rescue.mjs');\n" +
+  '    return assertCageRescueGameplay(frame, mobile);\n' +
+  '  }\n';
+const standaloneGameplayHeader =
+  'export async function assertStandaloneGameplay(frame, id, mobile = false) {\n';
+const cageRescueHomeGuardBefore =
+  "      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {\n";
+const cageRescueHomeGuardAfter =
+  '      } else if (\n' +
+  "        game.id === 'cage-rescue' ||\n" +
+  "        game.id === 'ball-roguelite' ||\n" +
+  "        game.id === 'orbit-atelier'\n" +
+  '      ) {\n';
+const cageRescueImmersiveFiles = {
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    name: 'immersive',
+    anchor: '  const immersive =\n',
+    addition: "    id === 'cage-rescue' ||\n",
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    name: 'immersiveGame',
+    anchor: 'const immersiveGame = (id) =>\n  [\n',
+    addition: "    'cage-rescue',\n",
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    name: 'cases',
+    anchor: 'it.each([\n',
+    addition: "  'cage-rescue',\n",
+  },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    name: 'catalogCases',
+    anchor: '      if (\n',
+    addition: "        id === 'cage-rescue' ||\n",
+  },
+};
+
+function assertCageRescueCatalog(games) {
+  const entries = games.filter(
+    (game) => game.id === 'cage-rescue' || game.source === cageRescueSource,
+  );
+  assert(
+    entries.length === 1 &&
+      entries[0].id === 'cage-rescue' &&
+      entries[0].source === cageRescueSource,
+    'Unreviewed cage rescue catalog binding',
+  );
+}
+
+function parsedSource(source, typescript = false) {
+  const { parsers } = loadDependency('prettier/plugins/babel');
+  return parsers[typescript ? 'babel-ts' : 'babel'].parse(source, {}).program;
+}
+
+function namedVariable(program, name) {
+  const matches = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'VariableDeclarator' &&
+      node.id.type === 'Identifier' &&
+      node.id.name === name
+    )
+      matches.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(program);
+  assert(matches.length === 1, 'Ambiguous per-game wiring declaration');
+  return matches[0];
+}
+
+function ifStatementAt(program, offset) {
+  const cases = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.start === offset) cases.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(program);
+  assert(cases.length === 1, 'Expected the real immersion guard');
+  return cases[0];
+}
+
+function assertCageRescueGameplayModule(source) {
+  // Reviewed native mouse/touch, pointer-release, pause/resume and home assertions.
+  // Pin the complete module, not just an import regex: nested eval/loaders and
+  // executable injections cannot acquire a single-game classification.
+  assert(
+    createHash('sha256').update(source).digest('hex') ===
+      'e537cb9effeae6f00d615d8001c132637cfc99a932cdc074718c45100c1cce0b',
+    'Unreviewed cage rescue gameplay checks',
+  );
+  const body = parsedSource(source).body;
+  assert(body.length === 2);
+  const [dependency, exported] = body;
+  assert(dependency.type === 'ImportDeclaration' && dependency.source.value === '@playwright/test');
+  assert(
+    dependency.specifiers.length === 1 &&
+      dependency.specifiers[0].type === 'ImportSpecifier' &&
+      dependency.specifiers[0].imported.name === 'expect' &&
+      dependency.specifiers[0].local.name === 'expect',
+  );
+  assert(
+    exported.type === 'ExportNamedDeclaration' &&
+      exported.declaration?.type === 'FunctionDeclaration' &&
+      exported.declaration.id.name === 'assertCageRescueGameplay' &&
+      exported.declaration.async,
+  );
+}
+
+function assertCageRescueDelegate({ readBase, readHead }) {
+  const before = readBase(standaloneChecksFile);
+  const after = readHead(standaloneChecksFile);
+  assertCageRescueGameplayModule(readHead(cageRescueGameplayFile));
+  assert(
+    after.split(cageRescueDelegate).length === 2,
+    'Missing or duplicate cage rescue delegation',
+  );
+  const declaration = parsedSource(after).body.filter(
+    (node) =>
+      node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.type === 'FunctionDeclaration' &&
+      node.declaration.id.name === 'assertStandaloneGameplay',
+  );
+  assert(declaration.length === 1);
+  // The lazy import is the first statement of the real exported function, never
+  // a lookalike string/comment or an unconditional top-level dependency.
+  assert(after.indexOf(standaloneGameplayHeader + cageRescueDelegate) === declaration[0].start);
+  const first = declaration[0].declaration.body.body[0];
+  assert(
+    first?.type === 'IfStatement' &&
+      after.slice(first.start, first.end) === cageRescueDelegate.trim(),
+  );
+  const stripped = after.replace(cageRescueDelegate, '');
+  assert(before === stripped || before === after, 'Other shared gameplay bytes changed');
+  if (before !== after) {
+    assert(before.split(standaloneGameplayHeader).length === 2);
+    assert(
+      after ===
+        before.replace(standaloneGameplayHeader, standaloneGameplayHeader + cageRescueDelegate),
+    );
+  }
+}
+
+function assertCageRescueImmersive(file, before, after) {
+  const { name, anchor, addition } = cageRescueImmersiveFiles[file];
+  assert(before.split(anchor).length === 2 && !before.includes("'cage-rescue'"));
+  let expected = before.replace(anchor, anchor + addition);
+  const addHomeGuard = name === 'immersiveGame' && after !== expected;
+  if (addHomeGuard) {
+    assert(before.split(cageRescueHomeGuardBefore).length === 2);
+    assert(after.split(cageRescueHomeGuardAfter).length === 2);
+    expected = expected.replace(cageRescueHomeGuardBefore, cageRescueHomeGuardAfter);
+  }
+  assert(after === expected, 'Other shared immersion bytes changed');
+  const program = parsedSource(after, file.endsWith('.tsx'));
+  if (addHomeGuard) {
+    const guard = ifStatementAt(
+      program,
+      after.indexOf(cageRescueHomeGuardAfter) + cageRescueHomeGuardAfter.indexOf('if'),
+    );
+    const ids = [];
+    const compare = (node) => {
+      if (node.type === 'LogicalExpression' && node.operator === '||') {
+        compare(node.left);
+        compare(node.right);
+      } else {
+        assert(
+          node.type === 'BinaryExpression' &&
+            node.operator === '===' &&
+            node.left.type === 'MemberExpression' &&
+            !node.left.computed &&
+            node.left.object.type === 'Identifier' &&
+            node.left.object.name === 'game' &&
+            node.left.property.type === 'Identifier' &&
+            node.left.property.name === 'id' &&
+            node.right.type === 'StringLiteral',
+        );
+        ids.push(node.right.value);
+      }
+    };
+    compare(guard.test);
+    assert(isDeepStrictEqual(ids, ['cage-rescue', 'ball-roguelite', 'orbit-atelier']));
+  }
+  if (name === 'cases') {
+    const cases = program.body.filter(
+      (node) =>
+        node.type === 'ExpressionStatement' &&
+        node.expression.type === 'CallExpression' &&
+        node.expression.callee.type === 'CallExpression' &&
+        node.expression.callee.callee.type === 'MemberExpression' &&
+        !node.expression.callee.callee.computed &&
+        node.expression.callee.callee.object.type === 'Identifier' &&
+        node.expression.callee.callee.object.name === 'it' &&
+        node.expression.callee.callee.property.name === 'each',
+    );
+    assert(cases.length === 1 && cases[0].start === after.indexOf(anchor));
+    const args = cases[0].expression.callee.arguments;
+    assert(
+      args.length === 1 &&
+        args[0].type === 'ArrayExpression' &&
+        args[0].elements.every((node) => node?.type === 'StringLiteral'),
+    );
+    const ids = args[0].elements.map((node) => node.value);
+    assert(ids[0] === 'cage-rescue' && new Set(ids).size === ids.length);
+    return;
+  }
+  let declaration;
+  if (name === 'catalogCases') {
+    const guard = ifStatementAt(program, after.indexOf(anchor) + anchor.indexOf('if'));
+    declaration = { init: guard.test };
+  } else {
+    declaration = namedVariable(program, name);
+    assert(declaration.start === after.indexOf(anchor) + anchor.indexOf(name));
+  }
+  if (name === 'immersive' || name === 'catalogCases') {
+    const ids = [];
+    const compare = (node) => {
+      if (node.type === 'LogicalExpression' && node.operator === '||') {
+        compare(node.left);
+        compare(node.right);
+      } else {
+        assert(
+          node.type === 'BinaryExpression' &&
+            node.operator === '===' &&
+            node.left.type === 'Identifier' &&
+            node.left.name === 'id' &&
+            node.right.type === 'StringLiteral',
+        );
+        ids.push(node.right.value);
+      }
+    };
+    compare(declaration.init);
+    assert(ids[0] === 'cage-rescue' && new Set(ids).size === ids.length);
+  } else {
+    const arrow = declaration.init;
+    assert(
+      arrow.type === 'ArrowFunctionExpression' &&
+        arrow.params.length === 1 &&
+        arrow.params[0].type === 'Identifier' &&
+        arrow.params[0].name === 'id',
+    );
+    const call = arrow.body;
+    assert(
+      call.type === 'CallExpression' &&
+        call.callee.type === 'MemberExpression' &&
+        !call.callee.computed &&
+        call.callee.property.name === 'includes' &&
+        call.arguments.length === 1 &&
+        call.arguments[0].type === 'Identifier' &&
+        call.arguments[0].name === 'id',
+    );
+    const list = call.callee.object;
+    assert(
+      list.type === 'ArrayExpression' &&
+        list.elements.every((node) => node?.type === 'StringLiteral'),
+    );
+    const ids = list.elements.map((node) => node.value);
+    assert(ids[0] === 'cage-rescue' && new Set(ids).size === ids.length);
+  }
+}
+
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
@@ -194,7 +466,15 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (
+      if (file === standaloneChecksFile || file === cageRescueGameplayFile) {
+        assertCageRescueCatalog(games);
+        assertCageRescueDelegate({ readBase, readHead });
+        scopes.set(file, [cageRescueSource]);
+      } else if (Object.hasOwn(cageRescueImmersiveFiles, file)) {
+        assertCageRescueCatalog(games);
+        assertCageRescueImmersive(file, readBase(file), readHead(file));
+        scopes.set(file, [cageRescueSource]);
+      } else if (
         file === validationHistoryFile &&
         exactValidationHistory(file, readBase(file), readHead(file))
       ) {

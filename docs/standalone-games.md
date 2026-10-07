@@ -44,6 +44,8 @@
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
+《打破笼子接住人》位于 `games/local/cage-rescue`，workspace 包名为 `@coffeeeeffoc/cage-rescue`，通过 iframe 装载，独立地址为 `/games/cage-rescue/index.html`。拖动底部挡板反弹单球，击破两档耐久的笼子，再接住缓慢下落的队友；六种阵形均以六人救出四人为目标。核心规则与关卡配置独立维护，开发服务使用 `pnpm --filter @coffeeeeffoc/cage-rescue dev`（端口 `4451`），测试和静态构建分别使用 `test`、`build`。本地进度、可选广告能力与验证说明见 [游戏 README](../games/local/cage-rescue/README.md)。
+
 《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。
 
 《追贼别撞墙》位于 `games/local/chase-thief`，workspace 包名为 `@coffeeeeffoc/chase-thief`，通过 iframe 装载，独立地址为 `/games/chase-thief/index.html`。三条竖屏老街赛道支持滑动换道、跳跃和滑铲，连续通过三段障碍会冲刺缩短追逐距离，累计三次碰撞或 60 秒耗尽则失败。三个赛段依次解锁，规则、关卡配置、绘制、存档和音频分别维护。Shell 复用受来源和 origin 校验的 `small-games:display-state` 消息：游玩、暂停及结算隐藏外围导航，返回游戏主页后恢复“返回目录”。开发运行 `pnpm --filter @coffeeeeffoc/chase-thief dev`（默认端口 4417）；静态构建和验证使用 `build`、`test`、`test:browser`，`node server.mjs --dist` 可预览正式制品。

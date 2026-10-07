@@ -377,6 +377,9 @@ importers:
       '@coffeeeeffoc/bullet-garden':
         specifier: workspace:*
         version: link:../../games/local/bullet-garden
+      '@coffeeeeffoc/cage-rescue':
+        specifier: workspace:*
+        version: link:../../games/local/cage-rescue
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
@@ -727,6 +730,8 @@ importers:
   games/local/balloon-movers: {}
 
   games/local/bullet-garden: {}
+
+  games/local/cage-rescue: {}
 
   games/local/carding-car:
     devDependencies:

@@ -132,6 +132,7 @@ try {
         );
         if (
           game.id === 'retreat-rally' ||
+          game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
           game.id === 'orbit-atelier' ||
           game.id === 'ink-is-everything' ||

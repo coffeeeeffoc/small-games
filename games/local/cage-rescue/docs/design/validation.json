@@ -1,0 +1,141 @@
+{
+  "browser": "151.0.7922.173",
+  "checks": [
+    {
+      "name": "touch flow 390x844",
+      "passed": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": "native CDP drag, second touch ignored, cancel releases capture",
+      "progressReload": true
+    },
+    {
+      "name": "touch flow 320x568",
+      "passed": true,
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "touch": "native CDP drag, second touch ignored, cancel releases capture",
+      "progressReload": true
+    },
+    {
+      "name": "touch flow 844x390",
+      "passed": true,
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "touch": "native CDP drag, second touch ignored, cancel releases capture",
+      "progressReload": true
+    },
+    {
+      "name": "touch flow 1280x900",
+      "passed": true,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "touch": "native CDP drag, second touch ignored, cancel releases capture",
+      "progressReload": true
+    },
+    {
+      "name": "production development mode and trial save isolation",
+      "passed": true,
+      "modes": ["URL enabled", "storage enabled", "URL explicit off"],
+      "trialOutcomes": ["won", "lost"],
+      "progressSaved": false
+    },
+    {
+      "name": "blocked storage preserves startup, optional save and URL mode",
+      "passed": true,
+      "localGamePlayable": true,
+      "URLModePlayable": true
+    },
+    {
+      "name": "same-origin iframe mode forwarding and fullscreen",
+      "passed": true,
+      "fixture": true,
+      "crossOrigin": false,
+      "explicitModeForwarding": true,
+      "realFullscreen": true
+    },
+    {
+      "name": "cross-origin iframe mode forwarding and fullscreen",
+      "passed": true,
+      "fixture": true,
+      "crossOrigin": true,
+      "explicitModeForwarding": true,
+      "realFullscreen": true
+    },
+    {
+      "name": "natural pointer play first-level rescue and save",
+      "passed": true,
+      "phase": "won",
+      "rescued": 4,
+      "lives": 3,
+      "seconds": 30.79166666666556,
+      "trial": false,
+      "inputs": "CDP initial contact followed by PointerEvents; Playwright clock advances requestAnimationFrame without changing game state"
+    },
+    {
+      "name": "natural pointer play ball-loss failure and free retry",
+      "passed": true,
+      "phase": "lost",
+      "rescued": 0,
+      "lives": 0,
+      "seconds": 12.007833333333314,
+      "trial": false,
+      "inputs": "CDP initial contact followed by PointerEvents; Playwright clock advances requestAnimationFrame without changing game state"
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "docs/design/actual-home.png",
+    "docs/design/actual-levels.png",
+    "docs/design/actual-play.png",
+    "docs/design/actual-pause.png",
+    "test-results/flow-390x844.png",
+    "test-results/flow-320x568.png",
+    "test-results/flow-844x390.png",
+    "test-results/flow-1280x900.png",
+    "test-results/developer-win-ui-only.png",
+    "test-results/natural-first-release.png",
+    "docs/design/actual-result.png",
+    "test-results/natural-failure.png",
+    "docs/design/actual-decision.png"
+  ],
+  "limitations": [
+    "Chromium desktop and emulated touch viewports; no physical phone or native mini-game platform was tested.",
+    "Same-origin and cross-origin iframe fixtures exercise the production game and shared development-mode script; the complete Shell build is not launched by this test.",
+    "Developer result buttons verify UI and save isolation only. Natural play is recorded separately and uses pointer input without editing game state."
+  ],
+  "passed": true,
+  "date": "2026-10-06",
+  "unitTests": {
+    "passed": 42,
+    "game": 34,
+    "shellEntry": 3,
+    "sharedDevMode": 5
+  },
+  "rewardHostBrowser": {
+    "passed": true,
+    "cases": [
+      "natural failure after three misses",
+      "unavailable grants nothing",
+      "dismissed grants nothing",
+      "failed grants nothing",
+      "completed grants one ball opportunity"
+    ]
+  },
+  "repositoryChecks": {
+    "gameBuild": "passed",
+    "devModeCopies": "50 games, 0 issues",
+    "dependencyBoundaries": "passed",
+    "newFullscreenCopy": "matches shared source",
+    "fullGameConfig": "blocked by four uninitialized submodules and uncommitted new-game metadata",
+    "fullFullscreenCopyCheck": "blocked by uninitialized xiangqi-five submodule"
+  }
+}

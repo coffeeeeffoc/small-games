@@ -5,6 +5,7 @@ const root = new URL('../', import.meta.url);
 const source = await readFile(new URL('platforms/h5/fullscreen.js', root), 'utf8');
 const copies = [
   'games/local/retreat-rally/fullscreen.js',
+  'games/local/cage-rescue/fullscreen.js',
   'games/local/chase-thief/fullscreen.js',
   'games/local/orbit-atelier/src/fullscreen.js',
   'games/local/game-moss-garden/public/fullscreen.js',
