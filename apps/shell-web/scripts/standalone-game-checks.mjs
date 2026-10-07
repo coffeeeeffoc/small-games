@@ -8,6 +8,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'cage-rescue') {
+    const { assertCageRescueGameplay } = await import('./game-checks/cage-rescue.mjs');
+    return assertCageRescueGameplay(frame, mobile);
+  }
   const click = (locator) => (mobile ? locator.tap() : locator.click());
   // Keep input native in both the embedded desktop and direct touch checks.
   const holdControl = async (selector, key, check) => {
@@ -33,16 +37,175 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'cage-rescue') {
-    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__cageRescue.snapshot());
-    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'play');
-    await expect(frame.locator('#scene')).toBeVisible();
-    await click(frame.locator('#launch'));
-    const scene = frame.locator('#scene');
-    const bounds = await scene.boundingBox();
-    const page = scene.page();
-    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.85 };
-    const end = { x: bounds.x + bounds.width * 0.7, y: start.y };
+  if (id === 'chase-thief') {
+    const game = frame.locator('#game');
+    const body = frame.locator('body');
+    await expect(body).toHaveAttribute('data-phase', 'running');
+    await click(frame.locator('[data-action="left"]'));
+    await expect(game).toHaveAttribute('data-lane', '0');
+    await click(frame.locator('[data-action="right"]'));
+    await expect(game).toHaveAttribute('data-lane', '1');
+    await click(frame.locator('[data-action="jump"]'));
+    await expect(game).toHaveAttribute('data-action', 'jump');
+    await expect(game).toHaveAttribute('data-action', 'run');
+    await click(frame.locator('[data-action="slide"]'));
+    await expect(game).toHaveAttribute('data-action', 'slide');
+    await click(frame.locator('#pause'));
+    await expect(body).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume'));
+    await expect(body).toHaveAttribute('data-phase', 'running');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#pause-home'));
+    await expect(body).toHaveAttribute('data-phase', 'home');
+    await expect(frame.locator('#home')).toBeVisible();
+    await expect(frame.locator('#start')).toBeVisible();
+    await expect(frame.locator('#choose-levels')).toBeVisible();
+  } else if (id === 'orbit-atelier') {
+    const app = frame.locator('#orbit-app');
+    await expect(app).toHaveAttribute('data-screen', 'playing');
+    const board = frame.locator('#ring-board');
+    const ring = board.locator('[data-ring-id]').first();
+    await expect(ring).toBeVisible();
+    const initialAngle = await ring.getAttribute('data-angle');
+    const points = await ring.evaluate((node) => {
+      const matrix = node.getScreenCTM();
+      if (!matrix) throw new Error('Ring has no SVG screen transform');
+      const radius = Number(node.getAttribute('data-radius'));
+      const angle = Number(node.getAttribute('data-angle')) + Math.PI;
+      if (!(radius > 0) || !Number.isFinite(angle)) throw new Error('Invalid ring geometry');
+      const point = (theta) => {
+        const transformed = new globalThis.DOMPoint(
+          radius * Math.cos(theta),
+          radius * Math.sin(theta),
+        ).matrixTransform(matrix);
+        return { x: transformed.x, y: transformed.y };
+      };
+      const bounds = node.getBoundingClientRect();
+      return {
+        start: point(angle),
+        middle: point(angle + 0.3),
+        end: point(angle + 0.65),
+        bounds: { x: bounds.x, y: bounds.y },
+      };
+    });
+    // SVG screen coordinates are local to the child document; native input is page-wide.
+    const bounds = await ring.boundingBox();
+    const offset = { x: bounds.x - points.bounds.x, y: bounds.y - points.bounds.y };
+    const absolute = (point) => ({ x: point.x + offset.x, y: point.y + offset.y });
+    const page = board.page();
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [absolute(points.start)],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [absolute(points.middle)],
+        });
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [absolute(points.end)],
+        });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      const start = absolute(points.start);
+      const middle = absolute(points.middle);
+      const end = absolute(points.end);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(middle.x, middle.y, { steps: 3 });
+      await page.mouse.move(end.x, end.y, { steps: 3 });
+      await page.mouse.up();
+    }
+    await expect(ring).not.toHaveAttribute('data-angle', initialAngle);
+    await expect(frame.locator('[data-action="undo"]')).toBeEnabled();
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+        ),
+    );
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'paused');
+    await click(frame.getByRole('button', { name: '继续解扣', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'playing');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await click(frame.getByRole('button', { name: '返回工坊', exact: true }));
+    await expect(app).toHaveAttribute('data-screen', 'home');
+    await expect(frame.locator('[data-action="start"]')).toBeVisible();
+  } else if (id === 'moss-garden') {
+    const seed = frame.getByRole('button', { name: '花圃 第1行 第1列', exact: true });
+    await expect(seed).toBeVisible();
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
+    await click(seed);
+    await expect(seed).toHaveAttribute('aria-pressed', 'true');
+    await click(seed);
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.getByRole('button', { name: '玩法手册', exact: true }));
+    await expect(frame.getByRole('button', { name: '返回花园', exact: true })).toBeVisible();
+    await click(frame.getByRole('button', { name: '返回花园', exact: true }));
+    await expect(seed).toBeVisible();
+    await expect(seed).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'ball-roguelite') {
+    const arena = frame.locator('#arena');
+    const snapshot = () => arena.evaluate((canvas) => canvas.getOrbitSnapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    const initial = await snapshot();
+    const bounds = await arena.boundingBox();
+    const page = arena.page();
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.92 };
+    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.25 };
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [target] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    await expect.poll(async () => (await snapshot()).shots).toBe(initial.shots + 1);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'paused');
+    const paused = await snapshot();
+    await page.waitForTimeout(120);
+    expect((await snapshot()).balls).toEqual(paused.balls);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#back-home'));
+    await expect(frame.locator('#start')).toBeVisible();
+  } else if (id === 'castle-cannon') {
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('[data-action="blast"]'));
+    await click(frame.locator('[data-action="pause"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'paused');
+    await click(frame.locator('[data-action="resume"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+  } else if (id === 'ember-bounce') {
+    const arena = frame.locator('#arena');
+    const snapshot = () => arena.evaluate((canvas) => canvas.getEmberSnapshot?.());
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect.poll(async () => !!(await snapshot())).toBe(true);
+    const initial = await snapshot();
+    const bounds = await arena.boundingBox();
+    const page = arena.page();
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * (64 / 600) };
+    const aim = {
+      x: bounds.x + bounds.width * (130 / 390),
+      y: bounds.y + bounds.height * (492 / 600),
+    };
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
@@ -50,32 +213,41 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           type: 'touchStart',
           touchPoints: [start],
         });
-        await touch.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [end],
-        });
-      } finally {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [aim] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
         await touch.detach();
       }
     } else {
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
-      try {
-        await page.mouse.move(end.x, end.y, { steps: 4 });
-      } finally {
-        await page.mouse.up();
-      }
+      await page.mouse.move(aim.x, aim.y, { steps: 8 });
+      await page.mouse.up();
     }
-    await expect.poll(async () => (await snapshot()).activePointer).toBe(null);
+    await expect.poll(async () => (await snapshot())?.shots ?? 0).toBeGreaterThan(initial.shots);
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    const paused = await snapshot();
+    await page.waitForTimeout(150);
+    expect((await snapshot()).score).toBe(paused.score);
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#back-home'));
+    await expect(frame.locator('#start')).toBeVisible();
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
+  } else if (id === 'tianxia-chalu') {
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
+    const junction = frame.locator('button[data-junction]:enabled').first();
+    await expect(junction).toBeVisible();
+    const route = await junction.getAttribute('data-route');
+    expect(route).not.toBeNull();
+    await click(junction);
+    await expect(junction).not.toHaveAttribute('data-route', route);
     await click(frame.locator('#pause'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));
-    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'play');
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#home'));
-    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('#start')).toBeVisible();
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
   } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,
@@ -104,6 +276,23 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
+  } else if (id === 'tetracube') {
+    const snapshot = () => frame.locator('body').evaluate(() => globalThis.tetracubeSnapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game-canvas')).toBeVisible();
+    const placed = (await snapshot()).game.placed;
+    await click(frame.locator('#hard-drop'));
+    await expect.poll(async () => (await snapshot()).game.placed).toBe(placed + 1);
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await click(frame.locator('#pause-game'));
+    await click(frame.locator('#home-game'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
+    await expect(frame.locator('#start-game')).toBeVisible();
+    expect((await snapshot()).game.placed).toBe(placed + 1);
   } else if (id === 'surprise-kept') {
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
     await click(frame.locator('#box-blue'));
@@ -512,9 +701,12 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           type: 'touchStart',
           touchPoints: [{ id: 1, ...start }],
         });
+        const rotated = (await frame.locator('#game-root').getAttribute('data-rotated')) === 'true';
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
-          touchPoints: [{ id: 1, x: start.x + 32, y: start.y }],
+          touchPoints: [
+            { id: 1, x: start.x + (rotated ? 0 : 32), y: start.y + (rotated ? 32 : 0) },
+          ],
         });
       } else {
         await page.keyboard.down('d');
@@ -560,12 +752,17 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         await page.mouse.up();
       }
     }
-    await click(frame.locator('#equipment'));
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('#modal')).toBeVisible();
+    await expect(frame.locator('#modal')).toHaveAttribute('data-kind', 'pause');
+    await expect.poll(async () => (await snapshot()).paused).toBe(true);
+    await click(frame.locator('#modal [data-menu="equipment"]'));
     await expect.poll(async () => (await snapshot()).paused).toBe(true);
     const summary = frame.locator('#modal .skill-summary');
     await expect(summary).toContainText('8 伤害 / 6 墨');
-    await expect(summary).toContainText('25% 实际伤害');
-    await expect(summary).toContainText('50% 技能消耗');
+    await click(frame.locator('#modal .equipment-detail summary'));
+    await expect(frame.locator('#modal .equipment-detail')).toContainText('25% 实际伤害');
+    await expect(frame.locator('#modal .equipment-detail')).toContainText('50% 技能消耗');
     await click(frame.locator('#modal [data-close]'));
     await expect.poll(async () => (await snapshot()).paused).toBe(false);
 
@@ -918,7 +1115,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       expect(frame.locator('#next')).toBeVisible({ timeout: 15000 }),
     );
     await click(frame.locator('#next'));
-    await expect(frame.locator('#counter')).toHaveText('02 / 26');
+    await expect(frame.locator('#counter')).toHaveText('02 / 100');
     await click(frame.locator('#hint'));
     await expect(frame.locator('.hint-step')).toHaveText('提示 1 / 3');
     await click(frame.locator('[data-more]'));
@@ -942,31 +1139,37 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.getByRole('heading', { name: '道路接通了！' })).toBeVisible();
   } else if (id === 'night-overwatch') {
     const canvas = frame.locator('#GameCanvas');
+    // Read the real document directly: Locator.evaluate also resolves and disposes
+    // an element handle on every poll, consuming the same five-second deadline.
+    const gameDocument = frame.owner
+      ? await (await frame.owner().elementHandle()).contentFrame()
+      : frame;
+    expect(gameDocument).not.toBeNull();
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night?.snapshot().modelImport), {
+      .poll(() => gameDocument.evaluate(() => globalThis.__night?.snapshot().modelImport), {
         timeout: 60000,
       })
       .toBe('loaded');
     const press = async (id) => {
-      const buttons = await canvas.evaluate(() => globalThis.__night.snapshot().buttons);
+      const buttons = await gameDocument.evaluate(() => globalThis.__night.snapshot().buttons);
       if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'flightControls'))
         await press('flightControls');
       await expect
         .poll(() =>
-          canvas.evaluate(
-            (_, id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
+          gameDocument.evaluate(
+            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
             id,
           ),
         )
         .toBe(true);
-      const b = await canvas.evaluate(
-        (_, id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
+      const b = await gameDocument.evaluate(
+        (id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
         id,
       );
       const position = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
       await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
       // Cocos commits input and then rebuilds the visible HUD on its next frame.
-      await canvas.evaluate(
+      await gameDocument.evaluate(
         () =>
           new Promise((resolve) =>
             globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
@@ -975,26 +1178,32 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     };
     await press('start');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().time))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().time))
       .toBeGreaterThan(0);
     await press('settings');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('settings')))
+      .poll(() =>
+        gameDocument.evaluate(() => globalThis.__night.snapshot().pauses.includes('settings')),
+      )
       .toBe(true);
     await press('help');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')))
+      .poll(() =>
+        gameDocument.evaluate(() => globalThis.__night.snapshot().pauses.includes('help')),
+      )
       .toBe(true);
     await press('close');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().pauses))
       .toEqual(['settings']);
     await press('close');
     await expect
-      .poll(() => canvas.evaluate(() => globalThis.__night.snapshot().pauses))
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().pauses))
       .toEqual([]);
     await press('weapon2');
-    await expect.poll(() => canvas.evaluate(() => globalThis.__night.snapshot().selected)).toBe(2);
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().selected))
+      .toBe(2);
   } else if (id === 'carding-car') {
     const canvas = frame.locator('#GameCanvas');
     await expect
@@ -1113,8 +1322,20 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('.thread-list')).toBeVisible();
   } else if (id === 'letters-words' || id === 'letters-words2') {
     const answer = id === 'letters-words' ? '#answer' : '#answer-slots';
+    await expect(frame.locator('#board')).toBeVisible();
     await click(frame.locator('#board button:enabled:not([aria-disabled="true"])').first());
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+    if (id === 'letters-words2') {
+      await click(frame.locator('#pause-button'));
+      await expect(frame.locator('#pause-dialog')).toBeVisible();
+      await click(frame.locator('#resume-button'));
+      await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+      await click(frame.locator('#pause-button'));
+      await click(frame.locator('#home-button'));
+      await expect(frame.locator('#learn-button')).toBeVisible();
+      await click(frame.locator('#focus-button'));
+      await expect(frame.locator(`${answer} .filled`)).toHaveCount(1);
+    }
     await click(frame.locator('#undo-button'));
     await expect(frame.locator(`${answer} .filled`)).toHaveCount(0);
   } else if (id === 'multi-battle') {
@@ -1147,23 +1368,67 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing', {
       timeout: 120000,
     });
-    // Escape also releases desktop pointer lock; touch uses the visible pause button.
+    const pause = frame.getByRole('button', { name: '暂停', exact: true });
+    // Reuse the real document instead of repeatedly adopting element handles
+    // between Playwright worlds while the default software WebGL frame is busy.
+    const embedded = Boolean(frame.owner);
+    const gameDocument = embedded
+      ? await (await frame.owner().elementHandle()).contentFrame()
+      : frame;
+    expect(gameDocument).not.toBeNull();
+    const pressGameControl = (control, selector) =>
+      pressWebGLControl(frame, control, selector, mobile, gameDocument);
+    // Escape releases desktop pointer lock without opening settings.
     if (mobile) {
-      const pause = frame.getByRole('button', { name: '暂停', exact: true });
-      await expect(pause).toBeVisible();
-      const bounds = await pause.evaluate((button) => {
-        const { x, y, width, height } = button.getBoundingClientRect();
-        return { x, y, width, height };
-      });
-      // Send real touch input without waiting for stable WebGL frames during play.
-      await pause.page().touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await pressGameControl(pause, 'button[aria-label="暂停"]');
     } else {
       const canvas = frame.locator('canvas');
       await expect(canvas).toBeFocused();
+      const look = frame.locator('.look-mode');
+      // Keep the native Pointer Lock assertion in the actual game document.
+      // Locator.evaluate waits for an element handle, adopts it into the main
+      // world, then evaluates it. Each round trip can wait for another software
+      // WebGL frame. One document evaluation preserves the assertion without
+      // changing the default scene, input or operation timeout.
+      const pointerLockState = () =>
+        gameDocument.evaluate(() => {
+          const document = globalThis.document;
+          const canvases = document.querySelectorAll('canvas');
+          return {
+            canvasCount: canvases.length,
+            locked: canvases.length === 1 && document.pointerLockElement === canvases[0],
+            released: document.pointerLockElement === null,
+          };
+        });
+      // Async scene readiness can outlive the entry gesture. Acquire through the real HUD control.
+      const initialLock = await pointerLockState();
+      expect(initialLock.canvasCount).toBe(1);
+      if (!initialLock.locked)
+        await pressGameControl(
+          frame.getByRole('button', { name: '鼠标环顾', exact: true }),
+          '.look-mode',
+        );
+      // Wait inside the browser; Node-side polling can expire while software WebGL is busy.
+      await expect(look).toHaveText('Esc 释放鼠标', { timeout: 120000 });
+      expect(await pointerLockState()).toEqual({ canvasCount: 1, locked: true, released: false });
       // start() already focuses the canvas; send native input without refocusing WebGL.
       await canvas.page().keyboard.press('Escape');
+      await expect(look).toHaveText('鼠标环顾', { timeout: 120000 });
+      expect(await pointerLockState()).toEqual({ canvasCount: 1, locked: false, released: true });
+      await expect(frame.getByRole('dialog')).toBeHidden();
+      await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
+      await pressGameControl(pause, 'button[aria-label="暂停"]');
     }
     await expect(frame.getByRole('dialog')).toBeVisible();
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'paused');
+    // Resume starts rendering immediately; use native input without Locator's
+    // post-click navigation waiter, then verify the actual dialog and phase.
+    await pressGameControl(
+      frame.getByRole('button', { name: '继续漫游', exact: true }),
+      'dialog .settings-footer button.primary',
+    );
+    await expect(frame.getByRole('dialog')).toBeHidden();
+    await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'travel-bund-25d') {
     await expect(frame.locator('main')).toHaveAttribute('data-ready', 'true', { timeout: 120000 });
     const scene = frame.locator('.scene');
@@ -1173,7 +1438,12 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect
       .poll(async () => Number(await scene.getAttribute('data-progress')))
       .toBeGreaterThan(initial);
-    await click(frame.getByRole('button', { name: '暂停飞行', exact: true }));
+    await pressWebGLControl(
+      frame,
+      frame.getByRole('button', { name: '暂停飞行', exact: true }),
+      '.control-row > button:first-child',
+      mobile,
+    );
     await expect(frame.locator('main')).toHaveAttribute('data-playing', 'false');
     await expect(frame.getByRole('button', { name: '开始飞行', exact: true })).toBeVisible();
   } else if (id === 'travel2') {
@@ -1222,4 +1492,66 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
   } else {
     throw new Error(`Missing interaction check for ${id}`);
   }
+}
+
+// Native input with visibility, enabled and hit-target checks, without adopting
+// element handles across worlds between expensive software WebGL frames.
+async function pressWebGLControl(frame, control, selector, mobile = false, document = null) {
+  // Reuse the real document instead of repeatedly adopting element handles
+  // between Playwright worlds while the default software WebGL frame is busy.
+  const embedded = Boolean(frame.owner);
+  const gameDocument =
+    document ?? (embedded ? await (await frame.owner().elementHandle()).contentFrame() : frame);
+  expect(gameDocument).not.toBeNull();
+
+  await expect(control).toBeVisible();
+  await expect(control).toBeEnabled();
+  const point = await gameDocument.evaluate((selector) => {
+    const document = globalThis.document;
+    const controls = document.querySelectorAll(selector);
+    const control = controls[0];
+    const bounds = control?.getBoundingClientRect();
+    const x = bounds ? bounds.x + bounds.width / 2 : -1;
+    const y = bounds ? bounds.y + bounds.height / 2 : -1;
+    return {
+      count: controls.length,
+      x,
+      y,
+      inViewport:
+        bounds?.width > 0 &&
+        bounds?.height > 0 &&
+        x >= 0 &&
+        x < globalThis.innerWidth &&
+        y >= 0 &&
+        y < globalThis.innerHeight,
+      hit: Boolean(control?.contains(document.elementFromPoint(x, y))),
+    };
+  }, selector);
+  expect(point.count).toBe(1);
+  expect(point.inViewport).toBe(true);
+  expect(point.hit).toBe(true);
+  let { x, y } = point;
+  if (embedded) {
+    const host = await control.page().evaluate(({ x, y }) => {
+      const document = globalThis.document;
+      const frames = document.querySelectorAll('iframe');
+      const owner = frames[0];
+      const bounds = owner?.getBoundingClientRect();
+      const scaleX = bounds ? bounds.width / owner.offsetWidth : 1;
+      const scaleY = bounds ? bounds.height / owner.offsetHeight : 1;
+      const pageX = bounds ? bounds.x + (owner.clientLeft + x) * scaleX : -1;
+      const pageY = bounds ? bounds.y + (owner.clientTop + y) * scaleY : -1;
+      return {
+        count: frames.length,
+        x: pageX,
+        y: pageY,
+        hit: Boolean(owner && document.elementFromPoint(pageX, pageY) === owner),
+      };
+    }, point);
+    expect(host.count).toBe(1);
+    expect(host.hit).toBe(true);
+    ({ x, y } = host);
+  }
+  if (mobile) await control.page().touchscreen.tap(x, y);
+  else await control.page().mouse.click(x, y);
 }

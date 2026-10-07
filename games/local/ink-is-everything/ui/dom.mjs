@@ -15,7 +15,11 @@ export function setText(selector, value) {
   const element = $(selector);
   if (element.textContent !== String(value)) element.textContent = value;
 }
-/** pointerdown also supports a second thumb; click detail 0 preserves keyboard access. */
+/** Touch clicks can have detail 0 and land on a control revealed by pointerdown. */
+export function isKeyboardClick(event) {
+  return event.detail === 0 && !event.pointerType && !event.sourceCapabilities?.firesTouchEvents;
+}
+/** pointerdown also supports a second thumb; non-pointer clicks preserve keyboard access. */
 export function bindPress(selector, handler) {
   const button = $(selector);
   button.addEventListener('pointerdown', (event) => {
@@ -24,6 +28,6 @@ export function bindPress(selector, handler) {
     handler(event);
   });
   button.addEventListener('click', (event) => {
-    if (!button.disabled && event.detail === 0) handler(event);
+    if (!button.disabled && isKeyboardClick(event)) handler(event);
   });
 }

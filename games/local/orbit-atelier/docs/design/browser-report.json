@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "date": "2026-10-06T15:42:30.231Z",
+  "environment": {
+    "browser": "151.0.7922.173",
+    "engine": "Chromium",
+    "rendering": "production build",
+    "input": "CDP native touch + mouse",
+    "viewports": [
+      "390×844",
+      "320×640",
+      "844×390",
+      "1280×900"
+    ],
+    "realDevice": false,
+    "fullscreen": {
+      "supported": true,
+      "entered": true,
+      "exited": true,
+      "denialFallback": true
+    }
+  },
+  "checks": [
+    "ordinary home, default dev mode off and locked level catalogue",
+    "native touch cancel, real release, undo, pause, blur/visibility pause and saved game reload",
+    "native touch first-stage clear, immediate final-release blur keeps settlement, result, next, persisted unlock and small/landscape interaction",
+    "native touch final-stage clear, visible lock countdown, mixed ring sizes, rounded-cap final tap and trial rewards isolated; exit restores normal attempt",
+    "desktop mouse, home/help/settings, real fullscreen entry/exit, rejected fullscreen fallback and retry",
+    "corrupt local storage remains playable",
+    "blocked local storage remains playable",
+    "sandboxed iframe home, native touch ring release and pause/resume"
+  ],
+  "screenshots": [
+    "mobile-home.png",
+    "mobile-levels.png",
+    "mobile-playing.png",
+    "mobile-paused.png",
+    "mobile-result.png",
+    "mobile-small.png",
+    "mobile-landscape.png",
+    "mobile-final-playing.png",
+    "mobile-star-locks.png",
+    "iframe-home.png"
+  ],
+  "failures": []
+}

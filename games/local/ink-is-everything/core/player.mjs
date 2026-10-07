@@ -73,16 +73,16 @@ export function playerActions(state, input, dt) {
   if (input.melee && player.meleeCd <= EPSILON) {
     player.meleeCd = stats.meleeCooldown;
     state.stats.freeAttacks++;
+    const previousHits = state.stats.hits;
+    areaDamage(state, stats.meleeDamage, stats.meleeRange, { directional: true, knockback: 17 });
     effect(state, 'slash', player.x, player.y, {
       angle: Math.atan2(player.aimY, player.aimX),
       radius: stats.meleeRange,
-      life: 0.2,
+      hit: state.stats.hits > previousHits,
+      life: 0.3,
     });
-    areaDamage(state, stats.meleeDamage, stats.meleeRange, { directional: true, knockback: 17 });
   }
-  if (state.pendingRewards.length) return;
   if (input.nova) useNova(state);
-  if (state.pendingRewards.length) return;
   if (input.shoot && player.shootCd <= EPSILON) {
     if (spendInk(state, stats.attackCost, 'attack')) {
       player.shootCd = stats.attackCooldown;

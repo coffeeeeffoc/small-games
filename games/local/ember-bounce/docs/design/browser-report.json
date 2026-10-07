@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checks": [
+    "portrait touch aim and cancellation",
+    "pause, resume, lifecycle and return home",
+    "normal clear, growth, next stage and saved unlock",
+    "small viewport and landscape preserve the round",
+    "desktop mouse and fullscreen entry/exit",
+    "normal boundary loss, no reward or unlock, and retry",
+    "url-on",
+    "storage-on",
+    "explicit-off",
+    "blocked-storage"
+  ],
+  "failures": []
+}

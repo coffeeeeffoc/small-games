@@ -31,6 +31,11 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/night-overwatch/tests/h5.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',
+  // TapTap artifact acceptance reuses the existing pure native SDK/actions and
+  // vocabulary fixtures; no runtime or other Shell script gains these edges.
+  'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/tests/native-sdk-fixture.mjs',
+  'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/tests/native-test-actions.mjs',
+  'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/library.js',
   'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
   'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
   'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel-levels.js',

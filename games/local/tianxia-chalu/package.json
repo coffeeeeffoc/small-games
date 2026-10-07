@@ -1,0 +1,22 @@
+{
+  "name": "@coffeeeeffoc/tianxia-chalu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./engine": "./src/core/index.mjs",
+    "./levels": "./src/content/levels.mjs",
+    "./dist/*": "./dist/*"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "node build.mjs",
+    "preview": "node server.mjs --dist",
+    "test": "node --test src/core/engine.test.mjs tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}

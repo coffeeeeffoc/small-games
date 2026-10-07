@@ -9,6 +9,7 @@ for (const [platform, global] of Object.entries({
   bilibili: 'bl',
   douyin: 'tt',
   kuaishou: 'ks',
+  taptap: 'tap',
 })) {
   test(`${platform} routes invitations through its own SDK`, () => {
     let onShow, payload, invitation, launch;

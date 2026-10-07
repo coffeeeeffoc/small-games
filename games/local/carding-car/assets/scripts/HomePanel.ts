@@ -3,6 +3,7 @@ import { Career, milestones, shopItems } from './Career';
 import { defaultSelection, drivers, vehicles, type Selection } from './Selection';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
+import { menuLayout, sceneryArea, centeredArea } from './MenuLayout';
 
 type Page = 'home' | 'setup' | 'career' | 'shop';
 type Category = 'vehicle' | 'decoration' | 'pet' | 'driver' | 'parts';
@@ -16,6 +17,7 @@ type Callbacks = {
   equip(): void;
   bots(count: number, same: boolean): void;
   settings(): void;
+  challenge(stat: 'races' | 'wins' | 'routes'): void;
 };
 const color = (hex: string) => new Color().fromHEX(hex);
 const categoryNames: Record<Category, string> = { vehicle: '赛车', decoration: '装饰', pet: '宠物', driver: '车手服', parts: '零部件' };
@@ -32,6 +34,8 @@ export class HomePanel {
   private itemIndex = 0;
   private milestonePage = 0;
   private notice = '';
+  private inputEnabled = true;
+  private showingEquipped = false;
   private signature = '';
   private buttons: { label: string; x: number; y: number; width: number; height: number; enabled: boolean }[] = [];
   private state: PanelState = { selection: { ...defaultSelection }, mode: 'standard', loading: true, error: '', botCount: 3, sameBots: false };
@@ -46,7 +50,7 @@ export class HomePanel {
     this.root.addComponent(UITransform).setContentSize(960, 540);
     this.root.addComponent(BlockInputEvents);
     for (const event of [Node.EventType.TOUCH_START, Node.EventType.TOUCH_MOVE, Node.EventType.TOUCH_END, Node.EventType.TOUCH_CANCEL])
-      this.root.on(event, (e: EventTouch) => { e.propagationStopped = true; });
+      this.root.on(event, (e: EventTouch) => { if (this.inputEnabled) e.propagationStopped = true; });
     this.content = new Node('HomeContent');
     this.content.layer = Layers.Enum.UI_2D;
     this.root.addChild(this.content);
@@ -69,6 +73,8 @@ export class HomePanel {
   }
   show(page: Page = 'home') {
     if (this.page === 'shop' && page !== 'shop') this.callbacks.equip();
+    if (page === 'shop' && this.page !== 'shop') this.callbacks.equip();
+    this.showingEquipped = false;
     this.page = page;
     if (page === 'shop' && this.category !== 'parts') {
       const equipped = this.career.profile.equipped[this.category];
@@ -83,15 +89,24 @@ export class HomePanel {
     if (this.page === 'shop') this.callbacks.equip();
     this.root.active = false;
   }
+  setInputEnabled(enabled: boolean) {
+    this.inputEnabled = enabled;
+    this.root.getComponent(BlockInputEvents)!.enabled = enabled;
+    if (enabled) this.root.resumeSystemEvents(true);
+    else this.root.pauseSystemEvents(true);
+    for (const node of this.pressed) node.setScale(1, 1, 1);
+    this.pressed.clear();
+  }
   dispose() { this.root.destroy(); }
   snapshot() {
-    return { visible: this.root.active, page: this.page, advanced: this.advanced, category: this.category,
+    return { visible: this.root.active, page: this.page, advanced: this.advanced, category: this.category, inputEnabled: this.inputEnabled,
+      previewMode: this.showingEquipped ? 'equipped' : 'candidate',
       selectedItem: this.items()[this.itemIndex]?.id, notice: this.state.error || this.notice,
       selection: { ...this.state.selection }, buttons: this.buttons.map(button => ({ ...button, designX: button.x + 480, designY: 270 - button.y })),
       preview: this.page === 'home' ? { x: -80, y: -15, width: 300, height: 230 }
-        : this.page === 'setup' ? { x: 230, y: 2.5, width: 380, height: 225 }
-        : { x: 216, y: 17, width: 444, height: 250 },
-      sceneryPreview: this.page === 'setup' ? { x: -230, y: 24, width: 396, height: 208 } : undefined };
+        : this.page === 'setup' ? centeredArea(menuLayout.garage)
+        : centeredArea(menuLayout.shop),
+      sceneryPreview: this.page === 'setup' ? centeredArea(sceneryArea(this.advanced)) : undefined };
   }
   private items() { return shopItems.filter(item => item.category === this.category); }
   private owned(id: string) { return this.career.profile.owned.includes(id); }
@@ -106,10 +121,10 @@ export class HomePanel {
     node.addComponent(UITransform).setContentSize(960, 540);
     return node.addComponent(Graphics);
   }
-  private box(x: number, y: number, width: number, height: number, hex = '#fff5e5f2', parent = this.content) {
+  private box(x: number, y: number, width: number, height: number, hex = '#fffaf0', parent = this.content) {
     const g = this.graphics(parent);
     g.fillColor = color(hex);
-    g.roundRect(x - width / 2, y - height / 2, width, height, 14);
+    g.roundRect(x - width / 2, y - height / 2, width, height, 12);
     g.fill();
     return g;
   }
@@ -133,7 +148,7 @@ export class HomePanel {
   }
   private arrow(parent: Node, direction: number, x = 0, y = 0, hex = ink) {
     const g = this.graphics(parent, 'Arrow');
-    g.strokeColor = color(hex); g.lineWidth = 6;
+    g.strokeColor = color(hex); g.lineWidth = 3;
     g.moveTo(x - direction * 4, y + 9); g.lineTo(x + direction * 5, y); g.lineTo(x - direction * 4, y - 9); g.stroke();
   }
   private icon(kind: string, parent: Node, x: number, y: number) {
@@ -178,10 +193,10 @@ export class HomePanel {
   private backdrop() {
     if (this.page === 'home') return;
     const holes = this.page === 'setup' ? [
-      { x: 52, y: 142, width: 396, height: 208 }, { x: 520, y: 155, width: 380, height: 225 },
-    ] : this.page === 'shop' && this.category !== 'parts' ? [{ x: 474, y: 128, width: 444, height: 250 }] : [];
-    const xs = Array.from(new Set([0, 960, ...holes.flatMap(hole => [hole.x, hole.x + hole.width])])).sort((a, b) => a - b);
-    const ys = Array.from(new Set([0, 540, ...holes.flatMap(hole => [hole.y, hole.y + hole.height])])).sort((a, b) => a - b);
+      sceneryArea(this.advanced), menuLayout.garage,
+    ] : this.page === 'shop' && this.category !== 'parts' ? [menuLayout.shop] : [];
+    const xs = Array.from(new Set([-960, 0, 960, 1920, ...holes.flatMap(hole => [hole.x, hole.x + hole.width])])).sort((a, b) => a - b);
+    const ys = Array.from(new Set([-540, 0, 540, 1080, ...holes.flatMap(hole => [hole.y, hole.y + hole.height])])).sort((a, b) => a - b);
     const g = this.graphics(this.content, 'CreamBackdrop');
     g.fillColor = color('#f5e3c7');
     for (let i = 0; i + 1 < xs.length; i++) for (let j = 0; j + 1 < ys.length; j++) {
@@ -198,7 +213,7 @@ export class HomePanel {
     node.addComponent(UITransform).setContentSize(width, height);
     const label = node.addComponent(Label);
     label.string = text; label.fontSize = size; label.lineHeight = size * 1.25;
-    label.color = color(hex); label.isBold = true;
+    label.color = color(hex); label.isBold = size >= 17;
     label.horizontalAlign = Label.HorizontalAlign.CENTER;
     label.verticalAlign = Label.VerticalAlign.CENTER;
     label.overflow = Label.Overflow.SHRINK;
@@ -210,22 +225,24 @@ export class HomePanel {
     this.content.addChild(node);
     node.setPosition(x, y);
     const transform = node.addComponent(UITransform);
-    transform.setContentSize(width, height);
+    const touchWidth = Math.max(60, width), touchHeight = Math.max(60, height);
+    transform.setContentSize(touchWidth, touchHeight);
+    const faceHeight = height > 70 ? height : Math.min(44, height - 6);
     const g = this.graphics(node, 'ButtonShape');
-    g.fillColor = color(accent ? '#c56e24' : '#b59c7a');
-    g.roundRect(-width / 2, -height / 2 - 4, width, height, Math.min(22, height / 2)); g.fill();
-    g.fillColor = color(enabled ? accent ? '#ffb632' : '#fff5e5' : '#e4d6c4');
-    g.roundRect(-width / 2, -height / 2, width, height, Math.min(22, height / 2)); g.fill();
-    g.strokeColor = color('#fffef5'); g.lineWidth = 3;
-    g.roundRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, Math.min(20, height / 2)); g.stroke();
+    g.fillColor = color('#dac8ab');
+    g.roundRect(-width / 2, -faceHeight / 2 - 2, width, faceHeight, 12); g.fill();
+    g.fillColor = color(enabled ? accent ? '#47cabb' : '#fffaf0' : '#e8dfd0');
+    g.roundRect(-width / 2, -faceHeight / 2, width, faceHeight, 12); g.fill();
+    g.strokeColor = color(enabled ? accent ? '#34b4a8' : '#ddc8a8' : '#d9cfbf'); g.lineWidth = 1;
+    g.roundRect(-width / 2, -faceHeight / 2, width, faceHeight, 12); g.stroke();
     if (display === '‹' || display === '›') this.arrow(node, display === '‹' ? -1 : 1);
-    else if (display) this.label(display, 0, 0, width - 12, height - 4, accent ? 23 : 20, enabled ? ink : '#a4917c', node);
-    this.buttons.push({ label: text, x, y, width, height, enabled });
+    else if (display) this.label(display, 0, 0, width - 16, faceHeight, 17, enabled ? ink : '#9c907e', node);
+    this.buttons.push({ label: text, x, y, width: touchWidth, height: touchHeight, enabled });
     let press: { id: number | null; x: number; y: number } | undefined;
     const reset = () => { press = undefined; this.pressed.delete(node); node.setScale(1, 1, 1); };
     node.on(Node.EventType.TOUCH_START, (e: EventTouch) => {
       e.propagationStopped = true;
-      if (!enabled || press) return;
+      if (!enabled || !this.inputEnabled || press) return;
       const p = e.getUILocation();
       press = { id: e.getID(), x: p.x, y: p.y };
       this.pressed.add(node); node.setScale(0.94, 0.94, 1);
@@ -239,14 +256,14 @@ export class HomePanel {
     node.on(Node.EventType.TOUCH_CANCEL, (e: EventTouch) => { e.propagationStopped = true; reset(); });
     node.on(Node.EventType.TOUCH_END, (e: EventTouch) => {
       e.propagationStopped = true;
-      const activate = press?.id === e.getID() && transform.hitTest(e.getLocation()) && enabled;
+      const activate = this.pressed.has(node) && press?.id === e.getID() && transform.hitTest(e.getLocation()) && enabled && this.inputEnabled;
       reset();
       if (activate) { action(); this.signature = ''; if (this.root.active) this.render(); }
     });
     return node;
   }
   private render() {
-    const signature = JSON.stringify([this.page, this.advanced, this.category, this.itemIndex, this.milestonePage, this.notice, this.state, this.career.profile]);
+    const signature = JSON.stringify([this.page, this.advanced, this.category, this.itemIndex, this.milestonePage, this.showingEquipped, this.notice, this.state, this.career.profile]);
     if (signature === this.signature) return;
     this.signature = signature;
     for (const child of [...this.content.children]) { child.removeFromParent(); child.destroy(); }
@@ -254,18 +271,18 @@ export class HomePanel {
     this.motion = []; this.pressed.clear();
     this.backdrop();
     if (this.page !== 'home') {
-      const back = this.button('主页', -410, 224, 64, () => this.show('home'), true, 52, false, '');
+      const back = this.button('主页', -410, 224, 52, () => this.show('home'), true, 48, false, '');
       this.arrow(back, -1);
-      this.label(this.page === 'setup' ? '出发！' : this.page === 'career' ? '生涯' : '车库', -300, 224, 140, 52, 34);
+      this.label(this.page === 'setup' ? '出发！' : this.page === 'career' ? '生涯' : '商店', -312, 224, 140, 44, 26);
     }
-    this.box(206, 224, 90, 36, '#387dabee');
-    this.label(`Lv.${this.career.level}`, 206, 224, 80, 32, 21, '#ffffff');
-    this.box(319, 224, 130, 38, '#387dabee');
+    this.box(220, 224, 72, 32, '#fffaf0');
+    this.label(`Lv.${this.career.level}`, 220, 224, 66, 32, 16, ink);
+    this.box(324, 224, 120, 32, '#fffaf0');
     const coins = this.graphics(this.content, 'Coins');
-    coins.fillColor = color('#ffd660'); coins.circle(274, 224, 15); coins.fill();
-    coins.strokeColor = color('#d38c21'); coins.lineWidth = 2; coins.circle(274, 224, 11); coins.stroke();
-    this.star(coins, 274, 224, 7, '#fff4b9');
-    this.label(String(this.career.profile.coins), 333, 224, 91, 34, 22, '#ffffff');
+    coins.fillColor = color('#ffd660'); coins.circle(280, 224, 11); coins.fill();
+    coins.strokeColor = color('#d38c21'); coins.lineWidth = 2; coins.circle(280, 224, 8); coins.stroke();
+    this.star(coins, 280, 224, 5, '#fff4b9');
+    this.label(String(this.career.profile.coins), 331, 224, 88, 32, 17, ink);
     const settings = this.button('设置', 424, 224, 48, () => this.callbacks.settings(), true, 48, false, '');
     this.icon('settings', settings, 0, 0);
     if (this.page === 'home') this.home();
@@ -274,16 +291,10 @@ export class HomePanel {
     else this.shop();
     const notice = this.state.error || this.notice || (this.state.loading ? '装配中…' : '');
     if (notice) {
-      this.box(0, -249, 896, 28, '#fff5e5f2');
-      this.label(notice, 0, -249, 876, 28, 14, this.state.error ? '#ae4436' : ink);
+      this.box(0, -253, 896, 22, '#fffaf0');
+      this.label(notice, 0, -253, 876, 22, 12, this.state.error ? '#ae4436' : ink);
     }
-  }
-  private previewCaption(text: string, top = 176) {
-    // Keep the scene's centre unobscured; KartGame renders the selected 3D assets here.
-    this.box(211, top, 448, 34);
-    this.label(text, 211, top, 428, 32, 16);
-    this.box(211, -113, 448, 30);
-    this.label(this.state.loading ? '装配中…' : '试试看', 211, -113, 430, 28, 14);
+    if (!this.inputEnabled) this.root.pauseSystemEvents(true);
   }
   private home() {
     const logo = this.graphics(this.content, 'PlayfulLogo');
@@ -325,151 +336,216 @@ export class HomePanel {
     }
   }
   private setup() {
+    const track = sceneryArea(this.advanced), photo = centeredArea(track);
     const frame = this.graphics(this.content, 'ThemePostcard');
-    frame.strokeColor = color('#fffef5'); frame.lineWidth = 14;
-    frame.roundRect(-434, -87, 408, 224, 8); frame.stroke();
-    frame.strokeColor = color('#dec5a1'); frame.lineWidth = 2;
-    frame.roundRect(-442, -95, 424, 240, 10); frame.stroke();
-    const stamp = this.graphics(this.content, 'Postmark');
-    stamp.strokeColor = color('#a98b64'); stamp.lineWidth = 2;
-    for (let row = 0; row < 3; row++) {
-      for (let i = 0; i <= 8; i++) {
-        const x = -53 + i * 5, y = -68 - row * 6 + Math.sin(i * 0.85) * 3;
-        if (!i) stamp.moveTo(x, y); else stamp.lineTo(x, y);
-      }
-      stamp.stroke();
-    }
-    this.label('赛车', 230, 136, 210, 26, 16, '#98765c');
-    for (const [i, field] of (['theme', 'route', 'vehicle', 'driver'] as const).entries()) {
+    frame.strokeColor = color('#fffaf0'); frame.lineWidth = 6;
+    frame.roundRect(photo.x - photo.width / 2 - 2, photo.y - photo.height / 2 - 2, photo.width + 4, photo.height + 4, 5); frame.stroke();
+    const selector = (field: keyof Selection, x: number, y: number, left: number, right: number, nameY = y) => {
       const choices = field === 'theme' ? themes.map(t => [t.id, t.name]) : field === 'route' ? routes.map(r => [r.id, r.name]) : field === 'vehicle' ? vehicles : drivers;
       const index = Math.max(0, choices.findIndex(choice => choice[0] === this.state.selection[field]));
-      const geometry = [
-        { x: -230, y: 158, left: -410, right: -50, width: 274 },
-        { x: -230, y: -115, left: -410, right: -50, width: 274 },
-        { x: 230, y: 15, left: 50, right: 412, width: 246 },
-        { x: 235, y: -135, left: 100, right: 372, width: 204 },
-      ][i];
-      const { x, y, left, right, width } = geometry;
       const item = shopItems.find(item => item.category === field && item.assetId === this.state.selection[field]);
-      const previous = this.button('‹', left, y, 48, () => this.callbacks.choose(field, -1), true, 48, false, '');
-      this.arrow(previous, -1);
-      const nameY = field === 'vehicle' ? -101 : y;
-      if (field === 'vehicle') this.box(x, nameY, 224, 32);
-      this.label(choices[index][1], x, nameY, width, 38, field === 'theme' ? 25 : 20);
-      const next = this.button('›', right, y, 48, () => this.callbacks.choose(field, 1), true, 48, false, '');
-      this.arrow(next, 1);
-      if (item && !this.owned(item.id)) this.label(`${item.price} 金币解锁`, x, nameY - 24, width, 22, 13, '#ac652e');
+      const locked = !!item && !this.owned(item.id);
+      this.button(`上一${field === 'theme' ? '主题' : field === 'route' ? '路线' : field === 'vehicle' ? '赛车' : '车手'}`, left, y, 48,
+        () => this.callbacks.choose(field, -1), true, 48, false, '‹');
+      this.button(`下一${field === 'theme' ? '主题' : field === 'route' ? '路线' : field === 'vehicle' ? '赛车' : '车手'}`, right, y, 48,
+        () => this.callbacks.choose(field, 1), true, 48, false, '›');
+      this.label(choices[index][1], x, nameY, 272, 28, field === 'theme' ? 22 : 18, locked ? '#9b8066' : ink);
+      if (item) this.label(locked ? `未解锁 · ${item.price} 金币` : field === 'vehicle' ? '赛车 · 已拥有' : '车手 · 已拥有',
+        x, nameY - 23, 264, 20, 13, locked ? '#b07634' : '#98856c');
+      return locked ? item : undefined;
+    };
+    selector('theme', -232, 162, -410, -54);
+    selector('route', -232, this.advanced ? 5 : -101, -410, -54);
+    const vehicleLock = selector('vehicle', 234, 42, 62, 410, -81);
+    const driverLock = selector('driver', 234, -143, 62, 410, -139);
+    if (vehicleLock || driverLock) {
+      this.box(234, 123, 202, 28, '#fff3d9ed');
+      this.label('未解锁 · 仅供预览', 234, 123, 194, 28, 13, '#a16e32');
     }
-    const enter = this.button(this.state.loadError ? '重新加载' : this.state.loading ? '装配中…' : '进入赛道  →', 280, -193, 300,
-      () => this.callbacks.prepare(), !this.state.loading, 64, false,
-      this.state.loadError ? '重试' : this.state.loading ? '装配中' : '进入赛道');
-    const enterShape = enter.getChildByName('ButtonShape')!.getComponent(Graphics)!;
-    enterShape.fillColor = color(this.state.loading ? '#bfd6ce' : '#46decb');
-    enterShape.roundRect(-147, -29, 294, 58, 22); enterShape.fill();
-    this.arrow(enter, 1, 119, 0, '#197770');
-    const mode = this.button(this.state.mode === 'sprint' ? '一圈冲刺  ‹ 切换 ›' : '三圈竞速  ‹ 切换 ›', -280, -184, 220,
-      () => this.callbacks.mode(), true, 50, false, '');
-    const selectedMode = this.graphics(mode, 'SelectedMode');
-    selectedMode.fillColor = color('#ffb632');
-    selectedMode.roundRect(this.state.mode === 'sprint' ? 2 : -106, -21, 104, 42, 19); selectedMode.fill();
-    this.flag(selectedMode, -93, 7, 15);
-    selectedMode.fillColor = color('#886247');
-    selectedMode.moveTo(33, 13); selectedMode.lineTo(22, -2); selectedMode.lineTo(31, -2);
-    selectedMode.lineTo(27, -13); selectedMode.lineTo(41, 4); selectedMode.lineTo(32, 4); selectedMode.close(); selectedMode.fill();
-    this.label('三圈', -40, 0, 70, 40, 18, ink, mode);
-    this.label('冲刺', 75, 0, 62, 40, 18, ink, mode);
-    this.button(`${this.advanced ? '收起' : '展开'}高级选项`, -75, -185, 90, () => { this.advanced = !this.advanced; }, true, 50, false,
-      this.advanced ? '收起' : '更多');
+    const locked = vehicleLock || driverLock;
+    const retry = !!this.state.loadError;
+    this.button(retry ? '重新加载' : this.state.loading ? '装配中…' : locked ? '请先解锁' : '进入赛道  →', locked ? 311 : 234, -211, locked ? 246 : 404,
+      () => this.callbacks.prepare(), !this.state.loading && (retry || !locked), 54, !locked,
+      retry ? '重新加载' : this.state.loading ? '装配中…' : locked ? '请先解锁' : '进入赛道  →');
+    if (locked) this.button('去解锁', 108, -211, 136, () => this.openItem(locked.id), true, 54, true);
+    const mode = this.button(this.state.mode === 'sprint' ? '一圈冲刺  ‹ 切换 ›' : '三圈竞速  ‹ 切换 ›', -306, -211, 238,
+      () => this.callbacks.mode(), true, 48, false, '');
+    const selected = this.graphics(mode, 'SelectedMode');
+    selected.fillColor = color('#ffe1a1');
+    selected.roundRect(this.state.mode === 'sprint' ? 2 : -115, -18, 113, 36, 10); selected.fill();
+    this.label('三圈竞速', -58, 0, 112, 34, 16, ink, mode);
+    this.label('一圈冲刺', 58, 0, 112, 34, 16, ink, mode);
+    this.button(`${this.advanced ? '收起' : '展开'}高级选项`, -88, -211, 106, () => { this.advanced = !this.advanced; }, true, 48, false,
+      this.advanced ? '收起  ∧' : '小伙伴  +');
     if (this.advanced) {
-      this.box(-230, 24, 416, 226, '#fff3ddfa');
-      this.label('小伙伴', -230, 105, 320, 36, 27);
-      this.button(`${this.state.sameBots ? '☑' : '□'} 机器人同款赛车 / 车手`, -230, 52, 320,
-        () => this.callbacks.bots(this.state.botCount, !this.state.sameBots), true, 48, false,
-        this.state.sameBots ? '跟我同款  ›' : '随机外观  ›');
-      this.label('机器人', -316, -12, 120, 30, 18);
-      this.button('−', -256, -12, 48, () => this.callbacks.bots(Math.max(0, this.state.botCount - 1), this.state.sameBots), this.state.botCount > 0, 48);
-      this.label(String(this.state.botCount), -186, -12, 44, 44, 25);
-      this.button('+', -116, -12, 48, () => this.callbacks.bots(Math.min(7, this.state.botCount + 1), this.state.sameBots), this.state.botCount < 7, 48);
-    }
+      this.box(-232, -96, 408, 132);
+      this.label('对手', -380, -63, 66, 28, 16);
+      this.button('−', -299, -63, 48, () => this.callbacks.bots(Math.max(0, this.state.botCount - 1), this.state.sameBots), this.state.botCount > 0, 44);
+      this.label(this.state.botCount ? `${this.state.botCount} 位` : '单人', -228, -63, 70, 30, 17);
+      this.button('+', -157, -63, 48, () => this.callbacks.bots(Math.min(7, this.state.botCount + 1), this.state.sameBots), this.state.botCount < 7, 44);
+      this.label('外观', -380, -125, 66, 28, 16);
+      this.button('切换小伙伴外观', -214, -125, 256, () => this.callbacks.bots(this.state.botCount, !this.state.sameBots), this.state.botCount > 0, 44, false,
+        this.state.sameBots ? '跟我同款  ⇄' : '随机搭配  ⇄');
+    } else this.label(this.state.botCount ? `${this.state.botCount} 位小伙伴 · ${this.state.sameBots ? '跟我同款' : '随机搭配'}` : '单人练习', -232, -155, 350, 24, 14, '#998269');
+  }
+  private openItem(id: string) {
+    const item = shopItems.find(entry => entry.id === id);
+    if (!item) return;
+    this.show('shop');
+    this.category = item.category;
+    this.itemIndex = this.items().findIndex(entry => entry.id === id);
+    this.showingEquipped = false;
+    this.callbacks.preview({ [item.category]: item.assetId });
+    this.signature = '';
+    this.render();
   }
   private careerPage() {
-    this.box(0, -17, 896, 430);
     const p = this.career.profile;
-    this.label(`完赛 ${p.races}   ·   冠军 ${p.wins}   ·   领奖台 ${p.podiums}   ·   路线 ${p.routes.length}/${routes.length}`, 0, 168, 850, 36, 21, '#438e81');
-    const progress = this.career.levelProgress;
-    this.label(`Lv.${this.career.level}   成长 ${progress.current}/${progress.needed}   ·   完成目标后触按领取奖励`, 0, 133, 850, 28, 16, '#94765b');
-    const pages = Math.max(1, Math.ceil(milestones.length / 3));
-    this.milestonePage = Math.min(this.milestonePage, pages - 1);
-    for (const [i, milestone] of milestones.slice(this.milestonePage * 3, this.milestonePage * 3 + 3).entries()) {
-      const y = 83 - i * 80;
-      this.box(0, y, 846, 70, '#fffdf3');
-      const progress = Math.min(milestone.target, this.career.milestoneProgress(milestone.id));
-      const claimed = p.claimed.includes(milestone.id);
-      this.label(`${milestone.name}   ${progress}/${milestone.target}`, -212, y + 16, 382, 28, 20);
-      this.label(milestone.description, -212, y - 17, 382, 30, 15, '#94765b');
-      this.label(`+${milestone.coins} 金币\n+${milestone.xp} 成长`, 75, y, 170, 58, 17, '#b87727');
-      this.button(claimed ? '已领取' : progress >= milestone.target ? '领取奖励' : '继续挑战', 291, y, 202, () => {
-        this.notice = this.career.claim(milestone.id) ? '里程碑奖励已入账！' : '尚未达成，完成比赛继续积累';
-      }, !claimed && progress >= milestone.target, 50, !claimed && progress >= milestone.target);
+    const level = this.career.levelProgress;
+    const ready = milestones.filter(m => !p.claimed.includes(m.id) && this.career.milestoneProgress(m.id) >= m.target);
+    const priority = (m: typeof milestones[number]) => p.claimed.includes(m.id) ? 2
+      : this.career.milestoneProgress(m.id) >= m.target ? 0 : 1;
+    const ordered = [...milestones].sort((a, b) => priority(a) - priority(b));
+    const pages = Math.max(1, Math.ceil(ordered.length / 3));
+    this.milestonePage = Math.max(0, Math.min(this.milestonePage, pages - 1));
+    const leftText = (text: string, x: number, y: number, width: number, size = 16, hex = ink) => {
+      const label = this.label(text, x + width / 2, y, width, size + 10, size, hex);
+      label.horizontalAlign = Label.HorizontalAlign.LEFT;
+      return label;
+    };
+    const meter = (x: number, y: number, width: number, ratio: number, hex = '#4eb9aa') => {
+      const g = this.graphics(this.content, 'CareerProgress');
+      g.fillColor = color('#e8ddc8'); g.roundRect(x, y - 3, width, 6, 3); g.fill();
+      const filled = width * Math.max(0, Math.min(1, ratio));
+      if (filled > 0) {
+        g.fillColor = color(hex); g.roundRect(x, y - 3, filled, 6, Math.min(3, filled / 2)); g.fill();
+      }
+    };
+
+    // A compact driver's passport keeps lifetime progress beside the next goals.
+    this.box(-322, -10, 244, 406, '#fff9ec');
+    const passport = this.graphics(this.content, 'CareerPassport');
+    passport.strokeColor = color('#e5d4b9'); passport.lineWidth = 1;
+    passport.roundRect(-438, -207, 232, 394, 11); passport.stroke();
+    this.star(passport, -410, 160, 8, '#e7b248');
+    this.label('车手护照', -313, 160, 172, 30, 20);
+    this.box(-322, 111, 98, 44, '#ffe7a7');
+    this.label(`Lv.${this.career.level}`, -322, 111, 90, 38, 25);
+    this.label(`成长 ${level.current} / ${level.needed}`, -322, 72, 210, 23, 13, '#90735c');
+    meter(-418, 50, 192, level.current / Math.max(1, level.needed));
+    passport.strokeColor = color('#eee1ca');
+    passport.moveTo(-418, 25); passport.lineTo(-226, 25); passport.stroke();
+    for (const [i, stat] of [
+      ['完赛', String(p.races)], ['冠军', String(p.wins)],
+      ['领奖台', String(p.podiums)], ['路线', `${p.routes.length}/${routes.length}`],
+    ].entries()) {
+      const x = -382 + (i % 2) * 120, y = -4 - Math.floor(i / 2) * 77;
+      this.label(stat[1], x, y, 104, 30, 23, '#427f73');
+      this.label(stat[0], x, y - 27, 104, 24, 14, '#90735c');
     }
-    this.button('‹ 上一页', -283, -185, 220, () => { this.milestonePage--; }, this.milestonePage > 0);
-    this.label(`${this.milestonePage + 1} / ${pages}`, 0, -185, 150, 42, 20);
-    this.button('下一页 ›', 283, -185, 220, () => { this.milestonePage++; }, this.milestonePage + 1 < pages);
+    passport.moveTo(-418, -141); passport.lineTo(-226, -141); passport.stroke();
+    this.label(`已领取 ${p.claimed.length} / ${milestones.length} 个目标`, -322, -169, 212, 26, 14, '#90735c');
+
+    leftText('成长目标', -174, 168, 150, 20);
+    this.label(`${ready.length} 项可领取`, 242, 160, 148, 26, 13, ready.length ? '#378879' : '#90735c');
+    this.button('一键领取', 386, 160, 124, () => {
+      const coins = this.career.profile.coins, xp = this.career.profile.xp;
+      this.notice = this.career.claimAll()
+        ? `已领取 · +${this.career.profile.coins - coins} 金币 · +${this.career.profile.xp - xp} 成长`
+        : this.career.saveError || '暂时没有可领取的奖励';
+    }, ready.length > 0, 48, ready.length > 0);
+    for (const [i, milestone] of ordered.slice(this.milestonePage * 3, this.milestonePage * 3 + 3).entries()) {
+      const y = 89 - i * 104;
+      const progress = Math.min(milestone.target, this.career.milestoneProgress(milestone.id));
+      const claimed = p.claimed.includes(milestone.id), complete = progress >= milestone.target;
+      this.box(137, y, 622, 94, claimed ? '#f7eedf' : complete ? '#eff8eb' : '#fffaf0');
+      leftText(milestone.name, -152, y + 24, 304, 17, claimed ? '#90735c' : ink);
+      leftText(milestone.description, -152, y, 324, 13, '#90735c');
+      meter(-152, y - 27, 232, progress / Math.max(1, milestone.target), claimed ? '#b7b29b' : '#4eb9aa');
+      this.label(`${progress}/${milestone.target}`, 130, y - 27, 84, 20, 13, '#90735c');
+      this.label(`+${milestone.coins} 金币\n+${milestone.xp} 成长`, 241, y, 114, 48, 14, claimed ? '#a08c72' : '#aa742a');
+      const action = claimed ? '已领取' : complete ? '领取奖励' : '去挑战';
+      this.button(`${action} · ${milestone.name}`, 371, y, 126, () => {
+        if (!complete) { this.callbacks.challenge(milestone.stat); return; }
+        this.notice = this.career.claim(milestone.id)
+          ? `已领取 · +${milestone.coins} 金币 · +${milestone.xp} 成长`
+          : this.career.saveError || '奖励暂未领取，请重试';
+      }, !claimed, 48, !claimed && complete, action);
+    }
+    this.button('‹ 上一页', -114, -198, 120, () => { this.milestonePage--; }, this.milestonePage > 0, 48);
+    this.label(`${this.milestonePage + 1} / ${pages}`, 137, -198, 100, 32, 15, '#90735c');
+    this.button('下一页 ›', 388, -198, 120, () => { this.milestonePage++; }, this.milestonePage + 1 < pages, 48);
   }
+
   private shop() {
     for (const [i, category] of (['vehicle', 'decoration', 'pet', 'driver', 'parts'] as const).entries())
-      this.button(categoryNames[category], -352 + i * 176, 146, 156, () => {
-        this.callbacks.equip(); this.category = category; this.itemIndex = 0; this.notice = '';
-      }, true, 48, category === this.category);
+      this.button(categoryNames[category], -352 + i * 176, 162, 156, () => {
+        this.callbacks.equip(); this.category = category; this.notice = ''; this.showingEquipped = false;
+        const equipped = category === 'parts' ? '' : this.career.profile.equipped[category];
+        this.itemIndex = Math.max(0, this.items().findIndex(item => item.assetId === equipped));
+        const item = this.items()[this.itemIndex];
+        if (item) this.callbacks.preview({ [item.category]: item.assetId });
+      }, true, 44, category === this.category);
     if (this.category === 'parts') {
-      this.box(0, -54, 896, 348);
       for (const [i, part] of (['engine', 'grip', 'nitro'] as const).entries()) {
-        const y = 58 - i * 83, cost = this.career.upgradeCost(part);
-        const maxed = !Number.isFinite(cost) || cost <= 0;
-        this.box(0, y, 846, 72, '#fffdf3');
-        this.label(`${partNames[part]}   Lv.${this.career.profile.upgrades[part]}`, -247, y + 15, 320, 28, 22);
-        this.label(part === 'engine' ? '提升加速与极速' : part === 'grip' ? '提升弯道抓地与转向' : '缩短氮气冷却，提升冲刺', -247, y - 18, 320, 28, 15, '#94765b');
-        this.label(maxed ? '已达上限' : `${cost} 金币`, 59, y, 174, 44, 20, '#b87727');
-        this.button(maxed ? '已满级' : '升级', 291, y, 202, () => {
-          this.notice = this.career.upgrade(part) ? `${partNames[part]}升级成功` : '金币不足，完赛可赢取奖金';
+        const x = -296 + i * 296, cost = this.career.upgradeCost(part), level = this.career.profile.upgrades[part];
+        const maxed = !Number.isFinite(cost) || cost <= 0, affordable = this.career.profile.coins >= cost;
+        this.box(x, -51, 276, 338);
+        this.label(partNames[part], x, 79, 244, 34, 22);
+        this.label(`Lv.${level} / 5`, x, 31, 236, 30, 18, '#468e80');
+        const progress = this.graphics();
+        for (let n = 0; n < 5; n++) {
+          progress.fillColor = color(n < level ? '#4bbcac' : '#e6dccb');
+          progress.roundRect(x - 106 + n * 44, -4, 36, 7, 3); progress.fill();
+        }
+        this.label(part === 'engine' ? '提升加速与极速' : part === 'grip' ? '提升弯道抓地与转向' : '缩短冷却，提升冲刺', x, -43, 244, 48, 15, '#94765b');
+        this.label(maxed ? '已达上限' : `${cost} 金币`, x, -96, 236, 30, 19, '#b87727');
+        if (!maxed && !affordable) this.label(`还差 ${cost - this.career.profile.coins} 金币`, x, -126, 236, 24, 13, '#94765b');
+        this.button(maxed ? '已满级' : `升级${partNames[part]}`, x, -175, 236, () => {
+          this.notice = this.career.upgrade(part) ? `${partNames[part]}升级成功` : this.career.saveError || '金币不足';
           this.callbacks.equip();
-        }, !maxed && this.career.profile.coins >= cost, 50, true);
+        }, !maxed && affordable, 50, true, maxed ? '已满级' : '升级');
       }
-      this.label('零部件升级用于单人生涯比赛', 0, -195, 820, 36, 17, '#94765b');
+      this.label('升级在单人比赛中生效 · 好友赛保持统一性能', 0, -233, 850, 20, 13, '#94765b');
       return;
     }
     const items = this.items();
     this.itemIndex = Math.min(this.itemIndex, Math.max(0, items.length - 1));
     const item = items[this.itemIndex];
-    this.box(-240, -44, 416, 368);
+    this.box(-240, -56, 416, 344);
     if (!item) { this.label('暂无商品', -240, 0, 350); return; }
-    this.label(item.name, -240, 73, 376, 52, 28);
-    this.label(item.description, -240, 11, 360, 74, 19, '#94765b');
-    const owned = this.owned(item.id);
-    const equipped = this.career.profile.equipped[this.category] === item.id || this.career.profile.equipped[this.category] === item.assetId;
-    this.label(owned ? equipped ? '正在装备' : '已拥有' : `${item.price} 金币`, -240, -49, 360, 40, 22, '#b87727');
-    this.button('‹', -402, -115, 56, () => this.selectItem(-1));
-    this.label(`${this.itemIndex + 1} / ${items.length}`, -240, -115, 240, 44, 20);
-    this.button('›', -78, -115, 56, () => this.selectItem(1));
-    this.button(owned ? equipped ? '已装备' : '装备' : `购买 · ${item.price} 金币`, -240, -196, 380, () => {
-      if (!owned && !this.career.buy(item.id)) { this.notice = '金币不足，完赛可赢取奖金'; return; }
-      this.notice = this.career.equip(item.id) ? `${item.name}已装备` : '装备未完成，请重试';
-      this.callbacks.equip();
-    }, !equipped && (owned || this.career.profile.coins >= item.price), 52, true);
-    this.previewCaption(`${item.name} · 候选外观`, 89);
-    this.button('试穿 / 预览', 211, -161, 420, () => {
-      // Optional cosmetic fields travel through the same callback, without changing ownership.
-      const preview = { [item.category]: item.assetId };
-      this.callbacks.preview(preview);
-      this.notice = `正在预览${item.name}，购买后才能永久装备`;
-    }, !this.state.loading, 48);
-    this.label(`当前装备：${this.equipmentName(this.category)}`, 211, -208, 432, 34, 16, '#94765b');
+    const owned = this.owned(item.id), equipped = this.career.profile.equipped[this.category] === item.assetId;
+    this.label(item.name, -240, 74, 366, 38, 25);
+    this.label(item.description, -240, 25, 342, 50, 16, '#94765b');
+    this.label(owned ? equipped ? '已装备' : '已拥有 · 可装备' : `${item.price} 金币`, -240, -34, 340, 32, 20, '#b87727');
+    this.button('上一个商品', -397, -94, 48, () => this.selectItem(-1), true, 44, false, '‹');
+    this.label(`${this.itemIndex + 1} / ${items.length}`, -240, -94, 200, 30, 15, '#94765b');
+    this.button('下一个商品', -83, -94, 48, () => this.selectItem(1), true, 44, false, '›');
+    const canBuy = this.career.profile.coins >= item.price;
+    if (!owned && !canBuy) this.label(`还差 ${item.price - this.career.profile.coins} 金币 · 完赛可获得`, -240, -137, 370, 24, 13, '#94765b');
+    this.button(owned ? equipped ? '已装备' : '装备' : `购买 · ${item.price} 金币`, -240, -182, 368, () => {
+      if (!owned) {
+        this.notice = this.career.buy(item.id) ? `已拥有${item.name} · 点击装备后用于比赛` : this.career.saveError || '金币不足，完赛可赢取奖金';
+        return;
+      }
+      if (this.career.equip(item.id)) { this.notice = `${item.name}已装备`; this.callbacks.equip(); this.showingEquipped = false; }
+      else this.notice = this.career.saveError || '装备未完成，请重试';
+    }, !equipped && (owned || canBuy), 52, true);
+    this.box(367, 108, 110, 28, '#fffaf0ee');
+    this.label(this.state.loading ? '装配中…' : this.showingEquipped || equipped ? '当前装备' : '商品预览', 367, 108, 104, 28, 13, '#48887c');
+    this.label(this.showingEquipped ? this.equipmentName(this.category) : item.name, 214, -119, 408, 32, 18);
+    this.label(`当前装备：${this.equipmentName(this.category)}`, 214, -209, 420, 26, 14, '#94765b');
+    this.button(this.showingEquipped ? '查看此商品' : '查看已装备', 214, -164, 214, () => {
+      this.showingEquipped = !this.showingEquipped;
+      if (this.showingEquipped) this.callbacks.equip();
+      else this.callbacks.preview({ [item.category]: item.assetId });
+    }, !this.state.loading && !equipped, 44);
   }
   private selectItem(delta: number) {
     const items = this.items();
     if (!items.length) return;
     this.itemIndex = (this.itemIndex + delta + items.length) % items.length;
-    this.notice = '';
+    this.notice = ''; this.showingEquipped = false;
     const preview = { [items[this.itemIndex].category]: items[this.itemIndex].assetId };
     this.callbacks.preview(preview);
   }

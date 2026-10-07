@@ -379,6 +379,8 @@ test('tree validation blocks missing registration or metadata after formatting',
   await f.write(`${builtinSource}/package.json`, builtinPackage);
   await syncGameDevMode({ root: f.root });
   await chmod(path.join(f.root, '.githooks/pre-push'), 0o755);
+  // Git traverses Windows directory junctions; borrowed dependencies are not fixture sources.
+  await f.write('.gitignore', 'node_modules/\n');
   await symlink(
     path.join(repo, 'node_modules'),
     path.join(f.root, 'node_modules'),
@@ -411,8 +413,18 @@ test('tree validation blocks missing registration or metadata after formatting',
     );
     assert.equal(formatted.status, 0, formatted.stdout + formatted.stderr);
     if (!comparisonBase) {
-      git('add', '.');
-      git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture');
+      const staged = git('add', '.');
+      assert.equal(staged.status, 0, staged.error?.message || staged.stderr);
+      const committed = git(
+        '-c',
+        'user.name=test',
+        '-c',
+        'user.email=test@example.com',
+        'commit',
+        '-qm',
+        'fixture',
+      );
+      assert.equal(committed.status, 0, committed.error?.message || committed.stderr);
       comparisonBase = git('rev-parse', 'HEAD').stdout.trim();
     }
     return spawnSync(

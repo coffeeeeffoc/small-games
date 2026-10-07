@@ -98,7 +98,7 @@ try {
         height: camera.rect.height * size.height / viewport.height * 540,
       }));
     });
-    for (const [i, expected] of [{ x: 520, y: 155, width: 380, height: 225 }, { x: 52, y: 142, width: 396, height: 208 }].entries())
+    for (const [i, expected] of [{ x: 512, y: 136, width: 404, height: 196 }, { x: 44, y: 136, width: 408, height: 196 }].entries())
       for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(windows[i][key] - expected[key]) < 1,
         `preview ${i} ${key} follows the actual phone UI viewport`);
     await screenshot(page, `${name}-setup`);

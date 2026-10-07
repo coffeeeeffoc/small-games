@@ -10,6 +10,92 @@ const titles = {
   'vibeJam-myself-history-guess': '此时·此地',
   'xiangqi-five': '象五子棋',
 };
+// Letters uses its game's home entry and the same portrait pages as solo play.
+const lettersCompetitionStyles = `
+[data-letters-competition].competition-dialog {
+  --pk-ink:#244e48; --pk-muted:#77877b; --pk-line:#d5dfc7; --pk-accent:#f28d58;
+  width:min(430px,100vw); height:100dvh; max-height:none; margin:0 auto;
+  border:0; border-radius:0; background:#f6f3e9; box-shadow:none;
+  font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-letters-competition]::backdrop { background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-shell { padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); }
+[data-letters-competition] .pk-header { min-height:44px; padding:0; border:0; gap:0; }
+[data-letters-competition] .pk-brand { justify-content:center; }
+[data-letters-competition] .pk-brand strong { font-size:15px; font-weight:750; letter-spacing:1px; }
+[data-letters-competition] .pk-brand-mark,
+[data-letters-competition] .pk-brand small,
+[data-letters-competition] .pk-profile-copy small,
+[data-letters-competition] .pk-profile > .pk-avatar,
+[data-letters-competition] .pk-room-note,
+[data-letters-competition] .pk-footer > p,
+[data-letters-competition] .pk-hero .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-tools { width:44px; }
+[data-letters-competition] .pk-tools button { width:44px; min-width:44px; padding:0; font-size:12px; }
+[data-letters-competition] button { min-height:52px; border:1px solid #c5d1be; border-radius:17px; background:#e4ecd8; font-size:15px; font-weight:750; box-shadow:0 3px #becbb6; }
+[data-letters-competition] button:hover { background:#e4ecd8; }
+[data-letters-competition] button:active { transform:translateY(3px); box-shadow:none; }
+[data-letters-competition] button.pk-primary { min-height:58px; border:0; background:#f28d58; color:#244e48; font-size:18px; box-shadow:0 5px #cd7043; }
+[data-letters-competition] button.pk-primary:hover { background:#f28d58; }
+[data-letters-competition] button.pk-quiet,
+[data-letters-competition] button.pk-back { min-height:44px; border:0; border-radius:14px; background:transparent; box-shadow:none; color:#244e48; }
+[data-letters-competition] button.pk-back { width:44px; min-width:44px; padding:0; font-size:28px; }
+[data-letters-competition] .pk-status { display:none; }
+[data-letters-competition] .pk-status[data-error] { display:block; min-height:24px; margin:6px 0!important; color:#a65d3b!important; }
+[data-letters-competition] .pk-status[data-feedback]:not([data-error]) { display:block; min-height:24px; margin:6px 0!important; }
+[data-letters-competition] .pk-content { padding-bottom:5px; }
+[data-letters-competition] .pk-hero { padding:22px 0 17px; }
+[data-letters-competition] .pk-hero h2 { font-size:28px; font-weight:800; letter-spacing:0; line-height:1.4; }
+[data-letters-competition] .pk-hero p { margin-top:8px; font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-letter-hero { min-height:150px; border-radius:24px; background:#e8eddc; position:relative; overflow:hidden; margin:0 0 22px; padding:24px; display:flex; align-items:center; }
+[data-letters-competition] .pk-letter-hero strong { position:relative; z-index:1; font-size:22px; line-height:1.6; }
+[data-letters-competition] .pk-letter-hero img { position:absolute; width:220px; right:-42px; bottom:-2px; }
+[data-letters-competition] .pk-options { grid-template-columns:1fr; gap:17px; }
+[data-letters-competition] .pk-option { padding:21px; border:1px solid #e2e3d5; border-radius:22px; background:#fffdf7; }
+[data-letters-competition] .pk-option h3 { font-size:18px; margin:0 0 8px; font-weight:800; }
+[data-letters-competition] .pk-option p { min-height:0; margin:0 0 20px; font-size:12px; line-height:1.6; }
+[data-letters-competition] .pk-join { display:grid; gap:14px; }
+[data-letters-competition] .pk-join label { font-size:0; }
+[data-letters-competition] input { min-height:53px; border:1px solid #d6dfcc; border-radius:15px; background:#fffdf7; color:#244e48; padding:0 15px; }
+[data-letters-competition] .pk-join input { margin:0; font:14px system-ui,sans-serif; letter-spacing:1px; }
+[data-letters-competition] .pk-footer { flex:none; padding:6px 0 0; margin-top:6px; gap:10px; flex-direction:row; }
+[data-letters-competition] .pk-footer > button { width:auto; min-height:44px; border:0; background:transparent; box-shadow:none; color:#77877b; font-size:12px; padding:0 4px; }
+[data-letters-competition] .pk-profile { width:auto; flex:1; min-width:0; padding:0; margin:0; border-radius:0; background:transparent; gap:4px; min-height:44px; }
+[data-letters-competition] .pk-profile-copy strong { font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-profile button { padding:0 6px; font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-room-intro { padding:24px 0 14px; }
+[data-letters-competition] .pk-room-intro h2 { font-size:27px; font-weight:800; }
+[data-letters-competition] .pk-room-intro .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-room-code { margin:20px 0 12px; padding:14px 5px; border:1px dashed #bdcbae; border-radius:16px; background:#e8eddc; color:#244e48; font-size:19px; letter-spacing:2px; }
+[data-letters-competition] .pk-room-intro p { font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-matchup { grid-template-columns:1fr 28px 1fr; gap:5px; margin:18px 0 26px; }
+[data-letters-competition] .pk-player { border:1px solid #d5dfc7; border-radius:22px; background:#fffdf7; padding:22px 7px; }
+[data-letters-competition] .pk-player[data-ready] { background:#e8efd9; }
+[data-letters-competition] .pk-player[data-empty] { border-style:dashed; background:transparent; }
+[data-letters-competition] .pk-avatar { background:#cde4c4; color:#315c4d; border-radius:16px; box-shadow:0 3px #acc49c; }
+[data-letters-competition] .pk-room-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-room-actions > button { min-width:0; width:100%; }
+[data-letters-competition][data-playing] .pk-shell { padding:max(8px,env(safe-area-inset-top)) 0 max(6px,env(safe-area-inset-bottom)); }
+[data-letters-competition][data-playing] .pk-header { margin:0 12px; padding:0; }
+[data-letters-competition][data-playing] .pk-brand strong { font-size:13px; }
+[data-letters-competition] canvas[data-play] { border-radius:0; background:#f6f3e9; }
+[data-letters-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-letters-competition] .pk-detail-page { position:absolute; inset:0; display:block; height:100%; padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-sheet { max-width:none; height:100%; max-height:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; overflow:hidden; }
+[data-letters-competition] .pk-sheet-head { flex:none; margin:0 0 24px; min-height:44px; }
+[data-letters-competition] .pk-sheet-head h2 { font-size:26px; font-weight:800; }
+[data-letters-competition] .pk-sheet-head small { font-size:12px; }
+[data-letters-competition] .pk-sheet-content { flex:1; overflow:auto; min-height:0; padding:0 0 5px; }
+[data-letters-competition] .pk-sheet-actions { flex:none; padding-top:14px; margin-top:0; }
+[data-letters-competition] .pk-sheet-actions button { width:100%; }
+[data-letters-competition] .pk-result { border:1px solid #d5dfc7; border-radius:22px; background:#e8efd9; padding:20px; }
+[data-letters-competition] .pk-result strong { font-size:23px; }
+[data-letters-competition] .pk-result-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-my-record { background:#244e48; border-radius:22px; }
+[data-letters-competition] .pk-rule-list li { padding:16px; margin-top:12px; border:1px solid #e2e3d5; border-radius:18px; background:#fffdf7; line-height:1.7; }
+@media (max-height:650px) { [data-letters-competition] .pk-letter-hero { min-height:106px; margin-bottom:16px; padding:18px; } [data-letters-competition] .pk-letter-hero strong { font-size:19px; } [data-letters-competition] .pk-hero { padding-top:14px; } }
+@media (orientation:landscape) and (max-height:500px) { [data-letters-competition].competition-dialog { width:100vw; } [data-letters-competition] .pk-shell { padding:8px 18px; } [data-letters-competition] .pk-letter-hero { display:none; } [data-letters-competition] .pk-options { grid-template-columns:1fr 1fr; } [data-letters-competition] .pk-footer { flex-direction:row; gap:18px; } [data-letters-competition] .pk-footer > button { width:auto; } [data-letters-competition] .pk-profile { width:auto; flex:1; } [data-letters-competition] .pk-hero { padding:5px 0 12px; } [data-letters-competition] .pk-room-actions { flex-direction:row; } }
+`;
 // Xiangqi shares the service protocol, but uses the game's mobile page navigation.
 const xiangqiCompetitionStyles = `
 body.competition-active { background:#fff8e8; overflow:hidden; }
@@ -84,6 +170,7 @@ export function mountCompetition(game, createRenderer) {
   if (game === 'cops-robbers-realtime') return mountStreetCompetition(game, createRenderer);
   const street = game === 'cops-robbers-realtime';
   const xiangqi = game === 'xiangqi-five';
+  const letters = game === 'letters-words2';
   const roleNames = street
     ? { pursuer: '警察', runner: '小偷' }
     : { pursuer: '追逐队', runner: '突围队' };
@@ -94,7 +181,11 @@ export function mountCompetition(game, createRenderer) {
       createImage: () => new Image(),
       assetBase: new URL('./', location.href).href,
     });
-  const modeEntry = xiangqi && document.getElementById('mode-online');
+  const modeEntry = xiangqi
+    ? document.getElementById('mode-online')
+    : letters
+      ? document.getElementById('friend-button')
+      : null;
   const launch = modeEntry || document.createElement('button');
   if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
   if (modeEntry) modeEntry.hidden = false;
@@ -105,7 +196,12 @@ export function mountCompetition(game, createRenderer) {
         '[data-competition-launch]',
         '[data-competition-launch]:not(#mode-online)',
       ) + xiangqiCompetitionStyles
-    : styles;
+    : letters
+      ? styles.replaceAll(
+          '[data-competition-launch]',
+          '[data-competition-launch]:not(#friend-button)',
+        ) + lettersCompetitionStyles
+      : styles;
   document.head.append(style);
   const dialog = document.createElement(xiangqi ? 'section' : 'dialog');
   dialog.className = 'competition-dialog';
@@ -133,6 +229,35 @@ export function mountCompetition(game, createRenderer) {
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
   if (!modeEntry) document.body.append(launch);
   document.body.append(dialog);
+  if (letters) {
+    dialog.dataset.lettersCompetition = '';
+    const back = dialog.querySelector('[data-close]');
+    back.textContent = '←';
+    back.setAttribute('aria-label', '返回词屿首页');
+    back.className = 'pk-back';
+    dialog.querySelector('.pk-header').prepend(back);
+    dialog.querySelector('.pk-exit').remove();
+    dialog.querySelector('.pk-brand strong').textContent = '好友同题';
+    dialog.querySelector('.pk-hero h2').textContent = '一起，开一座词岛。';
+    dialog.querySelector('.pk-hero p').textContent = '同一组 18 词，和朋友来一场 120 秒拼词。';
+    const art = document.createElement('div');
+    art.className = 'pk-letter-hero';
+    art.innerHTML =
+      '<strong>叫上朋友<br>看看谁先点亮</strong><img src="./assets/ui/island.svg" alt="">';
+    dialog.querySelector('.pk-options').before(art);
+    const options = dialog.querySelectorAll('.pk-option');
+    options[0].querySelector('h3').textContent = '创建好友房间';
+    options[0].querySelector('p').textContent = '把邀请发给好友，准备好就出发。';
+    dialog.querySelector('[data-create]').textContent = '创建房间 →';
+    options[1].querySelector('h3').textContent = '加入朋友的房间';
+    options[1].querySelector('p').hidden = true;
+    dialog.querySelector('[data-code]').placeholder = '输入 12 位房间码';
+    dialog.querySelector('[data-code]').setAttribute('aria-label', '12 位房间码');
+    dialog.querySelector('[data-join]').textContent = '加入房间 →';
+    dialog.querySelector('.pk-footer').prepend(dialog.querySelector('.pk-profile'));
+    dialog.querySelector('[data-board]').textContent = '看看全站榜 →';
+    dialog.querySelector('.pk-overlay').classList.add('pk-detail-page');
+  }
   if (xiangqi) {
     const back = dialog.querySelector('[data-close]');
     back.textContent = '←';
@@ -156,7 +281,8 @@ export function mountCompetition(game, createRenderer) {
         .replaceAll('追逐队', '警察')
         .replaceAll('突围队', '小偷');
   }
-  const select = (q) => dialog.querySelector(q),
+  const select = (q) =>
+      dialog.querySelector(letters && q === '[data-ready]' ? 'button[data-ready]' : q),
     status = select('[data-status]'),
     canvas = select('canvas'),
     ctx = canvas.getContext('2d'),
@@ -209,7 +335,7 @@ export function mountCompetition(game, createRenderer) {
     details.hidden = true;
     select('.pk-content').inert = false;
     select('.pk-footer').inert = false;
-    if (!xiangqi) select('.pk-exit').inert = false;
+    if (!xiangqi && !letters) select('.pk-exit').inert = false;
     if (returnFocus?.isConnected && !returnFocus.closest('[hidden]')) returnFocus.focus();
     else select('[data-rules]').focus();
   }
@@ -219,7 +345,7 @@ export function mountCompetition(game, createRenderer) {
     details.replaceChildren();
     select('.pk-content').inert = true;
     select('.pk-footer').inert = true;
-    if (!xiangqi) select('.pk-exit').inert = true;
+    if (!xiangqi && !letters) select('.pk-exit').inert = true;
     const sheet = text('div', '', 'pk-sheet');
     sheet.dataset.kind = kind;
     const head = text('div', '', 'pk-sheet-head'),
@@ -241,6 +367,11 @@ export function mountCompetition(game, createRenderer) {
   function feedback(error) {
     status.textContent = error instanceof Error ? error.message : String(error);
     status.toggleAttribute('data-error', error instanceof Error);
+    if (letters)
+      status.toggleAttribute(
+        'data-feedback',
+        /复制|发送房间码|已读取邀请|昵称已保存/.test(status.textContent),
+      );
   }
   function updateProfile(value) {
     profile = value;
@@ -426,7 +557,11 @@ export function mountCompetition(game, createRenderer) {
     }
   }
   function showResults() {
-    const sheet = detailPanel('这一局，打得漂亮', '比赛结果已由服务端确认。', 'result');
+    const sheet = detailPanel(
+      letters ? '这一岛，拾得漂亮！' : '这一局，打得漂亮',
+      letters ? '同题较量，看看这一局的收获。' : '比赛结果已由服务端确认。',
+      'result',
+    );
     for (const entry of room.results || []) {
       const me = entry.playerId === room.players[room.you].id,
         player = room.players.find((p) => p.id === entry.playerId),
@@ -676,6 +811,10 @@ export function mountCompetition(game, createRenderer) {
   select('[data-share]').onclick = () =>
     void run(async () => {
       const url = new URL(location.href);
+      if (letters) {
+        url.search = '';
+        url.hash = '';
+      }
       url.searchParams.set('pk', room.code);
       try {
         await navigator.clipboard.writeText(url.href);
@@ -716,6 +855,7 @@ export function mountCompetition(game, createRenderer) {
     } finally {
       exiting = false;
       launch.disabled = false;
+      if (letters && launch.isConnected && launch.getClientRects().length) launch.focus();
     }
   };
   dialog.addEventListener('cancel', (event) => {
@@ -743,8 +883,51 @@ export function mountCompetition(game, createRenderer) {
     dismiss();
     window.dispatchEvent(new CustomEvent('competition-visibility', { detail: { open: false } }));
   });
+  let lettersPointer = null;
+  if (letters) {
+    canvas.addEventListener('pointerdown', (event) => {
+      if (!room || room.status !== 'playing' || !details.hidden) return;
+      if (lettersPointer) {
+        lettersPointer.cancelled = true;
+        return;
+      }
+      lettersPointer = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        cancelled: false,
+      };
+      canvas.setPointerCapture?.(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      if (
+        lettersPointer?.id === event.pointerId &&
+        Math.hypot(event.clientX - lettersPointer.x, event.clientY - lettersPointer.y) > 10
+      )
+        lettersPointer.cancelled = true;
+    });
+    const cancel = () => {
+      lettersPointer = null;
+    };
+    canvas.addEventListener('pointercancel', cancel);
+    canvas.addEventListener('lostpointercapture', cancel);
+    dialog.addEventListener('close', cancel);
+    window.addEventListener('blur', cancel);
+    window.addEventListener('resize', cancel);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancel();
+    });
+  }
   canvas.addEventListener('pointerup', (event) => {
-    if (!room || room.status !== 'playing' || !details.hidden) return;
+    if (!room || room.status !== 'playing' || !details.hidden) {
+      if (letters) lettersPointer = null;
+      return;
+    }
+    if (letters) {
+      const pointer = lettersPointer;
+      lettersPointer = null;
+      if (!pointer || pointer.id !== event.pointerId || pointer.cancelled) return;
+    }
     const rect = canvas.getBoundingClientRect();
     const rotated = street && matchMedia('(orientation: portrait)').matches;
     const command = renderer.tap(

@@ -38,6 +38,7 @@ try {
       if (state.status !== 'playing' || state.rooms[state.roomId].cleared) break;
       if (state.pendingRewards.length) {
         await driver.release();
+        await driver.tap('#reward');
         await page.waitForSelector('[data-reward]');
         const reward = state.pendingRewards[0];
         const item =

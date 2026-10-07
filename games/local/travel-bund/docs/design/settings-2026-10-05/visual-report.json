@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "390x844: actual scene preview and entry camera continuity, CDP touch walking/turning/cancel, manual pause/settings, persistent model choices, photo and journal, return/resume with paused simulation",
+    "844x390: actual scene preview and entry camera continuity, CDP touch walking/turning/cancel, manual pause/settings, persistent model choices, photo and journal, return/resume with paused simulation"
+  ],
+  "errors": [],
+  "external": [],
+  "environment": "Linux Chromium 151, software WebGL, real production scene; touch emulation, not physical phone"
+}

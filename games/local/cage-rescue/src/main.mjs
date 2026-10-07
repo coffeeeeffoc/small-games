@@ -68,6 +68,20 @@ export async function mountCageRescue(host = createLocalHost()) {
     clearInput();
     screen = next;
     document.body.dataset.screen = next;
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          {
+            type: 'small-games:display-state',
+            gameId: 'cage-rescue',
+            screen: ['play', 'pause', 'result'].includes(next) ? 'playing' : 'home',
+          },
+          new URL(document.referrer).origin,
+        );
+      } catch {
+        /* Standalone hosts without a referrer do not need the Shell bridge. */
+      }
+    }
     for (const name of ['home', 'levels', 'play', 'pause', 'result', 'settings', 'help', 'outfits'])
       $(name + '-screen').hidden = name !== next;
     $('toast').hidden = true;

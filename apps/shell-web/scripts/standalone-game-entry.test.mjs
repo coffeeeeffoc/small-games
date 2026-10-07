@@ -41,3 +41,15 @@ test('entry adapters never force clicks and have only stable semantic selectors'
     for (const selector of Array.isArray(control) ? control : [control])
       assert(/^#|^\[data-/.test(selector));
 });
+
+test('word island readiness is home, with an explicit start adapter before board assertions', () => {
+  assert.equal(markers['letters-words2'], '#focus-button');
+  assert.equal(homeControls['letters-words2'], '#focus-button');
+  assert.equal(entryMode('letters-words2'), 'adapter');
+});
+
+test('street chase waits for the game and enters through the home start button', () => {
+  assert.equal(markers['chase-thief'], '#game[data-ready="true"]');
+  assert.equal(homeControls['chase-thief'], '#start');
+  assert.equal(entryMode('chase-thief'), 'adapter');
+});

@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "checks": [
+        "clear jump/photo/journal labels and no speed switch",
+        "right/down drag follows the visible scene",
+        "joystick plus one look finger does not pinch",
+        "pinch zoom in/out while joystick continues; camera does not rotate",
+        "an extra third scene finger cannot take over or cancel the active pinch",
+        "remaining pinch finger stays idle until a fresh gesture",
+        "cancellation and lost capture release controls",
+        "pause clears contacts; resume accepts fresh controls",
+        "sustained same-marker spread/contract avoids native cancellation and tap interaction",
+        "marker/scene pinch works in both orders without interaction",
+        "accessible settings choice keyboard navigation"
+      ]
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "checks": [
+        "clear jump/photo/journal labels and no speed switch",
+        "right/down drag follows the visible scene",
+        "joystick plus one look finger does not pinch",
+        "pinch zoom in/out while joystick continues; camera does not rotate",
+        "an extra third scene finger cannot take over or cancel the active pinch",
+        "remaining pinch finger stays idle until a fresh gesture",
+        "cancellation and lost capture release controls",
+        "pause clears contacts; resume accepts fresh controls",
+        "sustained same-marker spread/contract avoids native cancellation and tap interaction",
+        "marker/scene pinch works in both orders without interaction",
+        "accessible settings choice keyboard navigation"
+      ]
+    }
+  ],
+  "errors": [],
+  "scene": "isolated renderer; real App, pointer capture and CDP touch"
+}

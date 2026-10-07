@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 250" fill="none">
+  <ellipse cx="180" cy="206" rx="132" ry="28" fill="#dce8df"/>
+  <path d="M54 190c19-14 43-17 60-11 20-13 95-17 135-5 31-5 65 7 69 17-19 20-69 30-137 31-71-2-111-14-127-32Z" fill="#afd3ca"/>
+  <path d="M75 176c17-17 29-35 66-44 51-11 87-4 132 35l17 20c-48 35-173 34-220 2l5-13Z" fill="#92ba83"/>
+  <path d="M75 175c35-34 54-35 67-43 48-12 98 6 135 42-33 28-152 38-202 1Z" fill="#cde4b7"/>
+  <path d="M170 147c-14 16-10 30 10 35l45 12" stroke="#f6dfae" stroke-width="15" stroke-linecap="round"/>
+  <path d="m120 82-5 86m32-87-12 86" stroke="#735f46" stroke-width="8" stroke-linecap="round"/>
+  <path d="M101 104c-21-2-25-29-10-40-14-17 0-39 19-39 3-24 35-22 43-3 26-4 39 23 27 42 16 24-2 44-23 42-18 9-39 7-56-2Z" fill="#638b65"/>
+  <path d="M114 44c-17 8-17 26-7 40m40-37c14 8 19 25 9 37" stroke="#83a579" stroke-width="9" stroke-linecap="round"/>
+  <path d="m255 117 1 49m-6-23-10-9" stroke="#735f46" stroke-width="5" stroke-linecap="round"/>
+  <path d="M233 120c-10-14-5-25 8-28 1-21 27-25 37-10 22-2 31 24 16 36-12 14-46 15-61 2Z" fill="#83a579"/>
+  <g transform="translate(174 64) rotate(9)"><rect y="6" width="64" height="69" rx="14" fill="#82a69c"/><rect width="64" height="66" rx="14" fill="#eff4dd" stroke="#fffaf1" stroke-width="3"/><text x="32" y="47" fill="#244e48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="39">w</text></g>
+  <g transform="translate(70 124) rotate(-12)"><rect y="5" width="53" height="54" rx="12" fill="#9ba979"/><rect width="53" height="52" rx="12" fill="#f4d693" stroke="#fff7df" stroke-width="3"/><text x="26" y="38" fill="#806b3a" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="32">a</text></g>
+  <g transform="translate(207 144) rotate(8)"><rect y="5" width="54" height="55" rx="12" fill="#9ab194"/><rect width="54" height="53" rx="12" fill="#e7edcb" stroke="#fffaf1" stroke-width="3"/><text x="27" y="38" fill="#244e48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="32">b</text></g>
+  <path d="m291 57 3-11 4 11 11 4-11 4-4 11-3-11-11-4 11-4Z" fill="#edb26f"/>
+  <path d="m69 89 2-8 3 8 8 3-8 3-3 8-2-8-8-3 8-3Z" fill="#d5ad6e"/>
+  <path d="M245 42c0-6 6-9 10-6 6-7 16-2 15 5h7c4 0 6 8 0 9h-29c-5-1-7-6-3-8ZM37 127c0-5 6-8 10-5 6-7 16-2 15 5h7c4 0 6 8 0 9H40c-5-1-7-6-3-9Z" fill="#fffdf6"/>
+  <path d="m34 192 12-3m254 19 13-2m-10 13 7-1m-262-7 11 2" stroke="#a6c9bc" stroke-width="3" stroke-linecap="round"/>
+</svg>

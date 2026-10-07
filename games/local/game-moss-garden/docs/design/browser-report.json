@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "date": "2026-10-06T15:30:23.058Z",
+  "environment": {
+    "browser": "151.0.7922.173",
+    "mode": "headless Chromium browser simulation",
+    "mobile": "390×844 touch, DPR 2",
+    "small": "320×568",
+    "landscape": "844×390",
+    "desktop": "1280×900",
+    "build": "Vite production preview"
+  },
+  "checks": [
+    "移动触屏播种、取回、同行冲突拒绝和可感知错误反馈",
+    "标记、撤回、原生触屏拖动批量标记、手势取消及再次点击取消标记",
+    "手册返回、暂停计时冻结、恢复计时、刷新恢复棋盘和标记",
+    "普通提示通关、提示/失误/时间结算、下一关解锁和持久化、小屏及横屏坐标保持",
+    "桌面实际全屏进入/退出、设置切换及存档保留",
+    "开发模式 url-on（含试玩不结算或禁用存储正常启动）",
+    "开发模式 storage-on（含试玩不结算或禁用存储正常启动）",
+    "开发模式 explicit-off（含试玩不结算或禁用存储正常启动）",
+    "开发模式 blocked-storage（含试玩不结算或禁用存储正常启动）"
+  ],
+  "failures": []
+}

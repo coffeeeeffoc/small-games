@@ -25,13 +25,13 @@ node games/local/ink-is-everything/build.mjs
 | 闪避            | 点击闪避，可与移动、攻击同时操作 | 空格             |
 | 门、泉水、商人  | 走近后点场景物体或互动按钮       | E                |
 | 绘桥            | 走近笔尖锚点，拖到对岸圆点       | 同样拖动         |
-| 查看成长 / 暂停 | 装备面板 / 暂停按钮              | Esc 暂停         |
+| 查看成长 / 暂停 | 暂停页中的装备 / 右上待选提醒    | Esc 暂停         |
 
 初始 90/100 墨汁。墨弹消耗 6、伤害 8；溅墨消耗 14、范围伤害 14；免费干笔伤害 5。所有有效命中按**实际造成伤害的 25%**吸回墨汁，每次击杀再直接恢复 6。敌人墨滴、宝库与泉水也能补墨。
 
 技能将消耗的 50% 留成墨滴：通常落在施法位置约 80–110 像素外，0.5 秒后可拾取，12 秒后干涸。玩家需真正移动并接近约 26 像素，不能站着连射自动收回。装备可改变返还比例与拾取范围；返还比例最高 80%，空放技能不能无限产墨。干笔与闪避免费，低墨时仍可通过反击恢复。
 
-击杀获得经验，第一次升级需 12 经验，以后每级门槛增加 8；升级增加 8 墨汁上限、恢复 8，并提供装备选择。清场后走近金色装备刻印，也会暂停战斗并提供三选一。六类装备均最多三阶，可加强伤害、吸取、容量、溅墨、闪避或回收。驿站商人用墨汁为装备升阶；墨囊每阶售价 24，上限增加 16 并立即恢复 16，购买净消耗 8 墨汁。
+击杀获得经验，第一次升级需 12 经验，以后每级门槛增加 8；升级增加 8 墨汁上限、恢复 8，并提供装备选择。清场后装备留在地上的金色刻印中，不会自动吸附；走近后点刻印或「拾取装备」主动收进待选队列。升级与拾取都不打断战斗，右上金色提醒显示待选次数；玩家自行打开选择，允许关闭后稍后再选，仅打开选择页时暂停。六类装备均最多三阶，可加强伤害、吸取、容量、溅墨、闪避或回收。驿站商人用墨汁为装备升阶；墨囊每阶售价 24，上限增加 16 并立即恢复 16，购买净消耗 8 墨汁。
 
 庭院北侧花 8 墨汁绘桥，可进书库获取 24 墨汁与装备。主线经守印长廊、洗笔驿站、断笔兵营，集齐两枚钥印后挑战墨之门。已清房间、奖励和桥不会重复刷新。
 
@@ -44,6 +44,8 @@ node games/local/ink-is-everything/build.mjs
 | `ui/`      | 12 个模块负责真实键鼠/多指输入、HUD、导航、装备选择、对话框、音频与本地存储                                                     |
 | `render/`  | 10 个模块只读状态与章节几何，绘制角色、场景、墨滴、装备和反馈                                                                   |
 | 根入口     | `engine.mjs` 解析章节并转接核心；`game.mjs` 启动 UI；`art.mjs`、`levels.mjs` 保留兼容导出                                       |
+
+主页、选关、游玩及菜单统一横屏。手机关闭自动旋转、全屏被拒绝时，完整游戏容器旋转兜底，并映射场景、摇杆及瞄准坐标。Web 首页和暂停页提供全屏；原生小游戏宿主隐藏该入口。游玩只保留顶部墨汁生命条、等级/钥印、房间名和必要操作；帮助、成长与设置收在暂停页。近战和远程无需切换模式：按干笔免费近战吸墨，按墨弹耗墨远攻；墨汁不足时墨弹仍保持远程用途。
 
 使用公开 API，不直接修改状态来完成游戏动作：
 
@@ -70,7 +72,7 @@ const saved = serializeGame(game);
 const resumed = restoreGame(saved, getLevelDefinition(game));
 ```
 
-其他合法命令为 `draw`（`bridgeId`）、`interact`（可选 `objectId`）、`buy`（`itemId`）和 `restart`。命令返回 `{ok, message}`；奖励等待期间模拟停止。`getSnapshot` 返回状态副本，浏览器的 `window.__inkGame.snapshot()` 与 `worldToScreen()` 仅供只读验收。
+其他合法命令为 `draw`（`bridgeId`）、`interact`（可选 `objectId`，也可为附近地面装备 ID）、`buy`（`itemId`）和 `restart`。命令返回 `{ok, message}`；待选奖励不阻断模拟或其他命令；界面只在玩家主动打开菜单时暂停。`getSnapshot` 返回状态副本，浏览器的 `window.__inkGame.snapshot()` 与 `worldToScreen()` 仅供只读验收。
 
 ## 新增章节：新增文件并注册
 
@@ -110,6 +112,7 @@ const resumed = restoreGame(saved, getLevelDefinition(game));
 node games/local/ink-is-everything/docs/playtest.mjs
 node games/local/ink-is-everything/docs/playtest.mjs --pressure-only
 node games/local/ink-is-everything/docs/touch-input.playtest.mjs
+node games/local/ink-is-everything/docs/mobile-redesign.playtest.mjs
 node games/local/ink-is-everything/docs/playtest-trade.mjs
 node games/local/ink-is-everything/docs/playtest-balance.mjs
 node games/local/ink-is-everything/docs/chapter-extension.playtest.mjs
@@ -117,4 +120,4 @@ node games/local/ink-is-everything/docs/chapter-extension.playtest.mjs
 
 `GAME_URL` 指定站点，`PLAYWRIGHT_MODULE`、`CHROMIUM_PATH` 可指定浏览器工具位置。规则测试覆盖单一墨池、吸取、回收守恒、装备升阶、奖励、存档及自定义章；架构测试检查模块边界与循环依赖。浏览器用真实鼠标、键盘和原生触摸事件通关，另验证低正墨恢复、多指取消、商店与续档。平衡脚本记录 30 秒站桩表现，仅是观察数据，不将站桩存活作为通过标准。
 
-`chapter-extension.playtest.mjs` 只在测试 HTTP 响应中注册额外章节定义，验证自动章节选择、1200×720 房间、73/125 初始墨汁、3 枚钥印目标、移动与刷新恢复，不修改生产章节或游戏状态。正式内容仍只有第一章。当前证据记录在各 `docs/*report.json`；自动回归不等于真人趣味性、留存或时长验证，尚未做实体手机与 Safari 真机验收。
+`chapter-extension.playtest.mjs` 只在测试 HTTP 响应中注册额外章节定义，验证自动章节选择、1200×720 房间、73/125 初始墨汁、3 枚钥印目标、移动与刷新恢复，不修改生产章节或游戏状态。正式内容仍只有第一章。当前证据记录在各 `docs/*report.json`；自动回归不等于真人趣味性、留存或时长验证，本次移动端改造效果图、浏览器截图及检查记录位于 `docs/design/mobile-2026-10-06/`；尚未做实体手机与 Safari 真机验收。

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { placementBatches, type Placement } from './world.ts';
 import { RENDER_DETAILS, type RenderDetail } from './render-settings.ts';
+import { facadeKind } from './facade-detail.ts';
 
 // World-space grains need no texture download and remain fixed while walking.
 export function granularSurface(material: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial, kind: 'granite' | 'asphalt' | 'stone') {
@@ -102,21 +103,22 @@ export function compactCityScene(original: THREE.Object3D, cell: number) {
     const compact = compactGeometry(object.geometry, cell);
     const geometry = compact.index ? compact.toNonIndexed() : compact.clone();
     geometry.applyMatrix4(object.matrixWorld);
-    const count = geometry.getAttribute('position').count, colors = new Float32Array(count*3), panes = new Float32Array(count);
+    const count = geometry.getAttribute('position').count, colors = new Float32Array(count*3), panes = new Float32Array(count), facadeKinds = new Float32Array(count);
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     const groups = geometry.groups.length ? geometry.groups : [{start:0,count,materialIndex:0}];
     for (const group of groups) {
       const material = (materials[group.materialIndex || 0] || materials[0]) as THREE.MeshStandardMaterial;
       const color = material.color || new THREE.Color('white');
-      const pane = /glass|window/i.test(material.name) && !/lamp/i.test(material.name) ? 1 : 0;
+      const kind = facadeKind(material), pane = kind === 2 ? 1 : 0;
       for (let index=group.start; index<group.start+group.count; index++) {
-        colors.set([color.r,color.g,color.b],index*3);panes[index]=pane;
+        colors.set([color.r,color.g,color.b],index*3);panes[index]=pane;facadeKinds[index]=kind;
       }
     }
     for(const attribute of Object.keys(geometry.attributes))
       if(!['position','normal'].includes(attribute))geometry.deleteAttribute(attribute);
     geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
     geometry.setAttribute('bundWindow',new THREE.BufferAttribute(panes,1));
+    geometry.setAttribute('bundFacadeKind',new THREE.BufferAttribute(facadeKinds,1));
     geometry.clearGroups();pieces.push(geometry);names.push(object.name);
     if(compact!==object.geometry)compact.dispose();
   });

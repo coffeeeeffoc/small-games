@@ -1,0 +1,13 @@
+<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><style>html,body{margin:0;overflow:hidden;background:#f4efe4}canvas{width:100vw;height:100vh;touch-action:none}</style><canvas></canvas><script type="module">
+// Browser-only test fixture: the production native entry receives its real host SDK.
+import { startNativeHistoryGame } from '../native.js';
+const canvas=document.querySelector('canvas'), handlers={},ctx=canvas.getContext('2d');
+let texts=[]; const originalText=ctx.fillText.bind(ctx), originalTransform=ctx.setTransform.bind(ctx);
+ctx.setTransform=(...args)=>{texts=[];originalTransform(...args)};
+ctx.fillText=(text,x,y,...args)=>{const m=ctx.getTransform();texts.push({text:String(text),x:(x*m.a+m.e)/devicePixelRatio,y:(y*m.d+m.f)/devicePixelRatio});originalText(text,x,y,...args)};
+window.nativeLabels=()=>texts;
+const sdk={createCanvas:()=>canvas,createImage:()=>new Image(),getSystemInfoSync:()=>({windowWidth:innerWidth,windowHeight:innerHeight,pixelRatio:devicePixelRatio,safeArea:{top:24,bottom:innerHeight-20}}),getStorageSync:k=>JSON.parse(localStorage.getItem(k)||'null'),setStorageSync:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize']){sdk['on'+name]=fn=>handlers[name]=fn;sdk['off'+name]=fn=>{if(handlers[name]===fn)delete handlers[name]}}
+const points=new Map();for(const [dom,host] of [['pointerdown','TouchStart'],['pointermove','TouchMove'],['pointerup','TouchEnd'],['pointercancel','TouchCancel']])canvas.addEventListener(dom,e=>{const t={clientX:e.clientX,clientY:e.clientY,identifier:e.pointerId};if(dom==='pointerdown')points.set(e.pointerId,t);if(dom==='pointermove'&&points.has(e.pointerId))points.set(e.pointerId,t);if(dom==='pointerup'||dom==='pointercancel')points.delete(e.pointerId);handlers[host]?.({touches:[...points.values()],changedTouches:[t]})});
+window.addEventListener('resize',()=>handlers.WindowResize?.({}));window.nativeLifecycle=name=>handlers[name]?.({});window.nativeGame=startNativeHistoryGame(sdk,{assetBase:'/'});
+</script></html>

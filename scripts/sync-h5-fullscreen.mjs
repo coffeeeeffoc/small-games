@@ -5,11 +5,19 @@ const root = new URL('../', import.meta.url);
 const source = await readFile(new URL('platforms/h5/fullscreen.js', root), 'utf8');
 const copies = [
   'games/local/cage-rescue/fullscreen.js',
+  'games/local/chase-thief/fullscreen.js',
+  'games/local/orbit-atelier/src/fullscreen.js',
+  'games/local/game-moss-garden/public/fullscreen.js',
+  'games/local/ball-roguelite/fullscreen.js',
+  'games/local/game-castle-cannon/public/fullscreen.js',
+  'games/local/ember-bounce/fullscreen.js',
+  'games/local/tianxia-chalu/fullscreen.js',
   'apps/shell-web/public/fullscreen.js',
   'games/local/carding-car/scripts/fullscreen.js',
   'games/local/cops-robbers/src/fullscreen.js',
   'games/local/cops-robbers-realtime/src/fullscreen.js',
   'games/local/letters-words2/fullscreen.js',
+  'games/local/tetracube/fullscreen.js',
   'games/local/vibeJam-myself-history-guess/public/fullscreen.js',
   'games/submodules/xiangqi-five/fullscreen.js',
 ];
