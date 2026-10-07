@@ -193,6 +193,14 @@ const cageRescueDelegate =
   '  }\n';
 const standaloneGameplayHeader =
   'export async function assertStandaloneGameplay(frame, id, mobile = false) {\n';
+const cageRescueHomeGuardBefore =
+  "      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {\n";
+const cageRescueHomeGuardAfter =
+  '      } else if (\n' +
+  "        game.id === 'cage-rescue' ||\n" +
+  "        game.id === 'ball-roguelite' ||\n" +
+  "        game.id === 'orbit-atelier'\n" +
+  '      ) {\n';
 const cageRescueImmersiveFiles = {
   'apps/shell-web/src/StandaloneGame.tsx': {
     name: 'immersive',
@@ -251,6 +259,21 @@ function namedVariable(program, name) {
   visit(program);
   assert(matches.length === 1, 'Ambiguous per-game wiring declaration');
   return matches[0];
+}
+
+function ifStatementAt(program, offset) {
+  const cases = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.start === offset) cases.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(program);
+  assert(cases.length === 1, 'Expected the real immersion guard');
+  return cases[0];
 }
 
 function assertCageRescueGameplayModule(source) {
@@ -317,11 +340,43 @@ function assertCageRescueDelegate({ readBase, readHead }) {
 function assertCageRescueImmersive(file, before, after) {
   const { name, anchor, addition } = cageRescueImmersiveFiles[file];
   assert(before.split(anchor).length === 2 && !before.includes("'cage-rescue'"));
-  assert(
-    after === before.replace(anchor, anchor + addition),
-    'Other shared immersion bytes changed',
-  );
+  let expected = before.replace(anchor, anchor + addition);
+  const addHomeGuard = name === 'immersiveGame' && after !== expected;
+  if (addHomeGuard) {
+    assert(before.split(cageRescueHomeGuardBefore).length === 2);
+    assert(after.split(cageRescueHomeGuardAfter).length === 2);
+    expected = expected.replace(cageRescueHomeGuardBefore, cageRescueHomeGuardAfter);
+  }
+  assert(after === expected, 'Other shared immersion bytes changed');
   const program = parsedSource(after, file.endsWith('.tsx'));
+  if (addHomeGuard) {
+    const guard = ifStatementAt(
+      program,
+      after.indexOf(cageRescueHomeGuardAfter) + cageRescueHomeGuardAfter.indexOf('if'),
+    );
+    const ids = [];
+    const compare = (node) => {
+      if (node.type === 'LogicalExpression' && node.operator === '||') {
+        compare(node.left);
+        compare(node.right);
+      } else {
+        assert(
+          node.type === 'BinaryExpression' &&
+            node.operator === '===' &&
+            node.left.type === 'MemberExpression' &&
+            !node.left.computed &&
+            node.left.object.type === 'Identifier' &&
+            node.left.object.name === 'game' &&
+            node.left.property.type === 'Identifier' &&
+            node.left.property.name === 'id' &&
+            node.right.type === 'StringLiteral',
+        );
+        ids.push(node.right.value);
+      }
+    };
+    compare(guard.test);
+    assert(isDeepStrictEqual(ids, ['cage-rescue', 'ball-roguelite', 'orbit-atelier']));
+  }
   if (name === 'cases') {
     const cases = program.body.filter(
       (node) =>
@@ -347,22 +402,8 @@ function assertCageRescueImmersive(file, before, after) {
   }
   let declaration;
   if (name === 'catalogCases') {
-    const cases = [];
-    function visit(node) {
-      if (!node || typeof node !== 'object') return;
-      if (
-        node.type === 'IfStatement' &&
-        node.start === after.indexOf(anchor) + anchor.indexOf('if')
-      )
-        cases.push(node);
-      for (const value of Object.values(node)) {
-        if (Array.isArray(value)) value.forEach(visit);
-        else if (value && typeof value === 'object') visit(value);
-      }
-    }
-    visit(program);
-    assert(cases.length === 1, 'Expected the real standalone catalog immersion guard');
-    declaration = { init: cases[0].test };
+    const guard = ifStatementAt(program, after.indexOf(anchor) + anchor.indexOf('if'));
+    declaration = { init: guard.test };
   } else {
     declaration = namedVariable(program, name);
     assert(declaration.start === after.indexOf(anchor) + anchor.indexOf(name));

@@ -699,3 +699,74 @@ test('new cage gameplay, entry selectors and immersion wiring compose without un
     ['apps/shell-web'],
   );
 });
+
+test('Pages cage rescue home-state guard and immersion list compose while every other byte stays fixed', () => {
+  const fixture = immersiveFixtures.find(
+    (entry) => entry.file === 'apps/shell-web/scripts/pages-smoke.mjs',
+  );
+  const oldGuard =
+    "      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {\n";
+  const newGuard =
+    '      } else if (\n' +
+    "        game.id === 'cage-rescue' ||\n" +
+    "        game.id === 'ball-roguelite' ||\n" +
+    "        game.id === 'orbit-atelier'\n" +
+    '      ) {\n';
+  const body =
+    "        await expect(page.locator('.standalone-page nav')).toBeVisible();\n        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);\n";
+  const before =
+    fixture.before +
+    "async function check(game) {\n      if (game.id === 'chase-thief') {\n        await checkChase();\n" +
+    oldGuard +
+    body +
+    '      }\n}\n';
+  const after = before
+    .replace(fixture.anchor, fixture.anchor + fixture.addition)
+    .replace(oldGuard, newGuard);
+  const context = cageContext({
+    changedPaths: [fixture.file],
+    readBase: () => before,
+    readHead: () => after,
+  });
+  const scopes = reviewedSharedFileScopes(context);
+  assert.deepEqual([...scopes], [[fixture.file, [cageSource]]]);
+  assert.equal(after.replace(fixture.addition, '').replace(newGuard, oldGuard), before);
+  const result = incrementalPlan({
+    ...context,
+    packages: cagePackages,
+    fileScopes: scopes,
+    readSource: context.readHead,
+  });
+  assert.deepEqual(result.browser_ids, ['cage-rescue']);
+  assert.deepEqual(
+    shellContractTargets(cagePackages, context.changedPaths).map((pkg) => pkg.dir),
+    ['apps/shell-web'],
+  );
+  for (const bad of [
+    after.replace('toBeVisible()', 'toBeHidden()'),
+    after.replace('toHaveCount(0)', 'toHaveCount(1)'),
+    after.replace(newGuard, newGuard.replace("'cage-rescue'", "'another-game'")),
+    after.replace(newGuard, newGuard.replace('game.id ===', 'game.id !==')),
+    after.replace(newGuard, newGuard.replace('game.id', "game['id']")),
+    after.replace('await checkChase();', 'return;'),
+    after.replace(body, body + '        globalThis.cageScopeInjected = true;\n'),
+    after.replace(fixture.addition, ''),
+  ])
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, readHead: () => bad }).has(fixture.file),
+      false,
+    );
+  const lookalikeBefore =
+    fixture.before + 'const text = `' + before.slice(fixture.before.length) + '`;\n';
+  const lookalikeAfter = lookalikeBefore
+    .replace(fixture.anchor, fixture.anchor + fixture.addition)
+    .replace(oldGuard, newGuard);
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readBase: () => lookalikeBefore,
+      readHead: () => lookalikeAfter,
+    }).has(fixture.file),
+    false,
+  );
+});

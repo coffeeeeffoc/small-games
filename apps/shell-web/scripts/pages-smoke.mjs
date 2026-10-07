@@ -232,7 +232,11 @@ try {
         await frame.locator('#pause-home').click();
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
-      } else if (game.id === 'ball-roguelite' || game.id === 'orbit-atelier') {
+      } else if (
+        game.id === 'cage-rescue' ||
+        game.id === 'ball-roguelite' ||
+        game.id === 'orbit-atelier'
+      ) {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'xiangqi-five') {
