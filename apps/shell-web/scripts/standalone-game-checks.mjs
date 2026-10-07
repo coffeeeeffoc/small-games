@@ -48,8 +48,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(game).toHaveAttribute('data-screen', 'playing');
     // Read the catalog's verified move, then perform it through real input.
     // The fixture never edits the board, progress or the game's current state.
-    const move = await game.evaluate(async () => {
-      const { getLevel } = await import(new URL('./src/levels.mjs', document.baseURI).href);
+    const move = await game.evaluate(async (node) => {
+      const { getLevel } = await import(new URL('./src/levels.mjs', node.baseURI).href);
       return getLevel(1).solution[0];
     });
     const candidate = frame.locator(`[data-slot="${move.slot}"]`);
