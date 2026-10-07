@@ -4,7 +4,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { levels } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
-import { initialState, step } from '../src/engine.js';
+import { initialState, legalTargets, step } from '../src/engine.js';
+import { relayLevelIds, relayTargets, movedOfficer } from '../src/relay.js';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:43441';
 const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
@@ -12,7 +13,7 @@ const browser = await chromium.launch(executablePath ? { executablePath } : proc
 const report = { base, checks: [] };
 const homeOnly = '#home-start, #level-select, #mobile-level-select, #settings, #sound, #help, #appearance-settings, #mode-settings, [data-game-fullscreen], .map-expand-button';
 const visibleHomeOnly = `${homeOnly.split(', ').join(':visible, ')}:visible`;
-const stateView = state => ({ cops: state.cops, robbers: state.robbers.map(node => node < 0 ? null : node), turn: state.turn });
+const stateView = state => ({ cops: state.cops, robbers: state.robbers.filter(node => node >= 0), turn: state.turn });
 async function snapshot(page) {
   return page.evaluate(() => ({
     cops: [...document.querySelectorAll('#board [id^="cop-actor-"]')]
@@ -220,6 +221,98 @@ try {
     await page.waitForFunction(() => document.getElementById('play-prompt').textContent.includes('队友'));
     assert.ok(await page.locator('#play-prompt').isVisible());
     assert.deepEqual(await snapshot(page), before, 'Occupied road attempts do not consume a turn');
+  });
+  await check('relay selection explains the turn-four restriction before a blocked tap', async page => {
+    await page.goto(`${base}/?level=1&rule=relay&motion=reduce`);
+    let state = initialState(levels[0]);
+    for (const plan of solutions[1].slice(0, 4)) {
+      const cop = plan.findIndex((node, index) => node !== state.cops[index]);
+      await page.locator(`#squad [data-cop="${cop}"]`).tap();
+      await page.getByTestId(`node-${plan[cop]}`).tap();
+      state = step(levels[0], state, plan).state;
+      await page.waitForFunction(turn => Number(document.body.dataset.turn) === turn
+        && document.body.dataset.phase === 'planning', state.turn);
+    }
+    assert.deepEqual(state.cops, [1, 9, 0], 'Reproduce the reported board');
+    await page.locator('#squad [data-cop="2"]').tap();
+    assert.match(await page.locator('#play-prompt').textContent(), /3 号.*只能留守/,
+      'Selection must explain why roads 5 and 6 are unavailable before trying them');
+    assert.ok(await page.locator('#squad [data-cop="2"]').evaluate(button => button.classList.contains('resting')));
+    assert.match(await page.getByTestId('node-0').getAttribute('aria-label'), /点击留守/);
+    for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(viewport);
+      for (const node of [4, 5]) {
+        assert.equal(await page.getByTestId(`node-${node}`).evaluate(label => label.classList.contains('reachable')), false);
+        const p = await nodePoint(page, node);
+        await page.touchscreen.tap(p.x, p.y);
+        assert.deepEqual(await snapshot(page), stateView(state), 'Blocked moves never consume a turn');
+      }
+      // Reselecting must retain the explanation instead of replacing it with a generic movement prompt.
+      await page.getByTestId('cop-2').tap();
+      assert.match(await page.locator('#play-prompt').textContent(), /3 号.*只能留守/);
+      await page.screenshot({ path: `outputs/relay-selection-${viewport.width}.png` });
+    }
+    await page.getByTestId('node-0').tap();
+    await page.waitForFunction(() => document.body.dataset.turn === '5' && document.body.dataset.phase === 'planning');
+    assert.ok(await page.locator('#squad [data-cop="2"]').evaluate(button => button.classList.contains('resting')), 'Waiting does not transfer the baton');
+    await page.getByTestId('undo').tap();
+    await page.locator('#squad [data-cop="1"]').tap();
+    await page.getByTestId('node-4').tap();
+    await page.waitForFunction(() => document.body.dataset.turn === '5' && document.body.dataset.phase === 'planning');
+    await page.getByTestId('cop-2').tap();
+    assert.ok(await page.getByTestId('node-5').evaluate(label => label.classList.contains('reachable')));
+    assert.equal(await page.getByTestId('node-4').evaluate(label => label.classList.contains('reachable')), false, 'A teammate still occupies road 5');
+    const destination = await nodePoint(page, 5);
+    await page.touchscreen.tap(destination.x, destination.y);
+    await page.waitForFunction(() => document.body.dataset.turn === '6' && document.body.dataset.phase === 'planning');
+    assert.equal((await snapshot(page)).cops[2], 5, 'Road 1 to 6 works after a teammate moves');
+  });
+  await check('standard mode highlights and moves from road 1 to 6 at the reported position', async page => {
+    await page.goto(`${base}/?level=1&rule=standard&motion=reduce`);
+    let state = initialState(levels[0]);
+    for (const plan of solutions[1].slice(0, 4)) {
+      const cop = movedOfficer(state, plan);
+      await page.locator(`#squad [data-cop="${cop}"]`).tap();
+      await page.getByTestId(`node-${plan[cop]}`).tap();
+      state = step(levels[0], state, plan).state;
+      await page.waitForFunction(turn => Number(document.body.dataset.turn) === turn
+        && document.body.dataset.phase === 'planning', state.turn);
+    }
+    for (const node of [4, 5]) {
+      assert.ok(await page.getByTestId(`node-${node}`).evaluate(label => label.classList.contains('reachable')));
+      assert.equal(await page.locator(`#target-${node}`).evaluate(target => getComputedStyle(target).opacity), '1');
+    }
+    await page.screenshot({ path: 'outputs/standard-selection-390.png' });
+    const destination = await nodePoint(page, 5);
+    await page.touchscreen.tap(destination.x, destination.y);
+    await page.waitForFunction(() => document.body.dataset.turn === '5' && document.body.dataset.phase === 'planning');
+    assert.equal((await snapshot(page)).cops[2], 5, 'Standard play allows consecutive moves');
+  });
+  await check('all relay levels keep selectable officers, highlighted targets and legal moves in sync', async page => {
+    for (const id of relayLevelIds) {
+      await page.goto(`${base}/?level=${id}&rule=relay&motion=reduce`);
+      const map = levels[id - 1];
+      let state = initialState(map), last = -1;
+      for (const plan of solutions[id]) {
+        for (let actor = 0; actor < state.cops.length; actor++) {
+          await page.locator(`#squad [data-cop="${actor}"]`).tap();
+          const expected = relayTargets(map, state, actor, last).sort((a, b) => a - b);
+          const actual = await page.locator('#board .node-label.reachable').evaluateAll(labels => labels.map(label => +label.dataset.node));
+          assert.deepEqual(actual, expected, `Level ${id}, turn ${state.turn}, officer ${actor + 1}`);
+          assert.equal(await page.locator(`#squad [data-cop="${actor}"]`).evaluate(button => button.classList.contains('resting')), expected.length === 1);
+          if (actor === last && legalTargets(map, state, actor).length > 1) assert.match(await page.locator('#play-prompt').textContent(), /只能留守/);
+        }
+        const moved = movedOfficer(state, plan), actor = Math.max(0, moved);
+        await page.locator(`#squad [data-cop="${actor}"]`).tap();
+        await page.getByTestId(`node-${plan[actor]}`).tap();
+        if (moved >= 0) last = moved;
+        state = step(map, state, plan).state;
+        await page.waitForFunction(turn => Number(document.body.dataset.turn) === turn
+          && ['planning', 'won'].includes(document.body.dataset.phase), state.turn);
+        assert.deepEqual(await snapshot(page), stateView(state));
+      }
+      assert.equal(await page.locator('body').getAttribute('data-phase'), 'won');
+    }
   });
   await writeFile('outputs/game-shell-report.json', JSON.stringify(report, null, 2));
   console.log(`PASS ${report.checks.length} game shell scenarios`);
