@@ -238,7 +238,7 @@ p {
 }
 .play-screen {
   display: grid;
-  grid-template-rows: 54px minmax(250px, 1fr) 134px;
+  grid-template-rows: 54px minmax(250px, 1fr) 180px;
   height: 100%;
   padding: env(safe-area-inset-top) 12px max(8px, env(safe-area-inset-bottom));
 }
@@ -408,17 +408,19 @@ p {
 .gesture-row,
 .primary-controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 .input-modes {
   display: flex;
+  flex-direction: column;
+  flex: 0 0 60px;
   border: 1px solid #2a4651;
   border-radius: 12px;
   padding: 2px;
 }
 .input-modes button {
-  min-height: 44px;
-  padding: 8px 11px;
+  min-height: 53px;
+  padding: 8px 5px;
   border: 0;
   background: transparent;
   font-size: 13px;
@@ -431,23 +433,111 @@ p {
   box-shadow: inset 0 0 0 1px #507f70;
 }
 .rotation-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   flex: 1;
+  min-width: 0;
   gap: 6px;
 }
+.rotation-symbols {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rotation-pair {
+  display: grid;
+  grid-template-rows: 64px 44px;
+  gap: 4px;
+  min-width: 0;
+  --rotation-plane: #78f4d3;
+  --rotation-arrow: #d0ffef;
+}
+.rotation-pair[data-plane='XZ'] {
+  --rotation-plane: #8ccaff;
+  --rotation-arrow: #d6ecff;
+}
+.rotation-pair[data-plane='YZ'] {
+  --rotation-plane: #efc18a;
+  --rotation-arrow: #ffe7c5;
+}
 .rotation-buttons button {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 44px;
-  min-height: 48px;
-  padding: 5px;
-  font-size: 12px;
+  min-height: 44px;
+  padding: 3px;
+  font-size: 11px;
   background: #122b38;
   border-radius: 12px;
 }
-.rotation-buttons span {
-  font-size: 23px;
-  vertical-align: middle;
-  color: #bcece8;
+.rotation-buttons .rotation-main {
+  flex-direction: column;
+  gap: 2px;
+}
+.rotation-icon {
+  display: block;
+  width: 48px;
+  height: 39px;
+  flex-shrink: 0;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rotation-cage {
+  stroke: #71959f;
+  stroke-width: 1.4px;
+}
+.rotation-hidden-edge {
+  stroke-dasharray: 2 3;
+  opacity: 0.4;
+}
+.rotation-plane {
+  fill: var(--rotation-plane);
+  fill-opacity: 0.24;
+  stroke: var(--rotation-plane);
+  stroke-width: 1.6px;
+}
+.rotation-arrow {
+  stroke: var(--rotation-arrow);
+  stroke-width: 2.4px;
+}
+.rotation-label {
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c8e5e9;
+}
+.rotation-buttons .rotation-reverse {
+  gap: 2px;
+  border-radius: 10px;
+  background: #0e2531;
+  color: #9dc2cd;
+}
+.rotation-reverse .rotation-icon {
+  width: 29px;
+  height: 27px;
+}
+.rotation-buttons button.rotation-success {
+  animation: rotation-success 220ms ease-out;
+}
+.rotation-buttons button.rotation-blocked {
+  animation: rotation-blocked 260ms ease-out;
+}
+@keyframes rotation-success {
+  0%,
+  35% {
+    background: #28534d;
+    border-color: var(--rotation-plane);
+    box-shadow: inset 0 0 0 1px var(--rotation-plane);
+  }
+}
+@keyframes rotation-blocked {
+  0%,
+  40% {
+    background: #513a30;
+    border-color: #e3a579;
+  }
 }
 .primary-controls {
   margin-top: 8px;
@@ -716,7 +806,7 @@ p {
     margin: 6px 0;
   }
   .play-screen {
-    grid-template-rows: 52px minmax(225px, 1fr) 128px;
+    grid-template-rows: 52px minmax(225px, 1fr) 176px;
   }
   .main-controls {
     margin-top: 6px;
@@ -854,6 +944,9 @@ p {
   #combo-flash {
     transition: none;
   }
+  .rotation-buttons button {
+    animation-duration: 1ms !important;
+  }
 }
 .stage,
 .stage:has(#tutorial:not([hidden])) {
@@ -928,11 +1021,16 @@ p {
   .gesture-row {
     flex-direction: column;
   }
+  .input-modes {
+    flex-direction: row;
+    flex: none;
+  }
   .input-modes button {
     flex: 1;
+    min-height: 44px;
   }
   .rotation-buttons button {
-    min-height: 50px;
+    min-height: 44px;
   }
   .primary-controls {
     flex-direction: column;

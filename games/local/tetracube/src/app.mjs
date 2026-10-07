@@ -48,6 +48,9 @@ let animations = [],
   animation = null;
 let audioContext;
 let drag = null;
+let pieceMotion = null;
+let orbitVelocity = [0, 0];
+const touchPointers = new Set();
 let inputMode = 'move';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const held = new Map();
@@ -117,6 +120,7 @@ function stopInput() {
     } catch {}
   }
   drag = null;
+  orbitVelocity = [0, 0];
 }
 
 function show(next) {
@@ -237,11 +241,39 @@ function consumeEvents() {
 
 function command(action, ...args) {
   if (phase !== 'playing' || animation || animations.length) return false;
+  const now = performance.now();
+  const from = visualPiece(now);
+  const before = game.active ? structuredClone(game.active) : null;
+  const placed = game.placed;
+  const interrupted = !!pieceMotion;
   const ok = game[action](...args);
   if (!ok) {
-    if (action === 'rotate') feedback('这里放不下，先移动一点');
+    if (action === 'rotate') feedback('这个方向被挡住，试试反转或移开');
     return false;
   }
+  if (
+    ['move', 'rotate', 'tick'].includes(action) &&
+    before &&
+    game.active &&
+    game.placed === placed &&
+    from.length &&
+    game.cells().some((cell, i) => cell.some((v, a) => v !== from[i]?.[a]))
+  ) {
+    pieceMotion = reducedMotion
+      ? null
+      : {
+          from,
+          to: game.cells(),
+          started: now,
+          duration: action === 'rotate' ? 120 : 75,
+          turn:
+            action === 'rotate' && !interrupted
+              ? { before, plane: args[0], direction: args[1] ?? 1 }
+              : null,
+        };
+  }
+  if (game.placed !== placed) pieceMotion = null;
+  if (action === 'rotate') elapsed = Math.min(elapsed, game.fallInterval * 0.4);
   const kind = { move: 'move', rotate: 'rotate', hardDrop: 'drop', flipContainer: 'flip' }[action];
   if (kind) {
     sound(kind);
@@ -249,10 +281,34 @@ function command(action, ...args) {
   }
   if (action === 'hardDrop' || action === 'flipContainer') {
     elapsed = 0;
+    pieceMotion = null;
     stopInput();
   }
   consumeEvents();
   return true;
+}
+
+function visualPiece(now) {
+  if (!pieceMotion) return game.cells();
+  const t = Math.min(1, Math.max(0, (now - pieceMotion.started) / pieceMotion.duration));
+  const eased = 1 - Math.pow(1 - t, 3);
+  const { from, to, turn } = pieceMotion;
+  let cells;
+  if (turn) {
+    const [a, b] = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[String(turn.plane).toUpperCase()];
+    const angle = eased * (Math.PI / 2) * turn.direction;
+    const kick = game.active.pos.map((v, axis) => v - turn.before.pos[axis]);
+    cells = turn.before.cells.map((cell) => {
+      const rotated = [...cell];
+      rotated[a] = cell[a] * Math.cos(angle) + cell[b] * Math.sin(angle);
+      rotated[b] = cell[b] * Math.cos(angle) - cell[a] * Math.sin(angle);
+      return rotated.map((v, axis) => v + turn.before.pos[axis] + kick[axis] * eased);
+    });
+  } else {
+    cells = to.map((cell, i) => cell.map((v, axis) => from[i][axis] + (v - from[i][axis]) * eased));
+  }
+  if (t >= 1) pieceMotion = null;
+  return cells;
 }
 
 function move(direction) {
@@ -272,6 +328,7 @@ function start({ debug = false } = {}) {
   runStarted = true;
   animations = [];
   animation = null;
+  pieceMotion = null;
   tutorialStep = settings.tutorialDone ? 4 : 0;
   renderer.setView('iso');
   updateViews('iso');
@@ -314,6 +371,7 @@ $('#continue-game').addEventListener('click', () => {
     runStarted = true;
     animations = [];
     animation = null;
+    pieceMotion = null;
     show('playing');
     settle();
   } catch {
@@ -358,7 +416,16 @@ $$('.sound-toggle').forEach((button) =>
   }),
 );
 $$('[data-rotate]').forEach((button) =>
-  button.addEventListener('click', () => command('rotate', button.dataset.rotate)),
+  button.addEventListener('click', () => {
+    const ok = command(
+      'rotate',
+      button.dataset.rotate,
+      Number(button.dataset.rotateDirection) || 1,
+    );
+    button.classList.remove('rotation-success', 'rotation-blocked');
+    void button.offsetWidth;
+    button.classList.add(ok ? 'rotation-success' : 'rotation-blocked');
+  }),
 );
 $$('[data-flip]').forEach((button) =>
   button.addEventListener('click', () => flip(button.dataset.flip)),
@@ -368,6 +435,7 @@ $$('[data-input]').forEach((button) =>
 );
 $$('[data-view]').forEach((button) =>
   button.addEventListener('click', () => {
+    stopInput();
     renderer.setView(button.dataset.view);
     updateViews(button.dataset.view);
   }),
@@ -375,9 +443,23 @@ $$('[data-view]').forEach((button) =>
 
 const canvas = $('#game-canvas');
 canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'touch') {
+    touchPointers.add(event.pointerId);
+    if (touchPointers.size > 1) {
+      stopInput();
+      return;
+    }
+  }
   if (event.button !== 0 || drag || phase !== 'playing' || animation || animations.length) return;
   event.preventDefault();
-  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, remainder: [0, 0] };
+  orbitVelocity = [0, 0];
+  drag = {
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    time: event.timeStamp,
+    remainder: [0, 0],
+  };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', (event) => {
@@ -388,10 +470,19 @@ canvas.addEventListener('pointermove', (event) => {
   drag.y = event.clientY;
   if (inputMode === 'observe') {
     renderer.orbit(dx, dy);
+    const interval = Math.max(12, event.timeStamp - drag.time);
+    orbitVelocity = [dx, dy].map(
+      (v, axis) => orbitVelocity[axis] * 0.4 + Math.max(-0.7, Math.min(0.7, v / interval)) * 0.6,
+    );
+    drag.time = event.timeStamp;
     updateViews('');
     return;
   }
-  const delta = renderer.planeDelta(dx, dy);
+  const cells = game.cells();
+  const anchor = cells.length
+    ? [0, 1, 2].map((axis) => cells.reduce((n, cell) => n + cell[axis] + 0.5, 0) / cells.length)
+    : undefined;
+  const delta = renderer.planeDelta(dx, dy, anchor);
   drag.remainder[0] += delta.x;
   drag.remainder[1] += delta.y;
   // Keep the grab relative to the finger; blocked movement is consumed, so reversing
@@ -406,10 +497,14 @@ canvas.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
   canvas.addEventListener(type, (event) => {
     if (drag?.id === event.pointerId) {
+      if (type !== 'pointerup' || inputMode !== 'observe' || event.timeStamp - drag.time > 80)
+        orbitVelocity = [0, 0];
       drag = null;
       elapsed = 0;
     }
   });
+for (const type of ['pointerup', 'pointercancel'])
+  window.addEventListener(type, (event) => touchPointers.delete(event.pointerId), true);
 
 function keydown(event) {
   if (
@@ -445,7 +540,7 @@ function keydown(event) {
     if (event.repeat) return;
     if (key === ' ') command('hardDrop');
     else if (key === 'g') flip();
-    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key]);
+    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key], event.shiftKey ? -1 : 1);
   }
 }
 window.addEventListener('keydown', keydown);
@@ -525,6 +620,10 @@ function frame(now) {
       time: now,
     });
   } else if (phase === 'playing') {
+    if (inputMode === 'observe' && !drag && !animation && !animations.length) {
+      renderer.orbit(orbitVelocity[0] * dt, orbitVelocity[1] * dt);
+      orbitVelocity = orbitVelocity.map((v) => (Math.abs(v) < 0.005 ? 0 : v * Math.exp(-dt / 95)));
+    }
     if (!animation && !animations.length && !drag) {
       elapsed += dt;
       if (elapsed >= game.fallInterval) {
@@ -538,7 +637,7 @@ function frame(now) {
     const color = game.active?.color || '#78f4d3';
     renderer.draw({
       ...visual,
-      active: busy ? [] : game.cells().map(([x, y, z]) => ({ x, y, z, color })),
+      active: busy ? [] : visualPiece(now).map(([x, y, z]) => ({ x, y, z, color })),
       ghost: busy ? [] : game.ghost().map(([x, y, z]) => ({ x, y, z, color })),
       gravity: game.gravity,
       dims: visual.dims || game.dims,
@@ -551,7 +650,7 @@ function frame(now) {
         : '方块向下落定…'
       : inputMode === 'observe'
         ? '观察模式 · 拖动转视角'
-        : '拖动方块 · 虚线是落点';
+        : `拖动方块 · 落点 ${renderer.layers.landing.join(' / ')}层`;
     $$('[data-rotate], [data-flip], #flip-container, #hard-drop').forEach((button) => {
       button.disabled = busy;
     });
@@ -569,6 +668,16 @@ window.tetracubeSnapshot = () => ({
   animationKind: animation?.type || animations[0]?.type || null,
   inputMode,
   input: { held: held.size, dragging: !!drag },
+  projection: {
+    mode: 'perspective',
+    scale: renderer.scale,
+    distance: renderer.distance,
+    samples: [
+      [1.5, 1.5, 0.5],
+      [1.5, 1.5, 2.5],
+    ].map((p) => renderer.project(p)),
+  },
+  layers: { ...renderer.layers },
 });
 const dev = window.SmallGamesDev;
 let cleanActions = () => {},
