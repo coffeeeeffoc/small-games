@@ -289,10 +289,10 @@ export function drawEffects(
       weapon = shot.weapon, spec = WEAPONS[weapon];
     const position = (progress: number): ScreenPoint =>
       airborne(s.shotPosition(shot, shot.born + progress * flight));
-    ring(shot, WEAPONS[weapon].radius * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true);
+    if (!shot.guidance) ring(shot, WEAPONS[weapon].radius * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true);
     // A single tapered ribbon per round, seven samples along the actual origin-to-impact parabola.
     const tail: ScreenPoint[] = [];
-    const start = Math.max(0, t - spec.tracerTime / flight);
+    const start = Math.max(0, t - (shot.guidance ? .45 : spec.tracerTime) / flight);
     for (let j = 0; j <= 6; j++) tail.push(position(start + ((t - start) * j) / 6));
     if (tail.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y) ||
       Math.abs(p.x) > width * 3 || Math.abs(p.y) > height * 3)) continue;
@@ -303,8 +303,8 @@ export function drawEffects(
       { x: location.x, y: location.y, z: location.z + 1 },
     ].map((p) => { const q = airborne(p); return Math.hypot(q.x - projected.x, q.y - projected.y); })));
     // Keep distant rounds readable in UI pixels without changing their ballistic path.
-    const bodyWidth = Math.min(5, Math.max(1.5 + weapon * 0.65, spec.calibre * localScale));
-    const bodyLength = Math.min(12, Math.max(4 + weapon * 1.5, spec.length * localScale));
+    const bodyWidth = shot.guidance ? 5 : Math.min(5, Math.max(1.5 + weapon * 0.65, spec.calibre * localScale));
+    const bodyLength = shot.guidance ? 12 : Math.min(12, Math.max(4 + weapon * 1.5, spec.length * localScale));
     g.fillColor = color(0.8, 0.7);
     for (let side = 0; side < 2; side++) {
       for (let n = 0; n <= 6; n++) {
@@ -327,7 +327,7 @@ export function drawEffects(
     line({ x: head.x - Math.cos(heading) * bodyLength, y: head.y - Math.sin(heading) * bodyLength }, head, 1, 0.95, bodyWidth);
     if (primitives > beforeHead) frame.projectiles.push({ id: shot.id, weapon,
       x: head.x + width / 2, y: height / 2 - head.y, width: bodyWidth, length: bodyLength,
-      speed: Math.hypot(shot.velocity.x, shot.velocity.y - FLIGHT.gravity * age, shot.velocity.z) });
+      speed: Math.hypot(shot.velocity.x, shot.velocity.y - (shot.guidance ? 0 : FLIGHT.gravity * age), shot.velocity.z) });
     const flash = clamp(1 - age / 0.085);
     if (flash > 0) {
       const origin = airborne(shot.origin);

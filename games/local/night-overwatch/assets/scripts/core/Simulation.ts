@@ -14,13 +14,14 @@ import {
   distance,
   validateData,
   impactDamage,
+  HOMING,
   type Point,
   type Point3,
   type Kind,
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
 import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
-export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus';
+export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus' | 'advert';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
 export type Unit = Point3 & {
   id: number;
@@ -45,6 +46,7 @@ export type Shot = Point & {
   origin: Point & { y: number };
   velocity: Point3;
   targetY: number;
+  guidance?: { target: number; position: Point3; trail: (Point3 & { time: number })[] };
 };
 export type BattleEvent = Point & {
   id: number;
@@ -78,6 +80,7 @@ export class Simulation {
   progress = 0;
   convoy: ConvoyState = 'moving';
   selected = 0;
+  homingAmmo = 0;
   aim: Point = { x: MISSION.events[0].x, z: MISSION.events[0].z };
   guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, overheated: false }));
   units: Unit[] = [];
@@ -157,6 +160,14 @@ export class Simulation {
     return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, WEAPONS[weapon].speed, this.height)?.duration ?? Infinity;
   }
   shotPosition(shot: Shot, time = this.time) {
+    if (shot.guidance) {
+      const trail = shot.guidance.trail;
+      const after = trail.find(p => p.time >= time) ?? trail[trail.length - 1];
+      const before = trail[Math.max(0, trail.indexOf(after) - 1)];
+      const fraction = Math.max(0, Math.min(1, (time - before.time) / (after.time - before.time || 1)));
+      return { x: before.x + (after.x - before.x) * fraction,
+        y: before.y + (after.y - before.y) * fraction, z: before.z + (after.z - before.z) * fraction };
+    }
     return shotPosition(shot, time);
   }
   addUnit(kind: Kind, p: Point, friendly = false) {
@@ -282,6 +293,29 @@ export class Simulation {
     this.completed.add('fire');
     return true;
   }
+  fireHoming() {
+    const target = this.aimedUnit;
+    if (this.phase !== 'playing' || this.paused || this.homingAmmo <= 0 || !target || target.friendly ||
+        PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius)) return false;
+    const origin = muzzlePosition(this.aircraft, 2);
+    const delta = { x: target.x - origin.x, y: target.y - origin.y, z: target.z - origin.z };
+    const range = Math.hypot(delta.x, delta.y, delta.z);
+    if (!Number.isFinite(range) || range <= 0) return false;
+    this.clearInput();
+    this.homingAmmo--;
+    const shot: Shot = {
+      id: ++this.serial, weapon: 2, x: target.x, z: target.z, born: this.time,
+      due: this.time + range / HOMING.speed, origin,
+      velocity: { x: delta.x / range * HOMING.speed, y: delta.y / range * HOMING.speed, z: delta.z / range * HOMING.speed },
+      targetY: target.y,
+      guidance: { target: target.id, position: { ...origin }, trail: [{ ...origin, time: this.time }] },
+    };
+    this.shots.push(shot);
+    this.emit('shot', shot, shot.weapon).unit = target.id;
+    this.fired++;
+    this.completed.add('fire');
+    return true;
+  }
   emit(type: BattleEvent['type'], p: Point & { y?: number }, weapon = 0, unit?: number) {
     const event: BattleEvent = { id: ++this.serial, type, x: p.x, y: p.y ?? this.height(p.x, p.z), z: p.z, weapon, time: this.time, unit };
     this.events.push(event);
@@ -313,7 +347,8 @@ export class Simulation {
       const y = this.height(x, z);
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
-      const damage = impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
+      const damage = s.guidance ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
+        : impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
       if (damage <= 0) continue;
       const actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
@@ -412,10 +447,29 @@ export class Simulation {
       u.y = this.height(u.x, u.z);
     }
     const contacts = this.shots.flatMap((shot) => {
+      if (shot.guidance) {
+        const target = this.units.find(u => u.id === shot.guidance!.target);
+        if (!target || target.hp <= 0 || target.friendly ||
+            PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius))
+          return [{ shot, point: shot.guidance.position, time: this.time, cancelled: true }];
+        const position = shot.guidance.position;
+        const delta = { x: target.x - position.x, y: target.y - position.y, z: target.z - position.z };
+        const range = Math.hypot(delta.x, delta.y, delta.z), travel = HOMING.speed * dt;
+        if (range <= travel) return [{ shot, point: { x: target.x, y: target.y, z: target.z }, time: this.time, cancelled: false }];
+        shot.velocity = { x: delta.x / range * HOMING.speed, y: delta.y / range * HOMING.speed, z: delta.z / range * HOMING.speed };
+        position.x += shot.velocity.x * dt; position.z += shot.velocity.z * dt;
+        position.y = Math.max(position.y + shot.velocity.y * dt, this.height(position.x, position.z) + Math.min(2, range * .1));
+        shot.x = target.x; shot.z = target.z; shot.targetY = target.y;
+        shot.due = this.time + range / HOMING.speed;
+        shot.guidance.trail.push({ ...position, time: this.time });
+        // ponytail: 32 fixed-step samples cover the visible missile trail; no full-flight replay buffer.
+        if (shot.guidance.trail.length > 32) shot.guidance.trail.shift();
+        return [];
+      }
       const contact = terrainContact(shot, this.time - dt, this.time, this.height);
-      return contact ? [{ shot, ...contact }] : [];
+      return contact ? [{ shot, ...contact, cancelled: false }] : [];
     }).sort((a, b) => a.time - b.time);
-    for (const contact of contacts) this.impact(contact.shot, contact.point, contact.time, previous, dt);
+    for (const contact of contacts) if (!contact.cancelled) this.impact(contact.shot, contact.point, contact.time, previous, dt);
     this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
     for (const u of this.units) {
       if (u.hp <= 0) continue;

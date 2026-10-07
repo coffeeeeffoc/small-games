@@ -271,8 +271,8 @@ export const ACTIONS = [
     binding: '+ / Wheel ↑ / X',
     touch: ['双指张开或点击 +', 'Pinch outward or tap +'],
     description: [
-      '放大至 5× 精确瞄准；拖到边缘可巡视，定位回到车队。',
-      'Zoom in to 5×; drag at the edge to pan, LOCATE returns to convoy.',
+      '默认上限 5×；倍率面板看广告逐档解锁至 160×。拖到边缘巡视，定位回到车队。',
+      'Default 5×; ads in the zoom panel unlock up to 160×. Pan at edges; LOCATE returns to convoy.',
     ],
     event: 'zoom',
   },

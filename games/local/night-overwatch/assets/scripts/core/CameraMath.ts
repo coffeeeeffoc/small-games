@@ -1,4 +1,4 @@
-import { AIRFRAME } from './Data.ts';
+import { AIRFRAME, ZOOM_LEVELS } from './Data.ts';
 import { aircraftPoint } from './Flight.ts';
 
 export type Position = { x: number; y: number; z: number };
@@ -110,7 +110,7 @@ export function aircraftCamera(
   const rotatedUp = { x: up.x * c + right.x * s, y: up.y * c, z: up.z * c + right.z * s };
   // The wide view includes the horizon. Sky rays return null; zoom never changes aircraft position.
   const baseFov = Math.atan(Math.tan(35 * radians) * Math.max(1, 1.5 / Math.max(0.1, aspect)));
-  const fov = clamp((2 * Math.atan(Math.tan(baseFov) / clamp(zoom, 0.65, 5))) / radians, 12, 88);
+  const fov = clamp((2 * Math.atan(Math.tan(baseFov) / clamp(zoom, 0.65, ZOOM_LEVELS.at(-1)!))) / radians, 0.1, 88);
   return { position, target, up: rotatedUp, fov, elevation, range, sensorRotation };
 }
 

@@ -444,6 +444,7 @@ export class World {
   readonly aircraftModel: AircraftModel;
   center: Point = { x: 0, z: 0 };
   zoom = 1;
+  zoomLimit = 5;
   follow = false;
   focusSpan?: { x: number; z: number };
   temporary = false;
@@ -1031,12 +1032,12 @@ export class World {
       -MAP.halfDepth,
       MAP.halfDepth,
     );
-    this.zoom = clamp(Number.isFinite(this.zoom) ? this.zoom : 1, 0.65, 5);
+    this.zoom = clamp(Number.isFinite(this.zoom) ? this.zoom : 1, 0.65, this.zoomLimit);
     this.cameraFrame = aircraftCamera(
       this.plane,
       this.center,
       this.height,
-      this.zoom * (this.temporary ? 1.5 : 1),
+      Math.min(this.zoomLimit, this.zoom * (this.temporary ? 1.5 : 1)),
       aspect,
       this.sensorRotation,
     );
@@ -1062,7 +1063,7 @@ export class World {
   adjustZoom(factor: number, screenX?: number, screenY?: number) {
     if (this.cameraPaused || !Number.isFinite(factor) || factor <= 0) return;
     const anchor = screenX === undefined || screenY === undefined ? null : this.aimAt(screenX, screenY);
-    this.zoom = clamp(this.zoom * factor, 0.65, 5);
+    this.zoom = clamp(this.zoom * factor, 0.65, this.zoomLimit);
     this.updateCamera();
     // Preserve the terrain under the gesture, with bounded correction for perspective and hills.
     if (anchor && screenX !== undefined && screenY !== undefined) {

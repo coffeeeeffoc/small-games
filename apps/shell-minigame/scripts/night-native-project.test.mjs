@@ -1,14 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { prepareNativeProject, adaptationRecipeSha256 } from './night-native-project.mjs';
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
-const originalCommit = '1e99fc74e055f78638322f2b9df1602736561af9';
-// A real-project source fixture restored from reviewed git objects; no Creator output is fabricated.
+// Real canonical inputs, pinned by the native guard recipe; no Creator output is fabricated.
 async function fixture() {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'night-project-verification-'));
   const gameRoot = path.join(temp, 'games/local/night-overwatch');
@@ -21,15 +19,6 @@ async function fixture() {
     );
   for (const file of ['package.json', 'tsconfig.json'])
     await cp(path.join(repository, 'games/local/night-overwatch', file), path.join(gameRoot, file));
-  for (const file of ['HUD.ts', 'Platform.ts'])
-    await writeFile(
-      path.join(gameRoot, 'assets/scripts', file),
-      execFileSync(
-        'git',
-        ['show', `${originalCommit}:games/local/night-overwatch/assets/scripts/${file}`],
-        { cwd: repository },
-      ),
-    );
   const cardScripts = path.join(temp, 'games/local/carding-car/scripts');
   await mkdir(cardScripts, { recursive: true });
   for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'])
@@ -54,14 +43,14 @@ test('actual native guards preserve canonical source and independently compute t
     const platform = await readFile(path.join(gameRoot, 'assets/scripts/Platform.ts'));
     assert.equal(
       await artifact.sourceHash(gameRoot),
-      '0a526904ba89cf3376ba7bf46a1a7fce4a98bc0d2fb94bdcc6abad0a963cfbb0',
+      'c6d19020bb69f6e74d20e921da306f7add7cd02e015e078788367a20fa9e2f89',
     );
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(result.canonicalSourceHash, await artifact.sourceHash(gameRoot));
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
     assert.equal(
       result.sourceHash,
-      '4ae1b43f50f05f29b968109e136d40b8e4c42dad766204389f4588a5cd6685e2',
+      '63bd466d0de7e5c478d126c8f2a3b89852642907699a8920466f695d877210e2',
     );
     assert.equal(result.adaptationRecipeSha256, adaptationRecipeSha256);
     assert.equal(result.adaptation.creatorBuildVerified, false);
@@ -131,12 +120,15 @@ test('normalized CRLF input has an honest raw receipt and unchanged source hash'
   runFixture(async ({ gameRoot, stageBase }) => {
     for (const file of ['HUD.ts', 'Platform.ts']) {
       const name = path.join(gameRoot, 'assets/scripts', file);
-      await writeFile(name, (await readFile(name, 'utf8')).replaceAll('\n', '\r\n'));
+      await writeFile(
+        name,
+        (await readFile(name, 'utf8')).replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'),
+      );
     }
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(
       result.canonicalSourceHash,
-      '0a526904ba89cf3376ba7bf46a1a7fce4a98bc0d2fb94bdcc6abad0a963cfbb0',
+      'c6d19020bb69f6e74d20e921da306f7add7cd02e015e078788367a20fa9e2f89',
     );
     assert.notEqual(
       result.adaptation.inputs[0].canonicalSha256,
@@ -154,7 +146,7 @@ test('all legitimate hash inputs are copied and mutations produce their real nat
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
     assert.notEqual(
       result.sourceHash,
-      '4ae1b43f50f05f29b968109e136d40b8e4c42dad766204389f4588a5cd6685e2',
+      '63bd466d0de7e5c478d126c8f2a3b89852642907699a8920466f695d877210e2',
     );
   }));
 test('existing extension is copied with digest evidence but no authenticity claim', () =>

@@ -73,6 +73,41 @@ test('browser mouse-generated touches with simulate=false never replace or cance
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
 });
 
+test('reward requests pause, reject duplicate claims, preserve inventory on retry, and respect SDK outcomes', async () => {
+  const g = mission();
+  g.hud.t = (zh: string) => zh;
+  cc.sys.isBrowser = true;
+  try {
+    g.sim.setFire('touch:1', true);
+    await g.requestReward('homing');
+    assert.equal(g.hud.advert.mock, true);
+    assert(g.sim.pauses.has('advert')); assert.equal(g.sim.held.size, 0);
+    await g.requestReward('homing');
+    g.action('adClose'); g.action('adClose');
+    assert.equal(g.sim.homingAmmo, 1); assert.equal(g.platform.rewards.ammo, 1);
+    assert(!g.sim.pauses.has('advert'));
+    g.retry(); assert.equal(g.sim.homingAmmo, 1);
+    g.sim.pause('manual', true);
+    await g.requestReward('zoom'); g.action('adClose');
+    assert.equal(g.world.zoomLimit, 10); assert(g.sim.pauses.has('manual'));
+    for (const status of ['dismissed', 'unavailable', 'failed']) {
+      g.platform.rewardProvider = async () => ({ status });
+      await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 1);
+      assert(!g.hud.advert); assert(!g.sim.pauses.has('advert'));
+    }
+    g.platform.rewardProvider = async () => { throw Error('SDK unavailable'); };
+    await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 1);
+    g.platform.rewardProvider = async (opportunity: any) => {
+      assert.equal(opportunity.id, 'night-overwatch:homing');
+      assert.deepEqual(opportunity.reward, { homing: 1 });
+      return { status: 'completed' };
+    };
+    await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 2);
+    g.platform.rewardProvider = undefined; cc.sys.isBrowser = false;
+    assert.equal(await g.platform.offerReward('homing'), 'unavailable');
+  } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
+});
+
 test('a real touch activates initially desktop-classified native devices and trigger release stays safe', () => {
   const g = mission();
   assert.equal(g.platform.touchInput, false);
