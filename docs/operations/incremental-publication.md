@@ -2,6 +2,12 @@
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 
+## 当前 Web 测试阶段与原生发布开关
+
+`MINIGAME_RELEASE_GATES` 默认未设置或为 `0`：保留准确候选、格式、注册、依赖边界、构建、类型、lint、规则及 Web/手机 Web 的真实入口和触屏检查；暂缓各原生小游戏平台的构建、转换、资源包和宿主冒烟门禁。日志明确记录 deferred，不表示原生平台通过。Cocos 的 Web 产物和引擎声明仍须来自 Creator 3.8.8 或源码匹配的真实制品。
+
+正式开始平台接入验收时，本地设置 `$env:MINIGAME_RELEASE_GATES='1'`，再执行候选校验或正常 push；GitHub 仓库 Actions Variable `MINIGAME_RELEASE_GATES=1` 控制 CI 的同一门禁，并启用 TapTap Cocos 专项 workflow。仅接受 `0`/`1`，无效值报错。未配置变量时 dev 的 Web/手机 Web 部署不受未验收原生包阻塞。显式运行原生 build、转换、导入或 ZIP 验证工具仍执行它们自己的完整校验，不受此开关豁免。下面原生验收要求在开启后执行，Web 发布要求始终执行。
+
 ```sh
 git ls-remote origin refs/heads/dev
 git fetch origin dev

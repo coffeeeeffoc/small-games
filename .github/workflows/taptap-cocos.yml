@@ -1,0 +1,83 @@
+name: TapTap Cocos exact-source inputs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  producer:
+    if: vars.MINIGAME_RELEASE_GATES == '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        game: [carding-car, night-overwatch]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @coffeeeeffoc/carding-car setup
+      - name: Fetch the pinned official extension before execution
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .scratch/tap-tools | Out-Null
+          Invoke-WebRequest 'https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip' -OutFile .scratch/tap-tools/plugin.zip
+          if ((Get-FileHash .scratch/tap-tools/plugin.zip).Hash.ToLowerInvariant() -ne '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f') { throw 'Official plugin checksum changed' }
+          Expand-Archive .scratch/tap-tools/plugin.zip .scratch/tap-tools/extension
+      - name: Install frozen extension dependencies without lifecycle scripts
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix .scratch/tap-tools/extension/taptap-minigame-tools
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --ignore-scripts --no-audit --no-fund --prefix .scratch/tap-tools/extension/taptap-minigame-tools/converter
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build real Creator sources and capture actual official conversion
+        run: node apps/shell-minigame/scripts/taptap-cocos-inputs.mjs --build --game ${{ matrix.game }} --plugin-dir .scratch/tap-tools/extension/taptap-minigame-tools --plugin-archive .scratch/tap-tools/plugin.zip --output .scratch/tap-inputs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: taptap-inputs-${{ matrix.game }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .scratch/tap-inputs
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce the original import gates on captured outputs
+        run: node apps/shell-minigame/scripts/taptap-cocos-inputs.mjs --verify .scratch/tap-inputs --plugin-dir .scratch/tap-tools/extension/taptap-minigame-tools --plugin-archive .scratch/tap-tools/plugin.zip
+  consumer:
+    needs: producer
+    # Missing or rejected input cannot become a passing consumer.
+    strategy:
+      fail-fast: false
+      matrix:
+        game: [carding-car, night-overwatch]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: taptap-inputs-${{ matrix.game }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .scratch/tap-inputs
+      - name: Extract the pinned plugin without running bundle scripts
+        run: |
+          echo '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f  .scratch/tap-inputs/plugin.zip' | sha256sum --check
+          unzip -q .scratch/tap-inputs/plugin.zip -d .scratch/tap-extension
+      - name: Verify transport, current native sources and unchanged import gates
+        run: node apps/shell-minigame/scripts/taptap-cocos-inputs.mjs --verify .scratch/tap-inputs --plugin-dir .scratch/tap-extension/taptap-minigame-tools --plugin-archive .scratch/tap-inputs/plugin.zip

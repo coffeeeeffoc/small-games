@@ -324,6 +324,35 @@ test('login staging rejects source overlap before deletion or mutation', () =>
     );
     assert.deepEqual(await inventory(options.convertedDirectory), before);
   }));
+
+test('real Creator preview metadata is normalized only in the independent login copy', () =>
+  withFixture(async (options) => {
+    await writeFile(
+      path.join(options.convertedDirectory, 'project.config.json'),
+      JSON.stringify({ appid: 'touristappid' }),
+    );
+    const before = await inventory(options.convertedDirectory);
+    const output = path.join(options.base, 'creator-preview');
+    await prepareTapTapCocosLogin({
+      convertedDirectory: options.convertedDirectory,
+      outputDirectory: output,
+      config: { platform: 'taptap', game: 'carding-car', appId: '', apiUrl: '', preview: true },
+    });
+    assert.equal(
+      JSON.parse(await readFile(path.join(output, 'project.config.json'), 'utf8')).appid,
+      '',
+    );
+    assert.deepEqual(await inventory(options.convertedDirectory), before);
+    await writeFile(path.join(options.convertedDirectory, 'game.js'), 'wx.createCanvas();');
+    await assert.rejects(
+      prepareTapTapCocosLogin({
+        convertedDirectory: options.convertedDirectory,
+        outputDirectory: path.join(options.base, 'invalid-runtime'),
+        config: { platform: 'taptap', game: 'carding-car', appId: '', apiUrl: '', preview: true },
+      }),
+      /no reachable tap API boundary/,
+    );
+  }));
 test('login staging refuses an independent nonempty destination without changing either input', () =>
   withFixture(async (options) => {
     const output = path.join(options.base, 'existing-project');
@@ -395,7 +424,7 @@ test('receipt-derived source and linked output ancestors are checked before clea
     );
     assert.equal((await inventory(source)).length, 1);
     const linked = path.join(outputRoot, 'linked');
-    await symlink(outputRoot, linked);
+    await symlink(outputRoot, linked, process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(
       buildTapTapCocosTarget(selected, config, { outputRoot: linked, env: {} }),
       /output path contains a symlink/,

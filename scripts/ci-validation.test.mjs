@@ -56,6 +56,13 @@ test('workflow skips are tied to explicit shared risk; metadata retains static a
   const ci = await load('.github/workflows/ci.yml');
   const pages = await load('.github/workflows/pages.yml');
   const validation = await load('.github/workflows/pages-validate.yml');
+  const tap = await load('.github/workflows/taptap-cocos.yml');
+  assert.equal(
+    ci.jobs.quality.env.MINIGAME_RELEASE_GATES,
+    "${{ vars.MINIGAME_RELEASE_GATES || '0' }}",
+  );
+  assert.equal(tap.jobs.producer.if, "vars.MINIGAME_RELEASE_GATES == '1'");
+  assert.equal(tap.jobs.consumer.needs, 'producer');
   assert.equal(ci.jobs.kart.if, "needs.plan.outputs.cocos == 'true'");
   assert(
     ci.jobs.quality.if.includes(

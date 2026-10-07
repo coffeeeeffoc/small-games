@@ -12,8 +12,24 @@ import {
   appIdVariable,
   targetOptions,
 } from './nine-games-targets.mjs';
-import { inventory, verifyArtifact, runBuild } from './nine-games-build.mjs';
+import { inventory, verifyArtifact, runBuild, workspaceSourceFile } from './nine-games-build.mjs';
 import { withCompetitionAvailability } from '../src/competition-availability.mjs';
+
+test('Vite module paths retain actual workspace provenance on Windows and POSIX', () => {
+  const root = path.resolve('source-root');
+  for (const file of [
+    path.join(root, 'games/native.js'),
+    path.join(root, 'games/native.js').replaceAll('\\', '/'),
+  ])
+    assert.equal(Boolean(workspaceSourceFile(file, root)), true);
+  for (const file of [
+    path.join(root, 'node_modules/pkg/index.js'),
+    path.join(root, '.scratch/entry.mjs'),
+    path.resolve('source-root-other/native.js'),
+    '\0virtual',
+  ])
+    assert.equal(Boolean(workspaceSourceFile(file, root)), false);
+});
 
 test('unconfigured competition ignores old credentials and never performs real login or transport', () => {
   let calls = 0;

@@ -179,6 +179,15 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
   for (const entry of entries) await visit(path.resolve(dir, entry));
 }
 
+export function nativeReleaseGatesEnabled(env = process.env) {
+  const value = env.MINIGAME_RELEASE_GATES;
+  assert(
+    value === undefined || value === '' || value === '0' || value === '1',
+    'MINIGAME_RELEASE_GATES must be 0 or 1',
+  );
+  return value === '1';
+}
+
 export function runNineNativeChecks({
   plan,
   packages,
@@ -227,6 +236,13 @@ export function runNineNativeChecks({
       }
   if (!targets.size) {
     executeRootChecks();
+    return;
+  }
+  if (!nativeReleaseGatesEnabled(env)) {
+    executeRootChecks();
+    console.log(
+      `MINIGAME_RELEASE_GATES=0: deferred ${targets.size} native platform targets; platform acceptance unverified.`,
+    );
     return;
   }
   const host = packages.find((pkg) => pkg.dir === 'apps/shell-minigame');
@@ -363,6 +379,12 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  const releaseGates = nativeReleaseGatesEnabled(env);
+  const competition = plan.competition && {
+    ...plan.competition,
+    native: plan.competition.native && releaseGates,
+  };
+  const nativeConsumers = releaseGates ? plan.native_consumers : [];
   if (plan.competition?.config_tests)
     execute(
       process.execPath,
@@ -371,15 +393,15 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
-  if (plan.competition && ['h5', 'native', 'letters'].some((key) => plan.competition[key]))
+  if (competition && ['h5', 'native', 'letters'].some((key) => competition[key]))
     execute(
       process.execPath,
-      ['scripts/run-selected-competition.mjs', JSON.stringify(plan.competition)],
+      ['scripts/run-selected-competition.mjs', JSON.stringify(competition)],
       root,
       env,
       'logged',
     );
-  if (plan.native_consumers.length) {
+  if (nativeConsumers.length) {
     // The native replay consumes this rule suite's generated action witness.
     // Generate it inside the exact candidate snapshot before either host smoke.
     const producer = packages.find((pkg) => pkg.dir === 'games/local/game-building-power');
@@ -390,7 +412,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute('pnpm', ['--filter', producer.name, 'test:rules'], root, env, 'logged');
   }
-  for (const dir of plan.native_consumers) {
+  for (const dir of nativeConsumers) {
     const pkg = packages.find((item) => item.dir === dir);
     const consumer = nativeToolConsumers.find((item) => item.dir === dir);
     assert(reviewedNativeTest(pkg, consumer) && pkg.scripts.smoke === consumer.smoke);
@@ -421,6 +443,9 @@ export async function validateTree({
   prepareBrowser = () => {},
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
+  console.log(
+    `Native platform publication gates: ${nativeReleaseGatesEnabled(clean) ? 'enabled' : 'deferred (Web validation remains required)'}`,
+  );
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   assert(process.version === `v${manifest.volta.node}`, `Use Node ${manifest.volta.node}`);
   const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';

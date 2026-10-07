@@ -544,6 +544,22 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
       ) {
         scopes.set(file, []);
       } else if (file === '.github/workflows/ci.yml') {
+        const beforeText = readBase(file),
+          afterText = readHead(file);
+        const gateAnchor = '    env:\n      KART_PREBUILT_DIR:';
+        if (
+          createHash('sha256').update(beforeText).digest('hex') ===
+            planningCheckoutHashes[file].parser &&
+          beforeText.split(gateAnchor).length === 2 &&
+          afterText ===
+            beforeText.replace(
+              gateAnchor,
+              "    env:\n      MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}\n      KART_PREBUILT_DIR:",
+            )
+        ) {
+          scopes.set(file, []);
+          continue;
+        }
         const yaml = loadDependency('js-yaml');
         const before = yaml.load(readBase(file)),
           after = yaml.load(readHead(file));
