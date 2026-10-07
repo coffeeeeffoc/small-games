@@ -110,7 +110,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(game).toHaveAttribute('data-screen', 'home');
     expect(
       await game.evaluate(
-        () => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).currentGame,
+        () =>
+          JSON.parse(globalThis.localStorage.getItem('three-choose-two-progress-v1')).currentGame,
       ),
     ).toBeNull();
     await expect(frame.locator('[data-action="start"]')).toBeVisible();
