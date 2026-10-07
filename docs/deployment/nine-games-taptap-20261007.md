@@ -77,7 +77,9 @@ Night 使用相同命令替换 `--game`。`--output` 必须是新目录或现有
 
 本次已运行平台和宿主规则测试、登录服务契约测试、类型检查与 lint、增量范围/runner 回归。七款源工程在无 DOM/BOM 的 Tap fixture 下验证实际生产 bundle、触控、存档、前后台和清理；外滩使用 Chromium DedicatedWorker 的真实 WebGL 和包路径 Rapier WASM。已有网页入口（词屿、象五子棋、乌龙城）生产构建/手机浏览器冒烟和 26 项开发模式浏览器检查通过。
 
-云环境缺 Creator 3.8.8、官方插件及两款真实 Tap 转换输入，插件下载域名受网络策略限制。仓库 `AGENTS.md` 和 `docs/operations/incremental-publication.md` 要求准确已提交候选 SHA 的增量验证，缺匹配制品属于输入阻塞，禁止伪造。因此不能把七款本地成功标为九款发布通过；待工具/制品可用后重新校验最终 base/head，正常 push dev，并核对该 head 的 CI/Pages。
+云环境缺 Creator 3.8.8、官方插件及两款真实 Tap 转换输入，插件下载域名受网络策略限制。仓库 `AGENTS.md` 和 `docs/operations/incremental-publication.md` 要求准确已提交候选 SHA 的增量验证，缺匹配制品属于输入阻塞，禁止伪造。因此不能把七款本地成功标为九款发布通过。
+
+用户随后明确要求先推送代码到 dev，官方工具验收由其电脑本地继续。这次按代码交接处理：在准确已提交 base/head 的干净快照补验不依赖 Creator 的增量代码、网页入口及七款 Tap 宿主；两款 Creator SDK 类型、真实构建、官方转换和运行检查明确延期。仅本次交接推送例外，仓库 hooks、验证脚本和 CI 门禁保持严格；CI 如因缺实际转换输入失败，记录其真实状态。补齐本地工具/制品后，仍须重新运行完整候选校验及官方工具、真机验收。
 
 本地完整日志放在 `.scratch/taptap-validation/`；外滩运行证据为 `.scratch/taptap-smoke/travel-bund-runtime.json` 和 PNG。最终候选命令、准确 SHA 及门禁结果单独保存在验证目录，不使用先前工作区测试替代候选检查。
 
