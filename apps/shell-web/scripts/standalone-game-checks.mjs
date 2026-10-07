@@ -8,6 +8,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'cage-rescue') {
+    const { assertCageRescueGameplay } = await import('./game-checks/cage-rescue.mjs');
+    return assertCageRescueGameplay(frame, mobile);
+  }
   const click = (locator) => (mobile ? locator.tap() : locator.click());
   // Keep input native in both the embedded desktop and direct touch checks.
   const holdControl = async (selector, key, check) => {

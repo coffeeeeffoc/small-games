@@ -32,6 +32,7 @@ async function mounted(id = ink) {
 }
 
 it.each([
+  'cage-rescue',
   'chase-thief',
   'orbit-atelier',
   'ink-is-everything',

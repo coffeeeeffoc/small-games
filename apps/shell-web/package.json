@@ -97,7 +97,8 @@
     "@coffeeeeffoc/flick-arena": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/tetracube": "workspace:*",
-    "@coffeeeeffoc/tower-brake": "workspace:*"
+    "@coffeeeeffoc/tower-brake": "workspace:*",
+    "@coffeeeeffoc/cage-rescue": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

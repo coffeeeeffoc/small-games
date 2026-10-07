@@ -13,26 +13,18 @@ const baseline = '748f0b15be225ecb03807b4a7b1a3cd737298bda';
 const competition = 'platforms/competition/native.js';
 const nightHelper = 'apps/shell-web/scripts/standalone-game-checks.mjs';
 const nightSource = 'games/local/night-overwatch';
-const historicalNightBase = execFileSync(
+const nightBase = execFileSync(
   'git',
   ['show', `d3874c73bd75128b45082c4815afef8f9918169a:${nightHelper}`],
   { encoding: 'utf8' },
 );
-const nightHead = snapshotNight();
-// Keep the reviewed historical body, with today's surrounding game registrations.
-// The production classifier still verifies both body hashes and unchanged surroundings.
-const nightStart = "  } else if (id === 'night-overwatch') {";
-const nightEnd = "  } else if (id === 'carding-car') {";
-const nightBase =
-  nightHead.slice(0, nightHead.indexOf(nightStart)) +
-  historicalNightBase.slice(
-    historicalNightBase.indexOf(nightStart),
-    historicalNightBase.indexOf(nightEnd),
-  ) +
-  nightHead.slice(nightHead.indexOf(nightEnd));
-function snapshotNight() {
-  return readFileSync(new URL('../' + nightHelper, import.meta.url), 'utf8');
-}
+// This proof is for the exact historical Night substitution. The current
+// shared helper may contain unrelated game additions, which must stay rejected.
+const nightHead = execFileSync(
+  'git',
+  ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${nightHelper}`],
+  { encoding: 'utf8' },
+);
 function nightContext() {
   return {
     changedPaths: [nightHelper],
@@ -52,7 +44,11 @@ const reviewedCompetitionHead = execFileSync('git', ['show', `f96e909:${competit
   encoding: 'utf8',
 });
 const reviewedSnapshot = (file) =>
-  file === competition ? reviewedCompetitionHead : snapshot(file);
+  file === competition
+    ? reviewedCompetitionHead
+    : file === nightHelper
+      ? nightHead
+      : snapshot(file);
 const packages = [
   ...catalog.map((game) => ({ dir: game.source })),
   ...['apps/shell-minigame', 'apps/shell-bilibili', 'platforms/bilibili'].map((dir) => ({ dir })),
@@ -303,6 +299,14 @@ test('Night classification fails closed for unavailable or unreviewed bodies and
   for (const variant of variants) {
     assert.equal(nightProtocolFileScopes({ ...nightContext(), ...variant }).size, 0);
   }
+});
+
+test('current shared gameplay additions cannot borrow the historical Night-only scope', () => {
+  const current = snapshot(nightHelper);
+  assert.notEqual(current, nightHead, 'Current gameplay has independently reviewed game additions');
+  assert.equal(nightProtocolFileScopes({ ...nightContext(), readHead: () => current }).size, 0);
+  const c = { ...context([nightHelper]), readBase: () => nightBase, readHead: () => current };
+  assert.equal(nineNativeFileScopes(c).size, 0);
 });
 
 test('integrated Night scope requires exact catalog identity and actual workspace', () => {

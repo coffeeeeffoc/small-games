@@ -67,6 +67,17 @@
         "time": "2026-10-05T03:19:51Z"
       }
     },
+    "cage-rescue": {
+      "source": "games/local/cage-rescue",
+      "created": {
+        "commit": "20d70c70becc04baccdcff1ec84b487f116d4966",
+        "time": "2026-10-07T08:42:29Z"
+      },
+      "updated": {
+        "commit": "15871dfc67d198e86411b0e63a5ddedd4f263ef3",
+        "time": "2026-10-07T08:52:27Z"
+      }
+    },
     "carding-car": {
       "source": "games/local/carding-car",
       "created": {
@@ -283,8 +294,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "44fcdbc6f38369274afbe6bc8a48c169052907c2",
-        "time": "2026-10-06T16:58:51Z"
+        "commit": "e48a4c8b5c82311683611c9a5fe1f6786d6ebed2",
+        "time": "2026-10-06T23:23:35Z"
       }
     },
     "luban-workshop": {
@@ -360,8 +371,8 @@
         "time": "2026-09-28T13:34:28+08:00"
       },
       "updated": {
-        "commit": "e2159fe3bef5d7cd160d53072654783b645c1877",
-        "time": "2026-10-06T18:53:47Z"
+        "commit": "c90c64f7267bbef75fd8f68323dc8a4ca5f4d688",
+        "time": "2026-10-06T20:19:20Z"
       }
     },
     "off-camera": {
@@ -492,8 +503,8 @@
         "time": "2026-10-06T19:20:40Z"
       },
       "updated": {
-        "commit": "65b64c76212517bd6202f473d61547060306bb24",
-        "time": "2026-10-06T20:49:26Z"
+        "commit": "edad086a68565feba5fd361fdac45e26028aaec6",
+        "time": "2026-10-07T08:58:18Z"
       }
     },
     "tianxia-chalu": {
@@ -516,6 +527,17 @@
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
         "time": "2026-10-05T03:18:51+08:00"
+      }
+    },
+    "tower-brake": {
+      "source": "games/local/tower-brake",
+      "created": {
+        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
+        "time": "2026-10-06T21:21:45Z"
+      },
+      "updated": {
+        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
+        "time": "2026-10-07T08:47:27Z"
       }
     },
     "tower-defense-game": {
@@ -547,8 +569,8 @@
         "time": "2026-09-16T02:32:15+08:00"
       },
       "updated": {
-        "commit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
-        "time": "2026-10-06T18:28:08Z"
+        "commit": "d796f243c07809366cb338d884180c3bde55ac39",
+        "time": "2026-10-06T21:09:48Z"
       }
     },
     "travel-bund-25d": {
@@ -681,17 +703,6 @@
       "updated": {
         "commit": "bcaddf603c28b416a856d51d01c8b7d386c71a3e",
         "time": "2026-10-06T22:48:27+08:00"
-      }
-    },
-    "tower-brake": {
-      "source": "games/local/tower-brake",
-      "created": {
-        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
-        "time": "2026-10-06T21:21:45Z"
-      },
-      "updated": {
-        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
-        "time": "2026-10-07T08:47:27Z"
       }
     }
   }
