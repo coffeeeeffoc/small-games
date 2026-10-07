@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#193e46" />
+    <title>收兵再冲 · 退一步，赢下一场</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23224e70'/%3E%3Ctext x='7' y='29' font-size='27' fill='%23f4d797'%3E兵%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./src/main.mjs"></script>
+  </head>
+  <body>
+    <main id="game" data-screen="home" aria-label="收兵再冲">
+      <canvas id="battlefield" aria-label="蓝红两军的单线战场"></canvas>
+      <div class="vignette"></div>
+      <section id="home" class="screen home">
+        <div class="edition"><span class="seal">一令</span> 一枚军令 · 一场逆转</div>
+        <div class="home-copy">
+          <p class="eyebrow">进退之间，自有胜负</p>
+          <h1>收兵<span>再冲</span><i>兵法小品</i></h1>
+          <p class="tagline">退一步，<em>赢下一场。</em></p>
+          <div class="title-line"></div>
+          <p class="home-note">保住人，才有下一次冲锋。</p>
+          <button id="start" class="button gold primary">开始战役 <span>→</span></button>
+          <button id="levels-open" class="text-button">
+            战役地图 <span id="progress-count">〇 / 三</span>　↗
+          </button>
+        </div>
+        <div class="home-modes">
+          <button id="random-open" class="mode-button">
+            <span class="mode-icon">⚔</span><span>随机匹配<small>模拟对手 · 随时开战</small></span
+            ><b>↗</b></button
+          ><button id="friend-open" class="mode-button">
+            <span class="mode-icon">⚑</span><span>好友对战<small>同屏双人 · 各执一军</small></span
+            ><b>↗</b>
+          </button>
+        </div>
+        <div class="home-tools">
+          <button id="help-open" class="small-button">玩法</button
+          ><button id="mute" class="small-button" aria-label="切换音效">音效 开</button
+          ><button class="small-button" data-game-fullscreen>全屏</button>
+        </div>
+        <span class="home-footer">青岚军 · 出征卷一</span>
+      </section>
+      <section id="levels" class="screen paper-screen" hidden>
+        <div class="page-heading">
+          <button class="back small-button" data-go="home">← 回营</button>
+          <div>
+            <p class="eyebrow">出征卷一 · 山河三关</p>
+            <h2>行军图</h2>
+          </div>
+          <span id="map-progress"></span>
+        </div>
+        <div id="level-list" class="level-list"></div>
+        <p class="page-footnote">保全六人夺旗，获得三枚军功。通关解锁下一关。</p>
+      </section>
+      <section id="prepare" class="screen paper-screen" hidden>
+        <div class="page-heading">
+          <button class="back small-button" data-go="home">← 回营</button>
+          <div>
+            <p class="eyebrow" id="prepare-eyebrow"></p>
+            <h2 id="prepare-title"></h2>
+          </div>
+        </div>
+        <div class="versus">
+          <div class="army-card blue">
+            <span class="army-emblem">岚</span>
+            <h3>青岚军</h3>
+            <p id="blue-role">你来指挥</p>
+          </div>
+          <div class="versus-mark">对阵<small>六人 · 一旗</small></div>
+          <div class="army-card red">
+            <span class="army-emblem">焰</span>
+            <h3>赤焰军</h3>
+            <p id="red-role"></p>
+          </div>
+        </div>
+        <p id="prepare-note" class="prepare-note"></p>
+        <button id="prepare-start" class="button gold">整军出发 →</button>
+      </section>
+      <section id="help" class="screen paper-screen" hidden>
+        <div class="page-heading">
+          <button class="small-button" data-go="home">← 回营</button>
+          <h2>一令定进退</h2>
+        </div>
+        <div class="help-rules">
+          <article>
+            <b>01</b>
+            <h3>松手，进攻</h3>
+            <p>六名士兵自动推进、接敌战斗。夺下敌旗就能获胜。</p>
+          </article>
+          <article>
+            <b>02</b>
+            <h3>按住，收兵</h3>
+            <p>撤出接战范围后恢复体力。阵亡无法挽回，收兵不会回血。</p>
+          </article>
+          <article>
+            <b>03</b>
+            <h3>等箭落，再冲</h3>
+            <p>橙色区域是箭雨落点。躲完全部齐射，趁装填突破。</p>
+          </article>
+        </div>
+        <p class="prepare-note">一直退会丢军旗，一直冲会耗尽体力。胜负在进退时机。</p>
+        <button class="button gold" data-go="home">领命，回营</button>
+      </section>
+      <section id="battle" class="screen battle" hidden>
+        <header class="battle-hud">
+          <div class="army-status">
+            <div><b>⚑ 青岚军</b><span id="blue-count"></span></div>
+            <div class="flag-meter"><i id="blue-flag"></i></div>
+            <small id="blue-stamina"></small>
+          </div>
+          <div class="battle-title">
+            <span id="battle-name"></span><small id="battle-time">00:00</small>
+          </div>
+          <div class="army-status enemy">
+            <div><span id="red-count"></span><b>赤焰军 ⚑</b></div>
+            <div class="flag-meter"><i id="red-flag"></i></div>
+            <small id="red-stamina"></small>
+          </div>
+          <button id="pause" class="pause-button" aria-label="暂停"><i></i><i></i></button>
+        </header>
+        <div id="volley-notice" class="volley-notice" role="status"><b></b><small></small></div>
+        <div id="battle-hint" class="battle-hint"></div>
+        <div id="command-state" class="command-state">
+          <span class="status-dot"></span><b>全军进攻</b><small>看准箭雨，再退一步</small>
+        </div>
+        <button
+          id="retreat-blue"
+          class="retreat-button"
+          aria-label="蓝方按住收兵"
+          aria-pressed="false"
+        >
+          <span class="retreat-arrows">‹‹</span><span><b>按住收兵</b><small>松手进攻</small></span
+          ><span class="hold-ring"></span>
+        </button>
+        <button
+          id="retreat-red"
+          class="retreat-button red-button"
+          aria-label="红方按住收兵"
+          aria-pressed="false"
+          hidden
+        >
+          <span><b>赤焰 · 收兵</b><small>松手进攻</small></span
+          ><span class="retreat-arrows">››</span>
+        </button>
+      </section>
+      <section id="paused" class="screen paper-screen compact-panel" hidden>
+        <p class="eyebrow">鸣金暂歇</p>
+        <h2>整军，再出发</h2>
+        <p>战场已暂停，等你一声令下。</p>
+        <button id="resume" class="button gold">继续战斗 →</button>
+        <div class="row">
+          <button id="restart" class="small-button">重新出战</button
+          ><button class="small-button" data-game-fullscreen>全屏</button
+          ><button class="small-button" data-go="home">返回营地</button>
+        </div>
+      </section>
+      <section id="result" class="screen paper-screen compact-panel" hidden>
+        <p id="result-eyebrow" class="eyebrow"></p>
+        <h2 id="result-title"></h2>
+        <div id="result-medals" class="result-medals"></div>
+        <p id="result-reason"></p>
+        <div id="result-stats" class="result-stats"></div>
+        <button id="next" class="button gold">下一关 →</button>
+        <div class="row">
+          <button id="retry" class="small-button">再战一局</button
+          ><button class="small-button" data-go="home">返回营地</button>
+        </div>
+      </section>
+      <div id="notice" role="status" hidden></div>
+    </main>
+  </body>
+</html>
