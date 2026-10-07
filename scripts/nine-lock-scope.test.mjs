@@ -419,3 +419,130 @@ test('fails closed on quoted importer names even if base and head both contain t
     mutate(files, LOCK, (value) => value.replace('  base-tools:', "  'base-tools':"));
   denied(f);
 });
+
+function taptapFixture() {
+  const legacy = fixture();
+  const base = new Map(legacy.head),
+    head = new Map(base);
+  const taptap = 'platforms/taptap';
+  const tapImporter = alipayImporter.replace(ALIPAY, taptap);
+  const tapLink = entry(
+    '@coffeeeeffoc/platform-taptap',
+    'workspace:*',
+    'link:../../platforms/taptap',
+  );
+  head.set(
+    LOCK,
+    base
+      .get(LOCK)
+      .replace(shellLink, shellLink + tapLink)
+      .replace(alipayImporter, alipayImporter + tapImporter),
+  );
+  const shell = JSON.parse(base.get(`${SHELL}/package.json`));
+  shell.dependencies['@coffeeeeffoc/platform-taptap'] = 'workspace:*';
+  Object.assign(shell.scripts, {
+    'build:taptap': 'node scripts/taptap-build.mjs',
+    'test:taptap': 'node scripts/taptap-smoke.mjs',
+  });
+  head.set(`${SHELL}/package.json`, serialize(shell));
+  const platform = JSON.parse(base.get(`${ALIPAY}/package.json`));
+  platform.name = '@coffeeeeffoc/platform-taptap';
+  head.set(`${taptap}/package.json`, serialize(platform));
+  const read = (files) => (file) => {
+    if (!files.has(file)) throw Error(`Missing ${file}`);
+    return files.get(file);
+  };
+  return {
+    base,
+    head,
+    tapImporter,
+    tapLink,
+    context: { changedPaths: [LOCK], readBase: read(base), readHead: read(head) },
+  };
+}
+
+test('new TapTap importer reuses only existing tuples and maps only its platform plus Shell', () => {
+  const f = taptapFixture();
+  assert.deepEqual([...nineLockFileScopes(f.context)], [[LOCK, [SHELL, 'platforms/taptap']]]);
+});
+
+for (const [label, alter] of [
+  [
+    'new external resolution',
+    (f) => mutate(f.head, LOCK, (s) => s.replace('sha512-AAAA==', 'sha512-CCCC==')),
+  ],
+  [
+    'new unrelated importer',
+    (f) =>
+      mutate(f.head, LOCK, (s) => s.replace(f.tapImporter, f.tapImporter + '  unreviewed: {}\n\n')),
+  ],
+  [
+    'duplicate TapTap importer',
+    (f) => mutate(f.head, LOCK, (s) => s.replace(f.tapImporter, f.tapImporter + f.tapImporter)),
+  ],
+  [
+    'preexisting TapTap importer',
+    (f) => mutate(f.base, LOCK, (s) => s.replace(alipayImporter, alipayImporter + f.tapImporter)),
+  ],
+  [
+    'alternate TapTap peer tuple',
+    (f) =>
+      mutate(f.head, LOCK, (s) =>
+        s.replace(f.tapImporter, f.tapImporter.replace('jiti@2.7.0', 'jiti@2.8.0')),
+      ),
+  ],
+  [
+    'wrong Shell TapTap link',
+    (f) =>
+      mutate(f.head, LOCK, (s) =>
+        s.replace(f.tapLink, f.tapLink.replace('platforms/taptap', 'platforms/wechat')),
+      ),
+  ],
+  [
+    'wrong TapTap package identity',
+    (f) =>
+      manifestMutation(f.head, 'platforms/taptap', (p) => {
+        p.name = '@coffeeeeffoc/platform-wechat';
+      }),
+  ],
+  [
+    'new external TapTap dependency',
+    (f) =>
+      manifestMutation(f.head, 'platforms/taptap', (p) => {
+        p.dependencies.external = '1.0.0';
+      }),
+  ],
+  [
+    'wrong TapTap build command',
+    (f) =>
+      manifestMutation(f.head, SHELL, (p) => {
+        p.scripts['build:taptap'] = 'node scripts/nine-games-build.mjs';
+      }),
+  ],
+  [
+    'wrong TapTap smoke command',
+    (f) =>
+      manifestMutation(f.head, SHELL, (p) => {
+        p.scripts['test:taptap'] = 'echo skipped';
+      }),
+  ],
+  [
+    'unrelated Shell command',
+    (f) =>
+      manifestMutation(f.head, SHELL, (p) => {
+        p.scripts.test = 'echo skipped';
+      }),
+  ],
+  [
+    'missing target workspace baseline',
+    (f) => f.base.delete('packages/native-game-shell/package.json'),
+  ],
+  ['missing TapTap manifest', (f) => f.head.delete('platforms/taptap/package.json')],
+  ['extra TapTap lock byte', (f) => mutate(f.head, LOCK, (s) => s + '\n')],
+]) {
+  test(`TapTap lock proof fails closed: ${label}`, () => {
+    const f = taptapFixture();
+    alter(f);
+    denied(f);
+  });
+}

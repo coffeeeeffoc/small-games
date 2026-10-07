@@ -365,3 +365,185 @@ test('selected Cocos targets attempt the genuine native builder and missing tool
     '--preview',
   ]);
 });
+
+test('TapTap targets execute their own builder, package tests and smoke without five-channel packaging', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+      'build:taptap': 'node scripts/taptap-build.mjs',
+      'test:taptap': 'node scripts/taptap-smoke.mjs',
+    },
+  };
+  const packages = [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }];
+  const calls = [],
+    env = {};
+  let preparations = 0;
+  runNineNativeChecks({
+    plan: {
+      nine_native_targets: [
+        { game: 'travel-bund', platform: 'taptap' },
+        { game: 'wulong-city', platform: 'taptap' },
+      ],
+    },
+    packages,
+    root: '/candidate',
+    env,
+    prepareBrowser: () => {
+      preparations++;
+      env.PLAYWRIGHT_EXECUTABLE_PATH = '/browser';
+    },
+    execute: (...args) => calls.push(args),
+  });
+  const output = path.join('/candidate', 'apps/shell-minigame/dist/nine-games');
+  const builds = calls.filter((call) => call[1][0].endsWith('taptap-build.mjs'));
+  assert.deepEqual(
+    builds.map((call) => call[1]),
+    [
+      [
+        'apps/shell-minigame/scripts/taptap-build.mjs',
+        '--game',
+        'travel-bund',
+        '--preview',
+        '--output',
+        output,
+      ],
+      [
+        'apps/shell-minigame/scripts/taptap-build.mjs',
+        '--game',
+        'wulong-city',
+        '--preview',
+        '--output',
+        output,
+      ],
+    ],
+  );
+  assert(
+    !calls.some(
+      (call) =>
+        call[1].includes('test:nine:resources') || call[1][0].endsWith('nine-games-build.mjs'),
+    ),
+  );
+  assert(calls.some((call) => call[1].join(' ') === '--filter @coffeeeeffoc/platform-taptap test'));
+  const smokes = calls.filter((call) => call[1][0].endsWith('taptap-smoke.mjs'));
+  assert.equal(smokes.length, 2);
+  assert.equal(preparations, 1);
+  assert(smokes.every((call) => call[3].PLAYWRIGHT_EXECUTABLE_PATH === '/browser'));
+  assert(!calls.some((call) => call[1][0].endsWith('nine-travel-native-smoke.mjs')));
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: { nine_native_targets: [{ game: 'wulong-city', platform: 'taptap' }] },
+        packages: [
+          { ...host, scripts: { ...host.scripts, 'build:taptap': 'node fake.mjs' } },
+          packages[1],
+        ],
+        root: '/candidate',
+        env: {},
+        execute: () => assert.fail('unreviewed command must not execute'),
+      }),
+    /Unreviewed TapTap/,
+  );
+});
+
+test('a TapTap Creator conversion failure blocks before an old platform package can substitute', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+      'build:taptap': 'node scripts/taptap-build.mjs',
+      'test:taptap': 'node scripts/taptap-smoke.mjs',
+    },
+  };
+  const calls = [];
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: {
+          nine_native_targets: [
+            { game: 'carding-car', platform: 'taptap', requiresCreator: '3.8.8' },
+          ],
+        },
+        packages: [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }],
+        root: '/candidate',
+        env: {},
+        execute: (...args) => {
+          calls.push(args);
+          throw Error('Official TapTap conversion missing');
+        },
+      }),
+    /Official TapTap conversion missing/,
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1][0], 'apps/shell-minigame/scripts/taptap-build.mjs');
+  assert(!calls[0][1].includes('--platform'));
+});
+
+test('selected kart-sharing root contracts run before the TapTap Creator gate and unreviewed descriptors never execute', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const host = {
+    name: '@coffeeeeffoc/shell-minigame',
+    dir: 'apps/shell-minigame',
+    scripts: {
+      test: 'vitest run tests && node --test scripts/*.test.mjs',
+      'build:nine': 'node scripts/nine-games-build.mjs',
+      'build:taptap': 'node scripts/taptap-build.mjs',
+      'test:taptap': 'node scripts/taptap-smoke.mjs',
+    },
+  };
+  const calls = [];
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: {
+          nine_native_targets: [
+            { game: 'carding-car', platform: 'taptap', requiresCreator: '3.8.8' },
+          ],
+          nine_native_root_checks: [
+            {
+              file: 'scripts/kart-sharing.test.mjs',
+              args: ['--test', 'scripts/kart-sharing.test.mjs'],
+            },
+          ],
+        },
+        packages: [host, { dir: 'platforms/taptap', name: '@coffeeeeffoc/platform-taptap' }],
+        root: '/candidate',
+        env: {},
+        execute: (...args) => {
+          calls.push(args);
+          if (args[1][0].endsWith('taptap-build.mjs'))
+            throw Error('Official Creator conversion missing');
+        },
+      }),
+    /Official Creator conversion missing/,
+  );
+  assert.deepEqual(
+    calls.map((call) => call[1][0]),
+    ['--test', 'apps/shell-minigame/scripts/taptap-build.mjs'],
+  );
+  assert.deepEqual(calls[0][1], ['--test', 'scripts/kart-sharing.test.mjs']);
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        plan: {
+          nine_native_root_checks: [
+            {
+              file: 'scripts/unreviewed.test.mjs',
+              args: ['--test', 'scripts/unreviewed.test.mjs'],
+            },
+          ],
+        },
+        packages: [],
+        root: '/candidate',
+        env: {},
+        execute: () => assert.fail('unknown test must not execute'),
+      }),
+    /Unreviewed native root check/,
+  );
+});

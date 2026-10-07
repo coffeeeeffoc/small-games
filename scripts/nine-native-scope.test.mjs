@@ -37,6 +37,11 @@ const snapshot = (file) => readFileSync(new URL('../' + file, import.meta.url), 
 const beforeCompetition = execFileSync('git', ['show', `${baseline}:${competition}`], {
   encoding: 'utf8',
 });
+const reviewedCompetitionHead = execFileSync('git', ['show', `f96e909:${competition}`], {
+  encoding: 'utf8',
+});
+const reviewedSnapshot = (file) =>
+  file === competition ? reviewedCompetitionHead : snapshot(file);
 const packages = [
   ...catalog.map((game) => ({ dir: game.source })),
   ...['apps/shell-minigame', 'apps/shell-bilibili', 'platforms/bilibili'].map((dir) => ({ dir })),
@@ -46,7 +51,7 @@ function context(changedPaths = nineNativeScopePaths) {
     changedPaths,
     games: catalog,
     packages,
-    readHead: snapshot,
+    readHead: reviewedSnapshot,
     readBase: (file) => {
       if (file === competition) return beforeCompetition;
       throw new Error('No such file in reviewed base');
@@ -113,7 +118,7 @@ test('known mixed with unknown or similar paths never classifies the unknown pat
   );
 });
 test('Alipay is additive only: other execution, whitespace, reordered platforms and missing old guard reject', () => {
-  const head = snapshot(competition),
+  const head = reviewedSnapshot(competition),
     c = context([competition]);
   for (const changed of [
     head + '\nglobalThis.unreviewed = true;\n',
@@ -606,7 +611,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`],
     { encoding: 'utf8' },
   );
-  const repaired = snapshot(file);
+  const repaired = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
   const c = { ...context([file]), readBase: () => original, readHead: () => repaired };
   const fileScopes = nativeSourceInventoryFileScopes(c);
   assert.equal(fileScopes.size, 1);
@@ -625,7 +630,11 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
   assert.deepEqual(exact.blocked, []);
   assert(!exact.targets.some((target) => ['carding-car', 'night-overwatch'].includes(target.game)));
   const { incrementalPlan } = await import('./incremental-validation.mjs');
-  const integrated = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+  const integrated = incrementalPlan({
+    ...c,
+    fileScopes,
+    readSource: (source) => (source === file ? repaired : snapshot(source)),
+  });
   assert.equal(integrated.nine_native_targets.length, 35);
   assert.deepEqual(integrated.nine_native_blocked, []);
   assert.deepEqual(integrated.browser_ids, []);
@@ -655,4 +664,331 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     { changedPaths: [file + '.unknown'] },
   ])
     assert.equal(nativeSourceInventoryFileScopes({ ...c, ...override }).size, 0);
+});
+
+test('TapTap tools select exactly nine sixth-channel consumers and retain real Creator gates', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const select = (changedPaths) =>
+    nineNativeDependencyPlan({
+      changedPaths,
+      games: catalog,
+      packages: [...packages, { dir: 'platforms/taptap' }],
+    });
+  for (const file of [
+    'apps/shell-minigame/scripts/taptap-build.mjs',
+    'apps/shell-minigame/scripts/taptap-targets.mjs',
+    'apps/shell-minigame/scripts/taptap-package.mjs',
+    'apps/shell-minigame/scripts/taptap-smoke.mjs',
+  ]) {
+    const result = select([file]);
+    assert.equal(result.targets.length, 9);
+    assert(result.targets.every((target) => target.platform === 'taptap'));
+    assert.deepEqual(
+      result.targets.filter((target) => target.requiresCreator).map((target) => target.game),
+      ['carding-car', 'night-overwatch'],
+    );
+    assert.deepEqual(
+      result.blocked.map((target) => target.game),
+      ['carding-car', 'night-overwatch'],
+    );
+    assert.deepEqual(result.native_only_paths, [file]);
+  }
+  for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs']) {
+    const result = select(['apps/shell-minigame/scripts/' + file]);
+    assert.deepEqual(
+      result.targets.map((target) => target.game),
+      ['carding-car', 'night-overwatch'],
+    );
+    assert(
+      result.targets.every(
+        (target) => target.platform === 'taptap' && target.requiresCreator === '3.8.8',
+      ),
+    );
+  }
+  assert.deepEqual(
+    select(['apps/shell-minigame/scripts/taptap-travel-smoke.mjs']).targets.map(
+      (target) => target.game,
+    ),
+    ['travel-bund'],
+  );
+  assert.throws(
+    () => select(['apps/shell-minigame/scripts/taptap-unreviewed.mjs']),
+    /scope undefined/,
+  );
+  assert.deepEqual(
+    select(['platforms/taptap/native-resources.mjs']).targets.map(
+      ({ game, platform }) => `${game}:${platform}`,
+    ),
+    ['travel-bund:taptap', 'vibeJam-myself-history-guess:taptap'],
+  );
+  assert.deepEqual(
+    select(['platforms/taptap/src/index.ts']).targets.map(
+      ({ game, platform }) => `${game}:${platform}`,
+    ),
+    ['wulong-city:taptap'],
+  );
+});
+
+test('shared game sources include TapTap only when its real workspace is available', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const changedPaths = ['games/local/travel-bund/src/physics.ts'];
+  const without = nineNativeDependencyPlan({ changedPaths, games: catalog, packages });
+  const withTap = nineNativeDependencyPlan({
+    changedPaths,
+    games: catalog,
+    packages: [...packages, { dir: 'platforms/taptap' }],
+  });
+  assert.equal(without.targets.length, 5);
+  assert.equal(withTap.targets.length, 6);
+  assert(withTap.targets.every((target) => target.game === 'travel-bund'));
+  const platform = nineNativeDependencyPlan({
+    changedPaths: ['platforms/wechat/build.mjs'],
+    games: catalog,
+    packages: [...packages, { dir: 'platforms/taptap' }],
+  });
+  assert(platform.targets.every((target) => target.platform === 'wechat'));
+});
+
+test('TapTap conditional dependency ownership parses execution branches and fails closed on disguised guards', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const producer = 'apps/shell-minigame/scripts/taptap-build.mjs';
+  const dependency = 'apps/shell-minigame/scripts/taptap-cocos.mjs';
+  const guarded =
+    "if (selected.cocos) {\n  const { build } = await import('./taptap-cocos.mjs');\n}";
+  for (const [source, count] of [
+    [guarded, 2],
+    [guarded.replace('selected.cocos', 'true'), 9],
+    [guarded + "\nawait import('./taptap-cocos.mjs');", 9],
+    ["// if (selected.cocos) {\nconst { build } = await import('./taptap-cocos.mjs');", 9],
+    [
+      "const misleading = 'if (selected.cocos) {';\nconst { build } = await import('./taptap-cocos.mjs');",
+      9,
+    ],
+  ]) {
+    const files = new Map([
+      [producer, source],
+      [dependency, 'export const build = 1;'],
+      ['platforms/taptap/package.json', JSON.stringify({ name: '@coffeeeeffoc/platform-taptap' })],
+    ]);
+    const result = nineNativeDependencyPlan({
+      changedPaths: [dependency],
+      games: catalog,
+      packages: [...packages, { dir: 'platforms/taptap' }],
+      readSource(file) {
+        if (!files.has(file)) throw Error('missing');
+        return files.get(file);
+      },
+    });
+    assert.equal(result.targets.length, count);
+    assert(result.targets.every((target) => target.platform === 'taptap'));
+  }
+});
+
+test('only the exact TapTap normalizer generator additions select seven TapTap flows without unchanged Creator builds', async () => {
+  const { tapNormalizerFileScopes, nineNativeDependencyPlan } = await import(
+    './nine-native-scope.mjs'
+  );
+  const { incrementalPlan } = await import('./incremental-validation.mjs');
+  const file = 'apps/shell-minigame/scripts/nine-games-build.mjs';
+  const original = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
+  const current = snapshot(file);
+  const c = {
+    ...context([file]),
+    packages: [...packages, { dir: 'platforms/taptap' }],
+    readBase: () => original,
+    readHead: snapshot,
+  };
+  const fileScopes = tapNormalizerFileScopes(c);
+  assert.equal(fileScopes.size, 1);
+  assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
+  const result = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+  assert.equal(result.nine_native_targets.length, 7);
+  assert(
+    result.nine_native_targets.every(
+      (target) => target.platform === 'taptap' && !target.requiresCreator,
+    ),
+  );
+  assert.deepEqual(result.nine_native_blocked, []);
+  assert.deepEqual(result.browser_ids, []);
+  for (const override of [
+    { fileScopes: new Map() },
+    { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
+    { readSource: (source) => (source === file ? current + '\n' : snapshot(source)) },
+  ]) {
+    const plan = nineNativeDependencyPlan({ ...c, fileScopes, readSource: snapshot, ...override });
+    assert(plan.targets.some((target) => target.platform === 'wechat'));
+    assert.deepEqual(
+      plan.blocked.map((target) => target.game),
+      ['carding-car', 'night-overwatch'],
+    );
+  }
+  for (const override of [
+    { readBase: () => original + '\n' },
+    { readBase: () => current },
+    { readHead: () => current + '\n' },
+    {
+      readHead: () =>
+        current.replace("config.platform === 'taptap'", "config.platform !== 'taptap'"),
+    },
+    {
+      readHead: () =>
+        current.replace('await stat(entry);', 'await stat(entry); globalThis.unreviewed = true;'),
+    },
+    { games: catalog.filter((game) => game.id !== 'wulong-city') },
+    { packages },
+    { changedPaths: [file + '.unknown'] },
+  ])
+    assert.equal(tapNormalizerFileScopes({ ...c, ...override }).size, 0);
+});
+
+test('exact TapTap competition recognition selects only its native consumers and retains Carding Creator verification', async () => {
+  const { tapCompetitionFileScopes, nineNativeDependencyPlan } = await import(
+    './nine-native-scope.mjs'
+  );
+  const { incrementalPlan } = await import('./incremental-validation.mjs');
+  const tapPackages = [...packages, { dir: 'platforms/taptap' }];
+  for (const [file, count, creators] of [
+    ['platforms/competition/client.js', 6, ['carding-car']],
+    ['platforms/competition/native.js', 5, []],
+  ]) {
+    const before = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
+    const after = snapshot(file);
+    const c = {
+      ...context([file]),
+      packages: tapPackages,
+      readBase: () => before,
+      readHead: snapshot,
+    };
+    const fileScopes = tapCompetitionFileScopes(c);
+    assert.equal(fileScopes.size, 1);
+    assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
+    const plan = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+    assert.equal(plan.nine_native_targets.length, count);
+    assert(plan.nine_native_targets.every((target) => target.platform === 'taptap'));
+    assert.deepEqual(
+      plan.nine_native_targets
+        .filter((target) => target.requiresCreator)
+        .map((target) => target.game),
+      creators,
+    );
+    assert.deepEqual(
+      plan.nine_native_blocked.map((target) => target.game),
+      creators,
+    );
+    assert.deepEqual(plan.browser_ids, []);
+    assert.equal(plan.competition.native, false);
+    assert.equal(plan.competition.h5, false);
+    assert.equal(plan.nine_native_checks.length, 0);
+    for (const override of [
+      { fileScopes: new Map() },
+      { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
+      { readSource: (source) => (source === file ? after + '\n' : snapshot(source)) },
+    ]) {
+      const full = nineNativeDependencyPlan({
+        ...c,
+        fileScopes,
+        readSource: snapshot,
+        ...override,
+      });
+      assert(full.targets.some((target) => target.platform === 'wechat'));
+      assert.deepEqual(full.taptap_only_paths, []);
+    }
+    for (const override of [
+      { readBase: () => before + '\n' },
+      { readBase: () => after },
+      { readHead: () => after + '\n' },
+      {
+        readHead: () =>
+          after.replace("'tap'", "'wx'").replace("'alipay', 'taptap'", "'taptap', 'alipay'"),
+      },
+      { readHead: () => after + '\nglobalThis.unreviewed = true;\n' },
+      { games: catalog.filter((game) => game.id !== 'xiangqi-five') },
+      { packages },
+      { changedPaths: [file + '.unknown'] },
+    ])
+      assert.equal(tapCompetitionFileScopes({ ...c, ...override }).size, 0);
+  }
+});
+
+test('only exact TapTap kart-sharing wiring and fixture additions select the genuine Carding TapTap consumer', async () => {
+  const { tapCompetitionFileScopes, nineNativeDependencyPlan } = await import(
+    './nine-native-scope.mjs'
+  );
+  const { incrementalPlan } = await import('./incremental-validation.mjs');
+  const tapPackages = [...packages, { dir: 'platforms/taptap' }];
+  for (const file of ['platforms/kart-sharing.js', 'scripts/kart-sharing.test.mjs']) {
+    const before = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
+    const after = snapshot(file);
+    const c = {
+      ...context([file]),
+      packages: tapPackages,
+      readBase: () => before,
+      readHead: snapshot,
+    };
+    const fileScopes = tapCompetitionFileScopes(c);
+    assert.equal(fileScopes.size, 1);
+    assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
+    const plan = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
+    assert.deepEqual(plan.nine_native_targets, [
+      {
+        game: 'carding-car',
+        platform: 'taptap',
+        source: 'games/local/carding-car',
+        requiresCreator: '3.8.8',
+      },
+    ]);
+    assert.deepEqual(
+      plan.nine_native_blocked.map((target) => target.game),
+      ['carding-car'],
+    );
+    assert.deepEqual(plan.browser_ids, []);
+    assert.deepEqual(plan.nine_native_root_checks, [
+      { file: 'scripts/kart-sharing.test.mjs', args: ['--test', 'scripts/kart-sharing.test.mjs'] },
+    ]);
+    for (const override of [
+      { readBase: () => before + '\n' },
+      { readBase: () => after },
+      { readHead: () => after + '\n' },
+      { readHead: () => after.replace('taptap:', 'unreviewed:') },
+      { readHead: () => after + '\nthrow Error("unreviewed test or runtime");\n' },
+      { packages },
+      { changedPaths: [file + '.unknown'] },
+    ])
+      assert.equal(tapCompetitionFileScopes({ ...c, ...override }).size, 0);
+    const noProof = nineNativeDependencyPlan({ ...c, readSource: snapshot });
+    if (file.startsWith('platforms/')) {
+      assert(noProof.targets.some((target) => target.platform === 'wechat'));
+      const generalScopes = nineNativeFileScopes({
+        ...c,
+        readHead: (source) => (source === file ? after + '\n' : snapshot(source)),
+      });
+      const general = incrementalPlan({ ...c, fileScopes: generalScopes, readSource: snapshot });
+      assert.deepEqual(general.browser_ids, ['carding-car']);
+    } else
+      assert.throws(
+        () => incrementalPlan({ ...c, fileScopes: new Map(), readSource: snapshot }),
+        /scope undefined/,
+      );
+  }
+});
+
+test('the independent TapTap login installer and packaged helper select all nine TapTap consumers', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  for (const file of [
+    'apps/shell-minigame/scripts/taptap-login.mjs',
+    'platforms/taptap/login.cjs',
+  ]) {
+    const plan = nineNativeDependencyPlan({
+      changedPaths: [file],
+      games: catalog,
+      packages: [...packages, { dir: 'platforms/taptap' }],
+    });
+    assert.equal(plan.targets.length, 9);
+    assert(plan.targets.every((target) => target.platform === 'taptap'));
+    assert.deepEqual(
+      plan.blocked.map((target) => target.game),
+      ['carding-car', 'night-overwatch'],
+    );
+    assert.deepEqual(plan.native_only_paths, [file]);
+  }
 });

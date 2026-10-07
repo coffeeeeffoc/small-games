@@ -32,7 +32,7 @@ const NON_PAGES_APPS = new Set([
   'workspace-agent',
 ]);
 const NON_PAGES_SERVICES = new Set(['kart-server', 'management-api', 'runtime-api']);
-const NON_PAGES_PLATFORMS = new Set(['bilibili', 'douyin', 'kuaishou', 'wechat']);
+const NON_PAGES_PLATFORMS = new Set(['bilibili', 'douyin', 'kuaishou', 'wechat', 'taptap']);
 const SHARED_COCOS_SCRIPTS = new Set(
   ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'].map(
     (name) => `games/local/carding-car/scripts/${name}`,

@@ -131,7 +131,7 @@ function existingResolvedTool(base, name, version) {
  * Any failed proof returns no classification so the normal validation planner
  * retains its full unknown-change coverage. No YAML normalization is permitted.
  */
-export function nineLockFileScopes({ changedPaths, readBase, readHead }) {
+function legacyNineLockFileScopes({ changedPaths, readBase, readHead }) {
   const scopes = new Map();
   if (!Array.isArray(changedPaths) || !changedPaths.includes(LOCK)) return scopes;
   try {
@@ -245,4 +245,105 @@ export function nineLockFileScopes({ changedPaths, readBase, readHead }) {
     // A missing base, unsupported syntax or any additional change stays unclassified.
   }
   return scopes;
+}
+
+const TAPTAP = 'platforms/taptap';
+const TAPTAP_NAME = '@coffeeeeffoc/platform-taptap';
+const TAPTAP_SCRIPTS = {
+  'build:taptap': 'node scripts/taptap-build.mjs',
+  'test:taptap': 'node scripts/taptap-smoke.mjs',
+};
+
+/** Only the new TapTap importer, Shell link and exact public commands are additive. */
+function taptapLockFileScopes({ changedPaths, readBase, readHead }) {
+  const scopes = new Map();
+  if (!Array.isArray(changedPaths) || !changedPaths.includes(LOCK)) return scopes;
+  try {
+    const base = readBase(LOCK),
+      head = readHead(LOCK);
+    const baseBlocks = importers(base),
+      headBlocks = importers(head);
+    requireValue(!baseBlocks.some((block) => block.name === TAPTAP));
+    const added = one(headBlocks, TAPTAP);
+    const candidate = manifest(readHead, TAPTAP);
+    requireValue(
+      candidate.name === TAPTAP_NAME &&
+        isDeepStrictEqual(candidate.dependencies, ALIPAY_DEPS) &&
+        isDeepStrictEqual(candidate.devDependencies, ALIPAY_DEV),
+    );
+    requireValue(
+      !Object.hasOwn(candidate, 'optionalDependencies') &&
+        !Object.hasOwn(candidate, 'peerDependencies'),
+    );
+    const reusedTuples = new Set(
+      baseBlocks.flatMap((block) =>
+        [...block.text.matchAll(tupleRegex())].map((match) => match[0]),
+      ),
+    );
+    let expected = `  ${TAPTAP}:\n`;
+    for (const [bucket, declarations] of [
+      ['dependencies', ALIPAY_DEPS],
+      ['devDependencies', ALIPAY_DEV],
+    ]) {
+      expected += `    ${bucket}:\n`;
+      for (const [name, specifier] of Object.entries(declarations).sort(([a], [b]) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      )) {
+        if (specifier === 'workspace:*') {
+          const directory = LINKS[name];
+          requireValue(
+            directory &&
+              manifest(readBase, directory).name === name &&
+              manifest(readHead, directory).name === name,
+          );
+          const linked = tuple(name, specifier, `link:../../${directory}`);
+          requireValue(reusedTuples.has(linked));
+          expected += linked;
+        } else {
+          const matches = [...reusedTuples].filter((value) =>
+            value.startsWith(`      ${rawKey(name)}:\n        specifier: ${specifier}\n`),
+          );
+          requireValue(matches.length === 1);
+          expected += matches[0];
+        }
+      }
+    }
+    requireValue(added.text === expected + '\n');
+    const before = manifest(readBase, SHELL),
+      after = manifest(readHead, SHELL);
+    requireValue(before.name === '@coffeeeeffoc/shell-minigame' && after.name === before.name);
+    stripManifestAddition(before, after, 'dependencies', { [TAPTAP_NAME]: 'workspace:*' });
+    requireValue(object(before.scripts) && object(after.scripts));
+    for (const [name, command] of Object.entries(TAPTAP_SCRIPTS)) {
+      requireValue(!Object.hasOwn(before.scripts, name) && after.scripts[name] === command);
+      delete after.scripts[name];
+    }
+    requireValue(isDeepStrictEqual(before, after));
+    const shell = one(headBlocks, SHELL);
+    const stripped = removeTuple(
+      shell.text,
+      'dependencies',
+      tuple(TAPTAP_NAME, 'workspace:*', 'link:../../platforms/taptap'),
+    );
+    requireValue(stripped === one(baseBlocks, SHELL).text);
+    let remainder = head;
+    for (const [block, replacement] of [
+      [added, ''],
+      [shell, stripped],
+    ].sort(([a], [b]) => b.start - a.start))
+      remainder =
+        remainder.slice(0, block.start) +
+        replacement +
+        remainder.slice(block.start + block.text.length);
+    requireValue(remainder === base);
+    scopes.set(LOCK, [SHELL, TAPTAP]);
+  } catch {
+    // Added resolutions, alternate commands and every unproved byte remain blocked.
+  }
+  return scopes;
+}
+
+export function nineLockFileScopes(context) {
+  const legacy = legacyNineLockFileScopes(context);
+  return legacy.size ? legacy : taptapLockFileScopes(context);
 }

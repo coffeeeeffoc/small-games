@@ -150,18 +150,20 @@ export async function buildTarget(selected, config, outputRoot) {
     await stat(entry);
     const host = path.join(root, 'platforms/competition/native.js');
     const normalize = path.join(root, 'platforms/alipay/normalize.mjs');
+    const tapNormalize = path.join(root, 'platforms/taptap/normalize.mjs');
     const channelEntry = path.join(root, 'platforms/bilibili/native-entry.mjs');
     const availability = path.join(root, 'apps/shell-minigame/src/competition-availability.mjs');
     const resourceBridge = path.join(root, 'platforms', config.platform, 'native-resources.mjs');
     let source = `${selected.resources ? `import {attachNativeResources} from ${JSON.stringify(resourceBridge)};` : ''}
       ${config.platform === 'alipay' ? `import {normalizeAlipaySdk} from ${JSON.stringify(normalize)};` : ''}
+      ${config.platform === 'taptap' ? `import {normalizeTapTapSdk} from ${JSON.stringify(tapNormalize)};` : ''}
       ${config.platform === 'bilibili' ? `import {attachBilibiliEntry} from ${JSON.stringify(channelEntry)};` : ''}
       import {${selected.start}} from ${JSON.stringify(entry)};
       ${selected.competition === false ? '' : `import {startNativeCompetition} from ${JSON.stringify(host)};`}
       import {withCompetitionAvailability} from ${JSON.stringify(availability)};
       const raw=typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk};
       const config=${JSON.stringify({ ...config, title: selected.title })};
-      const baseSdk=${config.platform === 'alipay' ? 'normalizeAlipaySdk(raw)' : 'raw'};
+      const baseSdk=${config.platform === 'alipay' ? 'normalizeAlipaySdk(raw)' : config.platform === 'taptap' ? 'normalizeTapTapSdk(raw)' : 'raw'};
       const sdk=withCompetitionAvailability(${selected.resources ? `attachNativeResources(baseSdk,{allowedAssetHosts:${JSON.stringify(config.assetBase ? [new URL(config.assetBase).hostname] : [])}})` : 'baseSdk'},config);
       ${
         config.platform === 'bilibili'

@@ -185,6 +185,17 @@ export function runNineNativeChecks({
   execute = run,
   prepareBrowser = () => {},
 }) {
+  const rootChecks = plan.nine_native_root_checks || [];
+  for (const check of rootChecks) {
+    assert(
+      check.file === 'scripts/kart-sharing.test.mjs' &&
+        JSON.stringify(check.args) === JSON.stringify(['--test', check.file]),
+      'Unreviewed native root check',
+    );
+  }
+  const executeRootChecks = () => {
+    for (const check of rootChecks) execute(process.execPath, check.args, root, env, 'logged');
+  };
   const checks = plan.nine_native_checks || [];
   const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
   const games = [
@@ -201,7 +212,7 @@ export function runNineNativeChecks({
   const targets = new Map();
   for (const target of plan.nine_native_targets || []) {
     assert(
-      games.includes(target.game) && platforms.includes(target.platform),
+      games.includes(target.game) && [...platforms, 'taptap'].includes(target.platform),
       'Unknown first-nine native target',
     );
     targets.set(`${target.game}/${target.platform}`, target);
@@ -212,7 +223,10 @@ export function runNineNativeChecks({
         assert(games.includes(game), 'Unknown first-nine native game');
         targets.set(`${game}/${platform}`, { game, platform });
       }
-  if (!targets.size) return;
+  if (!targets.size) {
+    executeRootChecks();
+    return;
+  }
   const host = packages.find((pkg) => pkg.dir === 'apps/shell-minigame');
   assert(
     host?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs' &&
@@ -225,17 +239,39 @@ export function runNineNativeChecks({
     NATIVE_SCREENSHOT_ROOT: path.join(root, '.scratch/nine-native-validation/screenshots'),
     TRAVEL_NATIVE_EVIDENCE_ROOT: path.join(root, '.scratch/nine-native-validation/travel'),
   };
+  const tapGames = games.filter((game) => targets.has(`${game}/taptap`));
+  if (tapGames.length) {
+    assert(
+      host.scripts['build:taptap'] === 'node scripts/taptap-build.mjs' &&
+        host.scripts['test:taptap'] === 'node scripts/taptap-smoke.mjs',
+      'Unreviewed TapTap build/smoke commands',
+    );
+    assert(
+      packages.some((pkg) => pkg.dir === 'platforms/taptap'),
+      'Missing TapTap workspace',
+    );
+  }
+  executeRootChecks();
   for (const { game, platform } of targets.values())
     execute(
       process.execPath,
-      [
-        'apps/shell-minigame/scripts/nine-games-build.mjs',
-        '--game',
-        game,
-        '--platform',
-        platform,
-        '--preview',
-      ],
+      platform === 'taptap'
+        ? [
+            'apps/shell-minigame/scripts/taptap-build.mjs',
+            '--game',
+            game,
+            '--preview',
+            '--output',
+            nativeEnv.NATIVE_OUTPUT_ROOT,
+          ]
+        : [
+            'apps/shell-minigame/scripts/nine-games-build.mjs',
+            '--game',
+            game,
+            '--platform',
+            platform,
+            '--preview',
+          ],
       root,
       nativeEnv,
       'logged',
@@ -243,7 +279,31 @@ export function runNineNativeChecks({
   // Creator targets use the genuine builder above. Missing tools fail this gate;
   // configured output or H5 artifacts cannot replace a native compilation.
   execute('pnpm', ['--filter', host.name, 'test'], root, nativeEnv, 'logged');
-  execute('pnpm', ['--filter', host.name, 'test:nine:resources'], root, nativeEnv, 'logged');
+  if ([...targets.values()].some((target) => platforms.includes(target.platform)))
+    execute('pnpm', ['--filter', host.name, 'test:nine:resources'], root, nativeEnv, 'logged');
+  if (tapGames.length) {
+    const tap = packages.find((pkg) => pkg.dir === 'platforms/taptap');
+    execute('pnpm', ['--filter', tap.name, 'test'], root, nativeEnv, 'logged');
+    if (tapGames.includes('travel-bund')) {
+      prepareBrowser();
+      for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+        if (env[key]) nativeEnv[key] = env[key];
+    }
+    for (const game of tapGames)
+      execute(
+        process.execPath,
+        [
+          'apps/shell-minigame/scripts/taptap-smoke.mjs',
+          '--game',
+          game,
+          '--output',
+          nativeEnv.NATIVE_OUTPUT_ROOT,
+        ],
+        root,
+        nativeEnv,
+        'logged',
+      );
+  }
   const selectedFor = (game) => platforms.filter((platform) => targets.has(`${game}/${platform}`));
   const executeScript = (args, extra = {}) =>
     execute(process.execPath, args, root, { ...nativeEnv, ...extra }, 'logged');

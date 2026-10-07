@@ -1357,7 +1357,16 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   });
   assert.deepEqual(native.browser_ids, []);
   assert.deepEqual(native.game_sources, []);
-  assert.equal(native.nine_native_targets.length, 5);
+  assert.equal(native.nine_native_targets.length, 6);
+  assert(native.nine_native_targets.some((target) => target.platform === 'taptap'));
+  const withoutTap = incrementalPlan({
+    packages: packages.filter((pkg) => pkg.dir !== 'platforms/taptap'),
+    games,
+    changedPaths: ['games/local/carding-car/native/input.ts'],
+    readSource: read,
+  });
+  assert.equal(withoutTap.nine_native_targets.length, 5);
+  assert(!withoutTap.nine_native_targets.some((target) => target.platform === 'taptap'));
   assert(native.nine_native_targets.every((target) => target.requiresCreator === '3.8.8'));
   assert.equal(
     requiresIncrementalCocos({ packages, games, changedPaths: [], scope: native }),
@@ -1433,5 +1442,24 @@ test('actual dcf to 9180 canvas proof rejects a missing Xiangqi workspace identi
   assert.throws(
     () => incrementalPlan({ ...missing, fileScopes: failedProof }),
     /scope undefined.*nine-canvas-games-smoke/,
+  );
+});
+
+test('TapTap platform files have no Pages consumer while an unknown platform remains full', () => {
+  const context = {
+    eventName: 'push',
+    changedPaths: ['platforms/taptap/build.mjs'],
+    standaloneGames: [{ id: 'sample', source: 'games/local/sample' }],
+    gameSources: ['games/local/sample'],
+  };
+  assert.deepEqual(selectPagesScope(context), {
+    required: false,
+    full: false,
+    game_ids: [],
+    game_sources: [],
+  });
+  assert.equal(
+    selectPagesScope({ ...context, changedPaths: ['platforms/unreviewed/build.mjs'] }).full,
+    true,
   );
 });

@@ -7,7 +7,6 @@ import {
   nineNativeScopePaths,
   nineNativeChecks,
   nineNativeDependencyPlan,
-  isNineNativeOnlyPath,
 } from './nine-native-scope.mjs';
 import { competitionToolPlan } from './publication-scopes.mjs';
 export { reviewedSharedFileScopes } from './publication-scopes.mjs';
@@ -35,10 +34,12 @@ export function incrementalPlan({
   const nineNative = nineNativeDependencyPlan({
     changedPaths: paths,
     games,
+    packages,
     readSource,
     fileScopes,
   });
-  const h5Paths = paths.filter((file) => !isNineNativeOnlyPath(file));
+  const nativeOnlyPaths = new Set(nineNative.native_only_paths);
+  const h5Paths = paths.filter((file) => !nativeOnlyPaths.has(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {
     const pkg = packages.find((item) => item.dir === consumer.dir);
@@ -74,7 +75,14 @@ export function incrementalPlan({
     !unclassifiedRegistration.length,
     `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
-  const competition = competitionToolPlan({ paths, games, packages, fileScopes });
+  const competitionScopes = new Map(fileScopes);
+  for (const file of nineNative.taptap_only_paths) competitionScopes.delete(file);
+  const competition = competitionToolPlan({
+    paths,
+    games,
+    packages,
+    fileScopes: competitionScopes,
+  });
   // The general competition proof and the stricter nine-game proof share one
   // path. Only a scope carrying the native hosts came from the nine proof.
   const nineScopes = new Map(fileScopes);
@@ -99,7 +107,7 @@ export function incrementalPlan({
   // Native-only tool consumers require their package checks and actual native CJS
   // flows; they do not change the H5 entry and do not select its browser regression.
   const registrations = new Set(
-    [...fileScopes].filter(([file]) => !isNineNativeOnlyPath(file)).flatMap(([, dirs]) => dirs),
+    [...fileScopes].filter(([file]) => !nativeOnlyPaths.has(file)).flatMap(([, dirs]) => dirs),
   );
   const selected = games.filter(
     (game) =>
@@ -171,6 +179,7 @@ export function incrementalPlan({
     ),
     nine_native_checks: nineNativeChecks(paths, nineScopes),
     nine_native_targets: nineNative.targets,
+    nine_native_root_checks: nineNative.root_checks,
     nine_native_blocked: nineNative.blocked,
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),

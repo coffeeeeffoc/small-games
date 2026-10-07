@@ -1,0 +1,30 @@
+{
+  "name": "@coffeeeeffoc/platform-taptap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./build": "./build.mjs",
+    "./normalize": "./normalize.mjs",
+    "./native-resources": "./native-resources.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/native-game-shell": "workspace:*"
+  },
+  "devDependencies": {
+    "@coffeeeeffoc/config-eslint": "workspace:*",
+    "@coffeeeeffoc/config-typescript": "workspace:*",
+    "eslint": "9.35.0",
+    "typescript": "7.0.2"
+  },
+  "coffeeeeffoc": {
+    "role": "shell"
+  }
+}

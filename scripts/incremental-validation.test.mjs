@@ -798,7 +798,7 @@ test('shared competition protocol modules select all actual H5 consumers and nat
       'vibeJam-myself-history-guess',
       'xiangqi-five',
     ]);
-    assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 30 : 25);
+    assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 36 : 30);
     assert.equal(result.nine_native_blocked.length, file.endsWith('client.js') ? 1 : 0);
     for (const variant of [
       {
@@ -844,7 +844,7 @@ test('developer helper proves actual Git producer bytes and rejects CRLF produce
   assert.deepEqual(fileScopes.get(file)?.sort(), expected.sort());
   const result = incrementalPlan({ ...context, fileScopes, readSource });
   assert.deepEqual(result.browser_ids, actual.map((game) => game.id).sort());
-  assert.equal(result.nine_native_targets.length, 10);
+  assert.equal(result.nine_native_targets.length, 12);
   assert.equal(result.nine_native_blocked.length, 2);
   const crlfProducer = producerBlob.replace(/\r?\n/g, '\r\n');
   assert(crlfProducer.includes('\r\n'));
