@@ -492,8 +492,8 @@
         "time": "2026-10-06T19:20:40Z"
       },
       "updated": {
-        "commit": "92e9cede344596a90deb8d589a71a7e4b9b77914",
-        "time": "2026-10-07T07:00:22Z"
+        "commit": "edad086a68565feba5fd361fdac45e26028aaec6",
+        "time": "2026-10-07T08:58:18Z"
       }
     },
     "tianxia-chalu": {
@@ -516,6 +516,17 @@
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
         "time": "2026-10-05T03:18:51+08:00"
+      }
+    },
+    "tower-brake": {
+      "source": "games/local/tower-brake",
+      "created": {
+        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
+        "time": "2026-10-06T21:21:45Z"
+      },
+      "updated": {
+        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
+        "time": "2026-10-07T08:47:27Z"
       }
     },
     "tower-defense-game": {
@@ -681,17 +692,6 @@
       "updated": {
         "commit": "bcaddf603c28b416a856d51d01c8b7d386c71a3e",
         "time": "2026-10-06T22:48:27+08:00"
-      }
-    },
-    "tower-brake": {
-      "source": "games/local/tower-brake",
-      "created": {
-        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
-        "time": "2026-10-06T21:21:45Z"
-      },
-      "updated": {
-        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
-        "time": "2026-10-07T08:47:27Z"
       }
     }
   }
