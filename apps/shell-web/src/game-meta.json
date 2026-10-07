@@ -206,8 +206,8 @@
         "time": "2026-10-05T20:43:08Z"
       },
       "updated": {
-        "commit": "0ab6f35753d2d98d45be5f47ac764a7cbab589d9",
-        "time": "2026-10-05T20:45:02Z"
+        "commit": "bc6027de82ee9240b62ca705e016d7b0b912d75b",
+        "time": "2026-10-07T09:11:08Z"
       }
     },
     "fold-the-world": {
@@ -516,6 +516,17 @@
       "updated": {
         "commit": "edad086a68565feba5fd361fdac45e26028aaec6",
         "time": "2026-10-07T08:58:18Z"
+      }
+    },
+    "three-choose-two": {
+      "source": "games/local/three-choose-two",
+      "created": {
+        "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
+        "time": "2026-10-07T10:31:05Z"
+      },
+      "updated": {
+        "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
+        "time": "2026-10-07T10:31:05Z"
       }
     },
     "tianxia-chalu": {
