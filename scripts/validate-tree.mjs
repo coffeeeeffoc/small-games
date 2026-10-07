@@ -21,7 +21,7 @@ import {
   h5AdapterFileScopes,
   reviewedSharedFileScopes,
 } from './incremental-validation.mjs';
-import { verifyCocosBuildInputs } from './cocos-validation.mjs';
+import { verifyCocosBuildInputs, cocosPreflightTargets } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
   workspacePackages,
@@ -583,7 +583,13 @@ export async function validateTree({
         ]
       : direct;
   const buildTargets = staticBuildTargets(packages, buildDirect, affected);
-  await verifyCocosBuildInputs(root, buildTargets, clean);
+  const cocosInputs = cocosPreflightTargets({
+    packages,
+    buildTargets,
+    affected: metadataOnly ? [] : affected,
+    nativeTargets: incrementalScope?.nine_native_targets || [],
+  });
+  await verifyCocosBuildInputs(root, cocosInputs, clean);
   if (buildTargets.length)
     execute(
       pnpm,

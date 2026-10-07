@@ -547,3 +547,162 @@ test('selected kart-sharing root contracts run before the TapTap Creator gate an
     /Unreviewed native root check/,
   );
 });
+
+test('native-only Creator consumers are checked before types without rebuilding unchanged H5 or including unrelated games', async () => {
+  const { mkdir, readFile } = await import('node:fs/promises');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
+  const { validateTree } = await import('./validate-tree.mjs');
+  const { cleanGitEnv } = await import('./validate-push.mjs');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'native-cocos-preflight-'));
+  const env = cleanGitEnv({
+    ...process.env,
+    GIT_AUTHOR_NAME: 'fixture',
+    GIT_AUTHOR_EMAIL: 'fixture@example.invalid',
+    GIT_COMMITTER_NAME: 'fixture',
+    GIT_COMMITTER_EMAIL: 'fixture@example.invalid',
+  });
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: root,
+      env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  const put = async (file, text) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), text);
+  };
+  const json = (value) => JSON.stringify(value, null, 2) + '\n';
+  const kart = 'games/local/carding-car';
+  try {
+    await put(
+      'package.json',
+      json({ volta: { node: process.versions.node }, packageManager: 'pnpm@fixture', scripts: {} }),
+    );
+    await put(
+      'apps/shell-web/src/standalone-games.json',
+      json([{ id: 'carding-car', source: kart }]),
+    );
+    await put(
+      `${kart}/package.json`,
+      json({
+        name: 'kart',
+        creator: { version: '3.8.8' },
+        scripts: {
+          build: 'node unchanged-h5.mjs',
+          typecheck: 'node check-types.mjs',
+          'test:rules': 'node --test tests/rules.test.mjs',
+        },
+      }),
+    );
+    await put(`${kart}/tests/rules.test.mjs`, 'export const pureRulesFixture = true;\n');
+    await put(
+      `${kart}/scripts/toolchain.mjs`,
+      `export const editor=${JSON.stringify(path.join(root, 'missing-Creator'))};\n`,
+    );
+    await put(
+      'games/local/unrelated-cocos/package.json',
+      json({
+        name: 'unrelated',
+        creator: { version: '3.8.8' },
+        scripts: { build: 'node unrelated-h5.mjs', typecheck: 'node unrelated-types.mjs' },
+      }),
+    );
+    await put('platforms/taptap/package.json', json({ name: '@coffeeeeffoc/platform-taptap' }));
+    await put(
+      'apps/shell-minigame/package.json',
+      json({
+        name: '@coffeeeeffoc/shell-minigame',
+        scripts: {
+          test: 'vitest run tests && node --test scripts/*.test.mjs',
+          'build:nine': 'node scripts/nine-games-build.mjs',
+          'build:taptap': 'node scripts/taptap-build.mjs',
+          'test:taptap': 'node scripts/taptap-smoke.mjs',
+        },
+      }),
+    );
+    await put(
+      'scripts/kart-sharing.test.mjs',
+      readFileSync(new URL('./kart-sharing.test.mjs', import.meta.url), 'utf8'),
+    );
+    await put(
+      'platforms/kart-sharing.js',
+      execFileSync('git', ['show', 'f96e909:platforms/kart-sharing.js'], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
+    );
+    git('init');
+    git('add', '.');
+    git('commit', '-m', 'fixture baseline');
+    const base = git('rev-parse', 'HEAD').trim();
+    await put(
+      'platforms/kart-sharing.js',
+      readFileSync(new URL('../platforms/kart-sharing.js', import.meta.url), 'utf8'),
+    );
+    git('commit', '-am', 'TapTap-only sharing');
+    const head = git('rev-parse', 'HEAD').trim();
+    const calls = [];
+    const execute = (command, args, cwd, commandEnv) => {
+      if (command === 'git')
+        return execFileSync(command, args, {
+          cwd,
+          env: commandEnv,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      if (args[0] === '--version') return 'fixture';
+      calls.push(args);
+      if (args.includes('typecheck')) {
+        assert.equal(args[1], 'kart', 'Only the real Creator type consumer is checked');
+        assert(
+          existsSync(path.join(root, kart, 'reports/engine.d.ts')),
+          'Engine types must be prepared before typecheck',
+        );
+      }
+      if (args[0] === 'apps/shell-minigame/scripts/taptap-build.mjs')
+        throw Error('Official TapTap conversion still required');
+      return '';
+    };
+    await assert.rejects(
+      validateTree({ root, base, head, incremental: true, env, execute }),
+      /Required Cocos target games\/local\/carding-car:.*requires Creator 3\.8\.8/,
+    );
+    assert(!calls.some((args) => args.includes('typecheck') || args.includes('build')));
+    const editor = path.join(root, 'SDK', 'CocosCreator.exe');
+    await put(path.relative(root, editor), 'fixture editor marker');
+    await put(
+      'SDK/resources/resources/3d/engine/bin/.declarations/cc.d.ts',
+      'fixture engine declarations',
+    );
+    calls.length = 0;
+    await assert.rejects(
+      validateTree({
+        root,
+        base,
+        head,
+        incremental: true,
+        env: { ...env, COCOS_CREATOR: editor },
+        execute,
+      }),
+      /Official TapTap conversion still required/,
+    );
+    assert.equal(calls.filter((args) => args.includes('typecheck')).length, 1);
+    assert(
+      !calls.some((args) => args.includes('build')),
+      'The unchanged H5 artifact is not rebuilt',
+    );
+    assert(!existsSync(path.join(root, 'games/local/unrelated-cocos/reports/engine.d.ts')));
+    assert(
+      (await readFile(path.join(root, kart, 'reports/engine.d.ts'), 'utf8')).includes(
+        editor
+          .replaceAll('\\', '/')
+          .replace('CocosCreator.exe', 'resources/resources/3d/engine/bin/.declarations/cc.d.ts'),
+      ),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

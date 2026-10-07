@@ -20,7 +20,7 @@ export function tapTapOptions(game, { preview = false, env = process.env } = {})
       MINIGAME_TRAVEL_BUND_ASSET_BASE: env.MINIGAME_TRAVEL_BUND_ASSET_BASE,
     },
   });
-  if (common.apiUrl) tapTapApiBase(common.apiUrl);
+  if (common.apiUrl) common.apiUrl = tapTapApiBase(common.apiUrl);
   if (!preview && !common.apiUrl)
     throw new Error('Release requires MINIGAME_COMPETITION_API_URL for the TapTap login service.');
   if (!preview && game === 'travel-bund' && !env.MINIGAME_TRAVEL_BUND_ASSET_BASE)

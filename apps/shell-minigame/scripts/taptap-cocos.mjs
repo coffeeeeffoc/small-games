@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readdir, readFile, rm, rmdir, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -240,6 +240,14 @@ export async function prepareTapTapCocosLogin({
   const output = path.resolve(outputDirectory);
   independentOutput(output, { convertedDirectory: source });
   await managedOutputPath(output);
+  const existingOutput = await lstat(output).catch((error) => {
+    if (error.code !== 'ENOENT') throw error;
+    return null;
+  });
+  if (existingOutput && (await readdir(output)).length)
+    throw Error(
+      'TapTap login staging output must be a new directory or an existing empty directory.',
+    );
   const sourceGame = await json(source, 'game.json'),
     sourceProject = await json(source, 'project.config.json');
   await verifyTapProject({
@@ -249,9 +257,26 @@ export async function prepareTapTapCocosLogin({
     orientation: 'landscape',
   });
   const sourceFiles = await inventory(source);
-  await rm(output, { recursive: true, force: true });
+  if (!existingOutput) {
+    await mkdir(path.dirname(output), { recursive: true });
+    // Exclusive creation: an independently created directory is never adopted
+    // or removed if another process fills this path after the preflight.
+    await mkdir(output);
+  } else if ((await readdir(output)).length) {
+    throw Error('TapTap login staging output became nonempty before copying.');
+  }
+  const stagedFiles = new Set();
   try {
-    await cp(source, output, { recursive: true });
+    for (const file of sourceFiles) {
+      const destination = path.join(output, file.path);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await cp(path.join(source, file.path), destination, { force: false, errorOnExist: true });
+      stagedFiles.add(file.path);
+    }
+    if (!stagedFiles.has('tap-login.js')) {
+      await writeFile(path.join(output, 'tap-login.js'), '', { flag: 'wx' });
+      stagedFiles.add('tap-login.js');
+    }
     await writeFile(
       path.join(output, 'game.json'),
       JSON.stringify({ ...sourceGame, appId: publicConfig.appId }, null, 2) + '\n',
@@ -282,7 +307,28 @@ export async function prepareTapTapCocosLogin({
       realDeviceVerified: false,
     };
   } catch (error) {
-    await rm(output, { recursive: true, force: true });
+    if (!existingOutput) await rm(output, { recursive: true, force: true });
+    else {
+      // The caller's originally empty directory remains in place. Only staged
+      // entries are removed, preserving independently introduced files.
+      for (const file of stagedFiles) await rm(path.join(output, file), { force: true });
+      const folders = new Set();
+      for (const file of sourceFiles) {
+        let folder = path.posix.dirname(file.path);
+        while (folder !== '.') {
+          folders.add(folder);
+          folder = path.posix.dirname(folder);
+        }
+      }
+      for (const folder of [...folders].sort((a, b) => b.length - a.length)) {
+        const full = path.join(output, folder);
+        const entries = await readdir(full).catch((failure) => {
+          if (failure.code !== 'ENOENT') throw failure;
+          return null;
+        });
+        if (entries?.length === 0) await rmdir(full);
+      }
+    }
     throw error;
   }
 }

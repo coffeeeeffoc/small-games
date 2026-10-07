@@ -67,7 +67,7 @@ node apps/shell-minigame/scripts/taptap-cocos.mjs --prepare-login \
   --api-url https://api.example.com/competition/v1 --release
 ```
 
-Night 使用相同命令替换 `--game`。副本更新公开身份并安装 Tap 登录前缀，卡丁私有 competition 配置会覆盖为 Tap；原转换输入不被修改。官方工具重新打包这个副本后，为对应游戏配置 `TAPTAP_SOURCE_DIR/SOURCE_INVENTORY/CONVERTED_DIR/PLUGIN_DIR/PACKAGE_FILE` 完整前缀变量，再调用独立 `build:taptap --game <id>` 导入。
+Night 使用相同命令替换 `--game`。`--output` 必须是新目录或现有空目录，拒绝覆盖其他内容。副本更新公开身份并安装 Tap 登录前缀，卡丁私有 competition 配置会覆盖为 Tap；原转换输入不被修改。官方工具重新打包这个副本后，为对应游戏配置 `TAPTAP_SOURCE_DIR/SOURCE_INVENTORY/CONVERTED_DIR/PLUGIN_DIR/PACKAGE_FILE` 完整前缀变量，再调用独立 `build:taptap --game <id>` 导入。
 
 导入只原样复制已提供的正式 ZIP。输入和管理输出必须独立；符号链接、来源/配方过期、未转换微信入口、资源丢失、登录前缀或 helper 不匹配、APK、ZIP CRC/内容不匹配都阻断。插件名称/本地元数据不作为真实性证明，记录 `officialToolVerified=false`、`realDeviceVerified=false`。
 

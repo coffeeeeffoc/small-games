@@ -36,7 +36,7 @@ export function publicTapTapLoginConfig(config) {
     platform: 'taptap',
     game: config.game,
     appId: config.appId || '',
-    apiUrl: config.apiUrl || '',
+    apiUrl: config.apiUrl ? tapTapApiBase(config.apiUrl) : '',
   };
 }
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, cp, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, cp, symlink, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { digest, inventory } from './taptap-package.mjs';
@@ -323,6 +323,39 @@ test('login staging rejects source overlap before deletion or mutation', () =>
       /independent paths/,
     );
     assert.deepEqual(await inventory(options.convertedDirectory), before);
+  }));
+test('login staging refuses an independent nonempty destination without changing either input', () =>
+  withFixture(async (options) => {
+    const output = path.join(options.base, 'existing-project');
+    await mkdir(output);
+    await writeFile(path.join(output, 'keep.txt'), 'existing user content');
+    const beforeOutput = await inventory(output),
+      beforeSource = await inventory(options.convertedDirectory);
+    await assert.rejects(
+      prepareTapTapCocosLogin({
+        convertedDirectory: options.convertedDirectory,
+        outputDirectory: output,
+        config: { platform: 'taptap', game: 'carding-car', appId: '', apiUrl: '', preview: true },
+      }),
+      /new directory or an existing empty directory/,
+    );
+    assert.deepEqual(await inventory(output), beforeOutput);
+    assert.deepEqual(await inventory(options.convertedDirectory), beforeSource);
+  }));
+test('login staging accepts an existing empty directory and retains that directory', () =>
+  withFixture(async (options) => {
+    const output = path.join(options.base, 'empty-stage');
+    await mkdir(output);
+    const original = await lstat(output),
+      beforeSource = await inventory(options.convertedDirectory);
+    const result = await prepareTapTapCocosLogin({
+      convertedDirectory: options.convertedDirectory,
+      outputDirectory: output,
+      config: { platform: 'taptap', game: 'carding-car', appId: '', apiUrl: '', preview: true },
+    });
+    assert.equal(result.status, 'login-source-staged-awaiting-official-packing');
+    assert.equal((await lstat(output)).ino, original.ino);
+    assert.deepEqual(await inventory(options.convertedDirectory), beforeSource);
   }));
 test('misconfigured input inside managed output is rejected before any source deletion', async () => {
   const outputRoot = await mkdtemp(path.join(os.tmpdir(), 'tap-cocos-output-input-'));

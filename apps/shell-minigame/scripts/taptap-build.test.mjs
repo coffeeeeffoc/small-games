@@ -90,6 +90,13 @@ test('configured Tap identities enable the existing friend protocol only for sup
 });
 
 test('TapTap preflight and native login accept the same API URL grammar', () => {
+  assert.equal(
+    tapTapOptions('letters-words2', {
+      preview: true,
+      env: { MINIGAME_COMPETITION_API_URL: 'https://api.example.com/v1///' },
+    }).apiUrl,
+    'https://api.example.com/v1',
+  );
   for (const apiUrl of ['https://api.example.com\\path', 'https://[::1]/v1']) {
     assert.throws(
       () =>
