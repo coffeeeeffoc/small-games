@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#071520" />
+    <meta name="description" content="转动圆塔，连落三层，留一脚刹车。12层、8条路线的短挑战。" />
+    <title>转塔留一脚刹车</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./main.mjs"></script>
+  </head>
+  <body>
+    <main id="app" data-game-display-host>
+      <canvas id="scene" aria-label="旋转圆塔游戏场景，左右拖动转塔"></canvas>
+      <section id="home" class="screen home" aria-label="游戏主页">
+        <div class="home-top">
+          <span class="eyebrow">TWELVE FLOORS. ONE BRAKE.</span
+          ><button id="help-button" class="icon-button" aria-label="玩法帮助">?</button>
+        </div>
+        <h1>
+          转塔<span>留一脚<span class="accent">刹车</span></span>
+        </h1>
+        <p class="home-caption">连落很爽。留一次，把自己救回来。</p>
+        <div class="home-bottom">
+          <p id="home-route" class="route-caption">01 / 初次下落</p>
+          <button id="start-game" class="primary">
+            开始下落 <span class="button-note">12 层短挑战</span>
+          </button>
+          <button id="choose-level" class="secondary">
+            选择路线 <span id="unlocked-count">01 / 08</span>
+          </button>
+          <div class="home-utilities">
+            <button id="settings-button" class="text-button">声音与外观</button
+            ><button data-game-fullscreen>全屏</button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="play-screen"
+        class="screen play"
+        hidden
+        aria-label="正在游玩"
+        data-phase="playing"
+        data-angle="0"
+      >
+        <header class="play-header">
+          <div>
+            <span id="level-label" class="eyebrow">01 / 初次下落</span>
+            <div class="floor-readout"><strong id="floor-count">01</strong><span>/ 12</span></div>
+          </div>
+          <button id="pause-button" class="icon-button" aria-label="暂停">
+            <i class="pause-icon" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div class="floor-track" aria-label="关卡进度"><div id="floor-fill"></div></div>
+        <div class="combo-display">
+          <span id="combo-label">连续穿层</span
+          ><span id="combo-pips" aria-hidden="true"><i></i><i></i><i></i></span
+          ><strong id="combo-count">0</strong>
+        </div>
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+        <div class="play-bottom">
+          <div id="gesture-hint" class="gesture-hint">
+            <span aria-hidden="true">↔</span> 左右滑动，转出缺口
+          </div>
+          <div class="action-row">
+            <div class="landing-preview">
+              <canvas id="radar" width="90" height="90" aria-label="落点俯视预告"></canvas>
+              <div>
+                <span id="landing-label">第 1 层落点</span
+                ><strong id="landing-type">普通区 · 会弹起</strong
+                ><span id="following-type" class="following-type"></span>
+              </div>
+            </div>
+            <button
+              id="brake-button"
+              class="brake-button"
+              data-charges="1"
+              aria-label="使用刹车，冻结球零点八秒"
+            >
+              <span class="brake-symbol" aria-hidden="true"><i class="pause-icon"></i></span
+              ><span
+                ><strong id="brake-label">刹车</strong
+                ><small id="brake-note">0.8 秒 · 点击使用</small></span
+              >
+            </button>
+          </div>
+          <p id="charge-hint" class="charge-hint">连穿三层，补回一次刹车</p>
+        </div>
+      </section>
+
+      <section id="levels-screen" class="screen menu" hidden aria-labelledby="levels-title">
+        <div class="menu-header">
+          <button id="levels-home" class="icon-button back" aria-label="返回主页">‹</button
+          ><span class="eyebrow">CHOOSE YOUR DROP</span>
+        </div>
+        <h2 id="levels-title">八条路线<span>每一次下落，留一点余地。</span></h2>
+        <div id="level-grid" class="level-grid"></div>
+        <p id="levels-progress" class="menu-footnote"></p>
+      </section>
+
+      <section id="pause-screen" class="screen menu centered" hidden aria-labelledby="pause-title">
+        <span class="eyebrow">TAKE A BREATH</span>
+        <h2 id="pause-title">停一会儿。</h2>
+        <p class="muted">球和计时都在等你。</p>
+        <div class="menu-actions">
+          <button id="resume-game" class="primary">继续下落</button
+          ><button id="restart-game" class="secondary">重新挑战</button
+          ><button id="pause-home" class="text-button">返回主页</button
+          ><button data-game-fullscreen>全屏</button>
+        </div>
+      </section>
+
+      <section
+        id="result-screen"
+        class="screen menu centered result"
+        hidden
+        aria-labelledby="result-title"
+      >
+        <span id="result-kicker" class="eyebrow">ONE MORE DROP</span>
+        <div id="result-number" class="result-number">04<span>/ 12</span></div>
+        <h2 id="result-title">差一点，就过去了。</h2>
+        <p id="result-copy" class="muted"></p>
+        <div class="result-stats">
+          <div><strong id="result-streak">3</strong><span>最高连落</span></div>
+          <div>
+            <strong id="result-time">12.4<small>s</small></strong
+            ><span>挑战用时</span>
+          </div>
+          <div><strong id="result-brakes">1</strong><span>使用刹车</span></div>
+        </div>
+        <p id="record-note" class="record-note"></p>
+        <div class="menu-actions">
+          <button id="next-game" class="primary" hidden>下一条路线</button
+          ><button id="retry-game" class="primary">再来一次</button
+          ><button id="continue-game" class="secondary">免费续关 <span>本局仅一次</span></button
+          ><button id="result-home" class="text-button">返回主页</button>
+        </div>
+      </section>
+
+      <section id="help-screen" class="screen menu" hidden aria-labelledby="help-title">
+        <div class="menu-header">
+          <button id="help-home" class="icon-button back" aria-label="返回主页">‹</button
+          ><span class="eyebrow">HOW TO DROP</span>
+        </div>
+        <h2 id="help-title">转得开，落得下。</h2>
+        <ol class="help-list">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>左右滑动，转动整塔</h3>
+              <p>球会自动弹跳。把缺口转到球下，穿过圆环，抵达第 12 层终点。</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>看清落点，再往下</h3>
+              <p>青色平台会弹起，橙红斜纹区触碰即失败。底部预告始终显示即将落到的区域。</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>留一脚，及时刹住</h3>
+              <p>
+                点一次刹车，球暂停 0.8 秒，塔仍可转动。开局有一次，连穿三层补回一次，最多保留一次。
+              </p>
+            </div>
+          </li>
+        </ol>
+        <p class="muted help-note">
+          落地或使用刹车会重置连穿。键盘可用 ← → 转塔、空格刹车、Esc 暂停。
+        </p>
+        <p class="attribution">
+          玩法灵感来自《Helix Jump》的转塔与穿层机制；本作采用原创画面、布局与主动刹车规则。
+        </p>
+        <button id="help-start" class="primary">试一次下落</button>
+      </section>
+
+      <section id="settings-screen" class="screen menu" hidden aria-labelledby="settings-title">
+        <div class="menu-header">
+          <button id="settings-home" class="icon-button back" aria-label="返回主页">‹</button
+          ><span class="eyebrow">MAKE IT YOURS</span>
+        </div>
+        <h2 id="settings-title">下落的颜色。</h2>
+        <button id="sound-toggle" class="setting-row" aria-pressed="true">
+          <span>游戏音效</span><strong>开启</strong>
+        </button>
+        <h3 class="setting-title">球与圆塔</h3>
+        <div id="skin-options" class="skin-options">
+          <button data-skin="mint"><i class="skin-swatch mint"></i><span>深海青</span></button
+          ><button data-skin="amber"><i class="skin-swatch amber"></i><span>日落金</span></button
+          ><button data-skin="ice"><i class="skin-swatch ice"></i><span>冰川蓝</span></button>
+        </div>
+        <p class="muted help-note">外观免费切换，不改变碰撞与难度。</p>
+      </section>
+      <p id="storage-notice" class="storage-notice" hidden role="status">
+        无法保存到此浏览器，本次游玩不受影响。
+      </p>
+    </main>
+  </body>
+</html>

@@ -96,6 +96,7 @@
     "@coffeeeeffoc/surprise-kept": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/tetracube": "workspace:*",
+    "@coffeeeeffoc/tower-brake": "workspace:*",
     "@coffeeeeffoc/cage-rescue": "workspace:*"
   },
   "devDependencies": {

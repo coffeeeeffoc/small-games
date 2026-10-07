@@ -40,6 +40,8 @@
 
 《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供三个章节共 24 关，拖动圆环调整缺口，覆盖连接处的两处交点后松手解开交织星轨；星栓与分岔星图逐章引入。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 
+《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
+
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
 《打破笼子接住人》位于 `games/local/cage-rescue`，workspace 包名为 `@coffeeeeffoc/cage-rescue`，通过 iframe 装载，独立地址为 `/games/cage-rescue/index.html`。拖动底部挡板反弹单球，击破两档耐久的笼子，再接住缓慢下落的队友；六种阵形均以六人救出四人为目标。核心规则与关卡配置独立维护，开发服务使用 `pnpm --filter @coffeeeeffoc/cage-rescue dev`（端口 `4451`），测试和静态构建分别使用 `test`、`build`。本地进度、可选广告能力与验证说明见 [游戏 README](../games/local/cage-rescue/README.md)。
