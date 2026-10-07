@@ -239,6 +239,7 @@ export async function prepareBackend(destination, workspace = root) {
   for (const name of [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/three-choose-two/src',
     'services/kart-server/src',
     'games/local/carding-car/assets/scripts',
     'games/local/cops-robbers/src',
@@ -338,7 +339,11 @@ async function main() {
     await cp(path.join(stage, 'site'), path.join(bundle, 'site/releases', release), {
       recursive: true,
     });
-  for (const file of ['010-competition.sql', '011-competition-profiles.sql'])
+  for (const file of [
+    '010-competition.sql',
+    '011-competition-profiles.sql',
+    '012-three-choose-two.sql',
+  ])
     await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));
   await writeFile(
     path.join(bundle, 'nginx/game.conf'),

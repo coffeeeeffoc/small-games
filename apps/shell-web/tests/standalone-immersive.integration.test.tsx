@@ -32,6 +32,7 @@ async function mounted(id = ink) {
 }
 
 it.each([
+  'three-choose-two',
   'retreat-rally',
   'cage-rescue',
   'chase-thief',

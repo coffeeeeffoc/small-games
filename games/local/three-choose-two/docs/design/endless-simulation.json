@@ -1,0 +1,19 @@
+{
+  "ruleVersion": "three-choose-two-v1",
+  "randomVersion": "sha256-counter-v1",
+  "seeds": "1..100 padded to 64 hexadecimal characters",
+  "samples": 100,
+  "strategy": "deterministic greedy row/column compactness with isolated-gap penalty",
+  "placementCap": 300,
+  "groups": {
+    "min": 11,
+    "median": 35,
+    "p90": 77,
+    "max": 143
+  },
+  "earlyBefore5": 0,
+  "naturalFailures": 100,
+  "capped": 0,
+  "averageScore": 4428,
+  "limitation": "Synthetic strategy checks distribution pressure only; it does not establish human session duration or retention."
+}

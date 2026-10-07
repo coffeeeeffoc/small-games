@@ -5,6 +5,7 @@ import {
   reviewedSharedFileScopes,
   competitionConsumers,
   competitionToolPlan,
+  threeChooseTwoBackendFileScope,
 } from './publication-scopes.mjs';
 import {
   incrementalPlan,
@@ -13,6 +14,53 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+
+test('three choose two migration wiring is exact and does not authorize other deployment edits', () => {
+  const oldPlatform = "const unrelated = 'keep';\n    '011-competition-profiles.sql',\n";
+  const newPlatform = oldPlatform.replace(
+    "    '011-competition-profiles.sql',\n",
+    "    '011-competition-profiles.sql',\n    '012-three-choose-two.sql',\n",
+  );
+  assert.equal(
+    threeChooseTwoBackendFileScope('scripts/platform.mjs', oldPlatform, newPlatform),
+    true,
+  );
+  for (const after of [
+    newPlatform + '\n',
+    newPlatform.replace('keep', 'changed'),
+    newPlatform.replace('012-', '013-'),
+    newPlatform + "    '012-three-choose-two.sql',\n",
+  ])
+    assert.equal(threeChooseTwoBackendFileScope('scripts/platform.mjs', oldPlatform, after), false);
+  assert.equal(
+    threeChooseTwoBackendFileScope('scripts/unknown-deploy.mjs', oldPlatform, newPlatform),
+    false,
+  );
+  const migration = readFileSync(
+    new URL('../infra/migrations/012-three-choose-two.sql', import.meta.url),
+    'utf8',
+  );
+  assert.equal(
+    threeChooseTwoBackendFileScope('infra/migrations/012-three-choose-two.sql', null, migration),
+    true,
+  );
+  assert.equal(
+    threeChooseTwoBackendFileScope('infra/migrations/012-three-choose-two.sql', '', migration),
+    false,
+  );
+  assert.equal(
+    threeChooseTwoBackendFileScope(
+      'infra/migrations/012-three-choose-two.sql',
+      null,
+      migration + '\n',
+    ),
+    false,
+  );
+  assert.equal(
+    threeChooseTwoBackendFileScope('infra/migrations/013-other.sql', null, migration),
+    false,
+  );
+});
 
 const games = Object.entries(competitionConsumers).map(([id, source]) => ({ id, source }));
 const registry =

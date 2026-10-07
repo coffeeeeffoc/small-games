@@ -136,6 +136,58 @@ function developmentWiringFixture() {
   return { before, after, tuples };
 }
 
+test('existing source service may add only an exact workspace link to a newly registered game', () => {
+  const { before, after } = wiringFixture();
+  const file = 'services/runtime-api/package.json';
+  const manifest = {
+    name: '@games/runtime-api',
+    coffeeeeffoc: { role: 'service' },
+    dependencies: { react: '19.2.8' },
+  };
+  before[file] = JSON.stringify(manifest);
+  after[file] = JSON.stringify({
+    ...manifest,
+    dependencies: { ...manifest.dependencies, '@games/new-game': 'workspace:*' },
+  });
+  const original =
+    '  services/runtime-api:\n    dependencies:\n      react:\n        specifier: 19.2.8\n        version: 19.2.8\n\n';
+  const updated = original.replace(
+    '    dependencies:\n',
+    "    dependencies:\n      '@games/new-game':\n        specifier: workspace:*\n        version: link:../../games/local/new-game\n",
+  );
+  before[LOCK] = before[LOCK].replace('packages:\n', original + 'packages:\n');
+  after[LOCK] = after[LOCK].replace('packages:\n', updated + 'packages:\n');
+  assert.equal(semanticScope(before, after).full, false);
+  for (const candidate of [
+    {
+      ...after,
+      [file]: JSON.stringify({ ...JSON.parse(after[file]), scripts: { start: 'another-server' } }),
+    },
+    {
+      ...after,
+      [file]: JSON.stringify({
+        ...JSON.parse(after[file]),
+        dependencies: { react: '20.0.0', '@games/new-game': 'workspace:*' },
+      }),
+    },
+    {
+      ...after,
+      [LOCK]: after[LOCK].replace(
+        'link:../../games/local/new-game\n      react:',
+        'link:../../packages/shared\n      react:',
+      ),
+    },
+    {
+      ...after,
+      [LOCK]: after[LOCK].replace(
+        '  services/runtime-api:',
+        '  services/runtime-api: {}\n\n  services/runtime-api:',
+      ),
+    },
+  ])
+    assert.equal(semanticScope(before, candidate).full, true);
+});
+
 function combinedWiringFixture() {
   const { before, after, tuples } = developmentWiringFixture();
   const native = 'apps/shell-minigame/package.json';

@@ -134,6 +134,50 @@ const lettersTests = [
   'scripts/letters-words2-iframe.browser.mjs',
 ];
 const competitionFiles = [...h5Files, ...nativeFiles, builder, ...lettersTests];
+const threeChooseTwoMigration = 'infra/migrations/012-three-choose-two.sql';
+const threeChooseTwoBackendChanges = {
+  'scripts/competition.mjs': [
+    [
+      "    await readFile(new URL('../infra/migrations/011-competition-profiles.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+      "    await readFile(new URL('../infra/migrations/011-competition-profiles.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n  await psql(\n    await readFile(new URL('../infra/migrations/012-three-choose-two.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+    ],
+  ],
+  'scripts/platform.mjs': [
+    [
+      "    '011-competition-profiles.sql',\n",
+      "    '011-competition-profiles.sql',\n    '012-three-choose-two.sql',\n",
+    ],
+  ],
+  'scripts/deploy-tencent.mjs': [
+    [
+      "    'services/runtime-api/rules',\n",
+      "    'services/runtime-api/rules',\n    'games/local/three-choose-two/src',\n",
+    ],
+    [
+      "  for (const file of ['010-competition.sql', '011-competition-profiles.sql'])\n",
+      "  for (const file of [\n    '010-competition.sql',\n    '011-competition-profiles.sql',\n    '012-three-choose-two.sql',\n  ])\n",
+    ],
+  ],
+};
+
+/** Exact reviewed additions only; credentials, commands and all other bytes stay bound. */
+export function threeChooseTwoBackendFileScope(file, before, after) {
+  if (file === threeChooseTwoMigration) {
+    return (
+      before === null &&
+      createHash('sha256').update(after).digest('hex') ===
+        'b45b1af51c76770d1141b00912696dacd31f05c63c122be61a3a48e0c9a41898'
+    );
+  }
+  const changes = threeChooseTwoBackendChanges[file];
+  if (!changes || typeof before !== 'string') return false;
+  let expected = before;
+  for (const [oldText, newText] of changes) {
+    if (expected.split(oldText).length !== 2 || expected.includes(newText)) return false;
+    expected = expected.replace(oldText, newText);
+  }
+  return expected === after;
+}
 const localIgnores = new Set([
   '.codex/config.toml',
   '.codex/config.toml.backup.*',
@@ -466,7 +510,22 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (file === standaloneChecksFile || file === cageRescueGameplayFile) {
+      if (file === threeChooseTwoMigration || Object.hasOwn(threeChooseTwoBackendChanges, file)) {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'three-choose-two' && game.source === 'games/local/three-choose-two',
+          ),
+        );
+        let before = null;
+        try {
+          before = readBase(file);
+        } catch {
+          /* New reviewed migration has no baseline. */
+        }
+        assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
+        scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (file === standaloneChecksFile || file === cageRescueGameplayFile) {
         assertCageRescueCatalog(games);
         assertCageRescueDelegate({ readBase, readHead });
         scopes.set(file, [cageRescueSource]);

@@ -1,0 +1,115 @@
+{
+  "startedAt": "2026-10-07T10:21:27.149Z",
+  "actualDevice": false,
+  "status": "passed",
+  "environment": "Production dist, Chromium 390×844 with real CDP touch, actual Runtime Service TCP HTTP and PostgreSQL 17",
+  "identityBoundary": "H5 guest uses the real guest API. WeChat/B站 credentials are isolated SQL test identities; official login and device SDKs are not exercised.",
+  "checks": [
+    {
+      "name": "Real touch placements receive canonical server confirmations",
+      "status": "passed"
+    },
+    {
+      "name": "Offline play completes only the issued group and locks undisclosed future candidates",
+      "status": "passed"
+    },
+    {
+      "name": "Reconnect flushes ordered actions once and restores exactly server seq 4",
+      "status": "passed"
+    },
+    {
+      "name": "Reload resumes the same server session and confirmed board",
+      "status": "passed"
+    },
+    {
+      "name": "Sharing uses the actual verified score and rank with no invented percentage",
+      "status": "passed"
+    },
+    {
+      "name": "WeChat and B站 fixture identities appear in one real board with tied competition rank",
+      "status": "passed"
+    },
+    {
+      "name": "Actual H5 guest session remains ineligible and never invents rank in UI or sharing",
+      "status": "passed"
+    },
+    {
+      "name": "Pending online finish does not lock a resumed local save, and a delayed server reply cannot overwrite it",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    {
+      "filename": "online-ranked-start.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-offline-issued-group.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-reconnected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-reload-restored.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-verified-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-real-tied-board.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-guest-ineligible.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-guest-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-pending-finish.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "online-local-resume-after-pending-finish.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "errors": [],
+  "finishedAt": "2026-10-07T10:21:39.707Z"
+}

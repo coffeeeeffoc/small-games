@@ -345,7 +345,28 @@ function lockWiringSources(before, after, additions, games, context) {
     /^services\/[A-Za-z0-9][A-Za-z0-9._-]*\/package\.json$/.test(file),
   )) {
     const source = file.slice(0, -'/package.json'.length);
-    if (importerBlock(base, source)) continue;
+    if (importerBlock(base, source)) {
+      const oldPackage = JSON.parse(readBase(file));
+      const newPackage = JSON.parse(readHead(file));
+      if (
+        oldPackage.coffeeeeffoc?.role !== 'service' ||
+        !object(oldPackage.dependencies) ||
+        !object(newPackage.dependencies)
+      )
+        throw new Error('Invalid existing service dependencies');
+      const remaining = { ...newPackage, dependencies: { ...newPackage.dependencies } };
+      for (const [name, specifier] of Object.entries(newPackage.dependencies)) {
+        if (Object.hasOwn(oldPackage.dependencies, name)) continue;
+        const matches = additions.filter((game) => game.name === name);
+        if (specifier !== 'workspace:*' || matches.length !== 1)
+          throw new Error('Unproven existing service game dependency');
+        current = removeWorkspaceLink(current, source, name, matches[0].source);
+        delete remaining.dependencies[name];
+      }
+      if (!isDeepStrictEqual(oldPackage, remaining))
+        throw new Error('Existing service configuration changed');
+      continue;
+    }
     let exists = false;
     try {
       exists = typeof readBase(file) === 'string';

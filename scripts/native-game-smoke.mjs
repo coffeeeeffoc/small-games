@@ -37,6 +37,7 @@ export async function verifyNativeArtifact({
     const project = JSON.parse(readFileSync(path.join(root, 'project.config.json'), 'utf8'));
     assert.equal(project.compileType, 'game');
     const assets = {
+      'three-choose-two': 'assets',
       'retreat-rally': 'rally-assets',
       'flick-arena': 'audio',
       cricket: 'cricket-audio',
@@ -345,7 +346,15 @@ export async function verifyNativeArtifact({
       const module = { exports: {} };
       modules.set(resolved, module);
       const code = readFileSync(resolved, 'utf8');
-      assert.doesNotMatch(code, /\bfetch\s*\(|XMLHttpRequest|import\s*\(\s*['"]https?:/);
+      if (gameId === 'three-choose-two') {
+        // The shared competition client carries one browser fallback. This VM
+        // exposes no fetch, window or document: native play must use SDK request.
+        assert.doesNotMatch(code, /XMLHttpRequest|import\s*\(\s*['"]https?:/);
+        assert.equal((code.match(/\bfetch\s*\(/g) ?? []).length, 1);
+        assert.match(code, /globalThis\.__installCompetition\s*=/);
+      } else {
+        assert.doesNotMatch(code, /\bfetch\s*\(|XMLHttpRequest|import\s*\(\s*['"]https?:/);
+      }
       const wrapper = vm.runInContext(`(function(module,exports,require){${code}\n})`, context);
       wrapper(module, module.exports, (specifier) => {
         assert.ok(specifier.startsWith('./') || specifier.startsWith('../'));
@@ -466,6 +475,126 @@ export async function verifyNativeArtifact({
       advance(6000);
       assert.ok(rendered.length > 0);
       assert.ok(!rendered.includes('全屏'), 'Native builds must not expose browser fullscreen');
+    }
+    if (gameId === 'three-choose-two') {
+      assert.ok(standalone);
+      const { getLevel } = await import('../games/local/three-choose-two/src/levels.mjs');
+      const { canPlace } = await import('../games/local/three-choose-two/src/engine.mjs');
+      const click = (label) => {
+        const position = labelPositions.get(label);
+        assert.ok(position, `Missing three choose two control: ${label}`);
+        tap(position.x, position.y);
+      };
+      const emit = (listeners, x, y, identifier = 1) => {
+        for (const listener of [...listeners])
+          listener({ changedTouches: [{ identifier, clientX: x, clientY: y }] });
+      };
+      const saved = async () => {
+        // Flush the Host's serialized asynchronous write queue before observing it.
+        for (let flush = 0; flush < 4; flush++) await new Promise(setImmediate);
+        const record = [...records.entries()].find(([key]) =>
+          key.includes('three-choose-two-progress-v1'),
+        );
+        assert.ok(record, 'Native progress must use the shared Host storage namespace');
+        return JSON.parse(record[1]).value;
+      };
+      const drag = (move, cancel = false, settle = 600) => {
+        const source = { x: 74 + move.slot * 121, y: 682.5 };
+        const destination = { x: 27 + (move.x + 0.5) * 42, y: 227 + (move.y + 0.5) * 42 + 54 };
+        emit(presses, source.x, source.y, 11);
+        // A second finger never owns or submits the active block.
+        emit(presses, source.x, source.y, 12);
+        emit(moves, destination.x, destination.y, 11);
+        emit(cancel ? cancels : touches, destination.x, destination.y, 11);
+        emit(touches, destination.x, destination.y, 12);
+        advance(settle);
+      };
+      assert.ok(rendered.includes('继续闯关'), 'Native home must contain a real start action');
+      assert.ok(!rendered.some((text) => text.includes('全屏')), 'Native hosts own full screen');
+      click('选关');
+      click('下一章');
+      click('下一章');
+      const lockedProgress = JSON.stringify([...records]);
+      click('30');
+      assert.equal(
+        JSON.stringify([...records]),
+        lockedProgress,
+        'Ordinary selection cannot open locked levels',
+      );
+      click('返回');
+      click('继续闯关');
+      drag(getLevel(1).solution[0], true);
+      assert.equal((await saved()).currentGame.stats.placements, 0, 'Touch cancellation is free');
+      drag(getLevel(1).solution[0]);
+      assert.ok(rendered.includes('好选择，漂亮！'), 'Real dragging must clear the tutorial level');
+      const progress = await saved();
+      assert.equal(progress.records[1].stars, 3);
+      assert.equal(progress.unlocked, 2, 'A verified clear unlocks the next configured level');
+      click('下一关');
+      drag(getLevel(2).solution[0], false, 0);
+      assert.equal((await saved()).currentGame.stats.placements, 1);
+      drag(getLevel(2).solution[1], false, 0);
+      assert.equal(
+        (await saved()).currentGame.stats.placements,
+        1,
+        'Clear feedback locks another touch placement for 300ms',
+      );
+      advance(350);
+      click('撤销 · 3');
+      const undone = (await saved()).currentGame;
+      assert.equal(undone.stats.placements, 0);
+      assert.equal(undone.undoRemaining, 2);
+      click('暂停');
+      for (const hide of hidden) hide();
+      const paused = JSON.stringify(rendered);
+      advance(120000);
+      assert.equal(JSON.stringify(rendered), paused, 'Background time cannot mutate a paused game');
+      assert.ok(audio.every((voice) => !voice.playing));
+      for (const show of shown) show();
+      click('继续游戏');
+      assert.equal((await saved()).currentGame.undoRemaining, 2);
+      click('暂停');
+      click('返回首页');
+      click('无尽练习');
+      click('开始无尽练习');
+      for (let step = 0; step < 2; step++) {
+        const current = (await saved()).currentGame;
+        let next;
+        for (let slot = 0; slot < 3 && !next; slot++)
+          for (let y = 0; y < 8 && !next; y++)
+            for (let x = 0; x < 8 && !next; x++)
+              if (canPlace(current, slot, x, y)) next = { slot, x, y };
+        assert.ok(next, 'An empty practice board must admit the first two blocks');
+        drag(next);
+      }
+      const practice = (await saved()).currentGame;
+      assert.equal(practice.completedGroups, 1);
+      assert.equal(practice.stats.discardedBlocks, 1, 'The third block is discarded exactly once');
+      assert.equal(practice.undoRemaining, 0);
+      assert.equal(
+        practice.ranked,
+        false,
+        'Unconfigured native practice never claims ranked identity',
+      );
+      click('暂停');
+      click('结束练习');
+      assert.ok(rendered.includes('离线练习成绩不参与排位'));
+      assert.ok(audio.some((voice) => voice.src.endsWith('place.wav')));
+      await (await entry.ready).dispose();
+      assert.equal(
+        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
+        0,
+      );
+      assert.equal(intervals.size, 0);
+      assert.ok(audio.every((voice) => !voice.playing));
+      assert.ok(
+        logs.every(
+          (event) =>
+            event.gameId === 'three-choose-two' && event.name?.startsWith('three-choose-two.'),
+        ),
+        'Native gameplay may emit structured telemetry but no lifecycle errors',
+      );
+      return;
     }
     if (gameId === 'wulong-city') {
       assert.ok(standalone);
@@ -843,6 +972,7 @@ export async function verifyNativeArtifact({
         ['retreat-rally', '收兵再冲'],
         ['moss-garden', '苔光花园'],
         ['wulong-city', '乌龙城'],
+        ['three-choose-two', '三块选两块'],
       ].filter(([id]) => id === game)
     : games;
   assert.ok(selected.length, 'Unknown game');
@@ -884,6 +1014,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       'wulong-city',
       'retreat-rally',
       'flick-arena',
+      'three-choose-two',
     ];
     assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
     for (const game of values.game ? [values.game] : standaloneGames) {

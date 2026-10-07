@@ -334,6 +334,9 @@ importers:
       '@coffeeeeffoc/retreat-rally':
         specifier: workspace:*
         version: link:../../games/local/retreat-rally
+      '@coffeeeeffoc/three-choose-two':
+        specifier: workspace:*
+        version: link:../../games/local/three-choose-two
       '@coffeeeeffoc/wulong-city':
         specifier: workspace:*
         version: link:../../games/local/wulong-city
@@ -494,6 +497,9 @@ importers:
       '@coffeeeeffoc/tetracube':
         specifier: workspace:*
         version: link:../../games/local/tetracube
+      '@coffeeeeffoc/three-choose-two':
+        specifier: workspace:*
+        version: link:../../games/local/three-choose-two
       '@coffeeeeffoc/tianxia-chalu':
         specifier: workspace:*
         version: link:../../games/local/tianxia-chalu
@@ -1383,6 +1389,12 @@ importers:
   games/local/surprise-kept: {}
 
   games/local/tetracube: {}
+
+  games/local/three-choose-two:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
 
   games/local/tianxia-chalu: {}
 
@@ -2450,6 +2462,9 @@ importers:
       '@coffeeeeffoc/service-kit':
         specifier: workspace:*
         version: link:../../packages/service-kit
+      '@coffeeeeffoc/three-choose-two':
+        specifier: workspace:*
+        version: link:../../games/local/three-choose-two
       '@fastify/rate-limit':
         specifier: 11.2.0
         version: 11.2.0

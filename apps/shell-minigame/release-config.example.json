@@ -1,4 +1,16 @@
 {
+  "three-choose-two": {
+    "wechat": {
+      "appId": "",
+      "apiUrl": "https://games.example.com/api/competition/v1",
+      "adUnitId": ""
+    },
+    "bilibili": {
+      "appId": "",
+      "apiUrl": "https://games.example.com/api/competition/v1",
+      "adUnitId": ""
+    }
+  },
   "moss-garden": {
     "wechat": {
       "appId": ""

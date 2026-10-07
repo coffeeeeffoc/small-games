@@ -41,7 +41,8 @@
     "@coffeeeeffoc/flick-arena": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/platform-alipay": "workspace:*",
-    "@coffeeeeffoc/platform-taptap": "workspace:*"
+    "@coffeeeeffoc/platform-taptap": "workspace:*",
+    "@coffeeeeffoc/three-choose-two": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

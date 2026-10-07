@@ -1,0 +1,40 @@
+{
+  "environment": "Built WeChat and B站 native bundles; Chromium CDP touch; actual Runtime HTTP and PostgreSQL",
+  "actualDevice": false,
+  "officialPlatformVerified": false,
+  "identityBoundary": "SDK login code is a fixture; only the official WeChat/B站 code-to-openid HTTP exchange is mocked. Our identity, token, moves, replay and leaderboard use the real service and database.",
+  "checks": [
+    "wechat: SDK login and mocked official exchange issue a real eligible database identity",
+    "wechat: lost response restores the committed sequence without submitting a duplicate move",
+    "wechat: a request lost before transmission is replayed once against the restored group",
+    "wechat: reload reuses the server credential and exact confirmed session state",
+    "wechat: real replay settlement enters the real leaderboard and never changes local practice best",
+    "wechat: a disconnected issued group permits both placements, queues them in order and waits for the actual next server group",
+    "wechat: an actual server sequence conflict preserves the queued finish intent and settles canonical state",
+    "wechat: a delayed ranked response cannot replace a newly started independent local practice game",
+    "bilibili: SDK login and mocked official exchange issue a real eligible database identity",
+    "bilibili: lost response restores the committed sequence without submitting a duplicate move",
+    "bilibili: a request lost before transmission is replayed once against the restored group",
+    "bilibili: reload reuses the server credential and exact confirmed session state",
+    "bilibili: real replay settlement enters the real leaderboard and never changes local practice best",
+    "bilibili: a disconnected issued group permits both placements, queues them in order and waits for the actual next server group",
+    "bilibili: an actual server sequence conflict preserves the queued finish intent and settles canonical state",
+    "bilibili: a delayed ranked response cannot replace a newly started independent local practice game"
+  ],
+  "screenshots": [
+    "wechat-online-game.png",
+    "wechat-online-response-lost.png",
+    "wechat-online-result.png",
+    "wechat-online-ranking.png",
+    "wechat-online-ranking-around.png",
+    "wechat-online-issued-group-offline.png",
+    "bilibili-online-game.png",
+    "bilibili-online-response-lost.png",
+    "bilibili-online-result.png",
+    "bilibili-online-ranking.png",
+    "bilibili-online-ranking-around.png",
+    "bilibili-online-issued-group-offline.png"
+  ],
+  "errors": [],
+  "status": "passed"
+}

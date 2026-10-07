@@ -11,6 +11,8 @@ import { registerSaves } from './saves/routes.js';
 import { createCompetitionStore } from './competition/store.js';
 import { registerCompetition } from './competition/routes.js';
 import type { Rule } from './competition/types.js';
+import { createThreeChooseTwoStore } from './three-choose-two/store.js';
+import type { Engine } from './three-choose-two/types.js';
 
 /** Creates the runtime HTTP application with only its own database identity. */
 export function createRuntimeService(
@@ -30,6 +32,9 @@ export function createRuntimeService(
                 sql`select display_name from runtime.competition_players limit 0`,
               );
               await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`);
+              await database.db.execute(
+                sql`select 1 from runtime.three_choose_two_sessions limit 0`,
+              );
             },
             close() {},
           },
@@ -52,7 +57,15 @@ export function createRuntimeService(
         const module = (await import(url)) as { default: Rule };
         rules.set(module.default.id, module.default);
       }
-      await registerCompetition(instance, createCompetitionStore(database.db, rules), env);
+      const engineName = '@coffeeeeffoc/three-choose-two/engine';
+      const engine = (await import(engineName)) as Engine;
+      const reviewScore = z.coerce
+        .number()
+        .int()
+        .min(1000)
+        .parse(env.THREE_CHOOSE_TWO_REVIEW_SCORE ?? 100_000);
+      const ranked = createThreeChooseTwoStore(database.db, engine, Date.now, reviewScore);
+      await registerCompetition(instance, createCompetitionStore(database.db, rules), env, ranked);
     }
     const configured = env.RELEASE_PROJECTION_TOKEN || env.ARTIFACT_TRUSTED_PUBLIC_KEY;
     const configuration = configured

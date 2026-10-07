@@ -99,7 +99,8 @@
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/tetracube": "workspace:*",
     "@coffeeeeffoc/tower-brake": "workspace:*",
-    "@coffeeeeffoc/cage-rescue": "workspace:*"
+    "@coffeeeeffoc/cage-rescue": "workspace:*",
+    "@coffeeeeffoc/three-choose-two": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

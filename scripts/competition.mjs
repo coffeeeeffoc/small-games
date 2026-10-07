@@ -44,6 +44,10 @@ if (mode === 'stop') {
     await readFile(new URL('../infra/migrations/011-competition-profiles.sql', import.meta.url)),
     mode === 'test-db' ? 'competition_test' : 'small_games',
   );
+  await psql(
+    await readFile(new URL('../infra/migrations/012-three-choose-two.sql', import.meta.url)),
+    mode === 'test-db' ? 'competition_test' : 'small_games',
+  );
 } else if (mode === 'dev') {
   await mkdir(new URL('../.scratch/competition/', import.meta.url), { recursive: true });
   const keyFile = new URL('../.scratch/competition/internal-key', import.meta.url);

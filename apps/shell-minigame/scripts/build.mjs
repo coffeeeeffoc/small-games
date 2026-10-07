@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { build } from 'vite';
 import { games, platforms } from './games.mjs';
+import { nativeCompetitionConfiguration } from './competition-config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.resolve(root, '../..');
@@ -46,10 +47,20 @@ const checked = targets.map(({ game, platform }) => {
     throw new Error('Invalid advertising placement');
   if (adUnitId && platforms[platform].advertising === false)
     throw new Error(`${platform} rewarded advertising is not yet verified; omit the placement`);
-  return { game, platform, appId, adUnitId };
+  const competitionConfig = nativeCompetitionConfiguration({
+    enabled: games[game].configureCompetition,
+    platform,
+    appId,
+    preview: Boolean(values.preview),
+    apiUrl:
+      options.apiUrl ??
+      process.env.VITE_THREE_CHOOSE_TWO_API_URL ??
+      process.env.THREE_CHOOSE_TWO_API_URL,
+  });
+  return { game, platform, appId, adUnitId, competitionConfig };
 });
 
-for (const { game, platform, appId, adUnitId } of checked) {
+for (const { game, platform, appId, adUnitId, competitionConfig } of checked) {
   const selected = games[game],
     adapter = platforms[platform];
   const gameRoot = path.join(repo, 'games/local', selected.root ?? `game-${game}`);
@@ -82,6 +93,7 @@ for (const { game, platform, appId, adUnitId } of checked) {
           if (id !== virtual) return;
           return `import { ${adapter.start} } from ${JSON.stringify(adapter.module)};
           import { ${selected.definition} as original, ${selected.content} as content } from ${JSON.stringify(selected.module ?? `@coffeeeeffoc/game-${game}/canvas`)};
+          ${competitionConfig ? `globalThis.__COMPETITION_CONFIG__ = ${JSON.stringify(competitionConfig)};` : ''}
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
           const reviewedContent = ${selected.configureAdvertising ? `{...content,payload:{...content.payload,advertisingConfigured:${Boolean(adUnitId)}}}` : 'content'};
           export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content: reviewedContent }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
@@ -124,6 +136,7 @@ for (const { game, platform, appId, adUnitId } of checked) {
         version,
         mode: values.preview ? 'preview' : 'release',
         advertisingConfigured: !!adUnitId,
+        ...(selected.configureCompetition ? { competitionConfigured: !!competitionConfig } : {}),
       },
       null,
       2,

@@ -4,6 +4,11 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { CompetitionError } from './types.js';
 import { registerRunRoutes } from './run-routes.js';
+import {
+  registerThreeChooseTwoRoutes,
+  registerThreeChooseTwoInternalRoutes,
+} from '../three-choose-two/routes.js';
+import type { createThreeChooseTwoStore } from '../three-choose-two/store.js';
 import type { createCompetitionStore } from './store.js';
 
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -27,6 +32,7 @@ export async function registerCompetition(
   app: FastifyInstance,
   store: ReturnType<typeof createCompetitionStore>,
   env: Record<string, string | undefined>,
+  threeChooseTwo?: ReturnType<typeof createThreeChooseTwoStore>,
 ) {
   const origins = (env.COMPETITION_ORIGINS ?? '')
     .split(',')
@@ -178,6 +184,7 @@ export async function registerCompetition(
         return store.board(game, await player(request.headers.authorization));
       });
       registerRunRoutes(routes, store, player);
+      if (threeChooseTwo) registerThreeChooseTwoRoutes(routes, threeChooseTwo, player);
       routes.post('/rooms', { bodyLimit: 2048 }, async (request) => {
         const input = z
           .object({
@@ -259,6 +266,7 @@ export async function registerCompetition(
         )
           throw new CompetitionError('INTERNAL_UNAUTHORIZED', 403);
       };
+      if (threeChooseTwo) registerThreeChooseTwoInternalRoutes(routes, threeChooseTwo, internal);
       routes.post('/internal/verify', { bodyLimit: 2048 }, async (request) => {
         internal(request);
         const { token } = z.object({ token: tokenSchema }).strict().parse(request.body);

@@ -37,7 +37,75 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'retreat-rally') {
+  if (id === 'three-choose-two') {
+    const game = frame.locator('#game');
+    await expect(game).toHaveAttribute('data-screen', 'playing');
+    await expect(frame.locator('#board')).toBeVisible();
+    await expect(frame.locator('[data-slot]')).toHaveCount(3);
+    await click(frame.locator('[data-action="pause"]').last());
+    await expect(game).toHaveAttribute('data-screen', 'pause');
+    await click(frame.locator('[data-action="resume"]').last());
+    await expect(game).toHaveAttribute('data-screen', 'playing');
+    // Read the catalog's verified move, then perform it through real input.
+    // The fixture never edits the board, progress or the game's current state.
+    const move = await game.evaluate(async () => {
+      const { getLevel } = await import(new URL('./src/levels.mjs', document.baseURI).href);
+      return getLevel(1).solution[0];
+    });
+    const candidate = frame.locator(`[data-slot="${move.slot}"]`);
+    const source = await candidate.boundingBox();
+    const board = await frame.locator('#board').boundingBox();
+    const width = Number(await candidate.getAttribute('data-width'));
+    const height = Number(await candidate.getAttribute('data-height'));
+    const pitch = (board.width * 40) / 360;
+    const pad = (board.width * 20) / 360;
+    const start = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
+    const end = {
+      x: board.x + pad + (move.x + width / 2) * pitch,
+      y: board.y + pad + (move.y + (mobile ? height : height / 2)) * pitch + (mobile ? 46 : 0),
+    };
+    const page = game.page();
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await expect(game).toHaveAttribute('data-placements', '0');
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(4, 4, { steps: 4 });
+      await page.mouse.up();
+      await expect(game).toHaveAttribute('data-placements', '0');
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(end.x, end.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    await expect(game).toHaveAttribute('data-screen', 'result');
+    await expect(game).toHaveAttribute('data-status', 'won');
+    await expect(game).toHaveAttribute('data-placements', '1');
+    await expect(game).toHaveAttribute('data-lines', '1');
+    await click(frame.locator('[data-action="retry"]'));
+    await expect(game).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('[data-action="pause"]').last());
+    await click(frame.locator('[data-action="home"]'));
+    await expect(game).toHaveAttribute('data-screen', 'home');
+    await expect(frame.locator('[data-action="start"]')).toBeVisible();
+    await click(frame.locator('[data-action="levels"]'));
+    await expect(frame.locator('[data-level="1"]')).toBeEnabled();
+    await expect(frame.locator('[data-level="2"]')).toBeEnabled();
+    await expect(frame.locator('[data-level="30"]')).toBeDisabled();
+    await click(frame.locator('[data-action="home"]'));
+    await expect(game).toHaveAttribute('data-screen', 'home');
+  } else if (id === 'retreat-rally') {
     await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'battle');
     await holdControl('#retreat-blue', 'Space', async () => {
       await expect(frame.locator('#retreat-blue')).toHaveAttribute('aria-pressed', 'true');

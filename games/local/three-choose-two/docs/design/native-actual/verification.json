@@ -1,0 +1,121 @@
+{
+  "environment": "Built native Canvas bundle; Chromium touch emulation with a mock wx SDK",
+  "actualDevice": false,
+  "platformLoginVerified": false,
+  "screenshots": [
+    {
+      "filename": "home.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "levels.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game-preview.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "pause.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "help.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "settings.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "ranking-unconfigured.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "endless.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "practice-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "home-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    },
+    {
+      "filename": "game-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    },
+    {
+      "filename": "pause-small.png",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      }
+    }
+  ],
+  "checks": [
+    "normal player locked levels remain locked",
+    "drag preview and pointer cancel do not place a piece",
+    "second pointer cannot consume or replace the held piece",
+    "real touch solution wins first level and saves three stars plus next unlock",
+    "undo restores board, candidates and bounded single-step history",
+    "hide and show cancel input and retain the paused puzzle",
+    "home and resume retain the active puzzle",
+    "host storage restores the exact active puzzle across a new mount",
+    "offline endless starts at zero and cannot enter the public leaderboard",
+    "native sharing includes honest practice metrics and no private session data",
+    "320 by 640 portrait viewport keeps full controls and uniform touch scaling",
+    "dispose releases every listener, timer and local sound"
+  ],
+  "errors": [],
+  "status": "passed"
+}

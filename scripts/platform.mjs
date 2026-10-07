@@ -25,6 +25,7 @@ if (mode === 'stop') {
     '009-content-protection.sql',
     '010-competition.sql',
     '011-competition-profiles.sql',
+    '012-three-choose-two.sql',
   ])
     await run(
       'docker',
