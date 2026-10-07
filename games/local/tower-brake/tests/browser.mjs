@@ -3,7 +3,6 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { exerciseStandalone } from '../../../../apps/shell-web/scripts/standalone-game-checks.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const evidence = new URL('../docs/design/', import.meta.url);
@@ -266,9 +265,24 @@ try {
   const frame = await (await page.locator('iframe').elementHandle()).contentFrame();
   await frame.waitForSelector('#home[data-ready="true"]');
   assert.equal(await frame.evaluate(() => window.SmallGamesDev.isEnabled()), false);
-  await exerciseStandalone(frame, 'tower-brake', true);
+  await frame.locator('#start-game').tap();
+  assert.equal(await frame.locator('#play-screen').getAttribute('data-phase'), 'playing');
+  await frame.locator('#brake-button').tap();
+  assert.equal(await frame.locator('#brake-button').getAttribute('data-charges'), '0');
+  const embeddedAngle = await frame.locator('#play-screen').getAttribute('data-angle');
+  await touchDrag(70);
+  assert.notEqual(await frame.locator('#play-screen').getAttribute('data-angle'), embeddedAngle);
+  await frame.locator('#pause-button').tap();
+  assert.equal(await frame.locator('#pause-screen').isVisible(), true);
+  await frame.locator('#resume-game').tap();
+  assert.equal(await frame.locator('#play-screen').getAttribute('data-phase'), 'playing');
+  await frame.locator('#pause-button').tap();
+  await frame.locator('#pause-home').tap();
+  assert.equal(await frame.locator('#home').isVisible(), true);
+  await frame.locator('#choose-level').tap();
+  assert.equal(await frame.locator('[data-level]').count(), 8);
   check(
-    'Production iframe runs the registered Shell touch scenario; child dev=0 overrides parent dev=1',
+    'Production iframe supports touch play, pause, return and selection; child dev=0 overrides parent dev=1',
   );
 
   await page.goto(`${origin}/?dev=0`);
