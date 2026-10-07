@@ -27,14 +27,20 @@ export const nativeToolConsumers = [
   {
     dir: 'apps/shell-minigame',
     smoke: 'node ../../scripts/native-game-smoke.mjs --standalone',
-    test: 'vitest run tests && node --test scripts/*.test.mjs',
   },
   {
     dir: 'apps/shell-bilibili',
     smoke: 'node ../../scripts/native-game-smoke.mjs --catalog',
-    test: 'vitest run',
   },
 ];
+export function reviewedNativeTest(pkg, consumer) {
+  return (
+    !!consumer &&
+    (pkg?.scripts?.test === 'vitest run' ||
+      (consumer.dir === 'apps/shell-minigame' &&
+        pkg?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs'))
+  );
+}
 export function incrementalPlan({
   packages,
   games,
@@ -57,7 +63,7 @@ export function incrementalPlan({
     const pkg = packages.find((item) => item.dir === consumer.dir);
     assert(
       pkg?.scripts?.smoke === consumer.smoke &&
-        pkg.scripts.test === consumer.test &&
+        reviewedNativeTest(pkg, consumer) &&
         ['build', 'typecheck', 'lint'].every((task) => pkg.scripts[task]),
       `Unreviewed native tool consumer: ${consumer.dir}`,
     );
@@ -443,33 +449,34 @@ function literalRange(text, node, items) {
 }
 
 function fullscreenCopies(text) {
-  const { ast, nodes } = adapterSyntax(text);
-  const matches = nodes.filter(
-    ({ node }) =>
-      node.type === 'VariableDeclarator' &&
-      node.id.type === 'Identifier' &&
-      node.id.name === 'copies',
+  // Planning runs before dependency installation. Mask comments/quoted content
+  // without evaluating source, then accept only one top-level const declaration.
+  const masked = text.replace(
+    /\/\*[\s\S]*?\*\/|\/\/[^\n]*|'(?:\\[\s\S]|[^'\\])*'|"(?:\\[\s\S]|[^"\\])*"|`(?:\\[\s\S]|[^`\\])*`/g,
+    (token) => token.replace(/[^\r\n]/g, ' '),
   );
-  assert(matches.length === 1, 'Expected one copies declaration');
-  const { node, parent } = matches[0];
-  assert(
-    parent.kind === 'const' &&
-      parent.declarations.length === 1 &&
-      ast.program.body.includes(parent),
-  );
-  const list = node.init;
-  assert(list?.type === 'ArrayExpression');
+  const declarations = [...masked.matchAll(/\b(?:const|let|var)\s+copies\s*=/g)];
+  assert(declarations.length === 1, 'Expected one copies declaration');
+  const declaration = declarations[0];
+  assert(declaration[0].startsWith('const '), 'Expected const copies');
+  let depth = 0;
+  for (const token of masked.slice(0, declaration.index)) {
+    if ('{[('.includes(token)) depth++;
+    if ('}])'.includes(token)) depth--;
+    assert(depth >= 0, 'Unbalanced adapter prefix');
+  }
+  assert(depth === 0, 'Expected top-level copies');
+  const start = declaration.index + declaration[0].length;
+  const match = /^\s*(\[[\s\S]*?\])\s*;/.exec(text.slice(start));
+  assert(match, 'Expected one literal array declaration');
+  const literal = match[1];
   const string = `(?:'[A-Za-z0-9._/-]+'|"[A-Za-z0-9._/-]+")`;
-  assert(
-    new RegExp(`^\\[\\s*(?:${string}\\s*(?:,\\s*${string}\\s*)*,?\\s*)?\\]$`).test(
-      text.slice(list.start, list.end),
-    ),
-  );
-  assert(list.elements.every((item) => item?.type === 'StringLiteral'));
+  assert(new RegExp(`^\\[\\s*(?:${string}\\s*(?:,\\s*${string}\\s*)*,?\\s*)?\\]$`).test(literal));
+  const at = start + match[0].indexOf('[');
   return literalRange(
     text,
-    list,
-    list.elements.map((item) => item.value),
+    { start: at, end: at + literal.length },
+    [...literal.matchAll(/['"]([A-Za-z0-9._/-]+)['"]/g)].map((item) => item[1]),
   );
 }
 

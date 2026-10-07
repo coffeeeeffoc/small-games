@@ -18,6 +18,7 @@ import {
   developerModeFileScopes,
   nativeWorkspaceFileScopes,
   nativeToolConsumers,
+  reviewedNativeTest,
   h5AdapterFileScopes,
   reviewedSharedFileScopes,
   workspaceBoundaryScopePaths,
@@ -392,9 +393,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   for (const dir of plan.native_consumers) {
     const pkg = packages.find((item) => item.dir === dir);
     const consumer = nativeToolConsumers.find((item) => item.dir === dir);
-    assert(
-      consumer && pkg?.scripts?.test === consumer.test && pkg.scripts.smoke === consumer.smoke,
-    );
+    assert(reviewedNativeTest(pkg, consumer) && pkg.scripts.smoke === consumer.smoke);
     execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
     execute('pnpm', ['--filter', pkg.name, 'smoke'], root, env, 'logged');
   }

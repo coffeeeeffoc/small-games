@@ -38,6 +38,7 @@ export async function verifyNativeArtifact({
     assert.equal(project.compileType, 'game');
     const assets = {
       'retreat-rally': 'rally-assets',
+      'flick-arena': 'audio',
       cricket: 'cricket-audio',
       cultivation: 'trial-audio',
       arena: 'arena-audio',
@@ -431,6 +432,41 @@ export async function verifyNativeArtifact({
       assert.deepEqual(logs, []);
       return;
     }
+    if (gameId === 'flick-arena') {
+      const click = (label, x = 195) => {
+        assert.ok(labels.has(label), 'Missing control: ' + label);
+        tap(x, labels.get(label) + 32);
+      };
+      click('练习摆位', 140);
+      assert.ok(rendered.includes('初入江湖'));
+      tap(195, 228 + 36 + 32);
+      advance(1500);
+      assert.ok(rendered.includes('蓝小侠 · 轮到你了'));
+      const touch = (listeners, x, y) => {
+        for (const fn of listeners)
+          fn({ changedTouches: [{ identifier: 7, clientX: x, clientY: y + 32 }] });
+      };
+      touch(presses, 195, 475.6);
+      touch(moves, 175, 580);
+      assert.ok(rendered.some((text) => text.startsWith('力度')));
+      touch(cancels, 175, 580);
+      assert.ok(rendered.includes('蓝小侠 · 轮到你了'));
+      touch(presses, 195, 475.6);
+      touch(moves, 175, 580);
+      touch(touches, 175, 580);
+      advance(150);
+      assert.ok(rendered.includes('出招！'));
+      for (const fn of hidden) fn();
+      const paused = JSON.stringify(rendered);
+      advance(2000);
+      assert.equal(JSON.stringify(rendered), paused);
+      for (const fn of shown) fn();
+      assert.ok(rendered.includes('继续切磋'));
+      click('继续切磋');
+      advance(6000);
+      assert.ok(rendered.length > 0);
+      assert.ok(!rendered.includes('全屏'), 'Native builds must not expose browser fullscreen');
+    }
     if (gameId === 'wulong-city') {
       assert.ok(standalone);
       const click = (label) => {
@@ -802,6 +838,7 @@ export async function verifyNativeArtifact({
   const selected = standalone
     ? [
         ...games,
+        ['flick-arena', '弹指擂台'],
         ['building-power', '忙碌的电工'],
         ['retreat-rally', '收兵再冲'],
         ['moss-garden', '苔光花园'],
@@ -846,6 +883,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       'moss-garden',
       'wulong-city',
       'retreat-rally',
+      'flick-arena',
     ];
     assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
     for (const game of values.game ? [values.game] : standaloneGames) {

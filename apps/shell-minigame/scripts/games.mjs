@@ -14,6 +14,14 @@ export const games = {
     content: 'defaultRallyEnvelope',
     assets: [{ source: 'assets', target: 'rally-assets' }],
   },
+  'flick-arena': {
+    title: '弹指擂台',
+    root: 'flick-arena',
+    module: '@coffeeeeffoc/flick-arena/canvas',
+    definition: 'flickCanvasDefinition',
+    content: 'defaultFlickEnvelope',
+    assets: [{ source: 'public/audio', target: 'audio' }],
+  },
   'wulong-city': {
     title: '乌龙城',
     root: 'wulong-city',

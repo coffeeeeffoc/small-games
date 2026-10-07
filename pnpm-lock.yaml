@@ -283,6 +283,9 @@ importers:
       '@coffeeeeffoc/canvas-game-adapter':
         specifier: workspace:*
         version: link:../../packages/canvas-game-adapter
+      '@coffeeeeffoc/flick-arena':
+        specifier: workspace:*
+        version: link:../../games/local/flick-arena
       '@coffeeeeffoc/game-arena':
         specifier: workspace:*
         version: link:../../games/local/game-arena
@@ -398,6 +401,9 @@ importers:
       '@coffeeeeffoc/ember-bounce':
         specifier: workspace:*
         version: link:../../games/local/ember-bounce
+      '@coffeeeeffoc/flick-arena':
+        specifier: workspace:*
+        version: link:../../games/local/flick-arena
       '@coffeeeeffoc/fold-the-world':
         specifier: workspace:*
         version: link:../../games/local/fold-the-world
@@ -761,6 +767,8 @@ importers:
   games/local/echo-weaver: {}
 
   games/local/ember-bounce: {}
+
+  games/local/flick-arena: {}
 
   games/local/fold-the-world:
     dependencies:

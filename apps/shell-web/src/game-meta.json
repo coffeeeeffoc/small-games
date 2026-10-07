@@ -199,6 +199,17 @@
         "time": "2026-10-05T03:18:12+08:00"
       }
     },
+    "flick-arena": {
+      "source": "games/local/flick-arena",
+      "created": {
+        "commit": "9aaa2d114084287036e0fa0b0ad1f418a0135f8f",
+        "time": "2026-10-05T20:43:08Z"
+      },
+      "updated": {
+        "commit": "0ab6f35753d2d98d45be5f47ac764a7cbab589d9",
+        "time": "2026-10-05T20:45:02Z"
+      }
+    },
     "fold-the-world": {
       "source": "games/local/fold-the-world",
       "created": {

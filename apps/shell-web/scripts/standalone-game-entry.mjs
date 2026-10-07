@@ -4,6 +4,7 @@ import { expect } from '@playwright/test';
 export const markers = {
   'retreat-rally': '#start',
   'cage-rescue': '#start',
+  'flick-arena': '#start',
   'tower-brake': '#start-game',
   'chase-thief': '#game[data-ready="true"]',
   'orbit-atelier': '#orbit-app[data-ready="true"]',
@@ -67,6 +68,7 @@ export const markers = {
 export const homeControls = {
   'retreat-rally': '#start',
   'cage-rescue': '#start',
+  'flick-arena': '#start',
   'tower-brake': '#start-game',
   tetracube: '#start-game',
   'chase-thief': '#start',

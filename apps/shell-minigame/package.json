@@ -38,6 +38,7 @@
     "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/platform-kuaishou": "workspace:*",
     "@coffeeeeffoc/retreat-rally": "workspace:*",
+    "@coffeeeeffoc/flick-arena": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/platform-alipay": "workspace:*",
     "@coffeeeeffoc/platform-taptap": "workspace:*"

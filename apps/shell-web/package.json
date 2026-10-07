@@ -95,6 +95,7 @@
     "@coffeeeeffoc/luban-workshop": "workspace:*",
     "@coffeeeeffoc/surprise-kept": "workspace:*",
     "@coffeeeeffoc/retreat-rally": "workspace:*",
+    "@coffeeeeffoc/flick-arena": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/tetracube": "workspace:*",
     "@coffeeeeffoc/tower-brake": "workspace:*",

@@ -186,10 +186,10 @@ const nativeEvidenceProducer = {
   scripts: { 'test:rules': 'vitest run src/simulation.test.ts' },
 };
 test('native smoke selects both actual native hosts and generates candidate replay evidence once before host smoke', async () => {
-  const nativePackages = nativeToolConsumers.map(({ dir, smoke, test }) => ({
+  const nativePackages = nativeToolConsumers.map(({ dir, smoke }) => ({
     name: dir.split('/').at(-1),
     dir,
-    scripts: { build: 'build', typecheck: 'types', lint: 'lint', test, smoke },
+    scripts: { build: 'build', typecheck: 'types', lint: 'lint', test: 'vitest run', smoke },
   }));
   const result = plan(['scripts/native-game-smoke.mjs'], {
     packages: [...packages, ...nativePackages],
@@ -926,4 +926,91 @@ test('file URL workspace roots retain Windows drive identity and decode path seg
     fileURLToPath(rootURL, { windows: false }),
     '/D:/a/small-games/clone with spaces/工作/',
   );
+});
+
+test('native smoke accepts the current platform test aggregate and rejects incomplete commands', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const nativePackages = await Promise.all(
+    nativeToolConsumers.map(async ({ dir }) => ({
+      ...JSON.parse(
+        await readFile(new URL('../' + dir + '/package.json', import.meta.url), 'utf8'),
+      ),
+      dir,
+    })),
+  );
+  const result = plan(['scripts/native-game-smoke.mjs'], {
+    packages: [...packages, ...nativePackages],
+  });
+  assert.deepEqual(
+    result.native_consumers,
+    nativeToolConsumers.map(({ dir }) => dir),
+  );
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const calls = [];
+  runIncrementalToolChecks({
+    plan: result,
+    packages: [...nativePackages, nativeEvidenceProducer],
+    root: '/snapshot',
+    env: {},
+    execute: (...args) => calls.push(args),
+  });
+  assert.deepEqual(
+    calls.slice(1).map((call) => call[1]),
+    nativePackages.flatMap((pkg) => [
+      ['--filter', pkg.name, 'test'],
+      ['--filter', pkg.name, 'smoke'],
+    ]),
+  );
+  for (const command of [
+    'vitest run tests',
+    'node --test scripts/*.test.mjs',
+    'vitest run tests || node --test scripts/*.test.mjs',
+  ]) {
+    const changed = nativePackages.map((pkg) =>
+      pkg.dir === 'apps/shell-minigame'
+        ? { ...pkg, scripts: { ...pkg.scripts, test: command } }
+        : pkg,
+    );
+    assert.throws(
+      () =>
+        plan(['scripts/native-game-smoke.mjs'], {
+          packages: [...packages, ...changed],
+        }),
+      /Unreviewed native tool consumer/,
+    );
+  }
+});
+
+test('fullscreen registration planning works in a checkout without installed formatter dependencies', async () => {
+  const { mkdtemp, readdir, copyFile, mkdir, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const directory = await mkdtemp(path.join(tmpdir(), 'h5-scope-no-deps-'));
+  try {
+    const scripts = path.join(directory, 'scripts');
+    await mkdir(scripts);
+    for (const file of await readdir(new URL('./', import.meta.url))) {
+      if (file.endsWith('.mjs') && !file.endsWith('.test.mjs'))
+        await copyFile(new URL(file, import.meta.url), path.join(scripts, file));
+    }
+    const fixture = {
+      changedPaths: [fullscreenFile],
+      games: h5Games,
+      before: copiesSource(copiesBefore),
+      after: copiesSource([orbitCopy, ...copiesBefore]),
+    };
+    const code = `import assert from 'node:assert/strict';
+      import {createRequire} from 'node:module';
+      import {h5AdapterFileScopes} from './scripts/incremental-validation.mjs';
+      assert.throws(()=>createRequire(import.meta.url).resolve('prettier/plugins/babel'));
+      const fixture=${JSON.stringify(fixture)};
+      const scopes=h5AdapterFileScopes({...fixture,readBase:()=>fixture.before,readHead:()=>fixture.after});
+      assert.deepEqual(scopes.get(${JSON.stringify(fullscreenFile)}),['games/local/orbit-atelier']);`;
+    execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+      cwd: directory,
+      env: { ...process.env, NODE_PATH: '' },
+      stdio: 'pipe',
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

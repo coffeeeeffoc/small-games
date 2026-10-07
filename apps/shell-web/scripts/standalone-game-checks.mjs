@@ -48,6 +48,13 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#paused')).toBeVisible();
     await click(frame.locator('#resume'));
     await expect(frame.locator('#battle')).toBeVisible();
+  } else if (id === 'flick-arena') {
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game')).toHaveAttribute('data-shots', '0');
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'tower-brake') {
     const play = frame.locator('#play-screen');
     const scene = frame.locator('#scene');
