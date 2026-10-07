@@ -1,4 +1,33 @@
-# 底面扩展与存档兼容验收
+# 重力方舱验收
+
+## 2026-10-07 合并最新 dev 后的交互与透视验证
+
+保留最新的 8×8×18 方舱、v4 存档、暂存、常驻侧翻和街机动效，合入本次正反旋转、局部避让、连续观察、透视分层和立体图标。最终合并版在 Linux、Node 24.21.0、Chromium 151.0.7922.173、Playwright 1.55.1 的手机触控模拟中验证；未做真机或原生平台验收。
+
+- `node --test tests/*.test.mjs`：94 项通过（89 项规则、5 项渲染）。
+- `node build.mjs`：生产静态构建通过。
+- `node tests/browser.mjs`：17 组流程通过，无页面错误，保留全部 v4 暂存、动效、救场、四代存档和 iframe 流程，并核对六个旋转控件、正反动作、透视层号与真实落点。[完整报告](interaction-merged-2026-10-07/browser-report.json)。
+- [手机游玩](interaction-merged-2026-10-07/mobile-play.png) · [俯视分层](interaction-merged-2026-10-07/mobile-top.png) · [320×640](interaction-merged-2026-10-07/play-320x640.png) · [844×390](interaction-merged-2026-10-07/play-844x390.png) · [390×844 iframe](interaction-merged-2026-10-07/iframe-390x844.png)。
+
+实际截图与 [更新后的局部设计参考](../design/interaction-reference.svg) 对照：新街机风格、暂存和转舱操作保留，正反平面图标与实际动作一致；小屏和横屏控件完整可见且热区至少 44 CSS px，层号、落点层与实体遮挡清晰。仓库准确候选提交与推送 hook 另执行增量门禁，不以首轮结果代替合并后验证。
+
+## 2026-10-07 首轮 6×6×12 交互与透视验证
+
+Linux、Node 24.19.0、Chromium 151.0.7922.173、Playwright 1.55.1；手机视口与 CDP 触屏模拟，未进行手机真机或原生小游戏平台验收。
+
+与 [局部设计参考](../design/interaction-reference.svg) 对照检查本次实际画面：
+
+- [手机游玩与立体旋转控件](interaction-2026-10-07/mobile-play.png) · [观察模式](interaction-2026-10-07/mobile-observe.png)
+- [多层堆叠与层号](interaction-2026-10-07/mobile-layer-perspective.png) · [同一局面的偏心俯视](interaction-2026-10-07/mobile-layer-top.png)
+- [320×640 小屏](interaction-2026-10-07/play-320x640.png) · [844×390 横屏](interaction-2026-10-07/play-844x390.png) · [1440×1000 桌面](interaction-2026-10-07/play-1440x1000.png)
+
+`node --test tests/*.test.mjs`：56 项规则测试、5 项渲染测试通过。规则覆盖 6,432 个空舱角落旋转场景、舱顶长条三格纠偏、墙角双轴避让、正反转与存档，验证不能远距寻位或移动未旋转轴。渲染覆盖不同 Z（含中央列）可见错位、近大远小、俯仰穿越边界、各朝向容器完整适配，以及透视移动映射。
+
+`node build.mjs` 与 `node tests/browser.mjs`：静态构建及 11 组浏览器流程通过，无页面错误，详见 [浏览器报告](interaction-2026-10-07/browser-report.json)。在原有开始、帮助、暂停、保存继续、颠倒、侧翻、消层连锁、危险救场、结算和旧存档迁移基础上，新增六个立体旋转按钮、三平面正反可逆、同方向拖过顶视、透视分层、落点层提示与旋转后落下位置核对。四种视口均检查六个旋转控件和主要操作可见、热区至少约 44 CSS px、无横向溢出。
+
+截图核对：正反图标明确高亮水平或竖直平面，文字与方向箭头同时保留；小屏和横屏不截断控件。实心方块的顶面层号、层间明暗、外侧标尺与薄荷色落点可以同时辨认，俯视保留真实透视和轻微偏心。移动 / 观察区分清楚，手势取消和多点触控不会遗留移动或镜头惯性。
+
+## 底面扩展与存档兼容历史验收
 
 2026-10-07，Linux、Node 24.21.0、Chromium 151.0.7922.173；Playwright 手机视口与 CDP 触屏模拟。以下是浏览器验证，不是手机真机验证。
 

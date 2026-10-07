@@ -52,6 +52,8 @@ let motion = null,
   lastTrailCount = 0;
 let audioContext;
 let drag = null;
+let orbitVelocity = [0, 0];
+const touchPointers = new Set();
 let inputMode = 'move';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const held = new Map();
@@ -121,6 +123,7 @@ function stopInput() {
     } catch {}
   }
   drag = null;
+  orbitVelocity = [0, 0];
 }
 
 function show(next) {
@@ -230,7 +233,7 @@ function motionCells() {
   const eased = 1 - Math.pow(1 - t, 3);
   if (motion.type === 'rotate' && motion.arc) {
     const [a, b] = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[motion.plane];
-    const angle = (-Math.PI / 2) * eased;
+    const angle = (-Math.PI / 2) * (motion.direction ?? 1) * eased;
     return motion.before.cells.map((cell) => {
       const p = [...cell];
       p[a] = cell[a] * Math.cos(angle) - cell[b] * Math.sin(angle);
@@ -343,9 +346,10 @@ function command(action, ...args) {
   if (phase !== 'playing' || animation || animations.length) return false;
   const ok = game[action](...args);
   if (!ok) {
-    if (action === 'rotate') feedback('这里放不下，先移动一点');
+    if (action === 'rotate') feedback('这个方向被挡住，试试反转或移开');
     return false;
   }
+  if (action === 'rotate') elapsed = Math.min(elapsed, game.fallInterval * 0.4);
   const kind = {
     move: 'move',
     rotate: 'rotate',
@@ -473,7 +477,16 @@ $$('.sound-toggle').forEach((button) =>
   }),
 );
 $$('[data-rotate]').forEach((button) =>
-  button.addEventListener('click', () => command('rotate', button.dataset.rotate)),
+  button.addEventListener('click', () => {
+    const ok = command(
+      'rotate',
+      button.dataset.rotate,
+      Number(button.dataset.rotateDirection) || 1,
+    );
+    button.classList.remove('rotation-success', 'rotation-blocked');
+    void button.offsetWidth;
+    button.classList.add(ok ? 'rotation-success' : 'rotation-blocked');
+  }),
 );
 $$('[data-flip]').forEach((button) =>
   button.addEventListener('click', () => flip(button.dataset.flip)),
@@ -483,6 +496,7 @@ $$('[data-input]').forEach((button) =>
 );
 $$('[data-view]').forEach((button) =>
   button.addEventListener('click', () => {
+    stopInput();
     renderer.setView(button.dataset.view);
     updateViews(button.dataset.view);
   }),
@@ -490,13 +504,27 @@ $$('[data-view]').forEach((button) =>
 
 const canvas = $('#game-canvas');
 canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'touch') {
+    touchPointers.add(event.pointerId);
+    if (touchPointers.size > 1) {
+      stopInput();
+      return;
+    }
+  }
   if (drag && drag.id !== event.pointerId) {
     stopInput();
     return;
   }
   if (event.button !== 0 || drag || phase !== 'playing' || animation || animations.length) return;
   event.preventDefault();
-  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, remainder: [0, 0] };
+  orbitVelocity = [0, 0];
+  drag = {
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    time: event.timeStamp,
+    remainder: [0, 0],
+  };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', (event) => {
@@ -507,10 +535,19 @@ canvas.addEventListener('pointermove', (event) => {
   drag.y = event.clientY;
   if (inputMode === 'observe') {
     renderer.orbit(dx, dy);
+    const interval = Math.max(12, event.timeStamp - drag.time);
+    orbitVelocity = [dx, dy].map(
+      (v, axis) => orbitVelocity[axis] * 0.4 + Math.max(-0.7, Math.min(0.7, v / interval)) * 0.6,
+    );
+    drag.time = event.timeStamp;
     updateViews('');
     return;
   }
-  const delta = renderer.planeDelta(dx, dy);
+  const cells = game.cells();
+  const anchor = cells.length
+    ? [0, 1, 2].map((axis) => cells.reduce((n, cell) => n + cell[axis] + 0.5, 0) / cells.length)
+    : undefined;
+  const delta = renderer.planeDelta(dx, dy, anchor);
   drag.remainder[0] += delta.x;
   drag.remainder[1] += delta.y;
   // Keep the grab relative to the finger; blocked movement is consumed, so reversing
@@ -525,10 +562,14 @@ canvas.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
   canvas.addEventListener(type, (event) => {
     if (drag?.id === event.pointerId) {
+      if (type !== 'pointerup' || inputMode !== 'observe' || event.timeStamp - drag.time > 80)
+        orbitVelocity = [0, 0];
       drag = null;
       elapsed = 0;
     }
   });
+for (const type of ['pointerup', 'pointercancel'])
+  window.addEventListener(type, (event) => touchPointers.delete(event.pointerId), true);
 
 function keydown(event) {
   if (
@@ -565,7 +606,7 @@ function keydown(event) {
     if (key === ' ') command('hardDrop');
     else if (key === 'g') flip();
     else if (key === 'c') command('hold');
-    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key]);
+    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key], event.shiftKey ? -1 : 1);
   }
 }
 window.addEventListener('keydown', keydown);
@@ -698,6 +739,10 @@ function frame(now) {
       time: reducedMotion ? 0 : now,
     });
   } else if (phase === 'playing') {
+    if (inputMode === 'observe' && !drag && !animation && !animations.length) {
+      renderer.orbit(orbitVelocity[0] * dt, orbitVelocity[1] * dt);
+      orbitVelocity = orbitVelocity.map((v) => (Math.abs(v) < 0.005 ? 0 : v * Math.exp(-dt / 95)));
+    }
     if (motion) {
       motion.elapsed += dt;
       if (motion.elapsed >= motion.duration) motion = null;
@@ -731,7 +776,7 @@ function frame(now) {
         : '方块向下落定…'
       : inputMode === 'observe'
         ? '观察模式 · 拖动转视角'
-        : '拖动方块 · 虚线是落点';
+        : `拖动方块 · 落点 ${renderer.layers.landing.join(' / ')}层`;
     $$('[data-rotate], [data-flip], #flip-container, #hard-drop').forEach((button) => {
       button.disabled = busy;
     });
@@ -755,6 +800,16 @@ window.tetracubeSnapshot = () => ({
   reducedMotion,
   inputMode,
   input: { held: held.size, dragging: !!drag },
+  projection: {
+    mode: 'perspective',
+    scale: renderer.scale,
+    distance: renderer.distance,
+    samples: [
+      [1.5, 1.5, 0.5],
+      [1.5, 1.5, 2.5],
+    ].map((p) => renderer.project(p)),
+  },
+  layers: { ...renderer.layers },
 });
 const dev = window.SmallGamesDev;
 let cleanActions = () => {},
