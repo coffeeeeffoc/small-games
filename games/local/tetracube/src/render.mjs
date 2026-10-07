@@ -1,4 +1,4 @@
-// Dependency-free, orthographic 3D renderer. All game coordinates use Z as up.
+// Dependency-free perspective renderer. All game coordinates use Z as up.
 import { DEFAULT_CONFIG } from './config.mjs';
 const TAU = Math.PI * 2;
 const MINT = '#67f6da';
@@ -154,13 +154,16 @@ export class Renderer {
     this.width = 320;
     this.height = 400;
     this.scale = 25;
+    this.distance = 24;
+    this.layers = { visible: [], landing: [] };
     this.centerX = 160;
     this.centerY = 200;
     this.disposed = false;
   }
 
   setView(view) {
-    if (view === 'top') this.camera = { yaw: 0, pitch: Math.PI / 2 };
+    // A slightly offset eye keeps stacked cells apart, including the center column.
+    if (view === 'top') this.camera = { yaw: 0.38, pitch: 1.28 };
     else if (view === 'front') this.camera = { yaw: 0, pitch: 0.16 };
     else if (view === 'side') this.camera = { yaw: Math.PI / 2, pitch: 0.16 };
     else this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
@@ -168,14 +171,42 @@ export class Renderer {
 
   orbit(dx, dy) {
     this.camera.yaw = (this.camera.yaw + dx * 0.008) % TAU;
-    this.camera.pitch = Math.max(0.16, Math.min(Math.PI / 2, this.camera.pitch + dy * 0.006));
+    // Cross the poles continuously: no direction becomes blocked at a preset or limit.
+    this.camera.pitch = (this.camera.pitch + dy * 0.006) % TAU;
   }
 
-  // Screen-space dragging maps to the current horizontal plane, independently of camera yaw.
-  planeDelta(dx, dy) {
+  // Intersect screen rays with the grabbed cell's horizontal plane. Perspective
+  // changes the size of a grid step with depth, so a single global scale is insufficient.
+  planeDelta(dx, dy, anchor = this.dims.map((n) => n / 2)) {
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return { x: 0, y: 0 };
+    const start = this.project(anchor);
+    const direction = this._direction();
+    const { yaw, pitch } = this.camera;
+    const right = [Math.cos(yaw), -Math.sin(yaw), 0];
+    const down = [
+      Math.sin(yaw) * Math.sin(pitch),
+      Math.cos(yaw) * Math.sin(pitch),
+      -Math.cos(pitch),
+    ];
+    const eye = this.dims.map((n, axis) => n / 2 + direction[axis] * this.distance);
+    const intersect = (screenX, screenY) => {
+      const sx = (screenX - this.centerX) / this.scale;
+      const sy = (screenY - this.centerY) / this.scale;
+      const ray = right.map((v, a) => v * sx + down[a] * sy - direction[a] * this.distance);
+      if (Math.abs(ray[2]) < this.distance * 0.12) return null;
+      const t = (anchor[2] - eye[2]) / ray[2];
+      if (t <= 0 || t > 3) return null;
+      return eye.map((v, a) => v + ray[a] * t);
+    };
+    const from = intersect(start.x, start.y);
+    const to = intersect(start.x + dx, start.y + dy);
+    if (from && to) return { x: to[0] - from[0], y: to[1] - from[1] };
+    // A front view is nearly parallel to the XY plane. Keep a bounded drag
+    // response there instead of letting a ray near the horizon jump across the board.
     const sx = (Number.isFinite(dx) ? dx : 0) / Math.max(1, this.scale);
     const sy = (Number.isFinite(dy) ? dy : 0) / Math.max(1, this.scale);
-    const depth = sy / Math.max(0.12, Math.sin(this.camera.pitch));
+    const sin = Math.sin(pitch);
+    const depth = sy / (Math.sign(sin || 1) * Math.max(0.3, Math.abs(sin)));
     const c = Math.cos(this.camera.yaw);
     const s = Math.sin(this.camera.yaw);
     return { x: c * sx + s * depth, y: -s * sx + c * depth };
@@ -218,9 +249,10 @@ export class Renderer {
 
   project(point) {
     const p = this._raw(point);
+    const perspective = this.distance / Math.max(1, this.distance - p.depth);
     return {
-      x: this.centerX + p.x * this.scale,
-      y: this.centerY + p.y * this.scale,
+      x: this.centerX + p.x * this.scale * perspective,
+      y: this.centerY + p.y * this.scale * perspective,
       depth: p.depth,
     };
   }
@@ -232,15 +264,19 @@ export class Renderer {
   }
 
   _fit() {
+    this.distance = Math.hypot(...this.dims) * 1.65;
     const corners = Array.from({ length: 8 }, (_, i) =>
       this._raw(this.dims.map((n, axis) => ((i >> axis) & 1) * n)),
-    );
+    ).map((p) => {
+      const perspective = this.distance / (this.distance - p.depth);
+      return { x: p.x * perspective, y: p.y * perspective };
+    });
     const minX = Math.min(...corners.map((p) => p.x));
     const maxX = Math.max(...corners.map((p) => p.x));
     const minY = Math.min(...corners.map((p) => p.y));
     const maxY = Math.max(...corners.map((p) => p.y));
     // Fitting the transformed corners is continuous, including the remapped endpoint dimensions.
-    const margin = 16;
+    const margin = 30;
     this.scale = Math.min(
       (this.width - margin * 2) / (maxX - minX),
       (this.height - 38) / (maxY - minY),
@@ -438,19 +474,31 @@ export class Renderer {
       const rawSize = cell.scale ?? 1;
       const size = Number.isFinite(rawSize) ? Math.max(0, Math.min(1, rawSize)) : 1;
       if (size === 0) continue;
-      const rgb = color(cell.color || (type === 'active' ? MINT : CYAN));
+      const base = color(cell.color || (type === 'active' ? MINT : CYAN));
+      const layer = Math.max(0, Math.min(this.dims[2] - 1, Math.round(pos[2])));
+      // Keep the shape's hue, with alternating cool/light layers and a height gradient.
+      const tint = layer % 2 ? [192, 229, 255] : [95, 207, 206];
+      const rgb = type === 'board' ? base.map((v, a) => v * 0.88 + tint[a] * 0.12) : base;
       const side = (type === 'ghost' ? 0.95 : 0.972) * size;
       for (const face of FACES) {
         const normal = this._normal(face.axis, face.sign);
-        if (normal.reduce((dot, value, i) => dot + value * direction[i], 0) < 0.001) continue;
+        const center = this._rotate(pos.map((v, a) => v + 0.5 - this.dims[a] / 2));
+        const toEye = direction.map((v, a) => v * this.distance - center[a]);
+        if (normal.reduce((dot, value, i) => dot + value * toEye[i], 0) < 0.001) continue;
         const vertices = face.vertices.map((vertex) =>
           this.project(pos.map((v, a) => v + 0.5 + (vertex[a] - 0.5) * side)),
         );
         faces.push({
           vertices,
           rgb,
-          shade: 0.75 + normal[2] * 0.25 + normal[0] * 0.07 - normal[1] * 0.04,
+          shade:
+            (0.75 + normal[2] * 0.25 + normal[0] * 0.07 - normal[1] * 0.04) *
+            (type === 'board'
+              ? 0.88 + (layer / Math.max(1, this.dims[2] - 1)) * 0.22 + (layer % 2) * 0.08
+              : 1),
           type,
+          layer: layer + 1,
+          top: face.axis === 2 && face.sign > 0,
           alpha: Math.max(0, Math.min(0.34, cell.alpha ?? cell.opacity ?? 0.15)),
           depth: vertices.reduce((sum, v) => sum + v.depth, 0) / 4,
         });
@@ -522,8 +570,60 @@ export class Renderer {
         ctx.strokeStyle = active ? 'rgba(249,255,253,.55)' : 'rgba(249,255,253,.3)';
         ctx.stroke();
       }
+      if (face.type === 'board' && face.top) {
+        const span =
+          Math.max(...face.vertices.map((v) => v.x)) - Math.min(...face.vertices.map((v) => v.x));
+        const rise =
+          Math.max(...face.vertices.map((v) => v.y)) - Math.min(...face.vertices.map((v) => v.y));
+        if (span >= 14 && rise >= 8) {
+          const center = face.vertices.reduce((p, v) => ({ x: p.x + v.x / 4, y: p.y + v.y / 4 }), {
+            x: 0,
+            y: 0,
+          });
+          // Explicit height remains readable without relying on color perception.
+          ctx.font = `600 ${Math.min(11, Math.max(8, span * 0.27))}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(4,28,42,.72)';
+          ctx.fillText(String(face.layer), center.x, center.y);
+        }
+      }
     }
     ctx.globalAlpha = 1;
+  }
+
+  _layerGuide() {
+    if (this.flip) return;
+    const ctx = this.ctx;
+    // Label the outermost screen edge, rather than the nearest edge which often
+    // projects through the middle of the solid stack.
+    const corner = [
+      [0, 0],
+      [this.dims[0], 0],
+      [0, this.dims[1]],
+      [this.dims[0], this.dims[1]],
+    ].sort(
+      (a, b) => this.project([...b, this.dims[2] / 2]).x - this.project([...a, this.dims[2] / 2]).x,
+    )[0];
+    const levels = new Set([1, ...this.layers.visible, ...this.layers.landing]);
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    let previous = null;
+    for (const layer of [...levels].sort((a, b) => a - b)) {
+      const p = this.project([...corner, layer - 0.5]);
+      if (previous && Math.hypot(p.x - previous.x, p.y - previous.y) < 13) continue;
+      const landing = this.layers.landing.includes(layer);
+      ctx.strokeStyle = landing ? MINT : 'rgba(175,212,226,.65)';
+      ctx.fillStyle = landing ? MINT : '#9bbac9';
+      ctx.lineWidth = landing ? 1.5 : 1;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 2, p.y);
+      ctx.lineTo(p.x + 7, p.y);
+      ctx.stroke();
+      ctx.fillText(`${layer}层`, p.x + 10, p.y);
+      previous = p;
+    }
   }
 
   _particles(particles) {
@@ -624,6 +724,9 @@ export class Renderer {
     this.dims = dimensions(dims);
     this.flip = flip && Number.isFinite(flip.angle) ? flip : null;
     this.orientation = orientation;
+    const levels = (cells) =>
+      [...new Set(cells.map((cell) => Math.round(position(cell)[2]) + 1))].sort((a, b) => a - b);
+    this.layers = { visible: levels(board), landing: levels(ghost) };
     this._fit();
     const ctx = this.ctx;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -641,6 +744,7 @@ export class Renderer {
     this._cubeFaces(active, 'active', faces);
     this._drawFaces(faces, time);
     this._container(true);
+    this._layerGuide();
     this._particles(particles);
   }
 

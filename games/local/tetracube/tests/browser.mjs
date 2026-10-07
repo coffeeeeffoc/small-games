@@ -4,9 +4,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { Game } from '../src/engine.mjs';
+import { SHAPES } from '../src/config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/qa/v4/', import.meta.url);
+const evidence = new URL('../docs/qa/interaction-merged-2026-10-07/', import.meta.url);
 await mkdir(evidence, { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
   cwd: root,
@@ -90,6 +92,9 @@ const stored = (page) => page.evaluate((key) => localStorage.getItem(key), saveK
 const touch = (cdp, type, touchPoints = []) =>
   cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
 const point = (x, y, id = 1) => ({ x, y, id });
+const rotation = (page, plane, direction = 1) =>
+  page.locator(`[data-rotate="${plane}"][data-rotate-direction="${direction}"]`);
+const coordinates = (cells) => cells.map((cell) => cell.join(',')).sort();
 const touchButton = async (page, cdp, selector) => {
   const box = await page.locator(selector).boundingBox();
   assert(box);
@@ -183,7 +188,7 @@ try {
   );
   for (const plane of ['XY', 'XZ', 'YZ']) {
     await recordEffects(page);
-    await page.locator(`[data-rotate="${plane}"]`).tap();
+    await rotation(page, plane).tap();
     await motion(page, 'rotate');
     if (plane === 'XY') await capture(page, 'mobile-rotate.png');
     await recordedEffects(page);
@@ -273,7 +278,25 @@ try {
   );
   for (const view of ['top', 'front', 'side', 'iso']) {
     await page.locator(`[data-view="${view}"]`).tap();
-    if (view === 'top') await capture(page, 'mobile-top.png');
+    if (view === 'top') {
+      const top = await snapshot(page);
+      assert.equal(top.projection.mode, 'perspective');
+      const [lower, upper] = top.projection.samples;
+      assert.ok(
+        Math.hypot(upper.x - lower.x, upper.y - lower.y) > 3,
+        'Top view separates a vertical stack into distinct projected layers',
+      );
+      await capture(page, 'mobile-top.png');
+      await swipe(page, cdp, 0, 115);
+      const overTop = await snapshot(page);
+      assert.ok(overTop.camera.pitch > Math.PI / 2, 'Observation drag passes over top view');
+      await swipe(page, cdp, 0, 30);
+      assert.ok(
+        (await snapshot(page)).camera.pitch > overTop.camera.pitch,
+        'Dragging in the same direction continues rotating beyond top view',
+      );
+      assert.deepEqual(xy(await snapshot(page)), xy(top), 'Observation never moves the piece');
+    }
   }
   await capture(page, 'mobile-observe.png');
   await page.locator('[data-input="move"]').tap();
@@ -312,7 +335,14 @@ try {
   const beforeFlip = await snapshot(page);
   await page.locator('#flip-container').tap();
   await page.waitForFunction(() => window.tetracubeSnapshot().animationKind === 'flip');
-  for (const selector of ['#hard-drop', '#flip-container', '[data-rotate="XY"]'])
+  await page.waitForFunction(() => document.querySelector('#hard-drop').disabled);
+  for (const selector of [
+    '#hard-drop',
+    '#flip-container',
+    ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
+      [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
+    ),
+  ])
     assert.equal(
       await page.locator(selector).isDisabled(),
       true,
@@ -438,7 +468,10 @@ try {
       '[data-flip="right"]',
       '#hold-piece',
       '[data-input="move"]',
-      '[data-rotate="YZ"]',
+      '[data-input="observe"]',
+      ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
+        [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
+      ),
     ]) {
       await fits(page, selector, viewport);
     }
@@ -505,6 +538,103 @@ try {
     'Touch danger → one-tap physical flip rescue → playing; danger → result → home/start and result → retry',
   );
   await context.close();
+
+  const rotationContext = await browser.newContext(mobile);
+  const rotationGame = new Game({ seed: 711 });
+  rotationGame.board = [
+    { id: 1, x: 1, y: 1, z: 0, color: '#63e7ff' },
+    { id: 2, x: 1, y: 1, z: 1, color: '#63e7ff' },
+    { id: 3, x: 2, y: 1, z: 0, color: '#63e7ff' },
+  ];
+  rotationGame.serial = 3;
+  rotationGame.active = {
+    ...structuredClone(SHAPES.find(({ id }) => id === 'tripod')),
+    pos: [3, 3, 9],
+  };
+  const rotationSave = {
+    version: 1,
+    game: rotationGame.getSnapshot(),
+    tutorialStep: 4,
+    rescueUsed: false,
+  };
+  await rotationContext.addInitScript(
+    ({ key, value }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
+    },
+    { key: saveKey, value: rotationSave },
+  );
+  const rotationPage = await rotationContext.newPage();
+  watch(rotationPage);
+  await rotationPage.goto(origin);
+  await ready(rotationPage);
+  await rotationPage.locator('#continue-game').tap();
+  await phase(rotationPage, 'playing');
+  await rotationPage.waitForFunction(() => {
+    const layers = window.tetracubeSnapshot().layers;
+    return layers.visible.includes(1) && layers.visible.includes(2) && layers.landing.length > 0;
+  });
+  assert.match(
+    await rotationPage.locator('#stage-hint').innerText(),
+    /落点.*层/,
+    'Landing height is visible',
+  );
+  for (const plane of ['XY', 'XZ', 'YZ']) {
+    const before = await snapshot(rotationPage);
+    for (const direction of [1, -1]) {
+      const button = rotation(rotationPage, plane, direction);
+      assert.equal(
+        await button.locator('svg').count(),
+        1,
+        `${plane} ${direction} has a spatial icon`,
+      );
+      assert.ok(await button.getAttribute('aria-label'), 'Rotation control has an accessible name');
+      await button.tap();
+      if (direction === 1) {
+        assert.notDeepEqual(
+          coordinates((await snapshot(rotationPage)).game.active.cells),
+          coordinates(before.game.active.cells),
+          `${plane} forward control changes orientation`,
+        );
+      }
+    }
+    const restored = await snapshot(rotationPage);
+    assert.deepEqual(
+      coordinates(restored.game.active.cells),
+      coordinates(before.game.active.cells),
+      `${plane} reverse control undoes one forward turn`,
+    );
+    assert.deepEqual(
+      xy(restored),
+      xy(before),
+      'Free-space inverse rotation preserves horizontal position',
+    );
+  }
+  await rotation(rotationPage, 'XZ', -1).tap();
+  await rotation(rotationPage, 'YZ', 1).tap();
+  const beforeRotatedDrop = await snapshot(rotationPage);
+  const expectedGame = new Game().restore(beforeRotatedDrop.game);
+  const expectedLanding = coordinates(expectedGame.ghost());
+  await rotationPage.locator('[data-input="observe"]').tap();
+  await rotationPage.locator('[data-view="top"]').tap();
+  await capture(rotationPage, 'mobile-layer-stack.png');
+  await rotationPage.locator('#hard-drop').tap();
+  await idle(rotationPage);
+  const dropped = await snapshot(rotationPage);
+  assert.equal(dropped.game.placed, beforeRotatedDrop.game.placed + 1);
+  assert.deepEqual(
+    coordinates(
+      dropped.game.board
+        .filter(({ id }) => id > rotationGame.serial)
+        .map(({ x, y, z }) => [x, y, z]),
+    ),
+    expectedLanding,
+    'The real drop control commits the rotated piece at its predicted landing cells',
+  );
+  report.checks.push(
+    'Six spatial rotation controls, inverse turns on XY/XZ/YZ, perspective layer separation, continuous orbit across top view and exact landing after rotation',
+  );
+  await rotationContext.close();
 
   const legacyContext = await browser.newContext(mobile);
   const legacyShape = {
@@ -811,7 +941,7 @@ try {
   const reducedBefore = await snapshot(reducedPage);
   await swipe(reducedPage, reducedCDP, 70, 24);
   assert.notDeepEqual(xy(await snapshot(reducedPage)), xy(reducedBefore));
-  await reducedPage.locator('[data-rotate="XY"]').tap();
+  await rotation(reducedPage, 'XY').tap();
   await reducedPage.locator('#hold-piece').tap();
   await reducedPage.locator('#hard-drop').tap();
   await idle(reducedPage);
@@ -849,7 +979,7 @@ try {
     'Hold does not complete the instruction to rotate the piece',
   );
   await capture(teachingPage, 'mobile-tutorial-hold.png');
-  await teachingPage.locator('[data-rotate="XY"]').tap();
+  await rotation(teachingPage, 'XY').tap();
   assert.match(await teachingPage.locator('#tutorial-text').textContent(), /直接落下/);
   await teachingPage.locator('#hard-drop').tap();
   await idle(teachingPage);
@@ -900,6 +1030,11 @@ try {
       '[data-flip="right"]',
       '#flip-container',
       '#hard-drop',
+      '[data-input="move"]',
+      '[data-input="observe"]',
+      ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
+        [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
+      ),
     ])
       await fits(frame, selector, viewport);
     await capture(embeddedPage, `iframe-${viewport.width}x${viewport.height}.png`);

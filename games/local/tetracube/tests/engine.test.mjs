@@ -118,8 +118,17 @@ test('every tetracube returns to its exact coordinates after four quarter rotati
       let cells = shape.cells;
       for (let i = 0; i < 4; i++) cells = rotateCells(cells, rotation);
       assert.deepEqual(cells, shape.cells, `${shape.id}/${rotation}`);
+      assert.deepEqual(
+        rotateCells(rotateCells(shape.cells, rotation), rotation, -1),
+        shape.cells,
+        `${shape.id}/${rotation}: reverse turn undoes the default quarter turn`,
+      );
+      for (let i = 0; i < 4; i++) cells = rotateCells(cells, rotation, -1);
+      assert.deepEqual(cells, shape.cells, `${shape.id}/${rotation}: four reverse turns`);
     }
   assert.throws(() => rotateCells(SHAPES[0].cells, 'unknown'));
+  for (const direction of [0, 2, NaN, '1'])
+    assert.throws(() => rotateCells(SHAPES[0].cells, 'XY', direction));
 });
 
 test('bag generation is deterministic, contains each shape once and stays previewed', () => {
@@ -536,6 +545,134 @@ test('rotations kick away from walls and the spawn face without overlapping', ()
     assert.equal(game.fits(game.active), true);
     assert.equal(new Set(game.cells().map(key)).size, 4);
   }
+});
+
+test('a long bridge at the spawn ceiling rotates with the necessary three-cell correction', () => {
+  const shape = {
+    ...SHAPES[0],
+    cells: [
+      [-3, 0, 0],
+      [-2, 0, 0],
+      [-1, 0, 0],
+      [0, 0, 0],
+    ],
+  };
+  const config = configFor([shape]);
+  const game = new Game({ config, seed: 8 });
+  const before = structuredClone(game.active);
+  game.drainEvents();
+  assert.equal(game.rotate('xz'), true);
+  assert.deepEqual(game.active.pos, [before.pos[0], before.pos[1], before.pos[2] - 3]);
+  assert.deepEqual(game.active.cells, rotateCells(before.cells, 'XZ'));
+  assert.deepEqual(game.drainEvents(), [
+    {
+      type: 'rotate',
+      plane: 'XZ',
+      direction: 1,
+      sign: 1,
+      kick: [0, 0, -3],
+      before,
+      after: structuredClone(game.active),
+      from: game.cells(before),
+      to: game.cells(),
+    },
+  ]);
+  assert.equal(Math.max(...game.cells().map((cell) => cell[2])), game.dims[2] - 1);
+  assert.equal(game.fits(game.active), true);
+  const restored = new Game({ config }).restore(game.getSnapshot());
+  assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
+  for (const instance of [game, restored]) assert.equal(instance.rotate('XZ', -1), true);
+  assert.deepEqual(game.active.cells, before.cells);
+  assert.deepEqual(restored.getSnapshot(), game.getSnapshot());
+  const reverse = game.drainEvents()[0];
+  assert.equal(reverse.direction, -1);
+  assert.equal(reverse.sign, -1);
+  assert.deepEqual(
+    reverse.after.cells,
+    rotateCells(reverse.before.cells, reverse.plane, reverse.sign),
+  );
+  assert.deepEqual(reverse.from, game.cells(reverse.before));
+  assert.deepEqual(reverse.to, game.cells(reverse.after));
+});
+
+test('a turn near a corner can combine two local offsets without changing depth', () => {
+  const game = new Game({ seed: 8 });
+  game.active = { ...structuredClone(SHAPES.find((shape) => shape.id === 'tee')), pos: [1, 0, 4] };
+  game.board = [cube(1, [1, 2, 4]), cube(2, [0, 2, 4])];
+  const board = structuredClone(game.board);
+  const cells = rotateCells(game.active.cells, 'XY');
+  assert.equal(game.fits(game.active), true);
+  game.drainEvents();
+  assert.equal(game.rotate('XY'), true);
+  assert.deepEqual(game.active.pos, [2, 1, 4]);
+  assert.deepEqual(game.active.cells, cells);
+  assert.deepEqual(game.drainEvents()[0].kick, [1, 1, 0]);
+  assert.equal(game.fits(game.active), true);
+  assert.deepEqual(game.board, board);
+});
+
+test('every shape orientation at an empty-container corner can turn both ways in each plane', () => {
+  const game = new Game({ seed: 8 });
+  for (const shape of SHAPES) {
+    const orientations = [shape.cells];
+    const seen = new Set();
+    for (let i = 0; i < orientations.length; i++) {
+      const cells = orientations[i];
+      const orientation = sorted(cells).join(';');
+      if (seen.has(orientation)) continue;
+      seen.add(orientation);
+      for (const plane of ['XY', 'XZ', 'YZ']) orientations.push(rotateCells(cells, plane));
+      const edges = [0, 1, 2].map((axis) => [
+        -Math.min(...cells.map((cell) => cell[axis])) || 0,
+        game.dims[axis] - 1 - Math.max(...cells.map((cell) => cell[axis])),
+      ]);
+      for (const x of edges[0])
+        for (const y of edges[1])
+          for (const z of edges[2])
+            for (const plane of ['XY', 'XZ', 'YZ'])
+              for (const direction of [-1, 1]) {
+                const pos = [x, y, z];
+                game.active = { ...structuredClone(shape), cells, pos };
+                game.drainEvents();
+                assert.equal(game.fits(game.active), true);
+                assert.equal(
+                  game.rotate(plane, direction),
+                  true,
+                  `${shape.id}/${orientation}/${pos}/${plane}/${direction}`,
+                );
+                assert.deepEqual(game.active.cells, rotateCells(cells, plane, direction));
+                assert.equal(game.fits(game.active), true);
+                const event = game.drainEvents()[0];
+                assert.ok(event.kick.reduce((sum, value) => sum + Math.abs(value), 0) <= 3);
+                const untouched = { XY: 2, XZ: 1, YZ: 0 }[plane];
+                assert.equal(game.active.pos[untouched], pos[untouched]);
+              }
+    }
+  }
+});
+
+test('blocked turns do not jump to a distant vacancy or to another depth layer', () => {
+  const game = new Game({ config: { ...DEFAULT_CONFIG, dims: [12, 12, 12] }, seed: 8 });
+  game.active = { ...structuredClone(SHAPES.find((shape) => shape.id === 'tee')), pos: [2, 2, 4] };
+  const rotated = rotateCells(game.active.cells, 'XY');
+  const farPiece = { ...structuredClone(game.active), cells: rotated, pos: [6, 2, 4] };
+  const otherLayer = { ...structuredClone(game.active), cells: rotated, pos: [2, 2, 5] };
+  const vacancies = new Set([...game.cells(), ...game.cells(farPiece)].map(key));
+  game.board = plane(game.dims, 2, 4).filter((cell) => !vacancies.has(key(coordinates(cell))));
+  assert.equal(game.fits(game.active), true);
+  assert.equal(game.fits(farPiece), true, 'a valid destination exists four cells away');
+  assert.equal(
+    game.fits(otherLayer),
+    true,
+    'a valid destination exists outside the rotation plane',
+  );
+  const active = structuredClone(game.active);
+  const board = structuredClone(game.board);
+  game.drainEvents();
+  assert.equal(game.rotate('XY'), false);
+  assert.deepEqual(game.active, active);
+  assert.deepEqual(game.board, board);
+  assert.deepEqual(game.drainEvents(), []);
 });
 
 test('clear-collapse-clear emits distinct snapshots and increasing combo rewards', () => {
