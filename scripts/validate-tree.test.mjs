@@ -627,6 +627,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
       'scripts/kart-sharing.test.mjs',
       readFileSync(new URL('./kart-sharing.test.mjs', import.meta.url), 'utf8'),
     );
+    await put('scripts/check-workspace-dependencies.mjs', 'export const fixtureVersion = 0;\n');
     const sharing = readFileSync(new URL('../platforms/kart-sharing.js', import.meta.url), 'utf8');
     let sharingBaseline = sharing;
     for (const addition of [
@@ -653,6 +654,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
     git('commit', '-m', 'fixture baseline');
     const base = git('rev-parse', 'HEAD').trim();
     await put('platforms/kart-sharing.js', sharing);
+    await put('scripts/check-workspace-dependencies.mjs', 'export const fixtureVersion = 1;\n');
     git('commit', '-am', 'TapTap-only sharing');
     const head = git('rev-parse', 'HEAD').trim();
     const calls = [];
@@ -701,6 +703,9 @@ test('native-only Creator consumers are checked before types without rebuilding 
       /Official TapTap conversion still required/,
     );
     assert.equal(calls.filter((args) => args.includes('typecheck')).length, 1);
+    const boundaryCheck = calls.findIndex((args) => args.includes('test:boundaries'));
+    assert(boundaryCheck >= 0, 'Changed boundary tooling must exercise its real contract tests');
+    assert(boundaryCheck < calls.findIndex((args) => args.includes('typecheck')));
     assert(
       !calls.some((args) => args.includes('build')),
       'The unchanged H5 artifact is not rebuilt',

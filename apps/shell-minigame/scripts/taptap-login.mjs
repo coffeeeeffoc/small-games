@@ -2,9 +2,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { nineGames } from './nine-games-targets.mjs';
-import { tapTapApiBase } from '../../../platforms/taptap/login.cjs';
+import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
 
-const helper = new URL('../../../platforms/taptap/login.cjs', import.meta.url);
+const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
 
 export function publicTapTapLoginConfig(config) {

@@ -1,5 +1,5 @@
 import { nineGames, appIdVariable, targetOptions } from './nine-games-targets.mjs';
-import { tapTapApiBase } from '../../../platforms/taptap/login.cjs';
+import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
 
 // Keep the previously reviewed catalog batch; new featured games do not enter it.
 export const tapTapGames = nineGames;

@@ -15,6 +15,10 @@ const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
   /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+export const workspaceBoundaryScopePaths = Object.freeze([
+  'scripts/check-workspace-dependencies.mjs',
+  'scripts/check-workspace-dependencies.test.mjs',
+]);
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -54,6 +58,7 @@ export function incrementalPlan({
     (file) =>
       !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')) &&
       !validationTool.test(file) &&
+      !workspaceBoundaryScopePaths.includes(file) &&
       file !== 'scripts/pages-regression-timings.json' &&
       file !== nativeSmoke &&
       !fileScopes.has(file),
@@ -155,6 +160,7 @@ export function incrementalPlan({
     validation_tools: paths.some(
       (file) =>
         validationTool.test(file) ||
+        workspaceBoundaryScopePaths.includes(file) ||
         file === 'scripts/pages-regression-timings.json' ||
         [
           '.github/workflows/ci.yml',

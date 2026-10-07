@@ -76,6 +76,32 @@ test('generic logic in the same Shell directory still exercises reviewed navigat
 test('unknown shared paths block with a classification gap, never silently expand to all games', () => {
   assert.throws(() => plan(['platforms/new-shared.js']), /scope undefined.*no automatic full/);
 });
+test('only the exact workspace boundary checker and tests select static tooling without game consumers', () => {
+  const sampleGames = [
+    ...games,
+    { id: 'letters-words2', source: 'games/local/letters-words2' },
+    { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+  ];
+  for (const file of [
+    'scripts/check-workspace-dependencies.mjs',
+    'scripts/check-workspace-dependencies.test.mjs',
+  ]) {
+    const selected = plan([file], { games: sampleGames });
+    assert.equal(selected.validation_tools, true);
+    assert.equal(selected.full, false);
+    assert.equal(selected.browser, false);
+    assert.deepEqual(selected.browser_ids, []);
+    assert.deepEqual(selected.game_sources, []);
+    assert.deepEqual(selected.consumer_sources, []);
+    assert.deepEqual(selected.nine_native_targets, []);
+  }
+  for (const file of [
+    'scripts/check-workspace-dependencies-extra.mjs',
+    'scripts/check-workspace-dependencies.fixture.mjs',
+    'scripts/check-workspace-dependencies.test-extra.mjs',
+  ])
+    assert.throws(() => plan([file]), /scope undefined/);
+});
 test('shard planning and measured timing changes select tool checks without any game browser', () => {
   const sampleGames = [
     ...games,

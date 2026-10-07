@@ -144,6 +144,38 @@ test('allows shared Creator tooling only in declared build scripts', async (t) =
   assert(violations.some((entry) => entry.message.includes('native.ts')));
 });
 
+test('TapTap acceptance reuses only three exact fixture edges, never runtime or adjacent scripts', async (t) => {
+  const imports = ['tests/native-sdk-fixture.mjs', 'tests/native-test-actions.mjs', 'library.js']
+    .map((file) => `import '../../../games/local/letters-words2/${file}';\n`)
+    .join('');
+  const root = await createWorkspace([
+    {
+      path: 'apps/shell-minigame',
+      manifest: { name: '@coffeeeeffoc/shell-minigame' },
+      files: {
+        'scripts/taptap-smoke.mjs':
+          imports +
+          "import '../../../games/local/letters-words2/tests/other-fixture.mjs';\n" +
+          "import '../../../games/local/letters-words/library.js';\n",
+        'scripts/taptap-smoke-extra.mjs': imports,
+        'src/runtime.mjs': imports,
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 8);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  const smoke = violations.filter((entry) =>
+    entry.message.startsWith('apps/shell-minigame/scripts/taptap-smoke.mjs '),
+  );
+  assert.equal(smoke.length, 2);
+  assert(smoke.some((entry) => entry.message.includes('other-fixture.mjs')));
+  assert(smoke.some((entry) => entry.message.includes('letters-words/library.js')));
+  for (const file of ['scripts/taptap-smoke-extra.mjs', 'src/runtime.mjs'])
+    assert.equal(violations.filter((entry) => entry.message.includes(file)).length, 3);
+});
+
 test('requires an explicit root export', async (t) => {
   const root = await createWorkspace([
     {

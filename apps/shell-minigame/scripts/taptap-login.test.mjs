@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runInNewContext } from 'node:vm';
-import * as nativeLogin from '../../../platforms/taptap/login.cjs';
+import * as nativeLogin from '@coffeeeeffoc/platform-taptap/login';
 import { installTapTapLogin, verifyTapTapLogin, tapTapLoginPrefix } from './taptap-login.mjs';
 
 test('TapTap login is installed in source before packing, preserving the original entry exactly', async () => {

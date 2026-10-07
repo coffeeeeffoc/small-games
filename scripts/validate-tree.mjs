@@ -20,6 +20,7 @@ import {
   nativeToolConsumers,
   h5AdapterFileScopes,
   reviewedSharedFileScopes,
+  workspaceBoundaryScopePaths,
 } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs, cocosPreflightTargets } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
@@ -499,6 +500,8 @@ export async function validateTree({
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
   if (incrementalScope?.validation_tools) {
+    if (sourcePaths.some((file) => workspaceBoundaryScopePaths.includes(file)))
+      execute(pnpm, ['test:boundaries'], root, clean, 'logged');
     execute(pnpm, ['test:validation'], root, clean, 'logged');
     execute(
       process.execPath,
