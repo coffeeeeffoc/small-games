@@ -8,6 +8,9 @@ const validGravity = (gravity) =>
   [0, 1, 2].includes(gravity?.axis) && [-1, 1].includes(gravity?.sign);
 const coord = (cell) => [cell.x, cell.y, cell.z];
 const WORLD_DOWN = Object.freeze({ axis: 2, sign: -1 });
+const ROTATION_AXES = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] };
+// Limit corrections to the length of a four-cube bridge, never a whole-board search.
+const MAX_ROTATION_KICK = 3;
 const IDENTITY = [
   [1, 0, 0],
   [0, 1, 0],
@@ -292,16 +295,50 @@ function migrateSnapshot(snapshot, config) {
   return value;
 }
 
-export function rotateCells(cells, plane) {
-  const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[String(plane).toUpperCase()];
+export function rotateCells(cells, plane, direction = 1) {
+  const axes = ROTATION_AXES[String(plane).toUpperCase()];
   if (!axes) throw new Error(`Unknown rotation plane: ${plane}`);
+  if (![-1, 1].includes(direction)) throw new Error(`Invalid rotation direction: ${direction}`);
   const [a, b] = axes;
   return cells.map((cell) => {
     const rotated = [...cell];
-    rotated[a] = cell[b];
-    rotated[b] = -cell[a] || 0;
+    rotated[a] = direction * cell[b] || 0;
+    rotated[b] = -direction * cell[a] || 0;
     return rotated;
   });
+}
+
+function rotationKicks(piece, dims, axes, gravity) {
+  const correction = [0, 0, 0];
+  for (const axis of axes) {
+    const min = Math.min(...piece.cells.map((cell) => cell[axis])) + piece.pos[axis];
+    const max = Math.max(...piece.cells.map((cell) => cell[axis])) + piece.pos[axis];
+    if (max - min >= dims[axis]) return [];
+    correction[axis] = min < 0 ? -min : max >= dims[axis] ? dims[axis] - 1 - max : 0;
+  }
+  const distance = (kick) => kick.reduce((sum, value) => sum + Math.abs(value), 0);
+  const offsets = [0, 1, -1, 2, -2, 3, -3];
+  const kicks = [];
+  for (const a of offsets)
+    for (const b of offsets) {
+      const kick = [0, 0, 0];
+      kick[axes[0]] = a;
+      kick[axes[1]] = b;
+      if (distance(kick) <= MAX_ROTATION_KICK) kicks.push(kick);
+    }
+  // Try the exact wall/ceiling correction first, then the nearest local options.
+  // Ties preserve height and prefer the first plane axis. The untouched axis
+  // never moves, so a turn cannot relocate a piece into another depth layer.
+  kicks.sort(
+    (a, b) =>
+      distance(a) - distance(b) ||
+      Math.abs(a[gravity.axis]) - Math.abs(b[gravity.axis]) ||
+      Math.abs(a[axes[1]]) - Math.abs(b[axes[1]]),
+  );
+  if (distance(correction) <= MAX_ROTATION_KICK) {
+    return [correction, ...kicks.filter((kick) => cellKey(kick) !== cellKey(correction))];
+  }
+  return kicks;
 }
 
 /** Stable column compaction. Cubes move independently; IDs and relative ordering survive. */
@@ -582,17 +619,14 @@ export class Game {
     return true;
   }
 
-  rotate(plane) {
+  rotate(plane, direction = 1) {
     if (this.status !== 'playing' || !this.active) return false;
-    const piece = { ...copy(this.active), cells: rotateCells(this.active.cells, plane) };
-    const axes = [0, 1, 2].filter((axis) => axis !== this.gravity.axis).concat(this.gravity.axis);
-    const kicks = [[0, 0, 0]];
-    for (const distance of [1, -1, 2, -2])
-      for (const axis of axes) {
-        const kick = [0, 0, 0];
-        kick[axis] = distance;
-        kicks.push(kick);
-      }
+    const normalizedPlane = String(plane).toUpperCase();
+    const piece = {
+      ...copy(this.active),
+      cells: rotateCells(this.active.cells, normalizedPlane, direction),
+    };
+    const kicks = rotationKicks(piece, this.dims, ROTATION_AXES[normalizedPlane], this.gravity);
     for (const kick of kicks) {
       piece.pos = this.active.pos.map((value, axis) => value + kick[axis]);
       if (this.fits(piece)) {
@@ -600,8 +634,9 @@ export class Game {
         this.active = piece;
         this.events.push({
           type: 'rotate',
-          plane: String(plane).toUpperCase(),
-          sign: 1,
+          plane: normalizedPlane,
+          direction,
+          sign: direction,
           kick: [...kick],
           before,
           after: copy(piece),
