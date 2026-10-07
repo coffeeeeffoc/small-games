@@ -1,0 +1,51 @@
+{
+  "environment": "Chromium touch emulation; real game CSS, shared H5 pages, Canvas renderer and shared letters rules; fixture network/identity",
+  "checks": [
+    {
+      "width": 320,
+      "height": 568,
+      "completedWords": 1,
+      "checks": [
+        "home entry",
+        "create/ready",
+        "public invitation/copy feedback",
+        "44px paginated Canvas",
+        "cancel/drag/multitouch",
+        "meaning page",
+        "real spelling",
+        "return home/focus"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "completedWords": 18,
+      "checks": [
+        "home entry",
+        "create/ready",
+        "public invitation/copy feedback",
+        "44px paginated Canvas",
+        "cancel/drag/multitouch",
+        "meaning page",
+        "real spelling",
+        "return home/focus"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "completedWords": 1,
+      "checks": [
+        "home entry",
+        "create/ready",
+        "public invitation/copy feedback",
+        "44px paginated Canvas",
+        "cancel/drag/multitouch",
+        "meaning page",
+        "real spelling",
+        "return home/focus"
+      ]
+    }
+  ],
+  "errors": []
+}

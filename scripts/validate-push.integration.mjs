@@ -89,6 +89,28 @@ try {
         COCOS_CREATOR: path.join(temp, 'required-missing-Creator'),
       },
     }),
+    /Incremental publication requires an explicit existing comparison base/,
+  );
+  // Keep the environment-negative case on an actual changed Cocos candidate;
+  // a new branch now rejects its undefined incremental base before any build.
+  const cocosFile = 'games/local/carding-car/assets/scripts/KartGame.ts';
+  await writeFile(
+    path.join(root, cocosFile),
+    (await readFile(path.join(root, cocosFile), 'utf8')) + '\n// Fixture changed Creator source.\n',
+  );
+  git(root, ['add', cocosFile]);
+  git(root, ['commit', '-qm', 'test fixture required Creator source']);
+  const cocos = git(root, ['rev-parse', 'HEAD']);
+  await assert.rejects(
+    validatePush(`refs/heads/cocos ${cocos} refs/heads/dev ${rules}\n`, {
+      root,
+      env: {
+        ...env,
+        KART_PREBUILT_DIR: undefined,
+        NIGHT_OVERWATCH_PREBUILT_DIR: undefined,
+        COCOS_CREATOR: path.join(temp, 'required-missing-Creator'),
+      },
+    }),
     /Required Cocos target.*requires Creator/,
   );
   assert.equal(
@@ -105,7 +127,7 @@ try {
   );
   assert.equal(git(root, ['status', '--porcelain']), beforeRules);
   console.log(
-    'REAL_REPOSITORY_NEW_BRANCH_DELETE_UNKNOWN_BASE_PASSED: required full Creator inputs and unknown remote SHA fail closed; deletion-only does not run source checks; dirty caller unchanged.',
+    'REAL_REPOSITORY_NEW_BRANCH_DELETE_UNKNOWN_BASE_PASSED: undefined incremental base, changed Creator inputs and unknown remote SHA fail closed; deletion-only does not run source checks; dirty caller unchanged.',
   );
 } finally {
   await rm(temp, { recursive: true, force: true });

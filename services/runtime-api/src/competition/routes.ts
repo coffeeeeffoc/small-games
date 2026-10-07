@@ -17,7 +17,7 @@ const gameSchema = z.enum([
 ]);
 const platformConfig = z.array(
   z.object({
-    platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou']),
+    platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap']),
     appId: z.string().min(1),
     secret: z.string().min(16),
   }),
@@ -97,7 +97,7 @@ export async function registerCompetition(
         async (request) => {
           const input = z
             .object({
-              platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou']),
+              platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap']),
               appId: z.string().max(100),
               code: z.string().min(1).max(512),
             })
@@ -111,11 +111,15 @@ export async function registerCompetition(
           // code exchange. Never issue a guest identity for a native platform.
           if (input.platform === 'douyin' || input.platform === 'kuaishou')
             throw new CompetitionError('PLATFORM_LOGIN_UNAVAILABLE', 503);
-          const endpoint = new URL(
-            input.platform === 'wechat'
-              ? 'https://api.weixin.qq.com/sns/jscode2session'
-              : 'https://miniapp.bilibili.com/api/sns/jscode2session',
-          );
+          const endpoints = {
+            wechat: 'https://api.weixin.qq.com/sns/jscode2session',
+            bilibili: 'https://miniapp.bilibili.com/api/sns/jscode2session',
+            // Ordinary TapTap mini-games use MiniApp ID + mini-game secret, not TapSDK
+            // Client ID/OAuth. Official auth.code2Session, domestic service endpoint:
+            // https://developer.taptap.cn/minigameapidoc/dev/server/login/code2Session/
+            taptap: 'https://cloud-miniapp.tapapis.cn/auth/v1/jscode2session',
+          };
+          const endpoint = new URL(endpoints[input.platform]);
           endpoint.search = new URLSearchParams({
             appid: input.appId,
             secret: configured.secret,
@@ -135,6 +139,8 @@ export async function registerCompetition(
           const subject = data.openid;
           if (data.errcode || typeof subject !== 'string' || !subject)
             throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
+          // Keep platform/AppID scoping; issue only our own credential. The platform
+          // session_key and optional unionid are never returned to the client.
           return store.session(input.platform, input.appId, subject);
         },
       );

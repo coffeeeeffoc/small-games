@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { buildPlatform } from '../platforms/build.mjs';
 import * as actions from '../assets/scripts/core/Actions.ts';
 import * as data from '../assets/scripts/core/Data.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
@@ -65,7 +68,9 @@ const cc = {
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
   view: { getFrameSize: () => frame, setDesignResolutionSize() {}, getScaleX: () => 1, getScaleY: () => 1 },
 };
-const hudURL = new URL('../assets/scripts/HUD.ts', import.meta.url);
+// Exercise the same adapted inputs supplied to the real native Creator build.
+const nativeConfiguration = await buildPlatform('wechat', { configOnly: true, env: {} });
+const hudURL = pathToFileURL(path.join(path.dirname(path.dirname(nativeConfiguration.configuration)), 'assets/scripts/HUD.ts'));
 (globalThis as any).__nightHudTestCC = cc;
 const hooks = registerHooks({
   resolve(id, context, next) {
@@ -156,7 +161,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       hud.lang = lang;
       hud.resize();
       const globals = hud.buttons.filter((b: any) => hud.isGlobalAction(b.id));
-      assert.equal(globals.length, 2);
+      assert.equal(globals.length, cc.sys.isBrowser ? 2 : 1);
       for (const reason of ['briefing', 'manual', 'settings', 'help', 'settings', 'mission', 'orientation', 'success', 'failure', 'playing']) {
         sim.pauses.clear();
         sim.phase = ['briefing', 'success', 'failure'].includes(reason) ? reason as Simulation['phase'] : 'playing';
@@ -182,7 +187,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
         }
         if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'resume,home');
         if (reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'close,sound,effects,help,language');
-        if (reason === 'help') assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');
+        if (reason === 'help' && cc.sys.isBrowser) assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');
       }
       hud.toolsOpen = true;
       hud.update(sim, world);
@@ -209,7 +214,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.equal(hud.modalKey, 'pause');
       hud.resize();
       hud.update(sim, world);
-      assert.equal(hud.buttons.filter((b: any) => hud.isGlobalAction(b.id)).length, 2, 'resize never duplicates global actions');
+      assert.equal(hud.buttons.filter((b: any) => hud.isGlobalAction(b.id)).length, cc.sys.isBrowser ? 2 : 1, 'resize never duplicates global actions');
     }
   }
 
@@ -380,7 +385,7 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single 
     const fire = hud.buttons.find((b: any) => b.id === 'fire');
     assert.equal(fire.label.node.activeInHierarchy, touch);
     assert.equal(hud.hit(fire.x + fire.w / 2, fire.y + fire.h / 2)?.id === 'fire', touch);
-    for (const id of ['pause', 'settings', 'fullscreen', 'weapon0', 'weapon1', 'weapon2']) {
+    for (const id of ['pause', 'settings', ...(cc.sys.isBrowser ? ['fullscreen'] : []), 'weapon0', 'weapon1', 'weapon2']) {
       const b = hud.buttons.find((b: any) => b.id === id);
       assert(touch ? b.h >= 44 : b.h <= 44);
       if (!touch) assert(b.w <= 104);
@@ -389,5 +394,28 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single 
       .filter((l: any) => l.node.activeInHierarchy).map((l: any) => l.string).join('\n');
     assert.equal(visibleText.match(/装填/g)?.length, 1);
     if (!touch) assert.equal(hud.footer, 60);
+  }
+});
+
+
+test('HUD: browser has one fullscreen action; native hosts keep only settings across every game state', () => {
+  const previousWindow = (globalThis as any).window;
+  (globalThis as any).window = { matchMedia: () => ({ matches: false }) };
+  try {
+    for (const browser of [false, true]) {
+      cc.sys.isBrowser = browser;
+      Object.assign(frame, { width: 844, height: 390 }); inset = 12;
+      const hud = new HUD(new SceneNode()), sim = new Simulation();
+      for (const phase of ['briefing', 'playing', 'success', 'failure'] as const) {
+        sim.phase = phase; hud.update(sim, world);
+        const fullscreens = hud.buttons.filter((button: any) => button.id === 'fullscreen' && button.label.node.activeInHierarchy);
+        assert.equal(fullscreens.length, browser ? 1 : 0);
+        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, 1);
+      }
+    }
+  } finally {
+    cc.sys.isBrowser = false; inset = 0;
+    if (previousWindow === undefined) delete (globalThis as any).window;
+    else (globalThis as any).window = previousWindow;
   }
 });

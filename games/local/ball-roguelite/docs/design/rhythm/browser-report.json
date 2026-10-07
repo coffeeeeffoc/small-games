@@ -1,0 +1,17 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Linux Chromium mobile touch emulation",
+  "checks": [
+    "explicit campaign and endless home entries / 390x844 touch targets / real two-bar pause icon / unlock-gated levels / cancelled touch",
+    "round ball body under real canvas transforms / in-flight pause freezes positions / sound off remains suspended on resume / sound on resumes / help return / reload restores pre-shot checkpoint",
+    "independent campaign / endless boards, pending upgrade choices and selected upgrades survive mode switching and reload / endless loss and retry preserve campaign",
+    "natural first-level victory / genuine three-card upgrade / next level unlock and saved progression",
+    "enter / exit full screen / resize without reset / landscape touch mapping / 320x568 / blur pause",
+    "production same-origin iframe actual-touch play / pause / home",
+    "reduced-motion home stays pixel-still / touch shot remains playable with circular balls / pause and resume",
+    "production URL / storage / explicit-off / default-off developer mode and practice isolation",
+    "blocked storage still starts normally"
+  ],
+  "errors": [],
+  "passed": true
+}

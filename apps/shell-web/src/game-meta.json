@@ -19,8 +19,19 @@
         "time": "2026-09-05T06:11:52+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
+      }
+    },
+    "ball-roguelite": {
+      "source": "games/local/ball-roguelite",
+      "created": {
+        "commit": "0865d5f9376442a0fbaad918123a8b1893c45a86",
+        "time": "2026-10-06T10:01:31Z"
+      },
+      "updated": {
+        "commit": "4fac4128d2fdd3ed54e2354ca4dd20364a0cc08b",
+        "time": "2026-10-06T21:11:11Z"
       }
     },
     "balloon-movers": {
@@ -41,8 +52,8 @@
         "time": "2026-09-26T20:46:24+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "bullet-garden": {
@@ -63,8 +74,30 @@
         "time": "2026-09-18T03:33:11+08:00"
       },
       "updated": {
-        "commit": "75816f192f96f80f407b81fc7288891379cae05f",
-        "time": "2026-10-05T14:06:44+08:00"
+        "commit": "e2159fe3bef5d7cd160d53072654783b645c1877",
+        "time": "2026-10-06T18:53:47Z"
+      }
+    },
+    "castle-cannon": {
+      "source": "games/local/game-castle-cannon",
+      "created": {
+        "commit": "771994d38ec5410bac6facd6416df825493149c6",
+        "time": "2026-10-05T21:29:55Z"
+      },
+      "updated": {
+        "commit": "d0ac3135be3405966849528ddce9ae2436d55a30",
+        "time": "2026-10-06T17:30:16Z"
+      }
+    },
+    "chase-thief": {
+      "source": "games/local/chase-thief",
+      "created": {
+        "commit": "45ece1882a97c40953bf8146e427f93ee92d127c",
+        "time": "2026-10-06T18:26:31Z"
+      },
+      "updated": {
+        "commit": "ea1c86538433e0105a6af5c12dbd31f3a051d41e",
+        "time": "2026-10-06T20:27:10Z"
       }
     },
     "cops-robbers": {
@@ -74,8 +107,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "15f547205fc1775fef19207d8bd154f6a4063fb2",
-        "time": "2026-10-05T05:34:15Z"
+        "commit": "44fcdbc6f38369274afbe6bc8a48c169052907c2",
+        "time": "2026-10-06T16:58:51Z"
       }
     },
     "cops-robbers-realtime": {
@@ -85,8 +118,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "a8277c45b5f4a9e2533d99a953973b7d49499c3b",
-        "time": "2026-10-05T06:22:32Z"
+        "commit": "44fcdbc6f38369274afbe6bc8a48c169052907c2",
+        "time": "2026-10-06T16:58:51Z"
       }
     },
     "cricket": {
@@ -96,8 +129,8 @@
         "time": "2026-09-11T00:06:13+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "cultivation": {
@@ -107,8 +140,8 @@
         "time": "2026-09-05T05:22:37+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "echo-lab": {
@@ -131,6 +164,17 @@
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
         "time": "2026-10-05T03:18:51+08:00"
+      }
+    },
+    "ember-bounce": {
+      "source": "games/local/ember-bounce",
+      "created": {
+        "commit": "bca20a8eea7e6efbe322c6c2dfbfa6bcee9fa212",
+        "time": "2026-10-05T19:03:26Z"
+      },
+      "updated": {
+        "commit": "227cadea49f0770a83384eb67f0f5bea9d6aabd8",
+        "time": "2026-10-05T19:15:27Z"
       }
     },
     "fishing": {
@@ -217,8 +261,8 @@
         "time": "2026-10-03T07:19:45Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "f452174ee273bf684ec417ffe9efce9429bbcf0b",
+        "time": "2026-10-06T05:26:46Z"
       }
     },
     "letters-words": {
@@ -239,8 +283,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "44fcdbc6f38369274afbe6bc8a48c169052907c2",
+        "time": "2026-10-06T16:58:51Z"
       }
     },
     "luban-workshop": {
@@ -276,6 +320,17 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "moss-garden": {
+      "source": "games/local/game-moss-garden",
+      "created": {
+        "commit": "410b512b748dd3279bc75e823810f2d8e967688e",
+        "time": "2026-10-06T15:32:41Z"
+      },
+      "updated": {
+        "commit": "13c5758967b231b9c0ae8dfc0a4a8ca743b082d5",
+        "time": "2026-10-06T17:22:07Z"
+      }
+    },
     "multi-battle": {
       "source": "games/local/multi-battle",
       "created": {
@@ -305,8 +360,8 @@
         "time": "2026-09-28T13:34:28+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "e2159fe3bef5d7cd160d53072654783b645c1877",
+        "time": "2026-10-06T18:53:47Z"
       }
     },
     "off-camera": {
@@ -327,8 +382,8 @@
         "time": "2026-09-05T05:59:00+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3b9ae28e9a739a2f5d1dcb2aabffce838db93e2f",
+        "time": "2026-10-05T10:25:40Z"
       }
     },
     "office-slacking": {
@@ -351,6 +406,17 @@
       "updated": {
         "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
         "time": "2026-10-05T03:18:51+08:00"
+      }
+    },
+    "orbit-atelier": {
+      "source": "games/local/orbit-atelier",
+      "created": {
+        "commit": "e63faad94cebb0c08a739ea90d8a8ee7e2278c62",
+        "time": "2026-10-06T15:42:56Z"
+      },
+      "updated": {
+        "commit": "6a4eb6452a2211d5b5d69ad3a0859c79474e109d",
+        "time": "2026-10-06T18:36:11Z"
       }
     },
     "out-of-frame": {
@@ -419,6 +485,28 @@
         "time": "2026-10-05T03:18:51+08:00"
       }
     },
+    "tetracube": {
+      "source": "games/local/tetracube",
+      "created": {
+        "commit": "eed49ae91d167250e3ded57e08fcb15ac58df4a1",
+        "time": "2026-10-06T19:20:40Z"
+      },
+      "updated": {
+        "commit": "65b64c76212517bd6202f473d61547060306bb24",
+        "time": "2026-10-06T20:49:26Z"
+      }
+    },
+    "tianxia-chalu": {
+      "source": "games/local/tianxia-chalu",
+      "created": {
+        "commit": "4bc10b2d20b6101e4c47f4455bb849b3bf006deb",
+        "time": "2026-10-05T20:08:16Z"
+      },
+      "updated": {
+        "commit": "96b9e618718b1ffc102cc54b2e47341fb0cf9cf4",
+        "time": "2026-10-05T20:10:06Z"
+      }
+    },
     "tiny-signals": {
       "source": "games/local/tiny-signals",
       "created": {
@@ -459,8 +547,8 @@
         "time": "2026-09-16T02:32:15+08:00"
       },
       "updated": {
-        "commit": "f3da73b743ef6b4542bd8af9f355ba541db70401",
-        "time": "2026-10-05T19:54:01+08:00"
+        "commit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
+        "time": "2026-10-06T18:28:08Z"
       }
     },
     "travel-bund-25d": {
@@ -525,8 +613,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
+        "time": "2026-10-06T18:28:08Z"
       }
     },
     "vibeJam-myself-nullrange": {
@@ -580,8 +668,8 @@
         "time": "2026-09-27T00:07:35+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "1536f14570b82c2d98eb0553c16ede3d5d812565",
+        "time": "2026-10-06T16:46:56Z"
       }
     },
     "xiangqi-five": {
@@ -591,8 +679,19 @@
         "time": "2026-09-09T01:10:15+08:00"
       },
       "updated": {
-        "commit": "c8ff60188eecd65c3efa7d79438f75884e9256cc",
-        "time": "2026-10-05T14:15:53+08:00"
+        "commit": "bcaddf603c28b416a856d51d01c8b7d386c71a3e",
+        "time": "2026-10-06T22:48:27+08:00"
+      }
+    },
+    "tower-brake": {
+      "source": "games/local/tower-brake",
+      "created": {
+        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
+        "time": "2026-10-06T21:21:45Z"
+      },
+      "updated": {
+        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
+        "time": "2026-10-07T08:47:27Z"
       }
     }
   }

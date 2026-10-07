@@ -1,0 +1,98 @@
+<!doctype html><meta charset="utf-8" /><style>
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: #fff8e8;
+    color: #573626;
+    font: 18px sans-serif;
+    width: 390px;
+    height: 844px;
+    padding: 52px 24px;
+  }
+  h1 {
+    font-size: 38px;
+    margin-top: 80px;
+  }
+  p {
+    line-height: 1.7;
+  }
+  button {
+    display: block;
+    width: 100%;
+    height: 52px;
+    margin: 14px 0;
+    border: 0;
+    border-radius: 18px;
+    background: #ef795f;
+    color: #fff8e8;
+    font: 18px sans-serif;
+  }
+  .soft {
+    background: #dce9bf;
+    color: #365f45;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(9, 44px);
+    width: 396px;
+    background: #f7dcaa;
+    border: 5px solid #b9814d;
+    overflow: hidden;
+  }
+  .cell {
+    height: 44px;
+    border: 1px solid #c9aa77;
+    text-align: center;
+    padding-top: 8px;
+  }
+  .game {
+    display: none;
+  }
+  .game h1 {
+    margin-top: 0;
+    font-size: 24px;
+  }
+  .view {
+    height: 440px;
+    overflow: hidden;
+    margin-left: -10px;
+  }
+  .token {
+    border-radius: 50%;
+    background: #ef795f;
+    color: #fff8e8;
+  }
+  .footer {
+    margin-top: 40px;
+    font-size: 14px;
+  }
+</style>
+<section class="home">
+  <h1>象五子棋</h1>
+  <p>象棋走法，连五获胜。<br />一盘小棋，一起想下一手。</p>
+  <button>继续对局</button><button class="soft">电脑对弈</button
+  ><button class="soft">同屏双人</button><button class="soft">棋盘：象棋盘</button
+  ><button class="soft">好友挑战</button>
+  <p class="footer">玩法说明 · 声音设置</p>
+</section>
+<section class="game">
+  <h1>红方回合　　暂停</h1>
+  <p>拖动棋盘，点空位落子。</p>
+  <div class="view"><div class="board"></div></div>
+  <button>抽一枚棋子</button>
+  <p>点己方棋子，再点目标移动。</p>
+</section>
+<script>
+  for (let i = 0; i < 90; i++) {
+    let c = document.createElement('div');
+    c.className = 'cell' + ([22, 23, 31].includes(i) ? ' token' : '');
+    c.textContent = [22, 23, 31].includes(i) ? '兵' : '';
+    document.querySelector('.board').append(c);
+  }
+  if (location.hash) {
+    document.querySelector('.home').style.display = 'none';
+    document.querySelector('.game').style.display = 'block';
+  }
+</script>

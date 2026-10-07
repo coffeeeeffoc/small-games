@@ -15,3 +15,5 @@ reports/startup-integration-mobile/*
 !reports/startup-integration-mobile/ready.png
 !reports/startup-integration-mobile/verification.json
 reports/browser-results.json
+
+/reports/kuaishou-source*.json

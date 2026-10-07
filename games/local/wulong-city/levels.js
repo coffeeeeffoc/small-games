@@ -77,7 +77,7 @@ W.add(12,{
 W.add(1,{
  init:()=>({doorX:338,opened:false,fled:false}),
  update(s,dt){if(!s.opened){const watching=s.p.dir===(s.doorX>s.p.x?1:-1);if(watching){if(Math.abs(s.p.x-s.doorX)<190){s.doorX=clamp(s.doorX+Math.sign(s.doorX-s.p.x)*85*dt,47,432);if(!s.fled){s.fled=true;say('门捂住了脸，踩着小碎步往后退。');}}if(Math.abs(s.p.x-s.doorX)<55)s.p.x=s.doorX-55;}else{s.doorX+=Math.sign(s.p.x-s.doorX)*70*dt;if(Math.abs(s.p.x-s.doorX)<44){s.opened=true;say('门偷偷凑到背后，把自己打开了。');}}}else if(Math.abs(s.p.x-s.doorX)<22)win();},
- draw(s){background('inside');rect(46,124,125,153,C.blue,50);line(108,124,108,277,C.paper,5);line(46,202,171,202,C.paper,5);ellipse(81,168,15,15,C.yellow,null);rect(70,347,68,18,C.yellow,5);line(78,365,78,436);line(130,365,130,436);sign('小岔的家',125,60,111);let x=s.doorX;rect(x-29,322,58,100,s.opened?'#56735c':C.mint,22);if(s.opened)rect(x-18,339,36,83,'#344e40',14);else{face(x,351,s.p.dir,'shy');ellipse(x-22,375,8,12,C.mint);ellipse(x+22,375,8,12,C.mint);}line(x-15,422,x-19+Math.sin(s.t*12)*3,436,C.ink,4);line(x+15,422,x+19-Math.sin(s.t*12)*3,436,C.ink,4);text('出 口',x,303,13,C.green);hit('shy-door','有脚的害羞门',x-31,321,63,114,()=>say(s.opened?'门已放行，走进去就能出门。':'门：别盯着我嘛……'));}
+ draw(s){background('inside');rect(58,364,92,72,'#50817a',5,'#47645b');rect(52,359,104,11,'#a58756',3,'#826b45');line(103,375,103,432,'#375d56',2);ellipse(95,401,3,3,C.yellow);ellipse(112,401,3,3,C.yellow);rect(78,346,24,15,'#aa9464',3);ellipse(91,333,11,18,C.green,'#456d55');line(91,328,91,348,'#91ac75',2);let x=s.doorX;rect(x-35,307,70,116,'#8e6b42',7,'#755637');rect(x-29,316,58,107,s.opened?'#426a62':'#b5814c',4,'#785831');if(s.opened)rect(x-23,327,46,96,'#244c4d',4);else{for(let k=-20;k<=20;k+=10)line(x+k,318,x+k,419,'#83593670',1.2);rect(x-31,338,11,7,'#5e5140',2);rect(x-31,394,11,7,'#5e5140',2);face(x,351,s.p.dir,'shy');ellipse(x-26,379,7,11,'#bc8953');ellipse(x+26,379,7,11,'#bc8953');ellipse(x+15,388,5,5,C.yellow,'#805e34');}line(x-15,422,x-19+Math.sin(s.t*12)*3,436,C.ink,4);line(x+15,422,x+19-Math.sin(s.t*12)*3,436,C.ink,4);text('出 口',x,303,13,C.green);hit('shy-door','有脚的害羞门',x-31,321,63,114,()=>say(s.opened?'门已放行，走进去就能出门。':'门：别盯着我嘛……'));}
 });
 function dog(x,y,holding=false){ellipse(x,y-22,25,23,C.yellow);ellipse(x,y-47,23,22,C.yellow);ellipse(x-24,y-47,8,17,'#ac8655');ellipse(x+24,y-47,8,17,'#ac8655');ellipse(x-7,y-50,2.5,3,C.ink,null);ellipse(x+7,y-50,2.5,3,C.ink,null);ellipse(x,y-39,5,4,C.ink,null);line(x-14,y-8,x-19,y,C.ink,4);line(x+14,y-8,x+19,y,C.ink,4);line(x-23,y-23,x-37,y-40,C.yellow,10);line(x+23,y-23,x+37,y-40,C.yellow,10);if(holding)actor(x,y-43,1,.64);}
 W.add(3,{
@@ -254,4 +254,163 @@ W.add(26,{
   hit('far-remote',s.remoteHeld?'手里的遥控器，点击调台':'桌上的遥控器，走近点击拿起',rx-34,ry-36,68,76,()=>{if(!s.remoteHeld){if(!near(266,65)){say('先走近桌子。遥控器还没有学会遥远取物。');return;}s.remoteHeld=true;say('拿好了。离电视这么近，它还不肯算作遥控。');return;}if(380-s.p.x<220){s.tooClose=true;say('遥控器只让自己亮了一下：靠得这么近，请叫我近控器。');tone(210,.1);return;}s.channel=(s.channel+1)%3;say(['新闻又开始了。随时可以再调台，不用等它播完。','天气预报：局部有门，建议携带自己。','出口频道开播。门会留在画面里，走过去就行。'][s.channel]);tone(460+s.channel*110,.1);});
  }
 });
+// Configured objects share one deterministic simulation. New scenes add data only.
+const sceneTypes=new Set(['drag','turn','collect','use','remote','sequence','observe','wait']);
+function validateScene(scene){
+ if(scene.schemaVersion!==1||!Number.isInteger(scene.id)||scene.id<27||!scene.title||!scene.exitLabel)throw Error('Invalid city scene');
+ if(!Array.isArray(scene.steps)||scene.steps.length<2||scene.steps.length>4)throw Error('A scene needs two to four objects');
+ const keys=new Set();
+ scene.steps.forEach((step,index)=>{
+  if(!sceneTypes.has(step.type)||!step.label||keys.has(step.key))throw Error('Invalid scene object');keys.add(step.key);
+  if(![step.x,step.y,step.slotX,step.slotY].every(Number.isFinite)||step.x<60||step.x>310||step.y<120||step.y>360)throw Error('Unreachable scene object');
+  if(!Array.isArray(step.needs)||step.needs.some(n=>!Number.isInteger(n)||n<0||n>=index))throw Error('Object requirements must reference an earlier object');
+  if(step.type==='drag'&&!step.target)throw Error('Missing drop target');
+  if(step.type==='turn'&&(!Array.isArray(step.choices)||step.choices.length<2||!Number.isInteger(step.answer)||step.answer<1||step.answer>=step.choices.length))throw Error('Invalid turn positions');
+  if(step.type==='sequence'&&(!Array.isArray(step.notes)||step.notes.length!==3||!Array.isArray(step.order)||step.order.length<3||step.order.some(n=>!Number.isInteger(n)||n<0||n>=step.notes.length)))throw Error('Invalid visible sequence');
+  if((step.type==='wait'||step.type==='observe')&&(!(step.seconds>0)||step.seconds>3))throw Error('Invalid settle duration');
+  if(step.type==='observe'&&![1,-1].includes(step.direction))throw Error('Invalid observation direction');
+  if(step.type==='remote'&&(!(step.distance>65)||step.distance>200))throw Error('Unreachable remote distance');
+ });
+ if(scene.steps.every(step=>step.type==='wait'))throw Error('Scene must require player interaction');
+ return scene;
+}
+function sceneSymbol(kind,x,y,lit=false){
+ const col=lit?C.yellow:C.mint;
+ switch(kind){
+  case 'cloud':ellipse(x-13,y+3,19,13,C.blue);ellipse(x+13,y+3,18,13,C.blue);ellipse(x,y-8,18,15,C.blue);line(x-8,y+22,x-11,y+28,C.blue,3);line(x+9,y+21,x+6,y+27,C.blue,3);break;
+  case 'sun':case 'star':case 'moon':{
+   if(kind==='star')poly(Array.from({length:10},(_,i)=>{const a=i*Math.PI/5-Math.PI/2,r=i%2?11:24;return[x+Math.cos(a)*r,y+Math.sin(a)*r];}),C.yellow);
+   else{ellipse(x,y,21,21,C.yellow);if(kind==='moon')ellipse(x+9,y-7,16,16,C.paper,null);else for(let i=0;i<8;i++){const a=i*Math.PI/4;line(x+Math.cos(a)*26,y+Math.sin(a)*26,x+Math.cos(a)*32,y+Math.sin(a)*32,C.orange,3);}}
+   break;}
+  case 'key':ellipse(x-10,y-4,12,12,C.yellow);ellipse(x-10,y-4,5,5,C.paper);line(x+1,y+2,x+24,y+16,C.orange,7);line(x+15,y+9,x+11,y+17,C.orange,5);line(x+22,y+14,x+18,y+22,C.orange,5);break;
+  case 'flower':case 'leaf':
+   line(x,y+5,x,y+33,C.green,4);ellipse(x+12,y+19,12,5,C.mint);if(kind==='leaf')poly([[x,y-24],[x+19,y-6],[x,y+13],[x-16,y-4]],C.mint);else{for(let i=0;i<5;i++){const a=i*1.256;ellipse(x+Math.cos(a)*15,y+Math.sin(a)*15,10,10,C.pink);}ellipse(x,y,9,9,C.yellow);}break;
+  case 'hat':poly([[x-26,y+12],[x-18,y-17],[x+14,y-17],[x+22,y+9],[x+33,y+9],[x+33,y+15],[x-26,y+15]],C.yellow);line(x-18,y+3,x+21,y+3,C.orange,5);break;
+  case 'umbrella':poly([[x-29,y-2],[x-21,y-17],[x,y-26],[x+21,y-17],[x+29,y-2]],C.blue);line(x,y-25,x,y+25,C.green,3);line(x,y+25,x+12,y+25,C.green,3);line(x+12,y+25,x+12,y+17,C.green,3);break;
+  case 'bread':rect(x-25,y-13,50,30,'#deb56f',13);for(let i=0;i<3;i++)line(x-14+i*13,y-9,x-20+i*13,y+2,C.paper,3);break;
+  case 'pillow':rect(x-25,y-15,50,34,C.paper,9);line(x-18,y+11,x+18,y+11,C.orange,2,[3,4]);break;
+  case 'stamp':rect(x-13,y-21,26,18,C.orange,7);line(x,y-3,x,y+10,C.green,7);rect(x-23,y+9,46,14,C.yellow,3);break;
+  case 'bag':rect(x-22,y-15,44,42,C.orange,8);line(x-11,y-16,x-11,y-25,C.green,3);line(x-11,y-25,x+12,y-25,C.green,3);line(x+12,y-25,x+12,y-16,C.green,3);rect(x-12,y+5,24,15,C.yellow,3);break;
+  case 'book':rect(x-24,y-24,48,51,C.paper,5);rect(x-24,y-24,9,51,C.green,3);line(x-6,y-12,x+13,y-12,C.orange,3);line(x-6,y-3,x+13,y-3,C.green,2);line(x-6,y+6,x+8,y+6,C.green,2);break;
+  case 'lamp':rect(x-23,y-22,46,39,col,10);line(x,y+17,x,y+31,C.green,5);rect(x-20,y+28,40,8,C.green,3);face(x,y-9,1,'happy',.45);break;
+  case 'mirror':case 'eye':ellipse(x,y,24,27,C.blue);ellipse(x-5,y-7,14,15,'#ffffff70',null);if(kind==='eye')face(x,y-3,1,'shy',.7);else line(x-12,y-11,x+9,y+9,C.paper,4);line(x,y+27,x,y+36,C.green,5);break;
+  case 'clock':ellipse(x,y,26,26,C.paper);line(x,y,x,y-16,C.green,3);line(x,y,x+14,y+3,C.orange,3);ellipse(x,y,3,3,C.green);for(let i=0;i<4;i++){const a=i*Math.PI/2;ellipse(x+Math.cos(a)*21,y+Math.sin(a)*21,2,2,C.green,null);}break;
+  case 'bell':ellipse(x,y-17,7,5,C.yellow);poly([[x-10,y-14],[x+10,y-14],[x+14,y+9],[x+21,y+16],[x-21,y+16],[x-14,y+9]],C.yellow);ellipse(x,y+19,5,5,C.orange);break;
+  case 'ribbon':case 'tie':poly([[x-22,y-14],[x+2,y-1],[x+24,y-18],[x+19,y+8],[x+1,y+3],[x-24,y+13]],C.orange);poly([[x-1,y],[x+12,y+28],[x+2,y+22],[x-7,y+28],[x-9,y+2]],C.orange);ellipse(x,y,5,5,C.yellow);break;
+  case 'arrow':poly([[x-27,y-7],[x+6,y-7],[x+6,y-20],[x+29,y],[x+6,y+20],[x+6,y+7],[x-27,y+7]],C.orange);break;
+  case 'wheel':case 'gear':ellipse(x,y,26,26,C.green);ellipse(x,y,17,17,C.yellow);ellipse(x,y,7,7,C.paper);for(let i=0;i<6;i++){const a=i*Math.PI/3;line(x+Math.cos(a)*8,y+Math.sin(a)*8,x+Math.cos(a)*20,y+Math.sin(a)*20,C.orange,3);}break;
+  case 'ear':ellipse(x,y,18,25,C.pink);line(x-4,y-10,x+8,y-6,C.orange,3);line(x+8,y-6,x+8,y+7,C.orange,3);line(x+8,y+7,x,y+11,C.orange,3);break;
+  case 'feather':poly([[x-4,y+24],[x-17,y+5],[x-10,y-22],[x+10,y-28],[x+17,y-11],[x+9,y+10]],C.paper);line(x-10,y+29,x+8,y-21,C.orange,3);line(x-3,y+3,x-12,y-6,C.orange,2);break;
+  case 'bucket':rect(x-23,y-15,46,41,C.blue,6);ellipse(x,y-15,23,7,C.paper);line(x-17,y-23,x+17,y-23,C.green,3);line(x-17,y-23,x-22,y-10,C.green,3);line(x+17,y-23,x+22,y-10,C.green,3);break;
+  case 'boot':poly([[x-20,y-22],[x+5,y-22],[x+5,y+8],[x+26,y+8],[x+26,y+25],[x-20,y+25]],C.yellow);line(x-20,y+18,x+26,y+18,C.orange,3);break;
+  case 'glove':rect(x-17,y-10,34,35,C.paper,10);for(let i=0;i<4;i++)rect(x-17+i*9,y-28,8,27,C.paper,5);rect(x-29,y+1,18,10,C.paper,5);break;
+  case 'heart':ellipse(x-11,y-7,15,15,C.pink);ellipse(x+11,y-7,15,15,C.pink);poly([[x-24,y-2],[x+24,y-2],[x,y+28]],C.pink,null);break;
+  case 'water':case 'fish':case 'snow':
+   if(kind==='fish'){ellipse(x,y,25,14,C.orange);poly([[x-22,y],[x-35,y-15],[x-35,y+15]],C.orange);ellipse(x+13,y-4,4,4,C.paper);}
+   else if(kind==='snow'){for(let i=0;i<6;i++){const a=i*Math.PI/3;line(x,y,x+Math.cos(a)*27,y+Math.sin(a)*27,C.blue,4);}}
+   else{poly([[x,y-29],[x-20,y+4],[x-16,y+22],[x,y+29],[x+16,y+22],[x+20,y+4]],C.blue);line(x-8,y+8,x-5,y+16,C.paper,4);}break;
+  case 'bubble':ellipse(x,y,27,21,C.paper);poly([[x-9,y+15],[x-19,y+32],[x+6,y+17]],C.paper);text('…',x,y-2,22,C.green);break;
+  case 'lever':line(x-18,y+26,x+21,y+26,C.green,7);line(x,y+24,x+13,y-16,C.green,5);ellipse(x+14,y-20,11,11,C.orange);break;
+  case 'dot':ellipse(x,y,12,12,C.orange);break;
+  case 'sign':rect(x-30,y-23,60,38,C.paper,6);line(x,y+16,x,y+35,C.green,5);text('岔',x,y-5,22,C.orange);break;
+  case 'ticket':case 'letter':case 'token':default:
+   rect(x-25,y-20,50,40,kind==='ticket'?C.yellow:C.paper,5);if(kind==='letter'){line(x-24,y-18,x,y+3,C.orange,2);line(x,y+3,x+24,y-18,C.orange,2);}else{line(x-13,y-8,x+13,y-8,C.green,2);line(x-13,y+2,x+9,y+2,C.orange,3);}break;
+ }
+}
+function configuredScene(scene){
+ const ready=(s,step)=>step.needs.every(index=>s.puzzle[index].done);
+ const resetDrag=(q,step)=>{q.x=step.x-27;q.y=step.y-10;q.dragging=false;};
+ const denied=(s,step,message)=>{s.mistakes++;say(message||'先准备好'+step.needs.filter(index=>!s.puzzle[index].done).map(index=>'「'+scene.steps[index].label+'」').join('、')+'。');tone(210,.06);};
+ const finish=(s,index)=>{const q=s.puzzle[index];if(q.done)return;q.done=true;q.progress=1;q.dragging=false;say('「'+scene.steps[index].label+'」准备好了。');tone(560+index*60,.09);};
+ return {
+  scene,
+  init:()=>({exitOpen:false,mistakes:0,puzzle:scene.steps.map(step=>({done:false,x:step.x-27,y:step.y-10,dragging:false,choice:0,cursor:0,progress:0}))}),
+  cancel(s){scene.steps.forEach((step,index)=>{const q=s.puzzle[index];if(q.dragging)resetDrag(q,step);});},
+  platforms:s=>s.exitOpen?[]:[{x:383,y:149,w:22,h:287,solid:true}],
+  update(s,dt){
+   scene.steps.forEach((step,index)=>{
+    const q=s.puzzle[index];if(q.done)return;
+    if(step.type==='wait'||step.type==='observe'){
+     const active=ready(s,step)&&(step.type!=='observe'||near(step.x,48)&&s.p.dir===step.direction&&s.p.grounded&&Math.abs(s.p.vx)<1);
+     q.progress=active?Math.min(1,q.progress+dt/step.seconds):0;
+     if(q.progress>=1)finish(s,index);
+    }
+   });
+   const open=scene.steps.every((_,index)=>s.puzzle[index].done);
+   if(open&&!s.exitOpen){s.exitOpen=true;say('机关都准备好了，向右走进'+scene.exitLabel+'。');}
+   if(s.exitOpen&&s.p.x>422&&Math.abs(s.p.y-436)<12)win();
+  },
+  draw(s){
+   background(scene.setting);
+   // A city worksite: timber frames, lamps and hanging props, with a visible gate.
+   const accent=[C.orange,C.green,C.blue,C.mint,C.yellow,C.orange,C.pink,C.yellow][scene.palette];
+   rect(18,77,340,29,C.paper,9);text(scene.chapter,188,92,15,C.green);
+   line(24,116,24,420,C.green,5);line(354,116,354,420,C.green,5);line(24,116,354,116,accent,7);
+   for(const x of [40,338]){line(x,118,x,143,C.green,2);ellipse(x,150,7,9,C.yellow);}
+   door(438,436,s.exitOpen,scene.exitLabel);
+   if(!s.exitOpen){rect(385,150,17,283,C.green,5);for(let y=163;y<415;y+=31)line(386,y,400,y+14,accent,5);}
+   scene.steps.forEach((step,index)=>{
+    const q=s.puzzle[index],id=step.key,x=step.x,y=step.y;
+    text(step.label,x,y-53,12,C.green);
+    if(step.needs.length){for(let j=0;j<step.needs.length;j++)ellipse(x-10+j*13,y-37,3,3,s.puzzle[step.needs[j]].done?C.orange:C.paper);}
+    if(step.type==='drag'){
+     rect(step.slotX-28,step.slotY-26,56,52,q.done?C.mint:'#ffffff38',9,q.done?C.green:C.orange);
+     if(!q.done){line(step.slotX-20,step.slotY-18,step.slotX+20,step.slotY-18,C.orange,2,[4,4]);line(q.x+25,q.y,step.slotX-29,step.slotY,C.orange,2,[3,5]);}
+     text(step.target,step.slotX,step.slotY+39,11,C.green);
+     sceneSymbol(step.art,q.done?step.slotX:q.x,q.done?step.slotY:q.y,q.done);
+     if(!q.done)hit(id,step.label+'，拖到'+step.target,q.x-28,q.y-29,56,58,()=>say('抓住「'+step.label+'」，放进「'+step.target+'」的轮廓。'),(px,py)=>{q.dragging=true;q.x=clamp(px,30,355);q.y=clamp(py,125,393);},()=>{
+      if(!q.dragging)return;
+      if(!ready(s,step)){resetDrag(q,step);denied(s,step);return;}
+      if(Math.hypot(q.x-step.slotX,q.y-step.slotY)<27)finish(s,index);
+      else{resetDrag(q,step);denied(s,step,'物件弹回原处。对准「'+step.target+'」的轮廓再松手。');}
+     });
+    }else if(step.type==='sequence'){
+     text(step.order.map(n=>step.notes[n]).join('→'),x,y-26,11,C.orange);
+     step.notes.forEach((note,n)=>{const bx=x+(n-1)*66;line(bx,y-12,bx,y+21,C.green,2);ellipse(bx,y+1,20,20,q.done?C.yellow:C.paper);text(note,bx,y+1,12,C.green);ellipse(bx,y+30,4,4,q.done||step.order.slice(0,q.cursor).includes(n)?C.orange:C.paper);
+      if(!q.done)hit(id+'-note-'+n,step.label+'：'+note,bx-22,y-22,44,46,()=>{
+       if(!ready(s,step)){denied(s,step);return;}
+       if(step.order[q.cursor]===n){q.cursor++;q.progress=q.cursor/step.order.length;tone(340+n*100,.1);if(q.cursor===step.order.length)finish(s,index);}
+       else{q.cursor=0;q.progress=0;denied(s,step,'顺序打了个结。按上方标记，从第一声重新敲。');}
+      });
+     });
+    }else{
+     line(x-35,y+37,x+35,y+37,C.green,4);
+     if(step.type==='turn'){
+      ctx.save();ctx.translate(x,y);ctx.rotate((q.choice-step.answer)*Math.PI/2);sceneSymbol(step.art,0,0,q.done);ctx.restore();
+     }else if(step.type!=='collect'||!q.done)sceneSymbol(step.art,x,y,q.done);
+     if(step.type==='turn'){
+      text(step.choices[q.choice],x,y+53,13,q.done?C.green:C.orange);
+      if(!q.done){poly([[x+35,y-17],[x+45,y-9],[x+32,y-6]],C.orange);hit(id,step.label+'，点击转向',x-34,y-32,72,75,()=>{
+       if(!ready(s,step)){denied(s,step);return;}
+       q.choice=(q.choice+1)%step.choices.length;if(q.choice===step.answer)finish(s,index);else say('「'+step.label+'」现在是'+step.choices[q.choice]+'。');
+      });}
+     }else if(step.type==='observe'||step.type==='wait'){
+      rect(x-34,y+48,68,7,C.paper,3);rect(x-34,y+48,68*q.progress,7,C.orange,3,null);
+      if(step.type==='observe'&&!q.done)text('背对 · 稍等',x,y+68,11,C.green);
+     }else if(!q.done){
+      if(step.type==='remote'){for(let j=0;j<2;j++)line(x+29+j*8,y-15,x+33+j*8,y+1,C.orange,2);text('离远一点',x,y+53,11,C.green);}
+      else text(step.type==='collect'?'走近拿起':'走近操作',x,y+53,11,C.green);
+      const operate=()=>{
+       if(!ready(s,step)){denied(s,step);return;}
+       if(!s.p.grounded){denied(s,step,'先站稳，再操作「'+step.label+'」。');return;}
+       if(step.type==='remote'?Math.abs(s.p.x-x)<step.distance:!near(x,48)){denied(s,step,step.type==='remote'?'离「'+step.label+'」远一点，它才肯遥遥回应。':'先走近「'+step.label+'」，伸手才够得着。');return;}
+       finish(s,index);
+      };
+      hit(id,step.label+'，'+(step.type==='remote'?'离远后点击':'走近后点击'),x-32,y-32,64,72,operate);
+      if(step.type!=='remote'){
+       // Ground-level pull cords make raised stock reachable without air tapping.
+       line(x+31,y+31,x+31,405,C.green,2,[4,5]);handle(x+31,414);
+       hit(id+'-cord',step.label+'的近身拉环',x+9,392,44,44,operate);
+      }
+     }
+    }
+    if(q.done){ellipse(x+47,y-30,10,10,C.green);line(x+42,y-30,x+46,y-26,C.paper,2);line(x+46,y-26,x+53,y-35,C.paper,2);}
+    ellipse(439,176+index*18,5,5,q.done?C.yellow:C.paper);
+   });
+   const carried=scene.steps.filter((step,index)=>step.type==='collect'&&s.puzzle[index].done);
+   carried.forEach((step,index)=>{ctx.save();ctx.translate(s.p.x+25+index*16,s.p.y-24);ctx.scale(.36,.36);sceneSymbol(step.art,0,0,true);ctx.restore();});
+  },
+ };
+}
+for(const scene of Object.values(window.WULONG_SCENES||{}))W.add(scene.id,configuredScene(validateScene(scene)));
 })();

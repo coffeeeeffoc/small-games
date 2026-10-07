@@ -5,6 +5,7 @@
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
 - `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
+- `services/*`：独立运行的后端子应用，包括游戏对局服务。
 - `platforms/*`：各渠道 SDK 适配入口与工程配置；由 Shell 选择并组装。
 
 目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
@@ -17,6 +18,7 @@
 | game-cricket                 | 秋声斗蟋              | @coffeeeeffoc/game-cricket     | Game Host |
 | game-cultivation             | 三分钟修仙            | @coffeeeeffoc/game-cultivation | Game Host |
 | game-office                  | 打工人摸鱼记          | @coffeeeeffoc/game-office      | Game Host |
+| tianxia-chalu                | 天下岔路              | @coffeeeeffoc/tianxia-chalu    | iframe    |
 | cops-robbers                 | 围捕小队              | cops-robbers                   | iframe    |
 | cops-robbers-realtime        | 别跑！街区围捕        | cops-robbers-realtime          | iframe    |
 | h5-security                  | 来电之间              | between-calls                  | iframe    |
@@ -34,11 +36,23 @@
 | vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
 
+《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
+
+《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供三个章节共 24 关，拖动圆环调整缺口，覆盖连接处的两处交点后松手解开交织星轨；星栓与分岔星图逐章引入。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
+
+《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
+
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
+
+《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。
+
+《追贼别撞墙》位于 `games/local/chase-thief`，workspace 包名为 `@coffeeeeffoc/chase-thief`，通过 iframe 装载，独立地址为 `/games/chase-thief/index.html`。三条竖屏老街赛道支持滑动换道、跳跃和滑铲，连续通过三段障碍会冲刺缩短追逐距离，累计三次碰撞或 60 秒耗尽则失败。三个赛段依次解锁，规则、关卡配置、绘制、存档和音频分别维护。Shell 复用受来源和 origin 校验的 `small-games:display-state` 消息：游玩、暂停及结算隐藏外围导航，返回游戏主页后恢复“返回目录”。开发运行 `pnpm --filter @coffeeeeffoc/chase-thief dev`（默认端口 4417）；静态构建和验证使用 `build`、`test`、`test:browser`，`node server.mjs --dist` 可预览正式制品。
 
 《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。六面工坊提供五章 50 关，初始随机显示两个可用观察角度，随后免费逐面揭示；最后一级提示可查看支持透视的完整 3D，未使用该提示时通关先展示结构再结算。六面投影与孔板通行判断共用空间几何，核心规则、绘图和每个编号关卡独立维护。第 21–50 关经过所有双面组合的受限搜索，至少需要补充观察面才能完成。构建、规则验证和浏览器验收见游戏目录 README。
 
 《榫间 · 鲁班锁》位于 `games/local/luban-workshop`，workspace 包名为 `@coffeeeeffoc/luban-workshop`，通过 iframe 装载，独立地址为 `/games/luban-workshop/index.html`。玩家选中彩色零件后沿轨道拖动，观察受阻反馈，逐步拆解再复原机关；空白区域用于转动观察视角。关卡数据、运动与碰撞规则、三维渲染及触屏交互分别维护。开发运行 `pnpm --filter @coffeeeeffoc/luban-workshop dev`，构建和规则验证分别使用 `build`、`test`；交互与架构说明见 [游戏 README](../games/local/luban-workshop/README.md)。
+
+《重力方舱》位于 `games/local/tetracube`，workspace 包名为 `@coffeeeeffoc/tetracube`，通过 iframe 装载，独立地址为 `/games/tetracube/index.html`。玩家移动并三轴旋转四连立方体，观察落点填满平面，再颠倒 6×6×12 容器，让所有小方块统一向下落定并形成连锁。开发运行 `pnpm --filter @coffeeeeffoc/tetracube dev`（端口 4178），规则验证、构建和触屏验收见 [游戏 README](../games/local/tetracube/README.md)。
 
 原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
@@ -47,6 +61,8 @@
 `app-game-research`、`prompts`、`vibeJam` 未导入；`xiangqi-five-promo` 为宣传素材，不作为游戏注册。
 
 ## 独立 Git 子模块
+
+《星轨弹珠》位于 `games/local/ball-roguelite`，workspace 包名为 `@coffeeeeffoc/ball-roguelite`，通过 iframe 装载，独立地址为 `/games/ball-roguelite/index.html`。基于上传的弹珠肉鸽原型，提供六个依次解锁星域、无尽挑战与六种组合强化；竖屏触控瞄准、回合存档及运行边界见 [游戏 README](../games/local/ball-roguelite/README.md)。
 
 | 源码目录                            | Game                | workspace 包名                   | 静态输出    |
 | ----------------------------------- | ------------------- | -------------------------------- | ----------- |
@@ -199,3 +215,5 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 手机回归使用 390×844 竖屏；捕鱼、橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
+
+《一炮拆城》位于 `games/local/game-castle-cannon`，访问 ID 为 `castle-cannon`，workspace 包名为 `@coffeeeeffoc/game-castle-cannon`。独立 H5 通过同源 iframe 装载，Canvas 规则和绘制同时经既有 Native Game Shell 生成微信横屏预览工程。三关以破门通路、箭塔减损、两种炮弹与自动士兵占领为核心；基础弹种不受广告限制，材料仅用于外观。构建、规则和桌面/模拟触屏、模拟 wx SDK 验收记录见 [游戏 README](../games/local/game-castle-cannon/README.md)。未验证微信开发者工具、微信真机或真实广告位，预览不是微信上线。

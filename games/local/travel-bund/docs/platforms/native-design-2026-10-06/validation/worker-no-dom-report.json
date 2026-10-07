@@ -1,0 +1,211 @@
+{
+  "bundleSha256": "2e17cfde124ba58e5a0aa207395071e5b8bf5ffaa879ba381f4de87193b790d8",
+  "environment": "DedicatedWorker no window/document and removed TextDecoder global, genuine OffscreenCanvas WebGL2+real Rapier WASM+all original scene loading; frames from real browser RAF, IO from real files",
+  "passed": true,
+  "errors": [],
+  "playing": {
+    "page": "playing",
+    "ready": true,
+    "stats": {
+      "position": [
+        -377,
+        1.7749532461166382,
+        37
+      ],
+      "yaw": -2.9,
+      "pitch": 0,
+      "speed": 0.00000875073688464912,
+      "grounded": true,
+      "calls": 179,
+      "triangles": 668928,
+      "fps": 19.99999999999999
+    },
+    "visits": [],
+    "photoHunts": [],
+    "huntId": null,
+    "inputs": {
+      "touches": 0,
+      "joystick": null,
+      "pinch": null,
+      "stick": [
+        0,
+        0
+      ],
+      "look": [
+        0,
+        0
+      ]
+    },
+    "dimensions": {
+      "width": 844,
+      "height": 390,
+      "physicalWidth": 844,
+      "physicalHeight": 390,
+      "rotated": false
+    },
+    "buttons": [
+      {
+        "id": "home",
+        "x": 12,
+        "y": 12,
+        "w": 70,
+        "h": 44
+      },
+      {
+        "id": "map",
+        "x": 668,
+        "y": 12,
+        "w": 62,
+        "h": 44
+      },
+      {
+        "id": "pause",
+        "x": 736,
+        "y": 12,
+        "w": 48,
+        "h": 44
+      },
+      {
+        "id": "joystick",
+        "x": 18,
+        "y": 246,
+        "w": 128,
+        "h": 128
+      },
+      {
+        "id": "jump",
+        "x": 564,
+        "y": 324,
+        "w": 66,
+        "h": 48
+      },
+      {
+        "id": "photo",
+        "x": 638,
+        "y": 324,
+        "w": 66,
+        "h": 48
+      },
+      {
+        "id": "journal",
+        "x": 712,
+        "y": 324,
+        "w": 72,
+        "h": 48
+      },
+      {
+        "id": "interact",
+        "x": 564,
+        "y": 266,
+        "w": 140,
+        "h": 44
+      }
+    ],
+    "source": "original Scene / real Three WebGL2 / real Rapier WASM",
+    "platform": "worker-no-dom-contract"
+  },
+  "screenshotSha256": "9e61ea38179f24a01f425744ff3a13b8444f886e6ce062077e08c390660eb357",
+  "state": {
+    "boot": {
+      "kind": "boot",
+      "noDom": true,
+      "portableTextDecoder": true
+    },
+    "started": {
+      "kind": "started",
+      "noDom": true
+    },
+    "snapshot": {
+      "page": "home",
+      "ready": true,
+      "stats": {
+        "position": [
+          -377,
+          2,
+          37
+        ],
+        "yaw": -2.9,
+        "pitch": 0,
+        "speed": 0,
+        "grounded": false,
+        "fps": 0,
+        "calls": 0,
+        "triangles": 0
+      },
+      "visits": [],
+      "photoHunts": [],
+      "huntId": null,
+      "inputs": {
+        "touches": 0,
+        "joystick": null,
+        "pinch": null,
+        "stick": [
+          0,
+          0
+        ],
+        "look": [
+          0,
+          0
+        ]
+      },
+      "dimensions": {
+        "width": 844,
+        "height": 390,
+        "physicalWidth": 844,
+        "physicalHeight": 390,
+        "rotated": false
+      },
+      "buttons": [
+        {
+          "id": "start",
+          "x": 40,
+          "y": 158,
+          "w": 315.04,
+          "h": 52,
+          "disabled": false
+        },
+        {
+          "id": "routes",
+          "x": 40,
+          "y": 220,
+          "w": 315.04,
+          "h": 48,
+          "disabled": false
+        },
+        {
+          "id": "hunts",
+          "x": 398,
+          "y": 90,
+          "w": 343.68,
+          "h": 50,
+          "disabled": false
+        },
+        {
+          "id": "journal",
+          "x": 398,
+          "y": 152,
+          "w": 343.68,
+          "h": 50,
+          "disabled": false
+        },
+        {
+          "id": "settings",
+          "x": 398,
+          "y": 214,
+          "w": 343.68,
+          "h": 50,
+          "disabled": false
+        },
+        {
+          "id": "back",
+          "x": 26,
+          "y": 326,
+          "w": 110,
+          "h": 44
+        }
+      ],
+      "source": "original Scene / real Three WebGL2 / real Rapier WASM",
+      "platform": "worker-no-dom-contract"
+    }
+  }
+}

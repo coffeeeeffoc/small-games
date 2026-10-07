@@ -1,17 +1,36 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <script src="./dev-mode.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#eee8d9"><title>乌龙城 · 总差一点才正常</title><link rel="stylesheet" href="style.css"></head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#254c4e">
+  <title>乌龙城 · 奇遇记</title>
+  <script src="./dev-mode.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
-<main id="game">
-  <header><button id="menu" aria-label="返回选关与奇遇记录"><span class="brand-mark">岔</span><b>乌龙城</b><span class="menu-label">返回选关</span></button><div class="utilities"><button id="sound" aria-label="关闭音效">♪</button><button id="fullscreen" aria-label="进入全屏">⛶</button><button id="pause" aria-label="暂停">暂停</button></div></header>
-  <section class="mission"><div class="eyebrow"><span id="chapter"></span><span id="counter"></span></div><h1 id="title"></h1><p><span class="task-label">眼前的事</span><span id="goal"></span></p></section>
-  <aside id="tryout" aria-label="今日试演" hidden><div class="tryout-label">今日试演 · 不改主线进度</div><div id="tryout-choices"><button data-try="25">心事也上秤 <span>先试这段 →</span></button><button data-try="26">遥控器嫌你太近 <span>先试这段 →</span></button></div><button id="tryout-back" hidden>回到刚才的主线 →</button></aside>
-  <div id="stage"><canvas id="canvas" width="960" height="1040" aria-label="乌龙城互动场景，A D 或左右方向键移动，W 或上方向键或空格跳跃，S 或下方向键加速下落，Tab 切换场景物件，回车操作物件" tabindex="0"></canvas><div id="hotspots"></div><div class="scene-caption"><span class="live-dot"></span> 乌龙现场 <span id="scene-note">观察 · 试试看</span></div></div>
-  <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
-  <nav class="controls" aria-label="角色操作"><div class="move-controls"><button id="left" aria-label="向左移动">◀</button><button id="right" aria-label="向右移动">▶</button></div><div class="tools"><button id="retry"><span>↻</span>重试</button><button id="hint"><span>?</span>提示</button></div><button id="jump" aria-label="跳跃">↑<small>跳跃</small></button></nav>
-  <footer><span>这座城市，总差一点才正常。</span><span class="keyboard-tip">A D / ← → 移动 · W / ↑ / 空格跳跃<br>S / ↓ 加速下落 · 回车操作物件</span></footer>
+<main id="game" data-page="home">
+  <section id="home-page" aria-label="乌龙城主页">
+    <button id="home-records" class="round-button records-button" aria-label="奇遇手记"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Z"/><path d="M12 5v15"/></svg></button>
+    <button id="home-settings" class="round-button settings-button" aria-label="设置">⚙</button>
+    <div class="home-title"><span>总差一点才正常</span><h1>乌龙城</h1><p>小岔的百日奇遇</p></div>
+    <div class="home-actions">
+      <div id="home-progress" class="home-progress"></div>
+      <button id="start-game" class="primary">开始奇遇 <span>→</span></button>
+      <div class="home-links"><button id="home-levels" class="secondary">选择关卡</button></div>
+
+    </div>
+  </section>
+  <section id="play-page" aria-label="关卡游玩" hidden>
+    <header class="play-header"><button id="menu" class="round-button" aria-label="返回主页"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5 7 12l7 7"/></svg></button><div class="level-heading"><span id="counter"></span><h1 id="title"></h1><span id="chapter" hidden></span></div><button id="pause" class="round-button" aria-label="暂停"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg></button></header>
+    <p id="goal" class="goal"></p>
+    <div id="stage"><canvas id="canvas" width="960" height="1040" aria-label="乌龙城互动场景。点按或拖动物件，底部按钮移动和跳跃。也可使用方向键与回车。" tabindex="0"></canvas><div id="hotspots"></div></div>
+    <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+    <nav class="controls" aria-label="角色操作"><div class="move-controls"><button id="left" aria-label="向左移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4 6 12l8 8v-5h7V9h-7Z"/></svg></button><button id="right" aria-label="向右移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 4 8 8-8 8v-5H3V9h7Z"/></svg></button></div><button id="hint" aria-label="查看提示"><span class="bulb">☀</span>提示</button><button id="jump" aria-label="跳跃"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9h-6v9H9v-9H3Z"/></svg><span>跳跃</span></button></nav>
+    <button id="tryout-back" class="tryout-return" hidden>回到刚才的主线 →</button>
+  </section>
+  <section id="dialog" class="page-panel" aria-label="游戏页面" hidden><div id="dialog-body"></div>      <aside id="tryout" hidden aria-label="今日试演"><div class="tryout-label">今日试演</div><div id="tryout-choices"><button data-try="25">寄存心事</button><button data-try="26">遥远控制</button></div></aside><div id="settings-tools" hidden><button id="sound" class="secondary" aria-label="关闭音效">音效：开</button><button id="fullscreen" class="secondary" aria-label="进入全屏">进入全屏</button></div></section>
 </main>
-<dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-body"></div></dialog>
-<script src="levels-data.js"></script><script src="level-order.js"></script><script src="game.js"></script><script src="levels.js"></script><script>W.boot();</script>
-</body></html>
+<script src="levels-data.js"></script><script src="level-order.js"></script><script src="render.js"></script><script src="game.js"></script><script src="levels.js"></script><script>W.boot();</script>
+</body>
+</html>

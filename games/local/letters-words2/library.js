@@ -1,5 +1,6 @@
 // Download integrity/cache flow follows ../letters-words/library.mjs.
 import { letters, validateEntries } from './engine.js';
+import { openScreen } from './mobile-ui.js';
 
 export function validateBook(data, book) {
   if (data?.id !== book.id || !Array.isArray(data.entries) || data.entries.length !== book.count) throw new Error('词库不完整，请重试下载。');
@@ -104,7 +105,7 @@ export function setupLibrary(startPractice) {
     status('选定版次和单元后开始；已下载的词库可离线使用。');
   }
   async function open() {
-    $('library-dialog').showModal();
+    openScreen('library-dialog');
     if (catalog) return;
     status('正在读取教材目录…');
     try {

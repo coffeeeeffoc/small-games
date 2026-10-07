@@ -5,11 +5,12 @@
     bilibili: typeof bl !== 'undefined' ? bl : undefined,
     douyin: typeof tt !== 'undefined' ? tt : undefined,
     kuaishou: typeof ks !== 'undefined' ? ks : undefined,
+    taptap: typeof tap !== 'undefined' ? tap : undefined,
   };
   const platform = globalThis.__COMPETITION_CONFIG__?.platform;
   const sdk = platform
     ? sdks[platform]
-    : sdks.bilibili || sdks.wechat || sdks.douyin || sdks.kuaishou;
+    : sdks.bilibili || sdks.wechat || sdks.douyin || sdks.kuaishou || sdks.taptap;
   if (!sdk) return;
   const defaultTitle = '好友一起开跑，来我的卡丁车房间！';
   let query = '',

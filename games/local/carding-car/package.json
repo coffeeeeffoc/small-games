@@ -24,7 +24,8 @@
     "build:douyin": "node scripts/build.mjs douyin",
     "dev": "node scripts/serve.mjs",
     "test:browser": "node tests/browser.mjs",
-    "test:career": "node tests/career-home.mjs"
+    "test:career": "node tests/career-home.mjs",
+    "test:menu": "node tests/menu-refinement.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

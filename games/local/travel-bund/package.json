@@ -11,9 +11,15 @@
     "test": "node --test tests/*.test.ts",
     "test:browser": "node tests/browser.mjs",
     "test:controls": "node tests/controls.mjs",
+    "test:mobile": "node tests/mobile-browser.mjs",
     "test:routes": "node tests/routes-browser.mjs",
+    "test:photo-hunts": "node tests/photo-hunts-browser.mjs",
+    "test:photo-hunts:scene": "node tests/photo-hunts-scene.mjs",
     "test:performance": "node tests/performance.mjs",
-    "test:life": "node tests/life-browser.mjs"
+    "test:life": "node tests/life-browser.mjs",
+    "test:settings": "node tests/settings-browser.mjs",
+    "test:sky": "node tests/clouds-browser.mjs && node tests/clouds-scene-browser.mjs",
+    "test:preview": "node tests/preview-browser.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",
@@ -29,6 +35,8 @@
     "@types/react-dom": "19.2.3",
     "@types/three": "0.180.0",
     "@vitejs/plugin-react": "6.1.1",
+    "draco3d": "1.5.7",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
     "vite": "8.2.2"
   },

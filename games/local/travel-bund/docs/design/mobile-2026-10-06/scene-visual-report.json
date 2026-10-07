@@ -1,0 +1,66 @@
+{
+  "checks": [
+    "390x844: full production landscape scene and portrait rotation fallback, entry camera continuity, logical CDP touch walking/turning/cancel, pause/settings, persistent model choices, photo/journal, preserved Canvas and viewpoint on return/resume",
+    "844x390: full production landscape scene and physical landscape, entry camera continuity, logical CDP touch walking/turning/cancel, pause/settings, persistent model choices, photo/journal, preserved Canvas and viewpoint on return/resume"
+  ],
+  "samples": [
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "logicalAspect": 2.164102564102564,
+      "cameraAspect": 2.164102564102564,
+      "buffer": {
+        "width": 717,
+        "height": 331
+      },
+      "telemetry": {
+        "phase": "playing",
+        "ready": "true",
+        "sitting": "false",
+        "x": "-368.51",
+        "z": "75.95",
+        "y": "1.78",
+        "speed": "0.00",
+        "grounded": "true",
+        "quality": "0",
+        "zoom": "1.000",
+        "yaw": "-2.810",
+        "fps": "0.85",
+        "calls": "216",
+        "triangles": "1083114",
+        "renderDetail": "light",
+        "crowd": "true",
+        "motion": "true",
+        "lifeTarget": "visitor",
+        "lifeEvent": "",
+        "rotated": "false",
+        "touch": "true",
+        "compactLandscape": "true"
+      }
+    }
+  ],
+  "errors": [],
+  "external": [],
+  "environment": "Full production scene; Linux Chromium headless WebGL with browser touch emulation, not physical phone or mobile Safari; software rendering cannot establish mobile GPU performance",
+  "runs": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "result": "passed",
+      "source": "Completed first viewport in full production preview run; the second viewport exceeded the original 30 s tap acknowledgement timeout after its pause panel had already opened."
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "result": "passed",
+      "source": "Retried the failed viewport using the same production preview script with a 120 s action timeout; process exited 0. Official script still covers both viewports by default."
+    }
+  ],
+  "limitations": "Chromium used CPU SwiftShader WebGL. Desktop mobile emulation verifies layout and real CDP touch input, not physical phone, mobile Safari, or mobile GPU performance. Telemetry samples below were recorded in the 844x390 retry only."
+}

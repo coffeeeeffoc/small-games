@@ -28,7 +28,9 @@
     "test:ranking": "node scripts/check-ranking.mjs",
     "test:competition-renderer": "node scripts/check-competition-renderer.mjs",
     "test:duel": "node scripts/check-duel.mjs",
-    "test:duel-browser": "node scripts/check-duel-browser.mjs"
+    "test:duel-browser": "node scripts/check-duel-browser.mjs",
+    "test:native": "node scripts/check-native.mjs",
+    "test:native-browser": "node scripts/check-native-browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

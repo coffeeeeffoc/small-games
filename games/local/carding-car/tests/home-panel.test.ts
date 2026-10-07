@@ -17,6 +17,8 @@ class SceneNode {
   setPosition(x: number, y: number, z = 0) { this.position = { x, y, z }; }
   setScale(x: number, y: number) { this.scale = { x, y }; }
   on(event: string, handler: Function) { this.handlers.set(event, handler); }
+  pauseSystemEvents() {}
+  resumeSystemEvents() {}
   emit(event: string, argument: unknown) { this.handlers.get(event)?.(argument); }
   removeFromParent() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); this.parent = undefined; }
   destroy() { this.active = false; this.removeFromParent(); }
@@ -37,7 +39,7 @@ class Color { fromHEX() { return this; } }
 const cc = { Node: SceneNode, UITransform: Transform, Graphics, Color, EventTouch: class {}, BlockInputEvents: class {},
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; }, Canvas: class {},
   ResolutionPolicy: { SHOW_ALL: 0 }, sys: { isBrowser: true, isMobile: false }, view: { setDesignResolutionSize() {} },
-  Label: class { static HorizontalAlign = { CENTER: 0 }; static VerticalAlign = { CENTER: 0 }; static Overflow = { SHRINK: 1 }; },
+  Label: class { static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; static Overflow = { SHRINK: 1 }; },
   Layers: { Enum: { UI_2D: 1 } } };
 const items = [
   { id: 'classic-kart', category: 'vehicle', assetId: 'classic-kart', name: '经典卡丁', price: 0, description: '初始赛车' },
@@ -86,15 +88,16 @@ function setup() {
       profile.coins -= item.price; profile.owned.push(id); return true; },
     equip(id: string) { const item = items.find(item => item.id === id)!; profile.equipped[item.category] = item.assetId; return true; },
     upgrade(part: string) { profile.coins -= 100; profile.upgrades[part]++; return true; },
+    claimAll() { const ready = milestones.filter(m => profile.races >= m.target && !profile.claimed.includes(m.id)); for (const m of ready) profile.claimed.push(m.id); return ready.length > 0; },
     claim(id: string) { profile.claimed.push(id); return true; } };
-  const calls = { prepare: 0, restore: 0, settings: 0, previews: [] as unknown[], choices: [] as unknown[] };
+  const calls = { prepare: 0, restore: 0, settings: 0, challenges: [] as string[], previews: [] as unknown[], choices: [] as unknown[] };
   let state = { selection: { theme: 'seaside', route: 'seaside', vehicle: 'classic-kart', driver: 'rookie' },
     mode: 'standard', loading: false, error: '', botCount: 3, sameBots: false };
   const panel = new HomePanel(parent, career, {
     choose: (field: string, delta: number) => calls.choices.push([field, delta]), mode() {},
     prepare: () => { calls.prepare++; }, preview: (selection: unknown) => calls.previews.push(selection),
     equip: () => { calls.restore++; }, bots: (count: number, same: boolean) => { state = { ...state, botCount: count, sameBots: same }; panel.update(state); },
-    settings: () => { calls.settings++; panel.root.active = false; },
+    settings: () => { calls.settings++; panel.setInputEnabled(false); }, challenge: (stat: string) => { calls.challenges.push(stat); panel.show('setup'); },
   });
   panel.update(state);
   const event = (x: number, y: number) => ({ propagationStopped: false, getID: () => 1,
@@ -123,7 +126,7 @@ test('home/setup touches are independent of driving input, cancel safely, and on
   assert.equal(panel.page, 'home', 'dragging away must not navigate');
   assert.deepEqual(start.scale, { x: 1, y: 1 });
   tap('选择比赛  →');
-  tap('›', 158); tap('‹', -115);
+  tap('下一主题'); tap('上一路线');
   assert.deepEqual(calls.choices, [['theme', 1], ['route', -1]]);
   assert.equal(calls.prepare, 0);
   tap('展开高级选项');
@@ -135,7 +138,10 @@ test('home/setup touches are independent of driving input, cancel safely, and on
   assert.equal(panel.snapshot().buttons.find(button => button.label === '−').enabled, false);
   tap('进入赛道  →'); assert.equal(calls.prepare, 1, 'prepare remains separate from countdown/start');
   tap('设置'); assert.equal(calls.settings, 1);
-  assert.equal(panel.snapshot().visible, false);
+  assert.equal(panel.snapshot().visible, true);
+  assert.equal(panel.snapshot().inputEnabled, false);
+  tap('进入赛道  →'); assert.equal(calls.prepare, 1, 'settings blocks background actions');
+  panel.setInputEnabled(true);
   panel.root.active = true;
   assert.equal(panel.page, 'setup'); assert.equal(panel.advanced, true, 'settings preserves the configuration page');
 });
@@ -158,11 +164,11 @@ test('home is a sparse plaza while setup keeps both native scene windows uncover
   assert.ok(content.getChildByName('ThemePostcard'));
   assert.ok(labels(content).includes('出发！'));
   assert.ok(!labels(content).includes('开赛'));
-  assert.deepEqual(panel.snapshot().preview, { x: 230, y: 2.5, width: 380, height: 225 });
-  assert.deepEqual(panel.snapshot().sceneryPreview, { x: -230, y: 24, width: 396, height: 208 });
-  assert.deepEqual(panel.snapshot().buttons.filter(button => button.label === '›').map(button => [button.designX, button.designY]),
-    [[430, 112], [430, 385], [892, 255], [852, 405]], 'theme/map/car/driver keep semantic arrow order');
-  const holes = [{ x: 52, y: 142, width: 396, height: 208 }, { x: 520, y: 155, width: 380, height: 225 }];
+  assert.deepEqual(panel.snapshot().preview, { x: 234, y: 36, width: 404, height: 196 });
+  assert.deepEqual(panel.snapshot().sceneryPreview, { x: -232, y: 36, width: 408, height: 196 });
+  assert.deepEqual(panel.snapshot().buttons.filter(button => button.label.startsWith('下一')).map(button => [button.designX, button.designY]),
+    [[426, 108], [426, 371], [890, 228], [890, 413]], 'theme/map/car/driver keep semantic arrow order');
+  const holes = [{ x: 44, y: 136, width: 408, height: 196 }, { x: 512, y: 136, width: 404, height: 196 }];
   const backdrop = content.getChildByName('CreamBackdrop').getComponent(Graphics);
   const rectangles = backdrop.operations.filter(operation => operation.op === 'rect');
   assert.ok(rectangles.length > 0);
@@ -172,22 +178,26 @@ test('home is a sparse plaza while setup keeps both native scene windows uncover
       'cream paint must never cover either live preview');
   }
   panel.show('shop');
-  assert.deepEqual(panel.snapshot().preview, { x: 216, y: 17, width: 444, height: 250 });
+  assert.deepEqual(panel.snapshot().preview, { x: 214, y: 21, width: 440, height: 230 });
 });
 
 test('shop candidate preview never buys implicitly, and leaving restores actual equipment', () => {
   const { panel, calls, profile, tap } = setup();
-  panel.show('shop'); tap('›', -115);
+  panel.show('shop'); tap('下一个商品');
   assert.deepEqual(calls.previews, [{ vehicle: 'formula' }]);
   assert.deepEqual(profile.owned, ['classic-kart', 'rookie']);
   assert.equal(profile.coins, 700);
   tap('购买 · 500 金币');
-  assert.equal(profile.coins, 200); assert.equal(profile.equipped.vehicle, 'formula');
-  tap('宠物'); tap('试穿 / 预览');
+  assert.equal(profile.coins, 200); assert.equal(profile.equipped.vehicle, 'classic-kart', 'purchase does not silently equip');
+  tap('装备'); assert.equal(profile.equipped.vehicle, 'formula');
+  tap('宠物');
   assert.deepEqual(calls.previews.at(-1), { pet: 'cloud' });
+  assert.ok(!panel.snapshot().buttons.some(button => /试穿|试试看/.test(button.label)));
+  tap('查看已装备'); assert.equal(panel.snapshot().previewMode, 'equipped');
+  tap('查看此商品'); assert.deepEqual(calls.previews.at(-1), { pet: 'cloud' });
   const restores = calls.restore;
   tap('主页'); assert.equal(calls.restore, restores + 1);
-  panel.show('shop'); panel.hide(); assert.equal(calls.restore, restores + 2);
+  panel.show('shop'); panel.hide(); assert.equal(calls.restore, restores + 3);
 });
 
 test('all pages keep touch targets inside the 960x540 rotated-phone render and report load errors', () => {
@@ -231,4 +241,23 @@ test('staged HUD hides old selectors, waits for start and exposes home plus the 
   hud.rewardText = '+120 金币 · +70 成长'; hud.update(race, idle, false);
   assert.match(hud.footer.string, /120 金币.*70 成长/);
   assert.equal(hud.standings.lineHeight, 16, 'eight-driver results fit the standings area');
+});
+
+
+test('locked selections disable race entry, navigate to the matching item, and never change ownership by browsing', () => {
+  const { panel, state, calls, profile, tap } = setup();
+  panel.show('setup'); panel.update({ ...state, selection: { ...state.selection, vehicle: 'formula' } });
+  assert.equal(panel.snapshot().buttons.find(b => b.label === '请先解锁').enabled, false);
+  tap('请先解锁'); assert.equal(calls.prepare, 0);
+  tap('去解锁'); assert.equal(panel.snapshot().page, 'shop'); assert.equal(panel.snapshot().selectedItem, 'formula');
+  assert.equal(profile.coins, 700); assert.equal(profile.equipped.vehicle, 'classic-kart');
+});
+
+test('career incomplete goals navigate and reward collection is distinct from challenge actions', () => {
+  const { panel, calls, profile, tap } = setup();
+  panel.show('career'); tap('去挑战 · 完赛目标 2');
+  assert.deepEqual(calls.challenges, ['races']); assert.equal(panel.page, 'setup');
+  assert.deepEqual(profile.claimed, []);
+  panel.show('career'); tap('一键领取'); assert.deepEqual(profile.claimed, ['race-0']);
+  assert.equal(panel.snapshot().buttons.find(b => b.label === '一键领取').enabled, false);
 });

@@ -1,0 +1,29 @@
+# 准确候选版本的增量发布验证
+
+使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
+
+```sh
+git ls-remote origin refs/heads/dev
+git fetch origin dev
+# 必要时正常合并 FETCH_HEAD，解决冲突后重新提交
+node scripts/validate-candidate.mjs --base <远端准确SHA> --head <合并后的候选准确SHA>
+git push origin <已验证候选SHA>:refs/heads/dev
+```
+
+本地 push 的正常 pre-push hook 与候选命令复用 `validatePush`：每对 base/head 使用独立、准确 SHA 的 worktree，递归固定 gitlinks，安装冻结依赖并检查生成输入；不使用脏工作区文件，不以当前 HEAD 或旧 tracking ref 替代实际推送 SHA。多 ref 分别检查，相同 SHA 对去重。候选命令完成后输出含 base/head 的验证记录；失败不会输出通过记录。保存完整命令、日志、环境和该记录。
+
+增量层运行格式、注册、依赖边界检查及直接变更项目的构建/规则测试和实际依赖闭包的类型与 lint。Shell 的有限 jsdom 接入契约覆盖目录、模式参数、重载、独立入口及沉浸消息/返回流程。游戏接入使用已有注册结构化 diff；同一 Shell 目录中的单款注册及 workspace wiring 不算通用共享组件。规则模块可证明纯净时不启动浏览器；游戏界面或无法判为纯规则的本游戏代码检查该游戏。共享包按依赖闭包选择真实消费者。通用 Shell 导航检查词屿与象五子棋两个入口家族，使用真实鼠标和手机触屏走通 iframe/独立入口。选择后的构建不调用会准备全部游戏的 Shell `build:pages`。未知仓库级共享路径或无法识别的注册/工具链变化必须定义范围后重试；不能静默改跑全量，也不能伪报通过。新增分支需明确已有比较基线，hook 不猜基线。
+
+入口测试使用语义选择器与实际页面状态，不依赖皮肤、坐标或自动接受截图。主页必须可见，开始后棋盘可操作，暂停/主页/返回目录路径及未完成拼写恢复须保持。入口和导航行为变更必须同步更新测试契约，行为回归仍应失败。增量门禁不能保证大改零失败，线上 CI/Pages 是独立验收；保留其全量兜底和部署检查。
+
+原生冒烟工具的明确消费者为 `shell-minigame` 与 `shell-bilibili`，改动时执行两个宿主的构建、类型、lint、规则测试和实际 smoke。开发模式浏览器工具仅对可证明的游戏 ID 条件与已有乌龙城手机入口断言变化进行定向分类，检查相关注册游戏并保留公共导航样本；共通执行代码变化仍需定义范围。已有注册游戏新增原生 Canvas 接线时，锁文件必须逐块证明新增 workspace 链接及对应 manifest，并要求其余字节与基线一致；外部依赖、resolution、重复块或不能证明的变化继续阻断。
+
+GitHub API 修改分支不会触发本地 hook。云端、worktree、API 发布也必须在更新 ref **之前**用上述命令验证最终候选 SHA；如果 ref 已变化，重新合并、生成候选并重新验证。当前未启用远端分支保护，因此 API/忽略 hook 的发布只能由流程要求约束，不能声称本地 hook 强制保护所有写入方式。最终交付必须核对 CI/Pages 对应 head SHA、状态和部署 URL；本地通过不等于线上发布完成。
+
+Cocos 输入仍严格要求 Creator 3.8.8，或 source hash 匹配且包含 `dist/index.html`、`dist/build-info.json` 和 `cc.d.ts` 的产物，通过既有验证后才查 Turbo 缓存。`KART_PREBUILT_DIR` / `NIGHT_OVERWATCH_PREBUILT_DIR` 可指向匹配制品。源码/运行素材变化需要 Creator 环境重建；源码未改可复用 Windows 缓存并由 Linux 验证。缺递归 gitlinks/素材、缺匹配制品及编辑器、工具链不符均属于明确环境/输入阻塞，区别于规则/导航断言失败；禁止伪造编辑器、声明或制品来通过。
+
+Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 ms 的估算预算自动增加排队分片；工作流仍最多四片并发。目录增长超过四片容量时不能压低耗时、丢游戏或删除预算断言。未测量游戏暂用 30000 ms，并在计划日志列出；这只是调度估算，不是实际运行时限或实测通过证明。`scripts/pages-regression-timings.json` 的耗时只能根据相同生产浏览器流程的完整成功诊断更新，同时保留来源 run/SHA；失败或跳过阶段不能作为更短的替代记录。单款估算超过预算时阻塞并核查实测与运行成本，不拆散或跳过该款断言。分片/耗时文件变化在本地增量门禁只运行有限的规划测试，线上仍执行所选全部游戏。
+
+本次前九款新增工具使用 `scripts/nine-native-scope.mjs` 的七个精确路径：共享 competition guard 仅接受原四渠道后增加支付宝且其他字节完全不变；六个新入口或测试文件必须符合人工审阅源码摘要、固定 import 和游戏名单，未知兄弟文件与其他执行代码继续阻塞。范围含真实游戏包与原生宿主，按 workspace 依赖图计算类型和 lint 消费者。原生工具变更运行对应五渠道 preview 构建与实际 CJS 流程，不因原生专属接线自动选择无变化的 H5 浏览器页面；B站入口触屏流程显式启用 `BILIBILI_BROWSER=1`。
+
+`nine-lock-scope.mjs` 单独证明支付宝新 importer、宿主 workspace link 与外滩两项固定直接工具依赖。支付宝工具完全复用基线 importer tuple；外滩 draco3d 1.5.7、esbuild 0.28.2 已在基线唯一 package/snapshot 中锁定，新增直接 tuple 必须匹配 manifest，不得产生新 resolution。移除这些已证明增量后，整个锁文件必须与基线逐字一致；错误 link、重复 importer、额外依赖、外部版本/integrity 更新、manifest 不符或缺基线均不分类。该证明不能覆盖注册结构破坏或同次推送混入的其他未知路径。

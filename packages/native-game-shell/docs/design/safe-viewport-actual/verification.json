@@ -1,0 +1,18 @@
+{
+  "artifactSha256": "1f1cd078a96785eb58221bd6c054c8d93f20519c37a12cc2c910d58659f65751",
+  "environment": "Chromium touch browser with wx SDK adapter running the built native Canvas definition (not H5)",
+  "viewport": [390, 844],
+  "physicalLandscape": [844, 390],
+  "safeAreaAndCapsuleClipped": true,
+  "inputMappedAcrossResize": true,
+  "smallViewport": [320, 740],
+  "rotatedPlayPauseResumed": true,
+  "pages": ["home", "levels", "play", "hint", "pause", "result", "records"],
+  "firstLevelCompleted": true,
+  "storageSaved": true,
+  "listenersDisposed": true,
+  "pageErrors": [],
+  "sceneColors": 10098,
+  "activePuzzleRetained": true,
+  "physicalDeviceVerified": false
+}

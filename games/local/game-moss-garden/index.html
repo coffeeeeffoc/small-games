@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#264a3d" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23264a3d'/%3E%3Cpath d='M32 9C13 26 19 48 32 54C45 48 51 26 32 9Z' fill='%23e6c365'/%3E%3Cpath d='M32 19V45' stroke='%23fff5cf' stroke-width='3'/%3E%3C/svg%3E"
+    />
+    <title>苔光花园</title>
+  </head>
+  <body>
+    <main id="garden" aria-label="苔光花园" data-game-display-host>
+      <canvas id="scene" aria-label="苔光花园游戏画面"></canvas>
+      <div id="controls" aria-label="游戏操作"></div>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="./dev-mode.js"></script>
+    <script src="./fullscreen.js"></script>
+    <script type="module" src="./src/web.ts"></script>
+  </body>
+</html>

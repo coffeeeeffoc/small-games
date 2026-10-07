@@ -292,6 +292,9 @@ importers:
       '@coffeeeeffoc/game-building-power':
         specifier: workspace:*
         version: link:../../games/local/game-building-power
+      '@coffeeeeffoc/game-castle-cannon':
+        specifier: workspace:*
+        version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -301,12 +304,18 @@ importers:
       '@coffeeeeffoc/game-cultivation':
         specifier: workspace:*
         version: link:../../games/local/game-cultivation
+      '@coffeeeeffoc/game-moss-garden':
+        specifier: workspace:*
+        version: link:../../games/local/game-moss-garden
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
       '@coffeeeeffoc/native-game-shell':
         specifier: workspace:*
         version: link:../../packages/native-game-shell
+      '@coffeeeeffoc/platform-alipay':
+        specifier: workspace:*
+        version: link:../../platforms/alipay
       '@coffeeeeffoc/platform-bilibili':
         specifier: workspace:*
         version: link:../../platforms/bilibili
@@ -316,9 +325,15 @@ importers:
       '@coffeeeeffoc/platform-kuaishou':
         specifier: workspace:*
         version: link:../../platforms/kuaishou
+      '@coffeeeeffoc/platform-taptap':
+        specifier: workspace:*
+        version: link:../../platforms/taptap
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
+      '@coffeeeeffoc/wulong-city':
+        specifier: workspace:*
+        version: link:../../games/local/wulong-city
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -353,6 +368,9 @@ importers:
       '@coffeeeeffoc/afterimage-arena':
         specifier: workspace:*
         version: link:../../games/local/afterimage-arena
+      '@coffeeeeffoc/ball-roguelite':
+        specifier: workspace:*
+        version: link:../../games/local/ball-roguelite
       '@coffeeeeffoc/balloon-movers':
         specifier: workspace:*
         version: link:../../games/local/balloon-movers
@@ -362,6 +380,9 @@ importers:
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
+      '@coffeeeeffoc/chase-thief':
+        specifier: workspace:*
+        version: link:../../games/local/chase-thief
       '@coffeeeeffoc/content-schema':
         specifier: workspace:*
         version: link:../../packages/content-schema
@@ -371,6 +392,9 @@ importers:
       '@coffeeeeffoc/echo-weaver':
         specifier: workspace:*
         version: link:../../games/local/echo-weaver
+      '@coffeeeeffoc/ember-bounce':
+        specifier: workspace:*
+        version: link:../../games/local/ember-bounce
       '@coffeeeeffoc/flick-arena':
         specifier: workspace:*
         version: link:../../games/local/flick-arena
@@ -383,6 +407,9 @@ importers:
       '@coffeeeeffoc/game-building-power':
         specifier: workspace:*
         version: link:../../games/local/game-building-power
+      '@coffeeeeffoc/game-castle-cannon':
+        specifier: workspace:*
+        version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
@@ -398,6 +425,9 @@ importers:
       '@coffeeeeffoc/game-loader':
         specifier: workspace:*
         version: link:../../packages/game-loader
+      '@coffeeeeffoc/game-moss-garden':
+        specifier: workspace:*
+        version: link:../../games/local/game-moss-garden
       '@coffeeeeffoc/game-office':
         specifier: workspace:*
         version: link:../../games/local/game-office
@@ -431,6 +461,9 @@ importers:
       '@coffeeeeffoc/one-stroke-course':
         specifier: workspace:*
         version: link:../../games/local/one-stroke-course
+      '@coffeeeeffoc/orbit-atelier':
+        specifier: workspace:*
+        version: link:../../games/local/orbit-atelier
       '@coffeeeeffoc/out-of-frame':
         specifier: workspace:*
         version: link:../../games/local/out-of-frame
@@ -449,9 +482,18 @@ importers:
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
+      '@coffeeeeffoc/tetracube':
+        specifier: workspace:*
+        version: link:../../games/local/tetracube
+      '@coffeeeeffoc/tianxia-chalu':
+        specifier: workspace:*
+        version: link:../../games/local/tianxia-chalu
       '@coffeeeeffoc/tiny-signals':
         specifier: workspace:*
         version: link:../../games/local/tiny-signals
+      '@coffeeeeffoc/tower-brake':
+        specifier: workspace:*
+        version: link:../../games/local/tower-brake
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -680,6 +722,8 @@ importers:
 
   games/local/afterimage-arena: {}
 
+  games/local/ball-roguelite: {}
+
   games/local/balloon-movers: {}
 
   games/local/bullet-garden: {}
@@ -692,6 +736,8 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+
+  games/local/chase-thief: {}
 
   games/local/cops-robbers:
     devDependencies:
@@ -708,6 +754,8 @@ importers:
   games/local/echo-lab: {}
 
   games/local/echo-weaver: {}
+
+  games/local/ember-bounce: {}
 
   games/local/flick-arena: {}
 
@@ -821,6 +869,52 @@ importers:
       '@playwright/test':
         specifier: 1.55.1
         version: 1.55.1
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      jsdom:
+        specifier: 26.1.0
+        version: 26.1.0(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  games/local/game-castle-cannon:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
+      '@coffeeeeffoc/game-host':
+        specifier: workspace:*
+        version: link:../../../packages/game-host
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../../packages/config-typescript
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      '@types/three':
+        specifier: 0.180.0
+        version: 0.180.0
       eslint:
         specifier: 9.35.0
         version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -970,6 +1064,31 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  games/local/game-moss-garden:
+    dependencies:
+      '@coffeeeeffoc/canvas-game-adapter':
+        specifier: workspace:*
+        version: link:../../../packages/canvas-game-adapter
+      '@coffeeeeffoc/content-schema':
+        specifier: workspace:*
+        version: link:../../../packages/content-schema
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
+    devDependencies:
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../../packages/config-typescript
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
 
   games/local/game-office:
     dependencies:
@@ -1200,6 +1319,18 @@ importers:
         specifier: 6.4.1
         version: 6.4.1(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.21.0)
 
+  games/local/orbit-atelier:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
+
   games/local/out-of-frame: {}
 
   games/local/precision-demolition: {}
@@ -1238,7 +1369,13 @@ importers:
 
   games/local/surprise-kept: {}
 
+  games/local/tetracube: {}
+
+  games/local/tianxia-chalu: {}
+
   games/local/tiny-signals: {}
+
+  games/local/tower-brake: {}
 
   games/local/travel:
     devDependencies:
@@ -1282,6 +1419,12 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+      draco3d:
+        specifier: 1.5.7
+        version: 1.5.7
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -1445,6 +1588,10 @@ importers:
   games/local/weather-command: {}
 
   games/local/wulong-city:
+    dependencies:
+      '@coffeeeeffoc/game-contract':
+        specifier: workspace:*
+        version: link:../../../packages/game-contract
     devDependencies:
       '@playwright/test':
         specifier: 1.55.1
@@ -2049,6 +2196,25 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
+  platforms/alipay:
+    dependencies:
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   platforms/bilibili:
     dependencies:
       '@coffeeeeffoc/canvas-game-adapter':
@@ -2129,6 +2295,25 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  platforms/taptap:
+    dependencies:
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   platforms/wechat:
     dependencies:
@@ -2286,6 +2471,12 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  services/tianxia-server:
+    dependencies:
+      '@coffeeeeffoc/tianxia-chalu':
+        specifier: workspace:*
+        version: link:../../games/local/tianxia-chalu
 
 packages:
 

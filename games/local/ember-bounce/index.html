@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1022" />
+    <meta
+      name="description"
+      content="熔光弹珠：拖动瞄准，让弹珠在夜色里反弹、连击、点亮整片洞窟。"
+    />
+    <title>熔光弹珠</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./main.mjs"></script>
+  </head>
+  <body data-phase="home">
+    <main id="app" data-game-display-host>
+      <section id="home" class="screen home-screen" aria-label="主页">
+        <header class="home-header">
+          <span class="eyebrow">EMBER / <span id="home-number">01</span></span>
+          <nav class="icon-actions" aria-label="游戏设置">
+            <button id="help" class="icon-button" aria-label="玩法帮助">
+              <span aria-hidden="true">?</span>
+            </button>
+            <button id="sound" class="icon-button" aria-label="关闭音效" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 9h4l5-4v14l-5-4H4z" />
+                <path class="sound-waves" d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />
+              </svg>
+            </button>
+          </nav>
+        </header>
+        <div class="hero-title">
+          <h1><span>熔光</span><span>弹珠</span></h1>
+          <p>一次弹射，点亮整片夜色</p>
+          <div class="ornament" aria-hidden="true">◇</div>
+        </div>
+        <div class="home-art">
+          <canvas id="home-arena" data-scene="home" aria-label="熔光弹珠动态画面"></canvas>
+        </div>
+        <div class="home-actions">
+          <p id="home-progress" class="quiet">余烬之路 · 初火</p>
+          <button id="start" class="primary">开始弹射 <span aria-hidden="true">›</span></button>
+          <button id="levels-button" class="secondary">选择关卡</button>
+          <button class="fullscreen-control" data-game-fullscreen>全屏</button>
+        </div>
+      </section>
+
+      <section id="levels" class="screen menu-screen" aria-label="选择关卡" hidden>
+        <header class="page-header">
+          <button id="levels-back" class="icon-button back-icon" aria-label="返回主页">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h14" /></svg>
+          </button>
+          <h2>选择关卡</h2>
+        </header>
+        <p id="level-progress" class="chapter-label">余烬之路</p>
+        <div id="level-grid" class="level-grid"></div>
+        <p class="menu-footnote">通关后，下一段夜色会亮起。</p>
+      </section>
+
+      <section id="playing" class="screen playing-screen" aria-label="弹珠场景" hidden>
+        <header class="play-header">
+          <button id="pause" class="icon-button" aria-label="暂停">
+            <span class="pause-icon" aria-hidden="true"><i></i><i></i></span>
+          </button>
+          <div class="level-heading">
+            <span id="level-name">01 初火</span><small id="turn-label">第 1 轮</small>
+          </div>
+          <div class="score-heading"><strong id="score">0</strong><small>得分</small></div>
+        </header>
+        <div class="arena-wrap">
+          <canvas id="arena" data-scene="play" aria-label="弹珠场地，拖动瞄准，松手发射"></canvas>
+          <div id="combo" class="combo" aria-live="off"></div>
+          <span id="practice-label" class="practice-label" hidden>试玩</span>
+        </div>
+        <footer class="play-footer">
+          <div class="round-status">
+            <span class="ball-indicator" aria-hidden="true"></span
+            ><strong id="ball-count">× 6</strong><span id="wave-label">余烬 0 / 0</span>
+          </div>
+          <div class="controls-row">
+            <p id="aim-hint" class="aim-hint">拖动瞄准 · 松手发射</p>
+            <button id="recall" class="small-button" disabled>回收弹珠</button>
+          </div>
+        </footer>
+      </section>
+
+      <section id="paused" class="screen centered-screen" aria-label="暂停菜单" hidden>
+        <p class="eyebrow">TAKE A BREATH</p>
+        <h2>光，等你回来。</h2>
+        <p class="quiet" id="pause-level"></p>
+        <div class="menu-actions">
+          <button id="resume" class="primary">继续弹射 <span aria-hidden="true">›</span></button
+          ><button id="back-home" class="secondary">返回主页</button>
+        </div>
+        <div class="setting-row">
+          <button id="pause-sound" class="small-button">音效：开</button
+          ><button id="haptics" class="small-button">震动：开</button>
+        </div>
+        <button class="fullscreen-control" data-game-fullscreen>全屏</button>
+      </section>
+
+      <section id="help-screen" class="screen menu-screen" aria-label="玩法帮助" hidden>
+        <header class="page-header">
+          <button id="help-back" class="icon-button back-icon" aria-label="返回主页">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h14" /></svg>
+          </button>
+          <h2>让光多弹一会儿</h2>
+        </header>
+        <ol class="help-steps">
+          <li>
+            <strong>拖动瞄准，松手发射</strong>
+            <p>在场地里拖动，虚线会预览反弹方向。弹珠从顶部连发，撞击边墙和底部后返回。</p>
+          </li>
+          <li>
+            <strong>击碎数字，清空余烬</strong>
+            <p>数字是目标剩余耐久。每轮结束，目标上移；碰到顶部虚线就会失败。</p>
+          </li>
+          <li>
+            <strong>借一次反弹，多一次连击</strong>
+            <p>三角晶体改变方向；珊瑚爆裂球击碎时伤及邻近目标；金色光点增加弹珠。</p>
+          </li>
+          <li>
+            <strong>选择这局的熔光能力</strong>
+            <p>关卡内获得强化机会时，可选加球、增伤或扩大爆裂范围。通关解锁下一关。</p>
+          </li>
+        </ol>
+        <p class="quiet">弹珠久久未返回时，可提前回收；未命中的弹珠会收回，本轮仍会正常上移。</p>
+      </section>
+
+      <section id="upgrade" class="screen centered-screen" aria-label="选择强化" hidden>
+        <p class="eyebrow">A LITTLE BRIGHTER</p>
+        <h2>添一束熔光</h2>
+        <p class="quiet">选择一项，本关持续生效</p>
+        <div id="upgrade-choices" class="upgrade-choices"></div>
+      </section>
+
+      <section id="result" class="screen centered-screen" aria-label="关卡结算" hidden>
+        <p id="result-eyebrow" class="eyebrow">NIGHT ALIGHT</p>
+        <div id="result-emblem" class="result-emblem" aria-hidden="true">◇</div>
+        <h2 id="result-title">这片夜色，亮了。</h2>
+        <p id="result-description" class="quiet"></p>
+        <div id="result-stars" class="result-stars" aria-label="星级"></div>
+        <div class="result-stats">
+          <div><strong id="result-score">0</strong><span>得分</span></div>
+          <div><strong id="result-turns">0</strong><span>轮弹射</span></div>
+        </div>
+        <div class="menu-actions">
+          <button id="next" class="primary">下一关 <span aria-hidden="true">›</span></button
+          ><button id="retry" class="secondary">再来一次</button
+          ><button id="result-home" class="text-button">返回主页</button>
+        </div>
+      </section>
+      <output id="toast" class="toast" role="status" aria-live="polite" hidden></output>
+    </main>
+  </body>
+</html>

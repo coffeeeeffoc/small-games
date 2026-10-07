@@ -171,7 +171,8 @@ select {
   text-overflow: ellipsis;
   font-size: 13px;
 }
-.catalog-list button {
+.catalog-list button,
+.catalog-list .game-launch {
   grid-column: 2;
   grid-row: 1 / 4;
   align-self: center;
@@ -233,11 +234,13 @@ select {
     column-gap: 8px;
     padding: 14px 12px;
   }
-  .catalog-list article > button {
+  .catalog-list article > button,
+  .catalog-list article > .game-launch {
     padding: 12px;
   }
 }
 .catalog-grid button,
+.catalog-grid .game-launch,
 .game-page > nav button {
   border: 0;
   border-radius: 999px;
@@ -245,6 +248,13 @@ select {
   background: #79e7bb;
   color: #102019;
   font-weight: 700;
+}
+.catalog-grid a.game-launch {
+  display: inline-block;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
 }
 .game-page > nav {
   display: flex;
@@ -306,6 +316,111 @@ select {
   width: 100%;
   border: 0;
   background: #11131a;
+}
+.standalone-page[data-immersive='true'] {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+  background: #272b23;
+}
+.standalone-page[data-immersive='true'] iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.standalone-page[data-immersive='true'] > nav {
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  width: max-content;
+  padding: 0;
+  background: transparent;
+}
+.standalone-page[data-immersive='true'] > nav[hidden] {
+  display: none;
+}
+.standalone-page[data-immersive='true'] > nav button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #8e795568;
+  border-radius: 3px 11px 4px 8px;
+  background: #e8d8b4c9;
+  color: #444a33;
+  font:
+    13px 'Songti SC',
+    'Noto Serif CJK SC',
+    Georgia,
+    serif;
+  touch-action: manipulation;
+}
+.standalone-page[data-immersive='true'] > nav button:before {
+  content: '←';
+  font-size: 18px;
+}
+@media (orientation: portrait) {
+  .standalone-page[data-immersive='true'] > nav {
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(100% - 44px - 8px - env(safe-area-inset-right, 0px));
+    transform-origin: 0 0;
+    transform: translateX(44px) rotate(90deg);
+  }
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] > nav {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  transform: none;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] > nav button {
+  border: 1px solid #c9b69a;
+  border-radius: 14px;
+  background: #fffaf0;
+  color: #4b3525;
+  font:
+    600 13px/1.4 'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  box-shadow: 0 2px 6px #4b352510;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share button:before {
+  content: none;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share-panel {
+  left: 0;
+  right: auto;
+  width: min(
+    360px,
+    calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  border-color: #c9b69a;
+  background: #fffaf0;
+  color: #4b3525;
+}
+.standalone-page[data-game-id='xiangqi-five'][data-immersive='true'] .game-share-panel input {
+  border-color: #c9b69a;
+  background: #fffdf6;
+}
+.standalone-page[data-game-id='letters-words2'] > nav {
+  top: max(24px, env(safe-area-inset-top, 0px));
+  left: max(24px, env(safe-area-inset-left, 0px));
+  transform: none;
+}
+.standalone-page[data-game-id='letters-words2'] > nav button {
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: #f6f3e9;
+  color: #244e48;
+  font:
+    14px system-ui,
+    sans-serif;
 }
 .game-share-panel {
   position: absolute;

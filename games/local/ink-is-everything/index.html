@@ -1,30 +1,32 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-  <script src="./dev-mode.js"></script>
+    <script src="./dev-mode.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#242720" />
     <meta
       name="description"
-      content="亲自走进纸墨地牢。移动、瞄准、闪避，墨汁就是生命：施法、回收、吸取，获得装备让每一笔更强。"
+      content="一滴墨，决定一切。横屏纸墨地牢：移动、远攻、近战与回收，写出你的归途。"
     />
-    <title>Ink Is Everything · 一滴墨，决定一切</title>
+    <title>Ink Is Everything · 一滴墨</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div id="game-root" data-version="3" data-status="ready" data-started="false">
-      <header class="hud">
-        <div class="brand">
-          <strong>Ink<span> Is Everything.</span></strong
-          ><small>一滴墨，决定一切</small>
-        </div>
+    <div
+      id="game-root"
+      data-version="4"
+      data-status="ready"
+      data-started="false"
+      data-screen="home"
+    >
+      <header class="hud" aria-label="生命与旅程状态">
         <div class="ink-hud">
           <span class="bottle" data-icon="ink"></span>
           <div class="ink-meter">
             <div class="meter-label">
-              <span>墨 汁 即 生 命</span
+              <span>墨汁</span
               ><span
                 ><b id="ink-value">90</b><small> / <span id="max-ink">100</span></small></span
               >
@@ -43,7 +45,7 @@
         </div>
         <div class="vitals">
           <div class="progression-hud">
-            <span>Lv.<b id="level-value">1</b> <small id="xp-value">0 / 12</small></span>
+            <span>Lv.<b id="level-value">1</b><small id="xp-value">0 / 12</small></span>
             <div class="xp-track"><i id="xp-fill"></i></div>
           </div>
           <div class="seals">
@@ -52,15 +54,20 @@
           </div>
         </div>
         <div class="hud-tools">
-          <button id="sound" class="icon-button" aria-label="开启声音" title="声音">
-            <span data-icon="muted"></span></button
-          ><button id="help" class="icon-button" aria-label="操作说明" title="操作说明">
-            <span data-icon="help"></span></button
-          ><button id="pause" class="icon-button" aria-label="暂停" title="暂停 · Esc">
+          <button id="reward" class="reward-notice" aria-label="选择待领取装备" hidden>
+            <span data-icon="gear"></span><b id="reward-count">0</b
+            ><span>装备<span class="reward-later"> · 稍后选</span></span>
+          </button>
+          <button id="pause" class="icon-button" aria-label="暂停" title="暂停 · Esc">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="6" y="4" width="4" height="16" rx="1" />
               <rect x="14" y="4" width="4" height="16" rx="1" />
             </svg>
+          </button>
+          <button id="sound" hidden aria-label="开启声音"><span data-icon="muted"></span></button>
+          <button id="help" hidden aria-label="操作说明"><span data-icon="help"></span></button>
+          <button id="equipment" hidden aria-label="查看装备与技能">
+            <b id="equipment-count">0</b>
           </button>
         </div>
       </header>
@@ -68,92 +75,100 @@
         <canvas
           id="game-canvas"
           tabindex="0"
-          aria-label="游戏场景。点击空地移动，按住敌人射击，拖动桥的两个锚点绘路。"
+          aria-label="游戏场景。左侧摇杆移动，右侧墨弹远攻、干笔近战，可同时操作。"
         ></canvas>
         <div class="room-heading">
-          <span id="chapter-name" class="chapter-label"></span>
+          <span id="chapter-name" hidden></span>
           <h1 id="room-name"></h1>
-          <p id="objective"></p>
+          <p id="objective" hidden></p>
         </div>
-        <div id="room-map" aria-label="关卡探索进度"></div>
+        <div id="room-map" aria-label="关卡探索进度" hidden></div>
         <div class="field-tools">
-          <button id="equipment" aria-label="查看装备与技能">
-            <span data-icon="trade"></span
-            ><span>装备 <b id="equipment-count">0</b><small>成长与技能</small></span>
-          </button>
           <button id="draw-tool" aria-label="绘桥模式" aria-pressed="false">
-            <span data-icon="brush"></span><span>绘桥<small>连接锚点</small></span>
+            <span data-icon="brush"></span><span>绘桥</span>
           </button>
         </div>
         <div id="tutorial-hint" class="tutorial-hint">
-          施法掉墨，走过去拾回墨滴。近身挥笔能吸墨；红色预警出现时侧闪。
+          左手移动，右手攻击 · 墨弹远攻，干笔近战吸墨
         </div>
         <div id="feedback" role="status" aria-live="polite"></div>
         <div id="controls" aria-label="游戏操作">
           <div class="movement-control">
             <button id="joystick" aria-label="移动摇杆，拖动控制旅人">
               <span class="stick-ring"></span><span id="stick-thumb"></span
-              ><span class="stick-caption">移动</span></button
-            ><span class="key-hint">W A S D / 方向键</span>
+              ><span class="stick-caption">移动</span>
+            </button>
           </div>
           <div class="context-control">
             <button id="interact" hidden>
-              <span data-icon="hand"></span><span id="interact-label">交互</span
-              ><kbd>E</kbd></button
+              <span data-icon="hand"></span><span id="interact-label">交互</span></button
             ><span id="context-hint"></span>
           </div>
           <div class="combat-control">
             <button id="nova" class="action-button utility" aria-label="溅墨，消耗14点生命墨汁">
-              <span data-icon="nova"></span><b>溅墨</b><small>14 墨 · Q</small
-              ><i class="cooldown-mask"></i></button
-            ><button id="dash" class="action-button dash" aria-label="闪避，免费">
-              <span data-icon="dodge"></span><b>闪避</b><small>免费 <kbd>空格</kbd></small
-              ><i class="cooldown-mask"></i></button
-            ><button id="melee" class="action-button melee" aria-label="干笔近战，免费，命中吸墨">
-              <span data-icon="brush"></span><b>干笔</b><small>近战 · 0 墨 <kbd>F</kbd></small
-              ><i class="cooldown-mask"></i></button
-            ><button
+              <span data-icon="nova"></span><b>溅墨</b><small>14 墨</small
+              ><i class="cooldown-mask"></i>
+            </button>
+            <button id="dash" class="action-button dash" aria-label="闪避，免费">
+              <span data-icon="dodge"></span><b>闪避</b><small>免费</small
+              ><i class="cooldown-mask"></i>
+            </button>
+            <button id="melee" class="action-button melee" aria-label="干笔近战，免费，命中吸墨">
+              <span data-icon="brush"></span><b>干笔</b><small>近战 · 吸墨</small
+              ><i class="cooldown-mask"></i>
+            </button>
+            <button
               id="fire"
               class="action-button fire"
               aria-label="按住发射墨弹，每发消耗6点生命墨汁"
             >
-              <span data-icon="attack"></span><b>墨弹</b><small>按住 · 6 墨</small
+              <span data-icon="attack"></span><b>墨弹</b><small>远程 · 6 墨</small
               ><span class="aim-thumb"></span>
             </button>
           </div>
         </div>
-        <div class="desktop-hint">
-          点击空地走动 · 按住敌人射击 · 右键汲墨 · <span>你的生命，是流动的墨汁。</span>
-        </div>
         <section id="cover" aria-labelledby="cover-title">
           <div class="cover-card">
-            <span class="eyebrow">施法 · 回收 · 汲墨 · 成长</span>
-            <h2 id="cover-title">每一滴，<br />都是活着的你。</h2>
-            <div id="cover-art" aria-hidden="true"></div>
-            <p id="cover-description"></p>
-            <div class="cover-tips">
-              <span><i data-icon="dodge"></i><b>回收墨滴</b>技能耗墨，走位拾回</span
-              ><span><i data-icon="ink"></i><b>越战越强</b>吸取恢复 / 装备升阶</span
-              ><span><i data-icon="key"></i><b id="cover-seals"></b>探索与首领挑战</span>
+            <div class="home-copy">
+              <span class="eyebrow">INK IS EVERYTHING</span>
+              <h2 id="cover-title">一滴墨<span class="seal-mark">万物</span></h2>
+              <p class="home-motto">墨汁即生命</p>
+              <p id="cover-chapter" class="cover-chapter"></p>
+              <p id="cover-description" hidden></p>
+              <b id="cover-seals" hidden></b
+              ><label id="chapter-picker" hidden
+                >选择章节<select id="chapter-select"></select
+              ></label>
+              <div class="home-actions">
+                <button id="start-game" class="primary-button">
+                  开始旅程 <span data-icon="arrow"></span></button
+                ><button id="choose-chapter" class="secondary-button">选关</button
+                ><button id="new-game" class="text-button" hidden>重新开始这章</button>
+              </div>
             </div>
-            <p id="cover-chapter" class="cover-chapter"></p>
-            <label id="chapter-picker" hidden>选择章节<select id="chapter-select"></select></label
-            ><button id="start-game" class="primary-button">
-              进入旅程 <span data-icon="arrow"></span></button
-            ><button id="new-game" class="text-button" hidden>重新开始这章</button
-            ><small class="cover-footnote"
-              >移动与攻击可以同时进行 · 触屏直接操作 · 墨汁耗尽即失败</small
-            >
+            <div class="home-illustration" aria-hidden="true">
+              <div class="home-moon"></div>
+              <div id="cover-art"></div>
+              <span class="home-stroke"></span>
+            </div>
+            <nav class="home-tools" aria-label="游戏设置">
+              <button id="home-help" class="text-button"><span data-icon="help"></span>帮助</button
+              ><button id="home-fullscreen" class="text-button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" /></svg
+                ><span>全屏</span>
+              </button>
+            </nav>
           </div>
         </section>
       </main>
+      <dialog id="modal" aria-labelledby="modal-title">
+        <button id="modal-close" class="icon-button" aria-label="关闭并返回">
+          <span data-icon="close"></span>
+        </button>
+        <div id="modal-content"></div>
+      </dialog>
     </div>
-    <dialog id="modal" aria-labelledby="modal-title">
-      <button id="modal-close" class="icon-button" aria-label="关闭">
-        <span data-icon="close"></span>
-      </button>
-      <div id="modal-content"></div>
-    </dialog>
     <script type="module" src="./game.mjs"></script>
   </body>
 </html>

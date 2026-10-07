@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#163744" />
+    <meta name="description" content="跳路障，钻低杆，换道躲箱子。稳住三段，冲刺追上前面的小偷！" />
+    <title>追贼别撞墙</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23163744'/%3E%3Cpath d='m18 36 13-23 16 15-10 4 10 17H32l-7-13Z' fill='%23ffb449'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./fullscreen.js" defer></script>
+    <script type="module" src="./main.mjs"></script>
+  </head>
+  <body data-phase="home">
+    <main id="game" data-game-display-host data-ready="false" aria-label="追贼别撞墙">
+      <canvas id="scene" aria-label="老城三道追捕街巷"></canvas>
+      <div id="shade" aria-hidden="true"></div>
+
+      <section id="home" class="screen" aria-label="主页">
+        <div class="home-top">
+          <span class="edition">老城追捕计划 <i></i> 01</span
+          ><button id="settings-open" class="icon-button" aria-label="设置">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 3-1 3-3 1-2 4 2 2v3l4 3 3-1 3 1 4-3v-3l2-2-2-4-3-1-1-3Z" />
+              <circle cx="12" cy="11.5" r="3" />
+            </svg>
+          </button>
+        </div>
+        <div class="hero-title">
+          <p class="eyebrow">差一点，就抓到他！</p>
+          <h1><span>追贼</span><br />别撞墙<span class="title-period">！</span></h1>
+          <p class="hero-tagline">下一段，稳住。</p>
+        </div>
+        <div class="home-actions">
+          <span id="home-progress" class="street-label">01 / 晨光里</span
+          ><button id="start" class="primary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 13 8-13 8Z" /></svg
+            ><span>开始追捕</span><span class="button-arrow">↗</span>
+          </button>
+          <div class="home-links">
+            <button id="choose-levels">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h5v13H4zM10 3h5v17h-5zM16 9h5v11h-5z" /></svg
+              >选择街区</button
+            ><span></span
+            ><button id="help">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9 8c0-4 7-3 6 0 0 2-3 2-3 5m0 3v1" /></svg
+              >如何追捕
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="levels" class="screen menu-screen" hidden aria-label="选择街区">
+        <header class="page-heading">
+          <button class="icon-button" data-back aria-label="返回主页">←</button>
+          <div>
+            <p class="eyebrow">一条街，一次追捕</p>
+            <h2>选择街区</h2>
+          </div>
+        </header>
+        <div id="level-list"></div>
+        <p class="footnote">抓住小偷，解锁下一条街。</p>
+      </section>
+
+      <section id="play" class="screen" hidden aria-label="追捕中">
+        <div class="hud">
+          <div class="distance-card">
+            <span class="hud-label">距小偷</span>
+            <div><strong id="distance">12.0</strong><span>米</span></div>
+          </div>
+          <div class="combo-card">
+            <div id="combo-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span id="combo-label">连续 0/3</span>
+          </div>
+          <div class="time-card">
+            <span class="hud-label">剩余</span><strong id="time">01:00</strong>
+          </div>
+          <button id="pause" class="icon-button pause-icon" aria-label="暂停">
+            <span></span><span></span>
+          </button>
+        </div>
+        <div class="sub-hud">
+          <span id="street-name">晨光里</span><span id="mistakes">失误 <b>0</b>/3</span>
+        </div>
+        <div id="chase-track" aria-hidden="true">
+          <i class="capture-mark"></i><i id="chase-runner"></i><i class="thief-mark"></i>
+        </div>
+        <div id="feedback" role="status" aria-live="polite" hidden></div>
+        <div id="tutorial" hidden>
+          <span id="tutorial-icon">↑</span>
+          <div>
+            <strong id="tutorial-title">跳过路障</strong
+            ><small id="tutorial-detail">上滑 · 或点 ↑</small>
+          </div>
+        </div>
+        <div class="controls" aria-label="触屏操作">
+          <button class="control direction" data-action="left" aria-label="向左换道">←</button>
+          <div class="action-stack">
+            <button class="control" data-action="jump" aria-label="跳跃">
+              <span>↑</span><small>跳跃</small></button
+            ><button class="control" data-action="slide" aria-label="滑铲">
+              <span>↓</span><small>滑铲</small>
+            </button>
+          </div>
+          <button class="control direction" data-action="right" aria-label="向右换道">→</button>
+        </div>
+        <div id="practice-label" hidden>开发试玩 · 不记录成绩</div>
+      </section>
+
+      <section id="paused" class="screen centered-screen" hidden aria-label="暂停菜单">
+        <div class="paper-panel">
+          <span class="panel-kicker">稍歇一下</span>
+          <h2>小偷也停住了</h2>
+          <p>下一段，继续稳住。</p>
+          <button id="resume" class="primary">继续追捕 <span>→</span></button
+          ><button id="pause-retry" class="secondary">重新追一次</button>
+          <div class="panel-links">
+            <button id="pause-home">返回主页</button><button id="pause-settings">设置</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="result" class="screen centered-screen" hidden aria-label="追捕结果">
+        <div class="paper-panel result-panel">
+          <div id="result-stamp" aria-hidden="true">抓到了</div>
+          <span id="result-kicker" class="panel-kicker">稳住了每一段</span>
+          <h2 id="result-title">这次，没让他跑掉。</h2>
+          <p id="result-detail">连续成功，让距离变成零。</p>
+          <div class="result-stats">
+            <div><strong id="result-time">39.2</strong><span>用时 / 秒</span></div>
+            <div><strong id="result-boosts">3</strong><span>冲刺 / 次</span></div>
+            <div><strong id="result-collisions">0</strong><span>失误 / 次</span></div>
+          </div>
+          <p id="best-result" class="best-result"></p>
+          <button id="next" class="primary" hidden>追进下一条街 <span>→</span></button
+          ><button id="retry" class="primary">再追一次 <span>↻</span></button
+          ><button id="result-home" class="text-button">返回主页</button>
+        </div>
+      </section>
+
+      <section id="help-screen" class="screen menu-screen" hidden aria-label="如何追捕">
+        <header class="page-heading">
+          <button class="icon-button" data-back aria-label="返回">←</button>
+          <div>
+            <p class="eyebrow">前面那个，别让他跑了</p>
+            <h2>如何追捕</h2>
+          </div>
+        </header>
+        <div class="help-content">
+          <div class="help-row">
+            <span class="gesture">↔</span>
+            <div>
+              <h3>左右滑，换道</h3>
+              <p>木箱挡路？从旁边绕过去。</p>
+            </div>
+          </div>
+          <div class="help-row">
+            <span class="gesture">↑</span>
+            <div>
+              <h3>上滑，跳跃</h3>
+              <p>红白矮路障，从上面跳过去。</p>
+            </div>
+          </div>
+          <div class="help-row">
+            <span class="gesture">↓</span>
+            <div>
+              <h3>下滑，滑铲</h3>
+              <p>蓝色低杆，从下面钻过去。</p>
+            </div>
+          </div>
+          <div class="rule-note">
+            <span class="three-dots">● ● ●</span>
+            <h3>稳住三段，冲刺追近 3 米</h3>
+            <p>每过一段都更近一点。进入 1.5 米范围，自动抓捕。</p>
+          </div>
+          <p class="help-limit">
+            碰撞会减速、拉开距离并清空连续次数。三次碰撞，或 60 秒耗尽，追捕失败。重试永久免费。
+          </p>
+          <p class="keyboard-hint">电脑：方向键 / WASD · 空格跳跃 · Esc 暂停</p>
+        </div>
+      </section>
+
+      <section id="settings" class="screen menu-screen" hidden aria-label="设置">
+        <header class="page-heading">
+          <button class="icon-button" data-back aria-label="返回">←</button>
+          <div>
+            <p class="eyebrow">按自己的节奏来</p>
+            <h2>设置</h2>
+          </div>
+        </header>
+        <div class="settings-content">
+          <div class="setting-row">
+            <div>
+              <h3>声音</h3>
+              <p>动作与追捕反馈</p>
+            </div>
+            <button id="sound" class="toggle" aria-label="声音" aria-pressed="true"><i></i></button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <h3>震动</h3>
+              <p>碰撞和冲刺的触感</p>
+            </div>
+            <button id="haptics" class="toggle" aria-label="震动" aria-pressed="true">
+              <i></i>
+            </button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <h3>全屏游玩</h3>
+              <p>让街巷占满屏幕</p>
+            </div>
+            <button data-game-fullscreen>全屏</button>
+          </div>
+          <p class="footnote">进度自动保存在当前浏览器。<br />暂不支持存储时，也能正常追捕。</p>
+        </div>
+      </section>
+      <div id="loading" hidden role="alert">
+        <p>街巷暂时没有准备好。</p>
+        <button id="reload" class="primary">重新加载</button>
+      </div>
+    </main>
+  </body>
+</html>
