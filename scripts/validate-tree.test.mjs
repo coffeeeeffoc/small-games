@@ -554,6 +554,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
   const { execFileSync } = await import('node:child_process');
   const { validateTree } = await import('./validate-tree.mjs');
   const { cleanGitEnv } = await import('./validate-push.mjs');
+  const { tapCompetitionFileScopes } = await import('./nine-native-scope.mjs');
   const root = await mkdtemp(path.join(os.tmpdir(), 'native-cocos-preflight-'));
   const env = cleanGitEnv({
     ...process.env,
@@ -626,22 +627,32 @@ test('native-only Creator consumers are checked before types without rebuilding 
       'scripts/kart-sharing.test.mjs',
       readFileSync(new URL('./kart-sharing.test.mjs', import.meta.url), 'utf8'),
     );
-    await put(
-      'platforms/kart-sharing.js',
-      execFileSync('git', ['show', 'f96e909:platforms/kart-sharing.js'], {
-        cwd: process.cwd(),
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }),
+    const sharing = readFileSync(new URL('../platforms/kart-sharing.js', import.meta.url), 'utf8');
+    let sharingBaseline = sharing;
+    for (const addition of [
+      "    taptap: typeof tap !== 'undefined' ? tap : undefined,\n",
+      ' || sdks.taptap',
+    ]) {
+      assert.equal(sharingBaseline.split(addition).length, 2);
+      sharingBaseline = sharingBaseline.replace(addition, '');
+    }
+    assert.deepEqual(
+      tapCompetitionFileScopes({
+        changedPaths: ['platforms/kart-sharing.js'],
+        readBase: () => sharingBaseline,
+        readHead: () => sharing,
+        games: [{ id: 'carding-car', source: kart }],
+        packages: [{ dir: kart }, { dir: 'apps/shell-minigame' }, { dir: 'platforms/taptap' }],
+      }).get('platforms/kart-sharing.js'),
+      [kart, 'apps/shell-minigame', 'platforms/taptap'],
+      'The production proof must accept the exact derived historical bytes',
     );
+    await put('platforms/kart-sharing.js', sharingBaseline);
     git('init');
     git('add', '.');
     git('commit', '-m', 'fixture baseline');
     const base = git('rev-parse', 'HEAD').trim();
-    await put(
-      'platforms/kart-sharing.js',
-      readFileSync(new URL('../platforms/kart-sharing.js', import.meta.url), 'utf8'),
-    );
+    await put('platforms/kart-sharing.js', sharing);
     git('commit', '-am', 'TapTap-only sharing');
     const head = git('rev-parse', 'HEAD').trim();
     const calls = [];
