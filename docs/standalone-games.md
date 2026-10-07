@@ -40,6 +40,8 @@
 
 《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供三个章节共 24 关，拖动圆环调整缺口，覆盖连接处的两处交点后松手解开交织星轨；星栓与分岔星图逐章引入。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 
+《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
+
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 
 《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。

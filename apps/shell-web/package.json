@@ -95,7 +95,8 @@
     "@coffeeeeffoc/luban-workshop": "workspace:*",
     "@coffeeeeffoc/surprise-kept": "workspace:*",
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
-    "@coffeeeeffoc/tetracube": "workspace:*"
+    "@coffeeeeffoc/tetracube": "workspace:*",
+    "@coffeeeeffoc/tower-brake": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

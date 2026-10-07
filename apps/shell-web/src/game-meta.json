@@ -671,6 +671,17 @@
         "commit": "bcaddf603c28b416a856d51d01c8b7d386c71a3e",
         "time": "2026-10-06T22:48:27+08:00"
       }
+    },
+    "tower-brake": {
+      "source": "games/local/tower-brake",
+      "created": {
+        "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
+        "time": "2026-10-06T21:21:45Z"
+      },
+      "updated": {
+        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
+        "time": "2026-10-07T08:47:27Z"
+      }
     }
   }
 }

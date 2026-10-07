@@ -485,6 +485,9 @@ importers:
       '@coffeeeeffoc/tiny-signals':
         specifier: workspace:*
         version: link:../../games/local/tiny-signals
+      '@coffeeeeffoc/tower-brake':
+        specifier: workspace:*
+        version: link:../../games/local/tower-brake
       '@coffeeeeffoc/tower-defense-game':
         specifier: workspace:*
         version: link:../../games/submodules/tower-defense-game
@@ -1363,6 +1366,8 @@ importers:
   games/local/tianxia-chalu: {}
 
   games/local/tiny-signals: {}
+
+  games/local/tower-brake: {}
 
   games/local/travel:
     devDependencies:
