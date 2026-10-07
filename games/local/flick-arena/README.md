@@ -47,4 +47,4 @@ node scripts/native-game-smoke.mjs --standalone --game flick-arena --platform we
 
 详见 [设计与验收记录](docs/design/README.md)。测试包括 300 场确定性人机模拟、真正的触屏拖拽、三方碰撞/一弹双飞、出界临界值、平局、暂停、存档降级、回放幂等、Shell iframe 和微信 SDK 模拟。
 
-本次环境未进行微信开发者工具及 iOS/Android 微信真机验证，不能将 Chromium 手机模拟视为真机。全量 Shell 准备流程被现有 `assets/carding-car/runtime-expansion/manifest.json` 缺失阻塞；Shell TypeScript/生产构建及本游戏生产 iframe 已单独验证。
+本次环境未进行微信开发者工具及 iOS/Android 微信真机验证，不能将 Chromium 手机模拟视为真机。整合 dev 时已初始化锁定素材子模块，使用仓库规定的 Node 24.21.0 / pnpm 12.6.0 通过准确候选版本的增量构建、Shell 浏览器入口和原生 SDK 模拟校验；没有执行无关游戏的全量浏览器回归。
