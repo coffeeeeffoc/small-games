@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-06",
+  "localHead": "42e1578c33f4733afe0daa9ce05afd8ce9ba506e",
+  "creator": "3.8.8",
+  "assets": "66a0b5c190957f73645fcca92446db964c5557ff",
+  "cardingAssets": "8b9aae2d9b73ae41b3da568efa7f6bd6b450a848",
+  "producer": {
+    "repository": "coffeeeeffoc/small-games",
+    "sha": "1e99fc74e055f78638322f2b9df1602736561af9",
+    "runId": 37499861990,
+    "runAttempt": 1,
+    "runner": "Windows",
+    "overallCI": "failure",
+    "creatorJobs": "success"
+  },
+  "games": [
+    {
+      "game": "night-overwatch",
+      "artifactId": 11429970313,
+      "archiveSha256": "f1c07c28b5e4effdf3acf80f3fd507ac1aba32ad75577bd073341a86455e95d2",
+      "archiveBytes": 1555241,
+      "currentSourceHash": "4ae1b43f50f05f29b968109e136d40b8e4c42dad766204389f4588a5cd6685e2",
+      "artifactSourceHash": "0a526904ba89cf3376ba7bf46a1a7fce4a98bc0d2fb94bdcc6abad0a963cfbb0",
+      "directory": "/tmp/cocos-verified-20261006/night-overwatch",
+      "archiveDigestVerified": true,
+      "sourceHashVerified": false,
+      "webReuse": "rejected-stale-source",
+      "nativePackagesPresent": false,
+      "ccTypesBytes": 3365341
+    }
+  ]
+}

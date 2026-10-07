@@ -64,7 +64,14 @@ export function createCatalog(entries, base = "./") {
     )
       fail("source");
     try {
-      if (new URL(scene.source[1]).protocol !== "https:") fail("source URL");
+      if (typeof URL === 'function') {
+        if (new URL(scene.source[1]).protocol !== "https:") fail("source URL");
+      } else {
+        // Native mini-game engines need not expose the browser URL constructor.
+        // Sources are read-only HTTPS references, never runtime script/network inputs.
+        const match = /^https:\/\/([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)(?::([0-9]{1,5}))?(?:[/?#][^\s<>"'\\]*)?$/i.exec(scene.source[1]);
+        if (!match || match[1].includes('..') || match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535)) fail("source URL");
+      }
     } catch {
       fail("source URL（须 HTTPS）");
     }

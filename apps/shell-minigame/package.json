@@ -10,11 +10,17 @@
     "build": "node scripts/build.mjs --all --preview",
     "build:game": "node scripts/build.mjs",
     "build:all": "node scripts/build.mjs --all --preview",
+    "build:nine": "node scripts/nine-games-build.mjs",
+    "test:nine:build": "node --test scripts/*.test.mjs",
+    "test:nine:native": "node ../../scripts/nine-canvas-games-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run tests && node --test scripts/*.test.mjs",
     "smoke": "node ../../scripts/native-game-smoke.mjs --standalone",
-    "test:competition": "node ../../scripts/competition-native-smoke.mjs"
+    "test:competition": "node ../../scripts/competition-native-smoke.mjs",
+    "test:nine:resources": "node --test ../../platforms/wechat/tests/native-resources.test.mjs ../../platforms/bilibili/tests/native-resources.test.mjs ../../platforms/douyin/tests/native-resources.test.mjs ../../platforms/kuaishou/tests/native-resources.test.mjs ../../platforms/alipay/tests/native-resources.test.mjs",
+    "build:taptap": "node scripts/taptap-build.mjs",
+    "test:taptap": "node scripts/taptap-smoke.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/wulong-city": "workspace:*",
@@ -31,7 +37,9 @@
     "@coffeeeeffoc/game-building-power": "workspace:*",
     "@coffeeeeffoc/game-office": "workspace:*",
     "@coffeeeeffoc/platform-kuaishou": "workspace:*",
-    "@coffeeeeffoc/game-castle-cannon": "workspace:*"
+    "@coffeeeeffoc/game-castle-cannon": "workspace:*",
+    "@coffeeeeffoc/platform-alipay": "workspace:*",
+    "@coffeeeeffoc/platform-taptap": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

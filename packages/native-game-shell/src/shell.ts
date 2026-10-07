@@ -4,14 +4,13 @@ import type { CanvasGameTarget, CanvasPointerEvent } from '@coffeeeeffoc/canvas-
 import { createNativeGameHost } from './host.js';
 import { createNativeMedia } from './media.js';
 import type { NativeSdk, TouchEvent } from './sdk.js';
-
-/** Trusted local module provided only after its declared package loads. */
+import { createNativeViewport, type NativeViewportOptions } from './viewport.js';
+export type { NativeViewportOptions } from './viewport.js';
 export type ReviewedModule = {
   definition: GameDefinition<CanvasGameTarget>;
   content: DynamicContentEnvelope;
+  viewport?: NativeViewportOptions;
 };
-
-/** Starts the reviewed native Game and owns SDK visibility subscriptions. */
 export async function startNativeGame(
   sdk: NativeSdk | undefined,
   loadGame: () => Promise<ReviewedModule>,
@@ -21,22 +20,22 @@ export async function startNativeGame(
     platformId: string;
     resourceRoot?: string;
     canvas?: CanvasGameTarget['canvas'];
+    viewport?: NativeViewportOptions;
   },
 ): Promise<GameInstance> {
   if (!sdk) throw new HostError({ code: 'UNAVAILABLE', message: 'Native SDK is unavailable' });
+  const { sessionId } = options,
+    event = 'game-lifecycle-failed';
   let instance: GameInstance | null = null;
   let hidden = false;
   let disposed = false;
   let disposal: Promise<void> | null = null;
   const subscriptions = new Set<() => void>();
   const cancelPointers = new Set<() => void>();
+  let refreshViewport: (() => void) | undefined;
   const report = (error: unknown) => {
     try {
-      sdk.getLogManager().info({
-        event: 'game-lifecycle-failed',
-        sessionId: options.sessionId,
-        message: String(error),
-      });
+      sdk.getLogManager().info({ event, sessionId, message: String(error) });
     } catch {
       /* Observational SDK failures must not escape lifecycle callbacks. */
     }
@@ -73,15 +72,12 @@ export async function startNativeGame(
   const resume = () => {
     if (!disposed && hidden) {
       hidden = false;
+      refreshViewport?.();
       instance?.resume();
     }
   };
   const onHide = () => safely(pause);
   const onShow = () => safely(resume);
-  const atTouch = (listener: (x: number, y: number) => void) => (event: TouchEvent) => {
-    const first = event.changedTouches[0];
-    if (first && !hidden && !disposed) listener(first.clientX, first.clientY);
-  };
   const cleanup = async () => {
     disposed = true;
     for (const cancel of cancelPointers) safely(cancel);
@@ -96,18 +92,94 @@ export async function startNativeGame(
     sdk.onHide(onHide);
     sdk.onShow(onShow);
     const module = await loadGame();
-    const canvas = options.canvas ?? sdk.createCanvas();
-    const dimensions = sdk.getSystemInfoSync();
-    canvas.width = dimensions.windowWidth;
-    canvas.height = dimensions.windowHeight;
+    const viewportOptions = options.viewport ?? module.viewport;
+    const viewport = createNativeViewport(
+      sdk,
+      options.canvas ?? sdk.createCanvas(),
+      viewportOptions,
+    );
+    refreshViewport = () => {
+      if (disposed) return;
+      for (const cancel of cancelPointers) safely(cancel);
+      viewport.resize();
+    };
+    if (sdk.onWindowResize && sdk.offWindowResize) {
+      const resize = () =>
+        safely(() => {
+          refreshViewport?.();
+          if (!disposed && !hidden && viewportOptions?.refreshOnResize === 'resume')
+            instance?.resume();
+        });
+      sdk.onWindowResize(resize);
+      remember(() => sdk.offWindowResize?.(resize));
+    }
     const host = createNativeGameHost(sdk, module.definition.manifest, module.content, options);
     instance = await module.definition.mount(
       {
-        canvas,
+        canvas: viewport.canvas,
         onTap(listener) {
-          const touch = atTouch(listener);
+          let candidate: { x: number; y: number; id: number } | null = null;
+          const hasStart = Boolean(sdk.onTouchStart && sdk.offTouchStart);
+          const cancel = () => {
+            candidate = null;
+          };
+          const start = (event: TouchEvent) => {
+            cancel();
+            if (
+              hidden ||
+              disposed ||
+              (event.touches && event.touches.length !== 1) ||
+              event.changedTouches.length !== 1
+            )
+              return;
+            const first = event.changedTouches[0]!;
+            const p = viewport.point(first.clientX, first.clientY);
+            if (p) candidate = { ...p, id: first.identifier ?? 0 };
+          };
+          const move = (event: TouchEvent) => {
+            if (!candidate) return;
+            if (event.touches && event.touches.length !== 1) return cancel();
+            const first = event.changedTouches.find((p) => (p.identifier ?? 0) === candidate!.id);
+            if (first) {
+              const p = viewport.point(first.clientX, first.clientY);
+              if (!p || Math.hypot(p.x - candidate.x, p.y - candidate.y) > 12) cancel();
+            }
+          };
+          const touch = (event: TouchEvent) => {
+            const saved = candidate;
+            cancel();
+            const first = event.changedTouches[0];
+            if (
+              !first ||
+              hidden ||
+              disposed ||
+              event.touches?.length ||
+              event.changedTouches.length !== 1
+            )
+              return;
+            const p = viewport.point(first.clientX, first.clientY);
+            if (
+              p &&
+              (!hasStart ||
+                (saved &&
+                  saved.id === (first.identifier ?? 0) &&
+                  Math.hypot(p.x - saved.x, p.y - saved.y) <= 12))
+            )
+              listener(p.x, p.y);
+          };
+          if (hasStart) sdk.onTouchStart?.(start);
+          if (sdk.onTouchMove && sdk.offTouchMove) sdk.onTouchMove(move);
+          if (sdk.onTouchCancel && sdk.offTouchCancel) sdk.onTouchCancel(cancel);
           sdk.onTouchEnd(touch);
-          return remember(() => sdk.offTouchEnd(touch));
+          cancelPointers.add(cancel);
+          return remember(() => {
+            cancel();
+            sdk.offTouchEnd(touch);
+            if (hasStart) sdk.offTouchStart?.(start);
+            if (sdk.onTouchMove && sdk.offTouchMove) sdk.offTouchMove(move);
+            if (sdk.onTouchCancel && sdk.offTouchCancel) sdk.offTouchCancel(cancel);
+            cancelPointers.delete(cancel);
+          });
         },
         onPress:
           sdk.onTouchStart && sdk.offTouchStart
@@ -120,9 +192,16 @@ export async function startNativeGame(
                 };
                 const touchStart = (event: TouchEvent) => {
                   const first = event.changedTouches[0];
+                  if (
+                    (event.touches && event.touches.length > 1) ||
+                    event.changedTouches.length > 1
+                  )
+                    return cancel();
                   if (!first || pointerId !== null || hidden || disposed) return;
+                  const p = viewport.point(first.clientX, first.clientY);
+                  if (!p) return;
                   pointerId = first.identifier ?? 0;
-                  start(first.clientX, first.clientY);
+                  start(p.x, p.y);
                 };
                 const touchEnd = (event: TouchEvent) => {
                   if (event.changedTouches.some((point) => (point.identifier ?? 0) === pointerId))
@@ -132,15 +211,26 @@ export async function startNativeGame(
                   if (event.changedTouches.length === 0) cancel();
                   else touchEnd(event);
                 };
+                const touchMove = (event: TouchEvent) => {
+                  if (event.touches && event.touches.length > 1) return cancel();
+                  const point = event.changedTouches.find(
+                    (point) => (point.identifier ?? 0) === pointerId,
+                  );
+                  if (point && !viewport.point(point.clientX, point.clientY)) cancel();
+                };
                 sdk.onTouchStart?.(touchStart);
                 sdk.onTouchEnd(touchEnd);
-                sdk.onTouchCancel?.(touchCancel);
+                if (sdk.onTouchCancel && sdk.offTouchCancel) sdk.onTouchCancel(touchCancel);
+                if (sdk.onTouchMove && sdk.offTouchMove) sdk.onTouchMove(touchMove);
                 cancelPointers.add(cancel);
                 return remember(() => {
                   safely(cancel);
                   safely(() => sdk.offTouchStart?.(touchStart));
                   safely(() => sdk.offTouchEnd(touchEnd));
-                  safely(() => sdk.offTouchCancel?.(touchCancel));
+                  if (sdk.onTouchCancel && sdk.offTouchCancel)
+                    safely(() => sdk.offTouchCancel?.(touchCancel));
+                  if (sdk.onTouchMove && sdk.offTouchMove)
+                    safely(() => sdk.offTouchMove?.(touchMove));
                   cancelPointers.delete(cancel);
                 });
               }
@@ -165,7 +255,14 @@ export async function startNativeGame(
                   for (const point of event.changedTouches) {
                     const pointerId = point.identifier ?? 0;
                     if (phase !== 'down' && !active.has(pointerId)) continue;
-                    const pointer = { phase, x: point.clientX, y: point.clientY, pointerId };
+                    const mapped = viewport.point(point.clientX, point.clientY);
+                    if (!mapped) {
+                      const prior = active.get(pointerId);
+                      active.delete(pointerId);
+                      if (prior) listener({ ...prior, phase: 'cancel' });
+                      continue;
+                    }
+                    const pointer = { phase, ...mapped, pointerId };
                     if (phase === 'down' || phase === 'move') active.set(pointerId, pointer);
                     else active.delete(pointerId);
                     listener(pointer);
@@ -181,7 +278,7 @@ export async function startNativeGame(
                 sdk.onTouchCancel?.(cancelled);
                 cancelPointers.add(cancel);
                 return remember(() => {
-                  active.clear();
+                  safely(cancel);
                   safely(() => sdk.offTouchStart?.(down));
                   safely(() => sdk.offTouchMove?.(move));
                   safely(() => sdk.offTouchEnd(up));

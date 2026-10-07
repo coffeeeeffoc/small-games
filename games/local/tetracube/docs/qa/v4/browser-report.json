@@ -1,0 +1,25 @@
+{
+  "environment": "Linux Chromium; mobile viewports and CDP touch simulation, not physical device QA",
+  "browserVersion": "151.0.7922.173",
+  "nodeVersion": "v24.21.0",
+  "checks": [
+    "Touch home/help/start, 8×8×18 container, permanent three physical turns, direct movement/three rotations/natural fall with motion, hard-drop trail and impact",
+    "One hold per airborne piece, disabled repeat tap, reset after landing, held-piece swap with queue and score conservation",
+    "Explicit observe/move modes, camera presets, cancelled drags and multitouch isolation",
+    "One-tap 180° physical flip, fixed world-down gravity/camera, disabled controls, airborne commitment, next spawn and animation pause/resume",
+    "Left/right physical quarter-turns are directly usable in move mode and update container dimensions without changing gravity or camera",
+    "Touch pause/help/back/resume; pause freezes simulation; home/reload/help/continue restores full v4 game including physical orientation, hold and queue",
+    "Responsive 320×640, 390×844, 844×390 and 1440×1000 layouts without page overflow; drop, all three physical turns, hold, modes and rotations have visible usable touch targets",
+    "Visible cascade fixture + real flip control: two sequential planes clear, Combo ×2, four airborne cubes conserved",
+    "Touch danger → one-tap physical flip rescue → playing; danger → result → home/start and result → retry",
+    "Authentic v1 sideways-gravity save migrates to v4 world-down 18×8×8 coordinates with empty hold, preserving cubes/score, remains playable and reloads",
+    "Authentic v2 6×6×12 save grows to 8×8×18 without moving board/active/queue or changing progression/RNG; new hold works",
+    "Authentic v3 6×6×18 save widens to 8×8×18 while preserving 36 cube IDs/coordinates, airborne/held pieces, hold cooldown, queue, RNG and score; 36 old floor cubes do not clear as a 64-cell layer; touch drop/swap and v4 reload work",
+    "prefers-reduced-motion preserves touch movement/rotation/hold/drop/quarter-turn while suppressing trails",
+    "First-run touch teaching advances only on move → actual rotation → drop → physical turn; hold does not incorrectly complete the rotation step",
+    "Production iframe touch start/hold/direct left turn/pause/home/continue; 320×640, 390×844 and 844×390 iframe/host fit without overflow and explicit dev=0 stays off",
+    "Unavailable storage still allows starting, dropping and physically flipping"
+  ],
+  "errors": [],
+  "passed": true
+}

@@ -441,6 +441,7 @@ export function startNativeLettersGame(sdk, config, startNativeCompetition) {
     y += 62;
     maxPageScroll = Math.max(0, y + 25 - (height - bottom));
   }
+  let channelSettingsBack = 'home';
   function drawSettings() {
     header('设置'); title('按自己的节奏。', '声音与反馈');
     const y = top + 161;
@@ -454,7 +455,18 @@ export function startNativeLettersGame(sdk, config, startNativeCompetition) {
       if (soundEnabled) soundFeedback(); else safe(() => sound?.stop()); draw();
     }, '游戏音效');
     footer('不计时 · 不限次数');
-    maxPageScroll = Math.max(0, y + 122 - (height - bottom));
+    if (sdk.channelEntry) button('B站入口', 24, y + 126, viewportWidth - 48, () => { channelSettingsBack = previous; change('channel', 'settings'); }, { h: 48 });
+    maxPageScroll = Math.max(0, y + (sdk.channelEntry ? 200 : 122) - (height - bottom));
+  }
+  function drawChannel() {
+    const channel = sdk.channelEntry, snapshot = channel.getSnapshot();
+    header('B站入口', () => change('settings', channelSettingsBack)); title(`收藏签 ${snapshot.count || 0} 枚`);
+    channel.menuActions.forEach((action, i) => button(action.label, 24, top + 180 + i * 62, viewportWidth - 48, () => {
+      if (action.available === false) { message = '宿主暂不支持此入口'; draw(); return; }
+      message = ''; Promise.resolve().then(() => action.run()).catch(error => { message = error.message; }).finally(draw);
+    }, { h: 48 }));
+    wrap(message || snapshot.message || '', 24, top + 326, viewportWidth - 48, 14, C.muted, 4);
+    maxPageScroll = Math.max(0, top + 445 - (height - bottom));
   }
   function drawResult() {
     header('本岛收获', home); hero(24, top + 55, viewportWidth - 48, 208);
@@ -563,6 +575,7 @@ export function startNativeLettersGame(sdk, config, startNativeCompetition) {
     else if (page === 'play') drawPlay();
     else if (page === 'pause') drawPause();
     else if (page === 'settings') drawSettings();
+    else if (page === 'channel') drawChannel();
     else if (page === 'result') drawResult();
     else if (page === 'library') drawLibrary();
     else if (page === 'picker') drawPicker();
@@ -620,6 +633,7 @@ export function startNativeLettersGame(sdk, config, startNativeCompetition) {
   subscribe('WindowResize', resize);
   subscribe('AudioInterruptionBegin', () => safe(() => sound?.stop()));
   subscribe('ShareAppMessage', mainSharePayload);
+  if (sdk.channelEntry?.subscribe) subscriptions.push(sdk.channelEntry.subscribe(() => { if (page === 'channel') draw(); }));
   safe(() => { sound = sdk.createInnerAudioContext?.(); if (sound) { sound.src = 'competition-action.wav'; sound.volume = .45; sound.onError?.(() => {}); } });
   safe(() => { art = sdk.createImage?.(); if (art) { art.onload = () => draw(); art.onerror = () => {}; art.src = 'assets/ui/island.png'; } });
   resize();

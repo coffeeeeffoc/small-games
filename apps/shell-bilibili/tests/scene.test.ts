@@ -48,7 +48,11 @@ describe('native Office scene capabilities', () => {
       }),
       { gameId: 'office', sessionId: 'scene-capabilities', canvas },
     );
-    expect(target.canvas).toBe(canvas);
+    // The host exposes a logical viewport over the supplied physical canvas.
+    expect(target.canvas.width).toBe(canvas.width);
+    expect(target.canvas.height).toBe(canvas.height);
+    target.canvas.getContext('2d')!.fillStyle = '#2468ac';
+    expect(canvas.getContext('2d')!.fillStyle).toBe('#2468ac');
     expect(createCanvas).not.toHaveBeenCalled();
     const loaded = target.loadImage!('office-scene/background.png');
     expect(images[0].src).toBe('office/office-scene/background.png');

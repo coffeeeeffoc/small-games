@@ -357,6 +357,7 @@ function App() {
     setTeleport((previous) => ({ ...landing, yaw, pitch, serial: previous.serial + 1 }));
   }, [data, selectedRoute, started, huntId]);
   const renderer = useRef<WebGLRenderer | null>(null),
+    beforeCapture = useRef<(() => void) | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
     noticeTimer = useRef<number>(0),
     action = useRef(() => {}),
@@ -434,8 +435,9 @@ function App() {
     }
   }, [ready, start]);
   const receiveRenderer = useCallback(
-    (gl: WebGLRenderer) => {
+    (gl: WebGLRenderer, flushForCapture?: () => void) => {
       renderer.current = gl;
+      beforeCapture.current = flushForCapture ?? null;
       gl.domElement.addEventListener('webglcontextlost', (e) => {
         if (renderer.current !== gl) return;
         e.preventDefault();
@@ -628,6 +630,8 @@ function App() {
   capture.current = () => {
     if (!renderer.current || !ready) return;
     try {
+      // Software rendering may skip draws; capture the current real scene first.
+      beforeCapture.current?.();
       const image = renderer.current.domElement.toDataURL('image/png');
       if (!image.startsWith('data:image/png') || renderer.current.domElement.width === 0)
         throw Error('empty photo');

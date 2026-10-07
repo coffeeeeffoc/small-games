@@ -103,7 +103,7 @@ export const DEFAULT_CONFIG = {
   version: 1,
   id: 'classic',
   name: '经典无尽',
-  dims: [6, 6, 12],
+  dims: [8, 8, 18],
   shapes: SHAPES,
   previewCount: 3,
   initialGravity: { axis: 2, sign: -1 },

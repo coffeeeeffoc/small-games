@@ -130,7 +130,12 @@ test('competition shared paths select exactly five registry consumers, while let
     );
     assert.deepEqual(scopes.get(file), Object.values(competitionConsumers));
     const result = plan([file], scopes);
-    assert.deepEqual(result.browser_ids, games.map((game) => game.id).sort());
+    // competition-build imports native.js only for native entries; the H5 branch
+    // imports h5.js. Native contracts remain selected without H5 browser targets.
+    assert.deepEqual(
+      result.browser_ids,
+      file === 'platforms/competition/native.js' ? [] : games.map((game) => game.id).sort(),
+    );
     assert.equal(result.full, false);
     assert.equal(result.competition.letters, true);
     const native = [
@@ -290,4 +295,109 @@ test('developer-mode exact legacy-to-immersive migration selects new guarded ent
     after.replace("getAttribute('src')", "getAttribute('wrong')"),
   ])
     assert.equal(developerModeFileScopes({ ...context, readHead: () => changed }).has(file), false);
+});
+
+test('planning checkout scope accepts only both exact reviewed producer byte changes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = '9180c805c77c15634f47f0aeee1092a5b1043a73';
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+  for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+    const before = execFileSync('git', ['show', `${base}:${file}`], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    const after = before.replace(
+      anchor,
+      anchor.replace(
+        '          fetch-depth: 0\n',
+        '          fetch-depth: 0\n          submodules: recursive\n',
+      ),
+    );
+    const scopes = classify(file, before, after);
+    assert.deepEqual(scopes.get(file), []);
+    assert.equal(plan([file], scopes).validation_tools, true);
+    assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+    for (const bad of [
+      after + '\n',
+      after.replace('recursive', 'false'),
+      after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+      after + '\npermissions:\n  contents: write\n',
+      after.replace('node-version: 24.21.0', 'node-version: 22'),
+    ]) {
+      assert.equal(classify(file, before, bad).has(file), false);
+    }
+    assert.equal(classify(file, before + '\n', after).has(file), false);
+    assert.equal(classify(file, after, before).has(file), false);
+  }
+});
+
+test('planning checkout narrows both real producers to one locked gitlink without changing other execution', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const original =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+  const recursive =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n          submodules: recursive\n      - uses: actions/setup-node@v6\n';
+  const locked =
+    '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - name: Read locked Xiangqi workspace for planning\n        run: |\n          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five\n      - uses: actions/setup-node@v6\n';
+  for (const [base, anchor] of [
+    ['9180c805c77c15634f47f0aeee1092a5b1043a73', original],
+    ['d75a26ff456d088745d05b499f86872169ae8bc2', recursive],
+  ]) {
+    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+      const before = execFileSync('git', ['show', `${base}:${file}`], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(before.split(anchor).length, 2);
+      const after = before.replace(anchor, locked);
+      const scopes = classify(file, before, after);
+      assert.deepEqual(scopes.get(file), []);
+      assert.equal(plan([file], scopes).validation_tools, true);
+      assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+      for (const bad of [
+        after + '\n',
+        after.replace('--init --', '--init --remote --'),
+        after.replace(' -- games/submodules/xiangqi-five', ''),
+        after.replace('games/submodules/xiangqi-five', 'games/submodules/office-slacking'),
+        after.replace('node-version: 24.21.0', 'node-version: 22'),
+      ])
+        assert.equal(classify(file, before, bad).has(file), false);
+      assert.equal(classify(file, before + '\n', after).has(file), false);
+    }
+  }
+});
+
+test('Pages logic history repair preserves all other jobs and execution bytes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const file = '.github/workflows/pages-validate.yml';
+  const before = execFileSync('git', ['show', `654a0acf72cb76748c7bc8df82ba06916b2c303d:${file}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  const offset = before.indexOf('  logic:\n');
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          submodules: recursive\n';
+  const after =
+    before.slice(0, offset) +
+    before.slice(offset).replace(anchor, anchor + '          fetch-depth: 0\n');
+  const scopes = classify(file, before, after);
+  assert.deepEqual(scopes.get(file), []);
+  assert.equal(plan([file], scopes).validation_tools, true);
+  assert.deepEqual(plan([file], scopes).nine_native_targets, []);
+  for (const bad of [
+    after + '\n',
+    after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+    after.replace('pnpm check:games', 'echo skipped'),
+    after.replace('timeout-minutes: 40', 'timeout-minutes: 1'),
+    before.replace(anchor, anchor + '          fetch-depth: 0\n'),
+  ])
+    assert.equal(classify(file, before, bad).has(file), false);
+  assert.equal(classify(file, before + '\n', after).has(file), false);
 });

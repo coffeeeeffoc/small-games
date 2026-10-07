@@ -1,0 +1,15 @@
+{
+  "sourceSubmoduleSha": "66a0b5c190957f73645fcca92446db964c5557ff",
+  "entryBytes": 1654053,
+  "packageAssetBytes": 2194018,
+  "manifestBytes": 91615,
+  "mainPackageBeforePlatformWrapperBytes": 3939686,
+  "remoteOriginalAssetBytes": 38142217,
+  "resourceFiles": 416,
+  "originalGlbFiles": 398,
+  "glbEmbeddedImages": 0,
+  "predecodedPrototypeBytes": 122097117,
+  "delivery": "original Draco compressed GLB + original world.json from existing HTTPS hosting; SHA256 pinned per file",
+  "platformWrapperAndConfigNotCounted": true,
+  "officialToolOrDeviceVerification": false
+}

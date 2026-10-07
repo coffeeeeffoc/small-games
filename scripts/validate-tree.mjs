@@ -10,6 +10,8 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { nineNativeFileScopes, isNineNativeOnlyPath } from './nine-native-scope.mjs';
+import { nineLockFileScopes } from './nine-lock-scope.mjs';
 import {
   incrementalPlan,
   entryAdapterFileScopes,
@@ -18,8 +20,9 @@ import {
   nativeToolConsumers,
   h5AdapterFileScopes,
   reviewedSharedFileScopes,
+  workspaceBoundaryScopePaths,
 } from './incremental-validation.mjs';
-import { verifyCocosBuildInputs } from './cocos-validation.mjs';
+import { verifyCocosBuildInputs, cocosPreflightTargets } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
 import {
   workspacePackages,
@@ -175,6 +178,189 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
   for (const entry of entries) await visit(path.resolve(dir, entry));
 }
 
+export function runNineNativeChecks({
+  plan,
+  packages,
+  root,
+  env,
+  execute = run,
+  prepareBrowser = () => {},
+}) {
+  const rootChecks = plan.nine_native_root_checks || [];
+  for (const check of rootChecks) {
+    assert(
+      check.file === 'scripts/kart-sharing.test.mjs' &&
+        JSON.stringify(check.args) === JSON.stringify(['--test', check.file]),
+      'Unreviewed native root check',
+    );
+  }
+  const executeRootChecks = () => {
+    for (const check of rootChecks) execute(process.execPath, check.args, root, env, 'logged');
+  };
+  const checks = plan.nine_native_checks || [];
+  const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
+  const games = [
+    'carding-car',
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'letters-words2',
+    'vibeJam-myself-history-guess',
+    'xiangqi-five',
+    'travel-bund',
+    'night-overwatch',
+    'wulong-city',
+  ];
+  const targets = new Map();
+  for (const target of plan.nine_native_targets || []) {
+    assert(
+      games.includes(target.game) && [...platforms, 'taptap'].includes(target.platform),
+      'Unknown first-nine native target',
+    );
+    targets.set(`${target.game}/${target.platform}`, target);
+  }
+  for (const check of checks)
+    for (const game of check.games)
+      for (const platform of platforms) {
+        assert(games.includes(game), 'Unknown first-nine native game');
+        targets.set(`${game}/${platform}`, { game, platform });
+      }
+  if (!targets.size) {
+    executeRootChecks();
+    return;
+  }
+  const host = packages.find((pkg) => pkg.dir === 'apps/shell-minigame');
+  assert(
+    host?.scripts?.test === 'vitest run tests && node --test scripts/*.test.mjs' &&
+      host.scripts['build:nine'] === 'node scripts/nine-games-build.mjs',
+    'Unreviewed first-nine native host commands',
+  );
+  const nativeEnv = {
+    ...env,
+    NATIVE_OUTPUT_ROOT: path.join(root, 'apps/shell-minigame/dist/nine-games'),
+    NATIVE_SCREENSHOT_ROOT: path.join(root, '.scratch/nine-native-validation/screenshots'),
+    TRAVEL_NATIVE_EVIDENCE_ROOT: path.join(root, '.scratch/nine-native-validation/travel'),
+  };
+  const tapGames = games.filter((game) => targets.has(`${game}/taptap`));
+  if (tapGames.length) {
+    assert(
+      host.scripts['build:taptap'] === 'node scripts/taptap-build.mjs' &&
+        host.scripts['test:taptap'] === 'node scripts/taptap-smoke.mjs',
+      'Unreviewed TapTap build/smoke commands',
+    );
+    assert(
+      packages.some((pkg) => pkg.dir === 'platforms/taptap'),
+      'Missing TapTap workspace',
+    );
+  }
+  executeRootChecks();
+  for (const { game, platform } of targets.values())
+    execute(
+      process.execPath,
+      platform === 'taptap'
+        ? [
+            'apps/shell-minigame/scripts/taptap-build.mjs',
+            '--game',
+            game,
+            '--preview',
+            '--output',
+            nativeEnv.NATIVE_OUTPUT_ROOT,
+          ]
+        : [
+            'apps/shell-minigame/scripts/nine-games-build.mjs',
+            '--game',
+            game,
+            '--platform',
+            platform,
+            '--preview',
+          ],
+      root,
+      nativeEnv,
+      'logged',
+    );
+  // Creator targets use the genuine builder above. Missing tools fail this gate;
+  // configured output or H5 artifacts cannot replace a native compilation.
+  execute('pnpm', ['--filter', host.name, 'test'], root, nativeEnv, 'logged');
+  if ([...targets.values()].some((target) => platforms.includes(target.platform)))
+    execute('pnpm', ['--filter', host.name, 'test:nine:resources'], root, nativeEnv, 'logged');
+  if (tapGames.length) {
+    const tap = packages.find((pkg) => pkg.dir === 'platforms/taptap');
+    execute('pnpm', ['--filter', tap.name, 'test'], root, nativeEnv, 'logged');
+    if (tapGames.includes('travel-bund')) {
+      prepareBrowser();
+      for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+        if (env[key]) nativeEnv[key] = env[key];
+    }
+    for (const game of tapGames)
+      execute(
+        process.execPath,
+        [
+          'apps/shell-minigame/scripts/taptap-smoke.mjs',
+          '--game',
+          game,
+          '--output',
+          nativeEnv.NATIVE_OUTPUT_ROOT,
+        ],
+        root,
+        nativeEnv,
+        'logged',
+      );
+  }
+  const selectedFor = (game) => platforms.filter((platform) => targets.has(`${game}/${platform}`));
+  const executeScript = (args, extra = {}) =>
+    execute(process.execPath, args, root, { ...nativeEnv, ...extra }, 'logged');
+  if (selectedFor('xiangqi-five').length)
+    executeScript(['--test', 'platforms/competition/xiangqi-five/tests/native.test.mjs']);
+  if (selectedFor('letters-words2').length)
+    executeScript(['--test', 'games/local/letters-words2/tests/native-bundle.test.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('letters-words2').join(','),
+    });
+  if (selectedFor('wulong-city').length)
+    executeScript(['scripts/nine-wulong-smoke.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('wulong-city').join(','),
+    });
+  const canvasGames = [
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'vibeJam-myself-history-guess',
+    'xiangqi-five',
+  ];
+  for (const platform of platforms) {
+    const ids = canvasGames.filter((game) => targets.has(`${game}/${platform}`));
+    if (ids.length)
+      executeScript(['scripts/nine-canvas-games-smoke.mjs'], {
+        NATIVE_PLATFORMS: platform,
+        NATIVE_GAME_IDS: ids.join(','),
+      });
+  }
+  if (selectedFor('travel-bund').length) {
+    prepareBrowser();
+    // CI resolves the installed real browser before the child process inherits env.
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) nativeEnv[key] = env[key];
+    executeScript(['scripts/nine-travel-native-smoke.mjs'], {
+      NATIVE_PLATFORMS: selectedFor('travel-bund').join(','),
+    });
+  }
+  const executed = new Set([
+    'scripts/nine-wulong-smoke.mjs',
+    'scripts/nine-canvas-games-smoke.mjs',
+    'scripts/nine-travel-native-smoke.mjs',
+  ]);
+  for (const check of checks) {
+    if (!check.command || executed.has(check.command.file)) continue;
+    if (
+      check.type === 'entry' &&
+      ![...targets.values()].some((target) => target.platform === 'bilibili')
+    )
+      continue;
+    executed.add(check.command.file);
+    executeScript(
+      check.command.args?.length ? check.command.args : [check.command.file],
+      check.type === 'entry' ? { BILIBILI_BROWSER: '1' } : {},
+    );
+  }
+}
+
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
   if (plan.competition?.config_tests)
     execute(
@@ -231,6 +417,7 @@ export async function validateTree({
   execute = run,
   deferIdenticalRulesToAggregate = false,
   incremental = false,
+  prepareBrowser = () => {},
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -255,7 +442,8 @@ export async function validateTree({
   } else execute(pnpm, ['format:check'], root, clean);
   execute(pnpm, ['check:games'], root, clean);
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
-  if (!sourcePaths.length) return;
+  if (!sourcePaths.length)
+    return { browser: false, cocos: false, browser_ids: [], nine_native_targets: [] };
   const plan = await selectScope(
     {
       ...clean,
@@ -278,8 +466,8 @@ export async function validateTree({
     ? registrationFileScopes({
         changedPaths: sourcePaths,
         gameSources: packages.filter((pkg) => pkg.dir.startsWith('games/')).map((pkg) => pkg.dir),
-        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+        readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, 'raw'),
+        readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
       })
     : new Map();
   if (incremental) {
@@ -287,8 +475,8 @@ export async function validateTree({
       changedPaths: sourcePaths,
       games: catalog,
       packages,
-      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, true),
-      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+      readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, 'raw'),
+      readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
     };
     for (const classify of [
       entryAdapterFileScopes,
@@ -296,6 +484,8 @@ export async function validateTree({
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
       reviewedSharedFileScopes,
+      nineNativeFileScopes,
+      nineLockFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -305,15 +495,23 @@ export async function validateTree({
         games: catalog,
         fileScopes,
         changedPaths: sourcePaths,
-        readSource: (file) => execute('git', ['show', `${head}:${file}`], root, clean, true),
+        readSource: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
   if (incrementalScope?.validation_tools) {
+    if (sourcePaths.some((file) => workspaceBoundaryScopePaths.includes(file)))
+      execute(pnpm, ['test:boundaries'], root, clean, 'logged');
     execute(pnpm, ['test:validation'], root, clean, 'logged');
     execute(
       process.execPath,
-      ['--test', 'scripts/incremental-validation.test.mjs', 'scripts/publication-scopes.test.mjs'],
+      [
+        '--test',
+        'scripts/incremental-validation.test.mjs',
+        'scripts/nine-native-scope.test.mjs',
+        'scripts/nine-lock-scope.test.mjs',
+        'scripts/publication-scopes.test.mjs',
+      ],
       root,
       clean,
       'logged',
@@ -373,10 +571,28 @@ export async function validateTree({
   const buildDirect = metadataOnly
     ? []
     : incremental
-      ? [...new Set([...direct.filter((pkg) => pkg.dir !== 'apps/shell-web'), ...browserDirect])]
+      ? [
+          ...new Set([
+            ...direct.filter(
+              (pkg) =>
+                pkg.dir !== 'apps/shell-web' &&
+                (!pkg.dir.startsWith('games/') ||
+                  sourcePaths.some(
+                    (file) => !isNineNativeOnlyPath(file) && file.startsWith(pkg.dir + '/'),
+                  )),
+            ),
+            ...browserDirect,
+          ]),
+        ]
       : direct;
   const buildTargets = staticBuildTargets(packages, buildDirect, affected);
-  await verifyCocosBuildInputs(root, buildTargets, clean);
+  const cocosInputs = cocosPreflightTargets({
+    packages,
+    buildTargets,
+    affected: metadataOnly ? [] : affected,
+    nativeTargets: incrementalScope?.nine_native_targets || [],
+  });
+  await verifyCocosBuildInputs(root, cocosInputs, clean);
   if (buildTargets.length)
     execute(
       pnpm,
@@ -410,7 +626,7 @@ export async function validateTree({
   if (metadataOnly) {
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);
-    return;
+    return incrementalScope || plan;
   }
   for (const task of ['typecheck', 'lint']) {
     for (const pkg of affected.filter((pkg) => pkg.scripts?.[task])) {
@@ -442,7 +658,10 @@ export async function validateTree({
     execute(pnpm, args, root, clean, 'logged');
   }
   execute(pnpm, ['check:dependencies'], root, clean);
-  if (incrementalScope?.browser)
+  if (incrementalScope?.browser) {
+    prepareBrowser();
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) clean[key] = env[key];
     execute(
       process.execPath,
       ['scripts/run-selected-shell.mjs', JSON.stringify(incrementalScope)],
@@ -450,8 +669,23 @@ export async function validateTree({
       clean,
       'logged',
     );
+  }
+  if (incrementalScope)
+    runNineNativeChecks({
+      plan: incrementalScope,
+      packages,
+      root,
+      env: clean,
+      execute,
+      prepareBrowser: () => {
+        prepareBrowser();
+        for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+          if (env[key]) clean[key] = env[key];
+      },
+    });
   if (incrementalScope)
     runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
+  return incrementalScope || plan;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];

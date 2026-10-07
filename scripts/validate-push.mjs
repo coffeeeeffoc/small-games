@@ -88,7 +88,7 @@ export function run(command, args, cwd, env, capture = false) {
     throw new Error(
       `${command} ${args[0] || ''} failed (${result.status}${result.signal ? '/' + result.signal : ''}): ${result.stderr || result.stdout?.slice(-16384) || ''}\nArguments: ${JSON.stringify(args)}`,
     );
-  return result.stdout?.trim();
+  return capture === 'raw' ? result.stdout : result.stdout?.trim();
 }
 /** Reuse readable local Git objects, never source working files or source HEAD.
  * Missing objects retain Git's configured submodule transport and fail on its error.

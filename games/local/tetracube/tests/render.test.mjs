@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer } from '../src/render.mjs';
 
-const renderer = (dims = [6, 6, 12]) => {
+const renderer = (dims = [8, 8, 18]) => {
   const value = new Renderer({ getContext: () => ({}) });
   value.dims = [...dims];
   value.width = 390;
@@ -18,8 +18,8 @@ test('top view separates the same XY position at different heights', () => {
   view._fit();
   for (const [x, y] of [
     [1.5, 1.5],
-    [3, 3],
-    [4.5, 4.5],
+    [4, 4],
+    [6.5, 6.5],
   ]) {
     assert.ok(
       distance(view.project([x, y, 0.5]), view.project([x, y, 2.5])) > 3,
@@ -33,7 +33,7 @@ test('perspective makes nearer cubes visibly larger', () => {
   view.setView('top');
   view._fit();
   const lower = distance(view.project([2, 2, 0]), view.project([3, 2, 0]));
-  const upper = distance(view.project([2, 2, 10]), view.project([3, 2, 10]));
+  const upper = distance(view.project([2, 2, 16]), view.project([3, 2, 16]));
   assert.ok(upper > lower * 1.1, 'Upper levels show perspective foreshortening');
 });
 
@@ -51,9 +51,9 @@ test('camera drag crosses the top and horizon without hitting a pitch clamp', ()
 
 test('all camera presets and upside-down views keep each container extent on screen', () => {
   for (const dims of [
-    [6, 6, 12],
-    [12, 6, 6],
-    [6, 12, 6],
+    [8, 8, 18],
+    [18, 8, 8],
+    [8, 18, 8],
   ]) {
     const view = renderer(dims);
     for (const preset of ['iso', 'top', 'front', 'side']) {
@@ -76,7 +76,7 @@ test('all camera presets and upside-down views keep each container extent on scr
 });
 
 test('screen movement follows the same horizontal plane under perspective', () => {
-  const anchor = [2.5, 2.5, 5];
+  const anchor = [3.5, 3.5, 8];
   for (const preset of ['iso', 'top', 'side']) {
     const view = renderer();
     view.setView(preset);

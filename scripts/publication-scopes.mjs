@@ -1,8 +1,84 @@
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 
 const loadDependency = createRequire(import.meta.url);
+
+// Exact dependency-checkout repairs for the two bare planning jobs. Commands,
+// permissions, conditions and all other workflow bytes remain producer-bound.
+const planningCheckoutHashes = {
+  '.github/workflows/ci.yml': {
+    original: '7bf17695b0e6a9062ed81dd0d0b4febbfbb8318da4ef469aacbd411e64b29411',
+    recursive: 'bf277f8e20d7991a89a3c6f4bd203a8d2f093eb1177c2d88025b92e42d11e87f',
+    locked: 'fdc0f51bc350921e31064da3ef56acbe01ee9ec4d0865cc03c56ba82ab619fe3',
+  },
+  '.github/workflows/pages.yml': {
+    original: '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
+    recursive: 'dfe0f60b9f1a3f30806960dc98ccfaeb17f51c09f57f30a9d57c10129ca31d97',
+    locked: '5ce491178ca6d928b02d3c74843aee8115f1b507763b377ba6a5033904ca151f',
+  },
+};
+const planningCheckoutAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
+const recursivePlanningAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n          submodules: recursive\n      - uses: actions/setup-node@v6\n';
+const lockedPlanningAnchor =
+  '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - name: Read locked Xiangqi workspace for planning\n        run: |\n          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five\n      - uses: actions/setup-node@v6\n';
+function exactPlanningCheckout(file, before, after) {
+  const hashes = planningCheckoutHashes[file];
+  if (!hashes) return false;
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  const oldHash = digest(before),
+    newHash = digest(after);
+  const anchor =
+    oldHash === hashes.original
+      ? planningCheckoutAnchor
+      : oldHash === hashes.recursive
+        ? recursivePlanningAnchor
+        : null;
+  const replacement =
+    oldHash === hashes.original && newHash === hashes.recursive
+      ? recursivePlanningAnchor
+      : newHash === hashes.locked
+        ? lockedPlanningAnchor
+        : null;
+  return (
+    !!anchor &&
+    !!replacement &&
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, replacement)
+  );
+}
+
+const validationHistoryFile = '.github/workflows/pages-validate.yml';
+function exactValidationHistory(file, before, after) {
+  if (file !== validationHistoryFile) return false;
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  if (
+    digest(before) !== 'd2f8f24d28033d97df0af0232d82580d5f2c97739424e48728a7d3c3c7f34543' ||
+    digest(after) !== '29c49bdf51d0ff0a5182c21912b035e158f3345e02ec5fd143b5fa947ef2cb92'
+  )
+    return false;
+  const marker = '  logic:\n';
+  if (before.split(marker).length !== 2) return false;
+  const offset = before.indexOf(marker);
+  const anchor =
+    '      - uses: actions/checkout@v5\n        with:\n          submodules: recursive\n';
+  const tail = before.slice(offset);
+  return (
+    tail.includes(anchor) &&
+    after ===
+      before.slice(0, offset) +
+        tail.replace(
+          anchor,
+          anchor.replace(
+            '          submodules: recursive\n',
+            '          submodules: recursive\n          fetch-depth: 0\n',
+          ),
+        )
+  );
+}
 
 function literalDeclaration(source, name) {
   const { parsers } = loadDependency('prettier/plugins/babel');
@@ -114,7 +190,17 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (file === '.github/workflows/ci.yml') {
+      if (
+        file === validationHistoryFile &&
+        exactValidationHistory(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, []);
+      } else if (
+        planningCheckoutHashes[file] &&
+        exactPlanningCheckout(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, []);
+      } else if (file === '.github/workflows/ci.yml') {
         const yaml = loadDependency('js-yaml');
         const before = yaml.load(readBase(file)),
           after = yaml.load(readHead(file));

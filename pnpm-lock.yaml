@@ -310,6 +310,9 @@ importers:
       '@coffeeeeffoc/native-game-shell':
         specifier: workspace:*
         version: link:../../packages/native-game-shell
+      '@coffeeeeffoc/platform-alipay':
+        specifier: workspace:*
+        version: link:../../platforms/alipay
       '@coffeeeeffoc/platform-bilibili':
         specifier: workspace:*
         version: link:../../platforms/bilibili
@@ -319,6 +322,9 @@ importers:
       '@coffeeeeffoc/platform-kuaishou':
         specifier: workspace:*
         version: link:../../platforms/kuaishou
+      '@coffeeeeffoc/platform-taptap':
+        specifier: workspace:*
+        version: link:../../platforms/taptap
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
@@ -1400,6 +1406,12 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+      draco3d:
+        specifier: 1.5.7
+        version: 1.5.7
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2171,6 +2183,25 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
+  platforms/alipay:
+    dependencies:
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   platforms/bilibili:
     dependencies:
       '@coffeeeeffoc/canvas-game-adapter':
@@ -2251,6 +2282,25 @@ importers:
       vitest:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.2(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
+
+  platforms/taptap:
+    dependencies:
+      '@coffeeeeffoc/native-game-shell':
+        specifier: workspace:*
+        version: link:../../packages/native-game-shell
+    devDependencies:
+      '@coffeeeeffoc/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@coffeeeeffoc/config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      eslint:
+        specifier: 9.35.0
+        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   platforms/wechat:
     dependencies:

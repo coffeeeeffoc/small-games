@@ -903,16 +903,73 @@ export function Scene(props: Props) {
 }
 
 // The homepage and tour share one runtime and viewpoint; inactive views render on demand.
-export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer) => void}) {
+// This browser-only import stays below the native Scene generation boundary.
+import { isSoftwareRenderer, effectiveRendererQuality, softwareRendererDpr } from './renderer-capabilities';
+
+function SoftwareRendererBudget({enabled, onDpr}: {enabled: boolean; onDpr: (dpr: number) => void}) {
+  const size = useThree((state) => state.size);
+  const setDpr = useThree((state) => state.setDpr);
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const dpr = softwareRendererDpr(size.width, size.height);
+    setDpr(dpr);
+    onDpr(dpr);
+  }, [enabled, size.width, size.height, setDpr, onDpr]);
+  return null;
+}
+
+function SoftwareRendererFrames({continuous, captureRender}: {
+  continuous: boolean;
+  captureRender: {current: (() => void) | null};
+}) {
+  const {gl, scene, camera} = useThree();
+  const lastDraw = useRef(-Infinity);
+  useLayoutEffect(() => {
+    const draw = () => {
+      gl.render(scene, camera);
+      // Track command submission returning, rather than claiming GPU completion.
+      lastDraw.current = performance.now();
+    };
+    captureRender.current = draw;
+    return () => {
+      if (captureRender.current === draw) captureRender.current = null;
+    };
+  }, [gl, scene, camera, captureRender]);
+  useFrame(() => {
+    if (!continuous || performance.now() - lastDraw.current >= 50)
+      captureRender.current?.();
+  }, 1);
+  return null;
+}
+
+export function Tour(props: Props & {onRenderer: (gl: THREE.WebGLRenderer, beforeCapture?: () => void) => void}) {
+  // R3F onCreated runs after its first scene graph commit. Keep that graph empty
+  // until the real GPU is known, so a software renderer never mounts Water first.
+  const [softwareRenderer, setSoftwareRenderer] = useState<boolean | null>(null);
+  const [softwareDpr, setSoftwareDpr] = useState(.85);
+  const renderForCapture = useRef<(() => void) | null>(null);
+  const quality = effectiveRendererQuality(props.quality, softwareRenderer === true);
   return <Canvas frameloop={props.active || !props.ready ? 'always' : 'demand'}
     // Measure the logical layout, not the swapped bounding box of CSS rotation.
     resize={{ offsetSize: true }}
     shadows
-    dpr={[props.quality === 0 ? .85 : 1, props.quality === 0 ? .85 : props.quality === 1 ? 1.25 : 2]}
+    dpr={softwareRenderer ? softwareDpr : [quality === 0 ? .85 : 1, quality === 0 ? .85 : quality === 1 ? 1.25 : 2]}
     camera={{position: [-393,2.6,37],fov:DEFAULT_FOV,near:.25,far:12000}}
     gl={{antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:true,
       powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:.9}}
-    onCreated={({gl})=>props.onRenderer(gl)}>
-    <Suspense fallback={null}><Scene {...props}/></Suspense>
+    onCreated={({gl, setDpr, size})=>{
+      const software = isSoftwareRenderer(gl.getContext());
+      if (software) {
+        const dpr = softwareRendererDpr(size.width, size.height);
+        setDpr(dpr);
+        setSoftwareDpr(dpr);
+      }
+      setSoftwareRenderer(software);
+      if (software) props.onRenderer(gl, () => renderForCapture.current?.());
+      else props.onRenderer(gl);
+    }}>
+    <SoftwareRendererBudget enabled={softwareRenderer === true} onDpr={setSoftwareDpr}/>
+    {softwareRenderer === true && <SoftwareRendererFrames continuous={props.active || !props.ready} captureRender={renderForCapture}/>}
+    {softwareRenderer !== null && <Suspense fallback={null}><Scene {...props} quality={quality}/></Suspense>}
   </Canvas>;
 }

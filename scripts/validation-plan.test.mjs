@@ -46,7 +46,7 @@ test('dependent closure includes consumers transitively', () => {
   );
 });
 
-test('shared CLI plan selects real rule/UI diffs, expands mixed changes and preserves docs successors', async () => {
+test('shared CLI plan selects real rule/UI diffs and preserves affected games through docs successors', async () => {
   const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const path = await import('node:path');
@@ -103,8 +103,10 @@ test('shared CLI plan selects real rule/UI diffs, expands mixed changes and pres
     git('add', '.');
     git('commit', '-m', 'mixed');
     const mixed = await select();
-    assert.equal(mixed.full, true);
-    assert.deepEqual(mixed.browser_ids, ['a', 'b']);
+    assert.equal(mixed.full, false);
+    assert.deepEqual(mixed.browser_ids, ['a']);
+    assert.deepEqual(mixed.game_sources, ['games/local/a']);
+    assert.equal(mixed.cocos, false);
     const head = git('rev-parse', 'HEAD');
     await writeFile(path.join(root, 'games/local/a/layout.css'), 'body { color: blue; }');
     git('commit', '-am', 'ui');

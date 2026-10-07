@@ -3,7 +3,13 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   const root = globalThis;
   if (root.__competition) return;
   const config = options || root.__COMPETITION_CONFIG__ || {};
-  const nativePlatforms = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' };
+  const nativePlatforms = {
+    wechat: 'wx',
+    bilibili: 'bl',
+    douyin: 'tt',
+    kuaishou: 'ks',
+    taptap: 'tap',
+  };
   const native = Object.hasOwn(nativePlatforms, config.platform);
   const sdk = nativeSdk || (native ? root[nativePlatforms[config.platform]] : null);
   if (native && !sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动好友挑战。`);

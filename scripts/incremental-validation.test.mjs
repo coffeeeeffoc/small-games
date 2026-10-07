@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import {
   incrementalPlan,
   developerModeFileScopes,
@@ -72,6 +75,32 @@ test('generic logic in the same Shell directory still exercises reviewed navigat
 });
 test('unknown shared paths block with a classification gap, never silently expand to all games', () => {
   assert.throws(() => plan(['platforms/new-shared.js']), /scope undefined.*no automatic full/);
+});
+test('only the exact workspace boundary checker and tests select static tooling without game consumers', () => {
+  const sampleGames = [
+    ...games,
+    { id: 'letters-words2', source: 'games/local/letters-words2' },
+    { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+  ];
+  for (const file of [
+    'scripts/check-workspace-dependencies.mjs',
+    'scripts/check-workspace-dependencies.test.mjs',
+  ]) {
+    const selected = plan([file], { games: sampleGames });
+    assert.equal(selected.validation_tools, true);
+    assert.equal(selected.full, false);
+    assert.equal(selected.browser, false);
+    assert.deepEqual(selected.browser_ids, []);
+    assert.deepEqual(selected.game_sources, []);
+    assert.deepEqual(selected.consumer_sources, []);
+    assert.deepEqual(selected.nine_native_targets, []);
+  }
+  for (const file of [
+    'scripts/check-workspace-dependencies-extra.mjs',
+    'scripts/check-workspace-dependencies.fixture.mjs',
+    'scripts/check-workspace-dependencies.test-extra.mjs',
+  ])
+    assert.throws(() => plan([file]), /scope undefined/);
 });
 test('shard planning and measured timing changes select tool checks without any game browser', () => {
   const sampleGames = [
@@ -640,4 +669,248 @@ test('H5 changes outside literal ranges remain unknown and block incremental pub
     assert.equal(fileScopes.has(file), false);
     assert.throws(() => plan([file], { games: h5Games, fileScopes }), /scope undefined/);
   }
+});
+
+test('scoped platform consumers traverse actual intermediate package dependencies and exclude unrelated games', async () => {
+  const { affectedPackages } = await import('./validation-plan.mjs');
+  const graph = [
+    { name: 'platform', dir: 'platforms/alipay' },
+    { name: 'middle', dir: 'packages/middle', dependencies: { platform: 'workspace:*' } },
+    { name: 'host', dir: 'apps/shell-minigame', dependencies: { middle: 'workspace:*' } },
+    { name: 'unrelated', dir: 'games/local/unrelated' },
+  ];
+  const selected = plan(['pnpm-lock.yaml'], {
+    packages: graph,
+    games: [],
+    fileScopes: new Map([['pnpm-lock.yaml', ['platforms/alipay']]]),
+  });
+  assert.deepEqual(selected.consumer_sources, ['platforms/alipay']);
+  assert.deepEqual(
+    affectedPackages(
+      graph,
+      selected.consumer_sources.map((dir) => dir + '/package.json'),
+    ).map((pkg) => pkg.name),
+    ['platform', 'middle', 'host'],
+  );
+  assert.deepEqual(selected.game_sources, []);
+  assert.throws(
+    () =>
+      plan(['pnpm-lock.yaml', 'platforms/competition/unknown.js'], {
+        packages: graph,
+        games: [],
+        fileScopes: new Map([['pnpm-lock.yaml', ['platforms/alipay']]]),
+      }),
+    /scope undefined.*unknown/,
+  );
+});
+
+test('first-nine classifier tooling recognizes only exact source/test files; adjacent names remain unknown', () => {
+  for (const file of [
+    'scripts/nine-native-scope.mjs',
+    'scripts/nine-native-scope.test.mjs',
+    'scripts/nine-lock-scope.mjs',
+    'scripts/nine-lock-scope.test.mjs',
+  ]) {
+    assert.equal(plan([file]).validation_tools, true);
+  }
+  for (const file of [
+    'scripts/nine-native-scope.extra.mjs',
+    'scripts/nine-lock-scope-new.mjs',
+    'scripts/nine-native-scope.test.other.mjs',
+  ]) {
+    assert.throws(() => plan(['scripts/nine-native-scope.mjs', file]), /scope undefined/);
+  }
+});
+
+test('actual native changes select channel builds without unrelated H5; H5-only does not select native', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  pkgs.push(...['apps/shell-minigame', 'platforms/alipay'].map((dir) => ({ dir })));
+  const run = (changedPaths) => incrementalPlan({ games: actual, packages: pkgs, changedPaths });
+  const native = run(['games/local/travel-bund/native/input.ts']);
+  assert.deepEqual(native.browser_ids, []);
+  assert.equal(native.nine_native_targets.length, 5);
+  assert(native.nine_native_travel_contract);
+  const shared = run(['games/local/travel-bund/src/physics.ts']);
+  assert.deepEqual(shared.browser_ids, ['travel-bund']);
+  assert.equal(shared.nine_native_targets.length, 5);
+  for (const file of ['src/main.tsx', 'src/styles.css', 'index.html']) {
+    const h5 = run(['games/local/travel-bund/' + file]);
+    assert.deepEqual(h5.nine_native_targets, []);
+    assert.deepEqual(h5.browser_ids, ['travel-bund']);
+  }
+  const platform = run(['platforms/alipay/native-resources.mjs']);
+  assert.deepEqual(platform.browser_ids, []);
+  assert.equal(platform.nine_native_targets.length, 2);
+  assert(platform.nine_native_targets.every((target) => target.platform === 'alipay'));
+});
+
+test('Word native bundle contract and native entry select native without H5', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  for (const file of [
+    'games/local/letters-words2/tests/native-bundle.test.mjs',
+    'games/local/letters-words2/native.js',
+  ]) {
+    const result = incrementalPlan({ games: actual, packages: pkgs, changedPaths: [file] });
+    assert.deepEqual(result.browser_ids, []);
+    assert.equal(result.nine_native_targets.length, 5);
+    assert(result.nine_native_targets.every((target) => target.game === 'letters-words2'));
+  }
+});
+
+test('all five competition renderers select their actual H5 consumer and all five native channels', async () => {
+  const { readFileSync } = await import('node:fs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = actual.map((game) => ({ dir: game.source }));
+  const entries = [
+    ['cops-robbers', 'src/competition-renderer.js'],
+    ['cops-robbers-realtime', 'src/competition-renderer.js'],
+    ['letters-words2', 'competition-renderer.js'],
+    ['vibeJam-myself-history-guess', 'competition-renderer.js'],
+    ['xiangqi-five', 'competition-renderer.js'],
+  ];
+  for (const [id, relative] of entries) {
+    const game = actual.find((game) => game.id === id);
+    const result = incrementalPlan({
+      games: actual,
+      packages: pkgs,
+      changedPaths: [game.source + '/' + relative],
+    });
+    assert.deepEqual(result.browser_ids, [id]);
+    assert.deepEqual(result.nine_native_targets.map((target) => target.platform).sort(), [
+      'alipay',
+      'bilibili',
+      'douyin',
+      'kuaishou',
+      'wechat',
+    ]);
+    assert(result.nine_native_targets.every((target) => target.game === id));
+  }
+});
+
+test('shared competition protocol modules select all actual H5 consumers and native dependencies', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of ['platforms/competition/client.js', 'platforms/competition/format.js']) {
+    const context = {
+      games: actual,
+      packages: pkgs,
+      changedPaths: [file],
+      readBase: readSource,
+      readHead: readSource,
+    };
+    const fileScopes = nineNativeFileScopes(context);
+    const result = incrementalPlan({ ...context, fileScopes, readSource });
+    assert.deepEqual(result.browser_ids, [
+      ...(file.endsWith('client.js') ? ['carding-car'] : []),
+      'cops-robbers',
+      'cops-robbers-realtime',
+      'letters-words2',
+      'vibeJam-myself-history-guess',
+      'xiangqi-five',
+    ]);
+    assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 36 : 30);
+    assert.equal(result.nine_native_blocked.length, file.endsWith('client.js') ? 1 : 0);
+    for (const variant of [
+      {
+        readBase: () => {
+          throw Error('missing');
+        },
+      },
+      { readHead: () => readSource(file) + "\nimport './unknown-shared.js';" },
+      { readHead: () => readSource(file) + '\nrequire(dynamicPath);' },
+      { readHead: () => readSource(file) + "\nimport unknown from './unknown-shared.js';" },
+    ])
+      assert.equal(nineNativeFileScopes({ ...context, ...variant }).size, 0);
+  }
+});
+
+test('developer helper proves actual Git producer bytes and rejects CRLF producer fixtures', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { devModeTargets } = await import('./sync-game-dev-mode.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const actual = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const pkgs = await workspacePackages(root);
+  const producer = 'scripts/sync-game-dev-mode.mjs';
+  const producerBlob = execFileSync('git', ['show', `HEAD:${producer}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  const readSource = (file) =>
+    file === producer ? producerBlob : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const file = 'platforms/h5/dev-mode.js';
+  const context = {
+    games: actual,
+    packages: pkgs,
+    changedPaths: [file],
+    readBase: readSource,
+    readHead: readSource,
+  };
+  const fileScopes = nineNativeFileScopes(context);
+  const expected = (await devModeTargets(root)).map((target) => target.source);
+  assert.deepEqual(fileScopes.get(file)?.sort(), expected.sort());
+  const result = incrementalPlan({ ...context, fileScopes, readSource });
+  assert.deepEqual(result.browser_ids, actual.map((game) => game.id).sort());
+  assert.equal(result.nine_native_targets.length, 12);
+  assert.equal(result.nine_native_blocked.length, 2);
+  const crlfProducer = producerBlob.replace(/\r?\n/g, '\r\n');
+  assert(crlfProducer.includes('\r\n'));
+  assert.notEqual(crlfProducer, producerBlob);
+  for (const reader of ['readBase', 'readHead']) {
+    const crlfScopes = nineNativeFileScopes({
+      ...context,
+      [reader]: (file) => (file === producer ? crlfProducer : readSource(file)),
+    });
+    assert.equal(crlfScopes.size, 0);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes: crlfScopes }), /scope undefined/);
+  }
+  const missing = nineNativeFileScopes({
+    ...context,
+    readHead: (path) => {
+      if (path.endsWith('/index.html')) throw Error('missing references');
+      return readSource(path);
+    },
+  });
+  assert.equal(missing.size, 0);
+  assert.throws(() => incrementalPlan({ ...context, fileScopes: missing }), /scope undefined/);
+});
+
+test('file URL workspace roots retain Windows drive identity and decode path segments', () => {
+  const moduleURL = new URL(
+    'file:///D:/a/small-games/clone%20with%20spaces/%E5%B7%A5%E4%BD%9C/scripts/incremental-validation.test.mjs',
+  );
+  const rootURL = new URL('../', moduleURL);
+  const windowsRoot = fileURLToPath(rootURL, { windows: true });
+  assert.equal(windowsRoot, 'D:\\a\\small-games\\clone with spaces\\工作\\');
+  assert.equal(
+    path.win32.resolve(windowsRoot, 'games', 'local'),
+    'D:\\a\\small-games\\clone with spaces\\工作\\games\\local',
+  );
+  assert.notEqual(
+    path.win32.resolve(rootURL.pathname, 'games', 'local'),
+    path.win32.resolve(windowsRoot, 'games', 'local'),
+  );
+  assert.equal(
+    fileURLToPath(rootURL, { windows: false }),
+    '/D:/a/small-games/clone with spaces/工作/',
+  );
 });
