@@ -2,7 +2,7 @@ import { assertHostCapabilities, HostError, gameManifestSchema } from '@coffeeee
 import manifest from './manifest.json';
 import { createLevel, createEndless, place, placeIssuedGroup, undo, canPlace, hasPlacement, previewPlacement,
   continueLevel, finishEndless, getStars } from '../src/engine.mjs';
-import { LEVELS, getLevel } from '../src/levels.mjs';
+import { LEVELS, CHAPTERS, getLevel } from '../src/levels.mjs';
 import { SHAPE_BY_ID } from '../src/shapes.mjs';
 import * as progression from '../src/progress.mjs';
 import '../competition.js';
@@ -62,8 +62,10 @@ export const threeChooseTwoCanvasDefinition = {
     const feedback = createNativeFeedback(target, nativeSdk, () => progress.settings);
 
     const palette = () => progress.settings.highContrast
-      ? ['#B64324', '#007F6D', '#987000'] : ['#EB8968', '#57B7A4', '#E8BE55'];
-    const ink = '#183C34', muted = '#78887E', paper = '#F7F2E8', soft = '#E9ECDD';
+      ? ['#B64324', '#007F6D', '#987000', '#627CB0', '#708E3A'] : ['#ED806B', '#73BF94', '#F2CB58', '#91A9C0', '#ACBC73'];
+    const ink = '#244D39', muted = '#526C55', paper = '#F7F2E8', soft = '#FFF3DA';
+    const art = {};
+    const endlessName = () => state?.variant === 'refill' ? '立即补位' : '三选二';
     function view() {
       const height = Math.max(700, Math.min(1000, target.canvas.height * 390 / target.canvas.width));
       const scale = Math.min(target.canvas.width / 390, target.canvas.height / height);
@@ -72,11 +74,12 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function layout() {
       const h = view().height;
-      const size = Math.min(352, 352 - Math.max(0, 844 - h) * .36);
-      const y = 219 - Math.max(0, 844 - h) * .34;
+      const extra = state?.mode === 'level' && (state.config?.goal?.cross || state.config?.goal?.multi || state.config?.discardBudget !== undefined) ? 24 : 0;
+      const size = Math.min(352, h - 338 - extra);
+      const y = 170 + extra - Math.max(0, 844 - h) * .12;
       const x = (390 - size) / 2, padding = 8, pitch = (size - padding * 2) / 8;
       return { x, y, size, innerX: x + padding, innerY: y + padding, pitch,
-        slotY: y + size + 52, slotHeight: Math.min(119, h - 82 - (y + size + 52)) };
+        slotY: y + size + 52, slotHeight: Math.min(128, h - 82 - (y + size + 52)) };
     }
     function round(x, y, w, h, r = 16, fill = soft, stroke = null) {
       const radius = Math.min(r, w / 2, h / 2);
@@ -107,8 +110,9 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function button(label, x, y, w, h, action, options = {}) {
       const primary = options.primary;
-      round(x, y, w, h, options.radius ?? 18, options.disabled ? '#DFE1D6' : primary ? ink : soft,
-        options.outline ? '#BBC6B6' : null);
+      round(x, y + 4, w, h, options.radius ?? 18, options.disabled ? '#BAC2B0' : primary ? '#AE604C' : '#BCA982');
+      round(x, y, w, h, options.radius ?? 18, options.disabled ? '#DAD3BF' : primary ? gradient(y, h, '#F59C7E', '#DF765E') : gradient(y, h, '#FFF8E4', '#E5D2AE'),
+        options.outline ? '#BBC6B6' : '#FFF0CE');
       if (options.pause) {
         ctx.fillStyle = ink; ctx.fillRect(x + 15, y + 12, 5, 19); ctx.fillRect(x + 26, y + 12, 5, 19);
         text(label, x + w / 2, y + h - 7, 9, ink);
@@ -138,19 +142,22 @@ export const threeChooseTwoCanvasDefinition = {
       }
       ctx.closePath(); ctx.fillStyle = color; ctx.fill();
     }
+    function gradient(y, height, top, bottom) {
+      const paint = ctx.createLinearGradient(0, y, 0, y + height);
+      paint.addColorStop(0, top); paint.addColorStop(1, bottom); return paint;
+    }
     function block(x, y, size, color, mark = false, alpha = 1) {
       ctx.save(); ctx.globalAlpha = alpha;
-      round(x, y + 2, size, size, 5, color); round(x, y, size, size - 3, 5, color);
-      ctx.strokeStyle = '#FFFFFF66'; ctx.lineWidth = 2; ctx.beginPath();
-      ctx.moveTo(x + 5, y + 5); ctx.lineTo(x + size - 5, y + 5); ctx.stroke();
-      ctx.strokeStyle = '#183C3420'; ctx.beginPath();
-      ctx.moveTo(x + 5, y + size - 5); ctx.lineTo(x + size - 5, y + size - 5); ctx.stroke();
+      round(x, y + 2, size, size, 5, color, '#52634866');
+      round(x + 1, y, size - 2, size - 2, 5, color);
+      round(x + 1, y, size - 2, size - 2, 5, gradient(y, size, '#FFFFFF55', '#314C381E'));
+      round(x + 2.5, y + 2, size - 5, size - 6, 4, null, '#FFFFFF38');
       if (mark) star(x + size / 2, y + size / 2, size * .25, '#FFF9DB');
       ctx.restore();
     }
     function piece(candidate, x, y, pitch, alpha = 1) {
       const shape = SHAPE_BY_ID[candidate.shapeId]; if (!shape) return;
-      const color = palette()[Math.abs(Number(candidate.color ?? 1) - 1) % 3];
+      const color = palette()[Math.abs(Number(candidate.color ?? 1) - 1) % palette().length];
       shape.cells.forEach(([dx, dy]) => block(x + dx * pitch, y + dy * pitch,
         Math.max(6, pitch - 3), color, candidate.stars?.some(([sx, sy]) => sx === dx && sy === dy), alpha));
     }
@@ -202,8 +209,8 @@ export const threeChooseTwoCanvasDefinition = {
       inputLockedUntil = 0;
       track('start', { mode: 'level', levelId: id }); persist(); render();
     }
-    function startPractice() {
-      state = createEndless(`${Date.now()}-${Math.random().toString(36).slice(2)}`, { ranked: false });
+    function startPractice(variant = 'classic') {
+      state = createEndless(`${Date.now()}-${Math.random().toString(36).slice(2)}`, { ranked: false, variant });
       gameEpoch++; onlineSession = null; onlineBusy = false; onlineError = '';
       nativeRunId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       pendingReward = null; clearInput(); page = 'game'; notice = ''; flash = null;
@@ -404,75 +411,73 @@ export const threeChooseTwoCanvasDefinition = {
       finally { adBusy = false; if (!disposed) render(); }
     }
     function drawHome(h) {
-      const compressed = Math.max(0, 844 - h);
-      button('设置', 296, 26, 70, 44, () => { previousSettingsPage = 'home'; show('settings'); }, { size: 13, radius: 15 });
-      text('一场刚刚好的取舍', 195, 72, 12, muted, 'center', 400);
-      text('三块选两块', 195, 122 - compressed * .08, 38, ink, 'center', 800);
-      text('放下两块，给下一步留点空间', 195, 157 - compressed * .08, 14, muted, 'center', 400);
-      const top = 196 - compressed * .24, pitch = Math.max(28, 41 - compressed * .09), cardW = pitch * 5 + 36;
-      round((390 - cardW) / 2, top, cardW, pitch * 4 + 34, 30, '#E8EBDC');
-      const x = (390 - pitch * 5) / 2 + 2, y = top + 16;
-      for (let row = 0; row < 4; row++) for (let col = 0; col < 5; col++)
-        round(x + col * pitch, y + row * pitch, pitch - 5, pitch - 5, 6, '#D8DFD0');
-      piece({ shapeId: 'l3-nw', color: 1 }, x, y + pitch, pitch);
-      piece({ shapeId: 'square2', color: 2 }, x + pitch * 2, y, pitch);
-      piece({ shapeId: 'v3', color: 3 }, x + pitch * 4, y + pitch, pitch);
-      round(290, top - 29, 62, 62, 31, paper, ink); text('2 / 3', 321, top + 2, 15);
+      round(24, 28, 87, 38, 15, soft); star(43, 47, 15, '#E8BE55');
+      text(progression.totalStars(progress), 79, 47, 18);
+      button('设置', 316, 24, 50, 44, () => { previousSettingsPage = 'home'; show('settings'); }, { size: 12, radius: 16 });
+      const compressed = Math.max(0, 844 - h), titleY = 114 - compressed * .1;
+      const logoHeight = 200 - compressed * .3;
+      if (art.logo) ctx.drawImage(art.logo, (390 - logoHeight * 1.5) / 2, 72, logoHeight * 1.5, logoHeight);
+      else { text('三块', 195, titleY, 48, ink, 'center', 900); text('选两块', 195, titleY + 54, 54, ink, 'center', 900); }
+      const heroHeight = 282 - compressed * .71, heroY = 228 - compressed * .35;
+      if (art.hero) ctx.drawImage(art.hero, (390 - heroHeight * 1.334) / 2, heroY, heroHeight * 1.334, heroHeight);
+      else { piece({shapeId:'l3-nw', color:1}, 112, heroY + 25, 42); piece({shapeId:'square2', color:2}, 208, heroY + 38, 42); }
       const current = Math.min(LEVELS.length, state?.status !== 'won' ? Number(state?.levelId) || progress.unlocked : progress.unlocked);
       const currentTitle = (state?.mode === 'level' && state.levelId === current ? state.config?.title : null) ?? getLevel(current).title;
-      text('当前进度', 195, h - 371, 12, muted, 'center', 400);
-      text(`第 ${String(current).padStart(2, '0')} 关 · ${currentTitle}`, 195, h - 339, 18);
-      button(state?.mode === 'endless' && state.status === 'playing' ? onlineSession ? '继续排位' : '继续练习' : '继续闯关', 24, h - 300, 230, 64, () => {
+      round(46, h - 346, 298, 38, 15, soft);
+      text(state?.mode === 'endless' && state.status === 'playing' ? endlessName()+' · '+state.score+' 分'
+        : '第 '+String(current).padStart(2,'0')+' 关 · '+currentTitle, 195, h - 327, 15);
+      button(state?.mode === 'endless' && state.status === 'playing' ? '继续游戏' : '继续闯关', 24, h - 291, 342, 63, () => {
         if (state?.status === 'playing') show('game'); else if (state?.status === 'lost' && state.mode === 'level') show('result'); else startLevel(current);
-      }, { primary: true, size: 20 });
-      button('选关', 268, h - 300, 98, 64, () => { levelChapter = Math.floor((progress.unlocked - 1) / 10); show('levels'); }, { size: 20, outline: true });
-      button('无尽练习', 24, h - 222, 342, 88, () => show('endless'),
-        { size: 20, align: 'left', subtitle: `个人练习纪录  ${progress.practiceBest.toLocaleString()}`, outline: true });
-      text('→', 335, h - 178, 25);
-      button('排行榜', 24, h - 115, 164, 48, () => { void loadRanking(); }, { size: 15 });
-      button('玩法提示', 202, h - 115, 164, 48, showHelp, { size: 15 });
+      }, { primary: true, size: 24 });
+      button('选关', 24, h - 210, 163, 65, () => { levelChapter = Math.floor((progress.unlocked - 1) / 10); show('levels'); }, { size: 20 });
+      button('无尽挑战', 201, h - 210, 165, 65, () => show('endless'), { size: 20 });
+      button('排行榜', 83, h - 101, 100, 48, () => { void loadRanking(); }, { size: 14 });
+      button('玩法提示', 207, h - 101, 100, 48, showHelp, { size: 14 });
     }
     function drawLevels(h) {
-      title('选择关卡');
-      text(['基础 · 学会取舍', '取舍 · 留点空间', '挑战 · 看得更远'][levelChapter], 195, 132, 24);
-      const total = Object.values(progress.records).reduce((sum, item) => sum + (Number(item.stars) || 0), 0);
-      text(`已获 ${total} 星 · 已解锁 ${progress.unlocked} / ${LEVELS.length}`, 195, 173, 13, muted);
-      const rowGap = Math.min(116, (h - 300) / 5);
+      title('选关');
+      const total = progression.totalStars(progress);
+      text(`已获 ${total} 星 · 已解锁 ${progress.unlocked} / ${LEVELS.length}`, 195, 97, 12, ink);
+      round(93, 140, 204, 58, 13, '#967444');
+      round(93, 136, 204, 58, 13, gradient(136, 58, '#EBCB9A', '#CDA570'), '#F6DBAB');
+      text(CHAPTERS[levelChapter].title, 195, 164, 24, '#593D22', 'center', 900);
+      const rowGap = Math.min(151, (h - 390) / 2);
       LEVELS.slice(levelChapter * 10, levelChapter * 10 + 10).forEach((level, index) => {
-        const x = 29 + (index % 2) * 173, y = 214 + Math.floor(index / 2) * rowGap;
+        const x = 22 + (index % 5) * 71, y = 240 + Math.floor(index / 5) * rowGap;
         const enabled = progression.isLevelUnlocked(progress, level.id), record = progress.records[level.id];
-        button(String(level.id).padStart(2, '0'), x, y, 159, rowGap - 14, () => startLevel(level.id),
-          { primary: enabled && level.id === progress.unlocked, disabled: !enabled, size: 25 });
-        text(enabled ? level.title : '尚未解锁', x + 79, y + rowGap - 39, 12,
-          enabled && level.id === progress.unlocked ? '#F0F4E8' : muted);
-        if (record?.stars) for (let i = 0; i < 3; i++)
-          star(x + 58 + i * 21, y + rowGap - 23, 6, i < record.stars ? '#E8BE55' : '#C5CBBB');
+        button(String(level.id).padStart(2, '0'), x, y, 61, 73, () => startLevel(level.id),
+          { primary: enabled && level.id === progress.unlocked, disabled: !enabled, size: 24 });
+        if (record?.stars) for (let i = 0; i < 3; i++) star(x + 16 + i * 15, y + 59, 6, i < record.stars ? '#E8BE55' : '#C5CBBB');
+        else if (!enabled) {
+          round(x + 25, y + 53, 12, 10, 3, '#81765B');
+          round(x + 27, y + 47, 8, 10, 4, null, '#81765B');
+        }
       });
-      button('上一章', 25, h - 70, 108, 46, () => { levelChapter--; render(); }, { disabled: levelChapter === 0, size: 14 });
-      text(`${levelChapter + 1} / 3`, 195, h - 47, 14, muted);
-      button('下一章', 257, h - 70, 108, 46, () => { levelChapter++; render(); }, { disabled: levelChapter === 2, size: 14 });
+      button('上一章', 25, h - 90, 108, 46, () => { levelChapter--; render(); }, { disabled: levelChapter === 0, size: 14 });
+      text(`${levelChapter + 1} / 3`, 195, h - 67, 14, ink);
+      button('下一章', 257, h - 90, 108, 46, () => { levelChapter++; render(); }, { disabled: levelChapter === 2, size: 14 });
     }
     function drawGame(h) {
       const b = layout(), level = state.mode === 'level' ? state.config ?? getLevel(state.levelId) : null;
       button('首页', 20, 22, 52, 46, () => show('home'), { size: 12, radius: 15 });
-      text(level ? `第 ${String(state.levelId).padStart(2, '0')} 关` : onlineSession ? '无尽排位' : '无尽练习', 195, 46, 18);
+      text(level ? `第 ${String(state.levelId).padStart(2, '0')} 关` : onlineSession ? '无尽排位' : endlessName(), 195, 46, 18);
       button('暂停', 324, 22, 46, 46, () => show('pause'), { pause: true, radius: 15 });
-      text(level ? '清线' : '练习积分', 25, 110, 12, muted, 'left', 400);
-      text(level ? state.stats.lines : state.score.toLocaleString(), 25, 144, 34, ink, 'left', 800);
-      if (level) text(`/ ${level.goal.lines}`, 54 + String(state.stats.lines).length * 15, 146, 18, muted, 'left');
-      text(level ? '当前组数' : '已完成组数', 365, 110, 12, muted, 'right', 400);
-      text(level ? `${state.group} / ${level.maxGroups + (state.continued ? 2 : 0)}` : state.completedGroups,
-        365, 143, 24, ink, 'right', 700);
-      round(25, 174, 340, 5, 2, '#DFE3D3');
-      if (level) round(25, 174, 340 * Math.min(1, state.stats.lines / level.goal.lines), 5, 2, palette()[1]);
-      if (level?.goal.cross) text(`交叉消除 ${Math.min(state.stats.crossClears, level.goal.cross)} / ${level.goal.cross}`, 195, 196, 12, muted);
-      else if (level?.goal.multi) text(`多线同消 ${Math.min(state.stats.multiClears, level.goal.multi)} / ${level.goal.multi}`, 195, 196, 12, muted);
-      else if (level?.discardBudget !== undefined) text(`弃格 ${state.stats.discardedCells} / ${level.discardBudget}`, 195, 196, 12, muted);
-      round(b.x, b.y, b.size, b.size, 17, '#D6DDCF');
+      round(25, 94, 163, 58, 12, gradient(94, 58, '#FFF8E6', '#EBD8B6'), '#FFF4D8');
+      round(201, 94, 164, 58, 12, gradient(94, 58, '#FFF8E6', '#EBD8B6'), '#FFF4D8');
+      text(level ? '清线' : '当前积分', 106, 107, 11, ink);
+      text(level ? `${state.stats.lines} / ${level.goal.lines}` : state.score.toLocaleString(), 106, 134, 26, ink, 'center', 900);
+      text(state.variant === 'refill' ? '已放积木' : level ? '当前组数' : '已完成组数', 283, 107, 11, ink);
+      text(level ? `${state.group} / ${level.maxGroups + (state.continued ? 2 : 0)}` : state.variant === 'refill' ? state.stats.placements : state.completedGroups,
+        283, 134, 25, ink, 'center', 900);
+      if (level?.goal.cross) text(`交叉消除 ${Math.min(state.stats.crossClears, level.goal.cross)} / ${level.goal.cross}`, 195, 174, 12, ink);
+      else if (level?.goal.multi) text(`多线同消 ${Math.min(state.stats.multiClears, level.goal.multi)} / ${level.goal.multi}`, 195, 174, 12, ink);
+      else if (level?.discardBudget !== undefined) text(`弃格 ${state.stats.discardedCells} / ${level.discardBudget}`, 195, 174, 12, ink);
+      round(b.x, b.y + 5, b.size, b.size, 17, '#B6A384');
+      round(b.x, b.y, b.size, b.size, 17, gradient(b.y, b.size, '#FCEAC9', '#CBB087'), '#FFF9E7');
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
         const index = y * 8 + x, px = b.innerX + x * b.pitch, py = b.innerY + y * b.pitch;
-        if (state.board[index]) block(px, py, b.pitch - 5, palette()[Math.abs(state.board[index] - 1) % 3], state.starBoard?.[index]);
-        else round(px, py, b.pitch - 5, b.pitch - 5, 6, '#E9EDDE');
+        if (state.board[index]) block(px, py, b.pitch - 2, palette()[Math.abs(state.board[index] - 1) % palette().length], state.starBoard?.[index]);
+        else round(px, py, b.pitch - 2, b.pitch - 2, 5, '#8FA982');
         if (!progress.settings.reducedFlash && flash && Date.now() < flash.until && (flash.rows.includes(y) || flash.cols.includes(x)))
           round(px, py, b.pitch - 5, b.pitch - 5, 6, '#FFFFFFB3');
       }
@@ -490,18 +495,20 @@ export const threeChooseTwoCanvasDefinition = {
           preview.cols.forEach(col => round(b.innerX + col * b.pitch, b.innerY, b.pitch - 5, b.pitch * 8 - 5, 5, null, '#2F8A72'));
         }
       }
-      text(state.placedInGroup ? '再放一块，剩下的自动丢弃' : '放下两块，剩下的自动丢弃', 195, b.y + b.size + 29, 13, muted);
+      text(state.variant === 'refill' ? '放一块，原位补一块' : state.placedInGroup ? '再放一块，剩下的自动丢弃' : '放下两块，剩下的自动丢弃', 195, b.y + b.size + 29, 13, muted);
       state.candidates.forEach((candidate, slot) => {
         const x = 22 + slot * 121, y = b.slotY, w = 104, height = b.slotHeight;
         const used = state.used.includes(slot), selectable = !used && hasPlacement(state, slot);
-        round(x, y, w, height, 19, used ? '#E2E4D9' : '#EFEDD9', selectedSlot === slot ? '#183C34' : null);
+        round(x, y + 4, w, height, 19, '#B7A989');
+        round(x, y, w, height, 19, used ? '#DED9C3' : gradient(y, height, '#FFF7E1', '#E6D6B3'), selectedSlot === slot ? '#183C34' : '#FFF7E2');
+        round(x + 4, y + 4, w - 8, height - 8, 15, null, '#FFF7E2');
         slots.push({ slot, x, y, w, h: height, used });
         if (used) { text('已放下', x + w / 2, y + height / 2, 13, muted); return; }
         const shape = SHAPE_BY_ID[candidate.shapeId];
-        const pitch = Math.min(28, 84 / shape.width, (height - 34) / shape.height);
+        const pitch = Math.min(33, 88 / shape.width, (height - 24) / shape.height);
         piece(candidate, x + (w - shape.width * pitch + 3) / 2,
           y + (height - shape.height * pitch + 3) / 2 - 5, pitch, drag?.slot === slot ? .25 : 1);
-        text(selectable ? `${slot + 1}` : '暂时放不下', x + w / 2, y + height - 12, 10, muted, 'center', 400);
+        if (!selectable) text('暂时放不下', x + w / 2, y + height - 12, 10, muted, 'center', 400);
       });
       if (drag) piece(state.candidates[drag.slot], drag.x - b.pitch / 2, drag.y - 54 - b.pitch / 2, b.pitch, .85);
       if (state.mode === 'level') button(`撤销 · ${state.undoRemaining}`, 22, h - 77, 142, 48, undoMove,
@@ -525,7 +532,7 @@ export const threeChooseTwoCanvasDefinition = {
       if (h >= 800) button('更多设置', 52, panelY + 151, 286, 46, () => { previousSettingsPage = 'pause'; show('settings'); }, { outline: true, size: 14 });
       button('继续游戏', 30, h - 289, 330, 58, () => show(state.status === 'playing' ? 'game' : 'result'), { primary: true, size: 19 });
       if (onlineSession) button('结束本局', 30, h - 216, 330, 58, () => { void endOnline(); }, { disabled: pendingFinish, size: 19 });
-      else button('重新开始', 30, h - 216, 330, 58, () => state.mode === 'level' ? startLevel(state.levelId) : startPractice(), { size: 19 });
+      else button('重新开始', 30, h - 216, 330, 58, () => state.mode === 'level' ? startLevel(state.levelId) : startPractice(state.variant), { size: 19 });
       if (!onlineSession && state.mode === 'level')
         button('退出关卡', 30, h - 143, 330, 48, exitLocalGame,
           { size: 16, subtitle: '清除本局，保留闯关进度' });
@@ -538,15 +545,17 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function toggle(label, key, y) {
       text(label, 53, y + 20, 16, ink, 'left');
-      button(progress.settings[key] ? '开' : '关', 270, y, 68, 46,
+      const enabled = key === 'reducedFlash' ? !progress.settings[key] : progress.settings[key];
+      if (key === 'reducedFlash') text('开启时，消除会出现亮光', 53, y + 43, 10, muted, 'left', 400);
+      button(enabled ? '开' : '关', 270, y, 68, 46,
         () => { progress.settings[key] = !progress.settings[key]; feedback.settingsChanged(); persist(); render(); },
-        { primary: progress.settings[key], outline: !progress.settings[key], radius: 23, size: 15 });
+        { primary: enabled, outline: !enabled, radius: 23, size: 15 });
     }
     function drawSettings(h) {
       title('设置', previousSettingsPage);
       round(30, 139, 330, 377, 23, soft);
       toggle('音效', 'sound', 156); toggle('音乐', 'music', 225); toggle('振动', 'vibration', 294);
-      toggle('高对比色', 'highContrast', 363); toggle('减少闪光', 'reducedFlash', 432);
+      toggle('高对比色', 'highContrast', 363); toggle('消除闪光', 'reducedFlash', 432);
       button('玩法说明', 30, 544, 330, 51, showHelp, { size: 17 });
       if (h > 780) paragraph(`设置自动保存。${onlineConfigured ? '在线排位使用平台真实登录与服务端确认计分。' : '原生排位尚未配置，练习纪录只保存在本机。'}`, 43, 636, 305, 13, muted, 3);
       button(previousSettingsPage === 'pause' ? '返回暂停' : '返回首页', 30, h - 95, 330, 54,
@@ -554,9 +563,9 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function drawHelp(h) {
       title('玩法提示', previousHelpPage);
-      text('三块放两块，留点空间。', 195, 138, 24, ink, 'center', 800);
+      text('放好每一块，留点空间。', 195, 138, 24, ink, 'center', 800);
       round(30, 188, 330, 354, 23, soft);
-      paragraph('拖动任意积木，观察手指上方的落点预览，松手便会落下。取消手势不会落子。\n\n填满一行或一列便会同时消除。每组放下两块，第三块自动丢弃。\n\n关卡有3次撤销，只恢复最近一步。无尽练习不提供成功落子撤销。', 51, 222, 288, 15, ink, 10);
+      paragraph('拖动积木，看落点预览，松手放下。填满一行或一列即可消除。\n\n三选二：放两块，弃一块。\n立即补位：放一块，补一块，另两块保留。\n\n关卡有3次撤销；无尽不可撤销。', 51, 222, 288, 15, ink, 10);
       if (previousHelpPage === 'game' && state?.mode === 'level')
         paragraph(state.config?.hint ?? getLevel(state.levelId).hint ?? '先留出空间，再决定要舍弃哪一块。', 43, 582, 303, 14, muted, 3);
       button(previousHelpPage === 'game' ? '回去试试' : previousHelpPage === 'settings' ? '返回设置' : '返回首页',
@@ -564,20 +573,26 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function drawEndless(h) {
       title('无尽挑战');
-      text('留住空间，让好分数继续。', 195, 149, 24, ink, 'center', 800);
-      round(30, 206, 330, 190, 23, soft);
-      text(onlineConfigured ? '在线排位' : '原生排位未配置', 52, 242, 19, ink, 'left');
-      paragraph(onlineConfigured ? '使用微信或B站真实登录，每次落子由服务端确认。只收录经校验的个人最高单局。'
-        : '正式排位需要平台真实登录和服务端会话。当前可以完整游玩离线练习。', 52, 280, 283, 14, muted, 3);
-      if (onlineConfigured) button(onlineBusy ? '正在连接…' : onlineRecovery ? '恢复在线对局' : '开始在线排位',
-        52, 341, 286, 49, () => { void startOnline(); }, { primary: true, disabled: onlineBusy, size: 16 });
-      const practiceY = Math.min(432, h - 263);
-      round(30, practiceY, 330, 164, 23, soft);
-      text('离线练习', 52, practiceY + 34, 20, ink, 'left');
-      text('随时开始 · 成绩只保存在本机', 52, practiceY + 69, 14, muted, 'left', 400);
-      button('开始无尽练习', 52, practiceY + 98, 286, 49, startPractice, { primary: !onlineConfigured, size: 17 });
-      if (onlineError) paragraph(onlineError, 43, h - 100, 305, 13, '#A84B31', 3);
-      button('返回首页', 105, h - 68, 180, 46, () => show('home'), { size: 14 });
+      const compact = h < 800, y = 100, firstHeight = compact ? 252 : 300;
+      round(25, y + 5, 340, firstHeight, 25, '#809A6C'); round(25, y, 340, firstHeight, 25, '#C8DFB9', '#F6FFE2');
+      text('三选二', 195, y + 36, 29, ink, 'center', 900);
+      text('放下两块，舍弃一块', 195, y + 69, 14);
+      const pitch = compact ? 22 : 27, artY = y + 88;
+      piece({shapeId:'l3-nw',color:1}, 88, artY, pitch); piece({shapeId:'square2',color:2}, 171, artY, pitch);
+      piece({shapeId:'v2',color:3}, 266, artY, pitch, .4);
+      text('本地最高 '+progress.practiceBest.toLocaleString(), 195, y + firstHeight - 115, 11, muted);
+      button('开始练习', 48, y + firstHeight - 96, 294, 49, () => startPractice(), { primary:true, size:18 });
+      if (onlineConfigured) button(onlineBusy ? '正在连接…' : onlineRecovery ? '恢复在线对局' : '在线挑战',
+        105, y + firstHeight - 42, 180, 38, () => { void startOnline(); }, { disabled: onlineBusy, size:13 });
+      else text('本地练习 · 随时开始', 195, y + firstHeight - 19, 11, muted);
+      const secondY = y + firstHeight + 23, secondHeight = compact ? 226 : 263;
+      round(25, secondY + 5, 340, secondHeight, 25, '#BFA675'); round(25, secondY, 340, secondHeight, 25, '#F7E6B9', '#FFF9E5');
+      text('立即补位', 195, secondY + 34, 29, ink, 'center', 900); text('放一块，补一块', 195, secondY + 67, 14);
+      piece({shapeId:'l3-nw',color:1}, 102, secondY + 87, pitch); piece({shapeId:'square2',color:3}, 235, secondY + 87, pitch);
+      text('→', 195, secondY + 110, 30, '#638B5D');
+      text('本地最高 '+progress.refillBest.toLocaleString(), 195, secondY + secondHeight - 79, 11, muted);
+      button('开始挑战', 48, secondY + secondHeight - 60, 294, 49, () => startPractice('refill'), {primary:true, size:18});
+      if (onlineError) paragraph(onlineError, 40, h - 46, 310, 12, '#A84B31', 2);
     }
     function drawRanking(h) {
       title('排行榜');
@@ -639,7 +654,7 @@ export const threeChooseTwoCanvasDefinition = {
     function drawResult(h) {
       const won = state.status === 'won', level = state.mode === 'level';
       const levelConfig = level ? state.config ?? getLevel(state.levelId) : null;
-      text(level ? won ? '关卡完成' : '再试一次' : onlineSession ? '排位结束' : '练习结束', 195, 73, 14, muted);
+      text(level ? won ? '关卡完成' : '再试一次' : onlineSession ? '排位结束' : endlessName()+'结束', 195, 73, 14, muted);
       const metricsY = level ? h - (won ? 375 : 435) : Math.min(426, h - 390);
       const headingY = metricsY - 78, centerY = Math.max(143, metricsY - 221);
       const radius = Math.min(106, centerY - 98, Math.max(24, headingY - centerY - 20)), trophyScale = radius / 106;
@@ -666,12 +681,12 @@ export const threeChooseTwoCanvasDefinition = {
       text(level ? state.stats.lines : state.stats.maxLines, 280, metricsY + 57, 24);
       if (!level) {
         text('最大连续消除', 110, metricsY + 96, 12, muted); text(state.stats.maxCombo, 110, metricsY + 128, 24);
-        text('已完成组数', 280, metricsY + 96, 12, muted); text(state.completedGroups, 280, metricsY + 128, 24);
+        text(state.variant === 'refill' ? '已放积木' : '已完成组数', 280, metricsY + 96, 12, muted); text(state.variant === 'refill' ? state.stats.placements : state.completedGroups, 280, metricsY + 128, 24);
         const unsettled = Boolean(onlineSession && (onlineBusy || pendingActions.length || pendingFinish));
         button(unsettled ? '等待成绩确认' : '再玩一次', 30, h - 226, 330, 50,
-          () => onlineSession ? newOnline() : startPractice(), { primary: true, disabled: unsettled, size: 18 });
-        button(onlineError ? '重新连接并校验' : '查看排行榜', 30, h - 164, 330, 48,
-          () => { if (onlineError) void reconnectOnline(); else void loadRanking(); }, { size: 16 });
+          () => onlineSession ? newOnline() : startPractice(state.variant), { primary: true, disabled: unsettled, size: 18 });
+        button(onlineError ? '重新连接并校验' : state.variant === 'refill' ? '切换玩法' : '查看排行榜', 30, h - 164, 330, 48,
+          () => { if (onlineError) void reconnectOnline(); else if (state.variant === 'refill') show('endless'); else void loadRanking(); }, { size: 16 });
         button('分享成绩', 30, h - 102, 159, 48, shareResult, { disabled: unsettled, size: 14 });
         button('返回首页', 201, h - 102, 159, 48, () => show('home'), { size: 14 });
         return;
@@ -689,7 +704,7 @@ export const threeChooseTwoCanvasDefinition = {
       if (onlineSession) button(onlineError ? '重新连接并校验' : '查看排行榜', 30, h - 221, 330, 58,
         () => { if (onlineError) void reconnectOnline(); else void loadRanking(); }, { size: 17 });
       const unsettled = Boolean(onlineSession && (onlineBusy || pendingActions.length || pendingFinish));
-      button(unsettled ? '等待成绩确认' : '再玩一次', 30, h - 147, 330, 58, () => level ? startLevel(state.levelId) : onlineSession ? newOnline() : startPractice(), { primary: !won, disabled: unsettled, size: 19 });
+      button(unsettled ? '等待成绩确认' : '再玩一次', 30, h - 147, 330, 58, () => level ? startLevel(state.levelId) : onlineSession ? newOnline() : startPractice(state.variant), { primary: !won, disabled: unsettled, size: 19 });
       button('返回首页', 105, h - 78, 180, 46, () => show('home'), { size: 14 });
     }
     function render() {
@@ -699,9 +714,10 @@ export const threeChooseTwoCanvasDefinition = {
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = paper;
       ctx.fillRect(0, 0, target.canvas.width, target.canvas.height);
       ctx.setTransform(v.scale, 0, 0, v.scale, v.left, v.top);
-      // Tiny paper flecks retain the reviewed hand-made visual without image downloads.
-      ctx.fillStyle = '#CABFA94D';
-      for (let y = 23; y < v.height; y += 42) for (let x = 11; x < 390; x += 42) ctx.fillRect(x, y, 1, 1);
+      if (art.garden) ctx.drawImage(art.garden, 0, 0, 390, v.height);
+      else { ctx.fillStyle = '#C4E2DC'; ctx.fillRect(0, 0, 390, v.height); }
+      ctx.fillStyle = ['home','endless','levels','game'].includes(page) ? '#FFF8E808' : '#FFF8E8B8';
+      ctx.fillRect(0, 0, 390, v.height);
       ({ home: drawHome, levels: drawLevels, game: drawGame, pause: drawPause, result: drawResult,
         settings: drawSettings, ranking: drawRanking, endless: drawEndless, help: drawHelp })[page](v.height);
       if (notice && Date.now() < noticeUntil) {
@@ -777,6 +793,9 @@ export const threeChooseTwoCanvasDefinition = {
       }
     }, 30);
     render();
+    for (const name of ['garden', 'hero', 'logo']) {
+      target.loadImage?.('assets/art/'+name+'.png').then(image => { if (!disposed) { art[name] = image; render(); } }).catch(() => {});
+    }
     return {
       pause() {
         if (disposed) return;

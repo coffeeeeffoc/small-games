@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-07T15:33:11.304Z",
+  "environment": "Chrome desktop 390x844 mobile emulation; production Shell iframe; CDP touch",
+  "actualDevice": false,
+  "status": "passed",
+  "checks": [
+    "Production Shell iframe real CDP touch: refill used slot and preserve other two",
+    "Production Shell iframe pause/home/reload/resume preserves refill game",
+    "Production Shell iframe finish and replay retains selected variant"
+  ],
+  "pageErrors": []
+}

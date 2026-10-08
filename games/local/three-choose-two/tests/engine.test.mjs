@@ -272,6 +272,60 @@ test('saved progress unlocks through wins, preserves better results and degrades
   assert.equal(recordEndlessResult(progress, finishEndless(createEndless(12))).practiceBest, 0);
 });
 
+test('refill replaces only the placed slot after clearing, without discards or group consumption', () => {
+  let state = createEndless(42, { variant: 'refill' });
+  state.board = rowGaps([0]); state.candidates = [piece(), piece('square3'), piece('square2')];
+  state.rng = 1; // First replacement is a deterministic dot.
+  const before = structuredClone(state);
+  state = place(state, 0, 0, 0);
+  assert.equal(state.score, 100); assert.equal(state.stats.lines, 1);
+  assert.equal(state.lastEvent.refilledSlot, 0);
+  assert.deepEqual(state.candidates.slice(1), before.candidates.slice(1));
+  assert.notEqual(state.rng, before.rng);
+  assert.deepEqual(state.used, []); assert.equal(state.placedInGroup, 0);
+  assert.equal(state.completedGroups, 0); assert.equal(state.stats.discardedBlocks, 0);
+  assert.equal(state.lastEvent.discarded, null); assert.equal(state.lastEvent.nextGroup, null);
+  const second = place(state, 0, 0, 1);
+  assert.equal(second.stats.placements, 2); assert.equal(second.group, 2);
+  assert.equal(second.stats.discardedCells, 0); assert.equal(second.canUndo, false);
+  assert.equal(before.stats.placements, 0);
+});
+
+test('refill detects blockage only after replacement and rejects illegal or ranked usage', () => {
+  const state = createEndless(42, { variant: 'refill' });
+  state.board = checkerboard(); state.candidates = [piece(), piece('square3'), piece('square3')]; state.rng = 1;
+  assert.equal(place(state, 1, 0, 0), state);
+  const next = place(state, 0, 0, 0);
+  assert.equal(next.status, 'playing', 'new dot is playable even when both retained blocks are blocked');
+  assert.equal(next.candidates[0].shapeId, 'dot');
+  state.rng = 100000;
+  const blocked = place(state, 0, 0, 0);
+  assert.equal(hasPlacement(blocked), false); assert.equal(blocked.status, 'lost');
+  assert.equal(blocked.reason, 'no-placement'); assert.equal(blocked.candidates.length, 3);
+  assert.throws(() => createEndless(1, { ranked: true, variant: 'refill' }), RangeError);
+  assert.throws(() => createEndless(1, { variant: 'unknown' }), RangeError);
+  assert.equal(placeIssuedGroup(state, 0, 0, 0), state);
+});
+
+test('refill resumes the same next draw and keeps records separate while migrating old saves', () => {
+  const old = { version: 1, practiceBest: 250, settings: { reducedFlash: true }, currentGame: createEndless(17) };
+  const progress = readProgress({ getItem: () => JSON.stringify(old) });
+  assert.equal(progress.refillBest, 0); assert.equal(progress.practiceBest, 250);
+  assert.equal(progress.settings.reducedFlash, true); assert.deepEqual(resumeState(progress), old.currentGame);
+  const original = createEndless(42, { variant: 'refill' });
+  const saved = saveCurrentGame(progress, original);
+  const restored = resumeState(readProgress({ getItem: () => JSON.stringify(saved) }));
+  assert.deepEqual(place(restored, 0, 0, 0), place(original, 0, 0, 0));
+  let ended = finishEndless(original); ended.score = 400;
+  const result = recordEndlessResult(progress, ended);
+  assert.equal(result.refillBest, 400); assert.equal(result.practiceBest, 250);
+  const classic = finishEndless(createEndless(1)); classic.score = 500;
+  const combined = recordEndlessResult(result, classic);
+  assert.equal(combined.refillBest, 400); assert.equal(combined.practiceBest, 500);
+  assert.equal(mergeProgress(progress, result).refillBest, 400);
+  assert.equal(saveCurrentGame(progress, { ...original, variant: 'unknown' }).currentGame, null);
+});
+
 test('shared rules and saves work on native runtimes without structuredClone', () => {
   const previous = globalThis.structuredClone;
   try {

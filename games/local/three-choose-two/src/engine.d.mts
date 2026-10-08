@@ -1,7 +1,7 @@
 export type Candidate = { shapeId: string; color: number; stars?: [number, number][] };
 export type Move = { slot: number; x: number; y: number };
 export type GameState = {
-  version: string; mode: 'level' | 'endless'; ranked?: boolean; levelId?: number; config?: Record<string, any>;
+  version: string; mode: 'level' | 'endless'; variant?: 'classic' | 'refill'; ranked?: boolean; levelId?: number; config?: Record<string, any>;
   board: number[]; starBoard: boolean[]; candidates: Candidate[]; used: number[];
   placedInGroup: number; group: number; completedGroups: number; score: number; combo: number;
   stats: Record<string, number>; status: 'playing' | 'won' | 'lost' | 'finished'; reason: string | null;
@@ -16,7 +16,7 @@ export const RANDOM_VERSION: string;
 export const VERSION: Readonly<Record<string, string>>;
 export const BOARD_SIZE: number;
 export function createLevel(idOrConfig?: number | Record<string, any>): GameState;
-export function createEndless(seed?: number | string, options?: { ranked?: boolean }): GameState;
+export function createEndless(seed?: number | string, options?: { ranked?: boolean; variant?: 'classic' | 'refill' }): GameState;
 export function place(state: GameState, slot: number, x: number, y: number): GameState;
 export function placeIssuedGroup(state: GameState, slot: number, x: number, y: number): GameState;
 export function undo(state: GameState): GameState;
