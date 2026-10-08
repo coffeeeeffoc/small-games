@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { fileURLToPath } from 'node:url';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import rule from '../services/runtime-api/rules/letters.mjs';
@@ -213,7 +214,9 @@ try {
       'static',
     );
     if (width === 390)
-      await page.screenshot({ path: new URL('friend-h5-lobby-390x844.png', directory).pathname });
+      await page.screenshot({
+        path: fileURLToPath(new URL('friend-h5-lobby-390x844.png', directory)),
+      });
     await page.locator('[data-create]').tap();
     await page.locator('button[data-ready]').waitFor({ state: 'visible' });
     await page.evaluate(() => {
@@ -239,7 +242,9 @@ try {
       'copy feedback remains visible',
     );
     if (width === 390)
-      await page.screenshot({ path: new URL('friend-h5-room-390x844.png', directory).pathname });
+      await page.screenshot({
+        path: fileURLToPath(new URL('friend-h5-room-390x844.png', directory)),
+      });
     await page.locator('button[data-ready]').tap();
     await page.locator('canvas[data-play]').waitFor({ state: 'visible' });
     await page.waitForFunction(() =>
@@ -293,17 +298,19 @@ try {
     );
     if (width === 390)
       await page.screenshot({
-        path: new URL('friend-h5-meanings-390x844.png', directory).pathname,
+        path: fileURLToPath(new URL('friend-h5-meanings-390x844.png', directory)),
       });
     await touch('target.action?.local === "close"');
     await page.waitForFunction(() =>
       renderer.getLayout().targets.some((target) => target.kind === 'tile'),
     );
     if (width === 390)
-      await page.screenshot({ path: new URL('friend-h5-play-390x844.png', directory).pathname });
+      await page.screenshot({
+        path: fileURLToPath(new URL('friend-h5-play-390x844.png', directory)),
+      });
     else
       await page.screenshot({
-        path: new URL(`friend-h5-play-${width}x${height}.png`, directory).pathname,
+        path: fileURLToPath(new URL(`friend-h5-play-${width}x${height}.png`, directory)),
       });
     const words = width === 390 ? 18 : 1;
     for (let word = 0; word < words; word++) {
@@ -327,7 +334,7 @@ try {
         await page.waitForFunction((id) => lastRoom.state.selected.includes(id), tileId);
         if (width === 390 && word === 0 && letterIndex === 1)
           await page.screenshot({
-            path: new URL('friend-h5-selected-390x844.png', directory).pathname,
+            path: fileURLToPath(new URL('friend-h5-selected-390x844.png', directory)),
           });
       }
       const correct = state.correct;
@@ -336,7 +343,9 @@ try {
     }
     if (width === 390) {
       await page.locator('[data-kind="result"]').waitFor({ state: 'visible' });
-      await page.screenshot({ path: new URL('friend-h5-result-390x844.png', directory).pathname });
+      await page.screenshot({
+        path: fileURLToPath(new URL('friend-h5-result-390x844.png', directory)),
+      });
       await page.locator('[data-dismiss]').tap();
     }
     await page.locator('[data-close]').tap();
