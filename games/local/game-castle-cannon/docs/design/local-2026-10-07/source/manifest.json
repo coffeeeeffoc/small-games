@@ -1,0 +1,154 @@
+{
+  "created": "2026-10-08",
+  "source": "Local Hyper3D OAuth / Rodin MCP",
+  "packing": "16-bit positions/normals/UVs, uint16 indices; 1536px JPEG PBR maps at quality94 with 4:4:4 channels",
+  "assets": [
+    {
+      "name": "cannon",
+      "filename": "cannon-parts.glb",
+      "sha256": "286194c57325b49dedb5f789c67bf5f04767cf9f906e7b1bde059d07a99d41cc",
+      "bytes": 8946100,
+      "reference": "../references/cannon-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/d00fe487-f7bd-4ebc-bce7-ae5465190924",
+      "partsResult": "https://hyper3d.ai/workspace/rodin/068b2b9d-c1a0-4430-98d8-53621ade7488",
+      "split": {
+        "resolution": "Basic",
+        "strength": 4
+      },
+      "generation": {
+        "prompt": "A single hero medieval cannon on a heavy oak carriage, matching the reference exactly. Oak-stave cylindrical bombard barrel with thick worn black iron muzzle, round breech and riveted iron hoops. Open dark recessed bore. Exactly two large open-spoked wooden wheels on one axle with iron tyres. Chunky carved warm oak carriage side rails and iron brackets. Premium stylized miniature game asset, detailed wood grain, worn edges, rivets, rough iron, realistic distinct PBR wood and metal. No floor, no background, no people, no fire, no extra objects. Complete freestanding game prop.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 30000,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "gate",
+      "filename": "gate-parts.glb",
+      "sha256": "5edb56e71180b83dee1e2a65e3fdb0ef7fa579c446dd82091828663ffbb97354",
+      "bytes": 7711652,
+      "reference": "../references/gate-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/155b1537-6c32-4bfc-97f9-a94fc5040005",
+      "partsResult": "https://hyper3d.ai/workspace/rodin/7211bdc0-307b-4f76-8cb3-15a53e79d37c",
+      "split": {
+        "resolution": "Basic",
+        "strength": 5
+      },
+      "generation": {
+        "prompt": "A complete freestanding pair of heavy medieval oak gate leaves. Match the reference faithfully: vertical warm honey oak planks, chunky carved lintel, thick weathered dark iron bands, a shallow arched upper band with large round rivets, two forged ring handles, sturdy hinges, subtle wood grain and chipped softened edges. Premium stylized miniature game prop with realistic distinct PBR wood and rough forged iron. Rectangular silhouette, about as wide as tall, closed center seam, meaningful thickness. No floor, stone walls, background, people, fire or extra objects. Front and rear fully modeled.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 18000,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "stone",
+      "filename": "stone.glb",
+      "sha256": "b2cea4c0c0f41d6741ba34a36940866c11b3709b5932e472879f409abad1008a",
+      "bytes": 10572184,
+      "reference": "../references/stone-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/0c627e74-466c-4426-af3b-88958c1ee097",
+      "generation": {
+        "prompt": "One rectangular squared pale ivory limestone building block, match reference exactly. Proportions width 1.5 height 0.9 depth 0.9. Mainly planar load-bearing faces, softly chipped rounded irregular edges, subtle chisel marks, fine pores and sparse thin hairline fractures. Premium stylized miniature castle game asset with realistic pale cream PBR limestone. Subtle gray mineral color variations, no orange staining. Full solid freestanding stone, no base, no floor, no mortar, no other blocks or objects. Keep silhouette simple and use normal map for fine surface relief.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 500,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "soldier",
+      "filename": "soldier.glb",
+      "sha256": "5b4bfc51dbd0a43731ae421b61335d9c01a6ee136c74fae79146f79fb3aa7a2a",
+      "bytes": 9671604,
+      "reference": "../references/soldier-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/741a5d08-7974-4b9f-baba-cdbca819b285",
+      "generation": {
+        "prompt": "One stocky blue medieval infantry soldier, exactly match reference proportions and all equipment. Full body, upright spear, round blue shield with cream fleur-de-lys, hammered silver helmet and cheek guards, mustached face, stitched royal-blue linen tunic, tan leather belt, dark brown boots. Feet planted, readable pose. Separate limbs visually. Highly detailed stylized miniature PBR materials with fine cloth weave, scratched metal and leather grain, no baked lighting. No pedestal, no terrain, no background geometry. Retain face detail and clean shield silhouette.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 6000,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "spruce",
+      "filename": "spruce.glb",
+      "sha256": "fdae4160c77f5d619c308ab9884a330c1edaa57bebd22b91daa86451fee31637",
+      "bytes": 11145448,
+      "reference": "../references/spruce-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/95789c7a-e836-405d-bfd8-4fba80ec28bc",
+      "generation": {
+        "prompt": "One isolated dense alpine spruce tree, exactly match this reference. Irregular conical outline and layered drooping needle boughs, many full foliage clusters with small air gaps. Dark moss green underside and warmer olive tips, rough brown bark visible near roots. Stylized high-quality miniature natural materials, detailed foliage textures, no cartoon cones, no ground/pot/base/scenery. Preserve whole tree silhouette. Neutral PBR material without baked sun lighting.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 3500,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "massif",
+      "filename": "massif.glb",
+      "sha256": "20f6a3d92b180bdfe0a537c601f4cfaa6e5bc0fd2bda654b0e70d574268b0302",
+      "bytes": 13742200,
+      "reference": "../references/massif-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/bb5a69e7-4d35-4d38-9935-f30b0b212647",
+      "generation": {
+        "prompt": "A single panoramic connected alpine mountain massif, exactly reference silhouette and materials. Five highly irregular jagged limestone peaks, tallest off-center, fractured gray stone buttresses and layered vertical fissures, snow on high ledges and in gullies. Whole connected broad mountain base, no pedestal or ground plane, no trees or buildings. Detailed geological surface, realistic stylized miniature environment art, white snow and blue-gray rock PBR albedo, no atmosphere or directional lighting baked in. Width about four times the height. Maintain front-facing silhouette.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 16000,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "loader",
+      "filename": "loader.glb",
+      "sha256": "934dfcdaf6a49ff8727af89b42aa310233aa345c510bee952c5b8e5a35093bb8",
+      "bytes": 9274896,
+      "reference": "../references/loader-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/c464301b-6b63-4e8f-b7c7-e8cd52dc2908",
+      "generation": {
+        "prompt": "One stocky blue medieval cannon loader, exactly match the supplied full-body reference. Both arms extended holding one black iron cannonball, knees bent and leaning forward, visible fingers, mustached expressive face, scuffed silver helmet with blue top stripe, royal blue cloth short-sleeved tunic, leather belt and boots. Realistic stylized miniature PBR cloth weave, skin, hammered metal, brown leather. Keep the complete person and cannonball only, no base/pedestal/background. Neutral material without baked directional light.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 6000,
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "cliff",
+      "filename": "cliff.glb",
+      "sha256": "4baf15c61d9f96c4ab0c98f4ba6f62c9628148428657d761471234d8c763b00e",
+      "bytes": 13912092,
+      "reference": "../references/cliff-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/8ccb2b08-c52a-4efe-bed0-c22d2ec62dcd",
+      "generation": {
+        "prompt": "A single broad limestone cliff ledge exactly matching the reference. Sheer jagged pale limestone faces with deep vertical fissures and layered angular erosion, mossy olive grass turf cap on top and scattered embedded stone chips. Closed freestanding terrain segment, wide rectangular natural outcrop 2 wide:1 tall:0.8 deep. No trees, no water, no buildings, no base platform, no backdrop. Premium stylized realistic miniature materials, highly detailed PBR pale limestone, green moss and dry grass; neutral unbaked lighting.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 12000,
+        "geometry_file_format": "glb",
+        "texture_delight": true
+      }
+    },
+    {
+      "name": "lookout",
+      "filename": "lookout.glb",
+      "sha256": "ec9c16a0249cc2136755c8aadc835e9d8d77d21ca2582cb576fea4e3e090eacd",
+      "bytes": 10918816,
+      "reference": "../references/lookout-reference.png",
+      "result": "https://hyper3d.ai/workspace/rodin/f286dbc8-78f1-44bf-b1d7-9a33df2aff00",
+      "generation": {
+        "prompt": "A single medieval square timber fighting-gallery crown as shown, no stone tower. Heavy weathered honey oak plank parapets, four corner posts, open rectangular viewing slots, interior floor, underside corbel braces. Four-sided blue grey slate hip roof with layered thick chipped tiles, oak ridge caps, thick eaves and visible rafters. Dark iron nail heads. Complete closed freestanding building piece approximately 6m wide 6m deep 4m high. No people, no cloth banners, no ground or background. Preserve actual openings. Premium detailed stylized miniature PBR.",
+        "tier": "Gen-2.5-High",
+        "mesh_mode": "Raw",
+        "quality_override": 18000,
+        "geometry_file_format": "glb",
+        "texture_delight": true
+      }
+    }
+  ]
+}

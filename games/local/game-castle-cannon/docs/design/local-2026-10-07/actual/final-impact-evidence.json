@@ -1,0 +1,183 @@
+{
+  "shot": {
+    "ammo": "blast",
+    "ruleX": 680,
+    "ruleY": 160,
+    "firedAt": 2.9999999999999973
+  },
+  "clock": "Artifact-only Playwright Clock; fixed Date freezes rule time while real GPU drains. Native CDP mouse, no state edits. Not a performance benchmark.",
+  "sameCamera": true,
+  "initial": {
+    "name": "final-initial",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 5,
+      "frameBattleTime": 0,
+      "impact": {
+        "x": 0,
+        "y": 0,
+        "ammo": "",
+        "age": -1,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "aim": null,
+      "cannon": [-1.15, 0.3],
+      "lowPower": false,
+      "triangles": 214512,
+      "calls": 29,
+      "cachedWorldTriangles": 1675478,
+      "cachedWorldCalls": 94,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 0
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 3,
+        "x": 649.3173619877754,
+        "y": 312.67838516452923
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "breached": {
+    "name": "final-breached",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 12,
+      "frameBattleTime": 2.9999999999999973,
+      "impact": {
+        "x": 590,
+        "y": 280,
+        "ammo": "solid",
+        "age": 2.6199999999999974,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "aim": null,
+      "cannon": [-1.4464419213968935, 0.1533146512940419],
+      "lowPower": false,
+      "triangles": 209116,
+      "calls": 44,
+      "cachedWorldTriangles": 1676094,
+      "cachedWorldCalls": 109,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 250
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 649.3173619877754,
+        "y": 312.67838516452923
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "peak": {
+    "name": "final-impact-peak",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 18,
+      "frameBattleTime": 3.4799999999999955,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 0.09999999999999995,
+        "core": true,
+        "halo": true,
+        "flyingStone": 18,
+        "smoke": 9
+      },
+      "aim": null,
+      "cannon": [-1.3793115608973927, 0.6816277017089372],
+      "lowPower": false,
+      "triangles": 216474,
+      "calls": 93,
+      "cachedWorldTriangles": 1677440,
+      "cachedWorldCalls": 158,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 193
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 649.3173619877754,
+        "y": 312.67838516452923
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "end": {
+    "name": "final-impact-end",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 25,
+      "frameBattleTime": 4.779999999999991,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 1.3999999999999968,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "aim": null,
+      "cannon": [-1.377710633978263, 0.6942269277199911],
+      "lowPower": false,
+      "triangles": 205616,
+      "calls": 43,
+      "cachedWorldTriangles": 1666582,
+      "cachedWorldCalls": 107,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 191
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 649.3173619877754,
+        "y": 312.67838516452923
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "errors": []
+}

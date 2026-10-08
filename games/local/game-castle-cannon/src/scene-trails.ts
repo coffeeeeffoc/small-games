@@ -1,6 +1,6 @@
 import * as T from 'three';
 import type { View } from './view.js';
-import { moduleAimPoint, modulePosition, soldierPosition } from './scene-space.js';
+import { worldAimPoint, modulePosition, soldierPosition } from './scene-space.js';
 import { arrowVictim } from './scene-units.js';
 export function updateTrails(
   v: View,
@@ -13,8 +13,7 @@ export function updateTrails(
   const b = v.b;
   aim.visible = reticle.visible = !!v.aim && v.screen === 'playing';
   if (v.aim) {
-    const module = b.modules.find((m) => Math.hypot(m.x - v.aim!.x, m.y - v.aim!.y) < 2),
-      point = module ? moduleAimPoint(module, b) : new T.Vector3(8, 0.5, 10);
+    const point = worldAimPoint(v.aim, b);
     reticle.position.copy(point);
     reticle.quaternion.copy(camera.quaternion);
     const points = Array.from({ length: 21 }, (_, i) => {

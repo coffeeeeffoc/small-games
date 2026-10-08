@@ -1,0 +1,23 @@
+{
+  "environment": "win32 Chromium desktop / CDP simulated touch; not WeChat device",
+  "renderer": "Real Three.js WebGL2 at default quality; unchanged rules",
+  "records": [
+    {
+      "name": "touch-portrait",
+      "touch": true,
+      "iframe": false,
+      "resizeCancelsDrag": true,
+      "rotationPreservesBattle": true,
+      "retry": true
+    },
+    {
+      "name": "iframe",
+      "touch": true,
+      "iframe": true,
+      "resizeCancelsDrag": true,
+      "rotationPreservesBattle": true,
+      "retry": true
+    }
+  ],
+  "errors": []
+}

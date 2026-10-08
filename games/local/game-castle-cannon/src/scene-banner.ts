@@ -1,6 +1,6 @@
 import * as T from 'three';
 import type { MeshKit } from './scene-mesh.js';
-/** Cloth has real folds and a tapered split hem; its sun crest is our original heraldry. */
+/** Draped cloth and a geometric fleur-de-lys stay readable at phone size. */
 export function drapedBanner(
   k: MeshKit,
   parent: T.Object3D,
@@ -30,28 +30,39 @@ export function drapedBanner(
   cloth.material.side = T.DoubleSide;
   k.materials.set(`banner:${x}:${z}:${blue}`, cloth.material);
   k.box(parent, x, y + 0.05, z, w + 0.5, 0.15, 0.18, '#946835');
-  const sun = k.mesh(
-    parent,
-    new T.CircleGeometry(w * 0.19, 12),
-    '#edd59b',
-    x,
-    y - h * 0.4,
-    z + 0.18,
-  );
-  sun.castShadow = false;
-  for (let ray = 0; ray < 8; ray++) {
-    const a = (ray * Math.PI) / 4;
-    const beam = k.box(
-      parent,
-      x + Math.sin(a) * w * 0.28,
-      y - h * 0.4 + Math.cos(a) * w * 0.28,
-      z + 0.18,
-      w * 0.06,
-      w * 0.16,
-      0.025,
-      '#edd59b',
-      0,
-    );
-    beam.rotation.z = -a;
+  heraldry(k, parent, x, y - h * 0.43, z + 0.18, w * 0.53);
+}
+export function heraldry(
+  k: MeshKit,
+  parent: T.Object3D,
+  x: number,
+  y: number,
+  z: number,
+  size: number,
+) {
+  const key = 'fleur-de-lys';
+  if (!k.geometries.has(key)) {
+    const s = new T.Shape();
+    s.moveTo(0, 1);
+    s.bezierCurveTo(-0.32, 0.65, -0.22, 0.34, -0.1, 0.08);
+    s.bezierCurveTo(-0.46, 0.78, -0.9, 0.34, -0.61, 0.05);
+    s.bezierCurveTo(-0.48, -0.09, -0.37, 0.23, -0.15, -0.12);
+    s.lineTo(-0.33, -0.14);
+    s.lineTo(-0.33, -0.26);
+    s.lineTo(-0.14, -0.26);
+    s.lineTo(-0.3, -0.57);
+    s.lineTo(0, -0.4);
+    s.lineTo(0.3, -0.57);
+    s.lineTo(0.14, -0.26);
+    s.lineTo(0.33, -0.26);
+    s.lineTo(0.33, -0.14);
+    s.lineTo(0.15, -0.12);
+    s.bezierCurveTo(0.37, 0.23, 0.48, -0.09, 0.61, 0.05);
+    s.bezierCurveTo(0.9, 0.34, 0.46, 0.78, 0.1, 0.08);
+    s.bezierCurveTo(0.22, 0.34, 0.32, 0.65, 0, 1);
+    k.geometries.set(key, new T.ShapeGeometry(s, 6));
   }
+  const emblem = k.mesh(parent, k.geometries.get(key)!, '#edd59b', x, y, z);
+  emblem.scale.setScalar(size);
+  emblem.castShadow = false;
 }

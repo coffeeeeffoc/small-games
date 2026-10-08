@@ -1,5 +1,5 @@
 import { C, W, H, box, text, scenery, castle, cannon, flag, projectiles } from './art.js';
-import { alive, type Battle, type Ammo } from './rules.js';
+import { alive, type Battle, type Ammo, type Aim } from './rules.js';
 import { battleHud } from './battle-hud.js';
 import { LEVELS } from './levels.js';
 import type { Progress } from './progress.js';
@@ -27,7 +27,7 @@ export interface View {
   p: Progress;
   level: number;
   ammo: Ammo;
-  aim: { x: number; y: number } | null;
+  aim: Aim | null;
   message: string;
   feedback: string;
   feedbackUntil: number;

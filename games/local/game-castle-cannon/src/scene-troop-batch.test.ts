@@ -19,7 +19,7 @@ it('batches independent troop positions and hides actual casualties without chan
   batch.sync();
   expect(batch.poses[0]!.visible).toBe(false);
   expect(batch.poses[1]!.visible).toBe(true);
-  expect(batch.root.children).toHaveLength(13);
+  expect(batch.root.children).toHaveLength(2); // one textured soldier batch plus contact shadows
   const mesh = batch.root.children[0] as T.InstancedMesh,
     matrix = new T.Matrix4();
   expect(mesh.count).toBe(11);

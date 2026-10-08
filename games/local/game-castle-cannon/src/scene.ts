@@ -8,7 +8,7 @@ import { SceneShadows } from './scene-shadows.js';
 import { updateTrails } from './scene-trails.js';
 import { TroopBatch } from './scene-troop-batch.js';
 import { disposeVariantGeometry } from './scene-compact.js';
-import { pickModule } from './scene-picking.js';
+import { pickModule, pickSurface } from './scene-picking.js';
 import { MeshKit } from './scene-mesh.js';
 import { terrain } from './scene-terrain.js';
 import { foreground } from './scene-foreground.js';
@@ -36,6 +36,7 @@ export class SiegeScene {
   readonly kit = new MeshKit();
   readonly renderer: T.WebGLRenderer;
   private modules = new Map<string, T.Group>();
+  private aimingSurfaces: T.Object3D[] = [];
   private rubble = new Map<string, T.Group>();
   private troops: T.Group[] = [];
   private troopBatch: TroopBatch | null = null;
@@ -86,16 +87,17 @@ export class SiegeScene {
       antialias: true,
       preserveDrawingBuffer: true,
     });
-    this.renderer.setSize(768, 432, false);
+    this.renderer.setSize(1280, 720, false);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.95;
+    this.renderer.toneMappingExposure = 1.08;
     this.environment = siegeLight(this.scene, this.renderer);
     const roots = [terrain(this.kit), castleShell(this.kit), foreground(this.kit)];
     this.scene.add(...roots);
+    this.aimingSurfaces = roots.slice(0, 2);
     this.world = new WorldCache(this.renderer, roots, cacheWorld);
     this.cannon = cannonModel(this.kit);
     this.scene.add(this.cannon.base);
@@ -140,7 +142,7 @@ export class SiegeScene {
         } else this.kit.rock(debris, x, 0.3, z, 0.45 + (i % 3) * 0.22, '#c9b58e');
       }
       if (m.kind === 'gate') brokenGateLeaves(this.kit, debris, p.x, p.z);
-      this.kit.compact(debris);
+      if (m.kind !== 'gate') this.kit.compact(debris);
       this.rubble.set(m.id, debris);
       this.scene.add(debris);
       this.world.registerDynamic(debris);
@@ -161,7 +163,10 @@ export class SiegeScene {
     }));
   }
   pick(x: number, y: number, b: Battle) {
-    return pickModule(x, y, b, this.camera, this.modules) ?? { x: 230, y: 100 };
+    return (
+      pickModule(x, y, b, this.camera, this.modules) ??
+      pickSurface(x, y, this.camera, this.aimingSurfaces)
+    );
   }
   needsFrame() {
     return this.frame.pending;
@@ -177,7 +182,7 @@ export class SiegeScene {
     if (!this.frame.ready()) return this.surface.image;
     if (this.lowPower !== v.p.lowPower) {
       this.lowPower = v.p.lowPower;
-      this.renderer.setSize(this.lowPower ? 384 : 768, this.lowPower ? 216 : 432, false);
+      this.renderer.setSize(this.lowPower ? 384 : 1280, this.lowPower ? 216 : 720, false);
       this.renderer.shadowMap.enabled = !this.lowPower;
       this.renderer.shadowMap.needsUpdate = true;
       this.quality.apply(this.scene, this.lowPower);
@@ -194,6 +199,15 @@ export class SiegeScene {
         debris = this.rubble.get(m.id)!;
       const age = m.destroyedAt === null ? 0 : b.time - m.destroyedAt;
       debris.visible = m.hp <= 0;
+      if (m.kind === 'gate' && m.hp <= 0) {
+        const t = v.p.motion ? Math.min(1, age / 0.8) : 1,
+          p = modulePosition(m, b);
+        for (const leaf of debris.userData.leaves as T.Group[]) {
+          const side = Number(leaf.userData.side);
+          leaf.position.set(p.x + side * 2.6 * t, 0.1, p.z + t * 2.8);
+          leaf.rotation.set(-0.18 * t, side * 0.48 * t, -side * 0.25 * t);
+        }
+      }
       model.visible = m.hp > 0 || m.kind === 'tower';
       const facing = model.userData.facing as T.Group | undefined;
       if (facing) facing.visible = m.hp === m.maxHp;
@@ -218,7 +232,7 @@ export class SiegeScene {
     this.troopBatch?.sync();
     this.shadows.update(b, orientCannon(this.cannon, b, v), this.renderer);
     this.cannon.base.updateMatrixWorld(true);
-    const origin = this.cannon.barrel.localToWorld(new T.Vector3(0, 0, -3.1));
+    const origin = this.cannon.barrel.localToWorld(new T.Vector3(0, 0.16, -4.2));
     this.effects.update(b, v.p.motion, origin);
     updateTrails(v, origin, this.camera, this.aim, this.reticle, this.arrow);
     this.world.draw(
@@ -238,6 +252,8 @@ export class SiegeScene {
       submittedFrames: this.submittedFrames,
       frameBattleTime: this.frameBattleTime,
       impact: this.effects.metrics(),
+      aim: this.reticle.visible ? this.reticle.position.toArray() : null,
+      cannon: [this.cannon.base.rotation.y, this.cannon.barrel.rotation.x],
       lowPower: this.lowPower,
       triangles: this.renderer.info.render.triangles,
       calls: this.renderer.info.render.calls,

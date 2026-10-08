@@ -32,7 +32,7 @@ export function foreground(k: MeshKit) {
     k.box(g, x!, bottom / 2, z!, 0.65, -bottom + 0.5, 0.65, '#8d6236', 0.08);
     k.rock(g, x!, bottom + 0.12, z!, 0.65, '#938b73');
   }
-  k.flag(g, -26, 0.3, 18, true, 1.8);
+  k.flag(g, -29.5, 0.3, 17, true, 1.8);
   for (let i = 0; i < 4; i++) {
     k.box(g, -26, 0.6, 19 + i * 1.4, 1.35, 1.3, 1.3, '#bda984', 0.08);
     if (i % 2) k.box(g, -26, 1.6, 19 + i * 1.4, 1.4, 0.7, 1.1, '#d4c19b', 0.08);

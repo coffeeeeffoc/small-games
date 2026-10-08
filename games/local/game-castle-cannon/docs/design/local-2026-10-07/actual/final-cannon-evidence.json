@@ -1,0 +1,47 @@
+{
+  "artView": "cannon",
+  "initial": {
+    "name": "final-cannon-initial",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 5,
+      "frameBattleTime": 0,
+      "impact": {
+        "x": 0,
+        "y": 0,
+        "ammo": "",
+        "age": -1,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "aim": null,
+      "cannon": [-1.15, 0.3],
+      "lowPower": false,
+      "triangles": 174232,
+      "calls": 9,
+      "cachedWorldTriangles": 1634298,
+      "cachedWorldCalls": 69,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 0
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 3,
+        "x": 883.8575105863982,
+        "y": 105.27127316877157
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": 775.106650095864,
+        "y": -244.23090880641232
+      }
+    ]
+  },
+  "errors": []
+}

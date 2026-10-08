@@ -35,7 +35,7 @@ export function valleyHeight(x: number, z: number) {
   let y =
     water -
     2 +
-    ledge(5.8, 12.5) * (terrace - water + 2) +
+    ledge(8.2, 11.5) * (terrace - water + 2) +
     ledge(28, 36) * (5 + broad * 4) +
     ledge(53, 67) * (7 + broad * 5) +
     erosion * ledge(9, 13);

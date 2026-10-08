@@ -1,11 +1,15 @@
 /* global document */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
 const root = fileURLToPath(new URL('../', import.meta.url));
+const output = path.resolve(root, process.env.SIEGE_CAPTURE_DIR ?? 'docs/design/immersive');
+const prefix = process.env.SIEGE_CAPTURE_PREFIX ?? 'approach';
+const artView = process.env.SIEGE_ART_VIEW;
+await mkdir(output, { recursive: true });
 const server = createServer(async (req, res) => {
   try {
     const name = new URL(req.url, 'http://local').pathname;
@@ -45,7 +49,9 @@ try {
   const epoch = new Date('2026-10-06T08:00:00Z');
   await page.clock.install({ time: epoch });
   await page.clock.pauseAt(new Date(epoch.valueOf() + 1000));
-  await page.goto(`http://127.0.0.1:${server.address().port}/?dev=0`);
+  await page.goto(
+    `http://127.0.0.1:${server.address().port}/?${artView ? `dev=1&artView=${encodeURIComponent(artView)}` : 'dev=0'}`,
+  );
   await expect
     .poll(() => page.evaluate(() => document.querySelector('.castle-root')?.dataset.ready), {
       timeout: 30000,
@@ -127,66 +133,75 @@ try {
       format: 'png',
       captureBeyondViewport: false,
     });
-    await writeFile(
-      path.join(root, 'docs/design/immersive', name + '.png'),
-      Buffer.from(image.data, 'base64'),
-    );
+    await writeFile(path.join(output, name + '.png'), Buffer.from(image.data, 'base64'));
     return { name, renderer: await frame(), targets: JSON.parse(await attr('data-targets')) };
   };
   await click('[data-action="start"]');
   await freezeAndDrain();
-  await page.clock.setSystemTime(new Date(await page.evaluate(() => Date.now())));
-  await shoot(590);
-  await advance(3000);
-  const gate = JSON.parse(await attr('data-targets')).find((t) => t.ruleX === 590);
-  assert.equal(gate.hp, 0);
-  // Drain the gate's changed architecture before firing the single, recorded upper-tower event.
-  const readyTime = await freezeAndDrain();
-  await page.clock.setSystemTime(new Date(readyTime));
-  await click('[data-action="blast"]');
-  const firedAt = (await frame()).frameBattleTime;
-  await shoot(680);
-  await advance(480);
-  const peakTime = await freezeAndDrain();
-  const peak = await save('approach-impact-peak');
-  assert.equal(peak.renderer.impact.ammo, 'blast');
-  assert.equal(peak.renderer.impact.x, 680);
-  assert(
-    peak.renderer.impact.age >= 0.07 && peak.renderer.impact.age <= 0.14,
-    `Wrong peak age: ${peak.renderer.impact.age}`,
-  );
-  assert.equal(peak.renderer.impact.core, true);
-  assert.equal(peak.renderer.impact.flyingStone, 18);
-  assert.equal(peak.targets.find((t) => t.ruleX === 680).hp, 1);
-  await page.clock.setSystemTime(new Date(peakTime));
-  await advance(1300);
-  await freezeAndDrain();
-  const end = await save('approach-impact-end');
-  assert.equal(end.renderer.impact.core, false);
-  assert.equal(end.renderer.impact.halo, false);
-  assert.equal(end.renderer.impact.flyingStone, 0);
-  assert.equal(end.renderer.impact.smoke, 0);
-  assert.equal(end.targets.find((t) => t.ruleX === 680).hp, 1);
-  assert.deepEqual(errors, []);
-  await writeFile(
-    path.join(root, 'docs/design/immersive/approach-impact-evidence.json'),
-    JSON.stringify(
-      {
-        shot: { ammo: 'blast', ruleX: 680, ruleY: 160, firedAt },
-        clock:
-          'Artifact-only Playwright Clock; fixed Date freezes rule time while real GPU drains. Native CDP mouse, no state edits. Not a performance benchmark.',
-        sameCamera: true,
-        peak,
-        end,
-        errors,
-      },
-      null,
-      2,
-    ) + '\n',
-  );
-  console.log(
-    'Same real shot: fixed-age impact peak and effect end with persistent breach verified.',
-  );
+  const initial = await save(`${prefix}-initial`);
+  if (!artView) {
+    await page.clock.setSystemTime(new Date(await page.evaluate(() => Date.now())));
+    await shoot(590);
+    await advance(3000);
+    const gate = JSON.parse(await attr('data-targets')).find((t) => t.ruleX === 590);
+    assert.equal(gate.hp, 0);
+    // Drain the gate's changed architecture before firing the single, recorded upper-tower event.
+    const readyTime = await freezeAndDrain();
+    const breached = await save(`${prefix}-breached`);
+    await page.clock.setSystemTime(new Date(readyTime));
+    await click('[data-action="blast"]');
+    const firedAt = (await frame()).frameBattleTime;
+    await shoot(680);
+    await advance(480);
+    const peakTime = await freezeAndDrain();
+    const peak = await save(`${prefix}-impact-peak`);
+    assert.equal(peak.renderer.impact.ammo, 'blast');
+    assert.equal(peak.renderer.impact.x, 680);
+    assert(
+      peak.renderer.impact.age >= 0.07 && peak.renderer.impact.age <= 0.14,
+      `Wrong peak age: ${peak.renderer.impact.age}`,
+    );
+    assert.equal(peak.renderer.impact.core, true);
+    assert.equal(peak.renderer.impact.flyingStone, 18);
+    assert.equal(peak.targets.find((t) => t.ruleX === 680).hp, 1);
+    await page.clock.setSystemTime(new Date(peakTime));
+    await advance(1300);
+    await freezeAndDrain();
+    const end = await save(`${prefix}-impact-end`);
+    assert.equal(end.renderer.impact.core, false);
+    assert.equal(end.renderer.impact.halo, false);
+    assert.equal(end.renderer.impact.flyingStone, 0);
+    assert.equal(end.renderer.impact.smoke, 0);
+    assert.equal(end.targets.find((t) => t.ruleX === 680).hp, 1);
+    assert.deepEqual(errors, []);
+    await writeFile(
+      path.join(output, `${prefix}-impact-evidence.json`),
+      JSON.stringify(
+        {
+          shot: { ammo: 'blast', ruleX: 680, ruleY: 160, firedAt },
+          clock:
+            'Artifact-only Playwright Clock; fixed Date freezes rule time while real GPU drains. Native CDP mouse, no state edits. Not a performance benchmark.',
+          sameCamera: true,
+          initial,
+          breached,
+          peak,
+          end,
+          errors,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+    console.log(
+      'Same real shot: fixed-age impact peak and effect end with persistent breach verified.',
+    );
+  } else {
+    assert.deepEqual(errors, []);
+    await writeFile(
+      path.join(output, `${prefix}-evidence.json`),
+      JSON.stringify({ artView, initial, errors }, null, 2) + '\n',
+    );
+  }
 } finally {
   await browser.close();
   server.close();

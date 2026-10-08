@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { MeshKit } from './scene-mesh.js';
-import { moduleAimPoint } from './scene-space.js';
+import { worldAimPoint } from './scene-space.js';
 import type { Battle } from './rules.js';
 /** Bounded pools: no particle spawning in the frame loop. */
 export class SiegeEffects {
@@ -26,9 +26,45 @@ export class SiegeEffects {
       m.castShadow = false;
       this.dust.push(m);
     }
-    for (let i = 0; i < 18; i++) this.chips.push(k.rock(this.group, 0, 0, 0, 0.24, '#c0ae88'));
+    for (let i = 0; i < 18; i++)
+      this.chips.push(
+        k.box(
+          this.group,
+          0,
+          0,
+          0,
+          0.24 + (i % 3) * 0.14,
+          0.18 + (i % 2) * 0.15,
+          0.25 + (i % 4) * 0.09,
+          '#c0ae88',
+          0.08,
+        ),
+      );
     this.flash = k.sphere(this.group, 0, 0, 0, 0.75, '#ffd278');
     this.flash.material = new T.MeshBasicMaterial({ color: '#fff2ca', toneMapped: false });
+    const vertices = this.flash.geometry.getAttribute('position');
+    for (let i = 0; i < vertices.count; i++) {
+      const x = vertices.getX(i),
+        y = vertices.getY(i),
+        z = vertices.getZ(i);
+      const swell = 0.88 + Math.sin(x * 17 + y * 9) * Math.cos(z * 13 - y * 7) * 0.22;
+      vertices.setXYZ(i, x * swell, y * swell, z * swell);
+    }
+    this.flash.geometry.computeVertexNormals();
+    this.flash.material.onBeforeCompile = (shader) => {
+      shader.vertexShader =
+        'varying vec3 vFireNormal;\n' +
+        shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvFireNormal=normalMatrix*normal;',
+        );
+      shader.fragmentShader =
+        'varying vec3 vFireNormal;\n' +
+        shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\ndiffuseColor.rgb=mix(vec3(1.0,0.18,0.012),vec3(3.0,2.2,0.75),pow(abs(normalize(vFireNormal).z),2.0));',
+        );
+    };
     this.flash.castShadow = false;
     this.haloTexture = impactGlow();
     this.halo = new T.Sprite(
@@ -42,8 +78,8 @@ export class SiegeEffects {
       }),
     );
     this.group.add(this.halo);
-    for (let i = 0; i < 10; i++) {
-      const ray: T.Mesh = k.mesh(this.group, new T.ConeGeometry(0.14, 2, 5), '#ffd278', 0, 0, 0);
+    for (let i = 0; i < 22; i++) {
+      const ray: T.Mesh = k.mesh(this.group, new T.ConeGeometry(0.038, 2, 4), '#ffd278', 0, 0, 0);
       ray.material = new T.MeshBasicMaterial({
         color: i % 2 ? '#ffd278' : '#fff2ca',
         toneMapped: false,
@@ -83,8 +119,7 @@ export class SiegeEffects {
       else this.event = { x: 0, y: 0, ammo: '', age: -1 };
       return;
     }
-    const target = b.modules.find((m) => Math.hypot(m.x - shot.x, m.y - shot.y) < 2);
-    const p = target ? moduleAimPoint(target, b) : new T.Vector3(8, 1, 8);
+    const p = worldAimPoint(shot, b);
     const age = -shot.remaining;
     this.event = { x: shot.x, y: shot.y, ammo: shot.ammo, age };
     this.impactTime = b.time - age;
@@ -118,14 +153,18 @@ export class SiegeEffects {
       );
       this.glow.position.copy(p);
       this.glow.intensity = (blast ? 42 : 5) * Math.max(0, 1 - age / (blast ? 0.38 : 0.2));
-      for (let i = 0; i < (blast ? 10 : 4); i++) {
+      for (let i = 0; i < (blast ? 22 : 10); i++) {
         const ray = this.rays[i]!,
           a = i * 2.399;
         const direction = new T.Vector3(Math.sin(a), Math.cos(a), 0.3).normalize();
         ray.visible = age < (blast ? 0.22 : 0.1);
-        ray.position.copy(p).addScaledVector(direction, 0.6 + age * 12);
+        ray.position.copy(p).addScaledVector(direction, 0.6 + age * (7 + (i % 5) * 2.4));
         ray.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), direction);
-        ray.scale.set(0.8, (blast ? 0.85 : 0.3) * Math.max(0.2, 1 - age * 3), 0.8);
+        ray.scale.set(
+          0.8,
+          (blast ? 0.45 : 0.25) * (0.5 + (i % 4) * 0.24) * Math.max(0.2, 1 - age * 3),
+          0.8,
+        );
       }
     }
     const count = motion ? (blast ? 9 : 3) : 2;
@@ -138,7 +177,7 @@ export class SiegeEffects {
         p.z + 0.4 + Math.cos(i * 3.7) * age * 3,
       );
       d.scale.setScalar((blast ? 0.55 : 0.23) + age * (blast ? 1.45 : 0.5));
-      (d.material as T.MeshStandardMaterial).opacity = Math.max(0, (1 - age / 0.8) * 0.38);
+      (d.material as T.MeshStandardMaterial).opacity = Math.max(0, (1 - age / 0.8) * 0.6);
     }
     if (motion)
       for (let i = 0; i < (blast ? 18 : 7); i++) {

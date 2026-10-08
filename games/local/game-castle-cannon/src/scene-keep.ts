@@ -56,7 +56,7 @@ function hall(
     );
   }
   k.box(g, x, base + h - 0.3, z + d / 2 + 0.2, w + 0.5, 0.6, 0.8, '#d5c29c', 0.14);
-  for (let row = 0; row < Math.min(6, Math.floor(h / 1.4)); row++)
+  for (let row = 0; row < Math.floor(h / 1.4); row++)
     for (let col = 0; col < Math.floor(w / 2); col++)
       k.box(
         g,
@@ -67,7 +67,20 @@ function hall(
         1.27,
         0.3,
         stones[(row + col) % 5]!,
-        0.11,
+        0.055,
+      );
+  for (let row = 0; row < Math.floor(h / 1.4); row++)
+    for (let col = 0; col < Math.floor(d / 2); col++)
+      k.box(
+        g,
+        x - w / 2 - 0.04,
+        base + h - 1 - row * 1.4,
+        z - d / 2 + 1.1 + col * 2,
+        0.3,
+        1.27,
+        1.82,
+        stones[(row + col) % 5]!,
+        0.055,
       );
   for (let i = 0; i < Math.floor(w / 3.4); i++) {
     const opening = new T.Shape();

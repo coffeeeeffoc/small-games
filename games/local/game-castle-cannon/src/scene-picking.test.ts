@@ -17,7 +17,7 @@ describe('visible siege targets', () => {
         const p = toScreen(moduleAimPoint(m, battle), camera);
         const expected =
           m.kind === 'obstacle' ? battle.modules.find((module) => module.kind === 'gate')! : m;
-        expect(pickModule(p.x, p.y, battle, camera, models), `all live: ${m.id}`).toEqual({
+        expect(pickModule(p.x, p.y, battle, camera, models), `all live: ${m.id}`).toMatchObject({
           x: expected.x,
           y: expected.y,
         });
@@ -28,7 +28,10 @@ describe('visible siege targets', () => {
         expect(p.x).toBeLessThan(960);
         expect(p.y).toBeGreaterThan(0);
         expect(p.y).toBeLessThan(540);
-        expect(pickModule(p.x, p.y, battle, camera, models), m.id).toEqual({ x: m.x, y: m.y });
+        expect(pickModule(p.x, p.y, battle, camera, models), m.id).toMatchObject({
+          x: m.x,
+          y: m.y,
+        });
         m.hp = 0;
         models.get(m.id)!.visible = false;
       }

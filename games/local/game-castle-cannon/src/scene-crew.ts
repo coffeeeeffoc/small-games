@@ -1,12 +1,9 @@
 import * as T from 'three';
 import type { MeshKit } from './scene-mesh.js';
-import { sculpture } from './scene-sculpture.js';
-import crewModel from './models/crew.json';
 /** Two visible working poses, authored together with the cannon rather than generic infantry. */
 export function workingCrew(k: MeshKit, parent: T.Group) {
-  const loader = new T.Group(),
-    gunner = new T.Group();
-  sculpture(k, crewModel, { loader, gunner });
+  const loader = k.person(true, 'load'),
+    gunner = k.person(true, 'load');
   for (const [crew, x, z] of [
     [loader, -18, 19],
     [gunner, -14.5, 18],

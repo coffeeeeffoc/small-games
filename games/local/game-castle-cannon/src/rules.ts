@@ -10,9 +10,12 @@ export interface Module extends ModuleSpec {
   maxHp: number;
   destroyedAt: number | null;
 }
-export interface Shot {
+export interface Aim {
   x: number;
   y: number;
+  sceneHit?: { point: { x: number; y: number; z: number }; targetId: string | null };
+}
+export interface Shot extends Aim {
   ammo: Ammo;
   remaining: number;
   hits: string[];
@@ -59,11 +62,18 @@ export function createBattle(level: Level, bonus = 0): Battle {
 export function alive(b: Battle) {
   return b.units.filter((u) => u.hp > 0);
 }
-export function shoot(b: Battle, ammo: Ammo, x: number, y: number): boolean {
+export function shoot(
+  b: Battle,
+  ammo: Ammo,
+  x: number,
+  y: number,
+  sceneHit?: Aim['sceneHit'],
+): boolean {
   if (
     b.result !== 'playing' ||
     b.reload > 0 ||
     ![x, y].every(Number.isFinite) ||
+    (sceneHit && ![sceneHit.point.x, sceneHit.point.y, sceneHit.point.z].every(Number.isFinite)) ||
     x < 220 ||
     x > 880 ||
     y < 95 ||
@@ -91,17 +101,28 @@ export function shoot(b: Battle, ammo: Ammo, x: number, y: number): boolean {
     .map((m) => ({ m, distance: Math.hypot(m.x - x, m.y - y) }))
     .filter((t) => t.distance <= t.m.radius)
     .sort((a, c) => a.distance - c.distance)[0]?.m;
-  const direct = aimed ?? targets[0]?.m;
+  const direct = sceneHit
+    ? b.modules.find((m) => m.id === sceneHit.targetId && m.hp > 0)
+    : (aimed ?? targets[0]?.m);
   const impact = direct ?? { x, y };
   const hits =
     ammo === 'solid'
       ? direct
         ? [direct.id]
         : []
-      : b.modules
-          .filter((m) => m.hp > 0 && Math.hypot(m.x - impact.x, m.y - impact.y) <= 84)
-          .map((m) => m.id);
-  b.shots.push({ x: impact.x, y: impact.y, ammo, remaining: 0.38, hits });
+      : sceneHit && !direct
+        ? []
+        : b.modules
+            .filter((m) => m.hp > 0 && Math.hypot(m.x - impact.x, m.y - impact.y) <= 84)
+            .map((m) => m.id);
+  b.shots.push({
+    x: impact.x,
+    y: impact.y,
+    ammo,
+    remaining: 0.38,
+    hits,
+    ...(sceneHit ? { sceneHit } : {}),
+  });
   b.reload = RELOAD;
   b.events.push({ time: b.time, type: ammo, target: hits.join(',') });
   b.notice = hits.length ? '炮弹出膛！' : '打空了，瞄准建筑';

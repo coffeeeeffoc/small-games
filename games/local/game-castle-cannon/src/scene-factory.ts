@@ -7,7 +7,7 @@ export function createSiegeScene(
   if (!factory) return null;
   let surface: CanvasRenderSurface | null = null;
   try {
-    surface = factory(768, 432);
+    surface = factory(1280, 720);
     if (!surface) return null;
     const context = surface.canvas.getContext('webgl2', {
       antialias: true,

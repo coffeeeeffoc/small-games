@@ -1,6 +1,8 @@
 import * as T from 'three';
 import type { MeshKit } from './scene-mesh.js';
 import { landNoise, riverCenter, riverSurface } from './scene-valley.js';
+import { sculpture } from './scene-sculpture.js';
+import cliff from './models/cliff-rodin.json';
 
 /** Unified mineral material on actual rock faces, using our original limestone source triplanarly. */
 export function canyonMaterial(k: MeshKit) {
@@ -64,7 +66,18 @@ export function canyonGround(
   const ground = new T.Mesh(geometry, canyonMaterial(k));
   ground.castShadow = ground.receiveShadow = true;
   parent.add(ground);
-  for (const side of [-1, 1]) canyonFace(k, parent, side, height);
+  for (const side of [-1, 1]) {
+    canyonFace(k, parent, side, height);
+    for (const z of [-13, -37, -72, -105, -140]) {
+      const ledge = new T.Group(),
+        x = riverCenter(z) + side * 9.5;
+      sculpture(k, cliff, { base: ledge });
+      ledge.scale.set(7, 8, 5);
+      ledge.rotation.y = (-side * Math.PI) / 2 + Math.sin(z) * 0.12;
+      ledge.position.set(x, height(riverCenter(z) + side * 15, z) - 7.6, z);
+      parent.add(ledge);
+    }
+  }
 }
 /** Continuous three-dimensional faces undercut the turf cap, with eroded strata and fissures. */
 function canyonFace(

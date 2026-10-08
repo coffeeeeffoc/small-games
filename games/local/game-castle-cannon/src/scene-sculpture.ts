@@ -1,6 +1,7 @@
 import * as T from 'three';
-import type { MeshKit } from './scene-mesh.js';
+import type { MeshKit, PbrMaps } from './scene-mesh.js';
 interface SculptedBatch {
+  id?: number;
   group: string;
   color: string;
   metal: number;
@@ -8,14 +9,16 @@ interface SculptedBatch {
   vertices: string;
   indices: string;
   occlusion?: string;
+  maps?: PbrMaps;
 }
 /** Blender-authored geometry is embedded: no browser-only fetch or native SDK dependency. */
 export function sculpture(k: MeshKit, data: SculptedBatch[], groups: Record<string, T.Group>) {
-  for (const batch of data) {
-    const key = `sculpture:${batch.group}:${batch.color}:${batch.metal}`;
+  for (const [index, batch] of data.entries()) {
+    const key = `sculpture:${batch.maps?.color ?? ''}:${batch.group}:${batch.color}:${batch.metal}:${batch.id ?? index}`;
     if (!k.geometries.has(key)) k.geometries.set(key, sculptedGeometry(batch));
     const geometry = k.geometries.get(key)!;
     const mesh = k.mesh(groups[batch.group]!, geometry, batch.color, 0, 0, 0, batch.metal);
+    if (batch.maps) mesh.material = k.pbrMaterial(batch.maps);
     if (batch.occlusion) {
       const materialKey = `${batch.color}:${batch.metal}:0.85:sculpture`;
       if (!k.materials.has(materialKey)) {

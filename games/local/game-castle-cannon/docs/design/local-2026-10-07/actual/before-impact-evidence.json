@@ -1,0 +1,175 @@
+{
+  "shot": {
+    "ammo": "blast",
+    "ruleX": 680,
+    "ruleY": 160,
+    "firedAt": 2.9999999999999973
+  },
+  "clock": "Artifact-only Playwright Clock; fixed Date freezes rule time while real GPU drains. Native CDP mouse, no state edits. Not a performance benchmark.",
+  "sameCamera": true,
+  "initial": {
+    "name": "before-initial",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 5,
+      "frameBattleTime": 0,
+      "impact": {
+        "x": 0,
+        "y": 0,
+        "ammo": "",
+        "age": -1,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "lowPower": false,
+      "triangles": 98512,
+      "calls": 80,
+      "cachedWorldTriangles": 713934,
+      "cachedWorldCalls": 178,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 0
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 3,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "breached": {
+    "name": "before-breached",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 15,
+      "frameBattleTime": 2.9999999999999973,
+      "impact": {
+        "x": 590,
+        "y": 280,
+        "ammo": "solid",
+        "age": 2.619999999999997,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "lowPower": false,
+      "triangles": 95180,
+      "calls": 81,
+      "cachedWorldTriangles": 714178,
+      "cachedWorldCalls": 178,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 200
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "peak": {
+    "name": "before-impact-peak",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 21,
+      "frameBattleTime": 3.4799999999999955,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 0.09999999999999995,
+        "core": true,
+        "halo": true,
+        "flyingStone": 18,
+        "smoke": 9
+      },
+      "lowPower": false,
+      "triangles": 99446,
+      "calls": 115,
+      "cachedWorldTriangles": 714868,
+      "cachedWorldCalls": 213,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 166
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "end": {
+    "name": "before-impact-end",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 28,
+      "frameBattleTime": 4.779999999999991,
+      "impact": {
+        "x": 680,
+        "y": 160,
+        "ammo": "blast",
+        "age": 1.3999999999999977,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "lowPower": false,
+      "triangles": 94424,
+      "calls": 77,
+      "cachedWorldTriangles": 714598,
+      "cachedWorldCalls": 202,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 171
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 0,
+        "x": 713.8938929389008,
+        "y": 303.2430332862555
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 1,
+        "x": 515.9257700128661,
+        "y": 105.84864308593382
+      }
+    ]
+  },
+  "errors": []
+}

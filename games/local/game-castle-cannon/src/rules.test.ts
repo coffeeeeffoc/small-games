@@ -38,6 +38,22 @@ describe('deterministic siege rules', () => {
     expect(shoot(b, 'solid', NaN, 0)).toBe(false);
     expect(() => step(b, -1)).toThrow();
   });
+  it('surface misses keep their 3D impact without damaging a content-space target', () => {
+    for (const ammo of ['solid', 'blast'] as const) {
+      const b = createBattle(LEVELS[0]);
+      const point = { x: 15, y: 4, z: 18 };
+      expect(shoot(b, ammo, 680, 160, { point, targetId: null })).toBe(true);
+      expect(b.shots[0].sceneHit?.point).toEqual(point);
+      step(b, 3);
+      expect(b.modules.map((m) => m.hp)).toEqual(LEVELS[0].modules.map((m) => m.hp));
+      expect(shoot(b, ammo, 680, 160, { point: { ...point, x: NaN }, targetId: 'tower' })).toBe(
+        false,
+      );
+      expect(shoot(b, 'solid', 680, 160, { point, targetId: 'tower' })).toBe(true);
+      step(b, 0.4);
+      expect(b.modules.find((m) => m.id === 'tower')?.hp).toBe(0);
+    }
+  });
   it('towers suppress troops, idle army cannot win, destruction prevents more casualties', () => {
     const b = createBattle(LEVELS[0]);
     step(b, 40);

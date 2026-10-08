@@ -1,4 +1,4 @@
-/* global document */
+/* global document, window */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { logicalPoint } from './screen-point.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const out = path.join(root, 'docs/design/immersive');
+const out = path.resolve(root, process.env.SIEGE_EVIDENCE_DIR ?? 'docs/design/immersive');
 const types = {
   '.js': 'text/javascript',
   '.css': 'text/css',
@@ -44,16 +44,19 @@ const browser = await chromium.launch({
 });
 const records = [],
   errors = [];
+let activePage, activeFrame;
 async function play(name, viewport, touch = false, iframe = false) {
   console.log(`Begin ${name}`);
   const context = await browser.newContext({ viewport, hasTouch: touch, isMobile: touch });
   const page = await context.newPage();
+  activePage = page;
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('response', (r) => {
     if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`);
   });
   await page.goto(base + (iframe ? '/fixture' : '/index.html?dev=0'));
   const frame = iframe ? await page.locator('iframe').contentFrame() : page;
+  activeFrame = frame;
   const ui = frame.locator('.castle-root'),
     canvas = frame.locator('#battle');
   await expect(ui).toHaveAttribute('data-ready', 'true');
@@ -61,42 +64,10 @@ async function play(name, viewport, touch = false, iframe = false) {
     cdp = touch ? protocol : null;
   let capturedAim = false;
   const click = async (id) => {
-    const b = frame.locator(`[data-action="${id}"]`);
-    if (touch) {
-      const rect = await b.evaluate((element) => {
-        const r = element.getBoundingClientRect();
-        return { x: r.x, y: r.y, width: r.width, height: r.height };
-      });
-      if (!rect) throw new Error(`Control unavailable: ${id}`);
-      await Promise.all([
-        cdp.send('Input.dispatchTouchEvent', {
-          type: 'touchStart',
-          touchPoints: [{ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, id: 1 }],
-        }),
-        cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }),
-      ]);
-    } else {
-      const p = await b.evaluate((element) => {
-        const r = element.getBoundingClientRect();
-        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-      });
-      await Promise.all([
-        protocol.send('Input.dispatchMouseEvent', {
-          type: 'mousePressed',
-          ...p,
-          button: 'left',
-          buttons: 1,
-          clickCount: 1,
-        }),
-        protocol.send('Input.dispatchMouseEvent', {
-          type: 'mouseReleased',
-          ...p,
-          button: 'left',
-          buttons: 0,
-          clickCount: 1,
-        }),
-      ]);
-    }
+    const button = frame.locator(`[data-action="${id}"]`);
+    // Playwright sends native input after layout/hit testing settles, including rotated viewports.
+    if (touch) await button.tap();
+    else await button.click();
   };
   // Software WebGL regression uses the same geometry/rules with the public power-saving option.
   if (!process.env.SIEGE_NORMAL_QUALITY) {
@@ -438,7 +409,7 @@ try {
     ),
     JSON.stringify(
       {
-        environment: 'Linux Chromium desktop / CDP simulated touch; not WeChat device',
+        environment: `${process.platform} Chromium desktop / CDP simulated touch; not WeChat device`,
         renderer: process.env.SIEGE_NORMAL_QUALITY
           ? 'Real Three.js WebGL2 at default quality; unchanged rules'
           : 'Real Three.js WebGL2 with public power-saving setting; unchanged rules',
@@ -450,6 +421,23 @@ try {
     ) + '\n',
   );
   console.log(JSON.stringify(records, null, 2));
+} catch (error) {
+  await activePage?.screenshot({ path: path.join(out, 'failure-state.png') });
+  const state = await activeFrame?.locator('.castle-root').evaluate((root) => ({
+    screen: root.dataset.screen,
+    rotated: root.dataset.rotated,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    buttons: [...root.querySelectorAll('[data-action]')].map((b) => ({
+      id: b.dataset.action,
+      rect: b.getBoundingClientRect().toJSON(),
+    })),
+  }));
+  await writeFile(
+    path.join(out, 'failure-state.json'),
+    JSON.stringify({ error: String(error), state }, null, 2),
+  );
+  throw error;
 } finally {
   await browser.close();
   await new Promise((r) => server.close(r));

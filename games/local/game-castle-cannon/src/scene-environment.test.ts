@@ -24,7 +24,7 @@ it('static batching preserves every tree instance and its authored placement', (
   material.dispose();
 });
 
-it('mixed groves grow on supported terrain and appear in the fixed valley view', () => {
+it('spruce groves grow on supported terrain and appear in the fixed valley view', () => {
   const kit = new MeshKit(),
     group = new T.Group(),
     camera = siegeCamera();
@@ -47,14 +47,14 @@ it('mixed groves grow on supported terrain and appear in the fixed valley view',
   }
   expect(total).toBeGreaterThan(100);
   expect(visible).toBeGreaterThan(35);
-  expect(group.children.length).toBe(6);
+  expect(group.children.length).toBe(1);
   kit.dispose();
 });
 
 it('continuous canyon, winding river and instanced groves batch without losing geometry', () => {
   const kit = new MeshKit(),
     landscape = terrain(kit);
-  expect(landscape.children.filter((o) => o instanceof T.InstancedMesh)).toHaveLength(6);
+  expect(landscape.children.filter((o) => o instanceof T.InstancedMesh)).toHaveLength(1);
   for (const mesh of landscape.children)
     if (mesh instanceof T.Mesh) {
       expect(mesh.geometry.getAttribute('position').count).toBeGreaterThan(0);

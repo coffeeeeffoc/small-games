@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>一炮拆城 · 原图与真实游戏对照</title>
+  <style>
+    body {
+      margin: 0;
+      background: #191b1d;
+      color: #eee4d4;
+      font:
+        16px/1.6 system-ui,
+        sans-serif;
+    }
+    main {
+      max-width: 1440px;
+      margin: auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    p {
+      color: #b9b8b2;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 20px 0;
+    }
+    button,
+    a {
+      color: inherit;
+    }
+    button {
+      background: #30363a;
+      border: 1px solid #7b7360;
+      border-radius: 7px;
+      padding: 10px 16px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button[aria-pressed='true'] {
+      background: #675334;
+      border-color: #d9b87a;
+    }
+    .pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    figure {
+      margin: 0 0 20px;
+    }
+    img {
+      width: 100%;
+      display: block;
+      background: #101214;
+    }
+    figcaption {
+      padding: 8px 0;
+      color: #c8bfae;
+    }
+    h2 {
+      font-size: 20px;
+      margin-top: 32px;
+    }
+    @media (max-width: 850px) {
+      .pair {
+        grid-template-columns: 1fr;
+      }
+      main {
+        padding: 14px;
+      }
+    }
+  </style>
+  <main>
+    <h1>一炮拆城 · 原图与真实游戏对照</h1>
+    <p>
+      2026-10-08 ·
+      左侧为用户认可原图，右侧为本机实际运行。游戏画面未修图；所有城墙、角色、炮车、地形与碎片均为实时三维物体。功能通过不等于原图美术验收通过。
+    </p>
+    <nav aria-label="实际战斗状态">
+      <button data-frame="initial" aria-pressed="true">开局</button>
+      <button data-frame="breached" aria-pressed="false">城门破坏后</button>
+      <button data-frame="impact-peak" aria-pressed="false">第二炮命中峰值</button>
+      <button data-frame="impact-end" aria-pressed="false">特效结束／缺口保留</button>
+    </nav>
+    <div class="pair">
+      <figure>
+        <img src="references/approved-battle.png" alt="用户认可的攻城全景效果图" />
+        <figcaption>目标原图 · 不用于游戏背景。</figcaption>
+      </figure>
+      <figure>
+        <img id="actual" src="actual/final-initial.png" alt="真实游戏开局" />
+        <figcaption id="caption">真实游戏 · 开局 · 固定机位 960×540。</figcaption>
+      </figure>
+    </div>
+    <p>
+      仍有差距：全景城池布局与原图并非完全重合；远城细节、自然地形衔接、烟尘层次和电影感光照仍较简化。固定游戏机位用于版本前后比较；下面近景为显式开发模式的审查机位。
+    </p>
+    <h2>近景资产已放回游戏</h2>
+    <figure>
+      <img src="references/approved-impact.png" alt="用户认可的门、塔与爆炸近景参考" />
+    </figure>
+    <div class="pair">
+      <figure>
+        <img src="actual/final-cannon-initial.png" alt="实际游戏炮车与炮兵近景" />
+        <figcaption>炮车：独立炮身俯仰、车架旋转、木纹、铁箍、铆钉与实际炮兵。</figcaption>
+      </figure>
+      <figure>
+        <img src="actual/final-gate-initial.png" alt="实际游戏城门石材近景" />
+        <figcaption>城门：PBR 木门、锻铁、崩角石灰岩；左右门叶使用同一资产破坏。</figcaption>
+      </figure>
+    </div>
+    <h2>同机位改动前后</h2>
+    <div class="pair">
+      <figure>
+        <img src="actual/before-initial.png" alt="本轮改动前实际游戏" />
+        <figcaption>起点 dev 的真实画面。</figcaption>
+      </figure>
+      <figure>
+        <img src="actual/final-initial.png" alt="本轮改动后实际游戏" />
+        <figcaption>本轮新模型与渲染调整。没有合入旧美术草稿分支。</figcaption>
+      </figure>
+    </div>
+    <p>
+      <a href="README.md">资产来源、复现命令与验证说明</a> ·
+      <a href="actual/aim-evidence.json">真实时钟连续瞄准与第二炮记录</a> ·
+      <a href="actual/final-impact-evidence.json">同一发炮弹的峰值／结束记录</a>
+    </p>
+  </main>
+  <script>
+    document.querySelectorAll('button[data-frame]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document
+          .querySelectorAll('button[data-frame]')
+          .forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+        const image = document.querySelector('#actual');
+        image.src = `actual/final-${button.dataset.frame}.png`;
+        image.alt = `真实游戏 · ${button.textContent}`;
+        document.querySelector('#caption').textContent = `${image.alt} · 固定机位 960×540。`;
+      });
+    });
+  </script>
+</html>

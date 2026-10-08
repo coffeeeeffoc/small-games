@@ -17,7 +17,7 @@
     "smoke": "node scripts/browser-check.mjs",
     "test:rules": "vitest run src/rules.test.ts",
     "test:native": "node scripts/native-check.mjs",
-    "test:input": "node scripts/input-check.mjs"
+    "test:input": "node scripts/input-check.mjs && node scripts/aim-check.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",

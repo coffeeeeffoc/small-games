@@ -1,0 +1,47 @@
+{
+  "artView": "gate",
+  "initial": {
+    "name": "close-gate-initial",
+    "renderer": {
+      "renderer": "three-webgl2",
+      "submittedFrames": 5,
+      "frameBattleTime": 0,
+      "impact": {
+        "x": 0,
+        "y": 0,
+        "ammo": "",
+        "age": -1,
+        "core": false,
+        "halo": false,
+        "flyingStone": 0,
+        "smoke": 0
+      },
+      "aim": null,
+      "cannon": [-1.15, 0.3],
+      "lowPower": false,
+      "triangles": 79364,
+      "calls": 32,
+      "cachedWorldTriangles": 662492,
+      "cachedWorldCalls": 91,
+      "renderMs": 0,
+      "meanFrameIntervalMs": 0
+    },
+    "targets": [
+      {
+        "ruleX": 590,
+        "ruleY": 280,
+        "hp": 3,
+        "x": 486.8410022420214,
+        "y": 264.1544852355862
+      },
+      {
+        "ruleX": 680,
+        "ruleY": 160,
+        "hp": 3,
+        "x": -104.21308954550742,
+        "y": -292.06733908971233
+      }
+    ]
+  },
+  "errors": []
+}

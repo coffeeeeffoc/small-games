@@ -1,0 +1,32 @@
+{
+  "environment": "Local desktop Chrome, native mouse/CDP touch, default quality, wall clock; no state edits or time mocks",
+  "records": [
+    {
+      "touch": false,
+      "defaultQuality": true,
+      "freeAimMoves": 5,
+      "aimResponseMaxMs": 50,
+      "firstAim": [-12.032119846885625, 7.080346006491723, 18.013226124083726],
+      "lastAim": [-1.195131408026242, 5.066160884294565, 15.76578171008191],
+      "firstCannon": [-1.7624638450257348, 0.14881554235818736],
+      "lastCannon": [-1.5826376725129003, 0.0400079624105656],
+      "secondShotDamagedTower": true,
+      "impactVisible": true,
+      "meanFrameIntervalMs": 16
+    },
+    {
+      "touch": true,
+      "defaultQuality": true,
+      "freeAimMoves": 5,
+      "aimResponseMaxMs": 64,
+      "firstAim": [-12.032119845418105, 7.08034588583034, 18.013226117128486],
+      "lastAim": [-1.1951314053476452, 5.066160738997388, 15.765781712583436],
+      "firstCannon": [-1.7624638352394844, 0.14881554215272613],
+      "lastCannon": [-1.5177761347573437, 0.024031924462693918],
+      "secondShotDamagedTower": true,
+      "impactVisible": true,
+      "meanFrameIntervalMs": 17
+    }
+  ],
+  "errors": []
+}

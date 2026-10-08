@@ -9,6 +9,7 @@ import manifest from './manifest.json';
 import { aimPoint } from './projection.js';
 import { createSiegeScene } from './scene-factory.js';
 import type { TargetPoint } from './scene.js';
+import type { Aim } from './rules.js';
 import { createSession } from './session.js';
 import { draw, W, H, type Hit } from './view.js';
 export const castleCannonManifest = gameManifestSchema.parse(manifest);
@@ -67,6 +68,19 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
       dev && new URLSearchParams(window.location.search).get('renderProbe') === 'uncached'
     );
     const scene = createSiegeScene(target.createRenderSurface, cacheWorld);
+    if (dev && scene) {
+      const review = new URLSearchParams(window.location.search).get('artView');
+      if (review === 'cannon' || review === 'gate') {
+        if (review === 'cannon') {
+          scene.camera.position.set(-31, 11, 27);
+          scene.camera.lookAt(-20, 3.8, 14);
+        } else {
+          scene.camera.position.set(-6, 6.5, 32);
+          scene.camera.lookAt(5.5, 5.5, 14);
+        }
+        scene.camera.updateMatrixWorld(true);
+      }
+    }
     if (scene && target.loadImage) await scene.loadMaterials(target.loadImage);
     const sceneAttached = scene
       ? (target.installScene?.(scene.renderer.domElement) ?? false)
@@ -127,11 +141,11 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
       const hit = hits.find(
         (h) => !h.disabled && x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h,
       );
-      const aim =
+      const aim: Aim =
         session.v.screen === 'playing'
           ? (scene?.pick(x, y, session.v.b) ?? aimPoint(x, y, session.v.b))
           : { x, y };
-      session.input(e.phase, e.pointerId, aim.x, aim.y, hit?.id ?? null);
+      session.input(e.phase, e.pointerId, aim.x, aim.y, hit?.id ?? null, aim.sceneHit);
       render(false);
     }
     const stops = [
@@ -191,7 +205,7 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
           ])
       )
         render();
-    }, 33);
+    }, 16);
     return {
       pause() {
         suspended = true;

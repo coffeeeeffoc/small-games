@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { MeshKit } from './scene-mesh.js';
 import { sculpture } from './scene-sculpture.js';
-import model from './models/cannon.json';
+import model from './models/cannon-rodin.json';
 export function cannonModel(k: MeshKit) {
   const base = new T.Group(),
     barrel = new T.Group();

@@ -1,6 +1,6 @@
 import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
 import { LEVELS } from './levels.js';
-import { createBattle, shoot, step } from './rules.js';
+import { createBattle, shoot, step, type Aim } from './rules.js';
 import { newProgress, readProgress, settle } from './progress.js';
 import type { View, Screen } from './view.js';
 export async function createSession(
@@ -175,23 +175,25 @@ export async function createSession(
     x: number,
     y: number,
     hit: string | null,
+    sceneHit?: Aim['sceneHit'],
   ) {
     if (hidden || disposed || v.busy) return;
     if (phase === 'down') {
       if (pointer) return;
       pointer = { id, hit };
-      if (!hit && v.screen === 'playing') v.aim = { x, y };
+      if (!hit && v.screen === 'playing') v.aim = { x, y, sceneHit };
     } else if (pointer?.id === id) {
-      if (phase === 'move' && !pointer.hit && !hit && v.screen === 'playing') v.aim = { x, y };
+      if (phase === 'move' && !pointer.hit && !hit && v.screen === 'playing')
+        v.aim = { x, y, sceneHit };
       if (phase === 'up') {
         const from = pointer.hit;
         pointer = null;
-        const aim = hit && v.aim ? v.aim : { x, y };
+        const aim = hit && v.aim ? v.aim : { x, y, sceneHit };
         v.aim = null;
         if (from) {
           if (from === hit) action(from);
         } else if (v.screen === 'playing') {
-          if (shoot(v.b, v.ammo, aim.x, aim.y)) {
+          if (shoot(v.b, v.ammo, aim.x, aim.y, aim.sceneHit)) {
             playSound('fire');
             v.feedback = '炮弹出膛';
           } else

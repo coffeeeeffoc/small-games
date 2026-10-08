@@ -267,7 +267,11 @@ try {
   }
   assert.deepEqual(errors, []);
   await writeFile(
-    path.join(root, 'docs/design/immersive/input-evidence.json'),
+    path.resolve(
+      root,
+      process.env.SIEGE_EVIDENCE_DIR ?? 'docs/design/immersive',
+      'input-evidence.json',
+    ),
     JSON.stringify(
       {
         environment:
