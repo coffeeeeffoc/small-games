@@ -501,6 +501,36 @@ test('bare planning jobs install only the reviewed pinned parser without changin
     assert.equal(classify(file, before + '\n# unknown baseline\n', after).has(file), false);
   }
 });
+
+test('cumulative main workflow repairs retain exact reviewed producer boundaries', async () => {
+  const { execFileSync } = await import('node:child_process');
+  for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+    const read = (ref) => execFileSync('git', ['show', `${ref}:${file}`], { encoding: 'utf8' });
+    const before = read('b551fe6e7d7f2bc1229e2e1d44666a878eec5a07');
+    const after = read('bc3b386c435edc0e126f38065d4c496a10488c46');
+    const scope = classify(file, before, after);
+    assert.deepEqual(scope.get(file), []);
+    assert.equal(plan([file], scope).validation_tools, true);
+    for (const bad of [
+      after + '\n',
+      after.replace('--ignore-scripts ', ''),
+      after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+      after + '\npermissions:\n  contents: write\n',
+      after.replace('prettier@$parser_version', 'prettier@latest'),
+    ])
+      assert.equal(classify(file, before, bad).has(file), false);
+    if (file.endsWith('ci.yml'))
+      assert.equal(
+        classify(
+          file,
+          before,
+          after.replace("MINIGAME_RELEASE_GATES || '0'", "MINIGAME_RELEASE_GATES || '1'"),
+        ).has(file),
+        false,
+      );
+    assert.equal(classify(file, before + '\n', after).has(file), false);
+  }
+});
 const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';

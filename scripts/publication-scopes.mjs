@@ -13,6 +13,7 @@ const planningCheckoutHashes = {
     recursive: 'bf277f8e20d7991a89a3c6f4bd203a8d2f093eb1177c2d88025b92e42d11e87f',
     locked: 'fdc0f51bc350921e31064da3ef56acbe01ee9ec4d0865cc03c56ba82ab619fe3',
     parser: '287190c89099b2cd3fd55769341d7ea3dd210d92de0d8164d788492b2d177b5e',
+    nativeGate: 'e764209ad852faa7018194ffcea21c6cdf0ebac287df66185be948bc5ad93add',
   },
   '.github/workflows/pages.yml': {
     original: '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
@@ -34,7 +35,11 @@ function exactPlanningCheckout(file, before, after) {
   const oldHash = digest(before),
     newHash = digest(after);
   // Exact reviewed parser bootstrap only; all execution, permissions and gates stay bound.
-  if (oldHash === hashes.locked && newHash === hashes.parser) return true;
+  if (
+    [hashes.original, hashes.recursive, hashes.locked].includes(oldHash) &&
+    [hashes.parser, hashes.nativeGate].includes(newHash)
+  )
+    return true;
   const anchor =
     oldHash === hashes.original
       ? planningCheckoutAnchor

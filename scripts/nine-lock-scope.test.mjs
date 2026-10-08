@@ -1,6 +1,49 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
+import { execFileSync } from 'node:child_process';
+import yaml from 'js-yaml';
+
+test('reviewed cumulative lock selects every changed importer and rejects any other bytes', () => {
+  const read = (ref) =>
+    execFileSync('git', ['show', `${ref}:pnpm-lock.yaml`], { encoding: 'utf8' });
+  const before = read('b551fe6e7d7f2bc1229e2e1d44666a878eec5a07');
+  const after = read('bc3b386c435edc0e126f38065d4c496a10488c46');
+  const context = {
+    changedPaths: ['pnpm-lock.yaml'],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  const scopes = nineLockFileScopes(context).get('pnpm-lock.yaml');
+  assert.ok(scopes);
+  const baseDocs = yaml.loadAll(before),
+    headDocs = yaml.loadAll(after);
+  assert.equal(baseDocs.length, headDocs.length);
+  const changed = new Set();
+  for (let i = 0; i < baseDocs.length; i++) {
+    const { importers: oldImporters, ...oldRest } = baseDocs[i];
+    const { importers: newImporters, ...newRest } = headDocs[i];
+    assert.deepEqual(
+      oldRest,
+      newRest,
+      'all external resolutions and toolchain bytes are unchanged',
+    );
+    for (const dir of Object.keys(oldImporters)) assert.ok(dir in newImporters);
+    for (const [dir, importer] of Object.entries(newImporters)) {
+      if (JSON.stringify(importer) !== JSON.stringify(oldImporters[dir])) changed.add(dir);
+    }
+  }
+  assert.deepEqual([...scopes].sort(), [...changed].sort());
+  for (const bad of [
+    after + '\n',
+    after.replace('sha512-', 'sha512-X'),
+    after.replace('link:../../platforms/taptap', 'link:../../platforms/wechat'),
+  ]) {
+    assert.equal(nineLockFileScopes({ ...context, readHead: () => bad }).size, 0);
+  }
+  assert.equal(nineLockFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  assert.equal(nineLockFileScopes({ ...context, changedPaths: [] }).size, 0);
+});
 
 const LOCK = 'pnpm-lock.yaml';
 const SHELL = 'apps/shell-minigame';
