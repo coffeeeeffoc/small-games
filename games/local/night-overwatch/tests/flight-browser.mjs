@@ -242,7 +242,7 @@ export function assertKillAccounting(s) {
 export async function press(page, id, touch = false, expand = true) {
   let s = await snapshot(page);
   if (!s.buttons.some((b) => b.id === id) && expand) {
-    const drawer = 'flightControls';
+    const drawer = id === 'training' || id.startsWith('mission:') ? 'missions' : 'flightControls';
     if (s.buttons.some((b) => b.id === drawer)) {
       await press(page, drawer, touch, false);
       s = await snapshot(page);
@@ -353,6 +353,14 @@ function clearPoint(s, width, height) {
 }
 
 export async function aimAt(page, target, touch = false, cdp) {
+  if ((await snapshot(page)).homingSelected) {
+    const q = await project(page, target);
+    if (touch) await page.touchscreen.tap(q.x, q.y);
+    else await page.mouse.click(q.x, q.y);
+    await page.waitForTimeout(30);
+    return;
+  }
+
   if (!touch) {
     const q = await project(page, target);
     const { width, height } = page.viewportSize();

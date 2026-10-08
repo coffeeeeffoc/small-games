@@ -68,6 +68,8 @@ export class AircraftModel {
   constructor(parent: Node) {
     this.node = new Node('asset:aircraft.cabin');
     this.bay = new Node('Port gun bay (metre-authored detail)');
+    // The terrain sensor excludes near-field cabin geometry; muzzle transforms remain physical.
+    this.bay.layer = 1 << 29;
     this.node.addChild(this.bay);
     this.bay.setScale(AIRFRAME.cabinScale, AIRFRAME.cabinScale, AIRFRAME.cabinScale);
     this.setWeapon(0);

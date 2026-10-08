@@ -36,6 +36,9 @@ try {
     await press(page, 'close', touch);
     let s = await snapshot(page);
     assert.equal(s.modal, 'home'); assert.equal(s.time, 0); assert.equal(s.fired, 0);
+    await press(page, 'missions', touch);
+    s = await snapshot(page);
+    assert.equal(s.modal, 'missions');
     for (const id of ['mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'training', 'start']) {
       const b = s.buttons.find(b => b.id === id);
       assert(b && b.w >= 44 && b.h >= 44 && b.x >= 0 && b.y >= 58 && b.x + b.w <= width && b.y + b.h <= height, `${width}: ${id} reachable`);

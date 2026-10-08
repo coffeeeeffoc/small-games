@@ -60,3 +60,24 @@ test('reward save validation and every zoom tier produces genuine optical magnif
   }
   assert.equal(nextZoomLimit(5), 10); assert.equal(nextZoomLimit(160), undefined);
 });
+
+test('select, lock and the common trigger launch one missile without firing the previous gun', () => {
+  const s = new Simulation('training-60'); s.start(); s.homingAmmo = 2;
+  const enemy = s.units.find(u => !u.friendly && u.kind === 'light')!;
+  s.selectHoming(); s.setAim({ x: 150, z: 90 });
+  s.setFire('touch:1', true); s.setFire('touch:1', false);
+  assert.equal(s.fired, 0); assert.equal(s.homingAmmo, 2); assert.equal(s.reason(), 'target');
+  assert(!s.lockHoming(s.rescue.id)); assert(!s.fire());
+  assert(s.lockHoming(enemy.id));
+  s.step(.1); assert.deepEqual(s.aim, { x: enemy.x, z: enemy.z });
+  s.pause('manual', true); s.setFire('space', true); assert.equal(s.fired, 0);
+  s.pause('manual', false); s.setFire('space', true);
+  assert.equal(s.fired, 1); assert.equal(s.homingAmmo, 1); assert.equal(s.shots[0].guidance?.target, enemy.id);
+  for (let i = 0; i < 30; i++) s.step(1 / 60);
+  assert.equal(s.fired, 1, 'holding never repeats guided fire');
+  enemy.hp = 0;
+  s.addUnit('turret', s.aim, false);
+  assert(!s.homingTarget, 'a dead lock does not silently switch targets');
+  assert(!s.fire()); assert.equal(s.homingAmmo, 1);
+  s.choose(1); assert(!s.homingSelected); assert.equal(s.homingTargetId, undefined);
+});

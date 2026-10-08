@@ -122,6 +122,9 @@ test('HUD: escort and range entries are discoverable, and range results show a s
     for (const lang of ['zh', 'en']) {
       const hud = new HUD(new SceneNode()); hud.lang = lang; hud.resize();
       const escort = new Simulation(); hud.update(escort, world);
+      assert(hud.buttons.some((button: any) => button.id === 'missions'), 'home has a clear mission selector');
+      assert(!hud.buttons.some((button: any) => button.id === 'training'), 'home keeps only primary choices');
+      hud.missionsOpen = true; hud.update(escort, world);
       const trainingEntry = hud.buttons.find((button: any) => button.id === 'training');
       assert(trainingEntry); assert.equal(hud.hit(trainingEntry.x + trainingEntry.w / 2, trainingEntry.y + trainingEntry.h / 2)?.id, 'training');
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
@@ -130,7 +133,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'training', 'start'] : ['home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);

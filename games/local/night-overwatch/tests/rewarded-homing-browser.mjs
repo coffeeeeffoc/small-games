@@ -66,7 +66,7 @@ try {
     const target = s.units.find(u => !u.friendly && u.kind === 'light');
     await navigateMap(page, target, touch);
     await aimAt(page, (await snapshot(page)).units.find(u => u.id === target.id), touch);
-    await press(page, 'homing', touch);
+    await press(page, 'fire', touch);
     s = await snapshot(page);
     const shot = s.shots.find(a => a.guidance);
     assert(shot && shot.guidance.target === target.id); assert.equal(s.homingAmmo, 0);
@@ -88,7 +88,7 @@ try {
       await press(page, 'homing', touch); await press(page, 'adClose', touch);
       const enemy = (await snapshot(page)).units.find(u => !u.friendly && u.hp > 0);
       await navigateMap(page, enemy, touch); await aimAt(page, enemy, touch);
-      await press(page, 'homing', touch);
+      await press(page, 'fire', touch);
       const missile = (await snapshot(page)).shots.find(a => a.guidance);
       assert(missile); await waitForImpact(page, missile);
     }

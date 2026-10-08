@@ -71,6 +71,7 @@ export type FireReason =
   | 'overheated'
   | 'empty'
   | 'cooldown'
+  | 'target'
   | 'outside';
 export class Simulation {
   readonly mission: MissionDefinition;
@@ -81,6 +82,8 @@ export class Simulation {
   convoy: ConvoyState = 'moving';
   selected = 0;
   homingAmmo = 0;
+  homingSelected = false;
+  homingTargetId?: number;
   aim: Point = { x: MISSION.events[0].x, z: MISSION.events[0].z };
   guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, overheated: false }));
   units: Unit[] = [];
@@ -209,11 +212,31 @@ export class Simulation {
     this.clearInput();
     if (index !== this.selected) this.completed.add('weapon');
     this.selected = index;
+    this.homingSelected = false;
+    this.homingTargetId = undefined;
+  }
+  selectHoming() {
+    this.clearInput();
+    this.homingSelected = true;
+    this.homingTargetId = undefined;
+  }
+  get homingTarget() {
+    const target = this.homingTargetId === undefined ? this.aimedUnit
+      : this.units.find(u => u.id === this.homingTargetId && u.hp > 0);
+    return target && !target.friendly &&
+      !PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius) ? target : undefined;
+  }
+  lockHoming(id: number) {
+    this.homingTargetId = id;
+    const target = this.homingTarget;
+    if (target) this.aim = { x: target.x, z: target.z };
+    return !!target;
   }
   setAim(p: Point) {
     if (!Number.isFinite(p.x) || !Number.isFinite(p.z)) return;
     if (distance(p, this.aim) > 0.2) this.completed.add('aim');
     this.aim = { ...p };
+    this.homingTargetId = undefined;
   }
   setFire(source: string, on: boolean) {
     if (!on) {
@@ -240,6 +263,7 @@ export class Simulation {
     if (this.phase === 'briefing') return 'briefing';
     if (this.phase !== 'playing') return 'finished';
     if (this.paused) return 'paused';
+    if (this.homingSelected) return this.homingAmmo <= 0 ? 'empty' : this.homingTarget ? 'ready' : 'target';
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
     if (![this.aim.x, this.aim.z].every(Number.isFinite) ||
@@ -253,6 +277,7 @@ export class Simulation {
     return 'ready';
   }
   get friendlyRisk() {
+    if (this.homingSelected) return false;
     return this.units.some(
       (u) =>
         u.friendly &&
@@ -266,6 +291,7 @@ export class Simulation {
       .sort((a, b) => distance(a, this.aim) - distance(b, this.aim))[0];
   }
   fire() {
+    if (this.homingSelected) return this.fireHoming();
     if (this.reason() !== 'ready') return false;
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
@@ -294,7 +320,7 @@ export class Simulation {
     return true;
   }
   fireHoming() {
-    const target = this.aimedUnit;
+    const target = this.homingTarget;
     if (this.phase !== 'playing' || this.paused || this.homingAmmo <= 0 || !target || target.friendly ||
         PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius)) return false;
     const origin = muzzlePosition(this.aircraft, 2);
@@ -519,7 +545,11 @@ export class Simulation {
       this.clearInput();
       return;
     }
-    if (this.held.size && WEAPONS[this.selected].automatic) this.fire();
+    if (this.homingSelected && this.homingTargetId !== undefined) {
+      const target = this.homingTarget;
+      if (target) this.aim = { x: target.x, z: target.z };
+    }
+    if (this.held.size && !this.homingSelected && WEAPONS[this.selected].automatic) this.fire();
   }
   private recordFriendlyLoss(unit: Unit, cause: 'friendly' | 'enemy') {
     if (this.failedGroup !== undefined) return;

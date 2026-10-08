@@ -66,6 +66,7 @@ export class HUD {
   labels = new Map<string, Label>();
   modal?: Node;
   modalKey = '';
+  missionsOpen = false;
   helpGroup: 'basic' | 'advanced' | 'rules' = 'basic';
   helpTouch = false;
   scroll = 0;
@@ -239,15 +240,16 @@ export class HUD {
     this.live('telemetry', telemetryLeft + telemetryWidth / 2, top + 28, this.desktop ? 14 : 11, telemetryWidth, 48, C.dim);
     this.live('globalToast', w / 2, h - this.safe.bottom - 24, 12, w - this.safe.left - this.safe.right - 32, 36, C.amber).node.parent = this.globalControls;
     const by = h - this.footer - this.safe.bottom;
-    const cardW = small ? 104 : this.compact ? 78 : this.desktop ? 160 : 112;
-    const fireW = this.compact ? 110 : 160;
-    const cardsLeft = this.desktop ? right - (this.touch ? fireW + 18 : -6) - 3 * (cardW + 6) : left;
+    const cardW = small ? 88 : this.compact ? 72 : 96;
+    const fireW = this.compact ? 64 : 76;
+    const cardsLeft = this.desktop ? right - fireW - 18 - 4 * (cardW + 8) : left;
     for (let i = 0; i < 3; i++) {
-      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
-    this.button('fire', '', right - fireW, by + 8, fireW, this.footer - 16);
-    const stateX = this.desktop ? cardsLeft - 144 : left + 3 * (cardW + 6) + 8;
+    this.button('homing', '', cardsLeft + 3 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+    this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
+    const stateX = this.desktop ? cardsLeft - 144 : left + 4 * (cardW + 8) + 4;
     const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
     this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
     this.live('notice', w / 2, this.compact ? by - 17 : top + 80, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
@@ -258,8 +260,7 @@ export class HUD {
     this.live('hold', left + (this.desktop ? 208 : 172), top + 121, 11, 140, 22, C.dim);
     this.button('flightControls', this.t('飞行 ▾', 'FLIGHT ▾'), left, top + 64, this.desktop ? 128 : 96);
     this.button('convoy', '', left + (this.desktop ? 144 : 102), top + 64, this.desktop ? 128 : 102, 44);
-    this.button('homing', '', left + (this.desktop ? 280 : 210), top + 64, this.desktop ? 120 : 100, 44).fontSize = 12;
-    this.button('zoomControls', '', left + (this.desktop ? 406 : 316), top + 64, this.desktop ? 120 : 96, 44).fontSize = 12;
+    this.button('zoomControls', '', left + (this.desktop ? 280 : 210), top + 64, this.desktop ? 120 : 96, 44).fontSize = 12;
     const lensX = left + (this.desktop ? 144 : 0), lensY = top + 112;
     const lensW = Math.min(360, w - this.safe.left - this.safe.right - 24), cellW = (lensW - 12) / 2;
     for (const [i, id] of ['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].entries())
@@ -345,9 +346,11 @@ export class HUD {
   }
   routeGraphic(g: Graphics, x: number, y: number, w: number, h: number, progress = 0, map: BattlefieldId = 'valley') {
     const ROUTE = mapRoute(map), length = routeLength(map), HOLD_POINTS = [length * .28, length * .64];
+    const minX = Math.min(...ROUTE.map(p => p.x)), maxX = Math.max(...ROUTE.map(p => p.x));
+    const minZ = Math.min(...ROUTE.map(p => p.z)), maxZ = Math.max(...ROUTE.map(p => p.z));
     const point = (p: Point) => ({
-      x: x + ((p.x + 100) / 210) * w - this.w / 2,
-      y: this.h / 2 - y - ((p.z + 42) / 82) * h,
+      x: x + (p.x - minX) / Math.max(1, maxX - minX) * w - this.w / 2,
+      y: this.h / 2 - y - (p.z - minZ) / Math.max(1, maxZ - minZ) * h,
     });
     g.lineWidth = 3;
     g.strokeColor = col(C.line);
@@ -375,39 +378,51 @@ export class HUD {
     g.stroke();
   }
   renderHome(n: Node, g: Graphics, s: Simulation) {
-    const w = this.w, h = this.h, short = h < 500;
-    // The same live world sits behind this full-screen home and the mission.
-    this.rect(g, 0, 0, w, h, '#07121cb8');
-    const left = this.safe.left + (short ? 22 : 56), titleWidth = w * .38;
-    this.label(n, 'NIGHT OVERWATCH', left + titleWidth / 2, short ? 87 : h * .29, short ? 12 : 16, titleWidth, 26, C.amber);
-    this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleWidth / 2, short ? 125 : h * .39,
-      short ? 32 : 52, titleWidth, short ? 52 : 80, C.white).isBold = true;
-    this.label(n, this.t('长夜之上，一路守望', 'WATCH OVER THE WAY HOME'), left + titleWidth / 2,
-      short ? 168 : h * .48, short ? 12 : 17, titleWidth, 36, C.mint);
-    this.label(n, this.t('选择航区，开始你的下一次值勤。', 'Choose your next operation.'), left + titleWidth / 2,
-      short ? 208 : h * .57, short ? 11 : 14, titleWidth, 40, C.dim);
-    const x = w * .48, rw = w - x - this.safe.right - (short ? 20 : 52), top = this.safe.top + (short ? 60 : Math.max(95, h * .15));
-    const row = short ? 44 : 72, gap = short ? 3 : 10;
-    if (!short) this.label(n, this.t('任务中心  /  2 个航区', 'OPERATIONS  /  2 BATTLEFIELDS'), x + rw / 2, top - 17, 12, rw, 24, C.dim);
-    for (const [i, mission] of [...MISSIONS, TRAINING].entries()) {
-      const y = top + i * (row + gap), selected = mission.id === s.mission.id;
-      const id = mission.id === TRAINING.id ? 'training' : 'mission:' + mission.id;
-      this.rect(g, x, y, rw, row, selected ? '#233d46ef' : '#101e29dc', selected ? C.mint : '#67828d55', 4);
-      if (selected) this.rect(g, x, y + 5, 3, row - 10, C.mint);
-      const tag = mission.mode === 'training' ? this.t('练习', 'RANGE')
-        : mission.map === 'valley' ? this.t('河谷', 'VALLEY') : this.t('高地', 'HIGHLAND');
-      const label = this.button(id, `${selected ? '▸' : '  '} ${text(mission.name, this.lang)}  ·  ${tag}`, x, y, rw, row, n);
-      label.fontSize = short ? 12 : 18;
-      label.color = col(selected ? C.white : C.dim);
+    const w = this.w, h = this.h, left = this.safe.left + 28, right = w - this.safe.right - 28;
+    this.rect(g, 0, 0, w, h, '#07121c70');
+    if (!this.missionsOpen) {
+      const titleWidth = w * .46, x = Math.max(left, right - Math.min(260, w * .35));
+      this.label(n, 'NIGHT OVERWATCH', left + titleWidth / 2, h * .27, 12, titleWidth, 24, C.amber);
+      this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleWidth / 2, h * .41,
+        this.compact ? 42 : 64, titleWidth, 90, C.white).isBold = true;
+      this.label(n, this.t('长夜之上，一路守望', 'WATCH OVER THE WAY HOME'), left + titleWidth / 2,
+        h * .57, 13, titleWidth, 28, C.dim);
+      const bw = right - x, y = Math.max(124, h * .47);
+      this.label(n, text(s.mission.name, this.lang), x + bw / 2, y - 26, 13, bw, 26, C.dim);
+      for (const [i, id] of ['start', 'missions'].entries()) {
+        this.rect(g, x, y + i * 58, bw, 48, i ? '#12232dda' : C.mint, i ? '#91e6cb66' : undefined, 12);
+        const label = this.button(id, i ? this.t('选择任务', 'OPERATIONS') : this.t('继续值勤  →', 'DEPLOY  →'), x, y + i * 58, bw, 48, n);
+        label.color = col(i ? C.white : '#10252a'); label.isBold = true; label.fontSize = 17;
+      }
+      return;
     }
-    const startY = top + 4 * (row + gap) + (short ? 2 : 22);
-    const start = this.button('start', this.t('开始任务  →', 'START MISSION  →'), x, startY, rw, 44, n);
-    this.rect(g, x, startY, rw, 44, C.mint, undefined, 4);
-    start.color = col('#10252a'); start.isBold = true;
-    if (!short) {
-      this.label(n, text(s.mission.description, this.lang), x + rw / 2, startY + 72, 13, rw, 42, C.dim);
-      this.label(n, this.t('鼠标瞄准 · 左键开火 · 1 / 2 / 3 切换火炮', 'Mouse aim · Left click fire · 1 / 2 / 3 weapons'),
-        w / 2, h - this.safe.bottom - 28, 12, w - 48, 28, C.dim);
+    this.rect(g, 0, 0, w, h, '#07121ca0');
+    this.label(n, this.t('选择任务', 'OPERATIONS'), left + 78, this.safe.top + 80, 24, 156, 42).isBold = true;
+    const y = this.safe.top + 108, bottom = h - this.safe.bottom - 62;
+    const gap = 12, cw = (right - left - gap * 2) / 3, ch = bottom - y - 14;
+    for (const [i, mission] of MISSIONS.entries()) {
+      const x = left + i * (cw + gap), selected = mission.id === s.mission.id;
+      this.rect(g, x, y, cw, ch, selected ? '#24434be8' : '#11212de0', selected ? C.mint : '#63879866', 12);
+      const ridge = (offset: number, fill: string) => {
+        g.fillColor = col(fill);
+        g.moveTo(x - w / 2 + 2, h / 2 - y - ch * .58);
+        for (let j = 0; j <= 6; j++) g.lineTo(x - w / 2 + 2 + (cw - 4) * j / 6,
+          h / 2 - y - ch * (.22 + .26 * Math.abs(Math.sin(j * 2.3 + i + offset))));
+        g.lineTo(x + cw - 2 - w / 2, h / 2 - y - ch * .68); g.close(); g.fill();
+      };
+      ridge(1, '#324c60'); ridge(2, '#192f3e');
+      this.routeGraphic(g, x + 18, y + ch * .33, cw - 36, ch * .26, 0, mission.map);
+      const label = this.button('mission:' + mission.id, text(mission.name, this.lang), x, y, cw, ch, n);
+      label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + 25);
+      label.node.getComponent(UITransform)!.setContentSize(cw - 12, 40);
+      label.fontSize = this.compact ? 15 : 21; label.color = col(selected ? C.mint : C.white); label.isBold = true;
+    }
+    const bw = (right - left - 24) / 3;
+    for (const [i, id] of ['homeMenu', 'training', 'start'].entries()) {
+      const x = left + i * (bw + 12), primary = id === 'start', selected = id === 'training' && s.mission.mode === 'training';
+      this.rect(g, x, bottom, bw, 44, primary ? C.mint : '#142732ee', selected ? C.mint : '#91e6cb55', 10);
+      const label = this.button(id, [this.t('返回', 'BACK'), this.t('60秒热身', '60s WARMUP'), this.t('出发  →', 'DEPLOY  →')][i], x, bottom, bw, 44, n);
+      label.color = col(primary ? '#10252a' : selected ? C.mint : C.white); label.isBold = primary;
     }
   }
   renderModal(key: string, s: Simulation) {
@@ -430,7 +445,7 @@ export class HUD {
     const n = this.node('Panel', this.root);
     this.modal = n;
     const g = n.addComponent(Graphics);
-    if (key === 'home') { this.renderHome(n, g, s); return; }
+    if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
     if (key.startsWith('advert:')) {
       const pw = Math.min(420, this.w - this.safe.left - this.safe.right - 32);
       const ph = Math.min(244, this.h - this.safe.top - this.safe.bottom - 74);
@@ -460,7 +475,7 @@ export class HUD {
       ph = Math.min(paused || settings ? 320 : 540, this.h - this.safe.top - this.safe.bottom - 72);
     const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
       py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-    this.rect(g, px, py, pw, ph, paused ? '#11191fe8' : '#101e24fb', paused ? '#91e6cb88' : C.line, paused ? 10 : 0);
+    this.rect(g, px, py, pw, ph, paused ? '#11191fe8' : '#101e24fb', paused ? '#91e6cb88' : C.line, 14);
     if (!paused) this.rect(g, px, py, 4, ph, key === 'failure' ? C.red : C.mint);
     const small = this.compact || this.w < 600,
       low = ph < 280,
@@ -478,7 +493,7 @@ export class HUD {
                 ? this.t('飞行值勤手册', 'FIELD GUIDE')
                 : key === 'mission'
                   ? this.t('山谷公路撤离', 'VALLEY EVACUATION')
-                  : settings ? this.t('设置', 'SETTINGS') : this.t('任务已暂停', 'MISSION PAUSED');
+                  : settings ? this.t('设置', 'SETTINGS') : this.t('暂停', 'PAUSED');
     const headingLabel = this.label(
       n,
       heading,
@@ -591,11 +606,14 @@ export class HUD {
         C.dim,
       );
     } else if (settings) {
-      const bw = (pw - 56) / 2, row = py + (small ? 64 : 96);
-      this.button('sound', this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON'), px + 24, row, bw, 44, n);
-      this.button('effects', this.reducedEffects ? this.t('效果：简', 'FX: LOW') : this.t('效果：全', 'FX: FULL'), px + 32 + bw, row, bw, 44, n);
-      this.button('help', this.t('操作帮助', 'HELP'), px + 24, row + 52, bw, 44, n);
-      this.button('language', this.lang === 'zh' ? 'EN' : '中文', px + 32 + bw, row + 52, bw, 44, n);
+      const bw = (pw - 72) / 4, row = py + 66, tileH = Math.min(124, ph - 140);
+      for (const [i, id] of ['sound', 'effects', 'help', 'language'].entries()) {
+        const labels = [this.muted ? this.t('声音 关', 'SOUND OFF') : this.t('声音 开', 'SOUND ON'),
+          this.reducedEffects ? this.t('效果 简', 'FX LOW') : this.t('效果 全', 'FX FULL'), this.t('帮助', 'HELP'), this.lang === 'zh' ? '中文' : 'EN'];
+        const label = this.button(id, labels[i], px + 24 + i * (bw + 8), row, bw, tileH, n);
+        label.node.setPosition(px + 24 + i * (bw + 8) + bw / 2 - this.w / 2, this.h / 2 - row - tileH + 22);
+        label.node.getComponent(UITransform)!.setContentSize(bw - 4, 36);
+      }
     } else if (key === 'briefing' || key === 'mission') {
       const split = !small,
         contentTop = py + (low ? 52 : small ? 65 : 118);
@@ -805,40 +823,34 @@ export class HUD {
     } else {
       const tight = ph < 310, summaryY = py + (tight ? 90 : 142);
       this.label(n, this.t(
-        `护送并清除全部威胁 · 剩余 ${s.threatsRemaining}\n友军 ${allies - s.friendlyLosses}/${allies}  ·  撤离 ${Math.floor(s.ratio * 100)}%  ·  剩余 ${Math.ceil(s.remaining)}s`,
-        `ESCORT & CLEAR ALL THREATS · ${s.threatsRemaining} LEFT\nALLIES ${allies - s.friendlyLosses}/${allies} · ROUTE ${Math.floor(s.ratio * 100)}% · ${Math.ceil(s.remaining)}s LEFT`,
+        `友军 ${allies - s.friendlyLosses}/${allies}  ·  威胁 ${s.threatsRemaining}  ·  ${Math.ceil(s.remaining)}s`,
+        `ALLIES ${allies - s.friendlyLosses}/${allies} · THREATS ${s.threatsRemaining} · ${Math.ceil(s.remaining)}s`,
       ), px + pw / 2, summaryY, tight ? 12 : 14, pw - 48, 48, C.dim);
       this.rect(g, px + 24, summaryY + 30, pw - 48, 1, '#91e6cb33');
-      if (!tight) this.label(n,
-        this.t('世界与倒计时已冻结 · 继续后重新按下开火', 'World and clock frozen · Press FIRE again on return'),
-        px + pw / 2, py + 204, 11, pw - 48, 30, C.dim);
-      this.button('resume', this.t('继续任务  →', 'RESUME MISSION  →'),
+      this.button('resume', this.t('继续  →', 'RESUME  →'),
         px + 24, bottom, (pw - 56) / 2, 44, n);
-      this.button('home', this.t('中断任务 · 返回首页', 'ABORT · HOME'), px + 32 + (pw - 56) / 2, bottom, (pw - 56) / 2, 44, n);
+      this.button('home', this.t('结束任务 · 主页', 'END · HOME'), px + 32 + (pw - 56) / 2, bottom, (pw - 56) / 2, 44, n);
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === n)) {
       const primary = ['start', 'retry', 'resume'].includes(b.id);
-      this.rect(g, b.x, b.y, b.w, b.h, primary ? C.mint : paused ? '#17232930' : '#1b3038', primary ? C.mint : paused ? undefined : C.line, paused ? 5 : 0);
+      this.rect(g, b.x, b.y, b.w, b.h, primary ? C.mint : paused ? '#17232930' : '#1b3038', primary ? C.mint : paused ? undefined : C.line, 10);
+      if (settings && b.id !== 'close') {
+        const x = b.x + b.w / 2 - this.w / 2, y = this.h / 2 - b.y - 28;
+        g.strokeColor = col(C.mint); g.fillColor = col(C.mint); g.lineWidth = 2;
+        if (b.id === 'sound') {
+          g.moveTo(x - 12, y - 4); g.lineTo(x - 5, y - 4); g.lineTo(x + 3, y - 11);
+          g.lineTo(x + 3, y + 11); g.lineTo(x - 5, y + 4); g.lineTo(x - 12, y + 4); g.close(); g.stroke();
+          g.moveTo(x + 9, y - 8); g.lineTo(x + 13, y); g.lineTo(x + 9, y + 8); g.stroke();
+        } else if (b.id === 'effects') {
+          for (let i = -1; i <= 1; i++) { g.moveTo(x + i * 10, y - 13); g.lineTo(x + i * 10, y + 13); g.stroke(); g.circle(x + i * 10, y + i * 6, 3); g.fill(); }
+        } else {
+          g.circle(x, y, 15); g.stroke();
+          this.label(n, b.id === 'help' ? '?' : this.lang === 'zh' ? '文' : 'A', b.x + b.w / 2, b.y + 28, 18, 30, 30, C.mint);
+        }
+      }
       b.label.color = col(primary ? '#10252a' : C.white);
       b.label.isBold = primary;
       if (paused && primary) b.label.fontSize = this.compact ? 16 : 18;
-    }
-  }
-  drawCabin(g: Graphics) {
-    const w = this.w, h = this.h;
-    const polygon = (points: number[][], fill: string) => {
-      g.fillColor = col(fill);
-      points.forEach(([x, y], i) => i ? g.lineTo(x - w / 2, h / 2 - y) : g.moveTo(x - w / 2, h / 2 - y));
-      g.close(); g.fill();
-    };
-    // A gunner's observation window: frame and glass stay at the periphery of the targeting view.
-    polygon([[0, 45], [18, 60], [18, h * .86], [w * .045, h], [0, h]], '#10191fee');
-    polygon([[w, 45], [w - 14, 60], [w - 16, h * .88], [w * .965, h], [w, h]], '#121b23e8');
-    polygon([[0, h - 15], [w * .2, h - 28], [w * .72, h - 14], [w, h - 8], [w, h], [0, h]], '#0a121bef');
-    polygon([[w * .81, 58], [w * .84, 58], [w * .98, h * .67], [w * .975, h * .74]], '#b6d9ee0b');
-    polygon([[w * .87, 58], [w * .874, 58], [w - 21, h * .43], [w - 23, h * .46]], '#d7eafa16');
-    for (const side of [12, w - 10]) for (let y = 88; y < h * .7; y += 66) {
-      g.fillColor = col('#77828b88'); g.circle(side - w / 2, h / 2 - y, 1.8); g.fill();
     }
   }
   update(s: Simulation, world: World) {
@@ -846,7 +858,7 @@ export class HUD {
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
       left = 12 + this.safe.left, by = h - this.footer - this.safe.bottom;
-    let key = s.phase === 'briefing' ? 'home' : s.phase === 'playing' ? '' : s.phase;
+    let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
     if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
     else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
     else if (s.pauses.has('settings')) key = 'settings';
@@ -862,10 +874,10 @@ export class HUD {
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
       if (b.label.node.parent === this.root)
-        b.label.node.active = !key && (b.id !== 'fire' || this.touch) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
+        b.label.node.active = !key && (b.id !== 'fire' || this.touch || s.homingSelected) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
       if (['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].includes(b.id))
         b.label.node.active = !key && this.zoomOpen;
-      if (b.id === 'homing' || b.id === 'zoomControls')
+      if (b.id === 'zoomControls')
         b.label.node.active = !key && !this.toolsOpen && !this.zoomOpen;
       if (b.id === 'zoomControls') {
         b.label.node.active = !key && !this.toolsOpen;
@@ -890,13 +902,13 @@ export class HUD {
     }
     if (this.zoomOpen) this.rect(g, left + (this.desktop ? 144 : 0), top + 112,
       Math.min(360, w - this.safe.left - this.safe.right - 24), 100, C.ink, C.line, 5);
-    this.drawCabin(g);
+
     this.labels.get('title')!.node.active = this.desktop;
     this.labels.get('mapLegend')!.node.active = !this.toolsOpen;
     this.labels.get('orbit')!.node.active = this.toolsOpen;
-    this.labels.get('telemetry')!.node.active = this.labels.get('telemetry')!.node.getComponent(UITransform)!.contentSize.width >= 100;
+    this.labels.get('telemetry')!.node.active = this.toolsOpen && this.labels.get('telemetry')!.node.getComponent(UITransform)!.contentSize.width >= 100;
     this.rect(g, 0, 0, w, 58 + top, '#0c171dbb');
-    if (!this.desktop) this.rect(g, 0, by, w, this.footer + this.safe.bottom, '#0c171ddd');
+
     this.rect(g, left, 56 + top, (w - 24 - this.safe.left - this.safe.right) * s.ratio, 1, '#91e6cb88');
     if (this.desktop) {
       this.rect(g, 0, top + 110, 152 + this.safe.left, 304, '#0c171d88');
@@ -906,8 +918,8 @@ export class HUD {
     const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
     for (const b of this.buttons) {
-      if (b.id === 'homing') b.label.string = s.homingAmmo ? this.t(`追踪弹 ×${s.homingAmmo}`, `HOMING ×${s.homingAmmo}`) : this.t('广告领追踪弹', 'AD · HOMING');
-      if (b.id === 'zoomControls') b.label.string = `${world.zoom.toFixed(world.zoom >= 10 ? 0 : 1)}× / ${this.zoomLimit}×`;
+      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (s.homingAmmo || '+');
+      if (b.id === 'zoomControls') b.label.string = `${world.zoom.toFixed(world.zoom >= 10 ? 0 : 1)}×  +`;
       if (b.id === 'lensOut') b.label.string = this.t('缩小 −', 'ZOOM −');
       if (b.id === 'lensIn') b.label.string = this.t('放大 +', 'ZOOM +');
       if (b.id === 'homingReward') b.label.string = this.t('广告 · 追踪弹 +1', 'AD · HOMING +1');
@@ -939,7 +951,10 @@ export class HUD {
     this.set('weaponState', this.t(
       `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
       `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
+    if (s.homingSelected) this.set('weaponState', s.homingAmmo <= 0 ? this.t('点追踪补给', 'TAP HOMING +')
+      : s.homingTarget ? this.t('已锁定', 'LOCKED') : this.t('点选敌人', 'TAP AN ENEMY'));
     const reasons: Record<string, string[]> = {
+      target: ['点选敌人，再按发射', 'TAP AN ENEMY, THEN LAUNCH'],
       protected: ['保护区 · 禁止开火', 'PROTECTED · FIRE BLOCKED'],
       overheated: ['武器过热 · 等待降温或切枪', 'OVERHEATED · COOL OR SWITCH'],
       empty: ['弹药耗尽 · 切换武器', 'EMPTY · SWITCH WEAPON'],
@@ -958,10 +973,10 @@ export class HUD {
       : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
     const step = TUTORIAL.find((e) => !s.completed.has(e));
     this.set('tutorial', s.mission.mode === 'training'
-      ? this.t('60秒清3靶 · 静止用爆破 · 巡逻留提前量 · 重甲用重炮', 'CLEAR THREE IN 60s · BURST STATIC · LEAD ROVER · HEAVY ARMOR')
-      : this.tutorial && step
+      ? this.t('清除 3 个目标', 'CLEAR 3 TARGETS')
+      : this.tutorial && step && s.time < 12
       ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
-      : this.mouseDesktop ? '' : this.t('护送并清除全部威胁 · □ 友军 / ◇ 敌军 · 小地图北向固定', 'ESCORT & CLEAR ALL THREATS · □ FRIEND / ◇ FOE · MAP NORTH UP'));
+      : '');
     if (this.compact) {
       const messages = ['friendWarning', 'notice', 'tutorial'];
       const active = messages.find((id) => this.labels.get(id)!.string);
@@ -976,6 +991,7 @@ export class HUD {
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
       if (!label.node.active || !label.string) continue;
+      label.node.getComponent(UITransform)!.setContentSize(Math.min(w - 40, Math.max(180, label.string.length * label.fontSize + 24)), 28);
       const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
       this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
     }
@@ -990,15 +1006,16 @@ export class HUD {
       : this.desktop ? this.t('飞行控制 ▾', 'FLIGHT ▾') : this.t('飞行 ▾', 'FLIGHT ▾');
     this.buttons.find((b) => b.id === 'convoy')!.label.node.active = s.mission.mode !== 'training' && !(this.toolsOpen && !this.desktop && panel.y < top + 110);
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
-      const selected = b.id === 'weapon' + s.selected || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
+      const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || (s.homingSelected && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
-        b.label.string = `${this.touch ? '' : i + 1 + ' '}${text(WEAPONS[i].name, this.lang)}\n${this.t(['轻车', '炮台', '重甲'][i], ['LIGHT', 'TURRET', 'ARMOR'][i])} · ${a.ammo === Infinity ? '∞' : a.ammo}`;
+        b.label.string = this.t(['速射', '爆破', '重炮'][i], ['RAPID', 'BURST', 'HEAVY'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
       }
       if (b.id === 'convoy') b.label.string = (this.touch ? '' : 'T · ') + (s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续 →', 'CONVOY GO →'));
-      if (b.id === 'fire') b.label.string = actionLabel('fire', this.lang, this.touch, weapon.automatic) + '\n' +
-        (reason === 'protected' ? this.t('禁止开火', 'BLOCKED') : reason === 'overheated' ? this.t('过热', 'OVERHEATED') : reason === 'empty' ? this.t('无弹药', 'EMPTY')
-        : weapon.automatic ? this.t('松开即停', 'RELEASE TO STOP') : this.t('每次一发', 'ONE SHOT / PRESS'));
+      if (b.id === 'fire') b.label.string = s.homingSelected
+        ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
+        : reason === 'protected' ? this.t('禁射', 'BLOCKED') : reason === 'overheated' ? this.t('冷却', 'COOL')
+        : reason === 'empty' ? this.t('无弹药', 'EMPTY') : this.t('开火', 'FIRE');
       if (b.id === 'sensor') b.label.string = world.thermal ? this.t('热成像 → 日光', 'THERMAL → DAY') : this.t('日光 → 热成像', 'DAY → THERMAL');
       if (b.id === 'sound') b.label.string = this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON');
       const fire = b.id === 'fire', flight = this.desktop && flightActions.includes(b.id);
@@ -1010,12 +1027,27 @@ export class HUD {
         g.strokeColor = col(selected ? C.mint : '#91e6cb88');
         g.lineWidth = 1;
         g.circle(x, y, 18); g.stroke();
-      } else this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', 5);
+      } else this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', fire ? b.w / 2 : 12);
       b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
       b.label.isBold = selected || fire;
       if (b.id === 'pause' && !this.mouseDesktop) {
         this.rect(g, b.x + b.w / 2 - 6, b.y + 6, 4, 14, C.white);
         this.rect(g, b.x + b.w / 2 + 2, b.y + 6, 4, 14, C.white);
+      }
+      if (b.id.startsWith('weapon') || b.id === 'homing') {
+        const x = b.x + 17 - w / 2, y = h / 2 - b.y - b.h / 2;
+        g.strokeColor = col(selected ? C.mint : C.dim); g.lineWidth = 2;
+        if (b.id === 'homing') {
+          g.circle(x, y, 7); g.stroke();
+          for (const sign of [-1, 1]) { g.moveTo(x + sign * 5, y); g.lineTo(x + sign * 11, y); g.moveTo(x, y + sign * 5); g.lineTo(x, y + sign * 11); } g.stroke();
+        } else {
+          const barrels = b.id === 'weapon0' ? 2 : 1;
+          for (let i = 0; i < barrels; i++) { g.moveTo(x - 8, y - 7 + i * 5); g.lineTo(x + 8, y + 7 + i * 5); } g.stroke();
+          g.moveTo(x - 7, y - 9); g.lineTo(x - 11, y - 2); g.lineTo(x - 5, y + 3); g.stroke();
+        }
+        b.label.node.setPosition(b.x + 30 + (b.w - 30) / 2 - w / 2, h / 2 - b.y - b.h / 2);
+        b.label.node.getComponent(UITransform)!.setContentSize(b.w - 32, b.h - 4);
+        b.label.fontSize = 12;
       }
       if (b.id.startsWith('weapon')) {
         const a = s.guns[Number(b.id.slice(-1))];
@@ -1030,7 +1062,7 @@ export class HUD {
   drawMinimap(s: Simulation) {
     const g = this.marks, map = this.minimapLayout;
     this.rect(g, map.x, map.y, map.w, map.h, '#0c171de8', '#91e6cb55');
-    this.set('mapLegend', this.t(`北 ↑ · 威胁 ${s.threatsRemaining}`, `N ↑ · THREATS ${s.threatsRemaining}`));
+    this.set('mapLegend', this.t('北 ↑', 'N ↑'));
     const point = (p: Point) => ({
       x: map.x + 8 + (p.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16) - this.w / 2,
       y: this.h / 2 - map.y - 25 - (p.z + MAP.halfDepth) / (2 * MAP.halfDepth) * (map.h - 33),
@@ -1214,7 +1246,7 @@ export class HUD {
         this.rect(g, q.x + this.w / 2 + 8, this.h / 2 - q.y - 9, 28, 18, '#0c191fe8');
       }
     }
-    for (const id of new Set(s.shots.filter(shot => shot.guidance).map(shot => shot.guidance!.target))) {
+    for (const id of new Set([...s.shots.filter(shot => shot.guidance).map(shot => shot.guidance!.target), ...(s.homingSelected && s.homingTarget ? [s.homingTarget.id] : [])])) {
       const unit = s.units.find(u => u.id === id && u.hp > 0);
       if (!unit) continue;
       const q = project(unit, .3);
@@ -1231,7 +1263,8 @@ export class HUD {
         g.stroke();
       }
       const l = unitLabel(unit.id, 110, 24);
-      l.string = this.t('锁定 · 追踪中', 'LOCK · TRACKING'); l.color = col(C.amber);
+      l.string = s.shots.some(shot => shot.guidance?.target === id)
+        ? this.t('追踪中', 'TRACKING') : this.t('已锁定', 'LOCKED'); l.color = col(C.amber);
       l.node.setPosition(q.x, q.y + 36); l.node.active = true;
       this.lockedTargets.push({ id, x: q.x + this.w / 2, y: this.h / 2 - q.y });
     }

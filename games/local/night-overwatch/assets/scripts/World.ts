@@ -1060,9 +1060,9 @@ export class World {
     this.cameraNode.lookAt(target, up);
     this.camera.camera?.update(true);
   }
-  adjustZoom(factor: number, screenX?: number, screenY?: number) {
+  adjustZoom(factor: number, screenX?: number, screenY?: number, previousX = screenX, previousY = screenY) {
     if (this.cameraPaused || !Number.isFinite(factor) || factor <= 0) return;
-    const anchor = screenX === undefined || screenY === undefined ? null : this.aimAt(screenX, screenY);
+    const anchor = previousX === undefined || previousY === undefined ? null : this.aimAt(previousX, previousY);
     this.zoom = clamp(this.zoom * factor, 0.65, this.zoomLimit);
     this.updateCamera();
     // Preserve the terrain under the gesture, with bounded correction for perspective and hills.

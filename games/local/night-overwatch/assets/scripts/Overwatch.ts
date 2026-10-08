@@ -23,7 +23,7 @@ import { MISSIONS, nextMission, readMissionSearch, type MissionId } from './core
 import { bestTrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind } from './core/Rewards';
 const { ccclass } = _decorator;
-type TouchRole = { role: string; x: number; y: number; button?: string };
+type TouchRole = { role: string; x: number; y: number; button?: string; moved?: boolean };
 @ccclass('Overwatch')
 export class Overwatch extends Component {
   sim = new Simulation();
@@ -44,10 +44,11 @@ export class Overwatch extends Component {
   private rewardRequest?: RewardKind;
   private disposed = false;
   private startupSignalled = false;
+  private pauseControl?: HTMLButtonElement;
   start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
-    view.setOrientation(macro.ORIENTATION_AUTO);
+    view.setOrientation(macro.ORIENTATION_LANDSCAPE);
     this.world = new World(this.node);
     this.hud = new HUD(this.node);
     this.world.camera.visibility = 1 << 30;
@@ -57,6 +58,14 @@ export class Overwatch extends Component {
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
     this.hud.reducedEffects = this.platform.reducedEffects;
+    if (sys.isBrowser) {
+      const button = document.createElement('button');
+      button.setAttribute('aria-label', '暂停');
+      button.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
+      button.addEventListener('click', () => this.action('pause'));
+      document.body.appendChild(button);
+      this.pauseControl = button;
+    }
     input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
@@ -175,6 +184,7 @@ export class Overwatch extends Component {
     const kind = this.rewardRequest;
     this.rewardRequest = undefined;
     if (completed) { this.platform.grantReward(kind); this.syncRewards(); }
+    if (completed && kind === 'homing') this.sim.selectHoming();
     this.hud.advert = undefined;
     this.pause('advert', false);
     this.hud.modalKey = 'rebuild';
@@ -216,6 +226,13 @@ export class Overwatch extends Component {
       this.clear();
       this.sim.phase = 'briefing';
       this.selectMission(this.selectedMission);
+      this.hud.missionsOpen = false;
+      return;
+    }
+    if (id === 'missions' || id === 'homeMenu') {
+      this.clear();
+      this.hud.missionsOpen = id === 'missions';
+      this.hud.modalKey = 'rebuild';
       return;
     }
     if (id.startsWith('mission:')) {
@@ -339,13 +356,7 @@ export class Overwatch extends Component {
     if (id === 'homing') {
       if (this.sim.homingAmmo <= 0) { void this.requestReward('homing'); return; }
       this.clear();
-      if (this.sim.fireHoming()) {
-        this.platform.rewards.ammo = this.sim.homingAmmo;
-        this.platform.saveRewards();
-      } else {
-        this.hud.toast = this.hud.t('请先瞄准保护区外的敌人', 'AIM AT AN ENEMY OUTSIDE PROTECTED AREAS');
-        this.hud.toastUntil = Date.now() + 3000;
-      }
+      this.sim.selectHoming();
     }
     if (id === 'previous') this.sim.choose((this.sim.selected + 2) % 3);
     if (id === 'next') this.sim.choose((this.sim.selected + 1) % 3);
@@ -368,6 +379,17 @@ export class Overwatch extends Component {
     const p = e.getUILocation();
     return { x: p.x, y: this.hud.h - p.y };
   }
+  lockAt(x: number, y: number) {
+    const target = this.sim.units.filter(u => u.hp > 0).map(u => {
+      const p = this.world.project(u);
+      return { id: u.id, distance: Math.hypot(p.x / view.getScaleX() - x, this.hud.h - p.y / view.getScaleY() - y) };
+    }).filter(u => u.distance <= 28).sort((a, b) => a.distance - b.distance)[0];
+    if (target) this.sim.lockHoming(target.id);
+    else {
+      const aim = this.world.aimAt(x * view.getScaleX(), (this.hud.h - y) * view.getScaleY());
+      if (aim) this.sim.setAim(aim);
+    }
+  }
   locateMap(p: Point) {
     if (this.sim.paused || this.sim.phase !== 'playing') return;
     this.clear();
@@ -387,7 +409,7 @@ export class Overwatch extends Component {
     }
     if (this.hud.blocksBattlefield(p.x, p.y) && this.mouseButton !== 'fire')
       this.sim.setFire('mouse', false);
-    if (!this.hud.modal && !this.hud.blocksBattlefield(p.x, p.y)) {
+    if (!this.sim.homingSelected && !this.hud.modal && !this.hud.blocksBattlefield(p.x, p.y)) {
       const q = e.getLocation();
       const aim = this.world.aimAt(q.x, q.y);
       if (aim) this.sim.setAim(aim);
@@ -422,6 +444,7 @@ export class Overwatch extends Component {
       return;
     }
     if (e.getButton() === 0) {
+      if (this.sim.homingSelected) { this.lockAt(p.x, p.y); return; }
       const q = e.getLocation();
       const aim = this.world.aimAt(q.x, q.y);
       if (!aim) return;
@@ -500,6 +523,8 @@ export class Overwatch extends Component {
     const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
     if (fingers.length === 2) {
       const before = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
+      const previousX = (fingers[0].x + fingers[1].x) / 2 * view.getScaleX();
+      const previousY = (this.hud.h - (fingers[0].y + fingers[1].y) / 2) * view.getScaleY();
       for (const t of e.getTouches()) {
         const role = this.touches.get(t.getID());
         if (role?.role !== 'pinch') continue;
@@ -511,7 +536,7 @@ export class Overwatch extends Component {
       if (before > 8 && after > 8 && !this.sim.paused) {
         this.world.adjustZoom(after / before,
           (fingers[0].x + fingers[1].x) / 2 * view.getScaleX(),
-          (this.hud.h - (fingers[0].y + fingers[1].y) / 2) * view.getScaleY());
+          (this.hud.h - (fingers[0].y + fingers[1].y) / 2) * view.getScaleY(), previousX, previousY);
         this.sim.completed.add('zoom');
       }
       return;
@@ -528,6 +553,7 @@ export class Overwatch extends Component {
         role.role = 'cancelled';
       }
       if (role.role === 'aim' && !this.sim.paused) {
+        if (Math.hypot(x - role.x, y - role.y) > 2) role.moved = true;
         const q = t.getLocation(),
           old = this.world.aimAt(
             q.x - (x - role.x) * view.getScaleX(),
@@ -556,6 +582,16 @@ export class Overwatch extends Component {
         const p = t.getUILocation(),
           b = this.hud.hit(p.x, this.hud.h - p.y);
         if (b && b.id === role.button) this.action(b.id);
+      }
+      if (role?.role === 'aim' && !this.sim.paused) {
+        const p = t.getUILocation(), x = p.x, y = this.hud.h - p.y;
+        if (!role.moved && !this.hud.blocksBattlefield(x, y)) {
+          if (this.sim.homingSelected) this.lockAt(x, y);
+          else {
+            const q = t.getLocation(), aim = this.world.aimAt(q.x, q.y);
+            if (aim) this.sim.setAim(aim);
+          }
+        } else if (this.sim.homingSelected && this.sim.homingTarget) this.sim.lockHoming(this.sim.homingTarget.id);
       }
     }
   }
@@ -644,8 +680,16 @@ export class Overwatch extends Component {
         this.lastEvent = e.id;
       }
     this.world.update(this.sim, this.platform.reducedEffects);
+    if (this.platform.rewards.ammo !== this.sim.homingAmmo) {
+      this.platform.rewards.ammo = this.sim.homingAmmo;
+      this.platform.saveRewards();
+    }
     this.hud.fullscreen = this.platform.isFullscreen;
     this.hud.update(this.sim, this.world);
+    if (this.pauseControl) {
+      this.pauseControl.disabled = this.sim.phase !== 'playing' || !!this.hud.modal && this.hud.modalKey !== 'pause';
+      this.pauseControl.setAttribute('aria-pressed', String(this.sim.pauses.has('manual')));
+    }
     if (sys.isBrowser && !this.startupSignalled && this.world.aircraftModel.status !== 'loading' && this.world.modelImport !== 'loading') {
       this.startupSignalled = true;
       if (this.world.aircraftModel.status === 'error')
@@ -668,6 +712,8 @@ export class Overwatch extends Component {
   snapshot() {
     return {
       homingAmmo: this.sim.homingAmmo,
+      homingSelected: this.sim.homingSelected,
+      homingTarget: this.sim.homingSelected ? this.sim.homingTarget?.id : undefined,
       zoomLimit: this.world.zoomLimit,
       advert: this.hud.advert,
       locks: this.hud.lockedTargets,
@@ -726,6 +772,8 @@ export class Overwatch extends Component {
       friendlyRisk: this.sim.friendlyRisk,
       aimedUnit: this.sim.aimedUnit?.id,
       ui: {
+        width: this.hud.w,
+        height: this.hud.h,
         minimap: this.hud.minimapLayout,
         notice: this.hud.labels.get('notice')?.string,
         warning: this.hud.labels.get('friendWarning')?.string,
@@ -770,6 +818,7 @@ export class Overwatch extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.pauseControl?.remove();
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);

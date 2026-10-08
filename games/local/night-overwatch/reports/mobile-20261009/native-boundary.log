@@ -1,0 +1,15 @@
+✔ actual native guards preserve canonical source and independently compute the two fingerprints (1014.3579ms)
+✔ fresh persistent stages exclude caches, release secrets, and old outputs (1645.8482ms)
+✔ unreviewed or already adapted canonical files fail closed before staging (214.6048ms)
+✔ normalized CRLF input has an honest raw receipt and unchanged source hash (1090.1062ms)
+✔ all legitimate hash inputs are copied and mutations produce their real native hash (888.5655ms)
+✔ existing extension is copied with digest evidence but no authenticity claim (939.9064ms)
+✔ non-Night projects return their actual fingerprint without staging or adaptation (4.5829ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5879.112

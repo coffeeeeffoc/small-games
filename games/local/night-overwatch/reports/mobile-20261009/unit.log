@@ -1,0 +1,95 @@
+$ node --test tests/*.test.ts tests/startup.test.mjs
+✔ restores matching web artifacts without Creator and rejects stale or incomplete artifacts before replacing output (3015.393ms)
+✔ larger battlefield disperses mission actors, preserves journey time and uses vehicle-sized hit hulls (1.9449ms)
+✔ defenders withstand three minutes without air support, but cannot win the mission alone (2294.9199ms)
+ℹ {"at180":{"allyHp":[490.39999999999986,355.59999999999997,328.7999999999997,360,233.59999999999934,230.3999999999994,360,360,360,233.9999999999994,259.1999999999996,259.19999999999936],"threats":24},"end":390.0166666666406,"allyHp":[475.59999999999974,347.5999999999999,317.5999999999996,360,78.39999999999917,71.99999999999966,360,360,360,75.59999999999965,144.39999999999912,115.19999999999959],"threats":24,"groundKills":0}
+✔ late air support with inaccurate aim and deliberate misses can still finish (1181.3861ms)
+ℹ {"phase":"success","time":353.0333333333409,"attempts":85,"deliberateMisses":22,"kills":24,"groundKills":0,"ammo":[null,6,19],"allies":[484.3999999999998,352.79999999999995,324.3999999999997,360,178.39999999999907,309.5999999999997,360,360,360,298.7999999999996,186.3999999999993,316.7999999999997],"remaining":[]}
+✔ defender armor, return-fire ownership and pause obey the same simulation clock (5.2664ms)
+✔ two battlefields have distinct heights/routes and all mission vehicles stay on dry land or the bridge (1877.753ms)
+✔ weapon recoil scales with power, decays to rest, respects reduced motion and does not mutate aim (1.1842ms)
+✔ an off-centre terrain blast damages nearby hulls progressively and emits a miss on empty terrain (95.7495ms)
+✔ camera: terrain picking, mount, FOV, complete roll, orbit parallax and ground attitude (38.8618ms)
+✔ mission data and ActionRegistry have unique identifiers, bindings and real tutorial events (5.3224ms)
+✔ rapid overheats, switching preserves heat, all guns cool and unlock only at 40 (107.6999ms)
+✔ heavy fires once per press, respects reload and finite ammunition (134.3928ms)
+✔ burst repeats at its own cadence and cannot bypass cooldown by switching (14.6827ms)
+✔ launch snapshots aim; moving out before impact avoids damage; impacts are consumed once (11.6684ms)
+✔ blast damages several units once each, armor resists rapid fire (33.3404ms)
+✔ protection rejects overlapping blast and its tangent without consuming ammo (0.557ms)
+✔ ordinary friendlies warn but do take damage; training immunity is explicit (19.7972ms)
+✔ hold request stops at next marker; time and events keep advancing; continue does not reset route (167.4879ms)
+✔ pause reasons compose, freeze every rule clock and clear held fire (3.7506ms)
+✔ separate trigger sources do not double-fire and releasing one leaves the other active (77.5815ms)
+✔ critical destruction fails before arrival; timeout fails; fresh retry has no leftovers (1.2592ms)
+✔ prediction and finite ammunition can clear all 24 threats while all four friendly groups survive (902.0698ms)
+ℹ {"time":240.00000000008313,"phase":"success","kills":24,"ammo":[null,66,24],"friendlyHp":[520,360,360,360,360,356.4,360,360,360,352.79999999999995,360,360],"friendlyDamage":0,"rating":"S","remaining":[]}
+✔ expanded route, friendly identification and launch position remain consistent (2.1541ms)
+✔ impact feedback describes actual damage and lethal rescue damage keeps its source (53.2864ms)
+✔ metre scale, coordinated bank, orbit period and constant-speed reversal agree (16.202ms)
+ℹ {"speedMps":90,"radiusM":2000,"periodSeconds":139.62634015954637,"bankDegrees":22.43299092212539}
+✔ port weapon stations, metre-authored mesh and banked model/camera transforms share one frame (38.2886ms)
+✔ aircraft is live simulation state and pauses freeze its orbit (2.9965ms)
+✔ arrival cannot succeed while a threat is still alive (3.2958ms)
+✔ height/radius change smoothly, reverse orbit without teleporting, and bound invalid input (183.5203ms)
+✔ distance, height and weapon speed determine a frozen three-dimensional gravity arc (4.0799ms)
+✔ aiming at a fast target misses; leading by the solved flight time hits its current position (15.4009ms)
+✔ terrain intercepts before the aim point, emits the real contact and never damages through a hill (14.3865ms)
+✔ four friendly groups stay dispersed and enemies attack living local targets (34.1127ms)
+✔ continuous low terrain, shared road heights and in-bounds speed-limited patrols (6.558ms)
+✔ unreachable/invalid HUD estimates are safe and failed launches consume no ammunition or heat (1.1962ms)
+✔ every outpost must retain a survivor; the last lethal hit determines group failure cause (139.2397ms)
+✔ guided round pursues a moving target, freezes during ads, and hits only the locked unit (20.8758ms)
+✔ invalid targets never spend a round; dead or newly protected targets drop their lock (1.036ms)
+✔ reward save validation and every zoom tier produces genuine optical magnification (5.0321ms)
+✔ select, lock and the common trigger launch one missile without firing the previous gun (3.3464ms)
+✔ HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked (10.0013ms)
+✔ HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports (9.3798ms)
+✔ HUD: persistent global actions, compact modal layout, focus markers and zoom bindings (15.6977ms)
+✔ HUD: short-screen information priority, focus clearance and friendly group expansion (3.69ms)
+✔ HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home (3.389ms)
+✔ HUD: rewards, zoom panel and mock ads fit small phones with safe areas and no overlapping buttons (3.2773ms)
+✔ HUD: browser has one fullscreen action; native hosts keep only settings across every game state (1.2225ms)
+(node:44156) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ two-finger translation preserves both midpoint positions and cancels the remaining finger (4.7505ms)
+✔ browser mouse-generated touches with simulate=false never replace or cancel mouse input (1.3338ms)
+✔ reward requests pause, reject duplicate claims, preserve inventory on retry, and respect SDK outcomes (3.2162ms)
+✔ a real touch activates initially desktop-classified native devices and trigger release stays safe (1.8237ms)
+✔ changing missions requires a briefing or result; retry preserves the chosen mission and system pauses (1.4965ms)
+✔ actual warmup entry, retry and return keep saved escort preferences and system pauses independent (1.4336ms)
+✔ training result saves only a clean successful range score in its separate key (0.8629ms)
+✔ actual task choices update public entry URLs without carrying private fields or credentials (1.8883ms)
+✔ returning home aborts a live mission, clears input and starts the next map cleanly (0.93ms)
+✔ mission combinations change deployment and motion while preserving weapon and escort rules (227.7211ms)
+✔ 高地伏击 can be completed with finite ammunition and every friendly group surviving (717.5073ms)
+ℹ {"mission":"ambush-02","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 机动拦截 can be completed with finite ammunition and every friendly group surviving (942.7204ms)
+ℹ {"mission":"patrol-03","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ Night native build entry generates distinct official channel configurations without requiring Creator (1960.2551ms)
+✔ native HUD creates no browser fullscreen action and platform guards calls (5451.9575ms)
+✔ ready requires the game signal AND a subsequent scene draw, then cleans up (4.5096ms)
+✔ an early game signal is retained but cannot bypass scene launch (2.1863ms)
+✔ engine import and initialization failures expose a real reload action (3.4348ms)
+✔ game errors and a missing ready signal fail closed; late ready never hides an error (3.0787ms)
+✔ global exceptions, rejected promises, script failures and context loss are terminal (4.9286ms)
+✔ fade-out is presentation only and has a bounded removal fallback (1.4883ms)
+Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.
+Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.
+Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.
+Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.
+✔ both Creator entries are repeatable, preserve hashed files and tolerate Builder ignoring splash options (1828.3009ms)
+✔ startup templates normalize line endings while content and binary changes invalidate artifacts (189.7702ms)
+✔ warmup clears three different targets through real moving aircraft ballistics and finite ammunition (79.918ms)
+ℹ {"time":8.750000000000014,"phase":"success","fired":5,"hitShots":5,"friendlyDamage":0,"ammo":[null,77,28]}
+✔ pause freezes the 60-second range, and waiting or missing cannot clear it for free (375.7485ms)
+✔ friendly damage remains real and destroying an ally stops the warmup (59.0437ms)
+✔ public task shortcuts choose only one known task, and the original three escort profiles remain intact (2.5784ms)
+ℹ tests 73
+ℹ suites 0
+ℹ pass 73
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6215.7165

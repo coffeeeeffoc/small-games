@@ -52,6 +52,24 @@ function mission() {
   return g;
 }
 
+test('two-finger translation preserves both midpoint positions and cancels the remaining finger', () => {
+  const g = mission(), calls: number[][] = [];
+  g.world.adjustZoom = (...args: number[]) => calls.push(args);
+  g.touchStart(touch(1, 250, 300)); g.touchStart(touch(2, 350, 300));
+  const event = (points: number[][]) => ({ simulate: false, getTouches: () => points.map(([id, x, y]) => ({
+    getID: () => id, getUILocation: () => ({ x, y }), getLocation: () => ({ x, y }),
+  })) });
+  g.touchMove(event([[1, 280, 320], [2, 380, 320]]));
+  assert.deepEqual(calls[0], [1, 330, 320, 300, 300], 'equal spacing still moves the view');
+  g.touchMove(event([[1, 260, 320], [2, 400, 320]]));
+  assert.deepEqual(calls[1], [1.4, 330, 320, 330, 320]);
+  g.touchEnd(touch(2, 400, 320));
+  assert.equal(g.touches.get(1).role, 'cancelled');
+  g.touchMove(touch(1, 100, 300)); assert.equal(calls.length, 2);
+  g.touchCancel(touch(1)); assert.equal(g.touches.size, 0); assert.equal(g.sim.fired, 0);
+  g.platform.dispose();
+});
+
 test('browser mouse-generated touches with simulate=false never replace or cancel mouse input', () => {
   const g = mission();
   cc.sys.isBrowser = true;

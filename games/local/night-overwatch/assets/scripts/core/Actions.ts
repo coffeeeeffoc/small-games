@@ -68,6 +68,16 @@ export const ACTIONS = [
     event: 'weapon',
   },
   {
+    id: 'homing',
+    group: 'basic',
+    name: ['追踪弹', 'Homing'],
+    keys: [52],
+    binding: '4 / Space',
+    touch: ['选追踪 → 点敌人 → 发射', 'Homing → enemy → Launch'],
+    description: ['锁定框跟随敌人；点发射只消耗一发。无弹药时点追踪领取补给。', 'Lock follows the enemy. Launch spends one round. Tap an empty slot to resupply.'],
+    event: 'fire',
+  },
+  {
     id: 'previous',
     group: 'advanced',
     name: ['上一武器', 'Previous'],
@@ -269,7 +279,7 @@ export const ACTIONS = [
     name: ['放大', 'Zoom +'],
     keys: [187, 107, 88],
     binding: '+ / Wheel ↑ / X',
-    touch: ['双指张开或点击 +', 'Pinch outward or tap +'],
+    touch: ['双指缩放、平移；也可点 +', 'Pinch and drag with two fingers, or tap +'],
     description: [
       '默认上限 5×；倍率面板看广告逐档解锁至 160×。拖到边缘巡视，定位回到车队。',
       'Default 5×; ads in the zoom panel unlock up to 160×. Pan at edges; LOCATE returns to convoy.',

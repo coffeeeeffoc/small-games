@@ -1306,7 +1306,21 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         (id) => globalThis.__night.snapshot().buttons.find((b) => b.id === id),
         id,
       );
-      const position = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+      const position = await canvas.evaluate((element, b) => {
+        const bounds = element.getBoundingClientRect(),
+          s = globalThis.__night.snapshot();
+        const transform = new globalThis.DOMMatrix(
+          globalThis.getComputedStyle(globalThis.document.getElementById('GameDiv')).transform,
+        );
+        const x = b.x + b.w / 2,
+          y = b.y + b.h / 2;
+        return transform.b > 0.5
+          ? {
+              x: bounds.width - (y * bounds.width) / s.ui.height,
+              y: (x * bounds.height) / s.ui.width,
+            }
+          : { x: (x * bounds.width) / s.ui.width, y: (y * bounds.height) / s.ui.height };
+      }, b);
       await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
       // Cocos commits input and then rebuilds the visible HUD on its next frame.
       await gameDocument.evaluate(
@@ -1316,6 +1330,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           ),
       );
     };
+    await press('missions');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
+      .toBe('missions');
+    await press('homeMenu');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
+      .toBe('home');
+    await press('missions');
+    await press('training');
     await press('start');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().time))
