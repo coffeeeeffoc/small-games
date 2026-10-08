@@ -2,6 +2,10 @@
 
 竖屏 8×8 积木消除游戏。每组三块，摆放两块后自动舍弃第三块；行列同时清除，无旋转、重力或时间限制。
 
+无尽页提供「三选二」和「立即补位」：立即补位每次合法落子并消除后，只补回原槽，其余两块保留；三块均不可放时结束。两种模式分别保存本地最高分，立即补位暂不参与在线排行榜。关卡及现有在线三选二规则不变。
+
+积木花园美术的效果图、生成提示与实机画面模拟记录见 `docs/design/garden-2026-10-07/`。设置「消除闪光」开启表示允许亮光；关闭后仍保留得分提示，旧 `reducedFlash` 存档语义保持不变。
+
 ## 本地运行
 
 ```sh
@@ -16,7 +20,7 @@ pnpm --filter @coffeeeeffoc/three-choose-two build
 pnpm --filter @coffeeeeffoc/three-choose-two test:browser
 ```
 
-浏览器测试使用 Playwright 和 Chromium，可通过 `BROWSER_EXECUTABLE` 指定可执行文件。手机触屏模拟记录和截图保存在 `docs/design/actual/`；这类测试不等同于真机验收。
+浏览器测试使用 Playwright 和 Chromium，可通过 `PLAYWRIGHT_EXECUTABLE_PATH` 指定可执行文件。手机触屏模拟记录和截图保存在 `docs/design/garden-2026-10-07/actual/`；这类测试不等同于真机验收。分享测试检查真实应用产生的 payload，以测试替身承接系统分享面板；网页全屏仍通过真实浏览器 API 检查。
 
 ## 内容与规则
 
@@ -52,7 +56,9 @@ pnpm minigame:build --game three-choose-two --platform bilibili --preview
 
 H5 使用共享 `dev-mode.js`、`fullscreen.js`、`competition.js`。`?dev=1` 或 `localStorage.dev` 可启用按需调试；默认关闭，`?dev=0` 显式关闭。调试成绩与正常进度/排位隔离，公开分享不带开发参数。
 
-首页突出开始/继续、选关和无尽入口。游玩左上角“首页”保存当前局，回首页后可继续；暂停页“退出关卡”放弃当前局并保留已有星级与解锁进度。原生 Canvas 使用相同返回和退出规则。
+首页突出开始/继续、选关和无尽入口。游玩左上角返回按钮（无障碍名称“返回首页”）保存当前局，回首页后可继续；暂停页“退出关卡”放弃当前局并保留已有星级与解锁进度。原生 Canvas 的“首页”使用相同保存规则。
+
+花园主题的最新效果图对齐、四页实际截图及验证见 [第二版视觉记录](docs/design/garden-2026-10-07/refinement.md)。
 
 开发模式下普通选关页也可选择全部 30 关，选关进入独立试玩。开发工具提供参考解、撤销补充、重置、清空棋盘和参数调整；`window.ThreeChooseTwoDev` 的统一权限及扩展动作接口供后续调试功能复用。主页开始/继续仍可正常推进正式关卡，退出试玩会保留原有真实存档。修改试玩状态的权限不用于修改在线排位。
 

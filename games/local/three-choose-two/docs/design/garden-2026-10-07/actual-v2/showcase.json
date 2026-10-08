@@ -1,0 +1,298 @@
+{
+  "environment": "Chrome desktop mobile emulation, 390x844, actual CDP touch moves; no state injection",
+  "moves": [
+    {
+      "slot": 2,
+      "x": 0,
+      "y": 7
+    },
+    {
+      "slot": 1,
+      "x": 4,
+      "y": 5
+    },
+    {
+      "slot": 0,
+      "x": 0,
+      "y": 4
+    },
+    {
+      "slot": 2,
+      "x": 2,
+      "y": 5
+    },
+    {
+      "slot": 0,
+      "x": 7,
+      "y": 5
+    },
+    {
+      "slot": 1,
+      "x": 4,
+      "y": 6
+    },
+    {
+      "slot": 2,
+      "x": 1,
+      "y": 5
+    },
+    {
+      "slot": 1,
+      "x": 4,
+      "y": 5
+    },
+    {
+      "slot": 0,
+      "x": 2,
+      "y": 5
+    },
+    {
+      "slot": 2,
+      "x": 6,
+      "y": 6
+    },
+    {
+      "slot": 0,
+      "x": 0,
+      "y": 7
+    },
+    {
+      "slot": 0,
+      "x": 3,
+      "y": 3
+    },
+    {
+      "slot": 2,
+      "x": 4,
+      "y": 3
+    },
+    {
+      "slot": 2,
+      "x": 4,
+      "y": 7
+    },
+    {
+      "slot": 0,
+      "x": 1,
+      "y": 2
+    },
+    {
+      "slot": 0,
+      "x": 6,
+      "y": 7
+    }
+  ],
+  "final": {
+    "state": {
+      "version": "three-choose-two-v1",
+      "mode": "endless",
+      "board": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        5,
+        4,
+        4,
+        4,
+        0,
+        3,
+        1,
+        0,
+        5,
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        2,
+        5,
+        5,
+        0,
+        4,
+        0,
+        0,
+        3,
+        2,
+        0,
+        4,
+        4,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "starBoard": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "candidates": [
+        {
+          "shapeId": "rect3x2",
+          "color": 3
+        },
+        {
+          "shapeId": "l4-east",
+          "color": 4
+        },
+        {
+          "shapeId": "t4-down",
+          "color": 5
+        }
+      ],
+      "used": [],
+      "placedInGroup": 0,
+      "group": 9,
+      "completedGroups": 0,
+      "score": 425,
+      "combo": 1,
+      "stats": {
+        "lines": 4,
+        "multiClears": 0,
+        "crossClears": 0,
+        "stars": 0,
+        "discardedBlocks": 0,
+        "discardedCells": 0,
+        "placements": 16,
+        "maxLines": 1,
+        "maxCombo": 2
+      },
+      "status": "playing",
+      "reason": null,
+      "undoRemaining": 0,
+      "canUndo": false,
+      "stars": 0,
+      "continued": false,
+      "lastEvent": {
+        "type": "place",
+        "group": 8,
+        "slot": 0,
+        "shapeId": "dot",
+        "x": 6,
+        "y": 7,
+        "cells": [
+          62
+        ],
+        "rows": [
+          7
+        ],
+        "cols": [],
+        "clearedCells": [
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63
+        ],
+        "lines": 1,
+        "scoreDelta": 100,
+        "collectedStars": 0,
+        "discarded": null,
+        "groupCompleted": false,
+        "nextGroup": null,
+        "refilledSlot": 0
+      },
+      "ranked": false,
+      "variant": "refill",
+      "rng": 3680462556
+    },
+    "screen": "playing",
+    "devPractice": false,
+    "online": null
+  }
+}

@@ -96,6 +96,7 @@ export async function verifyNativeArtifact({
       ellipse() {},
       fill() {},
       stroke() {},
+      strokeText() {},
       setLineDash() {},
       moveTo(x, y) {
         paths.push([x, y]);
@@ -376,11 +377,13 @@ export async function verifyNativeArtifact({
     }
     if (standalone) await entry.ready;
     const ready =
-      gameId === 'building-power'
-        ? '忙碌的电工'
-        : gameId === 'office'
-          ? '周一 09:08 · 迟到潜入'
-          : title;
+      gameId === 'three-choose-two'
+        ? '继续闯关'
+        : gameId === 'building-power'
+          ? '忙碌的电工'
+          : gameId === 'office'
+            ? '周一 09:08 · 迟到潜入'
+            : title;
     for (let index = 0; index < 50 && !rendered.includes(ready); index++)
       await new Promise(setImmediate);
     if (!standalone) assert.equal(packageLoaded, gameId);
@@ -499,8 +502,8 @@ export async function verifyNativeArtifact({
         return JSON.parse(record[1]).value;
       };
       const drag = (move, cancel = false, settle = 600) => {
-        const source = { x: 74 + move.slot * 121, y: 682.5 };
-        const destination = { x: 27 + (move.x + 0.5) * 42, y: 227 + (move.y + 0.5) * 42 + 54 };
+        const source = { x: 74 + move.slot * 121, y: 638 };
+        const destination = { x: 27 + (move.x + 0.5) * 42, y: 178 + (move.y + 0.5) * 42 + 54 };
         emit(presses, source.x, source.y, 11);
         // A second finger never owns or submits the active block.
         emit(presses, source.x, source.y, 12);
@@ -511,6 +514,20 @@ export async function verifyNativeArtifact({
       };
       assert.ok(rendered.includes('继续闯关'), 'Native home must contain a real start action');
       assert.ok(!rendered.some((text) => text.includes('全屏')), 'Native hosts own full screen');
+      for (const name of ['garden', 'hero', 'logo'])
+        assert.ok(
+          images.some((image) => image.src.endsWith(`assets/art/${name}.png`)),
+          `Native art must ship and load: ${name}`,
+        );
+      click('设置');
+      assert.ok(rendered.includes('消除闪光'));
+      click('开');
+      assert.equal(
+        (await saved()).settings.reducedFlash,
+        true,
+        'Flash off maps to the existing reducedFlash save',
+      );
+      click('返回首页');
       click('选关');
       click('下一章');
       click('下一章');
@@ -555,8 +572,8 @@ export async function verifyNativeArtifact({
       assert.equal((await saved()).currentGame.undoRemaining, 2);
       click('暂停');
       click('返回首页');
-      click('无尽练习');
-      click('开始无尽练习');
+      click('无尽挑战');
+      click('开始练习');
       for (let step = 0; step < 2; step++) {
         const current = (await saved()).currentGame;
         let next;
@@ -579,6 +596,35 @@ export async function verifyNativeArtifact({
       click('暂停');
       click('结束练习');
       assert.ok(rendered.includes('离线练习成绩不参与排位'));
+      click('返回首页');
+      click('无尽挑战');
+      click('开始挑战');
+      for (let step = 0; step < 2; step++) {
+        const before = (await saved()).currentGame;
+        assert.equal(before.variant, 'refill');
+        let next;
+        for (let slot = 0; slot < 3 && !next; slot++)
+          for (let y = 0; y < 8 && !next; y++)
+            for (let x = 0; x < 8 && !next; x++)
+              if (canPlace(before, slot, x, y)) next = { slot, x, y };
+        assert.ok(next);
+        drag(next);
+        const after = (await saved()).currentGame;
+        assert.equal(after.stats.placements, step + 1);
+        assert.deepEqual(after.used, []);
+        assert.equal(after.stats.discardedBlocks, 0);
+        for (let slot = 0; slot < 3; slot++)
+          if (slot !== next.slot) assert.deepEqual(after.candidates[slot], before.candidates[slot]);
+      }
+      const refill = (await saved()).currentGame;
+      click('首页');
+      click('继续游戏');
+      assert.deepEqual((await saved()).currentGame, refill);
+      click('暂停');
+      click('结束练习');
+      click('再玩一次');
+      assert.equal((await saved()).currentGame.variant, 'refill');
+      assert.equal((await saved()).currentGame.stats.placements, 0);
       assert.ok(audio.some((voice) => voice.src.endsWith('place.wav')));
       await (await entry.ready).dispose();
       assert.equal(

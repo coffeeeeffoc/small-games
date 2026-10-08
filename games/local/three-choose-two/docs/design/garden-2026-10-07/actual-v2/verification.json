@@ -1,0 +1,565 @@
+{
+  "startedAt": "2026-10-07T15:59:33.440Z",
+  "environment": "Production dist; Chromium desktop emulation with native CDP touch input",
+  "actualDevice": false,
+  "checks": [
+    {
+      "name": "Fresh player opens a complete standalone home",
+      "status": "passed"
+    },
+    {
+      "name": "390 × 844 board and all three touch slots fit",
+      "status": "passed",
+      "detail": {
+        "board": {
+          "x": 18,
+          "y": 181.59375,
+          "width": 354,
+          "height": 354
+        },
+        "candidates": [
+          {
+            "x": 18,
+            "y": 583.59375,
+            "width": 111.328125,
+            "height": 128
+          },
+          {
+            "x": 139.328125,
+            "y": 585.59375,
+            "width": 111.328125,
+            "height": 128
+          },
+          {
+            "x": 260.65625,
+            "y": 583.59375,
+            "width": 111.34375,
+            "height": 128
+          }
+        ],
+        "header": {
+          "x": 18,
+          "y": 22,
+          "width": 354,
+          "height": 48
+        },
+        "footer": [
+          {
+            "x": 22,
+            "y": 739.59375,
+            "width": 84.234375,
+            "height": 44
+          },
+          {
+            "x": 315,
+            "y": 729.59375,
+            "width": 53,
+            "height": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "Normal touch drag wins level 1 immediately before a second placement or discard",
+      "status": "passed"
+    },
+    {
+      "name": "Illegal overlap, gesture cancel, and cancelled multitouch do not spend a placement",
+      "status": "passed"
+    },
+    {
+      "name": "Clear animation locks a second touch placement while preserving first-step state",
+      "status": "passed"
+    },
+    {
+      "name": "Two placements discard once; fixed slots and cross-group undo restore a deterministic group",
+      "status": "passed"
+    },
+    {
+      "name": "The visible in-game home button saves the unfinished board and resumes it directly",
+      "status": "passed"
+    },
+    {
+      "name": "Pause, reload, normal continue, next-level unlock, and return paths preserve real progress",
+      "status": "passed"
+    },
+    {
+      "name": "Exit level clears the unfinished board across reload while preserving earned stars and unlocks",
+      "status": "passed"
+    },
+    {
+      "name": "Offline endless placement, voluntary finish, safe share, and truthful ranking fallback",
+      "status": "passed"
+    },
+    {
+      "name": "Settings persist and user-gesture H5 fullscreen enters and exits without resetting progress",
+      "status": "passed"
+    },
+    {
+      "name": "Refill 390 × 844 touch controls fit",
+      "status": "passed",
+      "detail": {
+        "board": {
+          "x": 18,
+          "y": 171.59375,
+          "width": 354,
+          "height": 354
+        },
+        "candidates": [
+          {
+            "x": 18,
+            "y": 573.59375,
+            "width": 111.328125,
+            "height": 128
+          },
+          {
+            "x": 139.328125,
+            "y": 573.59375,
+            "width": 111.328125,
+            "height": 128
+          },
+          {
+            "x": 260.65625,
+            "y": 573.59375,
+            "width": 111.34375,
+            "height": 128
+          }
+        ],
+        "header": {
+          "x": 18,
+          "y": 22,
+          "width": 354,
+          "height": 48
+        },
+        "footer": [
+          {
+            "x": 168.5,
+            "y": 719.59375,
+            "width": 53,
+            "height": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "Refill 390 × 844: cancel, replacement, resume, finish, restart, mode switching and positive flash setting",
+      "status": "passed"
+    },
+    {
+      "name": "Refill 320 × 568 touch controls fit",
+      "status": "passed",
+      "detail": {
+        "board": {
+          "x": 37,
+          "y": 137.296875,
+          "width": 246,
+          "height": 246
+        },
+        "candidates": [
+          {
+            "x": 18,
+            "y": 418.296875,
+            "width": 88,
+            "height": 85
+          },
+          {
+            "x": 116,
+            "y": 418.296875,
+            "width": 88,
+            "height": 85
+          },
+          {
+            "x": 214,
+            "y": 418.296875,
+            "width": 88,
+            "height": 85
+          }
+        ],
+        "header": {
+          "x": 18,
+          "y": 10,
+          "width": 284,
+          "height": 44
+        },
+        "footer": [
+          {
+            "x": 122,
+            "y": 515.296875,
+            "width": 76,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "Refill 320 × 568: cancel, replacement, resume, finish, restart, mode switching and positive flash setting",
+      "status": "passed"
+    },
+    {
+      "name": "Real group-exhaustion failure survives reload and offers remaining undo and a free fixed-board retry",
+      "status": "passed"
+    },
+    {
+      "name": "Fixture: a confirmed rewarded-ad receipt restores once across reload; replay is idempotent",
+      "status": "passed",
+      "detail": {
+        "realAd": false
+      }
+    },
+    {
+      "name": "360 × 640 all touch controls fit",
+      "status": "passed",
+      "detail": {
+        "board": {
+          "x": 26,
+          "y": 146.296875,
+          "width": 308,
+          "height": 308
+        },
+        "candidates": [
+          {
+            "x": 18,
+            "y": 489.296875,
+            "width": 101.328125,
+            "height": 85
+          },
+          {
+            "x": 129.328125,
+            "y": 489.296875,
+            "width": 101.328125,
+            "height": 85
+          },
+          {
+            "x": 240.65625,
+            "y": 489.296875,
+            "width": 101.34375,
+            "height": 85
+          }
+        ],
+        "header": {
+          "x": 18,
+          "y": 10,
+          "width": 324,
+          "height": 44
+        },
+        "footer": [
+          {
+            "x": 22,
+            "y": 584.296875,
+            "width": 84.234375,
+            "height": 44
+          },
+          {
+            "x": 262,
+            "y": 584.296875,
+            "width": 76,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "360 × 640 normal touch mapping reaches a real win",
+      "status": "passed"
+    },
+    {
+      "name": "320 × 568 all touch controls fit",
+      "status": "passed",
+      "detail": {
+        "board": {
+          "x": 42,
+          "y": 146.296875,
+          "width": 236,
+          "height": 236
+        },
+        "candidates": [
+          {
+            "x": 18,
+            "y": 417.296875,
+            "width": 88,
+            "height": 85
+          },
+          {
+            "x": 116,
+            "y": 417.296875,
+            "width": 88,
+            "height": 85
+          },
+          {
+            "x": 214,
+            "y": 417.296875,
+            "width": 88,
+            "height": 85
+          }
+        ],
+        "header": {
+          "x": 18,
+          "y": 10,
+          "width": 284,
+          "height": 44
+        },
+        "footer": [
+          {
+            "x": 22,
+            "y": 512.296875,
+            "width": 84.234375,
+            "height": 44
+          },
+          {
+            "x": 222,
+            "y": 512.296875,
+            "width": 76,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "320 × 568 normal touch mapping reaches a real win",
+      "status": "passed"
+    },
+    {
+      "name": "Viewport rotation preserves the same game and restored touch mapping",
+      "status": "passed"
+    },
+    {
+      "name": "Developer selection opens all 30 levels and a real touch solution earns no normal progress or record",
+      "status": "passed"
+    },
+    {
+      "name": "Touch developer tools expose the reference route and return to the originating pause screen",
+      "status": "passed"
+    },
+    {
+      "name": "Full developer controls operate on isolated trials; leaving a trial restores the existing normal save",
+      "status": "passed"
+    },
+    {
+      "name": "Explicit dev=0 hides debugging and restores normal unlock restrictions despite stored dev=1",
+      "status": "passed"
+    },
+    {
+      "name": "Transport fixture: direct home and continue retain the same online session and unconfirmed move",
+      "status": "passed",
+      "detail": {
+        "realService": false
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "filename": "home-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "levels-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "brief-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game-valid-preview-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "result-win-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game-invalid-preview-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "game-after-first-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "pause-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "practice-result-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "ranking-offline-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "settings-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "flash-off-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "endless-modes-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "refill-playing-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "refill-result-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "flash-off-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "endless-modes-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "refill-playing-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "refill-result-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "result-failure-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "confirmed-reward-fixture-restored-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "home-360x640.png",
+      "viewport": {
+        "width": 360,
+        "height": 640
+      }
+    },
+    {
+      "filename": "game-360x640.png",
+      "viewport": {
+        "width": 360,
+        "height": 640
+      }
+    },
+    {
+      "filename": "home-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "game-320x568.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "filename": "game-landscape-844x390.png",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      }
+    },
+    {
+      "filename": "developer-level-30.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "developer-result.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "developer-tools.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "pageErrors": [],
+  "status": "passed",
+  "browserVersion": "154.0.8037.98",
+  "finishedAt": "2026-10-07T16:00:30.348Z"
+}

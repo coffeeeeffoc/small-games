@@ -10,7 +10,7 @@ import { canPlace, previewPlacement, createEndless } from '../src/engine.mjs';
 // snapshots and level solutions may describe expected state; they never place a
 // piece, unlock content, or manufacture a normal-player victory.
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
-const outputRoot = fileURLToPath(new URL('../docs/design/refresh-2026-10-07/actual/', import.meta.url));
+const outputRoot = fileURLToPath(new URL('../docs/design/garden-2026-10-07/actual-v2/', import.meta.url));
 const port = Number(process.env.THREE_CHOOSE_TWO_BROWSER_PORT || 4423);
 let baseURL = process.env.THREE_CHOOSE_TWO_URL;
 let server;
@@ -152,6 +152,12 @@ async function phoneContext(viewport = { width: 390, height: 844 }) {
 }
 async function mainFlow() {
   const context = await phoneContext();
+  // The OS share sheet is outside browser automation and can deny subsequent fullscreen.
+  // Capture the real app's share payload instead; fullscreen itself remains a real API call.
+  await context.addInitScript(() => {
+    window.__sharedScores = [];
+    Object.defineProperty(navigator, 'share', { value: async payload => window.__sharedScores.push(payload) });
+  });
   const page = await context.newPage();
   const session = await context.newCDPSession(page);
   monitor(page);
@@ -321,6 +327,9 @@ async function mainFlow() {
   assert.equal((await state(page)).status, 'finished');
   await capture(page, 'practice-result-390x844');
   await action(page, 'share', '分享成绩');
+  const shares = await page.evaluate(() => window.__sharedScores);
+  assert.equal(shares.length, 1); assert.ok(shares[0].text.includes('三选二'));
+  assert.equal(new URL(shares[0].url).search, '', 'Public share never exports dev flags');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'result');
   await action(page, 'leaderboard', '查看排行榜');
   await screen(page, 'leaderboard');
@@ -349,6 +358,55 @@ async function mainFlow() {
   assert.notEqual(await page.getByRole('switch', { name: '音效', exact: true }).getAttribute('aria-checked'), previousSetting);
   record('Settings persist and user-gesture H5 fullscreen enters and exits without resetting progress');
   await context.close();
+}
+async function refillFlow() {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }]) {
+    const context = await phoneContext(viewport), page = await context.newPage();
+    const session = await context.newCDPSession(page);
+    monitor(page); await page.goto(baseURL); await screen(page, 'home');
+    await expect.poll(() => page.locator('.hero img, .home h1 img').evaluateAll(images => images.length === 2 && images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+    await action(page, 'settings');
+    const flash = page.getByRole('switch', { name: '消除闪光', exact: true });
+    await expect(flash).toHaveAttribute('aria-checked', 'true');
+    await flash.tap(); await expect(flash).toHaveAttribute('aria-checked', 'false');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).settings.reducedFlash), true);
+    await page.reload(); await action(page, 'settings');
+    await expect(flash).toHaveAttribute('aria-checked', 'false');
+    await expect(page.locator('body')).toHaveClass(/reduced-flash/);
+    await capture(page, `flash-off-${viewport.width}x${viewport.height}`);
+    await action(page, 'home'); await action(page, 'endless');
+    await expect(page.getByRole('heading', { name: '三选二', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '立即补位', exact: true })).toBeVisible();
+    const start = await page.locator('[data-action=refill]').boundingBox();
+    assert(start && start.y + start.height <= viewport.height, 'Both modes must be reachable without scrolling');
+    await capture(page, `endless-modes-${viewport.width}x${viewport.height}`);
+    await action(page, 'refill'); await screen(page, 'playing');
+    await assertGameFits(page, `Refill ${viewport.width} × ${viewport.height} touch controls fit`);
+    const before = await state(page);
+    assert.equal(before.variant, 'refill'); assert.equal(before.ranked, false);
+    let move;
+    for (let slot = 0; slot < 3 && !move; slot++) for (let y = 0; y < 8 && !move; y++) for (let x = 0; x < 8 && !move; x++) if (canPlace(before,slot,x,y)) move = {slot,x,y};
+    assert(move); await drag(page, session, move.slot, move.x, move.y, { cancel: true });
+    assert.equal((await state(page)).stats.placements, 0);
+    await drag(page, session, move.slot, move.x, move.y); await waitPlacements(page, 1);
+    const after = await state(page);
+    assert.equal(after.lastEvent.refilledSlot, move.slot); assert.deepEqual(after.used, []);
+    assert.equal(after.stats.discardedBlocks, 0); assert.equal(after.completedGroups, 0);
+    for (let slot = 0; slot < 3; slot++) if (slot !== move.slot) assert.deepEqual(after.candidates[slot], before.candidates[slot]);
+    await capture(page, `refill-playing-${viewport.width}x${viewport.height}`);
+    await action(page, 'pause'); await action(page, 'home'); await page.reload(); await action(page, 'start');
+    assert.deepEqual(await state(page), JSON.parse(JSON.stringify(after)), 'Continue preserves all candidates and the generator');
+    await action(page, 'pause'); await action(page, 'end-run'); await screen(page, 'result');
+    await expect(page.locator('.result')).toContainText('立即补位');
+    await expect(page.locator('[data-action=leaderboard]')).toHaveCount(0);
+    await capture(page, `refill-result-${viewport.width}x${viewport.height}`);
+    await action(page, 'again'); assert.equal((await state(page)).variant, 'refill');
+    assert.equal((await state(page)).stats.placements, 0);
+    await action(page, 'home'); await action(page, 'endless'); await action(page, 'practice');
+    assert.notEqual((await state(page)).variant, 'refill');
+    record(`Refill ${viewport.width} × ${viewport.height}: cancel, replacement, resume, finish, restart, mode switching and positive flash setting`);
+    await context.close();
+  }
 }
 async function failureFlow() {
   const context = await phoneContext();
@@ -624,6 +682,7 @@ async function run() {
   });
   report.browserVersion = browser.version();
   await mainFlow();
+  await refillFlow();
   await failureFlow();
   await smallViewports();
   await developerFlow();

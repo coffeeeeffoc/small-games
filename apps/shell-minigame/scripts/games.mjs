@@ -15,7 +15,7 @@ export const games = {
     configureCompetition: true,
     configureAdvertising: true,
     orientation: 'portrait',
-    assets: [{ source: 'native/assets/audio', target: 'assets/audio' }],
+    assets: [{ source: 'native/assets', target: 'assets' }],
   },
   'retreat-rally': {
     title: '收兵再冲',
