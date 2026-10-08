@@ -357,7 +357,7 @@ export function nineLockFileScopes(context) {
         'f6e042447ff3ce9b1511b73fff1127027e9f8fb1b7f3849b31983b4d4c7a100e' &&
       digest(context.readHead(LOCK)) ===
         'f1c5a9ee12eeb850200dc0e16483ed2a7265141e00a9244563222569d247822a'
-    )
+    ) {
       taptap.set(LOCK, [
         SHELL,
         'apps/shell-web',
@@ -371,6 +371,22 @@ export function nineLockFileScopes(context) {
         TAPTAP,
         'services/runtime-api',
       ]);
+      const webManifest = 'apps/shell-web/package.json';
+      if (
+        context.changedPaths.includes(webManifest) &&
+        digest(context.readBase(webManifest)) ===
+          '33ac62dd6f7a3daed682b334de815f7f0ae9705f68f3ce79cb22783afbf4d324' &&
+        digest(context.readHead(webManifest)) ===
+          '12d02b1ea85a73280a082ed70675373067935d25539d12247b3e036988c19856'
+      )
+        taptap.set(webManifest, [
+          'games/local/cage-rescue',
+          'games/local/flick-arena',
+          'games/local/retreat-rally',
+          'games/local/three-choose-two',
+          'games/local/tower-brake',
+        ]);
+    }
   } catch {
     /* Missing snapshots remain unclassified. */
   }

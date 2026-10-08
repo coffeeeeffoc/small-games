@@ -45,6 +45,43 @@ test('reviewed cumulative lock selects every changed importer and rejects any ot
   assert.equal(nineLockFileScopes({ ...context, changedPaths: [] }).size, 0);
 });
 
+test('cumulative Shell manifest accepts only the five reviewed game links with the exact lock', () => {
+  const file = 'apps/shell-web/package.json';
+  const read = (ref) => (name) =>
+    execFileSync('git', ['show', `${ref}:${name}`], { encoding: 'utf8' });
+  const context = {
+    changedPaths: ['pnpm-lock.yaml', file],
+    readBase: read('b551fe6e7d7f2bc1229e2e1d44666a878eec5a07'),
+    readHead: read('bc3b386c435edc0e126f38065d4c496a10488c46'),
+  };
+  const sources = nineLockFileScopes(context).get(file);
+  assert.equal(sources.length, 5);
+  const before = JSON.parse(context.readBase(file)),
+    after = JSON.parse(context.readHead(file));
+  for (const source of sources) {
+    const { name } = JSON.parse(context.readHead(`${source}/package.json`));
+    assert.equal(after.dependencies[name], 'workspace:*');
+    delete after.dependencies[name];
+  }
+  assert.deepEqual(before, after);
+  for (const changed of [file, 'pnpm-lock.yaml']) {
+    assert.equal(
+      nineLockFileScopes({
+        ...context,
+        readHead: (name) => context.readHead(name) + (name === changed ? '\n' : ''),
+      }).has(file),
+      false,
+    );
+    assert.equal(
+      nineLockFileScopes({
+        ...context,
+        readBase: (name) => context.readBase(name) + (name === changed ? '\n' : ''),
+      }).has(file),
+      false,
+    );
+  }
+});
+
 const LOCK = 'pnpm-lock.yaml';
 const SHELL = 'apps/shell-minigame';
 const ALIPAY = 'platforms/alipay';
