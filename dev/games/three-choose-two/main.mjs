@@ -3,13 +3,13 @@ import { createDeveloperAPI } from './src/developer.mjs';
 import { createLevel, createEndless, place, placeIssuedGroup, undo, hasPlacement, previewPlacement, finishEndless, continueLevel } from './src/engine.mjs';
 import { SHAPE_BY_ID } from './src/shapes.mjs';
 import { LEVELS, CHAPTERS, getLevel } from './src/levels.mjs';
-import { readProgress, saveProgress, recordLevelResult, isLevelUnlocked, totalStars, resumeState, saveCurrentGame } from './src/progress.mjs';
+import { readProgress, saveProgress, recordLevelResult, recordEndlessResult, isLevelUnlocked, totalStars, resumeState, saveCurrentGame } from './src/progress.mjs';
 import { createAudio } from './src/audio.mjs';
 import { createOnlineClient } from './src/client.mjs';
 
 const app = document.querySelector('#game');
 const toastNode = document.querySelector('#toast');
-const palette = ['#eb8968', '#57b7a4', '#e8be55', '#9aa9d0', '#a9bc84'];
+const palette = ['#ed806b', '#73bf94', '#f2cb58', '#91a9c0', '#acbc73'];
 const storage = { getItem(key) { try { return localStorage.getItem(key); } catch { return null; } }, setItem(key, value) { try { localStorage.setItem(key, value); } catch { /* Continue in memory. */ } } };
 let progress = readProgress(storage);
 let state = null;
@@ -28,9 +28,16 @@ const audio = createAudio(() => progress.settings);
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 const pad = (value) => String(value).padStart(2, '0');
 const fmt = (value) => Number(value || 0).toLocaleString('zh-CN');
+const endlessName = (game = state) => game?.variant === 'refill' ? '立即补位' : '三选二';
+const localBest = (game = state) => game?.variant === 'refill' ? progress.refillBest : progress.practiceBest;
 const color = (value) => typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) ? value : (progress.settings.highContrast ? ['#d86d41','#0e8b7d','#b98b14','#768bc5','#728f45'] : palette)[Math.abs(Number(value || 1) - 1) % palette.length];
 function icon(name) {
   const paths = {
+    settings:'<path d="m9 3-1 3-3 1v4l3 1 1 3h4l1-3 3-1V7l-3-1-1-3Z" transform="translate(1 2)"/><circle cx="12" cy="11" r="2.5"/>',
+    levels:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    endless:'<path d="M12 12c-3-7-10-7-10 0s7 7 10 0 10-7 10 0-7 7-10 0Z"/>',
+    play:'<path d="m7 4 13 8-13 8Z" fill="currentColor" stroke="none"/>',
+    refill:'<path d="M20 9a8 8 0 0 0-14-4L3 8m0-5v5h5M4 15a8 8 0 0 0 14 4l3-3m0 5v-5h-5"/>',
     back:'<path d="m14 5-7 7 7 7"/>', pause:'<rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/>',
     help:'<circle cx="12" cy="12" r="9"/><path d="M9.4 9a2.7 2.7 0 1 1 4.2 2.2c-1 .6-1.6 1.1-1.6 2.3M12 17h.01"/>',
     undo:'<path d="M8 5 3 10l5 5M3 10h11a6 6 0 0 1 0 12"/>', home:'<path d="m3 10 9-7 9 7v11H3ZM9 21v-8h6v8"/>',
@@ -42,7 +49,10 @@ function star(fill = '#e8be55', className = '') { return `<svg viewBox="0 0 24 2
 function stars(count, large = false) { return `<span class="${large ? 'result-stars' : 'stars'}" aria-label="${count} 星">${[1,2,3].map((index) => star(index <= count ? '#e8be55' : '#d9dfce')).join('')}</span>`; }
 function block(x, y, size, fill, extra = '') {
   const radius = Math.max(3, size * .14);
-  return `<g ${extra}><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${radius}" fill="${fill}"/><path d="M${x + size*.16} ${y + size*.13}h${size*.68}" stroke="#fff" stroke-opacity=".4" stroke-width="${size*.06}" stroke-linecap="round"/><path d="M${x + size*.15} ${y + size*.87}h${size*.7}" stroke="#183c34" stroke-opacity=".13" stroke-width="${size*.07}" stroke-linecap="round"/></g>`;
+  return `<g ${extra}><rect x="${x}" y="${y+1.5}" width="${size}" height="${size}" rx="${radius}" fill="${fill}" stroke="#314c383d" stroke-width="1"/><rect x="${x+1}" y="${y}" width="${size-2}" height="${size-2}" rx="${radius}" fill="${fill}"/><rect x="${x+1}" y="${y}" width="${size-2}" height="${size-2}" rx="${radius}" fill="url(#block-light)"/><rect x="${x+2.5}" y="${y+2}" width="${size-5}" height="${size-6}" rx="${Math.max(2,radius-1)}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width=".8"/><path d="M${x+radius} ${y+size-2}h${size-radius*2}" stroke="#314c38" stroke-opacity=".18" stroke-width="2" stroke-linecap="round"/></g>`;
+}
+function paintDefinitions() {
+  return '<svg class="paint-definitions" aria-hidden="true" width="0" height="0"><defs><linearGradient id="block-light" x2=".2" y2="1"><stop stop-color="#fff" stop-opacity=".36"/><stop offset=".45" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#34412b" stop-opacity=".12"/></linearGradient><linearGradient id="wood-rim" x2=".12" y2="1"><stop stop-color="#fff1d4"/><stop offset=".5" stop-color="#e6cfaa"/><stop offset="1" stop-color="#c8ad84"/></linearGradient><pattern id="surface-grain" width="5" height="7" patternUnits="userSpaceOnUse"><circle cx="1" cy="2" r=".45" fill="#765d3c" opacity=".035"/><circle cx="4" cy="5" r=".5" fill="#fff" opacity=".07"/></pattern></defs></svg>';
 }
 function mini(candidate, cell = 24) {
   const shape = SHAPE_BY_ID[candidate?.shapeId];
@@ -51,13 +61,11 @@ function mini(candidate, cell = 24) {
   return `<svg viewBox="0 0 ${shape.width*pitch} ${shape.height*pitch}" aria-hidden="true">${shape.cells.map(([x,y]) => block(x*pitch+1,y*pitch+1,cell,color(candidate.color)) + (candidate.stars?.some?.(([sx,sy])=>sx === x && sy === y) ? `<path d="m${x*pitch+cell/2} ${y*pitch+5} 2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1Z" fill="#fff"/>` : '')).join('')}</svg>`;
 }
 function hero() {
-  const occupied = [[0,1,1],[0,2,1],[1,2,1],[2,0,2],[3,0,2],[2,1,2],[3,1,2],[4,1,3],[4,2,3],[4,3,3]];
-  return `<div class="hero" aria-hidden="true"><svg viewBox="0 0 335 281"><rect x="40" y="23" width="255" height="226" rx="31" fill="#e8ebdc"/>${Array.from({length:20},(_,i)=>`<rect x="${60+i%5*44}" y="${43+Math.floor(i/5)*44}" width="39" height="39" rx="6" fill="#d8dfd0"/>`).join('')}${occupied.map(([x,y,c])=>block(60+x*44,43+y*44,39,color(c))).join('')}<path d="M22 207q-19 10-5 25M307 102q22-7 18-25" stroke="#e8be55" stroke-width="3" fill="none" stroke-linecap="round"/><path d="m28 65 3 6 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1Z" fill="#57b7a4"/><path d="m301 244 2 5 6 1-4 4 1 5-5-3-4 3 1-5-4-4 5-1Z" fill="#eb8968"/></svg><span class="hero-badge">2 / 3</span></div>`;
+  return '<div class="hero" aria-hidden="true"><img src="./native/assets/art/hero.png" alt="" width="640" height="480" fetchpriority="high"></div>';
 }
 function header(title, back = 'home', right = '') {
-  const savedExit = back === 'home' && screen === 'playing';
   const label = back === 'resume' ? '继续游戏' : back === 'home' ? '返回首页' : '返回';
-  return `<header class="screen-header"><button class="${savedExit ? 'return-home' : 'icon-button'}" data-action="${back}" aria-label="${label}">${icon(savedExit ? 'home' : 'back')}${savedExit ? '<span>首页</span>' : ''}</button><h2>${title}</h2>${right || '<span class="header-spacer"></span>'}</header>`;
+  return `<header class="screen-header"><button class="icon-button" data-action="${back}" aria-label="${label}">${icon('back')}</button><h2>${title}</h2>${right || '<span class="header-spacer"></span>'}</header>`;
 }
 function toast(message) { clearTimeout(toastTimer); toastNode.textContent = message; toastNode.hidden = false; toastTimer = setTimeout(() => { toastNode.hidden = true; }, 2600); }
 function persist() {
@@ -112,26 +120,27 @@ function render() {
   app.dataset.screen = screen;
   app.dataset.ready = 'true';
   app.dataset.mode = onlineSession ? 'online' : state?.mode || '';
+  app.dataset.variant = state?.variant || 'classic';
   app.dataset.placements = String(state?.stats?.placements || 0);
   app.dataset.group = String(state?.group || 0);
   app.dataset.lines = String(state?.stats?.lines || 0);
   app.dataset.score = String(state?.score || 0);
   app.dataset.status = state?.status || '';
   const screens = { home: renderHome, levels: renderLevels, brief: renderBrief, playing: renderPlaying, pause: renderPause, settings: renderSettings, help: renderHelp, result: renderResult, endless: renderEndless, leaderboard: renderLeaderboard, 'dev-levels': () => renderLevels(true), 'dev-tools': renderDeveloperTools };
-  app.innerHTML = (screens[screen] || renderHome)();
+  app.innerHTML = paintDefinitions() + (screens[screen] || renderHome)();
   try { if (window.parent !== window) window.parent.postMessage({ type:'small-games:display-state', gameId:'three-choose-two', screen:screen === 'home' ? 'home' : 'playing' }, location.origin); } catch { /* Standalone is fully playable. */ }
 }
 function renderHome() {
   const saved = playableResume(), resumeOnline = canResumeOnline(), recovery = onlineRecovery();
   const id = saved?.levelId || Math.min(progress.unlocked || 1, LEVELS.length), level = getLevel(id);
-  const title = resumeOnline ? '无尽在线 · '+(onlineSession ? '第 '+state.group+' 组' : '已保存的对局') : saved?.mode === 'endless' ? '无尽练习 · 第 '+saved.group+' 组' : '第 '+pad(id)+' 关 · '+escape(level.title);
+  const title = resumeOnline ? '三选二在线 · '+(onlineSession ? '第 '+state.group+' 组' : '已保存的对局') : saved?.mode === 'endless' ? endlessName(saved)+' · '+fmt(saved.score)+' 分' : '第 '+pad(id)+' 关 · '+escape(level.title);
   const startLabel = resumeOnline ? '继续在线对局' : saved ? '继续游戏' : progress.unlocked > 1 ? '继续闯关' : '开始闯关';
-  return `<section class="home"><div class="home-topline"><p class="eyebrow">三选二 · 留出下一步</p><div class="home-top-tools">${devEnabled() ? '<button class="dev-chip" data-action="dev-tools">开发</button>' : ''}<button class="home-settings" data-action="settings" aria-label="设置">设置</button></div></div><div class="home-intro"><h1>三块选两块</h1><p class="home-tagline">放下两块，给下一步留点空间</p></div>${hero()}<div class="home-progress"><div><small>${resumeOnline || saved ? '已保存的旅程' : '当前进度'}</small><strong>${title}</strong></div><span class="home-stars" aria-label="已收集 ${totalStars(progress)} 颗星">${star()}${totalStars(progress)}</span></div><button class="primary home-start" data-action="start">${startLabel}<span aria-hidden="true">→</span></button><div class="home-modes"><button class="home-mode-card" data-action="levels"><strong>选关</strong><small>${LEVELS.length} 关空间挑战</small><span aria-hidden="true">↗</span></button><button class="home-mode-card endless-card" data-action="endless"><strong>无尽挑战</strong><small>练习 / 在线排位</small><span aria-hidden="true">↗</span></button></div>${!resumeOnline && recovery ? '<button class="online-recovery" data-action="online-resume">在线成绩待确认 · 查看对局 →</button>' : ''}<p class="home-record">个人练习纪录 &nbsp; ${fmt(progress.practiceBest)}</p><nav class="home-nav" aria-label="游戏菜单"><button data-action="leaderboard">排行榜</button><button data-action="help">玩法帮助</button></nav></section>`;
+  return `<section class="home"><div class="home-topline"><span class="home-stars" aria-label="已收集 ${totalStars(progress)} 颗星">${star()}${totalStars(progress)}</span><div class="home-top-tools">${devEnabled() ? '<button class="dev-chip" data-action="dev-tools">开发</button>' : ''}<button class="home-settings icon-button" data-action="settings" aria-label="设置">${icon('settings')}</button></div></div><div class="home-intro"><h1 aria-label="三块选两块"><img src="./native/assets/art/logo.png" alt="三块选两块" width="768" height="512" fetchpriority="high"></h1></div>${hero()}<div class="home-progress"><strong>${title}</strong></div><button class="primary home-start" data-action="start">${icon('play')}${startLabel}</button><div class="home-modes"><button class="home-mode-card" data-action="levels">${icon('levels')}<strong>选关</strong></button><button class="home-mode-card endless-card" data-action="endless">${icon('endless')}<strong>无尽挑战</strong></button></div>${!resumeOnline && recovery ? '<button class="online-recovery" data-action="online-resume">在线成绩待确认 · 查看对局 →</button>' : ''}<nav class="home-nav" aria-label="游戏菜单"><button data-action="leaderboard">${icon('trophy')}<span>排行榜</span></button><button data-action="help">${icon('help')}<span>玩法帮助</span></button></nav></section>`;
 }
 function renderLevels(developer = false) {
   developer = devEnabled();
-  const chapters = ['初识积木', '取舍之间', '空间大师'];
-  return `${header('选择关卡')}<h1 class="page-title">一步一步，留出余地。</h1><p class="page-subtitle">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<div class="dev-level-banner"><div><strong>开发模式 · 全关可试玩</strong><p>独立试玩，不计入真实进度与纪录</p></div><button data-action="dev-tools">调试工具</button></div>' : ''}${[0,1,2].map(chapter => `<section class="chapter"><p class="chapter-label">${pad(chapter*10+1)} — ${pad(chapter*10+10)}</p><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
+  const chapters = CHAPTERS.map(chapter => chapter.title);
+  return `${header('选关')}<p class="level-progress">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<div class="dev-level-banner"><div><strong>开发模式 · 全关可试玩</strong><p>独立试玩，不计入真实进度与纪录</p></div><button data-action="dev-tools">调试工具</button></div>' : ''}${[0,1,2].map(chapter => `<section class="chapter"><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
     const id = Number(level.id), unlocked = developer || isLevelUnlocked(progress,id), record = progress.records[id];
     return `<button class="level-button ${!unlocked ? 'locked' : id === progress.unlocked ? 'current' : ''}" data-level="${id}" ${unlocked ? '' : 'disabled'} aria-label="第${id}关 ${escape(level.title)}${!unlocked ? ' 尚未解锁' : developer ? ' 开发试玩' : record ? ' '+record.stars+'星' : ''}"><strong>${pad(id)}</strong>${developer ? '<small>试玩</small>' : record ? stars(record.stars) : !unlocked ? '<svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>' : '<small>挑战</small>'}</button>`;
   }).join('')}</div></section>`).join('')}<p class="level-end-note">每次好选择，都会成为下一步的余地。</p>`;
@@ -144,12 +153,12 @@ function renderBrief() {
   const config = getLevel(briefLevel);
   return `${header('第 '+pad(briefLevel)+' 关','levels')}<div class="brief-art">${mini(config.candidates[0][0],35)}</div><p class="brief-kicker">${escape(CHAPTERS.find(chapter=>chapter.id === config.chapter)?.title || '初识积木')}</p><h1 class="brief-title">${escape(config.title)}</h1><div class="brief-target"><strong>${goalLines(config)[0]}</strong><p>${goalLines(config).slice(1).map(escape).join('<br>')}${goalLines(config).length > 1 ? '<br>' : ''}最多 ${config.maxGroups} 组积木${config.discardBudget !== undefined ? '<br>舍弃积木不超过 '+config.discardBudget+' 格' : ''}</p></div><p class="brief-note">三块里放下两块，剩下的一块自动丢弃。<br>填满一整行或一整列，就能消除。</p>${briefPractice ? '<p class="dev-note">开发试玩 · 本局不计入成长</p>' : ''}<div class="button-stack bottom-space"><button class="primary" data-action="begin">开始这一关 <span aria-hidden="true">→</span></button><button class="quiet-button" data-action="help">查看玩法</button></div>`;
 }
-function renderBoard(clearFrom = null) {
+function renderBoard() {
   const cells = Array.from({length:64}, (_, index) => {
     const x = 22+index%8*40, y=22+Math.floor(index/8)*40, filled=state.board[index];
-    return `<g data-cell="${index}" data-cell-col="${index%8}" data-cell-row="${Math.floor(index/8)}" data-filled="${filled ? 'true' : 'false'}"><rect class="board-cell" x="${x}" y="${y}" width="36" height="36" rx="5" fill="${filled ? color(filled) : '#dbe2d4'}"/>${filled ? `<path d="M${x+6} ${y+4.5}h24" stroke="#fff" stroke-opacity=".4" stroke-width="2" stroke-linecap="round"/><path d="M${x+6} ${y+31}h24" stroke="#183c34" stroke-opacity=".12" stroke-width="2.5" stroke-linecap="round"/>` : ''}${state.starBoard?.[index] ? `<path d="m${x+18} ${y+8} 3 6 6 1-5 4 1 7-5-3-6 3 1-7-4-4 6-1Z" fill="#fff"/>` : ''}</g>`;
+    return `<g data-cell="${index}" data-cell-col="${index%8}" data-cell-row="${Math.floor(index/8)}" data-filled="${filled ? 'true' : 'false'}">${filled ? block(x,y,38,color(filled),'class="board-cell occupied"') : `<rect class="board-cell" x="${x}" y="${y}" width="38" height="38" rx="5" fill="#8fa982" stroke="#708b63" stroke-width=".8"/>`}${state.starBoard?.[index] ? `<path d="m${x+18} ${y+8} 3 6 6 1-5 4 1 7-5-3-6 3 1-7-4-4 6-1Z" fill="#fff"/>` : ''}</g>`;
   }).join('');
-  return `<div class="board-shell" data-board><svg id="board" viewBox="0 0 360 360" role="grid" tabindex="0" aria-label="8行8列积木棋盘，拖动下方积木，或先点选积木再点落点"><rect x="0" y="0" width="360" height="360" rx="25" fill="#e8ecdd"/>${cells}<g id="preview-lines" pointer-events="none"></g><g id="board-ghost" class="board-ghost"></g><g id="clear-layer" pointer-events="none"></g></svg><div id="clear-text"></div></div>`;
+  return `<div class="board-shell" data-board><svg id="board" viewBox="0 0 360 360" role="grid" tabindex="0" aria-label="8行8列积木棋盘，拖动下方积木，或先点选积木再点落点"><rect x="1" y="1" width="358" height="358" rx="20" fill="url(#wood-rim)" stroke="#ffefd2" stroke-width="2"/><rect x="6" y="6" width="348" height="348" rx="16" fill="none" stroke="#fff8df" stroke-width="1.5"/><rect x="17" y="17" width="328" height="328" rx="9" fill="#dfcfaa" stroke="#aa916f" stroke-width="2"/>${cells}<rect x="1" y="1" width="358" height="358" rx="20" fill="url(#surface-grain)" pointer-events="none"/><g id="preview-lines" pointer-events="none"></g><g id="board-ghost" class="board-ghost"></g><g id="clear-layer" pointer-events="none"></g></svg><div id="clear-text"></div></div>`;
 }
 function renderPlaying() {
   const level = state.mode === 'level';
@@ -158,19 +167,22 @@ function renderPlaying() {
   const stats = state.stats;
   const goal = config?.goal || {};
   const extra = [goal.multi ? `多线 ${stats.multiClears}/${goal.multi}` : '', goal.cross ? `交叉 ${stats.crossClears}/${goal.cross}` : '', goal.stars ? `星标 ${stats.stars}/${goal.stars}` : '', config?.discardBudget !== undefined ? `已弃 ${stats.discardedCells}/${config.discardBudget} 格` : ''].filter(Boolean);
-  let note = state.placedInGroup === 1 ? '再放 1 块，剩下的自动丢弃' : '放下两块，剩下的自动丢弃';
+  let note = state.variant === 'refill' ? '放一块，原位补一块' : state.placedInGroup === 1 ? '再放 1 块，剩下的自动丢弃' : '放下两块，剩下的自动丢弃';
   if (state.waitingNextGroup) note='已完成本组，联网确认后获取下一组';
   if (state.levelId <= 3 && stats.placements === 0) note = ['','拖动积木，填满一行或一列','每组三块，放完两块后自动舍弃一块','先用小块清线，给大块留出位置'][state.levelId];
-  return `${header(devPractice ? '试玩 · 第 '+pad(state.levelId)+' 关' : level ? '第 '+pad(state.levelId)+' 关' : onlineSession ? onlineSession.eligible ? '无尽排位' : '在线试用 · 不入榜' : '无尽 · 离线练习','home',`<button class="icon-button" data-action="pause" aria-label="暂停">${icon('pause')}</button>`)}<div class="metrics"><div><p class="metric-label">${level ? '清线' : '当前积分'}</p><p class="metric-main">${level ? stats.lines+' <small>/ '+goal.lines+'</small>' : fmt(state.score)}</p>${level ? `<div class="progress-track"><i style="width:${Math.min(100,stats.lines/goal.lines*100)}%"></i></div>` : `<p class="page-subtitle">${onlineSession ? '服务端校验计分' : '练习纪录 '+fmt(progress.practiceBest)}</p>`}</div><div class="metric-group"><p class="metric-label">当前组数</p><p class="metric-main">${state.group}${level ? ' <small>/ '+groupLimit+'</small>' : ''}</p>${state.combo > 1 ? '<p class="page-subtitle">连续消除 '+state.combo+' 次</p>' : ''}</div></div>${extra.length ? `<div class="extra-goals">${extra.map(item=>`<span>${item}</span>`).join('')}</div>` : ''}${renderBoard()}<p class="group-note" role="status" aria-live="polite">${onlineSession && onlineBusy ? '正在确认落子…' : note}</p><div class="tray" aria-label="三块候选积木">${state.candidates.map((candidate,slot) => {
+  return `${header(devPractice ? '试玩 · 第 '+pad(state.levelId)+' 关' : level ? '第 '+pad(state.levelId)+' 关' : onlineSession ? onlineSession.eligible ? '无尽排位' : '在线试用 · 不入榜' : endlessName(),'home',`<button class="icon-button" data-action="pause" aria-label="暂停">${icon('pause')}</button>`)}<div class="metrics"><div><p class="metric-label">${level ? '清线' : '当前积分'}</p><p class="metric-main">${level ? stats.lines+' <small>/ '+goal.lines+'</small>' : fmt(state.score)}</p>${level ? `<div class="progress-track"><i style="width:${Math.min(100,stats.lines/goal.lines*100)}%"></i></div>` : `<p class="sr-only">${onlineSession ? '服务端校验计分' : '本地最高 '+fmt(localBest())}</p>`}</div><div class="metric-group"><p class="metric-label">${state.variant === 'refill' ? '已放积木' : '当前组数'}</p><p class="metric-main">${state.variant === 'refill' ? state.stats.placements : state.group}${level ? ' <small>/ '+groupLimit+'</small>' : ''}</p>${state.combo > 1 ? '<p class="page-subtitle">连续消除 '+state.combo+' 次</p>' : ''}</div></div>${extra.length ? `<div class="extra-goals">${extra.map(item=>`<span>${item}</span>`).join('')}</div>` : ''}${renderBoard()}<p class="group-note" role="status" aria-live="polite">${onlineSession && onlineBusy ? '正在确认落子…' : note}</p><div class="tray" aria-label="三块候选积木">${state.candidates.map((candidate,slot) => {
     const used = state.used.includes(slot), available = !used && hasPlacement(state,slot), shape = SHAPE_BY_ID[candidate.shapeId];
-    return `<button class="candidate ${used ? 'used' : !available ? 'unavailable' : ''} ${selectedSlot === slot ? 'selected' : ''}" data-slot="${slot}" data-slot-index="${slot}" data-shape="${escape(candidate.shapeId)}" data-width="${shape.width}" data-height="${shape.height}" data-used="${used}" aria-label="候选${slot+1} ${escape(shape.name)} ${used ? '已放下' : !available ? '当前不可放' : '按住拖动，或点击选中'}" ${used ? 'disabled' : ''}>${mini(candidate)}<span>${used ? '已放下' : !available ? '当前不可放' : selectedSlot === slot ? '点棋盘选择落点' : '按住拖动'}</span></button>`;
-  }).join('')}</div>${onlineError ? `<div class="network-banner" role="status">${escape(onlineError)}<br><button data-action="online-retry">重新连接</button><button data-action="pause">稍后继续</button></div>` : ''}<footer class="play-footer">${level ? `<button data-action="undo" aria-label="撤销上一步，剩余${state.undoRemaining}次" ${state.canUndo && state.undoRemaining > 0 && !isLocked() ? '' : 'disabled'}>${icon('undo')}撤销 · ${state.undoRemaining}</button>` : '<span class="muted" style="font-size:11px">三选二 · 不可旋转</span>'}<button data-action="help" aria-label="玩法提示">${icon('help')}提示</button></footer>`;
+    return `<button class="candidate ${used ? 'used' : !available ? 'unavailable' : ''} ${selectedSlot === slot ? 'selected' : ''}" style="--piece-cols:${shape.width};--piece-rows:${shape.height}" data-slot="${slot}" data-slot-index="${slot}" data-shape="${escape(candidate.shapeId)}" data-width="${shape.width}" data-height="${shape.height}" data-used="${used}" aria-label="候选${slot+1} ${escape(shape.name)} ${used ? '已放下' : !available ? '当前不可放' : '按住拖动，或点击选中'}" ${used ? 'disabled' : ''}>${mini(candidate)}<span>${used ? '已放下' : !available ? '当前不可放' : selectedSlot === slot ? '点棋盘选择落点' : ''}</span></button>`;
+  }).join('')}</div>${onlineError ? `<div class="network-banner" role="status">${escape(onlineError)}<br><button data-action="online-retry">重新连接</button><button data-action="pause">稍后继续</button></div>` : ''}<footer class="play-footer">${level ? `<button data-action="undo" aria-label="撤销上一步，剩余${state.undoRemaining}次" ${state.canUndo && state.undoRemaining > 0 && !isLocked() ? '' : 'disabled'}>${icon('undo')}撤销 · ${state.undoRemaining}</button>` : '<span></span>'}<button data-action="help" aria-label="玩法提示">${icon('help')}提示</button></footer>`;
 }
 function settingsRows() {
-  return `<div class="settings-list">${[['sound','音效'],['music','音乐'],['vibration','振动'],['highContrast','高对比色'],['reducedFlash','关闭强闪光']].map(([key,label])=>`<button class="setting" data-setting="${key}" role="switch" aria-checked="${!!progress.settings[key]}" aria-label="${label}"><span>${label}</span><i class="switch" aria-hidden="true"></i></button>`).join('')}</div>`;
+  return `<div class="settings-list">${[['sound','音效'],['music','音乐'],['vibration','振动'],['highContrast','高对比色'],['reducedFlash','消除闪光']].map(([key,label])=> {
+    const enabled = key === 'reducedFlash' ? !progress.settings[key] : !!progress.settings[key];
+    return `<button class="setting" data-setting="${key}" role="switch" aria-checked="${enabled}" aria-label="${label}"><span>${label}${key === 'reducedFlash' ? '<small>开启时，消除会出现亮光</small>' : ''}</span><span class="setting-value" aria-hidden="true">${enabled ? '开' : '关'}<i class="switch"></i></span></button>`;
+  }).join('')}</div>`;
 }
 function renderPause() {
-  return `<section class="pause">${header('暂停','resume')}<h1 class="pause-title">慢慢想，不着急。</h1><p class="pause-copy">${state.mode === 'level' ? '第 '+pad(state.levelId)+' 关' : onlineSession ? '在线对局' : '无尽练习'} · ${devPractice ? '独立试玩，不计入成长' : '当前棋盘已保存'}${onlineSession ? '<br>保留未确认落子，联网后继续同步' : ''}</p>${settingsRows()}<div class="button-stack"><button class="primary" data-action="resume">继续游戏</button>${state.mode === 'level' ? '<button class="secondary" data-action="retry">重新开始</button>' : '<button class="secondary" data-action="end-run">结束本局</button>'}<button class="secondary" data-action="home">返回首页${devPractice ? '' : ' · 保留本局'}</button>${!onlineSession ? '<button class="quiet-button exit-button" data-action="exit-level">'+(devPractice ? '退出试玩' : state.mode === 'level' ? '退出关卡 · 放弃本局' : '退出练习 · 放弃本局')+'</button>' : ''}${devEnabled() ? '<button class="quiet-button dev-tool-link" data-action="dev-tools">开发调试工具</button>' : ''}</div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div></section>`;
+  return `<section class="pause">${header('暂停','resume')}<h1 class="pause-title">慢慢想，不着急。</h1><p class="pause-copy">${state.mode === 'level' ? '第 '+pad(state.levelId)+' 关' : onlineSession ? '在线对局' : endlessName()} · ${devPractice ? '独立试玩，不计入成长' : '当前棋盘已保存'}${onlineSession ? '<br>保留未确认落子，联网后继续同步' : ''}</p>${settingsRows()}<div class="button-stack"><button class="primary" data-action="resume">继续游戏</button>${state.mode === 'level' ? '<button class="secondary" data-action="retry">重新开始</button>' : '<button class="secondary" data-action="end-run">结束本局</button>'}<button class="secondary" data-action="home">返回首页${devPractice ? '' : ' · 保留本局'}</button>${!onlineSession ? '<button class="quiet-button exit-button" data-action="exit-level">'+(devPractice ? '退出试玩' : state.mode === 'level' ? '退出关卡 · 放弃本局' : '退出练习 · 放弃本局')+'</button>' : ''}${devEnabled() ? '<button class="quiet-button dev-tool-link" data-action="dev-tools">开发调试工具</button>' : ''}</div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div></section>`;
 }
 function renderDeveloperTools() {
   if (!devEnabled()) return renderHome();
@@ -179,7 +191,7 @@ function renderDeveloperTools() {
 }
 function renderSettings() { return `${header('设置')}<h1 class="pause-title">找到舒服的节奏。</h1><p class="pause-copy">声音与振动分别控制，随时可调整。</p>${settingsRows()}<div class="button-stack"><button class="secondary" data-action="help">玩法与计分</button><button class="primary" data-action="home">返回首页</button></div><div class="fullscreen-wrap"><button data-game-fullscreen>全屏</button></div>`; }
 function renderHelp() {
-  return `${header('玩法提示','back')}<h1 class="page-title">三块，两次好选择。</h1><div class="help-section"><h3>先放，再舍弃</h3><p>每组有三块。放下一块后，先消除，再放第二块。剩下的一块自动丢弃，三个槽位一直固定。积木不能旋转。</p></div><div class="help-section"><h3>填满，就能消除</h3><p>一整行或一整列填满即可消除。行列同时判定，交叉处只清除一次，但一行一列算两条线。消除后积木不下落。</p></div><div class="help-section"><h3>给下一块留出余地</h3><p>弱化的积木标着“当前不可放”。先清线，它也许就有了位置。只要还有一块能放，就可以继续。全部剩余积木都无处可放时失败。</p></div><div class="help-section"><h3>无尽，争取多消</h3><p>只消除才得分：单线基础 100 分，两线同消 300 分。连续两步消除会有连击奖励，最多计五步；跨组保持，未消除的落子会重置。</p></div><div class="help-section"><h3>关卡与全站榜</h3><p>通关获得至少一星，少用组数可获得更多星。关卡可撤销，续局完成只获一星。无尽不支持撤销或续局。全站榜只收录可信平台登录且经服务端校验的单局最高分；离线练习及 H5 匿名试用不入榜。</p></div><button class="primary bottom-space" data-action="back">明白了</button>`;
+  return `${header('玩法提示','back')}<h1 class="page-title">小积木，大有余地。</h1><div class="help-section"><h3>先放，再舍弃</h3><p>每组有三块。放下一块后，先消除，再放第二块。剩下的一块自动丢弃，三个槽位一直固定。积木不能旋转。</p></div><div class="help-section"><h3>立即补位 · 随放随补</h3><p>放下一块并完成消除后，原槽马上补入一块；另外两块保留。三块都无处可放时结束。两种无尽分别保存本地最高分，立即补位暂不参与在线排位。</p></div><div class="help-section"><h3>填满，就能消除</h3><p>一整行或一整列填满即可消除。行列同时判定，交叉处只清除一次，但一行一列算两条线。消除后积木不下落。</p></div><div class="help-section"><h3>给下一块留出余地</h3><p>弱化的积木标着“当前不可放”。先清线，它也许就有了位置。只要还有一块能放，就可以继续。全部剩余积木都无处可放时失败。</p></div><div class="help-section"><h3>无尽，争取多消</h3><p>只消除才得分：单线基础 100 分，两线同消 300 分。连续两步消除会有连击奖励，最多计五步；跨组保持，未消除的落子会重置。</p></div><div class="help-section"><h3>关卡与全站榜</h3><p>通关获得至少一星，少用组数可获得更多星。关卡可撤销，续局完成只获一星。无尽不支持撤销或续局。全站榜只收录可信平台登录且经服务端校验的单局最高分；离线练习及 H5 匿名试用不入榜。</p></div><button class="primary bottom-space" data-action="back">明白了</button>`;
 }
 function failureText() { return ({ 'no-placement':'剩下的积木都没有合适的位置了。', 'groups-exhausted':'组数用完了，距离目标还差一点。', 'discard-budget':'舍弃的格数超出了本关预算。' })[state.reason] || '这一局先到这里，下次试试另一种选择。'; }
 function resultArt(won = true) {
@@ -193,14 +205,14 @@ function renderResult() {
 }
 function renderEndlessResult() {
   const settlement = onlineSession?.settlement;
-  let status = onlineSession ? onlineBusy ? '成绩校验中…' : pendingAction?.length || pendingFinish ? '等待联网确认 · 当前成绩尚未结算' : settlement?.status === 'verified' ? `成绩已校验 · ${settlement.rank ? '全站第 '+settlement.rank+' 名' : '暂无名次'}` : settlement?.status === 'pending-review' ? '成绩待复核，暂未计入公开榜。' : settlement?.reason || onlineSession.rankingReason || '匿名在线试用 · 成绩不参与全站排名' : '离线练习 · 本地纪录，不参与全站排名';
+  let status = onlineSession ? onlineBusy ? '成绩校验中…' : pendingAction?.length || pendingFinish ? '等待联网确认 · 当前成绩尚未结算' : settlement?.status === 'verified' ? `成绩已校验 · ${settlement.rank ? '全站第 '+settlement.rank+' 名' : '暂无名次'}` : settlement?.status === 'pending-review' ? '成绩待复核，暂未计入公开榜。' : settlement?.reason || onlineSession.rankingReason || '匿名在线试用 · 成绩不参与全站排名' : endlessName()+' · 本地纪录，不参与全站排名';
   if (onlineError) status = onlineError;
   const best = onlineSession ? settlement?.isPersonalBest : recordedResult?.isPersonalBest;
-  return `<section class="result endless"><p class="eyebrow">${onlineSession ? '无尽挑战结束' : '无尽练习结束'}</p><p class="result-score">${fmt(state.score)}</p><h1>${best ? '你的新纪录！' : '每一步，都算数。'}</h1>${resultArt()}<div class="result-statistics"><div><small>总清线数</small><strong>${state.stats.lines}</strong></div><div><small>最高单步消线</small><strong>${state.stats.maxLines}</strong></div><div><small>最大连续消除</small><strong>${state.stats.maxCombo}</strong></div><div><small>已完成组数</small><strong>${state.completedGroups}</strong></div></div><p class="result-status ${onlineError ? 'error' : ''}" role="status">${escape(status)}</p>${onlineError ? '<button class="quiet-button" data-action="online-retry">重新连接并校验</button>' : ''}<div class="button-stack"><button class="primary" data-action="again" ${onlineSession && (onlineBusy || pendingAction?.length || pendingFinish) ? 'disabled' : ''}>${onlineSession && (onlineBusy || pendingAction?.length || pendingFinish) ? '等待成绩确认…' : '再来一局'}</button><button class="secondary" data-action="leaderboard">查看排行榜</button><button class="quiet-button" data-action="share">分享成绩</button><button class="quiet-button" data-action="home">返回首页</button></div></section>`;
+  return `<section class="result endless"><p class="eyebrow">${onlineSession ? '无尽挑战结束' : endlessName()+' · 挑战结束'}</p><p class="result-score">${fmt(state.score)}</p><h1>${best ? '你的新纪录！' : '每一步，都算数。'}</h1>${resultArt()}<div class="result-statistics"><div><small>总清线数</small><strong>${state.stats.lines}</strong></div><div><small>最高单步消线</small><strong>${state.stats.maxLines}</strong></div><div><small>最大连续消除</small><strong>${state.stats.maxCombo}</strong></div><div><small>${state.variant === 'refill' ? '已放积木' : '已完成组数'}</small><strong>${state.variant === 'refill' ? state.stats.placements : state.completedGroups}</strong></div></div><p class="result-status ${onlineError ? 'error' : ''}" role="status">${escape(status)}</p>${onlineError ? '<button class="quiet-button" data-action="online-retry">重新连接并校验</button>' : ''}<div class="button-stack"><button class="primary" data-action="again" ${onlineSession && (onlineBusy || pendingAction?.length || pendingFinish) ? 'disabled' : ''}>${onlineSession && (onlineBusy || pendingAction?.length || pendingFinish) ? '等待成绩确认…' : '再来一局'}</button>${state.variant === 'refill' ? '<button class="secondary" data-action="endless">切换玩法</button>' : '<button class="secondary" data-action="leaderboard">查看排行榜</button>'}<button class="quiet-button" data-action="share">分享成绩</button><button class="quiet-button" data-action="home">返回首页</button></div></section>`;
 }
 function renderEndless() {
   const hasSavedOnline = !!storage.getItem('three-choose-two-online-v1')?.match(/"id"/);
-  return `${header('无尽挑战')}<h1 class="page-title">留住空间，<br>让好分数继续。</h1><p class="page-subtitle">没有组数限制，只由消除计分。</p><section class="mode-card"><h3>在线挑战</h3><p>联网创建同一规则的会话，每次落子都由服务端确认。微信或 B 站可信登录可参与全站榜，H5 匿名身份仅供在线试用。</p><button class="primary" data-action="online-start" ${onlineBusy ? 'disabled' : ''}>${onlineBusy ? '正在连接…' : hasSavedOnline ? '恢复在线对局' : '开始在线挑战'}</button>${onlineError ? '<p style="margin:17px 0 0" role="status">'+escape(onlineError)+'</p>' : ''}</section><section class="mode-card"><h3>离线练习</h3><p>随时开始，保存自己的练习纪录。练习成绩保持在本机，不会转入全站榜。</p><button class="secondary" data-action="practice">开始练习</button></section>`;
+  return `${header('无尽挑战')}<section class="mode-card classic-mode"><h1>三选二</h1><p>放下两块，舍弃一块</p><div class="mode-illustration" aria-hidden="true">${mini({shapeId:'l3-nw',color:1})}${mini({shapeId:'square2',color:2})}<span class="discard-example">${mini({shapeId:'v2',color:3})}</span></div><span class="mode-best">本地最高 ${fmt(progress.practiceBest)}</span><button class="primary" data-action="practice">${icon('play')}开始练习</button><button class="mode-online" data-action="online-start" ${onlineBusy ? 'disabled' : ''}>${onlineBusy ? '正在连接…' : hasSavedOnline ? '恢复在线对局' : '在线挑战'}<span aria-hidden="true"> ›</span></button>${onlineError ? '<p class="mode-error" role="status">'+escape(onlineError)+'</p>' : ''}</section><section class="mode-card refill-mode"><h2>立即补位</h2><p>放一块，补一块</p><div class="mode-illustration" aria-hidden="true">${mini({shapeId:'l3-nw',color:1})}${icon('refill')}${mini({shapeId:'square2',color:3})}</div><span class="mode-best">本地最高 ${fmt(progress.refillBest)}</span><button class="primary" data-action="refill">${icon('play')}开始挑战</button></section><p class="mode-footnote">两种玩法分别记录本地最高分</p>`;
 }
 function renderLeaderboard() {
   const stateMarkup = rankingBusy ? '<h3>正在连接排行榜…</h3><p>只显示经校验的真实玩家成绩。</p>' : rankingError ? '<h3>排行榜暂时没连上</h3><p>'+escape(rankingError)+'</p><button class="primary" data-action="board-retry">重试连接</button>' : '<h3>第一份好成绩，等你留下。</h3><p>当前规则还没有已校验的上榜成绩。完成一局在线排位后上榜。</p><button class="primary" data-action="endless">开始无尽挑战</button>';
@@ -311,7 +323,7 @@ function flash(before) {
   if (!event || screen !== 'playing') return;
   const layer=document.querySelector('#clear-layer');
   if (event.clearedCells?.length && layer) {
-    layer.innerHTML=event.clearedCells.map(index=>block(22+index%8*40,22+Math.floor(index/8)*40,36,color(before.board[index] || before.candidates[event.slot]?.color),'class="clear-cell"')).join('');
+    layer.innerHTML=progress.settings.reducedFlash ? '' : event.clearedCells.map(index=>block(22+index%8*40,22+Math.floor(index/8)*40,36,color(before.board[index] || before.candidates[event.slot]?.color),'class="clear-cell"')).join('');
     const text=document.querySelector('#clear-text');
     text.className='clear-text';text.textContent=event.lines > 1 ? event.rows.length && event.cols.length ? '交叉消除！ +'+event.scoreDelta : event.lines+' 线同消！ +'+event.scoreDelta : '+'+event.scoreDelta;
   }
@@ -391,8 +403,8 @@ function finishLocal() {
   if (!devPractice) {
     if (state.mode === 'level' && state.status === 'won') progress=recordLevelResult(progress,state);
     else if (state.mode === 'endless') {
-      const isPersonalBest=state.score > progress.practiceBest;
-      progress.practiceBest=Math.max(progress.practiceBest,state.score);
+      const isPersonalBest=state.score > localBest();
+      progress=recordEndlessResult(progress,state);
       recordedResult={ isPersonalBest };
     }
     progress=state.mode === 'level' && state.status === 'lost' ? saveCurrentGame(progress,state) : { ...progress,currentGame:null };
@@ -409,11 +421,11 @@ function beginLevel(id) {
   state=createLevel(id);selectedSlot=null;recordedResult=null;inputLockedUntil=0;
   persist();show('playing');
 }
-function beginPractice() {
+function beginPractice(variant = 'classic') {
   persist();clearTimeout(animationTimer);
   gameEpoch++;
   onlineSession=null;pendingAction=null;pendingFinish=false;onlineError='';devPractice=false;
-  state=createEndless(crypto.getRandomValues(new Uint32Array(1))[0],{ranked:false});
+  state=createEndless(crypto.getRandomValues(new Uint32Array(1))[0],{ranked:false,variant});
   selectedSlot=null;recordedResult=null;inputLockedUntil=0;persist();show('playing');
 }
 async function beginOnline() {
@@ -463,7 +475,7 @@ async function rewardContinue() {
 async function shareScore() {
   const url=new URL(location.href);url.search='';url.hash='';
   const rank=onlineSession?.settlement?.status === 'verified' ? onlineSession.settlement.rank : null;
-  const text=`三块选两块：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : '练习'} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 '+rank+' 名' : ''}。这三块，你舍哪一块？`;
+  const text=`三块选两块：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : endlessName()} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 '+rank+' 名' : ''}。${state.variant === 'refill' ? '放一块，补一块，给下一步留出空间。' : '这三块，你舍哪一块？'}`;
   try { if(navigator.share) await navigator.share({title:'三块选两块',text,url:url.href});else {await navigator.clipboard.writeText(text+' '+url.href);toast('成绩与游戏链接已复制。');} }
   catch(error) { if(error.name !== 'AbortError') toast('无法直接分享，可复制地址栏中的游戏链接。'); }
 }
@@ -508,7 +520,7 @@ async function dispatch(action) {
     case 'resume': if(state)show(state.status === 'playing' ? 'playing' : 'result');break;
     case 'help': persist();show('help');break;
     case 'back': show(previousScreen === 'help' ? 'home' : previousScreen);break;
-    case 'retry': if (state.mode === 'level')beginLevel(state.levelId);else beginPractice();break;
+    case 'retry': if (state.mode === 'level')beginLevel(state.levelId);else beginPractice(state.variant);break;
     case 'undo': if(!isLocked() && state.mode === 'level') {
       const next=undo(state);if(next !== state) {state=next;audio.play('undo');persist();show('playing');}
     }break;
@@ -517,6 +529,7 @@ async function dispatch(action) {
     }break;
     case 'endless': onlineError='';show('endless');break;
     case 'practice': beginPractice();break;
+    case 'refill': beginPractice('refill');break;
     case 'online-start': await beginOnline();break;
     case 'online-retry':
       if (onlineSession) {await flushOnline();if(screen === 'playing' || screen === 'result')render();}
@@ -525,7 +538,7 @@ async function dispatch(action) {
       if(onlineSession) {pendingFinish=true;saveOnline();show('result');await flushOnline();}
       else {state=finishEndless(state);finishLocal();if(screen !== 'result')show('result');}break;
     case 'continue': await rewardContinue();break;
-    case 'again': if(onlineSession) {onlineSession=null;saveOnline();await beginOnline();}else beginPractice();break;
+    case 'again': if(onlineSession) {onlineSession=null;saveOnline();await beginOnline();}else beginPractice(state.variant);break;
     case 'leaderboard': case 'board-retry': persist();await openLeaderboard();break;
     case 'share': await shareScore();break;
   }

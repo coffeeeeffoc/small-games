@@ -9,11 +9,13 @@ const object = (value) => value !== null && typeof value === 'object' && !Array.
 const safeInteger = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(value) && value >= min && value <= max;
 
 export function createProgress() {
-  return { version: PROGRESS_VERSION, unlocked: 1, records: {}, practiceBest: 0,
+  return { version: PROGRESS_VERSION, unlocked: 1, records: {}, practiceBest: 0, refillBest: 0,
     settings: { sound: true, music: true, vibration: true, highContrast: false, reducedFlash: false }, currentGame: null };
 }
 function validState(state) {
   return object(state) && state.version === RULE_VERSION && ['level', 'endless'].includes(state.mode)
+    && (state.variant === undefined || state.mode === 'endless' && ['classic', 'refill'].includes(state.variant))
+    && (state.variant !== 'refill' || state.placedInGroup === 0 && state.used?.length === 0)
     && !(state.mode === 'endless' && state.ranked)
     && Array.isArray(state.board) && state.board.length === 64 && state.board.every((cell) => safeInteger(cell, 0, 5))
     && Array.isArray(state.starBoard) && state.starBoard.length === 64 && state.starBoard.every((cell) => typeof cell === 'boolean')
@@ -37,6 +39,7 @@ function normalize(saved) {
   // A stored unlock number alone cannot skip the configured sequence.
   while (progress.unlocked < LEVELS.length && progress.records[progress.unlocked]) progress.unlocked += 1;
   if (safeInteger(saved.practiceBest)) progress.practiceBest = saved.practiceBest;
+  if (safeInteger(saved.refillBest)) progress.refillBest = saved.refillBest;
   if (object(saved.settings)) for (const name of Object.keys(progress.settings)) if (typeof saved.settings[name] === 'boolean') progress.settings[name] = saved.settings[name];
   if (validState(saved.currentGame) && (saved.currentGame.mode !== 'level' || saved.currentGame.levelId <= progress.unlocked)) progress.currentGame = copy(saved.currentGame);
   return progress;
@@ -73,7 +76,8 @@ export function recordLevelResult(progress, state) {
 export function recordEndlessResult(progress, state) {
   if (state.mode !== 'endless' || state.ranked || !['lost', 'finished'].includes(state.status)) return progress;
   const next = copy(progress);
-  next.practiceBest = Math.max(next.practiceBest, state.score);
+  const key = state.variant === 'refill' ? 'refillBest' : 'practiceBest';
+  next[key] = Math.max(next[key] ?? 0, state.score);
   next.currentGame = null;
   return next;
 }
@@ -87,7 +91,7 @@ export function resumeState(progress) {
 }
 export function mergeProgress(local, remote) {
   const a = normalize(local), b = normalize(remote);
-  const merged = { ...a, practiceBest: Math.max(a.practiceBest, b.practiceBest), records: { ...a.records } };
+  const merged = { ...a, practiceBest: Math.max(a.practiceBest, b.practiceBest), refillBest: Math.max(a.refillBest, b.refillBest), records: { ...a.records } };
   for (const [id, other] of Object.entries(b.records)) {
     const own = merged.records[id];
     merged.records[id] = own ? { stars: Math.max(own.stars, other.stars), bestGroups: Math.min(own.bestGroups, other.bestGroups), continued: own.continued && other.continued } : other;

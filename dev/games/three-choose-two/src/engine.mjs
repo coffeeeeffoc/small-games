@@ -26,9 +26,9 @@ function random(rng) {
   next >>>= 0;
   return { rng: next, value: next / 4294967296 };
 }
-function drawCandidates(rng, group) {
+function drawCandidates(rng, group, count = 3) {
   const candidates = [];
-  for (let slot = 0; slot < 3; slot++) {
+  for (let slot = 0; slot < count; slot++) {
     // The constraint depends only on the sequence, never on the board or user.
     const pool = slot === 2 && candidates.every(({ shapeId }) => SHAPE_BY_ID[shapeId].size === 9)
       ? SHAPES.filter((shape) => shape.size !== 9) : SHAPES;
@@ -66,9 +66,10 @@ export function createLevel(idOrConfig = 1) {
   state.candidates = levelCandidates(state, 1);
   return ensurePlayable(state);
 }
-export function createEndless(seed = Date.now(), { ranked = false } = {}) {
+export function createEndless(seed = Date.now(), { ranked = false, variant = 'classic' } = {}) {
+  if (!['classic', 'refill'].includes(variant) || ranked && variant !== 'classic') throw new RangeError('Unsupported endless variant');
   const draw = drawCandidates(ranked ? createCounterRng(seed) : normalizeSeed(seed), 1);
-  return { ...baseState('endless'), ranked, rng: draw.rng, candidates: draw.candidates };
+  return { ...baseState('endless'), ranked, ...(variant === 'refill' ? { variant } : {}), rng: draw.rng, candidates: draw.candidates };
 }
 
 export function canPlace(state, slot, x, y) {
@@ -168,6 +169,15 @@ function placeInternal(state, slot, x, y, issuedOnly) {
     cells: shape.cells.map(([dx, dy]) => cellIndex(x + dx, y + dy)), rows, cols, clearedCells,
     lines, scoreDelta, collectedStars, discarded: null, groupCompleted: false, nextGroup: null,
   };
+  if (next.mode === 'endless' && next.variant === 'refill') {
+    next.group = Math.floor(next.stats.placements / 2) + 1;
+    const draw = drawCandidates(next.rng, next.group, 1);
+    next.rng = draw.rng;
+    next.candidates[slot] = draw.candidates[0];
+    next.used = []; next.placedInGroup = 0;
+    next.lastEvent.refilledSlot = slot;
+    return ensurePlayable(next);
+  }
   // Victory is checked before discarding, exhausting stock or detecting blockage.
   if (next.mode === 'level' && goalsMet(next)) {
     next.status = 'won'; next.reason = null; next.stars = getStars(next);
@@ -199,7 +209,7 @@ export function place(state, slot, x, y) { return placeInternal(state, slot, x, 
 // A ranked client owns only the current three candidates. It can play those
 // while offline, then waits for the authoritative next group without RNG data.
 export function placeIssuedGroup(state, slot, x, y) {
-  if (state.mode !== 'endless') return state;
+  if (state.mode !== 'endless' || state.variant === 'refill') return state;
   const next = placeInternal(state, slot, x, y, true);
   if (next !== state) { delete next.rng; delete next._undo; next.canUndo = false; next.undoRemaining = 0; }
   return next;
