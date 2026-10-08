@@ -522,11 +522,11 @@
       "source": "games/local/three-choose-two",
       "created": {
         "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
-        "time": "2026-10-07T10:31:05Z"
+        "time": "2026-10-07T10:31:05+00:00"
       },
       "updated": {
-        "commit": "662c889120044b828b363782280e7f4a857698d4",
-        "time": "2026-10-07T11:32:54Z"
+        "commit": "7409069fe22cda6c52023186f7303e4187cd2a01",
+        "time": "2026-10-08T09:14:04+08:00"
       }
     },
     "tianxia-chalu": {
