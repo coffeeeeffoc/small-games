@@ -2,6 +2,7 @@ import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
+import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider } from './core/Rewards';
 export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
@@ -12,10 +13,14 @@ export class Platform {
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
+  rewards: RewardSave = { ammo: 0, zoomLimit: 5 };
+  // Install before launch; this may delegate directly to an authorized GameHost.ads.offer.
+  rewardProvider?: RewardProvider;
   private clear: () => void;
   constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
     this.clear = clear;
     try {
+      this.rewards = readRewards(sys.localStorage.getItem('night-overwatch-rewards-v1'));
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
@@ -153,6 +158,30 @@ export class Platform {
     } catch {
       return true;
     }
+  }
+  async offerReward(kind: RewardKind) {
+    const next = nextZoomLimit(this.rewards.zoomLimit);
+    if (kind === 'zoom' && !next) return 'unavailable' as const;
+    const bridge = (globalThis as typeof globalThis & {
+      SmallGamesRewardAds?: { offer: RewardProvider };
+    }).SmallGamesRewardAds;
+    const provider = this.rewardProvider ?? bridge?.offer.bind(bridge);
+    if (!provider) return sys.isBrowser ? 'mock' as const : 'unavailable' as const;
+    try {
+      const outcome = await provider({ id: 'night-overwatch:' + kind,
+        reward: kind === 'homing' ? { homing: 1 } : { zoomLimit: next! } });
+      return ['completed', 'dismissed', 'unavailable', 'failed'].includes(outcome?.status)
+        ? outcome.status : 'failed' as const;
+    } catch { return 'failed' as const; }
+  }
+  grantReward(kind: RewardKind) {
+    if (kind === 'homing') this.rewards.ammo = Math.min(Number.MAX_SAFE_INTEGER, this.rewards.ammo + 1);
+    else this.rewards.zoomLimit = nextZoomLimit(this.rewards.zoomLimit) ?? this.rewards.zoomLimit;
+    this.saveRewards();
+  }
+  saveRewards() {
+    try { sys.localStorage.setItem('night-overwatch-rewards-v1', JSON.stringify(this.rewards)); }
+    catch { /* The current session remains playable without storage. */ }
   }
   saveCoach() {
     try {

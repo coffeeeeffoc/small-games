@@ -92,7 +92,7 @@ let HUD: any;
 try { ({ HUD } = await import(hudURL.href)); }
 finally { hooks.deregister(); delete (globalThis as any).__nightHudTestCC; }
 const heights: number[] = [];
-const world = { thermal: false, project(p: data.Point, y = 0) {
+const world = { zoom: 1, thermal: false, project(p: data.Point, y = 0) {
   heights.push(y);
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
 } };
@@ -395,6 +395,30 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single 
     assert.equal(visibleText.match(/装填/g)?.length, 1);
     if (!touch) assert.equal(hud.footer, 60);
   }
+});
+
+test('HUD: rewards, zoom panel and mock ads fit small phones with safe areas and no overlapping buttons', () => {
+  for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) for (const safe of [0, 12]) {
+    Object.assign(frame, { width, height }); inset = safe;
+    const hud = new HUD(new SceneNode()), sim = new Simulation('training-60'); sim.start();
+    for (const zoomOpen of [false, true]) {
+      hud.zoomOpen = zoomOpen; hud.update(sim, world);
+      const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
+      for (const b of buttons) {
+        assert(b.x >= safe && b.x + b.w <= width - safe);
+        assert(b.y >= safe && b.y + b.h <= height - safe);
+        assert(!buttons.some((other: any) => other !== b && overlaps(b, other)), `${b.id}: no overlap`);
+      }
+      assert.equal(buttons.some((b: any) => b.id === 'zoomUpgrade'), zoomOpen);
+    }
+    for (const kind of ['homing', 'zoom'] as const) {
+      hud.advert = { kind, mock: true }; sim.pause('advert', true); hud.update(sim, world);
+      const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
+      assert.deepEqual(buttons.map((b: any) => b.id), ['adClose']);
+      assert(buttons[0].h >= 44 && buttons[0].y >= safe && buttons[0].y + buttons[0].h <= height - safe);
+    }
+  }
+  inset = 0;
 });
 
 

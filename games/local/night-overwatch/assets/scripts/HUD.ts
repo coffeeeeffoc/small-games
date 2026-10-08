@@ -33,6 +33,7 @@ import type { World } from './World';
 import { MISSIONS, TRAINING } from './core/MissionCatalog';
 import { mapRoute, routeLength, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
+import { nextZoomLimit, type RewardKind } from './core/Rewards';
 
 const C = {
   ink: '#101e24f5',
@@ -76,6 +77,10 @@ export class HUD {
   reducedEffects = false;
   fullscreen = false;
   toolsOpen = false;
+  zoomOpen = false;
+  zoomLimit = 5;
+  advert?: { kind: RewardKind; mock: boolean };
+  lockedTargets: { id: number; x: number; y: number }[] = [];
   toast = '';
   toastUntil = 0;
   trainingBest?: TrainingRecord;
@@ -252,7 +257,13 @@ export class HUD {
     this.live('flight', w / 2, h / 2, 12, 130, 24, C.white);
     this.live('hold', left + (this.desktop ? 208 : 172), top + 121, 11, 140, 22, C.dim);
     this.button('flightControls', this.t('飞行 ▾', 'FLIGHT ▾'), left, top + 64, this.desktop ? 128 : 96);
-    this.button('convoy', '', left + (this.desktop ? 144 : 102), top + 64, this.desktop ? 128 : 140, 44);
+    this.button('convoy', '', left + (this.desktop ? 144 : 102), top + 64, this.desktop ? 128 : 102, 44);
+    this.button('homing', '', left + (this.desktop ? 280 : 210), top + 64, this.desktop ? 120 : 100, 44).fontSize = 12;
+    this.button('zoomControls', '', left + (this.desktop ? 406 : 316), top + 64, this.desktop ? 120 : 96, 44).fontSize = 12;
+    const lensX = left + (this.desktop ? 144 : 0), lensY = top + 112;
+    const lensW = Math.min(360, w - this.safe.left - this.safe.right - 24), cellW = (lensW - 12) / 2;
+    for (const [i, id] of ['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].entries())
+      this.button(id, '', lensX + 4 + i % 2 * (cellW + 4), lensY + 4 + Math.floor(i / 2) * 48, cellW, 44).fontSize = 12;
     const panel = this.panelLayout, toolWidth = (panel.w - 8 - (panel.columns - 1) * 4) / panel.columns;
     for (const [i, id] of panelActions.entries()) {
       const fixed = this.desktop && flightActions.includes(id);
@@ -323,6 +334,9 @@ export class HUD {
       (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
       (this.desktop && x < 152 + this.safe.left && y >= 110 + this.safe.top && y <= 414 + this.safe.top) ||
       (this.toolsOpen && x >= panel.x && x <= panel.x + panel.w && y >= panel.y && y <= panel.y + panel.h) ||
+      (this.zoomOpen && x >= 12 + this.safe.left + (this.desktop ? 144 : 0) &&
+        x <= 12 + this.safe.left + (this.desktop ? 144 : 0) + Math.min(360, this.w - this.safe.left - this.safe.right - 24) &&
+        y >= this.safe.top + 112 && y <= this.safe.top + 212) ||
       (!this.toolsOpen && x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
   scrollBy(amount: number) {
@@ -417,6 +431,27 @@ export class HUD {
     this.modal = n;
     const g = n.addComponent(Graphics);
     if (key === 'home') { this.renderHome(n, g, s); return; }
+    if (key.startsWith('advert:')) {
+      const pw = Math.min(420, this.w - this.safe.left - this.safe.right - 32);
+      const ph = Math.min(244, this.h - this.safe.top - this.safe.bottom - 74);
+      const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
+      const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
+      this.rect(g, 0, 0, this.w, this.h, '#05090cb8');
+      this.rect(g, px, py, pw, ph, C.ink, C.mint, 10);
+      this.label(n, this.advert?.mock ? this.t('模拟广告', 'SIMULATED AD') : this.t('广告加载中', 'LOADING AD'),
+        px + pw / 2, py + 34, 24, pw - 32, 42, C.white).isBold = true;
+      this.label(n, this.advert?.kind === 'homing' ? this.t('关闭即可领取追踪弹 ×1', 'CLOSE TO RECEIVE ONE HOMING ROUND')
+        : this.t(`关闭解锁 ${nextZoomLimit(this.zoomLimit)}× 放大上限`, `CLOSE TO UNLOCK ${nextZoomLimit(this.zoomLimit)}× ZOOM`),
+        px + pw / 2, py + 80, 14, pw - 32, 36, C.mint);
+      if (this.advert?.mock) {
+        const b = this.button('adClose', this.t('关闭并领取', 'CLOSE & CLAIM'), px + 24, py + ph - 76, pw - 48, 44, n);
+        this.rect(g, px + 24, py + ph - 76, pw - 48, 44, C.mint, undefined, 5);
+        b.color = col('#10252a'); b.isBold = true;
+      }
+      this.label(n, this.advert?.mock ? this.t('本次为网页模拟 · 无需等待', 'WEB SIMULATION · NO WAIT') : this.t('完成广告后领取奖励', 'COMPLETE THE AD TO CLAIM'),
+        px + pw / 2, py + ph - 17, 11, pw - 32, 22, C.dim);
+      return;
+    }
     const paused = key === 'pause', settings = key === 'settings';
     const allies = s.units.filter((u) => u.friendly).length;
     const training = s.mission.mode === 'training';
@@ -807,11 +842,13 @@ export class HUD {
     }
   }
   update(s: Simulation, world: World) {
+    this.lockedTargets = [];
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
       left = 12 + this.safe.left, by = h - this.footer - this.safe.bottom;
     let key = s.phase === 'briefing' ? 'home' : s.phase === 'playing' ? '' : s.phase;
-    if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
+    if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
+    else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
     else if (s.pauses.has('settings')) key = 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (s.pauses.has('mission')) key = 'mission';
@@ -826,11 +863,19 @@ export class HUD {
     for (const b of this.buttons) {
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && (b.id !== 'fire' || this.touch) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
+      if (['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].includes(b.id))
+        b.label.node.active = !key && this.zoomOpen;
+      if (b.id === 'homing' || b.id === 'zoomControls')
+        b.label.node.active = !key && !this.toolsOpen && !this.zoomOpen;
+      if (b.id === 'zoomControls') {
+        b.label.node.active = !key && !this.toolsOpen;
+      }
       if (b.id === 'fullscreen') {
         b.label.string = this.fullscreen ? this.t('退出全屏', 'EXIT FULL') : this.t('全屏', 'FULL SCREEN');
       }
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = true;
+        b.label.node.active = !this.advert;
+        if (this.advert) continue;
         this.rect(this.globalGraphics, b.x, b.y, b.w, b.h, '#0c171df5', b.id === 'settings' && s.pauses.has('settings') ? C.mint : '#91e6cb88', 5);
       }
     }
@@ -843,6 +888,8 @@ export class HUD {
       if (s.phase === 'playing') this.effects = drawEffects(this.marks, s, world, this.w, this.h, this.reducedEffects);
       return;
     }
+    if (this.zoomOpen) this.rect(g, left + (this.desktop ? 144 : 0), top + 112,
+      Math.min(360, w - this.safe.left - this.safe.right - 24), 100, C.ink, C.line, 5);
     this.drawCabin(g);
     this.labels.get('title')!.node.active = this.desktop;
     this.labels.get('mapLegend')!.node.active = !this.toolsOpen;
@@ -858,6 +905,16 @@ export class HUD {
     }
     const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
+    for (const b of this.buttons) {
+      if (b.id === 'homing') b.label.string = s.homingAmmo ? this.t(`追踪弹 ×${s.homingAmmo}`, `HOMING ×${s.homingAmmo}`) : this.t('广告领追踪弹', 'AD · HOMING');
+      if (b.id === 'zoomControls') b.label.string = `${world.zoom.toFixed(world.zoom >= 10 ? 0 : 1)}× / ${this.zoomLimit}×`;
+      if (b.id === 'lensOut') b.label.string = this.t('缩小 −', 'ZOOM −');
+      if (b.id === 'lensIn') b.label.string = this.t('放大 +', 'ZOOM +');
+      if (b.id === 'homingReward') b.label.string = this.t('广告 · 追踪弹 +1', 'AD · HOMING +1');
+      if (b.id === 'zoomUpgrade') b.label.string = nextZoomLimit(this.zoomLimit)
+        ? this.t(`广告 · 升至 ${nextZoomLimit(this.zoomLimit)}×`, `AD · UNLOCK ${nextZoomLimit(this.zoomLimit)}×`)
+        : this.t('已解锁 160×', '160× UNLOCKED');
+    }
     const plane = s.aircraft;
     const metres = (value: number) => Math.round(value * FLIGHT.metersPerUnit);
     const range = Math.hypot(plane.x - s.aim.x, plane.z - s.aim.z, plane.y - s.height(s.aim.x, s.aim.z));
@@ -1157,7 +1214,28 @@ export class HUD {
         this.rect(g, q.x + this.w / 2 + 8, this.h / 2 - q.y - 9, 28, 18, '#0c191fe8');
       }
     }
-    if (hovered) {
+    for (const id of new Set(s.shots.filter(shot => shot.guidance).map(shot => shot.guidance!.target))) {
+      const unit = s.units.find(u => u.id === id && u.hp > 0);
+      if (!unit) continue;
+      const q = project(unit, .3);
+      if (!onScreen(q, 24)) continue;
+      const r = 18;
+      for (const outline of [true, false]) {
+        g.lineWidth = outline ? 6 : 3;
+        g.strokeColor = col(outline ? '#061116' : C.amber);
+        for (const x of [-1, 1]) for (const y of [-1, 1]) {
+          g.moveTo(q.x + x * (r - 9), q.y + y * r);
+          g.lineTo(q.x + x * r, q.y + y * r);
+          g.lineTo(q.x + x * r, q.y + y * (r - 9));
+        }
+        g.stroke();
+      }
+      const l = unitLabel(unit.id, 110, 24);
+      l.string = this.t('锁定 · 追踪中', 'LOCK · TRACKING'); l.color = col(C.amber);
+      l.node.setPosition(q.x, q.y + 36); l.node.active = true;
+      this.lockedTargets.push({ id, x: q.x + this.w / 2, y: this.h / 2 - q.y });
+    }
+    if (hovered && !this.lockedTargets.some(lock => lock.id === hovered.unit.id)) {
       const { unit: u, point: q } = hovered;
       const width = this.compact ? 120 : 176, half = width / 2;
       const l = unitLabel(u.id, width, 24);

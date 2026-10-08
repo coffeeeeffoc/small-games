@@ -1,0 +1,39 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "c6d19020bb69f6e74d20e921da306f7add7cd02e015e078788367a20fa9e2f89"
+  },
+  "results": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true
+    }
+  ],
+  "errors": [],
+  "physicalDevice": false,
+  "realAdSdk": false
+}
