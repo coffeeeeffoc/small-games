@@ -395,7 +395,7 @@
     "id": "castle-cannon",
     "source": "games/local/game-castle-cannon",
     "title": "一炮拆城",
-    "description": "拖动瞄准，松手开炮！先破门抢推进，先拆箭塔保兵力，用两种炮弹护送小队攻下三座小城。",
+    "description": "隔城实时互轰！调炮蓄力、望远镜校射，切换炮位与地堡补给，守住炮手生命，摧毁对方城防。",
     "output": "dist"
   },
   {

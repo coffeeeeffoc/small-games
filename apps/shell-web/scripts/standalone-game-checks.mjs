@@ -331,12 +331,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#back-home'));
     await expect(frame.locator('#start')).toBeVisible();
   } else if (id === 'castle-cannon') {
-    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
-    await click(frame.locator('[data-action="blast"]'));
-    await click(frame.locator('[data-action="pause"]'));
-    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'paused');
-    await click(frame.locator('[data-action="resume"]'));
-    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    const { assertCastleDuelEntry } = await import('./game-checks/castle-cannon.mjs');
+    return assertCastleDuelEntry(frame, mobile);
   } else if (id === 'ember-bounce') {
     const arena = frame.locator('#arena');
     const snapshot = () => arena.evaluate((canvas) => canvas.getEmberSnapshot?.());

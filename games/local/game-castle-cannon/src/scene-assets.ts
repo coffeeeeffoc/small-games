@@ -10,6 +10,7 @@ import massif from './models/massif-rodin.json';
 import loader from './models/loader-rodin.json';
 import cliff from './models/cliff-rodin.json';
 import lookout from './models/lookout-rodin.json';
+import bunker from './models/bunker-rodin.json';
 export async function loadSceneMaterials(
   kit: MeshKit,
   loadImage: NonNullable<CanvasGameTarget['loadImage']>,
@@ -35,6 +36,7 @@ export async function loadSceneMaterials(
     ...loader,
     ...cliff,
     ...lookout,
+    ...bunker,
   ])
     kit.pbrMaterial(batch.maps);
   const paths = [...new Set([...kit.pbrMaps.values()].flatMap((m) => Object.values(m)))];

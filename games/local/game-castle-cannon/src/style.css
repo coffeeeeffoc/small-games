@@ -82,6 +82,29 @@ canvas {
 .castle-fullscreen[hidden] {
   display: none !important;
 }
+.castle-server-editor {
+  position: absolute;
+  z-index: 5;
+  width: min(90%, 540px);
+  padding: 24px;
+  color: #f5e8cb;
+  background: #231e18;
+  border: 2px solid #d6b578;
+  border-radius: 12px;
+}
+.castle-server-editor input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin: 12px 0 20px;
+  font: inherit;
+}
+.castle-server-editor button {
+  min-width: 100px;
+  min-height: 48px;
+  margin-right: 12px;
+  font: inherit;
+}
 .sr {
   position: absolute;
   width: 1px;

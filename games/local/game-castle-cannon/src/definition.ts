@@ -3,7 +3,8 @@ import { browserMedia } from './browser-media.js';
 import type { CanvasPointerEvent, CanvasSound } from '@coffeeeeffoc/canvas-game-adapter';
 import { castleCannonCanvasDefinition, castleCannonManifest } from './index.js';
 import type { Hit } from './view.js';
-import { W, H } from './view.js';
+import { W, H } from './duel-hud.js';
+import { editServer } from './duel-server-editor.js';
 import './style.css';
 export const castleCannonGameDefinition: GameDefinition = {
   manifest: castleCannonManifest,
@@ -165,10 +166,9 @@ export const castleCannonGameDefinition: GameDefinition = {
           b.type = 'button';
           b.dataset.action = h.id;
           b.addEventListener(
-            'pointerup',
+            'pointerdown',
             (e) => {
-              e.preventDefault();
-              actionListener?.(h.id);
+              point(e, 'down');
             },
             options,
           );
@@ -218,6 +218,7 @@ export const castleCannonGameDefinition: GameDefinition = {
             };
           },
           present,
+          configureServer: (current) => editServer(root, current),
           ...browserMedia(target),
           installScene(sceneCanvas) {
             sceneCanvas.className = 'castle-scene';

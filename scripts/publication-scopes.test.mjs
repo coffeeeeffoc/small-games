@@ -866,3 +866,58 @@ test('Pages cage rescue home-state guard and immersion list compose while every 
     false,
   );
 });
+
+test('castle duel entry contract is scoped without accepting another game or shared edits', () => {
+  const before =
+    "  } else if (id === 'castle-cannon') {\n    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');\n    await click(frame.locator('[data-action=\"blast\"]'));\n    await click(frame.locator('[data-action=\"pause\"]'));\n    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'paused');\n    await click(frame.locator('[data-action=\"resume\"]'));\n    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');\n";
+  const after =
+    "  } else if (id === 'castle-cannon') {\n    const { assertCastleDuelEntry } = await import('./game-checks/castle-cannon.mjs');\n    return assertCastleDuelEntry(frame, mobile);\n";
+  const context = {
+    changedPaths: ['apps/shell-web/scripts/standalone-game-checks.mjs'],
+    games: [{ id: 'castle-cannon', source: 'games/local/game-castle-cannon' }],
+    readBase: () => 'prefix\n' + before + 'suffix\n',
+    readHead: () => 'prefix\n' + after + 'suffix\n',
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [['apps/shell-web/scripts/standalone-game-checks.mjs', ['games/local/game-castle-cannon']]],
+  );
+  for (const changed of [
+    'unreviewed\n' + after + 'suffix\n',
+    'prefix\n' + after + after + 'suffix\n',
+    'prefix\n' + after.replace('frame, mobile', 'frame, false') + 'suffix\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => changed }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+});
+
+test('castle dedicated contract selects its game and rejects unreviewed code', () => {
+  const file = 'apps/shell-web/scripts/game-checks/castle-cannon.mjs';
+  const shared = readFileSync(
+    new URL('../apps/shell-web/scripts/standalone-game-checks.mjs', import.meta.url),
+    'utf8',
+  ).replaceAll('\r\n', '\n');
+  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const context = {
+    changedPaths: [file],
+    games: [{ id: 'castle-cannon', source: 'games/local/game-castle-cannon' }],
+    readBase: () => {
+      throw new Error('new file');
+    },
+    readHead: (f) => (f === file ? source : shared),
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[file, ['games/local/game-castle-cannon']]],
+  );
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readHead: (f) => (f === file ? source + 'globalThis.unreviewed = true;\n' : shared),
+    }).size,
+    0,
+  );
+});

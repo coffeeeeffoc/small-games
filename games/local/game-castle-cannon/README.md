@@ -1,25 +1,34 @@
 # 一炮拆城
 
-拖动战场瞄准、松手开炮。门先拆推进更快，塔先拆伤亡更少；士兵自动推进到旗帜后占领。首关士兵已在门前，一发实心弹破门立即放行，装填期间箭塔继续压制。三座固定模块小城堡、两种免费炮弹和一种自动士兵；没有射击则无法获胜。
+远距离实时双城炮战。拖动画面调仰角和转角，按住蓄力、松手发射；用独立望远镜观察落点，反复修正射击。双方都有门前炮、城墙炮和地堡炮，炮手沿实际路线转移，自动装填；按住趴下会中止蓄力并暂停装填。
 
-- 实心弹沿瞄准线命中第一个模块，仅对该目标穿透伤害 3。
-- 爆破弹在第一个命中模块处爆炸，对中心距离不超过 84 的模块伤害 2。空地炮击可在瞄准位置爆炸。
-- 2.8 秒装填；箭塔每 0.7 秒射击进入射程的最前方士兵，伤亡会降低占领速度。
-- 城门和障碍阻挡通路；存活士兵到达旗帜才增加占领。全员撤离或超时失败。
+生命归零立即结束，城池完整也不会复活。撤回地堡使用有限医疗，治疗需要时间；城池主要结构全部坍塌后，普通炮停用，存活炮手撤离，此后只能使用地堡炮。实心弹和爆破弹分别计算局部破坏、范围衰减和掩体减伤。
 
-游戏 ID `castle-cannon`，Shell/独立 H5 地址 `/games/castle-cannon/index.html`。源码规则 `src/rules.ts` 不依赖 DOM/SDK，关卡与校验在 `src/levels.ts`，成长版本与迁移在 `src/progress.ts`。存档使用已有 Game Host 命名空间，首次通关材料不重复发放；外观不增加战斗数值。使用 `?dev=1` 或统一存储开关开启开发面板，试玩不保存解锁和奖励。
+“开始对战”连接真实权威服务，两名玩家实时互轰；8 秒未匹配安排机器人，断线保留 20 秒重连窗口，主动退出判负。服务不可用时明确进入本地机器人练习；练习可暂停，在线局菜单不会暂停对手。当前按用户要求暂缓腾讯云部署，Pages 尚无常驻公网匹配入口。
+
+## 本地运行
 
 ```sh
-pnpm --filter @coffeeeeffoc/game-castle-cannon dev
-pnpm exec turbo run build --filter=@coffeeeeffoc/game-castle-cannon...
+pnpm --filter @coffeeeeffoc/game-castle-cannon build
+pnpm --filter @coffeeeeffoc/game-castle-cannon serve:duel
+# 打开 http://127.0.0.1:4179/play/?dev=0，两个独立浏览器会话可匹配
+```
+
+Vite 开发入口通过 /duel 代理连接同一服务（4179）。独立静态 H5、Shell 和 iframe 的设置页可填写可访问的 HTTP/HTTPS 服务地址；HTTPS 页面要求 HTTPS 服务。
+
+## 代码与校验
+
+规则和地图：`src/duel-simulation.ts`、`duel-actions.ts`、`duel-physics.ts`、`duel-map.ts`；服务：`duel-server.ts`，采用 Node 标准库 HTTP 输入与 SSE 同步，无新增运行依赖。服务端校验协议、来源、凭证、输入序号及速率，统一模拟弹道与伤害。
+
+旧关卡材料、外观及设置继续保存于原 Host 存档；真人、在线机器人、练习分别记录，开发试玩不保存结果，外观不影响对战数值。
+
+```sh
 pnpm --filter @coffeeeeffoc/game-castle-cannon test
 pnpm --filter @coffeeeeffoc/game-castle-cannon lint
 pnpm --filter @coffeeeeffoc/game-castle-cannon typecheck
-PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/game-castle-cannon smoke
-pnpm --filter @coffeeeeffoc/shell-minigame build:game --platform wechat --game castle-cannon --preview
-pnpm --filter @coffeeeeffoc/game-castle-cannon test:native
+pnpm --filter @coffeeeeffoc/game-castle-cannon smoke
 ```
 
-微信预览目录为 `apps/shell-minigame/dist/wechat/castle-cannon`，含横屏 game.json、game.js、原创音效和 touristappid 项目配置；这是预览工程，不是已上线微信小游戏。未验证微信开发者工具与微信真机，未配置真实 AppID/广告位。广告入口仅通过项目既有 Host Ad 抽象，普通重试与基础弹种不受广告限制。
+浏览器脚本读取 PLAYWRIGHT_EXECUTABLE_PATH；Windows 默认 Chrome，Linux 默认 /usr/bin/chromium。[完整需求、效果图与验证记录](docs/design/artillery-duel-2026-10-09/README.md)。复用现有炮、人物、城楼、山石和音效，新增地堡由 Hyper3D 生成并集成；原始 GLB、生成编号和来源一并保存。
 
-初始页面设计见 `docs/design/README.md`；最新三维目标与实际整幅对照、性能及验证边界见 `docs/design/immersive/README.md`。完整 Pages 构建依赖仓库其他 Cocos 游戏，在未安装 Creator 3.8.8、未取得有效现有 Cocos 制品的云环境会被它们阻塞，不能把单游戏构建成功称为 Pages 发布成功。
+手机横屏及竖屏旋转兜底，触屏多点输入，公共全屏和统一 dev 开关。原生工程保留 Canvas fallback 和宿主适配，原生平台联网桥、开发者工具和真机仍待专项验收。

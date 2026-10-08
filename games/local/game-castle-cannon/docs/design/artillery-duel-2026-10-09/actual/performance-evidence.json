@@ -1,0 +1,78 @@
+{
+  "records": [
+    {
+      "driver": {
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Ti (0x00002482) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": true
+      },
+      "viewport": [960, 540],
+      "renderSize": [768, 432],
+      "shadows": {
+        "size": 1024,
+        "type": "PCFSoftShadowMap"
+      },
+      "sourceScene": "Duel scene with normal and low power render size and shadows",
+      "lowPower": false,
+      "wallSeconds": 15.065,
+      "submittedFrames": 920,
+      "measuredFps": 61.06870229007634,
+      "pageEvaluationP95Ms": 7,
+      "initial": {
+        "renderer": {
+          "renderer": "three-duel",
+          "frames": 6,
+          "drawCalls": 112,
+          "triangles": 840884
+        },
+        "status": "maps；practice；生命 100；装填 1.00；医疗 3；发射 0；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-duel",
+          "frames": 926,
+          "drawCalls": 80,
+          "triangles": 629640
+        },
+        "status": "playing；practice；生命 42；装填 -；医疗 3；发射 3；"
+      },
+      "scope": "Headless Chrome on this desktop; wall clock only, not physical mobile hardware FPS"
+    },
+    {
+      "driver": {
+        "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Ti (0x00002482) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "timerQuery": true
+      },
+      "viewport": [960, 540],
+      "renderSize": [384, 216],
+      "shadows": false,
+      "sourceScene": "Duel scene with normal and low power render size and shadows",
+      "lowPower": true,
+      "wallSeconds": 15.073,
+      "submittedFrames": 913,
+      "measuredFps": 60.57188350029855,
+      "pageEvaluationP95Ms": 6,
+      "initial": {
+        "renderer": {
+          "renderer": "three-duel",
+          "frames": 18,
+          "drawCalls": 112,
+          "triangles": 840884
+        },
+        "status": "maps；practice；生命 100；装填 1.00；医疗 3；发射 0；"
+      },
+      "final": {
+        "renderer": {
+          "renderer": "three-duel",
+          "frames": 931,
+          "drawCalls": 80,
+          "triangles": 629640
+        },
+        "status": "playing；practice；生命 42；装填 -；医疗 3；发射 3；"
+      },
+      "scope": "Headless Chrome on this desktop; wall clock only, not physical mobile hardware FPS"
+    }
+  ],
+  "errors": []
+}

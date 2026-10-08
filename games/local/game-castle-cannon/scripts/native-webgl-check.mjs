@@ -5,9 +5,6 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
-import { siegeCamera, moduleAimPoint, toScreen } from '../src/scene-space.ts';
-import { createBattle } from '../src/rules.ts';
-import { LEVELS } from '../src/levels.ts';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const artifact = path.resolve(root, '../../../apps/shell-minigame/dist/wechat/castle-cannon');
 const fixture = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}#native-main{width:960px;height:540px}</style><body><script>
@@ -79,26 +76,20 @@ try {
       touchPoints: type === 'touchEnd' ? [] : [{ ...p, id: 1 }],
     });
   const tap = async (p) => {
-    await Promise.all([touch('touchStart', p), touch('touchEnd', p)]);
-  };
-  const shoot = async (p) => {
-    await Promise.all([
-      touch('touchStart', { x: 270, y: 325 }),
-      touch('touchMove', p),
-      touch('touchEnd', p),
-    ]);
+    await touch('touchStart', p);
+    await touch('touchEnd', p);
   };
   const labels = () => page.evaluate(() => window.nativeEvidence.labels);
-  await tap({ x: 480, y: 304 });
-  const b = createBattle(LEVELS[0]),
-    camera = siegeCamera();
-  await shoot(toScreen(moduleAimPoint(b.modules[1], b), camera));
-  await expect.poll(labels, { timeout: 15000 }).toContain('箭塔倒下！威胁减少');
-  await page.waitForTimeout(2900);
-  await shoot(toScreen(moduleAimPoint(b.modules[0], b), camera));
-  await expect.poll(labels, { timeout: 15000 }).toContain('城门破了！小队突进');
-  await page.screenshot({ path: path.join(root, 'docs/design/immersive/native-webgl-battle.png') });
-  await expect.poll(labels, { timeout: 45000 }).toContain('城堡占领！');
+  await tap({ x: 209, y: 461 });
+  await tap({ x: 480, y: 292 });
+  await expect.poll(labels).toContain('本地练习');
+  await touch('touchStart', { x: 850, y: 460 });
+  await page.waitForTimeout(600);
+  await touch('touchEnd', { x: 850, y: 460 });
+  await expect.poll(async () => (await labels()).some((s) => s.startsWith('上一炮'))).toBe(true);
+  await page.screenshot({
+    path: path.join(root, 'docs/design/artillery-duel-2026-10-09/actual/native-webgl-battle.png'),
+  });
   const evidence = await page.evaluate(() => ({
     contexts: window.nativeEvidence.contexts,
     images: window.nativeEvidence.images,
@@ -108,7 +99,7 @@ try {
       .getParameter(window.nativeEvidence.canvases[1].getContext('webgl2').CURRENT_PROGRAM),
   }));
   assert(evidence.contexts.includes('webgl2'));
-  assert.equal(evidence.images.length, 2);
+  assert(evidence.images.length > 3);
   assert(evidence.gpuProgram);
   assert.deepEqual(errors, []);
   await page.evaluate(() => window.nativeInstance.dispose());
@@ -116,13 +107,12 @@ try {
     environment:
       'Compiled WeChat entry with DOM-backed SDK bridge and real Chromium WebGL2; NOT WeChat tools or device',
     ...evidence,
-    nativeTouchDrag: true,
-    firstCastleVictory: true,
+    nativeChargeRelease: true,
     advertisingConfigured: false,
     errors,
   };
   await writeFile(
-    path.join(root, 'docs/design/immersive/native-webgl-evidence.json'),
+    path.join(root, 'docs/design/artillery-duel-2026-10-09/actual/native-webgl-evidence.json'),
     JSON.stringify(record, null, 2) + '\n',
   );
   console.log(JSON.stringify(record, null, 2));

@@ -28,12 +28,16 @@ const server = createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ?? '/usr/bin/chromium',
+  executablePath:
+    process.env.PLAYWRIGHT_EXECUTABLE_PATH ??
+    (process.platform === 'win32'
+      ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+      : '/usr/bin/chromium'),
 });
 const records = [],
   errors = [];
 try {
-  for (const cacheWorld of [false, true]) {
+  {
     for (const lowPower of [false, true]) {
       const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
       page.on('pageerror', (error) => errors.push(String(error)));
@@ -41,19 +45,23 @@ try {
         if (message.type() === 'error' && /THREE|shader|WebGL/.test(message.text()))
           errors.push(message.text());
       });
-      await page.goto(
-        `http://127.0.0.1:${server.address().port}/?dev=1${cacheWorld ? '' : '&renderProbe=uncached'}`,
-      );
+      await page.goto(`http://127.0.0.1:${server.address().port}/?dev=0`);
       await expect(page.locator('.castle-root')).toHaveAttribute('data-ready', 'true');
       if (lowPower) {
         await page.locator('[data-action="settings"]').click();
-        await page.locator('[data-action="quality"]').click();
-        await page.locator('[data-action="home"]').click();
+        await page.locator('[data-action="lowPower"]').click();
+        await page.locator('[data-action="back"]').click();
       }
-      await page.locator('[data-action="start"]').click();
+      await page.locator('[data-action="practice"]').click();
+      await page.locator('[data-action="map-ravine"]').click();
       const sample = () =>
         page.evaluate(() => ({
-          renderer: JSON.parse(document.querySelector('#battle').dataset.renderer),
+          renderer: (() => {
+            const { renderer, frames, drawCalls, triangles } = JSON.parse(
+              document.querySelector('#battle').dataset.renderer,
+            );
+            return { renderer, frames, drawCalls, triangles };
+          })(),
           status: document.querySelector('#battle').getAttribute('aria-label'),
         }));
       const driver = await page.evaluate(() => {
@@ -83,22 +91,19 @@ try {
       const seconds = (Date.now() - started) / 1000;
       latencies.sort((a, b) => a - b);
       records.push({
-        cacheWorld,
         driver,
         viewport: [960, 540],
         renderSize: lowPower ? [384, 216] : [768, 432],
         shadows: lowPower ? false : { size: 1024, type: 'PCFSoftShadowMap' },
-        sourceScene:
-          'Identical model, camera, lighting, material, troop instancing and quality setting; only real static-world color/depth cache is toggled',
+        sourceScene: 'Duel scene with normal and low power render size and shadows',
         lowPower,
         wallSeconds: seconds,
-        submittedFrames: last.renderer.submittedFrames - first.renderer.submittedFrames,
-        measuredFps: (last.renderer.submittedFrames - first.renderer.submittedFrames) / seconds,
+        submittedFrames: last.renderer.frames - first.renderer.frames,
+        measuredFps: (last.renderer.frames - first.renderer.frames) / seconds,
         pageEvaluationP95Ms: latencies[Math.floor(latencies.length * 0.95)],
         initial: first,
         final: last,
-        scope:
-          'Headless Chromium software WebGL in Linux cloud; wall clock only, no Playwright Clock; not mobile hardware FPS',
+        scope: 'Headless Chrome on this desktop; wall clock only, not physical mobile hardware FPS',
       });
       console.log('Measured', lowPower ? 'battery' : 'normal', JSON.stringify(records.at(-1)));
       await page.close();
@@ -106,7 +111,7 @@ try {
   }
   if (errors.length) throw new Error(errors.join('\n'));
   await writeFile(
-    path.join(root, 'docs/design/immersive/performance-evidence.json'),
+    path.join(root, 'docs/design/artillery-duel-2026-10-09/actual/performance-evidence.json'),
     JSON.stringify({ records, errors }, null, 2) + '\n',
   );
 } finally {

@@ -11,9 +11,18 @@ const sharp = createRequire(import.meta.url)('sharp');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const name = process.argv[2];
 assert(
-  ['cannon', 'gate', 'stone', 'soldier', 'spruce', 'massif', 'loader', 'cliff', 'lookout'].includes(
-    name,
-  ),
+  [
+    'cannon',
+    'gate',
+    'stone',
+    'soldier',
+    'spruce',
+    'massif',
+    'loader',
+    'cliff',
+    'lookout',
+    'bunker',
+  ].includes(name),
   'Choose a reviewed asset',
 );
 const source =
@@ -25,7 +34,15 @@ const source =
   );
 const file = await readFile(source);
 const provenance = JSON.parse(
-  await readFile(path.join(root, 'docs/design/local-2026-10-07/source/manifest.json'), 'utf8'),
+  await readFile(
+    path.join(
+      root,
+      name === 'bunker'
+        ? 'docs/design/artillery-duel-2026-10-09/source/manifest.json'
+        : 'docs/design/local-2026-10-07/source/manifest.json',
+    ),
+    'utf8',
+  ),
 );
 assert.equal(
   createHash('sha256').update(file).digest('hex'),
@@ -126,7 +143,15 @@ for (const [meshId, mesh] of gltf.meshes.entries())
         const { min, max } = gltf.accessors[p.attributes.POSITION];
         point.y -= min[1];
         point.multiplyScalar(
-          { soldier: 2.3, loader: 2.1, massif: 1, spruce: 6.3, cliff: 1, lookout: 5.4 }[name] /
+          {
+            soldier: 2.3,
+            loader: 2.1,
+            massif: 1,
+            spruce: 6.3,
+            cliff: 1,
+            lookout: 5.4,
+            bunker: 2.4,
+          }[name] /
             (max[1] - min[1]),
         );
       }

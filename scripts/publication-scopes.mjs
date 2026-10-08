@@ -234,6 +234,18 @@ function assertCompetitionRegistry(readHead, games) {
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const castleEntryBefore = `  } else if (id === 'castle-cannon') {
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.locator('[data-action="blast"]'));
+    await click(frame.locator('[data-action="pause"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'paused');
+    await click(frame.locator('[data-action="resume"]'));
+    await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+`;
+const castleEntryAfter = `  } else if (id === 'castle-cannon') {
+    const { assertCastleDuelEntry } = await import('./game-checks/castle-cannon.mjs');
+    return assertCastleDuelEntry(frame, mobile);
+`;
 const cageRescueDelegate =
   "  if (id === 'cage-rescue') {\n" +
   "    const { assertCageRescueGameplay } = await import('./game-checks/cage-rescue.mjs');\n" +
@@ -525,6 +537,31 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        readBase(file).split(castleEntryBefore).length === 2 &&
+        readHead(file) === readBase(file).replace(castleEntryBefore, castleEntryAfter)
+      ) {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'castle-cannon' && game.source === 'games/local/game-castle-cannon',
+          ),
+        );
+        scopes.set(file, ['games/local/game-castle-cannon']);
+      } else if (file === 'apps/shell-web/scripts/game-checks/castle-cannon.mjs') {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'castle-cannon' && game.source === 'games/local/game-castle-cannon',
+          ),
+        );
+        assert(readHead(standaloneChecksFile).includes(castleEntryAfter));
+        assert(
+          createHash('sha256').update(readHead(file)).digest('hex') ===
+            '5de2fc176b35528c55640dd11010b9c36242ed54141fca8e9ecea6e5a86dfa17',
+        );
+        scopes.set(file, ['games/local/game-castle-cannon']);
       } else if (file === standaloneChecksFile || file === cageRescueGameplayFile) {
         assertCageRescueCatalog(games);
         assertCageRescueDelegate({ readBase, readHead });

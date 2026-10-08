@@ -6,25 +6,25 @@ import type {
 } from '@coffeeeeffoc/canvas-game-adapter';
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import manifest from './manifest.json';
-import { aimPoint } from './projection.js';
-import { createSiegeScene } from './scene-factory.js';
-import type { TargetPoint } from './scene.js';
-import type { Aim } from './rules.js';
-import { createSession } from './session.js';
-import { draw, W, H, type Hit } from './view.js';
+import { createDuelSession } from './duel-session.js';
+import { createDuelScene } from './duel-scene.js';
+import { drawDuel, W, H } from './duel-hud.js';
+import { activeGun } from './duel-actions.js';
+import type { Hit } from './view.js';
 export const castleCannonManifest = gameManifestSchema.parse(manifest);
 export const defaultCastleCannonEnvelope: DynamicContentEnvelope = {
   gameId: 'castle-cannon',
   schemaVersion: 1,
-  revision: 1,
+  revision: 2,
   payload: { title: '一炮拆城' },
 };
 export type CastleTarget = CanvasGameTarget & {
   present?(hits: readonly Hit[], status: string, screen: string): void;
   onAction?(fn: (id: string) => void): () => void;
   onResize?(fn: () => void): () => void;
-  presentTargets?(points: TargetPoint[], metrics: object): void;
+  presentTargets?(points: object[], metrics: object): void;
   installScene?(canvas: HTMLCanvasElement): boolean;
+  configureServer?(current: string): Promise<string | null>;
 };
 export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
   manifest: castleCannonManifest,
@@ -45,52 +45,26 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
     const sounds = new Map<string, CanvasSound>();
     const play = (name: string) => {
       try {
-        let clip = sounds.get(name);
-        if (!clip) {
-          clip = target.createSound?.(`castle-cannon-audio/${name}.wav`);
-          if (clip) sounds.set(name, clip);
+        let sound = sounds.get(name);
+        if (!sound) {
+          sound = target.createSound?.(`castle-cannon-audio/${name}.wav`);
+          if (sound) sounds.set(name, sound);
         }
-        clip?.play();
+        sound?.play();
       } catch {
         /* Optional audio. */
       }
     };
-    const dev = typeof window !== 'undefined' && window.SmallGamesDev?.isEnabled();
-    const configured =
-      typeof content.payload === 'object' &&
-      content.payload !== null &&
-      !Array.isArray(content.payload) &&
-      'advertisingConfigured' in content.payload &&
-      content.payload.advertisingConfigured === true;
-    const session = await createSession(host, play, !!dev, configured);
-    // An explicit developer-only benchmark compares the same real scene without its static cache.
-    const cacheWorld = !(
-      dev && new URLSearchParams(window.location.search).get('renderProbe') === 'uncached'
-    );
-    const scene = createSiegeScene(target.createRenderSurface, cacheWorld);
-    if (dev && scene) {
-      const review = new URLSearchParams(window.location.search).get('artView');
-      if (review === 'cannon' || review === 'gate') {
-        if (review === 'cannon') {
-          scene.camera.position.set(-31, 11, 27);
-          scene.camera.lookAt(-20, 3.8, 14);
-        } else {
-          scene.camera.position.set(-6, 6.5, 32);
-          scene.camera.lookAt(5.5, 5.5, 14);
-        }
-        scene.camera.updateMatrixWorld(true);
-      }
-    }
+    const dev = typeof window !== 'undefined' && !!window.SmallGamesDev?.isEnabled();
+    const session = await createDuelSession(host, play, dev, target.configureServer);
+    const scene = createDuelScene(target.createRenderSurface);
+    if (scene) scene.render(session.v);
     if (scene && target.loadImage) await scene.loadMaterials(target.loadImage);
-    const sceneAttached = scene
-      ? (target.installScene?.(scene.renderer.domElement) ?? false)
-      : false;
+    const attached = scene ? (target.installScene?.(scene.renderer.domElement) ?? false) : false;
     let hits: Hit[] = [],
       disposed = false,
-      suspended = false,
-      signature = '',
       previous = Date.now();
-    const geometry = () => {
+    function geometry() {
       const width = target.canvas.width,
         height = target.canvas.height,
         rotated = height > width;
@@ -98,126 +72,126 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
         rh = rotated ? width : height,
         scale = Math.min(rw / W, rh / H);
       return { width, height, rotated, scale, ox: (rw - W * scale) / 2, oy: (rh - H * scale) / 2 };
-    };
-    function render(updateScene = true) {
+    }
+    function render() {
       if (disposed) return;
-      signature = JSON.stringify([
-        session.v.screen,
-        session.v.message,
-        session.v.busy,
-        session.v.p.materials,
-      ]);
       const g = geometry();
       ctx!.save();
       ctx!.clearRect(0, 0, g.width, g.height);
-      if (!sceneAttached) {
-        ctx!.fillStyle = '#b8dac7';
-        ctx!.fillRect(0, 0, g.width, g.height);
-      }
       if (g.rotated) {
         ctx!.translate(g.width, 0);
         ctx!.rotate(Math.PI / 2);
       }
       ctx!.translate(g.ox, g.oy);
       ctx!.scale(g.scale, g.scale);
-      // Input updates state immediately; expensive GPU submission belongs to the frame timer.
-      const image = updateScene ? scene?.render(session.v) : scene?.image;
-      hits = draw(ctx!, session.v, sceneAttached ? true : image);
+      const image = scene?.render(session.v);
+      hits = drawDuel(ctx!, session.v, attached ? true : (image ?? null));
       ctx!.restore();
-      const b = session.v.b;
-      if (scene) target.presentTargets?.(scene.targets(b), scene.metrics());
+      const v = session.v,
+        p = v.duel.fighters[v.side],
+        gun = activeGun(p);
       target.present?.(
         hits,
-        `${session.v.screen}；兵力 ${b.units.filter((u) => u.hp > 0).length}；损失 ${b.losses}；占领 ${Math.round(b.capture * 100)}%；${b.notice}；发射 ${b.events.filter((e) => e.type === 'solid' || e.type === 'blast').length}；装填 ${b.reload.toFixed(2)}；${session.v.feedbackUntil > b.time ? session.v.feedback : ''}`,
-        session.v.screen,
+        `${v.screen}；${v.mode}；生命 ${Math.ceil(p.hp)}；装填 ${gun?.reload.toFixed(2) ?? '-'}；医疗 ${p.medicines}；发射 ${v.duel.nextId - 1}；${v.message}`,
+        v.screen,
+      );
+      target.presentTargets?.(
+        v.duel.fighters.map((p) => ({ side: p.side, hp: p.hp, position: p.position })),
+        {
+          ...scene?.metrics(),
+          version: v.duel.version,
+          matchId: v.matchId,
+          side: v.side,
+          mode: v.mode,
+          tick: v.duel.tick,
+          fighters: v.duel.fighters,
+          structures: v.duel.structures,
+          shells: v.duel.shells,
+          impacts: v.duel.impacts,
+          result: v.duel.result,
+          scope: v.scope,
+          scopeX: v.scopeX,
+          scopeY: v.scopeY,
+        },
       );
     }
     function pointer(e: CanvasPointerEvent) {
-      const g = geometry();
-      const rawX = g.rotated ? e.y : e.x,
+      const g = geometry(),
+        rawX = g.rotated ? e.y : e.x,
         rawY = g.rotated ? g.width - e.x : e.y;
       const x = (rawX - g.ox) / g.scale,
         y = (rawY - g.oy) / g.scale;
       const hit = hits.find(
         (h) => !h.disabled && x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h,
       );
-      const aim: Aim =
-        session.v.screen === 'playing'
-          ? (scene?.pick(x, y, session.v.b) ?? aimPoint(x, y, session.v.b))
-          : { x, y };
-      session.input(e.phase, e.pointerId, aim.x, aim.y, hit?.id ?? null, aim.sceneHit);
-      render(false);
+      session.input(e.phase, e.pointerId, x, y, hit?.id ?? null);
     }
     const stops = [
       target.onPointer?.(pointer) ??
         target.onTap((x, y) => {
-          pointer({ phase: 'down', x, y, pointerId: 0 });
-          pointer({ phase: 'up', x, y, pointerId: 0 });
+          pointer({ phase: 'down', pointerId: 0, x, y });
+          pointer({ phase: 'up', pointerId: 0, x, y });
         }),
-      target.onAction?.((id) => {
-        session.action(id);
+      target.onAction?.((id) => session.action(id)),
+      target.onResize?.(() => {
+        session.cancel();
         render();
       }),
-      target.onResize?.(render),
     ];
     if (dev) {
       stops.push(
-        window.SmallGamesDev.registerActions(
-          [0, 1, 2].map((i) => ({
-            id: `castle-${i}`,
-            label: `试玩第 ${i + 1} 城（不存奖励）`,
+        window.SmallGamesDev.registerActions([
+          {
+            id: 'castle-duel',
+            label: '双城炮战试玩（不存战绩）',
             run() {
-              session.practice(i);
-              render();
+              session.practice(true);
             },
-          })),
-        ),
+          },
+          {
+            id: 'castle-injury',
+            label: '试玩濒死状态',
+            run() {
+              session.practice(true);
+              session.v.duel.fighters[0].hp = 12;
+            },
+          },
+          {
+            id: 'castle-collapse',
+            label: '试玩城毁地堡',
+            run() {
+              session.practice(true);
+              for (const s of session.v.duel.structures) if (s.side === 0) s.hp = 0;
+            },
+          },
+        ]),
       );
       stops.push(
         window.SmallGamesDev.registerSnapshot(() => ({
           screen: session.v.screen,
-          level: session.v.level,
-          time: session.v.b.time,
-          losses: session.v.b.losses,
-          modules: session.v.b.modules.map((m) => ({ id: m.id, hp: m.hp })),
-          events: session.v.b.events,
-          reload: session.v.b.reload,
-          feedback: session.v.feedback,
+          mode: session.v.mode,
+          side: session.v.side,
+          ...session.v.duel,
         })),
       );
     }
     render();
     const timer = setInterval(() => {
-      const now = Date.now(),
-        dt = Math.min(1, (now - previous) / 1000);
+      const now = Date.now();
+      session.tick(Math.min(0.25, (now - previous) / 1000));
       previous = now;
-      if (!suspended && session.v.screen === 'playing') {
-        session.tick(dt);
-        render();
-      } else if (
-        scene?.needsFrame() ||
-        signature !==
-          JSON.stringify([
-            session.v.screen,
-            session.v.message,
-            session.v.busy,
-            session.v.p.materials,
-          ])
-      )
-        render();
+      render();
     }, 16);
     return {
       pause() {
-        suspended = true;
         session.pause();
-        for (const clip of sounds.values()) clip.stop();
+        for (const sound of sounds.values()) sound.stop();
         previous = Date.now();
         render();
       },
       resume() {
-        suspended = false;
-        previous = Date.now();
         session.resume();
+        previous = Date.now();
         render();
       },
       async dispose() {
@@ -225,7 +199,7 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
         disposed = true;
         clearInterval(timer);
         for (const stop of stops) stop?.();
-        for (const clip of sounds.values()) clip.dispose();
+        for (const sound of sounds.values()) sound.dispose();
         await session.dispose();
         scene?.dispose();
         ctx.clearRect(0, 0, target.canvas.width, target.canvas.height);

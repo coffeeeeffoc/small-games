@@ -10,14 +10,15 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.server.config.ts",
+    "serve:duel": "node server-dist/duel-service.js",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "smoke": "node scripts/browser-check.mjs",
-    "test:rules": "vitest run src/rules.test.ts",
+    "test:rules": "vitest run src/duel.test.ts src/duel-server.test.ts src/progress.test.ts",
     "test:native": "node scripts/native-check.mjs",
-    "test:input": "node scripts/input-check.mjs && node scripts/aim-check.mjs"
+    "test:input": "node scripts/input-check.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",

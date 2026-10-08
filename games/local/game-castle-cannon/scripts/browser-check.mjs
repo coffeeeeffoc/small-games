@@ -1,418 +1,336 @@
-/* global document, window */
+/* global window, document */
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
-import { logicalPoint } from './screen-point.mjs';
+import { createDuelServer } from '../server-dist/duel-service.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const out = path.resolve(root, process.env.SIEGE_EVIDENCE_DIR ?? 'docs/design/immersive');
-const types = {
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.html': 'text/html',
-  '.wav': 'audio/wav',
-};
-const server = createServer(async (req, res) => {
-  try {
-    const u = new URL(req.url, 'http://localhost');
-    if (u.pathname === '/fixture') {
-      res.setHeader('Content-Type', 'text/html');
-      res.end(
-        '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{width:100vw;height:100vh;border:0}</style><iframe allow="fullscreen" src="/index.html?dev=0"></iframe>',
-      );
-      return;
-    }
-    let f = path.resolve(
-      root,
-      'dist',
-      '.' + decodeURIComponent(u.pathname === '/' ? '/index.html' : u.pathname),
-    );
-    assert(f.startsWith(path.join(root, 'dist') + path.sep));
-    res.setHeader('Content-Type', types[path.extname(f)] ?? 'application/octet-stream');
-    res.end(await readFile(f));
-  } catch {
-    res.writeHead(404).end();
-  }
-});
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
+const out = path.resolve(
+  root,
+  process.env.DUEL_EVIDENCE_DIR ?? 'docs/design/artillery-duel-2026-10-09/actual',
+);
+await mkdir(out, { recursive: true });
+const service = createDuelServer({ staticRoot: path.join(root, 'dist') });
+await new Promise((resolve) => service.server.listen(0, '127.0.0.1', resolve));
+const base = `http://127.0.0.1:${service.server.address().port}`;
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH ?? '/usr/bin/chromium',
+  executablePath:
+    process.env.PLAYWRIGHT_EXECUTABLE_PATH ??
+    (process.platform === 'win32'
+      ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+      : '/usr/bin/chromium'),
 });
 const records = [],
   errors = [];
-let activePage, activeFrame;
-async function play(name, viewport, touch = false, iframe = false) {
-  console.log(`Begin ${name}`);
+async function fixture(name, viewport, touch, iframe = false, dev = false) {
   const context = await browser.newContext({ viewport, hasTouch: touch, isMobile: touch });
   const page = await context.newPage();
-  activePage = page;
-  page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('response', (r) => {
-    if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`);
-  });
-  await page.goto(base + (iframe ? '/fixture' : '/index.html?dev=0'));
-  const frame = iframe ? await page.locator('iframe').contentFrame() : page;
-  activeFrame = frame;
-  const ui = frame.locator('.castle-root'),
-    canvas = frame.locator('#battle');
-  await expect(ui).toHaveAttribute('data-ready', 'true');
-  const protocol = await context.newCDPSession(page),
-    cdp = touch ? protocol : null;
-  let capturedAim = false;
+  page.on('pageerror', (error) => errors.push(`${name}: ${error.message}`));
+  if (iframe)
+    await page.route('**/fixture', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: `<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{width:100vw;height:100vh;border:0}</style><iframe allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" src="/play/?dev=${dev ? 1 : 0}"></iframe>`,
+      }),
+    );
+  await page.goto(iframe ? `${base}/fixture` : `${base}/play/?dev=${dev ? 1 : 0}`);
+  const frame = iframe ? page.frames().find((f) => f !== page.mainFrame()) : page.mainFrame();
+  await expect(frame.locator('.castle-root')).toHaveAttribute('data-ready', 'true');
   const click = async (id) => {
     const button = frame.locator(`[data-action="${id}"]`);
-    // Playwright sends native input after layout/hit testing settles, including rotated viewports.
+    await expect(button).toBeVisible();
     if (touch) await button.tap();
     else await button.click();
   };
-  // Software WebGL regression uses the same geometry/rules with the public power-saving option.
-  if (!process.env.SIEGE_NORMAL_QUALITY) {
-    await click('settings');
-    await click('quality');
-    await click('home');
-  }
-  const position = async (x, y) => {
-    const p = await logicalPoint(canvas, x, y);
-    x = p.x;
-    y = p.y;
-    const b = await canvas.boundingBox();
-    const rotated = (await ui.getAttribute('data-rotated')) === 'true';
+  const snapshot = async () =>
+    JSON.parse(await frame.locator('#battle').getAttribute('data-renderer'));
+  const logical = async (x, y) => {
+    const rect = await frame.locator('#battle').boundingBox(),
+      rotated = (await frame.locator('.castle-root').getAttribute('data-rotated')) === 'true';
     return rotated
-      ? { x: b.x + (1 - y / 540) * b.width, y: b.y + (x / 960) * b.height }
-      : { x: b.x + (x / 960) * b.width, y: b.y + (y / 540) * b.height };
+      ? { x: rect.x + rect.width * (1 - y / 540), y: rect.y + (rect.height * x) / 960 }
+      : { x: rect.x + (rect.width * x) / 960, y: rect.y + (rect.height * y) / 540 };
   };
-  const ready = () =>
-    expect(canvas).toHaveAttribute('aria-label', /；装填 0\.00；/, { timeout: 20000 });
-  const shot = async (x, y, cancel = false) => {
-    const [raw, box, rotation] = await Promise.all([
-      canvas.getAttribute('data-targets'),
-      canvas.evaluate((element) => {
-        const r = element.getBoundingClientRect();
-        return { x: r.x, y: r.y, width: r.width, height: r.height };
-      }),
-      ui.getAttribute('data-rotated'),
-    ]);
-    const targets = raw ? JSON.parse(raw) : [];
-    const endpoint = targets.find((p) => p.ruleX === x && p.ruleY === y) ?? { x: 270, y: 325 };
-    const physical = (p) =>
-      rotation === 'true'
-        ? { x: box.x + (1 - p.y / 540) * box.width, y: box.y + (p.x / 960) * box.height }
-        : { x: box.x + (p.x / 960) * box.width, y: box.y + (p.y / 540) * box.height };
-    const a = physical({ x: 270, y: 325 }),
-      b = physical(endpoint);
-    if (cdp) {
-      // One CDP connection preserves event wire order; avoid protocol round-trip delays
-      // between phases of one normal gesture on the cloud software renderer.
-      await Promise.all([
-        cdp.send('Input.dispatchTouchEvent', {
-          type: 'touchStart',
-          touchPoints: [{ ...a, id: 1 }],
-        }),
-        cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...b, id: 1 }] }),
-        cdp.send('Input.dispatchTouchEvent', {
-          type: cancel ? 'touchCancel' : 'touchEnd',
-          touchPoints: [],
-        }),
-      ]);
+  const cdp = await context.newCDPSession(page);
+  const event = async (type, points) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: points.map((p, i) => ({ ...p, id: i + 1 })),
+    });
+  async function gesture(start, end, hold = 0, cancel = false) {
+    const a = await logical(...start),
+      b = await logical(...end);
+    if (touch) {
+      await event('touchStart', [a]);
+      if (hold) await page.waitForTimeout(hold);
+      await event('touchMove', [b]);
+      await event(cancel ? 'touchCancel' : 'touchEnd', []);
     } else {
-      await Promise.all([
-        protocol.send('Input.dispatchMouseEvent', {
-          type: 'mousePressed',
-          ...a,
-          button: 'left',
-          buttons: 1,
-          clickCount: 1,
-        }),
-        protocol.send('Input.dispatchMouseEvent', {
-          type: 'mouseMoved',
-          ...b,
-          button: 'left',
-          buttons: 1,
-        }),
-        ...(cancel
-          ? []
-          : [
-              protocol.send('Input.dispatchMouseEvent', {
-                type: 'mouseReleased',
-                ...b,
-                button: 'left',
-                buttons: 0,
-                clickCount: 1,
-              }),
-            ]),
-      ]);
-      if (!capturedAim && !cancel && x === 680 && y === 160) {
-        // Capture the held aiming state in the artifact script; keep this timed battle uninterrupted.
-        capturedAim = true;
-      }
-      if (cancel) await page.keyboard.press('Escape');
-      if (cancel)
-        await protocol.send('Input.dispatchMouseEvent', {
-          type: 'mouseReleased',
-          ...b,
-          button: 'left',
-          buttons: 0,
-          clickCount: 1,
-        });
-      if (cancel) await click('resume');
-    }
-    await page.waitForTimeout(430);
-    console.log(
-      name,
-      'shot',
-      x,
-      y,
-      'cancel',
-      cancel,
-      await canvas.getAttribute('aria-label'),
-      await canvas.getAttribute('data-targets'),
-    );
-  };
-  if (process.env.SIEGE_LIFECYCLE_ONLY) {
-    await click('start');
-    const held = await position(200, 350),
-      aimed = await position(590, 280);
-    if (cdp) {
-      await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [{ ...held, id: 1 }],
-      });
-      await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchMove',
-        touchPoints: [{ ...aimed, id: 1 }],
-      });
-    } else {
-      await page.mouse.move(held.x, held.y);
+      await page.mouse.move(a.x, a.y);
       await page.mouse.down();
-      await page.mouse.move(aimed.x, aimed.y);
+      if (hold) await page.waitForTimeout(hold);
+      await page.mouse.move(b.x, b.y);
+      if (cancel) await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      await page.mouse.up();
+      if (cancel) await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     }
-    await page.setViewportSize({ width: viewport.height, height: viewport.width });
-    if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    else await page.mouse.up();
-    await page.waitForTimeout(450);
-    await expect(canvas).not.toHaveAttribute('aria-label', /城门破了/);
-    await click('pause');
-    await expect(ui).toHaveAttribute('data-screen', 'paused');
-    await page.setViewportSize(viewport);
-    await expect(ui).toHaveAttribute('data-screen', 'paused');
-    await click('resume');
-    await shot(590, 280);
+  }
+  const capture = async (state) => {
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: path.join(out, `${name}-${state}.png`) });
+  };
+  return {
+    name,
+    context,
+    page,
+    frame,
+    click,
+    snapshot,
+    logical,
+    event,
+    gesture,
+    capture,
+    close: () => context.close(),
+  };
+}
+async function practice(name, viewport, touch, iframe = false) {
+  const f = await fixture(name, viewport, touch, iframe);
+  try {
+    await f.capture('home');
+    await f.click('practice');
+    await f.capture('maps');
+    await f.click('map-ravine');
+    await expect(f.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    const first = await f.snapshot();
+    assert.equal(first.mode, 'practice');
+    assert.equal(first.renderer, 'three-duel');
+    await f.gesture([470, 320], [495, 285]);
     await expect
-      .poll(
-        async () =>
-          JSON.parse(await canvas.getAttribute('data-targets')).find((m) => m.ruleX === 590).hp,
-      )
-      .toBe(0);
-    await click('pause');
-    await click('retry');
-    await shot(590, 280);
+      .poll(async () => (await f.snapshot()).fighters[0].guns[0].pitch)
+      .toBeGreaterThan(40);
+    const angle = (await f.snapshot()).fighters[0].guns[0].pitch;
+    await f.click('scope');
+    await f.gesture([470, 260], [520, 235]);
+    const observed = await f.snapshot();
+    assert.equal(observed.fighters[0].guns[0].pitch, angle);
+    assert.ok(observed.scopeX > 0);
+    await f.capture('scope');
+    await f.click('scope');
+    const before = (await f.snapshot()).fighters[0].lastShot;
+    await f.gesture([850, 460], [850, 460], 300, true);
+    await expect.poll(async () => (await f.snapshot()).fighters[0].guns[0].charge).toBeNull();
+    assert.deepEqual((await f.snapshot()).fighters[0].lastShot, before);
+    await f.gesture([850, 460], [850, 460], 650);
     await expect
-      .poll(
-        async () =>
-          JSON.parse(await canvas.getAttribute('data-targets')).find((m) => m.ruleX === 590).hp,
-      )
-      .toBe(0);
+      .poll(async () => (await f.snapshot()).fighters[0].lastShot?.power ?? -1)
+      .toBeGreaterThan(0.2);
+    await f.capture('shot');
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].guns[0].reload, { timeout: 6000 })
+      .toBe(1);
+    if (touch) {
+      const fire = await f.logical(850, 460),
+        prone = await f.logical(260, 470);
+      await f.event('touchStart', [fire]);
+      await f.page.waitForTimeout(200);
+      await f.event('touchStart', [fire, prone]);
+      await expect.poll(async () => (await f.snapshot()).fighters[0].crouched).toBe(true);
+      await f.capture('crouch');
+      await f.event('touchCancel', []);
+      await expect.poll(async () => (await f.snapshot()).fighters[0].crouched).toBe(false);
+    }
+    await f.click('station:wall');
+    await expect.poll(async () => (await f.snapshot()).fighters[0].route.length).toBeGreaterThan(0);
+    await f.capture('moving');
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].station, { timeout: 12000 })
+      .toBe('wall');
+    await f.capture('wall-gun');
+    await f.click('pause');
+    const paused = (await f.snapshot()).tick;
+    await f.page.waitForTimeout(250);
+    assert.equal((await f.snapshot()).tick, paused);
+    await f.capture('paused');
+    await f.click('settings');
+    await f.click('sound');
+    await f.capture('settings');
+    await f.click('back');
+    await f.click('help');
+    await f.capture('help');
+    await f.click('back');
+    await f.click('leave');
+    await f.click('leave-confirm');
+    await expect(f.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'home');
+    await f.click('skins');
+    await f.capture('skins');
+    await f.click('back');
     records.push({
       name,
+      viewport,
       touch,
       iframe,
-      resizeCancelsDrag: true,
-      rotationPreservesBattle: true,
-      retry: true,
+      checks: [
+        'home/maps/battle/menu/result routes',
+        'aim drag',
+        'independent telescope',
+        'charge release',
+        'cancel no shot',
+        'reload',
+        'real transfer',
+        'practice pause',
+        'settings/help/skins',
+        ...(touch ? ['multitouch crouch cancels charge', 'touch cancellation'] : []),
+      ],
     });
-    await context.close();
-    return;
+  } finally {
+    await f.close();
   }
-  await page.screenshot({ path: path.join(out, `${name}-home.png`) });
-  await click('levels');
-  await expect(frame.locator('[data-action="level:1"]')).toBeDisabled();
-  await page.screenshot({ path: path.join(out, `${name}-levels.png`) });
-  await click('home');
-  await click('settings');
-  await click('sound');
-  await click('motion');
-  await click('home');
-  await click('help');
-  await click('back');
-  if (!iframe && !touch) {
-    await frame.locator('[data-game-fullscreen]').click();
-    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-    await frame.locator('[data-game-fullscreen]').click();
-    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-  }
-  await click('start');
-  assert.match(await canvas.getAttribute('data-renderer'), /three-webgl2/);
-  await shot(590, 280, true);
-  await expect(canvas).not.toHaveAttribute('aria-label', /城门破了/);
-  // Restart through ordinary menus so cancellation time does not bias the order comparison.
-  await click('pause');
-  await click('home');
-  await click('start');
-  await shot(590, 280);
-  await expect
-    .poll(
-      async () =>
-        JSON.parse(await canvas.getAttribute('data-targets')).find((m) => m.ruleX === 590).hp,
-    )
-    .toBe(0);
-  // Breach state is inspected separately without delaying this real-time attack sequence.
-  // Gate-first: observe pressure during reload, then remove tower.
-  await click('pause');
-  await page.screenshot({ path: path.join(out, `${name}-battle.png`) });
-  console.log(`${name}: paused battle`);
-  await expect(ui).toHaveAttribute('data-screen', 'paused');
-  const before = await canvas.getAttribute('aria-label');
-  await page.waitForTimeout(400);
-  assert.equal(await canvas.getAttribute('aria-label'), before);
-  await click('help');
-  await click('back');
-  await click('resume');
-  await ready();
-  await shot(680, 160);
-  await expect
-    .poll(
-      async () =>
-        JSON.parse(await canvas.getAttribute('data-targets')).find((m) => m.ruleX === 680).hp,
-    )
-    .toBe(0);
-  await expect(ui).toHaveAttribute('data-screen', 'result', { timeout: 35000 });
-  assert.match(await canvas.getAttribute('aria-label'), /城堡占领/);
-  const gateLoss = Number((await canvas.getAttribute('aria-label')).match(/损失 (\d+)/)[1]);
-  await page.screenshot({ path: path.join(out, `${name}-victory.png`) });
-  if (!iframe) {
-    await click('retry');
-    await shot(680, 160);
-    await ready();
-    await shot(590, 280);
-    await expect(ui).toHaveAttribute('data-screen', 'result', { timeout: 35000 });
-    const towerLoss = Number((await canvas.getAttribute('aria-label')).match(/损失 (\d+)/)[1]);
-    assert(gateLoss > towerLoss, `${name}: gate ${gateLoss}, tower ${towerLoss}`);
-    await click('next');
-    await click('blast');
-    await shot(680, 175);
-    await ready();
-    await shot(680, 175);
-    await ready();
-    await click('solid');
-    await shot(590, 280);
-    await ready();
-    await shot(590, 280);
-    await ready();
-    await shot(715, 326);
-    await expect(ui).toHaveAttribute('data-screen', 'result', { timeout: 35000 });
-    assert.match(await canvas.getAttribute('aria-label'), /城堡占领/);
-    await click('next');
-    await shot(660, 140);
-    await ready();
-    await shot(660, 140);
-    await ready();
-    await shot(748, 210);
-    await ready();
-    await shot(590, 280);
-    await ready();
-    await shot(590, 280);
-    await ready();
-    await shot(708, 326);
-    await expect(ui).toHaveAttribute('data-screen', 'result', { timeout: 35000 });
-    assert.match(await canvas.getAttribute('aria-label'), /城堡占领/);
-    await page.screenshot({ path: path.join(out, `${name}-third-victory.png`) });
-    await click('home');
-    await page.reload();
-    await expect(ui).toHaveAttribute('data-ready', 'true');
-    await click('levels');
-    await expect(frame.locator('[data-action="level:2"]')).toBeEnabled();
-    await click('home');
-    await click('wardrobe');
-    await click('skin:1');
-    await click('home');
-    await click('levels');
-    await click('level:0');
-    // An unattended army is a reproducible loss; retry keeps input usable.
-    await expect(ui).toHaveAttribute('data-screen', 'result', { timeout: 40000 });
-    assert.match(await canvas.getAttribute('aria-label'), /全员撤离/);
-    await page.screenshot({ path: path.join(out, `${name}-failure.png`) });
-    await click('retry');
-    await shot(590, 280);
+}
+async function online() {
+  const a = await fixture('human-blue', { width: 844, height: 390 }, true),
+    b = await fixture('human-red', { width: 960, height: 540 }, false);
+  try {
+    await a.click('start');
+    await a.capture('matching');
+    await b.click('start');
+    for (const f of [a, b])
+      await expect(f.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing', {
+        timeout: 15000,
+      });
+    const sa = await a.snapshot(),
+      sb = await b.snapshot();
+    assert.equal(sa.mode, 'human');
+    assert.equal(sa.matchId, sb.matchId);
+    assert.notEqual(sa.side, sb.side);
+    await a.gesture([470, 320], [480, 313]);
+    await a.gesture([850, 460], [850, 460], 700);
     await expect
-      .poll(
-        async () =>
-          JSON.parse(await canvas.getAttribute('data-targets')).find((m) => m.ruleX === 590).hp,
-      )
-      .toBe(0);
-    await click('pause');
-    await click('home');
+      .poll(async () => (await b.snapshot()).fighters[sa.side].lastShot?.power ?? 0)
+      .toBeGreaterThan(0.2);
+    await a.capture('battle');
+    await b.capture('battle');
+    await b.click('scope');
+    await b.capture('scope');
+    await b.click('scope');
+    await a.click('pause');
+    const tick = (await b.snapshot()).tick;
+    await b.page.waitForTimeout(400);
+    assert.ok((await b.snapshot()).tick > tick);
+    await a.click('resume');
+    await a.context.setOffline(true);
+    await a.page.waitForTimeout(300);
+    await a.context.setOffline(false);
+    await expect
+      .poll(async () => (await a.snapshot()).tick, { timeout: 10000 })
+      .toBeGreaterThan(tick);
+    assert.equal((await a.snapshot()).matchId, sa.matchId);
+    await a.click('pause');
+    await a.click('leave');
+    await a.click('leave-confirm');
+    await expect(b.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'result', {
+      timeout: 5000,
+    });
+    assert.equal((await b.snapshot()).result.winner, sb.side);
+    await b.capture('victory');
+    await b.click('home');
+    await a.click('start');
+    await a.click('cancel-match');
+    await a.page.waitForTimeout(500);
+    await expect(a.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'home');
+    await a.click('start');
+    await expect(a.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing', {
+      timeout: 15000,
+    });
+    assert.equal((await a.snapshot()).mode, 'bot');
+    await a.capture('bot-fallback');
     records.push({
-      name,
-      touch,
-      viewport,
-      gateFirstLosses: gateLoss,
-      towerFirstLosses: towerLoss,
-      threeCastles: true,
-      storage: true,
-      unattendedFailure: true,
+      name: 'two-client-online',
+      checks: [
+        'real human matchmaking',
+        'same match/authoritative shell',
+        'human menu does not pause',
+        'same-match reconnect',
+        'leave result',
+        'cancel queue',
+        'production 8s bot fallback',
+      ],
     });
-  } else records.push({ name, touch, viewport, iframe: true, firstCastle: true });
-  // Resize keeps the same paused battle.
-  if ((await ui.getAttribute('data-screen')) !== 'home') await click('home');
-  await click('start');
-  await click('pause');
-  await page.setViewportSize({ width: viewport.height, height: viewport.width });
-  await expect(ui).toHaveAttribute('data-screen', 'paused');
-  await click('resume');
-  await click('pause');
-  await click('retry');
-  await expect(ui).toHaveAttribute('data-screen', 'playing');
-  const held = await position(200, 350),
-    aimed = await position(590, 280);
-  if (cdp) {
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [{ ...held, id: 1 }],
-    });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [{ ...aimed, id: 1 }],
-    });
-  } else {
-    await page.mouse.move(held.x, held.y);
-    await page.mouse.down();
-    await page.mouse.move(aimed.x, aimed.y);
+  } finally {
+    await a.close();
+    await b.close();
   }
-  await page.setViewportSize(viewport);
-  if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  else await page.mouse.up();
-  await page.waitForTimeout(430);
-  await expect(canvas).not.toHaveAttribute('aria-label', /城门破了/);
-  records.at(-1).resizeCancelsDrag = true;
-  await context.close();
+}
+async function criticalStates() {
+  const f = await fixture('critical', { width: 844, height: 390 }, true, false, true);
+  const dev = async (id) => {
+    await f.page.evaluate(() => window.SmallGamesDev.setPanelHidden(false));
+    await f.frame.locator('[data-toggle]').tap();
+    await f.frame.locator(`[data-dev-action="${id}"]`).tap();
+    await f.frame.locator('[data-close]').tap();
+    await f.page.evaluate(() => window.SmallGamesDev.setPanelHidden(true));
+  };
+  try {
+    await dev('castle-injury');
+    await f.capture('injury');
+    assert.equal((await f.snapshot()).fighters[0].hp, 12);
+    await f.click('retreat');
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].healing, { timeout: 10000 })
+      .not.toBeNull();
+    await f.capture('healing');
+    const medicine = (await f.snapshot()).fighters[0].medicines;
+    assert.equal(medicine, 2);
+    await dev('castle-collapse');
+    await expect.poll(async () => (await f.snapshot()).fighters[0].destroyed).toBe(true);
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].node, { timeout: 10000 })
+      .toBe('shelter');
+    await f.capture('exposed-bunker');
+    await f.click('station:bunker');
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].station, { timeout: 5000 })
+      .toBe('bunker');
+    await f.capture('bunker-gun');
+    await f.click('pause');
+    await f.click('leave');
+    await f.click('leave-confirm');
+    const full = f.frame.locator('[data-game-fullscreen]');
+    await full.tap();
+    await f.page.waitForTimeout(200);
+    await f.page.evaluate(async () => {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    });
+    await expect(f.frame.locator('[data-action="start"]')).toBeVisible();
+    records.push({
+      name: 'critical-and-collapse',
+      checks: [
+        'isolated dev previews',
+        'critical red vignette',
+        'route retreat',
+        'finite progressive treatment',
+        'city collapse auto route',
+        'only bunker gun',
+        'fullscreen exit keeps navigation',
+      ],
+    });
+  } finally {
+    await f.close();
+  }
 }
 try {
-  await mkdir(out, { recursive: true });
-  if (!process.env.SIEGE_TOUCH_ONLY) await play('desktop', { width: 1120, height: 620 });
-  if (!process.env.SIEGE_DESKTOP_ONLY) {
-    await play('touch-portrait', { width: 390, height: 844 }, true);
-    await play('iframe', { width: 844, height: 390 }, true, true);
-  }
+  await practice('landscape', { width: 844, height: 390 }, true);
+  await practice('portrait', { width: 390, height: 844 }, true);
+  await practice('iframe', { width: 844, height: 390 }, true, true);
+  await online();
+  await criticalStates();
   assert.deepEqual(errors, []);
   await writeFile(
-    path.join(
-      out,
-      process.env.SIEGE_LIFECYCLE_ONLY
-        ? 'lifecycle-evidence.json'
-        : process.env.SIEGE_NORMAL_QUALITY
-          ? 'normal-browser-evidence.json'
-          : 'browser-evidence.json',
-    ),
+    path.join(out, 'verification.json'),
     JSON.stringify(
       {
-        environment: `${process.platform} Chromium desktop / CDP simulated touch; not WeChat device`,
-        renderer: process.env.SIEGE_NORMAL_QUALITY
-          ? 'Real Three.js WebGL2 at default quality; unchanged rules'
-          : 'Real Three.js WebGL2 with public power-saving setting; unchanged rules',
+        environment: 'Chrome desktop with mobile viewport and CDP touch, not physical devices',
         records,
         errors,
       },
@@ -420,25 +338,8 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify(records, null, 2));
-} catch (error) {
-  await activePage?.screenshot({ path: path.join(out, 'failure-state.png') });
-  const state = await activeFrame?.locator('.castle-root').evaluate((root) => ({
-    screen: root.dataset.screen,
-    rotated: root.dataset.rotated,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    buttons: [...root.querySelectorAll('[data-action]')].map((b) => ({
-      id: b.dataset.action,
-      rect: b.getBoundingClientRect().toJSON(),
-    })),
-  }));
-  await writeFile(
-    path.join(out, 'failure-state.json'),
-    JSON.stringify({ error: String(error), state }, null, 2),
-  );
-  throw error;
+  console.log(`双城炮战浏览器验证通过：${records.length} 组，证据 ${out}`);
 } finally {
   await browser.close();
-  await new Promise((r) => server.close(r));
+  service.stop();
 }
