@@ -564,7 +564,7 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
         assert(readHead(standaloneChecksFile).includes(castleEntryAfter));
         assert(
           createHash('sha256').update(readHead(file)).digest('hex') ===
-            '5de2fc176b35528c55640dd11010b9c36242ed54141fca8e9ecea6e5a86dfa17',
+            'f5b1ce515a60daacad2a1d7a4df5e25406d3d81e09501e665d1792371d8d6bf5',
         );
         scopes.set(file, ['games/local/game-castle-cannon']);
       } else if (file === standaloneChecksFile || file === cageRescueGameplayFile) {

@@ -13,20 +13,33 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
   const fire = await frame.locator('[data-action="fire"]').boundingBox();
   const point = { x: fire.x + fire.width / 2, y: fire.y + fire.height / 2 };
   const page = root.page();
+  const waitForCharge = () =>
+    expect
+      .poll(
+        async () => {
+          const label = await frame.locator('[data-action="fire"]').textContent();
+          return Number(label.match(/松手发射 (\d+)%/)?.[1] ?? 0);
+        },
+        { timeout: 15000 },
+      )
+      .toBeGreaterThanOrEqual(25);
   if (mobile) {
     const touch = await page.context().newCDPSession(page);
     try {
       await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-      await page.waitForTimeout(450);
-      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await waitForCharge();
     } finally {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await touch.detach();
     }
   } else {
     await page.mouse.move(point.x, point.y);
     await page.mouse.down();
-    await page.waitForTimeout(450);
-    await page.mouse.up();
+    try {
+      await waitForCharge();
+    } finally {
+      await page.mouse.up();
+    }
   }
   await expect
     .poll(async () => (await snapshot()).fighters[first.side].lastShot?.power ?? 0)
