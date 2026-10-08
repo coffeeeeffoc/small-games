@@ -167,13 +167,16 @@ test('TapTap acceptance reuses only three exact fixture edges, never runtime or 
   assert.equal(violations.length, 8);
   assert(violations.every((entry) => entry.code === 'cross-package-relative'));
   const smoke = violations.filter((entry) =>
-    entry.message.startsWith('apps/shell-minigame/scripts/taptap-smoke.mjs '),
+    entry.message.replaceAll('\\', '/').startsWith('apps/shell-minigame/scripts/taptap-smoke.mjs '),
   );
   assert.equal(smoke.length, 2);
   assert(smoke.some((entry) => entry.message.includes('other-fixture.mjs')));
   assert(smoke.some((entry) => entry.message.includes('letters-words/library.js')));
   for (const file of ['scripts/taptap-smoke-extra.mjs', 'src/runtime.mjs'])
-    assert.equal(violations.filter((entry) => entry.message.includes(file)).length, 3);
+    assert.equal(
+      violations.filter((entry) => entry.message.replaceAll('\\', '/').includes(file)).length,
+      3,
+    );
 });
 
 test('requires an explicit root export', async (t) => {
