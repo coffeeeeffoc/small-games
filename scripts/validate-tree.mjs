@@ -463,8 +463,14 @@ export async function validateTree({
     const files = [];
     for (const file of paths)
       if ((await stat(path.join(root, file)).catch(() => null))?.isFile()) files.push(file);
-    if (files.length)
-      execute(pnpm, ['exec', 'prettier', '--check', '--ignore-unknown', ...files], root, clean);
+    // pnpm exec crosses cmd.exe on Windows; keep every batch below its 8191-character limit.
+    for (let offset = 0; offset < files.length; offset += 20)
+      execute(
+        pnpm,
+        ['exec', 'prettier', '--check', '--ignore-unknown', ...files.slice(offset, offset + 20)],
+        root,
+        clean,
+      );
   } else execute(pnpm, ['format:check'], root, clean);
   execute(pnpm, ['check:games'], root, clean);
   const sourcePaths = paths.filter((file) => !isDocumentation(file));

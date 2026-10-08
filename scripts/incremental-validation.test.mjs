@@ -32,6 +32,44 @@ const plan = (changedPaths, extra = {}) =>
     readSource: () => 'export const rules = 1;',
     ...extra,
   });
+
+test('large documentation changes check every file within Windows command limits and still reject formatting errors', async (t) => {
+  const { mkdtemp, mkdir, writeFile, rm, symlink } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { validateTree } = await import('./validate-tree.mjs');
+  const { run } = await import('./validate-push.mjs');
+  const root = await mkdtemp(path.join(tmpdir(), 'incremental-format-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await symlink(
+    fileURLToPath(new URL('../node_modules', import.meta.url)),
+    path.join(root, 'node_modules'),
+    'junction',
+  );
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
+  );
+  const directory = 'docs/' + 'art-and-mobile-validation-'.repeat(4);
+  await mkdir(path.join(root, directory), { recursive: true });
+  const paths = Array.from({ length: 131 }, (_, i) => directory + '/' + i + '.md');
+  for (const file of paths) await writeFile(path.join(root, file), '# Verified\n');
+  let checked = [];
+  const execute = (command, args, cwd, env) => {
+    if (command === 'git') return paths.join('\0');
+    if (args[0] === '--version') return '12.6.0';
+    if (args[0] === 'exec') {
+      assert(args.join(' ').length < 7500, 'Windows command line overflow');
+      checked.push(...args.slice(4));
+      return run(command, args, cwd, { ...env, PNPM_CONFIG_PM_ON_FAIL: 'ignore' }, true);
+    }
+  };
+  await validateTree({ root, incremental: true, execute });
+  assert.deepEqual(checked, paths);
+  await writeFile(path.join(root, paths.at(-1)), '# Broken    \n\n\n');
+  checked = [];
+  await assert.rejects(validateTree({ root, incremental: true, execute }), /failed/);
+  assert(checked.includes(paths.at(-1)), 'The final batch must also be checked');
+});
 test('Shell-only, game and transitive shared consumer changes select fast Shell contracts; docs do not', () => {
   for (const paths of [
     ['apps/shell-web/src/styles.css'],
