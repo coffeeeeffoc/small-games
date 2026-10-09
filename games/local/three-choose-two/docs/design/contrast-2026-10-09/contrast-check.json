@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-09T04:39:45.990Z",
+  "actualDevice": false,
+  "browser": "151.0.7922.173",
+  "checks": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "mode": "normal",
+      "fills": {
+        "empty": "rgb(41, 76, 62)",
+        "blocks": [
+          "#ed806b",
+          "#f2cb58",
+          "#acbc73",
+          "#91a9c0",
+          "#ed806b",
+          "#f2cb58",
+          "#acbc73"
+        ]
+      },
+      "contrast": [
+        {
+          "color": "#ed806b",
+          "ratio": 3.6
+        },
+        {
+          "color": "#73bf94",
+          "ratio": 4.37
+        },
+        {
+          "color": "#f2cb58",
+          "ratio": 6.12
+        },
+        {
+          "color": "#91a9c0",
+          "ratio": 3.93
+        },
+        {
+          "color": "#acbc73",
+          "ratio": 4.64
+        }
+      ],
+      "screenshot": "game-normal-390x844.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "mode": "high-contrast",
+      "fills": {
+        "empty": "rgb(16, 38, 30)",
+        "blocks": [
+          "#d86d41",
+          "#b98b14",
+          "#728f45",
+          "#768bc5",
+          "#d86d41",
+          "#b98b14",
+          "#728f45"
+        ]
+      },
+      "contrast": [
+        {
+          "color": "#d86d41",
+          "ratio": 4.69
+        },
+        {
+          "color": "#0e8b7d",
+          "ratio": 3.8
+        },
+        {
+          "color": "#b98b14",
+          "ratio": 5.13
+        },
+        {
+          "color": "#768bc5",
+          "ratio": 4.76
+        },
+        {
+          "color": "#728f45",
+          "ratio": 4.35
+        }
+      ],
+      "screenshot": "game-high-contrast-390x844.png"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "mode": "normal",
+      "fills": {
+        "empty": "rgb(41, 76, 62)",
+        "blocks": [
+          "#ed806b",
+          "#f2cb58",
+          "#acbc73",
+          "#91a9c0",
+          "#ed806b",
+          "#f2cb58",
+          "#acbc73"
+        ]
+      },
+      "contrast": [
+        {
+          "color": "#ed806b",
+          "ratio": 3.6
+        },
+        {
+          "color": "#73bf94",
+          "ratio": 4.37
+        },
+        {
+          "color": "#f2cb58",
+          "ratio": 6.12
+        },
+        {
+          "color": "#91a9c0",
+          "ratio": 3.93
+        },
+        {
+          "color": "#acbc73",
+          "ratio": 4.64
+        }
+      ],
+      "screenshot": "game-normal-320x568.png"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "mode": "high-contrast",
+      "fills": {
+        "empty": "rgb(16, 38, 30)",
+        "blocks": [
+          "#d86d41",
+          "#b98b14",
+          "#728f45",
+          "#768bc5",
+          "#d86d41",
+          "#b98b14",
+          "#728f45"
+        ]
+      },
+      "contrast": [
+        {
+          "color": "#d86d41",
+          "ratio": 4.69
+        },
+        {
+          "color": "#0e8b7d",
+          "ratio": 3.8
+        },
+        {
+          "color": "#b98b14",
+          "ratio": 5.13
+        },
+        {
+          "color": "#768bc5",
+          "ratio": 4.76
+        },
+        {
+          "color": "#728f45",
+          "ratio": 4.35
+        }
+      ],
+      "screenshot": "game-high-contrast-320x568.png"
+    }
+  ]
+}

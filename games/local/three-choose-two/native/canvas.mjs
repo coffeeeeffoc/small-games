@@ -477,7 +477,9 @@ export const threeChooseTwoCanvasDefinition = {
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
         const index = y * 8 + x, px = b.innerX + x * b.pitch, py = b.innerY + y * b.pitch;
         if (state.board[index]) block(px, py, b.pitch - 2, palette()[Math.abs(state.board[index] - 1) % palette().length], state.starBoard?.[index]);
-        else round(px, py, b.pitch - 2, b.pitch - 2, 5, '#8FA982');
+        else round(px, py, b.pitch - 2, b.pitch - 2, 5,
+          progress.settings.highContrast ? '#10261E' : '#294C3E',
+          progress.settings.highContrast ? '#06170F' : '#17372B');
         if (!progress.settings.reducedFlash && flash && Date.now() < flash.until && (flash.rows.includes(y) || flash.cols.includes(x)))
           round(px, py, b.pitch - 5, b.pitch - 5, 6, '#FFFFFFB3');
       }

@@ -1,0 +1,27 @@
+{
+  "actualDevice": false,
+  "platformSdk": "mock wx",
+  "checks": [
+    {
+      "mode": "normal",
+      "emptyPixel": [
+        41,
+        76,
+        62,
+        255
+      ],
+      "screenshot": "native-game-normal-390x844.png"
+    },
+    {
+      "mode": "high-contrast",
+      "emptyPixel": [
+        16,
+        38,
+        30,
+        255
+      ],
+      "screenshot": "native-game-high-contrast-390x844.png"
+    }
+  ],
+  "errors": []
+}
