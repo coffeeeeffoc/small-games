@@ -27,6 +27,7 @@ export function StandaloneGame({
     id === 'orbit-atelier' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
+    id === 'flick-arena' ||
     id === 'xiangqi-five' ||
     id === 'letters-words2' ||
     id === 'wulong-city';

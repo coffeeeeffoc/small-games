@@ -138,6 +138,7 @@ try {
           game.id === 'orbit-atelier' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
+          game.id === 'flick-arena' ||
           game.id === 'xiangqi-five' ||
           game.id === 'letters-words2' ||
           game.id === 'wulong-city'

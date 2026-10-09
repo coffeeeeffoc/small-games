@@ -1,0 +1,19 @@
+{
+  "environment": "Chromium desktop emulation, Shell iframe, 390×844 touch",
+  "shellUrl": "http://127.0.0.1:4173/",
+  "realDevice": false,
+  "checks": [
+    "real embedded full-power touch flick",
+    "touch cancellation",
+    "opening remains playable",
+    "pause/resume across AI turns",
+    "home return",
+    "Shell navigation hidden during play and pause, restored at home",
+    "touch return to catalog",
+    "complete-stage fullscreen control with ordinary-play fallback",
+    "landscape and small-screen resize"
+  ],
+  "fullscreenEntered": false,
+  "pageErrors": [],
+  "wallSeconds": 13.3
+}

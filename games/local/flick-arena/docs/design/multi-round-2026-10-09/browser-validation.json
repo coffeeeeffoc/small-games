@@ -1,0 +1,36 @@
+{
+  "environment": "Chromium desktop emulation, 390×844, touch, DPR 2",
+  "realDevice": false,
+  "normal": {
+    "playerAttempts": 7,
+    "gameplaySeconds": 39.396,
+    "rounds": 7,
+    "totalShots": 18
+  },
+  "developer": {
+    "playerAttempts": 4,
+    "rounds": 6,
+    "totalShots": 14,
+    "gameplaySeconds": 25.4,
+    "warningSeen": true,
+    "shrinkSeen": true,
+    "shrinkPauseVerified": true,
+    "stateWasManuallyReplaced": false
+  },
+  "checks": [
+    "normal touch multi-round settlement",
+    "help and layout navigation",
+    "touch cancellation and pull-back cancellation",
+    "second-finger release isolation",
+    "pause/resume and blur/focus",
+    "natural shrink warning, contraction and paused contraction",
+    "replay does not duplicate settlement",
+    "retry resets match",
+    "normal/dev statistics isolation",
+    "landscape and 320×568 touch mapping",
+    "explicit dev=0 precedence",
+    "unavailable storage fallback"
+  ],
+  "pageErrors": [],
+  "wallSeconds": 82.3
+}

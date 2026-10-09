@@ -39,6 +39,7 @@ it.each([
   'orbit-atelier',
   'ink-is-everything',
   'ball-roguelite',
+  'flick-arena',
   'xiangqi-five',
   'letters-words2',
   'wulong-city',
