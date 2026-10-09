@@ -175,7 +175,7 @@ export const castleCannonGameDefinition: GameDefinition = {
           b.addEventListener(
             'click',
             (e) => {
-              if (e.detail === 0) actionListener?.(h.id);
+              if (e.detail === 0 && !e.pointerType) actionListener?.(h.id);
             },
             options,
           );

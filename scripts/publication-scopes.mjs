@@ -347,7 +347,7 @@ function assertCageRescueGameplayModule(source) {
   // executable injections cannot acquire a single-game classification.
   assert(
     createHash('sha256').update(source).digest('hex') ===
-      'e537cb9effeae6f00d615d8001c132637cfc99a932cdc074718c45100c1cce0b',
+      'd854f227aa1e1a59090f76e403937d4623a6c8d4ca82a0eaaa637734c862e3b9',
     'Unreviewed cage rescue gameplay checks',
   );
   const body = parsedSource(source).body;

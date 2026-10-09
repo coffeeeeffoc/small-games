@@ -31,7 +31,7 @@ export async function assertCageRescueGameplay(frame, mobile = false) {
         .toBeGreaterThan(initialX + 20);
     } finally {
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await touch.detach();
+      // The caller closes this page's context; detaching here drops Chromium 140's next tap.
     }
   } else {
     await page.mouse.move(start.x, start.y);
