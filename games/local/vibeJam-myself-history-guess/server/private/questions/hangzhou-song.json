@@ -1,0 +1,16 @@
+{
+  "id": "hangzhou-song",
+  "year": 1200,
+  "lat": 30.246,
+  "lng": 120.148,
+  "tolerance": 75,
+  "clue": "柳枝低垂在湖面，游船从堤边经过。茶摊、丝伞与远山下的楼阁构成一处江南湖城。",
+  "image": "assets/hangzhou-song.webp",
+  "region": "china",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

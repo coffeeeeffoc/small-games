@@ -1,0 +1,40 @@
+services:
+  history-api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    init: true
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4185"
+      HISTORY_DB_PATH: /app/server/data/history.sqlite
+      HISTORY_QUESTION_DIR: /app/server/private/questions
+      HISTORY_ASSET_DIR: /app/public
+      HISTORY_IDENTITY_SECRET: ${HISTORY_IDENTITY_SECRET:?Set HISTORY_IDENTITY_SECRET in server/.env}
+      HISTORY_ALLOWED_ORIGINS: ${HISTORY_ALLOWED_ORIGINS:?Set HISTORY_ALLOWED_ORIGINS in server/.env}
+      HISTORY_COMPETITION_TIMEZONE: ${HISTORY_COMPETITION_TIMEZONE:-Asia/Shanghai}
+      HISTORY_TRUST_PROXY: ${HISTORY_TRUST_PROXY:-0}
+      # Optional: build the frontend first, then enable this and the dist mount.
+      # HISTORY_STATIC_DIR: /app/dist
+    ports:
+      - "127.0.0.1:${HISTORY_PUBLIC_PORT:-4185}:4185"
+    volumes:
+      - history-data:/app/server/data
+      - ./private/questions:/app/server/private/questions:ro
+      - ../public:/app/public:ro
+      # - ../dist:/app/dist:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+
+volumes:
+  history-data:

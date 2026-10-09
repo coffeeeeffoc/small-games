@@ -1,0 +1,16 @@
+{
+  "id": "new-york",
+  "year": 1886,
+  "lat": 40.689,
+  "lng": -74.045,
+  "tolerance": 10,
+  "clue": "港湾中轮船冒着蒸汽，岛上的高大塑像刚刚迎来人群。它的铜皮还不是今天熟悉的绿色。",
+  "image": "assets/new-york.webp",
+  "region": "world",
+  "difficulty": 1,
+  "view": {
+    "yaw": 90,
+    "pitch": 20,
+    "fov": 90
+  }
+}

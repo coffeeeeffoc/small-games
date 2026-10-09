@@ -1,0 +1,124 @@
+{
+  "environment": {
+    "browser": "Chromium",
+    "input": "Playwright touch + CDP touch gestures",
+    "base": "http://127.0.0.1:4175/",
+    "api": "Actual Node + SQLite HTTP service; no successful API responses mocked",
+    "nativeDevice": false
+  },
+  "limitation": "Desktop browser mobile emulation only. Native WeChat, iOS, Android and physical devices were not exercised by these scripts.",
+  "reference": "concept.png",
+  "suites": {
+    "core": {
+      "startedAt": "2026-10-09T16:27:26.487Z",
+      "completedAt": "2026-10-09T16:28:09.304Z",
+      "status": "passed",
+      "observations": [
+        "390px touch flow: home/help/settings/fullscreen, panorama drag/cancel, true map tap, invalid year/BCE, pause/resume, persisted guesses/results, one-time score, three-round completion, retry and private journal",
+        "320×568, 390×844, 430×932 and 844×390: no horizontal overflow and all visible controls at least 44 CSS px",
+        "Real elapsed 25-second timeout submits exactly one zero-score result without disclosing an answer"
+      ],
+      "screenshots": [
+        "actual-home-390.png",
+        "actual-help-390.png",
+        "actual-journal-390.png",
+        "actual-settings-390.png",
+        "actual-prepare-390.png",
+        "actual-play-390.png",
+        "actual-pause-390.png",
+        "actual-map-390.png",
+        "actual-score-390.png",
+        "actual-summary-390.png",
+        "actual-home-320.png",
+        "actual-play-320.png",
+        "actual-map-320.png",
+        "actual-score-320.png",
+        "actual-home-430.png",
+        "actual-play-430.png",
+        "actual-map-430.png",
+        "actual-score-430.png",
+        "actual-home-landscape.png",
+        "actual-play-landscape.png",
+        "actual-map-landscape.png",
+        "actual-score-landscape.png",
+        "actual-timeout-390.png"
+      ],
+      "errors": []
+    },
+    "chapters": {
+      "startedAt": "2026-10-09T16:29:20.919Z",
+      "completedAt": "2026-10-09T16:29:49.606Z",
+      "status": "passed",
+      "observations": [
+        "Nine sublevels / 27 touch-played scenes progress through normal locks, preserve all scores on reload, and never create online sessions or alter legacy records; city keyboard/Escape input remains valid",
+        "Blocked browser storage degrades to playable in-memory practice",
+        "A real map-load network failure exposes retry and successful retry restores the playable scene"
+      ],
+      "screenshots": [
+        "actual-chapters-320.png",
+        "actual-levels-320.png",
+        "actual-journal-complete-320.png"
+      ],
+      "errors": []
+    },
+    "pk": {
+      "startedAt": "2026-10-09T16:30:09.999Z",
+      "completedAt": "2026-10-09T16:30:46.855Z",
+      "status": "passed",
+      "observations": [
+        "Actual SQLite HTTP service: two independent guest browsers complete ten touch-submitted rounds with the same five image hashes and identical scores; host receives the completed challenger score; all JSON projections omit answers, coordinates, numerical errors, seeds and future questions",
+        "Opaque 24h invite links contain only invite; clipboard failure and canceled system sharing are recoverable; public day/week rankings remain truly empty and trusted identity gates ranked play",
+        "Native share uses a single in-flight action; late rejection after page navigation cannot reopen stale sharing UI",
+        "A live competitive run resumes the same round/deadline after home and reload; the real service records zero at the original deadline"
+      ],
+      "screenshots": [
+        "actual-pk-home-390.png",
+        "actual-pk-prepare-390.png",
+        "actual-pk-score-390.png",
+        "actual-pk-summary-390.png",
+        "actual-pk-share-390.png",
+        "actual-pk-invite-390.png",
+        "actual-pk-friend-result-390.png",
+        "actual-pk-host-challengers-390.png",
+        "actual-leaderboard-week-390.png",
+        "actual-leaderboard-day-390.png",
+        "actual-ranked-identity-required-390.png",
+        "actual-pk-timeout-390.png"
+      ],
+      "errors": []
+    },
+    "polish": {
+      "startedAt": "2026-10-09T16:32:33.555Z",
+      "completedAt": "2026-10-09T16:32:48.326Z",
+      "status": "passed",
+      "observations": [
+        "Final search regression: initial ArrowUp selects last candidate; Escape retains text; hidden Enter cannot select; ArrowDown reopens; invalid year cannot become a valid persisted answer",
+        "Final share layout: primary CTA completely visible in 390×844; completed duel and exact invitation recover after reload; a real friend completion refreshes host challenge results"
+      ],
+      "screenshots": [
+        "actual-pk-score-390.png",
+        "actual-pk-share-390.png",
+        "actual-pk-host-challengers-390.png"
+      ],
+      "errors": []
+    }
+  },
+  "visualReview": {
+    "reviewedAt": "2026-10-09T16:33:33.531459+00:00",
+    "reference": "concept.png",
+    "inspected": [
+      "actual-home-390.png",
+      "actual-play-390.png",
+      "actual-play-landscape.png",
+      "actual-map-320.png",
+      "actual-score-390.png",
+      "actual-pk-host-challengers-390.png"
+    ],
+    "notes": [
+      "Parchment, dark green and cinnabar styling follows the historical travel/archive direction of the concept.",
+      "Historical scene imagery occupies the main play area; mobile inputs and landscape split view remain readable and usable.",
+      "Scoring pages contain scores only. Sharing emphasizes the challenge action; the primary button is now entirely visible in the 390×844 first viewport.",
+      "Images come from separate actual test runs; scores and invitations can differ across screenshots."
+    ]
+  }
+}

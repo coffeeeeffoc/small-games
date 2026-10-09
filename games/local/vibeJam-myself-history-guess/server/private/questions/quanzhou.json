@@ -1,0 +1,16 @@
+{
+  "id": "quanzhou",
+  "year": 1300,
+  "lat": 24.875,
+  "lng": 118.676,
+  "tolerance": 75,
+  "clue": "折扇般的船帆立在码头外，挑夫搬运陶瓷与布匹。不同装束的商人在仓房前交谈。",
+  "image": "assets/quanzhou.webp",
+  "region": "china",
+  "difficulty": 3,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

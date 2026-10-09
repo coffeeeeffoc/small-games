@@ -1,0 +1,16 @@
+{
+  "id": "macau",
+  "year": 1650,
+  "lat": 22.198,
+  "lng": 113.541,
+  "tolerance": 40,
+  "clue": "雕饰繁复的教堂与中式瓦房相邻，挑夫抬着瓷器经过石阶。海面上仍是远航帆船。",
+  "image": "assets/macau.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

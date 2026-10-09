@@ -1,0 +1,16 @@
+{
+  "id": "changan",
+  "year": 742,
+  "lat": 34.265,
+  "lng": 108.943,
+  "tolerance": 50,
+  "clue": "商旅牵着双峰骆驼穿过街市。屋檐、城门和服饰里，藏着时代的痕迹。",
+  "image": "assets/changan.webp",
+  "region": "china",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

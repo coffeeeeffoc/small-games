@@ -1,0 +1,16 @@
+{
+  "id": "lhasa-potala",
+  "year": 1700,
+  "lat": 29.658,
+  "lng": 91.117,
+  "tolerance": 75,
+  "clue": "层叠的红白宫墙高踞山上，山脚的牦牛商队与转经者经过平顶民居。空气清澈而干燥。",
+  "image": "assets/lhasa-potala.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

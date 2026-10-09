@@ -24,7 +24,10 @@ test('native history preserves full catalog, scoring, cancel, foreground pause a
     h.handlers.get('TouchStart')({ touches: [t] }); h.handlers.get('TouchEnd')({ touches: [], changedTouches: [t] });
     h.tap('输入猜测年代'); h.tap('1'); h.tap('0'); h.tap('0'); h.tap('完成年代输入'); h.tap('提交地点与年代');
     assert.ok(h.labels().some(l => l.includes('本幕')));
-    h.tap('史料与解说'); assert.ok(h.labels().includes('史料与解说')); h.tap('返回本幕');
+    assert.equal(h.labels().some(l => l.includes(nativeScenes[0].place) || l.includes(String(nativeScenes[0].year)) || /公里误差|年误差|对照地图/.test(l)), false);
+    h.tap('评分手记'); assert.ok(h.labels().includes('评分手记'));
+    assert.equal(h.labels().some(l => l.includes(nativeScenes[0].place) || l.includes(String(nativeScenes[0].year)) || l.includes(nativeScenes[0].source[0])), false);
+    h.tap('返回本幕');
     h.handlers.get('Hide')({}); h.handlers.get('Show')({}); assert.ok(h.labels().includes('旅途已暂停'));
     h.tap('继续观察'); h.tap('前往下一幕'); assert.ok(h.labels().includes('旅途完成'));
     assert.equal(h.storage.get('here-and-then:native:v1').visited.length, 1);
@@ -37,6 +40,7 @@ test('native history preserves full catalog, scoring, cancel, foreground pause a
 test('native history rejects corrupt journey and recomputes client scores', () => {
   const valid = { version: 1, settings: {}, journey: { deck: ['changan'], index: 0, phase: 'revealed', input: { digits: '742' }, answers: [{ point: { lat: 34.265, lng: 108.943 }, year: 742, total: 999999, penalty: 0 }], remaining: 90 } };
   assert.equal(restoreNativeHistory(valid).journey.answers[0].total, 5000);
+  assert.equal(restoreNativeHistory(valid).journey.remaining, 25, 'old 90-second saves migrate to the new local time limit');
   assert.equal(restoreNativeHistory({ ...valid, journey: { ...valid.journey, deck: ['missing'] } }).journey, null);
 });
 

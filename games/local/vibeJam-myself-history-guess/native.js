@@ -5,6 +5,8 @@ import { scoreGuess, chooseRounds, validPoint, MIN_YEAR, MAX_YEAR } from './src/
 import { routes, routeDeck } from './src/routes.js';
 
 const SAVE = 'here-and-then:native:v1';
+const ROUND_SECONDS = 25;
+const observationHint = '观察建筑材料、交通方式与衣着，把多处线索结合起来判断。';
 const validInput = input => input && (!input.guess || validPoint(input.guess)) && /^\d{0,4}$/.test(input.digits || '');
 export function restoreNativeHistory(value) {
   if (!value || value.version !== 1) return { settings: { region: 'all', timed: false }, visited: [], best: 0, journey: null };
@@ -12,7 +14,7 @@ export function restoreNativeHistory(value) {
   const j = value.journey;
   if (!j || !Array.isArray(j.deck) || ![1, 3, 5].includes(j.deck.length) || new Set(j.deck).size !== j.deck.length || j.deck.some(id => !scenes.some(s => s.id === id)) || !Number.isInteger(j.index) || j.index < 0 || j.index >= j.deck.length || !['guessing', 'revealed'].includes(j.phase) || !validInput(j.input) || !Array.isArray(j.answers) || j.answers.length !== j.index + (j.phase === 'revealed' ? 1 : 0) || !Number.isFinite(j.remaining) || j.remaining < 0 || j.remaining > 90) return result;
   if (j.answers.some(a => !a || (a.point !== null && !validPoint(a.point)) || (a.year !== null && (!Number.isInteger(a.year) || a.year === 0 || a.year < MIN_YEAR || a.year > MAX_YEAR)))) return result;
-  result.journey = { ...j, timed: j.timed === true, hint: j.hint === true, answers: j.answers.map((a, i) => ({ ...scoreGuess(scenes.find(s => s.id === j.deck[i]), a.point, a.year), point: a.point, year: a.year, penalty: a.penalty === 500 ? 500 : 0 })) };
+  result.journey = { ...j, remaining: Math.min(ROUND_SECONDS, j.remaining), timed: j.timed === true, hint: j.hint === true, answers: j.answers.map((a, i) => ({ ...scoreGuess(scenes.find(s => s.id === j.deck[i]), a.point, a.year), point: a.point, year: a.year, penalty: a.penalty === 500 ? 500 : 0 })) };
   return result;
 }
 
@@ -32,7 +34,7 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
   function resize() { info = sdk.getSystemInfoSync(); w = info.windowWidth; h = info.windowHeight; ratio = Math.max(1, info.pixelRatio || 1); top = Math.max(48, (info.safeArea?.top || 0) + 12); bottom = Math.max(12, h - (info.safeArea?.bottom || h)); canvas.width = w * ratio; canvas.height = h * ratio; draw(); }
   const score = () => data.journey?.answers.reduce((n, a) => n + Math.max(0, a.total - a.penalty), 0) || 0;
   const scene = () => scenes.find(s => s.id === data.journey.deck[data.journey.index]);
-  function begin(deck, timed = data.settings.timed) { session++; data.journey = { deck: deck.map(s => s.id), index: 0, phase: 'guessing', input: { guess: null, digits: '', bce: false }, answers: [], remaining: 90, hint: false, timed }; page = 'play'; last = Date.now(); persist(); draw(); }
+  function begin(deck, timed = data.settings.timed) { session++; data.journey = { deck: deck.map(s => s.id), index: 0, phase: 'guessing', input: { guess: null, digits: '', bce: false }, answers: [], remaining: ROUND_SECONDS, hint: false, timed }; page = 'play'; last = Date.now(); persist(); draw(); }
   function go(next) { touch = null; page = next; last = Date.now(); persist(); draw(); }
   function act(input) {
     const j = data.journey;
@@ -46,13 +48,13 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
     }
     if (input.type === 'next' && j.phase === 'revealed') {
       if (j.index === j.deck.length - 1) { go('summary'); return; }
-      j.index++; j.phase = 'guessing'; j.input = { guess: null, digits: '', bce: false }; j.hint = false; j.remaining = 90;
+      j.index++; j.phase = 'guessing'; j.input = { guess: null, digits: '', bce: false }; j.hint = false; j.remaining = ROUND_SECONDS;
     }
     persist(); draw();
   }
   function view() {
     const j = data.journey, s = scene(), a = j.answers[j.index];
-    return { round: j.index + 1, total: j.deck.length, roundKey: `${session}:${j.deck.join(',')}:${j.index}`, phase: j.phase, image: s.image, clue: s.clue, hint: j.hint ? s.hint : null, score: score(), input: j.input, finished: false, answer: a ? { ...a, score: Math.max(0, a.total - a.penalty), guessedYear: a.year, point: a.point, ...s } : null };
+    return { round: j.index + 1, total: j.deck.length, roundKey: `${session}:${j.deck.join(',')}:${j.index}`, phase: j.phase, image: s.image, clue: s.clue, hint: j.hint ? observationHint : null, score: score(), input: j.input, remainingMs: j.timed ? j.remaining * 1000 : undefined, finished: false, answer: a ? { score: Math.max(0, a.total - a.penalty), penalty: a.penalty, timedOut: a.point === null || a.year === null } : null };
   }
   function text(t, x, y, size = 18, color = '#243d33') { ctx.fillStyle = color; ctx.font = `${size}px sans-serif`; ctx.fillText(String(t), x, y); }
   function wrap(t, y, maxLines = 10) { let line = '', row = 0; ctx.font = '16px sans-serif'; for (const c of String(t)) { if (ctx.measureText(line + c).width > w - 48 && line) { text(line, 24, y + row++ * 26, 16); line = ''; if (row >= maxLines) return; } line += c; } if (line) text(line, 24, y + row * 26, 16); }
@@ -64,10 +66,10 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
       button('暂停', top, () => go('pause'), false, w - 96, 72);
       // Draw the required parallel bars rather than a font glyph.
       ctx.fillStyle = '#243d33'; ctx.fillRect(w - 90, top + 15, 4, 18); ctx.fillRect(w - 83, top + 15, 4, 18);
-      const j = data.journey; if (j.phase === 'revealed') button('史料与解说', top, () => { learnPage = 0; go('learn'); }, false, 16, Math.min(160, w - 130)); else text(j.timed && j.phase === 'guessing' ? `剩余 ${Math.ceil(j.remaining)} 秒` : '悠闲观察', 16, top + 24, 15);
+      const j = data.journey; if (j.phase === 'revealed') button('评分手记', top, () => { learnPage = 0; go('learn'); }, false, 16, Math.min(160, w - 130)); else text(j.timed && j.phase === 'guessing' ? `剩余 ${Math.ceil(j.remaining)} 秒` : '悠闲观察', 16, top + 24, 15);
       ctx.save(); ctx.translate(0, top + 56); renderer.draw(ctx, w, h - top - 56 - bottom, view()); ctx.restore(); return;
     }
-    text(page === 'home' ? '此时 · 此地' : ({ levels: '选择一幕', routes: '主题旅途', settings: '设置', help: '如何观察', pause: '旅途已暂停', summary: '旅途完成', learn: '史料与解说' }[page] || '此时 · 此地'), 24, top + 28, 26);
+    text(page === 'home' ? '此时 · 此地' : ({ levels: '选择一幕', routes: '主题旅途', settings: '设置', help: '如何观察', pause: '旅途已暂停', summary: '旅途完成', learn: '评分手记' }[page] || '此时 · 此地'), 24, top + 28, 26);
     let y = top + 86;
     const add = (label, fn, primary) => { button(label, y, fn, primary); y += 60; };
     if (page === 'home') {
@@ -84,7 +86,7 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
     } else if (page === 'routes') { routes.forEach(r => add(r.name, () => begin(routeDeck(scenes, r.id), false))); add('返回主页', () => go('home'));
     } else if (page === 'settings') {
       add(`范围：${data.settings.region === 'china' ? '中国' : '世界'}`, () => { data.settings.region = data.settings.region === 'china' ? 'all' : 'china'; persist(); draw(); });
-      add(`旅途：${data.settings.timed ? '每幕90秒' : '悠闲无计时'}`, () => { data.settings.timed = !data.settings.timed; persist(); draw(); });
+      add(`旅途：${data.settings.timed ? '每幕25秒' : '悠闲无计时'}`, () => { data.settings.timed = !data.settings.timed; persist(); draw(); });
       wrap('声音：本模式没有音效。分享、登录及奖励由已配置的平台能力提供；未配置时本地探索不受影响。', y + 14, 5); y += 154;
       if (channel) { const half = (w - 56) / 2; button('B站入口', y, () => go('channel'), false, 24, half); button('返回主页', y, () => go('home'), false, 32 + half, half); } else add('返回主页', () => go('home'));
     } else if (page === 'channel' && channel) {
@@ -92,16 +94,16 @@ export function startNativeHistoryGame(sdk, config = {}, startNativeCompetition)
       channel.menuActions.forEach(action => add(action.label, () => runChannel(action)));
       wrap(channelMessage || snapshot.message || '', y + 12, 4); y += 110; add('返回设置', () => go('settings'));
     } else if (page === 'help') {
-      wrap('观察全景，使用向左、向右和放大寻找线索。打开地图点击落点，输入公元或公元前年代，再提交。地点和年代各2500分。提示扣500分。没有公元0年。图片为AI艺术复原，答案解说附原有史料。滑出按钮或取消触摸不会触发操作。', y, 10); y += 280; add('返回', () => go(previous));
+      wrap('观察全景，使用向左、向右和放大寻找线索。打开地图点击落点，输入公元或公元前年代，再提交。地点和年代各2500分。提示扣500分。没有公元0年。本地练习不计全站榜。图片为AI艺术复原，提交后仅显示评分，不公开答案或误差。计时旅途每幕25秒。滑出按钮或取消触摸不会触发操作。', y, 10); y += 280; add('返回', () => go(previous));
     } else if (page === 'pause') { add('继续观察', () => go('play'), true); add('帮助', () => { previous = 'pause'; go('help'); }); add('保存并返回主页', () => go('home'));
      } else if (page === 'learn') {
-      const s = scene(), lines = []; ctx.font = '16px sans-serif';
-      for (const paragraph of [s.story, ...s.details, `史料：${s.source[0]}`, s.source[1], 'AI历史想象复原，年份为游戏设定。']) {
+      const lines = []; ctx.font = '16px sans-serif';
+      for (const paragraph of ['本幕评分已收录。标准地点、年代和误差均不公开。', '观察建筑、交通与衣着，尝试把多处线索结合起来判断。', '练习可以暂停；正式好友挑战由服务器计时，每幕25秒，切后台不会暂停。', '本地成绩只保存在设备中，不进入全站榜。', '图片为AI历史想象复原。']) {
         let line = ''; for (const c of paragraph) { if (ctx.measureText(line + c).width > w - 48 && line) { lines.push(line); line = ''; } line += c; } if (line) lines.push(line);
       }
       const count = Math.max(1, Math.floor((h - bottom - y - 130) / 26)), pages = Math.ceil(lines.length / count);
       lines.slice(learnPage * count, (learnPage + 1) * count).forEach((line, i) => text(line, 24, y + i * 26, 16)); y += count * 26 + 12;
-      add(`解说 ${learnPage + 1}/${pages} · 下一页`, () => { learnPage = (learnPage + 1) % pages; draw(); }); add('返回本幕', () => go('play'));
+      add(`手记 ${learnPage + 1}/${pages} · 下一页`, () => { learnPage = (learnPage + 1) % pages; draw(); }); add('返回本幕', () => go('play'));
     } else if (page === 'summary') { text(`本次 ${score()} 分`, 24, y, 24); y += 64; add('再走五幕', () => begin(chooseRounds(scenes, data.settings.region, Math.random, data.visited)), true); add('返回主页', () => { data.journey = null; go('home'); }); }
     if (message) text(message, 24, h - bottom - 18, 12);
   }

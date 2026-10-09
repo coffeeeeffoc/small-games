@@ -1,786 +1,1025 @@
-import "./style.css";
-import { rounds, cities } from "./rounds.js";
-import { today, parseChallenge, dailyDeck, challengeKey, challengeUrl, validChallenge, restoreDailyJourney } from './challenge.js';
-import { routes, routeInfo, routeDeck, restoreRouteJourney, parseRoute, routeUrl } from './routes.js';
+import './style.css';
+import '../dev-mode.js';
+import { rounds, cities } from './rounds.js';
 import {
-  chooseRounds,
-  ROUND_COUNT,
   scoreGuess,
-  formatYear,
-  formatDistance,
-  formatPoint,
   clamp,
+  formatYear,
   MIN_YEAR,
   MAX_YEAR,
-  LIMIT_SECONDS,
-  remainingSeconds,
+  validPoint,
   restoreJourney,
-} from "./game.js";
+} from './game.js';
+import {
+  CHAPTERS,
+  LEVELS,
+  chapterById,
+  levelById,
+  isUnlocked,
+  nextLevel,
+  validateChapters,
+} from './chapters.js';
+import { historyApi, invitationUrl, parseInvite } from './api.js';
 
+validateChapters(rounds);
 const $ = (selector) => document.querySelector(selector);
-const app = $("#app");
+const app = $('#app');
+const esc = (text) =>
+  String(text ?? '').replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char],
+  );
 const icons = {
-  compass:
-    '<circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5Z"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5Z"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  back: '<path d="m14 5-7 7 7 7"/>',
   pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
   book: '<path d="M12 5v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v15c-4-1-6 0-9 2-3-2-5-3-9-2Z"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  sound:
-    '<path d="m11 4-6 5H2v6h3l6 5Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
-  mute: '<path d="m11 4-6 5H2v6h3l6 5Zm5 5 6 6m0-6-6 6"/>',
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
-  full: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
-  home: '<path d="m3 10 9-7 9 7v11h-6v-8H9v8H3Z"/>',
-  pause: '<path d="M8 5v14M16 5v14" stroke-width="3"/>',
+  home: '<path d="m3 10 9-7 9 7v10h-6v-7H9v7H3Z"/>',
+  pause:
+    '<rect x="6" y="5" width="4" height="14" rx=".4" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx=".4" fill="currentColor" stroke="none"/>',
+  duel: '<path d="m5 3 14 18M19 3 5 21M2 16l7 5m6 0 7-5M5 3l5 2M19 3l-5 2"/>',
+  crown: '<path d="m3 6 4 4 5-6 5 6 4-4-2 13H5ZM7 22h10"/>',
+  lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  settings:
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
+  share: '<path d="M12 16V3m-5 5 5-5 5 5M5 12H3v9h18v-9h-2"/>',
 };
 const icon = (name) =>
   `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icons[name] || icons.compass}</svg>`;
-const brand = `<span class="brand-mark">${icon("compass")}</span><span>此时<span class="brand-dot">·</span>此地<small>把好奇心，交给时间</small></span>`;
-const escape = (text) =>
-  String(text).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
-  );
-let saved = { best: 0, visited: [], sound: true };
-const invitation = parseChallenge(location.search);
-const routeInvitation = parseRoute(location.search);
-let sharePending = false, shareSequence = 0;
+const art = (id) => rounds.find((round) => round.id === id)?.image || rounds[0].image;
+const brand = `<span class="brand-mark">${icon('compass')}</span><span>此时<span class="brand-dot">·</span>此地</span>`;
+const fmt = (number) => Number(number || 0).toLocaleString('zh-CN');
+const stamps = ['初识山河', '行路之人', '识途旅人', '时空行者'];
+const LIMIT = 25;
+let saved = { best: 0, visited: [], sound: true, records: {}, mobileJourney: null };
 try {
-  const value = JSON.parse(localStorage.getItem("here-and-then.v1"));
-  if (value && typeof value === "object")
+  const old = JSON.parse(localStorage.getItem('here-and-then.v1'));
+  if (old && typeof old === 'object')
     saved = {
-      best: Number.isInteger(value.best) ? clamp(value.best, 0, 25000) : 0,
-      visited: Array.isArray(value.visited)
-        ? value.visited.filter((id) => rounds.some((r) => r.id === id))
+      ...old,
+      best: clamp(Number(old.best) || 0, 0, 25000),
+      sound: old.sound !== false,
+      visited: Array.isArray(old.visited)
+        ? old.visited.filter((id) => rounds.some((round) => round.id === id))
         : [],
-      sound: value.sound !== false,
-      journey: value.journey,
-      dailyJourney: value.dailyJourney,
-      routeJourney: value.routeJourney,
-      routeRecord: routeInfo(value.routeRecord?.route) && Number.isInteger(value.routeRecord?.total)
-        && value.routeRecord.total >= 0 && value.routeRecord.total <= 15000 ? value.routeRecord : null,
-      dailyRecord: validChallenge(value.dailyRecord?.challenge) && Number.isInteger(value.dailyRecord?.total)
-        && value.dailyRecord.total >= 0 && value.dailyRecord.total <= 25000 ? value.dailyRecord : null,
+      records: {},
     };
+  for (const level of LEVELS) {
+    const record = old?.records?.[level.id];
+    if (record && Number.isInteger(record.best) && record.best >= 0 && record.best <= 15000)
+      saved.records[level.id] = { best: record.best, complete: record.complete === true };
+  }
 } catch {
-  /* A new travel journal is usable even when browser storage is unavailable. */
+  /* Optional browser storage. */
 }
-let storageNotice = false;
+let storageWarned = false;
 function save() {
   try {
-    localStorage.setItem("here-and-then.v1", JSON.stringify(saved));
+    localStorage.setItem('here-and-then.v1', JSON.stringify(saved));
   } catch {
-    if (!storageNotice) {
-      toast("浏览器未允许保存，记录将在本次打开期间保留");
-      storageNotice = true;
+    if (!storageWarned) {
+      storageWarned = true;
+      toast('当前浏览器不能保存，旅途仍可继续。');
     }
   }
 }
-let viewer = null,
+let events = new AbortController(),
+  generation = 0,
+  viewer = null,
   guessMap = null,
   clock = null,
-  generation = 0,
-  audio = null,
-  screenEvents = new AbortController();
+  audio = null;
 let state = {
-  screen: "home",
-  region: invitation.challenge?.region || "all",
-  timed: invitation.challenge?.timed || false,
-  daily: null,
-  route: null,
-  practice: "",
+  screen: 'home',
+  mode: 'practice',
+  phase: 'idle',
   deck: [],
   index: 0,
   results: [],
-  phase: "idle",
-  guess: null,
   year: 1000,
   yearTouched: false,
-  view: "scene",
+  guess: null,
+  view: 'scene',
+  run: null,
 };
-function saveJourney() {
-  if (state.screen !== "game" || !["guessing", "revealed"].includes(state.phase)) return;
-  const journey = {
-    version: 1, region: state.region, timed: state.timed, practice: state.practice,
-    deck: state.deck.map((round) => round.id), index: state.index,
-    results: state.results.map(({ id, guess, year, timedOut }) => ({ id, guess, year, timedOut })),
-    phase: state.phase, guess: state.guess, year: state.year,
-    yearTouched: state.yearTouched, deadline: state.deadline,
-  };
-  if (state.route) saved.routeJourney = { ...journey, route: state.route };
-  else if (state.daily) saved.dailyJourney = { ...journey, daily: state.daily };
-  else saved.journey = journey;
-  save();
+let service = { status: 'unknown', me: null };
+let devUnlock = false,
+  searchComposing = false,
+  sharePending = false;
+const completed = () => LEVELS.filter((level) => saved.records[level.id]?.complete).length;
+const growth = () => Object.values(saved.records).reduce((sum, record) => sum + record.best, 0);
+const unlocked = (id) => devUnlock || isUnlocked(id, saved.records);
+const on = (selector, name, handler) =>
+  $(selector)?.addEventListener(name, handler, { signal: events.signal });
+function bindAll(selector, handler) {
+  document
+    .querySelectorAll(selector)
+    .forEach((element) =>
+      element.addEventListener('click', () => handler(element), { signal: events.signal }),
+    );
 }
-function on(selector, event, fn) {
-  $(selector)?.addEventListener(event, fn, { signal: screenEvents.signal });
-}
-function toast(text) {
-  let node = $("#toast");
+function toast(message) {
+  let node = $('#toast');
   if (!node) {
-    node = document.createElement("div");
-    node.id = "toast";
-    node.setAttribute("role", "status");
+    node = document.createElement('div');
+    node.id = 'toast';
+    node.setAttribute('role', 'status');
     document.body.append(node);
   }
-  node.textContent = text;
-  node.classList.add("show");
+  node.textContent = message;
+  node.classList.add('show');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => node.classList.remove("show"), 3500);
+  toast.timer = setTimeout(() => node.classList.remove('show'), 3500);
 }
-function chime(success = false) {
+function chime() {
   if (!saved.sound) return;
   try {
     audio ||= new (window.AudioContext || window.webkitAudioContext)();
     audio.resume().catch(() => {});
-    (success ? [392, 494, 587] : [392]).forEach((frequency, i) => {
-      const oscillator = audio.createOscillator(),
-        gain = audio.createGain(),
-        start = audio.currentTime + i * 0.1;
-      oscillator.type = "sine";
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.055, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
-      oscillator.connect(gain);
-      gain.connect(audio.destination);
-      oscillator.start(start);
-      oscillator.stop(start + 0.4);
-    });
-  } catch {
-    /* Audio is optional; gameplay never depends on audio permission. */
-  }
+    const oscillator = audio.createOscillator(),
+      gain = audio.createGain();
+    oscillator.frequency.value = 523;
+    gain.gain.setValueAtTime(0.045, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.25);
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start();
+    oscillator.stop(audio.currentTime + 0.3);
+  } catch {}
 }
 function cleanup() {
   generation++;
   clearInterval(clock);
-  screenEvents.abort();
-  screenEvents = new AbortController();
+  events.abort();
+  events = new AbortController();
   viewer?.destroy();
   guessMap?.destroy();
   viewer = null;
   guessMap = null;
 }
-function soundButton() {
-  return `<button class="icon-button" id="sound" aria-label="${saved.sound ? "关闭" : "开启"}音效" aria-pressed="${saved.sound}" title="${saved.sound ? "关闭" : "开启"}音效">${icon(saved.sound ? "sound" : "mute")}</button>`;
+function remember() {
+  if (state.mode !== 'practice' || !['guessing', 'revealed', 'paused'].includes(state.phase))
+    return;
+  saved.mobileJourney = {
+    version: 2,
+    level: state.level,
+    deck: state.deck.map((round) => round.id),
+    index: state.index,
+    results: state.results,
+    phase: state.phase,
+    year: state.year,
+    yearTouched: state.yearTouched,
+    guess: state.guess,
+    deadline: state.deadline,
+    pausedRemaining: state.pausedRemaining,
+    dev: state.dev === true,
+  };
+  save();
 }
-function fullscreenButton() {
-  return '<button class="display-button" data-game-fullscreen>全屏</button>';
+function restoreLocal() {
+  const journey = saved.mobileJourney;
+  if (
+    journey?.version === 2 &&
+    Array.isArray(journey.deck) &&
+    journey.deck.length >= 1 &&
+    journey.deck.length <= 5 &&
+    ['guessing', 'revealed', 'paused'].includes(journey.phase) &&
+    journey.deck.every((id) => rounds.some((round) => round.id === id)) &&
+    Number.isInteger(journey.index) &&
+    journey.index >= 0 &&
+    journey.index < journey.deck.length &&
+    Array.isArray(journey.results) &&
+    journey.results.length === journey.index + (journey.phase === 'revealed' ? 1 : 0) &&
+    journey.results.every(
+      (result) => Number.isInteger(result.total) && result.total >= 0 && result.total <= 5000,
+    ) &&
+    Number.isFinite(journey.deadline) &&
+    Number.isInteger(journey.year) &&
+    journey.year !== 0 &&
+    journey.year >= MIN_YEAR &&
+    journey.year <= MAX_YEAR &&
+    (journey.guess === null || validPoint(journey.guess)) &&
+    (journey.phase !== 'paused' ||
+      (Number.isFinite(journey.pausedRemaining) &&
+        journey.pausedRemaining >= 0 &&
+        journey.pausedRemaining <= LIMIT * 1000))
+  )
+    return { ...journey, deck: journey.deck.map((id) => rounds.find((round) => round.id === id)) };
+  const legacy = restoreJourney(saved.journey, rounds);
+  if (legacy)
+    return {
+      ...legacy,
+      level: null,
+      deadline: Date.now() + LIMIT * 1000,
+      phase: legacy.phase === 'revealed' ? 'revealed' : 'paused',
+      pausedRemaining: LIMIT * 1000,
+      dev: false,
+      results: legacy.results.map((result) => ({
+        id: result.id,
+        total: result.timedOut ? 0 : result.total,
+        timedOut: result.timedOut,
+      })),
+    };
+  return null;
 }
-function bindSound() {
-  on("#sound", "click", () => {
-    saved.sound = !saved.sound;
-    save();
-    $("#sound").outerHTML = soundButton();
-    bindSound();
-    chime();
-  });
+function shell(title, content, { nav = '', back = null, eyebrow = '山河有迹 · 岁月无声' } = {}) {
+  remember();
+  cleanup();
+  state.screen = title;
+  state.phase = 'idle';
+  document.body.className = 'paper-page';
+  app.innerHTML = `<div class="mobile-shell"><header class="page-header">${back ? `<button class="icon-button" id="back" aria-label="返回">${icon('back')}</button><span class="page-header-title">${esc(title)}</span>` : `<button class="brand" id="brand-home">${brand}</button><span class="edition">旅行手记<br>No. ${String(saved.visited.length + 1).padStart(3, '0')}</span>`}${back ? `<button class="icon-button" data-nav="settings" aria-label="设置">${icon('settings')}</button>` : ''}</header><main class="page-content">${title === 'home' ? '' : `<p class="eyebrow">${esc(eyebrow)}</p>`}${content}</main>${nav ? navigation(nav) : ''}</div>`;
+  on('#back', 'click', back);
+  on('#brand-home', 'click', home);
+  bindNavigation();
+  window.scrollTo(0, 0);
 }
-function modal(title, content) {
-  $("#modal")?.remove();
-  const dialog = document.createElement("dialog");
-  dialog.id = "modal";
-  dialog.className = "paper-dialog";
-  dialog.innerHTML = `<div class="dialog-top"><span class="eyebrow">旅行手记</span></div><h2>${title}</h2>${content}<button class="secondary" data-dialog-return>返回旅途</button>`;
-  document.body.append(dialog);
-  dialog.querySelector("[data-dialog-return]").onclick = () => dialog.close();
-  dialog.addEventListener("close", () => dialog.remove());
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) {
-      const r = dialog.getBoundingClientRect();
-      if (
-        event.clientX < r.left ||
-        event.clientX > r.right ||
-        event.clientY < r.top ||
-        event.clientY > r.bottom
-      )
-        dialog.close();
-    }
-  });
-  dialog.showModal();
-  return dialog;
+function navigation(active) {
+  return `<nav class="bottom-nav" aria-label="主导航">${[
+    ['home', 'home', '首页'],
+    ['chapters', 'compass', '探索'],
+    ['challenge', 'duel', '挑战'],
+    ['journal', 'book', '手记'],
+  ]
+    .map(
+      ([id, symbol, label]) =>
+        `<button data-nav="${id}" ${id === active ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span>${id === active ? '<i></i>' : ''}</button>`,
+    )
+    .join('')}</nav>`;
+}
+function bindNavigation() {
+  bindAll('[data-nav]', (element) =>
+    ({ home, chapters, challenge, journal, settings, help, leaderboard })[element.dataset.nav]?.(),
+  );
+}
+function home() {
+  const journey = restoreLocal();
+  const target = nextLevel(saved.records);
+  shell(
+    'home',
+    `<section class="home-intro"><p class="eyebrow"><span class="red-line"></span>一场关于时间与地点的游戏</p><h1>你能认出，<br>这是<em>何时何地？</em></h1><p class="intro-caption">一幅画，二十五秒。凭直觉，赴一场相遇。</p></section><figure class="hero-postcard"><img src="${art('kaifeng')}" alt="山水与街巷交织的历史想象画面" fetchpriority="high"><div class="image-shade"></div><span class="photo-tag">卷一 · 人间烟火</span><span class="postmark" aria-hidden="true">山河<br>来信</span><figcaption>某年，某地。<br><strong>故事等你落笔。</strong></figcaption></figure><button class="primary start-button" id="start">${journey ? '继续未完的旅途' : '开启旅途'}${icon('arrow')}</button><div class="start-footnote"><span>${journey ? `第 ${journey.index + 1} 幕 · 进度已留存` : '三幕一小关 · 从第一封来信开始'}</span><button class="text-button" data-nav="help">怎么玩${icon('arrow')}</button></div><section class="play-modes" aria-label="挑战入口"><button class="mode-card" id="friend-entry"><span class="mode-symbol">${icon('duel')}</span><span class="eyebrow">一封战书</span><h2>好友 PK</h2><p>同样五幕，谁更懂历史？</p><span class="card-link">向好友下战书 ${icon('arrow')}</span></button><button class="mode-card dark" id="daily-entry"><span class="mode-symbol">${icon('crown')}</span><span class="eyebrow">今日山河</span><h2>全站竞逐</h2><p>每日一局，把名字留在榜上。</p><span class="card-link">赴今日之约 ${icon('arrow')}</span></button></section><div class="home-progress"><span>${icon('book')}已行 ${completed()} / 9 关</span><button class="text-button" data-nav="chapters">继续探索 ${icon('arrow')}</button></div><p class="art-note">场景为 AI 历史想象复原，不作为史料。</p>`,
+    { nav: 'home' },
+  );
+  on('#start', 'click', () => (journey ? resumeLocal(journey) : prepare(target.id)));
+  on('#friend-entry', 'click', challenge);
+  on('#daily-entry', 'click', () => competitionPrepare('daily'));
+}
+function chapters() {
+  shell(
+    '探索山河',
+    `<h1 class="page-title">把世界，<br>读成一封封来信。</h1><p class="page-description">三卷旅途，九个小关。循着线索逐一启程。</p><div class="chapter-list">${CHAPTERS.map(
+      (chapter, index) => {
+        const count = chapter.levels.filter((level) => saved.records[level.id]?.complete).length;
+        const open = unlocked(chapter.levels[0].id);
+        return `<button class="chapter-card ${open ? '' : 'locked'}" data-chapter="${chapter.id}" ${open ? '' : 'disabled'}><img src="${art(chapter.cover)}" alt="历史场景想象画面" loading="lazy"><div class="chapter-shade"></div><span class="chapter-number">卷 ${chapter.number}</span><div><h2>${chapter.name}</h2><p>${chapter.subtitle}</p><span>${open ? `${count} / 3 关已完成` : '完成上一卷后启程'}</span></div><span class="chapter-arrow">${icon(open ? 'arrow' : 'lock')}</span></button>`;
+      },
+    ).join('')}</div><p class="art-note">每幕限时 25 秒 · 结算只显示评分</p>`,
+    { nav: 'chapters', back: home },
+  );
+  bindAll('[data-chapter]', (button) => chapterDetail(button.dataset.chapter));
+}
+function chapterDetail(id) {
+  const chapter = chapterById(id);
+  if (!chapter) return chapters();
+  shell(
+    chapter.name,
+    `<div class="chapter-heading"><span class="chapter-seal">${chapter.number}</span><h1 class="page-title">${chapter.name}</h1><p class="page-description">${chapter.subtitle}</p></div><div class="chapter-detail-art"><img src="${art(chapter.cover)}" alt="历史想象场景"><span>每一眼，都是一条线索。</span></div><div class="level-list">${chapter.levels
+      .map((level, index) => {
+        const open = unlocked(level.id),
+          record = saved.records[level.id];
+        return `<button class="level-card ${open ? '' : 'locked'}" data-level="${level.id}" ${open ? '' : 'disabled'}><span class="level-number">${String(index + 1).padStart(2, '0')}</span><span><strong>${level.name}</strong><small>${record?.complete ? `已完成 · 最佳 ${fmt(record.best)} 分` : open ? '三幕场景 · 25 秒 / 幕' : '完成上一小关后解锁'}</small></span>${icon(record?.complete ? 'check' : open ? 'arrow' : 'lock')}</button>`;
+      })
+      .join('')}</div>`,
+    { nav: 'chapters', back: chapters },
+  );
+  bindAll('[data-level]', (button) => prepare(button.dataset.level));
+}
+function prepare(id) {
+  const level = levelById(id);
+  if (!level || !unlocked(id)) return chapters();
+  const chapter = chapterById(level.chapter);
+  shell(
+    '启程之前',
+    `<div class="prepare-compass">${icon('compass')}</div><p class="center eyebrow">卷${chapter.number} · 第 ${level.number} 关</p><h1 class="page-title center">${level.name}</h1><p class="page-description center">别急着认出答案。先看看，画里有什么。</p><div class="rule-ticket"><div><b>03</b><span>幕历史场景</span></div><div><b>25<span>秒</span></b><span>每幕答题时间</span></div><div><b>15,000</b><span>本关满分</span></div></div><ol class="preflight"><li><span>一</span><p><strong>观察场景</strong>拖动全景，寻找时代的痕迹。</p></li><li><span>二</span><p><strong>选地点与年代</strong>地图落点，拨动年份。</p></li><li><span>三</span><p><strong>交卷看评分</strong>时间到计零分，答案留在历史里。</p></li></ol><button class="primary full-width" id="begin-level">走进这一幕 ${icon('arrow')}</button><p class="art-note">本地练习 · 不计入全站榜${devUnlock ? ' · 开发试玩不保存成长' : ''}</p>`,
+    { back: () => chapterDetail(level.chapter) },
+  );
+  on('#begin-level', 'click', () => startLocal(level));
 }
 function help() {
-  const inGame = state.screen === 'game';
-  const count = inGame ? state.deck.length : ROUND_COUNT;
-  const recordNote = inGame && state.route ? '三幕主题旅途的进度和本机纪录独立保存，不计普通或每日成绩。'
-    : inGame && state.daily ? '每日五幕的进度和本机纪录独立保存，不计普通旅途成绩。'
-    : inGame && state.practice ? '指定场景练习为单幕，不计入五幕最佳分。'
-    : '指定场景练习为单幕；主题旅途为三幕、满分 15000，二者不计入普通五幕最佳分。';
-  modal(
-    "如何读懂一瞬历史",
-    `<ol class="guide"><li><strong>环顾四周</strong><p>单指拖动全景，双指捏合缩放。桌面也可使用鼠标、滚轮与方向键。</p></li><li><strong>留下坐标</strong><p>打开地图，点选位置或搜索中文城市。地图展示现代地理位置，古地名可用“长安”“汴京”搜索。</p></li><li><strong>拨回时间</strong><p>拖动年份滑杆、选择时代，或直接输入年份。公元前通过左侧切换；没有公元 0 年。</p></li><li><strong>揭晓一段往事</strong><p>每幕地点与年代各 2500 分，${inGame ? '本局' : '普通旅途每局'} ${count} 幕，满分 ${count * 5000}。${recordNote}地点误差 30 公里内满分，年代宽容随场景线索调整；提示不扣分。</p></li></ol><p class="fine-print">${rounds.length} 幕场景均为 AI 历史想象复原，可能包含时代或建筑细节偏差，不能作为史料。具体年份是游戏设定；揭晓页附可查阅资料。限时模式每幕 90 秒，切到后台继续计时；自由漫游不限时。</p>`,
+  shell(
+    '玩法说明',
+    `<h1 class="page-title">一眼入景，<br>一念千年。</h1><ol class="guide-list"><li><span>01</span><div><h2>先读画面</h2><p>单指转动全景，双指捏合缩放。建筑、衣着与交通工具，都是你的线索。</p></div></li><li><span>02</span><div><h2>再落坐标</h2><p>切到地图，点选地点。可以搜索中文城市，也能平移地图后标记中心。地图使用现代地理位置。</p></div></li><li><span>03</span><div><h2>拨回年代</h2><p>滑动时间轴，或输入年份。公元前通过左侧切换，没有公元 0 年。</p></div></li><li><span>04</span><div><h2>二十五秒，落笔</h2><p>每幕最高 5,000 分，依据地点与年代接近程度合计。超时整幕零分；结算只给评分，不公开答案与误差。</p></div></li></ol><div class="note-box"><h3>不同旅途，各有约定</h3><p>本地练习可以暂停，关闭或刷新页面会保留进度与剩余计时。好友 PK 同题同规则；竞技离开页面仍计时。</p><p>全站榜按每日正式首局成绩统计。周榜取本周最好的五天，成长和反复练习不增加榜分。</p></div><p class="art-note">AI 历史想象复原可能有细节偏差。具体年代是游戏设定，画面不作为史料。</p><button class="primary full-width" data-nav="chapters">我知道了，出发 ${icon('arrow')}</button>`,
+    { back: home },
   );
 }
 function journal() {
-  modal(
-    "走过的地方，都有回响",
-    `<p class="muted">已收集 ${saved.visited.length} / ${rounds.length} 幕 · 本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分</p><div class="journal-grid">${rounds.map((r) => (saved.visited.includes(r.id) ? `<button class="journal-card" data-story="${r.id}"><img src="${r.image}" alt="${r.place}的历史想象复原" loading="lazy"><strong>${r.place}</strong><small>${formatYear(r.year)} · ${r.era}</small></button>` : `<div class="journal-card locked">${icon("book")}<strong>尚未抵达</strong><small>完成探索后收录</small></div>`)).join("")}</div>`,
-  );
-  document.querySelectorAll("[data-story]").forEach(
-    (button) =>
-      (button.onclick = () => {
-        const r = rounds.find((r) => r.id === button.dataset.story);
-        modal(r.title, storyMarkup(r));
-      }),
+  const points = growth(),
+    rank = stamps[Math.min(3, Math.floor(completed() / 3))];
+  shell(
+    '我的旅行手记',
+    `<div class="journal-heading"><span class="passport-mark">${icon('compass')}</span><p class="eyebrow">旅人身份 · 本机记录</p><h1 class="page-title">${rank}</h1><p class="page-description">走过的每一幕，都让直觉更敏锐。</p></div><div class="journal-stats"><div><strong>${completed()}<small> / 9</small></strong><span>已完成小关</span></div><div><strong>${fmt(points)}</strong><span>旅人成长分</span></div><div><strong>${saved.visited.length}</strong><span>已观察场景</span></div></div><div class="growth-line"><span style="width:${(completed() / 9) * 100}%"></span></div><p class="art-note">成长分取各小关最佳成绩之和 · 只记进步，不比刷题次数</p><div class="journal-records">${CHAPTERS.map((chapter) => `<article><span>${chapter.number}</span><div><h3>${chapter.name}</h3><p>${chapter.levels.filter((level) => saved.records[level.id]?.complete).length} / 3 关完成</p></div><b>${fmt(chapter.levels.reduce((sum, level) => sum + (saved.records[level.id]?.best || 0), 0))}</b></article>`).join('')}</div>${saved.best ? `<p class="legacy-record">往日五幕最佳 ${fmt(saved.best)} 分 · 旧足迹已保留</p>` : ''}<button class="primary full-width" data-nav="chapters">再收一封来信 ${icon('arrow')}</button><button class="text-button settings-link" data-nav="settings">${icon('settings')}设置与音效</button>`,
+    { nav: 'journal', back: home },
   );
 }
-function storyMarkup(round) {
-  return `<p class="eyebrow">${round.place} · ${formatYear(round.year)}</p><p class="story-text">${round.story}</p><ul class="detail-list">${round.details.map((d) => `<li>${d}</li>`).join("")}</ul><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><p class="fine-print">AI 历史想象复原 · 场景设定不等于精确史实</p>`;
-}
-function cluesMarkup(round) {
-  return `<div class="reasoning"><h3>回看线索，串起推理</h3><p>${escape(round.hint)}</p><ul class="detail-list">${round.details.map((detail) => `<li>${escape(detail)}</li>`).join("")}</ul><small>图像只提供猜测方向；${formatYear(round.year)}是游戏设定，按 ±${round.tolerance} 年宽容计分。</small></div>`;
-}
-function home() {
-  saveJourney();
-  const journey = restoreJourney(saved.journey, rounds);
-  const day = invitation.challenge?.day || state.daily?.day || today();
-  const dailyJourney = restoreDailyJourney(saved.dailyJourney, rounds);
-  const routeJourney = restoreRouteJourney(saved.routeJourney, rounds);
-  const cover = rounds.find((round) => round.id === "kaifeng") || rounds[0];
-  cleanup();
-  state.screen = "home";
-  state.phase = "idle";
-  document.body.className = "home-page";
-  app.innerHTML = `<div class="home-shell"><header class="site-header"><a class="brand" href="./" aria-label="此时此地首页">${brand}</a><nav aria-label="主导航"><button id="journal">${icon("book")}<span>我的足迹</span><b>${saved.visited.length.toString().padStart(2, "0")}</b></button><button id="help">玩法指南</button>${soundButton()}${fullscreenButton()}</nav></header>
-    <main><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="red-line"></span>一场穿越时空的旅行</div><h1>此地，似曾相识。<br>此时，<em>是哪一年？</em></h1><p class="hero-description">三幕就能走完一条主题旅途。<br>先看一眼，再落下地点与年代。</p>
-      <section class="route-card" aria-label="三幕主题旅途"><strong>先走一条三幕小旅途</strong><p>不用选年代难度。跟着一个观察问题，直接走进历史。</p><div class="route-choices">${routes.map(route => `<button class="route-choice" data-route="${route.id}"><b>${route.symbol} ${route.name}</b><span>${route.description}</span><small>${routeJourney?.route === route.id ? `继续 · 第 ${routeJourney.index + 1} 幕` : "开始三幕 · 不限时"}</small></button>`).join("")}</div></section>
-      <div class="travel-options"><fieldset><legend>选择旅途</legend><div class="segmented"><label><input type="radio" name="region" value="all" ${state.region === "all" ? "checked" : ""}><span>${icon("compass")}世界漫游</span></label><label><input type="radio" name="region" value="china" ${state.region === "china" ? "checked" : ""}><span>${icon("pin")}中国足迹</span></label></div></fieldset><label class="timed-option"><input type="checkbox" id="timed" ${state.timed ? "checked" : ""}><span class="toggle"></span>限时挑战 <small>90 秒 / 幕</small></label></div>
-      <label class="scene-picker" for="scene-select">指定场景练习<select id="scene-select"><option value="">随机旅途 · 每局 ${ROUND_COUNT} 幕</option>${["china", "world"].map((region) => `<optgroup label="${region === "china" ? "中国历史" : "世界历史"}">${rounds.filter((r) => r.region === region).map((r) => `<option value="${r.id}">${escape(r.title)}</option>`).join("")}</optgroup>`).join("")}</select></label>
-      ${journey ? `<div class="resume-journey"><button class="primary" id="resume">继续上次旅途 · 第 ${journey.index + 1} / ${journey.deck.length} 幕 ${icon("arrow")}</button><small>地点、年代与进度已保留${journey.timed ? " · 限时仍按原截止时间计时" : " · 不限时"}</small></div>` : ""}
-      <button class="${journey ? "secondary" : "primary"} start-button" id="start">${journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}</button><p class="start-note" id="start-note">${journey ? "另开会替换未完成旅途" : `每局 ${ROUND_COUNT} 幕 · 默认不限时`} <span>·</span> 优先探索未见场景</p>
-      <section class="daily-card" aria-label="每日同题旅途"><strong>${invitation.challenge ? "收到同题邀请" : "每日五幕 · 和朋友走同一条旅途"}</strong><p>${day} · 北京时间换新。使用上方旅途与限时规则；同题不受本机足迹影响，普通旅途进度另外保留。</p><div class="daily-actions"><button class="secondary" id="daily-start">开始每日五幕</button><button class="text-button" id="daily-share">邀请朋友同题</button></div><small id="daily-record"></small></section>
-    </div><figure class="hero-postcard"><div class="postcard-image"><img src="${cover.image}" alt="${escape(cover.place)}的历史想象复原" fetchpriority="high"><span class="image-corner">历史的另一种打开方式</span><div class="panorama-badge">${icon("eye")}<span>360°<small>沉浸式观察</small></span></div></div><figcaption><span><i>第 001 号时空切片</i><strong>人间烟火，穿越千年。</strong></span><span class="postcard-stamp">山河<br>故人</span></figcaption><span class="postcard-edge" aria-hidden="true"></span></figure></section>
-    <section class="how-strip" aria-label="三步开始探索"><div><span class="step-number">壹</span><p><strong>观其景</strong><small>转动视角，发现细节</small></p>${icon("eye")}</div><div><span class="step-number">贰</span><p><strong>辨其地</strong><small>展开地图，落下坐标</small></p>${icon("pin")}</div><div><span class="step-number">叁</span><p><strong>知其时</strong><small>拨动年份，揭开往事</small></p>${icon("clock")}</div></section>
-    </main><footer class="site-footer"><span>${rounds.length} 幕历史想象 · 中国 ${rounds.filter((r) => r.region === "china").length} 幕 · 世界 ${rounds.filter((r) => r.region === "world").length} 幕</span><span>AI 场景复原 <span class="footer-dot">·</span> 中文地理底图 <span class="footer-dot">·</span> 为好奇心而作</span></footer></div>`;
-  on("#start", "click", () => {
-    clearRouteInvitation();
-    state.daily = null; state.route = null;
-    state.region = $('input[name="region"]:checked').value;
-    state.timed = $("#timed").checked;
-    state.practice = $("#scene-select").value;
-    start();
-  });
-  on("#resume", "click", () => { clearRouteInvitation(); start(journey); });
-  document.querySelectorAll("[data-route]").forEach(button => button.addEventListener("click", () => startRoute(button.dataset.route), { signal: screenEvents.signal }));
-  const currentDaily = () => ({ day, region: $('input[name="region"]:checked').value, timed: $("#timed").checked });
-  const refreshDaily = () => {
-    const selected = currentDaily();
-    $("#daily-start").textContent = dailyJourney && challengeKey(dailyJourney.daily) === challengeKey(selected)
-      ? `继续每日五幕 · 第 ${dailyJourney.index + 1} 幕` : '开始每日五幕';
-    $("#daily-record").textContent = saved.dailyRecord && challengeKey(saved.dailyRecord.challenge) === challengeKey(selected)
-      ? `本机同题最佳 ${saved.dailyRecord.total.toLocaleString("zh-CN")} / 25000 分 · 可重玩、分享邀约` : '每日固定五幕；结算后可以同题再练、与朋友交流观察线索。';
-  };
-  on("#daily-start", "click", () => {
-    clearRouteInvitation();
-    const selected = currentDaily();
-    if (dailyJourney && challengeKey(dailyJourney.daily) === challengeKey(selected)) return start(dailyJourney);
-    state.route = null; state.daily = selected; state.region = selected.region; state.timed = selected.timed; state.practice = "";
-    start();
-  });
-  on("#daily-share", "click", () => shareDaily(currentDaily()));
-  document.querySelectorAll('input[name="region"], #timed').forEach(field => field.addEventListener('change', refreshDaily, { signal: screenEvents.signal }));
-  refreshDaily();
-  on("#scene-select", "change", (event) => {
-    const practice = Boolean(event.target.value);
-    $("#start").innerHTML = `${practice ? "走进这一幕" : journey ? "另开新旅途" : "开启时空之旅"} ${icon("arrow")}`;
-    $("#start-note").textContent = `${practice ? "单幕练习 · 不计入五幕最佳分" : `每局 ${ROUND_COUNT} 幕 · 优先探索未见场景`}${journey ? " · 会替换未完成旅途" : ""}`;
-  });
-  on("#help", "click", help);
-  on("#journal", "click", journal);
-  bindSound();
-}
-function clearRouteInvitation() {
-  if (!new URLSearchParams(location.search).has('route')) return;
-  routeInvitation.route = null;
-  const url = new URL(location.href); url.searchParams.delete('route');
-  if (!url.searchParams.has('daily')) url.searchParams.delete('v');
-  history.replaceState(null, '', url);
-}
-function startRoute(id, replay = false) {
-  const route = routeInfo(id);
-  if (!route) return;
-  if (routeInvitation.route && routeInvitation.route !== id) clearRouteInvitation();
-  saveJourney();
-  const journey = restoreRouteJourney(saved.routeJourney, rounds);
-  if (!replay && journey?.route === id) return start(journey);
-  state.route = id; state.daily = null; state.practice = ''; state.region = 'all'; state.timed = false;
-  return start();
-}
-async function start(journey = null) {
-  cleanup();
-  chime();
-  state = journey ? { ...state, ...journey, daily: journey.daily || null, route: journey.route || null, screen: "game", phase: "loading" } : {
-    ...state,
-    screen: "game",
-    deck: state.route ? routeDeck(rounds, state.route) : state.daily ? dailyDeck(rounds, state.daily) : state.practice ? rounds.filter((r) => r.id === state.practice) : chooseRounds(rounds, state.region, Math.random, saved.visited),
-    index: 0,
-    results: [],
-    phase: "loading",
-  };
-  document.body.className = "game-page";
-  document.body.classList.toggle('theme-route', Boolean(state.route));
-  app.innerHTML = `<main class="game-shell"><header class="game-header"><button class="game-exit icon-button" id="leave" aria-label="暂停与退出" title="暂停与退出">${icon("pause")}</button><div class="round-progress"><span id="round-label">第 1 幕 / ${state.deck.length}</span><div id="progress-dots" aria-hidden="true"></div></div><div class="game-status"><span id="timer">${state.timed ? "90 秒" : "自由漫游"}</span><span id="total-score">0 <small>分</small></span>${soundButton()}${fullscreenButton()}</div></header>
-      <div class="game-body"><section class="scene-pane" aria-label="历史场景"><div id="panorama" tabindex="0" role="group" aria-label="历史全景，拖动环顾，双指或滚轮缩放"></div><div class="scene-top"><span class="scene-tag">${icon("eye")} 观察 · 寻找线索</span><div class="scene-actions"><button id="game-help" class="glass-button">玩法</button><button id="hint" class="glass-button">一点提示</button>${state.route ? '<button id="route-share" class="glass-button">同题</button>' : ""}</div></div><div id="hint-text" class="hint-bubble" hidden></div><div class="scene-controls"><button class="glass-button" id="reset-view" aria-label="重置全景视角">${icon("compass")}</button><button class="glass-button" id="zoom-in" aria-label="放大全景">＋</button><button class="glass-button" id="zoom-out" aria-label="缩小全景">−</button></div><div class="scene-caption"><span class="eyebrow" id="scene-eyebrow">此刻，你身在何方？</span><p id="clue"></p><small>拖动环顾 · 双指缩放 <span>｜</span> AI 历史想象复原</small></div></section>
-      <aside class="map-pane"><div class="map-heading"><div><span class="eyebrow">第一步 · 在地图上留下坐标</span><h2>你觉得，这里是哪里？</h2></div>${icon("pin")}</div><div class="search-wrap"><label class="search-box">${icon("search")}<input id="city-search" type="search" placeholder="搜索中文城市或古地名" aria-label="搜索中文城市或古地名" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" autocomplete="off"><span>⌕</span></label><div id="search-results" class="search-results" role="listbox" aria-label="匹配城市" hidden></div></div><div class="map-stage"><div id="guess-map"></div><span class="map-crosshair" aria-hidden="true">＋</span><div class="map-tools"><button id="map-plus" aria-label="放大地图">＋</button><button id="map-minus" aria-label="缩小地图">−</button></div><button class="center-pin" id="center-pin">${icon("pin")}标记地图中心</button><span class="map-credit">Natural Earth · 地理示意</span></div><div class="location-status" id="location-status" role="status">${icon("pin")}<span>点击地图，标记你的猜测</span></div></aside></div>
-      <div class="guess-dock"><div class="mobile-tabs" role="group" aria-label="切换观察和地图"><button id="scene-tab" class="active" aria-pressed="true">${icon("eye")}观察场景</button><button id="map-tab" aria-pressed="false">${icon("pin")}地图选点 <i id="pin-dot"></i></button></div><div class="timeline"><div class="timeline-heading"><label for="year-range">第二步 · 这是哪一年？</label><div class="year-editor"><select id="era-select" aria-label="公元前或公元"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" type="number" inputmode="numeric" min="1" max="2026" value="1000" aria-label="猜测年份"><span>年</span></div><span class="year-status" id="year-status">请选择年代</span></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" value="1000" step="1" aria-label="拖动选择年份"><div class="era-stops"><button data-year="-2000">古文明</button><button data-year="-221">秦汉</button><button data-year="750">隋唐</button><button data-year="1100">宋元</button><button data-year="1600">明清</button><button data-year="1900">近现代</button></div></div><div class="submit-area"><button class="primary" id="submit" disabled>请先选择地点与年代 ${icon("arrow")}</button><span id="submit-note">两枚坐标，拼出一个历史瞬间</span></div></div>
-      <div class="load-cover" id="load-cover" role="status"><span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div><div class="result-overlay" id="result-overlay" hidden></div></main>`;
-  bindSound();
-  on("#leave", "click", () => {
-    viewer?.setActive(false);
-    const dialog = modal(
-      "画面已暂停",
-      `<p>地点、年代和本局进度会自动保留，首页可继续。${state.timed ? "限时旅途仍按原截止时间计时。" : "自由漫游不限时，准备好再继续。"}</p><div class="dialog-actions"><button class="secondary" id="stay">继续探索</button><button class="primary" id="exit">保存并返回首页</button></div>`,
-    );
-    dialog.addEventListener("close", () => {
-      if (state.screen === "game" && state.phase === "guessing") setView(state.view);
-    }, { once: true });
-    dialog.querySelector("#stay").onclick = () => dialog.close();
-    dialog.querySelector("#exit").onclick = () => {
-      dialog.close();
-      home();
-    };
-  });
-  on("#game-help", "click", help);
-  on("#route-share", "click", () => shareRoute(state.route));
-  on("#hint", "click", () => {
-    $("#hint-text").hidden = !$("#hint-text").hidden;
-    $("#hint-text").textContent = state.deck[state.index].hint;
-    $("#hint").textContent = $("#hint-text").hidden ? "一点提示" : "收起提示";
-  });
-  on("#reset-view", "click", () => viewer?.reset());
-  on("#zoom-in", "click", () => viewer?.zoom(-8));
-  on("#zoom-out", "click", () => viewer?.zoom(8));
-  on("#scene-tab", "click", () => setView("scene"));
-  on("#map-tab", "click", () => setView("map"));
-  on("#map-plus", "click", () => guessMap?.zoom(1));
-  on("#map-minus", "click", () => guessMap?.zoom(-1));
-  on("#center-pin", "click", () => guessMap?.center());
-  let cityComposition = false;
-  on("#city-search", "compositionstart", () => { cityComposition = true; });
-  on("#city-search", "compositionend", () => { cityComposition = false; });
-  on("#city-search", "blur", () => { cityComposition = false; });
-  on("#city-search", "input", searchCities);
-  on("#city-search", "focus", searchCities);
-  on("#city-search", "keydown", (event) => {
-    // WebKit can report a composition-confirming Enter with isComposing=false.
-    if (cityComposition || event.isComposing || event.keyCode === 229) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeCitySearch();
-    }
-    const results = $("#search-results");
-    if (["ArrowDown", "ArrowUp"].includes(event.key)) {
-      if (results.hidden) searchCities();
-      if (results.hidden) return;
-      const options = [...results.querySelectorAll("button")];
-      if (!options.length) return;
-      const current = options.findIndex(option => option.getAttribute("aria-selected") === "true");
-      const index = event.key === "ArrowDown" ? (current + 1) % options.length
-        : (current < 0 ? options.length - 1 : (current - 1 + options.length) % options.length);
-      options.forEach((option, i) => option.setAttribute("aria-selected", String(i === index)));
-      $("#city-search").setAttribute("aria-activedescendant", options[index].id);
-      options[index].scrollIntoView({ block: "nearest" });
-      event.preventDefault();
-    }
-    if (event.key === "Enter" && !results.hidden) {
-      (results.querySelector('[aria-selected="true"]') || results.querySelector("button"))?.click();
-      event.preventDefault();
-    }
-  });
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".search-wrap")) closeCitySearch();
-  }, { signal: screenEvents.signal });
-  on("#year-range", "input", (event) =>
-    setYear(Number(event.target.value) || 1),
+function settings() {
+  shell(
+    '旅途设置',
+    `<h1 class="page-title">让旅途，<br>合你的心意。</h1><div class="nickname-setting"><label for="nickname">战书上的名字</label><div><input id="nickname" maxlength="20" value="${esc(saved.nickname || service.me?.player?.nickname || '时空旅人')}" autocomplete="nickname"><button class="secondary" id="save-nickname">落款</button></div><p id="nickname-status" role="status">用于好友战书与山河榜。</p></div><div class="settings-list"><button id="sound" aria-pressed="${saved.sound}"><span><strong>旅途音效</strong><small>落笔时的一点回响</small></span><span class="switch ${saved.sound ? 'on' : ''}"></span></button><div><span><strong>沉浸全屏</strong><small>让历史占满眼前</small></span><button class="secondary" data-game-fullscreen>全屏</button></div><button data-nav="help"><span><strong>玩法说明</strong><small>观察、落点与计分规则</small></span>${icon('arrow')}</button></div><div class="note-box"><h3>关于这本手记</h3><p>本地练习进度保存在当前浏览器。竞技成绩由挑战服务保存。画面是 AI 历史想象复原，仅用于游戏探索。</p></div>`,
+    { back: journal },
   );
-  const editYear = () => {
-    const field = $("#year-number"),
-      max = $("#era-select").value === "bce" ? 3000 : MAX_YEAR;
-    if (
-      field.value === "" ||
-      !Number.isInteger(field.valueAsNumber) ||
-      field.valueAsNumber < 1 ||
-      field.valueAsNumber > max
-    ) {
-      field.setAttribute("aria-invalid", "true");
-      state.yearTouched = false;
-      $("#year-status").textContent = `请输入 1～${max}`;
-      updateSubmit();
-      saveJourney();
-      return;
-    }
-    setYear(field.valueAsNumber * ($("#era-select").value === "bce" ? -1 : 1));
-  };
-  on("#year-number", "input", editYear);
-  on("#era-select", "change", () => {
-    $("#year-number").max =
-      $("#era-select").value === "bce" ? "3000" : String(MAX_YEAR);
-    editYear();
+  on('#save-nickname', 'click', () =>
+    busy('#save-nickname', async () => {
+      const nickname = $('#nickname').value.trim();
+      if (!nickname) return toast('请先写下你的旅人名字。');
+      const token = generation;
+      const result = await historyApi.profile(nickname);
+      saved.nickname = result.player.nickname;
+      save();
+      if (service.me) service.me.player = result.player;
+      if (token === generation)
+        $('#nickname-status').textContent = '落款已保存，下次战书就用这个名字。';
+    }),
+  );
+  on('#sound', 'click', () => {
+    saved.sound = !saved.sound;
+    save();
+    settings();
+    chime();
   });
-  document
-    .querySelectorAll("[data-year]")
-    .forEach((button) =>
-      button.addEventListener(
-        "click",
-        () => setYear(Number(button.dataset.year)),
-        { signal: screenEvents.signal },
-      ),
-    );
-  on("#submit", "click", () => reveal(false));
-  on("#panorama", "viewererror", () => {
-    clearInterval(clock);
-    const journey = state.route ? restoreRouteJourney(saved.routeJourney, rounds) : state.daily ? restoreDailyJourney(saved.dailyJourney, rounds) : restoreJourney(saved.journey, rounds);
-    state.phase = "error";
-    showLoadError("画面连接已中断，请重新载入这一幕", async () => {
-      const { createViewer } = await import("./viewer.js");
-      viewer?.destroy();
-      viewer = createViewer($("#panorama"));
-      await loadRound(journey?.index === state.index ? journey : null);
-    });
+}
+async function checkService() {
+  try {
+    const me = await historyApi.me();
+    service = { status: 'online', me };
+    return me;
+  } catch (error) {
+    service = { status: 'offline', me: null };
+    throw error;
+  }
+}
+function challenge() {
+  shell(
+    '好友战书',
+    `<p class="eyebrow spaced">同一段历史 · 两份直觉</p><h1 class="page-title">这一局，<br>你比朋友更懂吗？</h1><div class="duel-envelope"><span class="envelope-lines"></span><span class="wax-seal">战</span><p>给一位有好奇心的朋友</p><strong>五幕光景，等你来猜。</strong><span class="envelope-bottom">此时此地 · 凭直觉落笔</span></div><button class="primary full-width" id="create-duel">先挑战，再寄战书 ${icon('arrow')}</button><p class="art-note">同样五幕 · 每幕 25 秒 · 完成后生成专属邀请码</p>${saved.lastDuelRunId ? '<button class="secondary full-width" id="last-duel">查看最近一次战书</button>' : ''}<div class="invite-entry"><label for="invite-code">已收到朋友的战书？</label><div><input id="invite-code" placeholder="粘贴邀请码或战书链接" autocomplete="off" maxlength="1000"><button class="secondary" id="open-invite">赴约</button></div></div><div class="quiet-links"><button class="text-button" data-nav="leaderboard">${icon('crown')}去看全站榜</button><button class="text-button" data-nav="help">挑战规则 ${icon('arrow')}</button></div>`,
+    { nav: 'challenge', back: home },
+  );
+  on('#create-duel', 'click', () => competitionPrepare('duel'));
+  on('#last-duel', 'click', () =>
+    busy('#last-duel', async () => {
+      const token = generation;
+      const data = await historyApi.run(saved.lastDuelRunId);
+      if (token === generation) await acceptRun(data.run, null);
+    }),
+  );
+  on('#open-invite', 'click', () => {
+    const code = parseInvite($('#invite-code').value);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(code)) return toast('请输入有效的战书邀请码。');
+    invitation(code);
   });
+}
+function connectionNotice(error) {
+  return `<div class="note-box service-notice"><h3>${error?.code === 'UNAVAILABLE' ? '挑战服务尚未连接' : '这次暂时无法启程'}</h3><p>${esc(error?.message || '可以先开启本地旅途，练练你的时空直觉。')}</p></div><button class="primary full-width" data-nav="chapters">先去本地探索 ${icon('arrow')}</button>`;
+}
+async function competitionPrepare(mode) {
+  const daily = mode === 'daily';
+  shell(
+    daily ? '今日全站竞逐' : '准备下战书',
+    `<span class="competition-emblem">${icon(daily ? 'crown' : 'duel')}</span><h1 class="page-title center">${daily ? '今日山河，<br>等你来认。' : '以五幕光景，<br>试一试直觉。'}</h1><p class="page-description center">${daily ? '五幕随机档案' : '五幕好友同题'} · 每幕 25 秒 · 答案不公开</p><div class="note-box"><h3>${daily ? '公平，只记一次' : '先留下你的成绩'}</h3><p>${daily ? '每日首场正式成绩计榜。周榜取最佳五天，成长分与关卡纪录独立保存。' : '完成这一局，生成 24 小时有效的战书。好友收到后作答同样的五幕，比分由服务端结算。'}</p><p>竞技离开页面仍然计时。准备好再出发。</p></div><div id="service-state" role="status"><p class="loading-line">正在连接挑战服务…</p></div><button class="text-button settings-link" data-nav="leaderboard">查看全站榜 ${icon('arrow')}</button>`,
+    { back: daily ? home : challenge },
+  );
   const token = generation;
   try {
+    const me = await checkService();
+    if (token !== generation) return;
+    const active = me.activeRun;
+    const eligible = !daily || me.player?.rankedEligible;
+    $('#service-state').innerHTML = !eligible
+      ? `<div class="note-box"><h3>正式榜等待账号接入</h3><p>当前为游客身份。可先与好友 PK；登录身份配置完成后即可参与每日计榜。</p></div><button class="primary full-width" id="guest-duel">先来一局好友 PK ${icon('arrow')}</button>`
+      : `<button class="primary full-width" id="begin-competition">${active ? `继续未完成的${active.mode === 'daily' ? '每日挑战' : '好友挑战'}` : daily && me.daily?.played ? '查看今日成绩' : '我准备好了，开始'} ${icon('arrow')}</button><p class="art-note">${esc(me.player?.nickname || '时空旅人')} · 服务端计分</p>`;
+    on('#guest-duel', 'click', () => competitionPrepare('duel'));
+    on('#begin-competition', 'click', () =>
+      busy('#begin-competition', async () => {
+        const token = generation;
+        const data = active
+          ? await historyApi.run(active.id)
+          : daily && me.daily?.played && me.daily.runId
+            ? await historyApi.run(me.daily.runId)
+            : await historyApi.start(mode);
+        if (token === generation) await acceptRun(data.run);
+      }),
+    );
+  } catch (error) {
+    if (token === generation) {
+      $('#service-state').innerHTML =
+        connectionNotice(error) +
+        '<button class="secondary full-width" id="service-retry">重新连接</button>';
+      bindNavigation();
+      on('#service-retry', 'click', () => competitionPrepare(mode));
+    }
+  }
+}
+async function invitation(code) {
+  shell(
+    '收到一封战书',
+    `<div class="invite-loading" id="invitation-content"><div class="prepare-compass">${icon('duel')}</div><p class="loading-line">正在拆开战书…</p></div>`,
+    { back: challenge, nav: 'challenge' },
+  );
+  const token = generation;
+  try {
+    const data = await historyApi.inspect(code);
+    if (token !== generation) return;
+    const invite = data.invite;
+    $('#invitation-content').innerHTML =
+      `<p class="eyebrow center">${esc(invite.host?.nickname || '一位旅人')} 向你发起挑战</p><h1 class="page-title center">你能超过<br>这一份直觉吗？</h1><div class="invitation-score"><span>对方已得</span><strong>${fmt(invite.host?.score)}</strong><small>/ 25,000 分</small></div><p class="page-description center">同样五幕 · 每幕 25 秒<br>只看分数，把答案留给自己。</p><button class="primary full-width" id="accept-invite">接下战书 ${icon('arrow')}</button><p class="art-note">${invite.expiresAt ? `有效至 ${new Date(invite.expiresAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : '战书 24 小时有效'} · 开始后无法暂停计时</p>`;
+    on('#accept-invite', 'click', () =>
+      busy('#accept-invite', async () => {
+        const token = generation;
+        const result = await historyApi.join(code);
+        if (token !== generation) return;
+        await acceptRun(result.run, invite.host);
+      }),
+    );
+  } catch (error) {
+    if (token === generation) {
+      $('#invitation-content').innerHTML =
+        `<h1 class="page-title">这封战书<br>暂未打开。</h1>${connectionNotice(error)}<button class="secondary full-width" id="invite-retry">再试一次</button>`;
+      bindNavigation();
+      on('#invite-retry', 'click', () => invitation(code));
+    }
+  }
+}
+async function leaderboard(period = 'week') {
+  shell(
+    '山河榜',
+    `<div class="leaderboard-title"><div><h1 class="page-title">山河有名。</h1><p class="page-description">以直觉相逢，让成绩说话。</p></div>${icon('crown')}</div><div class="tab-switch rank-tabs"><button id="rank-week" class="${period === 'week' ? 'active' : ''}">本周</button><button id="rank-day" class="${period === 'day' ? 'active' : ''}">今日</button></div><p class="rank-rule">${period === 'week' ? '本周最佳 5 天之和 · 每天只记正式首局' : '今日正式首局成绩 · 每日北京时间 00:00 换新'}</p><div id="rank-content" role="status"><p class="loading-line">正在翻开山河榜…</p></div><button class="primary full-width" id="rank-play">赴今日之约 ${icon('arrow')}</button><p class="art-note">同分并列 · 只展示真实服务端成绩<br>关卡最佳记录用于成长，反复练习不增加榜分。</p>`,
+    { nav: 'challenge', back: challenge },
+  );
+  on('#rank-week', 'click', () => leaderboard('week'));
+  on('#rank-day', 'click', () => leaderboard('day'));
+  on('#rank-play', 'click', () => competitionPrepare('daily'));
+  const token = generation;
+  try {
+    const data = await historyApi.leaderboard(period);
+    if (token !== generation) return;
+    if (period === 'day')
+      $('.rank-rule').textContent =
+        `今日正式首局成绩 · 每日 ${data.timeZone === 'Asia/Shanghai' ? '北京时间' : data.timeZone || '服务时区'} 00:00 换新`;
+    $('#rank-content').innerHTML = data.entries?.length
+      ? `<ol class="ranking">${data.entries.map((entry) => `<li class="${entry.rank <= 3 ? 'top-rank' : ''}"><span class="rank-position">${String(entry.rank).padStart(2, '0')}</span><span class="rank-avatar">${esc((entry.nickname || '旅').slice(0, 1))}</span><span class="rank-person"><strong>${esc(entry.nickname)}</strong><small>${period === 'week' ? `${entry.days} 天有效成绩` : '今日正式挑战'}</small></span><b>${fmt(entry.score)}</b></li>`).join('')}</ol>${data.self ? `<div class="self-rank"><span>我的排名 ${data.self.rank ? `#${data.self.rank}` : '尚未计榜'}</span><strong>${fmt(data.self.score)} 分</strong></div>` : ''}`
+      : '<div class="empty-state">' +
+        icon('book') +
+        '<h2>第一行，留给旅人。</h2><p>这个榜期还没有正式成绩。</p></div>';
+  } catch (error) {
+    if (token === generation)
+      $('#rank-content').innerHTML =
+        `<div class="empty-state">${icon('compass')}<h2>山河榜尚未连接</h2><p>${esc(error.message)}</p></div>`;
+  }
+}
+async function busy(selector, action) {
+  const button = $(selector);
+  if (button?.disabled) return;
+  if (button) button.disabled = true;
+  try {
+    await action();
+  } catch (error) {
+    toast(error.message || '暂时无法完成，请稍后重试。');
+  } finally {
+    if (button?.isConnected) button.disabled = false;
+  }
+}
+function startLocal(level) {
+  state = {
+    ...state,
+    mode: 'practice',
+    level: level.id,
+    deck: level.scenes.map((id) => rounds.find((round) => round.id === id)),
+    index: 0,
+    results: [],
+    phase: 'loading',
+    guess: null,
+    year: 1000,
+    yearTouched: false,
+    run: null,
+    opponent: null,
+    deadline: null,
+    dev: devUnlock,
+  };
+  renderGame();
+}
+function resumeLocal(journey) {
+  state = {
+    ...state,
+    ...journey,
+    mode: 'practice',
+    run: null,
+    opponent: null,
+    dev: journey.dev === true,
+  };
+  if (state.phase === 'paused') {
+    state.deadline = Date.now() + state.pausedRemaining;
+    state.phase = 'guessing';
+  }
+  if (state.phase === 'revealed') return roundResult();
+  renderGame(true);
+}
+function runTime(run) {
+  return typeof run.serverNow === 'number'
+    ? run.serverNow
+    : Date.parse(run.serverNow) || Date.now();
+}
+async function acceptRun(run, opponent = null) {
+  if (!run) throw new Error('服务未返回本局信息，请重试。');
+  state = {
+    ...state,
+    mode: run.mode,
+    run,
+    opponent: run.opponent || opponent,
+    level: null,
+    index: run.index,
+    phase: run.phase,
+    results: run.results || [],
+    deck: [],
+    year: 1000,
+    yearTouched: false,
+    guess: null,
+    serverOffset: runTime(run) - Date.now(),
+    dev: false,
+  };
+  if (run.phase === 'finished') return finish();
+  if (run.phase === 'revealed') return roundResult();
+  const expires = run.round?.expiresAt;
+  state.deadline = typeof expires === 'number' ? expires : Date.parse(expires);
+  await renderGame(true);
+}
+function currentRound() {
+  return state.mode === 'practice' ? state.deck[state.index] : state.run.round;
+}
+function roundCount() {
+  return state.mode === 'practice' ? state.deck.length : state.run.total || 5;
+}
+function sumScore() {
+  return state.mode === 'practice'
+    ? state.results.reduce((sum, result) => sum + result.total, 0)
+    : state.run.score;
+}
+async function renderGame(restored = false) {
+  cleanup();
+  state.screen = 'game';
+  state.phase = 'loading';
+  state.view = 'scene';
+  document.body.className = 'game-page';
+  const token = generation;
+  app.innerHTML = `<main class="game-shell"><header class="game-top"><button id="pause" class="icon-button" aria-label="${state.mode === 'practice' ? '暂停' : '离开本局'}">${icon(state.mode === 'practice' ? 'pause' : 'close')}</button><span id="round-label">${state.mode === 'practice' ? '探索' : state.mode === 'daily' ? '全站竞逐' : '好友 PK'}<b>第 ${state.index + 1} / ${roundCount()} 幕</b></span><span class="game-score">${fmt(sumScore())}<small>分</small></span></header><div class="timer-track"><span id="timer-progress"></span></div><section class="scene-panel"><div id="panorama" tabindex="0" aria-label="历史全景，拖动观察四周"></div><div class="scene-caption"><span>此刻，你身在何方？</span><p id="clue">${esc(currentRound()?.clue || '观察建筑、衣着和街景，寻找历史留下的线索。')}</p></div><div class="scene-controls"><button class="scene-control" id="scene-reset" aria-label="重置视角">${icon('compass')}</button><span>拖动环顾 · 双指缩放</span></div></section><section class="map-panel" aria-label="选择地点"><div class="map-search"><label class="search-field">${icon('search')}<input id="city-search" type="search" placeholder="搜索城市或古地名" autocomplete="off" role="combobox" aria-label="搜索城市" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"></label><div id="search-results" role="listbox" hidden></div></div><div id="guess-map"></div><div class="map-controls"><button id="map-plus" aria-label="放大地图">+</button><button id="map-minus" aria-label="缩小地图">−</button></div><button id="center-pin" class="center-pin">${icon('pin')}标记地图中心</button></section><section class="answer-dock"><div class="answer-top"><div class="tab-switch"><button id="scene-tab" class="active" aria-pressed="true">${icon('eye')}观察</button><button id="map-tab" aria-pressed="false">${icon('pin')}地图<span id="pin-dot"></span></button></div><span class="timer" id="timer" role="timer">${LIMIT}<small>秒</small></span></div><div id="location-status" class="location-status">${icon('pin')}<span>地图上标记你的猜测</span></div><div class="year-row"><label for="year-range">这是哪一年？</label><div class="year-input"><select id="era-select" aria-label="公元前后"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" inputmode="numeric" type="number" min="1" max="${MAX_YEAR}" value="1000" aria-label="年份"><span>年</span></div></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" value="1000" aria-label="选择年代"><div class="year-marks"><span>公元前 3000</span><span id="year-status">请选择年代</span><span>${MAX_YEAR}</span></div><button class="primary full-width" id="submit" disabled>先选一个地点 ${icon('arrow')}</button></section><div id="load-cover" class="load-cover"><span class="loading-compass">${icon('compass')}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div></main>`;
+  on('#pause', 'click', pause);
+  on('#scene-tab', 'click', () => setView('scene'));
+  on('#map-tab', 'click', () => setView('map'));
+  on('#scene-reset', 'click', () => viewer?.reset());
+  on('#map-plus', 'click', () => guessMap?.zoom(1));
+  on('#map-minus', 'click', () => guessMap?.zoom(-1));
+  on('#center-pin', 'click', () => guessMap?.center());
+  on('#city-search', 'input', () => {
+    if (!searchComposing) searchCities();
+  });
+  on('#city-search', 'compositionstart', () => {
+    searchComposing = true;
+  });
+  on('#city-search', 'compositionend', () => {
+    searchComposing = false;
+    searchCities();
+  });
+  on('#city-search', 'keydown', searchKeydown);
+  on('#year-range', 'input', (event) => setYear(Number(event.target.value)));
+  const editYear = () => {
+    const value = Number($('#year-number').value);
+    if (
+      !Number.isInteger(value) ||
+      value < 1 ||
+      value > ($('#era-select').value === 'bce' ? 3000 : MAX_YEAR)
+    ) {
+      $('#year-number').setAttribute('aria-invalid', 'true');
+      state.yearTouched = false;
+      updateSubmit();
+      remember();
+      return;
+    }
+    setYear($('#era-select').value === 'bce' ? -value : value);
+  };
+  on('#year-number', 'input', editYear);
+  on('#era-select', 'change', () => {
+    $('#year-number').max = $('#era-select').value === 'bce' ? 3000 : MAX_YEAR;
+    editYear();
+  });
+  on('#submit', 'click', () => submit(false));
+  on('#panorama', 'viewererror', () =>
+    showLoadError('画面连接中断。计时与当前进度已保留。', () => renderGame(true)),
+  );
+  try {
     const [{ createViewer }, { createGuessMap }] = await Promise.all([
-      import("./viewer.js"),
-      import("./map.js"),
+      import('./viewer.js'),
+      import('./map.js'),
     ]);
     if (token !== generation) return;
-    viewer = createViewer($("#panorama"));
-    const map = await createGuessMap($("#guess-map"), (point) => {
-      if (state.phase !== "guessing") return;
+    viewer = createViewer($('#panorama'));
+    const map = await createGuessMap($('#guess-map'), (point) => {
+      if (state.phase !== 'guessing') return;
       state.guess = point;
-      $("#location-status").innerHTML =
-        `${icon("pin")}<span><strong>${escape(point.name)}</strong><small>${formatPoint(point)}</small></span><b>已标记</b>`;
-      $("#pin-dot").classList.add("set");
-      updateSubmit();
-      saveJourney();
+      updateLocation();
+      remember();
     });
     if (token !== generation) {
       map.destroy();
       return;
     }
     guessMap = map;
-    await loadRound(journey);
+    guessMap.reset('all');
+    let round = currentRound();
+    let image = round.image;
+    if (state.mode !== 'practice' && import.meta.env.VITE_HISTORY_API_URL)
+      image = new URL(image, new URL(import.meta.env.VITE_HISTORY_API_URL, location.href).origin)
+        .href;
+    await viewer.load({ ...round, image, view: round.view || { yaw: 180, pitch: 0, fov: 75 } });
+    if (token !== generation) return;
+    if (!restored && state.mode === 'practice') state.deadline = Date.now() + LIMIT * 1000;
+    state.phase = 'guessing';
+    $('#load-cover').hidden = true;
+    setYear(state.year, state.yearTouched);
+    if (state.guess) guessMap.goTo(state.guess);
+    updateLocation();
+    remember();
+    tick();
+    clock = setInterval(tick, 100);
+    viewer.resize();
   } catch (error) {
-    if (token === generation) showLoadError(error.message, () => start(journey));
+    if (token === generation)
+      showLoadError(error.message, () => renderGame(restored || Boolean(state.deadline)));
   }
 }
 function showLoadError(message, retry) {
-  $("#load-cover").hidden = false;
-  $("#load-cover").innerHTML =
-    `${icon("compass")}<h2>这一页没能打开</h2><p>${escape(message)}</p><button class="primary" id="retry">重新载入</button><button class="secondary" id="load-home">返回首页</button>`;
-  $("#retry").onclick = retry;
-  $("#load-home").onclick = home;
+  const cover = $('#load-cover');
+  if (!cover) return;
+  cover.hidden = false;
+  cover.innerHTML = `${icon('compass')}<h2>这一页没能打开</h2><p>${esc(message)}</p><button class="primary" id="retry">重新载入</button><button class="secondary" id="load-home">返回首页</button>`;
+  $('#retry').onclick = retry;
+  $('#load-home').onclick = home;
 }
-async function loadRound(journey = null) {
-  const round = state.deck[state.index],
-    token = ++generation;
-  clearInterval(clock);
-  state.phase = "loading";
-  state.guess = null;
-  state.year = 1000;
-  state.yearTouched = false;
-  $("#result-overlay").hidden = true;
-  $("#result-overlay").innerHTML = "";
-  $("#load-cover").hidden = false;
-  $("#load-cover").innerHTML =
-    `<span class="loading-compass">${icon("compass")}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p>`;
-  $("#round-label").textContent = `${state.route ? "主题 · " : state.daily ? "每日 · " : ""}第 ${state.index + 1} 幕 / ${state.deck.length}`;
-  $("#progress-dots").innerHTML = state.deck
-    .map(
-      (_, i) =>
-        `<i class="${i < state.index ? "done" : i === state.index ? "current" : ""}"></i>`,
-    )
-    .join("");
-  $("#scene-eyebrow").textContent = state.route ? `${routeInfo(state.route).name} · 观察挑战` : "此刻，你身在何方？";
-  $("#clue").textContent = state.route ? routeInfo(state.route).questions[state.index] : round.clue;
-  $("#hint-text").hidden = true;
-  $("#hint").textContent = "一点提示";
-  $("#city-search").value = "";
-  $("#city-search").disabled = false;
-  closeCitySearch();
-  $("#location-status").innerHTML =
-    `${icon("pin")}<span>点击地图，标记你的猜测</span>`;
-  $("#pin-dot").classList.remove("set");
-  $("#center-pin").disabled = false;
-  $("#year-range").disabled = false;
-  $("#year-number").disabled = false;
-  $("#era-select").disabled = false;
-  $("#year-number").removeAttribute("aria-invalid");
-  setYear(journey ? journey.year : 1000, journey ? journey.yearTouched : false);
-  guessMap.reset(state.practice ? (round.region === "china" ? "china" : "all") : state.region);
-  setView("scene");
-  try {
-    await viewer.load(round);
-    if (token !== generation) return;
-    state.phase = "guessing";
-    $("#load-cover").hidden = true;
-    updateSubmit();
-    state.deadline = journey ? journey.deadline : Date.now() + LIMIT_SECONDS * 1000;
-    if (journey?.guess) guessMap.goTo(journey.guess);
-    $("#total-score").innerHTML = `${state.results.reduce((n, r) => n + r.total, 0).toLocaleString("zh-CN")} <small>分</small>`;
-    if (journey?.phase === "revealed") {
-      state.phase = "revealed";
-      renderResult();
-      saveJourney();
-      return;
-    }
-    saveJourney();
-    $("#timer").textContent = state.timed ? `${LIMIT_SECONDS} 秒` : "自由漫游";
-    if (state.timed) {
-      clock = setInterval(tick, 250);
-      tick();
-    }
-    $("#panorama").focus({ preventScroll: true });
-  } catch (error) {
-    if (token === generation) {
-      state.phase = "error";
-      showLoadError(error.message, () => loadRound(journey));
-    }
-  }
-}
-function tick() {
-  if (state.phase !== "guessing") return;
-  const seconds = remainingSeconds(state.deadline, Date.now());
-  $("#timer").textContent = `${seconds} 秒`;
-  $("#timer").classList.toggle("urgent", seconds <= 15);
-  if (seconds === 0) reveal(true);
-}
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && state.timed && state.screen === "game") tick();
-});
 function setView(view) {
   state.view = view;
-  $(".game-shell")?.classList.toggle("show-map", view === "map");
-  for (const name of ["scene", "map"]) {
-    $(`#${name}-tab`)?.classList.toggle("active", view === name);
-    $(`#${name}-tab`)?.setAttribute("aria-pressed", String(view === name));
+  $('.game-shell')?.classList.toggle('show-map', view === 'map');
+  for (const name of ['scene', 'map']) {
+    $(`#${name}-tab`)?.classList.toggle('active', view === name);
+    $(`#${name}-tab`)?.setAttribute('aria-pressed', String(view === name));
   }
   guessMap?.resize();
-  viewer?.setActive(
-    view === "scene" || matchMedia("(min-width: 901px)").matches,
-  );
+  viewer?.setActive(view === 'scene');
   viewer?.resize();
 }
-window.addEventListener("resize", () => {
-  if (state.screen === "game") setView(state.view);
-});
-function closeCitySearch() {
-  const results = $("#search-results"), field = $("#city-search");
-  if (results) {
-    results.hidden = true;
-    results.querySelectorAll("button").forEach(option => option.setAttribute("aria-selected", "false"));
-  }
-  field?.setAttribute("aria-expanded", "false");
-  field?.removeAttribute("aria-activedescendant");
+function updateLocation() {
+  if (!$('#location-status')) return;
+  $('#location-status').innerHTML =
+    `${icon('pin')}<span>${state.guess ? esc(state.guess.name || '地图选点') : '地图上标记你的猜测'}</span>${state.guess ? '<b>已标记</b>' : ''}`;
+  $('#pin-dot')?.classList.toggle('set', Boolean(state.guess));
+  updateSubmit();
 }
-function searchCities() {
-  const query = $("#city-search").value.trim(),
-    results = $("#search-results");
-  if (state.phase !== "guessing") return closeCitySearch();
-  if (!query) {
-    closeCitySearch();
+function closeSearch() {
+  if ($('#search-results')) $('#search-results').hidden = true;
+  $('#city-search')?.setAttribute('aria-expanded', 'false');
+  $('#city-search')?.removeAttribute('aria-activedescendant');
+}
+function searchKeydown(event) {
+  if (searchComposing || event.isComposing || event.keyCode === 229) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSearch();
     return;
   }
-  $("#city-search").removeAttribute("aria-activedescendant");
-  const matches = cities
-    .filter((city) => city.name.includes(query))
-    .slice(0, 6);
-  results.innerHTML = matches.length
+  const list = $('#search-results');
+  if (!list) return;
+  if (list.hidden) {
+    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && $('#city-search').value.trim())
+      searchCities();
+    else return;
+  }
+  const choices = [...list.querySelectorAll('button')];
+  if (!choices.length) return;
+  let active = choices.findIndex((button) => button.getAttribute('aria-selected') === 'true');
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    active =
+      event.key === 'ArrowDown'
+        ? (active + 1) % choices.length
+        : active < 0
+          ? choices.length - 1
+          : (active - 1 + choices.length) % choices.length;
+    choices.forEach((button, index) =>
+      button.setAttribute('aria-selected', String(index === active)),
+    );
+    $('#city-search').setAttribute('aria-activedescendant', choices[active].id);
+    choices[active].scrollIntoView({ block: 'nearest' });
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    choices[active < 0 ? 0 : active].click();
+  }
+}
+function searchCities() {
+  const query = $('#city-search').value.trim(),
+    target = $('#search-results');
+  $('#city-search').removeAttribute('aria-activedescendant');
+  if (!query || state.phase !== 'guessing') return closeSearch();
+  const matches = cities.filter((city) => city.name.includes(query)).slice(0, 5);
+  target.innerHTML = matches.length
     ? matches
         .map(
           (city, index) =>
-            `<button id="search-city-${index}" role="option" aria-selected="false" tabindex="-1" data-city="${escape(city.name)}">${icon("pin")}${escape(city.name)}<small>在地图上标记</small></button>`,
+            `<button id="search-city-${index}" role="option" aria-selected="false" tabindex="-1" data-city-index="${index}">${icon('pin')}<span>${esc(city.name)}</span>${icon('arrow')}</button>`,
         )
-        .join("")
-    : '<p role="status">未收录这个城市，仍可在地图上点选。</p>';
-  results.hidden = false;
-  $("#city-search").setAttribute("aria-expanded", "true");
-  results.querySelectorAll("button").forEach(
-    (button) =>
-      (button.onclick = () => {
-        const city = cities.find((c) => c.name === button.dataset.city);
-        guessMap.goTo(city);
-        $("#city-search").value = city.name;
-        closeCitySearch();
-        $("#city-search").blur();
-        chime();
-      }),
-  );
+        .join('')
+    : '<p>暂未收录，可直接在地图落点。</p>';
+  target.hidden = false;
+  $('#city-search').setAttribute('aria-expanded', 'true');
+  target.querySelectorAll('button').forEach((button) => {
+    button.onclick = () => {
+      const city = matches[Number(button.dataset.cityIndex)];
+      guessMap.goTo(city);
+      $('#city-search').value = city.name;
+      closeSearch();
+      $('#city-search').blur();
+    };
+  });
 }
 function setYear(year, touched = true) {
-  if (state.phase === "revealed") return;
   state.year = clamp(Math.round(year) || 1, MIN_YEAR, MAX_YEAR);
   state.yearTouched = touched;
-  $("#year-range").value = state.year;
-  $("#year-range").setAttribute("aria-valuetext", formatYear(state.year));
-  $("#year-range").style.setProperty(
-    "--progress",
+  $('#year-range').value = state.year;
+  $('#year-range').setAttribute('aria-valuetext', formatYear(state.year));
+  $('#year-range').style.setProperty(
+    '--progress',
     `${((state.year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100}%`,
   );
-  $("#era-select").value = state.year < 0 ? "bce" : "ce";
-  $("#year-number").value = Math.abs(state.year);
-  $("#year-number").max = state.year < 0 ? "3000" : String(MAX_YEAR);
-  $("#year-number").removeAttribute("aria-invalid");
-  $("#year-status").textContent = touched ? "年代已选" : "请选择年代";
+  $('#era-select').value = state.year < 0 ? 'bce' : 'ce';
+  $('#year-number').value = Math.abs(state.year);
+  $('#year-number').max = state.year < 0 ? 3000 : MAX_YEAR;
+  $('#year-number').removeAttribute('aria-invalid');
+  $('#year-status').textContent = touched ? '年代已选' : '请选择年代';
   updateSubmit();
-  saveJourney();
+  remember();
 }
 function updateSubmit() {
-  const ready = state.phase === "guessing" && state.guess && state.yearTouched;
-  $("#submit").disabled = !ready;
-  $("#submit").innerHTML =
-    `${ready ? "落笔，揭晓这一刻" : !state.guess ? "请先在地图上选择地点" : "再选一个年代，就可以出发"} ${icon("arrow")}`;
+  const button = $('#submit');
+  if (!button) return;
+  const ready = state.phase === 'guessing' && state.guess && state.yearTouched;
+  button.disabled = !ready;
+  button.innerHTML = `${ready ? '确认落笔' : !state.guess ? '先选一个地点' : '再选一个年代'} ${icon('arrow')}`;
 }
-function reveal(timedOut) {
-  if (
-    state.phase !== "guessing" ||
-    (!timedOut && (!state.guess || !state.yearTouched))
-  )
-    return;
-  state.phase = "revealed";
+function tick() {
+  if (state.screen !== 'game' || state.phase !== 'guessing') return;
+  const now = Date.now() + (state.mode === 'practice' ? 0 : state.serverOffset || 0);
+  const seconds = Math.max(0, Math.ceil((state.deadline - now) / 1000));
+  if ($('#timer')) {
+    $('#timer').innerHTML = `${seconds}<small>秒</small>`;
+    $('#timer').classList.toggle('urgent', seconds <= 5);
+    $('#timer-progress').style.width = `${Math.min(100, (seconds / LIMIT) * 100)}%`;
+  }
+  if (seconds <= 0) submit(true);
+}
+async function submit(timedOut) {
+  if (state.phase !== 'guessing' || (!timedOut && (!state.guess || !state.yearTouched))) return;
+  const now = Date.now() + (state.mode === 'practice' ? 0 : state.serverOffset || 0);
+  timedOut ||= now >= state.deadline;
+  state.phase = 'submitting';
   clearInterval(clock);
-  $("#modal")?.close();
-  closeCitySearch();
-  const round = state.deck[state.index],
-    score = scoreGuess(
-      round,
-      state.guess,
-      state.yearTouched ? state.year : null,
-    );
-  state.results.push({
-    id: round.id,
-    guess: state.guess,
-    year: state.yearTouched ? state.year : null,
-    timedOut,
-    ...score,
-  });
-  saved.visited = saved.visited.filter((id) => id !== round.id);
-  saved.visited.push(round.id);
-  saveJourney();
-  chime(true);
-  navigator.vibrate?.(30);
-  renderResult();
-}
-function renderResult() {
-  const round = state.deck[state.index], score = state.results[state.index], timedOut = score.timedOut;
-  $("#total-score").innerHTML =
-    `${state.results.reduce((n, r) => n + r.total, 0).toLocaleString("zh-CN")} <small>分</small>`;
-  $("#submit").disabled = true;
-  $("#year-range").disabled = true;
-  $("#year-number").disabled = true;
-  $("#era-select").disabled = true;
-  $("#center-pin").disabled = true;
-  $("#city-search").disabled = true;
-  guessMap.reveal(state.guess, round);
-  viewer.setActive(false);
-  const overlay = $("#result-overlay");
-  overlay.innerHTML = `<section class="result-card" aria-labelledby="result-title"><div class="result-top"><span class="eyebrow">${timedOut ? "时间到 · 此刻揭晓" : "时空坐标，已揭晓"}</span><button class="text-button" id="compare-map">${icon("pin")}对照地图</button></div><div class="result-heading"><div><p class="result-place">${round.place}</p><h2 id="result-title">${round.title}</h2><p class="answer-year">${formatYear(round.year)} <span>· ${round.era}</span></p></div><div class="score-stamp"><strong>${score.total.toLocaleString("zh-CN")}</strong><small>本幕得分 / 5000</small></div></div>
-    <div class="score-breakdown"><div>${icon("pin")}<span>地点误差<strong>${score.distance === null ? "尚未落点" : formatDistance(score.distance)}</strong></span><b>+${score.locationScore}</b></div><div>${icon("clock")}<span>年代误差<strong>${score.years === null ? "尚未选择" : `${score.years.toLocaleString("zh-CN")} 年`}</strong></span><b>+${score.timeScore}</b></div></div><p class="guess-recap">你的猜测：${state.guess ? escape(state.guess.name) : "未选择地点"} · ${state.yearTouched ? formatYear(state.year) : "未选择年代"} <span>年代满分宽容 ±${round.tolerance} 年</span></p>${state.route ? `<p class="route-collected">✓ 收集第 ${state.index + 1} / 3 张观察手记 · ${escape(routeInfo(state.route).questions[state.index])}</p>` : ""}${cluesMarkup(round)}<p class="story-text">${round.story}</p><a class="source-link" href="${round.source[1]}" target="_blank" rel="noopener noreferrer">${round.source[0]} ↗</a><div class="result-bottom"><span>此刻已收录进「我的足迹」<small>AI 历史想象复原 · 查看资料了解真实历史</small></span><button id="next" class="primary">${state.index === state.deck.length - 1 ? "查看旅行手记" : "前往下一幕"} ${icon("arrow")}</button></div></section>`;
-  overlay.hidden = false;
-  $("#next").onclick = () => {
-    if (state.index === state.deck.length - 1) finish();
-    else {
-      state.index++;
-      loadRound();
+  viewer?.setActive(false);
+  closeSearch();
+  updateSubmit();
+  if (state.mode === 'practice') {
+    const round = currentRound();
+    const score = timedOut ? 0 : scoreGuess(round, state.guess, state.year).total;
+    state.results.push({ id: round.id, total: score, timedOut });
+    state.phase = 'revealed';
+    if (!state.dev) {
+      saved.visited = saved.visited.filter((id) => id !== round.id);
+      saved.visited.push(round.id);
     }
+    remember();
+    chime();
+    roundResult();
+  } else {
+    const token = generation;
+    try {
+      const data = await historyApi.answer(state.run.id, {
+        roundId: state.run.round.id,
+        year: state.yearTouched ? state.year : null,
+        point: state.guess ? { lat: state.guess.lat, lng: state.guess.lng } : null,
+        requestId:
+          state.answerRequest ||
+          (state.answerRequest =
+            globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`),
+      });
+      if (token !== generation) return;
+      state.answerRequest = null;
+      await acceptRun(data.run);
+    } catch (error) {
+      if (token !== generation) return;
+      state.phase = 'submit-error';
+      showLoadError('成绩尚未确认。重新连接会保留服务器上的答题结果。', async () => {
+        try {
+          const data = await historyApi.run(state.run.id);
+          state.answerRequest = null;
+          await acceptRun(data.run);
+        } catch (retryError) {
+          toast(retryError.message);
+        }
+      });
+    }
+  }
+}
+function pause() {
+  if (state.phase !== 'guessing') return;
+  if (state.mode === 'practice') {
+    state.pausedRemaining = Math.max(0, state.deadline - Date.now());
+    state.phase = 'paused';
+    remember();
+  }
+  clearInterval(clock);
+  viewer?.setActive(false);
+  const overlay = document.createElement('section');
+  overlay.className = 'pause-overlay';
+  overlay.innerHTML = `<div class="pause-card"><span class="eyebrow">${state.mode === 'practice' ? '把这一刻，暂存' : '竞技仍在计时'}</span><h1>${state.mode === 'practice' ? '歇一会，再启程。' : '这一幕还未落笔。'}</h1><p>${state.mode === 'practice' ? '剩余时间与猜测已为你留好。' : '离开后仍按原截止时间计分，超时为零分。'}</p><button id="resume" class="primary full-width">继续观察 ${icon('arrow')}</button><button id="pause-home" class="secondary full-width">保存并返回首页</button></div>`;
+  app.append(overlay);
+  $('#resume').onclick = () => {
+    overlay.remove();
+    if (state.mode === 'practice') {
+      state.deadline = Date.now() + state.pausedRemaining;
+      state.phase = 'guessing';
+      remember();
+    }
+    viewer?.setActive(state.view === 'scene');
+    tick();
+    clock = setInterval(tick, 100);
   };
-  $("#compare-map").onclick = () => {
-    overlay.hidden = true;
-    setView("map");
-    $("#submit").innerHTML = "返回历史解说";
-    $("#submit").disabled = false;
-    $("#submit").onclick = () => {
-      if (state.phase === "revealed") {
-        overlay.hidden = false;
-        $("#submit").disabled = true;
-        $("#submit").onclick = null;
-        $("#next").focus();
+  $('#pause-home').onclick = home;
+}
+function roundResult() {
+  const result = state.results[state.index],
+    score = state.mode === 'practice' ? result.total : result.score,
+    timedOut = result.timedOut;
+  const last = state.index === roundCount() - 1;
+  remember();
+  shell(
+    '这一幕的评分',
+    `<div class="result-emblem">${icon(timedOut ? 'clock' : 'compass')}</div><p class="eyebrow center">第 ${state.index + 1} / ${roundCount()} 幕 · ${timedOut ? '时间已到' : '已落笔'}</p><h1 class="page-title center">${timedOut ? '下一幕，再从容一点。' : score >= 4000 ? '你的直觉，很有来处。' : score >= 2000 ? '历史的轮廓，渐渐清晰。' : '每一眼，都算新的发现。'}</h1><div class="result-score"><strong>${fmt(score)}</strong><span>本幕评分 / 5,000</span></div><p class="result-note">${timedOut ? '超时未交卷，本幕记为 0 分。' : '答案留在历史里。带着好奇，继续往前。'}</p><div class="score-journey">${Array.from({ length: roundCount() }, (_, index) => `<span class="${index <= state.index ? 'done' : ''}">${index <= state.index ? icon('check') : String(index + 1).padStart(2, '0')}</span>`).join('<i></i>')}</div><button class="primary full-width" id="next">${last ? '收下这份旅行手记' : '前往下一幕'} ${icon('arrow')}</button><p class="art-note">${state.mode === 'practice' ? '本地练习' : '服务端计分'} · 当前总分 ${fmt(sumScore())}</p>`,
+    { back: home },
+  );
+  state.phase = 'revealed';
+  on('#next', 'click', () =>
+    busy('#next', async () => {
+      if (state.mode === 'practice') {
+        if (last) return finish();
+        state.index++;
+        state.guess = null;
+        state.year = 1000;
+        state.yearTouched = false;
+        state.deadline = null;
+        await renderGame();
+      } else {
+        const token = generation;
+        const data = await historyApi.next(state.run.id, state.run.round.id);
+        if (token === generation) await acceptRun(data.run);
       }
-    };
-    toast("朱红「猜」是你的坐标，青绿「真」是场景坐标");
-  };
-  $("#next").focus({ preventScroll: true });
+    }),
+  );
 }
 function finish() {
-  const total = state.results.reduce((sum, result) => sum + result.total, 0);
-  if (state.route) {
-    const same = saved.routeRecord?.route === state.route;
-    saved.routeRecord = { route: state.route, total: Math.max(same ? saved.routeRecord.total : 0, total) };
-    saved.routeJourney = null;
-  } else if (state.daily) {
-    const same = saved.dailyRecord && challengeKey(saved.dailyRecord.challenge) === challengeKey(state.daily);
-    saved.dailyRecord = { challenge: state.daily, total: Math.max(same ? saved.dailyRecord.total : 0, total) };
-    saved.dailyJourney = null;
-  } else {
-    if (!state.practice && state.results.length === ROUND_COUNT) saved.best = Math.max(saved.best, total);
+  if (state.mode === 'duel' && !state.opponent) {
+    saved.lastDuelRunId = state.run.id;
+    save();
+  }
+  const score = sumScore(),
+    total = roundCount(),
+    mode = state.mode,
+    level = levelById(state.level),
+    opponent = state.opponent;
+  if (mode === 'practice') {
+    if (level && !state.dev) {
+      const previous = saved.records[level.id];
+      saved.records[level.id] = { best: Math.max(previous?.best || 0, score), complete: true };
+    }
+    saved.mobileJourney = null;
     saved.journey = null;
+    state.phase = 'finished';
+    save();
   }
-  save();
-  cleanup();
-  state.screen = "finish";
-  state.phase = "finished";
-  document.body.className = "home-page";
-  const ratio = total / (state.deck.length * 5000);
-  const title =
-    ratio >= 0.8
-      ? "山河与岁月，都认得你。"
-      : ratio >= 0.48
-        ? "你离历史，又近了一步。"
-        : "每次相遇，都是新的发现。";
-  app.innerHTML = `<div class="summary-shell"><header class="site-header"><button id="home" class="brand">${brand}</button><span class="eyebrow">本次时空之旅 · 已完成</span>${fullscreenButton()}</header><main><section class="summary-heading"><span class="eyebrow">旅行手记 / 第 ${saved.visited.length.toString().padStart(2, "0")} 枚足迹</span><h1>${title}</h1><div class="final-score">${total.toLocaleString("zh-CN")}<small>/ ${(state.deck.length * 5000).toLocaleString("zh-CN")} 分</small></div><p>走过 ${state.deck.length} 幕光景，把陌生的年代变成记忆。</p></section><div class="summary-rounds">${state.results
-    .map((result, i) => {
-      const round = rounds.find((r) => r.id === result.id);
-      return `<article class="summary-row"><span class="row-number">0${i + 1}</span><img src="${round.image}" alt="${round.place}历史想象复原"><div><strong>${round.place}</strong><p>${formatYear(round.year)} · ${round.era}</p></div><div class="summary-errors"><span>${result.distance === null ? "未落点" : formatDistance(result.distance)}</span><span>${result.years === null ? "未选年代" : `相差 ${result.years} 年`}</span></div><b>${result.total.toLocaleString("zh-CN")}<small> / 5000</small></b></article>`;
-    })
-    .join(
-      "",
-    )}</div><div class="summary-actions"><button class="secondary" id="journal">${icon("book")}翻看我的足迹</button><button class="primary" id="again">${state.route ? "同题再练 · 回看观察问题" : state.daily ? "同题再练 · 再找一次线索" : state.practice ? "再练这一幕" : "再赴一场相遇"} ${icon("arrow")}</button>${state.route ? '<button class="secondary" id="route-share">邀请同一条旅途</button><button class="secondary" id="next-route">换一条主题旅途</button>' : state.daily ? '<button class="secondary" id="daily-share">分享战绩 · 邀请同题</button>' : ""}</div><p class="summary-best">${state.route ? `${routeInfo(state.route).name} · 收齐三张观察手记 · 本机主题最佳 ${saved.routeRecord.total.toLocaleString("zh-CN")} / 15000 分 · 不计普通与每日纪录` : state.daily ? `${state.daily.day} · 本机同题最佳 ${saved.dailyRecord.total.toLocaleString("zh-CN")} 分 · 重玩已知题，不计普通旅途纪录` : `${state.practice ? "单幕练习不计入五幕纪录 · " : ""}本机五幕最佳 ${saved.best.toLocaleString("zh-CN")} 分`} · 已探索 ${saved.visited.length} / ${rounds.length} 幕</p></main></div>`;
-  on("#home", "click", home);
-  on("#again", "click", () => state.route ? startRoute(state.route, true) : start());
-  on("#journal", "click", journal);
-  on("#daily-share", "click", () => shareDaily(state.daily, total));
-  on("#route-share", "click", () => shareRoute(state.route, total));
-  on("#next-route", "click", () => startRoute(routes[(routes.findIndex(route => route.id === state.route) + 1) % routes.length].id, true));
-  window.scrollTo(0, 0);
+  const next = level ? LEVELS[LEVELS.findIndex((item) => item.id === level.id) + 1] : null;
+  shell(
+    '旅途落款',
+    `<p class="eyebrow center">${mode === 'practice' ? '本地旅途' : mode === 'daily' ? '今日全站竞逐' : '好友 PK'} · 已完成</p><div class="finish-stamp" aria-hidden="true">山河<br>已阅</div><h1 class="page-title center">${opponent ? (score > opponent.score ? '这一局，你更胜一筹。' : score === opponent.score ? '山河相逢，不分高下。' : '好对手，值得再赴一约。') : '把这一刻，<br>写进你的手记。'}</h1><div class="result-score"><strong>${fmt(score)}</strong><span>本局总分 / ${fmt(total * 5000)}</span></div>${opponent ? `<p class="opponent-score">${esc(opponent.nickname)} · ${fmt(opponent.score)} 分</p>` : ''}<div class="score-receipt">${state.results.map((result, index) => `<div><span>第 ${index + 1} 幕${result.timedOut ? ' · 超时' : ''}</span><b>${fmt(mode === 'practice' ? result.total : result.score)}</b></div>`).join('')}</div><div id="finish-actions">${mode === 'practice' ? `<button class="primary full-width" id="finish-next">${next ? '下一关，新的相遇' : '再赴一场旅途'} ${icon('arrow')}</button><button class="secondary full-width" id="again">再练一次</button>` : `<button class="primary full-width" id="share-result">${opponent || mode === 'daily' ? '另开一局，向好友下战书' : '寄出战书，邀友来战'} ${icon('share')}</button><button class="secondary full-width" data-nav="leaderboard">去看山河榜</button>`}</div><p class="art-note">${mode === 'practice' ? (state.dev ? '开发试玩 · 不保存成长与关卡纪录' : level ? `本关最佳 ${fmt(saved.records[level.id]?.best)} 分 · ${next ? '下一小关已解锁' : '九关旅途已完成'}` : '往日旅途已收录') : mode === 'daily' ? '每日正式首局记榜 · 只分享战绩，不公开答案' : '好友对局独立计分 · 不计全站榜'}</p><button class="text-button settings-link" data-nav="home">返回首页 ${icon('arrow')}</button>`,
+    { back: home },
+  );
+  state.phase = 'finished';
+  on('#finish-next', 'click', () => (next ? prepare(next.id) : chapters()));
+  on('#again', 'click', () => (level ? startLocal(level) : chapters()));
+  on('#share-result', 'click', () =>
+    busy('#share-result', async () => {
+      if (opponent || mode === 'daily') return competitionPrepare('duel');
+      const token = generation;
+      const data = await historyApi.invite(state.run.id);
+      if (token === generation) sharePage(data.invite);
+    }),
+  );
 }
-async function shareRoute(id, total = null) {
-  const route = routeInfo(id);
-  const text = `此时·此地「${route.name}」三幕旅途${total === null ? '' : ` · 我收齐三张观察手记，得 ${total} / 15000 分`}。从画面找线索，一起走同样的路线！`;
-  return shareInvitation(routeUrl(location, id), text, `此时·此地 · ${route.name}`);
+function sharePage(invite) {
+  const link = invitationUrl(invite.code);
+  shell(
+    '寄出一封战书',
+    `<div class="prepare-compass">${icon('share')}</div><p class="eyebrow center">此时此地 · 好友 PK</p><h1 class="page-title center">我的直觉，<br>等你来超越。</h1><div class="invitation-score"><span>我已得分</span><strong>${fmt(invite.host?.score)}</strong><small>/ 25,000 分</small></div><button class="primary full-width" id="share-invite">分享给朋友 ${icon('share')}</button><button class="secondary full-width" id="copy-invite">复制战书链接</button><div class="share-ticket"><label for="share-link">专属战书链接</label><input readonly id="share-link" value="${esc(link)}"><p>五幕同题 · 24 小时有效 · 不含答案</p></div><p class="art-note" id="share-status" role="status">好友打开链接，即可接下这封战书。</p><section class="challenger-section"><div class="challenger-heading"><h2>战书回音</h2><button class="text-button" id="refresh-challengers">刷新 ${icon('arrow')}</button></div><div id="challenger-list">${challengersMarkup(invite)}</div></section>`,
+    { back: challenge },
+  );
+  on('#copy-invite', 'click', () => busy('#copy-invite', () => copyLink(link)));
+  on('#refresh-challengers', 'click', () =>
+    busy('#refresh-challengers', async () => {
+      const token = generation;
+      const data = await historyApi.inspect(invite.code);
+      if (token === generation) $('#challenger-list').innerHTML = challengersMarkup(data.invite);
+    }),
+  );
+  on('#share-invite', 'click', () =>
+    busy('#share-invite', async () => {
+      if (sharePending) return;
+      const token = generation;
+      sharePending = true;
+      try {
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: '此时此地 · 一封好友战书',
+              text: `五幕历史，我得了 ${fmt(invite.host?.score)} 分。你能认出何时何地吗？`,
+              url: link,
+            });
+            return;
+          } catch (error) {
+            if (token !== generation) return;
+            if (error.name === 'AbortError') return toast('战书已保留，随时可以再分享。');
+          }
+        }
+        if (token === generation) await copyLink(link);
+      } finally {
+        sharePending = false;
+      }
+    }),
+  );
 }
-async function shareDaily(challenge, total = null) {
-  const link = challengeUrl(location, challenge);
-  const text = `${challenge.day} 此时·此地每日五幕 · ${challenge.region === 'china' ? '中国足迹' : '世界漫游'} · ${challenge.timed ? '90 秒挑战' : '不限时'}${total === null ? '' : ` · 我得了 ${total} / 25000 分`}。一起观察同样的历史线索！`;
-  return shareInvitation(link, text, '此时·此地 · 每日五幕');
+function challengersMarkup(invite) {
+  return invite.challengers?.length
+    ? `<div class="challenger-list">${invite.challengers.map((challenger) => `<div><span><strong>${esc(challenger.nickname)}</strong><small>${challenger.score > invite.host.score ? '超越了你的直觉' : challenger.score === invite.host.score ? '与你并列' : '已赴这一场约'}</small></span><b>${fmt(challenger.score)}</b></div>`).join('')}</div>`
+    : '<p class="challenger-empty">还没有好友完成挑战。寄出战书，等一份回音。</p>';
 }
-async function shareInvitation(link, text, title) {
-  if (sharePending) return;
-  const sequence = ++shareSequence, token = generation;
-  const current = () => sequence === shareSequence && token === generation;
-  if (navigator.share) {
-    sharePending = true;
-    try { await navigator.share({ title, text, url: link }); if (current()) toast('已打开同题分享。'); return; }
-    catch (error) { if (!current()) return; if (error?.name === 'AbortError') { toast('已取消分享，旅途进度已保留。'); return; } }
-    finally { sharePending = false; }
+async function copyLink(link) {
+  const token = generation;
+  try {
+    await navigator.clipboard.writeText(link);
+    if (token !== generation) return;
+    if ($('#share-status')) $('#share-status').textContent = '战书链接已复制，发给朋友就能开局。';
+    toast('战书链接已复制。');
+  } catch {
+    if (token !== generation) return;
+    $('#share-link')?.focus();
+    $('#share-link')?.select();
+    if ($('#share-status')) $('#share-status').textContent = '请长按选中的链接，复制后发给朋友。';
   }
-  if (!current()) return;
-  const dialog = modal('邀朋友，走同一条旅途', `<p>${escape(text)}</p><label for="daily-link">同题链接</label><input class="daily-link" id="daily-link" type="text" readonly value="${escape(link)}"><p class="muted" id="share-status" role="status">链接只有主题或日期与旅途规则，不包含场景答案。</p><button class="primary" id="copy-daily">复制同题链接</button>`);
-  const field = dialog.querySelector('#daily-link');
-  field.select();
-  dialog.querySelector('#copy-daily').onclick = async () => {
-    const active = () => current() && dialog.isConnected && dialog.open;
-    try { await navigator.clipboard.writeText(link); if (active()) dialog.querySelector('#share-status').textContent = '同题链接已复制。'; }
-    catch { if (active()) { field.focus(); field.select(); dialog.querySelector('#share-status').textContent = '请长按或使用浏览器复制选中的链接。'; } }
-  };
 }
-home();
-if (routeInvitation.route) startRoute(routeInvitation.route);
-if (invitation.error || routeInvitation.error) toast('同题链接主题、日期、版本或规则无效；原旅途进度已保留。');
+window.addEventListener('resize', () => {
+  if (state.screen === 'game') setView(state.view);
+});
+window.addEventListener('pagehide', remember);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.screen === 'game') tick();
+});
+window.SmallGamesDev?.registerActions([
+  {
+    id: 'history-unlock-practice',
+    label: '解锁全部练习关卡（试玩）',
+    run: () => {
+      if (!window.SmallGamesDev.isEnabled()) return;
+      devUnlock = true;
+      chapters();
+    },
+  },
+]);
+window.SmallGamesDev?.registerSnapshot(() => ({
+  screen: state.screen,
+  mode: state.mode,
+  phase: state.phase,
+  chapter: state.level,
+  index: state.index,
+  completed: completed(),
+  practiceUnlocked: devUnlock,
+}));
+const invite = new URLSearchParams(location.search).get('invite');
+if (invite && /^[a-zA-Z0-9_-]{8,100}$/.test(invite)) invitation(invite);
+else home();

@@ -1,0 +1,16 @@
+{
+  "id": "giza",
+  "year": -1250,
+  "lat": 29.979,
+  "lng": 31.134,
+  "tolerance": 250,
+  "clue": "巨大的石砌陵墓伫立沙原，风沙已经掠过它们很久。注意旅人的衣物和牲畜。",
+  "image": "assets/giza.webp",
+  "region": "world",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

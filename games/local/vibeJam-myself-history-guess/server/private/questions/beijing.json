@@ -1,0 +1,16 @@
+{
+  "id": "beijing",
+  "year": 1420,
+  "lat": 39.916,
+  "lng": 116.397,
+  "tolerance": 15,
+  "clue": "朱红的宫墙与金色屋顶沿中轴展开。新修的殿宇前，官员正走过广场。",
+  "image": "assets/beijing.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

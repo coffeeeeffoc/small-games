@@ -1,0 +1,16 @@
+{
+  "id": "shanghai",
+  "year": 1930,
+  "lat": 31.239,
+  "lng": 121.49,
+  "tolerance": 10,
+  "clue": "钟楼俯瞰江面，轮船与木帆船相遇。岸上有早期汽车，也有人力车。",
+  "image": "assets/shanghai.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

@@ -94,7 +94,7 @@ export const homeControls = {
   'h5-security': '[data-action="start"]',
   'letters-words2': '#focus-button',
   'multi-battle': '[data-action="new"]',
-  'vibeJam-myself-history-guess': '#start',
+  'vibeJam-myself-history-guess': ['#start', '#begin-level'],
   'vibeJam-myself-nullrange': '#deploy',
 };
 

@@ -1,0 +1,16 @@
+{
+  "id": "angkor",
+  "year": 1150,
+  "lat": 13.412,
+  "lng": 103.867,
+  "tolerance": 75,
+  "clue": "长长石道跨过水面，远处五座塔冠像含苞莲花。栏杆上的蛇形雕刻与热带棕榈值得留意。",
+  "image": "assets/angkor.webp",
+  "region": "world",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

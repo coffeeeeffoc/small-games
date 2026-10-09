@@ -7,6 +7,8 @@
     "dev": "vite --host 0.0.0.0 --port 4175 --strictPort",
     "build": "vite build --base=./",
     "preview": "vite preview --host 0.0.0.0 --port 4175 --strictPort",
+    "server": "node server/index.mjs",
+    "test:server": "node --test tests/server*.test.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node scripts/playtest.mjs",
     "test:challenge:browser": "node scripts/challenge-playtest.mjs",

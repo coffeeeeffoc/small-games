@@ -1,0 +1,16 @@
+{
+  "id": "paris",
+  "year": 1889,
+  "lat": 48.858,
+  "lng": 2.294,
+  "tolerance": 5,
+  "clue": "一座崭新的铁塔耸立在博览会场上。人群撑着阳伞，马车经过宽阔步道。",
+  "image": "assets/paris.webp",
+  "region": "world",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

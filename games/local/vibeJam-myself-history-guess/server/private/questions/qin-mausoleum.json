@@ -1,0 +1,16 @@
+{
+  "id": "qin-mausoleum",
+  "year": -210,
+  "lat": 34.385,
+  "lng": 109.278,
+  "tolerance": 25,
+  "clue": "工匠在木架旁修整陶制甲士，已经成形的人俑排成队列。此时它们还没有成为地下遗迹。",
+  "image": "assets/qin-mausoleum.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

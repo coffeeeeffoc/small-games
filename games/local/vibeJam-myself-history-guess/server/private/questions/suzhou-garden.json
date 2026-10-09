@@ -1,0 +1,16 @@
+{
+  "id": "suzhou-garden",
+  "year": 1550,
+  "lat": 31.324,
+  "lng": 120.629,
+  "tolerance": 100,
+  "clue": "白墙灰瓦围起池塘，玲珑湖石与竹影隔开视线。亭内的人正把眼前山水落在纸上。",
+  "image": "assets/suzhou-garden.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

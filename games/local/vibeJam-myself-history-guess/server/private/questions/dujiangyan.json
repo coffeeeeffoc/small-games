@@ -1,0 +1,16 @@
+{
+  "id": "dujiangyan",
+  "year": -250,
+  "lat": 31.003,
+  "lng": 103.608,
+  "tolerance": 50,
+  "clue": "山口急流被低矮堤头分向两侧，工人以竹笼装石护岸。这里没有拦断河流的高坝。",
+  "image": "assets/dujiangyan.webp",
+  "region": "china",
+  "difficulty": 3,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

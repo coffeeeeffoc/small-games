@@ -1,0 +1,16 @@
+{
+  "id": "petra",
+  "year": 100,
+  "lat": 30.328,
+  "lng": 35.444,
+  "tolerance": 100,
+  "clue": "赭红峡谷忽然敞开，整面岩壁被雕成柱廊立面。载着货物的驼队停在沙地上。",
+  "image": "assets/petra.webp",
+  "region": "world",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

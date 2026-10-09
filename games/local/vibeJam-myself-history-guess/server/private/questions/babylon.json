@@ -1,0 +1,16 @@
+{
+  "id": "babylon",
+  "year": -575,
+  "lat": 32.543,
+  "lng": 44.421,
+  "tolerance": 60,
+  "clue": "蓝色釉砖包裹城门，浮雕动物沿墙排列。泥砖住宅和驮货驴车延伸到棕榈树下。",
+  "image": "assets/babylon.webp",
+  "region": "world",
+  "difficulty": 3,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

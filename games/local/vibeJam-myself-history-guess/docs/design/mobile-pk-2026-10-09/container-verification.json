@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "testedAt": "2026-10-09T16:31:52.196Z",
+  "runtime": "Docker Node 24, read-only root filesystem, non-root user, named SQLite volume",
+  "checks": [
+    "image build",
+    "health",
+    "authenticated session",
+    "authoritative scored answer",
+    "container restart restores run and score",
+    "recreated container with updated image restores identity and score"
+  ],
+  "notVerified": [
+    "public HTTPS deployment",
+    "real identity-provider exchange",
+    "load testing",
+    "physical mobile devices"
+  ]
+}

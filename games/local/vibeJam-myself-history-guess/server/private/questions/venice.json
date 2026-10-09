@@ -1,0 +1,16 @@
+{
+  "id": "venice",
+  "year": 1500,
+  "lat": 45.438,
+  "lng": 12.335,
+  "tolerance": 100,
+  "clue": "拱廊建筑直接临水，小舟与货船穿梭其间。商人在石岸搬布，街道似乎由水铺成。",
+  "image": "assets/venice.webp",
+  "region": "world",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

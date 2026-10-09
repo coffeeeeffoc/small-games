@@ -1,0 +1,16 @@
+{
+  "id": "longmen",
+  "year": 675,
+  "lat": 34.555,
+  "lng": 112.469,
+  "tolerance": 50,
+  "clue": "河谷石壁上，一尊巨佛俯视着脚下的工匠。木架和石屑提醒你，眼前的造像仍是新作。",
+  "image": "assets/longmen.webp",
+  "region": "china",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

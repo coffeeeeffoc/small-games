@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const root = fileURLToPath(new URL('../', import.meta.url));
-const out = root + 'docs/design/native-2026-10-06/'; await mkdir(out, { recursive: true });
-const mime = { '.js': 'text/javascript', '.json': 'application/json', '.html': 'text/html', '.webp': 'image/webp' };
+const out = root + 'docs/design/native-privacy-2026-10-09/'; await mkdir(out, { recursive: true });
+const mime = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.html': 'text/html', '.webp': 'image/webp' };
 const server = createServer(async (req, res) => {
   try { const url = new URL(req.url, 'http://local'), path = url.pathname === '/' ? 'scripts/native-preview.html' : url.pathname.startsWith('/assets/') ? 'public' + url.pathname : url.pathname.slice(1);
     if (path.includes('..')) throw new Error('invalid path'); const ext = path.slice(path.lastIndexOf('.')); res.setHeader('Content-Type', mime[ext] || 'application/octet-stream'); res.end(await readFile(root + path));
@@ -37,10 +37,10 @@ try {
     await page.evaluate(() => { nativeLifecycle('Hide'); nativeLifecycle('Show'); }); assert.equal(await has('旅途已暂停'), true); await tap('继续观察');
     await tap('地图选点'); await capture('map-actual'); await page.touchscreen.tap(width / 2, 290); await page.waitForTimeout(120);
     await tap('输入猜测年代'); await capture('year-actual'); await tap('1'); await tap('0'); await tap('0'); await tap('完成年代输入'); await tap('提交地点与年代');
-    await capture('reveal-actual'); await tap('史料与解说'); await capture('learn-actual'); await tap('返回本幕'); await tap('前往下一幕'); await capture('summary-actual');
-    await page.reload(); await page.waitForFunction(() => window.nativeGame); await tap('继续存档'); assert.equal(await has('史料与解说'), true);
+    await capture('reveal-actual'); await tap('评分手记'); await capture('learn-actual'); await tap('返回本幕'); await tap('前往下一幕'); await capture('summary-actual');
+    await page.reload(); await page.waitForFunction(() => window.nativeGame); await tap('继续存档'); assert.equal(await has('评分手记'), true);
     await tap('暂停'); await tap('保存并返回主页'); await tap('开始五幕旅途'); await page.waitForTimeout(320); await capture('timed-actual');
-    await page.evaluate(() => nativeLifecycle('Hide')); const remaining = await page.evaluate(() => JSON.parse(localStorage.getItem('here-and-then:native:v1')).journey.remaining); assert.ok(remaining < 90 && remaining > 85);
+    await page.evaluate(() => nativeLifecycle('Hide')); const remaining = await page.evaluate(() => JSON.parse(localStorage.getItem('here-and-then:native:v1')).journey.remaining); assert.ok(remaining < 25 && remaining > 20);
     await page.evaluate(() => nativeLifecycle('Show')); await page.waitForTimeout(250); await page.evaluate(() => nativeLifecycle('Hide')); assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('here-and-then:native:v1')).journey.remaining), remaining);
     await page.evaluate(() => nativeLifecycle('Show')); await tap('继续观察'); await page.waitForTimeout(220); await page.evaluate(() => nativeLifecycle('Hide')); assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('here-and-then:native:v1')).journey.remaining) < remaining);
     assert.deepEqual(errors, []); await cdp.detach(); await page.close();

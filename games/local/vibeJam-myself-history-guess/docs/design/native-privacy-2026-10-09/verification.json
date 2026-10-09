@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-09",
+  "environment": "Debian Chromium 151 desktop browser with touch emulation; not a physical native device",
+  "nativeViewportWidths": [
+    320,
+    390,
+    430
+  ],
+  "commands": [
+    "node --test games/local/vibeJam-myself-history-guess/tests/competition.test.mjs games/local/vibeJam-myself-history-guess/tests/native.test.mjs",
+    "node scripts/native-browser.mjs",
+    "CHROMIUM_PATH=/usr/bin/chromium node scripts/competition-playtest.mjs"
+  ],
+  "passed": [
+    "8 targeted Node tests",
+    "native home / levels / play / map / keypad / score / score notes / pause / help / settings / summary",
+    "native canceled / sliding / multi-touch input does not activate controls",
+    "native background / foreground and saved journey resume",
+    "Canvas image load / pan / zoom / geographic input / hint / next question / BCE landscape keypad",
+    "recursive public answer field denial before and after scoring",
+    "server 25-second deadline boundary / late answer / persisted clock restoration",
+    "score-only Canvas and notes inspected at 320 px"
+  ],
+  "compatibility": {
+    "legacyCompetition": "same five-scene pool with frozen per-room order; 25 seconds per question and 450-second total room cap including score reading; new rule version isolates old board and existing rooms",
+    "nativePractice": "local offline practice remains pausable and excluded from ranked play; existing local scene data is not a secret question bank; old timed saves clamp remaining time to 25 seconds"
+  },
+  "limits": [
+    "No shared PostgreSQL or actual mini-game platform acceptance in these browser harnesses",
+    "New server API and Web mobile interface validated separately by their owners"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "florence",
+  "year": 1475,
+  "lat": 43.773,
+  "lng": 11.256,
+  "tolerance": 50,
+  "clue": "巨大的红砖穹顶压住天际线，旁边是细长钟塔。石匠和运货者仍在广场上忙碌。",
+  "image": "assets/florence.webp",
+  "region": "world",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "dunhuang",
+  "year": 850,
+  "lat": 40.04,
+  "lng": 94.803,
+  "tolerance": 80,
+  "clue": "石窟开凿在沙色崖壁上，往来的僧侣与商队在绿洲停下脚步。",
+  "image": "assets/dunhuang.webp",
+  "region": "china",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

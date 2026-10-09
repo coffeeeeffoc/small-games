@@ -1,0 +1,16 @@
+{
+  "id": "istanbul",
+  "year": 550,
+  "lat": 41.008,
+  "lng": 28.98,
+  "tolerance": 75,
+  "clue": "一座巨大的穹顶与半穹顶叠在城中，街道上有晚期古代的衣袍。仔细看，建筑旁并没有宣礼塔。",
+  "image": "assets/istanbul.webp",
+  "region": "world",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

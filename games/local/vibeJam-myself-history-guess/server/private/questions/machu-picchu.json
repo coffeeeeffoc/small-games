@@ -1,0 +1,16 @@
+{
+  "id": "machu-picchu",
+  "year": 1450,
+  "lat": -13.163,
+  "lng": -72.545,
+  "tolerance": 75,
+  "clue": "层层梯田贴着陡峭山坡，石墙上的茅顶还很完整。背篓、织物与美洲驼出现在窄小台阶间。",
+  "image": "assets/machu-picchu.webp",
+  "region": "world",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

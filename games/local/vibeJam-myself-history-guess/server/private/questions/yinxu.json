@@ -1,0 +1,16 @@
+{
+  "id": "yinxu",
+  "year": -1200,
+  "lat": 36.126,
+  "lng": 114.313,
+  "tolerance": 100,
+  "clue": "青铜礼器旁升起炉火，夯土台基上是木构殿堂。桌边刻痕与器物花纹值得细看。",
+  "image": "assets/yinxu.webp",
+  "region": "china",
+  "difficulty": 3,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

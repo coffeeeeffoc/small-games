@@ -1,0 +1,16 @@
+{
+  "id": "pingyao",
+  "year": 1850,
+  "lat": 37.204,
+  "lng": 112.177,
+  "tolerance": 40,
+  "clue": "灰砖院落沿街排开，门内有算盘和账册。骡车停在铺前，商人正在结算远途买卖。",
+  "image": "assets/pingyao.webp",
+  "region": "china",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

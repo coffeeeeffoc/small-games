@@ -1,0 +1,16 @@
+{
+  "id": "kaifeng",
+  "year": 1100,
+  "lat": 34.797,
+  "lng": 114.307,
+  "tolerance": 50,
+  "clue": "木桥横跨繁忙的河道。看看货船、沿街的铺子，以及行人的衣着。",
+  "image": "assets/kaifeng.webp",
+  "region": "china",
+  "difficulty": 2,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "rome",
+  "year": 125,
+  "lat": 41.892,
+  "lng": 12.485,
+  "tolerance": 75,
+  "clue": "石柱支起完整的神庙，广场上人群熙攘。这里还不是供人参观的遗址。",
+  "image": "assets/rome.webp",
+  "region": "world",
+  "difficulty": 1,
+  "view": {
+    "yaw": 180,
+    "pitch": 0,
+    "fov": 75
+  }
+}

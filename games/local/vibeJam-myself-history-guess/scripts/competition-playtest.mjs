@@ -5,7 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import rule from '../../../../services/runtime-api/rules/history.mjs';
 
 const url = process.env.PLAYTEST_URL || 'http://127.0.0.1:4175/';
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chrome' }) });
 const errors = [], state = rule.initial(1), actions = [];
 await mkdir('artifacts', { recursive: true });
 try {
@@ -54,9 +54,11 @@ try {
   await tap('提交地点与年代');
   await page.waitForFunction(() => window.publicState.phase === 'revealed');
   assert.equal(state.answers.length, 1); assert.equal(state.answers[0].penalty, 500);
-  assert.equal(state.answers[0].guessedYear, 742);
+  assert.equal(actions.find(action => action.type === 'guess').year, 742);
+  assert.deepEqual(Object.keys(rule.view(state).answer).sort(), ['penalty', 'score', 'timedOut']);
+  assert.equal(await page.evaluate(() => window.drawn.some(item => /公里误差|年误差|对照地图|返回解说/.test(item.text))), false);
   await page.screenshot({ path: 'artifacts/competition-revealed.png' });
-  await tap('对照地图'); await tap('返回解说'); await tap('前往下一幕');
+  await tap('前往下一幕');
   await page.waitForFunction(() => window.publicState.round === 2);
   await tap('输入猜测年代'); await tap('改为公元前');
   for (const digit of ['5', '7', '5']) await tap(digit);
@@ -68,5 +70,5 @@ try {
   assert.deepEqual(errors, []);
   await writeFile('artifacts/competition-playtest.json', JSON.stringify({ testedAt: new Date().toISOString(), url,
     type: 'real browser Canvas and rule harness; no shared backend/platform claim', actions, errors, result: rule.view(state) }, null, 2));
-  console.log('PASS: real image load/pan/zoom, geographic map input, keypad, hint penalty, server rule reveal, next round and BCE landscape input. Shared PostgreSQL/PK/platform acceptance remains separate.');
+  console.log('PASS: real image load/pan/zoom, geographic map input, keypad, hint penalty, server score-only result, next round and BCE landscape input. Shared PostgreSQL/PK/platform acceptance remains separate.');
 } finally { await browser.close(); }

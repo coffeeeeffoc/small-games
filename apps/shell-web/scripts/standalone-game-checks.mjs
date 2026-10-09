@@ -1645,7 +1645,11 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#search-results button').first());
     await frame.locator('#year-number').fill('1420');
     await click(frame.locator('#submit'));
-    await expect(frame.locator('#result-overlay')).toBeVisible();
+    await expect(frame.getByRole('button', { name: '前往下一幕' })).toBeVisible();
+    await expect(frame.locator('.result-score')).toContainText('本幕评分');
+    await expect(frame.locator('.page-content')).not.toContainText(
+      /公里误差|年误差|正确答案|对照地图/,
+    );
   } else if (id === 'vibeJam-myself-nullrange') {
     await expect(frame.locator('#hud')).toBeVisible();
     await click(frame.locator('#missile'));
