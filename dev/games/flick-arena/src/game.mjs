@@ -85,6 +85,7 @@ export function createGame(target, options = {}) {
     app.particles = [];
     frames = [];
     replayFrames = [];
+    resultState = null;
     screen('playing');
   }
   function snapshot() {
@@ -195,11 +196,11 @@ export function createGame(target, options = {}) {
       if (matchTime >= 1.15) begin();
     }
     if (app.screen === 'replay') {
-      replayIndex += dt * 60;
+      replayIndex += dt / physics.step;
       app.state = JSON.parse(
         JSON.stringify(replayFrames[Math.min(replayFrames.length - 1, Math.floor(replayIndex))]),
       );
-      if (replayIndex >= replayFrames.length + 60) {
+      if (replayIndex >= replayFrames.length + 1 / physics.step) {
         app.state = resultState;
         screen('result');
       }
@@ -218,16 +219,24 @@ export function createGame(target, options = {}) {
           botTime = 0;
         }
       }
-      if (s.phase === 'moving') {
+      if (s.phase === 'moving' || s.phase === 'shrinking') {
         accumulator += dt;
         while (accumulator >= physics.step) {
           step(s);
           accumulator -= physics.step;
+          // Replays use the physics clock, so their speed is independent of display refresh rate.
+          frames.push(snapshot());
+          if (s.phase !== 'moving' && s.phase !== 'shrinking') {
+            accumulator = 0;
+            break;
+          }
         }
-        frames.push(snapshot());
-        app.trails = s.discs
-          .filter((d) => d.alive && Math.hypot(d.vx, d.vy) > 40)
-          .map((d) => ({ id: d.id, x: d.x - d.vx * 0.045, y: d.y - d.vy * 0.045 }));
+        app.trails =
+          s.phase === 'moving'
+            ? s.discs
+                .filter((d) => d.alive && Math.hypot(d.vx, d.vy) > 40)
+                .map((d) => ({ id: d.id, x: d.x - d.vx * 0.045, y: d.y - d.vy * 0.045 }))
+            : [];
       } else {
         accumulator = 0;
         app.trails = [];
@@ -245,9 +254,11 @@ export function createGame(target, options = {}) {
           toastTime = 1.6;
           if (e.id === 0)
             app.reason =
-              s.lastShot?.actor === 0
-                ? '这一弹用力过猛，自己滑出了擂台'
-                : '被对手撞到台外，下次给落点留些余地';
+              e.reason === 'ring'
+                ? '收圈时留在了外侧，下次提前向内走位'
+                : s.lastShot?.actor === 0
+                  ? '这一弹用力过猛，自己滑出了擂台'
+                  : '被对手撞到台外，下次给落点留些余地';
         }
         if (e.type === 'end') {
           replayFrames = frames;
