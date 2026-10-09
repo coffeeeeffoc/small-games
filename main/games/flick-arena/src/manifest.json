@@ -1,0 +1,10 @@
+{
+  "gameId": "flick-arena",
+  "version": "0.1.0",
+  "gameContractVersion": 1,
+  "contentSchemaVersion": 1,
+  "capabilities": ["content", "storage"],
+  "loadModes": ["native-package"],
+  "entry": "game.js",
+  "integrity": "builtin:flick-arena@0.1.0"
+}

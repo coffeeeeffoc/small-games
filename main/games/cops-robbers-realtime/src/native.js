@@ -46,7 +46,11 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     hits = [],
     width,
     height,
-    ratio;
+    ratio,
+    originX = 0,
+    originY = 0,
+    physicalWidth,
+    physicalHeight;
   let stopped = false,
     hidden = false,
     pk = null,
@@ -56,15 +60,26 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     serverRecord = null,
     serial = 0;
   let submitting = null;
+  let gesture = null;
+  const channel = sdk.channelEntry; let channelMessage = '';
+  const runChannel = action => { if (action.available === false) { channelMessage = '宿主暂不支持此入口'; draw(); return; } channelMessage = ''; Promise.resolve().then(() => action.run()).catch(error => { channelMessage = error.message; }).finally(draw); };
+  const hasTouchStart = typeof sdk.onTouchStart === 'function';
   const art = sdk.createImage?.();
   if (art) art.src = 'home-city.png';
   function resize() {
+    gesture = null;
     const info = sdk.getSystemInfoSync();
-    width = info.windowWidth;
-    height = info.windowHeight;
+    physicalWidth = info.windowWidth;
+    physicalHeight = info.windowHeight;
+    let capsule;
+    try { capsule = sdk.getMenuButtonBoundingClientRect?.(); } catch {}
+    originX = Math.max(0, info.safeArea?.left || 0);
+    originY = Math.max(0, info.safeArea?.top || 0, capsule?.bottom || 0);
+    width = Math.max(1, (info.safeArea?.right ?? physicalWidth) - originX);
+    height = Math.max(1, (info.safeArea?.bottom ?? physicalHeight) - originY);
     ratio = Math.min(info.pixelRatio || 1, 2);
-    canvas.width = width * ratio;
-    canvas.height = height * ratio;
+    canvas.width = physicalWidth * ratio;
+    canvas.height = physicalHeight * ratio;
   }
   resize();
   function persist() {
@@ -129,7 +144,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     else ctx.rect(x, y, w, 44);
     ctx.fill();
     text(label, x + 12, y + 22, 14, active ? '#fff9e6' : '#203c36');
-    hits.push({ x, y, w, h: 44, action });
+    hits.push({ label, x, y, w, h: 44, action });
   }
   function home() {
     page = 'home';
@@ -209,7 +224,8 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     if (stopped || hidden || page === 'pk') return;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.fillStyle = '#f6f1df';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, physicalWidth, physicalHeight);
+    ctx.translate(originX, originY);
     hits = [];
     if (page === 'home') {
       if (art?.width) ctx.drawImage(art, width * 0.34, 0, width * 0.66, height - 52);
@@ -266,6 +282,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
         help: '玩法说明',
         pause: '暂停',
         result: '本局结束',
+        channel: 'B站入口',
       }[page],
       112,
       34,
@@ -329,11 +346,11 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
           },
         );
       }
-      text('我的最佳 ' + formatRecord(localBest()), x, mode === 'quick' ? 137 : 232, 13);
+      text('我的最佳 ' + formatRecord(localBest()), x, mode === 'quick' ? 137 : Math.min(232, height - 93), 13);
       text(
         '服务器最快 ' + (serverRecord ? formatRecord(serverRecord.fastestMs / 1000) : '暂未连接'),
         x,
-        mode === 'quick' ? 166 : 256,
+        mode === 'quick' ? 166 : Math.min(256, height - 73),
         13,
       );
       button('开始行动 →', x, height - 58, w, start, true);
@@ -455,14 +472,26 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
         '模式、角色、先手和轮换规则在选关页设置。',
         '头像对所有关卡生效；通关纪录按相同配置比较。',
       ].forEach((line, i) => text(line, 24, 84 + i * 32, 15));
+      if (channel) button('B站入口', width - 190, height - 58, 166, () => { page = 'channel'; });
+    }
+    if (page === 'channel' && channel) {
+      const snapshot = channel.getSnapshot(); text(`收藏签 ${snapshot.count || 0} 枚`, 24, 86);
+      channel.menuActions.forEach((action, i) => button(action.label, 24, 116 + i * 54, Math.min(320, width - 48), () => runChannel(action)));
+      text(channelMessage || snapshot.message || '', 24, 244, 14);
+      button('返回帮助', width - 190, height - 58, 166, () => { page = 'help'; });
     }
   }
   function touch(event) {
     if (stopped || hidden || page === 'pk') return;
     const point = event.changedTouches?.[0] || event.touches?.[0];
     if (!point) return;
-    const x = point.clientX ?? point.x,
-      y = point.clientY ?? point.y;
+    const x = (point.clientX ?? point.x) - originX,
+      y = (point.clientY ?? point.y) - originY;
+    const start = gesture;
+    gesture = null;
+    if (event.touches?.length || event.changedTouches?.length > 1) return;
+    if (hasTouchStart && (!start || start.page !== page || start.id !== (point.identifier ?? 0) || start.moved || Math.hypot(x - start.x, y - start.y) > 12)) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > width || y > height) return;
     const hit = hits.find(
       (item) => x >= item.x && x <= item.x + item.w && y >= item.y && y <= item.y + item.h,
     );
@@ -511,6 +540,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     draw();
   }
   const hide = () => {
+    gesture = null;
     hidden = true;
     if (page === 'game') {
       game.phase = 'paused';
@@ -518,24 +548,50 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     }
   };
   const show = () => {
+    gesture = null;
     hidden = false;
     last = Date.now();
     draw();
   };
+  const touchStart = (event) => {
+    gesture = null;
+    if (stopped || hidden || page === 'pk' || event.touches?.length > 1 || event.changedTouches?.length > 1) return;
+    const point = event.changedTouches?.[0] || event.touches?.[0];
+    if (!point) return;
+    gesture = { x: (point.clientX ?? point.x) - originX, y: (point.clientY ?? point.y) - originY, id: point.identifier ?? 0, page, moved: false };
+  };
+  const touchMove = (event) => {
+    if (!gesture) return;
+    if (event.touches?.length > 1 || stopped || hidden || page !== gesture.page) { gesture = null; return; }
+    const point = event.changedTouches?.find((item) => (item.identifier ?? 0) === gesture.id);
+    if (point && Math.hypot((point.clientX ?? point.x) - originX - gesture.x, (point.clientY ?? point.y) - originY - gesture.y) > 12) gesture.moved = true;
+  };
+  const touchCancel = () => { gesture = null; };
+  sdk.onTouchStart?.(touchStart);
+  sdk.onTouchMove?.(touchMove);
+  sdk.onTouchCancel?.(touchCancel);
   sdk.onTouchEnd(touch);
   sdk.onHide(hide);
   sdk.onShow(show);
   sdk.onWindowResize?.(resize);
+  const channelOff = channel?.subscribe?.(() => { if (page === 'channel') draw(); });
   const interval = setInterval(frame, 1000 / 60);
   draw();
   const query = sdk.getLaunchOptionsSync?.()?.query;
   if (query?.matchId || query?.pk) openPK();
   return {
     canvas,
+    getState: () => ({ page, phase: game?.phase, ticks }),
+    getLayout: () => ({ width, height, originX, originY, hits: hits.map(({ action, ...hit }) => hit) }),
     stop() {
       stopped = true;
       clearInterval(interval);
       pk?.stop();
+      channelOff?.();
+      gesture = null;
+      sdk.offTouchStart?.(touchStart);
+      sdk.offTouchMove?.(touchMove);
+      sdk.offTouchCancel?.(touchCancel);
       sdk.offTouchEnd(touch);
       sdk.offHide(hide);
       sdk.offShow(show);

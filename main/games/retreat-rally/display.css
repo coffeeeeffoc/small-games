@@ -1,0 +1,83 @@
+#game {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--game-width, 100vw);
+  height: var(--game-height, 100dvh);
+}
+#game[data-rotated='true'] {
+  transform-origin: top left;
+  transform: translateX(var(--game-height)) rotate(90deg);
+}
+#game[data-compact='true'] .screen {
+  padding: 18px 5%;
+}
+#game[data-rotated='true'] .home-copy h1 {
+  font-size: clamp(42px, 12vh, 78px);
+}
+#game[data-rotated='true'] .home-copy {
+  top: 19%;
+}
+#game[data-rotated='true'] .tagline {
+  font-size: 20px;
+  margin: 10px 0;
+}
+#game[data-rotated='true'] .title-line {
+  margin: 12px 0 8px;
+}
+#game[data-rotated='true'] .home-note {
+  font-size: 10px;
+}
+#game[data-rotated='true'] .primary {
+  margin-top: 13px;
+  width: 230px;
+  min-height: 47px;
+  font-size: 17px;
+  padding: 8px 25px;
+}
+#game[data-rotated='true'] .mode-button {
+  min-height: 61px;
+  font-size: 14px;
+  padding: 8px 10px;
+}
+#game[data-rotated='true'] .mode-button small {
+  font-size: 9px;
+}
+#game[data-rotated='true'] .level-medallion {
+  width: 95px;
+  height: 95px;
+  font-size: 48px;
+}
+#game[data-rotated='true'] .level-card h3 {
+  font-size: 18px;
+}
+#game[data-rotated='true'] .retreat-button {
+  height: 66px;
+  width: 225px;
+}
+#game[data-rotated='true'] .retreat-button b {
+  font-size: 24px;
+}
+#game[data-rotated='true'] .army-emblem {
+  width: 75px;
+  height: 75px;
+  font-size: 42px;
+}
+#game[data-rotated='true'] .versus {
+  margin-top: 35px;
+}
+#game[data-rotated='true'] .prepare-note {
+  margin: 8px 0 12px;
+}
+#game[data-rotated='true'] .compact-panel h2 {
+  font-size: 36px;
+}
+@supports (padding: env(safe-area-inset-left)) {
+  .battle-hud {
+    left: max(5%, env(safe-area-inset-left));
+    right: max(5%, env(safe-area-inset-right));
+  }
+  .home-tools {
+    right: max(5%, env(safe-area-inset-right));
+  }
+}

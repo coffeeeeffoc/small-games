@@ -1,0 +1,944 @@
+@import url('./display.css');
+:root {
+  color-scheme: light;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #173b43;
+  background: #142f36;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:focus-visible {
+  outline: 3px solid #2b99de;
+  outline-offset: 4px;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+[hidden] {
+  display: none !important;
+}
+#game {
+  container: game / size;
+  isolation: isolate;
+  overflow: hidden;
+  background: #a8c5b5;
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas,
+.screen,
+.vignette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+canvas {
+  z-index: -3;
+}
+.vignette {
+  z-index: -2;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px #102a3840;
+  background: linear-gradient(0deg, #193d3e30, transparent 35%);
+}
+.screen {
+  padding: 5vh 5vw;
+}
+.home {
+  background: linear-gradient(90deg, #f2e9d9ed 0%, #efe5d5c9 34%, #e9e2d63b 56%, transparent 72%);
+}
+.edition {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  letter-spacing: 4px;
+}
+.seal {
+  display: inline-grid;
+  place-items: center;
+  background: #a74d34;
+  color: #f8e6c5;
+  border: 3px double #edd3a5;
+  font: 18px serif;
+  letter-spacing: 0;
+  width: 35px;
+  height: 35px;
+  transform: rotate(-4deg);
+}
+.home-copy {
+  position: absolute;
+  left: 8%;
+  top: 23%;
+  width: 45%;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 5px;
+  margin: 0 0 14px;
+  color: #626b56;
+}
+.home-copy h1 {
+  font-family: 'STKaiti', 'KaiTi', 'Noto Serif CJK SC', serif;
+  font-weight: 900;
+  font-size: clamp(45px, 7.4vw, 112px);
+  line-height: 1.12;
+  letter-spacing: -4px;
+  margin: 0;
+  white-space: nowrap;
+  text-shadow: 2px 3px 0 #f6e7bf;
+}
+.home-copy h1 span {
+  color: #29585b;
+}
+.home-copy h1 i {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  font: bold 11px serif;
+  letter-spacing: 3px;
+  background: #ad4e35;
+  color: #fff0ca;
+  padding: 8px 5px;
+  margin-left: 15px;
+  transform: rotate(5deg);
+  text-shadow: none;
+}
+.tagline {
+  font:
+    26px 'KaiTi',
+    serif;
+  letter-spacing: 6px;
+  margin: 17px 0;
+}
+.tagline em {
+  font-style: normal;
+  color: #846737;
+}
+.title-line {
+  height: 1px;
+  width: 68%;
+  background: linear-gradient(90deg, #9d8243, transparent);
+  margin: 22px 0 15px;
+}
+.home-note {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #6e735e;
+}
+.button {
+  border: 1px solid #8c6831;
+  border-radius: 8px;
+  min-height: 52px;
+  padding: 13px 35px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  font-size: 19px;
+  box-shadow:
+    inset 0 0 0 3px #f9e2a557,
+    0 5px 0 #77532f,
+    0 8px 20px #1339402b;
+}
+.gold {
+  color: #fff5d8;
+  background: linear-gradient(135deg, #bc9b4b, #8e6b32);
+  text-shadow: 0 2px 1px #59451e;
+}
+.button:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 0 0 3px #f9e2a577,
+    0 2px 0 #77532f;
+}
+.primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 280px;
+  margin-top: 25px;
+}
+.primary span {
+  font-size: 25px;
+  font-weight: 400;
+}
+.text-button {
+  display: block;
+  background: none;
+  border: 0;
+  min-height: 44px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 7px;
+  padding: 8px 0;
+}
+.text-button span {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-left: 20px;
+}
+.home-modes {
+  position: absolute;
+  display: flex;
+  gap: 16px;
+  right: 6%;
+  bottom: 8%;
+  width: 44%;
+}
+.mode-button {
+  background: #eee4ceef;
+  border: 1px solid #b0a078;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-height: 70px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 0 #344e4740;
+  text-align: left;
+  font-weight: bold;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.mode-button small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 6px;
+  color: #757963;
+}
+.mode-button b {
+  margin-left: auto;
+  font-weight: 400;
+  color: #91875d;
+}
+.mode-icon {
+  font-size: 28px;
+  color: #65794e;
+}
+.home-tools {
+  position: absolute;
+  top: 6%;
+  right: 5%;
+  display: flex;
+  gap: 9px;
+}
+.small-button {
+  min-height: 44px;
+  padding: 9px 17px;
+  border: 1px solid #abb39a;
+  background: #f5eddcdc;
+  border-radius: 5px;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.home-footer {
+  position: absolute;
+  bottom: 4%;
+  left: 8%;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: #5d7768;
+}
+.paper-screen {
+  background: linear-gradient(120deg, #f4eadce8, #e8e5d0e8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.page-heading {
+  position: absolute;
+  top: 7%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  align-items: center;
+  gap: 35px;
+}
+.page-heading .eyebrow {
+  margin-bottom: 5px;
+}
+h2 {
+  font:
+    700 36px 'KaiTi',
+    serif;
+  letter-spacing: 5px;
+  margin: 0;
+}
+.page-heading > span {
+  margin-left: auto;
+  font-size: 12px;
+  color: #747e66;
+}
+.level-list {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 40px;
+  width: 90%;
+  margin-top: 45px;
+  position: relative;
+}
+.level-list:before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 8%;
+  width: 84%;
+  border-top: 2px dashed #b29354;
+  z-index: -1;
+}
+.level-card {
+  border: 0;
+  background: transparent;
+  text-align: center;
+  padding: 6px 12px;
+  min-width: 160px;
+  position: relative;
+}
+.level-medallion {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 13px;
+  background: linear-gradient(145deg, #82ad9a, #274f56);
+  border: 5px double #d9bc79;
+  box-shadow: 0 5px 0 #283e4130;
+  font:
+    65px 'KaiTi',
+    serif;
+  color: #e6d9aa;
+  position: relative;
+}
+.level-card:nth-child(2) .level-medallion {
+  background: linear-gradient(145deg, #d1ad77, #65594f);
+}
+.level-card:nth-child(3) .level-medallion {
+  background: linear-gradient(145deg, #9d6b48, #583f40);
+}
+.level-card:disabled .level-medallion {
+  filter: grayscale(0.8);
+}
+.level-card h3 {
+  font:
+    700 21px 'KaiTi',
+    serif;
+  margin: 4px;
+  letter-spacing: 3px;
+}
+.level-card p {
+  font-size: 11px;
+  color: #737565;
+  margin: 8px 0;
+}
+.stars {
+  color: #ac8237;
+  font-size: 18px;
+  letter-spacing: 6px;
+}
+.page-footnote {
+  position: absolute;
+  bottom: 6%;
+  font-size: 11px;
+  color: #72755e;
+  letter-spacing: 2px;
+}
+.versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  margin: 48px 0 5px;
+}
+.army-card {
+  text-align: center;
+}
+.army-emblem {
+  display: grid;
+  place-items: center;
+  width: 105px;
+  height: 110px;
+  background: #24587c;
+  color: #f5d890;
+  font:
+    58px 'KaiTi',
+    serif;
+  border: 4px double #e1c485;
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+}
+.army-card h3 {
+  letter-spacing: 4px;
+  font-size: 19px;
+  margin: 12px 0 0;
+}
+.army-card p {
+  font-size: 11px;
+  color: #757864;
+  margin: 7px 0;
+}
+.red .army-emblem {
+  background: #a44937;
+}
+.versus-mark {
+  font:
+    28px 'KaiTi',
+    serif;
+  color: #9c8250;
+  letter-spacing: 6px;
+}
+.versus-mark small {
+  display: block;
+  font: 10px sans-serif;
+  letter-spacing: 2px;
+  margin-top: 10px;
+}
+.prepare-note {
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: center;
+  color: #6c705e;
+  margin: 14px 0 20px;
+}
+.help-rules {
+  display: flex;
+  gap: 40px;
+  width: 85%;
+  margin-top: 50px;
+}
+.help-rules article {
+  flex: 1;
+}
+.help-rules article > b {
+  font: 34px Georgia;
+  color: #ab9458;
+}
+.help-rules h3 {
+  font:
+    700 22px 'KaiTi',
+    serif;
+}
+.help-rules p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #697565;
+}
+.battle {
+  padding: 0;
+}
+.battle-hud {
+  position: absolute;
+  top: 5%;
+  left: 5%;
+  right: 5%;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.army-status {
+  width: 25%;
+  background: #faf0daed;
+  border: 1px solid #d4c49d;
+  box-shadow: 0 3px 10px #213d4320;
+  border-radius: 6px;
+  padding: 10px 13px;
+}
+.army-status > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #285d80;
+}
+.army-status span {
+  font-size: 12px;
+}
+.army-status small {
+  font-size: 10px;
+  display: block;
+  margin-top: 5px;
+  color: #536e72;
+  letter-spacing: 1px;
+}
+.flag-meter {
+  height: 5px;
+  background: #ceceba;
+  margin-top: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.flag-meter i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #397eaf;
+  transition: width 0.2s;
+}
+.enemy {
+  margin-left: auto;
+}
+.enemy > div:first-child {
+  color: #a24d38;
+}
+.enemy .flag-meter i {
+  background: #b76146;
+}
+.enemy small {
+  text-align: right;
+}
+.battle-title {
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  font:
+    18px 'KaiTi',
+    serif;
+  padding-top: 7px;
+  color: #294c4d;
+}
+.battle-title small {
+  display: block;
+  font: 11px monospace;
+  letter-spacing: 2px;
+  margin-top: 7px;
+}
+.pause-button {
+  position: absolute;
+  right: -3%;
+  top: 95px;
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d6c7a2;
+  background: #f7eddaed;
+  border-radius: 50%;
+}
+.pause-button i {
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: #28464b;
+}
+.volley-notice {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 210px;
+  text-align: center;
+  color: #fff5d6;
+  padding: 10px 25px;
+  background: #334e48e8;
+  clip-path: polygon(3% 0, 98% 3%, 100% 85%, 96% 100%, 0 96%, 2% 25%);
+}
+.volley-notice b {
+  font:
+    700 21px 'KaiTi',
+    serif;
+  letter-spacing: 3px;
+}
+.volley-notice small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-top: 5px;
+  color: #eee2b9;
+}
+.volley-notice.danger {
+  background: #a84b2eee;
+}
+.battle-hint {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 13px;
+  color: #fff4d5;
+  background: #173f487d;
+  border-radius: 20px;
+  padding: 8px 18px;
+}
+.battle-hint:empty {
+  display: none;
+}
+.command-state {
+  position: absolute;
+  bottom: 9%;
+  left: 7%;
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  align-items: center;
+  gap: 7px 10px;
+  color: #244f54;
+}
+.command-state b {
+  font:
+    700 19px 'KaiTi',
+    serif;
+  letter-spacing: 2px;
+}
+.command-state small {
+  grid-column: 2;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #49615a;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background: #4b865b;
+  border-radius: 50%;
+}
+.retreat-button {
+  position: absolute;
+  bottom: 7%;
+  right: 7%;
+  width: 270px;
+  height: 83px;
+  border: 4px double #f1d095;
+  border-radius: 45px;
+  background: linear-gradient(160deg, #4a9ac7, #245b90 60%, #173f6f);
+  color: #fff5d7;
+  box-shadow:
+    0 5px 0 #4e4935,
+    0 10px 22px #17384766,
+    inset 0 0 0 3px #7ecbf947;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  touch-action: none;
+  user-select: none;
+}
+.retreat-button b {
+  display: block;
+  font:
+    700 29px 'KaiTi',
+    serif;
+  letter-spacing: 4px;
+  text-shadow: 0 2px #133b60;
+}
+.retreat-button small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #e3dec3;
+}
+.retreat-arrows {
+  font: 48px Georgia;
+  color: #b8e1df;
+  letter-spacing: -10px;
+  padding-right: 10px;
+}
+.hold-ring {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #9bd0df;
+  box-shadow: 0 0 0 4px #76bce12b;
+}
+.retreat-button[aria-pressed='true'] {
+  background: linear-gradient(160deg, #76c5c7, #346c89);
+  transform: translateY(4px);
+  box-shadow:
+    0 1px 0 #4e4935,
+    inset 0 0 25px #9edcd47a;
+}
+.red-button {
+  background: linear-gradient(160deg, #d58657, #a74d35 60%, #793b31);
+}
+#game[data-mode='friend'] #retreat-blue {
+  left: 7%;
+  right: auto;
+}
+#game[data-mode='friend'] .command-state {
+  display: none;
+}
+.compact-panel {
+  text-align: center;
+  background: linear-gradient(140deg, #f5eadaed, #e8e3c9ed);
+}
+.compact-panel h2 {
+  font-size: 48px;
+  margin: 10px;
+}
+.compact-panel > p:not(.eyebrow) {
+  font-size: 13px;
+  color: #687462;
+}
+.compact-panel > .button {
+  margin-top: 20px;
+  min-width: 230px;
+}
+.row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: center;
+}
+.result-medals {
+  font-size: 32px;
+  letter-spacing: 12px;
+  color: #b18d3d;
+  margin: 8px;
+}
+.result-stats {
+  display: flex;
+  gap: 32px;
+  color: #697362;
+  font-size: 12px;
+  margin-top: 10px;
+}
+.result-stats b {
+  font: bold 23px Georgia;
+  display: block;
+  color: #345754;
+  margin-bottom: 6px;
+}
+#notice {
+  position: absolute;
+  bottom: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: #1f424e;
+  color: #fff0d2;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+@container game (max-height:540px) {
+  .screen {
+    padding: 5vh 5vw;
+  }
+  .home-copy {
+    top: 19%;
+    left: 7%;
+  }
+  .edition {
+    font-size: 9px;
+    letter-spacing: 3px;
+  }
+  .seal {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .home-copy h1 {
+    font-size: clamp(40px, 7vw, 72px);
+  }
+  .home-copy .eyebrow {
+    margin-bottom: 7px;
+    font-size: 9px;
+  }
+  .tagline {
+    font-size: 20px;
+    margin: 10px 0;
+    letter-spacing: 4px;
+  }
+  .title-line {
+    margin: 12px 0 8px;
+  }
+  .home-note {
+    font-size: 10px;
+    margin: 8px 0;
+  }
+  .primary {
+    margin-top: 13px;
+    min-height: 47px;
+    width: 230px;
+    font-size: 17px;
+    padding: 8px 25px;
+  }
+  .home-modes {
+    bottom: 8%;
+    right: 5%;
+    gap: 9px;
+    width: 46%;
+  }
+  .mode-button {
+    min-height: 61px;
+    padding: 8px 10px;
+    font-size: 14px;
+    gap: 7px;
+  }
+  .mode-icon {
+    font-size: 23px;
+  }
+  .mode-button small {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+  .home-tools {
+    gap: 5px;
+  }
+  .small-button {
+    padding: 7px 13px;
+  }
+  .level-medallion {
+    width: 95px;
+    height: 95px;
+    font-size: 48px;
+  }
+  .level-list {
+    margin-top: 45px;
+  }
+  .level-card h3 {
+    font-size: 18px;
+  }
+  .level-card p {
+    font-size: 10px;
+  }
+  .page-heading {
+    top: 5%;
+  }
+  h2 {
+    font-size: 29px;
+  }
+  .page-heading .eyebrow {
+    font-size: 9px;
+  }
+  .page-footnote {
+    font-size: 10px;
+    bottom: 3%;
+  }
+  .versus {
+    margin-top: 40px;
+    gap: 55px;
+  }
+  .army-emblem {
+    height: 75px;
+    width: 75px;
+    font-size: 42px;
+  }
+  .army-card h3 {
+    font-size: 16px;
+    margin-top: 5px;
+  }
+  .prepare-note {
+    font-size: 11px;
+    margin: 10px 0 12px;
+  }
+  .button {
+    min-height: 46px;
+    font-size: 16px;
+    padding: 9px 28px;
+  }
+  .help-rules {
+    gap: 30px;
+    margin-top: 45px;
+  }
+  .help-rules h3 {
+    font-size: 18px;
+    margin: 8px 0;
+  }
+  .help-rules p {
+    font-size: 11px;
+    margin: 5px 0;
+  }
+  .help-rules article > b {
+    font-size: 26px;
+  }
+  .army-status {
+    padding: 7px 10px;
+    width: 25%;
+  }
+  .army-status > div:first-child {
+    font-size: 12px;
+  }
+  .army-status span {
+    font-size: 10px;
+  }
+  .army-status small {
+    font-size: 9px;
+  }
+  .battle-title {
+    font-size: 16px;
+  }
+  .pause-button {
+    top: 72px;
+  }
+  .volley-notice {
+    padding: 7px 20px;
+    top: 24%;
+  }
+  .volley-notice b {
+    font-size: 18px;
+  }
+  .retreat-button {
+    width: 225px;
+    height: 66px;
+    bottom: 6%;
+  }
+  .retreat-button b {
+    font-size: 24px;
+  }
+  .retreat-button small {
+    font-size: 10px;
+  }
+  .retreat-arrows {
+    font-size: 38px;
+  }
+  .command-state {
+    bottom: 8%;
+  }
+  .command-state b {
+    font-size: 17px;
+  }
+  .battle-hint {
+    font-size: 11px;
+    padding: 6px 14px;
+  }
+  .compact-panel h2 {
+    font-size: 36px;
+  }
+  .compact-panel .eyebrow {
+    margin-bottom: 0;
+  }
+  .compact-panel > .button {
+    margin-top: 12px;
+  }
+  .row {
+    margin-top: 15px;
+  }
+  .result-medals {
+    font-size: 25px;
+    margin: 5px;
+  }
+  .result-stats {
+    margin: 5px;
+  }
+  .home-footer {
+    font-size: 9px;
+  }
+}
+.command-state {
+  background: #f7ecd8df;
+  padding: 11px 16px;
+  border: 1px solid #d0c29c;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px #263e3620;
+}

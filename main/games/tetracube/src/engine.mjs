@@ -8,6 +8,9 @@ const validGravity = (gravity) =>
   [0, 1, 2].includes(gravity?.axis) && [-1, 1].includes(gravity?.sign);
 const coord = (cell) => [cell.x, cell.y, cell.z];
 const WORLD_DOWN = Object.freeze({ axis: 2, sign: -1 });
+const ROTATION_AXES = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] };
+// Limit corrections to the length of a four-cube bridge, never a whole-board search.
+const MAX_ROTATION_KICK = 3;
 const IDENTITY = [
   [1, 0, 0],
   [0, 1, 0],
@@ -118,8 +121,10 @@ function shapeOrientations(cells) {
 
 function validateSnapshot(value, config) {
   const legacy = value?.version === 1;
+  const beforeHold = value?.version === 2;
+  const previous = value?.version === 3;
   if (
-    (!legacy && value?.version !== 2) ||
+    (!legacy && !beforeHold && !previous && value?.version !== 4) ||
     value.configId !== config.id ||
     !validGravity(value.gravity) ||
     !['playing', 'danger', 'over'].includes(value.status)
@@ -127,14 +132,28 @@ function validateSnapshot(value, config) {
     throw new Error('Incompatible tetracube save.');
   if (legacy) {
     if (JSON.stringify(value.dims) !== '[5,5,10]') throw new Error('Invalid legacy container.');
-  } else if (
-    value.gravity.axis !== 2 ||
-    value.gravity.sign !== -1 ||
-    !validOrientation(value.orientation) ||
-    JSON.stringify(value.dims) !==
-      JSON.stringify(orientedDimensions(value.orientation, config.dims))
-  ) {
-    throw new Error('Invalid saved container orientation.');
+  } else {
+    // Published classic saves have one exact geometry per version. Validate
+    // their original boundaries before adding space, so malformed cells cannot
+    // become valid just because the current container has larger dimensions.
+    const classic =
+      config.id === DEFAULT_CONFIG.id &&
+      JSON.stringify(config.dims) === JSON.stringify(DEFAULT_CONFIG.dims);
+    const sourceDims = classic
+      ? beforeHold
+        ? [6, 6, 12]
+        : previous
+          ? [6, 6, 18]
+          : config.dims
+      : config.dims;
+    if (
+      value.gravity.axis !== 2 ||
+      value.gravity.sign !== -1 ||
+      !validOrientation(value.orientation) ||
+      JSON.stringify(value.dims) !==
+        JSON.stringify(orientedDimensions(value.orientation, sourceDims))
+    )
+      throw new Error('Invalid saved container orientation.');
   }
   const { dims } = value;
   if (
@@ -179,6 +198,13 @@ function validateSnapshot(value, config) {
     value.bag.some((id) => !orientations.has(id))
   )
     throw new Error('Invalid saved piece queue.');
+  if (
+    !legacy &&
+    !beforeHold &&
+    (typeof value.holdUsed !== 'boolean' ||
+      (value.held !== null && (!validPiece(value.held) || Object.hasOwn(value.held, 'pos'))))
+  )
+    throw new Error('Invalid saved held piece.');
   for (const field of [
     'score',
     'lines',
@@ -251,26 +277,68 @@ function migrateSnapshot(snapshot, config) {
     }
     // Add room at each positive face. Existing cubes and the airborne piece retain
     // their exact normalized positions; migration cannot score or discard a cube.
-    value.dims = orientedDimensions(value.orientation, config.dims);
     value.gravity = { ...WORLD_DOWN };
     value.flipCount = value.gravityChanges;
     delete value.gravityChanges;
-    value.version = 2;
+  }
+  if (value.version <= 2) {
+    value.held = null;
+    value.holdUsed = false;
+  }
+  if (value.version < 4) {
+    // Grow only the positive faces of the correctly oriented box. No occupied
+    // cell, airborne piece, score or random-generator state changes in a save.
+    value.dims = orientedDimensions(value.orientation, config.dims);
+    value.version = 4;
     validateSnapshot(value, config);
   }
   return value;
 }
 
-export function rotateCells(cells, plane) {
-  const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[String(plane).toUpperCase()];
+export function rotateCells(cells, plane, direction = 1) {
+  const axes = ROTATION_AXES[String(plane).toUpperCase()];
   if (!axes) throw new Error(`Unknown rotation plane: ${plane}`);
+  if (![-1, 1].includes(direction)) throw new Error(`Invalid rotation direction: ${direction}`);
   const [a, b] = axes;
   return cells.map((cell) => {
     const rotated = [...cell];
-    rotated[a] = cell[b];
-    rotated[b] = -cell[a] || 0;
+    rotated[a] = direction * cell[b] || 0;
+    rotated[b] = -direction * cell[a] || 0;
     return rotated;
   });
+}
+
+function rotationKicks(piece, dims, axes, gravity) {
+  const correction = [0, 0, 0];
+  for (const axis of axes) {
+    const min = Math.min(...piece.cells.map((cell) => cell[axis])) + piece.pos[axis];
+    const max = Math.max(...piece.cells.map((cell) => cell[axis])) + piece.pos[axis];
+    if (max - min >= dims[axis]) return [];
+    correction[axis] = min < 0 ? -min : max >= dims[axis] ? dims[axis] - 1 - max : 0;
+  }
+  const distance = (kick) => kick.reduce((sum, value) => sum + Math.abs(value), 0);
+  const offsets = [0, 1, -1, 2, -2, 3, -3];
+  const kicks = [];
+  for (const a of offsets)
+    for (const b of offsets) {
+      const kick = [0, 0, 0];
+      kick[axes[0]] = a;
+      kick[axes[1]] = b;
+      if (distance(kick) <= MAX_ROTATION_KICK) kicks.push(kick);
+    }
+  // Try the exact wall/ceiling correction first, then the nearest local options.
+  // Ties preserve height and prefer the first plane axis. The untouched axis
+  // never moves, so a turn cannot relocate a piece into another depth layer.
+  kicks.sort(
+    (a, b) =>
+      distance(a) - distance(b) ||
+      Math.abs(a[gravity.axis]) - Math.abs(b[gravity.axis]) ||
+      Math.abs(a[axes[1]]) - Math.abs(b[axes[1]]),
+  );
+  if (distance(correction) <= MAX_ROTATION_KICK) {
+    return [correction, ...kicks.filter((kick) => cellKey(kick) !== cellKey(correction))];
+  }
+  return kicks;
 }
 
 /** Stable column compaction. Cubes move independently; IDs and relative ordering survive. */
@@ -388,6 +456,8 @@ export class Game {
     this.board = [];
     this.active = null;
     this.pending = null;
+    this.held = null;
+    this.holdUsed = false;
     this.next = [];
     this.bag = [];
     this.gravity = WORLD_DOWN;
@@ -503,6 +573,26 @@ export class Game {
     return this.cells(piece);
   }
 
+  hold() {
+    if (this.status !== 'playing' || !this.active || this.holdUsed) return false;
+    const before = copy(this.active);
+    const replacement = this.held ? copy(this.held) : this.next.shift();
+    this.held = copy(this.config.shapes.find((shape) => shape.id === before.id));
+    this.holdUsed = true;
+    this.refillQueue();
+    const eventIndex = this.events.length;
+    this.spawn(replacement);
+    this.events.splice(eventIndex, 0, {
+      type: 'hold',
+      before,
+      after: copy(this.active),
+      from: this.cells(before),
+      to: this.cells(),
+      held: copy(this.held),
+    });
+    return true;
+  }
+
   move(axis, delta) {
     if (
       this.status !== 'playing' ||
@@ -515,27 +605,44 @@ export class Game {
     const piece = copy(this.active);
     piece.pos[axis] += delta;
     if (!this.fits(piece)) return false;
+    const before = copy(this.active);
     this.active = piece;
-    this.events.push({ type: 'move', axis, delta });
+    this.events.push({
+      type: 'move',
+      axis,
+      delta,
+      before,
+      after: copy(piece),
+      from: this.cells(before),
+      to: this.cells(piece),
+    });
     return true;
   }
 
-  rotate(plane) {
+  rotate(plane, direction = 1) {
     if (this.status !== 'playing' || !this.active) return false;
-    const piece = { ...copy(this.active), cells: rotateCells(this.active.cells, plane) };
-    const axes = [0, 1, 2].filter((axis) => axis !== this.gravity.axis).concat(this.gravity.axis);
-    const kicks = [[0, 0, 0]];
-    for (const distance of [1, -1, 2, -2])
-      for (const axis of axes) {
-        const kick = [0, 0, 0];
-        kick[axis] = distance;
-        kicks.push(kick);
-      }
+    const normalizedPlane = String(plane).toUpperCase();
+    const piece = {
+      ...copy(this.active),
+      cells: rotateCells(this.active.cells, normalizedPlane, direction),
+    };
+    const kicks = rotationKicks(piece, this.dims, ROTATION_AXES[normalizedPlane], this.gravity);
     for (const kick of kicks) {
       piece.pos = this.active.pos.map((value, axis) => value + kick[axis]);
       if (this.fits(piece)) {
+        const before = copy(this.active);
         this.active = piece;
-        this.events.push({ type: 'rotate', plane: String(plane).toUpperCase(), kick });
+        this.events.push({
+          type: 'rotate',
+          plane: normalizedPlane,
+          direction,
+          sign: direction,
+          kick: [...kick],
+          before,
+          after: copy(piece),
+          from: this.cells(before),
+          to: this.cells(piece),
+        });
         return true;
       }
     }
@@ -547,7 +654,17 @@ export class Game {
     const piece = copy(this.active);
     piece.pos[this.gravity.axis] += this.gravity.sign;
     if (this.fits(piece)) {
+      const before = copy(this.active);
       this.active = piece;
+      this.events.push({
+        type: 'fall',
+        before,
+        after: copy(piece),
+        from: this.cells(before),
+        to: this.cells(piece),
+        gravity: { ...this.gravity },
+        distance: 1,
+      });
       return true;
     }
     this.lock();
@@ -559,15 +676,26 @@ export class Game {
     const landing = this.ghost();
     const distance = Math.abs(landing[0][this.gravity.axis] - this.cells()[0][this.gravity.axis]);
     const from = this.cells();
+    const before = copy(this.active);
     this.active.pos[this.gravity.axis] += distance * this.gravity.sign;
     this.score += distance * this.config.points.drop;
-    this.events.push({ type: 'drop', from, to: landing, distance });
+    this.events.push({
+      type: 'drop',
+      from,
+      to: landing,
+      distance,
+      before,
+      after: copy(this.active),
+      piece: copy(this.active),
+    });
     this.lock();
     return true;
   }
 
   lock() {
     if (this.status !== 'playing' || !this.active || !this.fits(this.active)) return false;
+    const piece = copy(this.active);
+    const from = this.cells(piece);
     const before = boardCopy(this.board);
     const added = this.cells().map(([x, y, z]) => ({
       id: ++this.serial,
@@ -578,6 +706,7 @@ export class Game {
     }));
     this.board.push(...added);
     this.active = null;
+    this.holdUsed = false;
     this.placed++;
     this.score += added.length * this.config.points.cell;
     this.events.push({
@@ -585,6 +714,8 @@ export class Game {
       before,
       after: boardCopy(this.board),
       added: boardCopy(added),
+      piece,
+      from,
     });
     this.resolve();
     this.spawn();
@@ -634,6 +765,7 @@ export class Game {
     this.orientation = this.orientation.map((vector) => transformVector(vector, turn));
     this.gravity = WORLD_DOWN;
     this.flipCount++;
+    this.holdUsed = false;
     this.events.push({
       type: 'flip',
       turn,
@@ -668,12 +800,14 @@ export class Game {
 
   getSnapshot() {
     return copy({
-      version: 2,
+      version: 4,
       configId: this.config.id,
       dims: this.dims,
       board: this.board,
       active: this.active,
       pending: this.pending,
+      held: this.held,
+      holdUsed: this.holdUsed,
       next: this.next,
       bag: this.bag,
       gravity: this.gravity,
@@ -699,6 +833,8 @@ export class Game {
       'board',
       'active',
       'pending',
+      'held',
+      'holdUsed',
       'next',
       'bag',
       'score',

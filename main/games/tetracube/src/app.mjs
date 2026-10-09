@@ -46,8 +46,14 @@ let elapsed = 0,
   flashTimer;
 let animations = [],
   animation = null;
+let motion = null,
+  impact = null,
+  particles = [],
+  lastTrailCount = 0;
 let audioContext;
 let drag = null;
+let orbitVelocity = [0, 0];
+const touchPointers = new Set();
 let inputMode = 'move';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const held = new Map();
@@ -117,6 +123,7 @@ function stopInput() {
     } catch {}
   }
   drag = null;
+  orbitVelocity = [0, 0];
 }
 
 function show(next) {
@@ -161,6 +168,14 @@ function updateHUD() {
   $('#gravity-badge').textContent = game.dims.join(' × ');
   const next = game.next[0];
   if (next) drawMini($('#next-canvas'), next.cells, next.color);
+  if ($('#held-name')) $('#held-name').textContent = game.held?.name || '空';
+  if ($('#hold-piece')) {
+    $('#hold-piece').disabled = game.holdUsed || game.status !== 'playing';
+    $('#hold-piece').setAttribute(
+      'aria-label',
+      `暂存交换方块，${game.held ? `已暂存${game.held.name}` : '暂存槽为空'}${game.holdUsed ? '，本块已使用' : ''}`,
+    );
+  }
   const tutorial = [
     '在画面中拖动方块，虚线就是落点。',
     '点击 XY、XZ 或 YZ，试着旋转方块。',
@@ -182,6 +197,8 @@ function advanceTutorial(action) {
 function finish() {
   animations = [];
   animation = null;
+  motion = impact = null;
+  particles = [];
   game.end();
   if (!debugRun) {
     if (game.score > best) {
@@ -210,25 +227,115 @@ function settle() {
   }
 }
 
+function motionCells() {
+  if (!motion) return game.cells();
+  const t = Math.min(1, motion.elapsed / motion.duration);
+  const eased = 1 - Math.pow(1 - t, 3);
+  if (motion.type === 'rotate' && motion.arc) {
+    const [a, b] = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[motion.plane];
+    const angle = (-Math.PI / 2) * (motion.direction ?? 1) * eased;
+    return motion.before.cells.map((cell) => {
+      const p = [...cell];
+      p[a] = cell[a] * Math.cos(angle) - cell[b] * Math.sin(angle);
+      p[b] = cell[a] * Math.sin(angle) + cell[b] * Math.cos(angle);
+      return p.map((v, axis) => v + motion.before.pos[axis] + motion.kick[axis] * eased);
+    });
+  }
+  return motion.to.map((cell, i) =>
+    cell.map((v, axis) => motion.from[i][axis] + (v - motion.from[i][axis]) * eased),
+  );
+}
+
+function burst(cells, strength = 1, clear = false) {
+  if (!cells?.length) return;
+  const color = clear ? '#ffdc87' : cells[0].color || '#78f4d3';
+  impact = { cells, color, strength, elapsed: 0, duration: reducedMotion ? 90 : 460 };
+  if (reducedMotion) return;
+  const count = Math.min(clear ? 72 : 24, cells.length * (clear ? 3 : 6));
+  for (let i = 0; i < count; i++) {
+    const cell = cells[i % cells.length];
+    const angle = i * 2.39996;
+    const speed = (1.2 + (i % 5) * 0.24) * strength;
+    particles.push({
+      x: cell.x + 0.5,
+      y: cell.y + 0.5,
+      z: cell.z + 0.4,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      vz: 1.8 + (i % 4) * 0.6,
+      color,
+      elapsed: 0,
+      duration: 360 + (i % 5) * 65,
+      size: clear ? 0.12 : 0.09,
+    });
+  }
+  particles = particles.slice(-96);
+  if (!clear) sound('drop');
+}
+
 function consumeEvents() {
   const events = game.drainEvents();
   const drop = events.find((e) => e.type === 'drop');
+  const visualFrom = motion ? motionCells() : null;
   for (const event of events) {
-    if (event.type === 'lock' && drop) {
-      const starts = new Map(event.added.map((cell, i) => [cell.id, drop.from[i]]));
+    if (['move', 'rotate', 'fall'].includes(event.type)) {
+      motion = {
+        ...event,
+        from: visualFrom || event.from,
+        elapsed: 0,
+        duration: reducedMotion
+          ? 65
+          : event.type === 'rotate'
+            ? 210
+            : event.type === 'fall'
+              ? 180
+              : 110,
+        arc: event.type === 'rotate' && !visualFrom,
+      };
+    } else if (event.type === 'hold') {
+      motion = null;
+      elapsed = 0;
+      stopInput();
+    } else if (event.type === 'lock') {
+      const from = visualFrom || (drop ? drop.from : event.from);
+      const starts = new Map(event.added.map((cell, i) => [cell.id, from?.[i]]));
       animations.push({
         ...event,
-        type: 'compact',
+        type: drop || visualFrom ? 'compact' : 'lock',
+        role: drop ? 'drop' : 'land',
+        landing: event.added,
         before: event.after.map((cell) => {
           const p = starts.get(cell.id);
           return p ? { ...cell, x: p[0], y: p[1], z: p[2] } : cell;
         }),
-        duration: 160,
+        duration: reducedMotion ? 80 : drop ? Math.min(420, 210 + drop.distance * 10) : 110,
       });
+      motion = null;
     } else if (event.type === 'compact' || event.type === 'clear') {
-      animations.push({ ...event, duration: event.type === 'clear' ? 340 : 480 });
+      animations.push({
+        ...event,
+        duration: reducedMotion ? 90 : event.type === 'clear' ? 360 : 450,
+      });
     } else if (event.type === 'flip') {
-      animations.push({ ...event, duration: reducedMotion ? 180 : 720 });
+      if (visualFrom) {
+        const ids = new Map(
+          event.before.slice(-visualFrom.length).map((cell, i) => [cell.id, visualFrom[i]]),
+        );
+        animations.push({
+          type: 'compact',
+          role: 'align',
+          duration: reducedMotion ? 40 : 90,
+          before: event.before.map((cell) => {
+            const p = ids.get(cell.id);
+            return p ? { ...cell, x: p[0], y: p[1], z: p[2] } : cell;
+          }),
+          after: event.before,
+          dims: event.beforeDims,
+          orientation: event.beforeOrientation,
+        });
+      }
+      animations.push({ ...event, duration: reducedMotion ? 90 : 720 });
+      motion = null;
     }
   }
   if (!animations.length) settle();
@@ -239,12 +346,19 @@ function command(action, ...args) {
   if (phase !== 'playing' || animation || animations.length) return false;
   const ok = game[action](...args);
   if (!ok) {
-    if (action === 'rotate') feedback('这里放不下，先移动一点');
+    if (action === 'rotate') feedback('这个方向被挡住，试试反转或移开');
     return false;
   }
-  const kind = { move: 'move', rotate: 'rotate', hardDrop: 'drop', flipContainer: 'flip' }[action];
+  if (action === 'rotate') elapsed = Math.min(elapsed, game.fallInterval * 0.4);
+  const kind = {
+    move: 'move',
+    rotate: 'rotate',
+    hardDrop: 'drop',
+    flipContainer: 'flip',
+    hold: 'hold',
+  }[action];
   if (kind) {
-    sound(kind);
+    sound(kind === 'hold' ? 'rotate' : kind);
     advanceTutorial(kind);
   }
   if (action === 'hardDrop' || action === 'flipContainer') {
@@ -272,6 +386,8 @@ function start({ debug = false } = {}) {
   runStarted = true;
   animations = [];
   animation = null;
+  motion = impact = null;
+  particles = [];
   tutorialStep = settings.tutorialDone ? 4 : 0;
   renderer.setView('iso');
   updateViews('iso');
@@ -314,6 +430,8 @@ $('#continue-game').addEventListener('click', () => {
     runStarted = true;
     animations = [];
     animation = null;
+    motion = impact = null;
+    particles = [];
     show('playing');
     settle();
   } catch {
@@ -337,6 +455,7 @@ for (const origin of ['home', 'pause'])
   });
 $('#help-back').addEventListener('click', () => show(helpOrigin));
 $('#hard-drop').addEventListener('click', () => command('hardDrop'));
+$('#hold-piece').addEventListener('click', () => command('hold'));
 $('#flip-container').addEventListener('click', () => flip());
 $('#rescue-game').addEventListener('click', () => {
   rescueUsed = true;
@@ -358,7 +477,16 @@ $$('.sound-toggle').forEach((button) =>
   }),
 );
 $$('[data-rotate]').forEach((button) =>
-  button.addEventListener('click', () => command('rotate', button.dataset.rotate)),
+  button.addEventListener('click', () => {
+    const ok = command(
+      'rotate',
+      button.dataset.rotate,
+      Number(button.dataset.rotateDirection) || 1,
+    );
+    button.classList.remove('rotation-success', 'rotation-blocked');
+    void button.offsetWidth;
+    button.classList.add(ok ? 'rotation-success' : 'rotation-blocked');
+  }),
 );
 $$('[data-flip]').forEach((button) =>
   button.addEventListener('click', () => flip(button.dataset.flip)),
@@ -368,6 +496,7 @@ $$('[data-input]').forEach((button) =>
 );
 $$('[data-view]').forEach((button) =>
   button.addEventListener('click', () => {
+    stopInput();
     renderer.setView(button.dataset.view);
     updateViews(button.dataset.view);
   }),
@@ -375,9 +504,27 @@ $$('[data-view]').forEach((button) =>
 
 const canvas = $('#game-canvas');
 canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'touch') {
+    touchPointers.add(event.pointerId);
+    if (touchPointers.size > 1) {
+      stopInput();
+      return;
+    }
+  }
+  if (drag && drag.id !== event.pointerId) {
+    stopInput();
+    return;
+  }
   if (event.button !== 0 || drag || phase !== 'playing' || animation || animations.length) return;
   event.preventDefault();
-  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, remainder: [0, 0] };
+  orbitVelocity = [0, 0];
+  drag = {
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    time: event.timeStamp,
+    remainder: [0, 0],
+  };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', (event) => {
@@ -388,10 +535,19 @@ canvas.addEventListener('pointermove', (event) => {
   drag.y = event.clientY;
   if (inputMode === 'observe') {
     renderer.orbit(dx, dy);
+    const interval = Math.max(12, event.timeStamp - drag.time);
+    orbitVelocity = [dx, dy].map(
+      (v, axis) => orbitVelocity[axis] * 0.4 + Math.max(-0.7, Math.min(0.7, v / interval)) * 0.6,
+    );
+    drag.time = event.timeStamp;
     updateViews('');
     return;
   }
-  const delta = renderer.planeDelta(dx, dy);
+  const cells = game.cells();
+  const anchor = cells.length
+    ? [0, 1, 2].map((axis) => cells.reduce((n, cell) => n + cell[axis] + 0.5, 0) / cells.length)
+    : undefined;
+  const delta = renderer.planeDelta(dx, dy, anchor);
   drag.remainder[0] += delta.x;
   drag.remainder[1] += delta.y;
   // Keep the grab relative to the finger; blocked movement is consumed, so reversing
@@ -406,10 +562,14 @@ canvas.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
   canvas.addEventListener(type, (event) => {
     if (drag?.id === event.pointerId) {
+      if (type !== 'pointerup' || inputMode !== 'observe' || event.timeStamp - drag.time > 80)
+        orbitVelocity = [0, 0];
       drag = null;
       elapsed = 0;
     }
   });
+for (const type of ['pointerup', 'pointercancel'])
+  window.addEventListener(type, (event) => touchPointers.delete(event.pointerId), true);
 
 function keydown(event) {
   if (
@@ -440,12 +600,13 @@ function keydown(event) {
   if (direction) {
     event.preventDefault();
     move(direction);
-  } else if (['q', 'e', 'r', ' ', 'g'].includes(key)) {
+  } else if (['q', 'e', 'r', ' ', 'g', 'c'].includes(key)) {
     event.preventDefault();
     if (event.repeat) return;
     if (key === ' ') command('hardDrop');
     else if (key === 'g') flip();
-    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key]);
+    else if (key === 'c') command('hold');
+    else command('rotate', { q: 'XY', e: 'XZ', r: 'YZ' }[key], event.shiftKey ? -1 : 1);
   }
 }
 window.addEventListener('keydown', keydown);
@@ -468,11 +629,14 @@ function animatedBoard(dt) {
     animation = { ...animations.shift(), elapsed: 0 };
     if (animation.type === 'clear') {
       sound('clear');
+      burst(animation.removed, Math.min(1.8, 1 + animation.combo * 0.2), true);
       $('#combo-flash').textContent =
         animation.combo > 1 ? `COMBO ×${animation.combo}` : '整层消除';
       $('#combo-flash').classList.add('visible');
       clearTimeout(flashTimer);
       flashTimer = setTimeout(() => $('#combo-flash').classList.remove('visible'), 900);
+    } else if (animation.type === 'lock') {
+      burst(animation.landing);
     }
   }
   if (!animation) return { board: game.board };
@@ -480,7 +644,11 @@ function animatedBoard(dt) {
   const t = Math.min(1, animation.elapsed / animation.duration);
   const eased = 1 - Math.pow(1 - t, 3);
   let board = animation.after;
-  const geometry = {};
+  const geometry = { trail: [] };
+  if (animation.role === 'align') {
+    geometry.dims = animation.dims;
+    geometry.orientation = animation.orientation;
+  }
   if (animation.type === 'flip') {
     board = animation.before;
     geometry.dims = animation.beforeDims;
@@ -497,6 +665,18 @@ function animatedBoard(dt) {
         z: from.z + (cell.z - from.z) * (t * t),
       };
     });
+    if (!reducedMotion && animation.role === 'drop' && t < 0.94) {
+      for (const cell of board) {
+        const from = start.get(cell.id);
+        if (!from || Math.abs(from.z - cell.z) < 0.2) continue;
+        for (let i = 1; i <= 3; i++)
+          geometry.trail.push({
+            ...cell,
+            z: Math.min(from.z, cell.z + i * 0.72),
+            alpha: (0.18 - i * 0.035) * Math.sin(Math.PI * t),
+          });
+      }
+    }
   } else if (animation.type === 'clear') {
     board = animation.before.map((cell) =>
       animation.removed.some((removed) => removed.id === cell.id)
@@ -505,26 +685,69 @@ function animatedBoard(dt) {
     );
   }
   if (t >= 1) {
+    if (animation.type === 'compact' && animation.role !== 'align') {
+      const before = new Map(animation.before.map((cell) => [cell.id, cell]));
+      const landed =
+        animation.landing || animation.after.filter((cell) => before.get(cell.id)?.z !== cell.z);
+      burst(landed, animation.role === 'drop' ? 1.2 : 0.8);
+    }
     animation = null;
     if (!animations.length) settle();
   }
   return { board, ...geometry };
 }
 
+function animatedEffects(dt) {
+  if (impact) {
+    impact.elapsed += dt;
+    if (impact.elapsed >= impact.duration) impact = null;
+  }
+  particles.forEach((p) => {
+    p.elapsed += dt;
+  });
+  particles = particles.filter((p) => p.elapsed < p.duration);
+  return {
+    impact: impact ? { ...impact, t: impact.elapsed / impact.duration } : null,
+    shake:
+      impact && !reducedMotion
+        ? 3.6 * impact.strength * Math.pow(1 - impact.elapsed / impact.duration, 3)
+        : 0,
+    particles: particles.map((p) => {
+      const seconds = p.elapsed / 1000;
+      return {
+        ...p,
+        x: p.x + p.vx * seconds,
+        y: p.y + p.vy * seconds,
+        z: p.z + p.vz * seconds - 4 * seconds * seconds,
+        alpha: Math.pow(1 - p.elapsed / p.duration, 2),
+      };
+    }),
+  };
+}
+
 function frame(now) {
   const dt = lastTime ? Math.min(now - lastTime, 80) : 0;
   lastTime = now;
   if (phase === 'home') {
-    homeRenderer.camera.yaw = 0.65 + Math.sin(now / 6500) * 0.25;
+    homeRenderer.camera.yaw = 0.65 + (reducedMotion ? 0 : Math.sin(now / 6500) * 0.25);
     homeRenderer.draw({
       board: homeBoard,
       active: homeActive,
       ghost: [],
       gravity: { axis: 2, sign: -1 },
-      dims: [6, 6, 12],
-      time: now,
+      dims: game.config.dims,
+      time: reducedMotion ? 0 : now,
     });
   } else if (phase === 'playing') {
+    if (inputMode === 'observe' && !drag && !animation && !animations.length) {
+      renderer.orbit(orbitVelocity[0] * dt, orbitVelocity[1] * dt);
+      orbitVelocity = orbitVelocity.map((v) => (Math.abs(v) < 0.005 ? 0 : v * Math.exp(-dt / 95)));
+    }
+    if (motion) {
+      motion.elapsed += dt;
+      if (motion.elapsed >= motion.duration) motion = null;
+    }
+    const effects = animatedEffects(dt);
     if (!animation && !animations.length && !drag) {
       elapsed += dt;
       if (elapsed >= game.fallInterval) {
@@ -536,14 +759,16 @@ function frame(now) {
     const visual = animatedBoard(dt);
     const busy = wasBusy || !!animation || animations.length > 0;
     const color = game.active?.color || '#78f4d3';
+    lastTrailCount = visual.trail?.length || 0;
     renderer.draw({
       ...visual,
-      active: busy ? [] : game.cells().map(([x, y, z]) => ({ x, y, z, color })),
+      active: busy ? [] : motionCells().map(([x, y, z]) => ({ x, y, z, color })),
       ghost: busy ? [] : game.ghost().map(([x, y, z]) => ({ x, y, z, color })),
       gravity: game.gravity,
       dims: visual.dims || game.dims,
       orientation: visual.orientation || game.orientation,
-      time: now,
+      time: reducedMotion ? 0 : now,
+      ...effects,
     });
     $('#stage-hint').textContent = busy
       ? animation?.type === 'flip'
@@ -551,10 +776,11 @@ function frame(now) {
         : '方块向下落定…'
       : inputMode === 'observe'
         ? '观察模式 · 拖动转视角'
-        : '拖动方块 · 虚线是落点';
+        : `拖动方块 · 落点 ${renderer.layers.landing.join(' / ')}层`;
     $$('[data-rotate], [data-flip], #flip-container, #hard-drop').forEach((button) => {
       button.disabled = busy;
     });
+    $('#hold-piece').disabled = busy || game.holdUsed || game.status !== 'playing';
   }
   raf = requestAnimationFrame(frame);
 }
@@ -567,8 +793,23 @@ window.tetracubeSnapshot = () => ({
   debugRun,
   animating: !!animation || !!animations.length,
   animationKind: animation?.type || animations[0]?.type || null,
+  animationRole: animation?.role || animations[0]?.role || null,
+  motionKind: motion?.type || null,
+  impact: !!impact,
+  trails: lastTrailCount,
+  reducedMotion,
   inputMode,
   input: { held: held.size, dragging: !!drag },
+  projection: {
+    mode: 'perspective',
+    scale: renderer.scale,
+    distance: renderer.distance,
+    samples: [
+      [1.5, 1.5, 0.5],
+      [1.5, 1.5, 2.5],
+    ].map((p) => renderer.project(p)),
+  },
+  layers: { ...renderer.layers },
 });
 const dev = window.SmallGamesDev;
 let cleanActions = () => {},

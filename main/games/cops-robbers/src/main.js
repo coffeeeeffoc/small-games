@@ -65,6 +65,7 @@ let playMode = 'challenge';
 const records = () => playMode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed;
 const availableLevels = () => playMode === 'quick' ? quickTrials : rule === 'relay' ? levels.filter(map => relayLevelIds.includes(map.id)) : levels;
 const targetsFor = actor => rule === 'relay' ? relayTargets(level, state, actor, lastOfficer(state, history)) : legalTargets(level, state, actor);
+const canMoveOfficer = actor => targetsFor(actor).some(node => node !== state.cops[actor]);
 const parTurns = () => rule === 'relay' ? optimalRelaySolutions[level.id].length : level.par;
 let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTab = 0, drag = null, suppressClickUntil = 0;
 let hintBusy = false, hintTarget = null;
@@ -90,6 +91,9 @@ const quickLessons = Object.fromEntries(quickTrials.map(trial => {
 }));
 function lessonStep() { return playMode === 'quick' ? quickLessons[level.id].find(item=>item.key===stateKey(state) && item.remaining <= level.turnLimit-state.turn) : rule === 'standard' && teaching && level.id === 1 && phase === 'planning' ? lesson.find(item => item.key === stateKey(state)) : null; }
 function turnInstruction(fallback) {
+  if (phase === 'planning' && !canMoveOfficer(selected)) return rule === 'relay' && selected === lastOfficer(state, history)
+    ? `换防接力：${selected + 1} 号本步只能留守，点脚下数字或换人。`
+    : `${selected + 1} 号暂时无路可走，点脚下数字留守或换人。`;
   const item = lessonStep();
   const overBudget = playMode === 'quick' && quickLessons[level.id].find(item=>item.key===stateKey(state) && item.remaining > level.turnLimit-state.turn);
   if (overBudget) return `这条收网路线还需 ${overBudget.remaining} 步，只剩 ${Math.max(0,level.turnLimit-state.turn)} 步。撤销刚才一步，重新安排包抄。`;
@@ -152,6 +156,9 @@ function updateChrome() {
   $('selection-label').textContent = `${selected + 1} 号已选中`;
   [...$('squad').children].forEach((button, i) => {
     button.className = i === selected ? 'selected' : '';
+    const resting = phase === 'planning' && !canMoveOfficer(i);
+    button.classList.toggle('resting', resting);
+    button.setAttribute('aria-label', `选择${i + 1}号追逐队员${resting ? '，本步只能留守' : ''}`);
     button.setAttribute('aria-pressed', String(i === selected)); button.disabled = phase !== 'planning';
   });
   const done = Object.keys(records()).length, total = availableLevels().length;
@@ -209,6 +216,10 @@ function updateActors(view = state, moving = '', catches = []) {
       actor.setAttribute('aria-label', kind === 'cop' ? `${i + 1}号追逐队员，位于${node + 1}号路口` : `${i + 1}号突围队员，位于${node + 1}号路口，还有${free}条相邻退路`);
       if (kind === 'cop') actor.setAttribute('aria-pressed', String(selected === i));
       actor.setAttribute('class', `actor ${kind} ${mood === 'run' ? 'running' : mood}`);
+      if (kind === 'cop' && phase === 'planning' && !canMoveOfficer(i)) {
+        actor.classList.add('resting');
+        actor.setAttribute('aria-label', `${actor.getAttribute('aria-label')}，本步只能留守`);
+      }
       actor.style.transform = `translate(${point.x + offset}px, ${point.y + 12}px)`;
       actor.innerHTML = `<rect x="${-42 * scale}" y="${-110 * scale}" width="${84 * scale}" height="${116 * scale}" fill="transparent" pointer-events="all"/><ellipse cx="0" cy="-1" rx="29" ry="10" fill="#3f584c" opacity=".2"/><ellipse class="selection-ring" cx="0" cy="-1" rx="38" ry="16"/><g transform="scale(${scale})"><g class="figure">${character(kind, mood, i)}</g></g>${mood === 'caught' ? `<text class="capture-label" y="${-110 * scale - 12}">抓到啦！</text>` : ''}`;
       if (kind === 'robber' && same.length > 1 && same.at(-1) === i) actor.innerHTML += `<circle cx="26" cy="${-94 * scale}" r="12" fill="#c76649"/><text class="group-count" x="26" y="${-94 * scale + 5}">×${same.length}</text>`;
@@ -243,7 +254,7 @@ function updatePlanning() {
     label.classList.toggle('reachable', reachable.includes(i));
     label.classList.toggle('hinted', hintTarget?.node === i);
     label.querySelector('.node-hit').setAttribute('r', occupied.has(i) ? '0' : hintTarget?.node === i ? '32' : '34');
-    label.setAttribute('aria-label', `${i + 1}号路口${level.exits.includes(i) ? '，逃生出口' : ''}${reachable.includes(i) ? '，点击立即移动' : ''}`);
+    label.setAttribute('aria-label', `${i + 1}号路口${level.exits.includes(i) ? '，逃生出口' : ''}${reachable.includes(i) ? i === state.cops[selected] ? '，点击留守一步' : '，点击立即移动' : ''}`);
   });
   let markup = '';
   if (phase === 'planning') {

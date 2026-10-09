@@ -7,7 +7,9 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('arena'), renderer = createRenderer(canvas), storage = createStorage();
 const listeners = new AbortController(), signal = listeners.signal;
 let game = null, screen = 'home', aim = null, pointerId = null, lastTime = null, raf = 0, helpReturn = 'home', audio = null;
-let finished = false, nextId = null, hudKey = '', soundAt = 0;
+let finished = false, nextId = null, hudKey = '', soundAt = -Infinity;
+const voices = new Set();
+let selectedMode = storage.read().lastMode;
 // Touch activation also works in WebViews that suppress compatibility clicks after
 // a captured Canvas drag. Ignore the subsequent native click to avoid double actions.
 let lastTouchActivation = -Infinity;
@@ -34,18 +36,35 @@ function unlockAudio() {
   if (!storage.read().sound) return;
   try { const Audio = window.AudioContext || window.webkitAudioContext; if (!audio && Audio) audio = new Audio(); if (audio?.state === 'suspended') void audio.resume().catch(() => {}); } catch { /* Sound is optional. */ }
 }
-function sound(type) {
+function stopSounds() {
+  for (const voice of voices) { try { voice.stop(); } catch { /* Already ended. */ } }
+  voices.clear(); soundAt = -Infinity;
+}
+function sound(type, event = {}) {
   if (!audio || audio.state !== 'running' || !storage.read().sound) return;
   const now = audio.currentTime;
-  if (type === 'hit' && now - soundAt < 0.045) return;
-  soundAt = now;
+  const impact = ['hit', 'break', 'bounce'].includes(type);
+  if (voices.size >= 10 || (impact && now - soundAt < 0.055)) return;
+  if (impact) soundAt = now;
   try {
     const oscillator = audio.createOscillator(), gain = audio.createGain();
-    oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(({ fire: 240, hit: 690, break: 890, pickup: 1050, won: 1200, lost: 170, upgrade: 900 })[type] || 620, now);
-    oscillator.frequency.exponentialRampToValueAtTime(type === 'lost' ? 80 : 440, now + 0.1);
-    gain.gain.setValueAtTime(0.026, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(now); oscillator.stop(now + 0.12);
-    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    // A short look-ahead keeps doublets on the simulation's beat even when two
+    // launches arrive in one frame. Pause/mute cancels every scheduled voice.
+    const start = type === 'launch' ? Math.max(now, now + 0.045 + event.at - game.flight) : now;
+    const notes = [523.25, 587.33, 659.25, 783.99, 880];
+    const note = notes[(game?.combo || 0) % notes.length];
+    const frequency = type === 'launch' ? (event.accent ? 180 : event.index % 2 ? 410 : 240)
+      : ({ hit: note, bounce: note / 2, break: note * 1.5, pickup: 1174.66, won: 1318.5, lost: 170, upgrade: 1046.5 })[type] || note;
+    const duration = type === 'launch' ? 0.065 : type === 'won' || type === 'lost' ? 0.22 : 0.11;
+    oscillator.type = type === 'break' ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(frequency, start);
+    oscillator.frequency.exponentialRampToValueAtTime(type === 'launch' ? frequency * 0.4 : type === 'lost' ? 75 : frequency * 0.82, start + duration);
+    gain.gain.setValueAtTime(0.001, start);
+    gain.gain.linearRampToValueAtTime(type === 'launch' && event.accent ? 0.055 : type === 'bounce' ? 0.012 : 0.025, start + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    oscillator.connect(gain); gain.connect(audio.destination); voices.add(oscillator);
+    oscillator.onended = () => { voices.delete(oscillator); oscillator.disconnect(); gain.disconnect(); };
+    oscillator.start(start); oscillator.stop(start + duration + 0.01);
   } catch { /* Some WebViews have no audio output. */ }
 }
 function vibrate(ms) { if (storage.read().haptics) { try { navigator.vibrate?.(ms); } catch { /* Optional. */ } } }
@@ -63,40 +82,51 @@ function show(name) {
   document.querySelectorAll('.screen').forEach((element) => { element.hidden = element.id !== name; });
   $(name).scrollTop = 0;
   if (name === 'home') {
-    const data = storage.read();
-    $('start').innerHTML = data.resume ? '继续航行 <span>↗</span>' : '开始弹射 <span>↗</span>';
-    $('home-progress').textContent = `${Object.keys(data.completed).length} / ${LEVELS.length} 星域已点亮${data.bestEndless ? ` · 无尽最佳 ${data.bestEndless}` : ''}`;
+    const data = storage.read(), saved = storage.getResume(selectedMode), completed = Object.keys(data.completed).length;
+    $('start').innerHTML = `${saved ? '继续' : '开始'}${selectedMode === 'endless' ? '无尽' : '关卡'}模式 <span>↗</span>`;
+    $('home-progress').textContent = saved ? `${selectedMode === 'endless' ? '无限砖阵' : levelById(saved.levelId).title} · 第 ${saved.turn + 1} 轮待续` : `${completed} / ${LEVELS.length} 星域已点亮`;
+    $('campaign-progress').textContent = `${completed} / ${LEVELS.length} 星域 · 逐关解锁`;
+    $('endless-record').textContent = data.bestEndless ? `最高纪录 ${data.bestEndless}` : '无限砖阵 · 冲击纪录';
+    $('endless-entry').textContent = data.runs.endless ? `继续第 ${data.runs.endless.turn + 1} 轮 ↗` : '开始挑战 ↗';
+    $('levels-button').dataset.selected = String(selectedMode === 'campaign');
+    $('endless-button').dataset.selected = String(selectedMode === 'endless');
   }
   if (name === 'levels') renderLevels();
   if (name === 'upgrade') renderUpgrades();
   settings(); notifyHost();
 }
 function renderLevels() {
-  const data = storage.read(); $('level-list').replaceChildren();
+  const data = storage.read(), saved = storage.getResume('campaign'); $('level-list').replaceChildren();
+  $('levels-progress').textContent = `${Object.keys(data.completed).length} / ${LEVELS.length} 星域已点亮 · 逐关解锁`;
+  $('campaign-continue').hidden = !saved;
+  $('campaign-continue').textContent = saved ? `继续 · ${levelById(saved.levelId).title} · 第 ${saved.turn + 1} 轮 ↗` : '';
   LEVELS.forEach((level, index) => {
-    const unlocked = storage.isUnlocked(level.id), result = data.completed[level.id], button = document.createElement('button');
-    button.className = 'level-card'; button.dataset.level = level.id; button.disabled = !unlocked; button.style.setProperty('--color', level.color);
-    button.setAttribute('aria-label', `${index + 1}. ${level.title}${unlocked ? '，开始关卡' : '，未解锁'}`);
-    button.innerHTML = `<span class="planet" aria-hidden="true"></span><strong>${level.title}</strong><small class="${result ? 'stars' : ''}">${result ? '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars) : unlocked ? '启程 →' : `通关${levelById(level.unlock).title}解锁`}</small>`;
-    button.addEventListener('click', () => { unlockAudio(); start(level.id); }, { signal }); $('level-list').append(button);
+    const unlocked = storage.isUnlocked(level.id), result = data.completed[level.id], continuing = saved?.levelId === level.id, button = document.createElement('button');
+    button.className = `level-card${continuing ? ' is-current' : ''}`; button.dataset.level = level.id; button.disabled = !unlocked; button.style.setProperty('--color', level.color);
+    button.setAttribute('aria-label', `${index + 1}. ${level.title}${continuing ? '，继续关卡' : unlocked ? '，开始关卡' : '，未解锁'}`);
+    button.innerHTML = `<span class="planet" aria-hidden="true"></span><strong>${level.title}</strong><small class="${result && !continuing ? 'stars' : ''}">${continuing ? `继续第 ${saved.turn + 1} 轮 →` : result ? '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars) : unlocked ? '启程 →' : `通关${levelById(level.unlock).title}解锁`}</small>`;
+    button.addEventListener('click', () => { unlockAudio(); if (continuing) continueRun('campaign'); else start(level.id); }, { signal }); $('level-list').append(button);
   });
 }
 function start(id, practice = false) {
   if (!practice && !storage.isUnlocked(id)) return;
   game = createGame(id, { seed: (Date.now() >>> 0) || 1, practice }); finished = false;
+  if (!practice) selectedMode = game.level.endless ? 'endless' : 'campaign';
   renderer.reset(); storage.saveRun(game); hudKey = ''; show('playing'); syncHud();
 }
-function continueRun() {
-  const saved = storage.read().resume;
+function continueRun(mode = selectedMode) {
+  selectedMode = mode;
+  const saved = storage.getResume(mode);
   game = restoreGame(saved);
-  if (!game) { start(storage.read().lastLevel); return; }
+  if (!game) { start(mode === 'endless' ? 'endless' : storage.read().lastLevel); return; }
+  storage.saveRun(game);
   finished = false; renderer.reset(); hudKey = ''; show(game.phase === 'upgrade' ? 'upgrade' : 'playing'); syncHud();
 }
 function syncHud() {
   if (!game) return;
   const key = `${game.phase}:${game.turn}:${game.score}:${game.count}:${game.waveIndex}`;
   if (key === hudKey) return; hudKey = key;
-  $('level-name').textContent = game.level.title; $('score').textContent = game.score;
+  $('level-name').textContent = game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`; $('score').textContent = game.score;
   $('wave-progress').textContent = game.level.endless ? `第 ${game.turn + 1} 轮` : `波次 ${game.waveIndex} / ${game.level.waves.length} · 第 ${game.turn + 1} 轮`;
   $('practice-tag').hidden = !game.practice; $('ball-count').textContent = game.count;
   $('recall').disabled = game.phase !== 'flight';
@@ -119,10 +149,10 @@ function renderUpgrades() {
 function finish() {
   if (finished) return; finished = true; storage.finish(game);
   const won = game.phase === 'won', index = LEVELS.findIndex((level) => level.id === game.levelId);
-  nextId = won ? LEVELS[index + 1]?.id : null;
+  nextId = won && !game.level.endless ? LEVELS[index + 1]?.id : null;
   $('result-title').textContent = won ? '星域已点亮' : '航行结束';
-  $('result-kicker').textContent = game.practice ? '试玩 · 不记录成绩' : won ? game.level.title : game.level.endless ? '无尽星空，等你再来' : game.level.title;
-  $('result-detail').textContent = won ? nextId ? `下一站 · ${levelById(nextId).title}` : '六片星域已点亮，试试无尽挑战吧' : '砖块越过了警戒线 · 下次先拆底部砖块';
+  $('result-kicker').textContent = `${game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`}${game.practice ? ' · 试玩，不记录成绩' : ''}`;
+  $('result-detail').textContent = won ? nextId ? `下一站 · ${levelById(nextId).title}` : '六片星域已点亮，试试无尽模式吧' : game.level.endless && !game.practice ? `砖块越过了警戒线 · 最高纪录 ${storage.read().bestEndless}` : '砖块越过了警戒线 · 下次先拆底部砖块';
   $('result-emblem').textContent = won ? '✦' : '↗'; $('result-emblem').style.color = won ? '#73f5db' : '#ff8caa';
   $('result-score').textContent = game.score; $('result-turns').textContent = game.turn; $('result-combo').textContent = game.bestCombo;
   $('next').hidden = !nextId || game.practice; sound(won ? 'won' : 'lost'); vibrate(won ? 35 : 60); show('result');
@@ -130,7 +160,7 @@ function finish() {
 function saveAndHome() { if (game) storage.saveRun(game); show('home'); }
 function pause() {
   if (screen !== 'playing') return;
-  cancelAim(); soundAt = 0; try { void audio?.suspend().catch(() => {}); } catch { /* Optional. */ }
+  cancelAim(); stopSounds(); try { void audio?.suspend().catch(() => {}); } catch { /* Optional. */ }
   show('paused');
 }
 function point(event) { const bounds = canvas.getBoundingClientRect(); return { x: (event.clientX - bounds.left) * 390 / bounds.width, y: (event.clientY - bounds.top) * 620 / bounds.height }; }
@@ -142,7 +172,7 @@ canvas.addEventListener('pointermove', (event) => { if (event.pointerId === poin
 canvas.addEventListener('pointerup', (event) => {
   if (event.pointerId !== pointerId) return;
   const target = point(event); cancelAim();
-  if (screen === 'playing' && fire(game, target.x - game.launchX, target.y - FIELD.floor + FIELD.radius + 1)) { sound('fire'); syncHud(); }
+  if (screen === 'playing' && fire(game, target.x - game.launchX, target.y - FIELD.floor + FIELD.radius + 1)) syncHud();
 }, { signal });
 canvas.addEventListener('pointercancel', cancelAim, { signal });
 canvas.addEventListener('lostpointercapture', cancelAim, { signal });
@@ -154,12 +184,13 @@ document.addEventListener('click', (event) => {
   const action = event.target.closest('[data-action]')?.dataset.action;
   if (action === 'home') saveAndHome();
   if (action === 'help') { helpReturn = screen; show('help'); }
-  if (action === 'sound') { const enabled = !storage.read().sound; storage.setting('sound', enabled); if (enabled) unlockAudio(); else void audio?.suspend().catch(() => {}); settings(); }
+  if (action === 'sound') { const enabled = !storage.read().sound; storage.setting('sound', enabled); if (enabled) unlockAudio(); else { stopSounds(); void audio?.suspend().catch(() => {}); } settings(); }
 }, { signal });
 const click = (id, handler) => $(id).addEventListener('click', handler, { signal });
 click('start', () => { unlockAudio(); continueRun(); });
-click('levels-button', () => show('levels'));
-click('endless-button', () => { unlockAudio(); start('endless'); });
+click('levels-button', () => { selectedMode = 'campaign'; show('levels'); });
+click('campaign-continue', () => { unlockAudio(); continueRun('campaign'); });
+click('endless-button', () => { unlockAudio(); continueRun('endless'); });
 click('pause', pause); click('resume', () => { unlockAudio(); show('playing'); });
 click('back-home', saveAndHome); click('upgrade-home', saveAndHome);
 click('pause-help', () => { helpReturn = 'paused'; show('help'); });
@@ -191,8 +222,9 @@ function frame(time) {
   if (screen === 'playing' && game) {
     const previous = game.phase; update(game, dt);
     const events = drainEvents(game); renderer.consume(events);
-    const audible = [...events].reverse().find((event) => ['hit', 'break', 'pickup'].includes(event.type));
-    if (audible) sound(audible.type);
+    for (const event of events) if (event.type === 'launch') sound('launch', event);
+    const audible = ['pickup', 'break', 'hit', 'bounce'].map((type) => events.find((event) => event.type === type)).find(Boolean);
+    if (audible) sound(audible.type, audible);
     if (events.some((event) => event.type === 'pickup')) vibrate(12);
     renderer.draw(game, aim, dt, time / 1000); syncHud();
     if (previous !== game.phase) processState();
@@ -201,6 +233,6 @@ function frame(time) {
 }
 window.addEventListener('pagehide', (event) => {
   pause();
-  if (!event.persisted) { cancelAnimationFrame(raf); listeners.abort(); devCleanups.forEach((cleanup) => cleanup?.()); delete window.__orbit; void audio?.close().catch(() => {}); }
+  if (!event.persisted) { cancelAnimationFrame(raf); stopSounds(); listeners.abort(); devCleanups.forEach((cleanup) => cleanup?.()); delete window.__orbit; void audio?.close().catch(() => {}); }
 }, { signal });
 show('home'); raf = requestAnimationFrame(frame);

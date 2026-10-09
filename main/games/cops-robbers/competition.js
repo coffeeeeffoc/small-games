@@ -8,7 +8,8 @@
 			wechat: "wx",
 			bilibili: "bl",
 			douyin: "tt",
-			kuaishou: "ks"
+			kuaishou: "ks",
+			taptap: "tap"
 		};
 		const native = Object.hasOwn(nativePlatforms, config.platform);
 		const sdk = nativeSdk || (native ? root[nativePlatforms[config.platform]] : null);

@@ -1,7 +1,10 @@
 import { levelById, UPGRADES, validateLevels } from './levels.mjs';
 export const WIDTH = 390, HEIGHT = 620;
-export const FIELD = Object.freeze({ left: 20, right: 370, top: 35, floor: 580, cell: 50, row: 50, radius: 4.5, speed: 690, maxRow: 9 });
-const GAP = 0.07, MAX_FLIGHT = 14, EPS = 0.00001;
+export const FIELD = Object.freeze({ left: 20, right: 370, top: 35, floor: 580, cell: 50, row: 50, radius: 6, speed: 690, maxRow: 9 });
+export const RHYTHM = Object.freeze({ bpm: 120, beat: 0.5,
+  launchPattern: Object.freeze([0, 0.04, 0.125, 0.165, 0.25, 0.29, 0.375, 0.415]),
+  reboundBoost: 0.28, reboundDecay: 7.5, trailLimit: 18 });
+const MAX_FLIGHT = 14, EPS = 0.00001;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const copy = (data) => JSON.parse(JSON.stringify(data));
 const emit = (game, type, data = {}) => { if (game.events.length < 250) game.events.push({ type, ...data }); };
@@ -55,18 +58,24 @@ export function fire(game, dx, dy) {
   launch(game); emit(game, 'fire');
   return true;
 }
+const launchAt = (index) => Math.floor(index / RHYTHM.launchPattern.length) * RHYTHM.beat + RHYTHM.launchPattern[index % RHYTHM.launchPattern.length];
 function launch(game) {
-  game.balls.push({ x: game.launchX, y: FIELD.floor - FIELD.radius - 1,
+  const id = `${game.shots}:${game.emitted}`, x = game.launchX, y = FIELD.floor - FIELD.radius - 1;
+  const accent = game.emitted % RHYTHM.launchPattern.length === 0;
+  game.balls.push({ id, x, y,
     vx: game.direction.x * FIELD.speed, vy: game.direction.y * FIELD.speed,
+    boost: accent ? RHYTHM.reboundBoost : RHYTHM.reboundBoost / 2,
+    trail: [{ x, y, t: game.elapsed }],
     pierce: game.upgrades.pierce || 0, ignored: [], done: false });
+  emit(game, 'launch', { ballId: id, index: game.emitted, x, y, at: game.flight, accent });
   game.emitted++;
 }
 
-function hurt(game, brick, damage) {
+function hurt(game, brick, damage, contact = {}) {
   if (brick.hp <= 0 || brick.kind === 'pickup') return;
   brick.hp -= damage;
   const point = brickCenter(brick);
-  emit(game, 'hit', { ...point, damage, id: brick.id });
+  emit(game, 'hit', { ...point, damage, id: brick.id, ...contact });
   if (brick.hp > 0) return;
   game.score++; game.combo++; game.bestCombo = Math.max(game.combo, game.bestCombo);
   emit(game, 'break', { ...point, kind: brick.kind, id: brick.id });
@@ -76,9 +85,9 @@ function hurt(game, brick, damage) {
       hurt(game, other, Math.max(1, Math.ceil(brick.maxHp * 0.6)));
   }
 }
-function hit(game, brick) {
+function hit(game, brick, contact) {
   const critical = random(game) < Math.min(0.75, (game.upgrades.critical || 0) * 0.15);
-  hurt(game, brick, game.damage * (critical ? 3 : 1));
+  hurt(game, brick, game.damage * (critical ? 3 : 1), contact);
   if (critical) emit(game, 'critical', brickCenter(brick));
   if (random(game) < Math.min(0.75, (game.upgrades.blast || 0) * 0.15)) {
     emit(game, 'blast', brickCenter(brick));
@@ -96,23 +105,61 @@ function inside(ball, rect) {
   const r = FIELD.radius;
   return ball.x >= rect.x - r - EPS && ball.x <= rect.x + rect.w + r + EPS && ball.y >= rect.y - r - EPS && ball.y <= rect.y + rect.h + r + EPS;
 }
-// Swept collision: the entire path is checked, including low frame rates.
+// Sweep the circle against faces and rounded corners, including low frame rates.
 function sweep(ball, dx, dy, rect) {
   const r = FIELD.radius;
-  let enter = -Infinity, leave = Infinity, nx = 0, ny = 0;
-  for (const [p, d, low, high, axis] of [[ball.x, dx, rect.x - r, rect.x + rect.w + r, 'x'], [ball.y, dy, rect.y - r, rect.y + rect.h + r, 'y']]) {
-    if (Math.abs(d) < EPS) { if (p < low || p > high) return null; continue; }
-    const t1 = (low - p) / d, t2 = (high - p) / d, near = Math.min(t1, t2);
-    if (near > enter) { enter = near; nx = axis === 'x' ? -Math.sign(d) : 0; ny = axis === 'y' ? -Math.sign(d) : 0; }
-    leave = Math.min(leave, Math.max(t1, t2));
+  if (Math.max(ball.x, ball.x + dx) < rect.x - r || Math.min(ball.x, ball.x + dx) > rect.x + rect.w + r
+    || Math.max(ball.y, ball.y + dy) < rect.y - r || Math.min(ball.y, ball.y + dy) > rect.y + rect.h + r) return null;
+  let nearest = null;
+  const consider = (t, nx, ny) => {
+    if (t < -EPS || t > 1 || dx * nx + dy * ny >= -EPS || (nearest && t >= nearest.t)) return;
+    const length = Math.hypot(nx, ny);
+    nearest = { t: Math.max(0, t), nx: nx / length, ny: ny / length };
+  };
+  if (Math.abs(dx) > EPS) {
+    const nx = -Math.sign(dx), edge = dx > 0 ? rect.x : rect.x + rect.w;
+    const t = (edge + nx * r - ball.x) / dx, y = ball.y + dy * t;
+    if (y >= rect.y && y <= rect.y + rect.h) consider(t, nx, 0);
   }
-  if (enter < -EPS || enter > 1 || leave < enter) return null;
-  return { t: Math.max(0, enter), nx, ny };
+  if (Math.abs(dy) > EPS) {
+    const ny = -Math.sign(dy), edge = dy > 0 ? rect.y : rect.y + rect.h;
+    const t = (edge + ny * r - ball.y) / dy, x = ball.x + dx * t;
+    if (x >= rect.x && x <= rect.x + rect.w) consider(t, 0, ny);
+  }
+  const distance = dx * dx + dy * dy;
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+    const cx = rect.x + (sx > 0 ? rect.w : 0), cy = rect.y + (sy > 0 ? rect.h : 0);
+    const ox = ball.x - cx, oy = ball.y - cy, dot = ox * dx + oy * dy;
+    const discriminant = dot * dot - distance * (ox * ox + oy * oy - r * r);
+    if (distance < EPS || discriminant < 0) continue;
+    const t = (-dot - Math.sqrt(discriminant)) / distance;
+    const nx = (ox + dx * t) / r, ny = (oy + dy * t) / r;
+    if (nx * sx >= -EPS && ny * sy >= -EPS) consider(t, nx, ny);
+  }
+  return nearest;
+}
+// Base velocity preserves the aimed path; a capped speed kick settles after each
+// bounce. Integrating the exponential exactly keeps travel independent of frames.
+const travelTime = (dt, boost) => dt + boost * -Math.expm1(-RHYTHM.reboundDecay * dt) / RHYTHM.reboundDecay;
+function contactTime(distance, boost) {
+  let time = distance / (1 + boost);
+  for (let i = 0; i < 5; i++) time -= (travelTime(time, boost) - distance) / (1 + boost * Math.exp(-RHYTHM.reboundDecay * time));
+  return Math.max(0, time);
+}
+function trailPoint(ball, t, contact = false) {
+  const previous = ball.trail.at(-1);
+  if (previous && Math.hypot(previous.x - ball.x, previous.y - ball.y) < EPS) {
+    if (contact) previous.contact = true;
+    return;
+  }
+  ball.trail.push({ x: ball.x, y: ball.y, t, ...(contact ? { contact: true } : {}) });
+  if (ball.trail.length > RHYTHM.trailLimit) ball.trail.shift();
 }
 function moveBall(game, ball, dt) {
   let remaining = dt;
   for (let impact = 0; impact < 16 && remaining > EPS && !ball.done; impact++) {
-    const dx = ball.vx * remaining, dy = ball.vy * remaining;
+    const travel = travelTime(remaining, ball.boost);
+    const dx = ball.vx * travel, dy = ball.vy * travel;
     ball.ignored = ball.ignored.filter((id) => { const b = game.bricks.find((b) => b.id === id && b.hp > 0); return b && inside(ball, brickRect(b)); });
     let collision = { t: 1, type: 'move', nx: 0, ny: 0 };
     const consider = (candidate) => { if (candidate && candidate.t >= -EPS && candidate.t <= collision.t) collision = candidate; };
@@ -126,18 +173,24 @@ function moveBall(game, ball, dt) {
       if (hit) consider({ ...hit, type: 'brick', brick });
     }
     ball.x += dx * collision.t; ball.y += dy * collision.t;
-    remaining *= 1 - collision.t;
+    const consumed = collision.type === 'move' ? remaining : Math.min(remaining, contactTime(travel * collision.t, ball.boost));
+    ball.boost *= Math.exp(-RHYTHM.reboundDecay * consumed);
+    remaining -= consumed;
+    const at = game.elapsed - remaining;
+    trailPoint(ball, at, collision.type !== 'move');
     if (collision.type === 'move') break;
     if (collision.type === 'return') {
       ball.done = true;
       if (game.nextX === null) game.nextX = clamp(ball.x, FIELD.left + FIELD.radius, FIELD.right - FIELD.radius);
       break;
     }
+    const contact = { x: ball.x - collision.nx * FIELD.radius, y: ball.y - collision.ny * FIELD.radius,
+      ballId: ball.id, nx: collision.nx, ny: collision.ny };
     if (collision.type === 'brick') {
       const brick = collision.brick;
       if (brick.kind === 'pickup') {
         brick.hp = 0; game.count = Math.min(99, game.count + 1); emit(game, 'pickup', brickCenter(brick));
-      } else hit(game, brick);
+      } else hit(game, brick, contact);
       if (brick.kind === 'pickup' || ball.pierce > 0) {
         if (brick.kind !== 'pickup') ball.pierce--;
         ball.ignored.push(brick.id);
@@ -145,8 +198,10 @@ function moveBall(game, ball, dt) {
         continue;
       }
     }
-    if (collision.nx) ball.vx = Math.abs(ball.vx) * collision.nx;
-    if (collision.ny) ball.vy = Math.abs(ball.vy) * collision.ny;
+    const normalVelocity = ball.vx * collision.nx + ball.vy * collision.ny;
+    ball.vx -= 2 * normalVelocity * collision.nx; ball.vy -= 2 * normalVelocity * collision.ny;
+    ball.boost = RHYTHM.reboundBoost;
+    emit(game, 'bounce', { ...contact, at, kind: collision.type, brickId: collision.brick?.id });
     ball.x += collision.nx * EPS * 2; ball.y += collision.ny * EPS * 2;
   }
 }
@@ -183,11 +238,13 @@ export function update(game, dt) {
   if (game.phase !== 'flight' || !Number.isFinite(dt) || dt <= 0) return;
   let remaining = Math.min(dt, 0.25);
   while (remaining > EPS && game.phase === 'flight') {
-    const step = Math.min(remaining, 1 / 120); remaining -= step;
+    while (game.emitted < game.volley && game.flight + EPS >= launchAt(game.emitted)) launch(game);
+    const untilLaunch = game.emitted < game.volley ? launchAt(game.emitted) - game.flight : Infinity;
+    const step = Math.min(remaining, 1 / 120, untilLaunch); remaining -= step;
     game.elapsed += step; game.flight += step;
-    while (game.emitted < game.volley && game.flight >= game.emitted * GAP) launch(game);
     for (const ball of game.balls) if (!ball.done) moveBall(game, ball, step);
     game.balls = game.balls.filter((b) => !b.done);
+    while (game.emitted < game.volley && game.flight + EPS >= launchAt(game.emitted)) launch(game);
     if (game.flight >= MAX_FLIGHT) { recall(game); break; }
     if (game.emitted === game.volley && !game.balls.length) endTurn(game);
   }
@@ -203,7 +260,10 @@ export function restoreGame(saved) {
   const level = levelById(saved.levelId);
   if (!level || !Array.isArray(saved.bricks) || saved.bricks.length > 77 || !Array.isArray(saved.cards) || !saved.upgrades || typeof saved.upgrades !== 'object') return null;
   const integer = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
-  if (!integer(saved.turn, 1000000) || !integer(saved.score, 10000000) || !integer(saved.count, 99) || saved.count < 1 || !integer(saved.damage, 1000000) || saved.damage < 1 || !integer(saved.waveIndex, 1000000) || !integer(saved.shots, 1000000) || !integer(saved.nextId, 10000000) || !integer(saved.seed, 0xffffffff) || saved.seed === 0 || !Number.isFinite(saved.launchX) || saved.launchX < FIELD.left + FIELD.radius || saved.launchX > FIELD.right - FIELD.radius || !Number.isFinite(saved.elapsed) || saved.elapsed < 0) return null;
+  // Schema 1 includes saves made with the original 4.5 px ball. Retain those
+  // edge positions during validation, then move the larger ball safely inbounds.
+  const savedRadius = 4.5;
+  if (!integer(saved.turn, 1000000) || !integer(saved.score, 10000000) || !integer(saved.count, 99) || saved.count < 1 || !integer(saved.damage, 1000000) || saved.damage < 1 || !integer(saved.waveIndex, 1000000) || !integer(saved.shots, 1000000) || !integer(saved.nextId, 10000000) || !integer(saved.seed, 0xffffffff) || saved.seed === 0 || !Number.isFinite(saved.launchX) || saved.launchX < FIELD.left + savedRadius || saved.launchX > FIELD.right - savedRadius || !Number.isFinite(saved.elapsed) || saved.elapsed < 0) return null;
   if (!level.endless && saved.waveIndex > level.waves.length) return null;
   if (!integer(saved.bestCombo, 10000000) || saved.bestCombo > saved.score) return null;
   if (saved.bricks.some((b) => !integer(b.id, 10000000) || !integer(b.c, 6) || !integer(b.r, FIELD.maxRow) || !['brick', 'bomb', 'pickup'].includes(b.kind) || !integer(b.hp, 10000000) || b.hp < 1 || !integer(b.maxHp, 10000000) || b.maxHp < b.hp)) return null;
@@ -213,5 +273,6 @@ export function restoreGame(saved) {
   if (saved.phase === 'upgrade' && (saved.cards.length !== 3 || new Set(saved.cards).size !== 3 || saved.cards.some((id) => !UPGRADES.some((u) => u.id === id)))) return null;
   const game = createGame(level.id);
   for (const key of ['phase', 'seed', 'turn', 'score', 'shots', 'count', 'damage', 'upgrades', 'cards', 'launchX', 'bricks', 'waveIndex', 'nextId', 'elapsed', 'bestCombo']) game[key] = copy(saved[key] ?? game[key]);
+  game.launchX = clamp(game.launchX, FIELD.left + FIELD.radius, FIELD.right - FIELD.radius);
   return game;
 }

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#07151e" />
+    <meta name="theme-color" content="#0b1028" />
     <meta
       name="description"
       content="在三维方舱中旋转、堆叠、消除。颠倒容器，让方块下落重组整个空间。"
@@ -14,6 +14,50 @@
     <script src="./fullscreen.js" defer></script>
   </head>
   <body data-phase="home">
+    <svg class="rotation-symbols" aria-hidden="true" width="0" height="0">
+      <defs>
+        <g id="rotation-cage" class="rotation-cage">
+          <path d="M12 17 33 7 54 17 54 38 33 48 12 38Z M12 17 33 27 54 17 M33 27V48" />
+          <path class="rotation-hidden-edge" d="M33 7V28 M12 38 33 28 54 38" />
+        </g>
+        <g id="rotation-plane-xy">
+          <use href="#rotation-cage" />
+          <path class="rotation-plane" d="M12 17 33 7 54 17 33 27Z" />
+        </g>
+        <g id="rotation-plane-xz">
+          <use href="#rotation-cage" />
+          <path class="rotation-plane" d="M12 17 33 27 33 48 12 38Z" />
+        </g>
+        <g id="rotation-plane-yz">
+          <use href="#rotation-cage" />
+          <path class="rotation-plane" d="M33 27 54 17 54 38 33 48Z" />
+        </g>
+        <g id="rotation-xy-forward">
+          <use href="#rotation-plane-xy" />
+          <path class="rotation-arrow" d="M46 17C43 8 21 9 20 18 M20 18l-1-5 M20 18l5-2" />
+        </g>
+        <g id="rotation-xy-reverse">
+          <use href="#rotation-plane-xy" />
+          <path class="rotation-arrow" d="M20 18C21 9 43 8 46 17 M46 17l-1-5 M46 17l-5-1" />
+        </g>
+        <g id="rotation-xz-forward">
+          <use href="#rotation-plane-xz" />
+          <path class="rotation-arrow" d="M26 39C18 42 10 28 19 24 M19 24l-1 5 M19 24l-5 1" />
+        </g>
+        <g id="rotation-xz-reverse">
+          <use href="#rotation-plane-xz" />
+          <path class="rotation-arrow" d="M19 24C10 28 18 42 26 39 M26 39l-4 4 M26 39l-5-1" />
+        </g>
+        <g id="rotation-yz-forward">
+          <use href="#rotation-plane-yz" />
+          <path class="rotation-arrow" d="M49 23C41 18 32 32 40 39 M40 39l-5-2 M40 39l1-5" />
+        </g>
+        <g id="rotation-yz-reverse">
+          <use href="#rotation-plane-yz" />
+          <path class="rotation-arrow" d="M40 39C32 32 41 18 49 23 M49 23l-5-1 M49 23l-1 5" />
+        </g>
+      </defs>
+    </svg>
     <main id="app" data-game-display-host>
       <section id="home" class="screen home-screen" aria-label="游戏主页">
         <div class="home-top">
@@ -27,16 +71,18 @@
         </header>
         <div class="home-art">
           <canvas id="home-canvas" aria-label="三维方舱预览"></canvas>
-          <div class="home-art-caption">旋转一块方体<br /><strong>重构整个空间</strong></div>
+          <div class="home-art-caption">每次翻转<br /><strong>都是新的机会</strong></div>
         </div>
         <div class="home-bottom">
           <div class="record"><span>本机最高分</span><strong id="home-best">000000</strong></div>
           <button id="continue-game" class="primary" hidden>继续上次对局</button>
-          <button id="start-game" class="primary">开始游戏 <span>经典无尽</span></button>
+          <button id="start-game" class="primary">
+            开始游戏 <span aria-hidden="true">▸</span>
+          </button>
           <div class="home-actions">
             <button id="help-home">玩法说明</button><button data-game-fullscreen>全屏</button>
           </div>
-          <p class="home-note">6 × 6 × 12 <span>·</span> 颠倒容器，创造连锁</p>
+          <p class="home-note">8 × 8 × 18 <span>·</span> 自由翻转，创造连锁</p>
         </div>
       </section>
 
@@ -50,22 +96,18 @@
         </header>
         <div class="stage">
           <div class="stage-top">
-            <span id="gravity-badge">6 × 6 × 12</span>
+            <span id="gravity-badge">8 × 8 × 18</span>
             <div class="next-piece">
               <span>下一块</span
               ><canvas id="next-canvas" width="86" height="68" aria-label="下一个方块"></canvas>
             </div>
           </div>
-          <div id="view-tools" hidden aria-label="观察与侧翻工具">
+          <div id="view-tools" hidden aria-label="观察视角工具">
             <div class="view-buttons" aria-label="观察视角">
               <button data-view="iso" aria-pressed="true">立体</button>
               <button data-view="top" aria-pressed="false">俯视</button>
               <button data-view="front" aria-pressed="false">正视</button>
               <button data-view="side" aria-pressed="false">侧视</button>
-            </div>
-            <div class="side-flips">
-              <button data-flip="left" aria-label="容器向左侧翻 90 度">↶ 左翻 90°</button>
-              <button data-flip="right" aria-label="容器向右侧翻 90 度">右翻 90° ↷</button>
             </div>
           </div>
           <canvas
@@ -78,7 +120,7 @@
             ><button id="skip-tutorial" aria-label="关闭操作提示">知道了</button>
           </div>
           <div class="stage-bottom">
-            <span id="stage-hint">拖动方块 · 虚线是落点</span><span id="occupancy">0 / 432</span>
+            <span id="stage-hint">拖动方块 · 虚线是落点</span><span id="occupancy">0 / 1152</span>
           </div>
         </div>
         <div class="control-deck">
@@ -87,21 +129,106 @@
               <button data-input="move" aria-pressed="true">移动</button>
               <button data-input="observe" aria-pressed="false">观察</button>
             </div>
-            <div class="rotation-buttons" aria-label="旋转方块">
-              <button data-rotate="XY" aria-label="XY 平面旋转 90 度"><span>↻</span> XY</button>
-              <button data-rotate="XZ" aria-label="XZ 平面旋转 90 度"><span>↻</span> XZ</button>
-              <button data-rotate="YZ" aria-label="YZ 平面旋转 90 度"><span>↻</span> YZ</button>
-            </div>
-          </div>
-          <div class="primary-controls">
-            <button id="flip-container" class="flip-button">
-              <span aria-hidden="true">⤾</span> 颠倒容器 <small>180°</small>
-            </button>
             <button id="hard-drop" class="primary">
               <span aria-hidden="true">↓</span> 直接落下
             </button>
           </div>
-          <p class="control-caption">转动方块，找到属于它的位置</p>
+          <div class="control-group">
+            <div class="control-label"><span>旋转方块</span><span>每次 90°</span></div>
+            <div class="piece-controls">
+              <div class="rotation-buttons" aria-label="旋转方块">
+                <div class="rotation-pair" data-plane="XY" role="group" aria-label="XY 水平旋转">
+                  <button
+                    class="rotation-main"
+                    data-rotate="XY"
+                    data-rotate-direction="1"
+                    aria-label="XY 水平面，沿图示方向平转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-xy-forward" />
+                    </svg>
+                    <span class="rotation-label">XY · 平转</span>
+                  </button>
+                  <button
+                    class="rotation-reverse"
+                    data-rotate="XY"
+                    data-rotate-direction="-1"
+                    aria-label="XY 水平面，沿图示反方向平转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-xy-reverse" />
+                    </svg>
+                    <span>反转</span>
+                  </button>
+                </div>
+                <div class="rotation-pair" data-plane="XZ" role="group" aria-label="XZ 前后旋转">
+                  <button
+                    class="rotation-main"
+                    data-rotate="XZ"
+                    data-rotate-direction="1"
+                    aria-label="XZ 竖直面，沿图示方向前后转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-xz-forward" />
+                    </svg>
+                    <span class="rotation-label">XZ · 前后转</span>
+                  </button>
+                  <button
+                    class="rotation-reverse"
+                    data-rotate="XZ"
+                    data-rotate-direction="-1"
+                    aria-label="XZ 竖直面，沿图示反方向前后转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-xz-reverse" />
+                    </svg>
+                    <span>反转</span>
+                  </button>
+                </div>
+                <div class="rotation-pair" data-plane="YZ" role="group" aria-label="YZ 左右旋转">
+                  <button
+                    class="rotation-main"
+                    data-rotate="YZ"
+                    data-rotate-direction="1"
+                    aria-label="YZ 竖直面，沿图示方向左右转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-yz-forward" />
+                    </svg>
+                    <span class="rotation-label">YZ · 左右转</span>
+                  </button>
+                  <button
+                    class="rotation-reverse"
+                    data-rotate="YZ"
+                    data-rotate-direction="-1"
+                    aria-label="YZ 竖直面，沿图示反方向左右转 90 度"
+                  >
+                    <svg class="rotation-icon" viewBox="0 0 66 54" aria-hidden="true">
+                      <use href="#rotation-yz-reverse" />
+                    </svg>
+                    <span>反转</span>
+                  </button>
+                </div>
+              </div>
+              <button id="hold-piece" class="hold-button" aria-label="暂存当前方块，每块可交换一次">
+                <span class="hold-label">暂存</span><span id="held-name">空</span>
+              </button>
+            </div>
+          </div>
+          <div class="control-group container-group">
+            <div class="control-label"><span>转动容器</span><span>整舱重排</span></div>
+            <div class="container-controls" aria-label="转动容器">
+              <button data-flip="left" aria-label="容器向左侧翻 90 度">
+                <span aria-hidden="true">↶</span> 左翻 90°
+              </button>
+              <button data-flip="right" aria-label="容器向右侧翻 90 度">
+                右翻 90° <span aria-hidden="true">↷</span>
+              </button>
+              <button id="flip-container" class="flip-button" aria-label="颠倒容器 180 度">
+                颠倒 <small>180°</small>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -132,7 +259,9 @@
             <b>02</b>
             <div>
               <h3>三个平面，三种旋转</h3>
-              <p>XY、XZ、YZ 每次旋转 90°。姿态合适后，点击「直接落下」。</p>
+              <p>
+                图标高亮的面就是旋转平面：XY 平转、XZ 前后转、YZ 左右转。每次沿箭头转 90°，下方「反转」转向另一边。姿态合适后，点击「直接落下」。暂时没有合适位置？点击「暂存」交换方块，每个新方块可交换一次。
+              </p>
             </div>
           </article>
           <article>
@@ -148,17 +277,17 @@
           <article>
             <b>04</b>
             <div>
-              <h3>颠倒容器，重构局面</h3>
+              <h3>转动容器，重构局面</h3>
               <p>
-                「颠倒容器」将整个方舱转动
-                180°，所有方块随后向下落；当前方块也会一起落定。观察模式还可向左右侧翻
-                90°。本原型可不限次使用。
+                底部「转动容器」随时可用：向左或向右侧翻 90°，或颠倒 180°。
+                所有方块随后向下落，当前方块也会一起落定。翻转不限次数；先腾出空间，再寻找连锁。
               </p>
             </div>
           </article>
         </div>
         <p class="keyboard-help">
-          键盘：方向键 / WASD 移动 · Q / E / R 旋转<br />空格落下 · P / Esc 暂停 · G 颠倒容器
+          键盘：方向键 / WASD 移动 · Q / E / R 旋转 · 加 Shift 反转<br />空格落下 · C 暂存 · P / Esc 暂停 · G
+          颠倒容器
         </p>
         <button id="help-back" class="primary">明白了</button>
       </section>

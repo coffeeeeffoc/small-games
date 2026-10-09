@@ -57,7 +57,7 @@ export function setupGameShell({ openLevels }) {
               }[document.body.dataset.phase] || '点亮起的路口，出发！';
     if (
       ($('instruction').classList.contains('alert') ||
-        /无法|不可用|只能|不能|请换|核对|尚未/.test(text)) &&
+        /无法|不可用|只能|不能|无路可走|请换|核对|尚未/.test(text)) &&
       !lesson &&
       !hint
     )
