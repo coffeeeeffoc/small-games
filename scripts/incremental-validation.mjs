@@ -19,6 +19,7 @@ export const workspaceBoundaryScopePaths = Object.freeze([
   'scripts/check-workspace-dependencies.mjs',
   'scripts/check-workspace-dependencies.test.mjs',
 ]);
+const pagesDeployScopePaths = ['scripts/prepare-pages-deploy.py', 'scripts/test-pages-deploy.py'];
 // Reviewed shared navigation contracts: exercise both home and immersive frame exits.
 const navigationSamples = ['letters-words2', 'xiangqi-five'];
 const nativeSmoke = 'scripts/native-game-smoke.mjs';
@@ -73,6 +74,7 @@ export function incrementalPlan({
       !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')) &&
       !validationTool.test(file) &&
       !workspaceBoundaryScopePaths.includes(file) &&
+      !pagesDeployScopePaths.includes(file) &&
       file !== 'scripts/pages-regression-timings.json' &&
       file !== nativeSmoke &&
       !fileScopes.has(file),
@@ -171,6 +173,7 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
+    pages_deploy: paths.some((file) => pagesDeployScopePaths.includes(file)),
     validation_tools: paths.some(
       (file) =>
         validationTool.test(file) ||

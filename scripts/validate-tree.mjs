@@ -531,6 +531,14 @@ export async function validateTree({
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
+  if (incrementalScope?.pages_deploy)
+    execute(
+      process.platform === 'win32' ? 'python' : 'python3',
+      ['scripts/test-pages-deploy.py'],
+      root,
+      clean,
+      'logged',
+    );
   if (incrementalScope?.validation_tools) {
     if (sourcePaths.some((file) => workspaceBoundaryScopePaths.includes(file)))
       execute(pnpm, ['test:boundaries'], root, clean, 'logged');

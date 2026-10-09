@@ -19,6 +19,13 @@ def files(root):
     return [p for p in entries if p.is_file()]
 
 
+def unpublished_art(directory, names):
+    # These seven retained drafts are unused by Travel; apply to saved previews too.
+    if pathlib.Path(directory).parts[-5:] == ("games", "travel", "assets", "journey", "layers"):
+        return {f"source-{name}.png" for name in ("cafe", "foreground", "meadow", "oldtown", "pagodas", "pier", "village")}
+    return set()
+
+
 def prepare(source, state, site, branch, sha):
     if branch not in BRANCHES or not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise ValueError("Expected main/dev/test and a full commit SHA")
@@ -58,12 +65,12 @@ def prepare(source, state, site, branch, sha):
 
     if site.exists():
         shutil.rmtree(site)
-    shutil.copytree(state / "main", site)
+    shutil.copytree(state / "main", site, ignore=unpublished_art)
     # Package before adding previews so Android keeps downloading only production.
     package_mobile(site)
     for name in ("dev", "test"):
         if (state / name).exists():
-            shutil.copytree(state / name, site / name)
+            shutil.copytree(state / name, site / name, ignore=unpublished_art)
     size = sum(p.stat().st_size for p in files(site))
     if size > MAX_SITE_BYTES:
         raise ValueError(f"Combined Pages site exceeds 1 GiB: {size} bytes")

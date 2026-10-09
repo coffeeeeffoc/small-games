@@ -114,6 +114,18 @@ test('generic logic in the same Shell directory still exercises reviewed navigat
 test('unknown shared paths block with a classification gap, never silently expand to all games', () => {
   assert.throws(() => plan(['platforms/new-shared.js']), /scope undefined.*no automatic full/);
 });
+
+test('Pages assembly changes run isolation, native archive and size checks without changing game scope', () => {
+  for (const file of ['scripts/prepare-pages-deploy.py', 'scripts/test-pages-deploy.py']) {
+    const selected = plan([file]);
+    assert.equal(selected.pages_deploy, true);
+    assert.equal(selected.full, false);
+    assert.equal(selected.browser, false);
+    assert.deepEqual(selected.consumer_sources, []);
+  }
+  assert.equal(plan(['games/local/a/rules.mjs']).pages_deploy, false);
+  assert.throws(() => plan(['scripts/prepare-pages-other.py']), /scope undefined/);
+});
 test('only the exact workspace boundary checker and tests select static tooling without game consumers', () => {
   const sampleGames = [
     ...games,

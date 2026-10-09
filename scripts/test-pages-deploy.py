@@ -31,6 +31,14 @@ with tempfile.TemporaryDirectory() as directory:
     (source / "old.js").write_text("old chunk", encoding="utf-8")
     (source / "mobile").mkdir()
     (source / "mobile/web.zip").write_bytes(b"old native bundle")
+    layers = pathlib.Path("games/travel/assets/journey/layers")
+    (source / layers).mkdir(parents=True)
+    drafts = [f"source-{name}.png" for name in ("cafe", "foreground", "meadow", "oldtown", "pagodas", "pier", "village")]
+    for name in drafts:
+        (source / layers / name).write_bytes(b"authoring draft")
+    for name in ("oldtown.webp", "source-custom.png"):
+        (source / layers / name).write_bytes(b"runtime asset")
+    (source / "source-oldtown.png").write_bytes(b"unrelated image")
     rejected(lambda: prepare(source, state, site, "dev", "a" * 40), "Publish main first")
     rejected(lambda: prepare(source, state, site, "../main", "a" * 40), "main/dev/test")
     rejected(lambda: prepare(source, state, site, "main", "invalid"), "commit SHA")
@@ -58,11 +66,19 @@ with tempfile.TemporaryDirectory() as directory:
         assert (output / "index.html").read_text() == branch + letter
         assert (output / "new.js").read_text() == letter
         assert json.loads((output / "deployment.json").read_text()) == {"branch": branch, "sha": letter * 40}
+        assert all(not (output / layers / name).exists() for name in drafts)
+        assert all((state / branch / layers / name).exists() for name in drafts)
+        assert (output / layers / "oldtown.webp").read_bytes() == b"runtime asset"
+        assert (output / layers / "source-custom.png").read_bytes() == b"runtime asset"
+        assert (output / "source-oldtown.png").read_bytes() == b"unrelated image"
     assert (state / ".git").read_text() == "keep git metadata"
     assert not (site / ".git").exists()
     assert not (site / "old.js").exists()
     with zipfile.ZipFile(site / "mobile/web.zip") as archive:
-        assert set(archive.namelist()) == {"index.html", "new.js", "deployment.json"}
+        assert set(archive.namelist()) == {
+            "index.html", "new.js", "deployment.json", "source-oldtown.png",
+            (layers / "oldtown.webp").as_posix(), (layers / "source-custom.png").as_posix(),
+        }
         assert archive.read("index.html") == b"maine"
 
     # Use the combined site's revision even when source branches share a commit.
