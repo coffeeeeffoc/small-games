@@ -474,12 +474,22 @@ export const threeChooseTwoCanvasDefinition = {
       else if (level?.discardBudget !== undefined) text(`弃格 ${state.stats.discardedCells} / ${level.discardBudget}`, 195, 174, 12, ink);
       round(b.x, b.y + 5, b.size, b.size, 17, '#B6A384');
       round(b.x, b.y, b.size, b.size, 17, gradient(b.y, b.size, '#FCEAC9', '#CBB087'), '#FFF9E7');
+      round(b.innerX - 2, b.innerY - 2, b.pitch * 8 + 4, b.pitch * 8 + 4, 6,
+        progress.settings.highContrast ? '#FAF7F1' : '#F3EEE5', '#AA916F');
+      ctx.beginPath();
+      for (let i = 1; i < 8; i++) {
+        const gx = b.innerX - 1 + i * b.pitch, gy = b.innerY - 1 + i * b.pitch;
+        ctx.moveTo(gx, b.innerY - 1); ctx.lineTo(gx, b.innerY - 1 + b.pitch * 8);
+        ctx.moveTo(b.innerX - 1, gy); ctx.lineTo(b.innerX - 1 + b.pitch * 8, gy);
+      }
+      ctx.strokeStyle = progress.settings.highContrast ? '#BCB5A7' : '#D6CEC0';
+      ctx.lineWidth = progress.settings.highContrast ? 1.2 : .8; ctx.stroke();
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
         const index = y * 8 + x, px = b.innerX + x * b.pitch, py = b.innerY + y * b.pitch;
-        if (state.board[index]) block(px, py, b.pitch - 2, palette()[Math.abs(state.board[index] - 1) % palette().length], state.starBoard?.[index]);
-        else round(px, py, b.pitch - 2, b.pitch - 2, 5,
-          progress.settings.highContrast ? '#10261E' : '#294C3E',
-          progress.settings.highContrast ? '#06170F' : '#17372B');
+        if (state.board[index]) {
+          round(px, py + 3, b.pitch - 2, b.pitch - 2, 5, '#5547354D');
+          block(px, py, b.pitch - 2, palette()[Math.abs(state.board[index] - 1) % palette().length], state.starBoard?.[index]);
+        }
         if (!progress.settings.reducedFlash && flash && Date.now() < flash.until && (flash.rows.includes(y) || flash.cols.includes(x)))
           round(px, py, b.pitch - 5, b.pitch - 5, 6, '#FFFFFFB3');
       }
