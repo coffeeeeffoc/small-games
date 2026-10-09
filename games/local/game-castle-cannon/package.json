@@ -16,7 +16,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "smoke": "node scripts/browser-check.mjs",
-    "test:rules": "vitest run src/duel.test.ts src/duel-server.test.ts src/progress.test.ts",
+    "test:rules": "vitest run src/duel.test.ts src/duel-server.test.ts src/progress.test.ts src/definition.test.ts",
     "test:native": "node scripts/native-check.mjs",
     "test:input": "node scripts/input-check.mjs"
   },
