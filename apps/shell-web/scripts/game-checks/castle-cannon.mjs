@@ -1,4 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect as baseExpect } from '@playwright/test';
+// Software-rendered Chromium can take over 5s to publish the fired-shot frame.
+const expect = baseExpect.configure({ timeout: 15000 });
 export async function assertCastleDuelEntry(frame, mobile = false) {
   const root = frame.locator('.castle-root');
   const click = (id) =>
