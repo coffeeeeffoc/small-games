@@ -1,6 +1,8 @@
 import { POCKETS, aimPreview } from './core.mjs';
 
 const TAU = Math.PI * 2;
+let boardAtlas;
+const coinAtlases = new Map();
 const woodAtlas = new Image();
 woodAtlas.src = new URL('../assets/wood.webp', import.meta.url).href;
 await woodAtlas.decode().catch(() => {});
@@ -218,7 +220,7 @@ function boardTexture() {
   return canvas;
 }
 
-export function drawCoin(c, coin, scale = 1) {
+function paintCoin(c, coin, scale = 1) {
   const { x, y, kind } = coin,
     r = coin.r * scale;
   c.save();
@@ -258,22 +260,46 @@ export function drawCoin(c, coin, scale = 1) {
   c.restore();
 }
 
+export function drawCoin(c, coin, scale = 1) {
+  const key = `${coin.kind}:${coin.r}`;
+  let atlas = coinAtlases.get(key);
+  if (!atlas) {
+    const size = Math.ceil((coin.r + 14) * 2),
+      image = document.createElement('canvas');
+    // Two source pixels per board unit retain crisp rims when the canvas grows
+    // on a high-DPI screen. Gradients and shadows are painted only once per kind.
+    image.width = image.height = size * 2;
+    paintCoin(image.getContext('2d'), { ...coin, x: size, y: size }, 2);
+    atlas = { image, size };
+    coinAtlases.set(key, atlas);
+  }
+  const size = atlas.size * scale;
+  c.drawImage(atlas.image, coin.x - size / 2, coin.y - size / 2, size, size);
+}
+
 export function createRenderer(canvas) {
   const c = canvas.getContext('2d'),
-    board = boardTexture();
+    board = (boardAtlas ??= boardTexture());
   let width = 0;
-  return (game, { aim = null, effects = [], time = 0, alpha = 1 } = {}) => {
-    const pixels = Math.round(
-      Math.min(devicePixelRatio || 1, 2) * canvas.getBoundingClientRect().width,
-    );
+  const resize = (cssWidth = canvas.getBoundingClientRect().width) => {
+    const pixels = Math.round(Math.min(devicePixelRatio || 1, 2) * cssWidth);
     if (pixels > 0 && width !== pixels) {
       canvas.width = canvas.height = pixels;
       width = pixels;
+      return true;
     }
+    return false;
+  };
+  const draw = (
+    game,
+    { aim = null, effects = [], time = 0, alpha = 1, controllable = game.turn === 0 } = {},
+  ) => {
+    if (!width) resize();
+    if (!width) return;
     c.setTransform(width / 1000, 0, 0, width / 1000, 0, 0);
     c.clearRect(0, 0, 1000, 1000);
     c.drawImage(board, 0, 0);
-    if (game.phase === 'ready' && game.turn === 0) {
+    if (game.phase === 'ready' && controllable) {
       c.save();
       c.shadowColor = '#ffe39f';
       c.shadowBlur = 18;
@@ -301,25 +327,43 @@ export function createRenderer(canvas) {
         c.save();
         c.setLineDash([6, 12]);
         c.lineDashOffset = 0;
-        c.strokeStyle = '#fffbdf';
-        c.lineWidth = 3;
-        c.shadowColor = '#594022';
-        c.shadowBlur = 3;
         c.beginPath();
         c.moveTo(s.x, s.y);
         c.lineTo(preview.x, preview.y);
+        c.strokeStyle = '#423b30';
+        c.lineWidth = 6;
         c.stroke();
+        c.strokeStyle = '#fffbdf';
+        c.lineWidth = 3;
+        c.stroke();
+        c.setLineDash([5, 5]);
+        circle(c, preview.x, preview.y, s.r, null, '#fffcde', 2.5);
         c.setLineDash([]);
-        circle(c, preview.x, preview.y, s.r, null, '#fffcdeaa', 2);
         if (preview.hit) {
           const h = preview.hit,
-            d = Math.hypot(h.x - preview.x, h.y - preview.y);
+            d = Math.hypot(h.x - preview.x, h.y - preview.y),
+            nx = (h.x - preview.x) / d,
+            ny = (h.y - preview.y) / d,
+            ex = h.x + nx * 120,
+            ey = h.y + ny * 120;
+          // A solid cyan arrow and outlined target ring are distinct from the
+          // striker's cream dotted ray even without relying on color alone.
           c.beginPath();
-          c.moveTo(h.x, h.y);
-          c.lineTo(h.x + ((h.x - preview.x) / d) * 86, h.y + ((h.y - preview.y) / d) * 86);
-          c.strokeStyle = '#a64829';
-          c.lineWidth = 3;
+          c.moveTo(h.x + nx * (h.r + 9), h.y + ny * (h.r + 9));
+          c.lineTo(ex, ey);
+          c.moveTo(ex - nx * 18 - ny * 10, ey - ny * 18 + nx * 10);
+          c.lineTo(ex, ey);
+          c.lineTo(ex - nx * 18 + ny * 10, ey - ny * 18 - nx * 10);
+          c.lineCap = 'round';
+          c.lineJoin = 'round';
+          c.strokeStyle = '#123d48';
+          c.lineWidth = 9;
           c.stroke();
+          c.strokeStyle = '#4bf0ee';
+          c.lineWidth = 4;
+          c.stroke();
+          circle(c, h.x, h.y, h.r + 6, null, '#123d48', 7);
+          circle(c, h.x, h.y, h.r + 6, null, '#4bf0ee', 3);
         }
         const length = Math.hypot(aim.dx, aim.dy);
         const ex = s.x - (aim.dx / length) * aim.pull,
@@ -355,4 +399,6 @@ export function createRenderer(canvas) {
       c.restore();
     }
   };
+  draw.resize = resize;
+  return draw;
 }
