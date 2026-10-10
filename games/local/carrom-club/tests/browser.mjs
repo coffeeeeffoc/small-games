@@ -55,7 +55,7 @@ try {
     const b = await page.locator('#board').boundingBox();
     return { x: b.x + (x / 1000) * b.width, y: b.y + (y / 1000) * b.width };
   };
-  async function dragShot(shot, cancel = false, aimImage = false) {
+  async function dragShot(shot, cancel = false, aimImage = false, liftJitter = false) {
     const box = await page.locator('#position').boundingBox();
     const current = Number(await page.locator('#position').inputValue());
     const rangePoint = (value) => ({
@@ -79,6 +79,21 @@ try {
     await touch('touchMove', [end]);
     await advance(32);
     if (aimImage) await screenshot('actual-aim-390');
+    if (liftJitter) {
+      await advance(120);
+      const preview = (await state()).aim;
+      await touch('touchMove', [{ x: end.x + 4, y: end.y - 2 }]);
+      await advance(16);
+      assert.deepEqual((await state()).aim, preview);
+      await touch('touchEnd');
+      const fired = (await state()).game.striker;
+      assert(
+        Math.abs(Math.atan2(fired.vy, fired.vx) - Math.atan2(preview.dy, preview.dx)) < 0.00001,
+      );
+      checks.push('native fingertip lift jitter preserves preview and actual firing angle');
+      await advance(64);
+      return;
+    }
     await touch(cancel ? 'touchCancel' : 'touchEnd');
     await advance(64);
   }
@@ -87,6 +102,10 @@ try {
   await expect(page.locator('#home')).toBeVisible();
   assert.equal(await page.evaluate(() => Boolean(window.__carrom)), false);
   await screenshot('actual-home-390');
+  await tap('#help-open');
+  await expect(page.locator('#help')).toBeVisible();
+  await expect(page.locator('#help')).toContainText('左右慢慢微调');
+  await tap('#help [data-home]');
   await tap('#levels-open');
   await screenshot('actual-levels-390');
   assert.equal(await page.locator('.level-card:disabled').count(), 5);
@@ -99,7 +118,48 @@ try {
   await dragShot(shot, true, true);
   assert.equal((await state()).game.shots, 0);
   checks.push('native touch positioning, aiming, pointercancel without firing');
-  await dragShot(shot);
+  {
+    const { game } = await state();
+    const start = await boardPoint(game.striker.x, game.striker.y);
+    const end = { x: start.x, y: start.y + 12 };
+    await touch('touchStart', [start]);
+    await touch('touchMove', [end]);
+    await advance(120);
+    const initial = (await state()).aim;
+    const secondary = { x: start.x - 50, y: start.y - 50 };
+    await touch('touchStart', [end, secondary]);
+    await touch('touchMove', [end, { x: secondary.x - 20, y: secondary.y - 20 }]);
+    await touch('touchMove', [end]);
+    await advance(16);
+    assert.deepEqual((await state()).aim, initial);
+    assert.equal((await state()).game.shots, 0);
+    for (const offset of [0.5, -1, 1.5]) {
+      await touch('touchMove', [{ x: end.x + offset, y: end.y }]);
+      await advance(16);
+      assert.deepEqual((await state()).aim, initial);
+    }
+    await touch('touchMove', [{ x: end.x + 4, y: end.y }]);
+    await advance(16);
+    assert.deepEqual((await state()).aim, initial);
+    await advance(100);
+    const adjusted = (await state()).aim;
+    const angle = (Math.atan2(adjusted.dx, -adjusted.dy) * 180) / Math.PI;
+    assert(Math.abs(angle) < 1 && Math.abs(angle) > 0.2);
+    await advance(500);
+    assert.deepEqual((await state()).aim, adjusted);
+    // Another pointer's cancellation must not discard the owned primary gesture.
+    await page.locator('#board').dispatchEvent('pointercancel', { pointerId: 999 });
+    assert.deepEqual((await state()).aim, adjusted);
+    await touch('touchMove', [{ x: start.x + 1, y: start.y + 1 }]);
+    await touch('touchEnd');
+    await advance(64);
+    assert.equal((await state()).game.shots, 0);
+    assert.equal((await state()).aim, null);
+    checks.push(
+      'short-pull 1.5px jitter filtered; held 4px micro-adjustment under 1°; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels',
+    );
+  }
+  await dragShot(shot, false, false, true);
   assert.equal((await state()).game.phase, 'moving');
   await tap('#pause');
   const paused = (await state()).game.coins;
@@ -159,6 +219,18 @@ try {
     await screenshot(`actual-match-${viewport.width}`);
     await tap('#pause');
     await tap('#resume');
+    const player = await state();
+    if (player.game.turn === 0 && player.game.phase === 'ready') {
+      const start = await boardPoint(player.game.striker.x, player.game.striker.y);
+      await touch('touchStart', [start]);
+      await touch('touchMove', [{ x: start.x, y: start.y + 20 }]);
+      await advance(120);
+      await expect(page.locator('#cancel-aim')).toBeInViewport();
+      const cancelBox = await page.locator('#cancel-aim').boundingBox();
+      assert(cancelBox.width >= 44 && cancelBox.height >= 44);
+      await touch('touchCancel');
+      await advance(64);
+    }
   }
   checks.push('320×640 and 844×390 retain complete board, thumb slider and pause targets');
   await page.setViewportSize({ width: 390, height: 844 });

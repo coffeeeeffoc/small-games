@@ -198,7 +198,23 @@ function boardTexture() {
     brass.addColorStop(1, '#725025');
     circle(c, x, y, 15, brass, '#38220d', 3);
     circle(c, x, y, 11, null, '#ffe7a780', 1);
+    // Small engraved corner inlays keep the ornament in the static cached layer.
+    c.save();
+    c.translate(x, y);
+    c.rotate(x > 500 ? Math.PI : 0);
+    c.beginPath();
+    c.moveTo(-18, 24);
+    c.lineTo(-18, -18);
+    c.lineTo(24, -18);
+    c.strokeStyle = '#deb16c99';
+    c.lineWidth = 2;
+    c.stroke();
+    c.restore();
   }
+  c.font = '14px Georgia, serif';
+  c.textAlign = 'center';
+  c.fillStyle = '#deb67cbb';
+  c.fillText('C A R R O M   C L U B', 500, 960);
   return canvas;
 }
 
@@ -257,11 +273,11 @@ export function createRenderer(canvas) {
     c.setTransform(width / 1000, 0, 0, width / 1000, 0, 0);
     c.clearRect(0, 0, 1000, 1000);
     c.drawImage(board, 0, 0);
-    if (game.phase === 'ready') {
+    if (game.phase === 'ready' && game.turn === 0) {
       c.save();
       c.shadowColor = '#ffe39f';
       c.shadowBlur = 18;
-      circle(c, game.striker.x, game.striker.y, 34 + Math.sin(time * 3) * 2, null, '#fff0ba99', 2);
+      circle(c, game.striker.x, game.striker.y, 34, null, '#fff0ba99', 2);
       c.restore();
     }
     for (const coin of [...game.coins, game.striker])
@@ -284,7 +300,7 @@ export function createRenderer(canvas) {
       if (preview) {
         c.save();
         c.setLineDash([6, 12]);
-        c.lineDashOffset = -time * 20;
+        c.lineDashOffset = 0;
         c.strokeStyle = '#fffbdf';
         c.lineWidth = 3;
         c.shadowColor = '#594022';

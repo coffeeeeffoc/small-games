@@ -1,9 +1,11 @@
 {
   "environment": "Chromium desktop mobile emulation, native CDP touch, 390×844 / 320×640 / 844×390, DPR 2",
   "realDevice": false,
-  "browser": "140.0.7339.186",
+  "browser": "151.0.7922.173",
   "checks": [
     "native touch positioning, aiming, pointercancel without firing",
+    "short-pull 1.5px jitter filtered; held 4px micro-adjustment under 1°; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels",
+    "native fingertip lift jitter preserves preview and actual firing angle",
     "real touch shot pockets target; pause freezes physical state; resume reaches win",
     "win stars unlock exactly the next level and survive reload",
     "five genuine missed shots exhaust practice budget",
@@ -12,7 +14,8 @@
     "320×640 and 844×390 retain complete board, thumb slider and pause targets",
     "fullscreen gesture enter and exit verified",
     "audio setting persists",
-    "disabled storage and rejected fullscreen keep play usable"
+    "disabled storage and rejected fullscreen keep play usable",
+    "help explains coarse direction and slow adjustment; return to home verified"
   ],
   "pageErrors": [],
   "passed": true
