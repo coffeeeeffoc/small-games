@@ -49,8 +49,10 @@ test('invalid targets never spend a round; dead or newly protected targets drop 
 
 test('reward save validation and every zoom tier produces genuine optical magnification', () => {
   for (const raw of [null, 'bad', 'null', '{"ammo":-1,"zoomLimit":999}', '{"ammo":1.2,"zoomLimit":6}'])
-    assert.deepEqual(readRewards(raw), { ammo: 0, zoomLimit: 5 });
-  assert.deepEqual(readRewards('{"ammo":2,"zoomLimit":160}'), { ammo: 2, zoomLimit: 160 });
+    assert.deepEqual(readRewards(raw), { ammo: 0, zoomLimit: 5, pendingSupply: false });
+  assert.deepEqual(readRewards('{"ammo":2,"zoomLimit":160}'), { ammo: 2, zoomLimit: 160, pendingSupply: false });
+  assert.equal(readRewards('{"pendingSupply":true}').pendingSupply, true);
+  assert.equal(readRewards('{"pendingSupply":"true"}').pendingSupply, false);
   const sim = new Simulation(), base = aircraftCamera(sim.aircraft, sim.aim, sim.height, 1, 844 / 390, 0);
   for (const zoom of ZOOM_LEVELS) {
     const frame = aircraftCamera(sim.aircraft, sim.aim, sim.height, zoom, 844 / 390, 0);

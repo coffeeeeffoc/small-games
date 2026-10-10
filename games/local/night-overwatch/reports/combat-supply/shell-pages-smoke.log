@@ -1,0 +1,48 @@
+Started game: night-overwatch
+Started: night-overwatch / embedded-load
+Finished: night-overwatch / embedded-load (532 ms)
+Started: night-overwatch / embedded-gameplay
+Finished: night-overwatch / embedded-gameplay (1832 ms)
+Started: night-overwatch / embedded-return
+Finished: night-overwatch / embedded-return (74 ms)
+Started: night-overwatch / mobile-load
+Finished: night-overwatch / mobile-load (117 ms)
+Started: night-overwatch / mobile-gameplay
+Finished: night-overwatch / mobile-gameplay (2336 ms)
+Passed: night-overwatch (embedded and 844x390 touch, 5727 ms)
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ [
++   'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)',
++   'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)'
++ ]
+- []
+
+    at file:///F:/playground/playground-ai/small-games/apps/shell-web/scripts/pages-smoke.mjs:449:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: [
+    'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)',
+    'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)',
+    'AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n' +
+      '+ actual - expected\n' +
+      '\n' +
+      '+ [\n' +
+      "+   'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)',\n" +
+      "+   'Pages: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)'\n" +
+      '+ ]\n' +
+      '- []\n' +
+      '\n' +
+      '    at file:///F:/playground/playground-ai/small-games/apps/shell-web/scripts/pages-smoke.mjs:449:10'
+  ],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.21.0

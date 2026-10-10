@@ -1,0 +1,3 @@
+$ node scripts/test-game-dev-mode.mjs
+Developer mode: night-overwatch, 8 checks, 0 errors
+Developer mode: 1 games, 10 browser checks passed.

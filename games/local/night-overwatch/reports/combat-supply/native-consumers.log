@@ -1,0 +1,179 @@
+$ vitest run tests && node --test scripts/*.test.mjs
+
+ RUN  v5.0.0 F:/playground/playground-ai/small-games/apps/shell-minigame
+
+
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+   Start at  09:09:38
+   Duration  5.21s (tests 79%, import 14%, transform 7%)
+
+✔ ordinary 5MB subpackage passes: 4MB applies only to main, with all actual bytes counted (59.3967ms)
+✔ main including provenance manifests passes exact boundary and fails one byte below (17.7774ms)
+✔ total includes subpackage entry, resource and unlisted files and enforces exact boundary (15.4917ms)
+✔ default total 20MB is enforced even with a small main and an ordinary large subpackage (10.2253ms)
+✔ root grouping uses directory boundaries, so photos-extra stays in main (19.1723ms)
+✔ rejects unsafe subpackage root "/absolute" (16.8864ms)
+✔ rejects unsafe subpackage root "../outside" (21.668ms)
+✔ rejects unsafe subpackage root "photos/../outside" (12.8785ms)
+✔ rejects unsafe subpackage root "./photos" (26.2027ms)
+✔ rejects unsafe subpackage root "photos//part" (11.0827ms)
+✔ rejects unsafe subpackage root "photos\\part" (12.6269ms)
+✔ rejects unsafe subpackage root "C:/outside" (13.9876ms)
+✔ rejects unsafe subpackage root "C:relative" (17.0694ms)
+✔ rejects unsafe subpackage root "https://host/package" (14.2083ms)
+✔ rejects unsafe subpackage root "photos//" (11.7784ms)
+✔ rejects unsafe subpackage root "" (8.021ms)
+✔ rejects unsafe subpackage root "photos\u0000hidden" (10.2917ms)
+✔ rejects unsafe subpackage root "photos%2foutside" (9.2286ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos"},{"name":"b","root":"photos/"}] (8.3363ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos"},{"name":"b","root":"photos/nested"}] (29.2561ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos/nested"},{"name":"b","root":"photos"}] (34.535ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"same","root":"a"},{"name":"same","root":"b"}] (17.3395ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"","root":"photos"}] (17.0906ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"photo\u0000s","root":"photos"}] (49.9752ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":42,"root":"photos"}] (15.7039ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"photos","root":42}] (14.3357ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"photos"}] (13.6058ms)
+✔ rejects invalid, duplicated or overlapping declarations [null] (22.285ms)
+✔ rejects invalid, duplicated or overlapping declarations [[]] (13.6661ms)
+✔ rejects invalid, duplicated or overlapping declarations [{"name":"photos","root":"photos","independent":true}] (15.0179ms)
+✔ rejects invalid, duplicated or overlapping declarations {"name":"photos","root":"photos"} (14.693ms)
+✔ rejects invalid, duplicated or overlapping declarations null (12.2865ms)
+✔ every configured root requires its own real game.js entry (8.8213ms)
+✖ rejects a symbolic link to an external file, directory, or package root (8.4941ms)
+✖ subpackage entry and game.json may not be symbolic links (7.9287ms)
+✔ rejects malformed JSON, missing game.json and wrong capitalization (25.8583ms)
+✔ invalid budgets cannot disable measurements (5.4596ms)
+✔ all five channels reject missing release IDs before tools or adapters (3.2287ms)
+✔ Alipay uses its own documented target and deviceOrientation field (0.2948ms)
+✔ native manifest detects tampered or added package files (57.792ms)
+✔ Alipay prepares real pinned kart art without changing engine source provenance (927.9677ms)
+✔ Kuaishou config-only generates actual Creator source configuration without a fabricated converted artifact (11427.1735ms)
+✔ Night native configurations compile adapted project inputs while canonical H5 stays identical (12869.5404ms)
+✔ complete native byte budget includes the provenance manifest itself (15.1635ms)
+✔ synthetic converted fixture verifies integrity but cannot authenticate official tool or device (157.6313ms)
+✔ release rejects missing and official preview IDs; configured identity must match actual configuration (84.339ms)
+✔ trusted inventory rejects tampered Creator source and provenance (115.9887ms)
+✔ source hash mismatch rejects otherwise intact source (71.6188ms)
+✔ converted binaries may neither disappear nor change (84.4407ms)
+✔ rename-only package and missing SDK boundary are rejected (116.7205ms)
+✔ conversion cannot substitute unrelated game entry or change orientation (126.5013ms)
+✖ unsafe subpackage paths and symbolic links are rejected (127.6058ms)
+✔ official 6 MiB main and 30 MiB combined budget is enforced independently (241.9531ms)
+✔ actual native guards preserve canonical source and independently compute the two fingerprints (2047.8088ms)
+✔ fresh persistent stages exclude caches, release secrets, and old outputs (2172.297ms)
+✔ unreviewed or already adapted canonical files fail closed before staging (289.1656ms)
+✔ normalized CRLF input has an honest raw receipt and unchanged source hash (1118.4ms)
+✔ all legitimate hash inputs are copied and mutations produce their real native hash (1152.3325ms)
+✔ existing extension is copied with digest evidence but no authenticity claim (1115.3207ms)
+✔ non-Night projects return their actual fingerprint without staging or adaptation (19.2894ms)
+✔ Vite module paths retain actual workspace provenance on Windows and POSIX (1.5185ms)
+✔ unconfigured competition ignores old credentials and never performs real login or transport (0.5355ms)
+✔ batch is the catalog first nine at the frozen dev commit, across five distinct SDKs (284.7648ms)
+✔ all release targets preflight before writing any package; preview has no fake AppID (8.4794ms)
+✔ only public fields are serialized; secret env is never copied into client config (0.9332ms)
+✔ Bund assets use only explicit public HTTPS directories and require release configuration (0.6383ms)
+✔ release rejects the official Kuaishou preview identifier (0.2471ms)
+✔ integrity detects altered, missing and additional files instead of checking names alone (55.4768ms)
+✔ public competition URL cannot serialize credentials or query tokens into the client (0.6514ms)
+✔ TapTap keeps the fixed nine-game batch, public identifiers and local tool paths separate (2.8558ms)
+✔ release preflight rejects missing configuration before creating any source project (14.7654ms)
+✔ TapTap release validates public URLs and has no fallback to another game or platform (1.2253ms)
+✔ configured Tap identities enable the existing friend protocol only for supported games (8.9789ms)
+✔ TapTap preflight and native login accept the same API URL grammar (0.6312ms)
+✔ output overlap is rejected before the builder can delete original conversion inputs (55.9139ms)
+✔ transport binds repository, exact SHA, producer run/attempt and a clean candidate (3.0831ms)
+✔ a forged plugin archive is rejected before any plugin code is loaded (28.5602ms)
+✔ converted Creator import preserves binary resources and never claims tool authentication (400.3707ms)
+✔ source inventory and current project fingerprint are checked independently (76.3389ms)
+✔ a missing or incompatible actual plugin stays an explicit blocker (79.3246ms)
+✔ a copied WeChat build and unrelated game replacing Creator resources are rejected (263.5651ms)
+✔ reviewed resource relocation preserves exact bytes and cannot omit original resources (118.6076ms)
+✔ configured identity must match real converted config and preview remains empty (141.4768ms)
+✔ standalone artifact audit rejects changed native recipes, source fingerprints and importer code (161.2418ms)
+✔ Cocos launcher reports missing official conversion without fabricating any output (2.6464ms)
+✔ login staging preserves converted inputs and prepares a separate project before official packing (209.3063ms)
+✔ login staging rejects source overlap before deletion or mutation (56.5868ms)
+✔ real Creator preview metadata is normalized only in the independent login copy (163.4182ms)
+✔ login staging refuses an independent nonempty destination without changing either input (58.4573ms)
+✔ login staging accepts an existing empty directory and retains that directory (158.9886ms)
+✔ misconfigured input inside managed output is rejected before any source deletion (19.4147ms)
+✔ receipt-derived source and linked output ancestors are checked before cleanup (31.6596ms)
+✔ TapTap login is installed in source before packing, preserving the original entry exactly (117.3485ms)
+✔ a release login bootstrap cannot be made for missing public configuration or another platform (0.5309ms)
+✔ the installed entry calls the actual native helper and overrides Creator private WeChat identity (1.8414ms)
+✔ TapTap preview uses no fake ID and release requires a real configured token (3.7887ms)
+✔ real source entry global guards survive CJS lowering and SDK arguments (425.5121ms)
+✔ full ZIP bytes bind the imported package to current source without authenticating the tool (45.4542ms)
+✔ renamed WeChat and APK content cannot establish a TapTap source package (84.6813ms)
+✔ runtime boundary must be reachable from game.js through existing local imports (70.1658ms)
+✔ ZIP tampering, omitted resources and stale source inventories fail independently (92.5011ms)
+✔ tool configuration and trusted source provenance cannot be omitted (22.1656ms)
+✔ release ZIP audit requires the current login helper and exact configured Tap identity/API (123.2775ms)
+✔ ZIP traversal, duplicate paths, symlinks, local-header mismatches and CRC corruption are rejected (1.2832ms)
+✔ compressed expansion is limited before inflation and stored ZIPs retain binary hashes (32.4276ms)
+✔ streamed ZIPs require complete signed or unsigned data descriptors with matching bytes (0.5097ms)
+✔ unsafe filesystem paths, identity mismatch and unsafe subpackages are rejected (67.4958ms)
+✔ CommonJS companions use exact packaged bytes and preserve no-DOM errors and containment (32.8077ms)
+✔ TapTap smoke rejects an integrity-valid package carrying another platform identity (49.5143ms)
+✔ TapTap smoke checks package bytes and current source provenance before runtime (71.5531ms)
+✔ A Cocos blocker never hides an unknown missing build or a stale package directory (30.0906ms)
+ℹ tests 111
+ℹ suites 0
+ℹ pass 108
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25458.4565
+
+✖ failing tests:
+
+test at scripts\alipay-package-budget.test.mjs:163:1
+✖ rejects a symbolic link to an external file, directory, or package root (8.4941ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\alipay-budget-outside-iFN1AU\secret.bin' -> 'C:\Users\15211\AppData\Local\Temp\alipay-budget-npgcOv\file-link'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///F:/playground/playground-ai/small-games/apps/shell-minigame/scripts/alipay-package-budget.test.mjs:172:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-outside-iFN1AU\\secret.bin',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-npgcOv\\file-link'
+  }
+
+test at scripts\alipay-package-budget.test.mjs:180:1
+✖ subpackage entry and game.json may not be symbolic links (7.9287ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\alipay-budget-J0WGMB\photos\real-entry.js' -> 'C:\Users\15211\AppData\Local\Temp\alipay-budget-J0WGMB\photos\game.js'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///F:/playground/playground-ai/small-games/apps/shell-minigame/scripts/alipay-package-budget.test.mjs:183:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-J0WGMB\\photos\\real-entry.js',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-J0WGMB\\photos\\game.js'
+  }
+
+test at scripts\kuaishou-cocos-import.test.mjs:171:1
+✖ unsafe subpackage paths and symbolic links are rejected (127.6058ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\ks-verification-fixture-VWbHZZ\source\engine.wasm' -> 'C:\Users\15211\AppData\Local\Temp\ks-verification-fixture-VWbHZZ\converted\linked.wasm'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async file:///F:/playground/playground-ai/small-games/apps/shell-minigame/scripts/kuaishou-cocos-import.test.mjs:181:5
+      at async withFixture (file:///F:/playground/playground-ai/small-games/apps/shell-minigame/scripts/kuaishou-cocos-import.test.mjs:66:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\ks-verification-fixture-VWbHZZ\\source\\engine.wasm',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\ks-verification-fixture-VWbHZZ\\converted\\linked.wasm'
+  }
+[ELIFECYCLE] Test failed. See above for more details.
+Error: ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL
+
+  × "pnpm recursive run" failed in F:\playground\playground-ai\small-
+  │ games\apps\shell-minigame

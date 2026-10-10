@@ -1,0 +1,48 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3"
+  },
+  "results": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true,
+      "supplyAmmo": 2,
+      "homingDamage": 120,
+      "heavyShots": 2
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true,
+      "supplyAmmo": 2,
+      "homingDamage": 120,
+      "heavyShots": 2
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "trackingHit": 15,
+      "zoomLimit": 160,
+      "persistence": true,
+      "settlement": true,
+      "supplyAmmo": 2,
+      "homingDamage": 120,
+      "heavyShots": 2
+    }
+  ],
+  "errors": [],
+  "physicalDevice": false,
+  "realAdSdk": false
+}

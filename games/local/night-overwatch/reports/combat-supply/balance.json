@@ -1,0 +1,1561 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-10T01:12:50.086Z",
+  "node": "v24.21.0",
+  "command": "node games/local/night-overwatch/tests/supply-balance.mjs",
+  "head": "0075fce02f29d2dcd33546ca99eb86f24276ac98",
+  "sourceSha256": {
+    "Data.ts": "b7bb1efadc143ca7a7c0cd0f940ff3312622910b1fd189a0867a916a359d8dca",
+    "Simulation.ts": "beed489276b5b67dd78d148150e07210d5a174d495f2d6c39e0ef180d787acd5",
+    "Flight.ts": "76dcaf0d5723ad22d369fc890450a9342c4203416694a6f922232396ec953b80",
+    "MissionCatalog.ts": "d6aa997d504789818a5c2b927d8ffa1ac0355e7b8071ea85f2b4a219f346bc51"
+  },
+  "scriptSha256": "76d32c109c5816e22e6a23c3cdc542fc86425dadd152dd8dd64ca13fca70f56c",
+  "historicalBaseline": {
+    "head": "0075fce02f29d2dcd33546ca99eb86f24276ac98",
+    "homingDamage": 240,
+    "sourceSha256": {
+      "Data.ts": "13fb152f865d2f89d09ba10d604b104159f017bfa0b47e6b965145a493b67856",
+      "Simulation.ts": "f1202a18484ab2c9f75bd80d24b850dfdd256f267b12f1947ea4ee3650ee5000"
+    },
+    "note": "Prior read-only inline experiment, not rerun here; current results use the working-tree sources hashed above."
+  },
+  "configuration": {
+    "homing": {
+      "speed": 70,
+      "damage": 120
+    },
+    "buff": {
+      "duration": 60,
+      "rateMultiplier": 1.3,
+      "trackingRadius": 8
+    },
+    "weapons": [
+      {
+        "id": "rapid",
+        "damage": 8,
+        "damageAgainstHeavy": 1.6,
+        "speed": 60,
+        "interval": 0.12,
+        "radius": 0.5,
+        "heat": 6,
+        "armor": 0.2,
+        "ammo": "Infinity"
+      },
+      {
+        "id": "blast",
+        "damage": 60,
+        "damageAgainstHeavy": 39,
+        "speed": 56,
+        "interval": 0.8,
+        "radius": 3.4,
+        "heat": 15,
+        "armor": 0.65,
+        "ammo": 80
+      },
+      {
+        "id": "heavy",
+        "damage": 140,
+        "damageAgainstHeavy": 140,
+        "speed": 32,
+        "interval": 3,
+        "radius": 6.5,
+        "heat": 0,
+        "armor": 1,
+        "ammo": 30
+      }
+    ]
+  },
+  "fixture": {
+    "dt": 0.016666666666666666,
+    "missions": [
+      "corridor-01",
+      "ambush-02"
+    ],
+    "positions": [
+      [
+        -110,
+        -45
+      ],
+      [
+        -110,
+        55
+      ],
+      [
+        35,
+        -45
+      ],
+      [
+        35,
+        55
+      ],
+      [
+        110,
+        -45
+      ],
+      [
+        110,
+        55
+      ]
+    ],
+    "ages": [
+      0,
+      2.5,
+      5,
+      7.5,
+      10,
+      12.5,
+      15,
+      17.5
+    ],
+    "targetHp": 10000,
+    "predictiveIterations": 12,
+    "cluster": {
+      "origin": [
+        35,
+        -20
+      ],
+      "offsets": [
+        0,
+        2,
+        3.5,
+        6,
+        7
+      ],
+      "friendOffset": 2
+    },
+    "note": "Default aircraft pose; convoy held, mission spawning and ground fire suppressed. Raised HP measures uncapped damage. Cadence uses 100000 HP and attempts fire each step in [0,60); heavy assumes immediate manual retrigger."
+  },
+  "motion": [
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 0,
+      "hitRate": 0,
+      "meanDamage": 0,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.959029,
+      "flightSecondsRange": [
+        2.929983,
+        4.8129
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 6,
+      "hitRate": 0.125,
+      "meanDamage": 0.271104,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.233605,
+      "flightSecondsRange": [
+        3.13168,
+        5.144142
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 11,
+      "hitRate": 0.229167,
+      "meanDamage": 4.844022,
+      "meanFriendlyDamage": 1.967121,
+      "meanFlightSeconds": 7.228444,
+      "flightSecondsRange": [
+        5.32872,
+        8.809263
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 8,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.959037,
+      "flightSecondsRange": [
+        2.928901,
+        4.813081
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 60,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.233615,
+      "flightSecondsRange": [
+        3.130224,
+        5.143841
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 1.846282,
+      "meanFlightSeconds": 7.228488,
+      "flightSecondsRange": [
+        5.326883,
+        8.801701
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 8,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.010494,
+      "flightSecondsRange": [
+        2.967913,
+        4.874338
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 60,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.296335,
+      "flightSecondsRange": [
+        3.177882,
+        5.220097
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 1.886018,
+      "meanFlightSeconds": 7.52034,
+      "flightSecondsRange": [
+        5.557821,
+        9.146754
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.443403,
+      "flightSecondsRange": [
+        2.55,
+        4.183333
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.443403,
+      "flightSecondsRange": [
+        2.55,
+        4.183333
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 16,
+      "hitRate": 0.333333,
+      "meanDamage": 0.533333,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.918963,
+      "flightSecondsRange": [
+        2.935388,
+        4.705486
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 18.350601,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.190727,
+      "flightSecondsRange": [
+        3.137209,
+        5.031513
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 69.772064,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.154259,
+      "flightSecondsRange": [
+        5.337104,
+        8.615172
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 1.6,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.920809,
+      "flightSecondsRange": [
+        2.950066,
+        4.705486
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 39,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.192833,
+      "flightSecondsRange": [
+        3.154103,
+        5.029334
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.16083,
+      "flightSecondsRange": [
+        5.387935,
+        8.592871
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 1.6,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.970864,
+      "flightSecondsRange": [
+        2.988692,
+        4.764298
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 39,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.25385,
+      "flightSecondsRange": [
+        3.20135,
+        5.100823
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.445487,
+      "flightSecondsRange": [
+        5.619873,
+        8.914471
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.408333,
+      "flightSecondsRange": [
+        2.566667,
+        4.083333
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.408333,
+      "flightSecondsRange": [
+        2.566667,
+        4.083333
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 8,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.918963,
+      "flightSecondsRange": [
+        2.935388,
+        4.705486
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 60,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.190727,
+      "flightSecondsRange": [
+        3.137209,
+        5.031513
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.154259,
+      "flightSecondsRange": [
+        5.337104,
+        8.615172
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 8,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.918963,
+      "flightSecondsRange": [
+        2.935388,
+        4.705486
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 60,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.190727,
+      "flightSecondsRange": [
+        3.137209,
+        5.031513
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.154259,
+      "flightSecondsRange": [
+        5.337104,
+        8.615172
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 8,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.968817,
+      "flightSecondsRange": [
+        2.973488,
+        4.764298
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 60,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.251481,
+      "flightSecondsRange": [
+        3.18376,
+        5.103846
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 140,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.437431,
+      "flightSecondsRange": [
+        5.564824,
+        8.941417
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.411111,
+      "flightSecondsRange": [
+        2.55,
+        4.1
+      ]
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.411111,
+      "flightSecondsRange": [
+        2.55,
+        4.1
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 0,
+      "hitRate": 0,
+      "meanDamage": 0,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.857085,
+      "flightSecondsRange": [
+        2.850823,
+        4.759351
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 6,
+      "hitRate": 0.125,
+      "meanDamage": 0.318634,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.126235,
+      "flightSecondsRange": [
+        3.047512,
+        5.087925
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 10,
+      "hitRate": 0.208333,
+      "meanDamage": 4.606404,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.138677,
+      "flightSecondsRange": [
+        5.198848,
+        8.722802
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 6.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.857099,
+      "flightSecondsRange": [
+        2.849459,
+        4.759201
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 50,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.126253,
+      "flightSecondsRange": [
+        3.045457,
+        5.087889
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 44,
+      "hitRate": 0.916667,
+      "meanDamage": 128.333333,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.139044,
+      "flightSecondsRange": [
+        5.197229,
+        8.713919
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 34,
+      "hitRate": 0.708333,
+      "meanDamage": 5.666667,
+      "meanFriendlyDamage": 0.132673,
+      "meanFlightSeconds": 3.855162,
+      "flightSecondsRange": [
+        2.883889,
+        4.797977
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 33,
+      "hitRate": 0.6875,
+      "meanDamage": 41.25,
+      "meanFriendlyDamage": 3.431311,
+      "meanFlightSeconds": 4.12268,
+      "flightSecondsRange": [
+        3.087297,
+        5.132352
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 33,
+      "hitRate": 0.6875,
+      "meanDamage": 96.25,
+      "meanFriendlyDamage": 15.984143,
+      "meanFlightSeconds": 7.214772,
+      "flightSecondsRange": [
+        5.399182,
+        8.980167
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.409722,
+      "flightSecondsRange": [
+        2.483333,
+        4.133333
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.409722,
+      "flightSecondsRange": [
+        2.483333,
+        4.133333
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 8,
+      "hitRate": 0.166667,
+      "meanDamage": 0.266667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.824256,
+      "flightSecondsRange": [
+        2.85406,
+        4.647007
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 16.064081,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.09101,
+      "flightSecondsRange": [
+        3.05073,
+        4.967894
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 63.387931,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.036256,
+      "flightSecondsRange": [
+        5.203669,
+        8.517856
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 1.333333,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.826051,
+      "flightSecondsRange": [
+        2.870585,
+        4.647007
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 32.5,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.093122,
+      "flightSecondsRange": [
+        3.069751,
+        4.967894
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 116.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.045106,
+      "flightSecondsRange": [
+        5.261,
+        8.517856
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 1.066667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.815331,
+      "flightSecondsRange": [
+        2.904537,
+        4.643425
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 26,
+      "meanFriendlyDamage": 1.234146,
+      "meanFlightSeconds": 4.087238,
+      "flightSecondsRange": [
+        3.111209,
+        4.976143
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 93.333333,
+      "meanFriendlyDamage": 12.845302,
+      "meanFlightSeconds": 7.155016,
+      "flightSecondsRange": [
+        5.465565,
+        8.679261
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.369444,
+      "flightSecondsRange": [
+        2.483333,
+        4.033333
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.369444,
+      "flightSecondsRange": [
+        2.483333,
+        4.033333
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 6.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.824256,
+      "flightSecondsRange": [
+        2.85406,
+        4.647007
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 50,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.09101,
+      "flightSecondsRange": [
+        3.05073,
+        4.967894
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 116.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.036256,
+      "flightSecondsRange": [
+        5.203669,
+        8.517856
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 6.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.824256,
+      "flightSecondsRange": [
+        2.85406,
+        4.647007
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 50,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 4.09101,
+      "flightSecondsRange": [
+        3.05073,
+        4.967894
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "normal",
+      "aim": "predictive",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 40,
+      "hitRate": 0.833333,
+      "meanDamage": 116.666667,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 7.036256,
+      "flightSecondsRange": [
+        5.203669,
+        8.517856
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "rapid",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 5.333333,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.813316,
+      "flightSecondsRange": [
+        2.887403,
+        4.670471
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "blast",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 40,
+      "meanFriendlyDamage": 1.234146,
+      "meanFlightSeconds": 4.084884,
+      "flightSecondsRange": [
+        3.09147,
+        5.007235
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "tracking",
+      "aim": "current",
+      "weapon": "heavy",
+      "samples": 48,
+      "hits": 32,
+      "hitRate": 0.666667,
+      "meanDamage": 93.333333,
+      "meanFriendlyDamage": 12.845302,
+      "meanFlightSeconds": 7.145889,
+      "flightSecondsRange": [
+        5.403158,
+        8.772582
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "consumable",
+      "aim": "current",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.369444,
+      "flightSecondsRange": [
+        2.483333,
+        4.033333
+      ]
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "mode": "consumable",
+      "aim": "predictive",
+      "weapon": "homing",
+      "samples": 48,
+      "hits": 48,
+      "hitRate": 1,
+      "meanDamage": 120,
+      "meanFriendlyDamage": 0,
+      "meanFlightSeconds": 3.369444,
+      "flightSecondsRange": [
+        2.483333,
+        4.033333
+      ]
+    }
+  ],
+  "kills": [
+    {
+      "mission": "corridor-01",
+      "kind": "light",
+      "initialHp": 32,
+      "hpAfterHits": [
+        0
+      ],
+      "shots": 1
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "turret",
+      "initialHp": 90,
+      "hpAfterHits": [
+        0
+      ],
+      "shots": 1
+    },
+    {
+      "mission": "corridor-01",
+      "kind": "heavy",
+      "initialHp": 180,
+      "hpAfterHits": [
+        60,
+        0
+      ],
+      "shots": 2
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "light",
+      "initialHp": 32,
+      "hpAfterHits": [
+        0
+      ],
+      "shots": 1
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "turret",
+      "initialHp": 90,
+      "hpAfterHits": [
+        0
+      ],
+      "shots": 1
+    },
+    {
+      "mission": "ambush-02",
+      "kind": "heavy",
+      "initialHp": 180,
+      "hpAfterHits": [
+        60,
+        0
+      ],
+      "shots": 2
+    }
+  ],
+  "cluster": [
+    {
+      "mode": "normal",
+      "weapon": "rapid",
+      "enemyDamage": [
+        8,
+        0,
+        0,
+        0,
+        0
+      ],
+      "totalEnemyDamage": 8,
+      "friendlyDamage": 0
+    },
+    {
+      "mode": "normal",
+      "weapon": "blast",
+      "enemyDamage": [
+        60,
+        30.87734,
+        4.402873,
+        0,
+        0
+      ],
+      "totalEnemyDamage": 95.280213,
+      "friendlyDamage": 30.436164
+    },
+    {
+      "mode": "normal",
+      "weapon": "heavy",
+      "enemyDamage": [
+        140,
+        104.45542,
+        72.142994,
+        18.28837,
+        0
+      ],
+      "totalEnemyDamage": 334.886784,
+      "friendlyDamage": 103.916959
+    },
+    {
+      "mode": "tracking",
+      "weapon": "rapid",
+      "enemyDamage": [
+        8,
+        0,
+        0,
+        0,
+        0
+      ],
+      "totalEnemyDamage": 8,
+      "friendlyDamage": 0
+    },
+    {
+      "mode": "tracking",
+      "weapon": "blast",
+      "enemyDamage": [
+        60,
+        30.87734,
+        4.402873,
+        0,
+        0
+      ],
+      "totalEnemyDamage": 95.280213,
+      "friendlyDamage": 30.436164
+    },
+    {
+      "mode": "tracking",
+      "weapon": "heavy",
+      "enemyDamage": [
+        140,
+        104.45542,
+        72.142994,
+        18.28837,
+        0
+      ],
+      "totalEnemyDamage": 334.886784,
+      "friendlyDamage": 103.916959
+    },
+    {
+      "mode": "consumable",
+      "weapon": "homing",
+      "enemyDamage": [
+        120,
+        0,
+        0,
+        0,
+        0
+      ],
+      "totalEnemyDamage": 120,
+      "friendlyDamage": 0
+    }
+  ],
+  "cadence": [
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "rapid",
+      "rateBuff": false,
+      "intervalSeconds": 0.12,
+      "minimumShotInterval": 0.133333,
+      "shots": 198,
+      "overheatedSeconds": 35.066667,
+      "remainingAmmo": "Infinity"
+    },
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "rapid",
+      "rateBuff": true,
+      "intervalSeconds": 0.0923076923076923,
+      "minimumShotInterval": 0.1,
+      "shots": 192,
+      "overheatedSeconds": 42.1,
+      "remainingAmmo": "Infinity"
+    },
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "blast",
+      "rateBuff": false,
+      "intervalSeconds": 0.8,
+      "minimumShotInterval": 0.8,
+      "shots": 75,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 5
+    },
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "blast",
+      "rateBuff": true,
+      "intervalSeconds": 0.6153846153846154,
+      "minimumShotInterval": 0.616667,
+      "shots": 76,
+      "overheatedSeconds": 16.75,
+      "remainingAmmo": 4
+    },
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "heavy",
+      "rateBuff": false,
+      "intervalSeconds": 3,
+      "minimumShotInterval": 3,
+      "shots": 20,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 10
+    },
+    {
+      "dt": 0.016666666666666666,
+      "weapon": "heavy",
+      "rateBuff": true,
+      "intervalSeconds": 2.3076923076923075,
+      "minimumShotInterval": 2.316667,
+      "shots": 26,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 4
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "rapid",
+      "rateBuff": false,
+      "intervalSeconds": 0.12,
+      "minimumShotInterval": 0.12,
+      "shots": 202,
+      "overheatedSeconds": 37.2,
+      "remainingAmmo": "Infinity"
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "rapid",
+      "rateBuff": true,
+      "intervalSeconds": 0.0923076923076923,
+      "minimumShotInterval": 0.093333,
+      "shots": 192,
+      "overheatedSeconds": 43.333333,
+      "remainingAmmo": "Infinity"
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "blast",
+      "rateBuff": false,
+      "intervalSeconds": 0.8,
+      "minimumShotInterval": 0.8,
+      "shots": 75,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 5
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "blast",
+      "rateBuff": true,
+      "intervalSeconds": 0.6153846153846154,
+      "minimumShotInterval": 0.616667,
+      "shots": 76,
+      "overheatedSeconds": 16.666667,
+      "remainingAmmo": 4
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "heavy",
+      "rateBuff": false,
+      "intervalSeconds": 3,
+      "minimumShotInterval": 3,
+      "shots": 20,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 10
+    },
+    {
+      "dt": 0.0016666666666666668,
+      "weapon": "heavy",
+      "rateBuff": true,
+      "intervalSeconds": 2.3076923076923075,
+      "minimumShotInterval": 2.308333,
+      "shots": 26,
+      "overheatedSeconds": 0,
+      "remainingAmmo": 4
+    }
+  ],
+  "lifecycle": [
+    {
+      "kind": "tracking",
+      "durationSeconds": 60,
+      "pauseReasons": [
+        "manual",
+        "supply",
+        "advert",
+        "countdown",
+        "background"
+      ],
+      "expired": true
+    },
+    {
+      "kind": "rate",
+      "durationSeconds": 60,
+      "pauseReasons": [
+        "manual",
+        "supply",
+        "advert",
+        "countdown",
+        "background"
+      ],
+      "expired": true
+    }
+  ],
+  "limitations": [
+    "Synthetic deterministic fixtures, not observed player accuracy, mission win rates, browser/device or SDK acceptance.",
+    "Only six origins and the default launch pose; patrol ages vary light motion but repeat stationary/heavy setups.",
+    "Predictive aim uses exact game motion; consumable explicit lock supersedes current/predictive initial aim.",
+    "No new 240-damage simulation or source/config mutation; historical baseline is context only.",
+    "Normal tracking respects terrain; hit rate does not imply guaranteed hits on other terrain or target paths.",
+    "Interval / 1.3 changes burst cadence, not guaranteed sustained DPS: ordinary heat/cooling and tick quantization remain.",
+    "Unlimited paused resupply permits stockpiling; damage calibration alone cannot balance reward availability."
+  ]
+}

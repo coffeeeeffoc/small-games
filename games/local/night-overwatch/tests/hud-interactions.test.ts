@@ -188,7 +188,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
           assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
           assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
         }
-        if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'resume,home');
+        if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'supply,resume,home');
         if (reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'close,sound,effects,help,language');
         if (reason === 'help' && cc.sys.isBrowser) assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');
       }
@@ -414,14 +414,124 @@ test('HUD: rewards, zoom panel and mock ads fit small phones with safe areas and
       }
       assert.equal(buttons.some((b: any) => b.id === 'zoomUpgrade'), zoomOpen);
     }
-    for (const kind of ['homing', 'zoom'] as const) {
+    for (const kind of ['supply', 'zoom'] as const) {
       hud.advert = { kind, mock: true }; sim.pause('advert', true); hud.update(sim, world);
       const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
-      assert.deepEqual(buttons.map((b: any) => b.id), ['adClose']);
-      assert(buttons[0].h >= 44 && buttons[0].y >= safe && buttons[0].y + buttons[0].h <= height - safe);
+      assert.deepEqual(buttons.map((b: any) => b.id), ['adClose', 'adCancel']);
+      assert.match(buttons[0].label.string, /完成模拟广告/);
+      assert.match(buttons[1].label.string, /取消.*暂停/);
+      for (const b of buttons) {
+        assert(b.h >= 44 && b.x >= safe && b.x + b.w <= width - safe);
+        assert(b.y >= safe && b.y + b.h <= height - safe);
+        assert(!buttons.some((other: any) => other !== b && overlaps(b, other)));
+        assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.id);
+      }
     }
   }
   inset = 0;
+});
+
+test('HUD: combat supply, choices and buff countdown fit phones and the rotated logical viewport', () => {
+  const previousWindow = (globalThis as any).window;
+  (globalThis as any).window = { matchMedia: () => ({ matches: true }) };
+  cc.sys.isBrowser = true;
+  try {
+    for (const [physicalWidth, physicalHeight] of [[568, 320], [844, 390], [390, 844], [1366, 768]])
+      for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
+        // The display adapter supplies landscape coordinates after rotating portrait phones.
+        const width = Math.max(physicalWidth, physicalHeight), height = Math.min(physicalWidth, physicalHeight);
+        Object.assign(frame, { width, height }); inset = safe;
+        const hud = new HUD(new SceneNode()), sim = new Simulation();
+        hud.lang = lang; hud.touch = width < 900; hud.resize(); sim.start();
+        const visible = () => hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
+        const control = (id: string) => visible().find((b: any) => b.id === id);
+        const panelText = () => hud.modal.children.map((n: any) => n.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
+        const labelBox = (l: any) => {
+          const size = l.node.getComponent(Transform).contentSize, p = l.node.position;
+          return { x: p.x + width / 2 - size.width / 2, y: height / 2 - p.y - size.height / 2, w: size.width, h: size.height };
+        };
+        const checkLayout = () => {
+          const buttons = visible();
+          for (const b of buttons) {
+            assert(b.x >= safe && b.x + b.w <= width - safe, `${physicalWidth}x${physicalHeight}: ${b.id} horizontal safe area`);
+            assert(b.y >= safe && b.y + b.h <= height - safe, `${b.id}: vertical safe area`);
+            assert(!buttons.some((other: any) => other !== b && overlaps(b, other)), `${b.id}: no overlapping controls`);
+            assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.id, `${b.id}: touch target is reachable`);
+            if (b.id === 'supply' || b.id === 'supplyLater' || b.id === 'supplyWatch' || b.id.startsWith('reward:'))
+              assert(b.w >= 44 && b.h >= 44);
+          }
+          const buff = hud.labels.get('buff');
+          if (buff.node.activeInHierarchy) {
+            const box = labelBox(buff);
+            assert(box.w >= 60 && box.x >= safe && box.x + box.w <= width - safe);
+            assert(box.y >= safe && box.y + box.h <= height - safe);
+            assert(!buttons.some((b: any) => overlaps(box, b)), 'buff stays clear of controls');
+            for (const id of ['health', 'status', 'telemetry']) {
+              const label = hud.labels.get(id);
+              if (label.node.activeInHierarchy) assert(!overlaps(box, labelBox(label)), `buff clears ${id}`);
+            }
+          }
+        };
+        assert.equal(hud.supplyOpen, false); assert.equal(hud.pendingSupply, false);
+        hud.update(sim, world); checkLayout();
+        assert.match(control('supply').label.string, lang === 'zh' ? /战斗补给/ : /SUPPLY/);
+        sim.pause('manual', true); hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, 'pause'); assert(control('supply'));
+        hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, 'supply:offer');
+        assert.deepEqual(visible().map((b: any) => b.id), ['supplyWatch', 'supplyLater']);
+        hud.pendingSupply = true; hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, 'supply:choice');
+        assert.deepEqual(visible().map((b: any) => b.id), ['supplyLater', 'reward:tracking', 'reward:ammo', 'reward:rate']);
+        assert.match(panelText(), lang === 'zh' ? /手动锁定并发射/ : /Lock & launch manually/);
+        assert.match(panelText(), /60/); assert.match(panelText(), /\+2/); assert.match(panelText(), /×1\.3/);
+        assert.doesNotMatch(panelText(), /恢复耐久|治疗|HEAL/i);
+        const choiceLabels = hud.modal.children.map((n: any) => n.getComponent(cc.Label)).filter(Boolean);
+        for (const l of choiceLabels) {
+          const box = labelBox(l);
+          assert(!choiceLabels.some((other: any) => other !== l && overlaps(box, labelBox(other))), 'choice card text does not overlap');
+        }
+        hud.supplyOpen = false; sim.pause('supply', false); hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, 'pause');
+        assert.match(control('supply').label.string, lang === 'zh' ? /待领取/ : /CLAIM/);
+        hud.pendingSupply = false; sim.pauses.clear();
+        sim.buff = { kind: 'tracking', remaining: 60 }; sim.resumeCountdown = 3; sim.pause('countdown', true);
+        for (const remaining of [3, 2.2, 2, 1]) {
+          sim.resumeCountdown = remaining; hud.update(sim, world); checkLayout();
+          assert.equal(hud.modalKey, `countdown:${Math.ceil(remaining)}`);
+          assert.equal(visible().length, 0, 'countdown hides controls that cannot act');
+          assert(hud.labels.get('buff').node.activeInHierarchy, 'frozen buff remains visible during countdown');
+          assert.match(hud.labels.get('buff').string, /60/);
+          assert.match(panelText(), new RegExp(String(Math.ceil(remaining))));
+        }
+        sim.pause('countdown', false); hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, '');
+        assert.match(control('supply').label.string, lang === 'zh' ? /增益中.*广告暂停/s : /BUFF.*ADS PAUSED/s);
+        assert.equal(control('supply').label.color.hex, '#a2b5b5');
+        assert.equal(hud.labels.get('buff').color.hex, '#91e6cb');
+        sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
+        assert.equal(hud.labels.get('buff').color.hex, '#f2bc77');
+        assert.match(hud.labels.get('buff').string, /5/);
+        hud.zoomOpen = true; hud.update(sim, world); checkLayout();
+        assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
+        assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /增益中.*广告暂停/ : /BUFF ACTIVE.*ADS PAUSED/);
+        hud.zoomOpen = false; hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
+        assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
+        assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');
+        assert.match(panelText(), lang === 'zh' ? /增益生效中.*所有广告暂不可用/ : /BUFF ACTIVE.*ALL ADS PAUSED/);
+        assert(control('supplyLater'), 'blocked offer can return to pause');
+        hud.supplyOpen = false; sim.pause('supply', false);
+        sim.buff = { kind: 'rate', remaining: 60 }; hud.update(sim, world); checkLayout();
+        assert.match(hud.labels.get('buff').string, lang === 'zh' ? /射速提升/ : /RATE ×1\.3/);
+        sim.buff = undefined; hud.update(sim, world); checkLayout();
+        assert(!hud.labels.get('buff').node.activeInHierarchy);
+        assert.equal(control('supply').label.color.hex, '#eef3ea');
+      }
+  } finally {
+    cc.sys.isBrowser = false; inset = 0;
+    if (previousWindow === undefined) delete (globalThis as any).window;
+    else (globalThis as any).window = previousWindow;
+  }
 });
 
 

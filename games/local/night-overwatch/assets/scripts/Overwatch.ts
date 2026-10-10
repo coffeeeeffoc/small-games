@@ -21,7 +21,7 @@ import { Platform } from './Platform';
 import { MAP, WEAPONS, type Point } from './core/Data';
 import { MISSIONS, nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
 import { bestTrainingRecord } from './core/TrainingRecords';
-import { nextZoomLimit, type RewardKind } from './core/Rewards';
+import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; button?: string; moved?: boolean };
 @ccclass('Overwatch')
@@ -41,7 +41,7 @@ export class Overwatch extends Component {
   resizeKey = '';
   lastAimInput = 0;
   selectedMission: MissionId = 'corridor-01';
-  private rewardRequest?: RewardKind;
+  private rewardRequest?: { kind: RewardKind };
   private disposed = false;
   private startupSignalled = false;
   private pauseControl?: HTMLButtonElement;
@@ -131,6 +131,7 @@ export class Overwatch extends Component {
     this.world.reset();
     this.syncRewards();
     this.hud.modalKey = 'rebuild';
+    this.hud.supplyOpen = false;
   }
   selectMission(id: MissionId, persist = false) {
     if (this.sim.phase === 'playing') return;
@@ -148,6 +149,7 @@ export class Overwatch extends Component {
     this.syncWorld();
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
+    this.hud.supplyOpen = false;
   }
   syncWorld() {
     if (this.world.map !== this.sim.mission.map) {
@@ -163,31 +165,71 @@ export class Overwatch extends Component {
     this.sim.homingAmmo = this.platform.rewards.ammo;
     this.world.zoomLimit = this.platform.rewards.zoomLimit;
     this.hud.zoomLimit = this.platform.rewards.zoomLimit;
+    this.hud.pendingSupply = this.platform.rewards.pendingSupply;
     this.world.updateCamera();
   }
   async requestReward(kind: RewardKind) {
-    if (this.rewardRequest || kind === 'zoom' && !nextZoomLimit(this.platform.rewards.zoomLimit)) return;
-    this.rewardRequest = kind;
+    if (this.rewardRequest || this.sim.phase !== 'playing' || this.sim.buff || this.sim.resumeCountdown > 0 ||
+        ['background', 'focus', 'orientation', 'help', 'settings', 'mission'].some(reason => this.sim.pauses.has(reason as PauseReason)) ||
+        kind === 'zoom' && !nextZoomLimit(this.platform.rewards.zoomLimit)) return;
+    if (this.platform.rewards.pendingSupply) { this.openSupply(); return; }
+    const request = { kind };
+    this.rewardRequest = request;
+    this.hud.supplyOpen = false;
+    this.pause('manual', true);
+    this.pause('supply', false);
     this.hud.advert = { kind, mock: false };
     this.pause('advert', true);
     const outcome = await this.platform.offerReward(kind);
-    if (this.disposed || this.rewardRequest !== kind) return;
+    if (this.rewardRequest !== request) return;
     if (outcome === 'mock') { this.hud.advert = { kind, mock: true }; return; }
     this.finishReward(outcome === 'completed');
-    if (outcome !== 'completed') {
-      this.hud.toast = this.hud.t('广告未完成，未发放奖励', 'AD NOT COMPLETED · NO REWARD');
+    if (outcome !== 'completed' && !this.disposed) {
+      this.hud.toast = outcome === 'dismissed' ? this.hud.t('已取消广告，可以继续战斗', 'AD CANCELLED · RESUME WHEN READY')
+        : this.hud.t('广告加载失败，可以继续战斗', 'AD UNAVAILABLE · RESUME WHEN READY');
       this.hud.toastUntil = Date.now() + 4000;
     }
   }
   finishReward(completed: boolean) {
     if (!this.rewardRequest) return;
-    const kind = this.rewardRequest;
+    const { kind } = this.rewardRequest;
     this.rewardRequest = undefined;
-    if (completed) { this.platform.grantReward(kind); this.syncRewards(); }
-    if (completed && kind === 'homing') this.sim.selectHoming();
+    if (completed) this.platform.grantReward(kind);
+    if (this.disposed) return;
+    this.syncRewards();
     this.hud.advert = undefined;
     this.pause('advert', false);
+    this.pause('manual', true);
+    if (completed && kind === 'supply') this.openSupply();
+    else if (completed) this.resumeBattle();
     this.hud.modalKey = 'rebuild';
+  }
+  openSupply() {
+    if (this.sim.phase !== 'playing' || this.rewardRequest || this.sim.resumeCountdown > 0) return;
+    this.hud.supplyOpen = true;
+    this.hud.pendingSupply = this.platform.rewards.pendingSupply;
+    this.pause('supply', true);
+    this.hud.modalKey = 'rebuild';
+  }
+  closeSupply() {
+    this.hud.supplyOpen = false;
+    this.pause('manual', true);
+    this.pause('supply', false);
+  }
+  claimSupply(reward: SupplyReward) {
+    if (this.sim.phase !== 'playing' || !this.hud.supplyOpen || this.sim.buff ||
+        !['tracking', 'ammo', 'rate'].includes(reward) || !this.platform.claimSupply(reward)) return;
+    if (reward !== 'ammo') this.sim.grantBuff(reward);
+    this.syncRewards();
+    if (reward === 'ammo') this.sim.selectHoming();
+    this.hud.supplyOpen = false;
+    this.pause('supply', false);
+    this.resumeBattle();
+  }
+  resumeBattle() {
+    this.clear();
+    this.accumulator = 0;
+    this.sim.beginResumeCountdown();
   }
   syncMissionAddress() {
     if (!sys.isBrowser) return;
@@ -211,11 +253,21 @@ export class Overwatch extends Component {
     if (id === 'lensOut') id = 'zoomOut';
     this.platform.activate();
     if (this.rewardRequest) {
-      if ((id === 'adClose' || id === 'close') && this.hud.advert?.mock) this.finishReward(true);
+      if (this.hud.advert?.mock && ['adClose', 'adCancel', 'close'].includes(id)) this.finishReward(id === 'adClose');
+      return;
+    }
+    if (this.sim.resumeCountdown > 0) {
+      if (id === 'pause') this.pause('manual', true);
+      return;
+    }
+    if (id === 'supply' || id === 'homingReward') { this.openSupply(); return; }
+    if (this.hud.supplyOpen) {
+      if (id === 'supplyWatch') void this.requestReward('supply');
+      else if (id.startsWith('reward:')) this.claimSupply(id.slice(7) as SupplyReward);
+      else if (['supplyLater', 'close', 'resume', 'pause'].includes(id)) this.closeSupply();
       return;
     }
     if (id === 'zoomUpgrade') { void this.requestReward('zoom'); return; }
-    if (id === 'homingReward') { void this.requestReward('homing'); return; }
     if (id === 'zoomControls') {
       this.clear();
       this.hud.zoomOpen = !this.hud.zoomOpen;
@@ -261,6 +313,7 @@ export class Overwatch extends Component {
       if (this.sim.pauses.has('help')) this.pause('help', false);
       else if (this.sim.pauses.has('settings')) this.pause('settings', false);
       else if (this.sim.pauses.has('mission')) this.pause('mission', false);
+      else if (this.sim.resumeRequired) this.resumeBattle();
       else this.pause('manual', false);
       return;
     }
@@ -276,7 +329,8 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'pause') {
-      this.pause('manual', !this.sim.pauses.has('manual'));
+      if (this.sim.pauses.has('manual') && this.sim.resumeRequired) this.resumeBattle();
+      else this.pause('manual', !this.sim.pauses.has('manual'));
       return;
     }
     if (id === 'mission') {
@@ -354,7 +408,7 @@ export class Overwatch extends Component {
     }
     if (id.startsWith('weapon')) this.sim.choose(Number(id.slice(-1)));
     if (id === 'homing') {
-      if (this.sim.homingAmmo <= 0) { void this.requestReward('homing'); return; }
+      if (this.sim.homingAmmo <= 0) { this.openSupply(); return; }
       this.clear();
       this.sim.selectHoming();
     }
@@ -604,7 +658,7 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
-    if (e.keyCode === 27 && ['help', 'settings', 'mission', 'advert'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
+    if (e.keyCode === 27 && ['help', 'settings', 'mission', 'advert', 'supply'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
       this.action('close');
       return;
     }
@@ -632,7 +686,11 @@ export class Overwatch extends Component {
       this.pause('orientation', frame.width < frame.height);
     }
     const before = this.sim.phase;
-    if (this.sim.phase === 'playing' && !this.sim.paused) {
+    const buffBefore = this.sim.buff?.kind;
+    if (this.sim.resumeCountdown > 0) {
+      this.sim.stepCountdown(Math.min(dt, 0.1));
+      this.accumulator = 0;
+    } else if (this.sim.phase === 'playing' && !this.sim.paused) {
       this.accumulator += Math.min(dt, 0.1);
       let steps = 0;
       while (this.accumulator >= 1 / 60 && steps++ < 6) {
@@ -640,6 +698,10 @@ export class Overwatch extends Component {
         this.accumulator -= 1 / 60;
       }
     } else this.accumulator = 0;
+    if (buffBefore && !this.sim.buff) {
+      this.hud.toast = buffBefore === 'tracking' ? this.hud.t('追踪模式已结束', 'TRACKING ENDED') : this.hud.t('射速已恢复', 'FIRE RATE RESTORED');
+      this.hud.toastUntil = Date.now() + 3000;
+    }
     if (before === 'playing' && this.sim.phase !== 'playing') this.saveTrainingResult();
     // Pan in screen space: the ground axes rotate with the aircraft and sensor.
     if (
@@ -716,6 +778,9 @@ export class Overwatch extends Component {
       homingTarget: this.sim.homingSelected ? this.sim.homingTarget?.id : undefined,
       zoomLimit: this.world.zoomLimit,
       advert: this.hud.advert,
+      pendingSupply: this.platform.rewards.pendingSupply,
+      buff: this.sim.buff ? { ...this.sim.buff } : null,
+      resumeCountdown: this.sim.resumeCountdown,
       locks: this.hud.lockedTargets,
       phase: this.sim.phase,
       mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, map: this.sim.mission.map, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },

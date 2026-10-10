@@ -2,7 +2,7 @@ import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
-import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider } from './core/Rewards';
+import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
 export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
@@ -13,7 +13,7 @@ export class Platform {
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
-  rewards: RewardSave = { ammo: 0, zoomLimit: 5 };
+  rewards: RewardSave = readRewards(null);
   // Install before launch; this may delegate directly to an authorized GameHost.ads.offer.
   rewardProvider?: RewardProvider;
   private clear: () => void;
@@ -169,15 +169,22 @@ export class Platform {
     if (!provider) return sys.isBrowser ? 'mock' as const : 'unavailable' as const;
     try {
       const outcome = await provider({ id: 'night-overwatch:' + kind,
-        reward: kind === 'homing' ? { homing: 1 } : { zoomLimit: next! } });
+        reward: kind === 'supply' ? { supplyChoice: 1 } : { zoomLimit: next! } });
       return ['completed', 'dismissed', 'unavailable', 'failed'].includes(outcome?.status)
         ? outcome.status : 'failed' as const;
     } catch { return 'failed' as const; }
   }
   grantReward(kind: RewardKind) {
-    if (kind === 'homing') this.rewards.ammo = Math.min(Number.MAX_SAFE_INTEGER, this.rewards.ammo + 1);
+    if (kind === 'supply') this.rewards.pendingSupply = true;
     else this.rewards.zoomLimit = nextZoomLimit(this.rewards.zoomLimit) ?? this.rewards.zoomLimit;
     this.saveRewards();
+  }
+  claimSupply(reward: SupplyReward) {
+    if (!this.rewards.pendingSupply || !['tracking', 'ammo', 'rate'].includes(reward)) return false;
+    this.rewards.pendingSupply = false;
+    if (reward === 'ammo') this.rewards.ammo = Math.min(Number.MAX_SAFE_INTEGER, this.rewards.ammo + 2);
+    this.saveRewards();
+    return true;
   }
   saveRewards() {
     try { sys.localStorage.setItem('night-overwatch-rewards-v1', JSON.stringify(this.rewards)); }

@@ -1,0 +1,72 @@
+vite v8.2.2 building client environment for pages...
+transforming...
+<script src="./fullscreen.js"> in "/index.html" can't be bundled without type="module" attribute
+✓ 259 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                             0.48 kB │ gzip:   0.33 kB
+dist/assets/step-oF0FQcr3.wav               6.65 kB
+dist/assets/contact-D9-cQ63u.wav            7.98 kB
+dist/assets/alarm-GMGIoyz0.wav             10.62 kB
+dist/assets/connect-Dt9N0nya.wav           10.62 kB
+dist/assets/disconnect-Dbn5Wqkj.wav        10.62 kB
+dist/assets/rustle-BqG9b84p.wav            11.06 kB
+dist/.vite/manifest.json                   11.07 kB │ gzip:   1.41 kB
+dist/assets/dodge-sK_t5QXr.wav             12.39 kB
+dist/assets/water-BNABpzlI.wav             12.39 kB
+dist/assets/hit-AWMzdv4M.wav               13.27 kB
+dist/assets/hit-DMUGhjqG.wav               13.27 kB
+dist/assets/sword-DA4cSyUR.wav             15.03 kB
+dist/assets/dodge-K8gahkGv.wav             15.47 kB
+dist/assets/hurt-Cx_6DLwH.wav              15.47 kB
+dist/assets/steps-BZMTcd__.wav             15.47 kB
+dist/assets/complete-qgh9y3-I.wav          15.92 kB
+dist/assets/lose-vIyQBiIq.wav              15.92 kB
+dist/assets/hurt-x7k4ThQz.wav              17.68 kB
+dist/assets/scatter-B76BFrb2.wav           17.68 kB
+dist/assets/win-BYwWfet9.wav               21.21 kB
+dist/assets/fox-Dp1UDLoa.wav               22.09 kB
+dist/assets/stone-BdCDf91g.wav             24.29 kB
+dist/assets/qi-FYUeXABv.wav                30.91 kB
+dist/assets/buzz-XBbUAQDc.wav              33.12 kB
+dist/assets/keyboard-BuIOHEcv.wav          35.32 kB
+dist/assets/lose-BLKvrhEl.wav              35.32 kB
+dist/assets/win-ClXQ4ym2.wav               48.55 kB
+dist/assets/bell-CVWsceD9.wav              57.37 kB
+dist/assets/thunder-MZV5ATDp.wav           61.78 kB
+dist/assets/relief-DWkTBsoa.wav            66.19 kB
+dist/assets/lose-BeDg2KyR.wav              79.42 kB
+dist/assets/win-ClQvDQTH.wav               79.42 kB
+dist/assets/night-Dck_1naf.wav            176.44 kB
+dist/assets/cave-DGXsrFo3.wav             352.84 kB
+dist/assets/forest-cX8GGIN_.wav           352.84 kB
+dist/assets/room-411SA1zM.wav             352.84 kB
+dist/assets/summit-CH8EAtif.wav           352.84 kB
+dist/assets/cricket-macro-DA9zbctD.png  2,048.25 kB
+dist/assets/teahouse-B3dnPLfc.png       2,820.31 kB
+dist/assets/definition-DruGyXBH.css         2.18 kB │ gzip:   0.91 kB
+dist/assets/index-BZTNK5fL.css              8.15 kB │ gzip:   2.40 kB
+dist/assets/definition-iDV9JJ3H.css         9.30 kB │ gzip:   2.69 kB
+dist/assets/definition-0cQQVhq6.css        14.40 kB │ gzip:   3.67 kB
+dist/assets/src-85uqwSGW.js                 0.95 kB │ gzip:   0.50 kB
+dist/assets/definition-DO8mZWhH.js         26.13 kB │ gzip:  10.52 kB
+dist/assets/definition-JP9BntvB.js         33.76 kB │ gzip:  12.55 kB
+dist/assets/definition-0nI8Tspl.js         39.17 kB │ gzip:  16.72 kB
+dist/assets/definition-Bc4gf_14.js         45.40 kB │ gzip:  18.72 kB
+dist/assets/definition-DRjR4pXO.js         57.72 kB │ gzip:  23.93 kB
+dist/assets/index-1qOIxhto.js             337.73 kB │ gzip: 107.06 kB
+
+✓ built in 283ms
+Started game: night-overwatch
+Started: night-overwatch / embedded-load
+Finished: night-overwatch / embedded-load (419 ms)
+Started: night-overwatch / embedded-gameplay
+Finished: night-overwatch / embedded-gameplay (1642 ms)
+Started: night-overwatch / embedded-return
+Finished: night-overwatch / embedded-return (52 ms)
+Started: night-overwatch / mobile-load
+Finished: night-overwatch / mobile-load (64 ms)
+Started: night-overwatch / mobile-gameplay
+Finished: night-overwatch / mobile-gameplay (1993 ms)
+Passed: night-overwatch (embedded and 844x390 touch, 4269 ms)
+Pages: 66 catalog entries, 1/61 embedded/direct games, return navigation, mobile width and Runtime isolation passed.

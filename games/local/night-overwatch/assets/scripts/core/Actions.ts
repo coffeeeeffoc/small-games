@@ -74,8 +74,20 @@ export const ACTIONS = [
     keys: [52],
     binding: '4 / Space',
     touch: ['选追踪 → 点敌人 → 发射', 'Homing → enemy → Launch'],
-    description: ['锁定框跟随敌人；点发射只消耗一发。无弹药时点追踪领取补给。', 'Lock follows the enemy. Launch spends one round. Tap an empty slot to resupply.'],
+    description: ['手动锁定敌人后点发射，每次消耗一发。通过战斗补给选择追踪弹 +2 发。', 'Lock an enemy manually, then launch one round. Choose +2 homing rounds from Combat Supply.'],
     event: 'fire',
+  },
+  {
+    id: 'supply',
+    group: 'basic',
+    name: ['战斗补给', 'Combat Supply'],
+    keys: [],
+    binding: '',
+    touch: ['点击战斗补给或暂停页入口', 'Tap Combat Supply or its pause entry'],
+    description: [
+      '暂停观看广告，完成后三选一：普通弹追踪60秒、手动追踪弹+2发、射速×1.3持续60秒。领取后倒计时3秒继续；稍后选择保留资格。计时增益期间所有广告暂停，其他时候不限次数。',
+      'Pause for an ad, then choose guided regular rounds for 60s, +2 manually fired homing rounds, or ×1.3 fire rate for 60s. Claim starts a 3s countdown; Choose Later keeps the reward. Timed buffs block all ads; otherwise ads are unlimited.',
+    ],
   },
   {
     id: 'previous',

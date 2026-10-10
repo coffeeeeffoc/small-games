@@ -1,0 +1,1184 @@
+$ node scripts/build.mjs web-mobile
+
+init **** success
+Arguments:
+  D:\tools\cocos\CocosCreator.exe: true
+  project: F:\playground\playground-ai\small-games\games\local\night-overwatch\
+  build: configPath=F:\playground\playground-ai\small-games\games\local\night-overwatch\reports/build-web-mobile.json
+  dev: false
+  home: C:\Users\15211\.CocosCreator
+
+[Package] metrics@1.0.0 enable
+[Package] menu@1.0.0 enable
+[Package] profile@1.0.0 enable
+[Package] project@1.0.6 enable
+[Package] messages@1.0.0 enable
+[Package] utils@1.0.0 enable
+[Package] program@1.0.4 enable
+[Package] tester@1.0.0 enable
+[Package] information@1.0.1 enable
+[Package] preferences@1.0.0 enable
+[EditorQuickCompiler]Version information looks good.
+Note, quick compiler does not get launched.
+engine:compile-builtin-engine-success (103ms)
+Load engine in D:\tools\cocos\resources\resources\3d\engine
+Register native engine in D:\tools\cocos\resources\resources\3d\engine\native
+[Package] engine@1.0.12 enable
+[Package] programming@1.0.0 enable
+[Package] window@1.0.0 enable
+Request namespace: device-list
+[Package] device@1.0.1 enable
+[Package] ui-kit@1.0.1 enable
+[Package] asset-db@1.0.0 enable
+[Package] scene@1.0.3 enable
+[Package] server@1.0.0 enable
+[Package] preview@1.0.1 enable
+Preview import map: {
+  "imports": {
+    "cc": "cce:/internal/x/cc",
+    "cc/env": "cc/editor/populate-internal-constants",
+    "cce.env": "cc/editor/populate-internal-constants",
+    "cc/userland/macro": "./userland/macro"
+  }
+}
+[Package] animator@1.0.0 enable
+[Build] internalRegister pkg(scene) in android platform success!
+[Package] builder@1.3.9 enable
+[Build] internalRegister pkg(scene) in google-play platform success!
+[Build] internalRegister pkg(scene) in ohos platform success!
+[Build] internalRegister pkg(scene) in harmonyos-next platform success!
+[Build] internalRegister pkg(scene) in huawei-agc platform success!
+[Build] internalRegister pkg(scene) in ios platform success!
+[Build] internalRegister pkg(scene) in windows platform success!
+[Build] internalRegister pkg(scene) in mac platform success!
+[Build] internalRegister pkg(scene) in linux platform success!
+[Build] internalRegister pkg(scene) in alipay-mini-game platform success!
+[Build] internalRegister pkg(scene) in taobao-creative-app platform success!
+[Build] internalRegister pkg(scene) in taobao-mini-game platform success!
+[Build] internalRegister pkg(scene) in bytedance-mini-game platform success!
+[Build] internalRegister pkg(scene) in oppo-mini-game platform success!
+[Build] internalRegister pkg(scene) in huawei-quick-game platform success!
+[Build] internalRegister pkg(scene) in migu-mini-game platform success!
+[Build] internalRegister pkg(scene) in honor-mini-game platform success!
+[Build] internalRegister pkg(scene) in vivo-mini-game platform success!
+[Build] internalRegister pkg(scene) in xiaomi-quick-game platform success!
+[Build] internalRegister pkg(scene) in baidu-mini-game platform success!
+[Build] internalRegister pkg(scene) in wechatgame platform success!
+[Build] internalRegister pkg(scene) in wechatprogram platform success!
+[Build] internalRegister pkg(scene) in link-sure platform success!
+[Build] internalRegister pkg(scene) in qtt platform success!
+[Build] internalRegister pkg(scene) in fb-instant-games platform success!
+[Build] internalRegister pkg(scene) in web-desktop platform success!
+[Build] internalRegister pkg(scene) in web-mobile platform success!
+[Build] internalRegister pkg(scene) in cocos-runtime platform success!
+[Build] internalRegister pkg(scene) in platform-example platform success!
+[Build] internalRegister pkg(scene) in online platform success!
+[Build] internalRegister pkg(scene) in xr-meta platform success!
+[Build] internalRegister pkg(scene) in xr-huaweivr platform success!
+[Build] internalRegister pkg(scene) in xr-pico platform success!
+[Build] internalRegister pkg(scene) in xr-rokid platform success!
+[Build] internalRegister pkg(scene) in xr-monado platform success!
+[Build] internalRegister pkg(scene) in xr-spaces platform success!
+[Build] internalRegister pkg(scene) in xr-seed platform success!
+[Build] internalRegister pkg(scene) in ar-android platform success!
+[Build] internalRegister pkg(scene) in ar-ios platform success!
+[Build] internalRegister pkg(scene) in xr-gsxr platform success!
+[Build] internalRegister pkg(scene) in xr-yvr platform success!
+[Build] internalRegister pkg(scene) in xr-htc platform success!
+[Build] internalRegister pkg(scene) in xr-iqiyi platform success!
+[Build] internalRegister pkg(scene) in xr-skyworth platform success!
+[Build] internalRegister pkg(scene) in xr-ffalcon platform success!
+[Build] internalRegister pkg(scene) in xr-nreal platform success!
+[Build] internalRegister pkg(scene) in xr-inmo platform success!
+[Build] internalRegister pkg(scene) in xr-lenovo platform success!
+[Build] internalRegister pkg(scene) in android-hmi platform success!
+[Build-plugin] register pkg scene: 17ms
+Builder PluginManager init: 17ms
+[Package] shortcuts@1.0.1 enable
+[Package] animation-graph@1.0.0 enable
+[Package] about@1.0.0 enable
+[Package] assets@1.0.0 enable
+[Package] console@1.0.0 enable
+[Package] crash-reporter@1.0.0 enable
+[Package] extension@3.1.4 enable
+[Package] feedback@1.0.0 enable
+[Package] hierarchy@1.0.0 enable
+[Package] inspector@1.0.0 enable
+[Package] light-probe@1.0.4 enable
+[Package] lightmap@1.0.4 enable
+[Package] node-library@1.0.1 enable
+[Package] package-asset@1.0.3 enable
+[Package] process@1.0.0 enable
+[Package] reference-image@1.0.0 enable
+[Package] reflection-probe@1.0.4 enable
+[Package] engine-extends@1.0.0 enable
+[Package] adsense-h5g-plugin@1.0.1 enable
+[Build] internalRegister pkg(adsense-h5g-plugin) in android platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in google-play platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in ohos platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in harmonyos-next platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in huawei-agc platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in ios platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in windows platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in mac platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in linux platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in alipay-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in taobao-creative-app platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in taobao-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in bytedance-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in oppo-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in huawei-quick-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in migu-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in honor-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in vivo-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xiaomi-quick-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in baidu-mini-game platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in wechatgame platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in wechatprogram platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in link-sure platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in qtt platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in fb-instant-games platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in web-desktop platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in web-mobile platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in cocos-runtime platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in platform-example platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in online platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-meta platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-huaweivr platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-pico platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-rokid platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-monado platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-spaces platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-seed platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in ar-android platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in ar-ios platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-gsxr platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-yvr platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-htc platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-iqiyi platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-skyworth platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-ffalcon platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-nreal platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-inmo platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in xr-lenovo platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in android-hmi platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in web-desktop platform success!
+[Build] internalRegister pkg(adsense-h5g-plugin) in web-mobile platform success!
+[Build-plugin] register pkg adsense-h5g-plugin: 3ms
+[Package] alipay-mini-game@1.0.2 enable
+[Build] internalRegister pkg(alipay-mini-game) in alipay-mini-game platform success!
+[Build-plugin] register pkg alipay-mini-game: 3ms
+[Package] android@1.0.1 enable
+[Build] internalRegister pkg(android) in android platform success!
+[Build] internalRegister pkg(android) in huawei-agc platform success!
+[Build-plugin] register pkg android: 4ms
+[Package] bytedance-mini-game@1.0.3 enable
+[Build] internalRegister pkg(bytedance-mini-game) in bytedance-mini-game platform success!
+[Build-plugin] register pkg bytedance-mini-game: 3ms
+[Package] certificate@1.0.0 enable
+[Package] channel-upload-tools@1.0.0 enable
+[Package] fb-instant-games@1.0.0 enable
+[Build] internalRegister pkg(fb-instant-games) in fb-instant-games platform success!
+[Build-plugin] register pkg fb-instant-games: 2ms
+[Package] google-play@1.0.1 enable
+[Build] internalRegister pkg(google-play) in google-play platform success!
+[Build-plugin] register pkg google-play: 3ms
+[Package] harmonyos-next@1.0.0 enable
+[Build] internalRegister pkg(harmonyos-next) in harmonyos-next platform success!
+[Build-plugin] register pkg harmonyos-next: 3ms
+[Package] honor-mini-game@1.0.0 enable
+[Build] internalRegister pkg(honor-mini-game) in honor-mini-game platform success!
+[Build-plugin] register pkg honor-mini-game: 2ms
+[Package] huawei-agc@1.0.0 enable
+[Build] internalRegister pkg(huawei-agc) in huawei-agc platform success!
+[Build-plugin] register pkg huawei-agc: 2ms
+[Package] huawei-quick-game@1.0.3 enable
+[Build] internalRegister pkg(huawei-quick-game) in huawei-quick-game platform success!
+[Build-plugin] register pkg huawei-quick-game: 3ms
+[Package] ios@1.0.1 enable
+[Build-plugin] register pkg ios: 2ms
+[Package] linux@1.0.0 enable
+linux platform does not exist, Can not register panelInfo
+[Package] mac@1.0.0 enable
+[Build-plugin] register pkg mac: 3ms
+[Package] migu-mini-game@1.0.0 enable
+migu-mini-game platform does not exist, Can not register panelInfo
+[Package] native@1.0.2 enable
+[Build] internalRegister pkg(native) in ios platform success!
+[Build] internalRegister pkg(native) in android platform success!
+[Build] internalRegister pkg(native) in huawei-agc platform success!
+[Build] internalRegister pkg(native) in windows platform success!
+[Build] internalRegister pkg(native) in mac platform success!
+[Build] internalRegister pkg(native) in google-play platform success!
+[Build] internalRegister pkg(native) in ohos platform success!
+[Build] internalRegister pkg(native) in harmonyos-next platform success!
+linux platform does not exist, registration to this platform is not supported
+[Build] internalRegister pkg(native) in xr-huaweivr platform success!
+[Build] internalRegister pkg(native) in xr-meta platform success!
+[Build] internalRegister pkg(native) in xr-pico platform success!
+[Build] internalRegister pkg(native) in xr-rokid platform success!
+[Build] internalRegister pkg(native) in xr-monado platform success!
+[Build] internalRegister pkg(native) in ar-android platform success!
+[Build] internalRegister pkg(native) in ar-ios platform success!
+[Build] internalRegister pkg(native) in xr-spaces platform success!
+[Build] internalRegister pkg(native) in xr-seed platform success!
+[Build] internalRegister pkg(native) in xr-gsxr platform success!
+[Build] internalRegister pkg(native) in xr-yvr platform success!
+[Build] internalRegister pkg(native) in xr-htc platform success!
+[Build] internalRegister pkg(native) in xr-iqiyi platform success!
+[Build] internalRegister pkg(native) in xr-skyworth platform success!
+[Build] internalRegister pkg(native) in xr-ffalcon platform success!
+[Build] internalRegister pkg(native) in xr-nreal platform success!
+[Build] internalRegister pkg(native) in xr-inmo platform success!
+[Build] internalRegister pkg(native) in xr-lenovo platform success!
+[Build-plugin] register pkg native: 4ms
+[Package] ohos@1.0.0 enable
+[Build] internalRegister pkg(ohos) in ohos platform success!
+[Build-plugin] register pkg ohos: 2ms
+[Package] oppo-mini-game@1.0.3 enable
+[Build] internalRegister pkg(oppo-mini-game) in oppo-mini-game platform success!
+[Build-plugin] register pkg oppo-mini-game: 3ms
+[Package] runtime-dev-tools@1.0.0 enable
+[Package] taobao-mini-game@1.0.1 enable
+[Build] internalRegister pkg(taobao-mini-game) in taobao-mini-game platform success!
+[Build-plugin] register pkg taobao-mini-game: 1ms
+[Package] vivo-mini-game@1.0.3 enable
+[Build] internalRegister pkg(vivo-mini-game) in vivo-mini-game platform success!
+[Build-plugin] register pkg vivo-mini-game: 2ms
+[Package] web-desktop@1.0.1 enable
+[Build] internalRegister pkg(web-desktop) in web-desktop platform success!
+[Build-plugin] register pkg web-desktop: 1ms
+[Package] web-mobile@1.0.1 enable
+[Build] internalRegister pkg(web-mobile) in web-mobile platform success!
+[Build-plugin] register pkg web-mobile: 2ms
+[Package] wechatgame@1.0.4 enable
+[Build] internalRegister pkg(wechatgame) in wechatgame platform success!
+[Build-plugin] register pkg wechatgame: 2ms
+[Package] wechatprogram@1.0.2 enable
+wechatprogram platform does not exist, Can not register panelInfo
+[Package] windows@1.0.1 enable
+[Build] internalRegister pkg(windows) in windows platform success!
+[Build-plugin] register pkg windows: 3ms
+[Package] xiaomi-quick-game@1.0.2 enable
+xiaomi-quick-game platform does not exist, Can not register panelInfo
+[Package] cocos-service@3.0.9 enable
+[Build] internalRegister pkg(cocos-service) in android platform success!
+[Build] internalRegister pkg(cocos-service) in google-play platform success!
+[Build] internalRegister pkg(cocos-service) in ohos platform success!
+[Build] internalRegister pkg(cocos-service) in harmonyos-next platform success!
+[Build] internalRegister pkg(cocos-service) in huawei-agc platform success!
+[Build] internalRegister pkg(cocos-service) in ios platform success!
+[Build] internalRegister pkg(cocos-service) in windows platform success!
+[Build] internalRegister pkg(cocos-service) in mac platform success!
+[Build] internalRegister pkg(cocos-service) in linux platform success!
+[Build] internalRegister pkg(cocos-service) in alipay-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in taobao-creative-app platform success!
+[Build] internalRegister pkg(cocos-service) in taobao-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in bytedance-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in oppo-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in huawei-quick-game platform success!
+[Build] internalRegister pkg(cocos-service) in migu-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in honor-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in vivo-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in xiaomi-quick-game platform success!
+[Build] internalRegister pkg(cocos-service) in baidu-mini-game platform success!
+[Build] internalRegister pkg(cocos-service) in wechatgame platform success!
+[Build] internalRegister pkg(cocos-service) in wechatprogram platform success!
+[Build] internalRegister pkg(cocos-service) in link-sure platform success!
+[Build] internalRegister pkg(cocos-service) in qtt platform success!
+[Build] internalRegister pkg(cocos-service) in fb-instant-games platform success!
+[Build] internalRegister pkg(cocos-service) in web-desktop platform success!
+[Build] internalRegister pkg(cocos-service) in web-mobile platform success!
+[Build] internalRegister pkg(cocos-service) in cocos-runtime platform success!
+[Build] internalRegister pkg(cocos-service) in platform-example platform success!
+[Build] internalRegister pkg(cocos-service) in online platform success!
+[Build] internalRegister pkg(cocos-service) in xr-meta platform success!
+[Build] internalRegister pkg(cocos-service) in xr-huaweivr platform success!
+[Build] internalRegister pkg(cocos-service) in xr-pico platform success!
+[Build] internalRegister pkg(cocos-service) in xr-rokid platform success!
+[Build] internalRegister pkg(cocos-service) in xr-monado platform success!
+[Build] internalRegister pkg(cocos-service) in xr-spaces platform success!
+[Build] internalRegister pkg(cocos-service) in xr-seed platform success!
+[Build] internalRegister pkg(cocos-service) in ar-android platform success!
+[Build] internalRegister pkg(cocos-service) in ar-ios platform success!
+[Build] internalRegister pkg(cocos-service) in xr-gsxr platform success!
+[Build] internalRegister pkg(cocos-service) in xr-yvr platform success!
+[Build] internalRegister pkg(cocos-service) in xr-htc platform success!
+[Build] internalRegister pkg(cocos-service) in xr-iqiyi platform success!
+[Build] internalRegister pkg(cocos-service) in xr-skyworth platform success!
+[Build] internalRegister pkg(cocos-service) in xr-ffalcon platform success!
+[Build] internalRegister pkg(cocos-service) in xr-nreal platform success!
+[Build] internalRegister pkg(cocos-service) in xr-inmo platform success!
+[Build] internalRegister pkg(cocos-service) in xr-lenovo platform success!
+[Build] internalRegister pkg(cocos-service) in android-hmi platform success!
+[Build-plugin] register pkg cocos-service: 3ms
+[Package] im-plugin@3.0.14 enable
+[Package] placeholder@1.0.0 enable
+Start enter command build with options {"configPath":"F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports/build-web-mobile.json"}
+Read config from path F:\playground\playground-ai\small-games\games\local\night-overwatch\reports/build-web-mobile.json...
+web-mobile 插件构建配置无版本号，将跳过数据迁移
+init builder manager success
+[[Facet.reload]], before lock, count: 1
+[[Facet.reload]], after lock, count: 1
+[[Facet.reload]], before unlock, count: 1
+[[Facet.reload]], after unlock, count: 1
+trackTimeEnd failed! Can not find the track time asset-db:worker-startup-database[internal] start
+auto refresh because script compiled or scene changed
+trackTimeEnd failed! Can not find the track time asset-db:worker-startup-database[assets] start
+asset-db is ready!
+Check and complete build options {
+  name: 'night-overwatch',
+  platform: 'web-mobile',
+  debug: false,
+  md5Cache: true,
+  replaceSplashScreen: true,
+  useSplashScreen: true,
+  splashScreen: {
+    totalTime: 0,
+    displayRatio: 1,
+    autoFit: true,
+    watermarkLocation: 'default',
+    logo: { type: 'none' },
+    background: { type: 'color', color: [Object] }
+  },
+  buildPath: 'project://build',
+  outputName: 'web-mobile',
+  includeModules: [
+    'base',       'gfx-webgl',
+    'gfx-webgl2', '3d',
+    '2d',         'ui',
+    'graphics',   'mask',
+    'audio',      'primitive',
+    'profiler'
+  ],
+  startScene: '47889f0b-3be6-4dbd-a05d-b4381a0277e9',
+  scenes: [
+    {
+      url: 'db://assets/scenes/main.scene',
+      uuid: '47889f0b-3be6-4dbd-a05d-b4381a0277e9'
+    }
+  ],
+  packages: {
+    'web-mobile': { embedWebDebugger: false, orientation: 'landscape' }
+  },
+  taskName: 'web-mobile',
+  buildMode: 'normal'
+}
+Check build parameter mainBundleCompressionType (merge_dep) failed,  compression type(undefined) is invalid for this platform!, and the default value "merge_dep" will be used instead. mainBundleCompressionType (merge_dep) validation failed,  compression type(undefined) is invalid for this platform!, and the default value "merge_dep" will be used instead.
+start preview settings manager
+2026-10-10 09:09:12 - debug: =================================== build Task (web-mobile) Start ================================
+
+2026-10-10 09:09:12 - debug: Start build task, options:
+{"name":"night-overwatch","platform":"web-mobile","debug":false,"md5Cache":true,"replaceSplashScreen":true,"useSplashScreen":true,"splashScreen":{"totalTime":0,"displayRatio":1,"autoFit":true,"watermarkLocation":"default","logo":{"type":"none"},"background":{"type":"color","color":{"x":0.02,"y":0.04,"z":0.06,"w":1}}},"buildPath":"project://build","outputName":"web-mobile","includeModules":["base","gfx-webgl","gfx-webgl2","3d","2d","ui","graphics","mask","audio","primitive","profiler"],"startScene":"47889f0b-3be6-4dbd-a05d-b4381a0277e9","scenes":[{"url":"db://assets/scenes/main.scene","uuid":"47889f0b-3be6-4dbd-a05d-b4381a0277e9"}],"packages":{"web-mobile":{"embedWebDebugger":false,"orientation":"landscape","useWebGPU":false},"adsense-h5g-plugin":{"enableAdsense":false,"enableTestAd":false}},"taskName":"web-mobile","buildMode":"normal","mainBundleCompressionType":"merge_dep","server":"","engineModulesConfigKey":"defaultConfig","mangleProperties":false,"skipCompressTexture":false,"sourceMaps":false,"overwriteProjectSettings":{"includeModules":{"gfx-webgl2":"on","physics":"inherit-project-setting","physics-2d":"inherit-project-setting"},"macroConfig":{"cleanupImageCache":"inherit-project-setting"}},"nativeCodeBundleMode":"both","polyfills":{"asyncFunctions":true},"experimentalEraseModules":false,"startSceneAssetBundle":false,"bundleConfigs":[],"inlineEnum":true,"useBuiltinServer":false,"md5CacheOptions":{"excludes":[],"includes":[],"replaceOnly":[],"handleTemplateMd5Link":true},"mainBundleIsRemote":false,"bundleCommonChunk":false,"packAutoAtlas":true,"wasmCompressionMode":false,"binGroupConfig":{"threshold":16,"enable":false},"logDest":"project://temp/builder/log/web-mobile2026-10-10 09-09.log"}
+
+2026-10-10 09:09:12 - debug: Build with Cocos Creator 3.8.8
+
+2026-10-10 09:09:12 - debug: cocos-service:(onBeforeBuild) start..., progress: 0%
+
+2026-10-10 09:09:12 - debug: // ---- build task cocos-service：onBeforeBuild ----
+
+2026-10-10 09:09:12 - debug: // ---- build task cocos-service：onBeforeBuild ---- (2ms)
+
+2026-10-10 09:09:12 - debug: cocos-service:(onBeforeBuild) in 2 ms ✓, progress: 2%
+
+2026-10-10 09:09:12 - debug: scene:(onBeforeBuild) start..., progress: 2%
+
+2026-10-10 09:09:12 - debug: // ---- build task scene：onBeforeBuild ----
+
+2026-10-10 09:09:12 - debug: // ---- build task scene：onBeforeBuild ---- (1ms)
+
+2026-10-10 09:09:12 - debug: scene:(onBeforeBuild) in 1 ms ✓, progress: 4%
+
+2026-10-10 09:09:12 - debug: Start lock asset db..., progress: 4%
+
+2026-10-10 09:09:12 - log: Asset DB is paused with build!
+
+2026-10-10 09:09:12 - debug: Query all assets info in project
+
+2026-10-10 09:09:12 - debug: init custom config: keepNodeUuid: false, useCache: true
+
+2026-10-10 09:09:12 - debug: web-mobile:(onAfterInit) start..., progress: 4%
+
+2026-10-10 09:09:12 - debug: // ---- build task web-mobile：onAfterInit ----
+
+2026-10-10 09:09:12 - debug: // ---- build task web-mobile：onAfterInit ---- (1ms)
+
+2026-10-10 09:09:12 - debug: web-mobile:(onAfterInit) in 1 ms ✓, progress: 5%
+
+2026-10-10 09:09:12 - debug: cocos-service:(onAfterInit) start..., progress: 5%
+
+2026-10-10 09:09:12 - debug: // ---- build task cocos-service：onAfterInit ----
+
+2026-10-10 09:09:12 - debug: // ---- build task cocos-service：onAfterInit ---- (1ms)
+
+2026-10-10 09:09:12 - debug: cocos-service:(onAfterInit) in 1 ms ✓, progress: 7%
+
+2026-10-10 09:09:12 - debug: Skip compress image, progress: 0%
+
+2026-10-10 09:09:12 - debug: adsense-h5g-plugin:(onBeforeBundleInit) start..., progress: 7%
+
+2026-10-10 09:09:12 - debug: adsense-h5g-plugin:(onBeforeBundleInit) start..., progress: 0%
+
+2026-10-10 09:09:12 - debug: // ---- build task adsense-h5g-plugin：onBeforeBundleInit ----
+
+2026-10-10 09:09:12 - debug: [adsense-h5g-plugin] remove script success
+
+2026-10-10 09:09:12 - debug: // ---- build task adsense-h5g-plugin：onBeforeBundleInit ---- (3ms)
+
+2026-10-10 09:09:12 - debug(2): adsense-h5g-plugin:(onBeforeBundleInit) in 3 ms ✓, progress: 7%
+
+2026-10-10 09:09:12 - debug(2): Init all bundles start..., progress: 7%
+
+2026-10-10 09:09:12 - debug(2): Num of bundles: 3..., progress: 7%
+
+2026-10-10 09:09:12 - debug(2): web-mobile:(onAfterBundleInit) start..., progress: 7%
+
+2026-10-10 09:09:12 - debug: // ---- build task web-mobile：onAfterBundleInit ----
+
+2026-10-10 09:09:12 - debug: // ---- build task web-mobile：onAfterBundleInit ---- (1ms)
+
+2026-10-10 09:09:12 - debug: web-mobile:(onAfterBundleInit) in 1 ms ✓, progress: 7%
+
+2026-10-10 09:09:12 - debug: web-mobile:(onAfterBundleInit) in 1 ms ✓, progress: 13%
+
+2026-10-10 09:09:12 - debug: Query asset bundle start, progress: 7%
+
+2026-10-10 09:09:12 - debug: // ---- build task Query asset bundle ----
+
+2026-10-10 09:09:12 - debug: Init bundle root assets start..., progress: 7%
+
+2026-10-10 09:09:12 - debug: Init bundle root assets start..., progress: 13%
+
+2026-10-10 09:09:12 - debug: Query preload assets/scripts from cc.config.json: 970b0598-bcb0-4714-91fb-2e81440dccd8,bcd64cc6-2dd9-43f6-abbe-66318d332032,d930590d-bb92-4cc8-8bd1-23cd027f9edf,a3cd009f-0ab0-420d-9278-b9fdab939bbc,511d2633-09a7-4bdd-ac42-f778032124b3,5d45aa00-e064-4938-b314-4265f0c2258c,9361fd90-ba52-4f84-aa93-6e878fd576ca,60f7195c-ec2a-45eb-ba94-8955f60e81d0,1c02ae6f-4492-4915-b8f8-7492a3b1e4cd,810e96e4-e456-4468-9b59-f4e8f39732c0,efe8e2a3-eace-427b-b4f1-cb8a937ec77d,e9aa9a3e-5b2b-4ac7-a2c7-073de2b2b24f,8bbdbcdd-5cd4-4100-b6d5-b7c9625b6107,50f4348b-c883-4e2f-8f11-ce233b859fa1,fda095cb-831d-4601-ad94-846013963de8,f92806d7-1768-443f-afe8-12bcde84d0f0,dd3a144d-ab7f-41f0-82b8-2e43a090d496,f0416e68-0200-4b77-a926-4f9d16e494da,871c3b6c-7379-419d-bda3-794b239ab90d,b2bd1fa7-8d7c-49c5-a158-df29a6d3a594
+
+2026-10-10 09:09:12 - debug:   Number of all scenes: 1
+
+2026-10-10 09:09:12 - debug:   Number of all scripts: 20
+
+2026-10-10 09:09:12 - debug:   Number of other assets: 325
+
+2026-10-10 09:09:12 - debug: Init bundle root assets success..., progress: 7%
+
+2026-10-10 09:09:12 - debug: Init bundle root assets success..., progress: 13%
+
+2026-10-10 09:09:12 - debug: reload all scripts.
+
+2026-10-10 09:09:12 - log: creating executor ...
+
+2026-10-10 09:09:12 - debug: [[Executor]] reload before lock
+
+2026-10-10 09:09:12 - debug: Set detail map pack:///resolution-detail-map.json: {}
+
+2026-10-10 09:09:12 - groupCollapsed: Invalidate all modules
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\93\93ba276ea7b26ffcdc433fab14afc1ed6f05647b.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\93\93ba276ea7b26ffcdc433fab14afc1ed6f05647b.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/base" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgl" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgl2" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-empty" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgpu" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/3d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/animation" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/skeletal-animation" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/sorting" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/rich-text" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/mask" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/graphics" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/ui-skew" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/ui" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/affine-transform" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/sorting-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/particle" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/particle-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-framework" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-cannon" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-physx" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-ammo" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-builtin" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-framework" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d-jsb" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-builtin" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d-wasm" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/intersection-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/primitive" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/profiler" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/geometry-renderer" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/audio" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/video" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/xr" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/light-probe" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/terrain" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/webview" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/tween" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/tiled-map" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/vendor-google" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/spine" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/dragon-bones" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/custom-pipeline" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/custom-pipeline-post-process" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/legacy-pipeline" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/base" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgl" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgl2" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-empty" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/gfx-webgpu" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/3d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/animation" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/skeletal-animation" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/sorting" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/rich-text" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/mask" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/graphics" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/ui-skew" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/ui" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/affine-transform" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/sorting-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/particle" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/particle-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-framework" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-cannon" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-physx" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-ammo" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-builtin" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-framework" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-builtin" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d-wasm" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/intersection-2d" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/primitive" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/profiler" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/geometry-renderer" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/audio" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/video" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/xr" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/light-probe" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/terrain" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/webview" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/tween" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/tiled-map" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/spine" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/dragon-bones" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/custom-pipeline" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/custom-pipeline-post-process" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/legacy-pipeline" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/vendor-google" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/cc-fu/physics-2d-box2d-jsb" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/93/93ba276ea7b26ffcdc433fab14afc1ed6f05647b.js" loaded.
+
+2026-10-10 09:09:12 - debug: Invalidating 'pack:///chunks/93/93ba276ea7b26ffcdc433fab14afc1ed6f05647b.js'
+
+2026-10-10 09:09:12 - groupEnd: Invalidate all modules
+
+2026-10-10 09:09:12 - groupCollapsed: Imports all modules
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/93/93ba276ea7b26ffcdc433fab14afc1ed6f05647b.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\6d\6d8fd2b0177941b032ddc0733af48a561fb60657.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\6d\6d8fd2b0177941b032ddc0733af48a561fb60657.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/6d/6d8fd2b0177941b032ddc0733af48a561fb60657.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\12\1278898d2594d71beff05fd6d92fbb2f7ef8c228.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\12\1278898d2594d71beff05fd6d92fbb2f7ef8c228.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\6a\6a5019a719a9014c047e67aa1cf34453ab8392ce.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\6a\6a5019a719a9014c047e67aa1cf34453ab8392ce.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\1c\1cd0268f807c8ffdd3fb58d70674ba0e38b86c5e.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\1c\1cd0268f807c8ffdd3fb58d70674ba0e38b86c5e.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\fe\fe7ad2647a80b3a9017dd71e55962065e37e2852.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\fe\fe7ad2647a80b3a9017dd71e55962065e37e2852.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f9\f99a150e62ce5970d29e4c8ef9cb3b768797b381.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f9\f99a150e62ce5970d29e4c8ef9cb3b768797b381.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\4d\4d719cf60993399ba776ea316a096ebabe86e578.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\4d\4d719cf60993399ba776ea316a096ebabe86e578.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/6a/6a5019a719a9014c047e67aa1cf34453ab8392ce.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/engine-export-to-editor/cc/editor/populate-internal-constants" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/4d/4d719cf60993399ba776ea316a096ebabe86e578.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "cce:/internal/x/engine-export-to-editor/cc/editor/populate-internal-constants" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Register BuiltinPipelineSettings
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/f9/f99a150e62ce5970d29e4c8ef9cb3b768797b381.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/fe/fe7ad2647a80b3a9017dd71e55962065e37e2852.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Register BuiltinPipelinePassBuilder
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/1c/1cd0268f807c8ffdd3fb58d70674ba0e38b86c5e.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Register BuiltinDepthOfFieldPass
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/12/1278898d2594d71beff05fd6d92fbb2f7ef8c228.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\e1\e111bfe67f366e9cc638dae842b846bcd47b1cdc.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\e1\e111bfe67f366e9cc638dae842b846bcd47b1cdc.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Register DebugViewRuntimeControl
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/e1/e111bfe67f366e9cc638dae842b846bcd47b1cdc.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\2e\2ec63c1c96d795dcd8bef288b57965787dda4b04.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\2e\2ec63c1c96d795dcd8bef288b57965787dda4b04.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\83\83f60bd857155f352ba9ed21bcbf6c3ec305466f.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\83\83f60bd857155f352ba9ed21bcbf6c3ec305466f.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f7\f7f7050e6efa69bd8ac27622a49f5d4044de56c7.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f7\f7f7050e6efa69bd8ac27622a49f5d4044de56c7.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/83/83f60bd857155f352ba9ed21bcbf6c3ec305466f.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/f7/f7f7050e6efa69bd8ac27622a49f5d4044de56c7.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/2e/2ec63c1c96d795dcd8bef288b57965787dda4b04.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\0b\0b7301858b2a659178104f4e92c3344c7ff3705e.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\0b\0b7301858b2a659178104f4e92c3344c7ff3705e.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/0b/0b7301858b2a659178104f4e92c3344c7ff3705e.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\85\85de079d85eb013268b386d020f9e745e981d5e6.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\85\85de079d85eb013268b386d020f9e745e981d5e6.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\a1\a1482f45efef99d70cde2fa6afc1960e39493626.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\a1\a1482f45efef99d70cde2fa6afc1960e39493626.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\39\39742aa39218228143138f3956d9bf4fabe816a7.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\39\39742aa39218228143138f3956d9bf4fabe816a7.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\ec\ec76f553913b6ad6c9659ae4d124c80027ed43c3.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\ec\ec76f553913b6ad6c9659ae4d124c80027ed43c3.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\45\4508c5144d70bb5065efb790cdd711d943e4fa9d.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\45\4508c5144d70bb5065efb790cdd711d943e4fa9d.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/a1/a1482f45efef99d70cde2fa6afc1960e39493626.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/ec/ec76f553913b6ad6c9659ae4d124c80027ed43c3.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/39/39742aa39218228143138f3956d9bf4fabe816a7.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/45/4508c5144d70bb5065efb790cdd711d943e4fa9d.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/85/85de079d85eb013268b386d020f9e745e981d5e6.js" loaded.
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\93\93b64440969a5abd88a984045139f9e14e67e2a5.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\93\93b64440969a5abd88a984045139f9e14e67e2a5.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\0b\0ba84c73d37f61d2dd30c67cfe11dec472fda9b6.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\0b\0ba84c73d37f61d2dd30c67cfe11dec472fda9b6.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\3d\3d1fc587304cd82c25df2a726e5daa49acde3894.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\3d\3d1fc587304cd82c25df2a726e5daa49acde3894.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f2\f23b4f424a8cd9ea5529355d5ca0e4ffe3bd3d0a.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f2\f23b4f424a8cd9ea5529355d5ca0e4ffe3bd3d0a.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f5\f5013b10cd65e15c675524865920b9bc831e279a.js resolved to F:\playground\playground-ai\small-games\games\local\night-overwatch\temp\programming\packer-driver\targets\editor\chunks\f5\f5013b10cd65e15c675524865920b9bc831e279a.js is not in module cache!
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/0b/0ba84c73d37f61d2dd30c67cfe11dec472fda9b6.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/f5/f5013b10cd65e15c675524865920b9bc831e279a.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/f2/f23b4f424a8cd9ea5529355d5ca0e4ffe3bd3d0a.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/3d/3d1fc587304cd82c25df2a726e5daa49acde3894.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Register Overwatch
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/93/93b64440969a5abd88a984045139f9e14e67e2a5.js" loaded.
+
+2026-10-10 09:09:12 - debug: [[Executor]] Module "pack:///chunks/6d/6d8fd2b0177941b032ddc0733af48a561fb60657.js" loaded.
+
+2026-10-10 09:09:12 - groupEnd: Imports all modules
+
+2026-10-10 09:09:12 - debug: [[Executor]] after unlock
+
+2026-10-10 09:09:12 - debug: Incremental keys: regeneratorRuntime,b2jsb
+
+2026-10-10 09:09:12 - debug: Init bundle share assets start..., progress: 7%
+
+2026-10-10 09:09:12 - debug: Init bundle share assets start..., progress: 13%
+
+2026-10-10 09:09:12 - debug: Init bundle share assets success..., progress: 7%
+
+2026-10-10 09:09:12 - debug: Init bundle share assets success..., progress: 13%
+
+[[Facet.reload]], before lock, count: 2
+2026-10-10 09:09:13 - debug: handle json group in bundle internal
+
+2026-10-10 09:09:13 - debug: handle json group in bundle internal success
+
+2026-10-10 09:09:13 - debug: handle json group in bundle resources
+
+2026-10-10 09:09:13 - debug: handle json group in bundle main
+
+[[Facet.reload]], after lock, count: 2
+[[Facet.reload]], before unlock, count: 2
+[[Facet.reload]], after unlock, count: 2
+auto refresh because script compiled or scene changed
+2026-10-10 09:09:13 - debug: init image compress task 0 in bundle internal
+
+2026-10-10 09:09:13 - debug: handle json group in bundle main success
+
+2026-10-10 09:09:13 - debug: init image compress task 0 in bundle main
+
+2026-10-10 09:09:13 - debug: handle json group in bundle resources success
+
+2026-10-10 09:09:13 - debug: init image compress task 0 in bundle resources
+
+2026-10-10 09:09:13 - debug: // ---- build task Query asset bundle ---- (650ms)
+
+2026-10-10 09:09:13 - log: run build task Query asset bundle success in 650 ms√, progress: 12%
+
+2026-10-10 09:09:13 - debug: [Build Memory track]: Query asset bundle start:226.69MB, end 231.26MB, increase: 4.57MB
+
+2026-10-10 09:09:13 - debug: Query asset bundle start, progress: 12%
+
+2026-10-10 09:09:13 - debug: // ---- build task Query asset bundle ----
+
+2026-10-10 09:09:13 - debug: // ---- build task Query asset bundle ---- (3ms)
+
+2026-10-10 09:09:13 - log: run build task Query asset bundle success in 3 ms√, progress: 17%
+
+2026-10-10 09:09:13 - debug: [Build Memory track]: Query asset bundle start:231.30MB, end 231.42MB, increase: 121.52KB
+
+2026-10-10 09:09:13 - debug: Build script start, progress: 17%
+
+2026-10-10 09:09:13 - debug: // ---- build task Build script ----
+
+2026-10-10 09:09:13 - log: [buildPolyfillsCommand]enter sub process 36768, 9229, see: chrome://inspect/#devices
+
+
+
+2026-10-10 09:09:16 - debug: execute-script-end with buildPolyfillsCommand 2722ms
+
+2026-10-10 09:09:16 - debug: Generate systemJs..., progress: 17%
+
+2026-10-10 09:09:18 - debug: execute-script-end with buildSystemJsCommand 2141ms
+
+2026-10-10 09:09:18 - debug: Build project script start..., progress: 17%
+
+2026-10-10 09:09:18 - debug: Build project script start..., progress: 13%
+
+2026-10-10 09:09:21 - log: [buildScriptCommand]Number of non-entry chunks: 3
+
+
+
+2026-10-10 09:09:21 - debug: execute-script-end with buildScriptCommand 3098ms
+
+2026-10-10 09:09:21 - debug: Copy externalScripts success!
+
+2026-10-10 09:09:21 - debug: Build project script in (3120 ms) √, progress: 17%
+
+2026-10-10 09:09:21 - debug: Build project script in (3120 ms) √, progress: 13%
+
+2026-10-10 09:09:21 - debug: Build engine start..., progress: 17%
+
+2026-10-10 09:09:21 - debug: mangleProperties is enabled, found engine-mangle-config.json, use it
+
+2026-10-10 09:09:21 - debug: Use cache engine: {link(C:\Users\15211\AppData\Local\Temp\CocosCreator\3.8.8\builder\engine\bcb7ad0f157cb079888c7835b7b0493b)}
+
+2026-10-10 09:09:21 - debug: Use cache, md5String: debug=false,
+sourceMaps=false,
+includeModules=["base",
+"gfx-webgl",
+"gfx-webgl2",
+"3d",
+"2d",
+"ui",
+"graphics",
+"mask",
+"audio",
+"primitive",
+"profiler",
+"legacy-pipeline"],
+engineVersion="3.8.8",
+platformType="HTML5",
+split=false,
+nativeCodeBundleMode="both",
+targets=undefined,
+entry="D:\\tools\\cocos\\resources\\resources\\3d\\engine",
+noDeprecatedFeatures=undefined,
+loose=true,
+assetURLFormat="runtime-resolved",
+flags={"DEBUG":false,
+"LOAD_BULLET_MANUALLY":false,
+"LOAD_SPINE_MANUALLY":false,
+"WEBGPU":false},
+preserveType=undefined,
+wasmCompressionMode=false,
+enableNamedRegisterForSystemJSModuleFormat=undefined,
+mangleProperties=false,
+inlineEnum=true,
+
+
+
+2026-10-10 09:09:21 - debug: Use cache, options: {
+  "entry": "D:\\tools\\cocos\\resources\\resources\\3d\\engine",
+  "debug": false,
+  "mangleProperties": false,
+  "inlineEnum": true,
+  "sourceMaps": false,
+  "includeModules": [
+    "base",
+    "gfx-webgl",
+    "gfx-webgl2",
+    "3d",
+    "2d",
+    "ui",
+    "graphics",
+    "mask",
+    "audio",
+    "primitive",
+    "profiler",
+    "legacy-pipeline"
+  ],
+  "engineVersion": "3.8.8",
+  "md5Map": [],
+  "engineName": "cocos-js",
+  "output": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\build\\web-mobile\\cocos-js",
+  "platformType": "HTML5",
+  "useCache": true,
+  "nativeCodeBundleMode": "both",
+  "wasmCompressionMode": false,
+  "split": false,
+  "assetURLFormat": "runtime-resolved",
+  "flags": {
+    "DEBUG": false,
+    "LOAD_BULLET_MANUALLY": false,
+    "LOAD_SPINE_MANUALLY": false,
+    "WEBGPU": false
+  }
+}
+
+
+2026-10-10 09:09:21 - debug: Build engine in (72 ms) √, progress: 17%
+
+2026-10-10 09:09:21 - debug: Copy plugin script ..., progress: 17%
+
+2026-10-10 09:09:21 - debug: Generate import-map..., progress: 17%
+
+2026-10-10 09:09:21 - debug: // ---- build task Build script ---- (8082ms)
+
+2026-10-10 09:09:21 - log: run build task Build script success in 8 s√, progress: 22%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Build script start:231.54MB, end 230.19MB, increase: -1378.46KB
+
+2026-10-10 09:09:21 - debug: Build Assets start, progress: 22%
+
+2026-10-10 09:09:21 - debug: // ---- build task Build Assets ----
+
+2026-10-10 09:09:21 - debug: Build bundles..., progress: 22%
+
+2026-10-10 09:09:21 - debug: Pack Images start, progress: 22%
+
+2026-10-10 09:09:21 - debug: Pack Images start, progress: 13%
+
+2026-10-10 09:09:21 - debug: Number of pac assets: 1
+
+2026-10-10 09:09:21 - debug: No pack results
+
+2026-10-10 09:09:21 - debug: Compress image start..., progress: 22%
+
+2026-10-10 09:09:21 - debug: Compress image start..., progress: 13%
+
+2026-10-10 09:09:21 - group: Compress image...
+
+2026-10-10 09:09:21 - debug: sort compress task {}
+
+2026-10-10 09:09:21 - debug: Num of all image compress task 0, really: 0, configTasks: 0
+
+2026-10-10 09:09:21 - debug: No image need to compress
+
+2026-10-10 09:09:21 - groupEnd: Compress image...
+
+2026-10-10 09:09:21 - debug: Compress image success..., progress: 22%
+
+2026-10-10 09:09:21 - debug: Compress image success..., progress: 13%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles start, progress: 22%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles start, progress: 13%
+
+2026-10-10 09:09:21 - debug: Handle all json groups in bundle internal
+
+2026-10-10 09:09:21 - debug: handle json group
+
+2026-10-10 09:09:21 - debug: Handle all json groups in bundle resources
+
+2026-10-10 09:09:21 - debug: handle json group
+
+2026-10-10 09:09:21 - debug: Handle all json groups in bundle main
+
+2026-10-10 09:09:21 - debug: handle json group
+
+2026-10-10 09:09:21 - debug: handle single json
+
+2026-10-10 09:09:21 - debug: Json group(0d06d0bdc) compile success，json number: 6
+
+2026-10-10 09:09:21 - debug: handle single json
+
+2026-10-10 09:09:21 - debug: Json group(0c1f1a6b8) compile success，json number: 6
+
+2026-10-10 09:09:21 - debug: handle single json
+
+2026-10-10 09:09:21 - debug: Output asset in bundles success, progress: 22%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles success, progress: 13%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles start, progress: 22%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles start, progress: 13%
+
+2026-10-10 09:09:21 - debug: add md5 to bundle internal...
+
+2026-10-10 09:09:21 - debug: add md5 to bundle resources...
+
+2026-10-10 09:09:21 - debug: add md5 to bundle main...
+
+2026-10-10 09:09:21 - debug: add md5 to bundle internal success
+
+2026-10-10 09:09:21 - debug: compress config of bundle internal...
+
+2026-10-10 09:09:21 - debug: compress config of bundle internal success
+
+2026-10-10 09:09:21 - debug: output config of bundle internal
+
+2026-10-10 09:09:21 - debug: output config of bundle internal success
+
+2026-10-10 09:09:21 - debug: add md5 to bundle main success
+
+2026-10-10 09:09:21 - debug: compress config of bundle main...
+
+2026-10-10 09:09:21 - debug: compress config of bundle main success
+
+2026-10-10 09:09:21 - debug: output config of bundle main
+
+2026-10-10 09:09:21 - debug: output config of bundle main success
+
+2026-10-10 09:09:21 - debug: add md5 to bundle resources success
+
+2026-10-10 09:09:21 - debug: compress config of bundle resources...
+
+2026-10-10 09:09:21 - debug: compress config of bundle resources success
+
+2026-10-10 09:09:21 - debug: output config of bundle resources
+
+2026-10-10 09:09:21 - debug: output config of bundle resources success
+
+2026-10-10 09:09:21 - debug: Output asset in bundles success, progress: 22%
+
+2026-10-10 09:09:21 - debug: Output asset in bundles success, progress: 13%
+
+2026-10-10 09:09:21 - debug: // ---- build task Build Assets ---- (123ms)
+
+2026-10-10 09:09:21 - log: run build task Build Assets success in 123 ms√, progress: 27%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Build Assets start:230.24MB, end 237.60MB, increase: 7.36MB
+
+2026-10-10 09:09:21 - debug: Sort some build options to settings.json start, progress: 27%
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort some build options to settings.json ----
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort some build options to settings.json ---- (1ms)
+
+2026-10-10 09:09:21 - log: run build task Sort some build options to settings.json success in 1 ms√, progress: 29%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Sort some build options to settings.json start:237.68MB, end 237.71MB, increase: 31.71KB
+
+2026-10-10 09:09:21 - debug: Fill script data to settings start, progress: 29%
+
+2026-10-10 09:09:21 - debug: // ---- build task Fill script data to settings ----
+
+2026-10-10 09:09:21 - debug: // ---- build task Fill script data to settings ---- (2ms)
+
+2026-10-10 09:09:21 - log: run build task Fill script data to settings success in 2 ms√, progress: 31%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Fill script data to settings start:237.75MB, end 237.78MB, increase: 32.70KB
+
+2026-10-10 09:09:21 - debug: Sort some build options to settings.json start, progress: 31%
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort some build options to settings.json ----
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort some build options to settings.json ---- (6ms)
+
+2026-10-10 09:09:21 - log: run build task Sort some build options to settings.json success in 6 ms√, progress: 32%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Sort some build options to settings.json start:237.81MB, end 237.97MB, increase: 161.19KB
+
+2026-10-10 09:09:21 - debug: web-mobile:(onBeforeCompressSettings) start..., progress: 32%
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onBeforeCompressSettings ----
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onBeforeCompressSettings ---- (2ms)
+
+2026-10-10 09:09:21 - debug: web-mobile:(onBeforeCompressSettings) in 2 ms ✓, progress: 34%
+
+2026-10-10 09:09:21 - debug: cocos-service:(onBeforeCompressSettings) start..., progress: 34%
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onBeforeCompressSettings ----
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onBeforeCompressSettings ---- (1ms)
+
+2026-10-10 09:09:21 - debug: cocos-service:(onBeforeCompressSettings) in 1 ms ✓, progress: 36%
+
+2026-10-10 09:09:21 - debug: Sort build template start, progress: 36%
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort build template ----
+
+2026-10-10 09:09:21 - debug: // ---- build task Sort build template ---- (46ms)
+
+2026-10-10 09:09:21 - log: run build task Sort build template success in 46 ms√, progress: 41%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Sort build template start:238.14MB, end 240.77MB, increase: 2.63MB
+
+2026-10-10 09:09:21 - debug: cocos-service:(onAfterCompressSettings) start..., progress: 41%
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onAfterCompressSettings ----
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onAfterCompressSettings ---- (2ms)
+
+2026-10-10 09:09:21 - debug: cocos-service:(onAfterCompressSettings) in 2 ms ✓, progress: 43%
+
+2026-10-10 09:09:21 - debug: web-mobile:(onBeforeCopyBuildTemplate) start..., progress: 43%
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onBeforeCopyBuildTemplate ----
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onBeforeCopyBuildTemplate ---- (13ms)
+
+2026-10-10 09:09:21 - debug: web-mobile:(onBeforeCopyBuildTemplate) in 13 ms ✓, progress: 45%
+
+2026-10-10 09:09:21 - debug: Add md5 suffix to assets start, progress: 45%
+
+2026-10-10 09:09:21 - debug: // ---- build task Add md5 suffix to assets ----
+
+2026-10-10 09:09:21 - debug: add suffix to assets(9) success!
+
+2026-10-10 09:09:21 - debug: // ---- build task Add md5 suffix to assets ---- (19ms)
+
+2026-10-10 09:09:21 - log: run build task Add md5 suffix to assets success in 19 ms√, progress: 55%
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: Add md5 suffix to assets start:239.80MB, end 243.40MB, increase: 3.60MB
+
+2026-10-10 09:09:21 - debug: web-mobile:(onAfterBuild) start..., progress: 55%
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onAfterBuild ----
+
+2026-10-10 09:09:21 - debug: // ---- build task web-mobile：onAfterBuild ---- (1ms)
+
+2026-10-10 09:09:21 - debug: web-mobile:(onAfterBuild) in 1 ms ✓, progress: 56%
+
+2026-10-10 09:09:21 - debug: cocos-service:(onAfterBuild) start..., progress: 56%
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onAfterBuild ----
+
+2026-10-10 09:09:21 - debug: // ---- build task cocos-service：onAfterBuild ---- (2ms)
+
+2026-10-10 09:09:21 - debug: cocos-service:(onAfterBuild) in 2 ms ✓, progress: 58%
+
+2026-10-10 09:09:21 - debug: adsense-h5g-plugin:(onAfterBuild) start..., progress: 58%
+
+2026-10-10 09:09:21 - debug: // ---- build task adsense-h5g-plugin：onAfterBuild ----
+
+2026-10-10 09:09:21 - debug: // ---- build task adsense-h5g-plugin：onAfterBuild ---- (1ms)
+
+2026-10-10 09:09:21 - debug: adsense-h5g-plugin:(onAfterBuild) in 1 ms ✓, progress: 60%
+
+2026-10-10 09:09:21 - log: Asset DB is resume!
+
+2026-10-10 09:09:21 - debug: builder:build-project-total (9023ms)
+
+2026-10-10 09:09:21 - debug: build task(web-mobile) in 9023!
+
+2026-10-10 09:09:21 - debug: [Build Memory track]: builder:build-project-total start:228.55MB, end 244.13MB, increase: 15.59MB
+
+2026-10-10 09:09:21 - debug: ================================ build Task (web-mobile) Finished in (9 s)ms ================================
+
+Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.
+Built web-mobile: 3972954 bytes

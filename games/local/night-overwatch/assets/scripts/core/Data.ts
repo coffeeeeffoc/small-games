@@ -4,7 +4,8 @@ export type Point3 = Point & { y: number };
 export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort';
 export type Language = 'zh' | 'en';
 export const ZOOM_LEVELS = [5, 10, 20, 40, 80, 160] as const;
-export const HOMING = { speed: 70, damage: 240 } as const;
+export const HOMING = { speed: 70, damage: 120 } as const;
+export const COMBAT_BUFF = { duration: 60, rateMultiplier: 1.3, trackingRadius: 8 } as const;
 // Spread the actual route, contacts and posts together; keep the 240-second convoy journey.
 export const BATTLEFIELD_SCALE = 1.4;
 const spread = <T extends Point>(p: T): T => ({ ...p, x: p.x * BATTLEFIELD_SCALE, z: p.z * BATTLEFIELD_SCALE });
