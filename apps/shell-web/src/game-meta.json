@@ -89,6 +89,17 @@
         "time": "2026-10-06T18:53:47Z"
       }
     },
+    "carrom-club": {
+      "source": "games/local/carrom-club",
+      "created": {
+        "commit": "390795fcdb78e097ba614a977bf35ef65187b0ef",
+        "time": "2026-10-10T09:17:59+08:00"
+      },
+      "updated": {
+        "commit": "390795fcdb78e097ba614a977bf35ef65187b0ef",
+        "time": "2026-10-10T09:17:59+08:00"
+      }
+    },
     "castle-cannon": {
       "source": "games/local/game-castle-cannon",
       "created": {
