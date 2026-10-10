@@ -103,7 +103,7 @@ test('native pointer flow, cancellation, pause, settlement, and disposal without
   assert.equal(game.app.screen, 'result');
   assert.equal(game.app.save.played, 1);
   assert.equal(persisted, 1);
-  assert(texts.includes(`${game.app.state.turn} 回合 · 你出手 ${game.app.state.playerShots} 次`));
+  assert(texts.includes(`${game.app.state.turn} 回合 · 出手 ${game.app.state.playerShots} 次 · 击落 ${game.app.playerKnockouts} 位`));
   const result = JSON.stringify(game.app.state);
   game.action('replay');
   game.pause();
@@ -239,4 +239,21 @@ test('replay motion follows the same physical clock after 30 Hz and 120 Hz live 
     high = replayAt(1 / 120);
   assert.equal(low.phase, 'moving');
   assert.deepEqual(low, high);
+});
+
+test('shared rematches preserve layout and bot seed but reset transient match state', () => {
+  const { game } = harness({ challenge: { layout: 'triangle', seed: 1234567 } });
+  // Resolve the actual stable layout id rather than assuming catalog order in a URL.
+  game.app.invited.layout = game.app.layouts[2].id;
+  game.action('start');
+  for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.equal(game.app.state.seed, 1234567);
+  assert.equal(game.app.state.layout, game.app.layouts[2].id);
+  const initial = JSON.parse(JSON.stringify(game.app.state));
+  game.app.state.phase = 'over'; game.app.screen = 'result'; game.app.playerKnockouts = 2;
+  game.action('rematch');
+  for (let i = 0; i < 30; i++) game.tick(0.05);
+  assert.deepEqual(game.app.state, initial);
+  assert.equal(game.app.playerKnockouts, 0);
+  game.dispose();
 });

@@ -13,6 +13,7 @@ import { registerCompetition } from './competition/routes.js';
 import type { Rule } from './competition/types.js';
 import { createThreeChooseTwoStore } from './three-choose-two/store.js';
 import type { Engine } from './three-choose-two/types.js';
+import { validateRuntimeEnvironment } from './config.js';
 
 /** Creates the runtime HTTP application with only its own database identity. */
 export function createRuntimeService(
@@ -20,6 +21,7 @@ export function createRuntimeService(
   logger = true,
   telemetry?: RequestSpanExporter,
 ): ReturnType<typeof createService> {
+  validateRuntimeEnvironment(env);
   const databaseUrl = z.url().parse(env.RUNTIME_DATABASE_URL);
   const database = openDatabase(databaseUrl, 'runtime');
   const dependencies = {

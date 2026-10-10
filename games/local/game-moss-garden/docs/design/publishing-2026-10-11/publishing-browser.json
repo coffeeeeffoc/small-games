@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "environment": "Chromium desktop mobile simulation; touch; not a physical device",
+  "checks": [
+    "locked same-level invitation and self-reported target",
+    "score-carrying share URL without private fields",
+    "normal save and unlock isolation",
+    "leaving invitation resumes normal board through continue and selection",
+    "same-level replay",
+    "third-result ad and close/resume",
+    "390×844 / 320×568 and 44px result controls"
+  ],
+  "errors": []
+}

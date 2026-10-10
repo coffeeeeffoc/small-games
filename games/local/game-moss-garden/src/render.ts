@@ -35,6 +35,11 @@ export interface View {
   notice?: string;
   levelPage?: number;
   native?: boolean;
+  challenge?: boolean;
+  challengeGoal?: { hints: number; mistakes: number; elapsedMs: number };
+  invitationNumber?: number;
+  canShare?: boolean;
+  minimumTouchSize?: number;
 }
 
 export interface HitArea {
@@ -589,8 +594,30 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     leaf(ctx, 81, 215, 13, -1, '#9aa980');
     leaf(ctx, 310, 217, 13, 1, '#9aa980');
     garden(ctx, 195, 428, 1.05);
-    text(ctx, '让每一颗微光，找到自己的花圃', 195, 564, 14, MID, SERIF);
-    button('home:start', view.hasActive ? '继续播种' : '开始播种', 49, 610, 292, 60, true);
+    text(
+      ctx,
+      view.invitationNumber && view.challengeGoal
+        ? `好友自报 ${view.challengeGoal.hints} 提示 / ${view.challengeGoal.mistakes} 调整 / ${time(view.challengeGoal.elapsedMs)}`
+        : '让每一颗微光，找到自己的花圃',
+      195,
+      564,
+      14,
+      MID,
+      SERIF,
+    );
+    button(
+      'home:start',
+      view.invitationNumber
+        ? `挑战第 ${view.invitationNumber} 关`
+        : view.hasActive
+          ? '继续播种'
+          : '开始播种',
+      49,
+      610,
+      292,
+      60,
+      true,
+    );
     leaf(ctx, 72, 651, 19, -0.85, '#aaba8c');
     leaf(ctx, 317, 651, 19, 0.85, '#aaba8c');
     button('home:levels', '选择花圃', 67, 690, 256, 50);
@@ -794,7 +821,28 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     );
     garden(ctx, 195, 369, 0.85);
     seed(ctx, 195, 262, 25);
-    text(ctx, '每一颗微光，都有自己的位置', 195, 498, 15, MID, SERIF);
+    const goal = view.challenge ? view.challengeGoal : undefined;
+    const improved =
+      goal &&
+      (view.puzzle.hints < goal.hints ||
+        (view.puzzle.hints === goal.hints &&
+          (view.puzzle.mistakes < goal.mistakes ||
+            (view.puzzle.mistakes === goal.mistakes && view.elapsedMs <= goal.elapsedMs))));
+    text(
+      ctx,
+      goal
+        ? improved
+          ? '已达成好友自报目标，再分享新战绩'
+          : '先减少提示和调整，再挑战更快用时'
+        : view.puzzle.hints === 0 && view.puzzle.mistakes === 0
+          ? '零提示、零调整，漂亮地点亮花圃'
+          : '每一颗微光，都有自己的位置',
+      195,
+      498,
+      15,
+      MID,
+      SERIF,
+    );
     rounded(ctx, 49, 537, 292, 58, 18);
     ctx.fillStyle = '#e9ebd8';
     ctx.fill();
@@ -806,16 +854,19 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     text(ctx, '调整', 287, 581, 11, MID);
     const next = view.levels.find((l) => l.number === view.level.number + 1);
     button(
-      next ? 'result:next' : 'result:home',
-      next ? '下一片花圃' : '返回花园',
+      view.challenge || next ? 'result:next' : 'result:home',
+      view.challenge ? '再战同一花圃' : next ? '下一片花圃' : '返回花园',
       49,
       632,
       292,
       58,
       true,
     );
-    button('result:replay', '再次播种', 67, 711, 256, 48);
-    if (next) {
+    if (view.canShare) {
+      button('result:replay', '再次播种', 49, 711, 141, 48);
+      button('result:share', '分享花园', 200, 711, 141, 48);
+    } else button('result:replay', '再次播种', 67, 711, 256, 48);
+    if (next || view.challenge) {
       hit('result:home', 129, 778, 132, 44, '返回花园');
       text(ctx, '返回花园', 195, 800, 14, MID, SERIF);
     }
@@ -828,13 +879,19 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     text(ctx, view.notice, 195, 44, 12, MOSS);
   }
   ctx.restore();
-  return areas.map((a) => ({
-    ...a,
-    x: offsetX + a.x * scale,
-    y: offsetY + a.y * scale,
-    width: a.width * scale,
-    height: a.height * scale,
-  }));
+  return areas.map((a) => {
+    const minimum =
+      a.id.startsWith('cell:') || a.id.startsWith('level:') ? 0 : (view.minimumTouchSize ?? 0);
+    const width = Math.max(minimum, a.width * scale),
+      height = Math.max(minimum, a.height * scale);
+    return {
+      ...a,
+      x: offsetX + (a.x + a.width / 2) * scale - width / 2,
+      y: offsetY + (a.y + a.height / 2) * scale - height / 2,
+      width,
+      height,
+    };
+  });
 }
 
 function drawLevelChip(

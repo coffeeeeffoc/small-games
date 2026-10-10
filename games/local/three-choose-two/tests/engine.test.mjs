@@ -371,3 +371,11 @@ test('ranked draw derives counter tickets from the full secret seed and preserve
   assert.equal(typeof createEndless(1234, { ranked: false }).rng, 'number');
   assert.deepEqual(createEndless(1234, { ranked: false }).candidates.map(({ shapeId }) => shapeId), ['h2', 'v5', 'l5-se'], 'numeric practice distribution remains frozen');
 });
+
+test('offline share seed recreates the initial stock and never appears in a ranked state', () => {
+  const original = createEndless(987654);
+  const restored = createEndless(original.initialSeed);
+  assert.deepEqual(restored, original);
+  assert.equal(createEndless('secret-ranking-key', { ranked: true }).initialSeed, undefined);
+  assert.deepEqual(createEndless(0).candidates, createEndless(createEndless(0).initialSeed).candidates);
+});

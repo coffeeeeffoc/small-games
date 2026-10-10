@@ -119,6 +119,26 @@ test('carrom authority reuses only its pure core; adjacent and reverse imports r
   assert.ok(violations.some((entry) => entry.message.includes('main.mjs')));
 });
 
+test('only the Moss Garden browser entry can bundle the shared H5 publishing adapter', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'games/local/game-moss-garden',
+      manifest: { name: '@coffeeeeffoc/game-moss-garden' },
+      files: {
+        'src/web.ts': "import '../../../../platforms/h5/publishing.js';\n",
+        'src/core.ts': "import '../../../../platforms/h5/publishing.js';\n",
+        'src/native.ts': "import '../../../../platforms/h5/publishing.js';\n",
+        'src/extra.ts': "import '../../../../platforms/h5/private.js';\n",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 3);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert(!violations.some((entry) => entry.message.includes('src/web.ts')));
+});
+
 test('allows only exact shared competition rule edges, never game runtime service imports', async (t) => {
   const root = await createWorkspace([
     {

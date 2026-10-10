@@ -5,6 +5,7 @@ import type { GameHost, GameManifest, ReleaseChannel } from '@coffeeeeffoc/game-
 import { FallbackGameLoader, VersionCircuitBreaker } from '@coffeeeeffoc/game-loader';
 
 import { GameCatalog } from './GameCatalog.js';
+import { catalogStateUrl, readCatalogState, type CatalogState } from './catalog-assessments.js';
 import { GameViewport } from './GameViewport.js';
 import { StandaloneGame } from './StandaloneGame.js';
 import { gameRouteHash, parseGameRoute } from './game-route.js';
@@ -53,8 +54,18 @@ export function ShellApp({
   runtimeClient = defaultRuntime,
   playerCredential,
 }: ShellAppProps) {
-  const [query, setQuery] = useState('');
-  const [view, setView] = useState<'list' | 'cards'>('list');
+  const [catalogState, setCatalogState] = useState(() => readCatalogState(window.location.search));
+  const { query, view, filters } = catalogState;
+  function updateCatalog(patch: Partial<CatalogState>) {
+    // Read the current URL so two controls changed in the same event do not overwrite each other.
+    const next = { ...readCatalogState(window.location.search), ...patch };
+    window.history.replaceState(
+      window.history.state,
+      '',
+      catalogStateUrl(window.location.href, next),
+    );
+    setCatalogState(next);
+  }
   const [breaker] = useState(() => new VersionCircuitBreaker());
   const [hash, setHash] = useState(() => window.location.hash);
   const [selected, setSelected] = useState<BuiltInGame | null>(null);
@@ -70,7 +81,10 @@ export function ShellApp({
   const [loadError, setLoadError] = useState(false);
   const [notice, setNotice] = useState('即点即玩，游戏进度保存在当前浏览器。');
   useEffect(() => {
-    const syncRoute = () => setHash(window.location.hash);
+    const syncRoute = () => {
+      setHash(window.location.hash);
+      setCatalogState(readCatalogState(window.location.search));
+    };
     window.addEventListener('hashchange', syncRoute);
     window.addEventListener('popstate', syncRoute);
     return () => {
@@ -281,8 +295,10 @@ export function ShellApp({
         registry={registry}
         query={query}
         view={view}
-        onQuery={setQuery}
-        onView={setView}
+        filters={filters}
+        onFilters={(filters) => updateCatalog({ filters })}
+        onQuery={(query) => updateCatalog({ query })}
+        onView={(view) => updateCatalog({ view })}
         onLaunch={navigate}
         disabled={loading || (!!versionId && !/^[a-f0-9]{64}$/.test(versionId))}
       />

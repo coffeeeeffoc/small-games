@@ -55,7 +55,7 @@ export function createStorage(storage) {
     isUnlocked: unlocked,
     get persistent() { return persistent; },
     saveRun(game) {
-      if (game.practice) return;
+      if (game.practice || game.challenge) return;
       const saved = checkpoint(game);
       if (saved) {
         const mode = modeOf(game);
@@ -69,7 +69,7 @@ export function createStorage(storage) {
       }
     },
     finish(game) {
-      if (game.practice || !['won', 'lost'].includes(game.phase)) return false;
+      if (game.practice || game.challenge || !['won', 'lost'].includes(game.phase)) return false;
       const mode = modeOf(game);
       data.runs[mode] = null; data.lastMode = mode;
       if (mode === 'campaign') data.lastLevel = game.levelId;

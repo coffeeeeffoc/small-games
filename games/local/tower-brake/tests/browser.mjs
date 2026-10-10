@@ -160,6 +160,13 @@ try {
   assert.equal((await snap()).status, 'won');
   await page.waitForSelector('#result-screen:not([hidden])');
   await page.screenshot({ path: fileURLToPath(new URL('actual-win.png', evidence)) });
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+  await page.locator('#share-game').tap();
+  const shared = new URL(await page.evaluate(() => window.__sharedUrl));
+  assert.equal(shared.searchParams.get('challenge'), 'tower-v1');
+  assert.equal(Number(shared.searchParams.get('targetScore')), (await snap()).score);
+  assert.equal(shared.searchParams.has('dev'), false);
+  await page.screenshot({ path: fileURLToPath(new URL('publishing/mobile-result-share.png', evidence)) });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tower-brake-v1')));
   assert.equal(saved.unlocked, 2);
   assert.ok(Object.keys(saved.best).length === 1);
@@ -253,6 +260,21 @@ try {
   assert.equal((await snap()).screen, 'play-screen');
   assert.equal((await snap()).practice, false);
   check('Production dev URL/storage priority and isolated route-8 practice');
+  await page.setViewportSize({ width: 390, height: 844 });
+  const beforeChallenge = await page.evaluate(() => localStorage.getItem('tower-brake-v1'));
+  await page.goto(`${shared.href}&dev=1`);
+  assert.match(await page.locator('#challenge-game').textContent(), /自报/);
+  await page.locator('#challenge-game').tap();
+  assert.equal((await snap()).practice, false);
+  assert.equal((await snap()).level.id, shared.searchParams.get('level'));
+  await page.locator('#pause-button').tap();
+  await page.screenshot({ path: fileURLToPath(new URL('publishing/mobile-challenge-pause.png', evidence)) });
+  assert.equal(await page.evaluate(() => localStorage.getItem('tower-brake-v1')), beforeChallenge);
+  await page.locator('#pause-home').tap();
+  await page.locator('#start-game').tap();
+  assert.equal((await snap()).practice, false);
+  check('Share produces a public fixed-route challenge; opening it preserves normal progress');
+
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(`${origin}/fixture*`, (route) =>

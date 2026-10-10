@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "environment": "Chromium desktop mobile simulation; actual touch input; not a physical device",
+  "checks": [
+    "received seed and replay",
+    "cancelled touch",
+    "safe share URL",
+    "normal save isolation",
+    "configured host provider and public URL",
+    "background ad dismissal preserves result and saved run",
+    "third-result ad, immediate close and resume",
+    "390×844 and 320×568 screenshots"
+  ],
+  "errors": []
+}

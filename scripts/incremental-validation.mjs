@@ -8,7 +8,13 @@ import {
   nineNativeChecks,
   nineNativeDependencyPlan,
 } from './nine-native-scope.mjs';
-import { competitionToolPlan } from './publication-scopes.mjs';
+import {
+  competitionToolPlan,
+  publishingConsumers,
+  publishingScopePaths,
+  deploymentBundleScopePaths,
+  publicationConfigScopePaths,
+} from './publication-scopes.mjs';
 export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
@@ -168,6 +174,19 @@ export function incrementalPlan({
     : [];
   if (devModeIds.length)
     for (const id of navigationSamples) if (games.some((game) => game.id === id)) ids.add(id);
+  const publishingChanged = paths.some((file) => publishingScopePaths.includes(file));
+  const publishingBrowserIds = Object.entries(publishingConsumers)
+    .filter(
+      ([id]) => ids.has(id) && (publishingChanged || directGames.some((game) => game.id === id)),
+    )
+    .map(([id, source]) => {
+      assert(
+        games.some((game) => game.id === id && game.source === source) &&
+          packages.some((pkg) => pkg.dir === source),
+        `Unreviewed publishing browser consumer: ${id}`,
+      );
+      return id;
+    });
   return {
     full: false,
     browser: ids.size > 0,
@@ -207,6 +226,20 @@ export function incrementalPlan({
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
+    publishing_checks: publishingChanged,
+    publishing_browser_ids: publishingBrowserIds.sort(),
+    publication_config_checks: paths.some((file) => publicationConfigScopePaths.includes(file)),
+    deployment_bundle_checks: paths.some(
+      (file) =>
+        deploymentBundleScopePaths.includes(file) ||
+        (file === 'package.json' && fileScopes.has(file)),
+    ),
+    service_rule_sources: [
+      'services/runtime-api',
+      'services/management-api',
+      'packages/ad-runtime',
+      'platforms/douyin',
+    ].filter((source) => paths.some((file) => file.startsWith(source + '/'))),
   };
 }
 

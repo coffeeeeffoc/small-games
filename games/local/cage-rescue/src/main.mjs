@@ -1,3 +1,4 @@
+import { createH5Publishing } from '../publishing.js';
 import { createGame, stepGame, launchBall, setPaused, reviveGame, canRevive } from './core.mjs';
 import { LEVELS } from './levels.mjs';
 import { drawGame, drawHome } from './render.mjs';
@@ -5,7 +6,9 @@ import { createLocalHost } from './host.mjs';
 import { readProgress, completeLevel, unlockedCount, THEMES } from './progress.mjs';
 import { createAudio } from './audio.mjs';
 
-export async function mountCageRescue(host = createLocalHost()) {
+export async function mountCageRescue(host) {
+  const local = !host;
+  host ??= createLocalHost();
   const $ = (id) => document.getElementById(id);
   const canvas = $('scene'),
     ctx = canvas.getContext('2d');
@@ -24,6 +27,12 @@ export async function mountCageRescue(host = createLocalHost()) {
     activePointer = null,
     targetX = 195,
     grabOffset = 0;
+  let challenge = false;
+  const incoming = new URL(location.href).searchParams;
+  const boundedTarget = (key, max) => { const value = Number(incoming.get(key)); return incoming.has(key) && Number.isInteger(value) && value >= 0 && value <= max ? value : null; };
+  const targetRescued = boundedTarget('targetRescued', 6), targetCombo = boundedTarget('targetCombo', 6);
+  const challengeIndex = incoming.get('challenge') === 'rescue-v1' ? LEVELS.findIndex((level) => level.id === incoming.get('level')) : -1;
+  const publishing = createH5Publishing({ gameId: 'cage-rescue', title: '打破笼子接住人', adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl, pause: () => { pause(); return () => {}; } });
   let trial = false,
     lastTime = 0,
     animationId,
@@ -101,12 +110,13 @@ export async function mountCageRescue(host = createLocalHost()) {
         : `第 ${String(nextIndex + 1).padStart(2, '0')} / 06 关 · ${LEVELS[nextIndex].name}`;
     $('start').querySelector('span').textContent = count ? '继续救援' : '开始救援';
   }
-  function startLevel(index, practice = false) {
-    if (!practice && index >= unlockedCount(progress)) return;
+  function startLevel(index, practice = false, isChallenge = false) {
+    if (!practice && !isChallenge && index >= unlockedCount(progress)) return;
     clearInput();
     game = createGame(index);
     targetX = game.paddle.x;
     trial = practice;
+    challenge = isChallenge;
     trails.length = 0;
     particles.length = 0;
     lastHud = '';
@@ -189,11 +199,11 @@ export async function mountCageRescue(host = createLocalHost()) {
     );
   }
   function syncHud() {
-    const signature = `${game.levelIndex}:${game.rescued}:${game.lives}:${game.phase}:${game.slowMotion}:${trial}`;
+    const signature = `${game.levelIndex}:${game.rescued}:${game.lives}:${game.phase}:${game.slowMotion}:${game.rescueCombo}:${game.realTime < game.wideUntil}:${trial}`;
     if (signature !== lastHud) {
       lastHud = signature;
       $('level-number').textContent = String(game.levelIndex + 1).padStart(2, '0');
-      $('level-name').textContent = game.level.name;
+      $('level-name').textContent = game.level.name + (challenge ? ' · 好友挑战' : '');
       $('rescue-count').replaceChildren(
         document.createTextNode(String(game.rescued)),
         Object.assign(document.createElement('span'), { textContent: '/4' }),
@@ -215,7 +225,9 @@ export async function mountCageRescue(host = createLocalHost()) {
     const tip =
       performance.now() < feedbackUntil
         ? feedback
-        : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
+        : game.realTime < game.wideUntil
+          ? `${game.rescueCombo} 连救 · 宽板救援中`
+          : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
           ? '先接球，再移到队友下方'
           : game.rescued
             ? '打破下一个笼子，接队友回家'
@@ -227,7 +239,7 @@ export async function mountCageRescue(host = createLocalHost()) {
   }
   function showResult() {
     const won = game.phase === 'won';
-    if (won && completeLevel(progress, game, trial)) save();
+    if (won && completeLevel(progress, game, trial || challenge)) save();
     changeScreen('result');
     audio.play(won ? 'win' : 'miss');
     $('result-screen').dataset.won = won;
@@ -249,7 +261,11 @@ export async function mountCageRescue(host = createLocalHost()) {
         : '三次球机会已用完。\n试试先接球，再移动到队友下方。';
     $('result-rescued').textContent = game.rescued;
     $('result-lives').textContent = game.lives;
-    $('result-unlock').textContent = trial
+    $('result-chain').textContent = `最高 ${game.bestRescueCombo} 连救 · ${game.realTime.toFixed(1)} 秒${game.usedRevive ? ' · 已补球' : ''}`;
+    $('share-rescue').hidden = trial;
+    $('result-unlock').textContent = challenge
+      ? targetRescued === null ? '好友同关体验 · 不改变进度' : `好友自报 ${targetRescued} 人 / ${targetCombo ?? 0} 连救 · ${game.rescued >= targetRescued && game.bestRescueCombo >= (targetCombo ?? 0) ? '已达成！' : '再挑战一次'} · 不改变进度`
+      : trial
       ? '试玩不解锁关卡，也不写入通关记录'
       : won
         ? game.levelIndex === 5
@@ -258,13 +274,13 @@ export async function mountCageRescue(host = createLocalHost()) {
             ? '下一关与新小队装扮已解锁'
             : `下一关 · ${LEVELS[game.levelIndex + 1].name} 已解锁`
         : game.level.hint;
-    $('next').hidden = !won;
+    $('next').hidden = !won || challenge;
     $('next').textContent = game.levelIndex === 5 ? '返回关卡' : '下一关';
     $('retry').textContent = won ? '再玩本关' : '免费重试';
     $('revive').hidden = !canRevive(game) || trial;
     $('revive').disabled = false;
     $('reward-message').textContent =
-      canRevive(game) && !trial && host.session.adAuthority === 'none'
+      canRevive(game) && !trial && !local && host.session.adAuthority === 'none'
         ? '当前为离线试玩，暂无广告可用。'
         : '';
   }
@@ -301,10 +317,10 @@ export async function mountCageRescue(host = createLocalHost()) {
   on($('launch'), 'click', launch);
   on($('pause'), 'click', pause);
   on($('resume'), 'click', resume);
-  on($('restart'), 'click', () => startLevel(game.levelIndex, trial));
+  on($('restart'), 'click', () => startLevel(game.levelIndex, trial, challenge));
   on($('home'), 'click', goHome);
   on($('result-home'), 'click', goHome);
-  on($('retry'), 'click', () => startLevel(game.levelIndex, trial));
+  on($('retry'), 'click', () => startLevel(game.levelIndex, trial, challenge));
   on($('next'), 'click', () =>
     game.levelIndex === 5 ? changeScreen('levels') : startLevel(game.levelIndex + 1, trial),
   );
@@ -318,6 +334,11 @@ export async function mountCageRescue(host = createLocalHost()) {
     save();
     $('sound').setAttribute('aria-checked', String(progress.sound));
   });
+  on($('challenge-rescue'), 'click', () => startLevel(challengeIndex, false, true));
+  on($('share-rescue'), 'click', async () => {
+    const outcome = await publishing.share({ text: `${game.level.name}：救回 ${game.rescued} 人，最高 ${game.bestRescueCombo} 连救，${game.realTime.toFixed(1)} 秒${game.usedRevive ? '（补球）' : ''}。来接住同一支小队！`, params: { challenge: 'rescue-v1', level: game.levelId, targetRescued: game.rescued, targetCombo: game.bestRescueCombo } });
+    $('reward-message').textContent = outcome.status === 'copied' ? '同关挑战链接已复制' : outcome.status === 'shared' ? '已打开系统分享' : outcome.status === 'cancelled' ? '已取消分享' : '暂时无法分享，请稍后重试';
+  });
   on($('revive'), 'click', async () => {
     if (rewardBusy || !canRevive(game) || trial) return;
     const attempt = game;
@@ -326,7 +347,7 @@ export async function mountCageRescue(host = createLocalHost()) {
     $('reward-message').textContent = '正在请求补球机会…';
     let outcome;
     try {
-      outcome = await host.ads.offer({
+      outcome = local ? await publishing.rewarded({ placement: 'cage-rescue.revive' }) : await host.ads.offer({
         id: 'cage-rescue.revive',
         reward: { ballLives: 1, levelId: game.levelId },
       });
@@ -461,9 +482,13 @@ export async function mountCageRescue(host = createLocalHost()) {
         feedback = '笼子破了！记住队友的落点';
         feedbackUntil = performance.now() + 2800;
       }
+      if (event.type === 'rescue-chain') {
+        feedback = `${event.combo} 连救！挡板加宽 5 秒`;
+        feedbackUntil = performance.now() + 3000;
+      }
       if (event.type === 'rescue') {
         audio.play('rescue');
-        feedback = `接住了！已救回 ${game.rescued} / 4 位`;
+        feedback = game.realTime < game.wideUntil ? `${game.rescueCombo} 连救！挡板加宽 5 秒` : `接住了！已救回 ${game.rescued} / 4 位`;
         feedbackUntil = performance.now() + 2300;
       }
       if (event.type === 'miss') {
@@ -533,6 +558,8 @@ export async function mountCageRescue(host = createLocalHost()) {
     }
     animationId = requestAnimationFrame(frame);
   }
+  $('challenge-rescue').hidden = challengeIndex < 0;
+  if (challengeIndex >= 0) $('challenge-rescue').textContent = `好友挑战 · ${targetRescued === null ? LEVELS[challengeIndex].name : `自报 ${targetRescued} 人 / ${targetCombo ?? 0} 连救`}`;
   changeScreen('home');
   animationId = requestAnimationFrame(frame);
   return {
@@ -544,6 +571,7 @@ export async function mountCageRescue(host = createLocalHost()) {
       disposed = true;
       clearInput();
       cancelAnimationFrame(animationId);
+      publishing.dispose();
       abort.abort();
       observer.disconnect();
       audio.dispose();

@@ -22,3 +22,12 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/ball-ro
 沿用仓库独立 H5 的本地存档边界，不接入 Game Host 云存档。回合开始与强化页保存检查点，离开飞行中对局后回到该轮发射前；存储异常时会话内正常继续。存档格式为 v2，沿用旧存储 key，自动迁移 v0/v1；核心检查点仍为 v1。试玩不写成绩、正常进度或检查点。Web 复用公共 `SmallGamesDev`（`?dev=1/0` 或 `localStorage.dev`）和全屏机制；无广告 SDK 时不提供看广告复活奖励。原型的微信脚手架不直接打包为原生工程，微信、抖音和 B 站 Canvas 运行需另行适配。
 
 初版设计与截图见 `docs/design/`；本次圆球、节拍与双模式改版的设计和实际运行证据见 [`docs/design/rhythm/`](docs/design/rhythm/README.md)，规则和存档验证见 `tests/`。浏览器验证使用 Linux Chromium 手机触屏模拟，未执行手机真机或原生小游戏验收。
+
+
+## 同场分享与发布配置
+
+结算页提供真实同关挑战链接；打开后从主页的好友挑战入口进入。塔和救援使用稳定关卡配置，弹珠同时保留初始随机种子，挑战结果不改普通关卡解锁和存档。链接剥离 `dev` 等参数；分享不代表服务器认证成绩，尚未提供实时在线对战。弹珠旧存档缺少初始种子时隐藏分享，避免误称复现。
+
+构建复制 `platforms/h5/publishing.js` 公共源，开发服务器映射同一公共文件；不维护游戏副本。默认显式 `mock` 模式，弹层标记“模拟广告”，每三次自然转场最多触发一次插屏，并受公共冷却和会话上限约束。生产入口可以在模块加载前配置 `globalThis.SmallGamesPublishingConfig = { adMode: 'off' }`；真实渠道由统一平台层接入，不把密钥放入页面。救援外部 GameHost 的广告接口保留优先权，只在本地使用公共模拟奖励。塔原免费续关与各款免费重试保留。
+
+本轮规则与触屏校验记录见 [发布改进](docs/design/publishing/README.md)。

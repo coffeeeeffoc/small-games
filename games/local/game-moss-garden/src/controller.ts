@@ -15,6 +15,17 @@ import { renderGame, type View, type HitArea } from './render.ts';
 
 export type MossTarget = CanvasGameTarget & {
   native?: boolean;
+  challengeLevel?: string;
+  challengeGoal?: { hints: number; mistakes: number; elapsedMs: number };
+  minimumTouchSize?(): number;
+  naturalBreak?(): Promise<void>;
+  shareChallenge?(result: {
+    levelId: string;
+    levelNumber: number;
+    elapsedMs: number;
+    hints: number;
+    mistakes: number;
+  }): Promise<string>;
   dev?: boolean;
   onView?(view: View, hits: HitArea[]): void;
   onAction?(listener: (id: string) => void): () => void;
@@ -42,6 +53,9 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   let suspended = false;
   let disposed = false;
   let practice = false;
+  let challenge = false;
+  let publicationBusy = false;
+  let invitation = LEVELS.find((item) => item.id === target.challengeLevel);
   let notice = '';
   let hits: HitArea[] = [];
   let lastTime = Date.now();
@@ -57,7 +71,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   const callbacks: Array<() => void> = [];
 
   function checkpoint() {
-    if (!practice && !puzzle.completed && (page === 'play' || page === 'pause')) {
+    if (!practice && !challenge && !puzzle.completed && (page === 'play' || page === 'pause')) {
       save = { ...save, active: { levelId: level.id, puzzle, elapsedMs } };
     }
     const snapshot = JSON.parse(JSON.stringify(save)) as JsonValue;
@@ -96,14 +110,22 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       hasActive: !!save.active,
       dev: !!target.dev,
       native: !!target.native,
-      notice: practice ? '开发试玩 · 不计入进度' : notice,
+      notice:
+        notice ||
+        (practice ? '开发试玩 · 不计入进度' : challenge ? '好友同关挑战 · 不影响闯关进度' : ''),
+      challenge,
+      challengeGoal: target.challengeGoal,
+      invitationNumber: invitation?.number,
+      canShare: typeof target.shareChallenge === 'function',
+      minimumTouchSize: target.minimumTouchSize?.(),
     };
     hits = renderGame(context!, view);
     target.onView?.(view, hits);
   }
-  function start(selected: typeof level, resume = false, developer = false) {
+  function start(selected: typeof level, resume = false, developer = false, shared = false) {
     level = selected;
     practice = developer;
+    challenge = shared;
     if (resume && save.active?.levelId === level.id) {
       puzzle = restorePuzzle(level, save.active.puzzle);
       elapsedMs = save.active.elapsedMs;
@@ -124,7 +146,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     )
       target.feedback?.(kind, save.sound, save.vibration);
     if (puzzle.completed) {
-      if (!practice) {
+      if (!practice && !challenge) {
         save = recordCompletion(save, level, puzzle, elapsedMs);
         save = { ...save, active: null };
       }
@@ -133,8 +155,49 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     }
     checkpoint();
   }
-  function act(id: string) {
-    if (disposed || suspended) return;
+  function act(id: string, afterBreak = false) {
+    if (disposed || suspended || publicationBusy) return;
+    if (
+      page === 'result' &&
+      ['result:next', 'result:replay', 'result:home'].includes(id) &&
+      target.naturalBreak &&
+      !afterBreak &&
+      !practice
+    ) {
+      publicationBusy = true;
+      void target
+        .naturalBreak()
+        .catch(() => {})
+        .finally(() => {
+          publicationBusy = false;
+          if (!disposed && page === 'result') act(id, true);
+        });
+      return;
+    }
+    if (id === 'result:share' && page === 'result' && target.shareChallenge) {
+      const sharedPuzzle = puzzle;
+      void target
+        .shareChallenge({
+          levelId: level.id,
+          levelNumber: level.number,
+          elapsedMs,
+          hints: puzzle.hints,
+          mistakes: puzzle.mistakes,
+        })
+        .then((message) => {
+          if (!disposed && page === 'result' && puzzle === sharedPuzzle) {
+            notice = message;
+            draw();
+          }
+        })
+        .catch(() => {
+          if (!disposed) {
+            notice = '分享暂不可用，仍可继续播种';
+            draw();
+          }
+        });
+      return;
+    }
     tick();
     pointer = null;
     if (id.startsWith('cell:') && page === 'play') {
@@ -145,7 +208,14 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       afterMove(previous, mode === 'mark' ? 'mark' : 'place');
     } else if (id.startsWith('level:') && page === 'levels') {
       const selected = LEVELS.find((item) => item.id === id.slice(6));
-      if (selected && unlocked(save, selected)) start(selected);
+      if (selected && unlocked(save, selected)) {
+        invitation = undefined;
+        start(selected, save.active?.levelId === selected.id);
+      }
+    } else if (id === 'home:start' && invitation) {
+      const selected = invitation;
+      invitation = undefined;
+      start(selected, false, false, true);
     } else if (id === 'home:start') {
       const selected =
         LEVELS.find((item) => item.id === save.active?.levelId) ??
@@ -165,11 +235,13 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     } else if (id === 'pause:resume') {
       page = 'play';
       lastTime = Date.now();
-    } else if (id === 'pause:restart' || id === 'result:replay') start(level, false, practice);
+    } else if (id === 'pause:restart' || id === 'result:replay')
+      start(level, false, practice, challenge);
     else if (id === 'pause:home') {
       checkpoint();
       page = 'home';
     } else if (id === 'result:home') page = 'home';
+    else if (id === 'result:next' && challenge) start(level, false, false, true);
     else if (id === 'result:next') {
       const next = LEVELS[LEVELS.indexOf(level) + 1];
       if (next && (practice || unlocked(save, next))) start(next, false, practice);
@@ -209,7 +281,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   const find = (x: number, y: number) =>
     hits.find((hit) => x >= hit.x && y >= hit.y && x < hit.x + hit.width && y < hit.y + hit.height);
   function handlePointer(event: CanvasPointerEvent) {
-    if (disposed || suspended) return;
+    if (disposed || suspended || publicationBusy) return;
     if (event.phase === 'down') {
       if (pointer) return;
       const hit = find(event.x, event.y);
@@ -272,7 +344,8 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   return {
     act,
     redraw: draw,
-    snapshot: () => ({ page, levelId: level.id, puzzle, elapsedMs, practice }),
+    isSuspended: () => suspended,
+    snapshot: () => ({ page, levelId: level.id, puzzle, elapsedMs, practice, challenge }),
     pause() {
       tick();
       suspended = true;

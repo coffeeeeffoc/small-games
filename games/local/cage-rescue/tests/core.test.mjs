@@ -363,3 +363,22 @@ test('all six formations are winnable through normal paddle input, without reviv
     assert.ok(firstReleaseAt < 8, `${state.level.name}: first rescue opportunity takes too long`);
   }
 });
+
+test('two consecutive rescues grant a temporary wide paddle; pause freezes it and misses break the chain', () => {
+  const state = createGame();
+  for (let i = 0; i < 2; i++) {
+    falling(state, i, state.paddle.x, RULES.paddleY - RULES.personRadius - 0.1);
+    stepGame(state, FIXED_STEP * 2);
+  }
+  assert.equal(state.rescueCombo, 2);
+  assert.equal(state.bestRescueCombo, 2);
+  assert.equal(state.paddle.w, state.level.paddleWidth * 1.3);
+  const clock = state.realTime;
+  setPaused(state, true); stepGame(state, 6); setPaused(state, false);
+  assert.equal(state.realTime, clock);
+  advance(state, 5.1);
+  assert.equal(state.paddle.w, state.level.paddleWidth);
+  dropBall(state);
+  assert.equal(state.rescueCombo, 0);
+  assert.equal(state.bestRescueCombo, 2);
+});

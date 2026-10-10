@@ -302,3 +302,16 @@ test('nonfinite and nonpositive time/input are harmless', () => {
   assert.equal(rotate(state, NaN), false);
   assert.deepEqual(state, snapshot);
 });
+
+test('continuous drops earn capped multipliers and braking trades combo for safety', () => {
+  const game = createGame(LEVELS[0]);
+  for (let layer = 0; layer < 6; layer++) {
+    alignGap(game);
+    until(game, (state) => state.nextLayer > layer);
+  }
+  assert.equal(game.score, 100 + 200 + 300 + 400 + 500 + 500);
+  assert.equal(brake(game), true);
+  alignGap(game);
+  until(game, (state) => state.nextLayer === 7);
+  assert.equal(game.score, 2100);
+});

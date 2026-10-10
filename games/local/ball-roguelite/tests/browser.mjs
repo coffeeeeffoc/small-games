@@ -199,6 +199,14 @@ try {
     await expect.poll(async () => (await snapshot(page)).phase, { timeout: 18000 }).not.toBe('flight');
   }
   await expect(page.locator('#result-title')).toHaveText('星域已点亮'); await capture(page, 'mobile-victory');
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+  await page.locator('#share-orbit').tap();
+  const shared = new URL(await page.evaluate(() => window.__sharedUrl));
+  assert.equal(shared.searchParams.get('challenge'), 'orbit-v1');
+  assert.equal(Number(shared.searchParams.get('targetScore')), (await snapshot(page)).score);
+  assert.equal(Number(shared.searchParams.get('seed')), (await snapshot(page)).initialSeed);
+  assert.equal(shared.searchParams.has('dev'), false);
+  await page.screenshot({ path: path.join(evidence, '../publishing/mobile-result-share.png') });
   assert.equal(upgradeSeen, true); assert.equal(independentModesChecked, true); await page.locator('#next').tap(); assert.equal((await snapshot(page)).levelId, 'prism');
   await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.locator('#levels-button').tap();
   await expect(page.locator('.level-card:enabled')).toHaveCount(2); await page.locator('[data-action="home"]').filter({ visible: true }).tap();
@@ -271,6 +279,31 @@ try {
   await blocked.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));
   const noStorage = await blocked.newPage(); monitor(noStorage); await noStorage.goto(`${origin}?dev=0`); await noStorage.locator('#start').tap();
   assert.equal((await snapshot(noStorage)).phase, 'aim'); await blocked.close(); report.checks.push('blocked storage still starts normally');
+  const challengeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const challengePage = await challengeContext.newPage(); monitor(challengePage);
+  await challengePage.goto(shared.href);
+  await expect(challengePage.locator('#challenge-orbit')).toContainText('自报');
+  await challengePage.locator('#challenge-orbit').tap();
+  const opening = await snapshot(challengePage);
+  assert.equal(opening.challenge, true);
+  assert.equal(opening.initialSeed, Number(shared.searchParams.get('seed')));
+  const expected = createGame(opening.levelId, { seed: opening.initialSeed });
+  assert.deepEqual(opening.bricks, expected.bricks);
+  assert.equal(await challengePage.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), null);
+  await challengePage.screenshot({ path: path.join(evidence, '../publishing/mobile-challenge.png') });
+  const challengeTouch = await challengeContext.newCDPSession(challengePage);
+  for (let turn = 0; turn < 16 && !(await challengePage.locator('#result').isVisible()); turn++) {
+    if (await challengePage.locator('#upgrade').isVisible()) await chooseCard(challengePage);
+    await shot(challengePage, challengeTouch, 0, -400); await challengePage.locator('#recall').tap();
+  }
+  await expect(challengePage.locator('#result')).toBeVisible();
+  await expect(challengePage.locator('#result-detail')).toContainText('好友自报目标');
+  await challengePage.screenshot({ path: path.join(evidence, '../publishing/mobile-challenge-result.png') });
+  await challengePage.locator('#retry').tap();
+  assert.deepEqual((await snapshot(challengePage)).bricks, opening.bricks);
+  assert.equal(await challengePage.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), null);
+  await challengeContext.close();
+  report.checks.push('Public seed challenge opens the exact same board; real-touch loss/retry repeats it without writing normal progress');
   assert.deepEqual(report.errors, []); report.passed = true;
 } finally {
   await writeFile(path.join(evidence, 'browser-report.json'), JSON.stringify(report, null, 2) + '\n');

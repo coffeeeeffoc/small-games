@@ -3,6 +3,7 @@ import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { CompetitionError } from './types.js';
+import { exchangeDouyinCode } from './douyin-login.js';
 import { registerRunRoutes } from './run-routes.js';
 import {
   registerThreeChooseTwoRoutes,
@@ -116,8 +117,14 @@ export async function registerCompetition(
           if (!configured) throw new CompetitionError('PLATFORM_NOT_CONFIGURED', 503);
           // The client/rendering adapters can exist before a verified server-side
           // code exchange. Never issue a guest identity for a native platform.
-          if (input.platform === 'douyin' || input.platform === 'kuaishou')
+          if (input.platform === 'kuaishou')
             throw new CompetitionError('PLATFORM_LOGIN_UNAVAILABLE', 503);
+          if (input.platform === 'douyin')
+            return store.session(
+              input.platform,
+              input.appId,
+              await exchangeDouyinCode(input.appId, configured.secret, input.code),
+            );
           const endpoints = {
             wechat: 'https://api.weixin.qq.com/sns/jscode2session',
             bilibili: 'https://miniapp.bilibili.com/api/sns/jscode2session',

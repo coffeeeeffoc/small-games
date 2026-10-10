@@ -12,23 +12,41 @@ export type CallbackAdCallbacks = Readonly<{
 
 /** Wraps a callback SDK and accepts only its first terminal callback. */
 export function createCallbackAdProvider(
-  start: (request: AdProviderRequest, callbacks: CallbackAdCallbacks) => void,
+  start: (request: AdProviderRequest, callbacks: CallbackAdCallbacks) => void | (() => void),
+  options: { timeoutMs?: number } = {},
 ): AdProvider {
   return {
     show(request) {
       return new Promise<RewardOutcome>((resolve) => {
         let settled = false;
+        let cleanup: void | (() => void);
+        const release = () => {
+          try {
+            cleanup?.();
+          } catch {
+            /* Cleanup cannot change a verified outcome. */
+          }
+          cleanup = undefined;
+        };
+        const timer = setTimeout(() => finish('failed'), Math.max(1, options.timeoutMs ?? 45000));
         const finish = (status: RewardOutcome['status']) => {
           if (settled) return;
           settled = true;
+          clearTimeout(timer);
+          release();
           resolve({ status });
         };
-        start(request, {
-          completed: () => finish('completed'),
-          dismissed: () => finish('dismissed'),
-          unavailable: () => finish('unavailable'),
-          failed: () => finish('failed'),
-        });
+        try {
+          cleanup = start(request, {
+            completed: () => finish('completed'),
+            dismissed: () => finish('dismissed'),
+            unavailable: () => finish('unavailable'),
+            failed: () => finish('failed'),
+          });
+          if (settled) release(); // SDKs may complete synchronously before returning teardown.
+        } catch {
+          finish('failed');
+        }
       });
     },
   };

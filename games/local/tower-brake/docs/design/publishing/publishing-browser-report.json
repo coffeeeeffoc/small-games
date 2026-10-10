@@ -1,0 +1,10 @@
+{
+  "browser": "151.0.7922.173",
+  "checks": [
+    "First two natural transitions stay uninterrupted; third opens a labelled simulation; background cancellation stays at result",
+    "Challenge result compares a self-reported goal and writes no normal progress"
+  ],
+  "errors": [],
+  "passed": true,
+  "fixture": "Dev state settlement fixture tests UI transitions; no gameplay balance claims."
+}

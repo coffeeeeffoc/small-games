@@ -209,6 +209,8 @@ export function staticBuildTargets(packages, direct, affected) {
 // Fast DOM contracts are shared by hook, candidate validation and CI. Their finite
 // jsdom suite covers entry, registry, route parameters and immersive navigation.
 export const shellContractFiles = [
+  'tests/catalog-assessments.test.ts',
+  'tests/catalog-filters.integration.test.tsx',
   'tests/catalog-links.test.tsx',
   'tests/catalog.integration.test.tsx',
   'tests/play-entry.integration.test.tsx',

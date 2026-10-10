@@ -43,6 +43,7 @@
         <div class="home-actions">
           <p id="home-progress" class="quiet">余烬之路 · 初火</p>
           <button id="start" class="primary">开始弹射 <span aria-hidden="true">›</span></button>
+          <button id="leave-challenge" class="text-button" hidden>返回我的旅程</button>
           <button id="levels-button" class="secondary">选择关卡</button>
           <button class="fullscreen-control" data-game-fullscreen>全屏</button>
         </div>
@@ -127,7 +128,7 @@
             <p>关卡内获得强化机会时，可选加球、增伤或扩大爆裂范围。通关解锁下一关。</p>
           </li>
         </ol>
-        <p class="quiet">弹珠久久未返回时，可提前回收；未命中的弹珠会收回，本轮仍会正常上移。</p>
+        <p class="quiet">弹珠久久未返回时，可提前回收；未命中的弹珠会收回，本轮仍会正常上移。每轮开始自动保存，离开后可从本轮继续；好友同题单独保存，不影响旅程。</p>
       </section>
 
       <section id="upgrade" class="screen centered-screen" aria-label="选择强化" hidden>
@@ -150,8 +151,12 @@
         <div class="menu-actions">
           <button id="next" class="primary">下一关 <span aria-hidden="true">›</span></button
           ><button id="retry" class="secondary">再来一次</button
+          ><button id="share-challenge" class="secondary" hidden>邀好友比轮数</button
           ><button id="result-home" class="text-button">返回主页</button>
         </div>
+        <label id="share-fallback" class="share-fallback" hidden>长按复制挑战链接
+          <textarea id="share-link" readonly rows="2" aria-label="挑战链接"></textarea>
+        </label>
       </section>
       <output id="toast" class="toast" role="status" aria-live="polite" hidden></output>
     </main>

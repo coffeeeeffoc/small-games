@@ -551,7 +551,9 @@ try {
             await shot(page, 'natural-failure');
             await expect(page.locator('#revive')).toBeVisible();
             await page.locator('#revive').tap();
-            await expect(page.locator('#reward-message')).toContainText('暂无广告');
+            await expect(page.getByRole('dialog', { name: '模拟广告' })).toBeVisible();
+            await page.getByRole('button', { name: '关闭并继续', exact: true }).tap();
+            await expect(page.locator('#reward-message')).toContainText('未完整观看');
             assert.equal((await snapshot(page)).game.lives, 0);
             await page.locator('#retry').tap();
             assert.equal((await snapshot(page)).game.phase, 'ready');
@@ -561,6 +563,23 @@ try {
             assert.equal(result.game.rescued, 4);
             assert.equal(Object.keys(result.progress.completed).length, 1);
             await shot(page, 'actual-result', true);
+            await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+            await page.locator('#share-rescue').tap();
+            const shared = new URL(await page.evaluate(() => window.__sharedUrl));
+            assert.equal(shared.searchParams.get('challenge'), 'rescue-v1');
+            assert.equal(shared.searchParams.get('level'), result.game.levelId);
+            assert.equal(Number(shared.searchParams.get('targetRescued')), result.game.rescued);
+            assert.equal(Number(shared.searchParams.get('targetCombo')), result.game.bestRescueCombo);
+            assert.equal(shared.searchParams.has('dev'), false);
+            await page.screenshot({ path: path.join(design, 'publishing/mobile-result-share.png') });
+            await page.goto(shared.href);
+            await expect(page.locator('#challenge-rescue')).toContainText('自报');
+            await page.locator('#challenge-rescue').tap();
+            assert.equal((await snapshot(page)).game.levelId, result.game.levelId);
+            assert.equal(Object.keys((await snapshot(page)).progress.completed).length, 1);
+            await page.locator('#pause').tap();
+            await page.screenshot({ path: path.join(design, 'publishing/mobile-challenge-pause.png') });
+
             await page.reload();
             await page.waitForFunction(() => !!window.__cageRescue);
             assert.equal(Object.keys((await snapshot(page)).progress.completed).length, 1);

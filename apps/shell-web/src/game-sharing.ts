@@ -10,11 +10,126 @@ const publicParameters: Readonly<Record<string, readonly string[]>> = {
   'wulong-city': ['challenge'],
 };
 
+type ChallengeProtocol = {
+  fields: Readonly<Record<string, (value: string) => boolean>>;
+  required: readonly string[];
+  together?: readonly string[];
+};
+const oneOf =
+  (...values: string[]) =>
+  (value: string) =>
+    values.includes(value);
+const integer =
+  (maximum: number, minimum = 0) =>
+  (value: string) =>
+    /^(0|[1-9]\d*)$/.test(value) &&
+    Number.isSafeInteger(Number(value)) &&
+    Number(value) >= minimum &&
+    Number(value) <= maximum;
+
+// Public challenge contracts, kept separate from development/session parameters.
+// A malformed or incomplete contract must not turn into a different valid challenge.
+const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
+  'tower-brake': {
+    fields: {
+      challenge: oneOf('tower-v1'),
+      level: oneOf(
+        'first-brake',
+        'blue-current',
+        'left-right',
+        'stepping-stones',
+        'return-arc',
+        'narrow-margins',
+        'double-rescue',
+        'last-descent',
+      ),
+      targetScore: integer(20000),
+    },
+    required: ['challenge', 'level'],
+  },
+  'cage-rescue': {
+    fields: {
+      challenge: oneOf('rescue-v1'),
+      level: (value) => /^rescue-0[1-6]$/.test(value),
+      targetRescued: integer(6),
+      targetCombo: integer(6),
+    },
+    required: ['challenge', 'level'],
+  },
+  'ball-roguelite': {
+    fields: {
+      challenge: oneOf('orbit-v1'),
+      level: oneOf('stardust', 'prism', 'flare', 'frost', 'void', 'orbit', 'endless'),
+      seed: integer(0xffffffff, 1),
+      targetScore: integer(10000000),
+    },
+    required: ['challenge', 'level', 'seed'],
+  },
+  'ember-bounce': {
+    fields: {
+      emberChallenge: oneOf('1'),
+      level: oneOf(
+        'first-spark',
+        'side-glow',
+        'prism-turn',
+        'ember-chain',
+        'green-comet',
+        'crossfire',
+        'hot-horizon',
+        'last-light',
+      ),
+      turns: integer(1000, 1),
+    },
+    required: ['emberChallenge', 'level', 'turns'],
+  },
+  'three-choose-two': {
+    fields: {
+      seed: integer(0xffffffff),
+      variant: oneOf('classic', 'refill'),
+      targetScore: integer(1000000000),
+    },
+    required: ['seed'],
+  },
+  'flick-arena': {
+    fields: {
+      seed: integer(Number.MAX_SAFE_INTEGER),
+      layout: oneOf('first-push', 'triangle', 'chain', 'edge', 'cross'),
+      targetShots: integer(999, 1),
+    },
+    required: ['seed', 'layout'],
+  },
+  'moss-garden': {
+    fields: {
+      level: (value) => /^moss-(0[1-9]|[12]\d|30)$/.test(value),
+      targetHints: integer(10000),
+      targetMistakes: integer(10000),
+      targetTime: integer(604800000),
+    },
+    required: ['level'],
+    together: ['targetHints', 'targetMistakes', 'targetTime'],
+  },
+};
+
 /** Public mode parameters shared by catalog entries and same-game sharing. */
 export function publicGameQuery(gameId: string, search: string): string {
   if (search.length > 2048) return '';
   const incoming = new URLSearchParams(search);
   const parameters = new URLSearchParams();
+  const protocol = challengeProtocols[gameId];
+  if (protocol) {
+    if (protocol.required.some((key) => !incoming.has(key))) return '';
+    if (
+      protocol.together?.some((key) => incoming.has(key)) &&
+      protocol.together.some((key) => !incoming.has(key))
+    )
+      return '';
+    for (const [key, validate] of Object.entries(protocol.fields)) {
+      const values = incoming.getAll(key);
+      if (values.length > 1 || (values.length === 1 && !validate(values[0]))) return '';
+      if (values.length === 1) parameters.set(key, values[0]);
+    }
+    return parameters.toString();
+  }
   for (const key of publicParameters[gameId] ?? []) {
     const values = incoming.getAll(key);
     if (values.length > 1 || (values[0] && !/^[A-Za-z0-9_-]{1,64}$/.test(values[0]))) return '';

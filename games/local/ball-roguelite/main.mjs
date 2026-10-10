@@ -1,3 +1,4 @@
+import { createH5Publishing } from './publishing.js';
 import { LEVELS, UPGRADES, levelById } from './levels.mjs';
 import { createGame, fire, update, recall, chooseUpgrade, checkpoint, restoreGame, drainEvents, FIELD } from './core.mjs';
 import { createStorage } from './storage.mjs';
@@ -10,6 +11,13 @@ let game = null, screen = 'home', aim = null, pointerId = null, lastTime = null,
 let finished = false, nextId = null, hudKey = '', soundAt = -Infinity;
 const voices = new Set();
 let selectedMode = storage.read().lastMode;
+const incoming = new URL(location.href).searchParams;
+const targetValue = Number(incoming.get('targetScore'));
+const targetScore = incoming.has('targetScore') && Number.isInteger(targetValue) && targetValue >= 0 && targetValue <= 10000000 ? targetValue : null;
+const sharedSeed = Number(incoming.get('seed'));
+const sharedLevel = levelById(incoming.get('level'));
+const hasChallenge = incoming.get('challenge') === 'orbit-v1' && sharedLevel && Number.isInteger(sharedSeed) && sharedSeed > 0 && sharedSeed <= 0xffffffff;
+const publishing = createH5Publishing({ gameId: 'ball-roguelite', title: '星轨弹珠', adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl, pause: () => { pause(); return () => {}; } });
 // Touch activation also works in WebViews that suppress compatibility clicks after
 // a captured Canvas drag. Ignore the subsequent native click to avoid double actions.
 let lastTouchActivation = -Infinity;
@@ -108,9 +116,9 @@ function renderLevels() {
     button.addEventListener('click', () => { unlockAudio(); if (continuing) continueRun('campaign'); else start(level.id); }, { signal }); $('level-list').append(button);
   });
 }
-function start(id, practice = false) {
-  if (!practice && !storage.isUnlocked(id)) return;
-  game = createGame(id, { seed: (Date.now() >>> 0) || 1, practice }); finished = false;
+function start(id, practice = false, challengeSeed = null) {
+  if (!practice && !challengeSeed && !storage.isUnlocked(id)) return;
+  game = createGame(id, { seed: challengeSeed || (Date.now() >>> 0) || 1, practice, challenge: !!challengeSeed }); finished = false;
   if (!practice) selectedMode = game.level.endless ? 'endless' : 'campaign';
   renderer.reset(); storage.saveRun(game); hudKey = ''; show('playing'); syncHud();
 }
@@ -124,13 +132,13 @@ function continueRun(mode = selectedMode) {
 }
 function syncHud() {
   if (!game) return;
-  const key = `${game.phase}:${game.turn}:${game.score}:${game.count}:${game.waveIndex}`;
+  const key = `${game.phase}:${game.turn}:${game.score}:${game.count}:${game.waveIndex}:${game.combo}`;
   if (key === hudKey) return; hudKey = key;
-  $('level-name').textContent = game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`; $('score').textContent = game.score;
+  $('level-name').textContent = game.challenge ? `好友同场 · ${game.level.title}` : game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`; $('score').textContent = game.score;
   $('wave-progress').textContent = game.level.endless ? `第 ${game.turn + 1} 轮` : `波次 ${game.waveIndex} / ${game.level.waves.length} · 第 ${game.turn + 1} 轮`;
   $('practice-tag').hidden = !game.practice; $('ball-count').textContent = game.count;
   $('recall').disabled = game.phase !== 'flight';
-  $('shot-hint').textContent = game.phase === 'flight' ? '回收将结束本轮，并让砖块下降' : '按住场地瞄准 · 松手发射';
+  $('shot-hint').textContent = game.phase === 'flight' ? game.combo >= 6 ? `${game.combo} 连击 · 下轮 +${Math.min(3, Math.floor(game.combo / 6))} 颗` : `${game.combo} 连击 · 6 连击赠 1 颗` : '按住场地瞄准 · 松手发射';
 }
 function renderUpgrades() {
   $('upgrade-list').replaceChildren();
@@ -151,11 +159,15 @@ function finish() {
   const won = game.phase === 'won', index = LEVELS.findIndex((level) => level.id === game.levelId);
   nextId = won && !game.level.endless ? LEVELS[index + 1]?.id : null;
   $('result-title').textContent = won ? '星域已点亮' : '航行结束';
-  $('result-kicker').textContent = `${game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`}${game.practice ? ' · 试玩，不记录成绩' : ''}`;
+  $('result-kicker').textContent = `${game.level.endless ? '无尽模式' : `关卡模式 · ${game.level.title}`}${game.challenge ? ' · 好友同场，不改变进度' : game.practice ? ' · 试玩，不记录成绩' : ''}`;
   $('result-detail').textContent = won ? nextId ? `下一站 · ${levelById(nextId).title}` : '六片星域已点亮，试试无尽模式吧' : game.level.endless && !game.practice ? `砖块越过了警戒线 · 最高纪录 ${storage.read().bestEndless}` : '砖块越过了警戒线 · 下次先拆底部砖块';
   $('result-emblem').textContent = won ? '✦' : '↗'; $('result-emblem').style.color = won ? '#73f5db' : '#ff8caa';
   $('result-score').textContent = game.score; $('result-turns').textContent = game.turn; $('result-combo').textContent = game.bestCombo;
-  $('next').hidden = !nextId || game.practice; sound(won ? 'won' : 'lost'); vibrate(won ? 35 : 60); show('result');
+  if (game.challenge) $('result-detail').textContent = targetScore === null ? '同场挑战 · 不改变进度' : `好友自报目标 ${targetScore} 块 · ${game.score >= targetScore ? '已达成！' : `还差 ${targetScore - game.score} 块`} · 不改变进度`;
+  $('share-orbit').hidden = game.practice || !game.initialSeed;
+  $('share-status').textContent = '';
+  $('retry').textContent = game.challenge ? '同场再试一次' : '再来一局';
+  $('next').hidden = !nextId || game.practice || game.challenge; sound(won ? 'won' : 'lost'); vibrate(won ? 35 : 60); show('result');
 }
 function saveAndHome() { if (game) storage.saveRun(game); show('home'); }
 function pause() {
@@ -197,15 +209,20 @@ click('pause-help', () => { helpReturn = 'paused'; show('help'); });
 click('help-back', () => show(helpReturn));
 click('haptics', () => { storage.setting('haptics', !storage.read().haptics); settings(); vibrate(20); });
 click('recall', () => { cancelAim(); recall(game); syncHud(); processState(); });
-click('retry', () => { unlockAudio(); start(game.levelId, game.practice); });
-click('next', () => { if (nextId) { unlockAudio(); start(nextId); } });
+click('retry', () => { unlockAudio(); start(game.levelId, game.practice, game.challenge ? game.initialSeed : null); });
+click('next', async () => { const target = nextId, attempt = game; if (!target) return; $('next').disabled = true; await publishing.interstitial({ placement: 'starfield-complete', naturalBreak: true }); $('next').disabled = false; if (screen === 'result' && game === attempt && !document.hidden) { unlockAudio(); start(target); } });
+click('challenge-orbit', () => { unlockAudio(); start(sharedLevel.id, false, sharedSeed); });
+click('share-orbit', async () => {
+  const outcome = await publishing.share({ text: `${game.level.title}击碎 ${game.score} 块砖，最佳 ${game.bestCombo} 连击。用同一组砖阵与强化随机序列来挑战！`, params: { challenge: 'orbit-v1', level: game.levelId, seed: game.initialSeed, targetScore: game.score } });
+  $('share-status').textContent = outcome.status === 'copied' ? '同场挑战链接已复制' : outcome.status === 'shared' ? '已打开系统分享' : outcome.status === 'cancelled' ? '已取消分享' : '暂时无法分享，请稍后重试';
+});
 function processState() {
   if (game.phase === 'upgrade') { storage.saveRun(game); show('upgrade'); }
   else if (['won', 'lost'].includes(game.phase)) finish();
   else if (game.phase === 'aim') storage.saveRun(game);
 }
 function snapshot() {
-  return game ? { screen, phase: game.phase, levelId: game.levelId, turn: game.turn, score: game.score, count: game.count, damage: game.damage, seed: game.seed, nextId: game.nextId, cards: [...game.cards], shots: game.shots, waveIndex: game.waveIndex, practice: game.practice, launchX: game.launchX, upgrades: { ...game.upgrades }, balls: game.balls.map((ball) => ({ x: ball.x, y: ball.y })), bricks: game.bricks.filter((b) => b.hp > 0).map((b) => ({ ...b })), aiming: pointerId !== null } : { screen, phase: 'home', shots: 0 };
+  return game ? { screen, phase: game.phase, levelId: game.levelId, turn: game.turn, score: game.score, count: game.count, damage: game.damage, seed: game.seed, initialSeed: game.initialSeed, challenge: game.challenge, nextId: game.nextId, cards: [...game.cards], shots: game.shots, waveIndex: game.waveIndex, practice: game.practice, launchX: game.launchX, upgrades: { ...game.upgrades }, balls: game.balls.map((ball) => ({ x: ball.x, y: ball.y })), bricks: game.bricks.filter((b) => b.hp > 0).map((b) => ({ ...b })), aiming: pointerId !== null } : { screen, phase: 'home', shots: 0 };
 }
 // Read-only browser inspection also supports the repository's actual-input smoke test.
 canvas.getOrbitSnapshot = snapshot;
@@ -233,6 +250,8 @@ function frame(time) {
 }
 window.addEventListener('pagehide', (event) => {
   pause();
-  if (!event.persisted) { cancelAnimationFrame(raf); stopSounds(); listeners.abort(); devCleanups.forEach((cleanup) => cleanup?.()); delete window.__orbit; void audio?.close().catch(() => {}); }
+  if (!event.persisted) { cancelAnimationFrame(raf); stopSounds(); publishing.dispose(); listeners.abort(); devCleanups.forEach((cleanup) => cleanup?.()); delete window.__orbit; void audio?.close().catch(() => {}); }
 }, { signal });
+$('challenge-orbit').hidden = !hasChallenge;
+if (hasChallenge) $('challenge-orbit').textContent = `好友同场 · ${targetScore === null ? sharedLevel.title : `自报目标 ${targetScore} 块`}`;
 show('home'); raf = requestAnimationFrame(frame);

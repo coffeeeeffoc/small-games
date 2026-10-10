@@ -25,6 +25,7 @@
         <div class="home-actions">
           <p id="home-progress" class="muted"></p>
           <button id="start" class="primary">开始关卡模式 <span>↗</span></button>
+          <button id="challenge-orbit" class="secondary" hidden>好友同场挑战</button>
           <div class="mode-cards" aria-label="选择游戏模式">
             <button id="levels-button" class="mode-card campaign"><span class="mode-symbol" aria-hidden="true">✦</span><strong>关卡模式</strong><small id="campaign-progress">六片星域 · 逐关解锁</small><span class="mode-link">选择星域 →</span></button>
             <button id="endless-button" class="mode-card endless"><span class="mode-symbol" aria-hidden="true">∞</span><strong>无尽模式</strong><small id="endless-record">无限砖阵 · 冲击纪录</small><span id="endless-entry" class="mode-link">开始挑战 ↗</span></button>
@@ -59,12 +60,12 @@
       <section id="result" class="screen center-screen" hidden>
         <div id="result-emblem" class="orb-emblem" aria-hidden="true">✦</div><p id="result-kicker" class="eyebrow"></p><h2 id="result-title"></h2><p id="result-detail" class="muted"></p>
         <div class="result-stats"><div><strong id="result-score"></strong><span>击碎砖块</span></div><div><strong id="result-turns"></strong><span>弹射轮次</span></div><div><strong id="result-combo"></strong><span>最佳连击</span></div></div>
-        <button id="next" class="primary" hidden>前往下一星域 →</button><button id="retry" class="secondary">再来一局</button><button data-action="home" class="text-button">返回主页</button>
+        <button id="next" class="primary" hidden>前往下一星域 →</button><button id="retry" class="secondary">再来一局</button><button id="share-orbit" class="secondary">分享同场挑战</button><p id="share-status" class="muted" role="status"></p><button data-action="home" class="text-button">返回主页</button>
       </section>
       <section id="help" class="screen help" hidden>
         <nav class="page-nav"><button id="help-back">← 返回</button></nav><h2>让弹珠飞起来</h2>
         <div class="help-orbit" aria-hidden="true">↗ ✦ ↘</div>
-        <ol><li><strong>拖动瞄准，松手发射</strong><p>在场地按住并拖向上方。利用墙壁反弹，让一颗弹珠多撞几块砖。</p></li><li><strong>先拆靠近底部的砖</strong><p>所有弹珠落回后，砖块下降一行。砖块越过底部警戒线，本局结束。</p></li><li><strong>收集与组合</strong><p>青色「＋」从下一轮增加弹珠。琥珀色爆裂砖击碎后伤害周围。每三轮从三种随机强化中选择一个，可叠加。</p></li><li><strong>选择你的模式</strong><p>关卡模式清空全部波次，逐一解锁六片星域。无尽模式不断产生砖块，挑战最高纪录。回收会放弃本轮剩余弹珠并让砖块下降。</p></li></ol>
+        <ol><li><strong>拖动瞄准，松手发射</strong><p>在场地按住并拖向上方。利用墙壁反弹，让一颗弹珠多撞几块砖。</p></li><li><strong>先拆靠近底部的砖</strong><p>所有弹珠落回后，砖块下降一行。砖块越过底部警戒线，本局结束。</p></li><li><strong>收集与组合</strong><p>青色「＋」从下一轮增加弹珠。琥珀色爆裂砖击碎后伤害周围。每轮 6 连击加一颗弹珠（最多三颗），下轮生效。每三轮从三种随机强化中选择一个，可叠加。</p></li><li><strong>选择你的模式</strong><p>关卡模式清空全部波次，逐一解锁六片星域。无尽模式不断产生砖块，挑战最高纪录。回收会放弃本轮剩余弹珠并让砖块下降。</p></li></ol>
         <p class="muted">两种模式分别存档。回合开始自动保存，中途离开会回到本轮发射前。</p><p id="storage-notice" class="muted"></p>
       </section>
     </main>

@@ -13,6 +13,7 @@ createServer(async (request, response) => {
     let file = path.resolve(root, '.' + pathname);
     const relative = path.relative(root, file);
     if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) { response.writeHead(403).end(); return; }
+    if (pathname === '/publishing.js' && !args.includes('--dist')) file = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
     response.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' }); response.end(await readFile(file));
   } catch { response.writeHead(404).end('Not found'); }

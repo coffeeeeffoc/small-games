@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { GameShare } from '../src/GameShare.js';
-import { gameShareUrl } from '../src/game-sharing.js';
+import { gameShareUrl, publicGameQuery } from '../src/game-sharing.js';
+import { gameRouteHash, parseGameRoute } from '../src/game-route.js';
+import { standaloneGameEntry } from '../src/standalone-entry.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const entry = 'https://example.com/small-games/games/letters-words2/index.html';
@@ -46,6 +48,96 @@ it('retains only the selected Game public parameters', () => {
       `${river}?route=bridges&renderDetail=original&token=private`,
     ),
   ).toBe(`${river}?route=bridges&renderDetail=original`);
+});
+
+const challenges = [
+  ['tower-brake', 'challenge=tower-v1&level=last-descent&targetScore=20000'],
+  ['cage-rescue', 'challenge=rescue-v1&level=rescue-06&targetRescued=6&targetCombo=6'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=endless&seed=4294967295&targetScore=10000000'],
+  ['ember-bounce', 'emberChallenge=1&level=last-light&turns=1000'],
+  ['three-choose-two', 'seed=4294967295&variant=refill&targetScore=1000000000'],
+  ['flick-arena', 'seed=9007199254740991&layout=cross&targetShots=999'],
+  ['moss-garden', 'level=moss-30&targetHints=10000&targetMistakes=10000&targetTime=604800000'],
+] as const;
+
+it.each(challenges)(
+  'preserves %s through public Shell URLs, standalone entries and sharing',
+  (id, query) => {
+    // Exact publicChallengeUrl output; the platform's own tests cover its sanitization.
+    const shared = new URL(`https://example.com/small-games/#/games/${id}?${query}`);
+    expect(shared.search).toBe('');
+    expect(shared.hash).toBe(`#/games/${id}?${query}`);
+    const route = parseGameRoute(shared.hash)!;
+    expect(route).toEqual({ id, search: query });
+    expect(gameRouteHash(id, `${query}&dev=1&token=private`)).toBe(shared.hash);
+    const standalone = new URL(standaloneGameEntry(route.id, route.search), 'https://example.com');
+    expect(standalone.pathname).toBe(`/games/${id}/index.html`);
+    expect(standalone.search).toBe(`?${query}`);
+    standalone.searchParams.set('dev', '1');
+    standalone.searchParams.set('token', 'private');
+    expect(new URL(gameShareUrl(id, standalone.href)).search).toBe(`?${query}`);
+    expect(new URL(gameShareUrl(id, standalone.href, standalone.href)).search).toBe(`?${query}`);
+    for (const key of new URLSearchParams(query).keys()) {
+      const duplicated = new URLSearchParams(query);
+      duplicated.append(key, duplicated.get(key)!);
+      expect(publicGameQuery(id, duplicated.toString())).toBe('');
+    }
+  },
+);
+
+it.each([
+  ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=0'],
+  ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetRescued=0&targetCombo=0'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=1&targetScore=0'],
+  ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=1'],
+  ['three-choose-two', 'seed=0&variant=classic&targetScore=0'],
+  ['three-choose-two', 'seed=42'],
+  ['flick-arena', 'seed=0&layout=first-push&targetShots=1'],
+  ['flick-arena', 'seed=42&layout=triangle'],
+  ['moss-garden', 'level=moss-01&targetHints=0&targetMistakes=0&targetTime=0'],
+  ['moss-garden', 'level=moss-09'],
+])('accepts lower bounds and supported goal-free invitations for %s', (id, query) => {
+  expect(publicGameQuery(id, query)).toBe(query);
+});
+
+it.each([
+  ['tower-brake', 'challenge=tower-v2&level=first-brake'],
+  ['tower-brake', 'challenge=tower-v1&level=unknown'],
+  ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=20001'],
+  ['cage-rescue', 'challenge=rescue-v1&level=rescue-07'],
+  ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetRescued=7'],
+  ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetCombo=7'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=0'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=4294967296'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=1&targetScore=10000001'],
+  ['ball-roguelite', 'challenge=orbit-v1&level=stardust'],
+  ['ember-bounce', 'emberChallenge=2&level=first-spark&turns=1'],
+  ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=0'],
+  ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=1001'],
+  ['ember-bounce', 'emberChallenge=1&level=first-spark'],
+  ['three-choose-two', 'seed=4294967296'],
+  ['three-choose-two', 'seed=-1'],
+  ['three-choose-two', 'seed=1.5'],
+  ['three-choose-two', 'seed=1e3'],
+  ['three-choose-two', 'seed=0x10'],
+  ['three-choose-two', 'seed=%201'],
+  ['three-choose-two', 'seed='],
+  ['three-choose-two', 'seed=1&variant=unknown'],
+  ['three-choose-two', 'seed=1&targetScore=1000000001'],
+  ['three-choose-two', 'targetScore=100'],
+  ['flick-arena', 'seed=9007199254740992&layout=chain'],
+  ['flick-arena', 'seed=1&layout=unknown'],
+  ['flick-arena', 'seed=1&layout=edge&targetShots=0'],
+  ['flick-arena', 'seed=1&layout=edge&targetShots=1000'],
+  ['flick-arena', 'seed=1'],
+  ['moss-garden', 'level=moss-00'],
+  ['moss-garden', 'level=moss-31'],
+  ['moss-garden', 'level=moss-01&targetHints=10001&targetMistakes=0&targetTime=0'],
+  ['moss-garden', 'level=moss-01&targetHints=0&targetMistakes=10001&targetTime=0'],
+  ['moss-garden', 'level=moss-01&targetHints=0&targetMistakes=0&targetTime=604800001'],
+  ['moss-garden', 'level=moss-01&targetHints=0&targetMistakes=0'],
+])('rejects incomplete, unsupported or out-of-bounds %s challenges: %s', (id, query) => {
+  expect(publicGameQuery(id, query)).toBe('');
 });
 
 it('shows a selected manual link after clipboard failure and never reports cancellation as copying', async () => {

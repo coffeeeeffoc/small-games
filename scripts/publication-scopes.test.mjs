@@ -7,6 +7,10 @@ import {
   competitionToolPlan,
   threeChooseTwoBackendFileScope,
   carromBackendFileScope,
+  publishingConsumers,
+  publishingScopePaths,
+  deploymentBundleScopePaths,
+  publicationConfigScopePaths,
 } from './publication-scopes.mjs';
 import {
   incrementalPlan,
@@ -15,6 +19,71 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+
+test('publishing adapter selects all seven real standalone consumers and rejects missing identities', () => {
+  const games = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  for (const file of publishingScopePaths) {
+    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(plan.browser_ids, games.map((game) => game.id).sort());
+    assert.equal(plan.publishing_checks, true);
+    for (const invalid of [{ games: games.slice(1) }, { packages: packages.slice(1) }]) {
+      const rejected = reviewedSharedFileScopes({ ...context, ...invalid });
+      assert.equal(rejected.size, 0);
+      assert.throws(() => incrementalPlan({ ...context, fileScopes: rejected }), /scope undefined/);
+    }
+  }
+  assert.throws(
+    () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
+    /scope undefined/,
+  );
+});
+
+test('deployment and public platform configuration select mandatory checks without unrelated games', () => {
+  const packages = ['runtime-api', 'management-api'].map((name) => ({
+    name,
+    dir: `services/${name}`,
+  }));
+  for (const file of [...deploymentBundleScopePaths, ...publicationConfigScopePaths]) {
+    const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.browser, false);
+    assert.equal(plan.deployment_bundle_checks, deploymentBundleScopePaths.includes(file));
+    assert.equal(plan.publication_config_checks, publicationConfigScopePaths.includes(file));
+  }
+  const before = { scripts: { build: 'keep-existing-build' }, dependencies: {} };
+  const after = structuredClone(before);
+  after.scripts['deployment:bundle'] = 'node scripts/deployment-bundle.mjs';
+  after.scripts['test:deployment-bundle'] = 'node --test scripts/deployment-bundle.test.mjs';
+  const context = {
+    packages,
+    games: [],
+    changedPaths: ['package.json'],
+    readBase: () => JSON.stringify(before),
+    readHead: () => JSON.stringify(after),
+  };
+  assert.equal(reviewedSharedFileScopes(context).size, 1);
+  after.scripts.build = 'changed-build';
+  assert.equal(reviewedSharedFileScopes(context).size, 0);
+  for (const file of [
+    'scripts/deployment-other.mjs',
+    'infra/deployment/unknown.sh',
+    'platforms/publication-extra.mjs',
+  ])
+    assert.throws(
+      () =>
+        incrementalPlan({
+          packages,
+          games: [],
+          changedPaths: [file],
+          fileScopes: reviewedSharedFileScopes({ ...context, changedPaths: [file] }),
+        }),
+      /scope undefined/,
+    );
+});
 
 const carromDirectory = 'games/local/carrom-club';
 const carromCoreFile = `${carromDirectory}/src/core.mjs`;

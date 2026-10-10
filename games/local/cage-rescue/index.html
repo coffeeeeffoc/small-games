@@ -61,7 +61,7 @@
                 d="M5 3.5a1 1 0 0 1 1.5-.86l10 5.65a2 2 0 0 1 0 3.42l-10 5.65A1 1 0 0 1 5 16.5z"
               /></svg
             ><span>开始救援</span></button
-          ><button id="levels" class="secondary">
+          ><button id="challenge-rescue" class="secondary" hidden>好友同关挑战</button><button id="levels" class="secondary">
             <span class="grid-icon" aria-hidden="true"></span>关卡选择
           </button>
           <div class="home-links">
@@ -133,11 +133,13 @@
           <div><strong id="result-rescued">4</strong><span>成功接住</span></div>
           <div><strong id="result-lives">3</strong><span>剩余球机会</span></div>
         </div>
+        <p id="result-chain" class="small-note"></p>
         <p id="result-unlock" class="unlock-note"></p>
         <div class="stack">
           <button id="next" class="primary">下一关</button
           ><button id="retry" class="secondary">免费重试</button
           ><button id="revive" class="secondary" hidden>看广告 · 补一次球机会</button
+          ><button id="share-rescue" class="secondary">分享同关挑战</button
           ><button id="result-home" class="text-button">返回主页</button>
         </div>
         <p id="reward-message" class="small-note" role="status"></p>
@@ -178,7 +180,7 @@
         </div>
         <div class="field-note">
           <strong>先接球，再接人？</strong>
-          <p>球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
+          <p>连续接住两名队友，挡板加宽 5 秒；漏球或漏人会断连。球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
         </div>
         <p class="small-note">电脑也可用 ← → 移动、空格发球、Esc 暂停</p>
       </section>

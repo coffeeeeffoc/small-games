@@ -33,6 +33,7 @@ const server = http.createServer(async (request, response) => {
           : pathname),
     );
     if (file !== path.resolve(root) && !file.startsWith(root)) return response.writeHead(403).end();
+    if (!process.argv.includes('--dist') && pathname === '/publishing.js') file = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
     const body = await readFile(file);
     response.writeHead(200, {

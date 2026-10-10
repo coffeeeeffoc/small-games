@@ -11,6 +11,11 @@ import {
   h5AdapterFileScopes,
 } from './incremental-validation.mjs';
 import { shellContractTargets } from './validation-plan.mjs';
+import {
+  publishingConsumers,
+  publishingScopePaths,
+  reviewedSharedFileScopes,
+} from './publication-scopes.mjs';
 const packages = [
   { name: 'shared', dir: 'packages/ui' },
   { name: 'a', dir: 'games/local/a', dependencies: { shared: 'workspace:*' } },
@@ -32,6 +37,49 @@ const plan = (changedPaths, extra = {}) =>
     readSource: () => 'export const rules = 1;',
     ...extra,
   });
+
+test('publishing UI regressions select only reviewed consumer browsers; shared publishing selects all seven', () => {
+  const consumerGames = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
+  const consumerPackages = consumerGames.map((game) => ({ name: game.id, dir: game.source }));
+  const select = (changedPaths, extra = {}) => {
+    const context = {
+      packages: [...consumerPackages, ...packages],
+      games: [...consumerGames, ...games],
+      changedPaths,
+      readSource: () => 'export const rules = 1;',
+      ...extra,
+    };
+    return incrementalPlan({ ...context, fileScopes: reviewedSharedFileScopes(context) });
+  };
+  for (const file of publishingScopePaths) {
+    const selected = select([file]);
+    assert.deepEqual(selected.publishing_browser_ids, Object.keys(publishingConsumers).sort());
+    assert.deepEqual(selected.browser_ids, selected.publishing_browser_ids);
+    assert.deepEqual(selected.nine_native_targets, []);
+  }
+  for (const { id, source } of consumerGames) {
+    for (const file of ['main.mjs', 'src/web.ts', 'style.css', 'tests/browser.mjs']) {
+      const selected = select([`${source}/${file}`]);
+      assert.deepEqual(selected.publishing_browser_ids, [id]);
+      assert.deepEqual(selected.browser_ids, [id]);
+      assert.deepEqual(selected.nine_native_targets, []);
+    }
+    for (const file of ['rules.mjs', 'game.meta.json', 'docs/validation.md'])
+      assert.deepEqual(select([`${source}/${file}`]).publishing_browser_ids, []);
+  }
+  assert.deepEqual(select(['games/local/a/main.mjs']).publishing_browser_ids, []);
+  assert.throws(
+    () => select(['games/local/tower-brake/main.mjs'], { packages }),
+    /scope undefined/,
+  );
+  assert.throws(
+    () =>
+      select(['games/local/a/main.mjs'], {
+        games: [{ id: 'tower-brake', source: 'games/local/a' }],
+      }),
+    /Unreviewed publishing browser consumer/,
+  );
+});
 
 test('large documentation changes check every file within Windows command limits and still reject formatting errors', async (t) => {
   const { mkdtemp, mkdir, writeFile, rm, symlink } = await import('node:fs/promises');

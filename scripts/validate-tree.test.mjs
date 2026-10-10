@@ -1,9 +1,163 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { assertNodeOnly } from './validate-tree.mjs';
+import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
+import { publishingConsumers } from './publication-scopes.mjs';
+
+test('metadata early return retains mandatory publication checks and propagates their failure', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'publication-metadata-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
+  );
+  const calls = [];
+  let failContract = false;
+  const options = {
+    root,
+    incremental: true,
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    selectScope: async () => ({ required: true, full: false, risk: 'metadata' }),
+    prepareBrowser: () => assert.fail('Metadata must not prepare a browser'),
+    execute(command, args) {
+      calls.push([command === process.execPath ? 'node' : command, ...args]);
+      if (command === 'git') return 'platforms/publication-config.mjs\0';
+      if (args[0] === '--version') return '12.6.0';
+      if (failContract && args.includes('platforms/tests/publication-config.test.mjs'))
+        throw new Error('publication config regression');
+    },
+  };
+  const selected = await validateTree(options);
+  assert.equal(selected.publication_config_checks, true);
+  assert.equal(selected.browser, false);
+  assert.deepEqual(calls.slice(-3), [
+    ['pnpm', 'check:dependencies'],
+    ['pnpm', 'test:game-config'],
+    ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
+  ]);
+  assert(!calls.some((call) => call.includes('build') || call.includes('typecheck')));
+  failContract = true;
+  await assert.rejects(validateTree(options), /publication config regression/);
+});
+
+test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
+  const expected = {
+    'tower-brake': ['publishing-browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs'],
+    'ball-roguelite': ['browser.mjs'],
+    'ember-bounce': ['browser.mjs'],
+    'three-choose-two': ['publishing.browser.mjs'],
+    'flick-arena': ['publishing.browser.mjs'],
+    'moss-garden': ['publishing.browser.mjs'],
+  };
+  const ids = Object.keys(expected);
+  const calls = [];
+  const options = {
+    plan: {
+      browser: true,
+      browser_ids: ids,
+      publishing_browser_ids: ids,
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: Object.values(publishingConsumers).map((dir) => ({ dir })),
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0', PLAYWRIGHT_EXECUTABLE_PATH: '/chromium' },
+    execute(command, args, cwd, env, mode) {
+      assert.equal(command, process.execPath);
+      assert.equal(cwd, '/candidate');
+      assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/chromium');
+      assert.equal(mode, 'logged');
+      calls.push(args);
+    },
+  };
+  runIncrementalToolChecks(options);
+  const scripts = ids.flatMap((id) =>
+    expected[id].map((file) => `${publishingConsumers[id]}/tests/${file}`),
+  );
+  assert.deepEqual(
+    calls,
+    scripts.map((file) => [file]),
+  );
+  for (const failing of scripts) {
+    const attempted = [];
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute(command, [file]) {
+            attempted.push(file);
+            if (file === failing) throw new Error('browser regression');
+          },
+        }),
+      /browser regression/,
+    );
+    assert.deepEqual(attempted, scripts.slice(0, scripts.indexOf(failing) + 1));
+  }
+  for (const invalid of [
+    { publishing_browser_ids: ['unknown'] },
+    { browser: false },
+    { browser_ids: [] },
+  ])
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          plan: { ...options.plan, ...invalid },
+          execute: () => assert.fail('Invalid target must fail before execution'),
+        }),
+      /Unreviewed publishing browser target/,
+    );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        packages: [],
+        execute: () => assert.fail('Missing consumer must fail before execution'),
+      }),
+    /Unreviewed publishing browser target/,
+  );
+});
+test('publishing and deployment contracts run with native gates deferred and service failures propagate', async () => {
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const calls = [];
+  const options = {
+    plan: {
+      publishing_checks: true,
+      publication_config_checks: true,
+      deployment_bundle_checks: true,
+      service_rule_sources: ['services/runtime-api'],
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: [{ dir: 'services/runtime-api', name: 'runtime', scripts: { test: 'vitest run' } }],
+    root: '/fixture',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (command, args) =>
+      calls.push([command === process.execPath ? 'node' : command, ...args]),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    ['node', '--test', 'platforms/h5/tests/publishing.test.mjs'],
+    ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
+    ['node', '--test', 'scripts/deployment-bundle.test.mjs'],
+    ['pnpm', '--filter', 'runtime', 'test'],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('regression');
+        },
+      }),
+    /regression/,
+  );
+});
 test('native publication gates default off, retain root rules and preserve Web checks', async () => {
   const { nativeReleaseGatesEnabled, runNineNativeChecks, runIncrementalToolChecks } = await import(
     './validate-tree.mjs'

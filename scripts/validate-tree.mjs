@@ -34,6 +34,7 @@ import {
   shellContractFiles,
 } from './validation-plan.mjs';
 import { main as selectScope, collectChangedPaths } from './pages-test-scope.mjs';
+import { publishingConsumers } from './publication-scopes.mjs';
 
 // Fail closed on test commands without a demonstrably browser-free entry/import graph.
 export async function assertNodeOnly(command, dir, visited = new Set()) {
@@ -379,6 +380,66 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.publishing_checks)
+    execute(
+      process.execPath,
+      ['--test', 'platforms/h5/tests/publishing.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.publication_config_checks)
+    execute(
+      process.execPath,
+      ['--test', 'platforms/tests/publication-config.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.deployment_bundle_checks)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/deployment-bundle.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
+  // Keep them sequential: several own a local server and write candidate evidence.
+  const publishingBrowsers = {
+    'tower-brake': ['publishing-browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs'],
+    'ball-roguelite': ['browser.mjs'],
+    'ember-bounce': ['browser.mjs'],
+    'three-choose-two': ['publishing.browser.mjs'],
+    'flick-arena': ['publishing.browser.mjs'],
+    'moss-garden': ['publishing.browser.mjs'],
+  };
+  const publishingIds = [...new Set(plan.publishing_browser_ids || [])];
+  for (const id of publishingIds)
+    assert(
+      Object.hasOwn(publishingBrowsers, id) &&
+        plan.browser &&
+        plan.browser_ids.includes(id) &&
+        packages.some((pkg) => pkg.dir === publishingConsumers[id]),
+      `Unreviewed publishing browser target: ${id}`,
+    );
+  for (const id of publishingIds)
+    for (const file of publishingBrowsers[id])
+      execute(process.execPath, [`${publishingConsumers[id]}/tests/${file}`], root, env, 'logged');
+  for (const source of plan.service_rule_sources || []) {
+    assert(
+      [
+        'services/runtime-api',
+        'services/management-api',
+        'packages/ad-runtime',
+        'platforms/douyin',
+      ].includes(source),
+    );
+    const pkg = packages.find((item) => item.dir === source);
+    assert(pkg?.scripts?.test, `Missing runtime rule suite: ${source}`);
+    execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+  }
   const releaseGates = nativeReleaseGatesEnabled(env);
   const competition = plan.competition && {
     ...plan.competition,
@@ -441,6 +502,7 @@ export async function validateTree({
   deferIdenticalRulesToAggregate = false,
   incremental = false,
   prepareBrowser = () => {},
+  selectScope: selectValidationScope = selectScope,
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   console.log(
@@ -476,7 +538,7 @@ export async function validateTree({
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
   if (!sourcePaths.length)
     return { browser: false, cocos: false, browser_ids: [], nine_native_targets: [] };
-  const plan = await selectScope(
+  const plan = await selectValidationScope(
     {
       ...clean,
       GITHUB_EVENT_NAME: 'push',
@@ -666,6 +728,8 @@ export async function validateTree({
   if (metadataOnly) {
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);
+    if (incrementalScope)
+      runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
     return incrementalScope || plan;
   }
   for (const task of ['typecheck', 'lint']) {

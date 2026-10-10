@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run"
+    "test": "node --test tests/native-resources.test.mjs && vitest run --exclude tests/native-resources.test.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/native-game-shell": "workspace:*",

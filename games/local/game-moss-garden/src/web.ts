@@ -5,6 +5,7 @@ import { isAccessibleActionClick } from './web-input.ts';
 import { defaultMossGardenEnvelope, mossGardenManifest, validateMossContent } from './canvas.ts';
 import type { View, HitArea } from './render.ts';
 import './style.css';
+import { createH5Publishing, type AdProvider } from '../../../../platforms/h5/publishing.js';
 
 const root = document.querySelector<HTMLElement>('#garden')!;
 const canvas = document.querySelector<HTMLCanvasElement>('#scene')!;
@@ -62,6 +63,46 @@ const activePointers = new Map<number, { x: number; y: number }>();
 const buttons = new Map<string, HTMLButtonElement>();
 let game: Awaited<ReturnType<typeof createMossGame>> | null = null;
 let audio: AudioContext | undefined;
+let publishingPaused = false;
+const challengeParams = new URLSearchParams(location.search);
+const challengeNumber = (key: string, maximum: number) => {
+  const raw = challengeParams.get(key);
+  return /^\d{1,9}$/.test(raw || '') && Number(raw) <= maximum ? Number(raw) : null;
+};
+const challengeHints = challengeNumber('targetHints', 10000),
+  challengeMistakes = challengeNumber('targetMistakes', 10000),
+  challengeTime = challengeNumber('targetTime', 604800000);
+const challengeGoal =
+  challengeHints !== null && challengeMistakes !== null && challengeTime !== null
+    ? { hints: challengeHints, mistakes: challengeMistakes, elapsedMs: challengeTime }
+    : undefined;
+const publishingConfig = (
+  globalThis as typeof globalThis & {
+    SmallGamesPublishingConfig?: {
+      adMode?: 'mock' | 'off' | 'host';
+      provider?: AdProvider;
+      publicUrl?: string;
+    };
+  }
+).SmallGamesPublishingConfig;
+const publishing = createH5Publishing({
+  gameId: 'moss-garden',
+  title: '苔光花园',
+  adMode: publishingConfig?.adMode ?? 'mock',
+  provider: publishingConfig?.provider,
+  publicUrl: publishingConfig?.publicUrl,
+  pause() {
+    const wasSuspended = game?.isSuspended() ?? false;
+    publishingPaused = true;
+    cancel();
+    game?.pause();
+    void audio?.suspend().catch(() => {});
+    return () => {
+      publishingPaused = false;
+      if (!wasSuspended && !document.hidden) game?.resume();
+    };
+  },
+});
 
 function resize() {
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -186,7 +227,7 @@ window.addEventListener(
 window.addEventListener(
   'focus',
   () => {
-    game?.resume();
+    if (!publishingPaused) game?.resume();
   },
   options,
 );
@@ -197,7 +238,7 @@ document.addEventListener(
       cancel();
       game?.pause();
       void audio?.suspend().catch(() => {});
-    } else game?.resume();
+    } else if (!publishingPaused) game?.resume();
   },
   options,
 );
@@ -212,7 +253,7 @@ window.addEventListener(
 window.addEventListener(
   'pageshow',
   () => {
-    game?.resume();
+    if (!publishingPaused) game?.resume();
     resize();
   },
   options,
@@ -224,6 +265,28 @@ try {
     {
       canvas,
       native: false,
+      challengeLevel: challengeParams.get('level') ?? undefined,
+      challengeGoal,
+      minimumTouchSize: () => 44 * Math.min(window.devicePixelRatio || 1, 2),
+      async naturalBreak() {
+        await publishing.interstitial({ placement: 'result-exit', naturalBreak: true });
+      },
+      async shareChallenge(result) {
+        const response = await publishing.share({
+          text: `苔光花园第 ${result.levelNumber} 关：${Math.floor(result.elapsedMs / 1000)} 秒，${result.hints} 次提示、${result.mistakes} 次调整。来点亮同一片花圃！`,
+          params: {
+            level: result.levelId,
+            targetHints: Math.min(10000, result.hints),
+            targetMistakes: Math.min(10000, result.mistakes),
+            targetTime: Math.min(604800000, Math.floor(result.elapsedMs)),
+          },
+        });
+        return response.status === 'copied'
+          ? '同关挑战链接已复制'
+          : ['failed', 'unavailable'].includes(response.status)
+            ? '分享暂不可用，仍可继续播种'
+            : '';
+      },
       dev: window.SmallGamesDev?.isEnabled() ?? false,
       onTap() {
         return () => {};

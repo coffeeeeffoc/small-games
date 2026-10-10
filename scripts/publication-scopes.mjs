@@ -559,6 +559,51 @@ function assertCageRescueImmersive(file, before, after) {
   }
 }
 
+// H5 publishing is copied/bundled into these standalone games. This explicit
+// boundary keeps a change to the shared adapter from silently skipping consumers.
+export const publishingConsumers = {
+  'tower-brake': 'games/local/tower-brake',
+  'cage-rescue': 'games/local/cage-rescue',
+  'ball-roguelite': 'games/local/ball-roguelite',
+  'three-choose-two': 'games/local/three-choose-two',
+  'flick-arena': 'games/local/flick-arena',
+  'moss-garden': 'games/local/game-moss-garden',
+  'ember-bounce': 'games/local/ember-bounce',
+};
+export const publishingScopePaths = [
+  'platforms/h5/publishing.js',
+  'platforms/h5/publishing.d.ts',
+  'platforms/h5/tests/publishing.test.mjs',
+];
+export const publicationConfigScopePaths = [
+  'platforms/publication-config.mjs',
+  'platforms/.env.example',
+  'platforms/tests/publication-config.test.mjs',
+];
+export const deploymentBundleScopePaths = [
+  'scripts/deployment-bundle.mjs',
+  'scripts/deployment-bundle.test.mjs',
+  'infra/deployment/.env.example',
+  'infra/deployment/bootstrap.sql',
+  'infra/deployment/deploy.sh',
+  'infra/deployment/validate-env.mjs',
+  'infra/deployment/initialize-operator.mjs',
+];
+const deploymentCommands = {
+  'deployment:bundle': 'node scripts/deployment-bundle.mjs',
+  'test:deployment-bundle': 'node --test scripts/deployment-bundle.test.mjs',
+};
+function deploymentCommandsOnly(before, after) {
+  const previous = JSON.parse(before);
+  const current = JSON.parse(after);
+  for (const [name, command] of Object.entries(deploymentCommands)) {
+    assert(current.scripts?.[name] === command);
+    assert(!Object.hasOwn(previous.scripts, name) || previous.scripts[name] === command);
+    if (!Object.hasOwn(previous.scripts, name)) delete current.scripts[name];
+  }
+  return isDeepStrictEqual(previous, current);
+}
+
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
@@ -572,7 +617,24 @@ export function reviewedSharedFileScopes({
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (
+      if (publishingScopePaths.includes(file)) {
+        for (const [id, source] of Object.entries(publishingConsumers)) {
+          assert(games.filter((game) => game.id === id && game.source === source).length === 1);
+          assert(packages.some((pkg) => pkg.dir === source));
+        }
+        scopes.set(file, Object.values(publishingConsumers));
+      } else if (publicationConfigScopePaths.includes(file)) {
+        scopes.set(file, []);
+      } else if (
+        deploymentBundleScopePaths.includes(file) ||
+        (file === 'package.json' && deploymentCommandsOnly(readBase(file), readHead(file)))
+      ) {
+        // The bundle's source-copy/secret-isolation contract is checked directly.
+        // Unchanged kart/Cocos game rendering is not an input to a backend archive.
+        for (const source of ['services/runtime-api', 'services/management-api'])
+          assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, ['services/runtime-api', 'services/management-api']);
+      } else if (
         file === carromDeployFile &&
         carromBackendFileScope(file, readBase(file), readHead(file))
       ) {

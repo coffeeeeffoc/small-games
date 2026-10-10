@@ -22,6 +22,8 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  // This standalone H5 entry is bundled by Vite; puzzle rules/native entry stay host-only.
+  'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
