@@ -13441,14 +13441,14 @@ body.competition-active #mode-online { position:static; }
 			draw(ctx, width, height, state) {
 				hits = [];
 				const level = mapFor(state), duel = state?.kind === "cops-duel", role = duel ? state.role : "pursuer";
-				ctx.fillStyle = "#f5f0e5";
+				ctx.fillStyle = "#e0f5e9";
 				ctx.fillRect(0, 0, width, height);
 				ctx.textAlign = "left";
 				ctx.textBaseline = "middle";
-				const text = (label, x, y, size = 14, color = "#263e43") => {
+				const text = (label, x, y, size = 14, color = "#153c53", maxWidth = width - 24) => {
 					ctx.font = `${size}px sans-serif`;
 					ctx.fillStyle = color;
-					ctx.fillText(label, x, y);
+					ctx.fillText(label, x, y, maxWidth);
 				};
 				if (!level || !state.board) {
 					text("正在等待围捕地图…", 16, 30);
@@ -13463,7 +13463,11 @@ body.competition-active #mode-online { position:static; }
 				selected = Math.min(selected, positions.length - 1);
 				if (positions[selected] < 0) selected = Math.max(0, positions.findIndex((node) => node >= 0));
 				const targets = ended ? [] : legal(level, state);
-				const size = Math.max(100, Math.min(width - 16, height - 150, 620)), left = (width - size) / 2, top = 60;
+				const sideways = height < 300 && width > height * 1.25;
+				const size = sideways ? Math.max(40, Math.min(height - 40, width * .52, 620)) : Math.max(40, Math.min(width - 16, height - 150, 620));
+				const left = sideways ? 12 : (width - size) / 2, top = sideways ? 24 : 60;
+				const controlsLeft = sideways ? left + size + 18 : 12;
+				const controlsWidth = sideways ? width - controlsLeft - 12 : width - 24;
 				const point = (node) => ({
 					x: left + level.nodes[node].x / 600 * size,
 					y: top + level.nodes[node].y / 600 * size
@@ -13487,16 +13491,16 @@ body.competition-active #mode-online { position:static; }
 					h,
 					action
 				});
-				text(`${level.name}`, 12, 16, 15);
-				text(duel ? `我是${role === "runner" ? "突围队" : "追逐队"} · ${board.side === "runner" ? "突围队" : "追逐队"}行动` : "围堵挑战", 12, 38, 12);
+				text(`${level.name}`, controlsLeft, 16, 15, "#153c53", Math.max(40, controlsWidth - 56));
+				text(duel ? `我是${role === "runner" ? "突围队" : "追逐队"} · ${board.side === "runner" ? "突围队" : "追逐队"}行动` : "围堵挑战", controlsLeft, 38, 12, "#153c53", controlsWidth);
 				ctx.textAlign = "right";
 				text(`${duel ? Math.floor(board.turn / 2) + " 回合" : board.turn + " 步"}`, width - 12, 16, 12);
 				ctx.textAlign = "center";
-				ctx.fillStyle = "#e3e8d2";
+				ctx.fillStyle = "#bde3a3";
 				ctx.fillRect(left, top, size, size);
 				ctx.lineCap = "round";
 				ctx.lineWidth = Math.max(12, size * .032);
-				ctx.strokeStyle = "#fbf7e8";
+				ctx.strokeStyle = "#fff9e8";
 				for (const [from, to] of level.edges) {
 					const a = point(from), b = point(to);
 					ctx.beginPath();
@@ -13520,12 +13524,15 @@ body.competition-active #mode-online { position:static; }
 					text(`${index + 1}`, p.x, p.y - 33, 11, side === "pursuer" ? "#1258c2" : "#a44908");
 					hit(`${side === "pursuer" ? "追逐队" : "突围队"} ${index + 1} 号`, p.x - 22, p.y - 35, 44, 40, mine ? { local: index } : { target: node });
 				});
-				text(ended ? `${duel ? board.winner === "runner" ? "突围队获胜" : "追逐队获胜" : board.robbers.includes(-2) ? "突围成功" : "拦截成功"} · 等待结算` : duel && board.side !== role ? "等待对手行动" : note || `已选 ${selected + 1} 号，点相邻路口数字移动`, width / 2, top + size + 17, 12);
-				const buttonY = top + size + 33, buttonWidth = Math.min(180, width - 24), buttonX = (width - buttonWidth) / 2, canAct = !ended && (!duel || board.side === role);
-				ctx.fillStyle = canAct ? "#1258c2" : "#b9c4b8";
-				ctx.fillRect(buttonX, buttonY, buttonWidth, 40);
-				text(ended ? "本局结束" : canAct ? "留守一步" : "对手行动中", width / 2, buttonY + 20, 14, "#fffdf5");
-				if (canAct) hit("留守一步", buttonX, buttonY, buttonWidth, 40, { target: positions[selected] });
+				const message = ended ? `${duel ? board.winner === "runner" ? "突围队获胜" : "追逐队获胜" : board.robbers.includes(-2) ? "突围成功" : "拦截成功"} · 等待结算` : duel && board.side !== role ? "等待对手行动" : note || `已选 ${selected + 1} 号，点相邻路口数字移动`;
+				const controlCenter = sideways ? controlsLeft + controlsWidth / 2 : width / 2;
+				text(message, controlCenter, sideways ? height / 2 - 16 : top + size + 17, 12, "#153c53", controlsWidth);
+				const buttonY = sideways ? Math.min(height - 52, height / 2 + 8) : top + size + 33;
+				const buttonWidth = Math.min(180, controlsWidth), buttonX = controlCenter - buttonWidth / 2, canAct = !ended && (!duel || board.side === role);
+				ctx.fillStyle = canAct ? "#1687a6" : "#b9c4b8";
+				ctx.fillRect(buttonX, buttonY, buttonWidth, 44);
+				text(ended ? "本局结束" : canAct ? "留守一步" : "对手行动中", controlCenter, buttonY + 22, 14, "#fffdf5", controlsWidth);
+				if (canAct) hit("留守一步", buttonX, buttonY, buttonWidth, 44, { target: positions[selected] });
 				return hits;
 			},
 			tap(x, y, state) {
