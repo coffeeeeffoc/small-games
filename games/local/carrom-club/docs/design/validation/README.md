@@ -1,35 +1,33 @@
 # 克朗棋验收记录
 
-日期：2026-10-10。本次慢调与界面优化在 Linux 云环境重新运行游戏浏览器回归：Node 24.21.0、pnpm 12.6.0、Chromium 151.0.7922.173 手机模拟与 CDP 触屏事件。当前 PNG 截图与 `browser-report.json` 来自该次正式构建验证。原始接入时的公共开发模式/全屏及 Shell 检查在 Windows Chromium 140 完成；最终候选还须执行本次增量 Shell 门禁。此处不包含物理手机或原生小游戏宿主验收。
+日期：2026-10-11。Linux 云环境，Node 24.21.0、pnpm 12.6.0、Chromium 151.0.7922.173。手机视口与原生 CDP 触控输入，不是物理手机或原生小游戏宿主验收。
 
-## 本次慢调与视觉优化
+## 积分与好友房间
 
-设计依据为 `../refinement-2026-10-10/concept.png`；沿用木盘与桌毡，新增黑白棋子席位徽章、黄铜回合铭牌、木质控制托盘与刻度滑轨。主页、选关和对局的材质一致。使用手势慢调及角度读数，未增加效果图中的额外 ± 按钮，保持单指回拉松手出杆。
+设计依据为 `../friends-2026-10-11/concept.png`。沿用深绿桌毡、木盘和黄铜控件，主页增加好友对战入口；独立房间页提供创建、输入房号/邀请、准备、复制邀请和退出。双端各自底线朝下，黑方触屏坐标与滑轨反向映射。席位同时显示积分和本色入袋数，红后成功补进显示加 3 分；结算比较双方积分，同分清台方胜，练习保留目标和杆数评星。
 
-角度增益最高为原来的 22%，短回拉时进一步降低；1.75 CSS px 死区和静止后 70ms 的小幅移动确认过滤指尖抖动。首次回拉即时定向，大幅换向可回到起点后重新回拉。移除击球子呼吸缩放和移动瞄准虚线，预览与出杆使用相同方向。
+`actual-home-390.png`、`actual-match-390.png`、`actual-aim-390.png` 对照生成效果图；`friends-*.png` 来自真实 HTTP 服务与独立身份的双浏览器流程。原有选关、暂停、胜负和小屏/横屏截图继续保留。暂停仍为两根 SVG 实心竖条。未添加效果图中的额外角度按钮，继续直接回拉操控。
 
-新增5项纯输入测试，与10项规则测试共15项通过。CDP触屏验证包括：短回拉1.5px偏移不改变预览，保持4px微调后角度变化小于1°，停止后不漂移，松手前4px/2px偏移不改变实际击发角度，第二触点移动/离开不影响主触点，其他指针取消不丢失主手势，回到起点松手不出杆。帮助页更新与返回流程通过；390×844、320×640、844×390 的完整流程均通过，零页面异常。详见本次 `browser-report.json`。
+## 触控与性能
 
-## 设计对照
+未命中目标时角度增益为 1；命中真实首个目标球时降低到 0.22，并对短回拉限幅。青蓝实线箭头、深描边、目标环与浅色虚线同时提供颜色和形状区别。保留 1.75 CSS px 死区与静止后短暂偏移过滤。
 
-- `actual-home-390.png` 对照 `../concept.png` 的主页：保留深绿织纹、黄铜字牌、斜放木盘、单一开始主操作与选关入口。生成图的植物装饰不加入运行界面，避免首屏额外资源和触控遮挡。
-- `actual-match-390.png`、`actual-aim-390.png` 对照对局：真实九白九黑一红布局；袋口、基线和棋子与物理坐标一致；底部金色摆位滑轨、首碰预览和回拉力度实际可用。图片只承担木纹，棋子不是贴死在背景上。
-- `actual-levels-390.png` 对照选关：六张木牌、实际关卡缩略棋盘、星级与锁定状态来自同一关卡配置。初始只开放第一关，通关后仅解锁下一关。
-- `actual-match-320.png` / `actual-match-844.png` 检查小屏与横屏：竖屏上下席位，横屏棋盘在左、操作在右。棋盘、滑轨、暂停按钮可见；无需旋转设备才能游玩。开发模式截图显示统一调试浮钮，暂停在开发模式移到左侧，正式玩家模式仍在右侧。
-- 暂停图标为两根等宽等高的 SVG 实心竖条；结算页保留刚结束的棋盘图层，提供下一关、重试、主页操作。
+正式构建触控回归覆盖：未命中时保持 4px 横移转向 4–8°，真命中时同等微调小于 1.2°；停止后不漂移；松手前偏移不改变实际出杆角度；回到起点、取消、多指和失焦不误发。暂停恢复、真实落袋胜利、杆数失败、AI 接杆、解锁和存档均通过。视口 390×844、320×640、844×390，详情见 `browser-report.json`。
 
-## 通过的验证
+摆位不再使完整 HUD 失效；棋盘尺寸与棋子精灵缓存，静止时按需绘制。预热后连续 120 次独立绘制，新增渐变和画布尺寸读取均为 0；主界面 30 次摆位及松手测试中，事件栈内存档写入为 0，随后合并为 1 次写入，预热帧无渐变重建和画布布局读取。后台/退出前刷新待保存数据。此证据说明已移除所定位热点，不能等同于真机帧率保证。
 
-1. `pnpm --filter @coffeeeeffoc/carrom-club test`：15项输入/规则测试，覆盖慢调防抖、收杆、高速碰撞、边框反弹、落袋、换手、红后补进/返场、罚子/欠子、合法AI出杆、整局终止、六关物理可达和存档校验。
-2. `pnpm --filter @coffeeeeffoc/carrom-club test:browser`：正式构建、390×844/320×640/844×390、摆位、回拉、取消、真实落袋胜利、真实空杆失败、暂停冻结/恢复、AI接杆、下一关解锁、刷新存档、声音偏好、全屏进入/退出以及存储/全屏拒绝降级；零页面异常。详见 `browser-report.json`。
-3. `pnpm check:games`：67款游戏，0项配置问题；`pnpm check:dependencies`通过。
-4. `pnpm check:dev-mode` 与 `pnpm test:dev-mode`：公共副本一致，5项语义测试通过。
-5. `DEV_MODE_GAME_IDS=carrom-club pnpm test:dev-mode:browser`：该游戏独立/Shell的8种开关组合，加公共控件触屏拖动、取消、性能、记忆开关、退出以及同源/跨域iframe，共10项浏览器检查通过。公共乌龙城样本先按原测试要求构建，未改动公共测试语义。
-6. `PAGES_GAME_IDS=["carrom-club"] PAGES_SKIP_BUILTINS=1 pnpm --filter @coffeeeeffoc/shell-web test:pages:games`：目录、真实iframe加载/出杆/暂停返回、独立手机触屏、宽度和Runtime隔离通过。保留原sandbox/权限约束。
-7. `pnpm test:h5-fullscreen`：21份公共副本一致；独立、同源iframe、旁边有另一个游戏面板、拒绝和不支持分支通过。
+## 验证命令与证据
+
+- `pnpm --filter @coffeeeeffoc/carrom-club test`：物理、计分、犯规退分、红后逆转、平分、六关可达、旧存档、目标感知瞄准、房间协议、幂等恢复、邀请脱敏和联网构建配置。
+- `pnpm --filter @coffeeeeffoc/carrom-club build` 后 `pnpm --filter @coffeeeeffoc/carrom-club test:browser`：生产制品的手机触控、全流程及性能热点检查，记录在 `browser-report.json`。
+- Runtime 的 `tests/carrom.test.ts`：服务端权威出杆、错误席位/输入拒绝、确定性、红后积分、认输与超时结算；`tests/carrom-deployment.test.ts` 验证实际部署目录可以导入规则并执行物理。
+- 设置 `CARROM_TEST_DATABASE_URL` 指向隔离的 `competition_test` 数据库，运行 `pnpm --filter @coffeeeeffoc/runtime-api exec vitest run tests/carrom.integration.test.ts`：实际 HTTP 独立身份、成员授权、双方准备、并发重复序号、同步、续局与退出。
+- 启动上述隔离 Runtime，设置 `CARROM_TEST_API_URL=http://127.0.0.1:43002/api/competition/v1`，运行 `node games/local/carrom-club/tests/friends-browser.mjs`：自动构建并启动 43010 静态端，双手机视口实际触控，记录在 `friends-browser-report.json`。API 须允许该本地 Origin。覆盖重试按钮取消/拖出热区不提交、触屏点击去重、带邀请参数刷新保留未确认出杆、续局更新 URL 并刷新保持新房、退出清理邀请参数。
+- `DEV_MODE_GAME_IDS=carrom-club node scripts/test-game-dev-mode.mjs`：独立/Shell 四种开关共 8 项，加固定手机触控和跨域 iframe 场景，共 10 项通过，0 错误。只构建 Shell 必要依赖及乌龙城固定测试样本，未运行全量 `build:pages`。
+- 公共开发模式副本与单测、游戏注册、依赖边界，以及 Runtime typecheck/lint 均通过。发布分类测试严格限定新增核心输入，不放宽其他部署变更。
 
 ## 发布边界
 
-本次为 H5/手机 Web 与 Shell iframe；没有联网匹配、真实广告或原生微信/B站工程。桌面模拟不能证明真机触感、触觉反馈或帧率；声音/震动仍依赖设备支持与用户手势。规则为帮助页明确说明的休闲版，不声称完整赛事裁判规则。
+本次交付 H5/手机 Web、Shell iframe 与现有 Runtime API 的联网好友规则。腾讯同源站点仍须部署含新规则的 Runtime；GitHub Pages 等分离静态站点须设置公共 competition API 地址及服务端 Origin 白名单。单独推送或静态发布不代表线上 Runtime 已更新。原生微信/B站工程、真机帧率及触觉反馈不在本次实测范围。
 
-代码提交后按仓库准确 base/head 候选流程验证；候选、正常 pre-push 和远端 CI/Pages 的最终状态分别核对，不能互相代替。运行日志保存在工作区 `.scratch/carrom-release/`，最终提交号与远端状态见交付说明。
+代码提交后对准确 base/head 执行候选验证，再保留正常 pre-push 推送；远端 CI/Pages 状态单独核对。候选日志保存在工作区 `/workspace/scratch/carrom-release/`，最终提交与远端状态见交付说明。

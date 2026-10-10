@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "cache": false,
+      "env": ["COMPETITION_PUBLIC_API_URL", "COMPETITION_RELEASE_CONFIG"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/platforms/competition/client.js"]
+    }
+  }
+}

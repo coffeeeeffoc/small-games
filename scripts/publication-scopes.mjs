@@ -183,6 +183,45 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   }
   return expected === after;
 }
+
+const carromSource = 'games/local/carrom-club';
+const carromCore = `${carromSource}/src/core.mjs`;
+const carromContent = `${carromSource}/src/content.mjs`;
+const carromRule = 'services/runtime-api/rules/carrom.mjs';
+const carromDeployFile = 'scripts/deploy-tencent.mjs';
+const carromDeployAnchor =
+  "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
+const carromDeployAddition = `    '${carromCore}',\n    '${carromContent}',\n`;
+
+/** Only copy the two shared rule inputs; deployment commands and secrets stay bound. */
+export function carromBackendFileScope(file, before, after) {
+  return (
+    file === carromDeployFile &&
+    typeof before === 'string' &&
+    before.split(carromDeployAnchor).length === 2 &&
+    !before.includes(carromCore) &&
+    !before.includes(carromContent) &&
+    after === before.replace(carromDeployAnchor, carromDeployAnchor + carromDeployAddition)
+  );
+}
+
+function assertCarromConsumers(games, packages) {
+  const catalog = games.filter((game) => game.id === 'carrom-club' || game.source === carromSource);
+  assert(
+    catalog.length === 1 && catalog[0].id === 'carrom-club' && catalog[0].source === carromSource,
+    'Unreviewed carrom catalog binding',
+  );
+  assert(
+    packages.some((pkg) => pkg.dir === 'services/runtime-api'),
+    'Missing carrom server consumer',
+  );
+}
+
+function importsModule(source, target) {
+  return parsedSource(source).body.some(
+    (node) => node.type === 'ImportDeclaration' && node.source.value === target,
+  );
+}
 const localIgnores = new Set([
   '.codex/config.toml',
   '.codex/config.toml.backup.*',
@@ -523,11 +562,33 @@ function assertCageRescueImmersive(file, before, after) {
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
-export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, games }) {
+export function reviewedSharedFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  games,
+  packages = [],
+}) {
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (file === threeChooseTwoMigration || Object.hasOwn(threeChooseTwoBackendChanges, file)) {
+      if (
+        file === carromDeployFile &&
+        carromBackendFileScope(file, readBase(file), readHead(file))
+      ) {
+        assertCarromConsumers(games, packages);
+        scopes.set(file, [carromSource, 'services/runtime-api']);
+      } else if (file === carromCore || file === carromContent) {
+        assertCarromConsumers(games, packages);
+        assert(importsModule(readHead(carromRule), '../../../' + carromCore));
+        if (file === carromContent) assert(importsModule(readHead(carromCore), './content.mjs'));
+        // A pure core edit still needs authoritative-server builds/types/tests,
+        // without promoting a rules-only edit to a game browser regression.
+        scopes.set(file, ['services/runtime-api']);
+      } else if (
+        file === threeChooseTwoMigration ||
+        Object.hasOwn(threeChooseTwoBackendChanges, file)
+      ) {
         assert(
           games.some(
             (game) =>

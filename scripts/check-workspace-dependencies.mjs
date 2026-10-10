@@ -37,6 +37,7 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/tests/native-test-actions.mjs',
   'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/library.js',
   'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
+  'services/runtime-api/rules/carrom.mjs -> games/local/carrom-club/src/core.mjs',
   'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
   'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel-levels.js',
   'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel.js',

@@ -46,16 +46,26 @@ try {
   };
   const state = () => page.evaluate(() => window.__carrom.snapshot());
   const cdp = await context.newCDPSession(page);
-  const touch = (type, points = []) =>
-    cdp.send('Input.dispatchTouchEvent', {
+  const touch = async (type, points = []) => {
+    await cdp.send('Input.dispatchTouchEvent', {
       type,
       touchPoints: points.map((p, i) => ({ ...p, id: i + 1 })),
     });
+    // CDP acknowledges before Chromium's real compositor has always delivered
+    // a coalesced touchmove. Let it drain before advancing the mocked game clock.
+    await new Promise((resolve) => setTimeout(resolve, 24));
+  };
   const boardPoint = async (x, y) => {
     const b = await page.locator('#board').boundingBox();
     return { x: b.x + (x / 1000) * b.width, y: b.y + (y / 1000) * b.width };
   };
-  async function dragShot(shot, cancel = false, aimImage = false, liftJitter = false) {
+  async function dragShot(
+    shot,
+    cancel = false,
+    aimImage = false,
+    liftJitter = false,
+    inspectAim = null,
+  ) {
     const box = await page.locator('#position').boundingBox();
     const current = Number(await page.locator('#position').inputValue());
     const rangePoint = (value) => ({
@@ -79,6 +89,7 @@ try {
     await touch('touchMove', [end]);
     await advance(32);
     if (aimImage) await screenshot('actual-aim-390');
+    if (inspectAim) await inspectAim({ start, end });
     if (liftJitter) {
       await advance(120);
       const preview = (await state()).aim;
@@ -105,6 +116,8 @@ try {
   await tap('#help-open');
   await expect(page.locator('#help')).toBeVisible();
   await expect(page.locator('#help')).toContainText('左右慢慢微调');
+  await expect(page.locator('#help')).toContainText('3 分');
+  await expect(page.locator('#help')).toContainText('积分高者获胜');
   await tap('#help [data-home]');
   await tap('#levels-open');
   await screenshot('actual-levels-390');
@@ -118,6 +131,30 @@ try {
   await dragShot(shot, true, true);
   assert.equal((await state()).game.shots, 0);
   checks.push('native touch positioning, aiming, pointercancel without firing');
+  await dragShot(shot, true, false, false, async ({ end }) => {
+    const initial = (await state()).aim;
+    const hit = await page.evaluate(async () => {
+      const { aimPreview } = await import('../src/core.mjs');
+      const { game, aim } = window.__carrom.snapshot();
+      return aimPreview(game, aim.dx, aim.dy).hit?.id;
+    });
+    assert(hit, 'the slow-adjustment gesture must actually hit a coin');
+    await advance(120);
+    await touch('touchMove', [{ x: end.x + 4, y: end.y }]);
+    await advance(16);
+    await advance(100);
+    const adjusted = (await state()).aim;
+    const delta = Math.atan2(
+      adjusted.dy * initial.dx - adjusted.dx * initial.dy,
+      adjusted.dx * initial.dx + adjusted.dy * initial.dy,
+    );
+    assert(
+      Math.abs(delta) > 0.001 && Math.abs(delta) < (1.2 * Math.PI) / 180,
+      JSON.stringify({ initial, adjusted, deltaDegrees: (delta * 180) / Math.PI }),
+    );
+    checks.push('a real target collision enables sub-1.2° held 4px touch adjustment');
+  });
+  assert.equal((await state()).game.shots, 0);
   {
     const { game } = await state();
     const start = await boardPoint(game.striker.x, game.striker.y);
@@ -144,7 +181,7 @@ try {
     await advance(100);
     const adjusted = (await state()).aim;
     const angle = (Math.atan2(adjusted.dx, -adjusted.dy) * 180) / Math.PI;
-    assert(Math.abs(angle) < 1 && Math.abs(angle) > 0.2);
+    assert(Math.abs(angle) > 4 && Math.abs(angle) < 8);
     await advance(500);
     assert.deepEqual((await state()).aim, adjusted);
     // Another pointer's cancellation must not discard the owned primary gesture.
@@ -156,7 +193,7 @@ try {
     assert.equal((await state()).game.shots, 0);
     assert.equal((await state()).aim, null);
     checks.push(
-      'short-pull 1.5px jitter filtered; held 4px micro-adjustment under 1°; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels',
+      'free short-pull aim follows held 4px movement by 4–8°; 1.5px jitter filtered; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels',
     );
   }
   await dragShot(shot, false, false, true);
@@ -170,6 +207,7 @@ try {
   await advance(6000);
   await expect(page.locator('#result')).toBeVisible();
   assert.equal((await state()).game.winner, 0);
+  await expect(page.locator('#player-score')).toContainText('1 分');
   await screenshot('actual-win-390');
   checks.push('real touch shot pockets target; pause freezes physical state; resume reaches win');
   await tap('#result [data-home]');
@@ -192,6 +230,77 @@ try {
   await tap('#result [data-home]');
   await tap('#start');
   await screenshot('actual-match-390');
+  await expect(page.locator('#player-score')).toContainText('0 分');
+  await expect(page.locator('#opponent-score')).toContainText('0 分');
+  checks.push(
+    'help explains queen cover +3 points and score-based winners; score HUD shows 0/1 points',
+  );
+  {
+    // Count expensive work after the board and its coin sprites have warmed up.
+    // Synthetic range events let us check the exact input/change call stack;
+    // the surrounding dragShot cases also exercise native touch range dragging.
+    const immediate = await page.evaluate(() => {
+      const board = document.getElementById('board');
+      const slider = document.getElementById('position');
+      const metrics = { gradients: 0, layouts: 0, writes: 0, eventWrites: 0, dispatching: false };
+      const gradient = CanvasRenderingContext2D.prototype.createRadialGradient;
+      const measure = board.getBoundingClientRect;
+      const setItem = Storage.prototype.setItem;
+      CanvasRenderingContext2D.prototype.createRadialGradient = function (...args) {
+        metrics.gradients++;
+        return gradient.apply(this, args);
+      };
+      board.getBoundingClientRect = function () {
+        metrics.layouts++;
+        return measure.call(this);
+      };
+      Storage.prototype.setItem = function (...args) {
+        if (args[0] === 'carrom-club:v1') {
+          metrics.writes++;
+          if (metrics.dispatching) metrics.eventWrites++;
+        }
+        return setItem.apply(this, args);
+      };
+      window.__carromPerf = {
+        metrics,
+        restore() {
+          CanvasRenderingContext2D.prototype.createRadialGradient = gradient;
+          board.getBoundingClientRect = measure;
+          Storage.prototype.setItem = setItem;
+        },
+      };
+      const original = slider.value;
+      metrics.dispatching = true;
+      try {
+        for (let i = 0; i < 30; i++) {
+          slider.value = String(300 + i * 10);
+          slider.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        slider.value = original;
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));
+      } finally {
+        metrics.dispatching = false;
+      }
+      return { ...metrics };
+    });
+    assert.equal(immediate.eventWrites, 0, 'range release must not synchronously persist');
+    assert.equal(immediate.writes, 0, 'saving waits until after the input event stack');
+    await advance(500);
+    const metrics = await page.evaluate(() => {
+      const result = { ...window.__carromPerf.metrics };
+      window.__carromPerf.restore();
+      delete window.__carromPerf;
+      return result;
+    });
+    assert.equal(metrics.gradients, 0, 'warm frames reuse coin gradients');
+    assert.equal(metrics.layouts, 0, 'warm frames never remeasure the board');
+    assert.equal(metrics.writes, 1, 'the final placement is persisted once after release');
+    assert.equal(metrics.eventWrites, 0);
+    checks.push(
+      '30 placement inputs and release: no synchronous save, one deferred save, zero warm-frame gradient rebuilds or board layout reads',
+    );
+  }
   await dragShot({ x: 500, dx: 0, dy: -1, power: 0.8 });
   await advance(10000);
   assert((await state()).game.shots >= 2);

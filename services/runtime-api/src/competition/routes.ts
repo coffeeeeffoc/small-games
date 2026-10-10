@@ -19,6 +19,7 @@ const gameSchema = z.enum([
   'letters-words2',
   'vibeJam-myself-history-guess',
   'xiangqi-five',
+  'carrom-club',
 ]);
 const platformConfig = z.array(
   z.object({

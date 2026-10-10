@@ -6,6 +6,7 @@ import {
   competitionConsumers,
   competitionToolPlan,
   threeChooseTwoBackendFileScope,
+  carromBackendFileScope,
 } from './publication-scopes.mjs';
 import {
   incrementalPlan,
@@ -14,6 +15,139 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+
+const carromDirectory = 'games/local/carrom-club';
+const carromCoreFile = `${carromDirectory}/src/core.mjs`;
+const carromContentFile = `${carromDirectory}/src/content.mjs`;
+const carromBackendRule = 'services/runtime-api/rules/carrom.mjs';
+const carromDeployment = 'scripts/deploy-tencent.mjs';
+const carromCopyAnchor =
+  "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
+const carromCopyAddition = `    '${carromCoreFile}',\n    '${carromContentFile}',\n`;
+const carromDeploymentBefore =
+  `export async function prepareBackend() {\n${carromCopyAnchor}` +
+  "    'games/local/three-choose-two/src',\n  ]) await copy(name);\n}\n";
+const carromDeploymentAfter = carromDeploymentBefore.replace(
+  carromCopyAnchor,
+  carromCopyAnchor + carromCopyAddition,
+);
+const carromCatalog = [{ id: 'carrom-club', source: carromDirectory }];
+const carromPackages = [
+  { name: 'carrom', dir: carromDirectory },
+  { name: 'runtime', dir: 'services/runtime-api' },
+  { name: 'unrelated', dir: 'games/local/unrelated' },
+];
+const carromSources = {
+  [carromDeployment]: carromDeploymentAfter,
+  [carromBackendRule]: `import { createGame } from '../../../${carromCoreFile}';\n`,
+  [carromCoreFile]:
+    "import { LEVELS } from './content.mjs';\nexport const createGame = () => LEVELS;\n",
+  [carromContentFile]: 'export const LEVELS = [];\n',
+};
+function carromContext(changedPaths, overrides = {}) {
+  return {
+    changedPaths,
+    games: carromCatalog,
+    packages: carromPackages,
+    readBase: () => carromDeploymentBefore,
+    readHead: (file) => {
+      assert(Object.hasOwn(carromSources, file), `Unknown fixture: ${file}`);
+      return carromSources[file];
+    },
+    ...overrides,
+  };
+}
+
+test('carrom deployment proof accepts only the two shared rule files with unchanged surrounding bytes', () => {
+  assert.equal(
+    carromBackendFileScope(carromDeployment, carromDeploymentBefore, carromDeploymentAfter),
+    true,
+  );
+  for (const after of [
+    carromDeploymentBefore,
+    carromDeploymentAfter + '\n',
+    carromDeploymentAfter.replace('await copy(name)', 'await execute(name)'),
+    carromDeploymentAfter.replace(carromContentFile, `${carromDirectory}/src/main.mjs`),
+    carromDeploymentAfter.replace(carromCopyAddition, carromCopyAddition + carromCopyAddition),
+    carromDeploymentAfter.replace(carromCopyAddition, `    '${carromCoreFile}',\n`),
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, carromDeploymentBefore, after), false);
+  for (const before of [null, '', carromDeploymentAfter, carromDeploymentBefore + carromCopyAnchor])
+    assert.equal(carromBackendFileScope(carromDeployment, before, carromDeploymentAfter), false);
+  assert.equal(
+    carromBackendFileScope(
+      'scripts/deploy-other.mjs',
+      carromDeploymentBefore,
+      carromDeploymentAfter,
+    ),
+    false,
+  );
+});
+
+test('carrom deployment selects its game and server; unknown deployment edits remain blocked', () => {
+  const context = carromContext([carromDeployment]);
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert.deepEqual(
+    [...fileScopes],
+    [[carromDeployment, [carromDirectory, 'services/runtime-api']]],
+  );
+  const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+  assert.equal(selected.full, false);
+  assert.deepEqual(selected.game_sources, [carromDirectory]);
+  assert.deepEqual(selected.browser_ids, ['carrom-club']);
+  assert.deepEqual(selected.consumer_sources, [carromDirectory, 'services/runtime-api']);
+  for (const changed of [
+    { readHead: () => carromDeploymentAfter + 'unreviewed();\n' },
+    {
+      readBase: () => {
+        throw new Error('Missing comparison');
+      },
+    },
+    { games: [] },
+    { games: [...carromCatalog, ...carromCatalog] },
+    { games: [{ id: 'another-game', source: carromDirectory }] },
+    { packages: carromPackages.filter((pkg) => pkg.dir !== 'services/runtime-api') },
+  ]) {
+    const invalid = { ...context, ...changed };
+    const rejected = reviewedSharedFileScopes(invalid);
+    assert.equal(rejected.size, 0);
+    assert.throws(
+      () => incrementalPlan({ ...invalid, fileScopes: rejected, readSource: invalid.readHead }),
+      /scope undefined/,
+    );
+  }
+  const sibling = carromContext(['scripts/deploy-tencent-extra.mjs']);
+  assert.equal(reviewedSharedFileScopes(sibling).size, 0);
+  assert.throws(
+    () => incrementalPlan({ ...sibling, readSource: sibling.readHead }),
+    /scope undefined/,
+  );
+});
+
+test('shared carrom rule inputs select the real authoritative server without unrelated consumers', () => {
+  for (const file of [carromCoreFile, carromContentFile]) {
+    const context = carromContext([file]);
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual([...fileScopes], [[file, ['services/runtime-api']]]);
+    const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+    assert.deepEqual(selected.consumer_sources, ['services/runtime-api']);
+    assert.deepEqual(selected.game_sources, [carromDirectory]);
+    if (file === carromCoreFile)
+      assert.equal(selected.browser, false, 'Pure physics rules stay browser-free');
+  }
+  const sibling = carromContext([`${carromDirectory}/src/render.mjs`]);
+  assert.equal(reviewedSharedFileScopes(sibling).size, 0);
+  for (const falseImport of [
+    `// import { createGame } from '../../../${carromCoreFile}';\n`,
+    `const example = "import { createGame } from '../../../${carromCoreFile}';";\n`,
+    "import { createGame } from '../../../games/local/other/src/core.mjs';\n",
+  ]) {
+    const context = carromContext([carromCoreFile], {
+      readHead: (file) => (file === carromBackendRule ? falseImport : carromSources[file]),
+    });
+    assert.equal(reviewedSharedFileScopes(context).size, 0);
+  }
+});
 
 test('three choose two migration wiring is exact and does not authorize other deployment edits', () => {
   const oldPlatform = "const unrelated = 'keep';\n    '011-competition-profiles.sql',\n";

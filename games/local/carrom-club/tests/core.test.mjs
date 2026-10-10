@@ -10,6 +10,9 @@ import {
   chooseShot,
   aimPreview,
   starsFor,
+  scoreBreakdown,
+  scoreFor,
+  scoresFor,
 } from '../src/core.mjs';
 import { LEVELS, validateLevels } from '../src/content.mjs';
 import { freshSave, readSave, writeSave, validMatch, unlocked } from '../src/storage.mjs';
@@ -71,6 +74,29 @@ test('own coin continues turn, miss switches turn, opponents coin does not grant
   pocket(game, []);
   assert.equal(game.turn, 0);
 });
+test('coins score for their color and queen points require a successful cover', () => {
+  const game = createGame();
+  assert.deepEqual(scoresFor(game), [0, 0]);
+  pocket(game, ['white']);
+  assert.deepEqual(scoreBreakdown(game, 0), { coins: 1, queen: 0, total: 1 });
+  pocket(game, ['black']);
+  assert.deepEqual(scoresFor(game), [1, 1]);
+  pocket(game, ['queen']);
+  assert.deepEqual(scoreBreakdown(game, 1), { coins: 1, queen: 0, total: 1 });
+  pocket(game, ['black']);
+  assert.deepEqual(scoreBreakdown(game, 1), { coins: 2, queen: 3, total: 5 });
+  assert.deepEqual(scoresFor(game), [1, 5]);
+});
+test('missed queen cover and queen fouls never award queen points', () => {
+  const game = createGame();
+  pocket(game, ['queen']);
+  pocket(game, []);
+  assert.deepEqual(scoresFor(game), [0, 0]);
+  assert.equal(game.queenOwner, null);
+  pocket(game, ['queen', 'black'], true);
+  assert.deepEqual(scoresFor(game), [0, 0]);
+  assert.equal(game.queenOwner, null);
+});
 test('queen needs a cover and returns without overlap on a miss', () => {
   const game = createGame();
   pocket(game, ['queen']);
@@ -93,8 +119,10 @@ test('queen needs a cover and returns without overlap on a miss', () => {
 test('striker foul returns current own pots and a prior coin; debt is paid later', () => {
   const game = createGame();
   pocket(game, ['white']);
+  assert.equal(scoreFor(game, 0), 1);
   pocket(game, ['white'], true);
   assert.equal(remaining(game, 0), 9);
+  assert.equal(scoreFor(game, 0), 0);
   assert.equal(game.turn, 1);
   pocket(game, [], true);
   assert.equal(game.debt[1], 1);
@@ -103,6 +131,15 @@ test('striker foul returns current own pots and a prior coin; debt is paid later
   pocket(game, ['black']);
   assert.equal(remaining(game, 1), 9);
   assert.equal(game.debt[1], 0);
+  assert.deepEqual(scoresFor(game), [0, 0]);
+});
+test('a later foul removes returned coin points but preserves a covered queen', () => {
+  const game = createGame();
+  pocket(game, ['queen', 'white']);
+  assert.equal(scoreFor(game, 0), 4);
+  pocket(game, ['white'], true);
+  assert.deepEqual(scoreBreakdown(game, 0), { coins: 0, queen: 3, total: 3 });
+  assert.equal(game.queenOwner, 0);
 });
 test('queen and current own coins return on foul; uncovered queen prevents premature win', () => {
   const game = createGame('queen');
@@ -113,6 +150,77 @@ test('queen and current own coins return on foul; uncovered queen prevents prema
   pocket(game, ['white', 'white']);
   assert.equal(game.phase, 'ready');
   assert.equal(remaining(game, 0), 1);
+  assert.equal(scoreFor(game, 0), 1);
+});
+function endgame({ white, black, queenOwner, turn }) {
+  const game = createGame();
+  for (const [kind, count] of [
+    ['white', white],
+    ['black', black],
+    ['queen', 1],
+  ])
+    game.coins.filter((c) => c.kind === kind).slice(0, count).forEach((c) => (c.pocketed = true));
+  game.queen = 'covered';
+  game.queenOwner = queenOwner;
+  game.turn = turn;
+  return game;
+}
+test('a covered queen can win on points even when the opponent clears first', () => {
+  for (const finisher of [0, 1]) {
+    const game = endgame({
+      white: finisher === 0 ? 8 : 7,
+      black: finisher === 1 ? 8 : 7,
+      queenOwner: 1 - finisher,
+      turn: finisher,
+    });
+    pocket(game, [finisher === 0 ? 'white' : 'black']);
+    assert.equal(game.phase, 'over');
+    assert.equal(game.finisher, finisher);
+    assert.equal(game.winner, 1 - finisher);
+    assert.equal(scoreFor(game, finisher), 9);
+    assert.equal(scoreFor(game, game.winner), 10);
+    const result = JSON.stringify(game);
+    resolveShot(game);
+    assert.equal(JSON.stringify(game), result, 'finished result cannot settle twice');
+  }
+});
+test('equal points favor the player who cleared their own color', () => {
+  for (const finisher of [0, 1]) {
+    const game = endgame({
+      white: finisher === 0 ? 8 : 6,
+      black: finisher === 1 ? 8 : 6,
+      queenOwner: 1 - finisher,
+      turn: finisher,
+    });
+    pocket(game, [finisher === 0 ? 'white' : 'black']);
+    assert.deepEqual(scoresFor(game), [9, 9]);
+    assert.equal(game.winner, finisher);
+    assert.equal(game.finisher, finisher);
+  }
+});
+test('potting the opponent last coin ends the game and credits its color', () => {
+  const game = endgame({ white: 7, black: 8, queenOwner: 0, turn: 0 });
+  pocket(game, ['black']);
+  assert.equal(game.finisher, 1);
+  assert.equal(game.winner, 0);
+  assert.deepEqual(scoresFor(game), [10, 9]);
+});
+test('simultaneous clearance records the shooter and resolves points once', () => {
+  const game = endgame({ white: 8, black: 8, queenOwner: 0, turn: 1 });
+  pocket(game, ['white', 'black']);
+  assert.equal(game.finisher, 1);
+  assert.equal(game.winner, 0);
+  assert.deepEqual(scoresFor(game), [12, 9]);
+});
+test('practice remains a completion challenge while reporting coin and queen points', () => {
+  const game = createGame('queen');
+  game.playerShots = 2;
+  pocket(game, ['queen', 'white']);
+  pocket(game, ['white']);
+  assert.equal(game.finisher, 0);
+  assert.equal(game.winner, 0);
+  assert.equal(starsFor(game), 3);
+  assert.equal(scoreFor(game, 0), 5);
 });
 test('all six levels can be won through the same shot physics within their budgets', () => {
   for (const level of LEVELS) {
@@ -161,4 +269,26 @@ test('save validation, no-storage fallback and sequential progression', () => {
   const mass = createGame();
   mass.coins[0].mass = -100;
   assert.equal(validMatch(mass).coins[0].mass, 1);
+});
+test('version-one saves recover points from the board without a stored score counter', () => {
+  const game = createGame();
+  pocket(game, ['queen', 'white']);
+  pocket(game, ['white']);
+  delete game.finisher;
+  game.scores = [9999, 9999];
+  const save = { ...freshSave(), match: game };
+  const restored = readSave({ getItem: () => JSON.stringify(save) }).match;
+  assert(restored);
+  assert.deepEqual(scoresFor(restored), [5, 0]);
+  assert.equal(restored.finisher, null);
+  assert.equal(restored.scores, undefined);
+  pocket(restored, ['white'], true);
+  assert.deepEqual(scoresFor(restored), [4, 0]);
+
+  const pending = createGame();
+  pocket(pending, ['queen']);
+  const pendingRestored = validMatch(pending);
+  assert.deepEqual(scoresFor(pendingRestored), [0, 0]);
+  pocket(pendingRestored, ['white']);
+  assert.deepEqual(scoresFor(pendingRestored), [4, 0]);
 });
