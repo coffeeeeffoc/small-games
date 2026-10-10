@@ -129,8 +129,26 @@ button[hidden],
 .brand {
   text-align: center;
   position: relative;
-  margin-top: -14px;
+  margin-top: -5px;
   pointer-events: none;
+}
+.club-crest {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  color: #f2d592;
+  border: 1px solid #aa814a;
+  background: radial-gradient(circle at 35% 20%, #594429, #17251e 75%);
+  box-shadow:
+    0 4px 8px #0008,
+    inset 0 0 0 3px #17231c,
+    inset 0 0 0 4px #b78c5066;
+}
+.club-crest svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1;
 }
 .lotus {
   font-size: 23px;
@@ -196,7 +214,7 @@ h1 {
   perspective: 850px;
 }
 .hero-board canvas {
-  width: min(100%, 39dvh);
+  width: min(100%, 43dvh);
   max-height: 100%;
   aspect-ratio: 1;
   transform: rotateX(12deg) rotateZ(-8deg);
@@ -227,7 +245,7 @@ h1 {
 .secondary {
   min-height: 56px;
   width: 100%;
-  border-radius: 30px;
+  border-radius: 10px;
   font-size: 20px;
   font-weight: bold;
   letter-spacing: 3px;
@@ -250,6 +268,15 @@ h1 {
     0 7px 14px #0006;
   text-shadow: 0 1px #ffe7b6;
 }
+.primary:before,
+.secondary:before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid #63441980;
+  border-radius: 5px;
+  pointer-events: none;
+}
 .primary:active {
   transform: translateY(2px);
   filter: brightness(0.93);
@@ -263,11 +290,16 @@ h1 {
 }
 .secondary {
   border: 1px solid #d9b87b;
-  background: linear-gradient(140deg, #143b31aa, #081c1aaa);
+  background:
+    linear-gradient(140deg, #4d311fbb, #21160de8),
+    url('./assets/wood.webp') right center / 200% 100%;
   color: #f0dbad;
   box-shadow: inset 0 1px #fff2;
   min-height: 50px;
   font-size: 17px;
+}
+.secondary:before {
+  border-color: #c7955540;
 }
 .secondary:active {
   background: #214f40;
@@ -344,10 +376,10 @@ h2 {
 .level-card {
   min-height: 152px;
   background:
-    repeating-linear-gradient(3deg, #ffffff03 0px, #0000000b 2px, transparent 4px),
-    linear-gradient(135deg, #503b27, #221b16);
+    linear-gradient(135deg, #503b2766, #221b16bb),
+    url('./assets/wood.webp') right center / 200% 100%;
   border: 1px solid #a88450;
-  border-radius: 13px;
+  border-radius: 8px;
   padding: 10px;
   box-shadow:
     inset 0 0 0 3px #25180f,
@@ -355,6 +387,25 @@ h2 {
     0 8px 18px #0005;
   text-align: left;
   position: relative;
+}
+.level-card:before,
+.level-card:after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: solid #dfb774;
+  pointer-events: none;
+}
+.level-card:before {
+  left: 5px;
+  top: 5px;
+  border-width: 1px 0 0 1px;
+}
+.level-card:after {
+  right: 5px;
+  bottom: 5px;
+  border-width: 0 1px 1px 0;
 }
 .level-card:disabled {
   filter: saturate(0.45);
@@ -405,7 +456,7 @@ h2 {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   padding-top: max(12px, env(safe-area-inset-top));
   padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
@@ -418,7 +469,42 @@ h2 {
 .opponent {
   margin-bottom: 2px;
   border-bottom: 1px solid #b39b5633;
-  padding-bottom: 15px;
+  padding-bottom: 10px;
+}
+.disc-crest {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #8c7751;
+  background: radial-gradient(circle at 30% 20%, #48504b, #141b18 65%, #080f0d);
+  color: #bca97d;
+  box-shadow:
+    0 3px 0 #060c09,
+    0 5px 10px #0008,
+    inset 0 0 0 3px #273029,
+    inset 0 0 0 4px #8c775177;
+}
+.disc-crest svg {
+  width: 40px;
+  height: 40px;
+  stroke-width: 1;
+}
+.disc-crest.ivory {
+  color: #94662f;
+  border-color: #f3d49a;
+  background: radial-gradient(circle at 30% 20%, #fff4d5, #e5c590 65%, #b68b4e);
+  box-shadow:
+    0 3px 0 #9b723a,
+    0 5px 10px #0007,
+    inset 0 0 0 3px #edcd95,
+    inset 0 0 0 4px #fff3d4;
+}
+.active-seat .disc-crest {
+  outline: 1px solid #dec389;
+  outline-offset: 4px;
 }
 .avatar {
   width: 46px;
@@ -521,12 +607,25 @@ h2 {
   font-size: 10px;
   letter-spacing: 1px;
   white-space: nowrap;
-  color: #eee3be;
-  background: #214d36;
-  border: 1px solid #658d52;
-  border-radius: 20px;
+  color: #f8e2ac;
+  background: linear-gradient(130deg, #69502a, #342616);
+  border: 1px solid #c29a58;
+  border-radius: 5px;
   padding: 8px 11px;
-  box-shadow: inset 0 1px #b5d49622;
+  box-shadow:
+    inset 0 0 0 2px #342717,
+    inset 0 0 0 3px #c59c5344,
+    0 3px 5px #0005;
+}
+.turn-pill:before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f7d894;
+  box-shadow: 0 0 4px #f7d89444;
 }
 .turn-pill.ai {
   background: #343b32;
@@ -534,7 +633,7 @@ h2 {
   color: #cbbf98;
 }
 .position-control {
-  margin: 9px 18px 0;
+  margin: 0 12px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -543,6 +642,19 @@ h2 {
     28px Georgia,
     serif;
   height: 54px;
+}
+.shot-tray {
+  margin: 10px 9px 0;
+  padding: 3px 0 12px;
+  border: 1px solid #ad7e48;
+  border-radius: 10px;
+  background:
+    linear-gradient(115deg, #372515dd, #2a1b12b8),
+    url('./assets/wood.webp') right center / 200% 100%;
+  box-shadow:
+    inset 0 0 0 3px #27190e,
+    inset 0 0 0 4px #c0904e44,
+    0 6px 10px #0005;
 }
 .position-control input {
   width: 100%;
@@ -556,7 +668,9 @@ h2 {
   height: 10px;
   border: 1px solid #c49d58;
   border-radius: 10px;
-  background: linear-gradient(#0a1714, #214537);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, #b9955266 9px 10px),
+    linear-gradient(#150f09, #352714);
   box-shadow:
     inset 0 2px 4px #000,
     0 0 0 3px #101e19,
@@ -582,26 +696,43 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  gap: 10px;
+  min-height: 44px;
+  gap: 7px;
   color: #dbc58f;
-  font-size: 12px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+#aim-angle {
+  min-width: 52px;
+  font:
+    12px Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: #f7dfa4;
 }
 .cancel {
   min-height: 44px;
-  background: #1c332b;
+  background: #3e2a19;
   border: 1px solid #b39354;
-  border-radius: 22px;
-  padding: 6px 15px;
+  border-radius: 5px;
+  padding: 6px 10px;
   font-size: 12px;
 }
 .power-track {
-  height: 3px;
-  margin: 0 36px;
+  height: 6px;
+  margin: 0 22px;
   background: #cbb47722;
   border-radius: 3px;
   overflow: hidden;
+}
+.power-track:after {
+  content: '';
+  display: block;
+  position: relative;
+  top: -6px;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, transparent 0 11px, #261b13aa 11px 13px);
 }
 .power-track div {
   height: 100%;
@@ -834,7 +965,12 @@ body[data-phase='result'] #app {
     line-height: 18px;
   }
   .hero-board canvas {
-    width: min(100%, 38dvh);
+    width: min(100%, 42dvh);
+  }
+  .club-crest {
+    width: 34px;
+    height: 34px;
+    margin-bottom: 3px;
   }
   .home-actions {
     gap: 10px;
@@ -878,6 +1014,18 @@ body[data-phase='result'] #app {
   .avatar {
     width: 40px;
     height: 40px;
+  }
+  .disc-crest {
+    width: 40px;
+    height: 40px;
+  }
+  .disc-crest svg {
+    width: 36px;
+    height: 36px;
+  }
+  .shot-tray {
+    margin-top: 5px;
+    padding-bottom: 9px;
   }
   .level-grid {
     gap: 10px;
@@ -957,6 +1105,9 @@ body[data-phase='result'] #app {
     font-size: 42px;
   }
   .brand .lotus {
+    display: none;
+  }
+  .brand .club-crest {
     display: none;
   }
   .hero-board {

@@ -8,8 +8,8 @@ import {
   remaining,
   chooseShot,
   starsFor,
-  clamp,
 } from './core.mjs';
+import { createAimGesture, updateAimGesture, settleAimGesture } from './aim.mjs';
 import { createRenderer } from './render.mjs';
 import { readSave, writeSave, unlocked } from './storage.mjs';
 import { createAudio } from './audio.mjs';
@@ -94,6 +94,7 @@ function cancelAim() {
   if (old && board.hasPointerCapture(old.id)) board.releasePointerCapture(old.id);
   $('cancel-aim').hidden = true;
   $('power-fill').style.width = '0%';
+  $('aim-angle').hidden = true;
   lastHud = '';
 }
 function show(next) {
@@ -191,6 +192,8 @@ function updateHud() {
     ? `余 ${Math.max(0, level.shots - game.playerShots)} 杆`
     : `${game.totals[1] - remaining(game, 1)} / ${game.totals[1]}`;
   $('player-score').textContent = `${game.totals[0] - remaining(game, 0)} / ${game.totals[0]}`;
+  $('player-seat').classList.toggle('active-seat', game.turn === 0 && game.phase === 'ready');
+  $('opponent-seat').classList.toggle('active-seat', game.turn === 1 && game.phase === 'ready');
   const player = game.turn === 0 && game.phase === 'ready';
   $('turn-pill').textContent =
     game.phase === 'moving'
@@ -210,6 +213,7 @@ function updateHud() {
       : game.turn === 1
         ? '看一看，下一杆怎么打'
         : '让棋子，再滑一会儿';
+  if (aim) updateAimDisplay();
   $('status').textContent = game.message;
   $('practice-badge').hidden = !practice;
   board.dataset.phase = game.phase;
@@ -334,24 +338,32 @@ on(board, 'pointerdown', (e) => {
   }
   audio.unlock();
   e.preventDefault();
-  gesture = { id: e.pointerId, x: p.x, y: p.y };
+  gesture = createAimGesture(
+    e.pointerId,
+    p.x,
+    p.y,
+    board.getBoundingClientRect().width / 1000,
+    performance.now(),
+  );
   board.setPointerCapture(e.pointerId);
   aim = { dx: 0, dy: 0, power: 0, pull: 0 };
   lastHud = '';
 });
+function updateAimDisplay() {
+  const power = aim.power;
+  $('cancel-aim').hidden = false;
+  $('power-fill').style.width = `${power * 100}%`;
+  $('aim-angle').hidden = power <= 0.025;
+  const angle = (Math.atan2(aim.dx, -aim.dy) * 180) / Math.PI;
+  $('aim-angle').textContent = `${Math.abs(angle) < 0.05 ? '0.0' : angle.toFixed(1)}°`;
+  $('play-hint').textContent =
+    power > 0.025 ? `力度 ${Math.round(power * 100)}% · 松手击发` : '回到起点 · 松手收杆';
+}
 on(board, 'pointermove', (e) => {
   if (!gesture || e.pointerId !== gesture.id) return;
   e.preventDefault();
-  const p = point(e),
-    dx = gesture.x - p.x,
-    dy = gesture.y - p.y;
-  const pull = Math.hypot(dx, dy),
-    power = Math.pow(clamp((pull - 12) / 195, 0, 1), 1.35);
-  aim = { dx, dy, pull: Math.min(pull, 207), power };
-  $('cancel-aim').hidden = false;
-  $('power-fill').style.width = `${power * 100}%`;
-  $('play-hint').textContent =
-    power > 0.025 ? `力度 ${Math.round(power * 100)}% · 松手击发` : '回到起点 · 松手收杆';
+  aim = updateAimGesture(gesture, point(e), performance.now());
+  updateAimDisplay();
 });
 on(board, 'pointerup', (e) => {
   if (!gesture || e.pointerId !== gesture.id) return;
@@ -363,8 +375,10 @@ on(board, 'pointerup', (e) => {
     updateHud();
   }
 });
-on(board, 'pointercancel', cancelAim);
-on(board, 'lostpointercapture', cancelAim);
+for (const type of ['pointercancel', 'lostpointercapture'])
+  on(board, type, (e) => {
+    if (gesture?.id === e.pointerId) cancelAim();
+  });
 on(window, 'keydown', (e) => {
   if (e.key === 'Escape') {
     if (gesture) cancelAim();
@@ -397,6 +411,13 @@ function frame(now) {
   previousTime = now;
   time += dt;
   if (screen === 'play') {
+    if (gesture) {
+      const settled = settleAimGesture(gesture, performance.now());
+      if (settled !== aim) {
+        aim = settled;
+        updateAimDisplay();
+      }
+    }
     if (game.phase === 'moving') {
       accumulator += dt;
       while (accumulator >= STEP && game.phase === 'moving') {
@@ -461,7 +482,7 @@ if (dev) {
   );
   cleanups.push(window.SmallGamesDev.registerSnapshot(() => ({ screen, practice, game })));
   window.__carrom = {
-    snapshot: () => structuredClone({ screen, practice, game, save }),
+    snapshot: () => structuredClone({ screen, practice, game, save, aim }),
     previewShot: () => chooseShot(game),
   };
 }
