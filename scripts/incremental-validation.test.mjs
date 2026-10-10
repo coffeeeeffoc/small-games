@@ -342,6 +342,31 @@ ${ids.map((id) => `          game.id === '${id}'`).join(' ||\n')}
   await page.goto(\`\${origin}/independent/wulong-city/?dev\`);
 ${updated ? "  await page.locator('#start-game').tap();\n" : ''}  await sharedMobileChecks();
 `;
+test('additive developer guards retain only new games, the mobile fixture and navigation samples', () => {
+  const context = {
+    changedPaths: [devModeFile],
+    games: devGames,
+    readBase: () => devSource(devGames.slice(0, 2).map((game) => game.id)),
+    readHead: () => devSource([...devGames.slice(0, 2).map((game) => game.id), 'orbit-atelier']),
+  };
+  const fileScopes = new Map([
+    ...h5AdapterFileScopes(context),
+    ...developerModeFileScopes(context),
+  ]);
+  assert.deepEqual(fileScopes.get(devModeFile), [
+    'games/local/orbit-atelier',
+    'games/local/wulong-city',
+  ]);
+  const result = plan([devModeFile], { games: devGames, fileScopes });
+  assert.deepEqual(result.browser_ids, [
+    'letters-words2',
+    'orbit-atelier',
+    'wulong-city',
+    'xiangqi-five',
+  ]);
+  assert.deepEqual(result.developer_mode_ids, ['orbit-atelier', 'wulong-city']);
+});
+
 test('developer-mode game guards select every old/new assertion consumer and retain navigation samples', async () => {
   const context = {
     changedPaths: [devModeFile],

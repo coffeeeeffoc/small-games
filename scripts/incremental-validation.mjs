@@ -214,6 +214,19 @@ export function incrementalPlan({
 export function developerModeFileScopes({ changedPaths, readBase, readHead, games }) {
   const scopes = new Map();
   if (!changedPaths.includes(developerMode)) return scopes;
+  const additive = h5AdapterFileScopes({ changedPaths, readBase, readHead, games }).get(
+    developerMode,
+  );
+  if (additive) {
+    // Keep the unconditional mobile fixture without widening an unchanged guard to all its games.
+    scopes.set(developerMode, [
+      ...new Set([
+        ...additive,
+        ...games.filter((game) => game.id === 'wulong-city').map((game) => game.source),
+      ]),
+    ]);
+    return scopes;
+  }
   try {
     const parse = (source) => {
       const ids = new Set(['wulong-city']); // The existing mobile and external-frame fixture.
