@@ -1,0 +1,123 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3"
+  },
+  "results": [
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "fullFreeze": true,
+      "pendingRefresh": true,
+      "oneOfThree": true,
+      "inventory": 2,
+      "buff": "tracking",
+      "expiry": {
+        "time": 60.41666666666452,
+        "elapsed": 60.19999999999785
+      },
+      "backgroundCountdown": false,
+      "lifecycleBoundarySimulated": false,
+      "realTabLifecycle": false
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "fullFreeze": true,
+      "pendingRefresh": true,
+      "oneOfThree": true,
+      "inventory": 2,
+      "buff": "rate",
+      "backgroundCountdown": false,
+      "lifecycleBoundarySimulated": false,
+      "realTabLifecycle": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "touch": true,
+      "fullFreeze": true,
+      "pendingRefresh": true,
+      "oneOfThree": true,
+      "inventory": 2,
+      "buff": "tracking",
+      "backgroundCountdown": true,
+      "lifecycleBoundarySimulated": true,
+      "realTabLifecycle": false
+    },
+    {
+      "provider": "dismissed",
+      "contract": true,
+      "recovery": true
+    },
+    {
+      "provider": "unavailable",
+      "contract": true,
+      "recovery": true
+    },
+    {
+      "provider": "failed",
+      "contract": true,
+      "recovery": true
+    },
+    {
+      "provider": "throw",
+      "contract": true,
+      "recovery": true
+    },
+    {
+      "provider": "malformed",
+      "contract": true,
+      "recovery": true
+    },
+    {
+      "provider": "duplicate",
+      "contract": true,
+      "recovery": true
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    {
+      "width": 844,
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+      "origin": {
+        "url": "http://127.0.0.1:4328/cocos-js/cc.915b6.js",
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "scope": "explicit CDP touchCancel; input release asserted",
+      "engineSource": "Creator 3.8.8 pal/input/web/touch-input.ts:85-86 calls preventDefault without checking cancelable"
+    },
+    {
+      "width": 568,
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+      "origin": {
+        "url": "http://127.0.0.1:4328/cocos-js/cc.915b6.js",
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "scope": "explicit CDP touchCancel; input release asserted",
+      "engineSource": "Creator 3.8.8 pal/input/web/touch-input.ts:85-86 calls preventDefault without checking cancelable"
+    },
+    {
+      "width": 390,
+      "message": "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+      "origin": {
+        "url": "http://127.0.0.1:4328/cocos-js/cc.915b6.js",
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "scope": "explicit CDP touchCancel; input release asserted",
+      "engineSource": "Creator 3.8.8 pal/input/web/touch-input.ts:85-86 calls preventDefault without checking cancelable"
+    }
+  ],
+  "physicalDevice": false,
+  "realAdSdk": false,
+  "lifecycleBoundarySimulated": true,
+  "realTabLifecycle": false,
+  "passed": true
+}

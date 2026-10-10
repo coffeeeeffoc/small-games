@@ -286,13 +286,13 @@ export function drawEffects(
       flight = shot.due - shot.born;
     if (flight <= 0 || age < 0 || age >= flight) continue;
     const t = clamp(age / flight),
-      weapon = shot.weapon, spec = WEAPONS[weapon];
+      weapon = shot.weapon, spec = WEAPONS[weapon], missile = shot.guidance?.kind === 'consumable';
     const position = (progress: number): ScreenPoint =>
       airborne(s.shotPosition(shot, shot.born + progress * flight));
-    if (!shot.guidance) ring(shot, WEAPONS[weapon].radius * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true);
+    if (!missile) ring(shot, WEAPONS[weapon].radius * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true);
     // A single tapered ribbon per round, seven samples along the actual origin-to-impact parabola.
     const tail: ScreenPoint[] = [];
-    const start = Math.max(0, t - (shot.guidance ? .45 : spec.tracerTime) / flight);
+    const start = Math.max(0, t - (missile ? .45 : spec.tracerTime) / flight);
     for (let j = 0; j <= 6; j++) tail.push(position(start + ((t - start) * j) / 6));
     if (tail.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y) ||
       Math.abs(p.x) > width * 3 || Math.abs(p.y) > height * 3)) continue;
@@ -303,8 +303,8 @@ export function drawEffects(
       { x: location.x, y: location.y, z: location.z + 1 },
     ].map((p) => { const q = airborne(p); return Math.hypot(q.x - projected.x, q.y - projected.y); })));
     // Keep distant rounds readable in UI pixels without changing their ballistic path.
-    const bodyWidth = shot.guidance ? 5 : Math.min(5, Math.max(1.5 + weapon * 0.65, spec.calibre * localScale));
-    const bodyLength = shot.guidance ? 12 : Math.min(12, Math.max(4 + weapon * 1.5, spec.length * localScale));
+    const bodyWidth = missile ? 5 : Math.min(5, Math.max(1.5 + weapon * 0.65, spec.calibre * localScale));
+    const bodyLength = missile ? 12 : Math.min(12, Math.max(4 + weapon * 1.5, spec.length * localScale));
     g.fillColor = color(0.8, 0.7);
     for (let side = 0; side < 2; side++) {
       for (let n = 0; n <= 6; n++) {

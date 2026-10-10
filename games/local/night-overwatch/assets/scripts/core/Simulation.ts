@@ -15,13 +15,16 @@ import {
   validateData,
   impactDamage,
   HOMING,
+  COMBAT_BUFF,
+  FLIGHT,
   type Point,
   type Point3,
   type Kind,
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
 import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
-export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus' | 'advert';
+export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus' | 'advert' | 'supply' | 'countdown';
+export type BuffKind = 'tracking' | 'rate';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
 export type Unit = Point3 & {
   id: number;
@@ -46,7 +49,7 @@ export type Shot = Point & {
   origin: Point & { y: number };
   velocity: Point3;
   targetY: number;
-  guidance?: { target: number; position: Point3; trail: (Point3 & { time: number })[] };
+  guidance?: { kind: 'tracking' | 'consumable'; target: number; position: Point3; trail: (Point3 & { time: number })[] };
 };
 export type BattleEvent = Point & {
   id: number;
@@ -77,6 +80,9 @@ export class Simulation {
   readonly mission: MissionDefinition;
   phase: 'briefing' | 'playing' | 'success' | 'failure' = 'briefing';
   pauses = new Set<PauseReason>();
+  buff?: { kind: BuffKind; remaining: number };
+  resumeCountdown = 0;
+  resumeRequired = false;
   time = 0;
   progress = 0;
   convoy: ConvoyState = 'moving';
@@ -200,9 +206,42 @@ export class Simulation {
   }
   pause(reason: PauseReason, on: boolean) {
     if (on) {
+      if (reason !== 'countdown' && this.pauses.has('countdown')) {
+        this.resumeCountdown = 0;
+        this.pauses.delete('countdown');
+        this.pauses.add('manual');
+        this.resumeRequired = true;
+      }
       this.pauses.add(reason);
       this.clearInput();
-    } else this.pauses.delete(reason);
+    } else {
+      this.pauses.delete(reason);
+      if (reason === 'countdown') this.resumeCountdown = 0;
+    }
+  }
+  grantBuff(kind: BuffKind): boolean {
+    if (this.buff || kind !== 'tracking' && kind !== 'rate') return false;
+    this.buff = { kind, remaining: COMBAT_BUFF.duration };
+    return true;
+  }
+  beginResumeCountdown() {
+    if (this.phase !== 'playing') return;
+    if (this.pauses.has('background') || this.pauses.has('focus')) {
+      this.pause('countdown', false);
+      this.pause('manual', true);
+      this.resumeRequired = true;
+      return;
+    }
+    this.pauses.delete('manual');
+    this.resumeRequired = false;
+    this.resumeCountdown = 3;
+    this.pause('countdown', true);
+  }
+  stepCountdown(dt: number) {
+    if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
+    if (this.phase !== 'playing' || this.pauses.size !== 1 || !this.pauses.has('countdown')) return;
+    this.resumeCountdown = Math.max(0, this.resumeCountdown - dt);
+    if (this.resumeCountdown <= 1e-8) this.pause('countdown', false);
   }
   clearInput() {
     this.held.clear();
@@ -278,16 +317,28 @@ export class Simulation {
   }
   get friendlyRisk() {
     if (this.homingSelected) return false;
+    const point = this.trackingTarget ?? this.aim;
     return this.units.some(
       (u) =>
         u.friendly &&
         u.hp > 0 &&
-        distance(u, this.aim) <= WEAPONS[this.selected].radius + UNITS[u.kind].radius,
+        distance(u, point) <= WEAPONS[this.selected].radius + UNITS[u.kind].radius,
     );
   }
   get aimedUnit() {
     return this.units
       .filter((u) => u.hp > 0 && distance(u, this.aim) <= UNITS[u.kind].radius + 1.2)
+      .sort((a, b) => distance(a, this.aim) - distance(b, this.aim))[0];
+  }
+  private canTrack(target: Unit, radius: number) {
+    return target.hp > 0 && !target.friendly &&
+      !PROTECTED.some(p => distance(p, target) <= p.radius + Math.max(radius, UNITS[target.kind].radius));
+  }
+  private get trackingTarget() {
+    if (this.buff?.kind !== 'tracking') return;
+    const radius = WEAPONS[this.selected].radius, aimed = this.aimedUnit;
+    if (aimed && this.canTrack(aimed, radius)) return aimed;
+    return this.units.filter(u => this.canTrack(u, radius) && distance(u, this.aim) <= COMBAT_BUFF.trackingRadius)
       .sort((a, b) => distance(a, this.aim) - distance(b, this.aim))[0];
   }
   fire() {
@@ -301,18 +352,21 @@ export class Simulation {
     g.ammo--;
     g.heat = Math.min(100, g.heat + w.heat);
     g.overheated = g.heat >= 100;
-    g.cooldown = w.interval;
-    const shot: Shot = Object.freeze({
+    g.cooldown = w.interval / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
+    const target = this.trackingTarget;
+    const shot: Shot = {
       id: ++this.serial,
       weapon: this.selected,
       x: this.aim.x,
       z: this.aim.z,
       born: this.time,
       origin,
-      velocity: Object.freeze(launch.velocity),
+      velocity: launch.velocity,
       targetY: launch.targetY,
       due: this.time + launch.duration,
-    });
+    };
+    if (target) shot.guidance = { kind: 'tracking', target: target.id, position: { ...origin }, trail: [{ ...origin, time: this.time }] };
+    else { Object.freeze(shot.velocity); Object.freeze(shot); }
     this.shots.push(shot);
     this.emit('shot', shot, shot.weapon);
     this.fired++;
@@ -334,7 +388,7 @@ export class Simulation {
       due: this.time + range / HOMING.speed, origin,
       velocity: { x: delta.x / range * HOMING.speed, y: delta.y / range * HOMING.speed, z: delta.z / range * HOMING.speed },
       targetY: target.y,
-      guidance: { target: target.id, position: { ...origin }, trail: [{ ...origin, time: this.time }] },
+      guidance: { kind: 'consumable', target: target.id, position: { ...origin }, trail: [{ ...origin, time: this.time }] },
     };
     this.shots.push(shot);
     this.emit('shot', shot, shot.weapon).unit = target.id;
@@ -373,7 +427,7 @@ export class Simulation {
       const y = this.height(x, z);
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
-      const damage = s.guidance ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
+      const damage = s.guidance?.kind === 'consumable' ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
         : impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
       if (damage <= 0) continue;
       const actual = Math.min(u.hp, damage);
@@ -426,10 +480,51 @@ export class Simulation {
             : 'miss';
     event.damage = total;
   }
+  private releaseTracking(shot: Shot, time: number) {
+    shot.origin = { ...shot.guidance!.position };
+    shot.born = time;
+    shot.guidance = undefined;
+    // Rebase the ballistic arc at lock loss; the original muzzle is no longer its origin.
+    const duration = (shot.velocity.y + Math.sqrt(shot.velocity.y ** 2 + 2 * FLIGHT.gravity * Math.max(0, shot.origin.y))) / FLIGHT.gravity;
+    shot.due = time + Math.max(.1, duration);
+    const contact = terrainContact(shot, time, shot.due, this.height);
+    if (contact) {
+      shot.due = contact.time;
+      shot.x = contact.point.x; shot.z = contact.point.z; shot.targetY = contact.point.y;
+    }
+  }
+  private trackingContact(position: Point3, velocity: Point3, time: number, dt: number) {
+    const at = (t: number): Point3 => ({ x: position.x + velocity.x * t,
+      y: position.y + velocity.y * t, z: position.z + velocity.z * t });
+    // shortcut: half-unit sweeps match the ballistic terrain test; upgrade together for cliffs/caves.
+    const count = Math.max(1, Math.ceil(dt * Math.hypot(velocity.x, velocity.y, velocity.z) / .5));
+    let start = 0;
+    for (let i = 1; i <= count; i++) {
+      let stop = dt * i / count;
+      const point = at(stop);
+      if (point.y <= this.height(point.x, point.z) + 1e-8) {
+        for (let n = 0; n < 24; n++) {
+          const mid = (start + stop) / 2, p = at(mid);
+          if (p.y <= this.height(p.x, p.z)) stop = mid;
+          else start = mid;
+        }
+        const hit = at(stop);
+        hit.y = this.height(hit.x, hit.z);
+        return { point: hit, time: time + stop };
+      }
+      start = stop;
+    }
+  }
   step(dt: number) {
     if (this.phase !== 'playing' || this.paused) return;
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
     if (this.mission.mode === 'training') dt = Math.min(dt, Math.max(0, this.mission.duration - this.time));
+    if (this.buff && this.buff.remaining > 1e-8 && this.buff.remaining < dt - 1e-8) {
+      const remaining = this.buff.remaining;
+      this.step(remaining);
+      this.step(dt - remaining);
+      return;
+    }
     this.time += dt;
     this.flight.step(dt);
     const previous = this.units.map(({ x, y, z }) => ({ x, y, z }));
@@ -474,29 +569,53 @@ export class Simulation {
     }
     const contacts = this.shots.flatMap((shot) => {
       if (shot.guidance) {
+        const ordinary = shot.guidance.kind === 'tracking';
         const target = this.units.find(u => u.id === shot.guidance!.target);
-        if (!target || target.hp <= 0 || target.friendly ||
-            PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius))
-          return [{ shot, point: shot.guidance.position, time: this.time, cancelled: true }];
+        if (!target || !this.canTrack(target, ordinary ? WEAPONS[shot.weapon].radius : 0) ||
+            ordinary && this.buff?.kind !== 'tracking') {
+          if (!ordinary) return [{ shot, point: shot.guidance.position, time: this.time, cancelled: true }];
+          this.releaseTracking(shot, this.time - dt);
+          const contact = terrainContact(shot, this.time - dt, this.time, this.height);
+          return contact ? [{ shot, ...contact, cancelled: false }] : [];
+        }
         const position = shot.guidance.position;
         const delta = { x: target.x - position.x, y: target.y - position.y, z: target.z - position.z };
-        const range = Math.hypot(delta.x, delta.y, delta.z), travel = HOMING.speed * dt;
+        const speed = ordinary ? WEAPONS[shot.weapon].speed : HOMING.speed;
+        const range = Math.hypot(delta.x, delta.y, delta.z), travel = speed * dt;
+        if (range > 0) shot.velocity = { x: delta.x / range * speed, y: delta.y / range * speed, z: delta.z / range * speed };
+        if (ordinary) {
+          const contact = this.trackingContact(position, shot.velocity, this.time - dt, Math.min(dt, range / speed));
+          if (contact) return [{ shot, ...contact, cancelled: false }];
+        }
         if (range <= travel) return [{ shot, point: { x: target.x, y: target.y, z: target.z }, time: this.time, cancelled: false }];
-        shot.velocity = { x: delta.x / range * HOMING.speed, y: delta.y / range * HOMING.speed, z: delta.z / range * HOMING.speed };
         position.x += shot.velocity.x * dt; position.z += shot.velocity.z * dt;
-        position.y = Math.max(position.y + shot.velocity.y * dt, this.height(position.x, position.z) + Math.min(2, range * .1));
+        position.y += shot.velocity.y * dt;
+        if (!ordinary) position.y = Math.max(position.y, this.height(position.x, position.z) + Math.min(2, range * .1));
         shot.x = target.x; shot.z = target.z; shot.targetY = target.y;
-        shot.due = this.time + range / HOMING.speed;
+        shot.due = this.time + (range - travel) / speed;
         shot.guidance.trail.push({ ...position, time: this.time });
-        // ponytail: 32 fixed-step samples cover the visible missile trail; no full-flight replay buffer.
+        // shortcut: 32 fixed-step samples cover the visible trail; retain more only for flight replay.
         if (shot.guidance.trail.length > 32) shot.guidance.trail.shift();
         return [];
       }
       const contact = terrainContact(shot, this.time - dt, this.time, this.height);
       return contact ? [{ shot, ...contact, cancelled: false }] : [];
     }).sort((a, b) => a.time - b.time);
-    for (const contact of contacts) if (!contact.cancelled) this.impact(contact.shot, contact.point, contact.time, previous, dt);
+    for (const contact of contacts) if (!contact.cancelled) {
+      if (contact.shot.guidance) {
+        Object.assign(contact.shot.guidance.position, contact.point);
+        contact.shot.guidance.trail.push({ ...contact.point, time: contact.time });
+      }
+      this.impact(contact.shot, contact.point, contact.time, previous, dt);
+    }
     this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
+    if (this.buff) {
+      this.buff.remaining = Math.max(0, this.buff.remaining - dt);
+      if (this.buff.remaining <= 1e-8) {
+        this.buff = undefined;
+        for (const shot of this.shots) if (shot.guidance?.kind === 'tracking') this.releaseTracking(shot, this.time);
+      }
+    }
     for (const u of this.units) {
       if (u.hp <= 0) continue;
       const spec = UNITS[u.kind], target = this.nearestOpponent(u);

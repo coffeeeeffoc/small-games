@@ -6,7 +6,7 @@ import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
 import { MAP } from '../assets/scripts/core/Data.ts';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = new URL('../reports/mobile-20261009/', import.meta.url);
+const dir = new URL('../reports/combat-supply/regression-mobile/', import.meta.url);
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -52,8 +52,17 @@ try {
     await press('settings'); await capture('settings'); await press('help'); await capture('help');
     await press('close'); await press('close'); assert.equal((await snapshot(page)).modal, 'pause');
     await press('home'); await press('missions'); await press('training'); await press('start');
-    await press('homing'); await capture('supply'); await press('adClose');
-    assert((await snapshot(page)).homingSelected); assert.equal((await snapshot(page)).homingAmmo, 1);
+    await press('supply'); await layout(); await capture('supply');
+    await press('supplyWatch'); await press('adClose');
+    assert.equal((await snapshot(page)).homingAmmo, 0);
+    assert.equal((await snapshot(page)).pendingSupply, true);
+    await layout(); await capture('reward-choice'); await press('reward:ammo');
+    const countdown = await snapshot(page);
+    assert(countdown.resumeCountdown > 2 && countdown.resumeCountdown <= 3);
+    assert(countdown.homingSelected); assert.equal(countdown.homingAmmo, 2);
+    assert.equal(countdown.pendingSupply, false);
+    await page.waitForTimeout(250); assert.equal((await snapshot(page)).time, countdown.time);
+    await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0 && !__night.snapshot().pauses.length);
     const target = (await snapshot(page)).units.find(u => !u.friendly && u.kind === 'light');
     const map = (await snapshot(page)).ui.minimap;
     await tap(map.x + 8 + (target.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16),
@@ -92,31 +101,32 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...fp, id: 3 }] });
     await page.waitForTimeout(650);
     const launched = await snapshot(page);
-    assert.equal(launched.fired, pinchBefore.fired + 1); assert.equal(launched.homingAmmo, 0);
+    assert.equal(launched.fired, pinchBefore.fired + 1); assert.equal(launched.homingAmmo, 1);
     assert(launched.shots.some(s => s.guidance?.target === target.id));
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForFunction(id => __night.snapshot().units.find(u => u.id === id).hp === 0, target.id, { timeout: 15000 });
     assert.equal((await snapshot(page)).friendlyDamage, 0); await capture('hit');
     await press('fullscreen'); await page.waitForFunction(() => !!document.fullscreenElement);
     await press('fullscreen'); await page.waitForFunction(() => !document.fullscreenElement);
-    assert.equal((await snapshot(page)).homingAmmo, 0);
+    assert.equal((await snapshot(page)).homingAmmo, 1);
     if (width === 390) {
       await page.setViewportSize({ width: 844, height: 390 }); await page.waitForTimeout(250);
       assert.equal((await snapshot(page)).phase, 'playing'); await layout();
-      assert.equal((await snapshot(page)).homingAmmo, 0);
+      assert.equal((await snapshot(page)).homingAmmo, 1);
       await page.setViewportSize({ width, height }); await page.waitForTimeout(250);
       assert.equal((await snapshot(page)).modal, ''); await layout();
     }
     await press('pause'); await press('home');
     assert.equal((await snapshot(page)).modal, 'home');
     await page.reload(); await page.waitForFunction(() => globalThis.__night && !document.getElementById('night-startup'));
-    assert.equal((await snapshot(page)).homingAmmo, 0);
+    assert.equal((await snapshot(page)).homingAmmo, 1);
     results.push({ width, height, viewport: s0.ui, pinch: [pinchBefore.zoom, zoomed.zoom],
       pan: [zoomed.camera.center, panned.camera.center, reversed.camera.center], homingTarget: target.id,
-      fired: launched.fired, inventory: 0, menus: true, fullscreen: true, rotation: width === 390 });
+      fired: launched.fired, inventory: 1, menus: true, fullscreen: true, rotation: width === 390 });
     await cdp.detach(); await page.close();
   }
   assert.deepEqual(errors, []);
-  await writeFile(new URL('verification.json', dir), JSON.stringify({ build, results, errors }, null, 2));
+  await acceptanceBuild(base);
+  await writeFile(new URL('verification.json', dir), JSON.stringify({ build, results, errors, physicalDevice: false, realAdSdk: false }, null, 2));
   console.log(JSON.stringify({ results: results.map(({ width, height }) => ({ width, height })), errors }));
 } finally { await browser.close(); }

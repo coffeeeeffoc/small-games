@@ -1,0 +1,153 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3"
+  },
+  "results": [
+    {
+      "width": 844,
+      "height": 390,
+      "viewport": {
+        "width": 844,
+        "height": 390,
+        "minimap": {
+          "x": 720,
+          "y": 64,
+          "w": 112,
+          "h": 84
+        },
+        "notice": "练瞄准，友军仍不能误伤 · 60 秒清除三个目标",
+        "warning": "",
+        "warningColor": "ff525b",
+        "fire": "开火",
+        "fullscreen": false,
+        "tutorial": "清除 3 个目标",
+        "feedback": "",
+        "muted": false,
+        "reducedEffects": false
+      },
+      "pinch": [
+        1.35,
+        2.7
+      ],
+      "pan": [
+        {
+          "x": -102.56462018491237,
+          "z": 77.59783218665756
+        },
+        {
+          "x": -112.07617772787815,
+          "z": 80.52022313299484
+        },
+        {
+          "x": -94.23774647256661,
+          "z": 76.4082734581386
+        }
+      ],
+      "homingTarget": 15,
+      "fired": 1,
+      "inventory": 1,
+      "menus": true,
+      "fullscreen": true,
+      "rotation": false
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "viewport": {
+        "width": 568,
+        "height": 320,
+        "minimap": {
+          "x": 444,
+          "y": 64,
+          "w": 112,
+          "h": 84
+        },
+        "notice": "练瞄准，友军仍不能误伤 · 60 秒清除三个目标",
+        "warning": "",
+        "warningColor": "ff525b",
+        "fire": "开火",
+        "fullscreen": false,
+        "tutorial": "清除 3 个目标",
+        "feedback": "",
+        "muted": false,
+        "reducedEffects": false
+      },
+      "pinch": [
+        1.35,
+        2.7
+      ],
+      "pan": [
+        {
+          "x": -102.54181846647161,
+          "z": 77.59339779860757
+        },
+        {
+          "x": -114.07314467224639,
+          "z": 81.29243308652256
+        },
+        {
+          "x": -92.41559423775276,
+          "z": 76.21992349902493
+        }
+      ],
+      "homingTarget": 15,
+      "fired": 1,
+      "inventory": 1,
+      "menus": true,
+      "fullscreen": true,
+      "rotation": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "viewport": {
+        "width": 844,
+        "height": 390,
+        "minimap": {
+          "x": 720,
+          "y": 64,
+          "w": 112,
+          "h": 84
+        },
+        "notice": "练瞄准，友军仍不能误伤 · 60 秒清除三个目标",
+        "warning": "",
+        "warningColor": "ff525b",
+        "fire": "开火",
+        "fullscreen": false,
+        "tutorial": "清除 3 个目标",
+        "feedback": "",
+        "muted": false,
+        "reducedEffects": false
+      },
+      "pinch": [
+        1.35,
+        2.7
+      ],
+      "pan": [
+        {
+          "x": -102.53333595968306,
+          "z": 77.60430387534177
+        },
+        {
+          "x": -112.0617466882488,
+          "z": 80.55715484023516
+        },
+        {
+          "x": -94.18680907730484,
+          "z": 76.39195449305726
+        }
+      ],
+      "homingTarget": 15,
+      "fired": 1,
+      "inventory": 1,
+      "menus": true,
+      "fullscreen": true,
+      "rotation": true
+    }
+  ],
+  "errors": [],
+  "physicalDevice": false,
+  "realAdSdk": false
+}

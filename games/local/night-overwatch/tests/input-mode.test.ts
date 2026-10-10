@@ -91,39 +91,126 @@ test('browser mouse-generated touches with simulate=false never replace or cance
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
 });
 
-test('reward requests pause, reject duplicate claims, preserve inventory on retry, and respect SDK outcomes', async () => {
+test('supply completion earns one choice, ammo grants two once, and inventory never blocks ads', async () => {
   const g = mission();
   g.hud.t = (zh: string) => zh;
   cc.sys.isBrowser = true;
   try {
     g.sim.setFire('touch:1', true);
-    await g.requestReward('homing');
+    g.action('supply');
+    assert(g.sim.paused); assert(g.hud.supplyOpen);
+    await g.requestReward('supply');
     assert.equal(g.hud.advert.mock, true);
     assert(g.sim.pauses.has('advert')); assert.equal(g.sim.held.size, 0);
-    await g.requestReward('homing');
+    await g.requestReward('supply');
     g.action('adClose'); g.action('adClose');
-    assert.equal(g.sim.homingAmmo, 1); assert.equal(g.platform.rewards.ammo, 1);
+    assert.equal(g.sim.homingAmmo, 0); assert(g.platform.rewards.pendingSupply);
     assert(!g.sim.pauses.has('advert'));
-    g.retry(); assert.equal(g.sim.homingAmmo, 1);
-    g.sim.pause('manual', true);
+    g.action('supplyLater'); assert(g.sim.pauses.has('manual'));
+    g.action('resume'); assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
+    await g.requestReward('zoom');
+    assert(g.hud.supplyOpen, 'pending choice takes precedence over another ad');
+    assert.equal(g.world.zoomLimit, 5);
+    g.action('reward:ammo'); g.action('reward:ammo');
+    assert.equal(g.sim.homingAmmo, 2); assert.equal(g.platform.rewards.ammo, 2);
+    assert.equal(g.platform.rewards.pendingSupply, false); assert.equal(g.sim.resumeCountdown, 3);
+    assert.equal(g.sim.held.size, 0);
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
+    assert(!g.sim.paused);
     await g.requestReward('zoom'); g.action('adClose');
-    assert.equal(g.world.zoomLimit, 10); assert(g.sim.pauses.has('manual'));
+    assert.equal(g.world.zoomLimit, 10); assert.equal(g.sim.resumeCountdown, 3);
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
+    g.retry(); assert.equal(g.sim.homingAmmo, 2);
     for (const status of ['dismissed', 'unavailable', 'failed']) {
       g.platform.rewardProvider = async () => ({ status });
-      await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 1);
+      await g.requestReward('supply'); assert.equal(g.sim.homingAmmo, 2);
       assert(!g.hud.advert); assert(!g.sim.pauses.has('advert'));
+      assert(g.sim.pauses.has('manual')); assert(!g.platform.rewards.pendingSupply);
     }
     g.platform.rewardProvider = async () => { throw Error('SDK unavailable'); };
-    await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 1);
+    await g.requestReward('supply'); assert.equal(g.sim.homingAmmo, 2);
     g.platform.rewardProvider = async (opportunity: any) => {
-      assert.equal(opportunity.id, 'night-overwatch:homing');
-      assert.deepEqual(opportunity.reward, { homing: 1 });
+      assert.equal(opportunity.id, 'night-overwatch:supply');
+      assert.deepEqual(opportunity.reward, { supplyChoice: 1 });
       return { status: 'completed' };
     };
-    await g.requestReward('homing'); assert.equal(g.sim.homingAmmo, 2);
+    await g.requestReward('supply'); assert(g.platform.rewards.pendingSupply);
+    g.action('reward:ammo'); assert.equal(g.sim.homingAmmo, 4);
     g.platform.rewardProvider = undefined; cc.sys.isBrowser = false;
-    assert.equal(await g.platform.offerReward('homing'), 'unavailable');
+    assert.equal(await g.platform.offerReward('supply'), 'unavailable');
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
+});
+
+test('timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads', async () => {
+  for (const reward of ['tracking', 'rate']) {
+    const g = mission(); g.hud.t = (zh: string) => zh;
+    let offers = 0;
+    g.platform.rewardProvider = async () => { offers++; return { status: 'completed' }; };
+    await g.requestReward('supply'); g.action('reward:' + reward);
+    assert.equal(g.sim.buff.kind, reward); assert.equal(g.sim.buff.remaining, 60);
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
+    assert.equal(g.sim.buff.remaining, 60, 'countdown never spends buff time');
+    await g.requestReward('supply'); await g.requestReward('zoom'); assert.equal(offers, 1);
+    g.action('homing'); g.action('supplyWatch'); assert.equal(offers, 1);
+    g.action('supplyLater'); g.action('resume');
+    g.sim.buff.remaining = .05; g.sim.step(.1); assert(!g.sim.buff);
+    await g.requestReward('zoom'); assert.equal(offers, 2);
+    g.platform.dispose();
+  }
+  const g = mission(); g.hud.t = (zh: string) => zh; cc.sys.isBrowser = true;
+  try {
+    await g.requestReward('supply'); g.action('adCancel'); g.action('adClose');
+    assert(!g.platform.rewards.pendingSupply); assert(g.sim.pauses.has('manual'));
+    g.action('resume'); assert(!g.sim.paused);
+    await g.requestReward('supply'); g.action('close');
+    assert(!g.platform.rewards.pendingSupply, 'Escape is cancellation, not mock completion');
+  } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
+});
+
+test('completed entitlement survives close, home, reload and background; repeated completion and claims are ignored', async () => {
+  const original = cc.sys.localStorage, saved = new Map<string, string>();
+  cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
+    setItem: (key: string, value: string) => saved.set(key, value) } as any;
+  const g = mission(); g.hud.t = (zh: string) => zh;
+  try {
+    let complete: any, calls = 0;
+    g.platform.rewardProvider = () => { calls++; return new Promise(resolve => { complete = resolve; }); };
+    const request = g.requestReward('supply');
+    await g.requestReward('zoom'); assert.equal(calls, 1);
+    g.hide(); complete({ status: 'completed' }); complete({ status: 'completed' }); await request;
+    assert(g.platform.rewards.pendingSupply); assert(g.sim.paused);
+    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('home');
+    assert(g.platform.rewards.pendingSupply);
+    const restored = mission(); restored.hud.t = (zh: string) => zh;
+    assert(restored.platform.rewards.pendingSupply);
+    restored.action('supply'); restored.action('reward:ammo'); restored.action('reward:rate');
+    assert.equal(restored.platform.rewards.ammo, 2); assert(!restored.sim.buff);
+    restored.hide(); assert(restored.sim.paused); restored.show(); assert(restored.sim.paused);
+    assert.equal(restored.sim.resumeCountdown, 0);
+    restored.action('resume'); assert.equal(restored.sim.resumeCountdown, 3);
+    for (let i = 0; i < 181; i++) restored.sim.stepCountdown(1 / 60);
+    assert(!restored.sim.paused);
+    const consumed = new Platform(new Node(), () => {}, () => {});
+    assert.equal(consumed.rewards.pendingSupply, false); assert.equal(consumed.rewards.ammo, 2);
+    restored.platform.dispose(); consumed.dispose();
+  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
+});
+
+test('storage failure preserves in-session choice and completion after disposal still records the entitlement', async () => {
+  const original = cc.sys.localStorage;
+  cc.sys.localStorage = { getItem: () => { throw Error('denied'); }, setItem: () => { throw Error('denied'); } } as any;
+  const g = mission(); g.hud.t = (zh: string) => zh;
+  try {
+    g.platform.rewardProvider = async () => ({ status: 'completed' });
+    await g.requestReward('supply'); g.action('supplyLater'); g.action('supply');
+    g.action('reward:ammo'); assert.equal(g.platform.rewards.ammo, 2);
+    g.retry();
+    let complete: any;
+    g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
+    const request = g.requestReward('supply'); g.disposed = true;
+    complete({ status: 'completed' }); await request;
+    assert(g.platform.rewards.pendingSupply);
+  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
 });
 
 test('a real touch activates initially desktop-classified native devices and trigger release stays safe', () => {

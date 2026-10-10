@@ -1,0 +1,62 @@
+{
+  "games": 1,
+  "checks": [
+    {
+      "game": "night-overwatch",
+      "entry": "independent",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "shell",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "independent",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "shell",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "independent",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "shell",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "independent",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "game": "night-overwatch",
+      "entry": "shell",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "mobile": "drag, resize, game modal, performance, touchcancel, persistence, exit"
+    },
+    {
+      "iframe": "same-origin inheritance and cross-origin URL opt-in"
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "browser": "154.0.8037.98"
+}

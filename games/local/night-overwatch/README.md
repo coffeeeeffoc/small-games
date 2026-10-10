@@ -76,6 +76,16 @@ Web/H5 公开入口支持 `?mission=corridor-01` / `ambush-02` / `patrol-03` / `
 
 ## 修改与验证
 
+### 战斗补给（2026-10-10）
+
+战斗或暂停页点击「战斗补给」，观看广告完成后只选一项：普通弹追踪 60 秒、手动追踪弹 +2 发、射速提升 60 秒（发射间隔除以 1.3）。领取后倒计时三秒继续；敌人、弹道、波次、关卡和增益计时在暂停、广告、选奖、倒计时及后台全部冻结。增益最后五秒变色提醒，到期恢复原状态。射速提升保留伤害、热量和弹药消耗，短时射速提升不等同于持续输出增加 30%。
+
+普通弹追踪保持当前武器的伤害、初速、范围与友伤，追踪增益到期后在途普通弹按当前位置继续重力飞行。一次性追踪弹只伤害锁定目标，威力调整为 120；满血重甲需要两发。广告次数不限，弹药库存不限制广告；计时增益期间所有广告入口（包括倍率解锁）关闭。
+
+广告取消/失败返回暂停页。广告成功立即保存一次待选资格，稍后选择、返回主页或刷新不会清除；领取只消费一次。Web 使用明确标注的模拟广告，只有「完成模拟广告」才完成，取消/Esc 不发奖。宿主继续通过 `SmallGamesRewardAds.offer` / `Platform.rewardProvider` 接入，补给机会 ID 为 `night-overwatch:supply`，奖励声明 `{ supplyChoice: 1 }`；倍率仍为 `night-overwatch:zoom`。`night-overwatch-rewards-v1` 向后兼容增加 `pendingSupply`，旧库存和倍率保留；计时增益只属于当前对局。存储拒绝时资格保留在本会话内，无法承诺跨刷新保存。
+
+方案及效果图位于 `docs/design/combat-supply-20261010.md` 与 `combat-supply-concept-20261010.png`；平衡回放用 `node tests/supply-balance.mjs`，补给浏览器验收用 `node tests/combat-supply-browser.mjs`（沿用下方构建 hash 环境变量）。[本次验证记录](docs/design/combat-supply-verification-20261010.md)包含实际截图、测试结果与平台边界。
+
 - `assets/scripts/core/`：数据、纯规则、ActionRegistry。
 - `World.ts`、`Effects.ts`、`HUD.ts`、`Overwatch.ts`、`Platform.ts`：Cocos 场景、弹道/爆炸、UI、输入与生命周期。
 - `scripts/generate-assets.mjs`：可重复生成原创 glTF 与八个 PCM WAV，包括飞行引擎循环和落地爆炸声。

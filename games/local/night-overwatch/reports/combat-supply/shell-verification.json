@@ -1,0 +1,132 @@
+{
+  "status": "passed",
+  "shell": "http://127.0.0.1:4330/",
+  "metadataURL": "http://127.0.0.1:4330/games/night-overwatch/build-info.json",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3"
+  },
+  "expectedSourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3",
+  "results": [
+    {
+      "id": "desktop",
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "status": "passed",
+      "screenshots": [
+        "shell-desktop-supply.png",
+        "shell-desktop-choice.png",
+        "shell-desktop-countdown.png"
+      ],
+      "checks": [
+        "supply freezes battle and clears input",
+        "built-in mock advert freezes battle",
+        "cancel grants nothing and returns to pause",
+        "manual pause freezes battle",
+        "completed ad persists one pending choice while battle stays frozen",
+        "one choice grants exactly two rounds without firing; 3/2/1 freezes combat then resumes",
+        "post-claim pause remains usable",
+        "post-claim pause/resume preserves inventory",
+        "Shell return removes iframe and restores catalog"
+      ],
+      "iframe": {
+        "url": "http://127.0.0.1:4330/games/night-overwatch/index.html",
+        "sandbox": null,
+        "allow": "autoplay; fullscreen"
+      },
+      "publicAdProvider": false,
+      "adBoundary": "unmodified Shell / built-in Web mock",
+      "countdownDigits": [
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "touch",
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "status": "passed",
+      "screenshots": [
+        "shell-touch-supply.png",
+        "shell-touch-choice.png",
+        "shell-touch-countdown.png"
+      ],
+      "checks": [
+        "supply freezes battle and clears input",
+        "built-in mock advert freezes battle",
+        "cancel grants nothing and returns to pause",
+        "manual pause freezes battle",
+        "completed ad persists one pending choice while battle stays frozen",
+        "one choice grants exactly two rounds without firing; 3/2/1 freezes combat then resumes",
+        "post-claim pause remains usable",
+        "post-claim pause/resume preserves inventory",
+        "Shell return removes iframe and restores catalog"
+      ],
+      "iframe": {
+        "url": "http://127.0.0.1:4330/games/night-overwatch/index.html",
+        "sandbox": null,
+        "allow": "autoplay; fullscreen"
+      },
+      "publicAdProvider": false,
+      "adBoundary": "unmodified Shell / built-in Web mock",
+      "countdownDigits": [
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "provider-failed",
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "fixture": "failed",
+      "status": "passed",
+      "screenshots": [
+        "shell-provider-failed-supply.png",
+        "shell-provider-failed-failure.png"
+      ],
+      "checks": [
+        "supply freezes battle and clears input",
+        "failed provider returns to paused battle",
+        "failed provider grants nothing; real input resumes battle",
+        "Shell return removes iframe and restores catalog"
+      ],
+      "iframe": {
+        "url": "http://127.0.0.1:4330/games/night-overwatch/index.html",
+        "sandbox": null,
+        "allow": "autoplay; fullscreen"
+      },
+      "publicAdProvider": true,
+      "adBoundary": "public SmallGamesRewardAds.offer failure fixture",
+      "offers": [
+        {
+          "id": "night-overwatch:supply",
+          "reward": {
+            "supplyChoice": 1
+          }
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "desktop: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)",
+    "desktop: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)",
+    "touch: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)",
+    "provider-failed: console: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:4330/favicon.ico:1:1)"
+  ],
+  "physicalDevice": false,
+  "realAdSdk": false,
+  "gameStateSetters": false,
+  "browserVersion": "154.0.8037.98",
+  "buildAfter": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3"
+  }
+}
