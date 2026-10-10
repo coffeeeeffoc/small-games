@@ -51,6 +51,7 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/cops-robbers-realtime/tests/competition.test.mjs -> services/runtime-api/rules/realtime.mjs',
   'games/local/cops-robbers/scripts/check-competition-renderer.mjs -> services/runtime-api/rules/cops.mjs',
   'games/local/cops-robbers/scripts/check-ranking.mjs -> services/runtime-api/rules/cops.mjs',
+  'games/local/cops-robbers/scripts/check-viewport-layout.mjs -> services/runtime-api/rules/cops.mjs',
   'games/local/letters-words2/tests/competition.test.mjs -> services/runtime-api/rules/letters.mjs',
   'games/local/vibeJam-myself-history-guess/scripts/competition-playtest.mjs -> services/runtime-api/rules/history.mjs',
   'games/local/vibeJam-myself-history-guess/tests/competition.test.mjs -> services/runtime-api/rules/history.mjs',

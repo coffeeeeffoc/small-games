@@ -106,15 +106,20 @@ test('allows only exact shared competition rule edges, never game runtime servic
       files: {
         'src/duel.js': 'export const duel = true;\n',
         'scripts/check-ranking.mjs': "import '../../../../services/runtime-api/rules/cops.mjs';\n",
+        'scripts/check-viewport-layout.mjs':
+          "import '../../../../services/runtime-api/rules/cops.mjs';\n",
+        'scripts/check-viewport-layout-extra.mjs':
+          "import '../../../../services/runtime-api/rules/cops.mjs';\n",
         'src/main.js': "import '../../../../services/runtime-api/rules/cops.mjs';\n",
       },
     },
   ]);
   t.after(() => rm(root, { recursive: true, force: true }));
   const violations = await validateWorkspace(root);
-  assert.equal(violations.length, 2);
+  assert.equal(violations.length, 3);
   assert.ok(violations.every((entry) => entry.code === 'cross-package-relative'));
   assert.ok(violations.some((entry) => entry.message.includes('other.mjs')));
+  assert.ok(violations.some((entry) => entry.message.includes('check-viewport-layout-extra.mjs')));
   assert.ok(violations.some((entry) => entry.message.includes('main.js')));
 });
 
