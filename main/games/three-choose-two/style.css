@@ -90,7 +90,8 @@ html,body{background:#c4e2dc}body{background-image:none}body:before,body:after{d
 .discard-example{display:grid;place-items:center;width:70px;height:75px;border:2px dashed #7f9866;border-radius:13px}.discard-example svg{opacity:.35;width:30px;height:55px}
 .mode-best{display:block;color:#4b623d;font-size:11px;font-weight:700;margin:6px 0 11px}.mode-card .primary{font-size:20px;min-height:54px;padding:10px 12px}.mode-online{min-height:44px;font-size:13px;font-weight:800;margin-top:5px}.mode-card .mode-error{font-size:12px;color:var(--red);margin:10px 0}
 .mode-footnote{text-align:center;font-size:11px;color:#23462f;font-weight:700;padding:3px 0 12px;text-shadow:0 1px 3px #fff}
-.high-contrast #game::after{background:#fff8e8e6}.high-contrast .board-cell:not(.occupied){fill:#adc09d;stroke:#496b4b}.high-contrast .board-cell.occupied>rect:first-child{stroke:#25452e;stroke-width:1.8}
+.board-cell.occupied{filter:drop-shadow(0 1px 1px #5547354d)}
+.high-contrast #game::after{background:#fff8e8e6}.high-contrast .board-surface{fill:#faf7f1}.high-contrast .board-grid{stroke:#bcb5a7;stroke-width:1.2}.high-contrast .board-cell.occupied>rect:first-child{stroke:#25452e;stroke-width:1.8}
 @media(min-width:700px){body{background:#ceddc0}#game{box-shadow:0 0 70px #34573130}#game::before,#game::after{left:max(0px,calc(50% - 220px));right:max(0px,calc(50% - 220px))}}
 @media(max-height:740px){
 .home-intro{height:143px}.hero{height:177px}.hero img{width:calc(100% + 22px)}.home-progress{padding:5px 18px;margin-bottom:10px}.home-progress strong{font-size:13px}.home-start{min-height:55px;font-size:22px;padding:10px 18px}.home-modes{margin-top:14px}.home-mode-card{min-height:55px;padding:10px 6px}.home-mode-card strong{font-size:17px}.home-nav{padding-top:18px}.home-nav button{min-height:62px}

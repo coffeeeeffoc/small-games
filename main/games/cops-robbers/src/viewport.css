@@ -1,0 +1,814 @@
+/* viewport-concept.png: one neighborhood, with actions inside the available viewport. */
+:root {
+  background: #c5e7c2;
+}
+body.game-shell {
+  --home-bar: calc(56px + env(safe-area-inset-top));
+  background: linear-gradient(#68cbed 0%, #bce9e6 34%, #b9dea5 68%, #c5e7c2 100%);
+}
+.game-shell:not(.focus-play) .topbar {
+  height: var(--home-bar);
+  max-width: 520px;
+  padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0
+    max(12px, env(safe-area-inset-left));
+}
+.game-shell:not(.focus-play) .brand {
+  font-size: 15px;
+}
+.game-shell:not(.focus-play) .layout {
+  height: calc(100dvh - var(--home-bar));
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0;
+}
+.game-shell:not(.focus-play) .briefing {
+  display: grid !important;
+  justify-content: normal;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.game-shell .home-title {
+  grid-row: 1;
+  margin-top: 3px;
+  z-index: 1;
+}
+.game-shell .home-kicker {
+  padding: 4px 13px;
+  letter-spacing: 2px;
+}
+.game-shell .briefing h1 {
+  font-size: clamp(38px, 11vw, 58px);
+  margin: 8px 0 9px;
+}
+.game-shell .home-tagline {
+  padding: 4px 12px;
+}
+.game-shell .home-scene {
+  grid-row: 2;
+  position: relative;
+  inset: auto;
+  min-height: 0;
+  background-position: center 61%;
+  background-size: cover;
+  mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+}
+.game-shell .home-scene::after {
+  display: none;
+}
+.game-shell .home-menu {
+  grid-row: 3;
+  margin: 0;
+  padding: 0 14px max(12px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 8px;
+  z-index: 1;
+}
+.game-shell .home-roster {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 14px;
+  gap: 4px;
+  margin: 0;
+  font-size: 15px;
+}
+.game-shell .home-roster button {
+  width: 44px;
+  height: 44px;
+}
+.game-shell #home-start {
+  min-height: 54px;
+  font-size: 24px;
+  padding: 7px 16px;
+  border-radius: 22px;
+}
+.game-shell #resume-patrol {
+  margin: 0 auto;
+  min-height: 44px;
+  width: 88%;
+  padding: 4px 8px;
+}
+.game-shell .home-portals {
+  gap: 7px;
+}
+.game-shell .home-portals button {
+  min-height: 66px;
+  padding: 4px;
+  border-radius: 17px;
+  font-size: 12px;
+}
+.game-shell .home-portals svg {
+  width: 37px;
+  height: 33px;
+}
+.game-shell .home-tools {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.65fr;
+  gap: 6px;
+}
+.game-shell .home-tools button,
+.game-shell .home-share button {
+  min-height: 44px;
+  padding: 5px 4px;
+  border: 2px solid #94bda7;
+  border-radius: 16px;
+  background: #effbf0e8;
+  color: #164d61;
+  box-shadow: 0 2px 0 #94bda7;
+  font-size: 11px;
+}
+.game-shell #completed-count {
+  padding: 2px 0;
+  margin-left: 1px;
+  font-size: 9px;
+  background: transparent;
+}
+.game-shell .home-share {
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.game-shell .home-share button {
+  width: 78%;
+  background: #fff9e7;
+}
+.game-shell #friend-note {
+  position: absolute;
+  bottom: calc(100% + 56px);
+  left: 14px;
+  right: 14px;
+  max-width: none;
+  border: 2px solid #c1d5b1;
+  border-radius: 14px;
+  background: #fff9e8f5;
+  padding: 7px 10px;
+  color: #153c53;
+}
+
+/* Native dialog boxes keep their title and actions outside the scrolling body. */
+.game-shell dialog:not(.competition-dialog):not([data-role-appearance]) {
+  width: min(450px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 16px;
+  overflow: hidden;
+}
+.game-shell dialog[open]:not(.competition-dialog):not([data-role-appearance]) {
+  display: flex;
+  flex-direction: column;
+}
+.game-shell dialog:not(.competition-dialog):not([data-role-appearance]) > :not(.dialog-body) {
+  flex-shrink: 0;
+}
+.game-shell .dialog-heading {
+  margin-bottom: 10px;
+}
+.game-shell .dialog-heading h2 {
+  font-size: 21px;
+}
+.game-shell .dialog-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 3px;
+}
+.game-shell .dialog-body:focus-visible {
+  outline: 2px solid #1687a6;
+  outline-offset: -2px;
+}
+.game-shell .dialog-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #d0ddbc;
+  gap: 8px;
+}
+.game-shell .dialog-actions button {
+  width: 100%;
+  min-height: 44px;
+}
+.game-shell .dialog-actions .execute,
+.game-shell .win-actions .execute {
+  font-size: 17px;
+  min-height: 48px;
+  padding: 8px 12px;
+  letter-spacing: 0;
+}
+.game-shell .dialog-footer {
+  margin-top: 10px;
+}
+.game-shell .setting-row {
+  padding: 12px 0;
+  min-height: 64px;
+  gap: 12px;
+}
+.game-shell .setting-row small {
+  line-height: 1.5;
+  margin-top: 4px;
+  color: #57746b;
+}
+.game-shell .setting-row input {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+.game-shell .help-note {
+  padding: 12px;
+  line-height: 1.6;
+}
+.game-shell .help-steps li {
+  margin: 14px 0;
+}
+.game-shell .help-steps p {
+  line-height: 1.7;
+  color: #506d65;
+}
+.game-shell #mode-dialog .mode-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 10px;
+}
+.game-shell .mode-card label {
+  margin: 0;
+  gap: 5px;
+  min-width: 0;
+}
+.game-shell .mode-card label:first-child,
+.game-shell #mode-description,
+.game-shell #solo-level-row {
+  grid-column: 1 / -1;
+}
+.game-shell .mode-card p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.game-shell select {
+  min-height: 44px;
+  font-size: 12px;
+}
+.game-shell #level-dialog {
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+.game-shell #chapter-tabs {
+  scrollbar-width: thin;
+}
+.game-shell #chapter-description {
+  margin: 3px 3px 8px;
+}
+.game-shell #level-dialog .dialog-footer {
+  margin-top: 8px;
+}
+.game-shell #win-dialog,
+.game-shell #loss-dialog {
+  text-align: center;
+}
+.game-shell .result-summary .win-art {
+  width: 160px;
+  height: clamp(55px, 16dvh, 110px);
+}
+.game-shell .result-summary .eyebrow {
+  justify-content: center;
+  font-size: 9px;
+}
+.game-shell .result-summary h2,
+.game-shell #win-dialog h2 {
+  font-size: 23px;
+  margin-top: 8px;
+}
+.game-shell .win-stars {
+  font-size: 28px;
+  margin-top: 8px;
+}
+.game-shell #win-details,
+.game-shell #loss-details {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.game-shell .win-actions {
+  margin-top: 12px;
+  gap: 8px;
+}
+.game-shell .win-actions .text-button {
+  min-height: 44px;
+  border: 2px solid #b5caa3;
+  border-radius: 17px;
+  background: #f2f7df;
+  color: #315d5c;
+}
+
+/* The shared appearance picker gets a local layout without changing its synced code. */
+.game-shell [data-role-appearance] {
+  padding: 16px;
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: hidden;
+  border-color: #94ba9e;
+  font-family: inherit;
+}
+.game-shell [data-role-appearance][open] {
+  display: flex;
+  flex-direction: column;
+}
+.game-shell [data-role-appearance] > :not(.role-options) {
+  flex-shrink: 0;
+}
+.game-shell [data-role-appearance] .role-options {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 3px;
+}
+.game-shell [data-role-appearance] h2 {
+  font-size: 22px;
+}
+.game-shell [data-role-appearance] p {
+  margin: 6px 0 10px;
+  line-height: 1.5;
+}
+.game-shell [data-role-appearance] svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+.game-shell [data-role-appearance] label {
+  margin: 8px 0;
+}
+.game-shell [data-role-appearance] footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #d0ddbc;
+}
+.game-shell [data-role-appearance] [data-close-appearance] {
+  width: 100%;
+}
+
+/* Only this game's injected friend match surface receives the neighborhood theme. */
+.game-shell .competition-dialog {
+  --pk-ink: #153c53;
+  --pk-muted: #55786b;
+  --pk-line: #c6d7b7;
+  --pk-accent: #ffdc58;
+  width: min(620px, calc(100vw - 24px));
+  height: min(640px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  max-height: none;
+  max-width: none;
+  padding: 0;
+  border: 3px solid #94ba9e;
+  border-radius: 24px;
+  background: #fff9e8;
+  color: #153c53;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.game-shell .competition-dialog .pk-shell {
+  padding: 12px;
+}
+.game-shell .competition-dialog .pk-header {
+  padding-bottom: 7px;
+}
+.game-shell .competition-dialog .pk-brand-mark {
+  background: #1687a6;
+  color: #ffe077;
+}
+.game-shell .competition-dialog .pk-tools button {
+  min-width: 44px;
+  padding: 7px;
+}
+.game-shell .competition-dialog .pk-status {
+  margin: 5px 0 !important;
+  min-height: 20px;
+}
+.game-shell .competition-dialog .pk-hero {
+  display: none;
+}
+.game-shell .competition-dialog .pk-eyebrow {
+  display: none;
+}
+.game-shell .competition-dialog .pk-hero h2 {
+  font-size: 22px;
+}
+.game-shell .competition-dialog .pk-hero p {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.game-shell .competition-dialog .pk-profile {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #eaf5df;
+  border-color: #bfd3ad;
+}
+.game-shell .competition-dialog .pk-profile-copy small {
+  display: none;
+}
+.game-shell .competition-dialog .pk-avatar {
+  width: 32px;
+  height: 32px;
+}
+.game-shell .competition-dialog .pk-options {
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+.game-shell .competition-dialog .pk-option {
+  padding: 6px;
+  border-radius: 16px;
+  background: #fffdf1;
+}
+.game-shell .competition-dialog .pk-option h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.game-shell .competition-dialog .pk-option p {
+  display: none;
+}
+.game-shell .competition-dialog .pk-match-options {
+  margin: 3px 0 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.game-shell .competition-dialog .pk-match-options label {
+  min-width: 0;
+  font-size: 11px;
+  gap: 4px;
+}
+.game-shell .competition-dialog .pk-match-options small {
+  display: none;
+}
+.game-shell .competition-dialog .pk-match-options select {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 2px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.game-shell .competition-dialog .pk-join {
+  margin-top: 4px;
+}
+.game-shell .competition-dialog input {
+  min-width: 0;
+  font-size: 13px;
+}
+.game-shell .competition-dialog button {
+  min-height: 44px;
+  border-radius: 14px;
+}
+.game-shell .competition-dialog button.pk-primary {
+  border: 2px solid #e6b346;
+  background: linear-gradient(#ffe777, #ffd137);
+  color: #153c53;
+  font-weight: 800;
+}
+.game-shell .competition-dialog .pk-footer {
+  flex: none;
+  margin-top: 6px;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--pk-line);
+  align-items: center;
+  padding-right: 96px;
+}
+.game-shell .competition-dialog .pk-footer p {
+  display: none;
+}
+.game-shell .competition-dialog .pk-exit {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 0;
+}
+.game-shell .competition-dialog .pk-exit button {
+  min-width: 88px;
+}
+.game-shell .competition-dialog .pk-overlay {
+  inset: 0;
+  padding: 12px;
+  overflow: hidden;
+}
+.game-shell .competition-dialog .pk-sheet {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  overflow: hidden;
+  min-height: 0;
+  background: #fff9e8;
+  border: 2px solid #b4cbaa;
+}
+.game-shell .competition-dialog .pk-sheet-head {
+  flex: none;
+  margin-bottom: 10px;
+}
+.game-shell .competition-dialog .pk-sheet-head h2 {
+  font-size: 21px;
+}
+.game-shell .competition-dialog .pk-sheet-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.game-shell .competition-dialog .pk-sheet-actions {
+  flex: none;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--pk-line);
+}
+.game-shell .competition-dialog .pk-sheet-actions button {
+  width: 100%;
+}
+.game-shell .competition-dialog .pk-sheet[data-kind='result'] {
+  height: 100%;
+}
+.game-shell .competition-dialog .pk-sheet-content:has(.pk-result-actions) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+  overflow: hidden;
+}
+.game-shell .competition-dialog .pk-result {
+  padding: 10px;
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.game-shell .competition-dialog .pk-result-actions {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.game-shell .competition-dialog .pk-result-actions button {
+  min-width: 0;
+  padding: 8px;
+  font-size: 12px;
+}
+.game-shell .competition-dialog .pk-profile-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 8px;
+}
+.game-shell .competition-dialog .pk-profile-form label {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.game-shell .competition-dialog .pk-profile-form input {
+  margin: 4px 0 0;
+}
+.game-shell .competition-dialog .pk-profile-form button[type='submit'] {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  padding: 8px;
+  margin: 0;
+}
+.game-shell .competition-dialog .pk-profile-form small,
+.game-shell .competition-dialog .pk-form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 11px;
+  min-height: 0;
+}
+.game-shell .competition-dialog .pk-form-message:empty {
+  display: none;
+}
+.game-shell .competition-dialog .pk-profile-id {
+  margin-top: 8px;
+  padding-top: 6px;
+}
+.game-shell .competition-dialog .pk-room-intro {
+  padding: 3px 0;
+}
+.game-shell .competition-dialog .pk-room-intro h2 {
+  font-size: 20px;
+}
+.game-shell .competition-dialog .pk-room-code {
+  margin: 4px 0;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+.game-shell .competition-dialog .pk-room-intro p {
+  font-size: 11px;
+  margin-top: 4px;
+}
+.game-shell .competition-dialog .pk-matchup {
+  grid-template-columns: 1fr 22px 1fr;
+  gap: 6px;
+  margin: 6px 0;
+}
+.game-shell .competition-dialog .pk-player {
+  padding: 6px;
+  border-radius: 14px;
+}
+.game-shell .competition-dialog .pk-player .pk-avatar {
+  display: none;
+}
+.game-shell .competition-dialog .pk-player strong {
+  font-size: 12px;
+}
+.game-shell .competition-dialog .pk-player small {
+  font-size: 10px;
+  margin-top: 3px;
+}
+.game-shell .competition-dialog .pk-role-actions {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 5px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.game-shell .competition-dialog .pk-role-actions > small,
+.game-shell .competition-dialog .pk-role-actions > label {
+  grid-column: 1 / -1;
+}
+.game-shell .competition-dialog .pk-role-actions small {
+  font-size: 10px;
+  line-height: 1.4;
+}
+.game-shell .competition-dialog .pk-role-actions label {
+  display: flex;
+  align-items: center;
+}
+.game-shell .competition-dialog .pk-role-actions select {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+}
+.game-shell .competition-dialog .pk-room-actions {
+  gap: 6px;
+  margin-top: 8px;
+}
+.game-shell .competition-dialog .pk-room-actions > button {
+  min-width: 0;
+  flex: 1;
+}
+.game-shell .competition-dialog .pk-room-note {
+  display: none;
+}
+.game-shell .competition-dialog[data-playing] .pk-exit {
+  position: static;
+  padding-top: 8px;
+}
+.game-shell .competition-dialog[data-playing] .pk-content {
+  flex: 1;
+}
+@media (min-width: 601px) {
+  .game-shell .competition-dialog .pk-options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-shell:not(.focus-play) .topbar,
+  .game-shell:not(.focus-play) .layout {
+    max-width: 960px;
+  }
+  .game-shell:not(.focus-play) .briefing {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 40%);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0 10px;
+  }
+  .game-shell .home-title {
+    grid-column: 1;
+    margin-top: 0;
+  }
+  .game-shell .briefing h1 {
+    font-size: 38px;
+    margin: 5px 0 8px;
+  }
+  .game-shell .home-tagline {
+    display: none;
+  }
+  .game-shell .home-scene {
+    grid-column: 1;
+  }
+  .game-shell .home-menu {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    gap: 7px;
+    padding-left: 0;
+  }
+  .game-shell .home-roster {
+    right: auto;
+    left: -100px;
+    bottom: 6px;
+  }
+  .game-shell .home-portals button {
+    min-height: 60px;
+  }
+  .game-shell #home-start {
+    min-height: 48px;
+    font-size: 21px;
+  }
+  .game-shell .home-tools {
+    gap: 4px;
+  }
+  .game-shell .home-tools button {
+    font-size: 10px;
+  }
+  .game-shell dialog:not(.competition-dialog):not([data-role-appearance]) {
+    width: min(580px, calc(100vw - 24px));
+    padding: 12px 16px;
+  }
+  .game-shell .result-summary .win-art,
+  .game-shell .result-summary .eyebrow {
+    display: none;
+  }
+  .game-shell #settings-dialog .dialog-body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .game-shell #settings-dialog .setting-row {
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 0;
+  }
+  .game-shell #settings-dialog .dialog-note {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+  .game-shell #mode-dialog .mode-card label:first-child,
+  .game-shell #solo-level-row {
+    grid-column: auto;
+  }
+  .game-shell #mode-description {
+    grid-row: 3;
+  }
+  .game-shell .win-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .game-shell .competition-dialog {
+    width: min(740px, calc(100vw - 24px));
+  }
+  .game-shell .competition-dialog .pk-options {
+    grid-template-columns: 1fr 1fr;
+  }
+  .game-shell .competition-dialog .pk-hero p {
+    display: none;
+  }
+  .game-shell .competition-dialog .pk-profile {
+    padding: 0 6px;
+    margin-bottom: 5px;
+  }
+  .game-shell .competition-dialog .pk-shell {
+    padding: 8px 12px;
+  }
+  .game-shell .competition-dialog .pk-header {
+    padding-bottom: 4px;
+  }
+  .game-shell .competition-dialog .pk-status {
+    margin: 2px 0 !important;
+  }
+  .game-shell .competition-dialog .pk-exit {
+    bottom: 8px;
+  }
+  .game-shell .competition-dialog .pk-option > p {
+    display: none;
+  }
+  .game-shell .competition-dialog .pk-sheet {
+    padding: 10px;
+  }
+  .game-shell .competition-dialog [data-room]:not([hidden]) {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  .game-shell .competition-dialog .pk-room-intro,
+  .game-shell .competition-dialog .pk-matchup {
+    grid-column: 1;
+  }
+  .game-shell .competition-dialog .pk-role-actions {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    margin: 0;
+  }
+  .game-shell .competition-dialog .pk-room-actions {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+  }
+}
+@media (max-height: 650px) and (orientation: portrait) {
+  .game-shell .home-title {
+    margin-top: 0;
+  }
+  .game-shell .home-tagline {
+    display: none;
+  }
+  .game-shell .briefing h1 {
+    font-size: 39px;
+    margin: 5px 0 7px;
+  }
+  .game-shell .home-menu {
+    gap: 7px;
+  }
+  .game-shell .home-portals button {
+    min-height: 60px;
+  }
+  .game-shell #home-start {
+    min-height: 50px;
+  }
+}

@@ -54,6 +54,13 @@ const game = createGame(target, {
     canvas.dataset.turn = String(app.state?.turn ?? 0);
     canvas.dataset.shots = String(app.state?.shots ?? 0);
     canvas.dataset.active = String(app.state?.active ?? 0);
+    canvas.dataset.playerShots = String(app.state?.playerShots ?? 0);
+    canvas.dataset.radius = String(app.state?.radius ?? 0);
+    canvas.dataset.physicsPhase = app.state?.phase ?? '';
+    // Read-only visible positions support touch/accessibility checks without a developer API.
+    canvas.dataset.discs = JSON.stringify(
+      app.state?.discs.map(({ id, x, y, alive }) => ({ id, x, y, alive })) ?? [],
+    );
     const key = app.screen + app.buttons.map((b) => b.id + b.label).join('|');
     const box = stage.getBoundingClientRect(),
       s = Math.min(box.width / W, box.height / H),
@@ -61,6 +68,20 @@ const game = createGame(target, {
       oy = (box.height - H * s) / 2;
     if (signature !== key) {
       signature = key;
+      if (window.parent !== window) {
+        try {
+          window.parent.postMessage(
+            {
+              type: 'small-games:display-state',
+              gameId: 'flick-arena',
+              screen: ['home', 'layouts', 'help'].includes(app.screen) ? 'home' : 'playing',
+            },
+            new URL(document.referrer).origin,
+          );
+        } catch {
+          /* Missing referrer must not prevent local play. */
+        }
+      }
       controls.replaceChildren(
         ...app.buttons.map((b) => {
           const el = document.createElement('button');

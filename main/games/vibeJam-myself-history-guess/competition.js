@@ -15717,7 +15717,8 @@ body.competition-active #mode-online { position:static; }
 					label
 				});
 			};
-			text(`第 ${state.round}/${state.total} 幕 · ${state.score} 分`, 10, 17);
+			text(`第 ${state.round}/${state.total} 幕 · ${state.score} 分`, 10, 17, 13);
+			if (state.phase === "guessing" && Number.isFinite(state.remainingMs)) text(`剩余 ${Math.ceil(state.remainingMs / 1e3)} 秒`, w - 108, 17, 13, state.remainingMs <= 5e3 ? "#ad422f" : "#243d33");
 			const wide = w > 600 && h < 460;
 			const top = 88, bottom = h - (wide ? 58 : 125);
 			rect = {
@@ -15728,23 +15729,13 @@ body.competition-active #mode-online { position:static; }
 			};
 			if (state.phase === "revealed") {
 				const answer = state.answer;
-				if (mode === "answer-map") {
-					drawMap();
-					button("返回解说", 10, 36, w - 20, 44, () => {
-						mode = "scene";
-					});
-				} else {
-					button("对照地图", 10, 36, w - 20, 44, () => {
-						mode = "answer-map";
-						mapZoom = 1;
-					});
-					text(answer.place, 12, 100, 18);
-					text(`${yearLabel(answer.year)} · 满分宽容 ±${answer.tolerance} 年`, 12, 131);
-					text(`本幕 ${answer.score}/5000 · 提示扣 ${answer.penalty}`, 12, 158);
-					text(`地点：${answer.distance === null ? "未作答" : Math.round(answer.distance) + " 公里误差"} · 年代：${answer.years === null ? "未作答" : answer.years + " 年误差"}`, 12, 186);
-					wrap(answer.story, wide ? w / 2 : 12, wide ? 100 : 218, wide ? w / 2 - 16 : w - 24, wide ? 5 : Math.max(2, Math.floor((bottom - 225) / 20)));
-				}
-				if (!wide) wrap("AI 历史想象复原；年份为游戏设定。", 12, h - 89, w - 24, 1, 12);
+				text("时空档案 · 本幕评分", 12, 66, 18);
+				ctx.fillStyle = "#e4dece";
+				ctx.fillRect(10, 91, w - 20, Math.min(142, bottom - 95));
+				text(`${answer.score} / 5000`, 24, 124, 28);
+				text(answer.timedOut ? "本幕已超时，计 0 分" : `本幕 ${answer.score} 分 · 提示扣 ${answer.penalty}`, 24, 166, 14);
+				wrap("答案封存，只留下你的挑战成绩。", wide ? w / 2 : 12, wide ? 192 : 259, wide ? w / 2 - 16 : w - 24, 2, 14);
+				if (!wide) wrap("AI 历史想象复原 · 不公开标准年代、地点或误差", 12, h - 89, w - 24, 2, 12);
 				if (!state.finished) button("前往下一幕", 10, h - 60, w - 20, 48, () => ({ type: "next" }), true);
 				else wrap("五幕已完成，本局答题结束。", 12, h - 39, w - 24, 2);
 				ctx.restore();
@@ -15936,8 +15927,7 @@ body.competition-active #mode-online { position:static; }
 					ctx.fill();
 					text(label, x + 9, y, 13, color);
 				};
-				marker(state.answer?.point || guess, "猜", "#ad422f");
-				marker(state.answer, "真", "#147052");
+				marker(guess, "猜", "#ad422f");
 				ctx.restore();
 				button("＋ 放大", 14, bottom - 49, 83, 44, () => {
 					if (guess) center = { ...guess };

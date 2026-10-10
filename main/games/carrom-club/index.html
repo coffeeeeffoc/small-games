@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#092b29" />
+    <meta
+      name="description"
+      content="回拉指尖，听见落袋。木质克朗棋盘上的人机切磋与六关手感练习。"
+    />
+    <title>克朗棋 · Carrom Club</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script defer src="./fullscreen.js"></script>
+    <script type="module" src="./src/main.mjs"></script>
+  </head>
+  <body data-phase="home">
+    <main id="app" data-game-display-host>
+      <section id="home" class="screen home" aria-label="主页">
+        <div class="home-top">
+          <span class="edition">指 尖 棋 社</span
+          ><button id="settings-open" class="icon" aria-label="设置">
+            <svg viewBox="0 0 24 24">
+              <path d="m9 3-1 3-3 1v4l-2 1 2 2v3l3 1 1 3h5l1-3 3-1 1-3 2-2-2-2V7l-4-1-1-3z" />
+              <circle cx="11.5" cy="12" r="3.5" />
+            </svg>
+          </button>
+        </div>
+        <header class="brand">
+          <div class="club-crest" aria-hidden="true">
+            <svg viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="17" />
+              <circle cx="20" cy="20" r="13" />
+              <path d="m12 24-2-12 7 7 3-10 3 10 7-7-2 12zM13 28h14" />
+            </svg>
+          </div>
+          <p class="wordmark">CARROM CLUB</p>
+          <h1>克朗棋</h1>
+          <p class="tagline">小小方寸 · 大大世界</p>
+        </header>
+        <div class="hero-board">
+          <canvas id="home-board" aria-label="胡桃木克朗棋盘"></canvas
+          ><span class="table-label">EST. 2026 / 一 局 好 时 光</span>
+        </div>
+        <div class="home-actions">
+          <p id="home-progress" class="muted">回拉指尖，听见落袋。</p>
+          <button id="start" class="primary">开始对局 <span>›</span></button
+          ><button id="levels-open" class="secondary">
+            练习选关 <span class="tiny" id="practice-progress">0 / 6</span>
+          </button>
+        </div>
+        <footer class="home-footer">
+          <button id="help-open" class="text-button">玩法帮助</button><span class="diamond">◇</span
+          ><span class="muted">以棋会友 · 乐在指间</span>
+        </footer>
+      </section>
+
+      <section id="levels" class="screen menu" aria-label="练习选关" hidden>
+        <header class="page-heading">
+          <button class="icon" data-home aria-label="返回主页">‹</button
+          ><span class="wordmark">THE PRACTICE ROOM</span><span></span>
+        </header>
+        <h2>练习选关</h2>
+        <p class="subtitle">手感，从第一杆开始</p>
+        <div id="level-grid" class="level-grid"></div>
+        <p class="muted footnote">通关解锁下一关 · 好手感值得多练一杆</p>
+      </section>
+
+      <section id="play" class="screen play" aria-label="克朗棋对局" hidden>
+        <header id="opponent-seat" class="opponent seat">
+          <div class="disc-crest charcoal" aria-hidden="true">
+            <svg viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="14" />
+              <circle cx="20" cy="20" r="11" />
+              <path d="m13 23-2-10 6 5 3-8 3 8 6-5-2 10zM14 27h12" />
+            </svg>
+          </div>
+          <div class="seat-copy">
+            <strong id="opponent-name">阿洛 <small>电脑</small></strong>
+            <div class="score-line">
+              <i class="coin black"></i><span id="opponent-score">0 / 9</span>
+            </div>
+          </div>
+          <button id="pause" class="icon" aria-label="暂停">
+            <svg viewBox="0 0 24 24" class="pause-svg">
+              <rect x="5" y="4" width="5" height="16" rx="1" />
+              <rect x="14" y="4" width="5" height="16" rx="1" />
+            </svg>
+          </button>
+        </header>
+        <div class="board-wrap">
+          <canvas
+            id="board"
+            tabindex="0"
+            aria-label="克朗棋棋盘，按住击球子回拉瞄准，松手击发"
+          ></canvas>
+          <div id="practice-badge" hidden>试玩 · 不记录进度</div>
+          <div id="pocket-toast" role="status"></div>
+        </div>
+        <div class="controls">
+          <div id="player-seat" class="player seat">
+            <div class="disc-crest ivory" aria-hidden="true">
+              <svg viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="14" />
+                <circle cx="20" cy="20" r="11" />
+                <path d="m13 23-2-10 6 5 3-8 3 8 6-5-2 10zM14 27h12" />
+              </svg>
+            </div>
+            <div class="seat-copy">
+              <strong>你 <small>白子</small></strong>
+              <div class="score-line">
+                <i class="coin white"></i><span id="player-score">0 / 9</span>
+              </div>
+            </div>
+            <span id="turn-pill" class="turn-pill">你的回合</span>
+          </div>
+          <div class="shot-tray">
+            <div class="position-control">
+              <span aria-hidden="true">‹</span
+              ><input
+                id="position"
+                type="range"
+                min="235"
+                max="765"
+                value="500"
+                step="1"
+                aria-label="击球子摆位"
+              /><span aria-hidden="true">›</span>
+            </div>
+            <div class="aim-state">
+              <output id="aim-angle" aria-label="瞄准角度" hidden>0.0°</output
+              ><span id="play-hint">滑动摆位 · 回拉击球子</span
+              ><button id="cancel-aim" class="cancel" hidden>取消</button>
+            </div>
+            <div id="power-track" class="power-track" aria-label="击球力度">
+              <div id="power-fill"></div>
+            </div>
+          </div>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+          <span class="quiet-brand">CARROM CLUB</span>
+        </div>
+      </section>
+
+      <section id="pause-screen" class="screen centered" aria-label="暂停菜单" hidden>
+        <span class="wordmark">TAKE YOUR TIME</span>
+        <div class="menu-emblem">◇</div>
+        <h2>好棋，值得慢慢来</h2>
+        <p id="pause-description" class="subtitle">这一杆，等你回来。</p>
+        <div class="menu-actions">
+          <button id="resume" class="primary">继续对局 <span>›</span></button
+          ><button id="restart" class="secondary">重新开始</button
+          ><button id="pause-home" class="text-button">返回主页</button>
+        </div>
+        <div class="inline-actions">
+          <button id="pause-settings" class="text-button">声音与设置</button
+          ><button data-game-fullscreen>全屏</button>
+        </div>
+      </section>
+      <section id="settings" class="screen menu" aria-label="设置" hidden>
+        <header class="page-heading">
+          <button id="settings-back" class="icon" aria-label="返回">‹</button
+          ><span class="wordmark">MAKE YOURSELF AT HOME</span><span></span>
+        </header>
+        <h2>慢下来，听一局</h2>
+        <div class="settings-list">
+          <button id="sound" aria-pressed="true">
+            <span>棋子音效<small>清脆碰撞，轻轻落袋</small></span
+            ><strong>开</strong></button
+          ><button id="haptics" aria-pressed="true">
+            <span>触感反馈<small>每次好球，指尖回应</small></span
+            ><strong>开</strong>
+          </button>
+        </div>
+        <button data-game-fullscreen>全屏</button>
+        <p class="muted footnote">不支持音效或震动时，仍可正常对局。</p>
+      </section>
+      <section id="help" class="screen menu" aria-label="玩法帮助" hidden>
+        <header class="page-heading">
+          <button data-home class="icon" aria-label="返回主页">‹</button
+          ><span class="wordmark">A LITTLE GUIDANCE</span><span></span>
+        </header>
+        <h2>三步，一杆好球</h2>
+        <ol class="help-steps">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>摆好位置</h3>
+              <p>拖动棋盘下的金色滑轨，把击球子放在合适的底线位置。</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>轻轻回拉</h3>
+              <p>
+                按住较大的白色击球子，先向目标反方向回拉定向，再左右慢慢微调。虚线显示首个碰撞点，拉得越远，力道越大。细小抖动会被过滤；收杆后重新回拉可大幅换向。
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>松手，听见落袋</h3>
+              <p>把白子送进四角袋口。回拉至起点或点“取消”，即可收杆。</p>
+            </div>
+          </li>
+        </ol>
+        <div class="rules">
+          <h3>棋社的休闲规则</h3>
+          <p>你执白，阿洛执黑。进本色可继续出杆；空杆或只进对方棋子则换手。</p>
+          <p>
+            红后入袋后，同杆或下一杆补进本色，否则红后返场。红后完成补进后，先清完本色的一方获胜。
+          </p>
+          <p>
+            击球子落袋会返还本杆本色及一枚已进子；不足的罚子记欠，后续进子偿还。红后未补进时，最后本色返场。
+          </p>
+          <p>
+            练习按杆数评星，依次解锁。对局自动保存到最近一次静止回合；关闭页面不会保存半途的击球。
+          </p>
+        </div>
+        <button id="help-practice" class="primary">去练第一杆 <span>›</span></button>
+      </section>
+      <section id="result" class="screen centered result" aria-label="对局结算" hidden>
+        <canvas id="result-board" aria-hidden="true"></canvas
+        ><span class="wordmark">A MOMENT WELL PLAYED</span>
+        <div class="menu-emblem" id="result-emblem">✦</div>
+        <h2 id="result-title">这一局，漂亮</h2>
+        <p id="result-description" class="subtitle"></p>
+        <div id="result-stars" class="result-stars"></div>
+        <div class="result-stats">
+          <div><strong id="result-shots">0</strong><span>次出杆</span></div>
+          <i></i>
+          <div><strong id="result-pots">0</strong><span>枚入袋</span></div>
+        </div>
+        <div class="menu-actions">
+          <button id="next" class="primary">下一关 <span>›</span></button
+          ><button id="retry" class="secondary">再来一局</button
+          ><button data-home class="text-button">返回主页</button>
+        </div>
+      </section>
+      <output id="notice" role="status" hidden></output>
+    </main>
+  </body>
+</html>

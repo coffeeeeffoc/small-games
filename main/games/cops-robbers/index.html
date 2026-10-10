@@ -4,7 +4,7 @@
     <script src="./dev-mode.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#e0f5e9" />
+    <meta name="theme-color" content="#b6e8ee" />
     <meta
       name="description"
       content="突围队员会从出口逃走！点路口立即调动追逐队员，在三种各100关的挑战与对抗中选择双方角色。"
@@ -15,6 +15,7 @@
     <link rel="preload" as="image" href="./assets/patrol-garden.webp" />
     <link rel="stylesheet" href="./src/style.css" />
     <link rel="stylesheet" href="./src/game-shell.css" />
+    <link rel="stylesheet" href="./src/viewport.css" />
     <script type="module" src="./src/main.js"></script>
 
     <script defer src="./src/fullscreen.js"></script>
@@ -234,23 +235,25 @@
       </div>
       <div id="chapter-tabs" role="tablist" aria-label="选择街区"></div>
       <p id="chapter-description" class="dialog-description"></p>
-      <div class="level-landscape">
-        <svg
-          id="level-path"
-          viewBox="0 0 300 540"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        ></svg>
-        <div id="level-grid"></div>
+      <div class="dialog-body level-scroll" tabindex="0" aria-label="街区关卡列表">
+        <div class="level-landscape">
+          <svg
+            id="level-path"
+            viewBox="0 0 300 540"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          ></svg>
+          <div id="level-grid"></div>
+        </div>
       </div>
-      <p class="dialog-note">点一个路口，开始巡逻。所有关卡都可尝试。</p>
+      <p class="dialog-note dialog-footer">点一个路口，开始巡逻。所有关卡都可尝试。</p>
     </dialog>
     <dialog id="mode-dialog" aria-labelledby="mode-title">
       <div class="dialog-heading">
         <h2 id="mode-title">今天怎么玩？</h2>
-        <button type="button" class="icon-button dialog-close" aria-label="关闭玩法选择">×</button>
+        <button type="button" class="icon-button dialog-close" aria-label="关闭玩法选择">←</button>
       </div>
-      <section class="mode-card" aria-label="选择玩法和角色">
+      <section class="mode-card dialog-body" tabindex="0" aria-label="选择玩法和角色">
         <label
           >玩法<select id="solo-mode">
             <option value="challenge">围堵挑战 · 100 关</option>
@@ -273,16 +276,21 @@
             <option value="random">系统分配</option>
           </select></label
         ><label id="solo-level-row"
-          >关卡<select id="solo-level" aria-label="对抗关卡"></select></label
-        ><button type="button" id="start-mode" class="execute">选择街区</button>
+          >关卡<select id="solo-level" aria-label="对抗关卡"></select
+        ></label>
       </section>
+      <div class="dialog-actions">
+        <button type="button" id="start-mode" class="execute">选择街区</button>
+      </div>
     </dialog>
     <dialog id="win-dialog" data-testid="victory" aria-labelledby="win-title">
-      <div class="win-art" id="win-art" aria-hidden="true"></div>
-      <span class="eyebrow">NICE TEAMWORK!</span>
-      <h2 id="win-title">漂亮！一网打尽。</h2>
-      <div class="win-stars" id="win-stars" aria-label="获得三颗星"></div>
-      <p id="win-details"></p>
+      <div class="dialog-body result-summary">
+        <div class="win-art" id="win-art" aria-hidden="true"></div>
+        <span class="eyebrow">NICE TEAMWORK!</span>
+        <h2 id="win-title">漂亮！一网打尽。</h2>
+        <div class="win-stars" id="win-stars" aria-label="获得三颗星"></div>
+        <p id="win-details"></p>
+      </div>
       <div class="win-actions">
         <button class="execute" id="next-level" data-testid="next-level">
           下一个街区任务 <span aria-hidden="true">→</span></button
@@ -293,10 +301,12 @@
       </div>
     </dialog>
     <dialog id="loss-dialog" data-testid="defeat" aria-labelledby="loss-title">
-      <div class="win-art" id="loss-art" aria-hidden="true"></div>
-      <span class="eyebrow">ESCAPED!</span>
-      <h2 id="loss-title">糟糕，让他溜了！</h2>
-      <p id="loss-details"></p>
+      <div class="dialog-body result-summary">
+        <div class="win-art" id="loss-art" aria-hidden="true"></div>
+        <span class="eyebrow">ESCAPED!</span>
+        <h2 id="loss-title">糟糕，让他溜了！</h2>
+        <p id="loss-details"></p>
+      </div>
       <div class="win-actions">
         <button class="execute" id="undo-loss" data-testid="undo-loss">撤销这一步，换个走法</button
         ><button class="secondary-action" id="retry" data-testid="retry">重新挑战</button>
@@ -312,66 +322,74 @@
           <h2 id="help-title">看准路线，再行动。</h2>
         </div>
       </div>
-      <div class="help-note">
-        <strong>自由对抗：接触拦截</strong>
-        <p>
-          出口竞速和限步周旋中，双方轮流移动一名队员或留守。追逐队走到对手的位置即完成拦截；突围队可抵达出口（竞速）或坚持到回合上限获胜。开局可选择角色与先后手。
+      <div class="dialog-body" tabindex="0" aria-label="玩法详细说明">
+        <div class="help-note">
+          <strong>自由对抗：接触拦截</strong>
+          <p>
+            出口竞速和限步周旋中，双方轮流移动一名队员或留守。追逐队走到对手的位置即完成拦截；突围队可抵达出口（竞速）或坚持到回合上限获胜。开局可选择角色与先后手。
+          </p>
+          <br /><strong>围堵挑战：封住退路</strong>
+          <p>以下规则适用于固定电脑对手的 100 关挑战。</p>
+        </div>
+        <ol class="help-steps">
+          <li>
+            <strong>点到哪里，就走到哪里</strong>
+            <p>
+              选中追逐队员后，点相邻空路口立即走一步。其他追逐队员留守，随后全部突围队员行动。选人不消耗步数。
+            </p>
+          </li>
+          <li>
+            <strong>别让他逃出去</strong>
+            <p>
+              橙色箭头通向真正的逃生口。突围队员会绕开追逐队员找出口，任何一人逃走，本关就失败。占住出口或必经路口能拦住他。
+            </p>
+          </li>
+          <li>
+            <strong>收紧包围</strong>
+            <p>
+              全队分工：有人守逃生口，有人从两侧包抄。封住突围队员所在路口的所有退路才能抓获；挑战关已验证有解，后续地图需要更长距离的调动。橙色虚线只提示突围队员下一步的方向。
+            </p>
+          </li>
+        </ol>
+        <div class="help-note">
+          追逐队员不能走到突围队员或队友的位置。点自己脚下的编号可留守一拍。失败可直接撤销，重新考虑拦截次序。
+        </div>
+        <p class="dialog-note">
+          键盘：Tab 选择，Enter 点选或移动，空格留守一拍，Ctrl / ⌘ + Z
+          撤销。也可以把追逐队员拖到相邻空路口。
         </p>
-        <br /><strong>围堵挑战：封住退路</strong>
-        <p>以下规则适用于固定电脑对手的 100 关挑战。</p>
       </div>
-      <ol class="help-steps">
-        <li>
-          <strong>点到哪里，就走到哪里</strong>
-          <p>
-            选中追逐队员后，点相邻空路口立即走一步。其他追逐队员留守，随后全部突围队员行动。选人不消耗步数。
-          </p>
-        </li>
-        <li>
-          <strong>别让他逃出去</strong>
-          <p>
-            橙色箭头通向真正的逃生口。突围队员会绕开追逐队员找出口，任何一人逃走，本关就失败。占住出口或必经路口能拦住他。
-          </p>
-        </li>
-        <li>
-          <strong>收紧包围</strong>
-          <p>
-            全队分工：有人守逃生口，有人从两侧包抄。封住突围队员所在路口的所有退路才能抓获；挑战关已验证有解，后续地图需要更长距离的调动。橙色虚线只提示突围队员下一步的方向。
-          </p>
-        </li>
-      </ol>
-      <div class="help-note">
-        追逐队员不能走到突围队员或队友的位置。点自己脚下的编号可留守一拍。失败可直接撤销，重新考虑拦截次序。
+      <div class="dialog-actions">
+        <button class="execute dialog-close">明白，开始拦截！</button>
       </div>
-      <p class="dialog-note">
-        键盘：Tab 选择，Enter 点选或移动，空格留守一拍，Ctrl / ⌘ + Z
-        撤销。也可以把追逐队员拖到相邻空路口。
-      </p>
-      <button class="execute dialog-close">明白，开始拦截！</button>
     </dialog>
     <dialog id="settings-dialog" aria-labelledby="settings-title">
       <div class="dialog-heading"><h2 id="settings-title">按你的节奏玩</h2></div>
-      <label class="setting-row"
-        ><span><strong>播放音效</strong><small>脚步、抓捕、逃脱和胜利的小声音</small></span
-        ><input id="sound-setting" type="checkbox" /></label
-      ><label class="setting-row"
-        ><span><strong>减少动态效果</strong><small>缩短移动与庆祝动画</small></span
-        ><input id="motion-setting" type="checkbox" /></label
-      ><label class="setting-row"
-        ><span
-          ><strong>首关行动教学</strong
-          ><small>在第 1 关标出落点，边走边学守口与换防；可随时关闭</small></span
-        ><input id="teaching-setting" type="checkbox"
-      /></label>
-      <p class="dialog-note">思考时不会计时；每走一步，突围队员就会向出口推进。</p>
+      <div class="dialog-body" tabindex="0" aria-label="游戏设置选项">
+        <label class="setting-row"
+          ><span><strong>播放音效</strong><small>脚步、抓捕、逃脱和胜利的小声音</small></span
+          ><input id="sound-setting" type="checkbox" /></label
+        ><label class="setting-row"
+          ><span><strong>减少动态效果</strong><small>缩短移动与庆祝动画</small></span
+          ><input id="motion-setting" type="checkbox" /></label
+        ><label class="setting-row"
+          ><span
+            ><strong>首关行动教学</strong
+            ><small>在第 1 关标出落点，边走边学守口与换防；可随时关闭</small></span
+          ><input id="teaching-setting" type="checkbox"
+        /></label>
+        <p class="dialog-note">思考时不会计时；每走一步，突围队员就会向出口推进。</p>
+      </div>
       <div class="dialog-actions">
         <button type="button" class="secondary-action dialog-close">完成</button>
       </div>
     </dialog>
     <dialog id="share-dialog" aria-labelledby="share-title">
       <div class="dialog-heading"><h2 id="share-title">分享同题</h2></div>
-      <label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly />
-      <p id="share-note" class="dialog-description" role="status"></p>
+      <div class="dialog-body" tabindex="0" aria-label="同题分享信息">
+        <label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly />
+        <p id="share-note" class="dialog-description" role="status"></p>
+      </div>
       <div class="duel-controls">
         <button id="copy-share" class="secondary-action">复制链接</button
         ><button id="native-share" class="secondary-action" hidden>打开分享面板</button>

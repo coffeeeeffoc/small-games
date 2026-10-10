@@ -1,3 +1,5 @@
+import { arenaRadius, nextArenaRadius, shotDistance, physics } from './core.mjs';
+
 export const W = 390,
   H = 780,
   arena = { x: 195, y: 382, scale: 1.04 };
@@ -172,7 +174,7 @@ export function table(c, x, y, r) {
   circle(c, x, y, r, wood, '#f1c584', 3);
   c.save();
   c.beginPath();
-  c.arc(x, y, r - 3, 0, Math.PI * 2);
+  c.arc(x, y, Math.max(0, r - 3), 0, Math.PI * 2);
   c.clip();
   for (let i = -8; i < 9; i++) {
     const yy = y + (i * r) / 7;
@@ -384,14 +386,14 @@ export function draw(c, app) {
     if (sub) text(c, sub, 195, 196, 12, '#b8bfa7');
   };
   if (screen === 'home') {
-    text(c, '指 尖 比 武  ·  一 弹 定 胜 负', 195, 149, 12, '#cfb98c');
+    text(c, '指 尖 比 武  ·  走 位 逼 边', 195, 149, 12, '#cfb98c');
     c.save();
     c.translate(195, 225);
     c.rotate(-0.04);
     text(c, '弹指擂台', 2, 5, 58, '#0c1c21', 'serif');
     text(c, '弹指擂台', 0, 0, 58, '#fbd58a', 'serif');
     c.restore();
-    text(c, '这一弹，能不能把他送下去？', 195, 283, 15, '#c0c3a9');
+    text(c, '先抢好位置，再把对手逼下擂台', 195, 283, 15, '#c0c3a9');
     table(c, 195, 435, 145);
     fighter(c, 117, 406, 32, 2, false, t);
     fighter(c, 266, 392, 32, 1, false, t);
@@ -429,10 +431,10 @@ export function draw(c, app) {
   } else if (screen === 'help') {
     heading('弹指之间，自有分寸', '一只手，一座擂台，最后一位大侠');
     const tips = [
-      ['壹 · 按住蓝色圆盘', '向后拉动，箭头就是弹出的方向。'],
-      ['贰 · 松手，出招', '拉得越远越用力，小心自己滑下去。'],
-      ['叁 · 逼近边缘，再补一弹', '圆盘完全越过边缘才算淘汰。'],
-      ['肆 · 活到最后', '蓝 → 红 → 橙轮流；出局后可观战。'],
+      ['壹 · 先接近，找角度', '按住蓝盘向后拉，短射程需要先走位。'],
+      ['贰 · 留意自己的落点', '虚线是无碰撞停点，撞后仍要判断。'],
+      ['叁 · 多次逼边，再终结', '蓝 → 红 → 橙轮流；完全出界才淘汰。'],
+      ['肆 · 收圈前，向内留位', '前五回合不收圈，之后看橙色预告。'],
     ];
     tips.forEach(([title, desc], i) => {
       text(c, title, 195, 272 + i * 84, 21, '#f8d58f', 'serif');
@@ -458,7 +460,11 @@ export function draw(c, app) {
           ? '真实轨迹 · 再看一次'
           : state.phase === 'moving'
             ? '出招！'
-            : `${names[state.active]}${state.active === 0 ? ' · 轮到你了' : ' · 蓄势中'}`,
+            : state.phase === 'shrinking'
+              ? '擂台收圈中'
+              : state.phase === 'over'
+                ? '切磋结束'
+                : `${names[state.active]}${state.active === 0 ? ' · 轮到你了' : ' · 蓄势中'}`,
         195,
         128,
         17,
@@ -472,7 +478,26 @@ export function draw(c, app) {
         text(c, `${id === 0 ? '你' : names[id]}${alive ? '' : ' · 出局'}`, x + 5, 176, 12, cream);
         c.globalAlpha = 1;
       });
-      table(c, arena.x, arena.y, 158 * arena.scale);
+      const radius = arenaRadius(state),
+        nextRadius = nextArenaRadius(state),
+        willShrink = nextRadius < radius;
+      table(c, arena.x, arena.y, radius * arena.scale);
+      if (willShrink) {
+        c.save();
+        c.setLineDash([6, 6]);
+        circle(c, arena.x, arena.y, nextRadius * arena.scale, null, '#ffae54', 2.5);
+        c.restore();
+        text(
+          c,
+          state.phase === 'shrinking' ? '橙色虚线内将是新擂台' : '本回合结束后收圈',
+          195,
+          205,
+          11,
+          '#efba7a',
+        );
+      }
+      if (state.phase === 'shrinking')
+        circle(c, arena.x, arena.y, radius * arena.scale, null, '#ffe7a2', 3);
       for (const trail of app.trails) {
         circle(
           c,
@@ -486,13 +511,24 @@ export function draw(c, app) {
         if (!d.alive && d.fall >= 1) continue;
         const fade = d.alive ? 1 : Math.max(0, 1 - d.fall);
         c.globalAlpha = fade;
+        const canAim = d.alive && state.active === d.id && state.phase === 'aim';
+        if (d.id === 0 && canAim)
+          circle(
+            c,
+            arena.x + d.x * arena.scale,
+            arena.y + d.y * arena.scale,
+            32,
+            null,
+            '#fff1b699',
+            1.5,
+          );
         fighter(
           c,
           arena.x + d.x * arena.scale,
           arena.y + d.y * arena.scale + (1 - fade) * 40,
-          21 * fade,
+          physics.puck * arena.scale * fade,
           d.id,
-          d.alive && state.active === d.id && state.phase === 'aim',
+          canAim && d.id !== 0,
           t,
         );
         c.globalAlpha = 1;
@@ -516,51 +552,50 @@ export function draw(c, app) {
         const dx = app.drag.dx,
           dy = app.drag.dy,
           len = Math.hypot(dx, dy),
-          power = Math.min(1, len / 115);
+          power = Math.min(1, len / 115),
+          distance = shotDistance(power),
+          endX = len ? d.x - (dx / len) * distance : d.x,
+          endY = len ? d.y - (dy / len) * distance : d.y,
+          out = Math.hypot(endX, endY) > radius + physics.puck,
+          ringRisk = willShrink && Math.hypot(endX, endY) > nextRadius + physics.puck,
+          nearEdge = Math.hypot(endX, endY) > radius - physics.puck,
+          previewColor = out || ringRisk ? '#f37e61' : nearEdge ? '#ffd080' : '#fff1ca';
         if (len > 4) {
           const nx = -dx / len,
             ny = -dy / len,
-            l = 38 + power * 55;
-          c.save();
-          c.setLineDash([5, 7]);
-          line(
-            c,
-            [
-              [x - nx * 25, y - ny * 25],
-              [x + dx, y + dy],
-            ],
-            '#fff1ca99',
-            3,
-          );
-          c.restore();
-          line(
-            c,
-            [
-              [x + nx * 29, y + ny * 29],
-              [x + nx * l, y + ny * l],
-            ],
-            '#fff7da',
-            5,
-          );
-          const xx = x + nx * l,
+            l = distance * arena.scale,
+            xx = x + nx * l,
             yy = y + ny * l;
+          c.save();
+          c.setLineDash([3, 6]);
           line(
             c,
             [
-              [xx - nx * 12 - ny * 7, yy - ny * 12 + nx * 7],
+              [x, y],
               [xx, yy],
-              [xx - nx * 12 + ny * 7, yy - ny * 12 - nx * 7],
             ],
-            '#fff7da',
-            4,
+            previewColor,
+            2.5,
           );
+          circle(c, xx, yy, physics.puck * arena.scale, null, previewColor, 2);
+          c.restore();
+          circle(c, xx, yy, 2, previewColor);
         }
-        text(c, `力度 ${Math.round(power * 100)}%`, 195, 605, 18, '#f9d58b');
+        text(c, `力度 ${Math.round(power * 100)}% · 预计滑行`, 195, 605, 18, '#f9d58b');
         rect(c, 90, 632, 210, 7, 3, '#07191e');
-        if (power > 0.01) rect(c, 90, 632, 210 * power, 7, 3, power > 0.85 ? '#e97950' : '#f4ca77');
+        if (power > 0.01)
+          rect(c, 90, 632, 210 * power, 7, 3, out || ringRisk ? '#e97950' : '#f4ca77');
         text(
           c,
-          power > 0.85 ? '全力一弹，小心自己出界' : '松手弹出 · 拉回圆盘可取消',
+          len < 9
+            ? '拉回圆盘可取消'
+            : out
+              ? '预计出界 · 减小力度或改变方向'
+              : ringRisk
+                ? '这个落点有收圈风险'
+                : nearEdge
+                  ? '落点靠边 · 碰撞后仍需判断'
+                  : '无碰撞停点 · 撞后仍需判断',
           195,
           673,
           13,
@@ -572,9 +607,13 @@ export function draw(c, app) {
           app.toast ||
             (state.phase === 'moving'
               ? '这一弹，落在哪里？'
-              : state.active === 0
-                ? '按住蓝小侠，向后拉'
-                : '看准落点，等待你的回合'),
+              : state.phase === 'shrinking'
+                ? '擂台正在收紧'
+                : willShrink
+                  ? '收圈将至 · 注意落点'
+                  : state.active === 0
+                    ? '按住蓝小侠，向后拉'
+                    : '看准落点，等待你的回合'),
           195,
           611,
           18,
@@ -585,30 +624,28 @@ export function draw(c, app) {
           c,
           !state.discs[0].alive
             ? '你已出局 · 观战至本局结束'
-            : state.active === 0
-              ? '箭头所指，就是弹出的方向'
-              : '相同力量 · 对手正在选择方向',
+            : state.phase === 'shrinking'
+              ? '金色实线是边缘 · 橙色虚线是预告'
+              : state.active === 0
+                ? '先接近，再找角度逼边'
+                : '观察对手的位置，准备下一手',
           195,
           648,
           12,
           '#b6bba8',
         );
       }
-      text(
-        c,
-        `${live} 人在场  /  ${layouts.find((l) => l.id === state.layout)?.name ?? ''}`,
-        195,
-        733,
-        11,
-        '#94a59a',
-      );
+      text(c, `${live} 人在场 · 你已出手 ${state.playerShots} 次`, 195, 733, 11, '#94a59a');
       if (screen === 'replay') button('result', '返回结算', 100, 671, 190, 47);
     } else if (screen === 'paused') {
       heading('稍歇片刻', '擂台静止，等你再出招');
-      table(c, 195, 363, 100);
+      const scale = 100 / physics.radius;
+      table(c, 195, 363, arenaRadius(state) * scale);
       state.discs
         .filter((d) => d.alive)
-        .forEach((d) => fighter(c, 195 + d.x * 0.5, 363 + d.y * 0.5, 19, d.id));
+        .forEach((d) =>
+          fighter(c, 195 + d.x * scale, 363 + d.y * scale, physics.puck * scale, d.id),
+        );
       button('resume', '继续切磋', 60, 518, 270, 54, true);
       button('sound', app.save.sound ? '音效：开' : '音效：关', 60, 586, 270, 48);
       button('home', '返回武馆', 60, 648, 270, 48);
@@ -616,7 +653,7 @@ export function draw(c, app) {
       const win = state.winner === 0,
         draw = state.winner === -1;
       heading(
-        win ? '一弹成名！' : draw ? '同归于尽' : '胜败，都是修行',
+        win ? '守擂成功！' : draw ? '同归于尽' : '胜败，都是修行',
         win
           ? '这一局，你站到了最后'
           : draw
@@ -627,7 +664,7 @@ export function draw(c, app) {
       if (!draw) fighter(c, 195, 360, 62, state.winner, true, t);
       text(c, win ? '擂 主' : draw ? '平 局' : '再 来 一 局', 195, 460, 22, '#f8d185', 'serif');
       text(c, app.reason || '落点决定下一回合的安全', 195, 528, 13, '#c8c8b0');
-      text(c, `${state.turn} 回合 · ${state.shots} 次出招`, 195, 561, 13, '#b6bba8');
+      text(c, `${state.turn} 回合 · 你出手 ${state.playerShots} 次`, 195, 561, 13, '#b6bba8');
       button('again', '再战一局', 50, 607, 290, 55, true);
       button('replay', '回看最后一弹', 50, 676, 175, 47);
       button('home', '回武馆', 236, 676, 104, 47);
