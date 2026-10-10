@@ -220,3 +220,5 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 
 《收兵再冲》位于 `games/local/retreat-rally`，包名 `@coffeeeeffoc/retreat-rally`，Shell 入口 `#/games/retreat-rally`，独立入口 `/games/retreat-rally/index.html`。三关单线战役、明确标注的本地模拟匹配及同屏双人；本轮没有后端。微信 Canvas 预览通过 `pnpm minigame:build --platform wechat --game retreat-rally --preview` 构建，与 H5 共用模拟规则和渲染。详见[游戏说明](../games/local/retreat-rally/README.md)。
 《一炮拆城》位于 `games/local/game-castle-cannon`，访问 ID 为 `castle-cannon`，workspace 包名为 `@coffeeeeffoc/game-castle-cannon`。独立 H5 通过同源 iframe 装载，Canvas 规则和绘制同时经既有 Native Game Shell 生成微信横屏预览工程。三关以破门通路、箭塔减损、两种炮弹与自动士兵占领为核心；基础弹种不受广告限制，材料仅用于外观。构建、规则和桌面/模拟触屏、模拟 wx SDK 验收记录见 [游戏 README](../games/local/game-castle-cannon/README.md)。未验证微信开发者工具、微信真机或真实广告位，预览不是微信上线。
+
+《克朗棋 · Carrom Club》位于 `games/local/carrom-club`，包名 `@coffeeeeffoc/carrom-club`。通过 `#/games/carrom-club` 或 `/games/carrom-club/index.html` 打开。竖屏木质棋盘、滑轨摆位、回拉击球、人机九子对局和六关顺序解锁练习；独立物理核心、休闲红后/罚子规则、本地回合存档与沉浸 iframe 接入见[游戏说明](../games/local/carrom-club/README.md)。本次为 H5/手机 Web，未接入原生渠道。

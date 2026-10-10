@@ -8,6 +8,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'carrom-club') {
+    const { assertCarromGameplay } = await import('./game-checks/carrom-club.mjs');
+    return assertCarromGameplay(frame, mobile);
+  }
   if (id === 'cage-rescue') {
     const { assertCageRescueGameplay } = await import('./game-checks/cage-rescue.mjs');
     return assertCageRescueGameplay(frame, mobile);

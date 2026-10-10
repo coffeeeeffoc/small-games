@@ -1,5 +1,12 @@
 [
   {
+    "id": "carrom-club",
+    "source": "games/local/carrom-club",
+    "title": "克朗棋 · Carrom Club",
+    "description": "回拉指尖，听见落袋。在木质棋盘上摆位、瞄准、击球，与阿洛切磋一局，或挑战六关手感练习。",
+    "output": "dist"
+  },
+  {
     "id": "tower-brake",
     "source": "games/local/tower-brake",
     "title": "转塔留一脚刹车",

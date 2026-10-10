@@ -1,0 +1,19 @@
+{
+  "environment": "Chromium desktop mobile emulation, native CDP touch, 390×844 / 320×640 / 844×390, DPR 2",
+  "realDevice": false,
+  "browser": "140.0.7339.186",
+  "checks": [
+    "native touch positioning, aiming, pointercancel without firing",
+    "real touch shot pockets target; pause freezes physical state; resume reaches win",
+    "win stars unlock exactly the next level and survive reload",
+    "five genuine missed shots exhaust practice budget",
+    "human break triggers AI physical turn",
+    "resume returns to the last settled turn",
+    "320×640 and 844×390 retain complete board, thumb slider and pause targets",
+    "fullscreen gesture enter and exit verified",
+    "audio setting persists",
+    "disabled storage and rejected fullscreen keep play usable"
+  ],
+  "pageErrors": [],
+  "passed": true
+}

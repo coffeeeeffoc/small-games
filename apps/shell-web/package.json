@@ -26,6 +26,7 @@
     "test:pages:artifacts": "node scripts/pages-artifacts.mjs"
   },
   "dependencies": {
+    "@coffeeeeffoc/carrom-club": "workspace:*",
     "@coffeeeeffoc/chase-thief": "workspace:*",
     "@coffeeeeffoc/orbit-atelier": "workspace:*",
     "@coffeeeeffoc/game-moss-garden": "workspace:*",

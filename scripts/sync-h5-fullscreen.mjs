@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const source = await readFile(new URL('platforms/h5/fullscreen.js', root), 'utf8');
 const copies = [
+  'games/local/carrom-club/fullscreen.js',
   'games/local/three-choose-two/fullscreen.js',
   'games/local/retreat-rally/fullscreen.js',
   'games/local/cage-rescue/fullscreen.js',

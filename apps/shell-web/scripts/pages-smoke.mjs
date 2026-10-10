@@ -16,6 +16,7 @@ const builtInCount = 5;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
+    'carrom-club',
     'three-choose-two',
     'retreat-rally',
     'cage-rescue',
@@ -203,7 +204,15 @@ try {
         await page.evaluate(() => globalThis.document.querySelector('iframe')?.src),
         standaloneUrl,
       );
-      if (game.id === 'three-choose-two') {
+      if (game.id === 'carrom-club') {
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.locator('#pause').click();
+        await expect(frame.locator('#pause-screen')).toBeVisible();
+        await frame.locator('#pause-home').click();
+        await expect(frame.locator('#home')).toBeVisible();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'three-choose-two') {
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await frame.locator('[data-action="start"]').click();

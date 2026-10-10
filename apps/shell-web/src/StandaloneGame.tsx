@@ -20,6 +20,7 @@ export function StandaloneGame({
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
   const immersive =
+    id === 'carrom-club' ||
     id === 'three-choose-two' ||
     id === 'retreat-rally' ||
     id === 'cage-rescue' ||

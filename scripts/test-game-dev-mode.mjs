@@ -131,6 +131,7 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'carrom-club' ||
           game.id === 'three-choose-two' ||
           game.id === 'retreat-rally' ||
           game.id === 'cage-rescue' ||

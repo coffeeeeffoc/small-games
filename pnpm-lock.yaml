@@ -389,6 +389,9 @@ importers:
       '@coffeeeeffoc/carding-car':
         specifier: workspace:*
         version: link:../../games/local/carding-car
+      '@coffeeeeffoc/carrom-club':
+        specifier: workspace:*
+        version: link:../../games/local/carrom-club
       '@coffeeeeffoc/chase-thief':
         specifier: workspace:*
         version: link:../../games/local/chase-thief
@@ -753,6 +756,8 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+
+  games/local/carrom-club: {}
 
   games/local/chase-thief: {}
 

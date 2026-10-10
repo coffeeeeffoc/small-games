@@ -1,0 +1,17 @@
+{
+  "name": "@coffeeeeffoc/carrom-club",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "克朗棋：回拉指尖，听见落袋。木质棋盘上的人机对局与六关手感练习。",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node build.mjs",
+    "preview": "node server.mjs --dist",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  }
+}
