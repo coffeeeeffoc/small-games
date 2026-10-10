@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { sourceHash } from '../scripts/artifact.mjs';
 import { snapshot } from './flight-browser.mjs';
-import { monitorPagesPage } from '../../../../apps/shell-web/scripts/pages-browser-monitor.mjs';
 
 const shell = new URL(process.env.NIGHT_SHELL_URL || 'http://127.0.0.1:4330/');
 shell.hash = ''; shell.search = '';
@@ -42,7 +41,26 @@ try {
       hasTouch: scenario.touch, isMobile: scenario.touch,
       ...(scenario.touch ? { userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' } : {}) });
     const page = await context.newPage();
-    monitorPagesPage(page, shell.href, report.errors, scenario.id);
+    const error = message => report.errors.push(`${scenario.id}: ${message}`);
+    page.on('pageerror', event => error(event.message));
+    page.on('console', message => {
+      if (message.type() !== 'error') return;
+      const at = message.location();
+      error(`console: ${message.text()}${at.url ? ` (${at.url}:${at.lineNumber + 1}:${at.columnNumber + 1})` : ''}`);
+    });
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && url.port === '43002')
+        error(`requested a local Runtime: ${request.url()}`);
+    });
+    page.on('response', response => {
+      if (response.url().startsWith(shell.href) && response.status() >= 400)
+        error(`${response.status()} ${response.url()}`);
+    });
+    page.on('requestfailed', request => {
+      const message = request.failure()?.errorText ?? 'request failed';
+      if (request.url().startsWith(shell.href) && !message.includes('ERR_ABORTED')) error(`${message} ${request.url()}`);
+    });
     if (scenario.fixture) await page.addInitScript(status => {
       if (!globalThis.location.pathname.includes('/games/night-overwatch/')) return;
       const offers = [];
